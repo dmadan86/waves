@@ -1376,6 +1376,8 @@ export interface UiStrings {
     payTotal: string;
     payExternal: string;
     reimbursedOn: string;
+    payAlreadyOne: string;
+    payAlreadyMany: string;
     payNeedMore: string;
     payUpTo: string;
     payNone: string;
@@ -7433,6 +7435,8 @@ const en: UiStrings = {
     payTotal: 'Record payment of {amount}',
     payExternal: 'Payment already made outside Waves',
     reimbursedOn: 'Reimbursed on {date}',
+    payAlreadyOne: '1 entry was already paid by {name}',
+    payAlreadyMany: '{count} entries were already paid by {name}',
     payNeedMore: 'Selected claims are less than advances already paid',
     payUpTo: 'All due up to {date}',
     payNone: 'Nothing due to pay',
@@ -12937,6 +12941,8 @@ const ta: UiStrings = {
     payTotal: '{amount} கொடுப்பனவை பதிவு செய்',
     payExternal: 'கொடுப்பனவு Waves க்கு வெளியே செய்யப்பட்டது',
     reimbursedOn: '{date} அன்று திருப்பிச் செலுத்தப்பட்டது',
+    payAlreadyOne: '1 பதிவை ஏற்கனவே {name} செலுத்திவிட்டார்',
+    payAlreadyMany: '{count} பதிவுகளை ஏற்கனவே {name} செலுத்திவிட்டார்',
     payNeedMore: 'தேர்ந்தெடுத்த கோரிக்கைகள் ஏற்கனவே கொடுத்த முன்பணத்தை விட குறைவு',
     payUpTo: '{date} வரை அனைத்தும்',
     payNone: 'செலுத்த எதுவும் இல்லை',
@@ -18606,6 +18612,8 @@ const hi: UiStrings = {
     payTotal: '{amount} का भुगतान दर्ज करें',
     payExternal: 'भुगतान Waves के बाहर किया जा चुका है',
     reimbursedOn: '{date} को चुकाया गया',
+    payAlreadyOne: '1 एंट्री का भुगतान {name} पहले ही कर चुके हैं',
+    payAlreadyMany: '{count} एंट्री का भुगतान {name} पहले ही कर चुके हैं',
     payNeedMore: 'चुने गए दावे पहले दिए अग्रिम से कम हैं',
     payUpTo: '{date} तक सब बकाया',
     payNone: 'चुकाने को कुछ नहीं',
@@ -24165,6 +24173,8 @@ const ar: UiStrings = {
     payTotal: 'تسجيل دفعة {amount}',
     payExternal: 'تم الدفع خارج Waves',
     reimbursedOn: 'تم السداد في {date}',
+    payAlreadyOne: 'تم سداد إدخال واحد بالفعل بواسطة {name}',
+    payAlreadyMany: 'تم سداد {count} إدخالات بالفعل بواسطة {name}',
     payNeedMore: 'المطالبات المحددة أقل من السلف المدفوعة',
     payUpTo: 'كل المستحق حتى {date}',
     payNone: 'لا شيء مستحق',

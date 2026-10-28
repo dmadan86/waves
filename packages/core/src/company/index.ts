@@ -809,3 +809,35 @@ export function reimbursedOn(entry: CompanyEntry, entries: readonly CompanyEntry
   if (!entry.reimbursementId) return null;
   return entries.find((e) => e.id === entry.reimbursementId)?.occurredOn ?? null;
 }
+
+export interface ReimbursementOutcome {
+  /** Selected claims this payment covered. */
+  readonly paid: number;
+  /** Selected claims someone else already paid, by who recorded that payment (null: unknown). */
+  readonly alreadyPaid: readonly { readonly by: string | null; readonly count: number }[];
+}
+
+/**
+ * What a bulk payment did once the server settled it: the server pays whatever of
+ * the selection is still due, so claims another admin paid first just show as
+ * theirs. Null while the payment is still queued on this phone.
+ */
+export function reimbursementOutcome(
+  entries: readonly CompanyEntry[],
+  pay: { readonly reimbursementId: string; readonly claimIds: readonly string[] },
+): ReimbursementOutcome | null {
+  const byId = new Map(entries.map((e) => [e.id, e]));
+  if (byId.get(pay.reimbursementId)?.pending) return null;
+  const by = new Map<string | null, number>();
+  let paid = 0;
+  for (const id of pay.claimIds) {
+    const claim = byId.get(id);
+    if (!claim) continue;
+    if (claim.reimbursementId === pay.reimbursementId) paid += 1;
+    else if (claim.reimbursementId) {
+      const payer = byId.get(claim.reimbursementId)?.createdBy ?? null;
+      by.set(payer, (by.get(payer) ?? 0) + 1);
+    }
+  }
+  return { paid, alreadyPaid: [...by].map(([who, count]) => ({ by: who, count })) };
+}

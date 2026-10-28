@@ -17,6 +17,7 @@ import {
   flagsForEntry,
   isReimbursable,
   reimbursedOn,
+  reimbursementOutcome,
   format,
   formatCompanyStatement,
   formatMinorInput,
@@ -122,6 +123,9 @@ export function CompanyStatementView({
   const [through, setThrough] = useState<string | null>(null);
   const [pickingDate, setPickingDate] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastPay, setLastPay] = useState<{ reimbursementId: string; claimIds: string[] } | null>(
+    null,
+  );
   const currency = view.currency as CurrencyCode;
   const mine = view.me?.id === member.id;
   const name = mine ? '' : displayName(member, null, null, t.misc.someone);
@@ -213,8 +217,9 @@ export function CompanyStatementView({
     const versioned = (rows: readonly CompanyEntry[]) =>
       rows.map((e) => ({ entryId: e.id, expectedVersion: e.version }));
     try {
+      const reimbursementId = randomUUID();
       await reimburse.mutateAsync({
-        reimbursementId: randomUUID(),
+        reimbursementId,
         memberId: member.id,
         claims: versioned(preview.claims),
         adjustments: versioned(preview.adjustments),
@@ -223,6 +228,7 @@ export function CompanyStatementView({
         expectedAmountMinor: preview.payoutMinor.toString(),
         note: null,
       });
+      setLastPay({ reimbursementId, claimIds: preview.claims.map((e) => e.id) });
       setSelecting(false);
       setPicked(new Set());
       setThrough(null);
@@ -230,6 +236,20 @@ export function CompanyStatementView({
       setError(friendlyError(caught, t.company.couldNotSave, 'company.reimburse'));
     }
   };
+
+  // The server pays what is still due; claims another admin paid first read as a calm note.
+  const alreadyPaid = useMemo(() => {
+    const outcome = lastPay ? reimbursementOutcome(view.entries, lastPay) : null;
+    return (outcome?.alreadyPaid ?? [])
+      .filter((a) => a.by)
+      .map((a) => {
+        const payer = view.members.find((m) => m.id === a.by);
+        const who = payer ? displayName(payer, null, null, t.misc.someone) : t.misc.someone;
+        return a.count === 1
+          ? fill(t.company.payAlreadyOne, { name: who })
+          : fill(t.company.payAlreadyMany, { count: a.count, name: who });
+      });
+  }, [lastPay, view.entries, view.members, t]);
 
   const rate = member.daily_rate_minor ? BigInt(member.daily_rate_minor) : null;
   const entryRows = [...statement.rows].reverse();
@@ -248,6 +268,12 @@ export function CompanyStatementView({
           {error}
         </Text>
       ) : null}
+
+      {alreadyPaid.map((line) => (
+        <Text key={line} variant="caption" tone="muted">
+          {line}
+        </Text>
+      ))}
 
       <StandardCard>
         {statement.opening !== 0n ? (

@@ -113,6 +113,10 @@ afterAll(async () => {
   if (db) await db.end();
 });
 
+// The RPC never refuses stale selections: it pays what is still due, or returns null.
+const paid = async (...args: Parameters<typeof reimburse>): Promise<string | null> =>
+  (await reimburse(...args)).rows[0].waves_company_reimburse;
+
 describe('company Phase 3', () => {
   it('grants only application RPCs and retains SELECT-only ledger access', async () => {
     for (const signature of [
@@ -490,7 +494,7 @@ describe('company Phase 3', () => {
         const claims = await selection([a]),
           adjustments = await selection([advance, payout, cash]);
         const id = randomUUID();
-        expect(await denied(() => reimburse(id, claims, [], '160'))).toMatch(/SELECTION_CHANGED/);
+        expect(await paid(id, claims, [], '100')).toBeNull(); // 160 due, ceiling 100: nothing paid
         expect(await row(id)).toBeUndefined();
         await reimburse(id, claims, adjustments, '160');
         const r = await row(id);
@@ -519,9 +523,9 @@ describe('company Phase 3', () => {
         expect(await denied(() => reimburse(id, claims, adjustments, '160', 'changed'))).toMatch(
           /IDEMPOTENCY_CONFLICT/,
         );
-        expect(await denied(() => reimburse(randomUUID(), claims, adjustments, '160'))).toMatch(
-          /SELECTION_CHANGED/,
-        );
+        const again = randomUUID();
+        expect(await paid(again, claims, adjustments, '160')).toBeNull(); // already paid
+        expect(await row(again)).toBeUndefined();
         for (const target of [a, advance, payout, cash, id]) {
           expect(
             await denied(() =>
@@ -537,7 +541,65 @@ describe('company Phase 3', () => {
         }
       });
     }));
-  it('stale versions and incorrect payout roll back every row; zero clearing is supported with approvals on', () =>
+  it('self-heals: partial overlap pays only what is still due, retries are idempotent, never overpays', () =>
+    isolated(async () => {
+      await admin(async () => {
+        const a = await entry({ amount: '100' }),
+          b = await entry({ amount: '50' }),
+          advance = await entry({ amount: '30' }, 'advance');
+        const stale = await selection([a, b]); // both admins loaded these versions
+        const adjustments = await selection([advance]);
+        // Another admin pays `a` first (concurrent admin B).
+        const theirs = randomUUID();
+        await reimburse(theirs, await selection([a]), [], '100');
+        // Their payment netted the advance in; ours skips `a` and pays `b` alone.
+        const mine = randomUUID();
+        expect(await paid(mine, stale, adjustments, '120')).toBe(mine);
+        expect(await row(mine)).toMatchObject({ amount: '50' });
+        expect((await row(mine)).reimbursement_details).toMatchObject({
+          claimIds: [b],
+          skippedIds: [a],
+        });
+        expect(await row(a)).toMatchObject({ reimbursement_id: theirs });
+        expect(await row(b)).toMatchObject({ reimbursement_id: mine, status: 'reimbursed' });
+        // Offline retry with the same id and old versions: same row, nothing changes twice.
+        expect(await paid(mine, stale, adjustments, '120')).toBe(mine);
+        expect((await row(b)).version).toBe(2);
+        expect(
+          (
+            await db.query(
+              "SELECT count(*)::int n FROM company_entries WHERE entry_kind='reimbursement' AND reimbursement_details IS NOT NULL",
+            )
+          ).rows[0].n,
+        ).toBe(2);
+      });
+    }));
+  it('concurrent admins cannot double-pay; a changed amount over the ceiling is not paid', () =>
+    isolated(async () => {
+      const a = await admin(() => entry({ amount: '100' }));
+      const b = await admin(() => entry({ amount: '50' }));
+      const sel = await admin(() => selection([a, b]));
+      const ids = [randomUUID(), randomUUID()];
+      // Two admins holding the same stale selection (row locks serialise the real race).
+      const created: (string | null)[] = [];
+      for (const id of ids) created.push(await admin(() => paid(id, sel, [], '150')));
+      expect(created.filter(Boolean)).toHaveLength(1); // exactly one payment
+      expect((await row(a)).reimbursement_id).toBe(created.find(Boolean));
+      expect((await row(b)).reimbursement_id).toBe(created.find(Boolean));
+      // An amount edited up after the admin saw it is not paid above the ceiling.
+      const c = await admin(() => entry({ amount: '10' }));
+      const seen = await admin(() => selection([c]));
+      await admin(() =>
+        db.query('SELECT waves_company_entry_update($1,$2)', [
+          c,
+          JSON.stringify({ amount: '999' }),
+        ]),
+      );
+      const late = randomUUID();
+      expect(await admin(() => paid(late, seen, [], '10'))).toBeNull();
+      expect(await row(late)).toBeUndefined();
+    }));
+  it('stale versions are tolerated and zero clearing is supported with approvals on; zero clearing is supported with approvals on', () =>
     isolated(async () => {
       await admin(async () => {
         const a = await entry(),
@@ -545,18 +607,9 @@ describe('company Phase 3', () => {
         const claims = await selection([a]),
           adjustments = await selection([advance]);
         const id = randomUUID();
-        expect(
-          await denied(() =>
-            reimburse(id, [{ ...claims[0], expectedVersion: 99 }], adjustments, '0'),
-          ),
-        ).toMatch(/SELECTION_CHANGED/);
-        expect(await denied(() => reimburse(id, claims, adjustments, '1'))).toMatch(
-          /SELECTION_CHANGED/,
-        );
-        expect(await row(id)).toBeUndefined();
-        expect((await row(a)).reimbursement_id).toBeNull();
         await db.query('SELECT waves_company_settings_set($1,NULL,true)', [g.groupId]);
-        await reimburse(id, claims, adjustments, '0');
+        // A stale version is tolerated: the server re-evaluates and pays the current rows.
+        await reimburse(id, [{ ...claims[0], expectedVersion: 99 }], adjustments, '0');
         expect(await row(id)).toMatchObject({ amount: '0', status: 'approved' });
         expect((await row(a)).status).toBe('reimbursed');
       });
@@ -568,22 +621,16 @@ describe('company Phase 3', () => {
           advance = await entry({ amount: '200' }, 'advance');
         const claims = await selection([a]),
           adjustments = await selection([advance]);
-        expect(await denied(() => reimburse(randomUUID(), claims, adjustments, '0'))).toMatch(
-          /SELECTION_CHANGED/,
-        );
+        expect(await paid(randomUUID(), claims, adjustments, '0')).toBeNull();
         for (const id of [await entry({}, 'wages'), await entry({ occurredOn: '2026-12-01' })]) {
           const selected = await selection([id]);
-          expect(await denied(() => reimburse(randomUUID(), selected, adjustments, '0'))).toMatch(
-            /SELECTION_CHANGED/,
-          );
+          expect(await paid(randomUUID(), selected, adjustments, '0')).toBeNull();
           expect((await row(id)).reimbursement_id).toBeNull();
         }
         await db.query('SELECT waves_company_settings_set($1,NULL,true)', [g.groupId]);
         const submitted = await entry(),
           selected = await selection([submitted]);
-        expect(await denied(() => reimburse(randomUUID(), selected, adjustments, '0'))).toMatch(
-          /SELECTION_CHANGED/,
-        );
+        expect(await paid(randomUUID(), selected, adjustments, '0')).toBeNull();
         expect((await row(a)).reimbursement_id).toBeNull();
       });
     }));
@@ -755,7 +802,8 @@ describe('company Phase 3', () => {
       const id = randomUUID();
       await admin(async () => {
         const foreignSelection = await selection([foreign]);
-        expect(await denied(() => reimburse(id, foreignSelection))).toMatch(/SELECTION_CHANGED/);
+        expect(await paid(id, foreignSelection)).toBeNull();
+        expect(await row(id)).toBeUndefined();
       });
       await admin(async () => {
         await reimburse(id, await selection([a]));

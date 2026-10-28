@@ -208,7 +208,7 @@ CREATE FUNCTION public.waves_company_reimburse(
  p_cutoff date,p_paid_on date,p_expected_amount_minor bigint,p_note text
 ) RETURNS uuid LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 DECLARE actor uuid; existing public.company_entries%ROWTYPE; r public.company_entries%ROWTYPE; item jsonb;
- claims jsonb; adjustments jsonb; ids uuid[]; claim_ids uuid[]; adjustment_ids uuid[]; eligible_ids uuid[];
+ claims jsonb; ids uuid[]; claim_ids uuid[]; adjustment_ids uuid[]; selected_ids uuid[]; changed_ids uuid[]:='{}'; skipped_ids uuid[];
  claims_minor numeric:=0; credits_minor numeric:=0; payout numeric; request_hash text; currency character(3);
 BEGIN
  actor:=public.waves_company_actor(p_group_id);
@@ -216,7 +216,6 @@ BEGIN
  IF p_reimbursement_id IS NULL OR p_member_id IS NULL OR p_cutoff IS NULL OR p_paid_on IS NULL OR p_expected_amount_minor IS NULL OR p_expected_amount_minor<0
  OR length(p_note)>500 OR jsonb_typeof(p_claims) IS DISTINCT FROM 'array' OR jsonb_typeof(p_adjustments) IS DISTINCT FROM 'array' THEN
   RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
- IF jsonb_array_length(p_claims)=0 THEN RAISE EXCEPTION 'SELECTION_CHANGED: refresh the reimbursement selection' USING ERRCODE='check_violation'; END IF;
  FOR item IN SELECT value FROM jsonb_array_elements(p_claims||p_adjustments) LOOP
   IF jsonb_typeof(item) IS DISTINCT FROM 'object' OR jsonb_typeof(item->'entryId') IS DISTINCT FROM 'string'
   OR coalesce(item->>'entryId','') !~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
@@ -226,12 +225,13 @@ BEGIN
    RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
  END LOOP;
  SELECT jsonb_agg(jsonb_build_object('entryId',(value->>'entryId')::uuid,'expectedVersion',(value->>'expectedVersion')::integer) ORDER BY (value->>'entryId')::uuid),array_agg((value->>'entryId')::uuid ORDER BY (value->>'entryId')::uuid)
- INTO claims,claim_ids FROM jsonb_array_elements(p_claims);
- SELECT coalesce(jsonb_agg(jsonb_build_object('entryId',(value->>'entryId')::uuid,'expectedVersion',(value->>'expectedVersion')::integer) ORDER BY (value->>'entryId')::uuid),'[]'),coalesce(array_agg((value->>'entryId')::uuid ORDER BY (value->>'entryId')::uuid),'{}'::uuid[])
- INTO adjustments,adjustment_ids FROM jsonb_array_elements(p_adjustments);
- ids:=claim_ids||adjustment_ids;
+ INTO claims,selected_ids FROM jsonb_array_elements(p_claims);
+ claims:=coalesce(claims,'[]'::jsonb); selected_ids:=coalesce(selected_ids,'{}'::uuid[]);
+ SELECT coalesce(array_agg((value->>'entryId')::uuid ORDER BY (value->>'entryId')::uuid),'{}'::uuid[])
+ INTO adjustment_ids FROM jsonb_array_elements(p_adjustments);
+ ids:=selected_ids||adjustment_ids;
  IF cardinality(ids)<>(SELECT count(DISTINCT id) FROM unnest(ids) id) OR p_reimbursement_id=ANY(ids) THEN RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
- request_hash:=encode(sha256(convert_to(jsonb_build_object('groupId',p_group_id,'memberId',p_member_id,'claims',claims,'adjustments',adjustments,'cutoff',p_cutoff,'paidOn',p_paid_on,'expectedAmountMinor',p_expected_amount_minor::text,'note',p_note)::text,'UTF8')),'hex');
+ request_hash:=encode(sha256(convert_to(jsonb_build_object('groupId',p_group_id,'memberId',p_member_id,'claims',to_jsonb(selected_ids),'cutoff',p_cutoff,'paidOn',p_paid_on,'expectedAmountMinor',p_expected_amount_minor::text,'note',p_note)::text,'UTF8')),'hex');
  PERFORM pg_advisory_xact_lock(hashtextextended(p_reimbursement_id::text,0));
  SELECT * INTO existing FROM public.company_entries WHERE id=p_reimbursement_id;
  IF FOUND THEN
@@ -243,29 +243,40 @@ BEGIN
  IF NOT EXISTS(SELECT 1 FROM public.group_members WHERE id=p_member_id AND group_id=p_group_id AND left_at IS NULL) THEN RAISE EXCEPTION 'UNKNOWN_MEMBER' USING ERRCODE='insufficient_privilege'; END IF;
  SELECT default_currency INTO currency FROM public.groups WHERE id=p_group_id AND deleted_at IS NULL FOR SHARE;
  IF NOT FOUND THEN RAISE EXCEPTION 'GROUP_DELETED' USING ERRCODE='check_violation'; END IF;
- -- Lock every selected row in stable ID order before checking versions.
- PERFORM id FROM public.company_entries WHERE id=ANY(ids) ORDER BY id FOR UPDATE;
- IF (SELECT count(*) FROM public.company_entries WHERE id=ANY(ids))<>cardinality(ids) THEN RAISE EXCEPTION 'SELECTION_CHANGED: refresh the reimbursement selection' USING ERRCODE='check_violation'; END IF;
- FOR item IN SELECT value FROM jsonb_array_elements(claims||adjustments) LOOP
+ -- Lock selected claims and eligible credits in stable ID order before reading them.
+ -- Claim kinds only, so claim locks never overlap the credit locks below (no lock-order cycle); the member advisory lock above serialises credit inserts/approvals.
+ PERFORM id FROM public.company_entries WHERE id=ANY(selected_ids) AND entry_kind IN ('expense','allowance') ORDER BY id FOR UPDATE;
+ PERFORM id FROM public.company_entries WHERE group_id=p_group_id AND member_id=p_member_id AND deleted_at IS NULL AND status='approved'
+ AND reimbursement_id IS NULL AND reimbursement_details IS NULL AND occurred_on<=p_cutoff AND entry_kind IN ('advance','reimbursement') ORDER BY id FOR UPDATE;
+ claim_ids:='{}'::uuid[];
+ FOR item IN SELECT value FROM jsonb_array_elements(claims) LOOP
   SELECT * INTO r FROM public.company_entries WHERE id=(item->>'entryId')::uuid;
-  IF r.group_id<>p_group_id OR r.member_id<>p_member_id OR r.version<>(item->>'expectedVersion')::integer OR r.deleted_at IS NOT NULL
-  OR r.status<>'approved' OR r.reimbursement_id IS NOT NULL OR r.reimbursement_details IS NOT NULL OR r.occurred_on>p_cutoff
-  OR (r.id=ANY(claim_ids) AND r.entry_kind NOT IN ('expense','allowance'))
-  OR (r.id=ANY(adjustment_ids) AND r.entry_kind NOT IN ('advance','reimbursement')) THEN
-   RAISE EXCEPTION 'SELECTION_CHANGED: refresh the reimbursement selection' USING ERRCODE='check_violation'; END IF;
-  IF r.id=ANY(claim_ids) THEN claims_minor:=claims_minor+r.amount;
-  ELSE credits_minor:=credits_minor+CASE WHEN r.entry_kind='reimbursement' AND r.direction='employee_to_company' THEN -r.amount ELSE r.amount END; END IF;
+  IF FOUND AND r.group_id=p_group_id AND r.member_id=p_member_id AND r.deleted_at IS NULL
+  AND r.status='approved' AND r.reimbursement_id IS NULL AND r.reimbursement_details IS NULL AND r.occurred_on<=p_cutoff
+  AND r.entry_kind IN ('expense','allowance') THEN
+   claim_ids:=array_append(claim_ids,r.id); claims_minor:=claims_minor+r.amount;
+   IF r.version<>(item->>'expectedVersion')::integer THEN changed_ids:=array_append(changed_ids,r.id); END IF;
+  END IF;
  END LOOP;
- SELECT coalesce(array_agg(id ORDER BY id),'{}'::uuid[]) INTO eligible_ids FROM public.company_entries
+ SELECT coalesce(array_agg(id ORDER BY id),'{}'::uuid[]),
+ coalesce(sum(CASE WHEN entry_kind='reimbursement' AND direction='employee_to_company' THEN -amount ELSE amount END),0)
+ INTO adjustment_ids,credits_minor FROM public.company_entries
  WHERE group_id=p_group_id AND member_id=p_member_id AND deleted_at IS NULL AND status='approved'
  AND reimbursement_id IS NULL AND reimbursement_details IS NULL AND occurred_on<=p_cutoff AND entry_kind IN ('advance','reimbursement');
- IF eligible_ids IS DISTINCT FROM adjustment_ids THEN RAISE EXCEPTION 'SELECTION_CHANGED: refresh the reimbursement selection' USING ERRCODE='check_violation'; END IF;
  payout:=claims_minor-credits_minor;
- IF payout<0 OR payout<>p_expected_amount_minor THEN RAISE EXCEPTION 'SELECTION_CHANGED: refresh the reimbursement selection' USING ERRCODE='check_violation'; END IF;
+ -- Version changes are tolerated unless they would exceed the requested ceiling.
+ IF payout>p_expected_amount_minor THEN
+  SELECT coalesce(array_agg(id ORDER BY id),'{}'::uuid[]),coalesce(sum(amount),0) INTO claim_ids,claims_minor
+  FROM public.company_entries WHERE id=ANY(claim_ids) AND NOT (id=ANY(changed_ids));
+  payout:=claims_minor-credits_minor;
+ END IF;
+ IF payout>p_expected_amount_minor OR payout<0 OR cardinality(claim_ids)=0 THEN RETURN NULL; END IF;
+ SELECT coalesce(array_agg(id ORDER BY id),'{}'::uuid[]) INTO skipped_ids FROM unnest(selected_ids) id WHERE NOT (id=ANY(claim_ids));
+ ids:=claim_ids||adjustment_ids;
  PERFORM set_config('waves.company_reimburse',p_reimbursement_id::text,true);
  INSERT INTO public.company_entries(id,group_id,member_id,entry_kind,amount,currency,occurred_on,direction,status,note,created_by,updated_by,reimbursement_details)
  VALUES(p_reimbursement_id,p_group_id,p_member_id,'reimbursement',payout::bigint,currency,p_paid_on,'company_to_employee','approved',p_note,actor,actor,
- jsonb_build_object('requestHash',request_hash,'cutoff',p_cutoff,'claimIds',to_jsonb(claim_ids),'adjustmentIds',to_jsonb(adjustment_ids),'claimsMinor',claims_minor::text,'creditsMinor',credits_minor::text,'payoutMinor',payout::text));
+ jsonb_build_object('requestHash',request_hash,'cutoff',p_cutoff,'claimIds',to_jsonb(claim_ids),'adjustmentIds',to_jsonb(adjustment_ids),'skippedIds',to_jsonb(skipped_ids),'claimsMinor',claims_minor::text,'creditsMinor',credits_minor::text,'payoutMinor',payout::text));
  UPDATE public.company_entries SET reimbursement_id=p_reimbursement_id,
  status=CASE WHEN id=ANY(claim_ids) THEN 'reimbursed' ELSE status END,version=version+1,updated_by=actor,updated_at=now() WHERE id=ANY(ids);
  PERFORM set_config('waves.company_reimburse','',true);

@@ -12,6 +12,7 @@ import {
   materialiseCompanyEntries,
   mileageAmount,
   normaliseDecimalInput,
+  reimbursementOutcome,
   resolveMileageRate,
   validateGstin,
   type CompanyEntry,
@@ -319,5 +320,48 @@ describe('bulk reimbursement', () => {
     const rows = materialiseCompanyEntries(state, queue, { groupId: 'g1', currency: 'INR' });
     expect(rows.map((r) => r.id)).toEqual(['r1']); // unknown claim ignored, payment shown
     expect(rows[0]?.entry_kind).toBe('reimbursement');
+  });
+});
+
+describe('reimbursement outcome after a concurrent payment', () => {
+  const mk = (id: string, over: Partial<CompanyEntryRow> = {}) =>
+    companyEntryFromRow({
+      id,
+      group_id: 'g1',
+      member_id: 'ravi',
+      entry_kind: 'expense',
+      amount: '100',
+      currency: 'INR',
+      occurred_on: '2026-10-02',
+      status: 'approved',
+      ...over,
+    });
+  const mine = { reimbursementId: 'mine', claimIds: ['a', 'b', 'c'] };
+  it('names who already paid the overlap and counts what we paid', () => {
+    const entries = [
+      mk('mine', { entry_kind: 'reimbursement', created_by: 'asha' }),
+      mk('a', { status: 'reimbursed', reimbursement_id: 'mine' }),
+      mk('b', { status: 'reimbursed', reimbursement_id: 'theirs' }),
+      mk('c', { status: 'reimbursed', reimbursement_id: 'theirs' }),
+      mk('theirs', { entry_kind: 'reimbursement', created_by: 'priya' }),
+    ];
+    expect(reimbursementOutcome(entries, mine)).toEqual({
+      paid: 1,
+      alreadyPaid: [{ by: 'priya', count: 2 }],
+    });
+  });
+  it('pays nothing when another admin paid everything first', () => {
+    const entries = [
+      mk('a', { status: 'reimbursed', reimbursement_id: 'theirs' }),
+      mk('theirs', { entry_kind: 'reimbursement', created_by: 'priya' }),
+    ];
+    expect(reimbursementOutcome(entries, { reimbursementId: 'mine', claimIds: ['a'] })).toEqual({
+      paid: 0,
+      alreadyPaid: [{ by: 'priya', count: 1 }],
+    });
+  });
+  it('stays quiet while our payment is still queued offline', () => {
+    const entries = [mk('mine', { entry_kind: 'reimbursement', pending: true }), mk('a')];
+    expect(reimbursementOutcome(entries, mine)).toBeNull();
   });
 });
