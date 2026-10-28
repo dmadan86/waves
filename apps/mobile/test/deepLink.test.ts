@@ -21,16 +21,15 @@ describe('stackForPath', () => {
 });
 
 describe('openDeepLink', () => {
-  it('dismisses to Home then pushes each step', () => {
-    const r = { canDismiss: () => true, dismissAll: vi.fn(), push: vi.fn() };
+  it('resets to Home then pushes each step', () => {
+    const r = { dismissTo: vi.fn(), push: vi.fn() };
     openDeepLink(r, '/group/g1/expense/e1');
-    expect(r.dismissAll).toHaveBeenCalledOnce();
+    expect(r.dismissTo).toHaveBeenCalledWith('/');
     expect(r.push.mock.calls.map((c) => c[0])).toEqual(['/group/g1', '/group/g1/expense/e1']);
   });
-  it('skips dismiss when there is nothing to dismiss', () => {
-    const r = { canDismiss: () => false, dismissAll: vi.fn(), push: vi.fn() };
+  it('still pushes when dismissTo throws', () => {
+    const r = { dismissTo: vi.fn(() => { throw new Error('x'); }), push: vi.fn() };
     openDeepLink(r, '/activity');
-    expect(r.dismissAll).not.toHaveBeenCalled();
     expect(r.push).toHaveBeenCalledWith('/activity');
   });
 });

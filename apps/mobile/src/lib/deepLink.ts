@@ -18,17 +18,16 @@ export function stackForPath(path: string): string[] {
 }
 
 type StackRouter = {
-  canDismiss?: () => boolean;
-  dismissAll: () => void;
+  dismissTo: (href: never) => void;
   push: (href: never) => void;
 };
 
-/** Reset to Home, then push each step so Back walks target → group → Home. */
+/** Reset to the Home tab root, then push each step so Back walks target → group → Home. */
 export function openDeepLink(router: StackRouter, path: string): void {
   try {
-    if (router.canDismiss?.()) router.dismissAll();
+    router.dismissTo('/' as never);
   } catch {
-    // Nothing to dismiss (navigator not ready): the pushes below still apply.
+    // Navigator not ready: the pushes below still apply.
   }
   for (const step of stackForPath(path)) router.push(step as never);
 }

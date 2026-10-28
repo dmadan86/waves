@@ -429,12 +429,15 @@ const firstTime = createOnceGate(AsyncStorage);
 
 function PushRouting() {
   const router = useRouter();
+  // Signed out, the guarded screens would reject the tap: wait, the cold-start
+  // response is still there after sign-in.
+  const { session } = useAuth();
 
   useEffect(() => {
     // expo-notifications has no web implementation, and reaching into it there
     // throws rather than no-opping — which takes the whole app down on the
     // platform this repo uses for visual checks.
-    if (!pushSupported) return;
+    if (!pushSupported || !session) return;
 
     void ensureAndroidChannel();
 
@@ -457,7 +460,7 @@ function PushRouting() {
       void handle(response);
     });
     return () => subscription.remove();
-  }, [router]);
+  }, [router, session]);
 
   return null;
 }
