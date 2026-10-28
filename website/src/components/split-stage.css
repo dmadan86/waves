@@ -1,0 +1,374 @@
+.ss-wrap {
+  position: relative;
+  inline-size: 100%;
+  max-inline-size: 34rem;
+  margin-inline: auto;
+  color: var(--w-ink);
+  font-variant-numeric: tabular-nums;
+  isolation: isolate;
+}
+
+.ss-stage {
+  position: relative;
+  aspect-ratio: 4 / 4.4;
+  min-block-size: 27rem;
+  margin: 0;
+  background: radial-gradient(
+    ellipse at 50% 48%,
+    color-mix(in srgb, var(--w-accent) 17%, transparent),
+    transparent 69%
+  );
+}
+
+.ss-scene {
+  position: absolute;
+  inset: 0;
+}
+.ss-example {
+  position: absolute;
+  inset-block-start: 2%;
+  inset-inline-start: 5%;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--w-line);
+  border-radius: 999px;
+  background: var(--w-accent-wash);
+  color: var(--w-ink-2);
+  font-size: 0.7rem;
+}
+
+.ss-paper {
+  position: absolute;
+  border: 1px solid var(--w-line);
+  border-radius: 1.15rem;
+  background: color-mix(in srgb, #e9d9bc 5%, var(--w-surface));
+  box-shadow: var(--w-shadow-lg);
+}
+
+.ss-bill {
+  inset-block-start: 11%;
+  inset-inline: 19%;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.8rem 1rem;
+  text-align: center;
+  z-index: 2;
+}
+.ss-bill-name {
+  font-size: 0.85rem;
+}
+.ss-total {
+  font-size: clamp(1.5rem, 5vw, 2.1rem);
+  line-height: 1.2;
+}
+.ss-paid {
+  color: var(--w-ink-2);
+  font-size: 0.7rem;
+}
+.ss-paths {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  pointer-events: none;
+}
+.ss-paths path {
+  stroke: var(--w-accent);
+  stroke-width: 1.25;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 0;
+  opacity: 0.38;
+}
+.ss-people {
+  position: absolute;
+  inset-block-start: 35%;
+  inset-inline: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ss-person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  min-inline-size: 0;
+}
+.ss-share {
+  max-inline-size: 95%;
+  box-sizing: border-box;
+  padding: 0.3rem 0.45rem;
+  border: 1px solid var(--w-line);
+  border-radius: 999px;
+  background: var(--w-surface);
+  color: var(--w-ink-2);
+  font-size: clamp(0.6rem, 2vw, 0.75rem);
+  text-align: center;
+}
+.ss-avatar {
+  display: grid;
+  place-items: center;
+  inline-size: 44px;
+  block-size: 44px;
+  flex: 0 0 44px;
+  border-radius: 50%;
+  background: #7a5af8;
+  color: #fff;
+  font-size: 1rem;
+}
+.ss-person-1 .ss-avatar {
+  background: #a994ff;
+  color: #23134f;
+}
+.ss-person-2 .ss-avatar {
+  background: #5638c4;
+}
+.ss-name {
+  color: var(--w-ink-2);
+  font-size: 0.75rem;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.ss-balance {
+  inset-block-start: 61%;
+  inset-inline: 9%;
+  padding: 0.75rem 1rem;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  column-gap: 0.65rem;
+  align-items: center;
+}
+.ss-check {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 50%;
+  background: #237a60;
+  color: #fff;
+}
+.ss-check svg {
+  inline-size: 21px;
+  block-size: 21px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ss-note {
+  color: var(--w-ink-2);
+  font-size: 0.65rem;
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.06em;
+}
+.ss-result {
+  font-size: clamp(1rem, 3.6vw, 1.4rem);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.ss-sheet {
+  inset-block-start: 81%;
+  inset-inline: 13%;
+  padding: 0.6rem;
+  text-align: center;
+}
+.ss-settle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  background: var(--w-accent-wash);
+  color: var(--w-ink);
+  font-size: 0.8rem;
+}
+.ss-settle svg {
+  flex: 0 0 18px;
+  inline-size: 18px;
+  block-size: 18px;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ss-settle:dir(rtl) svg {
+  transform: scaleX(-1);
+}
+.ss-upi {
+  display: block;
+  margin-block-start: 0.35rem;
+  color: var(--w-ink-2);
+  font-size: 0.65rem;
+}
+.ss-replay {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 3%;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--w-line);
+  border-radius: 999px;
+  background: var(--w-surface);
+  color: var(--w-ink-2);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.ss-replay:hover {
+  background: var(--w-accent-wash);
+}
+.ss-replay:focus-visible {
+  outline: 2px solid var(--w-accent);
+  outline-offset: 3px;
+}
+
+/* The server frame is resolved. Mounting opts into one shared seven-second clock. */
+.ss-stage * {
+  animation-play-state: paused;
+}
+.ss-live .ss-bill {
+  animation: ss-drop 5s ease-out both;
+}
+.ss-live .ss-person {
+  animation: ss-arrive 5s both;
+}
+.ss-live .ss-share {
+  animation: ss-fan 5s both;
+}
+.ss-live .ss-person-0 {
+  --ss-from: 110%;
+  --ss-turn: -12deg;
+}
+.ss-live .ss-person-1 {
+  --ss-from: 0%;
+  --ss-turn: 0deg;
+}
+.ss-live .ss-person-2 {
+  --ss-from: -110%;
+  --ss-turn: 12deg;
+}
+.ss-live .ss-paths path {
+  animation: ss-thread 5s both;
+}
+.ss-live .ss-balance {
+  animation: ss-resolve 5s both;
+}
+.ss-live .ss-sheet {
+  animation: ss-handoff 5s both;
+}
+.ss-live * {
+  animation-play-state: running;
+}
+
+@keyframes ss-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-65px) rotate(-3deg);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(4px) rotate(1deg);
+    animation-timing-function: ease-out;
+  }
+  18%,
+  100% {
+    opacity: 1;
+    transform: translateY(0) rotate(0);
+  }
+}
+@keyframes ss-arrive {
+  0%,
+  15% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  26%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes ss-fan {
+  0%,
+  25% {
+    opacity: 0;
+    transform: translate(var(--ss-from), -60px) rotate(var(--ss-turn));
+  }
+  35% {
+    opacity: 1;
+    transform: translate(calc(var(--ss-from) * 0.4), -34px) rotate(var(--ss-turn));
+  }
+  48%,
+  100% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+}
+@keyframes ss-thread {
+  0%,
+  23% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+  32% {
+    opacity: 0.6;
+    stroke-dashoffset: 0.5;
+  }
+  46%,
+  50% {
+    opacity: 0.6;
+    stroke-dashoffset: 0;
+  }
+  62%,
+  100% {
+    opacity: 0.3;
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes ss-resolve {
+  0%,
+  57% {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  72%,
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@keyframes ss-handoff {
+  0%,
+  77% {
+    opacity: 0;
+    transform: translateY(42px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-stage * {
+    animation: none !important;
+  }
+  .ss-paths path {
+    opacity: 0.3;
+    stroke-dashoffset: 0;
+  }
+  .ss-replay {
+    display: none;
+  }
+}
+
+/* Grid order flips in RTL, so the physical fly-in offsets flip with it. */
+[dir='rtl'] .ss-live .ss-person-0 {
+  --ss-from: -110%;
+  --ss-turn: 12deg;
+}
+[dir='rtl'] .ss-live .ss-person-2 {
+  --ss-from: 110%;
+  --ss-turn: -12deg;
+}

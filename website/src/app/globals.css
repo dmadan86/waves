@@ -75,7 +75,7 @@
 @layer base {
   :root {
     color-scheme: light;
-    --w-bg: #faf8fe;
+    --w-bg: #faf9f6;
     --w-paper: #ffffff;
     --w-surface: #ffffff;
     --w-chip: #eeebf8;
@@ -83,16 +83,16 @@
     --w-line: #ddd9e8;
     --w-line-strong: #c5bfd7;
     --w-divider: #ebe8f2;
-    --w-ink: #15131c;
-    --w-ink-2: #5a5567;
+    --w-ink: #211b32;
+    --w-ink-2: #5d566b;
     --w-ink-3: #6b6579;
     --w-ink-inv: #faf9ff;
     --w-accent: #7a5af8;
     --w-accent-ink: #ffffff;
     --w-accent-wash: #ebe6ff;
-    --w-up: #2563eb;
+    --w-up: #5638c4;
     --w-down: #c2415a;
-    --w-blue: #1f63f2;
+    --w-blue: #6a4bf5;
     --w-art-blend: multiply;
     --w-art-plate: transparent;
     --w-shadow-card: 0 10px 30px rgb(80 60 160 / 0.09), 0 1px 3px rgb(80 60 160 / 0.06);
@@ -104,26 +104,26 @@
   :root:not(.theme-light) {
     @media (prefers-color-scheme: dark) {
       color-scheme: dark;
-      --w-bg: #0c0a11;
+      --w-bg: #111016;
       --w-paper: #121018;
-      --w-surface: #15121d;
+      --w-surface: #1c1924;
       --w-chip: #1d1928;
       --w-raise: #262130;
       --w-line: #2d2738;
       --w-line-strong: #463d55;
       --w-divider: #241f2e;
-      --w-ink: #f6f2ff;
+      --w-ink: #f4f0fa;
       --w-ink-2: #b4adbf;
       --w-ink-3: #8b8399;
       --w-ink-inv: #0c0a11;
-      --w-accent: #9b84ff;
+      --w-accent: #a994ff;
       --w-accent-ink: #171126;
       --w-accent-wash: #251d42;
-      --w-blue: #7bb0ff;
+      --w-blue: #a994ff;
       --w-art-blend: normal;
       --w-art-plate: #f6f3fb;
       --w-shadow-card: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.05);
-      --w-up: #7bb0ff;
+      --w-up: #a994ff;
       --w-down: #ff8aa0;
       --w-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.06);
       --w-shadow-md: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.06);
@@ -133,26 +133,26 @@
 
   :root.theme-dark {
     color-scheme: dark;
-    --w-bg: #0c0a11;
+    --w-bg: #111016;
     --w-paper: #121018;
-    --w-surface: #15121d;
+    --w-surface: #1c1924;
     --w-chip: #1d1928;
     --w-raise: #262130;
     --w-line: #2d2738;
     --w-line-strong: #463d55;
     --w-divider: #241f2e;
-    --w-ink: #f6f2ff;
+    --w-ink: #f4f0fa;
     --w-ink-2: #b4adbf;
     --w-ink-3: #8b8399;
     --w-ink-inv: #0c0a11;
-    --w-accent: #9b84ff;
+    --w-accent: #a994ff;
     --w-accent-ink: #171126;
     --w-accent-wash: #251d42;
-    --w-blue: #7bb0ff;
+    --w-blue: #a994ff;
     --w-art-blend: normal;
     --w-art-plate: #f6f3fb;
     --w-shadow-card: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.05);
-    --w-up: #7bb0ff;
+    --w-up: #a994ff;
     --w-down: #ff8aa0;
     --w-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.06);
     --w-shadow-md: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.06);
@@ -428,5 +428,31 @@
   }
   .fade-edges {
     mask-image: radial-gradient(ellipse 72% 72% at 50% 50%, #000 62%, transparent 100%);
+  }
+}
+
+@layer components {
+  /* Display headings: medium weight, tight tracking, violet emphasis. */
+  .display {
+    font-weight: 600;
+    letter-spacing: -0.045em;
+    line-height: 1.02;
+  }
+  [lang='ar'] .display,
+  [lang='hi'] .display,
+  [lang='ta'] .display {
+    letter-spacing: -0.01em;
+    line-height: 1.22;
+    font-weight: 700;
+  }
+  .hero-glow {
+    background:
+      radial-gradient(closest-side, rgb(122 90 248 / 0.28), transparent 72%),
+      radial-gradient(closest-side at 70% 30%, rgb(249 115 22 / 0.12), transparent 70%);
+  }
+  .ledger-rule {
+    background-image: linear-gradient(to right, var(--w-line) 50%, transparent 0);
+    background-size: 10px 1px;
+    background-repeat: repeat-x;
   }
 }

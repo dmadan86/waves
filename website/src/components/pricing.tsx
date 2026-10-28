@@ -108,7 +108,7 @@ export function Pricing({ t }: { t: Dictionary['pricing'] }) {
                     <p className="flex items-center gap-2 text-[1.15rem] font-semibold text-ink">
                       {plan.name}
                       {plan.badge ? (
-                        <span className="rounded-full bg-[#2f6bf6] px-2 py-0.5 text-[0.62rem] font-semibold text-white">
+                        <span className="rounded-full bg-accent px-2 py-0.5 text-[0.62rem] font-semibold text-accent-ink">
                           {plan.badge}
                         </span>
                       ) : null}

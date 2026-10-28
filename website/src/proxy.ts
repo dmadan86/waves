@@ -12,6 +12,7 @@ import { defaultLocale, locales } from './i18n/config';
  */
 
 const PUBLIC_FILE = /\.[^/]+$/;
+const HOME_ANCHORS = new Set(['pricing', 'features', 'faq']);
 
 /**
  * The quality value of one `Accept` or `Accept-Language` entry.
@@ -87,6 +88,16 @@ export function proxy(request: NextRequest) {
 
   if (hasLocale) {
     const locale = pathname.split('/')[1];
+
+    // People guess /en/pricing, /en/features and /en/faq; those are sections of
+    // the home page, so send them to the anchor instead of a 404.
+    const anchor = pathname.slice(locale.length + 2).replace(/\/$/, '');
+    if (HOME_ANCHORS.has(anchor)) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${locale}`;
+      url.hash = anchor;
+      return NextResponse.redirect(url, 308);
+    }
 
     if (pathname === `/${locale}` && prefersMarkdown(request.headers.get('accept'))) {
       const url = request.nextUrl.clone();

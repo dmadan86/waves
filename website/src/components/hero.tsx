@@ -1,32 +1,29 @@
-import Image from 'next/image';
-
 import type { Dictionary } from '@/i18n/dictionaries';
 import { Check } from './icons';
+import { SplitStage } from './split-stage';
 import { StoreBadges } from './store-badges';
-
-const chipPos = [
-  'start-[4%] top-[2%] lg:start-[14%] lg:top-[16%]',
-  'end-[4%] top-[2%] lg:end-[5%] lg:top-[14%]',
-  'end-[1%] top-[30%] max-sm:hidden lg:end-[2%] lg:top-[34%]',
-];
 
 export function Hero({ t, stores }: { t: Dictionary['hero']; stores: Dictionary['stores'] }) {
   return (
     <section className="relative isolate overflow-hidden">
-      <div className="mx-auto w-full max-w-[73rem] px-5 pt-24 pb-4 sm:px-8 lg:min-h-[34rem] lg:pt-32 lg:pb-28">
-        <div className="max-w-[28rem]">
-          <p className="text-[0.72rem] font-semibold tracking-[0.12em] text-accent uppercase">
+      <div
+        aria-hidden="true"
+        className="hero-glow pointer-events-none absolute -z-10 aspect-square w-[44rem] max-w-none -translate-y-1/4 max-lg:top-56 max-lg:start-1/2 max-lg:-translate-x-1/2 lg:-top-24 lg:-end-40"
+      />
+      <div className="mx-auto grid w-full max-w-[73rem] items-center gap-10 px-5 pt-24 pb-10 sm:px-8 lg:min-h-[42rem] lg:grid-cols-[minmax(0,0.46fr)_minmax(0,0.54fr)] lg:gap-8 lg:pt-28 lg:pb-24">
+        <div className="min-w-0">
+          <p className="text-[0.72rem] font-semibold tracking-[0.14em] text-accent uppercase rtl:tracking-normal">
             {t.eyebrow}
           </p>
-          <h1 className="mt-4 text-[2.6rem] leading-[1.04] font-bold tracking-[-0.035em] text-balance text-ink sm:text-[3.4rem]">
-            {t.titleStart} <span className="text-blue">{t.titleAccent}</span>
+          <h1 className="display mt-4 text-[2.9rem] text-balance text-ink sm:text-[4.4rem] lg:text-[5rem] rtl:sm:text-[3.6rem] rtl:lg:text-[4.1rem]">
+            {t.titleStart} <span className="text-accent">{t.titleAccent}</span>
           </h1>
-          <p className="mt-5 max-w-[26rem] text-[1.02rem] leading-[1.6] text-ink-2">{t.subtitle}</p>
-          <StoreBadges t={stores} className="mt-7" />
+          <p className="mt-6 max-w-[28rem] text-[1.05rem] leading-[1.6] text-ink-2">{t.subtitle}</p>
+          <StoreBadges t={stores} className="mt-8" />
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
             {t.trust.map((item) => (
-              <li key={item} className="inline-flex items-center gap-1.5 text-[0.8rem] text-ink-2">
-                <span className="grid h-4 w-4 place-items-center rounded-full bg-[#22a06b] text-white">
+              <li key={item} className="inline-flex items-center gap-1.5 text-[0.82rem] text-ink-2">
+                <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#237a60] text-white">
                   <Check className="h-2.5 w-2.5" />
                 </span>
                 {item}
@@ -34,44 +31,9 @@ export function Hero({ t, stores }: { t: Dictionary['hero']; stores: Dictionary[
             ))}
           </ul>
         </div>
-      </div>
-
-      {/* One image for every width: below `lg` it follows the copy, above it
-          sits behind it and fades into the page on its inner and lower edges.
-          The payment chips are real text, laid over the scene (not inside the
-          masked layer, which would fade them). */}
-      <div className="relative -z-10 mx-auto mt-2 aspect-[943/490] w-full max-w-xl lg:absolute lg:end-0 lg:top-0 lg:mt-0 lg:aspect-auto lg:h-full lg:w-[60%] lg:max-w-none">
-        <div className="hero-art absolute inset-0">
-          <Image
-            src="/home/hero.webp"
-            alt={t.alt}
-            fill
-            priority
-            sizes="(min-width: 1024px) 60vw, 100vw"
-            className="object-cover object-[30%_center]"
-          />
+        <div className="w-full max-w-[34rem] min-w-0 justify-self-center lg:justify-self-end">
+          <SplitStage t={t.split} />
         </div>
-        <ul className="pointer-events-none absolute inset-0">
-          {t.chips.map((chip, i) => (
-            <li
-              key={chip.item}
-              className={`absolute flex items-center gap-2 rounded-xl bg-surface/95 px-2.5 py-1.5 shadow-[var(--w-shadow-md)] sm:gap-2.5 sm:px-3.5 sm:py-2.5 ${chipPos[i]}`}
-            >
-              <span className="grid h-6 w-6 place-items-center rounded-full bg-accent/15 text-[0.62rem] font-bold text-accent sm:h-8 sm:w-8 sm:text-xs">
-                {chip.amount.slice(0, 1)}
-              </span>
-              <span className="leading-tight">
-                <span className="block text-[0.6rem] text-ink-3 sm:text-[0.7rem]">{chip.who}</span>
-                <span className="block text-[0.7rem] font-semibold text-ink sm:text-[0.82rem]">
-                  {chip.item}
-                </span>
-                <span className="block text-[0.66rem] text-ink-2 sm:text-[0.75rem]">
-                  {chip.amount}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
       </div>
     </section>
   );

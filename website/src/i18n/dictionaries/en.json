@@ -58,7 +58,21 @@
         "item": "Scooter",
         "amount": "₹450"
       }
-    ]
+    ],
+    "split": {
+      "label": "Animated example: a dinner bill of ₹1,665 split three ways; Ravi owes Asha ₹555",
+      "bill": "Dinner",
+      "total": "₹1,665",
+      "paidBy": "Asha paid",
+      "each": "₹555 each",
+      "people": ["Asha", "Ravi", "Meera"],
+      "result": "Ravi pays you ₹555",
+      "resultNote": "Who owes whom",
+      "settle": "Settle with UPI",
+      "upi": "Opens your UPI app",
+      "replay": "Replay",
+      "example": "Example"
+    }
   },
   "features": {
     "label": "What Waves does",
