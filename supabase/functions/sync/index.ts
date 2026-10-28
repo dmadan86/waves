@@ -90,6 +90,9 @@ type MutationKind =
   | 'company_entry.transition'
   | 'company_member.rate_set'
   | 'company.settings_set'
+  | 'company.policies_set'
+  | 'company.mileage_rate_set'
+  | 'company.reimburse'
   // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
@@ -307,6 +310,11 @@ const GROUP_TABLES = [
   // Repeating group expenses. Flat rows; RLS limits them to the group's members.
   ['group_recurring_expenses', '*'],
   // Company employees receive only their own entries, including tombstones.
+  // Phase 3 fields travel through these wildcard projections under caller RLS:
+  // groups: company_policies, company_policy_revision, company_default_mileage_rate_minor;
+  // group_members: mileage_rate_minor; company_entries: vendor, gstin, invoice_no,
+  // gst_rate_bps, gst_amount_minor, distance_km, from_text, to_text,
+  // reimbursement_id, reimbursement_details (plus existing rate_minor/calc_mode).
   ['company_entries', '*'],
   ['company_entry_attachments', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
@@ -873,6 +881,36 @@ export class SyncSession {
             'defaultDailyRateMinor',
           ),
           p_approvals_enabled: mutation.payload.approvalsEnabled,
+        });
+      case 'company.policies_set':
+        return await this.rpcAsCaller('waves_company_policies_set', {
+          p_group_id: mutation.groupId,
+          p_policies: companyPolicies(mutation.payload.policies),
+          p_expected_revision: companyNonnegativeInteger(
+            mutation.payload.expectedRevision,
+            'expectedRevision',
+          ),
+        });
+      case 'company.mileage_rate_set':
+        return await this.rpcAsCaller('waves_company_mileage_rate_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId', true),
+          p_rate_minor: companyDecimal(mutation.payload.rateMinor, 'rateMinor', true),
+        });
+      case 'company.reimburse':
+        return await this.rpcAsCaller('waves_company_reimburse', {
+          p_group_id: mutation.groupId,
+          p_reimbursement_id: companyUuid(mutation.payload.reimbursementId, 'reimbursementId'),
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_claims: companySelection(mutation.payload.claims, 'claims', true),
+          p_adjustments: companySelection(mutation.payload.adjustments, 'adjustments', false),
+          p_cutoff: companyDate(mutation.payload.cutoff, 'cutoff'),
+          p_paid_on: companyDate(mutation.payload.paidOn, 'paidOn'),
+          p_expected_amount_minor: companyDecimal(
+            mutation.payload.expectedAmountMinor,
+            'expectedAmountMinor',
+          ),
+          p_note: optionalText(mutation.payload.note, 'note'),
         });
       case 'company_member.rate_set':
         return await this.rpcAsCaller('waves_company_member_rate_set', {
@@ -2149,11 +2187,31 @@ function companyData(value: unknown): Record<string, unknown> {
     'occurredOn',
     'note',
     'direction',
+    'vendor',
+    'gstin',
+    'invoiceNo',
+    'gstRateBps',
+    'gstAmountMinor',
+    'distanceKm',
+    'fromText',
+    'toText',
   ];
   for (const [key, field] of Object.entries(data)) {
-    if (!keys.includes(key) || (field !== null && typeof field !== 'string')) {
+    if (
+      !keys.includes(key) ||
+      (field !== null &&
+        (key === 'gstRateBps'
+          ? typeof field !== 'number' || !Number.isInteger(field) || field < 0 || field > 10000
+          : typeof field !== 'string'))
+    ) {
       throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${key}`);
     }
+  }
+  for (const key of ['amount', 'rateMinor', 'gstAmountMinor']) {
+    if (data[key] !== undefined && data[key] !== null) companyDecimal(data[key], key);
+  }
+  for (const key of ['days', 'distanceKm']) {
+    if (data[key] !== undefined && data[key] !== null) companyDecimal(data[key], key, false, true);
   }
   return data;
 }
@@ -2161,6 +2219,113 @@ function companyData(value: unknown): Record<string, unknown> {
 function requireInteger(value: unknown, field: string): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
     throw new HttpError(400, 'VALIDATION_FAILED', `${field} must be a positive integer`);
+  }
+  return value;
+}
+
+function companyInvalid(field: string): never {
+  throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${field}`);
+}
+function companyNonnegativeInteger(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || value > 2147483647)
+    companyInvalid(field);
+  return value;
+}
+function companyDecimal(
+  value: unknown,
+  field: string,
+  nullable = false,
+  fractional = false,
+): string | null {
+  if (nullable && value === null) return null;
+  if (
+    typeof value !== 'string' ||
+    !(fractional ? /^\d{1,6}(?:\.\d{1,2})?$/ : /^\d{1,19}$/).test(value)
+  )
+    companyInvalid(field);
+  if (!fractional && BigInt(value) > 9223372036854775807n) companyInvalid(field);
+  return value;
+}
+function companyUuid(value: unknown, field: string, nullable = false): string | null {
+  if (nullable && value === null) return null;
+  if (
+    typeof value !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  )
+    companyInvalid(field);
+  return value;
+}
+function companyDate(value: unknown, field: string): string {
+  if (
+    typeof value !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+    !Number.isFinite(Date.parse(value)) ||
+    new Date(value).toISOString().slice(0, 10) !== value
+  )
+    companyInvalid(field);
+  return value;
+}
+function companySelection(value: unknown, field: string, nonempty: boolean): unknown[] {
+  if (!Array.isArray(value) || (nonempty && value.length === 0)) companyInvalid(field);
+  const ids = new Set<string>();
+  for (const item of value) {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      Array.isArray(item) ||
+      Object.keys(item).some((k) => !['entryId', 'expectedVersion'].includes(k))
+    )
+      companyInvalid(field);
+    const id = companyUuid(item.entryId, field)!;
+    requireInteger(item.expectedVersion, field);
+    if (item.expectedVersion > 2147483647 || ids.has(id.toLowerCase())) companyInvalid(field);
+    ids.add(id.toLowerCase());
+  }
+  return value;
+}
+function companyPolicies(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('policies');
+  const p = value as Record<string, unknown>;
+  if (
+    p.version !== 1 ||
+    !Array.isArray(p.rules) ||
+    p.rules.length > 100 ||
+    Object.keys(p).some((k) => !['version', 'rules'].includes(k))
+  )
+    companyInvalid('policies');
+  const ids = new Set<string>();
+  for (const rule of p.rules) {
+    if (
+      !rule ||
+      typeof rule !== 'object' ||
+      Array.isArray(rule) ||
+      typeof rule.id !== 'string' ||
+      !rule.id.length ||
+      rule.id.length > 120 ||
+      ids.has(rule.id)
+    )
+      companyInvalid('policies');
+    ids.add(rule.id);
+    companyDecimal(rule.limitMinor, 'limitMinor');
+    if (!['warn', 'block'].includes(rule.effect)) companyInvalid('policies');
+    if (rule.type === 'receipt_above') {
+      if (
+        rule.effect !== 'warn' ||
+        Object.keys(rule).some((k) => !['id', 'type', 'limitMinor', 'effect'].includes(k))
+      )
+        companyInvalid('policies');
+    } else if (rule.type === 'period_limit') {
+      if (
+        !['fuel', 'transport', 'travel', 'food', 'office', 'other', 'allowance'].includes(
+          rule.target,
+        ) ||
+        !['day', 'month'].includes(rule.period) ||
+        Object.keys(rule).some(
+          (k) => !['id', 'type', 'target', 'period', 'limitMinor', 'effect'].includes(k),
+        )
+      )
+        companyInvalid('policies');
+    } else companyInvalid('policies');
   }
   return value;
 }

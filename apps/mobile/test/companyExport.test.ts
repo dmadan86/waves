@@ -50,6 +50,11 @@ const labels: CompanyExportLabels = {
   colBalance: 'Balance',
   colNote: 'Note',
   colReview: 'Review',
+  colVendor: 'Vendor',
+  colGstin: 'GSTIN',
+  colInvoice: 'Invoice',
+  colGst: 'GST',
+  detail: () => '',
   none: 'None',
   footer: 'Waves',
   kind: (e) => e.kind,
@@ -128,5 +133,33 @@ describe('company export', () => {
       entries: [entry({ note: '<img src=x onerror=1>' })],
     });
     expect(renderCompanyExportHtml(model, 'None')).not.toContain('<img');
+  });
+
+  it('prints vendor, GSTIN, invoice and GST only when an entry has them, and totals GST', () => {
+    const gst = entry({
+      amount: '11800',
+      vendor: 'Bata Store',
+      gstin: '27AAPFU0939F1ZV',
+      invoice_no: 'INV-9',
+      gst_amount_minor: '1800',
+    });
+    const withGst = buildCompanyExport({
+      ...base,
+      labels: { ...labels, totalRows: (t) => [['GST', t.gst]] },
+      scope: 'admin',
+      names: new Map([['ravi', 'Ravi']]),
+      entries: [gst],
+    });
+    const dump = JSON.stringify(withGst);
+    expect(dump).toContain('27AAPFU0939F1ZV');
+    expect(dump).toContain('INV-9');
+    expect(withGst.sections[0]?.rows[0]?.[1]?.text).toContain('18');
+    const without = buildCompanyExport({
+      ...base,
+      scope: 'admin',
+      names: new Map([['ravi', 'Ravi']]),
+      entries: [mine],
+    });
+    expect(JSON.stringify(without)).not.toContain('GSTIN');
   });
 });

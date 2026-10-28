@@ -67,6 +67,9 @@ export enum MutationKind {
   CompanyEntryTransition = 'company_entry.transition',
   CompanyMemberRateSet = 'company_member.rate_set',
   CompanySettingsSet = 'company.settings_set',
+  CompanyPoliciesSet = 'company.policies_set',
+  CompanyMileageRateSet = 'company.mileage_rate_set',
+  CompanyReimburse = 'company.reimburse',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -416,7 +419,17 @@ export interface CompanyEntryData {
   readonly category?: string | null;
   readonly days?: string | null;
   readonly rateMinor?: string | null;
-  readonly calcMode?: 'typed' | 'days_rate' | 'fixed_weekly';
+  readonly calcMode?: 'typed' | 'days_rate' | 'fixed_weekly' | 'distance_rate';
+  /** Optional GST / vendor details (India, INR expenses). Money as decimal strings. */
+  readonly vendor?: string | null;
+  readonly gstin?: string | null;
+  readonly invoiceNo?: string | null;
+  readonly gstRateBps?: number | null;
+  readonly gstAmountMinor?: string | null;
+  /** Mileage: kilometres (decimal string, two places); the rate is `rateMinor` per km. */
+  readonly distanceKm?: string | null;
+  readonly fromText?: string | null;
+  readonly toText?: string | null;
   readonly occurredOn?: string;
   readonly note?: string | null;
   readonly direction?: 'company_to_employee' | 'employee_to_company' | null;
@@ -456,6 +469,30 @@ export interface CompanySettingsSetPayload {
 export interface CompanyMemberRateSetPayload {
   readonly memberId: string;
   readonly dailyRateMinor: string | null;
+}
+
+/** Admin: the company's policy rules (`CompanyPolicies`); names the revision it edited. */
+export interface CompanyPoliciesSetPayload {
+  readonly policies: unknown;
+  readonly expectedRevision: number;
+}
+
+/** Admin: the per-km rate. `memberId` null is the company default; a null rate clears. */
+export interface CompanyMileageRateSetPayload {
+  readonly memberId: string | null;
+  readonly rateMinor: string | null;
+}
+
+/** Admin: pay one employee's frozen list of claims (and the credits netted in) with one entry. */
+export interface CompanyReimbursePayload {
+  readonly reimbursementId: string;
+  readonly memberId: string;
+  readonly claims: readonly { readonly entryId: string; readonly expectedVersion: number }[];
+  readonly adjustments: readonly { readonly entryId: string; readonly expectedVersion: number }[];
+  readonly cutoff: string;
+  readonly paidOn: string;
+  readonly expectedAmountMinor: string;
+  readonly note: string | null;
 }
 
 /** Clearing carries nothing — the scope (group) and the caller identify the row. */

@@ -16,6 +16,12 @@ import {
   MutationKind,
   materialiseCompanyEntries,
   materialiseCompanyEntryAttachments,
+  parseCompanyPolicies,
+  rowsFor,
+  SyncTable,
+  gstFieldsApply,
+  type CompanyPolicies,
+  type CompanyReimbursePayload,
   type CompanyEntry,
   type CompanyEntryData,
   type CompanyEntryRow,
@@ -41,6 +47,14 @@ export interface CompanyView {
   readonly approvalsEnabled: boolean;
   /** The company-wide default daily bata rate, minor units, or null. */
   readonly defaultRateMinor: bigint | null;
+  /** Company default mileage rate per km, minor units, or null. */
+  readonly defaultMileageRateMinor: bigint | null;
+  readonly policies: CompanyPolicies;
+  readonly policyRevision: number;
+  /** GST and vendor fields apply (India, rupees). */
+  readonly gstEnabled: boolean;
+  /** Entries that have at least one live photo (for the receipt rule). */
+  readonly receiptEntryIds: ReadonlySet<string>;
   readonly ready: boolean;
 }
 
@@ -53,28 +67,55 @@ export function useCompanyEntries(groupId: string): CompanyView {
   const defaultRate = group.data?.company_default_daily_rate_minor;
 
   // A rate set offline reads as set at once: replay the queued ones over the rows.
-  const people = useMemo(() => {
+  const { people, defaultMileage, policies, policyRevision } = useMemo(() => {
     const rows = members.data ?? [];
+    let defaultMileage = group.data?.company_default_mileage_rate_minor ?? null;
+    let policies = parseCompanyPolicies(group.data?.company_policies);
+    let policyRevision = group.data?.company_policy_revision ?? 0;
     const rates = new Map<string, string | null>();
+    const mileage = new Map<string, string | null>();
     for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
-      if (
-        mutation.groupId !== groupId ||
-        mutation.rejection ||
-        mutation.kind !== MutationKind.CompanyMemberRateSet
-      )
+      if (mutation.groupId !== groupId || mutation.rejection) continue;
+      if (mutation.kind === MutationKind.CompanyMileageRateSet) {
+        const p = mutation.payload as unknown as {
+          memberId: string | null;
+          rateMinor: string | null;
+        };
+        if (p.memberId) mileage.set(p.memberId, p.rateMinor);
+        else defaultMileage = p.rateMinor;
         continue;
+      }
+      if (mutation.kind === MutationKind.CompanyPoliciesSet) {
+        // A queued edit reads as saved at once and moves the revision the next edit names.
+        const p = mutation.payload as unknown as { policies: unknown };
+        policies = parseCompanyPolicies(p.policies);
+        policyRevision += 1;
+        continue;
+      }
+      if (mutation.kind !== MutationKind.CompanyMemberRateSet) continue;
       const payload = mutation.payload as unknown as {
         memberId: string;
         dailyRateMinor: string | null;
       };
       rates.set(payload.memberId, payload.dailyRateMinor);
     }
-    return rates.size === 0
-      ? rows
-      : rows.map((row) =>
-          rates.has(row.id) ? { ...row, daily_rate_minor: rates.get(row.id) } : row,
-        );
-  }, [members.data, queue, groupId]);
+    const people =
+      rates.size === 0 && mileage.size === 0
+        ? rows
+        : rows.map((row) => ({
+            ...row,
+            ...(rates.has(row.id) ? { daily_rate_minor: rates.get(row.id) } : {}),
+            ...(mileage.has(row.id) ? { mileage_rate_minor: mileage.get(row.id) } : {}),
+          }));
+    return { people, defaultMileage, policies, policyRevision };
+  }, [
+    members.data,
+    queue,
+    groupId,
+    group.data?.company_default_mileage_rate_minor,
+    group.data?.company_policies,
+    group.data?.company_policy_revision,
+  ]);
   const me = people.find((member) => isViewer(member, viewerId) && !member.left_at) ?? null;
   const isAdmin = me?.role === 'admin';
   // The server only sends an employee their own rows, but a phone that was once
@@ -91,6 +132,20 @@ export function useCompanyEntries(groupId: string): CompanyView {
         .filter((entry) => isAdmin || entry.memberId === me?.id),
     [mirror, queue, groupId, currency, me?.id, isAdmin, approvalsEnabled],
   );
+  const receiptEntryIds = useMemo(
+    () =>
+      new Set(
+        (
+          rowsFor(mirror, SyncTable.CompanyEntryAttachments, groupId) as {
+            entry_id: string;
+            deleted_at: string | null;
+          }[]
+        )
+          .filter((row) => row.deleted_at === null)
+          .map((row) => row.entry_id),
+      ),
+    [mirror, groupId],
+  );
   return {
     entries,
     members: isAdmin ? people : people.filter((member) => member.id === me?.id),
@@ -100,6 +155,11 @@ export function useCompanyEntries(groupId: string): CompanyView {
     name: group.data?.name ?? '',
     approvalsEnabled,
     defaultRateMinor: defaultRate ? BigInt(defaultRate) : null,
+    defaultMileageRateMinor: defaultMileage ? BigInt(defaultMileage) : null,
+    policies,
+    policyRevision,
+    gstEnabled: gstFieldsApply(group.data?.country_code, currency),
+    receiptEntryIds,
     ready: hydrated && group.data !== null && group.data !== undefined,
   };
 }
@@ -267,5 +327,32 @@ export function useRemoveCompanyPhoto(groupId: string) {
       if (error) throw new Error(error.message);
     },
     onSuccess: () => void flush([groupId]),
+  });
+}
+
+/** Admin: the per-km rate for the company (memberId null) or one employee; null clears. */
+export function useSetMileageRate(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: { memberId: string | null; rateMinor: string | null }) =>
+      mutate(MutationKind.CompanyMileageRateSet, groupId, { ...input }),
+  });
+}
+
+/** Admin: replace the policy rules; names the revision edited. */
+export function useSetCompanyPolicies(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: { policies: CompanyPolicies; expectedRevision: number }) =>
+      mutate(MutationKind.CompanyPoliciesSet, groupId, { ...input }),
+  });
+}
+
+/** Admin: one reimbursement entry covering a frozen list of one employee's claims. */
+export function useReimburseCompany(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: CompanyReimbursePayload) =>
+      mutate(MutationKind.CompanyReimburse, groupId, { ...input }),
   });
 }

@@ -8,7 +8,16 @@ import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { companySummary, format, formatParts, money, type CurrencyCode } from '@waves/core';
+import {
+  companySummary,
+  flagsForEntry,
+  format,
+  formatMinorInput,
+  formatParts,
+  money,
+  parseMinorInput,
+  type CurrencyCode,
+} from '@waves/core';
 import { Button, Screen, Text, Toggle, iconSize, useTheme } from '@waves/ui';
 
 import {
@@ -16,6 +25,8 @@ import {
   CompanyStatementView,
   kindLabel,
 } from '@/components/company/CompanyStatementView';
+import { CompanyPolicyEditor } from '@/components/company/CompanyPolicyEditor';
+import { EditTextSheet } from '@/components/EditTextSheet';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import {
   ListRow,
@@ -25,7 +36,7 @@ import {
   StandardCard,
   StatCard,
 } from '@/components/standard';
-import { useCompanyEntries, useSetCompanySettings } from '@/data/companyEntries';
+import { useCompanyEntries, useSetCompanySettings, useSetMileageRate } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -39,6 +50,9 @@ export function CompanyHome({ groupId }: { groupId: string }) {
   const { t, locale } = useStrings();
   const view = useCompanyEntries(groupId);
   const settings = useSetCompanySettings(groupId);
+  const setKmRate = useSetMileageRate(groupId);
+  const [policiesOpen, setPoliciesOpen] = useState(false);
+  const [kmOpen, setKmOpen] = useState(false);
   const [period, setPeriod] = useState<CompanyPeriod>('month');
   const currency = view.currency as CurrencyCode;
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
@@ -138,7 +152,12 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                         <ListRow
                           key={entry.id}
                           title={`${owner ? displayName(owner, null, null, t.misc.someone) : t.misc.someone} · ${kindLabel(t, entry)}`}
-                          subtitle={t.company.awaiting}
+                          subtitle={
+                            flagsForEntry(entry, view.entries, view.policies, view.receiptEntryIds)
+                              .length > 0
+                              ? `${t.company.awaiting} · ! ${t.company.policyFlagged}`
+                              : t.company.awaiting
+                          }
                           amount={fmt(entry.amount)}
                           onPress={() =>
                             router.push(`/group/${groupId}/company-entry-view?entry=${entry.id}`)
@@ -157,6 +176,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                   [t.company.advances, summary.totals.advances],
                   [t.company.wages, summary.totals.wages],
                   [t.company.paidOut, summary.totals.paidOut],
+                  [t.company.gstTotal, view.gstEnabled ? summary.totals.gst : 0n],
                 ]
                   .filter(([, value]) => (value as bigint) !== 0n)
                   .map(([label, value], index, all) => (
@@ -226,6 +246,30 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                     divider
                   />
                   <ListRow
+                    title={t.company.mileageRate}
+                    amount={
+                      view.defaultMileageRateMinor !== null
+                        ? fmt(view.defaultMileageRateMinor)
+                        : t.company.rateNotSet
+                    }
+                    onPress={() => setKmOpen(true)}
+                    divider
+                  />
+                  <ListRow
+                    title={t.company.policiesTitle}
+                    subtitle={`${view.policies.rules.length}`}
+                    trailing={
+                      <Ionicons
+                        name={policiesOpen ? 'chevron-up' : 'chevron-down'}
+                        size={iconSize.md}
+                        color={theme.color.textMuted}
+                      />
+                    }
+                    onPress={() => setPoliciesOpen((open) => !open)}
+                    divider
+                  />
+                  {policiesOpen ? <CompanyPolicyEditor groupId={groupId} view={view} /> : null}
+                  <ListRow
                     title={t.company.exportAction}
                     leading={
                       <Ionicons
@@ -273,6 +317,27 @@ export function CompanyHome({ groupId }: { groupId: string }) {
           )}
         </ScenicBody>
       </ScrollView>
+      <EditTextSheet
+        visible={kmOpen}
+        title={t.company.mileageRate}
+        value={
+          view.defaultMileageRateMinor !== null
+            ? formatMinorInput(view.defaultMileageRateMinor, currency)
+            : ''
+        }
+        autoCapitalize="none"
+        saving={setKmRate.isPending}
+        onClose={() => setKmOpen(false)}
+        onSave={(text) => {
+          const minor = parseMinorInput(text, currency);
+          setKmOpen(false);
+          // Empty clears the rate; an explicit 0 is a real rate.
+          setKmRate.mutate({
+            memberId: null,
+            rateMinor: text.trim() === '' ? null : minor.toString(),
+          });
+        }}
+      />
     </Screen>
   );
 }

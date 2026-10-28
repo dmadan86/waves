@@ -261,6 +261,9 @@ model Group {
   /// bearer credential (the group row is RLS-scoped).
   joinToken              String?   @map("join_token")
   companyDefaultDailyRateMinor BigInt? @map("company_default_daily_rate_minor")
+  companyPolicies Json @default("{\"version\":1,\"rules\":[]}") @map("company_policies")
+  companyPolicyRevision Int @default(0) @map("company_policy_revision")
+  companyDefaultMileageRateMinor BigInt? @map("company_default_mileage_rate_minor")
   companyApprovalsEnabled Boolean @default(false) @map("company_approvals_enabled")
   companyPlan CompanyPlan?
   companyImageKeys CompanyImageKey[]
@@ -427,6 +430,7 @@ model GroupMember {
   /// is the same person.
   paymentRail        String?    @map("payment_rail")
   paymentHandle      String?    @map("payment_handle")
+  mileageRateMinor BigInt? @map("mileage_rate_minor")
   dailyRateMinor     BigInt?    @map("daily_rate_minor")
   /// The import that minted this ghost (`import_batches`); null for everyone else.
   importBatchId      String?    @map("import_batch_id") @db.Uuid
@@ -3063,6 +3067,18 @@ model CompanyEntry {
   calcMode     String       @default("typed") @map("calc_mode")
   days         Decimal?     @db.Decimal(8, 2)
   rateMinor    BigInt?      @map("rate_minor")
+  vendor String?
+  gstin String? @db.VarChar(15)
+  invoiceNo String? @map("invoice_no")
+  gstRateBps Int? @map("gst_rate_bps")
+  gstAmountMinor BigInt? @map("gst_amount_minor")
+  distanceKm Decimal? @map("distance_km") @db.Decimal(8,2)
+  fromText String? @map("from_text")
+  toText String? @map("to_text")
+  reimbursementId String? @map("reimbursement_id") @db.Uuid
+  reimbursementDetails Json? @map("reimbursement_details")
+  reimbursement CompanyEntry? @relation("CompanyReimbursement", fields: [reimbursementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  coveredEntries CompanyEntry[] @relation("CompanyReimbursement")
   occurredOn   DateTime     @map("occurred_on") @db.Date
   direction    String?
   status       String       @default("approved")

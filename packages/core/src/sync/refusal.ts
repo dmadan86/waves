@@ -41,6 +41,9 @@ export function refusalReason(code: string): RefusalReason {
     case 'UNITS_CONFLICT':
     case 'VERSION_CONFLICT':
     case 'INVALID_TRANSITION':
+    case 'SELECTION_CHANGED':
+    case 'ENTRY_REIMBURSED':
+    case 'POLICY_BLOCKED':
     case 'NOT_CANCELLABLE':
     case 'NOT_DISPUTABLE':
       return RefusalReason.Conflict;

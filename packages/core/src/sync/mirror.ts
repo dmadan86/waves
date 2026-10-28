@@ -47,6 +47,7 @@ import type {
   CompanyEntryUpdatePayload,
   CompanyEntryVoidPayload,
   CompanyEntryTransitionPayload,
+  CompanyReimbursePayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
   MemberBudgetSetPayload,
@@ -63,7 +64,7 @@ import type {
 } from './protocol';
 import type { QueuedMutation } from './queue';
 import { byNewest, byOldest, compareStampsDesc } from '../time/iso';
-import { allowanceAmount } from '../company/index';
+import { allowanceAmount, mileageAmount } from '../company/index';
 import { firstOccurrenceOnOrAfter, nextOccurrenceAfter } from '../group/recurring';
 
 /** A row as the server sends it: snake_case, amounts as decimal strings. */
@@ -1583,6 +1584,16 @@ export interface MirrorCompanyEntry extends MirrorRow {
   readonly status: string;
   readonly note: string | null;
   readonly review_note?: string | null;
+  readonly vendor?: string | null;
+  readonly gstin?: string | null;
+  readonly invoice_no?: string | null;
+  readonly gst_rate_bps?: number | null;
+  readonly gst_amount_minor?: string | null;
+  readonly distance_km?: string | null;
+  readonly from_text?: string | null;
+  readonly to_text?: string | null;
+  readonly reimbursement_id?: string | null;
+  readonly reimbursement_details?: unknown;
   readonly deleted_at: string | null;
   readonly pending?: boolean;
 }
@@ -1647,7 +1658,9 @@ export function materialiseCompanyEntries(
       const computed =
         calc === 'days_rate' && data.days && data.rateMinor
           ? allowanceAmount(data.days, BigInt(data.rateMinor))
-          : null;
+          : calc === 'distance_rate' && data.distanceKm && data.rateMinor
+            ? mileageAmount(data.distanceKm, BigInt(data.rateMinor))
+            : null;
       byId.set(payload.entryId, {
         id: payload.entryId,
         group_id: mutation.groupId,
@@ -1659,6 +1672,15 @@ export function materialiseCompanyEntries(
         calc_mode: calc,
         days: data.days ?? null,
         rate_minor: data.rateMinor ?? null,
+        vendor: data.vendor ?? null,
+        gstin: data.gstin ?? null,
+        invoice_no: data.invoiceNo ?? null,
+        gst_rate_bps: data.gstRateBps ?? null,
+        gst_amount_minor: data.gstAmountMinor ?? null,
+        distance_km: data.distanceKm ?? null,
+        from_text: data.fromText ?? null,
+        to_text: data.toText ?? null,
+        reimbursement_id: null,
         occurred_on: data.occurredOn ?? mutation.clientCreatedAt.slice(0, 10),
         direction:
           payload.entryKind === 'reimbursement' ? (data.direction ?? 'company_to_employee') : null,
@@ -1679,6 +1701,14 @@ export function materialiseCompanyEntries(
       if (patch.days !== undefined) next.days = patch.days;
       if (patch.rateMinor !== undefined) next.rate_minor = patch.rateMinor;
       if (patch.calcMode !== undefined) next.calc_mode = patch.calcMode;
+      if (patch.vendor !== undefined) next.vendor = patch.vendor;
+      if (patch.gstin !== undefined) next.gstin = patch.gstin;
+      if (patch.invoiceNo !== undefined) next.invoice_no = patch.invoiceNo;
+      if (patch.gstRateBps !== undefined) next.gst_rate_bps = patch.gstRateBps;
+      if (patch.gstAmountMinor !== undefined) next.gst_amount_minor = patch.gstAmountMinor;
+      if (patch.distanceKm !== undefined) next.distance_km = patch.distanceKm;
+      if (patch.fromText !== undefined) next.from_text = patch.fromText;
+      if (patch.toText !== undefined) next.to_text = patch.toText;
       if (patch.occurredOn !== undefined) next.occurred_on = patch.occurredOn;
       if (patch.note !== undefined) next.note = patch.note;
       if (patch.direction !== undefined) next.direction = patch.direction;
@@ -1688,6 +1718,10 @@ export function materialiseCompanyEntries(
       }
       if (next.calc_mode === 'days_rate' && next.days && next.rate_minor) {
         const computed = allowanceAmount(String(next.days), BigInt(String(next.rate_minor)));
+        if (computed !== null) next.amount = computed.toString();
+      }
+      if (next.calc_mode === 'distance_rate' && next.distance_km && next.rate_minor) {
+        const computed = mileageAmount(String(next.distance_km), BigInt(String(next.rate_minor)));
         if (computed !== null) next.amount = computed.toString();
       }
       byId.set(entryId, next as unknown as MirrorCompanyEntry);
@@ -1704,6 +1738,50 @@ export function materialiseCompanyEntries(
         ...existing,
         status: to,
         review_note: note ?? null,
+        pending: true,
+      });
+    } else if (mutation.kind === 'company.reimburse') {
+      // One payment entry, and the claims it covers read as paid at once.
+      const p = mutation.payload as unknown as CompanyReimbursePayload;
+      if (byId.has(p.reimbursementId)) continue;
+      for (const { entryId } of p.claims) {
+        const covered = byId.get(entryId);
+        if (covered)
+          byId.set(entryId, {
+            ...covered,
+            status: 'reimbursed',
+            reimbursement_id: p.reimbursementId,
+            pending: true,
+          });
+      }
+      for (const { entryId } of p.adjustments) {
+        const covered = byId.get(entryId);
+        if (covered)
+          byId.set(entryId, {
+            ...covered,
+            reimbursement_id: p.reimbursementId,
+            pending: true,
+          });
+      }
+      byId.set(p.reimbursementId, {
+        id: p.reimbursementId,
+        group_id: mutation.groupId,
+        member_id: p.memberId,
+        entry_kind: 'reimbursement',
+        category: null,
+        amount: p.expectedAmountMinor,
+        currency: options.currency,
+        calc_mode: 'typed',
+        days: null,
+        rate_minor: null,
+        occurred_on: p.paidOn,
+        direction: 'company_to_employee',
+        status: 'approved',
+        note: p.note,
+        reimbursement_details: {},
+        deleted_at: null,
+        created_by: options.myMemberId ?? null,
+        created_at: mutation.clientCreatedAt,
         pending: true,
       });
     }

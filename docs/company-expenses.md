@@ -181,6 +181,71 @@ mobile authorization-cache purging remain owned by the mobile implementation.
   either, and Excel text cells that start with `= + - @` are stored as text.
 - Strings: `company.*` in English, Tamil, Hindi and Arabic.
 
+## Phase 3: policies, GST and vendor, mileage, bulk reimburse
+
+Designed with Codex (read-only, web search) after Mobbin research. Patterns picked:
+Trainline expense receipt (line items then total: the Before GST / GST / total block);
+Copilot "Remove duplicates" and GitHub "Select Items" (checkbox rows, one action at the
+bottom: bulk payment); Google Health "Optional Information" (a collapsed optional section:
+GST and vendor); BitePal / Copilot over-budget cue (one inline warning line, never a modal).
+No new tables: the ledger table gains nullable columns, the group gains a policy document.
+
+- **GST and vendor** (`vendor`, `gstin`, `invoice_no`, `gst_rate_bps`, `gst_amount_minor`):
+  optional, typed expenses only, shown when the group is India / INR. The entry amount is the
+  GST-inclusive total; GST is the typed or rate-suggested amount (half up), never above the
+  total. GSTIN is trimmed, upper-cased and checked for shape, state code and check character
+  in `validateGstin` (core) and the same rule in SQL. It proves format only, not registration.
+  The admin summary and the exports carry a GST total and vendor/GSTIN/invoice/GST columns.
+- **Mileage**: an expense with `calc_mode = distance_rate` (fuel / transport): km (two
+  decimals) x rate per km, rounded once half up like bata, stored with the rate used so a later
+  rate change never moves history. Rate: entry, else the employee's (`mileage_rate_minor`),
+  else the company's (`company_default_mileage_rate_minor`); zero is a valid rate. Optional
+  from / to text. It counts as the company owing the employee.
+- **Policy hints**: `groups.company_policies` (`receipt_above`, `period_limit` by category or
+  bata, day or month, effect `warn` or `block`; blocking only for limits). Per employee, by
+  the entry's date; submitted, approved and reimbursed count, rejected and voided do not, an
+  edited entry does not count twice, and only going over flags. The add-entry form shows the
+  warning under the amount (and a likely-duplicate hint); admins see "Over policy" on the
+  entry and in the approval queue. Flags are computed on the phone from rows it may read; the
+  server only enforces `block` limits (under a per-employee lock) and rechecks on edit.
+  A rule edit names the revision it saw so two admins cannot overwrite each other blindly.
+- **Bulk reimburse**: an admin selects one employee's approved, unpaid claims (or "all due
+  up to a date") and records one reimbursement. Unlinked advances, earlier payouts and cash
+  returns up to the cutoff are netted in so money already handed over is not paid twice
+  (payout = claims - credits; a negative result is blocked on the phone; zero records a
+  clearing entry). `waves_company_reimburse` locks the employee then every row, checks exact
+  versions and the expected amount, creates the reimbursement, sets covered claims to
+  `reimbursed` and links claims and credits through `reimbursement_id`, in one transaction.
+  The client-chosen reimbursement id is the idempotency key: the same payload replays the
+  result, a different payload under the same id is refused. Covered rows and the payment are
+  frozen against edit, void, review and photo changes. Entries show "Reimbursed on <date>"
+  from the payment's date. The balance is unchanged by status alone: claims keep counting,
+  the payment counts once against them. Offline, the payment and the paid marks overlay at
+  once. Whether the money actually moved is outside Waves.
+- Sync: `company.policies_set`, `company.mileage_rate_set`, `company.reimburse`; entry
+  create / update gain the GST and mileage fields. All authorised by SECURITY DEFINER RPCs.
+
+### Feature gap review (Codex vs Expensify, Zoho Expense, Fyle, Happay, Concur, Ramp, Brex, field-force apps)
+
+Built in this PR: policy limits and receipt hint (Expensify / Ramp rules), GST and vendor
+(Happay / Zoho), mileage (Concur / Happay), advance-aware bulk payment, duplicate hint
+(Zoho), "Over policy" flag in the approval queue.
+
+## Later
+
+- Receipt-required as a hard block (needs an upload that survives offline, then hold the claim
+  until the photo lands): warn-only today.
+- Pending / unpaid filters and oldest-pending age on the admin home: quick follow-up.
+- Admin-only invitations and identity-bound invites: closes the role gap listed above.
+- Purge of cached company rows when a role changes: closes downloaded-data exposure.
+- Project / site / customer tag per entry: useful field-force cost attribution.
+- Copy last expense / bata / mileage: speeds repeated claims.
+- Reminders and approval notifications: fewer pending claims.
+- Audit history and reimbursement reversal: corrections and disputes.
+- OCR, odometer / GPS routes, duty-based bata: less manual entry, privacy choices to make.
+- Accounting export / sync, multi-level approval, partial allocation of a payment.
+- Out of scope for good: cards, bank feeds, payments, payroll compliance (PF / ESI / TDS).
+
 ## Deferred (not in Phase 1)
 
 - Approval notifications and claim-to-payment allocation (`reimbursed` is never set yet).
