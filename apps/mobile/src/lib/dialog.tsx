@@ -82,6 +82,7 @@ import {
 
 import { AppDialog } from '@/components/AppDialog';
 import { useStrings } from '@/i18n';
+import { setOverlayBusy } from '@/lib/firstRun';
 import {
   createDialogHub,
   DIALOG_CANCEL,
@@ -207,6 +208,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   );
 
   const ask = useCallback((request: DialogRequest) => hub.ask(request), [hub]);
+
+  // A dialog on screen is an overlay the first-run tour must wait out.
+  const dialogUp = queue.current !== null;
+  useEffect(() => {
+    setOverlayBusy('dialog', dialogUp);
+    return () => setOverlayBusy('dialog', false);
+  }, [dialogUp]);
 
   /**
    * The one way a dialog ends.

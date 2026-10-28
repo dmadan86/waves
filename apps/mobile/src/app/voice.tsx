@@ -150,7 +150,7 @@ import { currentQuestion, partyQuestion, type ReviewOpen } from '@/lib/voiceRevi
 import { LocationField } from '@/components/LocationField';
 import { useLabelledCategoryCatalog } from '@/components/Category';
 import {
-  captureLocation,
+  captureLocationIfGranted,
   locationAvailable,
   locationUnchanged,
   reverseGeocode,
@@ -1706,13 +1706,12 @@ export default function VoiceScreen() {
   ]);
 
   // On opening the review, read the current location once and pin the batch to
-  // it — so the place is saved by default, no tap needed. It asks permission
-  // just-in-time; a refusal or an unavailable fix leaves the field on its manual
-  // "Add location" / "Pick on map" buttons rather than failing loudly. Never
+  // it — but only if permission was already granted. It never asks; a first-time
+  // user adds a place with the field's own "Add location" button. Never
   // overrides a pin the reader has since set or cleared: the latch runs it
   // exactly once per parsed batch.
   //
-  // `captureLocation` only ever waits on a fast coordinate fix (lib/location's
+  // `captureLocationIfGranted` only ever waits on a fast coordinate fix (lib/location's
   // `FAST_FIX_TIMEOUT_MS`) — never on reverse-geocoding, which can hang far
   // longer offline. The read is silent — no busy state of its own competes with
   // Save — and Save is never held up by the map/place-name lookup. The human-readable name, when there is
@@ -1724,13 +1723,16 @@ export default function VoiceScreen() {
     if (!locationAvailable()) return;
     const gen = locationGen.current;
     void (async () => {
-      const result = await captureLocation();
-      if (!result.ok) return;
+      // Never asks: a first-time user sees no location prompt mid-voice and uses
+      // the explicit "Add location" button instead; people who already said yes
+      // keep the automatic pin.
+      const fix = await captureLocationIfGranted();
+      if (!fix) return;
       // Drop a fix that lost its race: the reader has since set or cleared the
       // pin by hand, or a fresh utterance moved on to a new batch.
       if (locationGen.current !== gen || locationTouched.current) return;
-      const { lat, lng } = result.location;
-      setLocation(result.location);
+      const { lat, lng } = fix;
+      setLocation(fix);
       // Best-effort, and never awaited: a name that lands after the pin was
       // touched, the batch moved on, or the expense was already saved is
       // simply dropped — coordinates alone are a saveable location.

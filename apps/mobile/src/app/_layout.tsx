@@ -39,6 +39,8 @@ import {
 } from '@waves/ui';
 
 import { Onboarding } from '@/components/Onboarding';
+import { PermissionHost } from '@/components/PermissionHost';
+import { setOverlayBusy } from '@/lib/firstRun';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { AppTabBar } from '@/components/AppTabBar';
 import { LanguageRestartPrompt } from '@/components/LanguageRestartPrompt';
@@ -73,7 +75,7 @@ import { QuickShortcutRouting, QuickShortcutsMenu } from '@/components/QuickShor
 import { DemoGateHost } from '@/components/demo/DemoGateHost';
 import { PendingInviteResume } from '@/lib/PendingInviteResume';
 import { PendingReferralClaim } from '@/lib/PendingReferralClaim';
-import { TourProvider, useTour } from '@/lib/tour';
+import { TourProvider } from '@/lib/tour';
 import { PromptQueueProvider } from '@/lib/promptQueue';
 import { SyncNetworkProvider } from '@/lib/syncNetwork';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme';
@@ -283,6 +285,7 @@ function RootLayout() {
                                       sheet; outside every gate because a signed-in screen
                                       can attempt a demo write at any point past them. */}
                                         <DemoGateHost />
+                                        <PermissionHost />
                                         {/* Renders nothing: it takes a person who opened an
                                       invite before they had an account back to it once
                                       they have one, and the join finishes there. */}
@@ -541,10 +544,6 @@ function AuthGate() {
   const router = useRouter();
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
-  // Finishing the 3-card intro also marks the coach tour seen, so a new person
-  // is not toured twice back-to-back (the intro, then the coach-marks). The
-  // coach tour stays available on demand from the Home overflow menu.
-  const tour = useTour();
   // The paywall sells Pro through RevenueCat. Its route exists only
   // where the `paywall` flag turns it on AND the build carries a RevenueCat
   // key — a build with no key has nothing to sell, so a deep link cannot reach
@@ -681,6 +680,12 @@ function AuthGate() {
     };
   }, [ownerId]);
   const tourSeen = tourAnswer && tourAnswer.owner === ownerId ? tourAnswer.seen : null;
+  const showIntro = Boolean(session && ownerId && tourSeen !== true);
+  // Home is mounted under the intro; the tour must not start behind (or over) it.
+  useEffect(() => {
+    setOverlayBusy('intro', showIntro);
+    return () => setOverlayBusy('intro', false);
+  }, [showIntro]);
 
   // Past the spinners below means a real screen — the intro or the app — is
   // what renders, so the launch splash may lift onto it. Until then it holds,
@@ -707,7 +712,6 @@ function AuthGate() {
 
   // Keep the navigator mounted beneath the intro: replacing it on dismissal
   // races Android Fabric's native view teardown with the new Stack's mount.
-  const showIntro = Boolean(session && ownerId && tourSeen !== true);
 
   return (
     <View style={{ flex: 1 }}>
@@ -914,9 +918,6 @@ function AuthGate() {
                 // that fails costs them one repeat, not a stuck screen.
                 void rememberOnboardingSeen(ownerId);
                 track('onboarding_completed');
-                // One onboarding, not two: mark the coach tour seen as well so it does
-                // not autostart on the Home screen the intro just handed them to.
-                tour.finish();
               }}
             />
           )}

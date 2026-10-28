@@ -38,7 +38,9 @@ import { randomUUID } from 'expo-crypto';
 // from the namespace. A direct named import is the same binding by a route the
 // linter can see, which beats turning the rule off over a false positive.
 import { AndroidImportance } from 'expo-notifications';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
+
+import { ensurePermission } from '@/lib/permissionFlow';
 
 import { backend } from './backend';
 
@@ -160,6 +162,37 @@ export async function localNotificationsAllowed(): Promise<boolean> {
 }
 
 /**
+ * The one route to the system notification dialog: our explainer first, then the
+ * native ask. `explained` is for a caller that already is the explainer (the
+ * soft-ask card), so the person is not asked twice.
+ */
+async function notificationsGranted(explained: boolean): Promise<boolean> {
+  const toState = (r: { status: string; canAskAgain: boolean }) => ({
+    granted: r.status === 'granted',
+    canAskAgain: r.canAskAgain !== false,
+  });
+  const check = async () => toState(await Notifications.getPermissionsAsync());
+  const request = async () => toState(await Notifications.requestPermissionsAsync());
+  if (explained) {
+    // The soft-ask card is the explainer; it has been closed before this runs.
+    return (
+      await ensurePermission('notifications', {
+        check,
+        request,
+        explain: async () => 'continue',
+      })
+    ).granted;
+  }
+  return (
+    await ensurePermission('notifications', {
+      check,
+      request,
+      openSettings: () => Linking.openSettings(),
+    })
+  ).granted;
+}
+
+/**
  * Permission for a notification this device raises itself: no token, no EAS
  * project id, no FCM — a local alarm needs none of that, and `enablePush` would
  * report `not_configured` on a build that lacks them while the alarm would have
@@ -174,12 +207,7 @@ export async function localNotificationsAllowed(): Promise<boolean> {
 export async function ensureLocalNotificationPermission(): Promise<boolean> {
   if (!pushSupported) return false;
   try {
-    const existing = await Notifications.getPermissionsAsync();
-    const status =
-      existing.status === 'granted'
-        ? existing.status
-        : (await Notifications.requestPermissionsAsync()).status;
-    if (status !== 'granted') return false;
+    if (!(await notificationsGranted(false))) return false;
     // Android delivers silently without a channel, which looks exactly like a
     // bug — and the channel has to exist before anything is scheduled on it.
     await ensureAndroidChannel();
@@ -214,17 +242,12 @@ export type PushResult = { readonly ok: true } | { readonly ok: false; readonly 
  * Ask, register, and store. A refusal comes back as `denied` — an answer, not
  * an error, and the caller should treat it as one.
  */
-export async function enablePush(): Promise<PushResult> {
+export async function enablePush(explained = false): Promise<PushResult> {
   // A simulator has no push token to give, and web has no push at all. Failing
   // loudly here would make every development run look broken.
   if (!pushSupported || !Device.isDevice) return { ok: false, why: PushFailure.Unsupported };
 
-  const existing = await Notifications.getPermissionsAsync();
-  const status =
-    existing.status === 'granted'
-      ? existing.status
-      : (await Notifications.requestPermissionsAsync()).status;
-  if (status !== 'granted') return { ok: false, why: PushFailure.Denied };
+  if (!(await notificationsGranted(explained))) return { ok: false, why: PushFailure.Denied };
 
   // Android 13+ wants the channel to exist before the token is asked for.
   await ensureAndroidChannel();
