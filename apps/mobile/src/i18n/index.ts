@@ -1361,6 +1361,27 @@ export interface UiStrings {
     introPrivacy: string;
     defaultRateRow: string;
     defaultRateHint: string;
+    logoRow: string;
+    logoUpload: string;
+    logoLink: string;
+    logoLinkPlaceholder: string;
+    logoUse: string;
+    logoRemove: string;
+    logoSaved: string;
+    logoLater: string;
+    logoLocked: string;
+    logoErrEmpty: string;
+    logoErrInvalid: string;
+    logoErrNotHttps: string;
+    logoErrBlocked: string;
+    logoErrTimeout: string;
+    logoErrNetwork: string;
+    logoErrHttp: string;
+    logoErrNotImage: string;
+    logoErrSvg: string;
+    logoErrTooLarge: string;
+    logoErrRedirects: string;
+    logoErrDecode: string;
     currencyRow: string;
     pendingApprovals: string;
     colType: string;
@@ -7379,6 +7400,27 @@ const en: UiStrings = {
     introPrivacy: 'Only you and the company admin can see your entries and photos.',
     defaultRateRow: 'Daily bata rate',
     defaultRateHint: 'Optional. Used for every employee until you set theirs.',
+    logoRow: 'Company logo',
+    logoUpload: 'Upload',
+    logoLink: 'Paste a logo link',
+    logoLinkPlaceholder: 'https://example.com/logo.png',
+    logoUse: 'Use this link',
+    logoRemove: 'Remove logo',
+    logoSaved: 'Logo updated',
+    logoLater: 'Could not add the logo. Add it from company settings.',
+    logoLocked: 'Only an admin can change the logo.',
+    logoErrEmpty: 'Paste a link first.',
+    logoErrInvalid: 'That does not look like a link.',
+    logoErrNotHttps: 'The link must start with https://',
+    logoErrBlocked: 'That link cannot be used.',
+    logoErrTimeout: 'That link took too long to load.',
+    logoErrNetwork: 'Could not reach that link.',
+    logoErrHttp: 'That link did not open.',
+    logoErrNotImage: "That link isn't an image.",
+    logoErrSvg: 'SVG logos are not supported. Use a PNG, JPG or WebP link.',
+    logoErrTooLarge: 'Too large. Use an image under 2 MB.',
+    logoErrRedirects: 'That link redirects too many times.',
+    logoErrDecode: 'Could not read that image.',
     currencyRow: 'Currency',
     pendingApprovals: 'Waiting for approval',
     colType: 'Type',
@@ -12842,6 +12884,27 @@ const ta: UiStrings = {
       'நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே உங்கள் பதிவுகளையும் புகைப்படங்களையும் பார்க்கலாம்.',
     defaultRateRow: 'தினசரி படி விகிதம்',
     defaultRateHint: 'விருப்பம். நீங்கள் தனியாக அமைக்கும் வரை எல்லா ஊழியர்களுக்கும் பயன்படும்.',
+    logoRow: 'நிறுவன லோகோ',
+    logoUpload: 'பதிவேற்று',
+    logoLink: 'லோகோ இணைப்பை ஒட்டவும்',
+    logoLinkPlaceholder: 'https://example.com/logo.png',
+    logoUse: 'இந்த இணைப்பைப் பயன்படுத்து',
+    logoRemove: 'லோகோவை நீக்கு',
+    logoSaved: 'லோகோ புதுப்பிக்கப்பட்டது',
+    logoLater: 'லோகோவைச் சேர்க்க முடியவில்லை. நிறுவன அமைப்புகளில் சேர்க்கவும்.',
+    logoLocked: 'நிர்வாகி மட்டுமே லோகோவை மாற்ற முடியும்.',
+    logoErrEmpty: 'முதலில் இணைப்பை ஒட்டவும்.',
+    logoErrInvalid: 'இது இணைப்பாகத் தெரியவில்லை.',
+    logoErrNotHttps: 'இணைப்பு https:// உடன் தொடங்க வேண்டும்.',
+    logoErrBlocked: 'அந்த இணைப்பைப் பயன்படுத்த முடியாது.',
+    logoErrTimeout: 'அந்த இணைப்பு ஏற்ற அதிக நேரம் ஆனது.',
+    logoErrNetwork: 'அந்த இணைப்பை அடைய முடியவில்லை.',
+    logoErrHttp: 'அந்த இணைப்பு திறக்கவில்லை.',
+    logoErrNotImage: 'அந்த இணைப்பு படம் அல்ல.',
+    logoErrSvg: 'SVG லோகோக்கள் ஆதரிக்கப்படாது. PNG, JPG அல்லது WebP இணைப்பைப் பயன்படுத்தவும்.',
+    logoErrTooLarge: 'மிகப் பெரியது. 2 MB-க்குக் குறைவான படத்தைப் பயன்படுத்தவும்.',
+    logoErrRedirects: 'அந்த இணைப்பு பலமுறை திசைதிருப்புகிறது.',
+    logoErrDecode: 'அந்தப் படத்தைப் படிக்க முடியவில்லை.',
     currencyRow: 'நாணயம்',
     pendingApprovals: 'ஒப்புதலுக்காகக் காத்திருப்பவை',
     colType: 'வகை',
@@ -18468,6 +18531,27 @@ const hi: UiStrings = {
     introPrivacy: 'आपकी एंट्री और फ़ोटो सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
     defaultRateRow: 'दैनिक बत्ता दर',
     defaultRateHint: 'वैकल्पिक। जब तक आप किसी की दर तय नहीं करते, यही सब पर लागू होगी।',
+    logoRow: 'कंपनी का लोगो',
+    logoUpload: 'अपलोड करें',
+    logoLink: 'लोगो का लिंक पेस्ट करें',
+    logoLinkPlaceholder: 'https://example.com/logo.png',
+    logoUse: 'यह लिंक इस्तेमाल करें',
+    logoRemove: 'लोगो हटाएँ',
+    logoSaved: 'लोगो अपडेट हो गया',
+    logoLater: 'लोगो नहीं जुड़ सका। कंपनी सेटिंग्स से जोड़ें।',
+    logoLocked: 'लोगो सिर्फ़ एडमिन बदल सकता है।',
+    logoErrEmpty: 'पहले लिंक पेस्ट करें।',
+    logoErrInvalid: 'यह लिंक जैसा नहीं दिखता।',
+    logoErrNotHttps: 'लिंक https:// से शुरू होना चाहिए।',
+    logoErrBlocked: 'यह लिंक इस्तेमाल नहीं हो सकता।',
+    logoErrTimeout: 'यह लिंक खुलने में बहुत देर लगी।',
+    logoErrNetwork: 'यह लिंक नहीं खुल सका।',
+    logoErrHttp: 'यह लिंक नहीं खुला।',
+    logoErrNotImage: 'यह लिंक किसी तस्वीर का नहीं है।',
+    logoErrSvg: 'SVG लोगो समर्थित नहीं हैं। PNG, JPG या WebP लिंक इस्तेमाल करें।',
+    logoErrTooLarge: 'बहुत बड़ा है। 2 MB से छोटी तस्वीर इस्तेमाल करें।',
+    logoErrRedirects: 'यह लिंक बहुत बार आगे भेजता है।',
+    logoErrDecode: 'वह तस्वीर पढ़ी नहीं जा सकी।',
     currencyRow: 'मुद्रा',
     pendingApprovals: 'अनुमोदन की प्रतीक्षा',
     colType: 'प्रकार',
@@ -23985,6 +24069,27 @@ const ar: UiStrings = {
     introPrivacy: 'لا يرى قيودك وصورك سواك ومشرف الشركة.',
     defaultRateRow: 'معدل البدل اليومي',
     defaultRateHint: 'اختياري. يُستخدم لكل الموظفين حتى تحدد معدل أحدهم.',
+    logoRow: 'شعار الشركة',
+    logoUpload: 'رفع',
+    logoLink: 'الصق رابط الشعار',
+    logoLinkPlaceholder: 'https://example.com/logo.png',
+    logoUse: 'استخدم هذا الرابط',
+    logoRemove: 'إزالة الشعار',
+    logoSaved: 'تم تحديث الشعار',
+    logoLater: 'تعذّرت إضافة الشعار. أضفه من إعدادات الشركة.',
+    logoLocked: 'المشرف فقط يستطيع تغيير الشعار.',
+    logoErrEmpty: 'الصق رابطًا أولًا.',
+    logoErrInvalid: 'لا يبدو هذا رابطًا.',
+    logoErrNotHttps: 'يجب أن يبدأ الرابط بـ https://',
+    logoErrBlocked: 'لا يمكن استخدام هذا الرابط.',
+    logoErrTimeout: 'استغرق تحميل الرابط وقتًا طويلًا.',
+    logoErrNetwork: 'تعذّر الوصول إلى هذا الرابط.',
+    logoErrHttp: 'لم يُفتح هذا الرابط.',
+    logoErrNotImage: 'هذا الرابط ليس صورة.',
+    logoErrSvg: 'شعارات SVG غير مدعومة. استخدم رابط PNG أو JPG أو WebP.',
+    logoErrTooLarge: 'الملف كبير جدًا. استخدم صورة أقل من 2 ميغابايت.',
+    logoErrRedirects: 'يعيد هذا الرابط التوجيه مرات كثيرة.',
+    logoErrDecode: 'تعذّرت قراءة هذه الصورة.',
     currencyRow: 'العملة',
     pendingApprovals: 'بانتظار الموافقة',
     colType: 'النوع',

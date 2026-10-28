@@ -206,9 +206,11 @@ export async function uploadGroupPhoto(input: {
   groupId: string;
   base64: string;
   mimeType?: string | null;
+  /** A company logo is stored as `logo.*` so it draws fitted on white (GroupPhoto). */
+  kind?: 'cover' | 'logo';
 }): Promise<string> {
   const mime = normaliseImageMime(input.mimeType);
-  const path = `${input.groupId}/cover.${imageExt(mime)}`;
+  const path = `${input.groupId}/${input.kind ?? 'cover'}.${imageExt(mime)}`;
 
   await putImage({
     bucket: PHOTO_BUCKET,
