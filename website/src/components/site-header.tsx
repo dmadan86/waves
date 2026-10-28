@@ -21,6 +21,7 @@ type Nav = {
   pricing: string;
   faq: string;
   openApp: string;
+  signIn: string;
   download: string;
   menu: string;
   close: string;
@@ -198,6 +199,13 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
                 </ul>
               ) : null}
             </div>
+
+            <a
+              href={appUrl}
+              className="ms-1 hidden h-10 items-center rounded-lg px-3 text-sm font-medium whitespace-nowrap text-ink-2 transition-colors hover:bg-chip hover:text-ink sm:inline-flex"
+            >
+              {nav.signIn}
+            </a>
 
             <a
               href="#download"
