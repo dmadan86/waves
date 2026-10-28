@@ -28,7 +28,12 @@ describe('openDeepLink', () => {
     expect(r.push.mock.calls.map((c) => c[0])).toEqual(['/group/g1', '/group/g1/expense/e1']);
   });
   it('still pushes when dismissTo throws', () => {
-    const r = { dismissTo: vi.fn(() => { throw new Error('x'); }), push: vi.fn() };
+    const r = {
+      dismissTo: vi.fn(() => {
+        throw new Error('x');
+      }),
+      push: vi.fn(),
+    };
     openDeepLink(r, '/activity');
     expect(r.push).toHaveBeenCalledWith('/activity');
   });
@@ -54,9 +59,31 @@ describe('createOnceGate', () => {
     expect(await createOnceGate(store)('a')).toBe(false);
   });
   it('still dedupes in memory when storage throws', async () => {
-    const bad = { getItem: async () => { throw new Error('x'); }, setItem: async () => {} };
+    const bad = {
+      getItem: async () => {
+        throw new Error('x');
+      },
+      setItem: async () => {},
+    };
     const once = createOnceGate(bad);
     expect(await once('a')).toBe(true);
     expect(await once('a')).toBe(false);
+  });
+});
+
+describe('back from a deep-linked expense', () => {
+  it('lands on its group, and re-handling the same tap does nothing', async () => {
+    const stack: string[] = ['/'];
+    const r = {
+      dismissTo: () => void stack.splice(1),
+      push: (h: string) => void stack.push(h),
+    };
+    const once = createOnceGate({ getItem: async () => null, setItem: async () => {} });
+    for (let i = 0; i < 2; i++) {
+      if (await once('n1')) openDeepLink(r, '/group/g1/expense/e1');
+    }
+    expect(stack).toEqual(['/', '/group/g1', '/group/g1/expense/e1']);
+    stack.pop(); // header back arrow
+    expect(stack.at(-1)).toBe('/group/g1');
   });
 });
