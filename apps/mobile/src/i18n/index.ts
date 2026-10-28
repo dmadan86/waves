@@ -2047,6 +2047,15 @@ export interface UiStrings {
     sheetVoice: string;
     sheetPrice: string;
     sheetLater: string;
+    sheetStatusEmpty: string;
+    sheetWatchSub: string;
+    sheetStatusHas: string;
+    sheetMiniScans: string;
+    sheetMiniScansSub: string;
+    sheetMiniAds: string;
+    sheetMiniAdsSub: string;
+    sheetMiniDevices: string;
+    sheetMiniDevicesSub: string;
     sheetContinue: string;
     title: string;
     balance: string;
@@ -8070,6 +8079,15 @@ const en: UiStrings = {
     sheetVoice: '{n} voice commands per month',
     sheetPrice: 'Go Pro – {price}/month',
     sheetLater: 'Maybe later',
+    sheetStatusEmpty: "You've used this month's free voice credits.",
+    sheetWatchSub: 'Watch a short ad to get more voice credits now.',
+    sheetStatusHas: 'Ready for your next voice command.',
+    sheetMiniScans: '{n} scans',
+    sheetMiniScansSub: 'every month',
+    sheetMiniAds: 'No ads',
+    sheetMiniAdsSub: 'on Pro',
+    sheetMiniDevices: '{n} devices',
+    sheetMiniDevicesSub: 'on one account',
     sheetContinue: 'Continue',
     title: 'Credits',
     balance: 'You have {n} credits',
@@ -13635,6 +13653,15 @@ const ta: UiStrings = {
     sheetVoice: 'மாதத்திற்கு {n} குரல் கட்டளைகள்',
     sheetPrice: 'Pro பெறுங்கள் – {price}/மாதம்',
     sheetLater: 'பிறகு பார்க்கலாம்',
+    sheetStatusEmpty: 'இந்த மாதத்தின் இலவச குரல் கிரெடிட்களைப் பயன்படுத்திவிட்டீர்கள்.',
+    sheetWatchSub: 'சில விநாடி விளம்பரம் பார்த்து இப்போதே கூடுதல் குரல் கிரெடிட்களைப் பெறுங்கள்.',
+    sheetStatusHas: 'அடுத்த குரல் கட்டளைக்கு தயார்.',
+    sheetMiniScans: '{n} ஸ்கேன்கள்',
+    sheetMiniScansSub: 'ஒவ்வொரு மாதமும்',
+    sheetMiniAds: 'விளம்பரமில்லை',
+    sheetMiniAdsSub: 'Pro-வில்',
+    sheetMiniDevices: '{n} சாதனங்கள்',
+    sheetMiniDevicesSub: 'ஒரே கணக்கில்',
     sheetContinue: 'தொடரவும்',
     title: 'கிரெடிட்கள்',
     balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
@@ -19346,6 +19373,15 @@ const hi: UiStrings = {
     sheetVoice: 'हर महीने {n} वॉइस कमांड',
     sheetPrice: 'Pro लें – {price}/माह',
     sheetLater: 'शायद बाद में',
+    sheetStatusEmpty: 'आप इस महीने के मुफ़्त वॉइस क्रेडिट इस्तेमाल कर चुके हैं।',
+    sheetWatchSub: 'एक छोटा विज्ञापन देखें और अभी और वॉइस क्रेडिट पाएं।',
+    sheetStatusHas: 'अगले वॉइस कमांड के लिए तैयार।',
+    sheetMiniScans: '{n} स्कैन',
+    sheetMiniScansSub: 'हर महीने',
+    sheetMiniAds: 'कोई विज्ञापन नहीं',
+    sheetMiniAdsSub: 'Pro में',
+    sheetMiniDevices: '{n} डिवाइस',
+    sheetMiniDevicesSub: 'एक ही खाते पर',
     sheetContinue: 'जारी रखें',
     title: 'क्रेडिट',
     balance: 'आपके पास {n} क्रेडिट हैं',
@@ -24965,6 +25001,15 @@ const ar: UiStrings = {
     sheetVoice: '{n} أمر صوتي شهريًا',
     sheetPrice: 'احصل على Pro – {price}/شهر',
     sheetLater: 'ربما لاحقًا',
+    sheetStatusEmpty: 'لقد استخدمت أرصدة الصوت المجانية لهذا الشهر.',
+    sheetWatchSub: 'شاهد إعلانًا قصيرًا للحصول على المزيد من أرصدة الصوت الآن.',
+    sheetStatusHas: 'جاهز لأمرك الصوتي التالي.',
+    sheetMiniScans: '{n} مسحًا',
+    sheetMiniScansSub: 'كل شهر',
+    sheetMiniAds: 'بلا إعلانات',
+    sheetMiniAdsSub: 'على Pro',
+    sheetMiniDevices: '{n} أجهزة',
+    sheetMiniDevicesSub: 'على حساب واحد',
     sheetContinue: 'متابعة',
     title: 'الرصيد',
     balance: 'لديك {n} من الرصيد',
