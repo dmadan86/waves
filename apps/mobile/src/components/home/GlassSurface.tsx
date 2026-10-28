@@ -7,9 +7,10 @@
  * view that clips cannot also cast a shadow on iOS.
  */
 
-import { type ReactNode, type RefObject } from 'react';
+import { useState, type ReactNode, type RefObject } from 'react';
+import Svg, { Path } from 'react-native-svg';
 import { BlurView } from 'expo-blur';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { I18nManager, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { useTheme } from '@waves/ui';
 
@@ -17,8 +18,11 @@ export function GlassSurface({
   children,
   blurTarget,
   style,
+  folderTab = false,
 }: {
   children: ReactNode;
+  /** Raised start-side header; contents reserve the first 34dp for its label. */
+  folderTab?: boolean;
   /** What the glass blurs on Android — the hero's scene, wrapped in a
    *  `BlurTargetView`. iOS blurs whatever is behind it without being told. */
   blurTarget?: RefObject<View | null>;
@@ -27,6 +31,45 @@ export function GlassSurface({
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
+  const [size, setSize] = useState({ width: 0, height: 0 });
+  if (folderTab) {
+    const { width: w, height: h } = size;
+    const r = Math.min(theme.radius.xl, w / 4, h / 4);
+    const tab = w * 0.5;
+    // One continuous silhouette avoids a seam where the tab meets the body.
+    const path = `M ${r} 0 H ${tab - 30} C ${tab - 8} 0 ${tab - 12} 34 ${tab + 12} 34 H ${w - r} Q ${w} 34 ${w} ${34 + r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`;
+    return (
+      <View
+        onLayout={({ nativeEvent }) => setSize(nativeEvent.layout)}
+        style={{
+          shadowColor: '#322864',
+          shadowOpacity: 0.12,
+          shadowRadius: 16,
+          shadowOffset: { width: 0, height: 12 },
+        }}
+      >
+        {w > 0 && h > 0 ? (
+          <Svg
+            pointerEvents="none"
+            width={w}
+            height={h}
+            style={[
+              StyleSheet.absoluteFill,
+              { transform: [{ scaleX: I18nManager.isRTL ? -1 : 1 }] },
+            ]}
+          >
+            <Path
+              d={path}
+              fill={dark ? 'rgba(28, 26, 44, 0.96)' : 'rgba(255, 255, 255, 0.94)'}
+              stroke={dark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.65)'}
+              strokeWidth={1}
+            />
+          </Svg>
+        ) : null}
+        <View style={style}>{children}</View>
+      </View>
+    );
+  }
   return (
     <View
       style={{

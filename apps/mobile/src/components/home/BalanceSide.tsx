@@ -44,7 +44,13 @@ export function BalanceSide({
   hidden,
   loading,
   trailing = false,
+  iconDisc = false,
+  uniformDecimals = false,
 }: {
+  /** Home layout: 40dp tinted disc beside the text column. */
+  iconDisc?: boolean;
+  /** Render the entire amount with the same weight and color. */
+  uniformDecimals?: boolean;
   icon: 'arrow-up' | 'arrow-down';
   color: string;
   amount: bigint;
@@ -81,49 +87,82 @@ export function BalanceSide({
       }
       style={{
         flex: 1,
-        gap: 2,
-        paddingStart: trailing ? theme.spacing.lg : 0,
+        flexDirection: iconDisc ? 'row' : 'column',
+        alignItems: iconDisc ? 'center' : undefined,
+        gap: iconDisc ? 10 : 2,
+        paddingStart: trailing ? (iconDisc ? theme.spacing.sm : theme.spacing.lg) : 0,
         paddingEnd: trailing ? 0 : theme.spacing.sm,
       }}
     >
-      <Row style={{ alignItems: 'center', gap: 4 }}>
-        <Ionicons name={icon} size={iconSize.xs} color={color} />
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {label}
-        </Text>
-      </Row>
-      {loading ? (
-        <Skeleton width={80} height={18} radius={6} />
-      ) : hidden ? (
-        <Text variant="subheading" style={{ fontWeight: '700' }}>
-          {MASK}
-        </Text>
-      ) : (
-        <SplitMoney
-          amount={amount}
-          currency={currency}
-          locale={locale}
-          color={amountColor ?? theme.color.text}
-          fontSize={18}
-        />
-      )}
-      {detail ? (
-        <Text variant="micro" tone="muted" numberOfLines={1}>
-          {detail}
-        </Text>
+      {iconDisc ? (
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor:
+              icon === 'arrow-up' ? theme.color.positiveSoft : theme.color.negativeSoft,
+          }}
+        >
+          <Ionicons name={icon} size={24} color={color} />
+        </View>
       ) : null}
-      {showChips ? (
-        <Text variant="caption" tone="muted" numberOfLines={1} style={{ fontSize: 13 }}>
-          {'+ '}
-          {labels.slice(0, fit.shown).map((label, i) => (
-            <Text key={chips![i]!.currency}>
-              {i > 0 ? ' · ' : ''}
-              <Text style={{ color, fontWeight: '600', fontSize: 13 }}>{label}</Text>
-            </Text>
-          ))}
-          {fit.hidden > 0 ? `${fit.shown > 0 ? ' · ' : ''}${overflowLabel(fit.hidden)}` : ''}
-        </Text>
-      ) : null}
+      <View style={iconDisc ? { flex: 1, minWidth: 0, gap: 2 } : { gap: 2 }}>
+        <Row style={{ alignItems: 'center', gap: 4 }}>
+          {!iconDisc ? <Ionicons name={icon} size={iconSize.xs} color={color} /> : null}
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {label}
+          </Text>
+        </Row>
+        {loading ? (
+          <Skeleton width={80} height={18} radius={6} />
+        ) : hidden ? (
+          <Text variant="subheading" style={{ fontWeight: '700' }}>
+            {MASK}
+          </Text>
+        ) : uniformDecimals ? (
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            minimumFontScale={0.6}
+            style={{
+              color: amountColor ?? theme.color.text,
+              fontSize: 18,
+              lineHeight: 23,
+              fontWeight: '700',
+            }}
+          >
+            {format(money(amount < 0n ? -amount : amount, currency as never), { locale })}
+          </Text>
+        ) : (
+          <SplitMoney
+            amount={amount}
+            currency={currency}
+            locale={locale}
+            color={amountColor ?? theme.color.text}
+            fontSize={18}
+          />
+        )}
+        {detail ? (
+          <Text variant="micro" tone="muted" numberOfLines={1}>
+            {detail}
+          </Text>
+        ) : null}
+        {showChips ? (
+          <Text variant="caption" tone="muted" numberOfLines={1} style={{ fontSize: 13 }}>
+            {'+ '}
+            {labels.slice(0, fit.shown).map((label, i) => (
+              <Text key={chips![i]!.currency}>
+                {i > 0 ? ' · ' : ''}
+                <Text style={{ color, fontWeight: '600', fontSize: 13 }}>{label}</Text>
+              </Text>
+            ))}
+            {fit.hidden > 0 ? `${fit.shown > 0 ? ' · ' : ''}${overflowLabel(fit.hidden)}` : ''}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }

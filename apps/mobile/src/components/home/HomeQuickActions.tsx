@@ -14,7 +14,7 @@
 import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { View } from 'react-native';
+import { View } from 'react-native';
 
 import { useTheme } from '@waves/ui';
 
@@ -75,7 +75,7 @@ export function HomeQuickActions({
     {
       key: 'group',
       label: t.homeDash.newGroup,
-      glyph: (color) => <GroupAddIcon size={17} color={color} />,
+      glyph: (color) => <GroupAddIcon size={24} color={color} />,
       onPress: () => measureAnchor(groupRef, onNewGroup),
       ref: groupRef,
       tourId: 'addGroup',
@@ -85,14 +85,14 @@ export function HomeQuickActions({
           key: 'review',
           label: t.review,
           badge: reviewBadge,
-          badgeColor: theme.color.brand,
-          glyph: (color) => <Ionicons name="file-tray-full-outline" size={20} color={color} />,
+          badgeColor: theme.color.negative,
+          glyph: (color) => <Ionicons name="file-tray-full-outline" size={24} color={color} />,
           onPress: onReview,
         }
       : {
           key: 'settle',
           label: t.homeDash.settleUp,
-          glyph: (color) => <Ionicons name="cash-outline" size={20} color={color} />,
+          glyph: (color) => <Ionicons name="cash-outline" size={24} color={color} />,
           onPress: onSettleUp,
         },
     ...(viewerId && !isPaid
@@ -102,9 +102,10 @@ export function HomeQuickActions({
             label: fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 }),
             badge: creditAction.badge,
             badgeColor: theme.color.brand,
-            backgroundColor: creditAction.highlight ? theme.color.brandSoft : undefined,
+            tileColor: theme.color.warningSoft,
+            tileInk: theme.color.text,
             accessibilityLabel: `${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`,
-            glyph: (color: string) => <Ionicons name="flash" size={19} color={color} />,
+            glyph: () => <Ionicons name="flash" size={24} color={theme.color.warning} />,
             onPress: () => void adOffer.offer('voice', { userInitiated: true, homeCredits: true }),
           },
         ]
@@ -113,7 +114,20 @@ export function HomeQuickActions({
     {
       key: 'expense',
       label: t.homeDash.addExpense,
-      glyph: (color) => <Ionicons name="add" size={24} color={color} />,
+      glyph: () => (
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.brand,
+          }}
+        >
+          <Ionicons name="add" size={20} color={theme.color.onBrand} />
+        </View>
+      ),
       onPress: onAddExpense,
       onLongPress: onAddExpenseLong,
       tourId: 'addExpense',
@@ -128,6 +142,7 @@ export function HomeQuickActions({
         discColor={theme.color.brandSoft}
         iconColor={theme.color.brand}
         rowPadding={theme.spacing.xs}
+        tile
       />
       {adOffer.sheet}
     </>
