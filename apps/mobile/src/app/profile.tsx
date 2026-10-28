@@ -21,6 +21,7 @@ import {
 } from '@waves/ui';
 
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
 import { SkeletonList } from '@/components/Skeletons';
@@ -116,18 +117,8 @@ function ProfileForm() {
     enabled: !!profile?.id,
   });
   const showVoiceRecorder = __DEV__;
-  // A Google/Apple sign-in carries a photo in the session's user metadata, but
-  // the profile row only holds one if a trigger copied it across — older
-  // accounts have a null `avatar_url` and so showed initials here. Fall back to
-  // the provider photo (an https URL that resolves straight through) so the
-  // account page shows your face whether or not the column was ever filled.
-  // `||`, not `??`: an empty-string avatar (a cleared column, or a provider that
-  // sends '') is "no photo", so it must fall through to the next source rather
-  // than be handed on as a blank URL.
-  const oauthAvatar =
-    (session?.user?.user_metadata?.avatar_url as string | undefined) ||
-    (session?.user?.user_metadata?.picture as string | undefined) ||
-    null;
+  // Same face everyone else sees (profiles.avatar_url), provider photo only as fallback.
+  const { avatarUrl: shownAvatar } = useViewerIdentity();
 
   const {
     enabled: lockEnabled,
@@ -251,7 +242,7 @@ function ProfileForm() {
         <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
           <ProfileAvatar
             name={profile?.display_name ?? t.account.you}
-            avatarUrl={profile?.avatar_url || oauthAvatar}
+            avatarUrl={shownAvatar}
             size={92}
             onPress={profile ? photo.open : undefined}
             busy={photo.busy}
