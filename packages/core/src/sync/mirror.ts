@@ -1892,10 +1892,12 @@ export function materialiseCompanyEntries(
           funding_manager_id: line.fundingManagerId,
           gross_minor: line.expectedGrossMinor,
           recovery_minor: line.expectedRecoveryMinor,
-          claims_minor: line.claimIds.reduce(
-            (sum, { entryId }) => sum + BigInt(String(byId.get(entryId)?.amount ?? '0')),
-            0n,
-          ).toString(),
+          claims_minor: line.claimIds
+            .reduce(
+              (sum, { entryId }) => sum + BigInt(String(byId.get(entryId)?.amount ?? '0')),
+              0n,
+            )
+            .toString(),
           wage_run_id: p.runId,
           period_start: p.periodStart,
           period_end: p.periodEnd,

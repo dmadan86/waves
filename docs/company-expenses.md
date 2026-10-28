@@ -244,7 +244,7 @@ only) with a team = employees whose `manager_id` is theirs. Employee = `member`;
 "reports to the owners". A manager also logs their own expense / bata; only an owner reviews those.
 
 **Who sees whom (server side, RLS + RPCs).** An employee's entry, photos, notes, GST, statements and exports are
-visible only to that employee, their *current* manager and the owners. A manager sees only owners (names only,
+visible only to that employee, their _current_ manager and the owners. A manager sees only owners (names only,
 through `waves_company_people`), themselves and their own team in `group_members`, profiles, contacts, invites,
 past-people and the member pickers. Employees see only themselves plus owners and their manager as names.
 Reassigning an employee gives the new manager the full history at once and removes the old manager's access;
