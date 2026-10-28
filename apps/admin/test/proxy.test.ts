@@ -12,7 +12,7 @@ const VERCEL_ORIGIN = 'https://waves-admin.vercel.app';
 const SPOOFED_HOST = 'admin.wavs.co.in';
 
 beforeAll(() => {
-  process.env.ADMIN_SESSION_SECRET = 'test-session-secret';
+  process.env.ADMIN_SESSION_SECRET = 's'.repeat(40);
   process.env.ADMIN_ORIGIN_SECRET = ORIGIN_SECRET;
   process.env.NODE_ENV = 'production';
 });

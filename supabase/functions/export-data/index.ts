@@ -69,7 +69,10 @@ serveWithCors(async (request) => {
     } else {
       // RLS decides what "my groups" means; no manual filtering needed.
       const { data: groups, error } = await caller.from('groups').select('id');
-      if (error) throw new HttpError(500, 'INTERNAL', error.message);
+      if (error) {
+        console.error(JSON.stringify({ fn: 'export-data', detail: error.message }));
+        throw new HttpError(500, 'INTERNAL', 'Could not complete request');
+      }
       groupIds = (groups ?? []).map((group) => group.id);
     }
 
@@ -89,11 +92,8 @@ serveWithCors(async (request) => {
       .eq('id', user.user.id)
       .single();
     if (meError) {
-      throw new HttpError(
-        500,
-        'EXPORT_INCOMPLETE',
-        `Could not read your profile: ${meError.message}`,
-      );
+      console.error(JSON.stringify({ fn: 'export-data', detail: meError.message }));
+      throw new HttpError(500, 'EXPORT_INCOMPLETE', 'Could not complete request');
     }
 
     const exported = [];
@@ -134,11 +134,8 @@ serveWithCors(async (request) => {
         activity,
       })) {
         if (result.error) {
-          throw new HttpError(
-            500,
-            'EXPORT_INCOMPLETE',
-            `Could not read ${label}: ${result.error.message}`,
-          );
+          console.error(JSON.stringify({ fn: 'export-data', label, detail: result.error.message }));
+          throw new HttpError(500, 'EXPORT_INCOMPLETE', 'Could not complete request');
         }
       }
 
