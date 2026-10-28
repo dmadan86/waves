@@ -39,7 +39,7 @@ const highlights = [
     title: 'Receipt scanning',
     symbol: '▤',
     body: 'Scan receipts to add expenses.',
-    pill: 'Waves: 20 scans a month free',
+    pill: 'Waves: 2 credits a scan',
     tint: 'bg-emerald-50',
     icon: 'bg-emerald-100 text-emerald-700',
   },
@@ -152,7 +152,7 @@ export default async function CompareIndex({ params }: { params: Promise<{ local
               <span className="min-w-0 flex-1">
                 <span className="block text-lg font-bold text-ink">Waves</span>
                 <span className="mt-1 block text-sm leading-relaxed text-ink-2">
-                  Unlimited groups and expenses.
+                  Unlimited people and expenses.
                 </span>
               </span>
               <ArrowRight className="h-5 w-5 shrink-0 text-blue" />
