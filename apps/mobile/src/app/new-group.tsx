@@ -5,7 +5,6 @@ import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   TextInput,
@@ -575,7 +574,7 @@ export default function NewGroupScreen() {
               kind: 'logo',
             }),
         ).then((done) => {
-          if (!done) Alert.alert(t.company.logoLater);
+          if (!done) toast.show(t.company.logoLater, 'negative');
         });
       }
 
