@@ -276,6 +276,13 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     return out;
   }, [recents.keys, byId, rows, chosenId]);
 
+  // A pick made elsewhere (the full picker) leads the row, so bring the row
+  // back to its start or the ticked chip sits scrolled out of sight.
+  const chipsRef = useRef<ScrollView>(null);
+  useEffect(() => {
+    chipsRef.current?.scrollTo({ x: 0, animated: false });
+  }, [chosenId]);
+
   const personalOffered = usePersonalOffered();
   // Nothing tapped yet: the most recent destination is pre-picked so Save is live on open.
   const effectiveId = chosenId ?? chips[0]?.id ?? null;
@@ -467,7 +474,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                   {t.quickExpense.noPlacesYet}
                 </Text>
               ) : null}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <ScrollView ref={chipsRef} horizontal showsHorizontalScrollIndicator={false}>
                 <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
                   {/* The private ledger, first and always — a spend that is
                   nobody else's business is the one destination that never
@@ -611,38 +618,49 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
       </View>
 
       {pickerOpen ? (
-        <Sheet visible onClose={() => setPickerOpen(false)} title={t.quickExpense.where}>
-          <DestinationPicker
-            selection={chosen ? { kind: 'existing', groupId: chosen.id } : { kind: 'none' }}
-            groups={rows}
-            people={[]}
-            t={t}
-            pinned={[]}
-            onChoose={(choice) => {
-              if (choice.kind === 'existing') setChosenId(choice.groupId);
-              setPickerOpen(false);
-            }}
-            // Somebody this ledger has never met needs a group and a ghost made
-            // for them. That is a lasting thing to do behind a sheet called
-            // quick, so it goes to the screen built for a spend with no home.
-            onResolvePeople={() => {
-              const typed = note.trim();
-              setPickerOpen(false);
-              closeAndReset();
-              // Carrying what was typed, exactly as Advanced does. The reset
-              // above empties the sheet but not this closure, so the figure
-              // still travels — and arriving at a screen that had forgotten it
-              // is the thing this branch already fixes everywhere else.
-              router.push({
-                pathname: '/capture',
-                params: {
-                  amount: amount.toString(),
-                  cur: currency,
-                  ...(typed ? { desc: typed } : {}),
-                },
-              });
-            }}
-          />
+        // Capped and scrollable like every other DestinationPicker host: left
+        // unbounded the card outgrew the screen and its title slid under the
+        // status bar.
+        <Sheet
+          visible
+          onClose={() => setPickerOpen(false)}
+          title={t.quickExpense.where}
+          closeLabel={t.common.close}
+          style={{ maxHeight: '80%' }}
+        >
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <DestinationPicker
+              selection={chosen ? { kind: 'existing', groupId: chosen.id } : { kind: 'none' }}
+              groups={rows}
+              people={[]}
+              t={t}
+              pinned={[]}
+              onChoose={(choice) => {
+                if (choice.kind === 'existing') setChosenId(choice.groupId);
+                setPickerOpen(false);
+              }}
+              // Somebody this ledger has never met needs a group and a ghost made
+              // for them. That is a lasting thing to do behind a sheet called
+              // quick, so it goes to the screen built for a spend with no home.
+              onResolvePeople={() => {
+                const typed = note.trim();
+                setPickerOpen(false);
+                closeAndReset();
+                // Carrying what was typed, exactly as Advanced does. The reset
+                // above empties the sheet but not this closure, so the figure
+                // still travels — and arriving at a screen that had forgotten it
+                // is the thing this branch already fixes everywhere else.
+                router.push({
+                  pathname: '/capture',
+                  params: {
+                    amount: amount.toString(),
+                    cur: currency,
+                    ...(typed ? { desc: typed } : {}),
+                  },
+                });
+              }}
+            />
+          </ScrollView>
         </Sheet>
       ) : null}
       {receiptCameraOpen ? (
