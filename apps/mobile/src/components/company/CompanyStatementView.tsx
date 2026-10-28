@@ -29,14 +29,14 @@ import {
   StandardCard,
   StatCard,
 } from '@/components/standard';
-import { useSetCompanyRate, useVoidCompanyEntry, type CompanyView } from '@/data/companyEntries';
+import { useSetCompanyRate, type CompanyView } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, type MemberRow } from '@/data/types';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { periodRange, type CompanyPeriod } from '@/lib/companyPeriod';
-import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
 import { showDate } from '@/lib/expenseDay';
+import { router } from '@/lib/navigation';
 
 export function kindLabel(t: UiStrings, entry: CompanyEntry): string {
   const c = t.company;
@@ -98,8 +98,6 @@ export function CompanyStatementView({
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const { confirm } = useDialog();
-  const voidEntry = useVoidCompanyEntry(groupId);
   const setRate = useSetCompanyRate(groupId);
   const [rateOpen, setRateOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,28 +134,8 @@ export function CompanyStatementView({
     [t.company.returned, totals.returned],
   ];
 
-  const remove = async (entry: CompanyEntry): Promise<void> => {
-    // An employee may only withdraw their own expense or bata; an admin anything.
-    const allowed =
-      view.isAdmin ||
-      (mine &&
-        entry.createdBy === view.me?.id &&
-        (entry.kind === 'expense' || entry.kind === 'allowance'));
-    if (!allowed) return;
-    const ok = await confirm({
-      title: t.company.removeTitle,
-      body: t.company.removeBody,
-      confirmLabel: t.company.removeEntry,
-      tone: 'danger',
-    });
-    if (!ok) return;
-    setError(null);
-    try {
-      await voidEntry.mutateAsync({ entryId: entry.id });
-    } catch (caught) {
-      setError(friendlyError(caught, t.company.couldNotSave, 'company.void'));
-    }
-  };
+  const open = (entry: CompanyEntry): void =>
+    router.push(`/group/${groupId}/company-entry-view?entry=${entry.id}`);
 
   const share = (): void => {
     void Share.share({
@@ -241,7 +219,7 @@ export function CompanyStatementView({
                   .join(' · ')}
                 subtitleLines={2}
                 amount={`${entry.kind === 'wages' ? '' : delta < 0n ? '-' : '+'}${fmt(entry.amount)}`}
-                onPress={() => void remove(entry)}
+                onPress={() => open(entry)}
                 divider={index < entryRows.length - 1}
               />
             ))}
@@ -257,12 +235,16 @@ export function CompanyStatementView({
               <ListRow
                 key={entry.id}
                 title={kindLabel(t, entry)}
-                subtitle={
-                  entry.status === 'rejected'
-                    ? t.company.rejected
-                    : showDate(entry.occurredOn, locale)
-                }
+                subtitle={[
+                  entry.status === 'rejected' ? t.company.rejected : t.company.awaiting,
+                  showDate(entry.occurredOn, locale),
+                  entry.status === 'rejected' ? entry.reviewNote : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+                subtitleLines={2}
                 amount={fmt(entry.amount)}
+                onPress={() => open(entry)}
                 divider={index < statement.pending.length - 1}
               />
             ))}

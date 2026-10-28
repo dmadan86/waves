@@ -117,6 +117,10 @@ export interface GroupRow {
    * the families screen to guard against concurrent admin overwrites.
    */
   updated_seq?: number | null;
+  /** Company groups: the company-wide default daily bata rate, minor units (decimal string). */
+  company_default_daily_rate_minor?: string | null;
+  /** Company groups: new entries wait for an admin's approval. Off by default. */
+  company_approvals_enabled?: boolean;
 }
 
 export interface MemberRow {

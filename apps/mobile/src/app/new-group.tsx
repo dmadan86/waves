@@ -16,11 +16,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   currencySymbol,
   EVENT_TEMPLATES,
+  format,
   guessGroupEmoji,
   guessGroupType,
   minorUnitExponent,
   minorUnitScale,
+  money,
   MutationKind,
+  type CurrencyCode,
   type EventTemplateId,
   type FxRecord,
 } from '@waves/core';
@@ -219,9 +222,9 @@ export default function NewGroupScreen() {
   // split, as a stack of named facts with their values, each one a tap from
   // being changed. Nothing here is required; the point is that the screen reads
   // as already filled in rather than as a form still to be completed.
-  const [openAttr, setOpenAttr] = useState<'kind' | 'dates' | 'budget' | 'eventTemplate' | null>(
-    null,
-  );
+  const [openAttr, setOpenAttr] = useState<
+    'kind' | 'dates' | 'budget' | 'eventTemplate' | 'rate' | null
+  >(null);
 
   /**
    * Bring an unfolded row back into view.
@@ -357,6 +360,11 @@ export default function NewGroupScreen() {
   // home currency means nothing to convert, so no rate is asked for.
   const [tripCur, setTripCur] = useState<string | null>(null);
   const [pickingTripCur, setPickingTripCur] = useState(false);
+  // Company only: the group currency and a default daily bata rate. Both optional;
+  // the rate is written behind the create as an ordinary settings change.
+  const [companyCur, setCompanyCur] = useState<string | null>(null);
+  const [pickingCompanyCur, setPickingCompanyCur] = useState(false);
+  const [companyRate, setCompanyRate] = useState(0n);
   const [rateSheetOpen, setRateSheetOpen] = useState(false);
   // The record the sheet is editing; what is kept for the group is
   // `pendingRates`, written out after Create like any other pinned rate.
@@ -470,6 +478,7 @@ export default function NewGroupScreen() {
   const emoji = pickedEmoji ?? guessGroupEmoji(name) ?? EMOJI_FOR_TYPE[type];
   // Trips and events benefit most from simplification; a two-person group does
   // not. Follows the type until somebody says otherwise.
+  const groupCurrency = type === GroupType.Company ? (companyCur ?? currency) : currency;
   const effectiveSimplify = simplify ?? (type === GroupType.Trip || type === GroupType.Event);
 
   // The five tiles. Friends reads as Others (see `tileForType`).
@@ -531,7 +540,7 @@ export default function NewGroupScreen() {
         // Dubai defaulting to rupees is the small wrongness that makes an app
         // feel written for somewhere else.
         country,
-        currency,
+        currency: groupCurrency,
         emoji,
         // A group photo is not carried onto a clone: its storage object is
         // scoped to the source group's path, so a copied reference would only
@@ -540,6 +549,13 @@ export default function NewGroupScreen() {
         // where it is uploaded under this group's own path and paid-gated.
         simplify: effectiveSimplify,
       });
+
+      if (type === GroupType.Company && companyRate > 0n) {
+        await mutate(MutationKind.CompanySettingsSet, groupId, {
+          defaultDailyRateMinor: companyRate.toString(),
+          approvalsEnabled: false,
+        });
+      }
 
       // ADR-006: people who have not installed anything are still participants.
       // Queued behind the create in one ordered pipe, not sent as a direct RPC —
@@ -1175,6 +1191,52 @@ export default function NewGroupScreen() {
                   {openAttr === 'budget' ? (
                     <View style={{ paddingBottom: theme.spacing.md }}>
                       <AmountField currency={currency} value={budget} onChange={setBudget} />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
+              {/* Company: optional currency and default daily bata rate, one row open at a time. */}
+              {type === GroupType.Company ? (
+                <View>
+                  <DetailRow
+                    icon="cash-outline"
+                    label={t.company.currencyRow}
+                    value={groupCurrency}
+                    onPress={() => setPickingCompanyCur(true)}
+                  />
+                  {pickingCompanyCur ? (
+                    <CurrencySheet
+                      value={groupCurrency}
+                      onPick={(code) => {
+                        setCompanyCur(code);
+                        setPickingCompanyCur(false);
+                      }}
+                      onClose={() => setPickingCompanyCur(false)}
+                    />
+                  ) : null}
+                  <DetailRow
+                    icon="wallet-outline"
+                    label={t.company.defaultRateRow}
+                    value={
+                      companyRate > 0n
+                        ? format(money(companyRate, groupCurrency as CurrencyCode), { locale })
+                        : t.add
+                    }
+                    placeholder={companyRate <= 0n}
+                    expanded={openAttr === 'rate'}
+                    onPress={() => setOpenAttr((current) => (current === 'rate' ? null : 'rate'))}
+                  />
+                  {openAttr === 'rate' ? (
+                    <View style={{ paddingBottom: theme.spacing.md, gap: theme.spacing.sm }}>
+                      <Text variant="caption" tone="muted">
+                        {t.company.defaultRateHint}
+                      </Text>
+                      <AmountField
+                        currency={groupCurrency}
+                        value={companyRate}
+                        onChange={setCompanyRate}
+                      />
                     </View>
                   ) : null}
                 </View>

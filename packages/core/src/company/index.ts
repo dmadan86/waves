@@ -59,6 +59,10 @@ export interface CompanyEntry {
   readonly direction: CompanyDirection | null;
   readonly status: CompanyEntryStatus;
   readonly note: string | null;
+  /** The admin's note on an approval or rejection (a rejection always has one). */
+  readonly reviewNote: string | null;
+  /** Row version: a review names the version it saw, so an edited entry cannot be approved blind. */
+  readonly version: number;
   readonly createdAt: string;
   /** The member who recorded it (an employee may only withdraw their own). */
   readonly createdBy: string | null;
@@ -83,6 +87,8 @@ export interface CompanyEntryRow {
   readonly direction?: string | null;
   readonly status?: string | null;
   readonly note?: string | null;
+  readonly review_note?: string | null;
+  readonly version?: number | string | null;
   readonly created_at?: string | null;
   readonly created_by?: string | null;
   readonly deleted_at?: string | null;
@@ -108,6 +114,8 @@ export function companyEntryFromRow(row: CompanyEntryRow): CompanyEntry {
     direction: (row.direction as CompanyDirection | null | undefined) ?? null,
     status: (row.status as CompanyEntryStatus | null | undefined) ?? 'approved',
     note: row.note ?? null,
+    reviewNote: row.review_note ?? null,
+    version: Number(row.version ?? 1),
     createdAt: row.created_at ?? '',
     createdBy: row.created_by ?? null,
     deleted: row.deleted_at !== null && row.deleted_at !== undefined,

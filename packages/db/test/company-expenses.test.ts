@@ -207,7 +207,10 @@ describe('company privacy and write boundaries', () => {
     });
     await client.query(`UPDATE company_entries SET status='submitted' WHERE id=$1`, [ids[0]]);
     await user(0, () =>
-      client.query(`SELECT waves_company_entry_transition($1,'approved')`, [ids[0]]),
+      client.query(
+        `SELECT waves_company_entry_transition($1,'approved',NULL,(SELECT version FROM company_entries WHERE id=$1))`,
+        [ids[0]],
+      ),
     );
     expect(
       await expectDenied(
@@ -219,7 +222,10 @@ describe('company privacy and write boundaries', () => {
     expect(
       await expectDenied(
         user(1, () =>
-          client.query(`SELECT waves_company_entry_transition($1,'approved')`, [ids[0]]),
+          client.query(
+            `SELECT waves_company_entry_transition($1,'approved',NULL,(SELECT version FROM company_entries WHERE id=$1))`,
+            [ids[0]],
+          ),
         ),
       ),
     ).toMatch(/ADMIN_ONLY/);

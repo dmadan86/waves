@@ -30,7 +30,8 @@ export type LogicalBucket =
   | 'avatars'
   | 'captures'
   | 'settlement-proofs'
-  | 'expense-attachments';
+  | 'expense-attachments'
+  | 'company-entry-images';
 
 /**
  * Buckets whose objects are party-only. Their read is by SUBJECT id (the server
@@ -40,6 +41,7 @@ export type LogicalBucket =
 const RESTRICTED_BUCKETS: ReadonlySet<LogicalBucket> = new Set([
   'settlement-proofs',
   'expense-attachments',
+  'company-entry-images',
 ]);
 
 /**
@@ -112,10 +114,12 @@ async function asStorageError(error: unknown): Promise<Error> {
   return error instanceof Error ? error : new Error('Storage request failed');
 }
 
-async function signCall(body: Record<string, unknown>): Promise<{ url?: string }> {
+async function signCall(
+  body: Record<string, unknown>,
+): Promise<{ url?: string; headers?: Record<string, string> }> {
   const { data, error } = await backend.functions.invoke('r2-sign', { body });
   if (error) throw await asStorageError(error);
-  return (data ?? {}) as { url?: string };
+  return (data ?? {}) as { url?: string; headers?: Record<string, string> };
 }
 
 export interface PutImageInput {
@@ -182,7 +186,7 @@ async function uploadImage(input: PutImageInput): Promise<string> {
     return input.path;
   }
 
-  const { url } = await signCall({
+  const { url, headers } = await signCall({
     action: 'put',
     bucket: input.bucket,
     path: input.path,
@@ -197,7 +201,8 @@ async function uploadImage(input: PutImageInput): Promise<string> {
   // SDK uploads today, PUT by hand.
   const put = await fetch(url, {
     method: 'PUT',
-    headers: { 'content-type': input.contentType },
+    // Exactly the headers the URL was signed with (company images are write-once).
+    headers: { 'content-type': input.contentType, ...headers },
     body: bytes,
   }).catch(async (cause) => {
     // The PUT never reached R2 (offline, DNS, aborted). `put` already reserved

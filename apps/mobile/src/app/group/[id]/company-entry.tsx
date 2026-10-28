@@ -9,7 +9,8 @@ import { useState } from 'react';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
-import { Platform, ScrollView, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
+import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   allowanceAmount,
@@ -30,7 +31,10 @@ import {
   StandardCard,
   PillButton,
 } from '@/components/standard';
-import { useAddCompanyEntry, useCompanyEntries } from '@/data/companyEntries';
+import { attachCompanyPhoto, useAddCompanyEntry, useCompanyEntries } from '@/data/companyEntries';
+import { captureReceipt, pickAlbumPhoto, type PickedImage } from '@/lib/image';
+import { MAX_COMPANY_PHOTOS } from '@/components/company/CompanyEntryPhotos';
+import { useSync } from '@/sync';
 import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -43,12 +47,17 @@ import { router } from '@/lib/navigation';
 type Direction = 'company_to_employee' | 'employee_to_company';
 
 export default function CompanyEntryScreen() {
-  const { id, member: memberParam } = useLocalSearchParams<{ id: string; member?: string }>();
+  const {
+    id,
+    member: memberParam,
+    intro,
+  } = useLocalSearchParams<{ id: string; member?: string; intro?: string }>();
   const groupId = id ?? '';
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
-  const { choose } = useDialog();
+  const { choose, notify } = useDialog();
+  const { flush } = useSync();
   const view = useCompanyEntries(groupId);
   const add = useAddCompanyEntry(groupId);
   const currency = view.currency as CurrencyCode;
@@ -69,8 +78,12 @@ export default function CompanyEntryScreen() {
   const [pickingDate, setPickingDate] = useState(false);
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<PickedImage[]>([]);
 
-  const defaultRate = employee?.daily_rate_minor ? BigInt(employee.daily_rate_minor) : 0n;
+  // The employee's own rate, else the company-wide default, else none.
+  const defaultRate = employee?.daily_rate_minor
+    ? BigInt(employee.daily_rate_minor)
+    : (view.defaultRateMinor ?? 0n);
   const rate = rateTouched ?? defaultRate;
   const byDays = kind === 'allowance' || (kind === 'wages' && wagesMode === 'days_rate');
   const computed = byDays ? allowanceAmount(days, rate) : null;
@@ -106,6 +119,11 @@ export default function CompanyEntryScreen() {
     }
   };
 
+  const addPhoto = async (source: 'camera' | 'library'): Promise<void> => {
+    const picked = source === 'camera' ? await captureReceipt() : await pickAlbumPhoto();
+    if (picked) setPhotos((current) => [...current, picked].slice(0, MAX_COMPANY_PHOTOS));
+  };
+
   const openDate = (): void => {
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
@@ -118,7 +136,8 @@ export default function CompanyEntryScreen() {
     } else setPickingDate((open) => !open);
   };
 
-  const valid = !!employee && total > 0n && (!byDays || computed !== null);
+  // A days x rate entry may be zero (a zero rate is valid); a typed amount may not.
+  const valid = !!employee && (byDays ? computed !== null : total > 0n);
 
   const save = async (): Promise<void> => {
     if (!employee || !valid) {
@@ -139,12 +158,20 @@ export default function CompanyEntryScreen() {
       ...(kind === 'reimbursement' ? { direction } : {}),
     };
     try {
-      await add.mutateAsync({
-        entryId: randomUUID(),
-        memberId: employee.id,
-        entryKind: kind,
-        data,
-      });
+      const entryId = randomUUID();
+      await add.mutateAsync({ entryId, memberId: employee.id, entryKind: kind, data });
+      if (photos.length > 0) {
+        // The attach checks a real server row, so the queued entry goes first.
+        try {
+          await flush([groupId]);
+          for (const photo of photos) await attachCompanyPhoto(groupId, entryId, photo);
+        } catch (caught) {
+          await notify({
+            title: friendlyError(caught, t.company.photoFailed, 'company.photo.add'),
+            tone: 'danger',
+          });
+        }
+      }
       router.back();
     } catch (caught) {
       setError(friendlyError(caught, t.company.couldNotSave, 'company.add'));
@@ -160,6 +187,11 @@ export default function CompanyEntryScreen() {
       >
         <ScenicHeader title={t.company.addEntry} />
         <ScenicBody>
+          {intro === '1' ? (
+            <Text variant="caption" tone="muted">
+              {t.company.introPrivacy}
+            </Text>
+          ) : null}
           <StandardCard style={{ gap: theme.spacing.md }}>
             <SectionHeader title={t.company.formKind} />
             <ChipRow
@@ -306,6 +338,49 @@ export default function CompanyEntryScreen() {
                 borderBottomColor: theme.color.border,
               }}
             />
+            <Text variant="caption" tone="muted">
+              {t.company.photos}
+            </Text>
+            {photos.length > 0 ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {photos.map((photo, index) => (
+                  <Pressable
+                    key={photo.uri}
+                    accessibilityRole="button"
+                    accessibilityLabel={t.company.removePhoto}
+                    onPress={() => setPhotos((current) => current.filter((_, i) => i !== index))}
+                    style={{ marginRight: theme.spacing.sm }}
+                  >
+                    <Image
+                      source={{ uri: photo.uri }}
+                      style={{ width: 64, height: 64, borderRadius: theme.radius.md }}
+                      contentFit="cover"
+                    />
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : null}
+            {photos.length < MAX_COMPANY_PHOTOS ? (
+              <View style={{ flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
+                <PillButton
+                  label={t.company.takePhoto}
+                  icon="camera-outline"
+                  chevron={false}
+                  onPress={() => void addPhoto('camera')}
+                />
+                <PillButton
+                  label={t.company.choosePhoto}
+                  icon="image-outline"
+                  chevron={false}
+                  onPress={() => void addPhoto('library')}
+                />
+              </View>
+            ) : null}
+            {photos.length > 0 ? (
+              <Text variant="micro" tone="muted">
+                {t.company.photoPrivacy}
+              </Text>
+            ) : null}
           </StandardCard>
 
           {error ? (

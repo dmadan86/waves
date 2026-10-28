@@ -1320,6 +1320,31 @@ export interface UiStrings {
     daysAt: string;
     forPerson: string;
     editEntry: string;
+    awaiting: string;
+    approve: string;
+    reject: string;
+    rejectTitle: string;
+    rejectHint: string;
+    statusApproved: string;
+    reviewNote: string;
+    approvalsTitle: string;
+    approvalsHint: string;
+    photos: string;
+    takePhoto: string;
+    choosePhoto: string;
+    removePhoto: string;
+    removePhotoTitle: string;
+    photoFailed: string;
+    photoPrivacy: string;
+    introPrivacy: string;
+    defaultRateRow: string;
+    defaultRateHint: string;
+    currencyRow: string;
+    pendingApprovals: string;
+    colType: string;
+    colReview: string;
+    notCounted: string;
+    exportAction: string;
   };
   groupRecurring: {
     title: string;
@@ -7286,6 +7311,32 @@ const en: UiStrings = {
     daysAt: '{days} days x {rate}',
     forPerson: 'for {name}',
     editEntry: 'Entry',
+    awaiting: 'Awaiting approval',
+    approve: 'Approve',
+    reject: 'Reject',
+    rejectTitle: 'Reject this entry',
+    rejectHint: 'Tell {name} why. They will see this note.',
+    statusApproved: 'Approved',
+    reviewNote: 'Note from admin',
+    approvalsTitle: 'Require approval',
+    approvalsHint:
+      'New entries wait for an admin to approve them. Only approved entries count towards what is owed.',
+    photos: 'Photos',
+    takePhoto: 'Take photo',
+    choosePhoto: 'Choose photo',
+    removePhoto: 'Remove photo',
+    removePhotoTitle: 'Remove this photo?',
+    photoFailed: 'Could not add the photo. The entry is saved.',
+    photoPrivacy: 'Only the employee and company admins can see these photos.',
+    introPrivacy: 'Only you and the company admin can see your entries and photos.',
+    defaultRateRow: 'Daily bata rate',
+    defaultRateHint: 'Optional. Used for every employee until you set theirs.',
+    currencyRow: 'Currency',
+    pendingApprovals: 'Waiting for approval',
+    colType: 'Type',
+    colReview: 'Review note',
+    notCounted: 'Not counted until approved',
+    exportAction: 'Export',
   },
   groupRecurring: {
     title: 'Repeating',
@@ -12695,6 +12746,33 @@ const ta: UiStrings = {
     daysAt: '{days} நாட்கள் x {rate}',
     forPerson: '{name}க்காக',
     editEntry: 'பதிவு',
+    awaiting: 'ஒப்புதலுக்காகக் காத்திருக்கிறது',
+    approve: 'ஒப்புக்கொள்',
+    reject: 'நிராகரி',
+    rejectTitle: 'இந்தப் பதிவை நிராகரி',
+    rejectHint: '{name}-க்கு காரணத்தைச் சொல்லுங்கள். அவர்கள் இந்தக் குறிப்பைப் பார்ப்பார்கள்.',
+    statusApproved: 'ஒப்புக்கொள்ளப்பட்டது',
+    reviewNote: 'நிர்வாகியின் குறிப்பு',
+    approvalsTitle: 'ஒப்புதல் தேவை',
+    approvalsHint:
+      'புதிய பதிவுகள் நிர்வாகி ஒப்புக்கொள்ளும் வரை காத்திருக்கும். ஒப்புக்கொள்ளப்பட்டவை மட்டுமே தர வேண்டிய தொகையில் சேரும்.',
+    photos: 'புகைப்படங்கள்',
+    takePhoto: 'புகைப்படம் எடு',
+    choosePhoto: 'புகைப்படம் தேர்வுசெய்',
+    removePhoto: 'புகைப்படத்தை நீக்கு',
+    removePhotoTitle: 'இந்தப் புகைப்படத்தை நீக்கவா?',
+    photoFailed: 'புகைப்படத்தைச் சேர்க்க முடியவில்லை. பதிவு சேமிக்கப்பட்டது.',
+    photoPrivacy: 'ஊழியரும் நிறுவன நிர்வாகிகளும் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
+    introPrivacy:
+      'நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே உங்கள் பதிவுகளையும் புகைப்படங்களையும் பார்க்கலாம்.',
+    defaultRateRow: 'தினசரி படி விகிதம்',
+    defaultRateHint: 'விருப்பம். நீங்கள் தனியாக அமைக்கும் வரை எல்லா ஊழியர்களுக்கும் பயன்படும்.',
+    currencyRow: 'நாணயம்',
+    pendingApprovals: 'ஒப்புதலுக்காகக் காத்திருப்பவை',
+    colType: 'வகை',
+    colReview: 'மதிப்பாய்வு குறிப்பு',
+    notCounted: 'ஒப்புதல் வரை கணக்கில் சேராது',
+    exportAction: 'ஏற்றுமதி',
   },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
@@ -18271,6 +18349,32 @@ const hi: UiStrings = {
     daysAt: '{days} दिन x {rate}',
     forPerson: '{name} के लिए',
     editEntry: 'एंट्री',
+    awaiting: 'अनुमोदन की प्रतीक्षा में',
+    approve: 'मंज़ूर करें',
+    reject: 'अस्वीकार करें',
+    rejectTitle: 'इस एंट्री को अस्वीकार करें',
+    rejectHint: '{name} को कारण बताएँ। उन्हें यह नोट दिखेगा।',
+    statusApproved: 'मंज़ूर',
+    reviewNote: 'एडमिन का नोट',
+    approvalsTitle: 'अनुमोदन ज़रूरी',
+    approvalsHint:
+      'नई एंट्री एडमिन के मंज़ूर करने तक रुकी रहेंगी। बकाया में सिर्फ़ मंज़ूर एंट्री गिनी जाएँगी।',
+    photos: 'फ़ोटो',
+    takePhoto: 'फ़ोटो लें',
+    choosePhoto: 'फ़ोटो चुनें',
+    removePhoto: 'फ़ोटो हटाएँ',
+    removePhotoTitle: 'यह फ़ोटो हटाएँ?',
+    photoFailed: 'फ़ोटो नहीं जुड़ सकी। एंट्री सहेज ली गई है।',
+    photoPrivacy: 'ये फ़ोटो सिर्फ़ कर्मचारी और कंपनी के एडमिन देख सकते हैं।',
+    introPrivacy: 'आपकी एंट्री और फ़ोटो सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
+    defaultRateRow: 'दैनिक बत्ता दर',
+    defaultRateHint: 'वैकल्पिक। जब तक आप किसी की दर तय नहीं करते, यही सब पर लागू होगी।',
+    currencyRow: 'मुद्रा',
+    pendingApprovals: 'अनुमोदन की प्रतीक्षा',
+    colType: 'प्रकार',
+    colReview: 'समीक्षा नोट',
+    notCounted: 'मंज़ूरी तक गिनी नहीं जाएगी',
+    exportAction: 'निर्यात',
   },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
@@ -23738,6 +23842,32 @@ const ar: UiStrings = {
     daysAt: '{days} أيام x {rate}',
     forPerson: 'لـ {name}',
     editEntry: 'قيد',
+    awaiting: 'بانتظار الموافقة',
+    approve: 'موافقة',
+    reject: 'رفض',
+    rejectTitle: 'رفض هذا القيد',
+    rejectHint: 'أخبر {name} بالسبب. سيرى هذه الملاحظة.',
+    statusApproved: 'تمت الموافقة',
+    reviewNote: 'ملاحظة المشرف',
+    approvalsTitle: 'اشتراط الموافقة',
+    approvalsHint:
+      'تنتظر القيود الجديدة موافقة المشرف. تُحتسب القيود الموافق عليها فقط ضمن المستحق.',
+    photos: 'الصور',
+    takePhoto: 'التقاط صورة',
+    choosePhoto: 'اختيار صورة',
+    removePhoto: 'حذف الصورة',
+    removePhotoTitle: 'حذف هذه الصورة؟',
+    photoFailed: 'تعذرت إضافة الصورة. تم حفظ القيد.',
+    photoPrivacy: 'لا يرى هذه الصور سوى الموظف ومشرفي الشركة.',
+    introPrivacy: 'لا يرى قيودك وصورك سواك ومشرف الشركة.',
+    defaultRateRow: 'معدل البدل اليومي',
+    defaultRateHint: 'اختياري. يُستخدم لكل الموظفين حتى تحدد معدل أحدهم.',
+    currencyRow: 'العملة',
+    pendingApprovals: 'بانتظار الموافقة',
+    colType: 'النوع',
+    colReview: 'ملاحظة المراجعة',
+    notCounted: 'لا يُحتسب حتى الموافقة',
+    exportAction: 'تصدير',
   },
   groupRecurring: {
     title: 'المتكررة',

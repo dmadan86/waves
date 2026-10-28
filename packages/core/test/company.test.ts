@@ -10,6 +10,7 @@ import {
   emptyMirror,
   formatCompanyStatement,
   materialiseCompanyEntries,
+  materialiseCompanyEntryAttachments,
   reconcile,
   type CompanyEntry,
   type CompanyEntryRow,
@@ -248,5 +249,135 @@ describe('materialiseCompanyEntries', () => {
     );
     expect(voided[0]?.deleted_at).toBeTruthy();
     expect(companyEntryFromRow(voided[0] as never).deleted).toBe(true);
+  });
+});
+
+describe('approvals', () => {
+  const range = { memberId: 'ravi', from: '2026-10-01', to: '2026-10-31' };
+  const mk = (status: string, kind: string, amount: string) =>
+    entry({ entry_kind: kind, amount, status, category: kind === 'expense' ? 'fuel' : undefined });
+
+  it('counts only approved entries toward net due and lists the rest apart', () => {
+    const all = [
+      mk('approved', 'expense', '100000'),
+      mk('submitted', 'expense', '40000'),
+      mk('rejected', 'expense', '70000'),
+      mk('approved', 'advance', '30000'),
+      mk('submitted', 'advance', '999900'),
+    ];
+    const s = companyStatement(all, range);
+    expect(s.closing).toBe(70000n);
+    expect(s.pending.map((e) => e.status).sort()).toEqual(['rejected', 'submitted', 'submitted']);
+  });
+
+  it('approving a submitted entry moves it into the balance; a rejection never does', () => {
+    const submitted = mk('submitted', 'expense', '25000');
+    expect(companyStatement([submitted], range).closing).toBe(0n);
+    const approved = { ...submitted, status: 'approved' as const };
+    expect(companyStatement([approved], range).closing).toBe(25000n);
+    const rejected = { ...submitted, status: 'rejected' as const, reviewNote: 'no bill' };
+    expect(companyStatement([rejected], range).closing).toBe(0n);
+    expect(companyStatement([rejected], range).pending[0]?.reviewNote).toBe('no bill');
+  });
+
+  it('the summary ignores unapproved entries too', () => {
+    const sum = companySummary(
+      [mk('submitted', 'expense', '50000'), mk('approved', 'expense', '10000')],
+      {
+        from: range.from,
+        to: range.to,
+      },
+    );
+    expect(sum.companyOwes).toBe(10000n);
+  });
+
+  const queued = (seq: number, kind: string, payload: Record<string, unknown>): QueuedMutation =>
+    ({
+      seq,
+      clientMutationId: `a${seq}`,
+      kind,
+      groupId: G,
+      payload,
+      clientCreatedAt: '2026-10-10T08:00:00Z',
+    }) as unknown as QueuedMutation;
+
+  it('a queued entry reads as submitted when the company needs approval, approved otherwise', () => {
+    const queue = [
+      queued(1, MutationKind.CompanyEntryCreate, {
+        entryId: 'q1',
+        memberId: 'ravi',
+        entryKind: 'expense',
+        data: { amount: '5000', category: 'fuel' },
+      }),
+    ];
+    const on = materialiseCompanyEntries(emptyMirror(), queue, {
+      groupId: G,
+      currency: 'INR',
+      approvalsEnabled: true,
+    });
+    const off = materialiseCompanyEntries(emptyMirror(), queue, { groupId: G, currency: 'INR' });
+    expect(on[0]?.status).toBe('submitted');
+    expect(off[0]?.status).toBe('approved');
+  });
+
+  it('shows a queued rejection with its note', () => {
+    const { state } = reconcile(emptyMirror(), [
+      {
+        table: SyncTable.CompanyEntries,
+        groupId: G,
+        seq: 1,
+        row: {
+          id: 's1',
+          group_id: G,
+          member_id: 'ravi',
+          entry_kind: 'expense',
+          amount: '100',
+          currency: 'INR',
+          occurred_on: '2026-10-09',
+          status: 'submitted',
+        },
+      },
+    ]);
+    const rows = materialiseCompanyEntries(
+      state,
+      [
+        queued(2, MutationKind.CompanyEntryTransition, {
+          entryId: 's1',
+          to: 'rejected',
+          note: 'dup',
+        }),
+      ],
+      { groupId: G, currency: 'INR' },
+    );
+    expect(rows[0]).toMatchObject({ status: 'rejected', review_note: 'dup' });
+  });
+});
+
+describe('company entry attachments', () => {
+  it('lists the live photos of one entry, oldest first, and no tombstones', () => {
+    const row = (id: string, entry_id: string, created_at: string, deleted_at: string | null) => ({
+      table: SyncTable.CompanyEntryAttachments,
+      groupId: G,
+      seq: 1,
+      row: {
+        id,
+        entry_id,
+        group_id: G,
+        storage_path: `${entry_id}/${id}/k.jpg`,
+        uploader_member_id: 'ravi',
+        created_at,
+        deleted_at,
+      },
+    });
+    const { state } = reconcile(emptyMirror(), [
+      row('b', 'e1', '2026-10-02T00:00:00Z', null),
+      row('a', 'e1', '2026-10-01T00:00:00Z', null),
+      row('c', 'e1', '2026-10-03T00:00:00Z', '2026-10-04T00:00:00Z'),
+      row('d', 'e2', '2026-10-01T00:00:00Z', null),
+    ]);
+    expect(materialiseCompanyEntryAttachments(state, { entryId: 'e1' }).map((r) => r.id)).toEqual([
+      'a',
+      'b',
+    ]);
   });
 });
