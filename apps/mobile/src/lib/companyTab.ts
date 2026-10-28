@@ -43,7 +43,8 @@ export function companyTabRoute(
   openCompanyId: string | null = null,
 ): string | null {
   if (companyIds.length === 0) return null;
-  if (openCompanyId !== null && companyIds.includes(openCompanyId)) return `/group/${openCompanyId}`;
+  if (openCompanyId !== null && companyIds.includes(openCompanyId))
+    return `/group/${openCompanyId}`;
   return companyIds.length === 1 ? `/group/${companyIds[0]}` : '/companies';
 }
 
