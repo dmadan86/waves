@@ -70,6 +70,7 @@ import { PersonalLocked } from '@/components/PersonalGuard';
 import { PersonalIntro } from '@/components/PersonalIntro';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useSourceLabel } from '@/components/IncomeSource';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { SignInWall } from '@/components/SignInWall';
@@ -151,7 +152,8 @@ function MeLedger() {
   const sourceLabel = useSourceLabel();
   const { hydrated } = useSync();
   const { profile } = useAuth();
-  const avatarUrl = useAvatarUrl(profile?.avatar_url);
+  const viewerFace = useViewerIdentity();
+  const avatarUrl = useAvatarUrl(viewerFace.avatarUrl);
   const ledger = usePersonalLedger();
   const upsert = useUpsertPersonalRecord();
   // The eye on the summary card: masks every figure on it (and the three

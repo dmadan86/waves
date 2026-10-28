@@ -67,6 +67,7 @@ import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { groupLabel, GroupType } from '@/data/types';
 import { GroupTypeTag, useGroupTypeTag, useGroupTypeTagSpoken } from '@/components/GroupTypeTag';
 import { useBalanceHidden } from '@/lib/balanceHidden';
@@ -111,7 +112,8 @@ export default function HomeScreen() {
   // before an Image can show it — the same resolution the profile screen does.
   // Without this the dashboard falls back to initials while settings shows the
   // photo, which reads as the picture "not loading" on the home screen.
-  const avatarUrl = useAvatarUrl(profile?.avatar_url);
+  const viewerFace = useViewerIdentity();
+  const avatarUrl = useAvatarUrl(viewerFace.avatarUrl);
 
   const groups = useGroups();
   const totalGroupCount = groups.data?.length ?? 0;
