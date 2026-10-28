@@ -13,6 +13,7 @@
 
 import { Platform } from 'react-native';
 
+import { ensureMicPermission } from '@/lib/micPermission';
 import { englishSpeechLocale, isPermissionError } from '@/lib/dictation';
 import {
   attachStream,
@@ -72,8 +73,7 @@ function loadSpeech(): SpeechModule | null {
 async function micAllowed(speech: SpeechModule | null): Promise<boolean> {
   if (!speech) return false;
   try {
-    if ((await speech.getPermissionsAsync()).granted) return true;
-    return (await speech.requestPermissionsAsync()).granted;
+    return (await ensureMicPermission(speech)).granted;
   } catch {
     return false;
   }

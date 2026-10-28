@@ -71,7 +71,7 @@ export function agentCall(input: { locale: string; today: string }): ClipDeps['c
 }
 
 interface SpeechModule {
-  requestPermissionsAsync(): Promise<{ granted: boolean }>;
+  getPermissionsAsync(): Promise<{ granted: boolean }>;
   start(options: Record<string, unknown>): void;
   abort(): void;
   stop(): void;
@@ -102,7 +102,8 @@ export async function transcribeFile(uri: string, lang: string): Promise<string 
   speechMic.attach({ stop: () => speech.stop(), abort: () => speech.abort() });
   if (!(await speechMic.acquire(token))) return null;
   try {
-    const permission = await speech.requestPermissionsAsync();
+    // A wrist tap must never raise a permission prompt on the phone: use what is granted.
+    const permission = await speech.getPermissionsAsync();
     if (!permission.granted) {
       speechMic.release(token);
       return null;

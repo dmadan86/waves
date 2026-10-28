@@ -37,6 +37,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
+import { ensurePermission } from '@/lib/permissionFlow';
 import { Contact, ContactField, getPermissionsAsync, requestPermissionsAsync } from 'expo-contacts';
 import {
   AppState,
@@ -267,12 +268,18 @@ export function ContactPicker({
   const load = useCallback(async (): Promise<void> => {
     let granted: boolean;
     try {
-      const current = await getPermissionsAsync();
-      const answered = current.granted
-        ? current
-        : current.canAskAgain
-          ? await requestPermissionsAsync()
-          : current;
+      let answered = await getPermissionsAsync();
+      // Blocked for good: the picker's own denied view carries the Settings
+      // button, so only ask (explainer, then system dialog) while we still can.
+      if (!answered.granted && answered.canAskAgain) {
+        await ensurePermission('contacts', {
+          check: async () => answered,
+          request: async () => {
+            answered = await requestPermissionsAsync();
+            return answered;
+          },
+        });
+      }
       granted = answered.granted;
       // Absent on Android and on older iOS, where the grant is all-or-nothing —
       // so the default is "not limited" rather than a guess.

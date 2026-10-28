@@ -19,7 +19,9 @@
 
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
-import { Image, Platform } from 'react-native';
+import { Image, Linking, Platform } from 'react-native';
+
+import { ensurePermission } from '@/lib/permissionFlow';
 
 import { scanDocument } from './scanner';
 import { THUMB_MAX_EDGE, THUMB_QUALITY } from './storage/thumbKey';
@@ -288,10 +290,7 @@ export async function pickSquarePhoto(
   maxEdge: number,
   source: PhotoSource = 'library',
 ): Promise<PickedImage | null> {
-  const permission =
-    source === 'camera'
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const permission = source === 'camera' ? await ensureCamera() : await ensurePhotos();
   if (!permission.granted) return null;
 
   const launch =
@@ -344,7 +343,7 @@ export const ALBUM_MAX_EDGE = 1600;
  * location. Returns null for a cancel/decline too; both are ordinary answers.
  */
 export async function pickAlbumPhoto(): Promise<PickedImage | null> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const permission = await ensurePhotos();
   if (!permission.granted) return null;
 
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -370,18 +369,32 @@ export async function pickAlbumPhoto(): Promise<PickedImage | null> {
   return { base64: shrunk.base64, mimeType: shrunk.mimeType ?? 'image/jpeg', uri: shrunk.uri };
 }
 
+const ensureCamera = () =>
+  ensurePermission('camera', {
+    check: () => ImagePicker.getCameraPermissionsAsync(),
+    request: () => ImagePicker.requestCameraPermissionsAsync(),
+    openSettings: () => Linking.openSettings(),
+  });
+
+const ensurePhotos = () =>
+  ensurePermission('photos', {
+    check: () => ImagePicker.getMediaLibraryPermissionsAsync(),
+    request: () => ImagePicker.requestMediaLibraryPermissionsAsync(),
+    openSettings: () => Linking.openSettings(),
+  });
+
 /**
  * A receipt, from the camera by default (ADR-008). Not cropped to a square and
  * not compressed as hard: fidelity is worth the bytes when a model has to read
  * it back.
  */
 export async function pickReceiptPhoto(): Promise<PickedImage | null> {
-  const permission = await ImagePicker.requestCameraPermissionsAsync();
+  const permission = await ensureCamera();
   let launch = ImagePicker.launchCameraAsync;
   if (!permission.granted) {
     // Falling back to the library needs its own permission, or the picker can
     // throw or return nothing on a restricted Android library.
-    const library = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const library = await ensurePhotos();
     if (!library.granted) return null;
     launch = ImagePicker.launchImageLibraryAsync;
   }
@@ -419,7 +432,7 @@ export async function pickReceiptPhoto(): Promise<PickedImage | null> {
  * person cancels or declines access — both ordinary answers, not errors.
  */
 export async function pickReceiptImage(): Promise<PickedImage | null> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const permission = await ensurePhotos();
   if (!permission.granted) return null;
 
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -518,7 +531,7 @@ export interface PickedAsset {
 
 /** A receipt from the photo library, unprocessed — see {@link PickedAsset}. */
 export async function pickReceiptAsset(): Promise<PickedAsset | null> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const permission = await ensurePhotos();
   if (!permission.granted) return null;
 
   const result = await ImagePicker.launchImageLibraryAsync({
@@ -545,10 +558,10 @@ export async function captureReceiptAsset(): Promise<PickedAsset | null> {
   const outcome = await scanDocument();
   if (outcome.kind === 'cancelled') return null;
   if (outcome.kind === 'unavailable') {
-    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    const permission = await ensureCamera();
     let launch = ImagePicker.launchCameraAsync;
     if (!permission.granted) {
-      const library = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      const library = await ensurePhotos();
       if (!library.granted) return null;
       launch = ImagePicker.launchImageLibraryAsync;
     }

@@ -21,7 +21,9 @@
  * can show, not as an unhandled rejection.
  */
 
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
+
+import { ensurePermission } from '@/lib/permissionFlow';
 
 import type { ExpenseLocation } from '@waves/core';
 
@@ -227,7 +229,9 @@ async function readCoordsFast(
 }
 
 /**
- * Ask (once, just-in-time) and read a fast coordinate fix.
+ * Ask (explainer first, then the system dialog) and read a fast coordinate fix.
+ * Only call this from an explicit user tap ("Add location"), never as a side
+ * effect of voice or saving an expense — use {@link captureLocationIfGranted}.
  *
  * A refusal comes back as `denied` — an answer, not an error. This never waits
  * on reverse-geocoding: the place name is not part of what this resolves, so a
@@ -241,12 +245,16 @@ export async function captureLocation(): Promise<LocationResult> {
   if (!Location) return { ok: false, why: LocationFailure.Unsupported };
 
   try {
-    const existing = await Location.getForegroundPermissionsAsync();
-    const status =
-      existing.status === 'granted'
-        ? existing.status
-        : (await Location.requestForegroundPermissionsAsync()).status;
-    if (status !== 'granted') return { ok: false, why: LocationFailure.Denied };
+    const toState = (r: { status: string; canAskAgain: boolean }) => ({
+      granted: r.status === 'granted',
+      canAskAgain: r.canAskAgain !== false,
+    });
+    const answer = await ensurePermission('location', {
+      check: async () => toState(await Location.getForegroundPermissionsAsync()),
+      request: async () => toState(await Location.requestForegroundPermissionsAsync()),
+      openSettings: () => Linking.openSettings(),
+    });
+    if (!answer.granted) return { ok: false, why: LocationFailure.Denied };
 
     const coords = await readCoordsFast(Location);
     if (!coords || !Number.isFinite(coords.latitude) || !Number.isFinite(coords.longitude)) {

@@ -32,6 +32,7 @@ import { Animated, Easing, Linking, Pressable, View } from 'react-native';
 import { iconSize, Text, useTheme, type Theme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { ensureMicPermission } from '@/lib/micPermission';
 import { dictationError, mergeTranscript, speechLocale } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
@@ -226,7 +227,7 @@ export function DictateVoice({ value, onChange, hints, compact = false }: Dictat
       speechMic.release(session);
     };
 
-    const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+    const permission = await ensureMicPermission(ExpoSpeechRecognitionModule);
     if (!mounted.current) return give();
     if (!permission.granted) {
       setError(permission.canAskAgain ? t.misc.micPermission : t.misc.micBlocked);

@@ -32,6 +32,7 @@ vi.mock('expo-secure-store', () => ({
 vi.mock('expo-crypto', () => ({ randomUUID: () => '11111111-2222-3333-4444-555555555555' }));
 
 vi.mock('react-native', () => ({
+  Linking: { openSettings: async () => {} },
   Platform: {
     get OS() {
       return h.os;

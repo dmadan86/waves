@@ -11,12 +11,13 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { ActivityIndicator, Modal, Pressable, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Linking, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { iconSize, MODAL_ORIENTATIONS, palette } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { ensurePermission } from '@/lib/permissionFlow';
 import type { CameraShot } from '@/lib/quickReceipt';
 
 const GLASS = 'rgba(0,0,0,0.45)';
@@ -80,7 +81,14 @@ export default function ReceiptCamera({
     if (!permission || permission.granted) return;
     if (permission.canAskAgain && !asked.current) {
       asked.current = true;
-      void requestPermission();
+      void ensurePermission('camera', {
+        check: async () => permission,
+        request: requestPermission,
+        openSettings: () => Linking.openSettings(),
+      }).then((answer) => {
+        // A cancelled explainer leaves `permission` unchanged, so fall back here.
+        if (!answer.granted) onDenied();
+      });
       return;
     }
     onDenied();

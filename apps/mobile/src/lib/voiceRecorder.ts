@@ -16,6 +16,7 @@ import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
 
 import { appVersion } from '@/lib/device';
+import { ensureMicPermission } from '@/lib/micPermission';
 import {
   type ManifestDevice,
   type ManifestSpeaker,
@@ -150,7 +151,7 @@ export async function requestMic(): Promise<boolean> {
   const speech = loadSpeech();
   if (!speech) return false;
   try {
-    const result = await speech.requestPermissionsAsync();
+    const result = await ensureMicPermission(speech);
     return result.granted;
   } catch {
     return false;

@@ -21,6 +21,7 @@ import { useSharedValue, withTiming, type SharedValue } from 'react-native-reani
 import { Text } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
+import { ensureMicPermission } from '@/lib/micPermission';
 import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
 import { speechMic } from '@/lib/speechMic';
 import {
@@ -301,16 +302,7 @@ let permissionGranted = false;
 
 async function ensurePermission(): Promise<{ granted: boolean; canAskAgain: boolean }> {
   if (permissionGranted) return { granted: true, canAskAgain: true };
-  try {
-    const current = await ExpoSpeechRecognitionModule.getPermissionsAsync();
-    if (current.granted) {
-      permissionGranted = true;
-      return current;
-    }
-  } catch {
-    // Fall through to the request, which answers for itself.
-  }
-  const asked = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+  const asked = await ensureMicPermission(ExpoSpeechRecognitionModule);
   if (asked.granted) permissionGranted = true;
   return asked;
 }

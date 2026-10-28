@@ -9,7 +9,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
 import Svg, { Path } from 'react-native-svg';
-import { Animated, Image, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import {
+  Animated,
+  Image,
+  InteractionManager,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from 'react-native';
 
 import { dayNumber, type GuestGate } from '@waves/core';
 import {
@@ -39,8 +47,10 @@ import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { router } from '@/lib/navigation';
+import { useNavigation } from 'expo-router';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { TourTarget, useTour } from '@/lib/tour';
+import { tourMayStart, useOverlayBusy } from '@/lib/firstRun';
 import { GroupMark } from '@/components/GroupMark';
 import { useCoverTile } from '@/lib/groupCoverColor';
 import { SyncStatusIcon } from '@/components/SyncBanner';
@@ -229,20 +239,65 @@ export default function HomeScreen() {
   // Repeating group expenses that came due while the app was closed.
   useRecurringCatchUp();
 
-  const tourStarted = useRef(false);
-  useEffect(() => {
-    if (tourStarted.current) return;
-    if (tour.ready && !tour.seen && !showSkeleton && balanceReady) {
-      tourStarted.current = true;
-      tour.start();
-    }
-  }, [tour.ready, tour.seen, tour, showSkeleton, balanceReady]);
-
   // The tour holds the top of the prompt queue for the whole of a first run —
   // from the moment we know it is owed (ready, not seen), through the wait for
   // data and the tour itself, until it finishes and marks itself seen. While it
   // holds the slot the daily tip stands down; see `TipSheet`.
-  usePromptSlot({ id: 'tour', priority: 100, active: tour.active || (tour.ready && !tour.seen) });
+  const tourSlot = usePromptSlot({
+    id: 'tour',
+    priority: 100,
+    // Exempt from the one-prompt-per-launch allowance: the intro that just closed
+    // spent it, and the tour must still follow it on a first run.
+    essential: true,
+    active: tour.active || (tour.ready && !tour.seen),
+  });
+
+  const tourStarted = useRef(false);
+  // The tour waits for the intro, any dialog/sheet/ad/permission prompt, this
+  // screen being focused, and entrance animations to finish (`lib/firstRun`).
+  const overlayIsBusy = useOverlayBusy();
+  const navigation = useNavigation();
+  const [focused, setFocused] = useState(() => navigation.isFocused());
+  useEffect(() => {
+    const off = [
+      navigation.addListener('focus', () => setFocused(true)),
+      navigation.addListener('blur', () => setFocused(false)),
+    ];
+    return () => off.forEach((fn) => fn());
+  }, [navigation]);
+  const [interactionsDone, setInteractionsDone] = useState(false);
+  useEffect(() => {
+    const handle = InteractionManager.runAfterInteractions(() => setInteractionsDone(true));
+    return () => handle.cancel();
+  }, []);
+  useEffect(() => {
+    if (tourStarted.current) return;
+    if (
+      tourMayStart({
+        tourReady: tour.ready,
+        tourSeen: tour.seen,
+        dataReady: !showSkeleton && balanceReady,
+        introVisible: false, // the intro is one of the `busy` reasons
+        promptGranted: tourSlot,
+        busy: overlayIsBusy,
+        focused,
+        interactionsDone,
+      })
+    ) {
+      tourStarted.current = true;
+      tour.start();
+    }
+  }, [
+    tour.ready,
+    tour.seen,
+    tour,
+    showSkeleton,
+    balanceReady,
+    overlayIsBusy,
+    focused,
+    interactionsDone,
+    tourSlot,
+  ]);
 
   // The header overflow menu (the three-dot dropdown): the settings and the
   // less-used destinations, surfaced from the dashboard rather than only from
