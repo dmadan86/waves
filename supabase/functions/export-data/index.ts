@@ -433,6 +433,11 @@ export async function handleExportData(
         'days',
         'rate_minor',
         'company_category_label',
+        'project_id',
+        'gross_minor',
+        'claims_minor',
+        'recovery_minor',
+        'funding_manager',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -450,7 +455,7 @@ export async function handleExportData(
         anyFamilies
           ? [
               ...cells,
-              ...Array(Math.max(0, 31 - cells.length)).fill(''),
+              ...Array(Math.max(0, 36 - cells.length)).fill(''),
               familyName(units, memberId),
             ]
           : cells;
@@ -490,6 +495,11 @@ export async function handleExportData(
               String(row.days ?? ''),
               String(row.rate_minor ?? ''),
               companyExportTagLabel(row.category ?? '', entry.group?.company_tags),
+              String(row.project_id ?? ''),
+              String(row.gross_minor ?? ''),
+              String(row.claims_minor ?? ''),
+              String(row.recovery_minor ?? ''),
+              row.funding_manager_id ? nameOf(row.funding_manager_id as string) : '',
             ],
             row.member_id,
           ),

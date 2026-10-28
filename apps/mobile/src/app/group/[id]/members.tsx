@@ -87,7 +87,11 @@ export default function MembersScreen() {
   const iAmAdmin = (members.data ?? []).some(
     (member) => isViewer(member, profile?.id) && member.role === 'admin' && !member.left_at,
   );
-  const canAdd = !isCompany || iAmAdmin;
+  // A manager adds employees to their own team (the server forces the team); only owners pick from past companies.
+  const iAmManager = (members.data ?? []).some(
+    (member) => isViewer(member, profile?.id) && member.role === 'manager' && !member.left_at,
+  );
+  const canAdd = !isCompany || iAmAdmin || iAmManager;
   const past = useCompanyPastPeople(groupId, isCompany && iAmAdmin && pastOpen);
   const pastPeople = useMemo(() => foldPastPeople(past.data ?? []), [past.data]);
   const pastShown = useMemo(() => searchPastPeople(pastPeople, pastQuery), [pastPeople, pastQuery]);
@@ -339,6 +343,9 @@ export default function MembersScreen() {
                   <Row style={{ gap: theme.spacing.sm }}>
                     {familiesOn && familyOf(group.data?.units, member.id) ? (
                       <Badge label={familyOf(group.data?.units, member.id)?.name ?? ''} />
+                    ) : null}
+                    {member.role === 'manager' ? (
+                      <Badge label={t.company.manager} tone="brand" />
                     ) : null}
                     {member.role === 'admin' && !isGhost(member) ? (
                       <Badge

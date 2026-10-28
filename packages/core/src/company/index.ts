@@ -1,4 +1,5 @@
 export * from './tags';
+export * from './phase4';
 import { companyTagLabel, type CompanyTag } from './tags';
 /**
  * Company expenses (Phase 1): an employer records what each employee spent,
@@ -17,9 +18,21 @@ import { companyTagLabel, type CompanyTag } from './tags';
  * math is correct for both without a second privacy layer here.
  */
 
-export type CompanyEntryKind = 'expense' | 'advance' | 'allowance' | 'wages' | 'reimbursement';
+export type CompanyEntryKind =
+  | 'expense'
+  | 'advance'
+  | 'allowance'
+  | 'wages'
+  | 'reimbursement'
+  // Phase 4: manager pool movements (member = the manager) and a wage-run payment.
+  | 'allocation'
+  | 'pool_return'
+  | 'pool_adjustment'
+  | 'pool_request'
+  | 'wage_payment';
 export type CompanyEntryStatus = 'submitted' | 'approved' | 'rejected' | 'reimbursed';
-export type CompanyCalcMode = 'typed' | 'days_rate' | 'fixed_weekly' | 'distance_rate';
+export type CompanyCalcMode =
+  'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly' | 'distance_rate';
 export type CompanyDirection = 'company_to_employee' | 'employee_to_company';
 
 export const COMPANY_ENTRY_KINDS: readonly CompanyEntryKind[] = [
@@ -79,6 +92,18 @@ export interface CompanyEntry {
   readonly reimbursementId: string | null;
   /** True on a payment entry that covers claims (a bulk reimbursement): frozen, never a credit. */
   readonly coversClaims: boolean;
+  /** Phase 4: the site this entry belongs to. */
+  readonly projectId: string | null;
+  /** Phase 4: the manager whose pool paid this (null = owners paid directly). */
+  readonly fundingManagerId: string | null;
+  /** Phase 4 wage_payment: gross = base + claims; recovery = advance taken back; amount = net. */
+  readonly grossMinor: bigint | null;
+  readonly claimsMinor: bigint | null;
+  readonly recoveryMinor: bigint | null;
+  readonly wageRunId: string | null;
+  /** Phase 4 wage_payment: the days the payment covers (yyyy-mm-dd, inclusive). */
+  readonly periodStart: string | null;
+  readonly periodEnd: string | null;
   /** Row version: a review names the version it saw, so an edited entry cannot be approved blind. */
   readonly version: number;
   readonly createdAt: string;
@@ -116,11 +141,23 @@ export interface CompanyEntryRow {
   readonly to_text?: string | null;
   readonly reimbursement_id?: string | null;
   readonly reimbursement_details?: unknown;
+  readonly project_id?: string | null;
+  readonly funding_manager_id?: string | null;
+  readonly gross_minor?: string | number | null;
+  readonly claims_minor?: string | number | null;
+  readonly recovery_minor?: string | number | null;
+  readonly wage_run_id?: string | null;
+  readonly period_start?: string | null;
+  readonly period_end?: string | null;
   readonly version?: number | string | null;
   readonly created_at?: string | null;
   readonly created_by?: string | null;
   readonly deleted_at?: string | null;
   readonly pending?: boolean;
+}
+
+function optBig(v: string | number | null | undefined): bigint | null {
+  return v === null || v === undefined ? null : BigInt(String(v));
 }
 
 export function companyEntryFromRow(row: CompanyEntryRow): CompanyEntry {
@@ -158,6 +195,14 @@ export function companyEntryFromRow(row: CompanyEntryRow): CompanyEntry {
     toText: row.to_text ?? null,
     reimbursementId: row.reimbursement_id ?? null,
     coversClaims: row.reimbursement_details !== null && row.reimbursement_details !== undefined,
+    projectId: row.project_id ?? null,
+    fundingManagerId: row.funding_manager_id ?? null,
+    grossMinor: optBig(row.gross_minor),
+    claimsMinor: optBig(row.claims_minor),
+    recoveryMinor: optBig(row.recovery_minor),
+    wageRunId: row.wage_run_id ?? null,
+    periodStart: row.period_start ? String(row.period_start).slice(0, 10) : null,
+    periodEnd: row.period_end ? String(row.period_end).slice(0, 10) : null,
     version: Number(row.version ?? 1),
     createdAt: row.created_at ?? '',
     createdBy: row.created_by ?? null,
@@ -312,6 +357,15 @@ export function entryDelta(entry: CompanyEntry): bigint {
       return entry.direction === 'employee_to_company' ? entry.amount : -entry.amount;
     case 'wages':
       return 0n;
+    // Pool movements belong to the manager's float, not an employee balance.
+    case 'allocation':
+    case 'pool_return':
+    case 'pool_adjustment':
+    case 'pool_request':
+      return 0n;
+    // Claims folded into the run are paid (-claims); advance taken back counts as returned (+recovery).
+    case 'wage_payment':
+      return (entry.recoveryMinor ?? 0n) - (entry.claimsMinor ?? 0n);
   }
 }
 
@@ -341,6 +395,10 @@ export interface CompanyStatementTotals {
   readonly byCategory: Record<string, bigint>;
   /** GST included in counted expenses (entries that carry GST details). */
   readonly gst: bigint;
+  /** Wage-run payments: gross, advance taken back, net paid. */
+  readonly wageGross: bigint;
+  readonly wageRecovery: bigint;
+  readonly wageNet: bigint;
 }
 
 export interface CompanyStatement {
@@ -378,6 +436,9 @@ function emptyTotals(): MutableTotals {
     returned: 0n,
     byCategory: Object.create(null) as Record<string, bigint>,
     gst: 0n,
+    wageGross: 0n,
+    wageRecovery: 0n,
+    wageNet: 0n,
   };
 }
 
@@ -400,6 +461,12 @@ function addToTotals(totals: MutableTotals, entry: CompanyEntry): void {
       break;
     case 'wages':
       totals.wages += entry.amount;
+      break;
+    case 'wage_payment':
+      totals.wages += (entry.grossMinor ?? entry.amount) - (entry.claimsMinor ?? 0n);
+      totals.wageGross += entry.grossMinor ?? entry.amount;
+      totals.wageRecovery += entry.recoveryMinor ?? 0n;
+      totals.wageNet += entry.amount;
       break;
     case 'reimbursement':
       if (entry.direction === 'employee_to_company') totals.returned += entry.amount;
@@ -500,6 +567,9 @@ export function companySummary(
     totals.paidOut += t.paidOut;
     totals.returned += t.returned;
     totals.gst += t.gst;
+    totals.wageGross += t.wageGross;
+    totals.wageRecovery += t.wageRecovery;
+    totals.wageNet += t.wageNet;
     for (const [key, value] of Object.entries(t.byCategory)) {
       totals.byCategory[key] = (totals.byCategory[key] ?? 0n) + value;
     }
@@ -515,6 +585,11 @@ const KIND_LABEL: Record<CompanyEntryKind, string> = {
   advance: 'Advance',
   wages: 'Wages paid',
   reimbursement: 'Reimbursement',
+  allocation: 'Allocation',
+  pool_return: 'Pool return',
+  pool_adjustment: 'Pool adjustment',
+  pool_request: 'Budget request',
+  wage_payment: 'Wages paid',
 };
 
 /**
@@ -551,7 +626,11 @@ export function formatCompanyStatement(
             : '';
       const note = entry.note ? ` - ${entry.note}` : '';
       const vendor = entry.vendor ? ` ${entry.vendor}` : '';
-      return `${entry.occurredOn}  ${what}${vendor}${calc}  ${money(entry.kind === 'wages' ? entry.amount : delta)}${note}  (balance ${money(running)})`;
+      const wageRun =
+        entry.kind === 'wage_payment'
+          ? ` [gross ${money(entry.grossMinor ?? entry.amount)}, advance taken back ${money(entry.recoveryMinor ?? 0n)}, net ${money(entry.amount)}]`
+          : '';
+      return `${entry.occurredOn}  ${what}${vendor}${calc}${wageRun}  ${money(entry.kind === 'wages' || entry.kind === 'wage_payment' ? entry.amount : delta)}${note}  (balance ${money(running)})`;
     }),
     '',
     `Expenses: ${money(statement.totals.expenses)}`,
@@ -796,7 +875,16 @@ export function buildReimbursementPreview(
     .sort(byDate);
   const claimsMinor = claims.reduce((sum, e) => sum + e.amount, 0n);
   // entryDelta of an adjustment is its effect on "company owes"; credits are the opposite.
-  const creditsMinor = adjustments.reduce((sum, e) => sum - entryDelta(e), 0n);
+  // Advance already taken back through wage runs is not a credit any more (the server nets it too).
+  const recovered = mine
+    .filter(
+      (e) =>
+        e.kind === 'wage_payment' &&
+        e.reimbursementId === null &&
+        (e.periodEnd ?? e.occurredOn) <= cutoff,
+    )
+    .reduce((sum, e) => sum + (e.recoveryMinor ?? 0n), 0n);
+  const creditsMinor = adjustments.reduce((sum, e) => sum - entryDelta(e), 0n) - recovered;
   return {
     claims,
     adjustments,
