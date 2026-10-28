@@ -9216,9 +9216,9 @@ const en: UiStrings = {
     more: 'More',
     confirmReceived: 'Confirm received',
     heroExpense: 'Expense',
-    rowOwed: 'owed',
-    rowYouOwe: 'you owe',
-    rowSettled: 'settled',
+    rowOwed: 'You are owed',
+    rowYouOwe: 'You owe',
+    rowSettled: 'Settled',
     saysTheyPaidYou: '{name} says they paid you',
     saysTheyPaidYouWindow: '{name} says they paid you ({window})',
     daysToConfirm: { one: '{n} day to confirm', other: '{n} days to confirm' },
@@ -14760,9 +14760,9 @@ const ta: UiStrings = {
     more: 'மேலும்',
     confirmReceived: 'கிடைத்தது என்று உறுதிப்படுத்து',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
-    rowOwed: 'owed', // English placeholder — English-first phase, translation owed
-    rowYouOwe: 'you owe', // English placeholder
-    rowSettled: 'settled', // English placeholder
+    rowOwed: 'உங்களுக்கு வர வேண்டியது',
+    rowYouOwe: 'நீங்கள் தர வேண்டியது',
+    rowSettled: 'சரி',
     saysTheyPaidYou: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார்',
     saysTheyPaidYouWindow: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார் ({window})',
     daysToConfirm: { one: 'உறுதிக்கு {n} நாள்', other: 'உறுதிக்கு {n} நாட்கள்' },
@@ -20353,9 +20353,9 @@ const hi: UiStrings = {
     more: 'और',
     confirmReceived: 'मिलने की पुष्टि करें',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
-    rowOwed: 'owed', // English placeholder — English-first phase, translation owed
-    rowYouOwe: 'you owe', // English placeholder
-    rowSettled: 'settled', // English placeholder
+    rowOwed: 'आपको मिलने हैं',
+    rowYouOwe: 'आपको देने हैं',
+    rowSettled: 'चुकता',
     saysTheyPaidYou: '{name} कहते हैं कि उन्होंने आपको भुगतान किया',
     saysTheyPaidYouWindow: '{name} कहते हैं कि उन्होंने आपको भुगतान किया ({window})',
     daysToConfirm: { one: 'पुष्टि के लिए {n} दिन', other: 'पुष्टि के लिए {n} दिन' },
@@ -26017,9 +26017,9 @@ const ar: UiStrings = {
     more: 'المزيد',
     confirmReceived: 'أكّد الاستلام',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
-    rowOwed: 'owed', // English placeholder — English-first phase, translation owed
-    rowYouOwe: 'you owe', // English placeholder
-    rowSettled: 'settled', // English placeholder
+    rowOwed: 'لك',
+    rowYouOwe: 'عليك',
+    rowSettled: 'مسدّد',
     saysTheyPaidYou: 'يقول {name} إنه دفع لك',
     saysTheyPaidYouWindow: 'يقول {name} إنه دفع لك ({window})',
     daysToConfirm: {

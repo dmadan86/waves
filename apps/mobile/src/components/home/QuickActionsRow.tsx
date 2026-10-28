@@ -31,6 +31,9 @@ export interface QuickAction {
   badge?: number;
   badgeColor?: string;
   backgroundColor?: string;
+  /** Tile variant only: this tile's own fill and glyph colour (e.g. amber credits). */
+  tileColor?: string;
+  tileInk?: string;
   accessibilityLabel?: string;
   /** Measured for a menu that has to drop from this tile — only Friends'
    *  "Add people" tile uses this. */
@@ -45,6 +48,7 @@ export function QuickActionsRow({
   discSize = DISC,
   labelSize,
   rowPadding,
+  tile = false,
 }: {
   actions: readonly QuickAction[];
   /** The card's corner radius, which the strip's bottom corners follow. */
@@ -61,6 +65,8 @@ export function QuickActionsRow({
   /** The strip's own vertical padding; `theme.spacing.sm` unless a caller
    *  asks tighter. */
   rowPadding?: number;
+  /** Home's look: equal rounded tiles with the glyph above the label, instead of discs. */
+  tile?: boolean;
 }) {
   const theme = useTheme();
 
@@ -71,10 +77,75 @@ export function QuickActionsRow({
         borderBottomLeftRadius: radius,
         borderBottomRightRadius: radius,
         paddingVertical: rowPadding ?? theme.spacing.sm,
-        paddingHorizontal: theme.spacing.xs,
+        paddingHorizontal: tile ? theme.spacing.sm : theme.spacing.xs,
+        gap: tile ? theme.spacing.sm : 0,
       }}
     >
       {actions.map((action) => {
+        if (tile) {
+          const ink = action.tileInk ?? iconColor;
+          const body = (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                action.accessibilityLabel ??
+                (action.badge != null ? `${action.label} (${action.badge})` : action.label)
+              }
+              onPress={action.onPress}
+              onLongPress={action.onLongPress}
+              style={({ pressed }) => ({
+                flex: 1,
+                minHeight: 68,
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                paddingHorizontal: 2,
+                borderRadius: 16,
+                backgroundColor: action.tileColor ?? discColor,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              {action.glyph(ink)}
+              <Text
+                variant="micro"
+                align="center"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={{ maxWidth: '100%', fontWeight: '600', color: ink }}
+              >
+                {action.label}
+              </Text>
+              {action.badge != null ? (
+                <View
+                  accessible={false}
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    top: -6,
+                    end: -2,
+                    minWidth: 20,
+                    height: 20,
+                    paddingHorizontal: 4,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: action.badgeColor ?? theme.color.negative,
+                  }}
+                >
+                  <Text variant="micro" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                    {action.badge > 99 ? '99+' : String(action.badge)}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+          );
+          return (
+            <View key={action.key} style={{ flex: 1 }} ref={action.ref} collapsable={false}>
+              {action.tourId ? <TourTarget id={action.tourId}>{body}</TourTarget> : body}
+            </View>
+          );
+        }
         const disc = (
           <View
             style={{

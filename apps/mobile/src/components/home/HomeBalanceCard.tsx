@@ -72,12 +72,33 @@ export function HomeBalanceCard({
   const figure = net < 0n ? -net : net;
 
   return (
-    <GlassSurface blurTarget={blurTarget}>
+    <GlassSurface blurTarget={blurTarget} folderTab>
+      <Row
+        style={{ height: 34, width: '60%', alignItems: 'center', paddingStart: theme.spacing.lg, paddingEnd: 14, gap: 6 }}
+      >
+        <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+          {label}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
+          onPress={onToggleHide}
+          hitSlop={10}
+          style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
+        >
+          <Ionicons
+            name={hidden ? 'eye-off-outline' : 'eye-outline'}
+            size={iconSize.sm}
+            color={theme.color.textMuted}
+          />
+        </Pressable>
+        {settling ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
+      </Row>
       <View
         style={{
-          paddingTop: theme.spacing.sm,
+          paddingTop: 0,
           paddingBottom: theme.spacing.xs,
-          gap: theme.spacing.xs,
+          gap: theme.spacing.sm,
         }}
       >
         <Row
@@ -88,25 +109,6 @@ export function HomeBalanceCard({
           }}
         >
           <View style={{ flex: 1, gap: 2 }}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {label}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={hidden ? t.dashHero.showBalance : t.dashHero.hideBalance}
-                onPress={onToggleHide}
-                hitSlop={10}
-                style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-              >
-                <Ionicons
-                  name={hidden ? 'eye-off-outline' : 'eye-outline'}
-                  size={iconSize.md}
-                  color={theme.color.textMuted}
-                />
-              </Pressable>
-              {settling ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
-            </Row>
             {loading ? (
               <Skeleton width={180} height={32} radius={10} />
             ) : hidden ? (
@@ -128,6 +130,8 @@ export function HomeBalanceCard({
 
         <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
           <BalanceSide
+            iconDisc
+            uniformDecimals
             icon="arrow-up"
             color={theme.color.positive}
             amount={owed}
@@ -140,6 +144,8 @@ export function HomeBalanceCard({
           />
           <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
           <BalanceSide
+            iconDisc
+            uniformDecimals
             icon="arrow-down"
             color={theme.color.negative}
             amount={owing}
