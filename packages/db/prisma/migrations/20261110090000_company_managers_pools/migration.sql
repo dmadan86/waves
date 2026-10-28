@@ -35,7 +35,7 @@ CREATE INDEX company_projects_sync_idx ON public.company_projects(group_id,updat
 CREATE INDEX company_project_members_sync_idx ON public.company_project_members(group_id,updated_seq);
 CREATE INDEX company_project_members_member_idx ON public.company_project_members(member_id,project_id);
 CREATE TABLE public.company_wage_runs (
- id uuid PRIMARY KEY, group_id uuid NOT NULL REFERENCES public.groups(id),
+ id uuid PRIMARY KEY, group_id uuid NOT NULL REFERENCES public.groups(id) ON DELETE CASCADE,
  period_start date NOT NULL, period_end date NOT NULL CHECK(period_end>=period_start),
  paid_on date NOT NULL, created_by uuid NOT NULL, request_hash text NOT NULL,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
@@ -311,6 +311,7 @@ BEGIN
  v_me := public.waves_company_actor(r.group_id);
  PERFORM 1 FROM public.groups WHERE id=r.group_id FOR UPDATE;
  IF r.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
+ IF r.entry_kind='advance' AND EXISTS(SELECT 1 FROM public.company_entries w WHERE w.group_id=r.group_id AND w.member_id=r.member_id AND w.entry_kind='wage_payment' AND w.deleted_at IS NULL AND w.recovery_minor>0 AND w.reimbursement_id IS NULL AND w.period_end>=r.occurred_on) THEN RAISE EXCEPTION 'ENTRY_FROZEN: advance already recovered through wages'; END IF;
  IF r.id IS NULL OR r.deleted_at IS NOT NULL OR (NOT public.is_group_admin(r.group_id) AND NOT public.waves_company_team(r.group_id,r.member_id) AND
   (r.member_id <> v_me OR r.created_by <> v_me OR r.entry_kind NOT IN ('expense','allowance'))) THEN
   RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE = 'insufficient_privilege';
@@ -343,6 +344,7 @@ BEGIN
  v_me := public.waves_company_actor(r.group_id);
  PERFORM 1 FROM public.groups WHERE id=r.group_id FOR UPDATE;
  IF r.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
+ IF r.entry_kind='advance' AND EXISTS(SELECT 1 FROM public.company_entries w WHERE w.group_id=r.group_id AND w.member_id=r.member_id AND w.entry_kind='wage_payment' AND w.deleted_at IS NULL AND w.recovery_minor>0 AND w.reimbursement_id IS NULL AND w.period_end>=r.occurred_on) THEN RAISE EXCEPTION 'ENTRY_FROZEN: advance already recovered through wages'; END IF;
  IF r.id IS NULL OR (NOT public.is_group_admin(r.group_id) AND NOT public.waves_company_team(r.group_id,r.member_id) AND
   (r.member_id <> v_me OR r.created_by <> v_me OR r.entry_kind NOT IN ('expense','allowance'))) THEN
   RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE = 'insufficient_privilege';
@@ -1520,7 +1522,7 @@ CREATE TRIGGER company_phase4_member_guard BEFORE INSERT OR UPDATE ON public.gro
 CREATE FUNCTION public.waves_company_phase4_entry_guard() RETURNS trigger
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 BEGIN
- IF TG_OP<>'INSERT' AND OLD.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
+ IF TG_OP<>'INSERT' AND OLD.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') AND NOT (TG_OP='DELETE' AND NOT EXISTS(SELECT 1 FROM public.groups WHERE id=OLD.group_id)) THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
  IF TG_OP='UPDATE' AND (NEW.funding_manager_id IS DISTINCT FROM OLD.funding_manager_id OR ((OLD.funding_manager_id IS NOT NULL OR OLD.wage_run_id IS NOT NULL) AND (NEW.member_id,NEW.group_id) IS DISTINCT FROM (OLD.member_id,OLD.group_id))) THEN RAISE EXCEPTION 'ENTRY_SCOPE_IMMUTABLE'; END IF;
  IF NEW.project_id IS NOT NULL AND (TG_OP='INSERT' OR NEW.project_id IS DISTINCT FROM OLD.project_id) AND NOT EXISTS(SELECT 1 FROM public.company_projects WHERE id=NEW.project_id AND group_id=NEW.group_id AND archived_at IS NULL AND deleted_at IS NULL) THEN RAISE EXCEPTION 'INVALID_PROJECT'; END IF;

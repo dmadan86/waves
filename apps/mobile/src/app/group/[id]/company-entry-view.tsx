@@ -11,6 +11,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import {
+  advanceRecovered,
   flagsForEntry,
   format,
   money,
@@ -62,7 +63,11 @@ export default function CompanyEntryViewScreen() {
   // A paid claim (or the payment itself, or the credits it netted in) is frozen.
   const frozen =
     !!entry &&
-    (entry.status === 'reimbursed' || entry.reimbursementId !== null || entry.coversClaims);
+    (entry.status === 'reimbursed' ||
+      entry.reimbursementId !== null ||
+      entry.coversClaims ||
+      entry.kind === 'wage_payment' ||
+      advanceRecovered(view.entries, entry));
   const canWithdraw =
     !!entry && !frozen && (view.isAdmin || (mine && ownKind && entry.createdBy === view.me?.id));
   const paidOn = entry ? reimbursedOn(entry, view.entries) : null;

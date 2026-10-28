@@ -409,3 +409,19 @@ export function dashboardStats(
     advanceHolders: holders,
   };
 }
+
+/** An advance a wage run has already taken back against cannot be edited or voided (the server refuses it). */
+export function advanceRecovered(entries: readonly CompanyEntry[], advance: CompanyEntry): boolean {
+  return (
+    advance.kind === 'advance' &&
+    entries.some(
+      (w) =>
+        w.memberId === advance.memberId &&
+        !w.deleted &&
+        w.kind === 'wage_payment' &&
+        (w.recoveryMinor ?? 0n) > 0n &&
+        w.reimbursementId === null &&
+        (w.periodEnd ?? w.occurredOn) >= advance.occurredOn,
+    )
+  );
+}

@@ -712,4 +712,41 @@ describe('company Phase 4: people, invites and approvals', () => {
         );
       await user(1, async () => expect((await balance()).balance).toBe('0'));
     }));
+  it('an advance already recovered through a wage run cannot be edited or voided', () =>
+    isolated(async () => {
+      await user(1, async () => {
+        const adv = await entry(3, 'advance', { amount: '1000' });
+        await wage([line(3, '400', '400', '0')]);
+        await denied(() => db.query('SELECT waves_company_entry_void($1,$2)', [adv, 'oops']));
+        await denied(() =>
+          db.query('SELECT waves_company_entry_update($1,$2)', [
+            adv,
+            JSON.stringify({ amount: '900' }),
+          ]),
+        );
+      });
+    }));
+  it('a company group with wage runs, pools and entries can be hard-deleted', () =>
+    isolated(async () => {
+      await user(0, () => pool());
+      await user(1, async () => {
+        await entry(3, 'advance', { amount: '1000' });
+        await wage([line(3, '400', '400', '0')]);
+      });
+      await db.query('DELETE FROM groups WHERE id=$1', [g.groupId]);
+      expect(
+        (
+          await db.query('SELECT count(*)::int n FROM company_entries WHERE group_id=$1', [
+            g.groupId,
+          ])
+        ).rows[0].n,
+      ).toBe(0);
+      expect(
+        (
+          await db.query('SELECT count(*)::int n FROM company_wage_runs WHERE group_id=$1', [
+            g.groupId,
+          ])
+        ).rows[0].n,
+      ).toBe(0);
+    }));
 });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  advanceRecovered,
   buildReimbursementPreview,
   buildWageRun,
   companyCapabilities,
@@ -232,4 +233,18 @@ it('dashboard stats: owed, paid this month vs last, advances outstanding', () =>
   expect(s.paidChangePct).toBe(200);
   expect(s.owes).toBe(500n - 200n - 100n);
   expect([s.advancesOutstanding, s.advanceHolders, s.pendingPayments]).toEqual([200n, 1, 1]);
+});
+
+it('an advance recovered through a wage run is locked', () => {
+  const adv = e({ entry_kind: 'advance', amount: 1000, occurred_on: '2026-11-01' });
+  expect(advanceRecovered([adv], adv)).toBe(false);
+  const pay = e({
+    entry_kind: 'wage_payment',
+    amount: 0,
+    gross_minor: 600,
+    claims_minor: 0,
+    recovery_minor: 600,
+    period_end: '2026-11-07',
+  });
+  expect(advanceRecovered([adv, pay], adv)).toBe(true);
 });
