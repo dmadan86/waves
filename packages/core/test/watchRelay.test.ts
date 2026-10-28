@@ -166,9 +166,7 @@ describe('parseWatchToPhone input-length and format guards', () => {
   });
 
   it('rejects a voiceClip whose id exceeds 64 chars', () => {
-    expect(
-      parseWatchToPhone({ t: 'voiceClip', id: 'a'.repeat(65), durationMs: 1000 }),
-    ).toBeNull();
+    expect(parseWatchToPhone({ t: 'voiceClip', id: 'a'.repeat(65), durationMs: 1000 })).toBeNull();
   });
 
   // -- quickAdd.amountMinor max 12 digits ------------------------------------
@@ -267,9 +265,7 @@ describe('parseWatchToPhone input-length and format guards', () => {
 
   // -- voiceAdd.transcript max 2000 chars ------------------------------------
   it('rejects a voiceAdd with a transcript longer than 2000 chars', () => {
-    expect(
-      parseWatchToPhone({ t: 'voiceAdd', id: 'w1', transcript: 'a'.repeat(2001) }),
-    ).toBeNull();
+    expect(parseWatchToPhone({ t: 'voiceAdd', id: 'w1', transcript: 'a'.repeat(2001) })).toBeNull();
   });
 
   it('accepts a voiceAdd with a transcript of exactly 2000 chars', () => {

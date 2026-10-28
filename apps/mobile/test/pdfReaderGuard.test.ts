@@ -153,7 +153,9 @@ describe('parseFromPage malformed messages', () => {
   });
 
   it('accepts error with no code (null)', () => {
-    expect(parseFromPage(JSON.stringify({ t: 'error', name: 'PasswordException', code: 1 }))).toEqual({
+    expect(
+      parseFromPage(JSON.stringify({ t: 'error', name: 'PasswordException', code: 1 })),
+    ).toEqual({
       t: 'error',
       name: 'PasswordException',
       code: 1,

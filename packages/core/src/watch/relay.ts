@@ -82,10 +82,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  *  (≈ 1 trillion minor units; rejects oversized inputs before BigInt conversion). */
 function isPositiveMinor(value: unknown): value is string {
   return (
-    typeof value === 'string' &&
-    value.length <= 12 &&
-    /^\d+$/.test(value) &&
-    /[1-9]/.test(value)
+    typeof value === 'string' && value.length <= 12 && /^\d+$/.test(value) && /[1-9]/.test(value)
   );
 }
 
@@ -116,8 +113,7 @@ export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
   // v1 watch and is accepted. Guards against an old intent being read with new
   // semantics after a breaking relay change.
   if (raw.version !== undefined && raw.version !== WATCH_RELAY_VERSION) return null;
-  const id =
-    typeof raw.id === 'string' && raw.id.length > 0 && raw.id.length <= 64 ? raw.id : null;
+  const id = typeof raw.id === 'string' && raw.id.length > 0 && raw.id.length <= 64 ? raw.id : null;
   switch (raw.t) {
     case 'quickAdd':
       return id &&
