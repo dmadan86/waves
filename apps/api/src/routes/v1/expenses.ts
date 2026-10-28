@@ -45,10 +45,10 @@ export const expenses = new Hono<ApiEnv>();
 
 /** Minor units arrive as decimal strings. A JSON number here is a rounding bug. */
 export function minor(value: unknown, field: string): bigint {
-  if (typeof value !== 'string' || !/^\d{1,19}$/.test(value)) {
+  if (typeof value !== 'string' || !/^\d{1,15}$/.test(value)) {
     throw new ApiError(
       'invalid_request',
-      `${field} is a whole number of minor units, as a string — "1250" is ₹12.50.`,
+      `${field} is a whole number of minor units, as a string of at most 15 digits — "1250" is ₹12.50.`,
     );
   }
   return BigInt(value);

@@ -95,7 +95,10 @@ export async function handleInviteMint(request: Request, deps: InviteMintDeps): 
       .gt('expires_at', new Date().toISOString());
     // Fail closed: a failed count must not read as zero and wave the insert past
     // the cap. Refuse rather than mint an unbounded link.
-    if (countError) throw new HttpError(500, 'INTERNAL', countError.message);
+    if (countError) {
+      console.error(JSON.stringify({ fn: 'invite-mint', detail: countError.message }));
+      throw new HttpError(500, 'INTERNAL', 'Could not complete request');
+    }
     if ((count ?? 0) >= MAX_LIVE_INVITES) {
       throw new HttpError(
         429,
@@ -126,7 +129,10 @@ export async function handleInviteMint(request: Request, deps: InviteMintDeps): 
       })
       .select('id')
       .single();
-    if (error) throw new HttpError(500, 'INTERNAL', error.message);
+    if (error) {
+      console.error(JSON.stringify({ fn: 'invite-mint', detail: error.message }));
+      throw new HttpError(500, 'INTERNAL', 'Could not complete request');
+    }
 
     const { data: group } = await service.from('groups').select('name').eq('id', groupId).single();
 

@@ -26,6 +26,7 @@ import {
   serveWithCors,
 } from '../_shared/auth.ts';
 import { normaliseAddress, verifyUnsubscribe } from '../_shared/core.js';
+import { readBoundedText } from '../otp-send/handler.ts';
 
 const HTML_HEADERS = { ...CORS_HEADERS, 'content-type': 'text/html; charset=utf-8' };
 
@@ -63,10 +64,14 @@ serveWithCors(async (request) => {
     // and our own confirmation page does the same.
     if (request.method === 'POST') {
       const contentType = request.headers.get('content-type') ?? '';
-      if (contentType.includes('form')) {
-        const form = await request.formData();
-        address = (form.get('address') as string | null) ?? address;
-        signature = (form.get('sig') as string | null) ?? signature;
+      if (contentType.includes('x-www-form-urlencoded')) {
+        const rawBody = await readBoundedText(request, 8 * 1024);
+        if (rawBody === null) {
+          throw new HttpError(413, 'BODY_TOO_LARGE', 'Request body too large');
+        }
+        const form = new URLSearchParams(rawBody);
+        address = form.get('address') ?? address;
+        signature = form.get('sig') ?? signature;
       }
     }
 
