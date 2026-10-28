@@ -42,6 +42,7 @@ const h = vi.hoisted(() => {
 });
 
 vi.mock('react-native', () => ({
+  Linking: { openSettings: async () => {} },
   Platform: h.platform,
   Image: {
     getSize: (
@@ -62,6 +63,11 @@ vi.mock('expo-file-system', () => ({
 }));
 
 vi.mock('expo-image-picker', () => ({
+  getCameraPermissionsAsync: async () => ({ granted: h.permissions.camera, canAskAgain: true }),
+  getMediaLibraryPermissionsAsync: async () => ({
+    granted: h.permissions.library,
+    canAskAgain: true,
+  }),
   requestCameraPermissionsAsync: async () => ({ granted: h.permissions.camera }),
   requestMediaLibraryPermissionsAsync: async () => ({ granted: h.permissions.library }),
   launchCameraAsync: (options: unknown) => h.launch.camera(options),

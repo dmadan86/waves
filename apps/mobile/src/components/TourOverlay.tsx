@@ -26,6 +26,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 
 import { Button, iconSize, Text, useTheme } from '@waves/ui';
 
+import { useOverlayBusy } from '@/lib/firstRun';
 import { useStrings } from '@/i18n';
 import { TOUR_STEPS, useTour } from '@/lib/tour';
 
@@ -47,6 +48,7 @@ export function TourOverlay() {
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
   const { active, step, total, rectFor, next, prev, finish } = useTour();
+  const busyElsewhere = useOverlayBusy();
   const { width: screenW, height: screenH } = useWindowDimensions();
 
   // The card's measured height, so it can be placed (and clamped) exactly.
@@ -88,7 +90,8 @@ export function TourOverlay() {
     transform: [{ translateY: (1 - cardEnter.value) * 12 }],
   }));
 
-  if (!active) return null;
+  // Pause (not end) the tour while another overlay is up.
+  if (!active || busyElsewhere) return null;
 
   const current = TOUR_STEPS[step];
   const rect = rectFor(current.anchor);

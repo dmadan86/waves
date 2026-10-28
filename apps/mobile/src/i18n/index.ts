@@ -4198,6 +4198,18 @@ export interface UiStrings {
     getTodaysRate: string;
     micPermission: string;
     micBlocked: string;
+    /** Our short explainer shown before any system permission dialog. */
+    permission: {
+      continue: string;
+      notNow: string;
+      openSettings: string;
+      /** Appended when the system will no longer ask. */
+      blocked: string;
+      kinds: Record<
+        'mic' | 'contacts' | 'notifications' | 'location' | 'camera' | 'photos',
+        { title: string; body: string }
+      >;
+    };
     dictationFailed: string;
     /** Every way dictation can end, in words — threaded into `dictationError`. */
     dictationErrors: DictationErrorStrings;
@@ -9556,6 +9568,38 @@ const en: UiStrings = {
     getTodaysRate: 'Get today’s {from}→{to} rate',
     micPermission: 'Waves needs permission to use the microphone.',
     micBlocked: 'Microphone access is off for Waves. You can turn it on in Settings.',
+    permission: {
+      continue: 'Continue',
+      notNow: 'Not now',
+      openSettings: 'Open settings',
+      blocked: 'Turn it on in Settings.',
+      kinds: {
+        mic: {
+          title: 'Use your microphone',
+          body: 'Waves listens only while you speak an expense, to turn it into an entry.',
+        },
+        contacts: {
+          title: 'Find your friends',
+          body: 'Waves reads your contacts only to help you pick people to split with.',
+        },
+        notifications: {
+          title: 'Stay in the loop',
+          body: 'Get reminders and updates about your groups.',
+        },
+        location: {
+          title: 'Add where you spent',
+          body: 'Waves attaches a place to an expense only when you ask it to.',
+        },
+        camera: {
+          title: 'Use your camera',
+          body: 'Take a photo of a receipt or a profile picture.',
+        },
+        photos: {
+          title: 'Use your photos',
+          body: 'Pick a picture from your library for a receipt or profile.',
+        },
+      },
+    },
     dictationFailed: 'Dictation could not start. Type the note instead.',
     dictationErrors: {
       notAllowed: 'Waves needs permission to use the microphone. You can turn it on in Settings.',
@@ -14938,6 +14982,38 @@ const ta: UiStrings = {
     getTodaysRate: 'இன்றைய {from}→{to} விகிதத்தைப் பெறு',
     micPermission: 'ஒலிவாங்கியைப் பயன்படுத்த Waves-க்கு அனுமதி தேவை.',
     micBlocked: 'Waves-க்கு ஒலிவாங்கி அணுகல் நிறுத்தப்பட்டுள்ளது. அமைப்புகளில் இயக்கலாம்.',
+    permission: {
+      continue: 'தொடரவும்',
+      notNow: 'இப்போது வேண்டாம்',
+      openSettings: 'அமைப்புகளைத் திற',
+      blocked: 'அமைப்புகளில் இயக்கவும்.',
+      kinds: {
+        mic: {
+          title: 'ஒலிவாங்கியைப் பயன்படுத்து',
+          body: 'செலவைச் சொல்லும்போது மட்டும் Waves கேட்டு அதை பதிவாக மாற்றும்.',
+        },
+        contacts: {
+          title: 'நண்பர்களைக் கண்டறி',
+          body: 'பிரிக்க நபர்களைத் தேர்ந்தெடுக்க மட்டுமே Waves தொடர்புகளைப் படிக்கும்.',
+        },
+        notifications: {
+          title: 'தகவலில் இருங்கள்',
+          body: 'உங்கள் குழுக்கள் பற்றிய நினைவூட்டல்களையும் புதுப்பிப்புகளையும் பெறுங்கள்.',
+        },
+        location: {
+          title: 'செலவு செய்த இடத்தைச் சேர்',
+          body: 'நீங்கள் கேட்கும்போது மட்டுமே Waves செலவுடன் இடத்தை இணைக்கும்.',
+        },
+        camera: {
+          title: 'கேமராவைப் பயன்படுத்து',
+          body: 'ரசீது அல்லது சுயவிவரப் படத்தை எடுக்கவும்.',
+        },
+        photos: {
+          title: 'புகைப்படங்களைப் பயன்படுத்து',
+          body: 'ரசீது அல்லது சுயவிவரத்திற்கு படத்தைத் தேர்ந்தெடுக்கவும்.',
+        },
+      },
+    },
     dictationFailed: 'சொல்வதைப் பதிவு செய்ய முடியவில்லை. குறிப்பைத் தட்டச்சு செய்யுங்கள்.',
     dictationErrors: {
       notAllowed: 'மைக்ரோஃபோனைப் பயன்படுத்த Waves-க்கு அனுமதி தேவை. அமைப்புகளில் அதை இயக்கலாம்.',
@@ -20314,6 +20390,32 @@ const hi: UiStrings = {
     getTodaysRate: 'आज की {from}→{to} दर लाएँ',
     micPermission: 'माइक्रोफ़ोन इस्तेमाल करने के लिए Waves को अनुमति चाहिए।',
     micBlocked: 'Waves के लिए माइक्रोफ़ोन बंद है। आप इसे सेटिंग्स में चालू कर सकते हैं।',
+    permission: {
+      continue: 'जारी रखें',
+      notNow: 'अभी नहीं',
+      openSettings: 'सेटिंग्स खोलें',
+      blocked: 'इसे सेटिंग्स में चालू करें।',
+      kinds: {
+        mic: {
+          title: 'माइक्रोफ़ोन का उपयोग',
+          body: 'खर्च बोलते समय ही Waves सुनता है, ताकि उसे प्रविष्टि बना सके।',
+        },
+        contacts: {
+          title: 'अपने दोस्त खोजें',
+          body: 'Waves आपके संपर्क केवल बाँटने के लिए लोगों को चुनने में मदद हेतु पढ़ता है।',
+        },
+        notifications: { title: 'जुड़े रहें', body: 'अपने समूहों के रिमाइंडर और अपडेट पाएँ।' },
+        location: {
+          title: 'खर्च की जगह जोड़ें',
+          body: 'Waves खर्च के साथ जगह तभी जोड़ता है जब आप कहें।',
+        },
+        camera: { title: 'कैमरे का उपयोग', body: 'रसीद या प्रोफ़ाइल की फ़ोटो लें।' },
+        photos: {
+          title: 'फ़ोटो का उपयोग',
+          body: 'रसीद या प्रोफ़ाइल के लिए अपनी लाइब्रेरी से फ़ोटो चुनें।',
+        },
+      },
+    },
     dictationFailed: 'बोलकर लिखना शुरू नहीं हो सका। नोट टाइप कर लें।',
     dictationErrors: {
       notAllowed: 'माइक्रोफ़ोन के लिए Waves को अनुमति चाहिए। इसे सेटिंग्स में चालू कर सकते हैं।',
@@ -25887,6 +25989,29 @@ const ar: UiStrings = {
     getTodaysRate: 'اجلب سعر {from}→{to} اليوم',
     micPermission: 'يحتاج Waves إلى إذن لاستخدام الميكروفون.',
     micBlocked: 'الوصول إلى الميكروفون معطّل لـ Waves. يمكنك تفعيله من الإعدادات.',
+    permission: {
+      continue: 'متابعة',
+      notNow: 'ليس الآن',
+      openSettings: 'فتح الإعدادات',
+      blocked: 'فعّله من الإعدادات.',
+      kinds: {
+        mic: {
+          title: 'استخدام الميكروفون',
+          body: 'يستمع Waves فقط أثناء نطقك للمصروف ليحوّله إلى قيد.',
+        },
+        contacts: {
+          title: 'ابحث عن أصدقائك',
+          body: 'يقرأ Waves جهات الاتصال فقط ليساعدك على اختيار من تقسم معهم.',
+        },
+        notifications: { title: 'ابقَ على اطلاع', body: 'احصل على تذكيرات وتحديثات عن مجموعاتك.' },
+        location: {
+          title: 'أضف مكان الإنفاق',
+          body: 'يرفق Waves مكانًا بالمصروف فقط عندما تطلب ذلك.',
+        },
+        camera: { title: 'استخدام الكاميرا', body: 'التقط صورة لإيصال أو صورة للملف الشخصي.' },
+        photos: { title: 'استخدام الصور', body: 'اختر صورة من مكتبتك لإيصال أو للملف الشخصي.' },
+      },
+    },
     dictationFailed: 'تعذّر بدء الإملاء. اكتب الملاحظة بدلًا من ذلك.',
     dictationErrors: {
       notAllowed: 'يحتاج Waves إلى إذن لاستخدام الميكروفون. يمكنك تفعيله من الإعدادات.',
