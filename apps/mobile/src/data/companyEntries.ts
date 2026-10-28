@@ -7,8 +7,8 @@
  * statement math in `@waves/core` is right for both.
  */
 
-import { useMemo } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 
 import {
@@ -42,6 +42,8 @@ import { useSync } from '@/sync';
 
 export interface CompanyView {
   readonly entries: readonly CompanyEntry[];
+  /** The same without this phone's queued changes. */
+  readonly settledEntries: readonly CompanyEntry[];
   /** Every member row this viewer can read: all of them for an admin, only themself otherwise. */
   readonly members: readonly MemberRow[];
   readonly me: MemberRow | null;
@@ -141,8 +143,10 @@ export function useCompanyEntries(groupId: string): CompanyView {
   const directory = useCompanyPeople(groupId).data;
   const visibleIds = useMemo(() => {
     const ids = new Set<string>();
-    if (me?.role === 'manager' && directory) {
-      for (const person of directory) if (person.detail) ids.add(person.member_id);
+    if (me?.role === 'manager') {
+      // Fail closed: until the server's directory answers, a manager sees only themself.
+      if (me.id) ids.add(me.id);
+      for (const person of directory ?? []) if (person.detail) ids.add(person.member_id);
       return ids;
     }
     for (const member of people) {
@@ -173,6 +177,14 @@ export function useCompanyEntries(groupId: string): CompanyView {
         .filter((entry) => visibleIds.has(entry.memberId)),
     [mirror, queue, groupId, currency, me?.id, visibleIds, approvalsEnabled],
   );
+  // The same rows without this phone's queued changes: the base a queued edit is measured from.
+  const settledEntries = useMemo(
+    () =>
+      materialiseCompanyEntries(mirror, [], { groupId, currency, myMemberId: me?.id ?? null })
+        .map((row) => companyEntryFromRow(row as unknown as CompanyEntryRow))
+        .filter((entry) => visibleIds.has(entry.memberId)),
+    [mirror, groupId, currency, me?.id, visibleIds],
+  );
   const receiptEntryIds = useMemo(
     () =>
       new Set(
@@ -189,6 +201,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
   );
   return {
     entries,
+    settledEntries,
     members: people.filter((member) => visibleIds.has(member.id)),
     me,
     isAdmin,
@@ -481,7 +494,17 @@ export function usePayWages(groupId: string) {
  * phone's own sum of what it can read.
  */
 export function usePoolBalance(groupId: string, managerId: string | null): bigint | null {
-  const { entries } = useCompanyEntries(groupId);
+  const { entries, settledEntries } = useCompanyEntries(groupId);
+  const { queue } = useSync();
+  const queryClient = useQueryClient();
+  // When a queued change is acknowledged its overlay disappears: refresh the server figure at once.
+  const queued = queue.filter((m) => m.groupId === groupId && m.kind.startsWith('company')).length;
+  const lastQueued = useRef(queued);
+  useEffect(() => {
+    if (queued < lastQueued.current)
+      void queryClient.invalidateQueries({ queryKey: ['company-pool', groupId] });
+    lastQueued.current = queued;
+  }, [queued, groupId, queryClient]);
   const server = useQuery({
     queryKey: ['company-pool', groupId, managerId],
     enabled: !!managerId,
@@ -501,19 +524,18 @@ export function usePoolBalance(groupId: string, managerId: string | null): bigin
     if (!managerId) return null;
     const mine = poolBalance(entries, managerId).balance;
     if (server.data === undefined) return mine;
-    const settled = poolBalance(
-      entries.filter((e) => !e.pending),
-      managerId,
-    ).balance;
+    const settled = poolBalance(settledEntries, managerId).balance;
     return server.data + (mine - settled);
-  }, [entries, managerId, server.data]);
+  }, [entries, settledEntries, managerId, server.data]);
 }
 
 /** Names-only directory (owners, my manager, my team, me) from the server; empty until it answers. */
 export function useCompanyPeople(groupId: string) {
   return useQuery({
     queryKey: ['company-people', groupId],
-    staleTime: 30_000,
+    staleTime: 0,
+    refetchInterval: 30_000,
+    refetchOnMount: 'always',
     queryFn: async () => {
       const { data, error } = await backend.rpc('waves_company_people', { p_group_id: groupId });
       if (error) throw new Error(error.message);

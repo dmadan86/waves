@@ -828,4 +828,31 @@ describe('company Phase 4: people, invites and approvals', () => {
         );
       });
     }));
+  it('a company group with reimbursed claims and wage runs can be hard-deleted', () =>
+    isolated(async () => {
+      const adv = await user(1, () => entry(3, 'advance', { amount: '1000' }));
+      await user(1, () => wage([line(3, '400', '400', '0')]));
+      const claim = await user(3, () => entry(3, 'expense', { amount: '800' }));
+      await user(1, () =>
+        db.query('SELECT waves_company_reimburse($1,$2,$3,$4,$5,$6,$7,$8,$9)', [
+          g.groupId,
+          randomUUID(),
+          g.memberIds[3],
+          JSON.stringify([{ entryId: claim, expectedVersion: 1 }]),
+          JSON.stringify([{ entryId: adv, expectedVersion: 1 }]),
+          '2026-11-30',
+          '2026-11-30',
+          '200',
+          null,
+        ]),
+      );
+      await db.query('DELETE FROM groups WHERE id=$1', [g.groupId]);
+      expect(
+        (
+          await db.query('SELECT count(*)::int n FROM company_entries WHERE group_id=$1', [
+            g.groupId,
+          ])
+        ).rows[0].n,
+      ).toBe(0);
+    }));
 });

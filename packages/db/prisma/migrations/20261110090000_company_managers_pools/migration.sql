@@ -19,7 +19,7 @@ CREATE TABLE public.company_projects (
 );
 CREATE TABLE public.company_project_budgets (
  project_id uuid PRIMARY KEY, group_id uuid NOT NULL,
- id uuid GENERATED ALWAYS AS (project_id) STORED,
+ id uuid GENERATED ALWAYS AS (project_id) STORED NOT NULL,
  budget_minor bigint CHECK(budget_minor>=0),
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
  deleted_at timestamptz, updated_seq bigint NOT NULL DEFAULT 0,
@@ -441,7 +441,7 @@ DECLARE rule jsonb; actual numeric; start_on date; end_on date; cover public.com
 BEGIN
  IF TG_OP='UPDATE' AND public.waves_company_bookkeeping_update(OLD,NEW) THEN RETURN NEW; END IF;
  IF TG_OP='DELETE' THEN
-  IF OLD.reimbursement_id IS NOT NULL OR OLD.reimbursement_details IS NOT NULL THEN RAISE EXCEPTION 'ENTRY_REIMBURSED: covered entries are frozen' USING ERRCODE='check_violation'; END IF;
+  IF (OLD.reimbursement_id IS NOT NULL OR OLD.reimbursement_details IS NOT NULL) AND EXISTS(SELECT 1 FROM public.groups WHERE id=OLD.group_id) THEN RAISE EXCEPTION 'ENTRY_REIMBURSED: covered entries are frozen' USING ERRCODE='check_violation'; END IF;
   RETURN OLD;
  END IF;
  -- UPDATE/DELETE already hold a row lock: callers must lock via waves_company_entry_lock first.
