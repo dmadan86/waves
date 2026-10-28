@@ -2704,6 +2704,8 @@ export interface UiStrings {
     descriptionLabel: string;
     optional: string;
     seeAll: string;
+    addManually: string;
+    moreOptions: string;
   };
   /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
   captureForm: {
@@ -8676,9 +8678,9 @@ const en: UiStrings = {
     },
   },
   newGroupForm: {
-    title: 'Create a new group',
+    title: 'Create a group',
     headerSub: 'Start a group and share expenses together',
-    tagline: 'Plan together, split easily',
+    tagline: 'Split expenses with friends, family or colleagues — in just a few steps.',
     nameExample: 'e.g. Bali Trip',
     whatFor: 'What is this group for?',
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
@@ -8697,6 +8699,8 @@ const en: UiStrings = {
     descriptionLabel: 'Description (optional)',
     optional: '(optional)',
     seeAll: 'See all',
+    addManually: 'Add manually',
+    moreOptions: 'More options',
   },
   captureForm: {
     headerSub: 'Record your spending in a few seconds',
@@ -14271,7 +14275,7 @@ const ta: UiStrings = {
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
     headerSub: 'ஒரு குழுவைத் தொடங்கி செலவுகளை ஒன்றாகப் பகிருங்கள்',
-    tagline: 'ஒன்றாகத் திட்டமிடுங்கள், எளிதாகப் பிரியுங்கள்',
+    tagline: 'நண்பர்கள், குடும்பம் அல்லது சக ஊழியர்களுடன் செலவுகளைப் பிரியுங்கள் — சில படிகளில்.',
     nameExample: 'எ.கா. கோவா பயணம்',
     whatFor: 'இந்தக் குழு எதற்காக?',
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
@@ -14290,6 +14294,8 @@ const ta: UiStrings = {
     descriptionLabel: 'விளக்கம் (விருப்பத்தேர்வு)',
     optional: '(விருப்பத்தேர்வு)',
     seeAll: 'அனைத்தும்',
+    addManually: 'கைமுறையாகச் சேர்',
+    moreOptions: 'மேலும் விருப்பங்கள்',
   },
   captureForm: {
     headerSub: 'சில நொடிகளில் உங்கள் செலவைப் பதிவு செய்யுங்கள்',
@@ -19970,7 +19976,7 @@ const hi: UiStrings = {
   newGroupForm: {
     title: 'नया समूह बनाएँ',
     headerSub: 'ग्रुप बनाएँ और खर्च साथ मिलकर बाँटें',
-    tagline: 'साथ मिलकर प्लान करें, आसानी से बाँटें',
+    tagline: 'दोस्तों, परिवार या सहकर्मियों के साथ खर्च बाँटें — बस कुछ ही चरणों में।',
     nameExample: 'जैसे गोवा ट्रिप',
     whatFor: 'यह समूह किसलिए है?',
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
@@ -19989,6 +19995,8 @@ const hi: UiStrings = {
     descriptionLabel: 'विवरण (वैकल्पिक)',
     optional: '(वैकल्पिक)',
     seeAll: 'सभी देखें',
+    addManually: 'खुद जोड़ें',
+    moreOptions: 'और विकल्प',
   },
   captureForm: {
     headerSub: 'कुछ ही सेकंड में अपना खर्च दर्ज करें',
@@ -25625,7 +25633,7 @@ const ar: UiStrings = {
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',
     headerSub: 'ابدأ مجموعة وتقاسموا المصروفات معاً',
-    tagline: 'خططوا معًا، وقسّموا بسهولة',
+    tagline: 'قسّم المصاريف مع الأصدقاء أو العائلة أو الزملاء — في خطوات قليلة.',
     nameExample: 'مثال: رحلة بالي',
     whatFor: 'ما الغرض من هذه المجموعة؟',
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
@@ -25644,6 +25652,8 @@ const ar: UiStrings = {
     descriptionLabel: 'الوصف (اختياري)',
     optional: '(اختياري)',
     seeAll: 'عرض الكل',
+    addManually: 'إضافة يدويًا',
+    moreOptions: 'خيارات إضافية',
   },
   captureForm: {
     headerSub: 'سجّل مصروفك في ثوانٍ',

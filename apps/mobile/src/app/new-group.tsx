@@ -159,7 +159,10 @@ export default function NewGroupScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
-  const currency = useDefaultCurrency();
+  const defaultCurrency = useDefaultCurrency();
+  // The group's own currency: the profile's unless Currency (More options) picks another.
+  const [pickedCur, setCompanyCur] = useState<string | null>(null);
+  const currency = pickedCur ?? defaultCurrency;
   const guard = useGuestGuard();
   const { mutate, status } = useSync();
   const toast = useToast();
@@ -253,6 +256,7 @@ export default function NewGroupScreen() {
     return () => clearTimeout(id);
   }, [openAttr]);
   const [ghostName, setGhostName] = useState('');
+  const ghostInput = useRef<TextInput>(null);
   // The note on what an added name is (a placeholder until they join), under
   // the Add friends title when its ⓘ is tapped.
   const [showGhostNote, setShowGhostNote] = useState(false);
@@ -365,7 +369,6 @@ export default function NewGroupScreen() {
   const [pickingTripCur, setPickingTripCur] = useState(false);
   // Company only: the group currency and a default daily bata rate. Both optional;
   // the rate is written behind the create as an ordinary settings change.
-  const [companyCur, setCompanyCur] = useState<string | null>(null);
   const [pickingCompanyCur, setPickingCompanyCur] = useState(false);
   const [companyRate, setCompanyRate] = useState(0n);
   // Optional logo, staged here and uploaded once the server knows the new company.
@@ -483,7 +486,7 @@ export default function NewGroupScreen() {
   const emoji = pickedEmoji ?? guessGroupEmoji(name) ?? EMOJI_FOR_TYPE[type];
   // Trips and events benefit most from simplification; a two-person group does
   // not. Follows the type until somebody says otherwise.
-  const groupCurrency = type === GroupType.Company ? (companyCur ?? currency) : currency;
+  const groupCurrency = currency;
   const effectiveSimplify = simplify ?? (type === GroupType.Trip || type === GroupType.Event);
 
   // The five tiles. Friends reads as Others (see `tileForType`).
@@ -871,6 +874,9 @@ export default function NewGroupScreen() {
                 costing a row of its own; the accessibility label underneath
                 still names the field for a screen reader. */}
             <View style={{ flex: 1, minWidth: 0, justifyContent: 'center', gap: theme.spacing.xs }}>
+              <Text style={{ fontSize: 13, fontWeight: '600', color: muted(theme) }}>
+                {t.group.groupName}
+              </Text>
               <Row style={[fieldBox(theme), { paddingEnd: theme.spacing.sm }]}>
                 <TextInput
                   value={name}
@@ -1020,6 +1026,7 @@ export default function NewGroupScreen() {
             >
               <Ionicons name="search" size={16} color={theme.color.textMuted} />
               <TextInput
+                ref={ghostInput}
                 value={ghostName}
                 onChangeText={setGhostName}
                 placeholder={t.newGroupForm.personPlaceholder}
@@ -1058,7 +1065,7 @@ export default function NewGroupScreen() {
                 already been added, as the same small inline faces — kept to
                 one dense strip rather than a tall block. Only placeholders are
                 offered as suggestions: a real account joins a group by invite. */}
-            {shownSuggestions.length > 0 || chipGhosts.length > 0 ? (
+            {
               <View style={{ gap: theme.spacing.xs }}>
                 {shownSuggestions.length > 0 ? (
                   <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1083,7 +1090,7 @@ export default function NewGroupScreen() {
                     own edges (the negative margin undoes the card's padding) so a
                     face is cut by the card, never by the padding, and the page
                     itself never scrolls sideways. */}
-                {shownSuggestions.length > 0 ? (
+                {
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -1094,6 +1101,13 @@ export default function NewGroupScreen() {
                       paddingHorizontal: theme.spacing.md,
                     }}
                   >
+                    <SuggestedPersonButton
+                      more
+                      name={t.newGroupForm.addManually}
+                      index={0}
+                      label={t.newGroupForm.addManually}
+                      onPress={() => ghostInput.current?.focus()}
+                    />
                     {shownSuggestions.map(({ person, label, picked }, index) => (
                       <SuggestedPersonButton
                         key={person.key}
@@ -1117,7 +1131,7 @@ export default function NewGroupScreen() {
                       />
                     ))}
                   </ScrollView>
-                ) : null}
+                }
                 {chipGhosts.length > 0 ? (
                   <Row style={{ flexWrap: 'wrap', gap: theme.spacing.xs }}>
                     {chipGhosts.map((ghost, index) => (
@@ -1134,7 +1148,7 @@ export default function NewGroupScreen() {
                   </Row>
                 ) : null}
               </View>
-            ) : null}
+            }
           </FormCard>
 
           {/* What kind of group, as one row of compact pills — the same chip
@@ -1167,8 +1181,34 @@ export default function NewGroupScreen() {
               or a flat never sees them; the budget, left at zero, sets nothing.
               ADR-009: fewer repayments is presentation only — the pairwise
               ledger underneath is untouched. */}
-          <FormCard style={{ paddingVertical: 0 }}>
+          <FormCard style={{ paddingTop: theme.spacing.md - 2, paddingBottom: 0 }}>
+            <FieldLabel icon="settings-outline">
+              {t.newGroupForm.moreOptions}
+              <Text style={{ fontSize: 13, fontWeight: '400', color: muted(theme) }}>
+                {` ${t.newGroupForm.optional}`}
+              </Text>
+            </FieldLabel>
             <DetailRows>
+              <DetailRow
+                icon="cash-outline"
+                label={t.company.currencyRow}
+                value={groupCurrency}
+                onPress={() => setPickingCompanyCur(true)}
+              />
+              {pickingCompanyCur ? (
+                <CurrencySheet
+                  value={groupCurrency}
+                  onPick={(code) => {
+                    setCompanyCur(code);
+                    // The saved trip rate was for the old pair; drop it with the trip currency.
+                    tripCurRef.current = null;
+                    setTripCur(null);
+                    applyTripFx(null);
+                    setPickingCompanyCur(false);
+                  }}
+                  onClose={() => setPickingCompanyCur(false)}
+                />
+              ) : null}
               {type === GroupType.Trip || type === GroupType.Event ? (
                 <View>
                   <DetailRow
@@ -1217,25 +1257,9 @@ export default function NewGroupScreen() {
                 </View>
               ) : null}
 
-              {/* Company: optional currency and default daily bata rate, one row open at a time. */}
+              {/* Company: default daily bata rate and logo, one row open at a time. */}
               {type === GroupType.Company ? (
                 <View>
-                  <DetailRow
-                    icon="cash-outline"
-                    label={t.company.currencyRow}
-                    value={groupCurrency}
-                    onPress={() => setPickingCompanyCur(true)}
-                  />
-                  {pickingCompanyCur ? (
-                    <CurrencySheet
-                      value={groupCurrency}
-                      onPick={(code) => {
-                        setCompanyCur(code);
-                        setPickingCompanyCur(false);
-                      }}
-                      onClose={() => setPickingCompanyCur(false)}
-                    />
-                  ) : null}
                   <DetailRow
                     icon="wallet-outline"
                     label={t.company.defaultRateRow}
@@ -1654,7 +1678,7 @@ function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string 
           {title}
         </Text>
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
           style={{ fontSize: 13, lineHeight: 17, color: headerInk, opacity: 0.85 }}
         >
           {t.newGroupForm.tagline}
@@ -1858,7 +1882,7 @@ function SuggestedPersonButton({
         }}
       >
         {more ? (
-          <Ionicons name="ellipsis-horizontal" size={18} color={accent(theme)} />
+          <Ionicons name="add" size={22} color={accent(theme)} />
         ) : (
           <Text style={{ fontSize: 16, fontWeight: '700', color: tint.ink }}>
             {name.charAt(0).toUpperCase()}
@@ -1885,10 +1909,11 @@ function SuggestedPersonButton({
         )}
       </View>
       <Text
-        numberOfLines={1}
+        numberOfLines={more ? 2 : 1}
         ellipsizeMode="tail"
         style={{
           maxWidth: SUGGEST_WIDTH,
+          textAlign: 'center',
           fontSize: 12,
           lineHeight: 15,
           color: more ? accent(theme) : ink(theme),
