@@ -7562,7 +7562,7 @@ const en: UiStrings = {
     qaAsk: 'Ask owner for budget',
     promoTitle: 'Invite your team',
     promoBody:
-      'Add employees, assign managers, and record salaries, advances and payments in one place.',
+      'Add employees, assign managers, and record salaries, advances and payments — all in one place.',
     hierTitle: 'Team hierarchy',
     viewAll: 'View all',
     ownersControl: '{n} owners · Overall control',

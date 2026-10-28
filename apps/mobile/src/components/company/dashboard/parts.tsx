@@ -56,7 +56,7 @@ export function RolePill({ label }: { label: string }) {
 }
 
 /** Paid / reimbursed money reads green on this screen (the mockup), whatever the app's blue. */
-export const GREEN = '#16A34A';
+export const GREEN = '#15803D';
 const GREEN_SOFT = '#DDF5E5';
 const BLUE = '#2F6FE0';
 const BLUE_SOFT = '#DCEBFF';
@@ -103,10 +103,11 @@ export function TabPills<T extends string>({
             key={o.value}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
+            hitSlop={{ top: 6, bottom: 6 }}
             onPress={() => onChange(o.value)}
             style={{
-              height: 34,
-              paddingHorizontal: 18,
+              height: 36,
+              paddingHorizontal: 16,
               borderRadius: theme.radius.pill,
               justifyContent: 'center',
               backgroundColor: on ? theme.color.buttonPrimary : theme.color.brandSoft,
@@ -183,7 +184,7 @@ export function DashHeader({
   const sky = dark ? ['#26264A', '#3A2D45'] : ['#CFCFF7', '#FBE3D1'];
   return (
     <>
-      <View style={{ paddingTop: insets.top + 6, paddingBottom: 26 }}>
+      <View style={{ paddingTop: insets.top + 6, paddingBottom: 34 }}>
         <View
           pointerEvents="none"
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
@@ -217,7 +218,9 @@ export function DashHeader({
           <Pressable
             disabled={!canSwitch}
             accessibilityRole={canSwitch ? 'button' : undefined}
-            accessibilityLabel={t.company.switchCompany}
+            accessibilityLabel={
+              canSwitch ? `${view.name || t.extras.typeCompany}, ${t.company.switchCompany}` : undefined
+            }
             onPress={() => setSwitching(true)}
             style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}
           >
@@ -248,6 +251,7 @@ export function DashHeader({
             alignItems: 'center',
             gap: 6,
             marginStart: theme.spacing.md + 42,
+            marginEnd: 76,
             marginTop: 2,
           }}
         >
@@ -649,7 +653,7 @@ export function PersonLine({
         </View>
       ) : null}
       {right ? (
-        <Text variant="body" style={{ fontWeight: '800', fontSize: 14, color: rightColor }}>
+        <Text variant="body" numberOfLines={1} style={{ fontWeight: '800', fontSize: 14, color: rightColor, flexShrink: 0 }}>
           {right}
         </Text>
       ) : null}
@@ -695,12 +699,12 @@ export function RecentActivity({
         : b.occurredOn.localeCompare(a.occurredOn),
     )
     .slice(0, limit ?? 20);
-  if (rows.length === 0)
-    return (
-      <Text variant="caption" tone="muted">
-        {t.company.recentNone}
-      </Text>
-    );
+  const none = (
+    <Text variant="caption" tone="muted">
+      {t.company.recentNone}
+    </Text>
+  );
+  if (rows.length === 0 && !header) return none;
   const list = rows.map((e, index) => {
     const owner = view.members.find((m) => m.id === e.memberId);
     const paid = e.kind === 'wage_payment' || e.kind === 'wages' || e.kind === 'reimbursement';
@@ -734,7 +738,7 @@ export function RecentActivity({
   });
   return header ? (
     <SectionCard icon="document-text-outline" title={header.title} onViewAll={header.onViewAll}>
-      {list}
+      {rows.length === 0 ? none : list}
     </SectionCard>
   ) : (
     <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 4 }}>{list}</StandardCard>
