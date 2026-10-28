@@ -18,7 +18,7 @@ import {
   type CurrencyCode,
   type DashboardStats,
 } from '@waves/core';
-import { Sheet, Text, iconSize, useTheme, type TintName } from '@waves/ui';
+import { Sheet, Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves/ui';
 
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
@@ -214,7 +214,11 @@ export function DashHeader({
             paddingHorizontal: theme.spacing.md,
           }}
         >
-          <IconButton icon="arrow-back" label={t.common.back} onPress={() => router.back()} />
+          <IconButton
+            icon={directionalIcon('arrow-back')}
+            label={t.common.back}
+            onPress={() => router.back()}
+          />
           <Pressable
             disabled={!canSwitch}
             accessibilityRole={canSwitch ? 'button' : undefined}
@@ -413,7 +417,11 @@ export function StatTriple({
         caption={fill(t.company.statPending, { n: String(stats.pendingPayments) })}
         trailing={
           onOwes ? (
-            <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.textMuted}
+            />
           ) : undefined
         }
         onPress={onOwes}
@@ -529,7 +537,11 @@ export function InviteBanner({
           {body}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={iconSize.md} color={theme.color.textMuted} />
+      <Ionicons
+        name={directionalIcon('chevron-forward')}
+        size={iconSize.md}
+        color={theme.color.textMuted}
+      />
     </Pressable>
   );
 }
@@ -663,7 +675,11 @@ export function PersonLine({
           {right}
         </Text>
       ) : null}
-      <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
+      <Ionicons
+        name={directionalIcon('chevron-forward')}
+        size={iconSize.sm}
+        color={theme.color.textMuted}
+      />
     </Pressable>
   );
 }
