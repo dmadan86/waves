@@ -62,7 +62,7 @@ BEGIN
 END $$;
 CREATE FUNCTION public.waves_company_tags_set(p_group_id uuid,p_tags jsonb,p_industry text) RETURNS void
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
-DECLARE tags jsonb;
+DECLARE tags jsonb; merged jsonb;
 BEGIN
  PERFORM public.waves_company_actor(p_group_id);
  IF NOT public.is_group_admin(p_group_id) THEN RAISE EXCEPTION 'ADMIN_ONLY' USING ERRCODE='insufficient_privilege'; END IF;
@@ -70,9 +70,12 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'GROUP_DELETED' USING ERRCODE='check_violation'; END IF;
  IF NOT public.waves_company_tags_valid(p_tags) OR (p_industry IS NOT NULL AND p_industry NOT IN ('construction','transport','field_sales')) THEN
   RAISE EXCEPTION 'INVALID_TAGS' USING ERRCODE='check_violation'; END IF;
- IF EXISTS(SELECT 1 FROM jsonb_array_elements(tags) old WHERE NOT EXISTS(SELECT 1 FROM jsonb_array_elements(p_tags) fresh WHERE fresh->>'key'=old->>'key')) THEN
-  RAISE EXCEPTION 'INVALID_TAGS: stored keys must be retained' USING ERRCODE='check_violation'; END IF;
- UPDATE public.groups SET company_tags=p_tags,company_industry=p_industry,updated_at=now() WHERE id=p_group_id;
+ -- Tags are never deleted. A tag another member added since the admin's list was built
+ -- is kept (appended), not refused, so a stale offline replacement still applies.
+ SELECT p_tags||coalesce(jsonb_agg(o),'[]'::jsonb) INTO merged FROM jsonb_array_elements(tags) o
+  WHERE NOT EXISTS(SELECT 1 FROM jsonb_array_elements(p_tags) f WHERE f->>'key'=o->>'key');
+ IF NOT public.waves_company_tags_valid(merged) THEN RAISE EXCEPTION 'INVALID_TAGS' USING ERRCODE='check_violation'; END IF;
+ UPDATE public.groups SET company_tags=merged,company_industry=p_industry,updated_at=now() WHERE id=p_group_id;
 END $$;
 -- Based on stacked phase-3 migration 20261108090000, not the live phase-2 definition.
 -- The phase-3 entry guard already compares category to target without a builtin list.

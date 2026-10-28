@@ -110,7 +110,7 @@ export default function CompanyEntryScreen() {
   const [kmRate, setKmRate] = useState<bigint | null>(null);
   const [fromText, setFromText] = useState('');
   const [toText, setToText] = useState('');
-  const [gstOpen, setGstOpen] = useState(false);
+  const [gstOpen, setGstOpen] = useState(true);
   const [vendor, setVendor] = useState('');
   const [gstin, setGstin] = useState('');
   const [invoiceNo, setInvoiceNo] = useState('');
@@ -157,6 +157,7 @@ export default function CompanyEntryScreen() {
         )
       : [];
   const blocked = flags.find((f) => f.effect === 'block');
+  const needsReceipt = flags.some((f) => f.code === 'RECEIPT');
   const duplicate =
     employee && kind === 'expense' && total > 0n
       ? findDuplicateEntry(
@@ -252,7 +253,7 @@ export default function CompanyEntryScreen() {
     setKmRate(null);
     setFromText('');
     setToText('');
-    setGstOpen(false);
+    setGstOpen(true);
     setVendor('');
     setGstin('');
     setInvoiceNo('');
@@ -286,7 +287,8 @@ export default function CompanyEntryScreen() {
     // No column for quantity yet: it rides in the note ("20 bag · site 2").
     const qtyText =
       kind === 'expense' && unit && qty.trim() && !byKm ? `${qty.trim()} ${unit}` : '';
-    const noteText = [qtyText, note.trim()].filter(Boolean).join(' · ');
+    // The server caps a note at 500 characters; the quantity rides inside that.
+    const noteText = [qtyText, note.trim()].filter(Boolean).join(' · ').slice(0, 500);
     const data: CompanyEntryData = {
       amount: total.toString(),
       occurredOn: date,
@@ -350,7 +352,8 @@ export default function CompanyEntryScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
-          style={{ flex: 1 }}
+          pointerEvents={saved ? 'none' : 'auto'}
+          style={{ flex: 1, opacity: saved ? 0.6 : 1 }}
           contentContainerStyle={{ paddingBottom: theme.spacing.xl }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -574,26 +577,26 @@ export default function CompanyEntryScreen() {
                 />
               ) : null}
 
+              {kind === 'expense' && (category === 'fuel' || category === 'transport') ? (
+                <ChipRow
+                  wrap
+                  onCard
+                  options={[
+                    { value: 'typed', label: t.company.wagesTyped },
+                    { value: 'km', label: t.company.kMileage },
+                  ]}
+                  value={mileage ? 'km' : 'typed'}
+                  onChange={(value) => setMileage(value === 'km')}
+                />
+              ) : null}
               <PillButton
                 label={t.company.moreOpen}
-                icon={moreOpen ? 'chevron-up-outline' : 'chevron-down-outline'}
+                icon={moreOpen || needsReceipt ? 'chevron-up-outline' : 'chevron-down-outline'}
                 chevron={false}
                 onPress={() => setMoreOpen((open) => !open)}
               />
-              {moreOpen ? (
+              {moreOpen || needsReceipt ? (
                 <>
-                  {kind === 'expense' && (category === 'fuel' || category === 'transport') ? (
-                    <ChipRow
-                      wrap
-                      onCard
-                      options={[
-                        { value: 'typed', label: t.company.wagesTyped },
-                        { value: 'km', label: t.company.kMileage },
-                      ]}
-                      value={mileage ? 'km' : 'typed'}
-                      onChange={(value) => setMileage(value === 'km')}
-                    />
-                  ) : null}
                   {showGst ? (
                     <>
                       <PillButton

@@ -129,7 +129,9 @@ describe('company tags', () => {
       await user(2, () => add('cement', 'Replacement'));
       await user(2, () => add('another', 'cEmEnT sAcKs'));
       expect(await tags()).toHaveLength(1);
-      await denied(() => admin(() => set([])));
+      // A stale list that omits a stored tag keeps it: tags are never deleted.
+      await admin(() => set([]));
+      expect(await tags()).toHaveLength(1);
       await denied(() => admin(() => set([{ key: 'cement', label: 'Cement' }], 'agriculture')));
     }));
   it('caps at fifty and validates shape, keys and units', () =>
