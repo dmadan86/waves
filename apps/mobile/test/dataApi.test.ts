@@ -1683,7 +1683,7 @@ describe('avatars', () => {
     expect(h.chains).toHaveLength(2);
     for (const chain of h.chains) {
       expect(chain.table).toBe('profiles');
-      expect(op(chain.ops, 'update')).toEqual([{ avatar_url: null }]);
+      expect(op(chain.ops, 'update')).toEqual([{ avatar_url: '' }]);
     }
   });
 

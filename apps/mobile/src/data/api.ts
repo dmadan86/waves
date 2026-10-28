@@ -547,7 +547,7 @@ export async function removeAvatar(profileId: string, value: string | null): Pro
   if (value && !/^https?:\/\//.test(value)) {
     await removeImage(AVATAR_BUCKET, value);
   }
-  const { error } = await backend.from('profiles').update({ avatar_url: null }).eq('id', profileId);
+  const { error } = await backend.from('profiles').update({ avatar_url: '' }).eq('id', profileId);
   if (error) throw new Error(error.message);
 }
 
