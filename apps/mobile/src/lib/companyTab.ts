@@ -1,3 +1,5 @@
+import { isViewer } from '@/data/types';
+
 /** Returns the viewer's current, available companies in group order. */
 export function viewerCompanyIds(
   groups: readonly {
@@ -12,7 +14,7 @@ export function viewerCompanyIds(
   if (viewerId === null) return [];
   const memberships = new Set(
     members
-      .filter((member) => member.profile_id === viewerId && member.left_at === null)
+      .filter((member) => isViewer(member, viewerId) && member.left_at === null)
       .map((member) => member.group_id),
   );
   return [
