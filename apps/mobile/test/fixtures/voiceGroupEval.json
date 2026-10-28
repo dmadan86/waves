@@ -1,0 +1,4392 @@
+[
+  {
+    "id": "case-001",
+    "transcript": "300 rupees dinner for Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-002",
+    "transcript": "300 rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-003",
+    "transcript": "300 rupees dinner to Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-004",
+    "transcript": "300 rupees dinner on Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-005",
+    "transcript": "300 rupees dinner for Flat Expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "flat"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-006",
+    "transcript": "300 rupees dinner in Flat Expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "flat"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-007",
+    "transcript": "300 rupees dinner to Flat Expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "flat"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-008",
+    "transcript": "300 rupees dinner on Flat Expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "flat"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-009",
+    "transcript": "300 rupees dinner for Office Lunch",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "office"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-010",
+    "transcript": "300 rupees dinner in Office Lunch",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "office"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-011",
+    "transcript": "300 rupees dinner to Office Lunch",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "office"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-012",
+    "transcript": "300 rupees dinner on Office Lunch",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "office"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-013",
+    "transcript": "300 rupees dinner for Weekend Getaway",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "weekend"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-014",
+    "transcript": "300 rupees dinner in Weekend Getaway",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "weekend"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-015",
+    "transcript": "300 rupees dinner to Weekend Getaway",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "weekend"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-016",
+    "transcript": "300 rupees dinner on Weekend Getaway",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "weekend"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-017",
+    "transcript": "300 rupees dinner for Diwali Party",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "diwali"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-018",
+    "transcript": "300 rupees dinner in Diwali Party",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "diwali"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-019",
+    "transcript": "300 rupees dinner to Diwali Party",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "diwali"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-020",
+    "transcript": "300 rupees dinner on Diwali Party",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "diwali"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-021",
+    "transcript": "300 rupees dinner for Ooty Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "ooty"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-022",
+    "transcript": "300 rupees dinner in Ooty Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "ooty"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-023",
+    "transcript": "300 rupees dinner to Ooty Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "ooty"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-024",
+    "transcript": "300 rupees dinner on Ooty Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "ooty"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-025",
+    "transcript": "300 rupees dinner for Goa Express",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-026",
+    "transcript": "300 rupees dinner in Goa Express",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-027",
+    "transcript": "300 rupees dinner to Goa Express",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-028",
+    "transcript": "300 rupees dinner for Goa expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-029",
+    "transcript": "300 rupees dinner in Goa expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-030",
+    "transcript": "300 rupees dinner to Goa expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-031",
+    "transcript": "300 rupees dinner for go a trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-032",
+    "transcript": "300 rupees dinner in go a trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-033",
+    "transcript": "300 rupees dinner to go a trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-034",
+    "transcript": "300 rupees dinner for Goa tip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-035",
+    "transcript": "300 rupees dinner in Goa tip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-036",
+    "transcript": "300 rupees dinner to Goa tip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-037",
+    "transcript": "300 rupees dinner for Goa",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-038",
+    "transcript": "300 rupees dinner in Goa",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-039",
+    "transcript": "300 rupees dinner to Goa",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-040",
+    "transcript": "300 rupees dinner for goa trips",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-041",
+    "transcript": "300 rupees dinner in goa trips",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-042",
+    "transcript": "300 rupees dinner to goa trips",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-043",
+    "transcript": "300 rupees dinner for goa expres",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-044",
+    "transcript": "300 rupees dinner in goa expres",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-045",
+    "transcript": "300 rupees dinner to goa expres",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-046",
+    "transcript": "300 rupees dinner for go a expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-047",
+    "transcript": "300 rupees dinner in go a expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-048",
+    "transcript": "300 rupees dinner to go a expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-049",
+    "transcript": "300 rupees for dinner",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-050",
+    "transcript": "300 rupees for petrol",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "petrol",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-051",
+    "transcript": "300 rupees for the flat rent",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "the flat rent",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-052",
+    "transcript": "300 rupees for tea",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "tea",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-053",
+    "transcript": "300 rupees for lunch",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "lunch",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-054",
+    "transcript": "300 rupees for office supplies",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "office supplies",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-055",
+    "transcript": "300 rupees for party snacks",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "party snacks",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-056",
+    "transcript": "300 rupees for weekend coffee",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "weekend coffee",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-057",
+    "transcript": "300 rupees for trip tickets",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "trip tickets",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-058",
+    "transcript": "300 rupees for groceries",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "groceries",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-059",
+    "transcript": "300 rupees for rent",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "rent",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-060",
+    "transcript": "300 rupees for bus fare",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "bus fare",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-061",
+    "transcript": "300 rupees for breakfast",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "breakfast",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-062",
+    "transcript": "300 rupees for coffee",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "coffee",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-063",
+    "transcript": "300 rupees for taxi",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "taxi",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-064",
+    "transcript": "300 rupees for train tickets",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "train tickets",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-065",
+    "transcript": "300 rupees for medicine",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "medicine",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-066",
+    "transcript": "300 rupees for school books",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "school books",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-067",
+    "transcript": "300 rupees for internet",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "internet",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-068",
+    "transcript": "300 rupees for electricity",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "none"
+      },
+      "description": "electricity",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-069",
+    "transcript": "300 rupees dinner for Goa",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-070",
+    "transcript": "300 rupees dinner in Goa",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-071",
+    "transcript": "300 rupees dinner to Goa",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-072",
+    "transcript": "300 rupees dinner for Goa Express",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-073",
+    "transcript": "300 rupees dinner in Goa Express",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-074",
+    "transcript": "300 rupees dinner to Goa Express",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-075",
+    "transcript": "300 rupees dinner for go a",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-076",
+    "transcript": "300 rupees dinner in go a",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-077",
+    "transcript": "300 rupees dinner to go a",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-078",
+    "transcript": "300 rupees dinner for Goa expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-079",
+    "transcript": "300 rupees dinner in Goa expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-080",
+    "transcript": "300 rupees dinner to Goa expenses",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      },
+      {
+        "id": "goaflat",
+        "name": "Goa Flat"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa", "goaflat"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-081",
+    "transcript": "₹300 dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-082",
+    "transcript": "rs 300 dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-083",
+    "transcript": "300 bucks dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "USD",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-084",
+    "transcript": "3 hundred rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-085",
+    "transcript": "1.5k rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "150000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-086",
+    "transcript": "two fifty rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "25000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-087",
+    "transcript": "तीन सौ रुपये dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-088",
+    "transcript": "३०० rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-089",
+    "transcript": "௩௦௦ rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-090",
+    "transcript": "முந்நூறு rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-091",
+    "transcript": "teen sau rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-092",
+    "transcript": "300 rupaye dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-093",
+    "transcript": "300 rupees dinner",
+    "alternatives": ["300 rupees dinner in Goa Trip"],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-094",
+    "transcript": "300 rupees dinner in Ooty Trip",
+    "alternatives": ["300 rupees dinner in Goa Trip"],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["ooty", "goa"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-095",
+    "transcript": "300 rupees dinner",
+    "alternatives": ["300 rupees dinner for Goa expenses"],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["goa"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-096",
+    "transcript": "300 rupees dinner in Ooty Trip",
+    "alternatives": ["300 rupees dinner for Goa expenses"],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "ambiguous",
+        "candidateIds": ["ooty", "goa"]
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "case-097",
+    "transcript": "Ravi paid 300 rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "ravi",
+      "split": null
+    }
+  },
+  {
+    "id": "case-098",
+    "transcript": "Madan paid 300 rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "madan",
+      "split": null
+    }
+  },
+  {
+    "id": "case-099",
+    "transcript": "Renny paid 300 rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "renny",
+      "split": null
+    }
+  },
+  {
+    "id": "case-100",
+    "transcript": "Arjun paid 300 rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "arjun",
+      "split": null
+    }
+  },
+  {
+    "id": "case-101",
+    "transcript": "Meera paid 300 rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "meera",
+      "split": null
+    }
+  },
+  {
+    "id": "case-102",
+    "transcript": "300 rupees dinner in Goa Trip split between me and Ravi",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "flat",
+        "name": "Flat Expenses"
+      },
+      {
+        "id": "office",
+        "name": "Office Lunch"
+      },
+      {
+        "id": "weekend",
+        "name": "Weekend Getaway"
+      },
+      {
+        "id": "diwali",
+        "name": "Diwali Party"
+      },
+      {
+        "id": "ooty",
+        "name": "Ooty Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": {
+        "mode": "equal",
+        "memberIds": ["priya", "ravi"]
+      }
+    }
+  },
+  {
+    "id": "regression-exact-goa-trip",
+    "transcript": "300 rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "singular",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "plural",
+        "name": "Goa Trips"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "singular"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "regression-exact-goa-trips",
+    "transcript": "300 rupees dinner in Goa Trips",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "singular",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "plural",
+        "name": "Goa Trips"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "plural"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "regression-room-identifier",
+    "transcript": "300 rupees for room 4B in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "room",
+      "payer": "me",
+      "split": null
+    },
+    "expectedItemCount": 1
+  }
+]
