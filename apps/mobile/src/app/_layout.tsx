@@ -10,6 +10,7 @@ import '@/lib/netLogInstall';
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
