@@ -93,6 +93,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.TripPlanItems,
   SyncTable.GroupRecurringExpenses,
   SyncTable.CompanyEntries,
+  SyncTable.CompanyEntryAttachments,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -1581,8 +1582,33 @@ export interface MirrorCompanyEntry extends MirrorRow {
   readonly direction: string | null;
   readonly status: string;
   readonly note: string | null;
+  readonly review_note?: string | null;
   readonly deleted_at: string | null;
   readonly pending?: boolean;
+}
+
+/** A photo on a company entry, as the mirror holds it (read as the caller, so owner/admin only). */
+export interface MirrorCompanyEntryAttachment extends MirrorRow {
+  readonly id: string;
+  readonly entry_id: string;
+  readonly group_id: string;
+  readonly storage_path: string;
+  readonly uploader_member_id: string;
+  readonly preview?: string | null;
+  readonly created_at: string | null;
+  readonly deleted_at: string | null;
+}
+
+/** The live photos on one entry, oldest first. */
+export function materialiseCompanyEntryAttachments(
+  state: MirrorState,
+  options: { readonly entryId: string },
+): MirrorCompanyEntryAttachment[] {
+  return (rowsFor(state, SyncTable.CompanyEntryAttachments) as MirrorCompanyEntryAttachment[])
+    .filter((row) => row.entry_id === options.entryId && row.deleted_at === null)
+    .sort(
+      (a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? '') || a.id.localeCompare(b.id),
+    );
 }
 
 /** The entries of one group the viewer can read, with queued changes on top. */
@@ -1595,6 +1621,8 @@ export function materialiseCompanyEntries(
     readonly currency: string;
     /** The viewer's member id: the author of a queued entry. */
     readonly myMemberId?: string | null;
+    /** The company needs approval: a queued entry reads as submitted, not approved. */
+    readonly approvalsEnabled?: boolean;
   },
 ): MirrorCompanyEntry[] {
   const byId = new Map<string, MirrorCompanyEntry>();
@@ -1634,7 +1662,7 @@ export function materialiseCompanyEntries(
         occurred_on: data.occurredOn ?? mutation.clientCreatedAt.slice(0, 10),
         direction:
           payload.entryKind === 'reimbursement' ? (data.direction ?? 'company_to_employee') : null,
-        status: 'approved',
+        status: options.approvalsEnabled ? 'submitted' : 'approved',
         note: data.note ?? null,
         deleted_at: null,
         created_by: options.myMemberId ?? null,
@@ -1654,6 +1682,10 @@ export function materialiseCompanyEntries(
       if (patch.occurredOn !== undefined) next.occurred_on = patch.occurredOn;
       if (patch.note !== undefined) next.note = patch.note;
       if (patch.direction !== undefined) next.direction = patch.direction;
+      if (options.approvalsEnabled && next.status !== 'submitted') {
+        next.status = 'submitted';
+        next.review_note = null;
+      }
       if (next.calc_mode === 'days_rate' && next.days && next.rate_minor) {
         const computed = allowanceAmount(String(next.days), BigInt(String(next.rate_minor)));
         if (computed !== null) next.amount = computed.toString();
@@ -1665,10 +1697,15 @@ export function materialiseCompanyEntries(
       if (!existing) continue;
       byId.set(entryId, { ...existing, deleted_at: mutation.clientCreatedAt, pending: true });
     } else if (mutation.kind === 'company_entry.transition') {
-      const { entryId, to } = mutation.payload as unknown as CompanyEntryTransitionPayload;
+      const { entryId, to, note } = mutation.payload as unknown as CompanyEntryTransitionPayload;
       const existing = byId.get(entryId);
       if (!existing || existing.status !== 'submitted') continue;
-      byId.set(entryId, { ...existing, status: to, pending: true });
+      byId.set(entryId, {
+        ...existing,
+        status: to,
+        review_note: note ?? null,
+        pending: true,
+      });
     }
   }
 

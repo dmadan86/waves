@@ -103,47 +103,93 @@ Pick **Company** in the new-group form (the creator is admin). The company home 
 one card: for an admin "Invite your employees..." with an Invite button; for an employee
 "Add your fuel, travel and bata here. Only you and the company admin can see your entries."
 with an Add entry button. Employees joining by the invite link land on the company home, which
-shows that card until their first entry. Not done yet: a company-wide default bata rate and
-currency on the create screen (the rate is per employee, set on the employee's statement; the
-currency is the group currency chosen in the form), and landing straight in Add entry from the
-join link.
+shows that card until their first entry. Phase 2 adds a company-wide default bata rate and a
+currency row on the create screen (optional, one row open at a time; the rate is sent behind the
+create as `company.settings_set`), and employees opening the invite link land straight in Add
+entry with a one-line privacy explainer (Back goes to the company home).
 
-## Approvals
+## Phase 2 (server)
 
-Optional per company and OFF by default. Phase 1 ships the `status` column and the admin
-transition RPC (`submitted` -> `approved` / `rejected`), but no company setting and no UI:
-every entry is created `approved`. Turning approvals on is a Phase 2 setting plus a review
-screen.
+Migration `20261105090000_company_expenses_2` adds company defaults, optional approvals,
+private entry photos and independent company storage accounting. Approvals default off:
+new entries are approved; when on, every new entry is submitted, including admin entries.
+Ledger/evidence edits resubmit and clear review metadata. Reviews require the current
+entry version; rejection also requires a nonblank note (500 characters maximum).
+Existing approved history survives a settings toggle. Member rate overrides the company
+rate; zero is valid. Existing approved/reimbursed balance math is unchanged.
 
-## Attachments and company plan (designed, NOT built in this PR)
+`company_entry_attachments` is pull-only, including tombstones, under caller RLS:
+the entry's employee and active company admins can read. Only its uploader/admin can
+remove a photo. Attach/remove RPCs lock the entry and increment its version. Void,
+group deletion and privileged entry deletion release originals and thumbnails through
+the durable R2 deletion queue. Up to ten live originals; previews are protected image
+data URIs up to 4 KB. Keys are immutable and permanently retired after use.
 
-Receipt photos on entries are a follow-up PR, because they need their own table, RPCs and a
-`r2-sign` branch. Design, matching the private-attachments model (`docs/private-attachments.md`):
+R2 bucket `company-entry-images` accepts `<entryId>/<attachmentId>/<randomUUID>.jpg`
+and `<original>.thumb.jpg`. All signing actions require `subjectId: entryId`; reads
+resolve the attachment as caller, require a live entry/attachment and committed object,
+and use 60-second URLs. PUT uses `if-none-match: *` (send all returned headers).
+No Supabase fallback, public sharing, generic image normalization or receipt-parse path.
+Company receipts/album uploads through the shared buckets are refused.
 
-- `company_entry_attachments` (entry_id, group_id, uploader_member_id, storage_path, deleted_at,
-  updated_seq), SELECT policy identical to `company_entries` (admin or the entry's employee);
-  writes only through SECURITY DEFINER RPCs; synced as a pull-only table read as the caller.
-- A restricted `r2-sign` branch that authorises by subject + path (the server confirms a visible
-  row references the key), 60 s URLs, no dual-read fallback, no share links, never embedded in
-  the text statement or `export-data`.
-- Storage used by company entries is counted against the company, not the uploader.
-- Company plan hook (no billing now): a service-role-only `company_plans` table (group_id,
-  plan, owner_profile_id, storage_quota_bytes) and one `waves_company_plan(group)` reader. One
-  purchase per company would cover its members' activity inside that company only. Today no
-  paywall or ad gating changes inside company groups; current behaviour is untouched.
+Company bytes (including pending uploads/thumbnails) never consume personal quota or
+pending slots. `company_plans` is service-only, backfilled/provisioned on company creation;
+a null quota is unbounded. Plan reads require membership; usage reads require admin.
+Recount retains company attribution. Unattached committed uploads expire after a day;
+queued deletions wait beyond PUT expiry. Account deletion retains company evidence.
+
+Mobile/server contract (amounts and rates are decimal strings in mutation payloads):
+
+- `company.settings_set`: `{defaultDailyRateMinor: string | null, approvalsEnabled: boolean}`.
+  Both fields are required; null clears the rate.
+- `company_entry.transition`: `{entryId, to: 'approved' | 'rejected', note?: string | null,
+  expectedVersion: number}`. Version is mandatory for review.
+- `group.create`: optional `companyDefaultDailyRateMinor: string | null`, passed atomically
+  to the trailing `p_company_default_daily_rate_minor bigint DEFAULT NULL` argument.
+- Direct RPCs: `waves_attach_company_entry_image(p_entry_id uuid, p_storage_path text,
+  p_attachment_id uuid, p_preview text DEFAULT NULL) RETURNS uuid`;
+  `waves_remove_company_entry_image(p_attachment_id uuid) RETURNS void`;
+  `waves_company_settings_set(p_group_id uuid, p_default_daily_rate_minor bigint,
+  p_approvals_enabled boolean) RETURNS void`;
+  `waves_company_entry_transition(p_entry_id uuid, p_to text, p_note text DEFAULT NULL,
+  p_expected_version integer DEFAULT NULL) RETURNS void` (null version is refused).
+- Readers: `waves_can_read_company_entry(p_entry_id uuid) RETURNS boolean`,
+  `waves_company_plan(p_group_id uuid) RETURNS TABLE(plan text, storage_quota_bytes bigint)`,
+  `waves_company_storage_usage(p_group_id uuid) RETURNS TABLE(used_bytes bigint,
+  reserved_bytes bigint, quota_bytes bigint)`.
+- Sync groups add `company_default_daily_rate_minor`, `company_approvals_enabled`; entries
+  add `review_note`, `reviewed_by`, `reviewed_at`. Attachments sync `id`, `entry_id`,
+  `group_id`, `uploader_member_id`, `storage_path`, `preview`, `created_at`, `updated_at`,
+  `deleted_at`, `updated_seq`. `company_plans` never syncs.
+
+`export-data` JSON adds caller-visible `companyEntries`; CSV adds company ledger rows
+and category/direction/review-note columns. Neither format includes attachment keys,
+previews, bytes or signed URLs. Failed reads fail the export. Company PDF rendering and
+mobile authorization-cache purging remain owned by the mobile implementation.
+
+## Phase 2 (mobile)
+
+- Photos: add-entry stages photos (camera or library, EXIF-stripped re-encode), then after the
+  entry syncs uploads each to `company-entry-images` and attaches it. The entry screen
+  (`company-entry-view`) shows, adds and removes photos; URLs are signed on demand (60 s).
+- Approvals: admin switch on the company home; submitted entries are listed for the admin,
+  who approves or rejects (note required) on the entry screen. Statements list unapproved
+  entries apart with their status and review note; only approved ones reach the balance.
+- Export: the group export screen shows a company export for Company groups. An employee
+  exports their own statement; an admin the summary with every employee and entry. PDF and
+  Excel are built from the same model (`data/companyExport.ts`); no photo, key or URL is in
+  either, and Excel text cells that start with `= + - @` are stored as text.
+- Strings: `company.*` in English, Tamil, Hindi and Arabic.
 
 ## Deferred (not in Phase 1)
 
-- Approvals setting and review UI; approval notifications; claim-to-payment allocation
-  (`reimbursed` is never set yet).
-- PDF / Excel statement export through the group export screen (Phase 1 shares plain text);
-  `export-data` carries no company entries.
+- Approval notifications and claim-to-payment allocation (`reimbursed` is never set yet).
 - Admin-only invitations and identity-bound invites for company groups (today any member
   can mint an invite; an invitee still sees only their own entries).
 - Realtime for entries (sync polling and manual refresh only), push for entries.
 - A server-side "revoke on role change" purge of cached company rows on a phone; until the
   next pull a demoted admin's phone still holds what it downloaded.
-- Web authoring, the public API / agent tools for company groups, attachments and receipts,
+- Web authoring, the public API / agent tools for company groups, receipt OCR,
   multi-currency, recurring wages, payroll compliance (PF / ESI / TDS, payslips).
 - Business-plan billing.
 

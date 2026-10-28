@@ -9,11 +9,12 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { companySummary, format, formatParts, money, type CurrencyCode } from '@waves/core';
-import { Button, Screen, Text, iconSize, useTheme } from '@waves/ui';
+import { Button, Screen, Text, Toggle, iconSize, useTheme } from '@waves/ui';
 
 import {
   CompanyPeriodPills,
   CompanyStatementView,
+  kindLabel,
 } from '@/components/company/CompanyStatementView';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import {
@@ -24,7 +25,7 @@ import {
   StandardCard,
   StatCard,
 } from '@/components/standard';
-import { useCompanyEntries } from '@/data/companyEntries';
+import { useCompanyEntries, useSetCompanySettings } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -37,11 +38,13 @@ export function CompanyHome({ groupId }: { groupId: string }) {
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const view = useCompanyEntries(groupId);
+  const settings = useSetCompanySettings(groupId);
   const [period, setPeriod] = useState<CompanyPeriod>('month');
   const currency = view.currency as CurrencyCode;
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
 
   const live = view.members.filter((member) => !member.left_at);
+  const awaiting = view.entries.filter((entry) => !entry.deleted && entry.status === 'submitted');
   const summary = useMemo(() => {
     const { from, to } = periodRange(period, todayIso());
     return companySummary(view.entries, { from, to });
@@ -125,6 +128,28 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                     : undefined
                 }
               />
+              {awaiting.length > 0 ? (
+                <View style={{ gap: theme.spacing.md }}>
+                  <SectionHeader title={t.company.pendingApprovals} />
+                  <StandardCard>
+                    {awaiting.map((entry, index) => {
+                      const owner = live.find((member) => member.id === entry.memberId);
+                      return (
+                        <ListRow
+                          key={entry.id}
+                          title={`${owner ? displayName(owner, null, null, t.misc.someone) : t.misc.someone} · ${kindLabel(t, entry)}`}
+                          subtitle={t.company.awaiting}
+                          amount={fmt(entry.amount)}
+                          onPress={() =>
+                            router.push(`/group/${groupId}/company-entry-view?entry=${entry.id}`)
+                          }
+                          divider={index < awaiting.length - 1}
+                        />
+                      );
+                    })}
+                  </StandardCard>
+                </View>
+              ) : null}
               <StandardCard>
                 {[
                   [t.company.expenses, summary.totals.expenses],
@@ -188,6 +213,31 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                     );
                   })}
                   <ListRow
+                    title={t.company.approvalsTitle}
+                    subtitle={t.company.approvalsHint}
+                    subtitleLines={3}
+                    trailing={
+                      <Toggle
+                        value={view.approvalsEnabled}
+                        onValueChange={(next) => settings.mutate({ approvalsEnabled: next })}
+                        accessibilityLabel={t.company.approvalsTitle}
+                      />
+                    }
+                    divider
+                  />
+                  <ListRow
+                    title={t.company.exportAction}
+                    leading={
+                      <Ionicons
+                        name="download-outline"
+                        size={iconSize.md}
+                        color={theme.color.brand}
+                      />
+                    }
+                    onPress={() => router.push(`/group/${groupId}/export`)}
+                    divider
+                  />
+                  <ListRow
                     title={t.company.invite}
                     leading={
                       <Ionicons
@@ -207,7 +257,19 @@ export function CompanyHome({ groupId }: { groupId: string }) {
               </View>
             </>
           ) : (
-            <CompanyStatementView view={view} member={view.me} period={period} groupId={groupId} />
+            <>
+              <CompanyStatementView
+                view={view}
+                member={view.me}
+                period={period}
+                groupId={groupId}
+              />
+              <Button
+                label={t.company.exportAction}
+                variant="secondary"
+                onPress={() => router.push(`/group/${groupId}/export`)}
+              />
+            </>
           )}
         </ScenicBody>
       </ScrollView>

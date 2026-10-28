@@ -66,6 +66,7 @@ export enum MutationKind {
   CompanyEntryVoid = 'company_entry.void',
   CompanyEntryTransition = 'company_entry.transition',
   CompanyMemberRateSet = 'company_member.rate_set',
+  CompanySettingsSet = 'company.settings_set',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -442,6 +443,13 @@ export interface CompanyEntryVoidPayload {
 export interface CompanyEntryTransitionPayload {
   readonly entryId: string;
   readonly to: 'approved' | 'rejected';
+  readonly note?: string | null;
+  readonly expectedVersion: number;
+}
+
+export interface CompanySettingsSetPayload {
+  readonly defaultDailyRateMinor: string | null;
+  readonly approvalsEnabled: boolean;
 }
 
 /** A null rate clears the employee's default daily rate. Admin only. */
@@ -637,6 +645,7 @@ export enum SyncTable {
   /** Group-scoped, read+write, PRIVATE per employee by RLS: an employee is only
    * ever pulled their own rows, an admin all of them. */
   CompanyEntries = 'company_entries',
+  CompanyEntryAttachments = 'company_entry_attachments',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',

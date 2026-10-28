@@ -214,6 +214,7 @@ model Profile {
   deviceSessions            DeviceSession[]
   ghostMerges               GhostMerge[]
   storageObjects            StorageObject[]
+  ownedCompanyPlans         CompanyPlan[]
   voiceSttUsage             VoiceSttUsage[]
   voiceAgentUsage           VoiceAgentUsage[]
   voiceAgentFollowupTurns   VoiceAgentFollowupTurns[]
@@ -258,6 +259,11 @@ model Group {
   /// as a QR. Written only by waves_ensure/reset_group_join_token; a member-only
   /// bearer credential (the group row is RLS-scoped).
   joinToken              String?   @map("join_token")
+  companyDefaultDailyRateMinor BigInt? @map("company_default_daily_rate_minor")
+  companyApprovalsEnabled Boolean @default(false) @map("company_approvals_enabled")
+  companyPlan CompanyPlan?
+  companyImageKeys CompanyImageKey[]
+  companyStorageObjects StorageObject[] @relation("CompanyStorage")
   type                   GroupType @default(other)
   /// ISO-3166 alpha-2 — where this group settles, which is not always where its
   /// members live. A Goa trip run from Dubai settles in rupees over UPI, and
@@ -452,7 +458,9 @@ model GroupMember {
   itemClaims         ReceiptItemClaim[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
-  companyEntries     CompanyEntry[]
+  companyEntries     CompanyEntry[] @relation("CompanyEntryMember")
+  reviewedCompanyEntries CompanyEntry[] @relation("CompanyReviewer")
+  companyEntryAttachments CompanyEntryAttachment[]
   tripPhotos         TripPhoto[]
   settlementProofs   SettlementProof[]
   expenseAttachments ExpenseAttachment[]
@@ -487,6 +495,7 @@ model GroupMember {
   @@index([importBatchId])
   @@index([profileId])
   @@index([removedBy])
+  @@unique([id, groupId], map: "company_members_id_group_unique")
   @@map("group_members")
   @@schema("public")
 }
@@ -2801,7 +2810,9 @@ model VoiceAttempt {
 model StorageObject {
   logicalBucket  String   @map("logical_bucket")
   path           String
-  ownerProfileId String   @map("owner_profile_id") @db.Uuid
+  ownerProfileId String?  @map("owner_profile_id") @db.Uuid
+  companyGroupId String? @map("company_group_id") @db.Uuid
+  companyGroup Group? @relation("CompanyStorage", fields: [companyGroupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   groupId        String?  @map("group_id") @db.Uuid
   bytes          BigInt
   contentType    String   @default("image/webp") @map("content_type")
@@ -2810,12 +2821,13 @@ model StorageObject {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  owner Profile @relation(fields: [ownerProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  owner Profile? @relation(fields: [ownerProfileId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   group Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([logicalBucket, path])
   @@index([ownerProfileId, counted], map: "storage_objects_owner_counted_idx")
   @@index([groupId])
+  @@index([companyGroupId], map: "storage_objects_company_idx")
   @@map("storage_objects")
   @@schema("public")
 }
@@ -3033,6 +3045,11 @@ model CompanyEntry {
   occurredOn   DateTime     @map("occurred_on") @db.Date
   direction    String?
   status       String       @default("approved")
+  reviewNote   String? @map("review_note")
+  reviewedBy   String? @map("reviewed_by") @db.Uuid
+  reviewedAt   DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewer GroupMember? @relation("CompanyReviewer", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attachments CompanyEntryAttachment[]
   note         String?
   voidReason   String?      @map("void_reason")
   createdBy    String       @map("created_by") @db.Uuid
@@ -3043,10 +3060,49 @@ model CompanyEntry {
   deletedAt    DateTime?    @map("deleted_at") @db.Timestamptz(6)
   updatedSeq   BigInt       @default(0) @map("updated_seq")
   group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  member       GroupMember  @relation(fields: [memberId], references: [id], onDelete: NoAction)
+  member       GroupMember  @relation("CompanyEntryMember", fields: [memberId], references: [id], onDelete: NoAction)
   @@index([groupId, updatedSeq])
   @@index([groupId, memberId, occurredOn, id])
   @@index([memberId])
+  @@unique([id, groupId], map: "company_entries_id_group_unique")
   @@map("company_entries")
   @@schema("public")
+}
+
+model CompanyEntryAttachment {
+ id String @id @db.Uuid
+ entryId String @map("entry_id") @db.Uuid
+ groupId String @map("group_id") @db.Uuid
+ uploaderMemberId String @map("uploader_member_id") @db.Uuid
+ storagePath String @unique @map("storage_path")
+ preview String?
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+ updatedSeq BigInt @default(0) @map("updated_seq")
+ entry CompanyEntry @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+ uploader GroupMember @relation(fields: [uploaderMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+ @@index([groupId,updatedSeq], map: "company_entry_attachments_group_seq_idx")
+ @@index([entryId,deletedAt], map: "company_entry_attachments_entry_deleted_idx")
+ @@map("company_entry_attachments")
+ @@schema("public")
+}
+model CompanyPlan {
+ groupId String @id @map("group_id") @db.Uuid
+ plan String @default("free")
+ ownerProfileId String? @map("owner_profile_id") @db.Uuid
+ storageQuotaBytes BigInt? @map("storage_quota_bytes")
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+ group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+ owner Profile? @relation(fields: [ownerProfileId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+ @@map("company_plans")
+ @@schema("public")
+}
+model CompanyImageKey {
+ path String @id
+ groupId String? @map("group_id") @db.Uuid
+ group Group? @relation(fields: [groupId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+ @@map("company_image_keys")
+ @@schema("public")
 }

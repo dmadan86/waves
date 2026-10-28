@@ -47,6 +47,18 @@ const ENTRY = '00000000-0000-4000-8000-0000000000aa';
 const data = { amount: '100', occurredOn: '2026-11-04' };
 const cases = [
   [
+    'company.settings_set',
+    { defaultDailyRateMinor: '0', approvalsEnabled: true },
+    'waves_company_settings_set',
+    { p_group_id: GROUP_ID, p_default_daily_rate_minor: '0', p_approvals_enabled: true },
+  ],
+  [
+    'company.settings_set',
+    { defaultDailyRateMinor: null, approvalsEnabled: false },
+    'waves_company_settings_set',
+    { p_group_id: GROUP_ID, p_default_daily_rate_minor: null, p_approvals_enabled: false },
+  ],
+  [
     'company_entry.create',
     { entryId: ENTRY, memberId: MEMBER_ID, entryKind: 'expense', data },
     'waves_company_entry_create',
@@ -72,9 +84,9 @@ const cases = [
   ],
   [
     'company_entry.transition',
-    { entryId: ENTRY, to: 'approved' },
+    { entryId: ENTRY, to: 'approved', note: 'Checked', expectedVersion: 3 },
     'waves_company_entry_transition',
-    { p_entry_id: ENTRY, p_to: 'approved' },
+    { p_entry_id: ENTRY, p_to: 'approved', p_note: 'Checked', p_expected_version: 3 },
   ],
   [
     'company_member.rate_set',
@@ -106,6 +118,10 @@ describe('company sync mutations', () => {
     ['company_entry.update', { entryId: ENTRY, patch: { status: 'approved' } }],
     ['company_entry.void', { entryId: ENTRY, reason: 5 }],
     ['company_entry.transition', { entryId: ENTRY }],
+    ['company_entry.transition', { entryId: ENTRY, to: 'approved' }],
+    ['company_entry.transition', { entryId: ENTRY, to: 'approved', expectedVersion: '2' }],
+    ['company.settings_set', { defaultDailyRateMinor: '100' }],
+    ['company.settings_set', { defaultDailyRateMinor: 100, approvalsEnabled: true }],
     ['company_member.rate_set', { memberId: MEMBER_ID, dailyRateMinor: 40000 }],
   ])('rejects malformed %s before RPC', async (kind, payload) => {
     const scoped = caller();
@@ -115,4 +131,18 @@ describe('company sync mutations', () => {
     ).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
     expect(scoped.rpc).not.toHaveBeenCalled();
   });
+});
+
+it('returns stale reviews as deterministic conflicts', async () => {
+  const scoped = caller();
+  scoped.rpc.mockResolvedValueOnce({
+    data: null,
+    error: { code: '23514', message: 'VERSION_CONFLICT: entry changed; refresh before review' },
+  } as never);
+  const session = new SyncSession(scoped.client, service().client, OWNER);
+  expect(
+    await session.apply(
+      mutation('company_entry.transition', { entryId: ENTRY, to: 'approved', expectedVersion: 1 }),
+    ),
+  ).toMatchObject({ status: 'rejected', code: 'VERSION_CONFLICT' });
 });
