@@ -261,6 +261,8 @@ model Group {
   /// bearer credential (the group row is RLS-scoped).
   joinToken              String?   @map("join_token")
   companyDefaultDailyRateMinor BigInt? @map("company_default_daily_rate_minor")
+  companyTags Json @default("[]") @map("company_tags")
+  companyIndustry String? @map("company_industry")
   companyPolicies Json @default("{\"version\":1,\"rules\":[]}") @map("company_policies")
   companyPolicyRevision Int @default(0) @map("company_policy_revision")
   companyDefaultMileageRateMinor BigInt? @map("company_default_mileage_rate_minor")

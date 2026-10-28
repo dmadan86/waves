@@ -33,9 +33,9 @@ describe('companyEntryFromRefusedExpense', () => {
       data: { amount: '50000', category: 'fuel', occurredOn: '2026-10-28', note: 'Diesel' },
     });
   });
-  it('drops categories the company does not know', () => {
+  it('preserves custom tag keys', () => {
     const out = companyEntryFromRefusedExpense(expense({ category: 'sushi' }), 'INR')!;
-    expect((out.payload as { data: { category: unknown } }).data.category).toBeNull();
+    expect((out.payload as { data: { category: unknown } }).data.category).toBe('sushi');
   });
   it('leaves the unclear cases for a person', () => {
     expect(companyEntryFromRefusedExpense(expense(), 'USD')).toBeNull();
@@ -46,4 +46,9 @@ describe('companyEntryFromRefusedExpense', () => {
       companyEntryFromRefusedExpense({ ...expense(), kind: MutationKind.ExpenseUpdate }, 'INR'),
     ).toBeNull();
   });
+});
+
+it('drops malformed company tag keys during refusal conversion', () => {
+  const out = companyEntryFromRefusedExpense(expense({ category: 'Bad key!' }), 'INR')!;
+  expect((out.payload as { data: { category: unknown } }).data.category).toBeNull();
 });

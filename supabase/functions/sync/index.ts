@@ -90,6 +90,8 @@ type MutationKind =
   | 'company_entry.transition'
   | 'company_member.rate_set'
   | 'company.settings_set'
+  | 'company_tag.add'
+  | 'company_tags.set'
   | 'company.policies_set'
   | 'company.mileage_rate_set'
   | 'company.reimburse'
@@ -311,7 +313,7 @@ const GROUP_TABLES = [
   ['group_recurring_expenses', '*'],
   // Company employees receive only their own entries, including tombstones.
   // Phase 3 fields travel through these wildcard projections under caller RLS:
-  // groups: company_policies, company_policy_revision, company_default_mileage_rate_minor;
+  // groups: company_tags, company_industry, company_policies, company_policy_revision, company_default_mileage_rate_minor;
   // group_members: mileage_rate_minor; company_entries: vendor, gstin, invoice_no,
   // gst_rate_bps, gst_amount_minor, distance_km, from_text, to_text,
   // reimbursement_id, reimbursement_details (plus existing rate_minor/calc_mode).
@@ -882,6 +884,34 @@ export class SyncSession {
           ),
           p_approvals_enabled: mutation.payload.approvalsEnabled,
         });
+      case 'company_tag.add': {
+        const tag = companyTag(mutation.payload, false);
+        return await this.rpcAsCaller('waves_company_tag_add', {
+          p_group_id: mutation.groupId,
+          p_key: tag.key,
+          p_label: tag.label,
+          p_unit: tag.unit ?? null,
+        });
+      }
+      case 'company_tags.set': {
+        const tags = mutation.payload.tags;
+        const industry = mutation.payload.industry;
+        if (
+          !Array.isArray(tags) ||
+          tags.length > 50 ||
+          (industry !== null &&
+            !['construction', 'transport', 'field_sales'].includes(industry as string))
+        )
+          companyInvalid('tags');
+        const validated = (tags as unknown[]).map((tag) => companyTag(tag, true));
+        if (new Set(validated.map((tag) => tag.key)).size !== validated.length)
+          companyInvalid('tags');
+        return await this.rpcAsCaller('waves_company_tags_set', {
+          p_group_id: mutation.groupId,
+          p_tags: validated,
+          p_industry: industry,
+        });
+      }
       case 'company.policies_set':
         return await this.rpcAsCaller('waves_company_policies_set', {
           p_group_id: mutation.groupId,
@@ -2316,9 +2346,8 @@ function companyPolicies(value: unknown): unknown {
         companyInvalid('policies');
     } else if (rule.type === 'period_limit') {
       if (
-        !['fuel', 'transport', 'travel', 'food', 'office', 'other', 'allowance'].includes(
-          rule.target,
-        ) ||
+        typeof rule.target !== 'string' ||
+        !COMPANY_TAG_KEY_RE.test(rule.target) ||
         !['day', 'month'].includes(rule.period) ||
         Object.keys(rule).some(
           (k) => !['id', 'type', 'target', 'period', 'limitMinor', 'effect'].includes(k),
@@ -2328,4 +2357,30 @@ function companyPolicies(value: unknown): unknown {
     } else companyInvalid('policies');
   }
   return value;
+}
+
+const COMPANY_TAG_KEY_RE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+function companyTag(
+  value: unknown,
+  stored: boolean,
+): Record<string, unknown> & { key: string; label: string; unit?: string } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('tags');
+  const t = value as Record<string, unknown>;
+  const allowed = stored ? ['key', 'label', 'unit', 'hidden', 'addedBy'] : ['key', 'label', 'unit'];
+  if (
+    Object.keys(t).some((key) => !allowed.includes(key)) ||
+    typeof t.key !== 'string' ||
+    !COMPANY_TAG_KEY_RE.test(t.key) ||
+    typeof t.label !== 'string' ||
+    !t.label.trim().length ||
+    [...t.label].length > 40 ||
+    (t.unit !== undefined &&
+      (typeof t.unit !== 'string' || !t.unit.length || [...t.unit].length > 16)) ||
+    (t.hidden !== undefined && typeof t.hidden !== 'boolean') ||
+    (t.addedBy !== undefined &&
+      (typeof t.addedBy !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.addedBy)))
+  )
+    companyInvalid('tags');
+  return t as Record<string, unknown> & { key: string; label: string; unit?: string };
 }

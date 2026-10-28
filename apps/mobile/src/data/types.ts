@@ -128,6 +128,9 @@ export interface GroupRow {
   /** Company groups: the admin's policy rules (see `CompanyPolicies` in @waves/core). */
   company_policies?: unknown;
   company_policy_revision?: number;
+  /** Company groups: the shared expense tags (see `CompanyTag` in @waves/core). */
+  company_tags?: unknown;
+  company_industry?: string | null;
 }
 
 export interface MemberRow {

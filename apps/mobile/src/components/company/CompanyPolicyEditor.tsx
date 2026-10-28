@@ -11,7 +11,6 @@ import { randomUUID } from 'expo-crypto';
 import { Pressable } from 'react-native';
 
 import {
-  COMPANY_EXPENSE_CATEGORIES,
   format,
   formatMinorInput,
   money,
@@ -26,6 +25,7 @@ import { ListRow } from '@/components/standard';
 import { useSetCompanyPolicies, type CompanyView } from '@/data/companyEntries';
 import { fill, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
+import { useCompanyTags } from '@/data/companyTags';
 import { friendlyError } from '@/lib/errors';
 
 type Draft = { kind: 'receipt' } | { kind: 'limit'; target: string; period: 'day' | 'month' };
@@ -39,20 +39,10 @@ export function CompanyPolicyEditor({ groupId, view }: { groupId: string; view: 
   const [error, setError] = useState<string | null>(null);
   const currency = view.currency as CurrencyCode;
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
+  const tags = useCompanyTags(groupId, view);
+  const tagLabel = tags.label;
   const targetLabel = (target: string): string =>
-    target === 'allowance'
-      ? t.company.bata
-      : (t.company[
-          (
-            {
-              fuel: 'catFuel',
-              transport: 'catTransport',
-              travel: 'catTravel',
-              food: 'catFood',
-              office: 'catOffice',
-            } as const
-          )[target as 'fuel'] ?? 'catOther'
-        ] as string);
+    target === 'allowance' ? t.company.bata : tagLabel(target);
 
   const commit = (rules: readonly CompanyPolicyRule[]): void => {
     setError(null);
@@ -69,7 +59,7 @@ export function CompanyPolicyEditor({ groupId, view }: { groupId: string; view: 
       title: t.company.formCategory,
       options: [
         { id: 'allowance', label: t.company.bata },
-        ...COMPANY_EXPENSE_CATEGORIES.map((c) => ({ id: c as string, label: targetLabel(c) })),
+        ...tags.ranked.map((tag) => ({ id: tag.key, label: tag.label })),
       ],
     });
     if (!target) return;

@@ -21,7 +21,7 @@ import { Pressable, View } from 'react-native';
 import { resolveCategory, type CategoryMeta, type ResolvedCategory } from '@waves/core';
 import { Row, Sheet, Text, useTheme } from '@waves/ui';
 
-import { CategoryChoices, useLabelledCategoryCatalog } from '@/components/Category';
+import { CategoryChoices, useRankedCategoryCatalog } from '@/components/Category';
 import { useStrings } from '@/i18n';
 
 /** How many of the catalog's own entries get their own circle before "More". */
@@ -41,7 +41,7 @@ export function QuickCategoryRow({
   const soft = dark ? theme.color.surfaceMuted : '#F3F0FE';
   const accent = dark ? theme.color.brand : '#6A45E8';
   const { t } = useStrings();
-  const { visible } = useLabelledCategoryCatalog();
+  const { visible } = useRankedCategoryCatalog();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   // The live catalog first — that is where a renamed or re-tinted custom tag

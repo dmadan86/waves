@@ -17,6 +17,7 @@ import { Button, Callout, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { CompanyPeriodPills, kindLabel } from '@/components/company/CompanyStatementView';
 import { PlainHeader, SectionHeader, SegmentedPills, StandardCard } from '@/components/standard';
+import { useCompanyTags } from '@/data/companyTags';
 import { useCompanyEntries } from '@/data/companyEntries';
 import {
   buildCompanyExport,
@@ -45,6 +46,7 @@ export function CompanyExport({ groupId }: { groupId: string }) {
   const { t, locale } = useStrings();
   const adGate = useAdGate();
   const view = useCompanyEntries(groupId);
+  const tagLabel = useCompanyTags(groupId, view).label;
   const [format, setFormat] = useState<Format>('pdf');
   const [period, setPeriod] = useState<CompanyPeriod>('month');
   const [busy, setBusy] = useState(false);
@@ -93,19 +95,8 @@ export function CompanyExport({ groupId }: { groupId: string }) {
         .join('; '),
     none: c.none,
     footer: t.groupExport.footer,
-    kind: (entry) => kindLabel(t, entry),
-    category: (key) =>
-      c[
-        (
-          {
-            fuel: 'catFuel',
-            transport: 'catTransport',
-            travel: 'catTravel',
-            food: 'catFood',
-            office: 'catOffice',
-          } as const
-        )[key as 'fuel'] ?? 'catOther'
-      ],
+    kind: (entry) => kindLabel(t, entry, tagLabel),
+    category: tagLabel,
     status: (entry) =>
       entry.status === 'submitted'
         ? c.awaiting

@@ -4,3 +4,5 @@ export * from './icons';
 export * from './markets';
 export * from './merchant';
 export * from './tagIcons';
+
+export * from './rank';

@@ -626,6 +626,8 @@ export function materialiseMembers(
 }
 
 export interface MirrorGroup extends MirrorRow {
+  readonly company_tags?: readonly import('../company/tags').CompanyTag[];
+  readonly company_industry?: import('../company/tags').CompanyIndustry | null;
   readonly id: string;
   readonly name: string | null;
   /** What the group is for, in the maker's own words — or NULL. Optional here
@@ -693,6 +695,37 @@ function buildGroups(state: MirrorState, queue: readonly QueuedMutation[]): Mirr
         pending: true,
       });
       continue;
+    }
+
+    if (mutation.kind === 'company_tag.add' || mutation.kind === 'company_tags.set') {
+      const existing = byId.get(mutation.groupId);
+      if (existing) {
+        const stored = existing.company_tags ?? [];
+        if (mutation.kind === 'company_tags.set') {
+          const payload = mutation.payload as unknown as import('./protocol').CompanyTagsSetPayload;
+          byId.set(mutation.groupId, {
+            ...existing,
+            company_tags: payload.tags.map((tag) => ({ ...tag })),
+            company_industry: payload.industry,
+            pending: true,
+          });
+        } else {
+          const payload = mutation.payload as unknown as import('./protocol').CompanyTagAddPayload;
+          if (
+            stored.length < 50 &&
+            !stored.some(
+              (tag) =>
+                tag.key === payload.key || tag.label.toLowerCase() === payload.label.toLowerCase(),
+            )
+          ) {
+            byId.set(mutation.groupId, {
+              ...existing,
+              company_tags: [...stored, { ...payload }],
+              pending: true,
+            });
+          }
+        }
+      }
     }
 
     if (mutation.kind === 'group.update') {

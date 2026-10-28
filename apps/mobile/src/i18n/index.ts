@@ -1308,6 +1308,30 @@ export interface UiStrings {
     catFood: string;
     catOffice: string;
     catOther: string;
+    tagAll: string;
+    tagNew: string;
+    tagNamePh: string;
+    tagAdd: string;
+    tagsTitle: string;
+    tagsShared: string;
+    tagRename: string;
+    tagHide: string;
+    tagShow: string;
+    tagAddedBy: string;
+    tagsSearch: string;
+    industryTitle: string;
+    industryConstruction: string;
+    industryTransport: string;
+    industryFieldSales: string;
+    packAdd: string;
+    packAdded: string;
+    savedAnother: string;
+    addAnother: string;
+    doneBtn: string;
+    moreOpen: string;
+    qtyPh: string;
+    tagsCancel: string;
+    tagSave: string;
     formKind: string;
     formEmployee: string;
     formAmount: string;
@@ -7395,6 +7419,30 @@ const en: UiStrings = {
     catFood: 'Food',
     catOffice: 'Office',
     catOther: 'Other',
+    tagAll: 'All tags',
+    tagNew: 'New tag',
+    tagNamePh: 'Tag name',
+    tagAdd: 'Add',
+    tagsTitle: 'Expense tags',
+    tagsShared: 'Shared with everyone in the company',
+    tagRename: 'Rename',
+    tagHide: 'Hide',
+    tagShow: 'Show',
+    tagAddedBy: 'added by {name}',
+    tagsSearch: 'Search tags',
+    industryTitle: 'What kind of work?',
+    industryConstruction: 'Construction',
+    industryTransport: 'Transport & logistics',
+    industryFieldSales: 'Field sales',
+    packAdd: 'Add {n} tags',
+    packAdded: 'All of these are already added',
+    savedAnother: 'Saved',
+    addAnother: 'Add another',
+    doneBtn: 'Done',
+    moreOpen: 'More',
+    qtyPh: 'Quantity (optional)',
+    tagsCancel: 'Cancel',
+    tagSave: 'Save',
     formKind: 'Type',
     formEmployee: 'Employee',
     formAmount: 'Amount',
@@ -12927,6 +12975,30 @@ const ta: UiStrings = {
     catFood: 'உணவு',
     catOffice: 'அலுவலகம்',
     catOther: 'மற்றவை',
+    tagAll: 'எல்லா குறிச்சொற்கள்',
+    tagNew: 'புதிய குறிச்சொல்',
+    tagNamePh: 'குறிச்சொல் பெயர்',
+    tagAdd: 'சேர்',
+    tagsTitle: 'செலவு குறிச்சொற்கள்',
+    tagsShared: 'நிறுவனத்தில் அனைவருடனும் பகிரப்பட்டது',
+    tagRename: 'பெயர் மாற்று',
+    tagHide: 'மறை',
+    tagShow: 'காட்டு',
+    tagAddedBy: '{name} சேர்த்தது',
+    tagsSearch: 'குறிச்சொல் தேடு',
+    industryTitle: 'என்ன வகை வேலை?',
+    industryConstruction: 'கட்டுமானம்',
+    industryTransport: 'போக்குவரத்து & லாஜிஸ்டிக்ஸ்',
+    industryFieldSales: 'களவிற்பனை',
+    packAdd: '{n} குறிச்சொற்களைச் சேர்',
+    packAdded: 'இவை எல்லாம் ஏற்கனவே சேர்க்கப்பட்டுள்ளன',
+    savedAnother: 'சேமிக்கப்பட்டது',
+    addAnother: 'இன்னொன்றைச் சேர்',
+    doneBtn: 'முடிந்தது',
+    moreOpen: 'மேலும்',
+    qtyPh: 'அளவு (விருப்பம்)',
+    tagsCancel: 'ரத்து',
+    tagSave: 'சேமி',
     formKind: 'வகை',
     formEmployee: 'ஊழியர்',
     formAmount: 'தொகை',
@@ -18624,6 +18696,30 @@ const hi: UiStrings = {
     catFood: 'खाना',
     catOffice: 'दफ़्तर',
     catOther: 'अन्य',
+    tagAll: 'सभी टैग',
+    tagNew: 'नया टैग',
+    tagNamePh: 'टैग का नाम',
+    tagAdd: 'जोड़ें',
+    tagsTitle: 'खर्च टैग',
+    tagsShared: 'कंपनी में सबके साथ साझा',
+    tagRename: 'नाम बदलें',
+    tagHide: 'छिपाएँ',
+    tagShow: 'दिखाएँ',
+    tagAddedBy: '{name} ने जोड़ा',
+    tagsSearch: 'टैग खोजें',
+    industryTitle: 'किस तरह का काम?',
+    industryConstruction: 'निर्माण',
+    industryTransport: 'परिवहन और लॉजिस्टिक्स',
+    industryFieldSales: 'फ़ील्ड सेल्स',
+    packAdd: '{n} टैग जोड़ें',
+    packAdded: 'ये सब पहले से जुड़े हैं',
+    savedAnother: 'सेव हो गया',
+    addAnother: 'एक और जोड़ें',
+    doneBtn: 'हो गया',
+    moreOpen: 'और',
+    qtyPh: 'मात्रा (वैकल्पिक)',
+    tagsCancel: 'रद्द करें',
+    tagSave: 'सेव करें',
     formKind: 'प्रकार',
     formEmployee: 'कर्मचारी',
     formAmount: 'रकम',
@@ -24211,6 +24307,30 @@ const ar: UiStrings = {
     catFood: 'طعام',
     catOffice: 'مكتب',
     catOther: 'أخرى',
+    tagAll: 'كل الوسوم',
+    tagNew: 'وسم جديد',
+    tagNamePh: 'اسم الوسم',
+    tagAdd: 'إضافة',
+    tagsTitle: 'وسوم المصروفات',
+    tagsShared: 'مشتركة مع الجميع في الشركة',
+    tagRename: 'إعادة تسمية',
+    tagHide: 'إخفاء',
+    tagShow: 'إظهار',
+    tagAddedBy: 'أضافه {name}',
+    tagsSearch: 'ابحث في الوسوم',
+    industryTitle: 'ما نوع العمل؟',
+    industryConstruction: 'البناء',
+    industryTransport: 'النقل والخدمات اللوجستية',
+    industryFieldSales: 'المبيعات الميدانية',
+    packAdd: 'أضف {n} وسوماً',
+    packAdded: 'كلها مضافة بالفعل',
+    savedAnother: 'تم الحفظ',
+    addAnother: 'أضف آخر',
+    doneBtn: 'تم',
+    moreOpen: 'المزيد',
+    qtyPh: 'الكمية (اختياري)',
+    tagsCancel: 'إلغاء',
+    tagSave: 'حفظ',
     formKind: 'النوع',
     formEmployee: 'الموظف',
     formAmount: 'المبلغ',

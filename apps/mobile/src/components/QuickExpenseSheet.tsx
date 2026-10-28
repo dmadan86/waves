@@ -277,8 +277,10 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   }, [recents.keys, byId, rows, chosenId]);
 
   const personalOffered = usePersonalOffered();
-  const personalPicked = chosenId === 'personal';
-  const chosen = chosenId && !personalPicked ? byId.get(chosenId) : undefined;
+  // Nothing tapped yet: the most recent destination is pre-picked so Save is live on open.
+  const effectiveId = chosenId ?? chips[0]?.id ?? null;
+  const personalPicked = effectiveId === 'personal';
+  const chosen = effectiveId && !personalPicked ? byId.get(effectiveId) : undefined;
 
   // The private ledger has no column for a receipt (A48's blob has none), so a
   // bill picked while a group was still chosen would otherwise sit on the chip
@@ -492,10 +494,10 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                     <Pressable
                       key={group.id}
                       accessibilityRole="button"
-                      accessibilityState={{ selected: group.id === chosenId }}
+                      accessibilityState={{ selected: group.id === effectiveId }}
                       accessibilityLabel={`${labelOf(group)}, ${plural(locale, memberCountFor(group.id), t.memberCount)}`}
                       onPress={() => setChosenId(group.id)}
-                      style={[tile(group.id === chosenId), { maxWidth: 180 }]}
+                      style={[tile(group.id === effectiveId), { maxWidth: 180 }]}
                     >
                       {group.cover_emoji ? (
                         <GroupMark emoji={group.cover_emoji} size={16} />
@@ -516,7 +518,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
                           {plural(locale, memberCountFor(group.id), t.memberCount)}
                         </Text>
                       </View>
-                      {group.id === chosenId ? <PickedTick color={accent} /> : null}
+                      {group.id === effectiveId ? <PickedTick color={accent} /> : null}
                     </Pressable>
                   ))}
                   {/* Every other group and person, behind one pill — the sheet's

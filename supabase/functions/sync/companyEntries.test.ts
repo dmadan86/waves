@@ -350,3 +350,114 @@ it.each(['POLICY_BLOCKED', 'ENTRY_REIMBURSED', 'SELECTION_CHANGED', 'IDEMPOTENCY
     });
   },
 );
+
+it.each([
+  [
+    'company_tag.add',
+    { key: 'cement-bags', label: 'Cement', unit: 'bag' },
+    'waves_company_tag_add',
+    { p_group_id: GROUP_ID, p_key: 'cement-bags', p_label: 'Cement', p_unit: 'bag' },
+  ],
+  [
+    'company_tag.add',
+    { key: 'cement', label: 'Cement' },
+    'waves_company_tag_add',
+    { p_group_id: GROUP_ID, p_key: 'cement', p_label: 'Cement', p_unit: null },
+  ],
+  [
+    'company_tags.set',
+    {
+      tags: [{ key: 'cement', label: 'Cement', hidden: true, addedBy: MEMBER_ID }],
+      industry: 'construction',
+    },
+    'waves_company_tags_set',
+    {
+      p_group_id: GROUP_ID,
+      p_tags: [{ key: 'cement', label: 'Cement', hidden: true, addedBy: MEMBER_ID }],
+      p_industry: 'construction',
+    },
+  ],
+  [
+    'company_tags.set',
+    { tags: [], industry: null },
+    'waves_company_tags_set',
+    { p_group_id: GROUP_ID, p_tags: [], p_industry: null },
+  ],
+  [
+    'company.policies_set',
+    {
+      policies: {
+        version: 1,
+        rules: [
+          {
+            id: 'custom',
+            type: 'period_limit',
+            target: 'cement-bags',
+            period: 'month',
+            effect: 'block',
+            limitMinor: '100',
+          },
+        ],
+      },
+      expectedRevision: 0,
+    },
+    'waves_company_policies_set',
+    {
+      p_group_id: GROUP_ID,
+      p_policies: {
+        version: 1,
+        rules: [
+          {
+            id: 'custom',
+            type: 'period_limit',
+            target: 'cement-bags',
+            period: 'month',
+            effect: 'block',
+            limitMinor: '100',
+          },
+        ],
+      },
+      p_expected_revision: 0,
+    },
+  ],
+])('dispatches tag contract %s as caller', async (kind, payload, rpc, args) => {
+  const scoped = caller();
+  const session = new SyncSession(scoped.client, service().client, OWNER);
+  expect(
+    await session.apply(mutation(kind as string, payload as Record<string, unknown>)),
+  ).toMatchObject({ status: 'applied' });
+  expect(scoped.rpc).toHaveBeenCalledWith(rpc, args);
+});
+
+it.each([
+  ['company_tag.add', { key: 'BAD', label: 'Cement' }],
+  ['company_tag.add', { key: 'cement', label: '' }],
+  ['company_tag.add', { key: 'cement', label: 'x'.repeat(41) }],
+  ['company_tag.add', { key: 'cement', label: 'Cement', hidden: true }],
+  ['company_tag.add', { key: 'cement', label: 'Cement', unit: null }],
+  ['company_tags.set', { tags: [], industry: 'agriculture' }],
+  ['company_tags.set', { tags: [] }],
+  [
+    'company_tags.set',
+    {
+      tags: [
+        { key: 'a', label: 'A' },
+        { key: 'a', label: 'B' },
+      ],
+      industry: null,
+    },
+  ],
+  ['company_tags.set', { tags: [{ key: 'a', label: 'A', hidden: 'yes' }], industry: null }],
+  ['company_tags.set', { tags: [{ key: 'a', label: 'A', addedBy: 'invalid' }], industry: null }],
+  [
+    'company_tags.set',
+    { tags: Array.from({ length: 51 }, (_, i) => ({ key: `a${i}`, label: 'A' })), industry: null },
+  ],
+])('rejects invalid tag contract %s before RPC', async (kind, payload) => {
+  const scoped = caller();
+  const session = new SyncSession(scoped.client, service().client, OWNER);
+  expect(
+    await session.apply(mutation(kind as string, payload as Record<string, unknown>)),
+  ).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+  expect(scoped.rpc).not.toHaveBeenCalled();
+});

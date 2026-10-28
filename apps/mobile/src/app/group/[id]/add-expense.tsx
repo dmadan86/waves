@@ -2024,7 +2024,7 @@ export default function AddExpenseScreen() {
                   align="start"
                   // Opened by tapping the total on the expense screen: land in
                   // the amount field with the keyboard already up.
-                  autoFocus={focus === 'amount'}
+                  autoFocus={focus === 'amount' || (!expenseId && !focus)}
                 />
               </View>
               <Pressable
