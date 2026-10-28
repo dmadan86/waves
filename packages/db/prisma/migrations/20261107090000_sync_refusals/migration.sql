@@ -4,7 +4,7 @@
 -- -- never a payload, amount, note or the database's message text.
 CREATE TABLE public.sync_refusals (
   id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  profile_id UUID NOT NULL REFERENCES public.profiles(id) ON UPDATE CASCADE ON DELETE CASCADE,
   group_id UUID,
   kind TEXT NOT NULL,
   code TEXT NOT NULL,
