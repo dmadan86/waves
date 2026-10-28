@@ -804,7 +804,8 @@ export default function HomeScreen() {
                         }
                         pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
                         tag={tag}
-                        tagTone={group.isDemo ? 'neutral' : onTrip ? 'positive' : 'brand'}
+                        isDemo={group.isDemo === true}
+                        tagTone={group.isDemo ? 'warning' : onTrip ? 'positive' : 'brand'}
                         divider={index > 0}
                         // The eye in the hero shuts the whole screen's money, not
                         // just the headline: masking one figure while twelve sit
@@ -1060,6 +1061,7 @@ function GroupRow({
   pendingLabel,
   tag,
   tagTone,
+  isDemo = false,
   divider,
   enter = false,
   pendingBalance = false,
@@ -1088,7 +1090,9 @@ function GroupRow({
   directionLabel: string;
   pendingLabel: string | null;
   tag: string | null;
-  tagTone: 'positive' | 'brand' | 'neutral';
+  tagTone: 'positive' | 'brand' | 'neutral' | 'warning';
+  /** The sample group: amber-tinted row, "sample data" subtitle. */
+  isDemo?: boolean;
   /** The dashboard's eye is shut: show the mask in place of the amount. The
       row's standing ("You owe") stays — it is the figure that is private. */
   hidden?: boolean;
@@ -1157,6 +1161,7 @@ function GroupRow({
           gap: theme.spacing.md,
           paddingVertical: theme.spacing.sm,
           paddingHorizontal: theme.spacing.sm,
+          backgroundColor: isDemo ? theme.color.warningSoft : undefined,
           borderTopWidth: divider ? 1 : 0,
           borderTopColor: theme.color.border,
           opacity: pressed ? 0.6 : 1,
@@ -1195,9 +1200,11 @@ function GroupRow({
                   backgroundColor:
                     tagTone === 'positive'
                       ? theme.color.positiveSoft
-                      : tagTone === 'neutral'
-                        ? theme.color.surfaceMuted
-                        : theme.color.brandSoft,
+                      : tagTone === 'warning'
+                        ? theme.color.warningSoft
+                        : tagTone === 'neutral'
+                          ? theme.color.surfaceMuted
+                          : theme.color.brandSoft,
                 }}
               >
                 <Text
@@ -1205,7 +1212,10 @@ function GroupRow({
                   tone={
                     tagTone === 'positive' ? 'positive' : tagTone === 'neutral' ? 'muted' : 'brand'
                   }
-                  style={{ fontWeight: '700' }}
+                  style={{
+                    fontWeight: '700',
+                    ...(tagTone === 'warning' ? { color: theme.color.warning } : null),
+                  }}
                 >
                   {tag}
                 </Text>
@@ -1219,7 +1229,7 @@ function GroupRow({
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
             {typeTag ? <GroupTypeTag tag={typeTag} /> : null}
             <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {pendingLabel ?? memberLabel}
+              {isDemo ? t.demo.rowSubtitle : (pendingLabel ?? memberLabel)}
               {/* A draft is the one thing here waiting on the reader, so it is
                 said in the warning's orange rather than the muted grey. */}
               {!pendingLabel && draftLabel ? (

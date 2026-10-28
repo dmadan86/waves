@@ -1,4 +1,6 @@
 import { payableFor } from '@waves/core';
+
+import { activeStrings } from '@/i18n';
 import type {
   CategoryMeta,
   ExpenseLocation,
@@ -440,10 +442,13 @@ export function isViewer(
  * filename — you recognise it without reading it.
  */
 export function groupLabel(
-  group: Pick<GroupRow, 'name'> | null | undefined,
+  group: Pick<GroupRow, 'name' | 'isDemo'> | null | undefined,
   members: readonly MemberRow[] = [],
   myProfileId?: string | null,
 ): string {
+  // The fixture group always reads "Demo group" (localized), never a realistic
+  // name or the friends' names — so it cannot pass for the user's own money.
+  if (group?.isDemo) return activeStrings().demo.groupName;
   const named = group?.name?.trim();
   if (named) return named;
 
