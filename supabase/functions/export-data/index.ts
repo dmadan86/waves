@@ -311,6 +311,34 @@ export async function handleExportData(
           }
         }
 
+        if (entry.companyEntries.length > 0) {
+          pdf.subheading('Company entries', 11);
+          const companyTotals = new Map<string, bigint>();
+          for (const row of entry.companyEntries) {
+            const key = row.category ?? '';
+            const label = companyExportTagLabel(key, group?.company_tags);
+            pdf.body(
+              `${row.occurred_on}  ${nameOf(row.member_id)}  ${row.entry_kind}  ` +
+                `${label}${label !== key ? ` (${key})` : ''}  ` +
+                `${formatMinor(row.amount, row.currency)} ${row.currency}  (${row.deleted_at ? 'voided' : row.status})`,
+              9,
+            );
+            if (
+              !row.deleted_at &&
+              row.entry_kind === 'expense' &&
+              ['approved', 'reimbursed'].includes(row.status)
+            ) {
+              companyTotals.set(
+                row.currency,
+                (companyTotals.get(row.currency) ?? 0n) + BigInt(row.amount),
+              );
+            }
+          }
+          for (const [currency, amount] of companyTotals) {
+            pdf.body(`Expense total: ${formatMinor(amount, currency)} ${currency}`, 10);
+          }
+        }
+
         // Per-family block (only when the group has families): paid, share, net.
         const subtotals = familySubtotals(
           units,
@@ -404,6 +432,7 @@ export async function handleExportData(
         'calc_mode',
         'days',
         'rate_minor',
+        'company_category_label',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -421,7 +450,7 @@ export async function handleExportData(
         anyFamilies
           ? [
               ...cells,
-              ...Array(Math.max(0, 30 - cells.length)).fill(''),
+              ...Array(Math.max(0, 31 - cells.length)).fill(''),
               familyName(units, memberId),
             ]
           : cells;
@@ -460,6 +489,7 @@ export async function handleExportData(
               String(row.calc_mode ?? ''),
               String(row.days ?? ''),
               String(row.rate_minor ?? ''),
+              companyExportTagLabel(row.category ?? '', entry.group?.company_tags),
             ],
             row.member_id,
           ),
@@ -575,3 +605,12 @@ export async function handleExportData(
 }
 
 serveWithCors(handleExportData);
+
+/** Keep unknown keys verbatim; shared labels are display metadata only. */
+export function companyExportTagLabel(key: string, tags: unknown): string {
+  if (Array.isArray(tags)) {
+    const tag = tags.find((value) => value && value.key === key && typeof value.label === 'string');
+    if (tag) return tag.label;
+  }
+  return key;
+}

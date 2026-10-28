@@ -48,25 +48,20 @@ import { todayIso } from '@/data/personal';
 import { displayName, type MemberRow } from '@/data/types';
 import { fill, useStrings, type UiStrings } from '@/i18n';
 import { periodRange, type CompanyPeriod } from '@/lib/companyPeriod';
+import { useCompanyTags } from '@/data/companyTags';
 import { friendlyError } from '@/lib/errors';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 
-export function kindLabel(t: UiStrings, entry: CompanyEntry): string {
+export function kindLabel(
+  t: UiStrings,
+  entry: CompanyEntry,
+  tagLabel: (key: string) => string,
+): string {
   const c = t.company;
   switch (entry.kind) {
     case 'expense':
-      return c[
-        (
-          {
-            fuel: 'catFuel',
-            transport: 'catTransport',
-            travel: 'catTravel',
-            food: 'catFood',
-            office: 'catOffice',
-          } as const
-        )[entry.category as 'fuel'] ?? 'catOther'
-      ];
+      return entry.category ? tagLabel(entry.category) : c.catOther;
     case 'allowance':
       return c.bata;
     case 'advance':
@@ -112,6 +107,7 @@ export function CompanyStatementView({
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
+  const tagLabel = useCompanyTags(groupId, view).label;
   const setRate = useSetCompanyRate(groupId);
   const setKmRate = useSetMileageRate(groupId);
   const reimburse = useReimburseCompany(groupId);
@@ -367,7 +363,7 @@ export function CompanyStatementView({
                         color={theme.color.brand}
                       />
                     }
-                    title={kindLabel(t, e)}
+                    title={kindLabel(t, e, tagLabel)}
                     subtitle={showDate(e.occurredOn, locale)}
                     amount={fmt(e.amount)}
                     onPress={() => toggle(e.id)}
@@ -418,7 +414,7 @@ export function CompanyStatementView({
             {entryRows.map(({ entry, delta }, index) => (
               <ListRow
                 key={entry.id}
-                title={kindLabel(t, entry)}
+                title={kindLabel(t, entry, tagLabel)}
                 subtitle={[
                   showDate(entry.occurredOn, locale),
                   entry.calcMode === 'days_rate' && entry.days && entry.rateMinor !== null
@@ -461,7 +457,7 @@ export function CompanyStatementView({
             {statement.pending.map((entry, index) => (
               <ListRow
                 key={entry.id}
-                title={kindLabel(t, entry)}
+                title={kindLabel(t, entry, tagLabel)}
                 subtitle={[
                   entry.status === 'rejected' ? t.company.rejected : t.company.awaiting,
                   showDate(entry.occurredOn, locale),

@@ -67,6 +67,8 @@ export enum MutationKind {
   CompanyEntryTransition = 'company_entry.transition',
   CompanyMemberRateSet = 'company_member.rate_set',
   CompanySettingsSet = 'company.settings_set',
+  CompanyTagAdd = 'company_tag.add',
+  CompanyTagsSet = 'company_tags.set',
   CompanyPoliciesSet = 'company.policies_set',
   CompanyMileageRateSet = 'company.mileage_rate_set',
   CompanyReimburse = 'company.reimburse',
@@ -841,3 +843,13 @@ export const SETTLEMENT_ALLOCATION_WIRE = {
     return { expenseId: wire.expenseId, amount: parseAmount(wire.amount) };
   },
 };
+
+export interface CompanyTagAddPayload {
+  readonly key: string;
+  readonly label: string;
+  readonly unit?: string;
+}
+export interface CompanyTagsSetPayload {
+  readonly tags: readonly import('../company/tags').CompanyTag[];
+  readonly industry: import('../company/tags').CompanyIndustry | null;
+}
