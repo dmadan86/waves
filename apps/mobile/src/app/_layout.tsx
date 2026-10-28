@@ -88,6 +88,7 @@ import { track, trackInstallOnce } from '@/lib/events';
 import { initObservability, withObservability } from '@/lib/observability';
 import { purchasesAvailable, useCustomerTier } from '@/lib/purchases';
 import { PLAN_CHANGE_QUERY_KEYS } from '@/lib/planChangeKeys';
+import { createOnceGate, openDeepLink } from '@/lib/deepLink';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
 import { holdPhonesUpright } from '@/lib/phoneOrientation';
@@ -423,6 +424,8 @@ function ThemedStatusBar() {
  * Inside the navigation tree rather than at module scope, because a deep link
  * fired before the router exists goes nowhere and takes the tap with it.
  */
+const firstTime = createOnceGate(AsyncStorage);
+
 function PushRouting() {
   const router = useRouter();
 
@@ -434,18 +437,23 @@ function PushRouting() {
 
     void ensureAndroidChannel();
 
+    // One gate for both paths: the cold-start "last response" survives root
+    // remounts, so without it the same tap re-navigated every time.
+    const handle = async (response: Notifications.NotificationResponse) => {
+      const route = routeForNotification(response);
+      if (!route || !(await firstTime(response.notification.request.identifier))) return;
+      openDeepLink(router, route);
+      void Notifications.clearLastNotificationResponseAsync?.().catch(() => {});
+    };
+
     // A tap that launched the app from cold arrives as the "last response"
     // rather than as an event, so both paths are needed.
     void Notifications.getLastNotificationResponseAsync()
-      .then((response) => {
-        const route = response ? routeForNotification(response) : null;
-        if (route) router.push(route as never);
-      })
+      .then((response) => response && handle(response))
       .catch(() => {});
 
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const route = routeForNotification(response);
-      if (route) router.push(route as never);
+      void handle(response);
     });
     return () => subscription.remove();
   }, [router]);
