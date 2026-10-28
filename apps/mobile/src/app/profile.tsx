@@ -109,7 +109,7 @@ function ProfileForm() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const referralsLive = useReferralsLive();
-  const { session, profile, isGuest, signOut } = useAuth();
+  const { profile, isGuest, signOut } = useAuth();
   const { isPaid } = useEntitlement();
   const credits = useQuery({
     queryKey: ['credits', profile?.id],

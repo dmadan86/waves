@@ -24,9 +24,9 @@ import { Avatar, type TintName } from '@waves/ui';
 
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useBlockedUsers } from '@/data/blocked';
-import { useAuth } from '@/lib/auth';
+import { useViewerId } from '@/lib/auth';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
-import type { MemberRow } from '@/data/types';
+import { isViewer, type MemberRow } from '@/data/types';
 
 export interface PersonAvatarProps {
   name: string;
@@ -59,9 +59,9 @@ export function PersonAvatar({
   // A blocked person is anonymous on this device: their face is not drawn either.
   const hidden = ghost || isBlocked(member?.profile_id);
   // The viewer's own row falls back to the provider photo when their profile has none.
-  const { profile: me } = useAuth();
+  const viewerId = useViewerId();
   const viewer = useViewerIdentity();
-  const isMe = !!member?.profile_id && member.profile_id === me?.id;
+  const isMe = !!member && isViewer(member, viewerId);
   // `||` so an empty column falls through; the viewer's live identity beats a cached member row.
   const raw = hidden
     ? null
