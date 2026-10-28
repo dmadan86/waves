@@ -14,6 +14,7 @@ import { FlatList, Pressable, View } from 'react-native';
 
 import { directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
+import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { SplitMoney } from '@/components/SplitMoney';
 import { relativeTime } from '@/data/activity';
@@ -40,17 +41,18 @@ export interface SettleCandidate {
 }
 
 /** The disc a group's picture sits in. */
-const DISC = 40;
-const ROW_HEIGHT = 64;
-
-function Separator() {
-  const theme = useTheme();
-  return <View style={{ height: 1, backgroundColor: theme.color.border }} />;
-}
+const DISC = 44;
 
 const absBig = (n: bigint): bigint => (n < 0n ? -n : n);
 
-export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[] }) {
+export function SettleGroupList({
+  groups,
+  narrowed = false,
+}: {
+  groups: readonly SettleCandidate[];
+  /** A search or chip hid every group — say so instead of "square everywhere". */
+  narrowed?: boolean;
+}) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const clearance = useBottomClearance();
@@ -104,10 +106,11 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
           flexDirection: 'row',
           alignItems: 'center',
           gap: theme.spacing.md,
-          minHeight: ROW_HEIGHT,
-          paddingVertical: theme.spacing.sm,
-
+          paddingVertical: theme.spacing.md,
+          paddingHorizontal: theme.spacing.md,
+          borderRadius: theme.radius.lg,
           backgroundColor: theme.color.surface,
+          ...theme.shadow.soft,
           opacity: pressed ? 0.7 : 1,
         })}
       >
@@ -122,14 +125,22 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
             justifyContent: 'center',
           }}
         >
-          <GroupPhoto
-            photoPath={item.photoPath}
-            emoji={item.coverEmoji}
-            color={item.coverColor}
-            bare
-            size={DISC}
-            background="transparent"
-          />
+          {item.photoPath || item.coverEmoji ? (
+            <GroupPhoto
+              photoPath={item.photoPath}
+              emoji={item.coverEmoji}
+              color={item.coverColor}
+              bare
+              size={DISC}
+              background="transparent"
+            />
+          ) : (
+            <Ionicons
+              name={GROUP_TYPE_ICON[item.type] ?? 'people-outline'}
+              size={iconSize.lg}
+              color={tint.ink}
+            />
+          )}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
@@ -138,11 +149,11 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
           >
             {item.title}
           </Text>
-          <Text numberOfLines={1} variant="caption" tone="muted" style={{ marginTop: 2 }}>
+          <Text numberOfLines={2} variant="caption" tone="muted" style={{ marginTop: 2 }}>
             {meta}
           </Text>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
+        <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
           <SplitMoney
             amount={item.balance}
             currency={item.currency}
@@ -168,7 +179,7 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
 
   const empty = (
     <Text variant="body" tone="muted" align="center" style={{ paddingVertical: theme.spacing.xl }}>
-      {d.settleEmpty}
+      {narrowed ? t.noGroupsMatch : d.settleEmpty}
     </Text>
   );
 
@@ -180,12 +191,12 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
       ListEmptyComponent={empty}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
-      ItemSeparatorComponent={Separator}
       style={{ flex: 1 }}
       contentContainerStyle={{
         paddingHorizontal: theme.spacing.lg,
         paddingTop: theme.spacing.xs,
         paddingBottom: clearance,
+        gap: theme.spacing.sm,
       }}
     />
   );

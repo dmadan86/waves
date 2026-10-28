@@ -10,6 +10,19 @@
 
 import { matchesAssignGroupQuery } from './captureAssign';
 
+export type SettleFilter = 'all' | 'owed' | 'owe';
+
+/** Keep candidates by balance sign, preserving their order. */
+export function filterSettleByBalance<T extends { balance: bigint }>(
+  candidates: readonly T[],
+  filter: SettleFilter,
+): T[] {
+  return candidates.filter(
+    (candidate) =>
+      filter === 'all' || (filter === 'owed' ? candidate.balance > 0n : candidate.balance < 0n),
+  );
+}
+
 /** Any row carrying a name to search by — a `SettleCandidate`, in practice,
  *  kept generic here so this file has no reason to import the component. */
 export interface SettleSearchable {
