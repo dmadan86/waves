@@ -52,12 +52,14 @@ const NL = 'Not listed';
 const W = {
   price:
     'Free forever. Pro is ₹79/month or ₹699/year in India; other countries priced in the app store',
-  limits: 'No limit on people, expenses, currencies or splits. First group free; extra groups cost 6 credits on Free',
+  limits:
+    'No limit on people, expenses, currencies or splits. First group free; extra groups cost 6 credits on Free',
   ads: 'Free is ad-supported: watch a short ad to earn credits. Pro: no ads',
   offline: 'Yes, every expense is saved on the phone first and syncs later',
   currency: 'Every ISO 4217 currency, free. Fix the rate per bill, person or trip',
   receipts: 'Yes: 2 credits a scan on Free, 300 scans a month on Pro',
-  voice: 'English, Hindi, Tamil, Arabic and Hinglish: 1 credit per AI command on Free, 100 a month on Pro',
+  voice:
+    'English, Hindi, Tamil, Arabic and Hinglish: 1 credit per AI command on Free, 100 a month on Pro',
   upi: 'Opens your UPI app with the exact amount. For PayPal it opens a payment link; for Venmo, PayNow, Pix and others it shows the payee details to copy. Waves never holds money',
   export: 'JSON, CSV and PDF. On Free an export costs 6 credits',
   signup: 'Join a group from a link in a browser with no account (guest access is time-limited)',
@@ -700,7 +702,10 @@ export const competitors: Competitor[] = [
         title: 'Indian-language voice',
         body: 'Hold the mic and speak in Hindi, Tamil, English, Arabic or Hinglish.',
       },
-      { title: 'Export on Free', body: 'JSON, CSV and PDF export are in the free plan, at 6 credits an export.' },
+      {
+        title: 'Export on Free',
+        body: 'JSON, CSV and PDF export are in the free plan, at 6 credits an export.',
+      },
     ],
     theyAreBetter: [
       {
@@ -933,7 +938,10 @@ export const competitors: Competitor[] = [
         q: 'Do my friends need PhonePe?',
         a: 'Not for Waves. A shared link opens the group in a browser, with time-limited guest access.',
       },
-      { q: 'Can I export my Waves data?', a: 'Yes, as JSON, CSV or PDF; on Free an export costs 6 credits.' },
+      {
+        q: 'Can I export my Waves data?',
+        a: 'Yes, as JSON, CSV or PDF; on Free an export costs 6 credits.',
+      },
     ],
     sources: [
       {
