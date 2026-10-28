@@ -30,7 +30,8 @@ export type CompanyEntryKind =
   | 'pool_adjustment'
   | 'wage_payment';
 export type CompanyEntryStatus = 'submitted' | 'approved' | 'rejected' | 'reimbursed';
-export type CompanyCalcMode = 'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly' | 'distance_rate';
+export type CompanyCalcMode =
+  'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly' | 'distance_rate';
 export type CompanyDirection = 'company_to_employee' | 'employee_to_company';
 
 export const COMPANY_ENTRY_KINDS: readonly CompanyEntryKind[] = [
@@ -871,7 +872,11 @@ export function buildReimbursementPreview(
     .sort(byDate);
   const claimsMinor = claims.reduce((sum, e) => sum + e.amount, 0n);
   // entryDelta of an adjustment is its effect on "company owes"; credits are the opposite.
-  const creditsMinor = adjustments.reduce((sum, e) => sum - entryDelta(e), 0n);
+  // Advance already taken back through wage runs is not a credit any more (the server nets it too).
+  const recovered = mine
+    .filter((e) => e.kind === 'wage_payment' && (e.periodEnd ?? e.occurredOn) <= cutoff)
+    .reduce((sum, e) => sum + (e.recoveryMinor ?? 0n), 0n);
+  const creditsMinor = adjustments.reduce((sum, e) => sum - entryDelta(e), 0n) - recovered;
   return {
     claims,
     adjustments,
