@@ -56,7 +56,6 @@ export function StoreBadges({
             ) : (
               <span className={`${cls} cursor-default opacity-60 saturate-50`} title={t.soon}>
                 {inner}
-                <span className="sr-only">({t.soon})</span>
               </span>
             )}
           </li>
