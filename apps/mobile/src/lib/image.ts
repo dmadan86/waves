@@ -289,6 +289,7 @@ export type PhotoSource = 'library' | 'camera';
 export async function pickSquarePhoto(
   maxEdge: number,
   source: PhotoSource = 'library',
+  crop = true,
 ): Promise<PickedImage | null> {
   const permission = source === 'camera' ? await ensureCamera() : await ensurePhotos();
   if (!permission.granted) return null;
@@ -297,8 +298,8 @@ export async function pickSquarePhoto(
     source === 'camera' ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
   const result = await launch({
     mediaTypes: ['images'],
-    allowsEditing: true,
-    aspect: [1, 1],
+    allowsEditing: crop,
+    aspect: crop ? [1, 1] : undefined,
     quality: 1,
     // Base64 of the original is megabytes of string we are about to throw away;
     // the manipulator reads the file from its URI instead.
@@ -323,6 +324,42 @@ export async function pickSquarePhoto(
 export const pickAvatarPhoto = (source: PhotoSource = 'library') =>
   pickSquarePhoto(AVATAR_MAX_EDGE, source);
 export const pickGroupPhoto = () => pickSquarePhoto(COVER_MAX_EDGE);
+
+/** A company logo is never cropped: GroupPhoto fits it on a white tile instead. */
+export const LOGO_MAX_EDGE = 512;
+export const pickLogo = (source: PhotoSource = 'library') =>
+  pickSquarePhoto(LOGO_MAX_EDGE, source, false);
+
+/**
+ * A logo downloaded from a link (see `logoLink.ts`), put through the same
+ * resize/re-encode as an uploaded one. Null when the platform cannot decode it.
+ */
+export async function logoFromBytes(bytes: Uint8Array, mime: string): Promise<PickedImage | null> {
+  const ext = mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg';
+  const file = new FileSystem.File(FileSystem.Paths.cache, `logo-${Date.now()}.${ext}`);
+  let keep = false;
+  try {
+    file.write(bytes);
+    const size = await imageSize(file.uri);
+    if (!size) return null;
+    const shrunk =
+      (await shrinkWithBytes({ uri: file.uri, ...size, maxEdge: LOGO_MAX_EDGE, compress: 0.9 })) ??
+      (await readUnshrunk(file.uri));
+    keep = shrunk.uri === file.uri;
+    return { base64: shrunk.base64, mimeType: shrunk.mimeType ?? mime, uri: shrunk.uri };
+  } catch {
+    return null;
+  } finally {
+    // Keep the file when it is also the fallback result: the preview still needs it.
+    if (!keep) {
+      try {
+        file.delete();
+      } catch {
+        // cache is cleared by the OS anyway
+      }
+    }
+  }
+}
 
 /** Longest edge for an album photo — big enough to look good full-screen,
  *  small enough to stay light in the free-tier storage cap. */

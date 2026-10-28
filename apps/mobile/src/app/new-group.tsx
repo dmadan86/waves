@@ -5,6 +5,7 @@ import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   TextInput,
@@ -63,7 +64,10 @@ import { TripDates, type TripDatesValue } from '@/components/TripDates';
 import { CurrencyRate } from '@/components/CurrencyRate';
 import { RateAttribution } from '@/components/RateAttribution';
 import { CurrencySheet } from '@/components/expense/CurrencySheet';
-import { fetchFxRate } from '@/data/api';
+import { canUploadGroupPhoto, fetchFxRate, uploadGroupPhoto } from '@/data/api';
+import { CompanyLogoField } from '@/components/company/CompanyLogoField';
+import type { PickedImage } from '@/lib/image';
+import { uploadWhenAllowed } from '@/lib/logoUploadWhenReady';
 import { type TripRateRow, tripCurrencyValue, tripRateFor } from '@/lib/tripRates';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
@@ -223,7 +227,7 @@ export default function NewGroupScreen() {
   // being changed. Nothing here is required; the point is that the screen reads
   // as already filled in rather than as a form still to be completed.
   const [openAttr, setOpenAttr] = useState<
-    'kind' | 'dates' | 'budget' | 'eventTemplate' | 'rate' | null
+    'kind' | 'dates' | 'budget' | 'eventTemplate' | 'rate' | 'logo' | null
   >(null);
 
   /**
@@ -365,6 +369,8 @@ export default function NewGroupScreen() {
   const [companyCur, setCompanyCur] = useState<string | null>(null);
   const [pickingCompanyCur, setPickingCompanyCur] = useState(false);
   const [companyRate, setCompanyRate] = useState(0n);
+  // Optional logo, staged here and uploaded once the server knows the new company.
+  const [companyLogo, setCompanyLogo] = useState<PickedImage | null>(null);
   const [rateSheetOpen, setRateSheetOpen] = useState(false);
   // The record the sheet is editing; what is kept for the group is
   // `pendingRates`, written out after Create like any other pinned rate.
@@ -554,6 +560,22 @@ export default function NewGroupScreen() {
         await mutate(MutationKind.CompanySettingsSet, groupId, {
           defaultDailyRateMinor: companyRate.toString(),
           approvalsEnabled: false,
+        });
+      }
+
+      if (type === GroupType.Company && companyLogo) {
+        const logo = companyLogo;
+        void uploadWhenAllowed(
+          () => canUploadGroupPhoto(groupId),
+          () =>
+            uploadGroupPhoto({
+              groupId,
+              base64: logo.base64,
+              mimeType: logo.mimeType,
+              kind: 'logo',
+            }),
+        ).then((done) => {
+          if (!done) Alert.alert(t.company.logoLater);
         });
       }
 
@@ -1236,6 +1258,26 @@ export default function NewGroupScreen() {
                         currency={groupCurrency}
                         value={companyRate}
                         onChange={setCompanyRate}
+                      />
+                    </View>
+                  ) : null}
+                  <DetailRow
+                    icon="image-outline"
+                    label={t.company.logoRow}
+                    value={companyLogo ? '✓' : t.add}
+                    placeholder={!companyLogo}
+                    expanded={openAttr === 'logo'}
+                    onPress={() => setOpenAttr((current) => (current === 'logo' ? null : 'logo'))}
+                  />
+                  {openAttr === 'logo' ? (
+                    <View style={{ paddingBottom: theme.spacing.md }}>
+                      <CompanyLogoField
+                        stagedUri={companyLogo?.uri ?? null}
+                        onImage={(image) => {
+                          setCompanyLogo(image);
+                          return null;
+                        }}
+                        onRemove={() => setCompanyLogo(null)}
                       />
                     </View>
                   ) : null}
