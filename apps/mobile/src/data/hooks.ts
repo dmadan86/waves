@@ -2357,7 +2357,7 @@ export function useUpdateMember(groupId: string) {
 export function useSetMemberRole(groupId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ memberId, role }: { memberId: string; role: 'admin' | 'member' }) =>
+    mutationFn: ({ memberId, role }: { memberId: string; role: 'admin' | 'manager' | 'member' }) =>
       isDemoGroupId(groupId) ? rejectDemoWrite<void>() : setMemberRole(memberId, role),
     onSuccess: () => invalidateGroup(queryClient, groupId),
   });

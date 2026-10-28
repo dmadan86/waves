@@ -38,6 +38,7 @@ enum GroupType {
 enum MemberRole {
   admin
   member
+  manager
 
   @@schema("public")
 }
@@ -386,6 +387,8 @@ model Group {
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
   companyEntries     CompanyEntry[]
+  companyProjects CompanyProject[]
+  companyWageRuns CompanyWageRun[]
   tripPhotos         TripPhoto[]
   expenseComments    ExpenseComment[]
   settlementProofs   SettlementProof[]
@@ -465,6 +468,13 @@ model GroupMember {
   itemClaims         ReceiptItemClaim[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
+  managerId String? @map("manager_id") @db.Uuid
+  manager GroupMember? @relation("CompanyManager", fields: [managerId, groupId], references: [id, groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_member_manager_fk")
+  team GroupMember[] @relation("CompanyManager")
+  managedInvites Invite[] @relation("CompanyInviteManager")
+  fundedCompanyEntries CompanyEntry[] @relation("CompanyFundingManager")
+  companyProjects CompanyProjectMember[]
+  createdWageRuns CompanyWageRun[]
   companyEntries     CompanyEntry[] @relation("CompanyEntryMember")
   reviewedCompanyEntries CompanyEntry[] @relation("CompanyReviewer")
   companyEntryAttachments CompanyEntryAttachment[]
@@ -502,6 +512,7 @@ model GroupMember {
   @@index([importBatchId])
   @@index([profileId])
   @@index([removedBy])
+  @@index([groupId, managerId], map: "company_members_manager_idx")
   @@unique([id, groupId], map: "company_members_id_group_unique")
   @@map("group_members")
   @@schema("public")
@@ -603,6 +614,8 @@ model MemberLinkRequest {
 /// Signed, revocable, expiring invite tokens (ADR-006). Only the hash is
 /// stored; the token itself is verified inside an edge function.
 model Invite {
+  companyManagerId String? @map("company_manager_id") @db.Uuid
+  companyManager GroupMember? @relation("CompanyInviteManager", fields: [companyManagerId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_invite_manager_fk")
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   groupId   String    @map("group_id") @db.Uuid
   tokenHash String    @unique @map("token_hash")
@@ -3059,6 +3072,18 @@ model WavesRecurringAuthoring {
 }
 
 model CompanyEntry {
+  projectId String? @map("project_id") @db.Uuid
+  fundingManagerId String? @map("funding_manager_id") @db.Uuid
+  wageRunId String? @map("wage_run_id") @db.Uuid
+  grossMinor BigInt? @map("gross_minor")
+  claimsMinor BigInt? @map("claims_minor")
+  recoveryMinor BigInt? @map("recovery_minor")
+  periodStart DateTime? @map("period_start") @db.Date
+  periodEnd DateTime? @map("period_end") @db.Date
+  requestHash String? @map("request_hash")
+  project CompanyProject? @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_entry_project_fk")
+  fundingManager GroupMember? @relation("CompanyFundingManager", fields: [fundingManagerId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_entry_funding_fk")
+  wageRun CompanyWageRun? @relation(fields: [wageRunId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_entry_run_fk")
   id           String       @id @db.Uuid
   groupId      String       @map("group_id") @db.Uuid
   memberId     String       @map("member_id") @db.Uuid
@@ -3104,6 +3129,9 @@ model CompanyEntry {
   @@index([groupId, memberId, occurredOn, id])
   @@index([memberId])
   @@unique([id, groupId], map: "company_entries_id_group_unique")
+  @@index([groupId,fundingManagerId,updatedSeq], map: "company_entries_funding_idx")
+  @@index([groupId,projectId,occurredOn], map: "company_entries_project_idx")
+  @@index([wageRunId], map: "company_entries_wage_run_idx")
   @@map("company_entries")
   @@schema("public")
 }
@@ -3144,4 +3172,75 @@ model CompanyImageKey {
  group Group? @relation(fields: [groupId], references: [id], onDelete: SetNull, onUpdate: NoAction)
  @@map("company_image_keys")
  @@schema("public")
+}
+
+/// Phase 4 names are caller-scoped; budgets live in a separate owner-only table.
+model CompanyProject {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  budgets CompanyProjectBudget[]
+  members CompanyProjectMember[]
+  entries CompanyEntry[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_projects_sync_idx")
+  @@map("company_projects")
+  @@schema("public")
+}
+model CompanyProjectBudget {
+  projectId String @id @map("project_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  budgetMinor BigInt? @map("budget_minor")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  project CompanyProject @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_project_budgets_sync_idx")
+  @@map("company_project_budgets")
+  @@schema("public")
+}
+model CompanyProjectMember {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  project CompanyProject @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation(fields: [memberId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([projectId,memberId])
+  @@index([groupId,updatedSeq], map: "company_project_members_sync_idx")
+  @@index([memberId,projectId], map: "company_project_members_member_idx")
+  @@map("company_project_members")
+  @@schema("public")
+}
+model CompanyWageRun {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  periodStart DateTime @map("period_start") @db.Date
+  periodEnd DateTime @map("period_end") @db.Date
+  paidOn DateTime @map("paid_on") @db.Date
+  createdBy String @map("created_by") @db.Uuid
+  requestHash String @map("request_hash")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  entries CompanyEntry[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_wage_runs_sync_idx")
+  @@map("company_wage_runs")
+  @@schema("public")
 }

@@ -48,6 +48,9 @@ import type {
   CompanyEntryVoidPayload,
   CompanyEntryTransitionPayload,
   CompanyReimbursePayload,
+  CompanyWagePayPayload,
+  CompanyPoolPostPayload,
+  CompanyProjectSetPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
   MemberBudgetSetPayload,
@@ -95,6 +98,9 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.GroupRecurringExpenses,
   SyncTable.CompanyEntries,
   SyncTable.CompanyEntryAttachments,
+  SyncTable.CompanyProjects,
+  SyncTable.CompanyProjectMembers,
+  SyncTable.CompanyProjectBudgets,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -1627,6 +1633,14 @@ export interface MirrorCompanyEntry extends MirrorRow {
   readonly to_text?: string | null;
   readonly reimbursement_id?: string | null;
   readonly reimbursement_details?: unknown;
+  readonly project_id?: string | null;
+  readonly funding_manager_id?: string | null;
+  readonly gross_minor?: string | null;
+  readonly claims_minor?: string | null;
+  readonly recovery_minor?: string | null;
+  readonly wage_run_id?: string | null;
+  readonly period_start?: string | null;
+  readonly period_end?: string | null;
   readonly deleted_at: string | null;
   readonly pending?: boolean;
 }
@@ -1714,6 +1728,8 @@ export function materialiseCompanyEntries(
         from_text: data.fromText ?? null,
         to_text: data.toText ?? null,
         reimbursement_id: null,
+        project_id: data.projectId ?? null,
+        funding_manager_id: data.fundingManagerId ?? null,
         occurred_on: data.occurredOn ?? mutation.clientCreatedAt.slice(0, 10),
         direction:
           payload.entryKind === 'reimbursement' ? (data.direction ?? 'company_to_employee') : null,
@@ -1817,6 +1833,80 @@ export function materialiseCompanyEntries(
         created_at: mutation.clientCreatedAt,
         pending: true,
       });
+    } else if (mutation.kind === 'company_pool.post') {
+      const p = mutation.payload as unknown as CompanyPoolPostPayload;
+      if (byId.has(p.entryId)) continue;
+      byId.set(p.entryId, {
+        id: p.entryId,
+        group_id: mutation.groupId,
+        member_id: p.managerId,
+        entry_kind: p.kind,
+        category: null,
+        amount: p.amountMinor,
+        currency: options.currency,
+        calc_mode: 'typed',
+        days: null,
+        rate_minor: null,
+        occurred_on: p.occurredOn,
+        direction: null,
+        status: 'approved',
+        note: p.reason,
+        project_id: p.projectId,
+        funding_manager_id: p.managerId,
+        deleted_at: null,
+        created_by: options.myMemberId ?? null,
+        created_at: mutation.clientCreatedAt,
+        pending: true,
+      });
+    } else if (mutation.kind === 'company_wage.pay') {
+      // Each line is one payment entry; the claims it folds in read as paid at once.
+      const p = mutation.payload as unknown as CompanyWagePayPayload;
+      for (const line of p.lines) {
+        if (byId.has(line.paymentEntryId)) continue;
+        for (const { entryId } of line.claimIds) {
+          const covered = byId.get(entryId);
+          if (covered)
+            byId.set(entryId, {
+              ...covered,
+              status: 'reimbursed',
+              reimbursement_id: line.paymentEntryId,
+              pending: true,
+            });
+        }
+        byId.set(line.paymentEntryId, {
+          id: line.paymentEntryId,
+          group_id: mutation.groupId,
+          member_id: line.memberId,
+          entry_kind: 'wage_payment',
+          category: null,
+          amount: line.expectedNetMinor,
+          currency: options.currency,
+          calc_mode: line.calcMode,
+          days: line.days,
+          rate_minor: line.rateMinor,
+          occurred_on: p.paidOn,
+          direction: null,
+          status: 'approved',
+          note: line.note,
+          project_id: line.projectId,
+          funding_manager_id: line.fundingManagerId,
+          gross_minor: line.expectedGrossMinor,
+          recovery_minor: line.expectedRecoveryMinor,
+          claims_minor: line.claimIds
+            .reduce(
+              (sum, { entryId }) => sum + BigInt(String(byId.get(entryId)?.amount ?? '0')),
+              0n,
+            )
+            .toString(),
+          wage_run_id: p.runId,
+          period_start: p.periodStart,
+          period_end: p.periodEnd,
+          deleted_at: null,
+          created_by: options.myMemberId ?? null,
+          created_at: mutation.clientCreatedAt,
+          pending: true,
+        });
+      }
     }
   }
 
@@ -1997,4 +2087,61 @@ export function mutedGroupIds(
   options: { readonly ownerId: string },
 ): Set<string> {
   return new Set(materialiseGroupMutes(state, queue, options).map((row) => row.group_id));
+}
+
+// ───────────────────────────────────────────────────── company projects ──
+
+export interface MirrorCompanyProject extends MirrorRow {
+  readonly id: string;
+  readonly group_id: string;
+  readonly name: string;
+  readonly archived_at: string | null;
+  readonly deleted_at: string | null;
+  /** Owners only (a separate owner-readable table); null when none or not visible. */
+  readonly budget_minor: string | null;
+  readonly pending?: boolean;
+}
+
+/** The sites of one company with the viewer's queued create/edit on top. Archived ones stay listed. */
+export function materialiseCompanyProjects(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): MirrorCompanyProject[] {
+  const budgets = new Map<string, string>();
+  for (const row of rowsFor(state, SyncTable.CompanyProjectBudgets, options.groupId) as unknown as {
+    project_id: string;
+    budget_minor: string | null;
+    deleted_at?: string | null;
+  }[]) {
+    if (row.budget_minor !== null && !row.deleted_at) budgets.set(row.project_id, row.budget_minor);
+  }
+  const byId = new Map<string, MirrorCompanyProject>();
+  for (const row of rowsFor(
+    state,
+    SyncTable.CompanyProjects,
+    options.groupId,
+  ) as unknown as MirrorCompanyProject[]) {
+    if (row.deleted_at) continue;
+    byId.set(row.id, { ...row, budget_minor: budgets.get(row.id) ?? null });
+  }
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (
+      mutation.groupId !== options.groupId ||
+      mutation.rejection ||
+      mutation.kind !== 'company_project.set'
+    )
+      continue;
+    const p = mutation.payload as unknown as CompanyProjectSetPayload;
+    const existing = byId.get(p.projectId);
+    byId.set(p.projectId, {
+      ...(existing ?? { group_id: options.groupId, deleted_at: null }),
+      id: p.projectId,
+      name: p.name,
+      budget_minor: p.budgetMinor,
+      archived_at: p.archived ? (existing?.archived_at ?? mutation.clientCreatedAt) : null,
+      pending: true,
+    } as MirrorCompanyProject);
+  }
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
 }

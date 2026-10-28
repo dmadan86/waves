@@ -142,7 +142,10 @@ export interface MemberRow {
   group_id: string;
   profile_id: string | null;
   ghost_name: string | null;
-  role: 'admin' | 'member';
+  /** Company groups also have 'manager' (a team lead); everywhere else only admin / member. */
+  role: 'admin' | 'manager' | 'member';
+  /** Company groups: the manager this employee reports to (null = the owners). */
+  manager_id?: string | null;
   /** The UPI-shaped fields. Superseded by the rail pair; still read as a fallback. */
   vpa: string | null;
   /** Which rail this person is paid on here — a `RailId` from `@waves/core`. */

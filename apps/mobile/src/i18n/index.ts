@@ -1300,6 +1300,123 @@ export interface UiStrings {
     kAllowance: string;
     kAdvance: string;
     kWages: string;
+    salaryPayment: string;
+    tabOverview: string;
+    tabEmployees: string;
+    tabManagers: string;
+    tabBudgets: string;
+    tabPayments: string;
+    tabMyTeam: string;
+    countsLine: string;
+    teamLine: string;
+    pillOwner: string;
+    statOwes: string;
+    statPending: string;
+    statPaidMonth: string;
+    statVsLast: string;
+    statAdvances: string;
+    statEmployeesN: string;
+    qaInvite: string;
+    qaHierarchy: string;
+    qaBudgets: string;
+    qaRecord: string;
+    qaAddEmployee: string;
+    qaAdvance: string;
+    qaAsk: string;
+    promoTitle: string;
+    promoBody: string;
+    hierTitle: string;
+    viewAll: string;
+    ownersControl: string;
+    budgetPerMonth: string;
+    teamCount: string;
+    recentTitle: string;
+    recentNone: string;
+    yourBudget: string;
+    givenOut: string;
+    budgetLeft: string;
+    budgetAdjusted: string;
+    askTitle: string;
+    askSent: string;
+    budgetRequests: string;
+    managersNone: string;
+    makeManagerPick: string;
+    paymentsNone: string;
+    yourManager: string;
+    yourOwners: string;
+    wagesThisMonth: string;
+    spentLabel: string;
+    advancesLabel: string;
+    myEntries: string;
+    statusPending: string;
+    statusOkTag: string;
+    statusPaid: string;
+    switchCompany: string;
+    hierarchyTitle: string;
+    reportsToOwners: string;
+    allocateNow: string;
+    menuExport: string;
+    gaveMoney: string;
+    theySpent: string;
+    iSpent: string;
+    paidWagesVerb: string;
+    hasOfYours: string;
+    youOweName: string;
+    youHaveOfCompany: string;
+    shareWhatsApp: string;
+    threadEmpty: string;
+    addPerson: string;
+    moreOptions: string;
+    wageFormula: string;
+    canPayPeople: string;
+    setDailyRate: string;
+    kAllocation: string;
+    kPoolReturn: string;
+    kPoolAdjustment: string;
+    noSite: string;
+    cashLeft: string;
+    cashWithManagers: string;
+    giveCash: string;
+    takeBack: string;
+    correctCash: string;
+    reasonRequired: string;
+    poolReasonHint: string;
+    payWages: string;
+    wagesSheetTitle: string;
+    periodThisWeek: string;
+    periodLastWeek: string;
+    wagesToPay: string;
+    wagesAdvanceCut: string;
+    wagesAdvanceLeft: string;
+    wagesBataIn: string;
+    wagesDays: string;
+    wagesFixedAmount: string;
+    wagesNeedTerms: string;
+    wagesRecord: string;
+    wagesDone: string;
+    wagesNoTeam: string;
+    wagesGross: string;
+    wagesPaidFromPool: string;
+    sites: string;
+    addSite: string;
+    siteName: string;
+    siteBudget: string;
+    siteSpent: string;
+    siteSpentOnly: string;
+    siteLeft: string;
+    siteOver: string;
+    makeManager: string;
+    makeEmployee: string;
+    reportsTo: string;
+    owners: string;
+    manager: string;
+    historyMoves: string;
+    moveTeamFirst: string;
+    yourTeam: string;
+    sitesOf: string;
+    wageGrossLabel: string;
+    wageCutLabel: string;
+    wageNetLabel: string;
     kReimbursement: string;
     kCashReturned: string;
     catFuel: string;
@@ -7418,6 +7535,124 @@ const en: UiStrings = {
     kAllowance: 'Bata (daily allowance)',
     kAdvance: 'Advance given',
     kWages: 'Wages paid',
+    salaryPayment: 'Salary payment',
+    tabOverview: 'Overview',
+    tabEmployees: 'Employees',
+    tabManagers: 'Managers',
+    tabBudgets: 'Budgets',
+    tabPayments: 'Payments',
+    tabMyTeam: 'My team',
+    countsLine: '{e} employees · {m} managers · {o} owners',
+    teamLine: 'Your team · {n} employees',
+    pillOwner: 'Owner',
+    statOwes: 'Company owes employees',
+    statPending: '{n} pending payments',
+    statPaidMonth: 'Total paid this month',
+    statVsLast: '{pct}% vs last month',
+    statAdvances: 'Total advances outstanding',
+    statEmployeesN: '{n} employees',
+    qaInvite: 'Invite employees',
+    qaHierarchy: 'Manage hierarchy',
+    qaBudgets: 'Allocate budgets',
+    qaRecord: 'Record payment',
+    qaAddEmployee: 'Add employee',
+    qaAdvance: 'Give advance',
+    qaAsk: 'Ask owner for budget',
+    promoTitle: 'Invite your team',
+    promoBody:
+      'Add employees, assign managers, and record salaries, advances and payments in one place.',
+    hierTitle: 'Team hierarchy',
+    viewAll: 'View all',
+    ownersControl: '{n} owners · Overall control',
+    budgetPerMonth: 'Budget: {amount} / month',
+    teamCount: '{n} employees',
+    recentTitle: 'Recent activity',
+    recentNone: 'Nothing yet',
+    yourBudget: 'Your budget',
+    givenOut: 'Given out',
+    budgetLeft: 'Left',
+    budgetAdjusted: 'Returned or adjusted {amount}',
+    askTitle: 'Ask owner for budget',
+    askSent: 'Request sent',
+    budgetRequests: 'Budget requests',
+    managersNone: 'No managers yet. Make an employee a manager.',
+    makeManagerPick: 'Make someone a manager',
+    paymentsNone: 'No payments yet',
+    yourManager: 'Your manager: {name}',
+    yourOwners: 'Your company owner',
+    wagesThisMonth: 'Wages paid this month',
+    spentLabel: 'Spent',
+    advancesLabel: 'Advances',
+    myEntries: 'My entries',
+    statusPending: 'Pending',
+    statusOkTag: 'Approved',
+    statusPaid: 'Paid',
+    switchCompany: 'Switch company',
+    hierarchyTitle: 'Hierarchy',
+    reportsToOwners: 'Reports to the owners',
+    allocateNow: 'Allocate budget',
+    menuExport: 'Export',
+    gaveMoney: 'Gave money',
+    theySpent: 'They spent',
+    iSpent: 'I spent',
+    paidWagesVerb: 'Paid wages',
+    hasOfYours: '{name} has {amount} of yours',
+    youOweName: 'You owe {name} {amount}',
+    youHaveOfCompany: 'You have {amount} of company money',
+    shareWhatsApp: 'Send on WhatsApp',
+    threadEmpty: 'Tap + to add the first one',
+    addPerson: 'Add a person',
+    moreOptions: 'More',
+    wageFormula: '{gross} - advance {cut} = {net}',
+    canPayPeople: 'Can pay people',
+    setDailyRate: 'Set daily rate',
+    kAllocation: 'Cash given to manager',
+    kPoolReturn: 'Cash taken back',
+    kPoolAdjustment: 'Correction',
+    noSite: 'No site',
+    cashLeft: 'Cash left',
+    cashWithManagers: 'Cash with managers',
+    giveCash: 'Give cash',
+    takeBack: 'Take back',
+    correctCash: 'Correct',
+    reasonRequired: 'Reason (required)',
+    poolReasonHint: 'Write why. It is kept in the history.',
+    payWages: 'Pay wages',
+    wagesSheetTitle: 'Pay wages',
+    periodThisWeek: 'This week',
+    periodLastWeek: 'Last week',
+    wagesToPay: 'To pay',
+    wagesAdvanceCut: 'Advance cut {amount}',
+    wagesAdvanceLeft: 'Advance left {amount}',
+    wagesBataIn: 'Bata {amount} included',
+    wagesDays: 'Days',
+    wagesFixedAmount: 'Fixed amount',
+    wagesNeedTerms: 'Add days and a rate, or a fixed amount',
+    wagesRecord: 'Pay {n} · {amount}',
+    wagesDone: 'Wages recorded',
+    wagesNoTeam: 'Add people first.',
+    wagesGross: 'Wages {amount}',
+    wagesPaidFromPool: 'Paid from your cash',
+    sites: 'Sites',
+    addSite: 'Add a site',
+    siteName: 'Site name',
+    siteBudget: 'Budget (optional)',
+    siteSpent: '{spent} of {budget}',
+    siteSpentOnly: '{spent} spent',
+    siteLeft: '{amount} left',
+    siteOver: '{amount} over',
+    makeManager: 'Make manager',
+    makeEmployee: 'Make employee',
+    reportsTo: 'Reports to',
+    owners: 'Owners',
+    manager: 'Manager',
+    historyMoves: 'The new manager sees all past entries. The old manager no longer does.',
+    moveTeamFirst: 'Move their team first',
+    yourTeam: 'Your team',
+    sitesOf: 'Sites',
+    wageGrossLabel: 'Wages',
+    wageCutLabel: 'Advance cut',
+    wageNetLabel: 'Paid',
     kReimbursement: 'Reimbursement',
     kCashReturned: 'Cash returned',
     catFuel: 'Fuel',
@@ -12983,6 +13218,124 @@ const ta: UiStrings = {
     kAllowance: 'படி (தினசரி)',
     kAdvance: 'கொடுத்த முன்பணம்',
     kWages: 'செலுத்திய சம்பளம்',
+    salaryPayment: 'சம்பளம் கொடுப்பு',
+    tabOverview: 'கண்ணோட்டம்',
+    tabEmployees: 'ஊழியர்கள்',
+    tabManagers: 'மேலாளர்கள்',
+    tabBudgets: 'பட்ஜெட்',
+    tabPayments: 'கொடுப்பனவுகள்',
+    tabMyTeam: 'என் குழு',
+    countsLine: '{e} ஊழியர்கள் · {m} மேலாளர்கள் · {o} உரிமையாளர்கள்',
+    teamLine: 'உங்கள் குழு · {n} ஊழியர்கள்',
+    pillOwner: 'உரிமையாளர்',
+    statOwes: 'நிறுவனம் ஊழியர்களுக்கு தர வேண்டியது',
+    statPending: '{n} நிலுவை கொடுப்பனவுகள்',
+    statPaidMonth: 'இந்த மாதம் செலுத்தியது',
+    statVsLast: 'கடந்த மாதத்தை விட {pct}%',
+    statAdvances: 'நிலுவை முன்பணம்',
+    statEmployeesN: '{n} ஊழியர்கள்',
+    qaInvite: 'ஊழியர்களை அழை',
+    qaHierarchy: 'படிநிலை',
+    qaBudgets: 'பட்ஜெட் ஒதுக்கு',
+    qaRecord: 'கொடுப்பனவை பதிவு செய்',
+    qaAddEmployee: 'ஊழியரைச் சேர்',
+    qaAdvance: 'முன்பணம் கொடு',
+    qaAsk: 'பட்ஜெட் கேள்',
+    promoTitle: 'உங்கள் குழுவை அழையுங்கள்',
+    promoBody:
+      'ஊழியர்களைச் சேர்த்து, சம்பளம், முன்பணம், கொடுப்பனவுகளை ஒரே இடத்தில் பதிவு செய்யுங்கள்.',
+    hierTitle: 'குழு படிநிலை',
+    viewAll: 'அனைத்தும்',
+    ownersControl: '{n} உரிமையாளர்கள் · முழு கட்டுப்பாடு',
+    budgetPerMonth: 'பட்ஜெட்: {amount} / மாதம்',
+    teamCount: '{n} ஊழியர்கள்',
+    recentTitle: 'சமீபத்திய செயல்பாடு',
+    recentNone: 'இன்னும் இல்லை',
+    yourBudget: 'உங்கள் பட்ஜெட்',
+    givenOut: 'கொடுத்தது',
+    budgetLeft: 'மீதி',
+    budgetAdjusted: 'திருப்பிய / திருத்திய {amount}',
+    askTitle: 'பட்ஜெட் கேள்',
+    askSent: 'கோரிக்கை அனுப்பப்பட்டது',
+    budgetRequests: 'பட்ஜெட் கோரிக்கைகள்',
+    managersNone: 'மேலாளர் இல்லை. ஒரு ஊழியரை மேலாளர் ஆக்குங்கள்.',
+    makeManagerPick: 'ஒருவரை மேலாளர் ஆக்கு',
+    paymentsNone: 'கொடுப்பனவுகள் இல்லை',
+    yourManager: 'உங்கள் மேலாளர்: {name}',
+    yourOwners: 'உங்கள் நிறுவன உரிமையாளர்',
+    wagesThisMonth: 'இந்த மாதம் சம்பளம்',
+    spentLabel: 'செலவு',
+    advancesLabel: 'முன்பணம்',
+    myEntries: 'என் பதிவுகள்',
+    statusPending: 'நிலுவை',
+    statusOkTag: 'ஒப்புதல்',
+    statusPaid: 'செலுத்தப்பட்டது',
+    switchCompany: 'நிறுவனத்தை மாற்று',
+    hierarchyTitle: 'படிநிலை',
+    reportsToOwners: 'உரிமையாளர்களிடம்',
+    allocateNow: 'பட்ஜெட் ஒதுக்கு',
+    menuExport: 'ஏற்றுமதி',
+    gaveMoney: 'பணம் கொடுத்தது',
+    theySpent: 'அவர்கள் செலவு',
+    iSpent: 'நான் செலவு செய்தேன்',
+    paidWagesVerb: 'சம்பளம் கொடுத்தது',
+    hasOfYours: '{name} இடம் உங்கள் {amount} உள்ளது',
+    youOweName: 'நீங்கள் {name} க்கு {amount} தர வேண்டும்',
+    youHaveOfCompany: 'உங்களிடம் நிறுவன பணம் {amount} உள்ளது',
+    shareWhatsApp: 'WhatsApp இல் அனுப்பு',
+    threadEmpty: 'முதலில் சேர்க்க + அழுத்துங்கள்',
+    addPerson: 'நபரைச் சேர்',
+    moreOptions: 'மேலும்',
+    wageFormula: '{gross} - முன்பணம் {cut} = {net}',
+    canPayPeople: 'ஆட்களுக்கு பணம் தரலாம்',
+    setDailyRate: 'தினசரி விகிதம் அமை',
+    kAllocation: 'மேலாளருக்கு பணம்',
+    kPoolReturn: 'திரும்பப் பெற்ற பணம்',
+    kPoolAdjustment: 'திருத்தம்',
+    noSite: 'தளம் இல்லை',
+    cashLeft: 'மீதமுள்ள பணம்',
+    cashWithManagers: 'மேலாளர்களிடம் உள்ள பணம்',
+    giveCash: 'பணம் கொடு',
+    takeBack: 'திரும்பப் பெறு',
+    correctCash: 'திருத்து',
+    reasonRequired: 'காரணம் (அவசியம்)',
+    poolReasonHint: 'ஏன் என்று எழுதுங்கள். வரலாற்றில் சேமிக்கப்படும்.',
+    payWages: 'சம்பளம் கொடு',
+    wagesSheetTitle: 'சம்பளம் கொடு',
+    periodThisWeek: 'இந்த வாரம்',
+    periodLastWeek: 'கடந்த வாரம்',
+    wagesToPay: 'செலுத்த',
+    wagesAdvanceCut: 'முன்பணம் கழிவு {amount}',
+    wagesAdvanceLeft: 'மீதி முன்பணம் {amount}',
+    wagesBataIn: 'பத்தா {amount} சேர்க்கப்பட்டது',
+    wagesDays: 'நாட்கள்',
+    wagesFixedAmount: 'நிலையான தொகை',
+    wagesNeedTerms: 'நாட்கள் மற்றும் விகிதம் அல்லது நிலையான தொகை சேர்க்கவும்',
+    wagesRecord: '{n} பேருக்கு · {amount}',
+    wagesDone: 'சம்பளம் பதிவானது',
+    wagesNoTeam: 'முதலில் ஆட்களைச் சேர்க்கவும்.',
+    wagesGross: 'சம்பளம் {amount}',
+    wagesPaidFromPool: 'உங்கள் பணத்தில் இருந்து',
+    sites: 'தளங்கள்',
+    addSite: 'தளம் சேர்',
+    siteName: 'தளத்தின் பெயர்',
+    siteBudget: 'பட்ஜெட் (விருப்பம்)',
+    siteSpent: '{budget} இல் {spent}',
+    siteSpentOnly: '{spent} செலவு',
+    siteLeft: '{amount} மீதி',
+    siteOver: '{amount} அதிகம்',
+    makeManager: 'மேலாளர் ஆக்கு',
+    makeEmployee: 'ஊழியர் ஆக்கு',
+    reportsTo: 'யாரிடம் பணி',
+    owners: 'உரிமையாளர்கள்',
+    manager: 'மேலாளர்',
+    historyMoves: 'புதிய மேலாளர் முந்தைய பதிவுகளைப் பார்ப்பார். பழைய மேலாளர் பார்க்க முடியாது.',
+    moveTeamFirst: 'முதலில் அவர் குழுவை மாற்றுங்கள்',
+    yourTeam: 'உங்கள் குழு',
+    sitesOf: 'தளங்கள்',
+    wageGrossLabel: 'சம்பளம்',
+    wageCutLabel: 'முன்பணம் கழிவு',
+    wageNetLabel: 'செலுத்தியது',
     kReimbursement: 'திரும்பச் செலுத்தல்',
     kCashReturned: 'பணம் திருப்பியது',
     catFuel: 'எரிபொருள்',
@@ -18713,6 +19066,123 @@ const hi: UiStrings = {
     kAllowance: 'भत्ता (दैनिक)',
     kAdvance: 'दिया गया अग्रिम',
     kWages: 'दिया गया वेतन',
+    salaryPayment: 'वेतन भुगतान',
+    tabOverview: 'अवलोकन',
+    tabEmployees: 'कर्मचारी',
+    tabManagers: 'मैनेजर',
+    tabBudgets: 'बजट',
+    tabPayments: 'भुगतान',
+    tabMyTeam: 'मेरी टीम',
+    countsLine: '{e} कर्मचारी · {m} मैनेजर · {o} मालिक',
+    teamLine: 'आपकी टीम · {n} कर्मचारी',
+    pillOwner: 'मालिक',
+    statOwes: 'कंपनी पर कर्मचारियों का बकाया',
+    statPending: '{n} लंबित भुगतान',
+    statPaidMonth: 'इस महीने कुल भुगतान',
+    statVsLast: 'पिछले महीने से {pct}%',
+    statAdvances: 'बकाया एडवांस',
+    statEmployeesN: '{n} कर्मचारी',
+    qaInvite: 'कर्मचारियों को बुलाएँ',
+    qaHierarchy: 'हाइरार्की संभालें',
+    qaBudgets: 'बजट दें',
+    qaRecord: 'भुगतान दर्ज करें',
+    qaAddEmployee: 'कर्मचारी जोड़ें',
+    qaAdvance: 'एडवांस दें',
+    qaAsk: 'मालिक से बजट माँगें',
+    promoTitle: 'अपनी टीम को बुलाएँ',
+    promoBody: 'कर्मचारी जोड़ें, मैनेजर तय करें और वेतन, एडवांस व भुगतान एक जगह दर्ज करें।',
+    hierTitle: 'टीम हाइरार्की',
+    viewAll: 'सभी देखें',
+    ownersControl: '{n} मालिक · पूरा नियंत्रण',
+    budgetPerMonth: 'बजट: {amount} / माह',
+    teamCount: '{n} कर्मचारी',
+    recentTitle: 'हाल की गतिविधि',
+    recentNone: 'अभी कुछ नहीं',
+    yourBudget: 'आपका बजट',
+    givenOut: 'दिया गया',
+    budgetLeft: 'बचा',
+    budgetAdjusted: 'लौटाया / सुधारा {amount}',
+    askTitle: 'मालिक से बजट माँगें',
+    askSent: 'अनुरोध भेजा गया',
+    budgetRequests: 'बजट अनुरोध',
+    managersNone: 'अभी कोई मैनेजर नहीं। किसी कर्मचारी को मैनेजर बनाएँ।',
+    makeManagerPick: 'किसी को मैनेजर बनाएँ',
+    paymentsNone: 'अभी कोई भुगतान नहीं',
+    yourManager: 'आपके मैनेजर: {name}',
+    yourOwners: 'आपकी कंपनी के मालिक',
+    wagesThisMonth: 'इस महीने का वेतन',
+    spentLabel: 'खर्च',
+    advancesLabel: 'एडवांस',
+    myEntries: 'मेरी प्रविष्टियाँ',
+    statusPending: 'लंबित',
+    statusOkTag: 'स्वीकृत',
+    statusPaid: 'चुकाया',
+    switchCompany: 'कंपनी बदलें',
+    hierarchyTitle: 'हाइरार्की',
+    reportsToOwners: 'मालिकों को रिपोर्ट',
+    allocateNow: 'बजट आवंटित करें',
+    menuExport: 'एक्सपोर्ट',
+    gaveMoney: 'पैसे दिए',
+    theySpent: 'उन्होंने खर्च किया',
+    iSpent: 'मैंने खर्च किया',
+    paidWagesVerb: 'वेतन दिया',
+    hasOfYours: '{name} के पास आपके {amount} हैं',
+    youOweName: 'आप पर {name} के {amount} बाकी',
+    youHaveOfCompany: 'आपके पास कंपनी के {amount} हैं',
+    shareWhatsApp: 'WhatsApp पर भेजें',
+    threadEmpty: 'पहली प्रविष्टि के लिए + दबाएँ',
+    addPerson: 'व्यक्ति जोड़ें',
+    moreOptions: 'और',
+    wageFormula: '{gross} - एडवांस {cut} = {net}',
+    canPayPeople: 'लोगों को भुगतान कर सकते हैं',
+    setDailyRate: 'दैनिक दर तय करें',
+    kAllocation: 'मैनेजर को नकद',
+    kPoolReturn: 'वापस लिया नकद',
+    kPoolAdjustment: 'सुधार',
+    noSite: 'कोई साइट नहीं',
+    cashLeft: 'बचा नकद',
+    cashWithManagers: 'मैनेजरों के पास नकद',
+    giveCash: 'नकद दें',
+    takeBack: 'वापस लें',
+    correctCash: 'सुधारें',
+    reasonRequired: 'कारण (ज़रूरी)',
+    poolReasonHint: 'कारण लिखें। यह इतिहास में रहेगा।',
+    payWages: 'वेतन दें',
+    wagesSheetTitle: 'वेतन दें',
+    periodThisWeek: 'इस सप्ताह',
+    periodLastWeek: 'पिछला सप्ताह',
+    wagesToPay: 'देना है',
+    wagesAdvanceCut: 'एडवांस कटा {amount}',
+    wagesAdvanceLeft: 'बचा एडवांस {amount}',
+    wagesBataIn: 'बत्ता {amount} शामिल',
+    wagesDays: 'दिन',
+    wagesFixedAmount: 'तय राशि',
+    wagesNeedTerms: 'दिन और दर, या तय राशि जोड़ें',
+    wagesRecord: '{n} को दें · {amount}',
+    wagesDone: 'वेतन दर्ज हुआ',
+    wagesNoTeam: 'पहले लोगों को जोड़ें।',
+    wagesGross: 'वेतन {amount}',
+    wagesPaidFromPool: 'आपके नकद से',
+    sites: 'साइटें',
+    addSite: 'साइट जोड़ें',
+    siteName: 'साइट का नाम',
+    siteBudget: 'बजट (वैकल्पिक)',
+    siteSpent: '{budget} में से {spent}',
+    siteSpentOnly: '{spent} खर्च',
+    siteLeft: '{amount} बचा',
+    siteOver: '{amount} ज़्यादा',
+    makeManager: 'मैनेजर बनाएँ',
+    makeEmployee: 'कर्मचारी बनाएँ',
+    reportsTo: 'किसे रिपोर्ट',
+    owners: 'मालिक',
+    manager: 'मैनेजर',
+    historyMoves: 'नया मैनेजर सभी पुरानी प्रविष्टियाँ देखेगा। पुराना मैनेजर नहीं देखेगा।',
+    moveTeamFirst: 'पहले उनकी टीम बदलें',
+    yourTeam: 'आपकी टीम',
+    sitesOf: 'साइटें',
+    wageGrossLabel: 'वेतन',
+    wageCutLabel: 'एडवांस कटौती',
+    wageNetLabel: 'दिया',
     kReimbursement: 'भरपाई',
     kCashReturned: 'नकद लौटाया',
     catFuel: 'ईंधन',
@@ -24333,6 +24803,123 @@ const ar: UiStrings = {
     kAllowance: 'بدل (يومي)',
     kAdvance: 'سلفة مُعطاة',
     kWages: 'أجور مدفوعة',
+    salaryPayment: 'دفعة راتب',
+    tabOverview: 'نظرة عامة',
+    tabEmployees: 'الموظفون',
+    tabManagers: 'المديرون',
+    tabBudgets: 'الميزانيات',
+    tabPayments: 'المدفوعات',
+    tabMyTeam: 'فريقي',
+    countsLine: '{e} موظفين · {m} مديرين · {o} مالكين',
+    teamLine: 'فريقك · {n} موظفين',
+    pillOwner: 'مالك',
+    statOwes: 'المستحق للموظفين',
+    statPending: '{n} مدفوعات معلقة',
+    statPaidMonth: 'إجمالي المدفوع هذا الشهر',
+    statVsLast: '{pct}% مقارنة بالشهر الماضي',
+    statAdvances: 'السلف المستحقة',
+    statEmployeesN: '{n} موظفين',
+    qaInvite: 'ادعُ الموظفين',
+    qaHierarchy: 'إدارة الهيكل',
+    qaBudgets: 'وزّع الميزانيات',
+    qaRecord: 'سجّل دفعة',
+    qaAddEmployee: 'أضف موظفاً',
+    qaAdvance: 'أعطِ سلفة',
+    qaAsk: 'اطلب ميزانية',
+    promoTitle: 'ادعُ فريقك',
+    promoBody: 'أضف الموظفين وعيّن المديرين وسجّل الرواتب والسلف والمدفوعات في مكان واحد.',
+    hierTitle: 'هيكل الفريق',
+    viewAll: 'عرض الكل',
+    ownersControl: '{n} مالكين · تحكم كامل',
+    budgetPerMonth: 'الميزانية: {amount} / شهر',
+    teamCount: '{n} موظفين',
+    recentTitle: 'النشاط الأخير',
+    recentNone: 'لا شيء بعد',
+    yourBudget: 'ميزانيتك',
+    givenOut: 'المُعطى',
+    budgetLeft: 'المتبقي',
+    budgetAdjusted: 'مُسترجع أو مُعدّل {amount}',
+    askTitle: 'اطلب ميزانية من المالك',
+    askSent: 'تم إرسال الطلب',
+    budgetRequests: 'طلبات الميزانية',
+    managersNone: 'لا مديرين بعد. اجعل موظفاً مديراً.',
+    makeManagerPick: 'اجعل شخصاً مديراً',
+    paymentsNone: 'لا مدفوعات بعد',
+    yourManager: 'مديرك: {name}',
+    yourOwners: 'مالك الشركة',
+    wagesThisMonth: 'أجور هذا الشهر',
+    spentLabel: 'المُنفق',
+    advancesLabel: 'السلف',
+    myEntries: 'سجلاتي',
+    statusPending: 'معلق',
+    statusOkTag: 'موافق عليه',
+    statusPaid: 'مدفوع',
+    switchCompany: 'تبديل الشركة',
+    hierarchyTitle: 'الهيكل',
+    reportsToOwners: 'يتبع المالكين',
+    allocateNow: 'خصّص ميزانية',
+    menuExport: 'تصدير',
+    gaveMoney: 'أعطيت مالاً',
+    theySpent: 'أنفقوا',
+    iSpent: 'أنفقت',
+    paidWagesVerb: 'دفعت الأجور',
+    hasOfYours: 'لدى {name} مبلغ {amount} منك',
+    youOweName: 'عليك لـ {name} مبلغ {amount}',
+    youHaveOfCompany: 'لديك {amount} من مال الشركة',
+    shareWhatsApp: 'أرسل عبر واتساب',
+    threadEmpty: 'اضغط + لإضافة الأول',
+    addPerson: 'أضف شخصاً',
+    moreOptions: 'المزيد',
+    wageFormula: '{gross} - سلفة {cut} = {net}',
+    canPayPeople: 'يمكنه الدفع للناس',
+    setDailyRate: 'حدد الأجر اليومي',
+    kAllocation: 'نقد للمدير',
+    kPoolReturn: 'نقد مسترجع',
+    kPoolAdjustment: 'تصحيح',
+    noSite: 'بدون موقع',
+    cashLeft: 'النقد المتبقي',
+    cashWithManagers: 'النقد لدى المديرين',
+    giveCash: 'أعطِ نقداً',
+    takeBack: 'استرجع',
+    correctCash: 'صحّح',
+    reasonRequired: 'السبب (مطلوب)',
+    poolReasonHint: 'اكتب السبب. سيبقى في السجل.',
+    payWages: 'ادفع الأجور',
+    wagesSheetTitle: 'ادفع الأجور',
+    periodThisWeek: 'هذا الأسبوع',
+    periodLastWeek: 'الأسبوع الماضي',
+    wagesToPay: 'المستحق',
+    wagesAdvanceCut: 'خصم السلفة {amount}',
+    wagesAdvanceLeft: 'المتبقي من السلفة {amount}',
+    wagesBataIn: 'البدل {amount} مشمول',
+    wagesDays: 'الأيام',
+    wagesFixedAmount: 'مبلغ ثابت',
+    wagesNeedTerms: 'أضف الأيام والسعر أو مبلغاً ثابتاً',
+    wagesRecord: 'ادفع لـ {n} · {amount}',
+    wagesDone: 'تم تسجيل الأجور',
+    wagesNoTeam: 'أضف أشخاصاً أولاً.',
+    wagesGross: 'الأجر {amount}',
+    wagesPaidFromPool: 'من نقدك',
+    sites: 'المواقع',
+    addSite: 'أضف موقعاً',
+    siteName: 'اسم الموقع',
+    siteBudget: 'الميزانية (اختياري)',
+    siteSpent: '{spent} من {budget}',
+    siteSpentOnly: 'أُنفق {spent}',
+    siteLeft: 'المتبقي {amount}',
+    siteOver: 'تجاوز بـ {amount}',
+    makeManager: 'اجعله مديراً',
+    makeEmployee: 'اجعله موظفاً',
+    reportsTo: 'يتبع',
+    owners: 'المالكون',
+    manager: 'مدير',
+    historyMoves: 'سيرى المدير الجديد كل السجل السابق ولن يراه المدير القديم.',
+    moveTeamFirst: 'انقل فريقه أولاً',
+    yourTeam: 'فريقك',
+    sitesOf: 'المواقع',
+    wageGrossLabel: 'الأجور',
+    wageCutLabel: 'خصم السلفة',
+    wageNetLabel: 'المدفوع',
     kReimbursement: 'سداد',
     kCashReturned: 'نقد معاد',
     catFuel: 'وقود',

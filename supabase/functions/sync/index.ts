@@ -95,6 +95,12 @@ type MutationKind =
   | 'company.policies_set'
   | 'company.mileage_rate_set'
   | 'company.reimburse'
+  | 'company_member.add'
+  | 'company_member.assign'
+  | 'company_member.projects_set'
+  | 'company_project.set'
+  | 'company_pool.post'
+  | 'company_wage.pay'
   // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
@@ -319,6 +325,11 @@ const GROUP_TABLES = [
   // reimbursement_id, reimbursement_details (plus existing rate_minor/calc_mode).
   ['company_entries', '*'],
   ['company_entry_attachments', '*'],
+  // Phase 4: sites. Names reach every member who may see the site; the budget lives in an
+  // owner-only table so a manager or employee is never sent it.
+  ['company_projects', '*'],
+  ['company_project_members', '*'],
+  ['company_project_budgets', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -941,6 +952,67 @@ export class SyncSession {
             'expectedAmountMinor',
           ),
           p_note: optionalText(mutation.payload.note, 'note'),
+        });
+      case 'company_member.add':
+        return await this.rpcAsCaller('waves_company_member_add', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_data: companyMemberData(mutation.payload),
+        });
+      case 'company_member.assign':
+        return await this.rpcAsCaller('waves_company_member_assign', {
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_manager_id: companyUuid(mutation.payload.managerId, 'managerId', true),
+          p_reason: companyReason(mutation.payload.reason, 'reason', false),
+        });
+      case 'company_member.projects_set':
+        return await this.rpcAsCaller('waves_company_member_projects_set', {
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_project_ids: companyUuidList(mutation.payload.projectIds, 'projectIds'),
+        });
+      case 'company_project.set':
+        return await this.rpcAsCaller('waves_company_project_set', {
+          p_group_id: mutation.groupId,
+          p_project_id: companyUuid(mutation.payload.projectId, 'projectId'),
+          p_data: {
+            name: companyReason(mutation.payload.name, 'name', true),
+            budgetMinor: companyDecimal(mutation.payload.budgetMinor, 'budgetMinor', true),
+            archived: mutation.payload.archived === true,
+          },
+        });
+      case 'company_pool.post': {
+        const kind = mutation.payload.kind;
+        if (
+          kind !== 'allocation' &&
+          kind !== 'pool_return' &&
+          kind !== 'pool_adjustment' &&
+          kind !== 'pool_request'
+        )
+          companyInvalid('kind');
+        return await this.rpcAsCaller('waves_company_pool_post', {
+          p_group_id: mutation.groupId,
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_manager_id: companyUuid(mutation.payload.managerId, 'managerId'),
+          p_kind: kind,
+          // An adjustment may be negative, so it carries an optional leading minus.
+          p_amount_minor: companySignedDecimal(mutation.payload.amountMinor, 'amountMinor'),
+          p_project_id: companyUuid(mutation.payload.projectId, 'projectId', true),
+          p_occurred_on: companyDate(mutation.payload.occurredOn, 'occurredOn'),
+          p_reason: companyReason(
+            mutation.payload.reason,
+            'reason',
+            kind === 'pool_return' || kind === 'pool_adjustment',
+          ),
+        });
+      }
+      case 'company_wage.pay':
+        return await this.rpcAsCaller('waves_company_wage_pay', {
+          p_group_id: mutation.groupId,
+          p_run_id: companyUuid(mutation.payload.runId, 'runId'),
+          p_period_start: companyDate(mutation.payload.periodStart, 'periodStart'),
+          p_period_end: companyDate(mutation.payload.periodEnd, 'periodEnd'),
+          p_paid_on: companyDate(mutation.payload.paidOn, 'paidOn'),
+          p_lines: companyWageLines(mutation.payload.lines),
         });
       case 'company_member.rate_set':
         return await this.rpcAsCaller('waves_company_member_rate_set', {
@@ -2225,6 +2297,8 @@ function companyData(value: unknown): Record<string, unknown> {
     'distanceKm',
     'fromText',
     'toText',
+    'projectId',
+    'fundingManagerId',
   ];
   for (const [key, field] of Object.entries(data)) {
     if (
@@ -2236,6 +2310,9 @@ function companyData(value: unknown): Record<string, unknown> {
     ) {
       throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${key}`);
     }
+  }
+  for (const key of ['projectId', 'fundingManagerId']) {
+    if (data[key] !== undefined && data[key] !== null) companyUuid(data[key], key);
   }
   for (const key of ['amount', 'rateMinor', 'gstAmountMinor']) {
     if (data[key] !== undefined && data[key] !== null) companyDecimal(data[key], key);
@@ -2253,6 +2330,60 @@ function requireInteger(value: unknown, field: string): number {
   return value;
 }
 
+function companyUuidList(value: unknown, field: string): string[] {
+  if (!Array.isArray(value) || value.length > 200) companyInvalid(field);
+  return value.map((v) => companyUuid(v, field)!);
+}
+function companySignedDecimal(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !/^-?\d{1,19}$/.test(value)) companyInvalid(field);
+  if (BigInt(value) > 9223372036854775807n || BigInt(value) < -9223372036854775807n)
+    companyInvalid(field);
+  return value as string;
+}
+/** Trimmed text of 1-500 characters (a reason or a name); optional ones may be null. */
+function companyReason(value: unknown, field: string, required: boolean): string | null {
+  if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) {
+    if (required) companyInvalid(field);
+    return null;
+  }
+  if (typeof value !== 'string' || value.trim().length > 500) companyInvalid(field);
+  return (value as string).trim();
+}
+function companyMemberData(p: Record<string, unknown>): Record<string, unknown> {
+  return {
+    name: companyReason(p.name, 'name', true),
+    managerId: companyUuid(p.managerId ?? null, 'managerId', true),
+    projectIds: companyUuidList(p.projectIds ?? [], 'projectIds'),
+  };
+}
+function companyWageLines(value: unknown): unknown[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 500) companyInvalid('lines');
+  const modes = ['typed', 'days_rate', 'fixed_weekly', 'fixed_monthly'];
+  const seen = new Set<string>();
+  return value.map((raw) => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) companyInvalid('lines');
+    const l = raw as Record<string, unknown>;
+    if (!modes.includes(l.calcMode as string)) companyInvalid('calcMode');
+    const id = companyUuid(l.paymentEntryId, 'paymentEntryId')!;
+    if (seen.has(id.toLowerCase())) companyInvalid('lines');
+    seen.add(id.toLowerCase());
+    return {
+      paymentEntryId: id,
+      memberId: companyUuid(l.memberId, 'memberId'),
+      projectId: companyUuid(l.projectId ?? null, 'projectId', true),
+      fundingManagerId: companyUuid(l.fundingManagerId ?? null, 'fundingManagerId', true),
+      calcMode: l.calcMode,
+      days: l.days == null ? null : companyDecimal(l.days, 'days', false, true),
+      rateMinor: l.rateMinor == null ? null : companyDecimal(l.rateMinor, 'rateMinor'),
+      fixedMinor: l.fixedMinor == null ? null : companyDecimal(l.fixedMinor, 'fixedMinor'),
+      claimIds: companySelection(l.claimIds, 'claimIds', false),
+      expectedGrossMinor: companyDecimal(l.expectedGrossMinor, 'expectedGrossMinor'),
+      expectedRecoveryMinor: companyDecimal(l.expectedRecoveryMinor, 'expectedRecoveryMinor'),
+      expectedNetMinor: companyDecimal(l.expectedNetMinor, 'expectedNetMinor'),
+      note: companyReason(l.note ?? null, 'note', false),
+    };
+  });
+}
 function companyInvalid(field: string): never {
   throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${field}`);
 }

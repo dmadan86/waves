@@ -207,7 +207,7 @@ export default function GroupExportScreen() {
             someone: t.misc.someone,
             leftLabel: t.misc.memberLeft,
           }),
-          role: member.role,
+          role: member.role === 'admin' ? ('admin' as const) : ('member' as const),
           isGhost: isGhost(member),
           left: Boolean(member.left_at),
         })),

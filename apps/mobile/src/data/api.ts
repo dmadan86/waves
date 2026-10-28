@@ -906,7 +906,10 @@ export async function updateMember(
  * safety live in the RPC — a role is never a column a client writes, so this
  * cannot go through `updateMember` (a trigger would reject it).
  */
-export async function setMemberRole(memberId: string, role: 'admin' | 'member'): Promise<void> {
+export async function setMemberRole(
+  memberId: string,
+  role: 'admin' | 'manager' | 'member',
+): Promise<void> {
   const { error } = await backend.rpc('waves_set_member_role', {
     p_member_id: memberId,
     p_role: role,
