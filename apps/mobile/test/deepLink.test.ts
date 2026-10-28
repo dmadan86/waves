@@ -97,7 +97,7 @@ describe('back from a deep-linked expense', () => {
 });
 
 describe('entry-point targets', () => {
-  it.each([
+  it.each<[string, string, string[]]>([
     ['notification expense', '/group/g1/expense/e1', ['/group/g1', '/group/g1/expense/e1']],
     ['watch/widget add-expense', '/group/g1/add-expense', ['/group/g1', '/group/g1/add-expense']],
     ['shortcut scan', '/capture?scan=1', ['/capture?scan=1']],

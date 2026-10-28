@@ -86,7 +86,7 @@ let external: { path: string; at: number } | null = null;
 const EXTERNAL_TTL_MS = 15_000;
 
 export function noteExternalLink(url: string, now = Date.now()): void {
-  const path = url.replace(/^waves:\/\//i, '/');
+  const path = url.replace(/^waves:\/\/\/?/i, '/');
   // Only group screens have a parent to add; re-seating a scan link would replay its one-shot nonce.
   external = path.startsWith('/group/') ? { path, at: now } : null;
 }

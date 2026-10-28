@@ -443,7 +443,9 @@ function PushRouting() {
   // A link the OS delivered arrives as a one-screen stack; give it its parents.
   useEffect(() => {
     const target = takeExternalLink(pathname);
-    if (target && signedIn.current) openDeepLink(router, target);
+    if (!target) return;
+    if (signedIn.current) openDeepLink(router, target);
+    else void queueDeepLink(AsyncStorage, target);
   }, [pathname, router]);
 
   // A tap made while signed out waits here; open it once there is a session.
