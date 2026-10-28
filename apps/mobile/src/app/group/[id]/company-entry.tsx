@@ -73,7 +73,8 @@ export default function CompanyEntryScreen() {
     id,
     member: memberParam,
     intro,
-  } = useLocalSearchParams<{ id: string; member?: string; intro?: string }>();
+    kind: kindParam,
+  } = useLocalSearchParams<{ id: string; member?: string; intro?: string; kind?: string }>();
   const groupId = id ?? '';
   const theme = useTheme();
   const clearance = useBottomClearance();
@@ -98,6 +99,7 @@ export default function CompanyEntryScreen() {
   // Inside a person's thread the first verb is giving money; anywhere else it is spending.
   const kind: CompanyEntryKind =
     pickedKind ??
+    (moneyKinds && kindParam === 'advance' ? 'advance' : null) ??
     (moneyKinds && memberParam && memberParam !== view.me?.id ? 'advance' : 'expense');
   const tags = useCompanyTags(groupId, view);
   // Nothing tapped yet: the tag this person uses most is already chosen.
@@ -216,6 +218,7 @@ export default function CompanyEntryScreen() {
     allocation: t.company.kAllocation,
     pool_return: t.company.kPoolReturn,
     pool_adjustment: t.company.kPoolAdjustment,
+    pool_request: t.company.askTitle,
     wage_payment: t.company.kWages,
   };
 

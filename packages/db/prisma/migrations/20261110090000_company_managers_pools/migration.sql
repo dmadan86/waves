@@ -63,7 +63,7 @@ DO $$ DECLARE c record; BEGIN
  END LOOP;
 END $$;
 ALTER TABLE public.company_entries
- ADD CONSTRAINT company_entries_kind_v4 CHECK(entry_kind IN ('expense','advance','allowance','wages','reimbursement','allocation','pool_return','pool_adjustment','wage_payment')),
+ ADD CONSTRAINT company_entries_kind_v4 CHECK(entry_kind IN ('expense','advance','allowance','wages','reimbursement','allocation','pool_return','pool_adjustment','pool_request','wage_payment')),
  ADD CONSTRAINT company_entries_amount_v4 CHECK(amount>0 OR (amount=0 AND (calc_mode IN ('days_rate','distance_rate') OR reimbursement_details IS NOT NULL OR entry_kind='wage_payment')) OR (entry_kind='pool_adjustment' AND amount<>0)),
  ADD CONSTRAINT company_entries_mode_v4 CHECK(calc_mode IN ('typed','days_rate','fixed_weekly','fixed_monthly','distance_rate')),
  ADD CONSTRAINT company_entries_rate_v4 CHECK(
@@ -71,7 +71,7 @@ ALTER TABLE public.company_entries
  (calc_mode='distance_rate' AND entry_kind='expense' AND category IN ('fuel','transport') AND category IS NOT NULL AND days IS NULL AND distance_km>0 AND distance_km IS NOT NULL AND rate_minor>=0 AND rate_minor IS NOT NULL) OR
  (calc_mode IN ('typed','fixed_weekly','fixed_monthly') AND days IS NULL AND rate_minor IS NULL AND distance_km IS NULL AND (calc_mode='typed' OR entry_kind IN ('wages','wage_payment')))),
  ADD CONSTRAINT company_pool_reason CHECK(entry_kind NOT IN ('pool_return','pool_adjustment') OR (note IS NOT NULL AND note=btrim(note) AND length(note) BETWEEN 1 AND 500)),
- ADD CONSTRAINT company_pool_shape CHECK(entry_kind NOT IN ('allocation','pool_return','pool_adjustment') OR (funding_manager_id IS NOT NULL AND member_id=funding_manager_id AND calc_mode='typed')),
+ ADD CONSTRAINT company_pool_shape CHECK(entry_kind NOT IN ('allocation','pool_return','pool_adjustment','pool_request') OR (funding_manager_id IS NOT NULL AND member_id=funding_manager_id AND calc_mode='typed')),
  ADD CONSTRAINT company_wage_shape CHECK((entry_kind='wage_payment' AND wage_run_id IS NOT NULL AND gross_minor IS NOT NULL AND claims_minor IS NOT NULL AND recovery_minor IS NOT NULL AND gross_minor>=claims_minor AND claims_minor>=0 AND recovery_minor BETWEEN 0 AND gross_minor AND amount=gross_minor-recovery_minor AND period_start IS NOT NULL AND period_end>=period_start) OR
  (entry_kind<>'wage_payment' AND wage_run_id IS NULL AND gross_minor IS NULL AND claims_minor IS NULL AND recovery_minor IS NULL AND period_start IS NULL AND period_end IS NULL));
 CREATE INDEX company_entries_funding_idx ON public.company_entries(group_id,funding_manager_id,updated_seq);
@@ -310,7 +310,7 @@ BEGIN
  r:=public.waves_company_entry_lock(p_entry_id);
  v_me := public.waves_company_actor(r.group_id);
  PERFORM 1 FROM public.groups WHERE id=r.group_id FOR UPDATE;
- IF r.entry_kind IN ('allocation','pool_return','pool_adjustment','wage_payment') THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
+ IF r.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
  IF r.id IS NULL OR r.deleted_at IS NOT NULL OR (NOT public.is_group_admin(r.group_id) AND NOT public.waves_company_team(r.group_id,r.member_id) AND
   (r.member_id <> v_me OR r.created_by <> v_me OR r.entry_kind NOT IN ('expense','allowance'))) THEN
   RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE = 'insufficient_privilege';
@@ -342,7 +342,7 @@ BEGIN
  r:=public.waves_company_entry_lock(p_entry_id);
  v_me := public.waves_company_actor(r.group_id);
  PERFORM 1 FROM public.groups WHERE id=r.group_id FOR UPDATE;
- IF r.entry_kind IN ('allocation','pool_return','pool_adjustment','wage_payment') THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
+ IF r.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
  IF r.id IS NULL OR (NOT public.is_group_admin(r.group_id) AND NOT public.waves_company_team(r.group_id,r.member_id) AND
   (r.member_id <> v_me OR r.created_by <> v_me OR r.entry_kind NOT IN ('expense','allowance'))) THEN
   RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE = 'insufficient_privilege';
@@ -406,7 +406,7 @@ CREATE OR REPLACE FUNCTION public.waves_company_review_guard() RETURNS trigger
  LANGUAGE plpgsql  SECURITY DEFINER SET search_path TO 'public', 'pg_temp' AS $fn$
 BEGIN
  IF NEW.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM public.groups WHERE id=NEW.group_id AND deleted_at IS NULL) THEN RAISE EXCEPTION 'GROUP_DELETED'; END IF;
- IF NEW.entry_kind IN ('allocation','pool_return','pool_adjustment','wage_payment') OR (NEW.entry_kind IN ('advance','reimbursement') AND EXISTS(SELECT 1 FROM public.group_members WHERE id=NEW.created_by AND role::text='manager')) THEN NEW.status:='approved'; RETURN NEW; END IF;
+ IF NEW.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') OR (NEW.entry_kind IN ('advance','reimbursement') AND EXISTS(SELECT 1 FROM public.group_members WHERE id=NEW.created_by AND role::text='manager')) THEN NEW.status:='approved'; RETURN NEW; END IF;
  IF TG_OP='INSERT' THEN
   IF (SELECT company_approvals_enabled FROM public.groups WHERE id=NEW.group_id) THEN NEW.status:='submitted'; END IF;
  ELSIF NEW.deleted_at IS NULL AND
@@ -1520,7 +1520,7 @@ CREATE TRIGGER company_phase4_member_guard BEFORE INSERT OR UPDATE ON public.gro
 CREATE FUNCTION public.waves_company_phase4_entry_guard() RETURNS trigger
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 BEGIN
- IF TG_OP<>'INSERT' AND OLD.entry_kind IN ('allocation','pool_return','pool_adjustment','wage_payment') THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
+ IF TG_OP<>'INSERT' AND OLD.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
  IF TG_OP='DELETE' THEN RETURN OLD; END IF;
  IF TG_OP='UPDATE' AND (NEW.funding_manager_id IS DISTINCT FROM OLD.funding_manager_id OR ((OLD.funding_manager_id IS NOT NULL OR OLD.wage_run_id IS NOT NULL) AND (NEW.member_id,NEW.group_id) IS DISTINCT FROM (OLD.member_id,OLD.group_id))) THEN RAISE EXCEPTION 'ENTRY_SCOPE_IMMUTABLE'; END IF;
  IF NEW.project_id IS NOT NULL AND (TG_OP='INSERT' OR NEW.project_id IS DISTINCT FROM OLD.project_id) AND NOT EXISTS(SELECT 1 FROM public.company_projects WHERE id=NEW.project_id AND group_id=NEW.group_id AND archived_at IS NULL AND deleted_at IS NULL) THEN RAISE EXCEPTION 'INVALID_PROJECT'; END IF;
@@ -1531,7 +1531,7 @@ CREATE TRIGGER company_phase4_entry_guard BEFORE INSERT OR UPDATE OR DELETE ON p
 CREATE FUNCTION public.waves_company_phase4_photo_guard() RETURNS trigger
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 BEGIN
- IF EXISTS(SELECT 1 FROM public.company_entries WHERE id=coalesce(NEW.entry_id,OLD.entry_id) AND entry_kind IN ('wage_payment','allocation','pool_return','pool_adjustment')) THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
+ IF EXISTS(SELECT 1 FROM public.company_entries WHERE id=coalesce(NEW.entry_id,OLD.entry_id) AND entry_kind IN ('wage_payment','allocation','pool_return','pool_adjustment','pool_request')) THEN RAISE EXCEPTION 'ENTRY_FROZEN'; END IF;
  RETURN coalesce(NEW,OLD);
 END $$;
 CREATE TRIGGER company_phase4_photo_guard BEFORE INSERT OR UPDATE OR DELETE ON public.company_entry_attachments FOR EACH ROW EXECUTE FUNCTION public.waves_company_phase4_photo_guard();
@@ -1542,9 +1542,12 @@ DECLARE actor uuid; h text; r public.company_entries%ROWTYPE;
 BEGIN
  actor:=public.waves_company_actor(p_group_id);
  PERFORM 1 FROM public.groups WHERE id=p_group_id FOR UPDATE;
- IF NOT public.is_group_admin(p_group_id) THEN RAISE EXCEPTION 'ADMIN_ONLY' USING ERRCODE='insufficient_privilege'; END IF;
+ -- A manager may ask the owners for more cash (a request row the owners see); everything else is owner-only.
+ IF p_kind='pool_request' THEN
+  IF actor IS DISTINCT FROM p_manager_id OR NOT EXISTS(SELECT 1 FROM public.group_members WHERE id=actor AND role::text='manager' AND left_at IS NULL AND removed_at IS NULL) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+ ELSIF NOT public.is_group_admin(p_group_id) THEN RAISE EXCEPTION 'ADMIN_ONLY' USING ERRCODE='insufficient_privilege'; END IF;
  p_reason:=nullif(btrim(p_reason),''); IF length(p_reason)>500 THEN RAISE EXCEPTION 'INVALID_DATA'; END IF;
- IF p_kind IS NULL OR p_kind NOT IN ('allocation','pool_return','pool_adjustment') OR p_amount_minor IS NULL OR p_amount_minor=0 OR (p_kind<>'pool_adjustment' AND p_amount_minor<0) OR p_occurred_on IS NULL OR p_entry_id IS NULL OR p_manager_id IS NULL THEN RAISE EXCEPTION 'INVALID_DATA'; END IF;
+ IF p_kind IS NULL OR p_kind NOT IN ('allocation','pool_return','pool_adjustment','pool_request') OR p_amount_minor IS NULL OR p_amount_minor=0 OR (p_kind<>'pool_adjustment' AND p_amount_minor<0) OR p_occurred_on IS NULL OR p_entry_id IS NULL OR p_manager_id IS NULL THEN RAISE EXCEPTION 'INVALID_DATA'; END IF;
  IF p_kind IN ('pool_return','pool_adjustment') AND coalesce(length(btrim(p_reason)),0) NOT BETWEEN 1 AND 500 THEN RAISE EXCEPTION 'REASON_REQUIRED'; END IF;
  h:=encode(sha256(convert_to(jsonb_build_array(p_group_id,p_manager_id,p_kind,p_amount_minor::text,p_project_id,p_occurred_on,btrim(p_reason))::text,'UTF8')),'hex');
  PERFORM pg_advisory_xact_lock(hashtextextended(p_entry_id::text,0));
@@ -1584,7 +1587,7 @@ BEGIN
  IF p_from IS NULL OR p_to IS NULL OR p_from>p_to THEN RAISE EXCEPTION 'INVALID_PERIOD'; END IF;
  SELECT coalesce(jsonb_agg(jsonb_build_object('id',p.id,'name',p.name,'budget',b.budget_minor::text,'allocated',a.allocated::text,'spent',a.spent::text,'remaining',(b.budget_minor-a.spent)::text) ORDER BY p.id),'[]') INTO projects
  FROM public.company_projects p LEFT JOIN public.company_project_budgets b ON b.project_id=p.id
- CROSS JOIN LATERAL (SELECT coalesce(sum(CASE WHEN e.entry_kind='pool_return' THEN -e.amount ELSE e.amount END) FILTER(WHERE e.entry_kind IN ('allocation','pool_return','pool_adjustment')),0) allocated,
+ CROSS JOIN LATERAL (SELECT coalesce(sum(CASE WHEN e.entry_kind='pool_return' THEN -e.amount ELSE e.amount END) FILTER(WHERE e.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request')),0) allocated,
  coalesce(sum(CASE WHEN e.entry_kind='wage_payment' THEN e.gross_minor-e.claims_minor ELSE e.amount END) FILTER(WHERE e.entry_kind IN ('expense','allowance','wages','wage_payment')),0) spent
  FROM public.company_entries e WHERE e.project_id=p.id AND e.deleted_at IS NULL AND e.status IN ('approved','reimbursed') AND e.occurred_on BETWEEN p_from AND p_to) a
  WHERE p.group_id=p_group_id AND p.deleted_at IS NULL;
@@ -1758,7 +1761,7 @@ BEGIN
   WHERE g.id=e.group_id AND g.type='company' AND g.deleted_at IS NULL AND m.profile_id=p_profile_id
    AND m.left_at IS NULL AND (m.id=e.member_id OR m.role::text='admin' OR (m.role::text='manager' AND EXISTS(SELECT 1 FROM public.group_members t WHERE t.id=e.member_id AND t.manager_id=m.id AND t.role::text='member'))) AND m.removed_at IS NULL AND m.merged_into_member_id IS NULL
  ) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
- IF e.wage_run_id IS NOT NULL OR e.reimbursement_id IS NOT NULL OR e.reimbursement_details IS NOT NULL OR e.entry_kind IN ('allocation','pool_return','pool_adjustment') THEN RAISE EXCEPTION 'ENTRY_REIMBURSED'; END IF;
+ IF e.wage_run_id IS NOT NULL OR e.reimbursement_id IS NOT NULL OR e.reimbursement_details IS NOT NULL OR e.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request') THEN RAISE EXCEPTION 'ENTRY_REIMBURSED'; END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended('company-storage:'||e.group_id::text,0));
  SELECT * INTO o FROM public.storage_objects WHERE logical_bucket='company-entry-images' AND path=p_path FOR UPDATE;
  IF o.path IS NOT NULL AND o.owner_profile_id IS DISTINCT FROM p_profile_id AND NOT EXISTS(
@@ -1803,7 +1806,7 @@ BEGIN
   WHERE m.group_id=e.group_id AND m.profile_id=p_profile_id AND m.left_at IS NULL
    AND (m.id=e.member_id OR m.role::text='admin' OR (m.role::text='manager' AND EXISTS(SELECT 1 FROM public.group_members t WHERE t.id=e.member_id AND t.manager_id=m.id AND t.role::text='member'))) AND m.removed_at IS NULL AND m.merged_into_member_id IS NULL AND g.deleted_at IS NULL
  ) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
- IF e.wage_run_id IS NOT NULL OR e.reimbursement_id IS NOT NULL OR e.reimbursement_details IS NOT NULL OR e.entry_kind IN ('allocation','pool_return','pool_adjustment') THEN RAISE EXCEPTION 'ENTRY_REIMBURSED'; END IF;
+ IF e.wage_run_id IS NOT NULL OR e.reimbursement_id IS NOT NULL OR e.reimbursement_details IS NOT NULL OR e.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request') THEN RAISE EXCEPTION 'ENTRY_REIMBURSED'; END IF;
  IF EXISTS(SELECT 1 FROM public.company_entry_attachments WHERE entry_id=e.id AND storage_path=base) THEN
   RAISE EXCEPTION 'IMMUTABLE_OBJECT';
  END IF;

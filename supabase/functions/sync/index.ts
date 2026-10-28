@@ -982,7 +982,12 @@ export class SyncSession {
         });
       case 'company_pool.post': {
         const kind = mutation.payload.kind;
-        if (kind !== 'allocation' && kind !== 'pool_return' && kind !== 'pool_adjustment')
+        if (
+          kind !== 'allocation' &&
+          kind !== 'pool_return' &&
+          kind !== 'pool_adjustment' &&
+          kind !== 'pool_request'
+        )
           companyInvalid('kind');
         return await this.rpcAsCaller('waves_company_pool_post', {
           p_group_id: mutation.groupId,

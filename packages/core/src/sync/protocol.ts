@@ -540,7 +540,7 @@ export interface CompanyProjectSetPayload {
 export interface CompanyPoolPostPayload {
   readonly entryId: string;
   readonly managerId: string;
-  readonly kind: 'allocation' | 'pool_return' | 'pool_adjustment';
+  readonly kind: 'allocation' | 'pool_return' | 'pool_adjustment' | 'pool_request';
   readonly amountMinor: string;
   readonly projectId: string | null;
   readonly occurredOn: string;

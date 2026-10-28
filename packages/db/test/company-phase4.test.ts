@@ -693,4 +693,23 @@ describe('company Phase 4: people, invites and approvals', () => {
         await wage([line(3, '600', '500', '100')], '2026-11-16', '2026-11-30');
       });
     }));
+  it('a manager can ask the owners for budget for themselves only; owners and the manager see it, others do not', () =>
+    isolated(async () => {
+      const id = randomUUID();
+      await user(1, () => pool('pool_request', '5000', 'Diesel for the new site', 1, id));
+      await denied(() => user(1, () => pool('pool_request', '5000', null, 2)));
+      await denied(() => user(3, () => pool('pool_request', '5000', null, 1)));
+      for (const [actor, n] of [
+        [0, 1],
+        [1, 1],
+        [2, 0],
+        [3, 0],
+      ] as [number, number][])
+        await user(actor, async () =>
+          expect(
+            (await db.query('SELECT id FROM company_entries WHERE id=$1', [id])).rowCount,
+          ).toBe(n),
+        );
+      await user(1, async () => expect((await balance()).balance).toBe('0'));
+    }));
 });

@@ -65,6 +65,8 @@ export function kindLabel(
       return c.kPoolReturn;
     case 'pool_adjustment':
       return c.kPoolAdjustment;
+    case 'pool_request':
+      return c.askTitle;
     case 'reimbursement':
       return entry.direction === 'employee_to_company' ? c.kCashReturned : c.kReimbursement;
   }

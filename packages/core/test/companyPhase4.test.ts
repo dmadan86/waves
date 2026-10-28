@@ -11,6 +11,7 @@ import {
   wageLine,
   wageRunTotals,
   companyStatement,
+  dashboardStats,
   type CompanyEntry,
   type CompanyEntryRow,
 } from '../src';
@@ -204,4 +205,31 @@ it('bulk reimbursement does not credit an advance already recovered through wage
   });
   expect(p.creditsMinor).toBe(1000n - 600n);
   expect(p.payoutMinor).toBe(100n);
+});
+
+it('dashboard stats: owed, paid this month vs last, advances outstanding', () => {
+  const entries = [
+    e({ entry_kind: 'expense', amount: 500 }),
+    e({ entry_kind: 'advance', amount: 200 }),
+    e({
+      entry_kind: 'wage_payment',
+      amount: 300,
+      gross_minor: 300,
+      claims_minor: 0,
+      recovery_minor: 0,
+      occurred_on: '2026-11-03',
+    }),
+    e({
+      entry_kind: 'reimbursement',
+      amount: 100,
+      direction: 'company_to_employee',
+      occurred_on: '2026-10-20',
+    }),
+  ];
+  const s = dashboardStats(entries, ['emp'], '2026-11-10');
+  expect(s.paidThisMonth).toBe(300n);
+  expect(s.paidLastMonth).toBe(100n);
+  expect(s.paidChangePct).toBe(200);
+  expect(s.owes).toBe(500n - 200n - 100n);
+  expect([s.advancesOutstanding, s.advanceHolders, s.pendingPayments]).toEqual([200n, 1, 1]);
 });

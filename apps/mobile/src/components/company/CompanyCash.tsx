@@ -16,7 +16,8 @@ import { ListRow, SectionHeader, StandardCard, StatCard } from '@/components/sta
 import { usePoolBalance, usePostPool, type CompanyView } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
-import { useStrings } from '@/i18n';
+import { RolePill } from '@/components/company/dashboard/parts';
+import { fill, useStrings } from '@/i18n';
 
 type Action = 'allocation' | 'pool_return' | 'pool_adjustment';
 
@@ -211,5 +212,55 @@ function CashSheet({
         </Row>
       </View>
     </Sheet>
+  );
+}
+
+/** A manager as the hierarchy shows them: pill, team size and this month's budget (cash allocated). */
+export function ManagerCashRowPublic({
+  groupId,
+  view,
+  manager,
+  team,
+  onPress,
+  divider,
+}: {
+  groupId: string;
+  view: CompanyView;
+  manager: MemberRow;
+  team: number;
+  onPress: () => void;
+  divider?: boolean;
+}) {
+  const { t, locale } = useStrings();
+  const month = new Date().toISOString().slice(0, 7);
+  void groupId;
+  const budget = view.entries
+    .filter(
+      (e) =>
+        e.kind === 'allocation' &&
+        !e.deleted &&
+        e.memberId === manager.id &&
+        e.occurredOn.slice(0, 7) === month,
+    )
+    .reduce((sum, e) => sum + e.amount, 0n);
+  return (
+    <ListRow
+      leading={
+        <PersonAvatar
+          member={manager}
+          name={displayName(manager)}
+          ghost={isGhost(manager)}
+          size={40}
+        />
+      }
+      title={displayName(manager, null, null, t.misc.someone)}
+      titleAccessory={<RolePill label={t.company.manager} />}
+      subtitle={fill(t.company.budgetPerMonth, {
+        amount: format(money(budget, view.currency as CurrencyCode), { locale }),
+      })}
+      amount={String(team)}
+      onPress={onPress}
+      divider={divider}
+    />
   );
 }

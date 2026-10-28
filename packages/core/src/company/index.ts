@@ -28,6 +28,7 @@ export type CompanyEntryKind =
   | 'allocation'
   | 'pool_return'
   | 'pool_adjustment'
+  | 'pool_request'
   | 'wage_payment';
 export type CompanyEntryStatus = 'submitted' | 'approved' | 'rejected' | 'reimbursed';
 export type CompanyCalcMode =
@@ -360,6 +361,7 @@ export function entryDelta(entry: CompanyEntry): bigint {
     case 'allocation':
     case 'pool_return':
     case 'pool_adjustment':
+    case 'pool_request':
       return 0n;
     // Claims folded into the run are paid (-claims); advance taken back counts as returned (+recovery).
     case 'wage_payment':
@@ -586,6 +588,7 @@ const KIND_LABEL: Record<CompanyEntryKind, string> = {
   allocation: 'Allocation',
   pool_return: 'Pool return',
   pool_adjustment: 'Pool adjustment',
+  pool_request: 'Budget request',
   wage_payment: 'Wages paid',
 };
 

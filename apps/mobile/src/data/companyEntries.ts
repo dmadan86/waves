@@ -495,3 +495,44 @@ export function usePoolBalance(groupId: string, managerId: string | null): bigin
     return poolBalance(entries, managerId).balance;
   }, [entries, managerId, server.data, queued]);
 }
+
+/** Names-only directory (owners, my manager, my team, me) from the server; empty until it answers. */
+export function useCompanyPeople(groupId: string) {
+  return useQuery({
+    queryKey: ['company-people', groupId],
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data, error } = await backend.rpc('waves_company_people', { p_group_id: groupId });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as {
+        member_id: string;
+        display_name: string;
+        role: 'admin' | 'manager' | 'member';
+        manager_id: string | null;
+        detail: boolean;
+      }[];
+    },
+  });
+}
+
+/** Manager asks the owners for more budget (a request row they see). */
+export function useAskBudget(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: {
+      managerId: string;
+      amountMinor: string;
+      note: string | null;
+      today: string;
+    }) =>
+      mutate(MutationKind.CompanyPoolPost, groupId, {
+        entryId: randomUUID(),
+        managerId: input.managerId,
+        kind: 'pool_request',
+        amountMinor: input.amountMinor,
+        projectId: null,
+        occurredOn: input.today,
+        reason: input.note,
+      }),
+  });
+}

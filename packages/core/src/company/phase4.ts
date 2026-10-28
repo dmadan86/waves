@@ -1,4 +1,9 @@
-import { allowanceAmount, type CompanyEntry, type CompanyCalcMode } from './index';
+import {
+  allowanceAmount,
+  entryDelta as entryDeltaOf,
+  type CompanyEntry,
+  type CompanyCalcMode,
+} from './index';
 
 /**
  * Company expenses Phase 4: roles, manager pools (floats) and the wage run.
@@ -327,4 +332,80 @@ export function wagePaidInPeriod(
       e.periodStart <= end &&
       start <= e.periodEnd,
   );
+}
+
+// ──────────────────────────────────────────────────────────── dashboard ──
+
+export interface DashboardStats {
+  /** Sum of what the company owes each person (never netted against what others owe it). */
+  readonly owes: bigint;
+  /** Approved claims not yet paid. */
+  readonly pendingPayments: number;
+  readonly paidThisMonth: bigint;
+  readonly paidLastMonth: bigint;
+  /** Percent change vs last month, whole number; null when last month had nothing. */
+  readonly paidChangePct: number | null;
+  readonly advancesOutstanding: bigint;
+  readonly advanceHolders: number;
+}
+
+const monthOf = (iso: string): string => iso.slice(0, 7);
+function prevMonth(month: string): string {
+  const y = Number(month.slice(0, 4));
+  const m = Number(month.slice(5, 7));
+  return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+}
+
+/** What the viewer's numbers say: money out this month (net payments, reimbursements, wages), owed, advances. */
+export function dashboardStats(
+  entries: readonly CompanyEntry[],
+  memberIds: readonly string[],
+  today: string,
+): DashboardStats {
+  const ids = new Set(memberIds);
+  const mine = entries.filter((e) => ids.has(e.memberId) && !e.deleted);
+  const thisMonth = monthOf(today);
+  const lastMonth = prevMonth(thisMonth);
+  let owes = 0n;
+  let pending = 0;
+  let paid = 0n;
+  let paidLast = 0n;
+  let advances = 0n;
+  let holders = 0;
+  for (const id of ids) {
+    let net = 0n;
+    for (const e of mine) {
+      if (e.memberId !== id) continue;
+      if (counted(e)) net += entryDeltaOf(e);
+    }
+    if (net > 0n) owes += net;
+    const out = outstandingAdvance(mine, id, '9999-12-31');
+    if (out > 0n) {
+      advances += out;
+      holders += 1;
+    }
+  }
+  for (const e of mine) {
+    if (
+      isWageClaim(e) ||
+      (e.kind === 'expense' && e.status === 'approved' && e.reimbursementId === null)
+    )
+      pending += 1;
+    const payment =
+      e.kind === 'wage_payment' ||
+      e.kind === 'wages' ||
+      (e.kind === 'reimbursement' && e.direction !== 'employee_to_company');
+    if (!payment) continue;
+    if (monthOf(e.occurredOn) === thisMonth) paid += e.amount;
+    else if (monthOf(e.occurredOn) === lastMonth) paidLast += e.amount;
+  }
+  return {
+    owes,
+    pendingPayments: pending,
+    paidThisMonth: paid,
+    paidLastMonth: paidLast,
+    paidChangePct: paidLast === 0n ? null : Number(((paid - paidLast) * 100n) / paidLast),
+    advancesOutstanding: advances,
+    advanceHolders: holders,
+  };
 }
