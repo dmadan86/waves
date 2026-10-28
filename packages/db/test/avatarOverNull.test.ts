@@ -42,7 +42,9 @@ async function offer(id: string, meta: Record<string, unknown>): Promise<boolean
 describe('provider photo offered to a profile', () => {
   it('fills a NULL avatar from avatar_url; a removed (empty) one stays removed', async () => {
     const a = await seed(null);
-    expect(await offer(a, { avatar_url: 'https://lh3.example/a', picture: 'https://x/y' })).toBe(true);
+    expect(await offer(a, { avatar_url: 'https://lh3.example/a', picture: 'https://x/y' })).toBe(
+      true,
+    );
     expect(await avatarOf(a)).toBe('https://lh3.example/a');
     const b = await seed('');
     expect(await offer(b, { picture: 'https://lh3.example/b' })).toBe(false); // removed on purpose
