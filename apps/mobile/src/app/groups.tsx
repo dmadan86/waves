@@ -409,7 +409,7 @@ function GroupsHeader({
               numberOfLines={1}
               style={{ color: ink, opacity: darkInk ? 0.75 : 0.92, ...inkShadow(darkInk) }}
             >
-              {isDemo ? t.demo.rowSubtitle : subtitle}
+              {subtitle}
             </Text>
           </View>
           {/* The join door, beside the new-group one: somebody handed a QR or a
@@ -733,7 +733,7 @@ const GroupListRow = memo(function GroupListRow({
               ) : null}
             </Row>
             <Text variant="micro" tone="muted" numberOfLines={1}>
-              {subtitle}
+              {isDemo ? t.demo.rowSubtitle : subtitle}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
