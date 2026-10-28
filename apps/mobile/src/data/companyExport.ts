@@ -69,6 +69,12 @@ export interface CompanyExportLabels {
   readonly colBalance: string;
   readonly colNote: string;
   readonly colReview: string;
+  readonly colVendor: string;
+  readonly colGstin: string;
+  readonly colInvoice: string;
+  readonly colGst: string;
+  /** Mileage and reimbursed-on details printed with the note. */
+  readonly detail: (entry: CompanyEntry, all: readonly CompanyEntry[]) => string;
   readonly none: string;
   readonly footer: string;
   /** Entry kind (and expense category) as printed. */
@@ -110,6 +116,24 @@ export function buildCompanyExport(
   });
   const text = (value: string | null | undefined): CompanyCell => ({ text: value ?? '' });
   const abs = (minor: bigint): bigint => (minor < 0n ? -minor : minor);
+  // GST and vendor columns appear only when some entry carries them.
+  const gstShown = input.entries.some(
+    (e) => !e.deleted && (e.gstAmount !== null || e.vendor || e.gstin || e.invoiceNo),
+  );
+  const gstColumns = gstShown
+    ? [labels.colVendor, labels.colGstin, labels.colInvoice, labels.colGst]
+    : [];
+  const gstCells = (entry: CompanyEntry): CompanyCell[] =>
+    gstShown
+      ? [
+          text(entry.vendor),
+          text(entry.gstin),
+          text(entry.invoiceNo),
+          entry.gstAmount !== null ? cell(entry.gstAmount) : text(''),
+        ]
+      : [];
+  const noteOf = (entry: CompanyEntry): CompanyCell =>
+    text([entry.note, labels.detail(entry, input.entries)].filter(Boolean).join(' · '));
 
   if (input.scope === 'employee') {
     // Own rows only, whatever the caller passed.
@@ -157,13 +181,15 @@ export function buildCompanyExport(
             labels.colNote,
             labels.colAmount,
             labels.colBalance,
+            ...gstColumns,
           ],
           rows: statement.rows.map(({ entry, delta, running }) => [
             text(entry.occurredOn),
             text(labels.kind(entry)),
-            text(entry.note),
+            noteOf(entry),
             cell(entry.kind === 'wages' ? entry.amount : delta),
             cell(running),
+            ...gstCells(entry),
           ]),
         },
         {
@@ -238,6 +264,7 @@ export function buildCompanyExport(
           labels.colStatus,
           labels.colAmount,
           labels.colReview,
+          ...gstColumns,
         ],
         rows: live.map((entry) => [
           text(entry.occurredOn),
@@ -245,7 +272,8 @@ export function buildCompanyExport(
           text(labels.kind(entry)),
           text(labels.status(entry)),
           cell(entry.amount),
-          text(entry.reviewNote),
+          text([entry.reviewNote, labels.detail(entry, input.entries)].filter(Boolean).join(' · ')),
+          ...gstCells(entry),
         ]),
       },
     ],

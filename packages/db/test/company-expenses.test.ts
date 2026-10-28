@@ -286,7 +286,12 @@ describe('company privacy and write boundaries', () => {
     );
     expect(rows).toHaveLength(functions.length);
     for (const row of rows)
-      expect(row).toMatchObject({ prosecdef: true, anon: false, authenticated: true });
+      expect(row).toMatchObject({
+        prosecdef: true,
+        anon: false,
+        // Phase 3 made the calculation helper private (service role and definers only).
+        authenticated: row.proname !== 'waves_company_entry_values',
+      });
     const grants =
       await client.query(`SELECT privilege_type FROM information_schema.role_table_grants
       WHERE table_schema='public' AND table_name='company_entries' AND grantee='authenticated'`);
@@ -319,7 +324,7 @@ describe('company privacy and write boundaries', () => {
           ),
         ),
       ),
-    ).toMatch(/NOT_ALLOWED/);
+    ).toMatch(/NOT_ALLOWED|permission denied/);
   });
 
   it('keeps company activity admin-only, including member-trigger activity', async () => {

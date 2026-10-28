@@ -15,12 +15,21 @@ import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import {
   allowanceAmount,
   COMPANY_EXPENSE_CATEGORIES,
+  evaluateCompanyPolicies,
+  findDuplicateEntry,
   format,
+  gstFromInclusive,
+  mileageAmount,
   money,
+  normaliseDecimalInput,
+  normaliseGstin,
+  resolveMileageRate,
+  validateGstin,
   type CompanyCalcMode,
   type CompanyEntryData,
   type CompanyEntryKind,
   type CurrencyCode,
+  type PolicyFlag,
 } from '@waves/core';
 import { AmountField, Button, ChipRow, Text, useTheme } from '@waves/ui';
 
@@ -79,6 +88,17 @@ export default function CompanyEntryScreen() {
   const [note, setNote] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<PickedImage[]>([]);
+  const [mileage, setMileage] = useState(false);
+  const [distance, setDistance] = useState('');
+  const [kmRate, setKmRate] = useState<bigint | null>(null);
+  const [fromText, setFromText] = useState('');
+  const [toText, setToText] = useState('');
+  const [gstOpen, setGstOpen] = useState(false);
+  const [vendor, setVendor] = useState('');
+  const [gstin, setGstin] = useState('');
+  const [invoiceNo, setInvoiceNo] = useState('');
+  const [gstRateBps, setGstRateBps] = useState<number | null>(null);
+  const [gstTouched, setGstTouched] = useState<bigint | null>(null);
 
   // The employee's own rate, else the company-wide default, else none.
   const defaultRate = employee?.daily_rate_minor
@@ -86,8 +106,67 @@ export default function CompanyEntryScreen() {
     : (view.defaultRateMinor ?? 0n);
   const rate = rateTouched ?? defaultRate;
   const byDays = kind === 'allowance' || (kind === 'wages' && wagesMode === 'days_rate');
-  const computed = byDays ? allowanceAmount(days, rate) : null;
-  const total = byDays ? (computed ?? 0n) : amount;
+  const byKm = kind === 'expense' && mileage && (category === 'fuel' || category === 'transport');
+  const perKm = resolveMileageRate(
+    kmRate,
+    employee?.mileage_rate_minor,
+    view.defaultMileageRateMinor?.toString(),
+  );
+  const computed = byDays
+    ? allowanceAmount(days, rate)
+    : byKm && perKm !== null
+      ? mileageAmount(distance, perKm)
+      : null;
+  const total = byDays || byKm ? (computed ?? 0n) : amount;
+  const showGst = view.gstEnabled && kind === 'expense' && !byKm;
+  const gstAmount =
+    gstTouched ?? (gstRateBps !== null && total > 0n ? gstFromInclusive(total, gstRateBps) : null);
+  const gstinText = gstin.trim();
+  const gstinBad = showGst && gstinText !== '' && !validateGstin(gstinText);
+  const gstTooBig = showGst && gstAmount !== null && gstAmount > total;
+  const flags: PolicyFlag[] =
+    employee && (kind === 'expense' || kind === 'allowance') && total > 0n
+      ? evaluateCompanyPolicies(
+          {
+            memberId: employee.id,
+            kind,
+            category: kind === 'expense' ? category : null,
+            amount: total,
+            occurredOn: date,
+          },
+          view.entries,
+          view.policies,
+          { hasReceipt: photos.length > 0 },
+        )
+      : [];
+  const blocked = flags.find((f) => f.effect === 'block');
+  const duplicate =
+    employee && kind === 'expense' && total > 0n
+      ? findDuplicateEntry(
+          {
+            memberId: employee.id,
+            kind,
+            category,
+            amount: total,
+            occurredOn: date,
+            vendor: vendor.trim() || null,
+            invoiceNo: invoiceNo.trim() || null,
+          },
+          view.entries,
+        )
+      : null;
+  const periodLabel = (period: 'day' | 'month' | undefined): string =>
+    period === 'day' ? t.company.perDay : t.company.perMonth;
+  const flagText = (flag: PolicyFlag): string =>
+    flag.code === 'RECEIPT'
+      ? fill(t.company.policyHintReceipt, { limit: fmt(flag.limitMinor) })
+      : flag.effect === 'block'
+        ? fill(t.company.policyBlocked, { limit: fmt(flag.limitMinor) })
+        : fill(t.company.policyHintLimit, {
+            actual: fmt(flag.actualMinor),
+            period: periodLabel(flag.period),
+            limit: fmt(flag.limitMinor),
+          });
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
 
   const kindLabel: Record<CompanyEntryKind, string> = {
@@ -137,11 +216,28 @@ export default function CompanyEntryScreen() {
   };
 
   // A days x rate entry may be zero (a zero rate is valid); a typed amount may not.
-  const valid = !!employee && (byDays ? computed !== null : total > 0n);
+  const valid =
+    !!employee &&
+    (byDays || byKm ? computed !== null : total > 0n) &&
+    !gstinBad &&
+    !gstTooBig &&
+    !blocked;
 
   const save = async (): Promise<void> => {
     if (!employee || !valid) {
-      setError(byDays ? t.company.needRate : t.company.needAmount);
+      setError(
+        byKm
+          ? perKm === null
+            ? t.company.needMileageRate
+            : t.company.needDistance
+          : gstinBad
+            ? t.company.gstinBad
+            : blocked
+              ? flagText(blocked)
+              : byDays
+                ? t.company.needRate
+                : t.company.needAmount,
+      );
       return;
     }
     setError(null);
@@ -155,6 +251,24 @@ export default function CompanyEntryScreen() {
         : kind === 'wages'
           ? { calcMode: wagesMode }
           : {}),
+      ...(byKm && perKm !== null
+        ? {
+            calcMode: 'distance_rate' as const,
+            distanceKm: distance.trim(),
+            rateMinor: perKm.toString(),
+            fromText: fromText.trim() || null,
+            toText: toText.trim() || null,
+          }
+        : {}),
+      ...(showGst
+        ? {
+            vendor: vendor.trim() || null,
+            gstin: gstinText ? normaliseGstin(gstinText) : null,
+            invoiceNo: invoiceNo.trim() || null,
+            gstRateBps,
+            gstAmountMinor: gstAmount !== null ? gstAmount.toString() : null,
+          }
+        : {}),
       ...(kind === 'reimbursement' ? { direction } : {}),
     };
     try {
@@ -232,6 +346,18 @@ export default function CompanyEntryScreen() {
                   value={category as (typeof COMPANY_EXPENSE_CATEGORIES)[number]}
                   onChange={setCategory}
                 />
+                {category === 'fuel' || category === 'transport' ? (
+                  <ChipRow
+                    wrap
+                    onCard
+                    options={[
+                      { value: 'typed', label: t.company.wagesTyped },
+                      { value: 'km', label: t.company.kMileage },
+                    ]}
+                    value={mileage ? 'km' : 'typed'}
+                    onChange={(value) => setMileage(value === 'km')}
+                  />
+                ) : null}
               </>
             ) : null}
             {kind === 'wages' ? (
@@ -260,14 +386,64 @@ export default function CompanyEntryScreen() {
               />
             ) : null}
 
-            {byDays ? (
+            {byKm ? (
+              <>
+                <Text variant="caption" tone="muted">
+                  {t.company.formDistance}
+                </Text>
+                <TextInput
+                  value={distance}
+                  onChangeText={(text) => setDistance(normaliseDecimalInput(text))}
+                  keyboardType="decimal-pad"
+                  accessibilityLabel={t.company.formDistance}
+                  style={{
+                    color: theme.color.text,
+                    fontSize: 20,
+                    paddingVertical: theme.spacing.sm,
+                    borderBottomWidth: 1,
+                    borderBottomColor: theme.color.border,
+                  }}
+                />
+                <Text variant="caption" tone="muted">
+                  {t.company.formRatePerKm}
+                </Text>
+                <AmountField
+                  currency={currency}
+                  value={perKm ?? 0n}
+                  onChange={setKmRate}
+                  size="compact"
+                  framed
+                />
+                {(['from', 'to'] as const).map((which) => (
+                  <TextInput
+                    key={which}
+                    value={which === 'from' ? fromText : toText}
+                    onChangeText={which === 'from' ? setFromText : setToText}
+                    placeholder={which === 'from' ? t.company.formFrom : t.company.formTo}
+                    placeholderTextColor={theme.color.textMuted}
+                    maxLength={120}
+                    accessibilityLabel={which === 'from' ? t.company.formFrom : t.company.formTo}
+                    style={{
+                      color: theme.color.text,
+                      fontSize: 16,
+                      paddingVertical: theme.spacing.sm,
+                      borderBottomWidth: 1,
+                      borderBottomColor: theme.color.border,
+                    }}
+                  />
+                ))}
+                <Text variant="body" style={{ fontWeight: '700' }}>
+                  {`${t.company.formTotal}: ${fmt(total)}`}
+                </Text>
+              </>
+            ) : byDays ? (
               <>
                 <Text variant="caption" tone="muted">
                   {t.company.formDays}
                 </Text>
                 <TextInput
                   value={days}
-                  onChangeText={(text) => setDays(text.replace(/[^0-9.]/g, ''))}
+                  onChangeText={(text) => setDays(normaliseDecimalInput(text))}
                   keyboardType="decimal-pad"
                   accessibilityLabel={t.company.formDays}
                   style={{
@@ -307,6 +483,95 @@ export default function CompanyEntryScreen() {
               </>
             )}
 
+            {flags.map((flag) => (
+              <Text
+                key={flag.ruleId}
+                variant="caption"
+                tone={flag.effect === 'block' ? 'negative' : 'muted'}
+              >
+                {`! ${flagText(flag)}`}
+              </Text>
+            ))}
+            {duplicate ? (
+              <Text variant="caption" tone="muted">
+                {`! ${t.company.dupHint}`}
+              </Text>
+            ) : null}
+            {showGst ? (
+              <>
+                <PillButton
+                  label={t.company.gstSection}
+                  icon={gstOpen ? 'chevron-down-outline' : 'receipt-outline'}
+                  chevron={false}
+                  onPress={() => setGstOpen((open) => !open)}
+                />
+                {gstOpen ? (
+                  <>
+                    {(
+                      [
+                        [t.company.vendor, vendor, setVendor, 120],
+                        [t.company.gstin, gstin, (v: string) => setGstin(v.toUpperCase()), 15],
+                        [t.company.invoiceNo, invoiceNo, setInvoiceNo, 80],
+                      ] as const
+                    ).map(([label, value, setter, max]) => (
+                      <TextInput
+                        key={label}
+                        value={value}
+                        onChangeText={setter}
+                        placeholder={label}
+                        placeholderTextColor={theme.color.textMuted}
+                        maxLength={max}
+                        autoCapitalize={label === t.company.gstin ? 'characters' : 'sentences'}
+                        accessibilityLabel={label}
+                        style={{
+                          color: theme.color.text,
+                          fontSize: 16,
+                          paddingVertical: theme.spacing.sm,
+                          borderBottomWidth: 1,
+                          borderBottomColor: theme.color.border,
+                        }}
+                      />
+                    ))}
+                    {gstinBad ? (
+                      <Text variant="caption" tone="negative">
+                        {t.company.gstinBad}
+                      </Text>
+                    ) : null}
+                    <Text variant="caption" tone="muted">
+                      {t.company.gstRate}
+                    </Text>
+                    <ChipRow
+                      wrap
+                      onCard
+                      options={[0, 500, 1200, 1800, 2800].map((bps) => ({
+                        value: String(bps),
+                        label: `${bps / 100}%`,
+                      }))}
+                      value={gstRateBps === null ? '' : String(gstRateBps)}
+                      onChange={(value) => {
+                        setGstRateBps(Number(value));
+                        setGstTouched(null);
+                      }}
+                    />
+                    <Text variant="caption" tone="muted">
+                      {t.company.gstAmount}
+                    </Text>
+                    <AmountField
+                      currency={currency}
+                      value={gstAmount ?? 0n}
+                      onChange={setGstTouched}
+                      size="compact"
+                      framed
+                    />
+                    {gstAmount !== null && gstAmount <= total ? (
+                      <Text variant="micro" tone="muted">
+                        {`${t.company.gstBefore}: ${fmt(total - gstAmount)}  ·  ${t.company.gstAmount}: ${fmt(gstAmount)}`}
+                      </Text>
+                    ) : null}
+                  </>
+                ) : null}
+              </>
+            ) : null}
             <PillButton
               label={date === todayIso() ? t.company.today : showDate(date, locale)}
               icon="calendar-outline"
