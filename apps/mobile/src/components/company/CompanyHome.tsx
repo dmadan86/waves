@@ -36,6 +36,7 @@ import {
   StandardCard,
   StatCard,
 } from '@/components/standard';
+import { useCompanyTags } from '@/data/companyTags';
 import { useCompanyEntries, useSetCompanySettings, useSetMileageRate } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
@@ -49,6 +50,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const view = useCompanyEntries(groupId);
+  const tagLabel = useCompanyTags(groupId, view).label;
   const settings = useSetCompanySettings(groupId);
   const setKmRate = useSetMileageRate(groupId);
   const [policiesOpen, setPoliciesOpen] = useState(false);
@@ -87,18 +89,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
   const categories = Object.entries(summary.totals.byCategory).sort((a, b) =>
     a[1] === b[1] ? 0 : a[1] > b[1] ? -1 : 1,
   );
-  const catLabel = (key: string): string =>
-    t.company[
-      (
-        {
-          fuel: 'catFuel',
-          transport: 'catTransport',
-          travel: 'catTravel',
-          food: 'catFood',
-          office: 'catOffice',
-        } as const
-      )[key as 'fuel'] ?? 'catOther'
-    ];
+  const catLabel = tagLabel;
 
   return (
     <Screen edges={[]}>
@@ -151,7 +142,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                       return (
                         <ListRow
                           key={entry.id}
-                          title={`${owner ? displayName(owner, null, null, t.misc.someone) : t.misc.someone} · ${kindLabel(t, entry)}`}
+                          title={`${owner ? displayName(owner, null, null, t.misc.someone) : t.misc.someone} · ${kindLabel(t, entry, tagLabel)}`}
                           subtitle={
                             flagsForEntry(entry, view.entries, view.policies, view.receiptEntryIds)
                               .length > 0

@@ -1,3 +1,5 @@
+export * from './tags';
+import { companyTagLabel, type CompanyTag } from './tags';
 /**
  * Company expenses (Phase 1): an employer records what each employee spent,
  * was advanced, earned as bata and was paid in wages. No splitting — every entry
@@ -28,7 +30,7 @@ export const COMPANY_ENTRY_KINDS: readonly CompanyEntryKind[] = [
   'reimbursement',
 ];
 
-/** Categories offered for an expense; free-text is not allowed so totals group cleanly. */
+/** Legacy builtin categories; custom format-valid keys are also accepted. */
 export const COMPANY_EXPENSE_CATEGORIES = [
   'fuel',
   'transport',
@@ -374,7 +376,7 @@ function emptyTotals(): MutableTotals {
     wages: 0n,
     paidOut: 0n,
     returned: 0n,
-    byCategory: {},
+    byCategory: Object.create(null) as Record<string, bigint>,
     gst: 0n,
   };
 }
@@ -522,6 +524,7 @@ const KIND_LABEL: Record<CompanyEntryKind, string> = {
 export function formatCompanyStatement(
   statement: CompanyStatement,
   options: {
+    readonly tags?: readonly CompanyTag[];
     readonly company: string;
     readonly employee: string;
     readonly money: (minor: bigint) => string;
@@ -536,7 +539,7 @@ export function formatCompanyStatement(
     ...statement.rows.map(({ entry, delta, running }) => {
       const what =
         entry.kind === 'expense' && entry.category
-          ? `${KIND_LABEL.expense} (${entry.category})`
+          ? `${KIND_LABEL.expense} (${companyTagLabel(entry.category, options.tags ?? [])})`
           : entry.kind === 'reimbursement' && entry.direction === 'employee_to_company'
             ? 'Cash returned'
             : KIND_LABEL[entry.kind];

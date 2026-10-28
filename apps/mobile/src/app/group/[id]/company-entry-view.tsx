@@ -33,6 +33,7 @@ import { displayName } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
+import { useCompanyTags } from '@/data/companyTags';
 import { friendlyError } from '@/lib/errors';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
@@ -45,6 +46,7 @@ export default function CompanyEntryViewScreen() {
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
   const view = useCompanyEntries(groupId);
+  const tagLabel = useCompanyTags(groupId, view).label;
   const review = useReviewCompanyEntry(groupId);
   const voidEntry = useVoidCompanyEntry(groupId);
   const [rejecting, setRejecting] = useState(false);
@@ -111,7 +113,7 @@ export default function CompanyEntryViewScreen() {
             <>
               <StandardCard>
                 <ListRow
-                  title={kindLabel(t, entry)}
+                  title={kindLabel(t, entry, tagLabel)}
                   subtitle={[
                     view.isAdmin && owner ? displayName(owner, null, null, t.misc.someone) : null,
                     showDate(entry.occurredOn, locale),

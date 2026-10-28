@@ -1,4 +1,4 @@
-import { COMPANY_EXPENSE_CATEGORIES } from '../company';
+import { COMPANY_TAG_KEY_RE } from '../company';
 
 import { MutationKind, type MutationEnvelope } from './protocol';
 
@@ -36,7 +36,7 @@ export function companyEntryFromRefusedExpense(
   ) {
     return null;
   }
-  const category = (COMPANY_EXPENSE_CATEGORIES as readonly string[]).includes(p.category ?? '')
+  const category = COMPANY_TAG_KEY_RE.test(p.category ?? '')
     ? p.category
     : null;
   return {

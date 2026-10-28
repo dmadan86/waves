@@ -20,17 +20,27 @@
  * one more setting with an answer.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { guessIcon, normaliseTint, resolveCategory, type CategoryMeta } from '@waves/core';
+import {
+  guessIcon,
+  normaliseTint,
+  rankTags,
+  resolveCategory,
+  rowsFor,
+  SyncTable,
+  type CategoryMeta,
+  type MirrorExpense,
+} from '@waves/core';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
 import { DetailRow } from '@/components/DetailRows';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { useCategoryCatalog } from '@/data/hooks';
 import { useStrings } from '@/i18n';
+import { useSync } from '@/sync';
 
 /**
  * The category catalog labelled in the current language. The labeller is
@@ -47,6 +57,28 @@ export function useLabelledCategoryCatalog(): ReturnType<typeof useCategoryCatal
   );
   return useCategoryCatalog(labelForBuiltin);
 }
+/**
+ * The visible catalog, most-used first (last 90 days of the expenses on this
+ * phone, offline, no round trip). A category with no history keeps the catalog's
+ * own order, so a new account looks exactly as it did.
+ */
+export function useRankedCategoryCatalog(): ReturnType<typeof useCategoryCatalog> {
+  const catalog = useLabelledCategoryCatalog();
+  const { mirror } = useSync();
+  return useMemo(() => {
+    const uses = (rowsFor(mirror, SyncTable.Expenses) as unknown as MirrorExpense[]).flatMap(
+      (row) =>
+        !row.deleted_at && row.currentVersion?.category
+          ? [{ key: row.currentVersion.category, at: row.created_at }]
+          : [],
+    );
+    if (uses.length === 0) return catalog;
+    const byKey = new Map(catalog.visible.map((entry) => [entry.key, entry]));
+    const order = rankTags({ keys: [...byKey.keys()], uses, now: Date.now() });
+    return { ...catalog, visible: order.map((key) => byKey.get(key)!) };
+  }, [catalog, mirror]);
+}
+
 /** A hex colour darkened a third, for an icon on a pale disc of the same hue. */
 function shade(hex: string): string {
   const channel = (at: number) =>
@@ -115,7 +147,7 @@ export function CategoryPicker({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const { visible } = useLabelledCategoryCatalog();
+  const { visible } = useRankedCategoryCatalog();
 
   return (
     <ScrollView
@@ -321,7 +353,7 @@ export function CategoryChoices({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const { visible } = useLabelledCategoryCatalog();
+  const { visible } = useRankedCategoryCatalog();
 
   return (
     <View style={{ gap: theme.spacing.xs }}>

@@ -67,6 +67,7 @@ export function QuickAmountRow({
             onChange={onChange}
             size="hero"
             align="start"
+            autoFocus
           />
         </View>
         <Pressable

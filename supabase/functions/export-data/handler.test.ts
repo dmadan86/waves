@@ -33,18 +33,27 @@ function query(data: unknown, error: unknown = null) {
   q.then = (resolve: (value: unknown) => void) => Promise.resolve(result()).then(resolve);
   return q;
 }
-function setup(options: { failEntries?: boolean; member?: boolean } = {}) {
-  const group = { id: 'company', type: 'company', name: 'Office', default_currency: 'INR' };
+function setup(
+  options: { failEntries?: boolean; member?: boolean; category?: string; approved?: boolean } = {},
+) {
+  const group = {
+    id: 'company',
+    type: 'company',
+    name: 'Office',
+    default_currency: 'INR',
+    company_tags: [{ key: 'cement-bags', label: 'Cement sacks' }],
+    company_industry: 'construction',
+  };
   const ledger = {
     id: 'entry-a',
     group_id: 'company',
     member_id: 'employee-a',
     entry_kind: 'expense',
-    category: 'fuel',
+    category: options.category ?? 'fuel',
     amount: '123',
     currency: 'INR',
     occurred_on: '2026-11-05',
-    status: 'submitted',
+    status: options.approved ? 'approved' : 'submitted',
     note: '=unsafe',
     review_note: 'Check dates',
     version: 1,
@@ -139,4 +148,25 @@ describe('caller-visible company exports', () => {
     expect((await handleExportData(t.request('json'), t.deps)).status).toBe(403);
     expect(t.caller.from).not.toHaveBeenCalledWith('company_entries');
   });
+});
+
+it.each(['json', 'csv', 'pdf'])('exports custom category keys and labels (%s)', async (format) => {
+  const t = setup({ category: 'cement-bags', approved: true });
+  const response = await handleExportData(t.request(format), t.deps);
+  expect(response.status).toBe(200);
+  const body = await response.json();
+  const content = format === 'pdf' ? atob(body.content) : body.content;
+  expect(content).toContain('cement-bags');
+  expect(content).toContain('Cement sacks');
+  if (format === 'json') expect(JSON.parse(content).groups[0].group.company_tags).toHaveLength(1);
+  if (format === 'pdf') {
+    expect(content).toContain('Expense total:');
+    expect(content).toContain('1.23');
+  }
+  expect(t.service.from).not.toHaveBeenCalledWith('company_entries');
+});
+it('exports a queued key without any stored tag label', async () => {
+  const t = setup({ category: 'offline-new-key' });
+  const response = await handleExportData(t.request('csv'), t.deps);
+  expect((await response.json()).content).toContain('offline-new-key');
 });
