@@ -1056,12 +1056,6 @@ function soundAlike(a: string, b: string): number {
   return size === 0 ? 0 : 1 - (previous[right.length] ?? 0) / size;
 }
 
-interface Scored<T> {
-  readonly item: T;
-  readonly score: number;
-  readonly worst: number;
-}
-
 /** The best similarity of a heard word to any word of a name, any heard form. */
 function bestAgainst(heard: string, nameWords: readonly string[]): number {
   let best = 0;
@@ -1543,7 +1537,10 @@ export function createSpokenGroupResolver(groups: readonly VoiceGroupCandidate[]
     const literal = raw.filter((t) => !FILLER.has(t) && t !== 'group').join(' ');
     const hasLiteral = entries.some(({ words }) => words.join(' ') === literal);
     for (let i = 0; i < raw.length - 1; i++) {
-      if (!hasLiteral && vocabulary.has(raw[i] + raw[i + 1])) raw.splice(i, 2, raw[i] + raw[i + 1]);
+      {
+        const joined = `${raw[i] ?? ''}${raw[i + 1] ?? ''}`;
+        if (!hasLiteral && vocabulary.has(joined)) raw.splice(i, 2, joined);
+      }
     }
     const tokens = raw.filter((t) => !FILLER.has(t) && t !== 'group');
     if (!tokens.length) return { status: 'unresolved' };
