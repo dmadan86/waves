@@ -109,6 +109,15 @@ serveWithCors(async (request) => {
     const body = (await request.json()) as ExpenseWriteRequest;
     const caller = asCaller(request);
     const { profileId, memberId } = await requireMembership(caller, body.groupId);
+    const { data: group, error: groupError } = await caller
+      .from('groups')
+      .select('type')
+      .eq('id', body.groupId)
+      .single();
+    if (groupError) throw new HttpError(400, 'VALIDATION_FAILED', 'Could not read group');
+    if (group?.type === 'company') {
+      throw new HttpError(400, 'COMPANY_GROUP', 'Use company entries');
+    }
     const service = asService();
 
     await enforceRateLimit(service, request, 'expense-write', profileId);

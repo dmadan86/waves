@@ -378,3 +378,18 @@ describe('storagePath validation', () => {
     expect(res.status).toBe(200);
   });
 });
+
+describe('company image isolation', () => {
+  it.each([
+    { bucket: 'company-entry-images' },
+    { companyEntryId: 'entry' },
+    { attachmentId: 'image' },
+  ])('rejects company selectors before parsing: %j', async (selectors) => {
+    const t = setup();
+    await expect(handleReceiptParse(t.request(selectors), t.deps)).rejects.toMatchObject({
+      status: 400,
+    });
+    expect(t.fetchMock).not.toHaveBeenCalled();
+    expect(t.rpcLog).toHaveLength(0);
+  });
+});

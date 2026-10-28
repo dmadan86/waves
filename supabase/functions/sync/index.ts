@@ -83,8 +83,14 @@ type MutationKind =
   | 'plan_item.create'
   | 'plan_item.update'
   | 'plan_item.delete'
-  // A repeating group expense — group-scoped, authorised by membership inside the
-  // RPC. The expenses it produces are posted by the server generator, not here.
+  // Private company entries; RPCs enforce employee/admin permissions.
+  | 'company_entry.create'
+  | 'company_entry.update'
+  | 'company_entry.void'
+  | 'company_entry.transition'
+  | 'company_member.rate_set'
+  | 'company.settings_set'
+  // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
   | 'member_budget.set'
@@ -300,6 +306,9 @@ const GROUP_TABLES = [
   ['trip_member_budgets', '*'],
   // Repeating group expenses. Flat rows; RLS limits them to the group's members.
   ['group_recurring_expenses', '*'],
+  // Company employees receive only their own entries, including tombstones.
+  ['company_entries', '*'],
+  ['company_entry_attachments', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -661,6 +670,13 @@ export class SyncSession {
           // offered (ADR-012). Dropped here, a group created offline came back
           // with no rails and no way to settle on one.
           p_country: (mutation.payload.country as string | undefined) ?? null,
+          p_company_default_daily_rate_minor:
+            mutation.payload.companyDefaultDailyRateMinor == null
+              ? null
+              : requireString(
+                  mutation.payload.companyDefaultDailyRateMinor,
+                  'companyDefaultDailyRateMinor',
+                ),
         });
       case 'group.update': {
         await this.requireMemberId(mutation.groupId);
@@ -794,6 +810,49 @@ export class SyncSession {
       case 'plan_item.delete':
         return await this.rpcAsCaller('waves_remove_plan_item', {
           p_item_id: requireString(mutation.payload.itemId, 'itemId'),
+        });
+      case 'company_entry.create':
+        return await this.rpcAsCaller('waves_company_entry_create', {
+          p_group_id: mutation.groupId,
+          p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
+          p_member_id: requireString(mutation.payload.memberId, 'memberId'),
+          p_entry_kind: requireString(mutation.payload.entryKind, 'entryKind'),
+          p_data: companyData(mutation.payload.data),
+        });
+      case 'company_entry.update':
+        return await this.rpcAsCaller('waves_company_entry_update', {
+          p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
+          p_patch: companyData(mutation.payload.patch),
+        });
+      case 'company_entry.void':
+        return await this.rpcAsCaller('waves_company_entry_void', {
+          p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
+          p_reason: optionalText(mutation.payload.reason, 'reason'),
+        });
+      case 'company_entry.transition':
+        return await this.rpcAsCaller('waves_company_entry_transition', {
+          p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
+          p_to: requireString(mutation.payload.to, 'to'),
+          p_note: optionalText(mutation.payload.note, 'note'),
+          p_expected_version: requireInteger(mutation.payload.expectedVersion, 'expectedVersion'),
+        });
+      case 'company.settings_set':
+        if (typeof mutation.payload.approvalsEnabled !== 'boolean') {
+          throw new HttpError(400, 'VALIDATION_FAILED', 'approvalsEnabled must be boolean');
+        }
+        return await this.rpcAsCaller('waves_company_settings_set', {
+          p_group_id: mutation.groupId,
+          p_default_daily_rate_minor: nullableString(
+            mutation.payload.defaultDailyRateMinor,
+            'defaultDailyRateMinor',
+          ),
+          p_approvals_enabled: mutation.payload.approvalsEnabled,
+        });
+      case 'company_member.rate_set':
+        return await this.rpcAsCaller('waves_company_member_rate_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: requireString(mutation.payload.memberId, 'memberId'),
+          p_daily_rate_minor: nullableString(mutation.payload.dailyRateMinor, 'dailyRateMinor'),
         });
       case 'group_recurring.create':
         return await this.rpcAsCaller('waves_create_group_recurring_expense', {
@@ -2045,4 +2104,34 @@ function classify(error: unknown): { code: string; message: string } {
   if (wrapped === '42501') return { code: 'NOT_A_MEMBER', message };
 
   return { code: 'VALIDATION_FAILED', message };
+}
+
+function companyData(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new HttpError(400, 'VALIDATION_FAILED', 'company data must be an object');
+  }
+  const data = value as Record<string, unknown>;
+  const keys = [
+    'amount',
+    'category',
+    'days',
+    'rateMinor',
+    'calcMode',
+    'occurredOn',
+    'note',
+    'direction',
+  ];
+  for (const [key, field] of Object.entries(data)) {
+    if (!keys.includes(key) || (field !== null && typeof field !== 'string')) {
+      throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${key}`);
+    }
+  }
+  return data;
+}
+
+function requireInteger(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    throw new HttpError(400, 'VALIDATION_FAILED', `${field} must be a positive integer`);
+  }
+  return value;
 }

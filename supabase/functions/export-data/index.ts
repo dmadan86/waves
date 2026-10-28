@@ -41,14 +41,17 @@ interface ExportRequest {
   csvSeparator?: string;
 }
 
-serveWithCors(async (request) => {
+export async function handleExportData(
+  request: Request,
+  deps = { asCaller, asService, enforceRateLimit },
+): Promise<Response> {
   try {
     if (request.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use POST');
 
     const body = (await request.json()) as ExportRequest;
     const format = body.format ?? 'json';
-    const caller = asCaller(request);
-    const service = asService();
+    const caller = deps.asCaller(request);
+    const service = deps.asService();
 
     const { data: user, error: userError } = await caller.auth.getUser();
     if (userError || !user?.user) {
@@ -60,7 +63,7 @@ serveWithCors(async (request) => {
     // several seconds of database time, and worth doing ten times an hour at
     // the very most. ADR-012 says export must always be available; it does not
     // say it must be available in a loop.
-    await enforceRateLimit(service, request, 'export-data', user.user.id);
+    await deps.enforceRateLimit(service, request, 'export-data', user.user.id);
 
     let groupIds: string[];
     if (body.groupId) {
@@ -98,9 +101,18 @@ serveWithCors(async (request) => {
 
     const exported = [];
     for (const groupId of groupIds) {
-      const [group, members, expenses, settlements, activity] = await Promise.all([
-        service.from('groups').select('*').eq('id', groupId).single(),
-        service
+      // Keep company membership/profile reads under caller RLS, including in
+      // account-wide exports. Company entries are always read as the caller.
+      const { data: scope, error: scopeError } = await caller
+        .from('groups')
+        .select('type')
+        .eq('id', groupId)
+        .single();
+      if (scopeError) throw new HttpError(500, 'EXPORT_INCOMPLETE', 'Could not complete request');
+      const memberReader = scope?.type === 'company' ? caller : service;
+      const [group, members, expenses, settlements, activity, companyEntries] = await Promise.all([
+        caller.from('groups').select('*').eq('id', groupId).single(),
+        memberReader
           .from('group_members')
           // Hint the FK column: ghost_merges bridges group_members and profiles,
           // so an unqualified profiles embed is ambiguous.
@@ -121,7 +133,17 @@ serveWithCors(async (request) => {
           .from('settlements')
           .select('*, allocations:settlement_allocations ( expense_id, amount )')
           .eq('group_id', groupId),
-        service.from('activity_log').select('*').eq('group_id', groupId),
+        scope?.type === 'company'
+          ? Promise.resolve({ data: [], error: null })
+          : service.from('activity_log').select('*').eq('group_id', groupId),
+        scope?.type === 'company'
+          ? caller
+              .from('company_entries')
+              .select(
+                'id,group_id,member_id,entry_kind,category,amount,currency,calc_mode,days,rate_minor,occurred_on,direction,status,note,review_note,reviewed_by,reviewed_at,version,created_at,updated_at,deleted_at,void_reason',
+              )
+              .eq('group_id', groupId)
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       // An export that quietly omits half the ledger is worse than no export at
@@ -132,6 +154,7 @@ serveWithCors(async (request) => {
         expenses,
         settlements,
         activity,
+        companyEntries,
       })) {
         if (result.error) {
           console.error(JSON.stringify({ fn: 'export-data', label, detail: result.error.message }));
@@ -145,6 +168,7 @@ serveWithCors(async (request) => {
         expenses: expenses.data ?? [],
         settlements: settlements.data ?? [],
         activity: activity.data ?? [],
+        companyEntries: companyEntries.data ?? [],
       });
     }
 
@@ -364,6 +388,9 @@ serveWithCors(async (request) => {
         'Paid by',
         'Split method',
         'Split between',
+        'company_category',
+        'company_direction',
+        'review_note',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -378,8 +405,40 @@ serveWithCors(async (request) => {
 
       const units = entry.group?.units as GroupUnits | null | undefined;
       const family = (cells: string[], memberId: string | null): string[] =>
-        anyFamilies ? [...cells, familyName(units, memberId)] : cells;
+        anyFamilies
+          ? [
+              ...cells,
+              ...Array(Math.max(0, 17 - cells.length)).fill(''),
+              familyName(units, memberId),
+            ]
+          : cells;
       const live: Parameters<typeof familySubtotals>[1] = [];
+      for (const row of entry.companyEntries) {
+        rows.push(
+          family(
+            [
+              entry.group?.name ?? '',
+              `company_${row.entry_kind}`,
+              row.occurred_on,
+              row.note ?? '',
+              row.currency,
+              String(row.amount),
+              '',
+              nameOf(row.member_id),
+              '',
+              row.deleted_at ? 'voided' : row.status,
+              `v${row.version}`,
+              '',
+              '',
+              '',
+              row.category ?? '',
+              row.direction ?? '',
+              row.review_note ?? '',
+            ],
+            row.member_id,
+          ),
+        );
+      }
 
       for (const expense of entry.expenses) {
         const current = expense.versions?.find(
@@ -476,9 +535,17 @@ serveWithCors(async (request) => {
     return json({
       filename: `waves-export-${new Date().toISOString().slice(0, 10)}.csv`,
       contentType: 'text/csv',
-      content: rows.map((row) => row.map(escape).join(separator)).join('\n'),
+      content: rows
+        .map((row) =>
+          [...row, ...Array(Math.max(0, rows[0].length - row.length)).fill('')]
+            .map(escape)
+            .join(separator),
+        )
+        .join('\n'),
     });
   } catch (error) {
     return errorResponse(error, { fn: 'export-data' });
   }
-});
+}
+
+serveWithCors(handleExportData);

@@ -1167,3 +1167,146 @@ describe('restricted deletion after soft delete', () => {
     },
   );
 });
+
+describe('company entry evidence', () => {
+  const subjectId = '00000000-0000-4000-8000-000000000001';
+  const path = `${subjectId}/00000000-0000-4000-8000-000000000002/00000000-0000-4000-8000-000000000003.jpg`;
+  const bucket = 'company-entry-images';
+  function companyCaller(visible = true, admin = false) {
+    return client({
+      rpc: {
+        waves_can_read_company_entry: { data: visible },
+        waves_my_member_id: { data: 'member-1' },
+        is_group_admin: { data: admin },
+      },
+      from: {
+        company_entries: { data: visible ? { id: subjectId } : null, error: null },
+        company_entry_attachments: { data: visible ? { id: 'attachment' } : null, error: null },
+      },
+    });
+  }
+  it.each([false, true])(
+    'signs employee/admin reads with 60 second URLs (admin=%s)',
+    async (admin) => {
+      const env = makeDeps({
+        caller: companyCaller(true, admin),
+        service: client({
+          from: {
+            storage_objects: { data: { path }, error: null },
+          },
+        }),
+      });
+      expect(
+        (await handleR2Sign(post({ action: 'get', bucket, path, subjectId }), env.deps)).status,
+      ).toBe(200);
+      expect(env.caller.from).toHaveBeenCalledWith('company_entry_attachments');
+      expect(env.sign.mock.calls[0][0].url).toContain('X-Amz-Expires=60');
+      expect(env.service.storage.from).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['get', 'put', 'commit', 'release', 'delete'])(
+    'refuses nonparty %s without accessing bytes',
+    async (action) => {
+      const env = makeDeps({
+        caller: companyCaller(false),
+        service: client({
+          from: {
+            company_entries: { data: { group_id: 'group-1' }, error: null },
+          },
+        }),
+      });
+      expect(
+        (
+          await handleR2Sign(
+            post({ action, bucket, path, subjectId, contentLength: 100 }),
+            env.deps,
+          )
+        ).status,
+      ).toBe(403);
+      expect(env.sign).not.toHaveBeenCalled();
+      expect(env.r2fetch).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['employee B', 'outsider', 'former employee', 'demoted admin'])(
+    'hides thumbnails from %s',
+    async () => {
+      const env = makeDeps({ caller: companyCaller(false) });
+      expect(
+        (
+          await handleR2Sign(
+            post({ action: 'get', bucket, path: `${path}.thumb.jpg`, subjectId }),
+            env.deps,
+          )
+        ).status,
+      ).toBe(403);
+      expect(env.sign).not.toHaveBeenCalled();
+    },
+  );
+  it('rechecks live entry and upload owner at commit', async () => {
+    const scoped = companyCaller();
+    const env = makeDeps({
+      caller: scoped,
+      service: client({
+        from: {
+          company_entries: { data: { group_id: 'group-1' }, error: null },
+          storage_objects: { data: { owner_profile_id: 'someone-else' }, error: null },
+        },
+      }),
+    });
+    expect(
+      (await handleR2Sign(post({ action: 'commit', bucket, path, subjectId }), env.deps)).status,
+    ).toBe(403);
+    expect(env.r2fetch).not.toHaveBeenCalled();
+  });
+  it('never falls back for a missing or pending company object', async () => {
+    const env = makeDeps({ caller: companyCaller() });
+    expect(
+      (await handleR2Sign(post({ action: 'get', bucket, path, subjectId }), env.deps)).status,
+    ).toBe(404);
+    expect(env.service.storage.from).not.toHaveBeenCalled();
+    expect(env.sign).not.toHaveBeenCalled();
+  });
+  it('refuses deletion of attached originals and thumbnails', async () => {
+    const env = makeDeps({
+      caller: companyCaller(true, true),
+      service: client({
+        from: {
+          company_entries: { data: { group_id: 'group-1' }, error: null },
+          company_entry_attachments: { data: { id: 'attachment' }, error: null },
+          storage_objects: { data: { owner_profile_id: 'user-1' }, error: null },
+        },
+      }),
+    });
+    for (const key of [path, `${path}.thumb.jpg`]) {
+      expect(
+        (await handleR2Sign(post({ action: 'delete', bucket, path: key, subjectId }), env.deps))
+          .status,
+      ).toBe(409);
+    }
+    expect(env.r2fetch).not.toHaveBeenCalled();
+  });
+  it('presigns immutable PUTs with 60 second lifetime', async () => {
+    const env = makeDeps({
+      caller: companyCaller(),
+      service: client({
+        from: {
+          company_entries: { data: { group_id: 'group-1' }, error: null },
+        },
+      }),
+    });
+    const response = await handleR2Sign(
+      post({
+        action: 'put',
+        bucket,
+        path,
+        subjectId,
+        contentLength: 100,
+        contentType: 'image/jpeg',
+      }),
+      env.deps,
+    );
+    expect(response.status).toBe(200);
+    expect(env.sign.mock.calls[0][0].url).toContain('X-Amz-Expires=60');
+    expect((await response.json()).headers['if-none-match']).toBe('*');
+  });
+});

@@ -260,6 +260,22 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
     }
 
     const body = (await request.json()) as ParseRequest;
+    const selectors = body as ParseRequest & {
+      bucket?: unknown;
+      companyEntryId?: unknown;
+      attachmentId?: unknown;
+    };
+    if (
+      selectors.bucket === 'company-entry-images' ||
+      selectors.companyEntryId != null ||
+      selectors.attachmentId != null
+    ) {
+      throw new HttpError(
+        400,
+        'BAD_INPUT',
+        'Company images cannot be parsed through the receipt ledger',
+      );
+    }
     if (!body.storagePath && !body.rawText) {
       throw new HttpError(400, 'NOTHING_TO_PARSE', 'Send a photo or some text');
     }

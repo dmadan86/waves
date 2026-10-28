@@ -994,7 +994,7 @@ export async function previewInvite(token: string): Promise<InvitePreview> {
  * history.
  */
 export type AcceptedInvite =
-  | { group: { id: string; name: string }; memberId: string; claimed?: boolean }
+  | { group: { id: string; name: string; type?: string }; memberId: string; claimed?: boolean }
   | {
       group: { id: string; name: string };
       pending: true;

@@ -66,6 +66,7 @@ export const GROUP_TYPE_ICON: Record<GroupType, React.ComponentProps<typeof Ioni
   [GroupType.Event]: 'sparkles',
   [GroupType.Friends]: 'people-circle',
   [GroupType.Other]: 'people-outline',
+  [GroupType.Company]: 'business-outline',
 };
 
 type PickerRow = {

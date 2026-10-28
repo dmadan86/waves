@@ -35,6 +35,7 @@ import { myStake } from '@/data/activity';
 import { expenseCaption } from '@/lib/expenseCaption';
 import { StakePill, stakeColorFor } from '@/components/standard/StakePill';
 import { PillButton, SectionHeader } from '@/components/standard';
+import { CompanyHome } from '@/components/company/CompanyHome';
 import { useDialog } from '@/lib/dialog';
 import {
   familyBalanceItems,
@@ -72,6 +73,7 @@ import { GROUP_REPEAT_HIDDEN } from '@/lib/groupRepeat';
 import {
   displayName,
   groupLabel,
+  GroupType,
   isBlockedMember,
   isGhost,
   isViewer,
@@ -736,7 +738,7 @@ function CardRow({
 /** The month menu's key for "every month". */
 const ALL_MONTHS = 'all-months';
 
-export default function GroupScreen() {
+function LedgerGroupScreen() {
   const theme = useTheme();
   // The root bar is over this screen, so the room starts from the bar's own
   // clearance rather than the bare system inset. The extra 36 has no cause
@@ -2154,4 +2156,16 @@ export default function GroupScreen() {
       </View>
     </Screen>
   );
+}
+
+/**
+ * A Company group has no splits, balances or settle-up: its screen is the
+ * company's own (a statement for an employee, a summary for an admin). Every
+ * other group opens the ledger screen above, untouched.
+ */
+export default function GroupScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { group } = useGroup(id ?? '');
+  if (group.data?.type === GroupType.Company) return <CompanyHome groupId={id ?? ''} />;
+  return <LedgerGroupScreen />;
 }

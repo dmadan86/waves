@@ -10,6 +10,7 @@ import { ActivityIndicator, Platform, ScrollView, View } from 'react-native';
 
 import { Callout, Button, iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
+import { CompanyExport } from '@/components/company/CompanyExport';
 import { useGroup, useGroupLedger } from '@/data/hooks';
 import { memberNameFor } from '@/lib/memberName';
 import { groupLabel, isGhost, GroupType, SettlementMethod } from '@/data/types';
@@ -187,7 +188,7 @@ export default function GroupExportScreen() {
       const generatedOnIso = new Date().toISOString();
 
       const typeLabel =
-        t.groupExport.types[(groupData.type as GroupType) ?? GroupType.Other] ??
+        (t.groupExport.types as Record<string, string>)[groupData.type ?? GroupType.Other] ??
         t.groupExport.types.other;
 
       const model = buildGroupExportModel({
@@ -307,6 +308,9 @@ export default function GroupExportScreen() {
       if (!isPaid) void wallet.refetch();
     }
   };
+
+  // A company group exports its statement or summary, never the split ledger.
+  if (groupData?.type === GroupType.Company) return <CompanyExport groupId={groupId} />;
 
   const memberTotal = (members.data ?? []).length;
   const expenseTotal = expenses.rows.length;
