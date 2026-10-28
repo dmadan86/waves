@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuth } from '@/lib/auth';
 import { useStrings } from '@/i18n';
+import { openDeepLink } from '@/lib/deepLink';
 import { router } from '@/lib/navigation';
 import {
   actionForId,
@@ -31,12 +32,10 @@ const RETIRED_KEYS = ['shortcut.action', 'shortcut.doubleTap'];
 
 function run(action: ShortcutAction): void {
   const route = routeForShortcut(action);
-  if (route === '/voice' || route === '/capture') {
-    router.push(route);
-    return;
-  }
-  const scan = route.split('=')[1];
-  router.push({ pathname: '/capture', params: { scan } });
+  openDeepLink(
+    router,
+    route === '/voice' || route === '/capture' ? route : `/capture?scan=${route.split('=')[1]}`,
+  );
 }
 
 /**

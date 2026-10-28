@@ -10,11 +10,12 @@ import '@/lib/netLogInstall';
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import * as Linking from 'expo-linking';
-import { Stack, useSegments } from 'expo-router';
+import { Stack, usePathname, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
@@ -88,6 +89,13 @@ import { track, trackInstallOnce } from '@/lib/events';
 import { initObservability, withObservability } from '@/lib/observability';
 import { purchasesAvailable, useCustomerTier } from '@/lib/purchases';
 import { PLAN_CHANGE_QUERY_KEYS } from '@/lib/planChangeKeys';
+import {
+  createOnceGate,
+  openDeepLink,
+  queueDeepLink,
+  takeExternalLink,
+  takeQueuedDeepLink,
+} from '@/lib/deepLink';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
 import { holdPhonesUpright } from '@/lib/phoneOrientation';
@@ -423,8 +431,32 @@ function ThemedStatusBar() {
  * Inside the navigation tree rather than at module scope, because a deep link
  * fired before the router exists goes nowhere and takes the tap with it.
  */
+const firstTime = createOnceGate(AsyncStorage);
+
 function PushRouting() {
   const router = useRouter();
+  const { session } = useAuth();
+  const signedIn = useRef(false);
+  useEffect(() => {
+    signedIn.current = Boolean(session);
+  }, [session]);
+  const pathname = usePathname();
+
+  // A link the OS delivered arrives as a one-screen stack; give it its parents.
+  useEffect(() => {
+    const target = takeExternalLink(pathname);
+    if (!target) return;
+    if (signedIn.current) openDeepLink(router, target);
+    else void queueDeepLink(AsyncStorage, target);
+  }, [pathname, router]);
+
+  // A tap made while signed out waits here; open it once there is a session.
+  useEffect(() => {
+    if (!session) return;
+    void takeQueuedDeepLink(AsyncStorage).then((path) => {
+      if (path) openDeepLink(router, path);
+    });
+  }, [session, router]);
 
   useEffect(() => {
     // expo-notifications has no web implementation, and reaching into it there
@@ -434,18 +466,22 @@ function PushRouting() {
 
     void ensureAndroidChannel();
 
-    // A tap that launched the app from cold arrives as the "last response"
-    // rather than as an event, so both paths are needed.
+    // One gate for both paths: the cold-start "last response" survives root
+    // remounts, so without it the same tap re-navigated every time.
+    const handle = async (response: Notifications.NotificationResponse) => {
+      const route = routeForNotification(response);
+      if (!route || !(await firstTime(response.notification.request.identifier))) return;
+      if (signedIn.current) openDeepLink(router, route);
+      else await queueDeepLink(AsyncStorage, route);
+      void Notifications.clearLastNotificationResponseAsync?.().catch(() => {});
+    };
+
     void Notifications.getLastNotificationResponseAsync()
-      .then((response) => {
-        const route = response ? routeForNotification(response) : null;
-        if (route) router.push(route as never);
-      })
+      .then((response) => response && handle(response))
       .catch(() => {});
 
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const route = routeForNotification(response);
-      if (route) router.push(route as never);
+      void handle(response);
     });
     return () => subscription.remove();
   }, [router]);
