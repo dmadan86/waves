@@ -23,7 +23,13 @@ import {
 } from '@waves/core';
 import { AmountField, Button, ChipRow, Text, useTheme } from '@waves/ui';
 
-import { ScenicBody, ScenicHeader, SectionHeader, StandardCard, PillButton } from '@/components/standard';
+import {
+  ScenicBody,
+  ScenicHeader,
+  SectionHeader,
+  StandardCard,
+  PillButton,
+} from '@/components/standard';
 import { useAddCompanyEntry, useCompanyEntries } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
@@ -133,7 +139,12 @@ export default function CompanyEntryScreen() {
       ...(kind === 'reimbursement' ? { direction } : {}),
     };
     try {
-      await add.mutateAsync({ entryId: randomUUID(), memberId: employee.id, entryKind: kind, data });
+      await add.mutateAsync({
+        entryId: randomUUID(),
+        memberId: employee.id,
+        entryKind: kind,
+        data,
+      });
       router.back();
     } catch (caught) {
       setError(friendlyError(caught, t.company.couldNotSave, 'company.add'));
@@ -162,7 +173,9 @@ export default function CompanyEntryScreen() {
               <PillButton
                 label={
                   employee
-                    ? fill(t.company.forPerson, { name: displayName(employee, null, null, t.misc.someone) })
+                    ? fill(t.company.forPerson, {
+                        name: displayName(employee, null, null, t.misc.someone),
+                      })
                     : t.company.formEmployee
                 }
                 icon="person-outline"
@@ -252,7 +265,13 @@ export default function CompanyEntryScreen() {
                 <Text variant="caption" tone="muted">
                   {t.company.formAmount}
                 </Text>
-                <AmountField currency={currency} value={amount} onChange={setAmount} size="compact" framed />
+                <AmountField
+                  currency={currency}
+                  value={amount}
+                  onChange={setAmount}
+                  size="compact"
+                  framed
+                />
               </>
             )}
 

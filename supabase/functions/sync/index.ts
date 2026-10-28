@@ -2088,7 +2088,16 @@ function companyData(value: unknown): Record<string, unknown> {
     throw new HttpError(400, 'VALIDATION_FAILED', 'company data must be an object');
   }
   const data = value as Record<string, unknown>;
-  const keys = ['amount', 'category', 'days', 'rateMinor', 'calcMode', 'occurredOn', 'note', 'direction'];
+  const keys = [
+    'amount',
+    'category',
+    'days',
+    'rateMinor',
+    'calcMode',
+    'occurredOn',
+    'note',
+    'direction',
+  ];
   for (const [key, field] of Object.entries(data)) {
     if (!keys.includes(key) || (field !== null && typeof field !== 'string')) {
       throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${key}`);

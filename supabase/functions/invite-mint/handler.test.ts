@@ -54,7 +54,10 @@ function serviceMock(options: {
     eq: () => groups,
     single: () =>
       Promise.resolve({
-        data: { name: options.groupName === undefined ? 'Goa Trip' : options.groupName, type: options.company ? 'company' : 'trip' },
+        data: {
+          name: options.groupName === undefined ? 'Goa Trip' : options.groupName,
+          type: options.company ? 'company' : 'trip',
+        },
         error: null,
       }),
   };
@@ -276,9 +279,8 @@ describe('minting a link', () => {
   });
 });
 
-
 describe('company invite authority', () => {
-  it.each([false, true])('requires company admin (admin=%s)', async admin => {
+  it.each([false, true])('requires company admin (admin=%s)', async (admin) => {
     const { deps, insertSpy } = harness({ company: true, admin });
     const response = await handleInviteMint(mint({ groupId: 'g-1' }), deps);
     expect(response.status).toBe(admin ? 200 : 403);

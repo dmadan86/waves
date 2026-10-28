@@ -7,7 +7,10 @@ import { Pressable, ScrollView } from 'react-native';
 
 import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
-import { CompanyPeriodPills, CompanyStatementView } from '@/components/company/CompanyStatementView';
+import {
+  CompanyPeriodPills,
+  CompanyStatementView,
+} from '@/components/company/CompanyStatementView';
 import { ScenicBody, ScenicHeader } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { displayName } from '@/data/types';
@@ -29,7 +32,10 @@ export default function CompanyStatementScreen() {
 
   return (
     <Screen edges={[]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: clearance }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: clearance }}
+        showsVerticalScrollIndicator={false}
+      >
         <ScenicHeader
           title={member ? displayName(member, null, null, t.misc.someone) : t.company.myStatement}
           action={

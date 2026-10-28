@@ -31,14 +31,14 @@ anyone), `entry_kind`, `category`, `amount` (minor units), `currency` (the group
 (reimbursements only), `status` (`submitted` / `approved` / `rejected` / `reimbursed`),
 `note`, soft delete (`deleted_at`, `void_reason`), `version`, `updated_seq`.
 
-| Kind | Effect on "company owes employee" |
-| --- | --- |
-| Expense (fuel, transport, travel, food, office, other) | + amount |
-| Allowance / Bata (days x daily rate, rounded half up once) | + amount |
-| Advance (company gave cash) | - amount |
-| Reimbursement, company to employee (recorded settlement) | - amount |
-| Reimbursement, employee to company (cash returned) | + amount |
-| Wages paid (typed, fixed weekly, or days x rate) | none; shown in totals only |
+| Kind                                                       | Effect on "company owes employee" |
+| ---------------------------------------------------------- | --------------------------------- |
+| Expense (fuel, transport, travel, food, office, other)     | + amount                          |
+| Allowance / Bata (days x daily rate, rounded half up once) | + amount                          |
+| Advance (company gave cash)                                | - amount                          |
+| Reimbursement, company to employee (recorded settlement)   | - amount                          |
+| Reimbursement, employee to company (cash returned)         | + amount                          |
+| Wages paid (typed, fixed weekly, or days x rate)           | none; shown in totals only        |
 
 Net due = expenses + bata - advances - payouts + cash returned. Positive: the company owes
 the employee; negative: the employee owes the company. Only `approved` / `reimbursed`

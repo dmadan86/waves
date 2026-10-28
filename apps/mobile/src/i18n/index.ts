@@ -7223,8 +7223,10 @@ const en: UiStrings = {
     employeesOweAll: 'Employees owe the company {amount}',
     owedTo: 'Company owes',
     owedBy: 'Owes company',
-    welcomeEmployee: 'Add your fuel, travel and bata here. Only you and the company admin can see your entries.',
-    welcomeAdmin: 'Invite your employees, then add entries and record advances and wages for them. Each employee sees only their own entries.',
+    welcomeEmployee:
+      'Add your fuel, travel and bata here. Only you and the company admin can see your entries.',
+    welcomeAdmin:
+      'Invite your employees, then add entries and record advances and wages for them. Each employee sees only their own entries.',
     brought: 'Brought forward',
     expenses: 'Expenses',
     bata: 'Bata',
@@ -12630,8 +12632,10 @@ const ta: UiStrings = {
     employeesOweAll: 'ஊழியர்கள் நிறுவனத்துக்குத் தர வேண்டும் {amount}',
     owedTo: 'நிறுவனம் தர வேண்டும்',
     owedBy: 'நிறுவனத்துக்குத் தர வேண்டும்',
-    welcomeEmployee: 'உங்கள் எரிபொருள், பயணம், படி செலவுகளை இங்கே சேர்க்கவும். உங்கள் பதிவுகளை நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே பார்க்க முடியும்.',
-    welcomeAdmin: 'ஊழியர்களை அழைத்து, அவர்களுக்கான பதிவுகள், முன்பணம், சம்பளத்தைப் பதிவு செய்யுங்கள். ஒவ்வொரு ஊழியரும் தங்கள் பதிவுகளை மட்டுமே பார்ப்பார்.',
+    welcomeEmployee:
+      'உங்கள் எரிபொருள், பயணம், படி செலவுகளை இங்கே சேர்க்கவும். உங்கள் பதிவுகளை நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே பார்க்க முடியும்.',
+    welcomeAdmin:
+      'ஊழியர்களை அழைத்து, அவர்களுக்கான பதிவுகள், முன்பணம், சம்பளத்தைப் பதிவு செய்யுங்கள். ஒவ்வொரு ஊழியரும் தங்கள் பதிவுகளை மட்டுமே பார்ப்பார்.',
     brought: 'முன் நிலுவை',
     expenses: 'செலவுகள்',
     bata: 'படி',
@@ -18204,8 +18208,10 @@ const hi: UiStrings = {
     employeesOweAll: 'कर्मचारी कंपनी को देंगे {amount}',
     owedTo: 'कंपनी देगी',
     owedBy: 'कंपनी को देंगे',
-    welcomeEmployee: 'अपना ईंधन, यात्रा और भत्ते का खर्च यहाँ जोड़ें। आपकी एंट्रियाँ सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
-    welcomeAdmin: 'कर्मचारियों को बुलाएँ, फिर उनके लिए एंट्री, अग्रिम और वेतन दर्ज करें। हर कर्मचारी सिर्फ़ अपनी एंट्रियाँ देखता है।',
+    welcomeEmployee:
+      'अपना ईंधन, यात्रा और भत्ते का खर्च यहाँ जोड़ें। आपकी एंट्रियाँ सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
+    welcomeAdmin:
+      'कर्मचारियों को बुलाएँ, फिर उनके लिए एंट्री, अग्रिम और वेतन दर्ज करें। हर कर्मचारी सिर्फ़ अपनी एंट्रियाँ देखता है।',
     brought: 'पिछला बकाया',
     expenses: 'खर्च',
     bata: 'भत्ता',
@@ -23670,7 +23676,8 @@ const ar: UiStrings = {
     employeesOweAll: 'الموظفون مدينون للشركة {amount}',
     owedTo: 'الشركة مدينة',
     owedBy: 'مدين للشركة',
-    welcomeEmployee: 'أضف مصروفات الوقود والسفر والبدل هنا. أنت ومشرف الشركة فقط يمكنكما رؤية قيودك.',
+    welcomeEmployee:
+      'أضف مصروفات الوقود والسفر والبدل هنا. أنت ومشرف الشركة فقط يمكنكما رؤية قيودك.',
     welcomeAdmin: 'ادعُ موظفيك ثم أضف القيود والسلف والأجور لهم. يرى كل موظف قيوده فقط.',
     brought: 'الرصيد المنقول',
     expenses: 'المصروفات',

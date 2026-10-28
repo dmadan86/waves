@@ -62,7 +62,13 @@ function harness(options: Options = {}) {
         data:
           state.name === 'invites'
             ? INVITE
-            : { id: 'g-1', name: 'Goa', cover_emoji: null, default_currency: 'INR', type: options.company ? 'company' : 'trip' },
+            : {
+                id: 'g-1',
+                name: 'Goa',
+                cover_emoji: null,
+                default_currency: 'INR',
+                type: options.company ? 'company' : 'trip',
+              },
         error: null,
       }),
       insert: async (row: unknown) => {
@@ -219,10 +225,12 @@ describe('invite-accept requires an account to join', () => {
   });
 });
 
-
 it('company preview reveals neither roster count nor claimable placeholders', async () => {
-  const { deps, rpc } = harness({ company: true, noUser: true,
-    members: [{ id: 'private-ghost', ghost_name: 'Private colleague', profile_id: null }] });
+  const { deps, rpc } = harness({
+    company: true,
+    noUser: true,
+    members: [{ id: 'private-ghost', ghost_name: 'Private colleague', profile_id: null }],
+  });
   const response = await handleInviteAccept(post({ token: 't', mode: 'preview' }), deps);
   expect(response.status).toBe(200);
   const body = await response.json();
