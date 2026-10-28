@@ -591,7 +591,7 @@ export class SyncEngine {
           continue;
         }
         const company =
-          entry.code === 'COMPANY_GROUP'
+          (entry.code as string) === 'COMPANY_GROUP'
             ? companyEntryFromRefusedExpense(
                 entry.mutation,
                 this.groupCurrency(entry.mutation.groupId),
