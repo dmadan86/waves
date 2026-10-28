@@ -172,7 +172,7 @@ import {
   type VoiceParseResult,
 } from '@/lib/voiceExpense';
 import { logVoiceAttempt } from '@/lib/voiceLog';
-import { learnedForGroup, voiceNameHints, withAliases } from '@/lib/voiceNames';
+import { learnedForGroup, voiceNameHints, withAliases, withGroupHints } from '@/lib/voiceNames';
 import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
 import { DraftRow } from '@/components/voice/DraftRow';
 import {
@@ -801,7 +801,7 @@ export default function VoiceScreen() {
   // name — the launch group's, else everybody across the reader's groups —
   // by display name, first name and confirmed alias (capped in voiceNameHints).
   const hints = useMemo(() => {
-    if (launchMembers) return voiceNameHints(launchMembers);
+    if (launchMembers) return withGroupHints(groupNames, voiceNameHints(launchMembers));
     const aliased = groupRows.flatMap((group) =>
       withAliases(
         toCandidates(
@@ -812,7 +812,8 @@ export default function VoiceScreen() {
         group.id,
       ),
     );
-    return voiceNameHints(aliased);
+    return withGroupHints(groupNames, voiceNameHints(aliased));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- groupNames derives from groupRows
   }, [launchMembers, groupRows, everyMember, viewerId, nameMemory]);
   // Only the group destinations carry a group id to write into; unassigned and
   // "just me" have none, so the write hook reads the empty id and stays inert.
@@ -2666,7 +2667,8 @@ export default function VoiceScreen() {
                   key: candidate.id,
                   label: candidate.name ?? '',
                 }))
-              : []
+              : // Nothing like it was found: still one tap away, the groups used most recently.
+                groupRows.slice(0, 3).map((group) => ({ key: group.id, label: group.name ?? '' }))
           }
           onSelect={chooseGroup}
           action={{ label: t.voice.chooseGroup, onPress: () => setPickerOpen(true) }}
@@ -3217,6 +3219,26 @@ export default function VoiceScreen() {
                   }}
                 />
               )}
+              {/* The way out for anyone the mic keeps missing: always in sight, and after
+                a miss it carries what was heard, so nothing said is lost. */}
+              {!typedMode && !hold.holding ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.assistant.composerTypeInstead}
+                  hitSlop={8}
+                  style={{ alignSelf: 'center', minHeight: 44, justifyContent: 'center' }}
+                  onPress={() => {
+                    hapticSelect();
+                    captureActive.current = false;
+                    if (noAmount && heardText) setTypedDraft(heardText);
+                    setTypedMode(true);
+                  }}
+                >
+                  <Text tone="brand" style={{ fontWeight: '600' }}>
+                    {t.assistant.composerTypeInstead}
+                  </Text>
+                </Pressable>
+              ) : null}
               {/* Only while a finger is actually on the bar's mic. It says the one
                 thing a held button has to say and the tapped one does not: there
                 is a way out that is not "finish the sentence". The chevron points

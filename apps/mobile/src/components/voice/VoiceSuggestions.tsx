@@ -61,11 +61,19 @@ export function useVoiceSuggestions(groupNames: readonly string[]): Suggestion[]
     [groupsKey, seed, currency],
   );
   return [
-    {
-      icon: 'cafe-outline',
-      kind: 'expense',
-      text: fill(t.voice.tryJustMe, { amount: example.coffee }),
-    },
+    // With a real group, the first thing to try is the sentence that would have
+    // worked in that group ("Groceries 850 to Goa Trip").
+    example.group
+      ? {
+          icon: 'bag-handle-outline',
+          kind: 'expense',
+          text: fill(t.voice.tryGroup, { amount: example.groceries, group: example.group }),
+        }
+      : {
+          icon: 'cafe-outline',
+          kind: 'expense',
+          text: fill(t.voice.tryJustMe, { amount: example.coffee }),
+        },
     {
       icon: 'restaurant-outline',
       kind: 'expense',
