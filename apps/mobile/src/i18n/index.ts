@@ -5233,10 +5233,6 @@ export interface UiStrings {
     fromYourContactsSubtitle: string;
     /** The compact picker's filter pills — "All (907)". */
     filterAll: string;
-    /** Shared by the "On Waves" filter pill and a row's own status pill. */
-    filterOnWaves: string;
-    /** Shared by the "Not on Waves" filter pill and a row's own status pill. */
-    filterNotOnWaves: string;
     filterSelected: string;
     /** The compact picker's bottom strip: "{n} people selected". */
     peopleSelectedCount: PluralForms;
@@ -10836,8 +10832,6 @@ const en: UiStrings = {
     useMyTimezone: 'Use my timezone ({zone})',
     fromYourContactsSubtitle: 'Select people to add to Waves',
     filterAll: 'All',
-    filterOnWaves: 'On Waves',
-    filterNotOnWaves: 'Not on Waves',
     filterSelected: 'Selected',
     peopleSelectedCount: { one: '{n} person selected', other: '{n} people selected' },
     clearAllSelected: 'Clear all',
@@ -16542,8 +16536,6 @@ const ta: UiStrings = {
     useMyTimezone: 'என் நேர மண்டலத்தைப் பயன்படுத்து ({zone})',
     fromYourContactsSubtitle: 'Waves-இல் சேர்க்க நபர்களைத் தேர்ந்தெடுக்கவும்',
     filterAll: 'அனைத்தும்',
-    filterOnWaves: 'Waves-இல் உள்ளனர்',
-    filterNotOnWaves: 'Waves-இல் இல்லை',
     filterSelected: 'தேர்ந்தெடுக்கப்பட்டவை',
     peopleSelectedCount: {
       one: '{n} நபர் தேர்ந்தெடுக்கப்பட்டார்',
@@ -22130,8 +22122,6 @@ const hi: UiStrings = {
     useMyTimezone: 'मेरा टाइमज़ोन इस्तेमाल करें ({zone})',
     fromYourContactsSubtitle: 'Waves में जोड़ने के लिए लोगों को चुनें',
     filterAll: 'सभी',
-    filterOnWaves: 'Waves पर हैं',
-    filterNotOnWaves: 'Waves पर नहीं हैं',
     filterSelected: 'चुने गए',
     peopleSelectedCount: { one: '{n} व्यक्ति चुना गया', other: '{n} लोग चुने गए' },
     clearAllSelected: 'सभी हटाएं',
@@ -28241,8 +28231,6 @@ const ar: UiStrings = {
     useMyTimezone: 'استخدم منطقتي الزمنية ({zone})',
     fromYourContactsSubtitle: 'اختر الأشخاص لإضافتهم إلى Waves',
     filterAll: 'الكل',
-    filterOnWaves: 'على Waves',
-    filterNotOnWaves: 'ليس على Waves',
     filterSelected: 'المحدد',
     peopleSelectedCount: {
       zero: 'لم يتم اختيار أي شخص',
