@@ -2648,6 +2648,7 @@ export interface UiStrings {
     settleSubtitle: string;
     /** "{members} · Last activity {when}" under a group's name. */
     settleMeta: string;
+    settleAllGroups: string;
     /** "Across 4 groups", under each side of the balance card. */
     acrossGroups: PluralForms;
   };
@@ -8534,6 +8535,7 @@ const en: UiStrings = {
     settleEmpty: "You're square everywhere",
     settleSubtitle: 'Pick a group to view balances and settle up.',
     settleMeta: '{members} · Last activity {when}',
+    settleAllGroups: 'All groups',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
   },
   tips: {
@@ -14023,6 +14025,7 @@ const ta: UiStrings = {
     settleEmpty: 'எல்லா குழுக்களிலும் கணக்கு சரியாக உள்ளது.',
     settleSubtitle: 'ஒரு குழுவைத் தேர்ந்தெடுத்து இருப்புகளைப் பார்த்து தீர்க்கவும்.',
     settleMeta: '{members} · கடைசி செயல்பாடு {when}',
+    settleAllGroups: 'எல்லா குழுக்களும்',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
   },
   tips: {
@@ -19618,6 +19621,7 @@ const hi: UiStrings = {
     settleEmpty: 'हर समूह में हिसाब बराबर है।',
     settleSubtitle: 'बैलेंस देखने और हिसाब चुकाने के लिए समूह चुनें।',
     settleMeta: '{members} · आखिरी गतिविधि {when}',
+    settleAllGroups: 'सभी समूह',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
   },
   tips: {
@@ -25169,6 +25173,7 @@ const ar: UiStrings = {
     settleEmpty: 'حساباتك مسوّاة في كل المجموعات.',
     settleSubtitle: 'اختر مجموعة لعرض الأرصدة والتسوية.',
     settleMeta: '{members} · آخر نشاط {when}',
+    settleAllGroups: 'كل المجموعات',
     acrossGroups: {
       zero: 'في {n} مجموعة',
       one: 'في مجموعة واحدة',
