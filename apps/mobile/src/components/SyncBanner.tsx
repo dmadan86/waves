@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Animated, Easing, Pressable, View } from 'react-native';
 
-import { deadLettered, pendingMutations } from '@waves/core';
+import { deadLettered, pendingMutations, RefusalReason, refusalReason } from '@waves/core';
 import { Card, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
@@ -198,6 +198,10 @@ export function SyncBanner({ groupId }: { groupId?: string }) {
 
   if (refused.length > 0) {
     const first = refused[0];
+    // Trying again only helps when the cause can pass; for the rest the one
+    // honest action is to let the change go.
+    const reason = refusalReason(first?.code ?? '');
+    const canRetry = reason === RefusalReason.Conflict || reason === RefusalReason.Generic;
     return (
       <Card style={{ backgroundColor: theme.color.negativeSoft, gap: theme.spacing.md }}>
         <Row style={{ gap: theme.spacing.sm }}>
@@ -209,12 +213,13 @@ export function SyncBanner({ groupId }: { groupId?: string }) {
         {/* Never the raw server string. `first.message` arrives as an internal
             code like "PHONE_NEEDS_COUNTRY_CODE: 9535621101 has no country code";
             a bare uncoded number gets the one friendly, localized sentence that
-            actually helps, and anything else the neutral "refused" line. The raw
-            reason still travels to Sentry via the sync engine. */}
+            actually helps, and anything else the specific reason for its code
+            (core/sync/refusal.ts). The raw reason still travels to Sentry via
+            the sync engine. */}
         <Text variant="caption" tone="muted">
           {first && isPhoneCountryError(first)
             ? t.people.phoneNeedsCountryCode
-            : t.misc.serverRefused}
+            : t.sync.refusal[reason]}
         </Text>
         {/* The two recovery actions for a refused change — the buttons a person
             most needs to hit. A caption Text alone left the tap area ~18pt tall;
@@ -222,21 +227,23 @@ export function SyncBanner({ groupId }: { groupId?: string }) {
             label names the action for a screen reader rather than leaning on the
             child text. */}
         <Row style={{ gap: theme.spacing.lg }}>
-          <Pressable
-            onPress={() => first && void retry(first.clientMutationId)}
-            accessibilityRole="button"
-            accessibilityLabel={t.extras.tryAgain}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              minHeight: 44,
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text variant="caption" tone="brand">
-              {t.extras.tryAgain}
-            </Text>
-          </Pressable>
+          {canRetry ? (
+            <Pressable
+              onPress={() => first && void retry(first.clientMutationId)}
+              accessibilityRole="button"
+              accessibilityLabel={t.extras.tryAgain}
+              hitSlop={8}
+              style={({ pressed }) => ({
+                minHeight: 44,
+                justifyContent: 'center',
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <Text variant="caption" tone="brand">
+                {t.extras.tryAgain}
+              </Text>
+            </Pressable>
+          ) : null}
           <Pressable
             onPress={() => first && void discard(first.clientMutationId)}
             accessibilityRole="button"

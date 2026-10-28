@@ -54,4 +54,44 @@ describe('mutation errors', () => {
     dispatch.mockRejectedValue(error);
     expect(await session.apply(mutation)).toMatchObject({ status: 'rejected' });
   });
+
+  it('records a refusal as code and kind only, and names bare raised codes', async () => {
+    const inserts: { table: string; row: Record<string, unknown> }[] = [];
+    const service = {
+      from: (table: string) => ({
+        select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }),
+        insert: async (row: Record<string, unknown>) => {
+          inserts.push({ table, row });
+          return { error: null };
+        },
+      }),
+    };
+    const session = new SyncSession({} as never, service as never, 'owner');
+    vi.spyOn(
+      session as unknown as { dispatch: () => Promise<unknown> },
+      'dispatch',
+    ).mockRejectedValue({
+      code: 'P0001',
+      message: 'ADMIN_ONLY',
+    });
+    const out = await session.apply({
+      clientMutationId: 'm1',
+      kind: 'company_member.rate_set',
+      groupId: 'g1',
+      payload: { note: 'secret' },
+    } as never);
+    expect(out).toMatchObject({ status: 'rejected', code: 'ADMIN_ONLY' });
+    expect(inserts).toEqual([
+      {
+        table: 'sync_refusals',
+        row: {
+          profile_id: 'owner',
+          group_id: 'g1',
+          kind: 'company_member.rate_set',
+          code: 'ADMIN_ONLY',
+          sqlstate: 'P0001',
+        },
+      },
+    ]);
+  });
 });

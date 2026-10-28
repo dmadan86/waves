@@ -913,6 +913,16 @@ export interface UiStrings {
   };
   /** Which networks sync may use, and what the banner says while it waits. */
   sync: {
+    refusal: {
+      companyGroup: string;
+      adminOnly: string;
+      notMember: string;
+      archived: string;
+      notFound: string;
+      conflict: string;
+      guestExpired: string;
+      generic: string;
+    };
     title: string;
     wifi: string;
     wifiHint: string;
@@ -4295,7 +4305,6 @@ export interface UiStrings {
      *  longer on this device (left or deleted). */
     archivedGroup: string;
     unavailableGroup: string;
-    serverRefused: string;
     offlineSaved: string;
     /** The mark on a row that is saved here but has not reached the server. */
     notSentYet: string;
@@ -6949,6 +6958,17 @@ const en: UiStrings = {
     },
   },
   sync: {
+    refusal: {
+      companyGroup:
+        "This is a company group, so this can't be added as a shared expense. Add it as a company entry instead.",
+      adminOnly: 'Only the group admin can make this change.',
+      notMember: "You're no longer in this group, so this change can't be saved.",
+      archived: "This group was closed or deleted, so this change can't be saved.",
+      notFound: "Something this change refers to was removed, so it can't be saved.",
+      conflict: 'Someone else changed this at the same time. Review it and try again.',
+      guestExpired: 'Your guest trial has ended. Sign up to keep saving.',
+      generic: "This change couldn't be saved. Review it, or discard it.",
+    },
     title: 'Sync over',
     wifi: 'Wi‑Fi only',
     wifiHint: 'Sync only on Wi‑Fi. Never spends mobile data.',
@@ -9791,7 +9811,6 @@ const en: UiStrings = {
     memberLeft: '(left)',
     archivedGroup: 'Archived',
     unavailableGroup: 'Unavailable',
-    serverRefused: 'The server refused this change.',
     notSentYet: 'Not sent yet',
     offlineWithCount: {
       one: 'Offline — {n} change saved on this phone',
@@ -12384,6 +12403,19 @@ const ta: UiStrings = {
     },
   },
   sync: {
+    refusal: {
+      companyGroup:
+        'இது நிறுவனக் குழு என்பதால், பகிர்ந்த செலவாகச் சேர்க்க முடியாது. நிறுவனப் பதிவாகச் சேர்க்கவும்.',
+      adminOnly: 'குழு நிர்வாகி மட்டுமே இந்த மாற்றத்தைச் செய்ய முடியும்.',
+      notMember: 'நீங்கள் இப்போது இந்தக் குழுவில் இல்லை. எனவே இந்த மாற்றத்தைச் சேமிக்க முடியாது.',
+      archived:
+        'இந்தக் குழு மூடப்பட்டது அல்லது நீக்கப்பட்டது. எனவே இந்த மாற்றத்தைச் சேமிக்க முடியாது.',
+      notFound: 'இந்த மாற்றத்துடன் தொடர்புடைய ஒன்று நீக்கப்பட்டது. எனவே இதைச் சேமிக்க முடியாது.',
+      conflict: 'அதே நேரத்தில் வேறொருவர் இதை மாற்றிவிட்டார். சரிபார்த்து மீண்டும் முயலவும்.',
+      guestExpired:
+        'உங்கள் விருந்தினர் சோதனைக் காலம் முடிந்தது. தொடர்ந்து சேமிக்கப் பதிவு செய்யவும்.',
+      generic: 'இந்த மாற்றத்தைச் சேமிக்க முடியவில்லை. சரிபார்க்கவும் அல்லது கைவிடவும்.',
+    },
     title: 'எதன் மூலம் ஒத்திசைவு',
     wifi: 'வைஃபை மட்டும்',
     wifiHint: 'வைஃபையில் மட்டும் ஒத்திசைக்கும். மொபைல் டேட்டா செலவாகாது.',
@@ -15329,7 +15361,6 @@ const ta: UiStrings = {
     memberLeft: '(வெளியேறினார்)',
     archivedGroup: 'காப்பகம்',
     unavailableGroup: 'கிடைக்கவில்லை',
-    serverRefused: 'இந்த மாற்றத்தை சர்வர் ஏற்கவில்லை.',
     notSentYet: 'இன்னும் அனுப்பப்படவில்லை',
     offlineWithCount: {
       one: 'இணைப்பு இல்லை — {n} மாற்றம் இந்த ஃபோனில் சேமிக்கப்பட்டுள்ளது',
@@ -18002,6 +18033,17 @@ const hi: UiStrings = {
     },
   },
   sync: {
+    refusal: {
+      companyGroup:
+        'यह कंपनी का समूह है, इसलिए इसे साझा खर्च के रूप में नहीं जोड़ सकते। इसे कंपनी की एंट्री के रूप में जोड़ें।',
+      adminOnly: 'यह बदलाव केवल समूह का एडमिन कर सकता है।',
+      notMember: 'अब आप इस समूह में नहीं हैं, इसलिए यह बदलाव सहेजा नहीं जा सकता।',
+      archived: 'यह समूह बंद या हटा दिया गया है, इसलिए यह बदलाव सहेजा नहीं जा सकता।',
+      notFound: 'इस बदलाव से जुड़ी कोई चीज़ हटा दी गई है, इसलिए इसे सहेजा नहीं जा सकता।',
+      conflict: 'उसी समय किसी और ने इसे बदल दिया। जाँचें और फिर कोशिश करें।',
+      guestExpired: 'आपकी अतिथि ट्रायल अवधि खत्म हो गई है। सहेजते रहने के लिए साइन अप करें।',
+      generic: 'यह बदलाव सहेजा नहीं जा सका। जाँचें या हटा दें।',
+    },
     title: 'किस पर सिंक करें',
     wifi: 'केवल वाई‑फ़ाई',
     wifiHint: 'केवल वाई‑फ़ाई पर सिंक करें। मोबाइल डेटा कभी खर्च नहीं होगा।',
@@ -20865,7 +20907,6 @@ const hi: UiStrings = {
     memberLeft: '(छोड़ चुके)',
     archivedGroup: 'संग्रहीत',
     unavailableGroup: 'अनुपलब्ध',
-    serverRefused: 'सर्वर ने यह बदलाव नहीं माना।',
     notSentYet: 'अभी भेजा नहीं गया',
     offlineWithCount: {
       one: 'ऑफ़लाइन — {n} बदलाव इसी फ़ोन पर सेव है',
@@ -23466,6 +23507,17 @@ const ar: UiStrings = {
     },
   },
   sync: {
+    refusal: {
+      companyGroup:
+        'هذه مجموعة شركة، لذا لا يمكن إضافة هذا كمصروف مشترك. أضفه كقيد للشركة بدلاً من ذلك.',
+      adminOnly: 'يمكن لمسؤول المجموعة فقط إجراء هذا التغيير.',
+      notMember: 'لم تعد عضواً في هذه المجموعة، لذا لا يمكن حفظ هذا التغيير.',
+      archived: 'أُغلقت هذه المجموعة أو حُذفت، لذا لا يمكن حفظ هذا التغيير.',
+      notFound: 'حُذف شيء مرتبط بهذا التغيير، لذا لا يمكن حفظه.',
+      conflict: 'عدّل شخص آخر هذا في الوقت نفسه. راجعه وحاول مجدداً.',
+      guestExpired: 'انتهت فترتك التجريبية كضيف. أنشئ حساباً لمواصلة الحفظ.',
+      generic: 'تعذّر حفظ هذا التغيير. راجعه أو تجاهله.',
+    },
     title: 'المزامنة عبر',
     wifi: 'واي‑فاي فقط',
     wifiHint: 'المزامنة عبر واي‑فاي فقط. لا تستهلك بيانات الجوال أبدًا.',
@@ -26573,7 +26625,6 @@ const ar: UiStrings = {
     memberLeft: '(غادر)',
     archivedGroup: 'مؤرشَف',
     unavailableGroup: 'غير متاح',
-    serverRefused: 'رفض الخادم هذا التغيير.',
     notSentYet: 'لم يُرسل بعد',
     offlineWithCount: {
       zero: 'دون اتصال — لا تغييرات',

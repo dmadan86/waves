@@ -27,7 +27,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { useGroups, useHomeSummary } from '@/data/hooks';
+import { useExpenseGroups, useHomeSummary } from '@/data/hooks';
 import { displayName, isViewer } from '@/data/types';
 import { deviceLocale, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
@@ -82,7 +82,7 @@ export default function VoiceRecorderScreen() {
   const clearance = useTabBarClearance();
   const { t } = useStrings();
   const { profile: me } = useAuth();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   const summary = useHomeSummary(me?.id ?? null);
   const { confirm } = useDialog();
 

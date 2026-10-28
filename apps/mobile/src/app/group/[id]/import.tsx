@@ -43,6 +43,7 @@ import { ExamplesSheet, UpsellSheet } from '@/components/import/ImportSheets';
 import { ImportHero, SourcePicker, type SourceChoice } from '@/components/import/SourcePicker';
 import { importIntoGroup, undoImport } from '@/data/api';
 import { useGroup } from '@/data/hooks';
+import { useCompanyGroupGuard } from '@/lib/useCompanyGroupGuard';
 import { displayName, groupLabel, isViewer } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -96,6 +97,7 @@ export default function GroupImportScreen() {
   const viewerId = useViewerId();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
+  useCompanyGroupGuard(groupId);
   const { group, members, expenses } = useGroup(groupId);
   const imp = useImportProgress();
 

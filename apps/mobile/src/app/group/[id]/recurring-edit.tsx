@@ -50,6 +50,7 @@ import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEdi
 import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
 import { useGroupRecurring, useUpdateGroupRecurring } from '@/data/groupRecurring';
 import { useGroup } from '@/data/hooks';
+import { useCompanyGroupGuard } from '@/lib/useCompanyGroupGuard';
 import { displayName, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -74,6 +75,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 export default function GroupRecurringEditScreen() {
   const { id, ruleId } = useLocalSearchParams<{ id: string; ruleId?: string }>();
   const groupId = id ?? '';
+  useCompanyGroupGuard(groupId);
   const { rules, isLoading } = useGroupRecurring(groupId);
   const rule = rules.find((candidate) => candidate.id === ruleId);
   const theme = useTheme();

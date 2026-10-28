@@ -126,7 +126,7 @@ import {
   useCreateGroup,
   useDeleteCapture,
   useGroupPeopleSignatures,
-  useGroups,
+  useExpenseGroups,
   useHomeSummary,
   useOneToOneGroupIds,
   usePeopleBalances,
@@ -1081,7 +1081,7 @@ export default function CapturesScreen() {
   // is stopped by the same guard inside add-expense; a swipe or batch write never
   // reaches that screen, so it asks here.
   const guard = useGuestGuard();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   const summary = useHomeSummary(viewerId);
   // The people the picker can point a draft at, and the raw material for
   // deciding whether a chosen set of them already share a group. All read from

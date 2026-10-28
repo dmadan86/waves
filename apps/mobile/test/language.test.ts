@@ -8,6 +8,8 @@
  * different country.
  */
 
+import { RefusalReason } from '@waves/core';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Language } from '../src/i18n';
@@ -200,6 +202,24 @@ describe('the two directions of the restart', () => {
       const table = STRINGS_BY_LANGUAGE[language];
       expect(at(table, 'account.languageRestartHint'), language).toContain('{language}');
       expect(at(table, 'account.languageRestartHintBack'), language).toContain('{language}');
+    }
+  });
+});
+
+describe('sync refusal copy', () => {
+  it('provides translated copy for every refusal reason in every language', () => {
+    for (const [language, t] of Object.entries(STRINGS_BY_LANGUAGE)) {
+      for (const reason of Object.values(RefusalReason)) {
+        expect(t.sync.refusal, `${language}.${reason}`).toHaveProperty(reason);
+      }
+      for (const key of Object.keys(t.sync.refusal) as (keyof typeof t.sync.refusal)[]) {
+        const text = t.sync.refusal[key];
+        expect(typeof text, `${language}.${key}`).toBe('string');
+        expect(text.trim(), `${language}.${key}`).not.toBe('');
+        if (language !== 'en') {
+          expect(text, `${language}.${key}`).not.toBe(STRINGS_BY_LANGUAGE.en.sync.refusal[key]);
+        }
+      }
     }
   });
 });
