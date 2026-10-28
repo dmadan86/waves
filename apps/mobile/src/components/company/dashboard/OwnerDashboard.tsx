@@ -239,7 +239,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                           name={displayName(m)}
                           ghost={isGhost(m)}
                           size={36}
-                          tint={(["pink", "sky", "mint", "peach"] as const)[i % 4]}
+                          tint={(['pink', 'sky', 'mint', 'peach'] as const)[i % 4]}
                         />
                       }
                       title={displayName(m, null, null, t.misc.someone)}
