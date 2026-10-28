@@ -114,6 +114,12 @@ BEGIN
   (to_jsonb(OLD)-ARRAY['status','review_note','reviewed_by','reviewed_at','version','updated_by','updated_at','updated_seq'])
   AND (SELECT company_approvals_enabled FROM public.groups WHERE id=NEW.group_id) THEN
   NEW.status:='submitted'; NEW.review_note:=NULL; NEW.reviewed_by:=NULL; NEW.reviewed_at:=NULL;
+ ELSIF NEW.deleted_at IS NULL AND OLD.status='rejected' AND NEW.status='rejected'
+  AND (to_jsonb(NEW)-ARRAY['status','review_note','reviewed_by','reviewed_at','version','updated_by','updated_at','updated_seq'])
+  IS DISTINCT FROM
+  (to_jsonb(OLD)-ARRAY['status','review_note','reviewed_by','reviewed_at','version','updated_by','updated_at','updated_seq']) THEN
+  -- Approvals are off and a rejected claim was edited: it is approved again, not stuck out of the balance.
+  NEW.status:='approved'; NEW.review_note:=NULL; NEW.reviewed_by:=NULL; NEW.reviewed_at:=NULL;
  END IF;
  RETURN NEW;
 END

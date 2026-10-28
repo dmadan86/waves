@@ -80,7 +80,10 @@ export default function CompanyEntryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [photos, setPhotos] = useState<PickedImage[]>([]);
 
-  const defaultRate = employee?.daily_rate_minor ? BigInt(employee.daily_rate_minor) : 0n;
+  // The employee's own rate, else the company-wide default, else none.
+  const defaultRate = employee?.daily_rate_minor
+    ? BigInt(employee.daily_rate_minor)
+    : (view.defaultRateMinor ?? 0n);
   const rate = rateTouched ?? defaultRate;
   const byDays = kind === 'allowance' || (kind === 'wages' && wagesMode === 'days_rate');
   const computed = byDays ? allowanceAmount(days, rate) : null;
@@ -133,7 +136,8 @@ export default function CompanyEntryScreen() {
     } else setPickingDate((open) => !open);
   };
 
-  const valid = !!employee && total > 0n && (!byDays || computed !== null);
+  // A days x rate entry may be zero (a zero rate is valid); a typed amount may not.
+  const valid = !!employee && (byDays ? computed !== null : total > 0n);
 
   const save = async (): Promise<void> => {
     if (!employee || !valid) {
