@@ -35,7 +35,7 @@ export function GlassSurface({
   if (folderTab) {
     const { width: w, height: h } = size;
     const r = Math.min(theme.radius.xl, w / 4, h / 4);
-    const tab = w * 0.6;
+    const tab = w * 0.5;
     // One continuous silhouette avoids a seam where the tab meets the body.
     const path = `M ${r} 0 H ${tab - 30} C ${tab - 8} 0 ${tab - 12} 34 ${tab + 12} 34 H ${w - r} Q ${w} 34 ${w} ${34 + r} V ${h - r} Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`;
     return (

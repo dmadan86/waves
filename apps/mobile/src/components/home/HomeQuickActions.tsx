@@ -85,7 +85,7 @@ export function HomeQuickActions({
           key: 'review',
           label: t.review,
           badge: reviewBadge,
-          badgeColor: theme.color.brand,
+          badgeColor: theme.color.negative,
           glyph: (color) => <Ionicons name="file-tray-full-outline" size={24} color={color} />,
           onPress: onReview,
         }

@@ -74,7 +74,7 @@ export function HomeBalanceCard({
   return (
     <GlassSurface blurTarget={blurTarget} folderTab>
       <Row
-        style={{ height: 34, width: '60%', alignItems: 'center', paddingStart: theme.spacing.lg, paddingEnd: 14, gap: 6 }}
+        style={{ height: 34, width: '50%', alignItems: 'center', paddingStart: theme.spacing.lg, paddingEnd: 14, gap: 6 }}
       >
         <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
           {label}
