@@ -171,13 +171,11 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                   },
                 ]}
               />
-              {employees.length < 3 ? (
-                <InviteBanner
-                  title={t.company.promoTitle}
-                  body={t.company.promoBody}
-                  onPress={() => router.push(`/group/${groupId}/invite`)}
-                />
-              ) : null}
+              <InviteBanner
+                title={t.company.promoTitle}
+                body={t.company.promoBody}
+                onPress={() => router.push(`/group/${groupId}/invite`)}
+              />
               <SectionCard
                 icon="people-outline"
                 title={t.company.hierTitle}
@@ -217,17 +215,17 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                     <View
                       style={{
                         position: 'absolute',
-                        left: 0,
+                        start: 0,
                         top: 0,
                         height: i === managers.length - 1 ? '50%' : '100%',
-                        borderLeftWidth: 1.5,
+                        borderStartWidth: 1.5,
                         borderColor: theme.color.border,
                       }}
                     />
                     <View
                       style={{
                         position: 'absolute',
-                        left: 0,
+                        start: 0,
                         top: '50%',
                         width: 12,
                         borderTopWidth: 1.5,
@@ -241,7 +239,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                           name={displayName(m)}
                           ghost={isGhost(m)}
                           size={36}
-                          tint="pink"
+                          tint={(["pink", "sky", "mint", "peach"] as const)[i % 4]}
                         />
                       }
                       title={displayName(m, null, null, t.misc.someone)}
