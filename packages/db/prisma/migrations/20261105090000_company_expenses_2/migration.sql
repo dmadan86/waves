@@ -146,10 +146,10 @@ CREATE FUNCTION public.waves_company_evidence_changed(p_entry_id uuid,p_actor uu
  LANGUAGE plpgsql  SECURITY DEFINER SET search_path TO 'public', 'pg_temp' AS $fn$
 BEGIN
  UPDATE public.company_entries e SET version=version+1,updated_at=now(),updated_by=p_actor,
- status=CASE WHEN g.company_approvals_enabled THEN 'submitted' ELSE e.status END,
- review_note=CASE WHEN g.company_approvals_enabled THEN NULL ELSE e.review_note END,
- reviewed_by=CASE WHEN g.company_approvals_enabled THEN NULL ELSE e.reviewed_by END,
- reviewed_at=CASE WHEN g.company_approvals_enabled THEN NULL ELSE e.reviewed_at END
+ status=CASE WHEN g.company_approvals_enabled THEN 'submitted' WHEN e.status='rejected' THEN 'approved' ELSE e.status END,
+ review_note=CASE WHEN g.company_approvals_enabled OR e.status='rejected' THEN NULL ELSE e.review_note END,
+ reviewed_by=CASE WHEN g.company_approvals_enabled OR e.status='rejected' THEN NULL ELSE e.reviewed_by END,
+ reviewed_at=CASE WHEN g.company_approvals_enabled OR e.status='rejected' THEN NULL ELSE e.reviewed_at END
  FROM public.groups g WHERE e.id=p_entry_id AND g.id=e.group_id AND e.deleted_at IS NULL;
 END
 $fn$;
