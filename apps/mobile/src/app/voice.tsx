@@ -1,3 +1,5 @@
+import { AdSlot } from '@/components/AdSlot';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { OwedCard } from '@/components/OwedCard';
 /**
  * Speak an expense — one or several, in any language, with an optional new group.
@@ -2783,6 +2785,14 @@ export default function VoiceScreen() {
     phase === 'saved' ||
     phase === 'answer' ||
     (phase === 'agent' && agentStage !== 'working');
+  // Free users only (the planner checks the plan): one inline banner while the mic is on
+  // offer, anchored to the bottom of the scroll so opening the mic never moves it.
+  const voiceAds = useAdPlan('voice_idle', {
+    surfaceState: {
+      stage: phase === 'listening' && !typedMode && !hold.holding ? 'listening' : 'thinking',
+      sheetOpen: pickerOpen || consentSheetOpen || !!adOffer.sheet,
+    },
+  });
   // A short phone trims the stage's gaps instead of scrolling it.
   const { height: windowHeight } = useWindowDimensions();
   const compactTop = windowHeight < 720;
@@ -3258,6 +3268,13 @@ export default function VoiceScreen() {
               ) : null}
             </View>
           )}
+          {/* At least 32 dp clear of the mic, its status and the type-instead link above; the
+              auto margin pins it to the foot so the wave and transcript growing never move it. */}
+          {voiceAds.plan.inlineBanner ? (
+            <View style={{ marginTop: 'auto', paddingTop: 32 }}>
+              <AdSlot handle={voiceAds} format="inline_banner" slot={0} />
+            </View>
+          ) : null}
         </ScrollView>
         <VoiceFooter spec={footerSpec} inset={insets.bottom} />
       </KeyboardAvoidingView>

@@ -1,5 +1,5 @@
-import { NativeAdCard } from '@/components/NativeAdCard';
-import { nativePositions } from '@/lib/nativeAdsPure';
+import { AdSlot } from '@/components/AdSlot';
+import { useAdPlan } from '@/lib/useAdPlan';
 /**
  * Everybody you are not square with, across every group.
  *
@@ -426,6 +426,10 @@ export default function FriendsScreen() {
     () => sortPersons(groupByPerson(rows), sortKey, sortDir),
     [rows, sortKey, sortDir],
   );
+  const friendsAds = useAdPlan('friends', {
+    rowCount: persons.length,
+    surfaceState: { selectMode },
+  });
 
   // Folds the biggest cluster of likely duplicates straight into the merge
   // screen; with no cluster to offer, the screen opens empty to pick by hand.
@@ -536,7 +540,7 @@ export default function FriendsScreen() {
                   (seen) =>
                     seen ||
                     viewableItems.some(({ index }) => {
-                      const firstPosition = nativePositions(persons.length, 'friends')[0];
+                      const firstPosition = friendsAds.plan.slots[0];
                       return (
                         firstPosition !== undefined && index !== null && index >= firstPosition - 1
                       );
@@ -547,7 +551,7 @@ export default function FriendsScreen() {
               // be told to re-render its rows when it changes (the tick, the
               // fill). The length rides along because the last row draws the
               // card's foot.
-              extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}|${balanceHidden}|${balanceReady}|${adVisible}`}
+              extraData={`${selectMode}|${[...selectedKeys].join(',')}|${locale}|${theme.scheme}|${persons.length}|${balanceHidden}|${balanceReady}|${adVisible}|${friendsAds.plan.slots.join(',')}`}
               keyExtractor={(item) => item.person_key}
               // A single-currency row and a multi-currency (stacked amounts) row
               // are structurally different subtrees; typing them lets FlashList
@@ -601,9 +605,14 @@ export default function FriendsScreen() {
                         onToggleSelect={toggleSelect}
                       />
                     </View>
-                    {nativePositions(persons.length, 'friends').includes(index + 1) &&
-                    !selectMode ? (
-                      <NativeAdCard visible={adVisible} rowGap={theme.spacing.sm} />
+                    {friendsAds.plan.slots.includes(index + 1) && !selectMode ? (
+                      <AdSlot
+                        handle={friendsAds}
+                        format="native"
+                        slot={index + 1}
+                        visible={adVisible}
+                        rowGap={theme.spacing.sm}
+                      />
                     ) : null}
                   </>
                 );

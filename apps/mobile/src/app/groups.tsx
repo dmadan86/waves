@@ -1,3 +1,6 @@
+import { AdSlot } from '@/components/AdSlot';
+import { placeSlots } from '@/lib/adPlanPure';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, TextInput, useWindowDimensions, View } from 'react-native';
@@ -134,6 +137,18 @@ export default function AllGroupsScreen() {
     return out;
   }, [list, summary, profile?.id, trimmed, filter, sort, sortDesc, locale, t.settledHeader]);
 
+  // Native ads between group rows (never while a search is typed or a menu is open).
+  const adHandle = useAdPlan('groups_all', {
+    rowCount: rows.filter((row) => row.kind === 'group').length,
+    surfaceState: { selectMode: narrowed, sheetOpen: sortOpen },
+  });
+  const adSlotsKey = adHandle.plan.slots.join(',');
+  const data = useMemo(
+    () => placeSlots(rows, adHandle.plan.slots, new Set(), { row: 'group', header: 'header' }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
+    [rows, adSlotsKey],
+  );
+
   // What a rendered row reads from outside its own data: the locale (money and
   // member-count formatting) and the theme (its colours). Both hold identity
   // between renders and move only when they truly change, so this memo is a
@@ -224,8 +239,10 @@ export default function AllGroupsScreen() {
           </View>
         ) : (
           <FlashList
-            data={rows}
-            keyExtractor={(row) => (row.kind === 'header' ? 'settled-header' : row.item.id)}
+            data={data}
+            keyExtractor={(row) =>
+              row.kind === 'header' ? 'settled-header' : row.kind === 'ad' ? row.key : row.item.id
+            }
             getItemType={(row) => row.kind}
             // Render well ahead of the viewport so a fast fling doesn't flash
             // blank rows. The row items already carry their own balance/pending/
@@ -249,6 +266,15 @@ export default function AllGroupsScreen() {
             keyboardShouldPersistTaps="handled"
             renderItem={({ item: row }) => {
               if (row.kind === 'header') return <SectionLabel label={row.label} />;
+              if (row.kind === 'ad')
+                return (
+                  <AdSlot
+                    handle={adHandle}
+                    format="native"
+                    slot={row.slot}
+                    rowGap={theme.spacing.sm}
+                  />
+                );
 
               const { group, balance, pending, count } = row.item;
               const statusLabel =

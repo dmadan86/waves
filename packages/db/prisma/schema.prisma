@@ -1728,6 +1728,7 @@ model AdRewardSettings {
   voluntaryDailyCap        Int     @default(3) @map("voluntary_daily_cap")
   voluntaryWeeklyCap       Int     @default(10) @map("voluntary_weekly_cap")
   interstitialVideoEnabled Boolean @default(false) @map("interstitial_video_enabled")
+  placements               Json    @default("{}")
 
   @@map("ad_reward_settings")
   @@schema("public")

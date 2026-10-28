@@ -43,3 +43,4 @@ export * from './packs/index';
 export * from './watch/index';
 export * from './export/index';
 export * from './voice/index';
+export * from './ads/placements';

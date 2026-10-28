@@ -8,6 +8,9 @@
  * component, so the two cannot drift.
  */
 
+import { placeSlots } from '@/lib/adPlanPure';
+import { useAdPlan } from '@/lib/useAdPlan';
+import type { ListRow } from './TimelineList';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { FlashListRef } from '@shopify/flash-list';
@@ -34,16 +37,18 @@ import { router } from '@/lib/navigation';
 import {
   filterTimeline,
   localDay,
-  rowIndexOf,
   timelineDays,
   timelineRows,
   type TimelineEntry,
   type TimelineFilter,
-  type TimelineRow,
 } from '@/lib/timeline';
 
 export type TimelineView = 'timeline' | 'map';
 type View_ = TimelineView;
+
+/** Where a bill sits among the rows (ads included), for scrolling to it. -1 when absent. */
+const indexOfBill = (rows: readonly ListRow[], id: string) =>
+  rows.findIndex((row) => row.kind === 'entry' && row.entry.id === id);
 
 export function TimelineBody({
   focusId = null,
@@ -103,16 +108,36 @@ export function TimelineBody({
     [timeline.data, filter, today],
   );
   const days = useMemo(() => timelineDays(entries), [entries]);
-  const rows = useMemo(() => timelineRows(days), [days]);
+  const baseRows = useMemo(() => timelineRows(days), [days]);
+  // Native ads only on the full Timeline screen in list mode, never beside the outlined
+  // bill, never in a group's own tab (the group feed has its own) or on the map.
+  const adHandle = useAdPlan('timeline_list', {
+    rowCount: baseRows.filter((row) => row.kind === 'entry').length,
+    surfaceState: { mapMode: view !== 'timeline' || lockedGroupId !== null },
+  });
+  const adSlotsKey = adHandle.plan.slots.join(',');
+  const rows = useMemo<ListRow[]>(() => {
+    const blocked = new Set<number>();
+    let n = 0;
+    baseRows.forEach((row, i) => {
+      if (row.kind !== 'entry') return;
+      n++;
+      const near = [baseRows[i - 1], row, baseRows[i + 1]];
+      if (focusId && near.some((r) => r?.kind === 'entry' && r.entry.id === focusId))
+        blocked.add(n);
+    });
+    return placeSlots(baseRows, adHandle.plan.slots, blocked, { row: 'entry', header: 'day' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
+  }, [baseRows, focusId, adSlotsKey]);
 
   // Opening on the bill the person came from: scroll it a third of the way
   // down, once, as soon as there are rows to scroll.
-  const listRef = useRef<FlashListRef<TimelineRow>>(null);
+  const listRef = useRef<FlashListRef<ListRow>>(null);
   const scrolledTo = useRef(false);
   const [focusVisible, setFocusVisible] = useState(true);
   const scrollToFocus = (animated: boolean) => {
     if (!focusId) return;
-    const index = rowIndexOf(rows, focusId);
+    const index = indexOfBill(rows, focusId);
     if (index < 0) return;
     listRef.current?.scrollToIndex({ index, viewPosition: 0.3, animated });
   };
@@ -120,7 +145,7 @@ export function TimelineBody({
     if (scrolledTo.current || view !== 'timeline' || rows.length === 0) return;
     // Not done until the focused bill is actually in the rows: the mirror can
     // land a beat after the first rows do, and a scroll to a missing row is lost.
-    if (focusId && rowIndexOf(rows, focusId) < 0) return;
+    if (focusId && indexOfBill(rows, focusId) < 0) return;
     scrolledTo.current = true;
     const handle = setTimeout(() => scrollToFocus(false), 60);
     return () => clearTimeout(handle);
@@ -218,6 +243,7 @@ export function TimelineBody({
           <TimelineList
             ref={listRef}
             rows={rows}
+            ads={adHandle}
             focusId={focusId}
             onOpen={open}
             onFocusVisible={setFocusVisible}
@@ -225,7 +251,7 @@ export function TimelineBody({
             bottomInset={clearance}
             showPeople={lockedGroupId !== null}
           />
-          {focusId && !focusVisible && rowIndexOf(rows, focusId) >= 0 ? (
+          {focusId && !focusVisible && indexOfBill(rows, focusId) >= 0 ? (
             <Pressable
               onPress={() => scrollToFocus(true)}
               accessibilityRole="button"

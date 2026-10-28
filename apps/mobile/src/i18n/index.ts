@@ -2105,6 +2105,7 @@ export interface UiStrings {
     upgradeBody: string;
     dailyLimit: string;
     adLabel: string;
+    removeAds: string;
     voiceTitle: string;
     scanTitle: string;
     voiceBody: string;
@@ -8132,6 +8133,7 @@ const en: UiStrings = {
     upgradeBody: 'Get unlimited voice commands, no ads and more.',
     dailyLimit: 'Daily ad limit reached — try tomorrow',
     adLabel: 'Ad',
+    removeAds: 'Remove ads',
     voiceTitle: 'Watch a short ad for {count} more AI voice commands',
     scanTitle: 'Watch a short ad for {count} more receipt scans',
     voiceBody:
@@ -13707,6 +13709,7 @@ const ta: UiStrings = {
       'வரம்பற்ற குரல் கட்டளைகள், விளம்பரங்கள் இல்லாத அனுபவம் மற்றும் பலவற்றைப் பெறுங்கள்.',
     dailyLimit: 'இன்றைய விளம்பர வரம்பை அடைந்துவிட்டீர்கள் — நாளை முயலுங்கள்',
     adLabel: 'விளம்பரம்',
+    removeAds: 'விளம்பரங்களை நீக்கு',
     voiceTitle: 'இன்னும் {count} AI குரல் கட்டளைகளுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     scanTitle: 'இன்னும் {count} ரசீது ஸ்கேன்களுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     voiceBody:
@@ -19426,6 +19429,7 @@ const hi: UiStrings = {
     upgradeBody: 'अनलिमिटेड वॉइस कमांड पाएँ, बिना विज्ञापनों के और भी बहुत कुछ।',
     dailyLimit: 'आज की विज्ञापन सीमा पूरी हो गई — कल फिर कोशिश करें',
     adLabel: 'विज्ञापन',
+    removeAds: 'विज्ञापन हटाएँ',
     voiceTitle: '{count} और AI वॉइस कमांड के लिए एक छोटा विज्ञापन देखें',
     scanTitle: '{count} और रसीद स्कैन के लिए एक छोटा विज्ञापन देखें',
     voiceBody:
@@ -25054,6 +25058,7 @@ const ar: UiStrings = {
     upgradeBody: 'احصل على أوامر صوتية بلا حدود، وبدون إعلانات، والمزيد.',
     dailyLimit: 'بلغت الحد اليومي للإعلانات — حاول غدًا',
     adLabel: 'إعلان',
+    removeAds: 'إزالة الإعلانات',
     voiceTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} أوامر صوتية إضافية بالذكاء الاصطناعي',
     scanTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} عمليات مسح إيصال إضافية',
     voiceBody:
