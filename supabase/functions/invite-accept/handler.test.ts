@@ -31,6 +31,7 @@ const INVITE = {
 };
 
 interface Options {
+  company?: boolean;
   anonymous?: boolean | null;
   noUser?: boolean;
   members?: { id: string; ghost_name: string | null; profile_id: string | null }[];
@@ -61,7 +62,7 @@ function harness(options: Options = {}) {
         data:
           state.name === 'invites'
             ? INVITE
-            : { id: 'g-1', name: 'Goa', cover_emoji: null, default_currency: 'INR' },
+            : { id: 'g-1', name: 'Goa', cover_emoji: null, default_currency: 'INR', type: options.company ? 'company' : 'trip' },
         error: null,
       }),
       insert: async (row: unknown) => {
@@ -216,4 +217,18 @@ describe('invite-accept requires an account to join', () => {
     const response = await handleInviteAccept(post({ token: 't', mode: 'join' }), deps);
     expect(response.status).toBe(401);
   });
+});
+
+
+it('company preview reveals neither roster count nor claimable placeholders', async () => {
+  const { deps, rpc } = harness({ company: true, noUser: true,
+    members: [{ id: 'private-ghost', ghost_name: 'Private colleague', profile_id: null }] });
+  const response = await handleInviteAccept(post({ token: 't', mode: 'preview' }), deps);
+  expect(response.status).toBe(200);
+  const body = await response.json();
+  expect(body.group.type).toBe('company');
+  expect(body).not.toHaveProperty('memberCount');
+  expect(body).not.toHaveProperty('claimable');
+  expect(JSON.stringify(body)).not.toContain('Private colleague');
+  expect(rpc).not.toHaveBeenCalled();
 });

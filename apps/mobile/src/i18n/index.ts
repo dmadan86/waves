@@ -1240,6 +1240,87 @@ export interface UiStrings {
     /** The 4th "Try saying…" example, in quotes like its siblings. */
     tryWhoOwes: string;
   };
+  company: {
+    myStatement: string;
+    summary: string;
+    employees: string;
+    invite: string;
+    addEntry: string;
+    periodMonth: string;
+    periodLast: string;
+    periodAll: string;
+    balance: string;
+    companyOwesYou: string;
+    youOweCompany: string;
+    settled: string;
+    companyOwesName: string;
+    nameOwesCompany: string;
+    companyOwesAll: string;
+    employeesOweAll: string;
+    owedTo: string;
+    owedBy: string;
+    welcomeEmployee: string;
+    welcomeAdmin: string;
+    brought: string;
+    expenses: string;
+    bata: string;
+    advances: string;
+    wages: string;
+    paidOut: string;
+    returned: string;
+    byCategory: string;
+    entries: string;
+    none: string;
+    noEmployees: string;
+    pending: string;
+    rejected: string;
+    kExpense: string;
+    kAllowance: string;
+    kAdvance: string;
+    kWages: string;
+    kReimbursement: string;
+    kCashReturned: string;
+    catFuel: string;
+    catTransport: string;
+    catTravel: string;
+    catFood: string;
+    catOffice: string;
+    catOther: string;
+    formKind: string;
+    formEmployee: string;
+    formAmount: string;
+    formDays: string;
+    formRate: string;
+    formTotal: string;
+    formDate: string;
+    today: string;
+    yesterday: string;
+    pickDate: string;
+    formNote: string;
+    formCategory: string;
+    payTo: string;
+    returnFrom: string;
+    wagesTyped: string;
+    wagesDaysRate: string;
+    wagesWeekly: string;
+    save: string;
+    needRate: string;
+    needAmount: string;
+    removeEntry: string;
+    removeTitle: string;
+    removeBody: string;
+    dailyRate: string;
+    rateNotSet: string;
+    rateTitle: string;
+    rateHint: string;
+    share: string;
+    couldNotSave: string;
+    privacyEmployee: string;
+    privacyAdmin: string;
+    daysAt: string;
+    forPerson: string;
+    editEntry: string;
+  };
   groupRecurring: {
     title: string;
     sub: string;
@@ -5630,6 +5711,7 @@ export interface UiStrings {
     typeEvent: string;
     typeFriends: string;
     typeOther: string;
+    typeCompany: string;
     /** "Tag (optional)": the member's own short label for the group. */
     tagLabel: string;
     tagPlaceholder: string;
@@ -7121,6 +7203,87 @@ const en: UiStrings = {
     completeRowHint: 'Add the place, how you paid or a receipt',
     completeSheetTitle: 'Complete this expense',
     tryWhoOwes: '“Who owes me?”',
+  },
+  company: {
+    myStatement: 'My statement',
+    summary: 'Company summary',
+    employees: 'Employees',
+    invite: 'Invite employees',
+    addEntry: 'Add entry',
+    periodMonth: 'This month',
+    periodLast: 'Last month',
+    periodAll: 'All time',
+    balance: 'Balance',
+    companyOwesYou: 'Company owes you',
+    youOweCompany: 'You owe the company',
+    settled: 'All settled',
+    companyOwesName: 'Company owes {name}',
+    nameOwesCompany: '{name} owes the company',
+    companyOwesAll: 'Company owes employees',
+    employeesOweAll: 'Employees owe the company {amount}',
+    owedTo: 'Company owes',
+    owedBy: 'Owes company',
+    welcomeEmployee: 'Add your fuel, travel and bata here. Only you and the company admin can see your entries.',
+    welcomeAdmin: 'Invite your employees, then add entries and record advances and wages for them. Each employee sees only their own entries.',
+    brought: 'Brought forward',
+    expenses: 'Expenses',
+    bata: 'Bata',
+    advances: 'Advances',
+    wages: 'Wages paid',
+    paidOut: 'Paid to employee',
+    returned: 'Returned by employee',
+    byCategory: 'Expenses by category',
+    entries: 'Entries',
+    none: 'Nothing recorded in this period',
+    noEmployees: 'No employees yet. Invite them to start.',
+    pending: 'Waiting for approval',
+    rejected: 'Rejected',
+    kExpense: 'Expense',
+    kAllowance: 'Bata (daily allowance)',
+    kAdvance: 'Advance given',
+    kWages: 'Wages paid',
+    kReimbursement: 'Reimbursement',
+    kCashReturned: 'Cash returned',
+    catFuel: 'Fuel',
+    catTransport: 'Transport',
+    catTravel: 'Travel',
+    catFood: 'Food',
+    catOffice: 'Office',
+    catOther: 'Other',
+    formKind: 'Type',
+    formEmployee: 'Employee',
+    formAmount: 'Amount',
+    formDays: 'Days',
+    formRate: 'Daily rate',
+    formTotal: 'Total',
+    formDate: 'Date',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    pickDate: 'Pick date',
+    formNote: 'Note (optional)',
+    formCategory: 'Category',
+    payTo: 'Paid to employee',
+    returnFrom: 'Returned by employee',
+    wagesTyped: 'Amount',
+    wagesDaysRate: 'Days x rate',
+    wagesWeekly: 'Weekly wage',
+    save: 'Save entry',
+    needRate: 'Enter days and a daily rate',
+    needAmount: 'Enter an amount',
+    removeEntry: 'Remove entry',
+    removeTitle: 'Remove this entry?',
+    removeBody: 'It stays in the history but no longer counts.',
+    dailyRate: 'Daily bata rate',
+    rateNotSet: 'Not set',
+    rateTitle: 'Daily bata rate',
+    rateHint: 'Used when bata is added for {name}. It can be changed on each entry.',
+    share: 'Share statement',
+    couldNotSave: 'Could not save. Try again.',
+    privacyEmployee: 'Only you and the company admins can see these entries.',
+    privacyAdmin: 'Employees see only their own entries.',
+    daysAt: '{days} days x {rate}',
+    forPerson: 'for {name}',
+    editEntry: 'Entry',
   },
   groupRecurring: {
     title: 'Repeating',
@@ -10976,6 +11139,7 @@ const en: UiStrings = {
     typeEvent: 'Event',
     typeFriends: 'Friends',
     typeOther: 'Other',
+    typeCompany: 'Company',
     tagLabel: 'Tag (optional)',
     tagPlaceholder: 'e.g. Office offsite',
     tagSheetSubtitle: "Add a tag so it's easy to find later.",
@@ -12446,6 +12610,87 @@ const ta: UiStrings = {
     completeRowHint: 'இடம், பணம் செலுத்திய முறை அல்லது ரசீதைச் சேர்க்கவும்',
     completeSheetTitle: 'இந்தச் செலவை முழுமையாக்குங்கள்',
     tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
+  },
+  company: {
+    myStatement: 'என் அறிக்கை',
+    summary: 'நிறுவன சுருக்கம்',
+    employees: 'ஊழியர்கள்',
+    invite: 'ஊழியர்களை அழைக்க',
+    addEntry: 'பதிவு சேர்',
+    periodMonth: 'இந்த மாதம்',
+    periodLast: 'கடந்த மாதம்',
+    periodAll: 'எல்லா நேரமும்',
+    balance: 'நிலுவை',
+    companyOwesYou: 'நிறுவனம் உங்களுக்குத் தர வேண்டும்',
+    youOweCompany: 'நீங்கள் நிறுவனத்துக்குத் தர வேண்டும்',
+    settled: 'எல்லாம் தீர்ந்தது',
+    companyOwesName: 'நிறுவனம் {name}க்குத் தர வேண்டும்',
+    nameOwesCompany: '{name} நிறுவனத்துக்குத் தர வேண்டும்',
+    companyOwesAll: 'நிறுவனம் ஊழியர்களுக்குத் தர வேண்டும்',
+    employeesOweAll: 'ஊழியர்கள் நிறுவனத்துக்குத் தர வேண்டும் {amount}',
+    owedTo: 'நிறுவனம் தர வேண்டும்',
+    owedBy: 'நிறுவனத்துக்குத் தர வேண்டும்',
+    welcomeEmployee: 'உங்கள் எரிபொருள், பயணம், படி செலவுகளை இங்கே சேர்க்கவும். உங்கள் பதிவுகளை நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே பார்க்க முடியும்.',
+    welcomeAdmin: 'ஊழியர்களை அழைத்து, அவர்களுக்கான பதிவுகள், முன்பணம், சம்பளத்தைப் பதிவு செய்யுங்கள். ஒவ்வொரு ஊழியரும் தங்கள் பதிவுகளை மட்டுமே பார்ப்பார்.',
+    brought: 'முன் நிலுவை',
+    expenses: 'செலவுகள்',
+    bata: 'படி',
+    advances: 'முன்பணம்',
+    wages: 'செலுத்திய சம்பளம்',
+    paidOut: 'ஊழியருக்குச் செலுத்தியது',
+    returned: 'ஊழியர் திருப்பியது',
+    byCategory: 'வகை வாரியாக செலவுகள்',
+    entries: 'பதிவுகள்',
+    none: 'இந்தக் காலத்தில் பதிவு இல்லை',
+    noEmployees: 'இன்னும் ஊழியர்கள் இல்லை. தொடங்க அவர்களை அழைக்கவும்.',
+    pending: 'ஒப்புதலுக்காகக் காத்திருக்கிறது',
+    rejected: 'நிராகரிக்கப்பட்டது',
+    kExpense: 'செலவு',
+    kAllowance: 'படி (தினசரி)',
+    kAdvance: 'கொடுத்த முன்பணம்',
+    kWages: 'செலுத்திய சம்பளம்',
+    kReimbursement: 'திரும்பச் செலுத்தல்',
+    kCashReturned: 'பணம் திருப்பியது',
+    catFuel: 'எரிபொருள்',
+    catTransport: 'போக்குவரத்து',
+    catTravel: 'பயணம்',
+    catFood: 'உணவு',
+    catOffice: 'அலுவலகம்',
+    catOther: 'மற்றவை',
+    formKind: 'வகை',
+    formEmployee: 'ஊழியர்',
+    formAmount: 'தொகை',
+    formDays: 'நாட்கள்',
+    formRate: 'தினசரி விகிதம்',
+    formTotal: 'மொத்தம்',
+    formDate: 'தேதி',
+    today: 'இன்று',
+    yesterday: 'நேற்று',
+    pickDate: 'தேதி தேர்வு',
+    formNote: 'குறிப்பு (விருப்பம்)',
+    formCategory: 'வகை',
+    payTo: 'ஊழியருக்குச் செலுத்தியது',
+    returnFrom: 'ஊழியர் திருப்பியது',
+    wagesTyped: 'தொகை',
+    wagesDaysRate: 'நாட்கள் x விகிதம்',
+    wagesWeekly: 'வாராந்திர சம்பளம்',
+    save: 'பதிவைச் சேமி',
+    needRate: 'நாட்களையும் தினசரி விகிதத்தையும் உள்ளிடவும்',
+    needAmount: 'தொகையை உள்ளிடவும்',
+    removeEntry: 'பதிவை நீக்கு',
+    removeTitle: 'இந்தப் பதிவை நீக்கவா?',
+    removeBody: 'வரலாற்றில் இருக்கும், ஆனால் கணக்கில் சேராது.',
+    dailyRate: 'தினசரி படி விகிதம்',
+    rateNotSet: 'அமைக்கப்படவில்லை',
+    rateTitle: 'தினசரி படி விகிதம்',
+    rateHint: '{name}க்குப் படி சேர்க்கும்போது பயன்படும். ஒவ்வொரு பதிவிலும் மாற்றலாம்.',
+    share: 'அறிக்கையைப் பகிர்',
+    couldNotSave: 'சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    privacyEmployee: 'இந்தப் பதிவுகளை நீங்களும் நிறுவன நிர்வாகிகளும் மட்டுமே பார்க்க முடியும்.',
+    privacyAdmin: 'ஊழியர்கள் தங்கள் பதிவுகளை மட்டுமே பார்ப்பார்கள்.',
+    daysAt: '{days} நாட்கள் x {rate}',
+    forPerson: '{name}க்காக',
+    editEntry: 'பதிவு',
   },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
@@ -16480,6 +16725,7 @@ const ta: UiStrings = {
     typeEvent: 'நிகழ்வு',
     typeFriends: 'நண்பர்கள்',
     typeOther: 'மற்றவை',
+    typeCompany: 'நிறுவனம்',
     tagLabel: 'குறிச்சொல் (விருப்பம்)',
     tagPlaceholder: 'எ.கா. அலுவலக சுற்றுலா',
     tagSheetSubtitle: 'பின்னர் எளிதாகக் கண்டறிய ஒரு குறிச்சொல்லைச் சேர்க்கவும்.',
@@ -17938,6 +18184,87 @@ const hi: UiStrings = {
     completeRowHint: 'जगह, भुगतान का तरीका या रसीद जोड़ें',
     completeSheetTitle: 'यह खर्च पूरा करें',
     tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
+  },
+  company: {
+    myStatement: 'मेरा स्टेटमेंट',
+    summary: 'कंपनी सारांश',
+    employees: 'कर्मचारी',
+    invite: 'कर्मचारियों को बुलाएँ',
+    addEntry: 'एंट्री जोड़ें',
+    periodMonth: 'इस महीने',
+    periodLast: 'पिछले महीने',
+    periodAll: 'पूरा समय',
+    balance: 'बकाया',
+    companyOwesYou: 'कंपनी आपको देगी',
+    youOweCompany: 'आप कंपनी को देंगे',
+    settled: 'सब चुकता',
+    companyOwesName: 'कंपनी {name} को देगी',
+    nameOwesCompany: '{name} कंपनी को देंगे',
+    companyOwesAll: 'कंपनी कर्मचारियों को देगी',
+    employeesOweAll: 'कर्मचारी कंपनी को देंगे {amount}',
+    owedTo: 'कंपनी देगी',
+    owedBy: 'कंपनी को देंगे',
+    welcomeEmployee: 'अपना ईंधन, यात्रा और भत्ते का खर्च यहाँ जोड़ें। आपकी एंट्रियाँ सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
+    welcomeAdmin: 'कर्मचारियों को बुलाएँ, फिर उनके लिए एंट्री, अग्रिम और वेतन दर्ज करें। हर कर्मचारी सिर्फ़ अपनी एंट्रियाँ देखता है।',
+    brought: 'पिछला बकाया',
+    expenses: 'खर्च',
+    bata: 'भत्ता',
+    advances: 'अग्रिम',
+    wages: 'दिया गया वेतन',
+    paidOut: 'कर्मचारी को भुगतान',
+    returned: 'कर्मचारी ने लौटाया',
+    byCategory: 'श्रेणी के अनुसार खर्च',
+    entries: 'एंट्रियाँ',
+    none: 'इस अवधि में कुछ दर्ज नहीं',
+    noEmployees: 'अभी कोई कर्मचारी नहीं। शुरू करने के लिए उन्हें बुलाएँ।',
+    pending: 'मंज़ूरी का इंतज़ार',
+    rejected: 'अस्वीकृत',
+    kExpense: 'खर्च',
+    kAllowance: 'भत्ता (दैनिक)',
+    kAdvance: 'दिया गया अग्रिम',
+    kWages: 'दिया गया वेतन',
+    kReimbursement: 'भरपाई',
+    kCashReturned: 'नकद लौटाया',
+    catFuel: 'ईंधन',
+    catTransport: 'परिवहन',
+    catTravel: 'यात्रा',
+    catFood: 'खाना',
+    catOffice: 'दफ़्तर',
+    catOther: 'अन्य',
+    formKind: 'प्रकार',
+    formEmployee: 'कर्मचारी',
+    formAmount: 'रकम',
+    formDays: 'दिन',
+    formRate: 'दैनिक दर',
+    formTotal: 'कुल',
+    formDate: 'तारीख़',
+    today: 'आज',
+    yesterday: 'कल',
+    pickDate: 'तारीख़ चुनें',
+    formNote: 'नोट (वैकल्पिक)',
+    formCategory: 'श्रेणी',
+    payTo: 'कर्मचारी को भुगतान',
+    returnFrom: 'कर्मचारी ने लौटाया',
+    wagesTyped: 'रकम',
+    wagesDaysRate: 'दिन x दर',
+    wagesWeekly: 'साप्ताहिक वेतन',
+    save: 'एंट्री सहेजें',
+    needRate: 'दिन और दैनिक दर भरें',
+    needAmount: 'रकम भरें',
+    removeEntry: 'एंट्री हटाएँ',
+    removeTitle: 'यह एंट्री हटाएँ?',
+    removeBody: 'यह इतिहास में रहेगी, पर हिसाब में नहीं गिनी जाएगी।',
+    dailyRate: 'दैनिक भत्ता दर',
+    rateNotSet: 'तय नहीं',
+    rateTitle: 'दैनिक भत्ता दर',
+    rateHint: '{name} के लिए भत्ता जोड़ते समय इस्तेमाल होगी। हर एंट्री पर बदली जा सकती है।',
+    share: 'स्टेटमेंट शेयर करें',
+    couldNotSave: 'सहेज नहीं पाए। फिर कोशिश करें।',
+    privacyEmployee: 'ये एंट्रियाँ सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
+    privacyAdmin: 'कर्मचारी सिर्फ़ अपनी एंट्रियाँ देखते हैं।',
+    daysAt: '{days} दिन x {rate}',
+    forPerson: '{name} के लिए',
+    editEntry: 'एंट्री',
   },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
@@ -21811,6 +22138,7 @@ const hi: UiStrings = {
     typeEvent: 'आयोजन',
     typeFriends: 'दोस्त',
     typeOther: 'अन्य',
+    typeCompany: 'कंपनी',
     tagLabel: 'टैग (वैकल्पिक)',
     tagPlaceholder: 'जैसे ऑफ़िस ऑफ़साइट',
     tagSheetSubtitle: 'टैग जोड़ें ताकि बाद में ढूँढना आसान हो।',
@@ -23322,6 +23650,87 @@ const ar: UiStrings = {
     completeRowHint: 'أضف المكان أو طريقة الدفع أو إيصالاً',
     completeSheetTitle: 'أكمل هذا المصروف',
     tryWhoOwes: '«من يدين لي؟»',
+  },
+  company: {
+    myStatement: 'كشف حسابي',
+    summary: 'ملخص الشركة',
+    employees: 'الموظفون',
+    invite: 'دعوة الموظفين',
+    addEntry: 'إضافة قيد',
+    periodMonth: 'هذا الشهر',
+    periodLast: 'الشهر الماضي',
+    periodAll: 'كل الفترات',
+    balance: 'الرصيد',
+    companyOwesYou: 'الشركة مدينة لك',
+    youOweCompany: 'أنت مدين للشركة',
+    settled: 'كل شيء مسوّى',
+    companyOwesName: 'الشركة مدينة لـ {name}',
+    nameOwesCompany: '{name} مدين للشركة',
+    companyOwesAll: 'الشركة مدينة للموظفين',
+    employeesOweAll: 'الموظفون مدينون للشركة {amount}',
+    owedTo: 'الشركة مدينة',
+    owedBy: 'مدين للشركة',
+    welcomeEmployee: 'أضف مصروفات الوقود والسفر والبدل هنا. أنت ومشرف الشركة فقط يمكنكما رؤية قيودك.',
+    welcomeAdmin: 'ادعُ موظفيك ثم أضف القيود والسلف والأجور لهم. يرى كل موظف قيوده فقط.',
+    brought: 'الرصيد المنقول',
+    expenses: 'المصروفات',
+    bata: 'البدل',
+    advances: 'السلف',
+    wages: 'الأجور المدفوعة',
+    paidOut: 'مدفوع للموظف',
+    returned: 'أعاده الموظف',
+    byCategory: 'المصروفات حسب الفئة',
+    entries: 'القيود',
+    none: 'لا شيء مسجّل في هذه الفترة',
+    noEmployees: 'لا يوجد موظفون بعد. ادعُهم للبدء.',
+    pending: 'بانتظار الموافقة',
+    rejected: 'مرفوض',
+    kExpense: 'مصروف',
+    kAllowance: 'بدل (يومي)',
+    kAdvance: 'سلفة مُعطاة',
+    kWages: 'أجور مدفوعة',
+    kReimbursement: 'سداد',
+    kCashReturned: 'نقد معاد',
+    catFuel: 'وقود',
+    catTransport: 'نقل',
+    catTravel: 'سفر',
+    catFood: 'طعام',
+    catOffice: 'مكتب',
+    catOther: 'أخرى',
+    formKind: 'النوع',
+    formEmployee: 'الموظف',
+    formAmount: 'المبلغ',
+    formDays: 'الأيام',
+    formRate: 'المعدل اليومي',
+    formTotal: 'الإجمالي',
+    formDate: 'التاريخ',
+    today: 'اليوم',
+    yesterday: 'أمس',
+    pickDate: 'اختر تاريخًا',
+    formNote: 'ملاحظة (اختياري)',
+    formCategory: 'الفئة',
+    payTo: 'مدفوع للموظف',
+    returnFrom: 'أعاده الموظف',
+    wagesTyped: 'المبلغ',
+    wagesDaysRate: 'الأيام x المعدل',
+    wagesWeekly: 'أجر أسبوعي',
+    save: 'حفظ القيد',
+    needRate: 'أدخل الأيام والمعدل اليومي',
+    needAmount: 'أدخل مبلغًا',
+    removeEntry: 'حذف القيد',
+    removeTitle: 'حذف هذا القيد؟',
+    removeBody: 'يبقى في السجل لكنه لا يُحتسب.',
+    dailyRate: 'معدل البدل اليومي',
+    rateNotSet: 'غير محدد',
+    rateTitle: 'معدل البدل اليومي',
+    rateHint: 'يُستخدم عند إضافة بدل لـ {name}. يمكن تغييره في كل قيد.',
+    share: 'مشاركة الكشف',
+    couldNotSave: 'تعذّر الحفظ. حاول مرة أخرى.',
+    privacyEmployee: 'أنت ومشرفو الشركة فقط يمكنهم رؤية هذه القيود.',
+    privacyAdmin: 'يرى الموظفون قيودهم فقط.',
+    daysAt: '{days} أيام x {rate}',
+    forPerson: 'لـ {name}',
+    editEntry: 'قيد',
   },
   groupRecurring: {
     title: 'المتكررة',
@@ -27776,6 +28185,7 @@ const ar: UiStrings = {
     typeEvent: 'مناسبة',
     typeFriends: 'الأصدقاء',
     typeOther: 'أخرى',
+    typeCompany: 'شركة',
     tagLabel: 'وسم (اختياري)',
     tagPlaceholder: 'مثال: رحلة الشركة',
     tagSheetSubtitle: 'أضف وسمًا ليسهل العثور عليها لاحقًا.',

@@ -187,7 +187,7 @@ export default function GroupExportScreen() {
       const generatedOnIso = new Date().toISOString();
 
       const typeLabel =
-        t.groupExport.types[(groupData.type as GroupType) ?? GroupType.Other] ??
+        (t.groupExport.types as Record<string, string>)[groupData.type ?? GroupType.Other] ??
         t.groupExport.types.other;
 
       const model = buildGroupExportModel({

@@ -435,6 +435,12 @@ export default function AddExpenseScreen() {
   }, [viewerId, movePersonal]);
 
   const { group, members, expenses } = useGroup(groupId);
+  // A Company group has no splits: any way into this screen (a stale link, the
+  // quick-add picker) lands on the company entry form instead.
+  const isCompanyGroup = group.data?.type === 'company';
+  useEffect(() => {
+    if (isCompanyGroup) router.replace(`/group/${groupId}/company-entry`);
+  }, [isCompanyGroup, groupId]);
   const groupFxRates = useGroupFxRates(groupId);
   const setGroupFxRate = useSetGroupFxRate(groupId);
   const { mutate, status: syncStatus } = useSync();

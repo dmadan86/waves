@@ -24,6 +24,7 @@ export function useGroupTypeTagLabels(): GroupTypeTagLabels {
         couple: t.extras.typeCouple,
         event: t.extras.typeEvent,
         friends: t.extras.typeFriends,
+        company: t.extras.typeCompany,
       },
       events: t.eventOrganizer.tagNames,
     }),

@@ -30,6 +30,7 @@ enum GroupType {
   event
   friends
   other
+  company
 
   @@schema("public")
 }
@@ -372,6 +373,7 @@ model Group {
   passes             GroupPass[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
+  companyEntries     CompanyEntry[]
   tripPhotos         TripPhoto[]
   expenseComments    ExpenseComment[]
   settlementProofs   SettlementProof[]
@@ -418,6 +420,7 @@ model GroupMember {
   /// is the same person.
   paymentRail        String?    @map("payment_rail")
   paymentHandle      String?    @map("payment_handle")
+  dailyRateMinor     BigInt?    @map("daily_rate_minor")
   /// The import that minted this ghost (`import_batches`); null for everyone else.
   importBatchId      String?    @map("import_batch_id") @db.Uuid
   leftAt             DateTime?  @map("left_at") @db.Timestamptz(6)
@@ -449,6 +452,7 @@ model GroupMember {
   itemClaims         ReceiptItemClaim[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
+  companyEntries     CompanyEntry[]
   tripPhotos         TripPhoto[]
   settlementProofs   SettlementProof[]
   expenseAttachments ExpenseAttachment[]
@@ -3012,5 +3016,37 @@ model WavesRecurringAuthoring {
 
   @@id([txid, memberId])
   @@map("waves_recurring_authoring")
+  @@schema("public")
+}
+
+model CompanyEntry {
+  id           String       @id @db.Uuid
+  groupId      String       @map("group_id") @db.Uuid
+  memberId     String       @map("member_id") @db.Uuid
+  entryKind    String       @map("entry_kind")
+  category     String?
+  amount       BigInt
+  currency     String       @db.Char(3)
+  calcMode     String       @default("typed") @map("calc_mode")
+  days         Decimal?     @db.Decimal(8, 2)
+  rateMinor    BigInt?      @map("rate_minor")
+  occurredOn   DateTime     @map("occurred_on") @db.Date
+  direction    String?
+  status       String       @default("approved")
+  note         String?
+  voidReason   String?      @map("void_reason")
+  createdBy    String       @map("created_by") @db.Uuid
+  updatedBy    String       @map("updated_by") @db.Uuid
+  version      Int          @default(1)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq   BigInt       @default(0) @map("updated_seq")
+  group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member       GroupMember  @relation(fields: [memberId], references: [id], onDelete: NoAction)
+  @@index([groupId, updatedSeq])
+  @@index([groupId, memberId, occurredOn, id])
+  @@index([memberId])
+  @@map("company_entries")
   @@schema("public")
 }

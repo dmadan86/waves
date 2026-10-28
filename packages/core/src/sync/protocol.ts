@@ -58,6 +58,14 @@ export enum MutationKind {
   // cannot double-post when two phones come back at once.
   GroupRecurringCreate = 'group_recurring.create',
   GroupRecurringUpdate = 'group_recurring.update',
+  // Company expenses (Phase 1). Group-scoped like the plan; the server decides
+  // who may write what (an employee only their own expense / bata, an admin any
+  // entry) and RLS decides who may read it (an employee only their own rows).
+  CompanyEntryCreate = 'company_entry.create',
+  CompanyEntryUpdate = 'company_entry.update',
+  CompanyEntryVoid = 'company_entry.void',
+  CompanyEntryTransition = 'company_entry.transition',
+  CompanyMemberRateSet = 'company_member.rate_set',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -400,6 +408,48 @@ export interface GroupRecurringUpdatePayload {
   readonly patch: GroupRecurringPatch;
 }
 
+/** The fields of a company entry the client may set (the server recomputes bata). */
+export interface CompanyEntryData {
+  /** Minor units as a decimal string. Ignored by the server for `days_rate`. */
+  readonly amount?: string;
+  readonly category?: string | null;
+  readonly days?: string | null;
+  readonly rateMinor?: string | null;
+  readonly calcMode?: 'typed' | 'days_rate' | 'fixed_weekly';
+  readonly occurredOn?: string;
+  readonly note?: string | null;
+  readonly direction?: 'company_to_employee' | 'employee_to_company' | null;
+}
+
+/** `entryId` is client-chosen and the idempotency key. */
+export interface CompanyEntryCreatePayload {
+  readonly entryId: string;
+  readonly memberId: string;
+  readonly entryKind: 'expense' | 'advance' | 'allowance' | 'wages' | 'reimbursement';
+  readonly data: CompanyEntryData;
+}
+
+export interface CompanyEntryUpdatePayload {
+  readonly entryId: string;
+  readonly patch: CompanyEntryData;
+}
+
+export interface CompanyEntryVoidPayload {
+  readonly entryId: string;
+  readonly reason?: string | null;
+}
+
+export interface CompanyEntryTransitionPayload {
+  readonly entryId: string;
+  readonly to: 'approved' | 'rejected';
+}
+
+/** A null rate clears the employee's default daily rate. Admin only. */
+export interface CompanyMemberRateSetPayload {
+  readonly memberId: string;
+  readonly dailyRateMinor: string | null;
+}
+
 /** Clearing carries nothing — the scope (group) and the caller identify the row. */
 export type MemberBudgetClearPayload = Record<string, never>;
 
@@ -584,6 +634,9 @@ export enum SyncTable {
   /** Group-scoped, read+write. A repeating group expense; the expenses it
    * produces arrive as ordinary `expenses` rows. */
   GroupRecurringExpenses = 'group_recurring_expenses',
+  /** Group-scoped, read+write, PRIVATE per employee by RLS: an employee is only
+   * ever pulled their own rows, an admin all of them. */
+  CompanyEntries = 'company_entries',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',

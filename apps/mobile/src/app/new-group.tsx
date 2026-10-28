@@ -107,6 +107,7 @@ const EMOJI_FOR_TYPE: Record<GroupType, string> = {
   [GroupType.Event]: '🎉',
   [GroupType.Friends]: '🧑‍🤝‍🧑',
   [GroupType.Other]: '👥',
+  [GroupType.Company]: '🏢',
 };
 
 const deviceZone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
@@ -477,6 +478,7 @@ export default function NewGroupScreen() {
     [GroupType.Home]: 'home',
     [GroupType.Couple]: 'heart',
     [GroupType.Event]: 'people',
+    [GroupType.Company]: 'business',
     [GroupType.Other]: 'ellipsis-horizontal',
   };
   const tileLabels: Record<string, string> = {
@@ -484,6 +486,7 @@ export default function NewGroupScreen() {
     [GroupType.Home]: t.extras.typeHome,
     [GroupType.Couple]: t.extras.typeCouple,
     [GroupType.Event]: t.extras.typeEvent,
+    [GroupType.Company]: t.extras.typeCompany,
     [GroupType.Other]: t.extras.typeOther,
   };
 

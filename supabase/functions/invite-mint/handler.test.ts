@@ -27,6 +27,8 @@ function serviceMock(options: {
   countError?: { message: string } | null;
   insert?: { data: { id: string } | null; error: { message: string } | null };
   groupName?: string | null;
+  company?: boolean;
+  admin?: boolean;
 }) {
   const insertSpy = vi.fn();
   const invites = {
@@ -52,7 +54,7 @@ function serviceMock(options: {
     eq: () => groups,
     single: () =>
       Promise.resolve({
-        data: { name: options.groupName === undefined ? 'Goa Trip' : options.groupName },
+        data: { name: options.groupName === undefined ? 'Goa Trip' : options.groupName, type: options.company ? 'company' : 'trip' },
         error: null,
       }),
   };
@@ -70,6 +72,8 @@ interface HarnessOptions {
   countError?: { message: string } | null;
   insert?: { data: { id: string } | null; error: { message: string } | null };
   groupName?: string | null;
+  company?: boolean;
+  admin?: boolean;
 }
 
 function harness(options: HarnessOptions = {}) {
@@ -91,7 +95,7 @@ function harness(options: HarnessOptions = {}) {
     }
   });
   const deps: InviteMintDeps = {
-    asCaller: () => ({}) as never,
+    asCaller: () => ({ rpc: async () => ({ data: options.admin === true, error: null }) }) as never,
     asService: () => service,
     requireMembership,
     enforceRateLimit,
@@ -269,5 +273,15 @@ describe('minting a link', () => {
     const response = await handleInviteMint(mint({ groupId: 'group-1' }), deps);
     expect(response.status).toBe(500);
     expect((await response.json()).code).toBe('INTERNAL');
+  });
+});
+
+
+describe('company invite authority', () => {
+  it.each([false, true])('requires company admin (admin=%s)', async admin => {
+    const { deps, insertSpy } = harness({ company: true, admin });
+    const response = await handleInviteMint(mint({ groupId: 'g-1' }), deps);
+    expect(response.status).toBe(admin ? 200 : 403);
+    expect(insertSpy).toHaveBeenCalledTimes(admin ? 1 : 0);
   });
 });

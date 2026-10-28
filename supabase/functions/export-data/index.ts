@@ -98,9 +98,18 @@ serveWithCors(async (request) => {
 
     const exported = [];
     for (const groupId of groupIds) {
+      // Keep company membership/profile reads under caller RLS, including in
+      // account-wide exports. Company ledger export is deferred in Phase 1.
+      const { data: scope, error: scopeError } = await caller
+        .from('groups')
+        .select('type')
+        .eq('id', groupId)
+        .single();
+      if (scopeError) throw new HttpError(500, 'EXPORT_INCOMPLETE', 'Could not complete request');
+      const memberReader = scope?.type === 'company' ? caller : service;
       const [group, members, expenses, settlements, activity] = await Promise.all([
         service.from('groups').select('*').eq('id', groupId).single(),
-        service
+        memberReader
           .from('group_members')
           // Hint the FK column: ghost_merges bridges group_members and profiles,
           // so an unqualified profiles embed is ambiguous.
@@ -121,7 +130,9 @@ serveWithCors(async (request) => {
           .from('settlements')
           .select('*, allocations:settlement_allocations ( expense_id, amount )')
           .eq('group_id', groupId),
-        service.from('activity_log').select('*').eq('group_id', groupId),
+        scope?.type === 'company'
+          ? Promise.resolve({ data: [], error: null })
+          : service.from('activity_log').select('*').eq('group_id', groupId),
       ]);
 
       // An export that quietly omits half the ledger is worse than no export at

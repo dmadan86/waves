@@ -16,6 +16,8 @@ export enum GroupType {
   Event = 'event',
   Friends = 'friends',
   Other = 'other',
+  /** Employee expenses: no splitting, each person sees only their own entries. */
+  Company = 'company',
 }
 export enum SettlementMethod {
   Upi = 'upi',
@@ -133,6 +135,8 @@ export interface MemberRow {
   payment_rail?: string | null;
   payment_handle?: string | null;
   left_at: string | null;
+  /** Company groups: this employee's default daily bata rate, minor units (decimal string). */
+  daily_rate_minor?: string | null;
   profile?: {
     id: string;
     display_name: string;

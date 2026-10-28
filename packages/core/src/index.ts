@@ -38,6 +38,7 @@ export * from './billing/index';
 export * from './session/index';
 export * from './trip/index';
 export * from './personal/index';
+export * from './company/index';
 export * from './packs/index';
 export * from './watch/index';
 export * from './export/index';

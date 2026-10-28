@@ -9,7 +9,7 @@ import {
 } from '../src/lib/groupTypeTag';
 
 const labels: GroupTypeTagLabels = {
-  types: { trip: 'Trip', home: 'Home', couple: 'Couple', event: 'Event', friends: 'Friends' },
+  types: { trip: 'Trip', home: 'Home', couple: 'Couple', event: 'Event', friends: 'Friends', company: 'Company' },
   events: { wedding_in: 'Wedding', wedding_west: 'Wedding', birthday: 'Birthday', other: 'Event' },
 };
 

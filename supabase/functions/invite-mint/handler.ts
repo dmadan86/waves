@@ -83,6 +83,14 @@ export async function handleInviteMint(request: Request, deps: InviteMintDeps): 
     const { profileId } = await deps.requireMembership(caller, groupId);
     const service = deps.asService();
 
+    const { data: scope, error: scopeError } = await service
+      .from('groups').select('type').eq('id', groupId).single();
+    if (scopeError || !scope) throw new HttpError(500, 'INTERNAL', 'Could not complete request');
+    if (scope.type === 'company') {
+      const { data: admin, error: adminError } = await caller.rpc('is_group_admin', { p_group_id: groupId });
+      if (adminError || admin !== true) throw new HttpError(403, 'ADMIN_ONLY', 'Only admins can invite company members');
+    }
+
     // The live-link cap below is per group, so somebody in many groups can mint
     // as fast as they like across all of them. This is per person.
     await deps.enforceRateLimit(service, request, 'invite-mint', profileId);
