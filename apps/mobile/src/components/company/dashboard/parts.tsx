@@ -7,7 +7,9 @@
 
 import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image, Pressable, ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   format,
@@ -16,10 +18,11 @@ import {
   type CurrencyCode,
   type DashboardStats,
 } from '@waves/core';
-import { Chip, Sheet, Text, iconSize, useTheme } from '@waves/ui';
+import { Sheet, Text, iconSize, useTheme, type TintName } from '@waves/ui';
 
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { ListRow, ScenicHeader, StandardCard } from '@/components/standard';
+import { ListRow, StandardCard } from '@/components/standard';
+import { useHeroStatusBar } from '@/components/ScreenHero';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { useCompanyTags } from '@/data/companyTags';
 import type { CompanyView } from '@/data/companyEntries';
@@ -52,16 +55,87 @@ export function RolePill({ label }: { label: string }) {
   );
 }
 
-function RoundButton({
+/** Paid / reimbursed money reads green on this screen (the mockup), whatever the app's blue. */
+export const GREEN = '#16A34A';
+const GREEN_SOFT = '#DDF5E5';
+const BLUE = '#2F6FE0';
+const BLUE_SOFT = '#DCEBFF';
+const ORANGE = '#F26B1D';
+const ORANGE_SOFT = '#FFE6D5';
+const BUILDING = require('../../../../assets/images/company/hero-building.webp') as number;
+const TEAM = require('../../../../assets/images/company/team.webp') as number;
+
+/** The body under the hero and tabs: standard gutters, tighter gaps than the scenic body. */
+export function DashBody({ children }: { children: ReactNode }) {
+  const theme = useTheme();
+  return (
+    <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md, paddingTop: 4 }}>
+      {children}
+    </View>
+  );
+}
+
+/** The pill tabs under the hero: the picked one filled violet, the rest soft lavender. */
+export function TabPills<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: readonly { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+}) {
+  const theme = useTheme();
+  return (
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.sm,
+        gap: theme.spacing.sm,
+      }}
+    >
+      {options.map((o) => {
+        const on = o.value === value;
+        return (
+          <Pressable
+            key={o.value}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: on }}
+            onPress={() => onChange(o.value)}
+            style={{
+              height: 34,
+              paddingHorizontal: 18,
+              borderRadius: theme.radius.pill,
+              justifyContent: 'center',
+              backgroundColor: on ? theme.color.buttonPrimary : theme.color.brandSoft,
+            }}
+          >
+            <Text
+              variant="caption"
+              style={{
+                fontWeight: '600',
+                color: on ? theme.color.onButtonPrimary : theme.color.textMuted,
+              }}
+            >
+              {o.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
+function IconButton({
   icon,
   label,
   onPress,
-  filled = false,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
-  filled?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -69,21 +143,18 @@ function RoundButton({
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
-      style={{
-        width: filled ? 56 : 40,
-        height: filled ? 56 : 40,
-        borderRadius: 28,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: filled ? theme.color.buttonPrimary : 'transparent',
-      }}
+      hitSlop={6}
+      style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}
     >
-      <Ionicons name={icon} size={filled ? iconSize.xl : iconSize.lg} color="#FFFFFF" />
+      <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
     </Pressable>
   );
 }
 
-/** The scenic header: name with a company switcher, a line about who is in it, gear, menu. */
+/**
+ * The hero: a soft sunset sky and the office building, then back, the company name with
+ * its switcher, gear and menu, who is in it, and the round + that rides at the foot.
+ */
 export function DashHeader({
   groupId,
   view,
@@ -99,44 +170,116 @@ export function DashHeader({
   showGear: boolean;
   tabs?: ReactNode;
 }) {
+  const theme = useTheme();
   const { t } = useStrings();
+  const insets = useSafeAreaInsets();
+  const dark = theme.scheme === 'dark';
+  useHeroStatusBar(dark ? 'light' : 'dark');
   const [switching, setSwitching] = useState(false);
   const [menu, setMenu] = useState(false);
   const groups = useGroups().data ?? [];
   const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
+  const canSwitch = companies.length > 1;
+  const sky = dark ? ['#26264A', '#3A2D45'] : ['#CFCFF7', '#FBE3D1'];
   return (
     <>
-      <ScenicHeader
-        title={view.name || t.extras.typeCompany}
-        subtitle={subtitle}
-        action={
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            {showGear ? (
-              <RoundButton
-                icon="settings-outline"
-                label={t.group.settings}
-                onPress={() => router.push(`/group/${groupId}/settings`)}
-              />
+      <View style={{ paddingTop: insets.top + 6, paddingBottom: 26 }}>
+        <View
+          pointerEvents="none"
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
+        >
+          <LinearGradient colors={sky as [string, string]} style={{ flex: 1 }} />
+          <Image
+            source={BUILDING}
+            accessibilityIgnoresInvertColors
+            fadeDuration={0}
+            style={{ position: 'absolute', right: 36, bottom: 0, width: 150, height: 140 }}
+          />
+          <LinearGradient
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            colors={[sky[1] + 'FF', sky[1] + '00']}
+            style={{ position: 'absolute', right: 120, bottom: 0, width: 70, height: 140 }}
+          />
+          <LinearGradient
+            colors={['rgba(0,0,0,0)', theme.color.bg]}
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 30 }}
+          />
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            paddingHorizontal: theme.spacing.md,
+          }}
+        >
+          <IconButton icon="arrow-back" label={t.common.back} onPress={() => router.back()} />
+          <Pressable
+            disabled={!canSwitch}
+            accessibilityRole={canSwitch ? 'button' : undefined}
+            accessibilityLabel={t.company.switchCompany}
+            onPress={() => setSwitching(true)}
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+          >
+            <Text
+              variant="heading"
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={{ fontSize: 22, fontWeight: '800', flexShrink: 1 }}
+            >
+              {view.name || t.extras.typeCompany}
+            </Text>
+            {canSwitch ? (
+              <Ionicons name="chevron-down" size={iconSize.md} color={theme.color.text} />
             ) : null}
-            <RoundButton
-              icon="ellipsis-vertical"
-              label={t.group.more}
-              onPress={() => setMenu(true)}
-            />
-          </View>
-        }
-      >
-        <View style={{ gap: 6 }}>
-          {companies.length > 1 ? (
-            <Chip
-              label={`${t.company.switchCompany} ▾`}
-              onPress={() => setSwitching(true)}
-              repeatable
+          </Pressable>
+          {showGear ? (
+            <IconButton
+              icon="settings-outline"
+              label={t.group.settings}
+              onPress={() => router.push(`/group/${groupId}/settings`)}
             />
           ) : null}
+          <IconButton icon="ellipsis-vertical" label={t.group.more} onPress={() => setMenu(true)} />
+        </View>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            marginStart: theme.spacing.md + 42,
+            marginTop: 2,
+          }}
+        >
+          <Ionicons name="people-outline" size={iconSize.base} color={theme.color.text} />
+          <Text variant="caption" style={{ fontSize: 12.5 }}>
+            {subtitle}
+          </Text>
           {pill ? <RolePill label={pill} /> : null}
         </View>
-      </ScenicHeader>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.company.addEntry}
+          onPress={() => router.push(`/group/${groupId}/company-entry`)}
+          style={{
+            position: 'absolute',
+            right: theme.spacing.lg,
+            bottom: 4,
+            width: 54,
+            height: 54,
+            borderRadius: 27,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.buttonPrimary,
+            borderWidth: 2.5,
+            borderColor: theme.color.surface,
+            zIndex: 2,
+            elevation: 4,
+          }}
+        >
+          <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
+        </Pressable>
+      </View>
       {tabs}
       <Sheet visible={switching} onClose={() => setSwitching(false)} closeLabel={t.common.close}>
         <View style={{ gap: 4 }}>
@@ -167,64 +310,69 @@ export function DashHeader({
   );
 }
 
-/** The floating violet + that opens Gave money / They spent / Paid wages. */
-export function PlusButton({ groupId, bottom }: { groupId: string; bottom: number }) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t.company.addEntry}
-      onPress={() => router.push(`/group/${groupId}/company-entry`)}
-      style={{
-        position: 'absolute',
-        right: theme.spacing.lg,
-        bottom,
-        width: 60,
-        height: 60,
-        borderRadius: 30,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: theme.color.buttonPrimary,
-      }}
-    >
-      <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
-    </Pressable>
-  );
-}
+const SMALL = { fontSize: 11.5, lineHeight: 15 } as const;
 
 function Stat({
   icon,
+  tint,
+  ink,
   label,
   value,
   caption,
-  captionTone,
+  captionColor,
+  trailing,
   onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
+  tint: string;
+  ink: string;
   label: string;
   value: string;
   caption?: string;
-  captionTone?: 'positive' | 'negative' | 'muted';
+  captionColor?: string;
+  trailing?: ReactNode;
   onPress?: () => void;
 }) {
-  const theme = useTheme();
   return (
     <Pressable
       disabled={!onPress}
       onPress={onPress}
       accessibilityRole={onPress ? 'button' : undefined}
-      style={{ flex: 1, gap: 2 }}
+      style={{ flex: 1, gap: 4, paddingHorizontal: 8 }}
     >
-      <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
-      <Text variant="micro" tone="muted" numberOfLines={2}>
+      <View
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: tint,
+        }}
+      >
+        <Ionicons name={icon} size={iconSize.base} color={ink} />
+      </View>
+      <Text variant="caption" style={[SMALL, { minHeight: 30 }]} numberOfLines={2}>
         {label}
       </Text>
-      <Text variant="body" style={{ fontWeight: '700' }} numberOfLines={1} adjustsFontSizeToFit>
-        {value}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text
+          variant="body"
+          style={{ fontWeight: '800', fontSize: 17, flexShrink: 1 }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+        >
+          {value}
+        </Text>
+        {trailing}
+      </View>
       {caption ? (
-        <Text variant="micro" tone={captionTone ?? 'muted'} numberOfLines={2}>
+        <Text
+          variant="caption"
+          tone={captionColor ? undefined : 'muted'}
+          style={[SMALL, captionColor ? { color: captionColor } : null]}
+          numberOfLines={2}
+        >
           {caption}
         </Text>
       ) : null}
@@ -241,31 +389,49 @@ export function StatTriple({
   currency: string;
   onOwes?: () => void;
 }) {
+  const theme = useTheme();
   const { t } = useStrings();
   const fmt = useMoney(currency);
   const pct = stats.paidChangePct;
+  const line = (
+    <View style={{ width: 1, backgroundColor: theme.color.border, marginVertical: 4 }} />
+  );
   return (
-    <StandardCard style={{ flexDirection: 'row', gap: 12 }}>
+    <StandardCard style={{ flexDirection: 'row', paddingHorizontal: 4, paddingVertical: 12 }}>
       <Stat
         icon="wallet-outline"
+        tint={theme.color.brandSoft}
+        ink={theme.color.brand}
         label={t.company.statOwes}
         value={fmt(stats.owes)}
         caption={fill(t.company.statPending, { n: String(stats.pendingPayments) })}
+        trailing={
+          onOwes ? (
+            <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
+          ) : undefined
+        }
         onPress={onOwes}
       />
+      {line}
       <Stat
-        icon="arrow-up-circle-outline"
+        icon="arrow-up"
+        tint={GREEN_SOFT}
+        ink={GREEN}
         label={t.company.statPaidMonth}
         value={fmt(stats.paidThisMonth)}
+        // Hidden when last month is zero or unknown: a percentage of nothing means nothing.
         caption={
           pct === null
             ? undefined
-            : fill(t.company.statVsLast, { pct: `${pct >= 0 ? '+' : ''}${pct}` })
+            : `${pct >= 0 ? '\u2197' : '\u2198'} ${fill(t.company.statVsLast, { pct: `${pct >= 0 ? '+' : ''}${pct}` })}`
         }
-        captionTone={pct === null ? 'muted' : pct >= 0 ? 'positive' : 'negative'}
+        captionColor={pct === null ? undefined : pct >= 0 ? GREEN : theme.color.negative}
       />
+      {line}
       <Stat
         icon="time-outline"
+        tint={theme.color.brandSoft}
+        ink={theme.color.brand}
         label={t.company.statAdvances}
         value={fmt(stats.advancesOutstanding)}
         caption={fill(t.company.statEmployeesN, { n: String(stats.advanceHolders) })}
@@ -280,9 +446,15 @@ export function QuickActions({
   actions: readonly { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }[];
 }) {
   const theme = useTheme();
+  const tones = [
+    [theme.color.brandSoft, theme.color.brand],
+    [BLUE_SOFT, BLUE],
+    [GREEN_SOFT, GREEN],
+    [ORANGE_SOFT, ORANGE],
+  ] as const;
   return (
-    <StandardCard style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-      {actions.map((a) => (
+    <StandardCard style={{ flexDirection: 'row', paddingHorizontal: 6, paddingVertical: 12 }}>
+      {actions.map((a, i) => (
         <Pressable
           key={a.label}
           accessibilityRole="button"
@@ -292,21 +464,100 @@ export function QuickActions({
         >
           <View
             style={{
-              width: 48,
-              height: 48,
-              borderRadius: 24,
+              width: 42,
+              height: 42,
+              borderRadius: 21,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: theme.color.brandSoft,
+              backgroundColor: tones[i % tones.length]![0],
             }}
           >
-            <Ionicons name={a.icon} size={iconSize.lg} color={theme.color.brand} />
+            <Ionicons name={a.icon} size={iconSize.md} color={tones[i % tones.length]![1]} />
           </View>
-          <Text variant="micro" align="center" numberOfLines={2}>
+          <Text variant="caption" align="center" numberOfLines={2} style={{ fontSize: 12 }}>
             {a.label}
           </Text>
         </Pressable>
       ))}
+    </StandardCard>
+  );
+}
+
+/** The cream "Invite your team" banner: three faces, one line, a chevron. */
+export function InviteBanner({
+  title,
+  body,
+  onPress,
+}: {
+  title: string;
+  body: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        padding: 8,
+        paddingEnd: 12,
+        borderRadius: theme.radius.lg,
+        backgroundColor: dark ? theme.color.surface : '#FFF3E1',
+      }}
+    >
+      <Image
+        source={TEAM}
+        accessibilityIgnoresInvertColors
+        fadeDuration={0}
+        style={{ width: 92, height: 57, borderRadius: 10 }}
+      />
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text variant="body" style={{ fontWeight: '700', fontSize: 14 }}>
+          {title}
+        </Text>
+        <Text variant="caption" tone="muted" style={SMALL}>
+          {body}
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={iconSize.md} color={theme.color.textMuted} />
+    </Pressable>
+  );
+}
+
+/** A card with an icon, a title and "View all" on top, then its rows. */
+export function SectionCard({
+  icon,
+  title,
+  onViewAll,
+  children,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  onViewAll?: () => void;
+  children: ReactNode;
+}) {
+  const { t } = useStrings();
+  const theme = useTheme();
+  return (
+    <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
+        <Text variant="title" style={{ flex: 1, fontSize: 16 }}>
+          {title}
+        </Text>
+        {onViewAll ? (
+          <Pressable accessibilityRole="button" onPress={onViewAll} hitSlop={8}>
+            <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+              {t.company.viewAll}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
+      {children}
     </StandardCard>
   );
 }
@@ -328,7 +579,87 @@ export function TitleRow({ title, onViewAll }: { title: string; onViewAll?: () =
   );
 }
 
+/** One compact person row: avatar, name (+ accessory), a muted line, then a right-hand slot and chevron. */
+export function PersonLine({
+  avatar,
+  title,
+  accessory,
+  subtitle,
+  right,
+  rightColor,
+  count,
+  onPress,
+  divider,
+}: {
+  avatar: ReactNode;
+  title: string;
+  accessory?: ReactNode;
+  subtitle: string;
+  right?: string;
+  rightColor?: string;
+  /** A grey count pill, as on the hierarchy rows. */
+  count?: string;
+  onPress: () => void;
+  divider?: boolean;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingVertical: 9,
+        borderBottomWidth: divider ? 1 : 0,
+        borderBottomColor: theme.color.border,
+      }}
+    >
+      {avatar}
+      <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text
+            variant="body"
+            numberOfLines={1}
+            style={{ fontWeight: '700', fontSize: 14, flexShrink: 1 }}
+          >
+            {title}
+          </Text>
+          {accessory}
+        </View>
+        <Text variant="caption" tone="muted" numberOfLines={1} style={SMALL}>
+          {subtitle}
+        </Text>
+      </View>
+      {count !== undefined ? (
+        <View
+          style={{
+            minWidth: 34,
+            height: 24,
+            borderRadius: 12,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.surfaceMuted,
+          }}
+        >
+          <Text variant="caption" tone="muted" style={{ fontSize: 12 }}>
+            {count}
+          </Text>
+        </View>
+      ) : null}
+      {right ? (
+        <Text variant="body" style={{ fontWeight: '800', fontSize: 14, color: rightColor }}>
+          {right}
+        </Text>
+      ) : null}
+      <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
+    </Pressable>
+  );
+}
+
 const GIVEN = new Set(['advance']);
+const TINTS: readonly TintName[] = ['lilac', 'peach', 'sky', 'pink', 'mint', 'coral'];
 
 /** Newest money events first: green when paid or reimbursed, red for an advance. */
 export function RecentActivity({
@@ -336,11 +667,14 @@ export function RecentActivity({
   view,
   entries,
   limit,
+  header,
 }: {
   groupId: string;
   view: CompanyView;
   entries: readonly CompanyEntry[];
   limit?: number;
+  /** Wraps the rows in a titled card, as on the owner's overview. */
+  header?: { title: string; onViewAll?: () => void };
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -367,45 +701,42 @@ export function RecentActivity({
         {t.company.recentNone}
       </Text>
     );
-  return (
-    <StandardCard>
-      {rows.map((e, index) => {
-        const owner = view.members.find((m) => m.id === e.memberId);
-        const paid = e.kind === 'wage_payment' || e.kind === 'wages' || e.kind === 'reimbursement';
-        const label =
-          e.kind === 'wage_payment' || e.kind === 'wages'
-            ? t.company.salaryPayment
-            : kindLabel(t, e, tagLabel);
-        return (
-          <ListRow
-            key={e.id}
-            leading={
-              owner ? (
-                <PersonAvatar member={owner} name={displayName(owner)} size={40} />
-              ) : undefined
-            }
-            title={owner ? displayName(owner, null, null, t.misc.someone) : t.misc.someone}
-            subtitle={`${label} · ${showDate(e.occurredOn, locale)}`}
-            titleAccessory={undefined}
-            trailing={
-              <Text
-                variant="body"
-                style={{
-                  color: GIVEN.has(e.kind)
-                    ? theme.color.negative
-                    : paid
-                      ? theme.color.positive
-                      : theme.color.text,
-                }}
-              >
-                {fmt(e.amount)}
-              </Text>
-            }
-            onPress={() => router.push(`/group/${groupId}/company-entry-view?entry=${e.id}`)}
-            divider={index < rows.length - 1}
-          />
-        );
-      })}
-    </StandardCard>
+  const list = rows.map((e, index) => {
+    const owner = view.members.find((m) => m.id === e.memberId);
+    const paid = e.kind === 'wage_payment' || e.kind === 'wages' || e.kind === 'reimbursement';
+    const label =
+      e.kind === 'wage_payment' || e.kind === 'wages'
+        ? t.company.salaryPayment
+        : kindLabel(t, e, tagLabel);
+    return (
+      <PersonLine
+        key={e.id}
+        avatar={
+          owner ? (
+            <PersonAvatar
+              member={owner}
+              name={displayName(owner)}
+              size={36}
+              tint={TINTS[index % TINTS.length]}
+            />
+          ) : (
+            <View style={{ width: 36 }} />
+          )
+        }
+        title={owner ? displayName(owner, null, null, t.misc.someone) : t.misc.someone}
+        subtitle={`${label} \u00B7 ${showDate(e.occurredOn, locale)}`}
+        right={fmt(e.amount)}
+        rightColor={GIVEN.has(e.kind) ? theme.color.negative : paid ? GREEN : theme.color.text}
+        onPress={() => router.push(`/group/${groupId}/company-entry-view?entry=${e.id}`)}
+        divider={index < rows.length - 1}
+      />
+    );
+  });
+  return header ? (
+    <SectionCard icon="document-text-outline" title={header.title} onViewAll={header.onViewAll}>
+      {list}
+    </SectionCard>
+  ) : (
+    <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 4 }}>{list}</StandardCard>
   );
 }
