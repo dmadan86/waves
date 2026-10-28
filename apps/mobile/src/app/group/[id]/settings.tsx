@@ -31,6 +31,8 @@ import {
 import { format, money, type CurrencyCode } from '@waves/core';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
+import { CompanyLogoField } from '@/components/company/CompanyLogoField';
+import { removeImage } from '@/lib/storage';
 import { LinkMemberSheet } from '@/components/LinkMemberSheet';
 import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
 import { ListRow, PlainHeader, RowTile, SectionHeader, StandardCard } from '@/components/standard';
@@ -45,7 +47,7 @@ import { friendlyError } from '@/lib/errors';
 import { removeMemberBody } from '@/data/removeMemberConfirm';
 import { groupDeleteWarning, orderDebtsForWarning } from '@/lib/groupDeleteWarning';
 import { normaliseGroupDescription } from '@/lib/groupDescription';
-import { pickGroupPhoto } from '@/lib/image';
+import { pickGroupPhoto, type PickedImage } from '@/lib/image';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { router } from '@/lib/navigation';
 import { isPhoneCountryError } from '@/lib/phone';
@@ -430,6 +432,28 @@ export default function GroupSettingsScreen() {
       setStatus(friendlyError(caught, t.couldNotSave, 'groupSettings.changePhoto'));
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Company logo: admin only. The client asks the server first and never tries an
+  // upload it would refuse; the result is an inline message, not a thrown error.
+  const saveLogo = async (picked: PickedImage): Promise<string | null> => {
+    try {
+      if (!(await canUploadGroupPhoto(groupId))) return t.company.logoLocked;
+      const old = group.data?.photo_path ?? null;
+      const path = await uploadGroupPhoto({
+        groupId,
+        base64: picked.base64,
+        mimeType: picked.mimeType,
+        kind: 'logo',
+      });
+      // A different extension is a different object; drop the old one (best effort).
+      if (old && old !== path) await removeImage('group-photos', old).catch(() => undefined);
+      await group.refetch();
+      setStatus(t.company.logoSaved);
+      return null;
+    } catch (caught) {
+      return friendlyError(caught, t.couldNotSave, 'groupSettings.saveLogo');
     }
   };
 
@@ -1173,6 +1197,16 @@ export default function GroupSettingsScreen() {
               onPress={() => setTagOpen(true)}
             />
           </StandardCard>
+          {groupType === GroupType.Company && isAdmin ? (
+            <StandardCard style={{ padding: theme.spacing.md }}>
+              <CompanyLogoField
+                photoPath={group.data.photo_path}
+                busy={uploading}
+                onImage={saveLogo}
+                onRemove={() => void dropPhoto()}
+              />
+            </StandardCard>
+          ) : null}
           <MissingRatesCard groupId={groupId} />
 
           <View style={{ gap: theme.spacing.md }}>
