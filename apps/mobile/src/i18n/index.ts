@@ -1251,6 +1251,8 @@ export interface UiStrings {
     tryWhoOwes: string;
   };
   company: {
+    tab: string;
+    listTitle: string;
     myStatement: string;
     summary: string;
     employees: string;
@@ -7259,6 +7261,8 @@ const en: UiStrings = {
     tryWhoOwes: '“Who owes me?”',
   },
   company: {
+    tab: 'Company',
+    listTitle: 'Your companies',
     myStatement: 'My statement',
     summary: 'Company summary',
     employees: 'Employees',
@@ -12715,6 +12719,8 @@ const ta: UiStrings = {
     tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
   },
   company: {
+    tab: 'நிறுவனம்',
+    listTitle: 'உங்கள் நிறுவனங்கள்',
     myStatement: 'என் அறிக்கை',
     summary: 'நிறுவன சுருக்கம்',
     employees: 'ஊழியர்கள்',
@@ -18338,6 +18344,8 @@ const hi: UiStrings = {
     tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
   },
   company: {
+    tab: 'कंपनी',
+    listTitle: 'आपकी कंपनियाँ',
     myStatement: 'मेरा स्टेटमेंट',
     summary: 'कंपनी सारांश',
     employees: 'कर्मचारी',
@@ -23851,6 +23859,8 @@ const ar: UiStrings = {
     tryWhoOwes: '«من يدين لي؟»',
   },
   company: {
+    tab: 'الشركة',
+    listTitle: 'شركاتك',
     myStatement: 'كشف حسابي',
     summary: 'ملخص الشركة',
     employees: 'الموظفون',

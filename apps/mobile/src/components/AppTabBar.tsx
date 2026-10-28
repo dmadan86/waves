@@ -57,6 +57,13 @@ import { hapticLight } from '@/lib/assistantHaptics';
 import { useAuth } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
+import {
+  companyActiveKey,
+  companyTabRoute,
+  isCompanyTabRoot,
+  reviewSlotKey,
+} from '@/lib/companyTab';
+import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { router, switchTab } from '@/lib/navigation';
 import { pushToTalk } from '@/lib/pushToTalk';
 import {
@@ -192,7 +199,13 @@ export function AppTabBar() {
     opacity: p.value,
     transform: reduced ? [] : [{ scale: 0.6 + mic.value * 0.4 }],
   }));
-  const activeKey = personal ? personalActiveKey(segments) : sharedKey;
+  // Company users get a Company tab where Review was (Review moves to Settings).
+  // Derived from the local mirror, so it flips the moment they create/join/leave.
+  const companyIds = useViewerCompanyIds();
+  const companySlot = reviewSlotKey(companyIds) === 'company';
+  const sharedActive =
+    companyActiveKey(segments, groupId, companyIds) === 'company' ? 'company' : sharedKey;
+  const activeKey = personal ? personalActiveKey(segments) : sharedActive;
   // A screen can also ask the bar to stand down while it is *on* that screen —
   // Review does it while drafts are ticked, so its action bar has the bottom of
   // the phone to itself rather than stacking on top of the navigation with the
@@ -277,26 +290,38 @@ export function AppTabBar() {
           <Ionicons name={focused ? 'people' : 'people-outline'} size={iconSize.lg} color={color} />
         ),
       },
-      {
-        key: 'captures',
-        label: t.review,
-        // The visible pill has room for one short word; a screen reader gets
-        // the count too, in the same sentence the inbox's own empty/non-empty
-        // states already speak (`captures.unassignedBody`) — one wording for
-        // "how many are waiting", not a second one invented for the tab.
-        accessibilityLabel:
-          waitingCount > 0
-            ? `${t.review} — ${plural(locale, waitingCount, t.captures.unassignedBody)}`
-            : t.review,
-        icon: (color, focused) => (
-          <Ionicons
-            name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
-            size={iconSize.lg}
-            color={color}
-          />
-        ),
-        badge: captureBadge,
-      },
+      companySlot
+        ? {
+            key: 'company',
+            label: t.company.tab,
+            icon: (color, focused) => (
+              <Ionicons
+                name={focused ? 'business' : 'business-outline'}
+                size={iconSize.lg}
+                color={color}
+              />
+            ),
+          }
+        : {
+            key: 'captures',
+            label: t.review,
+            // The visible pill has room for one short word; a screen reader gets
+            // the count too, in the same sentence the inbox's own empty/non-empty
+            // states already speak (`captures.unassignedBody`) — one wording for
+            // "how many are waiting", not a second one invented for the tab.
+            accessibilityLabel:
+              waitingCount > 0
+                ? `${t.review} — ${plural(locale, waitingCount, t.captures.unassignedBody)}`
+                : t.review,
+            icon: (color, focused) => (
+              <Ionicons
+                name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
+                size={iconSize.lg}
+                color={color}
+              />
+            ),
+            badge: captureBadge,
+          },
       {
         key: 'me',
         label: t.personal.tab,
@@ -307,6 +332,8 @@ export function AppTabBar() {
     ],
     [
       captureBadge,
+      companySlot,
+      t.company.tab,
       locale,
       t.captures.unassignedBody,
       t.friends,
@@ -329,10 +356,16 @@ export function AppTabBar() {
         else switchTab(route);
         return;
       }
+      if (key === 'company') {
+        const target = companyTabRoute(companyIds, activeKey === key ? groupId : null);
+        if (target && !(activeKey === key && isCompanyTabRoot(segments, groupId, companyIds)))
+          switchTab(target as never);
+        return;
+      }
       const route = tabBarRouteForSelection(activeKey, key, isTabRoot(segments, key));
       if (route) switchTab(route);
     },
-    [activeKey, personal, segments],
+    [activeKey, companyIds, groupId, personal, segments],
   );
 
   // Nested Personal screens (entry, source, budgets, loans) pop their own stack.
@@ -466,7 +499,7 @@ export function AppTabBar() {
         >
           <PillTabBar
             items={mode ? personalItems : sharedItems}
-            activeKey={mode ? personalActiveKey(segments) : sharedKey}
+            activeKey={mode ? personalActiveKey(segments) : sharedActive}
             onSelect={go}
             animated={!reduced}
             reserveCenterSpace
@@ -479,7 +512,7 @@ export function AppTabBar() {
                 reduced={reduced}
                 focused={
                   (mode ? personalItems : sharedItems)[index]?.key ===
-                  (mode ? personalActiveKey(segments) : sharedKey)
+                  (mode ? personalActiveKey(segments) : sharedActive)
                 }
               >
                 {content}
