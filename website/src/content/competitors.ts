@@ -52,14 +52,16 @@ const NL = 'Not listed';
 const W = {
   price:
     'Free forever. Pro is ₹79/month or ₹699/year in India; other countries priced in the app store',
-  limits: 'No limit on groups, people, expenses or currencies',
-  ads: 'Free: optional reward ads only. Pro: none',
+  limits:
+    'No limit on people, expenses, currencies or splits. First group free; extra groups cost 6 credits on Free',
+  ads: 'Free is ad-supported: watch a short ad to earn credits. Pro: no ads',
   offline: 'Yes, every expense is saved on the phone first and syncs later',
   currency: 'Every ISO 4217 currency, free. Fix the rate per bill, person or trip',
-  receipts: 'Yes: 20 scans a month Free, 300 on Pro',
-  voice: 'English, Hindi, Tamil, Arabic and Hinglish: 10 AI commands a month Free, 100 on Pro',
+  receipts: 'Yes: 2 credits a scan on Free, 300 scans a month on Pro',
+  voice:
+    'English, Hindi, Tamil, Arabic and Hinglish: 1 credit per AI command on Free, 100 a month on Pro',
   upi: 'Opens your UPI app with the exact amount. For PayPal it opens a payment link; for Venmo, PayNow, Pix and others it shows the payee details to copy. Waves never holds money',
-  export: 'JSON, CSV and PDF, free',
+  export: 'JSON, CSV and PDF. On Free an export costs 6 credits',
   signup: 'Join a group from a link in a browser with no account (guest access is time-limited)',
   languages: 'English, Hindi, Tamil and Arabic (right to left)',
   platforms: 'Android, iOS and web, plus Apple Watch and home-screen widgets',
@@ -99,7 +101,7 @@ export const competitors: Competitor[] = [
       'Waves and Splitwise compared: free-plan limits, ads, receipt scanning, offline, currencies, UPI and languages, plus an honest list of where Splitwise wins.',
     summary: [
       'Splitwise is a widely used expense splitter, with about 29K ratings on the iOS App Store. Its free plan has a daily limit on new expenses, and scanning and currency conversion are on Pro.',
-      'Waves keeps groups, expenses and currencies unlimited on Free, includes export, works offline first, and adds UPI hand-off and Indian-language voice entry. It is newer and smaller.',
+      'Waves keeps people, expenses and currencies unlimited on Free, includes export, works offline first, and adds UPI hand-off and Indian-language voice entry. It is newer and smaller.',
     ],
     rows: [
       {
@@ -130,11 +132,11 @@ export const competitors: Competitor[] = [
     switchReasons: [
       {
         title: 'No daily cap on Free',
-        body: 'Add as many expenses as the day needs. Groups, people, expenses and currencies are unlimited on Waves Free.',
+        body: 'Add as many expenses as the day needs. People, expenses and currencies are unlimited on Waves Free.',
       },
       {
         title: 'Scan and convert without paying',
-        body: 'Currency handling is free, and Free includes 20 receipt scans a month. On Splitwise, scanning and automatic conversion sit behind Pro.',
+        body: 'Currency handling is free, and Free scans receipts for 2 credits each. On Splitwise, scanning and automatic conversion sit behind Pro.',
       },
       {
         title: 'Built for India first, not only India',
@@ -142,7 +144,7 @@ export const competitors: Competitor[] = [
       },
       {
         title: 'Ads are your choice',
-        body: 'On Free, ads are optional rewarded videos you pick for extra scans or voice commands. They never appear on balances, groups or settling up.',
+        body: 'Free is ad-supported: you choose when to watch a short ad, and it earns credits for scans and voice commands. Ads never appear on balances, groups or settling up.',
       },
     ],
     theyAreBetter: [
@@ -171,7 +173,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Does Waves have a daily expense limit?',
-        a: 'No. Groups, people, expenses and currencies are unlimited on Free. The limits are on receipt scans (20 a month Free, 300 on Pro) and AI voice commands (10 a month Free, 100 on Pro).',
+        a: 'No. People, expenses and currencies are unlimited on Free. Credits cover AI voice (1), receipt scans (2), exports (6) and extra groups (6; the first group is free). Pro is ad-free with 100 AI voice commands and 300 scans a month.',
       },
       {
         q: 'Does everyone in my group have to switch?',
@@ -183,7 +185,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Does Waves show ads?',
-        a: 'Only optional rewarded videos on Free, which you choose to watch for extra scans or voice commands. Pro has no ads.',
+        a: 'Free is ad-supported: you choose to watch a short ad, which earns 6 credits for scans, voice and exports. Pro has no ads.',
       },
     ],
     sources: [
@@ -235,7 +237,7 @@ export const competitors: Competitor[] = [
     switchReasons: [
       {
         title: 'Export you control',
-        body: 'Waves exports JSON, CSV and PDF from the app on the free plan. Tricount removed in-app CSV and PDF export when it retired Premium.',
+        body: 'Waves exports JSON, CSV and PDF from the app, and a Free export costs 6 credits. Tricount removed in-app CSV and PDF export when it retired Premium.',
       },
       {
         title: 'Scan and speak',
@@ -253,7 +255,7 @@ export const competitors: Competitor[] = [
     theyAreBetter: [
       {
         title: 'Fewer limits to think about',
-        body: 'Tricount is free, with no ads and no daily cap. Waves Free is generous but scanning and AI voice have monthly limits, and Pro costs money.',
+        body: 'Tricount is free, with no ads and no daily cap. Waves Free is ad-supported: scanning, AI voice, exports and extra groups cost credits, and Pro costs money.',
       },
       { title: 'More languages', body: 'Tricount lists 37 languages on iOS. Waves has four.' },
       {
@@ -265,7 +267,7 @@ export const competitors: Competitor[] = [
     faq: [
       {
         q: 'Is Waves free like Tricount?',
-        a: 'The core of Waves is free forever: unlimited groups, people, expenses and currencies. Pro (₹79 a month in India) adds more scans, devices and AI voice commands, and removes ads.',
+        a: 'The core of Waves is free forever: unlimited people, expenses and currencies. Pro (₹79 a month in India) removes ads and adds 100 AI voice commands and 300 scans a month, on up to 3 devices.',
       },
       {
         q: 'Can I import a Tricount into Waves?',
@@ -333,11 +335,11 @@ export const competitors: Competitor[] = [
     switchReasons: [
       {
         title: 'No ads on the money screens',
-        body: 'Waves Free has only optional reward videos. Settle Up lists ads on its free version.',
+        body: 'Waves Free earns credits from short ads you choose to watch. Settle Up lists ads on its free version.',
       },
       {
         title: 'Export and scanning in the free app',
-        body: 'Waves exports JSON, CSV and PDF on Free and includes 20 receipt scans a month. Settle Up puts receipt photos and Excel export on Premium.',
+        body: 'Waves exports JSON, CSV and PDF and scans receipts on Free, paid for in credits. Settle Up puts receipt photos and Excel export on Premium.',
       },
       {
         title: 'UPI and Indian languages',
@@ -362,7 +364,7 @@ export const competitors: Competitor[] = [
     faq: [
       {
         q: 'Does Settle Up have ads?',
-        a: 'Its free version contains ads and Premium removes them, per its store listings. Waves Free has no ads on money screens, only optional rewarded videos.',
+        a: 'Its free version contains ads and Premium removes them, per its store listings. Waves Free is ad-supported through short ads you choose to watch; none appear on money screens.',
       },
       {
         q: 'Can I import from Settle Up?',
@@ -537,7 +539,7 @@ export const competitors: Competitor[] = [
       { title: 'Open source', body: 'You can read, run and change Spliit yourself.' },
       {
         title: 'Free with nothing behind it',
-        body: 'No ads, no accounts, no tiers. Waves has Pro for scanning, devices and voice limits.',
+        body: 'No ads, no accounts, no tiers. Waves Free runs on ads and credits, and Pro is ad-free.',
       },
       { title: '24 languages', body: 'Spliit lists 24 languages, far more than Waves.' },
     ],
@@ -579,7 +581,7 @@ export const competitors: Competitor[] = [
       'Waves and Kittysplit compared: group size limits, per-group pricing, currencies, receipts, export and languages. Plus where Kittysplit is the easier pick.',
     summary: [
       'Kittysplit is a web, iOS and Android splitter where nobody has to register. Free groups hold up to 9 people, and Super Kitty (a one-time payment per group, ₹299 or €2.99 depending on market) lifts that to 100 and adds currencies.',
-      'Waves has no group-size or currency limits on Free, and adds offline-first entry, receipt scanning and voice.',
+      'Waves has no people or currency limits on Free, and adds offline-first entry, receipt scanning and voice.',
     ],
     rows: [
       {
@@ -661,7 +663,7 @@ export const competitors: Competitor[] = [
       'Waves and Splitkaro compared: free receipt scans, Premium price, UPI import, export, languages and offline, with where Splitkaro does more for India.',
     summary: [
       'Splitkaro is an India-focused splitter with Splitwise import and UPI share import. Its iOS listing is in English only.',
-      'Waves offers Hindi, Tamil and Arabic, voice entry in those languages, JSON, CSV and PDF export on Free, and more receipt scans on Free.',
+      'Waves offers Hindi, Tamil and Arabic, voice entry in those languages, JSON, CSV and PDF export on Free, and receipt scanning on Free.',
     ],
     rows: [
       {
@@ -694,13 +696,16 @@ export const competitors: Competitor[] = [
     switchReasons: [
       {
         title: 'More free scans',
-        body: 'Waves Free includes 20 receipt scans a month; Splitkaro Free lists 3.',
+        body: 'Waves Free scans a receipt for 2 credits, earned by watching short ads; Splitkaro Free lists 3 scans a month.',
       },
       {
         title: 'Indian-language voice',
         body: 'Hold the mic and speak in Hindi, Tamil, English, Arabic or Hinglish.',
       },
-      { title: 'Export on Free', body: 'JSON, CSV and PDF export are all in the free plan.' },
+      {
+        title: 'Export on Free',
+        body: 'JSON, CSV and PDF export are in the free plan, at 6 credits an export.',
+      },
     ],
     theyAreBetter: [
       {
@@ -933,7 +938,10 @@ export const competitors: Competitor[] = [
         q: 'Do my friends need PhonePe?',
         a: 'Not for Waves. A shared link opens the group in a browser, with time-limited guest access.',
       },
-      { q: 'Can I export my Waves data?', a: 'Yes, as JSON, CSV or PDF, free.' },
+      {
+        q: 'Can I export my Waves data?',
+        a: 'Yes, as JSON, CSV or PDF; on Free an export costs 6 credits.',
+      },
     ],
     sources: [
       {
@@ -1110,7 +1118,7 @@ export const competitors: Competitor[] = [
       { q: 'Is Waves free?', a: 'Yes, the core is free forever. Pro is optional.' },
       {
         q: 'Can I still export to a spreadsheet?',
-        a: 'Yes. Waves exports JSON, CSV and PDF, free.',
+        a: 'Yes. Waves exports JSON, CSV and PDF; on Free an export costs 6 credits.',
       },
     ],
     sources: [{ label: 'Waves pricing and features', url: 'https://wavs.co.in/en' }],

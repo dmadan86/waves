@@ -81,7 +81,7 @@ const sections: LegalSection[] = [
   {
     heading: 'Ads and rewards',
     body: [
-      'On Free, you may choose to watch a rewarded video ad for a few extra voice commands or receipt scans. It is optional, rewards expire at the end of the calendar month (UTC), have no cash value and cannot be transferred. We may limit how many you can earn in a day, or stop offering them. Using automation or tricks to fake an ad view or a referral may close the account.',
+      'On Free, you may choose to watch a short rewarded video ad to earn credits: each ad gives 6 credits and you can hold up to 30. Credits pay for AI voice commands (1 credit), receipt scans (2), exports (6) and extra groups (6; your first group is free). Credits are optional, have no cash value and cannot be transferred. We may limit how many you can earn in a day, or change what they cost. Using automation or tricks to fake an ad view or a referral may close the account.',
       'Inviting friends can earn free Pro days: 7 days for you and 7 for the friend, when the friend genuinely uses Waves. One account can earn at most 30 referral days in total, and we may withhold days if we think a referral is not genuine.',
     ],
   },

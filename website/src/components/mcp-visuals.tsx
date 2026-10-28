@@ -108,7 +108,7 @@ export function ApproveVisual({ approve }: { approve: string }) {
             dir="ltr"
             className="inline-flex items-center gap-1.5 text-[0.8rem] font-bold text-ink"
           >
-            <WaveMark className="h-3.5 w-5" />
+            <WaveMark className="h-4 w-4" />
             Waves
           </span>
           <span className="inline-flex h-8 w-full items-center justify-center rounded-lg bg-accent text-[0.8rem] font-semibold text-accent-ink">
