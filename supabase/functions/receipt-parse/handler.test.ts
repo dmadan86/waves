@@ -349,3 +349,32 @@ describe('isParsedReceipt', () => {
     expect(isParsedReceipt(null)).toBe(false);
   });
 });
+
+describe('storagePath validation', () => {
+  it('rejects a path traversal in storagePath', async () => {
+    const t = setup();
+    await expect(
+      handleReceiptParse(t.request({ storagePath: 'g1/../other/x.jpg' }), t.deps),
+    ).rejects.toMatchObject({ status: 400, code: 'BAD_PATH' });
+  });
+
+  it('rejects an empty segment in storagePath', async () => {
+    const t = setup();
+    await expect(
+      handleReceiptParse(t.request({ storagePath: 'g1//x' }), t.deps),
+    ).rejects.toMatchObject({ status: 400, code: 'BAD_PATH' });
+  });
+
+  it('rejects a dot segment in storagePath', async () => {
+    const t = setup();
+    await expect(
+      handleReceiptParse(t.request({ storagePath: 'g1/./x' }), t.deps),
+    ).rejects.toMatchObject({ status: 400, code: 'BAD_PATH' });
+  });
+
+  it('accepts a normal storagePath', async () => {
+    const t = setup();
+    const res = await handleReceiptParse(t.request({ storagePath: 'g1/r.jpg' }), t.deps);
+    expect(res.status).toBe(200);
+  });
+});

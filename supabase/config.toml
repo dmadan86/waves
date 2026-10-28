@@ -215,13 +215,19 @@ content_path = "./supabase/templates/reauthentication.html"
 # way to keep an account, never the way to get one.
 #
 [auth.sms]
-# On, matching the hosted project. The app still never opens an account by
-# phone: `sendPhoneCode` asks GoTrue with `create_user: false`, and the phone
-# tile is absent from the sign-up door. A number signs a person back in, or
-# attaches to the account a guest already has. Only a modified client asking
-# with `create_user: true` could mint a phone-only account.
-enable_signup = true
+# Off: the app only signs in existing users via phone. `sendPhoneCode` passes
+# `create_user: false` to GoTrue, so no phone-only account can be minted
+# through the app. This local setting closes the door to a modified client
+# sending `create_user: true`.
+# Note: hosted prod must be changed in the Supabase dashboard separately,
+# as `config push` does not reach that setting on the hosted project.
+enable_signup = false
 enable_confirmations = true
+
+# Cap the number of SMS messages GoTrue will send per hour to limit pumping
+# costs. Applies before the otp-send hook is consulted.
+[auth.rate_limit]
+sms_sent = 10
 
 # Programmable Messaging — not used. Verify below is the provider; this block
 # stays present and disabled so nobody wires the cheaper one by accident.
