@@ -12,15 +12,22 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { Card, iconSize, Text, useTheme } from '@waves/ui';
+import { Card, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
 import { useCaptures } from '@/data/hooks';
-import { plural, useStrings } from '@/i18n';
+import { plural, useStrings, type PluralForms } from '@/i18n';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { router } from '@/lib/navigation';
 
 /** Shows the folded count of unassigned captures and navigates to the captures inbox. */
-export function UnassignedCapturesCard() {
+/** Company users have no Review tab, so Home passes its own wording for the same card. */
+export function UnassignedCapturesCard({
+  title,
+  forms,
+}: {
+  title?: string;
+  forms?: PluralForms;
+} = {}) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const captures = useCaptures();
@@ -28,13 +35,15 @@ export function UnassignedCapturesCard() {
   const count = foldedCaptureCount(captures.data ?? []);
 
   if (count === 0) return null;
+  const heading = title ?? t.captures.unassigned;
+  const body = plural(locale, count, forms ?? t.captures.unassignedBody);
 
   return (
     <Pressable
       accessibilityRole="button"
       // Both halves the card shows, so the spoken name carries the count a
       // sighted reader gets from the body line, not just "Unassigned".
-      accessibilityLabel={`${t.captures.unassigned}. ${plural(locale, count, t.captures.unassignedBody)}`}
+      accessibilityLabel={`${heading}. ${body}`}
       onPress={() => router.navigate('/captures')}
     >
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
@@ -51,12 +60,12 @@ export function UnassignedCapturesCard() {
           <Ionicons name="file-tray-full-outline" size={iconSize.xl} color={theme.color.onBrand} />
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="subheading">{t.captures.unassigned}</Text>
+          <Text variant="subheading">{heading}</Text>
           <Text variant="caption" tone="muted">
-            {plural(locale, count, t.captures.unassignedBody)}
+            {body}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={iconSize.lg} color={theme.color.textFaint} />
+        <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.lg} color={theme.color.textFaint} />
       </Card>
     </Pressable>
   );
