@@ -437,7 +437,9 @@ function PushRouting() {
   const router = useRouter();
   const { session } = useAuth();
   const signedIn = useRef(false);
-  signedIn.current = Boolean(session);
+  useEffect(() => {
+    signedIn.current = Boolean(session);
+  }, [session]);
   const pathname = usePathname();
 
   // A link the OS delivered arrives as a one-screen stack; give it its parents.
