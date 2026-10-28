@@ -13,7 +13,10 @@ export type AdPlacement =
   | 'credit_voluntary'
   | 'credit_offer'
   | 'review_banner'
-  | 'home_banner';
+  | 'home_banner'
+  | 'activity_banner'
+  | 'voice_banner'
+  | 'settings_banner';
 export type AdEventOutcome =
   | 'shown'
   | 'completed'
@@ -26,7 +29,9 @@ export type AdEventOutcome =
   | 'blocked_adblock'
   | 'credit_used'
   | 'credit_earned'
-  | 'offline_capped';
+  | 'offline_capped'
+  | 'clicked'
+  | 'paid';
 // Immediate process-wide timestamps complement the cross-device server history.
 const clocks = new Map<
   string,

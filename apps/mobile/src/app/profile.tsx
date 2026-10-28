@@ -1,3 +1,5 @@
+import { AdSlot } from '@/components/AdSlot';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { useQuery } from '@tanstack/react-query';
 import { readCredits } from '@/lib/adCredits';
 import { showCreditsRow } from '@/lib/adCreditsPure';
@@ -109,6 +111,7 @@ export default function ProfileScreen() {
 
 function ProfileForm() {
   const theme = useTheme();
+  const settingsAds = useAdPlan('settings');
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const referralsLive = useReferralsLive();
@@ -331,6 +334,14 @@ function ProfileForm() {
                 ]
               : []),
           ]}
+        />
+
+        {/* One inline banner after the first group, clear of the Plan and Credits rows. */}
+        <AdSlot
+          handle={settingsAds}
+          format="inline_banner"
+          slot={0}
+          style={{ marginVertical: theme.spacing.lg }}
         />
 
         {/* Preferences: how the app looks and speaks to you. Language leads — it

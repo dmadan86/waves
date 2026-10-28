@@ -1,7 +1,7 @@
 import 'server-only';
 import { validateCreditSettings, type CreditSettings, type CreditStat } from './ads';
 
-import { PACK_STATUSES, parsePack } from '@waves/core';
+import { PACK_STATUSES, parsePack, validatePlacements } from '@waves/core';
 
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
@@ -1535,6 +1535,10 @@ export interface AdEventDay {
   credit_used: number | string;
   credit_earned: number | string;
   offline_capped: number | string;
+  /** Absent until the ad-intelligence migration is deployed. */
+  clicked?: number | string;
+  paid?: number | string;
+  paid_micros?: number | string;
 }
 export interface AdGateSettings extends CreditSettings {
   voice_per_ad?: number;
@@ -1550,6 +1554,8 @@ export interface AdGateSettings extends CreditSettings {
   rewarded_quiet_seconds: number;
   session_grace_seconds: number;
   session_cap: number;
+  /** Absent until the ad-intelligence migration is deployed. */
+  placements?: unknown;
 }
 /** Credit reporting is optional until the credits migration is deployed. */
 export async function adCreditStats(days = 30): Promise<CreditStat[] | null> {
@@ -1564,6 +1570,15 @@ export async function adCreditStats(days = 30): Promise<CreditStat[] | null> {
 export const adEventDays = () => call<AdEventDay>('waves_admin_ad_events', { p_days: 30 });
 export const adGateSettings = async () =>
   (await call<AdGateSettings>('waves_admin_ad_settings'))[0] ?? null;
+export async function saveAdPlacements(placements: unknown): Promise<void> {
+  const problem = validatePlacements(placements);
+  if (problem) throw new Error(problem);
+  await requireSession();
+  const { error } = await client().rpc('waves_admin_save_ad_settings', {
+    p_settings: { placements },
+  });
+  if (error) throw new Error(error.message);
+}
 export async function saveAdGateSettings(settings: AdGateSettings): Promise<void> {
   validateCreditSettings(settings);
   if (settings.banner_min_account_age_days > 365)
