@@ -357,7 +357,7 @@ export function AppTabBar() {
         return;
       }
       if (key === 'company') {
-        const target = companyTabRoute(companyIds);
+        const target = companyTabRoute(companyIds, activeKey === key ? groupId : null);
         if (target && !(activeKey === key && isCompanyTabRoot(segments, groupId, companyIds)))
           switchTab(target as never);
         return;

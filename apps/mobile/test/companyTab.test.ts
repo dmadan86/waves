@@ -73,6 +73,8 @@ describe('company tab destinations', () => {
     expect(companyTabRoute([])).toBeNull();
     expect(companyTabRoute(['a'])).toBe('/group/a');
     expect(companyTabRoute(['a', 'b'])).toBe('/companies');
+    expect(companyTabRoute(['a', 'b'], 'a')).toBe('/group/a');
+    expect(companyTabRoute(['a', 'b'], 'x')).toBe('/companies');
   });
 });
 
