@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PRO_DEVICE_LIMIT, PRO_MONTHLY_SCANS, VOICE_AGENT_PRO_MONTHLY } from '@waves/core';
@@ -120,8 +120,9 @@ export function HomeCreditsSheet({
         onClosed?.();
       }}
       closeLabel={t.common.close}
+      style={{ maxHeight: '92%' }}
     >
-      <View style={{ gap: theme.spacing.md }}>
+      <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ gap: theme.spacing.md }}>
         <View
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
         >
@@ -245,7 +246,7 @@ export function HomeCreditsSheet({
               <View style={{ flex: 1, gap: theme.spacing.sm }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
                   {circle('flash', c.surface, c.brand, 52)}
-                  <View>
+                  <View style={{ flexShrink: 1 }}>
                     <Text
                       variant="heading"
                       style={{ color: c.brand, fontSize: 34, lineHeight: 38, fontWeight: '700' }}
@@ -367,7 +368,7 @@ export function HomeCreditsSheet({
             )}
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={`${t.rewardedAds.goPro}. ${fill(t.credits.sheetPro, { n: VOICE_AGENT_PRO_MONTHLY })}`}
+              accessibilityLabel={`${t.rewardedAds.goPro}. ${fill(t.credits.sheetPro, { n: VOICE_AGENT_PRO_MONTHLY })}. ${fill(t.credits.sheetMiniScans, { n: PRO_MONTHLY_SCANS })} ${t.credits.sheetMiniScansSub}. ${t.credits.sheetMiniAds} ${t.credits.sheetMiniAdsSub}. ${fill(t.credits.sheetMiniDevices, { n: PRO_DEVICE_LIMIT })} ${t.credits.sheetMiniDevicesSub}`}
               accessibilityState={{ disabled: busy }}
               disabled={busy}
               onPress={() => setPro(true)}
@@ -436,7 +437,7 @@ export function HomeCreditsSheet({
             />
           </>
         )}
-      </View>
+      </ScrollView>
     </Sheet>
   );
 }
