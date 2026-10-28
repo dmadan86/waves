@@ -1,4 +1,5 @@
 import { useToast } from '@/lib/toast';
+import { useCompanyGroupGuard } from '@/lib/useCompanyGroupGuard';
 import { withScanCredits } from '@/lib/scanCredits';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -107,6 +108,7 @@ export default function ItemizeScreen() {
     replaces,
   } = useLocalSearchParams<{ id: string; receipt?: string; replaces?: string }>();
   const groupId = id ?? '';
+  useCompanyGroupGuard(groupId);
 
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands

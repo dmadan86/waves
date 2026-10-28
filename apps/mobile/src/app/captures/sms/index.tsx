@@ -87,7 +87,7 @@ import {
   useCaptures,
   useCreateGroup,
   useGroupPeopleSignatures,
-  useGroups,
+  useExpenseGroups,
   useHomeSummary,
   useOneToOneGroupIds,
   usePeopleBalances,
@@ -247,7 +247,7 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
 
   // ─────────────────────────────────────────────── where things go ──
 
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   const summary = useHomeSummary(viewerId);
   const people = usePeopleBalances(viewerId);
   const oneToOne = useOneToOneGroupIds();

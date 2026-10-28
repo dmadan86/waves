@@ -30,7 +30,7 @@ import { DestinationPicker } from '@/components/DestinationPicker';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
-import { useGroups } from '@/data/hooks';
+import { useExpenseGroups } from '@/data/hooks';
 import { fill, plural, useStrings } from '@/i18n';
 import { useReportFooter, type FooterSpec } from '@/components/voice/VoiceFooter';
 import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
@@ -95,7 +95,7 @@ export function VoiceConfirmCard({
 }: VoiceConfirmCardProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const groupRows = useGroups();
+  const groupRows = useExpenseGroups();
   const { visible: catalog } = useLabelledCategoryCatalog();
   const youLabel = t.voice.agentYou;
 

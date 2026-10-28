@@ -43,7 +43,7 @@ import {
 } from '@waves/ui';
 
 import { type PickedContact } from '@/components/ContactPicker';
-import { useGroups } from '@/data/hooks';
+import { useExpenseGroups } from '@/data/hooks';
 import { useKnownContacts } from '@/data/knownContacts';
 import { displayName, groupLabel } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
@@ -87,7 +87,7 @@ export default function AddFromAnotherGroupScreen(): React.JSX.Element {
   const { t, locale } = useStrings();
   const { profile } = useAuth();
   const { membersByGroup } = useKnownContacts();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   const { isFavorite } = useFavorites();
 
   // Taken once on mount — captures the request and clears the bridge in one

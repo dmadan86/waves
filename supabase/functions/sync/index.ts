@@ -486,14 +486,40 @@ export class SyncSession {
         if (error.status >= 500) throw error;
       } else {
         const db = error as { code?: string; message?: string } | null;
-        const raised = /^[A-Z_]+:/.test(db?.message ?? '');
+        const raised = RAISED_CODE.test(db?.message ?? '');
         // An overlapping replay can hit a unique key before its first request
         // records the result. Fail the request so the next replay can find it.
         if (!raised && db?.code !== '42501' && !(db?.code?.startsWith('23') && db.code !== '23505'))
           throw error;
       }
       const { code, message } = classify(error);
+      await this.recordRefusal(mutation, code, error);
       return { clientMutationId, status: 'rejected', code, message };
+    }
+  }
+
+  /**
+   * sync_mutations only remembers successes, so a refusal used to leave no trace.
+   * Kind, code and SQLSTATE only: never the payload or the database's message,
+   * which can quote a name or an amount. Best-effort; it must never turn a
+   * refusal into a failure.
+   */
+  private async recordRefusal(
+    mutation: MutationEnvelope,
+    code: string,
+    error: unknown,
+  ): Promise<void> {
+    const sqlstate = (error as { code?: unknown } | null)?.code;
+    try {
+      await this.service.from('sync_refusals').insert({
+        profile_id: this.profileId,
+        group_id: isPersonalKind(mutation.kind) ? null : mutation.groupId,
+        kind: mutation.kind,
+        code,
+        sqlstate: typeof sqlstate === 'string' && /^[0-9A-Z]{5}$/.test(sqlstate) ? sqlstate : null,
+      });
+    } catch {
+      /* diagnostics only */
     }
   }
 
@@ -2078,6 +2104,9 @@ function normalisePaymentMethod(value: unknown): string | null {
 const TAG_TINTS = new Set(['lilac', 'pink', 'mint', 'peach', 'sky', 'coral']);
 
 /** Turn a thrown error into the vocabulary the client's queue understands. */
+// The database raises 'CODE: detail' or a bare 'CODE' (ADMIN_ONLY, GROUP_DELETED).
+const RAISED_CODE = /^([A-Z][A-Z_]+)(?::|$)/;
+
 function classify(error: unknown): { code: string; message: string } {
   if (error instanceof HttpError) return { code: error.code, message: error.message };
 
@@ -2097,7 +2126,7 @@ function classify(error: unknown): { code: string; message: string } {
         : String(error);
   // The database raises 'UNKNOWN_MEMBER: ...', 'NOT_A_MEMBER: ...' and friends;
   // keep its own word for what went wrong rather than flattening to INTERNAL.
-  const raised = /^([A-Z_]+):/.exec(message)?.[1];
+  const raised = RAISED_CODE.exec(message)?.[1];
   if (raised) return { code: raised, message };
 
   const wrapped = (error as { code?: string })?.code;

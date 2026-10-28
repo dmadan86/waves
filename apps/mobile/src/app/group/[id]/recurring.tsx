@@ -36,6 +36,7 @@ import {
 
 import { useGroupRecurring, useUpdateGroupRecurring } from '@/data/groupRecurring';
 import { useGroup } from '@/data/hooks';
+import { useCompanyGroupGuard } from '@/lib/useCompanyGroupGuard';
 import { groupLabel } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -48,6 +49,7 @@ import { router } from '@/lib/navigation';
 export default function GroupRecurringScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
+  useCompanyGroupGuard(groupId);
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
