@@ -7406,7 +7406,7 @@ const en: UiStrings = {
     logoErrTimeout: 'That link took too long to load.',
     logoErrNetwork: 'Could not reach that link.',
     logoErrHttp: 'That link did not open.',
-    logoErrNotImage: 'That link isn\'t an image.',
+    logoErrNotImage: "That link isn't an image.",
     logoErrSvg: 'SVG logos are not supported. Use a PNG, JPG or WebP link.',
     logoErrTooLarge: 'Too large. Use an image under 2 MB.',
     logoErrRedirects: 'That link redirects too many times.',
