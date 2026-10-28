@@ -1,19 +1,8 @@
 /**
- * Three codes a day, and what happens to a number that spends them and never
- * signs in.
- *
- * The rule is cheap to state and easy to get subtly wrong, so each half is
- * pinned here: the allowance itself, the strike that only accrues on a day
- * nobody verified, the block that follows three of those, and — the one worth
- * the most — that a *polite* abuser who stops at exactly three a day is caught
- * too. An earlier draft only evaluated strikes on the ask that went over the
- * cap, which meant a script keeping to the limit could spend the whole allowance
- * every day for ever without the rule ever looking at it.
- *
- * Also the boring halves that are not boring at all: a blocked number must not
- * be able to keep its own record warm by hammering a shut door, and neither
- * table nor function may be reachable by anyone holding an anon or a signed-in
- * key. A list of numbers currently under attack is not something to hand out.
+ * Three codes a day. Repeated spent days must never create a phone block:
+ * unauthenticated requests must not deny the phone's owner future access.
+ * Existing blocks still apply, verification clears strikes, and the tables
+ * and service-only functions remain inaccessible to client roles.
  */
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -65,7 +54,7 @@ async function verified(phone: string): Promise<void> {
   await client.query('SELECT public.waves_phone_verified($1)', [phone]);
 }
 
-/** Backdate a spent, unverified day, the way three days of abuse would look. */
+/** Backdate a spent, unverified day. */
 async function spentDayAgo(phone: string, days: number, hits = 3): Promise<void> {
   await client.query(
     `INSERT INTO public.phone_otp_strikes (phone, day, hits)
@@ -114,40 +103,37 @@ describe('the daily allowance', () => {
 });
 
 describe('strikes', () => {
-  it('blocks a number that spends every day and never signs in', async () => {
+  it('never blocks a number just because it spends every day without signing in', async () => {
     const phone = aNumber();
     await spentDayAgo(phone, 1);
     await spentDayAgo(phone, 2);
 
-    // Today's third ask completes the pattern, so the third code is never sent:
-    // the block lands on the ask that earns it, not on the one after.
-    expect((await gate(phone)).allowed).toBe(true);
-    expect((await gate(phone)).allowed).toBe(true);
+    for (let i = 0; i < 3; i += 1) expect((await gate(phone)).allowed).toBe(true);
+    for (let i = 0; i < 2; i += 1) {
+      expect(await gate(phone)).toMatchObject({ allowed: false, reason: 'spent' });
+    }
 
-    const third = await gate(phone);
-    expect(third.allowed).toBe(false);
-    expect(third.reason).toBe('blocked');
-
-    const { rows } = await client.query(
-      'SELECT reason, until FROM public.phone_blocks WHERE phone = $1',
-      [phone],
-    );
-    expect(rows[0].reason).toBe('abuse');
-    expect(new Date(rows[0].until).getTime()).toBeGreaterThan(Date.now());
+    const { rows } = await client.query('SELECT * FROM public.phone_blocks WHERE phone = $1', [
+      phone,
+    ]);
+    expect(rows).toEqual([]);
   });
 
-  it('catches an abuser who politely stops at the limit', async () => {
-    // The case a draft of this missed. Three a day, every day, never a
-    // verification — no single ask is over the cap, and the pattern is the whole
-    // point.
+  it('keeps the daily cap without blocking a number that repeatedly stops at the limit', async () => {
     const phone = aNumber();
     await spentDayAgo(phone, 1, 3);
     await spentDayAgo(phone, 2, 3);
     await spentDayAgo(phone, 3, 3);
 
-    const first = await gate(phone);
-    expect(first.allowed).toBe(false);
-    expect(first.reason).toBe('blocked');
+    for (let i = 0; i < 3; i += 1) {
+      expect(await gate(phone)).toMatchObject({ allowed: true, remaining: 2 - i });
+    }
+    expect(await gate(phone)).toMatchObject({ allowed: false, reason: 'spent' });
+
+    const { rows } = await client.query('SELECT * FROM public.phone_blocks WHERE phone = $1', [
+      phone,
+    ]);
+    expect(rows).toEqual([]);
   });
 
   it('does not count a day that ended in a sign-in', async () => {
