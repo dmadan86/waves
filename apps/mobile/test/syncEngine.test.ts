@@ -1342,3 +1342,74 @@ describe('a mutation queued while a sync is writing to disk', () => {
     expect(h.disk.queue.map((m) => m.clientMutationId)).toContain('late-1');
   });
 });
+
+describe('refusals nobody should see', () => {
+  const groupRows = (type: string) => ({
+    outcomes: [],
+    changes: [
+      {
+        table: 'groups',
+        groupId: 'g-co',
+        seq: 1,
+        row: { id: 'g-co', name: 'Waves', type, default_currency: 'INR', archived_at: null },
+      },
+    ],
+    cursors: { 'g-co': 1 },
+    serverTime: 't0',
+  });
+  const refusal = (clientMutationId: string, code: string) => ({
+    outcomes: [{ clientMutationId, status: 'rejected', code, message: `${code}: x` }],
+    changes: [],
+    cursors: {},
+    serverTime: 't1',
+  });
+
+  it("turns an expense a company group refuses into its author's company expense", async () => {
+    online();
+    const engine = new SyncEngine();
+    h.invoke.mockResolvedValueOnce({ data: groupRows('company'), error: null });
+    await engine.flush();
+
+    h.invoke.mockResolvedValue({ data: refusal('exp-1', 'COMPANY_GROUP'), error: null });
+    await engine.enqueue({
+      clientMutationId: 'exp-1',
+      kind: 'expense.create' as never,
+      groupId: 'g-co',
+      clientCreatedAt: '2026-10-28T00:00:00.000Z',
+      payload: {
+        expenseId: 'e-1',
+        description: 'Diesel',
+        expenseDate: '2026-10-28',
+        currency: 'INR',
+        amount: '50000',
+        payers: { 'm-me': '50000' },
+        participants: ['m-me'],
+      },
+    });
+    await engine.flush();
+
+    expect(engine.getState().rejected).toEqual([]);
+    const kinds = engine.getState().queue.map((item) => [item.clientMutationId, item.kind]);
+    expect(kinds).toEqual([['exp-1:company', 'company_entry.create']]);
+  });
+
+  it('retries a rate limit later without ever surfacing it', async () => {
+    online();
+    h.invoke.mockResolvedValue({ data: refusal('m-1', 'RATE_LIMITED'), error: null });
+    const engine = new SyncEngine();
+    await engine.enqueue({
+      clientMutationId: 'm-1',
+      kind: 'group.update' as never,
+      groupId: 'g-goa',
+      clientCreatedAt: '2026-10-28T00:00:00.000Z',
+      payload: { name: 'x' },
+    });
+    await engine.flush();
+
+    expect(engine.getState().rejected).toEqual([]);
+    const held = engine.getState().queue[0];
+    expect(held?.rejection).toBeNull();
+    expect(held?.attempts).toBe(0);
+    expect(held?.nextAttemptAt).toBeGreaterThan(Date.now());
+  });
+});

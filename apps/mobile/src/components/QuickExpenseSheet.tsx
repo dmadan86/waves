@@ -69,7 +69,7 @@ import {
   useGroup,
   useGroupFxRates,
   useGroupLabeller,
-  useGroups,
+  useExpenseGroups,
   useHomeSummary,
   useWriteExpense,
 } from '@/data/hooks';
@@ -131,7 +131,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   });
   const { t, locale } = useStrings();
   const defaultCurrency = useDefaultCurrency();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   const labelOf = useGroupLabeller();
   const recents = useRecentDestinations();
   const viewerId = useViewerId();

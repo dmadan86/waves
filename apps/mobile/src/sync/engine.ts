@@ -15,10 +15,12 @@
 import * as Network from 'expo-network';
 import {
   applyOutcomes,
+  companyEntryFromRefusedExpense,
   dialingCodeForCountry,
   discard as discardMutation,
   emptyMirror,
   enqueue as enqueueMutation,
+  isTransientRefusal,
   markFailed,
   MutationKind,
   nextBatch,
@@ -166,6 +168,9 @@ function describeRejections(queue: readonly QueuedMutation[]): RejectedMutation[
     message: item.rejection?.message ?? 'The server refused this change',
   }));
 }
+
+/** How long a quietly retried refusal (a rate limit) waits before the next send. */
+const QUIET_RETRY_MS = 30_000;
 
 export class SyncEngine {
   private store: LocalStore = createLocalStore();
@@ -575,7 +580,28 @@ export class SyncEngine {
       // to be taken out of it explicitly — otherwise the fixed copy would be
       // queued *behind* the marked original, which blocks its own group forever.
       const healedIds = new Set<string>();
+      // Refusals nobody should ever see: a transient one (rate limit, a lost
+      // race) is retried after a backoff, and an expense a company group
+      // refuses becomes its author's company expense. Both keep the data.
+      const retryQuietly = new Set<string>();
+      const converted: MutationEnvelope[] = [];
       for (const entry of folded.rejected) {
+        if (isTransientRefusal(entry.code)) {
+          retryQuietly.add(entry.mutation.clientMutationId);
+          continue;
+        }
+        const company =
+          (entry.code as string) === 'COMPANY_GROUP'
+            ? companyEntryFromRefusedExpense(
+                entry.mutation,
+                this.groupCurrency(entry.mutation.groupId),
+              )
+            : null;
+        if (company) {
+          converted.push(company);
+          healedIds.add(entry.mutation.clientMutationId);
+          continue;
+        }
         const healed = this.healRejectedGhostPhone(entry);
         if (healed) {
           requeue.push(healed);
@@ -610,10 +636,26 @@ export class SyncEngine {
         !mirrorChanged && !cursorsChanged
           ? this.state.mirror
           : { cursors: nextCursors, tables: merged.state.tables };
-      const foldedQueue =
+      // Dropping a healed original goes through `discard`, so anything that only
+      // waited on it (a capture's assign) does not outlive it.
+      let foldedQueue =
         healedIds.size === 0
           ? folded.queue
-          : folded.queue.filter((item) => !healedIds.has(item.clientMutationId));
+          : [...healedIds].reduce((q, id) => discardMutation(q, id), folded.queue);
+      // The converted entry joins the same queue that drops its original, so one
+      // disk write holds both and a crash cannot lose the expense in between.
+      for (const envelope of converted) foldedQueue = enqueueMutation(foldedQueue, envelope);
+      if (retryQuietly.size > 0) {
+        foldedQueue = foldedQueue.map((item) =>
+          retryQuietly.has(item.clientMutationId)
+            ? {
+                ...item,
+                rejection: null,
+                nextAttemptAt: now + QUIET_RETRY_MS,
+              }
+            : item,
+        );
+      }
       let queue = sameQueue(base, foldedQueue) ? base : foldedQueue;
       // Derived from the queue rather than accumulated alongside it, so the list
       // the UI shows and the mutations actually held can never drift apart. When
@@ -678,6 +720,7 @@ export class SyncEngine {
       // force-kill still keeps the correction) and its own flush is deduped
       // behind this in-flight one; a fresh flush once this settles pushes the
       // corrected member now rather than waiting out the 30s poll.
+      if (converted.length > 0) setTimeout(() => void this.flush(), 0);
       if (requeue.length > 0) {
         for (const envelope of requeue) await this.enqueue(envelope);
         setTimeout(() => void this.flush(), 0);
@@ -709,6 +752,15 @@ export class SyncEngine {
   // the pure vitest suite that imports this engine). The device/account fallback
   // stays where it belongs — the entry-point normalisers in the RN components,
   // which import react-native legitimately — so nothing here drags it in.
+
+  /** The currency the group keeps its books in, or null if the group is unknown. */
+  private groupCurrency(groupId: string): string | null {
+    const groups = this.state.mirror.tables[SyncTable.Groups] as
+      Record<string, MirrorRow> | undefined;
+    const currency = (groups?.[groupId] as { default_currency?: unknown } | undefined)
+      ?.default_currency;
+    return typeof currency === 'string' ? currency : null;
+  }
 
   /** The dialing code to read this group's bare numbers in, or null. */
   private regionDialCodeForGroup(groupId: string): string | null {

@@ -144,7 +144,7 @@ import { putImage, removeRestrictedImage } from '@/lib/storage';
 import { pickAlbumPhoto, type PickedImage } from '@/lib/image';
 import { localDay } from '@/lib/paymentProof';
 import { parseAnnotations, type Annotations } from '@/lib/annotations';
-import { sanitizeCommentMarkdown } from '@waves/core';
+import { canAddSharedExpense, sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
 import { rememberVoiceAgentStatus, useVoiceAgentLastKnown } from '@/lib/voiceAgentLastKnown';
 import { activityTime } from '@/lib/groupActivityOrder';
@@ -239,6 +239,17 @@ export function useGroups(): LocalRead<GroupRow[]> {
     [realGroups, demoActive],
   );
   return useLocalRead(groups);
+}
+
+/**
+ * The groups an ordinary expense, settlement, import or recurring rule may be
+ * written to. `useGroups` minus company groups (their money is company entries;
+ * the server refuses the rest). Every group picker that writes uses this.
+ */
+export function useExpenseGroups(): LocalRead<GroupRow[]> {
+  const groups = useGroups();
+  const data = useMemo(() => groups.data.filter(canAddSharedExpense), [groups.data]);
+  return { ...groups, data };
 }
 
 /**

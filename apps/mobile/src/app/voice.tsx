@@ -86,7 +86,7 @@ import {
   useGroupLabeller,
   useGroupLedger,
   useGroupPeopleSignatures,
-  useGroups,
+  useExpenseGroups,
   useOneToOneGroupIds,
   usePeopleBalances,
   useRecordSettlement,
@@ -442,7 +442,7 @@ export default function VoiceScreen() {
   const dc = useDefaultCurrency();
   // The reader's categories (custom tags included), for the preview's label.
   const { visible: categoryCatalog } = useLabelledCategoryCatalog();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   /** A debt in a currency its group does not settle in, in a group that settles
    *  in its own currency: a bill with no rate yet, not something to pay. An
    *  unknown group answers true — hold back rather than guess. */

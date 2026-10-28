@@ -60,7 +60,7 @@ import { importProblemLine, importProblemText } from '@/lib/problemText';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { useGroupLabeller, useGroups, useHomeSummary } from '@/data/hooks';
+import { useGroupLabeller, useExpenseGroups, useHomeSummary } from '@/data/hooks';
 import { displayName, GroupType, isViewer, type MemberRow } from '@/data/types';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -145,7 +145,7 @@ export default function ImportScreen() {
   const clearance = useBottomClearance() + theme.spacing.xl;
   const { t, locale } = useStrings();
   const reduceMotion = useReducedMotion();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   const { profile } = useAuth();
   const summary = useHomeSummary(profile?.id ?? null);
   const { dark, ink, muted, accent, lavender, line } = useImportInks();

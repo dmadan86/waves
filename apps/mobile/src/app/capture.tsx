@@ -51,7 +51,7 @@ import { ReceiptAddRow } from '@/components/ReceiptAddRow';
 import {
   useCreateCapture,
   useDeleteCapture,
-  useGroups,
+  useExpenseGroups,
   useHomeSummary,
   useUpdateCapture,
 } from '@/data/hooks';
@@ -524,7 +524,7 @@ export default function CaptureScreen() {
   const { profile } = useAuth();
   const upsertPersonal = useUpsertPersonalRecord();
   const deleteCapture = useDeleteCapture();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   const summary = useHomeSummary(profile?.id ?? null);
   const groupRows = groups.data ?? [];
   const groupNameHints = groupRows.map((group) => group.name ?? '').filter(Boolean);

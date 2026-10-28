@@ -208,6 +208,7 @@ model Profile {
   appEvents                 AppEvent[]
   purchasedPasses           GroupPass[]
   syncMutations             SyncMutation[]
+  syncRefusals              SyncRefusal[]
   memberClaims              MemberClaim[]
   linkRequestsForMe         MemberLinkRequest[]        @relation("LinkRequestTarget")
   linkRequestsMade          MemberLinkRequest[]        @relation("LinkRequestRequester")
@@ -1379,6 +1380,26 @@ model GroupPin {
 /// broadcast it to every member), no foreign key to `groups`, a row id derived
 /// from (owner, group), soft deletes, and the one-live-mute rule in a partial
 /// unique index (`group_mutes_owner_group_idx`) Prisma cannot express.
+/// Why the server refused a queued change (code and kind only, never content).
+/// Written by the `sync` edge function; no policies, so only the service role
+/// reads it.
+model SyncRefusal {
+  id        BigInt   @id @default(autoincrement())
+  profileId String   @map("profile_id") @db.Uuid
+  groupId   String?  @map("group_id") @db.Uuid
+  kind      String
+  code      String
+  sqlstate  String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)], map: "sync_refusals_created_idx")
+  @@index([profileId, createdAt(sort: Desc)], map: "sync_refusals_profile_idx")
+  @@map("sync_refusals")
+  @@schema("public")
+}
+
 model GroupMute {
   id          String    @id @db.Uuid
   ownerUserId String    @map("owner_user_id") @db.Uuid
