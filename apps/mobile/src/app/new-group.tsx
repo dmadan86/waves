@@ -1200,6 +1200,10 @@ export default function NewGroupScreen() {
                   value={groupCurrency}
                   onPick={(code) => {
                     setCompanyCur(code);
+                    // The saved trip rate was for the old pair; drop it with the trip currency.
+                    tripCurRef.current = null;
+                    setTripCur(null);
+                    applyTripFx(null);
                     setPickingCompanyCur(false);
                   }}
                   onClose={() => setPickingCompanyCur(false)}
