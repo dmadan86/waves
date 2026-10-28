@@ -1,14 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import type { Dictionary } from '@/i18n/dictionaries';
 import './split-stage.css';
 
 export function SplitStage({ t }: { t: Dictionary['hero']['split'] }) {
-  const [mounted, setMounted] = useState(false);
+  // False on the server and during hydration, true after: the animation is an enhancement.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [run, setRun] = useState(0);
-
-  useEffect(() => setMounted(true), []);
 
   return (
     <div className="ss-wrap">
