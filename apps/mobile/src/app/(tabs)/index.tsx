@@ -53,7 +53,7 @@ import { TourTarget, useTour } from '@/lib/tour';
 import { tourMayStart, useOverlayBusy } from '@/lib/firstRun';
 import { GroupMark } from '@/components/GroupMark';
 import { useCoverTile } from '@/lib/groupCoverColor';
-import { SyncStatusIcon } from '@/components/SyncBanner';
+import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { LinkRequestsCard } from '@/components/LinkRequestsCard';
 import { SkeletonList } from '@/components/Skeletons';
@@ -162,6 +162,9 @@ export default function HomeScreen() {
     return hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
   });
   const displayName = profile?.display_name ?? t.account.you;
+  // First word only, so a long name never truncates to "Hi, Madan Dei…".
+  const firstName = displayName.trim().split(/\s+/)[0] || displayName;
+  const companyIds = useViewerCompanyIds();
 
   /**
    * Most recently used first, then pins in front of that.
@@ -548,7 +551,7 @@ export default function HomeScreen() {
                     color: heroInk,
                   }}
                 >
-                  {t.dashHero.hi.replace('{name}', displayName)}
+                  {t.dashHero.hi.replace('{name}', firstName)}
                 </Text>
                 <Text style={{ fontSize: 18, lineHeight: 23, color: heroInk }}>{' 👋'}</Text>
               </Row>
@@ -560,7 +563,6 @@ export default function HomeScreen() {
                 {`${t.dashHero[greetKey]}!`}
               </Text>
             </Pressable>
-            <SyncStatusIcon onBrand ink={heroInk} />
             <HeroIconButton
               icon="notifications-outline"
               label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
@@ -786,7 +788,10 @@ export default function HomeScreen() {
                             : null
                         }
                         coverEmoji={group.cover_emoji}
-                        coverColor={group.cover_color}
+                        coverColor={
+                          group.cover_color ??
+                          (companyIds.includes(group.id) ? companyCoverKey(group.id) : null)
+                        }
                         groupType={group.type}
                         eventTemplate={group.event_template}
                         customTag={group.custom_tag}
@@ -1038,6 +1043,15 @@ const HERO_OVERLAP = 56;
 
 /** How far down the balance card the scene reaches before it has faded into
  *  the page — its lower part, never on behind the groups. */
+/** A stable soft tile per company group (hash of its id) so the building icons
+ *  are told apart; only used when the group has no colour of its own. */
+const COMPANY_TILES = ['iris', 'blue', 'green', 'aqua', 'yellow', 'orange'] as const;
+function companyCoverKey(id: string): string {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return COMPANY_TILES[h % COMPANY_TILES.length]!;
+}
+
 const SCENE_INTO_CARD = 0.72;
 
 /**
@@ -1257,6 +1271,7 @@ function GroupRow({
                 currency={currency as never}
                 locale={locale}
                 mode="balance"
+                fadeFraction={false}
                 style={{ fontWeight: '700' }}
               />
             )}
