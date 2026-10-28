@@ -214,7 +214,9 @@ export default function CompanyEntryViewScreen() {
                 </StandardCard>
               )}
 
-              {view.isAdmin && entry.status === 'submitted' ? (
+              {view.isAdmin &&
+              entry.status === 'submitted' &&
+              (view.isOwner || entry.memberId !== view.me?.id) ? (
                 <View style={{ gap: theme.spacing.sm }}>
                   <Button
                     label={t.company.approve}

@@ -25,7 +25,9 @@ import {
   CompanyStatementView,
   kindLabel,
 } from '@/components/company/CompanyStatementView';
+import { ManagerCashCard, OwnerCashList } from '@/components/company/CompanyCash';
 import { CompanyPolicyEditor } from '@/components/company/CompanyPolicyEditor';
+import { CompanySites, useAddSiteSheet } from '@/components/company/CompanySites';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import {
@@ -37,7 +39,12 @@ import {
   StatCard,
 } from '@/components/standard';
 import { useCompanyTags } from '@/data/companyTags';
-import { useCompanyEntries, useSetCompanySettings, useSetMileageRate } from '@/data/companyEntries';
+import {
+  useCompanyEntries,
+  useCompanyProjects,
+  useSetCompanySettings,
+  useSetMileageRate,
+} from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -53,6 +60,8 @@ export function CompanyHome({ groupId }: { groupId: string }) {
   const tagLabel = useCompanyTags(groupId, view).label;
   const settings = useSetCompanySettings(groupId);
   const setKmRate = useSetMileageRate(groupId);
+  const addSite = useAddSiteSheet(groupId);
+  const hasSites = useCompanyProjects(groupId).length > 0;
   const [policiesOpen, setPoliciesOpen] = useState(false);
   const [kmOpen, setKmOpen] = useState(false);
   const [period, setPeriod] = useState<CompanyPeriod>('month');
@@ -60,7 +69,13 @@ export function CompanyHome({ groupId }: { groupId: string }) {
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
 
   const live = view.members.filter((member) => !member.left_at);
-  const awaiting = view.entries.filter((entry) => !entry.deleted && entry.status === 'submitted');
+  // A manager reviews their team, never their own claim (an owner does that).
+  const awaiting = view.entries.filter(
+    (entry) =>
+      !entry.deleted &&
+      entry.status === 'submitted' &&
+      (view.isOwner || entry.memberId !== view.me?.id),
+  );
   const summary = useMemo(() => {
     const { from, to } = periodRange(period, todayIso());
     return companySummary(view.entries, { from, to });
@@ -122,6 +137,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
           ) : null}
           {!view.ready || !view.me ? null : view.isAdmin ? (
             <>
+              {view.isManager ? <ManagerCashCard groupId={groupId} view={view} /> : null}
               <StatCard
                 label={t.company.companyOwesAll}
                 lead={owesParts.lead}
@@ -133,6 +149,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                     : undefined
                 }
               />
+              <OwnerCashList groupId={groupId} view={view} />
               {awaiting.length > 0 ? (
                 <View style={{ gap: theme.spacing.md }}>
                   <SectionHeader title={t.company.pendingApprovals} />
@@ -179,6 +196,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                     />
                   ))}
               </StandardCard>
+              <CompanySites groupId={groupId} view={view} />
               {categories.length > 0 ? (
                 <View style={{ gap: theme.spacing.md }}>
                   <SectionHeader title={t.company.byCategory} />
@@ -223,6 +241,8 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                       />
                     );
                   })}
+                  {view.isOwner ? (
+                    <>
                   <ListRow
                     title={t.company.approvalsTitle}
                     subtitle={t.company.approvalsHint}
@@ -260,6 +280,32 @@ export function CompanyHome({ groupId }: { groupId: string }) {
                     divider
                   />
                   {policiesOpen ? <CompanyPolicyEditor groupId={groupId} view={view} /> : null}
+                    </>
+                  ) : null}
+                  {live.some((m) => view.manageableIds.has(m.id)) ? (
+                    <ListRow
+                      title={t.company.payWages}
+                      leading={
+                        <Ionicons name="cash-outline" size={iconSize.md} color={theme.color.brand} />
+                      }
+                      onPress={() => router.push(`/group/${groupId}/company-wages`)}
+                      divider
+                    />
+                  ) : null}
+                  {view.isOwner && !hasSites ? (
+                    <ListRow
+                      title={t.company.addSite}
+                      leading={
+                        <Ionicons
+                          name="location-outline"
+                          size={iconSize.md}
+                          color={theme.color.brand}
+                        />
+                      }
+                      onPress={addSite.open}
+                      divider
+                    />
+                  ) : null}
                   <ListRow
                     title={t.company.exportAction}
                     leading={
@@ -308,6 +354,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
           )}
         </ScenicBody>
       </ScrollView>
+      {addSite.sheet}
       <EditTextSheet
         visible={kmOpen}
         title={t.company.mileageRate}

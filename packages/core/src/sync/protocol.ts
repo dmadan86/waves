@@ -72,6 +72,14 @@ export enum MutationKind {
   CompanyPoliciesSet = 'company.policies_set',
   CompanyMileageRateSet = 'company.mileage_rate_set',
   CompanyReimburse = 'company.reimburse',
+  // Phase 4: team, projects, manager pools and the wage run. The server decides
+  // who may do what (owner / the employee's own manager); the client hides the rest.
+  CompanyMemberAdd = 'company_member.add',
+  CompanyMemberAssign = 'company_member.assign',
+  CompanyMemberProjectsSet = 'company_member.projects_set',
+  CompanyProjectSet = 'company_project.set',
+  CompanyPoolPost = 'company_pool.post',
+  CompanyWagePay = 'company_wage.pay',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -421,7 +429,10 @@ export interface CompanyEntryData {
   readonly category?: string | null;
   readonly days?: string | null;
   readonly rateMinor?: string | null;
-  readonly calcMode?: 'typed' | 'days_rate' | 'fixed_weekly' | 'distance_rate';
+  readonly calcMode?: 'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly' | 'distance_rate';
+  /** Phase 4: the site, and the manager whose pool pays (an advance / reimbursement). */
+  readonly projectId?: string | null;
+  readonly fundingManagerId?: string | null;
   /** Optional GST / vendor details (India, INR expenses). Money as decimal strings. */
   readonly vendor?: string | null;
   readonly gstin?: string | null;
@@ -495,6 +506,70 @@ export interface CompanyReimbursePayload {
   readonly paidOn: string;
   readonly expectedAmountMinor: string;
   readonly note: string | null;
+}
+
+/** Owner or manager: add an employee. A manager's hire is always on their own team. */
+export interface CompanyMemberAddPayload {
+  readonly memberId: string;
+  readonly name: string;
+  readonly managerId?: string | null;
+  readonly projectIds?: readonly string[];
+}
+
+/** Owner: move an employee to a manager (null = report to the owners); promote via the role mutation. */
+export interface CompanyMemberAssignPayload {
+  readonly memberId: string;
+  readonly managerId: string | null;
+  readonly reason: string;
+}
+
+export interface CompanyMemberProjectsSetPayload {
+  readonly memberId: string;
+  readonly projectIds: readonly string[];
+}
+
+/** Owner: create or edit a project (site). `budgetMinor` null = no budget. */
+export interface CompanyProjectSetPayload {
+  readonly projectId: string;
+  readonly name: string;
+  readonly budgetMinor: string | null;
+  readonly archived: boolean;
+}
+
+/** Owner: allocate to / take back from / adjust a manager's pool. Return and adjustment need a reason. */
+export interface CompanyPoolPostPayload {
+  readonly entryId: string;
+  readonly managerId: string;
+  readonly kind: 'allocation' | 'pool_return' | 'pool_adjustment';
+  readonly amountMinor: string;
+  readonly projectId: string | null;
+  readonly occurredOn: string;
+  readonly reason: string | null;
+}
+
+export interface CompanyWageLinePayload {
+  readonly paymentEntryId: string;
+  readonly memberId: string;
+  readonly projectId: string | null;
+  readonly fundingManagerId: string | null;
+  readonly calcMode: 'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly';
+  readonly days: string | null;
+  readonly rateMinor: string | null;
+  readonly fixedMinor: string | null;
+  readonly claimIds: readonly { readonly entryId: string; readonly expectedVersion: number }[];
+  readonly expectedGrossMinor: string;
+  readonly expectedRecoveryMinor: string;
+  readonly expectedNetMinor: string;
+  readonly note: string | null;
+}
+
+/** One wage run: bulk, idempotent on `runId` (the same payload replays, a changed one is refused). */
+export interface CompanyWagePayPayload {
+  readonly runId: string;
+  readonly periodStart: string;
+  readonly periodEnd: string;
+  readonly paidOn: string;
+  readonly lines: readonly CompanyWageLinePayload[];
 }
 
 /** Clearing carries nothing — the scope (group) and the caller identify the row. */
@@ -685,6 +760,10 @@ export enum SyncTable {
    * ever pulled their own rows, an admin all of them. */
   CompanyEntries = 'company_entries',
   CompanyEntryAttachments = 'company_entry_attachments',
+  /** Group-scoped, pull-only (names for everyone; budgets only for owners). */
+  CompanyProjects = 'company_projects',
+  CompanyProjectMembers = 'company_project_members',
+  CompanyProjectBudgets = 'company_project_budgets',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',

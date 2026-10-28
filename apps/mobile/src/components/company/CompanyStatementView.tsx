@@ -67,7 +67,14 @@ export function kindLabel(
     case 'advance':
       return c.kAdvance;
     case 'wages':
+    case 'wage_payment':
       return c.kWages;
+    case 'allocation':
+      return c.kAllocation;
+    case 'pool_return':
+      return c.kPoolReturn;
+    case 'pool_adjustment':
+      return c.kPoolAdjustment;
     case 'reimbursement':
       return entry.direction === 'employee_to_company' ? c.kCashReturned : c.kReimbursement;
   }

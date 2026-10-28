@@ -46,7 +46,12 @@ import { ScenicBody, ScenicHeader, StandardCard, PillButton } from '@/components
 import { CompanyTagChips } from '@/components/company/CompanyTagChips';
 import { CompanyTagsSheet } from '@/components/company/CompanyTagsSheet';
 import { useCompanyTags } from '@/data/companyTags';
-import { attachCompanyPhoto, useAddCompanyEntry, useCompanyEntries } from '@/data/companyEntries';
+import {
+  attachCompanyPhoto,
+  useAddCompanyEntry,
+  useCompanyEntries,
+  useCompanyProjects,
+} from '@/data/companyEntries';
 import { captureReceipt, pickAlbumPhoto, type PickedImage } from '@/lib/image';
 import { MAX_COMPANY_PHOTOS } from '@/components/company/CompanyEntryPhotos';
 import { useSync } from '@/sync';
@@ -79,12 +84,16 @@ export default function CompanyEntryScreen() {
   const add = useAddCompanyEntry(groupId);
   const currency = view.currency as CurrencyCode;
 
-  const kinds: CompanyEntryKind[] = view.isAdmin
-    ? ['expense', 'allowance', 'advance', 'wages', 'reimbursement']
-    : ['expense', 'allowance'];
+  const projects = useCompanyProjects(groupId).filter((p) => !p.archived_at);
+  const [projectId, setProjectId] = useState<string | null>(null);
   const [kind, setKind] = useState<CompanyEntryKind>('expense');
   const [memberId, setMemberId] = useState<string | null>(memberParam ?? null);
   const employee = view.members.find((m) => m.id === (memberId ?? view.me?.id)) ?? view.me;
+  // A manager's own entries are expense / bata only; money to the team comes from their pool.
+  const moneyKinds = view.isAdmin && (view.isOwner || employee?.id !== view.me?.id);
+  const kinds: CompanyEntryKind[] = moneyKinds
+    ? ['expense', 'allowance', 'advance', 'wages', 'reimbursement']
+    : ['expense', 'allowance'];
   const tags = useCompanyTags(groupId, view);
   // Nothing tapped yet: the tag this person uses most is already chosen.
   const [pickedTag, setPickedTag] = useState<string | null>(null);
@@ -199,6 +208,10 @@ export default function CompanyEntryScreen() {
     advance: t.company.kAdvance,
     wages: t.company.kWages,
     reimbursement: t.company.kReimbursement,
+    allocation: t.company.kAllocation,
+    pool_return: t.company.kPoolReturn,
+    pool_adjustment: t.company.kPoolAdjustment,
+    wage_payment: t.company.kWages,
   };
 
   const pickEmployee = async (): Promise<void> => {
@@ -318,10 +331,20 @@ export default function CompanyEntryScreen() {
           }
         : {}),
       ...(kind === 'reimbursement' ? { direction } : {}),
+      ...(projectId ? { projectId } : {}),
+      // A manager pays from their own pool; an owner's entry is paid by the owners.
+      ...(view.isManager && (kind === 'advance' || kind === 'wages' || kind === 'reimbursement')
+        ? { fundingManagerId: view.me?.id ?? null }
+        : {}),
     };
     try {
       const entryId = randomUUID();
-      await add.mutateAsync({ entryId, memberId: employee.id, entryKind: kind, data });
+      await add.mutateAsync({
+        entryId,
+        memberId: employee.id,
+        entryKind: kind as 'expense' | 'advance' | 'allowance' | 'wages' | 'reimbursement',
+        data,
+      });
       if (photos.length > 0) {
         // The attach checks a real server row, so the queued entry goes first.
         try {
@@ -373,6 +396,18 @@ export default function CompanyEntryScreen() {
                 value={kind}
                 onChange={setKind}
               />
+              {projects.length > 0 ? (
+                <ChipRow
+                  wrap
+                  onCard
+                  options={[
+                    { value: '', label: t.company.noSite },
+                    ...projects.map((p) => ({ value: p.id, label: p.name })),
+                  ]}
+                  value={projectId ?? ''}
+                  onChange={(next) => setProjectId(next || null)}
+                />
+              ) : null}
               {view.isAdmin && view.members.filter((m) => !m.left_at).length > 1 ? (
                 <PillButton
                   label={
@@ -520,7 +555,7 @@ export default function CompanyEntryScreen() {
                     onCreate={tags.add}
                     onMore={() => setTagsOpen(true)}
                     canAdd={!!view.me}
-                    showMore={view.isAdmin || tags.ranked.length > 6}
+                    showMore={view.isOwner || tags.ranked.length > 6}
                   />
                   {unit && !byKm ? (
                     <View
@@ -813,7 +848,7 @@ export default function CompanyEntryScreen() {
             return adder ? displayName(adder, null, null, t.misc.someone) : null;
           })(),
         }))}
-        isAdmin={view.isAdmin}
+        isAdmin={view.isOwner}
         industries={INDUSTRY_OPTIONS.map((industry) => ({
           id: industry,
           label: industryLabel(industry),

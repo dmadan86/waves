@@ -11,6 +11,7 @@ import {
   CompanyPeriodPills,
   CompanyStatementView,
 } from '@/components/company/CompanyStatementView';
+import { CompanyTeamCard } from '@/components/company/CompanyTeamCard';
 import { ScenicBody, ScenicHeader } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { displayName } from '@/data/types';
@@ -39,7 +40,7 @@ export default function CompanyStatementScreen() {
         <ScenicHeader
           title={member ? displayName(member, null, null, t.misc.someone) : t.company.myStatement}
           action={
-            member && view.isAdmin ? (
+            member && view.manageableIds.has(member.id) ? (
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={t.company.addEntry}
@@ -61,6 +62,7 @@ export default function CompanyStatementScreen() {
           <CompanyPeriodPills value={period} onChange={setPeriod} />
         </ScenicHeader>
         <ScenicBody>
+          {member ? <CompanyTeamCard groupId={groupId} view={view} member={member} /> : null}
           {member ? (
             <CompanyStatementView view={view} member={member} period={period} groupId={groupId} />
           ) : view.ready ? (

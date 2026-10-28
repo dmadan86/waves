@@ -1300,6 +1300,53 @@ export interface UiStrings {
     kAllowance: string;
     kAdvance: string;
     kWages: string;
+    kAllocation: string;
+    kPoolReturn: string;
+    kPoolAdjustment: string;
+    noSite: string;
+    cashLeft: string;
+    cashWithManagers: string;
+    giveCash: string;
+    takeBack: string;
+    correctCash: string;
+    reasonRequired: string;
+    poolReasonHint: string;
+    payWages: string;
+    wagesSheetTitle: string;
+    periodThisWeek: string;
+    periodLastWeek: string;
+    wagesToPay: string;
+    wagesAdvanceCut: string;
+    wagesAdvanceLeft: string;
+    wagesBataIn: string;
+    wagesDays: string;
+    wagesFixedAmount: string;
+    wagesNeedTerms: string;
+    wagesRecord: string;
+    wagesDone: string;
+    wagesNoTeam: string;
+    wagesGross: string;
+    wagesPaidFromPool: string;
+    sites: string;
+    addSite: string;
+    siteName: string;
+    siteBudget: string;
+    siteSpent: string;
+    siteSpentOnly: string;
+    siteLeft: string;
+    siteOver: string;
+    makeManager: string;
+    makeEmployee: string;
+    reportsTo: string;
+    owners: string;
+    manager: string;
+    historyMoves: string;
+    moveTeamFirst: string;
+    yourTeam: string;
+    sitesOf: string;
+    wageGrossLabel: string;
+    wageCutLabel: string;
+    wageNetLabel: string;
     kReimbursement: string;
     kCashReturned: string;
     catFuel: string;
@@ -7411,6 +7458,53 @@ const en: UiStrings = {
     kAllowance: 'Bata (daily allowance)',
     kAdvance: 'Advance given',
     kWages: 'Wages paid',
+    kAllocation: 'Cash given to manager',
+    kPoolReturn: 'Cash taken back',
+    kPoolAdjustment: 'Correction',
+    noSite: 'No site',
+    cashLeft: 'Cash left',
+    cashWithManagers: 'Cash with managers',
+    giveCash: 'Give cash',
+    takeBack: 'Take back',
+    correctCash: 'Correct',
+    reasonRequired: 'Reason (required)',
+    poolReasonHint: 'Write why. It is kept in the history.',
+    payWages: 'Pay wages',
+    wagesSheetTitle: 'Pay wages',
+    periodThisWeek: 'This week',
+    periodLastWeek: 'Last week',
+    wagesToPay: 'To pay',
+    wagesAdvanceCut: 'Advance cut {amount}',
+    wagesAdvanceLeft: 'Advance left {amount}',
+    wagesBataIn: 'Bata {amount} included',
+    wagesDays: 'Days',
+    wagesFixedAmount: 'Fixed amount',
+    wagesNeedTerms: 'Add days and a rate, or a fixed amount',
+    wagesRecord: 'Pay {n} · {amount}',
+    wagesDone: 'Wages recorded',
+    wagesNoTeam: 'Add people first.',
+    wagesGross: 'Wages {amount}',
+    wagesPaidFromPool: 'Paid from your cash',
+    sites: 'Sites',
+    addSite: 'Add a site',
+    siteName: 'Site name',
+    siteBudget: 'Budget (optional)',
+    siteSpent: '{spent} of {budget}',
+    siteSpentOnly: '{spent} spent',
+    siteLeft: '{amount} left',
+    siteOver: '{amount} over',
+    makeManager: 'Make manager',
+    makeEmployee: 'Make employee',
+    reportsTo: 'Reports to',
+    owners: 'Owners',
+    manager: 'Manager',
+    historyMoves: 'The new manager sees all past entries. The old manager no longer does.',
+    moveTeamFirst: 'Move their team first',
+    yourTeam: 'Your team',
+    sitesOf: 'Sites',
+    wageGrossLabel: 'Wages',
+    wageCutLabel: 'Advance cut',
+    wageNetLabel: 'Paid',
     kReimbursement: 'Reimbursement',
     kCashReturned: 'Cash returned',
     catFuel: 'Fuel',
@@ -12967,6 +13061,53 @@ const ta: UiStrings = {
     kAllowance: 'படி (தினசரி)',
     kAdvance: 'கொடுத்த முன்பணம்',
     kWages: 'செலுத்திய சம்பளம்',
+    kAllocation: 'மேலாளருக்கு பணம்',
+    kPoolReturn: 'திரும்பப் பெற்ற பணம்',
+    kPoolAdjustment: 'திருத்தம்',
+    noSite: 'தளம் இல்லை',
+    cashLeft: 'மீதமுள்ள பணம்',
+    cashWithManagers: 'மேலாளர்களிடம் உள்ள பணம்',
+    giveCash: 'பணம் கொடு',
+    takeBack: 'திரும்பப் பெறு',
+    correctCash: 'திருத்து',
+    reasonRequired: 'காரணம் (அவசியம்)',
+    poolReasonHint: 'ஏன் என்று எழுதுங்கள். வரலாற்றில் சேமிக்கப்படும்.',
+    payWages: 'சம்பளம் கொடு',
+    wagesSheetTitle: 'சம்பளம் கொடு',
+    periodThisWeek: 'இந்த வாரம்',
+    periodLastWeek: 'கடந்த வாரம்',
+    wagesToPay: 'செலுத்த',
+    wagesAdvanceCut: 'முன்பணம் கழிவு {amount}',
+    wagesAdvanceLeft: 'மீதி முன்பணம் {amount}',
+    wagesBataIn: 'பத்தா {amount} சேர்க்கப்பட்டது',
+    wagesDays: 'நாட்கள்',
+    wagesFixedAmount: 'நிலையான தொகை',
+    wagesNeedTerms: 'நாட்கள் மற்றும் விகிதம் அல்லது நிலையான தொகை சேர்க்கவும்',
+    wagesRecord: '{n} பேருக்கு · {amount}',
+    wagesDone: 'சம்பளம் பதிவானது',
+    wagesNoTeam: 'முதலில் ஆட்களைச் சேர்க்கவும்.',
+    wagesGross: 'சம்பளம் {amount}',
+    wagesPaidFromPool: 'உங்கள் பணத்தில் இருந்து',
+    sites: 'தளங்கள்',
+    addSite: 'தளம் சேர்',
+    siteName: 'தளத்தின் பெயர்',
+    siteBudget: 'பட்ஜெட் (விருப்பம்)',
+    siteSpent: '{budget} இல் {spent}',
+    siteSpentOnly: '{spent} செலவு',
+    siteLeft: '{amount} மீதி',
+    siteOver: '{amount} அதிகம்',
+    makeManager: 'மேலாளர் ஆக்கு',
+    makeEmployee: 'ஊழியர் ஆக்கு',
+    reportsTo: 'யாரிடம் பணி',
+    owners: 'உரிமையாளர்கள்',
+    manager: 'மேலாளர்',
+    historyMoves: 'புதிய மேலாளர் முந்தைய பதிவுகளைப் பார்ப்பார். பழைய மேலாளர் பார்க்க முடியாது.',
+    moveTeamFirst: 'முதலில் அவர் குழுவை மாற்றுங்கள்',
+    yourTeam: 'உங்கள் குழு',
+    sitesOf: 'தளங்கள்',
+    wageGrossLabel: 'சம்பளம்',
+    wageCutLabel: 'முன்பணம் கழிவு',
+    wageNetLabel: 'செலுத்தியது',
     kReimbursement: 'திரும்பச் செலுத்தல்',
     kCashReturned: 'பணம் திருப்பியது',
     catFuel: 'எரிபொருள்',
@@ -18688,6 +18829,53 @@ const hi: UiStrings = {
     kAllowance: 'भत्ता (दैनिक)',
     kAdvance: 'दिया गया अग्रिम',
     kWages: 'दिया गया वेतन',
+    kAllocation: 'मैनेजर को नकद',
+    kPoolReturn: 'वापस लिया नकद',
+    kPoolAdjustment: 'सुधार',
+    noSite: 'कोई साइट नहीं',
+    cashLeft: 'बचा नकद',
+    cashWithManagers: 'मैनेजरों के पास नकद',
+    giveCash: 'नकद दें',
+    takeBack: 'वापस लें',
+    correctCash: 'सुधारें',
+    reasonRequired: 'कारण (ज़रूरी)',
+    poolReasonHint: 'कारण लिखें। यह इतिहास में रहेगा।',
+    payWages: 'वेतन दें',
+    wagesSheetTitle: 'वेतन दें',
+    periodThisWeek: 'इस सप्ताह',
+    periodLastWeek: 'पिछला सप्ताह',
+    wagesToPay: 'देना है',
+    wagesAdvanceCut: 'एडवांस कटा {amount}',
+    wagesAdvanceLeft: 'बचा एडवांस {amount}',
+    wagesBataIn: 'बत्ता {amount} शामिल',
+    wagesDays: 'दिन',
+    wagesFixedAmount: 'तय राशि',
+    wagesNeedTerms: 'दिन और दर, या तय राशि जोड़ें',
+    wagesRecord: '{n} को दें · {amount}',
+    wagesDone: 'वेतन दर्ज हुआ',
+    wagesNoTeam: 'पहले लोगों को जोड़ें।',
+    wagesGross: 'वेतन {amount}',
+    wagesPaidFromPool: 'आपके नकद से',
+    sites: 'साइटें',
+    addSite: 'साइट जोड़ें',
+    siteName: 'साइट का नाम',
+    siteBudget: 'बजट (वैकल्पिक)',
+    siteSpent: '{budget} में से {spent}',
+    siteSpentOnly: '{spent} खर्च',
+    siteLeft: '{amount} बचा',
+    siteOver: '{amount} ज़्यादा',
+    makeManager: 'मैनेजर बनाएँ',
+    makeEmployee: 'कर्मचारी बनाएँ',
+    reportsTo: 'किसे रिपोर्ट',
+    owners: 'मालिक',
+    manager: 'मैनेजर',
+    historyMoves: 'नया मैनेजर सभी पुरानी प्रविष्टियाँ देखेगा। पुराना मैनेजर नहीं देखेगा।',
+    moveTeamFirst: 'पहले उनकी टीम बदलें',
+    yourTeam: 'आपकी टीम',
+    sitesOf: 'साइटें',
+    wageGrossLabel: 'वेतन',
+    wageCutLabel: 'एडवांस कटौती',
+    wageNetLabel: 'दिया',
     kReimbursement: 'भरपाई',
     kCashReturned: 'नकद लौटाया',
     catFuel: 'ईंधन',
@@ -24299,6 +24487,53 @@ const ar: UiStrings = {
     kAllowance: 'بدل (يومي)',
     kAdvance: 'سلفة مُعطاة',
     kWages: 'أجور مدفوعة',
+    kAllocation: 'نقد للمدير',
+    kPoolReturn: 'نقد مسترجع',
+    kPoolAdjustment: 'تصحيح',
+    noSite: 'بدون موقع',
+    cashLeft: 'النقد المتبقي',
+    cashWithManagers: 'النقد لدى المديرين',
+    giveCash: 'أعطِ نقداً',
+    takeBack: 'استرجع',
+    correctCash: 'صحّح',
+    reasonRequired: 'السبب (مطلوب)',
+    poolReasonHint: 'اكتب السبب. سيبقى في السجل.',
+    payWages: 'ادفع الأجور',
+    wagesSheetTitle: 'ادفع الأجور',
+    periodThisWeek: 'هذا الأسبوع',
+    periodLastWeek: 'الأسبوع الماضي',
+    wagesToPay: 'المستحق',
+    wagesAdvanceCut: 'خصم السلفة {amount}',
+    wagesAdvanceLeft: 'المتبقي من السلفة {amount}',
+    wagesBataIn: 'البدل {amount} مشمول',
+    wagesDays: 'الأيام',
+    wagesFixedAmount: 'مبلغ ثابت',
+    wagesNeedTerms: 'أضف الأيام والسعر أو مبلغاً ثابتاً',
+    wagesRecord: 'ادفع لـ {n} · {amount}',
+    wagesDone: 'تم تسجيل الأجور',
+    wagesNoTeam: 'أضف أشخاصاً أولاً.',
+    wagesGross: 'الأجر {amount}',
+    wagesPaidFromPool: 'من نقدك',
+    sites: 'المواقع',
+    addSite: 'أضف موقعاً',
+    siteName: 'اسم الموقع',
+    siteBudget: 'الميزانية (اختياري)',
+    siteSpent: '{spent} من {budget}',
+    siteSpentOnly: 'أُنفق {spent}',
+    siteLeft: 'المتبقي {amount}',
+    siteOver: 'تجاوز بـ {amount}',
+    makeManager: 'اجعله مديراً',
+    makeEmployee: 'اجعله موظفاً',
+    reportsTo: 'يتبع',
+    owners: 'المالكون',
+    manager: 'مدير',
+    historyMoves: 'سيرى المدير الجديد كل السجل السابق ولن يراه المدير القديم.',
+    moveTeamFirst: 'انقل فريقه أولاً',
+    yourTeam: 'فريقك',
+    sitesOf: 'المواقع',
+    wageGrossLabel: 'الأجور',
+    wageCutLabel: 'خصم السلفة',
+    wageNetLabel: 'المدفوع',
     kReimbursement: 'سداد',
     kCashReturned: 'نقد معاد',
     catFuel: 'وقود',

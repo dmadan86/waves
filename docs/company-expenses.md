@@ -231,6 +231,70 @@ Built in this PR: policy limits and receipt hint (Expensify / Ramp rules), GST a
 (Happay / Zoho), mileage (Concur / Happay), advance-aware bulk payment, duplicate hint
 (Zoho), "Over policy" flag in the approval queue.
 
+## Phase 4: managers, cash pools, wage run, sites
+
+Designed with Codex (read-only, web search) after Mobbin research: Copilot "Categories" (spent / budget
+bar rows) for site budgets, Monzo pots ("cash left" card plus transfer rows) for the manager's cash, checkbox
+rows with one bottom action (the Phase 3 bulk payment) for the wage run. Motto: "WhatsApp for finance",
+so everything is progressively disclosed: a crew of an owner and a few employees never sees managers,
+cash pools, sites or the wage run until an owner makes a manager or adds a site.
+
+**Roles.** Owner = `group_members.role = 'admin'` (several allowed). Manager = new `manager` role (company groups
+only) with a team = employees whose `manager_id` is theirs. Employee = `member`; `manager_id` null means
+"reports to the owners". A manager also logs their own expense / bata; only an owner reviews those.
+
+**Who sees whom (server side, RLS + RPCs).** An employee's entry, photos, notes, GST, statements and exports are
+visible only to that employee, their *current* manager and the owners. A manager sees only owners (names only,
+through `waves_company_people`), themselves and their own team in `group_members`, profiles, contacts, invites,
+past-people and the member pickers. Employees see only themselves plus owners and their manager as names.
+Reassigning an employee gives the new manager the full history at once and removes the old manager's access;
+what a payment was funded from never changes (the old manager keeps their aggregate cash figure, computed on
+the server, without any former-team detail). Activity and notifications: no row is ever written for a money
+entry, and `activity_log` is owner-only. Export and sync read as the caller, so they follow the same rules.
+
+**People.** Owners create managers (one tap: "Make manager"), create employees under any manager or the owners,
+reassign teams and remove anyone. A manager adds or invites employees and they are forced onto that manager's
+team (a manager cannot pick a team, promote or reassign); an invite minted by a manager stores
+`company_manager_id` and the joiner lands on that team. Reassignment needs no reason.
+
+**Approvals.** With approvals on, the employee's manager or any owner may approve or reject; either suffices.
+A manager never reviews their own claim. A second "owner must also approve" setting is deferred.
+
+**Cash pool (the "float").** New entry kinds on the manager's own member row: `allocation` (owner gives cash,
+optionally per site), `pool_return` and `pool_adjustment` (a trimmed written reason of 1 to 500 characters is
+required and shown in history and exports). Advances, reimbursements and wage payments a manager records are
+stamped `funding_manager_id = self`. Balance = allocated + adjustments - returned - advances - reimbursements -
+wages - own approved spend + cash returned. It may go negative (money may already be spent); it carries over
+and is never reset. `waves_company_pool_balance` is authoritative; the phone sums what it can read as the
+offline fallback.
+
+**Wage run.** One `company_entries` row per employee, kind `wage_payment`, amount = net. Gross = days x rate
+(half up once, two decimals) or a fixed weekly / monthly amount, plus approved unpaid bata / mileage folded in.
+Recovery = min(outstanding advance, gross); net = gross - recovery, never negative; the rest carries. Outstanding
+advance = advances not netted into a Phase 3 payment minus earlier recoveries. The balance effect of a wage
+payment is `-claims + recovery`; base wages show in totals like legacy wages. The run id is the idempotency key
+(same payload replays, a changed one is refused), a period overlapping one already paid to the employee is
+refused (the phone greys such rows out so the server never has to), and the server recomputes every figure
+and compares them with what the phone showed. Statements show gross, advance cut and net.
+
+**Sites.** `company_projects` (name, archived), `company_project_members` (an employee may be on several) and an
+owner-only `company_project_budgets`. Entries, allocations and wage lines can carry a `project_id`. Spent =
+approved expense + bata + wage base; advances are cash, not spend. The owner sees spent / budget / remaining
+bars and `waves_company_project_report` (per site and per manager pool).
+
+**Contract.** Migrations `20261110080000_company_manager_role_enum` (the enum value alone) and
+`20261110090000_company_managers_pools`. RPCs: `waves_company_people`, `_member_add`, `_member_assign`,
+`_member_projects_set`, `_project_set`, `_pool_post`, `_pool_balance`, `_project_report`, `_wage_pay`; sync
+kinds `company_member.add|assign|projects_set`, `company_project.set`, `company_pool.post`, `company_wage.pay`;
+pulled tables `company_projects`, `company_project_members`, `company_project_budgets`.
+
+**Built / deferred.** Built: all of the above, the manager and owner screens (cash card, "Pay wages" list, sites
+bars, "Make manager" / "Reports to" / site chips on a statement). Deferred: "Reports to" and sites inside the
+add-employee form (owner sets them on the person's statement), a manager's offline add-employee overlay,
+names of the manager / owners on an employee's screen (the RPC exists), multi-site wage split, a second owner
+approval, wage preview RPC, settlement-application table (partial advance recovery across wages is handled by
+the recovery column), and downloaded-data purge on a role change (as in Phase 2).
+
 ## Later
 
 - Receipt-required as a hard block (needs an upload that survives offline, then hold the claim
