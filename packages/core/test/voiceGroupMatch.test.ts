@@ -109,3 +109,28 @@ it('does not route a member through a shared group word', () => {
     }).targetGroupId,
   ).toBeUndefined();
 });
+
+it.each(['Goa Trip', 'Goa Trips'])('prefers the exact group %s over fuzzy rivals', (name) => {
+  const rivals = [
+    { id: 'singular', name: 'Goa Trip' },
+    { id: 'plural', name: 'Goa Trips' },
+  ];
+  const id = name === 'Goa Trip' ? 'singular' : 'plural';
+  for (const ordered of [rivals, [...rivals].reverse()]) {
+    expect(resolveSpokenGroup(name, ordered)).toMatchObject({
+      status: 'resolved',
+      id,
+      exact: true,
+    });
+    expect(
+      parseVoiceIntent(`300 rupees dinner in ${name}`, { groups: ordered }).targetGroupId,
+    ).toBe(id);
+  }
+});
+
+it('masks leftover identifier digits after extracting the group', () => {
+  const intent = parseVoiceIntent('300 rupees for room 4B in Goa Trip', { groups });
+  expect(intent.targetGroupId).toBe('goa');
+  expect(intent.remainder).toContain('300 rupees for room');
+  expect(intent.remainder).not.toMatch(/4b/i);
+});

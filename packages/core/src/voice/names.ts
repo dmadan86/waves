@@ -1591,18 +1591,16 @@ export function createSpokenGroupResolver(groups: readonly VoiceGroupCandidate[]
         : 0.7 *
             (fit.score /
               (3 *
-                Math.max(
-                  1,
-                  tokens.filter(
-                    (t) => !unexplained.includes(t) && (!variants.has(t) || words.includes(t)),
-                  ).length,
-                ))) +
+                Math.max(1, tokens.filter((t) => words.some((w) => tokenTier(t, w) > 0)).length))) +
           (0.3 * covered) / words.length -
           0.08 * unexplained.length;
       if (score >= 0.55) scored.push({ item: group, score, exact, anchor });
     }
     scored.sort(
-      (a, b) => b.score - a.score || (a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0),
+      (a, b) =>
+        Number(b.exact) - Number(a.exact) ||
+        b.score - a.score ||
+        (a.item.id < b.item.id ? -1 : a.item.id > b.item.id ? 1 : 0),
     );
     const top = scored[0];
     if (!top) return { status: 'unresolved' };

@@ -2029,11 +2029,20 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   if (groupHint && groupHint.status === 'unresolved' && groups.length === 0)
     note('group_unchecked');
 
-  const remainder = tok
-    .map((t, i) => (used[i] ? '' : t))
-    .filter(Boolean)
-    .join(' ')
-    .concat(remainderExtra)
+  // Identifiers stay literal through group extraction, then hide their digits
+  // before the expense parser can mistake them for additional amounts.
+  const remainder = maskNonMoneyNumbers(
+    tok
+      .map((t, i) => (used[i] ? '' : t))
+      .filter(Boolean)
+      .join(' ')
+      .concat(remainderExtra)
+      .trim(),
+    (span) => span.detail !== 'identifier',
+  )
+    // A masked identifier ("4b") leaves no debris for the note either.
+    .replace(/\S*[\uE000-\uE009]\S*/gu, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 
   let intent: VoiceIntent = {

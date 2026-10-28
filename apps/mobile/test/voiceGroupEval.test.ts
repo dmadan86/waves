@@ -17,6 +17,8 @@ it('measures the real device parser and its shared intent', () => {
       alternatives: row.alternatives,
       now: new Date('2026-10-01T12:00:00Z'),
     });
+    if (row.expectedItemCount !== undefined)
+      expect(result.items, row.id).toHaveLength(row.expectedItemCount);
     const item = result.items[0];
     const expected = row.expected;
     const id = result.group?.kind === 'existing' ? result.group.groupId : null;
@@ -93,4 +95,27 @@ it('asks when a member and a group share the same name', () => {
       members: [{ id: 'arjun', name: 'Arjun' }],
     }).group,
   ).toBeNull();
+});
+
+it.each(['Goa Trip', 'Goa Trips'])('routes an exact %s ahead of its fuzzy rival', (name) => {
+  const result = parseVoiceExpenses(`300 rupees dinner in ${name}`, [
+    { id: 'singular', name: 'Goa Trip' },
+    { id: 'plural', name: 'Goa Trips' },
+  ]);
+  expect(result.group).toEqual({
+    kind: 'existing',
+    groupId: name === 'Goa Trip' ? 'singular' : 'plural',
+  });
+  expect(result.items).toHaveLength(1);
+  expect(result.items[0].amountMinor).toBe(30000n);
+});
+
+it('does not segment a room identifier into an extra expense', () => {
+  const result = parseVoiceExpenses('300 rupees for room 4B in Goa Trip', [
+    { id: 'goa', name: 'Goa Trip' },
+  ]);
+  expect(result.group).toEqual({ kind: 'existing', groupId: 'goa' });
+  expect(result.items).toHaveLength(1);
+  expect(result.items[0].amountMinor).toBe(30000n);
+  expect(result.items[0].note).toBe('room');
 });

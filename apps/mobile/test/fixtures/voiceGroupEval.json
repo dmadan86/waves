@@ -4313,5 +4313,80 @@
         "memberIds": ["priya", "ravi"]
       }
     }
+  },
+  {
+    "id": "regression-exact-goa-trip",
+    "transcript": "300 rupees dinner in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "singular",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "plural",
+        "name": "Goa Trips"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "singular"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "regression-exact-goa-trips",
+    "transcript": "300 rupees dinner in Goa Trips",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "singular",
+        "name": "Goa Trip"
+      },
+      {
+        "id": "plural",
+        "name": "Goa Trips"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "plural"
+      },
+      "description": "dinner",
+      "payer": "me",
+      "split": null
+    }
+  },
+  {
+    "id": "regression-room-identifier",
+    "transcript": "300 rupees for room 4B in Goa Trip",
+    "alternatives": [],
+    "groups": [
+      {
+        "id": "goa",
+        "name": "Goa Trip"
+      }
+    ],
+    "expected": {
+      "amountMinor": "30000",
+      "currency": "INR",
+      "group": {
+        "status": "resolved",
+        "id": "goa"
+      },
+      "description": "room",
+      "payer": "me",
+      "split": null
+    },
+    "expectedItemCount": 1
   }
 ]
