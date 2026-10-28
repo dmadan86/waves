@@ -144,7 +144,14 @@ export default function AllGroupsScreen() {
   });
   const adSlotsKey = adHandle.plan.slots.join(',');
   const data = useMemo(
-    () => placeSlots(rows, adHandle.plan.slots, new Set(), { row: 'group', header: 'header' }),
+    () =>
+      placeSlots(
+        rows,
+        adHandle.plan.slots,
+        new Set(),
+        { row: 'group', header: 'header' },
+        adHandle.minGap,
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
     [rows, adSlotsKey],
   );

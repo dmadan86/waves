@@ -38,6 +38,9 @@ BEGIN
    IF f = 'enabled' THEN
     IF jsonb_typeof(fv) <> 'boolean' THEN RAISE EXCEPTION 'Surface % enabled must be a boolean', sn; END IF;
    ELSIF s ? f THEN
+    IF sn = 'home_groups' AND f = 'min_rows' AND jsonb_typeof(fv) = 'number' AND (fv#>>'{}')::numeric < 10 THEN
+     RAISE EXCEPTION 'Home needs at least 10 groups before it shows an ad';
+    END IF;
     IF jsonb_typeof(fv) <> 'number' OR (fv#>>'{}')::numeric <> trunc((fv#>>'{}')::numeric)
       OR (fv#>>'{}')::numeric < (s->f->>0)::numeric OR (fv#>>'{}')::numeric > (s->f->>1)::numeric THEN
      RAISE EXCEPTION 'Surface % field % is out of range', sn, f;

@@ -557,7 +557,7 @@ export default function ActivityScreen() {
         });
       });
     }
-    return placeSlots(rows, adPlan.slots) as FeedRow[];
+    return placeSlots(rows, adPlan.slots, undefined, undefined, adHandle.minGap) as FeedRow[];
     // eslint-disable-next-line react-hooks/exhaustive-deps -- adPlan.slots is the only part of the plan used
   }, [
     visibleEntries,

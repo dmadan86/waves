@@ -53,6 +53,8 @@ export interface AdPlanHandle {
   /** When this screen last gained focus (ms); dwell counts from here. */
   focusedAt: React.MutableRefObject<number>;
   nativeCap: number | null | undefined;
+  /** Fewest rows allowed between two native cards, for `placeSlots`. */
+  minGap: number;
   /** Live budget check at request time; the rendered plan keeps its counters from the visit start. */
   canRequest: () => boolean;
   /** The SDK reported an impression for one of this screen's slots. */
@@ -121,9 +123,11 @@ export function useAdPlan(
 
   let input: PlanInput | null = null;
   let plan = NONE;
+  let minGap = 0;
   if (profileId && status && visitBase) {
     const config = mergePlacements(status.settings?.placements);
     adBudget.setIdleSeconds(config.session_idle_reset_seconds);
+    minGap = config.surfaces[surface].gap_min ?? 0;
     const snap = adBudget.snapshot(profileId, surface, passiveToday);
     const serverRewarded = status.lastRewardedAt ? Date.parse(status.lastRewardedAt) : 0;
     input = {
@@ -137,7 +141,8 @@ export function useAdPlan(
         gateEnabled: status.enabled,
         bannerEligible: status.bannerEligible === true,
         isPaid,
-        online: isOnline(network),
+        // Unknown connectivity is not online: ads fail closed.
+        online: network.isConnected === true && isOnline(network),
         canRequestAds: consented,
         createdAt: status.createdAt ? Date.parse(status.createdAt) : null,
         variant,
@@ -200,6 +205,7 @@ export function useAdPlan(
     plan: stable,
     focusedAt,
     nativeCap: nativeDailyCap(status),
+    minGap,
     canRequest,
     markShown,
     detail,

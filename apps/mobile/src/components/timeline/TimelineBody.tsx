@@ -126,7 +126,13 @@ export function TimelineBody({
       if (focusId && near.some((r) => r?.kind === 'entry' && r.entry.id === focusId))
         blocked.add(n);
     });
-    return placeSlots(baseRows, adHandle.plan.slots, blocked, { row: 'entry', header: 'day' });
+    return placeSlots(
+      baseRows,
+      adHandle.plan.slots,
+      blocked,
+      { row: 'entry', header: 'day' },
+      adHandle.minGap,
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
   }, [baseRows, focusId, adSlotsKey]);
 

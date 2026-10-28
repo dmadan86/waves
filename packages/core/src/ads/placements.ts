@@ -159,6 +159,8 @@ export const SURFACE_DEFAULTS: Record<AdSurface, SurfaceConfig> = {
   settings: inline(),
 };
 
+/** Home only shows an ad with this many groups (owner rule); admin cannot go lower. */
+export const HOME_MIN_ROWS = 10;
 /** Numeric surface fields and their allowed ranges (server validation). */
 export const SURFACE_RANGES: Record<string, [number, number]> = {
   min_rows: [1, 200],
@@ -179,6 +181,10 @@ const PAIRS: [GlobalKey, GlobalKey][] = [
   ['session_cap_min', 'session_cap_max'],
   ['dwell_min_seconds', 'dwell_max_seconds'],
 ];
+const rangeFor = (name: string, field: string): [number, number] => {
+  const [lo, hi] = SURFACE_RANGES[field] as [number, number];
+  return name === 'home_groups' && field === 'min_rows' ? [HOME_MIN_ROWS, hi] : [lo, hi];
+};
 const inRange = (v: unknown, lo: number, hi: number): v is number =>
   typeof v === 'number' && Number.isInteger(v) && v >= lo && v <= hi;
 
@@ -222,7 +228,8 @@ export function mergePlacements(raw: unknown): PlacementConfig {
     const o = r && typeof r === 'object' ? (r as Record<string, unknown>) : {};
     const s: SurfaceConfig = { ...def };
     if (typeof o.enabled === 'boolean') s.enabled = o.enabled;
-    for (const [field, [lo, hi]] of Object.entries(SURFACE_RANGES)) {
+    for (const field of Object.keys(SURFACE_RANGES)) {
+      const [lo, hi] = rangeFor(name, field);
       // Fields a surface does not use (null by default) stay null.
       if ((def as unknown as Record<string, unknown>)[field] != null && inRange(o[field], lo, hi))
         (s as unknown as Record<string, unknown>)[field] = o[field];
@@ -265,7 +272,7 @@ export function validatePlacements(raw: unknown): string | null {
         if (typeof v !== 'boolean') return `${name}: enabled must be true or false.`;
         merged.enabled = v;
       } else if (field in SURFACE_RANGES) {
-        const [lo, hi] = SURFACE_RANGES[field] as [number, number];
+        const [lo, hi] = rangeFor(name, field);
         if (!inRange(v, lo, hi))
           return `${name}: ${field} must be a whole number from ${lo} to ${hi}.`;
         (merged as unknown as Record<string, unknown>)[field] = v;

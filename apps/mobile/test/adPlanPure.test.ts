@@ -252,6 +252,17 @@ describe('placeSlots', () => {
     expect(adsAfter(placeSlots(feed(20), [5], new Set([5, 6])))).toEqual(['r7']);
     expect(adsAfter(placeSlots(feed(20), [5], new Set([5, 6, 7, 8])))).toEqual([]);
   });
+  it('keeps the minimum gap when an earlier slot shifts', () => {
+    const rows = feed(40);
+    const out = placeSlots(
+      rows,
+      [8, 23],
+      new Set([8, 9, 10]),
+      { row: 'row', header: 'header' },
+      15,
+    );
+    expect(adsAfter(out)).toEqual(['r11', 'r26']);
+  });
   it('never opens a section with an ad and keeps a row below', () => {
     expect(adsAfter(placeSlots(feed(20, [5]), [5]))).toEqual(['r6']);
     expect(adsAfter(placeSlots(feed(6), [6]))).toEqual([]);
@@ -274,6 +285,16 @@ describe('placements config', () => {
     expect(m.dwell_max_seconds).toBe(6);
     expect(m.session_cap_min).toBe(4);
     expect(m).not.toHaveProperty('nope');
+  });
+  it('Home keeps its 10-group floor however the config is set', () => {
+    expect(
+      mergePlacements({ surfaces: { home_groups: { min_rows: 5 } } }).surfaces.home_groups.min_rows,
+    ).toBe(10);
+    expect(validatePlacements({ surfaces: { home_groups: { min_rows: 5 } } })).not.toBeNull();
+    expect(validatePlacements({ surfaces: { home_groups: { min_rows: 12 } } })).toBeNull();
+    const cfg = { ...base().config };
+    cfg.surfaces = { ...cfg.surfaces, home_groups: { ...cfg.surfaces.home_groups, min_rows: 3 } };
+    expect(planAds(base({ rowCount: 9, config: cfg }, 'home_groups')).reason).toBe('too_short');
   });
   it('a surface with min > max falls back to its defaults', () => {
     const m = mergePlacements({ surfaces: { friends: { gap_min: 30, gap_max: 12 } } });

@@ -1015,10 +1015,13 @@ function LedgerGroupScreen() {
     let n = 0;
     for (const item of items)
       if (item.kind === 'expense' && ++n && item.mark !== null) blocked.add(n);
-    return placeSlots(items, adHandle.plan.slots, blocked, {
-      row: 'expense',
-      header: 'month',
-    }) as FeedItem[];
+    return placeSlots(
+      items,
+      adHandle.plan.slots,
+      blocked,
+      { row: 'expense', header: 'month' },
+      adHandle.minGap,
+    ) as FeedItem[];
     // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
   }, [expenseSections, newMarks, groupId, adSlotsKey]);
   // The "N new" pill: how many marked rows the feed holds, where the first

@@ -67,6 +67,8 @@ const paidDetail = (base: string, paid?: Paid) =>
 // An unshown native is kept per surface (AdMob expires them after an hour) and reused by the next slot.
 const cache = new Map<string, { ad: NativeAd; at: number }>();
 const CACHE_MS = 55 * 60_000;
+// When each native was first loaded, so a re-cached ad keeps its true age.
+const loadedAt = new WeakMap<NativeAd, number>();
 function takeCached(surface: string): NativeAd | undefined {
   const hit = cache.get(surface);
   cache.delete(surface);
@@ -77,7 +79,17 @@ function takeCached(surface: string): NativeAd | undefined {
 }
 function putCached(surface: string, ad: NativeAd) {
   cache.get(surface)?.ad.destroy();
-  cache.set(surface, { ad, at: Date.now() });
+  const at = loadedAt.get(ad) ?? Date.now();
+  cache.set(surface, { ad, at });
+  // Drop it when AdMob would expire it, even if the person never returns.
+  setTimeout(
+    () => {
+      if (cache.get(surface)?.ad !== ad) return;
+      cache.delete(surface);
+      ad.destroy();
+    },
+    Math.max(0, CACHE_MS - (Date.now() - at)),
+  );
 }
 // One native request in flight per surface.
 const inflight = new Map<string, Promise<void>>();
@@ -195,7 +207,11 @@ function NativeSlot({
   const theme = useTheme();
   const { t } = useStrings();
   const { surface, profileId } = handle;
-  const go = useSlotReady(handle, visible && profileId !== null && Platform.OS !== 'web');
+  // Also closed whenever the plan is empty (paid, busy, quiet window), so a mounted slot cleans up.
+  const go = useSlotReady(
+    handle,
+    visible && profileId !== null && handle.plan.slots.length > 0 && Platform.OS !== 'web',
+  );
   const [loaded, setLoaded] = useState<{ sdk: NativeSdk; ad: NativeAd } | null>(null);
   useEffect(() => {
     if (!go || !profileId) return;
@@ -221,7 +237,8 @@ function NativeSlot({
         if (cancelled || !consent.canRequestAds) return;
         await sdk.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
         await sdk.MobileAds().initialize();
-        if (cancelled) return;
+        // Re-checked after the awaits, and reserved in the same tick, so slots cannot overrun a cap.
+        if (cancelled || !handle.canRequest()) return;
         reservation = adBudget.reserve(profileId);
         const native = (await import('react-native-google-mobile-ads')) as unknown as NativeSdk;
         ad =
@@ -240,8 +257,10 @@ function NativeSlot({
         if (cancelled || ad.mediaContent?.hasVideoContent) {
           ad.destroy();
           ad = undefined;
+          reservation.release();
           return;
         }
+        if (!loadedAt.has(ad)) loadedAt.set(ad, Date.now());
         const detail = handle.detail(slot);
         const placement = placementFor(surface, 'native');
         subs.push(
@@ -408,7 +427,14 @@ function BannerSlot({
   const theme = useTheme();
   const { t } = useStrings();
   const { surface, profileId } = handle;
-  const go = useSlotReady(handle, visible && profileId !== null && Platform.OS !== 'web');
+  // Also closed whenever the plan is empty (paid, busy, quiet window), so a mounted slot cleans up.
+  const go = useSlotReady(
+    handle,
+    visible &&
+      profileId !== null &&
+      (handle.plan.inlineBanner || handle.plan.footerBanner) &&
+      Platform.OS !== 'web',
+  );
   const [sdk, setSdk] = useState<BannerSdk | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [width, setWidth] = useState(0);
@@ -425,7 +451,7 @@ function BannerSlot({
         if (cancelled || !consent.canRequestAds) return;
         await sdkBase.MobileAds().setRequestConfiguration({ ...ADS_REQUEST_CONFIGURATION });
         await sdkBase.MobileAds().initialize();
-        if (cancelled) return;
+        if (cancelled || !handle.canRequest()) return;
         held = adBudget.reserve(profileId);
         const mod = (await import('react-native-google-mobile-ads')) as unknown as BannerSdk;
         if (cancelled) return;

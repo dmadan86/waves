@@ -5,7 +5,7 @@
  * Owner rules it enforces: Free only, banners after the account is old enough,
  * never while a sheet/keyboard/select mode/Undo is up, spacing from config.
  */
-import type { AdSurface, PlacementConfig } from '@waves/core';
+import { HOME_MIN_ROWS, type AdSurface, type PlacementConfig } from '@waves/core';
 
 export type PlanReason =
   | 'ok'
@@ -175,7 +175,8 @@ export function planAds(i: PlanInput): Plan {
     plan.inlineBanner = true;
     return plan;
   }
-  if (i.rowCount < (s.min_rows ?? 0)) {
+  const minRows = Math.max(s.min_rows ?? 0, i.surface === 'home_groups' ? HOME_MIN_ROWS : 0);
+  if (i.rowCount < minRows) {
     if (s.footer_banner_min_rows != null && i.rowCount >= s.footer_banner_min_rows) {
       plan.footerBanner = true;
       return plan;
@@ -211,6 +212,7 @@ export function placeSlots<T extends { kind: string }>(
   slots: readonly number[],
   blocked: ReadonlySet<number> = new Set(),
   kinds: { row: string; header: string } = { row: 'row', header: 'header' },
+  minGap = 0,
 ): (T | AdItem)[] {
   const rowCount = items.filter((x) => x.kind === kinds.row).length;
   const firstUnderHeader = new Set<number>();
@@ -227,7 +229,9 @@ export function placeSlots<T extends { kind: string }>(
   const final: number[] = [];
   for (const slot of slots) {
     for (let n = slot; n <= slot + 3 && n < rowCount; n++) {
-      if (blocked.has(n) || firstUnderHeader.has(n) || final.includes(n)) continue;
+      const prev = final[final.length - 1];
+      if (blocked.has(n) || firstUnderHeader.has(n) || (prev != null && n - prev < minGap))
+        continue;
       final.push(n);
       break;
     }
