@@ -44,6 +44,7 @@ import { attachPhoneCode, sendPhoneCode } from '@/lib/phoneAuth';
 import { readFxReply, StaleFxRateError } from '@/lib/fxStale';
 import { imageUrl, putImage, removeImage } from '@/lib/storage';
 import { backend } from '@/lib/backend';
+import type { PastPersonRow } from '@/lib/companyPastPeople';
 import type { BalanceRow, GroupRow, GroupType, MemberRow, SettlementMethod } from './types';
 
 const GROUP_SELECT = `
@@ -1185,6 +1186,26 @@ export async function fetchMemberLinkCandidates(groupId: string): Promise<LinkCa
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as LinkCandidate[];
+}
+
+/** People from the viewer's other companies (admin only; the server enforces it). */
+export async function fetchCompanyPastPeople(groupId: string): Promise<PastPersonRow[]> {
+  const { data, error } = await backend.rpc('waves_company_past_people', {
+    p_target_group: groupId,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PastPersonRow[];
+}
+
+export async function addCompanyPastPeople(
+  groupId: string,
+  sourceMemberIds: readonly string[],
+): Promise<void> {
+  const { error } = await backend.rpc('waves_company_add_past_people', {
+    p_target_group: groupId,
+    p_source_member_ids: sourceMemberIds,
+  });
+  if (error) throw new Error(error.message);
 }
 
 /**

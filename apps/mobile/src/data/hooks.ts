@@ -109,6 +109,8 @@ import {
   cancelMemberLink,
   decideMemberLink,
   fetchGroupMemberLinks,
+  addCompanyPastPeople,
+  fetchCompanyPastPeople,
   fetchMemberLinkCandidates,
   fetchMyMemberLinks,
   mergeMemberInto,
@@ -3194,6 +3196,24 @@ export function useMemberLinkCandidates(groupId: string, enabled: boolean) {
     queryKey: keys.linkCandidates(groupId),
     queryFn: () => fetchMemberLinkCandidates(groupId),
     enabled: enabled && groupId !== '' && !isDemoGroupId(groupId),
+  });
+}
+
+/** Previous-company people to offer in a company group (online only). */
+export function useCompanyPastPeople(groupId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['group', groupId, 'company-past-people'] as const,
+    queryFn: () => fetchCompanyPastPeople(groupId),
+    enabled: enabled && groupId !== '' && !isDemoGroupId(groupId),
+  });
+}
+
+export function useAddCompanyPastPeople(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sourceMemberIds: readonly string[]) =>
+      addCompanyPastPeople(groupId, sourceMemberIds),
+    onSuccess: () => invalidateGroup(queryClient, groupId),
   });
 }
 

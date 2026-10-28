@@ -1259,6 +1259,15 @@ export interface UiStrings {
     employeesOweAll: string;
     owedTo: string;
     owedBy: string;
+    addEmployee: string;
+    addEmployeeBody: string;
+    fromPastCompany: string;
+    fromPastCompanyBody: string;
+    pastSearch: string;
+    pastEmpty: string;
+    pastAddSelected: string;
+    pastFrom: string;
+    pastLoadFailed: string;
     welcomeEmployee: string;
     welcomeAdmin: string;
     brought: string;
@@ -7248,6 +7257,15 @@ const en: UiStrings = {
     employeesOweAll: 'Employees owe the company {amount}',
     owedTo: 'Company owes',
     owedBy: 'Owes company',
+    addEmployee: 'Add employee',
+    addEmployeeBody: 'Pick from contacts, type a name, or reuse people from another company.',
+    fromPastCompany: 'Previous company',
+    fromPastCompanyBody: 'People you manage elsewhere',
+    pastSearch: 'Search by name or company',
+    pastEmpty: 'No one to add from your other companies.',
+    pastAddSelected: 'Add {n} selected',
+    pastFrom: 'From {companies}',
+    pastLoadFailed: "Couldn't load your other companies.",
     welcomeEmployee:
       'Add your fuel, travel and bata here. Only you and the company admin can see your entries.',
     welcomeAdmin:
@@ -12683,6 +12701,16 @@ const ta: UiStrings = {
     employeesOweAll: 'ஊழியர்கள் நிறுவனத்துக்குத் தர வேண்டும் {amount}',
     owedTo: 'நிறுவனம் தர வேண்டும்',
     owedBy: 'நிறுவனத்துக்குத் தர வேண்டும்',
+    addEmployee: 'ஊழியரைச் சேர்',
+    addEmployeeBody:
+      'தொடர்புகளில் இருந்து தேர்ந்தெடுங்கள், பெயரை உள்ளிடுங்கள் அல்லது வேறு நிறுவனத்தில் இருந்து மீண்டும் பயன்படுத்துங்கள்.',
+    fromPastCompany: 'முந்தைய நிறுவனம்',
+    fromPastCompanyBody: 'நீங்கள் வேறு இடத்தில் நிர்வகிப்பவர்கள்',
+    pastSearch: 'பெயர் அல்லது நிறுவனம் மூலம் தேடு',
+    pastEmpty: 'உங்கள் மற்ற நிறுவனங்களில் சேர்க்க யாரும் இல்லை.',
+    pastAddSelected: 'தேர்ந்தெடுத்த {n} பேரைச் சேர்',
+    pastFrom: '{companies} இலிருந்து',
+    pastLoadFailed: 'உங்கள் மற்ற நிறுவனங்களை ஏற்ற முடியவில்லை.',
     welcomeEmployee:
       'உங்கள் எரிபொருள், பயணம், படி செலவுகளை இங்கே சேர்க்கவும். உங்கள் பதிவுகளை நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே பார்க்க முடியும்.',
     welcomeAdmin:
@@ -18286,6 +18314,15 @@ const hi: UiStrings = {
     employeesOweAll: 'कर्मचारी कंपनी को देंगे {amount}',
     owedTo: 'कंपनी देगी',
     owedBy: 'कंपनी को देंगे',
+    addEmployee: 'कर्मचारी जोड़ें',
+    addEmployeeBody: 'संपर्कों से चुनें, नाम लिखें या किसी दूसरी कंपनी के लोगों को दोबारा जोड़ें।',
+    fromPastCompany: 'पिछली कंपनी',
+    fromPastCompanyBody: 'जिन्हें आप कहीं और संभालते हैं',
+    pastSearch: 'नाम या कंपनी से खोजें',
+    pastEmpty: 'आपकी दूसरी कंपनियों में जोड़ने के लिए कोई नहीं है।',
+    pastAddSelected: 'चुने हुए {n} जोड़ें',
+    pastFrom: '{companies} से',
+    pastLoadFailed: 'आपकी दूसरी कंपनियाँ लोड नहीं हो सकीं।',
     welcomeEmployee:
       'अपना ईंधन, यात्रा और भत्ते का खर्च यहाँ जोड़ें। आपकी एंट्रियाँ सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
     welcomeAdmin:
@@ -23780,6 +23817,15 @@ const ar: UiStrings = {
     employeesOweAll: 'الموظفون مدينون للشركة {amount}',
     owedTo: 'الشركة مدينة',
     owedBy: 'مدين للشركة',
+    addEmployee: 'إضافة موظف',
+    addEmployeeBody: 'اختر من جهات الاتصال أو اكتب اسمًا أو أعد استخدام أشخاص من شركة أخرى.',
+    fromPastCompany: 'شركة سابقة',
+    fromPastCompanyBody: 'أشخاص تديرهم في مكان آخر',
+    pastSearch: 'ابحث بالاسم أو الشركة',
+    pastEmpty: 'لا يوجد من يمكن إضافته من شركاتك الأخرى.',
+    pastAddSelected: 'إضافة {n} محدد',
+    pastFrom: 'من {companies}',
+    pastLoadFailed: 'تعذر تحميل شركاتك الأخرى.',
     welcomeEmployee:
       'أضف مصروفات الوقود والسفر والبدل هنا. أنت ومشرف الشركة فقط يمكنكما رؤية قيودك.',
     welcomeAdmin: 'ادعُ موظفيك ثم أضف القيود والسلف والأجور لهم. يرى كل موظف قيوده فقط.',

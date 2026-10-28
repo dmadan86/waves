@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
@@ -23,17 +23,28 @@ import { familyOf } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { type PickedContact } from '@/components/ContactPicker';
 import {
+  useAddCompanyPastPeople,
   useAddGhostMember,
+  useCompanyPastPeople,
   useDecideMemberClaim,
   useGroup,
   useGroupLedger,
   useMemberClaims,
 } from '@/data/hooks';
 import { useBlockedUsers } from '@/data/blocked';
-import { displayName, groupLabel, isBlockedMember, isGhost, payableAt } from '@/data/types';
+import {
+  displayName,
+  groupLabel,
+  GroupType,
+  isBlockedMember,
+  isGhost,
+  isViewer,
+  payableAt,
+} from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { requestContacts } from '@/lib/contactPickerBridge';
+import { foldPastPeople, searchPastPeople } from '@/lib/companyPastPeople';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import { isPhoneCountryError } from '@/lib/phone';
@@ -55,6 +66,11 @@ export default function MembersScreen() {
   const claims = useMemberClaims(groupId);
   const decide = useDecideMemberClaim(groupId);
 
+  const addPast = useAddCompanyPastPeople(groupId);
+
+  const [pastOpen, setPastOpen] = useState(false);
+  const [pastQuery, setPastQuery] = useState('');
+  const [pastPicked, setPastPicked] = useState<ReadonlySet<string>>(new Set());
   const [ghostName, setGhostName] = useState('');
   const [ghostContact, setGhostContact] = useState('');
   const [adding, setAdding] = useState(false);
@@ -64,6 +80,32 @@ export default function MembersScreen() {
   const currency = group.data?.default_currency ?? 'INR';
   const familiesOn = useFlagEnabled('group_units');
   const ghosts = (members.data ?? []).filter(isGhost);
+
+  // A company's roster is private: only its admins add people (the server
+  // refuses anybody else). Normal groups are unchanged — any member adds.
+  const isCompany = group.data?.type === GroupType.Company;
+  const iAmAdmin = (members.data ?? []).some(
+    (member) => isViewer(member, profile?.id) && member.role === 'admin' && !member.left_at,
+  );
+  const canAdd = !isCompany || iAmAdmin;
+  const past = useCompanyPastPeople(groupId, isCompany && iAmAdmin && pastOpen);
+  const pastPeople = useMemo(() => foldPastPeople(past.data ?? []), [past.data]);
+  const pastShown = useMemo(() => searchPastPeople(pastPeople, pastQuery), [pastPeople, pastQuery]);
+  const addPastPicked = (): void => {
+    setError(null);
+    // Keyed by a stable source id, so a refetch can never shift a tick onto someone else.
+    const ids = pastPeople
+      .filter((person) => pastPicked.has(person.sourceMemberIds[0]!))
+      .flatMap((person) => person.sourceMemberIds);
+    addPast.mutate(ids, {
+      onSuccess: () => {
+        setPastPicked(new Set());
+        setPastOpen(false);
+      },
+      onError: (caught) =>
+        setError(friendlyError(caught, t.misc.couldNotAddGeneric, 'members.addPastPeople')),
+    });
+  };
 
   /**
    * Answering a claim (ADR-006).
@@ -208,9 +250,14 @@ export default function MembersScreen() {
             {groupLabel(group.data, members.data ?? [])}
           </Text>
         </View>
-        <IconButton label={t.people.invite} onPress={() => router.push(`/group/${groupId}/invite`)}>
-          <Ionicons name="share-outline" size={iconSize.md} color={theme.color.brand} />
-        </IconButton>
+        {canAdd ? (
+          <IconButton
+            label={t.people.invite}
+            onPress={() => router.push(`/group/${groupId}/invite`)}
+          >
+            <Ionicons name="share-outline" size={iconSize.md} color={theme.color.brand} />
+          </IconButton>
+        ) : null}
       </Row>
 
       <ScrollView
@@ -353,107 +400,192 @@ export default function MembersScreen() {
             link and our QR are the same screen. A third tile pointing at the
             same place would be the second door that this app keeps deciding not
             to build. */}
-        <Card style={{ gap: theme.spacing.lg }}>
-          <View>
-            <Text variant="heading">{t.people.addSomeone}</Text>
-            <Text variant="caption" tone="muted">
-              {t.people.addSomeoneBody}
-            </Text>
-          </View>
+        {canAdd ? (
+          <Card style={{ gap: theme.spacing.lg }}>
+            <View>
+              <Text variant="heading">
+                {isCompany ? t.company.addEmployee : t.people.addSomeone}
+              </Text>
+              <Text variant="caption" tone="muted">
+                {isCompany ? t.company.addEmployeeBody : t.people.addSomeoneBody}
+              </Text>
+            </View>
 
-          <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
-            <AddTile
-              icon="people-outline"
-              label={t.people.browseContacts}
-              body={t.people.browseContactsBody}
-              onPress={openContactPicker}
-            />
-            <AddTile
-              icon="link-outline"
-              label={t.people.shareInvite}
-              body={t.people.shareInviteBody}
-              onPress={() => router.push(`/group/${groupId}/invite`)}
-            />
-          </Row>
+            <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
+              <AddTile
+                icon="people-outline"
+                label={t.people.browseContacts}
+                body={t.people.browseContactsBody}
+                onPress={openContactPicker}
+              />
+              {isCompany ? (
+                <AddTile
+                  icon="business-outline"
+                  label={t.company.fromPastCompany}
+                  body={t.company.fromPastCompanyBody}
+                  onPress={() => setPastOpen((open) => !open)}
+                />
+              ) : (
+                <AddTile
+                  icon="link-outline"
+                  label={t.people.shareInvite}
+                  body={t.people.shareInviteBody}
+                  onPress={() => router.push(`/group/${groupId}/invite`)}
+                />
+              )}
+            </Row>
 
-          {/* A rule with the alternative written into it, so the fields below
+            {isCompany && pastOpen ? (
+              <View style={{ gap: theme.spacing.sm }}>
+                <Field icon="search-outline">
+                  <TextInput
+                    value={pastQuery}
+                    onChangeText={setPastQuery}
+                    placeholder={t.company.pastSearch}
+                    placeholderTextColor={theme.color.textFaint}
+                    accessibilityLabel={t.company.pastSearch}
+                    style={{
+                      flex: 1,
+                      fontSize: 16,
+                      color: theme.color.text,
+                      paddingVertical: theme.spacing.sm,
+                    }}
+                  />
+                </Field>
+                {past.isLoading ? <ActivityIndicator color={theme.color.brand} /> : null}
+                {past.isError ? (
+                  <Callout tone="negative">{t.company.pastLoadFailed}</Callout>
+                ) : null}
+                {past.data && pastShown.length === 0 ? (
+                  <Text variant="caption" tone="muted">
+                    {t.company.pastEmpty}
+                  </Text>
+                ) : null}
+                {pastShown.map((person) => {
+                  const key = person.sourceMemberIds[0]!;
+                  const on = pastPicked.has(key);
+                  return (
+                    <Pressable
+                      key={person.sourceMemberIds[0]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: on }}
+                      onPress={() =>
+                        setPastPicked((prev) => {
+                          const next = new Set(prev);
+                          if (on) next.delete(key);
+                          else next.add(key);
+                          return next;
+                        })
+                      }
+                    >
+                      <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+                        <PersonAvatar name={person.name} ghost />
+                        <View style={{ flex: 1 }}>
+                          <Text variant="body" numberOfLines={1}>
+                            {person.name}
+                          </Text>
+                          <Text variant="micro" tone="muted" numberOfLines={1}>
+                            {fill(t.company.pastFrom, { companies: person.companies.join(', ') })}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={on ? 'checkbox' : 'square-outline'}
+                          size={iconSize.lg}
+                          color={on ? theme.color.brand : theme.color.textMuted}
+                        />
+                      </Row>
+                    </Pressable>
+                  );
+                })}
+                <Button
+                  label={fill(t.company.pastAddSelected, { n: String(pastPicked.size) })}
+                  disabled={pastPicked.size === 0 || addPast.isPending}
+                  onPress={addPastPicked}
+                />
+              </View>
+            ) : null}
+
+            {/* A rule with the alternative written into it, so the fields below
               read as the other way rather than as the only way. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
-            <Text variant="micro" tone="faint">
-              {t.people.orAddManually}
-            </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
-          </Row>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+              <Text variant="micro" tone="faint">
+                {t.people.orAddManually}
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+            </Row>
 
-          <View style={{ gap: theme.spacing.sm }}>
-            <Field icon="person-outline">
-              <TextInput
-                value={ghostName}
-                onChangeText={setGhostName}
-                placeholder={t.people.namePlaceholder}
-                placeholderTextColor={theme.color.textFaint}
-                accessibilityLabel={t.common.name}
-                onSubmitEditing={add}
-                returnKeyType="done"
-                style={{
-                  flex: 1,
-                  fontSize: 16,
-                  color: theme.color.text,
-                  paddingVertical: theme.spacing.sm,
-                }}
+            <View style={{ gap: theme.spacing.sm }}>
+              <Field icon="person-outline">
+                <TextInput
+                  value={ghostName}
+                  onChangeText={setGhostName}
+                  placeholder={t.people.namePlaceholder}
+                  placeholderTextColor={theme.color.textFaint}
+                  accessibilityLabel={t.common.name}
+                  onSubmitEditing={add}
+                  returnKeyType="done"
+                  style={{
+                    flex: 1,
+                    fontSize: 16,
+                    color: theme.color.text,
+                    paddingVertical: theme.spacing.sm,
+                  }}
+                />
+              </Field>
+              <Field icon="at-outline">
+                <TextInput
+                  value={ghostContact}
+                  onChangeText={setGhostContact}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  placeholder={t.people.contactOptional}
+                  placeholderTextColor={theme.color.textFaint}
+                  accessibilityLabel={t.common.emailOrPhone}
+                  onSubmitEditing={add}
+                  returnKeyType="done"
+                  style={{
+                    flex: 1,
+                    fontSize: 16,
+                    color: theme.color.text,
+                    paddingVertical: theme.spacing.sm,
+                  }}
+                />
+              </Field>
+              <Button
+                label={t.people.addToGroupButton}
+                disabled={(!ghostName.trim() && !ghostContact.trim()) || addGhost.isPending}
+                onPress={add}
               />
-            </Field>
-            <Field icon="at-outline">
-              <TextInput
-                value={ghostContact}
-                onChangeText={setGhostContact}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                placeholder={t.people.contactOptional}
-                placeholderTextColor={theme.color.textFaint}
-                accessibilityLabel={t.common.emailOrPhone}
-                onSubmitEditing={add}
-                returnKeyType="done"
-                style={{
-                  flex: 1,
-                  fontSize: 16,
-                  color: theme.color.text,
-                  paddingVertical: theme.spacing.sm,
-                }}
+            </View>
+
+            {addGhost.isPending || adding || addPast.isPending ? (
+              <ActivityIndicator color={theme.color.brand} />
+            ) : null}
+            {error ? <Callout tone="negative">{error}</Callout> : null}
+
+            <Row
+              style={{
+                alignItems: 'flex-start',
+                gap: theme.spacing.md,
+                padding: theme.spacing.md,
+                borderRadius: theme.radius.lg,
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Ionicons
+                name="information-circle-outline"
+                size={iconSize.md}
+                color={theme.color.brand}
               />
-            </Field>
-            <Button
-              label={t.people.addToGroupButton}
-              disabled={(!ghostName.trim() && !ghostContact.trim()) || addGhost.isPending}
-              onPress={add}
-            />
-          </View>
+              <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+                {t.misc.nameAloneBody}
+              </Text>
+            </Row>
+          </Card>
+        ) : null}
 
-          {addGhost.isPending || adding ? <ActivityIndicator color={theme.color.brand} /> : null}
-          {error ? <Callout tone="negative">{error}</Callout> : null}
-
-          <Row
-            style={{
-              alignItems: 'flex-start',
-              gap: theme.spacing.md,
-              padding: theme.spacing.md,
-              borderRadius: theme.radius.lg,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Ionicons
-              name="information-circle-outline"
-              size={iconSize.md}
-              color={theme.color.brand}
-            />
-            <Text variant="caption" tone="muted" style={{ flex: 1 }}>
-              {t.misc.nameAloneBody}
-            </Text>
-          </Row>
-        </Card>
-
-        {ghosts.length > 0 ? (
+        {canAdd && ghosts.length > 0 ? (
           <Row style={{ justifyContent: 'space-between' }}>
             <Badge label={plural(locale, ghosts.length, t.people.yetToJoin)} />
             <Text
