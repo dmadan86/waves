@@ -183,7 +183,7 @@ describe('company Phase 3', () => {
           g.memberIds[2],
         );
       });
-      for (const [i, count] of [
+      for (const [i, count] of <[number, number][]>[
         [0, 2],
         [1, 1],
         [2, 1],
@@ -760,7 +760,7 @@ describe('company Phase 3', () => {
       await admin(async () => {
         await reimburse(id, await selection([a]));
       });
-      for (const [i, count] of [
+      for (const [i, count] of <[number, number][]>[
         [0, 1],
         [1, 1],
         [2, 0],
