@@ -279,9 +279,11 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
   // A pick made elsewhere (the full picker) leads the row, so bring the row
   // back to its start or the ticked chip sits scrolled out of sight.
   const chipsRef = useRef<ScrollView>(null);
+  const leadId = chips[0]?.id;
   useEffect(() => {
-    chipsRef.current?.scrollTo({ x: 0, animated: false });
-  }, [chosenId]);
+    // Only when the pick was moved to the front; tapping a chip already in view must not scroll.
+    if (chosenId && chosenId === leadId) chipsRef.current?.scrollTo({ x: 0, animated: false });
+  }, [chosenId, leadId]);
 
   const personalOffered = usePersonalOffered();
   // Nothing tapped yet: the most recent destination is pre-picked so Save is live on open.
