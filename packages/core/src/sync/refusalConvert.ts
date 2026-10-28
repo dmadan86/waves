@@ -36,9 +36,7 @@ export function companyEntryFromRefusedExpense(
   ) {
     return null;
   }
-  const category = COMPANY_TAG_KEY_RE.test(p.category ?? '')
-    ? p.category
-    : null;
+  const category = COMPANY_TAG_KEY_RE.test(p.category ?? '') ? p.category : null;
   return {
     clientMutationId: `${refused.clientMutationId}:company`,
     kind: MutationKind.CompanyEntryCreate,
