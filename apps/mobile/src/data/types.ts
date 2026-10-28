@@ -16,6 +16,8 @@ export enum GroupType {
   Event = 'event',
   Friends = 'friends',
   Other = 'other',
+  /** Employee expenses: no splitting, each person sees only their own entries. */
+  Company = 'company',
 }
 export enum SettlementMethod {
   Upi = 'upi',
@@ -115,6 +117,10 @@ export interface GroupRow {
    * the families screen to guard against concurrent admin overwrites.
    */
   updated_seq?: number | null;
+  /** Company groups: the company-wide default daily bata rate, minor units (decimal string). */
+  company_default_daily_rate_minor?: string | null;
+  /** Company groups: new entries wait for an admin's approval. Off by default. */
+  company_approvals_enabled?: boolean;
 }
 
 export interface MemberRow {
@@ -133,6 +139,8 @@ export interface MemberRow {
   payment_rail?: string | null;
   payment_handle?: string | null;
   left_at: string | null;
+  /** Company groups: this employee's default daily bata rate, minor units (decimal string). */
+  daily_rate_minor?: string | null;
   profile?: {
     id: string;
     display_name: string;

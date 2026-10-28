@@ -105,7 +105,7 @@ export async function handleInviteAccept(
     // people in.
     const { data: group } = await service
       .from('groups')
-      .select('id, name, cover_emoji, default_currency')
+      .select('id, name, cover_emoji, default_currency, type')
       .eq('id', invite.group_id)
       .is('deleted_at', null)
       .maybeSingle();
@@ -114,6 +114,10 @@ export async function handleInviteAccept(
     // learns that the link does not work, not which groups have been deleted.
     if (!group) {
       throw new HttpError(404, 'INVITE_INVALID', 'This invite link is no longer valid');
+    }
+
+    if (body.mode !== 'join' && group.type === 'company') {
+      return json({ group });
     }
 
     const { data: members } = await service

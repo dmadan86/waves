@@ -41,6 +41,11 @@ async function sweep(service: SupabaseClient): Promise<{ expired: number; delete
   const { data: expired, error: expireError } = await service.rpc('waves_storage_expire_pending');
   if (expireError) throw new HttpError(500, 'INTERNAL', expireError.message);
 
+  const { data: unattached, error: unattachedError } = await service.rpc(
+    'waves_company_expire_unattached',
+  );
+  if (unattachedError) throw new HttpError(500, 'INTERNAL', unattachedError.message);
+
   const { data, error } = await service.rpc('waves_storage_orphans', { p_limit: SWEEP_BATCH });
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
   const rows = (data ?? []) as OrphanRow[];
@@ -63,7 +68,7 @@ async function sweep(service: SupabaseClient): Promise<{ expired: number; delete
     if (!clearError) deleted += 1;
   }
 
-  return { expired: Number(expired ?? 0), deleted };
+  return { expired: Number(expired ?? 0) + Number(unattached ?? 0), deleted };
 }
 
 serveWithCors(async (request) => {

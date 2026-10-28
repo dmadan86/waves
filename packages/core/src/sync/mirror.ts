@@ -43,6 +43,10 @@ import type {
   ExpenseLocation,
   GroupMuteClearPayload,
   GroupMuteSetPayload,
+  CompanyEntryCreatePayload,
+  CompanyEntryUpdatePayload,
+  CompanyEntryVoidPayload,
+  CompanyEntryTransitionPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
   MemberBudgetSetPayload,
@@ -59,6 +63,7 @@ import type {
 } from './protocol';
 import type { QueuedMutation } from './queue';
 import { byNewest, byOldest, compareStampsDesc } from '../time/iso';
+import { allowanceAmount } from '../company/index';
 import { firstOccurrenceOnOrAfter, nextOccurrenceAfter } from '../group/recurring';
 
 /** A row as the server sends it: snake_case, amounts as decimal strings. */
@@ -87,6 +92,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CategoryTags,
   SyncTable.TripPlanItems,
   SyncTable.GroupRecurringExpenses,
+  SyncTable.CompanyEntries,
+  SyncTable.CompanyEntryAttachments,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -1551,6 +1558,158 @@ export function materialiseGroupRecurring(
     const right = String(b.created_at ?? '');
     return left === right ? String(a.id).localeCompare(String(b.id)) : right.localeCompare(left);
   });
+}
+
+// ───────────────────────────────────────────────────── company entries ──
+//
+// An entry typed in a dead zone must read as recorded straight away, so the
+// queue is replayed over the pulled rows. The server stays authoritative: it
+// recomputes bata and may refuse, in which case the queue item fails and the
+// overlay disappears with it.
+
+export interface MirrorCompanyEntry extends MirrorRow {
+  readonly id: string;
+  readonly group_id: string;
+  readonly member_id: string;
+  readonly entry_kind: string;
+  readonly category: string | null;
+  readonly amount: string;
+  readonly currency: string;
+  readonly calc_mode: string;
+  readonly days: string | null;
+  readonly rate_minor: string | null;
+  readonly occurred_on: string;
+  readonly direction: string | null;
+  readonly status: string;
+  readonly note: string | null;
+  readonly review_note?: string | null;
+  readonly deleted_at: string | null;
+  readonly pending?: boolean;
+}
+
+/** A photo on a company entry, as the mirror holds it (read as the caller, so owner/admin only). */
+export interface MirrorCompanyEntryAttachment extends MirrorRow {
+  readonly id: string;
+  readonly entry_id: string;
+  readonly group_id: string;
+  readonly storage_path: string;
+  readonly uploader_member_id: string;
+  readonly preview?: string | null;
+  readonly created_at: string | null;
+  readonly deleted_at: string | null;
+}
+
+/** The live photos on one entry, oldest first. */
+export function materialiseCompanyEntryAttachments(
+  state: MirrorState,
+  options: { readonly entryId: string },
+): MirrorCompanyEntryAttachment[] {
+  return (rowsFor(state, SyncTable.CompanyEntryAttachments) as MirrorCompanyEntryAttachment[])
+    .filter((row) => row.entry_id === options.entryId && row.deleted_at === null)
+    .sort(
+      (a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? '') || a.id.localeCompare(b.id),
+    );
+}
+
+/** The entries of one group the viewer can read, with queued changes on top. */
+export function materialiseCompanyEntries(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: {
+    readonly groupId: string;
+    /** The group currency: a queued entry shows in it. */
+    readonly currency: string;
+    /** The viewer's member id: the author of a queued entry. */
+    readonly myMemberId?: string | null;
+    /** The company needs approval: a queued entry reads as submitted, not approved. */
+    readonly approvalsEnabled?: boolean;
+  },
+): MirrorCompanyEntry[] {
+  const byId = new Map<string, MirrorCompanyEntry>();
+  for (const row of rowsFor(
+    state,
+    SyncTable.CompanyEntries,
+    options.groupId,
+  ) as MirrorCompanyEntry[]) {
+    byId.set(row.id, row);
+  }
+
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    // A refused change stays queued for the retry / discard banner but must not
+    // keep changing what the ledger shows.
+    if (mutation.groupId !== options.groupId || mutation.rejection) continue;
+
+    if (mutation.kind === 'company_entry.create') {
+      const payload = mutation.payload as unknown as CompanyEntryCreatePayload;
+      if (byId.has(payload.entryId)) continue;
+      const data = payload.data;
+      const calc = data.calcMode ?? (payload.entryKind === 'allowance' ? 'days_rate' : 'typed');
+      const computed =
+        calc === 'days_rate' && data.days && data.rateMinor
+          ? allowanceAmount(data.days, BigInt(data.rateMinor))
+          : null;
+      byId.set(payload.entryId, {
+        id: payload.entryId,
+        group_id: mutation.groupId,
+        member_id: payload.memberId,
+        entry_kind: payload.entryKind,
+        category: payload.entryKind === 'expense' ? (data.category ?? null) : null,
+        amount: computed !== null ? computed.toString() : (data.amount ?? '0'),
+        currency: options.currency,
+        calc_mode: calc,
+        days: data.days ?? null,
+        rate_minor: data.rateMinor ?? null,
+        occurred_on: data.occurredOn ?? mutation.clientCreatedAt.slice(0, 10),
+        direction:
+          payload.entryKind === 'reimbursement' ? (data.direction ?? 'company_to_employee') : null,
+        status: options.approvalsEnabled ? 'submitted' : 'approved',
+        note: data.note ?? null,
+        deleted_at: null,
+        created_by: options.myMemberId ?? null,
+        created_at: mutation.clientCreatedAt,
+        pending: true,
+      });
+    } else if (mutation.kind === 'company_entry.update') {
+      const { entryId, patch } = mutation.payload as unknown as CompanyEntryUpdatePayload;
+      const existing = byId.get(entryId);
+      if (!existing || existing.deleted_at) continue;
+      const next: Record<string, unknown> = { ...existing, pending: true };
+      if (patch.amount !== undefined) next.amount = patch.amount;
+      if (patch.category !== undefined) next.category = patch.category;
+      if (patch.days !== undefined) next.days = patch.days;
+      if (patch.rateMinor !== undefined) next.rate_minor = patch.rateMinor;
+      if (patch.calcMode !== undefined) next.calc_mode = patch.calcMode;
+      if (patch.occurredOn !== undefined) next.occurred_on = patch.occurredOn;
+      if (patch.note !== undefined) next.note = patch.note;
+      if (patch.direction !== undefined) next.direction = patch.direction;
+      if (options.approvalsEnabled && next.status !== 'submitted') {
+        next.status = 'submitted';
+        next.review_note = null;
+      }
+      if (next.calc_mode === 'days_rate' && next.days && next.rate_minor) {
+        const computed = allowanceAmount(String(next.days), BigInt(String(next.rate_minor)));
+        if (computed !== null) next.amount = computed.toString();
+      }
+      byId.set(entryId, next as unknown as MirrorCompanyEntry);
+    } else if (mutation.kind === 'company_entry.void') {
+      const { entryId } = mutation.payload as unknown as CompanyEntryVoidPayload;
+      const existing = byId.get(entryId);
+      if (!existing) continue;
+      byId.set(entryId, { ...existing, deleted_at: mutation.clientCreatedAt, pending: true });
+    } else if (mutation.kind === 'company_entry.transition') {
+      const { entryId, to, note } = mutation.payload as unknown as CompanyEntryTransitionPayload;
+      const existing = byId.get(entryId);
+      if (!existing || existing.status !== 'submitted') continue;
+      byId.set(entryId, {
+        ...existing,
+        status: to,
+        review_note: note ?? null,
+        pending: true,
+      });
+    }
+  }
+
+  return [...byId.values()];
 }
 
 export interface MirrorMemberBudget extends MirrorRow {
