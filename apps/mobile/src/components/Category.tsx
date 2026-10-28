@@ -20,7 +20,7 @@
  * one more setting with an answer.
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -65,6 +65,8 @@ export function useLabelledCategoryCatalog(): ReturnType<typeof useCategoryCatal
 export function useRankedCategoryCatalog(): ReturnType<typeof useCategoryCatalog> {
   const catalog = useLabelledCategoryCatalog();
   const { mirror } = useSync();
+  // Ranking only needs day-level recency, so the mount time is fresh enough.
+  const [now] = useState(Date.now);
   return useMemo(() => {
     const uses = (rowsFor(mirror, SyncTable.Expenses) as unknown as MirrorExpense[]).flatMap(
       (row) =>
@@ -74,9 +76,9 @@ export function useRankedCategoryCatalog(): ReturnType<typeof useCategoryCatalog
     );
     if (uses.length === 0) return catalog;
     const byKey = new Map(catalog.visible.map((entry) => [entry.key, entry]));
-    const order = rankTags({ keys: [...byKey.keys()], uses, now: Date.now() });
+    const order = rankTags({ keys: [...byKey.keys()], uses, now });
     return { ...catalog, visible: order.map((key) => byKey.get(key)!) };
-  }, [catalog, mirror]);
+  }, [catalog, mirror, now]);
 }
 
 /** A hex colour darkened a third, for an icon on a pale disc of the same hue. */
