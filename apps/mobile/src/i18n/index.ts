@@ -1463,6 +1463,18 @@ export interface UiStrings {
     catFood: string;
     catOffice: string;
     catOther: string;
+    catStay: string;
+    kindGive: string;
+    kindSubGive: string;
+    kindSubSpent: string;
+    kindSubWages: string;
+    kindSubAllowance: string;
+    paidBy: string;
+    selectPerson: string;
+    notesLabel: string;
+    notePh: string;
+    addReceipt: string;
+    todayDate: string;
     tagAll: string;
     tagNew: string;
     tagNamePh: string;
@@ -7741,6 +7753,18 @@ const en: UiStrings = {
     catFood: 'Food',
     catOffice: 'Office',
     catOther: 'Other',
+    catStay: 'Stay',
+    kindGive: 'Give money',
+    kindSubGive: 'Advance / Reimburse',
+    kindSubSpent: 'Record expense',
+    kindSubWages: 'Salary / Payment',
+    kindSubAllowance: 'Daily allowance',
+    paidBy: 'Paid by',
+    selectPerson: 'Select person',
+    notesLabel: 'Notes (optional)',
+    notePh: 'Add a note...',
+    addReceipt: 'Add receipt or photo (optional)',
+    todayDate: 'Today, {date}',
     tagAll: 'All tags',
     tagNew: 'New tag',
     tagNamePh: 'Tag name',
@@ -13467,6 +13491,18 @@ const ta: UiStrings = {
     catFood: 'உணவு',
     catOffice: 'அலுவலகம்',
     catOther: 'மற்றவை',
+    catStay: 'தங்குமிடம்',
+    kindGive: 'பணம் கொடுக்க',
+    kindSubGive: 'முன்பணம் / திருப்பி',
+    kindSubSpent: 'செலவைப் பதிவு செய்',
+    kindSubWages: 'சம்பளம் / கொடுப்பனவு',
+    kindSubAllowance: 'தினசரி படி',
+    paidBy: 'செலுத்தியவர்',
+    selectPerson: 'நபரைத் தேர்வு செய்',
+    notesLabel: 'குறிப்புகள் (விருப்பம்)',
+    notePh: 'குறிப்பு சேர்...',
+    addReceipt: 'ரசீது அல்லது புகைப்படம் சேர் (விருப்பம்)',
+    todayDate: 'இன்று, {date}',
     tagAll: 'எல்லா குறிச்சொற்கள்',
     tagNew: 'புதிய குறிச்சொல்',
     tagNamePh: 'குறிச்சொல் பெயர்',
@@ -19356,6 +19392,18 @@ const hi: UiStrings = {
     catFood: 'खाना',
     catOffice: 'दफ़्तर',
     catOther: 'अन्य',
+    catStay: 'ठहरना',
+    kindGive: 'पैसे दें',
+    kindSubGive: 'अग्रिम / प्रतिपूर्ति',
+    kindSubSpent: 'खर्च दर्ज करें',
+    kindSubWages: 'वेतन / भुगतान',
+    kindSubAllowance: 'दैनिक भत्ता',
+    paidBy: 'भुगतान किसने किया',
+    selectPerson: 'व्यक्ति चुनें',
+    notesLabel: 'नोट्स (वैकल्पिक)',
+    notePh: 'नोट जोड़ें...',
+    addReceipt: 'रसीद या फ़ोटो जोड़ें (वैकल्पिक)',
+    todayDate: 'आज, {date}',
     tagAll: 'सभी टैग',
     tagNew: 'नया टैग',
     tagNamePh: 'टैग का नाम',
@@ -25134,6 +25182,18 @@ const ar: UiStrings = {
     catFood: 'طعام',
     catOffice: 'مكتب',
     catOther: 'أخرى',
+    catStay: 'إقامة',
+    kindGive: 'إعطاء مال',
+    kindSubGive: 'سلفة / تعويض',
+    kindSubSpent: 'تسجيل مصروف',
+    kindSubWages: 'راتب / دفعة',
+    kindSubAllowance: 'بدل يومي',
+    paidBy: 'دفعه',
+    selectPerson: 'اختر شخصاً',
+    notesLabel: 'ملاحظات (اختياري)',
+    notePh: 'أضف ملاحظة...',
+    addReceipt: 'أضف إيصالاً أو صورة (اختياري)',
+    todayDate: 'اليوم، {date}',
     tagAll: 'كل الوسوم',
     tagNew: 'وسم جديد',
     tagNamePh: 'اسم الوسم',

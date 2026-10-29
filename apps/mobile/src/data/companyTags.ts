@@ -34,6 +34,7 @@ const BUILTIN_LABEL_KEY = {
   travel: 'catTravel',
   food: 'catFood',
   office: 'catOffice',
+  stay: 'catStay',
   other: 'catOther',
 } as const;
 
