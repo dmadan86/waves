@@ -214,11 +214,21 @@ describe('company sync mutations', () => {
     ['company_entry.create', { entryId: ENTRY, memberId: null, entryKind: 'expense', data }],
     [
       'company_entry.create',
-      { entryId: ENTRY, memberId: MEMBER_ID, entryKind: 'expense', data: { ...data, paidByCompany: true } },
+      {
+        entryId: ENTRY,
+        memberId: MEMBER_ID,
+        entryKind: 'expense',
+        data: { ...data, paidByCompany: true },
+      },
     ],
     [
       'company_entry.create',
-      { entryId: ENTRY, memberId: null, entryKind: 'expense', data: { ...data, paidByCompany: 'yes' } },
+      {
+        entryId: ENTRY,
+        memberId: null,
+        entryKind: 'expense',
+        data: { ...data, paidByCompany: 'yes' },
+      },
     ],
     ['company_entry.update', { entryId: ENTRY, patch: [] }],
     ['company_entry.update', { entryId: ENTRY, patch: { status: 'approved' } }],

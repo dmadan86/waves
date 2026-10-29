@@ -105,7 +105,8 @@ export function poolBalance(entries: readonly CompanyEntry[], managerId: string)
   for (const e of entries) {
     if (e.deleted) continue;
     if (e.paidByCompany) {
-      if (e.fundingManagerId === managerId && e.kind === 'expense' && counted(e)) companySpend += e.amount;
+      if (e.fundingManagerId === managerId && e.kind === 'expense' && counted(e))
+        companySpend += e.amount;
       continue;
     }
     if (e.memberId === managerId) {
@@ -493,7 +494,13 @@ export function dashboardStats(
     advancesOutstanding: advances,
     advanceHolders: holders,
     companySpentThisMonth: entries
-      .filter((e) => e.paidByCompany && e.kind === 'expense' && counted(e) && monthOf(e.occurredOn) === thisMonth)
+      .filter(
+        (e) =>
+          e.paidByCompany &&
+          e.kind === 'expense' &&
+          counted(e) &&
+          monthOf(e.occurredOn) === thisMonth,
+      )
       .reduce((sum, e) => sum + e.amount, 0n),
   };
 }

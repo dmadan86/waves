@@ -63,13 +63,15 @@ const visible = (caller: number) =>
     (await db.query('SELECT id FROM company_entries ORDER BY id')).rows.map((r) => r.id as string),
   );
 const pool = (caller: number, manager: number) =>
-  user(caller, async () =>
-    (
-      await db.query('SELECT waves_company_pool_balance($1,$2) AS b', [
-        g.groupId,
-        g.memberIds[manager],
-      ])
-    ).rows[0].b as Record<string, string>,
+  user(
+    caller,
+    async () =>
+      (
+        await db.query('SELECT waves_company_pool_balance($1,$2) AS b', [
+          g.groupId,
+          g.memberIds[manager],
+        ])
+      ).rows[0].b as Record<string, string>,
   );
 const allocate = (manager: number, amount: string) =>
   user(0, () =>
@@ -191,7 +193,11 @@ describe('company paid directly: who records and who sees', () => {
     isolated(async () => {
       await allocate(2, '1000');
       const id = await paid(2);
-      expect(await pool(2, 2)).toMatchObject({ balance: '700', companySpend: '300', ownSpend: '0' });
+      expect(await pool(2, 2)).toMatchObject({
+        balance: '700',
+        companySpend: '300',
+        ownSpend: '0',
+      });
       await user(2, () => db.query('SELECT waves_company_entry_void($1,$2)', [id, 'oops']));
       expect((await pool(0, 2)).balance).toBe('1000');
     }));
@@ -205,14 +211,16 @@ describe('company paid directly: who records and who sees', () => {
     isolated(async () => {
       await paid(0, { projectId: site });
       await paid(2, { projectId: site, amount: '200' });
-      const report = await user(0, async () =>
-        (
-          await db.query('SELECT waves_company_project_report($1,$2,$3) AS r', [
-            g.groupId,
-            '2026-11-01',
-            '2026-11-30',
-          ])
-        ).rows[0].r,
+      const report = await user(
+        0,
+        async () =>
+          (
+            await db.query('SELECT waves_company_project_report($1,$2,$3) AS r', [
+              g.groupId,
+              '2026-11-01',
+              '2026-11-30',
+            ])
+          ).rows[0].r,
       );
       expect(report.projects[0].spent).toBe('500');
     }));
@@ -223,7 +231,10 @@ describe('company paid directly: editing', () => {
     isolated(async () => {
       const id = await paid(2);
       await user(2, () =>
-        db.query('SELECT waves_company_entry_update($1,$2)', [id, JSON.stringify({ amount: '350' })]),
+        db.query('SELECT waves_company_entry_update($1,$2)', [
+          id,
+          JSON.stringify({ amount: '350' }),
+        ]),
       );
       await user(0, () =>
         db.query('SELECT waves_company_entry_update($1,$2)', [id, JSON.stringify({ note: 'x' })]),
@@ -231,25 +242,44 @@ describe('company paid directly: editing', () => {
       for (const i of [3, 4, 5]) {
         await denied(() =>
           user(i, () =>
-            db.query('SELECT waves_company_entry_update($1,$2)', [id, JSON.stringify({ amount: '1' })]),
+            db.query('SELECT waves_company_entry_update($1,$2)', [
+              id,
+              JSON.stringify({ amount: '1' }),
+            ]),
           ),
         );
-        await denied(() => user(i, () => db.query('SELECT waves_company_entry_void($1,$2)', [id, 'x'])));
+        await denied(() =>
+          user(i, () => db.query('SELECT waves_company_entry_void($1,$2)', [id, 'x'])),
+        );
       }
       // An owner's entry is not editable by a manager.
       const owned = await paid(0);
       await denied(() =>
         user(2, () =>
-          db.query('SELECT waves_company_entry_update($1,$2)', [owned, JSON.stringify({ amount: '1' })]),
+          db.query('SELECT waves_company_entry_update($1,$2)', [
+            owned,
+            JSON.stringify({ amount: '1' }),
+          ]),
         ),
       );
       // The payer mode and recorder never change.
-      await denied(() => db.query('UPDATE company_entries SET created_by=$2 WHERE id=$1', [id, g.memberIds[5]]), /IMMUTABLE/);
-      await denied(() => db.query('UPDATE company_entries SET paid_by_company=false WHERE id=$1', [id]));
-      await denied(() => db.query('UPDATE company_entries SET member_id=$2 WHERE id=$1', [id, g.memberIds[3]]));
+      await denied(
+        () =>
+          db.query('UPDATE company_entries SET created_by=$2 WHERE id=$1', [id, g.memberIds[5]]),
+        /IMMUTABLE/,
+      );
+      await denied(() =>
+        db.query('UPDATE company_entries SET paid_by_company=false WHERE id=$1', [id]),
+      );
+      await denied(() =>
+        db.query('UPDATE company_entries SET member_id=$2 WHERE id=$1', [id, g.memberIds[3]]),
+      );
       await denied(() =>
         user(0, () =>
-          db.query('SELECT waves_company_entry_update($1,$2)', [id, JSON.stringify({ paidByCompany: false })]),
+          db.query('SELECT waves_company_entry_update($1,$2)', [
+            id,
+            JSON.stringify({ paidByCompany: false }),
+          ]),
         ),
       );
     }));
