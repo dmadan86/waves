@@ -206,6 +206,9 @@ describe('company add-ons: wages split across sites', () => {
       );
       const before = (await db.query('SELECT updated_seq FROM company_wage_splits')).rows[0]
         .updated_seq;
+      const siteBefore = (
+        await db.query('SELECT updated_seq FROM company_projects WHERE id=$1', [siteA])
+      ).rows[0].updated_seq;
       await user(0, () =>
         db.query('SELECT waves_company_member_assign($1,$2,NULL)', [
           g.memberIds[3],
@@ -215,6 +218,10 @@ describe('company add-ons: wages split across sites', () => {
       const after = (await db.query('SELECT updated_seq FROM company_wage_splits')).rows[0]
         .updated_seq;
       expect(BigInt(after)).toBeGreaterThan(BigInt(before));
+      const siteAfter = (
+        await db.query('SELECT updated_seq FROM company_projects WHERE id=$1', [siteA])
+      ).rows[0].updated_seq;
+      expect(BigInt(siteAfter)).toBeGreaterThan(BigInt(siteBefore)); // the new manager re-pulls the site
       const visible = async (i: number) =>
         (await user(i, () => db.query('SELECT count(*)::int n FROM company_wage_splits'))).rows[0]
           .n;

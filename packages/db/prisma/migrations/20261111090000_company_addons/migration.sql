@@ -28,7 +28,7 @@ CREATE FUNCTION public.waves_company_second_owner_required(r public.company_entr
  LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
  SELECT EXISTS(SELECT 1 FROM public.groups g WHERE g.id=r.group_id AND g.company_approvals_enabled AND g.company_second_approval
   AND (SELECT count(*) FROM public.group_members o WHERE o.group_id=g.id AND o.role::text='admin' AND o.profile_id IS NOT NULL AND o.left_at IS NULL AND o.removed_at IS NULL AND o.merged_into_member_id IS NULL)>1
-  AND (EXISTS(SELECT 1 FROM public.group_members c WHERE c.id=r.created_by AND c.group_id=r.group_id AND c.role::text='admin')
+  AND (EXISTS(SELECT 1 FROM public.group_members c WHERE c.id=r.created_by AND c.group_id=r.group_id AND c.role::text='admin' AND c.left_at IS NULL AND c.removed_at IS NULL)
    OR (g.company_second_approval_threshold_minor IS NOT NULL AND r.amount>=g.company_second_approval_threshold_minor)));
 $$;
 REVOKE ALL ON FUNCTION public.waves_company_second_owner_required(public.company_entries) FROM PUBLIC,anon,authenticated;
@@ -61,9 +61,10 @@ BEGIN
  IF NOT FOUND THEN RAISE EXCEPTION 'UNKNOWN_MEMBER'; END IF;
  -- History follows the current team: re-stamp it so the new manager's next pull receives it.
  UPDATE public.company_entry_attachments a SET updated_at=now() FROM public.company_entries e WHERE a.entry_id=e.id AND e.member_id=p_member_id;
- -- The new manager's next pull also needs the person's sites and any split wage lines.
+ -- The new manager's next pull also needs the person's sites, the sites' definitions and any split wage lines.
  UPDATE public.company_project_members SET updated_at=now() WHERE member_id=p_member_id;
  UPDATE public.company_wage_splits s SET updated_at=now() FROM public.company_entries e WHERE s.entry_id=e.id AND e.member_id=p_member_id;
+ UPDATE public.company_projects p SET updated_at=now() WHERE p.deleted_at IS NULL AND (p.id IN (SELECT project_id FROM public.company_project_members WHERE member_id=p_member_id AND deleted_at IS NULL) OR p.id IN (SELECT s2.project_id FROM public.company_wage_splits s2 JOIN public.company_entries e2 ON e2.id=s2.entry_id WHERE e2.member_id=p_member_id));
  PERFORM set_config('waves.company_restamp',p_member_id::text,true);
  UPDATE public.company_entries SET updated_at=updated_at WHERE member_id=p_member_id;
  PERFORM set_config('waves.company_restamp','',true);
