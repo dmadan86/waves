@@ -957,7 +957,7 @@ function CompanySwitchRow({
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Ionicons name="people-outline" size={14} color={theme.color.textMuted} />
           <Text variant="micro" tone="muted" style={{ flex: 1 }}>
-            {counts(members)}
+            {counts(members.data ?? [])}
           </Text>
         </View>
       </View>
