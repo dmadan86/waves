@@ -318,6 +318,27 @@ the second owner and the reassignment purge are in the add-ons below.
   sites and member rows of anyone not on it, from memory and disk. A missing or incomplete list drops
   nothing. Still open: a demoted owner's phone, and re-promotion does not restamp history.
 
+### Paid directly by the company (migration `20261112090000_company_paid_direct`)
+
+An expense the company itself pays (materials, repairs, rent, utilities, vendor bills, equipment, office, transport,
+fees) has no employee: `company_entries.member_id` is null and `paid_by_company` is true (a CHECK ties the two and
+limits the shape to an approved, typed `expense` with no mileage, direction or links). It creates no balance for
+anyone, is never reimbursable or a wage claim, and is never sent for approval.
+
+- **Who records**: owners, and managers (the server stamps `funding_manager_id` = the manager, so it comes out of
+  their cash pool: `waves_company_pool_balance` subtracts it as `companySpend`). Employees are refused
+  server-side. `p_data.paidByCompany = true` with `p_member_id` null is the only accepted shape.
+- **Who sees it**: owners see all; a manager only the ones they recorded (`created_by`); employees never.
+  `waves_company_paid_visible` backs `waves_can_read_company_entry` and the `company_entries_select` policy, so
+  sync pulls, photos (r2-sign), exports and the signed-URL path follow it. Only owners and the recording manager can
+  edit, void or attach receipts; payer mode and recorder are immutable (void and record again).
+- **Reporting**: site spend and `waves_company_project_report` count it once (it stays kind `expense`); the owner
+  dashboard shows "Company spent this month"; exports list it with "Paid by: Company" and a blank employee.
+- **Phone**: `CompanyEntry.memberId` is '' for these (so every per-employee lookup naturally skips them);
+  `purgeCompanyInvisible` keeps a manager's own via `created_by`. Business tags: materials, repairs, rent,
+  utilities, equipment (+ transport, office, other).
+- **Deploy**: the sync edge function changed (null `memberId` + `paidByCompany`); deploy it with the prod rollout.
+
 ## Later
 
 - Receipt-required as a hard block (needs an upload that survives offline, then hold the claim
