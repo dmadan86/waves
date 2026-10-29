@@ -273,7 +273,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                 groupId={groupId}
                 view={view}
                 entries={view.entries}
-                limit={showAllRecent ? 200 : 4}
+                limit={showAllRecent ? view.entries.length : 4}
                 header={{
                   title: t.company.recentTitle,
                   // Expand in place: the payments tab hides expenses and allowances.
