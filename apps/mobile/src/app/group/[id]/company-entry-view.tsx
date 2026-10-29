@@ -221,6 +221,15 @@ export default function CompanyEntryViewScreen() {
 
               {view.isAdmin &&
               entry.status === 'submitted' &&
+              view.needsOtherOwner(entry) &&
+              !view.canApprove(entry) ? (
+                <Text variant="caption" tone="muted">
+                  {t.company.needsOtherOwner}
+                </Text>
+              ) : null}
+              {view.isAdmin &&
+              entry.status === 'submitted' &&
+              view.canApprove(entry) &&
               (view.isOwner || entry.memberId !== view.me?.id) ? (
                 <View style={{ gap: theme.spacing.sm }}>
                   <Button

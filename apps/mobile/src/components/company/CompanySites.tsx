@@ -21,7 +21,12 @@ import { useTheme } from '@waves/ui';
 
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
-import { useCompanyProjects, useSetCompanyProject, type CompanyView } from '@/data/companyEntries';
+import {
+  useCompanyProjects,
+  useSetCompanyProject,
+  useWageSplits,
+  type CompanyView,
+} from '@/data/companyEntries';
 import { fill, useStrings } from '@/i18n';
 
 export function useAddSiteSheet(groupId: string) {
@@ -49,11 +54,12 @@ export function CompanySites({ groupId, view }: { groupId: string; view: Company
   const { t, locale } = useStrings();
   const projects = useCompanyProjects(groupId).filter((p) => !p.archived_at);
   const set = useSetCompanyProject(groupId);
+  const splits = useWageSplits(groupId);
   const [budgetFor, setBudgetFor] = useState<string | null>(null);
   if (!view.isOwner || projects.length === 0) return null;
   const currency = view.currency as CurrencyCode;
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
-  const spend = projectSpend(view.entries);
+  const spend = projectSpend(view.entries, splits);
   const editing = projects.find((p) => p.id === budgetFor) ?? null;
 
   return (

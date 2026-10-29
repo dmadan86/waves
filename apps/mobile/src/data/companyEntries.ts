@@ -17,6 +17,9 @@ import {
   materialiseCompanyEntries,
   materialiseCompanyEntryAttachments,
   materialiseCompanyProjects,
+  materialiseProjectMembers,
+  materialiseWageSplits,
+  needsSecondOwner,
   poolBalance,
   parseCompanyPolicies,
   rowsFor,
@@ -26,6 +29,7 @@ import {
   type CompanyReimbursePayload,
   type CompanyPoolPostPayload,
   type CompanyProjectSetPayload,
+  type MirrorWageSplit,
   type CompanyWagePayPayload,
   type CompanyEntry,
   type CompanyEntryData,
@@ -68,6 +72,13 @@ export interface CompanyView {
   readonly policyRevision: number;
   /** GST and vendor fields apply (India, rupees). */
   readonly gstEnabled: boolean;
+  /** A second owner's approval is on (and approvals, and two owners): the toggle's own state. */
+  readonly secondApproval: boolean;
+  readonly secondApprovalThresholdMinor: bigint | null;
+  /** The claim needs an owner other than its creator to approve it. */
+  readonly needsOtherOwner: (entry: CompanyEntry) => boolean;
+  /** This viewer may approve the claim now: a reviewer, and an owner other than the creator when a second owner is needed. */
+  readonly canApprove: (entry: CompanyEntry) => boolean;
   /** Entries that have at least one live photo (for the receipt rule). */
   readonly receiptEntryIds: ReadonlySet<string>;
   readonly ready: boolean;
@@ -147,6 +158,8 @@ export function useCompanyEntries(groupId: string): CompanyView {
       // Fail closed: until the server's directory answers, a manager sees only themself.
       if (me.id) ids.add(me.id);
       for (const person of directory ?? []) if (person.detail) ids.add(person.member_id);
+      // A person this phone added offline is on this manager's team; the server forces it.
+      for (const member of people) if (member.pending && !member.profile_id) ids.add(member.id);
       return ids;
     }
     for (const member of people) {
@@ -160,7 +173,11 @@ export function useCompanyEntries(groupId: string): CompanyView {
     for (const member of people) {
       if (member.id === me?.id || member.left_at) continue;
       if (isManager && !visibleIds.has(member.id)) continue;
-      if (isOwner ? member.role !== 'admin' : isManager && member.manager_id === me?.id)
+      if (
+        isOwner
+          ? member.role !== 'admin'
+          : isManager && (member.manager_id === me?.id || (member.pending && !member.profile_id))
+      )
         ids.add(member.id);
     }
     return ids;
@@ -185,6 +202,32 @@ export function useCompanyEntries(groupId: string): CompanyView {
         .filter((entry) => visibleIds.has(entry.memberId)),
     [mirror, groupId, currency, me?.id, visibleIds],
   );
+  // Owners are known to owners (member rows) and to managers (the directory).
+  const ownerIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const member of people) if (member.role === 'admin' && !member.left_at) ids.add(member.id);
+    for (const person of directory ?? []) if (person.role === 'admin') ids.add(person.member_id);
+    return ids;
+  }, [people, directory]);
+  const second = {
+    enabled: group.data?.company_second_approval === true && approvalsEnabled && ownerIds.size > 1,
+    thresholdMinor: group.data?.company_second_approval_threshold_minor
+      ? BigInt(group.data.company_second_approval_threshold_minor)
+      : null,
+  };
+  const needsOtherOwner = (entry: CompanyEntry): boolean =>
+    needsSecondOwner({
+      enabled: second.enabled,
+      approvalsEnabled,
+      thresholdMinor: second.thresholdMinor,
+      ownerCount: ownerIds.size,
+      creatorIsOwner: entry.createdBy !== null && ownerIds.has(entry.createdBy),
+      amount: entry.amount,
+    });
+  const canApprove = (entry: CompanyEntry): boolean =>
+    isOwner
+      ? !needsOtherOwner(entry) || entry.createdBy !== me?.id
+      : isManager && !needsOtherOwner(entry);
   const receiptEntryIds = useMemo(
     () =>
       new Set(
@@ -214,6 +257,10 @@ export function useCompanyEntries(groupId: string): CompanyView {
     approvalsEnabled,
     defaultRateMinor: defaultRate ? BigInt(defaultRate) : null,
     defaultMileageRateMinor: defaultMileage ? BigInt(defaultMileage) : null,
+    secondApproval: second.enabled,
+    secondApprovalThresholdMinor: second.thresholdMinor,
+    needsOtherOwner,
+    canApprove,
     policies,
     policyRevision,
     gstEnabled: gstFieldsApply(group.data?.country_code, currency),
@@ -426,21 +473,28 @@ export function useCompanyProjects(groupId: string) {
   );
 }
 
-/** Which sites each employee is on (project ids), from the pulled assignments. */
+/** Which sites each employee is on (project ids): pulled assignments with this phone's queued changes on top. */
 export function useCompanyProjectMembers(groupId: string): ReadonlyMap<string, readonly string[]> {
-  const { mirror } = useSync();
-  return useMemo(() => {
-    const out = new Map<string, string[]>();
-    for (const row of rowsFor(mirror, SyncTable.CompanyProjectMembers, groupId) as unknown as {
-      member_id: string;
-      project_id: string;
-      deleted_at: string | null;
-    }[]) {
-      if (row.deleted_at) continue;
-      out.set(row.member_id, [...(out.get(row.member_id) ?? []), row.project_id]);
-    }
-    return out;
-  }, [mirror, groupId]);
+  const { mirror, queue } = useSync();
+  return useMemo(
+    () => materialiseProjectMembers(mirror, queue, { groupId }),
+    [mirror, queue, groupId],
+  );
+}
+
+/** Wage payment id -> how it was divided across sites (pulled rows plus a queued wage run). */
+export function useWageSplits(groupId: string): ReadonlyMap<string, readonly MirrorWageSplit[]> {
+  const { mirror, queue } = useSync();
+  return useMemo(() => materialiseWageSplits(mirror, queue, { groupId }), [mirror, queue, groupId]);
+}
+
+/** Owner: a second owner must approve large or owner-raised claims. Needs two owners and approvals on. */
+export function useSetSecondApproval(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: { enabled: boolean; thresholdMinor: string | null }) =>
+      mutate(MutationKind.CompanySecondApprovalSet, groupId, { ...input }),
+  });
 }
 
 export function useSetCompanyProject(groupId: string) {

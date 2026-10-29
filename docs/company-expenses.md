@@ -258,7 +258,7 @@ team (a manager cannot pick a team, promote or reassign); an invite minted by a 
 `company_manager_id` and the joiner lands on that team. Reassignment needs no reason.
 
 **Approvals.** With approvals on, the employee's manager or any owner may approve or reject; either suffices.
-A manager never reviews their own claim. A second "owner must also approve" setting is deferred.
+A manager never reviews their own claim. A second-owner setting is in the add-ons below.
 
 **Cash pool (the "float").** New entry kinds on the manager's own member row: `allocation` (owner gives cash,
 optionally per site), `pool_return` and `pool_adjustment` (a trimmed written reason of 1 to 500 characters is
@@ -289,11 +289,34 @@ kinds `company_member.add|assign|projects_set`, `company_project.set`, `company_
 pulled tables `company_projects`, `company_project_members`, `company_project_budgets`.
 
 **Built / deferred.** Built: all of the above, the manager and owner screens (cash card, "Pay wages" list, sites
-bars, "Make manager" / "Reports to" / site chips on a statement). Deferred: "Reports to" and sites inside the
-add-employee form (owner sets them on the person's statement), a manager's offline add-employee overlay,
-names of the manager / owners on an employee's screen (the RPC exists), multi-site wage split, a second owner
-approval, wage preview RPC, settlement-application table (partial advance recovery across wages is handled by
-the recovery column), and downloaded-data purge on a role change (as in Phase 2).
+bars, "Make manager" / "Reports to" / site chips on a statement). Deferred: names of the manager / owners on an employee's screen (the RPC exists), wage preview RPC,
+settlement-application table (partial advance recovery across wages is handled by the recovery column),
+and downloaded-data purge on a role change (as in Phase 2). "Reports to", sites, offline adds, split wages,
+the second owner and the reassignment purge are in the add-ons below.
+
+### Phase 4 add-ons (migration `20261111090000_company_addons`)
+
+- **Add employee**: the form also asks "Reports to" (owners, when managers exist) and sites. They ride the
+  add as queued `company_member.assign` / `projects_set` with the client-chosen member id, so they land in
+  order offline. A manager's hire is forced onto their own team by the server as before. Queued
+  assign / site changes and a manager's own offline adds show at once (`materialiseMembers`,
+  `materialiseProjectMembers`).
+- **Voice**: the employee home has a mic beside the +. In a company, `app/voice.tsx` saves the spoken
+  expense as the speaker's own company entry (member id from their own membership), never a split. A
+  spoken currency other than the company's is asked about, not converted.
+- **Split wages**: a wage line may carry `splits: [{projectId, amountMinor}]` that sum exactly to the wage
+  base (gross less folded bata; recovery does not change site cost). Stored in `company_wage_splits` (pulled,
+  as private as the payment, re-stamped on reassignment). Then `projectId` must be null. Site spend (phone
+  `projectSpend` and `waves_company_project_report`) counts the parts, never the parent too. The wage run
+  screen offers site chips per person and divides the base evenly (first sites take the remainder).
+- **Second owner**: `groups.company_second_approval` (+ optional threshold). Needs approvals on and two live
+  owners (the setting RPC refuses otherwise, and the rule is inert if owners drop to one). A claim raised by
+  an owner, or at/over the threshold, can only be approved by an owner other than its creator
+  (`SECOND_OWNER_REQUIRED`); managers and the creator do not see Approve. Rejecting is unchanged.
+- **Reassignment purge**: the sync response carries `companyVisible` for company groups where the caller is
+  a manager: the member ids their RLS lets them read. The phone drops cached entries, photos, split wages,
+  sites and member rows of anyone not on it, from memory and disk. A missing or incomplete list drops
+  nothing. Still open: a demoted owner's phone, and re-promotion does not restamp history.
 
 ## Later
 

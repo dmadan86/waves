@@ -268,6 +268,8 @@ model Group {
   companyPolicyRevision Int @default(0) @map("company_policy_revision")
   companyDefaultMileageRateMinor BigInt? @map("company_default_mileage_rate_minor")
   companyApprovalsEnabled Boolean @default(false) @map("company_approvals_enabled")
+  companySecondApproval Boolean @default(false) @map("company_second_approval")
+  companySecondApprovalThresholdMinor BigInt? @map("company_second_approval_threshold_minor")
   companyPlan CompanyPlan?
   companyImageKeys CompanyImageKey[]
   companyStorageObjects StorageObject[] @relation("CompanyStorage")
@@ -3115,6 +3117,7 @@ model CompanyEntry {
   reviewedAt   DateTime? @map("reviewed_at") @db.Timestamptz(6)
   reviewer GroupMember? @relation("CompanyReviewer", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   attachments CompanyEntryAttachment[]
+  wageSplits CompanyWageSplit[]
   note         String?
   voidReason   String?      @map("void_reason")
   createdBy    String       @map("created_by") @db.Uuid
@@ -3189,6 +3192,7 @@ model CompanyProject {
   budgets CompanyProjectBudget[]
   members CompanyProjectMember[]
   entries CompanyEntry[]
+  wageSplits CompanyWageSplit[]
   @@unique([id,groupId])
   @@index([groupId,updatedSeq], map: "company_projects_sync_idx")
   @@map("company_projects")
@@ -3223,6 +3227,24 @@ model CompanyProjectMember {
   @@index([groupId,updatedSeq], map: "company_project_members_sync_idx")
   @@index([memberId,projectId], map: "company_project_members_member_idx")
   @@map("company_project_members")
+  @@schema("public")
+}
+model CompanyWageSplit {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  entryId String @map("entry_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  amountMinor BigInt @map("amount_minor")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  entry CompanyEntry @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  project CompanyProject @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([entryId,projectId])
+  @@index([groupId,updatedSeq], map: "company_wage_splits_sync_idx")
+  @@index([projectId], map: "company_wage_splits_project_idx")
+  @@map("company_wage_splits")
   @@schema("public")
 }
 model CompanyWageRun {
