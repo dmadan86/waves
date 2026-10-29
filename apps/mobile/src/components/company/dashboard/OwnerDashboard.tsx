@@ -59,6 +59,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
   const addSite = useAddSiteSheet(groupId);
   const sites = useCompanyProjects(groupId).filter((p) => !p.archived_at);
   const [showAllPayments, setShowAllPayments] = useState(false);
+  const [showAllRecent, setShowAllRecent] = useState(false);
 
   const live = view.members.filter((m) => !m.left_at);
   const owners = live.filter((m) => m.role === 'admin');
@@ -106,8 +107,8 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
     />
   );
 
+  const month = todayIso().slice(0, 7);
   const monthBudget = (managerId: string): bigint => {
-    const month = new Date().toISOString().slice(0, 7);
     return view.entries
       .filter(
         (e) =>
@@ -272,8 +273,12 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                 groupId={groupId}
                 view={view}
                 entries={view.entries}
-                limit={4}
-                header={{ title: t.company.recentTitle, onViewAll: () => setTab('payments') }}
+                limit={showAllRecent ? 200 : 4}
+                header={{
+                  title: t.company.recentTitle,
+                  // Expand in place: the payments tab hides expenses and allowances.
+                  onViewAll: showAllRecent ? undefined : () => setShowAllRecent(true),
+                }}
               />
             </>
           ) : null}
@@ -422,7 +427,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                   </View>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={t.company.createBudget}
+                    accessibilityLabel={t.company.addSite}
                     onPress={addSite.open}
                     style={{
                       flexDirection: 'row',
@@ -441,7 +446,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                       color={theme.color.onButtonPrimary}
                     />
                     <Text style={{ fontWeight: '600', color: theme.color.onButtonPrimary }}>
-                      {t.company.createBudget}
+                      {t.company.addSite}
                     </Text>
                   </Pressable>
                 </View>
@@ -497,7 +502,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                     title={t.company.gaveMoney}
                     body={t.company.gaveMoneyBody}
                     tone="blue"
-                    onPress={() => router.push(`/group/${groupId}/company-entry`)}
+                    onPress={() => router.push(`/group/${groupId}/company-entry?kind=advance`)}
                   />
                 </View>
               </StandardCard>
