@@ -59,14 +59,16 @@ export function ManagerHome({ groupId }: { groupId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [view.entries, view.members],
   );
-  const given = pool ? pool.advances + pool.reimbursed + pool.wages : 0n;
+  const given = pool ? pool.advances + pool.reimbursed + pool.wages + pool.companySpend : 0n;
   const budget = pool ? pool.allocated + pool.adjusted - pool.returned : 0n;
   const ratio = budget > 0n ? Math.min(1, Number((given * 1000n) / budget) / 1000) : 0;
   const thread = (id: string): void =>
     router.push(`/group/${groupId}/company-statement?member=${id}`);
 
   const teamIds = new Set(team.map((m) => m.id));
-  const teamEntries = view.entries.filter((e) => teamIds.has(e.memberId));
+  const teamEntries = view.entries.filter(
+    (e) => teamIds.has(e.memberId) || (e.paidByCompany && e.createdBy === me?.id),
+  );
 
   return (
     <Screen edges={[]}>
@@ -128,6 +130,11 @@ export function ManagerHome({ groupId }: { groupId: string }) {
                     {t.company.budgetLeft}: {fmt(left ?? 0n)}
                   </Text>
                 </Row>
+                {pool && pool.companySpend !== 0n ? (
+                  <Text variant="caption" tone="muted">
+                    {t.company.companyPayer}: {fmt(pool.companySpend)}
+                  </Text>
+                ) : null}
                 {pool && (pool.returned !== 0n || pool.adjusted !== 0n) ? (
                   <Text variant="micro" tone="muted">
                     {fill(t.company.budgetAdjusted, {

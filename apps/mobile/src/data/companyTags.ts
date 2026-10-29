@@ -26,9 +26,25 @@ import { useGroup } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useSync } from '@/sync';
 
+export const COMPANY_PAID_TAGS = [
+  'materials',
+  'repair',
+  'rent',
+  'utilities',
+  'transport',
+  'equipment',
+  'office',
+  'other',
+] as const;
+
 export const MAX_COMPANY_TAGS = 50;
 
 const BUILTIN_LABEL_KEY = {
+  materials: 'catMaterials',
+  repair: 'catRepairs',
+  rent: 'catRent',
+  utilities: 'catUtilities',
+  equipment: 'catEquipment',
   fuel: 'catFuel',
   transport: 'catTransport',
   travel: 'catTravel',
@@ -109,12 +125,18 @@ export function useCompanyTags(groupId: string, view: CompanyView): CompanyTags 
   );
 
   // Before an industry is chosen the six everyday tags are always on offer; after,
-  // only the ones the pack kept or that entries already use.
+  // only the ones the pack kept or that entries already use. Business tags stay in All tags.
   const all = useMemo(() => {
     const seen = new Set(stored.map((tag) => tag.key));
     const extra: CompanyTag[] = [];
-    for (const key of BUILTIN_COMPANY_TAGS) {
-      if (seen.has(key) || (industry && !usedKeys.has(key))) continue;
+    for (const key of [...BUILTIN_COMPANY_TAGS, ...COMPANY_PAID_TAGS]) {
+      if (
+        seen.has(key) ||
+        (industry &&
+          !usedKeys.has(key) &&
+          (BUILTIN_COMPANY_TAGS as readonly string[]).includes(key))
+      )
+        continue;
       extra.push({ key, label: builtinLabel(key) ?? key });
       seen.add(key);
     }
@@ -128,7 +150,13 @@ export function useCompanyTags(groupId: string, view: CompanyView): CompanyTags 
   // Ranking only needs day-level recency, so the mount time is fresh enough.
   const [now] = useState(Date.now);
   const ranked = useMemo(() => {
-    const visible = all.filter((tag) => !tag.hidden);
+    const visible = all.filter(
+      (tag) =>
+        !tag.hidden &&
+        ((BUILTIN_COMPANY_TAGS as readonly string[]).includes(tag.key) ||
+          usedKeys.has(tag.key) ||
+          stored.some((s) => s.key === tag.key)),
+    );
     const mine = view.entries.filter(
       (e) => e.kind === 'expense' && e.category && e.memberId === view.me?.id,
     );
@@ -141,9 +169,13 @@ export function useCompanyTags(groupId: string, view: CompanyView): CompanyTags 
         .map((p) => p.key),
     });
     return order.map((key) => visible.find((tag) => tag.key === key) as CompanyTag);
-  }, [all, view.entries, view.me?.id, industry, now]);
+  }, [all, view.entries, view.me?.id, industry, now, stored, usedKeys]);
 
-  const label = (key: string): string => companyTagLabel(key, all, builtinLabel);
+  const label = (key: string): string =>
+    (COMPANY_PAID_TAGS as readonly string[]).includes(key) &&
+    !(BUILTIN_COMPANY_TAGS as readonly string[]).includes(key)
+      ? (builtinLabel(key) ?? companyTagLabel(key, all))
+      : companyTagLabel(key, all, builtinLabel);
 
   const add = (name: string): string | null => {
     const clean = name.trim().slice(0, 40);
