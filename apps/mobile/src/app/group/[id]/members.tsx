@@ -31,7 +31,6 @@ import {
   useGroup,
   useGroupLedger,
   useMemberClaims,
-  useSetMemberRole,
 } from '@/data/hooks';
 import { useBlockedUsers } from '@/data/blocked';
 import {
@@ -77,7 +76,6 @@ export default function MembersScreen() {
   const decide = useDecideMemberClaim(groupId);
 
   const addPast = useAddCompanyPastPeople(groupId);
-  const setRole = useSetMemberRole(groupId);
 
   const [pastOpen, setPastOpen] = useState(false);
   const [pastQuery, setPastQuery] = useState('');
@@ -85,8 +83,6 @@ export default function MembersScreen() {
   const [ghostName, setGhostName] = useState('');
   const [ghostContact, setGhostContact] = useState('');
   const [ghostEmail, setGhostEmail] = useState('');
-  const [asManager, setAsManager] = useState(false);
-  const [roleOpen, setRoleOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
@@ -175,23 +171,15 @@ export default function MembersScreen() {
     const contact = isCompany
       ? { phone: ghostContact.trim() || undefined, email: ghostEmail.trim() || undefined }
       : contactOf(ghostContact);
-    if (!name && !contact.email && !contact.phone) return;
+    if (isCompany ? !name : !name && !contact.email && !contact.phone) return;
     setError(null);
     addGhost.mutate(
       { name, ...contact },
       {
         onSuccess: (memberId) => {
-          // Only an owner can pick Manager; it is the same change as "Make manager" on their statement.
-          if (isCompany && iAmAdmin && asManager)
-            setRole.mutate(
-              { memberId, role: 'manager' },
-              { onError: () => setError(t.misc.couldNotAddGeneric) },
-            );
           setGhostName('');
           setGhostContact('');
           setGhostEmail('');
-          setAsManager(false);
-          setRoleOpen(false);
         },
         onError: (caught) =>
           setError(
@@ -626,67 +614,6 @@ export default function MembersScreen() {
                     />
                   </Field>
                   <Helper>{t.company.emailHelper}</Helper>
-                  {iAmAdmin ? (
-                    <View>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={t.company.roleLabel}
-                        onPress={() => setRoleOpen((open) => !open)}
-                      >
-                        <Row
-                          style={{
-                            alignItems: 'center',
-                            gap: theme.spacing.sm,
-                            borderWidth: 1,
-                            borderColor: theme.color.border,
-                            borderRadius: theme.radius.lg,
-                            paddingHorizontal: theme.spacing.md,
-                            paddingVertical: theme.spacing.sm,
-                          }}
-                        >
-                          <Ionicons
-                            name="briefcase-outline"
-                            size={iconSize.md}
-                            color={theme.color.textMuted}
-                          />
-                          <View style={{ flex: 1 }}>
-                            <Text variant="micro" tone="muted">
-                              {t.company.roleLabel}
-                            </Text>
-                            <Text variant="body" style={{ fontWeight: '600' }}>
-                              {asManager ? t.company.manager : t.company.roleEmployee}
-                            </Text>
-                          </View>
-                          <Ionicons
-                            name={roleOpen ? 'chevron-up' : 'chevron-down'}
-                            size={iconSize.md}
-                            color={theme.color.textMuted}
-                          />
-                        </Row>
-                      </Pressable>
-                      {roleOpen
-                        ? [false, true].map((manager) => (
-                            <ListRow
-                              key={String(manager)}
-                              title={manager ? t.company.manager : t.company.roleEmployee}
-                              onPress={() => {
-                                setAsManager(manager);
-                                setRoleOpen(false);
-                              }}
-                              trailing={
-                                asManager === manager ? (
-                                  <Ionicons
-                                    name="checkmark"
-                                    size={iconSize.md}
-                                    color={theme.color.brand}
-                                  />
-                                ) : undefined
-                              }
-                            />
-                          ))
-                        : null}
-                    </View>
-                  ) : null}
                 </>
               ) : (
                 <Field icon="at-outline">

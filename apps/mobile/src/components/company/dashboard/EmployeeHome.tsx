@@ -4,10 +4,12 @@
  */
 
 import { useMemo } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { router } from '@/lib/navigation';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { companyStatement } from '@waves/core';
-import { Screen, Text, useTheme } from '@waves/ui';
+import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
 import { DashBody, DashHeader, useMoney } from '@/components/company/dashboard/parts';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
@@ -93,6 +95,26 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
           ) : null}
         </DashBody>
       </ScrollView>
+      {/* The hero button scrolls away; statements are long, so keep an add action in reach. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.company.addEntry}
+        onPress={() => router.push(`/group/${groupId}/company-entry`)}
+        style={{
+          position: 'absolute',
+          right: theme.spacing.lg,
+          bottom: clearance + 8,
+          width: 54,
+          height: 54,
+          borderRadius: 27,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.buttonPrimary,
+          elevation: 4,
+        }}
+      >
+        <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
+      </Pressable>
     </Screen>
   );
 }
