@@ -505,9 +505,10 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                 groupId={groupId}
                 view={view}
                 entries={payments}
-                limit={showAllPayments ? 50 : 5}
+                limit={showAllPayments ? payments.length : 5}
                 header={{
                   title: t.company.recentPayments,
+                  icon: false,
                   onViewAll:
                     !showAllPayments && payments.length > 5
                       ? () => setShowAllPayments(true)

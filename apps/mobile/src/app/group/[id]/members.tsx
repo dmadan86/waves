@@ -67,7 +67,7 @@ export default function MembersScreen() {
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
 
   const { group, members } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, profile?.id ?? null);
@@ -182,7 +182,11 @@ export default function MembersScreen() {
       {
         onSuccess: (memberId) => {
           // Only an owner can pick Manager; it is the same change as "Make manager" on their statement.
-          if (isCompany && iAmAdmin && asManager) setRole.mutate({ memberId, role: 'manager' });
+          if (isCompany && iAmAdmin && asManager)
+            setRole.mutate(
+              { memberId, role: 'manager' },
+              { onError: () => setError(t.misc.couldNotAddGeneric) },
+            );
           setGhostName('');
           setGhostContact('');
           setGhostEmail('');
@@ -354,17 +358,23 @@ export default function MembersScreen() {
               <ListRow
                 title={displayName(member, profile?.id, blockedIds, t.misc.someone)}
                 subtitle={
-                  isGhost(member)
-                    ? t.notJoinedYet
-                    : isBlockedMember(member, blockedIds)
-                      ? // A payment handle carries a name, an address or a
-                        // phone number — masked for a blocked person.
-                        t.misc.noUpiYet
-                      : // `payableAt`, not the legacy column alone: the rail
-                        // pair is where a handle lives now, and reading only
-                        // `vpa`/`default_vpa` told everybody on Pix, PayID or
-                        // Venmo that they had given nothing.
-                        (payableAt(member)?.handle ?? t.misc.noUpiYet)
+                  isCompany && isViewer(member, profile?.id)
+                    ? // A company roster shows the address, not a payment handle.
+                      (session?.user?.email ?? undefined)
+                    : isCompany
+                      ? (member.invite_email ?? member.invite_phone ?? undefined) ||
+                        (isGhost(member) ? t.notJoinedYet : undefined)
+                      : isGhost(member)
+                        ? t.notJoinedYet
+                        : isBlockedMember(member, blockedIds)
+                          ? // A payment handle carries a name, an address or a
+                            // phone number — masked for a blocked person.
+                            t.misc.noUpiYet
+                          : // `payableAt`, not the legacy column alone: the rail
+                            // pair is where a handle lives now, and reading only
+                            // `vpa`/`default_vpa` told everybody on Pix, PayID or
+                            // Venmo that they had given nothing.
+                            (payableAt(member)?.handle ?? t.misc.noUpiYet)
                 }
                 leading={
                   <PersonAvatar
@@ -694,6 +704,24 @@ export default function MembersScreen() {
                   />
                 </Field>
               )}
+              <Row
+                style={{
+                  alignItems: 'flex-start',
+                  gap: theme.spacing.md,
+                  padding: theme.spacing.md,
+                  borderRadius: theme.radius.lg,
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={iconSize.md}
+                  color={theme.color.brand}
+                />
+                <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+                  {isCompany ? t.company.nameAloneBody : t.misc.nameAloneBody}
+                </Text>
+              </Row>
               <Button
                 label={isCompany ? t.company.qaAddEmployee : t.people.addToGroupButton}
                 fullWidth
@@ -709,25 +737,6 @@ export default function MembersScreen() {
               <ActivityIndicator color={theme.color.brand} />
             ) : null}
             {error ? <Callout tone="negative">{error}</Callout> : null}
-
-            <Row
-              style={{
-                alignItems: 'flex-start',
-                gap: theme.spacing.md,
-                padding: theme.spacing.md,
-                borderRadius: theme.radius.lg,
-                backgroundColor: theme.color.brandSoft,
-              }}
-            >
-              <Ionicons
-                name="information-circle-outline"
-                size={iconSize.md}
-                color={theme.color.brand}
-              />
-              <Text variant="caption" tone="muted" style={{ flex: 1 }}>
-                {isCompany ? t.company.nameAloneBody : t.misc.nameAloneBody}
-              </Text>
-            </Row>
           </Card>
         ) : null}
 
@@ -786,12 +795,34 @@ function AddTile({
       })}
     >
       <Row style={{ justifyContent: 'space-between' }}>
-        <Ionicons name={icon} size={iconSize.lg} color={blue ? '#2F6FE0' : theme.color.brand} />
-        <Ionicons
-          name={directionalIcon('chevron-forward')}
-          size={iconSize.sm}
-          color={blue ? '#2F6FE0' : theme.color.brand}
-        />
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: blue ? '#CFE0FF' : theme.color.surface,
+          }}
+        >
+          <Ionicons name={icon} size={iconSize.md} color={blue ? '#2F6FE0' : theme.color.brand} />
+        </View>
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.surface,
+          }}
+        >
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={12}
+            color={blue ? '#2F6FE0' : theme.color.brand}
+          />
+        </View>
       </Row>
       <Text variant="body" style={{ fontWeight: '700' }}>
         {label}
