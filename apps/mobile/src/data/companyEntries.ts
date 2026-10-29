@@ -203,20 +203,11 @@ export function useCompanyEntries(groupId: string): CompanyView {
     [mirror, groupId, currency, me?.id, visibleIds],
   );
   // Owners are known to owners (member rows) and to managers (the directory).
-  const { ownerIds, everOwnerIds } = useMemo(() => {
+  const ownerIds = useMemo(() => {
     const ids = new Set<string>();
-    const ever = new Set<string>();
-    for (const member of people) {
-      if (member.role !== 'admin') continue;
-      ever.add(member.id);
-      if (!member.left_at) ids.add(member.id);
-    }
-    for (const person of directory ?? []) {
-      if (person.role !== 'admin') continue;
-      ids.add(person.member_id);
-      ever.add(person.member_id);
-    }
-    return { ownerIds: ids, everOwnerIds: ever };
+    for (const member of people) if (member.role === 'admin' && !member.left_at) ids.add(member.id);
+    for (const person of directory ?? []) if (person.role === 'admin') ids.add(person.member_id);
+    return ids;
   }, [people, directory]);
   const second = {
     enabled: group.data?.company_second_approval === true && approvalsEnabled && ownerIds.size > 1,
@@ -230,8 +221,8 @@ export function useCompanyEntries(groupId: string): CompanyView {
       approvalsEnabled,
       thresholdMinor: second.thresholdMinor,
       ownerCount: ownerIds.size,
-      // The server counts a claim raised by an owner who has since left as owner-raised too.
-      creatorIsOwner: entry.createdBy !== null && everOwnerIds.has(entry.createdBy),
+      // Live owners only, like the server: a claim raised by an owner who has left is ordinary.
+      creatorIsOwner: entry.createdBy !== null && ownerIds.has(entry.createdBy),
       amount: entry.amount,
     });
   const canApprove = (entry: CompanyEntry): boolean =>
