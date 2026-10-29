@@ -361,7 +361,7 @@ export default function MembersScreen() {
                   isCompany && isViewer(member, profile?.id)
                     ? // A company roster shows the address, not a payment handle.
                       (session?.user?.email ?? undefined)
-                    : isCompany
+                    : isCompany && !isBlockedMember(member, blockedIds)
                       ? (member.invite_email ?? member.invite_phone ?? undefined) ||
                         (isGhost(member) ? t.notJoinedYet : undefined)
                       : isGhost(member)
