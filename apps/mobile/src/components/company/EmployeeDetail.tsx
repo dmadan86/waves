@@ -227,10 +227,10 @@ export function ActionTile({
         >
           <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
         </View>
-        <Text variant="caption" align="center" numberOfLines={1} style={{ fontWeight: '700' }}>
+        <Text variant="caption" align="center" style={{ fontWeight: '700' }}>
           {title}
         </Text>
-        <Text variant="micro" tone="muted" align="center" numberOfLines={1}>
+        <Text variant="micro" tone="muted" align="center">
           {sub}
         </Text>
       </StandardCard>

@@ -273,7 +273,12 @@ export function CompanyStatementView({
   );
 
   if (detail) {
-    const dueTotal = due.reduce((sum, e) => sum + e.amount, 0n);
+    // What paying all of it would record: advances and credits come off, like the Mark as paid total.
+    const dueNet = buildReimbursementPreview(view.entries, {
+      memberId: member.id,
+      ids: due.map((e) => e.id),
+    }).payoutMinor;
+    const dueTotal = dueNet < 0n ? 0n : dueNet;
     const dueParts = formatParts({ minor: dueTotal, currency }, { locale });
     const allPicked = due.length > 0 && picked.size === due.length;
     return (
