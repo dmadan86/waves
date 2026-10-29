@@ -701,7 +701,7 @@ export function RecentActivity({
   entries: readonly CompanyEntry[];
   limit?: number;
   /** Wraps the rows in a titled card, as on the owner's overview. */
-  header?: { title: string; onViewAll?: () => void };
+  header?: { title: string; onViewAll?: () => void; icon?: false };
   /** Shown in the titled card when there are no rows. */
   empty?: ReactNode;
 }) {
@@ -762,7 +762,11 @@ export function RecentActivity({
     );
   });
   return header ? (
-    <SectionCard icon="document-text-outline" title={header.title} onViewAll={header.onViewAll}>
+    <SectionCard
+      icon={header.icon === false ? undefined : 'document-text-outline'}
+      title={header.title}
+      onViewAll={header.onViewAll}
+    >
       {rows.length === 0 ? (empty ?? none) : list}
     </SectionCard>
   ) : (
