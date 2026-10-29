@@ -15,13 +15,13 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import {
   allowanceAmount,
   buildWageRun,
-  evenSplit,
   format,
   money,
   normaliseDecimalInput,
   parseMinorInput,
   wagePaidInPeriod,
   wageRunTotals,
+  wageSiteSplit,
   type CurrencyCode,
   type WageTerms,
 } from '@waves/core';
@@ -135,19 +135,10 @@ export default function CompanyWagesScreen() {
         lines: chosen.map((l) => {
           // The wage base (not folded bata) is divided evenly; the first sites take any remainder.
           const picked = pickedFor(l.memberId);
-          const parts = picked.length > 1 ? evenSplit(l.base, picked.length) : [];
           return {
             paymentEntryId: randomUUID(),
             memberId: l.memberId,
-            projectId: picked.length === 1 ? picked[0]! : null,
-            ...(parts.length > 0 && l.base > 0n
-              ? {
-                  splits: picked.map((projectId, i) => ({
-                    projectId,
-                    amountMinor: parts[i]!.toString(),
-                  })),
-                }
-              : {}),
+            ...wageSiteSplit(l.base, picked),
             fundingManagerId: view.isManager ? (view.me?.id ?? null) : null,
             calcMode: l.calcMode as 'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly',
             days: l.days,

@@ -431,10 +431,10 @@ serveWithCors(async (request) => {
       cursors: nextCursors,
       hasMore,
     } = await pull(caller, groupIds, cursors, profileId);
-    // Only a manager's phone can hold another team's detail after a reassignment; owners see
-    // everyone and employees only themselves, so they are not asked to purge.
+    // Any phone that is not an owner's may still hold detail it can no longer read (an employee
+    // moved to another manager, a manager demoted); owners see everyone, so they never purge.
     const managerGroupIds = (mine.data ?? [])
-      .filter((row) => (row as { role?: string }).role === 'manager')
+      .filter((row) => (row as { role?: string }).role !== 'admin')
       .map((row) => row.group_id as string);
     const companyVisible = await companyVisibleMembers(caller, managerGroupIds);
 
@@ -2556,7 +2556,7 @@ function companyTag(
 }
 
 /**
- * For each company group a manager belongs to, the member ids this caller can read (RLS decides, so it is
+ * For each company group a non-owner belongs to, the member ids this caller can read (RLS decides, so it is
  * exactly the people whose entries they may hold). A group is left out when the list
  * could not be read in full, so a failure can never make a phone discard data.
  */

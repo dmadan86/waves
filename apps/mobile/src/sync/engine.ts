@@ -703,10 +703,16 @@ export class SyncEngine {
       if (response.companyVisible) {
         const purged = purgeCompanyInvisible(this.state.mirror, response.companyVisible);
         if (purged.removed.length > 0) {
-          this.set({ mirror: purged.state });
-          await this.store.deleteRows(purged.removed).catch((purgeError: unknown) => {
-            reportHandled(purgeError, 'sync.purgeCompany');
-          });
+          // Disk first: if it fails the rows stay in memory too, so the next sync finds them again
+          // instead of leaving a copy on disk that a restart would bring back.
+          const wiped = await this.store
+            .deleteRows(purged.removed)
+            .then(() => true)
+            .catch((purgeError: unknown) => {
+              reportHandled(purgeError, 'sync.purgeCompany');
+              return false;
+            });
+          if (wiped) this.set({ mirror: purged.state });
         }
       }
 
