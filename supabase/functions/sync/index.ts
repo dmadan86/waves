@@ -874,7 +874,8 @@ export class SyncSession {
         return await this.rpcAsCaller('waves_company_entry_create', {
           p_group_id: mutation.groupId,
           p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
-          p_member_id: requireString(mutation.payload.memberId, 'memberId'),
+          // A company-paid entry has no employee: memberId is null exactly when data.paidByCompany is true.
+          p_member_id: companyPaidMemberId(mutation.payload),
           p_entry_kind: requireString(mutation.payload.entryKind, 'entryKind'),
           p_data: companyData(mutation.payload.data),
         });
@@ -2298,6 +2299,18 @@ function classify(error: unknown): { code: string; message: string } {
   return { code: 'VALIDATION_FAILED', message };
 }
 
+/** `memberId` for a company entry create: null only for a company-paid entry (the RPC enforces who may). */
+function companyPaidMemberId(payload: Record<string, unknown>): string | null {
+  const data = payload.data as Record<string, unknown> | null | undefined;
+  if (data?.paidByCompany === true) {
+    if (payload.memberId !== null && payload.memberId !== undefined) {
+      throw new HttpError(400, 'VALIDATION_FAILED', 'A company-paid entry has no memberId');
+    }
+    return null;
+  }
+  return requireString(payload.memberId, 'memberId');
+}
+
 function companyData(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new HttpError(400, 'VALIDATION_FAILED', 'company data must be an object');
@@ -2322,6 +2335,7 @@ function companyData(value: unknown): Record<string, unknown> {
     'toText',
     'projectId',
     'fundingManagerId',
+    'paidByCompany',
   ];
   for (const [key, field] of Object.entries(data)) {
     if (
@@ -2329,7 +2343,9 @@ function companyData(value: unknown): Record<string, unknown> {
       (field !== null &&
         (key === 'gstRateBps'
           ? typeof field !== 'number' || !Number.isInteger(field) || field < 0 || field > 10000
-          : typeof field !== 'string'))
+          : key === 'paidByCompany'
+            ? typeof field !== 'boolean'
+            : typeof field !== 'string'))
     ) {
       throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${key}`);
     }

@@ -1624,7 +1624,8 @@ export function materialiseGroupRecurring(
 export interface MirrorCompanyEntry extends MirrorRow {
   readonly id: string;
   readonly group_id: string;
-  readonly member_id: string;
+  readonly member_id: string | null;
+  readonly paid_by_company?: boolean;
   readonly entry_kind: string;
   readonly category: string | null;
   readonly amount: string;
@@ -1693,6 +1694,8 @@ export function materialiseCompanyEntries(
     readonly currency: string;
     /** The viewer's member id: the author of a queued entry. */
     readonly myMemberId?: string | null;
+    /** The viewer is a manager: their queued company-paid entries come out of their pool. */
+    readonly myIsManager?: boolean;
     /** The company needs approval: a queued entry reads as submitted, not approved. */
     readonly approvalsEnabled?: boolean;
   },
@@ -1726,6 +1729,7 @@ export function materialiseCompanyEntries(
         id: payload.entryId,
         group_id: mutation.groupId,
         member_id: payload.memberId,
+        paid_by_company: data.paidByCompany === true,
         entry_kind: payload.entryKind,
         category: payload.entryKind === 'expense' ? (data.category ?? null) : null,
         amount: computed !== null ? computed.toString() : (data.amount ?? '0'),
@@ -1743,11 +1747,16 @@ export function materialiseCompanyEntries(
         to_text: data.toText ?? null,
         reimbursement_id: null,
         project_id: data.projectId ?? null,
-        funding_manager_id: data.fundingManagerId ?? null,
+        funding_manager_id:
+          data.paidByCompany === true
+            ? options.myIsManager
+              ? (options.myMemberId ?? null)
+              : null
+            : (data.fundingManagerId ?? null),
         occurred_on: data.occurredOn ?? mutation.clientCreatedAt.slice(0, 10),
         direction:
           payload.entryKind === 'reimbursement' ? (data.direction ?? 'company_to_employee') : null,
-        status: options.approvalsEnabled ? 'submitted' : 'approved',
+        status: options.approvalsEnabled && data.paidByCompany !== true ? 'submitted' : 'approved',
         note: data.note ?? null,
         deleted_at: null,
         created_by: options.myMemberId ?? null,
@@ -2261,9 +2270,12 @@ export function purgeCompanyInvisible(
     const mine = (row: Record<string, unknown>): boolean => row.group_id === groupId;
     drop(SyncTable.GroupMembers, (row) => mine(row) && !ok.has(row.id as string));
     drop(SyncTable.CompanyProjectMembers, (row) => mine(row) && !ok.has(row.member_id as string));
+    // A company-paid entry has no employee: it stays while its recorder (always readable by its reader) does.
     const entries = drop(
       SyncTable.CompanyEntries,
-      (row) => mine(row) && !ok.has(row.member_id as string),
+      (row) =>
+        mine(row) &&
+        !ok.has((row.paid_by_company === true ? row.created_by : row.member_id) as string),
     );
     const orphan = (row: Record<string, unknown>): boolean =>
       mine(row) && entries.has(row.entry_id as string);
