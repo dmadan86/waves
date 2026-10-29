@@ -31,7 +31,12 @@ const queued = (payload: Record<string, unknown>): QueuedMutation =>
 describe('company-paid entries on the phone', () => {
   it("a manager's purge keeps their own company-paid entry (no employee) and its photo", () => {
     const state = reconcile(emptyMirror(), [
-      row(SyncTable.CompanyEntries, { id: 'paid', member_id: null, paid_by_company: true, created_by: 'me' }),
+      row(SyncTable.CompanyEntries, {
+        id: 'paid',
+        member_id: null,
+        paid_by_company: true,
+        created_by: 'me',
+      }),
       row(SyncTable.CompanyEntries, { id: 'gone', member_id: 'moved' }),
       row(SyncTable.CompanyEntryAttachments, { id: 'a1', entry_id: 'paid' }),
     ]).state;

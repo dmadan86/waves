@@ -34,7 +34,13 @@ function query(data: unknown, error: unknown = null) {
   return q;
 }
 function setup(
-  options: { failEntries?: boolean; member?: boolean; category?: string; approved?: boolean; paidByCompany?: boolean } = {},
+  options: {
+    failEntries?: boolean;
+    member?: boolean;
+    category?: string;
+    approved?: boolean;
+    paidByCompany?: boolean;
+  } = {},
 ) {
   const group = {
     id: 'company',

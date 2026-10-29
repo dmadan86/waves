@@ -546,9 +546,9 @@ export function companySummary(
   entries: readonly CompanyEntry[],
   options: { readonly memberIds?: readonly string[]; readonly from: string; readonly to: string },
 ): CompanySummary {
-  const ids =
-    options.memberIds ??
-    [...new Set(entries.filter((entry) => !entry.paidByCompany).map((entry) => entry.memberId))];
+  const ids = options.memberIds ?? [
+    ...new Set(entries.filter((entry) => !entry.paidByCompany).map((entry) => entry.memberId)),
+  ];
   const rows: CompanySummaryRow[] = ids
     .map((memberId) => ({
       memberId,
