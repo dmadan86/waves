@@ -328,4 +328,21 @@ describe('company paid directly: receipts', () => {
       await store(0);
       for (const i of [3, 4, 5]) await denied(() => store(i), /NOT_ALLOWED/);
     }));
+  it('the recording manager can remove any receipt on their entry, another manager cannot', () =>
+    isolated(async () => {
+      const id = await paid(2);
+      const att = randomUUID();
+      await db.query(
+        'INSERT INTO company_entry_attachments(id,entry_id,group_id,uploader_member_id,storage_path) VALUES($1,$2,$3,$4,$5)',
+        [att, id, g.groupId, g.memberIds[0], `${id}/${att}/${randomUUID()}.jpg`],
+      );
+      await denied(() =>
+        user(5, () => db.query('SELECT waves_remove_company_entry_image($1)', [att])),
+      );
+      await user(2, () => db.query('SELECT waves_remove_company_entry_image($1)', [att]));
+      expect(
+        (await db.query('SELECT deleted_at FROM company_entry_attachments WHERE id=$1', [att]))
+          .rows[0].deleted_at,
+      ).not.toBeNull();
+    }));
 });
