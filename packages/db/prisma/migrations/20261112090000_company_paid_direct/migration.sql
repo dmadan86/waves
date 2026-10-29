@@ -356,3 +356,23 @@ BEGIN
   AND (path=p_path OR (NOT p_pending_only AND p_path=base AND path=base||'.thumb.jpg'));
  RETURN true;
 END $fn$;
+
+CREATE OR REPLACE FUNCTION public.waves_remove_company_entry_image(p_attachment_id uuid) RETURNS void
+ LANGUAGE plpgsql  SECURITY DEFINER SET search_path TO 'public', 'pg_temp' AS $fn$
+DECLARE a public.company_entry_attachments%ROWTYPE; actor uuid; attachment_entry uuid;
+BEGIN
+ SELECT * INTO a FROM public.company_entry_attachments WHERE id=p_attachment_id;
+ PERFORM public.waves_company_entry_lock(a.entry_id);
+ -- Re-read the attachment after the entry lock and reject a changed association.
+ attachment_entry:=a.entry_id;
+ SELECT * INTO a FROM public.company_entry_attachments WHERE id=p_attachment_id FOR UPDATE;
+ IF NOT FOUND OR a.entry_id IS DISTINCT FROM attachment_entry THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+ actor:=public.waves_company_actor(a.group_id);
+ IF NOT public.waves_can_read_company_entry(a.entry_id) OR (a.uploader_member_id<>actor AND NOT public.is_group_admin(a.group_id) AND NOT EXISTS(SELECT 1 FROM public.company_entries pe WHERE pe.id=a.entry_id AND pe.paid_by_company AND pe.created_by=actor) AND NOT public.waves_company_team(a.group_id,(SELECT member_id FROM public.company_entries WHERE id=a.entry_id))) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+ IF EXISTS(SELECT 1 FROM public.company_entries WHERE id=a.entry_id AND (reimbursement_id IS NOT NULL OR reimbursement_details IS NOT NULL)) THEN RAISE EXCEPTION 'ENTRY_REIMBURSED: covered entries are frozen' USING ERRCODE='check_violation'; END IF;
+ IF a.deleted_at IS NOT NULL THEN RETURN; END IF;
+ UPDATE public.company_entry_attachments SET deleted_at=now(),updated_at=now() WHERE id=a.id;
+ DELETE FROM public.storage_objects WHERE logical_bucket='company-entry-images' AND path IN(a.storage_path,a.storage_path||'.thumb.jpg');
+ PERFORM public.waves_company_evidence_changed(a.entry_id,actor);
+END
+$fn$;

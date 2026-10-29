@@ -337,6 +337,7 @@ anyone, is never reimbursable or a wage claim, and is never sent for approval.
 - **Phone**: `CompanyEntry.memberId` is '' for these (so every per-employee lookup naturally skips them);
   `purgeCompanyInvisible` keeps a manager's own via `created_by`. Business tags: materials, repairs, rent,
   utilities, equipment (+ transport, office, other).
+- **Open**: a manager demoted to employee keeps their cached company-paid rows on the phone until reinstall (same gap as a demoted owner above); the server stops delivering them at once.
 - **Deploy**: the sync edge function changed (null `memberId` + `paidByCompany`); deploy it with the prod rollout.
 
 ## Later
