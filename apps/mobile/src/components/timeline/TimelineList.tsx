@@ -277,7 +277,12 @@ function EntryRow({
             ) : null}
           </>
         ) : (
-          <Text numberOfLines={2} style={{ fontSize: 11, lineHeight: 14, color: muted }}>
+          <Text
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.8}
+            style={{ fontSize: 11, lineHeight: 14, color: muted }}
+          >
             {t.timeline.addedLater}
           </Text>
         )}
