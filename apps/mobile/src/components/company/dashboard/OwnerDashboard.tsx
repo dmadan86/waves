@@ -14,7 +14,7 @@ import { Screen, Sheet, Text, directionalIcon, iconSize, useTheme } from '@waves
 
 import { ManagerCashRowPublic, OwnerCashList } from '@/components/company/CompanyCash';
 import { CompanyRules } from '@/components/company/CompanyRules';
-import { BudgetArt, ReceiptArt } from '@/components/company/dashboard/art';
+import { BudgetArt, ManagerTeamArt, ReceiptArt } from '@/components/company/dashboard/art';
 import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
 import { CompanySites, useAddSiteSheet } from '@/components/company/CompanySites';
 import {
@@ -22,6 +22,7 @@ import {
   BLUE,
   BLUE_SOFT,
   DashBody,
+  useCompanyCounts,
   GREEN,
   GREEN_SOFT,
   DashHeader,
@@ -41,7 +42,7 @@ import { useCompanyEntries, useCompanyProjects, type CompanyView } from '@/data/
 import { useSetMemberRole } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
@@ -50,7 +51,8 @@ type Tab = 'overview' | 'employees' | 'managers' | 'budgets' | 'payments';
 export function OwnerDashboard({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const clearance = useBottomClearance();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
+  const companyCounts = useCompanyCounts();
   const view = useCompanyEntries(groupId);
   const fmt = useMoney(view.currency);
   const [tab, setTab] = useState<Tab>('overview');
@@ -149,11 +151,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
           groupId={groupId}
           view={view}
           showGear
-          subtitle={fill(t.company.countsLine, {
-            e: String(employees.length),
-            m: String(managers.length),
-            o: String(owners.length),
-          })}
+          subtitle={companyCounts(live)}
           tabs={tabs}
         />
         <DashBody>
@@ -221,7 +219,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                             <RolePill label={t.company.pillOwner} />
                           </>
                         }
-                        subtitle={fill(t.company.ownersControl, { n: String(owners.length) })}
+                        subtitle={`${plural(locale, owners.length, t.company.ownerCount)} · ${t.company.overallControl}`}
                         count={String(live.length - owners.length)}
                         onPress={() => router.push(`/group/${groupId}/company-hierarchy`)}
                       />
@@ -308,9 +306,76 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
           {tab === 'managers' ? (
             <>
               {managers.length === 0 ? (
-                <Text variant="body" tone="muted">
-                  {t.company.managersNone}
-                </Text>
+                <StandardCard style={{ padding: 16, gap: 12 }}>
+                  <ManagerTeamArt />
+                  <Text variant="heading" align="center">
+                    {t.company.managersEmptyTitle}
+                  </Text>
+                  <Text variant="caption" tone="muted" align="center">
+                    {t.company.managersEmptyBody}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => (employees.length ? setPromoting(true) : router.push(people))}
+                    style={{
+                      alignSelf: 'center',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: theme.color.buttonPrimary,
+                      paddingHorizontal: 22,
+                      paddingVertical: 12,
+                    }}
+                  >
+                    <Ionicons
+                      name="add-circle-outline"
+                      size={20}
+                      color={theme.color.onButtonPrimary}
+                    />
+                    <Text style={{ color: theme.color.onButtonPrimary, fontWeight: '700' }}>
+                      {t.company.makeManagerAction}
+                    </Text>
+                  </Pressable>
+                  <View
+                    style={{ height: 1, backgroundColor: theme.color.border, marginVertical: 4 }}
+                  />
+                  <Text variant="title">{t.company.whyManagers}</Text>
+                  {(
+                    [
+                      [
+                        'people-outline',
+                        'organizeTeams',
+                        'organizeTeamsBody',
+                        theme.color.brandSoft,
+                        theme.color.brand,
+                      ],
+                      ['wallet-outline', 'managerPools', 'managerPoolsBody', BLUE_SOFT, BLUE],
+                      [
+                        'document-text-outline',
+                        'controlApprove',
+                        'controlApproveBody',
+                        GREEN_SOFT,
+                        GREEN,
+                      ],
+                    ] as const
+                  ).map(([icon, title, body, bg, fg]) => (
+                    <View
+                      key={title}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}
+                    >
+                      <View style={{ padding: 10, borderRadius: 24, backgroundColor: bg }}>
+                        <Ionicons name={icon} size={22} color={fg} />
+                      </View>
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text style={{ fontWeight: '700' }}>{t.company[title]}</Text>
+                        <Text variant="caption" tone="muted">
+                          {t.company[body]}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </StandardCard>
               ) : (
                 <StandardCard>
                   {managers.map((m, i) => (
@@ -326,7 +391,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                   ))}
                 </StandardCard>
               )}
-              {employees.length > 0 ? (
+              {employees.length > 0 && managers.length > 0 ? (
                 <ListRow
                   title={t.company.makeManagerPick}
                   leading={
