@@ -159,6 +159,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
             <>
               <PendingApprovals groupId={groupId} view={view} />
               <StatTriple
+                showCompanySpend={view.entries.some((e) => e.paidByCompany && !e.deleted)}
                 stats={stats}
                 currency={view.currency}
                 onOwes={() => setTab('payments')}

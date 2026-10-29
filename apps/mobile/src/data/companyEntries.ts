@@ -188,19 +188,33 @@ export function useCompanyEntries(groupId: string): CompanyView {
         groupId,
         currency,
         myMemberId: me?.id ?? null,
+        myIsManager: isManager,
         approvalsEnabled,
       })
         .map((row) => companyEntryFromRow(row as unknown as CompanyEntryRow))
-        .filter((entry) => visibleIds.has(entry.memberId)),
-    [mirror, queue, groupId, currency, me?.id, visibleIds, approvalsEnabled],
+        .filter((entry) =>
+          entry.paidByCompany
+            ? isOwner || (isManager && !!me?.id && entry.createdBy === me.id)
+            : visibleIds.has(entry.memberId),
+        ),
+    [mirror, queue, groupId, currency, me?.id, visibleIds, approvalsEnabled, isOwner, isManager],
   );
   // The same rows without this phone's queued changes: the base a queued edit is measured from.
   const settledEntries = useMemo(
     () =>
-      materialiseCompanyEntries(mirror, [], { groupId, currency, myMemberId: me?.id ?? null })
+      materialiseCompanyEntries(mirror, [], {
+        groupId,
+        currency,
+        myMemberId: me?.id ?? null,
+        myIsManager: isManager,
+      })
         .map((row) => companyEntryFromRow(row as unknown as CompanyEntryRow))
-        .filter((entry) => visibleIds.has(entry.memberId)),
-    [mirror, groupId, currency, me?.id, visibleIds],
+        .filter((entry) =>
+          entry.paidByCompany
+            ? isOwner || (isManager && !!me?.id && entry.createdBy === me.id)
+            : visibleIds.has(entry.memberId),
+        ),
+    [mirror, groupId, currency, me?.id, visibleIds, isOwner, isManager],
   );
   // Owners are known to owners (member rows) and to managers (the directory).
   const ownerIds = useMemo(() => {
@@ -276,7 +290,7 @@ export function useAddCompanyEntry(groupId: string) {
   return useMutation({
     mutationFn: async (input: {
       entryId: string;
-      memberId: string;
+      memberId: string | null;
       entryKind: 'expense' | 'advance' | 'allowance' | 'wages' | 'reimbursement';
       data: CompanyEntryData;
     }): Promise<string> => {

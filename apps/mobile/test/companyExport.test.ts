@@ -45,6 +45,8 @@ const labels: CompanyExportLabels = {
   colDate: 'Date',
   colType: 'Type',
   colMember: 'Member',
+  colPaidBy: 'Paid by',
+  companyPayer: 'Company',
   colStatus: 'Status',
   colAmount: 'Amount',
   colBalance: 'Balance',
@@ -75,6 +77,47 @@ const base = {
 };
 
 describe('company export', () => {
+  it('includes company payers with a blank employee, expense and GST totals, and no employee balance', () => {
+    const paid = entry({
+      member_id: null,
+      paid_by_company: true,
+      category: 'materials',
+      amount: '11800',
+      gst_amount_minor: '1800',
+    });
+    const personal = entry({ amount: '10000' });
+    const model = buildCompanyExport({
+      ...base,
+      scope: 'admin',
+      names: new Map([['ravi', 'Ravi']]),
+      entries: [paid, personal],
+      labels: {
+        ...labels,
+        totalRows: (t) => [
+          ['Expenses', t.expenses],
+          ['GST', t.gst],
+        ],
+      },
+    });
+    const rows = model.sections.find((s) => s.heading === 'Entries')!;
+    expect(rows.columns).toContain('Paid by');
+    const company = rows.rows.find((r) => r[2]?.text === 'Company')!;
+    expect(company[1]?.text).toBe('');
+    expect(rows.rows.find((r) => r[2]?.text === 'Ravi')?.[1]?.text).toBe('Ravi');
+    expect(model.sections[0]?.rows.map((r) => r[1]?.value)).toEqual([218, 18]);
+    expect(model.sections.find((s) => s.heading === 'Employees')?.rows).toHaveLength(1);
+    expect(renderCompanyExportHtml(model, 'None')).toContain('Company');
+    expect(JSON.stringify(buildCompanyExportWorkbook(model).Sheets)).toContain('Paid by');
+    const own = buildCompanyExport({
+      ...base,
+      scope: 'employee',
+      memberId: 'ravi',
+      employeeName: 'Ravi',
+      entries: [paid],
+    });
+    expect(own.sections.find((s) => s.heading === 'Entries')?.rows).toEqual([]);
+  });
+
   const mine = entry({ amount: '50000', note: '=HYPERLINK("x")' });
   const other = entry({ member_id: 'sita', amount: '99999', note: 'SECRETNOTE' });
 

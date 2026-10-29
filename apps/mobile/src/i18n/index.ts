@@ -1474,6 +1474,15 @@ export interface UiStrings {
     wageNetLabel: string;
     kReimbursement: string;
     kCashReturned: string;
+    companyPayer: string;
+    companyPaidDirect: string;
+    companyPaidPoolHint: string;
+    companySpentMonth: string;
+    catMaterials: string;
+    catRepairs: string;
+    catRent: string;
+    catUtilities: string;
+    catEquipment: string;
     catFuel: string;
     catTransport: string;
     catTravel: string;
@@ -7798,6 +7807,15 @@ const en: UiStrings = {
     wageNetLabel: 'Paid',
     kReimbursement: 'Reimbursement',
     kCashReturned: 'Cash returned',
+    companyPayer: 'Company',
+    companyPaidDirect: 'Company (paid directly)',
+    companyPaidPoolHint: 'Paid from your cash pool',
+    companySpentMonth: 'Company spent this month',
+    catMaterials: 'Materials',
+    catRepairs: 'Repairs',
+    catRent: 'Rent',
+    catUtilities: 'Utilities',
+    catEquipment: 'Equipment',
     catFuel: 'Fuel',
     catTransport: 'Transport',
     catTravel: 'Travel',
@@ -13571,6 +13589,15 @@ const ta: UiStrings = {
     wageNetLabel: 'செலுத்தியது',
     kReimbursement: 'திரும்பச் செலுத்தல்',
     kCashReturned: 'பணம் திருப்பியது',
+    companyPayer: 'நிறுவனம்',
+    companyPaidDirect: 'நிறுவனம் (நேரடியாகச் செலுத்தியது)',
+    companyPaidPoolHint: 'உங்கள் பணக் கையிருப்பிலிருந்து செலுத்தப்பட்டது',
+    companySpentMonth: 'இந்த மாத நிறுவனச் செலவு',
+    catMaterials: 'பொருட்கள்',
+    catRepairs: 'பழுதுபார்ப்பு',
+    catRent: 'வாடகை',
+    catUtilities: 'அத்தியாவசிய சேவைகள்',
+    catEquipment: 'உபகரணங்கள்',
     catFuel: 'எரிபொருள்',
     catTransport: 'போக்குவரத்து',
     catTravel: 'பயணம்',
@@ -19507,6 +19534,15 @@ const hi: UiStrings = {
     wageNetLabel: 'दिया',
     kReimbursement: 'भरपाई',
     kCashReturned: 'नकद लौटाया',
+    companyPayer: 'कंपनी',
+    companyPaidDirect: 'कंपनी (सीधा भुगतान)',
+    companyPaidPoolHint: 'आपकी नकद राशि से भुगतान',
+    companySpentMonth: 'इस महीने कंपनी का खर्च',
+    catMaterials: 'सामग्री',
+    catRepairs: 'मरम्मत',
+    catRent: 'किराया',
+    catUtilities: 'उपयोगिता सेवाएँ',
+    catEquipment: 'उपकरण',
     catFuel: 'ईंधन',
     catTransport: 'परिवहन',
     catTravel: 'यात्रा',
@@ -25352,6 +25388,15 @@ const ar: UiStrings = {
     wageNetLabel: 'المدفوع',
     kReimbursement: 'سداد',
     kCashReturned: 'نقد معاد',
+    companyPayer: 'الشركة',
+    companyPaidDirect: 'الشركة (دفع مباشر)',
+    companyPaidPoolHint: 'مدفوع من رصيدك النقدي',
+    companySpentMonth: 'إنفاق الشركة هذا الشهر',
+    catMaterials: 'مواد',
+    catRepairs: 'إصلاحات',
+    catRent: 'إيجار',
+    catUtilities: 'خدمات',
+    catEquipment: 'معدات',
     catFuel: 'وقود',
     catTransport: 'نقل',
     catTravel: 'سفر',

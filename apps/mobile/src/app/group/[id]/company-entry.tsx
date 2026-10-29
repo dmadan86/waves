@@ -53,7 +53,7 @@ import {
   TagGrid,
 } from '@/components/company/EntryForm';
 import { CompanyTagsSheet } from '@/components/company/CompanyTagsSheet';
-import { useCompanyTags } from '@/data/companyTags';
+import { COMPANY_PAID_TAGS, useCompanyTags } from '@/data/companyTags';
 import {
   attachCompanyPhoto,
   useAddCompanyEntry,
@@ -97,7 +97,13 @@ export default function CompanyEntryScreen() {
   const [projectId, setProjectId] = useState<string | null>(null);
   const [pickedKind, setKind] = useState<CompanyEntryKind | null>(null);
   const [memberId, setMemberId] = useState<string | null>(memberParam ?? null);
-  const employee = view.members.find((m) => m.id === (memberId ?? view.me?.id)) ?? view.me;
+  const [payer, setPayer] = useState<'employee' | 'company'>('employee');
+  const paidByCompany = payer === 'company' && (view.isOwner || view.isManager);
+  const employee = paidByCompany
+    ? undefined
+    : memberId === null
+      ? view.me
+      : view.members.find((m) => m.id === memberId);
   // A manager's own entries are expense / bata only; money to the team comes from their pool.
   const moneyKinds = view.isAdmin && (view.isOwner || employee?.id !== view.me?.id);
   const kinds: CompanyEntryKind[] = moneyKinds
@@ -107,13 +113,14 @@ export default function CompanyEntryScreen() {
     : ['expense', 'allowance'];
   // Inside a person's thread the first verb is giving money; anywhere else it is spending.
   const kind: CompanyEntryKind =
+    (paidByCompany ? 'expense' : null) ??
     pickedKind ??
     (moneyKinds && kindParam === 'advance' ? 'advance' : null) ??
     (moneyKinds && memberParam && memberParam !== view.me?.id ? 'advance' : 'expense');
   const tags = useCompanyTags(groupId, view);
   // Nothing tapped yet: the tag this person uses most is already chosen.
   const [pickedTag, setPickedTag] = useState<string | null>(null);
-  const category = pickedTag ?? tags.ranked[0]?.key ?? 'other';
+  const category = pickedTag ?? (paidByCompany ? 'materials' : tags.ranked[0]?.key) ?? 'other';
   const unit = tags.all.find((tag) => tag.key === category)?.unit ?? null;
   const [qty, setQty] = useState('');
   const [moreOpen, setMoreOpen] = useState(false);
@@ -148,7 +155,11 @@ export default function CompanyEntryScreen() {
     : (view.defaultRateMinor ?? 0n);
   const rate = rateTouched ?? defaultRate;
   const byDays = kind === 'allowance' || (kind === 'wages' && wagesMode === 'days_rate');
-  const byKm = kind === 'expense' && mileage && (category === 'fuel' || category === 'transport');
+  const byKm =
+    !paidByCompany &&
+    kind === 'expense' &&
+    mileage &&
+    (category === 'fuel' || category === 'transport');
   const perKm = resolveMileageRate(
     kmRate,
     employee?.mileage_rate_minor,
@@ -233,12 +244,20 @@ export default function CompanyEntryScreen() {
   const pickEmployee = async (): Promise<void> => {
     const picked = await choose({
       title: t.company.formEmployee,
-      options: view.members
-        .filter((m) => !m.left_at)
-        .map((m) => ({ id: m.id, label: displayName(m, null, null, t.misc.someone) })),
+      options: [
+        ...((view.isOwner || view.isManager) && kind === 'expense'
+          ? [{ id: 'company', label: t.company.companyPaidDirect }]
+          : []),
+        ...view.members
+          .filter((m) => !m.left_at)
+          .map((m) => ({ id: m.id, label: displayName(m, null, null, t.misc.someone) })),
+      ],
     });
     if (picked) {
-      setMemberId(picked);
+      setPayer(picked === 'company' ? 'company' : 'employee');
+      if (picked !== 'company') setMemberId(picked);
+      if (picked === 'company' || paidByCompany) setKind('expense');
+      setPickedTag(null);
       setRateTouched(null);
     }
   };
@@ -262,7 +281,7 @@ export default function CompanyEntryScreen() {
 
   // A days x rate entry may be zero (a zero rate is valid); a typed amount may not.
   const valid =
-    !!employee &&
+    (paidByCompany || !!employee) &&
     (byDays || byKm ? computed !== null : total > 0n) &&
     !gstinBad &&
     !gstTooBig &&
@@ -296,7 +315,7 @@ export default function CompanyEntryScreen() {
   };
 
   const save = async (): Promise<void> => {
-    if (!employee || !valid) {
+    if (!valid || (!paidByCompany && !employee)) {
       setError(
         byKm
           ? perKm === null
@@ -315,10 +334,13 @@ export default function CompanyEntryScreen() {
     setError(null);
     // No column for quantity yet: it rides in the note ("20 bag · site 2").
     const qtyText =
-      kind === 'expense' && unit && qty.trim() && !byKm ? `${qty.trim()} ${unit}` : '';
+      !paidByCompany && kind === 'expense' && unit && qty.trim() && !byKm
+        ? `${qty.trim()} ${unit}`
+        : '';
     // The server caps a note at 500 characters; the quantity rides inside that.
     const noteText = [qtyText, note.trim()].filter(Boolean).join(' · ').slice(0, 500);
     const data: CompanyEntryData = {
+      ...(paidByCompany ? { paidByCompany: true } : {}),
       amount: total.toString(),
       occurredOn: date,
       note: noteText || null,
@@ -357,7 +379,7 @@ export default function CompanyEntryScreen() {
       const entryId = randomUUID();
       await add.mutateAsync({
         entryId,
-        memberId: employee.id,
+        memberId: paidByCompany ? null : employee!.id,
         entryKind: kind as 'expense' | 'advance' | 'allowance' | 'wages' | 'reimbursement',
         data,
       });
@@ -425,9 +447,10 @@ export default function CompanyEntryScreen() {
           selected: kind === 'allowance',
         },
       ];
-  const otherKinds = moneyKinds ? kinds.filter((k) => k === 'allowance' || k === 'wages') : [];
+  const otherKinds =
+    !paidByCompany && moneyKinds ? kinds.filter((k) => k === 'allowance' || k === 'wages') : [];
   const hasMore = otherKinds.length > 0 || projects.length > 0 || showGst;
-  const canPickPerson = view.isAdmin && view.members.filter((m) => !m.left_at).length > 1;
+  const canPickPerson = view.isOwner || view.isManager;
   const dateText = dateFrom(date).toLocaleDateString(locale, {
     day: 'numeric',
     month: 'short',
@@ -473,20 +496,22 @@ export default function CompanyEntryScreen() {
               </Text>
             ) : null}
             <StandardCard style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-              {tiles.map((tile) => (
-                <KindTile
-                  key={tile.id}
-                  icon={tile.icon}
-                  title={tile.title}
-                  sub={tile.sub}
-                  selected={tile.selected}
-                  onPress={() => {
-                    if (tile.id === 'wages') router.push(`/group/${groupId}/company-wages`);
-                    else if (tile.id === 'give') setKind(giveSel ? kind : 'advance');
-                    else setKind(tile.id as CompanyEntryKind);
-                  }}
-                />
-              ))}
+              {tiles
+                .filter((tile) => !paidByCompany || tile.id === 'expense')
+                .map((tile) => (
+                  <KindTile
+                    key={tile.id}
+                    icon={tile.icon}
+                    title={tile.title}
+                    sub={tile.sub}
+                    selected={tile.selected}
+                    onPress={() => {
+                      if (tile.id === 'wages') router.push(`/group/${groupId}/company-wages`);
+                      else if (tile.id === 'give') setKind(giveSel ? kind : 'advance');
+                      else setKind(tile.id as CompanyEntryKind);
+                    }}
+                  />
+                ))}
             </StandardCard>
 
             <StandardCard style={{ gap: theme.spacing.md }}>
@@ -622,13 +647,18 @@ export default function CompanyEntryScreen() {
                 <>
                   <FieldLabel>{t.company.formCategory}</FieldLabel>
                   <TagGrid
-                    tags={tags.ranked.map((tag) => ({ key: tag.key, label: tag.label }))}
+                    tags={
+                      paidByCompany
+                        ? COMPANY_PAID_TAGS.map((key) => ({ key, label: tags.label(key) }))
+                        : tags.ranked.map((tag) => ({ key: tag.key, label: tag.label }))
+                    }
+                    limit={paidByCompany ? 8 : 7}
                     value={category}
                     onChange={setPickedTag}
                     onMore={() => setTagsOpen(true)}
                     moreLabel={t.company.tagAll}
                   />
-                  {unit && !byKm ? (
+                  {!paidByCompany && unit && !byKm ? (
                     <View
                       style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
                     >
@@ -644,7 +674,7 @@ export default function CompanyEntryScreen() {
                       <Text variant="body">{unit}</Text>
                     </View>
                   ) : null}
-                  {category === 'fuel' || category === 'transport' ? (
+                  {!paidByCompany && (category === 'fuel' || category === 'transport') ? (
                     <ChipRow
                       wrap
                       onCard
@@ -702,13 +732,21 @@ export default function CompanyEntryScreen() {
                 icon="person-outline"
                 label={t.company.paidBy}
                 text={
-                  employee
-                    ? displayName(employee, null, null, t.misc.someone)
-                    : t.company.selectPerson
+                  paidByCompany
+                    ? t.company.companyPaidDirect
+                    : employee
+                      ? displayName(employee, null, null, t.misc.someone)
+                      : t.company.selectPerson
                 }
-                placeholder={!employee}
+                placeholder={!paidByCompany && !employee}
                 onPress={canPickPerson ? () => void pickEmployee() : undefined}
               />
+
+              {paidByCompany && view.isManager ? (
+                <Text variant="caption" tone="muted">
+                  {t.company.companyPaidPoolHint}
+                </Text>
+              ) : null}
 
               <FieldLabel>{t.company.notesLabel}</FieldLabel>
               <SelectField
