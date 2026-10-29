@@ -25,6 +25,10 @@ import {
 } from '@waves/core';
 import { Button, Text, iconSize, useTheme } from '@waves/ui';
 
+import { TAG_ICON } from './EntryForm';
+import { ActionTile, AmountCard, DueRow, ReadyNote } from './EmployeeDetail';
+import { CompanyTeamCard } from './CompanyTeamCard';
+
 import {
   ListRow,
   SectionHeader,
@@ -36,7 +40,7 @@ import {
 import { useReimburseCompany, type CompanyView } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, type MemberRow } from '@/data/types';
-import { fill, useStrings, type UiStrings } from '@/i18n';
+import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { periodRange, type CompanyPeriod } from '@/lib/companyPeriod';
 import { useCompanyTags } from '@/data/companyTags';
 import { friendlyError } from '@/lib/errors';
@@ -98,17 +102,21 @@ export function CompanyStatementView({
   member,
   period,
   groupId,
+  detail = false,
 }: {
   view: CompanyView;
   member: MemberRow;
   period: CompanyPeriod;
   groupId: string;
+  /** An admin opening an employee: the pay-first layout of the employee screen. */
+  detail?: boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const tagLabel = useCompanyTags(groupId, view).label;
   const reimburse = useReimburseCompany(groupId);
   const [selecting, setSelecting] = useState(false);
+  const [panel, setPanel] = useState<'history' | 'summary' | null>(null);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   // Set when picked by date: every claim and credit through it is frozen into the payment.
   const [through, setThrough] = useState<string | null>(null);
@@ -241,6 +249,232 @@ export function CompanyStatementView({
       ? a.entry.createdAt.localeCompare(b.entry.createdAt)
       : a.entry.occurredOn.localeCompare(b.entry.occurredOn),
   );
+
+  const history = (
+    <View style={{ gap: theme.spacing.sm }}>
+      {bubbles.length === 0 ? (
+        <Text variant="caption" tone="muted" align="center">
+          {t.company.threadEmpty}
+        </Text>
+      ) : (
+        bubbles.map(({ entry }) => (
+          <Bubble
+            key={entry.id}
+            entry={entry}
+            label={kindLabel(t, entry, tagLabel)}
+            fmt={fmt}
+            locale={locale}
+            hasPhoto={view.receiptEntryIds.has(entry.id)}
+            onPress={() => open(entry)}
+          />
+        ))
+      )}
+    </View>
+  );
+
+  if (detail) {
+    const dueTotal = due.reduce((sum, e) => sum + e.amount, 0n);
+    const dueParts = formatParts({ minor: dueTotal, currency }, { locale });
+    const allPicked = due.length > 0 && picked.size === due.length;
+    return (
+      <>
+        <AmountCard
+          label={t.company.amountToPay}
+          lead={dueParts.lead}
+          fraction={`${dueParts.fraction}${dueParts.trail}`}
+          caption={plural(locale, due.length, t.company.expensesPending)}
+        />
+        {error ? (
+          <Text variant="caption" tone="negative">
+            {error}
+          </Text>
+        ) : null}
+        {alreadyPaid.map((line) => (
+          <Text key={line} variant="caption" tone="muted">
+            {line}
+          </Text>
+        ))}
+
+        {due.length > 0 ? (
+          <>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Text variant="subheading">{t.company.pendingForPayment}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setThrough(null);
+                  setPicked(allPicked ? new Set() : new Set(due.map((e) => e.id)));
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  height: 34,
+                  paddingHorizontal: theme.spacing.md,
+                  borderRadius: theme.radius.pill,
+                  borderWidth: 1,
+                  borderColor: theme.color.brand,
+                }}
+              >
+                <Ionicons
+                  name={allPicked ? 'checkbox' : 'checkbox-outline'}
+                  size={iconSize.base}
+                  color={theme.color.brand}
+                />
+                <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                  {t.company.selectAllBtn}
+                </Text>
+              </Pressable>
+            </View>
+            {due.map((e) => {
+              const receipts = view.receiptEntryIds.has(e.id);
+              return (
+                <DueRow
+                  key={e.id}
+                  checked={picked.has(e.id)}
+                  icon={
+                    e.kind === 'expense'
+                      ? (TAG_ICON[e.category ?? '']?.[0] ?? 'pricetag')
+                      : 'cash-outline'
+                  }
+                  title={kindLabel(t, e, tagLabel)}
+                  date={showDate(e.occurredOn, locale)}
+                  receipt={receipts ? t.company.receiptOne : undefined}
+                  amount={fmt(e.amount)}
+                  onToggle={() => toggle(e.id)}
+                  onOpen={() => open(e)}
+                />
+              );
+            })}
+            <ReadyNote title={t.company.readyToSettle} body={t.company.readyBody} />
+            {picked.size > 0 ? (
+              <Text variant="caption" tone="muted" align="center">
+                {[
+                  fill(t.company.payCount, { count: String(preview.claims.length) }),
+                  preview.creditsMinor !== 0n
+                    ? fill(t.company.payCredits, { amount: fmt(preview.creditsMinor) })
+                    : null,
+                  fmt(preview.payoutMinor < 0n ? 0n : preview.payoutMinor),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Text>
+            ) : null}
+            {picked.size > 0 && preview.payoutMinor < 0n ? (
+              <Text variant="caption" tone="negative">
+                {t.company.payNeedMore}
+              </Text>
+            ) : null}
+          </>
+        ) : null}
+
+        {statement.rows.length > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={share}
+            style={{
+              height: 50,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 8,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.brand,
+            }}
+          >
+            <Ionicons name="logo-whatsapp" size={iconSize.md} color={theme.color.onBrand} />
+            <Text variant="subheading" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+              {t.company.sendWhatsApp}
+            </Text>
+          </Pressable>
+        ) : null}
+        {due.length > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canPay }}
+            disabled={!canPay}
+            onPress={() => void pay()}
+            style={{
+              height: 46,
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexDirection: 'row',
+              gap: 8,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.brandSoft,
+              opacity: canPay ? 1 : 0.6,
+            }}
+          >
+            <Ionicons name="checkmark-circle" size={iconSize.md} color={theme.color.brand} />
+            <Text variant="subheading" style={{ color: theme.color.brand, fontWeight: '700' }}>
+              {t.company.markPaid}
+            </Text>
+          </Pressable>
+        ) : null}
+        {due.length > 0 ? (
+          <Text variant="micro" tone="muted" align="center">
+            {t.company.payExternal}
+          </Text>
+        ) : null}
+
+        <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+          {view.manageableIds.has(member.id) ? (
+            <ActionTile
+              icon="add"
+              title={t.company.addEntry}
+              sub={t.company.tileAddSub}
+              onPress={() => router.push(`/group/${groupId}/company-entry?member=${member.id}`)}
+            />
+          ) : null}
+          <ActionTile
+            icon="document-text-outline"
+            title={t.company.tileHistory}
+            sub={t.company.tileHistorySub}
+            onPress={() => setPanel((p) => (p === 'history' ? null : 'history'))}
+          />
+          <ActionTile
+            icon="stats-chart"
+            title={t.company.tileSummary}
+            sub={t.company.tileSummarySub}
+            onPress={() => setPanel((p) => (p === 'summary' ? null : 'summary'))}
+          />
+        </View>
+        {panel === 'history' ? history : null}
+        {panel === 'summary' ? (
+          <>
+            <StatCard
+              label={who}
+              lead={parts.lead}
+              fraction={`${parts.fraction}${parts.trail}`}
+              accessibilityLabel={`${t.company.balance}: ${fmt(abs)}`}
+              caption={sideText}
+            />
+            <CompanyTeamCard groupId={groupId} view={view} member={member} />
+          </>
+        ) : null}
+        <View
+          style={{
+            padding: 10,
+            borderRadius: theme.radius.lg,
+            backgroundColor: theme.color.brandSoft,
+          }}
+        >
+          <Text variant="caption" style={{ fontWeight: '700' }}>
+            {t.company.detailPrivacyTitle}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {t.company.detailPrivacyBody}
+          </Text>
+        </View>
+      </>
+    );
+  }
 
   return (
     <>

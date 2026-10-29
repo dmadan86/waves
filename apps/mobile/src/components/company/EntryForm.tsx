@@ -179,7 +179,7 @@ export function DashedRow({
   );
 }
 
-const TAG_ICON: Record<string, [Icon, string]> = {
+export const TAG_ICON: Record<string, [Icon, string]> = {
   food: ['restaurant', '#6D4AE8'],
   transport: ['car', BLUE],
   fuel: ['color-fill', GREEN],

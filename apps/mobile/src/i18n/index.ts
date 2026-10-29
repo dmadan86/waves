@@ -1480,6 +1480,23 @@ export interface UiStrings {
     catFood: string;
     catOffice: string;
     catOther: string;
+    amountToPay: string;
+    expensesPending: PluralForms;
+    pendingForPayment: string;
+    selectAllBtn: string;
+    receiptOne: string;
+    readyToSettle: string;
+    readyBody: string;
+    sendWhatsApp: string;
+    markPaid: string;
+    tileAddSub: string;
+    tileHistory: string;
+    tileHistorySub: string;
+    tileSummary: string;
+    tileSummarySub: string;
+    detailPrivacyTitle: string;
+    detailPrivacyBody: string;
+    callEmployee: string;
     catStay: string;
     kindGive: string;
     kindSubGive: string;
@@ -7787,6 +7804,23 @@ const en: UiStrings = {
     catFood: 'Food',
     catOffice: 'Office',
     catOther: 'Other',
+    amountToPay: 'Amount to pay',
+    expensesPending: { one: '{n} expense pending', other: '{n} expenses pending' },
+    pendingForPayment: 'Pending for payment',
+    selectAllBtn: 'Select all',
+    receiptOne: '1 receipt',
+    readyToSettle: 'Ready to settle',
+    readyBody: 'Pay them your usual way, then mark as paid.',
+    sendWhatsApp: 'Send on WhatsApp',
+    markPaid: 'Mark as paid',
+    tileAddSub: 'Record new expense',
+    tileHistory: 'View all expenses',
+    tileHistorySub: 'See full history',
+    tileSummary: 'Employee summary',
+    tileSummarySub: 'View this employee',
+    detailPrivacyTitle: 'Employees see only their own entries.',
+    detailPrivacyBody: 'They can add expenses and see their payment status.',
+    callEmployee: 'Call',
     catStay: 'Stay',
     kindGive: 'Give money',
     kindSubGive: 'Advance / Reimburse',
@@ -13543,6 +13577,23 @@ const ta: UiStrings = {
     catFood: 'உணவு',
     catOffice: 'அலுவலகம்',
     catOther: 'மற்றவை',
+    amountToPay: 'செலுத்த வேண்டிய தொகை',
+    expensesPending: { one: '{n} செலவு நிலுவையில்', other: '{n} செலவுகள் நிலுவையில்' },
+    pendingForPayment: 'செலுத்த நிலுவையில்',
+    selectAllBtn: 'அனைத்தையும் தேர்வு செய்',
+    receiptOne: '1 ரசீது',
+    readyToSettle: 'தீர்க்கத் தயார்',
+    readyBody: 'உங்கள் வழக்கமான முறையில் செலுத்தி, பின் செலுத்தியதாகக் குறிக்கவும்.',
+    sendWhatsApp: 'WhatsApp-ல் அனுப்பு',
+    markPaid: 'செலுத்தியதாகக் குறி',
+    tileAddSub: 'புதிய செலவைப் பதிவு செய்',
+    tileHistory: 'அனைத்து செலவுகள்',
+    tileHistorySub: 'முழு வரலாறு',
+    tileSummary: 'ஊழியர் சுருக்கம்',
+    tileSummarySub: 'இந்த ஊழியரைப் பார்',
+    detailPrivacyTitle: 'ஊழியர்கள் தங்கள் பதிவுகளை மட்டுமே பார்ப்பர்.',
+    detailPrivacyBody: 'அவர்கள் செலவுகளைச் சேர்க்கவும் செலுத்தும் நிலையைப் பார்க்கவும் முடியும்.',
+    callEmployee: 'அழை',
     catStay: 'தங்குமிடம்',
     kindGive: 'பணம் கொடுக்க',
     kindSubGive: 'முன்பணம் / திருப்பி',
@@ -19462,6 +19513,23 @@ const hi: UiStrings = {
     catFood: 'खाना',
     catOffice: 'दफ़्तर',
     catOther: 'अन्य',
+    amountToPay: 'चुकाने की राशि',
+    expensesPending: { one: '{n} खर्च बाकी', other: '{n} खर्च बाकी' },
+    pendingForPayment: 'भुगतान के लिए बाकी',
+    selectAllBtn: 'सभी चुनें',
+    receiptOne: '1 रसीद',
+    readyToSettle: 'निपटाने के लिए तैयार',
+    readyBody: 'अपने सामान्य तरीके से भुगतान करें, फिर चुकाया हुआ चिह्नित करें।',
+    sendWhatsApp: 'WhatsApp पर भेजें',
+    markPaid: 'चुकाया हुआ चिह्नित करें',
+    tileAddSub: 'नया खर्च दर्ज करें',
+    tileHistory: 'सभी खर्च देखें',
+    tileHistorySub: 'पूरा इतिहास',
+    tileSummary: 'कर्मचारी सारांश',
+    tileSummarySub: 'इस कर्मचारी को देखें',
+    detailPrivacyTitle: 'कर्मचारी केवल अपनी एंट्री देखते हैं।',
+    detailPrivacyBody: 'वे खर्च जोड़ सकते हैं और अपने भुगतान की स्थिति देख सकते हैं।',
+    callEmployee: 'कॉल करें',
     catStay: 'ठहरना',
     kindGive: 'पैसे दें',
     kindSubGive: 'अग्रिम / प्रतिपूर्ति',
@@ -25290,6 +25358,23 @@ const ar: UiStrings = {
     catFood: 'طعام',
     catOffice: 'مكتب',
     catOther: 'أخرى',
+    amountToPay: 'المبلغ المستحق',
+    expensesPending: { one: 'مصروف واحد معلّق', other: '{n} مصاريف معلّقة' },
+    pendingForPayment: 'بانتظار الدفع',
+    selectAllBtn: 'تحديد الكل',
+    receiptOne: 'إيصال واحد',
+    readyToSettle: 'جاهز للتسوية',
+    readyBody: 'ادفع له بطريقتك المعتادة ثم علّمه كمدفوع.',
+    sendWhatsApp: 'إرسال عبر واتساب',
+    markPaid: 'تعليم كمدفوع',
+    tileAddSub: 'سجّل مصروفاً جديداً',
+    tileHistory: 'عرض كل المصاريف',
+    tileHistorySub: 'السجل الكامل',
+    tileSummary: 'ملخص الموظف',
+    tileSummarySub: 'عرض هذا الموظف',
+    detailPrivacyTitle: 'يرى الموظفون قيودهم فقط.',
+    detailPrivacyBody: 'يمكنهم إضافة مصاريف ومعرفة حالة الدفع.',
+    callEmployee: 'اتصال',
     catStay: 'إقامة',
     kindGive: 'إعطاء مال',
     kindSubGive: 'سلفة / تعويض',
