@@ -373,7 +373,6 @@ export default function MembersScreen() {
           {(members.data ?? []).map((member, index) => (
             <View key={member.id}>
               <ListRow
-                compact
                 title={displayName(member, profile?.id, blockedIds, t.misc.someone)}
                 subtitle={
                   isCompany && isViewer(member, profile?.id)
