@@ -51,6 +51,7 @@ export function KindTile({
           variant="body"
           numberOfLines={1}
           style={{
+            flexShrink: 1,
             fontWeight: '700',
             fontSize: 13,
             color: selected ? theme.color.onBrand : undefined,
@@ -226,7 +227,7 @@ export function TagGrid({
     },
   ];
   return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
       {cells.map((cell) => (
         <Pressable
           key={cell.key}
