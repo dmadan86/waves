@@ -8,6 +8,7 @@ import {
   needsSecondOwner,
   projectSpend,
   purgeCompanyInvisible,
+  wageSiteSplit,
   reconcile,
   companyEntryFromRow,
   SyncTable,
@@ -41,6 +42,31 @@ describe('evenSplit', () => {
     expect(evenSplit(1000n, 3).reduce((a, b) => a + b, 0n)).toBe(1000n);
     expect(evenSplit(0n, 2)).toEqual([0n, 0n]);
     expect(evenSplit(5n, 0)).toEqual([]);
+  });
+});
+
+describe('wageSiteSplit', () => {
+  it('one site takes it all; several split evenly; zero parts are dropped', () => {
+    expect(wageSiteSplit(1000n, ['a'])).toEqual({ projectId: 'a' });
+    expect(wageSiteSplit(1000n, ['a', 'b', 'c'])).toEqual({
+      projectId: null,
+      splits: [
+        { projectId: 'a', amountMinor: '334' },
+        { projectId: 'b', amountMinor: '333' },
+        { projectId: 'c', amountMinor: '333' },
+      ],
+    });
+    // 2 minor units over 3 sites: only the first two get a positive part.
+    expect(wageSiteSplit(2n, ['a', 'b', 'c'])).toEqual({
+      projectId: null,
+      splits: [
+        { projectId: 'a', amountMinor: '1' },
+        { projectId: 'b', amountMinor: '1' },
+      ],
+    });
+    expect(wageSiteSplit(1n, ['a', 'b'])).toEqual({ projectId: 'a' });
+    expect(wageSiteSplit(0n, ['a', 'b'])).toEqual({ projectId: null });
+    expect(wageSiteSplit(500n, [])).toEqual({ projectId: null });
   });
 });
 

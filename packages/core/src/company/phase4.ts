@@ -338,6 +338,29 @@ export function evenSplit(base: bigint, count: number): bigint[] {
 }
 
 /**
+ * Where a wage base goes: one site -> that site; several -> an even split with zero parts dropped
+ * (the server needs every part positive); a base too small for the sites collapses to fewer sites.
+ */
+export function wageSiteSplit(
+  base: bigint,
+  siteIds: readonly string[],
+): { projectId: string | null; splits?: { projectId: string; amountMinor: string }[] } {
+  const parts = evenSplit(base, siteIds.length)
+    .map((amount, i) => ({ projectId: siteIds[i]!, amountMinor: amount }))
+    .filter((part) => part.amountMinor > 0n);
+  if (siteIds.length === 1) return { projectId: siteIds[0]! };
+  if (parts.length === 0) return { projectId: null };
+  if (parts.length === 1) return { projectId: parts[0]!.projectId };
+  return {
+    projectId: null,
+    splits: parts.map((part) => ({
+      projectId: part.projectId,
+      amountMinor: part.amountMinor.toString(),
+    })),
+  };
+}
+
+/**
  * Does approving this claim need an owner other than its creator? Mirrors the server rule
  * (`waves_company_second_owner_required`): the setting is on with approvals, there are at
  * least two owners, and the claim is owner-raised or at/over the threshold.

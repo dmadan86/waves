@@ -2232,7 +2232,7 @@ export function materialiseWageSplits(
 }
 
 /**
- * A manager's phone after an employee moved to another manager: the server lists the
+ * A non-owner's phone after an employee moved to another manager (or the viewer lost a role): the server lists the
  * members this caller may still read, so anyone not on it loses their cached entries,
  * photos, sites and split wages here. Never empties a company (an empty list is ignored).
  */
