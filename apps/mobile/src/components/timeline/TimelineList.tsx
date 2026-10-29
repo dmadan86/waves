@@ -33,7 +33,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import type { TimelineDay, TimelineEntry, TimelineRow } from '@/lib/timeline';
 
-const TIME_COL = 32;
+const TIME_COL = 44;
 const RAIL_COL = 18;
 /** Equal space either side of the rail: time | gap | rail | gap | card. */
 const RAIL_GAP = 6;
