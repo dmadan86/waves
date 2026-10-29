@@ -425,7 +425,7 @@ export default function CompanyEntryScreen() {
           selected: kind === 'allowance',
         },
       ];
-  const otherKinds = moneyKinds ? kinds.filter((k) => k === 'allowance') : [];
+  const otherKinds = moneyKinds ? kinds.filter((k) => k === 'allowance' || k === 'wages') : [];
   const hasMore = otherKinds.length > 0 || projects.length > 0 || showGst;
   const canPickPerson = view.isAdmin && view.members.filter((m) => !m.left_at).length > 1;
   const dateText = dateFrom(date).toLocaleDateString(locale, {
