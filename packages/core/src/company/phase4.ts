@@ -301,18 +301,62 @@ export function wageRunTotals(lines: readonly WageRunDraftLine[]): {
 
 // ─────────────────────────────────────────────────────────── projects ──
 
-/** Approved spend per project: expense + bata + wage base + legacy wages (advances are cash, not spend). */
-export function projectSpend(entries: readonly CompanyEntry[]): Map<string, bigint> {
+/**
+ * Approved spend per project: expense + bata + wage base + legacy wages (advances are cash, not spend).
+ * A wage payment divided across sites (`splits`, by payment id) counts each site's part, not its own site.
+ */
+export function projectSpend(
+  entries: readonly CompanyEntry[],
+  splits?: ReadonlyMap<string, readonly { projectId: string; amountMinor: bigint }[]>,
+): Map<string, bigint> {
   const out = new Map<string, bigint>();
+  const bump = (projectId: string, amount: bigint): void => {
+    if (amount !== 0n) out.set(projectId, (out.get(projectId) ?? 0n) + amount);
+  };
   for (const e of entries) {
-    if (!e.projectId || e.deleted) continue;
+    if (e.deleted) continue;
+    const parts = e.kind === 'wage_payment' ? splits?.get(e.id) : undefined;
+    if (parts?.length) {
+      for (const part of parts) bump(part.projectId, part.amountMinor);
+      continue;
+    }
+    if (!e.projectId) continue;
     let add = 0n;
     if ((e.kind === 'expense' || e.kind === 'allowance') && counted(e)) add = e.amount;
     else if (e.kind === 'wages') add = e.amount;
     else if (e.kind === 'wage_payment') add = (e.grossMinor ?? e.amount) - (e.claimsMinor ?? 0n);
-    if (add !== 0n) out.set(e.projectId, (out.get(e.projectId) ?? 0n) + add);
+    bump(e.projectId, add);
   }
   return out;
+}
+
+/** Spread `base` over `count` sites in whole minor units; the first sites take the remainder. */
+export function evenSplit(base: bigint, count: number): bigint[] {
+  if (count <= 0 || base < 0n) return [];
+  const n = BigInt(count);
+  return Array.from({ length: count }, (_, i) => base / n + (BigInt(i) < base % n ? 1n : 0n));
+}
+
+/**
+ * Does approving this claim need an owner other than its creator? Mirrors the server rule
+ * (`waves_company_second_owner_required`): the setting is on with approvals, there are at
+ * least two owners, and the claim is owner-raised or at/over the threshold.
+ */
+export function needsSecondOwner(input: {
+  readonly enabled: boolean;
+  readonly approvalsEnabled: boolean;
+  readonly thresholdMinor: bigint | null;
+  readonly ownerCount: number;
+  readonly creatorIsOwner: boolean;
+  readonly amount: bigint;
+}): boolean {
+  return (
+    input.enabled &&
+    input.approvalsEnabled &&
+    input.ownerCount > 1 &&
+    (input.creatorIsOwner ||
+      (input.thresholdMinor !== null && input.amount >= input.thresholdMinor))
+  );
 }
 
 /** True when the employee already has a wage payment overlapping [start, end] (the server refuses a second). */

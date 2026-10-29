@@ -163,6 +163,7 @@ export function DashHeader({
   pill,
   showGear,
   tabs,
+  voice,
 }: {
   groupId: string;
   view: CompanyView;
@@ -170,6 +171,8 @@ export function DashHeader({
   pill?: string;
   showGear: boolean;
   tabs?: ReactNode;
+  /** Offer "speak an expense" beside the +. */
+  voice?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -267,6 +270,30 @@ export function DashHeader({
           </Text>
           {pill ? <RolePill label={pill} /> : null}
         </View>
+        {voice ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.company.voiceAdd}
+            onPress={() => router.push({ pathname: '/voice', params: { group: groupId } })}
+            style={{
+              position: 'absolute',
+              right: theme.spacing.lg + 54 + 10,
+              bottom: 10,
+              width: 42,
+              height: 42,
+              borderRadius: 21,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.surface,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              zIndex: 2,
+              elevation: 3,
+            }}
+          >
+            <Ionicons name="mic-outline" size={iconSize.lg} color={theme.color.text} />
+          </Pressable>
+        ) : null}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.company.addEntry}

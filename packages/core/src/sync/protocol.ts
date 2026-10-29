@@ -80,6 +80,7 @@ export enum MutationKind {
   CompanyProjectSet = 'company_project.set',
   CompanyPoolPost = 'company_pool.post',
   CompanyWagePay = 'company_wage.pay',
+  CompanySecondApprovalSet = 'company.second_approval_set',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -557,6 +558,8 @@ export interface CompanyWageLinePayload {
   readonly rateMinor: string | null;
   readonly fixedMinor: string | null;
   readonly claimIds: readonly { readonly entryId: string; readonly expectedVersion: number }[];
+  /** Divides the wage base (gross less folded claims) across sites; then `projectId` is null. */
+  readonly splits?: readonly { readonly projectId: string; readonly amountMinor: string }[];
   readonly expectedGrossMinor: string;
   readonly expectedRecoveryMinor: string;
   readonly expectedNetMinor: string;
@@ -570,6 +573,13 @@ export interface CompanyWagePayPayload {
   readonly periodEnd: string;
   readonly paidOn: string;
   readonly lines: readonly CompanyWageLinePayload[];
+}
+
+/** Owner: a second owner must approve large or owner-raised claims. Needs two owners and approvals on. */
+export interface CompanySecondApprovalSetPayload {
+  readonly enabled: boolean;
+  /** Claims at or above this need the second owner; null = only owner-raised claims. */
+  readonly thresholdMinor: string | null;
 }
 
 /** Clearing carries nothing — the scope (group) and the caller identify the row. */
@@ -764,6 +774,8 @@ export enum SyncTable {
   CompanyProjects = 'company_projects',
   CompanyProjectMembers = 'company_project_members',
   CompanyProjectBudgets = 'company_project_budgets',
+  /** Group-scoped, pull-only: a wage payment divided across sites; as private as the payment. */
+  CompanyWageSplits = 'company_wage_splits',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',
