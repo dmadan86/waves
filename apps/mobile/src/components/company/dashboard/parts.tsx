@@ -57,9 +57,9 @@ export function RolePill({ label }: { label: string }) {
 
 /** Paid / reimbursed money reads green on this screen (the mockup), whatever the app's blue. */
 export const GREEN = '#15803D';
-const GREEN_SOFT = '#DDF5E5';
-const BLUE = '#2F6FE0';
-const BLUE_SOFT = '#DCEBFF';
+export const GREEN_SOFT = '#DDF5E5';
+export const BLUE = '#2F6FE0';
+export const BLUE_SOFT = '#DCEBFF';
 const ORANGE = '#F26B1D';
 const ORANGE_SOFT = '#FFE6D5';
 const BUILDING = require('../../../../assets/images/company/hero-building.webp') as number;
@@ -553,7 +553,7 @@ export function SectionCard({
   onViewAll,
   children,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;
   title: string;
   onViewAll?: () => void;
   children: ReactNode;
@@ -563,7 +563,7 @@ export function SectionCard({
   return (
     <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-        <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
+        {icon ? <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} /> : null}
         <Text variant="title" style={{ flex: 1, fontSize: 16 }}>
           {title}
         </Text>
@@ -694,6 +694,7 @@ export function RecentActivity({
   entries,
   limit,
   header,
+  empty,
 }: {
   groupId: string;
   view: CompanyView;
@@ -701,6 +702,8 @@ export function RecentActivity({
   limit?: number;
   /** Wraps the rows in a titled card, as on the owner's overview. */
   header?: { title: string; onViewAll?: () => void };
+  /** Shown in the titled card when there are no rows. */
+  empty?: ReactNode;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -760,9 +763,65 @@ export function RecentActivity({
   });
   return header ? (
     <SectionCard icon="document-text-outline" title={header.title} onViewAll={header.onViewAll}>
-      {rows.length === 0 ? none : list}
+      {rows.length === 0 ? (empty ?? none) : list}
     </SectionCard>
   ) : (
     <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 4 }}>{list}</StandardCard>
+  );
+}
+
+/** A tinted tile with an icon, a title, a line of help and a small chevron (the mockup's two-up actions). */
+export function ActionTile({
+  icon,
+  title,
+  body,
+  tone,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  title: string;
+  body: string;
+  tone: 'violet' | 'blue';
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const dark = theme.scheme === 'dark';
+  const color = tone === 'blue' ? BLUE : theme.color.brand;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`${title}, ${body}`}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        gap: 4,
+        padding: 12,
+        borderRadius: theme.radius.lg,
+        backgroundColor: tone === 'blue' && !dark ? BLUE_SOFT : theme.color.brandSoft,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+        <Ionicons name={icon} size={iconSize.lg} color={color} />
+        <View
+          style={{
+            width: 22,
+            height: 22,
+            borderRadius: 11,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.surface,
+          }}
+        >
+          <Ionicons name={directionalIcon('chevron-forward')} size={12} color={color} />
+        </View>
+      </View>
+      <Text variant="body" style={{ fontWeight: '700', fontSize: 14 }}>
+        {title}
+      </Text>
+      <Text variant="caption" tone="muted" style={SMALL}>
+        {body}
+      </Text>
+    </Pressable>
   );
 }

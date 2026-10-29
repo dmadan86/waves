@@ -7,17 +7,23 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { dashboardStats } from '@waves/core';
-import { Screen, Sheet, Text, iconSize, useTheme } from '@waves/ui';
+import { Screen, Sheet, Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
 
 import { ManagerCashRowPublic, OwnerCashList } from '@/components/company/CompanyCash';
 import { CompanyRules } from '@/components/company/CompanyRules';
+import { BudgetArt, ReceiptArt } from '@/components/company/dashboard/art';
 import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
 import { CompanySites, useAddSiteSheet } from '@/components/company/CompanySites';
 import {
+  ActionTile,
+  BLUE,
+  BLUE_SOFT,
   DashBody,
+  GREEN,
+  GREEN_SOFT,
   DashHeader,
   InviteBanner,
   PersonLine,
@@ -31,7 +37,7 @@ import {
 } from '@/components/company/dashboard/parts';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
-import { useCompanyEntries, type CompanyView } from '@/data/companyEntries';
+import { useCompanyEntries, useCompanyProjects, type CompanyView } from '@/data/companyEntries';
 import { useSetMemberRole } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
@@ -51,6 +57,8 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
   const [promoting, setPromoting] = useState(false);
   const role = useSetMemberRole(groupId);
   const addSite = useAddSiteSheet(groupId);
+  const sites = useCompanyProjects(groupId).filter((p) => !p.archived_at);
+  const [showAllPayments, setShowAllPayments] = useState(false);
 
   const live = view.members.filter((m) => !m.left_at);
   const owners = live.filter((m) => m.role === 'admin');
@@ -74,6 +82,15 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
   const requests = view.entries
     .filter((e) => e.kind === 'pool_request' && !e.deleted)
     .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
+
+  const payments = view.entries.filter(
+    (e) =>
+      e.kind === 'wage_payment' ||
+      e.kind === 'wages' ||
+      e.kind === 'advance' ||
+      e.kind === 'reimbursement',
+  );
+  const noBudgets = managers.length === 0 && sites.length === 0 && requests.length === 0;
 
   const tabs = (
     <TabPills
@@ -318,59 +335,196 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
 
           {tab === 'budgets' ? (
             <>
-              <OwnerCashList groupId={groupId} view={view} />
-              {managers.length === 0 ? (
-                <Text variant="body" tone="muted">
-                  {t.company.managersNone}
-                </Text>
-              ) : null}
-              {requests.length > 0 ? (
-                <>
-                  <Text variant="title">{t.company.budgetRequests}</Text>
-                  <StandardCard>
-                    {requests.map((r, i) => {
-                      const m = live.find((x) => x.id === r.memberId);
-                      return (
-                        <ListRow
-                          key={r.id}
-                          title={m ? displayName(m, null, null, t.misc.someone) : t.misc.someone}
-                          subtitle={r.note ?? undefined}
-                          amount={fmt(r.amount)}
-                          divider={i < requests.length - 1}
-                        />
-                      );
-                    })}
-                  </StandardCard>
-                </>
-              ) : null}
-              <CompanySites groupId={groupId} view={view} />
-              <ListRow
-                title={t.company.addSite}
-                leading={
-                  <Ionicons name="location-outline" size={iconSize.md} color={theme.color.brand} />
-                }
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.company.addSite}
                 onPress={addSite.open}
-              />
+              >
+                <StandardCard
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingHorizontal: 14,
+                    paddingVertical: 12,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Ionicons name="location" size={iconSize.lg} color={theme.color.brand} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="body" style={{ fontWeight: '700' }}>
+                      {t.company.addSite}
+                    </Text>
+                    <Text variant="caption" tone="muted" numberOfLines={2}>
+                      {t.company.addSiteBody}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={directionalIcon('chevron-forward')}
+                    size={iconSize.sm}
+                    color={theme.color.textFaint}
+                  />
+                </StandardCard>
+              </Pressable>
+              {noBudgets ? (
+                <View style={{ alignItems: 'center', gap: 8, paddingTop: 8 }}>
+                  <BudgetArt />
+                  <Text variant="heading" align="center">
+                    {t.company.budgetsNone}
+                  </Text>
+                  <Text variant="caption" tone="muted" align="center">
+                    {t.company.budgetsNoneBody}
+                  </Text>
+                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+                    {(
+                      [
+                        ['people-outline', theme.color.brandSoft, theme.color.brand, 'setBudget'],
+                        ['git-network-outline', BLUE_SOFT, BLUE, 'assignManager'],
+                        ['bar-chart', GREEN_SOFT, GREEN, 'trackSpending'],
+                      ] as const
+                    ).map(([icon, bg, fg, key]) => (
+                      <View key={key} style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+                        <View
+                          style={{
+                            width: 46,
+                            height: 46,
+                            borderRadius: 23,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: bg,
+                          }}
+                        >
+                          <Ionicons name={icon} size={iconSize.lg} color={fg} />
+                        </View>
+                        <Text variant="caption" align="center" style={{ fontWeight: '700' }}>
+                          {t.company[key]}
+                        </Text>
+                        <Text
+                          variant="caption"
+                          tone="muted"
+                          align="center"
+                          style={{ fontSize: 11.5 }}
+                        >
+                          {t.company[`${key}Body` as const]}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.company.createBudget}
+                    onPress={addSite.open}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      height: 44,
+                      paddingHorizontal: 28,
+                      marginTop: 8,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: theme.color.buttonPrimary,
+                    }}
+                  >
+                    <Ionicons
+                      name="add-circle-outline"
+                      size={iconSize.md}
+                      color={theme.color.onButtonPrimary}
+                    />
+                    <Text style={{ fontWeight: '600', color: theme.color.onButtonPrimary }}>
+                      {t.company.createBudget}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <>
+                  <OwnerCashList groupId={groupId} view={view} />
+                  {requests.length > 0 ? (
+                    <>
+                      <Text variant="title">{t.company.budgetRequests}</Text>
+                      <StandardCard>
+                        {requests.map((r, i) => {
+                          const m = live.find((x) => x.id === r.memberId);
+                          return (
+                            <ListRow
+                              key={r.id}
+                              title={
+                                m ? displayName(m, null, null, t.misc.someone) : t.misc.someone
+                              }
+                              subtitle={r.note ?? undefined}
+                              amount={fmt(r.amount)}
+                              divider={i < requests.length - 1}
+                            />
+                          );
+                        })}
+                      </StandardCard>
+                    </>
+                  ) : null}
+                  <CompanySites groupId={groupId} view={view} />
+                </>
+              )}
             </>
           ) : null}
 
           {tab === 'payments' ? (
             <>
-              <QuickActions
-                actions={[
-                  {
-                    icon: 'cash-outline',
-                    label: t.company.payWages,
-                    onPress: () => router.push(`/group/${groupId}/company-wages`),
-                  },
-                  {
-                    icon: 'arrow-up-circle-outline',
-                    label: t.company.gaveMoney,
-                    onPress: () => router.push(`/group/${groupId}/company-entry`),
-                  },
-                ]}
+              <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 4 }}>
+                <Text variant="title" style={{ fontSize: 16 }}>
+                  {t.company.recordPayment}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {t.company.recordPaymentBody}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 8 }}>
+                  <ActionTile
+                    icon="cash-outline"
+                    title={t.company.payWages}
+                    body={t.company.payWagesBody}
+                    tone="violet"
+                    onPress={() => router.push(`/group/${groupId}/company-wages`)}
+                  />
+                  <ActionTile
+                    icon="arrow-up-circle-outline"
+                    title={t.company.gaveMoney}
+                    body={t.company.gaveMoneyBody}
+                    tone="blue"
+                    onPress={() => router.push(`/group/${groupId}/company-entry`)}
+                  />
+                </View>
+              </StandardCard>
+              <RecentActivity
+                groupId={groupId}
+                view={view}
+                entries={payments}
+                limit={showAllPayments ? 50 : 5}
+                header={{
+                  title: t.company.recentPayments,
+                  onViewAll:
+                    !showAllPayments && payments.length > 5
+                      ? () => setShowAllPayments(true)
+                      : undefined,
+                }}
+                empty={
+                  <View style={{ alignItems: 'center', gap: 2, paddingVertical: 4 }}>
+                    <ReceiptArt />
+                    <Text variant="body" style={{ fontWeight: '700' }}>
+                      {t.company.paymentsNone}
+                    </Text>
+                    <Text variant="caption" tone="muted" align="center">
+                      {t.company.paymentsNoneBody}
+                    </Text>
+                  </View>
+                }
               />
-              <RecentActivity groupId={groupId} view={view} entries={view.entries} />
               <CompanyRules groupId={groupId} view={view} />
             </>
           ) : null}

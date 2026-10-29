@@ -8,7 +8,9 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { formatMinorInput, parseMinorInput, type CurrencyCode } from '@waves/core';
-import { Toggle, iconSize, useTheme } from '@waves/ui';
+import { View } from 'react-native';
+
+import { Text, Toggle, directionalIcon, iconSize, useTheme } from '@waves/ui';
 
 import { CompanyPolicyEditor } from '@/components/company/CompanyPolicyEditor';
 import { useMoney } from '@/components/company/dashboard/parts';
@@ -28,10 +30,20 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
   const [rate, setRateOpen] = useState(false);
   const currency = view.currency as CurrencyCode;
   if (!view.isOwner) return null;
+  const lead = (name: keyof typeof Ionicons.glyphMap) => (
+    <Ionicons name={name} size={iconSize.lg} color={theme.color.textMuted} />
+  );
   return (
     <>
-      <StandardCard>
+      <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <Ionicons name="settings-outline" size={iconSize.lg} color={theme.color.text} />
+          <Text variant="title" style={{ fontSize: 16 }}>
+            {t.company.paymentSettings}
+          </Text>
+        </View>
         <ListRow
+          leading={lead('shield-checkmark-outline')}
           title={t.company.approvalsTitle}
           subtitle={t.company.approvalsHint}
           subtitleLines={3}
@@ -45,7 +57,10 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
           divider
         />
         <ListRow
+          leading={lead('calendar-outline')}
           title={t.company.dailyRate}
+          subtitle={t.company.dailyRateHint}
+          subtitleLines={2}
           amount={
             view.defaultRateMinor !== null ? fmt(view.defaultRateMinor) : t.company.rateNotSet
           }
@@ -53,7 +68,10 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
           divider
         />
         <ListRow
+          leading={lead('car-outline')}
           title={t.company.mileageRate}
+          subtitle={t.company.mileageRateHint}
+          subtitleLines={2}
           amount={
             view.defaultMileageRateMinor !== null
               ? fmt(view.defaultMileageRateMinor)
@@ -63,13 +81,15 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
           divider
         />
         <ListRow
+          leading={lead('document-text-outline')}
           title={t.company.policiesTitle}
-          subtitle={`${view.policies.rules.length}`}
+          subtitle={t.company.policiesHint}
+          amount={`${view.policies.rules.length}`}
           trailing={
             <Ionicons
-              name={policies ? 'chevron-up' : 'chevron-down'}
-              size={iconSize.md}
-              color={theme.color.textMuted}
+              name={policies ? 'chevron-up' : directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.textFaint}
             />
           }
           onPress={() => setPolicies((open) => !open)}

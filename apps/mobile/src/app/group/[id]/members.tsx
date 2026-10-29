@@ -1,7 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Badge,
@@ -30,6 +31,7 @@ import {
   useGroup,
   useGroupLedger,
   useMemberClaims,
+  useSetMemberRole,
 } from '@/data/hooks';
 import { useBlockedUsers } from '@/data/blocked';
 import {
@@ -51,8 +53,16 @@ import { isPhoneCountryError } from '@/lib/phone';
 import { useBottomClearance } from '@/lib/clearance';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
+const TEAM = require('../../../../assets/images/company/team.webp') as number;
+
 export default function MembersScreen() {
   const theme = useTheme();
+  const inputStyle = {
+    flex: 1,
+    fontSize: 16,
+    color: theme.color.text,
+    paddingVertical: theme.spacing.sm,
+  } as const;
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -67,12 +77,16 @@ export default function MembersScreen() {
   const decide = useDecideMemberClaim(groupId);
 
   const addPast = useAddCompanyPastPeople(groupId);
+  const setRole = useSetMemberRole(groupId);
 
   const [pastOpen, setPastOpen] = useState(false);
   const [pastQuery, setPastQuery] = useState('');
   const [pastPicked, setPastPicked] = useState<ReadonlySet<string>>(new Set());
   const [ghostName, setGhostName] = useState('');
   const [ghostContact, setGhostContact] = useState('');
+  const [ghostEmail, setGhostEmail] = useState('');
+  const [asManager, setAsManager] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
@@ -157,15 +171,23 @@ export default function MembersScreen() {
 
   const add = (): void => {
     const name = ghostName.trim();
-    const contact = contactOf(ghostContact);
+    // A company asks phone and email in their own fields; other groups keep the one address field.
+    const contact = isCompany
+      ? { phone: ghostContact.trim() || undefined, email: ghostEmail.trim() || undefined }
+      : contactOf(ghostContact);
     if (!name && !contact.email && !contact.phone) return;
     setError(null);
     addGhost.mutate(
       { name, ...contact },
       {
-        onSuccess: () => {
+        onSuccess: (memberId) => {
+          // Only an owner can pick Manager; it is the same change as "Make manager" on their statement.
+          if (isCompany && iAmAdmin && asManager) setRole.mutate({ memberId, role: 'manager' });
           setGhostName('');
           setGhostContact('');
+          setGhostEmail('');
+          setAsManager(false);
+          setRoleOpen(false);
         },
         onError: (caught) =>
           setError(
@@ -255,12 +277,25 @@ export default function MembersScreen() {
           </Text>
         </View>
         {canAdd ? (
-          <IconButton
-            label={t.people.invite}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.people.invite}
             onPress={() => router.push(`/group/${groupId}/invite`)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              height: 36,
+              paddingHorizontal: 14,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.brandSoft,
+            }}
           >
             <Ionicons name="share-outline" size={iconSize.md} color={theme.color.brand} />
-          </IconButton>
+            <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+              {t.people.invite}
+            </Text>
+          </Pressable>
         ) : null}
       </Row>
 
@@ -351,7 +386,9 @@ export default function MembersScreen() {
                       <Badge
                         label={t.people.admin}
                         tone="brand"
-                        icon={(color) => <Ionicons name="ribbon" size={12} color={color} />}
+                        icon={(color) => (
+                          <MaterialCommunityIcons name="crown" size={12} color={color} />
+                        )}
                       />
                     ) : null}
                     <MoneyText
@@ -409,21 +446,32 @@ export default function MembersScreen() {
             to build. */}
         {canAdd ? (
           <Card style={{ gap: theme.spacing.lg }}>
-            <View>
-              <Text variant="heading">
-                {isCompany ? t.company.addEmployee : t.people.addSomeone}
-              </Text>
-              <Text variant="caption" tone="muted">
-                {isCompany ? t.company.addEmployeeBody : t.people.addSomeoneBody}
-              </Text>
-            </View>
+            <Row style={{ alignItems: 'flex-start', gap: theme.spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <Text variant="heading">
+                  {isCompany ? t.company.addEmployee : t.people.addSomeone}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {isCompany ? t.company.addEmployeeBody : t.people.addSomeoneBody}
+                </Text>
+              </View>
+              {isCompany ? (
+                <Image
+                  source={TEAM}
+                  accessibilityIgnoresInvertColors
+                  fadeDuration={0}
+                  style={{ width: 112, height: 69, borderRadius: 10 }}
+                />
+              ) : null}
+            </Row>
 
             <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
               <AddTile
                 icon="people-outline"
-                label={t.people.browseContacts}
-                body={t.people.browseContactsBody}
+                label={isCompany ? t.company.fromContacts : t.people.browseContacts}
+                body={isCompany ? t.company.fromContactsBody : t.people.browseContactsBody}
                 onPress={openContactPicker}
+                tone="violet"
               />
               {isCompany ? (
                 <AddTile
@@ -431,6 +479,7 @@ export default function MembersScreen() {
                   label={t.company.fromPastCompany}
                   body={t.company.fromPastCompanyBody}
                   onPress={() => setPastOpen((open) => !open)}
+                  tone="blue"
                 />
               ) : (
                 <AddTile
@@ -438,6 +487,7 @@ export default function MembersScreen() {
                   label={t.people.shareInvite}
                   body={t.people.shareInviteBody}
                   onPress={() => router.push(`/group/${groupId}/invite`)}
+                  tone="violet"
                 />
               )}
             </Row>
@@ -527,41 +577,130 @@ export default function MembersScreen() {
                 <TextInput
                   value={ghostName}
                   onChangeText={setGhostName}
-                  placeholder={t.people.namePlaceholder}
+                  placeholder={isCompany ? t.company.fullNameRequired : t.people.namePlaceholder}
                   placeholderTextColor={theme.color.textFaint}
                   accessibilityLabel={t.common.name}
                   onSubmitEditing={add}
                   returnKeyType="done"
-                  style={{
-                    flex: 1,
-                    fontSize: 16,
-                    color: theme.color.text,
-                    paddingVertical: theme.spacing.sm,
-                  }}
+                  style={inputStyle}
                 />
               </Field>
-              <Field icon="at-outline">
-                <TextInput
-                  value={ghostContact}
-                  onChangeText={setGhostContact}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  placeholder={t.people.contactOptional}
-                  placeholderTextColor={theme.color.textFaint}
-                  accessibilityLabel={t.common.emailOrPhone}
-                  onSubmitEditing={add}
-                  returnKeyType="done"
-                  style={{
-                    flex: 1,
-                    fontSize: 16,
-                    color: theme.color.text,
-                    paddingVertical: theme.spacing.sm,
-                  }}
-                />
-              </Field>
+              {isCompany ? <Helper>{t.people.namePlaceholder}</Helper> : null}
+              {isCompany ? (
+                <>
+                  <Field icon="call-outline">
+                    <TextInput
+                      value={ghostContact}
+                      onChangeText={setGhostContact}
+                      keyboardType="phone-pad"
+                      placeholder={t.company.phoneOptional}
+                      placeholderTextColor={theme.color.textFaint}
+                      accessibilityLabel={t.company.phoneOptional}
+                      returnKeyType="next"
+                      style={inputStyle}
+                    />
+                  </Field>
+                  <Helper>{t.company.phoneHelper}</Helper>
+                  <Field icon="mail-outline">
+                    <TextInput
+                      value={ghostEmail}
+                      onChangeText={setGhostEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      placeholder={t.company.emailOptional}
+                      placeholderTextColor={theme.color.textFaint}
+                      accessibilityLabel={t.company.emailOptional}
+                      onSubmitEditing={add}
+                      returnKeyType="done"
+                      style={inputStyle}
+                    />
+                  </Field>
+                  <Helper>{t.company.emailHelper}</Helper>
+                  {iAmAdmin ? (
+                    <View>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={t.company.roleLabel}
+                        onPress={() => setRoleOpen((open) => !open)}
+                      >
+                        <Row
+                          style={{
+                            alignItems: 'center',
+                            gap: theme.spacing.sm,
+                            borderWidth: 1,
+                            borderColor: theme.color.border,
+                            borderRadius: theme.radius.lg,
+                            paddingHorizontal: theme.spacing.md,
+                            paddingVertical: theme.spacing.sm,
+                          }}
+                        >
+                          <Ionicons
+                            name="briefcase-outline"
+                            size={iconSize.md}
+                            color={theme.color.textMuted}
+                          />
+                          <View style={{ flex: 1 }}>
+                            <Text variant="micro" tone="muted">
+                              {t.company.roleLabel}
+                            </Text>
+                            <Text variant="body" style={{ fontWeight: '600' }}>
+                              {asManager ? t.company.manager : t.company.roleEmployee}
+                            </Text>
+                          </View>
+                          <Ionicons
+                            name={roleOpen ? 'chevron-up' : 'chevron-down'}
+                            size={iconSize.md}
+                            color={theme.color.textMuted}
+                          />
+                        </Row>
+                      </Pressable>
+                      {roleOpen
+                        ? [false, true].map((manager) => (
+                            <ListRow
+                              key={String(manager)}
+                              title={manager ? t.company.manager : t.company.roleEmployee}
+                              onPress={() => {
+                                setAsManager(manager);
+                                setRoleOpen(false);
+                              }}
+                              trailing={
+                                asManager === manager ? (
+                                  <Ionicons
+                                    name="checkmark"
+                                    size={iconSize.md}
+                                    color={theme.color.brand}
+                                  />
+                                ) : undefined
+                              }
+                            />
+                          ))
+                        : null}
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                <Field icon="at-outline">
+                  <TextInput
+                    value={ghostContact}
+                    onChangeText={setGhostContact}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    placeholder={t.people.contactOptional}
+                    placeholderTextColor={theme.color.textFaint}
+                    accessibilityLabel={t.common.emailOrPhone}
+                    onSubmitEditing={add}
+                    returnKeyType="done"
+                    style={inputStyle}
+                  />
+                </Field>
+              )}
               <Button
-                label={t.people.addToGroupButton}
-                disabled={(!ghostName.trim() && !ghostContact.trim()) || addGhost.isPending}
+                label={isCompany ? t.company.qaAddEmployee : t.people.addToGroupButton}
+                fullWidth
+                disabled={
+                  (isCompany ? !ghostName.trim() : !ghostName.trim() && !ghostContact.trim()) ||
+                  addGhost.isPending
+                }
                 onPress={add}
               />
             </View>
@@ -586,7 +725,7 @@ export default function MembersScreen() {
                 color={theme.color.brand}
               />
               <Text variant="caption" tone="muted" style={{ flex: 1 }}>
-                {t.misc.nameAloneBody}
+                {isCompany ? t.company.nameAloneBody : t.misc.nameAloneBody}
               </Text>
             </Row>
           </Card>
@@ -622,13 +761,16 @@ function AddTile({
   label,
   body,
   onPress,
+  tone,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   body: string;
   onPress: () => void;
+  tone: 'violet' | 'blue';
 }) {
   const theme = useTheme();
+  const blue = tone === 'blue' && theme.scheme !== 'dark';
   return (
     <Pressable
       accessibilityRole="button"
@@ -639,16 +781,16 @@ function AddTile({
         gap: theme.spacing.xs,
         padding: theme.spacing.md,
         borderRadius: theme.radius.lg,
-        backgroundColor: theme.color.brandSoft,
+        backgroundColor: blue ? '#E4EEFF' : theme.color.brandSoft,
         opacity: pressed ? 0.7 : 1,
       })}
     >
       <Row style={{ justifyContent: 'space-between' }}>
-        <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
+        <Ionicons name={icon} size={iconSize.lg} color={blue ? '#2F6FE0' : theme.color.brand} />
         <Ionicons
           name={directionalIcon('chevron-forward')}
           size={iconSize.sm}
-          color={theme.color.brand}
+          color={blue ? '#2F6FE0' : theme.color.brand}
         />
       </Row>
       <Text variant="body" style={{ fontWeight: '700' }}>
@@ -678,5 +820,14 @@ function Field({ icon, children }: { icon: keyof typeof Ionicons.glyphMap; child
       <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
       {children}
     </Row>
+  );
+}
+
+/** A muted helper line under a field, inset to line up with the text. */
+function Helper({ children }: { children: ReactNode }) {
+  return (
+    <Text variant="micro" tone="muted" style={{ marginTop: -4, marginStart: 40 }}>
+      {children}
+    </Text>
   );
 }
