@@ -1338,7 +1338,6 @@ export interface UiStrings {
     payWagesBody: string;
     gaveMoneyBody: string;
     recentPayments: string;
-    paymentsNone: string;
     paymentsNoneBody: string;
     addSiteBody: string;
     budgetsNone: string;
@@ -7607,7 +7606,6 @@ const en: UiStrings = {
     payWagesBody: 'Record salary for employees or managers',
     gaveMoneyBody: 'Record an advance or reimbursement',
     recentPayments: 'Recent payments',
-    paymentsNone: 'No payments yet',
     paymentsNoneBody: 'Record wages or money given to get started.',
     addSiteBody: 'Add sites or locations to organise budgets by place or department.',
     budgetsNone: 'No budgets yet',
@@ -13324,7 +13322,6 @@ const ta: UiStrings = {
     payWagesBody: 'ஊழியர்கள் அல்லது மேலாளர்களுக்கான சம்பளத்தைப் பதிவு செய்',
     gaveMoneyBody: 'முன்பணம் அல்லது திருப்பிக் கொடுத்ததைப் பதிவு செய்',
     recentPayments: 'சமீபத்திய கட்டணங்கள்',
-    paymentsNone: 'இன்னும் கட்டணங்கள் இல்லை',
     paymentsNoneBody: 'தொடங்க சம்பளம் அல்லது கொடுத்த பணத்தைப் பதிவு செய்யுங்கள்.',
     addSiteBody: 'இடம் அல்லது துறை வாரியாக பட்ஜெட்டுகளை ஒழுங்கமைக்க தளங்களைச் சேர்க்கவும்.',
     budgetsNone: 'இன்னும் பட்ஜெட் இல்லை',
@@ -19206,7 +19203,6 @@ const hi: UiStrings = {
     payWagesBody: 'कर्मचारियों या मैनेजरों का वेतन दर्ज करें',
     gaveMoneyBody: 'अग्रिम या प्रतिपूर्ति दर्ज करें',
     recentPayments: 'हाल के भुगतान',
-    paymentsNone: 'अभी कोई भुगतान नहीं',
     paymentsNoneBody: 'शुरू करने के लिए वेतन या दिया गया पैसा दर्ज करें।',
     addSiteBody: 'जगह या विभाग के हिसाब से बजट बनाने के लिए साइटें जोड़ें।',
     budgetsNone: 'अभी कोई बजट नहीं',
@@ -24977,7 +24973,6 @@ const ar: UiStrings = {
     payWagesBody: 'سجّل راتب الموظفين أو المديرين',
     gaveMoneyBody: 'سجّل سلفة أو تعويضًا',
     recentPayments: 'أحدث الدفعات',
-    paymentsNone: 'لا توجد دفعات بعد',
     paymentsNoneBody: 'سجّل الرواتب أو الأموال المعطاة للبدء.',
     addSiteBody: 'أضف مواقع لتنظيم الميزانيات حسب المكان أو القسم.',
     budgetsNone: 'لا توجد ميزانيات بعد',
