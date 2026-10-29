@@ -182,22 +182,23 @@ export function useCompanyEntries(groupId: string): CompanyView {
     }
     return ids;
   }, [people, isOwner, isManager, me?.id, visibleIds]);
+  const myId = me?.id ?? null;
   const entries = useMemo(
     () =>
       materialiseCompanyEntries(mirror, queue, {
         groupId,
         currency,
-        myMemberId: me?.id ?? null,
+        myMemberId: myId,
         myIsManager: isManager,
         approvalsEnabled,
       })
         .map((row) => companyEntryFromRow(row as unknown as CompanyEntryRow))
         .filter((entry) =>
           entry.paidByCompany
-            ? isOwner || (isManager && !!me?.id && entry.createdBy === me.id)
+            ? isOwner || (isManager && myId !== null && entry.createdBy === myId)
             : visibleIds.has(entry.memberId),
         ),
-    [mirror, queue, groupId, currency, me?.id, visibleIds, approvalsEnabled, isOwner, isManager],
+    [mirror, queue, groupId, currency, myId, visibleIds, approvalsEnabled, isOwner, isManager],
   );
   // The same rows without this phone's queued changes: the base a queued edit is measured from.
   const settledEntries = useMemo(
@@ -205,16 +206,16 @@ export function useCompanyEntries(groupId: string): CompanyView {
       materialiseCompanyEntries(mirror, [], {
         groupId,
         currency,
-        myMemberId: me?.id ?? null,
+        myMemberId: myId,
         myIsManager: isManager,
       })
         .map((row) => companyEntryFromRow(row as unknown as CompanyEntryRow))
         .filter((entry) =>
           entry.paidByCompany
-            ? isOwner || (isManager && !!me?.id && entry.createdBy === me.id)
+            ? isOwner || (isManager && myId !== null && entry.createdBy === myId)
             : visibleIds.has(entry.memberId),
         ),
-    [mirror, groupId, currency, me?.id, visibleIds, isOwner, isManager],
+    [mirror, groupId, currency, myId, visibleIds, isOwner, isManager],
   );
   // Owners are known to owners (member rows) and to managers (the directory).
   const ownerIds = useMemo(() => {
