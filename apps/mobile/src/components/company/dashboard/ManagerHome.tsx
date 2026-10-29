@@ -28,7 +28,7 @@ import { ListRow, StandardCard } from '@/components/standard';
 import { useAskBudget, useCompanyEntries, usePoolBalance } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
@@ -37,7 +37,7 @@ type Tab = 'overview' | 'team' | 'payments';
 export function ManagerHome({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const clearance = useBottomClearance();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const view = useCompanyEntries(groupId);
   const fmt = useMoney(view.currency);
   const ask = useAskBudget(groupId);
@@ -78,7 +78,9 @@ export function ManagerHome({ groupId }: { groupId: string }) {
           groupId={groupId}
           view={view}
           showGear={false}
-          subtitle={fill(t.company.teamLine, { n: String(team.length) })}
+          subtitle={fill(t.company.teamLine, {
+            employees: plural(locale, team.length, t.company.employeeCount),
+          })}
           pill={t.company.manager}
           tabs={
             <TabPills
