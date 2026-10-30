@@ -165,7 +165,7 @@ BEGIN
  IF length(coalesce(v_reason,''))>200 THEN RAISE EXCEPTION 'INVALID_DATA: reason'; END IF;
  IF p_start IS NULL OR p_end IS NULL OR p_end<p_start OR p_end-p_start>59 OR p_start<current_date-60 OR p_end>current_date+365 THEN RAISE EXCEPTION 'INVALID_DATA: day'; END IF;
  IF coalesce(p_half,false) AND p_start<>p_end THEN RAISE EXCEPTION 'INVALID_DATA: half day'; END IF;
- SELECT role::text INTO v_role FROM public.group_members WHERE id=p_member_id AND group_id=p_group_id AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL AND profile_id IS NOT NULL;
+ SELECT role::text INTO v_role FROM public.group_members WHERE id=p_member_id AND group_id=p_group_id AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL;
  IF v_role IS NULL OR (v_role='admin' AND p_member_id<>v_me) THEN RAISE EXCEPTION 'UNKNOWN_MEMBER' USING ERRCODE='insufficient_privilege'; END IF;
  IF EXISTS(SELECT 1 FROM public.company_leave WHERE group_id=p_group_id AND member_id=p_member_id AND deleted_at IS NULL AND status IN ('pending','approved') AND start_day<=p_end AND end_day>=p_start) THEN RAISE EXCEPTION 'INVALID_DATA: overlap'; END IF;
  INSERT INTO public.company_leave(id,group_id,member_id,start_day,end_day,half_day,kind,reason,status,decided_by,created_by)
@@ -251,7 +251,7 @@ DECLARE v_me uuid; r public.company_member_dates; v_show boolean;
 BEGIN
  v_me:=public.waves_company_actor(p_group_id);
  IF p_member_id IS DISTINCT FROM v_me AND NOT (public.is_group_admin(p_group_id) OR public.waves_company_team(p_group_id,p_member_id)) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
- IF NOT EXISTS(SELECT 1 FROM public.group_members WHERE id=p_member_id AND group_id=p_group_id AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL AND profile_id IS NOT NULL) THEN RAISE EXCEPTION 'UNKNOWN_MEMBER' USING ERRCODE='insufficient_privilege'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.group_members WHERE id=p_member_id AND group_id=p_group_id AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL) THEN RAISE EXCEPTION 'UNKNOWN_MEMBER' USING ERRCODE='insufficient_privilege'; END IF;
  IF (p_birth_day IS NULL)<>(p_birth_month IS NULL) THEN RAISE EXCEPTION 'INVALID_DATA: birthday'; END IF;
  IF p_birth_day IS NOT NULL THEN
   IF p_birth_month NOT BETWEEN 1 AND 12 OR p_birth_day NOT BETWEEN 1 AND 31 THEN RAISE EXCEPTION 'INVALID_DATA: birthday'; END IF;
@@ -275,6 +275,8 @@ END $$;
 CREATE FUNCTION public.waves_company_calendar_restamp_on_assign() RETURNS trigger
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 BEGIN
+ -- Leaving also clears the manager link; a suspended company must not turn that into a refused departure.
+ IF NEW.left_at IS NOT NULL OR public.waves_company_is_blocked(NEW.group_id) THEN RETURN NEW; END IF;
  UPDATE public.company_leave SET updated_at=now() WHERE member_id=NEW.id;
  UPDATE public.company_member_dates SET updated_at=now() WHERE member_id=NEW.id;
  UPDATE public.company_events SET updated_at=now() WHERE group_id=NEW.group_id AND NEW.id=ANY(people);

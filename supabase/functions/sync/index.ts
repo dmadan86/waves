@@ -477,6 +477,10 @@ serveWithCors(async (request) => {
       .filter((row) => (row as { role?: string }).role !== 'admin')
       .map((row) => row.group_id as string);
     const companyVisible = await companyVisibleMembers(caller, managerGroupIds);
+    const calendarVisible = await companyCalendarVisible(
+      caller,
+      (mine.data ?? []).map((row) => row.group_id as string),
+    );
 
     return json({
       outcomes,
@@ -490,6 +494,7 @@ serveWithCors(async (request) => {
       // Company groups only: who this caller may still see. A phone drops cached
       // detail for anyone else (an employee who moved to another manager).
       companyVisible,
+      calendarVisible,
       serverTime: new Date().toISOString(),
     });
   } catch (error) {
@@ -2872,6 +2877,43 @@ function companyTag(
  * exactly the people whose entries they may hold). A group is left out when the list
  * could not be read in full, so a failure can never make a phone discard data.
  */
+/**
+ * Company groups only: the birthday rows and events the caller can read right now. RLS hides a row the
+ * moment access is revoked (a birthday switched off, removal from an event) without sending a tombstone,
+ * so the phone drops whatever is not on this list. A group whose list could not be read completely is left out.
+ */
+async function companyCalendarVisible(
+  caller: SupabaseClient,
+  groupIds: readonly string[],
+): Promise<Record<string, { dates: string[]; events: string[] }>> {
+  const out: Record<string, { dates: string[]; events: string[] }> = {};
+  if (groupIds.length === 0) return out;
+  const groups = await caller.from('groups').select('id').eq('type', 'company').in('id', groupIds);
+  if (groups.error) return out;
+  const PAGE = 1000;
+  const ids = async (table: string, groupId: string): Promise<string[] | null> => {
+    const all: string[] = [];
+    for (let from = 0; from < PAGE * 5; from += PAGE) {
+      const page = await caller
+        .from(table)
+        .select('id')
+        .eq('group_id', groupId)
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (page.error) return null;
+      all.push(...(page.data ?? []).map((row) => row.id as string));
+      if ((page.data ?? []).length < PAGE) return all;
+    }
+    return null;
+  };
+  for (const { id } of groups.data ?? []) {
+    const dates = await ids('company_member_dates', id as string);
+    const events = await ids('company_events', id as string);
+    if (dates && events) out[id as string] = { dates, events };
+  }
+  return out;
+}
+
 async function companyVisibleMembers(
   caller: SupabaseClient,
   groupIds: readonly string[],

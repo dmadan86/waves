@@ -32,7 +32,11 @@ export type {
 
 export function useCalendar(groupId: string): MirrorCalendar {
   const { mirror, queue } = useSync();
-  return useMemo(() => materialiseCalendar(mirror, queue, { groupId }), [mirror, queue, groupId]);
+  const meId = useCompanyEntries(groupId).me?.id ?? null;
+  return useMemo(
+    () => materialiseCalendar(mirror, queue, { groupId, meId }),
+    [mirror, queue, groupId, meId],
+  );
 }
 
 /** The two per-company wage switches (owner sets them). */
@@ -41,9 +45,17 @@ export function useCalendarSettings(groupId: string): {
   paidLeave: boolean;
 } {
   const { group } = useGroup(groupId);
+  const { queue } = useSync();
+  // This phone's own queued change wins until the server confirms it.
+  const queued = [...queue]
+    .filter(
+      (m) => m.groupId === groupId && !m.rejection && m.kind === 'company_calendar.settings_set',
+    )
+    .sort((x, y) => y.seq - x.seq)[0]?.payload as
+    { paidHolidays: boolean; paidLeave: boolean } | undefined;
   return {
-    paidHolidays: group.data?.company_paid_holidays !== false,
-    paidLeave: group.data?.company_paid_leave === true,
+    paidHolidays: queued ? queued.paidHolidays : group.data?.company_paid_holidays !== false,
+    paidLeave: queued ? queued.paidLeave : group.data?.company_paid_leave === true,
   };
 }
 
@@ -51,7 +63,11 @@ export function useCalendarSettings(groupId: string): {
 export function usePayRule(groupId: string): CalendarPayRule {
   const cal = useCalendar(groupId);
   const s = useCalendarSettings(groupId);
-  return useMemo(() => ({ holidays: cal.holidays, leave: cal.leave, ...s }), [cal, s]);
+  const { paidHolidays, paidLeave } = s;
+  return useMemo(
+    () => ({ holidays: cal.holidays, leave: cal.leave, paidHolidays, paidLeave }),
+    [cal, paidHolidays, paidLeave],
+  );
 }
 export { workedDaysText };
 
