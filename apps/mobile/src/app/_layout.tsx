@@ -498,7 +498,7 @@ function PushRouting() {
  * nothing has gone wrong" is for it to look like the app.
  */
 function LockGate({ children }: { children: React.ReactNode }) {
-  const { locked, unlock } = useLock();
+  const { locked, ready, unlock } = useLock();
   const theme = useTheme();
   const { t } = useStrings();
   const { height: screenHeight } = useWindowDimensions();
@@ -512,6 +512,9 @@ function LockGate({ children }: { children: React.ReactNode }) {
     if (locked) markLaunchReady();
   }, [locked]);
 
+  // Not drawn until we know whether the app is locked: an unlocked frame of a
+  // signed-in cold start is exactly the leak the lock exists to prevent.
+  if (!ready) return null;
   if (!locked) return <>{children}</>;
 
   return (
