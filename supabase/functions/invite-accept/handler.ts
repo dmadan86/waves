@@ -81,7 +81,7 @@ export async function handleInviteAccept(
 
     const { data: invite, error } = await service
       .from('invites')
-      .select('id, group_id, expires_at, revoked_at, max_uses, use_count')
+      .select('id, group_id, expires_at, revoked_at, max_uses, use_count, company_vendor_id')
       .eq('token_hash', await sha256Hex(body.token))
       .maybeSingle();
     if (error) throw new HttpError(500, 'INTERNAL', error.message);
@@ -124,7 +124,7 @@ export async function handleInviteAccept(
       .from('group_members')
       // FK-hinted: ghost_merges bridges group_members and profiles, so the embed
       // is ambiguous without naming the column.
-      .select('id, ghost_name, profile_id, profiles!profile_id ( display_name )')
+      .select('id, ghost_name, profile_id, role, profiles!profile_id ( display_name )')
       .eq('group_id', invite.group_id)
       .is('left_at', null);
 
@@ -151,7 +151,12 @@ export async function handleInviteAccept(
 
     const existing = (members ?? []).find((member) => member.profile_id === profileId);
     if (existing) {
-      return json({ group, memberId: existing.id, alreadyMember: true });
+      return json({
+        group,
+        memberId: existing.id,
+        alreadyMember: true,
+        ...(existing.role === 'vendor' ? { vendor: true } : {}),
+      });
     }
 
     // A guest may not join a shared group. Checked after the already-a-member
@@ -261,7 +266,13 @@ export async function handleInviteAccept(
       payload: { via: 'invite_link' },
     });
 
-    return json({ group, memberId, claimed: Boolean(body.claimMemberId) });
+    // A vendor invite makes the person that vendor's login: the app lands them on their ledger, not on Add entry.
+    return json({
+      group,
+      memberId,
+      claimed: Boolean(body.claimMemberId),
+      ...(invite.company_vendor_id ? { vendor: true } : {}),
+    });
   } catch (error) {
     return errorResponse(error, { fn: 'invite-accept' });
   }

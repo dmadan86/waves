@@ -124,6 +124,8 @@ export interface GroupRow {
   /** Company groups: new entries wait for an admin's approval. Off by default. */
   company_approvals_enabled?: boolean;
   /** Company groups: large or owner-raised claims need an owner other than their creator. */
+  /** Set while Waves has suspended this company: it is read-only for everyone. */
+  suspended_at?: string | null;
   company_second_approval?: boolean;
   company_second_approval_threshold_minor?: string | null;
   /** Company groups: default mileage rate per km, minor units (decimal string). */
@@ -146,9 +148,11 @@ export interface MemberRow {
   profile_id: string | null;
   ghost_name: string | null;
   /** Company groups also have 'manager' (a team lead); everywhere else only admin / member. */
-  role: 'admin' | 'manager' | 'member';
+  role: 'admin' | 'manager' | 'member' | 'vendor';
   /** Company groups: the manager this employee reports to (null = the owners). */
   manager_id?: string | null;
+  /** Company groups: the free-text employee ID, e.g. EMP-014 (owner/manager/self can read it). */
+  employee_id?: string | null;
   /** The UPI-shaped fields. Superseded by the rail pair; still read as a fallback. */
   vpa: string | null;
   /** Which rail this person is paid on here — a `RailId` from `@waves/core`. */

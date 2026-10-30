@@ -91,7 +91,22 @@ function setup(
         ? query(group)
         : table === 'company_entries'
           ? query([ledger], options.failEntries ? { message: 'database unavailable' } : null)
-          : query([{ id: 'employee-a', profile: { display_name: 'Employee A' } }]),
+          : table === 'company_vendors'
+            ? query([{ id: 'vendor-a', name: 'Ravi Traders' }])
+            : table === 'company_vendor_entries'
+              ? query([
+                  {
+                    id: 've-1',
+                    vendor_id: 'vendor-a',
+                    kind: 'bill',
+                    amount: '555',
+                    occurred_on: '2026-11-06',
+                    status: 'approved',
+                    version: 1,
+                    deleted_at: null,
+                  },
+                ])
+              : query([{ id: 'employee-a', profile: { display_name: 'Employee A' } }]),
     ),
   };
   const service = { from: vi.fn(() => query([])) };
@@ -185,4 +200,18 @@ it('marks a company-paid entry as paid by the Company with no employee', async (
   expect(row).not.toContain('unknown');
   const pdf = atob((await (await handleExportData(t.request('pdf'), t.deps)).json()).content);
   expect(pdf).toContain('Paid by: Company');
+});
+it('exports the vendor ledger with a Vendor column, read as the caller', async () => {
+  const t = setup({ approved: true });
+  const csv = (await (await handleExportData(t.request('csv'), t.deps)).json()).content as string;
+  const row = csv.split('\n').find((line) => line.includes('company_vendor_bill')) ?? '';
+  expect(row).toContain('Ravi Traders');
+  expect(row).toContain('555');
+  const json = JSON.parse(
+    (await (await handleExportData(t.request('json'), t.deps)).json()).content,
+  );
+  expect(json.groups[0].companyVendorEntries).toHaveLength(1);
+  expect(t.service.from).not.toHaveBeenCalledWith('company_vendor_entries');
+  const pdf = atob((await (await handleExportData(t.request('pdf'), t.deps)).json()).content);
+  expect(pdf).toContain('Vendor: Ravi Traders');
 });

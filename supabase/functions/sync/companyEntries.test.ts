@@ -118,6 +118,30 @@ const cases = [
     { p_group_id: GROUP_ID, p_member_id: MEMBER_ID, p_daily_rate_minor: null },
   ],
   [
+    'company_member.employee_id_set',
+    { memberId: MEMBER_ID, employeeId: 'EMP-014' },
+    'waves_company_employee_id_set',
+    { p_group_id: GROUP_ID, p_member_id: MEMBER_ID, p_employee_id: 'EMP-014' },
+  ],
+  [
+    'company_attendance.set',
+    { memberId: MEMBER_ID, day: '2026-10-30', status: 'half', note: null },
+    'waves_company_attendance_set',
+    {
+      p_group_id: GROUP_ID,
+      p_member_id: MEMBER_ID,
+      p_day: '2026-10-30',
+      p_status: 'half',
+      p_note: null,
+    },
+  ],
+  [
+    'company_work.remove',
+    { taskId: MEMBER_ID },
+    'waves_company_work_remove',
+    { p_group_id: GROUP_ID, p_task_id: MEMBER_ID },
+  ],
+  [
     'company_pool.post',
     {
       entryId: ENTRY,
@@ -139,6 +163,44 @@ const cases = [
       p_occurred_on: '2026-11-04',
       p_reason: 'Counted cash',
     },
+  ],
+  [
+    'company_doc.save',
+    {
+      docId: ENTRY,
+      data: {
+        docType: 'bill',
+        customerName: ' Ravi ',
+        docDate: '2026-11-14',
+        items: [{ description: 'Paint', qtyMilli: '2500', rateMinor: '333' }],
+      },
+    },
+    'waves_company_doc_save',
+    {
+      p_group_id: GROUP_ID,
+      p_doc_id: ENTRY,
+      p_data: {
+        docType: 'bill',
+        customerName: 'Ravi',
+        customerPhone: null,
+        docDate: '2026-11-14',
+        discountMinor: '0',
+        notes: null,
+        items: [{ description: 'Paint', qtyMilli: '2500', rateMinor: '333' }],
+      },
+    },
+  ],
+  [
+    'company_doc.payment',
+    { docId: ENTRY, paymentId: ENTRY, amountMinor: '500', paidOn: '2026-11-15' },
+    'waves_company_doc_payment',
+    { p_doc_id: ENTRY, p_payment_id: ENTRY, p_amount: '500', p_paid_on: '2026-11-15' },
+  ],
+  [
+    'company_doc.convert',
+    { docId: ENTRY, billId: ENTRY },
+    'waves_company_doc_convert',
+    { p_doc_id: ENTRY, p_bill_id: ENTRY },
   ],
   [
     'company_member.assign',
@@ -197,6 +259,31 @@ const cases = [
       ],
     },
   ],
+  [
+    'company_vendor_entry.create',
+    {
+      entryId: ENTRY,
+      vendorId: MEMBER_ID,
+      kind: 'bill',
+      amountMinor: '1200',
+      occurredOn: '2026-11-10',
+      note: null,
+    },
+    'waves_company_vendor_entry_create',
+    {
+      p_group_id: GROUP_ID,
+      p_entry_id: ENTRY,
+      p_vendor_id: MEMBER_ID,
+      p_kind: 'bill',
+      p_data: { amount: '1200', occurredOn: '2026-11-10', note: null },
+    },
+  ],
+  [
+    'company_vendor_entry.received',
+    { entryId: ENTRY, received: true },
+    'waves_company_vendor_entry_received',
+    { p_entry_id: ENTRY, p_received: true },
+  ],
 ] as const;
 describe('company sync mutations', () => {
   it.each(cases)('dispatches %s as caller', async (kind, payload, rpc, args) => {
@@ -239,6 +326,18 @@ describe('company sync mutations', () => {
     ['company.settings_set', { defaultDailyRateMinor: '100' }],
     ['company.settings_set', { defaultDailyRateMinor: 100, approvalsEnabled: true }],
     ['company_member.rate_set', { memberId: MEMBER_ID, dailyRateMinor: 40000 }],
+    [
+      'company_vendor_entry.create',
+      {
+        entryId: ENTRY,
+        vendorId: MEMBER_ID,
+        kind: 'bill',
+        amountMinor: '-5',
+        occurredOn: '2026-11-10',
+      },
+    ],
+    ['company_vendor_entry.received', { entryId: ENTRY, received: 'yes' }],
+    ['company_vendor.set', { vendorId: MEMBER_ID, name: '  ' }],
   ])('rejects malformed %s before RPC', async (kind, payload) => {
     const scoped = caller();
     const session = new SyncSession(scoped.client, service().client, OWNER);
@@ -546,6 +645,12 @@ it.each([
 });
 
 it.each([
+  ['company_doc.status', { docId: ENTRY, status: 'paid' }],
+  [
+    'company_doc.payment',
+    { docId: ENTRY, paymentId: ENTRY, amountMinor: '-5', paidOn: '2026-11-15' },
+  ],
+  ['company_doc.save', { docId: ENTRY, data: { docType: 'invoice', items: [] } }],
   ['company_tag.add', { key: 'BAD', label: 'Cement' }],
   ['company_tag.add', { key: 'cement', label: '' }],
   ['company_tag.add', { key: 'cement', label: 'x'.repeat(41) }],

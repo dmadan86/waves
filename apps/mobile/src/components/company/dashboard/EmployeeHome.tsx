@@ -11,6 +11,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { companyStatement } from '@waves/core';
 import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
+import { MyWorkTodayCard } from '@/components/company/WorkdayEntries';
 import { DashBody, DashHeader, useMoney } from '@/components/company/dashboard/parts';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
 import { StandardCard } from '@/components/standard';
@@ -60,6 +61,7 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
           view={view}
           showGear={false}
           voice
+          exportMenu
           subtitle={
             boss ? fill(t.company.yourManager, { name: boss.display_name }) : t.company.yourOwners
           }
@@ -93,31 +95,34 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
               </View>
             ))}
           </StandardCard>
+          <MyWorkTodayCard groupId={groupId} />
           {me ? (
             <CompanyStatementView view={view} member={me} period="all" groupId={groupId} />
           ) : null}
         </DashBody>
       </ScrollView>
       {/* The hero button scrolls away; statements are long, so keep an add action in reach. */}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.company.addEntry}
-        onPress={() => router.push(`/group/${groupId}/company-entry`)}
-        style={{
-          position: 'absolute',
-          right: theme.spacing.lg,
-          bottom: clearance + 8,
-          width: 54,
-          height: 54,
-          borderRadius: 27,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.buttonPrimary,
-          elevation: 4,
-        }}
-      >
-        <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
-      </Pressable>
+      {view.suspended ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.company.addEntry}
+          onPress={() => router.push(`/group/${groupId}/company-entry`)}
+          style={{
+            position: 'absolute',
+            right: theme.spacing.lg,
+            bottom: clearance + 8,
+            width: 54,
+            height: 54,
+            borderRadius: 27,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.buttonPrimary,
+            elevation: 4,
+          }}
+        >
+          <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
+        </Pressable>
+      )}
     </Screen>
   );
 }

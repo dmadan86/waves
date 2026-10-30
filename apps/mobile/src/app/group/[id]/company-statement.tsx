@@ -1,16 +1,25 @@
 /** One employee's statement, opened by an admin from the company summary. */
 
+import { useState } from 'react';
+import { EMPLOYEE_ID_MAX, normaliseEmployeeId } from '@waves/core';
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
 import { Linking, Pressable, ScrollView, View } from 'react-native';
 
 import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
+import { EditTextSheet } from '@/components/EditTextSheet';
+import { friendlyError } from '@/lib/errors';
+import { AttendanceMonth } from '@/components/company/AttendanceMonth';
+import { useWorkdayAccess } from '@/data/companyWorkday';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
 import { CompanyTeamCard } from '@/components/company/CompanyTeamCard';
 import { ScenicBody, ScenicHeader } from '@/components/standard';
 import {
   useCompanyEntries,
+  useEmployeeIdTaken,
+  useSetEmployeeId,
   useCompanyProjectMembers,
   useCompanyProjects,
 } from '@/data/companyEntries';
@@ -26,6 +35,12 @@ export default function CompanyStatementScreen() {
   const clearance = useBottomClearance();
   const { t } = useStrings();
   const view = useCompanyEntries(groupId);
+  const workdayAccess = useWorkdayAccess(groupId);
+  const setEmployeeId = useSetEmployeeId(groupId);
+  const isTaken = useEmployeeIdTaken(groupId, view.members);
+  const [editingId, setEditingId] = useState(false);
+  const [idError, setIdError] = useState<string | null>(null);
+  const [checkingId, setCheckingId] = useState(false);
   // The member list only holds who this viewer may read, so a guessed id finds nothing.
   const member = view.members.find((m) => m.id === memberParam) ?? null;
   const detail = !!member && view.isAdmin && member.id !== view.me?.id;
@@ -63,6 +78,20 @@ export default function CompanyStatementScreen() {
             ) : undefined
           }
         >
+          {member && (member.employee_id || view.manageableIds.has(member.id)) ? (
+            <Pressable
+              accessibilityRole={view.manageableIds.has(member.id) ? 'button' : undefined}
+              disabled={!view.manageableIds.has(member.id)}
+              onPress={() => {
+                setIdError(null);
+                setEditingId(true);
+              }}
+            >
+              <Text variant="caption" tone="muted">
+                {member.employee_id || t.company.addEmployeeId}
+              </Text>
+            </Pressable>
+          ) : null}
           {detail && site ? (
             <View
               style={{
@@ -83,6 +112,12 @@ export default function CompanyStatementScreen() {
           ) : null}
         </ScenicHeader>
         <ScenicBody>
+          {member?.role === 'member' &&
+          workdayAccess.enabled &&
+          (workdayAccess.people.some((person) => person.id === member.id) ||
+            workdayAccess.me?.id === member.id) ? (
+            <AttendanceMonth groupId={groupId} memberId={member.id} />
+          ) : null}
           {member && !detail ? (
             <CompanyTeamCard groupId={groupId} view={view} member={member} />
           ) : null}
@@ -101,6 +136,36 @@ export default function CompanyStatementScreen() {
           ) : null}
         </ScenicBody>
       </ScrollView>
+      <EditTextSheet
+        visible={editingId}
+        title={t.company.employeeId}
+        value={member?.employee_id ?? ''}
+        maxLength={EMPLOYEE_ID_MAX}
+        autoCapitalize="none"
+        saving={checkingId || setEmployeeId.isPending}
+        error={idError}
+        onClose={() => setEditingId(false)}
+        onSave={(raw) => {
+          if (!member || !view.manageableIds.has(member.id) || checkingId) return;
+          const employeeId = normaliseEmployeeId(raw);
+          setIdError(null);
+          setCheckingId(true);
+          void (async () => {
+            try {
+              if (employeeId && (await isTaken(employeeId, member.id))) {
+                setIdError(t.company.employeeIdTaken);
+                return;
+              }
+              await setEmployeeId.mutateAsync({ memberId: member.id, employeeId });
+              setEditingId(false);
+            } catch (caught) {
+              setIdError(friendlyError(caught, t.misc.tryAgainMoment, 'company.employeeId'));
+            } finally {
+              setCheckingId(false);
+            }
+          })();
+        }}
+      />
       {member && !detail && (view.manageableIds.has(member.id) || view.me?.id === member.id) ? (
         <Pressable
           accessibilityRole="button"

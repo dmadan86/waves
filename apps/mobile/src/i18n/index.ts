@@ -1251,9 +1251,103 @@ export interface UiStrings {
     /** The 4th "Try saying…" example, in quotes like its siblings. */
     tryWhoOwes: string;
   };
+  companyDocs: {
+    title: string;
+    estimate: string;
+    bill: string;
+    all: string;
+    estimates: string;
+    bills: string;
+    unpaid: string;
+    syncing: string;
+    draft: string;
+    sent: string;
+    accepted: string;
+    declined: string;
+    part_paid: string;
+    paid: string;
+    newEstimate: string;
+    newBill: string;
+    customer: string;
+    phone: string;
+    date: string;
+    description: string;
+    qty: string;
+    rate: string;
+    amount: string;
+    addItem: string;
+    removeItem: string;
+    discount: string;
+    notes: string;
+    subtotal: string;
+    total: string;
+    payments: string;
+    amountLeft: string;
+    billTo: string;
+    estimateFor: string;
+    recordPayment: string;
+    sharePdf: string;
+    convert: string;
+    edit: string;
+    delete: string;
+    save: string;
+    empty: string;
+    notFound: string;
+    linkedBill: string;
+    linkedEstimate: string;
+    footer: string;
+    nameError: string;
+    itemsError: string;
+    itemError: string;
+    discountError: string;
+    totalError: string;
+    below_paidError: string;
+    amountError: string;
+    overError: string;
+    failed: string;
+    deleteTitle: string;
+    deleteBody: string;
+    unpaidTotal: string;
+  };
   company: {
+    attendanceTitle: string;
+    attendanceMine: string;
+    attendanceEmpty: string;
+    attendancePresent: string;
+    attendanceHalf: string;
+    attendanceAbsent: string;
+    attendanceMarkAll: string;
+    attendanceNote: string;
+    attendanceSummary: PluralForms;
+    attendancePreviousMonth: string;
+    attendanceNextMonth: string;
+    workTitle: string;
+    workMine: string;
+    workEmpty: string;
+    workAdd: string;
+    workEdit: string;
+    workTitleField: string;
+    workPerson: string;
+    workSite: string;
+    workNoSite: string;
+    workTodo: string;
+    workDoing: string;
+    workDone: string;
+    workBlocked: string;
+    workReason: string;
+    workNote: string;
+    workRepeat: string;
+    workRemove: string;
+    workStatus: string;
+    workPreviousDay: string;
+    workNextDay: string;
+    workSeeAll: string;
+    workSaveError: string;
+
     tab: string;
     listTitle: string;
+    listSubtitle: string;
+    currentCompany: string;
     myStatement: string;
     summary: string;
     employees: string;
@@ -1274,6 +1368,10 @@ export interface UiStrings {
     owedBy: string;
     addEmployee: string;
     addEmployeeBody: string;
+    employeeId: string;
+    employeeIdOptional: string;
+    addEmployeeId: string;
+    employeeIdTaken: string;
     fromPastCompany: string;
     fromPastCompanyBody: string;
     pastSearch: string;
@@ -1307,6 +1405,19 @@ export interface UiStrings {
     tabBudgets: string;
     tabPayments: string;
     tabMyTeam: string;
+    barPeople: string;
+    barPending: string;
+    barMore: string;
+    sectionOwners: string;
+    moreBudgets: string;
+    moreStatements: string;
+    moreRules: string;
+    pendingNone: string;
+    pendingNoneBody: string;
+    pendingVendorBills: string;
+    pendingUnpaidBills: string;
+    pendingBlockedTasks: string;
+    pendingUnmarked: string;
     countsLine: string;
     teamLine: string;
     pillOwner: string;
@@ -1321,6 +1432,15 @@ export interface UiStrings {
     qaBudgets: string;
     qaRecord: string;
     qaAddEmployee: string;
+    searchEmployees: string;
+    filterEmployees: string;
+    empFilterAll: string;
+    empFilterOwes: string;
+    empFilterCompanyOwes: string;
+    empFilterSettled: string;
+    viewStatement: string;
+    employeeOptions: string;
+    noEmployeesMatch: string;
     qaAdvance: string;
     qaAsk: string;
     promoTitle: string;
@@ -1455,6 +1575,21 @@ export interface UiStrings {
     wagesPaidFromPool: string;
     sites: string;
     addSite: string;
+    suspendedBanner: string;
+    reportCompany: string;
+    reportTitle: string;
+    reportBody: string;
+    reportFraud: string;
+    reportIllegal: string;
+    reportHarassment: string;
+    reportWages: string;
+    reportOther: string;
+    reportPlaceholder: string;
+    reportSend: string;
+    reportSent: string;
+    reportLimit: string;
+    reportFailed: string;
+    suspendedReadOnly: string;
     siteName: string;
     siteBudget: string;
     siteSpent: string;
@@ -1672,6 +1807,58 @@ export interface UiStrings {
     colReview: string;
     notCounted: string;
     exportAction: string;
+  };
+  companyVendors: {
+    photoPrivacy: string;
+    historyEmpty: string;
+    title: string;
+    addVendor: string;
+    name: string;
+    phone: string;
+    category: string;
+    empty: string;
+    youOwe: string;
+    hasAdvance: string;
+    settled: string;
+    oweName: string;
+    advanceName: string;
+    settledName: string;
+    companyOwes: string;
+    yourAdvance: string;
+    allSettled: string;
+    addBill: string;
+    recordPayment: string;
+    bill: string;
+    advance: string;
+    payment: string;
+    amount: string;
+    date: string;
+    note: string;
+    dateHint: string;
+    invalidDate: string;
+    billHint: string;
+    pending: string;
+    confirmed: string;
+    rejected: string;
+    received: string;
+    markReceived: string;
+    history: string;
+    pendingBills: string;
+    confirm: string;
+    reject: string;
+    more: string;
+    invite: string;
+    rename: string;
+    delete: string;
+    deleteConfirm: string;
+    removeEntry: string;
+    removeConfirm: string;
+    withdraw: string;
+    withdrawConfirm: string;
+    notFound: string;
+    inviteFailed: string;
+    save: string;
+    close: string;
   };
   groupRecurring: {
     title: string;
@@ -7579,9 +7766,103 @@ const en: UiStrings = {
     completeSheetTitle: 'Complete this expense',
     tryWhoOwes: '“Who owes me?”',
   },
+  companyDocs: {
+    title: 'Estimates & bills',
+    estimate: 'Estimate',
+    bill: 'Bill',
+    all: 'All',
+    estimates: 'Estimates',
+    bills: 'Bills',
+    unpaid: 'Unpaid',
+    syncing: 'Syncing',
+    draft: 'Draft',
+    sent: 'Sent',
+    accepted: 'Accepted',
+    declined: 'Declined',
+    part_paid: 'Part paid',
+    paid: 'Paid',
+    newEstimate: 'New estimate',
+    newBill: 'New bill',
+    customer: 'Customer name',
+    phone: 'Phone (optional)',
+    date: 'Date',
+    description: 'Description',
+    qty: 'Qty',
+    rate: 'Rate',
+    amount: 'Amount',
+    addItem: 'Add item',
+    removeItem: 'Remove item',
+    discount: 'Discount (optional)',
+    notes: 'Notes (optional)',
+    subtotal: 'Subtotal',
+    total: 'Total',
+    payments: 'Payments received',
+    amountLeft: 'Balance due',
+    billTo: 'Bill to',
+    estimateFor: 'Estimate for',
+    recordPayment: 'Record payment',
+    sharePdf: 'Share PDF',
+    convert: 'Convert to bill',
+    edit: 'Edit',
+    delete: 'Delete',
+    save: 'Save',
+    empty: 'No documents yet',
+    notFound: 'Document not found',
+    linkedBill: 'View bill',
+    linkedEstimate: 'View estimate',
+    footer: 'This is not a tax invoice.',
+    nameError: 'Enter a customer name (up to 120 characters).',
+    itemsError: 'Add 1–50 items.',
+    itemError: 'Enter a description, positive quantity and valid rate.',
+    discountError: 'Discount must be less than the subtotal.',
+    totalError: 'Enter a positive total within the allowed limit.',
+    below_paidError: 'Total cannot be less than payments received.',
+    amountError: 'Enter a positive payment amount.',
+    overError: 'Amount exceeds the balance due.',
+    failed: 'Could not save. Please try again.',
+    deleteTitle: 'Delete document?',
+    deleteBody: 'This document will be removed.',
+    unpaidTotal: '{amount} unpaid',
+  },
   company: {
+    attendanceTitle: 'Attendance',
+    attendanceMine: 'My attendance',
+    attendanceEmpty: 'Add employees to get started.',
+    attendancePresent: 'Present',
+    attendanceHalf: 'Half',
+    attendanceAbsent: 'Absent',
+    attendanceMarkAll: 'Mark all present',
+    attendanceNote: 'Add note',
+    attendanceSummary: { one: '{n} day present', other: '{n} days present' },
+    attendancePreviousMonth: 'Previous month',
+    attendanceNextMonth: 'Next month',
+    workTitle: 'Daily work',
+    workMine: 'My work today',
+    workEmpty: 'No tasks for this day.',
+    workAdd: 'Add task',
+    workEdit: 'Edit task',
+    workTitleField: 'Task title',
+    workPerson: 'Person',
+    workSite: 'Site',
+    workNoSite: 'No site',
+    workTodo: 'To do',
+    workDoing: 'Doing',
+    workDone: 'Done',
+    workBlocked: 'Blocked',
+    workReason: 'Why is it blocked?',
+    workNote: 'Note',
+    workRepeat: 'Repeat tomorrow',
+    workRemove: 'Remove',
+    workStatus: 'Status',
+    workPreviousDay: 'Previous day',
+    workNextDay: 'Next day',
+    workSeeAll: 'See all',
+    workSaveError: 'Could not save. Try again.',
+
     tab: 'Company',
     listTitle: 'Your companies',
+    listSubtitle: 'Manage and switch between your companies',
+    currentCompany: 'Current company',
     myStatement: 'My statement',
     summary: 'Company summary',
     employees: 'Employees',
@@ -7602,6 +7883,10 @@ const en: UiStrings = {
     owedBy: 'Owes company',
     addEmployee: 'Add employee',
     addEmployeeBody: 'Add people to your company. They can join now or later.',
+    employeeId: 'Employee ID',
+    employeeIdOptional: 'Employee ID (optional)',
+    addEmployeeId: 'Add employee ID',
+    employeeIdTaken: 'That employee ID is already used by someone else.',
     fromPastCompany: 'From another company',
     fromPastCompanyBody: 'Reuse people you manage elsewhere',
     pastSearch: 'Search by name or company',
@@ -7637,6 +7922,19 @@ const en: UiStrings = {
     tabBudgets: 'Budgets',
     tabPayments: 'Payments',
     tabMyTeam: 'My team',
+    barPeople: 'People',
+    barPending: 'Pending',
+    barMore: 'More',
+    sectionOwners: 'Owners',
+    moreBudgets: 'Budgets & sites',
+    moreStatements: 'Statements & export',
+    moreRules: 'Rules',
+    pendingNone: 'Nothing is waiting',
+    pendingNoneBody: 'Claims and budget requests that need you show up here.',
+    pendingVendorBills: '{n} vendor bills to confirm',
+    pendingUnpaidBills: '{n} unpaid bills',
+    pendingBlockedTasks: '{n} blocked tasks',
+    pendingUnmarked: '{n} not marked today',
     countsLine: '{e} employees · {m} managers · {o} owners',
     teamLine: 'Your team · {employees}',
     pillOwner: 'Owner',
@@ -7651,6 +7949,15 @@ const en: UiStrings = {
     qaBudgets: 'Allocate budgets',
     qaRecord: 'Record payment',
     qaAddEmployee: 'Add employee',
+    searchEmployees: 'Search employees...',
+    filterEmployees: 'Show employees',
+    empFilterAll: 'All',
+    empFilterOwes: 'Owes company',
+    empFilterCompanyOwes: 'Company owes',
+    empFilterSettled: 'Settled',
+    viewStatement: 'View statement',
+    employeeOptions: 'Employee options',
+    noEmployeesMatch: 'No employee matches',
     qaAdvance: 'Give advance',
     qaAsk: 'Ask owner for budget',
     promoTitle: 'Invite your team',
@@ -7789,6 +8096,24 @@ const en: UiStrings = {
     wagesPaidFromPool: 'Paid from your cash',
     sites: 'Sites',
     addSite: 'Add a site',
+    suspendedBanner:
+      'This company is suspended by Waves. It is read-only for now. Contact hello@wavs.co.in.',
+    reportCompany: 'Report this company',
+    reportTitle: 'Report this company',
+    reportBody:
+      'Tell us what is wrong. Waves reviews every report. The company is not told who reported it.',
+    reportFraud: 'Fraud',
+    reportIllegal: 'Illegal activity',
+    reportHarassment: 'Harassment',
+    reportWages: 'Unpaid wages',
+    reportOther: 'Something else',
+    reportPlaceholder: 'What happened? (short)',
+    reportSend: 'Send report',
+    reportSent: 'Thanks. Waves will look into it.',
+    reportLimit: 'You have sent several reports today. Try again tomorrow.',
+    reportFailed: 'Could not send the report. Check your connection and try again.',
+    suspendedReadOnly:
+      'This company is suspended. You can view and export, but not add or change anything.',
     siteName: 'Site name',
     siteBudget: 'Budget (optional)',
     siteSpent: '{spent} of {budget}',
@@ -8007,6 +8332,58 @@ const en: UiStrings = {
     colReview: 'Review note',
     notCounted: 'Not counted until approved',
     exportAction: 'Export',
+  },
+  companyVendors: {
+    photoPrivacy: 'Only people who can see this ledger line can see these photos.',
+    historyEmpty: 'No entries yet',
+    title: 'Vendors',
+    addVendor: '+ Add vendor',
+    name: 'Name',
+    phone: 'Phone (optional)',
+    category: 'Category (optional)',
+    empty: 'No vendors yet',
+    youOwe: 'You owe {amount}',
+    hasAdvance: 'Has {amount} advance',
+    settled: 'Settled',
+    oweName: 'You owe {name} {amount}',
+    advanceName: '{name} has {amount} advance',
+    settledName: 'All settled with {name}',
+    companyOwes: 'The company owes you {amount}',
+    yourAdvance: 'You have {amount} advance with the company',
+    allSettled: 'All settled',
+    addBill: 'Add bill',
+    recordPayment: 'Record payment',
+    bill: 'Bill',
+    advance: 'Advance',
+    payment: 'Payment',
+    amount: 'Amount',
+    date: 'Date',
+    note: 'Note (optional)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'Enter a valid date',
+    billHint: 'This bill counts once the company confirms it.',
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    rejected: 'Rejected',
+    received: 'Received',
+    markReceived: 'Mark received',
+    history: 'History',
+    pendingBills: 'Bills awaiting confirmation',
+    confirm: 'Confirm',
+    reject: 'Reject',
+    more: 'More options',
+    invite: 'Invite vendor',
+    rename: 'Rename',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this vendor and their ledger?',
+    removeEntry: 'Remove entry',
+    removeConfirm: 'Remove this entry from the ledger?',
+    withdraw: 'Withdraw',
+    withdrawConfirm: 'Withdraw this pending bill?',
+    notFound: 'Vendor unavailable',
+    inviteFailed: 'Could not create an invite. Connect to the internet and try again.',
+    save: 'Save',
+    close: 'Close',
   },
   groupRecurring: {
     title: 'Repeating',
@@ -13359,9 +13736,103 @@ const ta: UiStrings = {
     completeSheetTitle: 'இந்தச் செலவை முழுமையாக்குங்கள்',
     tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
   },
+  companyDocs: {
+    title: 'மதிப்பீடுகள் & பில்கள்',
+    estimate: 'மதிப்பீடு',
+    bill: 'பில்',
+    all: 'அனைத்தும்',
+    estimates: 'மதிப்பீடுகள்',
+    bills: 'பில்கள்',
+    unpaid: 'நிலுவை',
+    syncing: 'ஒத்திசைகிறது',
+    draft: 'வரைவு',
+    sent: 'அனுப்பியது',
+    accepted: 'ஏற்றது',
+    declined: 'மறுத்தது',
+    part_paid: 'பகுதி செலுத்தியது',
+    paid: 'செலுத்தியது',
+    newEstimate: 'புதிய மதிப்பீடு',
+    newBill: 'புதிய பில்',
+    customer: 'வாடிக்கையாளர் பெயர்',
+    phone: 'தொலைபேசி (விருப்பம்)',
+    date: 'தேதி',
+    description: 'விவரம்',
+    qty: 'அளவு',
+    rate: 'விலை',
+    amount: 'தொகை',
+    addItem: 'உருப்படி சேர்',
+    removeItem: 'உருப்படி நீக்கு',
+    discount: 'தள்ளுபடி (விருப்பம்)',
+    notes: 'குறிப்புகள் (விருப்பம்)',
+    subtotal: 'கூட்டுத்தொகை',
+    total: 'மொத்தம்',
+    payments: 'பெற்ற தொகைகள்',
+    amountLeft: 'மீதித் தொகை',
+    billTo: 'பில் பெறுநர்',
+    estimateFor: 'மதிப்பீடு பெறுநர்',
+    recordPayment: 'பெற்ற தொகையைப் பதிவு செய்',
+    sharePdf: 'PDF பகிர்',
+    convert: 'பில்லாக மாற்று',
+    edit: 'திருத்து',
+    delete: 'நீக்கு',
+    save: 'சேமி',
+    empty: 'ஆவணங்கள் இல்லை',
+    notFound: 'ஆவணம் இல்லை',
+    linkedBill: 'பில்லைப் பார்',
+    linkedEstimate: 'மதிப்பீட்டைப் பார்',
+    footer: 'இது வரி விலைப்பட்டியல் அல்ல.',
+    nameError: 'வாடிக்கையாளர் பெயரை உள்ளிடவும் (120 எழுத்துகள் வரை).',
+    itemsError: '1–50 உருப்படிகளைச் சேர்க்கவும்.',
+    itemError: 'விவரம், நேர்மறை அளவு, சரியான விலையை உள்ளிடவும்.',
+    discountError: 'தள்ளுபடி கூட்டுத்தொகையை விடக் குறைவாக இருக்க வேண்டும்.',
+    totalError: 'அனுமதிக்கப்பட்ட வரம்பில் நேர்மறை மொத்தத்தை உள்ளிடவும்.',
+    below_paidError: 'மொத்தம் பெற்ற தொகையை விடக் குறையக்கூடாது.',
+    amountError: 'நேர்மறைத் தொகையை உள்ளிடவும்.',
+    overError: 'தொகை நிலுவையை விட அதிகம்.',
+    failed: 'சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    deleteTitle: 'ஆவணத்தை நீக்கவா?',
+    deleteBody: 'இந்த ஆவணம் நீக்கப்படும்.',
+    unpaidTotal: '{amount} நிலுவை',
+  },
   company: {
+    attendanceTitle: 'வருகை',
+    attendanceMine: 'என் வருகை',
+    attendanceEmpty: 'தொடங்க ஊழியர்களைச் சேர்க்கவும்.',
+    attendancePresent: 'வருகை',
+    attendanceHalf: 'அரை நாள்',
+    attendanceAbsent: 'வரவில்லை',
+    attendanceMarkAll: 'அனைவருக்கும் வருகை',
+    attendanceNote: 'குறிப்பு சேர்க்க',
+    attendanceSummary: { other: '{n} நாட்கள் வருகை' },
+    attendancePreviousMonth: 'முந்தைய மாதம்',
+    attendanceNextMonth: 'அடுத்த மாதம்',
+    workTitle: 'தினசரி வேலை',
+    workMine: 'என் இன்றைய வேலை',
+    workEmpty: 'இந்த நாளில் வேலைகள் இல்லை.',
+    workAdd: 'வேலை சேர்க்க',
+    workEdit: 'வேலை திருத்த',
+    workTitleField: 'வேலைத் தலைப்பு',
+    workPerson: 'நபர்',
+    workSite: 'பணித்தளம்',
+    workNoSite: 'பணித்தளம் இல்லை',
+    workTodo: 'செய்ய வேண்டும்',
+    workDoing: 'செய்கிறார்',
+    workDone: 'முடிந்தது',
+    workBlocked: 'தடை',
+    workReason: 'தடைக்கான காரணம்?',
+    workNote: 'குறிப்பு',
+    workRepeat: 'நாளை மீண்டும்',
+    workRemove: 'நீக்கு',
+    workStatus: 'நிலை',
+    workPreviousDay: 'முந்தைய நாள்',
+    workNextDay: 'அடுத்த நாள்',
+    workSeeAll: 'அனைத்தையும் காண்க',
+    workSaveError: 'சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+
     tab: 'நிறுவனம்',
     listTitle: 'உங்கள் நிறுவனங்கள்',
+    listSubtitle: 'உங்கள் நிறுவனங்களை நிர்வகித்து மாற்றவும்',
+    currentCompany: 'தற்போதைய நிறுவனம்',
     myStatement: 'என் அறிக்கை',
     summary: 'நிறுவன சுருக்கம்',
     employees: 'ஊழியர்கள்',
@@ -13383,6 +13854,10 @@ const ta: UiStrings = {
     addEmployee: 'ஊழியரைச் சேர்',
     addEmployeeBody:
       'தொடர்புகளில் இருந்து தேர்ந்தெடுங்கள், பெயரை உள்ளிடுங்கள் அல்லது வேறு நிறுவனத்தில் இருந்து மீண்டும் பயன்படுத்துங்கள்.',
+    employeeId: 'ஊழியர் எண்',
+    employeeIdOptional: 'ஊழியர் எண் (விருப்பம்)',
+    addEmployeeId: 'ஊழியர் எண்ணைச் சேர்',
+    employeeIdTaken: 'இந்த ஊழியர் எண் வேறொருவரிடம் ஏற்கெனவே உள்ளது.',
     fromPastCompany: 'முந்தைய நிறுவனம்',
     fromPastCompanyBody: 'நீங்கள் வேறு இடத்தில் நிர்வகிப்பவர்கள்',
     pastSearch: 'பெயர் அல்லது நிறுவனம் மூலம் தேடு',
@@ -13418,6 +13893,19 @@ const ta: UiStrings = {
     tabBudgets: 'பட்ஜெட்',
     tabPayments: 'கொடுப்பனவுகள்',
     tabMyTeam: 'என் குழு',
+    barPeople: 'நபர்கள்',
+    barPending: 'நிலுவை',
+    barMore: 'மேலும்',
+    sectionOwners: 'உரிமையாளர்கள்',
+    moreBudgets: 'பட்ஜெட் & இடங்கள்',
+    moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
+    moreRules: 'விதிகள்',
+    pendingNone: 'எதுவும் காத்திருக்கவில்லை',
+    pendingNoneBody: 'உங்கள் கவனம் தேவைப்படும் கோரிக்கைகள் இங்கே தோன்றும்.',
+    pendingVendorBills: 'உறுதிசெய்ய {n} விற்பனையாளர் பில்கள்',
+    pendingUnpaidBills: '{n} செலுத்தப்படாத பில்கள்',
+    pendingBlockedTasks: '{n} தடைப்பட்ட பணிகள்',
+    pendingUnmarked: 'இன்று {n} பேருக்கு குறிக்கவில்லை',
     countsLine: '{e} ஊழியர்கள் · {m} மேலாளர்கள் · {o} உரிமையாளர்கள்',
     teamLine: 'உங்கள் குழு · {employees}',
     pillOwner: 'உரிமையாளர்',
@@ -13432,6 +13920,15 @@ const ta: UiStrings = {
     qaBudgets: 'பட்ஜெட் ஒதுக்கு',
     qaRecord: 'கொடுப்பனவை பதிவு செய்',
     qaAddEmployee: 'ஊழியரைச் சேர்',
+    searchEmployees: 'ஊழியர்களைத் தேடு...',
+    filterEmployees: 'ஊழியர்களைக் காட்டு',
+    empFilterAll: 'அனைவரும்',
+    empFilterOwes: 'நிறுவனத்திற்குக் கொடுக்க வேண்டியவர்',
+    empFilterCompanyOwes: 'நிறுவனம் கொடுக்க வேண்டியவர்',
+    empFilterSettled: 'தீர்ந்தவர்',
+    viewStatement: 'அறிக்கையைப் பார்',
+    employeeOptions: 'ஊழியர் விருப்பங்கள்',
+    noEmployeesMatch: 'பொருந்தும் ஊழியர் இல்லை',
     qaAdvance: 'முன்பணம் கொடு',
     qaAsk: 'பட்ஜெட் கேள்',
     promoTitle: 'உங்கள் குழுவை அழையுங்கள்',
@@ -13572,6 +14069,24 @@ const ta: UiStrings = {
     wagesPaidFromPool: 'உங்கள் பணத்தில் இருந்து',
     sites: 'தளங்கள்',
     addSite: 'தளம் சேர்',
+    suspendedBanner:
+      'இந்த நிறுவனத்தை Waves இடைநிறுத்தியுள்ளது. இப்போது பார்க்க மட்டுமே முடியும். hello@wavs.co.in ஐத் தொடர்பு கொள்ளவும்.',
+    reportCompany: 'இந்த நிறுவனத்தைப் புகாரளி',
+    reportTitle: 'இந்த நிறுவனத்தைப் புகாரளி',
+    reportBody:
+      'என்ன தவறு என்று சொல்லுங்கள். Waves ஒவ்வொரு புகாரையும் பரிசீலிக்கும். யார் புகாரளித்தார் என்பது நிறுவனத்துக்குத் தெரியாது.',
+    reportFraud: 'மோசடி',
+    reportIllegal: 'சட்டவிரோத செயல்',
+    reportHarassment: 'துன்புறுத்தல்',
+    reportWages: 'கொடுக்கப்படாத சம்பளம்',
+    reportOther: 'வேறு ஏதாவது',
+    reportPlaceholder: 'என்ன நடந்தது? (சுருக்கமாக)',
+    reportSend: 'புகாரை அனுப்பு',
+    reportSent: 'நன்றி. Waves இதைப் பார்க்கும்.',
+    reportLimit: 'இன்று பல புகார்கள் அனுப்பியுள்ளீர்கள். நாளை மீண்டும் முயலுங்கள்.',
+    reportFailed: 'புகாரை அனுப்ப முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயலுங்கள்.',
+    suspendedReadOnly:
+      'இந்த நிறுவனம் இடைநிறுத்தப்பட்டுள்ளது. பார்க்கவும் ஏற்றுமதி செய்யவும் முடியும்; சேர்க்கவோ மாற்றவோ முடியாது.',
     siteName: 'தளத்தின் பெயர்',
     siteBudget: 'பட்ஜெட் (விருப்பம்)',
     siteSpent: '{budget} இல் {spent}',
@@ -13791,6 +14306,59 @@ const ta: UiStrings = {
     colReview: 'மதிப்பாய்வு குறிப்பு',
     notCounted: 'ஒப்புதல் வரை கணக்கில் சேராது',
     exportAction: 'ஏற்றுமதி',
+  },
+  companyVendors: {
+    photoPrivacy:
+      'இந்தக் கணக்குப் பதிவைப் பார்க்க அனுமதி உள்ளவர்கள் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
+    historyEmpty: 'இன்னும் பதிவுகள் இல்லை',
+    title: 'விற்பனையாளர்கள்',
+    addVendor: '+ விற்பனையாளரைச் சேர்',
+    name: 'பெயர்',
+    phone: 'தொலைபேசி (விருப்பம்)',
+    category: 'வகை (விருப்பம்)',
+    empty: 'இன்னும் விற்பனையாளர்கள் இல்லை',
+    youOwe: 'நீங்கள் தர வேண்டியது {amount}',
+    hasAdvance: '{amount} முன்பணம் உள்ளது',
+    settled: 'கணக்கு முடிந்தது',
+    oweName: '{name}க்கு நீங்கள் தர வேண்டியது {amount}',
+    advanceName: '{name} வசம் {amount} முன்பணம் உள்ளது',
+    settledName: '{name} உடன் கணக்கு முடிந்தது',
+    companyOwes: 'நிறுவனம் உங்களுக்குத் தர வேண்டியது {amount}',
+    yourAdvance: 'நிறுவனத்திடம் இருந்து {amount} முன்பணம் பெற்றுள்ளீர்கள்',
+    allSettled: 'கணக்கு முடிந்தது',
+    addBill: 'பில்லைச் சேர்',
+    recordPayment: 'பணம் கொடுத்ததைப் பதிவு செய்',
+    bill: 'பில்',
+    advance: 'முன்பணம்',
+    payment: 'பணம் கொடுத்தது',
+    amount: 'தொகை',
+    date: 'தேதி',
+    note: 'குறிப்பு (விருப்பம்)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'சரியான தேதியை உள்ளிடவும்',
+    billHint: 'நிறுவனம் உறுதிப்படுத்திய பிறகே இந்த பில் கணக்கில் சேரும்.',
+    pending: 'நிலுவையில்',
+    confirmed: 'உறுதிப்படுத்தப்பட்டது',
+    rejected: 'நிராகரிக்கப்பட்டது',
+    received: 'பெறப்பட்டது',
+    markReceived: 'பெற்றதாகக் குறி',
+    history: 'வரலாறு',
+    pendingBills: 'உறுதிப்படுத்தக் காத்திருக்கும் பில்கள்',
+    confirm: 'உறுதிப்படுத்து',
+    reject: 'நிராகரி',
+    more: 'மேலும் விருப்பங்கள்',
+    invite: 'விற்பனையாளரை அழை',
+    rename: 'பெயரை மாற்று',
+    delete: 'நீக்கு',
+    deleteConfirm: 'இந்த விற்பனையாளரையும் அவரது கணக்கையும் நீக்கவா?',
+    removeEntry: 'பதிவை நீக்கு',
+    removeConfirm: 'இந்தப் பதிவைக் கணக்கிலிருந்து நீக்கவா?',
+    withdraw: 'திரும்பப் பெறு',
+    withdrawConfirm: 'நிலுவையில் உள்ள இந்த பில்லைத் திரும்பப் பெறவா?',
+    notFound: 'விற்பனையாளர் கிடைக்கவில்லை',
+    inviteFailed: 'அழைப்பை உருவாக்க முடியவில்லை. இணையத்தில் இணைந்து மீண்டும் முயலவும்.',
+    save: 'சேமி',
+    close: 'மூடு',
   },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
@@ -19308,9 +19876,103 @@ const hi: UiStrings = {
     completeSheetTitle: 'यह खर्च पूरा करें',
     tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
   },
+  companyDocs: {
+    title: 'अनुमान और बिल',
+    estimate: 'अनुमान',
+    bill: 'बिल',
+    all: 'सभी',
+    estimates: 'अनुमान',
+    bills: 'बिल',
+    unpaid: 'बकाया',
+    syncing: 'सिंक हो रहा है',
+    draft: 'ड्राफ़्ट',
+    sent: 'भेजा गया',
+    accepted: 'स्वीकृत',
+    declined: 'अस्वीकृत',
+    part_paid: 'आंशिक भुगतान',
+    paid: 'भुगतान पूरा',
+    newEstimate: 'नया अनुमान',
+    newBill: 'नया बिल',
+    customer: 'ग्राहक का नाम',
+    phone: 'फ़ोन (वैकल्पिक)',
+    date: 'तारीख',
+    description: 'विवरण',
+    qty: 'मात्रा',
+    rate: 'दर',
+    amount: 'राशि',
+    addItem: 'आइटम जोड़ें',
+    removeItem: 'आइटम हटाएँ',
+    discount: 'छूट (वैकल्पिक)',
+    notes: 'नोट्स (वैकल्पिक)',
+    subtotal: 'उप-योग',
+    total: 'कुल',
+    payments: 'प्राप्त भुगतान',
+    amountLeft: 'बकाया राशि',
+    billTo: 'बिल प्राप्तकर्ता',
+    estimateFor: 'अनुमान प्राप्तकर्ता',
+    recordPayment: 'भुगतान दर्ज करें',
+    sharePdf: 'PDF साझा करें',
+    convert: 'बिल में बदलें',
+    edit: 'बदलें',
+    delete: 'हटाएँ',
+    save: 'सहेजें',
+    empty: 'अभी कोई दस्तावेज़ नहीं',
+    notFound: 'दस्तावेज़ नहीं मिला',
+    linkedBill: 'बिल देखें',
+    linkedEstimate: 'अनुमान देखें',
+    footer: 'यह कर चालान नहीं है।',
+    nameError: 'ग्राहक का नाम लिखें (अधिकतम 120 अक्षर)।',
+    itemsError: '1–50 आइटम जोड़ें।',
+    itemError: 'विवरण, धनात्मक मात्रा और सही दर लिखें।',
+    discountError: 'छूट उप-योग से कम होनी चाहिए।',
+    totalError: 'अनुमत सीमा में धनात्मक कुल लिखें।',
+    below_paidError: 'कुल प्राप्त भुगतान से कम नहीं हो सकता।',
+    amountError: 'धनात्मक भुगतान राशि लिखें।',
+    overError: 'राशि बकाया से अधिक है।',
+    failed: 'सहेज नहीं सके। फिर कोशिश करें।',
+    deleteTitle: 'दस्तावेज़ हटाएँ?',
+    deleteBody: 'यह दस्तावेज़ हटा दिया जाएगा।',
+    unpaidTotal: '{amount} बकाया',
+  },
   company: {
+    attendanceTitle: 'हाज़िरी',
+    attendanceMine: 'मेरी हाज़िरी',
+    attendanceEmpty: 'शुरू करने के लिए कर्मचारी जोड़ें।',
+    attendancePresent: 'हाज़िर',
+    attendanceHalf: 'आधा दिन',
+    attendanceAbsent: 'गैरहाज़िर',
+    attendanceMarkAll: 'सबकी हाज़िरी लगाएँ',
+    attendanceNote: 'नोट जोड़ें',
+    attendanceSummary: { other: '{n} दिन हाज़िर' },
+    attendancePreviousMonth: 'पिछला महीना',
+    attendanceNextMonth: 'अगला महीना',
+    workTitle: 'रोज़ का काम',
+    workMine: 'आज मेरा काम',
+    workEmpty: 'इस दिन कोई काम नहीं।',
+    workAdd: 'काम जोड़ें',
+    workEdit: 'काम बदलें',
+    workTitleField: 'काम का नाम',
+    workPerson: 'व्यक्ति',
+    workSite: 'साइट',
+    workNoSite: 'कोई साइट नहीं',
+    workTodo: 'करना है',
+    workDoing: 'जारी है',
+    workDone: 'पूरा',
+    workBlocked: 'रुका हुआ',
+    workReason: 'काम क्यों रुका है?',
+    workNote: 'नोट',
+    workRepeat: 'कल दोहराएँ',
+    workRemove: 'हटाएँ',
+    workStatus: 'स्थिति',
+    workPreviousDay: 'पिछला दिन',
+    workNextDay: 'अगला दिन',
+    workSeeAll: 'सभी देखें',
+    workSaveError: 'सेव नहीं हुआ। फिर कोशिश करें।',
+
     tab: 'कंपनी',
     listTitle: 'आपकी कंपनियाँ',
+    listSubtitle: 'अपनी कंपनियाँ प्रबंधित करें और बदलें',
+    currentCompany: 'मौजूदा कंपनी',
     myStatement: 'मेरा स्टेटमेंट',
     summary: 'कंपनी सारांश',
     employees: 'कर्मचारी',
@@ -19331,6 +19993,10 @@ const hi: UiStrings = {
     owedBy: 'कंपनी को देंगे',
     addEmployee: 'कर्मचारी जोड़ें',
     addEmployeeBody: 'संपर्कों से चुनें, नाम लिखें या किसी दूसरी कंपनी के लोगों को दोबारा जोड़ें।',
+    employeeId: 'कर्मचारी आईडी',
+    employeeIdOptional: 'कर्मचारी आईडी (वैकल्पिक)',
+    addEmployeeId: 'कर्मचारी आईडी जोड़ें',
+    employeeIdTaken: 'यह कर्मचारी आईडी पहले से किसी और के पास है।',
     fromPastCompany: 'पिछली कंपनी',
     fromPastCompanyBody: 'जिन्हें आप कहीं और संभालते हैं',
     pastSearch: 'नाम या कंपनी से खोजें',
@@ -19366,6 +20032,19 @@ const hi: UiStrings = {
     tabBudgets: 'बजट',
     tabPayments: 'भुगतान',
     tabMyTeam: 'मेरी टीम',
+    barPeople: 'लोग',
+    barPending: 'लंबित',
+    barMore: 'और',
+    sectionOwners: 'मालिक',
+    moreBudgets: 'बजट और साइट',
+    moreStatements: 'स्टेटमेंट और निर्यात',
+    moreRules: 'नियम',
+    pendingNone: 'कुछ भी प्रतीक्षा में नहीं',
+    pendingNoneBody: 'आपके ध्यान की ज़रूरत वाले दावे और बजट अनुरोध यहाँ दिखेंगे।',
+    pendingVendorBills: 'पुष्टि के लिए {n} वेंडर बिल',
+    pendingUnpaidBills: '{n} बिना भुगतान वाले बिल',
+    pendingBlockedTasks: '{n} अटके हुए काम',
+    pendingUnmarked: 'आज {n} की हाज़िरी नहीं लगी',
     countsLine: '{e} कर्मचारी · {m} मैनेजर · {o} मालिक',
     teamLine: 'आपकी टीम · {employees}',
     pillOwner: 'मालिक',
@@ -19380,6 +20059,15 @@ const hi: UiStrings = {
     qaBudgets: 'बजट दें',
     qaRecord: 'भुगतान दर्ज करें',
     qaAddEmployee: 'कर्मचारी जोड़ें',
+    searchEmployees: 'कर्मचारी खोजें...',
+    filterEmployees: 'कर्मचारी दिखाएँ',
+    empFilterAll: 'सभी',
+    empFilterOwes: 'कंपनी का बकाया',
+    empFilterCompanyOwes: 'कंपनी पर बकाया',
+    empFilterSettled: 'चुकता',
+    viewStatement: 'स्टेटमेंट देखें',
+    employeeOptions: 'कर्मचारी विकल्प',
+    noEmployeesMatch: 'कोई कर्मचारी नहीं मिला',
     qaAdvance: 'एडवांस दें',
     qaAsk: 'मालिक से बजट माँगें',
     promoTitle: 'अपनी टीम को बुलाएँ',
@@ -19518,6 +20206,24 @@ const hi: UiStrings = {
     wagesPaidFromPool: 'आपके नकद से',
     sites: 'साइटें',
     addSite: 'साइट जोड़ें',
+    suspendedBanner:
+      'इस कंपनी को Waves ने निलंबित किया है। अभी यह केवल देखने के लिए है। hello@wavs.co.in पर संपर्क करें।',
+    reportCompany: 'इस कंपनी की शिकायत करें',
+    reportTitle: 'इस कंपनी की शिकायत करें',
+    reportBody:
+      'बताइए क्या गलत है। Waves हर शिकायत देखता है। कंपनी को नहीं बताया जाता कि किसने शिकायत की।',
+    reportFraud: 'धोखाधड़ी',
+    reportIllegal: 'अवैध गतिविधि',
+    reportHarassment: 'उत्पीड़न',
+    reportWages: 'बकाया वेतन',
+    reportOther: 'कुछ और',
+    reportPlaceholder: 'क्या हुआ? (संक्षेप में)',
+    reportSend: 'शिकायत भेजें',
+    reportSent: 'धन्यवाद। Waves इसकी जाँच करेगा।',
+    reportLimit: 'आज आपने कई शिकायतें भेज दी हैं। कल फिर कोशिश करें।',
+    reportFailed: 'शिकायत नहीं भेजी जा सकी। कनेक्शन जाँचकर फिर कोशिश करें।',
+    suspendedReadOnly:
+      'यह कंपनी निलंबित है। आप देख और निर्यात कर सकते हैं, पर कुछ जोड़ या बदल नहीं सकते।',
     siteName: 'साइट का नाम',
     siteBudget: 'बजट (वैकल्पिक)',
     siteSpent: '{budget} में से {spent}',
@@ -19736,6 +20442,58 @@ const hi: UiStrings = {
     colReview: 'समीक्षा नोट',
     notCounted: 'मंज़ूरी तक गिनी नहीं जाएगी',
     exportAction: 'निर्यात',
+  },
+  companyVendors: {
+    photoPrivacy: 'ये फ़ोटो सिर्फ़ वे लोग देख सकते हैं जो इस खाते की प्रविष्टि को देख सकते हैं।',
+    historyEmpty: 'अभी कोई प्रविष्टि नहीं',
+    title: 'विक्रेता',
+    addVendor: '+ विक्रेता जोड़ें',
+    name: 'नाम',
+    phone: 'फ़ोन (वैकल्पिक)',
+    category: 'श्रेणी (वैकल्पिक)',
+    empty: 'अभी कोई विक्रेता नहीं',
+    youOwe: 'आपको {amount} देना है',
+    hasAdvance: '{amount} अग्रिम है',
+    settled: 'हिसाब बराबर',
+    oweName: 'आपको {name} को {amount} देना है',
+    advanceName: '{name} के पास {amount} अग्रिम है',
+    settledName: '{name} के साथ हिसाब बराबर',
+    companyOwes: 'कंपनी को आपको {amount} देना है',
+    yourAdvance: 'आपके पास कंपनी से {amount} अग्रिम है',
+    allSettled: 'हिसाब बराबर',
+    addBill: 'बिल जोड़ें',
+    recordPayment: 'भुगतान दर्ज करें',
+    bill: 'बिल',
+    advance: 'अग्रिम',
+    payment: 'भुगतान',
+    amount: 'राशि',
+    date: 'तारीख',
+    note: 'टिप्पणी (वैकल्पिक)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'मान्य तारीख दर्ज करें',
+    billHint: 'कंपनी की पुष्टि के बाद यह बिल हिसाब में जुड़ेगा।',
+    pending: 'लंबित',
+    confirmed: 'पुष्टि हुई',
+    rejected: 'अस्वीकृत',
+    received: 'प्राप्त',
+    markReceived: 'प्राप्त चिह्नित करें',
+    history: 'इतिहास',
+    pendingBills: 'पुष्टि की प्रतीक्षा में बिल',
+    confirm: 'पुष्टि करें',
+    reject: 'अस्वीकार करें',
+    more: 'और विकल्प',
+    invite: 'विक्रेता को आमंत्रित करें',
+    rename: 'नाम बदलें',
+    delete: 'हटाएँ',
+    deleteConfirm: 'इस विक्रेता और उसके खाते को हटाएँ?',
+    removeEntry: 'प्रविष्टि हटाएँ',
+    removeConfirm: 'इस प्रविष्टि को खाते से हटाएँ?',
+    withdraw: 'वापस लें',
+    withdrawConfirm: 'यह लंबित बिल वापस लें?',
+    notFound: 'विक्रेता उपलब्ध नहीं',
+    inviteFailed: 'आमंत्रण नहीं बन सका। इंटरनेट से जुड़कर फिर कोशिश करें।',
+    save: 'सहेजें',
+    close: 'बंद करें',
   },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
@@ -25145,9 +25903,108 @@ const ar: UiStrings = {
     completeSheetTitle: 'أكمل هذا المصروف',
     tryWhoOwes: '«من يدين لي؟»',
   },
+  companyDocs: {
+    title: 'التقديرات والفواتير',
+    estimate: 'تقدير',
+    bill: 'فاتورة',
+    all: 'الكل',
+    estimates: 'التقديرات',
+    bills: 'الفواتير',
+    unpaid: 'غير مدفوع',
+    syncing: 'جارٍ المزامنة',
+    draft: 'مسودة',
+    sent: 'تم الإرسال',
+    accepted: 'مقبول',
+    declined: 'مرفوض',
+    part_paid: 'مدفوع جزئياً',
+    paid: 'مدفوع',
+    newEstimate: 'تقدير جديد',
+    newBill: 'فاتورة جديدة',
+    customer: 'اسم العميل',
+    phone: 'الهاتف (اختياري)',
+    date: 'التاريخ',
+    description: 'الوصف',
+    qty: 'الكمية',
+    rate: 'السعر',
+    amount: 'المبلغ',
+    addItem: 'إضافة بند',
+    removeItem: 'حذف البند',
+    discount: 'خصم (اختياري)',
+    notes: 'ملاحظات (اختياري)',
+    subtotal: 'المجموع الفرعي',
+    total: 'الإجمالي',
+    payments: 'الدفعات المستلمة',
+    amountLeft: 'الرصيد المستحق',
+    billTo: 'فاتورة إلى',
+    estimateFor: 'تقدير إلى',
+    recordPayment: 'تسجيل دفعة',
+    sharePdf: 'مشاركة PDF',
+    convert: 'تحويل إلى فاتورة',
+    edit: 'تعديل',
+    delete: 'حذف',
+    save: 'حفظ',
+    empty: 'لا توجد مستندات بعد',
+    notFound: 'المستند غير موجود',
+    linkedBill: 'عرض الفاتورة',
+    linkedEstimate: 'عرض التقدير',
+    footer: 'هذه ليست فاتورة ضريبية.',
+    nameError: 'أدخل اسم العميل (حتى 120 حرفاً).',
+    itemsError: 'أضف من 1 إلى 50 بنداً.',
+    itemError: 'أدخل وصفاً وكمية موجبة وسعراً صالحاً.',
+    discountError: 'يجب أن يكون الخصم أقل من المجموع الفرعي.',
+    totalError: 'أدخل إجمالياً موجباً ضمن الحد المسموح.',
+    below_paidError: 'لا يمكن أن يقل الإجمالي عن الدفعات المستلمة.',
+    amountError: 'أدخل مبلغ دفعة موجباً.',
+    overError: 'المبلغ يتجاوز الرصيد المستحق.',
+    failed: 'تعذر الحفظ. حاول مجدداً.',
+    deleteTitle: 'حذف المستند؟',
+    deleteBody: 'سيتم حذف هذا المستند.',
+    unpaidTotal: '{amount} غير مدفوع',
+  },
   company: {
+    attendanceTitle: 'الحضور',
+    attendanceMine: 'حضوري',
+    attendanceEmpty: 'أضف موظفين للبدء.',
+    attendancePresent: 'حاضر',
+    attendanceHalf: 'نصف يوم',
+    attendanceAbsent: 'غائب',
+    attendanceMarkAll: 'تسجيل حضور الجميع',
+    attendanceNote: 'إضافة ملاحظة',
+    attendanceSummary: {
+      one: 'يوم حضور واحد',
+      two: 'يوما حضور',
+      few: '{n} أيام حضور',
+      other: '{n} يوم حضور',
+    },
+    attendancePreviousMonth: 'الشهر السابق',
+    attendanceNextMonth: 'الشهر التالي',
+    workTitle: 'العمل اليومي',
+    workMine: 'عملي اليوم',
+    workEmpty: 'لا مهام لهذا اليوم.',
+    workAdd: 'إضافة مهمة',
+    workEdit: 'تعديل المهمة',
+    workTitleField: 'عنوان المهمة',
+    workPerson: 'الشخص',
+    workSite: 'الموقع',
+    workNoSite: 'بلا موقع',
+    workTodo: 'للقيام بها',
+    workDoing: 'قيد العمل',
+    workDone: 'مكتملة',
+    workBlocked: 'متوقفة',
+    workReason: 'لماذا توقفت؟',
+    workNote: 'ملاحظة',
+    workRepeat: 'تكرار غدًا',
+    workRemove: 'إزالة',
+    workStatus: 'الحالة',
+    workPreviousDay: 'اليوم السابق',
+    workNextDay: 'اليوم التالي',
+    workSeeAll: 'عرض الكل',
+    workSaveError: 'تعذر الحفظ. حاول مجددًا.',
+
     tab: 'الشركة',
     listTitle: 'شركاتك',
+    listSubtitle: 'أدر شركاتك وبدّل بينها',
+    currentCompany: 'الشركة الحالية',
     myStatement: 'كشف حسابي',
     summary: 'ملخص الشركة',
     employees: 'الموظفون',
@@ -25168,6 +26025,10 @@ const ar: UiStrings = {
     owedBy: 'مدين للشركة',
     addEmployee: 'إضافة موظف',
     addEmployeeBody: 'اختر من جهات الاتصال أو اكتب اسمًا أو أعد استخدام أشخاص من شركة أخرى.',
+    employeeId: 'رقم الموظف',
+    employeeIdOptional: 'رقم الموظف (اختياري)',
+    addEmployeeId: 'إضافة رقم الموظف',
+    employeeIdTaken: 'رقم الموظف هذا مستخدم لدى شخص آخر.',
     fromPastCompany: 'شركة سابقة',
     fromPastCompanyBody: 'أشخاص تديرهم في مكان آخر',
     pastSearch: 'ابحث بالاسم أو الشركة',
@@ -25202,6 +26063,19 @@ const ar: UiStrings = {
     tabBudgets: 'الميزانيات',
     tabPayments: 'المدفوعات',
     tabMyTeam: 'فريقي',
+    barPeople: 'الأشخاص',
+    barPending: 'المعلّقة',
+    barMore: 'المزيد',
+    sectionOwners: 'المالكون',
+    moreBudgets: 'الميزانيات والمواقع',
+    moreStatements: 'الكشوف والتصدير',
+    moreRules: 'القواعد',
+    pendingNone: 'لا شيء بانتظارك',
+    pendingNoneBody: 'ستظهر هنا المطالبات وطلبات الميزانية التي تحتاج إليك.',
+    pendingVendorBills: '{n} فواتير موردين بانتظار التأكيد',
+    pendingUnpaidBills: '{n} فواتير غير مدفوعة',
+    pendingBlockedTasks: '{n} مهام متعثرة',
+    pendingUnmarked: '{n} لم يُسجَّل حضورهم اليوم',
     countsLine: '{e} موظفين · {m} مديرين · {o} مالكين',
     teamLine: 'فريقك · {employees}',
     pillOwner: 'مالك',
@@ -25216,6 +26090,15 @@ const ar: UiStrings = {
     qaBudgets: 'وزّع الميزانيات',
     qaRecord: 'سجّل دفعة',
     qaAddEmployee: 'أضف موظفاً',
+    searchEmployees: 'ابحث عن موظف...',
+    filterEmployees: 'عرض الموظفين',
+    empFilterAll: 'الكل',
+    empFilterOwes: 'مدين للشركة',
+    empFilterCompanyOwes: 'الشركة مدينة له',
+    empFilterSettled: 'مسوّى',
+    viewStatement: 'عرض الكشف',
+    employeeOptions: 'خيارات الموظف',
+    noEmployeesMatch: 'لا يوجد موظف مطابق',
     qaAdvance: 'أعطِ سلفة',
     qaAsk: 'اطلب ميزانية',
     promoTitle: 'ادعُ فريقك',
@@ -25373,6 +26256,21 @@ const ar: UiStrings = {
     wagesPaidFromPool: 'من نقدك',
     sites: 'المواقع',
     addSite: 'أضف موقعاً',
+    suspendedBanner: 'علّقت Waves هذه الشركة. هي للعرض فقط حالياً. تواصل عبر hello@wavs.co.in.',
+    reportCompany: 'الإبلاغ عن هذه الشركة',
+    reportTitle: 'الإبلاغ عن هذه الشركة',
+    reportBody: 'أخبرنا بما هو خاطئ. تراجع Waves كل بلاغ. لا تُخبَر الشركة بهوية المُبلِّغ.',
+    reportFraud: 'احتيال',
+    reportIllegal: 'نشاط غير قانوني',
+    reportHarassment: 'مضايقة',
+    reportWages: 'أجور غير مدفوعة',
+    reportOther: 'شيء آخر',
+    reportPlaceholder: 'ماذا حدث؟ (باختصار)',
+    reportSend: 'إرسال البلاغ',
+    reportSent: 'شكراً. ستراجع Waves الأمر.',
+    reportLimit: 'أرسلت عدة بلاغات اليوم. حاول غداً.',
+    reportFailed: 'تعذّر إرسال البلاغ. تحقق من الاتصال وحاول مجدداً.',
+    suspendedReadOnly: 'هذه الشركة معلّقة. يمكنك العرض والتصدير لكن لا الإضافة أو التعديل.',
     siteName: 'اسم الموقع',
     siteBudget: 'الميزانية (اختياري)',
     siteSpent: '{spent} من {budget}',
@@ -25597,6 +26495,58 @@ const ar: UiStrings = {
     colReview: 'ملاحظة المراجعة',
     notCounted: 'لا يُحتسب حتى الموافقة',
     exportAction: 'تصدير',
+  },
+  companyVendors: {
+    photoPrivacy: 'لا يرى هذه الصور إلا من يمكنه رؤية هذا القيد في السجل.',
+    historyEmpty: 'لا توجد قيود بعد',
+    title: 'الموردون',
+    addVendor: '+ إضافة مورد',
+    name: 'الاسم',
+    phone: 'الهاتف (اختياري)',
+    category: 'الفئة (اختياري)',
+    empty: 'لا يوجد موردون بعد',
+    youOwe: 'عليك دفع {amount}',
+    hasAdvance: 'لديه سلفة بقيمة {amount}',
+    settled: 'الحساب مسوّى',
+    oweName: 'عليك دفع {amount} إلى {name}',
+    advanceName: 'لدى {name} سلفة بقيمة {amount}',
+    settledName: 'الحساب مسوّى مع {name}',
+    companyOwes: 'تدين لك الشركة بمبلغ {amount}',
+    yourAdvance: 'لديك سلفة من الشركة بقيمة {amount}',
+    allSettled: 'الحساب مسوّى',
+    addBill: 'إضافة فاتورة',
+    recordPayment: 'تسجيل دفعة',
+    bill: 'فاتورة',
+    advance: 'سلفة',
+    payment: 'دفعة',
+    amount: 'المبلغ',
+    date: 'التاريخ',
+    note: 'ملاحظة (اختياري)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'أدخل تاريخًا صحيحًا',
+    billHint: 'تُحتسب هذه الفاتورة بعد تأكيد الشركة.',
+    pending: 'قيد الانتظار',
+    confirmed: 'مؤكد',
+    rejected: 'مرفوض',
+    received: 'تم الاستلام',
+    markReceived: 'تأكيد الاستلام',
+    history: 'السجل',
+    pendingBills: 'فواتير بانتظار التأكيد',
+    confirm: 'تأكيد',
+    reject: 'رفض',
+    more: 'المزيد من الخيارات',
+    invite: 'دعوة المورد',
+    rename: 'تغيير الاسم',
+    delete: 'حذف',
+    deleteConfirm: 'هل تريد حذف هذا المورد وسجله؟',
+    removeEntry: 'إزالة القيد',
+    removeConfirm: 'هل تريد إزالة هذا القيد من السجل؟',
+    withdraw: 'سحب',
+    withdrawConfirm: 'هل تريد سحب هذه الفاتورة المعلقة؟',
+    notFound: 'المورد غير متاح',
+    inviteFailed: 'تعذر إنشاء دعوة. اتصل بالإنترنت وحاول مجددًا.',
+    save: 'حفظ',
+    close: 'إغلاق',
   },
   groupRecurring: {
     title: 'المتكررة',

@@ -8,6 +8,7 @@
 import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams } from 'expo-router';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,6 +22,7 @@ import {
 import { Sheet, Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves/ui';
 
 import { BUILDING_ART } from './art';
+import { ReportCompanySheet, SuspendedBanner } from '@/components/company/SuspendedBanner';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -28,7 +30,7 @@ import { StandardCard } from '@/components/standard';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { useCompanyTags } from '@/data/companyTags';
-import { useCompanyProjects, type CompanyView } from '@/data/companyEntries';
+import { useCompanyProjects, useCompanySuspended, type CompanyView } from '@/data/companyEntries';
 import { useGroup, useGroups } from '@/data/hooks';
 import { displayName, type MemberRow, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
@@ -157,7 +159,7 @@ function IconButton({
 
 /**
  * The hero: a soft sunset sky and the office building, then back, the company name with
- * its switcher, gear and menu, who is in it, and the round + that rides at the foot.
+ * its switcher, gear and menu, who is in it. Add and export live on the company bar (FAB, More).
  */
 export function DashHeader({
   groupId,
@@ -165,17 +167,21 @@ export function DashHeader({
   subtitle,
   pill,
   showGear,
-  tabs,
   voice,
+  onBack,
+  exportMenu,
 }: {
   groupId: string;
   view: CompanyView;
   subtitle: string;
   pill?: string;
   showGear: boolean;
-  tabs?: ReactNode;
   /** Offer "speak an expense" beside the +. */
   voice?: boolean;
+  /** Company-bar screens go to Overview / Home instead of popping. */
+  onBack?: () => void;
+  /** Employees have no company bar, so Export stays in a ⋮ here. */
+  exportMenu?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -184,6 +190,7 @@ export function DashHeader({
   useHeroStatusBar(dark ? 'light' : 'dark');
   const [switching, setSwitching] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const groups = useGroups().data ?? [];
   const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
 
@@ -223,7 +230,7 @@ export function DashHeader({
           <IconButton
             icon={directionalIcon('arrow-back')}
             label={t.common.back}
-            onPress={() => router.back()}
+            onPress={onBack ?? (() => router.back())}
           />
           <Pressable
             accessibilityRole="button"
@@ -248,7 +255,13 @@ export function DashHeader({
               onPress={() => router.push(`/group/${groupId}/settings`)}
             />
           ) : null}
-          <IconButton icon="ellipsis-vertical" label={t.group.more} onPress={() => setMenu(true)} />
+          {exportMenu ? (
+            <IconButton
+              icon="ellipsis-vertical"
+              label={t.group.more}
+              onPress={() => setMenu(true)}
+            />
+          ) : null}
         </View>
         <View
           style={{
@@ -266,14 +279,14 @@ export function DashHeader({
           </Text>
           {pill ? <RolePill label={pill} /> : null}
         </View>
-        {voice ? (
+        {voice && !view.suspended ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.company.voiceAdd}
             onPress={() => router.push({ pathname: '/voice', params: { group: groupId } })}
             style={{
               position: 'absolute',
-              right: theme.spacing.lg + 54 + 10,
+              right: theme.spacing.lg,
               bottom: 10,
               width: 42,
               height: 42,
@@ -290,30 +303,13 @@ export function DashHeader({
             <Ionicons name="mic-outline" size={iconSize.lg} color={theme.color.text} />
           </Pressable>
         ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.company.addEntry}
-          onPress={() => router.push(`/group/${groupId}/company-entry`)}
-          style={{
-            position: 'absolute',
-            right: theme.spacing.lg,
-            bottom: 4,
-            width: 54,
-            height: 54,
-            borderRadius: 27,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.buttonPrimary,
-            borderWidth: 2.5,
-            borderColor: theme.color.surface,
-            zIndex: 2,
-            elevation: 4,
-          }}
-        >
-          <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
-        </Pressable>
       </View>
-      {tabs}
+      {view.suspended ? <SuspendedBanner /> : null}
+      <ReportCompanySheet
+        groupId={groupId}
+        visible={reporting}
+        onClose={() => setReporting(false)}
+      />
       <Sheet
         visible={switching}
         onClose={() => setSwitching(false)}
@@ -361,7 +357,7 @@ export function DashHeader({
             accessibilityRole="button"
             onPress={() => {
               setSwitching(false);
-              router.push(`/group/${groupId}/settings`);
+              router.push(`/companies?current=${groupId}`);
             }}
             style={{
               marginTop: 12,
@@ -400,6 +396,11 @@ export function DashHeader({
             icon: 'download-outline',
             label: t.company.exportAction,
             route: `/group/${groupId}/export`,
+          },
+          {
+            icon: 'flag-outline',
+            label: t.company.reportCompany,
+            onPress: () => setReporting(true),
           },
         ]}
       />
@@ -563,18 +564,26 @@ export function StatTriple({
   );
 }
 
+/** The company screens live under /group/[id]: is that company suspended? */
+function useRouteCompanySuspended(): boolean {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return useCompanySuspended(id ?? '');
+}
+
 export function QuickActions({
   actions,
 }: {
   actions: readonly { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }[];
 }) {
   const theme = useTheme();
+  const suspended = useRouteCompanySuspended();
   const tones = [
     [theme.color.brandSoft, theme.color.brand],
     [BLUE_SOFT, BLUE],
     [GREEN_SOFT, GREEN],
     [ORANGE_SOFT, ORANGE],
   ] as const;
+  if (suspended) return null;
   return (
     <StandardCard style={{ flexDirection: 'row', paddingHorizontal: 6, paddingVertical: 12 }}>
       {actions.map((a, i) => (
@@ -618,6 +627,7 @@ export function InviteBanner({
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
+  if (useRouteCompanySuspended()) return null;
   return (
     <Pressable
       accessibilityRole="button"
@@ -870,6 +880,7 @@ export function RecentActivity({
               : t.misc.someone
         }
         subtitle={[
+          e.paidByCompany ? null : owner?.employee_id,
           label,
           projects.find((p) => p.id === e.projectId)?.name,
           showDate(e.occurredOn, locale),
