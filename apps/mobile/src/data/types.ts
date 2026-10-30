@@ -124,6 +124,8 @@ export interface GroupRow {
   /** Company groups: new entries wait for an admin's approval. Off by default. */
   company_approvals_enabled?: boolean;
   /** Company groups: large or owner-raised claims need an owner other than their creator. */
+  /** Set while Waves has suspended this company: it is read-only for everyone. */
+  suspended_at?: string | null;
   company_second_approval?: boolean;
   company_second_approval_threshold_minor?: string | null;
   /** Company groups: default mileage rate per km, minor units (decimal string). */

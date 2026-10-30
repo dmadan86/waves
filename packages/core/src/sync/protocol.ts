@@ -731,6 +731,8 @@ export enum SyncRejectionCode {
   ValidationFailed = 'VALIDATION_FAILED',
   ConflictSuperseded = 'CONFLICT_SUPERSEDED',
   RateLimited = 'RATE_LIMITED',
+  /** Waves suspended the company; its queued writes are dropped, never listed as refused. */
+  CompanyBlocked = 'COMPANY_BLOCKED',
   /** Two admins edited the families at the same time; the sender's baseUnits differ from the current DB value. */
   UnitsConflict = 'UNITS_CONFLICT',
 }
