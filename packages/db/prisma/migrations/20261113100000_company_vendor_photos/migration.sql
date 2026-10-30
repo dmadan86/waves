@@ -164,7 +164,7 @@ CREATE FUNCTION public.waves_company_vendor_entry_image_cleanup() RETURNS trigge
 BEGIN
  IF NEW.deleted_at IS NOT NULL AND OLD.deleted_at IS NULL THEN
   UPDATE public.company_vendor_entry_attachments SET deleted_at=coalesce(deleted_at,now()),updated_at=now() WHERE entry_id=OLD.id AND deleted_at IS NULL;
-  DELETE FROM public.storage_objects WHERE logical_bucket='company-entry-images' AND split_part(path,'/',1)=OLD.id::text;
+  DELETE FROM public.storage_objects WHERE logical_bucket='company-entry-images' AND company_group_id=OLD.group_id AND split_part(path,'/',1)=OLD.id::text;
  END IF;
  RETURN NEW;
 END $fn$;
@@ -208,3 +208,13 @@ REVOKE ALL ON FUNCTION public.waves_company_storage_write_entry(uuid,uuid,text,b
  public.waves_company_storage_write(uuid,uuid,text,bigint,text,boolean),public.waves_company_cancel_upload(uuid,text,uuid,boolean) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_company_storage_write_entry(uuid,uuid,text,bigint,text,boolean),public.waves_company_cancel_upload_entry(uuid,text,uuid,boolean),
  public.waves_company_storage_write(uuid,uuid,text,bigint,text,boolean),public.waves_company_cancel_upload(uuid,text,uuid,boolean) TO service_role;
+
+-- A vendor line id never equals a company entry id: both own image keys under '<id>/', so they must not collide.
+CREATE FUNCTION public.waves_company_vendor_entry_id_guard() RETURNS trigger
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $fn$
+BEGIN
+ IF EXISTS(SELECT 1 FROM public.company_entries WHERE id=NEW.id) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+ RETURN NEW;
+END $fn$;
+CREATE TRIGGER company_vendor_entry_id_guard BEFORE INSERT ON public.company_vendor_entries FOR EACH ROW EXECUTE FUNCTION public.waves_company_vendor_entry_id_guard();
+REVOKE ALL ON FUNCTION public.waves_company_vendor_entry_id_guard() FROM PUBLIC,anon,authenticated;

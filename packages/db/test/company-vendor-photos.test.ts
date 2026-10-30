@@ -162,4 +162,11 @@ describe('vendor line photos', () => {
       expect(left.rowCount).toBe(0);
       expect(id).toBeTruthy();
     }));
+
+  it('a vendor line cannot reuse a company entry id, so its void cannot touch that entry photos', () =>
+    isolated(async () => {
+      const entry = randomUUID();
+      await db.query("INSERT INTO company_entries(id,group_id,member_id,created_by,updated_by,entry_kind,amount,currency,occurred_on,status) VALUES($1,$2,$3,$3,$3,'expense',100,'INR','2026-11-10','approved')", [entry, g.groupId, g.memberIds[3]]);
+      await denied(() => line(0, ravi, 'bill', '100', entry));
+    }));
 });
