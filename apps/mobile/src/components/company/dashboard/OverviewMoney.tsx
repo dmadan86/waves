@@ -28,11 +28,10 @@ import { compactMoney, dueText } from '@/lib/overviewMath';
 
 const TINTS = ['lilac', 'peach', 'sky', 'pink', 'mint', 'coral'] as const;
 
-export function OverviewMoney({ groupId }: { groupId: string }) {
+export function MoneyCards({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const today = todayIso();
-  const o = useOverview(groupId, today);
+  const o = useOverview(groupId, todayIso());
   if (!o.isOwner) return null;
   if (!o.ready || !o.money)
     return (
@@ -46,85 +45,91 @@ export function OverviewMoney({ groupId }: { groupId: string }) {
   const fmt = (minor: bigint) => compactMoney(minor, o.currency, locale, t.company.ovCrore);
   const payments = `/group/${groupId}/company-payments`;
   return (
-    <>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <MoneyCard
-          icon="wallet-outline"
-          ink={theme.color.brand}
-          label={t.company.statOwes}
-          value={fmt(m.owes)}
-          caption={fill(t.company.ovPaymentsPendingN, { n: m.pendingPayments })}
+    <View style={{ flexDirection: 'row', gap: 8 }}>
+      <MoneyCard
+        icon="wallet-outline"
+        ink={theme.color.brand}
+        label={t.company.statOwes}
+        value={fmt(m.owes)}
+        caption={plural(locale, m.pendingPayments, t.company.ovPaymentsPendingN)}
+        onPress={() => router.push(payments)}
+      />
+      <MoneyCard
+        icon="arrow-up"
+        ink={GREEN}
+        label={t.company.ovPaidMonth}
+        value={fmt(m.paidMonth)}
+        caption={
+          m.lastPaymentOn
+            ? fill(t.company.ovLastPayment, { date: showDate(m.lastPaymentOn, locale) })
+            : t.company.ovNoPaymentYet
+        }
+        onPress={() => router.push(payments)}
+      />
+      <MoneyCard
+        icon="time-outline"
+        ink={AMBER}
+        label={t.company.ovAdvances}
+        value={fmt(m.advances)}
+        caption={plural(locale, m.advanceHolders, t.company.employeeCount)}
+        onPress={() => router.push(`/group/${groupId}/company-people`)}
+      />
+    </View>
+  );
+}
+
+export function UpcomingPayments({ groupId }: { groupId: string }) {
+  const theme = useTheme();
+  const { t, locale } = useStrings();
+  const today = todayIso();
+  const o = useOverview(groupId, today);
+  if (!o.isOwner || !o.ready || o.upcoming.length === 0) return null;
+  const fmt = (minor: bigint) => compactMoney(minor, o.currency, locale, t.company.ovCrore);
+  const payments = `/group/${groupId}/company-payments`;
+  return (
+    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 12, borderRadius: 22 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text
+          variant="title"
+          numberOfLines={1}
+          style={{ fontSize: 17, fontWeight: '700', flexShrink: 1 }}
+        >
+          {t.company.ovUpcoming}
+        </Text>
+        <Pressable
+          accessibilityRole="button"
           onPress={() => router.push(payments)}
-        />
-        <MoneyCard
-          icon="arrow-up"
-          ink={GREEN}
-          label={t.company.ovPaidMonth}
-          value={fmt(m.paidMonth)}
-          caption={
-            m.lastPaymentOn
-              ? fill(t.company.ovLastPayment, { date: showDate(m.lastPaymentOn, locale) })
-              : t.company.ovNoPaymentYet
-          }
-          onPress={() => router.push(payments)}
-        />
-        <MoneyCard
-          icon="time-outline"
-          ink={AMBER}
-          label={t.company.ovAdvances}
-          value={fmt(m.advances)}
-          caption={plural(locale, m.advanceHolders, t.company.employeeCount)}
-          onPress={() => router.push(`/group/${groupId}/company-people`)}
-        />
+          hitSlop={8}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+        >
+          <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+            {t.company.ovSeeAll}
+          </Text>
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.sm}
+            color={theme.color.brand}
+          />
+        </Pressable>
       </View>
-      {o.upcoming.length > 0 ? (
-        <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 12, borderRadius: 22 }}>
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-          >
-            <Text
-              variant="title"
-              numberOfLines={1}
-              style={{ fontSize: 17, fontWeight: '700', flexShrink: 1 }}
-            >
-              {t.company.ovUpcoming}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push(payments)}
-              hitSlop={8}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
-            >
-              <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-                {t.company.ovSeeAll}
-              </Text>
-              <Ionicons
-                name={directionalIcon('chevron-forward')}
-                size={iconSize.sm}
-                color={theme.color.brand}
-              />
-            </Pressable>
-          </View>
-          {o.upcoming.map((row, i) => (
-            <UpcomingLine
-              key={row.key}
-              row={row}
-              index={i}
-              today={today}
-              amount={fmt(row.amountMinor)}
-              canRecord={!o.suspended}
-              onRecord={() =>
-                router.push(
-                  row.kind === 'salary'
-                    ? `/group/${groupId}/company-wages`
-                    : `/group/${groupId}/recurring`,
-                )
-              }
-            />
-          ))}
-        </StandardCard>
-      ) : null}
-    </>
+      {o.upcoming.map((row, i) => (
+        <UpcomingLine
+          key={row.key}
+          row={row}
+          index={i}
+          today={today}
+          amount={fmt(row.amountMinor)}
+          canRecord={!o.suspended}
+          onRecord={() =>
+            router.push(
+              row.kind === 'salary'
+                ? `/group/${groupId}/company-wages`
+                : `/group/${groupId}/recurring`,
+            )
+          }
+        />
+      ))}
+    </StandardCard>
   );
 }
 

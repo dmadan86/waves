@@ -4,7 +4,7 @@
  * strip. Owners see everyone, a manager only their team. Waves records; it never moves money.
  */
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
@@ -28,11 +28,21 @@ import { displayName, isGhost } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { dateFrom, isoDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
-import { dayKind, pct, urgentItems, type UrgentKey } from '@/lib/overviewMath';
+import { dayKind, pct, urgentItems, urgentRoute, type UrgentKey } from '@/lib/overviewMath';
 
 const TINTS = ['lilac', 'peach', 'sky', 'pink', 'mint', 'coral'] as const;
 
-export function OverviewTop({ groupId }: { groupId: string }) {
+export function OverviewTop({
+  groupId,
+  afterTiles,
+  afterAttendance,
+}: {
+  groupId: string;
+  /** Owner's money cards: they sit right under the headcount tiles. */
+  afterTiles?: ReactNode;
+  /** Owner's upcoming payments: they follow the attendance strip. */
+  afterAttendance?: ReactNode;
+}) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const { width } = useWindowDimensions();
@@ -195,18 +205,19 @@ export function OverviewTop({ groupId }: { groupId: string }) {
   const urgent = urgentItems(o.urgent);
   const urgentTotal = urgent.reduce((sum, u) => sum + u.n, 0);
   const urgentLine = (key: UrgentKey, n: number): string =>
-    key === 'absent'
-      ? plural(locale, n, t.company.ovAbsentN)
-      : fill(
-          key === 'paymentsPending'
-            ? t.company.ovPaymentsPendingN
-            : key === 'blockedTasks'
-              ? t.company.ovTasksBlockedN
-              : key === 'approvals'
-                ? t.company.ovApprovalsN
-                : t.company.ovBillsN,
-          { n },
-        );
+    plural(
+      locale,
+      n,
+      key === 'absent'
+        ? t.company.ovAbsentN
+        : key === 'paymentsPending'
+          ? t.company.ovPaymentsPendingN
+          : key === 'blockedTasks'
+            ? t.company.ovTasksBlockedN
+            : key === 'approvals'
+              ? t.company.ovApprovalsN
+              : t.company.ovBillsN,
+    );
   const tasks = o.tasks;
   const progress = tasks.total > 0 ? tasks.done / tasks.total : 0;
 
@@ -251,6 +262,8 @@ export function OverviewTop({ groupId }: { groupId: string }) {
           onPress={() => router.push(attendanceRoute)}
         />
       </View>
+
+      {afterTiles}
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
         <Pressable
@@ -316,7 +329,11 @@ export function OverviewTop({ groupId }: { groupId: string }) {
         {urgent.length > 0 ? (
           <Pressable
             accessibilityRole="button"
-            onPress={() => router.push(`/group/${groupId}/company-pending`)}
+            onPress={() =>
+              router.push(
+                `/group/${groupId}/${urgentRoute(urgent)}${urgent[0]?.key === 'absent' ? `?date=${day}` : ''}`,
+              )
+            }
             style={{ flex: 1 }}
           >
             <TintCard ink={RED} style={{ flex: 1, minHeight: 138, gap: 8 }}>
@@ -440,6 +457,7 @@ export function OverviewTop({ groupId }: { groupId: string }) {
           ))}
         </ScrollView>
       </StandardCard>
+      {afterAttendance}
       {picker}
     </>
   );
