@@ -179,6 +179,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
                       <PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={40} />
                     }
                     title={displayName(m, null, null, t.misc.someone)}
+                    subtitle={m.employee_id || undefined}
                     onPress={() => thread(m.id)}
                     divider={i < all.length - 1}
                   />
@@ -197,6 +198,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
                     <PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={40} />
                   }
                   title={displayName(m, null, null, t.misc.someone)}
+                  subtitle={m.employee_id || undefined}
                   onPress={() => thread(m.id)}
                   divider
                 />

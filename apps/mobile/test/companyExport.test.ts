@@ -45,6 +45,7 @@ const labels: CompanyExportLabels = {
   colDate: 'Date',
   colType: 'Type',
   colMember: 'Member',
+  colEmployeeId: 'Employee ID',
   colPaidBy: 'Paid by',
   companyPayer: 'Company',
   colStatus: 'Status',
@@ -90,6 +91,7 @@ describe('company export', () => {
       ...base,
       scope: 'admin',
       names: new Map([['ravi', 'Ravi']]),
+      employeeIds: new Map([['ravi', 'EMP-014']]),
       entries: [paid, personal],
       labels: {
         ...labels,
@@ -103,6 +105,12 @@ describe('company export', () => {
     expect(rows.columns).toContain('Paid by');
     const company = rows.rows.find((r) => r[2]?.text === 'Company')!;
     expect(company[1]?.text).toBe('');
+    expect(company.at(-1)?.text).toBe('');
+    expect(rows.columns.at(-1)).toBe('Employee ID');
+    expect(rows.rows.find((r) => r[2]?.text === 'Ravi')?.at(-1)?.text).toBe('EMP-014');
+    expect(model.sections.find((s) => s.heading === 'Employees')?.rows[0]?.at(-1)?.text).toBe(
+      'EMP-014',
+    );
     expect(rows.rows.find((r) => r[2]?.text === 'Ravi')?.[1]?.text).toBe('Ravi');
     expect(model.sections[0]?.rows.map((r) => r[1]?.value)).toEqual([218, 18]);
     expect(model.sections.find((s) => s.heading === 'Employees')?.rows).toHaveLength(1);

@@ -33,7 +33,7 @@ export default function CompanyHierarchyScreen() {
       leading={<PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={40} />}
       title={displayName(m, null, null, t.misc.someone)}
       titleAccessory={pill ? <RolePill label={pill} /> : undefined}
-      subtitle={sub}
+      subtitle={[m.employee_id, sub].filter(Boolean).join(' · ') || undefined}
       onPress={() => router.push(`/group/${groupId}/company-statement?member=${m.id}`)}
       divider
     />

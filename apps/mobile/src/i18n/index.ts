@@ -1321,6 +1321,15 @@ export interface UiStrings {
     qaBudgets: string;
     qaRecord: string;
     qaAddEmployee: string;
+    searchEmployees: string;
+    filterEmployees: string;
+    empFilterAll: string;
+    empFilterOwes: string;
+    empFilterCompanyOwes: string;
+    empFilterSettled: string;
+    viewStatement: string;
+    employeeOptions: string;
+    noEmployeesMatch: string;
     qaAdvance: string;
     qaAsk: string;
     promoTitle: string;
@@ -7651,6 +7660,15 @@ const en: UiStrings = {
     qaBudgets: 'Allocate budgets',
     qaRecord: 'Record payment',
     qaAddEmployee: 'Add employee',
+    searchEmployees: 'Search employees...',
+    filterEmployees: 'Show employees',
+    empFilterAll: 'All',
+    empFilterOwes: 'Owes company',
+    empFilterCompanyOwes: 'Company owes',
+    empFilterSettled: 'Settled',
+    viewStatement: 'View statement',
+    employeeOptions: 'Employee options',
+    noEmployeesMatch: 'No employee matches',
     qaAdvance: 'Give advance',
     qaAsk: 'Ask owner for budget',
     promoTitle: 'Invite your team',
@@ -13432,6 +13450,15 @@ const ta: UiStrings = {
     qaBudgets: 'பட்ஜெட் ஒதுக்கு',
     qaRecord: 'கொடுப்பனவை பதிவு செய்',
     qaAddEmployee: 'ஊழியரைச் சேர்',
+    searchEmployees: 'ஊழியர்களைத் தேடு...',
+    filterEmployees: 'ஊழியர்களைக் காட்டு',
+    empFilterAll: 'அனைவரும்',
+    empFilterOwes: 'நிறுவனத்திற்குக் கொடுக்க வேண்டியவர்',
+    empFilterCompanyOwes: 'நிறுவனம் கொடுக்க வேண்டியவர்',
+    empFilterSettled: 'தீர்ந்தவர்',
+    viewStatement: 'அறிக்கையைப் பார்',
+    employeeOptions: 'ஊழியர் விருப்பங்கள்',
+    noEmployeesMatch: 'பொருந்தும் ஊழியர் இல்லை',
     qaAdvance: 'முன்பணம் கொடு',
     qaAsk: 'பட்ஜெட் கேள்',
     promoTitle: 'உங்கள் குழுவை அழையுங்கள்',
@@ -19380,6 +19407,15 @@ const hi: UiStrings = {
     qaBudgets: 'बजट दें',
     qaRecord: 'भुगतान दर्ज करें',
     qaAddEmployee: 'कर्मचारी जोड़ें',
+    searchEmployees: 'कर्मचारी खोजें...',
+    filterEmployees: 'कर्मचारी दिखाएँ',
+    empFilterAll: 'सभी',
+    empFilterOwes: 'कंपनी का बकाया',
+    empFilterCompanyOwes: 'कंपनी पर बकाया',
+    empFilterSettled: 'चुकता',
+    viewStatement: 'स्टेटमेंट देखें',
+    employeeOptions: 'कर्मचारी विकल्प',
+    noEmployeesMatch: 'कोई कर्मचारी नहीं मिला',
     qaAdvance: 'एडवांस दें',
     qaAsk: 'मालिक से बजट माँगें',
     promoTitle: 'अपनी टीम को बुलाएँ',
@@ -25216,6 +25252,15 @@ const ar: UiStrings = {
     qaBudgets: 'وزّع الميزانيات',
     qaRecord: 'سجّل دفعة',
     qaAddEmployee: 'أضف موظفاً',
+    searchEmployees: 'ابحث عن موظف...',
+    filterEmployees: 'عرض الموظفين',
+    empFilterAll: 'الكل',
+    empFilterOwes: 'مدين للشركة',
+    empFilterCompanyOwes: 'الشركة مدينة له',
+    empFilterSettled: 'مسوّى',
+    viewStatement: 'عرض الكشف',
+    employeeOptions: 'خيارات الموظف',
+    noEmployeesMatch: 'لا يوجد موظف مطابق',
     qaAdvance: 'أعطِ سلفة',
     qaAsk: 'اطلب ميزانية',
     promoTitle: 'ادعُ فريقك',

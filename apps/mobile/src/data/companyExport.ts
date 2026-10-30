@@ -64,6 +64,7 @@ export interface CompanyExportLabels {
   readonly colDate: string;
   readonly colType: string;
   readonly colMember: string;
+  readonly colEmployeeId: string;
   readonly colPaidBy: string;
   readonly companyPayer: string;
   readonly colStatus: string;
@@ -94,7 +95,11 @@ export type CompanyExportInput =
       readonly memberId: string;
       readonly employeeName: string;
     }
-  | { readonly scope: 'admin'; readonly names: ReadonlyMap<string, string> };
+  | {
+      readonly scope: 'admin';
+      readonly names: ReadonlyMap<string, string>;
+      readonly employeeIds?: ReadonlyMap<string, string | null | undefined>;
+    };
 
 export function buildCompanyExport(
   input: CompanyExportInput & {
@@ -269,8 +274,12 @@ export function buildCompanyExport(
       },
       {
         heading: labels.employees,
-        columns: [labels.colMember, labels.colBalance],
-        rows: summary.rows.map((row) => [text(name(row.memberId)), cell(row.statement.closing)]),
+        columns: [labels.colMember, labels.colBalance, labels.colEmployeeId],
+        rows: summary.rows.map((row) => [
+          text(name(row.memberId)),
+          cell(row.statement.closing),
+          text(input.employeeIds?.get(row.memberId)),
+        ]),
       },
       {
         heading: labels.entries,
@@ -283,6 +292,7 @@ export function buildCompanyExport(
           labels.colAmount,
           labels.colReview,
           ...gstColumns,
+          labels.colEmployeeId,
         ],
         rows: live.map((entry) => [
           text(entry.occurredOn),
@@ -293,6 +303,7 @@ export function buildCompanyExport(
           cell(entry.amount),
           text([entry.reviewNote, labels.detail(entry, input.entries)].filter(Boolean).join(' · ')),
           ...gstCells(entry),
+          text(entry.paidByCompany ? '' : input.employeeIds?.get(entry.memberId)),
         ]),
       },
     ],
