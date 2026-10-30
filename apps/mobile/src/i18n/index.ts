@@ -26451,7 +26451,14 @@ const ar: UiStrings = {
 
     qaAddEmployee: 'أضف موظفاً',
     companyManagement: 'إدارة الشركة',
-    tasksCount: { zero: '{n} مهام', one: '{n} مهمة', two: 'مهمتان', few: '{n} مهام', many: '{n} مهمة', other: '{n} مهمة' },
+    tasksCount: {
+      zero: '{n} مهام',
+      one: '{n} مهمة',
+      two: 'مهمتان',
+      few: '{n} مهام',
+      many: '{n} مهمة',
+      other: '{n} مهمة',
+    },
     attHalfDay: 'نصف يوم',
     attNotMarked: 'غير مسجّل',
     companyOwnerLine: 'مالك الشركة',
