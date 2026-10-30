@@ -12,6 +12,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 
 import {
+  employeeIdTaken,
+  normaliseEmployeeId,
   companyEntryFromRow,
   MutationKind,
   materialiseCompanyEntries,
@@ -527,6 +529,38 @@ export function useAssignCompanyMember(groupId: string) {
     mutationFn: (input: { memberId: string; managerId: string | null; reason: string }) =>
       mutate(MutationKind.CompanyMemberAssign, groupId, { ...input }),
   });
+}
+
+/** Owner or the employee's manager: set (blank clears) the free-text employee ID. */
+export function useSetEmployeeId(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: { memberId: string; employeeId: string | null }) =>
+      mutate(MutationKind.CompanyMemberEmployeeIdSet, groupId, { ...input }),
+  });
+}
+
+/**
+ * Is this ID already someone else's? Checks this phone's people, then asks the server (it also
+ * sees people a manager cannot read) — so the screen can say so before saving, never after.
+ * An offline phone has only its own view; the save then goes ahead.
+ */
+export function useEmployeeIdTaken(groupId: string, people: readonly MemberRow[]) {
+  return async (raw: string, exceptMemberId?: string | null): Promise<boolean> => {
+    const id = normaliseEmployeeId(raw);
+    if (!id) return false;
+    if (employeeIdTaken(people, id, exceptMemberId)) return true;
+    try {
+      const { data, error } = await backend.rpc('waves_company_employee_id_taken', {
+        p_group_id: groupId,
+        p_employee_id: id,
+        p_except_member: exceptMemberId ?? null,
+      });
+      return !error && data === true;
+    } catch {
+      return false;
+    }
+  };
 }
 
 export function useSetMemberProjects(groupId: string) {
