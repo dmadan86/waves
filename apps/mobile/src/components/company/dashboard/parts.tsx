@@ -32,7 +32,7 @@ import { useCompanyTags } from '@/data/companyTags';
 import { useCompanyProjects, useCompanySuspended, type CompanyView } from '@/data/companyEntries';
 import { displayName, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
-import { useCompanyActivityDot } from '@/data/companyActivity';
+import { useCompanyActivityUnread } from '@/data/companyActivity';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 
@@ -160,33 +160,71 @@ function IconButton({
  * The hero: a soft sunset sky and the office building, then back, the company name with
  * its switcher, gear and menu, who is in it. Add and export live on the company bar (FAB, More).
  */
-/** The Overview bell: opens this company's own activity feed; the dot means something new since it was last opened. */
+/** The Overview bell: opens this company's own activity feed; the red count is what is new since it was last opened. */
 function OverviewBell({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const dot = useCompanyActivityDot(groupId);
+  const unread = useCompanyActivityUnread(groupId);
   return (
     <View>
       <IconButton
         icon="notifications-outline"
-        label={t.company.ovBell}
+        label={unread > 0 ? `${t.company.ovBell}, ${unread}` : t.company.ovBell}
         onPress={() => router.push(`/group/${groupId}/company-activity`)}
       />
-      {dot ? (
+      {unread > 0 ? (
         <View
           pointerEvents="none"
           style={{
             position: 'absolute',
-            top: 7,
-            end: 9,
-            width: 9,
-            height: 9,
-            borderRadius: 5,
+            top: 2,
+            end: 2,
+            minWidth: 17,
+            height: 17,
+            borderRadius: 9,
+            paddingHorizontal: 4,
+            alignItems: 'center',
+            justifyContent: 'center',
             backgroundColor: theme.color.negative,
             borderWidth: 1.5,
             borderColor: theme.color.bg,
           }}
-        />
+        >
+          <Text
+            variant="micro"
+            style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10, lineHeight: 12 }}
+          >
+            {unread > 99 ? '99+' : unread}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+/** "Good evening," over the viewer's first name: the Overview hero's greeting. */
+function Greeting({ view }: { view: CompanyView }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const hour = new Date().getHours();
+  const hello =
+    hour < 12 ? t.dashHero.morning : hour < 17 ? t.dashHero.afternoon : t.dashHero.evening;
+  const first = view.me ? displayName(view.me, null, null, '').trim().split(/\s+/)[0] : '';
+  return (
+    <View style={{ marginStart: theme.spacing.lg, marginEnd: 96, marginTop: 14 }}>
+      <Text variant="body" numberOfLines={1} style={{ fontSize: 16 }}>
+        {hello}
+      </Text>
+      {first ? (
+        <Text
+          variant="title"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+          style={{ fontSize: 32, lineHeight: 38, fontWeight: '800' }}
+        >
+          {`${first} 👋`}
+        </Text>
       ) : null}
     </View>
   );
@@ -297,6 +335,7 @@ export function DashHeader({
             />
           ) : null}
         </View>
+        {overview ? <Greeting view={view} /> : null}
         <View
           style={{
             flexDirection: 'row',

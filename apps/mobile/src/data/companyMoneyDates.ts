@@ -29,7 +29,9 @@ export function useMoneyDates(groupId: string): readonly MoneyDate[] {
     soon.setUTCDate(soon.getUTCDate() + 7);
     const recurring: MoneyDate[] = (view.isOwner ? rules : [])
       .filter(
-        (r) => r.status === 'active' && (r.nextDate <= soon.toISOString().slice(0, 10) || isGroupRecurringDue(r, today)),
+        (r) =>
+          r.status === 'active' &&
+          (r.nextDate <= soon.toISOString().slice(0, 10) || isGroupRecurringDue(r, today)),
       )
       .map((r) => ({
         id: `recurring:r-${r.id}`,
