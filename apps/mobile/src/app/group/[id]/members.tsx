@@ -9,6 +9,8 @@ import {
   Button,
   Callout,
   Card,
+  Chip,
+  ChipRow,
   directionalIcon,
   IconButton,
   iconSize,
@@ -33,6 +35,11 @@ import {
   useMemberClaims,
 } from '@/data/hooks';
 import { useBlockedUsers } from '@/data/blocked';
+import {
+  useAssignCompanyMember,
+  useCompanyProjects,
+  useSetMemberProjects,
+} from '@/data/companyEntries';
 import {
   displayName,
   groupLabel,
@@ -76,6 +83,12 @@ export default function MembersScreen() {
   const decide = useDecideMemberClaim(groupId);
 
   const addPast = useAddCompanyPastPeople(groupId);
+  const assign = useAssignCompanyMember(groupId);
+  const setSites = useSetMemberProjects(groupId);
+  const sites = useCompanyProjects(groupId).filter((p) => !p.archived_at);
+  // Where the new person reports ('' = the owners) and which sites they are on.
+  const [reportsTo, setReportsTo] = useState('');
+  const [siteIds, setSiteIds] = useState<string[]>([]);
 
   const [pastOpen, setPastOpen] = useState(false);
   const [pastQuery, setPastQuery] = useState('');
@@ -102,6 +115,9 @@ export default function MembersScreen() {
     (member) => isViewer(member, profile?.id) && member.role === 'manager' && !member.left_at,
   );
   const canAdd = !isCompany || iAmAdmin || iAmManager;
+  const companyManagers = (members.data ?? []).filter(
+    (member) => member.role === 'manager' && !member.left_at,
+  );
   const past = useCompanyPastPeople(groupId, isCompany && iAmAdmin && pastOpen);
   const pastPeople = useMemo(() => foldPastPeople(past.data ?? []), [past.data]);
   const pastShown = useMemo(() => searchPastPeople(pastPeople, pastQuery), [pastPeople, pastQuery]);
@@ -165,6 +181,14 @@ export default function MembersScreen() {
     return trimmed.includes('@') ? { email: trimmed } : { phone: trimmed };
   };
 
+  // Queued behind the add with the id chosen here, so offline it lands in order. A manager's hire
+  // is on their own team already (the server forces it); only an owner picks the reporting line.
+  const placeNewPerson = (memberId: string): void => {
+    if (!isCompany) return;
+    if (iAmAdmin && reportsTo) assign.mutate({ memberId, managerId: reportsTo, reason: '' });
+    if (siteIds.length > 0) setSites.mutate({ memberId, projectIds: siteIds });
+  };
+
   const add = (): void => {
     const name = ghostName.trim();
     // A company asks phone and email in their own fields; other groups keep the one address field.
@@ -177,6 +201,9 @@ export default function MembersScreen() {
       { name, ...contact },
       {
         onSuccess: (memberId) => {
+          placeNewPerson(memberId);
+          setReportsTo('');
+          setSiteIds([]);
           setGhostName('');
           setGhostContact('');
           setGhostEmail('');
@@ -210,11 +237,13 @@ export default function MembersScreen() {
     let reason: string | null = null;
     for (const person of people) {
       try {
-        await addGhost.mutateAsync({
-          name: person.name,
-          email: person.email,
-          phone: person.phone,
-        });
+        placeNewPerson(
+          await addGhost.mutateAsync({
+            name: person.name,
+            email: person.email,
+            phone: person.phone,
+          }),
+        );
       } catch (caught) {
         failed.push(person.name);
         // Report every refusal (friendlyError's side effect sends each to
@@ -614,6 +643,52 @@ export default function MembersScreen() {
                     />
                   </Field>
                   <Helper>{t.company.emailHelper}</Helper>
+                  {iAmAdmin && companyManagers.length > 0 ? (
+                    <View style={{ gap: theme.spacing.xs }}>
+                      <Text variant="caption" tone="muted">
+                        {t.company.reportsTo}
+                      </Text>
+                      <ChipRow
+                        wrap
+                        options={[
+                          { value: '', label: t.company.owners },
+                          ...companyManagers.map((m) => ({
+                            value: m.id as string,
+                            label: displayName(m, null, null, t.misc.someone),
+                          })),
+                        ]}
+                        value={reportsTo}
+                        onChange={setReportsTo}
+                      />
+                    </View>
+                  ) : null}
+                  {sites.length > 0 ? (
+                    <View style={{ gap: theme.spacing.xs }}>
+                      <Text variant="caption" tone="muted">
+                        {t.company.sites}
+                      </Text>
+                      <View
+                        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}
+                      >
+                        {sites.map((site) => {
+                          const on = siteIds.includes(site.id);
+                          return (
+                            <Chip
+                              key={site.id}
+                              label={site.name}
+                              selected={on}
+                              repeatable
+                              onPress={() =>
+                                setSiteIds((cur) =>
+                                  on ? cur.filter((id) => id !== site.id) : [...cur, site.id],
+                                )
+                              }
+                            />
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ) : null}
                 </>
               ) : (
                 <Field icon="at-outline">
