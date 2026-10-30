@@ -273,3 +273,6 @@ BEGIN
  RETURN NEW;
 END $$;
 CREATE TRIGGER invites_vendor_guard BEFORE INSERT OR UPDATE ON public.invites FOR EACH ROW EXECUTE FUNCTION public.waves_invite_vendor_guard();
+
+-- Trigger functions are never called directly.
+REVOKE ALL ON FUNCTION public.waves_company_no_vendor_entries(), public.waves_invite_vendor_guard() FROM PUBLIC, anon, authenticated;
