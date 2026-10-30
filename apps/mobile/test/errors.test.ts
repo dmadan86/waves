@@ -71,7 +71,8 @@ describe('friendlyError', () => {
     expect(friendly(new Error('Failed to send a request to the Edge Function'))).toBe(OFFLINE);
     expect(reportHandled).not.toHaveBeenCalled();
     friendly(new Error('something unexpected'));
-    expect(reportHandled).toHaveBeenCalledTimes(1);
+    friendly({ status: 504, message: 'upstream timeout' });
+    expect(reportHandled).toHaveBeenCalledTimes(2);
   });
 
   it('copes with nothing thrown at all', () => {
