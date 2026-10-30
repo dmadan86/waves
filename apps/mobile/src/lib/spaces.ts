@@ -39,9 +39,49 @@ export async function readLastSpace(
   }
 }
 
-/** Call on an explicit switch only (sheet tap, create, accept invite), never on a deep link. */
+// What this process last wrote (or saw written) per account, so a follow-the-route write only
+// happens on a real change and never undoes an explicit switch.
+const written = new Map<string, Space>();
+
+/** Screens that open over a space without being in it. */
+const TRANSIENT_GROUP_SCREENS = new Set(['settings', 'invite', 'export']);
+const PERSONAL_TABS = new Set(['index', 'friends', 'me', 'captures']);
+
+/**
+ * The space the focused route belongs to, or null for neutral screens (settings, modals,
+ * companies list...) that must not flip it. Company: any route of a company the viewer is in.
+ */
+export function spaceForRoute(
+  segments: readonly string[],
+  groupId: string | null,
+  companyIds: readonly string[],
+): Space | null {
+  const [root, screen, leaf] = segments;
+  if (root === 'group')
+    return groupId !== null &&
+      companyIds.includes(groupId) &&
+      !TRANSIENT_GROUP_SCREENS.has(leaf ?? '')
+      ? groupId
+      : null;
+  if (root === 'personal') return 'personal';
+  if (root === '(tabs)') return PERSONAL_TABS.has(screen ?? 'index') ? 'personal' : null;
+  return null;
+}
+
+/** The Home tab: its mount owns the cold-start redirect, so it must not overwrite lastSpace yet. */
+export const isHomeTab = (segments: readonly string[]): boolean =>
+  segments[0] === '(tabs)' && (segments[1] ?? 'index') === 'index';
+
+/** Follow the route: write only when the space differs from what is already remembered. */
+export async function followSpace(userId: string | null, space: Space): Promise<void> {
+  if (userId === null || written.get(userId) === space) return;
+  await rememberSpace(userId, space);
+}
+
+/** Call on an explicit switch (sheet tap, create, accept invite); the cold-start redirect never calls it. */
 export async function rememberSpace(userId: string | null, space: Space): Promise<void> {
   if (userId === null) return;
+  written.set(userId, space);
   try {
     await AsyncStorage.setItem(key(userId), space);
     if (space !== 'personal') await AsyncStorage.setItem(companyKey(userId), space);
@@ -51,6 +91,13 @@ export async function rememberSpace(userId: string | null, space: Space): Promis
 }
 
 let coldStartDoneFor: string | null = null;
+
+export const coldStartSettled = (userId: string): boolean => coldStartDoneFor === userId;
+
+/** A route other than Home was reached first (deep link, notification): no redirect later. */
+export function settleColdStart(userId: string): void {
+  coldStartDoneFor = userId;
+}
 
 /** True once per signed-in account per process: the first Home mount may redirect to lastSpace. */
 export function takeColdStart(userId: string): boolean {

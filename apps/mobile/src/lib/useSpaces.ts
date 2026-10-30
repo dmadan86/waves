@@ -1,11 +1,18 @@
 import { useCallback, useEffect } from 'react';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
 
 import { useViewerId } from '@/lib/auth';
+import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { router } from '@/lib/navigation';
 import {
+  coldStartSettled,
+  followSpace,
+  isHomeTab,
   readLastSpace,
   rememberSpace,
   resolveSpace,
+  settleColdStart,
+  spaceForRoute,
   takeColdStart,
   type Space,
 } from '@/lib/spaces';
@@ -34,4 +41,28 @@ export function useColdStartSpace(ready: boolean, companyIds: readonly string[])
       stale = true;
     };
   }, [ready, viewerId, companyIds]);
+}
+
+/**
+ * The remembered space follows where the viewer actually is: inside a company -> that company,
+ * on a Personal tab -> Personal. Neutral screens leave it alone, and a quick pass-through
+ * (debounced) does not count. Mount once, in the root bar.
+ */
+export function useFollowSpace(): void {
+  const viewerId = useViewerId();
+  const segments = useSegments() as readonly string[];
+  const params = useGlobalSearchParams<{ id?: string }>();
+  const companyIds = useViewerCompanyIds();
+  const groupId = segments[0] === 'group' && typeof params.id === 'string' ? params.id : null;
+  const space = spaceForRoute(segments, groupId, companyIds);
+  const home = isHomeTab(segments);
+  useEffect(() => {
+    if (viewerId === null || space === null) return;
+    if (home) {
+      // The first Home mount decides the cold-start redirect from what is stored; wait for it.
+      if (!coldStartSettled(viewerId)) return;
+    } else settleColdStart(viewerId);
+    const timer = setTimeout(() => void followSpace(viewerId, space), 400);
+    return () => clearTimeout(timer);
+  }, [viewerId, space, home]);
 }
