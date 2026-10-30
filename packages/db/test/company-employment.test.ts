@@ -472,4 +472,15 @@ describe('company employment status', () => {
       expect((await member()).left_at).not.toBeNull();
       expect((await member(4)).left_at).toBeNull();
     }));
+
+  it('the manager still lists their not-employed team member so they can restore them', () =>
+    isolated(async () => {
+      await employment(1, 2, false);
+      const rows = await as(
+        1,
+        async () =>
+          (await db.query('SELECT member_id FROM waves_company_people($1)', [g.groupId])).rows,
+      );
+      expect(rows.map((r: { member_id: string }) => r.member_id)).toContain(g.memberIds[2]);
+    }));
 });

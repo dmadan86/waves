@@ -110,3 +110,18 @@ EXCEPTION WHEN unique_violation THEN RAISE EXCEPTION 'EMPLOYEE_ID_TAKEN' USING E
 END $$;
 REVOKE ALL ON FUNCTION public.waves_company_employment_set(uuid,uuid,boolean,date,text) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.waves_company_employment_set(uuid,uuid,boolean,date,text) TO authenticated,service_role;
+
+-- Managers (and owners) keep seeing the not-employed people they may restore: their rows and history stay in scope.
+CREATE OR REPLACE FUNCTION public.waves_company_people(p_group_id uuid)
+ RETURNS TABLE(member_id uuid,display_name text,role text,manager_id uuid,detail boolean)
+ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+DECLARE actor uuid; own_manager uuid; owner boolean; manager boolean;
+BEGIN
+ actor:=public.waves_company_actor(p_group_id);
+ SELECT m.manager_id,m.role::text='admin',m.role::text='manager' INTO own_manager,owner,manager FROM public.group_members m WHERE m.id=actor;
+ RETURN QUERY SELECT m.id,coalesce(p.display_name,m.ghost_name,'Someone'),m.role::text,m.manager_id,public.waves_company_detail(p_group_id,m.id)
+ FROM public.group_members m LEFT JOIN public.profiles p ON p.id=m.profile_id
+ WHERE m.group_id=p_group_id AND ((m.left_at IS NULL AND m.removed_at IS NULL) OR m.employment_ended_on IS NOT NULL) AND m.merged_into_member_id IS NULL
+ AND (owner OR m.id=actor OR m.role::text='admin' OR (manager AND m.role::text='member' AND m.manager_id=actor) OR m.id=own_manager)
+ ORDER BY m.id;
+END $$;
