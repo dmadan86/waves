@@ -57,7 +57,7 @@ describe('settings page layout', () => {
   it('has group type as a pill row opening a sheet of the six kinds, and no inline chips', () => {
     const card = between(
       SCREEN,
-      't.extras.groupTypeTitle}\n              trailing',
+      't.extras.groupTypeTitle}\n                  trailing',
       'setTypeOpen(true)',
     );
     expect(card).toContain('currentType.label');
