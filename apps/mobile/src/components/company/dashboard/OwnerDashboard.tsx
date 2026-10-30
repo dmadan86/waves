@@ -172,7 +172,9 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                 accessory={<RolePill label={t.company.manager} />}
                 subtitle={[
                   m.employee_id,
-                  fill(t.company.budgetPerMonth, { amount: fmt(monthBudget(m.id)) }),
+                  monthBudget(m.id) > 0n
+                    ? fill(t.company.budgetPerMonth, { amount: fmt(monthBudget(m.id)) })
+                    : t.eventOrganizer.noBudgetSet,
                 ]
                   .filter(Boolean)
                   .join(' · ')}

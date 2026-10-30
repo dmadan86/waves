@@ -4,11 +4,12 @@
  * to Overview, on Overview to Home, so a deep link still lands on a sane stack.
  */
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Redirect } from 'expo-router';
-import { ScrollView } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Screen } from '@waves/ui';
+import { Screen, useTheme } from '@waves/ui';
 
 import { DashBody, DashHeader, useCompanyCounts } from '@/components/company/dashboard/parts';
 import type { CompanyView } from '@/data/companyEntries';
@@ -32,6 +33,10 @@ export function SectionShell({
   children: ReactNode;
 }) {
   const clearance = useBottomClearance();
+  const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  // The header photo runs under the status bar; once it scrolls away, back the clock with the page colour.
+  const [scrolled, setScrolled] = useState(false);
   const { t, locale } = useStrings();
   const counts = useCompanyCounts();
   const live = view.members.filter((m) => !m.left_at);
@@ -45,6 +50,8 @@ export function SectionShell({
       <ScrollView
         contentContainerStyle={{ paddingBottom: clearance + 24 }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={32}
+        onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.y > insets.top)}
       >
         <DashHeader
           groupId={groupId}
@@ -62,6 +69,19 @@ export function SectionShell({
         />
         <DashBody>{children}</DashBody>
       </ScrollView>
+      {scrolled ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top,
+            backgroundColor: theme.color.bg,
+          }}
+        />
+      ) : null}
     </Screen>
   );
 }
