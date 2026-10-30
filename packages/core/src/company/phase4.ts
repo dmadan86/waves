@@ -1,3 +1,4 @@
+import { vendorPaidFromPool, type VendorLine } from './vendors';
 import {
   allowanceAmount,
   entryDelta as entryDeltaOf,
@@ -83,7 +84,9 @@ export interface PoolBalance {
   /** Company-paid expenses this manager recorded (paid from the pool). */
   readonly companySpend: bigint;
   readonly cashReturned: bigint;
-  /** allocated + adjusted - returned - advances - reimbursed - wages - ownSpend - companySpend + cashReturned. */
+  /** Confirmed vendor advances/payments this manager recorded. */
+  readonly vendorPaid: bigint;
+  /** allocated + adjusted - returned - advances - reimbursed - wages - ownSpend - companySpend - vendorPaid + cashReturned. */
   readonly balance: bigint;
 }
 
@@ -92,7 +95,12 @@ export interface PoolBalance {
  * `waves_company_pool_balance` is authoritative (it also sees employees who have
  * since moved to another team); this is the offline overlay and the test oracle.
  */
-export function poolBalance(entries: readonly CompanyEntry[], managerId: string): PoolBalance {
+export function poolBalance(
+  entries: readonly CompanyEntry[],
+  managerId: string,
+  vendorLines: readonly VendorLine[] = [],
+): PoolBalance {
+  const vendorPaid = vendorPaidFromPool(vendorLines, managerId);
   let allocated = 0n;
   let returned = 0n;
   let adjusted = 0n;
@@ -134,6 +142,7 @@ export function poolBalance(entries: readonly CompanyEntry[], managerId: string)
     ownSpend,
     companySpend,
     cashReturned,
+    vendorPaid,
     balance:
       allocated +
       adjusted -
@@ -142,7 +151,8 @@ export function poolBalance(entries: readonly CompanyEntry[], managerId: string)
       reimbursed -
       wages -
       ownSpend -
-      companySpend +
+      companySpend -
+      vendorPaid +
       cashReturned,
   };
 }
