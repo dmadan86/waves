@@ -41,6 +41,8 @@ const ALLOWLIST: Record<string, string> = {
   'components/SubEventBudgets.tsx':
     'Only mounted by the plan screen when showsVendorTools and the template has sub-events.',
   'components/EventPlanSummary.tsx': 'Only mounted by the plan screen behind showsVendorTools.',
+  'components/company/dashboard/OwnerDashboard.tsx':
+    'Company dashboard: "Budget" here is a manager cash budget, not Event vendor tools; company vendors have their own gated screens.',
   'app/new-group.tsx':
     'Creating a group: every Event control renders only once the Event type is picked.',
   'components/TripDates.tsx':
