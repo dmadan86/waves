@@ -6,7 +6,6 @@ import { connect, expectDenied, seedGroup } from './helpers';
 // Members: 0 owner, 1 manager, 2 employee (team of 1), 3 employee (owners), 4 manager (no team).
 let db: Client;
 let g: Awaited<ReturnType<typeof seedGroup>>;
-const site = randomUUID();
 const today = new Date().toISOString().slice(0, 10);
 
 async function user<T>(i: number, run: () => Promise<T>): Promise<T> {

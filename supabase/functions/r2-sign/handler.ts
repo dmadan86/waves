@@ -236,9 +236,12 @@ async function requireRestrictedParty(
   if (data === true) return;
   if (bucket === 'company-entry-images') {
     // Not a company entry the caller can read: maybe a vendor line they can.
-    const { data: line, error: lineError } = await caller.rpc('waves_can_read_company_vendor_entry', {
-      p_entry_id: subjectId,
-    });
+    const { data: line, error: lineError } = await caller.rpc(
+      'waves_can_read_company_vendor_entry',
+      {
+        p_entry_id: subjectId,
+      },
+    );
     if (lineError) throw new HttpError(500, 'INTERNAL', lineError.message);
     if (line === true) return;
   }
@@ -297,7 +300,8 @@ async function assertRestrictedPath(
     memberId = data;
   }
   // A company image belongs to an entry or to a vendor ledger line; only one table matches.
-  const tables = bucket === 'company-entry-images' ? [table, 'company_vendor_entry_attachments'] : [table];
+  const tables =
+    bucket === 'company-entry-images' ? [table, 'company_vendor_entry_attachments'] : [table];
   for (const name of tables) {
     let query = caller.from(name).select('id').eq(subjectCol, subjectId).eq('storage_path', path);
     query = deletingWith ? query.eq('uploader_member_id', memberId) : query.is('deleted_at', null);

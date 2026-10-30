@@ -246,8 +246,14 @@ it('a vendor invite joins through the same RPC and says so, so the app opens the
   const { deps, rpc } = harness({ company: true, vendorInvite: true });
   const response = await handleInviteAccept(post({ token: 't', mode: 'join' }), deps);
   expect(response.status).toBe(200);
-  expect(rpc).toHaveBeenCalledWith('waves_join_via_invite', { p_invite_id: 'inv-1', p_profile_id: 'u-1' });
+  expect(rpc).toHaveBeenCalledWith('waves_join_via_invite', {
+    p_invite_id: 'inv-1',
+    p_profile_id: 'u-1',
+  });
   expect((await response.json()).vendor).toBe(true);
-  const plain = await handleInviteAccept(post({ token: 't', mode: 'join' }), harness({ company: true }).deps);
+  const plain = await handleInviteAccept(
+    post({ token: 't', mode: 'join' }),
+    harness({ company: true }).deps,
+  );
   expect((await plain.json()).vendor).toBeUndefined();
 });

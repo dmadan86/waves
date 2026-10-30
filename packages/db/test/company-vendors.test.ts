@@ -45,7 +45,11 @@ async function denied(run: () => Promise<unknown>) {
 }
 const addVendor = (caller: number, id: string, name: string) =>
   user(caller, () =>
-    db.query('SELECT waves_company_vendor_set($1,$2,$3)', [g.groupId, id, JSON.stringify({ name })]),
+    db.query('SELECT waves_company_vendor_set($1,$2,$3)', [
+      g.groupId,
+      id,
+      JSON.stringify({ name }),
+    ]),
   );
 const line = (caller: number, vendor: string, kind: string, amount: string, id = randomUUID()) =>
   user(caller, async () => {
@@ -60,7 +64,9 @@ const line = (caller: number, vendor: string, kind: string, amount: string, id =
   });
 const vendorsSeenBy = (caller: number) =>
   user(caller, async () =>
-    (await db.query('SELECT id FROM company_vendors ORDER BY name')).rows.map((r) => r.id as string),
+    (await db.query('SELECT id FROM company_vendors ORDER BY name')).rows.map(
+      (r) => r.id as string,
+    ),
   );
 const linesSeenBy = (caller: number) =>
   user(caller, async () => (await db.query('SELECT id FROM company_vendor_entries')).rows.length);
@@ -118,9 +124,7 @@ describe('company vendors: who sees what', () => {
       await denied(() => addVendor(3, randomUUID(), 'X'));
       await denied(() => line(3, ravi, 'bill', '10'));
       await denied(() => line(2, mine, 'payment', '10'));
-      await denied(() =>
-        user(2, () => db.query('SELECT waves_company_vendor_invite($1)', [mine])),
-      );
+      await denied(() => user(2, () => db.query('SELECT waves_company_vendor_invite($1)', [mine])));
     }));
 
   it('a vendor adds only a pending bill, which counts only once confirmed', () =>
@@ -128,27 +132,52 @@ describe('company vendors: who sees what', () => {
       await denied(() => line(4, ravi, 'payment', '10'));
       await denied(() => line(4, mine, 'bill', '10'));
       const id = await line(4, ravi, 'bill', '900');
-      const row = (await db.query('SELECT status,version FROM company_vendor_entries WHERE id=$1', [id])).rows[0];
+      const row = (
+        await db.query('SELECT status,version FROM company_vendor_entries WHERE id=$1', [id])
+      ).rows[0];
       expect(row.status).toBe('pending');
       await denied(() =>
-        user(4, () => db.query("SELECT waves_company_vendor_entry_review($1,'approved',NULL,$2)", [id, row.version])),
+        user(4, () =>
+          db.query("SELECT waves_company_vendor_entry_review($1,'approved',NULL,$2)", [
+            id,
+            row.version,
+          ]),
+        ),
       );
       await denied(() =>
-        user(2, () => db.query("SELECT waves_company_vendor_entry_review($1,'approved',NULL,$2)", [id, row.version])),
+        user(2, () =>
+          db.query("SELECT waves_company_vendor_entry_review($1,'approved',NULL,$2)", [
+            id,
+            row.version,
+          ]),
+        ),
       );
       await user(0, () =>
-        db.query("SELECT waves_company_vendor_entry_review($1,'approved',NULL,$2)", [id, row.version]),
+        db.query("SELECT waves_company_vendor_entry_review($1,'approved',NULL,$2)", [
+          id,
+          row.version,
+        ]),
       );
-      expect((await db.query('SELECT status FROM company_vendor_entries WHERE id=$1', [id])).rows[0].status).toBe('approved');
+      expect(
+        (await db.query('SELECT status FROM company_vendor_entries WHERE id=$1', [id])).rows[0]
+          .status,
+      ).toBe('approved');
     }));
 
   it('a vendor can mark a payment received but never change its amount', () =>
     isolated(async () => {
       const id = await line(0, ravi, 'payment', '300');
       await user(4, () => db.query('SELECT waves_company_vendor_entry_received($1,true)', [id]));
-      expect((await db.query('SELECT received_at FROM company_vendor_entries WHERE id=$1', [id])).rows[0].received_at).not.toBeNull();
-      await denied(() => user(4, () => db.query('UPDATE company_vendor_entries SET amount=1 WHERE id=$1', [id])));
-      await denied(() => user(1, () => db.query('SELECT waves_company_vendor_entry_received($1,true)', [id])));
+      expect(
+        (await db.query('SELECT received_at FROM company_vendor_entries WHERE id=$1', [id])).rows[0]
+          .received_at,
+      ).not.toBeNull();
+      await denied(() =>
+        user(4, () => db.query('UPDATE company_vendor_entries SET amount=1 WHERE id=$1', [id])),
+      );
+      await denied(() =>
+        user(1, () => db.query('SELECT waves_company_vendor_entry_received($1,true)', [id])),
+      );
     }));
 
   it('a vendor login can never create employee entries', () =>
@@ -156,7 +185,10 @@ describe('company vendors: who sees what', () => {
       await denied(() =>
         user(4, () =>
           db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-            g.groupId, randomUUID(), g.memberIds[4], 'expense',
+            g.groupId,
+            randomUUID(),
+            g.memberIds[4],
+            'expense',
             JSON.stringify({ amount: '100', occurredOn: '2026-11-10' }),
           ]),
         ),
@@ -169,7 +201,9 @@ describe('company vendors: who sees what', () => {
       await line(1, mine, 'payment', '400');
       await line(1, mine, 'advance', '100');
       const b = (
-        await user(1, () => db.query('SELECT waves_company_pool_balance($1,$2) AS b', [g.groupId, g.memberIds[1]]))
+        await user(1, () =>
+          db.query('SELECT waves_company_pool_balance($1,$2) AS b', [g.groupId, g.memberIds[1]]),
+        )
       ).rows[0].b;
       expect(b.vendorPaid).toBe('500');
       expect(b.balance).toBe('-500');
@@ -177,19 +211,35 @@ describe('company vendors: who sees what', () => {
 
   it('an invite link makes the joiner that vendor and nothing else', () =>
     isolated(async () => {
-      const token = (await user(1, () => db.query('SELECT waves_company_vendor_invite($1) AS t', [mine]))).rows[0].t;
+      const token = (
+        await user(1, () => db.query('SELECT waves_company_vendor_invite($1) AS t', [mine]))
+      ).rows[0].t;
       expect(token).toHaveLength(64);
-      const inv = (await db.query("SELECT id FROM invites WHERE company_vendor_id=$1", [mine])).rows[0].id;
+      const inv = (await db.query('SELECT id FROM invites WHERE company_vendor_id=$1', [mine]))
+        .rows[0].id;
       const profile = randomUUID();
-      await db.query("INSERT INTO profiles (id, display_name, default_currency) VALUES ($1,'New vendor','INR')", [profile]);
-      const res = (await db.query('SELECT waves_join_via_invite($1,$2) AS r', [inv, profile])).rows[0].r;
+      await db.query(
+        "INSERT INTO profiles (id, display_name, default_currency) VALUES ($1,'New vendor','INR')",
+        [profile],
+      );
+      const res = (await db.query('SELECT waves_join_via_invite($1,$2) AS r', [inv, profile]))
+        .rows[0].r;
       expect(res.ok).toBe(true);
-      const m = (await db.query('SELECT role::text AS role, manager_id FROM group_members WHERE id=$1', [res.member_id])).rows[0];
+      const m = (
+        await db.query('SELECT role::text AS role, manager_id FROM group_members WHERE id=$1', [
+          res.member_id,
+        ])
+      ).rows[0];
       expect(m.role).toBe('vendor');
       expect(m.manager_id).toBeNull();
-      expect((await db.query('SELECT member_id FROM company_vendors WHERE id=$1', [mine])).rows[0].member_id).toBe(res.member_id);
+      expect(
+        (await db.query('SELECT member_id FROM company_vendors WHERE id=$1', [mine])).rows[0]
+          .member_id,
+      ).toBe(res.member_id);
       // The link is single use.
-      const again = (await db.query('SELECT waves_join_via_invite($1,$2) AS r', [inv, randomUUID()])).rows[0].r;
+      const again = (
+        await db.query('SELECT waves_join_via_invite($1,$2) AS r', [inv, randomUUID()])
+      ).rows[0].r;
       expect(again.ok).toBe(false);
     }));
 });

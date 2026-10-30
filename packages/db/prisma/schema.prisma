@@ -267,6 +267,9 @@ model Group {
   companyIndustry String? @map("company_industry")
   companyPolicies Json @default("{\"version\":1,\"rules\":[]}") @map("company_policies")
   companyPolicyRevision Int @default(0) @map("company_policy_revision")
+  suspendedAt DateTime? @map("suspended_at") @db.Timestamptz(6)
+  companyAttendance CompanyAttendance[]
+  companyWorkTasks CompanyWorkTask[]
   companyDefaultMileageRateMinor BigInt? @map("company_default_mileage_rate_minor")
   companyApprovalsEnabled Boolean @default(false) @map("company_approvals_enabled")
   companySecondApproval Boolean @default(false) @map("company_second_approval")
@@ -442,6 +445,7 @@ model GroupMember {
   paymentHandle      String?    @map("payment_handle")
   mileageRateMinor BigInt? @map("mileage_rate_minor")
   dailyRateMinor     BigInt?    @map("daily_rate_minor")
+  employeeId         String?    @map("employee_id")
   /// The import that minted this ghost (`import_batches`); null for everyone else.
   importBatchId      String?    @map("import_batch_id") @db.Uuid
   leftAt             DateTime?  @map("left_at") @db.Timestamptz(6)
@@ -474,6 +478,10 @@ model GroupMember {
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
   managerId String? @map("manager_id") @db.Uuid
+  companyAttendance CompanyAttendance[] @relation("CompanyAttendanceMember")
+  markedAttendance CompanyAttendance[] @relation("CompanyAttendanceMarker")
+  companyWorkTasks CompanyWorkTask[] @relation("CompanyWorkTaskMember")
+  createdWorkTasks CompanyWorkTask[] @relation("CompanyWorkTaskCreator")
   manager GroupMember? @relation("CompanyManager", fields: [managerId, groupId], references: [id, groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_member_manager_fk")
   team GroupMember[] @relation("CompanyManager")
   managedInvites Invite[] @relation("CompanyInviteManager")
@@ -3182,7 +3190,7 @@ model CompanyVendorEntryAttachment {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
   updatedSeq BigInt @default(0) @map("updated_seq")
   entry CompanyVendorEntry @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
-  uploader GroupMember @relation(fields: [uploaderMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  uploader GroupMember @relation(fields: [uploaderMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_vendor_entry_attachmen_uploader_member_id_group_id_fkey")
   @@index([groupId,updatedSeq], map: "company_vendor_entry_attachments_group_seq_idx")
   @@index([entryId,deletedAt], map: "company_vendor_entry_attachments_entry_idx")
   @@map("company_vendor_entry_attachments")
@@ -3223,6 +3231,7 @@ model CompanyProject {
   members CompanyProjectMember[]
   entries CompanyEntry[]
   wageSplits CompanyWageSplit[]
+  workTasks CompanyWorkTask[]
   @@unique([id,groupId])
   @@index([groupId,updatedSeq], map: "company_projects_sync_idx")
   @@map("company_projects")
@@ -3397,6 +3406,9 @@ model CompanyAttendance {
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
   updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation("CompanyAttendanceMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  marker GroupMember @relation("CompanyAttendanceMarker", fields: [markedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   @@unique([groupId,memberId,day])
   @@index([groupId,updatedSeq], map: "company_attendance_sync_idx")
   @@map("company_attendance")
@@ -3417,8 +3429,40 @@ model CompanyWorkTask {
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
   updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation("CompanyWorkTaskMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyWorkTaskCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project CompanyProject? @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   @@index([groupId,updatedSeq], map: "company_work_tasks_sync_idx")
   @@index([groupId,day,memberId], map: "company_work_tasks_day_idx")
   @@map("company_work_tasks")
+  @@schema("public")
+}
+model CompanyComplaint {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  reporterProfileId String? @map("reporter_profile_id") @db.Uuid
+  reporterRole String @map("reporter_role")
+  category String
+  body String
+  status String @default("open")
+  adminNote String? @map("admin_note")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  @@index([groupId,createdAt(sort: Desc)], map: "company_complaints_group_idx")
+  @@map("company_complaints")
+  @@schema("public")
+}
+model CompanyModerationLog {
+  id BigInt @id @default(autoincrement())
+  groupId String @map("group_id") @db.Uuid
+  action String
+  actor String @default("admin console")
+  category String?
+  reason String?
+  meta Json @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@index([groupId,createdAt(sort: Desc)], map: "company_moderation_log_group_idx")
+  @@map("company_moderation_log")
   @@schema("public")
 }

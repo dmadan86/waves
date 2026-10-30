@@ -45,7 +45,11 @@ async function denied(run: () => Promise<unknown>) {
 }
 const addVendor = (caller: number, id: string, name: string) =>
   user(caller, () =>
-    db.query('SELECT waves_company_vendor_set($1,$2,$3)', [g.groupId, id, JSON.stringify({ name })]),
+    db.query('SELECT waves_company_vendor_set($1,$2,$3)', [
+      g.groupId,
+      id,
+      JSON.stringify({ name }),
+    ]),
   );
 const line = (caller: number, vendor: string, kind: string, amount: string, id = randomUUID()) =>
   user(caller, async () => {
@@ -84,24 +88,37 @@ afterAll(async () => {
   if (db) await db.end();
 });
 
-
 const path = (lineId: string) => `${lineId}/${randomUUID()}/${randomUUID()}.jpg`;
 // The byte door runs as the service role on behalf of the caller's profile.
 const reserve = (caller: number, key: string) =>
-  db.query("SELECT waves_storage_reserve($1,$2,'company-entry-images',$3,100,'image/jpeg')", [g.profileIds[caller], g.groupId, key]);
+  db.query("SELECT waves_storage_reserve($1,$2,'company-entry-images',$3,100,'image/jpeg')", [
+    g.profileIds[caller],
+    g.groupId,
+    key,
+  ]);
 const commit = (caller: number, key: string) =>
-  db.query("SELECT waves_storage_record($1,$2,'company-entry-images',$3,100,'image/jpeg')", [g.profileIds[caller], g.groupId, key]);
+  db.query("SELECT waves_storage_record($1,$2,'company-entry-images',$3,100,'image/jpeg')", [
+    g.profileIds[caller],
+    g.groupId,
+    key,
+  ]);
 /** Upload and attach one photo as `caller`; returns the attachment id. */
 async function photo(caller: number, lineId: string) {
   const key = path(lineId);
   const id = key.split('/')[1]!;
   await reserve(caller, key);
   await commit(caller, key);
-  await user(caller, () => db.query('SELECT waves_attach_company_vendor_entry_image($1,$2,$3)', [lineId, key, id]));
+  await user(caller, () =>
+    db.query('SELECT waves_attach_company_vendor_entry_image($1,$2,$3)', [lineId, key, id]),
+  );
   return id;
 }
 const photosSeenBy = (caller: number) =>
-  user(caller, async () => (await db.query('SELECT id FROM company_vendor_entry_attachments WHERE deleted_at IS NULL')).rows.map((r) => r.id as string));
+  user(caller, async () =>
+    (
+      await db.query('SELECT id FROM company_vendor_entry_attachments WHERE deleted_at IS NULL')
+    ).rows.map((r) => r.id as string),
+  );
 const remove = (caller: number, id: string) =>
   user(caller, () => db.query('SELECT waves_remove_company_vendor_entry_image($1)', [id]));
 
@@ -129,7 +146,13 @@ describe('vendor line photos', () => {
         const key = path(bill);
         await denied(() => reserve(outsider, key));
         await denied(() => remove(outsider, id));
-        await denied(() => db.query('SELECT waves_attach_company_vendor_entry_image($1,$2,$3)', [bill, key, randomUUID()]));
+        await denied(() =>
+          db.query('SELECT waves_attach_company_vendor_entry_image($1,$2,$3)', [
+            bill,
+            key,
+            randomUUID(),
+          ]),
+        );
       }
       expect(await photosSeenBy(0)).toEqual([id]);
     }));
@@ -142,7 +165,14 @@ describe('vendor line photos', () => {
       const mineId = await photo(4, bill);
       const ownerId = await photo(0, bill); // owner may add to it
       await denied(() => remove(4, ownerId)); // a vendor removes only their own
-      await user(0, () => db.query('SELECT waves_company_vendor_entry_review($1,$2,$3,$4)', [bill, 'approved', null, 1]));
+      await user(0, () =>
+        db.query('SELECT waves_company_vendor_entry_review($1,$2,$3,$4)', [
+          bill,
+          'approved',
+          null,
+          1,
+        ]),
+      );
       await denied(() => photo(4, bill));
       await denied(() => remove(4, mineId));
       await remove(0, mineId); // the owner can
@@ -154,11 +184,21 @@ describe('vendor line photos', () => {
       const managed = await line(1, mine, 'bill', '500');
       const id = await photo(1, managed);
       await denied(() =>
-        user(0, () => db.query("INSERT INTO company_vendor_entry_attachments(id,entry_id,group_id,uploader_member_id,storage_path) VALUES($1,$2,$3,$4,$5)", [randomUUID(), managed, g.groupId, g.memberIds[0], path(managed)])),
+        user(0, () =>
+          db.query(
+            'INSERT INTO company_vendor_entry_attachments(id,entry_id,group_id,uploader_member_id,storage_path) VALUES($1,$2,$3,$4,$5)',
+            [randomUUID(), managed, g.groupId, g.memberIds[0], path(managed)],
+          ),
+        ),
       );
-      await user(1, () => db.query('SELECT waves_company_vendor_entry_void($1,$2)', [managed, 'dup']));
+      await user(1, () =>
+        db.query('SELECT waves_company_vendor_entry_void($1,$2)', [managed, 'dup']),
+      );
       expect(await photosSeenBy(0)).toEqual([]);
-      const left = await db.query("SELECT 1 FROM storage_objects WHERE logical_bucket='company-entry-images' AND split_part(path,'/',1)=$1", [managed]);
+      const left = await db.query(
+        "SELECT 1 FROM storage_objects WHERE logical_bucket='company-entry-images' AND split_part(path,'/',1)=$1",
+        [managed],
+      );
       expect(left.rowCount).toBe(0);
       expect(id).toBeTruthy();
     }));
@@ -166,7 +206,10 @@ describe('vendor line photos', () => {
   it('a vendor line cannot reuse a company entry id, so its void cannot touch that entry photos', () =>
     isolated(async () => {
       const entry = randomUUID();
-      await db.query("INSERT INTO company_entries(id,group_id,member_id,created_by,updated_by,entry_kind,amount,currency,occurred_on,status) VALUES($1,$2,$3,$3,$3,'expense',100,'INR','2026-11-10','approved')", [entry, g.groupId, g.memberIds[3]]);
+      await db.query(
+        "INSERT INTO company_entries(id,group_id,member_id,created_by,updated_by,entry_kind,amount,currency,occurred_on,status) VALUES($1,$2,$3,$3,$3,'expense',100,'INR','2026-11-10','approved')",
+        [entry, g.groupId, g.memberIds[3]],
+      );
       await denied(() => line(0, ravi, 'bill', '100', entry));
     }));
 });

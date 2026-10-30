@@ -119,11 +119,7 @@ export function CompanyCard({
           </View>
         ) : null}
       </View>
-      <Ionicons
-        name={directionalIcon('chevron-forward')}
-        size={20}
-        color={theme.color.textMuted}
-      />
+      <Ionicons name={directionalIcon('chevron-forward')} size={20} color={theme.color.textMuted} />
     </Pressable>
   );
 }

@@ -305,7 +305,11 @@ export function DashHeader({
         ) : null}
       </View>
       {view.suspended ? <SuspendedBanner /> : null}
-      <ReportCompanySheet groupId={groupId} visible={reporting} onClose={() => setReporting(false)} />
+      <ReportCompanySheet
+        groupId={groupId}
+        visible={reporting}
+        onClose={() => setReporting(false)}
+      />
       <Sheet
         visible={switching}
         onClose={() => setSwitching(false)}
