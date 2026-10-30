@@ -20,6 +20,13 @@ import { computeShares } from '../split/computeShares';
 import { resolvePayee } from '../expense/payee';
 import type { MemberId, SplitParams, SplitType } from '../split/types';
 import type { CurrencyCode } from '../money/currency';
+import {
+  billStatus,
+  computeDocTotals,
+  type CompanyDocStatus,
+  type CompanyDocType,
+  type DocPayment,
+} from '../company/documents';
 import type { ExpenseSnapshot } from '../balances/types';
 
 import {
@@ -52,6 +59,11 @@ import type {
   CompanyPoolPostPayload,
   CompanyProjectSetPayload,
   CompanyMemberEmployeeIdSetPayload,
+  CompanyDocSavePayload,
+  CompanyDocStatusPayload,
+  CompanyDocConvertPayload,
+  CompanyDocPaymentPayload,
+  CompanyDocVoidPayload,
   CompanyMemberProjectsSetPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
@@ -107,6 +119,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyVendors,
   SyncTable.CompanyVendorEntries,
   SyncTable.CompanyVendorEntryAttachments,
+  SyncTable.CompanyDocuments,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -2261,6 +2274,192 @@ export function materialiseWageSplits(
   return out;
 }
 
+// ───────────────────────────────────────────── company estimates & bills ──
+
+export interface MirrorDocItem {
+  readonly description: string;
+  readonly qtyMilli: bigint;
+  readonly rateMinor: bigint;
+  readonly amountMinor: bigint;
+}
+export interface MirrorCompanyDoc {
+  readonly id: string;
+  readonly groupId: string;
+  readonly docType: CompanyDocType;
+  /** Null until the server numbers it (created offline). */
+  readonly number: number | null;
+  readonly customerName: string;
+  readonly customerPhone: string | null;
+  readonly docDate: string;
+  readonly items: readonly MirrorDocItem[];
+  readonly discountMinor: bigint;
+  readonly totalMinor: bigint;
+  readonly currency: string;
+  readonly notes: string | null;
+  readonly status: CompanyDocStatus;
+  readonly payments: readonly DocPayment[];
+  readonly paidMinor: bigint;
+  readonly convertedTo: string | null;
+  readonly convertedFrom: string | null;
+  readonly createdBy: string;
+  readonly deleted: boolean;
+  readonly pending: boolean;
+}
+
+const big = (v: unknown): bigint => BigInt(String(v ?? 0));
+
+function docFromRow(r: Record<string, unknown>): MirrorCompanyDoc {
+  const items = ((r.items as Record<string, unknown>[] | null) ?? []).map((i) => ({
+    description: String(i.description ?? ''),
+    qtyMilli: big(i.qtyMilli),
+    rateMinor: big(i.rateMinor),
+    amountMinor: big(i.amountMinor),
+  }));
+  return {
+    id: r.id as string,
+    groupId: r.group_id as string,
+    docType: r.doc_type as CompanyDocType,
+    number: (r.number as number | null) ?? null,
+    customerName: String(r.customer_name ?? ''),
+    customerPhone: (r.customer_phone as string | null) ?? null,
+    docDate: String(r.doc_date ?? '').slice(0, 10),
+    items,
+    discountMinor: big(r.discount_minor),
+    totalMinor: big(r.total_minor),
+    currency: String(r.currency ?? ''),
+    notes: (r.notes as string | null) ?? null,
+    status: r.status as CompanyDocStatus,
+    payments: ((r.payments as Record<string, unknown>[] | null) ?? []).map((p) => ({
+      id: String(p.id),
+      amountMinor: big(p.amountMinor),
+      paidOn: String(p.paidOn).slice(0, 10),
+    })),
+    paidMinor: big(r.paid_minor),
+    convertedTo: (r.converted_to as string | null) ?? null,
+    convertedFrom: (r.converted_from as string | null) ?? null,
+    createdBy: r.created_by as string,
+    deleted: !!r.deleted_at,
+    pending: false,
+  };
+}
+
+/**
+ * The estimates and bills this phone may see (the server already filters: owners all, a manager their own),
+ * with the viewer's queued writes on top. Removed ones are dropped. Newest first.
+ */
+export function materialiseCompanyDocs(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string; readonly currency: string; readonly viewerMemberId: string },
+): MirrorCompanyDoc[] {
+  const byId = new Map<string, MirrorCompanyDoc>();
+  for (const row of rowsFor(state, SyncTable.CompanyDocuments, options.groupId)) {
+    const d = docFromRow(row as unknown as Record<string, unknown>);
+    byId.set(d.id, d);
+  }
+  const rebill = (d: MirrorCompanyDoc, over: Partial<MirrorCompanyDoc>): MirrorCompanyDoc => {
+    const m = { ...d, ...over, pending: true };
+    return m.docType === 'bill' ? { ...m, status: billStatus(m.totalMinor, m.paidMinor) } : m;
+  };
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== options.groupId || mutation.rejection) continue;
+    const k = mutation.kind as string;
+    if (k === 'company_doc.save') {
+      const p = mutation.payload as unknown as CompanyDocSavePayload;
+      const items = p.data.items.map((i) => ({
+        description: i.description.trim(),
+        qtyMilli: BigInt(i.qtyMilli),
+        rateMinor: BigInt(i.rateMinor),
+      }));
+      const t = computeDocTotals(items, BigInt(p.data.discountMinor));
+      const full = items.map((i, n) => ({ ...i, amountMinor: t.lines[n]! }));
+      const ex = byId.get(p.docId);
+      const fields = {
+        customerName: p.data.customerName.trim(),
+        customerPhone: p.data.customerPhone,
+        docDate: p.data.docDate,
+        items: full,
+        discountMinor: BigInt(p.data.discountMinor),
+        totalMinor: t.totalMinor,
+        notes: p.data.notes,
+      };
+      byId.set(
+        p.docId,
+        ex
+          ? rebill(ex, fields)
+          : rebill(
+              {
+                ...fields,
+                id: p.docId,
+                groupId: options.groupId,
+                docType: p.data.docType,
+                number: null,
+                currency: options.currency,
+                status: p.data.docType === 'estimate' ? 'draft' : 'unpaid',
+                payments: [],
+                paidMinor: 0n,
+                convertedTo: null,
+                convertedFrom: null,
+                createdBy: options.viewerMemberId,
+                deleted: false,
+                pending: true,
+              },
+              {},
+            ),
+      );
+    } else if (k === 'company_doc.status') {
+      const p = mutation.payload as unknown as CompanyDocStatusPayload;
+      const ex = byId.get(p.docId);
+      if (ex) byId.set(p.docId, { ...ex, status: p.status, pending: true });
+    } else if (k === 'company_doc.convert') {
+      const p = mutation.payload as unknown as CompanyDocConvertPayload;
+      const ex = byId.get(p.docId);
+      if (ex && !byId.has(p.billId)) {
+        byId.set(p.docId, {
+          ...ex,
+          convertedTo: p.billId,
+          status: ex.status === 'draft' || ex.status === 'sent' ? 'accepted' : ex.status,
+          pending: true,
+        });
+        byId.set(p.billId, {
+          ...ex,
+          id: p.billId,
+          docType: 'bill',
+          docDate: mutation.clientCreatedAt.slice(0, 10),
+          number: null,
+          status: 'unpaid',
+          payments: [],
+          paidMinor: 0n,
+          convertedTo: null,
+          convertedFrom: ex.id,
+          createdBy: options.viewerMemberId,
+          pending: true,
+        });
+      }
+    } else if (k === 'company_doc.payment') {
+      const p = mutation.payload as unknown as CompanyDocPaymentPayload;
+      const ex = byId.get(p.docId);
+      if (ex && !ex.payments.some((x) => x.id === p.paymentId)) {
+        const amountMinor = BigInt(p.amountMinor);
+        byId.set(
+          p.docId,
+          rebill(ex, {
+            payments: [...ex.payments, { id: p.paymentId, amountMinor, paidOn: p.paidOn }],
+            paidMinor: ex.paidMinor + amountMinor,
+          }),
+        );
+      }
+    } else if (k === 'company_doc.void') {
+      const p = mutation.payload as unknown as CompanyDocVoidPayload;
+      const ex = byId.get(p.docId);
+      if (ex) byId.set(p.docId, { ...ex, deleted: true, pending: true });
+    }
+  }
+  return [...byId.values()]
+    .filter((d) => !d.deleted)
+    .sort((a, b) => b.docDate.localeCompare(a.docDate) || (b.number ?? 1e9) - (a.number ?? 1e9));
+}
+
 /**
  * A non-owner's phone after an employee moved to another manager (or the viewer lost a role): the server lists the
  * members this caller may still read, so anyone not on it loses their cached entries,
@@ -2302,6 +2501,8 @@ export function purgeCompanyInvisible(
       mine(row) && entries.has(row.entry_id as string);
     drop(SyncTable.CompanyEntryAttachments, orphan);
     drop(SyncTable.CompanyWageSplits, orphan);
+    // Documents are private to their creator (and owners): a phone that lost that visibility drops them.
+    drop(SyncTable.CompanyDocuments, (row) => mine(row) && !ok.has(row.created_by as string));
   }
   return removed.length === 0 ? { state, removed } : { state: { ...state, tables }, removed };
 }

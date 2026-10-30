@@ -147,6 +147,44 @@ const cases = [
     },
   ],
   [
+    'company_doc.save',
+    {
+      docId: ENTRY,
+      data: {
+        docType: 'bill',
+        customerName: ' Ravi ',
+        docDate: '2026-11-14',
+        items: [{ description: 'Paint', qtyMilli: '2500', rateMinor: '333' }],
+      },
+    },
+    'waves_company_doc_save',
+    {
+      p_group_id: GROUP_ID,
+      p_doc_id: ENTRY,
+      p_data: {
+        docType: 'bill',
+        customerName: 'Ravi',
+        customerPhone: null,
+        docDate: '2026-11-14',
+        discountMinor: '0',
+        notes: null,
+        items: [{ description: 'Paint', qtyMilli: '2500', rateMinor: '333' }],
+      },
+    },
+  ],
+  [
+    'company_doc.payment',
+    { docId: ENTRY, paymentId: ENTRY, amountMinor: '500', paidOn: '2026-11-15' },
+    'waves_company_doc_payment',
+    { p_doc_id: ENTRY, p_payment_id: ENTRY, p_amount: '500', p_paid_on: '2026-11-15' },
+  ],
+  [
+    'company_doc.convert',
+    { docId: ENTRY, billId: ENTRY },
+    'waves_company_doc_convert',
+    { p_doc_id: ENTRY, p_bill_id: ENTRY },
+  ],
+  [
     'company_member.assign',
     { memberId: MEMBER_ID, managerId: null, reason: '' },
     'waves_company_member_assign',
@@ -589,6 +627,12 @@ it.each([
 });
 
 it.each([
+  ['company_doc.status', { docId: ENTRY, status: 'paid' }],
+  [
+    'company_doc.payment',
+    { docId: ENTRY, paymentId: ENTRY, amountMinor: '-5', paidOn: '2026-11-15' },
+  ],
+  ['company_doc.save', { docId: ENTRY, data: { docType: 'invoice', items: [] } }],
   ['company_tag.add', { key: 'BAD', label: 'Cement' }],
   ['company_tag.add', { key: 'cement', label: '' }],
   ['company_tag.add', { key: 'cement', label: 'x'.repeat(41) }],

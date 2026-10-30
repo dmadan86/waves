@@ -89,6 +89,12 @@ export enum MutationKind {
   CompanyVendorEntryReview = 'company_vendor_entry.review',
   CompanyVendorEntryVoid = 'company_vendor_entry.void',
   CompanyVendorEntryReceived = 'company_vendor_entry.received',
+  // Estimates and bills (owners; managers for their own). The server numbers them and recomputes totals.
+  CompanyDocSave = 'company_doc.save',
+  CompanyDocStatus = 'company_doc.status',
+  CompanyDocConvert = 'company_doc.convert',
+  CompanyDocPayment = 'company_doc.payment',
+  CompanyDocVoid = 'company_doc.void',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -565,6 +571,41 @@ export interface CompanyPoolPostPayload {
   readonly reason: string | null;
 }
 
+/** Create or edit an estimate / bill. Bigints travel as decimal strings; the server recomputes every amount. */
+export interface CompanyDocSavePayload {
+  readonly docId: string;
+  readonly data: {
+    readonly docType: 'estimate' | 'bill';
+    readonly customerName: string;
+    readonly customerPhone: string | null;
+    readonly docDate: string;
+    readonly items: readonly {
+      readonly description: string;
+      readonly qtyMilli: string;
+      readonly rateMinor: string;
+    }[];
+    readonly discountMinor: string;
+    readonly notes: string | null;
+  };
+}
+export interface CompanyDocStatusPayload {
+  readonly docId: string;
+  readonly status: 'draft' | 'sent' | 'accepted' | 'declined';
+}
+export interface CompanyDocConvertPayload {
+  readonly docId: string;
+  readonly billId: string;
+}
+export interface CompanyDocPaymentPayload {
+  readonly docId: string;
+  readonly paymentId: string;
+  readonly amountMinor: string;
+  readonly paidOn: string;
+}
+export interface CompanyDocVoidPayload {
+  readonly docId: string;
+}
+
 export interface CompanyWageLinePayload {
   readonly paymentEntryId: string;
   readonly memberId: string;
@@ -798,6 +839,8 @@ export enum SyncTable {
   CompanyVendorEntries = 'company_vendor_entries',
   /** Group-scoped, pull-only. Photos on a vendor ledger line; readable exactly where the line is (RLS). */
   CompanyVendorEntryAttachments = 'company_vendor_entry_attachments',
+  /** Group-scoped, pull-only: estimates and bills; owners see all, a manager only their own (RLS). */
+  CompanyDocuments = 'company_documents',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',
