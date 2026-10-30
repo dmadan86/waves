@@ -446,6 +446,8 @@ model GroupMember {
   mileageRateMinor BigInt? @map("mileage_rate_minor")
   dailyRateMinor     BigInt?    @map("daily_rate_minor")
   employeeId         String?    @map("employee_id")
+  employmentEndedOn  DateTime?  @map("employment_ended_on") @db.Date
+  employmentNote     String?    @map("employment_note")
   /// The import that minted this ghost (`import_batches`); null for everyone else.
   importBatchId      String?    @map("import_batch_id") @db.Uuid
   leftAt             DateTime?  @map("left_at") @db.Timestamptz(6)

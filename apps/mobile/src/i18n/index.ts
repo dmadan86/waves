@@ -1431,6 +1431,19 @@ export interface UiStrings {
     empFilterCompanyOwes: string;
     empFilterSettled: string;
     viewStatement: string;
+    employed: string;
+    notEmployed: string;
+    markNotEmployed: string;
+    markEmployed: string;
+    employmentHint: string;
+    employmentDate: string;
+    employmentNote: string;
+    employmentPool: string;
+    employmentIdTaken: string;
+    employmentBlocked: string;
+    employmentDenied: string;
+    employmentFailed: string;
+    employmentInvalidDate: string;
     employeeOptions: string;
     noEmployeesMatch: string;
     qaAdvance: string;
@@ -7943,6 +7956,19 @@ const en: UiStrings = {
     empFilterCompanyOwes: 'Company owes',
     empFilterSettled: 'Settled',
     viewStatement: 'View statement',
+    employed: 'Employed',
+    notEmployed: 'Not employed',
+    markNotEmployed: 'Mark as not employed',
+    markEmployed: 'Mark as employed',
+    employmentHint: "They won't get any new company updates. Their past entries stay.",
+    employmentDate: 'Last working date (optional, YYYY-MM-DD)',
+    employmentNote: 'Short note (optional)',
+    employmentPool: 'Settle their float first',
+    employmentIdTaken: 'This employee ID is already in use',
+    employmentBlocked: 'This company is suspended',
+    employmentDenied: 'You cannot change this person’s employment status',
+    employmentFailed: 'Could not update employment. Try again.',
+    employmentInvalidDate: 'Enter a valid date (YYYY-MM-DD)',
     employeeOptions: 'Employee options',
     noEmployeesMatch: 'No employee matches',
     qaAdvance: 'Give advance',
@@ -13909,6 +13935,19 @@ const ta: UiStrings = {
     empFilterCompanyOwes: 'நிறுவனம் கொடுக்க வேண்டியவர்',
     empFilterSettled: 'தீர்ந்தவர்',
     viewStatement: 'அறிக்கையைப் பார்',
+    employed: 'பணியில் உள்ளவர்',
+    notEmployed: 'பணியில் இல்லை',
+    markNotEmployed: 'பணியில் இல்லை எனக் குறிக்கவும்',
+    markEmployed: 'பணியில் உள்ளவர் எனக் குறிக்கவும்',
+    employmentHint: 'புதிய நிறுவனத் தகவல்கள் அவர்களுக்கு வராது. பழைய பதிவுகள் இருக்கும்.',
+    employmentDate: 'கடைசி வேலை நாள் (விருப்பம், YYYY-MM-DD)',
+    employmentNote: 'குறிப்பு (விருப்பம்)',
+    employmentPool: 'முதலில் அவர்களின் முன்பணத்தைத் தீர்க்கவும்',
+    employmentIdTaken: 'இந்த ஊழியர் எண் ஏற்கனவே பயன்பாட்டில் உள்ளது',
+    employmentBlocked: 'இந்த நிறுவனம் இடைநிறுத்தப்பட்டுள்ளது',
+    employmentDenied: 'இவரின் பணி நிலையை மாற்ற முடியாது',
+    employmentFailed: 'பணி நிலையை மாற்ற முடியவில்லை. மீண்டும் முயலவும்.',
+    employmentInvalidDate: 'சரியான தேதியை உள்ளிடவும் (YYYY-MM-DD)',
     employeeOptions: 'ஊழியர் விருப்பங்கள்',
     noEmployeesMatch: 'பொருந்தும் ஊழியர் இல்லை',
     qaAdvance: 'முன்பணம் கொடு',
@@ -20043,6 +20082,19 @@ const hi: UiStrings = {
     empFilterCompanyOwes: 'कंपनी पर बकाया',
     empFilterSettled: 'चुकता',
     viewStatement: 'स्टेटमेंट देखें',
+    employed: 'कार्यरत',
+    notEmployed: 'कार्यरत नहीं',
+    markNotEmployed: 'कार्यरत नहीं चिह्नित करें',
+    markEmployed: 'कार्यरत चिह्नित करें',
+    employmentHint: 'उन्हें कंपनी के नए अपडेट नहीं मिलेंगे। उनकी पुरानी प्रविष्टियाँ रहेंगी।',
+    employmentDate: 'अंतिम कार्य दिवस (वैकल्पिक, YYYY-MM-DD)',
+    employmentNote: 'छोटा नोट (वैकल्पिक)',
+    employmentPool: 'पहले उनका अग्रिम निपटाएँ',
+    employmentIdTaken: 'यह कर्मचारी आईडी पहले से उपयोग में है',
+    employmentBlocked: 'यह कंपनी निलंबित है',
+    employmentDenied: 'आप इस व्यक्ति की रोजगार स्थिति नहीं बदल सकते',
+    employmentFailed: 'रोजगार स्थिति अपडेट नहीं हुई। फिर कोशिश करें।',
+    employmentInvalidDate: 'सही तारीख डालें (YYYY-MM-DD)',
     employeeOptions: 'कर्मचारी विकल्प',
     noEmployeesMatch: 'कोई कर्मचारी नहीं मिला',
     qaAdvance: 'एडवांस दें',
@@ -26069,6 +26121,19 @@ const ar: UiStrings = {
     empFilterCompanyOwes: 'الشركة مدينة له',
     empFilterSettled: 'مسوّى',
     viewStatement: 'عرض الكشف',
+    employed: 'موظف',
+    notEmployed: 'غير موظف',
+    markNotEmployed: 'تعيين كغير موظف',
+    markEmployed: 'تعيين كموظف',
+    employmentHint: 'لن تصله تحديثات جديدة للشركة. ستبقى سجلاته السابقة.',
+    employmentDate: 'آخر يوم عمل (اختياري، YYYY-MM-DD)',
+    employmentNote: 'ملاحظة قصيرة (اختياري)',
+    employmentPool: 'سوِّ عهدته أولاً',
+    employmentIdTaken: 'معرّف الموظف مستخدم بالفعل',
+    employmentBlocked: 'هذه الشركة معلّقة',
+    employmentDenied: 'لا يمكنك تغيير حالة توظيف هذا الشخص',
+    employmentFailed: 'تعذر تحديث التوظيف. حاول مجدداً.',
+    employmentInvalidDate: 'أدخل تاريخاً صالحاً (YYYY-MM-DD)',
     employeeOptions: 'خيارات الموظف',
     noEmployeesMatch: 'لا يوجد موظف مطابق',
     qaAdvance: 'أعطِ سلفة',
