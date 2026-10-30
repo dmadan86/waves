@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, TextInput, View } from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
 
 import { dashboardStats } from '@waves/core';
 import { Sheet, Text, iconSize, useTheme } from '@waves/ui';
@@ -24,9 +25,10 @@ import {
 import { EmployeeRow } from '@/components/company/dashboard/EmployeeRow';
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { ListRow, SegmentedPills, StandardCard } from '@/components/standard';
+import { ListRow, PillButton, SegmentedPills, StandardCard } from '@/components/standard';
 import { CompanyEmploymentControl } from '@/components/company/CompanyEmploymentControl';
 import { useCompanyEntries } from '@/data/companyEntries';
+import { useActiveToday } from '@/data/companyOverview';
 import { departmentName, useDepartments } from '@/data/companyDepartments';
 import { useSetMemberRole } from '@/data/hooks';
 import { canSetEmployment, employmentPeople, isNotEmployed } from '@/data/companyEmployment';
@@ -39,6 +41,9 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const view = useCompanyEntries(groupId);
+  const params = useLocalSearchParams<{ filter?: string }>();
+  const activeToday = params.filter === 'activeToday';
+  const active = useActiveToday(groupId);
   const departments = useDepartments(groupId);
   const fmt = useMoney(view.currency);
   const role = useSetMemberRole(groupId);
@@ -78,6 +83,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
     (m) =>
       (statusFilter === 'all' || empKind(m.id) === statusFilter) &&
       (!departmentFilter || m.department_id === departmentFilter) &&
+      (!activeToday || !!active?.activeIds.has(m.id)) &&
       (!q || displayName(m, null, null, t.misc.someone).toLowerCase().includes(q)),
   );
   const balanceWords = (id: string): string | undefined => {
@@ -209,6 +215,14 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
       ) : null}
       <Text variant="title">{view.isOwner ? t.company.tabEmployees : t.company.tabMyTeam}</Text>
       <>
+        {activeToday ? (
+          <PillButton
+            label={t.company.overviewActiveToday}
+            icon="close-circle-outline"
+            chevron={false}
+            onPress={() => router.replace(`/group/${groupId}/company-people`)}
+          />
+        ) : null}
         <SegmentedPills
           options={[
             { value: 'employed', label: t.company.employed },

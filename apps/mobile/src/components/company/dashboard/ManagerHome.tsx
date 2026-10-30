@@ -20,6 +20,7 @@ import {
 } from '@/components/company/dashboard/parts';
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { PendingCard } from '@/components/company/dashboard/PendingCard';
+import { TodayTiles } from '@/components/company/dashboard/TodayTiles';
 import { WorkdayTiles } from '@/components/company/WorkdayEntries';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
@@ -67,6 +68,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
     <SectionShell groupId={groupId} view={view} overview>
       <>
         <PendingCard groupId={groupId} />
+        <TodayTiles groupId={groupId} hasEmployees={team.length > 0} />
         <StandardCard style={{ gap: theme.spacing.sm }}>
           <Text variant="caption" tone="muted">
             {t.company.yourBudget}
@@ -118,24 +120,19 @@ export function ManagerHome({ groupId }: { groupId: string }) {
         <QuickActions
           actions={[
             {
-              icon: 'person-add-outline',
-              label: t.company.qaAddEmployee,
-              onPress: () => router.push(`/group/${groupId}/members`),
-            },
-            {
               icon: 'paper-plane-outline',
               label: t.company.qaRecord,
               onPress: () => router.push(`/group/${groupId}/company-wages`),
             },
             {
+              icon: 'add-circle-outline',
+              label: t.company.qaAddTask,
+              onPress: () => router.push(`/group/${groupId}/company-work`),
+            },
+            {
               icon: 'arrow-up-circle-outline',
               label: t.company.qaAdvance,
               onPress: () => router.push(`/group/${groupId}/company-entry?kind=advance`),
-            },
-            {
-              icon: 'chatbubble-ellipses-outline',
-              label: t.company.qaAsk,
-              onPress: () => setAsking(true),
             },
           ]}
         />
