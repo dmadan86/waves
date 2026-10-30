@@ -14,14 +14,14 @@
     "coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.1",
-    "@sentry/nextjs": "^11.8.0",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@sentry/nextjs": "^11.9.0",
     "@supabase/supabase-js": "^2.118.0",
     "@waves/agent-mcp": "workspace:*",
     "@waves/api-client": "workspace:*",
     "@waves/core": "workspace:*",
-    "lucide-react": "^1.59.0",
-    "next": "^16.4.1",
+    "lucide-react": "^1.61.0",
+    "next": "^16.4.3",
     "qrcode.react": "^4.2.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
@@ -33,7 +33,7 @@
     "@types/react": "~19.3.0",
     "@types/react-dom": "~19.3.0",
     "eslint": "^10.13.0",
-    "eslint-config-next": "^16.4.2",
+    "eslint-config-next": "^16.4.3",
     "tailwindcss": "^4.3.3",
     "typescript": "~5.9.2",
     "vitest": "^4.1.10"
