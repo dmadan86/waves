@@ -498,7 +498,7 @@ function PushRouting() {
  * nothing has gone wrong" is for it to look like the app.
  */
 function LockGate({ children }: { children: React.ReactNode }) {
-  const { locked, unlock } = useLock();
+  const { locked, ready, unlock } = useLock();
   const theme = useTheme();
   const { t } = useStrings();
   const { height: screenHeight } = useWindowDimensions();
@@ -512,6 +512,9 @@ function LockGate({ children }: { children: React.ReactNode }) {
     if (locked) markLaunchReady();
   }, [locked]);
 
+  // Not drawn until we know whether the app is locked: an unlocked frame of a
+  // signed-in cold start is exactly the leak the lock exists to prevent.
+  if (!ready) return null;
   if (!locked) return <>{children}</>;
 
   return (
@@ -870,7 +873,14 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/company-entry" />
           <Stack.Screen name="group/[id]/company-statement" />
           <Stack.Screen name="group/[id]/company-wages" />
+          <Stack.Screen name="group/[id]/company-attendance" />
+          <Stack.Screen name="group/[id]/company-work" />
           <Stack.Screen name="group/[id]/company-hierarchy" />
+          <Stack.Screen name="group/[id]/company-people" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-pending" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-payments" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-more" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-budgets" />
           <Stack.Screen name="group/[id]/company-entry-view" />
           <Stack.Screen name="group/[id]/recap" />
           <Stack.Screen name="receipt/[id]" options={slide} />

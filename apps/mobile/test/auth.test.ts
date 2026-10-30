@@ -144,8 +144,6 @@ const spies = vi.hoisted(() => ({
   reportHandled: vi.fn(),
   sendPhoneCode: vi.fn(async (_phone: string) => {}),
   confirmPhoneCode: vi.fn(async (_phone: string, _code: string) => {}),
-  lockPersonal: vi.fn(),
-  syncPersonalAccount: vi.fn(),
   refreshPushToken: vi.fn(async () => ({ ok: true })),
   revokePushToken: vi.fn(async () => {}),
   markDeliberateSignOut: vi.fn(),
@@ -164,10 +162,6 @@ vi.mock('@/lib/observability', () => ({
 vi.mock('@/lib/phoneAuth', () => ({
   sendPhoneCode: spies.sendPhoneCode,
   confirmPhoneCode: spies.confirmPhoneCode,
-}));
-vi.mock('@/lib/personalLock', () => ({
-  lockPersonal: spies.lockPersonal,
-  syncPersonalAccount: spies.syncPersonalAccount,
 }));
 vi.mock('@/lib/push', () => ({
   refreshPushToken: spies.refreshPushToken,
@@ -292,7 +286,6 @@ describe('starting up', () => {
     expect(auth.value.isGuest).toBe(false);
     expect(auth.value.profile?.display_name).toBe('Asha');
     expect(auth.value.profileSettled).toBe(false);
-    expect(spies.syncPersonalAccount).toHaveBeenCalledWith('u1');
     expect(spies.identifyForReporting).toHaveBeenLastCalledWith('u1');
     expect(spies.refreshPushToken).toHaveBeenCalledTimes(1);
   });
@@ -307,7 +300,6 @@ describe('starting up', () => {
 
     expect(auth.value.loading).toBe(false);
     expect(auth.value.session).toBe(stored);
-    expect(spies.syncPersonalAccount).toHaveBeenCalledWith('u1');
   });
 
   it('lets the real session answer over the saved one when it lands', async () => {
@@ -360,7 +352,7 @@ describe('starting up', () => {
 // ─────────────────────────────────────────────── session changes ──
 
 describe('a session that changes underneath', () => {
-  it('follows the auth listener, and keys the personal unlock to the new account', async () => {
+  it('follows the auth listener', async () => {
     session = user('u1');
     world.db = tableOf({ u1: profileRow('u1', 'Asha'), u2: profileRow('u2', 'Ben') }) as never;
     const auth = await mount();
@@ -370,13 +362,11 @@ describe('a session that changes underneath', () => {
 
     expect((auth.value.session as { user: { id: string } }).user.id).toBe('u2');
     expect(auth.value.profile?.display_name).toBe('Ben');
-    expect(spies.syncPersonalAccount).toHaveBeenLastCalledWith('u2');
 
     world.listener!('SIGNED_OUT', null);
     await flush();
     expect(auth.value.session).toBeNull();
     expect(auth.value.profile).toBeNull();
-    expect(spies.syncPersonalAccount).toHaveBeenLastCalledWith(null);
   });
 
   it('never shows one account’s profile to the next, even for a moment', async () => {
@@ -997,13 +987,12 @@ describe('Apple', () => {
 // ─────────────────────────────────────────────────── sign-out ──
 
 describe('signing out', () => {
-  it('revokes, cancels and locks everything this account set up, then ends the session', async () => {
+  it('revokes and cancels everything this account set up, then ends the session', async () => {
     session = user('u1');
     world.db = tableOf({ u1: profileRow('u1') }) as never;
     spies.revokePushToken.mockImplementationOnce(async () => {
       world.order.push('revoke');
     });
-    spies.lockPersonal.mockImplementationOnce(() => world.order.push('lock'));
     spies.markDeliberateSignOut.mockImplementationOnce(() => world.order.push('mark'));
     // A failure to cancel a reminder must not keep somebody signed in.
     spies.cancelNudges.mockRejectedValueOnce(new Error('no permission'));
@@ -1013,7 +1002,7 @@ describe('signing out', () => {
     await auth.value.signOut();
 
     expect(spies.clearCaptureNudge).toHaveBeenCalledWith('u1');
-    expect(world.order).toEqual(['revoke', 'lock', 'mark', 'signOut']);
+    expect(world.order).toEqual(['revoke', 'mark', 'signOut']);
   });
 
   it('signs out with no account id to clear when nobody was signed in', async () => {

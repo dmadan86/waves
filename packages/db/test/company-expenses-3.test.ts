@@ -447,8 +447,8 @@ describe('company Phase 3', () => {
       'waves_attach_company_entry_image(uuid,text,uuid,text)',
       'waves_remove_company_entry_image(uuid)',
       'waves_company_evidence_changed(uuid,uuid)',
-      'waves_company_storage_write(uuid,uuid,text,bigint,text,boolean)',
-      'waves_company_cancel_upload(uuid,text,uuid,boolean)',
+      'waves_company_storage_write_entry(uuid,uuid,text,bigint,text,boolean)',
+      'waves_company_cancel_upload_entry(uuid,text,uuid,boolean)',
       'waves_company_expire_unattached()',
     ]) {
       const sql = await definition(signature);
