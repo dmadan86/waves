@@ -146,12 +146,12 @@ describe('company attendance: who marks and who sees', () => {
   it('a new manager receives the history (re-stamp on reassignment)', () =>
     isolated(async () => {
       await mark(0, 2, 'present');
-      const before = await db.query('SELECT updated_seq FROM company_attendance');
+      const before = await db.query('SELECT updated_seq FROM company_attendance WHERE group_id=$1', [g.groupId]);
       await db.query('UPDATE group_members SET manager_id=$1 WHERE id=$2', [
         g.memberIds[4],
         g.memberIds[2],
       ]);
-      const after = await db.query('SELECT updated_seq FROM company_attendance');
+      const after = await db.query('SELECT updated_seq FROM company_attendance WHERE group_id=$1', [g.groupId]);
       expect(BigInt(after.rows[0].updated_seq)).toBeGreaterThan(BigInt(before.rows[0].updated_seq));
       expect(await seenAttendance(1)).toEqual([]);
       expect(await seenAttendance(4)).toEqual([g.memberIds[2]]);
