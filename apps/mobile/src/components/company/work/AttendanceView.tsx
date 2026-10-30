@@ -19,6 +19,7 @@ import {
   useCompanyProjects,
   useCompanyProjectMembers,
 } from '@/data/companyEntries';
+import { useCalendar } from '@/data/companyCalendar';
 import { useDepartments, departmentName } from '@/data/companyDepartments';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
@@ -98,9 +99,24 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
     [access.people, search, department, manager, site, siteMembers],
   );
   // The status filter only narrows the daily list; the counts above it stay for everyone.
+  const leave = useCalendar(id).leave;
   const shown =
     statusFilter && period === 'daily'
-      ? people.filter((p) => matchesStatus(marks.get(`${p.id}|${date}`)?.status, statusFilter))
+      ? people.filter(
+          (p) =>
+            matchesStatus(marks.get(`${p.id}|${date}`)?.status, statusFilter) &&
+            // Someone on approved leave is not "pending" (the Overview does not count them so).
+            !(
+              statusFilter === 'unmarked' &&
+              leave.some(
+                (l) =>
+                  l.status === 'approved' &&
+                  l.memberId === p.id &&
+                  l.startDay <= date &&
+                  date <= l.endDay,
+              )
+            ),
+        )
       : people;
   const dayRows = people
     .map((p) => marks.get(`${p.id}|${date}`))
