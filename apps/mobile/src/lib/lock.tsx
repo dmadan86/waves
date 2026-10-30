@@ -101,6 +101,7 @@ export function LockProvider({ children }: { children: ReactNode }) {
       // SecureStore has no web implementation; the lock is a native feature.
       const native = Platform.OS !== 'web';
       let canLock = false;
+      let queryFailed = false;
       if (native) {
         try {
           canLock = canDeviceLock(
@@ -110,7 +111,8 @@ export function LockProvider({ children }: { children: ReactNode }) {
               LocalAuthentication.SecurityLevel.NONE,
           );
         } catch {
-          canLock = false;
+          // Can't tell what the device can do: never drop a lock the user turned on.
+          queryFailed = true;
         }
       }
       await legacyKeysMigrated;
@@ -118,7 +120,7 @@ export function LockProvider({ children }: { children: ReactNode }) {
       const storedGrace = native ? await SecureStore.getItemAsync(GRACE_KEY) : null;
       if (!active) return;
       setSupported(canLock);
-      setEnabledState(resolveLockEnabled(stored, canLock));
+      setEnabledState(queryFailed ? stored === 'true' : resolveLockEnabled(stored, canLock));
       const parsed = Number(storedGrace);
       if (storedGrace !== null && Number.isFinite(parsed) && parsed >= 0) setGraceState(parsed);
       setReady(true);
