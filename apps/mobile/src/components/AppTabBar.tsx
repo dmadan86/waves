@@ -72,6 +72,7 @@ import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, switchTab } from '@/lib/navigation';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
+import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
 import {
   isPersonalMode,
@@ -160,6 +161,7 @@ export function AppTabBar() {
   // The bar carries the mic, so it is where the mic's slow answers are fetched
   // ahead of the tap: the voice screen then opens straight onto a live mic.
   useVoiceWarmup();
+  useFollowSpace();
   // `useSegments` is typed as a union of fixed-length route tuples, so indexing
   // past the first element trips the tuple bounds check under the CI tsconfig.
   // We only ever read positions generically, so widen to a plain string array.

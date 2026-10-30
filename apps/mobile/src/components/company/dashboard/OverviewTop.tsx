@@ -126,10 +126,10 @@ export function OverviewTop({
         accessibilityRole="button"
         accessibilityLabel={`${attTitle}: ${legend.map((l) => `${l.label} ${l.n}`).join(', ')}`}
         onPress={() => router.push(attendanceRoute)}
+        style={{ marginTop: -28 }}
       >
         <StandardCard
           style={{
-            marginTop: -28,
             paddingHorizontal: 12,
             paddingVertical: 12,
             borderRadius: 22,
