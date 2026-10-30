@@ -4,6 +4,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export type Space = 'personal' | (string & {});
 
 const key = (userId: string): string => `waves.lastSpace.${userId}`;
+// Personal overwrites lastSpace, so the Company tab keeps its own last-company memory.
+const companyKey = (userId: string): string => `waves.lastCompany.${userId}`;
 
 /** Groups of every type except company: companies live in their own space. */
 export function groupsOutsideCompanies<T extends { type: string }>(groups: readonly T[]): T[] {
@@ -25,10 +27,13 @@ export function companyTabTarget(
   return companyIds.length === 1 ? `/group/${companyIds[0]}` : '/companies';
 }
 
-export async function readLastSpace(userId: string | null): Promise<string | null> {
+export async function readLastSpace(
+  userId: string | null,
+  company = false,
+): Promise<string | null> {
   if (userId === null) return null;
   try {
-    return await AsyncStorage.getItem(key(userId));
+    return await AsyncStorage.getItem((company ? companyKey : key)(userId));
   } catch {
     return null;
   }
@@ -39,6 +44,7 @@ export async function rememberSpace(userId: string | null, space: Space): Promis
   if (userId === null) return;
   try {
     await AsyncStorage.setItem(key(userId), space);
+    if (space !== 'personal') await AsyncStorage.setItem(companyKey(userId), space);
   } catch {
     // Remembering is a convenience; a failed write just means Personal next launch.
   }

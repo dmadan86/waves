@@ -23,10 +23,15 @@ export function useRememberSpace(): (space: Space) => void {
 export function useColdStartSpace(ready: boolean, companyIds: readonly string[]): void {
   const viewerId = useViewerId();
   useEffect(() => {
-    if (!ready || viewerId === null || !takeColdStart(viewerId)) return;
+    if (!ready || viewerId === null) return;
+    let stale = false;
     void readLastSpace(viewerId).then((stored) => {
+      if (stale || !takeColdStart(viewerId)) return;
       const space = resolveSpace(stored, companyIds);
       if (space !== 'personal') router.replace(`/group/${space}`);
     });
+    return () => {
+      stale = true;
+    };
   }, [ready, viewerId, companyIds]);
 }

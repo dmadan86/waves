@@ -413,7 +413,7 @@ export function AppTabBar() {
         return;
       }
       if (key === 'company') {
-        void readLastSpace(viewerId).then((last) => {
+        void readLastSpace(viewerId, true).then((last) => {
           const target = companyTabTarget(companyIds, last);
           if (target && !(activeKey === key && isCompanyTabRoot(segments, groupId, companyIds)))
             switchTab(target as never);
