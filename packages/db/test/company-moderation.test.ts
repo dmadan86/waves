@@ -192,6 +192,17 @@ describe('reports and the log', () => {
     }));
 });
 
+describe('member details stay frozen while blocked', () => {
+  it('a blocked owner cannot edit a placeholder member payment or contact details', () =>
+    isolated(async () => {
+      await block();
+      await db.query('UPDATE group_members SET profile_id=NULL,ghost_name=$2 WHERE id=$1', [g.memberIds[2], 'Former member']);
+      await db.query("SELECT set_config('request.jwt.claims',$1,true)", [JSON.stringify({ sub: g.profileIds[0], role: 'authenticated' })]);
+      await denied(() => db.query("UPDATE group_members SET payment_handle='x@upi' WHERE id=$1", [g.memberIds[3]]));
+      await db.query("SELECT set_config('request.jwt.claims','',true)");
+    }));
+});
+
 describe('admin monitoring vs content', () => {
   it('lists metadata and aggregates but no content; records need a logged reason; export includes entries only after', () =>
     isolated(async () => {
@@ -217,6 +228,6 @@ describe('admin monitoring vs content', () => {
       expect(after.records_included).toBe(true);
       expect(after.entries).toHaveLength(1);
       const actions = (await db.query('SELECT action FROM company_moderation_log WHERE group_id=$1 ORDER BY id', [g.groupId])).rows.map((r) => r.action);
-      expect(actions).toEqual(['export', 'records_opened', 'export']);
+      expect(actions).toEqual(['export', 'records_opened', 'records_viewed', 'export']);
     }));
 });
