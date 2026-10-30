@@ -64,6 +64,8 @@ export interface CompanyExportLabels {
   readonly colDate: string;
   readonly colType: string;
   readonly colMember: string;
+  readonly colPaidBy: string;
+  readonly companyPayer: string;
   readonly colStatus: string;
   readonly colAmount: string;
   readonly colBalance: string;
@@ -137,7 +139,9 @@ export function buildCompanyExport(
 
   if (input.scope === 'employee') {
     // Own rows only, whatever the caller passed.
-    const own = input.entries.filter((entry) => entry.memberId === input.memberId);
+    const own = input.entries.filter(
+      (entry) => !entry.paidByCompany && entry.memberId === input.memberId,
+    );
     const statement = companyStatement(own, {
       memberId: input.memberId,
       from: input.from,
@@ -220,6 +224,19 @@ export function buildCompanyExport(
       (entry) => !entry.deleted && entry.occurredOn >= input.from && entry.occurredOn <= input.to,
     )
     .sort((a, b) => a.occurredOn.localeCompare(b.occurredOn) || a.id.localeCompare(b.id));
+  const totals = { ...summary.totals, byCategory: { ...summary.totals.byCategory } };
+  for (const entry of live) {
+    if (
+      !entry.paidByCompany ||
+      entry.kind !== 'expense' ||
+      (entry.status !== 'approved' && entry.status !== 'reimbursed')
+    )
+      continue;
+    totals.expenses += entry.amount;
+    totals.gst += entry.gstAmount ?? 0n;
+    const key = entry.category ?? 'other';
+    totals.byCategory[key] = (totals.byCategory[key] ?? 0n) + entry.amount;
+  }
   return {
     title: `${labels.summary} · ${input.company}`,
     subtitle: input.periodLabel,
@@ -238,14 +255,14 @@ export function buildCompanyExport(
         heading: labels.totals,
         columns: ['', labels.colAmount],
         rows: labels
-          .totalRows(summary.totals)
+          .totalRows(totals)
           .filter(([, value]) => value !== 0n)
           .map(([label, value]) => [text(label), cell(value)]),
       },
       {
         heading: labels.byCategory,
         columns: ['', labels.colAmount],
-        rows: Object.entries(summary.totals.byCategory).map(([key, value]) => [
+        rows: Object.entries(totals.byCategory).map(([key, value]) => [
           text(labels.category(key)),
           cell(value),
         ]),
@@ -260,6 +277,7 @@ export function buildCompanyExport(
         columns: [
           labels.colDate,
           labels.colMember,
+          labels.colPaidBy,
           labels.colType,
           labels.colStatus,
           labels.colAmount,
@@ -268,7 +286,8 @@ export function buildCompanyExport(
         ],
         rows: live.map((entry) => [
           text(entry.occurredOn),
-          text(name(entry.memberId)),
+          text(entry.paidByCompany ? '' : name(entry.memberId)),
+          text(entry.paidByCompany ? labels.companyPayer : name(entry.memberId)),
           text(labels.kind(entry)),
           text(labels.status(entry)),
           cell(entry.amount),

@@ -140,7 +140,7 @@ export async function handleExportData(
           ? caller
               .from('company_entries')
               .select(
-                'id,group_id,member_id,entry_kind,category,amount,currency,calc_mode,days,rate_minor,occurred_on,direction,status,note,review_note,reviewed_by,reviewed_at,version,created_at,updated_at,deleted_at,void_reason,vendor,gstin,invoice_no,gst_rate_bps,gst_amount_minor,distance_km,from_text,to_text,reimbursement_id,reimbursement_details',
+                'id,group_id,member_id,paid_by_company,entry_kind,category,amount,currency,calc_mode,days,rate_minor,occurred_on,direction,status,note,review_note,reviewed_by,reviewed_at,version,created_at,updated_at,deleted_at,void_reason,vendor,gstin,invoice_no,gst_rate_bps,gst_amount_minor,distance_km,from_text,to_text,reimbursement_id,reimbursement_details',
               )
               .eq('group_id', groupId)
           : Promise.resolve({ data: [], error: null }),
@@ -318,7 +318,7 @@ export async function handleExportData(
             const key = row.category ?? '';
             const label = companyExportTagLabel(key, group?.company_tags);
             pdf.body(
-              `${row.occurred_on}  ${nameOf(row.member_id)}  ${row.entry_kind}  ` +
+              `${row.occurred_on}  ${row.paid_by_company ? 'Paid by: Company' : nameOf(row.member_id)}  ${row.entry_kind}  ` +
                 `${label}${label !== key ? ` (${key})` : ''}  ` +
                 `${formatMinor(row.amount, row.currency)} ${row.currency}  (${row.deleted_at ? 'voided' : row.status})`,
               9,
@@ -470,8 +470,8 @@ export async function handleExportData(
               row.note ?? '',
               row.currency,
               String(row.amount),
-              '',
-              nameOf(row.member_id),
+              row.paid_by_company ? 'Company' : '',
+              row.paid_by_company ? '' : nameOf(row.member_id),
               '',
               row.deleted_at ? 'voided' : row.status,
               `v${row.version}`,

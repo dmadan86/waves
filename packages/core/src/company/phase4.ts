@@ -80,8 +80,10 @@ export interface PoolBalance {
   readonly reimbursed: bigint;
   readonly wages: bigint;
   readonly ownSpend: bigint;
+  /** Company-paid expenses this manager recorded (paid from the pool). */
+  readonly companySpend: bigint;
   readonly cashReturned: bigint;
-  /** allocated + adjusted - returned - advances - reimbursed - wages - ownSpend + cashReturned. */
+  /** allocated + adjusted - returned - advances - reimbursed - wages - ownSpend - companySpend + cashReturned. */
   readonly balance: bigint;
 }
 
@@ -98,9 +100,15 @@ export function poolBalance(entries: readonly CompanyEntry[], managerId: string)
   let reimbursed = 0n;
   let wages = 0n;
   let ownSpend = 0n;
+  let companySpend = 0n;
   let cashReturned = 0n;
   for (const e of entries) {
     if (e.deleted) continue;
+    if (e.paidByCompany) {
+      if (e.fundingManagerId === managerId && e.kind === 'expense' && counted(e))
+        companySpend += e.amount;
+      continue;
+    }
     if (e.memberId === managerId) {
       // The manager's own pool movements and own approved spend.
       if (e.kind === 'allocation') allocated += e.amount;
@@ -124,9 +132,18 @@ export function poolBalance(entries: readonly CompanyEntry[], managerId: string)
     reimbursed,
     wages,
     ownSpend,
+    companySpend,
     cashReturned,
     balance:
-      allocated + adjusted - returned - advances - reimbursed - wages - ownSpend + cashReturned,
+      allocated +
+      adjusted -
+      returned -
+      advances -
+      reimbursed -
+      wages -
+      ownSpend -
+      companySpend +
+      cashReturned,
   };
 }
 
@@ -414,6 +431,8 @@ export interface DashboardStats {
   readonly paidChangePct: number | null;
   readonly advancesOutstanding: bigint;
   readonly advanceHolders: number;
+  /** Company-paid expenses dated this month (approved, GST included). */
+  readonly companySpentThisMonth: bigint;
 }
 
 const monthOf = (iso: string): string => iso.slice(0, 7);
@@ -474,6 +493,15 @@ export function dashboardStats(
     paidChangePct: paidLast === 0n ? null : Number(((paid - paidLast) * 100n) / paidLast),
     advancesOutstanding: advances,
     advanceHolders: holders,
+    companySpentThisMonth: entries
+      .filter(
+        (e) =>
+          e.paidByCompany &&
+          e.kind === 'expense' &&
+          counted(e) &&
+          monthOf(e.occurredOn) === thisMonth,
+      )
+      .reduce((sum, e) => sum + e.amount, 0n),
   };
 }
 

@@ -180,6 +180,11 @@ export function DashedRow({
 }
 
 export const TAG_ICON: Record<string, [Icon, string]> = {
+  materials: ['cube-outline', GREEN],
+  repair: ['build-outline', BLUE],
+  rent: ['home-outline', BLUE],
+  utilities: ['flash-outline', GREEN],
+  equipment: ['construct-outline', BLUE],
   food: ['restaurant', '#6D4AE8'],
   transport: ['car', BLUE],
   fuel: ['color-fill', GREEN],
@@ -201,16 +206,18 @@ export function TagGrid({
   onChange,
   onMore,
   moreLabel,
+  limit = 7,
 }: {
   tags: readonly TagTile[];
   value: string | null;
   onChange: (key: string) => void;
   onMore: () => void;
   moreLabel: string;
+  limit?: number;
 }) {
   const theme = useTheme();
   // The chosen tag always shows, even when it ranks below the seventh.
-  const shown = tags.slice(0, 7);
+  const shown = tags.slice(0, limit);
   const chosen = tags.find((tag) => tag.key === value);
   if (chosen && !shown.includes(chosen)) shown[shown.length - 1] = chosen;
   const cells = [
@@ -235,7 +242,7 @@ export function TagGrid({
           accessibilityState={{ selected: cell.selected }}
           onPress={() => (cell.key === '__all' ? onMore() : onChange(cell.key))}
           style={{
-            width: '23%',
+            width: limit === 8 ? '30%' : '23%',
             flexGrow: 1,
             height: 68,
             alignItems: 'center',

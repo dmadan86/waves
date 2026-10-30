@@ -27,7 +27,7 @@ import { ListRow, StandardCard } from '@/components/standard';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { useCompanyTags } from '@/data/companyTags';
-import type { CompanyView } from '@/data/companyEntries';
+import { useCompanyProjects, type CompanyView } from '@/data/companyEntries';
 import { useGroup, useGroups } from '@/data/hooks';
 import { displayName, type MemberRow, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
@@ -470,7 +470,9 @@ export function StatTriple({
   stats,
   currency,
   onOwes,
+  showCompanySpend = false,
 }: {
+  showCompanySpend?: boolean;
   stats: DashboardStats;
   currency: string;
   onOwes?: () => void;
@@ -483,49 +485,69 @@ export function StatTriple({
     <View style={{ width: 1, backgroundColor: theme.color.border, marginVertical: 4 }} />
   );
   return (
-    <StandardCard style={{ flexDirection: 'row', paddingHorizontal: 4, paddingVertical: 12 }}>
-      <Stat
-        icon="wallet-outline"
-        tint={theme.color.brandSoft}
-        ink={theme.color.brand}
-        label={t.company.statOwes}
-        value={fmt(stats.owes)}
-        caption={fill(t.company.statPending, { n: String(stats.pendingPayments) })}
-        trailing={
-          onOwes ? (
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.sm}
-              color={theme.color.textMuted}
-            />
-          ) : undefined
-        }
-        onPress={onOwes}
-      />
-      {line}
-      <Stat
-        icon="arrow-up"
-        tint={GREEN_SOFT}
-        ink={GREEN}
-        label={t.company.statPaidMonth}
-        value={fmt(stats.paidThisMonth)}
-        // Hidden when last month is zero or unknown: a percentage of nothing means nothing.
-        caption={
-          pct === null
-            ? undefined
-            : `${pct >= 0 ? '\u2197' : '\u2198'} ${fill(t.company.statVsLast, { pct: `${pct >= 0 ? '+' : ''}${pct}` })}`
-        }
-        captionColor={pct === null ? undefined : pct >= 0 ? GREEN : theme.color.negative}
-      />
-      {line}
-      <Stat
-        icon="time-outline"
-        tint={theme.color.brandSoft}
-        ink={theme.color.brand}
-        label={t.company.statAdvances}
-        value={fmt(stats.advancesOutstanding)}
-        caption={plural(locale, stats.advanceHolders, t.company.employeeCount)}
-      />
+    <StandardCard style={{ paddingHorizontal: 4, paddingVertical: 12 }}>
+      <View style={{ flexDirection: 'row' }}>
+        <Stat
+          icon="wallet-outline"
+          tint={theme.color.brandSoft}
+          ink={theme.color.brand}
+          label={t.company.statOwes}
+          value={fmt(stats.owes)}
+          caption={fill(t.company.statPending, { n: String(stats.pendingPayments) })}
+          trailing={
+            onOwes ? (
+              <Ionicons
+                name={directionalIcon('chevron-forward')}
+                size={iconSize.sm}
+                color={theme.color.textMuted}
+              />
+            ) : undefined
+          }
+          onPress={onOwes}
+        />
+        {line}
+        <Stat
+          icon="arrow-up"
+          tint={GREEN_SOFT}
+          ink={GREEN}
+          label={t.company.statPaidMonth}
+          value={fmt(stats.paidThisMonth)}
+          // Hidden when last month is zero or unknown: a percentage of nothing means nothing.
+          caption={
+            pct === null
+              ? undefined
+              : `${pct >= 0 ? '\u2197' : '\u2198'} ${fill(t.company.statVsLast, { pct: `${pct >= 0 ? '+' : ''}${pct}` })}`
+          }
+          captionColor={pct === null ? undefined : pct >= 0 ? GREEN : theme.color.negative}
+        />
+        {line}
+        <Stat
+          icon="time-outline"
+          tint={theme.color.brandSoft}
+          ink={theme.color.brand}
+          label={t.company.statAdvances}
+          value={fmt(stats.advancesOutstanding)}
+          caption={plural(locale, stats.advanceHolders, t.company.employeeCount)}
+        />
+      </View>
+      {showCompanySpend || stats.companySpentThisMonth !== 0n ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            gap: 8,
+            paddingHorizontal: 8,
+            paddingTop: 10,
+          }}
+        >
+          <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+            {t.company.companySpentMonth}
+          </Text>
+          <Text variant="caption" style={{ fontWeight: '700' }}>
+            {fmt(stats.companySpentThisMonth)}
+          </Text>
+        </View>
+      ) : null}
     </StandardCard>
   );
 }
@@ -785,6 +807,7 @@ export function RecentActivity({
   const { t, locale } = useStrings();
   const fmt = useMoney(view.currency);
   const tagLabel = useCompanyTags(groupId, view).label;
+  const projects = useCompanyProjects(groupId);
   const rows = entries
     .filter(
       (e) =>
@@ -828,8 +851,20 @@ export function RecentActivity({
             <View style={{ width: 36 }} />
           )
         }
-        title={owner ? displayName(owner, null, null, t.misc.someone) : t.misc.someone}
-        subtitle={`${label} \u00B7 ${showDate(e.occurredOn, locale)}`}
+        title={
+          e.paidByCompany
+            ? t.company.companyPayer
+            : owner
+              ? displayName(owner, null, null, t.misc.someone)
+              : t.misc.someone
+        }
+        subtitle={[
+          label,
+          projects.find((p) => p.id === e.projectId)?.name,
+          showDate(e.occurredOn, locale),
+        ]
+          .filter(Boolean)
+          .join(' · ')}
         right={fmt(e.amount)}
         rightColor={GIVEN.has(e.kind) ? theme.color.negative : paid ? GREEN : theme.color.text}
         onPress={() => router.push(`/group/${groupId}/company-entry-view?entry=${e.id}`)}

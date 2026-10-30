@@ -73,6 +73,8 @@ export function CompanyExport({ groupId }: { groupId: string }) {
     colDate: t.groupExport.colDate,
     colType: c.colType,
     colMember: t.groupExport.colMember,
+    colPaidBy: c.paidBy,
+    companyPayer: c.companyPayer,
     colStatus: t.groupExport.colStatus,
     colAmount: t.groupExport.colAmount,
     colBalance: t.groupExport.colBalance,
