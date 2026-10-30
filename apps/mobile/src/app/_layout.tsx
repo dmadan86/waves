@@ -14,7 +14,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import * as Linking from 'expo-linking';
 import { Stack, usePathname, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -67,7 +66,8 @@ import { LanguageProvider, useLanguage } from '@/i18n/language';
 import { LocaleSync } from '@/i18n/localeSync';
 import { LockProvider, useLock } from '@/lib/lock';
 import { useRouter } from '@/lib/navigation';
-import { onboardingSeen, rememberOnboardingSeen } from '@/lib/onboardingSeen';
+import { knownInitialUrl, readInitialUrl } from '@/lib/initialUrl';
+import { knownOnboardingSeen, onboardingSeen, rememberOnboardingSeen } from '@/lib/onboardingSeen';
 import { decideAuthRedirect } from '@/lib/authRedirect';
 import { ReducedMotionProvider, useReducedMotion } from '@/lib/reducedMotion';
 import { RecentCountProvider } from '@/lib/recentCount';
@@ -502,6 +502,15 @@ function LockGate({ children }: { children: React.ReactNode }) {
   const theme = useTheme();
   const { t } = useStrings();
   const { height: screenHeight } = useWindowDimensions();
+  const { session } = useAuth();
+  const lockedOwner = session?.user.id ?? null;
+
+  // Warm what the navigator reads on mount while the lock screen is up, so the
+  // first frame after unlock needs no spinner. Reads only; nothing is shown.
+  useEffect(() => {
+    void readInitialUrl();
+    if (locked && lockedOwner) void onboardingSeen(lockedOwner);
+  }, [locked, lockedOwner]);
 
   useEffect(() => {
     if (locked) void unlock();
@@ -649,23 +658,19 @@ function AuthGate() {
   // The link that launched the app, read once. On a cold start the router has
   // no route until the navigator mounts (`segments` is `[]`), and without this
   // the guard sent a signed-out invite link to /welcome before it was applied.
-  const [initialUrl, setInitialUrl] = useState<string | null | undefined>(
-    Platform.OS === 'web' ? null : undefined,
-  );
+  // Memoised at module scope (`lib/initialUrl`): this component remounts after
+  // every unlock, and re-reading would put the spinner back.
+  const [initialUrl, setInitialUrl] = useState(knownInitialUrl);
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (initialUrl !== undefined) return;
     let cancelled = false;
-    Linking.getInitialURL()
-      .then((url) => {
-        if (!cancelled) setInitialUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setInitialUrl(null);
-      });
+    void readInitialUrl().then(() => {
+      if (!cancelled) setInitialUrl(knownInitialUrl());
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialUrl]);
 
   const decision = decideAuthRedirect({
     segments: segments as string[],
@@ -705,7 +710,10 @@ function AuthGate() {
   // account, which neither flashes the tour at a returning one nor holds a
   // first-timer at a blank screen.
   const ownerId = session?.user.id ?? null;
-  const [tourAnswer, setTourAnswer] = useState<{ owner: string; seen: boolean } | null>(null);
+  const [tourAnswer, setTourAnswer] = useState<{ owner: string; seen: boolean } | null>(() => {
+    const seen = ownerId ? knownOnboardingSeen(ownerId) : undefined;
+    return ownerId && seen !== undefined ? { owner: ownerId, seen } : null;
+  });
   useEffect(() => {
     if (!ownerId) return;
     let cancelled = false;
