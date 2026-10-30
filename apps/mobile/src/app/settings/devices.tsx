@@ -113,7 +113,6 @@ export default function DevicesScreen() {
   const [adding, setAdding] = useState(false);
   const [sortMenu, setSortMenu] = useState(false);
   const [sortBy, setSortBy] = useState<SortBy>('last');
-  const [now] = useState(Date.now);
 
   useEffect(() => {
     void deviceId().then(setMyDeviceId);
@@ -122,6 +121,10 @@ export default function DevicesScreen() {
   // The server already returns the last three months, newest first.
   const devices = useQuery({ queryKey: ['devices'], queryFn: fetchDevices });
   const rows = useMemo(() => devices.data ?? [], [devices.data]);
+  // Re-read the clock whenever the list is (re)fetched, so relative times and
+  // the active count follow a pull-to-refresh.
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/purity -- the clock is deliberately keyed to the fetch
+  const now = useMemo(() => Date.now(), [devices.dataUpdatedAt]);
   // A failed fetch with nothing cached is not an empty list: offline, `rows`
   // would be [] and the screen would say "only this device" — a claim about
   // the other sessions made without having seen them.
@@ -381,8 +384,8 @@ export default function DevicesScreen() {
       >
         <Text variant="body" tone="muted">
           {fill(t.devices.learnBody, {
-            free: FREE_DEVICE_LIMIT,
-            pro: PRO_DEVICE_LIMIT,
+            free: paid ? FREE_DEVICE_LIMIT : limit,
+            pro: paid ? limit : PRO_DEVICE_LIMIT,
             days: DEVICE_ACTIVE_WINDOW_DAYS,
           })}
         </Text>
