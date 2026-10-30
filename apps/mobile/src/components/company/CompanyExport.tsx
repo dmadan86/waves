@@ -73,6 +73,7 @@ export function CompanyExport({ groupId }: { groupId: string }) {
     colDate: t.groupExport.colDate,
     colType: c.colType,
     colMember: t.groupExport.colMember,
+    colEmployeeId: c.employeeId,
     colPaidBy: c.paidBy,
     companyPayer: c.companyPayer,
     colStatus: t.groupExport.colStatus,
@@ -146,6 +147,7 @@ export function CompanyExport({ groupId }: { groupId: string }) {
         ? buildCompanyExport({
             ...base,
             scope: 'admin',
+            employeeIds: new Map(view.members.map((m) => [m.id, m.employee_id])),
             names: new Map(
               view.members.map((m) => [m.id, displayName(m, null, null, t.misc.someone)]),
             ),
