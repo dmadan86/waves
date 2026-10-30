@@ -116,9 +116,10 @@ describe('holidays', () => {
   it('a former member reads nothing', () =>
     isolated(async () => {
       await holiday(0);
-      await db.query('UPDATE group_members SET left_at=now(),manager_id=NULL WHERE id=$1', [
-        g.memberIds[3],
-      ]);
+      await db.query(
+        'UPDATE group_members SET left_at=now(),removed_at=now(),employment_ended_on=current_date,manager_id=NULL WHERE id=$1',
+        [g.memberIds[3]],
+      ); // not employed: the employment RPC sets all three
       expect(await ids(3, 'company_holidays')).toEqual([]);
     }));
 });
