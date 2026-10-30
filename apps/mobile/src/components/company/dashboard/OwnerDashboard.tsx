@@ -7,7 +7,7 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { dashboardStats } from '@waves/core';
 import { Screen, Sheet, Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
@@ -36,6 +36,7 @@ import {
   StatTriple,
   useMoney,
 } from '@/components/company/dashboard/parts';
+import { EmployeeRow } from '@/components/company/dashboard/EmployeeRow';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useCompanyEntries, useCompanyProjects, type CompanyView } from '@/data/companyEntries';
@@ -57,6 +58,11 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
   const fmt = useMoney(view.currency);
   const [tab, setTab] = useState<Tab>('overview');
   const [promoting, setPromoting] = useState(false);
+  const [query, setQuery] = useState('');
+  const [filtering, setFiltering] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<
+    'all' | 'owesCompany' | 'companyOwes' | 'settled'
+  >('all');
   const role = useSetMemberRole(groupId);
   const addSite = useAddSiteSheet(groupId);
   const sites = useCompanyProjects(groupId).filter((p) => !p.archived_at);
@@ -122,15 +128,15 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
       .reduce((sum, e) => sum + e.amount, 0n);
   };
 
-  const personRow = (m: (typeof live)[number], index: number, count: number, sub?: string) => (
-    <ListRow
-      key={m.id}
-      leading={<PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={40} />}
-      title={displayName(m, null, null, t.misc.someone)}
-      subtitle={sub}
-      onPress={() => thread(m.id)}
-      divider={index < count - 1}
-    />
+  const empKind = (id: string): 'settled' | 'companyOwes' | 'owesCompany' => {
+    const net = dashboardStats(view.entries, [id], todayIso());
+    return net.owes > 0n ? 'companyOwes' : net.advancesOutstanding > 0n ? 'owesCompany' : 'settled';
+  };
+  const q = query.trim().toLowerCase();
+  const shownEmployees = employees.filter(
+    (m) =>
+      (statusFilter === 'all' || empKind(m.id) === statusFilter) &&
+      (!q || displayName(m, null, null, t.misc.someone).toLowerCase().includes(q)),
   );
   const balanceWords = (id: string): string | undefined => {
     const net = dashboardStats(view.entries, [id], todayIso());
@@ -284,19 +290,123 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
 
           {tab === 'employees' ? (
             <>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View
+                  style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    height: 44,
+                    paddingHorizontal: 14,
+                    gap: 8,
+                    borderRadius: theme.radius.pill,
+                    borderWidth: 1,
+                    borderColor: theme.color.border,
+                    backgroundColor: theme.color.surface,
+                  }}
+                >
+                  <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
+                  <TextInput
+                    value={query}
+                    onChangeText={setQuery}
+                    placeholder={t.company.searchEmployees}
+                    placeholderTextColor={theme.color.textFaint}
+                    accessibilityLabel={t.company.searchEmployees}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 0,
+                      fontSize: theme.typography.body.fontSize,
+                      color: theme.color.text,
+                    }}
+                  />
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.company.filterEmployees}
+                  onPress={() => setFiltering(true)}
+                  style={{
+                    width: 44,
+                    height: 44,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: theme.radius.pill,
+                    backgroundColor:
+                      statusFilter === 'all' ? theme.color.brandSoft : theme.color.brand,
+                  }}
+                >
+                  <Ionicons
+                    name="options-outline"
+                    size={iconSize.md}
+                    color={statusFilter === 'all' ? theme.color.brand : theme.color.onBrand}
+                  />
+                </Pressable>
+              </View>
               <StandardCard>
-                {employees.map((m, i) => personRow(m, i, employees.length, balanceWords(m.id)))}
-                <ListRow
-                  title={t.company.qaAddEmployee}
-                  leading={
-                    <Ionicons
-                      name="person-add-outline"
-                      size={iconSize.md}
-                      color={theme.color.brand}
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, gap: 8 }}
+                >
+                  <Text variant="body" style={{ flex: 1, fontWeight: '700' }}>
+                    {plural(locale, employees.length, t.company.employeeCount)}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => router.push(people)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      height: 38,
+                      paddingHorizontal: 14,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: theme.color.brand,
+                    }}
+                  >
+                    <Ionicons name="add" size={iconSize.md} color={theme.color.onBrand} />
+                    <Text
+                      variant="caption"
+                      style={{ color: theme.color.onBrand, fontWeight: '700' }}
+                    >
+                      {t.company.qaAddEmployee}
+                    </Text>
+                  </Pressable>
+                </View>
+                {shownEmployees.map((m, i) => {
+                  const kind = empKind(m.id);
+                  return (
+                    <EmployeeRow
+                      key={m.id}
+                      member={m}
+                      name={displayName(m, null, null, t.misc.someone)}
+                      ghost={isGhost(m)}
+                      status={{ kind, label: balanceWords(m.id) ?? t.company.settled }}
+                      menuLabel={t.company.employeeOptions}
+                      menuItems={[
+                        {
+                          icon: 'document-text-outline',
+                          label: t.company.viewStatement,
+                          onPress: () => thread(m.id),
+                        },
+                        {
+                          icon: 'cash-outline',
+                          label: t.company.recordPayment,
+                          onPress: () => router.push(`/group/${groupId}/company-wages`),
+                        },
+                      ]}
+                      onPress={() => thread(m.id)}
+                      divider={i < shownEmployees.length - 1}
                     />
-                  }
-                  onPress={() => router.push(people)}
-                />
+                  );
+                })}
+                {employees.length > 0 && shownEmployees.length === 0 ? (
+                  <Text
+                    variant="caption"
+                    tone="muted"
+                    align="center"
+                    style={{ paddingVertical: 16 }}
+                  >
+                    {t.company.noEmployeesMatch}
+                  </Text>
+                ) : null}
               </StandardCard>
               <Text variant="caption" tone="muted">
                 {t.company.historyMoves}
@@ -603,6 +713,33 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
         </DashBody>
       </ScrollView>
       {addSite.sheet}
+      <Sheet visible={filtering} onClose={() => setFiltering(false)} closeLabel={t.common.close}>
+        <View>
+          {(
+            [
+              ['all', t.company.empFilterAll],
+              ['owesCompany', t.company.empFilterOwes],
+              ['companyOwes', t.company.empFilterCompanyOwes],
+              ['settled', t.company.empFilterSettled],
+            ] as const
+          ).map(([value, label], i) => (
+            <ListRow
+              key={value}
+              title={label}
+              trailing={
+                statusFilter === value ? (
+                  <Ionicons name="checkmark" size={iconSize.md} color={theme.color.brand} />
+                ) : undefined
+              }
+              onPress={() => {
+                setStatusFilter(value);
+                setFiltering(false);
+              }}
+              divider={i < 3}
+            />
+          ))}
+        </View>
+      </Sheet>
       <Sheet visible={promoting} onClose={() => setPromoting(false)} closeLabel={t.common.close}>
         <View>
           {employees.map((m, i) => (
