@@ -1,6 +1,6 @@
 /**
  * The owner's company Overview (first tab of the company bar), as drawn in the owner's mockup:
- * today, headcount, money, tasks and urgent, attendance, what is due and recent activity.
+ * attendance, money, tasks and urgent, what is due and recent activity.
  * People, Pending, Payments and More are their own screens. Waves records money; it never moves it.
  */
 
@@ -17,7 +17,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
       <>
         <OverviewTop
           groupId={groupId}
-          afterTiles={<MoneyCards groupId={groupId} />}
+          afterAttendanceCard={<MoneyCards groupId={groupId} />}
           afterAttendance={<DuePaymentsCard groupId={groupId} />}
         />
         {view.ready ? <RecentCompanyActivity groupId={groupId} /> : null}
