@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { CsrfField } from '@/components/CsrfField';
 import { Icon } from '@/components/icons';
 import { Badge, Card, Empty, Field, Lede, PageHeader, TableScroll } from '@/components/ui';
@@ -65,9 +66,9 @@ export default async function Companies({
             <span>Filter</span>
           </button>
           {search || filter ? (
-            <a className="btn btn-quiet" href="/companies">
+            <Link className="btn btn-quiet" href="/companies">
               Clear
-            </a>
+            </Link>
           ) : null}
         </form>
       </Card>
