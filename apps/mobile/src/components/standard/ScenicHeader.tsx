@@ -45,6 +45,8 @@ export function ScenicHeader({
   circleBack = false,
   wash = false,
   wide = false,
+  onTitlePress,
+  titleHint,
 }: {
   title: string;
   /** Defaults to going back one screen. */
@@ -65,6 +67,9 @@ export function ScenicHeader({
   wash?: boolean;
   /** The children fill the row, so a control inside them can sit at the far end. */
   wide?: boolean;
+  /** Makes the title a tap target with a chevron after it (a switcher); `titleHint` is its spoken label. */
+  onTitlePress?: () => void;
+  titleHint?: string;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -148,26 +153,44 @@ export function ScenicHeader({
           >
             <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
           </Pressable>
-          <Text
-            variant="heading"
-            align={titleAlign === 'start' ? 'left' : 'center'}
-            accessibilityRole="header"
-            numberOfLines={1}
+          <Pressable
+            disabled={!onTitlePress}
+            accessibilityRole={onTitlePress ? 'button' : undefined}
+            accessibilityLabel={onTitlePress ? titleHint : undefined}
+            onPress={onTitlePress}
             style={{
               flex: 1,
-              fontSize: 22,
-              fontWeight: '800',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: titleAlign === 'start' ? 'flex-start' : 'center',
+              gap: 4,
               marginStart: titleAlign === 'start' ? theme.spacing.md : 0,
             }}
           >
-            {title}
-          </Text>
+            <Text
+              variant="heading"
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={{ flexShrink: 1, fontSize: 22, fontWeight: '800' }}
+            >
+              {title}
+            </Text>
+            {onTitlePress ? <Ionicons name="chevron-down" size={iconSize.md} color={ink} /> : null}
+          </Pressable>
           {titleAlign === 'start' && !action ? null : (
-            <View style={{ width: 40, alignItems: 'flex-end' }}>{action}</View>
+            <View style={{ minWidth: 40, alignItems: 'flex-end' }}>{action}</View>
           )}
         </Row>
         {subtitle ? (
-          <Text variant="caption" tone="muted" align="center" style={{ marginTop: 2 }}>
+          <Text
+            variant="caption"
+            tone="muted"
+            align={titleAlign === 'start' ? 'left' : 'center'}
+            style={{
+              marginTop: 2,
+              marginStart: titleAlign === 'start' ? 40 + theme.spacing.md : 0,
+            }}
+          >
             {subtitle}
           </Text>
         ) : null}

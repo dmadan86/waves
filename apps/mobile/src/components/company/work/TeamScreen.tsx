@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { ScrollView } from 'react-native';
 import { Screen } from '@waves/ui';
-import { ScenicHeader, SegmentedPills } from '@/components/standard';
+import { ScenicHeader } from '@/components/standard';
 import { useWorkdayAccess } from '@/data/companyWorkday';
 import { useStrings } from '@/i18n';
 import AttendanceView from './AttendanceView';
 import DailyWorkView from './DailyWorkView';
+import { TeamSegment } from './TeamSegment';
 
 const key = (id: string) => `waves.company.team-tab:${id}`;
 export default function TeamScreen({
@@ -49,24 +49,25 @@ export default function TeamScreen({
         )}
       </Screen>
     );
+  const segment = <TeamSegment groupId={groupId} value={tab} onChange={choose} />;
   return (
     <Screen edges={[]}>
-      <ScenicHeader title={t.company.workTeam}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          <SegmentedPills
-            options={[
-              { value: 'attendance', label: t.company.attendanceTitle },
-              { value: 'work', label: t.company.workTitle },
-            ]}
-            value={tab}
-            onChange={choose}
-          />
-        </ScrollView>
-      </ScenicHeader>
       {tab === 'attendance' ? (
-        <AttendanceView groupId={groupId} />
+        <AttendanceView groupId={groupId} segment={segment} onSwitch={() => choose('work')} />
       ) : (
-        <DailyWorkView groupId={groupId} />
+        <DailyWorkView
+          groupId={groupId}
+          segment={segment}
+          header={
+            <ScenicHeader
+              wash
+              titleAlign="start"
+              title={t.company.workTitle}
+              onTitlePress={() => choose('attendance')}
+              titleHint={t.company.attendanceTitle}
+            />
+          }
+        />
       )}
     </Screen>
   );
