@@ -8,7 +8,11 @@
 export const DEFAULT_GRACE_SECONDS = 30;
 
 /** Can this device lock at all: biometric hardware AND biometrics or a passcode set up. */
-export function canDeviceLock(hasHardware: boolean, enrolled: boolean, levelNone: boolean): boolean {
+export function canDeviceLock(
+  hasHardware: boolean,
+  enrolled: boolean,
+  levelNone: boolean,
+): boolean {
   return hasHardware && (enrolled || !levelNone);
 }
 

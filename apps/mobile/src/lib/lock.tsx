@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { AppState, Platform } from 'react-native';
@@ -154,7 +162,8 @@ export function LockProvider({ children }: { children: ReactNode }) {
   const authenticate = useCallback(async (promptMessage: string, fallbackLabel?: string) => {
     beginCheck();
     try {
-      return (await LocalAuthentication.authenticateAsync({ promptMessage, fallbackLabel })).success;
+      return (await LocalAuthentication.authenticateAsync({ promptMessage, fallbackLabel }))
+        .success;
     } catch {
       // A cancelled or failed check is not an event to announce: stay locked.
       return false;
@@ -195,7 +204,16 @@ export function LockProvider({ children }: { children: ReactNode }) {
 
   return (
     <LockContext.Provider
-      value={{ enabled, locked, supported, ready, graceSeconds, setEnabled, setGraceSeconds, unlock }}
+      value={{
+        enabled,
+        locked,
+        supported,
+        ready,
+        graceSeconds,
+        setEnabled,
+        setGraceSeconds,
+        unlock,
+      }}
     >
       {children}
     </LockContext.Provider>
