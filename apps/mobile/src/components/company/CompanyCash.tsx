@@ -9,7 +9,14 @@ import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 
 import { AmountField, Button, ChipRow, Row, Sheet, Text, useTheme } from '@waves/ui';
-import { format, formatParts, money, validPoolReason, type CurrencyCode } from '@waves/core';
+import {
+  format,
+  formatParts,
+  money,
+  poolBalance,
+  validPoolReason,
+  type CurrencyCode,
+} from '@waves/core';
 
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, SectionHeader, StandardCard, StatCard } from '@/components/standard';
@@ -50,6 +57,7 @@ function ManagerRow({
 }) {
   const { t, locale } = useStrings();
   const balance = usePoolBalance(groupId, manager.id);
+  const spent = poolBalance(view.entries, manager.id).companySpend;
   return (
     <ListRow
       leading={
@@ -61,7 +69,14 @@ function ManagerRow({
         />
       }
       title={displayName(manager, null, null, t.misc.someone)}
-      subtitle={t.company.cashLeft}
+      subtitle={[
+        manager.employee_id,
+        spent === 0n
+          ? t.company.cashLeft
+          : `${t.company.cashLeft} · ${t.company.companyPayer}: ${format(money(spent, view.currency as CurrencyCode), { locale })}`,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
       amount={
         balance === null ? '' : format(money(balance, view.currency as CurrencyCode), { locale })
       }
@@ -255,9 +270,14 @@ export function ManagerCashRowPublic({
       }
       title={displayName(manager, null, null, t.misc.someone)}
       titleAccessory={<RolePill label={t.company.manager} />}
-      subtitle={fill(t.company.budgetPerMonth, {
-        amount: format(money(budget, view.currency as CurrencyCode), { locale }),
-      })}
+      subtitle={[
+        manager.employee_id,
+        fill(t.company.budgetPerMonth, {
+          amount: format(money(budget, view.currency as CurrencyCode), { locale }),
+        }),
+      ]
+        .filter(Boolean)
+        .join(' · ')}
       amount={String(team)}
       onPress={onPress}
       divider={divider}

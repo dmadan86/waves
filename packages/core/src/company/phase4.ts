@@ -1,3 +1,4 @@
+import { vendorPaidFromPool, type VendorLine } from './vendors';
 import {
   allowanceAmount,
   entryDelta as entryDeltaOf,
@@ -80,8 +81,12 @@ export interface PoolBalance {
   readonly reimbursed: bigint;
   readonly wages: bigint;
   readonly ownSpend: bigint;
+  /** Company-paid expenses this manager recorded (paid from the pool). */
+  readonly companySpend: bigint;
   readonly cashReturned: bigint;
-  /** allocated + adjusted - returned - advances - reimbursed - wages - ownSpend + cashReturned. */
+  /** Confirmed vendor advances/payments this manager recorded. */
+  readonly vendorPaid: bigint;
+  /** allocated + adjusted - returned - advances - reimbursed - wages - ownSpend - companySpend - vendorPaid + cashReturned. */
   readonly balance: bigint;
 }
 
@@ -90,7 +95,12 @@ export interface PoolBalance {
  * `waves_company_pool_balance` is authoritative (it also sees employees who have
  * since moved to another team); this is the offline overlay and the test oracle.
  */
-export function poolBalance(entries: readonly CompanyEntry[], managerId: string): PoolBalance {
+export function poolBalance(
+  entries: readonly CompanyEntry[],
+  managerId: string,
+  vendorLines: readonly VendorLine[] = [],
+): PoolBalance {
+  const vendorPaid = vendorPaidFromPool(vendorLines, managerId);
   let allocated = 0n;
   let returned = 0n;
   let adjusted = 0n;
@@ -98,9 +108,15 @@ export function poolBalance(entries: readonly CompanyEntry[], managerId: string)
   let reimbursed = 0n;
   let wages = 0n;
   let ownSpend = 0n;
+  let companySpend = 0n;
   let cashReturned = 0n;
   for (const e of entries) {
     if (e.deleted) continue;
+    if (e.paidByCompany) {
+      if (e.fundingManagerId === managerId && e.kind === 'expense' && counted(e))
+        companySpend += e.amount;
+      continue;
+    }
     if (e.memberId === managerId) {
       // The manager's own pool movements and own approved spend.
       if (e.kind === 'allocation') allocated += e.amount;
@@ -124,9 +140,20 @@ export function poolBalance(entries: readonly CompanyEntry[], managerId: string)
     reimbursed,
     wages,
     ownSpend,
+    companySpend,
     cashReturned,
+    vendorPaid,
     balance:
-      allocated + adjusted - returned - advances - reimbursed - wages - ownSpend + cashReturned,
+      allocated +
+      adjusted -
+      returned -
+      advances -
+      reimbursed -
+      wages -
+      ownSpend -
+      companySpend -
+      vendorPaid +
+      cashReturned,
   };
 }
 
@@ -301,18 +328,85 @@ export function wageRunTotals(lines: readonly WageRunDraftLine[]): {
 
 // ─────────────────────────────────────────────────────────── projects ──
 
-/** Approved spend per project: expense + bata + wage base + legacy wages (advances are cash, not spend). */
-export function projectSpend(entries: readonly CompanyEntry[]): Map<string, bigint> {
+/**
+ * Approved spend per project: expense + bata + wage base + legacy wages (advances are cash, not spend).
+ * A wage payment divided across sites (`splits`, by payment id) counts each site's part, not its own site.
+ */
+export function projectSpend(
+  entries: readonly CompanyEntry[],
+  splits?: ReadonlyMap<string, readonly { projectId: string; amountMinor: bigint }[]>,
+): Map<string, bigint> {
   const out = new Map<string, bigint>();
+  const bump = (projectId: string, amount: bigint): void => {
+    if (amount !== 0n) out.set(projectId, (out.get(projectId) ?? 0n) + amount);
+  };
   for (const e of entries) {
-    if (!e.projectId || e.deleted) continue;
+    if (e.deleted) continue;
+    const parts = e.kind === 'wage_payment' ? splits?.get(e.id) : undefined;
+    if (parts?.length) {
+      for (const part of parts) bump(part.projectId, part.amountMinor);
+      continue;
+    }
+    if (!e.projectId) continue;
     let add = 0n;
     if ((e.kind === 'expense' || e.kind === 'allowance') && counted(e)) add = e.amount;
     else if (e.kind === 'wages') add = e.amount;
     else if (e.kind === 'wage_payment') add = (e.grossMinor ?? e.amount) - (e.claimsMinor ?? 0n);
-    if (add !== 0n) out.set(e.projectId, (out.get(e.projectId) ?? 0n) + add);
+    bump(e.projectId, add);
   }
   return out;
+}
+
+/** Spread `base` over `count` sites in whole minor units; the first sites take the remainder. */
+export function evenSplit(base: bigint, count: number): bigint[] {
+  if (count <= 0 || base < 0n) return [];
+  const n = BigInt(count);
+  return Array.from({ length: count }, (_, i) => base / n + (BigInt(i) < base % n ? 1n : 0n));
+}
+
+/**
+ * Where a wage base goes: one site -> that site; several -> an even split with zero parts dropped
+ * (the server needs every part positive); a base too small for the sites collapses to fewer sites.
+ */
+export function wageSiteSplit(
+  base: bigint,
+  siteIds: readonly string[],
+): { projectId: string | null; splits?: { projectId: string; amountMinor: string }[] } {
+  const parts = evenSplit(base, siteIds.length)
+    .map((amount, i) => ({ projectId: siteIds[i]!, amountMinor: amount }))
+    .filter((part) => part.amountMinor > 0n);
+  if (siteIds.length === 1) return { projectId: siteIds[0]! };
+  if (parts.length === 0) return { projectId: null };
+  if (parts.length === 1) return { projectId: parts[0]!.projectId };
+  return {
+    projectId: null,
+    splits: parts.map((part) => ({
+      projectId: part.projectId,
+      amountMinor: part.amountMinor.toString(),
+    })),
+  };
+}
+
+/**
+ * Does approving this claim need an owner other than its creator? Mirrors the server rule
+ * (`waves_company_second_owner_required`): the setting is on with approvals, there are at
+ * least two owners, and the claim is owner-raised or at/over the threshold.
+ */
+export function needsSecondOwner(input: {
+  readonly enabled: boolean;
+  readonly approvalsEnabled: boolean;
+  readonly thresholdMinor: bigint | null;
+  readonly ownerCount: number;
+  readonly creatorIsOwner: boolean;
+  readonly amount: bigint;
+}): boolean {
+  return (
+    input.enabled &&
+    input.approvalsEnabled &&
+    input.ownerCount > 1 &&
+    (input.creatorIsOwner ||
+      (input.thresholdMinor !== null && input.amount >= input.thresholdMinor))
+  );
 }
 
 /** True when the employee already has a wage payment overlapping [start, end] (the server refuses a second). */
@@ -347,6 +441,8 @@ export interface DashboardStats {
   readonly paidChangePct: number | null;
   readonly advancesOutstanding: bigint;
   readonly advanceHolders: number;
+  /** Company-paid expenses dated this month (approved, GST included). */
+  readonly companySpentThisMonth: bigint;
 }
 
 const monthOf = (iso: string): string => iso.slice(0, 7);
@@ -407,6 +503,15 @@ export function dashboardStats(
     paidChangePct: paidLast === 0n ? null : Number(((paid - paidLast) * 100n) / paidLast),
     advancesOutstanding: advances,
     advanceHolders: holders,
+    companySpentThisMonth: entries
+      .filter(
+        (e) =>
+          e.paidByCompany &&
+          e.kind === 'expense' &&
+          counted(e) &&
+          monthOf(e.occurredOn) === thisMonth,
+      )
+      .reduce((sum, e) => sum + e.amount, 0n),
   };
 }
 

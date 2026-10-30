@@ -12,11 +12,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 
 import {
+  employeeIdTaken,
+  normaliseEmployeeId,
   companyEntryFromRow,
   MutationKind,
   materialiseCompanyEntries,
   materialiseCompanyEntryAttachments,
   materialiseCompanyProjects,
+  materialiseProjectMembers,
+  materialiseVendors,
+  materialiseWageSplits,
+  needsSecondOwner,
   poolBalance,
   parseCompanyPolicies,
   rowsFor,
@@ -26,6 +32,7 @@ import {
   type CompanyReimbursePayload,
   type CompanyPoolPostPayload,
   type CompanyProjectSetPayload,
+  type MirrorWageSplit,
   type CompanyWagePayPayload,
   type CompanyEntry,
   type CompanyEntryData,
@@ -52,6 +59,10 @@ export interface CompanyView {
   /** An owner: company settings, pools, sites, promotions. */
   readonly isOwner: boolean;
   readonly isManager: boolean;
+  /** A vendor's own login: sees only their ledger with this company. */
+  readonly isVendor: boolean;
+  /** Waves has suspended this company: read-only, no add or edit action is offered. */
+  readonly suspended: boolean;
   /** Managers with at least one team member or pool entry exist (progressive disclosure). */
   readonly hasManagers: boolean;
   /** Whom the viewer may record money entries for (owner: everyone, manager: own team). */
@@ -68,6 +79,13 @@ export interface CompanyView {
   readonly policyRevision: number;
   /** GST and vendor fields apply (India, rupees). */
   readonly gstEnabled: boolean;
+  /** A second owner's approval is on (and approvals, and two owners): the toggle's own state. */
+  readonly secondApproval: boolean;
+  readonly secondApprovalThresholdMinor: bigint | null;
+  /** The claim needs an owner other than its creator to approve it. */
+  readonly needsOtherOwner: (entry: CompanyEntry) => boolean;
+  /** This viewer may approve the claim now: a reviewer, and an owner other than the creator when a second owner is needed. */
+  readonly canApprove: (entry: CompanyEntry) => boolean;
   /** Entries that have at least one live photo (for the receipt rule). */
   readonly receiptEntryIds: ReadonlySet<string>;
   readonly ready: boolean;
@@ -134,6 +152,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
   const me = people.find((member) => isViewer(member, viewerId) && !member.left_at) ?? null;
   const isOwner = me?.role === 'admin';
   const isManager = me?.role === 'manager';
+  const isVendor = me?.role === 'vendor';
   const isAdmin = isOwner || isManager;
   const hasManagers = people.some((member) => member.role === 'manager' && !member.left_at);
   // The server only sends each person what they may read, but a phone that was once an
@@ -147,6 +166,8 @@ export function useCompanyEntries(groupId: string): CompanyView {
       // Fail closed: until the server's directory answers, a manager sees only themself.
       if (me.id) ids.add(me.id);
       for (const person of directory ?? []) if (person.detail) ids.add(person.member_id);
+      // A person this phone added offline is on this manager's team; the server forces it.
+      for (const member of people) if (member.pending && !member.profile_id) ids.add(member.id);
       return ids;
     }
     for (const member of people) {
@@ -158,33 +179,79 @@ export function useCompanyEntries(groupId: string): CompanyView {
   const manageableIds = useMemo(() => {
     const ids = new Set<string>();
     for (const member of people) {
-      if (member.id === me?.id || member.left_at) continue;
+      if (member.id === me?.id || member.left_at || member.role === 'vendor') continue;
       if (isManager && !visibleIds.has(member.id)) continue;
-      if (isOwner ? member.role !== 'admin' : isManager && member.manager_id === me?.id)
+      if (
+        isOwner
+          ? member.role !== 'admin'
+          : isManager && (member.manager_id === me?.id || (member.pending && !member.profile_id))
+      )
         ids.add(member.id);
     }
     return ids;
   }, [people, isOwner, isManager, me?.id, visibleIds]);
+  const myId = me?.id ?? null;
   const entries = useMemo(
     () =>
       materialiseCompanyEntries(mirror, queue, {
         groupId,
         currency,
-        myMemberId: me?.id ?? null,
+        myMemberId: myId,
+        myIsManager: isManager,
         approvalsEnabled,
       })
         .map((row) => companyEntryFromRow(row as unknown as CompanyEntryRow))
-        .filter((entry) => visibleIds.has(entry.memberId)),
-    [mirror, queue, groupId, currency, me?.id, visibleIds, approvalsEnabled],
+        .filter((entry) =>
+          entry.paidByCompany
+            ? isOwner || (isManager && myId !== null && entry.createdBy === myId)
+            : visibleIds.has(entry.memberId),
+        ),
+    [mirror, queue, groupId, currency, myId, visibleIds, approvalsEnabled, isOwner, isManager],
   );
   // The same rows without this phone's queued changes: the base a queued edit is measured from.
   const settledEntries = useMemo(
     () =>
-      materialiseCompanyEntries(mirror, [], { groupId, currency, myMemberId: me?.id ?? null })
+      materialiseCompanyEntries(mirror, [], {
+        groupId,
+        currency,
+        myMemberId: myId,
+        myIsManager: isManager,
+      })
         .map((row) => companyEntryFromRow(row as unknown as CompanyEntryRow))
-        .filter((entry) => visibleIds.has(entry.memberId)),
-    [mirror, groupId, currency, me?.id, visibleIds],
+        .filter((entry) =>
+          entry.paidByCompany
+            ? isOwner || (isManager && myId !== null && entry.createdBy === myId)
+            : visibleIds.has(entry.memberId),
+        ),
+    [mirror, groupId, currency, myId, visibleIds, isOwner, isManager],
   );
+  // Owners are known to owners (member rows) and to managers (the directory).
+  const ownerIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const member of people) if (member.role === 'admin' && !member.left_at) ids.add(member.id);
+    for (const person of directory ?? []) if (person.role === 'admin') ids.add(person.member_id);
+    return ids;
+  }, [people, directory]);
+  const second = {
+    enabled: group.data?.company_second_approval === true && approvalsEnabled && ownerIds.size > 1,
+    thresholdMinor: group.data?.company_second_approval_threshold_minor
+      ? BigInt(group.data.company_second_approval_threshold_minor)
+      : null,
+  };
+  const needsOtherOwner = (entry: CompanyEntry): boolean =>
+    needsSecondOwner({
+      enabled: second.enabled,
+      approvalsEnabled,
+      thresholdMinor: second.thresholdMinor,
+      ownerCount: ownerIds.size,
+      // Live owners only, like the server: a claim raised by an owner who has left is ordinary.
+      creatorIsOwner: entry.createdBy !== null && ownerIds.has(entry.createdBy),
+      amount: entry.amount,
+    });
+  const canApprove = (entry: CompanyEntry): boolean =>
+    isOwner
+      ? !needsOtherOwner(entry) || entry.createdBy !== me?.id
+      : isManager && !needsOtherOwner(entry);
   const receiptEntryIds = useMemo(
     () =>
       new Set(
@@ -207,6 +274,8 @@ export function useCompanyEntries(groupId: string): CompanyView {
     isAdmin,
     isOwner,
     isManager,
+    isVendor,
+    suspended: group.data?.suspended_at != null,
     hasManagers,
     manageableIds,
     currency,
@@ -214,6 +283,10 @@ export function useCompanyEntries(groupId: string): CompanyView {
     approvalsEnabled,
     defaultRateMinor: defaultRate ? BigInt(defaultRate) : null,
     defaultMileageRateMinor: defaultMileage ? BigInt(defaultMileage) : null,
+    secondApproval: second.enabled,
+    secondApprovalThresholdMinor: second.thresholdMinor,
+    needsOtherOwner,
+    canApprove,
     policies,
     policyRevision,
     gstEnabled: gstFieldsApply(group.data?.country_code, currency),
@@ -222,13 +295,34 @@ export function useCompanyEntries(groupId: string): CompanyView {
   };
 }
 
+/** True while Waves has suspended this company. */
+export function useCompanySuspended(groupId: string): boolean {
+  const { group } = useGroup(groupId);
+  return group.data?.suspended_at != null;
+}
+
+/** Report a company to Waves. Needs a connection; never queued. */
+export async function reportCompany(
+  groupId: string,
+  category: 'fraud' | 'illegal' | 'harassment' | 'wages' | 'other',
+  text: string,
+): Promise<'sent' | 'limited'> {
+  const { data, error } = await backend.rpc('waves_company_report', {
+    p_group_id: groupId,
+    p_category: category,
+    p_text: text,
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ok?: boolean } | null)?.ok ? 'sent' : 'limited';
+}
+
 /** Add an entry. `entryId` is the client-chosen idempotency key. */
 export function useAddCompanyEntry(groupId: string) {
   const { mutate } = useSync();
   return useMutation({
     mutationFn: async (input: {
       entryId: string;
-      memberId: string;
+      memberId: string | null;
       entryKind: 'expense' | 'advance' | 'allowance' | 'wages' | 'reimbursement';
       data: CompanyEntryData;
     }): Promise<string> => {
@@ -332,6 +426,7 @@ export async function attachCompanyPhoto(
   groupId: string,
   entryId: string,
   picked: PickedImage,
+  kind: 'entry' | 'vendor' = 'entry',
 ): Promise<void> {
   const attachmentId = randomUUID();
   const path = `${entryId}/${attachmentId}/${randomUUID()}.jpg`;
@@ -346,12 +441,17 @@ export async function attachCompanyPhoto(
       subjectId: entryId,
     });
     uploaded = true;
-    const { error } = await backend.rpc('waves_attach_company_entry_image', {
-      p_entry_id: entryId,
-      p_storage_path: path,
-      p_attachment_id: attachmentId,
-      p_preview: picked.preview ?? null,
-    });
+    const { error } = await backend.rpc(
+      kind === 'vendor'
+        ? 'waves_attach_company_vendor_entry_image'
+        : 'waves_attach_company_entry_image',
+      {
+        p_entry_id: entryId,
+        p_storage_path: path,
+        p_attachment_id: attachmentId,
+        p_preview: picked.preview ?? null,
+      },
+    );
     if (error) throw new Error(error.message);
   } catch (caught) {
     if (uploaded)
@@ -360,7 +460,11 @@ export async function attachCompanyPhoto(
   }
 }
 
-export function useAddCompanyPhoto(groupId: string, entryId: string) {
+export function useAddCompanyPhoto(
+  groupId: string,
+  entryId: string,
+  kind: 'entry' | 'vendor' = 'entry',
+) {
   const { flush } = useSync();
   return useMutation({
     mutationFn: async (source: 'camera' | 'library'): Promise<boolean> => {
@@ -368,20 +472,23 @@ export function useAddCompanyPhoto(groupId: string, entryId: string) {
       if (!picked) return false;
       // The entry may still be queued: the attach checks a real server row.
       await flush([groupId]);
-      await attachCompanyPhoto(groupId, entryId, picked);
+      await attachCompanyPhoto(groupId, entryId, picked, kind);
       return true;
     },
     onSuccess: () => void flush([groupId]),
   });
 }
 
-export function useRemoveCompanyPhoto(groupId: string) {
+export function useRemoveCompanyPhoto(groupId: string, kind: 'entry' | 'vendor' = 'entry') {
   const { flush } = useSync();
   return useMutation({
     mutationFn: async (input: { photoId: string }) => {
-      const { error } = await backend.rpc('waves_remove_company_entry_image', {
-        p_attachment_id: input.photoId,
-      });
+      const { error } = await backend.rpc(
+        kind === 'vendor'
+          ? 'waves_remove_company_vendor_entry_image'
+          : 'waves_remove_company_entry_image',
+        { p_attachment_id: input.photoId },
+      );
       if (error) throw new Error(error.message);
     },
     onSuccess: () => void flush([groupId]),
@@ -426,21 +533,28 @@ export function useCompanyProjects(groupId: string) {
   );
 }
 
-/** Which sites each employee is on (project ids), from the pulled assignments. */
+/** Which sites each employee is on (project ids): pulled assignments with this phone's queued changes on top. */
 export function useCompanyProjectMembers(groupId: string): ReadonlyMap<string, readonly string[]> {
-  const { mirror } = useSync();
-  return useMemo(() => {
-    const out = new Map<string, string[]>();
-    for (const row of rowsFor(mirror, SyncTable.CompanyProjectMembers, groupId) as unknown as {
-      member_id: string;
-      project_id: string;
-      deleted_at: string | null;
-    }[]) {
-      if (row.deleted_at) continue;
-      out.set(row.member_id, [...(out.get(row.member_id) ?? []), row.project_id]);
-    }
-    return out;
-  }, [mirror, groupId]);
+  const { mirror, queue } = useSync();
+  return useMemo(
+    () => materialiseProjectMembers(mirror, queue, { groupId }),
+    [mirror, queue, groupId],
+  );
+}
+
+/** Wage payment id -> how it was divided across sites (pulled rows plus a queued wage run). */
+export function useWageSplits(groupId: string): ReadonlyMap<string, readonly MirrorWageSplit[]> {
+  const { mirror, queue } = useSync();
+  return useMemo(() => materialiseWageSplits(mirror, queue, { groupId }), [mirror, queue, groupId]);
+}
+
+/** Owner: a second owner must approve large or owner-raised claims. Needs two owners and approvals on. */
+export function useSetSecondApproval(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: { enabled: boolean; thresholdMinor: string | null }) =>
+      mutate(MutationKind.CompanySecondApprovalSet, groupId, { ...input }),
+  });
 }
 
 export function useSetCompanyProject(groupId: string) {
@@ -457,6 +571,38 @@ export function useAssignCompanyMember(groupId: string) {
     mutationFn: (input: { memberId: string; managerId: string | null; reason: string }) =>
       mutate(MutationKind.CompanyMemberAssign, groupId, { ...input }),
   });
+}
+
+/** Owner or the employee's manager: set (blank clears) the free-text employee ID. */
+export function useSetEmployeeId(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: { memberId: string; employeeId: string | null }) =>
+      mutate(MutationKind.CompanyMemberEmployeeIdSet, groupId, { ...input }),
+  });
+}
+
+/**
+ * Is this ID already someone else's? Checks this phone's people, then asks the server (it also
+ * sees people a manager cannot read) — so the screen can say so before saving, never after.
+ * An offline phone has only its own view; the save then goes ahead.
+ */
+export function useEmployeeIdTaken(groupId: string, people: readonly MemberRow[]) {
+  return async (raw: string, exceptMemberId?: string | null): Promise<boolean> => {
+    const id = normaliseEmployeeId(raw);
+    if (!id) return false;
+    if (employeeIdTaken(people, id, exceptMemberId)) return true;
+    try {
+      const { data, error } = await backend.rpc('waves_company_employee_id_taken', {
+        p_group_id: groupId,
+        p_employee_id: id,
+        p_except_member: exceptMemberId ?? null,
+      });
+      return !error && data === true;
+    } catch {
+      return false;
+    }
+  };
 }
 
 export function useSetMemberProjects(groupId: string) {
@@ -495,7 +641,7 @@ export function usePayWages(groupId: string) {
  */
 export function usePoolBalance(groupId: string, managerId: string | null): bigint | null {
   const { entries, settledEntries } = useCompanyEntries(groupId);
-  const { queue } = useSync();
+  const { queue, mirror } = useSync();
   const queryClient = useQueryClient();
   // When a queued change is acknowledged its overlay disappears: refresh the server figure at once.
   const queued = queue.filter((m) => m.groupId === groupId && m.kind.startsWith('company')).length;
@@ -522,11 +668,18 @@ export function usePoolBalance(groupId: string, managerId: string | null): bigin
   // add only their own effect on top of it.
   return useMemo(() => {
     if (!managerId) return null;
-    const mine = poolBalance(entries, managerId).balance;
+    // A manager's vendor payments come out of their pool too (queued ones count at once).
+    const vendorOpts = { groupId, myMemberId: managerId, isVendor: false, isManager: true };
+    const vendorLines = materialiseVendors(mirror, queue, vendorOpts).lines;
+    const mine = poolBalance(entries, managerId, vendorLines).balance;
     if (server.data === undefined) return mine;
-    const settled = poolBalance(settledEntries, managerId).balance;
+    const settled = poolBalance(
+      settledEntries,
+      managerId,
+      materialiseVendors(mirror, [], vendorOpts).lines,
+    ).balance;
     return server.data + (mine - settled);
-  }, [entries, settledEntries, managerId, server.data]);
+  }, [entries, settledEntries, managerId, server.data, mirror, queue, groupId]);
 }
 
 /** Names-only directory (owners, my manager, my team, me) from the server; empty until it answers. */
@@ -542,7 +695,7 @@ export function useCompanyPeople(groupId: string) {
       return (data ?? []) as {
         member_id: string;
         display_name: string;
-        role: 'admin' | 'manager' | 'member';
+        role: 'admin' | 'manager' | 'member' | 'vendor';
         manager_id: string | null;
         detail: boolean;
       }[];
