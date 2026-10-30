@@ -68,6 +68,15 @@ import type {
   CompanyAttendanceSetPayload,
   CompanyWorkSetPayload,
   CompanyWorkRemovePayload,
+  CompanyHolidaySetPayload,
+  CompanyHolidayRemovePayload,
+  CompanyLeaveSetPayload,
+  CompanyLeaveDecidePayload,
+  CompanyLeaveRemovePayload,
+  CompanyEventSetPayload,
+  CompanyEventRemovePayload,
+  CompanyDatesSetPayload,
+  LeaveKind,
   CompanyMemberProjectsSetPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
@@ -126,6 +135,10 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyDocuments,
   SyncTable.CompanyAttendance,
   SyncTable.CompanyWorkTasks,
+  SyncTable.CompanyHolidays,
+  SyncTable.CompanyLeave,
+  SyncTable.CompanyEvents,
+  SyncTable.CompanyMemberDates,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -2377,6 +2390,147 @@ export function materialiseWorkTasks(
   return [...byId.values()].sort((a, b) => a.day.localeCompare(b.day) || a.id.localeCompare(b.id));
 }
 
+export interface MirrorHoliday {
+  readonly id: string;
+  readonly startDay: string;
+  readonly endDay: string;
+  readonly name: string;
+}
+export interface MirrorLeave {
+  readonly id: string;
+  readonly memberId: string;
+  readonly startDay: string;
+  readonly endDay: string;
+  readonly halfDay: boolean;
+  readonly kind: LeaveKind;
+  readonly reason: string | null;
+  readonly status: 'pending' | 'approved' | 'rejected';
+  readonly decisionNote: string | null;
+  readonly pending?: boolean;
+}
+export interface MirrorEvent {
+  readonly id: string;
+  readonly title: string;
+  readonly day: string;
+  readonly time: string | null;
+  readonly projectId: string | null;
+  readonly people: readonly string[];
+}
+export interface MirrorMemberDates {
+  readonly memberId: string;
+  readonly birthDay: number | null;
+  readonly birthMonth: number | null;
+  readonly joinedOn: string | null;
+  readonly showBirthday: boolean;
+}
+export interface MirrorCalendar {
+  readonly holidays: readonly MirrorHoliday[];
+  readonly leave: readonly MirrorLeave[];
+  readonly events: readonly MirrorEvent[];
+  readonly dates: ReadonlyMap<string, MirrorMemberDates>;
+}
+
+/**
+ * Holidays, leave, events and birthday/joining dates of one company: pulled rows (already filtered by RLS)
+ * with this phone's queued changes on top. A queued request shows as pending until the server answers.
+ */
+export function materialiseCalendar(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): MirrorCalendar {
+  type Row = Record<string, unknown> & { deleted_at: string | null };
+  const live = (table: SyncTable): Row[] =>
+    (rowsFor(state, table, options.groupId) as unknown as Row[]).filter((r) => !r.deleted_at);
+  const holidays = new Map<string, MirrorHoliday>();
+  for (const r of live(SyncTable.CompanyHolidays))
+    holidays.set(r.id as string, {
+      id: r.id as string,
+      startDay: r.start_day as string,
+      endDay: r.end_day as string,
+      name: r.name as string,
+    });
+  const leave = new Map<string, MirrorLeave>();
+  for (const r of live(SyncTable.CompanyLeave))
+    leave.set(r.id as string, {
+      id: r.id as string,
+      memberId: r.member_id as string,
+      startDay: r.start_day as string,
+      endDay: r.end_day as string,
+      halfDay: r.half_day === true,
+      kind: r.kind as LeaveKind,
+      reason: (r.reason as string | null) ?? null,
+      status: r.status as MirrorLeave['status'],
+      decisionNote: (r.decision_note as string | null) ?? null,
+    });
+  const events = new Map<string, MirrorEvent>();
+  for (const r of live(SyncTable.CompanyEvents))
+    events.set(r.id as string, {
+      id: r.id as string,
+      title: r.title as string,
+      day: r.day as string,
+      time: (r.at_time as string | null) ?? null,
+      projectId: (r.project_id as string | null) ?? null,
+      people: (r.people as string[] | null) ?? [],
+    });
+  const dates = new Map<string, MirrorMemberDates>();
+  for (const r of live(SyncTable.CompanyMemberDates))
+    dates.set(r.member_id as string, {
+      memberId: r.member_id as string,
+      birthDay: (r.birth_day as number | null) ?? null,
+      birthMonth: (r.birth_month as number | null) ?? null,
+      joinedOn: (r.joined_on as string | null) ?? null,
+      showBirthday: r.show_birthday === true,
+    });
+  for (const m of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (m.groupId !== options.groupId || m.rejection) continue;
+    const p = m.payload as unknown;
+    if (m.kind === 'company_holiday.set') {
+      const h = p as CompanyHolidaySetPayload;
+      holidays.set(h.id, { id: h.id, startDay: h.startDay, endDay: h.endDay, name: h.name });
+    } else if (m.kind === 'company_holiday.remove')
+      holidays.delete((p as CompanyHolidayRemovePayload).id);
+    else if (m.kind === 'company_leave.set') {
+      const l = p as CompanyLeaveSetPayload;
+      leave.set(l.id, { ...l, status: 'pending', decisionNote: null, pending: true });
+    } else if (m.kind === 'company_leave.decide') {
+      const d = p as CompanyLeaveDecidePayload;
+      const l = leave.get(d.id);
+      if (l)
+        leave.set(d.id, {
+          ...l,
+          status: d.approve ? 'approved' : 'rejected',
+          decisionNote: d.note,
+        });
+    } else if (m.kind === 'company_leave.remove') leave.delete((p as CompanyLeaveRemovePayload).id);
+    else if (m.kind === 'company_event.set') {
+      const e = p as CompanyEventSetPayload;
+      events.set(e.id, {
+        id: e.id,
+        title: e.title,
+        day: e.day,
+        time: e.time,
+        projectId: e.projectId,
+        people: e.people,
+      });
+    } else if (m.kind === 'company_event.remove')
+      events.delete((p as CompanyEventRemovePayload).id);
+    else if (m.kind === 'company_dates.set') {
+      const d = p as CompanyDatesSetPayload;
+      if (d.birthDay === null && d.joinedOn === null) dates.delete(d.memberId);
+      else dates.set(d.memberId, { ...d, showBirthday: d.showBirthday });
+    }
+  }
+  const byDay = <T extends { id: string }>(a: T, b: T, ka: string, kb: string): number =>
+    ka.localeCompare(kb) || a.id.localeCompare(b.id);
+  return {
+    holidays: [...holidays.values()].sort((a, b) => byDay(a, b, a.startDay, b.startDay)),
+    leave: [...leave.values()].sort((a, b) => byDay(a, b, a.startDay, b.startDay)),
+    events: [...events.values()].sort((a, b) => byDay(a, b, a.day, b.day)),
+    dates,
+  };
+}
+
 export interface MirrorWageSplit {
   readonly projectId: string;
   readonly amountMinor: bigint;
@@ -2650,6 +2804,12 @@ export function purgeCompanyInvisible(
     drop(SyncTable.CompanyDocuments, (row) => mine(row) && !ok.has(row.created_by as string));
     drop(SyncTable.CompanyAttendance, (row) => mine(row) && !ok.has(row.member_id as string));
     drop(SyncTable.CompanyWorkTasks, (row) => mine(row) && !ok.has(row.member_id as string));
+    drop(SyncTable.CompanyLeave, (row) => mine(row) && !ok.has(row.member_id as string));
+    // A colleague's birthday stays only while they allow it to be shown.
+    drop(
+      SyncTable.CompanyMemberDates,
+      (row) => mine(row) && !ok.has(row.member_id as string) && row.show_birthday !== true,
+    );
   }
   return removed.length === 0 ? { state, removed } : { state: { ...state, tables }, removed };
 }

@@ -26,7 +26,7 @@ import {
 import { Button, Text, iconSize, useTheme } from '@waves/ui';
 
 import { TAG_ICON } from './EntryForm';
-import { ActionTile, AmountCard, DueRow, ReadyNote } from './EmployeeDetail';
+import { ActionTile, AmountCard, DueRow, EmployeeDatesRow, ReadyNote } from './EmployeeDetail';
 import { CompanyTeamCard } from './CompanyTeamCard';
 import { CompanyEmploymentControl } from './CompanyEmploymentControl';
 import { canSetEmployment } from '@/data/companyEmployment';
@@ -457,6 +457,11 @@ export function CompanyStatementView({
             onPress={() => setPanel((p) => (p === 'summary' ? null : 'summary'))}
           />
         </View>
+        {detail && view.manageableIds.has(member.id) && member.profile_id ? (
+          <StandardCard>
+            <EmployeeDatesRow groupId={groupId} memberId={member.id} />
+          </StandardCard>
+        ) : null}
         {panel === 'history' ? history : null}
         {panel === 'summary' ? (
           <>

@@ -104,6 +104,15 @@ type MutationKind =
   | 'company_attendance.set'
   | 'company_work.set'
   | 'company_work.remove'
+  | 'company_calendar.settings_set'
+  | 'company_holiday.set'
+  | 'company_holiday.remove'
+  | 'company_leave.set'
+  | 'company_leave.decide'
+  | 'company_leave.remove'
+  | 'company_event.set'
+  | 'company_event.remove'
+  | 'company_dates.set'
   | 'company_project.set'
   | 'company_pool.post'
   | 'company_wage.pay'
@@ -359,6 +368,11 @@ const GROUP_TABLES = [
   // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
   ['company_attendance', '*'],
   ['company_work_tasks', '*'],
+  // Calendar: holidays (every member), leave, events and birthdays; RLS filters each to what the caller may see.
+  ['company_holidays', '*'],
+  ['company_leave', '*'],
+  ['company_events', '*'],
+  ['company_member_dates', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -1068,6 +1082,85 @@ export class SyncSession {
           p_group_id: mutation.groupId,
           p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
         });
+      case 'company_calendar.settings_set': {
+        const { paidHolidays, paidLeave } = mutation.payload;
+        if (typeof paidHolidays !== 'boolean' || typeof paidLeave !== 'boolean')
+          companyInvalid('settings');
+        return await this.rpcAsCaller('waves_company_calendar_settings_set', {
+          p_group_id: mutation.groupId,
+          p_paid_holidays: paidHolidays,
+          p_paid_leave: paidLeave,
+        });
+      }
+      case 'company_holiday.set':
+        return await this.rpcAsCaller('waves_company_holiday_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_start: companyDate(mutation.payload.startDay, 'startDay'),
+          p_end: companyDate(mutation.payload.endDay, 'endDay'),
+          p_name: companyReason(mutation.payload.name, 'name', true),
+        });
+      case 'company_holiday.remove':
+        return await this.rpcAsCaller('waves_company_holiday_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_leave.set': {
+        const kind = mutation.payload.kind;
+        if (kind !== 'casual' && kind !== 'sick' && kind !== 'other') companyInvalid('kind');
+        return await this.rpcAsCaller('waves_company_leave_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_start: companyDate(mutation.payload.startDay, 'startDay'),
+          p_end: companyDate(mutation.payload.endDay, 'endDay'),
+          p_half: mutation.payload.halfDay === true,
+          p_kind: kind,
+          p_reason: companyReason(mutation.payload.reason, 'reason', false),
+        });
+      }
+      case 'company_leave.decide':
+        if (typeof mutation.payload.approve !== 'boolean') companyInvalid('approve');
+        return await this.rpcAsCaller('waves_company_leave_decide', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_approve: mutation.payload.approve,
+          p_note: companyReason(mutation.payload.note, 'note', false),
+        });
+      case 'company_leave.remove':
+        return await this.rpcAsCaller('waves_company_leave_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_event.set':
+        return await this.rpcAsCaller('waves_company_event_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_title: companyReason(mutation.payload.title, 'title', true),
+          p_day: companyDate(mutation.payload.day, 'day'),
+          p_time: companyReason(mutation.payload.time, 'time', false),
+          p_project_id: companyUuid(mutation.payload.projectId ?? null, 'projectId', true),
+          p_people: companyUuidList(mutation.payload.people, 'people'),
+        });
+      case 'company_event.remove':
+        return await this.rpcAsCaller('waves_company_event_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_dates.set': {
+        const { birthDay, birthMonth } = mutation.payload;
+        const joined = mutation.payload.joinedOn;
+        if (birthDay !== null) companyNonnegativeInteger(birthDay, 'birthDay');
+        if (birthMonth !== null) companyNonnegativeInteger(birthMonth, 'birthMonth');
+        return await this.rpcAsCaller('waves_company_dates_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_birth_day: birthDay,
+          p_birth_month: birthMonth,
+          p_joined_on: joined === null ? null : companyDate(joined, 'joinedOn'),
+          p_show: mutation.payload.showBirthday === true,
+        });
+      }
       case 'company_member.projects_set':
         return await this.rpcAsCaller('waves_company_member_projects_set', {
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),

@@ -18,6 +18,7 @@ import {
   RecentActivity,
   StatTriple,
 } from '@/components/company/dashboard/parts';
+import { CompanyUpcomingCard } from '@/components/company/CompanyUpcomingCard';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { useStrings } from '@/i18n';
@@ -83,6 +84,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
           />
         ) : null}
         <ComingUpCard groupId={groupId} currency={view.currency} />
+        <CompanyUpcomingCard groupId={groupId} />
         <RecentActivity
           groupId={groupId}
           view={view}

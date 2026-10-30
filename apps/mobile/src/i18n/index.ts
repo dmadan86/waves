@@ -184,6 +184,96 @@ export function plural(locale: string, count: number, forms: PluralForms): strin
 }
 
 export interface UiStrings {
+  calendar: {
+    title: string;
+    today: string;
+    upcoming: string;
+    comingUp: string;
+    seeAll: string;
+    agendaFor: string;
+    nothingPlanned: string;
+    filterAll: string;
+    filterLeave: string;
+    filterMoney: string;
+    filterWork: string;
+    filterBirthdays: string;
+    add: string;
+    addHoliday: string;
+    addEvent: string;
+    recordLeave: string;
+    requestLeave: string;
+    myDates: string;
+    kindHoliday: string;
+    kindLeave: string;
+    kindWage: string;
+    kindVendorBill: string;
+    kindCustomerBill: string;
+    kindAdvance: string;
+    kindTask: string;
+    kindEvent: string;
+    kindBirthday: string;
+    kindAnniversary: string;
+    birthdayOf: string;
+    anniversaryOf: string;
+    overdue: string;
+    moreCount: string;
+    leaveCasual: string;
+    leaveSick: string;
+    leaveOther: string;
+    halfDay: string;
+    statusPending: string;
+    statusApproved: string;
+    statusRejected: string;
+    leaveLine: string;
+    dayCount: string;
+    oneDay: string;
+    holidayName: string;
+    eventTitle: string;
+    eventTime: string;
+    eventPeople: string;
+    eventEveryone: string;
+    eventSite: string;
+    person: string;
+    startDate: string;
+    endDate: string;
+    reason: string;
+    note: string;
+    leaveType: string;
+    save: string;
+    cancel: string;
+    approve: string;
+    reject: string;
+    withdraw: string;
+    remove: string;
+    decisionNote: string;
+    decisionTitle: string;
+    errName: string;
+    errTitle: string;
+    errRange: string;
+    errHalfDay: string;
+    errOverlap: string;
+    errWindow: string;
+    errPeople: string;
+    errTime: string;
+    errDate: string;
+    errBirthday: string;
+    birthday: string;
+    birthDay: string;
+    birthMonth: string;
+    joinedOn: string;
+    showBirthday: string;
+    showBirthdayHint: string;
+    clear: string;
+    paidHolidays: string;
+    paidHolidaysHint: string;
+    paidLeave: string;
+    paidLeaveHint: string;
+    wageRuleNote: string;
+    holidayOnDay: string;
+    leaveOnDay: string;
+    pendingLeaveTitle: string;
+    suspendedNote: string;
+  };
   greeting: string;
   yourWaves: string;
   /** "across N groups" on the dashboard total. Plural so it never reads
@@ -6916,6 +7006,97 @@ export interface UiStrings {
 }
 
 const en: UiStrings = {
+  calendar: {
+    title: 'Calendar',
+    today: 'Today',
+    upcoming: 'Upcoming',
+    comingUp: 'Coming up',
+    seeAll: 'See all',
+    agendaFor: 'Agenda · {date}',
+    nothingPlanned: 'Nothing planned',
+    filterAll: 'All',
+    filterLeave: 'Leave & holidays',
+    filterMoney: 'Money',
+    filterWork: 'Work & events',
+    filterBirthdays: 'Birthdays',
+    add: 'Add',
+    addHoliday: 'Holiday',
+    addEvent: 'Event',
+    recordLeave: 'Record leave',
+    requestLeave: 'Request leave',
+    myDates: 'My birthday & joining date',
+    kindHoliday: 'Holiday',
+    kindLeave: 'Leave',
+    kindWage: 'Wages due',
+    kindVendorBill: 'Vendor bill',
+    kindCustomerBill: 'Customer bill unpaid',
+    kindAdvance: 'Advance outstanding',
+    kindTask: 'Work',
+    kindEvent: 'Event',
+    kindBirthday: 'Birthday',
+    kindAnniversary: 'Work anniversary',
+    birthdayOf: "{name}'s birthday",
+    anniversaryOf: '{name} · {n} years',
+    overdue: 'Overdue',
+    moreCount: '+{n} more',
+    leaveCasual: 'Casual',
+    leaveSick: 'Sick',
+    leaveOther: 'Other',
+    halfDay: 'Half day',
+    statusPending: 'Pending',
+    statusApproved: 'Approved',
+    statusRejected: 'Rejected',
+    leaveLine: '{name} · {from} – {to}',
+    dayCount: '{n} days',
+    oneDay: '1 day',
+    holidayName: 'Holiday name',
+    eventTitle: 'Event title',
+    eventTime: 'Time, optional',
+    eventPeople: 'People involved',
+    eventEveryone: 'Everyone',
+    eventSite: 'Site, optional',
+    person: 'Person',
+    startDate: 'From',
+    endDate: 'To',
+    reason: 'Reason, optional',
+    note: 'Note, optional',
+    leaveType: 'Type',
+    save: 'Save',
+    cancel: 'Cancel',
+    approve: 'Approve',
+    reject: 'Reject',
+    withdraw: 'Withdraw request',
+    remove: 'Remove',
+    decisionNote: 'Add a note, optional',
+    decisionTitle: 'Leave request',
+    errName: 'Enter a name',
+    errTitle: 'Enter a title',
+    errRange: 'End date must be on or after the start',
+    errHalfDay: 'Half day is for a single day',
+    errOverlap: 'This overlaps other leave for the person',
+    errWindow: 'Pick a date within the allowed range',
+    errPeople: 'Pick at least one person from your team',
+    errTime: 'Use a time like 14:30',
+    errDate: 'Enter a valid date',
+    errBirthday: 'Enter a real day and month',
+    birthday: 'Birthday',
+    birthDay: 'Day',
+    birthMonth: 'Month',
+    joinedOn: 'Joining date, optional',
+    showBirthday: 'Show my birthday to colleagues',
+    showBirthdayHint: 'Off by default. Only the day and month are saved, never the year.',
+    clear: 'Clear',
+    paidHolidays: 'Paid holidays',
+    paidHolidaysHint: 'Holidays count as paid days in wage runs.',
+    paidLeave: 'Paid sick/casual leave',
+    paidLeaveHint: 'Approved sick and casual leave counts as paid days. Other leave is unpaid.',
+    wageRuleNote:
+      'Wage days follow attendance. Holidays count as paid days when Paid holidays is on; approved leave counts as absent unless paid leave is on.',
+    holidayOnDay: 'Holiday: {name}',
+    leaveOnDay: 'On leave',
+    pendingLeaveTitle: '{n} leave request(s) to decide',
+    suspendedNote: 'This company is paused. The calendar is read-only.',
+  },
   greeting: 'Hello',
   yourWaves: 'Your balance',
   acrossGroups: { one: 'across {n} group', other: 'across {n} groups' },
@@ -12928,6 +13109,100 @@ const en: UiStrings = {
  * compile error in every language until somebody writes the words.
  */
 const ta: UiStrings = {
+  calendar: {
+    title: 'நாட்காட்டி',
+    today: 'இன்று',
+    upcoming: 'வரவிருப்பவை',
+    comingUp: 'அடுத்து வருவது',
+    seeAll: 'அனைத்தையும் பார்',
+    agendaFor: '{date} நிகழ்ச்சி நிரல்',
+    nothingPlanned: 'எதுவும் திட்டமிடப்படவில்லை',
+    filterAll: 'அனைத்தும்',
+    filterLeave: 'விடுப்பு மற்றும் விடுமுறைகள்',
+    filterMoney: 'பணம்',
+    filterWork: 'வேலை மற்றும் நிகழ்வுகள்',
+    filterBirthdays: 'பிறந்தநாள்கள்',
+    add: 'சேர்',
+    addHoliday: 'விடுமுறை',
+    addEvent: 'நிகழ்வு',
+    recordLeave: 'விடுப்பைப் பதிவு செய்',
+    requestLeave: 'விடுப்பு கோரு',
+    myDates: 'என் பிறந்தநாள் மற்றும் பணியில் சேர்ந்த நாள்',
+    kindHoliday: 'விடுமுறை',
+    kindLeave: 'விடுப்பு',
+    kindWage: 'சம்பளம் வழங்க வேண்டிய நாள்',
+    kindVendorBill: 'விற்பனையாளர் பில்',
+    kindCustomerBill: 'வாடிக்கையாளர் செலுத்தாத பில்',
+    kindAdvance: 'நிலுவை முன்பணம்',
+    kindTask: 'வேலை',
+    kindEvent: 'நிகழ்வு',
+    kindBirthday: 'பிறந்தநாள்',
+    kindAnniversary: 'பணிவருட நிறைவு',
+    birthdayOf: '{name} பிறந்தநாள்',
+    anniversaryOf: '{name} · {n} ஆண்டுகள்',
+    overdue: 'காலம் கடந்தது',
+    moreCount: 'மேலும் {n}',
+    leaveCasual: 'சாதாரண விடுப்பு',
+    leaveSick: 'நோய்விடுப்பு',
+    leaveOther: 'மற்றவை',
+    halfDay: 'அரை நாள்',
+    statusPending: 'நிலுவையில்',
+    statusApproved: 'ஒப்புதல் அளிக்கப்பட்டது',
+    statusRejected: 'நிராகரிக்கப்பட்டது',
+    leaveLine: '{name} · {from} – {to}',
+    dayCount: '{n} நாட்கள்',
+    oneDay: '1 நாள்',
+    holidayName: 'விடுமுறைப் பெயர்',
+    eventTitle: 'நிகழ்வின் தலைப்பு',
+    eventTime: 'நேரம், விருப்பமானது',
+    eventPeople: 'பங்கேற்பவர்கள்',
+    eventEveryone: 'அனைவரும்',
+    eventSite: 'இடம், விருப்பமானது',
+    person: 'நபர்',
+    startDate: 'தொடக்கம்',
+    endDate: 'முடிவு',
+    reason: 'காரணம், விருப்பமானது',
+    note: 'குறிப்பு, விருப்பமானது',
+    leaveType: 'வகை',
+    save: 'சேமி',
+    cancel: 'ரத்து செய்',
+    approve: 'ஒப்புதல்',
+    reject: 'நிராகரி',
+    withdraw: 'கோரிக்கையைத் திரும்பப் பெறு',
+    remove: 'நீக்கு',
+    decisionNote: 'குறிப்பு சேர்க்கவும், விருப்பமானது',
+    decisionTitle: 'விடுப்பு கோரிக்கை',
+    errName: 'பெயரை உள்ளிடவும்',
+    errTitle: 'தலைப்பை உள்ளிடவும்',
+    errRange: 'முடிவு நாள் தொடக்க நாளுக்கு முன் இருக்கக்கூடாது',
+    errHalfDay: 'அரை நாள் ஒரு நாளுக்கு மட்டுமே',
+    errOverlap: 'இந்த நபரின் மற்றொரு விடுப்புடன் இது ஒத்துப்போகிறது',
+    errWindow: 'அனுமதிக்கப்பட்ட காலத்திற்குள் தேதியைத் தேர்ந்தெடுக்கவும்',
+    errPeople: 'உங்கள் குழுவிலிருந்து ஒருவரையாவது தேர்ந்தெடுக்கவும்',
+    errTime: '14:30 போன்ற நேரத்தை உள்ளிடவும்',
+    errDate: 'சரியான தேதியை உள்ளிடவும்',
+    errBirthday: 'சரியான நாளையும் மாதத்தையும் உள்ளிடவும்',
+    birthday: 'பிறந்தநாள்',
+    birthDay: 'நாள்',
+    birthMonth: 'மாதம்',
+    joinedOn: 'பணியில் சேர்ந்த நாள், விருப்பமானது',
+    showBirthday: 'என் பிறந்தநாளை சக ஊழியர்களுக்குக் காட்டு',
+    showBirthdayHint:
+      'இயல்பாக முடக்கப்பட்டுள்ளது. நாள், மாதம் மட்டுமே சேமிக்கப்படும்; ஆண்டு சேமிக்கப்படாது.',
+    clear: 'அழி',
+    paidHolidays: 'ஊதியத்துடன் விடுமுறைகள்',
+    paidHolidaysHint: 'ஊதியக் கணக்கில் விடுமுறை நாட்களும் ஊதிய நாட்களாகக் கணக்கிடப்படும்.',
+    paidLeave: 'ஊதியத்துடன் நோய்/சாதாரண விடுப்பு',
+    paidLeaveHint:
+      'ஒப்புதல் பெற்ற நோய் மற்றும் சாதாரண விடுப்புக்கு ஊதியம் உண்டு. மற்ற விடுப்பு ஊதியமற்றது.',
+    wageRuleNote:
+      'ஊதிய நாட்கள் வருகையைப் பொறுத்தது. ஊதியத்துடன் விடுமுறை இயக்கப்பட்டால் விடுமுறை நாட்களுக்கு ஊதியம் உண்டு; ஊதிய விடுப்பு இயக்கப்படாவிட்டால் ஒப்புதல் பெற்ற விடுப்பு வராத நாளாகக் கணக்கிடப்படும்.',
+    holidayOnDay: 'விடுமுறை: {name}',
+    leaveOnDay: 'விடுப்பில்',
+    pendingLeaveTitle: 'முடிவெடுக்க {n} விடுப்புக் கோரிக்கைகள்',
+    suspendedNote:
+      'இந்த நிறுவனம் தற்காலிகமாக நிறுத்தப்பட்டுள்ளது. நாட்காட்டியை மட்டும் பார்க்கலாம்.',
+  },
   greeting: 'வணக்கம்',
   yourWaves: 'உங்கள் பாக்கி',
   acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
@@ -19143,6 +19418,97 @@ const ta: UiStrings = {
 };
 
 const hi: UiStrings = {
+  calendar: {
+    title: 'कैलेंडर',
+    today: 'आज',
+    upcoming: 'आने वाले',
+    comingUp: 'आगे',
+    seeAll: 'सभी देखें',
+    agendaFor: '{date} की कार्यसूची',
+    nothingPlanned: 'कुछ भी तय नहीं है',
+    filterAll: 'सभी',
+    filterLeave: 'छुट्टी और अवकाश',
+    filterMoney: 'पैसा',
+    filterWork: 'काम और कार्यक्रम',
+    filterBirthdays: 'जन्मदिन',
+    add: 'जोड़ें',
+    addHoliday: 'अवकाश',
+    addEvent: 'कार्यक्रम',
+    recordLeave: 'छुट्टी दर्ज करें',
+    requestLeave: 'छुट्टी माँगें',
+    myDates: 'मेरा जन्मदिन और काम शुरू करने की तारीख',
+    kindHoliday: 'अवकाश',
+    kindLeave: 'छुट्टी',
+    kindWage: 'वेतन देय',
+    kindVendorBill: 'विक्रेता का बिल',
+    kindCustomerBill: 'ग्राहक का बकाया बिल',
+    kindAdvance: 'बकाया अग्रिम',
+    kindTask: 'काम',
+    kindEvent: 'कार्यक्रम',
+    kindBirthday: 'जन्मदिन',
+    kindAnniversary: 'काम की सालगिरह',
+    birthdayOf: '{name} का जन्मदिन',
+    anniversaryOf: '{name} · {n} वर्ष',
+    overdue: 'समय सीमा बीत गई',
+    moreCount: 'और {n}',
+    leaveCasual: 'आकस्मिक',
+    leaveSick: 'बीमारी',
+    leaveOther: 'अन्य',
+    halfDay: 'आधा दिन',
+    statusPending: 'लंबित',
+    statusApproved: 'स्वीकृत',
+    statusRejected: 'अस्वीकृत',
+    leaveLine: '{name} · {from} – {to}',
+    dayCount: '{n} दिन',
+    oneDay: '1 दिन',
+    holidayName: 'अवकाश का नाम',
+    eventTitle: 'कार्यक्रम का शीर्षक',
+    eventTime: 'समय, वैकल्पिक',
+    eventPeople: 'शामिल लोग',
+    eventEveryone: 'सभी',
+    eventSite: 'स्थान, वैकल्पिक',
+    person: 'व्यक्ति',
+    startDate: 'से',
+    endDate: 'तक',
+    reason: 'कारण, वैकल्पिक',
+    note: 'नोट, वैकल्पिक',
+    leaveType: 'प्रकार',
+    save: 'सहेजें',
+    cancel: 'रद्द करें',
+    approve: 'स्वीकृत करें',
+    reject: 'अस्वीकार करें',
+    withdraw: 'अनुरोध वापस लें',
+    remove: 'हटाएँ',
+    decisionNote: 'नोट जोड़ें, वैकल्पिक',
+    decisionTitle: 'छुट्टी का अनुरोध',
+    errName: 'नाम दर्ज करें',
+    errTitle: 'शीर्षक दर्ज करें',
+    errRange: 'समाप्ति तारीख शुरुआत की तारीख के बाद होनी चाहिए',
+    errHalfDay: 'आधा दिन केवल एक दिन के लिए है',
+    errOverlap: 'यह व्यक्ति की दूसरी छुट्टी से टकराता है',
+    errWindow: 'अनुमत अवधि के भीतर की तारीख चुनें',
+    errPeople: 'अपनी टीम से कम से कम एक व्यक्ति चुनें',
+    errTime: '14:30 जैसा समय लिखें',
+    errDate: 'मान्य तारीख दर्ज करें',
+    errBirthday: 'सही दिन और महीना दर्ज करें',
+    birthday: 'जन्मदिन',
+    birthDay: 'दिन',
+    birthMonth: 'महीना',
+    joinedOn: 'काम शुरू करने की तारीख, वैकल्पिक',
+    showBirthday: 'अपना जन्मदिन सहकर्मियों को दिखाएँ',
+    showBirthdayHint: 'डिफ़ॉल्ट रूप से बंद। केवल दिन और महीना सहेजे जाते हैं, साल नहीं।',
+    clear: 'हटाएँ',
+    paidHolidays: 'सवेतन अवकाश',
+    paidHolidaysHint: 'वेतन गणना में अवकाश के दिन सवेतन दिनों में गिने जाते हैं।',
+    paidLeave: 'सवेतन बीमारी/आकस्मिक छुट्टी',
+    paidLeaveHint: 'स्वीकृत बीमारी और आकस्मिक छुट्टी सवेतन हैं। अन्य छुट्टी अवैतनिक है।',
+    wageRuleNote:
+      'वेतन के दिन उपस्थिति के अनुसार हैं। सवेतन अवकाश चालू होने पर अवकाश के दिन सवेतन हैं; सवेतन छुट्टी चालू न होने पर स्वीकृत छुट्टी अनुपस्थिति मानी जाती है।',
+    holidayOnDay: 'अवकाश: {name}',
+    leaveOnDay: 'छुट्टी पर',
+    pendingLeaveTitle: 'निर्णय के लिए {n} छुट्टी अनुरोध',
+    suspendedNote: 'यह कंपनी रुकी हुई है। कैलेंडर केवल पढ़ने के लिए है।',
+  },
   greeting: 'नमस्ते',
   yourWaves: 'आपकी बाकी',
   acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
@@ -25165,6 +25531,97 @@ const hi: UiStrings = {
  * is why it is not translated away here.
  */
 const ar: UiStrings = {
+  calendar: {
+    title: 'التقويم',
+    today: 'اليوم',
+    upcoming: 'القادمة',
+    comingUp: 'قريباً',
+    seeAll: 'عرض الكل',
+    agendaFor: 'جدول أعمال {date}',
+    nothingPlanned: 'لا توجد خطط',
+    filterAll: 'الكل',
+    filterLeave: 'الإجازات والعطلات',
+    filterMoney: 'المال',
+    filterWork: 'العمل والفعاليات',
+    filterBirthdays: 'أعياد الميلاد',
+    add: 'إضافة',
+    addHoliday: 'عطلة',
+    addEvent: 'فعالية',
+    recordLeave: 'تسجيل إجازة',
+    requestLeave: 'طلب إجازة',
+    myDates: 'عيد ميلادي وتاريخ بدء العمل',
+    kindHoliday: 'عطلة',
+    kindLeave: 'إجازة',
+    kindWage: 'موعد الأجور',
+    kindVendorBill: 'فاتورة مورد',
+    kindCustomerBill: 'فاتورة عميل غير مدفوعة',
+    kindAdvance: 'سلفة مستحقة',
+    kindTask: 'عمل',
+    kindEvent: 'فعالية',
+    kindBirthday: 'عيد ميلاد',
+    kindAnniversary: 'ذكرى بدء العمل',
+    birthdayOf: 'عيد ميلاد {name}',
+    anniversaryOf: '{name} · {n} سنوات',
+    overdue: 'متأخر',
+    moreCount: 'و{n} أخرى',
+    leaveCasual: 'اعتيادية',
+    leaveSick: 'مرضية',
+    leaveOther: 'أخرى',
+    halfDay: 'نصف يوم',
+    statusPending: 'قيد الانتظار',
+    statusApproved: 'موافق عليها',
+    statusRejected: 'مرفوضة',
+    leaveLine: '{name} · {from} – {to}',
+    dayCount: '{n} أيام',
+    oneDay: 'يوم واحد',
+    holidayName: 'اسم العطلة',
+    eventTitle: 'عنوان الفعالية',
+    eventTime: 'الوقت، اختياري',
+    eventPeople: 'الأشخاص المعنيون',
+    eventEveryone: 'الجميع',
+    eventSite: 'الموقع، اختياري',
+    person: 'الشخص',
+    startDate: 'من',
+    endDate: 'إلى',
+    reason: 'السبب، اختياري',
+    note: 'ملاحظة، اختيارية',
+    leaveType: 'النوع',
+    save: 'حفظ',
+    cancel: 'إلغاء',
+    approve: 'موافقة',
+    reject: 'رفض',
+    withdraw: 'سحب الطلب',
+    remove: 'إزالة',
+    decisionNote: 'أضف ملاحظة، اختيارية',
+    decisionTitle: 'طلب إجازة',
+    errName: 'أدخل اسماً',
+    errTitle: 'أدخل عنواناً',
+    errRange: 'يجب أن يكون تاريخ النهاية في يوم البداية أو بعده',
+    errHalfDay: 'نصف اليوم مخصص ليوم واحد',
+    errOverlap: 'يتداخل هذا مع إجازة أخرى للشخص',
+    errWindow: 'اختر تاريخاً ضمن الفترة المسموح بها',
+    errPeople: 'اختر شخصاً واحداً على الأقل من فريقك',
+    errTime: 'استخدم وقتاً مثل 14:30',
+    errDate: 'أدخل تاريخاً صحيحاً',
+    errBirthday: 'أدخل يوماً وشهراً صحيحين',
+    birthday: 'عيد الميلاد',
+    birthDay: 'اليوم',
+    birthMonth: 'الشهر',
+    joinedOn: 'تاريخ بدء العمل، اختياري',
+    showBirthday: 'أظهر عيد ميلادي للزملاء',
+    showBirthdayHint: 'مغلق افتراضياً. يُحفظ اليوم والشهر فقط، ولا تُحفظ السنة.',
+    clear: 'مسح',
+    paidHolidays: 'عطلات مدفوعة',
+    paidHolidaysHint: 'تُحتسب العطلات أياماً مدفوعة في حساب الأجور.',
+    paidLeave: 'إجازة مرضية/اعتيادية مدفوعة',
+    paidLeaveHint: 'الإجازة المرضية والاعتيادية الموافق عليها مدفوعة. الإجازات الأخرى بلا أجر.',
+    wageRuleNote:
+      'تتبع أيام الأجر الحضور. تُحتسب العطلات أياماً مدفوعة عند تفعيل العطلات المدفوعة؛ وتُحسب الإجازة الموافق عليها غياباً ما لم تُفعّل الإجازة المدفوعة.',
+    holidayOnDay: 'عطلة: {name}',
+    leaveOnDay: 'في إجازة',
+    pendingLeaveTitle: '{n} طلب إجازة بانتظار القرار',
+    suspendedNote: 'هذه الشركة متوقفة مؤقتاً. التقويم للقراءة فقط.',
+  },
   greeting: 'أهلاً',
   yourWaves: 'باقيك',
   acrossGroups: {
