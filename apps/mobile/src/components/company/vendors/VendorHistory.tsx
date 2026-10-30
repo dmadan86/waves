@@ -59,7 +59,9 @@ export function VendorHistory({
         ) : (
           sortVendorLines(lines).map((line, index) => {
             const ownPendingBill =
-              vendorView && line.kind === 'bill' && line.status === 'pending' &&
+              vendorView &&
+              line.kind === 'bill' &&
+              line.status === 'pending' &&
               line.createdBy === view.myMemberId;
             const canRemove =
               line.createdBy === view.myMemberId &&

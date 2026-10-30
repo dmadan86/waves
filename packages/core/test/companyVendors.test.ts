@@ -62,7 +62,9 @@ describe('vendor balance', () => {
     ).toBe(1100000n);
   });
   it('overpaying leaves the vendor holding an advance (negative)', () => {
-    expect(vendorBalance([line({ amount: 100n }), line({ kind: 'advance', amount: 400n })])).toBe(-300n);
+    expect(vendorBalance([line({ amount: 100n }), line({ kind: 'advance', amount: 400n })])).toBe(
+      -300n,
+    );
   });
   it('pending, rejected and deleted lines never count; receipt does not change the balance', () => {
     const lines = [
@@ -100,10 +102,23 @@ describe('manager pool and vendors', () => {
 
 describe('materialiseVendors', () => {
   const state = mirrorWith([
-    row(SyncTable.CompanyVendors, { id: 'v', name: 'Ravi Traders', added_by: 'o', member_id: null, version: 1 }),
+    row(SyncTable.CompanyVendors, {
+      id: 'v',
+      name: 'Ravi Traders',
+      added_by: 'o',
+      member_id: null,
+      version: 1,
+    }),
     row(SyncTable.CompanyVendorEntries, {
-      id: 'e1', vendor_id: 'v', kind: 'bill', amount: '1200', occurred_on: '2026-11-10', status: 'approved',
-      created_by: 'o', version: 1, created_at: '2026-11-10T00:00:00Z',
+      id: 'e1',
+      vendor_id: 'v',
+      kind: 'bill',
+      amount: '1200',
+      occurred_on: '2026-11-10',
+      status: 'approved',
+      created_by: 'o',
+      version: 1,
+      created_at: '2026-11-10T00:00:00Z',
     }),
   ]);
   const opts = { groupId: 'g', myMemberId: 'o', isVendor: false };
@@ -114,27 +129,62 @@ describe('materialiseVendors', () => {
   });
   it('a queued payment reads as saved at once and a queued add shows the vendor', () => {
     const q = [
-      queued('company_vendor.set', { vendorId: 'n', name: 'New Co', phone: null, category: null }, 1),
-      queued('company_vendor_entry.create', { entryId: 'p', vendorId: 'v', kind: 'payment', amountMinor: '200', occurredOn: '2026-11-11', note: null }, 2),
+      queued(
+        'company_vendor.set',
+        { vendorId: 'n', name: 'New Co', phone: null, category: null },
+        1,
+      ),
+      queued(
+        'company_vendor_entry.create',
+        {
+          entryId: 'p',
+          vendorId: 'v',
+          kind: 'payment',
+          amountMinor: '200',
+          occurredOn: '2026-11-11',
+          note: null,
+        },
+        2,
+      ),
     ];
     const out = materialiseVendors(state, q, opts);
     expect(out.vendors.map((v) => v.name).sort()).toEqual(['New Co', 'Ravi Traders']);
     expect(vendorBalance(out.lines)).toBe(1000n);
   });
   it("a vendor's own queued bill is pending and does not count; a review confirms it", () => {
-    const create = queued('company_vendor_entry.create', { entryId: 'b', vendorId: 'v', kind: 'bill', amountMinor: '50', occurredOn: '2026-11-11', note: null }, 1);
+    const create = queued(
+      'company_vendor_entry.create',
+      {
+        entryId: 'b',
+        vendorId: 'v',
+        kind: 'bill',
+        amountMinor: '50',
+        occurredOn: '2026-11-11',
+        note: null,
+      },
+      1,
+    );
     const mine = materialiseVendors(state, [create], { ...opts, isVendor: true });
     expect(vendorBalance(mine.lines)).toBe(1200n);
     expect(pendingVendorBills(mine.lines)).toHaveLength(1);
-    const review = queued('company_vendor_entry.review', { entryId: 'b', to: 'approved', note: null, expectedVersion: 1 }, 2);
-    expect(vendorBalance(materialiseVendors(state, [create, review], { ...opts, isVendor: true }).lines)).toBe(1250n);
+    const review = queued(
+      'company_vendor_entry.review',
+      { entryId: 'b', to: 'approved', note: null, expectedVersion: 1 },
+      2,
+    );
+    expect(
+      vendorBalance(materialiseVendors(state, [create, review], { ...opts, isVendor: true }).lines),
+    ).toBe(1250n);
   });
   it('a queued void or remove hides the line or vendor; a rejected mutation changes nothing', () => {
     const voided = queued('company_vendor_entry.void', { entryId: 'e1', reason: null }, 1);
     expect(materialiseVendors(state, [voided], opts).lines).toHaveLength(0);
     const removed = queued('company_vendor.remove', { vendorId: 'v' }, 1);
     expect(materialiseVendors(state, [removed], opts).vendors).toHaveLength(0);
-    const refused = { ...voided, rejection: { code: 'X', message: 'x' } } as unknown as QueuedMutation;
+    const refused = {
+      ...voided,
+      rejection: { code: 'X', message: 'x' },
+    } as unknown as QueuedMutation;
     expect(materialiseVendors(state, [refused], opts).lines).toHaveLength(1);
   });
 });

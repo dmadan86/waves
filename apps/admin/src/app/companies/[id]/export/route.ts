@@ -7,7 +7,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await guardMutation(formData);
   } catch {
     return new Response('This request was refused. Reload the company page and try again.', {
-      status: 403, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+      status: 403,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
     });
   }
   const { id } = await params;
@@ -24,6 +25,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     });
   } catch (caught) {
     const error = caught instanceof Error ? caught.message : String(caught);
-    return new Response(null, { status: 303, headers: { Location: `/companies/${id}?error=${encodeURIComponent(error)}`, 'Cache-Control': 'no-store' } });
+    return new Response(null, {
+      status: 303,
+      headers: {
+        Location: `/companies/${id}?error=${encodeURIComponent(error)}`,
+        'Cache-Control': 'no-store',
+      },
+    });
   }
 }

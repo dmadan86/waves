@@ -8096,10 +8096,12 @@ const en: UiStrings = {
     wagesPaidFromPool: 'Paid from your cash',
     sites: 'Sites',
     addSite: 'Add a site',
-    suspendedBanner: 'This company is suspended by Waves. It is read-only for now. Contact hello@wavs.co.in.',
+    suspendedBanner:
+      'This company is suspended by Waves. It is read-only for now. Contact hello@wavs.co.in.',
     reportCompany: 'Report this company',
     reportTitle: 'Report this company',
-    reportBody: 'Tell us what is wrong. Waves reviews every report. The company is not told who reported it.',
+    reportBody:
+      'Tell us what is wrong. Waves reviews every report. The company is not told who reported it.',
     reportFraud: 'Fraud',
     reportIllegal: 'Illegal activity',
     reportHarassment: 'Harassment',
@@ -8110,7 +8112,8 @@ const en: UiStrings = {
     reportSent: 'Thanks. Waves will look into it.',
     reportLimit: 'You have sent several reports today. Try again tomorrow.',
     reportFailed: 'Could not send the report. Check your connection and try again.',
-    suspendedReadOnly: 'This company is suspended. You can view and export, but not add or change anything.',
+    suspendedReadOnly:
+      'This company is suspended. You can view and export, but not add or change anything.',
     siteName: 'Site name',
     siteBudget: 'Budget (optional)',
     siteSpent: '{spent} of {budget}',
@@ -14066,10 +14069,12 @@ const ta: UiStrings = {
     wagesPaidFromPool: 'உங்கள் பணத்தில் இருந்து',
     sites: 'தளங்கள்',
     addSite: 'தளம் சேர்',
-    suspendedBanner: 'இந்த நிறுவனத்தை Waves இடைநிறுத்தியுள்ளது. இப்போது பார்க்க மட்டுமே முடியும். hello@wavs.co.in ஐத் தொடர்பு கொள்ளவும்.',
+    suspendedBanner:
+      'இந்த நிறுவனத்தை Waves இடைநிறுத்தியுள்ளது. இப்போது பார்க்க மட்டுமே முடியும். hello@wavs.co.in ஐத் தொடர்பு கொள்ளவும்.',
     reportCompany: 'இந்த நிறுவனத்தைப் புகாரளி',
     reportTitle: 'இந்த நிறுவனத்தைப் புகாரளி',
-    reportBody: 'என்ன தவறு என்று சொல்லுங்கள். Waves ஒவ்வொரு புகாரையும் பரிசீலிக்கும். யார் புகாரளித்தார் என்பது நிறுவனத்துக்குத் தெரியாது.',
+    reportBody:
+      'என்ன தவறு என்று சொல்லுங்கள். Waves ஒவ்வொரு புகாரையும் பரிசீலிக்கும். யார் புகாரளித்தார் என்பது நிறுவனத்துக்குத் தெரியாது.',
     reportFraud: 'மோசடி',
     reportIllegal: 'சட்டவிரோத செயல்',
     reportHarassment: 'துன்புறுத்தல்',
@@ -14080,7 +14085,8 @@ const ta: UiStrings = {
     reportSent: 'நன்றி. Waves இதைப் பார்க்கும்.',
     reportLimit: 'இன்று பல புகார்கள் அனுப்பியுள்ளீர்கள். நாளை மீண்டும் முயலுங்கள்.',
     reportFailed: 'புகாரை அனுப்ப முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயலுங்கள்.',
-    suspendedReadOnly: 'இந்த நிறுவனம் இடைநிறுத்தப்பட்டுள்ளது. பார்க்கவும் ஏற்றுமதி செய்யவும் முடியும்; சேர்க்கவோ மாற்றவோ முடியாது.',
+    suspendedReadOnly:
+      'இந்த நிறுவனம் இடைநிறுத்தப்பட்டுள்ளது. பார்க்கவும் ஏற்றுமதி செய்யவும் முடியும்; சேர்க்கவோ மாற்றவோ முடியாது.',
     siteName: 'தளத்தின் பெயர்',
     siteBudget: 'பட்ஜெட் (விருப்பம்)',
     siteSpent: '{budget} இல் {spent}',
@@ -14302,7 +14308,8 @@ const ta: UiStrings = {
     exportAction: 'ஏற்றுமதி',
   },
   companyVendors: {
-    photoPrivacy: 'இந்தக் கணக்குப் பதிவைப் பார்க்க அனுமதி உள்ளவர்கள் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
+    photoPrivacy:
+      'இந்தக் கணக்குப் பதிவைப் பார்க்க அனுமதி உள்ளவர்கள் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
     historyEmpty: 'இன்னும் பதிவுகள் இல்லை',
     title: 'விற்பனையாளர்கள்',
     addVendor: '+ விற்பனையாளரைச் சேர்',
@@ -20199,10 +20206,12 @@ const hi: UiStrings = {
     wagesPaidFromPool: 'आपके नकद से',
     sites: 'साइटें',
     addSite: 'साइट जोड़ें',
-    suspendedBanner: 'इस कंपनी को Waves ने निलंबित किया है। अभी यह केवल देखने के लिए है। hello@wavs.co.in पर संपर्क करें।',
+    suspendedBanner:
+      'इस कंपनी को Waves ने निलंबित किया है। अभी यह केवल देखने के लिए है। hello@wavs.co.in पर संपर्क करें।',
     reportCompany: 'इस कंपनी की शिकायत करें',
     reportTitle: 'इस कंपनी की शिकायत करें',
-    reportBody: 'बताइए क्या गलत है। Waves हर शिकायत देखता है। कंपनी को नहीं बताया जाता कि किसने शिकायत की।',
+    reportBody:
+      'बताइए क्या गलत है। Waves हर शिकायत देखता है। कंपनी को नहीं बताया जाता कि किसने शिकायत की।',
     reportFraud: 'धोखाधड़ी',
     reportIllegal: 'अवैध गतिविधि',
     reportHarassment: 'उत्पीड़न',
@@ -20213,7 +20222,8 @@ const hi: UiStrings = {
     reportSent: 'धन्यवाद। Waves इसकी जाँच करेगा।',
     reportLimit: 'आज आपने कई शिकायतें भेज दी हैं। कल फिर कोशिश करें।',
     reportFailed: 'शिकायत नहीं भेजी जा सकी। कनेक्शन जाँचकर फिर कोशिश करें।',
-    suspendedReadOnly: 'यह कंपनी निलंबित है। आप देख और निर्यात कर सकते हैं, पर कुछ जोड़ या बदल नहीं सकते।',
+    suspendedReadOnly:
+      'यह कंपनी निलंबित है। आप देख और निर्यात कर सकते हैं, पर कुछ जोड़ या बदल नहीं सकते।',
     siteName: 'साइट का नाम',
     siteBudget: 'बजट (वैकल्पिक)',
     siteSpent: '{budget} में से {spent}',

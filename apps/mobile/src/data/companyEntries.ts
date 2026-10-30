@@ -442,7 +442,9 @@ export async function attachCompanyPhoto(
     });
     uploaded = true;
     const { error } = await backend.rpc(
-      kind === 'vendor' ? 'waves_attach_company_vendor_entry_image' : 'waves_attach_company_entry_image',
+      kind === 'vendor'
+        ? 'waves_attach_company_vendor_entry_image'
+        : 'waves_attach_company_entry_image',
       {
         p_entry_id: entryId,
         p_storage_path: path,
@@ -482,7 +484,9 @@ export function useRemoveCompanyPhoto(groupId: string, kind: 'entry' | 'vendor' 
   return useMutation({
     mutationFn: async (input: { photoId: string }) => {
       const { error } = await backend.rpc(
-        kind === 'vendor' ? 'waves_remove_company_vendor_entry_image' : 'waves_remove_company_entry_image',
+        kind === 'vendor'
+          ? 'waves_remove_company_vendor_entry_image'
+          : 'waves_remove_company_entry_image',
         { p_attachment_id: input.photoId },
       );
       if (error) throw new Error(error.message);

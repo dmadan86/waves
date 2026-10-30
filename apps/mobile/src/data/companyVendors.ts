@@ -67,7 +67,8 @@ export function useCompanyVendors(groupId: string): VendorsView {
     const ids = new Set(vendors.map((v) => v.id));
     const lines = all.lines.filter((l) => ids.has(l.vendorId));
     const balances = new Map<string, bigint>();
-    for (const v of vendors) balances.set(v.id, vendorBalance(lines.filter((l) => l.vendorId === v.id)));
+    for (const v of vendors)
+      balances.set(v.id, vendorBalance(lines.filter((l) => l.vendorId === v.id)));
     return {
       vendors: vendors.sort((a, b) => a.name.localeCompare(b.name)),
       lines,
@@ -105,7 +106,8 @@ export function useSetVendor(groupId: string) {
 export function useRemoveVendor(groupId: string) {
   const { mutate } = useSync();
   return useMutation({
-    mutationFn: (vendorId: string) => mutate(MutationKind.CompanyVendorRemove, groupId, { vendorId }),
+    mutationFn: (vendorId: string) =>
+      mutate(MutationKind.CompanyVendorRemove, groupId, { vendorId }),
   });
 }
 
@@ -170,7 +172,9 @@ export function useMarkVendorPaymentReceived(groupId: string) {
 
 /** A single-use link (30 days) that makes the person who opens it this vendor's own login. Needs a connection. */
 export async function createVendorInviteLink(vendorId: string): Promise<string> {
-  const { data, error } = await backend.rpc('waves_company_vendor_invite', { p_vendor_id: vendorId });
+  const { data, error } = await backend.rpc('waves_company_vendor_invite', {
+    p_vendor_id: vendorId,
+  });
   if (error) throw new Error(error.message);
   return groupJoinLink(data as string);
 }
