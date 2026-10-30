@@ -22,6 +22,7 @@ import { Sheet, Text, directionalIcon, iconSize, useTheme, type TintName } from 
 
 import { BUILDING_ART } from './art';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
+import { OverflowMenu } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { StandardCard } from '@/components/standard';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -166,6 +167,7 @@ export function DashHeader({
   showGear,
   voice,
   onBack,
+  exportMenu,
 }: {
   groupId: string;
   view: CompanyView;
@@ -176,6 +178,8 @@ export function DashHeader({
   voice?: boolean;
   /** Company-bar screens go to Overview / Home instead of popping. */
   onBack?: () => void;
+  /** Employees have no company bar, so Export stays in a ⋮ here. */
+  exportMenu?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -183,6 +187,7 @@ export function DashHeader({
   const dark = theme.scheme === 'dark';
   useHeroStatusBar(dark ? 'light' : 'dark');
   const [switching, setSwitching] = useState(false);
+  const [menu, setMenu] = useState(false);
   const groups = useGroups().data ?? [];
   const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
 
@@ -245,6 +250,13 @@ export function DashHeader({
               icon="settings-outline"
               label={t.company.companySettings}
               onPress={() => router.push(`/group/${groupId}/settings`)}
+            />
+          ) : null}
+          {exportMenu ? (
+            <IconButton
+              icon="ellipsis-vertical"
+              label={t.group.more}
+              onPress={() => setMenu(true)}
             />
           ) : null}
         </View>
@@ -358,6 +370,17 @@ export function DashHeader({
           </Pressable>
         </ScrollView>
       </Sheet>
+      <OverflowMenu
+        visible={menu}
+        onClose={() => setMenu(false)}
+        items={[
+          {
+            icon: 'download-outline',
+            label: t.company.exportAction,
+            route: `/group/${groupId}/export`,
+          },
+        ]}
+      />
     </>
   );
 }

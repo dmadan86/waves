@@ -60,6 +60,7 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
           view={view}
           showGear={false}
           voice
+          exportMenu
           subtitle={
             boss ? fill(t.company.yourManager, { name: boss.display_name }) : t.company.yourOwners
           }
