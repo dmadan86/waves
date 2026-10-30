@@ -1673,6 +1673,57 @@ export interface UiStrings {
     notCounted: string;
     exportAction: string;
   };
+  companyVendors: {
+    historyEmpty: string;
+    title: string;
+    addVendor: string;
+    name: string;
+    phone: string;
+    category: string;
+    empty: string;
+    youOwe: string;
+    hasAdvance: string;
+    settled: string;
+    oweName: string;
+    advanceName: string;
+    settledName: string;
+    companyOwes: string;
+    yourAdvance: string;
+    allSettled: string;
+    addBill: string;
+    recordPayment: string;
+    bill: string;
+    advance: string;
+    payment: string;
+    amount: string;
+    date: string;
+    note: string;
+    dateHint: string;
+    invalidDate: string;
+    billHint: string;
+    pending: string;
+    confirmed: string;
+    rejected: string;
+    received: string;
+    markReceived: string;
+    history: string;
+    pendingBills: string;
+    confirm: string;
+    reject: string;
+    more: string;
+    invite: string;
+    rename: string;
+    delete: string;
+    deleteConfirm: string;
+    removeEntry: string;
+    removeConfirm: string;
+    withdraw: string;
+    withdrawConfirm: string;
+    notFound: string;
+    inviteFailed: string;
+    save: string;
+    close: string;
+  };
   groupRecurring: {
     title: string;
     sub: string;
@@ -8008,6 +8059,57 @@ const en: UiStrings = {
     notCounted: 'Not counted until approved',
     exportAction: 'Export',
   },
+  companyVendors: {
+    historyEmpty: 'No entries yet',
+    title: 'Vendors',
+    addVendor: '+ Add vendor',
+    name: 'Name',
+    phone: 'Phone (optional)',
+    category: 'Category (optional)',
+    empty: 'No vendors yet',
+    youOwe: 'You owe {amount}',
+    hasAdvance: 'Has {amount} advance',
+    settled: 'Settled',
+    oweName: 'You owe {name} {amount}',
+    advanceName: '{name} has {amount} advance',
+    settledName: 'All settled with {name}',
+    companyOwes: 'The company owes you {amount}',
+    yourAdvance: 'You have {amount} advance with the company',
+    allSettled: 'All settled',
+    addBill: 'Add bill',
+    recordPayment: 'Record payment',
+    bill: 'Bill',
+    advance: 'Advance',
+    payment: 'Payment',
+    amount: 'Amount',
+    date: 'Date',
+    note: 'Note (optional)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'Enter a valid date',
+    billHint: 'This bill counts once the company confirms it.',
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    rejected: 'Rejected',
+    received: 'Received',
+    markReceived: 'Mark received',
+    history: 'History',
+    pendingBills: 'Bills awaiting confirmation',
+    confirm: 'Confirm',
+    reject: 'Reject',
+    more: 'More options',
+    invite: 'Invite vendor',
+    rename: 'Rename',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this vendor and their ledger?',
+    removeEntry: 'Remove entry',
+    removeConfirm: 'Remove this entry from the ledger?',
+    withdraw: 'Withdraw',
+    withdrawConfirm: 'Withdraw this pending bill?',
+    notFound: 'Vendor unavailable',
+    inviteFailed: 'Could not create an invite. Connect to the internet and try again.',
+    save: 'Save',
+    close: 'Close',
+  },
   groupRecurring: {
     title: 'Repeating',
     sub: 'Rent, bills and anything else that comes round on a schedule. Each one is added on its date, for everyone.',
@@ -13791,6 +13893,57 @@ const ta: UiStrings = {
     colReview: 'மதிப்பாய்வு குறிப்பு',
     notCounted: 'ஒப்புதல் வரை கணக்கில் சேராது',
     exportAction: 'ஏற்றுமதி',
+  },
+  companyVendors: {
+    historyEmpty: 'இன்னும் பதிவுகள் இல்லை',
+    title: 'விற்பனையாளர்கள்',
+    addVendor: '+ விற்பனையாளரைச் சேர்',
+    name: 'பெயர்',
+    phone: 'தொலைபேசி (விருப்பம்)',
+    category: 'வகை (விருப்பம்)',
+    empty: 'இன்னும் விற்பனையாளர்கள் இல்லை',
+    youOwe: 'நீங்கள் தர வேண்டியது {amount}',
+    hasAdvance: '{amount} முன்பணம் உள்ளது',
+    settled: 'கணக்கு முடிந்தது',
+    oweName: '{name}க்கு நீங்கள் தர வேண்டியது {amount}',
+    advanceName: '{name} வசம் {amount} முன்பணம் உள்ளது',
+    settledName: '{name} உடன் கணக்கு முடிந்தது',
+    companyOwes: 'நிறுவனம் உங்களுக்குத் தர வேண்டியது {amount}',
+    yourAdvance: 'நிறுவனத்திடம் இருந்து {amount} முன்பணம் பெற்றுள்ளீர்கள்',
+    allSettled: 'கணக்கு முடிந்தது',
+    addBill: 'பில்லைச் சேர்',
+    recordPayment: 'பணம் கொடுத்ததைப் பதிவு செய்',
+    bill: 'பில்',
+    advance: 'முன்பணம்',
+    payment: 'பணம் கொடுத்தது',
+    amount: 'தொகை',
+    date: 'தேதி',
+    note: 'குறிப்பு (விருப்பம்)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'சரியான தேதியை உள்ளிடவும்',
+    billHint: 'நிறுவனம் உறுதிப்படுத்திய பிறகே இந்த பில் கணக்கில் சேரும்.',
+    pending: 'நிலுவையில்',
+    confirmed: 'உறுதிப்படுத்தப்பட்டது',
+    rejected: 'நிராகரிக்கப்பட்டது',
+    received: 'பெறப்பட்டது',
+    markReceived: 'பெற்றதாகக் குறி',
+    history: 'வரலாறு',
+    pendingBills: 'உறுதிப்படுத்தக் காத்திருக்கும் பில்கள்',
+    confirm: 'உறுதிப்படுத்து',
+    reject: 'நிராகரி',
+    more: 'மேலும் விருப்பங்கள்',
+    invite: 'விற்பனையாளரை அழை',
+    rename: 'பெயரை மாற்று',
+    delete: 'நீக்கு',
+    deleteConfirm: 'இந்த விற்பனையாளரையும் அவரது கணக்கையும் நீக்கவா?',
+    removeEntry: 'பதிவை நீக்கு',
+    removeConfirm: 'இந்தப் பதிவைக் கணக்கிலிருந்து நீக்கவா?',
+    withdraw: 'திரும்பப் பெறு',
+    withdrawConfirm: 'நிலுவையில் உள்ள இந்த பில்லைத் திரும்பப் பெறவா?',
+    notFound: 'விற்பனையாளர் கிடைக்கவில்லை',
+    inviteFailed: 'அழைப்பை உருவாக்க முடியவில்லை. இணையத்தில் இணைந்து மீண்டும் முயலவும்.',
+    save: 'சேமி',
+    close: 'மூடு',
   },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
@@ -19737,6 +19890,57 @@ const hi: UiStrings = {
     notCounted: 'मंज़ूरी तक गिनी नहीं जाएगी',
     exportAction: 'निर्यात',
   },
+  companyVendors: {
+    historyEmpty: 'अभी कोई प्रविष्टि नहीं',
+    title: 'विक्रेता',
+    addVendor: '+ विक्रेता जोड़ें',
+    name: 'नाम',
+    phone: 'फ़ोन (वैकल्पिक)',
+    category: 'श्रेणी (वैकल्पिक)',
+    empty: 'अभी कोई विक्रेता नहीं',
+    youOwe: 'आपको {amount} देना है',
+    hasAdvance: '{amount} अग्रिम है',
+    settled: 'हिसाब बराबर',
+    oweName: 'आपको {name} को {amount} देना है',
+    advanceName: '{name} के पास {amount} अग्रिम है',
+    settledName: '{name} के साथ हिसाब बराबर',
+    companyOwes: 'कंपनी को आपको {amount} देना है',
+    yourAdvance: 'आपके पास कंपनी से {amount} अग्रिम है',
+    allSettled: 'हिसाब बराबर',
+    addBill: 'बिल जोड़ें',
+    recordPayment: 'भुगतान दर्ज करें',
+    bill: 'बिल',
+    advance: 'अग्रिम',
+    payment: 'भुगतान',
+    amount: 'राशि',
+    date: 'तारीख',
+    note: 'टिप्पणी (वैकल्पिक)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'मान्य तारीख दर्ज करें',
+    billHint: 'कंपनी की पुष्टि के बाद यह बिल हिसाब में जुड़ेगा।',
+    pending: 'लंबित',
+    confirmed: 'पुष्टि हुई',
+    rejected: 'अस्वीकृत',
+    received: 'प्राप्त',
+    markReceived: 'प्राप्त चिह्नित करें',
+    history: 'इतिहास',
+    pendingBills: 'पुष्टि की प्रतीक्षा में बिल',
+    confirm: 'पुष्टि करें',
+    reject: 'अस्वीकार करें',
+    more: 'और विकल्प',
+    invite: 'विक्रेता को आमंत्रित करें',
+    rename: 'नाम बदलें',
+    delete: 'हटाएँ',
+    deleteConfirm: 'इस विक्रेता और उसके खाते को हटाएँ?',
+    removeEntry: 'प्रविष्टि हटाएँ',
+    removeConfirm: 'इस प्रविष्टि को खाते से हटाएँ?',
+    withdraw: 'वापस लें',
+    withdrawConfirm: 'यह लंबित बिल वापस लें?',
+    notFound: 'विक्रेता उपलब्ध नहीं',
+    inviteFailed: 'आमंत्रण नहीं बन सका। इंटरनेट से जुड़कर फिर कोशिश करें।',
+    save: 'सहेजें',
+    close: 'बंद करें',
+  },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
     sub: 'किराया, बिल और जो कुछ तय तारीख पर आता है। हर एक अपनी तारीख पर सबके लिए जुड़ जाता है।',
@@ -25597,6 +25801,57 @@ const ar: UiStrings = {
     colReview: 'ملاحظة المراجعة',
     notCounted: 'لا يُحتسب حتى الموافقة',
     exportAction: 'تصدير',
+  },
+  companyVendors: {
+    historyEmpty: 'لا توجد قيود بعد',
+    title: 'الموردون',
+    addVendor: '+ إضافة مورد',
+    name: 'الاسم',
+    phone: 'الهاتف (اختياري)',
+    category: 'الفئة (اختياري)',
+    empty: 'لا يوجد موردون بعد',
+    youOwe: 'عليك دفع {amount}',
+    hasAdvance: 'لديه سلفة بقيمة {amount}',
+    settled: 'الحساب مسوّى',
+    oweName: 'عليك دفع {amount} إلى {name}',
+    advanceName: 'لدى {name} سلفة بقيمة {amount}',
+    settledName: 'الحساب مسوّى مع {name}',
+    companyOwes: 'تدين لك الشركة بمبلغ {amount}',
+    yourAdvance: 'لديك سلفة من الشركة بقيمة {amount}',
+    allSettled: 'الحساب مسوّى',
+    addBill: 'إضافة فاتورة',
+    recordPayment: 'تسجيل دفعة',
+    bill: 'فاتورة',
+    advance: 'سلفة',
+    payment: 'دفعة',
+    amount: 'المبلغ',
+    date: 'التاريخ',
+    note: 'ملاحظة (اختياري)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'أدخل تاريخًا صحيحًا',
+    billHint: 'تُحتسب هذه الفاتورة بعد تأكيد الشركة.',
+    pending: 'قيد الانتظار',
+    confirmed: 'مؤكد',
+    rejected: 'مرفوض',
+    received: 'تم الاستلام',
+    markReceived: 'تأكيد الاستلام',
+    history: 'السجل',
+    pendingBills: 'فواتير بانتظار التأكيد',
+    confirm: 'تأكيد',
+    reject: 'رفض',
+    more: 'المزيد من الخيارات',
+    invite: 'دعوة المورد',
+    rename: 'تغيير الاسم',
+    delete: 'حذف',
+    deleteConfirm: 'هل تريد حذف هذا المورد وسجله؟',
+    removeEntry: 'إزالة القيد',
+    removeConfirm: 'هل تريد إزالة هذا القيد من السجل؟',
+    withdraw: 'سحب',
+    withdrawConfirm: 'هل تريد سحب هذه الفاتورة المعلقة؟',
+    notFound: 'المورد غير متاح',
+    inviteFailed: 'تعذر إنشاء دعوة. اتصل بالإنترنت وحاول مجددًا.',
+    save: 'حفظ',
+    close: 'إغلاق',
   },
   groupRecurring: {
     title: 'المتكررة',

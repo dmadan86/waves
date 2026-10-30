@@ -197,6 +197,31 @@ const cases = [
       ],
     },
   ],
+  [
+    'company_vendor_entry.create',
+    {
+      entryId: ENTRY,
+      vendorId: MEMBER_ID,
+      kind: 'bill',
+      amountMinor: '1200',
+      occurredOn: '2026-11-10',
+      note: null,
+    },
+    'waves_company_vendor_entry_create',
+    {
+      p_group_id: GROUP_ID,
+      p_entry_id: ENTRY,
+      p_vendor_id: MEMBER_ID,
+      p_kind: 'bill',
+      p_data: { amount: '1200', occurredOn: '2026-11-10', note: null },
+    },
+  ],
+  [
+    'company_vendor_entry.received',
+    { entryId: ENTRY, received: true },
+    'waves_company_vendor_entry_received',
+    { p_entry_id: ENTRY, p_received: true },
+  ],
 ] as const;
 describe('company sync mutations', () => {
   it.each(cases)('dispatches %s as caller', async (kind, payload, rpc, args) => {
@@ -239,6 +264,18 @@ describe('company sync mutations', () => {
     ['company.settings_set', { defaultDailyRateMinor: '100' }],
     ['company.settings_set', { defaultDailyRateMinor: 100, approvalsEnabled: true }],
     ['company_member.rate_set', { memberId: MEMBER_ID, dailyRateMinor: 40000 }],
+    [
+      'company_vendor_entry.create',
+      {
+        entryId: ENTRY,
+        vendorId: MEMBER_ID,
+        kind: 'bill',
+        amountMinor: '-5',
+        occurredOn: '2026-11-10',
+      },
+    ],
+    ['company_vendor_entry.received', { entryId: ENTRY, received: 'yes' }],
+    ['company_vendor.set', { vendorId: MEMBER_ID, name: '  ' }],
   ])('rejects malformed %s before RPC', async (kind, payload) => {
     const scoped = caller();
     const session = new SyncSession(scoped.client, service().client, OWNER);

@@ -103,6 +103,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyProjectMembers,
   SyncTable.CompanyProjectBudgets,
   SyncTable.CompanyWageSplits,
+  SyncTable.CompanyVendors,
+  SyncTable.CompanyVendorEntries,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,

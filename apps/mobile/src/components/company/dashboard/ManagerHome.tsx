@@ -23,6 +23,7 @@ import {
   useMoney,
 } from '@/components/company/dashboard/parts';
 import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
+import { VendorsTab } from '@/components/company/vendors/VendorsTab';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useAskBudget, useCompanyEntries, usePoolBalance } from '@/data/companyEntries';
@@ -32,7 +33,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
-type Tab = 'overview' | 'team' | 'payments';
+type Tab = 'overview' | 'team' | 'payments' | 'vendors';
 
 export function ManagerHome({ groupId }: { groupId: string }) {
   const theme = useTheme();
@@ -90,6 +91,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
                 { value: 'overview' as Tab, label: t.company.tabOverview },
                 { value: 'team' as Tab, label: t.company.tabMyTeam },
                 { value: 'payments' as Tab, label: t.company.tabPayments },
+                { value: 'vendors' as Tab, label: t.companyVendors.title },
               ]}
               value={tab}
               onChange={setTab}
@@ -97,6 +99,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
           }
         />
         <DashBody>
+          {tab === 'vendors' ? <VendorsTab groupId={groupId} /> : null}
           {tab === 'overview' ? (
             <>
               <PendingApprovals groupId={groupId} view={view} />

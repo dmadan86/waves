@@ -367,6 +367,30 @@ anyone, is never reimbursable or a wage claim, and is never sent for approval.
   multi-currency, recurring wages, payroll compliance (PF / ESI / TDS, payslips).
 - Business-plan billing.
 
+## Vendors
+
+A company keeps a list of vendors (supplier, contractor, landlord). Each has a ledger with the company:
+a **bill** (the company owes the vendor) and an **advance** or **payment** (the company paid the vendor).
+Balance = confirmed bills - advances - payments: positive "You owe X", negative "X has an advance".
+Waves only records; it never sends or verifies money ("Record payment").
+
+- Data: `company_vendors` and `company_vendor_entries` (migration `20261113090000_company_vendors`), not
+  `company_entries`, so no employee statement, wage run, export or trigger can ever touch them. An invited
+  vendor is a `group_members` row with role `vendor` (migration `20261113080000_company_vendor_role_enum`)
+  linked by `company_vendors.member_id`; a name-only vendor has no member row.
+- Who sees what (RLS `waves_company_vendor_visible`): owner all vendors; manager only vendors they added;
+  a vendor only their own row and ledger; employees nothing (no rows, no counts).
+- Writes only through RPCs: `waves_company_vendor_set/remove`, `..._entry_create/review/void/received`,
+  `waves_company_vendor_invite`. A vendor can only add a **pending** bill (counts after an owner or the
+  adding manager confirms) and mark a payment received (never changes the balance).
+- A manager's advances/payments set `funding_manager_id` and come out of that manager's pool
+  (`waves_company_pool_balance` adds `vendorPaid`; core `poolBalance(entries, id, vendorLines)`).
+- Invite: `waves_company_vendor_invite(vendor)` makes a single-use 30-day link; `waves_join_via_invite`
+  turns the joiner into that vendor's login. A `vendor` member can never create employee entries.
+- Export: the ledger rows are `company_vendor_<kind>` with the vendor name in the `vendor` column.
+- Tests: `packages/core/test/companyVendors.test.ts` (balance, pool, offline overlay),
+  `packages/db/test/company-vendors.test.ts` (RLS and privacy).
+
 ## Testing
 
 - `packages/core/test/company.test.ts`: bata rounding, statement and summary math, the
