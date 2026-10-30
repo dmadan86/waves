@@ -111,3 +111,19 @@ export function urgentRoute(items: readonly { key: UrgentKey }[]): string {
         ? 'company-work'
         : 'company-pending';
 }
+
+export type AttendanceKey = 'present' | 'unmarked' | 'absent';
+
+/** Bar segments in legend order; zero counts drop out, so no people means no segments. */
+export function attendanceSegments(c: {
+  present: number;
+  absent: number;
+  unmarked: number;
+}): { key: AttendanceKey; n: number }[] {
+  const all: { key: AttendanceKey; n: number }[] = [
+    { key: 'present', n: c.present },
+    { key: 'unmarked', n: c.unmarked },
+    { key: 'absent', n: c.absent },
+  ];
+  return all.filter((s) => s.n > 0);
+}

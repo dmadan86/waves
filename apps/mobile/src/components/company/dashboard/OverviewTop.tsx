@@ -1,13 +1,13 @@
 /**
  * The top of the company Overview, as drawn in the owner's mockup: the Today card (day picker +
  * Mark attendance), four headcount tiles, today's tasks beside the Urgent card, and the attendance
- * strip. Owners see everyone, a manager only their team. Waves records; it never moves money.
+ * summary bar. Owners see everyone, a manager only their team. Waves records; it never moves money.
  */
 
 import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Platform, Pressable, ScrollView, useWindowDimensions, View } from 'react-native';
+import { Platform, Pressable, useWindowDimensions, View } from 'react-native';
 
 import { directionalIcon, iconSize, Sheet, Text, useTheme } from '@waves/ui';
 
@@ -20,17 +20,20 @@ import {
   withAlpha,
 } from '@/components/company/dashboard/overviewKit';
 import { GREEN, BLUE } from '@/components/company/dashboard/parts';
-import { PersonAvatar } from '@/components/PersonAvatar';
 import { StandardCard } from '@/components/standard';
-import { useOverview, type DayStatus } from '@/data/companyOverview';
+import { useOverview } from '@/data/companyOverview';
 import { todayIso } from '@/data/personal';
-import { displayName, isGhost } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { dateFrom, isoDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
-import { dayKind, pct, urgentItems, urgentRoute, type UrgentKey } from '@/lib/overviewMath';
-
-const TINTS = ['lilac', 'peach', 'sky', 'pink', 'mint', 'coral'] as const;
+import {
+  attendanceSegments,
+  dayKind,
+  pct,
+  urgentItems,
+  urgentRoute,
+  type UrgentKey,
+} from '@/lib/overviewMath';
 
 export function OverviewTop({
   groupId,
@@ -67,6 +70,22 @@ export function OverviewTop({
     month: 'short',
     year: 'numeric',
   });
+  const attColor = { present: GREEN, unmarked: theme.color.textMuted, absent: RED };
+  const attLabel = {
+    present: t.company.overviewPresent,
+    unmarked: t.company.overviewUnmarked,
+    absent: t.company.overviewAbsent,
+  };
+  // Present always shows; the other two only when someone is in them.
+  const segments = attendanceSegments(o.counts);
+  const legend = (['present', 'unmarked', 'absent'] as const)
+    .filter((k) => k === 'present' || o.counts[k] > 0)
+    .map((k) => ({ key: k, label: attLabel[k], color: attColor[k], n: o.counts[k] }));
+  const attTitle = isToday
+    ? t.company.ovAttendanceToday
+    : fill(t.company.ovAttendanceDay, {
+        date: dateFrom(day).toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
+      });
   const attendanceRoute = `/group/${groupId}/company-attendance?date=${day}`;
 
   if (!o.ready)
@@ -405,58 +424,48 @@ export function OverviewTop({
         )}
       </View>
 
-      <StandardCard
-        style={{ paddingHorizontal: 12, paddingVertical: 12, borderRadius: 22, gap: 10 }}
-      >
-        <View
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      {o.people.length > 0 ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${attTitle}: ${legend.map((l) => `${l.label} ${l.n}`).join(', ')}`}
+          onPress={() => router.push(attendanceRoute)}
         >
-          <Text
-            variant="title"
-            numberOfLines={1}
-            style={{ fontSize: 17, fontWeight: '700', flexShrink: 1 }}
+          <StandardCard
+            style={{ paddingHorizontal: 12, paddingVertical: 12, borderRadius: 22, gap: 10 }}
           >
-            {isToday ? t.company.ovAttendanceToday : t.company.ovAttendanceDay}
-          </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push(attendanceRoute)}
-            hitSlop={8}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
-          >
-            <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-              {t.company.ovSeeAll}
+            <Text variant="title" numberOfLines={1} style={{ fontSize: 17, fontWeight: '700' }}>
+              {attTitle}
             </Text>
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.sm}
-              color={theme.color.brand}
-            />
-          </Pressable>
-        </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 10 }}
-        >
-          {o.people.map(({ member, status }, i) => (
-            <PersonStatus
-              key={member.id}
-              status={status}
-              name={displayName(member, null, null, t.misc.someone).split(' ')[0] ?? ''}
-              avatar={
-                <PersonAvatar
-                  member={member}
-                  name={displayName(member)}
-                  ghost={isGhost(member)}
-                  size={52}
-                  tint={TINTS[i % TINTS.length]}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 16, rowGap: 4 }}>
+              {legend.map((l) => (
+                <View key={l.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View
+                    style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: l.color }}
+                  />
+                  <Text variant="caption" style={{ color: theme.color.text }}>
+                    {l.label}
+                  </Text>
+                  <Text variant="caption" style={{ fontWeight: '700', color: theme.color.text }}>
+                    {l.n}
+                  </Text>
+                </View>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', height: 14, borderRadius: 7, overflow: 'hidden' }}>
+              {segments.map((s, i) => (
+                <View
+                  key={s.key}
+                  style={{
+                    flex: s.n,
+                    backgroundColor: attColor[s.key],
+                    marginStart: i > 0 ? 2 : 0,
+                  }}
                 />
-              }
-            />
-          ))}
-        </ScrollView>
-      </StandardCard>
+              ))}
+            </View>
+          </StandardCard>
+        </Pressable>
+      ) : null}
       {afterAttendance}
       {picker}
     </>
@@ -568,58 +577,5 @@ function Tile({
         ) : null}
       </StandardCard>
     </Pressable>
-  );
-}
-
-function PersonStatus({
-  status,
-  name,
-  avatar,
-}: {
-  status: DayStatus;
-  name: string;
-  avatar: React.ReactNode;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const [color, word] =
-    status === 'present'
-      ? [GREEN, t.company.overviewPresent]
-      : status === 'absent'
-        ? [RED, t.company.overviewAbsent]
-        : [theme.color.textMuted, t.company.overviewUnmarked];
-  return (
-    <View
-      style={{ width: 68, alignItems: 'center', gap: 2 }}
-      accessible
-      accessibilityLabel={`${name}, ${word}`}
-    >
-      <View>
-        {avatar}
-        <View
-          style={{
-            position: 'absolute',
-            end: 0,
-            bottom: 0,
-            width: 14,
-            height: 14,
-            borderRadius: 7,
-            backgroundColor: color,
-            borderWidth: 2,
-            borderColor: theme.color.surface,
-          }}
-        />
-      </View>
-      <Text
-        variant="caption"
-        numberOfLines={1}
-        style={{ fontSize: 13, fontWeight: '600', color: theme.color.text }}
-      >
-        {name}
-      </Text>
-      <Text variant="micro" numberOfLines={1} style={{ color }}>
-        {word}
-      </Text>
-    </View>
   );
 }
