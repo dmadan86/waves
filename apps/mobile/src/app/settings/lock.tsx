@@ -9,7 +9,8 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import {
@@ -70,16 +71,19 @@ export default function LockSettingsScreen() {
 
   // Only ever says "last backed up" for a backup that really landed.
   const [lastBackup, setLastBackup] = useState<number | null>(null);
-  useEffect(() => {
-    if (!ownerId) return;
-    let alive = true;
-    void loadBackupSettings(ownerId)
-      .then((settings) => alive && setLastBackup(settings.last?.at ?? null))
-      .catch(() => undefined);
-    return () => {
-      alive = false;
-    };
-  }, [ownerId]);
+  // Re-read on every return, so a backup made on the Backup screen shows here.
+  useFocusEffect(
+    useCallback(() => {
+      if (!ownerId) return;
+      let alive = true;
+      void loadBackupSettings(ownerId)
+        .then((settings) => alive && setLastBackup(settings.last?.at ?? null))
+        .catch(() => undefined);
+      return () => {
+        alive = false;
+      };
+    }, [ownerId]),
+  );
 
   const day = (ms: number) =>
     new Date(ms).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
