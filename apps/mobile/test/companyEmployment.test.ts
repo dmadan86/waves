@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   canSetEmployment,
+  employeeIdHolder,
   employmentPeople,
   isEmploymentDate,
   isNotEmployed,
@@ -23,6 +24,11 @@ const person = (
 });
 
 describe('company employment helpers', () => {
+  it('finds the live holder of an employee ID without case sensitivity', () => {
+    const holder = { id: 'other', employee_id: 'emp-7' };
+    expect(employeeIdHolder([holder], ' EMP-7 ', 'rehire')).toBe(holder);
+    expect(employeeIdHolder([holder], 'EMP-7', 'other')).toBeUndefined();
+  });
   it('recognises left employees and keeps other roles out of the not-employed segment', () => {
     const departed = person({ left_at: '2026-10-01' });
     expect(isNotEmployed(departed)).toBe(true);

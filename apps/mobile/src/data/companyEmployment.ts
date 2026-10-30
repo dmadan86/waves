@@ -1,6 +1,18 @@
 import type { MemberRow } from './types';
 
 type Person = Pick<MemberRow, 'id' | 'role' | 'manager_id' | 'left_at'>;
+export function employeeIdHolder<T extends Pick<MemberRow, 'id' | 'employee_id'>>(
+  members: readonly T[],
+  employeeId: string,
+  exceptMemberId?: string,
+): T | undefined {
+  const normalized = employeeId.trim().toLocaleLowerCase();
+  return members.find(
+    (member) =>
+      member.id !== exceptMemberId && member.employee_id?.trim().toLocaleLowerCase() === normalized,
+  );
+}
+
 export function employmentPeople<T extends Person>(
   members: readonly T[],
   notEmployed: boolean,
