@@ -149,6 +149,8 @@ export interface MemberRow {
   role: 'admin' | 'manager' | 'member';
   /** Company groups: the manager this employee reports to (null = the owners). */
   manager_id?: string | null;
+  /** Company groups: the free-text employee ID, e.g. EMP-014 (owner/manager/self can read it). */
+  employee_id?: string | null;
   /** The UPI-shaped fields. Superseded by the rail pair; still read as a fallback. */
   vpa: string | null;
   /** Which rail this person is paid on here — a `RailId` from `@waves/core`. */

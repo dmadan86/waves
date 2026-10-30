@@ -22,6 +22,8 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { EMPLOYEE_ID_MAX } from '@waves/core';
+
 import { familyOf } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { type PickedContact } from '@/components/ContactPicker';
@@ -37,6 +39,8 @@ import {
 import { useBlockedUsers } from '@/data/blocked';
 import {
   useAssignCompanyMember,
+  useEmployeeIdTaken,
+  useSetEmployeeId,
   useCompanyProjects,
   useSetMemberProjects,
 } from '@/data/companyEntries';
@@ -78,6 +82,11 @@ export default function MembersScreen() {
   const { group, members } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, profile?.id ?? null);
   const { blockedIds } = useBlockedUsers();
+  const setEmployeeId = useSetEmployeeId(groupId);
+  const isTaken = useEmployeeIdTaken(groupId, members.data ?? []);
+  const [employeeId, setEmployeeIdDraft] = useState('');
+  const [employeeIdError, setEmployeeIdError] = useState<string | null>(null);
+  const [checkingId, setCheckingId] = useState(false);
   const addGhost = useAddGhostMember(groupId);
   const claims = useMemberClaims(groupId);
   const decide = useDecideMemberClaim(groupId);
@@ -189,7 +198,8 @@ export default function MembersScreen() {
     if (siteIds.length > 0) setSites.mutate({ memberId, projectIds: siteIds });
   };
 
-  const add = (): void => {
+  const add = async (): Promise<void> => {
+    if (checkingId || addGhost.isPending) return;
     const name = ghostName.trim();
     // A company asks phone and email in their own fields; other groups keep the one address field.
     const contact = isCompany
@@ -197,11 +207,24 @@ export default function MembersScreen() {
       : contactOf(ghostContact);
     if (isCompany ? !name : !name && !contact.email && !contact.phone) return;
     setError(null);
+    const trimmedId = isCompany ? employeeId.trim() : '';
+    setEmployeeIdError(null);
+    if (trimmedId) {
+      setCheckingId(true);
+      const taken = await isTaken(trimmedId);
+      setCheckingId(false);
+      if (taken) {
+        setEmployeeIdError(t.company.employeeIdTaken);
+        return;
+      }
+    }
     addGhost.mutate(
       { name, ...contact },
       {
         onSuccess: (memberId) => {
           placeNewPerson(memberId);
+          if (trimmedId) setEmployeeId.mutate({ memberId, employeeId: trimmedId });
+          setEmployeeIdDraft('');
           setReportsTo('');
           setSiteIds([]);
           setGhostName('');
@@ -375,23 +398,28 @@ export default function MembersScreen() {
               <ListRow
                 title={displayName(member, profile?.id, blockedIds, t.misc.someone)}
                 subtitle={
-                  isCompany && isViewer(member, profile?.id)
-                    ? // A company roster shows the address, not a payment handle.
-                      (session?.user?.email ?? undefined)
-                    : isCompany && !isBlockedMember(member, blockedIds)
-                      ? (member.invite_email ?? member.invite_phone ?? undefined) ||
-                        (isGhost(member) ? t.notJoinedYet : undefined)
-                      : isGhost(member)
-                        ? t.notJoinedYet
-                        : isBlockedMember(member, blockedIds)
-                          ? // A payment handle carries a name, an address or a
-                            // phone number — masked for a blocked person.
-                            t.misc.noUpiYet
-                          : // `payableAt`, not the legacy column alone: the rail
-                            // pair is where a handle lives now, and reading only
-                            // `vpa`/`default_vpa` told everybody on Pix, PayID or
-                            // Venmo that they had given nothing.
-                            (payableAt(member)?.handle ?? t.misc.noUpiYet)
+                  [
+                    isCompany ? member.employee_id : null,
+                    isCompany && isViewer(member, profile?.id)
+                      ? // A company roster shows the address, not a payment handle.
+                        (session?.user?.email ?? undefined)
+                      : isCompany && !isBlockedMember(member, blockedIds)
+                        ? (member.invite_email ?? member.invite_phone ?? undefined) ||
+                          (isGhost(member) ? t.notJoinedYet : undefined)
+                        : isGhost(member)
+                          ? t.notJoinedYet
+                          : isBlockedMember(member, blockedIds)
+                            ? // A payment handle carries a name, an address or a
+                              // phone number — masked for a blocked person.
+                              t.misc.noUpiYet
+                            : // `payableAt`, not the legacy column alone: the rail
+                              // pair is where a handle lives now, and reading only
+                              // `vpa`/`default_vpa` told everybody on Pix, PayID or
+                              // Venmo that they had given nothing.
+                              (payableAt(member)?.handle ?? t.misc.noUpiYet),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || undefined
                 }
                 leading={
                   <PersonAvatar
@@ -615,6 +643,27 @@ export default function MembersScreen() {
               {isCompany ? <Helper>{t.people.namePlaceholder}</Helper> : null}
               {isCompany ? (
                 <>
+                  <Field icon="id-card-outline">
+                    <TextInput
+                      value={employeeId}
+                      onChangeText={(next) => {
+                        setEmployeeIdDraft(next);
+                        setEmployeeIdError(null);
+                      }}
+                      maxLength={EMPLOYEE_ID_MAX}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholder={t.company.employeeIdOptional}
+                      accessibilityLabel={t.company.employeeIdOptional}
+                      placeholderTextColor={theme.color.textFaint}
+                      style={inputStyle}
+                    />
+                  </Field>
+                  {employeeIdError ? <Callout tone="negative">{employeeIdError}</Callout> : null}
+                </>
+              ) : null}
+              {isCompany ? (
+                <>
                   <Field icon="call-outline">
                     <TextInput
                       value={ghostContact}
@@ -733,7 +782,8 @@ export default function MembersScreen() {
                 fullWidth
                 disabled={
                   (isCompany ? !ghostName.trim() : !ghostName.trim() && !ghostContact.trim()) ||
-                  addGhost.isPending
+                  addGhost.isPending ||
+                  checkingId
                 }
                 onPress={add}
               />

@@ -69,11 +69,14 @@ function ManagerRow({
         />
       }
       title={displayName(manager, null, null, t.misc.someone)}
-      subtitle={
+      subtitle={[
+        manager.employee_id,
         spent === 0n
           ? t.company.cashLeft
-          : `${t.company.cashLeft} · ${t.company.companyPayer}: ${format(money(spent, view.currency as CurrencyCode), { locale })}`
-      }
+          : `${t.company.cashLeft} · ${t.company.companyPayer}: ${format(money(spent, view.currency as CurrencyCode), { locale })}`,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
       amount={
         balance === null ? '' : format(money(balance, view.currency as CurrencyCode), { locale })
       }
@@ -267,9 +270,14 @@ export function ManagerCashRowPublic({
       }
       title={displayName(manager, null, null, t.misc.someone)}
       titleAccessory={<RolePill label={t.company.manager} />}
-      subtitle={fill(t.company.budgetPerMonth, {
-        amount: format(money(budget, view.currency as CurrencyCode), { locale }),
-      })}
+      subtitle={[
+        manager.employee_id,
+        fill(t.company.budgetPerMonth, {
+          amount: format(money(budget, view.currency as CurrencyCode), { locale }),
+        }),
+      ]
+        .filter(Boolean)
+        .join(' · ')}
       amount={String(team)}
       onPress={onPress}
       divider={divider}

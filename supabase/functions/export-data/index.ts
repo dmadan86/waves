@@ -438,6 +438,7 @@ export async function handleExportData(
         'claims_minor',
         'recovery_minor',
         'funding_manager',
+        'Employee ID',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -455,7 +456,7 @@ export async function handleExportData(
         anyFamilies
           ? [
               ...cells,
-              ...Array(Math.max(0, 36 - cells.length)).fill(''),
+              ...Array(Math.max(0, 37 - cells.length)).fill(''),
               familyName(units, memberId),
             ]
           : cells;
@@ -500,6 +501,12 @@ export async function handleExportData(
               String(row.claims_minor ?? ''),
               String(row.recovery_minor ?? ''),
               row.funding_manager_id ? nameOf(row.funding_manager_id as string) : '',
+              row.paid_by_company
+                ? ''
+                : String(
+                    entry.members.find((m: Record<string, unknown>) => m.id === row.member_id)
+                      ?.employee_id ?? '',
+                  ),
             ],
             row.member_id,
           ),
