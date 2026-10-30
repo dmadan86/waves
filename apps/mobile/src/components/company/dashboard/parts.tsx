@@ -378,7 +378,7 @@ export function DashHeader({
             accessibilityRole="button"
             onPress={() => {
               setSwitching(false);
-              router.push('/new-group?type=company');
+              router.push('/new-company');
             }}
             style={{
               flexDirection: 'row',

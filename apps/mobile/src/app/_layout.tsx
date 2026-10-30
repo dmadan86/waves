@@ -827,6 +827,7 @@ function AuthGate() {
           <Stack.Screen name="link-requests" options={slide} />
           <Stack.Screen name="companies" options={slide} />
           <Stack.Screen name="new-group" options={slide} />
+          <Stack.Screen name="new-company" options={slide} />
           <Stack.Screen name="clone-group" options={slide} />
           {/* The paywall is an unwired placeholder, so it stays unreachable
                 until its flag is on — a nested guard rather than a conditional,
