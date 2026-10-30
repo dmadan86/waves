@@ -71,8 +71,6 @@ describe('blocked company: attendance, work and documents', () => {
       await mark(0);
       await task(0);
       await doc(0);
-      await as(0, () => db.query("UPDATE groups SET updated_at=updated_at WHERE id=$1", [g.groupId]));
-      await as(0, () => db.query("SELECT 1"), 'service_role');
       await as(0, () => db.query("SELECT waves_admin_company_block($1,'complaint','Staff complaint')", [g.groupId]), 'service_role');
       await denied(() => mark(0));
       await denied(() => mark(1));
