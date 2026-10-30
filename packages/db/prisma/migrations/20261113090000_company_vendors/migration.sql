@@ -99,7 +99,10 @@ BEGIN
  IF r.deleted_at IS NOT NULL THEN RETURN; END IF;
  UPDATE public.company_vendors SET deleted_at=now(),version=version+1,updated_at=now() WHERE id=r.id;
  -- A linked vendor login stops seeing the ledger once the vendor is removed.
- IF r.member_id IS NOT NULL THEN UPDATE public.group_members SET left_at=now() WHERE id=r.member_id AND left_at IS NULL; END IF;
+ IF r.member_id IS NOT NULL THEN
+  UPDATE public.group_members SET left_at=now() WHERE id=r.member_id AND left_at IS NULL;
+  UPDATE public.company_vendors SET member_id=NULL WHERE id=r.id;
+ END IF;
 END $$;
 
 -- One ledger line. A vendor may only add a pending bill; owner/manager lines count at once.
@@ -260,3 +263,13 @@ BEGIN
  SELECT coalesce(sum(amount),0) INTO vp FROM public.company_vendor_entries WHERE group_id=p_group_id AND funding_manager_id=p_manager_id AND kind IN ('advance','payment') AND status='approved' AND deleted_at IS NULL;
  RETURN jsonb_build_object('allocated',a::text,'returned',r::text,'adjusted',j::text,'advances',d::text,'reimbursed',b::text,'wages',w::text,'ownSpend',s::text,'cashReturned',c::text,'companySpend',q::text,'vendorPaid',vp::text,'balance',(a+j-r-d-b-w-s-q-vp+c)::text);
 END $$;
+
+-- Vendor invites are minted only by waves_company_vendor_invite (it checks who may); direct writes cannot set the link.
+CREATE FUNCTION public.waves_invite_vendor_guard() RETURNS trigger
+ LANGUAGE plpgsql SET search_path TO 'public','pg_temp' AS $$
+BEGIN
+ IF current_user IN ('anon','authenticated') AND NEW.company_vendor_id IS DISTINCT FROM (CASE WHEN TG_OP='UPDATE' THEN OLD.company_vendor_id END) THEN
+  RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER invites_vendor_guard BEFORE INSERT OR UPDATE ON public.invites FOR EACH ROW EXECUTE FUNCTION public.waves_invite_vendor_guard();
