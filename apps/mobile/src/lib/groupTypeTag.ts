@@ -68,6 +68,7 @@ export function groupTypeTag(
     case GroupType.Home:
     case GroupType.Couple:
     case GroupType.Friends:
+    case GroupType.Company:
       return { type, label: labels.types[type], custom: false };
     case GroupType.Event: {
       const template =

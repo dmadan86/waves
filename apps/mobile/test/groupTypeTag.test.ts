@@ -90,3 +90,18 @@ describe('custom tag', () => {
     expect(normaliseGroupTag('a'.repeat(23) + ' b')).toBe('a'.repeat(23));
   });
 });
+
+describe('groupTypeTag in the activity feed', () => {
+  it('labels a company group Company', () => {
+    expect(groupTypeTag('company', null, labels)).toEqual({
+      type: GroupType.Company,
+      label: 'Company',
+      custom: false,
+    });
+  });
+
+  it('lets the custom tag win over the type', () => {
+    expect(groupTypeTag('company', null, labels, 'Payroll')?.label).toBe('Payroll');
+    expect(groupTypeTag('trip', null, labels, ' Goa ')?.label).toBe('Goa');
+  });
+});
