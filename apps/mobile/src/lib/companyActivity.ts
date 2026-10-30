@@ -95,6 +95,7 @@ export interface ActivityInput {
   readonly tasks: readonly {
     readonly id: string;
     readonly memberId: string;
+    readonly day: string;
     readonly title: string;
     readonly status: string;
     readonly createdBy: string;
@@ -124,6 +125,13 @@ const POOL_KINDS = new Set(['allocation', 'pool_return', 'pool_adjustment', 'poo
 const SAME_ACT_MS = 2000;
 /** Marks by one person closer together than this are one marking session. */
 const SESSION_GAP_MS = 5 * 60 * 1000;
+
+/**
+ * shortcut: a reassignment re-stamps a person's whole history, so a mark or task only counts as news
+ * when its date is within a week of its stamp; upgrade when the server keeps a per-action stamp.
+ */
+const nearDay = (day: string, at: number): boolean =>
+  Math.abs(at - Date.parse(`${day}T12:00:00`)) <= 7 * 24 * 60 * 60 * 1000;
 
 const ms = (iso: string | null | undefined): number => (iso ? Date.parse(iso) : NaN);
 
@@ -203,12 +211,17 @@ export function buildCompanyActivity(input: ActivityInput): CompanyActivityEvent
 
   // Attendance: one row per marking session (same person, same mark, marks minutes apart).
   const marks = input.attendance
-    .filter((a) => sees(a.memberId) && Number.isFinite(ms(a.updatedAt)))
+    .filter(
+      (a) =>
+        sees(a.memberId) && Number.isFinite(ms(a.updatedAt)) && nearDay(a.day, ms(a.updatedAt)),
+    )
     .map((a) => ({ ...a, t: ms(a.updatedAt) }))
     .sort((a, b) =>
       a.markedBy === b.markedBy
         ? a.status === b.status
-          ? a.t - b.t
+          ? a.day === b.day
+            ? a.t - b.t
+            : a.day.localeCompare(b.day)
           : a.status.localeCompare(b.status)
         : a.markedBy.localeCompare(b.markedBy),
     );
@@ -240,7 +253,10 @@ export function buildCompanyActivity(input: ActivityInput): CompanyActivityEvent
     const prev = session[session.length - 1];
     if (
       prev &&
-      (prev.markedBy !== m.markedBy || prev.status !== m.status || m.t - prev.t > SESSION_GAP_MS)
+      (prev.markedBy !== m.markedBy ||
+        prev.status !== m.status ||
+        prev.day !== m.day ||
+        m.t - prev.t > SESSION_GAP_MS)
     )
       flush();
     session.push(m);
@@ -263,6 +279,7 @@ export function buildCompanyActivity(input: ActivityInput): CompanyActivityEvent
     });
     if (
       (k.status === 'done' || k.status === 'blocked') &&
+      nearDay(k.day, ms(k.updatedAt)) &&
       ms(k.updatedAt) - ms(k.createdAt) > SAME_ACT_MS
     )
       push({
@@ -390,7 +407,9 @@ export function buildCompanyActivity(input: ActivityInput): CompanyActivityEvent
       if (
         d.docType === 'bill' &&
         d.status === 'paid' &&
-        ms(updatedAt) - ms(createdAt) > SAME_ACT_MS
+        ms(updatedAt) - ms(createdAt) > SAME_ACT_MS &&
+        // An edit of an already paid bill (a later day) is not a new payment.
+        localDay(ms(updatedAt)) === d.payments.reduce((m, p) => (p.paidOn > m ? p.paidOn : m), '')
       )
         push({
           ...base,

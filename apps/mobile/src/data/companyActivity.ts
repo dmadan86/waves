@@ -48,17 +48,19 @@ export function useCompanyActivity(groupId: string): {
     };
   }, [mirror, groupId]);
 
+  const { isOwner, isVendor, isManager, me, members, manageableIds, entries, ready } = view;
+  const vendorList = vendors.vendors;
+  const vendorLines = vendors.lines;
+  const docList = docs.docs;
   const events = useMemo(() => {
-    const role: ActivityRole = view.isOwner
+    const role: ActivityRole = isOwner
       ? 'owner'
-      : view.isVendor
+      : isVendor
         ? 'vendor'
-        : view.isManager
+        : isManager
           ? 'manager'
           : 'employee';
-    const names = new Map(
-      view.members.map((m) => [m.id, displayName(m, null, null, t.misc.someone)]),
-    );
+    const names = new Map(members.map((m) => [m.id, displayName(m, null, null, t.misc.someone)]));
     const entryReviews = new Map<string, { at: string; by: string }>();
     for (const r of raw.entries)
       if (r.reviewed_at && r.reviewed_by)
@@ -69,10 +71,10 @@ export function useCompanyActivity(groupId: string): {
     const docStamps = new Map(raw.docs.map((r) => [str(r.id), r]));
     return buildCompanyActivity({
       viewer: {
-        memberId: view.me?.id ?? null,
+        memberId: me?.id ?? null,
         role,
-        manageableIds: view.manageableIds,
-        active: view.ready && !!view.me && !view.me.left_at,
+        manageableIds: manageableIds,
+        active: ready && !!me && !me.left_at,
       },
       labels: {
         you: t.companyActivity.you,
@@ -80,7 +82,7 @@ export function useCompanyActivity(groupId: string): {
         someone: t.misc.someone,
       },
       names,
-      entries: view.entries,
+      entries: entries,
       entryReviews,
       attendance: raw.attendance.map((r) => ({
         memberId: str(r.member_id),
@@ -92,6 +94,7 @@ export function useCompanyActivity(groupId: string): {
       tasks: raw.tasks.map((r) => ({
         id: str(r.id),
         memberId: str(r.member_id),
+        day: str(r.day).slice(0, 10),
         title: str(r.title),
         status: str(r.status),
         createdBy: str(r.created_by),
@@ -106,18 +109,32 @@ export function useCompanyActivity(groupId: string): {
         leftAt: str(r.left_at) || null,
         removedBy: str(r.removed_by) || null,
       })),
-      vendors: vendors.vendors,
-      vendorLines: vendors.lines,
+      vendors: vendorList,
+      vendorLines: vendorLines,
       vendorReviews,
       // A queued (offline) document has no server stamp yet: it joins the feed once it syncs.
-      docs: docs.docs.flatMap((doc) => {
+      docs: docList.flatMap((doc) => {
         const s = docStamps.get(doc.id);
         return s ? [{ doc, createdAt: str(s.created_at), updatedAt: str(s.updated_at) }] : [];
       }),
     });
-  }, [view, vendors, docs.docs, raw, t]);
+  }, [
+    isOwner,
+    isVendor,
+    isManager,
+    me,
+    members,
+    manageableIds,
+    entries,
+    ready,
+    vendorList,
+    vendorLines,
+    docList,
+    raw,
+    t,
+  ]);
 
-  return { events, ready: view.ready };
+  return { events, ready };
 }
 
 /** The Overview bell's red dot: something new from somebody else since this phone last opened the feed. */
