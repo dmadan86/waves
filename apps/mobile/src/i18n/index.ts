@@ -1557,6 +1557,7 @@ export interface UiStrings {
     salaryPayment: string;
     tabOverview: string;
     tabEmployees: string;
+    overviewTasks: string;
     tabManagers: string;
     tabBudgets: string;
     tabPayments: string;
@@ -8310,6 +8311,7 @@ const en: UiStrings = {
     salaryPayment: 'Salary payment',
     tabOverview: 'Overview',
     tabEmployees: 'Employees',
+    overviewTasks: 'Tasks',
     tabManagers: 'Managers',
     tabBudgets: 'Budgets',
     tabPayments: 'Payments',
@@ -14520,6 +14522,7 @@ const ta: UiStrings = {
     salaryPayment: 'சம்பளம் கொடுப்பு',
     tabOverview: 'கண்ணோட்டம்',
     tabEmployees: 'ஊழியர்கள்',
+    overviewTasks: 'பணிகள்',
     tabManagers: 'மேலாளர்கள்',
     tabBudgets: 'பட்ஜெட்',
     tabPayments: 'கொடுப்பனவுகள்',
@@ -20895,6 +20898,7 @@ const hi: UiStrings = {
     salaryPayment: 'वेतन भुगतान',
     tabOverview: 'अवलोकन',
     tabEmployees: 'कर्मचारी',
+    overviewTasks: 'कार्य',
     tabManagers: 'मैनेजर',
     tabBudgets: 'बजट',
     tabPayments: 'भुगतान',
@@ -27162,6 +27166,7 @@ const ar: UiStrings = {
     salaryPayment: 'دفعة راتب',
     tabOverview: 'نظرة عامة',
     tabEmployees: 'الموظفون',
+    overviewTasks: 'المهام',
     tabManagers: 'المديرون',
     tabBudgets: 'الميزانيات',
     tabPayments: 'المدفوعات',
