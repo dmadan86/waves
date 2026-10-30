@@ -82,7 +82,7 @@ export function WorkTaskSections({
                           }}
                         >
                           <Pressable
-                            disabled={!canChange(task) || busy || task.status === 'blocked'}
+                            disabled={!canChange(task) || busy}
                             accessibilityRole="button"
                             accessibilityLabel={t.company.workStatus}
                             onPress={() => onChangeStatus(task, advanceWorkStatus(task.status))}

@@ -1057,7 +1057,10 @@ export class SyncSession {
           p_status: status,
           p_blocked_reason: companyReason(mutation.payload.blockedReason, 'blockedReason', false),
           p_note: companyReason(mutation.payload.note, 'note', false),
-          p_due_time: companyTime(mutation.payload.dueTime),
+          // An older client omits dueTime: leave it out so the 9-argument wrapper keeps the saved time.
+          ...(mutation.payload.dueTime === undefined
+            ? {}
+            : { p_due_time: companyTime(mutation.payload.dueTime) }),
         });
       }
       case 'company_work.remove':
