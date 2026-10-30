@@ -7,7 +7,7 @@
 import { useState } from 'react';
 
 import { SectionShell } from '@/components/company/bar/SectionShell';
-import { MoneyCards, UpcomingPayments } from '@/components/company/dashboard/OverviewMoney';
+import { MoneyCards, DuePaymentsCard } from '@/components/company/dashboard/OverviewMoney';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { RecentActivity } from '@/components/company/dashboard/parts';
 import { useCompanyEntries } from '@/data/companyEntries';
@@ -23,7 +23,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
         <OverviewTop
           groupId={groupId}
           afterTiles={<MoneyCards groupId={groupId} />}
-          afterAttendance={<UpcomingPayments groupId={groupId} />}
+          afterAttendance={<DuePaymentsCard groupId={groupId} />}
         />
         {view.ready ? (
           <RecentActivity

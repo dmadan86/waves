@@ -78,7 +78,7 @@ export function MoneyCards({ groupId }: { groupId: string }) {
   );
 }
 
-export function UpcomingPayments({ groupId }: { groupId: string }) {
+export function DuePaymentsCard({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const today = todayIso();
