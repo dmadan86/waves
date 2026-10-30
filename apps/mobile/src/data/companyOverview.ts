@@ -11,12 +11,6 @@ import { useGroupRecurring } from '@/data/groupRecurring';
 import { todayIso } from '@/data/personal';
 import { backend } from '@/lib/backend';
 
-const startOfLocalDay = (): string => {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString();
-};
-
 export interface ActiveToday {
   readonly total: number;
   readonly active: number;
@@ -29,21 +23,24 @@ export interface ActiveToday {
  */
 export function useActiveToday(groupId: string): ActiveToday | null {
   const access = useWorkdayAccess(groupId);
+  const view = useCompanyEntries(groupId);
+  const enabled = access.canManage && access.enabled;
   const q = useQuery({
-    queryKey: ['company-active-today', groupId, todayIso()],
-    enabled: access.canManage && access.enabled,
+    // Keyed by viewer: a different account or a demoted owner never reads the previous scope's cache.
+    queryKey: ['company-active-today', groupId, view.me?.id, view.isOwner, todayIso()],
+    enabled,
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await backend.rpc('waves_company_active_today', {
         p_group_id: groupId,
-        p_since: startOfLocalDay(),
+        p_tz_offset_minutes: -new Date().getTimezoneOffset(),
       });
       if (error) throw new Error(error.message);
       const r = data as { total: number; active: number; activeMemberIds: string[] };
       return { total: r.total, active: r.active, activeIds: new Set(r.activeMemberIds) };
     },
   });
-  return q.data ?? null;
+  return enabled ? (q.data ?? null) : null;
 }
 
 export interface TodayCounts {
