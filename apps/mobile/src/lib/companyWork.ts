@@ -47,10 +47,16 @@ export function advanceWorkStatus(status: MirrorWorkTask['status']): MirrorWorkT
   return status === 'todo' ? 'doing' : status === 'doing' ? 'done' : 'todo';
 }
 
-export function formatWorkTime(day: string, dueTime: string | null, today: string, locale: string) {
+export function formatWorkTime(
+  day: string,
+  dueTime: string | null,
+  today: string,
+  locale: string,
+  todayLabel: string,
+) {
   if (!dueTime)
     return day === today
-      ? 'Today'
+      ? todayLabel
       : new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
           month: 'short',
           day: 'numeric',
@@ -62,5 +68,5 @@ export function formatWorkTime(day: string, dueTime: string | null, today: strin
     minute: '2-digit',
     timeZone: 'UTC',
   });
-  return `${day === today ? 'Today' : new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' })}, ${time}`;
+  return `${day === today ? todayLabel : new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' })}, ${time}`;
 }

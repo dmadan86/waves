@@ -35,6 +35,8 @@ describe('company work helpers', () => {
     expect(advanceWorkStatus('todo')).toBe('doing');
     expect(advanceWorkStatus('doing')).toBe('done');
     expect(advanceWorkStatus('done')).toBe('todo');
-    expect(formatWorkTime('2026-10-30', '17:00', '2026-10-30', 'en-US')).toBe('Today, 5:00 PM');
+    expect(formatWorkTime('2026-10-30', '17:00', '2026-10-30', 'en-US', 'Today')).toBe(
+      'Today, 5:00 PM',
+    );
   });
 });
