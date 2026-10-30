@@ -77,6 +77,7 @@ export enum MutationKind {
   CompanyMemberAdd = 'company_member.add',
   CompanyMemberAssign = 'company_member.assign',
   CompanyMemberProjectsSet = 'company_member.projects_set',
+  CompanyMemberEmployeeIdSet = 'company_member.employee_id_set',
   CompanyProjectSet = 'company_project.set',
   CompanyPoolPost = 'company_pool.post',
   CompanyWagePay = 'company_wage.pay',
@@ -525,6 +526,12 @@ export interface CompanyMemberAssignPayload {
   readonly memberId: string;
   readonly managerId: string | null;
   readonly reason: string;
+}
+
+/** Owner or the employee's manager: set (or clear with null/blank) the free-text employee ID. */
+export interface CompanyMemberEmployeeIdSetPayload {
+  readonly memberId: string;
+  readonly employeeId: string | null;
 }
 
 export interface CompanyMemberProjectsSetPayload {
