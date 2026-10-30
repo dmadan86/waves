@@ -4,14 +4,16 @@
  */
 
 import { useMemo } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { router } from '@/lib/navigation';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { companyStatement } from '@waves/core';
-import { Screen, Text, useTheme } from '@waves/ui';
+import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
-import { DashHeader, PlusButton, useMoney } from '@/components/company/dashboard/parts';
+import { DashBody, DashHeader, useMoney } from '@/components/company/dashboard/parts';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
-import { ScenicBody, StandardCard } from '@/components/standard';
+import { StandardCard } from '@/components/standard';
 import { useCompanyEntries, useCompanyPeople } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
@@ -48,7 +50,7 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
   return (
     <Screen edges={[]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance + 90 }}
+        contentContainerStyle={{ paddingBottom: clearance + 24 }}
         showsVerticalScrollIndicator={false}
       >
         <DashHeader
@@ -59,7 +61,7 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
             boss ? fill(t.company.yourManager, { name: boss.display_name }) : t.company.yourOwners
           }
         />
-        <ScenicBody>
+        <DashBody>
           {view.entries.length === 0 ? (
             <Text variant="body" tone="muted">
               {t.company.welcomeEmployee}
@@ -91,9 +93,28 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
           {me ? (
             <CompanyStatementView view={view} member={me} period="all" groupId={groupId} />
           ) : null}
-        </ScenicBody>
+        </DashBody>
       </ScrollView>
-      <PlusButton groupId={groupId} bottom={clearance} />
+      {/* The hero button scrolls away; statements are long, so keep an add action in reach. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.company.addEntry}
+        onPress={() => router.push(`/group/${groupId}/company-entry`)}
+        style={{
+          position: 'absolute',
+          right: theme.spacing.lg,
+          bottom: clearance + 8,
+          width: 54,
+          height: 54,
+          borderRadius: 27,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.buttonPrimary,
+          elevation: 4,
+        }}
+      >
+        <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
+      </Pressable>
     </Screen>
   );
 }

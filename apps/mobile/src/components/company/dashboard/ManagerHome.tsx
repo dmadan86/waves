@@ -9,22 +9,13 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { ScrollView, View } from 'react-native';
 
 import { dashboardStats, poolBalance } from '@waves/core';
-import {
-  AmountField,
-  Button,
-  ChipRow,
-  Row,
-  Screen,
-  Sheet,
-  Text,
-  iconSize,
-  useTheme,
-} from '@waves/ui';
+import { AmountField, Button, Row, Screen, Sheet, Text, iconSize, useTheme } from '@waves/ui';
 import type { CurrencyCode } from '@waves/core';
 
 import {
+  DashBody,
   DashHeader,
-  PlusButton,
+  TabPills,
   QuickActions,
   RecentActivity,
   StatTriple,
@@ -33,7 +24,7 @@ import {
 } from '@/components/company/dashboard/parts';
 import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { ListRow, ScenicBody, StandardCard } from '@/components/standard';
+import { ListRow, StandardCard } from '@/components/standard';
 import { useAskBudget, useCompanyEntries, usePoolBalance } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
@@ -80,7 +71,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
   return (
     <Screen edges={[]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance + 90 }}
+        contentContainerStyle={{ paddingBottom: clearance + 24 }}
         showsVerticalScrollIndicator={false}
       >
         <DashHeader
@@ -90,20 +81,18 @@ export function ManagerHome({ groupId }: { groupId: string }) {
           subtitle={fill(t.company.teamLine, { n: String(team.length) })}
           pill={t.company.manager}
           tabs={
-            <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
-              <ChipRow
-                options={[
-                  { value: 'overview' as Tab, label: t.company.tabOverview },
-                  { value: 'team' as Tab, label: t.company.tabMyTeam },
-                  { value: 'payments' as Tab, label: t.company.tabPayments },
-                ]}
-                value={tab}
-                onChange={setTab}
-              />
-            </View>
+            <TabPills
+              options={[
+                { value: 'overview' as Tab, label: t.company.tabOverview },
+                { value: 'team' as Tab, label: t.company.tabMyTeam },
+                { value: 'payments' as Tab, label: t.company.tabPayments },
+              ]}
+              value={tab}
+              onChange={setTab}
+            />
           }
         />
-        <ScenicBody>
+        <DashBody>
           {tab === 'overview' ? (
             <>
               <PendingApprovals groupId={groupId} view={view} />
@@ -219,9 +208,8 @@ export function ManagerHome({ groupId }: { groupId: string }) {
           {tab === 'payments' ? (
             <RecentActivity groupId={groupId} view={view} entries={teamEntries} />
           ) : null}
-        </ScenicBody>
+        </DashBody>
       </ScrollView>
-      <PlusButton groupId={groupId} bottom={clearance} />
       <Sheet visible={asking} onClose={() => setAsking(false)} closeLabel={t.common.close}>
         <View style={{ gap: theme.spacing.lg }}>
           <Text variant="title">{t.company.askTitle}</Text>
