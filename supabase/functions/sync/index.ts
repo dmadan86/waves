@@ -103,6 +103,12 @@ type MutationKind =
   | 'company_pool.post'
   | 'company_wage.pay'
   | 'company.second_approval_set'
+  | 'company_vendor.set'
+  | 'company_vendor.remove'
+  | 'company_vendor_entry.create'
+  | 'company_vendor_entry.review'
+  | 'company_vendor_entry.void'
+  | 'company_vendor_entry.received'
   // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
@@ -334,6 +340,10 @@ const GROUP_TABLES = [
   ['company_project_budgets', '*'],
   // A wage payment divided across sites; readable exactly where the payment is.
   ['company_wage_splits', '*'],
+  // Vendors: owner all, manager the ones they added, a vendor login only itself (RLS, read as the caller).
+  ['company_vendors', '*'],
+  ['company_vendor_entries', '*'],
+  ['company_vendor_entry_attachments', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -1044,6 +1054,50 @@ export class SyncSession {
             'thresholdMinor',
             true,
           ),
+        });
+      case 'company_vendor.set':
+        return await this.rpcAsCaller('waves_company_vendor_set', {
+          p_group_id: mutation.groupId,
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_data: {
+            name: companyReason(mutation.payload.name, 'name', true),
+            phone: companyReason(mutation.payload.phone ?? null, 'phone', false),
+            category: companyReason(mutation.payload.category ?? null, 'category', false),
+          },
+        });
+      case 'company_vendor.remove':
+        return await this.rpcAsCaller('waves_company_vendor_remove', {
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+        });
+      case 'company_vendor_entry.create':
+        return await this.rpcAsCaller('waves_company_vendor_entry_create', {
+          p_group_id: mutation.groupId,
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_kind: requireString(mutation.payload.kind, 'kind'),
+          p_data: {
+            amount: companyDecimal(mutation.payload.amountMinor, 'amountMinor'),
+            occurredOn: companyDate(mutation.payload.occurredOn, 'occurredOn'),
+            note: companyReason(mutation.payload.note ?? null, 'note', false),
+          },
+        });
+      case 'company_vendor_entry.review':
+        return await this.rpcAsCaller('waves_company_vendor_entry_review', {
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_to: requireString(mutation.payload.to, 'to'),
+          p_note: companyReason(mutation.payload.note ?? null, 'note', false),
+          p_version: companyNonnegativeInteger(mutation.payload.expectedVersion, 'expectedVersion'),
+        });
+      case 'company_vendor_entry.void':
+        return await this.rpcAsCaller('waves_company_vendor_entry_void', {
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_reason: companyReason(mutation.payload.reason ?? null, 'reason', false),
+        });
+      case 'company_vendor_entry.received':
+        if (typeof mutation.payload.received !== 'boolean') companyInvalid('received');
+        return await this.rpcAsCaller('waves_company_vendor_entry_received', {
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_received: mutation.payload.received,
         });
       case 'company_member.rate_set':
         return await this.rpcAsCaller('waves_company_member_rate_set', {

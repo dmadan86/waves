@@ -33,7 +33,9 @@ export function CompanyEntryPhotos({
   entryId,
   canAdd,
   canRemove,
+  kind = 'entry',
 }: {
+  kind?: 'entry' | 'vendor';
   groupId: string;
   entryId: string;
   canAdd: boolean;
@@ -44,8 +46,8 @@ export function CompanyEntryPhotos({
   const { t } = useStrings();
   const { confirm, notify } = useDialog();
   const photos = useCompanyPhotos(entryId);
-  const add = useAddCompanyPhoto(groupId, entryId);
-  const remove = useRemoveCompanyPhoto(groupId);
+  const add = useAddCompanyPhoto(groupId, entryId, kind);
+  const remove = useRemoveCompanyPhoto(groupId, kind);
   const [viewing, setViewing] = useState<number | null>(null);
   const [urls, setUrls] = useState<ReadonlyMap<string, string | null>>(new Map());
 
@@ -148,7 +150,7 @@ export function CompanyEntryPhotos({
       ) : null}
       {photos.length > 0 ? (
         <Text variant="micro" tone="muted">
-          {t.company.photoPrivacy}
+          {kind === 'vendor' ? t.companyVendors.photoPrivacy : t.company.photoPrivacy}
         </Text>
       ) : null}
 

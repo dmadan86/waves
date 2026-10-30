@@ -39,6 +39,7 @@ enum MemberRole {
   admin
   member
   manager
+  vendor
 
   @@schema("public")
 }
@@ -410,6 +411,7 @@ model Group {
   /// The nudge job only ever looks at groups that have said when they are
   /// happening, which is a small minority of them.
   @@index([startDate, endDate], map: "groups_reminder_window_idx")
+  vendors CompanyVendor[]
   @@map("groups")
   @@schema("public")
 }
@@ -516,6 +518,11 @@ model GroupMember {
   @@index([removedBy])
   @@index([groupId, managerId], map: "company_members_manager_idx")
   @@unique([id, groupId], map: "company_members_id_group_unique")
+  vendorsAdded CompanyVendor[] @relation("CompanyVendorAddedBy")
+  vendorLogin CompanyVendor[] @relation("CompanyVendorLogin")
+  vendorLinesCreated CompanyVendorEntry[] @relation("CompanyVendorLineCreator")
+  vendorLinesFunded CompanyVendorEntry[] @relation("CompanyVendorLineFunder")
+  vendorPhotos CompanyVendorEntryAttachment[]
   @@map("group_members")
   @@schema("public")
 }
@@ -617,6 +624,8 @@ model MemberLinkRequest {
 /// stored; the token itself is verified inside an edge function.
 model Invite {
   companyManagerId String? @map("company_manager_id") @db.Uuid
+  companyVendorId String? @map("company_vendor_id") @db.Uuid
+  companyVendor CompanyVendor? @relation(fields: [companyVendorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   companyManager GroupMember? @relation("CompanyInviteManager", fields: [companyManagerId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_invite_manager_fk")
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   groupId   String    @map("group_id") @db.Uuid
@@ -3159,6 +3168,24 @@ model CompanyEntryAttachment {
  @@map("company_entry_attachments")
  @@schema("public")
 }
+model CompanyVendorEntryAttachment {
+  id String @id @db.Uuid
+  entryId String @map("entry_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  uploaderMemberId String @map("uploader_member_id") @db.Uuid
+  storagePath String @unique @map("storage_path")
+  preview String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  entry CompanyVendorEntry @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  uploader GroupMember @relation(fields: [uploaderMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_vendor_entry_attachments_group_seq_idx")
+  @@index([entryId,deletedAt], map: "company_vendor_entry_attachments_entry_idx")
+  @@map("company_vendor_entry_attachments")
+  @@schema("public")
+}
 model CompanyPlan {
  groupId String @id @map("group_id") @db.Uuid
  plan String @default("free")
@@ -3228,6 +3255,61 @@ model CompanyProjectMember {
   @@index([groupId,updatedSeq], map: "company_project_members_sync_idx")
   @@index([memberId,projectId], map: "company_project_members_member_idx")
   @@map("company_project_members")
+  @@schema("public")
+}
+model CompanyVendor {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  phone String?
+  category String?
+  addedBy String @map("added_by") @db.Uuid
+  memberId String? @unique @map("member_id") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  adder GroupMember @relation("CompanyVendorAddedBy", fields: [addedBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  login GroupMember? @relation("CompanyVendorLogin", fields: [memberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  entries CompanyVendorEntry[]
+  invites Invite[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_vendors_sync_idx")
+  @@map("company_vendors")
+  @@schema("public")
+}
+model CompanyVendorEntry {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  vendorId String @map("vendor_id") @db.Uuid
+  kind String
+  amount BigInt
+  occurredOn DateTime @map("occurred_on") @db.Date
+  note String?
+  status String @default("approved")
+  createdBy String @map("created_by") @db.Uuid
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  reviewedAt DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote String? @map("review_note")
+  fundingManagerId String? @map("funding_manager_id") @db.Uuid
+  receivedAt DateTime? @map("received_at") @db.Timestamptz(6)
+  voidReason String? @map("void_reason")
+  requestHash String? @map("request_hash")
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  vendor CompanyVendor @relation(fields: [vendorId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyVendorLineCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  funder GroupMember? @relation("CompanyVendorLineFunder", fields: [fundingManagerId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  attachments CompanyVendorEntryAttachment[]
+  @@unique([id,groupId], map: "company_vendor_entries_id_group_key")
+  @@index([groupId,updatedSeq], map: "company_vendor_entries_sync_idx")
+  @@index([vendorId,occurredOn], map: "company_vendor_entries_vendor_idx")
+  @@map("company_vendor_entries")
   @@schema("public")
 }
 model CompanyWageSplit {

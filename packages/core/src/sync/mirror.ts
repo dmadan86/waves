@@ -104,6 +104,9 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyProjectMembers,
   SyncTable.CompanyProjectBudgets,
   SyncTable.CompanyWageSplits,
+  SyncTable.CompanyVendors,
+  SyncTable.CompanyVendorEntries,
+  SyncTable.CompanyVendorEntryAttachments,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -1685,12 +1688,17 @@ export interface MirrorCompanyEntryAttachment extends MirrorRow {
   readonly deleted_at: string | null;
 }
 
-/** The live photos on one entry, oldest first. */
+/** The live photos on one entry or vendor ledger line (ids never collide), oldest first. */
 export function materialiseCompanyEntryAttachments(
   state: MirrorState,
   options: { readonly entryId: string },
 ): MirrorCompanyEntryAttachment[] {
-  return (rowsFor(state, SyncTable.CompanyEntryAttachments) as MirrorCompanyEntryAttachment[])
+  return (
+    [
+      ...rowsFor(state, SyncTable.CompanyEntryAttachments),
+      ...rowsFor(state, SyncTable.CompanyVendorEntryAttachments),
+    ] as MirrorCompanyEntryAttachment[]
+  )
     .filter((row) => row.entry_id === options.entryId && row.deleted_at === null)
     .sort(
       (a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? '') || a.id.localeCompare(b.id),
