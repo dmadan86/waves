@@ -34,6 +34,8 @@ export function OverviewUpcoming({ groupId }: { groupId: string }) {
   const { width } = useWindowDimensions();
   const view = useCompanyEntries(groupId);
   const today = todayIso();
+  // A holiday or offsite is for the whole company.
+  const everyone = view.members.filter((m) => !m.left_at && m.role === 'member').map((m) => m.id);
   const items = useUpcomingItems(groupId, 400);
   const cards = buildUpcomingCards(
     items
@@ -46,7 +48,12 @@ export function OverviewUpcoming({ groupId }: { groupId: string }) {
         title: it.title,
         time: it.time,
         memberId: it.memberId,
-        people: it.subKind === 'event' ? (it.ref as MirrorEvent).people : undefined,
+        people:
+          it.subKind === 'event'
+            ? (it.ref as MirrorEvent).people
+            : it.subKind === 'holiday'
+              ? everyone
+              : undefined,
         rangeStart: it.subKind === 'holiday' ? (it.ref as MirrorHoliday).startDay : undefined,
         rangeEnd: it.subKind === 'holiday' ? (it.ref as MirrorHoliday).endDay : undefined,
       })),
