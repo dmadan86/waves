@@ -969,6 +969,34 @@ export interface UiStrings {
     signOutGuestWarning: string;
     signOutReassure: string;
     staySignedIn: string;
+    learnMore: string;
+    learnTitle: string;
+    learnTransit: string;
+    learnRest: string;
+    learnLimits: string;
+    accountTitle: string;
+    accountSub: string;
+    email: string;
+    phone: string;
+    verified: string;
+    addContact: string;
+    devicesSub: string;
+    activeNow: string;
+    seeAll: string;
+    dataTitle: string;
+    dataSub: string;
+    backupOn: string;
+    backupNever: string;
+    hideAmounts: string;
+    hideAmountsHint: string;
+    deleteRow: string;
+    deleteHint: string;
+  };
+  /** The page shown for a link the app has no screen for. */
+  lostPage: {
+    title: string;
+    body: string;
+    action: string;
   };
   /** The wall in front of the two things a guest account cannot hold: the
    *  private ledger and the bank-message reader. Both keep their data on this
@@ -7554,12 +7582,12 @@ const en: UiStrings = {
     openDetail: 'Opens what needs your decision',
   },
   lock: {
-    subtitle: 'Keep your information private.',
+    subtitle: 'Keep your information private and your account safe.',
     requireShort: 'App lock',
-    requireHint: 'Face ID / fingerprint / device PIN',
+    requireHint: 'Use Face ID, fingerprint or device PIN to open the app.',
     askAgainShort: 'Ask again after you leave the app for this long.',
     reopenShort: 'Waves always asks after it has been fully closed.',
-    footnoteShort: 'Data that has synced is protected on our servers either way.',
+    footnoteShort: 'Your data is encrypted in transit and at rest on our servers.',
     title: 'Security',
     requireBiometrics: 'Require biometrics or a passcode',
     appLock: 'App lock',
@@ -7574,6 +7602,35 @@ const en: UiStrings = {
       'This is a guest account, so signing out leaves no way back into it. Add an email or phone number first if you want to keep it.',
     signOutReassure: 'You can sign back in whenever you like. Nothing is deleted.',
     staySignedIn: 'Stay signed in',
+    learnMore: 'Learn more',
+    learnTitle: 'How your data is protected',
+    learnTransit:
+      'Everything between the app and our servers travels over an encrypted (TLS) connection.',
+    learnRest: 'Data stored on our servers is encrypted at rest by our hosting providers.',
+    learnLimits:
+      'This is not end-to-end encryption: synced data can be processed by our servers to run the app. App lock protects this phone only.',
+    accountTitle: 'Account security',
+    accountSub: 'Manage how you sign in and keep your account secure.',
+    email: 'Email',
+    phone: 'Phone number',
+    verified: 'Verified',
+    addContact: 'Add an email or phone number',
+    devicesSub: 'Manage devices signed in to your account.',
+    activeNow: 'Active now',
+    seeAll: 'See all',
+    dataTitle: 'Data & privacy',
+    dataSub: 'Control your data and privacy settings.',
+    backupOn: 'Last backed up {date}',
+    backupNever: 'Not backed up yet',
+    hideAmounts: 'Hide sensitive amounts',
+    hideAmountsHint: 'Hides the figures on your Personal dashboard',
+    deleteRow: 'Delete account',
+    deleteHint: 'Permanently delete your account and data',
+  },
+  lostPage: {
+    title: "This page isn't available",
+    body: 'The link may be old or the page may have moved.',
+    action: 'Go home',
   },
   signInWall: {
     title: 'Add an account first',
@@ -13576,12 +13633,13 @@ const ta: UiStrings = {
     openDetail: 'உங்கள் முடிவு தேவைப்படுவதைத் திறக்கும்',
   },
   lock: {
-    subtitle: 'உங்கள் தகவலைத் தனிப்பட்டதாக வைத்திருங்கள்.',
+    subtitle: 'உங்கள் தகவலைத் தனிப்பட்டதாகவும் கணக்கைப் பாதுகாப்பாகவும் வைத்திருங்கள்.',
     requireShort: 'செயலி பூட்டு',
-    requireHint: 'Face ID / கைரேகை / சாதன PIN',
+    requireHint: 'செயலியைத் திறக்க Face ID, கைரேகை அல்லது சாதன PIN பயன்படுத்துங்கள்.',
     askAgainShort: 'செயலியை விட்டு இவ்வளவு நேரம் விலகியிருந்தால் மீண்டும் கேட்கும்.',
     reopenShort: 'Waves-ஐ முழுவதுமாக மூடித் திறந்தால் எப்போதும் சரிபார்ப்பு கேட்கும்.',
-    footnoteShort: 'ஒத்திசைந்த தரவு எந்த நிலையிலும் எங்கள் சர்வர்களில் பாதுகாப்பாக உள்ளது.',
+    footnoteShort:
+      'உங்கள் தரவு எங்கள் சேவையகங்களில் அனுப்பும்போதும் சேமிக்கும்போதும் குறியாக்கம் செய்யப்படுகிறது.',
     title: 'பாதுகாப்பு',
     requireBiometrics: 'கைரேகை அல்லது கடவுக்குறியீடு கேட்கவும்',
     appLock: 'ஆப் பூட்டு',
@@ -13596,6 +13654,37 @@ const ta: UiStrings = {
       'இது விருந்தினர் கணக்கு, வெளியேறினால் திரும்ப வர வழி இல்லை. வைத்திருக்க விரும்பினால் முதலில் மின்னஞ்சல் அல்லது தொலைபேசி எண்ணைச் சேர்க்கவும்.',
     signOutReassure: 'எப்போது வேண்டுமானாலும் மீண்டும் உள்நுழையலாம். எதுவும் அழிக்கப்படவில்லை.',
     staySignedIn: 'உள்ளேயே இரு',
+    learnMore: 'மேலும் அறிக',
+    learnTitle: 'உங்கள் தரவு எப்படிப் பாதுகாக்கப்படுகிறது',
+    learnTransit:
+      'செயலிக்கும் எங்கள் சேவையகங்களுக்கும் இடையிலான அனைத்தும் குறியாக்கப்பட்ட (TLS) இணைப்பில் செல்கிறது.',
+    learnRest:
+      'எங்கள் சேவையகங்களில் சேமிக்கப்படும் தரவு, எங்கள் ஹோஸ்டிங் வழங்குநர்களால் குறியாக்கம் செய்யப்படுகிறது.',
+    learnLimits:
+      'இது முழுமையான (end-to-end) குறியாக்கம் அல்ல: செயலியை இயக்க, ஒத்திசைந்த தரவை எங்கள் சேவையகங்கள் செயலாக்கலாம். செயலி பூட்டு இந்தத் தொலைபேசியை மட்டுமே பாதுகாக்கும்.',
+    accountTitle: 'கணக்குப் பாதுகாப்பு',
+    accountSub:
+      'நீங்கள் எப்படி உள்நுழைகிறீர்கள் என்பதை நிர்வகித்து கணக்கைப் பாதுகாப்பாக வைத்திருங்கள்.',
+    email: 'மின்னஞ்சல்',
+    phone: 'தொலைபேசி எண்',
+    verified: 'சரிபார்க்கப்பட்டது',
+    addContact: 'மின்னஞ்சல் அல்லது தொலைபேசி எண்ணைச் சேர்க்கவும்',
+    devicesSub: 'உங்கள் கணக்கில் உள்நுழைந்துள்ள சாதனங்களை நிர்வகிக்கவும்.',
+    activeNow: 'இப்போது செயலில்',
+    seeAll: 'அனைத்தையும் காண்க',
+    dataTitle: 'தரவு & தனியுரிமை',
+    dataSub: 'உங்கள் தரவு மற்றும் தனியுரிமை அமைப்புகளைக் கட்டுப்படுத்துங்கள்.',
+    backupOn: 'கடைசி காப்புப்பிரதி {date}',
+    backupNever: 'இன்னும் காப்புப்பிரதி எடுக்கப்படவில்லை',
+    hideAmounts: 'உணர்திறன் தொகைகளை மறை',
+    hideAmountsHint: 'உங்கள் தனிப்பட்ட டாஷ்போர்டில் உள்ள தொகைகளை மறைக்கும்',
+    deleteRow: 'கணக்கை நீக்கு',
+    deleteHint: 'உங்கள் கணக்கையும் தரவையும் நிரந்தரமாக நீக்கவும்',
+  },
+  lostPage: {
+    title: 'இந்தப் பக்கம் கிடைக்கவில்லை',
+    body: 'இணைப்பு பழையதாக இருக்கலாம் அல்லது பக்கம் நகர்த்தப்பட்டிருக்கலாம்.',
+    action: 'முகப்புக்குச் செல்',
   },
   signInWall: {
     title: 'முதலில் ஒரு கணக்கைச் சேருங்கள்',
@@ -19781,12 +19870,12 @@ const hi: UiStrings = {
     openDetail: 'आपके निर्णय की ज़रूरत वाली चीज़ खोलता है',
   },
   lock: {
-    subtitle: 'अपनी जानकारी निजी रखें।',
+    subtitle: 'अपनी जानकारी निजी और अपना खाता सुरक्षित रखें।',
     requireShort: 'ऐप लॉक',
-    requireHint: 'Face ID / फ़िंगरप्रिंट / डिवाइस PIN',
+    requireHint: 'ऐप खोलने के लिए Face ID, फ़िंगरप्रिंट या डिवाइस PIN इस्तेमाल करें।',
     askAgainShort: 'ऐप से इतनी देर बाहर रहने पर फिर से पुष्टि माँगी जाएगी।',
     reopenShort: 'पूरी तरह बंद करने के बाद Waves खोलने पर हमेशा पुष्टि माँगी जाती है।',
-    footnoteShort: 'दोनों ही स्थितियों में सिंक हो चुका डेटा हमारे सर्वर पर सुरक्षित है।',
+    footnoteShort: 'आपका डेटा हमारे सर्वर पर भेजते समय और संग्रहित होने पर एन्क्रिप्टेड रहता है।',
     title: 'सुरक्षा',
     requireBiometrics: 'बायोमेट्रिक या पासकोड माँगें',
     appLock: 'ऐप लॉक',
@@ -19801,6 +19890,35 @@ const hi: UiStrings = {
       'यह मेहमान खाता है, साइन आउट करने पर वापस आने का कोई रास्ता नहीं बचेगा। इसे रखना है तो पहले ईमेल या फ़ोन नंबर जोड़ें।',
     signOutReassure: 'आप जब चाहें दोबारा साइन इन कर सकते हैं। कुछ भी मिटता नहीं।',
     staySignedIn: 'साइन इन रहें',
+    learnMore: 'और जानें',
+    learnTitle: 'आपका डेटा कैसे सुरक्षित रहता है',
+    learnTransit: 'ऐप और हमारे सर्वर के बीच सब कुछ एन्क्रिप्टेड (TLS) कनेक्शन से जाता है।',
+    learnRest:
+      'हमारे सर्वर पर संग्रहित डेटा हमारे होस्टिंग प्रदाताओं द्वारा एन्क्रिप्ट किया जाता है।',
+    learnLimits:
+      'यह एंड-टू-एंड एन्क्रिप्शन नहीं है: ऐप चलाने के लिए सिंक हुआ डेटा हमारे सर्वर प्रोसेस कर सकते हैं। ऐप लॉक सिर्फ़ इस फ़ोन की रक्षा करता है।',
+    accountTitle: 'खाता सुरक्षा',
+    accountSub: 'संभालें कि आप कैसे साइन इन करते हैं और खाता सुरक्षित रखें।',
+    email: 'ईमेल',
+    phone: 'फ़ोन नंबर',
+    verified: 'सत्यापित',
+    addContact: 'ईमेल या फ़ोन नंबर जोड़ें',
+    devicesSub: 'आपके खाते में साइन इन डिवाइस संभालें।',
+    activeNow: 'अभी सक्रिय',
+    seeAll: 'सभी देखें',
+    dataTitle: 'डेटा और गोपनीयता',
+    dataSub: 'अपना डेटा और गोपनीयता सेटिंग नियंत्रित करें।',
+    backupOn: 'आख़िरी बैकअप {date}',
+    backupNever: 'अभी तक बैकअप नहीं हुआ',
+    hideAmounts: 'संवेदनशील राशियाँ छिपाएँ',
+    hideAmountsHint: 'आपके पर्सनल डैशबोर्ड की राशियाँ छिपाता है',
+    deleteRow: 'खाता मिटाएँ',
+    deleteHint: 'अपना खाता और डेटा हमेशा के लिए मिटाएँ',
+  },
+  lostPage: {
+    title: 'यह पेज उपलब्ध नहीं है',
+    body: 'हो सकता है लिंक पुराना हो या पेज हटा दिया गया हो।',
+    action: 'होम पर जाएँ',
   },
   signInWall: {
     title: 'पहले एक खाता जोड़ें',
@@ -25831,12 +25949,12 @@ const ar: UiStrings = {
     openDetail: 'يفتح ما يحتاج إلى قرارك',
   },
   lock: {
-    subtitle: 'حافظ على خصوصية معلوماتك.',
+    subtitle: 'حافظ على خصوصية معلوماتك وأمان حسابك.',
     requireShort: 'قفل التطبيق',
-    requireHint: 'Face ID / بصمة الإصبع / رمز PIN للجهاز',
+    requireHint: 'استخدم Face ID أو بصمة الإصبع أو رمز PIN للجهاز لفتح التطبيق.',
     askAgainShort: 'يطلب التحقق مجددًا بعد مغادرة التطبيق لهذه المدة.',
     reopenShort: 'يطلب Waves التحقق دائمًا بعد إغلاقه بالكامل.',
-    footnoteShort: 'البيانات التي تمت مزامنتها محمية على خوادمنا في كلتا الحالتين.',
+    footnoteShort: 'بياناتك مشفّرة أثناء النقل وعند التخزين على خوادمنا.',
     title: 'الأمان',
     requireBiometrics: 'اطلب البصمة أو رمز المرور',
     appLock: 'قفل التطبيق',
@@ -25865,6 +25983,34 @@ const ar: UiStrings = {
       'هذا حساب ضيف، وتسجيل الخروج لا يترك طريقًا للعودة إليه. أضف بريدًا إلكترونيًا أو رقم هاتف أولًا إن أردت الاحتفاظ به.',
     signOutReassure: 'يمكنك تسجيل الدخول متى شئت. لا يُحذف شيء.',
     staySignedIn: 'ابقَ مسجّل الدخول',
+    learnMore: 'اعرف المزيد',
+    learnTitle: 'كيف نحمي بياناتك',
+    learnTransit: 'كل ما بين التطبيق وخوادمنا ينتقل عبر اتصال مشفّر (TLS).',
+    learnRest: 'البيانات المخزّنة على خوادمنا مشفّرة أثناء التخزين لدى مزوّدي الاستضافة لدينا.',
+    learnLimits:
+      'هذا ليس تشفيرًا من طرف إلى طرف: يمكن لخوادمنا معالجة البيانات المتزامنة لتشغيل التطبيق. قفل التطبيق يحمي هذا الهاتف فقط.',
+    accountTitle: 'أمان الحساب',
+    accountSub: 'أدر طريقة تسجيل دخولك وحافظ على أمان حسابك.',
+    email: 'البريد الإلكتروني',
+    phone: 'رقم الهاتف',
+    verified: 'موثّق',
+    addContact: 'أضف بريدًا إلكترونيًا أو رقم هاتف',
+    devicesSub: 'أدر الأجهزة المسجّلة الدخول إلى حسابك.',
+    activeNow: 'نشط الآن',
+    seeAll: 'عرض الكل',
+    dataTitle: 'البيانات والخصوصية',
+    dataSub: 'تحكّم في بياناتك وإعدادات الخصوصية.',
+    backupOn: 'آخر نسخة احتياطية {date}',
+    backupNever: 'لم تؤخذ نسخة احتياطية بعد',
+    hideAmounts: 'إخفاء المبالغ الحساسة',
+    hideAmountsHint: 'يخفي الأرقام في لوحة حسابك الشخصي',
+    deleteRow: 'حذف الحساب',
+    deleteHint: 'احذف حسابك وبياناتك نهائيًا',
+  },
+  lostPage: {
+    title: 'هذه الصفحة غير متاحة',
+    body: 'قد يكون الرابط قديمًا أو انتقلت الصفحة.',
+    action: 'العودة إلى الرئيسية',
   },
   signInWall: {
     title: 'أضف حسابًا أولًا',
