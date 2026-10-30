@@ -124,6 +124,25 @@ const cases = [
     { p_group_id: GROUP_ID, p_member_id: MEMBER_ID, p_employee_id: 'EMP-014' },
   ],
   [
+    'company_member.department_set',
+    { memberId: MEMBER_ID, departmentId: '33333333-3333-4333-8333-333333333333' },
+    'waves_company_department_set',
+    {
+      p_group_id: GROUP_ID,
+      p_member_id: MEMBER_ID,
+      p_department_id: '33333333-3333-4333-8333-333333333333',
+    },
+  ],
+  [
+    'company_departments.set',
+    { departments: [{ id: '33333333-3333-4333-8333-333333333333', name: 'Sales' }] },
+    'waves_company_departments_set',
+    {
+      p_group_id: GROUP_ID,
+      p_departments: [{ id: '33333333-3333-4333-8333-333333333333', name: 'Sales' }],
+    },
+  ],
+  [
     'company_attendance.set',
     { memberId: MEMBER_ID, day: '2026-10-30', status: 'half', note: null },
     'waves_company_attendance_set',

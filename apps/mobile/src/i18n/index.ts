@@ -1314,6 +1314,26 @@ export interface UiStrings {
     attendancePreviousMonth: string;
     attendanceNextMonth: string;
     workTitle: string;
+    departments: string;
+    department: string;
+    departmentNone: string;
+    departmentAdd: string;
+    departmentRename: string;
+    departmentRemove: string;
+    departmentActions: string;
+    departmentNameError: string;
+    workSubtitle: string;
+    workSearch: string;
+    workTotal: string;
+    workCompleted: string;
+    workInProgress: string;
+    workPending: string;
+    workAll: string;
+    workMineTasks: string;
+    workTeam: string;
+    workFilter: string;
+    workTime: string;
+    workNoTime: string;
     workMine: string;
     workEmpty: string;
     workAdd: string;
@@ -1400,6 +1420,7 @@ export interface UiStrings {
     barPeople: string;
     barPending: string;
     barMore: string;
+    barTeam: string;
     sectionOwners: string;
     moreBudgets: string;
     moreStatements: string;
@@ -7824,6 +7845,26 @@ const en: UiStrings = {
     attendancePreviousMonth: 'Previous month',
     attendanceNextMonth: 'Next month',
     workTitle: 'Daily work',
+    departments: 'Departments',
+    department: 'Department',
+    departmentNone: 'None',
+    departmentAdd: 'Add department',
+    departmentRename: 'Rename department',
+    departmentRemove: 'Remove department',
+    departmentActions: 'Department actions',
+    departmentNameError: 'Enter a unique department name.',
+    workSubtitle: 'Stay on top of your team tasks and get things done.',
+    workSearch: 'Search tasks, employees...',
+    workTotal: 'Total tasks',
+    workCompleted: 'Completed',
+    workInProgress: 'In progress',
+    workPending: 'Pending',
+    workAll: 'All',
+    workMineTasks: 'My tasks',
+    workTeam: 'Team',
+    workFilter: 'Filter',
+    workTime: 'Time (HH:MM)',
+    workNoTime: 'No time',
     workMine: 'My work today',
     workEmpty: 'No tasks for this day.',
     workAdd: 'Add task',
@@ -7912,6 +7953,7 @@ const en: UiStrings = {
     barPeople: 'People',
     barPending: 'Pending',
     barMore: 'More',
+    barTeam: 'Team',
     sectionOwners: 'Owners',
     moreBudgets: 'Budgets & sites',
     moreStatements: 'Statements & export',
@@ -13789,6 +13831,26 @@ const ta: UiStrings = {
     attendancePreviousMonth: 'முந்தைய மாதம்',
     attendanceNextMonth: 'அடுத்த மாதம்',
     workTitle: 'தினசரி வேலை',
+    departments: 'Departments',
+    department: 'Department',
+    departmentNone: 'None',
+    departmentAdd: 'Add department',
+    departmentRename: 'Rename department',
+    departmentRemove: 'Remove department',
+    departmentActions: 'Department actions',
+    departmentNameError: 'Enter a unique department name.',
+    workSubtitle: 'Stay on top of your team tasks and get things done.',
+    workSearch: 'Search tasks, employees...',
+    workTotal: 'Total tasks',
+    workCompleted: 'Completed',
+    workInProgress: 'In progress',
+    workPending: 'Pending',
+    workAll: 'All',
+    workMineTasks: 'My tasks',
+    workTeam: 'Team',
+    workFilter: 'Filter',
+    workTime: 'Time (HH:MM)',
+    workNoTime: 'No time',
     workMine: 'என் இன்றைய வேலை',
     workEmpty: 'இந்த நாளில் வேலைகள் இல்லை.',
     workAdd: 'வேலை சேர்க்க',
@@ -13878,6 +13940,7 @@ const ta: UiStrings = {
     barPeople: 'நபர்கள்',
     barPending: 'நிலுவை',
     barMore: 'மேலும்',
+    barTeam: 'Team',
     sectionOwners: 'உரிமையாளர்கள்',
     moreBudgets: 'பட்ஜெட் & இடங்கள்',
     moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
@@ -19924,6 +19987,26 @@ const hi: UiStrings = {
     attendancePreviousMonth: 'पिछला महीना',
     attendanceNextMonth: 'अगला महीना',
     workTitle: 'रोज़ का काम',
+    departments: 'Departments',
+    department: 'Department',
+    departmentNone: 'None',
+    departmentAdd: 'Add department',
+    departmentRename: 'Rename department',
+    departmentRemove: 'Remove department',
+    departmentActions: 'Department actions',
+    departmentNameError: 'Enter a unique department name.',
+    workSubtitle: 'Stay on top of your team tasks and get things done.',
+    workSearch: 'Search tasks, employees...',
+    workTotal: 'Total tasks',
+    workCompleted: 'Completed',
+    workInProgress: 'In progress',
+    workPending: 'Pending',
+    workAll: 'All',
+    workMineTasks: 'My tasks',
+    workTeam: 'Team',
+    workFilter: 'Filter',
+    workTime: 'Time (HH:MM)',
+    workNoTime: 'No time',
     workMine: 'आज मेरा काम',
     workEmpty: 'इस दिन कोई काम नहीं।',
     workAdd: 'काम जोड़ें',
@@ -20012,6 +20095,7 @@ const hi: UiStrings = {
     barPeople: 'लोग',
     barPending: 'लंबित',
     barMore: 'और',
+    barTeam: 'Team',
     sectionOwners: 'मालिक',
     moreBudgets: 'बजट और साइट',
     moreStatements: 'स्टेटमेंट और निर्यात',
@@ -25951,6 +26035,26 @@ const ar: UiStrings = {
     attendancePreviousMonth: 'الشهر السابق',
     attendanceNextMonth: 'الشهر التالي',
     workTitle: 'العمل اليومي',
+    departments: 'Departments',
+    department: 'Department',
+    departmentNone: 'None',
+    departmentAdd: 'Add department',
+    departmentRename: 'Rename department',
+    departmentRemove: 'Remove department',
+    departmentActions: 'Department actions',
+    departmentNameError: 'Enter a unique department name.',
+    workSubtitle: 'Stay on top of your team tasks and get things done.',
+    workSearch: 'Search tasks, employees...',
+    workTotal: 'Total tasks',
+    workCompleted: 'Completed',
+    workInProgress: 'In progress',
+    workPending: 'Pending',
+    workAll: 'All',
+    workMineTasks: 'My tasks',
+    workTeam: 'Team',
+    workFilter: 'Filter',
+    workTime: 'Time (HH:MM)',
+    workNoTime: 'No time',
     workMine: 'عملي اليوم',
     workEmpty: 'لا مهام لهذا اليوم.',
     workAdd: 'إضافة مهمة',
@@ -26038,6 +26142,7 @@ const ar: UiStrings = {
     barPeople: 'الأشخاص',
     barPending: 'المعلّقة',
     barMore: 'المزيد',
+    barTeam: 'Team',
     sectionOwners: 'المالكون',
     moreBudgets: 'الميزانيات والمواقع',
     moreStatements: 'الكشوف والتصدير',

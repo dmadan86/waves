@@ -135,6 +135,8 @@ export interface GroupRow {
   company_policy_revision?: number;
   /** Company groups: the shared expense tags (see `CompanyTag` in @waves/core). */
   company_tags?: unknown;
+  /** Company groups: the department list, [{ id, name }]. */
+  company_departments?: unknown;
   company_industry?: string | null;
 }
 
@@ -153,6 +155,8 @@ export interface MemberRow {
   manager_id?: string | null;
   /** Company groups: the free-text employee ID, e.g. EMP-014 (owner/manager/self can read it). */
   employee_id?: string | null;
+  /** Company groups: the employee's department (an id in the group's company_departments). */
+  department_id?: string | null;
   /** The UPI-shaped fields. Superseded by the rail pair; still read as a fallback. */
   vpa: string | null;
   /** Which rail this person is paid on here — a `RailId` from `@waves/core`. */

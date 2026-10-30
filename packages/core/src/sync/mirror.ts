@@ -58,6 +58,7 @@ import type {
   CompanyWagePayPayload,
   CompanyPoolPostPayload,
   CompanyProjectSetPayload,
+  CompanyMemberDepartmentSetPayload,
   CompanyMemberEmployeeIdSetPayload,
   CompanyDocSavePayload,
   CompanyDocStatusPayload,
@@ -578,6 +579,8 @@ export interface MirrorMember extends MirrorRow {
   readonly manager_id?: string | null;
   /** Company: the free-text employee ID (null/absent = none). */
   readonly employee_id?: string | null;
+  /** Company: the department (an id in the group's company_departments), null/absent = none. */
+  readonly department_id?: string | null;
   readonly pending?: boolean;
 }
 
@@ -650,6 +653,14 @@ export function materialiseMembers(
       continue;
     }
 
+    if (mutation.kind === 'company_member.department_set') {
+      if (mutation.rejection) continue;
+      const set = mutation.payload as unknown as CompanyMemberDepartmentSetPayload;
+      const existing = byId.get(set.memberId);
+      if (existing) byId.set(set.memberId, { ...existing, department_id: set.departmentId });
+      continue;
+    }
+
     if (mutation.kind !== 'member.add_ghost') continue;
     const payload = mutation.payload as {
       memberId?: string;
@@ -681,6 +692,7 @@ export function materialiseMembers(
 
 export interface MirrorGroup extends MirrorRow {
   readonly company_tags?: readonly import('../company/tags').CompanyTag[];
+  readonly company_departments?: readonly { readonly id: string; readonly name: string }[];
   readonly company_industry?: import('../company/tags').CompanyIndustry | null;
   readonly id: string;
   readonly name: string | null;
@@ -749,6 +761,19 @@ function buildGroups(state: MirrorState, queue: readonly QueuedMutation[]): Mirr
         pending: true,
       });
       continue;
+    }
+
+    if (mutation.kind === 'company_departments.set') {
+      const existing = byId.get(mutation.groupId);
+      if (existing) {
+        const payload =
+          mutation.payload as unknown as import('./protocol').CompanyDepartmentsSetPayload;
+        byId.set(mutation.groupId, {
+          ...existing,
+          company_departments: payload.departments.map((d) => ({ ...d })),
+          pending: true,
+        });
+      }
     }
 
     if (mutation.kind === 'company_tag.add' || mutation.kind === 'company_tags.set') {
@@ -2290,6 +2315,7 @@ export interface MirrorWorkTask {
   readonly status: CompanyWorkSetPayload['status'];
   readonly blockedReason: string | null;
   readonly note: string | null;
+  readonly dueTime: string | null;
   readonly pending?: boolean;
 }
 
@@ -2309,6 +2335,7 @@ export function materialiseWorkTasks(
     status: MirrorWorkTask['status'];
     blocked_reason: string | null;
     note: string | null;
+    due_time?: string | null;
     created_at: string;
     deleted_at: string | null;
   }[]) {
@@ -2322,6 +2349,7 @@ export function materialiseWorkTasks(
       status: row.status,
       blockedReason: row.blocked_reason,
       note: row.note,
+      dueTime: row.due_time?.slice(0, 5) ?? null,
     });
   }
   for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
@@ -2337,6 +2365,7 @@ export function materialiseWorkTasks(
         status: p.status,
         blockedReason: p.status === 'blocked' ? p.blockedReason : null,
         note: p.note,
+        dueTime: p.dueTime ?? byId.get(p.taskId)?.dueTime ?? null,
         pending: true,
       });
     } else if (mutation.kind === 'company_work.remove') {
