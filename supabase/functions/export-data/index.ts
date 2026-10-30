@@ -170,11 +170,10 @@ export async function handleExportData(
         scope?.type === 'company'
           ? Promise.all(
               ['company_holidays', 'company_leave', 'company_events', 'company_member_dates'].map(
-                (table) =>
-                  caller.from(table).select('*').eq('group_id', groupId).is('deleted_at', null),
+                (table) => caller.from(table).select('*').eq('group_id', groupId),
               ),
             ).then((rs) => ({
-              data: rs.map((r) => r.data ?? []),
+              data: rs.map((r) => (r.data ?? []).filter((row) => !row.deleted_at)),
               error: rs.find((r) => r.error)?.error ?? null,
             }))
           : Promise.resolve({ data: [[], [], [], []], error: null }),
