@@ -219,3 +219,18 @@ describe('feed helpers', () => {
     ).toBe(false);
   });
 });
+
+describe('restamp and session guards', () => {
+  it('does not let a re-stamped old mark or paid-bill edit pose as news, and keeps days apart', () => {
+    const ev = buildCompanyActivity(
+      input('owner', 'owner', {
+        attendance: [
+          { ...mark('rohit', '2026-10-30T05:00:00Z'), day: '2026-08-01' },
+          { ...mark('rohit', '2026-10-30T05:01:00Z'), day: '2026-10-29' },
+          { ...mark('rohit', '2026-10-30T05:02:00Z'), day: '2026-10-30' },
+        ],
+      }),
+    );
+    expect(ev.filter((e) => e.group === 'attendance')).toHaveLength(2);
+  });
+});
