@@ -231,7 +231,7 @@ export default function AttendanceView({
           <Ionicons name={d > 0 ? 'arrow-up' : 'arrow-down'} size={11} color={color} />
         ) : null}
         <Text variant="micro" numberOfLines={1} style={{ color }}>
-          {fill(t.company.attendanceVsYesterday, { delta: signedDelta(d) })}
+          {fill(t.company.attendanceVsYesterday, { delta: signedDelta(d, locale) })}
         </Text>
       </View>
     );
@@ -497,10 +497,10 @@ export default function AttendanceView({
                               t.company.attendanceTasks,
                             )}
                             balance={
-                              bal.advances > 0n
-                                ? { kind: 'owesCompany', text: money(bal.advances) }
-                                : bal.owes > 0n
-                                  ? { kind: 'companyOwes', text: money(bal.owes) }
+                              bal.owes > 0n
+                                ? { kind: 'companyOwes', text: money(bal.owes) }
+                                : bal.advances > 0n
+                                  ? { kind: 'owesCompany', text: money(bal.advances) }
                                   : { kind: 'settled', text: money(0n) }
                             }
                             canEdit={!busy && date <= today}

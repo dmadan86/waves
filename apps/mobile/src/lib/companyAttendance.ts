@@ -51,9 +51,15 @@ export function dayCounts(
   );
 }
 
-/** "+2" / "-1" / "0". */
-export function signedDelta(delta: number): string {
-  return delta > 0 ? `+${delta}` : String(delta);
+/** "+2" / "-1" / "0", digits in the viewer's numerals. */
+export function signedDelta(delta: number, locale = 'en'): string {
+  let digits = String(Math.abs(delta));
+  try {
+    digits = new Intl.NumberFormat(locale).format(Math.abs(delta));
+  } catch {
+    // A locale Intl will not take still gets plain digits.
+  }
+  return delta > 0 ? `+${digits}` : delta < 0 ? `-${digits}` : digits;
 }
 
 /** Whether a rise in this figure is good news: more present is, more half days or absences are not. */
