@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { deriveMoneyDates, type MoneyDate } from '@waves/core';
+import { deriveMoneyDates, isGroupRecurringDue, type MoneyDate } from '@waves/core';
 
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useCompanyVendors } from '@/data/companyVendors';
-import { useComingUp } from '@/data/companyOverview';
+import { useGroupRecurring } from '@/data/groupRecurring';
 import { useCompanyDocs } from '@/data/companyDocuments';
 import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
@@ -13,7 +13,7 @@ export function useMoneyDates(groupId: string): readonly MoneyDate[] {
   const view = useCompanyEntries(groupId);
   const vendors = useCompanyVendors(groupId);
   const docs = useCompanyDocs(groupId);
-  const coming = useComingUp(groupId);
+  const { rules } = useGroupRecurring(groupId);
   return useMemo(() => {
     if (view.isVendor) return [];
     const people = view.members
@@ -24,17 +24,22 @@ export function useMoneyDates(groupId: string): readonly MoneyDate[] {
         currency: view.currency,
       }));
     const today = todayIso();
-    const recurring: MoneyDate[] = coming
-      .filter((r) => r.kind === 'recurring' && r.date)
+    // Active repeating bills due within a week (or already due).
+    const soon = new Date(`${today}T00:00:00Z`);
+    soon.setUTCDate(soon.getUTCDate() + 7);
+    const recurring: MoneyDate[] = (view.isOwner ? rules : [])
+      .filter(
+        (r) => r.status === 'active' && (r.nextDate <= soon.toISOString().slice(0, 10) || isGroupRecurringDue(r, today)),
+      )
       .map((r) => ({
-        id: `recurring:${r.key}`,
-        day: r.date as string,
+        id: `recurring:r-${r.id}`,
+        day: r.nextDate,
         kind: 'recurring',
-        title: r.title,
-        amountMinor: r.amountMinor,
+        title: r.description,
+        amountMinor: r.amount,
         currency: view.currency,
         memberId: null,
-        overdue: (r.date as string) < today,
+        overdue: r.nextDate < today,
         route: null,
       }));
     const derived = deriveMoneyDates(
@@ -51,5 +56,5 @@ export function useMoneyDates(groupId: string): readonly MoneyDate[] {
     return [...derived, ...recurring].sort(
       (a, b) => a.day.localeCompare(b.day) || a.id.localeCompare(b.id),
     );
-  }, [view, vendors.vendors, vendors.lines, docs.docs, coming]);
+  }, [view, vendors.vendors, vendors.lines, docs.docs, rules]);
 }
