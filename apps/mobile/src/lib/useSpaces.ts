@@ -43,6 +43,17 @@ export function useColdStartSpace(ready: boolean, companyIds: readonly string[])
   }, [ready, viewerId, companyIds]);
 }
 
+const ONBOARDING = new Set([
+  'sign-in',
+  'sign-up',
+  'welcome',
+  'verify-email',
+  'phone',
+  'guest-welcome',
+  'language',
+  'country',
+]);
+
 /**
  * The remembered space follows where the viewer actually is: inside a company -> that company,
  * on a Personal tab -> Personal. Neutral screens leave it alone, and a quick pass-through
@@ -57,12 +68,15 @@ export function useFollowSpace(): void {
   const space = spaceForRoute(segments, groupId, companyIds);
   const home = isHomeTab(segments);
   useEffect(() => {
-    if (viewerId === null || space === null) return;
-    if (home) {
-      // The first Home mount decides the cold-start redirect from what is stored; wait for it.
-      if (!coldStartSettled(viewerId)) return;
-    } else settleColdStart(viewerId);
+    if (viewerId === null) return;
+    // Any real screen other than Home reached first means the link wins: no redirect later.
+    if (!home && segments.length > 0 && !ONBOARDING.has(segments[0] ?? ''))
+      settleColdStart(viewerId);
+    if (space === null) return;
+    // The first Home mount decides the cold-start redirect from what is stored; wait for it.
+    if (home && !coldStartSettled(viewerId)) return;
     const timer = setTimeout(() => void followSpace(viewerId, space), 400);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- segments is read only for its root
   }, [viewerId, space, home]);
 }
