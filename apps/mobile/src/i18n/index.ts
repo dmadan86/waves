@@ -1451,6 +1451,26 @@ export interface UiStrings {
     qaHierarchy: string;
     qaBudgets: string;
     qaRecord: string;
+    overviewToday: string;
+    overviewAttendance: string;
+    overviewTasks: string;
+    overviewActiveToday: string;
+    overviewPresent: string;
+    overviewAbsent: string;
+    overviewUnmarked: string;
+    overviewDone: string;
+    overviewDoing: string;
+    overviewBlocked: string;
+    overviewUsedWaves: string;
+    overviewNoTasks: string;
+    overviewComingUp: string;
+    overviewToCollect: string;
+    overviewDueOn: string;
+    overviewNoOwes: string;
+    overviewNoPaid: string;
+    overviewNoAdvances: string;
+    qaAddTask: string;
+
     qaAddEmployee: string;
     searchEmployees: string;
     filterEmployees: string;
@@ -8008,6 +8028,26 @@ const en: UiStrings = {
     qaHierarchy: 'Manage hierarchy',
     qaBudgets: 'Allocate budgets',
     qaRecord: 'Record payment',
+    overviewToday: 'Today',
+    overviewAttendance: 'Attendance',
+    overviewTasks: 'Tasks',
+    overviewActiveToday: 'Active today',
+    overviewPresent: 'Present',
+    overviewAbsent: 'Absent',
+    overviewUnmarked: 'Not marked',
+    overviewDone: 'Done',
+    overviewDoing: 'Doing',
+    overviewBlocked: 'Blocked',
+    overviewUsedWaves: '{active} of {total} used Waves today',
+    overviewNoTasks: 'No tasks today',
+    overviewComingUp: 'Coming up',
+    overviewToCollect: 'To collect',
+    overviewDueOn: 'Due {date}',
+    overviewNoOwes: 'No amount owed',
+    overviewNoPaid: 'Nothing paid yet',
+    overviewNoAdvances: 'No advances',
+    qaAddTask: 'Add task',
+
     qaAddEmployee: 'Add employee',
     searchEmployees: 'Search employees...',
     filterEmployees: 'Show employees',
@@ -14019,6 +14059,26 @@ const ta: UiStrings = {
     qaHierarchy: 'படிநிலை',
     qaBudgets: 'பட்ஜெட் ஒதுக்கு',
     qaRecord: 'கொடுப்பனவை பதிவு செய்',
+    overviewToday: 'இன்று',
+    overviewAttendance: 'வருகை',
+    overviewTasks: 'பணிகள்',
+    overviewActiveToday: 'இன்று செயலில்',
+    overviewPresent: 'வருகை',
+    overviewAbsent: 'வரவில்லை',
+    overviewUnmarked: 'குறிக்கப்படவில்லை',
+    overviewDone: 'முடிந்தது',
+    overviewDoing: 'செயலில்',
+    overviewBlocked: 'தடுக்கப்பட்டது',
+    overviewUsedWaves: 'இன்று {total} பேரில் {active} பேர் Waves பயன்படுத்தினர்',
+    overviewNoTasks: 'இன்றைய பணிகள் இல்லை',
+    overviewComingUp: 'விரைவில்',
+    overviewToCollect: 'வசூலிக்க',
+    overviewDueOn: '{date} அன்று செலுத்த வேண்டும்',
+    overviewNoOwes: 'நிலுவைத் தொகை இல்லை',
+    overviewNoPaid: 'இன்னும் பணம் செலுத்தப்படவில்லை',
+    overviewNoAdvances: 'முன்பணம் இல்லை',
+    qaAddTask: 'பணியைச் சேர்',
+
     qaAddEmployee: 'ஊழியரைச் சேர்',
     searchEmployees: 'ஊழியர்களைத் தேடு...',
     filterEmployees: 'ஊழியர்களைக் காட்டு',
@@ -20198,6 +20258,26 @@ const hi: UiStrings = {
     qaHierarchy: 'हाइरार्की संभालें',
     qaBudgets: 'बजट दें',
     qaRecord: 'भुगतान दर्ज करें',
+    overviewToday: 'आज',
+    overviewAttendance: 'उपस्थिति',
+    overviewTasks: 'कार्य',
+    overviewActiveToday: 'आज सक्रिय',
+    overviewPresent: 'उपस्थित',
+    overviewAbsent: 'अनुपस्थित',
+    overviewUnmarked: 'चिह्नित नहीं',
+    overviewDone: 'पूरा',
+    overviewDoing: 'जारी',
+    overviewBlocked: 'अवरुद्ध',
+    overviewUsedWaves: 'आज {total} में से {active} ने Waves इस्तेमाल किया',
+    overviewNoTasks: 'आज कोई कार्य नहीं',
+    overviewComingUp: 'आने वाले दिन',
+    overviewToCollect: 'वसूलना है',
+    overviewDueOn: 'देय {date}',
+    overviewNoOwes: 'कोई बकाया नहीं',
+    overviewNoPaid: 'अभी तक भुगतान नहीं',
+    overviewNoAdvances: 'कोई अग्रिम नहीं',
+    qaAddTask: 'कार्य जोड़ें',
+
     qaAddEmployee: 'कर्मचारी जोड़ें',
     searchEmployees: 'कर्मचारी खोजें...',
     filterEmployees: 'कर्मचारी दिखाएँ',
@@ -26269,6 +26349,26 @@ const ar: UiStrings = {
     qaHierarchy: 'إدارة الهيكل',
     qaBudgets: 'وزّع الميزانيات',
     qaRecord: 'سجّل دفعة',
+    overviewToday: 'اليوم',
+    overviewAttendance: 'الحضور',
+    overviewTasks: 'المهام',
+    overviewActiveToday: 'نشط اليوم',
+    overviewPresent: 'حاضر',
+    overviewAbsent: 'غائب',
+    overviewUnmarked: 'غير محدد',
+    overviewDone: 'مكتمل',
+    overviewDoing: 'جارٍ',
+    overviewBlocked: 'متعثر',
+    overviewUsedWaves: 'استخدم {active} من {total} Waves اليوم',
+    overviewNoTasks: 'لا مهام اليوم',
+    overviewComingUp: 'قريبًا',
+    overviewToCollect: 'للتحصيل',
+    overviewDueOn: 'يستحق في {date}',
+    overviewNoOwes: 'لا توجد مستحقات',
+    overviewNoPaid: 'لم يتم الدفع بعد',
+    overviewNoAdvances: 'لا توجد سلف',
+    qaAddTask: 'أضف مهمة',
+
     qaAddEmployee: 'أضف موظفاً',
     searchEmployees: 'ابحث عن موظف...',
     filterEmployees: 'عرض الموظفين',
