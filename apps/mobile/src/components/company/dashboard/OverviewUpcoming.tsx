@@ -120,7 +120,7 @@ export function OverviewUpcoming({ groupId }: { groupId: string }) {
           <View style={{ flex: single ? 1 : undefined, minWidth: 0, gap: 2 }}>
             <Text
               variant="caption"
-              numberOfLines={single ? 3 : 2}
+              numberOfLines={single ? undefined : 2}
               style={{ fontWeight: '700', fontSize: 13 }}
             >
               {title}
