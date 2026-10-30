@@ -461,7 +461,7 @@ export default function ExpenseDetailScreen() {
   // deposit, so an open deposit here can always tap through to it.
   const openDepositPlan = showsUpcomingPayments(
     group.data?.type,
-    eventFacts.isDeposit && eventFacts.balanceDueMinor !== null ? 1 : 0,
+    eventFacts.isDeposit && eventFacts.amountLeftMinor !== null ? 1 : 0,
   )
     ? goPlan
     : undefined;
@@ -896,11 +896,11 @@ export default function ExpenseDetailScreen() {
                   money(BigInt(version.amount), currency),
                   { locale },
                 )}. ${
-                  eventFacts.balanceDueMinor != null
-                    ? fill(t.eventOrganizer.balanceDueValue, {
-                        amount: format(money(eventFacts.balanceDueMinor, currency), { locale }),
-                        date: eventFacts.balanceDueDate
-                          ? showDate(eventFacts.balanceDueDate, locale)
+                  eventFacts.amountLeftMinor != null
+                    ? fill(t.eventOrganizer.amountLeftValue, {
+                        amount: format(money(eventFacts.amountLeftMinor, currency), { locale }),
+                        date: eventFacts.amountLeftDate
+                          ? showDate(eventFacts.amountLeftDate, locale)
                           : t.eventOrganizer.dueWhenever,
                       })
                     : t.eventOrganizer.fullyPaid
@@ -921,12 +921,12 @@ export default function ExpenseDetailScreen() {
                     </View>
                     <View style={{ flex: 1, minWidth: 0, gap: 2, alignItems: 'flex-end' }}>
                       <Text variant="caption" tone="muted">
-                        {t.eventOrganizer.balanceDueLabel}
+                        {t.eventOrganizer.amountLeftLabel}
                       </Text>
-                      {eventFacts.balanceDueMinor != null ? (
+                      {eventFacts.amountLeftMinor != null ? (
                         <>
                           <MoneyText
-                            amount={eventFacts.balanceDueMinor}
+                            amount={eventFacts.amountLeftMinor}
                             currency={currency}
                             locale={locale}
                             variant="title"
@@ -937,9 +937,9 @@ export default function ExpenseDetailScreen() {
                             tone={eventFacts.overdue ? 'negative' : 'muted'}
                             numberOfLines={1}
                           >
-                            {eventFacts.balanceDueDate
-                              ? fill(t.eventOrganizer.balanceDueBy, {
-                                  date: showDate(eventFacts.balanceDueDate, locale),
+                            {eventFacts.amountLeftDate
+                              ? fill(t.eventOrganizer.amountLeftBy, {
+                                  date: showDate(eventFacts.amountLeftDate, locale),
                                 })
                               : t.eventOrganizer.dueWhenever}
                           </Text>

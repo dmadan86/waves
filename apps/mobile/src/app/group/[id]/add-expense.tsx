@@ -674,8 +674,8 @@ export default function AddExpenseScreen() {
   // the person opts in, seeded from the version when editing.
   const [subEventId, setSubEventId] = useState<string | null>(null);
   const [isDeposit, setIsDeposit] = useState(false);
-  const [balanceDueMinor, setBalanceDueMinor] = useState<bigint | null>(null);
-  const [balanceDueDate, setBalanceDueDate] = useState<string | null>(null);
+  const [amountLeftMinor, setBalanceDueMinor] = useState<bigint | null>(null);
+  const [amountLeftDate, setBalanceDueDate] = useState<string | null>(null);
 
   // The per-group receipt ceiling. A group holds a few receipts for free (the
   // number is an admin knob); past it, scanning is a paid feature. A paid group
@@ -950,8 +950,8 @@ export default function AddExpenseScreen() {
       setReimbursable(seeded.reimbursable);
       setSubEventId(seeded.subEventId);
       setIsDeposit(seeded.isDeposit);
-      setBalanceDueMinor(seeded.balanceDueMinor);
-      setBalanceDueDate(seeded.balanceDueDate);
+      setBalanceDueMinor(seeded.amountLeftMinor);
+      setBalanceDueDate(seeded.amountLeftDate);
       setParticipants(seeded.participants);
       setSplitKind(seeded.splitKind);
       setSplitBy(version.split_type === 'units' ? 'families' : 'people');
@@ -1560,8 +1560,8 @@ export default function AddExpenseScreen() {
           reimbursable,
           subEventId: effectiveSubEventId,
           isDeposit: effectiveIsDeposit,
-          balanceDueMinor: effectiveIsDeposit ? balanceDueMinor : null,
-          balanceDueDate: effectiveIsDeposit ? balanceDueDate : null,
+          amountLeftMinor: effectiveIsDeposit ? amountLeftMinor : null,
+          amountLeftDate: effectiveIsDeposit ? amountLeftDate : null,
         },
         editing: editing?.currentVersion,
       });
@@ -2709,11 +2709,11 @@ export default function AddExpenseScreen() {
                     <View style={{ gap: theme.spacing.xs, paddingBottom: theme.spacing.sm }}>
                       <DetailRow
                         icon="cash-outline"
-                        label={t.eventOrganizer.balanceDueLabel}
+                        label={t.eventOrganizer.amountLeftLabel}
                         trailing={
                           <AmountField
                             currency={currency}
-                            value={balanceDueMinor ?? 0n}
+                            value={amountLeftMinor ?? 0n}
                             onChange={setBalanceDueMinor}
                             size="compact"
                           />
@@ -2721,14 +2721,14 @@ export default function AddExpenseScreen() {
                       />
                       <DetailRow
                         icon="calendar-outline"
-                        label={t.eventOrganizer.balanceDueDateLabel}
-                        value={balanceDueDate ? showDate(balanceDueDate, locale) : t.add}
-                        placeholder={!balanceDueDate}
+                        label={t.eventOrganizer.amountLeftDateLabel}
+                        value={amountLeftDate ? showDate(amountLeftDate, locale) : t.add}
+                        placeholder={!amountLeftDate}
                         onPress={() => setEditingBalanceDueDate(true)}
                       />
                       {editingBalanceDueDate ? (
                         <DateTimePicker
-                          value={dateFrom(balanceDueDate ?? expenseDate)}
+                          value={dateFrom(amountLeftDate ?? expenseDate)}
                           mode="date"
                           display={Platform.OS === 'ios' ? 'inline' : 'default'}
                           onChange={applyBalanceDueDate}

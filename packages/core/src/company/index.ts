@@ -940,3 +940,4 @@ export function reimbursementOutcome(
   }
   return { paid, alreadyPaid: [...by].map(([who, count]) => ({ by: who, count })) };
 }
+export * from './documents';
