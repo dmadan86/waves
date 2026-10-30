@@ -391,6 +391,7 @@ model Group {
   companyEntries     CompanyEntry[]
   companyProjects CompanyProject[]
   companyWageRuns CompanyWageRun[]
+  companyDocuments CompanyDocument[]
   tripPhotos         TripPhoto[]
   expenseComments    ExpenseComment[]
   settlementProofs   SettlementProof[]
@@ -477,6 +478,7 @@ model GroupMember {
   fundedCompanyEntries CompanyEntry[] @relation("CompanyFundingManager")
   companyProjects CompanyProjectMember[]
   createdWageRuns CompanyWageRun[]
+  createdDocuments CompanyDocument[]
   companyEntries     CompanyEntry[] @relation("CompanyEntryMember")
   reviewedCompanyEntries CompanyEntry[] @relation("CompanyReviewer")
   companyEntryAttachments CompanyEntryAttachment[]
@@ -3266,5 +3268,38 @@ model CompanyWageRun {
   @@unique([id,groupId])
   @@index([groupId,updatedSeq], map: "company_wage_runs_sync_idx")
   @@map("company_wage_runs")
+  @@schema("public")
+}
+model CompanyDocument {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  docType String @map("doc_type")
+  number Int
+  customerName String @map("customer_name")
+  customerPhone String? @map("customer_phone")
+  docDate DateTime @map("doc_date") @db.Date
+  items Json
+  discountMinor BigInt @default(0) @map("discount_minor")
+  totalMinor BigInt @map("total_minor")
+  currency String @db.Char(3)
+  notes String?
+  status String
+  payments Json @default("[]")
+  paidMinor BigInt @default(0) @map("paid_minor")
+  convertedTo String? @map("converted_to") @db.Uuid
+  convertedFrom String? @map("converted_from") @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  updatedBy String @map("updated_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  creator GroupMember @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([groupId,docType,number])
+  @@index([groupId,updatedSeq], map: "company_documents_sync_idx")
+  @@index([groupId,createdBy], map: "company_documents_creator_idx")
+  @@map("company_documents")
   @@schema("public")
 }

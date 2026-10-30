@@ -1251,6 +1251,64 @@ export interface UiStrings {
     /** The 4th "Try saying…" example, in quotes like its siblings. */
     tryWhoOwes: string;
   };
+  companyDocs: {
+    title: string;
+    estimate: string;
+    bill: string;
+    all: string;
+    estimates: string;
+    bills: string;
+    unpaid: string;
+    syncing: string;
+    draft: string;
+    sent: string;
+    accepted: string;
+    declined: string;
+    part_paid: string;
+    paid: string;
+    newEstimate: string;
+    newBill: string;
+    customer: string;
+    phone: string;
+    date: string;
+    description: string;
+    qty: string;
+    rate: string;
+    amount: string;
+    addItem: string;
+    removeItem: string;
+    discount: string;
+    notes: string;
+    subtotal: string;
+    total: string;
+    payments: string;
+    amountLeft: string;
+    billTo: string;
+    estimateFor: string;
+    recordPayment: string;
+    sharePdf: string;
+    convert: string;
+    edit: string;
+    delete: string;
+    save: string;
+    empty: string;
+    notFound: string;
+    linkedBill: string;
+    linkedEstimate: string;
+    footer: string;
+    nameError: string;
+    itemsError: string;
+    itemError: string;
+    discountError: string;
+    totalError: string;
+    below_paidError: string;
+    amountError: string;
+    overError: string;
+    failed: string;
+    deleteTitle: string;
+    deleteBody: string;
+    unpaidTotal: string;
+  };
   company: {
     tab: string;
     listTitle: string;
@@ -7579,6 +7637,64 @@ const en: UiStrings = {
     completeSheetTitle: 'Complete this expense',
     tryWhoOwes: '“Who owes me?”',
   },
+  companyDocs: {
+    title: 'Estimates & bills',
+    estimate: 'Estimate',
+    bill: 'Bill',
+    all: 'All',
+    estimates: 'Estimates',
+    bills: 'Bills',
+    unpaid: 'Unpaid',
+    syncing: 'Syncing',
+    draft: 'Draft',
+    sent: 'Sent',
+    accepted: 'Accepted',
+    declined: 'Declined',
+    part_paid: 'Part paid',
+    paid: 'Paid',
+    newEstimate: 'New estimate',
+    newBill: 'New bill',
+    customer: 'Customer name',
+    phone: 'Phone (optional)',
+    date: 'Date',
+    description: 'Description',
+    qty: 'Qty',
+    rate: 'Rate',
+    amount: 'Amount',
+    addItem: 'Add item',
+    removeItem: 'Remove item',
+    discount: 'Discount (optional)',
+    notes: 'Notes (optional)',
+    subtotal: 'Subtotal',
+    total: 'Total',
+    payments: 'Payments received',
+    amountLeft: 'Balance due',
+    billTo: 'Bill to',
+    estimateFor: 'Estimate for',
+    recordPayment: 'Record payment',
+    sharePdf: 'Share PDF',
+    convert: 'Convert to bill',
+    edit: 'Edit',
+    delete: 'Delete',
+    save: 'Save',
+    empty: 'No documents yet',
+    notFound: 'Document not found',
+    linkedBill: 'View bill',
+    linkedEstimate: 'View estimate',
+    footer: 'This is not a tax invoice.',
+    nameError: 'Enter a customer name (up to 120 characters).',
+    itemsError: 'Add 1–50 items.',
+    itemError: 'Enter a description, positive quantity and valid rate.',
+    discountError: 'Discount must be less than the subtotal.',
+    totalError: 'Enter a positive total within the allowed limit.',
+    below_paidError: 'Total cannot be less than payments received.',
+    amountError: 'Enter a positive payment amount.',
+    overError: 'Amount exceeds the balance due.',
+    failed: 'Could not save. Please try again.',
+    deleteTitle: 'Delete document?',
+    deleteBody: 'This document will be removed.',
+    unpaidTotal: '{amount} unpaid',
+  },
   company: {
     tab: 'Company',
     listTitle: 'Your companies',
@@ -13358,6 +13474,64 @@ const ta: UiStrings = {
     completeRowHint: 'இடம், பணம் செலுத்திய முறை அல்லது ரசீதைச் சேர்க்கவும்',
     completeSheetTitle: 'இந்தச் செலவை முழுமையாக்குங்கள்',
     tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
+  },
+  companyDocs: {
+    title: 'மதிப்பீடுகள் & பில்கள்',
+    estimate: 'மதிப்பீடு',
+    bill: 'பில்',
+    all: 'அனைத்தும்',
+    estimates: 'மதிப்பீடுகள்',
+    bills: 'பில்கள்',
+    unpaid: 'நிலுவை',
+    syncing: 'ஒத்திசைகிறது',
+    draft: 'வரைவு',
+    sent: 'அனுப்பியது',
+    accepted: 'ஏற்றது',
+    declined: 'மறுத்தது',
+    part_paid: 'பகுதி செலுத்தியது',
+    paid: 'செலுத்தியது',
+    newEstimate: 'புதிய மதிப்பீடு',
+    newBill: 'புதிய பில்',
+    customer: 'வாடிக்கையாளர் பெயர்',
+    phone: 'தொலைபேசி (விருப்பம்)',
+    date: 'தேதி',
+    description: 'விவரம்',
+    qty: 'அளவு',
+    rate: 'விலை',
+    amount: 'தொகை',
+    addItem: 'உருப்படி சேர்',
+    removeItem: 'உருப்படி நீக்கு',
+    discount: 'தள்ளுபடி (விருப்பம்)',
+    notes: 'குறிப்புகள் (விருப்பம்)',
+    subtotal: 'கூட்டுத்தொகை',
+    total: 'மொத்தம்',
+    payments: 'பெற்ற தொகைகள்',
+    amountLeft: 'மீதித் தொகை',
+    billTo: 'பில் பெறுநர்',
+    estimateFor: 'மதிப்பீடு பெறுநர்',
+    recordPayment: 'பெற்ற தொகையைப் பதிவு செய்',
+    sharePdf: 'PDF பகிர்',
+    convert: 'பில்லாக மாற்று',
+    edit: 'திருத்து',
+    delete: 'நீக்கு',
+    save: 'சேமி',
+    empty: 'ஆவணங்கள் இல்லை',
+    notFound: 'ஆவணம் இல்லை',
+    linkedBill: 'பில்லைப் பார்',
+    linkedEstimate: 'மதிப்பீட்டைப் பார்',
+    footer: 'இது வரி விலைப்பட்டியல் அல்ல.',
+    nameError: 'வாடிக்கையாளர் பெயரை உள்ளிடவும் (120 எழுத்துகள் வரை).',
+    itemsError: '1–50 உருப்படிகளைச் சேர்க்கவும்.',
+    itemError: 'விவரம், நேர்மறை அளவு, சரியான விலையை உள்ளிடவும்.',
+    discountError: 'தள்ளுபடி கூட்டுத்தொகையை விடக் குறைவாக இருக்க வேண்டும்.',
+    totalError: 'அனுமதிக்கப்பட்ட வரம்பில் நேர்மறை மொத்தத்தை உள்ளிடவும்.',
+    below_paidError: 'மொத்தம் பெற்ற தொகையை விடக் குறையக்கூடாது.',
+    amountError: 'நேர்மறைத் தொகையை உள்ளிடவும்.',
+    overError: 'தொகை நிலுவையை விட அதிகம்.',
+    failed: 'சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    deleteTitle: 'ஆவணத்தை நீக்கவா?',
+    deleteBody: 'இந்த ஆவணம் நீக்கப்படும்.',
+    unpaidTotal: '{amount} நிலுவை',
   },
   company: {
     tab: 'நிறுவனம்',
@@ -19308,6 +19482,64 @@ const hi: UiStrings = {
     completeSheetTitle: 'यह खर्च पूरा करें',
     tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
   },
+  companyDocs: {
+    title: 'अनुमान और बिल',
+    estimate: 'अनुमान',
+    bill: 'बिल',
+    all: 'सभी',
+    estimates: 'अनुमान',
+    bills: 'बिल',
+    unpaid: 'बकाया',
+    syncing: 'सिंक हो रहा है',
+    draft: 'ड्राफ़्ट',
+    sent: 'भेजा गया',
+    accepted: 'स्वीकृत',
+    declined: 'अस्वीकृत',
+    part_paid: 'आंशिक भुगतान',
+    paid: 'भुगतान पूरा',
+    newEstimate: 'नया अनुमान',
+    newBill: 'नया बिल',
+    customer: 'ग्राहक का नाम',
+    phone: 'फ़ोन (वैकल्पिक)',
+    date: 'तारीख',
+    description: 'विवरण',
+    qty: 'मात्रा',
+    rate: 'दर',
+    amount: 'राशि',
+    addItem: 'आइटम जोड़ें',
+    removeItem: 'आइटम हटाएँ',
+    discount: 'छूट (वैकल्पिक)',
+    notes: 'नोट्स (वैकल्पिक)',
+    subtotal: 'उप-योग',
+    total: 'कुल',
+    payments: 'प्राप्त भुगतान',
+    amountLeft: 'बकाया राशि',
+    billTo: 'बिल प्राप्तकर्ता',
+    estimateFor: 'अनुमान प्राप्तकर्ता',
+    recordPayment: 'भुगतान दर्ज करें',
+    sharePdf: 'PDF साझा करें',
+    convert: 'बिल में बदलें',
+    edit: 'बदलें',
+    delete: 'हटाएँ',
+    save: 'सहेजें',
+    empty: 'अभी कोई दस्तावेज़ नहीं',
+    notFound: 'दस्तावेज़ नहीं मिला',
+    linkedBill: 'बिल देखें',
+    linkedEstimate: 'अनुमान देखें',
+    footer: 'यह कर चालान नहीं है।',
+    nameError: 'ग्राहक का नाम लिखें (अधिकतम 120 अक्षर)।',
+    itemsError: '1–50 आइटम जोड़ें।',
+    itemError: 'विवरण, धनात्मक मात्रा और सही दर लिखें।',
+    discountError: 'छूट उप-योग से कम होनी चाहिए।',
+    totalError: 'अनुमत सीमा में धनात्मक कुल लिखें।',
+    below_paidError: 'कुल प्राप्त भुगतान से कम नहीं हो सकता।',
+    amountError: 'धनात्मक भुगतान राशि लिखें।',
+    overError: 'राशि बकाया से अधिक है।',
+    failed: 'सहेज नहीं सके। फिर कोशिश करें।',
+    deleteTitle: 'दस्तावेज़ हटाएँ?',
+    deleteBody: 'यह दस्तावेज़ हटा दिया जाएगा।',
+    unpaidTotal: '{amount} बकाया',
+  },
   company: {
     tab: 'कंपनी',
     listTitle: 'आपकी कंपनियाँ',
@@ -25144,6 +25376,64 @@ const ar: UiStrings = {
     completeRowHint: 'أضف المكان أو طريقة الدفع أو إيصالاً',
     completeSheetTitle: 'أكمل هذا المصروف',
     tryWhoOwes: '«من يدين لي؟»',
+  },
+  companyDocs: {
+    title: 'التقديرات والفواتير',
+    estimate: 'تقدير',
+    bill: 'فاتورة',
+    all: 'الكل',
+    estimates: 'التقديرات',
+    bills: 'الفواتير',
+    unpaid: 'غير مدفوع',
+    syncing: 'جارٍ المزامنة',
+    draft: 'مسودة',
+    sent: 'تم الإرسال',
+    accepted: 'مقبول',
+    declined: 'مرفوض',
+    part_paid: 'مدفوع جزئياً',
+    paid: 'مدفوع',
+    newEstimate: 'تقدير جديد',
+    newBill: 'فاتورة جديدة',
+    customer: 'اسم العميل',
+    phone: 'الهاتف (اختياري)',
+    date: 'التاريخ',
+    description: 'الوصف',
+    qty: 'الكمية',
+    rate: 'السعر',
+    amount: 'المبلغ',
+    addItem: 'إضافة بند',
+    removeItem: 'حذف البند',
+    discount: 'خصم (اختياري)',
+    notes: 'ملاحظات (اختياري)',
+    subtotal: 'المجموع الفرعي',
+    total: 'الإجمالي',
+    payments: 'الدفعات المستلمة',
+    amountLeft: 'الرصيد المستحق',
+    billTo: 'فاتورة إلى',
+    estimateFor: 'تقدير إلى',
+    recordPayment: 'تسجيل دفعة',
+    sharePdf: 'مشاركة PDF',
+    convert: 'تحويل إلى فاتورة',
+    edit: 'تعديل',
+    delete: 'حذف',
+    save: 'حفظ',
+    empty: 'لا توجد مستندات بعد',
+    notFound: 'المستند غير موجود',
+    linkedBill: 'عرض الفاتورة',
+    linkedEstimate: 'عرض التقدير',
+    footer: 'هذه ليست فاتورة ضريبية.',
+    nameError: 'أدخل اسم العميل (حتى 120 حرفاً).',
+    itemsError: 'أضف من 1 إلى 50 بنداً.',
+    itemError: 'أدخل وصفاً وكمية موجبة وسعراً صالحاً.',
+    discountError: 'يجب أن يكون الخصم أقل من المجموع الفرعي.',
+    totalError: 'أدخل إجمالياً موجباً ضمن الحد المسموح.',
+    below_paidError: 'لا يمكن أن يقل الإجمالي عن الدفعات المستلمة.',
+    amountError: 'أدخل مبلغ دفعة موجباً.',
+    overError: 'المبلغ يتجاوز الرصيد المستحق.',
+    failed: 'تعذر الحفظ. حاول مجدداً.',
+    deleteTitle: 'حذف المستند؟',
+    deleteBody: 'سيتم حذف هذا المستند.',
+    unpaidTotal: '{amount} غير مدفوع',
   },
   company: {
     tab: 'الشركة',

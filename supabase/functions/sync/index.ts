@@ -102,6 +102,11 @@ type MutationKind =
   | 'company_pool.post'
   | 'company_wage.pay'
   | 'company.second_approval_set'
+  | 'company_doc.save'
+  | 'company_doc.status'
+  | 'company_doc.convert'
+  | 'company_doc.payment'
+  | 'company_doc.void'
   // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
@@ -333,6 +338,8 @@ const GROUP_TABLES = [
   ['company_project_budgets', '*'],
   // A wage payment divided across sites; readable exactly where the payment is.
   ['company_wage_splits', '*'],
+  // Estimates and bills: RLS gives an owner all, a manager only the ones they created, others none.
+  ['company_documents', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -982,6 +989,37 @@ export class SyncSession {
         return await this.rpcAsCaller('waves_company_member_projects_set', {
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
           p_project_ids: companyUuidList(mutation.payload.projectIds, 'projectIds'),
+        });
+      case 'company_doc.save':
+        return await this.rpcAsCaller('waves_company_doc_save', {
+          p_group_id: mutation.groupId,
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_data: companyDocData(mutation.payload.data),
+        });
+      case 'company_doc.status': {
+        const status = mutation.payload.status;
+        if (!['draft', 'sent', 'accepted', 'declined'].includes(status as string))
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_doc_status', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_status: status,
+        });
+      }
+      case 'company_doc.convert':
+        return await this.rpcAsCaller('waves_company_doc_convert', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_bill_id: companyUuid(mutation.payload.billId, 'billId'),
+        });
+      case 'company_doc.payment':
+        return await this.rpcAsCaller('waves_company_doc_payment', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_payment_id: companyUuid(mutation.payload.paymentId, 'paymentId'),
+          p_amount: companyDecimal(mutation.payload.amountMinor, 'amountMinor'),
+          p_paid_on: companyDate(mutation.payload.paidOn, 'paidOn'),
+        });
+      case 'company_doc.void':
+        return await this.rpcAsCaller('waves_company_doc_void', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
         });
       case 'company_project.set':
         return await this.rpcAsCaller('waves_company_project_set', {
@@ -2387,6 +2425,31 @@ function companyReason(value: unknown, field: string, required: boolean): string
   }
   if (typeof value !== 'string' || value.trim().length > 500) companyInvalid(field);
   return (value as string).trim();
+}
+/** Estimate / bill body: shape-checked here, amounts recomputed by the database. */
+function companyDocData(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('data');
+  const d = value as Record<string, unknown>;
+  const items = d.items;
+  if (!Array.isArray(items) || items.length < 1 || items.length > 50) companyInvalid('items');
+  if (d.docType !== 'estimate' && d.docType !== 'bill') companyInvalid('docType');
+  return {
+    docType: d.docType,
+    customerName: companyReason(d.customerName, 'customerName', true),
+    customerPhone: companyReason(d.customerPhone ?? null, 'customerPhone', false),
+    docDate: companyDate(d.docDate, 'docDate'),
+    discountMinor: companyDecimal(d.discountMinor ?? '0', 'discountMinor'),
+    notes: companyReason(d.notes ?? null, 'notes', false),
+    items: (items as unknown[]).map((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) companyInvalid('items');
+      const i = raw as Record<string, unknown>;
+      return {
+        description: companyReason(i.description, 'description', true),
+        qtyMilli: companyDecimal(i.qtyMilli, 'qtyMilli'),
+        rateMinor: companyDecimal(i.rateMinor, 'rateMinor'),
+      };
+    }),
+  };
 }
 function companyMemberData(p: Record<string, unknown>): Record<string, unknown> {
   return {
