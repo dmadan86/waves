@@ -379,16 +379,31 @@ export function DashHeader({
         visible={menu}
         onClose={() => setMenu(false)}
         items={[
+<<<<<<< HEAD
+=======
+          ...(showGear
+            ? [
+                {
+                  icon: 'settings-outline',
+                  label: t.company.companySettings,
+                  route: `/group/${groupId}/settings`,
+                } as OverflowMenuItem,
+              ]
+            : []),
+>>>>>>> origin/fix/company-settings-menu
           {
             icon: 'download-outline',
             label: t.company.exportAction,
             route: `/group/${groupId}/export`,
           },
+<<<<<<< HEAD
           {
             icon: 'flag-outline',
             label: t.company.reportCompany,
             onPress: () => setReporting(true),
           },
+=======
+>>>>>>> origin/fix/company-settings-menu
         ]}
       />
     </>
