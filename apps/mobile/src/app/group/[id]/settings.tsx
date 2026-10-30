@@ -984,7 +984,7 @@ export default function GroupSettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <PlainHeader
-          title={t.group.settings}
+          title={groupType === GroupType.Company ? t.company.companySettings : t.group.settings}
           trailing={
             <Pressable
               accessibilityRole="button"
