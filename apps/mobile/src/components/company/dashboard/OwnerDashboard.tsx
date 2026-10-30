@@ -7,7 +7,7 @@
 import { useState } from 'react';
 
 import { SectionShell } from '@/components/company/bar/SectionShell';
-import { OverviewMoney } from '@/components/company/dashboard/OverviewMoney';
+import { MoneyCards, UpcomingPayments } from '@/components/company/dashboard/OverviewMoney';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { RecentActivity } from '@/components/company/dashboard/parts';
 import { useCompanyEntries } from '@/data/companyEntries';
@@ -20,8 +20,11 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
   return (
     <SectionShell groupId={groupId} view={view} overview>
       <>
-        <OverviewTop groupId={groupId} />
-        <OverviewMoney groupId={groupId} />
+        <OverviewTop
+          groupId={groupId}
+          afterTiles={<MoneyCards groupId={groupId} />}
+          afterAttendance={<UpcomingPayments groupId={groupId} />}
+        />
         {view.ready ? (
           <RecentActivity
             groupId={groupId}

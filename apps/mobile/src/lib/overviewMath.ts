@@ -19,15 +19,18 @@ export function compactMoney(
   locale: string,
   crore: string,
 ): string {
-  const amount = money(minor, currency as CurrencyCode);
-  const p = formatParts(amount, { locale });
+  const p = formatParts(money(minor, currency as CurrencyCode), { locale });
   if (currency === 'INR' && minor >= CRORE_MINOR) {
     const hundredths = Number(minor / 10_000_000n); // paise -> hundredths of a crore
-    const n = (hundredths / 100).toFixed(2).replace(/\.?0+$/, '');
-    const symbol = p.lead.replace(/[\p{Nd}.,\s\u00a0\u066b\u066c-]/gu, '');
-    return `${symbol}${crore.replace('{n}', n)}`;
+    const n = new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(hundredths / 100);
+    const symbol = (p.lead + p.trail).replace(/[\p{Nd}.,\s\u00a0\u066b\u066c\u200f\u200e-]/gu, '');
+    const text = crore.replace('{n}', n);
+    // Arabic puts the symbol after the number, the rest before it.
+    return p.trail.includes(symbol) && !p.lead.includes(symbol)
+      ? `${text} ${symbol}`
+      : `${symbol}${text}`;
   }
-  return /^[.,٫]0+$/.test(p.fraction) ? p.lead + p.trail : p.text;
+  return /^[^\p{Nd}]*[0\u0660\u0966\u0be6]+$/u.test(p.fraction) ? p.lead + p.trail : p.text;
 }
 
 export type DayKind = 'today' | 'yesterday' | 'other';
@@ -95,4 +98,16 @@ export function urgentItems(u: UrgentInput): { key: UrgentKey; n: number }[] {
   return (['absent', 'paymentsPending', 'blockedTasks', 'approvals', 'vendorBills'] as const)
     .filter((key) => u[key] > 0)
     .map((key) => ({ key, n: u[key] }));
+}
+
+/** Where the Urgent card goes: the screen of its first reason (Pending only knows approvals and bills). */
+export function urgentRoute(items: readonly { key: UrgentKey }[]): string {
+  const first = items[0]?.key;
+  return first === 'absent'
+    ? 'company-attendance'
+    : first === 'paymentsPending'
+      ? 'company-payments'
+      : first === 'blockedTasks'
+        ? 'company-work'
+        : 'company-pending';
 }

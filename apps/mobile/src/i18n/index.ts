@@ -1483,10 +1483,10 @@ export interface UiStrings {
     ovUrgent: string;
     ovAllClear: string;
     ovAbsentN: PluralForms;
-    ovPaymentsPendingN: string;
-    ovTasksBlockedN: string;
-    ovApprovalsN: string;
-    ovBillsN: string;
+    ovPaymentsPendingN: PluralForms;
+    ovTasksBlockedN: PluralForms;
+    ovApprovalsN: PluralForms;
+    ovBillsN: PluralForms;
     ovAttendanceToday: string;
     ovAttendanceDay: string;
     ovSeeAll: string;
@@ -8097,15 +8097,15 @@ const en: UiStrings = {
     ovUrgent: 'Urgent',
     ovAllClear: 'All clear',
     ovAbsentN: { one: '{n} employee absent', other: '{n} employees absent' },
-    ovPaymentsPendingN: '{n} payments pending',
-    ovTasksBlockedN: '{n} tasks blocked',
-    ovApprovalsN: '{n} approvals waiting',
-    ovBillsN: '{n} vendor bills waiting',
+    ovPaymentsPendingN: { one: '{n} payment pending', other: '{n} payments pending' },
+    ovTasksBlockedN: { one: '{n} task blocked', other: '{n} tasks blocked' },
+    ovApprovalsN: { one: '{n} approval waiting', other: '{n} approvals waiting' },
+    ovBillsN: { one: '{n} vendor bill waiting', other: '{n} vendor bills waiting' },
     ovAttendanceToday: "Today's attendance",
     ovAttendanceDay: 'Attendance',
     ovSeeAll: 'See all',
     ovUpcoming: 'Upcoming payments',
-    ovKindSalary: 'Salary',
+    ovKindSalary: 'Salary & claims',
     ovKindBill: 'Bill',
     ovRecord: 'Record',
     ovOwedNow: 'Owed now',
@@ -14165,15 +14165,21 @@ const ta: UiStrings = {
     ovUrgent: 'அவசரம்',
     ovAllClear: 'அனைத்தும் சரி',
     ovAbsentN: { one: '{n} ஊழியர் வரவில்லை', other: '{n} ஊழியர்கள் வரவில்லை' },
-    ovPaymentsPendingN: '{n} கொடுப்பனவுகள் நிலுவை',
-    ovTasksBlockedN: '{n} பணிகள் தடைபட்டன',
-    ovApprovalsN: '{n} ஒப்புதல்கள் காத்திருக்கின்றன',
-    ovBillsN: '{n} விற்பனையாளர் பில்கள் காத்திருக்கின்றன',
+    ovPaymentsPendingN: { one: '{n} கொடுப்பனவுகள் நிலுவை', other: '{n} கொடுப்பனவுகள் நிலுவை' },
+    ovTasksBlockedN: { one: '{n} பணிகள் தடைபட்டன', other: '{n} பணிகள் தடைபட்டன' },
+    ovApprovalsN: {
+      one: '{n} ஒப்புதல்கள் காத்திருக்கின்றன',
+      other: '{n} ஒப்புதல்கள் காத்திருக்கின்றன',
+    },
+    ovBillsN: {
+      one: '{n} விற்பனையாளர் பில்கள் காத்திருக்கின்றன',
+      other: '{n} விற்பனையாளர் பில்கள் காத்திருக்கின்றன',
+    },
     ovAttendanceToday: 'இன்றைய வருகை',
     ovAttendanceDay: 'வருகை',
     ovSeeAll: 'அனைத்தும்',
     ovUpcoming: 'வரவிருக்கும் கொடுப்பனவுகள்',
-    ovKindSalary: 'சம்பளம்',
+    ovKindSalary: 'சம்பளம் & கோரிக்கைகள்',
     ovKindBill: 'பில்',
     ovRecord: 'பதிவு',
     ovOwedNow: 'இப்போது தர வேண்டியது',
@@ -20401,15 +20407,15 @@ const hi: UiStrings = {
     ovUrgent: 'ज़रूरी',
     ovAllClear: 'सब ठीक है',
     ovAbsentN: { one: '{n} कर्मचारी अनुपस्थित', other: '{n} कर्मचारी अनुपस्थित' },
-    ovPaymentsPendingN: '{n} भुगतान लंबित',
-    ovTasksBlockedN: '{n} कार्य अटके',
-    ovApprovalsN: '{n} स्वीकृतियाँ प्रतीक्षा में',
-    ovBillsN: '{n} विक्रेता बिल प्रतीक्षा में',
+    ovPaymentsPendingN: { one: '{n} भुगतान लंबित', other: '{n} भुगतान लंबित' },
+    ovTasksBlockedN: { one: '{n} कार्य अटके', other: '{n} कार्य अटके' },
+    ovApprovalsN: { one: '{n} स्वीकृतियाँ प्रतीक्षा में', other: '{n} स्वीकृतियाँ प्रतीक्षा में' },
+    ovBillsN: { one: '{n} विक्रेता बिल प्रतीक्षा में', other: '{n} विक्रेता बिल प्रतीक्षा में' },
     ovAttendanceToday: 'आज की उपस्थिति',
     ovAttendanceDay: 'उपस्थिति',
     ovSeeAll: 'सभी देखें',
     ovUpcoming: 'आगामी भुगतान',
-    ovKindSalary: 'वेतन',
+    ovKindSalary: 'वेतन और दावे',
     ovKindBill: 'बिल',
     ovRecord: 'दर्ज करें',
     ovOwedNow: 'अभी देय',
@@ -26529,15 +26535,15 @@ const ar: UiStrings = {
     ovUrgent: 'عاجل',
     ovAllClear: 'كل شيء على ما يرام',
     ovAbsentN: { one: '{n} موظف غائب', other: '{n} موظفين غائبين' },
-    ovPaymentsPendingN: '{n} مدفوعات معلقة',
-    ovTasksBlockedN: '{n} مهام متوقفة',
-    ovApprovalsN: '{n} موافقات بانتظارك',
-    ovBillsN: '{n} فواتير موردين بانتظارك',
+    ovPaymentsPendingN: { one: '{n} دفعة معلقة', other: '{n} مدفوعات معلقة' },
+    ovTasksBlockedN: { one: '{n} مهمة متوقفة', other: '{n} مهام متوقفة' },
+    ovApprovalsN: { one: '{n} موافقة بانتظارك', other: '{n} موافقات بانتظارك' },
+    ovBillsN: { one: '{n} فاتورة مورد بانتظارك', other: '{n} فواتير موردين بانتظارك' },
     ovAttendanceToday: 'حضور اليوم',
     ovAttendanceDay: 'الحضور',
     ovSeeAll: 'عرض الكل',
     ovUpcoming: 'المدفوعات القادمة',
-    ovKindSalary: 'الراتب',
+    ovKindSalary: 'الراتب والمطالبات',
     ovKindBill: 'فاتورة',
     ovRecord: 'تسجيل',
     ovOwedNow: 'مستحق الآن',
