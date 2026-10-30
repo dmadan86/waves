@@ -323,13 +323,13 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
         <Row style={{ gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           {view.who ? <MetaText>{`${view.who} ·`}</MetaText> : null}
           {view.groupName ? (
-            // Name ellipsizes first; the pill never shrinks. One line at 360dp.
+            // Name ellipsizes first; a long custom tag is capped. One line at 360dp.
             <Row style={{ gap: 4, alignItems: 'center', flexShrink: 1, maxWidth: '100%' }}>
               <View style={{ flexShrink: 1 }}>
                 <MetaText>{view.groupName}</MetaText>
               </View>
               {view.groupTag ? (
-                <View style={{ flexShrink: 0 }}>
+                <View style={{ flexShrink: 1, maxWidth: '60%' }}>
                   <GroupTypeTag tag={view.groupTag} />
                 </View>
               ) : null}
