@@ -105,21 +105,26 @@ function CompanyRow({
   );
 }
 
-/** `current` is 'personal' or the open company's id; `label` is what the pill says. */
-export function SpacePill({ current, label }: { current: Space; label: string }) {
+/** The "Switch space" sheet: Personal, the viewer's companies, and Create a new company. */
+export function SpaceSwitchSheet({
+  current,
+  open,
+  onClose,
+}: {
+  current: Space;
+  open: boolean;
+  onClose: () => void;
+}) {
   const theme = useTheme();
   const { t } = useStrings();
-  const [open, setOpen] = useState(false);
   const remember = useRememberSpace();
   const companyIds = useViewerCompanyIds();
   const groups = useGroups().data ?? [];
   const companies = companyIds.flatMap((id) => groups.filter((g) => g.id === id));
-  // Only-groups users have nothing to switch to: a plain label, no chevron, no sheet.
-  const switchable = companies.length > 0;
   const personal = current === 'personal';
 
   const go = (space: Space) => {
-    setOpen(false);
+    onClose();
     if (space === current) return;
     remember(space);
     const href = space === 'personal' ? '/' : `/group/${space}`;
@@ -127,6 +132,52 @@ export function SpacePill({ current, label }: { current: Space; label: string })
     else if (space === 'personal') router.navigate('/');
     else router.replace(href);
   };
+
+  return (
+    <Sheet
+      visible={open}
+      onClose={onClose}
+      closeLabel={t.common.close}
+      title={t.spaces.switchTitle}
+    >
+      <ScrollView contentContainerStyle={{ gap: 10 }}>
+        <Text variant="caption" tone="muted">
+          {t.spaces.switchBody}
+        </Text>
+        <Row
+          title={t.spaces.personal}
+          body={t.spaces.personalBody}
+          current={personal}
+          onPress={() => go('personal')}
+          leading={<Ionicons name="person-circle" size={44} color={theme.color.brand} />}
+        />
+        {companies.map((g) => (
+          <CompanyRow key={g.id} group={g} current={g.id === current} onPress={() => go(g.id)} />
+        ))}
+        <Row
+          dashed
+          title={t.spaces.createTitle}
+          body={t.spaces.createBody}
+          onPress={() => {
+            onClose();
+            router.push('/new-company');
+          }}
+          leading={<Ionicons name="add-circle-outline" size={44} color={theme.color.brand} />}
+        />
+      </ScrollView>
+    </Sheet>
+  );
+}
+
+/** `current` is 'personal' or the open company's id; `label` is what the pill says. */
+export function SpacePill({ current, label }: { current: Space; label: string }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const [open, setOpen] = useState(false);
+  const companyIds = useViewerCompanyIds();
+  // Only-groups users have nothing to switch to: a plain label, no chevron, no sheet.
+  const switchable = companyIds.length > 0;
+  const personal = current === 'personal';
 
   return (
     <>
@@ -162,43 +213,7 @@ export function SpacePill({ current, label }: { current: Space; label: string })
         ) : null}
       </Pressable>
       {switchable ? (
-        <Sheet
-          visible={open}
-          onClose={() => setOpen(false)}
-          closeLabel={t.common.close}
-          title={t.spaces.switchTitle}
-        >
-          <ScrollView contentContainerStyle={{ gap: 10 }}>
-            <Text variant="caption" tone="muted">
-              {t.spaces.switchBody}
-            </Text>
-            <Row
-              title={t.spaces.personal}
-              body={t.spaces.personalBody}
-              current={personal}
-              onPress={() => go('personal')}
-              leading={<Ionicons name="person-circle" size={44} color={theme.color.brand} />}
-            />
-            {companies.map((g) => (
-              <CompanyRow
-                key={g.id}
-                group={g}
-                current={g.id === current}
-                onPress={() => go(g.id)}
-              />
-            ))}
-            <Row
-              dashed
-              title={t.spaces.createTitle}
-              body={t.spaces.createBody}
-              onPress={() => {
-                setOpen(false);
-                router.push('/new-company');
-              }}
-              leading={<Ionicons name="add-circle-outline" size={44} color={theme.color.brand} />}
-            />
-          </ScrollView>
-        </Sheet>
+        <SpaceSwitchSheet current={current} open={open} onClose={() => setOpen(false)} />
       ) : null}
     </>
   );

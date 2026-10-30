@@ -70,7 +70,8 @@ import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
 import { HeroIconButton } from '@/components/home/HeroControls';
-import { SpacePill } from '@/components/SpaceSwitcher';
+import { SpaceSwitchSheet } from '@/components/SpaceSwitcher';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
@@ -314,8 +315,16 @@ export default function HomeScreen() {
   // and this build can buy. A guest signs up first, so the row waits for that.
   const canUpgrade = useReferralsLive() && !isGuest;
   const proTrial = useProTrial();
+  const [switchOpen, setSwitchOpen] = useState(false);
   const menuItems: OverflowMenuItem[] = useMemo(
     () => [
+      // Opens the Switch space sheet; OverflowMenu closes first, then runs this.
+      {
+        icon: 'swap-horizontal-outline',
+        label: t.spaces.pillLabel,
+        onPress: () => setSwitchOpen(true),
+        section: 'space',
+      },
       // The `section` keys are internal grouping only (not user-visible): they
       // cluster the rows into account / data / app / settings, and
       // OverflowMenu draws a divider wherever two adjacent rows fall in
@@ -520,14 +529,12 @@ export default function HomeScreen() {
             paddingBottom: HERO_OVERLAP + theme.spacing.xs,
           }}
         >
-          {/* The space pill, then the bell and the menu; the greeting sits under it. */}
+          {/* The bell and the menu, right-aligned; the greeting sits under them. */}
           <Row
             onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
             style={{ alignItems: 'center', gap: theme.spacing.md }}
           >
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <SpacePill current="personal" label={t.spaces.personal} />
-            </View>
+            <View style={{ flex: 1 }} />
             <HeroIconButton
               icon="notifications-outline"
               label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
@@ -550,23 +557,6 @@ export default function HomeScreen() {
             style={{ marginTop: theme.spacing.sm }}
           >
             <Text style={{ color: heroInk, opacity: 0.9 }}>{`${t.dashHero[greetKey]},`}</Text>
-            <Row style={{ alignItems: 'center', minWidth: 0 }}>
-              <Text
-                numberOfLines={1}
-                ellipsizeMode="tail"
-                style={{
-                  flexShrink: 1,
-                  minWidth: 0,
-                  fontSize: 28,
-                  lineHeight: 34,
-                  fontWeight: '800',
-                  color: heroInk,
-                }}
-              >
-                {firstName}
-              </Text>
-              <Text style={{ fontSize: 28, lineHeight: 34, color: heroInk }}>{' 👋'}</Text>
-            </Row>
           </Pressable>
         </View>
 
@@ -841,7 +831,17 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
+      <OverflowMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={menuItems}
+        header={{
+          name: firstName,
+          avatar: <PersonAvatar name={displayName} avatarUrl={profile?.avatar_url} size={40} />,
+          route: '/profile',
+        }}
+      />
+      <SpaceSwitchSheet current="personal" open={switchOpen} onClose={() => setSwitchOpen(false)} />
       <NewGroupMenu
         open={newGroupOpen}
         anchor={newGroupAnchor}

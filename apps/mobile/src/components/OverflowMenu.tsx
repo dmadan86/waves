@@ -16,7 +16,7 @@
  * drops the scale.
  */
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href } from 'expo-router';
 import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
@@ -64,14 +64,23 @@ export interface OverflowMenuItem {
   tone?: 'default' | 'danger';
 }
 
+/** An optional block above the rows: who you are (avatar + name), tappable to `route`. */
+export interface OverflowMenuHeader {
+  name: string;
+  avatar: ReactNode;
+  route?: Href;
+}
+
 export function OverflowMenu({
   visible,
   onClose,
   items,
+  header,
 }: {
   visible: boolean;
   onClose: () => void;
   items: readonly OverflowMenuItem[];
+  header?: OverflowMenuHeader;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -213,6 +222,32 @@ export function OverflowMenu({
               bounces={false}
               showsVerticalScrollIndicator={false}
             >
+              {header && (
+                <Pressable
+                  disabled={!header.route}
+                  onPress={() =>
+                    activate({ icon: 'person', label: header.name, route: header.route })
+                  }
+                  accessibilityRole={header.route ? 'button' : undefined}
+                  accessibilityLabel={header.name}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.md,
+                    paddingHorizontal: theme.spacing.lg,
+                    paddingVertical: theme.spacing.md,
+                  }}
+                >
+                  {header.avatar}
+                  <Text
+                    variant="body"
+                    numberOfLines={1}
+                    style={{ flexShrink: 1, fontWeight: '700' }}
+                  >
+                    {header.name}
+                  </Text>
+                </Pressable>
+              )}
               {items.map((item, index) => {
                 // A divider sits at a section boundary only: both this row and the
                 // one above it name a section, and the two differ. That rules out
