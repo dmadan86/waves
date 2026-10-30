@@ -29,7 +29,7 @@ export function TodayTiles({ groupId, hasEmployees }: { groupId: string; hasEmpl
       key: 'tasks',
       label: t.company.overviewTasks,
       value: counts.tasks
-        ? `${counts.tasks.done}/${counts.tasks.doing}/${counts.tasks.blocked}`
+        ? `${counts.tasks.done}/${counts.tasks.doing + counts.tasks.todo}/${counts.tasks.blocked}`
         : t.company.overviewNoTasks,
       detail: counts.tasks
         ? `${t.company.overviewDone} · ${t.company.overviewDoing} · ${t.company.overviewBlocked}`

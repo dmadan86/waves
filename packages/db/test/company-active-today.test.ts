@@ -6,7 +6,7 @@ import { connect, expectDenied, seedGroup } from './helpers';
 // Members: 0 owner, 1 manager, 2 employee (team of 1, seen), 3 employee (owners, seen), 4 employee (team, not seen), 5 employee (team, seen, not employed).
 let db: Client;
 let g: Awaited<ReturnType<typeof seedGroup>>;
-const since = () => new Date(Date.now() - 6 * 3600_000).toISOString();
+const tz = 0;
 
 async function call(
   i: number,
@@ -17,7 +17,7 @@ async function call(
       JSON.stringify({ sub: g.profileIds[i], role: 'authenticated' }),
     ]);
     await db.query('SET LOCAL ROLE authenticated');
-    return (await db.query('SELECT waves_company_active_today($1,$2) AS r', [g.groupId, since()]))
+    return (await db.query('SELECT waves_company_active_today($1,$2) AS r', [g.groupId, tz]))
       .rows[0].r;
   } catch (e) {
     await db.query('ROLLBACK TO SAVEPOINT s');
@@ -87,7 +87,12 @@ describe('waves_company_active_today', () => {
   it('anon is denied', async () => {
     await db.query('SAVEPOINT y');
     await db.query('SET LOCAL ROLE anon');
-    await expectDenied(db.query('SELECT waves_company_active_today($1,now())', [g.groupId]));
+    await expectDenied(db.query('SELECT waves_company_active_today($1,0)', [g.groupId]));
     await db.query('ROLLBACK TO SAVEPOINT y');
+  });
+  it('rejects an out-of-range timezone offset', async () => {
+    await db.query('SAVEPOINT z');
+    await expectDenied(db.query('SELECT waves_company_active_today($1,99999)', [g.groupId]));
+    await db.query('ROLLBACK TO SAVEPOINT z');
   });
 });
