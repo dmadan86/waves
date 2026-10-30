@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import { resolveFab } from '../src/lib/tabBar';
 import {
   companyActiveKey,
+  companyBackRoute,
+  companyBarActiveKey,
+  isCompanyMode,
+  viewerRoleIn,
   companyTabRoute,
   homeSecondActionKey,
   isCompanyTabRoot,
@@ -107,5 +112,51 @@ describe('isCompanyTabRoot', () => {
     expect(isCompanyTabRoot(['group'], 'a', ['a'])).toBe(false);
     expect(isCompanyTabRoot(['captures', '[id]'], 'a', ['a'])).toBe(false);
     expect(isCompanyTabRoot([], null, [])).toBe(false);
+  });
+});
+
+describe('isCompanyMode', () => {
+  const seg = ['group', '[id]'];
+  it('is on for an owner or manager inside their company', () => {
+    expect(isCompanyMode(seg, 'a', ['a', 'b'], 'admin')).toBe(true);
+    expect(isCompanyMode(seg, 'a', ['a'], 'manager')).toBe(true);
+  });
+  it('is off for an employee, a non-company group, or a company the viewer is not in', () => {
+    expect(isCompanyMode(seg, 'a', ['a'], 'member')).toBe(false);
+    expect(isCompanyMode(seg, 'g', ['a'], 'admin')).toBe(false);
+    expect(isCompanyMode(seg, 'z', ['a'], 'admin')).toBe(false);
+    expect(isCompanyMode(seg, 'a', ['a'], null)).toBe(false);
+  });
+  it('is off outside group routes', () => {
+    expect(isCompanyMode(['personal', 'spending'], 'a', ['a'], 'admin')).toBe(false);
+  });
+  it('reads the role per company: owner in A, employee in B', () => {
+    const members = [
+      { group_id: 'a', profile_id: 'me', left_at: null, role: 'admin' },
+      { group_id: 'b', profile_id: 'me', left_at: null, role: 'member' },
+      { group_id: 'c', profile_id: 'me', left_at: '2026-01-01', role: 'admin' },
+    ];
+    expect(viewerRoleIn(members, 'a', 'me')).toBe('admin');
+    expect(viewerRoleIn(members, 'b', 'me')).toBe('member');
+    expect(viewerRoleIn(members, 'c', 'me')).toBeNull();
+  });
+});
+
+describe('company bar navigation', () => {
+  it('highlights the tab a screen belongs to', () => {
+    expect(companyBarActiveKey(['group', '[id]'])).toBe('overview');
+    expect(companyBarActiveKey(['group', '[id]', 'company-people'])).toBe('people');
+    expect(companyBarActiveKey(['group', '[id]', 'company-wages'])).toBe('payments');
+    expect(companyBarActiveKey(['group', '[id]', 'company-entry'])).toBe('');
+  });
+  it('Back goes sub-tab to Overview, Overview to Home, and nowhere on deeper screens', () => {
+    expect(companyBackRoute(['group', '[id]', 'company-more'], 'a')).toBe('/group/a');
+    expect(companyBackRoute(['group', '[id]'], 'a')).toBe('/');
+    expect(companyBackRoute(['group', '[id]', 'company-statement'], 'a')).toBeNull();
+  });
+  it('hides the add button on entry, wages, invite and export', () => {
+    for (const s of ['company-entry', 'company-wages', 'invite', 'export'])
+      expect(resolveFab(['group', '[id]', s])).toBe(false);
+    expect(resolveFab(['group', '[id]', 'company-people'])).toBe(true);
   });
 });

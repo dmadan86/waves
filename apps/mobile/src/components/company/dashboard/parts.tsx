@@ -22,7 +22,6 @@ import { Sheet, Text, directionalIcon, iconSize, useTheme, type TintName } from 
 
 import { BUILDING_ART } from './art';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
-import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { StandardCard } from '@/components/standard';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -157,7 +156,7 @@ function IconButton({
 
 /**
  * The hero: a soft sunset sky and the office building, then back, the company name with
- * its switcher, gear and menu, who is in it, and the round + that rides at the foot.
+ * its switcher, gear and menu, who is in it. Add and export live on the company bar (FAB, More).
  */
 export function DashHeader({
   groupId,
@@ -165,17 +164,18 @@ export function DashHeader({
   subtitle,
   pill,
   showGear,
-  tabs,
   voice,
+  onBack,
 }: {
   groupId: string;
   view: CompanyView;
   subtitle: string;
   pill?: string;
   showGear: boolean;
-  tabs?: ReactNode;
   /** Offer "speak an expense" beside the +. */
   voice?: boolean;
+  /** Company-bar screens go to Overview / Home instead of popping. */
+  onBack?: () => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -183,7 +183,6 @@ export function DashHeader({
   const dark = theme.scheme === 'dark';
   useHeroStatusBar(dark ? 'light' : 'dark');
   const [switching, setSwitching] = useState(false);
-  const [menu, setMenu] = useState(false);
   const groups = useGroups().data ?? [];
   const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
 
@@ -223,7 +222,7 @@ export function DashHeader({
           <IconButton
             icon={directionalIcon('arrow-back')}
             label={t.common.back}
-            onPress={() => router.back()}
+            onPress={onBack ?? (() => router.back())}
           />
           <Pressable
             accessibilityRole="button"
@@ -248,7 +247,6 @@ export function DashHeader({
               onPress={() => router.push(`/group/${groupId}/settings`)}
             />
           ) : null}
-          <IconButton icon="ellipsis-vertical" label={t.group.more} onPress={() => setMenu(true)} />
         </View>
         <View
           style={{
@@ -273,7 +271,7 @@ export function DashHeader({
             onPress={() => router.push({ pathname: '/voice', params: { group: groupId } })}
             style={{
               position: 'absolute',
-              right: theme.spacing.lg + 54 + 10,
+              right: theme.spacing.lg,
               bottom: 10,
               width: 42,
               height: 42,
@@ -290,30 +288,7 @@ export function DashHeader({
             <Ionicons name="mic-outline" size={iconSize.lg} color={theme.color.text} />
           </Pressable>
         ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.company.addEntry}
-          onPress={() => router.push(`/group/${groupId}/company-entry`)}
-          style={{
-            position: 'absolute',
-            right: theme.spacing.lg,
-            bottom: 4,
-            width: 54,
-            height: 54,
-            borderRadius: 27,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.buttonPrimary,
-            borderWidth: 2.5,
-            borderColor: theme.color.surface,
-            zIndex: 2,
-            elevation: 4,
-          }}
-        >
-          <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
-        </Pressable>
       </View>
-      {tabs}
       <Sheet
         visible={switching}
         onClose={() => setSwitching(false)}
@@ -383,22 +358,6 @@ export function DashHeader({
           </Pressable>
         </ScrollView>
       </Sheet>
-      <OverflowMenu
-        visible={menu}
-        onClose={() => setMenu(false)}
-        items={[
-          ...(showGear
-            ? [
-                {
-                  icon: 'settings-outline',
-                  label: t.company.companySettings,
-                  route: `/group/${groupId}/settings`,
-                } as OverflowMenuItem,
-              ]
-            : []),
-          { icon: 'download-outline', label: t.company.exportAction, route: `/group/${groupId}/export` },
-        ]}
-      />
     </>
   );
 }

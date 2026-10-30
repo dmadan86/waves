@@ -150,10 +150,18 @@ export function personalRouteForSelection(
   }
 }
 
+const screen2 = (segments: readonly string[]): string => segments[2] ?? '';
+
 /** Forms keep the mic out of their input and footer space. */
 export function resolveFab(segments: readonly string[]): boolean {
   const [root, screen] = segments;
   if (resolveTabBar(segments).hidden) return false;
+  // Company mode: forms and the export/invite screens keep the add button out of their footers.
+  if (
+    root === 'group' &&
+    ['company-entry', 'company-wages', 'invite', 'export'].includes(screen2(segments))
+  )
+    return false;
   if (root === 'captures' && (screen === 'paste' || screen === 'statement')) return false;
   if (
     root === 'settings' &&

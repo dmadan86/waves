@@ -1,47 +1,39 @@
 /**
- * A manager's company home: their team only. Budget card (allocated, given out, left),
+ * A manager's company Overview: their team only. Budget card (allocated, given out, left),
  * the team's stats, quick actions and the team list. Server rules already hide every
  * other team; nothing here is company-wide.
  */
 
 import { useMemo, useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { ScrollView, View } from 'react-native';
+import { View } from 'react-native';
 
 import { dashboardStats, poolBalance } from '@waves/core';
-import { AmountField, Button, Row, Screen, Sheet, Text, iconSize, useTheme } from '@waves/ui';
+import { AmountField, Button, Row, Sheet, Text, useTheme } from '@waves/ui';
 import type { CurrencyCode } from '@waves/core';
 
 import {
-  DashBody,
-  DashHeader,
-  TabPills,
   QuickActions,
   RecentActivity,
   StatTriple,
   TitleRow,
   useMoney,
 } from '@/components/company/dashboard/parts';
+import { SectionShell } from '@/components/company/bar/SectionShell';
 import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useAskBudget, useCompanyEntries, usePoolBalance } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
-import { fill, plural, useStrings } from '@/i18n';
-import { useBottomClearance } from '@/lib/clearance';
+import { fill, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
-
-type Tab = 'overview' | 'team' | 'payments';
 
 export function ManagerHome({ groupId }: { groupId: string }) {
   const theme = useTheme();
-  const clearance = useBottomClearance();
-  const { t, locale } = useStrings();
+  const { t } = useStrings();
   const view = useCompanyEntries(groupId);
   const fmt = useMoney(view.currency);
   const ask = useAskBudget(groupId);
-  const [tab, setTab] = useState<Tab>('overview');
   const [asking, setAsking] = useState(false);
   const [amount, setAmount] = useState(0n);
 
@@ -71,156 +63,105 @@ export function ManagerHome({ groupId }: { groupId: string }) {
   );
 
   return (
-    <Screen edges={[]}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance + 24 }}
-        showsVerticalScrollIndicator={false}
-      >
-        <DashHeader
-          groupId={groupId}
-          view={view}
-          showGear={false}
-          subtitle={fill(t.company.teamLine, {
-            employees: plural(locale, team.length, t.company.employeeCount),
-          })}
-          pill={t.company.manager}
-          tabs={
-            <TabPills
-              options={[
-                { value: 'overview' as Tab, label: t.company.tabOverview },
-                { value: 'team' as Tab, label: t.company.tabMyTeam },
-                { value: 'payments' as Tab, label: t.company.tabPayments },
-              ]}
-              value={tab}
-              onChange={setTab}
+    <SectionShell groupId={groupId} view={view} overview>
+      <>
+        <PendingApprovals groupId={groupId} view={view} teaser />
+        <StandardCard style={{ gap: theme.spacing.sm }}>
+          <Text variant="caption" tone="muted">
+            {t.company.yourBudget}
+          </Text>
+          <Text variant="title">{fmt(budget)}</Text>
+          <View
+            accessibilityLabel={`${Math.round(ratio * 100)}%`}
+            style={{
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: theme.color.surfaceMuted,
+              overflow: 'hidden',
+            }}
+          >
+            <View
+              style={{
+                height: 8,
+                width: `${Math.round(ratio * 100)}%`,
+                backgroundColor: theme.color.brand,
+              }}
             />
-          }
+          </View>
+          <Row style={{ justifyContent: 'space-between' }}>
+            <Text variant="caption">
+              {t.company.givenOut}: {fmt(given)}
+            </Text>
+            <Text variant="caption">
+              {t.company.budgetLeft}: {fmt(left ?? 0n)}
+            </Text>
+          </Row>
+          {pool && pool.companySpend !== 0n ? (
+            <Text variant="caption" tone="muted">
+              {t.company.companyPayer}: {fmt(pool.companySpend)}
+            </Text>
+          ) : null}
+          {pool && (pool.returned !== 0n || pool.adjusted !== 0n) ? (
+            <Text variant="micro" tone="muted">
+              {fill(t.company.budgetAdjusted, {
+                amount: fmt(pool.returned + (pool.adjusted < 0n ? -pool.adjusted : pool.adjusted)),
+              })}
+            </Text>
+          ) : null}
+        </StandardCard>
+        <StatTriple
+          stats={stats}
+          currency={view.currency}
+          onOwes={() => router.replace(`/group/${groupId}/company-people`)}
         />
-        <DashBody>
-          {tab === 'overview' ? (
-            <>
-              <PendingApprovals groupId={groupId} view={view} />
-              <StandardCard style={{ gap: theme.spacing.sm }}>
-                <Text variant="caption" tone="muted">
-                  {t.company.yourBudget}
-                </Text>
-                <Text variant="title">{fmt(budget)}</Text>
-                <View
-                  accessibilityLabel={`${Math.round(ratio * 100)}%`}
-                  style={{
-                    height: 8,
-                    borderRadius: 4,
-                    backgroundColor: theme.color.surfaceMuted,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <View
-                    style={{
-                      height: 8,
-                      width: `${Math.round(ratio * 100)}%`,
-                      backgroundColor: theme.color.brand,
-                    }}
-                  />
-                </View>
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <Text variant="caption">
-                    {t.company.givenOut}: {fmt(given)}
-                  </Text>
-                  <Text variant="caption">
-                    {t.company.budgetLeft}: {fmt(left ?? 0n)}
-                  </Text>
-                </Row>
-                {pool && pool.companySpend !== 0n ? (
-                  <Text variant="caption" tone="muted">
-                    {t.company.companyPayer}: {fmt(pool.companySpend)}
-                  </Text>
-                ) : null}
-                {pool && (pool.returned !== 0n || pool.adjusted !== 0n) ? (
-                  <Text variant="micro" tone="muted">
-                    {fill(t.company.budgetAdjusted, {
-                      amount: fmt(
-                        pool.returned + (pool.adjusted < 0n ? -pool.adjusted : pool.adjusted),
-                      ),
-                    })}
-                  </Text>
-                ) : null}
-              </StandardCard>
-              <StatTriple stats={stats} currency={view.currency} onOwes={() => setTab('team')} />
-              <QuickActions
-                actions={[
-                  {
-                    icon: 'person-add-outline',
-                    label: t.company.qaAddEmployee,
-                    onPress: () => router.push(`/group/${groupId}/members`),
-                  },
-                  {
-                    icon: 'paper-plane-outline',
-                    label: t.company.qaRecord,
-                    onPress: () => router.push(`/group/${groupId}/company-wages`),
-                  },
-                  {
-                    icon: 'arrow-up-circle-outline',
-                    label: t.company.qaAdvance,
-                    onPress: () => router.push(`/group/${groupId}/company-entry?kind=advance`),
-                  },
-                  {
-                    icon: 'chatbubble-ellipses-outline',
-                    label: t.company.qaAsk,
-                    onPress: () => setAsking(true),
-                  },
-                ]}
-              />
-              <TitleRow title={t.company.tabMyTeam} onViewAll={() => setTab('team')} />
-              <StandardCard>
-                {team.slice(0, 4).map((m, i, all) => (
-                  <ListRow
-                    key={m.id}
-                    leading={
-                      <PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={40} />
-                    }
-                    title={displayName(m, null, null, t.misc.someone)}
-                    subtitle={m.employee_id || undefined}
-                    onPress={() => thread(m.id)}
-                    divider={i < all.length - 1}
-                  />
-                ))}
-              </StandardCard>
-              <TitleRow title={t.company.recentTitle} onViewAll={() => setTab('payments')} />
-              <RecentActivity groupId={groupId} view={view} entries={teamEntries} limit={4} />
-            </>
-          ) : null}
-          {tab === 'team' ? (
-            <StandardCard>
-              {team.map((m, i) => (
-                <ListRow
-                  key={m.id}
-                  leading={
-                    <PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={40} />
-                  }
-                  title={displayName(m, null, null, t.misc.someone)}
-                  subtitle={m.employee_id || undefined}
-                  onPress={() => thread(m.id)}
-                  divider
-                />
-              ))}
-              <ListRow
-                title={t.company.qaAddEmployee}
-                leading={
-                  <Ionicons
-                    name="person-add-outline"
-                    size={iconSize.md}
-                    color={theme.color.brand}
-                  />
-                }
-                onPress={() => router.push(`/group/${groupId}/members`)}
-              />
-            </StandardCard>
-          ) : null}
-          {tab === 'payments' ? (
-            <RecentActivity groupId={groupId} view={view} entries={teamEntries} />
-          ) : null}
-        </DashBody>
-      </ScrollView>
+        <QuickActions
+          actions={[
+            {
+              icon: 'person-add-outline',
+              label: t.company.qaAddEmployee,
+              onPress: () => router.push(`/group/${groupId}/members`),
+            },
+            {
+              icon: 'paper-plane-outline',
+              label: t.company.qaRecord,
+              onPress: () => router.push(`/group/${groupId}/company-wages`),
+            },
+            {
+              icon: 'arrow-up-circle-outline',
+              label: t.company.qaAdvance,
+              onPress: () => router.push(`/group/${groupId}/company-entry?kind=advance`),
+            },
+            {
+              icon: 'chatbubble-ellipses-outline',
+              label: t.company.qaAsk,
+              onPress: () => setAsking(true),
+            },
+          ]}
+        />
+        <TitleRow
+          title={t.company.tabMyTeam}
+          onViewAll={() => router.replace(`/group/${groupId}/company-people`)}
+        />
+        <StandardCard>
+          {team.slice(0, 4).map((m, i, all) => (
+            <ListRow
+              key={m.id}
+              leading={
+                <PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={40} />
+              }
+              title={displayName(m, null, null, t.misc.someone)}
+              subtitle={m.employee_id || undefined}
+              onPress={() => thread(m.id)}
+              divider={i < all.length - 1}
+            />
+          ))}
+        </StandardCard>
+        <TitleRow
+          title={t.company.recentTitle}
+          onViewAll={() => router.replace(`/group/${groupId}/company-payments`)}
+        />
+        <RecentActivity groupId={groupId} view={view} entries={teamEntries} limit={4} />
+      </>
       <Sheet visible={asking} onClose={() => setAsking(false)} closeLabel={t.common.close}>
         <View style={{ gap: theme.spacing.lg }}>
           <Text variant="title">{t.company.askTitle}</Text>
@@ -248,6 +189,6 @@ export function ManagerHome({ groupId }: { groupId: string }) {
           />
         </View>
       </Sheet>
-    </Screen>
+    </SectionShell>
   );
 }

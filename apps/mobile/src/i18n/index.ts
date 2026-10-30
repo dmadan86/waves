@@ -1313,6 +1313,15 @@ export interface UiStrings {
     tabBudgets: string;
     tabPayments: string;
     tabMyTeam: string;
+    barPeople: string;
+    barPending: string;
+    barMore: string;
+    sectionOwners: string;
+    moreBudgets: string;
+    moreStatements: string;
+    moreRules: string;
+    pendingNone: string;
+    pendingNoneBody: string;
     countsLine: string;
     teamLine: string;
     pillOwner: string;
@@ -7658,6 +7667,15 @@ const en: UiStrings = {
     tabBudgets: 'Budgets',
     tabPayments: 'Payments',
     tabMyTeam: 'My team',
+    barPeople: 'People',
+    barPending: 'Pending',
+    barMore: 'More',
+    sectionOwners: 'Owners',
+    moreBudgets: 'Budgets & sites',
+    moreStatements: 'Statements & export',
+    moreRules: 'Rules',
+    pendingNone: 'Nothing is waiting',
+    pendingNoneBody: 'Claims and budget requests that need you show up here.',
     countsLine: '{e} employees · {m} managers · {o} owners',
     teamLine: 'Your team · {employees}',
     pillOwner: 'Owner',
@@ -13454,6 +13472,15 @@ const ta: UiStrings = {
     tabBudgets: 'பட்ஜெட்',
     tabPayments: 'கொடுப்பனவுகள்',
     tabMyTeam: 'என் குழு',
+    barPeople: 'நபர்கள்',
+    barPending: 'நிலுவை',
+    barMore: 'மேலும்',
+    sectionOwners: 'உரிமையாளர்கள்',
+    moreBudgets: 'பட்ஜெட் & இடங்கள்',
+    moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
+    moreRules: 'விதிகள்',
+    pendingNone: 'எதுவும் காத்திருக்கவில்லை',
+    pendingNoneBody: 'உங்கள் கவனம் தேவைப்படும் கோரிக்கைகள் இங்கே தோன்றும்.',
     countsLine: '{e} ஊழியர்கள் · {m} மேலாளர்கள் · {o} உரிமையாளர்கள்',
     teamLine: 'உங்கள் குழு · {employees}',
     pillOwner: 'உரிமையாளர்',
@@ -19417,6 +19444,15 @@ const hi: UiStrings = {
     tabBudgets: 'बजट',
     tabPayments: 'भुगतान',
     tabMyTeam: 'मेरी टीम',
+    barPeople: 'लोग',
+    barPending: 'लंबित',
+    barMore: 'और',
+    sectionOwners: 'मालिक',
+    moreBudgets: 'बजट और साइट',
+    moreStatements: 'स्टेटमेंट और निर्यात',
+    moreRules: 'नियम',
+    pendingNone: 'कुछ भी प्रतीक्षा में नहीं',
+    pendingNoneBody: 'आपके ध्यान की ज़रूरत वाले दावे और बजट अनुरोध यहाँ दिखेंगे।',
     countsLine: '{e} कर्मचारी · {m} मैनेजर · {o} मालिक',
     teamLine: 'आपकी टीम · {employees}',
     pillOwner: 'मालिक',
@@ -25268,6 +25304,15 @@ const ar: UiStrings = {
     tabBudgets: 'الميزانيات',
     tabPayments: 'المدفوعات',
     tabMyTeam: 'فريقي',
+    barPeople: 'الأشخاص',
+    barPending: 'المعلّقة',
+    barMore: 'المزيد',
+    sectionOwners: 'المالكون',
+    moreBudgets: 'الميزانيات والمواقع',
+    moreStatements: 'الكشوف والتصدير',
+    moreRules: 'القواعد',
+    pendingNone: 'لا شيء بانتظارك',
+    pendingNoneBody: 'ستظهر هنا المطالبات وطلبات الميزانية التي تحتاج إليك.',
     countsLine: '{e} موظفين · {m} مديرين · {o} مالكين',
     teamLine: 'فريقك · {employees}',
     pillOwner: 'مالك',
