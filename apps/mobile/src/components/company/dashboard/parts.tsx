@@ -396,7 +396,11 @@ export function DashHeader({
                 } as OverflowMenuItem,
               ]
             : []),
-          { icon: 'download-outline', label: t.company.exportAction, route: `/group/${groupId}/export` },
+          {
+            icon: 'download-outline',
+            label: t.company.exportAction,
+            route: `/group/${groupId}/export`,
+          },
         ]}
       />
     </>
