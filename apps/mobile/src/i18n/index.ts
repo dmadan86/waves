@@ -1309,11 +1309,38 @@ export interface UiStrings {
     attendanceHalf: string;
     attendanceAbsent: string;
     attendanceMarkAll: string;
+    attendanceTotal: string;
+    attendanceDaily: string;
+    attendanceWeekly: string;
+    attendanceMonthly: string;
+    attendanceSearch: string;
+    attendanceDepartment: string;
+    workToday: string;
     attendanceNote: string;
     attendanceSummary: PluralForms;
     attendancePreviousMonth: string;
     attendanceNextMonth: string;
     workTitle: string;
+    departments: string;
+    department: string;
+    departmentNone: string;
+    departmentAdd: string;
+    departmentRename: string;
+    departmentRemove: string;
+    departmentActions: string;
+    departmentNameError: string;
+    workSubtitle: string;
+    workSearch: string;
+    workTotal: string;
+    workCompleted: string;
+    workInProgress: string;
+    workPending: string;
+    workAll: string;
+    workMineTasks: string;
+    workTeam: string;
+    workFilter: string;
+    workTime: string;
+    workNoTime: string;
     workMine: string;
     workEmpty: string;
     workAdd: string;
@@ -1400,6 +1427,7 @@ export interface UiStrings {
     barPeople: string;
     barPending: string;
     barMore: string;
+    barTeam: string;
     sectionOwners: string;
     moreBudgets: string;
     moreStatements: string;
@@ -7836,11 +7864,38 @@ const en: UiStrings = {
     attendanceHalf: 'Half',
     attendanceAbsent: 'Absent',
     attendanceMarkAll: 'Mark all present',
+    attendanceTotal: 'Total',
+    attendanceDaily: 'Daily',
+    attendanceWeekly: 'Weekly',
+    attendanceMonthly: 'Monthly',
+    attendanceSearch: 'Search employees...',
+    attendanceDepartment: 'Department',
+    workToday: 'Today',
     attendanceNote: 'Add note',
     attendanceSummary: { one: '{n} day present', other: '{n} days present' },
     attendancePreviousMonth: 'Previous month',
     attendanceNextMonth: 'Next month',
     workTitle: 'Daily work',
+    departments: 'துறைகள்',
+    department: 'துறை',
+    departmentNone: 'எதுவுமில்லை',
+    departmentAdd: 'துறையைச் சேர்க்கவும்',
+    departmentRename: 'துறையின் பெயரை மாற்றவும்',
+    departmentRemove: 'துறையை நீக்கவும்',
+    departmentActions: 'துறை செயல்கள்',
+    departmentNameError: 'தனித்துவமான துறைப் பெயரை உள்ளிடவும்.',
+    workSubtitle: 'உங்கள் குழுவின் பணிகளைக் கண்காணித்து முடிக்கவும்.',
+    workSearch: 'பணிகள், பணியாளர்களைத் தேடுங்கள்...',
+    workTotal: 'மொத்தப் பணிகள்',
+    workCompleted: 'முடிந்தது',
+    workInProgress: 'நடக்கிறது',
+    workPending: 'நிலுவை',
+    workAll: 'அனைத்தும்',
+    workMineTasks: 'என் பணிகள்',
+    workTeam: 'குழு',
+    workFilter: 'வடிகட்டி',
+    workTime: 'நேரம் (மணி:நிமிடம்)',
+    workNoTime: 'நேரம் இல்லை',
     workMine: 'My work today',
     workEmpty: 'No tasks for this day.',
     workAdd: 'Add task',
@@ -7929,6 +7984,7 @@ const en: UiStrings = {
     barPeople: 'People',
     barPending: 'Pending',
     barMore: 'More',
+    barTeam: 'குழு',
     sectionOwners: 'Owners',
     moreBudgets: 'Budgets & sites',
     moreStatements: 'Statements & export',
@@ -13818,11 +13874,38 @@ const ta: UiStrings = {
     attendanceHalf: 'அரை நாள்',
     attendanceAbsent: 'வரவில்லை',
     attendanceMarkAll: 'அனைவருக்கும் வருகை',
+    attendanceTotal: 'மொத்தம்',
+    attendanceDaily: 'தினசரி',
+    attendanceWeekly: 'வாராந்திர',
+    attendanceMonthly: 'மாதாந்திர',
+    attendanceSearch: 'பணியாளர்களைத் தேடுங்கள்...',
+    attendanceDepartment: 'துறை',
+    workToday: 'இன்று',
     attendanceNote: 'குறிப்பு சேர்க்க',
     attendanceSummary: { other: '{n} நாட்கள் வருகை' },
     attendancePreviousMonth: 'முந்தைய மாதம்',
     attendanceNextMonth: 'அடுத்த மாதம்',
     workTitle: 'தினசரி வேலை',
+    departments: 'विभाग',
+    department: 'विभाग',
+    departmentNone: 'कोई नहीं',
+    departmentAdd: 'विभाग जोड़ें',
+    departmentRename: 'विभाग का नाम बदलें',
+    departmentRemove: 'विभाग हटाएँ',
+    departmentActions: 'विभाग के विकल्प',
+    departmentNameError: 'एक अलग विभाग का नाम दर्ज करें।',
+    workSubtitle: 'अपनी टीम के कामों पर नज़र रखें और उन्हें पूरा करें।',
+    workSearch: 'काम और कर्मचारियों को खोजें...',
+    workTotal: 'कुल काम',
+    workCompleted: 'पूरा हुआ',
+    workInProgress: 'जारी है',
+    workPending: 'लंबित',
+    workAll: 'सभी',
+    workMineTasks: 'मेरे काम',
+    workTeam: 'टीम',
+    workFilter: 'फ़िल्टर',
+    workTime: 'समय (HH:MM)',
+    workNoTime: 'समय नहीं',
     workMine: 'என் இன்றைய வேலை',
     workEmpty: 'இந்த நாளில் வேலைகள் இல்லை.',
     workAdd: 'வேலை சேர்க்க',
@@ -13912,6 +13995,7 @@ const ta: UiStrings = {
     barPeople: 'நபர்கள்',
     barPending: 'நிலுவை',
     barMore: 'மேலும்',
+    barTeam: 'टीम',
     sectionOwners: 'உரிமையாளர்கள்',
     moreBudgets: 'பட்ஜெட் & இடங்கள்',
     moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
@@ -19970,11 +20054,38 @@ const hi: UiStrings = {
     attendanceHalf: 'आधा दिन',
     attendanceAbsent: 'गैरहाज़िर',
     attendanceMarkAll: 'सबकी हाज़िरी लगाएँ',
+    attendanceTotal: 'कुल',
+    attendanceDaily: 'दैनिक',
+    attendanceWeekly: 'साप्ताहिक',
+    attendanceMonthly: 'मासिक',
+    attendanceSearch: 'कर्मचारियों को खोजें...',
+    attendanceDepartment: 'विभाग',
+    workToday: 'आज',
     attendanceNote: 'नोट जोड़ें',
     attendanceSummary: { other: '{n} दिन हाज़िर' },
     attendancePreviousMonth: 'पिछला महीना',
     attendanceNextMonth: 'अगला महीना',
     workTitle: 'रोज़ का काम',
+    departments: 'विभाग',
+    department: 'विभाग',
+    departmentNone: 'कोई नहीं',
+    departmentAdd: 'विभाग जोड़ें',
+    departmentRename: 'विभाग का नाम बदलें',
+    departmentRemove: 'विभाग हटाएँ',
+    departmentActions: 'विभाग के विकल्प',
+    departmentNameError: 'एक अलग विभाग का नाम दर्ज करें।',
+    workSubtitle: 'अपनी टीम के कामों पर नज़र रखें और उन्हें पूरा करें।',
+    workSearch: 'काम और कर्मचारियों को खोजें...',
+    workTotal: 'कुल काम',
+    workCompleted: 'पूरा हुआ',
+    workInProgress: 'जारी है',
+    workPending: 'लंबित',
+    workAll: 'सभी',
+    workMineTasks: 'मेरे काम',
+    workTeam: 'टीम',
+    workFilter: 'फ़िल्टर',
+    workTime: 'समय (HH:MM)',
+    workNoTime: 'समय नहीं',
     workMine: 'आज मेरा काम',
     workEmpty: 'इस दिन कोई काम नहीं।',
     workAdd: 'काम जोड़ें',
@@ -20063,6 +20174,7 @@ const hi: UiStrings = {
     barPeople: 'लोग',
     barPending: 'लंबित',
     barMore: 'और',
+    barTeam: 'टीम',
     sectionOwners: 'मालिक',
     moreBudgets: 'बजट और साइट',
     moreStatements: 'स्टेटमेंट और निर्यात',
@@ -26009,6 +26121,13 @@ const ar: UiStrings = {
     attendanceHalf: 'نصف يوم',
     attendanceAbsent: 'غائب',
     attendanceMarkAll: 'تسجيل حضور الجميع',
+    attendanceTotal: 'الإجمالي',
+    attendanceDaily: 'يومي',
+    attendanceWeekly: 'أسبوعي',
+    attendanceMonthly: 'شهري',
+    attendanceSearch: 'ابحث عن الموظفين...',
+    attendanceDepartment: 'القسم',
+    workToday: 'اليوم',
     attendanceNote: 'إضافة ملاحظة',
     attendanceSummary: {
       one: 'يوم حضور واحد',
@@ -26019,6 +26138,26 @@ const ar: UiStrings = {
     attendancePreviousMonth: 'الشهر السابق',
     attendanceNextMonth: 'الشهر التالي',
     workTitle: 'العمل اليومي',
+    departments: 'الأقسام',
+    department: 'القسم',
+    departmentNone: 'لا شيء',
+    departmentAdd: 'إضافة قسم',
+    departmentRename: 'إعادة تسمية القسم',
+    departmentRemove: 'إزالة القسم',
+    departmentActions: 'إجراءات القسم',
+    departmentNameError: 'أدخل اسمًا فريدًا للقسم.',
+    workSubtitle: 'تابع مهام فريقك وأنجزها.',
+    workSearch: 'ابحث عن المهام والموظفين...',
+    workTotal: 'إجمالي المهام',
+    workCompleted: 'مكتمل',
+    workInProgress: 'قيد التنفيذ',
+    workPending: 'معلّق',
+    workAll: 'الكل',
+    workMineTasks: 'مهامي',
+    workTeam: 'الفريق',
+    workFilter: 'تصفية',
+    workTime: 'الوقت (HH:MM)',
+    workNoTime: 'بلا وقت',
     workMine: 'عملي اليوم',
     workEmpty: 'لا مهام لهذا اليوم.',
     workAdd: 'إضافة مهمة',
@@ -26106,6 +26245,7 @@ const ar: UiStrings = {
     barPeople: 'الأشخاص',
     barPending: 'المعلّقة',
     barMore: 'المزيد',
+    barTeam: 'الفريق',
     sectionOwners: 'المالكون',
     moreBudgets: 'الميزانيات والمواقع',
     moreStatements: 'الكشوف والتصدير',

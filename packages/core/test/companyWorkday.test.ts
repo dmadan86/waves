@@ -96,6 +96,7 @@ describe('mirror: attendance and work', () => {
       status: 'todo',
       blocked_reason: null,
       note: null,
+      due_time: '17:00:00',
     }),
     row(SyncTable.CompanyWorkTasks, {
       id: 't2',
@@ -146,7 +147,12 @@ describe('mirror: attendance and work', () => {
     expect(att.get('a|2026-10-30')?.status).toBe('present');
     const tasks = materialiseWorkTasks(state, q, { groupId: 'g' });
     expect(tasks).toHaveLength(1);
-    expect(tasks[0]).toMatchObject({ id: 't1', status: 'blocked', blockedReason: 'No cement' });
+    expect(tasks[0]).toMatchObject({
+      id: 't1',
+      status: 'blocked',
+      blockedReason: 'No cement',
+      dueTime: '17:00',
+    });
   });
   it('a manager who loses a person drops their marks and tasks', () => {
     const { state: next } = purgeCompanyInvisible(state, { g: ['a'] });

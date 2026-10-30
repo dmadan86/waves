@@ -13,7 +13,7 @@ import { dashboardStats } from '@waves/core';
 import { iconSize, useTheme } from '@waves/ui';
 
 import { SectionShell } from '@/components/company/bar/SectionShell';
-import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
+import { PendingCard } from '@/components/company/dashboard/PendingCard';
 import {
   InviteBanner,
   PersonLine,
@@ -72,7 +72,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
   return (
     <SectionShell groupId={groupId} view={view} overview>
       <>
-        <PendingApprovals groupId={groupId} view={view} teaser />
+        <PendingCard groupId={groupId} />
         <StatTriple
           showCompanySpend={view.entries.some((e) => e.paidByCompany && !e.deleted)}
           stats={stats}

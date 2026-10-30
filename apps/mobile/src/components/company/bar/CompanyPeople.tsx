@@ -27,6 +27,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, SegmentedPills, StandardCard } from '@/components/standard';
 import { CompanyEmploymentControl } from '@/components/company/CompanyEmploymentControl';
 import { useCompanyEntries } from '@/data/companyEntries';
+import { departmentName, useDepartments } from '@/data/companyDepartments';
 import { useSetMemberRole } from '@/data/hooks';
 import { canSetEmployment, employmentPeople, isNotEmployed } from '@/data/companyEmployment';
 import { todayIso } from '@/data/personal';
@@ -38,6 +39,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const view = useCompanyEntries(groupId);
+  const departments = useDepartments(groupId);
   const fmt = useMoney(view.currency);
   const role = useSetMemberRole(groupId);
   const [promoting, setPromoting] = useState(false);
@@ -50,6 +52,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'owesCompany' | 'companyOwes' | 'settled'
   >('all');
+  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
 
   const live = view.members.filter((m) => !m.left_at);
   const owners = live.filter((m) => m.role === 'admin');
@@ -74,6 +77,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   const shownEmployees = displayedEmployees.filter(
     (m) =>
       (statusFilter === 'all' || empKind(m.id) === statusFilter) &&
+      (!departmentFilter || m.department_id === departmentFilter) &&
       (!q || displayName(m, null, null, t.misc.someone).toLowerCase().includes(q)),
   );
   const balanceWords = (id: string): string | undefined => {
@@ -96,7 +100,11 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
                 key={m.id}
                 leading={<PersonAvatar member={m} name={displayName(m)} size={40} />}
                 title={displayName(m, null, null, t.misc.someone)}
-                subtitle={m.employee_id || undefined}
+                subtitle={
+                  [m.employee_id, departmentName(departments, m.department_id)]
+                    .filter(Boolean)
+                    .join(' · ') || undefined
+                }
                 trailing={<RolePill label={t.company.pillOwner} />}
                 divider={i < owners.length - 1}
               />
@@ -295,7 +303,12 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
                 name={displayName(m, null, null, t.misc.someone)}
                 ghost={isGhost(m)}
                 marker={
-                  isNotEmployed(m) ? m.employment_ended_on || undefined : m.employee_id || undefined
+                  (isNotEmployed(m)
+                    ? [m.employment_ended_on]
+                    : [m.employee_id, departmentName(departments, m.department_id)]
+                  )
+                    .filter(Boolean)
+                    .join(' · ') || undefined
                 }
                 status={{
                   kind,
@@ -342,6 +355,22 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
       </>
       <Sheet visible={filtering} onClose={() => setFiltering(false)} closeLabel={t.common.close}>
         <View>
+          {departments.map((department, i) => (
+            <ListRow
+              key={department.id}
+              title={department.name}
+              trailing={
+                departmentFilter === department.id ? (
+                  <Ionicons name="checkmark" size={iconSize.md} color={theme.color.brand} />
+                ) : undefined
+              }
+              onPress={() => {
+                setDepartmentFilter(departmentFilter === department.id ? null : department.id);
+                setFiltering(false);
+              }}
+              divider={i < departments.length - 1}
+            />
+          ))}
           {(
             [
               ['all', t.company.empFilterAll],
@@ -385,7 +414,11 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
                 <PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={36} />
               }
               title={displayName(m, null, null, t.misc.someone)}
-              subtitle={m.employee_id || undefined}
+              subtitle={
+                [m.employee_id, departmentName(departments, m.department_id)]
+                  .filter(Boolean)
+                  .join(' · ') || undefined
+              }
               onPress={() => {
                 setPromoting(false);
                 role.mutate({ memberId: m.id, role: 'manager' });
