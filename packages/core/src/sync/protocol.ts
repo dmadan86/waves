@@ -82,6 +82,13 @@ export enum MutationKind {
   CompanyPoolPost = 'company_pool.post',
   CompanyWagePay = 'company_wage.pay',
   CompanySecondApprovalSet = 'company.second_approval_set',
+  // Vendors: a named payee with a ledger (bill / advance / payment) against the company.
+  CompanyVendorSet = 'company_vendor.set',
+  CompanyVendorRemove = 'company_vendor.remove',
+  CompanyVendorEntryCreate = 'company_vendor_entry.create',
+  CompanyVendorEntryReview = 'company_vendor_entry.review',
+  CompanyVendorEntryVoid = 'company_vendor_entry.void',
+  CompanyVendorEntryReceived = 'company_vendor_entry.received',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -786,6 +793,11 @@ export enum SyncTable {
   CompanyProjectBudgets = 'company_project_budgets',
   /** Group-scoped, pull-only: a wage payment divided across sites; as private as the payment. */
   CompanyWageSplits = 'company_wage_splits',
+  /** Group-scoped, pull-only. Owner: all; manager: the vendors they added; a vendor login: only itself (RLS). */
+  CompanyVendors = 'company_vendors',
+  CompanyVendorEntries = 'company_vendor_entries',
+  /** Group-scoped, pull-only. Photos on a vendor ledger line; readable exactly where the line is (RLS). */
+  CompanyVendorEntryAttachments = 'company_vendor_entry_attachments',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',

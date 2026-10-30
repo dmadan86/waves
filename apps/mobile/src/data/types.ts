@@ -146,7 +146,7 @@ export interface MemberRow {
   profile_id: string | null;
   ghost_name: string | null;
   /** Company groups also have 'manager' (a team lead); everywhere else only admin / member. */
-  role: 'admin' | 'manager' | 'member';
+  role: 'admin' | 'manager' | 'member' | 'vendor';
   /** Company groups: the manager this employee reports to (null = the owners). */
   manager_id?: string | null;
   /** Company groups: the free-text employee ID, e.g. EMP-014 (owner/manager/self can read it). */
