@@ -8,13 +8,20 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { formatMinorInput, parseMinorInput, type CurrencyCode } from '@waves/core';
-import { Toggle, iconSize, useTheme } from '@waves/ui';
+import { View } from 'react-native';
+
+import { Text, Toggle, directionalIcon, iconSize, useTheme } from '@waves/ui';
 
 import { CompanyPolicyEditor } from '@/components/company/CompanyPolicyEditor';
 import { useMoney } from '@/components/company/dashboard/parts';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ListRow, StandardCard } from '@/components/standard';
-import { useSetCompanySettings, useSetMileageRate, type CompanyView } from '@/data/companyEntries';
+import {
+  useSetCompanySettings,
+  useSetMileageRate,
+  useSetSecondApproval,
+  type CompanyView,
+} from '@/data/companyEntries';
 import { useStrings } from '@/i18n';
 
 export function CompanyRules({ groupId, view }: { groupId: string; view: CompanyView }) {
@@ -23,15 +30,31 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
   const fmt = useMoney(view.currency);
   const settings = useSetCompanySettings(groupId);
   const setKm = useSetMileageRate(groupId);
+  const setSecond = useSetSecondApproval(groupId);
+  const [limit, setLimitOpen] = useState(false);
   const [policies, setPolicies] = useState(false);
   const [km, setKmOpen] = useState(false);
   const [rate, setRateOpen] = useState(false);
   const currency = view.currency as CurrencyCode;
   if (!view.isOwner) return null;
+  // Only offered when it can apply: approvals are on and there is a second owner to ask.
+  const ownerCount = view.members.filter((m) => m.role === 'admin' && !m.left_at).length;
+  const secondOn = view.secondApproval;
+  const thresholdMinor = view.secondApprovalThresholdMinor;
+  const lead = (name: keyof typeof Ionicons.glyphMap) => (
+    <Ionicons name={name} size={iconSize.lg} color={theme.color.textMuted} />
+  );
   return (
     <>
-      <StandardCard>
+      <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <Ionicons name="settings-outline" size={iconSize.lg} color={theme.color.text} />
+          <Text variant="title" style={{ fontSize: 16 }}>
+            {t.company.paymentSettings}
+          </Text>
+        </View>
         <ListRow
+          leading={lead('shield-checkmark-outline')}
           title={t.company.approvalsTitle}
           subtitle={t.company.approvalsHint}
           subtitleLines={3}
@@ -44,8 +67,45 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
           }
           divider
         />
+        {view.approvalsEnabled && ownerCount > 1 ? (
+          <>
+            <ListRow
+              leading={lead('people-outline')}
+              title={t.company.secondOwnerTitle}
+              subtitle={t.company.secondOwnerHint}
+              subtitleLines={3}
+              trailing={
+                <Toggle
+                  value={secondOn}
+                  onValueChange={(next) =>
+                    setSecond.mutate({
+                      enabled: next,
+                      thresholdMinor: thresholdMinor?.toString() ?? null,
+                    })
+                  }
+                  accessibilityLabel={t.company.secondOwnerTitle}
+                />
+              }
+              divider
+            />
+            {secondOn ? (
+              <ListRow
+                leading={lead('trending-up-outline')}
+                title={t.company.secondOwnerFrom}
+                subtitle={t.company.secondOwnerFromHint}
+                subtitleLines={2}
+                amount={thresholdMinor !== null ? fmt(thresholdMinor) : t.company.rateNotSet}
+                onPress={() => setLimitOpen(true)}
+                divider
+              />
+            ) : null}
+          </>
+        ) : null}
         <ListRow
+          leading={lead('calendar-outline')}
           title={t.company.dailyRate}
+          subtitle={t.company.dailyRateHint}
+          subtitleLines={2}
           amount={
             view.defaultRateMinor !== null ? fmt(view.defaultRateMinor) : t.company.rateNotSet
           }
@@ -53,7 +113,10 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
           divider
         />
         <ListRow
+          leading={lead('car-outline')}
           title={t.company.mileageRate}
+          subtitle={t.company.mileageRateHint}
+          subtitleLines={2}
           amount={
             view.defaultMileageRateMinor !== null
               ? fmt(view.defaultMileageRateMinor)
@@ -63,13 +126,15 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
           divider
         />
         <ListRow
+          leading={lead('document-text-outline')}
           title={t.company.policiesTitle}
-          subtitle={`${view.policies.rules.length}`}
+          subtitle={t.company.policiesHint}
+          amount={`${view.policies.rules.length}`}
           trailing={
             <Ionicons
-              name={policies ? 'chevron-up' : 'chevron-down'}
-              size={iconSize.md}
-              color={theme.color.textMuted}
+              name={policies ? 'chevron-up' : directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.textFaint}
             />
           }
           onPress={() => setPolicies((open) => !open)}
@@ -90,6 +155,22 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
           settings.mutate({
             defaultDailyRateMinor:
               text.trim() === '' ? null : parseMinorInput(text, currency).toString(),
+          });
+        }}
+      />
+      <EditTextSheet
+        visible={limit}
+        title={t.company.secondOwnerFrom}
+        value={thresholdMinor !== null ? formatMinorInput(thresholdMinor, currency) : ''}
+        autoCapitalize="none"
+        saving={setSecond.isPending}
+        onClose={() => setLimitOpen(false)}
+        onSave={(text) => {
+          setLimitOpen(false);
+          // Empty = only claims an owner raised themselves need the second owner.
+          setSecond.mutate({
+            enabled: true,
+            thresholdMinor: text.trim() === '' ? null : parseMinorInput(text, currency).toString(),
           });
         }}
       />

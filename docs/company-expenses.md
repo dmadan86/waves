@@ -258,7 +258,7 @@ team (a manager cannot pick a team, promote or reassign); an invite minted by a 
 `company_manager_id` and the joiner lands on that team. Reassignment needs no reason.
 
 **Approvals.** With approvals on, the employee's manager or any owner may approve or reject; either suffices.
-A manager never reviews their own claim. A second "owner must also approve" setting is deferred.
+A manager never reviews their own claim. A second-owner setting is in the add-ons below.
 
 **Cash pool (the "float").** New entry kinds on the manager's own member row: `allocation` (owner gives cash,
 optionally per site), `pool_return` and `pool_adjustment` (a trimmed written reason of 1 to 500 characters is
@@ -289,11 +289,56 @@ kinds `company_member.add|assign|projects_set`, `company_project.set`, `company_
 pulled tables `company_projects`, `company_project_members`, `company_project_budgets`.
 
 **Built / deferred.** Built: all of the above, the manager and owner screens (cash card, "Pay wages" list, sites
-bars, "Make manager" / "Reports to" / site chips on a statement). Deferred: "Reports to" and sites inside the
-add-employee form (owner sets them on the person's statement), a manager's offline add-employee overlay,
-names of the manager / owners on an employee's screen (the RPC exists), multi-site wage split, a second owner
-approval, wage preview RPC, settlement-application table (partial advance recovery across wages is handled by
-the recovery column), and downloaded-data purge on a role change (as in Phase 2).
+bars, "Make manager" / "Reports to" / site chips on a statement). Deferred: names of the manager / owners on an employee's screen (the RPC exists), wage preview RPC,
+settlement-application table (partial advance recovery across wages is handled by the recovery column),
+and downloaded-data purge on a role change (as in Phase 2). "Reports to", sites, offline adds, split wages,
+the second owner and the reassignment purge are in the add-ons below.
+
+### Phase 4 add-ons (migration `20261111090000_company_addons`)
+
+- **Add employee**: the form also asks "Reports to" (owners, when managers exist) and sites. They ride the
+  add as queued `company_member.assign` / `projects_set` with the client-chosen member id, so they land in
+  order offline. A manager's hire is forced onto their own team by the server as before. Queued
+  assign / site changes and a manager's own offline adds show at once (`materialiseMembers`,
+  `materialiseProjectMembers`).
+- **Voice**: the employee home has a mic beside the +. In a company, `app/voice.tsx` saves the spoken
+  expense as the speaker's own company entry (member id from their own membership), never a split. A
+  spoken currency other than the company's is asked about, not converted.
+- **Split wages**: a wage line may carry `splits: [{projectId, amountMinor}]` that sum exactly to the wage
+  base (gross less folded bata; recovery does not change site cost). Stored in `company_wage_splits` (pulled,
+  as private as the payment, re-stamped on reassignment). Then `projectId` must be null. Site spend (phone
+  `projectSpend` and `waves_company_project_report`) counts the parts, never the parent too. The wage run
+  screen offers site chips per person and divides the base evenly (first sites take the remainder).
+- **Second owner**: `groups.company_second_approval` (+ optional threshold). Needs approvals on and two live
+  owners (the setting RPC refuses otherwise, and the rule is inert if owners drop to one). A claim raised by
+  an owner, or at/over the threshold, can only be approved by an owner other than its creator
+  (`SECOND_OWNER_REQUIRED`); managers and the creator do not see Approve. Rejecting is unchanged.
+- **Reassignment purge**: the sync response carries `companyVisible` for company groups where the caller is
+  a manager: the member ids their RLS lets them read. The phone drops cached entries, photos, split wages,
+  sites and member rows of anyone not on it, from memory and disk. A missing or incomplete list drops
+  nothing. Still open: a demoted owner's phone, and re-promotion does not restamp history.
+
+### Paid directly by the company (migration `20261112090000_company_paid_direct`)
+
+An expense the company itself pays (materials, repairs, rent, utilities, vendor bills, equipment, office, transport,
+fees) has no employee: `company_entries.member_id` is null and `paid_by_company` is true (a CHECK ties the two and
+limits the shape to an approved, typed `expense` with no mileage, direction or links). It creates no balance for
+anyone, is never reimbursable or a wage claim, and is never sent for approval.
+
+- **Who records**: owners, and managers (the server stamps `funding_manager_id` = the manager, so it comes out of
+  their cash pool: `waves_company_pool_balance` subtracts it as `companySpend`). Employees are refused
+  server-side. `p_data.paidByCompany = true` with `p_member_id` null is the only accepted shape.
+- **Who sees it**: owners see all; a manager only the ones they recorded (`created_by`); employees never.
+  `waves_company_paid_visible` backs `waves_can_read_company_entry` and the `company_entries_select` policy, so
+  sync pulls, photos (r2-sign), exports and the signed-URL path follow it. Only owners and the recording manager can
+  edit, void or attach receipts; payer mode and recorder are immutable (void and record again).
+- **Reporting**: site spend and `waves_company_project_report` count it once (it stays kind `expense`); the owner
+  dashboard shows "Company spent this month"; exports list it with "Paid by: Company" and a blank employee.
+- **Phone**: `CompanyEntry.memberId` is '' for these (so every per-employee lookup naturally skips them);
+  `purgeCompanyInvisible` keeps a manager's own via `created_by`. Business tags: materials, repairs, rent,
+  utilities, equipment (+ transport, office, other).
+- **Open**: a manager demoted to employee keeps their cached company-paid rows on the phone until reinstall (same gap as a demoted owner above); the server stops delivering them at once.
+- **Deploy**: the sync edge function changed (null `memberId` + `paidByCompany`); deploy it with the prod rollout.
 
 ## Later
 
@@ -321,6 +366,30 @@ the recovery column), and downloaded-data purge on a role change (as in Phase 2)
 - Web authoring, the public API / agent tools for company groups, receipt OCR,
   multi-currency, recurring wages, payroll compliance (PF / ESI / TDS, payslips).
 - Business-plan billing.
+
+## Vendors
+
+A company keeps a list of vendors (supplier, contractor, landlord). Each has a ledger with the company:
+a **bill** (the company owes the vendor) and an **advance** or **payment** (the company paid the vendor).
+Balance = confirmed bills - advances - payments: positive "You owe X", negative "X has an advance".
+Waves only records; it never sends or verifies money ("Record payment").
+
+- Data: `company_vendors` and `company_vendor_entries` (migration `20261113090000_company_vendors`), not
+  `company_entries`, so no employee statement, wage run, export or trigger can ever touch them. An invited
+  vendor is a `group_members` row with role `vendor` (migration `20261113080000_company_vendor_role_enum`)
+  linked by `company_vendors.member_id`; a name-only vendor has no member row.
+- Who sees what (RLS `waves_company_vendor_visible`): owner all vendors; manager only vendors they added;
+  a vendor only their own row and ledger; employees nothing (no rows, no counts).
+- Writes only through RPCs: `waves_company_vendor_set/remove`, `..._entry_create/review/void/received`,
+  `waves_company_vendor_invite`. A vendor can only add a **pending** bill (counts after an owner or the
+  adding manager confirms) and mark a payment received (never changes the balance).
+- A manager's advances/payments set `funding_manager_id` and come out of that manager's pool
+  (`waves_company_pool_balance` adds `vendorPaid`; core `poolBalance(entries, id, vendorLines)`).
+- Invite: `waves_company_vendor_invite(vendor)` makes a single-use 30-day link; `waves_join_via_invite`
+  turns the joiner into that vendor's login. A `vendor` member can never create employee entries.
+- Export: the ledger rows are `company_vendor_<kind>` with the vendor name in the `vendor` column.
+- Tests: `packages/core/test/companyVendors.test.ts` (balance, pool, offline overlay),
+  `packages/db/test/company-vendors.test.ts` (RLS and privacy).
 
 ## Testing
 

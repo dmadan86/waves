@@ -177,7 +177,12 @@ export default function NewGroupScreen() {
   // picker with no group to place it in yet: make the group here, then drop that
   // capture straight into it (below), completing the "create one and add this to
   // it" the picker promised rather than stranding the capture back in the inbox.
-  const { from, assignCaptureId } = useLocalSearchParams<{
+  const {
+    from,
+    assignCaptureId,
+    type: initialType,
+  } = useLocalSearchParams<{
+    type?: string;
     from?: string;
     assignCaptureId?: string;
   }>();
@@ -198,7 +203,9 @@ export default function NewGroupScreen() {
   // same bargain the icon strikes. So the screen never opens assuming a trip: a
   // group called "Goa" still becomes one, "Dinner" does not, and an untyped
   // name falls back to Other rather than dragging trip fields in behind it.
-  const [pickedType, setPickedType] = useState<GroupType | null>(null);
+  const [pickedType, setPickedType] = useState<GroupType | null>(
+    initialType === 'company' ? GroupType.Company : null,
+  );
   // Event organizer (docs/event-organizer.md): which fixed sub-event list an
   // Event group starts with. Null until somebody picks one — a group is
   // allowed to stay a plain Event with no template, same as it is allowed to

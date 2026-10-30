@@ -32,3 +32,5 @@ do not draw your own header, card, pill or row.
 - New or changed screens use these components. If one is missing a variant, extend the component, not the screen.
 - People always render through PersonAvatar (photo, else initials). The bare `Avatar` from `@waves/ui` is for non-people (a group mark); `apps/mobile/test/personAvatarGuard.test.ts` enforces it.
 - All action buttons use the brand violet; no black buttons.
+- Every ⋮ (more) button opens `OverflowMenu`, the pop-up card anchored at the top corner, as on Home, the group screen and an expense. Never a bottom `Sheet` for a ⋮ menu. A bottom sheet is for a picker or form (switch company, add someone).
+- Company mode: owner/manager inside a company get the company bar (Home · Overview · People · Pending · Payments · More) with an add FAB, no mic; employees keep the shared bar.

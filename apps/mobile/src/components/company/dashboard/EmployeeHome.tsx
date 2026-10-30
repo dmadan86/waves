@@ -4,14 +4,17 @@
  */
 
 import { useMemo } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { router } from '@/lib/navigation';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { companyStatement } from '@waves/core';
-import { Screen, Text, useTheme } from '@waves/ui';
+import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
-import { DashHeader, PlusButton, useMoney } from '@/components/company/dashboard/parts';
+import { MyWorkTodayCard } from '@/components/company/WorkdayEntries';
+import { DashBody, DashHeader, useMoney } from '@/components/company/dashboard/parts';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
-import { ScenicBody, StandardCard } from '@/components/standard';
+import { StandardCard } from '@/components/standard';
 import { useCompanyEntries, useCompanyPeople } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
@@ -29,7 +32,9 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
     people.find((p) => p.member_id === me?.manager_id) ?? people.find((p) => p.role === 'admin');
   const month = todayIso().slice(0, 7);
   const sums = useMemo(() => {
-    const mine = view.entries.filter((e) => e.memberId === me?.id && !e.deleted);
+    const mine = view.entries.filter(
+      (e) => !e.paidByCompany && e.memberId === me?.id && !e.deleted,
+    );
     const st = me
       ? companyStatement(view.entries, { memberId: me.id, from: '0000-01-01', to: '9999-12-31' })
       : null;
@@ -48,18 +53,20 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
   return (
     <Screen edges={[]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance + 90 }}
+        contentContainerStyle={{ paddingBottom: clearance + 24 }}
         showsVerticalScrollIndicator={false}
       >
         <DashHeader
           groupId={groupId}
           view={view}
           showGear={false}
+          voice
+          exportMenu
           subtitle={
             boss ? fill(t.company.yourManager, { name: boss.display_name }) : t.company.yourOwners
           }
         />
-        <ScenicBody>
+        <DashBody>
           {view.entries.length === 0 ? (
             <Text variant="body" tone="muted">
               {t.company.welcomeEmployee}
@@ -88,12 +95,34 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
               </View>
             ))}
           </StandardCard>
+          <MyWorkTodayCard groupId={groupId} />
           {me ? (
             <CompanyStatementView view={view} member={me} period="all" groupId={groupId} />
           ) : null}
-        </ScenicBody>
+        </DashBody>
       </ScrollView>
-      <PlusButton groupId={groupId} bottom={clearance} />
+      {/* The hero button scrolls away; statements are long, so keep an add action in reach. */}
+      {view.suspended ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.company.addEntry}
+          onPress={() => router.push(`/group/${groupId}/company-entry`)}
+          style={{
+            position: 'absolute',
+            right: theme.spacing.lg,
+            bottom: clearance + 8,
+            width: 54,
+            height: 54,
+            borderRadius: 27,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.buttonPrimary,
+            elevation: 4,
+          }}
+        >
+          <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
+        </Pressable>
+      )}
     </Screen>
   );
 }
