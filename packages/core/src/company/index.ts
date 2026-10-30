@@ -1,6 +1,7 @@
 export * from './tags';
 export * from './phase4';
 export * from './vendors';
+export * from './details';
 export * from './workday';
 import { companyTagLabel, type CompanyTag } from './tags';
 /**
