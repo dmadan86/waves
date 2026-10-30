@@ -61,6 +61,8 @@ export interface CompanyView {
   readonly isManager: boolean;
   /** A vendor's own login: sees only their ledger with this company. */
   readonly isVendor: boolean;
+  /** Waves has suspended this company: read-only, no add or edit action is offered. */
+  readonly suspended: boolean;
   /** Managers with at least one team member or pool entry exist (progressive disclosure). */
   readonly hasManagers: boolean;
   /** Whom the viewer may record money entries for (owner: everyone, manager: own team). */
@@ -273,6 +275,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
     isOwner,
     isManager,
     isVendor,
+    suspended: group.data?.suspended_at != null,
     hasManagers,
     manageableIds,
     currency,
@@ -290,6 +293,27 @@ export function useCompanyEntries(groupId: string): CompanyView {
     receiptEntryIds,
     ready: hydrated && group.data !== null && group.data !== undefined,
   };
+}
+
+/** True while Waves has suspended this company. */
+export function useCompanySuspended(groupId: string): boolean {
+  const { group } = useGroup(groupId);
+  return group.data?.suspended_at != null;
+}
+
+/** Report a company to Waves. Needs a connection; never queued. */
+export async function reportCompany(
+  groupId: string,
+  category: 'fraud' | 'illegal' | 'harassment' | 'wages' | 'other',
+  text: string,
+): Promise<'sent' | 'limited'> {
+  const { data, error } = await backend.rpc('waves_company_report', {
+    p_group_id: groupId,
+    p_category: category,
+    p_text: text,
+  });
+  if (error) throw new Error(error.message);
+  return (data as { ok?: boolean } | null)?.ok ? 'sent' : 'limited';
 }
 
 /** Add an entry. `entryId` is the client-chosen idempotency key. */

@@ -26,7 +26,7 @@
  */
 
 import { MutationKind } from './protocol';
-import type { MutationEnvelope, SyncMutationOutcome, SyncRejectionCode } from './protocol';
+import { SyncRejectionCode, type MutationEnvelope, type SyncMutationOutcome } from './protocol';
 
 export interface QueuedMutation extends MutationEnvelope {
   /** Local insertion order. The queue is FIFO and this is the tiebreak. */
@@ -592,6 +592,9 @@ export function applyOutcomes(
       continue;
     }
     if (outcome.status === 'applied' || outcome.status === 'duplicate') continue;
+    // Queued before Waves suspended the company: it can never apply, and the person is told by the
+    // suspension banner, not by a "refused" list. Dropped (the one exception to rule 3 below).
+    if (outcome.code === SyncRejectionCode.CompanyBlocked) continue;
     // Kept, not dropped (rule 3): the queue overlay is what puts this mutation's
     // row on screen, so removing it here would delete what the person made.
     const marked: QueuedMutation = {

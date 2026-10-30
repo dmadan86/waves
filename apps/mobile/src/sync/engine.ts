@@ -420,6 +420,12 @@ export class SyncEngine {
    * before this resolves, so a force-kill on the next line still syncs it.
    */
   async enqueue(envelope: MutationEnvelope): Promise<void> {
+    // A suspended company is read-only: the screens hide their add/edit actions, and this is the net under
+    // them so a write that the server would refuse is never sent (nor queued to show as a phantom row).
+    if (envelope.kind.startsWith('company')) {
+      const groups = this.state.mirror.tables[SyncTable.Groups] as Record<string, MirrorRow> | undefined;
+      if ((groups?.[envelope.groupId] as { suspended_at?: unknown } | undefined)?.suspended_at) return;
+    }
     const queue = enqueueMutation(this.state.queue, envelope);
     this.set({ queue });
     await this.writeQueue(queue);
