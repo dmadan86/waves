@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { DepartmentSheet } from '@/components/company/DepartmentSheet';
 
 import { iconSize, useTheme } from '@waves/ui';
 
@@ -14,6 +16,7 @@ import { router } from '@/lib/navigation';
 
 export function CompanyMore({ groupId }: { groupId: string }) {
   const view = useCompanyEntries(groupId);
+  const [departmentsOpen, setDepartmentsOpen] = useState(false);
   const vendors = useCompanyVendors(groupId);
   const { t } = useStrings();
   const theme = useTheme();
@@ -35,6 +38,14 @@ export function CompanyMore({ groupId }: { groupId: string }) {
         <AttendanceRow groupId={groupId} />
         <WorkRow groupId={groupId} />
         <CompanyBillsRow groupId={groupId} />
+        {view.isOwner ? (
+          <ListRow
+            leading={lead('business-outline')}
+            title={t.company.departments}
+            onPress={() => setDepartmentsOpen(true)}
+            divider
+          />
+        ) : null}
         {view.isOwner ? (
           <ListRow
             leading={lead('wallet-outline')}
@@ -63,6 +74,14 @@ export function CompanyMore({ groupId }: { groupId: string }) {
           onPress={() => router.push('/companies')}
         />
       </StandardCard>
+      {view.isOwner ? (
+        <DepartmentSheet
+          groupId={groupId}
+          visible={departmentsOpen}
+          onClose={() => setDepartmentsOpen(false)}
+          manageOnly
+        />
+      ) : null}
       {view.isOwner ? (
         <>
           <SectionHeader title={t.company.moreRules} />

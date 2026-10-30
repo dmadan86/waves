@@ -99,6 +99,8 @@ type MutationKind =
   | 'company_member.assign'
   | 'company_member.projects_set'
   | 'company_member.employee_id_set'
+  | 'company_departments.set'
+  | 'company_member.department_set'
   | 'company_attendance.set'
   | 'company_work.set'
   | 'company_work.remove'
@@ -1008,6 +1010,27 @@ export class SyncSession {
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
           p_employee_id: optionalText(mutation.payload.employeeId, 'employeeId'),
         });
+      case 'company_departments.set': {
+        const list = mutation.payload.departments;
+        if (!Array.isArray(list) || list.length > 30) companyInvalid('departments');
+        const departments = (list as unknown[]).map((d) => {
+          const r = d as { id?: unknown; name?: unknown };
+          return {
+            id: companyUuid(r?.id, 'departments'),
+            name: companyReason(r?.name, 'departments', true),
+          };
+        });
+        return await this.rpcAsCaller('waves_company_departments_set', {
+          p_group_id: mutation.groupId,
+          p_departments: departments,
+        });
+      }
+      case 'company_member.department_set':
+        return await this.rpcAsCaller('waves_company_department_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_department_id: companyUuid(mutation.payload.departmentId ?? null, 'departmentId', true),
+        });
       case 'company_attendance.set': {
         const status = mutation.payload.status;
         if (status !== null && status !== 'present' && status !== 'half' && status !== 'absent')
@@ -1034,6 +1057,7 @@ export class SyncSession {
           p_status: status,
           p_blocked_reason: companyReason(mutation.payload.blockedReason, 'blockedReason', false),
           p_note: companyReason(mutation.payload.note, 'note', false),
+          p_due_time: companyTime(mutation.payload.dueTime),
         });
       }
       case 'company_work.remove':
@@ -2639,6 +2663,14 @@ function companyUuid(value: unknown, field: string, nullable = false): string | 
     companyInvalid(field);
   return value;
 }
+/** Optional 'HH:MM' time of day; null clears it. */
+function companyTime(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value))
+    companyInvalid('dueTime');
+  return value;
+}
+
 function companyDate(value: unknown, field: string): string {
   if (
     typeof value !== 'string' ||

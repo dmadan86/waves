@@ -170,6 +170,27 @@ describe('company daily work: who adds, who moves it, who sees', () => {
       await denied(() => setTask(0, 2, randomUUID(), 'todo', { title: '   ' }));
     }));
 
+  it('stores an optional due time; a legacy 9-argument edit keeps it', () =>
+    isolated(async () => {
+      const a = randomUUID();
+      await user(0, () =>
+        db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,NULL,NULL,$7)', [
+          g.groupId,
+          a,
+          g.memberIds[2],
+          today,
+          'Fix the gate',
+          'todo',
+          '17:00',
+        ]),
+      );
+      await setTask(2, 2, a, 'doing'); // the employee moves it through the old signature
+      const row = (
+        await db.query('SELECT status,due_time::text FROM company_work_tasks WHERE id=$1', [a])
+      ).rows[0];
+      expect(row).toEqual({ status: 'doing', due_time: '17:00:00' });
+    }));
+
   it('the employee moves only the status/reason/note of their own task', () =>
     isolated(async () => {
       const a = randomUUID();

@@ -10,9 +10,11 @@ import { Linking, Pressable, ScrollView, View } from 'react-native';
 import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
 import { EditTextSheet } from '@/components/EditTextSheet';
+import { DepartmentSheet } from '@/components/company/DepartmentSheet';
 import { friendlyError } from '@/lib/errors';
 import { AttendanceMonth } from '@/components/company/AttendanceMonth';
 import { useWorkdayAccess } from '@/data/companyWorkday';
+import { departmentName, useDepartments } from '@/data/companyDepartments';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
 import { CompanyTeamCard } from '@/components/company/CompanyTeamCard';
 import { ScenicBody, ScenicHeader } from '@/components/standard';
@@ -36,6 +38,8 @@ export default function CompanyStatementScreen() {
   const { t } = useStrings();
   const view = useCompanyEntries(groupId);
   const workdayAccess = useWorkdayAccess(groupId);
+  const departments = useDepartments(groupId);
+  const [departmentOpen, setDepartmentOpen] = useState(false);
   const setEmployeeId = useSetEmployeeId(groupId);
   const isTaken = useEmployeeIdTaken(groupId, view.members);
   const [editingId, setEditingId] = useState(false);
@@ -78,7 +82,10 @@ export default function CompanyStatementScreen() {
             ) : undefined
           }
         >
-          {member && (member.employee_id || view.manageableIds.has(member.id)) ? (
+          {member &&
+          (member.employee_id ||
+            departmentName(departments, member.department_id) ||
+            view.manageableIds.has(member.id)) ? (
             <Pressable
               accessibilityRole={view.manageableIds.has(member.id) ? 'button' : undefined}
               disabled={!view.manageableIds.has(member.id)}
@@ -88,7 +95,15 @@ export default function CompanyStatementScreen() {
               }}
             >
               <Text variant="caption" tone="muted">
-                {member.employee_id || t.company.addEmployeeId}
+                {[
+                  member.employee_id ||
+                    (!departmentName(departments, member.department_id)
+                      ? t.company.addEmployeeId
+                      : ''),
+                  departmentName(departments, member.department_id),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
               </Text>
             </Pressable>
           ) : null}
@@ -112,6 +127,21 @@ export default function CompanyStatementScreen() {
           ) : null}
         </ScenicHeader>
         <ScenicBody>
+          {member?.role === 'member' && view.manageableIds.has(member.id) ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setDepartmentOpen(true)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}
+            >
+              <Text variant="caption" tone="muted">
+                {t.company.department}
+              </Text>
+              <Text variant="body">
+                {departmentName(departments, member.department_id) ?? t.company.departmentNone}
+              </Text>
+              <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
+            </Pressable>
+          ) : null}
           {member?.role === 'member' &&
           workdayAccess.enabled &&
           (workdayAccess.people.some((person) => person.id === member.id) ||
@@ -136,6 +166,15 @@ export default function CompanyStatementScreen() {
           ) : null}
         </ScenicBody>
       </ScrollView>
+      {member ? (
+        <DepartmentSheet
+          groupId={groupId}
+          visible={departmentOpen}
+          onClose={() => setDepartmentOpen(false)}
+          memberId={member.id}
+          departmentId={member.department_id}
+        />
+      ) : null}
       <EditTextSheet
         visible={editingId}
         title={t.company.employeeId}

@@ -475,6 +475,7 @@ export async function handleExportData(
         'recovery_minor',
         'funding_manager',
         'Employee ID',
+        'Department',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -492,7 +493,7 @@ export async function handleExportData(
         anyFamilies
           ? [
               ...cells,
-              ...Array(Math.max(0, 37 - cells.length)).fill(''),
+              ...Array(Math.max(0, 38 - cells.length)).fill(''),
               familyName(units, memberId),
             ]
           : cells;
@@ -543,6 +544,9 @@ export async function handleExportData(
                     entry.members.find((m: Record<string, unknown>) => m.id === row.member_id)
                       ?.employee_id ?? '',
                   ),
+              row.paid_by_company
+                ? ''
+                : companyExportDepartment(entry.group, entry.members, row.member_id),
             ],
             row.member_id,
           ),
@@ -683,7 +687,17 @@ function vendorName(entry: { companyVendors: Record<string, unknown>[] }, id: un
   return String(entry.companyVendors.find((v) => v.id === id)?.name ?? 'unknown');
 }
 
-export function companyExportTagLabel(key: string, tags: unknown): string {
+export function companyExportDepartment(
+  group: Record<string, unknown> | null | undefined,
+  members: Record<string, unknown>[],
+  memberId: unknown,
+): string {
+  const id = members.find((m) => m.id === memberId)?.department_id;
+  const list = (group?.company_departments ?? []) as { id: string; name: string }[];
+  return list.find((d) => d.id === id)?.name ?? '';
+}
+
+function companyExportTagLabel(key: string, tags: unknown): string {
   if (Array.isArray(tags)) {
     const tag = tags.find((value) => value && value.key === key && typeof value.label === 'string');
     if (tag) return tag.label;

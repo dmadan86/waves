@@ -78,6 +78,8 @@ export enum MutationKind {
   CompanyMemberAssign = 'company_member.assign',
   CompanyMemberProjectsSet = 'company_member.projects_set',
   CompanyMemberEmployeeIdSet = 'company_member.employee_id_set',
+  CompanyDepartmentsSet = 'company_departments.set',
+  CompanyMemberDepartmentSet = 'company_member.department_set',
   CompanyAttendanceSet = 'company_attendance.set',
   CompanyWorkSet = 'company_work.set',
   CompanyWorkRemove = 'company_work.remove',
@@ -550,6 +552,17 @@ export interface CompanyMemberEmployeeIdSetPayload {
   readonly employeeId: string | null;
 }
 
+/** Owner: replace the company's department list (anyone on a removed one is cleared). */
+export interface CompanyDepartmentsSetPayload {
+  readonly departments: readonly { readonly id: string; readonly name: string }[];
+}
+
+/** Owner or the employee's manager: set (null clears) the employee's department. */
+export interface CompanyMemberDepartmentSetPayload {
+  readonly memberId: string;
+  readonly departmentId: string | null;
+}
+
 /** Owner or the person's manager: mark one day (status null clears the mark). */
 export interface CompanyAttendanceSetPayload {
   readonly memberId: string;
@@ -568,6 +581,8 @@ export interface CompanyWorkSetPayload {
   readonly status: 'todo' | 'doing' | 'done' | 'blocked';
   readonly blockedReason: string | null;
   readonly note: string | null;
+  /** Optional time of day, 'HH:MM'. */
+  readonly dueTime?: string | null;
 }
 
 export interface CompanyWorkRemovePayload {
