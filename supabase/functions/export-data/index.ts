@@ -110,7 +110,16 @@ export async function handleExportData(
         .single();
       if (scopeError) throw new HttpError(500, 'EXPORT_INCOMPLETE', 'Could not complete request');
       const memberReader = scope?.type === 'company' ? caller : service;
-      const [group, members, expenses, settlements, activity, companyEntries] = await Promise.all([
+      const [
+        group,
+        members,
+        expenses,
+        settlements,
+        activity,
+        companyEntries,
+        vendors,
+        vendorEntries,
+      ] = await Promise.all([
         caller.from('groups').select('*').eq('id', groupId).single(),
         memberReader
           .from('group_members')
@@ -140,7 +149,19 @@ export async function handleExportData(
           ? caller
               .from('company_entries')
               .select(
-                'id,group_id,member_id,entry_kind,category,amount,currency,calc_mode,days,rate_minor,occurred_on,direction,status,note,review_note,reviewed_by,reviewed_at,version,created_at,updated_at,deleted_at,void_reason,vendor,gstin,invoice_no,gst_rate_bps,gst_amount_minor,distance_km,from_text,to_text,reimbursement_id,reimbursement_details',
+                'id,group_id,member_id,paid_by_company,entry_kind,category,amount,currency,calc_mode,days,rate_minor,occurred_on,direction,status,note,review_note,reviewed_by,reviewed_at,version,created_at,updated_at,deleted_at,void_reason,vendor,gstin,invoice_no,gst_rate_bps,gst_amount_minor,distance_km,from_text,to_text,reimbursement_id,reimbursement_details',
+              )
+              .eq('group_id', groupId)
+          : Promise.resolve({ data: [], error: null }),
+        // Vendor ledger: read as the caller, so an owner gets all, a manager their own vendors, a vendor itself.
+        scope?.type === 'company'
+          ? caller.from('company_vendors').select('id,name').eq('group_id', groupId)
+          : Promise.resolve({ data: [], error: null }),
+        scope?.type === 'company'
+          ? caller
+              .from('company_vendor_entries')
+              .select(
+                'id,vendor_id,kind,amount,occurred_on,note,status,review_note,funding_manager_id,received_at,version,deleted_at',
               )
               .eq('group_id', groupId)
           : Promise.resolve({ data: [], error: null }),
@@ -155,6 +176,8 @@ export async function handleExportData(
         settlements,
         activity,
         companyEntries,
+        vendors,
+        vendorEntries,
       })) {
         if (result.error) {
           console.error(JSON.stringify({ fn: 'export-data', label, detail: result.error.message }));
@@ -169,6 +192,8 @@ export async function handleExportData(
         settlements: settlements.data ?? [],
         activity: activity.data ?? [],
         companyEntries: companyEntries.data ?? [],
+        companyVendors: vendors.data ?? [],
+        companyVendorEntries: vendorEntries.data ?? [],
       });
     }
 
@@ -318,7 +343,7 @@ export async function handleExportData(
             const key = row.category ?? '';
             const label = companyExportTagLabel(key, group?.company_tags);
             pdf.body(
-              `${row.occurred_on}  ${nameOf(row.member_id)}  ${row.entry_kind}  ` +
+              `${row.occurred_on}  ${row.paid_by_company ? 'Paid by: Company' : nameOf(row.member_id)}  ${row.entry_kind}  ` +
                 `${label}${label !== key ? ` (${key})` : ''}  ` +
                 `${formatMinor(row.amount, row.currency)} ${row.currency}  (${row.deleted_at ? 'voided' : row.status})`,
               9,
@@ -336,6 +361,17 @@ export async function handleExportData(
           }
           for (const [currency, amount] of companyTotals) {
             pdf.body(`Expense total: ${formatMinor(amount, currency)} ${currency}`, 10);
+          }
+        }
+
+        if (entry.companyVendorEntries.length > 0) {
+          pdf.subheading('Vendor ledger', 11);
+          for (const row of entry.companyVendorEntries) {
+            pdf.body(
+              `${row.occurred_on}  Vendor: ${vendorName(entry, row.vendor_id)}  ${row.kind}  ` +
+                `${formatMinor(row.amount, entry.group?.default_currency ?? 'INR')} ${entry.group?.default_currency ?? 'INR'}  (${row.deleted_at ? 'voided' : row.status})`,
+              9,
+            );
           }
         }
 
@@ -438,6 +474,7 @@ export async function handleExportData(
         'claims_minor',
         'recovery_minor',
         'funding_manager',
+        'Employee ID',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -455,7 +492,7 @@ export async function handleExportData(
         anyFamilies
           ? [
               ...cells,
-              ...Array(Math.max(0, 36 - cells.length)).fill(''),
+              ...Array(Math.max(0, 37 - cells.length)).fill(''),
               familyName(units, memberId),
             ]
           : cells;
@@ -470,8 +507,8 @@ export async function handleExportData(
               row.note ?? '',
               row.currency,
               String(row.amount),
-              '',
-              nameOf(row.member_id),
+              row.paid_by_company ? 'Company' : '',
+              row.paid_by_company ? '' : nameOf(row.member_id),
               '',
               row.deleted_at ? 'voided' : row.status,
               `v${row.version}`,
@@ -500,10 +537,35 @@ export async function handleExportData(
               String(row.claims_minor ?? ''),
               String(row.recovery_minor ?? ''),
               row.funding_manager_id ? nameOf(row.funding_manager_id as string) : '',
+              row.paid_by_company
+                ? ''
+                : String(
+                    entry.members.find((m: Record<string, unknown>) => m.id === row.member_id)
+                      ?.employee_id ?? '',
+                  ),
             ],
             row.member_id,
           ),
         );
+      }
+
+      for (const row of entry.companyVendorEntries) {
+        const cells = Array(36).fill('');
+        const vals: Record<number, string> = {
+          0: entry.group?.name ?? '',
+          1: `company_vendor_${row.kind}`,
+          2: row.occurred_on,
+          3: row.note ?? '',
+          4: String(entry.group?.default_currency ?? 'INR'),
+          5: String(row.amount),
+          9: row.deleted_at ? 'voided' : row.status,
+          10: `v${row.version}`,
+          16: row.review_note ?? '',
+          17: vendorName(entry, row.vendor_id),
+          35: row.funding_manager_id ? nameOf(row.funding_manager_id as string) : '',
+        };
+        for (const [i, v] of Object.entries(vals)) cells[Number(i)] = v;
+        rows.push(family(cells, null));
       }
 
       for (const expense of entry.expenses) {
@@ -617,6 +679,10 @@ export async function handleExportData(
 serveWithCors(handleExportData);
 
 /** Keep unknown keys verbatim; shared labels are display metadata only. */
+function vendorName(entry: { companyVendors: Record<string, unknown>[] }, id: unknown): string {
+  return String(entry.companyVendors.find((v) => v.id === id)?.name ?? 'unknown');
+}
+
 export function companyExportTagLabel(key: string, tags: unknown): string {
   if (Array.isArray(tags)) {
     const tag = tags.find((value) => value && value.key === key && typeof value.label === 'string');

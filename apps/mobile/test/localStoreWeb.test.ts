@@ -68,6 +68,15 @@ describe('web local store', () => {
     expect((await store.readQueue()).map((entry) => entry.clientMutationId)).toEqual(['m2']);
   });
 
+  it('deletes single rows by table and id', async () => {
+    const store = createLocalStore();
+    await store.putRows([row('e1', 'g1', 1), row('e2', 'g1', 2)]);
+
+    await store.deleteRows([{ table: 'expenses' as never, id: 'e1' }]);
+
+    expect(await store.readRows()).toEqual([row('e2', 'g1', 2)]);
+  });
+
   it('clears drafts and resets every persisted collection', async () => {
     const store = createLocalStore();
     await store.putRows([row('e1')]);

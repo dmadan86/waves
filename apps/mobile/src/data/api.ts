@@ -1000,7 +1000,13 @@ export async function previewInvite(token: string): Promise<InvitePreview> {
  * history.
  */
 export type AcceptedInvite =
-  | { group: { id: string; name: string; type?: string }; memberId: string; claimed?: boolean }
+  | {
+      group: { id: string; name: string; type?: string };
+      memberId: string;
+      claimed?: boolean;
+      /** The link was a vendor's own invite: they land on their ledger. */
+      vendor?: boolean;
+    }
   | {
       group: { id: string; name: string };
       pending: true;

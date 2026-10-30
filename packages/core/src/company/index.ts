@@ -1,5 +1,7 @@
 export * from './tags';
 export * from './phase4';
+export * from './vendors';
+export * from './workday';
 import { companyTagLabel, type CompanyTag } from './tags';
 /**
  * Company expenses (Phase 1): an employer records what each employee spent,
@@ -61,7 +63,10 @@ export const EMPLOYEE_ENTRY_KINDS: readonly CompanyEntryKind[] = ['expense', 'al
 export interface CompanyEntry {
   readonly id: string;
   readonly groupId: string;
+  /** The employee; '' on a company-paid entry (no employee, never in any balance or statement). */
   readonly memberId: string;
+  /** The company paid directly (materials, rent...): recorded by an owner or a manager, no employee. */
+  readonly paidByCompany: boolean;
   readonly kind: CompanyEntryKind;
   readonly category: string | null;
   readonly amount: bigint;
@@ -118,7 +123,8 @@ export interface CompanyEntry {
 export interface CompanyEntryRow {
   readonly id: string;
   readonly group_id: string;
-  readonly member_id: string;
+  readonly member_id?: string | null;
+  readonly paid_by_company?: boolean | null;
   readonly entry_kind: string;
   readonly category?: string | null;
   readonly amount: string | number;
@@ -164,7 +170,8 @@ export function companyEntryFromRow(row: CompanyEntryRow): CompanyEntry {
   return {
     id: row.id,
     groupId: row.group_id,
-    memberId: row.member_id,
+    memberId: row.member_id ?? '',
+    paidByCompany: row.paid_by_company === true,
     kind: row.entry_kind as CompanyEntryKind,
     category: row.category ?? null,
     amount: BigInt(String(row.amount)),
@@ -346,7 +353,7 @@ function counts(entry: CompanyEntry): boolean {
 
 /** The entry's effect on "company owes employee" (wages: none). */
 export function entryDelta(entry: CompanyEntry): bigint {
-  if (!counts(entry)) return 0n;
+  if (!counts(entry) || entry.paidByCompany) return 0n;
   switch (entry.kind) {
     case 'expense':
     case 'allowance':
@@ -541,7 +548,9 @@ export function companySummary(
   entries: readonly CompanyEntry[],
   options: { readonly memberIds?: readonly string[]; readonly from: string; readonly to: string },
 ): CompanySummary {
-  const ids = options.memberIds ?? [...new Set(entries.map((entry) => entry.memberId))];
+  const ids = options.memberIds ?? [
+    ...new Set(entries.filter((entry) => !entry.paidByCompany).map((entry) => entry.memberId)),
+  ];
   const rows: CompanySummaryRow[] = ids
     .map((memberId) => ({
       memberId,
@@ -822,6 +831,7 @@ export function findDuplicateEntry(
 export function isReimbursable(entry: CompanyEntry): boolean {
   return (
     !entry.deleted &&
+    !entry.paidByCompany &&
     entry.status === 'approved' &&
     entry.reimbursementId === null &&
     (entry.kind === 'expense' || entry.kind === 'allowance')
@@ -932,3 +942,32 @@ export function reimbursementOutcome(
   }
   return { paid, alreadyPaid: [...by].map(([who, count]) => ({ by: who, count })) };
 }
+
+/** An employee ID as typed: trimmed, blank means none, at most 32 characters (null if too long). */
+export const EMPLOYEE_ID_MAX = 32;
+export function normaliseEmployeeId(raw: string | null | undefined): string | null {
+  const v = (raw ?? '').trim();
+  return v === '' ? null : v.slice(0, EMPLOYEE_ID_MAX);
+}
+
+/**
+ * Is this ID already someone else's among the people still in the company? Case-insensitive,
+ * like the server's unique index. A phone only sees the people it may read; the server check
+ * (waves_company_employee_id_taken) covers the rest.
+ */
+export function employeeIdTaken(
+  members: readonly {
+    readonly id: string;
+    readonly employee_id?: string | null;
+    readonly left_at?: string | null;
+  }[],
+  raw: string | null | undefined,
+  exceptMemberId?: string | null,
+): boolean {
+  const id = normaliseEmployeeId(raw)?.toLowerCase();
+  if (!id) return false;
+  return members.some(
+    (m) => m.id !== exceptMemberId && !m.left_at && m.employee_id?.trim().toLowerCase() === id,
+  );
+}
+export * from './documents';

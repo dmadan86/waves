@@ -31,7 +31,6 @@ import { syncPurchasesUser } from './purchases';
 import { claimCode } from './oauthClaim';
 import { track } from '@/lib/events';
 import { confirmPhoneCode, sendPhoneCode } from './phoneAuth';
-import { lockPersonal, syncPersonalAccount } from './personalLock';
 import { refreshPushToken, revokePushToken } from './push';
 import { backend, peekSession } from './backend';
 // A leaf module with no imports of its own, reached directly rather than
@@ -444,7 +443,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let settled = false;
     void peekSession().then((stored) => {
       if (!active || settled || !stored) return;
-      syncPersonalAccount(stored.user.id);
       setSession(stored);
       setLoading(false);
     });
@@ -454,7 +452,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .then(({ data }) => {
         settled = true;
         if (!active) return;
-        syncPersonalAccount(data.session?.user?.id ?? null);
         setSession(data.session);
       })
       .catch((caught) => {
@@ -466,15 +463,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
     const { data: subscription } = backend.auth.onAuthStateChange((_event, next) => {
-      // Whoever proved they were holding this phone proved it for one account.
-      // Most sign-outs never reach the `signOut` action below — a revoked
-      // refresh token, a remote sign-out from another device, an account
-      // deleted elsewhere, a refresh that simply fails — and the personal
-      // ledger's unlock is module-scoped, so it would outlive the unmounted
-      // tree and greet the next account with no check at all. Keyed on the user
-      // id, so a switch of account counts too and a token refresh does not.
       settled = true;
-      syncPersonalAccount(next?.user?.id ?? null);
       setSession(next);
     });
 
@@ -608,10 +597,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       Promise.allSettled([revokePushToken(), cancelNudges(), clearCaptureNudge(leaving)]),
       new Promise((resolve) => setTimeout(resolve, SIGN_OUT_TIDY_UP_MS)),
     ]);
-    // The private ledger's unlock belongs to whoever proved they were
-    // holding the phone, not to the phone. It does not survive the account
-    // it was granted under.
-    lockPersonal();
     // The one bit `SyncProvider` cannot work out for itself. Every way a
     // session ends arrives at `onAuthStateChange` as the same `SIGNED_OUT`
     // with the same null session — a revoked token looks exactly like this
