@@ -194,7 +194,9 @@ export function DashHeader({
   const groups = useGroups().data ?? [];
   const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
 
-  const sky = dark ? ['#26264A', '#3A2D45'] : ['#CFCFF7', '#FBE3D1'];
+  const sky = dark
+    ? [theme.color.bg, theme.color.surfaceMuted]
+    : [theme.color.brandSoft, theme.color.surface];
   return (
     <>
       <View style={{ paddingTop: insets.top + 6, paddingBottom: 34 }}>
@@ -207,16 +209,27 @@ export function DashHeader({
             source={BUILDING}
             accessibilityIgnoresInvertColors
             fadeDuration={0}
-            style={{ position: 'absolute', right: 36, bottom: 0, width: 150, height: 140 }}
+            style={{
+              position: 'absolute',
+              right: 24,
+              top: insets.top + 30,
+              width: 132,
+              height: 122,
+              opacity: dark ? 0.48 : 0.68,
+            }}
+          />
+          <LinearGradient
+            colors={[theme.color.bg, theme.color.bg + '00']}
+            style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '60%' }}
           />
           <LinearGradient
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            colors={[sky[1] + 'FF', sky[1] + '00']}
-            style={{ position: 'absolute', right: 120, bottom: 0, width: 70, height: 140 }}
+            colors={[theme.color.bg, theme.color.bg + '00']}
+            style={{ position: 'absolute', left: 0, top: 0, bottom: 30, width: '65%' }}
           />
           <LinearGradient
-            colors={['rgba(0,0,0,0)', theme.color.bg]}
+            colors={[theme.color.bg + '00', theme.color.bg]}
             style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 30 }}
           />
         </View>
@@ -504,7 +517,7 @@ export function StatTriple({
           tint={theme.color.brandSoft}
           ink={theme.color.brand}
           label={t.company.statOwes}
-          value={fmt(stats.owes)}
+          value={stats.owes === 0n ? t.company.overviewNoOwes : fmt(stats.owes)}
           caption={fill(t.company.statPending, { n: String(stats.pendingPayments) })}
           trailing={
             onOwes ? (
@@ -523,7 +536,7 @@ export function StatTriple({
           tint={GREEN_SOFT}
           ink={GREEN}
           label={t.company.statPaidMonth}
-          value={fmt(stats.paidThisMonth)}
+          value={stats.paidThisMonth === 0n ? t.company.overviewNoPaid : fmt(stats.paidThisMonth)}
           // Hidden when last month is zero or unknown: a percentage of nothing means nothing.
           caption={
             pct === null
@@ -538,7 +551,11 @@ export function StatTriple({
           tint={theme.color.brandSoft}
           ink={theme.color.brand}
           label={t.company.statAdvances}
-          value={fmt(stats.advancesOutstanding)}
+          value={
+            stats.advancesOutstanding === 0n
+              ? t.company.overviewNoAdvances
+              : fmt(stats.advancesOutstanding)
+          }
           caption={plural(locale, stats.advanceHolders, t.company.employeeCount)}
         />
       </View>
