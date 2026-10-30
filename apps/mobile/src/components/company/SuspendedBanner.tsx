@@ -46,10 +46,37 @@ export function SuspendedGate({ groupId, children }: { groupId: string; children
   const { t } = useStrings();
   if (!suspended) return <>{children}</>;
   return (
-    <View style={{ flex: 1, justifyContent: 'center', gap: theme.spacing.lg, padding: theme.spacing.lg }}>
+    <View
+      style={{
+        flex: 1,
+        justifyContent: 'center',
+        gap: theme.spacing.lg,
+        padding: theme.spacing.lg,
+      }}
+    >
       <Text style={{ textAlign: 'center' }}>{t.company.suspendedReadOnly}</Text>
       <Button label={t.common.back} onPress={() => router.back()} />
     </View>
+  );
+}
+
+/** A screen's body while suspended: the banner, and everything inside shown but not tappable. */
+export function ReadOnlyWhenSuspended({
+  groupId,
+  children,
+}: {
+  groupId: string;
+  children: ReactNode;
+}) {
+  const suspended = useCompanySuspended(groupId);
+  if (!suspended) return <>{children}</>;
+  return (
+    <>
+      <SuspendedBanner />
+      <View pointerEvents="none" style={{ opacity: 0.6, gap: 12 }}>
+        {children}
+      </View>
+    </>
   );
 }
 
@@ -98,14 +125,25 @@ export function ReportCompanySheet({
   };
 
   return (
-    <Sheet visible={visible} onClose={onClose} closeLabel={t.common.close} title={t.company.reportTitle}>
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      closeLabel={t.common.close}
+      title={t.company.reportTitle}
+    >
       <View style={{ gap: theme.spacing.md }}>
         <Text variant="caption" tone="muted">
           {t.company.reportBody}
         </Text>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
           {CATEGORIES.map((c) => (
-            <Chip key={c} onCard label={labels[c]} selected={category === c} onPress={() => setCategory(c)} />
+            <Chip
+              key={c}
+              onCard
+              label={labels[c]}
+              selected={category === c}
+              onPress={() => setCategory(c)}
+            />
           ))}
         </View>
         <TextInput
@@ -126,7 +164,11 @@ export function ReportCompanySheet({
             color: theme.color.text,
           }}
         />
-        <Button label={t.company.reportSend} disabled={busy || text.trim() === ''} onPress={() => void send()} />
+        <Button
+          label={t.company.reportSend}
+          disabled={busy || text.trim() === ''}
+          onPress={() => void send()}
+        />
       </View>
     </Sheet>
   );

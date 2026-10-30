@@ -16,6 +16,7 @@ import {
   SectionHeader,
   StandardCard,
 } from '@/components/standard';
+import { useCompanySuspended } from '@/data/companyEntries';
 import {
   createVendorInviteLink,
   useCompanyVendors,
@@ -33,7 +34,10 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
   const clearance = useBottomClearance();
   const { t } = useStrings();
   const s = t.companyVendors;
-  const view = useCompanyVendors(groupId);
+  const raw = useCompanyVendors(groupId);
+  const suspended = useCompanySuspended(groupId);
+  // A suspended company is read-only: nothing to add, confirm or remove.
+  const view = { ...raw, canManage: raw.canManage && !suspended };
   const fmt = useMoney(view.currency);
   const { confirm, notify } = useDialog();
   const remove = useRemoveVendor(groupId);

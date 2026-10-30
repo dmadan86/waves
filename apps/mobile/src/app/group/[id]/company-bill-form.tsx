@@ -1,3 +1,4 @@
+import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { useState } from 'react';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
@@ -22,6 +23,15 @@ import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 
 export default function CompanyBillFormScreen() {
+  const { id = '' } = useLocalSearchParams<{ id: string }>();
+  return (
+    <SuspendedGate groupId={id}>
+      <BillForm />
+    </SuspendedGate>
+  );
+}
+
+function BillForm() {
   const {
     id = '',
     docId,

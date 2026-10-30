@@ -8,8 +8,12 @@ import { PendingApprovals } from '@/components/company/dashboard/PendingApproval
 import { useMoney } from '@/components/company/dashboard/parts';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
+import { usePendingVendorBills } from '@/data/companyVendors';
+import { useUnpaidBills } from '@/data/companyDocuments';
+import { useWorkdayCounts } from '@/data/companyWorkday';
 import { displayName } from '@/data/types';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { awaitingApprovals } from '@/lib/companyPending';
 
 export function CompanyPending({ groupId }: { groupId: string }) {
@@ -23,9 +27,16 @@ export function CompanyPending({ groupId }: { groupId: string }) {
         .filter((e) => e.kind === 'pool_request' && !e.deleted)
         .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn))
     : [];
-  const empty = awaitingApprovals(view).length === 0 && requests.length === 0;
-
-  // VENDOR BILLS AWAITING CONFIRMATION: add here when the Vendors PR lands
+  const vendorBills = usePendingVendorBills(groupId).count;
+  const unpaid = useUnpaidBills(groupId).count;
+  const { blocked, unmarked } = useWorkdayCounts(groupId);
+  const links = [
+    { n: vendorBills, label: t.company.pendingVendorBills, to: 'company-vendors' },
+    { n: unpaid, label: t.company.pendingUnpaidBills, to: 'company-bills' },
+    { n: blocked, label: t.company.pendingBlockedTasks, to: 'company-work' },
+    { n: unmarked, label: t.company.pendingUnmarked, to: 'company-attendance' },
+  ].filter((l) => l.n > 0);
+  const empty = awaitingApprovals(view).length === 0 && requests.length === 0 && links.length === 0;
   return (
     <SectionShell groupId={groupId} view={view}>
       <PendingApprovals groupId={groupId} view={view} />
@@ -47,6 +58,18 @@ export function CompanyPending({ groupId }: { groupId: string }) {
             })}
           </StandardCard>
         </>
+      ) : null}
+      {links.length > 0 ? (
+        <StandardCard>
+          {links.map((l, i) => (
+            <ListRow
+              key={l.to}
+              title={fill(l.label, { n: String(l.n) })}
+              onPress={() => router.push(`/group/${groupId}/${l.to}`)}
+              divider={i < links.length - 1}
+            />
+          ))}
+        </StandardCard>
       ) : null}
       {empty ? (
         <View

@@ -1,3 +1,4 @@
+import { useCompanySuspended } from '@/data/companyEntries';
 import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
@@ -33,12 +34,17 @@ export default function CompanyBillsScreen() {
     filter === 'unpaid'
       ? unpaidBills(live)
       : live.filter((d) => filter === 'all' || d.docType === filter);
+  const suspended = useCompanySuspended(id);
   if (!view.canUse) return null;
   return (
     <Screen edges={[]}>
       <PlainHeader
         title={c.title}
-        trailing={<Button label="+" variant="brand" onPress={() => setCreating(true)} />}
+        trailing={
+          suspended ? undefined : (
+            <Button label="+" variant="brand" onPress={() => setCreating(true)} />
+          )
+        }
       />
       <ScrollView
         contentContainerStyle={{
