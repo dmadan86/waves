@@ -575,6 +575,8 @@ export interface MirrorMember extends MirrorRow {
   readonly profile_id: string | null;
   readonly ghost_name: string | null;
   readonly left_at: string | null;
+  readonly employment_ended_on?: string | null;
+  readonly employment_note?: string | null;
   /** Company: the manager this employee reports to (null = the owners). */
   readonly manager_id?: string | null;
   /** Company: the free-text employee ID (null/absent = none). */

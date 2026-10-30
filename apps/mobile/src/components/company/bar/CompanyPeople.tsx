@@ -24,10 +24,12 @@ import {
 import { EmployeeRow } from '@/components/company/dashboard/EmployeeRow';
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { ListRow, StandardCard } from '@/components/standard';
+import { ListRow, SegmentedPills, StandardCard } from '@/components/standard';
+import { CompanyEmploymentControl } from '@/components/company/CompanyEmploymentControl';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { departmentName, useDepartments } from '@/data/companyDepartments';
 import { useSetMemberRole } from '@/data/hooks';
+import { canSetEmployment, employmentPeople, isNotEmployed } from '@/data/companyEmployment';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
@@ -43,6 +45,10 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   const [promoting, setPromoting] = useState(false);
   const [query, setQuery] = useState('');
   const [filtering, setFiltering] = useState(false);
+  const [employmentFilter, setEmploymentFilter] = useState<'employed' | 'notEmployed'>('employed');
+  const [employmentMember, setEmploymentMember] = useState<(typeof view.members)[number] | null>(
+    null,
+  );
   const [statusFilter, setStatusFilter] = useState<
     'all' | 'owesCompany' | 'companyOwes' | 'settled'
   >('all');
@@ -52,7 +58,11 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   const owners = live.filter((m) => m.role === 'admin');
   const managers = live.filter((m) => m.role === 'manager');
   // A manager's server-side view already holds only their team; never list themself.
-  const employees = live.filter((m) => m.role === 'member' && m.id !== view.me?.id);
+  const employeeRows = view.members.filter(
+    (m) => (m.role === 'member' || (m.role === 'manager' && !!m.left_at)) && m.id !== view.me?.id,
+  );
+  const employees = employmentPeople(employeeRows, false);
+  const displayedEmployees = employmentPeople(employeeRows, employmentFilter === 'notEmployed');
   const teamOf = (managerId: string): number =>
     employees.filter((m) => m.manager_id === managerId).length;
   const thread = (memberId: string): void =>
@@ -64,7 +74,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
     return net.owes > 0n ? 'companyOwes' : net.advancesOutstanding > 0n ? 'owesCompany' : 'settled';
   };
   const q = query.trim().toLowerCase();
-  const shownEmployees = employees.filter(
+  const shownEmployees = displayedEmployees.filter(
     (m) =>
       (statusFilter === 'all' || empKind(m.id) === statusFilter) &&
       (!departmentFilter || m.department_id === departmentFilter) &&
@@ -199,6 +209,17 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
       ) : null}
       <Text variant="title">{view.isOwner ? t.company.tabEmployees : t.company.tabMyTeam}</Text>
       <>
+        <SegmentedPills
+          options={[
+            { value: 'employed', label: t.company.employed },
+            { value: 'notEmployed', label: t.company.notEmployed },
+          ]}
+          value={employmentFilter}
+          onChange={(value) => {
+            setEmploymentFilter(value);
+            setStatusFilter('all');
+          }}
+        />
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View
             style={{
@@ -282,11 +303,20 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
                 name={displayName(m, null, null, t.misc.someone)}
                 ghost={isGhost(m)}
                 marker={
-                  [m.employee_id, departmentName(departments, m.department_id)]
+                  (isNotEmployed(m)
+                    ? [m.employment_ended_on]
+                    : [m.employee_id, departmentName(departments, m.department_id)]
+                  )
                     .filter(Boolean)
                     .join(' · ') || undefined
                 }
-                status={{ kind, label: balanceWords(m.id) ?? t.company.settled }}
+                status={{
+                  kind,
+                  label: isNotEmployed(m)
+                    ? t.company.notEmployed
+                    : (balanceWords(m.id) ?? t.company.settled),
+                }}
+                muted={isNotEmployed(m)}
                 menuLabel={t.company.employeeOptions}
                 menuItems={[
                   {
@@ -294,13 +324,26 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
                     label: t.company.viewStatement,
                     onPress: () => thread(m.id),
                   },
+                  ...(canSetEmployment(view.me, m, view.suspended)
+                    ? [
+                        {
+                          icon: isNotEmployed(m)
+                            ? ('checkmark-circle-outline' as const)
+                            : ('person-remove-outline' as const),
+                          label: isNotEmployed(m)
+                            ? t.company.markEmployed
+                            : t.company.markNotEmployed,
+                          onPress: () => setEmploymentMember(m),
+                        },
+                      ]
+                    : []),
                 ]}
                 onPress={() => thread(m.id)}
                 divider={i < shownEmployees.length - 1}
               />
             );
           })}
-          {employees.length > 0 && shownEmployees.length === 0 ? (
+          {displayedEmployees.length > 0 && shownEmployees.length === 0 ? (
             <Text variant="caption" tone="muted" align="center" style={{ paddingVertical: 16 }}>
               {t.company.noEmployeesMatch}
             </Text>
@@ -353,6 +396,15 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
           ))}
         </View>
       </Sheet>
+      {employmentMember ? (
+        <CompanyEmploymentControl
+          key={employmentMember.id}
+          groupId={groupId}
+          member={employmentMember}
+          autoOpen
+          onClose={() => setEmploymentMember(null)}
+        />
+      ) : null}
       <Sheet visible={promoting} onClose={() => setPromoting(false)} closeLabel={t.common.close}>
         <View>
           {employees.map((m, i) => (

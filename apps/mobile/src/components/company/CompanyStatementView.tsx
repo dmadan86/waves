@@ -28,6 +28,8 @@ import { Button, Text, iconSize, useTheme } from '@waves/ui';
 import { TAG_ICON } from './EntryForm';
 import { ActionTile, AmountCard, DueRow, ReadyNote } from './EmployeeDetail';
 import { CompanyTeamCard } from './CompanyTeamCard';
+import { CompanyEmploymentControl } from './CompanyEmploymentControl';
+import { canSetEmployment } from '@/data/companyEmployment';
 
 import {
   ListRow,
@@ -285,6 +287,9 @@ export function CompanyStatementView({
     const allPicked = due.length > 0 && picked.size === due.length;
     return (
       <>
+        {canSetEmployment(view.me, member, view.suspended) ? (
+          <CompanyEmploymentControl groupId={groupId} member={member} />
+        ) : null}
         <AmountCard
           label={t.company.amountToPay}
           lead={dueParts.lead}

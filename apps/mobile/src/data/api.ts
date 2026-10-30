@@ -57,7 +57,7 @@ const GROUP_SELECT = `
 // both group_members and profiles, so PostgREST sees two group_members↔profiles
 // relationships and an unqualified embed fails ("more than one relationship").
 const MEMBER_SELECT = `
-  id, group_id, profile_id, ghost_name, role, vpa, payment_rail, payment_handle, left_at,
+  id, group_id, profile_id, ghost_name, role, vpa, payment_rail, payment_handle, left_at, employment_ended_on, employment_note,
   profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa, payment_rail, payment_handle )
 `;
 
@@ -2478,4 +2478,27 @@ export interface ResplitResult {
 export interface UndoResplitResult {
   restored: number;
   skipped: number;
+}
+
+export async function setCompanyEmployment(
+  groupId: string,
+  input: {
+    memberId: string;
+    employed: boolean;
+    endedOn?: string | null;
+    note?: string | null;
+    clearEmployeeId?: boolean;
+    newEmployeeId?: string;
+  },
+): Promise<void> {
+  const { error } = await backend.rpc('waves_company_employment_set', {
+    p_group_id: groupId,
+    p_member_id: input.memberId,
+    p_employed: input.employed,
+    p_ended_on: input.endedOn ?? null,
+    p_note: input.note?.trim().slice(0, 200) || null,
+    p_clear_employee_id: input.clearEmployeeId ?? false,
+    p_new_employee_id: input.newEmployeeId?.trim() || null,
+  });
+  if (error) throw new Error(error.message);
 }
