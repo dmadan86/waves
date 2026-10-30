@@ -16,6 +16,7 @@ import { RecentCompanyActivity } from '@/components/company/CompanyActivityFeed'
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { WorkdayTiles } from '@/components/company/WorkdayEntries';
+import { CompanyUpcomingCard } from '@/components/company/CompanyUpcomingCard';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useAskBudget, useCompanyEntries, usePoolBalance } from '@/data/companyEntries';
@@ -125,6 +126,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
           ]}
         />
         <WorkdayTiles groupId={groupId} />
+        <CompanyUpcomingCard groupId={groupId} />
         <TitleRow
           title={t.company.tabMyTeam}
           onViewAll={() => router.replace(`/group/${groupId}/company-people`)}

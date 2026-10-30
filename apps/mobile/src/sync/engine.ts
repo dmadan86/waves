@@ -92,6 +92,8 @@ interface SyncResponseBody {
   /** Company groups where the caller is a manager: the members they may still read. A
    *  phone drops cached detail for anyone else. Absent on older servers (nothing is dropped). */
   companyVisible?: Record<string, string[]>;
+  /** Company groups: birthday-row and event ids the caller can still read (RLS hides revoked rows silently). */
+  calendarVisible?: Record<string, { dates: string[]; events: string[] }>;
 }
 
 /** While the app is open and online, catch anything Realtime missed. */
@@ -708,8 +710,12 @@ export class SyncEngine {
       // An employee moved to another manager: the server already stopped sending their
       // rows, so this phone drops what it downloaded (entries, photos, split wages, sites)
       // from memory and from disk. Fail safe: a missing list drops nothing.
-      if (response.companyVisible) {
-        const purged = purgeCompanyInvisible(this.state.mirror, response.companyVisible);
+      if (response.companyVisible || response.calendarVisible) {
+        const purged = purgeCompanyInvisible(
+          this.state.mirror,
+          response.companyVisible ?? {},
+          response.calendarVisible,
+        );
         if (purged.removed.length > 0) {
           // Disk first: if it fails the rows stay in memory too, so the next sync finds them again
           // instead of leaving a copy on disk that a restart would bring back.

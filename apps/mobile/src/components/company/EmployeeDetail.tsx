@@ -9,11 +9,37 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
-import { StandardCard } from '@/components/standard';
+import { ListRow, StandardCard } from '@/components/standard';
+import { useState } from 'react';
+import { MyDatesSheet } from '@/components/company/CompanyCalendarSheets';
+import { useStrings } from '@/i18n';
 
 import { GREEN, GREEN_SOFT } from './dashboard/parts';
 
 type Icon = keyof typeof Ionicons.glyphMap;
+
+/** Owner/manager shortcut for maintaining this employee's birthday and joining date. */
+export function EmployeeDatesRow({ groupId, memberId }: { groupId: string; memberId: string }) {
+  const { t } = useStrings();
+  const theme = useTheme();
+  const [visible, setVisible] = useState(false);
+  return (
+    <>
+      <ListRow
+        leading={<Ionicons name="gift-outline" size={iconSize.md} color={theme.color.textMuted} />}
+        title={t.calendar.birthday}
+        subtitle={t.calendar.myDates}
+        onPress={() => setVisible(true)}
+      />
+      <MyDatesSheet
+        groupId={groupId}
+        visible={visible}
+        onClose={() => setVisible(false)}
+        memberId={memberId}
+      />
+    </>
+  );
+}
 
 /** A receipt with a rupee and a timer badge, in the house violet palette. */
 export function ReceiptTimerArt({ size = 96 }: { size?: number }) {

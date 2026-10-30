@@ -123,6 +123,10 @@ export interface GroupRow {
   company_default_daily_rate_minor?: string | null;
   /** Company groups: new entries wait for an admin's approval. Off by default. */
   company_approvals_enabled?: boolean;
+  /** Company groups: holidays count as paid days in the wage prefill (default on). */
+  company_paid_holidays?: boolean;
+  /** Company groups: approved casual/sick leave counts as paid days (default off). */
+  company_paid_leave?: boolean;
   /** Company groups: large or owner-raised claims need an owner other than their creator. */
   /** Set while Waves has suspended this company: it is read-only for everyone. */
   suspended_at?: string | null;

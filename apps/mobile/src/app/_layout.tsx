@@ -875,6 +875,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/company-statement" />
           <Stack.Screen name="group/[id]/company-wages" />
           <Stack.Screen name="group/[id]/company-attendance" />
+          <Stack.Screen name="group/[id]/company-calendar" />
           <Stack.Screen name="group/[id]/company-work" />
           <Stack.Screen name="group/[id]/company-hierarchy" />
           <Stack.Screen name="group/[id]/company-people" options={{ animation: 'none' }} />

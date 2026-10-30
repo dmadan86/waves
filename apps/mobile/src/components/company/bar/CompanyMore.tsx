@@ -37,6 +37,12 @@ export function CompanyMore({ groupId }: { groupId: string }) {
         ) : null}
         <AttendanceRow groupId={groupId} />
         <WorkRow groupId={groupId} />
+        <ListRow
+          leading={lead('calendar-outline')}
+          title={t.calendar.title}
+          onPress={() => router.push(`/group/${groupId}/company-calendar`)}
+          divider
+        />
         <CompanyBillsRow groupId={groupId} />
         {view.isOwner ? (
           <ListRow
