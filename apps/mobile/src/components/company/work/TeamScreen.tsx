@@ -30,7 +30,7 @@ export default function TeamScreen({
     return () => {
       live = false;
     };
-  }, [groupId]);
+  }, [groupId, initialTab]);
   const choose = (value: string) => {
     const next = value as 'attendance' | 'work';
     setTab(next);
@@ -51,12 +51,12 @@ export default function TeamScreen({
     );
   return (
     <Screen edges={[]}>
-      <ScenicHeader title="Team">
+      <ScenicHeader title={t.company.workTeam}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <SegmentedPills
             options={[
-              { value: 'attendance', label: 'Attendance' },
-              { value: 'work', label: 'Daily Work' },
+              { value: 'attendance', label: t.company.attendanceTitle },
+              { value: 'work', label: t.company.workTitle },
             ]}
             value={tab}
             onChange={choose}

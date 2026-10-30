@@ -141,9 +141,9 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
               <View style={{ gap: 14 }}>
                 <SegmentedPills
                   options={[
-                    { value: 'daily', label: 'Daily' },
-                    { value: 'weekly', label: 'Weekly' },
-                    { value: 'monthly', label: 'Monthly' },
+                    { value: 'daily', label: t.company.attendanceDaily },
+                    { value: 'weekly', label: t.company.attendanceWeekly },
+                    { value: 'monthly', label: t.company.attendanceMonthly },
                   ]}
                   value={period}
                   onChange={(v) => setPeriod(v as Period)}
@@ -219,7 +219,7 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
                           'remove-circle',
                           theme.color.negative,
                         ],
-                        [people.length, 'Total', 'people', theme.color.brand],
+                        [people.length, t.company.attendanceTotal, 'people', theme.color.brand],
                       ].map(([n, l, i, c]) => (
                         <View key={String(l)} style={{ alignItems: 'center', gap: 3 }}>
                           <Ionicons name={i as never} size={19} color={c as string} />
@@ -246,13 +246,13 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
                         <TextInput
                           value={search}
                           onChangeText={setSearch}
-                          placeholder="Search employees..."
+                          placeholder={t.company.attendanceSearch}
                           placeholderTextColor={theme.color.textMuted}
                           style={{ flex: 1, color: theme.color.text }}
                         />
                       </View>
                       <Button
-                        label="✓ Mark all present"
+                        label={`✓ ${t.company.attendanceMarkAll}`}
                         disabled={
                           busy || markAllTargets(people, marks, date).length === 0 || date > today
                         }
@@ -378,7 +378,7 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
         <View style={{ padding: 16 }}>
           <Text variant="heading">{t.company.workFilter}</Text>
           {filterChips(
-            'Department',
+            t.company.attendanceDepartment,
             department,
             departments.map((d) => ({ value: d.id, label: d.name })),
             setDepartment,
