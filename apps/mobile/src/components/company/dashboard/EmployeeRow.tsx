@@ -4,56 +4,58 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text, iconSize, useTheme } from '@waves/ui';
 
-import { BLUE, BLUE_SOFT, GREEN, GREEN_SOFT } from './parts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar, type PersonAvatarProps } from '@/components/PersonAvatar';
+import { AttendancePill, BalanceText, TaskCount } from '@/components/company/bar/PeopleParts';
+import type { Balance } from '@/data/companyPeople';
+import type { AttendanceStatus } from '@/data/companyWorkday';
 
-export type EmployeeStatus = {
-  kind: 'settled' | 'companyOwes' | 'owesCompany';
-  label: string;
-};
-
+/**
+ * One person in the People list: avatar, name, "Full-time · Marketing", today's attendance, then a meta line
+ * (open tasks, balance, employee ID or "All settled"). `compact` is the shorter row inside a manager's team.
+ */
 export function EmployeeRow({
   member,
   name,
   ghost,
-  status,
-  marker,
+  subtitle,
+  attendance,
+  tasks,
+  balance,
+  balanceText,
+  chip,
   menuItems,
   menuLabel,
   onPress,
   divider,
   muted = false,
+  compact = false,
 }: {
   member: PersonAvatarProps['member'];
   name: string;
   ghost?: boolean;
-  status: EmployeeStatus;
-  marker?: string;
+  subtitle?: string;
+  attendance?: AttendanceStatus | null;
+  tasks?: string;
+  balance?: Balance;
+  balanceText?: string;
+  /** The trailing chip: the employee ID, else "All settled". */
+  chip?: string;
   menuItems: readonly OverflowMenuItem[];
   menuLabel: string;
   onPress: () => void;
   divider: boolean;
   muted?: boolean;
+  compact?: boolean;
 }) {
   const theme = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
-  const settled = status.kind === 'settled';
-  const backgroundColor = muted
-    ? theme.color.surfaceMuted
-    : settled
-      ? GREEN_SOFT
-      : status.kind === 'companyOwes'
-        ? BLUE_SOFT
-        : '#FEF3C7';
-  const color = muted
-    ? theme.color.textMuted
-    : settled
-      ? GREEN
-      : status.kind === 'companyOwes'
-        ? BLUE
-        : '#B45309';
-
+  const meta = (
+    <>
+      {tasks ? <TaskCount text={tasks} /> : null}
+      {balance && balanceText ? <BalanceText balance={balance} text={balanceText} /> : null}
+    </>
+  );
   return (
     <>
       <Pressable
@@ -62,50 +64,55 @@ export function EmployeeRow({
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          minHeight: 56,
-          paddingVertical: 8,
+          minHeight: compact ? 48 : 56,
+          paddingVertical: compact ? 6 : 8,
           borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
           borderBottomColor: theme.color.border,
           opacity: muted ? 0.62 : 1,
         }}
       >
-        <PersonAvatar member={member} name={name} ghost={ghost} size={40} />
-        <View style={{ flex: 1, minWidth: 0, marginStart: 12, gap: 4 }}>
-          <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-            {name}
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 }}>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                paddingHorizontal: 8,
-                paddingVertical: 2,
-                borderRadius: theme.radius.pill,
-                backgroundColor,
-              }}
-            >
-              {settled && !muted && <Ionicons name="checkmark-circle" size={12} color={GREEN} />}
-              <Text variant="micro" style={{ color }}>
-                {status.label}
-              </Text>
-            </View>
-            {marker ? (
-              <View
-                style={{
-                  paddingHorizontal: 8,
-                  paddingVertical: 2,
-                  borderRadius: theme.radius.pill,
-                  backgroundColor: theme.color.surfaceMuted,
-                }}
-              >
-                <Text variant="micro" tone="muted">
-                  {marker}
-                </Text>
+        <PersonAvatar member={member} name={name} ghost={ghost} size={compact ? 34 : 40} />
+        <View style={{ flex: 1, minWidth: 0, marginStart: 12, gap: 2 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text variant="body" numberOfLines={1} style={{ fontWeight: '600', flexShrink: 1 }}>
+              {name}
+            </Text>
+            {compact ? null : (
+              <View style={{ marginStart: 'auto' }}>
+                <AttendancePill status={attendance ?? null} />
               </View>
-            ) : null}
+            )}
           </View>
+          {subtitle && !compact ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {subtitle}
+            </Text>
+          ) : null}
+          {compact ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <AttendancePill status={attendance ?? null} />
+              {meta}
+            </View>
+          ) : (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 20 }}>
+              {meta}
+              {chip ? (
+                <View
+                  style={{
+                    marginStart: 'auto',
+                    paddingHorizontal: 8,
+                    paddingVertical: 2,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: theme.color.surfaceMuted,
+                  }}
+                >
+                  <Text variant="micro" tone="muted">
+                    {chip}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          )}
         </View>
         <Pressable
           accessibilityRole="button"
@@ -114,7 +121,7 @@ export function EmployeeRow({
             event.stopPropagation();
             setMenuOpen(true);
           }}
-          style={{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center' }}
+          style={{ width: 36, height: 40, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.textMuted} />
         </Pressable>

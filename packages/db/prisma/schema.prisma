@@ -448,6 +448,7 @@ model GroupMember {
   dailyRateMinor     BigInt?    @map("daily_rate_minor")
   employeeId         String?    @map("employee_id")
   departmentId       String?    @map("department_id") @db.Uuid
+  employmentType     String?    @map("employment_type")
   employmentEndedOn  DateTime?  @map("employment_ended_on") @db.Date
   employmentNote     String?    @map("employment_note")
   /// The import that minted this ghost (`import_batches`); null for everyone else.

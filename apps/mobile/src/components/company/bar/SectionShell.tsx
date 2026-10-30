@@ -22,6 +22,7 @@ export function SectionShell({
   view,
   overview = false,
   ownerOnly = false,
+  subtitle,
   children,
 }: {
   groupId: string;
@@ -30,6 +31,8 @@ export function SectionShell({
   overview?: boolean;
   /** Budgets & sites: a manager who lands here is sent back to Overview. */
   ownerOnly?: boolean;
+  /** Replaces the default owner line (employee, manager and owner counts). */
+  subtitle?: string;
   children: ReactNode;
 }) {
   const clearance = useBottomClearance();
@@ -62,7 +65,7 @@ export function SectionShell({
               ? fill(t.company.teamLine, {
                   employees: plural(locale, team.length, t.company.employeeCount),
                 })
-              : counts(live)
+              : (subtitle ?? counts(live))
           }
           pill={manager ? t.company.manager : undefined}
           onBack={() => (overview ? switchTab('/') : router.replace(`/group/${groupId}`))}

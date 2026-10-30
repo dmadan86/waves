@@ -11,6 +11,11 @@ import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { DepartmentSheet } from '@/components/company/DepartmentSheet';
+import {
+  EmploymentTypeSheet,
+  useEmploymentTypeLabel,
+} from '@/components/company/EmploymentTypeSheet';
+import { canSetEmploymentType } from '@/data/companyPeople';
 import { friendlyError } from '@/lib/errors';
 import { AttendanceMonth } from '@/components/company/AttendanceMonth';
 import { useWorkdayAccess } from '@/data/companyWorkday';
@@ -40,6 +45,8 @@ export default function CompanyStatementScreen() {
   const workdayAccess = useWorkdayAccess(groupId);
   const departments = useDepartments(groupId);
   const [departmentOpen, setDepartmentOpen] = useState(false);
+  const [typeOpen, setTypeOpen] = useState(false);
+  const typeLabel = useEmploymentTypeLabel();
   const setEmployeeId = useSetEmployeeId(groupId);
   const isTaken = useEmployeeIdTaken(groupId, view.members);
   const [editingId, setEditingId] = useState(false);
@@ -127,6 +134,21 @@ export default function CompanyStatementScreen() {
           ) : null}
         </ScenicHeader>
         <ScenicBody>
+          {member?.role === 'member' && canSetEmploymentType(view.me, member, view.suspended) ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setTypeOpen(true)}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8 }}
+            >
+              <Text variant="caption" tone="muted">
+                {t.company.employmentType}
+              </Text>
+              <Text variant="body">
+                {typeLabel(member.employment_type) ?? t.company.empTypeNone}
+              </Text>
+              <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
+            </Pressable>
+          ) : null}
           {member?.role === 'member' && view.manageableIds.has(member.id) ? (
             <Pressable
               accessibilityRole="button"
@@ -166,6 +188,15 @@ export default function CompanyStatementScreen() {
           ) : null}
         </ScenicBody>
       </ScrollView>
+      {member ? (
+        <EmploymentTypeSheet
+          groupId={groupId}
+          memberId={member.id}
+          current={member.employment_type}
+          visible={typeOpen}
+          onClose={() => setTypeOpen(false)}
+        />
+      ) : null}
       {member ? (
         <DepartmentSheet
           groupId={groupId}
