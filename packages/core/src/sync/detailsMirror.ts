@@ -59,11 +59,15 @@ export function materialiseCompanyCard(
     readonly groupId: string;
     readonly myMemberId: string | null;
     readonly myName?: string;
+    /** Owner, manager or vendor. Anyone else never shows bank + PAN, even if a stale row is cached. */
+    readonly canSeeBank: boolean;
   },
 ): DetailsCard | null {
   let card = fold([
     ...(rowsFor(state, SyncTable.CompanyDetails, options.groupId) as unknown as Row[]),
-    ...(rowsFor(state, SyncTable.CompanyDetailsSecure, options.groupId) as unknown as Row[]),
+    ...(options.canSeeBank
+      ? (rowsFor(state, SyncTable.CompanyDetailsSecure, options.groupId) as unknown as Row[])
+      : []),
   ]);
   for (const m of [...queue].sort((a, b) => a.seq - b.seq))
     if (m.groupId === options.groupId && !m.rejection && m.kind === 'company_details.set')

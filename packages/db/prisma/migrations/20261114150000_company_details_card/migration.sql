@@ -97,7 +97,7 @@ BEGIN
    IF k IN ('ifsc','gstin','pan') THEN v:=upper(v); END IF;
    IF (k='bankName' AND length(v)>120) OR (k='bankAccount' AND v !~ '^[0-9A-Za-z]{4,34}$')
     OR (k='ifsc' AND v !~ '^[A-Z]{4}0[A-Z0-9]{6}$') OR (k='upi' AND v !~ '^[^@[:space:]]{1,100}@[^@[:space:]]{1,100}$')
-    OR (k='pan' AND v !~ '^[A-Z]{5}[0-9]{4}[A-Z]$') OR (k='address' AND length(v)>300) OR (k='phone' AND length(v)>32)
+    OR (k='pan' AND v !~ '^[A-Z]{5}[0-9]{4}[A-Z]$') OR (k='address' AND length(v)>300) OR (k='phone' AND (length(v)>32 OR v !~ '^[+0-9().[:space:]-]{3,}$'))
     OR (k='email' AND (length(v)>120 OR v !~ '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$')) OR (k='gstin' AND v !~ '^[0-9A-Z]{15}$')
     OR (k='note' AND length(v)>500) THEN RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
   END IF;

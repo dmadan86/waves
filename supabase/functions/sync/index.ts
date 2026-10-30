@@ -2586,6 +2586,7 @@ const CARD_KEYS = [
 function companyCardData(value: unknown): Record<string, string | null> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('data');
   const d = value as Record<string, unknown>;
+  for (const k of Object.keys(d)) if (!CARD_KEYS.includes(k)) companyInvalid(k);
   const out: Record<string, string | null> = {};
   for (const k of CARD_KEYS) {
     const v = d[k];
