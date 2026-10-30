@@ -34,13 +34,15 @@ import {
   StandardCard,
 } from '@/components/standard';
 import { fetchDevices } from '@/data/api';
-import { useStrings } from '@/i18n';
+import { plural, useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useAuth } from '@/lib/auth';
+import { connectedAppsRowHint } from '@/lib/connectedApps';
 import { loadBackupSettings } from '@/lib/backup/settings';
 import { deviceId } from '@/lib/device';
 import { describeGrace, GRACE_CHOICES, useLock } from '@/lib/lock';
 import { router } from '@/lib/navigation';
+import { useConnectedApps } from '@/lib/useConnectedApps';
 
 import { deviceGlyph } from './devices';
 
@@ -48,6 +50,7 @@ export default function LockSettingsScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
+  const connectedApps = useConnectedApps();
   const { enabled, supported, graceSeconds, setEnabled, setGraceSeconds } = useLock();
   const { session } = useAuth();
   const { hidden: amountsHidden, toggle: toggleAmounts } = usePersonalAmountsHidden();
@@ -305,6 +308,18 @@ export default function LockSettingsScreen() {
                     accessibilityLabel={t.lock.hideAmounts}
                   />
                 }
+              />
+              <ListRow
+                leading={tile('sparkles-outline')}
+                title={t.connectedApps.row}
+                subtitle={
+                  connectedAppsRowHint(connectedApps.data?.length, t.connectedApps.rowNone, (n) =>
+                    plural(locale, n, t.connectedApps.rowCount),
+                  ) ?? t.connectedApps.rowHint
+                }
+                trailing={chevron}
+                divider
+                onPress={() => router.push('/settings/connected-apps')}
               />
               <ListRow
                 destructive
