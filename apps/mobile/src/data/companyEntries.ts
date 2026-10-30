@@ -400,6 +400,7 @@ export async function attachCompanyPhoto(
   groupId: string,
   entryId: string,
   picked: PickedImage,
+  kind: 'entry' | 'vendor' = 'entry',
 ): Promise<void> {
   const attachmentId = randomUUID();
   const path = `${entryId}/${attachmentId}/${randomUUID()}.jpg`;
@@ -414,12 +415,15 @@ export async function attachCompanyPhoto(
       subjectId: entryId,
     });
     uploaded = true;
-    const { error } = await backend.rpc('waves_attach_company_entry_image', {
-      p_entry_id: entryId,
-      p_storage_path: path,
-      p_attachment_id: attachmentId,
-      p_preview: picked.preview ?? null,
-    });
+    const { error } = await backend.rpc(
+      kind === 'vendor' ? 'waves_attach_company_vendor_entry_image' : 'waves_attach_company_entry_image',
+      {
+        p_entry_id: entryId,
+        p_storage_path: path,
+        p_attachment_id: attachmentId,
+        p_preview: picked.preview ?? null,
+      },
+    );
     if (error) throw new Error(error.message);
   } catch (caught) {
     if (uploaded)
@@ -428,7 +432,11 @@ export async function attachCompanyPhoto(
   }
 }
 
-export function useAddCompanyPhoto(groupId: string, entryId: string) {
+export function useAddCompanyPhoto(
+  groupId: string,
+  entryId: string,
+  kind: 'entry' | 'vendor' = 'entry',
+) {
   const { flush } = useSync();
   return useMutation({
     mutationFn: async (source: 'camera' | 'library'): Promise<boolean> => {
@@ -436,20 +444,21 @@ export function useAddCompanyPhoto(groupId: string, entryId: string) {
       if (!picked) return false;
       // The entry may still be queued: the attach checks a real server row.
       await flush([groupId]);
-      await attachCompanyPhoto(groupId, entryId, picked);
+      await attachCompanyPhoto(groupId, entryId, picked, kind);
       return true;
     },
     onSuccess: () => void flush([groupId]),
   });
 }
 
-export function useRemoveCompanyPhoto(groupId: string) {
+export function useRemoveCompanyPhoto(groupId: string, kind: 'entry' | 'vendor' = 'entry') {
   const { flush } = useSync();
   return useMutation({
     mutationFn: async (input: { photoId: string }) => {
-      const { error } = await backend.rpc('waves_remove_company_entry_image', {
-        p_attachment_id: input.photoId,
-      });
+      const { error } = await backend.rpc(
+        kind === 'vendor' ? 'waves_remove_company_vendor_entry_image' : 'waves_remove_company_entry_image',
+        { p_attachment_id: input.photoId },
+      );
       if (error) throw new Error(error.message);
     },
     onSuccess: () => void flush([groupId]),

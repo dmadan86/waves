@@ -198,6 +198,16 @@ async function groupOfSubject(
     .eq('id', subjectId)
     .maybeSingle();
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
+  if (!data && bucket === 'company-entry-images') {
+    // A vendor ledger line keeps its photos in the same bucket.
+    const { data: line, error: lineError } = await service
+      .from('company_vendor_entries')
+      .select('group_id')
+      .eq('id', subjectId)
+      .maybeSingle();
+    if (lineError) throw new HttpError(500, 'INTERNAL', lineError.message);
+    if (line) return (line as { group_id: string }).group_id;
+  }
   if (!data) throw new HttpError(404, 'NOT_FOUND', 'No such subject');
   return (data as { group_id: string }).group_id;
 }
@@ -223,7 +233,31 @@ async function requireRestrictedParty(
         : { p_expense_id: subjectId };
   const { data, error } = await caller.rpc(rpc, arg);
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
-  if (data !== true) throw new HttpError(403, 'NOT_A_PARTY', 'Not a party to this');
+  if (data === true) return;
+  if (bucket === 'company-entry-images') {
+    // Not a company entry the caller can read: maybe a vendor line they can.
+    const { data: line, error: lineError } = await caller.rpc('waves_can_read_company_vendor_entry', {
+      p_entry_id: subjectId,
+    });
+    if (lineError) throw new HttpError(500, 'INTERNAL', lineError.message);
+    if (line === true) return;
+  }
+  throw new HttpError(403, 'NOT_A_PARTY', 'Not a party to this');
+}
+
+/** True when the caller can see this entry as live: a company entry, or a vendor ledger line. */
+async function companyEntryIsLive(caller: SupabaseClient, entryId: string): Promise<boolean> {
+  for (const table of ['company_entries', 'company_vendor_entries']) {
+    const { data, error } = await caller
+      .from(table)
+      .select('id')
+      .eq('id', entryId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (error) throw new HttpError(500, 'INTERNAL', error.message);
+    if (data) return true;
+  }
+  return false;
 }
 
 /**
@@ -252,21 +286,26 @@ async function assertRestrictedPath(
       : bucket === 'settlement-proofs'
         ? 'settlement_id'
         : 'expense_id';
-  let query = caller.from(table).select('id').eq(subjectCol, subjectId).eq('storage_path', path);
+  let memberId: unknown = null;
   if (deletingWith) {
     // The subject may itself be deleted by now (a removed bill), which the
     // caller can no longer see; authorizeWrite already proved the caller a party.
-    const { data: memberId, error } = await caller.rpc('waves_my_member_id', {
+    const { data, error } = await caller.rpc('waves_my_member_id', {
       p_group_id: await groupOfSubject(deletingWith, bucket, subjectId),
     });
     if (error) throw new HttpError(500, 'INTERNAL', error.message);
-    query = query.eq('uploader_member_id', memberId);
-  } else {
-    query = query.is('deleted_at', null);
+    memberId = data;
   }
-  const { data, error } = await query.maybeSingle();
-  if (error) throw new HttpError(500, 'INTERNAL', error.message);
-  if (!data) throw new HttpError(403, 'NOT_VISIBLE', 'Not visible to you');
+  // A company image belongs to an entry or to a vendor ledger line; only one table matches.
+  const tables = bucket === 'company-entry-images' ? [table, 'company_vendor_entry_attachments'] : [table];
+  for (const name of tables) {
+    let query = caller.from(name).select('id').eq(subjectCol, subjectId).eq('storage_path', path);
+    query = deletingWith ? query.eq('uploader_member_id', memberId) : query.is('deleted_at', null);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw new HttpError(500, 'INTERNAL', error.message);
+    if (data) return;
+  }
+  throw new HttpError(403, 'NOT_VISIBLE', 'Not visible to you');
 }
 
 function readSubject(value: unknown): string {
@@ -427,24 +466,22 @@ async function authorizeWrite(
       ) {
         throw new HttpError(400, 'BAD_PATH', 'A company image needs a canonical key');
       }
-      const { data: entry, error: entryError } = await caller
-        .from('company_entries')
-        .select('id')
-        .eq('id', subjectId)
-        .is('deleted_at', null)
-        .maybeSingle();
-      if (entryError) throw new HttpError(500, 'INTERNAL', entryError.message);
-      if (!entry) throw new HttpError(403, 'NOT_VISIBLE', 'Entry is not live');
+      if (!(await companyEntryIsLive(caller, subjectId)))
+        throw new HttpError(403, 'NOT_VISIBLE', 'Entry is not live');
       const { memberId } = await requireMembership(caller, groupId);
       await requireUploaderOrAdmin(caller, service, uid, memberId, bucket, path, groupId, action);
       // Evidence changes go through the RPC, which increments the entry version.
-      const { data: attached, error: attachmentError } = await service
-        .from('company_entry_attachments')
-        .select('id')
-        .eq('entry_id', subjectId)
-        .eq('storage_path', path)
-        .maybeSingle();
-      if (attachmentError) throw new HttpError(500, 'INTERNAL', attachmentError.message);
+      let attached = false;
+      for (const table of ['company_entry_attachments', 'company_vendor_entry_attachments']) {
+        const { data, error: attachmentError } = await service
+          .from(table)
+          .select('id')
+          .eq('entry_id', subjectId)
+          .eq('storage_path', path)
+          .maybeSingle();
+        if (attachmentError) throw new HttpError(500, 'INTERNAL', attachmentError.message);
+        if (data) attached = true;
+      }
       if (attached && action !== 'commit')
         throw new HttpError(409, 'IMMUTABLE_OBJECT', 'Use the attachment removal RPC');
     }
@@ -589,14 +626,8 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       await requireRestrictedParty(caller, bucket, subjectId as string);
       await assertRestrictedPath(caller, bucket, subjectId as string, authPath);
       if (bucket === 'company-entry-images') {
-        const { data: entry, error } = await caller
-          .from('company_entries')
-          .select('id')
-          .eq('id', subjectId)
-          .is('deleted_at', null)
-          .maybeSingle();
-        if (error) throw new HttpError(500, 'INTERNAL', error.message);
-        if (!entry) throw new HttpError(403, 'NOT_VISIBLE', 'Entry is not live');
+        if (!(await companyEntryIsLive(caller, subjectId as string)))
+          throw new HttpError(403, 'NOT_VISIBLE', 'Entry is not live');
         const { data: object, error: objectError } = await service
           .from('storage_objects')
           .select('path')

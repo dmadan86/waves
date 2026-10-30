@@ -4,6 +4,7 @@ import { ScrollView, Share, View } from 'react-native';
 import { pendingVendorBills, sortVendorLines } from '@waves/core';
 import { Button, Screen, Text, useTheme } from '@waves/ui';
 
+import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { useMoney } from '@/components/company/dashboard/parts';
 import { VendorForm, VendorLineForm } from '@/components/company/vendors/forms';
 import { VendorHistory, VendorMore } from '@/components/company/vendors/VendorHistory';
@@ -123,17 +124,26 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                         subtitleLines={3}
                         amount={fmt(line.amount)}
                         footer={
-                          <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-                            <Button
-                              label={s.confirm}
-                              disabled={review.isPending}
-                              onPress={() => review.mutate({ line, to: 'approved' })}
+                          <View style={{ gap: theme.spacing.sm }}>
+                            <CompanyEntryPhotos
+                              kind="vendor"
+                              groupId={groupId}
+                              entryId={line.id}
+                              canAdd={view.canManage}
+                              canRemove={() => view.canManage}
                             />
-                            <Button
-                              label={s.reject}
-                              disabled={review.isPending}
-                              onPress={() => review.mutate({ line, to: 'rejected' })}
-                            />
+                            <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                              <Button
+                                label={s.confirm}
+                                disabled={review.isPending}
+                                onPress={() => review.mutate({ line, to: 'approved' })}
+                              />
+                              <Button
+                                label={s.reject}
+                                disabled={review.isPending}
+                                onPress={() => review.mutate({ line, to: 'rejected' })}
+                              />
+                            </View>
                           </View>
                         }
                       />

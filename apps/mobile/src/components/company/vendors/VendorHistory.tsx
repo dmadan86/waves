@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 import { sortVendorLines, type VendorLine } from '@waves/core';
 import { Button, Text, useTheme } from '@waves/ui';
 
+import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { useMoney } from '@/components/company/dashboard/parts';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { ListRow, StandardCard } from '@/components/standard';
@@ -57,6 +58,9 @@ export function VendorHistory({
           <Text tone="muted">{s.historyEmpty}</Text>
         ) : (
           sortVendorLines(lines).map((line, index) => {
+            const ownPendingBill =
+              vendorView && line.kind === 'bill' && line.status === 'pending' &&
+              line.createdBy === view.myMemberId;
             const canRemove =
               line.createdBy === view.myMemberId &&
               (vendorView
@@ -86,6 +90,17 @@ export function VendorHistory({
                 trailing={canRemove ? <VendorMore onPress={() => setSelected(line)} /> : undefined}
                 footer={
                   <View style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+                    <View style={{ alignSelf: 'stretch' }}>
+                      <CompanyEntryPhotos
+                        kind="vendor"
+                        groupId={groupId}
+                        entryId={line.id}
+                        canAdd={view.canManage || ownPendingBill}
+                        canRemove={(uploaderId) =>
+                          view.canManage || (ownPendingBill && uploaderId === view.myMemberId)
+                        }
+                      />
+                    </View>
                     {status ? (
                       <View
                         style={{

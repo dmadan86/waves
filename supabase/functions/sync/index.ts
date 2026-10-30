@@ -342,6 +342,7 @@ const GROUP_TABLES = [
   // Vendors: owner all, manager the ones they added, a vendor login only itself (RLS, read as the caller).
   ['company_vendors', '*'],
   ['company_vendor_entries', '*'],
+  ['company_vendor_entry_attachments', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS

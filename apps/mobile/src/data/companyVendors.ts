@@ -19,8 +19,14 @@ import {
 } from '@waves/core';
 
 import { groupJoinLink } from '@/data/api';
-import { useCompanyEntries } from '@/data/companyEntries';
+import {
+  attachCompanyPhoto,
+  useAddCompanyPhoto,
+  useCompanyEntries,
+  useRemoveCompanyPhoto,
+} from '@/data/companyEntries';
 import { backend } from '@/lib/backend';
+import type { PickedImage } from '@/lib/image';
 import { useSync } from '@/sync';
 
 export interface VendorsView {
@@ -107,21 +113,24 @@ export function useRemoveVendor(groupId: string) {
 export function useAddVendorLine(groupId: string) {
   const { mutate } = useSync();
   return useMutation({
-    mutationFn: (input: {
+    mutationFn: async (input: {
       vendorId: string;
       kind: VendorLineKind;
       amountMinor: bigint;
       occurredOn: string;
       note?: string | null;
-    }) =>
-      mutate(MutationKind.CompanyVendorEntryCreate, groupId, {
-        entryId: randomUUID(),
+    }) => {
+      const entryId = randomUUID();
+      await mutate(MutationKind.CompanyVendorEntryCreate, groupId, {
+        entryId,
         vendorId: input.vendorId,
         kind: input.kind,
         amountMinor: input.amountMinor.toString(),
         occurredOn: input.occurredOn,
         note: input.note?.trim() || null,
-      }),
+      });
+      return entryId;
+    },
   });
 }
 
@@ -178,4 +187,17 @@ export function usePendingVendorBills(groupId: string): {
     const names = new Map(v.vendors.map((x) => [x.id, x.name]));
     return { count: bills.length, bills, vendorName: (id: string) => names.get(id) ?? '' };
   }, [v]);
+}
+
+/** Call after flushing the queued line; failed attaches free their uploaded bytes. */
+export function attachVendorPhoto(groupId: string, lineId: string, picked: PickedImage) {
+  return attachCompanyPhoto(groupId, lineId, picked, 'vendor');
+}
+
+export function useAddVendorPhoto(groupId: string, lineId: string) {
+  return useAddCompanyPhoto(groupId, lineId, 'vendor');
+}
+
+export function useRemoveVendorPhoto(groupId: string) {
+  return useRemoveCompanyPhoto(groupId, 'vendor');
 }

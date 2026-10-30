@@ -1674,6 +1674,7 @@ export interface UiStrings {
     exportAction: string;
   };
   companyVendors: {
+    photoPrivacy: string;
     historyEmpty: string;
     title: string;
     addVendor: string;
@@ -8060,6 +8061,7 @@ const en: UiStrings = {
     exportAction: 'Export',
   },
   companyVendors: {
+    photoPrivacy: 'Only people who can see this ledger line can see these photos.',
     historyEmpty: 'No entries yet',
     title: 'Vendors',
     addVendor: '+ Add vendor',
@@ -13895,6 +13897,7 @@ const ta: UiStrings = {
     exportAction: 'ஏற்றுமதி',
   },
   companyVendors: {
+    photoPrivacy: 'இந்தக் கணக்குப் பதிவைப் பார்க்க அனுமதி உள்ளவர்கள் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
     historyEmpty: 'இன்னும் பதிவுகள் இல்லை',
     title: 'விற்பனையாளர்கள்',
     addVendor: '+ விற்பனையாளரைச் சேர்',
@@ -19891,6 +19894,7 @@ const hi: UiStrings = {
     exportAction: 'निर्यात',
   },
   companyVendors: {
+    photoPrivacy: 'ये फ़ोटो सिर्फ़ वे लोग देख सकते हैं जो इस खाते की प्रविष्टि को देख सकते हैं।',
     historyEmpty: 'अभी कोई प्रविष्टि नहीं',
     title: 'विक्रेता',
     addVendor: '+ विक्रेता जोड़ें',
@@ -25803,6 +25807,7 @@ const ar: UiStrings = {
     exportAction: 'تصدير',
   },
   companyVendors: {
+    photoPrivacy: 'لا يرى هذه الصور إلا من يمكنه رؤية هذا القيد في السجل.',
     historyEmpty: 'لا توجد قيود بعد',
     title: 'الموردون',
     addVendor: '+ إضافة مورد',
