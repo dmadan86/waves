@@ -29,6 +29,7 @@ export function EditTextSheet({
   value,
   placeholder,
   multiline = false,
+  required = false,
   autoCapitalize = 'words',
   saving = false,
   onSave,
@@ -43,6 +44,8 @@ export function EditTextSheet({
   value: string;
   placeholder?: string;
   multiline?: boolean;
+  /** Require a non-empty value, for fields such as a blocked-work reason. */
+  required?: boolean;
   autoCapitalize?: 'none' | 'words' | 'sentences';
   /** A write is in flight — the field and both doors hold still until it lands. */
   saving?: boolean;
@@ -85,6 +88,7 @@ export function EditTextSheet({
 
   const trimmed = draft.trim();
   const changed = trimmed !== value.trim();
+  const canSave = changed && (!required || trimmed.length > 0) && !saving;
 
   return (
     <Sheet visible={visible} onClose={onClose} closeLabel={t.common.close}>
@@ -114,7 +118,7 @@ export function EditTextSheet({
           // everywhere else. A multiline field keeps Enter as a newline.
           returnKeyType={multiline ? 'default' : 'done'}
           onSubmitEditing={() => {
-            if (!multiline && changed && !saving) onSave(trimmed);
+            if (!multiline && canSave) onSave(trimmed);
           }}
           style={{
             borderWidth: 1,
@@ -142,7 +146,7 @@ export function EditTextSheet({
             <Button
               label={saving ? t.common.loading : t.common.save}
               fullWidth
-              disabled={!changed || saving}
+              disabled={!canSave}
               onPress={() => onSave(trimmed)}
             />
           </View>

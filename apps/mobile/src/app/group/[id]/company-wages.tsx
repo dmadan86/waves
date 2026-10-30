@@ -14,6 +14,7 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   allowanceAmount,
+  attendanceDaysText,
   buildWageRun,
   format,
   money,
@@ -38,6 +39,7 @@ import {
   useSetCompanyRate,
 } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
+import { useAttendance } from '@/data/companyWorkday';
 import { displayName, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -100,12 +102,19 @@ export default function CompanyWagesScreen() {
     return m?.daily_rate_minor ? BigInt(m.daily_rate_minor) : (view.defaultRateMinor ?? 0n);
   };
 
+  // Days come from attendance for this period (present = 1, half = 0.5) until the person is edited.
+  const attendance = useAttendance(groupId);
+  const defaultRow = (memberId: string): { mode: Mode; days: string; fixed: string } => ({
+    mode: rateOf(memberId) > 0n ? 'days_rate' : 'fixed_weekly',
+    days: attendanceDaysText(attendance.values(), memberId, start, end),
+    fixed: '',
+  });
+
   const termMap = useMemo(() => {
     const map = new Map<string, WageTerms>();
     for (const m of people) {
       if (wagePaidInPeriod(view.entries, m.id, start, end)) continue;
-      const row = terms[m.id];
-      if (!row) continue;
+      const row = terms[m.id] ?? defaultRow(m.id);
       if (row.mode === 'days_rate') {
         if (allowanceAmount(row.days, rateOf(m.id)) === null) continue;
         map.set(m.id, { calcMode: 'days_rate', days: row.days.trim(), rateMinor: rateOf(m.id) });
@@ -118,7 +127,7 @@ export default function CompanyWagesScreen() {
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [terms, view.entries, people.length, start, end]);
+  }, [terms, view.entries, people.length, start, end, attendance]);
 
   const lines = buildWageRun(view.entries, termMap, end);
   const chosen = lines.filter((l) => !skipped.has(l.memberId));
@@ -188,11 +197,7 @@ export default function CompanyWagesScreen() {
             <StandardCard style={{ gap: theme.spacing.md }}>
               {people.map((m) => {
                 const paid = wagePaidInPeriod(view.entries, m.id, start, end);
-                const row = terms[m.id] ?? {
-                  mode: rateOf(m.id) > 0n ? ('days_rate' as Mode) : ('fixed_weekly' as Mode),
-                  days: '',
-                  fixed: '',
-                };
+                const row = terms[m.id] ?? defaultRow(m.id);
                 const line = lines.find((l) => l.memberId === m.id);
                 const ticked = !!line && !skipped.has(m.id);
                 const patch = (next: Partial<typeof row>): void =>

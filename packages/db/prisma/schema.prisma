@@ -3385,3 +3385,40 @@ model CompanyDocument {
   @@map("company_documents")
   @@schema("public")
 }
+model CompanyAttendance {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  day DateTime @db.Date
+  status String
+  note String?
+  markedBy String @map("marked_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  @@unique([groupId,memberId,day])
+  @@index([groupId,updatedSeq], map: "company_attendance_sync_idx")
+  @@map("company_attendance")
+  @@schema("public")
+}
+model CompanyWorkTask {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  day DateTime @db.Date
+  title String
+  projectId String? @map("project_id") @db.Uuid
+  status String @default("todo")
+  blockedReason String? @map("blocked_reason")
+  note String?
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  @@index([groupId,updatedSeq], map: "company_work_tasks_sync_idx")
+  @@index([groupId,day,memberId], map: "company_work_tasks_day_idx")
+  @@map("company_work_tasks")
+  @@schema("public")
+}

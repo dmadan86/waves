@@ -1,6 +1,7 @@
 export * from './tags';
 export * from './phase4';
 export * from './vendors';
+export * from './workday';
 import { companyTagLabel, type CompanyTag } from './tags';
 /**
  * Company expenses (Phase 1): an employer records what each employee spent,
