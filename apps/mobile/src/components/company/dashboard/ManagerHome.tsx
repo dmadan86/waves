@@ -11,13 +11,8 @@ import { dashboardStats, poolBalance } from '@waves/core';
 import { AmountField, Button, Row, Sheet, Text, useTheme } from '@waves/ui';
 import type { CurrencyCode } from '@waves/core';
 
-import {
-  QuickActions,
-  RecentActivity,
-  StatTriple,
-  TitleRow,
-  useMoney,
-} from '@/components/company/dashboard/parts';
+import { QuickActions, StatTriple, TitleRow, useMoney } from '@/components/company/dashboard/parts';
+import { RecentCompanyActivity } from '@/components/company/CompanyActivityFeed';
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { WorkdayTiles } from '@/components/company/WorkdayEntries';
@@ -57,11 +52,6 @@ export function ManagerHome({ groupId }: { groupId: string }) {
   const ratio = budget > 0n ? Math.min(1, Number((given * 1000n) / budget) / 1000) : 0;
   const thread = (id: string): void =>
     router.push(`/group/${groupId}/company-statement?member=${id}`);
-
-  const teamIds = new Set(team.map((m) => m.id));
-  const teamEntries = view.entries.filter(
-    (e) => teamIds.has(e.memberId) || (e.paidByCompany && e.createdBy === me?.id),
-  );
 
   return (
     <SectionShell groupId={groupId} view={view} overview>
@@ -153,11 +143,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
             />
           ))}
         </StandardCard>
-        <TitleRow
-          title={t.company.recentTitle}
-          onViewAll={() => router.replace(`/group/${groupId}/company-payments`)}
-        />
-        <RecentActivity groupId={groupId} view={view} entries={teamEntries} limit={4} />
+        <RecentCompanyActivity groupId={groupId} />
       </>
       <Sheet visible={asking} onClose={() => setAsking(false)} closeLabel={t.common.close}>
         <View style={{ gap: theme.spacing.lg }}>
