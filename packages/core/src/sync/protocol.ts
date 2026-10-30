@@ -789,6 +789,8 @@ export enum SyncTable {
   /** Group-scoped, pull-only. Owner: all; manager: the vendors they added; a vendor login: only itself (RLS). */
   CompanyVendors = 'company_vendors',
   CompanyVendorEntries = 'company_vendor_entries',
+  /** Group-scoped, pull-only. Photos on a vendor ledger line; readable exactly where the line is (RLS). */
+  CompanyVendorEntryAttachments = 'company_vendor_entry_attachments',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',
