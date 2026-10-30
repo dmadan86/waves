@@ -1328,6 +1328,37 @@ export interface UiStrings {
     hierTitle: string;
     viewAll: string;
     ownersControl: string;
+    nameYou: string;
+    paymentSettings: string;
+    dailyRateHint: string;
+    mileageRateHint: string;
+    policiesHint: string;
+    recordPayment: string;
+    recordPaymentBody: string;
+    payWagesBody: string;
+    gaveMoneyBody: string;
+    recentPayments: string;
+    paymentsNoneBody: string;
+    addSiteBody: string;
+    budgetsNone: string;
+    budgetsNoneBody: string;
+    setBudget: string;
+    setBudgetBody: string;
+    assignManager: string;
+    assignManagerBody: string;
+    trackSpending: string;
+    trackSpendingBody: string;
+    createBudget: string;
+    phoneOptional: string;
+    emailOptional: string;
+    fullNameRequired: string;
+    phoneHelper: string;
+    emailHelper: string;
+    roleLabel: string;
+    roleEmployee: string;
+    nameAloneBody: string;
+    fromContacts: string;
+    fromContactsBody: string;
     budgetPerMonth: string;
     teamCount: string;
     recentTitle: string;
@@ -7507,9 +7538,9 @@ const en: UiStrings = {
     owedTo: 'Company owes',
     owedBy: 'Owes company',
     addEmployee: 'Add employee',
-    addEmployeeBody: 'Pick from contacts, type a name, or reuse people from another company.',
-    fromPastCompany: 'Previous company',
-    fromPastCompanyBody: 'People you manage elsewhere',
+    addEmployeeBody: 'Add people to your company. They can join now or later.',
+    fromPastCompany: 'From another company',
+    fromPastCompanyBody: 'Reuse people you manage elsewhere',
     pastSearch: 'Search by name or company',
     pastEmpty: 'No one to add from your other companies.',
     pastAddSelected: 'Add {n} selected',
@@ -7561,10 +7592,42 @@ const en: UiStrings = {
     qaAsk: 'Ask owner for budget',
     promoTitle: 'Invite your team',
     promoBody:
-      'Add employees, assign managers, and record salaries, advances and payments in one place.',
+      'Add employees, assign managers, and record salaries, advances and payments — all in one place.',
     hierTitle: 'Team hierarchy',
     viewAll: 'View all',
     ownersControl: '{n} owners · Overall control',
+    nameYou: '{name} (You)',
+    paymentSettings: 'Payment settings',
+    dailyRateHint: 'Use this for daily allowance calculations',
+    mileageRateHint: 'Use this for travel reimbursements',
+    policiesHint: 'Guidelines for your team',
+    recordPayment: 'Record a payment',
+    recordPaymentBody: 'Record salaries, advances or reimbursements.',
+    payWagesBody: 'Record salary for employees or managers',
+    gaveMoneyBody: 'Record an advance or reimbursement',
+    recentPayments: 'Recent payments',
+    paymentsNoneBody: 'Record wages or money given to get started.',
+    addSiteBody: 'Add sites or locations to organise budgets by place or department.',
+    budgetsNone: 'No budgets yet',
+    budgetsNoneBody: 'Create budgets for your sites and managers to track spending.',
+    setBudget: 'Set budget',
+    setBudgetBody: 'Set an amount for each site',
+    assignManager: 'Assign to manager',
+    assignManagerBody: 'Give a manager cash to hand out',
+    trackSpending: 'Track spending',
+    trackSpendingBody: 'See spent and what is left',
+    createBudget: 'Create budget',
+    phoneOptional: 'Phone number (optional)',
+    emailOptional: 'Email (optional)',
+    fullNameRequired: 'Full name *',
+    phoneHelper: 'Share an invite link by WhatsApp or SMS',
+    emailHelper: 'Share an invite link by email',
+    roleLabel: 'Role',
+    roleEmployee: 'Employee',
+    nameAloneBody:
+      "A name alone is enough. They don't need the app or an email to be part of the company. When they join later, they can claim everything already recorded under their name.",
+    fromContacts: 'From phone contacts',
+    fromContactsBody: 'Find and add from your contacts',
     budgetPerMonth: 'Budget: {amount} / month',
     teamCount: '{n} employees',
     recentTitle: 'Recent activity',
@@ -13249,6 +13312,39 @@ const ta: UiStrings = {
     hierTitle: 'குழு படிநிலை',
     viewAll: 'அனைத்தும்',
     ownersControl: '{n} உரிமையாளர்கள் · முழு கட்டுப்பாடு',
+    nameYou: '{name} (நீங்கள்)',
+    paymentSettings: 'கட்டண அமைப்புகள்',
+    dailyRateHint: 'தினசரி படி கணக்கீட்டுக்குப் பயன்படுத்தவும்',
+    mileageRateHint: 'பயணச் செலவு திருப்பிக் கொடுப்பதற்குப் பயன்படுத்தவும்',
+    policiesHint: 'உங்கள் குழுவுக்கான வழிகாட்டுதல்கள்',
+    recordPayment: 'கட்டணத்தைப் பதிவு செய்',
+    recordPaymentBody: 'சம்பளம், முன்பணம் அல்லது திருப்பிக் கொடுத்ததைப் பதிவு செய்யுங்கள்.',
+    payWagesBody: 'ஊழியர்கள் அல்லது மேலாளர்களுக்கான சம்பளத்தைப் பதிவு செய்',
+    gaveMoneyBody: 'முன்பணம் அல்லது திருப்பிக் கொடுத்ததைப் பதிவு செய்',
+    recentPayments: 'சமீபத்திய கட்டணங்கள்',
+    paymentsNoneBody: 'தொடங்க சம்பளம் அல்லது கொடுத்த பணத்தைப் பதிவு செய்யுங்கள்.',
+    addSiteBody: 'இடம் அல்லது துறை வாரியாக பட்ஜெட்டுகளை ஒழுங்கமைக்க தளங்களைச் சேர்க்கவும்.',
+    budgetsNone: 'இன்னும் பட்ஜெட் இல்லை',
+    budgetsNoneBody:
+      'செலவைக் கண்காணிக்க உங்கள் தளங்கள் மற்றும் மேலாளர்களுக்கு பட்ஜெட் உருவாக்குங்கள்.',
+    setBudget: 'பட்ஜெட் அமை',
+    setBudgetBody: 'ஒவ்வொரு தளத்துக்கும் தொகையை அமைக்கவும்',
+    assignManager: 'மேலாளருக்கு ஒதுக்கு',
+    assignManagerBody: 'மேலாளருக்குக் கொடுக்க பணம் கொடுங்கள்',
+    trackSpending: 'செலவைக் கண்காணி',
+    trackSpendingBody: 'செலவானது மற்றும் மீதமுள்ளதைப் பாருங்கள்',
+    createBudget: 'பட்ஜெட் உருவாக்கு',
+    phoneOptional: 'தொலைபேசி எண் (விருப்பம்)',
+    emailOptional: 'மின்னஞ்சல் (விருப்பம்)',
+    fullNameRequired: 'முழுப் பெயர் *',
+    phoneHelper: 'WhatsApp அல்லது SMS மூலம் அழைப்பு இணைப்பைப் பகிருங்கள்',
+    emailHelper: 'மின்னஞ்சல் மூலம் அழைப்பு இணைப்பைப் பகிருங்கள்',
+    roleLabel: 'பங்கு',
+    roleEmployee: 'ஊழியர்',
+    nameAloneBody:
+      'பெயர் மட்டும் போதும். நிறுவனத்தில் இருக்க அவர்களுக்கு செயலியோ மின்னஞ்சலோ தேவையில்லை. பின்னர் சேரும்போது, அவர்கள் பெயரில் ஏற்கனவே பதிவான அனைத்தையும் கோரலாம்.',
+    fromContacts: 'தொலைபேசி தொடர்புகளிலிருந்து',
+    fromContactsBody: 'உங்கள் தொடர்புகளிலிருந்து தேடிச் சேருங்கள்',
     budgetPerMonth: 'பட்ஜெட்: {amount} / மாதம்',
     teamCount: '{n} ஊழியர்கள்',
     recentTitle: 'சமீபத்திய செயல்பாடு',
@@ -19097,6 +19193,38 @@ const hi: UiStrings = {
     hierTitle: 'टीम हाइरार्की',
     viewAll: 'सभी देखें',
     ownersControl: '{n} मालिक · पूरा नियंत्रण',
+    nameYou: '{name} (आप)',
+    paymentSettings: 'भुगतान सेटिंग्स',
+    dailyRateHint: 'दैनिक भत्ते की गणना के लिए इसका उपयोग करें',
+    mileageRateHint: 'यात्रा प्रतिपूर्ति के लिए इसका उपयोग करें',
+    policiesHint: 'आपकी टीम के लिए दिशानिर्देश',
+    recordPayment: 'भुगतान दर्ज करें',
+    recordPaymentBody: 'वेतन, अग्रिम या प्रतिपूर्ति दर्ज करें।',
+    payWagesBody: 'कर्मचारियों या मैनेजरों का वेतन दर्ज करें',
+    gaveMoneyBody: 'अग्रिम या प्रतिपूर्ति दर्ज करें',
+    recentPayments: 'हाल के भुगतान',
+    paymentsNoneBody: 'शुरू करने के लिए वेतन या दिया गया पैसा दर्ज करें।',
+    addSiteBody: 'जगह या विभाग के हिसाब से बजट बनाने के लिए साइटें जोड़ें।',
+    budgetsNone: 'अभी कोई बजट नहीं',
+    budgetsNoneBody: 'खर्च पर नज़र रखने के लिए अपनी साइटों और मैनेजरों के बजट बनाएँ।',
+    setBudget: 'बजट तय करें',
+    setBudgetBody: 'हर साइट के लिए रकम तय करें',
+    assignManager: 'मैनेजर को सौंपें',
+    assignManagerBody: 'मैनेजर को बाँटने के लिए नकद दें',
+    trackSpending: 'खर्च देखें',
+    trackSpendingBody: 'खर्च और बची रकम देखें',
+    createBudget: 'बजट बनाएँ',
+    phoneOptional: 'फ़ोन नंबर (वैकल्पिक)',
+    emailOptional: 'ईमेल (वैकल्पिक)',
+    fullNameRequired: 'पूरा नाम *',
+    phoneHelper: 'WhatsApp या SMS से आमंत्रण लिंक भेजें',
+    emailHelper: 'ईमेल से आमंत्रण लिंक भेजें',
+    roleLabel: 'भूमिका',
+    roleEmployee: 'कर्मचारी',
+    nameAloneBody:
+      'सिर्फ़ नाम काफ़ी है। कंपनी का हिस्सा बनने के लिए उन्हें ऐप या ईमेल की ज़रूरत नहीं। बाद में जुड़ने पर वे अपने नाम पर पहले से दर्ज सब कुछ अपना सकते हैं।',
+    fromContacts: 'फ़ोन संपर्कों से',
+    fromContactsBody: 'अपने संपर्कों से खोजें और जोड़ें',
     budgetPerMonth: 'बजट: {amount} / माह',
     teamCount: '{n} कर्मचारी',
     recentTitle: 'हाल की गतिविधि',
@@ -24835,6 +24963,38 @@ const ar: UiStrings = {
     hierTitle: 'هيكل الفريق',
     viewAll: 'عرض الكل',
     ownersControl: '{n} مالكين · تحكم كامل',
+    nameYou: '{name} (أنت)',
+    paymentSettings: 'إعدادات الدفع',
+    dailyRateHint: 'استخدمه لحساب البدل اليومي',
+    mileageRateHint: 'استخدمه لتعويضات السفر',
+    policiesHint: 'إرشادات لفريقك',
+    recordPayment: 'سجّل دفعة',
+    recordPaymentBody: 'سجّل الرواتب أو السلف أو التعويضات.',
+    payWagesBody: 'سجّل راتب الموظفين أو المديرين',
+    gaveMoneyBody: 'سجّل سلفة أو تعويضًا',
+    recentPayments: 'أحدث الدفعات',
+    paymentsNoneBody: 'سجّل الرواتب أو الأموال المعطاة للبدء.',
+    addSiteBody: 'أضف مواقع لتنظيم الميزانيات حسب المكان أو القسم.',
+    budgetsNone: 'لا توجد ميزانيات بعد',
+    budgetsNoneBody: 'أنشئ ميزانيات لمواقعك ومديريك لتتبع الإنفاق.',
+    setBudget: 'حدد الميزانية',
+    setBudgetBody: 'حدد مبلغًا لكل موقع',
+    assignManager: 'عيّن لمدير',
+    assignManagerBody: 'أعط المدير نقدًا ليوزعه',
+    trackSpending: 'تتبع الإنفاق',
+    trackSpendingBody: 'شاهد المنفق والمتبقي',
+    createBudget: 'إنشاء ميزانية',
+    phoneOptional: 'رقم الهاتف (اختياري)',
+    emailOptional: 'البريد الإلكتروني (اختياري)',
+    fullNameRequired: 'الاسم الكامل *',
+    phoneHelper: 'شارك رابط دعوة عبر واتساب أو رسالة نصية',
+    emailHelper: 'شارك رابط دعوة عبر البريد الإلكتروني',
+    roleLabel: 'الدور',
+    roleEmployee: 'موظف',
+    nameAloneBody:
+      'يكفي الاسم وحده. لا يحتاجون إلى التطبيق أو بريد إلكتروني ليكونوا جزءًا من الشركة. عندما ينضمون لاحقًا، يمكنهم المطالبة بكل ما سُجّل باسمهم.',
+    fromContacts: 'من جهات اتصال الهاتف',
+    fromContactsBody: 'ابحث وأضف من جهات اتصالك',
     budgetPerMonth: 'الميزانية: {amount} / شهر',
     teamCount: '{n} موظفين',
     recentTitle: 'النشاط الأخير',
