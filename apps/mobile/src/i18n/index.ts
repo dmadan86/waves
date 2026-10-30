@@ -969,14 +969,6 @@ export interface UiStrings {
     signOutGuestWarning: string;
     signOutReassure: string;
     staySignedIn: string;
-    /** Native biometric prompt shown on entering the private Me tab. */
-    personalPrompt: string;
-    /** Heading on the shield in front of the private ledger. */
-    personalLockedTitle: string;
-    /** How to open it — shown while the prompt is up or about to be. */
-    personalLockedBody: string;
-    /** Shown instead, once a check has been refused or cancelled. */
-    personalLockedRefused: string;
   };
   /** The wall in front of the two things a guest account cannot hold: the
    *  private ledger and the bank-message reader. Both keep their data on this
@@ -7217,15 +7209,15 @@ const en: UiStrings = {
   },
   lock: {
     subtitle: 'Keep your information private.',
-    requireShort: 'Require biometrics or passcode',
-    requireHint: 'Asks for fingerprint, face or passcode to open Waves.',
-    askAgainShort: 'How long Waves can stay unlocked in the background.',
+    requireShort: 'App lock',
+    requireHint: 'Face ID / fingerprint / device PIN',
+    askAgainShort: 'Ask again after you leave the app for this long.',
     reopenShort: 'Waves always asks after it has been fully closed.',
     footnoteShort: 'Data that has synced is protected on our servers either way.',
     title: 'Security',
     requireBiometrics: 'Require biometrics or a passcode',
     appLock: 'App lock',
-    unsupported: 'This device has no biometrics or passcode set up',
+    unsupported: 'No Face ID, fingerprint or screen lock is set up on this device.',
     askAgainAfter: 'Ask again after',
     graceImmediate: 'Straight away',
     graceSeconds: { one: 'After {n} second', other: 'After {n} seconds' },
@@ -7236,11 +7228,6 @@ const en: UiStrings = {
       'This is a guest account, so signing out leaves no way back into it. Add an email or phone number first if you want to keep it.',
     signOutReassure: 'You can sign back in whenever you like. Nothing is deleted.',
     staySignedIn: 'Stay signed in',
-    personalPrompt: 'Unlock your personal ledger',
-    personalLockedTitle: 'Your personal ledger is locked',
-    personalLockedBody:
-      'Your income, spending, budgets and loans. Unlock with the same face or fingerprint that opens this phone.',
-    personalLockedRefused: 'That did not unlock it. Try again, or go back.',
   },
   signInWall: {
     title: 'Add an account first',
@@ -7415,9 +7402,9 @@ const en: UiStrings = {
       'The words have changed already. Turning the mirrored layout back the other way is something the phone decides when the app starts, so it takes effect next time you open it.',
     languageFooterNote:
       "Your phone's language is the default, and choosing one here only changes Waves. Amounts and dates still follow where you are — reading the app in Hindi in Dubai does not move you to India.",
-    lockNoBiometrics: 'This device has no biometrics set up',
-    lockOn: 'On · asks {when}',
-    lockOff: 'Off — anyone holding your phone can read the ledger',
+    lockNoBiometrics: 'No Face ID, fingerprint or screen lock is set up on this device.',
+    lockOn: 'App lock on · asks {when}',
+    lockOff: 'App lock off · anyone holding your phone can open Waves',
     signOutGuestHint: 'This guest account lives on this device only',
     signOutHint: 'Nothing is deleted; sign back in whenever',
   },
@@ -12892,15 +12879,15 @@ const ta: UiStrings = {
   },
   lock: {
     subtitle: 'உங்கள் தகவலைத் தனிப்பட்டதாக வைத்திருங்கள்.',
-    requireShort: 'கைரேகை அல்லது கடவுக்குறியீடு தேவை',
-    requireHint: 'Waves-ஐத் திறக்க கைரேகை, முகம் அல்லது கடவுக்குறியீட்டைக் கேட்கும்.',
-    askAgainShort: 'பின்னணியில் Waves எவ்வளவு நேரம் பூட்டப்படாமல் இருக்கலாம்.',
+    requireShort: 'செயலி பூட்டு',
+    requireHint: 'Face ID / கைரேகை / சாதன PIN',
+    askAgainShort: 'செயலியை விட்டு இவ்வளவு நேரம் விலகியிருந்தால் மீண்டும் கேட்கும்.',
     reopenShort: 'Waves-ஐ முழுவதுமாக மூடித் திறந்தால் எப்போதும் சரிபார்ப்பு கேட்கும்.',
     footnoteShort: 'ஒத்திசைந்த தரவு எந்த நிலையிலும் எங்கள் சர்வர்களில் பாதுகாப்பாக உள்ளது.',
     title: 'பாதுகாப்பு',
     requireBiometrics: 'கைரேகை அல்லது கடவுக்குறியீடு கேட்கவும்',
     appLock: 'ஆப் பூட்டு',
-    unsupported: 'இந்தச் சாதனத்தில் கைரேகையோ கடவுக்குறியீடோ அமைக்கப்படவில்லை',
+    unsupported: 'இந்தச் சாதனத்தில் Face ID, கைரேகை அல்லது திரைப் பூட்டு அமைக்கப்படவில்லை.',
     askAgainAfter: 'மீண்டும் கேட்க',
     graceImmediate: 'உடனடியாக',
     graceSeconds: { one: '{n} வினாடி கழித்து', other: '{n} வினாடிகள் கழித்து' },
@@ -12911,11 +12898,6 @@ const ta: UiStrings = {
       'இது விருந்தினர் கணக்கு, வெளியேறினால் திரும்ப வர வழி இல்லை. வைத்திருக்க விரும்பினால் முதலில் மின்னஞ்சல் அல்லது தொலைபேசி எண்ணைச் சேர்க்கவும்.',
     signOutReassure: 'எப்போது வேண்டுமானாலும் மீண்டும் உள்நுழையலாம். எதுவும் அழிக்கப்படவில்லை.',
     staySignedIn: 'உள்ளேயே இரு',
-    personalPrompt: 'உங்கள் தனிப்பட்ட கணக்கைத் திறக்கவும்',
-    personalLockedTitle: 'உங்கள் தனிப்பட்ட கணக்கு பூட்டப்பட்டுள்ளது',
-    personalLockedBody:
-      'உங்கள் வருமானம், செலவு, பட்ஜெட், கடன்கள். இந்த ஃபோனைத் திறக்கும் அதே முகம் அல்லது கைரேகையால் திறக்கவும்.',
-    personalLockedRefused: 'அது திறக்கவில்லை. மீண்டும் முயலுங்கள், அல்லது திரும்பிச் செல்லுங்கள்.',
   },
   signInWall: {
     title: 'முதலில் ஒரு கணக்கைச் சேருங்கள்',
@@ -13095,9 +13077,9 @@ const ta: UiStrings = {
       'சொற்கள் ஏற்கெனவே மாறிவிட்டன. பிரதிபலித்த தளவமைப்பை மீண்டும் மாற்றுவதும் செயலி தொடங்கும்போது ஃபோன் முடிவு செய்வது. எனவே அடுத்த முறை திறக்கும்போதுதான் அது நடக்கும்.',
     languageFooterNote:
       'உங்கள் ஃபோனின் மொழியே இயல்புநிலை; இங்கே தேர்ந்தெடுப்பது Waves-ஐ மட்டுமே மாற்றும். தொகைகளும் தேதிகளும் நீங்கள் இருக்கும் இடத்தையே பின்பற்றும் — துபாயில் இந்தியில் படிப்பது உங்களை இந்தியாவுக்கு நகர்த்தாது.',
-    lockNoBiometrics: 'இந்தச் சாதனத்தில் கைரேகை அமைக்கப்படவில்லை',
-    lockOn: 'இயக்கத்தில் · {when} கேட்கும்',
-    lockOff: 'நிறுத்தத்தில் — உங்கள் ஃபோனை வைத்திருப்பவர் யாரும் கணக்கைப் படிக்கலாம்',
+    lockNoBiometrics: 'இந்தச் சாதனத்தில் Face ID, கைரேகை அல்லது திரைப் பூட்டு அமைக்கப்படவில்லை.',
+    lockOn: 'செயலி பூட்டு இயக்கத்தில் · {when} கேட்கும்',
+    lockOff: 'செயலி பூட்டு நிறுத்தத்தில் · உங்கள் ஃபோனை வைத்திருப்பவர் யாரும் Waves-ஐத் திறக்கலாம்',
     signOutGuestHint: 'இந்த விருந்தினர் கணக்கு இந்தச் சாதனத்தில் மட்டுமே உள்ளது',
     signOutHint: 'எதுவும் அழிக்கப்படாது; எப்போது வேண்டுமானாலும் மீண்டும் உள்நுழையலாம்',
   },
@@ -18747,15 +18729,15 @@ const hi: UiStrings = {
   },
   lock: {
     subtitle: 'अपनी जानकारी निजी रखें।',
-    requireShort: 'बायोमेट्रिक या पासकोड ज़रूरी करें',
-    requireHint: 'Waves खोलने के लिए फ़िंगरप्रिंट, चेहरा या पासकोड माँगा जाएगा।',
-    askAgainShort: 'बैकग्राउंड में Waves कितनी देर तक अनलॉक रह सकता है।',
+    requireShort: 'ऐप लॉक',
+    requireHint: 'Face ID / फ़िंगरप्रिंट / डिवाइस PIN',
+    askAgainShort: 'ऐप से इतनी देर बाहर रहने पर फिर से पुष्टि माँगी जाएगी।',
     reopenShort: 'पूरी तरह बंद करने के बाद Waves खोलने पर हमेशा पुष्टि माँगी जाती है।',
     footnoteShort: 'दोनों ही स्थितियों में सिंक हो चुका डेटा हमारे सर्वर पर सुरक्षित है।',
     title: 'सुरक्षा',
     requireBiometrics: 'बायोमेट्रिक या पासकोड माँगें',
     appLock: 'ऐप लॉक',
-    unsupported: 'इस डिवाइस पर बायोमेट्रिक या पासकोड सेट नहीं है',
+    unsupported: 'इस डिवाइस पर Face ID, फ़िंगरप्रिंट या स्क्रीन लॉक सेट नहीं है।',
     askAgainAfter: 'दोबारा पूछें',
     graceImmediate: 'तुरंत',
     graceSeconds: { one: '{n} सेकंड बाद', other: '{n} सेकंड बाद' },
@@ -18766,11 +18748,6 @@ const hi: UiStrings = {
       'यह मेहमान खाता है, साइन आउट करने पर वापस आने का कोई रास्ता नहीं बचेगा। इसे रखना है तो पहले ईमेल या फ़ोन नंबर जोड़ें।',
     signOutReassure: 'आप जब चाहें दोबारा साइन इन कर सकते हैं। कुछ भी मिटता नहीं।',
     staySignedIn: 'साइन इन रहें',
-    personalPrompt: 'अपना निजी हिसाब अनलॉक करें',
-    personalLockedTitle: 'आपका निजी हिसाब लॉक है',
-    personalLockedBody:
-      'आपकी आमदनी, ख़र्च, बजट और उधार। उसी चेहरे या फ़िंगरप्रिंट से खोलें जिससे यह फ़ोन खुलता है।',
-    personalLockedRefused: 'इससे लॉक नहीं खुला। फिर से कोशिश करें, या वापस जाएँ।',
   },
   signInWall: {
     title: 'पहले एक खाता जोड़ें',
@@ -18948,9 +18925,9 @@ const hi: UiStrings = {
       'शब्द तो पहले ही बदल गए हैं। पलटे हुए लेआउट को वापस सीधा करना भी फ़ोन ऐप शुरू होते समय तय करता है, इसलिए यह अगली बार खोलने पर लागू होगा।',
     languageFooterNote:
       'आपके फ़ोन की भाषा ही डिफ़ॉल्ट है, और यहाँ चुनने से सिर्फ़ Waves बदलता है। रकम और तारीखें वहीं के हिसाब से चलती रहेंगी जहाँ आप हैं — दुबई में हिंदी में पढ़ने से आप भारत नहीं पहुँच जाते।',
-    lockNoBiometrics: 'इस डिवाइस पर बायोमेट्रिक सेट नहीं है',
-    lockOn: 'चालू · {when} पूछता है',
-    lockOff: 'बंद — आपका फ़ोन पकड़े कोई भी हिसाब पढ़ सकता है',
+    lockNoBiometrics: 'इस डिवाइस पर Face ID, फ़िंगरप्रिंट या स्क्रीन लॉक सेट नहीं है।',
+    lockOn: 'ऐप लॉक चालू · {when} पूछता है',
+    lockOff: 'ऐप लॉक बंद · आपका फ़ोन पकड़े कोई भी Waves खोल सकता है',
     signOutGuestHint: 'यह मेहमान खाता सिर्फ़ इसी डिवाइस पर है',
     signOutHint: 'कुछ मिटता नहीं; जब चाहें दोबारा साइन इन करें',
   },
@@ -24449,15 +24426,15 @@ const ar: UiStrings = {
   },
   lock: {
     subtitle: 'حافظ على خصوصية معلوماتك.',
-    requireShort: 'طلب البصمة أو رمز المرور',
-    requireHint: 'يطلب بصمة الإصبع أو الوجه أو رمز المرور لفتح Waves.',
-    askAgainShort: 'المدة التي يمكن أن يبقى فيها Waves مفتوحًا في الخلفية.',
+    requireShort: 'قفل التطبيق',
+    requireHint: 'Face ID / بصمة الإصبع / رمز PIN للجهاز',
+    askAgainShort: 'يطلب التحقق مجددًا بعد مغادرة التطبيق لهذه المدة.',
     reopenShort: 'يطلب Waves التحقق دائمًا بعد إغلاقه بالكامل.',
     footnoteShort: 'البيانات التي تمت مزامنتها محمية على خوادمنا في كلتا الحالتين.',
     title: 'الأمان',
     requireBiometrics: 'اطلب البصمة أو رمز المرور',
     appLock: 'قفل التطبيق',
-    unsupported: 'لا توجد بصمة أو رمز مرور مضبوط على هذا الجهاز',
+    unsupported: 'لم يتم إعداد Face ID أو بصمة الإصبع أو قفل الشاشة على هذا الجهاز.',
     askAgainAfter: 'اسأل مرة أخرى بعد',
     graceImmediate: 'فورًا',
     graceSeconds: {
@@ -24482,11 +24459,6 @@ const ar: UiStrings = {
       'هذا حساب ضيف، وتسجيل الخروج لا يترك طريقًا للعودة إليه. أضف بريدًا إلكترونيًا أو رقم هاتف أولًا إن أردت الاحتفاظ به.',
     signOutReassure: 'يمكنك تسجيل الدخول متى شئت. لا يُحذف شيء.',
     staySignedIn: 'ابقَ مسجّل الدخول',
-    personalPrompt: 'افتح قفل دفترك الشخصي',
-    personalLockedTitle: 'دفترك الشخصي مقفل',
-    personalLockedBody:
-      'دخلك وإنفاقك وميزانياتك وقروضك. افتحه بالوجه أو البصمة نفسها التي تفتح هذا الهاتف.',
-    personalLockedRefused: 'لم يُفتح القفل. حاول مرة أخرى، أو ارجع.',
   },
   signInWall: {
     title: 'أضف حسابًا أولًا',
@@ -24688,9 +24660,9 @@ const ar: UiStrings = {
       'تغيّرت الكلمات بالفعل. أما إعادة الواجهة المعكوسة إلى اتجاهها فيقرره الهاتف عند بدء التطبيق، لذا يسري في المرة القادمة التي تفتحه فيها.',
     languageFooterNote:
       'لغة هاتفك هي الافتراضية، والاختيار هنا يغيّر Waves وحده. تبقى المبالغ والتواريخ تابعة لمكانك — قراءة التطبيق بالهندية في دبي لا تنقلك إلى الهند.',
-    lockNoBiometrics: 'لا توجد بصمة مضبوطة على هذا الجهاز',
-    lockOn: 'مفعّل · يسأل {when}',
-    lockOff: 'متوقف — أي شخص يمسك هاتفك يمكنه قراءة الدفتر',
+    lockNoBiometrics: 'لم يتم إعداد Face ID أو بصمة الإصبع أو قفل الشاشة على هذا الجهاز.',
+    lockOn: 'قفل التطبيق مفعّل · يطلب التحقق {when}',
+    lockOff: 'قفل التطبيق متوقف · يمكن لأي شخص يمسك هاتفك فتح Waves',
     signOutGuestHint: 'حساب الضيف هذا موجود على هذا الجهاز فقط',
     signOutHint: 'لا يُحذف شيء؛ سجّل الدخول متى شئت',
   },
