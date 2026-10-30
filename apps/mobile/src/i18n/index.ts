@@ -1243,6 +1243,53 @@ export interface UiStrings {
     /** The 4th "Try saying…" example, in quotes like its siblings. */
     tryWhoOwes: string;
   };
+  companyActivity: {
+    title: string;
+    you: string;
+    youObj: string;
+    all: string;
+    money: string;
+    attendance: string;
+    tasks: string;
+    people: string;
+    vendors: string;
+    today: string;
+    yesterday: string;
+    empty: string;
+    statusPresent: string;
+    statusHalf: string;
+    statusAbsent: string;
+    expense: string;
+    expenseFor: string;
+    allowance: string;
+    allowanceFor: string;
+    advance: string;
+    wages: string;
+    reimbursed: string;
+    cashReturned: string;
+    companyPaid: string;
+    approved: string;
+    rejected: string;
+    attendanceOne: string;
+    attendanceMany: string;
+    taskAssigned: string;
+    taskDone: string;
+    taskBlocked: string;
+    joined: string;
+    joinedManager: string;
+    added: string;
+    markedNotEmployed: string;
+    left: string;
+    vendorBill: string;
+    vendorBillPending: string;
+    vendorBillRejected: string;
+    vendorPayment: string;
+    vendorAdvance: string;
+    vendorReceived: string;
+    estimateCreated: string;
+    billCreated: string;
+    billPaid: string;
+  };
   companyDocs: {
     title: string;
     estimate: string;
@@ -7855,6 +7902,53 @@ const en: UiStrings = {
     completeSheetTitle: 'Complete this expense',
     tryWhoOwes: '“Who owes me?”',
   },
+  companyActivity: {
+    title: 'Company activity',
+    you: 'You',
+    youObj: 'you',
+    all: 'All',
+    money: 'Money',
+    attendance: 'Attendance',
+    tasks: 'Tasks',
+    people: 'People',
+    vendors: 'Vendors & bills',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    empty: 'Nothing has happened yet',
+    statusPresent: 'present',
+    statusHalf: 'half day',
+    statusAbsent: 'absent',
+    expense: '{actor} added an expense',
+    expenseFor: '{actor} added an expense for {name}',
+    allowance: '{actor} added bata',
+    allowanceFor: '{actor} added bata for {name}',
+    advance: '{actor} gave {name} an advance',
+    wages: '{actor} paid wages to {name}',
+    reimbursed: '{actor} reimbursed {name}',
+    cashReturned: '{actor} recorded cash returned by {name}',
+    companyPaid: '{actor} recorded a company payment',
+    approved: '{actor} approved the claim of {name}',
+    rejected: '{actor} rejected the claim of {name}',
+    attendanceOne: '{actor} marked {name} {status}',
+    attendanceMany: '{actor} marked {count} people {status}',
+    taskAssigned: "Task '{title}' assigned to {name}",
+    taskDone: "Task '{title}' done by {name}",
+    taskBlocked: "Task '{title}' blocked for {name}",
+    joined: '{name} joined',
+    joinedManager: '{name} joined as a manager',
+    added: '{name} was added',
+    markedNotEmployed: '{actor} marked {name} not employed',
+    left: '{name} left',
+    vendorBill: '{actor} added a bill from {vendor}',
+    vendorBillPending: '{actor} added a bill from {vendor}, waiting for confirmation',
+    vendorBillRejected: 'Bill from {vendor} was rejected',
+    vendorPayment: '{actor} recorded a payment to {vendor}',
+    vendorAdvance: '{actor} gave {vendor} an advance',
+    vendorReceived: '{vendor} confirmed the payment',
+    estimateCreated: '{actor} created estimate {number} for {customer}',
+    billCreated: '{actor} created bill {number} for {customer}',
+    billPaid: 'Bill {number} for {customer} was paid',
+  },
   companyDocs: {
     title: 'Estimates & bills',
     estimate: 'Estimate',
@@ -13921,6 +14015,53 @@ const ta: UiStrings = {
     completeRowHint: 'இடம், பணம் செலுத்திய முறை அல்லது ரசீதைச் சேர்க்கவும்',
     completeSheetTitle: 'இந்தச் செலவை முழுமையாக்குங்கள்',
     tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
+  },
+  companyActivity: {
+    title: 'நிறுவன செயல்பாடு',
+    you: 'நீங்கள்',
+    youObj: 'உங்களுக்கு',
+    all: 'அனைத்தும்',
+    money: 'பணம்',
+    attendance: 'வருகை',
+    tasks: 'பணிகள்',
+    people: 'நபர்கள்',
+    vendors: 'விற்பனையாளர்கள் & பில்கள்',
+    today: 'இன்று',
+    yesterday: 'நேற்று',
+    empty: 'இன்னும் எதுவும் நடக்கவில்லை',
+    statusPresent: 'வந்துள்ளார்',
+    statusHalf: 'அரை நாள்',
+    statusAbsent: 'வரவில்லை',
+    expense: '{actor} ஒரு செலவைச் சேர்த்தார்',
+    expenseFor: '{actor} {name} க்கு ஒரு செலவைச் சேர்த்தார்',
+    allowance: '{actor} படியைச் சேர்த்தார்',
+    allowanceFor: '{actor} {name} க்கு படியைச் சேர்த்தார்',
+    advance: '{actor} {name} க்கு முன்பணம் கொடுத்தார்',
+    wages: '{actor} {name} க்கு சம்பளம் வழங்கினார்',
+    reimbursed: '{actor} {name} க்கு திருப்பிச் செலுத்தினார்',
+    cashReturned: '{name} திருப்பிக் கொடுத்த பணத்தை {actor} பதிவு செய்தார்',
+    companyPaid: '{actor} நிறுவனக் கட்டணத்தைப் பதிவு செய்தார்',
+    approved: '{name} கோரிக்கையை {actor} ஏற்றார்',
+    rejected: '{name} கோரிக்கையை {actor} நிராகரித்தார்',
+    attendanceOne: '{actor} {name} ஐ {status} எனக் குறித்தார்',
+    attendanceMany: '{actor} {count} பேரை {status} எனக் குறித்தார்',
+    taskAssigned: "'{title}' பணி {name} க்கு ஒதுக்கப்பட்டது",
+    taskDone: "'{title}' பணியை {name} முடித்தார்",
+    taskBlocked: "'{title}' பணி {name} க்கு தடைபட்டுள்ளது",
+    joined: '{name} சேர்ந்தார்',
+    joinedManager: '{name} மேலாளராகச் சேர்ந்தார்',
+    added: '{name} சேர்க்கப்பட்டார்',
+    markedNotEmployed: '{actor} {name} ஐ பணியில் இல்லை எனக் குறித்தார்',
+    left: '{name} விலகினார்',
+    vendorBill: '{actor} {vendor} இடமிருந்து பில் சேர்த்தார்',
+    vendorBillPending: '{actor} {vendor} இடமிருந்து பில் சேர்த்தார், உறுதிக்காகக் காத்திருக்கிறது',
+    vendorBillRejected: '{vendor} பில் நிராகரிக்கப்பட்டது',
+    vendorPayment: '{actor} {vendor} க்கு கட்டணத்தைப் பதிவு செய்தார்',
+    vendorAdvance: '{actor} {vendor} க்கு முன்பணம் கொடுத்தார்',
+    vendorReceived: '{vendor} கட்டணத்தை உறுதிசெய்தார்',
+    estimateCreated: '{actor} {customer} க்கு மதிப்பீடு {number} உருவாக்கினார்',
+    billCreated: '{actor} {customer} க்கு பில் {number} உருவாக்கினார்',
+    billPaid: '{customer} க்கான பில் {number} செலுத்தப்பட்டது',
   },
   companyDocs: {
     title: 'மதிப்பீடுகள் & பில்கள்',
@@ -20165,6 +20306,53 @@ const hi: UiStrings = {
     completeSheetTitle: 'यह खर्च पूरा करें',
     tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
   },
+  companyActivity: {
+    title: 'कंपनी गतिविधि',
+    you: 'आप',
+    youObj: 'आपके',
+    all: 'सभी',
+    money: 'पैसा',
+    attendance: 'उपस्थिति',
+    tasks: 'कार्य',
+    people: 'लोग',
+    vendors: 'विक्रेता और बिल',
+    today: 'आज',
+    yesterday: 'कल',
+    empty: 'अभी तक कुछ नहीं हुआ',
+    statusPresent: 'उपस्थित',
+    statusHalf: 'आधा दिन',
+    statusAbsent: 'अनुपस्थित',
+    expense: '{actor} ने खर्च जोड़ा',
+    expenseFor: '{actor} ने {name} के लिए खर्च जोड़ा',
+    allowance: '{actor} ने भत्ता जोड़ा',
+    allowanceFor: '{actor} ने {name} के लिए भत्ता जोड़ा',
+    advance: '{actor} ने {name} को अग्रिम दिया',
+    wages: '{actor} ने {name} को वेतन दिया',
+    reimbursed: '{actor} ने {name} को भुगतान लौटाया',
+    cashReturned: '{actor} ने {name} द्वारा लौटाई नकदी दर्ज की',
+    companyPaid: '{actor} ने कंपनी का भुगतान दर्ज किया',
+    approved: '{actor} ने {name} का दावा मंज़ूर किया',
+    rejected: '{actor} ने {name} का दावा अस्वीकार किया',
+    attendanceOne: '{actor} ने {name} को {status} चिह्नित किया',
+    attendanceMany: '{actor} ने {count} लोगों को {status} चिह्नित किया',
+    taskAssigned: "कार्य '{title}' {name} को सौंपा गया",
+    taskDone: "कार्य '{title}' {name} ने पूरा किया",
+    taskBlocked: "कार्य '{title}' {name} के लिए रुका है",
+    joined: '{name} जुड़े',
+    joinedManager: '{name} मैनेजर के रूप में जुड़े',
+    added: '{name} को जोड़ा गया',
+    markedNotEmployed: '{actor} ने {name} को कार्यरत नहीं चिह्नित किया',
+    left: '{name} ने छोड़ा',
+    vendorBill: '{actor} ने {vendor} का बिल जोड़ा',
+    vendorBillPending: '{actor} ने {vendor} का बिल जोड़ा, पुष्टि की प्रतीक्षा में',
+    vendorBillRejected: '{vendor} का बिल अस्वीकार किया गया',
+    vendorPayment: '{actor} ने {vendor} को भुगतान दर्ज किया',
+    vendorAdvance: '{actor} ने {vendor} को अग्रिम दिया',
+    vendorReceived: '{vendor} ने भुगतान की पुष्टि की',
+    estimateCreated: '{actor} ने {customer} के लिए अनुमान {number} बनाया',
+    billCreated: '{actor} ने {customer} के लिए बिल {number} बनाया',
+    billPaid: '{customer} का बिल {number} चुका दिया गया',
+  },
   companyDocs: {
     title: 'अनुमान और बिल',
     estimate: 'अनुमान',
@@ -26288,6 +26476,53 @@ const ar: UiStrings = {
     completeRowHint: 'أضف المكان أو طريقة الدفع أو إيصالاً',
     completeSheetTitle: 'أكمل هذا المصروف',
     tryWhoOwes: '«من يدين لي؟»',
+  },
+  companyActivity: {
+    title: 'نشاط الشركة',
+    you: 'أنت',
+    youObj: 'لك',
+    all: 'الكل',
+    money: 'المال',
+    attendance: 'الحضور',
+    tasks: 'المهام',
+    people: 'الأشخاص',
+    vendors: 'الموردون والفواتير',
+    today: 'اليوم',
+    yesterday: 'أمس',
+    empty: 'لم يحدث شيء بعد',
+    statusPresent: 'حاضر',
+    statusHalf: 'نصف يوم',
+    statusAbsent: 'غائب',
+    expense: 'أضاف {actor} مصروفًا',
+    expenseFor: 'أضاف {actor} مصروفًا لـ {name}',
+    allowance: 'أضاف {actor} بدلًا',
+    allowanceFor: 'أضاف {actor} بدلًا لـ {name}',
+    advance: 'أعطى {actor} سلفة لـ {name}',
+    wages: 'دفع {actor} راتبًا لـ {name}',
+    reimbursed: 'سدّد {actor} مبلغًا لـ {name}',
+    cashReturned: 'سجّل {actor} نقدًا أعاده {name}',
+    companyPaid: 'سجّل {actor} دفعة من الشركة',
+    approved: 'وافق {actor} على طلب {name}',
+    rejected: 'رفض {actor} طلب {name}',
+    attendanceOne: 'سجّل {actor} {name} كـ {status}',
+    attendanceMany: 'سجّل {actor} {count} أشخاص كـ {status}',
+    taskAssigned: "أُسندت المهمة '{title}' إلى {name}",
+    taskDone: "أنجز {name} المهمة '{title}'",
+    taskBlocked: "المهمة '{title}' متعثرة لدى {name}",
+    joined: 'انضم {name}',
+    joinedManager: 'انضم {name} كمدير',
+    added: 'تمت إضافة {name}',
+    markedNotEmployed: 'سجّل {actor} أن {name} لم يعد موظفًا',
+    left: 'غادر {name}',
+    vendorBill: 'أضاف {actor} فاتورة من {vendor}',
+    vendorBillPending: 'أضاف {actor} فاتورة من {vendor} بانتظار التأكيد',
+    vendorBillRejected: 'رُفضت فاتورة {vendor}',
+    vendorPayment: 'سجّل {actor} دفعة إلى {vendor}',
+    vendorAdvance: 'أعطى {actor} سلفة لـ {vendor}',
+    vendorReceived: 'أكّد {vendor} الدفعة',
+    estimateCreated: 'أنشأ {actor} عرض سعر {number} لـ {customer}',
+    billCreated: 'أنشأ {actor} فاتورة {number} لـ {customer}',
+    billPaid: 'تم دفع الفاتورة {number} الخاصة بـ {customer}',
   },
   companyDocs: {
     title: 'التقديرات والفواتير',

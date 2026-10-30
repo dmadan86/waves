@@ -34,11 +34,9 @@ import { useCompanyProjects, useCompanySuspended, type CompanyView } from '@/dat
 import { useGroup, useGroups } from '@/data/hooks';
 import { displayName, type MemberRow, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
-import { useGroupUnread } from '@/lib/useGroupUnread';
+import { useCompanyActivityDot } from '@/data/companyActivity';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
-
-const NO_GROUPS: readonly string[] = [];
 
 export function useMoney(currency: string): (minor: bigint) => string {
   const { locale } = useStrings();
@@ -164,6 +162,38 @@ function IconButton({
  * The hero: a soft sunset sky and the office building, then back, the company name with
  * its switcher, gear and menu, who is in it. Add and export live on the company bar (FAB, More).
  */
+/** The Overview bell: opens this company's own activity feed; the dot means something new since it was last opened. */
+function OverviewBell({ groupId }: { groupId: string }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const dot = useCompanyActivityDot(groupId);
+  return (
+    <View>
+      <IconButton
+        icon="notifications-outline"
+        label={t.company.ovBell}
+        onPress={() => router.push(`/group/${groupId}/company-activity`)}
+      />
+      {dot ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 7,
+            end: 9,
+            width: 9,
+            height: 9,
+            borderRadius: 5,
+            backgroundColor: theme.color.negative,
+            borderWidth: 1.5,
+            borderColor: theme.color.bg,
+          }}
+        />
+      ) : null}
+    </View>
+  );
+}
+
 export function DashHeader({
   groupId,
   view,
@@ -197,7 +227,6 @@ export function DashHeader({
   const [switching, setSwitching] = useState(false);
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
-  const unread = useGroupUnread(overview ? [groupId] : NO_GROUPS);
   const groups = useGroups().data ?? [];
   const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
 
@@ -270,31 +299,7 @@ export function DashHeader({
             </Text>
             <Ionicons name="chevron-down" size={iconSize.md} color={theme.color.text} />
           </Pressable>
-          {overview ? (
-            <View>
-              <IconButton
-                icon="notifications-outline"
-                label={t.company.ovBell}
-                onPress={() => router.push(`/activity?group=${groupId}`)}
-              />
-              {unread.has(groupId) ? (
-                <View
-                  pointerEvents="none"
-                  style={{
-                    position: 'absolute',
-                    top: 7,
-                    end: 9,
-                    width: 9,
-                    height: 9,
-                    borderRadius: 5,
-                    backgroundColor: theme.color.negative,
-                    borderWidth: 1.5,
-                    borderColor: theme.color.bg,
-                  }}
-                />
-              ) : null}
-            </View>
-          ) : null}
+          {overview ? <OverviewBell groupId={groupId} /> : null}
           {showGear ? (
             <IconButton
               icon="settings-outline"
