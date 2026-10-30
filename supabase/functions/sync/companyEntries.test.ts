@@ -118,6 +118,12 @@ const cases = [
     { p_group_id: GROUP_ID, p_member_id: MEMBER_ID, p_daily_rate_minor: null },
   ],
   [
+    'company_member.employee_id_set',
+    { memberId: MEMBER_ID, employeeId: 'EMP-014' },
+    'waves_company_employee_id_set',
+    { p_group_id: GROUP_ID, p_member_id: MEMBER_ID, p_employee_id: 'EMP-014' },
+  ],
+  [
     'company_pool.post',
     {
       entryId: ENTRY,

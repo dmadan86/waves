@@ -51,6 +51,7 @@ import type {
   CompanyWagePayPayload,
   CompanyPoolPostPayload,
   CompanyProjectSetPayload,
+  CompanyMemberEmployeeIdSetPayload,
   CompanyMemberProjectsSetPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
@@ -68,7 +69,7 @@ import type {
 } from './protocol';
 import type { QueuedMutation } from './queue';
 import { byNewest, byOldest, compareStampsDesc } from '../time/iso';
-import { allowanceAmount, mileageAmount } from '../company/index';
+import { allowanceAmount, mileageAmount, normaliseEmployeeId } from '../company/index';
 import { firstOccurrenceOnOrAfter, nextOccurrenceAfter } from '../group/recurring';
 
 /** A row as the server sends it: snake_case, amounts as decimal strings. */
@@ -554,6 +555,8 @@ export interface MirrorMember extends MirrorRow {
   readonly left_at: string | null;
   /** Company: the manager this employee reports to (null = the owners). */
   readonly manager_id?: string | null;
+  /** Company: the free-text employee ID (null/absent = none). */
+  readonly employee_id?: string | null;
   readonly pending?: boolean;
 }
 
@@ -613,6 +616,16 @@ export function materialiseMembers(
       const existing = byId.get(assign.memberId);
       if (existing)
         byId.set(assign.memberId, { ...existing, manager_id: assign.managerId ?? null });
+      continue;
+    }
+
+    // Likewise a queued employee-ID change.
+    if (mutation.kind === 'company_member.employee_id_set') {
+      if (mutation.rejection) continue;
+      const set = mutation.payload as unknown as CompanyMemberEmployeeIdSetPayload;
+      const existing = byId.get(set.memberId);
+      if (existing)
+        byId.set(set.memberId, { ...existing, employee_id: normaliseEmployeeId(set.employeeId) });
       continue;
     }
 

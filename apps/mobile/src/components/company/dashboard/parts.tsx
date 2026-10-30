@@ -866,6 +866,7 @@ export function RecentActivity({
               : t.misc.someone
         }
         subtitle={[
+          e.paidByCompany ? null : owner?.employee_id,
           label,
           projects.find((p) => p.id === e.projectId)?.name,
           showDate(e.occurredOn, locale),

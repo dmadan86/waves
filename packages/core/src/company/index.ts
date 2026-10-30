@@ -940,3 +940,31 @@ export function reimbursementOutcome(
   }
   return { paid, alreadyPaid: [...by].map(([who, count]) => ({ by: who, count })) };
 }
+
+/** An employee ID as typed: trimmed, blank means none, at most 32 characters (null if too long). */
+export const EMPLOYEE_ID_MAX = 32;
+export function normaliseEmployeeId(raw: string | null | undefined): string | null {
+  const v = (raw ?? '').trim();
+  return v === '' ? null : v.slice(0, EMPLOYEE_ID_MAX);
+}
+
+/**
+ * Is this ID already someone else's among the people still in the company? Case-insensitive,
+ * like the server's unique index. A phone only sees the people it may read; the server check
+ * (waves_company_employee_id_taken) covers the rest.
+ */
+export function employeeIdTaken(
+  members: readonly {
+    readonly id: string;
+    readonly employee_id?: string | null;
+    readonly left_at?: string | null;
+  }[],
+  raw: string | null | undefined,
+  exceptMemberId?: string | null,
+): boolean {
+  const id = normaliseEmployeeId(raw)?.toLowerCase();
+  if (!id) return false;
+  return members.some(
+    (m) => m.id !== exceptMemberId && !m.left_at && m.employee_id?.trim().toLowerCase() === id,
+  );
+}

@@ -98,6 +98,7 @@ type MutationKind =
   | 'company_member.add'
   | 'company_member.assign'
   | 'company_member.projects_set'
+  | 'company_member.employee_id_set'
   | 'company_project.set'
   | 'company_pool.post'
   | 'company_wage.pay'
@@ -977,6 +978,12 @@ export class SyncSession {
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
           p_manager_id: companyUuid(mutation.payload.managerId, 'managerId', true),
           p_reason: companyReason(mutation.payload.reason, 'reason', false),
+        });
+      case 'company_member.employee_id_set':
+        return await this.rpcAsCaller('waves_company_employee_id_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_employee_id: optionalText(mutation.payload.employeeId, 'employeeId'),
         });
       case 'company_member.projects_set':
         return await this.rpcAsCaller('waves_company_member_projects_set', {

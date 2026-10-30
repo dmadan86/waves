@@ -16,7 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, TextInput, View } from 'react-native';
 
-import { Button, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, Callout, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 
@@ -24,6 +24,8 @@ export function EditTextSheet({
   visible,
   title,
   hint,
+  error,
+  maxLength,
   value,
   placeholder,
   multiline = false,
@@ -36,6 +38,8 @@ export function EditTextSheet({
   title: string;
   /** One line under the title: what this is for, when that is not obvious. */
   hint?: string;
+  error?: string | null;
+  maxLength?: number;
   value: string;
   placeholder?: string;
   multiline?: boolean;
@@ -100,6 +104,7 @@ export function EditTextSheet({
           onChangeText={setDraft}
           editable={!saving}
           multiline={multiline}
+          maxLength={maxLength}
           autoCapitalize={autoCapitalize}
           autoCorrect={false}
           accessibilityLabel={title}
@@ -123,6 +128,8 @@ export function EditTextSheet({
             ...(multiline ? { minHeight: 96, textAlignVertical: 'top' as const } : null),
           }}
         />
+
+        {error ? <Callout tone="negative">{error}</Callout> : null}
 
         <Row style={{ gap: theme.spacing.sm }}>
           <View style={{ flex: 1 }}>

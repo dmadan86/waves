@@ -1276,6 +1276,10 @@ export interface UiStrings {
     owedBy: string;
     addEmployee: string;
     addEmployeeBody: string;
+    employeeId: string;
+    employeeIdOptional: string;
+    addEmployeeId: string;
+    employeeIdTaken: string;
     fromPastCompany: string;
     fromPastCompanyBody: string;
     pastSearch: string;
@@ -1323,6 +1327,15 @@ export interface UiStrings {
     qaBudgets: string;
     qaRecord: string;
     qaAddEmployee: string;
+    searchEmployees: string;
+    filterEmployees: string;
+    empFilterAll: string;
+    empFilterOwes: string;
+    empFilterCompanyOwes: string;
+    empFilterSettled: string;
+    viewStatement: string;
+    employeeOptions: string;
+    noEmployeesMatch: string;
     qaAdvance: string;
     qaAsk: string;
     promoTitle: string;
@@ -7606,6 +7619,10 @@ const en: UiStrings = {
     owedBy: 'Owes company',
     addEmployee: 'Add employee',
     addEmployeeBody: 'Add people to your company. They can join now or later.',
+    employeeId: 'Employee ID',
+    employeeIdOptional: 'Employee ID (optional)',
+    addEmployeeId: 'Add employee ID',
+    employeeIdTaken: 'That employee ID is already used by someone else.',
     fromPastCompany: 'From another company',
     fromPastCompanyBody: 'Reuse people you manage elsewhere',
     pastSearch: 'Search by name or company',
@@ -7655,6 +7672,15 @@ const en: UiStrings = {
     qaBudgets: 'Allocate budgets',
     qaRecord: 'Record payment',
     qaAddEmployee: 'Add employee',
+    searchEmployees: 'Search employees...',
+    filterEmployees: 'Show employees',
+    empFilterAll: 'All',
+    empFilterOwes: 'Owes company',
+    empFilterCompanyOwes: 'Company owes',
+    empFilterSettled: 'Settled',
+    viewStatement: 'View statement',
+    employeeOptions: 'Employee options',
+    noEmployeesMatch: 'No employee matches',
     qaAdvance: 'Give advance',
     qaAsk: 'Ask owner for budget',
     promoTitle: 'Invite your team',
@@ -13389,6 +13415,10 @@ const ta: UiStrings = {
     addEmployee: 'ஊழியரைச் சேர்',
     addEmployeeBody:
       'தொடர்புகளில் இருந்து தேர்ந்தெடுங்கள், பெயரை உள்ளிடுங்கள் அல்லது வேறு நிறுவனத்தில் இருந்து மீண்டும் பயன்படுத்துங்கள்.',
+    employeeId: 'ஊழியர் எண்',
+    employeeIdOptional: 'ஊழியர் எண் (விருப்பம்)',
+    addEmployeeId: 'ஊழியர் எண்ணைச் சேர்',
+    employeeIdTaken: 'இந்த ஊழியர் எண் வேறொருவரிடம் ஏற்கெனவே உள்ளது.',
     fromPastCompany: 'முந்தைய நிறுவனம்',
     fromPastCompanyBody: 'நீங்கள் வேறு இடத்தில் நிர்வகிப்பவர்கள்',
     pastSearch: 'பெயர் அல்லது நிறுவனம் மூலம் தேடு',
@@ -13438,6 +13468,15 @@ const ta: UiStrings = {
     qaBudgets: 'பட்ஜெட் ஒதுக்கு',
     qaRecord: 'கொடுப்பனவை பதிவு செய்',
     qaAddEmployee: 'ஊழியரைச் சேர்',
+    searchEmployees: 'ஊழியர்களைத் தேடு...',
+    filterEmployees: 'ஊழியர்களைக் காட்டு',
+    empFilterAll: 'அனைவரும்',
+    empFilterOwes: 'நிறுவனத்திற்குக் கொடுக்க வேண்டியவர்',
+    empFilterCompanyOwes: 'நிறுவனம் கொடுக்க வேண்டியவர்',
+    empFilterSettled: 'தீர்ந்தவர்',
+    viewStatement: 'அறிக்கையைப் பார்',
+    employeeOptions: 'ஊழியர் விருப்பங்கள்',
+    noEmployeesMatch: 'பொருந்தும் ஊழியர் இல்லை',
     qaAdvance: 'முன்பணம் கொடு',
     qaAsk: 'பட்ஜெட் கேள்',
     promoTitle: 'உங்கள் குழுவை அழையுங்கள்',
@@ -19339,6 +19378,10 @@ const hi: UiStrings = {
     owedBy: 'कंपनी को देंगे',
     addEmployee: 'कर्मचारी जोड़ें',
     addEmployeeBody: 'संपर्कों से चुनें, नाम लिखें या किसी दूसरी कंपनी के लोगों को दोबारा जोड़ें।',
+    employeeId: 'कर्मचारी आईडी',
+    employeeIdOptional: 'कर्मचारी आईडी (वैकल्पिक)',
+    addEmployeeId: 'कर्मचारी आईडी जोड़ें',
+    employeeIdTaken: 'यह कर्मचारी आईडी पहले से किसी और के पास है।',
     fromPastCompany: 'पिछली कंपनी',
     fromPastCompanyBody: 'जिन्हें आप कहीं और संभालते हैं',
     pastSearch: 'नाम या कंपनी से खोजें',
@@ -19388,6 +19431,15 @@ const hi: UiStrings = {
     qaBudgets: 'बजट दें',
     qaRecord: 'भुगतान दर्ज करें',
     qaAddEmployee: 'कर्मचारी जोड़ें',
+    searchEmployees: 'कर्मचारी खोजें...',
+    filterEmployees: 'कर्मचारी दिखाएँ',
+    empFilterAll: 'सभी',
+    empFilterOwes: 'कंपनी का बकाया',
+    empFilterCompanyOwes: 'कंपनी पर बकाया',
+    empFilterSettled: 'चुकता',
+    viewStatement: 'स्टेटमेंट देखें',
+    employeeOptions: 'कर्मचारी विकल्प',
+    noEmployeesMatch: 'कोई कर्मचारी नहीं मिला',
     qaAdvance: 'एडवांस दें',
     qaAsk: 'मालिक से बजट माँगें',
     promoTitle: 'अपनी टीम को बुलाएँ',
@@ -25178,6 +25230,10 @@ const ar: UiStrings = {
     owedBy: 'مدين للشركة',
     addEmployee: 'إضافة موظف',
     addEmployeeBody: 'اختر من جهات الاتصال أو اكتب اسمًا أو أعد استخدام أشخاص من شركة أخرى.',
+    employeeId: 'رقم الموظف',
+    employeeIdOptional: 'رقم الموظف (اختياري)',
+    addEmployeeId: 'إضافة رقم الموظف',
+    employeeIdTaken: 'رقم الموظف هذا مستخدم لدى شخص آخر.',
     fromPastCompany: 'شركة سابقة',
     fromPastCompanyBody: 'أشخاص تديرهم في مكان آخر',
     pastSearch: 'ابحث بالاسم أو الشركة',
@@ -25226,6 +25282,15 @@ const ar: UiStrings = {
     qaBudgets: 'وزّع الميزانيات',
     qaRecord: 'سجّل دفعة',
     qaAddEmployee: 'أضف موظفاً',
+    searchEmployees: 'ابحث عن موظف...',
+    filterEmployees: 'عرض الموظفين',
+    empFilterAll: 'الكل',
+    empFilterOwes: 'مدين للشركة',
+    empFilterCompanyOwes: 'الشركة مدينة له',
+    empFilterSettled: 'مسوّى',
+    viewStatement: 'عرض الكشف',
+    employeeOptions: 'خيارات الموظف',
+    noEmployeesMatch: 'لا يوجد موظف مطابق',
     qaAdvance: 'أعطِ سلفة',
     qaAsk: 'اطلب ميزانية',
     promoTitle: 'ادعُ فريقك',
