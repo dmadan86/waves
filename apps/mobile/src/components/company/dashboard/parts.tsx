@@ -8,6 +8,7 @@
 import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams } from 'expo-router';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -21,6 +22,7 @@ import {
 import { Sheet, Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves/ui';
 
 import { BUILDING_ART } from './art';
+import { ReportCompanySheet, SuspendedBanner } from '@/components/company/SuspendedBanner';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -28,7 +30,7 @@ import { StandardCard } from '@/components/standard';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { useCompanyTags } from '@/data/companyTags';
-import { useCompanyProjects, type CompanyView } from '@/data/companyEntries';
+import { useCompanyProjects, useCompanySuspended, type CompanyView } from '@/data/companyEntries';
 import { useGroup, useGroups } from '@/data/hooks';
 import { displayName, type MemberRow, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
@@ -188,6 +190,7 @@ export function DashHeader({
   useHeroStatusBar(dark ? 'light' : 'dark');
   const [switching, setSwitching] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [reporting, setReporting] = useState(false);
   const groups = useGroups().data ?? [];
   const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
 
@@ -276,7 +279,7 @@ export function DashHeader({
           </Text>
           {pill ? <RolePill label={pill} /> : null}
         </View>
-        {voice ? (
+        {voice && !view.suspended ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t.company.voiceAdd}
@@ -301,6 +304,8 @@ export function DashHeader({
           </Pressable>
         ) : null}
       </View>
+      {view.suspended ? <SuspendedBanner /> : null}
+      <ReportCompanySheet groupId={groupId} visible={reporting} onClose={() => setReporting(false)} />
       <Sheet
         visible={switching}
         onClose={() => setSwitching(false)}
@@ -378,6 +383,11 @@ export function DashHeader({
             icon: 'download-outline',
             label: t.company.exportAction,
             route: `/group/${groupId}/export`,
+          },
+          {
+            icon: 'flag-outline',
+            label: t.company.reportCompany,
+            onPress: () => setReporting(true),
           },
         ]}
       />
@@ -541,18 +551,26 @@ export function StatTriple({
   );
 }
 
+/** The company screens live under /group/[id]: is that company suspended? */
+function useRouteCompanySuspended(): boolean {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return useCompanySuspended(id ?? '');
+}
+
 export function QuickActions({
   actions,
 }: {
   actions: readonly { icon: keyof typeof Ionicons.glyphMap; label: string; onPress: () => void }[];
 }) {
   const theme = useTheme();
+  const suspended = useRouteCompanySuspended();
   const tones = [
     [theme.color.brandSoft, theme.color.brand],
     [BLUE_SOFT, BLUE],
     [GREEN_SOFT, GREEN],
     [ORANGE_SOFT, ORANGE],
   ] as const;
+  if (suspended) return null;
   return (
     <StandardCard style={{ flexDirection: 'row', paddingHorizontal: 6, paddingVertical: 12 }}>
       {actions.map((a, i) => (
@@ -596,6 +614,7 @@ export function InviteBanner({
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
+  if (useRouteCompanySuspended()) return null;
   return (
     <Pressable
       accessibilityRole="button"

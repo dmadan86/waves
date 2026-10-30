@@ -6,6 +6,7 @@
  * is shown as paid and cannot be ticked, so the server never has to refuse.
  */
 
+import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
@@ -59,7 +60,7 @@ function spanRange(span: Span, today: string): { start: string; end: string } {
   return { start: `${today.slice(0, 8)}01`, end: today };
 }
 
-export default function CompanyWagesScreen() {
+function CompanyWagesScreenInner() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
   const theme = useTheme();
@@ -400,5 +401,14 @@ export default function CompanyWagesScreen() {
         )}
       </View>
     </Screen>
+  );
+}
+
+export default function CompanyWagesScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return (
+    <SuspendedGate groupId={id ?? ''}>
+      <CompanyWagesScreenInner />
+    </SuspendedGate>
   );
 }

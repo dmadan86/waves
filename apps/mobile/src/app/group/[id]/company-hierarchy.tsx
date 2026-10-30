@@ -1,5 +1,6 @@
 /** Owners, their managers and each manager's team in one tree. Tap a person to manage them. */
 
+import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { ScrollView } from 'react-native';
 
 import { Screen, Text } from '@waves/ui';
@@ -20,7 +21,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useLocalSearchParams } from 'expo-router';
 
-export default function CompanyHierarchyScreen() {
+function CompanyHierarchyScreenInner() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
   const { t, locale } = useStrings();
@@ -83,5 +84,14 @@ export default function CompanyHierarchyScreen() {
         </ScenicBody>
       </ScrollView>
     </Screen>
+  );
+}
+
+export default function CompanyHierarchyScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return (
+    <SuspendedGate groupId={id ?? ''}>
+      <CompanyHierarchyScreenInner />
+    </SuspendedGate>
   );
 }

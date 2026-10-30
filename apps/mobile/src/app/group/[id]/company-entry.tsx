@@ -5,6 +5,7 @@
  * The server recomputes bata and checks who may write what.
  */
 
+import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { useState } from 'react';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { randomUUID } from 'expo-crypto';
@@ -76,7 +77,7 @@ type Direction = 'company_to_employee' | 'employee_to_company';
 
 const INDUSTRY_OPTIONS: readonly CompanyIndustry[] = ['construction', 'transport', 'field_sales'];
 
-export default function CompanyEntryScreen() {
+function CompanyEntryScreenInner() {
   const {
     id,
     member: memberParam,
@@ -1012,5 +1013,14 @@ export default function CompanyEntryScreen() {
         }}
       />
     </View>
+  );
+}
+
+export default function CompanyEntryScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return (
+    <SuspendedGate groupId={id ?? ''}>
+      <CompanyEntryScreenInner />
+    </SuspendedGate>
   );
 }
