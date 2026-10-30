@@ -68,39 +68,22 @@ export function AttendanceRow({
   return (
     <View
       style={{
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 10,
+        gap: 8,
         padding: 12,
         borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
         borderBottomColor: theme.color.border,
       }}
     >
-      <PersonAvatar member={member} name={name} ghost={ghost} size={42} />
-      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
-        <Text numberOfLines={2} style={{ fontWeight: '700' }}>
-          {name}
-        </Text>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {subtitle}
-        </Text>
-        {chip ? (
-          <View
-            style={{
-              alignSelf: 'flex-start',
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: theme.radius.pill,
-              backgroundColor: theme.color.surfaceMuted,
-            }}
-          >
-            <Text variant="micro" tone="muted" numberOfLines={1}>
-              {chip}
-            </Text>
-          </View>
-        ) : null}
-      </View>
-      <View style={{ alignItems: 'flex-end', gap: 8 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+        <PersonAvatar member={member} name={name} ghost={ghost} size={42} />
+        <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+          <Text numberOfLines={2} style={{ fontWeight: '700' }}>
+            {name}
+          </Text>
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
           <Pressable
             accessibilityRole="button"
@@ -147,6 +130,32 @@ export function AttendanceRow({
             <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.textMuted} />
           </Pressable>
         </View>
+      </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 6,
+          marginStart: 52,
+        }}
+      >
+        {chip ? (
+          <View
+            style={{
+              alignSelf: 'flex-start',
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.surfaceMuted,
+            }}
+          >
+            <Text variant="micro" tone="muted" numberOfLines={1}>
+              {chip}
+            </Text>
+          </View>
+        ) : null}
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
             <Ionicons name="list-outline" size={14} color={theme.color.textMuted} />
