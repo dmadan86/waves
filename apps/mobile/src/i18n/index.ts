@@ -1442,6 +1442,7 @@ export interface UiStrings {
     barPeople: string;
     barPending: string;
     barMore: string;
+    barTeam: string;
     sectionOwners: string;
     moreBudgets: string;
     moreStatements: string;
@@ -8033,6 +8034,7 @@ const en: UiStrings = {
     barPeople: 'People',
     barPending: 'Pending',
     barMore: 'More',
+    barTeam: 'Team',
     sectionOwners: 'Owners',
     moreBudgets: 'Budgets & sites',
     moreStatements: 'Statements & export',
@@ -14078,6 +14080,7 @@ const ta: UiStrings = {
     barPeople: 'நபர்கள்',
     barPending: 'நிலுவை',
     barMore: 'மேலும்',
+    barTeam: 'குழு',
     sectionOwners: 'உரிமையாளர்கள்',
     moreBudgets: 'பட்ஜெட் & இடங்கள்',
     moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
@@ -20291,6 +20294,7 @@ const hi: UiStrings = {
     barPeople: 'लोग',
     barPending: 'लंबित',
     barMore: 'और',
+    barTeam: 'टीम',
     sectionOwners: 'मालिक',
     moreBudgets: 'बजट और साइट',
     moreStatements: 'स्टेटमेंट और निर्यात',
@@ -26410,6 +26414,7 @@ const ar: UiStrings = {
     barPeople: 'الأشخاص',
     barPending: 'المعلّقة',
     barMore: 'المزيد',
+    barTeam: 'الفريق',
     sectionOwners: 'المالكون',
     moreBudgets: 'الميزانيات والمواقع',
     moreStatements: 'الكشوف والتصدير',
