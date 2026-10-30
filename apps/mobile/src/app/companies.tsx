@@ -18,7 +18,7 @@ import { plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useViewerCompanyIds } from '@/lib/useCompanyTab';
-import type { GroupRow } from '@/data/hooks';
+import type { GroupRow } from '@/data/types';
 
 function Card({ group, current }: { group: GroupRow; current: boolean }) {
   const { t, locale } = useStrings();
