@@ -8,7 +8,6 @@ import {
   companyBarRoute,
   isCompanyMode,
   viewerRoleIn,
-  companyTabRoute,
   homeSecondActionKey,
   isCompanyTabRoot,
   reviewSlotKey,
@@ -73,14 +72,6 @@ describe('company tab destinations', () => {
     expect(homeSecondActionKey([])).toBe('settle');
     expect(homeSecondActionKey(['a'])).toBe('review');
     expect(homeSecondActionKey(['a', 'b'])).toBe('review');
-  });
-
-  it('routes zero, one and multiple companies', () => {
-    expect(companyTabRoute([])).toBeNull();
-    expect(companyTabRoute(['a'])).toBe('/group/a');
-    expect(companyTabRoute(['a', 'b'])).toBe('/companies');
-    expect(companyTabRoute(['a', 'b'], 'a')).toBe('/group/a');
-    expect(companyTabRoute(['a', 'b'], 'x')).toBe('/companies');
   });
 });
 

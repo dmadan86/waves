@@ -37,17 +37,6 @@ export function reviewSlotKey(companyIds: readonly string[]): 'company' | 'captu
   return companyIds.length > 0 ? 'company' : 'captures';
 }
 
-/** Opens the sole or currently open company directly, or the company list when there are several. */
-export function companyTabRoute(
-  companyIds: readonly string[],
-  openCompanyId: string | null = null,
-): string | null {
-  if (companyIds.length === 0) return null;
-  if (openCompanyId !== null && companyIds.includes(openCompanyId))
-    return `/group/${openCompanyId}`;
-  return companyIds.length === 1 ? `/group/${companyIds[0]}` : '/companies';
-}
-
 /** Highlights Company on its list and any of the viewer's company screens. */
 export function companyActiveKey(
   segments: readonly string[],

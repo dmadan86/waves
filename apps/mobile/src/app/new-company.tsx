@@ -25,6 +25,7 @@ import type { PickedImage } from '@/lib/image';
 import { uploadWhenAllowed } from '@/lib/logoUploadWhenReady';
 import { router } from '@/lib/navigation';
 import { useToast } from '@/lib/toast';
+import { useRememberSpace } from '@/lib/useSpaces';
 
 export default function NewCompanyScreen() {
   const theme = useTheme();
@@ -33,6 +34,7 @@ export default function NewCompanyScreen() {
   const defaultCurrency = useDefaultCurrency();
   const guard = useGuestGuard();
   const toast = useToast();
+  const remember = useRememberSpace();
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState<string | null>(null);
   const [pickingCur, setPickingCur] = useState(false);
@@ -70,6 +72,7 @@ export default function NewCompanyScreen() {
       }
       // Lands on the company Overview, which shows the invite-your-team card
       // until there is a team.
+      remember(groupId);
       router.replace(`/group/${groupId}`);
     } catch (caught) {
       if (caught instanceof AdGateCancelledError) return;

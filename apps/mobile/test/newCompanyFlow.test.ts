@@ -7,7 +7,7 @@ const read = (f: string): string => readFileSync(join(__dirname, '../src', f), '
 
 describe('create company flow', () => {
   it('every company create entry opens /new-company, never the group form', () => {
-    for (const f of ['app/companies.tsx', 'components/company/dashboard/parts.tsx']) {
+    for (const f of ['app/companies.tsx', 'components/SpaceSwitcher.tsx']) {
       const src = read(f);
       expect(src).toContain("router.push('/new-company')");
       expect(src).not.toContain('new-group');

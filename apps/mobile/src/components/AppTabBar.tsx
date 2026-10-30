@@ -54,7 +54,7 @@ import { useCaptures } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
 import { hapticLight } from '@/lib/assistantHaptics';
-import { useAuth } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
 import {
@@ -62,7 +62,6 @@ import {
   companyBackRoute,
   companyBarActiveKey,
   companyBarRoute,
-  companyTabRoute,
   isCompanyBarRoot,
   isCompanyMode,
   isCompanyTabRoot,
@@ -72,6 +71,7 @@ import { useCompanySuspended } from '@/data/companyEntries';
 import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, switchTab } from '@/lib/navigation';
+import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { pushToTalk } from '@/lib/pushToTalk';
 import {
   isPersonalMode,
@@ -180,6 +180,7 @@ export function AppTabBar() {
   // Company mode: an owner or manager inside their own company gets the company bar
   // (Home · Overview · People · Team · Payments · More) with an add button, no mic.
   const companyIds = useViewerCompanyIds();
+  const viewerId = useViewerId();
   const role = useViewerRole(groupId);
   const company = isCompanyMode(segments, groupId, companyIds, role);
   const alt = personal || company;
@@ -412,15 +413,17 @@ export function AppTabBar() {
         return;
       }
       if (key === 'company') {
-        const target = companyTabRoute(companyIds, activeKey === key ? groupId : null);
-        if (target && !(activeKey === key && isCompanyTabRoot(segments, groupId, companyIds)))
-          switchTab(target as never);
+        void readLastSpace(viewerId).then((last) => {
+          const target = companyTabTarget(companyIds, last);
+          if (target && !(activeKey === key && isCompanyTabRoot(segments, groupId, companyIds)))
+            switchTab(target as never);
+        });
         return;
       }
       const route = tabBarRouteForSelection(activeKey, key, isTabRoot(segments, key));
       if (route) switchTab(route);
     },
-    [activeKey, company, companyIds, groupId, personal, segments],
+    [activeKey, company, companyIds, groupId, personal, segments, viewerId],
   );
 
   // Nested Personal screens (entry, source, budgets, loans) pop their own stack.

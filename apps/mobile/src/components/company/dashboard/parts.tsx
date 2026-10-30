@@ -19,20 +19,18 @@ import {
   type CurrencyCode,
   type DashboardStats,
 } from '@waves/core';
-import { Sheet, Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves/ui';
+import { Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves/ui';
 
-import { BUILDING_ART } from './art';
 import { ReportCompanySheet, SuspendedBanner } from '@/components/company/SuspendedBanner';
-import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { SpacePill } from '@/components/SpaceSwitcher';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { StandardCard } from '@/components/standard';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { useCompanyTags } from '@/data/companyTags';
 import { useCompanyProjects, useCompanySuspended, type CompanyView } from '@/data/companyEntries';
-import { useGroup, useGroups } from '@/data/hooks';
-import { displayName, type MemberRow, type GroupRow } from '@/data/types';
+import { displayName, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useCompanyActivityDot } from '@/data/companyActivity';
 import { showDate } from '@/lib/expenseDay';
@@ -224,11 +222,8 @@ export function DashHeader({
   const insets = useSafeAreaInsets();
   const dark = theme.scheme === 'dark';
   useHeroStatusBar(dark ? 'light' : 'dark');
-  const [switching, setSwitching] = useState(false);
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
-  const groups = useGroups().data ?? [];
-  const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
 
   const sky = dark
     ? [theme.color.bg, theme.color.surfaceMuted]
@@ -283,22 +278,9 @@ export function DashHeader({
               onPress={onBack ?? (() => router.back())}
             />
           )}
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${view.name || t.extras.typeCompany}, ${t.company.switchCompany}`}
-            onPress={() => setSwitching(true)}
-            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}
-          >
-            <Text
-              variant="heading"
-              accessibilityRole="header"
-              numberOfLines={1}
-              style={{ fontSize: overview ? 28 : 22, fontWeight: '800', flexShrink: 1 }}
-            >
-              {view.name || t.extras.typeCompany}
-            </Text>
-            <Ionicons name="chevron-down" size={iconSize.md} color={theme.color.text} />
-          </Pressable>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <SpacePill current={groupId} label={view.name || t.extras.typeCompany} />
+          </View>
           {overview ? <OverviewBell groupId={groupId} /> : null}
           {showGear ? (
             <IconButton
@@ -368,75 +350,6 @@ export function DashHeader({
         visible={reporting}
         onClose={() => setReporting(false)}
       />
-      <Sheet
-        visible={switching}
-        onClose={() => setSwitching(false)}
-        closeLabel={t.common.close}
-        title={t.company.switchCompany}
-        titleAction={
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setSwitching(false);
-              router.push('/new-company');
-            }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-              borderRadius: theme.radius.pill,
-              padding: 10,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Ionicons name="add-circle" size={18} color={theme.color.brand} />
-            <Text variant="caption" style={{ color: theme.color.brand }}>
-              {t.company.createCompanyNew}
-            </Text>
-          </Pressable>
-        }
-      >
-        <ScrollView contentContainerStyle={{ gap: 10 }}>
-          <Text variant="caption" tone="muted" style={{ marginBottom: 6 }}>
-            {t.company.switchCompanyBody}
-          </Text>
-          {companies.map((g) => (
-            <CompanySwitchRow
-              key={g.id}
-              group={g}
-              current={g.id === groupId}
-              onPress={() => {
-                setSwitching(false);
-                if (g.id !== groupId) router.replace(`/group/${g.id}`);
-              }}
-            />
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setSwitching(false);
-              router.push(`/companies?current=${groupId}`);
-            }}
-            style={{
-              marginTop: 12,
-              padding: 16,
-              borderRadius: theme.radius.lg,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Ionicons name="settings-outline" size={22} color={theme.color.brand} />
-            <Text style={{ flex: 1, color: theme.color.brand }}>{t.company.manageCompanies}</Text>
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={20}
-              color={theme.color.brand}
-            />
-          </Pressable>
-        </ScrollView>
-      </Sheet>
       <OverflowMenu
         visible={menu}
         onClose={() => setMenu(false)}
@@ -1045,53 +958,4 @@ export function useCompanyCounts() {
       plural(locale, live.filter((m) => m.role === 'admin').length, t.company.ownerCount),
     ].join(' · ');
   };
-}
-
-function CompanySwitchRow({
-  group,
-  current,
-  onPress,
-}: {
-  group: GroupRow;
-  current: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const { members } = useGroup(group.id);
-  const counts = useCompanyCounts();
-  const logo = useGroupPhotoUrl(group.photo_path);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: current }}
-      onPress={onPress}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        padding: 12,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: current ? theme.color.brand : theme.color.border,
-        backgroundColor: current ? theme.color.brandSoft : theme.color.surface,
-      }}
-    >
-      <Image
-        source={logo ? { uri: logo } : BUILDING_ART}
-        style={{ width: 54, height: 54, borderRadius: 12 }}
-      />
-      <View style={{ flex: 1, gap: 4 }}>
-        <Text style={{ fontWeight: '700' }}>{group.name || t.extras.typeCompany}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Ionicons name="people-outline" size={14} color={theme.color.textMuted} />
-          <Text variant="micro" tone="muted" style={{ flex: 1 }}>
-            {counts(members.data ?? [])}
-          </Text>
-        </View>
-      </View>
-      {current ? <Ionicons name="checkmark-circle" size={24} color={theme.color.brand} /> : null}
-      <Ionicons name={directionalIcon('chevron-forward')} size={20} color={theme.color.textMuted} />
-    </Pressable>
-  );
 }
