@@ -2439,7 +2439,12 @@ function companyDocData(value: unknown): Record<string, unknown> {
     customerPhone: companyReason(d.customerPhone ?? null, 'customerPhone', false),
     docDate: companyDate(d.docDate, 'docDate'),
     discountMinor: companyDecimal(d.discountMinor ?? '0', 'discountMinor'),
-    notes: companyReason(d.notes ?? null, 'notes', false),
+    notes:
+      d.notes === null || d.notes === undefined || d.notes === ''
+        ? null
+        : typeof d.notes === 'string' && d.notes.trim().length <= 1000
+          ? d.notes.trim() || null
+          : companyInvalid('notes'),
     items: (items as unknown[]).map((raw) => {
       if (!raw || typeof raw !== 'object' || Array.isArray(raw)) companyInvalid('items');
       const i = raw as Record<string, unknown>;

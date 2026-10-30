@@ -2404,6 +2404,7 @@ export function materialiseCompanyDocs(
           ...ex,
           id: p.billId,
           docType: 'bill',
+          docDate: mutation.clientCreatedAt.slice(0, 10),
           number: null,
           status: 'unpaid',
           payments: [],
