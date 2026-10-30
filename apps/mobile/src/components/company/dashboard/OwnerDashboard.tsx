@@ -386,11 +386,6 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                           label: t.company.viewStatement,
                           onPress: () => thread(m.id),
                         },
-                        {
-                          icon: 'cash-outline',
-                          label: t.company.recordPayment,
-                          onPress: () => router.push(`/group/${groupId}/company-wages`),
-                        },
                       ]}
                       onPress={() => thread(m.id)}
                       divider={i < shownEmployees.length - 1}
