@@ -457,6 +457,11 @@ export default function NewGroupScreen() {
     // from the local mirror, and putting the writes in a callback keeps the
     // React Compiler's no-synchronous-setState-in-effect rule satisfied (the
     // same shape GroupPhoto's signed-URL fetch uses).
+    // A company is not cloned through the group form.
+    if (group.type === GroupType.Company) {
+      router.replace('/new-company');
+      return;
+    }
     void Promise.resolve().then(() => {
       setName(group.name ? fill(t.clone.copyOf, { name: group.name }) : '');
       // The description comes across as-is. It describes what the group is for,
