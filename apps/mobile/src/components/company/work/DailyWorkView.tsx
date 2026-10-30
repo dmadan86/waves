@@ -1,5 +1,5 @@
 import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { Pressable, ScrollView, View } from 'react-native';
 import type { CompanyWorkSetPayload } from '@waves/core';
@@ -45,7 +45,16 @@ function payload(task: MirrorWorkTask): Payload {
   };
 }
 
-export default function DailyWorkView({ groupId: id }: { groupId: string }) {
+export default function DailyWorkView({
+  groupId: id,
+  header,
+  segment,
+}: {
+  groupId: string;
+  header?: ReactNode;
+  /** The Attendance | Daily work switch, first in the body. */
+  segment?: ReactNode;
+}) {
   const access = useWorkdayAccess(id);
   const tasks = useWorkTasks(id);
   const projects = useCompanyProjects(id);
@@ -193,7 +202,9 @@ export default function DailyWorkView({ groupId: id }: { groupId: string }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {header}
         <ScenicBody>
+          {segment}
           <ReadOnlyWhenSuspended groupId={id}>
             {!access.enabled ? (
               <Text tone="muted">{t.company.attendanceEmpty}</Text>

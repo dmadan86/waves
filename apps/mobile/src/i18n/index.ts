@@ -1454,6 +1454,21 @@ export interface UiStrings {
     attendanceDepartment: string;
     workToday: string;
     attendanceNote: string;
+    attendanceHalfDay: string;
+    attendanceMark: string;
+    attendanceClear: string;
+    attendanceVsYesterday: string;
+    attendanceFilters: string;
+    attendanceStatus: string;
+    attendanceNotMarked: string;
+    attendancePickDate: string;
+    attendanceMore: string;
+    attendanceDailyView: string;
+    attendanceWeeklyView: string;
+    attendanceMonthlyView: string;
+    attendanceSetStatus: string;
+    attendanceTasks: PluralForms;
+    attendanceSubtitle: PluralForms;
     attendanceSummary: PluralForms;
     attendancePreviousMonth: string;
     attendanceNextMonth: string;
@@ -8213,6 +8228,21 @@ const en: UiStrings = {
     attendanceDepartment: 'Department',
     workToday: 'Today',
     attendanceNote: 'Add note',
+    attendanceHalfDay: 'Half day',
+    attendanceMark: 'Mark',
+    attendanceClear: 'Clear',
+    attendanceVsYesterday: '{delta} vs yesterday',
+    attendanceFilters: 'Filters',
+    attendanceStatus: 'Status',
+    attendanceNotMarked: 'Not marked',
+    attendancePickDate: 'Pick a date',
+    attendanceMore: 'More options',
+    attendanceDailyView: 'Daily view',
+    attendanceWeeklyView: 'Weekly view',
+    attendanceMonthlyView: 'Monthly view',
+    attendanceSetStatus: 'Mark attendance',
+    attendanceTasks: { one: '{n} task', other: '{n} tasks' },
+    attendanceSubtitle: { one: '{company} · {n} employee', other: '{company} · {n} employees' },
     attendanceSummary: { one: '{n} day present', other: '{n} days present' },
     attendancePreviousMonth: 'Previous month',
     attendanceNextMonth: 'Next month',
@@ -14430,6 +14460,21 @@ const ta: UiStrings = {
     attendanceDepartment: 'துறை',
     workToday: 'இன்று',
     attendanceNote: 'குறிப்பு சேர்க்க',
+    attendanceHalfDay: 'அரை நாள்',
+    attendanceMark: 'குறி',
+    attendanceClear: 'நீக்கு',
+    attendanceVsYesterday: '{delta} நேற்றை விட',
+    attendanceFilters: 'வடிகட்டிகள்',
+    attendanceStatus: 'நிலை',
+    attendanceNotMarked: 'குறிக்கப்படவில்லை',
+    attendancePickDate: 'தேதியைத் தேர்ந்தெடுக்கவும்',
+    attendanceMore: 'மேலும் விருப்பங்கள்',
+    attendanceDailyView: 'தினசரி பார்வை',
+    attendanceWeeklyView: 'வாராந்திர பார்வை',
+    attendanceMonthlyView: 'மாதாந்திர பார்வை',
+    attendanceSetStatus: 'வருகையைக் குறிக்கவும்',
+    attendanceTasks: { other: '{n} பணிகள்' },
+    attendanceSubtitle: { other: '{company} · {n} பணியாளர்கள்' },
     attendanceSummary: { other: '{n} நாட்கள் வருகை' },
     attendancePreviousMonth: 'முந்தைய மாதம்',
     attendanceNextMonth: 'அடுத்த மாதம்',
@@ -20814,6 +20859,21 @@ const hi: UiStrings = {
     attendanceDepartment: 'विभाग',
     workToday: 'आज',
     attendanceNote: 'नोट जोड़ें',
+    attendanceHalfDay: 'आधा दिन',
+    attendanceMark: 'चिह्नित करें',
+    attendanceClear: 'हटाएँ',
+    attendanceVsYesterday: '{delta} कल के मुकाबले',
+    attendanceFilters: 'फ़िल्टर',
+    attendanceStatus: 'स्थिति',
+    attendanceNotMarked: 'चिह्नित नहीं',
+    attendancePickDate: 'तारीख़ चुनें',
+    attendanceMore: 'और विकल्प',
+    attendanceDailyView: 'दैनिक दृश्य',
+    attendanceWeeklyView: 'साप्ताहिक दृश्य',
+    attendanceMonthlyView: 'मासिक दृश्य',
+    attendanceSetStatus: 'हाज़िरी लगाएँ',
+    attendanceTasks: { other: '{n} कार्य' },
+    attendanceSubtitle: { other: '{company} · {n} कर्मचारी' },
     attendanceSummary: { other: '{n} दिन हाज़िर' },
     attendancePreviousMonth: 'पिछला महीना',
     attendanceNextMonth: 'अगला महीना',
@@ -27085,6 +27145,35 @@ const ar: UiStrings = {
     attendanceDepartment: 'القسم',
     workToday: 'اليوم',
     attendanceNote: 'إضافة ملاحظة',
+    attendanceHalfDay: 'نصف يوم',
+    attendanceMark: 'تسجيل',
+    attendanceClear: 'مسح',
+    attendanceVsYesterday: '{delta} مقارنة بالأمس',
+    attendanceFilters: 'عوامل التصفية',
+    attendanceStatus: 'الحالة',
+    attendanceNotMarked: 'غير مسجل',
+    attendancePickDate: 'اختيار التاريخ',
+    attendanceMore: 'خيارات أخرى',
+    attendanceDailyView: 'عرض يومي',
+    attendanceWeeklyView: 'عرض أسبوعي',
+    attendanceMonthlyView: 'عرض شهري',
+    attendanceSetStatus: 'تسجيل الحضور',
+    attendanceTasks: {
+      zero: '{n} مهمة',
+      one: 'مهمة واحدة',
+      two: 'مهمتان',
+      few: '{n} مهام',
+      many: '{n} مهمة',
+      other: '{n} مهمة',
+    },
+    attendanceSubtitle: {
+      zero: '{company} · لا موظفين',
+      one: '{company} · موظف واحد',
+      two: '{company} · موظفان',
+      few: '{company} · {n} موظفين',
+      many: '{company} · {n} موظفًا',
+      other: '{company} · {n} موظف',
+    },
     attendanceSummary: {
       one: 'يوم حضور واحد',
       two: 'يوما حضور',
