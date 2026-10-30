@@ -379,8 +379,6 @@ export function DashHeader({
         visible={menu}
         onClose={() => setMenu(false)}
         items={[
-<<<<<<< HEAD
-=======
           ...(showGear
             ? [
                 {
@@ -390,20 +388,16 @@ export function DashHeader({
                 } as OverflowMenuItem,
               ]
             : []),
->>>>>>> origin/fix/company-settings-menu
           {
             icon: 'download-outline',
             label: t.company.exportAction,
             route: `/group/${groupId}/export`,
           },
-<<<<<<< HEAD
           {
             icon: 'flag-outline',
             label: t.company.reportCompany,
             onPress: () => setReporting(true),
           },
-=======
->>>>>>> origin/fix/company-settings-menu
         ]}
       />
     </>
