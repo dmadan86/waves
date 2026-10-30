@@ -9,6 +9,7 @@ import { useState } from 'react';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { randomUUID } from 'expo-crypto';
 import { useLocalSearchParams } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import {
   Keyboard,
@@ -40,10 +41,17 @@ import {
   type CurrencyCode,
   type PolicyFlag,
 } from '@waves/core';
-import { AmountField, Button, ChipRow, Text, useTheme } from '@waves/ui';
+import { AmountField, Button, ChipRow, iconSize, Text, useTheme } from '@waves/ui';
 
 import { ScenicBody, ScenicHeader, StandardCard, PillButton } from '@/components/standard';
-import { CompanyTagChips } from '@/components/company/CompanyTagChips';
+import {
+  DashedRow,
+  FieldLabel,
+  KindTile,
+  SaveButton,
+  SelectField,
+  TagGrid,
+} from '@/components/company/EntryForm';
 import { CompanyTagsSheet } from '@/components/company/CompanyTagsSheet';
 import { useCompanyTags } from '@/data/companyTags';
 import {
@@ -61,7 +69,7 @@ import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
-import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
+import { dateFrom, isoDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 
 type Direction = 'company_to_employee' | 'employee_to_company';
@@ -88,7 +96,6 @@ export default function CompanyEntryScreen() {
   const projects = useCompanyProjects(groupId).filter((p) => !p.archived_at);
   const [projectId, setProjectId] = useState<string | null>(null);
   const [pickedKind, setKind] = useState<CompanyEntryKind | null>(null);
-  const [moreKinds, setMoreKinds] = useState(false);
   const [memberId, setMemberId] = useState<string | null>(memberParam ?? null);
   const employee = view.members.find((m) => m.id === (memberId ?? view.me?.id)) ?? view.me;
   // A manager's own entries are expense / bata only; money to the team comes from their pool.
@@ -175,7 +182,6 @@ export default function CompanyEntryScreen() {
         )
       : [];
   const blocked = flags.find((f) => f.effect === 'block');
-  const needsReceipt = flags.some((f) => f.code === 'RECEIPT');
   const duplicate =
     employee && kind === 'expense' && total > 0n
       ? findDuplicateEntry(
@@ -378,6 +384,74 @@ export default function CompanyEntryScreen() {
     }
   };
 
+  const giveSel = kind === 'advance' || kind === 'reimbursement';
+  const tiles = moneyKinds
+    ? [
+        {
+          id: 'give',
+          icon: 'swap-horizontal' as const,
+          title: t.company.kindGive,
+          sub: t.company.kindSubGive,
+          selected: giveSel,
+        },
+        {
+          id: 'expense',
+          icon: 'document-text-outline' as const,
+          title: t.company.theySpent,
+          sub: t.company.kindSubSpent,
+          selected: kind === 'expense',
+        },
+        {
+          id: 'wages',
+          icon: 'people' as const,
+          title: t.company.paidWagesVerb,
+          sub: t.company.kindSubWages,
+          selected: kind === 'wages',
+        },
+      ]
+    : [
+        {
+          id: 'expense',
+          icon: 'document-text-outline' as const,
+          title: t.company.iSpent,
+          sub: t.company.kindSubSpent,
+          selected: kind === 'expense',
+        },
+        {
+          id: 'allowance',
+          icon: 'calendar-outline' as const,
+          title: kindLabel.allowance,
+          sub: t.company.kindSubAllowance,
+          selected: kind === 'allowance',
+        },
+      ];
+  const otherKinds = moneyKinds ? kinds.filter((k) => k === 'allowance' || k === 'wages') : [];
+  const hasMore = otherKinds.length > 0 || projects.length > 0 || showGst;
+  const canPickPerson = view.isAdmin && view.members.filter((m) => !m.left_at).length > 1;
+  const dateText = dateFrom(date).toLocaleDateString(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+  const photoRoom = photos.length < MAX_COMPANY_PHOTOS;
+  const pickPhoto = async (): Promise<void> => {
+    const source = await choose({
+      title: t.company.photos,
+      options: [
+        { id: 'camera', label: t.company.takePhoto },
+        { id: 'library', label: t.company.choosePhoto },
+      ],
+    });
+    if (source) void addPhoto(source as 'camera' | 'library');
+  };
+  const lineInput = {
+    color: theme.color.text,
+    fontSize: 16,
+    paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.color.border,
+  } as const;
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <KeyboardAvoidingView
@@ -391,80 +465,43 @@ export default function CompanyEntryScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ScenicHeader title={t.company.addEntry} />
+          <ScenicHeader title={t.company.addEntry} subtitle={view.name} circleBack />
           <ScenicBody>
             {intro === '1' ? (
               <Text variant="caption" tone="muted">
                 {t.company.introPrivacy}
               </Text>
             ) : null}
-            <StandardCard style={{ gap: theme.spacing.md }}>
-              <ChipRow
-                wrap
-                onCard
-                options={[
-                  ...(moneyKinds
-                    ? [
-                        { value: 'advance' as string, label: t.company.gaveMoney },
-                        { value: 'expense' as string, label: t.company.theySpent },
-                        { value: '__wages', label: t.company.paidWagesVerb },
-                      ]
-                    : [
-                        { value: 'expense' as string, label: t.company.iSpent },
-                        { value: 'allowance' as string, label: kindLabel.allowance },
-                      ]),
-                  ...(moneyKinds ? [{ value: '__more', label: t.company.moreOptions }] : []),
-                ]}
-                value={moreKinds ? '__more' : kind}
-                onChange={(next) => {
-                  if (next === '__wages') {
-                    router.push(`/group/${groupId}/company-wages`);
-                  } else if (next === '__more') setMoreKinds((on) => !on);
-                  else {
-                    setMoreKinds(false);
-                    setKind(next as CompanyEntryKind);
-                  }
-                }}
-              />
-              {moreKinds ? (
-                <ChipRow
-                  wrap
-                  onCard
-                  options={kinds
-                    .filter((value) => !['advance', 'expense'].includes(value))
-                    .map((value) => ({ value, label: kindLabel[value] }))}
-                  value={kind}
-                  onChange={setKind}
+            <StandardCard style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+              {tiles.map((tile) => (
+                <KindTile
+                  key={tile.id}
+                  icon={tile.icon}
+                  title={tile.title}
+                  sub={tile.sub}
+                  selected={tile.selected}
+                  onPress={() => {
+                    if (tile.id === 'wages') router.push(`/group/${groupId}/company-wages`);
+                    else if (tile.id === 'give') setKind(giveSel ? kind : 'advance');
+                    else setKind(tile.id as CompanyEntryKind);
+                  }}
                 />
-              ) : null}
-              {projects.length > 0 ? (
+              ))}
+            </StandardCard>
+
+            <StandardCard style={{ gap: theme.spacing.md }}>
+              {giveSel ? (
                 <ChipRow
                   wrap
                   onCard
                   options={[
-                    { value: '', label: t.company.noSite },
-                    ...projects.map((p) => ({ value: p.id, label: p.name })),
+                    { value: 'advance' as CompanyEntryKind, label: kindLabel.advance },
+                    { value: 'reimbursement' as CompanyEntryKind, label: kindLabel.reimbursement },
                   ]}
-                  value={projectId ?? ''}
-                  onChange={(next) => setProjectId(next || null)}
+                  value={kind}
+                  onChange={setKind}
                 />
               ) : null}
-              {view.isAdmin && view.members.filter((m) => !m.left_at).length > 1 ? (
-                <PillButton
-                  label={
-                    employee
-                      ? fill(t.company.forPerson, {
-                          name: displayName(employee, null, null, t.misc.someone),
-                        })
-                      : t.company.formEmployee
-                  }
-                  icon="person-outline"
-                  onPress={() => void pickEmployee()}
-                />
-              ) : null}
-            </StandardCard>
-
-            <StandardCard style={{ gap: theme.spacing.md }}>
               {kind === 'wages' ? (
                 <ChipRow
                   wrap
@@ -493,25 +530,15 @@ export default function CompanyEntryScreen() {
 
               {byKm ? (
                 <>
-                  <Text variant="caption" tone="muted">
-                    {t.company.formDistance}
-                  </Text>
+                  <FieldLabel>{t.company.formDistance}</FieldLabel>
                   <TextInput
                     value={distance}
                     onChangeText={(text) => setDistance(normaliseDecimalInput(text))}
                     keyboardType="decimal-pad"
                     accessibilityLabel={t.company.formDistance}
-                    style={{
-                      color: theme.color.text,
-                      fontSize: 20,
-                      paddingVertical: theme.spacing.sm,
-                      borderBottomWidth: 1,
-                      borderBottomColor: theme.color.border,
-                    }}
+                    style={{ ...lineInput, fontSize: 20 }}
                   />
-                  <Text variant="caption" tone="muted">
-                    {t.company.formRatePerKm}
-                  </Text>
+                  <FieldLabel>{t.company.formRatePerKm}</FieldLabel>
                   <AmountField
                     currency={currency}
                     value={perKm ?? 0n}
@@ -528,13 +555,7 @@ export default function CompanyEntryScreen() {
                       placeholderTextColor={theme.color.textMuted}
                       maxLength={120}
                       accessibilityLabel={which === 'from' ? t.company.formFrom : t.company.formTo}
-                      style={{
-                        color: theme.color.text,
-                        fontSize: 16,
-                        paddingVertical: theme.spacing.sm,
-                        borderBottomWidth: 1,
-                        borderBottomColor: theme.color.border,
-                      }}
+                      style={lineInput}
                     />
                   ))}
                   <Text variant="body" style={{ fontWeight: '700' }}>
@@ -543,25 +564,15 @@ export default function CompanyEntryScreen() {
                 </>
               ) : byDays ? (
                 <>
-                  <Text variant="caption" tone="muted">
-                    {t.company.formDays}
-                  </Text>
+                  <FieldLabel>{t.company.formDays}</FieldLabel>
                   <TextInput
                     value={days}
                     onChangeText={(text) => setDays(normaliseDecimalInput(text))}
                     keyboardType="decimal-pad"
                     accessibilityLabel={t.company.formDays}
-                    style={{
-                      color: theme.color.text,
-                      fontSize: 20,
-                      paddingVertical: theme.spacing.sm,
-                      borderBottomWidth: 1,
-                      borderBottomColor: theme.color.border,
-                    }}
+                    style={{ ...lineInput, fontSize: 20 }}
                   />
-                  <Text variant="caption" tone="muted">
-                    {t.company.formRate}
-                  </Text>
+                  <FieldLabel>{t.company.formRate}</FieldLabel>
                   <AmountField
                     currency={currency}
                     value={rate}
@@ -575,28 +586,47 @@ export default function CompanyEntryScreen() {
                 </>
               ) : (
                 <>
-                  <AmountField
-                    key={formKey}
-                    autoFocus
-                    currency={currency}
-                    value={amount}
-                    onChange={setAmount}
-                    size="compact"
-                    framed
-                  />
+                  <FieldLabel>{t.company.formAmount}</FieldLabel>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <AmountField
+                        key={formKey}
+                        autoFocus
+                        currency={currency}
+                        value={amount}
+                        onChange={setAmount}
+                        size="hero"
+                        framed
+                      />
+                    </View>
+                    <View
+                      style={{
+                        height: 44,
+                        justifyContent: 'center',
+                        paddingHorizontal: theme.spacing.md,
+                        borderRadius: theme.radius.lg,
+                        backgroundColor: theme.color.surfaceMuted,
+                      }}
+                    >
+                      <Text variant="caption" style={{ fontWeight: '700' }}>
+                        {currency}
+                      </Text>
+                    </View>
+                  </View>
                 </>
               )}
 
               {kind === 'expense' ? (
                 <>
-                  <CompanyTagChips
+                  <FieldLabel>{t.company.formCategory}</FieldLabel>
+                  <TagGrid
                     tags={tags.ranked.map((tag) => ({ key: tag.key, label: tag.label }))}
                     value={category}
                     onChange={setPickedTag}
-                    onCreate={tags.add}
                     onMore={() => setTagsOpen(true)}
-                    canAdd={!!view.me}
-                    showMore={view.isOwner || tags.ranked.length > 6}
+                    moreLabel={t.company.tagAll}
                   />
                   {unit && !byKm ? (
                     <View
@@ -609,17 +639,22 @@ export default function CompanyEntryScreen() {
                         placeholder={t.company.qtyPh}
                         placeholderTextColor={theme.color.textMuted}
                         accessibilityLabel={t.company.qtyPh}
-                        style={{
-                          flex: 1,
-                          color: theme.color.text,
-                          fontSize: 16,
-                          paddingVertical: theme.spacing.sm,
-                          borderBottomWidth: 1,
-                          borderBottomColor: theme.color.border,
-                        }}
+                        style={{ ...lineInput, flex: 1 }}
                       />
                       <Text variant="body">{unit}</Text>
                     </View>
+                  ) : null}
+                  {category === 'fuel' || category === 'transport' ? (
+                    <ChipRow
+                      wrap
+                      onCard
+                      options={[
+                        { value: 'typed', label: t.company.wagesTyped },
+                        { value: 'km', label: t.company.kMileage },
+                      ]}
+                      value={mileage ? 'km' : 'typed'}
+                      onChange={(value) => setMileage(value === 'km')}
+                    />
                   ) : null}
                 </>
               ) : null}
@@ -637,9 +672,14 @@ export default function CompanyEntryScreen() {
                   {`! ${t.company.dupHint}`}
                 </Text>
               ) : null}
-              <PillButton
-                label={date === todayIso() ? t.company.today : showDate(date, locale)}
+
+              <FieldLabel>{t.company.formDate}</FieldLabel>
+              <SelectField
                 icon="calendar-outline"
+                label={t.company.formDate}
+                text={
+                  date === todayIso() ? fill(t.company.todayDate, { date: dateText }) : dateText
+                }
                 onPress={openDate}
               />
               {Platform.OS === 'ios' && pickingDate ? (
@@ -653,26 +693,126 @@ export default function CompanyEntryScreen() {
                 />
               ) : null}
 
-              {kind === 'expense' && (category === 'fuel' || category === 'transport') ? (
-                <ChipRow
-                  wrap
-                  onCard
-                  options={[
-                    { value: 'typed', label: t.company.wagesTyped },
-                    { value: 'km', label: t.company.kMileage },
-                  ]}
-                  value={mileage ? 'km' : 'typed'}
-                  onChange={(value) => setMileage(value === 'km')}
+              <FieldLabel>
+                {kind === 'expense' || kind === 'allowance'
+                  ? t.company.paidBy
+                  : t.company.formEmployee}
+              </FieldLabel>
+              <SelectField
+                icon="person-outline"
+                label={t.company.paidBy}
+                text={
+                  employee
+                    ? displayName(employee, null, null, t.misc.someone)
+                    : t.company.selectPerson
+                }
+                placeholder={!employee}
+                onPress={canPickPerson ? () => void pickEmployee() : undefined}
+              />
+
+              <FieldLabel>{t.company.notesLabel}</FieldLabel>
+              <SelectField
+                icon="document-text-outline"
+                label={t.company.formNote}
+                trailing={
+                  photoRoom ? (
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.company.takePhoto}
+                      onPress={() => void addPhoto('camera')}
+                      style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 17,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.color.brandSoft,
+                      }}
+                    >
+                      <Ionicons name="camera" size={iconSize.base} color={theme.color.brand} />
+                    </Pressable>
+                  ) : null
+                }
+                input={
+                  <TextInput
+                    value={note}
+                    onChangeText={setNote}
+                    placeholder={t.company.notePh}
+                    placeholderTextColor={theme.color.textMuted}
+                    maxLength={500}
+                    accessibilityLabel={t.company.formNote}
+                    style={{
+                      flex: 1,
+                      color: theme.color.text,
+                      fontSize: 16,
+                      paddingVertical: theme.spacing.sm,
+                    }}
+                  />
+                }
+              />
+              {photos.length > 0 ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {photos.map((photo, index) => (
+                    <Pressable
+                      key={photo.uri}
+                      accessibilityRole="button"
+                      accessibilityLabel={t.company.removePhoto}
+                      onPress={() => setPhotos((current) => current.filter((_, i) => i !== index))}
+                      style={{ marginRight: theme.spacing.sm }}
+                    >
+                      <Image
+                        source={{ uri: photo.uri }}
+                        style={{ width: 64, height: 64, borderRadius: theme.radius.md }}
+                        contentFit="cover"
+                      />
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              ) : null}
+              {photoRoom ? (
+                <DashedRow
+                  icon="attach"
+                  label={t.company.addReceipt}
+                  onPress={() => void pickPhoto()}
                 />
               ) : null}
-              <PillButton
-                label={t.company.moreOpen}
-                icon={moreOpen || needsReceipt ? 'chevron-up-outline' : 'chevron-down-outline'}
-                chevron={false}
-                onPress={() => setMoreOpen((open) => !open)}
-              />
-              {moreOpen || needsReceipt ? (
+              {photos.length > 0 ? (
+                <Text variant="micro" tone="muted">
+                  {t.company.photoPrivacy}
+                </Text>
+              ) : null}
+
+              {hasMore ? (
+                <PillButton
+                  label={t.company.moreOpen}
+                  icon={moreOpen ? 'chevron-up-outline' : 'chevron-down-outline'}
+                  chevron={false}
+                  onPress={() => setMoreOpen((open) => !open)}
+                />
+              ) : null}
+              {moreOpen ? (
                 <>
+                  {otherKinds.length > 0 ? (
+                    <ChipRow
+                      wrap
+                      onCard
+                      options={otherKinds.map((value) => ({ value, label: kindLabel[value] }))}
+                      value={kind}
+                      onChange={setKind}
+                    />
+                  ) : null}
+                  {projects.length > 0 ? (
+                    <ChipRow
+                      wrap
+                      onCard
+                      options={[
+                        { value: '', label: t.company.noSite },
+                        ...projects.map((p) => ({ value: p.id, label: p.name })),
+                      ]}
+                      value={projectId ?? ''}
+                      onChange={(next) => setProjectId(next || null)}
+                    />
+                  ) : null}
                   {showGst ? (
                     <>
                       <PillButton
@@ -706,13 +846,7 @@ export default function CompanyEntryScreen() {
                                 label === t.company.gstin ? 'characters' : 'sentences'
                               }
                               accessibilityLabel={label}
-                              style={{
-                                color: theme.color.text,
-                                fontSize: 16,
-                                paddingVertical: theme.spacing.sm,
-                                borderBottomWidth: 1,
-                                borderBottomColor: theme.color.border,
-                              }}
+                              style={lineInput}
                             />
                           ))}
                           {gstinBad ? (
@@ -720,9 +854,7 @@ export default function CompanyEntryScreen() {
                               {t.company.gstinBad}
                             </Text>
                           ) : null}
-                          <Text variant="caption" tone="muted">
-                            {t.company.gstRate}
-                          </Text>
+                          <FieldLabel>{t.company.gstRate}</FieldLabel>
                           <ChipRow
                             wrap
                             onCard
@@ -736,9 +868,7 @@ export default function CompanyEntryScreen() {
                               setGstTouched(null);
                             }}
                           />
-                          <Text variant="caption" tone="muted">
-                            {t.company.gstAmount}
-                          </Text>
+                          <FieldLabel>{t.company.gstAmount}</FieldLabel>
                           <AmountField
                             currency={currency}
                             value={gstAmount ?? 0n}
@@ -755,66 +885,6 @@ export default function CompanyEntryScreen() {
                       ) : null}
                     </>
                   ) : null}
-                  <TextInput
-                    value={note}
-                    onChangeText={setNote}
-                    placeholder={t.company.formNote}
-                    placeholderTextColor={theme.color.textMuted}
-                    maxLength={500}
-                    accessibilityLabel={t.company.formNote}
-                    style={{
-                      color: theme.color.text,
-                      fontSize: 16,
-                      paddingVertical: theme.spacing.sm,
-                      borderBottomWidth: 1,
-                      borderBottomColor: theme.color.border,
-                    }}
-                  />
-                  <Text variant="caption" tone="muted">
-                    {t.company.photos}
-                  </Text>
-                  {photos.length > 0 ? (
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {photos.map((photo, index) => (
-                        <Pressable
-                          key={photo.uri}
-                          accessibilityRole="button"
-                          accessibilityLabel={t.company.removePhoto}
-                          onPress={() =>
-                            setPhotos((current) => current.filter((_, i) => i !== index))
-                          }
-                          style={{ marginRight: theme.spacing.sm }}
-                        >
-                          <Image
-                            source={{ uri: photo.uri }}
-                            style={{ width: 64, height: 64, borderRadius: theme.radius.md }}
-                            contentFit="cover"
-                          />
-                        </Pressable>
-                      ))}
-                    </ScrollView>
-                  ) : null}
-                  {photos.length < MAX_COMPANY_PHOTOS ? (
-                    <View style={{ flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-                      <PillButton
-                        label={t.company.takePhoto}
-                        icon="camera-outline"
-                        chevron={false}
-                        onPress={() => void addPhoto('camera')}
-                      />
-                      <PillButton
-                        label={t.company.choosePhoto}
-                        icon="image-outline"
-                        chevron={false}
-                        onPress={() => void addPhoto('library')}
-                      />
-                    </View>
-                  ) : null}
-                  {photos.length > 0 ? (
-                    <Text variant="micro" tone="muted">
-                      {t.company.photoPrivacy}
-                    </Text>
-                  ) : null}
                 </>
               ) : null}
             </StandardCard>
@@ -822,13 +892,11 @@ export default function CompanyEntryScreen() {
         </ScrollView>
         <View
           style={{
-            paddingHorizontal: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
             paddingTop: theme.spacing.sm,
             paddingBottom: clearance,
             gap: theme.spacing.xs,
-            borderTopWidth: 1,
-            borderTopColor: theme.color.border,
-            backgroundColor: theme.color.surface,
+            backgroundColor: theme.color.bg,
           }}
         >
           {error ? (
@@ -856,23 +924,11 @@ export default function CompanyEntryScreen() {
               </View>
             </>
           ) : (
-            <>
-              <Text variant="micro" tone="muted" numberOfLines={1}>
-                {[
-                  total > 0n ? fmt(total) : null,
-                  kind === 'expense' ? tags.label(category) : kindLabel[kind],
-                  date === todayIso() ? t.company.today : showDate(date, locale),
-                ]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Text>
-              <Button
-                label={t.company.save}
-                onPress={() => void save()}
-                disabled={add.isPending || !view.ready}
-                fullWidth
-              />
-            </>
+            <SaveButton
+              label={t.company.save}
+              onPress={() => void save()}
+              disabled={add.isPending || !view.ready}
+            />
           )}
         </View>
       </KeyboardAvoidingView>
