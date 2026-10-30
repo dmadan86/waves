@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { notFound, redirect } from 'next/navigation';
 import { CsrfField } from '@/components/CsrfField';
@@ -91,9 +92,9 @@ export default async function Company({
         eyebrow="People"
         title={facts.name}
         actions={
-          <a className="btn btn-quiet" href="/companies">
+          <Link className="btn btn-quiet" href="/companies">
             All companies
-          </a>
+          </Link>
         }
       />
       <Outcome error={error} done={saved ? 'Saved.' : undefined} />
