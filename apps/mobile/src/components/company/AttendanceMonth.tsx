@@ -4,6 +4,7 @@ import { attendanceDaysText } from '@waves/core';
 import { Button, Text, useTheme } from '@waves/ui';
 import { SectionHeader, StandardCard } from '@/components/standard';
 import { useAttendance } from '@/data/companyWorkday';
+import { useCalendar } from '@/data/companyCalendar';
 import { todayIso } from '@/data/personal';
 import { plural, useStrings } from '@/i18n';
 
@@ -11,6 +12,7 @@ export function AttendanceMonth({ groupId, memberId }: { groupId: string; member
   const { t, locale } = useStrings();
   const theme = useTheme();
   const marks = useAttendance(groupId);
+  const calendar = useCalendar(groupId);
   const today = todayIso();
   const [month, setMonth] = useState(today.slice(0, 7));
   const first = new Date(`${month}-01T00:00:00Z`);
@@ -61,6 +63,19 @@ export function AttendanceMonth({ groupId, memberId }: { groupId: string; member
             day > 0
               ? marks.get(`${memberId}|${month}-${String(day).padStart(2, '0')}`)?.status
               : undefined;
+          const date = day > 0 ? `${month}-${String(day).padStart(2, '0')}` : '';
+          const holiday = date
+            ? calendar.holidays.find((item) => item.startDay <= date && item.endDay >= date)
+            : undefined;
+          const onLeave = date
+            ? calendar.leave.some(
+                (item) =>
+                  item.memberId === memberId &&
+                  item.status === 'approved' &&
+                  item.startDay <= date &&
+                  item.endDay >= date,
+              )
+            : false;
           const label =
             status === 'present'
               ? t.company.attendancePresent
@@ -73,12 +88,27 @@ export function AttendanceMonth({ groupId, memberId }: { groupId: string; member
             <View
               key={i}
               accessible={day > 0}
-              accessibilityLabel={`${day} ${label}`}
+              accessibilityLabel={`${day} ${label}${holiday ? `, ${t.calendar.holidayOnDay.replace('{name}', holiday.name)}` : ''}${onLeave ? `, ${t.calendar.leaveOnDay}` : ''}`}
               style={{ width: '14.2857%', minHeight: 42, alignItems: 'center', gap: 4 }}
             >
               <Text variant="caption" tone="muted">
                 {day > 0 ? day : ''}
               </Text>
+              {holiday ? (
+                <Text variant="micro" numberOfLines={1} style={{ color: theme.color.warning }}>
+                  ⚑
+                </Text>
+              ) : null}
+              {onLeave ? (
+                <View
+                  style={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: 3,
+                    backgroundColor: theme.color.brand,
+                  }}
+                />
+              ) : null}
               {day > 0 ? (
                 <View
                   style={{
