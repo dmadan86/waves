@@ -57,6 +57,7 @@ export function SectionShell({
           groupId={groupId}
           view={view}
           showGear={view.isOwner}
+          overview={overview}
           subtitle={
             manager
               ? fill(t.company.teamLine, {

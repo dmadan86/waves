@@ -1464,6 +1464,43 @@ export interface UiStrings {
     overviewUsedWaves: string;
     overviewNoTasks: string;
     overviewComingUp: string;
+    ovYesterday: string;
+    ovPickDate: string;
+    ovMarkAttendance: string;
+    ovEmployees: string;
+    ovBell: string;
+    ovPaidMonth: string;
+    ovLastPayment: string;
+    ovNoPaymentYet: string;
+    ovAdvances: string;
+    ovCrore: string;
+    ovTasksTitle: string;
+    ovTasksDay: string;
+    ovTasksPending: string;
+    ovTasksNone: string;
+    ovTasksDone: string;
+    ovTasksTotal: string;
+    ovUrgent: string;
+    ovAllClear: string;
+    ovAbsentN: PluralForms;
+    ovPaymentsPendingN: string;
+    ovTasksBlockedN: string;
+    ovApprovalsN: string;
+    ovBillsN: string;
+    ovAttendanceToday: string;
+    ovAttendanceDay: string;
+    ovSeeAll: string;
+    ovUpcoming: string;
+    ovKindSalary: string;
+    ovKindBill: string;
+    ovRecord: string;
+    ovOwedNow: string;
+    ovDueToday: string;
+    ovDueTomorrow: string;
+    ovDueIn: string;
+    ovOverdue: string;
+    ovEmptyTitle: string;
+    ovEmptyBody: string;
     overviewToCollect: string;
     overviewDueOn: string;
     overviewNoOwes: string;
@@ -8041,6 +8078,43 @@ const en: UiStrings = {
     overviewUsedWaves: '{active} of {total} used Waves today',
     overviewNoTasks: 'No tasks today',
     overviewComingUp: 'Coming up',
+    ovYesterday: 'Yesterday',
+    ovPickDate: 'Pick a date',
+    ovMarkAttendance: 'Mark attendance',
+    ovEmployees: 'Employees',
+    ovBell: 'Notifications',
+    ovPaidMonth: 'Paid this month',
+    ovLastPayment: 'Last payment {date}',
+    ovNoPaymentYet: 'No payment yet',
+    ovAdvances: 'Advances outstanding',
+    ovCrore: '{n} Cr',
+    ovTasksTitle: "Today's tasks",
+    ovTasksDay: 'Tasks',
+    ovTasksPending: '{n} pending',
+    ovTasksNone: 'No tasks',
+    ovTasksDone: '{n} completed',
+    ovTasksTotal: '{n} total',
+    ovUrgent: 'Urgent',
+    ovAllClear: 'All clear',
+    ovAbsentN: { one: '{n} employee absent', other: '{n} employees absent' },
+    ovPaymentsPendingN: '{n} payments pending',
+    ovTasksBlockedN: '{n} tasks blocked',
+    ovApprovalsN: '{n} approvals waiting',
+    ovBillsN: '{n} vendor bills waiting',
+    ovAttendanceToday: "Today's attendance",
+    ovAttendanceDay: 'Attendance',
+    ovSeeAll: 'See all',
+    ovUpcoming: 'Upcoming payments',
+    ovKindSalary: 'Salary',
+    ovKindBill: 'Bill',
+    ovRecord: 'Record',
+    ovOwedNow: 'Owed now',
+    ovDueToday: 'Due today',
+    ovDueTomorrow: 'Due tomorrow',
+    ovDueIn: 'Due in {n} days',
+    ovOverdue: 'Overdue',
+    ovEmptyTitle: 'Add your first employee',
+    ovEmptyBody: 'Invite people to see attendance, tasks and payments here.',
     overviewToCollect: 'To collect',
     overviewDueOn: 'Due {date}',
     overviewNoOwes: 'No amount owed',
@@ -14072,6 +14146,43 @@ const ta: UiStrings = {
     overviewUsedWaves: 'இன்று {total} பேரில் {active} பேர் Waves பயன்படுத்தினர்',
     overviewNoTasks: 'இன்றைய பணிகள் இல்லை',
     overviewComingUp: 'விரைவில்',
+    ovYesterday: 'நேற்று',
+    ovPickDate: 'தேதியைத் தேர்வு செய்',
+    ovMarkAttendance: 'வருகை பதிவு',
+    ovEmployees: 'ஊழியர்கள்',
+    ovBell: 'அறிவிப்புகள்',
+    ovPaidMonth: 'இம்மாதம் செலுத்தியது',
+    ovLastPayment: 'கடைசி கொடுப்பனவு {date}',
+    ovNoPaymentYet: 'இன்னும் கொடுப்பனவு இல்லை',
+    ovAdvances: 'நிலுவை முன்பணம்',
+    ovCrore: '{n} கோடி',
+    ovTasksTitle: 'இன்றைய பணிகள்',
+    ovTasksDay: 'பணிகள்',
+    ovTasksPending: '{n} நிலுவை',
+    ovTasksNone: 'பணிகள் இல்லை',
+    ovTasksDone: '{n} முடிந்தது',
+    ovTasksTotal: 'மொத்தம் {n}',
+    ovUrgent: 'அவசரம்',
+    ovAllClear: 'அனைத்தும் சரி',
+    ovAbsentN: { one: '{n} ஊழியர் வரவில்லை', other: '{n} ஊழியர்கள் வரவில்லை' },
+    ovPaymentsPendingN: '{n} கொடுப்பனவுகள் நிலுவை',
+    ovTasksBlockedN: '{n} பணிகள் தடைபட்டன',
+    ovApprovalsN: '{n} ஒப்புதல்கள் காத்திருக்கின்றன',
+    ovBillsN: '{n} விற்பனையாளர் பில்கள் காத்திருக்கின்றன',
+    ovAttendanceToday: 'இன்றைய வருகை',
+    ovAttendanceDay: 'வருகை',
+    ovSeeAll: 'அனைத்தும்',
+    ovUpcoming: 'வரவிருக்கும் கொடுப்பனவுகள்',
+    ovKindSalary: 'சம்பளம்',
+    ovKindBill: 'பில்',
+    ovRecord: 'பதிவு',
+    ovOwedNow: 'இப்போது தர வேண்டியது',
+    ovDueToday: 'இன்று',
+    ovDueTomorrow: 'நாளை',
+    ovDueIn: '{n} நாட்களில்',
+    ovOverdue: 'தாமதம்',
+    ovEmptyTitle: 'உங்கள் முதல் ஊழியரைச் சேருங்கள்',
+    ovEmptyBody: 'வருகை, பணிகள், கொடுப்பனவுகளை இங்கே காண ஊழியர்களை அழைக்கவும்.',
     overviewToCollect: 'வசூலிக்க',
     overviewDueOn: '{date} அன்று செலுத்த வேண்டும்',
     overviewNoOwes: 'நிலுவைத் தொகை இல்லை',
@@ -20271,6 +20382,43 @@ const hi: UiStrings = {
     overviewUsedWaves: 'आज {total} में से {active} ने Waves इस्तेमाल किया',
     overviewNoTasks: 'आज कोई कार्य नहीं',
     overviewComingUp: 'आने वाले दिन',
+    ovYesterday: 'कल',
+    ovPickDate: 'तारीख चुनें',
+    ovMarkAttendance: 'उपस्थिति दर्ज करें',
+    ovEmployees: 'कर्मचारी',
+    ovBell: 'सूचनाएँ',
+    ovPaidMonth: 'इस महीने भुगतान',
+    ovLastPayment: 'पिछला भुगतान {date}',
+    ovNoPaymentYet: 'अभी कोई भुगतान नहीं',
+    ovAdvances: 'बकाया अग्रिम',
+    ovCrore: '{n} करोड़',
+    ovTasksTitle: 'आज के कार्य',
+    ovTasksDay: 'कार्य',
+    ovTasksPending: '{n} लंबित',
+    ovTasksNone: 'कोई कार्य नहीं',
+    ovTasksDone: '{n} पूर्ण',
+    ovTasksTotal: 'कुल {n}',
+    ovUrgent: 'ज़रूरी',
+    ovAllClear: 'सब ठीक है',
+    ovAbsentN: { one: '{n} कर्मचारी अनुपस्थित', other: '{n} कर्मचारी अनुपस्थित' },
+    ovPaymentsPendingN: '{n} भुगतान लंबित',
+    ovTasksBlockedN: '{n} कार्य अटके',
+    ovApprovalsN: '{n} स्वीकृतियाँ प्रतीक्षा में',
+    ovBillsN: '{n} विक्रेता बिल प्रतीक्षा में',
+    ovAttendanceToday: 'आज की उपस्थिति',
+    ovAttendanceDay: 'उपस्थिति',
+    ovSeeAll: 'सभी देखें',
+    ovUpcoming: 'आगामी भुगतान',
+    ovKindSalary: 'वेतन',
+    ovKindBill: 'बिल',
+    ovRecord: 'दर्ज करें',
+    ovOwedNow: 'अभी देय',
+    ovDueToday: 'आज देय',
+    ovDueTomorrow: 'कल देय',
+    ovDueIn: '{n} दिन में देय',
+    ovOverdue: 'अतिदेय',
+    ovEmptyTitle: 'अपना पहला कर्मचारी जोड़ें',
+    ovEmptyBody: 'उपस्थिति, कार्य और भुगतान यहाँ देखने के लिए लोगों को आमंत्रित करें।',
     overviewToCollect: 'वसूलना है',
     overviewDueOn: 'देय {date}',
     overviewNoOwes: 'कोई बकाया नहीं',
@@ -26362,6 +26510,43 @@ const ar: UiStrings = {
     overviewUsedWaves: 'استخدم {active} من {total} Waves اليوم',
     overviewNoTasks: 'لا مهام اليوم',
     overviewComingUp: 'قريبًا',
+    ovYesterday: 'أمس',
+    ovPickDate: 'اختر تاريخًا',
+    ovMarkAttendance: 'تسجيل الحضور',
+    ovEmployees: 'الموظفون',
+    ovBell: 'الإشعارات',
+    ovPaidMonth: 'المدفوع هذا الشهر',
+    ovLastPayment: 'آخر دفعة {date}',
+    ovNoPaymentYet: 'لا دفعات بعد',
+    ovAdvances: 'السلف المستحقة',
+    ovCrore: '{n} كرور',
+    ovTasksTitle: 'مهام اليوم',
+    ovTasksDay: 'المهام',
+    ovTasksPending: '{n} معلقة',
+    ovTasksNone: 'لا مهام',
+    ovTasksDone: '{n} مكتملة',
+    ovTasksTotal: 'الإجمالي {n}',
+    ovUrgent: 'عاجل',
+    ovAllClear: 'كل شيء على ما يرام',
+    ovAbsentN: { one: '{n} موظف غائب', other: '{n} موظفين غائبين' },
+    ovPaymentsPendingN: '{n} مدفوعات معلقة',
+    ovTasksBlockedN: '{n} مهام متوقفة',
+    ovApprovalsN: '{n} موافقات بانتظارك',
+    ovBillsN: '{n} فواتير موردين بانتظارك',
+    ovAttendanceToday: 'حضور اليوم',
+    ovAttendanceDay: 'الحضور',
+    ovSeeAll: 'عرض الكل',
+    ovUpcoming: 'المدفوعات القادمة',
+    ovKindSalary: 'الراتب',
+    ovKindBill: 'فاتورة',
+    ovRecord: 'تسجيل',
+    ovOwedNow: 'مستحق الآن',
+    ovDueToday: 'مستحق اليوم',
+    ovDueTomorrow: 'مستحق غدًا',
+    ovDueIn: 'مستحق خلال {n} أيام',
+    ovOverdue: 'متأخر',
+    ovEmptyTitle: 'أضف أول موظف لديك',
+    ovEmptyBody: 'ادعُ الأشخاص لترى الحضور والمهام والمدفوعات هنا.',
     overviewToCollect: 'للتحصيل',
     overviewDueOn: 'يستحق في {date}',
     overviewNoOwes: 'لا توجد مستحقات',
