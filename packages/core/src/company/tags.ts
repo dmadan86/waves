@@ -8,11 +8,12 @@ export interface CompanyTag {
 }
 export const COMPANY_TAG_KEY_RE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
 export const BUILTIN_COMPANY_TAGS = [
-  'fuel',
-  'transport',
-  'travel',
   'food',
+  'transport',
+  'fuel',
+  'travel',
   'office',
+  'stay',
   'other',
 ] as const;
 export type CompanyIndustry = 'construction' | 'transport' | 'field_sales';

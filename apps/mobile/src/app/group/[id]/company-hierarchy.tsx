@@ -15,7 +15,7 @@ import {
 } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
+import { plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useLocalSearchParams } from 'expo-router';
@@ -23,7 +23,7 @@ import { useLocalSearchParams } from 'expo-router';
 export default function CompanyHierarchyScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const clearance = useBottomClearance();
   const view = useCompanyEntries(groupId);
   const live = view.members.filter((m) => !m.left_at);
@@ -62,7 +62,7 @@ export default function CompanyHierarchyScreen() {
                       {row(
                         mgr,
                         t.company.manager,
-                        fill(t.company.teamCount, { n: String(team.length) }),
+                        plural(locale, team.length, t.company.employeeCount),
                       )}
                       {team.map((m) => row(m))}
                     </StandardCard>

@@ -65,9 +65,9 @@ export default function MembersScreen() {
   const theme = useTheme();
   const inputStyle = {
     flex: 1,
-    fontSize: 16,
+    fontSize: 15,
     color: theme.color.text,
-    paddingVertical: theme.spacing.sm,
+    paddingVertical: 0,
   } as const;
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -283,7 +283,7 @@ export default function MembersScreen() {
 
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
         <IconButton label={t.common.back} onPress={() => router.back()}>
           <Ionicons
             name={directionalIcon('chevron-back')}
@@ -292,7 +292,7 @@ export default function MembersScreen() {
           />
         </IconButton>
         <View style={{ flex: 1 }}>
-          <Text variant="heading">{t.members}</Text>
+          <Text variant="subheading">{t.members}</Text>
           <Text variant="caption" tone="muted" numberOfLines={1}>
             {groupLabel(group.data, members.data ?? [])}
           </Text>
@@ -306,8 +306,8 @@ export default function MembersScreen() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              height: 36,
-              paddingHorizontal: 14,
+              height: 32,
+              paddingHorizontal: 12,
               borderRadius: theme.radius.pill,
               backgroundColor: theme.color.brandSoft,
             }}
@@ -323,10 +323,10 @@ export default function MembersScreen() {
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.md,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.md,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -369,7 +369,7 @@ export default function MembersScreen() {
           </Card>
         ) : null}
 
-        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+        <Card padded={false} style={{ paddingHorizontal: theme.spacing.md }}>
           {(members.data ?? []).map((member, index) => (
             <View key={member.id}>
               <ListRow
@@ -472,10 +472,10 @@ export default function MembersScreen() {
             same place would be the second door that this app keeps deciding not
             to build. */}
         {canAdd ? (
-          <Card style={{ gap: theme.spacing.lg }}>
-            <Row style={{ alignItems: 'flex-start', gap: theme.spacing.sm }}>
+          <Card style={{ gap: theme.spacing.md, padding: 14 }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
               <View style={{ flex: 1 }}>
-                <Text variant="heading">
+                <Text variant="subheading">
                   {isCompany ? t.company.addEmployee : t.people.addSomeone}
                 </Text>
                 <Text variant="caption" tone="muted">
@@ -487,7 +487,7 @@ export default function MembersScreen() {
                   source={TEAM}
                   accessibilityIgnoresInvertColors
                   fadeDuration={0}
-                  style={{ width: 112, height: 69, borderRadius: 10 }}
+                  style={{ width: 100, height: 62, borderRadius: 10 }}
                 />
               ) : null}
             </Row>
@@ -709,8 +709,8 @@ export default function MembersScreen() {
               <Row
                 style={{
                   alignItems: 'flex-start',
-                  gap: theme.spacing.md,
-                  padding: theme.spacing.md,
+                  gap: theme.spacing.sm,
+                  padding: theme.spacing.sm,
                   borderRadius: theme.radius.lg,
                   backgroundColor: theme.color.brandSoft,
                 }}
@@ -720,7 +720,11 @@ export default function MembersScreen() {
                   size={iconSize.md}
                   color={theme.color.brand}
                 />
-                <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+                <Text
+                  variant="caption"
+                  tone="muted"
+                  style={{ flex: 1, fontSize: 12, lineHeight: 16 }}
+                >
                   {isCompany ? t.company.nameAloneBody : t.misc.nameAloneBody}
                 </Text>
               </Row>
@@ -789,8 +793,8 @@ function AddTile({
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
-        gap: theme.spacing.xs,
-        padding: theme.spacing.md,
+        gap: 2,
+        padding: 10,
         borderRadius: theme.radius.lg,
         backgroundColor: blue ? '#E4EEFF' : theme.color.brandSoft,
         opacity: pressed ? 0.7 : 1,
@@ -799,9 +803,9 @@ function AddTile({
       <Row style={{ justifyContent: 'space-between' }}>
         <View
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
+            width: 28,
+            height: 28,
+            borderRadius: 14,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: blue ? '#CFE0FF' : theme.color.surface,
@@ -811,9 +815,9 @@ function AddTile({
         </View>
         <View
           style={{
-            width: 22,
-            height: 22,
-            borderRadius: 11,
+            width: 20,
+            height: 20,
+            borderRadius: 10,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.surface,
@@ -826,10 +830,10 @@ function AddTile({
           />
         </View>
       </Row>
-      <Text variant="body" style={{ fontWeight: '700' }}>
+      <Text variant="body" style={{ fontWeight: '700', fontSize: 14 }}>
         {label}
       </Text>
-      <Text variant="micro" tone="muted">
+      <Text variant="micro" tone="muted" numberOfLines={2} style={{ fontSize: 12, lineHeight: 15 }}>
         {body}
       </Text>
     </Pressable>
@@ -844,6 +848,7 @@ function Field({ icon, children }: { icon: keyof typeof Ionicons.glyphMap; child
       style={{
         alignItems: 'center',
         gap: theme.spacing.sm,
+        height: 44,
         borderWidth: 1,
         borderColor: theme.color.border,
         borderRadius: theme.radius.lg,
@@ -859,7 +864,7 @@ function Field({ icon, children }: { icon: keyof typeof Ionicons.glyphMap; child
 /** A muted helper line under a field, inset to line up with the text. */
 function Helper({ children }: { children: ReactNode }) {
   return (
-    <Text variant="micro" tone="muted" style={{ marginTop: -4, marginStart: 40 }}>
+    <Text variant="micro" tone="muted" style={{ marginTop: -4, marginStart: 36, fontSize: 12 }}>
       {children}
     </Text>
   );

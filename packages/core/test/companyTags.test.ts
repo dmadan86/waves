@@ -36,7 +36,7 @@ it('keeps hidden historical labels and merges only used builtins without mutatio
     { key: 'fuel', label: 'Fuel' },
   ]);
   expect(tags).toHaveLength(1);
-  expect(BUILTIN_COMPANY_TAGS).toHaveLength(6);
+  expect(BUILTIN_COMPANY_TAGS).toHaveLength(7);
 });
 it('packs contain unique valid keys, report enum units and seed stars', () => {
   const units = new Set([

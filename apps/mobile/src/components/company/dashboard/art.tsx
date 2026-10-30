@@ -1,3 +1,8 @@
+import { Image, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useTheme } from '@waves/ui';
+
 /** Small vector empty-state illustrations in the house violet palette (no image weight). */
 
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
@@ -78,5 +83,44 @@ export function BudgetArt({ width = 190 }: { width?: number }) {
         )}
       </G>
     </Svg>
+  );
+}
+
+export const BUILDING_ART =
+  require('../../../../assets/images/company/hero-building.webp') as number;
+
+export function ManagerTeamArt() {
+  const theme = useTheme();
+  return (
+    <View
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={{ width: 210, height: 130, alignSelf: 'center' }}
+    >
+      <Image
+        source={require('../../../../assets/images/company/team.webp')}
+        style={{ width: 210, height: 112, position: 'absolute', bottom: 0 }}
+        resizeMode="contain"
+      />
+      {(['git-network-outline', 'ribbon-outline'] as const).map((icon, i) => (
+        <View
+          key={icon}
+          style={{
+            position: 'absolute',
+            start: i === 0 ? 12 : 158,
+            top: 0,
+            padding: 8,
+            borderRadius: 14,
+            backgroundColor: theme.color.brandSoft,
+          }}
+        >
+          {i === 0 ? (
+            <Ionicons name={icon} size={22} color={theme.color.brand} />
+          ) : (
+            <MaterialCommunityIcons name="crown-outline" size={22} color={theme.color.brand} />
+          )}
+        </View>
+      ))}
+    </View>
   );
 }

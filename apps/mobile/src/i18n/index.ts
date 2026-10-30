@@ -1390,6 +1390,23 @@ export interface UiStrings {
     statusOkTag: string;
     statusPaid: string;
     switchCompany: string;
+    employeeCount: PluralForms;
+    managerCount: PluralForms;
+    ownerCount: PluralForms;
+    makeManagerAction: string;
+    managersEmptyTitle: string;
+    managersEmptyBody: string;
+    overallControl: string;
+    whyManagers: string;
+    organizeTeams: string;
+    organizeTeamsBody: string;
+    managerPools: string;
+    managerPoolsBody: string;
+    controlApprove: string;
+    controlApproveBody: string;
+    switchCompanyBody: string;
+    createCompanyNew: string;
+    manageCompanies: string;
     hierarchyTitle: string;
     reportsToOwners: string;
     allocateNow: string;
@@ -1463,6 +1480,35 @@ export interface UiStrings {
     catFood: string;
     catOffice: string;
     catOther: string;
+    amountToPay: string;
+    expensesPending: PluralForms;
+    pendingForPayment: string;
+    selectAllBtn: string;
+    receiptOne: string;
+    readyToSettle: string;
+    readyBody: string;
+    sendWhatsApp: string;
+    markPaid: string;
+    tileAddSub: string;
+    tileHistory: string;
+    tileHistorySub: string;
+    tileSummary: string;
+    tileSummarySub: string;
+    detailPrivacyTitle: string;
+    detailPrivacyBody: string;
+    callEmployee: string;
+    catStay: string;
+    kindGive: string;
+    kindSubGive: string;
+    kindSubSpent: string;
+    kindSubWages: string;
+    kindSubAllowance: string;
+    paidBy: string;
+    selectPerson: string;
+    notesLabel: string;
+    notePh: string;
+    addReceipt: string;
+    todayDate: string;
     tagAll: string;
     tagNew: string;
     tagNamePh: string;
@@ -7582,7 +7628,7 @@ const en: UiStrings = {
     tabPayments: 'Payments',
     tabMyTeam: 'My team',
     countsLine: '{e} employees · {m} managers · {o} owners',
-    teamLine: 'Your team · {n} employees',
+    teamLine: 'Your team · {employees}',
     pillOwner: 'Owner',
     statOwes: 'Company owes employees',
     statPending: '{n} pending payments',
@@ -7668,6 +7714,23 @@ const en: UiStrings = {
     statusOkTag: 'Approved',
     statusPaid: 'Paid',
     switchCompany: 'Switch company',
+    employeeCount: { one: '{n} employee', other: '{n} employees' },
+    managerCount: { one: '{n} manager', other: '{n} managers' },
+    ownerCount: { one: '{n} owner', other: '{n} owners' },
+    makeManagerAction: 'Make a manager',
+    managersEmptyTitle: 'No managers yet',
+    managersEmptyBody: 'Assign managers to organize employees, set budgets and approve expenses.',
+    overallControl: 'Overall control',
+    whyManagers: 'Why add managers?',
+    organizeTeams: 'Organize teams',
+    organizeTeamsBody: 'Group employees under managers',
+    managerPools: 'Set budgets',
+    managerPoolsBody: 'Give each manager a cash pool',
+    controlApprove: 'Control and approve',
+    controlApproveBody: 'Managers can approve expenses and record payments',
+    switchCompanyBody: 'Choose a company to manage',
+    createCompanyNew: 'Create new',
+    manageCompanies: 'Manage companies',
     hierarchyTitle: 'Hierarchy',
     reportsToOwners: 'Reports to the owners',
     allocateNow: 'Allocate budget',
@@ -7741,6 +7804,35 @@ const en: UiStrings = {
     catFood: 'Food',
     catOffice: 'Office',
     catOther: 'Other',
+    amountToPay: 'Amount to pay',
+    expensesPending: { one: '{n} expense pending', other: '{n} expenses pending' },
+    pendingForPayment: 'Pending for payment',
+    selectAllBtn: 'Select all',
+    receiptOne: '1 receipt',
+    readyToSettle: 'Ready to settle',
+    readyBody: 'Pay them your usual way, then mark as paid.',
+    sendWhatsApp: 'Send on WhatsApp',
+    markPaid: 'Mark as paid',
+    tileAddSub: 'Record new expense',
+    tileHistory: 'View all expenses',
+    tileHistorySub: 'See full history',
+    tileSummary: 'Employee summary',
+    tileSummarySub: 'View this employee',
+    detailPrivacyTitle: 'Employees see only their own entries.',
+    detailPrivacyBody: 'They can add expenses and see their payment status.',
+    callEmployee: 'Call',
+    catStay: 'Stay',
+    kindGive: 'Give money',
+    kindSubGive: 'Advance / Reimburse',
+    kindSubSpent: 'Record expense',
+    kindSubWages: 'Salary / Payment',
+    kindSubAllowance: 'Daily allowance',
+    paidBy: 'Paid by',
+    selectPerson: 'Select person',
+    notesLabel: 'Notes (optional)',
+    notePh: 'Add a note...',
+    addReceipt: 'Add receipt or photo (optional)',
+    todayDate: 'Today, {date}',
     tagAll: 'All tags',
     tagNew: 'New tag',
     tagNamePh: 'Tag name',
@@ -13307,7 +13399,7 @@ const ta: UiStrings = {
     tabPayments: 'கொடுப்பனவுகள்',
     tabMyTeam: 'என் குழு',
     countsLine: '{e} ஊழியர்கள் · {m} மேலாளர்கள் · {o} உரிமையாளர்கள்',
-    teamLine: 'உங்கள் குழு · {n} ஊழியர்கள்',
+    teamLine: 'உங்கள் குழு · {employees}',
     pillOwner: 'உரிமையாளர்',
     statOwes: 'நிறுவனம் ஊழியர்களுக்கு தர வேண்டியது',
     statPending: '{n} நிலுவை கொடுப்பனவுகள்',
@@ -13394,6 +13486,24 @@ const ta: UiStrings = {
     statusOkTag: 'ஒப்புதல்',
     statusPaid: 'செலுத்தப்பட்டது',
     switchCompany: 'நிறுவனத்தை மாற்று',
+    employeeCount: { one: '{n} ஊழியர்', other: '{n} ஊழியர்கள்' },
+    managerCount: { one: '{n} மேலாளர்', other: '{n} மேலாளர்கள்' },
+    ownerCount: { one: '{n} உரிமையாளர்', other: '{n} உரிமையாளர்கள்' },
+    makeManagerAction: 'மேலாளரை நியமிக்கவும்',
+    managersEmptyTitle: 'மேலாளர்கள் இன்னும் இல்லை',
+    managersEmptyBody:
+      'ஊழியர்களை ஒருங்கிணைக்கவும், வரவு செலவுகளை அமைக்கவும், செலவுகளை ஒப்புதல் அளிக்கவும் மேலாளர்களை நியமிக்கவும்.',
+    overallControl: 'முழு கட்டுப்பாடு',
+    whyManagers: 'மேலாளர்களை ஏன் சேர்க்க வேண்டும்?',
+    organizeTeams: 'குழுக்களை ஒருங்கிணைக்கவும்',
+    organizeTeamsBody: 'மேலாளர்களின் கீழ் ஊழியர்களைச் சேர்க்கவும்',
+    managerPools: 'வரவு செலவுகளை அமைக்கவும்',
+    managerPoolsBody: 'ஒவ்வொரு மேலாளருக்கும் பணத் தொகுப்பை ஒதுக்கவும்',
+    controlApprove: 'கட்டுப்பாடும் ஒப்புதலும்',
+    controlApproveBody: 'மேலாளர்கள் செலவுகளை ஒப்புதல் அளித்து பணம் செலுத்தியதைப் பதிவு செய்யலாம்',
+    switchCompanyBody: 'நிர்வகிக்க ஒரு நிறுவனத்தைத் தேர்ந்தெடுக்கவும்',
+    createCompanyNew: 'புதிதாக உருவாக்கு',
+    manageCompanies: 'நிறுவனங்களை நிர்வகி',
     hierarchyTitle: 'படிநிலை',
     reportsToOwners: 'உரிமையாளர்களிடம்',
     allocateNow: 'பட்ஜெட் ஒதுக்கு',
@@ -13467,6 +13577,35 @@ const ta: UiStrings = {
     catFood: 'உணவு',
     catOffice: 'அலுவலகம்',
     catOther: 'மற்றவை',
+    amountToPay: 'செலுத்த வேண்டிய தொகை',
+    expensesPending: { one: '{n} செலவு நிலுவையில்', other: '{n} செலவுகள் நிலுவையில்' },
+    pendingForPayment: 'செலுத்த நிலுவையில்',
+    selectAllBtn: 'அனைத்தையும் தேர்வு செய்',
+    receiptOne: '1 ரசீது',
+    readyToSettle: 'தீர்க்கத் தயார்',
+    readyBody: 'உங்கள் வழக்கமான முறையில் செலுத்தி, பின் செலுத்தியதாகக் குறிக்கவும்.',
+    sendWhatsApp: 'WhatsApp-ல் அனுப்பு',
+    markPaid: 'செலுத்தியதாகக் குறி',
+    tileAddSub: 'புதிய செலவைப் பதிவு செய்',
+    tileHistory: 'அனைத்து செலவுகள்',
+    tileHistorySub: 'முழு வரலாறு',
+    tileSummary: 'ஊழியர் சுருக்கம்',
+    tileSummarySub: 'இந்த ஊழியரைப் பார்',
+    detailPrivacyTitle: 'ஊழியர்கள் தங்கள் பதிவுகளை மட்டுமே பார்ப்பர்.',
+    detailPrivacyBody: 'அவர்கள் செலவுகளைச் சேர்க்கவும் செலுத்தும் நிலையைப் பார்க்கவும் முடியும்.',
+    callEmployee: 'அழை',
+    catStay: 'தங்குமிடம்',
+    kindGive: 'பணம் கொடுக்க',
+    kindSubGive: 'முன்பணம் / திருப்பி',
+    kindSubSpent: 'செலவைப் பதிவு செய்',
+    kindSubWages: 'சம்பளம் / கொடுப்பனவு',
+    kindSubAllowance: 'தினசரி படி',
+    paidBy: 'செலுத்தியவர்',
+    selectPerson: 'நபரைத் தேர்வு செய்',
+    notesLabel: 'குறிப்புகள் (விருப்பம்)',
+    notePh: 'குறிப்பு சேர்...',
+    addReceipt: 'ரசீது அல்லது புகைப்படம் சேர் (விருப்பம்)',
+    todayDate: 'இன்று, {date}',
     tagAll: 'எல்லா குறிச்சொற்கள்',
     tagNew: 'புதிய குறிச்சொல்',
     tagNamePh: 'குறிச்சொல் பெயர்',
@@ -19198,7 +19337,7 @@ const hi: UiStrings = {
     tabPayments: 'भुगतान',
     tabMyTeam: 'मेरी टीम',
     countsLine: '{e} कर्मचारी · {m} मैनेजर · {o} मालिक',
-    teamLine: 'आपकी टीम · {n} कर्मचारी',
+    teamLine: 'आपकी टीम · {employees}',
     pillOwner: 'मालिक',
     statOwes: 'कंपनी पर कर्मचारियों का बकाया',
     statPending: '{n} लंबित भुगतान',
@@ -19283,6 +19422,24 @@ const hi: UiStrings = {
     statusOkTag: 'स्वीकृत',
     statusPaid: 'चुकाया',
     switchCompany: 'कंपनी बदलें',
+    employeeCount: { one: '{n} कर्मचारी', other: '{n} कर्मचारी' },
+    managerCount: { one: '{n} मैनेजर', other: '{n} मैनेजर' },
+    ownerCount: { one: '{n} मालिक', other: '{n} मालिक' },
+    makeManagerAction: 'मैनेजर बनाएँ',
+    managersEmptyTitle: 'अभी कोई मैनेजर नहीं',
+    managersEmptyBody:
+      'कर्मचारियों को व्यवस्थित करने, बजट तय करने और खर्च मंज़ूर करने के लिए मैनेजर बनाएँ।',
+    overallControl: 'पूरा नियंत्रण',
+    whyManagers: 'मैनेजर क्यों जोड़ें?',
+    organizeTeams: 'टीम व्यवस्थित करें',
+    organizeTeamsBody: 'कर्मचारियों को मैनेजर के अंतर्गत रखें',
+    managerPools: 'बजट तय करें',
+    managerPoolsBody: 'हर मैनेजर को नकद पूल दें',
+    controlApprove: 'नियंत्रण और मंज़ूरी',
+    controlApproveBody: 'मैनेजर खर्च मंज़ूर कर सकते हैं और भुगतान दर्ज कर सकते हैं',
+    switchCompanyBody: 'प्रबंधन के लिए कंपनी चुनें',
+    createCompanyNew: 'नई बनाएँ',
+    manageCompanies: 'कंपनियाँ प्रबंधित करें',
     hierarchyTitle: 'हाइरार्की',
     reportsToOwners: 'मालिकों को रिपोर्ट',
     allocateNow: 'बजट आवंटित करें',
@@ -19356,6 +19513,35 @@ const hi: UiStrings = {
     catFood: 'खाना',
     catOffice: 'दफ़्तर',
     catOther: 'अन्य',
+    amountToPay: 'चुकाने की राशि',
+    expensesPending: { one: '{n} खर्च बाकी', other: '{n} खर्च बाकी' },
+    pendingForPayment: 'भुगतान के लिए बाकी',
+    selectAllBtn: 'सभी चुनें',
+    receiptOne: '1 रसीद',
+    readyToSettle: 'निपटाने के लिए तैयार',
+    readyBody: 'अपने सामान्य तरीके से भुगतान करें, फिर चुकाया हुआ चिह्नित करें।',
+    sendWhatsApp: 'WhatsApp पर भेजें',
+    markPaid: 'चुकाया हुआ चिह्नित करें',
+    tileAddSub: 'नया खर्च दर्ज करें',
+    tileHistory: 'सभी खर्च देखें',
+    tileHistorySub: 'पूरा इतिहास',
+    tileSummary: 'कर्मचारी सारांश',
+    tileSummarySub: 'इस कर्मचारी को देखें',
+    detailPrivacyTitle: 'कर्मचारी केवल अपनी एंट्री देखते हैं।',
+    detailPrivacyBody: 'वे खर्च जोड़ सकते हैं और अपने भुगतान की स्थिति देख सकते हैं।',
+    callEmployee: 'कॉल करें',
+    catStay: 'ठहरना',
+    kindGive: 'पैसे दें',
+    kindSubGive: 'अग्रिम / प्रतिपूर्ति',
+    kindSubSpent: 'खर्च दर्ज करें',
+    kindSubWages: 'वेतन / भुगतान',
+    kindSubAllowance: 'दैनिक भत्ता',
+    paidBy: 'भुगतान किसने किया',
+    selectPerson: 'व्यक्ति चुनें',
+    notesLabel: 'नोट्स (वैकल्पिक)',
+    notePh: 'नोट जोड़ें...',
+    addReceipt: 'रसीद या फ़ोटो जोड़ें (वैकल्पिक)',
+    todayDate: 'आज, {date}',
     tagAll: 'सभी टैग',
     tagNew: 'नया टैग',
     tagNamePh: 'टैग का नाम',
@@ -24977,7 +25163,7 @@ const ar: UiStrings = {
     tabPayments: 'المدفوعات',
     tabMyTeam: 'فريقي',
     countsLine: '{e} موظفين · {m} مديرين · {o} مالكين',
-    teamLine: 'فريقك · {n} موظفين',
+    teamLine: 'فريقك · {employees}',
     pillOwner: 'مالك',
     statOwes: 'المستحق للموظفين',
     statPending: '{n} مدفوعات معلقة',
@@ -25061,6 +25247,44 @@ const ar: UiStrings = {
     statusOkTag: 'موافق عليه',
     statusPaid: 'مدفوع',
     switchCompany: 'تبديل الشركة',
+    employeeCount: {
+      one: '{n} موظف',
+      other: '{n} موظفين',
+      zero: '{n} موظفين',
+      two: '{n} موظفان',
+      few: '{n} موظفين',
+      many: '{n} موظفاً',
+    },
+    managerCount: {
+      one: '{n} مدير',
+      other: '{n} مديرين',
+      zero: '{n} مديرين',
+      two: '{n} مديران',
+      few: '{n} مديرين',
+      many: '{n} مديراً',
+    },
+    ownerCount: {
+      one: '{n} مالك',
+      other: '{n} مالكين',
+      zero: '{n} مالكين',
+      two: '{n} مالكان',
+      few: '{n} مالكين',
+      many: '{n} مالكاً',
+    },
+    makeManagerAction: 'تعيين مدير',
+    managersEmptyTitle: 'لا مديرين بعد',
+    managersEmptyBody: 'عيّن مديرين لتنظيم الموظفين وتحديد الميزانيات والموافقة على المصروفات.',
+    overallControl: 'تحكم كامل',
+    whyManagers: 'لماذا تضيف مديرين؟',
+    organizeTeams: 'تنظيم الفرق',
+    organizeTeamsBody: 'تجميع الموظفين تحت إدارة المديرين',
+    managerPools: 'تحديد الميزانيات',
+    managerPoolsBody: 'خصّص رصيداً نقدياً لكل مدير',
+    controlApprove: 'التحكم والموافقة',
+    controlApproveBody: 'يمكن للمديرين الموافقة على المصروفات وتسجيل المدفوعات',
+    switchCompanyBody: 'اختر شركة لإدارتها',
+    createCompanyNew: 'إنشاء شركة جديدة',
+    manageCompanies: 'إدارة الشركات',
     hierarchyTitle: 'الهيكل',
     reportsToOwners: 'يتبع المالكين',
     allocateNow: 'خصّص ميزانية',
@@ -25134,6 +25358,41 @@ const ar: UiStrings = {
     catFood: 'طعام',
     catOffice: 'مكتب',
     catOther: 'أخرى',
+    amountToPay: 'المبلغ المستحق',
+    expensesPending: {
+      one: 'مصروف واحد معلّق',
+      two: 'مصروفان معلّقان',
+      few: '{n} مصاريف معلّقة',
+      many: '{n} مصروفاً معلّقاً',
+      other: '{n} مصروف معلّق',
+    },
+    pendingForPayment: 'بانتظار الدفع',
+    selectAllBtn: 'تحديد الكل',
+    receiptOne: 'إيصال واحد',
+    readyToSettle: 'جاهز للتسوية',
+    readyBody: 'ادفع له بطريقتك المعتادة ثم علّمه كمدفوع.',
+    sendWhatsApp: 'إرسال عبر واتساب',
+    markPaid: 'تعليم كمدفوع',
+    tileAddSub: 'سجّل مصروفاً جديداً',
+    tileHistory: 'عرض كل المصاريف',
+    tileHistorySub: 'السجل الكامل',
+    tileSummary: 'ملخص الموظف',
+    tileSummarySub: 'عرض هذا الموظف',
+    detailPrivacyTitle: 'يرى الموظفون قيودهم فقط.',
+    detailPrivacyBody: 'يمكنهم إضافة مصاريف ومعرفة حالة الدفع.',
+    callEmployee: 'اتصال',
+    catStay: 'إقامة',
+    kindGive: 'إعطاء مال',
+    kindSubGive: 'سلفة / تعويض',
+    kindSubSpent: 'تسجيل مصروف',
+    kindSubWages: 'راتب / دفعة',
+    kindSubAllowance: 'بدل يومي',
+    paidBy: 'دفعه',
+    selectPerson: 'اختر شخصاً',
+    notesLabel: 'ملاحظات (اختياري)',
+    notePh: 'أضف ملاحظة...',
+    addReceipt: 'أضف إيصالاً أو صورة (اختياري)',
+    todayDate: 'اليوم، {date}',
     tagAll: 'كل الوسوم',
     tagNew: 'وسم جديد',
     tagNamePh: 'اسم الوسم',
