@@ -361,7 +361,7 @@ export function DashHeader({
             accessibilityRole="button"
             onPress={() => {
               setSwitching(false);
-              router.push(`/group/${groupId}/settings`);
+              router.push(`/companies?current=${groupId}`);
             }}
             style={{
               marginTop: 12,
