@@ -24,6 +24,7 @@ import {
   StatTriple,
   useMoney,
 } from '@/components/company/dashboard/parts';
+import { WorkdayTiles } from '@/components/company/WorkdayEntries';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
@@ -97,6 +98,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
             },
           ]}
         />
+        <WorkdayTiles groupId={groupId} />
         <InviteBanner
           title={t.company.promoTitle}
           body={t.company.promoBody}

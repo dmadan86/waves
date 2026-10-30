@@ -1,3 +1,4 @@
+import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
@@ -173,171 +174,173 @@ export default function CompanyWorkScreen() {
       >
         <ScenicHeader title={access.isEmployee ? t.company.workMine : t.company.workTitle} />
         <ScenicBody>
-          {!access.enabled ? (
-            <Text tone="muted">{t.company.attendanceEmpty}</Text>
-          ) : (
-            <>
-              <View
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <Button
-                  label="‹"
-                  accessibilityLabel={t.company.workPreviousDay}
-                  variant="secondary"
-                  repeatable
-                  onPress={() => setDay(shift(day, -1))}
-                />
-                <Text>
-                  {new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    timeZone: 'UTC',
-                  })}
-                </Text>
-                <Button
-                  label="›"
-                  accessibilityLabel={t.company.workNextDay}
-                  variant="secondary"
-                  repeatable
-                  disabled={day >= maxDay}
-                  onPress={() => setDay(shift(day, 1))}
-                />
-              </View>
-              {access.canManage ? (
-                <Button
-                  label={`+ ${t.company.workAdd}`}
-                  disabled={busy || access.people.length === 0 || day > maxDay}
-                  onPress={() =>
-                    setDraft({
-                      taskId: randomUUID(),
-                      memberId: access.people[0]?.id ?? '',
-                      day,
-                      title: '',
-                      projectId: null,
-                      status: 'todo',
-                      blockedReason: null,
-                      note: null,
-                    })
-                  }
-                />
-              ) : null}
-              {visibleTasks.length === 0 ? <Text tone="muted">{t.company.workEmpty}</Text> : null}
-              {people.map((person) => {
-                const own = visibleTasks.filter((task) => task.memberId === person.id);
-                if (!own.length) return null;
-                return (
-                  <StandardCard key={person.id} style={{ gap: theme.spacing.sm }}>
-                    <ListRow
-                      title={displayName(person)}
-                      leading={
-                        <PersonAvatar
-                          member={person}
-                          name={displayName(person)}
-                          ghost={isGhost(person)}
-                          size={36}
-                        />
-                      }
-                    />
-                    {own.map((task) => (
-                      <View
-                        key={task.id}
-                        style={{ gap: theme.spacing.xs, paddingVertical: theme.spacing.sm }}
-                      >
-                        <ListRow
-                          title={task.title}
-                          subtitle={projects.find((p) => p.id === task.projectId)?.name}
-                          trailing={
-                            access.canManage && canChange(task) ? (
-                              <Pressable
-                                disabled={busy}
-                                hitSlop={8}
-                                accessibilityRole="button"
-                                accessibilityLabel={t.company.workEdit}
-                                onPress={() => setMenuId(task.id)}
-                                style={{
-                                  minWidth: 44,
-                                  minHeight: 44,
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
-                              >
-                                <Ionicons
-                                  name="ellipsis-vertical"
-                                  size={20}
-                                  color={theme.color.textMuted}
-                                />
-                              </Pressable>
-                            ) : undefined
-                          }
-                        />
-                        {task.blockedReason ? (
-                          <Text variant="caption" tone="negative">
-                            {task.blockedReason}
-                          </Text>
-                        ) : null}
-                        {task.note ? (
-                          <Text variant="caption" tone="muted">
-                            {task.note}
-                          </Text>
-                        ) : null}
+          <ReadOnlyWhenSuspended groupId={id}>
+            {!access.enabled ? (
+              <Text tone="muted">{t.company.attendanceEmpty}</Text>
+            ) : (
+              <>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Button
+                    label="‹"
+                    accessibilityLabel={t.company.workPreviousDay}
+                    variant="secondary"
+                    repeatable
+                    onPress={() => setDay(shift(day, -1))}
+                  />
+                  <Text>
+                    {new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                      timeZone: 'UTC',
+                    })}
+                  </Text>
+                  <Button
+                    label="›"
+                    accessibilityLabel={t.company.workNextDay}
+                    variant="secondary"
+                    repeatable
+                    disabled={day >= maxDay}
+                    onPress={() => setDay(shift(day, 1))}
+                  />
+                </View>
+                {access.canManage ? (
+                  <Button
+                    label={`+ ${t.company.workAdd}`}
+                    disabled={busy || access.people.length === 0 || day > maxDay}
+                    onPress={() =>
+                      setDraft({
+                        taskId: randomUUID(),
+                        memberId: access.people[0]?.id ?? '',
+                        day,
+                        title: '',
+                        projectId: null,
+                        status: 'todo',
+                        blockedReason: null,
+                        note: null,
+                      })
+                    }
+                  />
+                ) : null}
+                {visibleTasks.length === 0 ? <Text tone="muted">{t.company.workEmpty}</Text> : null}
+                {people.map((person) => {
+                  const own = visibleTasks.filter((task) => task.memberId === person.id);
+                  if (!own.length) return null;
+                  return (
+                    <StandardCard key={person.id} style={{ gap: theme.spacing.sm }}>
+                      <ListRow
+                        title={displayName(person)}
+                        leading={
+                          <PersonAvatar
+                            member={person}
+                            name={displayName(person)}
+                            ghost={isGhost(person)}
+                            size={36}
+                          />
+                        }
+                      />
+                      {own.map((task) => (
                         <View
-                          style={{
-                            flexDirection: 'row',
-                            flexWrap: 'wrap',
-                            alignItems: 'center',
-                            gap: theme.spacing.xs,
-                          }}
+                          key={task.id}
+                          style={{ gap: theme.spacing.xs, paddingVertical: theme.spacing.sm }}
                         >
-                          <View pointerEvents={!canChange(task) || busy ? 'none' : 'auto'}>
-                            <SegmentedPills
-                              options={statusOptions.filter(
-                                (option) => option.value === task.status,
-                              )}
-                              value={task.status}
-                              onChange={() =>
-                                changeStatus(
-                                  task,
-                                  task.status === 'todo'
-                                    ? 'doing'
-                                    : task.status === 'doing'
-                                      ? 'done'
-                                      : 'todo',
-                                )
-                              }
-                            />
-                          </View>
-                          {canChange(task) ? (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                label={t.company.workStatus}
-                                disabled={busy}
-                                onPress={() => setStatusId(task.id)}
-                              />
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                label={t.company.workNote}
-                                disabled={busy}
-                                onPress={() => setField({ taskId: task.id, kind: 'note' })}
-                              />
-                            </>
+                          <ListRow
+                            title={task.title}
+                            subtitle={projects.find((p) => p.id === task.projectId)?.name}
+                            trailing={
+                              access.canManage && canChange(task) ? (
+                                <Pressable
+                                  disabled={busy}
+                                  hitSlop={8}
+                                  accessibilityRole="button"
+                                  accessibilityLabel={t.company.workEdit}
+                                  onPress={() => setMenuId(task.id)}
+                                  style={{
+                                    minWidth: 44,
+                                    minHeight: 44,
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  <Ionicons
+                                    name="ellipsis-vertical"
+                                    size={20}
+                                    color={theme.color.textMuted}
+                                  />
+                                </Pressable>
+                              ) : undefined
+                            }
+                          />
+                          {task.blockedReason ? (
+                            <Text variant="caption" tone="negative">
+                              {task.blockedReason}
+                            </Text>
                           ) : null}
+                          {task.note ? (
+                            <Text variant="caption" tone="muted">
+                              {task.note}
+                            </Text>
+                          ) : null}
+                          <View
+                            style={{
+                              flexDirection: 'row',
+                              flexWrap: 'wrap',
+                              alignItems: 'center',
+                              gap: theme.spacing.xs,
+                            }}
+                          >
+                            <View pointerEvents={!canChange(task) || busy ? 'none' : 'auto'}>
+                              <SegmentedPills
+                                options={statusOptions.filter(
+                                  (option) => option.value === task.status,
+                                )}
+                                value={task.status}
+                                onChange={() =>
+                                  changeStatus(
+                                    task,
+                                    task.status === 'todo'
+                                      ? 'doing'
+                                      : task.status === 'doing'
+                                        ? 'done'
+                                        : 'todo',
+                                  )
+                                }
+                              />
+                            </View>
+                            {canChange(task) ? (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  label={t.company.workStatus}
+                                  disabled={busy}
+                                  onPress={() => setStatusId(task.id)}
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  label={t.company.workNote}
+                                  disabled={busy}
+                                  onPress={() => setField({ taskId: task.id, kind: 'note' })}
+                                />
+                              </>
+                            ) : null}
+                          </View>
                         </View>
-                      </View>
-                    ))}
-                  </StandardCard>
-                );
-              })}
-            </>
-          )}
-          {error ? <Text tone="negative">{t.company.workSaveError}</Text> : null}
+                      ))}
+                    </StandardCard>
+                  );
+                })}
+              </>
+            )}
+            {error ? <Text tone="negative">{t.company.workSaveError}</Text> : null}
+          </ReadOnlyWhenSuspended>
         </ScenicBody>
       </ScrollView>
       <OverflowMenu visible={menuId !== null} onClose={() => setMenuId(null)} items={items} />

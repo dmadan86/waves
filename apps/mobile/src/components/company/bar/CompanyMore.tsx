@@ -2,25 +2,39 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { iconSize, useTheme } from '@waves/ui';
 
+import { CompanyBillsRow } from '@/components/company/CompanyBillsRow';
 import { CompanyRules } from '@/components/company/CompanyRules';
+import { AttendanceRow, WorkRow } from '@/components/company/WorkdayEntries';
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
+import { useCompanyVendors } from '@/data/companyVendors';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
 export function CompanyMore({ groupId }: { groupId: string }) {
   const view = useCompanyEntries(groupId);
+  const vendors = useCompanyVendors(groupId);
   const { t } = useStrings();
   const theme = useTheme();
   const lead = (name: keyof typeof Ionicons.glyphMap) => (
     <Ionicons name={name} size={iconSize.lg} color={theme.color.textMuted} />
   );
 
-  // VENDORS ROW: add when a company vendors route exists
   return (
     <SectionShell groupId={groupId} view={view}>
       <StandardCard>
+        {vendors.canManage ? (
+          <ListRow
+            leading={lead('storefront-outline')}
+            title={t.companyVendors.title}
+            onPress={() => router.push(`/group/${groupId}/company-vendors`)}
+            divider
+          />
+        ) : null}
+        <AttendanceRow groupId={groupId} />
+        <WorkRow groupId={groupId} />
+        <CompanyBillsRow groupId={groupId} />
         {view.isOwner ? (
           <ListRow
             leading={lead('wallet-outline')}

@@ -20,6 +20,7 @@ import {
 } from '@/components/company/dashboard/parts';
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
+import { WorkdayTiles } from '@/components/company/WorkdayEntries';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useAskBudget, useCompanyEntries, usePoolBalance } from '@/data/companyEntries';
@@ -138,6 +139,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
             },
           ]}
         />
+        <WorkdayTiles groupId={groupId} />
         <TitleRow
           title={t.company.tabMyTeam}
           onViewAll={() => router.replace(`/group/${groupId}/company-people`)}

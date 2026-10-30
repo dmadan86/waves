@@ -1,3 +1,4 @@
+import { useCompanySuspended } from '@/data/companyEntries';
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
@@ -86,8 +87,14 @@ export default function CompanyBillScreen() {
   const [paymentError, setPaymentError] = useState('');
   const [sharing, setSharing] = useState(false);
   const doc = view.docs.find((d) => d.id === docId && !d.deleted);
+  const suspended = useCompanySuspended(id);
   const busy =
-    status.isPending || convert.isPending || payment.isPending || remove.isPending || sharing;
+    status.isPending ||
+    convert.isPending ||
+    payment.isPending ||
+    remove.isPending ||
+    sharing ||
+    suspended; // read-only while suspended
   const fmt = (v: bigint) => format(money(v, view.currency as CurrencyCode), { locale });
   const run = async (work: () => Promise<unknown>) => {
     setError('');

@@ -68,6 +68,7 @@ import {
   isCompanyTabRoot,
   reviewSlotKey,
 } from '@/lib/companyTab';
+import { useCompanySuspended } from '@/data/companyEntries';
 import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, switchTab } from '@/lib/navigation';
@@ -287,6 +288,9 @@ export function AppTabBar() {
   );
 
   const pendingCount = usePendingCount(company ? groupId : null);
+  // A suspended company is read-only and a vendor login records nothing: no add button.
+  const noAdd =
+    useCompanySuspended(company ? (groupId ?? '') : '') || (company && role === 'vendor');
   const companyItems = useMemo<PillTabItem[]>(() => {
     const item = (
       key: string,
@@ -633,7 +637,7 @@ export function AppTabBar() {
             fabStyle,
           ]}
         >
-          <CenterButton action={company ? add : voice} />
+          {company && noAdd ? null : <CenterButton action={company ? add : voice} />}
         </Animated.View>
       ) : null}
     </>

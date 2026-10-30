@@ -1414,6 +1414,10 @@ export interface UiStrings {
     moreRules: string;
     pendingNone: string;
     pendingNoneBody: string;
+    pendingVendorBills: string;
+    pendingUnpaidBills: string;
+    pendingBlockedTasks: string;
+    pendingUnmarked: string;
     countsLine: string;
     teamLine: string;
     pillOwner: string;
@@ -7927,6 +7931,10 @@ const en: UiStrings = {
     moreRules: 'Rules',
     pendingNone: 'Nothing is waiting',
     pendingNoneBody: 'Claims and budget requests that need you show up here.',
+    pendingVendorBills: '{n} vendor bills to confirm',
+    pendingUnpaidBills: '{n} unpaid bills',
+    pendingBlockedTasks: '{n} blocked tasks',
+    pendingUnmarked: '{n} not marked today',
     countsLine: '{e} employees · {m} managers · {o} owners',
     teamLine: 'Your team · {employees}',
     pillOwner: 'Owner',
@@ -13891,6 +13899,10 @@ const ta: UiStrings = {
     moreRules: 'விதிகள்',
     pendingNone: 'எதுவும் காத்திருக்கவில்லை',
     pendingNoneBody: 'உங்கள் கவனம் தேவைப்படும் கோரிக்கைகள் இங்கே தோன்றும்.',
+    pendingVendorBills: 'உறுதிசெய்ய {n} விற்பனையாளர் பில்கள்',
+    pendingUnpaidBills: '{n} செலுத்தப்படாத பில்கள்',
+    pendingBlockedTasks: '{n} தடைப்பட்ட பணிகள்',
+    pendingUnmarked: 'இன்று {n} பேருக்கு குறிக்கவில்லை',
     countsLine: '{e} ஊழியர்கள் · {m} மேலாளர்கள் · {o} உரிமையாளர்கள்',
     teamLine: 'உங்கள் குழு · {employees}',
     pillOwner: 'உரிமையாளர்',
@@ -20022,6 +20034,10 @@ const hi: UiStrings = {
     moreRules: 'नियम',
     pendingNone: 'कुछ भी प्रतीक्षा में नहीं',
     pendingNoneBody: 'आपके ध्यान की ज़रूरत वाले दावे और बजट अनुरोध यहाँ दिखेंगे।',
+    pendingVendorBills: 'पुष्टि के लिए {n} वेंडर बिल',
+    pendingUnpaidBills: '{n} बिना भुगतान वाले बिल',
+    pendingBlockedTasks: '{n} अटके हुए काम',
+    pendingUnmarked: 'आज {n} की हाज़िरी नहीं लगी',
     countsLine: '{e} कर्मचारी · {m} मैनेजर · {o} मालिक',
     teamLine: 'आपकी टीम · {employees}',
     pillOwner: 'मालिक',
@@ -26046,6 +26062,10 @@ const ar: UiStrings = {
     moreRules: 'القواعد',
     pendingNone: 'لا شيء بانتظارك',
     pendingNoneBody: 'ستظهر هنا المطالبات وطلبات الميزانية التي تحتاج إليك.',
+    pendingVendorBills: '{n} فواتير موردين بانتظار التأكيد',
+    pendingUnpaidBills: '{n} فواتير غير مدفوعة',
+    pendingBlockedTasks: '{n} مهام متعثرة',
+    pendingUnmarked: '{n} لم يُسجَّل حضورهم اليوم',
     countsLine: '{e} موظفين · {m} مديرين · {o} مالكين',
     teamLine: 'فريقك · {employees}',
     pillOwner: 'مالك',
