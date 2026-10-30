@@ -25,18 +25,10 @@ const SRC = join(__dirname, '../src');
 const source = (relativePath: string): string => readFileSync(join(SRC, relativePath), 'utf8');
 
 describe('the private ledger asks for an account', () => {
-  it('turns a guest away before the biometric prompt is ever raised', () => {
-    const guard = source('components/PersonalGuard.tsx');
-    // The wall, and the gate one component below it. Both matter: a guest sent
-    // to the wall by a component that had already called `usePersonalGate`
-    // would have been asked for a fingerprint on the way out.
-    expect(guard).toMatch(/if \(isGuest\) return <SignInWall area="personal" \/>;/);
-    expect(guard).toMatch(/function PersonalUnlock\(/);
-    const outer = guard.slice(
-      guard.indexOf('export function PersonalGuard('),
-      guard.indexOf('function PersonalUnlock('),
+  it('turns a guest away at the guard', () => {
+    expect(source('components/PersonalGuard.tsx')).toMatch(
+      /if \(isGuest\) return <SignInWall area="personal" \/>;/,
     );
-    expect(outer).not.toMatch(/usePersonalGate/);
   });
 
   it('walls the Me tab outside the ledger, not inside it', () => {
@@ -49,7 +41,7 @@ describe('the private ledger asks for an account', () => {
       me.indexOf('export default function MeScreen()'),
       me.indexOf('function MeLedger()'),
     );
-    expect(outer).not.toMatch(/usePersonalGate|usePersonalLedger/);
+    expect(outer).not.toMatch(/usePersonalLedger/);
   });
 
   it('keeps "Just me" off every sheet that offers a destination', () => {

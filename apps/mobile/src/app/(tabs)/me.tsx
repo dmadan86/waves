@@ -66,7 +66,6 @@ import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
 import { PersonalHeroBackground } from '@/components/home/PersonalHeroBackground';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { PersonalLocked } from '@/components/PersonalGuard';
 import { PersonalIntro } from '@/components/PersonalIntro';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
@@ -83,7 +82,6 @@ import {
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
-import { usePersonalGate } from '@/lib/lock';
 import { router } from '@/lib/navigation';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { HERO_THEMES } from '@/lib/scene';
@@ -159,15 +157,6 @@ function MeLedger() {
   // The eye on the summary card: masks every figure on it (and the three
   // tiles beneath it), the same privacy the dashboard's own eye gives Home.
   const { hidden: amountsHidden, toggle: toggleAmountsHidden } = usePersonalAmountsHidden();
-
-  // The Me tab is the home of the private personal ledger — ask for biometrics
-  // on entry and keep the screen a shield until it succeeds (below), so the
-  // figures are never on show behind the prompt. One unlock covers the whole
-  // section: the rooms under `personal/` mount the same gate and read the same
-  // state, so walking into "add income" and back never asks again. Only time
-  // spent away — out of the section, or with the app in the background — past
-  // the "Ask again after" window brings it back.
-  const gate = usePersonalGate(t.lock.personalPrompt);
 
   // Read the clock once, off render (the React Compiler forbids it inline).
   const [today] = useState(() => todayIso());
@@ -359,11 +348,7 @@ function MeLedger() {
     },
   ];
 
-  // Private ledger: while the biometric gate is unresolved the whole screen is a
-  // shield — no hero, no figures — so nothing is on show behind the OS prompt.
-  // A refused check stays here with a way to try again, rather than sending the
-  // user backwards without a word.
-  // The tab's own intro, once per account, after the lock has let them in.
+  // The tab's own intro, once per account, once they are in.
   // Keyed on the session's user rather than the profile, which can arrive late
   // or not at all; and held as *which* account it is open for, so a switch to
   // another account never carries the first one's open intro across.
@@ -371,7 +356,7 @@ function MeLedger() {
   const [introFor, setIntroFor] = useState<string | null>(null);
   const introOpen = introFor !== null && introFor === ownerId;
   useEffect(() => {
-    if (!gate.unlocked || !ownerId) return;
+    if (!ownerId) return;
     let live = true;
     void personalIntroSeen(ownerId).then((seen) => {
       if (live && !seen) setIntroFor(ownerId);
@@ -379,13 +364,11 @@ function MeLedger() {
     return () => {
       live = false;
     };
-  }, [gate.unlocked, ownerId]);
+  }, [ownerId]);
   const closeIntro = useCallback(() => {
     setIntroFor(null);
     if (ownerId) void rememberPersonalIntroSeen(ownerId);
   }, [ownerId]);
-
-  if (!gate.unlocked) return <PersonalLocked gate={gate} />;
 
   // Nothing in the section at all — no entry, no recurring rule, no loan, no
   // budget — and the mirror has finished loading, so that is the truth of it

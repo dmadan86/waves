@@ -1,13 +1,8 @@
 /**
  * Security.
  *
- * Two settings. The lock guards the screen when the phone is handed over; the
- * delay decides how often that guard gets in the way of the person who owns it.
- * Both matter, because a lock that asks too often is a lock somebody turns off,
- * and a lock nobody turns on protects nothing.
- *
- * Signing out used to sit here too, and was the same button the settings list
- * already carries. One way out, in one place: settings owns it.
+ * One app lock protects Waves; the delay controls when it asks again
+ * after you leave the app.
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -79,15 +74,7 @@ export default function LockSettingsScreen() {
           {!supported ? <Badge label={t.lock.unsupported} /> : null}
         </StandardCard>
 
-        {/* Shown whether or not the app lock is on, because the number governs
-            two locks and only one of them is behind that switch: the private
-            personal ledger asks again after this long away regardless. Hidden
-            behind `enabled`, somebody who tried "Straight away", disliked it
-            and turned the app lock off would be left with a zero-second window
-            on their ledger and no way back to the control that set it. Gated on
-            `supported` instead, since with nothing enrolled neither lock can
-            ask at all. */}
-        {supported ? (
+        {supported && enabled ? (
           <StandardCard style={{ paddingVertical: theme.spacing.sm, gap: theme.spacing.xs }}>
             <Row style={{ gap: theme.spacing.md, paddingVertical: theme.spacing.xs }}>
               <RowTile tint={theme.color.brandSoft}>
