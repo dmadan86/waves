@@ -51,6 +51,7 @@ import type {
   CompanyWagePayPayload,
   CompanyPoolPostPayload,
   CompanyProjectSetPayload,
+  CompanyMemberProjectsSetPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
   MemberBudgetSetPayload,
@@ -101,6 +102,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyProjects,
   SyncTable.CompanyProjectMembers,
   SyncTable.CompanyProjectBudgets,
+  SyncTable.CompanyWageSplits,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -550,6 +552,8 @@ export interface MirrorMember extends MirrorRow {
   readonly profile_id: string | null;
   readonly ghost_name: string | null;
   readonly left_at: string | null;
+  /** Company: the manager this employee reports to (null = the owners). */
+  readonly manager_id?: string | null;
   readonly pending?: boolean;
 }
 
@@ -599,6 +603,16 @@ export function materialiseMembers(
           pending: true,
         });
       }
+      continue;
+    }
+
+    // A queued "reports to" change reads as made at once, over a row the server sent.
+    if (mutation.kind === 'company_member.assign') {
+      if (mutation.rejection) continue;
+      const assign = mutation.payload as { memberId: string; managerId: string | null };
+      const existing = byId.get(assign.memberId);
+      if (existing)
+        byId.set(assign.memberId, { ...existing, manager_id: assign.managerId ?? null });
       continue;
     }
 
@@ -2144,4 +2158,117 @@ export function materialiseCompanyProjects(
     } as MirrorCompanyProject);
   }
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Employee id -> site ids, with this phone's queued "which sites" changes laid over the pulled rows. */
+export function materialiseProjectMembers(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const row of rowsFor(state, SyncTable.CompanyProjectMembers, options.groupId) as unknown as {
+    member_id: string;
+    project_id: string;
+    deleted_at: string | null;
+  }[]) {
+    if (!row.deleted_at)
+      out.set(row.member_id, [...(out.get(row.member_id) ?? []), row.project_id]);
+  }
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (
+      mutation.groupId !== options.groupId ||
+      mutation.rejection ||
+      mutation.kind !== 'company_member.projects_set'
+    )
+      continue;
+    const p = mutation.payload as unknown as CompanyMemberProjectsSetPayload;
+    if (p.projectIds.length === 0) out.delete(p.memberId);
+    else out.set(p.memberId, [...new Set(p.projectIds)]);
+  }
+  return out;
+}
+
+export interface MirrorWageSplit {
+  readonly projectId: string;
+  readonly amountMinor: bigint;
+}
+
+/** Wage payment id -> how its base is divided across sites (pulled rows plus queued wage runs). */
+export function materialiseWageSplits(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): Map<string, MirrorWageSplit[]> {
+  const out = new Map<string, MirrorWageSplit[]>();
+  for (const row of rowsFor(state, SyncTable.CompanyWageSplits, options.groupId) as unknown as {
+    entry_id: string;
+    project_id: string;
+    amount_minor: string;
+    deleted_at: string | null;
+  }[]) {
+    if (row.deleted_at) continue;
+    out.set(row.entry_id, [
+      ...(out.get(row.entry_id) ?? []),
+      { projectId: row.project_id, amountMinor: BigInt(row.amount_minor) },
+    ]);
+  }
+  for (const mutation of queue) {
+    if (
+      mutation.groupId !== options.groupId ||
+      mutation.rejection ||
+      mutation.kind !== 'company_wage.pay'
+    )
+      continue;
+    for (const line of (mutation.payload as unknown as CompanyWagePayPayload).lines) {
+      if (!line.splits?.length || out.has(line.paymentEntryId)) continue;
+      out.set(
+        line.paymentEntryId,
+        line.splits.map((x) => ({ projectId: x.projectId, amountMinor: BigInt(x.amountMinor) })),
+      );
+    }
+  }
+  return out;
+}
+
+/**
+ * A non-owner's phone after an employee moved to another manager (or the viewer lost a role): the server lists the
+ * members this caller may still read, so anyone not on it loses their cached entries,
+ * photos, sites and split wages here. Never empties a company (an empty list is ignored).
+ */
+export function purgeCompanyInvisible(
+  state: MirrorState,
+  visible: Readonly<Record<string, readonly string[]>>,
+): { state: MirrorState; removed: { table: SyncTable; id: string }[] } {
+  const tables = { ...state.tables };
+  const removed: { table: SyncTable; id: string }[] = [];
+  const drop = (table: SyncTable, gone: (row: Record<string, unknown>) => boolean): Set<string> => {
+    const kept: Record<string, MirrorRow> = {};
+    const dropped = new Set<string>();
+    for (const [id, row] of Object.entries(tables[table] ?? {})) {
+      if (gone(row as Record<string, unknown>)) dropped.add(id);
+      else kept[id] = row;
+    }
+    if (dropped.size > 0) {
+      tables[table] = kept;
+      for (const id of dropped) removed.push({ table, id });
+    }
+    return dropped;
+  };
+  for (const [groupId, ids] of Object.entries(visible)) {
+    if (ids.length === 0) continue;
+    const ok = new Set(ids);
+    const mine = (row: Record<string, unknown>): boolean => row.group_id === groupId;
+    drop(SyncTable.GroupMembers, (row) => mine(row) && !ok.has(row.id as string));
+    drop(SyncTable.CompanyProjectMembers, (row) => mine(row) && !ok.has(row.member_id as string));
+    const entries = drop(
+      SyncTable.CompanyEntries,
+      (row) => mine(row) && !ok.has(row.member_id as string),
+    );
+    const orphan = (row: Record<string, unknown>): boolean =>
+      mine(row) && entries.has(row.entry_id as string);
+    drop(SyncTable.CompanyEntryAttachments, orphan);
+    drop(SyncTable.CompanyWageSplits, orphan);
+  }
+  return removed.length === 0 ? { state, removed } : { state: { ...state, tables }, removed };
 }

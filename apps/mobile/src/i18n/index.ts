@@ -1329,6 +1329,13 @@ export interface UiStrings {
     viewAll: string;
     ownersControl: string;
     nameYou: string;
+    needsOtherOwner: string;
+    secondOwnerTitle: string;
+    secondOwnerHint: string;
+    secondOwnerFrom: string;
+    secondOwnerFromHint: string;
+    voiceAdd: string;
+    voiceCurrency: string;
     paymentSettings: string;
     dailyRateHint: string;
     mileageRateHint: string;
@@ -7597,6 +7604,15 @@ const en: UiStrings = {
     viewAll: 'View all',
     ownersControl: '{n} owners · Overall control',
     nameYou: '{name} (You)',
+    needsOtherOwner: 'Another owner must approve this.',
+    secondOwnerTitle: 'Second owner approves',
+    secondOwnerHint:
+      'Large claims, and claims an owner raised, need a different owner to approve them.',
+    secondOwnerFrom: 'Large from',
+    secondOwnerFromHint:
+      'Claims at or above this amount need a second owner. Leave empty for owner-raised claims only.',
+    voiceAdd: 'Speak an expense',
+    voiceCurrency: "Say the amount in {currency}, the company's currency.",
     paymentSettings: 'Payment settings',
     dailyRateHint: 'Use this for daily allowance calculations',
     mileageRateHint: 'Use this for travel reimbursements',
@@ -13313,6 +13329,15 @@ const ta: UiStrings = {
     viewAll: 'அனைத்தும்',
     ownersControl: '{n} உரிமையாளர்கள் · முழு கட்டுப்பாடு',
     nameYou: '{name} (நீங்கள்)',
+    needsOtherOwner: 'இதை வேறொரு உரிமையாளர் அங்கீகரிக்க வேண்டும்.',
+    secondOwnerTitle: 'இரண்டாவது உரிமையாளர் அங்கீகரிப்பார்',
+    secondOwnerHint:
+      'பெரிய கோரிக்கைகளையும், உரிமையாளர் எழுப்பிய கோரிக்கைகளையும் வேறொரு உரிமையாளர் அங்கீகரிக்க வேண்டும்.',
+    secondOwnerFrom: 'பெரியது எனில், இதிலிருந்து',
+    secondOwnerFromHint:
+      'இந்தத் தொகை அல்லது அதற்கு மேற்பட்ட கோரிக்கைகளுக்கு இரண்டாவது உரிமையாளர் தேவை. உரிமையாளர் எழுப்பியவற்றுக்கு மட்டும் எனில் காலியாக விடுங்கள்.',
+    voiceAdd: 'செலவைச் சொல்லுங்கள்',
+    voiceCurrency: 'தொகையை {currency} என்ற நிறுவன நாணயத்தில் சொல்லுங்கள்.',
     paymentSettings: 'கட்டண அமைப்புகள்',
     dailyRateHint: 'தினசரி படி கணக்கீட்டுக்குப் பயன்படுத்தவும்',
     mileageRateHint: 'பயணச் செலவு திருப்பிக் கொடுப்பதற்குப் பயன்படுத்தவும்',
@@ -19194,6 +19219,15 @@ const hi: UiStrings = {
     viewAll: 'सभी देखें',
     ownersControl: '{n} मालिक · पूरा नियंत्रण',
     nameYou: '{name} (आप)',
+    needsOtherOwner: 'इसे किसी दूसरे मालिक को मंज़ूर करना होगा।',
+    secondOwnerTitle: 'दूसरा मालिक मंज़ूर करे',
+    secondOwnerHint:
+      'बड़े दावे, और जो दावे किसी मालिक ने खुद डाले हों, उन्हें कोई दूसरा मालिक मंज़ूर करे।',
+    secondOwnerFrom: 'बड़ा मानें, इस रकम से',
+    secondOwnerFromHint:
+      'इस रकम या इससे ज़्यादा के दावों के लिए दूसरा मालिक चाहिए। सिर्फ़ मालिक के डाले दावों के लिए खाली छोड़ें।',
+    voiceAdd: 'खर्च बोलकर जोड़ें',
+    voiceCurrency: 'रकम कंपनी की मुद्रा {currency} में बोलें।',
     paymentSettings: 'भुगतान सेटिंग्स',
     dailyRateHint: 'दैनिक भत्ते की गणना के लिए इसका उपयोग करें',
     mileageRateHint: 'यात्रा प्रतिपूर्ति के लिए इसका उपयोग करें',
@@ -24964,6 +24998,14 @@ const ar: UiStrings = {
     viewAll: 'عرض الكل',
     ownersControl: '{n} مالكين · تحكم كامل',
     nameYou: '{name} (أنت)',
+    needsOtherOwner: 'يجب أن يوافق مالك آخر على هذا.',
+    secondOwnerTitle: 'موافقة مالك ثانٍ',
+    secondOwnerHint: 'المطالبات الكبيرة والمطالبات التي رفعها مالك يوافق عليها مالك آخر.',
+    secondOwnerFrom: 'تُعدّ كبيرة من',
+    secondOwnerFromHint:
+      'المطالبات بهذا المبلغ أو أكثر تحتاج إلى مالك ثانٍ. اتركه فارغًا للمطالبات التي رفعها المالك فقط.',
+    voiceAdd: 'انطق المصروف',
+    voiceCurrency: 'قل المبلغ بعملة الشركة {currency}.',
     paymentSettings: 'إعدادات الدفع',
     dailyRateHint: 'استخدمه لحساب البدل اليومي',
     mileageRateHint: 'استخدمه لتعويضات السفر',

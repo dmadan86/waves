@@ -19,7 +19,12 @@ export function PendingApprovals({ groupId, view }: { groupId: string; view: Com
   const fmt = useMoney(view.currency);
   const tagLabel = useCompanyTags(groupId, view).label;
   const awaiting = view.entries.filter(
-    (e) => !e.deleted && e.status === 'submitted' && (view.isOwner || e.memberId !== view.me?.id),
+    (e) =>
+      !e.deleted &&
+      e.status === 'submitted' &&
+      (view.isOwner || e.memberId !== view.me?.id) &&
+      // A claim waiting for a second owner is not this reviewer's to act on.
+      view.canApprove(e),
   );
   if (awaiting.length === 0) return null;
   return (

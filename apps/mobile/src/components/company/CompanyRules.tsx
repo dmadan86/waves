@@ -16,7 +16,12 @@ import { CompanyPolicyEditor } from '@/components/company/CompanyPolicyEditor';
 import { useMoney } from '@/components/company/dashboard/parts';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ListRow, StandardCard } from '@/components/standard';
-import { useSetCompanySettings, useSetMileageRate, type CompanyView } from '@/data/companyEntries';
+import {
+  useSetCompanySettings,
+  useSetMileageRate,
+  useSetSecondApproval,
+  type CompanyView,
+} from '@/data/companyEntries';
 import { useStrings } from '@/i18n';
 
 export function CompanyRules({ groupId, view }: { groupId: string; view: CompanyView }) {
@@ -25,11 +30,17 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
   const fmt = useMoney(view.currency);
   const settings = useSetCompanySettings(groupId);
   const setKm = useSetMileageRate(groupId);
+  const setSecond = useSetSecondApproval(groupId);
+  const [limit, setLimitOpen] = useState(false);
   const [policies, setPolicies] = useState(false);
   const [km, setKmOpen] = useState(false);
   const [rate, setRateOpen] = useState(false);
   const currency = view.currency as CurrencyCode;
   if (!view.isOwner) return null;
+  // Only offered when it can apply: approvals are on and there is a second owner to ask.
+  const ownerCount = view.members.filter((m) => m.role === 'admin' && !m.left_at).length;
+  const secondOn = view.secondApproval;
+  const thresholdMinor = view.secondApprovalThresholdMinor;
   const lead = (name: keyof typeof Ionicons.glyphMap) => (
     <Ionicons name={name} size={iconSize.lg} color={theme.color.textMuted} />
   );
@@ -56,6 +67,40 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
           }
           divider
         />
+        {view.approvalsEnabled && ownerCount > 1 ? (
+          <>
+            <ListRow
+              leading={lead('people-outline')}
+              title={t.company.secondOwnerTitle}
+              subtitle={t.company.secondOwnerHint}
+              subtitleLines={3}
+              trailing={
+                <Toggle
+                  value={secondOn}
+                  onValueChange={(next) =>
+                    setSecond.mutate({
+                      enabled: next,
+                      thresholdMinor: thresholdMinor?.toString() ?? null,
+                    })
+                  }
+                  accessibilityLabel={t.company.secondOwnerTitle}
+                />
+              }
+              divider
+            />
+            {secondOn ? (
+              <ListRow
+                leading={lead('trending-up-outline')}
+                title={t.company.secondOwnerFrom}
+                subtitle={t.company.secondOwnerFromHint}
+                subtitleLines={2}
+                amount={thresholdMinor !== null ? fmt(thresholdMinor) : t.company.rateNotSet}
+                onPress={() => setLimitOpen(true)}
+                divider
+              />
+            ) : null}
+          </>
+        ) : null}
         <ListRow
           leading={lead('calendar-outline')}
           title={t.company.dailyRate}
@@ -110,6 +155,22 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
           settings.mutate({
             defaultDailyRateMinor:
               text.trim() === '' ? null : parseMinorInput(text, currency).toString(),
+          });
+        }}
+      />
+      <EditTextSheet
+        visible={limit}
+        title={t.company.secondOwnerFrom}
+        value={thresholdMinor !== null ? formatMinorInput(thresholdMinor, currency) : ''}
+        autoCapitalize="none"
+        saving={setSecond.isPending}
+        onClose={() => setLimitOpen(false)}
+        onSave={(text) => {
+          setLimitOpen(false);
+          // Empty = only claims an owner raised themselves need the second owner.
+          setSecond.mutate({
+            enabled: true,
+            thresholdMinor: text.trim() === '' ? null : parseMinorInput(text, currency).toString(),
           });
         }}
       />

@@ -101,6 +101,7 @@ type MutationKind =
   | 'company_project.set'
   | 'company_pool.post'
   | 'company_wage.pay'
+  | 'company.second_approval_set'
   // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
@@ -330,6 +331,8 @@ const GROUP_TABLES = [
   ['company_projects', '*'],
   ['company_project_members', '*'],
   ['company_project_budgets', '*'],
+  // A wage payment divided across sites; readable exactly where the payment is.
+  ['company_wage_splits', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -415,7 +418,7 @@ serveWithCors(async (request) => {
     // could never get its first row, and being invited would do nothing until
     // you happened to open the group by link. The membership read runs as the
     // caller, so it can only ever return groups their own RLS already allows.
-    const mine = await caller.from('group_members').select('group_id').is('left_at', null);
+    const mine = await caller.from('group_members').select('group_id, role').is('left_at', null);
     if (mine.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${mine.error.message}`);
 
     const groupIds = new Set<string>([
@@ -428,6 +431,12 @@ serveWithCors(async (request) => {
       cursors: nextCursors,
       hasMore,
     } = await pull(caller, groupIds, cursors, profileId);
+    // Any phone that is not an owner's may still hold detail it can no longer read (an employee
+    // moved to another manager, a manager demoted); owners see everyone, so they never purge.
+    const managerGroupIds = (mine.data ?? [])
+      .filter((row) => (row as { role?: string }).role !== 'admin')
+      .map((row) => row.group_id as string);
+    const companyVisible = await companyVisibleMembers(caller, managerGroupIds);
 
     return json({
       outcomes,
@@ -438,6 +447,9 @@ serveWithCors(async (request) => {
       // group from the pull (RLS), so the pull alone can never say "it is gone";
       // this list lets a device drop a group an admin removed them from.
       memberOf: (mine.data ?? []).map((row) => row.group_id as string),
+      // Company groups only: who this caller may still see. A phone drops cached
+      // detail for anyone else (an employee who moved to another manager).
+      companyVisible,
       serverTime: new Date().toISOString(),
     });
   } catch (error) {
@@ -1013,6 +1025,17 @@ export class SyncSession {
           p_period_end: companyDate(mutation.payload.periodEnd, 'periodEnd'),
           p_paid_on: companyDate(mutation.payload.paidOn, 'paidOn'),
           p_lines: companyWageLines(mutation.payload.lines),
+        });
+      case 'company.second_approval_set':
+        if (typeof mutation.payload.enabled !== 'boolean') companyInvalid('enabled');
+        return await this.rpcAsCaller('waves_company_second_approval_set', {
+          p_group_id: mutation.groupId,
+          p_enabled: mutation.payload.enabled,
+          p_threshold_minor: companyDecimal(
+            mutation.payload.thresholdMinor ?? null,
+            'thresholdMinor',
+            true,
+          ),
         });
       case 'company_member.rate_set':
         return await this.rpcAsCaller('waves_company_member_rate_set', {
@@ -2377,12 +2400,28 @@ function companyWageLines(value: unknown): unknown[] {
       rateMinor: l.rateMinor == null ? null : companyDecimal(l.rateMinor, 'rateMinor'),
       fixedMinor: l.fixedMinor == null ? null : companyDecimal(l.fixedMinor, 'fixedMinor'),
       claimIds: companySelection(l.claimIds, 'claimIds', false),
+      ...companySplits(l.splits),
       expectedGrossMinor: companyDecimal(l.expectedGrossMinor, 'expectedGrossMinor'),
       expectedRecoveryMinor: companyDecimal(l.expectedRecoveryMinor, 'expectedRecoveryMinor'),
       expectedNetMinor: companyDecimal(l.expectedNetMinor, 'expectedNetMinor'),
       note: companyReason(l.note ?? null, 'note', false),
     };
   });
+}
+/** Wage base divided across sites; emitted only when present so older payloads keep their request hash. */
+function companySplits(value: unknown): { splits?: unknown[] } {
+  if (value == null || (Array.isArray(value) && value.length === 0)) return {};
+  if (!Array.isArray(value) || value.length > 20) companyInvalid('splits');
+  return {
+    splits: value.map((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) companyInvalid('splits');
+      const x = raw as Record<string, unknown>;
+      return {
+        projectId: companyUuid(x.projectId, 'projectId'),
+        amountMinor: companyDecimal(x.amountMinor, 'amountMinor'),
+      };
+    }),
+  };
 }
 function companyInvalid(field: string): never {
   throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${field}`);
@@ -2514,4 +2553,40 @@ function companyTag(
   )
     companyInvalid('tags');
   return t as Record<string, unknown> & { key: string; label: string; unit?: string };
+}
+
+/**
+ * For each company group a non-owner belongs to, the member ids this caller can read (RLS decides, so it is
+ * exactly the people whose entries they may hold). A group is left out when the list
+ * could not be read in full, so a failure can never make a phone discard data.
+ */
+async function companyVisibleMembers(
+  caller: SupabaseClient,
+  groupIds: readonly string[],
+): Promise<Record<string, string[]>> {
+  const out: Record<string, string[]> = {};
+  if (groupIds.length === 0) return out;
+  const groups = await caller.from('groups').select('id').eq('type', 'company').in('id', groupIds);
+  if (groups.error) return out;
+  const PAGE = 1000;
+  for (const { id } of groups.data ?? []) {
+    const ids: string[] = [];
+    let complete = false;
+    for (let from = 0; from < PAGE * 5; from += PAGE) {
+      const page = await caller
+        .from('group_members')
+        .select('id')
+        .eq('group_id', id)
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (page.error) break;
+      ids.push(...(page.data ?? []).map((row) => row.id as string));
+      if ((page.data ?? []).length < PAGE) {
+        complete = true;
+        break;
+      }
+    }
+    if (complete) out[id as string] = ids;
+  }
+  return out;
 }

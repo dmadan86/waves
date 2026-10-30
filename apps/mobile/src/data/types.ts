@@ -123,6 +123,9 @@ export interface GroupRow {
   company_default_daily_rate_minor?: string | null;
   /** Company groups: new entries wait for an admin's approval. Off by default. */
   company_approvals_enabled?: boolean;
+  /** Company groups: large or owner-raised claims need an owner other than their creator. */
+  company_second_approval?: boolean;
+  company_second_approval_threshold_minor?: string | null;
   /** Company groups: default mileage rate per km, minor units (decimal string). */
   company_default_mileage_rate_minor?: string | null;
   /** Company groups: the admin's policy rules (see `CompanyPolicies` in @waves/core). */

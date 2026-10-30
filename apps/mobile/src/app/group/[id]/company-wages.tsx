@@ -21,6 +21,7 @@ import {
   parseMinorInput,
   wagePaidInPeriod,
   wageRunTotals,
+  wageSiteSplit,
   type CurrencyCode,
   type WageTerms,
 } from '@waves/core';
@@ -29,7 +30,13 @@ import { Button, Chip, ChipRow, Screen, Text, iconSize, useTheme } from '@waves/
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ScenicBody, ScenicHeader, StandardCard } from '@/components/standard';
 import { EditTextSheet } from '@/components/EditTextSheet';
-import { usePayWages, useCompanyEntries, useSetCompanyRate } from '@/data/companyEntries';
+import {
+  useCompanyEntries,
+  useCompanyProjectMembers,
+  useCompanyProjects,
+  usePayWages,
+  useSetCompanyRate,
+} from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -59,6 +66,17 @@ export default function CompanyWagesScreen() {
   const view = useCompanyEntries(groupId);
   const pay = usePayWages(groupId);
   const setRate = useSetCompanyRate(groupId);
+  const sites = useCompanyProjects(groupId).filter((p) => !p.archived_at);
+  const onSites = useCompanyProjectMembers(groupId);
+  // Sites a person's wage is divided across this run (empty = not allocated to a site).
+  const [split, setSplit] = useState<Record<string, string[]>>({});
+  // Until chosen, a person on exactly one site is paid to that site.
+  const pickedFor = (memberId: string): string[] => {
+    const own = onSites.get(memberId) ?? [];
+    return (split[memberId] ?? (own.length === 1 ? own : [])).filter((id) =>
+      sites.some((s) => s.id === id),
+    );
+  };
   // The daily rate is asked here, the first time wages need it, not in a settings screen.
   const [rateFor, setRateFor] = useState<string | null>(null);
   const currency = view.currency as CurrencyCode;
@@ -114,21 +132,25 @@ export default function CompanyWagesScreen() {
         periodStart: start,
         periodEnd: end,
         paidOn: todayIso(),
-        lines: chosen.map((l) => ({
-          paymentEntryId: randomUUID(),
-          memberId: l.memberId,
-          projectId: null,
-          fundingManagerId: view.isManager ? (view.me?.id ?? null) : null,
-          calcMode: l.calcMode as 'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly',
-          days: l.days,
-          rateMinor: l.rateMinor?.toString() ?? null,
-          fixedMinor: l.fixedMinor?.toString() ?? null,
-          claimIds: l.claimIds,
-          expectedGrossMinor: l.gross.toString(),
-          expectedRecoveryMinor: l.recovery.toString(),
-          expectedNetMinor: l.net.toString(),
-          note: null,
-        })),
+        lines: chosen.map((l) => {
+          // The wage base (not folded bata) is divided evenly; the first sites take any remainder.
+          const picked = pickedFor(l.memberId);
+          return {
+            paymentEntryId: randomUUID(),
+            memberId: l.memberId,
+            ...wageSiteSplit(l.base, picked),
+            fundingManagerId: view.isManager ? (view.me?.id ?? null) : null,
+            calcMode: l.calcMode as 'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly',
+            days: l.days,
+            rateMinor: l.rateMinor?.toString() ?? null,
+            fixedMinor: l.fixedMinor?.toString() ?? null,
+            claimIds: l.claimIds,
+            expectedGrossMinor: l.gross.toString(),
+            expectedRecoveryMinor: l.recovery.toString(),
+            expectedNetMinor: l.net.toString(),
+            note: null,
+          };
+        }),
       },
       {
         onSuccess: () => {
@@ -238,6 +260,33 @@ export default function CompanyWagesScreen() {
                         </Text>
                       ) : null}
                     </View>
+                    {!paid && line && sites.length > 0 ? (
+                      <View
+                        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}
+                      >
+                        {sites.map((site) => {
+                          const picked = pickedFor(m.id);
+                          const on = picked.includes(site.id);
+                          return (
+                            <Chip
+                              key={site.id}
+                              label={site.name}
+                              selected={on}
+                              onCard
+                              repeatable
+                              onPress={() =>
+                                setSplit((cur) => ({
+                                  ...cur,
+                                  [m.id]: on
+                                    ? picked.filter((id) => id !== site.id)
+                                    : [...picked, site.id],
+                                }))
+                              }
+                            />
+                          );
+                        })}
+                      </View>
+                    ) : null}
                     {paid ? null : (
                       <View
                         style={{

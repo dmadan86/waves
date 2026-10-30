@@ -57,6 +57,7 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
           groupId={groupId}
           view={view}
           showGear={false}
+          voice
           subtitle={
             boss ? fill(t.company.yourManager, { name: boss.display_name }) : t.company.yourOwners
           }
