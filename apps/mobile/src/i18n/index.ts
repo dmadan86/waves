@@ -1407,6 +1407,7 @@ export interface UiStrings {
     switchCompanyBody: string;
     createCompanyNew: string;
     manageCompanies: string;
+    companySettings: string;
     hierarchyTitle: string;
     reportsToOwners: string;
     allocateNow: string;
@@ -7740,6 +7741,7 @@ const en: UiStrings = {
     switchCompanyBody: 'Choose a company to manage',
     createCompanyNew: 'Create new',
     manageCompanies: 'Manage companies',
+    companySettings: 'Company settings',
     hierarchyTitle: 'Hierarchy',
     reportsToOwners: 'Reports to the owners',
     allocateNow: 'Allocate budget',
@@ -13522,6 +13524,7 @@ const ta: UiStrings = {
     switchCompanyBody: 'நிர்வகிக்க ஒரு நிறுவனத்தைத் தேர்ந்தெடுக்கவும்',
     createCompanyNew: 'புதிதாக உருவாக்கு',
     manageCompanies: 'நிறுவனங்களை நிர்வகி',
+    companySettings: 'நிறுவன அமைப்புகள்',
     hierarchyTitle: 'படிநிலை',
     reportsToOwners: 'உரிமையாளர்களிடம்',
     allocateNow: 'பட்ஜெட் ஒதுக்கு',
@@ -19467,6 +19470,7 @@ const hi: UiStrings = {
     switchCompanyBody: 'प्रबंधन के लिए कंपनी चुनें',
     createCompanyNew: 'नई बनाएँ',
     manageCompanies: 'कंपनियाँ प्रबंधित करें',
+    companySettings: 'कंपनी सेटिंग्स',
     hierarchyTitle: 'हाइरार्की',
     reportsToOwners: 'मालिकों को रिपोर्ट',
     allocateNow: 'बजट आवंटित करें',
@@ -25321,6 +25325,7 @@ const ar: UiStrings = {
     switchCompanyBody: 'اختر شركة لإدارتها',
     createCompanyNew: 'إنشاء شركة جديدة',
     manageCompanies: 'إدارة الشركات',
+    companySettings: 'إعدادات الشركة',
     hierarchyTitle: 'الهيكل',
     reportsToOwners: 'يتبع المالكين',
     allocateNow: 'خصّص ميزانية',

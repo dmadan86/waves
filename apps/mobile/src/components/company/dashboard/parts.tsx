@@ -243,7 +243,7 @@ export function DashHeader({
           {showGear ? (
             <IconButton
               icon="settings-outline"
-              label={t.group.settings}
+              label={t.company.companySettings}
               onPress={() => router.push(`/group/${groupId}/settings`)}
             />
           ) : null}
@@ -383,6 +383,16 @@ export function DashHeader({
         </ScrollView>
       </Sheet>
       <Sheet visible={menu} onClose={() => setMenu(false)} closeLabel={t.common.close}>
+        {showGear ? (
+          <ListRow
+            title={t.company.companySettings}
+            leading={<Ionicons name="settings-outline" size={iconSize.md} />}
+            onPress={() => {
+              setMenu(false);
+              router.push(`/group/${groupId}/settings`);
+            }}
+          />
+        ) : null}
         <ListRow
           title={t.company.exportAction}
           leading={<Ionicons name="download-outline" size={iconSize.md} />}
