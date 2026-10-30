@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { friendlyError } from '@/lib/errors';
+import { reportHandled } from '@/lib/observability';
 
 // friendlyError reports the raw error to the crash reporter, which pulls the
 // native Sentry pipeline — stub it so the pure string logic can be tested.
@@ -63,6 +64,14 @@ describe('friendlyError', () => {
   it('uses the fallback where the caller has no offline or too-many sentence', () => {
     expect(friendlyError({ status: 429 }, FALLBACK, 'test')).toBe(FALLBACK);
     expect(friendlyError({ message: 'Network request failed' }, FALLBACK, 'test')).toBe(FALLBACK);
+  });
+
+  it('does not report a dropped connection to the crash reporter, but does report the rest', () => {
+    vi.mocked(reportHandled).mockClear();
+    expect(friendly(new Error('Failed to send a request to the Edge Function'))).toBe(OFFLINE);
+    expect(reportHandled).not.toHaveBeenCalled();
+    friendly(new Error('something unexpected'));
+    expect(reportHandled).toHaveBeenCalledTimes(1);
   });
 
   it('copes with nothing thrown at all', () => {
