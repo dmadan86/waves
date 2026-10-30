@@ -24,7 +24,7 @@ import { Sheet, Text, directionalIcon, iconSize, useTheme, type TintName } from 
 import { BUILDING_ART } from './art';
 import { ReportCompanySheet, SuspendedBanner } from '@/components/company/SuspendedBanner';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
-import { OverflowMenu } from '@/components/OverflowMenu';
+import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { StandardCard } from '@/components/standard';
 import { useHeroStatusBar } from '@/components/ScreenHero';
