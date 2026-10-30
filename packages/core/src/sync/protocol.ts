@@ -77,9 +77,27 @@ export enum MutationKind {
   CompanyMemberAdd = 'company_member.add',
   CompanyMemberAssign = 'company_member.assign',
   CompanyMemberProjectsSet = 'company_member.projects_set',
+  CompanyMemberEmployeeIdSet = 'company_member.employee_id_set',
+  CompanyAttendanceSet = 'company_attendance.set',
+  CompanyWorkSet = 'company_work.set',
+  CompanyWorkRemove = 'company_work.remove',
   CompanyProjectSet = 'company_project.set',
   CompanyPoolPost = 'company_pool.post',
   CompanyWagePay = 'company_wage.pay',
+  CompanySecondApprovalSet = 'company.second_approval_set',
+  // Vendors: a named payee with a ledger (bill / advance / payment) against the company.
+  CompanyVendorSet = 'company_vendor.set',
+  CompanyVendorRemove = 'company_vendor.remove',
+  CompanyVendorEntryCreate = 'company_vendor_entry.create',
+  CompanyVendorEntryReview = 'company_vendor_entry.review',
+  CompanyVendorEntryVoid = 'company_vendor_entry.void',
+  CompanyVendorEntryReceived = 'company_vendor_entry.received',
+  // Estimates and bills (owners; managers for their own). The server numbers them and recomputes totals.
+  CompanyDocSave = 'company_doc.save',
+  CompanyDocStatus = 'company_doc.status',
+  CompanyDocConvert = 'company_doc.convert',
+  CompanyDocPayment = 'company_doc.payment',
+  CompanyDocVoid = 'company_doc.void',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -433,6 +451,8 @@ export interface CompanyEntryData {
   /** Phase 4: the site, and the manager whose pool pays (an advance / reimbursement). */
   readonly projectId?: string | null;
   readonly fundingManagerId?: string | null;
+  /** Create only: the company paid directly (memberId null; owners and managers only). */
+  readonly paidByCompany?: boolean;
   /** Optional GST / vendor details (India, INR expenses). Money as decimal strings. */
   readonly vendor?: string | null;
   readonly gstin?: string | null;
@@ -451,7 +471,8 @@ export interface CompanyEntryData {
 /** `entryId` is client-chosen and the idempotency key. */
 export interface CompanyEntryCreatePayload {
   readonly entryId: string;
-  readonly memberId: string;
+  /** null only for a company-paid entry (`data.paidByCompany`). */
+  readonly memberId: string | null;
   readonly entryKind: 'expense' | 'advance' | 'allowance' | 'wages' | 'reimbursement';
   readonly data: CompanyEntryData;
 }
@@ -523,6 +544,36 @@ export interface CompanyMemberAssignPayload {
   readonly reason: string;
 }
 
+/** Owner or the employee's manager: set (or clear with null/blank) the free-text employee ID. */
+export interface CompanyMemberEmployeeIdSetPayload {
+  readonly memberId: string;
+  readonly employeeId: string | null;
+}
+
+/** Owner or the person's manager: mark one day (status null clears the mark). */
+export interface CompanyAttendanceSetPayload {
+  readonly memberId: string;
+  readonly day: string;
+  readonly status: 'present' | 'half' | 'absent' | null;
+  readonly note: string | null;
+}
+
+/** Create/edit a task (owner, manager); the employee it is for may only change status, reason and note. */
+export interface CompanyWorkSetPayload {
+  readonly taskId: string;
+  readonly memberId: string;
+  readonly day: string;
+  readonly title: string;
+  readonly projectId: string | null;
+  readonly status: 'todo' | 'doing' | 'done' | 'blocked';
+  readonly blockedReason: string | null;
+  readonly note: string | null;
+}
+
+export interface CompanyWorkRemovePayload {
+  readonly taskId: string;
+}
+
 export interface CompanyMemberProjectsSetPayload {
   readonly memberId: string;
   readonly projectIds: readonly string[];
@@ -547,6 +598,41 @@ export interface CompanyPoolPostPayload {
   readonly reason: string | null;
 }
 
+/** Create or edit an estimate / bill. Bigints travel as decimal strings; the server recomputes every amount. */
+export interface CompanyDocSavePayload {
+  readonly docId: string;
+  readonly data: {
+    readonly docType: 'estimate' | 'bill';
+    readonly customerName: string;
+    readonly customerPhone: string | null;
+    readonly docDate: string;
+    readonly items: readonly {
+      readonly description: string;
+      readonly qtyMilli: string;
+      readonly rateMinor: string;
+    }[];
+    readonly discountMinor: string;
+    readonly notes: string | null;
+  };
+}
+export interface CompanyDocStatusPayload {
+  readonly docId: string;
+  readonly status: 'draft' | 'sent' | 'accepted' | 'declined';
+}
+export interface CompanyDocConvertPayload {
+  readonly docId: string;
+  readonly billId: string;
+}
+export interface CompanyDocPaymentPayload {
+  readonly docId: string;
+  readonly paymentId: string;
+  readonly amountMinor: string;
+  readonly paidOn: string;
+}
+export interface CompanyDocVoidPayload {
+  readonly docId: string;
+}
+
 export interface CompanyWageLinePayload {
   readonly paymentEntryId: string;
   readonly memberId: string;
@@ -557,6 +643,8 @@ export interface CompanyWageLinePayload {
   readonly rateMinor: string | null;
   readonly fixedMinor: string | null;
   readonly claimIds: readonly { readonly entryId: string; readonly expectedVersion: number }[];
+  /** Divides the wage base (gross less folded claims) across sites; then `projectId` is null. */
+  readonly splits?: readonly { readonly projectId: string; readonly amountMinor: string }[];
   readonly expectedGrossMinor: string;
   readonly expectedRecoveryMinor: string;
   readonly expectedNetMinor: string;
@@ -570,6 +658,13 @@ export interface CompanyWagePayPayload {
   readonly periodEnd: string;
   readonly paidOn: string;
   readonly lines: readonly CompanyWageLinePayload[];
+}
+
+/** Owner: a second owner must approve large or owner-raised claims. Needs two owners and approvals on. */
+export interface CompanySecondApprovalSetPayload {
+  readonly enabled: boolean;
+  /** Claims at or above this need the second owner; null = only owner-raised claims. */
+  readonly thresholdMinor: string | null;
 }
 
 /** Clearing carries nothing — the scope (group) and the caller identify the row. */
@@ -711,6 +806,8 @@ export enum SyncRejectionCode {
   ValidationFailed = 'VALIDATION_FAILED',
   ConflictSuperseded = 'CONFLICT_SUPERSEDED',
   RateLimited = 'RATE_LIMITED',
+  /** Waves suspended the company; its queued writes are dropped, never listed as refused. */
+  CompanyBlocked = 'COMPANY_BLOCKED',
   /** Two admins edited the families at the same time; the sender's baseUnits differ from the current DB value. */
   UnitsConflict = 'UNITS_CONFLICT',
 }
@@ -764,6 +861,18 @@ export enum SyncTable {
   CompanyProjects = 'company_projects',
   CompanyProjectMembers = 'company_project_members',
   CompanyProjectBudgets = 'company_project_budgets',
+  /** Group-scoped, pull-only: a wage payment divided across sites; as private as the payment. */
+  CompanyWageSplits = 'company_wage_splits',
+  /** Group-scoped, pull-only. Owner: all; manager: the vendors they added; a vendor login: only itself (RLS). */
+  CompanyVendors = 'company_vendors',
+  CompanyVendorEntries = 'company_vendor_entries',
+  /** Group-scoped, pull-only. Photos on a vendor ledger line; readable exactly where the line is (RLS). */
+  CompanyVendorEntryAttachments = 'company_vendor_entry_attachments',
+  /** Group-scoped, pull-only: estimates and bills; owners see all, a manager only their own (RLS). */
+  CompanyDocuments = 'company_documents',
+  /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
+  CompanyAttendance = 'company_attendance',
+  CompanyWorkTasks = 'company_work_tasks',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',

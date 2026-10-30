@@ -34,7 +34,13 @@ function query(data: unknown, error: unknown = null) {
   return q;
 }
 function setup(
-  options: { failEntries?: boolean; member?: boolean; category?: string; approved?: boolean } = {},
+  options: {
+    failEntries?: boolean;
+    member?: boolean;
+    category?: string;
+    approved?: boolean;
+    paidByCompany?: boolean;
+  } = {},
 ) {
   const group = {
     id: 'company',
@@ -47,7 +53,8 @@ function setup(
   const ledger = {
     id: 'entry-a',
     group_id: 'company',
-    member_id: 'employee-a',
+    member_id: options.paidByCompany ? null : 'employee-a',
+    paid_by_company: options.paidByCompany === true,
     entry_kind: 'expense',
     category: options.category ?? 'fuel',
     amount: '123',
@@ -84,7 +91,22 @@ function setup(
         ? query(group)
         : table === 'company_entries'
           ? query([ledger], options.failEntries ? { message: 'database unavailable' } : null)
-          : query([{ id: 'employee-a', profile: { display_name: 'Employee A' } }]),
+          : table === 'company_vendors'
+            ? query([{ id: 'vendor-a', name: 'Ravi Traders' }])
+            : table === 'company_vendor_entries'
+              ? query([
+                  {
+                    id: 've-1',
+                    vendor_id: 'vendor-a',
+                    kind: 'bill',
+                    amount: '555',
+                    occurred_on: '2026-11-06',
+                    status: 'approved',
+                    version: 1,
+                    deleted_at: null,
+                  },
+                ])
+              : query([{ id: 'employee-a', profile: { display_name: 'Employee A' } }]),
     ),
   };
   const service = { from: vi.fn(() => query([])) };
@@ -169,4 +191,27 @@ it('exports a queued key without any stored tag label', async () => {
   const t = setup({ category: 'offline-new-key' });
   const response = await handleExportData(t.request('csv'), t.deps);
   expect((await response.json()).content).toContain('offline-new-key');
+});
+it('marks a company-paid entry as paid by the Company with no employee', async () => {
+  const t = setup({ approved: true, paidByCompany: true });
+  const csv = (await (await handleExportData(t.request('csv'), t.deps)).json()).content as string;
+  const row = csv.split('\n').find((line) => line.includes('company_expense')) ?? '';
+  expect(row).toContain(',Company,');
+  expect(row).not.toContain('unknown');
+  const pdf = atob((await (await handleExportData(t.request('pdf'), t.deps)).json()).content);
+  expect(pdf).toContain('Paid by: Company');
+});
+it('exports the vendor ledger with a Vendor column, read as the caller', async () => {
+  const t = setup({ approved: true });
+  const csv = (await (await handleExportData(t.request('csv'), t.deps)).json()).content as string;
+  const row = csv.split('\n').find((line) => line.includes('company_vendor_bill')) ?? '';
+  expect(row).toContain('Ravi Traders');
+  expect(row).toContain('555');
+  const json = JSON.parse(
+    (await (await handleExportData(t.request('json'), t.deps)).json()).content,
+  );
+  expect(json.groups[0].companyVendorEntries).toHaveLength(1);
+  expect(t.service.from).not.toHaveBeenCalledWith('company_vendor_entries');
+  const pdf = atob((await (await handleExportData(t.request('pdf'), t.deps)).json()).content);
+  expect(pdf).toContain('Vendor: Ravi Traders');
 });

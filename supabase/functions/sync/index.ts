@@ -98,9 +98,25 @@ type MutationKind =
   | 'company_member.add'
   | 'company_member.assign'
   | 'company_member.projects_set'
+  | 'company_member.employee_id_set'
+  | 'company_attendance.set'
+  | 'company_work.set'
+  | 'company_work.remove'
   | 'company_project.set'
   | 'company_pool.post'
   | 'company_wage.pay'
+  | 'company.second_approval_set'
+  | 'company_vendor.set'
+  | 'company_vendor.remove'
+  | 'company_vendor_entry.create'
+  | 'company_vendor_entry.review'
+  | 'company_vendor_entry.void'
+  | 'company_vendor_entry.received'
+  | 'company_doc.save'
+  | 'company_doc.status'
+  | 'company_doc.convert'
+  | 'company_doc.payment'
+  | 'company_doc.void'
   // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
@@ -330,6 +346,17 @@ const GROUP_TABLES = [
   ['company_projects', '*'],
   ['company_project_members', '*'],
   ['company_project_budgets', '*'],
+  // A wage payment divided across sites; readable exactly where the payment is.
+  ['company_wage_splits', '*'],
+  // Vendors: owner all, manager the ones they added, a vendor login only itself (RLS, read as the caller).
+  ['company_vendors', '*'],
+  ['company_vendor_entries', '*'],
+  ['company_vendor_entry_attachments', '*'],
+  // Estimates and bills: RLS gives an owner all, a manager only the ones they created, others none.
+  ['company_documents', '*'],
+  // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
+  ['company_attendance', '*'],
+  ['company_work_tasks', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -415,7 +442,7 @@ serveWithCors(async (request) => {
     // could never get its first row, and being invited would do nothing until
     // you happened to open the group by link. The membership read runs as the
     // caller, so it can only ever return groups their own RLS already allows.
-    const mine = await caller.from('group_members').select('group_id').is('left_at', null);
+    const mine = await caller.from('group_members').select('group_id, role').is('left_at', null);
     if (mine.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${mine.error.message}`);
 
     const groupIds = new Set<string>([
@@ -428,6 +455,12 @@ serveWithCors(async (request) => {
       cursors: nextCursors,
       hasMore,
     } = await pull(caller, groupIds, cursors, profileId);
+    // Any phone that is not an owner's may still hold detail it can no longer read (an employee
+    // moved to another manager, a manager demoted); owners see everyone, so they never purge.
+    const managerGroupIds = (mine.data ?? [])
+      .filter((row) => (row as { role?: string }).role !== 'admin')
+      .map((row) => row.group_id as string);
+    const companyVisible = await companyVisibleMembers(caller, managerGroupIds);
 
     return json({
       outcomes,
@@ -438,6 +471,9 @@ serveWithCors(async (request) => {
       // group from the pull (RLS), so the pull alone can never say "it is gone";
       // this list lets a device drop a group an admin removed them from.
       memberOf: (mine.data ?? []).map((row) => row.group_id as string),
+      // Company groups only: who this caller may still see. A phone drops cached
+      // detail for anyone else (an employee who moved to another manager).
+      companyVisible,
       serverTime: new Date().toISOString(),
     });
   } catch (error) {
@@ -862,7 +898,8 @@ export class SyncSession {
         return await this.rpcAsCaller('waves_company_entry_create', {
           p_group_id: mutation.groupId,
           p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
-          p_member_id: requireString(mutation.payload.memberId, 'memberId'),
+          // A company-paid entry has no employee: memberId is null exactly when data.paidByCompany is true.
+          p_member_id: companyPaidMemberId(mutation.payload),
           p_entry_kind: requireString(mutation.payload.entryKind, 'entryKind'),
           p_data: companyData(mutation.payload.data),
         });
@@ -965,10 +1002,80 @@ export class SyncSession {
           p_manager_id: companyUuid(mutation.payload.managerId, 'managerId', true),
           p_reason: companyReason(mutation.payload.reason, 'reason', false),
         });
+      case 'company_member.employee_id_set':
+        return await this.rpcAsCaller('waves_company_employee_id_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_employee_id: optionalText(mutation.payload.employeeId, 'employeeId'),
+        });
+      case 'company_attendance.set': {
+        const status = mutation.payload.status;
+        if (status !== null && status !== 'present' && status !== 'half' && status !== 'absent')
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_attendance_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_day: companyDate(mutation.payload.day, 'day'),
+          p_status: status,
+          p_note: companyReason(mutation.payload.note, 'note', false),
+        });
+      }
+      case 'company_work.set': {
+        const status = mutation.payload.status;
+        if (status !== 'todo' && status !== 'doing' && status !== 'done' && status !== 'blocked')
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_work_set', {
+          p_group_id: mutation.groupId,
+          p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_day: companyDate(mutation.payload.day, 'day'),
+          p_title: companyReason(mutation.payload.title, 'title', true),
+          p_project_id: companyUuid(mutation.payload.projectId ?? null, 'projectId', true),
+          p_status: status,
+          p_blocked_reason: companyReason(mutation.payload.blockedReason, 'blockedReason', false),
+          p_note: companyReason(mutation.payload.note, 'note', false),
+        });
+      }
+      case 'company_work.remove':
+        return await this.rpcAsCaller('waves_company_work_remove', {
+          p_group_id: mutation.groupId,
+          p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+        });
       case 'company_member.projects_set':
         return await this.rpcAsCaller('waves_company_member_projects_set', {
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
           p_project_ids: companyUuidList(mutation.payload.projectIds, 'projectIds'),
+        });
+      case 'company_doc.save':
+        return await this.rpcAsCaller('waves_company_doc_save', {
+          p_group_id: mutation.groupId,
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_data: companyDocData(mutation.payload.data),
+        });
+      case 'company_doc.status': {
+        const status = mutation.payload.status;
+        if (!['draft', 'sent', 'accepted', 'declined'].includes(status as string))
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_doc_status', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_status: status,
+        });
+      }
+      case 'company_doc.convert':
+        return await this.rpcAsCaller('waves_company_doc_convert', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_bill_id: companyUuid(mutation.payload.billId, 'billId'),
+        });
+      case 'company_doc.payment':
+        return await this.rpcAsCaller('waves_company_doc_payment', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_payment_id: companyUuid(mutation.payload.paymentId, 'paymentId'),
+          p_amount: companyDecimal(mutation.payload.amountMinor, 'amountMinor'),
+          p_paid_on: companyDate(mutation.payload.paidOn, 'paidOn'),
+        });
+      case 'company_doc.void':
+        return await this.rpcAsCaller('waves_company_doc_void', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
         });
       case 'company_project.set':
         return await this.rpcAsCaller('waves_company_project_set', {
@@ -1013,6 +1120,61 @@ export class SyncSession {
           p_period_end: companyDate(mutation.payload.periodEnd, 'periodEnd'),
           p_paid_on: companyDate(mutation.payload.paidOn, 'paidOn'),
           p_lines: companyWageLines(mutation.payload.lines),
+        });
+      case 'company.second_approval_set':
+        if (typeof mutation.payload.enabled !== 'boolean') companyInvalid('enabled');
+        return await this.rpcAsCaller('waves_company_second_approval_set', {
+          p_group_id: mutation.groupId,
+          p_enabled: mutation.payload.enabled,
+          p_threshold_minor: companyDecimal(
+            mutation.payload.thresholdMinor ?? null,
+            'thresholdMinor',
+            true,
+          ),
+        });
+      case 'company_vendor.set':
+        return await this.rpcAsCaller('waves_company_vendor_set', {
+          p_group_id: mutation.groupId,
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_data: {
+            name: companyReason(mutation.payload.name, 'name', true),
+            phone: companyReason(mutation.payload.phone ?? null, 'phone', false),
+            category: companyReason(mutation.payload.category ?? null, 'category', false),
+          },
+        });
+      case 'company_vendor.remove':
+        return await this.rpcAsCaller('waves_company_vendor_remove', {
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+        });
+      case 'company_vendor_entry.create':
+        return await this.rpcAsCaller('waves_company_vendor_entry_create', {
+          p_group_id: mutation.groupId,
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_kind: requireString(mutation.payload.kind, 'kind'),
+          p_data: {
+            amount: companyDecimal(mutation.payload.amountMinor, 'amountMinor'),
+            occurredOn: companyDate(mutation.payload.occurredOn, 'occurredOn'),
+            note: companyReason(mutation.payload.note ?? null, 'note', false),
+          },
+        });
+      case 'company_vendor_entry.review':
+        return await this.rpcAsCaller('waves_company_vendor_entry_review', {
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_to: requireString(mutation.payload.to, 'to'),
+          p_note: companyReason(mutation.payload.note ?? null, 'note', false),
+          p_version: companyNonnegativeInteger(mutation.payload.expectedVersion, 'expectedVersion'),
+        });
+      case 'company_vendor_entry.void':
+        return await this.rpcAsCaller('waves_company_vendor_entry_void', {
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_reason: companyReason(mutation.payload.reason ?? null, 'reason', false),
+        });
+      case 'company_vendor_entry.received':
+        if (typeof mutation.payload.received !== 'boolean') companyInvalid('received');
+        return await this.rpcAsCaller('waves_company_vendor_entry_received', {
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_received: mutation.payload.received,
         });
       case 'company_member.rate_set':
         return await this.rpcAsCaller('waves_company_member_rate_set', {
@@ -2275,6 +2437,18 @@ function classify(error: unknown): { code: string; message: string } {
   return { code: 'VALIDATION_FAILED', message };
 }
 
+/** `memberId` for a company entry create: null only for a company-paid entry (the RPC enforces who may). */
+function companyPaidMemberId(payload: Record<string, unknown>): string | null {
+  const data = payload.data as Record<string, unknown> | null | undefined;
+  if (data?.paidByCompany === true) {
+    if (payload.memberId !== null && payload.memberId !== undefined) {
+      throw new HttpError(400, 'VALIDATION_FAILED', 'A company-paid entry has no memberId');
+    }
+    return null;
+  }
+  return requireString(payload.memberId, 'memberId');
+}
+
 function companyData(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     throw new HttpError(400, 'VALIDATION_FAILED', 'company data must be an object');
@@ -2299,6 +2473,7 @@ function companyData(value: unknown): Record<string, unknown> {
     'toText',
     'projectId',
     'fundingManagerId',
+    'paidByCompany',
   ];
   for (const [key, field] of Object.entries(data)) {
     if (
@@ -2306,7 +2481,9 @@ function companyData(value: unknown): Record<string, unknown> {
       (field !== null &&
         (key === 'gstRateBps'
           ? typeof field !== 'number' || !Number.isInteger(field) || field < 0 || field > 10000
-          : typeof field !== 'string'))
+          : key === 'paidByCompany'
+            ? typeof field !== 'boolean'
+            : typeof field !== 'string'))
     ) {
       throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${key}`);
     }
@@ -2349,6 +2526,36 @@ function companyReason(value: unknown, field: string, required: boolean): string
   if (typeof value !== 'string' || value.trim().length > 500) companyInvalid(field);
   return (value as string).trim();
 }
+/** Estimate / bill body: shape-checked here, amounts recomputed by the database. */
+function companyDocData(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('data');
+  const d = value as Record<string, unknown>;
+  const items = d.items;
+  if (!Array.isArray(items) || items.length < 1 || items.length > 50) companyInvalid('items');
+  if (d.docType !== 'estimate' && d.docType !== 'bill') companyInvalid('docType');
+  return {
+    docType: d.docType,
+    customerName: companyReason(d.customerName, 'customerName', true),
+    customerPhone: companyReason(d.customerPhone ?? null, 'customerPhone', false),
+    docDate: companyDate(d.docDate, 'docDate'),
+    discountMinor: companyDecimal(d.discountMinor ?? '0', 'discountMinor'),
+    notes:
+      d.notes === null || d.notes === undefined || d.notes === ''
+        ? null
+        : typeof d.notes === 'string' && d.notes.trim().length <= 1000
+          ? d.notes.trim() || null
+          : companyInvalid('notes'),
+    items: (items as unknown[]).map((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) companyInvalid('items');
+      const i = raw as Record<string, unknown>;
+      return {
+        description: companyReason(i.description, 'description', true),
+        qtyMilli: companyDecimal(i.qtyMilli, 'qtyMilli'),
+        rateMinor: companyDecimal(i.rateMinor, 'rateMinor'),
+      };
+    }),
+  };
+}
 function companyMemberData(p: Record<string, unknown>): Record<string, unknown> {
   return {
     name: companyReason(p.name, 'name', true),
@@ -2377,12 +2584,28 @@ function companyWageLines(value: unknown): unknown[] {
       rateMinor: l.rateMinor == null ? null : companyDecimal(l.rateMinor, 'rateMinor'),
       fixedMinor: l.fixedMinor == null ? null : companyDecimal(l.fixedMinor, 'fixedMinor'),
       claimIds: companySelection(l.claimIds, 'claimIds', false),
+      ...companySplits(l.splits),
       expectedGrossMinor: companyDecimal(l.expectedGrossMinor, 'expectedGrossMinor'),
       expectedRecoveryMinor: companyDecimal(l.expectedRecoveryMinor, 'expectedRecoveryMinor'),
       expectedNetMinor: companyDecimal(l.expectedNetMinor, 'expectedNetMinor'),
       note: companyReason(l.note ?? null, 'note', false),
     };
   });
+}
+/** Wage base divided across sites; emitted only when present so older payloads keep their request hash. */
+function companySplits(value: unknown): { splits?: unknown[] } {
+  if (value == null || (Array.isArray(value) && value.length === 0)) return {};
+  if (!Array.isArray(value) || value.length > 20) companyInvalid('splits');
+  return {
+    splits: value.map((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) companyInvalid('splits');
+      const x = raw as Record<string, unknown>;
+      return {
+        projectId: companyUuid(x.projectId, 'projectId'),
+        amountMinor: companyDecimal(x.amountMinor, 'amountMinor'),
+      };
+    }),
+  };
 }
 function companyInvalid(field: string): never {
   throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${field}`);
@@ -2514,4 +2737,40 @@ function companyTag(
   )
     companyInvalid('tags');
   return t as Record<string, unknown> & { key: string; label: string; unit?: string };
+}
+
+/**
+ * For each company group a non-owner belongs to, the member ids this caller can read (RLS decides, so it is
+ * exactly the people whose entries they may hold). A group is left out when the list
+ * could not be read in full, so a failure can never make a phone discard data.
+ */
+async function companyVisibleMembers(
+  caller: SupabaseClient,
+  groupIds: readonly string[],
+): Promise<Record<string, string[]>> {
+  const out: Record<string, string[]> = {};
+  if (groupIds.length === 0) return out;
+  const groups = await caller.from('groups').select('id').eq('type', 'company').in('id', groupIds);
+  if (groups.error) return out;
+  const PAGE = 1000;
+  for (const { id } of groups.data ?? []) {
+    const ids: string[] = [];
+    let complete = false;
+    for (let from = 0; from < PAGE * 5; from += PAGE) {
+      const page = await caller
+        .from('group_members')
+        .select('id')
+        .eq('group_id', id)
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (page.error) break;
+      ids.push(...(page.data ?? []).map((row) => row.id as string));
+      if ((page.data ?? []).length < PAGE) {
+        complete = true;
+        break;
+      }
+    }
+    if (complete) out[id as string] = ids;
+  }
+  return out;
 }

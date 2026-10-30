@@ -1,5 +1,6 @@
 /** Owners, their managers and each manager's team in one tree. Tap a person to manage them. */
 
+import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { ScrollView } from 'react-native';
 
 import { Screen, Text } from '@waves/ui';
@@ -15,15 +16,15 @@ import {
 } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
+import { plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useLocalSearchParams } from 'expo-router';
 
-export default function CompanyHierarchyScreen() {
+function CompanyHierarchyScreenInner() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const clearance = useBottomClearance();
   const view = useCompanyEntries(groupId);
   const live = view.members.filter((m) => !m.left_at);
@@ -33,7 +34,7 @@ export default function CompanyHierarchyScreen() {
       leading={<PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={40} />}
       title={displayName(m, null, null, t.misc.someone)}
       titleAccessory={pill ? <RolePill label={pill} /> : undefined}
-      subtitle={sub}
+      subtitle={[m.employee_id, sub].filter(Boolean).join(' · ') || undefined}
       onPress={() => router.push(`/group/${groupId}/company-statement?member=${m.id}`)}
       divider
     />
@@ -62,7 +63,7 @@ export default function CompanyHierarchyScreen() {
                       {row(
                         mgr,
                         t.company.manager,
-                        fill(t.company.teamCount, { n: String(team.length) }),
+                        plural(locale, team.length, t.company.employeeCount),
                       )}
                       {team.map((m) => row(m))}
                     </StandardCard>
@@ -83,5 +84,14 @@ export default function CompanyHierarchyScreen() {
         </ScenicBody>
       </ScrollView>
     </Screen>
+  );
+}
+
+export default function CompanyHierarchyScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return (
+    <SuspendedGate groupId={id ?? ''}>
+      <CompanyHierarchyScreenInner />
+    </SuspendedGate>
   );
 }

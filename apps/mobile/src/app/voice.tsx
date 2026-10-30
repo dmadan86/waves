@@ -45,6 +45,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   buildVoiceSplit,
+  COMPANY_EXPENSE_CATEGORIES,
   computeShares,
   decimalToMinor,
   encodeTxn,
@@ -96,6 +97,7 @@ import {
   useWriteExpense,
 } from '@/data/hooks';
 import { nudgeToSettle } from '@/data/api';
+import { useAddCompanyEntry } from '@/data/companyEntries';
 import { useUpsertPersonalRecord } from '@/data/personal';
 import { displayName, GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types';
 import { fill, isRtl, plural, useStrings } from '@/i18n';
@@ -824,6 +826,8 @@ export default function VoiceScreen() {
       ? dest.groupId
       : '';
   const writeExpense = useWriteExpense(writeGroupId);
+  // A company is not a split ledger: a spoken expense there is the speaker's own company entry.
+  const addCompanyEntry = useAddCompanyEntry(writeGroupId);
   // Bound to the new people's minted group id (a `people` batch) or the target
   // of a spoken "add Ravi to …"; inert (empty id) in every other case.
   const addGhost = useAddGhostMember(
@@ -2076,6 +2080,47 @@ export default function VoiceScreen() {
             ? { kind: 'expense', line, state: single, write: null }
             : { kind: 'line', line: plural(locale, drafts.length, t.voice.savedCount) },
         );
+        return;
+      }
+
+      // A company: a spoken expense is the speaker's own entry (never a split, never somebody
+      // else's). The speaker's member id comes from their own membership, not from the route.
+      if (dest.kind === 'existing' && target.group.data?.type === GroupType.Company) {
+        const me = (target.members.data ?? []).find((member) => isViewer(member, viewerId));
+        if (!me) throw new Error('not a member of this company');
+        const companyCurrency = target.group.data.default_currency ?? dc;
+        // A spoken currency that is not the company's is asked about, never silently converted.
+        if (drafts.some((draft) => draft.currency && draft.currency !== companyCurrency)) {
+          setError(fill(t.company.voiceCurrency, { currency: companyCurrency }));
+          return;
+        }
+        for (const draft of drafts) {
+          const amount = toMinor(draft.amount, companyCurrency);
+          if (amount === null || amount <= 0n) continue;
+          const category = (COMPANY_EXPENSE_CATEGORIES as readonly string[]).includes(
+            draft.category ?? '',
+          )
+            ? draft.category
+            : 'other';
+          // The draft's stable id is the entry id, so a retry adds no duplicate.
+          await addCompanyEntry.mutateAsync({
+            entryId: draft.key,
+            memberId: me.id,
+            entryKind: 'expense',
+            data: {
+              amount: amount.toString(),
+              category,
+              calcMode: 'typed',
+              occurredOn: date,
+              note: draft.note.trim() || fallback,
+            },
+          });
+        }
+        confirmSaved();
+        landSaved({
+          kind: 'line',
+          line: fill(t.voiceScreen.savedTo, { where: current.label }),
+        });
         return;
       }
 
