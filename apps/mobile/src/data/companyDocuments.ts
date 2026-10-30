@@ -36,6 +36,7 @@ export function useCompanyDocs(groupId: string): CompanyDocsView {
   const view = useCompanyEntries(groupId);
   const meId = view.me?.id ?? '';
   const canUse = view.isAdmin;
+  const isOwner = view.isOwner;
   const docs = useMemo(
     () =>
       canUse && meId
@@ -44,8 +45,10 @@ export function useCompanyDocs(groupId: string): CompanyDocsView {
             currency: view.currency,
             viewerMemberId: meId,
           })
+            // A manager sees only their own, even if an old owner's phone still caches more.
+            .filter((d) => isOwner || d.createdBy === meId)
         : [],
-    [mirror, queue, groupId, canUse, meId, view.currency],
+    [mirror, queue, groupId, canUse, isOwner, meId, view.currency],
   );
   return { docs, canUse, currency: view.currency, companyName: view.name, ready: view.ready };
 }
@@ -75,15 +78,15 @@ export function docSavePayload(docId: string, v: DocFormValues): CompanyDocSaveP
     data: {
       docType: v.docType,
       customerName: v.customerName.trim(),
-      customerPhone: v.customerPhone.trim() || null,
+      customerPhone: v.customerPhone.trim().slice(0, 32) || null,
       docDate: v.docDate,
       items: v.items.map((i) => ({
-        description: i.description.trim(),
+        description: i.description.trim().slice(0, 200),
         qtyMilli: i.qtyMilli.toString(),
         rateMinor: i.rateMinor.toString(),
       })),
       discountMinor: v.discountMinor.toString(),
-      notes: v.notes.trim() || null,
+      notes: v.notes.trim().slice(0, 1000) || null,
     },
   };
 }
