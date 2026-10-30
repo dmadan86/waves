@@ -81,7 +81,11 @@ BEGIN
   IF v_boss THEN
    IF v_title='' OR length(v_title)>200 THEN RAISE EXCEPTION 'INVALID_DATA: title'; END IF;
    IF p_project_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.company_projects WHERE id=p_project_id AND group_id=p_group_id AND deleted_at IS NULL) THEN RAISE EXCEPTION 'INVALID_DATA: site'; END IF;
-   UPDATE public.company_work_tasks SET title=v_title,project_id=p_project_id,day=p_day,status=p_status,blocked_reason=v_reason,note=v_note,updated_at=now() WHERE id=r.id;
+   IF p_day IS NULL OR p_day>current_date+7 OR p_day<current_date-400 THEN RAISE EXCEPTION 'INVALID_DATA: day'; END IF;
+   -- Handing a task to someone else: the editor must manage the new assignee too, who must be a live employee.
+   IF p_member_id IS DISTINCT FROM r.member_id AND (NOT (public.is_group_admin(p_group_id) OR public.waves_company_team(p_group_id,p_member_id))
+    OR NOT EXISTS(SELECT 1 FROM public.group_members WHERE id=p_member_id AND group_id=p_group_id AND role::text='member' AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL)) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+   UPDATE public.company_work_tasks SET member_id=p_member_id,title=v_title,project_id=p_project_id,day=p_day,status=p_status,blocked_reason=v_reason,note=v_note,updated_at=now() WHERE id=r.id;
   ELSE
    UPDATE public.company_work_tasks SET status=p_status,blocked_reason=v_reason,note=v_note,updated_at=now() WHERE id=r.id;
   END IF;

@@ -207,6 +207,28 @@ describe('company daily work: who adds, who moves it, who sees', () => {
       expect(await seenTasks(4)).toEqual([]);
     }));
 
+  it('reassigning follows the editor’s reach and keeps the date window', () =>
+    isolated(async () => {
+      const a = randomUUID();
+      await setTask(1, 2, a);
+      await denied(() => setTask(1, 3, a)); // manager cannot hand it to someone outside the team
+      await setTask(0, 3, a); // an owner can
+      expect(await seenTasks(3)).toEqual([a]);
+      expect(await seenTasks(2)).toEqual([]);
+      await denied(() =>
+        user(0, () =>
+          db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,NULL,NULL)', [
+            g.groupId,
+            a,
+            g.memberIds[3],
+            '2099-01-01',
+            'Fix the gate',
+            'todo',
+          ]),
+        ),
+      );
+    }));
+
   it('only owner or the manager removes a task', () =>
     isolated(async () => {
       const a = randomUUID();
