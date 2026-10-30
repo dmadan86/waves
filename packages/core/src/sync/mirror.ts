@@ -2365,7 +2365,7 @@ export function materialiseWorkTasks(
         status: p.status,
         blockedReason: p.status === 'blocked' ? p.blockedReason : null,
         note: p.note,
-        dueTime: p.dueTime ?? byId.get(p.taskId)?.dueTime ?? null,
+        dueTime: p.dueTime === undefined ? (byId.get(p.taskId)?.dueTime ?? null) : p.dueTime,
         pending: true,
       });
     } else if (mutation.kind === 'company_work.remove') {

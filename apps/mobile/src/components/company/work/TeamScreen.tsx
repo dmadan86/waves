@@ -39,8 +39,14 @@ export default function TeamScreen({
   if (!access.canManage)
     return (
       <Screen edges={[]}>
-        <ScenicHeader title={t.company.workMineTasks} />
-        <DailyWorkView groupId={groupId} />
+        <ScenicHeader
+          title={initialTab === 'attendance' ? t.company.attendanceMine : t.company.workMineTasks}
+        />
+        {initialTab === 'attendance' ? (
+          <AttendanceView groupId={groupId} />
+        ) : (
+          <DailyWorkView groupId={groupId} />
+        )}
       </Screen>
     );
   return (
