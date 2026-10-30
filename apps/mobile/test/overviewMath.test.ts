@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
   attendanceSegments,
   compactMoney,
-  dayKind,
   dueText,
   pct,
   sortUpcoming,
@@ -25,12 +24,6 @@ describe('overview math', () => {
     expect(compactMoney(1250000000n, 'INR', 'en-IN', cr)).toBe('₹1.25 Cr');
     expect(compactMoney(1000000000n, 'INR', 'en-IN', cr)).toBe('₹1 Cr');
     expect(compactMoney(0n, 'INR', 'en-IN', cr)).toBe('₹0');
-  });
-  it('labels days', () => {
-    expect(dayKind('2026-10-30', '2026-10-30')).toBe('today');
-    expect(dayKind('2026-10-29', '2026-10-30')).toBe('yesterday');
-    expect(dayKind('2026-09-30', '2026-10-01')).toBe('yesterday');
-    expect(dayKind('2026-10-20', '2026-10-30')).toBe('other');
   });
   it('never invents a due date', () => {
     expect(dueText(null, '2026-10-30')).toEqual({ kind: 'owedNow' });

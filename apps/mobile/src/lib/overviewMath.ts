@@ -33,15 +33,6 @@ export function compactMoney(
   return /^[^\p{Nd}]*[0\u0660\u0966\u0be6]+$/u.test(p.fraction) ? p.lead + p.trail : p.text;
 }
 
-export type DayKind = 'today' | 'yesterday' | 'other';
-
-export function dayKind(iso: string, today: string): DayKind {
-  if (iso === today) return 'today';
-  const d = new Date(`${today}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - 1);
-  return d.toISOString().slice(0, 10) === iso ? 'yesterday' : 'other';
-}
-
 export type DueText =
   | { kind: 'overdue' }
   | { kind: 'today' }
