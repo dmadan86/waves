@@ -81,24 +81,28 @@ export function deriveMoneyDates(input: MoneyDateInput, today: string): MoneyDat
       route: 'company-wages',
     });
 
+  // One row per vendor with a balance we still owe: payments are not matched to bills, so show the
+  // balance against the oldest approved bill (never several bills each at a stale full amount).
   const vendorById = new Map((input.vendors ?? []).map((v) => [v.id, v]));
-  const billTotals = new Map<string, bigint>();
+  const owed = new Map<string, { balance: bigint; oldest: string }>();
   for (const line of input.vendorLines ?? []) {
     if (line.deleted || line.status !== 'approved') continue;
-    if (line.kind === 'bill')
-      billTotals.set(line.vendorId, (billTotals.get(line.vendorId) ?? 0n) + line.amount);
-    else billTotals.set(line.vendorId, (billTotals.get(line.vendorId) ?? 0n) - line.amount);
+    const cur = owed.get(line.vendorId) ?? { balance: 0n, oldest: '' };
+    if (line.kind === 'bill') {
+      cur.balance += line.amount;
+      if (!cur.oldest || line.occurredOn < cur.oldest) cur.oldest = line.occurredOn;
+    } else cur.balance -= line.amount;
+    owed.set(line.vendorId, cur);
   }
-  for (const line of input.vendorLines ?? []) {
-    if (line.deleted || line.status !== 'approved' || line.kind !== 'bill') continue;
-    const vendor = vendorById.get(line.vendorId);
-    if (!vendor || (billTotals.get(line.vendorId) ?? 0n) <= 0n) continue;
+  for (const [vendorId, { balance, oldest }] of owed) {
+    const vendor = vendorById.get(vendorId);
+    if (!vendor || balance <= 0n || !oldest) continue;
     add({
-      id: `vendor_bill:${line.id}`,
-      day: line.occurredOn,
+      id: `vendor_bill:${vendorId}`,
+      day: oldest,
       kind: 'vendor_bill',
       title: vendor.name,
-      amountMinor: line.amount,
+      amountMinor: balance,
       currency: input.currency,
       memberId: vendor.memberId,
       route: `company-vendors/${vendor.id}`,

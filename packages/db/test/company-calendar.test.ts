@@ -201,6 +201,39 @@ describe('leave', () => {
     }));
 });
 
+describe('ghost employees and leaving a suspended company', () => {
+  it('the owner can record leave for an employee without an account', () =>
+    isolated(async () => {
+      const ghost = randomUUID();
+      await db.query(
+        "INSERT INTO group_members(id,group_id,ghost_name,role,joined_via) VALUES($1,$2,'Ravi','member','ghost')",
+        [ghost, g.groupId],
+      );
+      await q(0, 'SELECT waves_company_leave_set($1,$2,$3,$4,$4,false,$5,NULL)', [
+        g.groupId,
+        randomUUID(),
+        ghost,
+        iso(2),
+        'casual',
+      ]);
+      expect((await q(0, 'SELECT status FROM company_leave')).rows).toEqual([
+        { status: 'approved' },
+      ]);
+    }));
+  it('an employee with a manager can still leave while the company is suspended', () =>
+    isolated(async () => {
+      await leave(2, 2);
+      await db.query('UPDATE groups SET suspended_at=now() WHERE id=$1', [g.groupId]);
+      await db.query('UPDATE group_members SET left_at=now(),manager_id=NULL WHERE id=$1', [
+        g.memberIds[2],
+      ]);
+      expect(
+        (await db.query('SELECT left_at FROM group_members WHERE id=$1', [g.memberIds[2]])).rows[0]
+          .left_at,
+      ).not.toBeNull();
+    }));
+});
+
 describe('events', () => {
   it('employees see company-wide events and those they are in; managers their team’s', () =>
     isolated(async () => {

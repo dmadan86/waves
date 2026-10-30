@@ -158,7 +158,7 @@ export function CalendarChooserSheet({
   );
 }
 
-export function HolidayFormSheet({
+function HolidayFormSheetInner({
   groupId,
   visible,
   onClose,
@@ -210,7 +210,7 @@ function shift(day: string, n: number) {
   return d.toISOString().slice(0, 10);
 }
 
-export function EventFormSheet({
+function EventFormSheetInner({
   groupId,
   visible,
   onClose,
@@ -298,7 +298,7 @@ export function EventFormSheet({
   );
 }
 
-export function LeaveFormSheet({
+function LeaveFormSheetInner({
   groupId,
   visible,
   onClose,
@@ -409,7 +409,7 @@ export function LeaveFormSheet({
   );
 }
 
-export function LeaveDecisionSheet({
+function LeaveDecisionSheetInner({
   groupId,
   visible,
   onClose,
@@ -462,12 +462,7 @@ export function LeaveDecisionSheet({
   );
 }
 
-export function MyDatesSheet({
-  groupId,
-  visible,
-  onClose,
-  memberId,
-}: Props & { memberId?: string }) {
+function MyDatesSheetInner({ groupId, visible, onClose, memberId }: Props & { memberId?: string }) {
   const { t } = useStrings();
   const access = useCalendarAccess(groupId);
   const cal = useCalendar(groupId);
@@ -536,4 +531,21 @@ export function MyDatesSheet({
       />
     </FormSheet>
   );
+}
+
+// Remount on every open (and per record) so the form state starts from the record being edited.
+export function HolidayFormSheet(p: Parameters<typeof HolidayFormSheetInner>[0]) {
+  return <HolidayFormSheetInner key={`${p.visible}-${p.holiday?.id ?? ''}`} {...p} />;
+}
+export function EventFormSheet(p: Parameters<typeof EventFormSheetInner>[0]) {
+  return <EventFormSheetInner key={`${p.visible}-${p.event?.id ?? ''}`} {...p} />;
+}
+export function LeaveFormSheet(p: Parameters<typeof LeaveFormSheetInner>[0]) {
+  return <LeaveFormSheetInner key={`${p.visible}-${p.day ?? ''}`} {...p} />;
+}
+export function LeaveDecisionSheet(p: Parameters<typeof LeaveDecisionSheetInner>[0]) {
+  return <LeaveDecisionSheetInner key={`${p.visible}-${p.leave?.id ?? ''}`} {...p} />;
+}
+export function MyDatesSheet(p: Parameters<typeof MyDatesSheetInner>[0]) {
+  return <MyDatesSheetInner key={`${p.visible}-${p.memberId ?? ''}`} {...p} />;
 }

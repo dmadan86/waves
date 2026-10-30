@@ -141,7 +141,7 @@ describe('deriveMoneyDates', () => {
     expect(dates).toEqual([]);
   });
 
-  it('excludes rejected vendor bills and sorts equal days by id', () => {
+  it('shows one balance row per vendor and ignores rejected bills', () => {
     const dates = deriveMoneyDates(
       {
         currency: 'INR',
@@ -178,6 +178,6 @@ describe('deriveMoneyDates', () => {
       },
       '2026-10-30',
     );
-    expect(dates.map((d) => d.id)).toEqual(['vendor_bill:a', 'vendor_bill:z']);
+    expect(dates.map((d) => [d.id, d.amountMinor])).toEqual([['vendor_bill:v', 20n]]);
   });
 });

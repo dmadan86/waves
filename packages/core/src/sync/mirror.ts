@@ -2437,7 +2437,8 @@ export interface MirrorCalendar {
 export function materialiseCalendar(
   state: MirrorState,
   queue: readonly QueuedMutation[],
-  options: { readonly groupId: string },
+  /** `meId`: leave queued for someone else is an owner/manager record, which the server approves at once. */
+  options: { readonly groupId: string; readonly meId?: string | null },
 ): MirrorCalendar {
   type Row = Record<string, unknown> & { deleted_at: string | null };
   const live = (table: SyncTable): Row[] =>
@@ -2492,7 +2493,12 @@ export function materialiseCalendar(
       holidays.delete((p as CompanyHolidayRemovePayload).id);
     else if (m.kind === 'company_leave.set') {
       const l = p as CompanyLeaveSetPayload;
-      leave.set(l.id, { ...l, status: 'pending', decisionNote: null, pending: true });
+      leave.set(l.id, {
+        ...l,
+        status: options.meId && l.memberId !== options.meId ? 'approved' : 'pending',
+        decisionNote: null,
+        pending: true,
+      });
     } else if (m.kind === 'company_leave.decide') {
       const d = p as CompanyLeaveDecidePayload;
       const l = leave.get(d.id);
@@ -2767,6 +2773,9 @@ export function materialiseCompanyDocs(
 export function purgeCompanyInvisible(
   state: MirrorState,
   visible: Readonly<Record<string, readonly string[]>>,
+  /** Per company: the birthday-row and event ids the caller can read now. RLS hides a row without a tombstone
+   *  (a birthday switched off, someone removed from an event), so anything not listed is dropped here. */
+  calendar: Readonly<Record<string, { dates: readonly string[]; events: readonly string[] }>> = {},
 ): { state: MirrorState; removed: { table: SyncTable; id: string }[] } {
   const tables = { ...state.tables };
   const removed: { table: SyncTable; id: string }[] = [];
@@ -2783,6 +2792,18 @@ export function purgeCompanyInvisible(
     }
     return dropped;
   };
+  for (const [groupId, ids] of Object.entries(calendar)) {
+    const dates = new Set(ids.dates);
+    const events = new Set(ids.events);
+    drop(
+      SyncTable.CompanyMemberDates,
+      (row) => row.group_id === groupId && !dates.has(row.id as string),
+    );
+    drop(
+      SyncTable.CompanyEvents,
+      (row) => row.group_id === groupId && !events.has(row.id as string),
+    );
+  }
   for (const [groupId, ids] of Object.entries(visible)) {
     if (ids.length === 0) continue;
     const ok = new Set(ids);
