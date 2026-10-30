@@ -71,6 +71,23 @@ const cases = [
     },
   ],
   [
+    'company_entry.create',
+    {
+      entryId: ENTRY,
+      memberId: null,
+      entryKind: 'expense',
+      data: { ...data, paidByCompany: true },
+    },
+    'waves_company_entry_create',
+    {
+      p_group_id: GROUP_ID,
+      p_entry_id: ENTRY,
+      p_member_id: null,
+      p_entry_kind: 'expense',
+      p_data: { ...data, paidByCompany: true },
+    },
+  ],
+  [
     'company_entry.update',
     { entryId: ENTRY, patch: { note: 'Taxi' } },
     'waves_company_entry_update',
@@ -193,6 +210,25 @@ describe('company sync mutations', () => {
     [
       'company_entry.create',
       { entryId: ENTRY, memberId: MEMBER_ID, entryKind: 'expense', data: { amount: 100 } },
+    ],
+    ['company_entry.create', { entryId: ENTRY, memberId: null, entryKind: 'expense', data }],
+    [
+      'company_entry.create',
+      {
+        entryId: ENTRY,
+        memberId: MEMBER_ID,
+        entryKind: 'expense',
+        data: { ...data, paidByCompany: true },
+      },
+    ],
+    [
+      'company_entry.create',
+      {
+        entryId: ENTRY,
+        memberId: null,
+        entryKind: 'expense',
+        data: { ...data, paidByCompany: 'yes' },
+      },
     ],
     ['company_entry.update', { entryId: ENTRY, patch: [] }],
     ['company_entry.update', { entryId: ENTRY, patch: { status: 'approved' } }],

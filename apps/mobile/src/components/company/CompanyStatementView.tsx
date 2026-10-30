@@ -164,7 +164,9 @@ export function CompanyStatementView({
   // Claims an admin can pay now: approved, unpaid, and already on the server (a version to name).
   const due = view.isAdmin
     ? view.entries
-        .filter((e) => e.memberId === member.id && isReimbursable(e) && !e.pending)
+        .filter(
+          (e) => !e.paidByCompany && e.memberId === member.id && isReimbursable(e) && !e.pending,
+        )
         .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn))
     : [];
   const preview = buildReimbursementPreview(view.entries, {

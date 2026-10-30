@@ -434,6 +434,8 @@ export interface CompanyEntryData {
   /** Phase 4: the site, and the manager whose pool pays (an advance / reimbursement). */
   readonly projectId?: string | null;
   readonly fundingManagerId?: string | null;
+  /** Create only: the company paid directly (memberId null; owners and managers only). */
+  readonly paidByCompany?: boolean;
   /** Optional GST / vendor details (India, INR expenses). Money as decimal strings. */
   readonly vendor?: string | null;
   readonly gstin?: string | null;
@@ -452,7 +454,8 @@ export interface CompanyEntryData {
 /** `entryId` is client-chosen and the idempotency key. */
 export interface CompanyEntryCreatePayload {
   readonly entryId: string;
-  readonly memberId: string;
+  /** null only for a company-paid entry (`data.paidByCompany`). */
+  readonly memberId: string | null;
   readonly entryKind: 'expense' | 'advance' | 'allowance' | 'wages' | 'reimbursement';
   readonly data: CompanyEntryData;
 }

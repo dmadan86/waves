@@ -61,7 +61,10 @@ export const EMPLOYEE_ENTRY_KINDS: readonly CompanyEntryKind[] = ['expense', 'al
 export interface CompanyEntry {
   readonly id: string;
   readonly groupId: string;
+  /** The employee; '' on a company-paid entry (no employee, never in any balance or statement). */
   readonly memberId: string;
+  /** The company paid directly (materials, rent...): recorded by an owner or a manager, no employee. */
+  readonly paidByCompany: boolean;
   readonly kind: CompanyEntryKind;
   readonly category: string | null;
   readonly amount: bigint;
@@ -118,7 +121,8 @@ export interface CompanyEntry {
 export interface CompanyEntryRow {
   readonly id: string;
   readonly group_id: string;
-  readonly member_id: string;
+  readonly member_id?: string | null;
+  readonly paid_by_company?: boolean | null;
   readonly entry_kind: string;
   readonly category?: string | null;
   readonly amount: string | number;
@@ -164,7 +168,8 @@ export function companyEntryFromRow(row: CompanyEntryRow): CompanyEntry {
   return {
     id: row.id,
     groupId: row.group_id,
-    memberId: row.member_id,
+    memberId: row.member_id ?? '',
+    paidByCompany: row.paid_by_company === true,
     kind: row.entry_kind as CompanyEntryKind,
     category: row.category ?? null,
     amount: BigInt(String(row.amount)),
@@ -346,7 +351,7 @@ function counts(entry: CompanyEntry): boolean {
 
 /** The entry's effect on "company owes employee" (wages: none). */
 export function entryDelta(entry: CompanyEntry): bigint {
-  if (!counts(entry)) return 0n;
+  if (!counts(entry) || entry.paidByCompany) return 0n;
   switch (entry.kind) {
     case 'expense':
     case 'allowance':
@@ -541,7 +546,9 @@ export function companySummary(
   entries: readonly CompanyEntry[],
   options: { readonly memberIds?: readonly string[]; readonly from: string; readonly to: string },
 ): CompanySummary {
-  const ids = options.memberIds ?? [...new Set(entries.map((entry) => entry.memberId))];
+  const ids = options.memberIds ?? [
+    ...new Set(entries.filter((entry) => !entry.paidByCompany).map((entry) => entry.memberId)),
+  ];
   const rows: CompanySummaryRow[] = ids
     .map((memberId) => ({
       memberId,
@@ -822,6 +829,7 @@ export function findDuplicateEntry(
 export function isReimbursable(entry: CompanyEntry): boolean {
   return (
     !entry.deleted &&
+    !entry.paidByCompany &&
     entry.status === 'approved' &&
     entry.reimbursementId === null &&
     (entry.kind === 'expense' || entry.kind === 'allowance')

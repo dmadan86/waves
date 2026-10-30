@@ -31,7 +31,9 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
     people.find((p) => p.member_id === me?.manager_id) ?? people.find((p) => p.role === 'admin');
   const month = todayIso().slice(0, 7);
   const sums = useMemo(() => {
-    const mine = view.entries.filter((e) => e.memberId === me?.id && !e.deleted);
+    const mine = view.entries.filter(
+      (e) => !e.paidByCompany && e.memberId === me?.id && !e.deleted,
+    );
     const st = me
       ? companyStatement(view.entries, { memberId: me.id, from: '0000-01-01', to: '9999-12-31' })
       : null;

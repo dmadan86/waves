@@ -3089,7 +3089,8 @@ model CompanyEntry {
   wageRun CompanyWageRun? @relation(fields: [wageRunId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_entry_run_fk")
   id           String       @id @db.Uuid
   groupId      String       @map("group_id") @db.Uuid
-  memberId     String       @map("member_id") @db.Uuid
+  memberId     String?      @map("member_id") @db.Uuid
+  paidByCompany Boolean     @default(false) @map("paid_by_company")
   entryKind    String       @map("entry_kind")
   category     String?
   amount       BigInt
@@ -3128,7 +3129,7 @@ model CompanyEntry {
   deletedAt    DateTime?    @map("deleted_at") @db.Timestamptz(6)
   updatedSeq   BigInt       @default(0) @map("updated_seq")
   group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  member       GroupMember  @relation("CompanyEntryMember", fields: [memberId], references: [id], onDelete: NoAction)
+  member       GroupMember? @relation("CompanyEntryMember", fields: [memberId], references: [id], onDelete: NoAction)
   @@index([groupId, updatedSeq])
   @@index([groupId, memberId, occurredOn, id])
   @@index([memberId])

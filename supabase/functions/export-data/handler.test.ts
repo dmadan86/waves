@@ -34,7 +34,13 @@ function query(data: unknown, error: unknown = null) {
   return q;
 }
 function setup(
-  options: { failEntries?: boolean; member?: boolean; category?: string; approved?: boolean } = {},
+  options: {
+    failEntries?: boolean;
+    member?: boolean;
+    category?: string;
+    approved?: boolean;
+    paidByCompany?: boolean;
+  } = {},
 ) {
   const group = {
     id: 'company',
@@ -47,7 +53,8 @@ function setup(
   const ledger = {
     id: 'entry-a',
     group_id: 'company',
-    member_id: 'employee-a',
+    member_id: options.paidByCompany ? null : 'employee-a',
+    paid_by_company: options.paidByCompany === true,
     entry_kind: 'expense',
     category: options.category ?? 'fuel',
     amount: '123',
@@ -169,4 +176,13 @@ it('exports a queued key without any stored tag label', async () => {
   const t = setup({ category: 'offline-new-key' });
   const response = await handleExportData(t.request('csv'), t.deps);
   expect((await response.json()).content).toContain('offline-new-key');
+});
+it('marks a company-paid entry as paid by the Company with no employee', async () => {
+  const t = setup({ approved: true, paidByCompany: true });
+  const csv = (await (await handleExportData(t.request('csv'), t.deps)).json()).content as string;
+  const row = csv.split('\n').find((line) => line.includes('company_expense')) ?? '';
+  expect(row).toContain(',Company,');
+  expect(row).not.toContain('unknown');
+  const pdf = atob((await (await handleExportData(t.request('pdf'), t.deps)).json()).content);
+  expect(pdf).toContain('Paid by: Company');
 });

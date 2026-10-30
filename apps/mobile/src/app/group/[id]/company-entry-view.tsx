@@ -27,6 +27,7 @@ import { EditTextSheet } from '@/components/EditTextSheet';
 import { ListRow, ScenicBody, ScenicHeader, StandardCard } from '@/components/standard';
 import {
   useCompanyEntries,
+  useCompanyProjects,
   useReviewCompanyEntry,
   useVoidCompanyEntry,
 } from '@/data/companyEntries';
@@ -47,6 +48,7 @@ export default function CompanyEntryViewScreen() {
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
   const view = useCompanyEntries(groupId);
+  const projects = useCompanyProjects(groupId);
   const tagLabel = useCompanyTags(groupId, view).label;
   const review = useReviewCompanyEntry(groupId);
   const voidEntry = useVoidCompanyEntry(groupId);
@@ -120,8 +122,13 @@ export default function CompanyEntryViewScreen() {
                 <ListRow
                   title={kindLabel(t, entry, tagLabel)}
                   subtitle={[
-                    view.isAdmin && owner ? displayName(owner, null, null, t.misc.someone) : null,
+                    entry.paidByCompany
+                      ? t.company.companyPayer
+                      : view.isAdmin && owner
+                        ? displayName(owner, null, null, t.misc.someone)
+                        : null,
                     showDate(entry.occurredOn, locale),
+                    projects.find((p) => p.id === entry.projectId)?.name,
                     entry.calcMode === 'days_rate' && entry.days && entry.rateMinor !== null
                       ? fill(t.company.daysAt, { days: entry.days, rate: fmt(entry.rateMinor) })
                       : null,
@@ -294,7 +301,11 @@ export default function CompanyEntryViewScreen() {
         visible={rejecting}
         title={t.company.rejectTitle}
         hint={fill(t.company.rejectHint, {
-          name: owner ? displayName(owner, null, null, t.misc.someone) : t.misc.someone,
+          name: entry?.paidByCompany
+            ? t.company.companyPayer
+            : owner
+              ? displayName(owner, null, null, t.misc.someone)
+              : t.misc.someone,
         })}
         value=""
         multiline
