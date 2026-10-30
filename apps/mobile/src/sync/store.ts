@@ -30,6 +30,8 @@ export interface LocalStore {
   ready(): Promise<void>;
   putRows(rows: readonly StoredRow[]): Promise<void>;
   readRows(): Promise<StoredRow[]>;
+  /** Delete mirror rows that are no longer readable by this account (a company reassignment). */
+  deleteRows(keys: readonly { table: SyncTable; id: string }[]): Promise<void>;
   readCursors(): Promise<Record<string, number>>;
   writeCursors(cursors: Record<string, number>): Promise<void>;
   readQueue(): Promise<QueuedMutation[]>;

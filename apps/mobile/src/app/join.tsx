@@ -171,8 +171,9 @@ export default function JoinScreen() {
         router.replace(`/group/${result.group.id}`);
       }
       // An employee joining a company lands straight in Add entry, with the
-      // one-line privacy explainer; Back goes to the company home.
-      if (result.group.type === 'company') {
+      // one-line privacy explainer; Back goes to the company home. A vendor
+      // stays on the company home, which is their own ledger.
+      if (result.group.type === 'company' && !result.vendor) {
         router.push(`/group/${result.group.id}/company-entry?intro=1`);
       }
       // A good moment to offer notifications, if the phone is not yet set up.

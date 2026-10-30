@@ -22,7 +22,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { QueuedMutation } from '@waves/core';
+import type { QueuedMutation, SyncTable } from '@waves/core';
 
 import { legacyKeysMigrated } from '@/lib/legacyKeys';
 
@@ -67,6 +67,18 @@ class AsyncStorageStore implements LocalStore {
       const byKey = new Map(existing.map((row) => [`${row.table}:${row.id}`, row]));
       for (const row of rows) byKey.set(`${row.table}:${row.id}`, row);
       await AsyncStorage.setItem(WEB_KEYS.rows, JSON.stringify([...byKey.values()]));
+    });
+  }
+
+  deleteRows(keys: readonly { table: SyncTable; id: string }[]): Promise<void> {
+    if (keys.length === 0) return Promise.resolve();
+    return this.serial.run(async () => {
+      const gone = new Set(keys.map((key) => `${key.table}:${key.id}`));
+      const rows = await this.read<StoredRow[]>(WEB_KEYS.rows, []);
+      await AsyncStorage.setItem(
+        WEB_KEYS.rows,
+        JSON.stringify(rows.filter((row) => !gone.has(`${row.table}:${row.id}`))),
+      );
     });
   }
 
