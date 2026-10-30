@@ -39,3 +39,24 @@ export function markAllTargets(
 export function attendanceStatusLetter(status?: AttendanceStatus) {
   return status === 'present' ? 'P' : status === 'half' ? '½' : status === 'absent' ? 'A' : '';
 }
+
+/** The day's counts for these people, read from the same marks map as the rows. */
+export function dayCounts(
+  people: readonly { id: string }[],
+  marks: ReadonlyMap<string, MirrorAttendance>,
+  day: string,
+) {
+  return attendanceCounts(
+    people.map((p) => marks.get(`${p.id}|${day}`)).filter((m): m is MirrorAttendance => !!m),
+  );
+}
+
+/** "+2" / "-1" / "0". */
+export function signedDelta(delta: number): string {
+  return delta > 0 ? `+${delta}` : String(delta);
+}
+
+/** Whether a rise in this figure is good news: more present is, more half days or absences are not. */
+export function riseIsGood(kind: 'present' | 'half' | 'absent' | 'total'): boolean | null {
+  return kind === 'present' ? true : kind === 'total' ? null : false;
+}
