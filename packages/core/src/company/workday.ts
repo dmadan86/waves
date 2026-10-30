@@ -61,3 +61,65 @@ export function workdayCounts(
     unmarked: people.filter((id) => !marked.has(id)).length,
   };
 }
+
+export interface CalendarPayRule {
+  readonly holidays: readonly { readonly startDay: string; readonly endDay: string }[];
+  readonly leave: readonly {
+    readonly memberId: string;
+    readonly startDay: string;
+    readonly endDay: string;
+    readonly halfDay: boolean;
+    readonly kind: 'casual' | 'sick' | 'other';
+    readonly status: 'pending' | 'approved' | 'rejected';
+  }[];
+  /** Company setting "Paid holidays" (default on). */
+  readonly paidHolidays: boolean;
+  /** Company setting "Paid sick/casual leave" (default off); "other" leave is never paid. */
+  readonly paidLeave: boolean;
+}
+
+function addDays(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Wage days for [start, end] from attendance plus the calendar. Per day, first match wins:
+ *  1. an attendance mark (present 1, half 0.5, absent 0) - the owner's/manager's word is final;
+ *  2. approved leave: 0 (absent), or when "Paid sick/casual leave" is on and the kind is casual/sick,
+ *     1 day (0.5 for a half-day);
+ *  3. a holiday: 1 when "Paid holidays" is on, else 0;
+ *  4. otherwise 0 (unmarked).
+ * Pending and rejected leave never counts. Returns "" when nothing counts, like attendanceDaysText.
+ */
+export function workedDaysText(
+  marks: Iterable<AttendanceMark>,
+  memberId: string,
+  start: string,
+  end: string,
+  rule: CalendarPayRule,
+): string {
+  const marked = new Map<string, AttendanceStatus>();
+  for (const m of marks)
+    if (m.memberId === memberId && m.day >= start && m.day <= end) marked.set(m.day, m.status);
+  const leave = rule.leave.filter((l) => l.memberId === memberId && l.status === 'approved');
+  let hundredths = 0;
+  for (let day = start; day <= end; day = addDays(day, 1)) {
+    const mark = marked.get(day);
+    if (mark) {
+      hundredths += WEIGHT[mark];
+      continue;
+    }
+    const l = leave.find((x) => x.startDay <= day && day <= x.endDay);
+    if (l) {
+      if (rule.paidLeave && l.kind !== 'other') hundredths += l.halfDay ? 50 : 100;
+      continue;
+    }
+    if (rule.paidHolidays && rule.holidays.some((h) => h.startDay <= day && day <= h.endDay))
+      hundredths += 100;
+  }
+  if (hundredths === 0) return '';
+  const whole = Math.floor(hundredths / 100);
+  return hundredths % 100 === 0 ? String(whole) : `${whole}.5`;
+}

@@ -1,13 +1,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Text, iconSize, useTheme } from '@waves/ui';
 
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
+import { LeaveDecisionSheet } from '@/components/company/CompanyCalendarSheets';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { useMoney } from '@/components/company/dashboard/parts';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
+import { usePendingLeave, type MirrorLeave } from '@/data/companyCalendar';
 import { usePendingVendorBills } from '@/data/companyVendors';
 import { useUnpaidBills } from '@/data/companyDocuments';
 import { useWorkdayCounts } from '@/data/companyWorkday';
@@ -17,6 +21,7 @@ import { router } from '@/lib/navigation';
 import { awaitingApprovals } from '@/lib/companyPending';
 
 export function CompanyPending({ groupId }: { groupId: string }) {
+  const [selectedLeave, setSelectedLeave] = useState<MirrorLeave | null>(null);
   const view = useCompanyEntries(groupId);
   const { t } = useStrings();
   const theme = useTheme();
@@ -30,16 +35,53 @@ export function CompanyPending({ groupId }: { groupId: string }) {
   const vendorBills = usePendingVendorBills(groupId).count;
   const unpaid = useUnpaidBills(groupId).count;
   const { blocked, unmarked } = useWorkdayCounts(groupId);
+  const leaveRequests = usePendingLeave(groupId);
   const links = [
     { n: vendorBills, label: t.company.pendingVendorBills, to: 'company-vendors' },
     { n: unpaid, label: t.company.pendingUnpaidBills, to: 'company-bills' },
     { n: blocked, label: t.company.pendingBlockedTasks, to: 'company-work' },
     { n: unmarked, label: t.company.pendingUnmarked, to: 'company-attendance' },
   ].filter((l) => l.n > 0);
-  const empty = awaitingApprovals(view).length === 0 && requests.length === 0 && links.length === 0;
+  const empty =
+    awaitingApprovals(view).length === 0 &&
+    requests.length === 0 &&
+    links.length === 0 &&
+    leaveRequests.length === 0;
   return (
     <SectionShell groupId={groupId} view={view}>
       <PendingApprovals groupId={groupId} view={view} />
+      {leaveRequests.length > 0 ? (
+        <>
+          <SectionHeader
+            title={t.calendar.pendingLeaveTitle.replace('{n}', String(leaveRequests.length))}
+          />
+          <StandardCard>
+            {leaveRequests.map((leave, index) => {
+              const member = live.find((person) => person.id === leave.memberId);
+              const kind =
+                leave.kind === 'casual'
+                  ? t.calendar.leaveCasual
+                  : leave.kind === 'sick'
+                    ? t.calendar.leaveSick
+                    : t.calendar.leaveOther;
+              return (
+                <ListRow
+                  key={leave.id}
+                  leading={
+                    member ? (
+                      <PersonAvatar member={member} name={displayName(member)} size={40} />
+                    ) : undefined
+                  }
+                  title={member ? displayName(member, null, null, t.misc.someone) : t.misc.someone}
+                  subtitle={`${leave.startDay} – ${leave.endDay} · ${kind}${leave.halfDay ? ` · ${t.calendar.halfDay}` : ''}`}
+                  onPress={() => setSelectedLeave(leave)}
+                  divider={index < leaveRequests.length - 1}
+                />
+              );
+            })}
+          </StandardCard>
+        </>
+      ) : null}
       {requests.length > 0 ? (
         <>
           <SectionHeader title={t.company.budgetRequests} />
@@ -88,6 +130,12 @@ export function CompanyPending({ groupId }: { groupId: string }) {
           </Text>
         </View>
       ) : null}
+      <LeaveDecisionSheet
+        groupId={groupId}
+        visible={!!selectedLeave}
+        onClose={() => setSelectedLeave(null)}
+        leave={selectedLeave}
+      />
     </SectionShell>
   );
 }

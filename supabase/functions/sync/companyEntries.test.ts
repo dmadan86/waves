@@ -155,6 +155,25 @@ const cases = [
     },
   ],
   [
+    'company_leave.decide',
+    { id: MEMBER_ID, approve: false, note: 'Busy week' },
+    'waves_company_leave_decide',
+    { p_group_id: GROUP_ID, p_id: MEMBER_ID, p_approve: false, p_note: 'Busy week' },
+  ],
+  [
+    'company_dates.set',
+    { memberId: MEMBER_ID, birthDay: 29, birthMonth: 2, joinedOn: null, showBirthday: true },
+    'waves_company_dates_set',
+    {
+      p_group_id: GROUP_ID,
+      p_member_id: MEMBER_ID,
+      p_birth_day: 29,
+      p_birth_month: 2,
+      p_joined_on: null,
+      p_show: true,
+    },
+  ],
+  [
     'company_work.remove',
     { taskId: MEMBER_ID },
     'waves_company_work_remove',
