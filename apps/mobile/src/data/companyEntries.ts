@@ -93,7 +93,7 @@ export interface CompanyView {
 
 export function useCompanyEntries(groupId: string): CompanyView {
   const { mirror, queue, hydrated } = useSync();
-  const { group, members } = useGroup(groupId);
+  const { group, everyone: members } = useGroup(groupId);
   const viewerId = useViewerId();
   const currency = group.data?.default_currency ?? 'INR';
   const approvalsEnabled = group.data?.company_approvals_enabled === true;

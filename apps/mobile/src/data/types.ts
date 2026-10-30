@@ -159,6 +159,8 @@ export interface MemberRow {
   payment_rail?: string | null;
   payment_handle?: string | null;
   left_at: string | null;
+  employment_ended_on?: string | null;
+  employment_note?: string | null;
   /** Company groups: this employee's default daily bata rate, minor units (decimal string). */
   daily_rate_minor?: string | null;
   /** Company groups: this employee's mileage rate per km, minor units (decimal string). */

@@ -23,6 +23,7 @@ export function EmployeeRow({
   menuLabel,
   onPress,
   divider,
+  muted = false,
 }: {
   member: PersonAvatarProps['member'];
   name: string;
@@ -33,16 +34,25 @@ export function EmployeeRow({
   menuLabel: string;
   onPress: () => void;
   divider: boolean;
+  muted?: boolean;
 }) {
   const theme = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
   const settled = status.kind === 'settled';
-  const backgroundColor = settled
-    ? GREEN_SOFT
-    : status.kind === 'companyOwes'
-      ? BLUE_SOFT
-      : '#FEF3C7';
-  const color = settled ? GREEN : status.kind === 'companyOwes' ? BLUE : '#B45309';
+  const backgroundColor = muted
+    ? theme.color.surfaceMuted
+    : settled
+      ? GREEN_SOFT
+      : status.kind === 'companyOwes'
+        ? BLUE_SOFT
+        : '#FEF3C7';
+  const color = muted
+    ? theme.color.textMuted
+    : settled
+      ? GREEN
+      : status.kind === 'companyOwes'
+        ? BLUE
+        : '#B45309';
 
   return (
     <>
@@ -56,6 +66,7 @@ export function EmployeeRow({
           paddingVertical: 8,
           borderBottomWidth: divider ? StyleSheet.hairlineWidth : 0,
           borderBottomColor: theme.color.border,
+          opacity: muted ? 0.62 : 1,
         }}
       >
         <PersonAvatar member={member} name={name} ghost={ghost} size={40} />
@@ -75,7 +86,7 @@ export function EmployeeRow({
                 backgroundColor,
               }}
             >
-              {settled && <Ionicons name="checkmark-circle" size={12} color={GREEN} />}
+              {settled && !muted && <Ionicons name="checkmark-circle" size={12} color={GREEN} />}
               <Text variant="micro" style={{ color }}>
                 {status.label}
               </Text>
