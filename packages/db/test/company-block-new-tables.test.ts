@@ -6,7 +6,7 @@ import { connect, expectDenied, seedGroup } from './helpers';
 // A suspended company refuses attendance, daily work and estimate/bill writes. Members: 0 owner, 1 manager, 2 employee.
 let db: Client;
 let g: Awaited<ReturnType<typeof seedGroup>>;
-const day = '2026-11-14';
+const day = new Date().toISOString().slice(0, 10);
 
 async function as<T>(i: number, run: () => Promise<T>, role: 'authenticated' | 'service_role' = 'authenticated'): Promise<T> {
   await db.query('SAVEPOINT actor_scope');
