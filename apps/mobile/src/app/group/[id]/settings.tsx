@@ -964,6 +964,7 @@ export default function GroupSettingsScreen() {
   // only means a mirror row that predates this field syncing: fall back to that
   // same default so the current kind always shows.
   const groupType = group.data.type ?? GroupType.Other;
+  const isCompany = groupType === GroupType.Company;
   const currentType = typeOptions.find((option) => option.value === groupType) ?? typeOptions[5]!;
   const hasDates = groupType === GroupType.Trip || groupType === GroupType.Event;
   const datesSummary = (() => {
@@ -1084,39 +1085,47 @@ export default function GroupSettingsScreen() {
                 </Text>
               </View>
             </Row>
-            {divider}
-            {/* The kind of group. Only changes the label, cover default and trip
+            {!isCompany ? (
+              <>
+                {divider}
+                {/* The kind of group. Only changes the label, cover default and trip
               affordances: nothing already recorded moves. */}
-            <PlainListRow
-              leading={
-                <RowTile tint={theme.color.brandSoft}>
-                  <Ionicons name="people-outline" size={iconSize.lg} color={theme.color.brand} />
-                </RowTile>
-              }
-              title={t.extras.groupTypeTitle}
-              trailing={
-                <Row
-                  style={{
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    paddingHorizontal: theme.spacing.md,
-                    height: 40,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: theme.color.brandSoft,
-                  }}
-                >
-                  <Ionicons
-                    name={currentType.icon}
-                    size={iconSize.base}
-                    color={theme.color.brand}
-                  />
-                  <Text style={{ color: theme.color.text, fontWeight: '700' }}>
-                    {currentType.label}
-                  </Text>
-                </Row>
-              }
-              onPress={() => setTypeOpen(true)}
-            />
+                <PlainListRow
+                  leading={
+                    <RowTile tint={theme.color.brandSoft}>
+                      <Ionicons
+                        name="people-outline"
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
+                    </RowTile>
+                  }
+                  title={t.extras.groupTypeTitle}
+                  trailing={
+                    <Row
+                      style={{
+                        alignItems: 'center',
+                        gap: theme.spacing.sm,
+                        paddingHorizontal: theme.spacing.md,
+                        height: 40,
+                        borderRadius: theme.radius.pill,
+                        backgroundColor: theme.color.brandSoft,
+                      }}
+                    >
+                      <Ionicons
+                        name={currentType.icon}
+                        size={iconSize.base}
+                        color={theme.color.brand}
+                      />
+                      <Text style={{ color: theme.color.text, fontWeight: '700' }}>
+                        {currentType.label}
+                      </Text>
+                    </Row>
+                  }
+                  onPress={() => setTypeOpen(true)}
+                />
+              </>
+            ) : null}
             {/* Trip and event dates appear for a trip or an event and go when the
               type changes. */}
             {hasDates ? (
@@ -1154,7 +1163,7 @@ export default function GroupSettingsScreen() {
               trailing={chevron}
               onPress={() => setRatesOpen(true)}
             />
-            {familiesOn ? (
+            {familiesOn && !isCompany ? (
               <>
                 {divider}
                 <PlainListRow
@@ -1182,20 +1191,28 @@ export default function GroupSettingsScreen() {
                 />
               </>
             ) : null}
-            {divider}
-            {/* The member's own short tag, shown instead of the automatic type tag
+            {!isCompany ? (
+              <>
+                {divider}
+                {/* The member's own short tag, shown instead of the automatic type tag
               on Home and the group header: one row here, edited in a sheet. */}
-            <PlainListRow
-              leading={
-                <RowTile tint={theme.color.brandSoft}>
-                  <Ionicons name="pricetag-outline" size={iconSize.lg} color={theme.color.brand} />
-                </RowTile>
-              }
-              title={t.extras.tagLabel}
-              subtitle={tag.trim() || t.extras.tagPlaceholder}
-              trailing={chevron}
-              onPress={() => setTagOpen(true)}
-            />
+                <PlainListRow
+                  leading={
+                    <RowTile tint={theme.color.brandSoft}>
+                      <Ionicons
+                        name="pricetag-outline"
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
+                    </RowTile>
+                  }
+                  title={t.extras.tagLabel}
+                  subtitle={tag.trim() || t.extras.tagPlaceholder}
+                  trailing={chevron}
+                  onPress={() => setTagOpen(true)}
+                />
+              </>
+            ) : null}
           </StandardCard>
           {groupType === GroupType.Company && isAdmin ? (
             <StandardCard style={{ padding: theme.spacing.md }}>
@@ -1209,143 +1226,149 @@ export default function GroupSettingsScreen() {
           ) : null}
           <MissingRatesCard groupId={groupId} />
 
-          <View style={{ gap: theme.spacing.md }}>
-            <SectionHeader
-              title={fill(t.group.membersTitle, { n: memberCount })}
-              trailing={
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.group.addMembers}
-                  onPress={() => {
-                    // Nothing in the sheet should be typing yet: drop any focus
-                    // left on the page's own fields so the keyboard does not
-                    // open over the sheet. The name field is focused by a tap.
-                    Keyboard.dismiss();
-                    setAddOpen(true);
-                  }}
-                  style={{
-                    height: 38,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    paddingHorizontal: theme.spacing.lg,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: theme.color.brandSoft,
-                  }}
-                >
-                  <Ionicons
-                    name="person-add-outline"
-                    size={iconSize.base}
-                    color={theme.color.brand}
-                  />
-                  <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-                    {t.group.addMembers}
-                  </Text>
-                </Pressable>
-              }
-            />
+          {/* A company's people live in People (company bar), not here. */}
+          {!isCompany ? (
+            <View style={{ gap: theme.spacing.md }}>
+              <SectionHeader
+                title={fill(t.group.membersTitle, { n: memberCount })}
+                trailing={
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.group.addMembers}
+                    onPress={() => {
+                      // Nothing in the sheet should be typing yet: drop any focus
+                      // left on the page's own fields so the keyboard does not
+                      // open over the sheet. The name field is focused by a tap.
+                      Keyboard.dismiss();
+                      setAddOpen(true);
+                    }}
+                    style={{
+                      height: 38,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: theme.spacing.sm,
+                      paddingHorizontal: theme.spacing.lg,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Ionicons
+                      name="person-add-outline"
+                      size={iconSize.base}
+                      color={theme.color.brand}
+                    />
+                    <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                      {t.group.addMembers}
+                    </Text>
+                  </Pressable>
+                }
+              />
 
-            {/* The picker routes close the sheet before the people come back, so
+              {/* The picker routes close the sheet before the people come back, so
                 their progress and any refusal are shown here, on the page, where
                 the person is looking. While the sheet is open it shows its own. */}
-            {!addOpen && addingContacts ? <ActivityIndicator color={theme.color.brand} /> : null}
-            {!addOpen && addError ? <Callout tone="negative">{addError}</Callout> : null}
+              {!addOpen && addingContacts ? <ActivityIndicator color={theme.color.brand} /> : null}
+              {!addOpen && addError ? <Callout tone="negative">{addError}</Callout> : null}
 
-            {/* The roster, so seeing who is in the group costs no tap through to
+              {/* The roster, so seeing who is in the group costs no tap through to
                 the members screen. A row opens the person; ⋮ lists what can be
                 done to them. */}
-            <StandardCard>
-              {(members.data ?? []).map((member) => {
-                const isMe = isViewer(member, viewerId);
-                const ghost = isGhost(member) || isBlockedMember(member, blockedIds);
-                return (
-                  <ListRow
-                    key={member.id}
-                    title={displayName(member, viewerId, blockedIds, t.misc.someone)}
-                    subtitle={
-                      isGhost(member)
-                        ? pendingLinkFor(member.id)
-                          ? fill(t.link.waiting, {
-                              who: pendingLinkFor(member.id)?.target_name ?? t.misc.someone,
-                            })
-                          : t.notJoinedYet
-                        : // A handle carries a name, an address or a phone number,
-                          // so a blocked person's is masked here exactly as it is
-                          // on the members screen.
-                          isBlockedMember(member, blockedIds)
-                          ? t.misc.noUpiYet
-                          : // The rail pair, not the legacy UPI column alone.
-                            (payableAt(member)?.handle ?? t.misc.noUpiYet)
-                    }
-                    leading={
-                      <PersonAvatar
-                        member={member}
-                        name={displayName(member, null, blockedIds, t.misc.someone)}
-                        ghost={ghost}
-                      />
-                    }
-                    onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
-                    divider={!isMe}
-                    trailing={
-                      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                        {familiesOn && familyOf(group.data?.units, member.id) ? (
-                          <View
-                            style={{
-                              paddingHorizontal: theme.spacing.md,
-                              paddingVertical: 4,
-                              borderRadius: theme.radius.pill,
-                              backgroundColor: theme.color.brandSoft,
-                            }}
-                          >
-                            <Text
-                              variant="caption"
-                              style={{ color: theme.color.brand, fontWeight: '700' }}
-                            >
-                              {familyOf(group.data?.units, member.id)?.name}
-                            </Text>
-                          </View>
-                        ) : null}
-                        {member.role === 'admin' && !isGhost(member) ? (
-                          <View
-                            style={{
-                              paddingHorizontal: theme.spacing.md,
-                              paddingVertical: 4,
-                              borderRadius: theme.radius.pill,
-                              backgroundColor: theme.color.brand,
-                            }}
-                          >
-                            <Text variant="caption" style={{ color: '#FFFFFF', fontWeight: '700' }}>
-                              {t.group.adminTitle}
-                            </Text>
-                          </View>
-                        ) : null}
-                        <MoneyText
-                          amount={ledger.balances.get(member.id) ?? 0n}
-                          currency={currency}
-                          locale={locale}
-                          mode="balance"
+              <StandardCard>
+                {(members.data ?? []).map((member) => {
+                  const isMe = isViewer(member, viewerId);
+                  const ghost = isGhost(member) || isBlockedMember(member, blockedIds);
+                  return (
+                    <ListRow
+                      key={member.id}
+                      title={displayName(member, viewerId, blockedIds, t.misc.someone)}
+                      subtitle={
+                        isGhost(member)
+                          ? pendingLinkFor(member.id)
+                            ? fill(t.link.waiting, {
+                                who: pendingLinkFor(member.id)?.target_name ?? t.misc.someone,
+                              })
+                            : t.notJoinedYet
+                          : // A handle carries a name, an address or a phone number,
+                            // so a blocked person's is masked here exactly as it is
+                            // on the members screen.
+                            isBlockedMember(member, blockedIds)
+                            ? t.misc.noUpiYet
+                            : // The rail pair, not the legacy UPI column alone.
+                              (payableAt(member)?.handle ?? t.misc.noUpiYet)
+                      }
+                      leading={
+                        <PersonAvatar
+                          member={member}
+                          name={displayName(member, null, blockedIds, t.misc.someone)}
+                          ghost={ghost}
                         />
-                        {isMe ? null : (
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={`${t.group.memberMenu}: ${displayName(member, null, blockedIds, t.misc.someone)}`}
-                            hitSlop={8}
-                            onPress={() => setMenuFor(member.id)}
-                          >
-                            <Ionicons
-                              name="ellipsis-vertical"
-                              size={iconSize.lg}
-                              color={theme.color.textMuted}
-                            />
-                          </Pressable>
-                        )}
-                      </Row>
-                    }
-                  />
-                );
-              })}
-            </StandardCard>
-          </View>
+                      }
+                      onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
+                      divider={!isMe}
+                      trailing={
+                        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                          {familiesOn && familyOf(group.data?.units, member.id) ? (
+                            <View
+                              style={{
+                                paddingHorizontal: theme.spacing.md,
+                                paddingVertical: 4,
+                                borderRadius: theme.radius.pill,
+                                backgroundColor: theme.color.brandSoft,
+                              }}
+                            >
+                              <Text
+                                variant="caption"
+                                style={{ color: theme.color.brand, fontWeight: '700' }}
+                              >
+                                {familyOf(group.data?.units, member.id)?.name}
+                              </Text>
+                            </View>
+                          ) : null}
+                          {member.role === 'admin' && !isGhost(member) ? (
+                            <View
+                              style={{
+                                paddingHorizontal: theme.spacing.md,
+                                paddingVertical: 4,
+                                borderRadius: theme.radius.pill,
+                                backgroundColor: theme.color.brand,
+                              }}
+                            >
+                              <Text
+                                variant="caption"
+                                style={{ color: '#FFFFFF', fontWeight: '700' }}
+                              >
+                                {t.group.adminTitle}
+                              </Text>
+                            </View>
+                          ) : null}
+                          <MoneyText
+                            amount={ledger.balances.get(member.id) ?? 0n}
+                            currency={currency}
+                            locale={locale}
+                            mode="balance"
+                          />
+                          {isMe ? null : (
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={`${t.group.memberMenu}: ${displayName(member, null, blockedIds, t.misc.someone)}`}
+                              hitSlop={8}
+                              onPress={() => setMenuFor(member.id)}
+                            >
+                              <Ionicons
+                                name="ellipsis-vertical"
+                                size={iconSize.lg}
+                                color={theme.color.textMuted}
+                              />
+                            </Pressable>
+                          )}
+                        </Row>
+                      }
+                    />
+                  );
+                })}
+              </StandardCard>
+            </View>
+          ) : null}
 
           <View style={{ gap: theme.spacing.md }}>
             <SectionHeader title={t.group.groupActions} />
@@ -1355,22 +1378,25 @@ export default function GroupSettingsScreen() {
                 Mute is this person's own switch, not the group's: pushes about
                 the group stop reaching them, the inbox keeps everything, and the
                 others are never told (the `group_mutes` migration). */}
-              <ListRow
-                leading={chip('swap-horizontal', null)}
-                title={t.group.simplifyDebts}
-                subtitle={t.group.simplifyDebtsSub}
-                subtitleLines={2}
-                titleAccessory={infoDot('simplify', t.group.simplifyDebts)}
-                footer={infoText('simplify', t.group.simplifyDebtsBody)}
-                divider
-                trailing={
-                  <Toggle
-                    value={group.data.simplify_debts}
-                    onValueChange={(value) => updateGroup.mutate({ simplify_debts: value })}
-                    accessibilityLabel={t.group.simplifyDebts}
-                  />
-                }
-              />
+              {/* A company records, never splits: nothing to simplify. */}
+              {!isCompany ? (
+                <ListRow
+                  leading={chip('swap-horizontal', null)}
+                  title={t.group.simplifyDebts}
+                  subtitle={t.group.simplifyDebtsSub}
+                  subtitleLines={2}
+                  titleAccessory={infoDot('simplify', t.group.simplifyDebts)}
+                  footer={infoText('simplify', t.group.simplifyDebtsBody)}
+                  divider
+                  trailing={
+                    <Toggle
+                      value={group.data.simplify_debts}
+                      onValueChange={(value) => updateGroup.mutate({ simplify_debts: value })}
+                      accessibilityLabel={t.group.simplifyDebts}
+                    />
+                  }
+                />
+              ) : null}
               <ListRow
                 leading={chip('notifications-outline', null)}
                 title={t.group.muteNotifications}
@@ -1400,13 +1426,15 @@ export default function GroupSettingsScreen() {
                 />
               ) : (
                 <>
-                  <ListRow
-                    leading={chip('copy-outline', '#2F80ED')}
-                    title={t.clone.duplicateTitle}
-                    subtitle={t.clone.duplicateHint}
-                    onPress={() => router.push(`/new-group?from=${groupId}`)}
-                    divider
-                  />
+                  {!isCompany ? (
+                    <ListRow
+                      leading={chip('copy-outline', '#2F80ED')}
+                      title={t.clone.duplicateTitle}
+                      subtitle={t.clone.duplicateHint}
+                      onPress={() => router.push(`/new-group?from=${groupId}`)}
+                      divider
+                    />
+                  ) : null}
                   <ListRow
                     leading={chip(isFavorite(groupId) ? 'star' : 'star-outline', '#F5A301')}
                     title={t.clone.favoriteTitle}
