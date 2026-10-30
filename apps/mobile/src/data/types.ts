@@ -353,6 +353,9 @@ export interface ActivityGroup {
   /** The kind of group ('trip', 'home', …), for the feed's Trip filter. Absent
    *  on rows built before it was carried. */
   type?: string | null;
+  /** For the feed's tag pill: the event kind, and the member's own tag. */
+  event_template?: string | null;
+  custom_tag?: string | null;
 }
 
 export interface ActivityRow {

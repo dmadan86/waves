@@ -50,8 +50,7 @@ import { actorName, GroupType } from '@/data/types';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { GroupMark } from '@/components/GroupMark';
 import { SplitMoney } from '@/components/SplitMoney';
-import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
-import { useGroupTypeTagLabels } from '@/components/GroupTypeTag';
+import { GroupTypeTag, useGroupTypeTagLabels } from '@/components/GroupTypeTag';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { HERO_TEXT_SHADOW } from '@/components/person/pairParts';
 import {
@@ -71,7 +70,11 @@ import {
   type AmountTone,
   type GlyphFamily,
 } from '@/lib/activityRowPure';
-import { groupTypeTag, type GroupTypeTagLabels } from '@/lib/groupTypeTag';
+import {
+  groupTypeTag,
+  type GroupTypeTag as GroupTypeTagValue,
+  type GroupTypeTagLabels,
+} from '@/lib/groupTypeTag';
 import { useHomeHero } from '@/lib/useHomeHero';
 import { useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { useGroups, useRecentActivity, useUndoResplit, type RecentActivityRow } from '@/data/hooks';
@@ -104,6 +107,8 @@ type RowView = {
   groupId: string | null;
   /** The group's name, shown consistently across activity kinds. */
   groupName: string | null;
+  /** The group's tag pill, same as Home's: its own tag, else its type. */
+  groupTag: GroupTypeTagValue | null;
   timestamp: string;
   tintKey: TintName;
   glyph: { family: GlyphFamily; name: string };
@@ -174,7 +179,10 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
   // The group's own cover is a mark the app draws (`GroupMark`), not text: set
   // as a raw emoji it printed the plate (🍽️), which the system font lacks, as a
   // broken box. So the meta names the category, or else the kind of group.
-  const kind = g ? groupTypeTag(g.type, null, ctx.groupTagLabels) : null;
+  const groupTag =
+    g && !ctx.scoped
+      ? groupTypeTag(g.type, g.event_template, ctx.groupTagLabels, g.custom_tag)
+      : null;
   const amount = activityAmountStyle(entry.verb);
   const resplit = resplitActivityLabel(
     entry,
@@ -196,6 +204,7 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
       : null,
     groupId: g?.id ?? null,
     groupName: g?.name?.trim() || null,
+    groupTag,
     timestamp: activityTimestamp(ctx.locale, entry.created_at, undefined, ctx.rtf),
     tintKey: glyph.tint,
     glyph,
@@ -203,14 +212,7 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
       ? scopedTag(description, category)
       : category
         ? { ...category.glyph, label: category.label }
-        : kind
-          ? {
-              family: 'ion',
-              name: kind.custom ? 'pricetag' : GROUP_TYPE_ICON[kind.type],
-              label: kind.label,
-              tint: null,
-            }
-          : null,
+        : null,
     money: parseMoney(entry.payload),
     stake: entry.stake,
     amountTone: amount.tone,
@@ -320,7 +322,20 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
             on this device, gets a badge. */}
         <Row style={{ gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
           {view.who ? <MetaText>{`${view.who} ·`}</MetaText> : null}
-          {view.groupName ? <MetaText>{`${view.groupName} ·`}</MetaText> : null}
+          {view.groupName ? (
+            // Name ellipsizes first; the pill never shrinks. One line at 360dp.
+            <Row style={{ gap: 4, alignItems: 'center', flexShrink: 1, maxWidth: '100%' }}>
+              <View style={{ flexShrink: 1 }}>
+                <MetaText>{view.groupName}</MetaText>
+              </View>
+              {view.groupTag ? (
+                <View style={{ flexShrink: 0 }}>
+                  <GroupTypeTag tag={view.groupTag} />
+                </View>
+              ) : null}
+              <MetaText>·</MetaText>
+            </Row>
+          ) : null}
           {view.tag ? (
             <>
               <GlyphIcon family={view.tag.family} name={view.tag.name} size={13} color={tagInk} />
@@ -386,6 +401,7 @@ enum FeedKind {
   Expenses = 'expenses',
   Edits = 'edits',
   Trip = 'trip',
+  Company = 'company',
 }
 
 const EDIT_VERBS = new Set(['edited', 'superseded']);
@@ -404,6 +420,8 @@ function inKind(entry: RecentActivityRow, kind: FeedKind): boolean {
       return isEdit(entry.verb);
     case FeedKind.Trip:
       return entry.group?.type === GroupType.Trip;
+    case FeedKind.Company:
+      return entry.group?.type === GroupType.Company;
     case FeedKind.All:
     default:
       return true;
@@ -599,6 +617,15 @@ export default function ActivityScreen() {
             icon: 'airplane-outline' as const,
           },
         ]),
+    ...(!onlyGroup && groups.some((g) => g.type === GroupType.Company)
+      ? [
+          {
+            value: FeedKind.Company,
+            label: t.extras.typeCompany,
+            icon: 'business-outline' as const,
+          },
+        ]
+      : []),
   ];
 
   // Home's scene, with white ink over the same top scrim at every hour.
