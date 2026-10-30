@@ -124,7 +124,7 @@ export async function handleInviteAccept(
       .from('group_members')
       // FK-hinted: ghost_merges bridges group_members and profiles, so the embed
       // is ambiguous without naming the column.
-      .select('id, ghost_name, profile_id, profiles!profile_id ( display_name )')
+      .select('id, ghost_name, profile_id, role, profiles!profile_id ( display_name )')
       .eq('group_id', invite.group_id)
       .is('left_at', null);
 
@@ -151,7 +151,12 @@ export async function handleInviteAccept(
 
     const existing = (members ?? []).find((member) => member.profile_id === profileId);
     if (existing) {
-      return json({ group, memberId: existing.id, alreadyMember: true });
+      return json({
+        group,
+        memberId: existing.id,
+        alreadyMember: true,
+        ...(existing.role === 'vendor' ? { vendor: true } : {}),
+      });
     }
 
     // A guest may not join a shared group. Checked after the already-a-member
