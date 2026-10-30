@@ -1066,7 +1066,22 @@ export interface UiStrings {
     couldNotSignOut: string;
     signedOutElsewhere: string;
     title: string;
-    intro: string;
+    subtitle: string;
+    infoFree: string;
+    infoPaid: string;
+    infoBody: string;
+    learnMore: string;
+    learnTitle: string;
+    learnBody: string;
+    activeTitle: string;
+    otherTitle: string;
+    sortBy: string;
+    sortLast: string;
+    sortName: string;
+    addDevice: string;
+    addTitle: string;
+    addBody: string;
+    signOutAllTitle: string;
     thisDevice: string;
     signedOut: string;
     lastActive: string;
@@ -7653,8 +7668,24 @@ const en: UiStrings = {
     signedOutElsewhere:
       'You were signed out because you logged out this device from another device.',
     title: 'Devices',
-    intro:
-      'The free plan covers two devices at a time. A device you have not opened in a while stops counting on its own.',
+    subtitle: 'Manage devices signed in to your account',
+    infoFree: 'Free plan allows {n} active devices at a time.',
+    infoPaid: 'Your plan allows {n} active devices at a time.',
+    infoBody: "A device you haven't used in a while stops counting automatically.",
+    learnMore: 'Learn more',
+    learnTitle: 'How device limits work',
+    learnBody:
+      'The free plan allows {free} active devices at a time and Pro allows {pro}. A device you have not used in {days} days stops counting on its own, and signing a device out frees its place straight away.',
+    activeTitle: 'Active devices ({active}/{limit})',
+    otherTitle: 'Other devices',
+    sortBy: 'Sort by',
+    sortLast: 'Last active',
+    sortName: 'Name',
+    addDevice: 'Add device',
+    addTitle: 'Add another device',
+    addBody:
+      'Install Waves on the other device and sign in with the same email. It shows up here once it is signed in.',
+    signOutAllTitle: 'Sign out of all other devices?',
     thisDevice: 'This device',
     signedOut: 'Signed out',
     lastActive: 'Last active {when}',
@@ -13676,8 +13707,24 @@ const ta: UiStrings = {
     signedOutElsewhere:
       'மற்றொரு சாதனத்திலிருந்து இந்தச் சாதனத்தை வெளியேற்றியதால் நீங்கள் வெளியேற்றப்பட்டீர்கள்.',
     title: 'சாதனங்கள்',
-    intro:
-      'இலவசத் திட்டத்தில் ஒரே நேரத்தில் இரண்டு சாதனங்கள். சிறிது காலம் திறக்காத சாதனம் தானாகவே கணக்கில் இருந்து விலகும்.',
+    subtitle: 'உங்கள் கணக்கில் உள்நுழைந்த சாதனங்களை நிர்வகிக்கவும்',
+    infoFree: 'இலவசத் திட்டத்தில் ஒரே நேரத்தில் {n} செயலில் உள்ள சாதனங்கள் அனுமதிக்கப்படும்.',
+    infoPaid: 'உங்கள் திட்டத்தில் ஒரே நேரத்தில் {n} செயலில் உள்ள சாதனங்கள் அனுமதிக்கப்படும்.',
+    infoBody: 'சிறிது காலம் பயன்படுத்தாத சாதனம் தானாகவே கணக்கில் இருந்து விலகும்.',
+    learnMore: 'மேலும் அறிக',
+    learnTitle: 'சாதன வரம்பு எப்படி செயல்படுகிறது',
+    learnBody:
+      'இலவசத் திட்டத்தில் ஒரே நேரத்தில் {free} சாதனங்கள், Pro-வில் {pro} சாதனங்கள் அனுமதிக்கப்படும். {days} நாட்கள் பயன்படுத்தாத சாதனம் தானாகவே கணக்கில் இருந்து விலகும்; சாதனத்தை வெளியேற்றினால் அதன் இடம் உடனே விடுபடும்.',
+    activeTitle: 'செயலில் உள்ள சாதனங்கள் ({active}/{limit})',
+    otherTitle: 'மற்ற சாதனங்கள்',
+    sortBy: 'வரிசைப்படுத்து',
+    sortLast: 'கடைசியாகப் பயன்படுத்தியது',
+    sortName: 'பெயர்',
+    addDevice: 'சாதனத்தைச் சேர்',
+    addTitle: 'மற்றொரு சாதனத்தைச் சேர்',
+    addBody:
+      'மற்ற சாதனத்தில் Waves-ஐ நிறுவி, அதே மின்னஞ்சலுடன் உள்நுழையுங்கள். உள்நுழைந்ததும் இங்கே தோன்றும்.',
+    signOutAllTitle: 'மற்ற எல்லாச் சாதனங்களையும் வெளியேற்றவா?',
     thisDevice: 'இந்தச் சாதனம்',
     signedOut: 'வெளியேற்றப்பட்டது',
     lastActive: 'கடைசியாகச் செயலில் {when}',
@@ -19881,8 +19928,24 @@ const hi: UiStrings = {
     signedOutElsewhere:
       'आपने किसी दूसरे डिवाइस से इस डिवाइस को लॉग आउट किया था, इसलिए आप साइन आउट हो गए।',
     title: 'डिवाइस',
-    intro:
-      'मुफ़्त प्लान में एक साथ दो डिवाइस चलते हैं। जो डिवाइस कुछ समय से नहीं खुला, वह अपने आप गिनती से हट जाता है।',
+    subtitle: 'आपके खाते में साइन इन किए गए डिवाइस प्रबंधित करें',
+    infoFree: 'मुफ़्त प्लान में एक समय में {n} सक्रिय डिवाइस की अनुमति है।',
+    infoPaid: 'आपके प्लान में एक समय में {n} सक्रिय डिवाइस की अनुमति है।',
+    infoBody: 'जो डिवाइस कुछ समय से इस्तेमाल नहीं हुआ, वह अपने आप गिनती से हट जाता है।',
+    learnMore: 'और जानें',
+    learnTitle: 'डिवाइस सीमा कैसे काम करती है',
+    learnBody:
+      'मुफ़्त प्लान में एक समय में {free} सक्रिय डिवाइस और Pro में {pro} की अनुमति है। जो डिवाइस {days} दिन से इस्तेमाल नहीं हुआ, वह अपने आप गिनती से हट जाता है, और किसी डिवाइस को साइन आउट करते ही उसकी जगह खाली हो जाती है।',
+    activeTitle: 'सक्रिय डिवाइस ({active}/{limit})',
+    otherTitle: 'अन्य डिवाइस',
+    sortBy: 'इस क्रम में',
+    sortLast: 'आख़िरी सक्रियता',
+    sortName: 'नाम',
+    addDevice: 'डिवाइस जोड़ें',
+    addTitle: 'दूसरा डिवाइस जोड़ें',
+    addBody:
+      'दूसरे डिवाइस पर Waves इंस्टॉल करें और उसी ईमेल से साइन इन करें। साइन इन होते ही वह यहाँ दिखेगा।',
+    signOutAllTitle: 'सभी अन्य डिवाइस साइन आउट करें?',
     thisDevice: 'यह डिवाइस',
     signedOut: 'साइन आउट',
     lastActive: 'आख़िरी बार सक्रिय {when}',
@@ -25967,8 +26030,24 @@ const ar: UiStrings = {
     couldNotSignOut: 'تعذّر تسجيل خروج الأجهزة الأخرى. حاول مرة أخرى.',
     signedOutElsewhere: 'تم تسجيل خروجك لأنك سجّلت الخروج من هذا الجهاز من جهاز آخر.',
     title: 'الأجهزة',
-    intro:
-      'الخطة المجانية تشمل جهازين في وقت واحد. الجهاز الذي لم تفتحه منذ فترة يتوقف عن العدّ من تلقاء نفسه.',
+    subtitle: 'إدارة الأجهزة المسجّل دخولها إلى حسابك',
+    infoFree: 'تتيح الخطة المجانية {n} جهازًا نشطًا في وقت واحد.',
+    infoPaid: 'تتيح خطتك {n} جهازًا نشطًا في وقت واحد.',
+    infoBody: 'الجهاز الذي لم تستخدمه منذ فترة يتوقف عن العدّ من تلقاء نفسه.',
+    learnMore: 'اعرف المزيد',
+    learnTitle: 'كيف تعمل حدود الأجهزة',
+    learnBody:
+      'تتيح الخطة المجانية {free} جهازًا نشطًا في وقت واحد وتتيح Pro {pro}. الجهاز الذي لم تستخدمه منذ {days} يومًا يتوقف عن العدّ من تلقاء نفسه، وتسجيل الخروج من جهاز يُفرغ مكانه فورًا.',
+    activeTitle: 'الأجهزة النشطة ({active}/{limit})',
+    otherTitle: 'أجهزة أخرى',
+    sortBy: 'ترتيب حسب',
+    sortLast: 'آخر نشاط',
+    sortName: 'الاسم',
+    addDevice: 'إضافة جهاز',
+    addTitle: 'إضافة جهاز آخر',
+    addBody:
+      'ثبّت Waves على الجهاز الآخر وسجّل الدخول بالبريد الإلكتروني نفسه. سيظهر هنا بمجرد تسجيل الدخول.',
+    signOutAllTitle: 'تسجيل الخروج من كل الأجهزة الأخرى؟',
     thisDevice: 'هذا الجهاز',
     signedOut: 'تم تسجيل الخروج',
     lastActive: 'آخر نشاط {when}',
