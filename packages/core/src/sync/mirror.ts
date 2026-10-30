@@ -64,6 +64,9 @@ import type {
   CompanyDocConvertPayload,
   CompanyDocPaymentPayload,
   CompanyDocVoidPayload,
+  CompanyAttendanceSetPayload,
+  CompanyWorkSetPayload,
+  CompanyWorkRemovePayload,
   CompanyMemberProjectsSetPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
@@ -120,6 +123,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyVendorEntries,
   SyncTable.CompanyVendorEntryAttachments,
   SyncTable.CompanyDocuments,
+  SyncTable.CompanyAttendance,
+  SyncTable.CompanyWorkTasks,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -2232,6 +2237,115 @@ export function materialiseProjectMembers(
   return out;
 }
 
+export interface MirrorAttendance {
+  readonly memberId: string;
+  readonly day: string;
+  readonly status: 'present' | 'half' | 'absent';
+  readonly note: string | null;
+}
+
+/** Attendance marks of one company, keyed `${memberId}|${day}`, with this phone's queued marks on top. */
+export function materialiseAttendance(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): Map<string, MirrorAttendance> {
+  const out = new Map<string, MirrorAttendance>();
+  for (const row of rowsFor(state, SyncTable.CompanyAttendance, options.groupId) as unknown as {
+    member_id: string;
+    day: string;
+    status: MirrorAttendance['status'];
+    note: string | null;
+    deleted_at: string | null;
+  }[]) {
+    if (!row.deleted_at)
+      out.set(`${row.member_id}|${row.day}`, {
+        memberId: row.member_id,
+        day: row.day,
+        status: row.status,
+        note: row.note,
+      });
+  }
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (
+      mutation.groupId !== options.groupId ||
+      mutation.rejection ||
+      mutation.kind !== 'company_attendance.set'
+    )
+      continue;
+    const p = mutation.payload as unknown as CompanyAttendanceSetPayload;
+    const key = `${p.memberId}|${p.day}`;
+    if (p.status === null) out.delete(key);
+    else out.set(key, { memberId: p.memberId, day: p.day, status: p.status, note: p.note });
+  }
+  return out;
+}
+
+export interface MirrorWorkTask {
+  readonly id: string;
+  readonly memberId: string;
+  readonly day: string;
+  readonly title: string;
+  readonly projectId: string | null;
+  readonly status: CompanyWorkSetPayload['status'];
+  readonly blockedReason: string | null;
+  readonly note: string | null;
+  readonly pending?: boolean;
+}
+
+/** Daily tasks of one company (pulled rows plus this phone's queued adds, edits and removals), oldest first. */
+export function materialiseWorkTasks(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): MirrorWorkTask[] {
+  const byId = new Map<string, MirrorWorkTask>();
+  for (const row of rowsFor(state, SyncTable.CompanyWorkTasks, options.groupId) as unknown as {
+    id: string;
+    member_id: string;
+    day: string;
+    title: string;
+    project_id: string | null;
+    status: MirrorWorkTask['status'];
+    blocked_reason: string | null;
+    note: string | null;
+    created_at: string;
+    deleted_at: string | null;
+  }[]) {
+    if (row.deleted_at) continue;
+    byId.set(row.id, {
+      id: row.id,
+      memberId: row.member_id,
+      day: row.day,
+      title: row.title,
+      projectId: row.project_id,
+      status: row.status,
+      blockedReason: row.blocked_reason,
+      note: row.note,
+    });
+  }
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== options.groupId || mutation.rejection) continue;
+    if (mutation.kind === 'company_work.set') {
+      const p = mutation.payload as unknown as CompanyWorkSetPayload;
+      byId.set(p.taskId, {
+        id: p.taskId,
+        memberId: p.memberId,
+        day: p.day,
+        title: p.title,
+        projectId: p.projectId,
+        status: p.status,
+        blockedReason: p.status === 'blocked' ? p.blockedReason : null,
+        note: p.note,
+        pending: true,
+      });
+    } else if (mutation.kind === 'company_work.remove') {
+      byId.delete((mutation.payload as unknown as CompanyWorkRemovePayload).taskId);
+    }
+  }
+  return [...byId.values()].sort((a, b) => a.day.localeCompare(b.day) || a.id.localeCompare(b.id));
+}
+
 export interface MirrorWageSplit {
   readonly projectId: string;
   readonly amountMinor: bigint;
@@ -2503,6 +2617,8 @@ export function purgeCompanyInvisible(
     drop(SyncTable.CompanyWageSplits, orphan);
     // Documents are private to their creator (and owners): a phone that lost that visibility drops them.
     drop(SyncTable.CompanyDocuments, (row) => mine(row) && !ok.has(row.created_by as string));
+    drop(SyncTable.CompanyAttendance, (row) => mine(row) && !ok.has(row.member_id as string));
+    drop(SyncTable.CompanyWorkTasks, (row) => mine(row) && !ok.has(row.member_id as string));
   }
   return removed.length === 0 ? { state, removed } : { state: { ...state, tables }, removed };
 }

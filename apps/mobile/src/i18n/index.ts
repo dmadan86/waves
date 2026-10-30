@@ -1310,6 +1310,40 @@ export interface UiStrings {
     unpaidTotal: string;
   };
   company: {
+    attendanceTitle: string;
+    attendanceMine: string;
+    attendanceEmpty: string;
+    attendancePresent: string;
+    attendanceHalf: string;
+    attendanceAbsent: string;
+    attendanceMarkAll: string;
+    attendanceNote: string;
+    attendanceSummary: PluralForms;
+    attendancePreviousMonth: string;
+    attendanceNextMonth: string;
+    workTitle: string;
+    workMine: string;
+    workEmpty: string;
+    workAdd: string;
+    workEdit: string;
+    workTitleField: string;
+    workPerson: string;
+    workSite: string;
+    workNoSite: string;
+    workTodo: string;
+    workDoing: string;
+    workDone: string;
+    workBlocked: string;
+    workReason: string;
+    workNote: string;
+    workRepeat: string;
+    workRemove: string;
+    workStatus: string;
+    workPreviousDay: string;
+    workNextDay: string;
+    workSeeAll: string;
+    workSaveError: string;
+
     tab: string;
     listTitle: string;
     listSubtitle: string;
@@ -7772,6 +7806,40 @@ const en: UiStrings = {
     unpaidTotal: '{amount} unpaid',
   },
   company: {
+    attendanceTitle: 'Attendance',
+    attendanceMine: 'My attendance',
+    attendanceEmpty: 'Add employees to get started.',
+    attendancePresent: 'Present',
+    attendanceHalf: 'Half',
+    attendanceAbsent: 'Absent',
+    attendanceMarkAll: 'Mark all present',
+    attendanceNote: 'Add note',
+    attendanceSummary: { one: '{n} day present', other: '{n} days present' },
+    attendancePreviousMonth: 'Previous month',
+    attendanceNextMonth: 'Next month',
+    workTitle: 'Daily work',
+    workMine: 'My work today',
+    workEmpty: 'No tasks for this day.',
+    workAdd: 'Add task',
+    workEdit: 'Edit task',
+    workTitleField: 'Task title',
+    workPerson: 'Person',
+    workSite: 'Site',
+    workNoSite: 'No site',
+    workTodo: 'To do',
+    workDoing: 'Doing',
+    workDone: 'Done',
+    workBlocked: 'Blocked',
+    workReason: 'Why is it blocked?',
+    workNote: 'Note',
+    workRepeat: 'Repeat tomorrow',
+    workRemove: 'Remove',
+    workStatus: 'Status',
+    workPreviousDay: 'Previous day',
+    workNextDay: 'Next day',
+    workSeeAll: 'See all',
+    workSaveError: 'Could not save. Try again.',
+
     tab: 'Company',
     listTitle: 'Your companies',
     listSubtitle: 'Manage and switch between your companies',
@@ -13686,6 +13754,40 @@ const ta: UiStrings = {
     unpaidTotal: '{amount} நிலுவை',
   },
   company: {
+    attendanceTitle: 'வருகை',
+    attendanceMine: 'என் வருகை',
+    attendanceEmpty: 'தொடங்க ஊழியர்களைச் சேர்க்கவும்.',
+    attendancePresent: 'வருகை',
+    attendanceHalf: 'அரை நாள்',
+    attendanceAbsent: 'வரவில்லை',
+    attendanceMarkAll: 'அனைவருக்கும் வருகை',
+    attendanceNote: 'குறிப்பு சேர்க்க',
+    attendanceSummary: { other: '{n} நாட்கள் வருகை' },
+    attendancePreviousMonth: 'முந்தைய மாதம்',
+    attendanceNextMonth: 'அடுத்த மாதம்',
+    workTitle: 'தினசரி வேலை',
+    workMine: 'என் இன்றைய வேலை',
+    workEmpty: 'இந்த நாளில் வேலைகள் இல்லை.',
+    workAdd: 'வேலை சேர்க்க',
+    workEdit: 'வேலை திருத்த',
+    workTitleField: 'வேலைத் தலைப்பு',
+    workPerson: 'நபர்',
+    workSite: 'பணித்தளம்',
+    workNoSite: 'பணித்தளம் இல்லை',
+    workTodo: 'செய்ய வேண்டும்',
+    workDoing: 'செய்கிறார்',
+    workDone: 'முடிந்தது',
+    workBlocked: 'தடை',
+    workReason: 'தடைக்கான காரணம்?',
+    workNote: 'குறிப்பு',
+    workRepeat: 'நாளை மீண்டும்',
+    workRemove: 'நீக்கு',
+    workStatus: 'நிலை',
+    workPreviousDay: 'முந்தைய நாள்',
+    workNextDay: 'அடுத்த நாள்',
+    workSeeAll: 'அனைத்தையும் காண்க',
+    workSaveError: 'சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+
     tab: 'நிறுவனம்',
     listTitle: 'உங்கள் நிறுவனங்கள்',
     listSubtitle: 'உங்கள் நிறுவனங்களை நிர்வகித்து மாற்றவும்',
@@ -19769,6 +19871,40 @@ const hi: UiStrings = {
     unpaidTotal: '{amount} बकाया',
   },
   company: {
+    attendanceTitle: 'हाज़िरी',
+    attendanceMine: 'मेरी हाज़िरी',
+    attendanceEmpty: 'शुरू करने के लिए कर्मचारी जोड़ें।',
+    attendancePresent: 'हाज़िर',
+    attendanceHalf: 'आधा दिन',
+    attendanceAbsent: 'गैरहाज़िर',
+    attendanceMarkAll: 'सबकी हाज़िरी लगाएँ',
+    attendanceNote: 'नोट जोड़ें',
+    attendanceSummary: { other: '{n} दिन हाज़िर' },
+    attendancePreviousMonth: 'पिछला महीना',
+    attendanceNextMonth: 'अगला महीना',
+    workTitle: 'रोज़ का काम',
+    workMine: 'आज मेरा काम',
+    workEmpty: 'इस दिन कोई काम नहीं।',
+    workAdd: 'काम जोड़ें',
+    workEdit: 'काम बदलें',
+    workTitleField: 'काम का नाम',
+    workPerson: 'व्यक्ति',
+    workSite: 'साइट',
+    workNoSite: 'कोई साइट नहीं',
+    workTodo: 'करना है',
+    workDoing: 'जारी है',
+    workDone: 'पूरा',
+    workBlocked: 'रुका हुआ',
+    workReason: 'काम क्यों रुका है?',
+    workNote: 'नोट',
+    workRepeat: 'कल दोहराएँ',
+    workRemove: 'हटाएँ',
+    workStatus: 'स्थिति',
+    workPreviousDay: 'पिछला दिन',
+    workNextDay: 'अगला दिन',
+    workSeeAll: 'सभी देखें',
+    workSaveError: 'सेव नहीं हुआ। फिर कोशिश करें।',
+
     tab: 'कंपनी',
     listTitle: 'आपकी कंपनियाँ',
     listSubtitle: 'अपनी कंपनियाँ प्रबंधित करें और बदलें',
@@ -25740,6 +25876,45 @@ const ar: UiStrings = {
     unpaidTotal: '{amount} غير مدفوع',
   },
   company: {
+    attendanceTitle: 'الحضور',
+    attendanceMine: 'حضوري',
+    attendanceEmpty: 'أضف موظفين للبدء.',
+    attendancePresent: 'حاضر',
+    attendanceHalf: 'نصف يوم',
+    attendanceAbsent: 'غائب',
+    attendanceMarkAll: 'تسجيل حضور الجميع',
+    attendanceNote: 'إضافة ملاحظة',
+    attendanceSummary: {
+      one: 'يوم حضور واحد',
+      two: 'يوما حضور',
+      few: '{n} أيام حضور',
+      other: '{n} يوم حضور',
+    },
+    attendancePreviousMonth: 'الشهر السابق',
+    attendanceNextMonth: 'الشهر التالي',
+    workTitle: 'العمل اليومي',
+    workMine: 'عملي اليوم',
+    workEmpty: 'لا مهام لهذا اليوم.',
+    workAdd: 'إضافة مهمة',
+    workEdit: 'تعديل المهمة',
+    workTitleField: 'عنوان المهمة',
+    workPerson: 'الشخص',
+    workSite: 'الموقع',
+    workNoSite: 'بلا موقع',
+    workTodo: 'للقيام بها',
+    workDoing: 'قيد العمل',
+    workDone: 'مكتملة',
+    workBlocked: 'متوقفة',
+    workReason: 'لماذا توقفت؟',
+    workNote: 'ملاحظة',
+    workRepeat: 'تكرار غدًا',
+    workRemove: 'إزالة',
+    workStatus: 'الحالة',
+    workPreviousDay: 'اليوم السابق',
+    workNextDay: 'اليوم التالي',
+    workSeeAll: 'عرض الكل',
+    workSaveError: 'تعذر الحفظ. حاول مجددًا.',
+
     tab: 'الشركة',
     listTitle: 'شركاتك',
     listSubtitle: 'أدر شركاتك وبدّل بينها',

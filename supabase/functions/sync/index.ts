@@ -99,6 +99,9 @@ type MutationKind =
   | 'company_member.assign'
   | 'company_member.projects_set'
   | 'company_member.employee_id_set'
+  | 'company_attendance.set'
+  | 'company_work.set'
+  | 'company_work.remove'
   | 'company_project.set'
   | 'company_pool.post'
   | 'company_wage.pay'
@@ -351,6 +354,9 @@ const GROUP_TABLES = [
   ['company_vendor_entry_attachments', '*'],
   // Estimates and bills: RLS gives an owner all, a manager only the ones they created, others none.
   ['company_documents', '*'],
+  // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
+  ['company_attendance', '*'],
+  ['company_work_tasks', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -1001,6 +1007,39 @@ export class SyncSession {
           p_group_id: mutation.groupId,
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
           p_employee_id: optionalText(mutation.payload.employeeId, 'employeeId'),
+        });
+      case 'company_attendance.set': {
+        const status = mutation.payload.status;
+        if (status !== null && status !== 'present' && status !== 'half' && status !== 'absent')
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_attendance_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_day: companyDate(mutation.payload.day, 'day'),
+          p_status: status,
+          p_note: companyReason(mutation.payload.note, 'note', false),
+        });
+      }
+      case 'company_work.set': {
+        const status = mutation.payload.status;
+        if (status !== 'todo' && status !== 'doing' && status !== 'done' && status !== 'blocked')
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_work_set', {
+          p_group_id: mutation.groupId,
+          p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_day: companyDate(mutation.payload.day, 'day'),
+          p_title: companyReason(mutation.payload.title, 'title', true),
+          p_project_id: companyUuid(mutation.payload.projectId ?? null, 'projectId', true),
+          p_status: status,
+          p_blocked_reason: companyReason(mutation.payload.blockedReason, 'blockedReason', false),
+          p_note: companyReason(mutation.payload.note, 'note', false),
+        });
+      }
+      case 'company_work.remove':
+        return await this.rpcAsCaller('waves_company_work_remove', {
+          p_group_id: mutation.groupId,
+          p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
         });
       case 'company_member.projects_set':
         return await this.rpcAsCaller('waves_company_member_projects_set', {
