@@ -169,7 +169,7 @@ export function AttendanceRow({
               size={13}
               color={balanceColor}
             />
-            <Text variant="micro" style={{ color: balanceColor }}>
+            <Text variant="micro" numberOfLines={1} style={{ color: balanceColor, flexShrink: 1 }}>
               {balance.text}
             </Text>
           </View>

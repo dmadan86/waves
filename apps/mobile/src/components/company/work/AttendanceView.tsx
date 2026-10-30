@@ -513,7 +513,7 @@ export default function AttendanceView({
                                 label: t.company.viewStatement,
                                 route: `/group/${id}/company-statement?member=${person.id}`,
                               },
-                              ...(mark && date <= today
+                              ...(mark && date <= today && !busy
                                 ? [
                                     {
                                       icon: 'chatbox-outline',
