@@ -78,6 +78,9 @@ export enum MutationKind {
   CompanyMemberAssign = 'company_member.assign',
   CompanyMemberProjectsSet = 'company_member.projects_set',
   CompanyMemberEmployeeIdSet = 'company_member.employee_id_set',
+  CompanyAttendanceSet = 'company_attendance.set',
+  CompanyWorkSet = 'company_work.set',
+  CompanyWorkRemove = 'company_work.remove',
   CompanyProjectSet = 'company_project.set',
   CompanyPoolPost = 'company_pool.post',
   CompanyWagePay = 'company_wage.pay',
@@ -534,6 +537,30 @@ export interface CompanyMemberEmployeeIdSetPayload {
   readonly employeeId: string | null;
 }
 
+/** Owner or the person's manager: mark one day (status null clears the mark). */
+export interface CompanyAttendanceSetPayload {
+  readonly memberId: string;
+  readonly day: string;
+  readonly status: 'present' | 'half' | 'absent' | null;
+  readonly note: string | null;
+}
+
+/** Create/edit a task (owner, manager); the employee it is for may only change status, reason and note. */
+export interface CompanyWorkSetPayload {
+  readonly taskId: string;
+  readonly memberId: string;
+  readonly day: string;
+  readonly title: string;
+  readonly projectId: string | null;
+  readonly status: 'todo' | 'doing' | 'done' | 'blocked';
+  readonly blockedReason: string | null;
+  readonly note: string | null;
+}
+
+export interface CompanyWorkRemovePayload {
+  readonly taskId: string;
+}
+
 export interface CompanyMemberProjectsSetPayload {
   readonly memberId: string;
   readonly projectIds: readonly string[];
@@ -786,6 +813,9 @@ export enum SyncTable {
   CompanyProjectBudgets = 'company_project_budgets',
   /** Group-scoped, pull-only: a wage payment divided across sites; as private as the payment. */
   CompanyWageSplits = 'company_wage_splits',
+  /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
+  CompanyAttendance = 'company_attendance',
+  CompanyWorkTasks = 'company_work_tasks',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',

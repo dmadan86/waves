@@ -11,6 +11,8 @@ import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { friendlyError } from '@/lib/errors';
+import { AttendanceMonth } from '@/components/company/AttendanceMonth';
+import { useWorkdayAccess } from '@/data/companyWorkday';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
 import { CompanyTeamCard } from '@/components/company/CompanyTeamCard';
 import { ScenicBody, ScenicHeader } from '@/components/standard';
@@ -33,6 +35,7 @@ export default function CompanyStatementScreen() {
   const clearance = useBottomClearance();
   const { t } = useStrings();
   const view = useCompanyEntries(groupId);
+  const workdayAccess = useWorkdayAccess(groupId);
   const setEmployeeId = useSetEmployeeId(groupId);
   const isTaken = useEmployeeIdTaken(groupId, view.members);
   const [editingId, setEditingId] = useState(false);
@@ -109,6 +112,12 @@ export default function CompanyStatementScreen() {
           ) : null}
         </ScenicHeader>
         <ScenicBody>
+          {member?.role === 'member' &&
+          workdayAccess.enabled &&
+          (workdayAccess.people.some((person) => person.id === member.id) ||
+            workdayAccess.me?.id === member.id) ? (
+            <AttendanceMonth groupId={groupId} memberId={member.id} />
+          ) : null}
           {member && !detail ? (
             <CompanyTeamCard groupId={groupId} view={view} member={member} />
           ) : null}

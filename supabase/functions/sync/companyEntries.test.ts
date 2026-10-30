@@ -124,6 +124,24 @@ const cases = [
     { p_group_id: GROUP_ID, p_member_id: MEMBER_ID, p_employee_id: 'EMP-014' },
   ],
   [
+    'company_attendance.set',
+    { memberId: MEMBER_ID, day: '2026-10-30', status: 'half', note: null },
+    'waves_company_attendance_set',
+    {
+      p_group_id: GROUP_ID,
+      p_member_id: MEMBER_ID,
+      p_day: '2026-10-30',
+      p_status: 'half',
+      p_note: null,
+    },
+  ],
+  [
+    'company_work.remove',
+    { taskId: MEMBER_ID },
+    'waves_company_work_remove',
+    { p_group_id: GROUP_ID, p_task_id: MEMBER_ID },
+  ],
+  [
     'company_pool.post',
     {
       entryId: ENTRY,
