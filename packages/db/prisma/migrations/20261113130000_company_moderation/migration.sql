@@ -31,7 +31,7 @@ CREATE INDEX company_complaints_group_idx ON public.company_complaints(group_id,
 CREATE TABLE public.company_moderation_log (
  id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
  group_id uuid NOT NULL,
- action text NOT NULL CHECK(action IN ('block','unblock','records_opened','export','complaint_update')),
+ action text NOT NULL CHECK(action IN ('block','unblock','records_opened','records_viewed','export','complaint_update')),
  actor text NOT NULL DEFAULT 'admin console',
  category text, reason text CHECK(reason IS NULL OR length(reason)<=2000),
  meta jsonb NOT NULL DEFAULT '{}'::jsonb,
@@ -65,11 +65,13 @@ END $$;
 -- Members: no new member while blocked; role/rate/manager changes refused; leaving and erasure stay possible.
 CREATE FUNCTION public.waves_company_block_member_guard() RETURNS trigger
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
-DECLARE keep text[]:=ARRAY['left_at','profile_id','ghost_name','payment_handle','payment_rail','vpa','invite_email','invite_phone','updated_at','updated_seq'];
+DECLARE keep text[]:=ARRAY['updated_at','updated_seq'];
 BEGIN
  IF TG_OP='UPDATE' THEN
   -- Leaving also clears the person's manager link, so that rides along with a left_at change.
-  IF NEW.left_at IS DISTINCT FROM OLD.left_at THEN keep:=array_append(keep,'manager_id'); END IF;
+  IF NEW.left_at IS DISTINCT FROM OLD.left_at THEN keep:=keep||ARRAY['left_at','manager_id']; END IF;
+  -- Account erasure detaches the profile and blanks personal details; nothing else may edit them.
+  IF NEW.profile_id IS NULL AND OLD.profile_id IS NOT NULL THEN keep:=keep||ARRAY['profile_id','ghost_name','payment_handle','payment_rail','vpa','invite_email','invite_phone']; END IF;
   IF public.waves_current_profile_id() IS NULL OR (to_jsonb(NEW)-keep)=(to_jsonb(OLD)-keep) THEN RETURN NEW; END IF;
  END IF;
  IF public.waves_company_is_blocked(NEW.group_id) THEN RAISE EXCEPTION 'COMPANY_BLOCKED' USING ERRCODE='insufficient_privilege'; END IF;
@@ -246,20 +248,21 @@ $$;
 
 -- Read-only entries, only while a 'records_opened' log row for this company is less than an hour old.
 CREATE FUNCTION public.waves_admin_company_records(p_group_id uuid) RETURNS jsonb
- LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 BEGIN
  IF NOT EXISTS(SELECT 1 FROM public.company_moderation_log WHERE group_id=p_group_id AND action='records_opened' AND created_at>now()-interval '1 hour') THEN
   RAISE EXCEPTION 'REASON_REQUIRED'; END IF;
+ INSERT INTO public.company_moderation_log(group_id,action) VALUES(p_group_id,'records_viewed');
  RETURN public.waves_admin_company_entries_json(p_group_id);
 END $$;
 
--- The moderation file for legal use. Entries are included only if records were opened with a logged reason.
+-- The moderation file for legal use. Entries are included only while a records_opened grant (reason logged) is under an hour old.
 CREATE FUNCTION public.waves_admin_company_export(p_group_id uuid) RETURNS jsonb
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 DECLARE d jsonb:=public.waves_admin_company_detail(p_group_id); opened boolean; res jsonb;
 BEGIN
  IF d IS NULL THEN RAISE EXCEPTION 'NOT_FOUND'; END IF;
- opened:=EXISTS(SELECT 1 FROM public.company_moderation_log WHERE group_id=p_group_id AND action='records_opened');
+ opened:=EXISTS(SELECT 1 FROM public.company_moderation_log WHERE group_id=p_group_id AND action='records_opened' AND created_at>now()-interval '1 hour');
  res:=jsonb_build_object('generated_at',now(),'company',d->'facts','members',d->'members','complaints',d->'complaints','moderation_log',d->'log',
   'records_included',opened)
   || CASE WHEN opened THEN public.waves_admin_company_entries_json(p_group_id) ELSE '{}'::jsonb END;
