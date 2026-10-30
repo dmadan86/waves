@@ -14,6 +14,8 @@ export function withAlpha(hex: string, alpha: number): string {
 
 export const AMBER = '#D97706';
 export const RED = '#DC2626';
+/** The mockup's amber bar segment (brighter than the AMBER ink on text and discs). */
+export const YELLOW = '#F5B82E';
 
 export function TintCard({
   ink,

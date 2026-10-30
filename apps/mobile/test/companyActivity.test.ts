@@ -4,7 +4,7 @@ import type { CompanyEntry } from '@waves/core';
 import {
   buildCompanyActivity,
   groupByDay,
-  hasNewActivity,
+  countNewActivity,
   type ActivityInput,
   type ActivityRole,
 } from '../src/lib/companyActivity';
@@ -198,7 +198,7 @@ describe('buildCompanyActivity', () => {
 });
 
 describe('feed helpers', () => {
-  it('groups by local day and lights the bell only for others after the last look', () => {
+  it('groups by local day and counts for the bell only for others after the last look', () => {
     const ev = buildCompanyActivity(
       input('owner', 'owner', {
         entries: [
@@ -208,15 +208,15 @@ describe('feed helpers', () => {
       }),
     );
     expect(groupByDay(ev)).toHaveLength(2);
-    expect(hasNewActivity(ev, null)).toBe(false);
-    expect(hasNewActivity(ev, Date.parse('2026-10-30T08:00:00Z'))).toBe(true);
-    expect(hasNewActivity(ev, Date.parse('2026-10-30T10:00:00Z'))).toBe(false);
+    expect(countNewActivity(ev, null)).toBe(0);
+    expect(countNewActivity(ev, Date.parse('2026-10-30T08:00:00Z'))).toBe(1);
+    expect(countNewActivity(ev, Date.parse('2026-10-30T10:00:00Z'))).toBe(0);
     expect(
-      hasNewActivity(
+      countNewActivity(
         ev.filter((e) => e.byMe),
         0,
       ),
-    ).toBe(false);
+    ).toBe(0);
   });
 });
 

@@ -6,8 +6,9 @@
 
 import { RecentCompanyActivity } from '@/components/company/CompanyActivityFeed';
 import { SectionShell } from '@/components/company/bar/SectionShell';
-import { MoneyCards, DuePaymentsCard } from '@/components/company/dashboard/OverviewMoney';
+import { MoneyCards } from '@/components/company/dashboard/OverviewMoney';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
+import { OverviewUpcoming } from '@/components/company/dashboard/OverviewUpcoming';
 import { useCompanyEntries } from '@/data/companyEntries';
 
 export function OwnerDashboard({ groupId }: { groupId: string }) {
@@ -18,7 +19,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
         <OverviewTop
           groupId={groupId}
           afterAttendanceCard={<MoneyCards groupId={groupId} />}
-          afterAttendance={<DuePaymentsCard groupId={groupId} />}
+          afterTasks={<OverviewUpcoming groupId={groupId} />}
         />
         {view.ready ? <RecentCompanyActivity groupId={groupId} /> : null}
       </>

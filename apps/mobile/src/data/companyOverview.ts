@@ -2,17 +2,25 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { dashboardStats, isGroupRecurringDue, owedByMember } from '@waves/core';
+import { dashboardStats, type CompanyEntry, type MirrorWorkTask } from '@waves/core';
 
-import { useCompanyEntries } from '@/data/companyEntries';
+import { useCompanyEntries, useCompanyProjects } from '@/data/companyEntries';
 import { usePendingVendorBills } from '@/data/companyVendors';
 import { useAttendance, useWorkdayAccess, useWorkTasks } from '@/data/companyWorkday';
-import { useGroupRecurring } from '@/data/groupRecurring';
+import { useCalendar } from '@/data/companyCalendar';
 import { todayIso } from '@/data/personal';
-import type { MemberRow } from '@/data/types';
+import { displayName, type MemberRow } from '@/data/types';
 import { awaitingApprovals } from '@/lib/companyPending';
 import { backend } from '@/lib/backend';
-import { sortUpcoming, type UpcomingInput, type UrgentInput } from '@/lib/overviewMath';
+import {
+  ABSENT_STREAK_DAYS,
+  absentStreak,
+  buildEscalations,
+  nowMs,
+  vsLastMonth,
+  type DayMark,
+  type EscalationInput,
+} from '@/lib/overviewMath';
 
 export interface ActiveToday {
   readonly total: number;
@@ -46,18 +54,24 @@ export function useActiveToday(groupId: string): ActiveToday | null {
   return enabled ? (q.data ?? null) : null;
 }
 
-export type DayStatus = 'present' | 'absent' | 'unmarked';
+export type DayStatus = 'present' | 'leave' | 'absent' | 'unmarked';
 
 export interface OverviewMoney {
   readonly owes: bigint;
   readonly pendingPayments: number;
   readonly paidMonth: bigint;
-  readonly lastPaymentOn: string | null;
+  /** Against last month; null when last month paid nothing (the line is hidden). */
+  readonly paidChange: { dir: 'up' | 'down'; pct: number } | null;
   readonly advances: bigint;
   readonly advanceHolders: number;
 }
 
-export interface UpcomingRow extends UpcomingInput {
+export interface OverviewTask {
+  readonly task: MirrorWorkTask;
+  readonly site: string | null;
+}
+
+export interface EscalationRow extends EscalationInput {
   readonly member: MemberRow | null;
 }
 
@@ -68,12 +82,16 @@ export interface Overview {
   readonly currency: string;
   /** Employed people the viewer manages (owner: all, manager: their team) with their mark on the day. */
   readonly people: readonly { member: MemberRow; status: DayStatus }[];
-  readonly counts: { present: number; absent: number; unmarked: number };
-  readonly tasks: { total: number; done: number; pending: number };
+  readonly counts: { present: number; leave: number; absent: number; unmarked: number };
+  /** True once the company has approved leave: it then gets its own legend entry and "not marked" turns grey. */
+  readonly hasLeave: boolean;
   /** Owner only. */
   readonly money: OverviewMoney | null;
-  readonly urgent: UrgentInput;
-  readonly upcoming: readonly UpcomingRow[];
+  /** Today's tasks of the people the viewer manages: up to three still open, and the day's totals. */
+  readonly tasks: { open: readonly OverviewTask[]; total: number; openCount: number };
+  readonly escalations: { items: readonly EscalationRow[]; total: number };
+  /** ms the numbers were computed at, for "time ago". */
+  readonly now: number;
 }
 
 const addDays = (iso: string, n: number): string => {
@@ -81,39 +99,51 @@ const addDays = (iso: string, n: number): string => {
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 };
+const dayMs = (iso: string): number => Date.parse(`${iso}T00:00:00`);
 
-/** Everything the Overview shows for `day` (a local ISO day, never after today). Not-employed people never count. */
+/** Everything the Overview shows; attendance is for `day` (a local ISO day, never after today), the rest is today. */
 export function useOverview(groupId: string, day: string): Overview {
   const view = useCompanyEntries(groupId);
   const access = useWorkdayAccess(groupId);
   const marks = useAttendance(groupId);
   const allTasks = useWorkTasks(groupId);
-  const { rules } = useGroupRecurring(groupId);
-  const vendorBills = usePendingVendorBills(groupId).count;
+  const cal = useCalendar(groupId);
+  const projects = useCompanyProjects(groupId);
+  const vendorBills = usePendingVendorBills(groupId);
   const isOwner = view.isOwner;
   return useMemo(() => {
     const today = todayIso();
     const shown = day > today ? today : day;
+    const approvedLeave = cal.leave.filter((l) => l.status === 'approved');
+    const onLeave = (memberId: string, d: string) =>
+      approvedLeave.some((l) => l.memberId === memberId && l.startDay <= d && d <= l.endDay);
     const people = access.people.map((member) => {
       const s = marks.get(`${member.id}|${shown}`)?.status;
       const status: DayStatus =
-        s === 'present' || s === 'half' ? 'present' : s === 'absent' ? 'absent' : 'unmarked';
+        s === 'present' || s === 'half'
+          ? 'present'
+          : s === 'absent'
+            ? 'absent'
+            : onLeave(member.id, shown)
+              ? 'leave'
+              : 'unmarked';
       return { member, status };
     });
-    const counts = { present: 0, absent: 0, unmarked: 0 };
+    const counts = { present: 0, leave: 0, absent: 0, unmarked: 0 };
     for (const p of people) counts[p.status] += 1;
     const ids = new Set(people.map((p) => p.member.id));
-    let done = 0;
-    let blocked = 0;
-    let total = 0;
-    for (const task of allTasks) {
-      if (!ids.has(task.memberId) || task.day !== shown) continue;
-      total += 1;
-      if (task.status === 'done') done += 1;
-      else if (task.status === 'blocked') blocked += 1;
-    }
+
+    const siteName = new Map(projects.map((p) => [p.id, p.name]));
+    const todays = allTasks.filter((task) => ids.has(task.memberId) && task.day === today);
+    const open = todays
+      .filter((task) => task.status !== 'done')
+      .sort(
+        (a, b) =>
+          (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') ||
+          a.title.localeCompare(b.title),
+      );
+
     let money: OverviewMoney | null = null;
-    let upcoming: UpcomingRow[] = [];
     if (isOwner) {
       const live = view.members.filter((m) => !m.left_at);
       const stats = dashboardStats(
@@ -121,73 +151,120 @@ export function useOverview(groupId: string, day: string): Overview {
         live.map((m) => m.id),
         today,
       );
-      let last: string | null = null;
-      for (const e of view.entries) {
-        const paid =
-          e.kind === 'wage_payment' ||
-          e.kind === 'wages' ||
-          (e.kind === 'reimbursement' && e.direction !== 'employee_to_company');
-        if (!e.deleted && paid && e.occurredOn <= today && (!last || e.occurredOn > last))
-          last = e.occurredOn;
-      }
       money = {
         owes: stats.owes,
         pendingPayments: stats.pendingPayments,
         paidMonth: stats.paidThisMonth,
-        lastPaymentOn: last,
+        paidChange: vsLastMonth(stats.paidThisMonth, stats.paidLastMonth),
         advances: stats.advancesOutstanding,
         advanceHolders: stats.advanceHolders,
       };
-      const byId = new Map(view.members.map((m) => [m.id, m]));
-      const rows: UpcomingRow[] = [];
-      // No due date exists for wages (the company has no pay-day setting), so they are "owed now".
-      for (const [id, amountMinor] of owedByMember(view.entries, [...view.manageableIds])) {
-        const member = byId.get(id) ?? null;
-        if (!member || member.left_at) continue;
-        rows.push({
-          key: `s-${id}`,
-          kind: 'salary',
-          memberId: id,
-          member,
-          title: '',
-          amountMinor,
-          date: null,
-        });
-      }
-      const end = addDays(today, 7);
-      for (const r of rules)
-        if (r.status === 'active' && (r.nextDate <= end || isGroupRecurringDue(r, today)))
-          rows.push({
-            key: `r-${r.id}`,
-            kind: 'bill',
-            memberId: null,
-            member: null,
-            title: r.description,
-            amountMinor: r.amount,
-            date: r.nextDate,
-          });
-      upcoming = sortUpcoming(rows, 3) as UpcomingRow[];
     }
-    const requests = isOwner
-      ? view.entries.filter((e) => e.kind === 'pool_request' && !e.deleted).length
-      : 0;
+
+    const byId = new Map(view.members.map((m) => [m.id, m]));
+    const nameOf = (id: string) => (byId.get(id) ? displayName(byId.get(id) as MemberRow) : '');
+    const at = (e: CompanyEntry) => {
+      const ms = Date.parse(e.createdAt);
+      return Number.isNaN(ms) ? dayMs(e.occurredOn) : ms;
+    };
+    const rows: EscalationInput[] = [];
+    for (const e of awaitingApprovals(view))
+      rows.push({
+        key: `e-${e.id}`,
+        kind: e.kind === 'advance' ? 'advance' : 'expense',
+        name: nameOf(e.memberId),
+        memberId: e.memberId || null,
+        amountMinor: e.amount,
+        at: at(e),
+      });
+    if (isOwner)
+      for (const e of view.entries)
+        if (e.kind === 'pool_request' && !e.deleted)
+          rows.push({
+            key: `p-${e.id}`,
+            kind: 'poolRequest',
+            name: nameOf(e.memberId),
+            memberId: e.memberId || null,
+            amountMinor: e.amount,
+            at: at(e),
+          });
+    // Vendor bills are an owner's to confirm; a manager only ever sees the ones they added.
+    for (const bill of vendorBills.bills)
+      rows.push({
+        key: `v-${bill.id}`,
+        kind: 'vendorBill',
+        name: vendorBills.vendorName(bill.vendorId),
+        memberId: null,
+        amountMinor: bill.amount,
+        at: Date.parse(bill.createdAt) || dayMs(bill.occurredOn),
+      });
+    for (const task of allTasks)
+      if (ids.has(task.memberId) && task.status === 'blocked' && task.day <= today)
+        rows.push({
+          key: `t-${task.id}`,
+          kind: 'blocked',
+          name: nameOf(task.memberId),
+          memberId: task.memberId,
+          amountMinor: null,
+          at: dayMs(task.day),
+          detail: task.title,
+        });
+    // Absent or unmarked 3+ days running, looking back two weeks. A day nobody was marked (or a holiday) is "off".
+    const lookback = Array.from({ length: 14 }, (_, i) => addDays(today, -i));
+    const taken = new Set<string>();
+    for (const m of marks.values()) if (ids.has(m.memberId)) taken.add(m.day);
+    const holiday = (d: string) => cal.holidays.some((h) => h.startDay <= d && d <= h.endDay);
+    for (const { member } of people) {
+      const days: DayMark[] = lookback.map((d) => {
+        const s = marks.get(`${member.id}|${d}`)?.status;
+        return s === 'present' || s === 'half'
+          ? 'present'
+          : s === 'absent'
+            ? 'absent'
+            : onLeave(member.id, d)
+              ? 'leave'
+              : holiday(d) || !taken.has(d)
+                ? 'off'
+                : 'unmarked';
+      });
+      const n = absentStreak(days);
+      if (n >= ABSENT_STREAK_DAYS)
+        rows.push({
+          key: `a-${member.id}`,
+          kind: 'absent',
+          name: displayName(member),
+          memberId: member.id,
+          amountMinor: null,
+          days: n,
+          at: dayMs(addDays(today, -(n - 1))),
+        });
+    }
+    const built = buildEscalations(rows, 3);
     return {
+      now: nowMs(),
       ready: view.ready,
       suspended: view.suspended,
       isOwner,
       currency: view.currency,
       people,
       counts,
-      tasks: { total, done, pending: total - done },
+      hasLeave: approvedLeave.length > 0,
       money,
-      urgent: {
-        absent: counts.absent,
-        paymentsPending: money?.pendingPayments ?? 0,
-        blockedTasks: blocked,
-        approvals: awaitingApprovals(view).length + requests,
-        vendorBills: isOwner ? vendorBills : 0,
+      tasks: {
+        open: open.slice(0, 3).map((task) => ({
+          task,
+          site: task.projectId ? (siteName.get(task.projectId) ?? null) : null,
+        })),
+        total: todays.length,
+        openCount: open.length,
       },
-      upcoming,
+      escalations: {
+        items: built.items.map((r) => ({
+          ...r,
+          member: r.memberId ? (byId.get(r.memberId) ?? null) : null,
+        })),
+        total: built.total,
+      },
     };
-  }, [view, access, marks, allTasks, rules, vendorBills, day, isOwner]);
+  }, [view, access, marks, allTasks, cal, projects, vendorBills, day, isOwner]);
 }

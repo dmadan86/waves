@@ -16,7 +16,7 @@ import { RecentCompanyActivity } from '@/components/company/CompanyActivityFeed'
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { WorkdayTiles } from '@/components/company/WorkdayEntries';
-import { CompanyUpcomingCard } from '@/components/company/CompanyUpcomingCard';
+import { OverviewUpcoming } from '@/components/company/dashboard/OverviewUpcoming';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useAskBudget, useCompanyEntries, usePoolBalance } from '@/data/companyEntries';
@@ -57,7 +57,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
   return (
     <SectionShell groupId={groupId} view={view} overview>
       <>
-        <OverviewTop groupId={groupId} />
+        <OverviewTop groupId={groupId} afterTasks={<OverviewUpcoming groupId={groupId} />} />
         <StandardCard style={{ gap: theme.spacing.sm }}>
           <Text variant="caption" tone="muted">
             {t.company.yourBudget}
@@ -126,7 +126,6 @@ export function ManagerHome({ groupId }: { groupId: string }) {
           ]}
         />
         <WorkdayTiles groupId={groupId} />
-        <CompanyUpcomingCard groupId={groupId} />
         <TitleRow
           title={t.company.tabMyTeam}
           onViewAll={() => router.replace(`/group/${groupId}/company-people`)}

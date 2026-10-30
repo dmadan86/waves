@@ -447,10 +447,10 @@ export function groupByDay(
   return days;
 }
 
-/** Whether the bell wears its dot: somebody else did something after the last look, and the last look is known. */
-export function hasNewActivity(
+/** What the bell counts: things somebody else did after the last look; 0 while the last look is unknown. */
+export function countNewActivity(
   events: readonly CompanyActivityEvent[],
   seenAt: number | null,
-): boolean {
-  return seenAt !== null && events.some((e) => !e.byMe && e.at > seenAt);
+): number {
+  return seenAt === null ? 0 : events.filter((e) => !e.byMe && e.at > seenAt).length;
 }

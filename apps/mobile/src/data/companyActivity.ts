@@ -14,7 +14,7 @@ import { displayName } from '@/data/types';
 import { useStrings } from '@/i18n';
 import {
   buildCompanyActivity,
-  hasNewActivity,
+  countNewActivity,
   type ActivityRole,
   type CompanyActivityEvent,
 } from '@/lib/companyActivity';
@@ -137,8 +137,8 @@ export function useCompanyActivity(groupId: string): {
   return { events, ready };
 }
 
-/** The Overview bell's red dot: something new from somebody else since this phone last opened the feed. */
-export function useCompanyActivityDot(groupId: string): boolean {
+/** The Overview bell's red count: new things from somebody else since this phone last opened the feed. */
+export function useCompanyActivityUnread(groupId: string): number {
   const { events } = useCompanyActivity(groupId);
-  return hasNewActivity(events, useCompanyActivitySeenAt(groupId));
+  return countNewActivity(events, useCompanyActivitySeenAt(groupId));
 }
