@@ -178,7 +178,7 @@ export function AppTabBar() {
   // destinations (same look, same mic); leaving them swaps it back. Route-derived.
   const personal = isPersonalMode(segments);
   // Company mode: an owner or manager inside their own company gets the company bar
-  // (Home · Overview · People · Attendance · Payments · More) with an add button, no mic.
+  // (Home · Overview · People · Team · Payments · More) with an add button, no mic.
   const companyIds = useViewerCompanyIds();
   const role = useViewerRole(groupId);
   const company = isCompanyMode(segments, groupId, companyIds, role);
@@ -310,7 +310,7 @@ export function AppTabBar() {
       item('home', t.home, 'home', 'home-outline'),
       item('overview', t.company.tabOverview, 'grid', 'grid-outline', pendingCount),
       item('people', t.company.barPeople, 'people', 'people-outline'),
-      item('team', t.company.attendanceTitle, 'calendar', 'calendar-outline'),
+      item('team', t.company.barTeam, 'people-circle', 'people-circle-outline'),
       item('payments', t.company.tabPayments, 'cash', 'cash-outline'),
       item(
         'more',
