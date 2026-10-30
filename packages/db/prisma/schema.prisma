@@ -417,6 +417,8 @@ model Group {
   /// happening, which is a small minority of them.
   @@index([startDate, endDate], map: "groups_reminder_window_idx")
   vendors CompanyVendor[]
+  companyDetails CompanyDetails?
+  companyDetailsSecure CompanyDetailsSecure?
   @@map("groups")
   @@schema("public")
 }
@@ -3290,6 +3292,7 @@ model CompanyVendor {
   login GroupMember? @relation("CompanyVendorLogin", fields: [memberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   entries CompanyVendorEntry[]
   invites Invite[]
+  details CompanyVendorDetails[]
   @@unique([id,groupId])
   @@index([groupId,updatedSeq], map: "company_vendors_sync_idx")
   @@map("company_vendors")
@@ -3469,5 +3472,71 @@ model CompanyModerationLog {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   @@index([groupId,createdAt(sort: Desc)], map: "company_moderation_log_group_idx")
   @@map("company_moderation_log")
+  @@schema("public")
+}
+
+model CompanyDetails {
+  groupId String @id @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  address String?
+  phone String?
+  email String?
+  gstin String?
+  note String?
+  updatedBy String? @map("updated_by") @db.Uuid
+  updatedByName String? @map("updated_by_name")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_details_sync_idx")
+  @@map("company_details")
+  @@schema("public")
+}
+model CompanyDetailsSecure {
+  groupId String @id @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  bankName String? @map("bank_name")
+  bankAccount String? @map("bank_account")
+  ifsc String?
+  upi String?
+  pan String?
+  bankChangedAt DateTime? @map("bank_changed_at") @db.Timestamptz(6)
+  bankChangedBy String? @map("bank_changed_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_details_secure_sync_idx")
+  @@map("company_details_secure")
+  @@schema("public")
+}
+model CompanyVendorDetails {
+  vendorId String @id @map("vendor_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  bankName String? @map("bank_name")
+  bankAccount String? @map("bank_account")
+  ifsc String?
+  upi String?
+  pan String?
+  address String?
+  phone String?
+  email String?
+  gstin String?
+  note String?
+  bankChangedAt DateTime? @map("bank_changed_at") @db.Timestamptz(6)
+  bankChangedBy String? @map("bank_changed_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+  updatedByName String? @map("updated_by_name")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  vendor CompanyVendor @relation(fields: [vendorId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_vendor_details_sync_idx")
+  @@map("company_vendor_details")
   @@schema("public")
 }

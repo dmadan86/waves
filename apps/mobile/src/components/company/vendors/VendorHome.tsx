@@ -5,11 +5,14 @@ import { Button, Screen, Text, useTheme } from '@waves/ui';
 
 import { DashBody, DashHeader, useMoney } from '@/components/company/dashboard/parts';
 import { VendorLineForm } from '@/components/company/vendors/forms';
+import { BankChangedNotice } from '@/components/company/details/DetailsCard';
+import { useCompanyCard, useBankNotice } from '@/data/companyDetails';
 import { VendorHistory } from '@/components/company/vendors/VendorHistory';
-import { SectionHeader, StandardCard } from '@/components/standard';
+import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useCompanyVendors } from '@/data/companyVendors';
 import { fill, useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { useBottomClearance } from '@/lib/clearance';
 
 export function VendorHome({ groupId }: { groupId: string }) {
@@ -22,6 +25,8 @@ export function VendorHome({ groupId }: { groupId: string }) {
   const fmt = useMoney(view.currency);
   const [adding, setAdding] = useState(false);
   const vendor = view.vendors.find((v) => v.memberId === view.myMemberId);
+  const companyCard = useCompanyCard(groupId);
+  const bankNotice = useBankNotice(companyCard);
   const balance = vendor ? (view.balances.get(vendor.id) ?? 0n) : 0n;
   return (
     <Screen edges={[]}>
@@ -43,6 +48,25 @@ export function VendorHome({ groupId }: { groupId: string }) {
                   )}
                 </Text>
                 <Button label={s.addBill} onPress={() => setAdding(true)} />
+              </StandardCard>
+              {bankNotice.show ? (
+                <BankChangedNotice
+                  view={{ show: bankNotice.show, at: companyCard.card?.bankChangedAt }}
+                  onNoted={bankNotice.markNoted}
+                />
+              ) : null}
+              <StandardCard>
+                <ListRow
+                  title={t.companyDetails.title}
+                  onPress={() => router.push(`/group/${groupId}/company-details`)}
+                  divider
+                />
+                <ListRow
+                  title={t.companyDetails.myDetails}
+                  onPress={() =>
+                    router.push(`/group/${groupId}/company-details?vendorId=${vendor.id}&mine=1`)
+                  }
+                />
               </StandardCard>
               <SectionHeader title={s.history} />
               <VendorHistory

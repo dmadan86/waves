@@ -35,6 +35,14 @@ export function CompanyMore({ groupId }: { groupId: string }) {
             divider
           />
         ) : null}
+        {vendors.canManage ? (
+          <ListRow
+            leading={lead('business-outline')}
+            title={t.companyDetails.title}
+            onPress={() => router.push(`/group/${groupId}/company-details`)}
+            divider
+          />
+        ) : null}
         <AttendanceRow groupId={groupId} />
         <WorkRow groupId={groupId} />
         <CompanyBillsRow groupId={groupId} />

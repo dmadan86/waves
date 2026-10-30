@@ -1897,6 +1897,37 @@ export interface UiStrings {
     save: string;
     close: string;
   };
+  companyDetails: {
+    title: string;
+    vendorDetails: string;
+    myDetails: string;
+    accountName: string;
+    accountNumber: string;
+    ifsc: string;
+    upi: string;
+    address: string;
+    phone: string;
+    email: string;
+    gstin: string;
+    pan: string;
+    note: string;
+    copied: string;
+    shareAsText: string;
+    edit: string;
+    addDetails: string;
+    empty: string;
+    reveal: string;
+    hide: string;
+    updatedAgo: string;
+    updated: string;
+    bankChanged: string;
+    noted: string;
+    save: string;
+    invalidField: string;
+    saveFailed: string;
+    bank: string;
+    contact: string;
+  };
   groupRecurring: {
     title: string;
     sub: string;
@@ -8462,6 +8493,37 @@ const en: UiStrings = {
     save: 'Save',
     close: 'Close',
   },
+  companyDetails: {
+    title: 'Company details',
+    vendorDetails: 'Vendor details',
+    myDetails: 'My details',
+    accountName: 'Account name',
+    accountNumber: 'Account number',
+    ifsc: 'IFSC',
+    upi: 'UPI ID',
+    address: 'Address',
+    phone: 'Phone',
+    email: 'Email',
+    gstin: 'GSTIN',
+    pan: 'PAN',
+    note: 'Note',
+    copied: 'Copied',
+    shareAsText: 'Share as text',
+    edit: 'Edit',
+    addDetails: 'Add details',
+    empty: 'No details added yet',
+    reveal: 'Show full value',
+    hide: 'Hide value',
+    updatedAgo: 'Updated {when}{name}',
+    updated: 'Updated',
+    bankChanged: 'Bank details changed on {date} — confirm by phone before paying',
+    noted: 'Noted',
+    save: 'Save',
+    invalidField: 'Enter a valid {field}',
+    saveFailed: 'Could not save details',
+    bank: 'Bank',
+    contact: 'Contact',
+  },
   groupRecurring: {
     title: 'Repeating',
     sub: 'Rent, bills and anything else that comes round on a schedule. Each one is added on its date, for everyone.',
@@ -14476,6 +14538,37 @@ const ta: UiStrings = {
     inviteFailed: 'அழைப்பை உருவாக்க முடியவில்லை. இணையத்தில் இணைந்து மீண்டும் முயலவும்.',
     save: 'சேமி',
     close: 'மூடு',
+  },
+  companyDetails: {
+    title: 'நிறுவன விவரங்கள்',
+    vendorDetails: 'விற்பனையாளர் விவரங்கள்',
+    myDetails: 'என் விவரங்கள்',
+    accountName: 'கணக்கு பெயர்',
+    accountNumber: 'கணக்கு எண்',
+    ifsc: 'IFSC',
+    upi: 'UPI ID',
+    address: 'முகவரி',
+    phone: 'தொலைபேசி',
+    email: 'மின்னஞ்சல்',
+    gstin: 'GSTIN',
+    pan: 'PAN',
+    note: 'குறிப்பு',
+    copied: 'நகலெடுக்கப்பட்டது',
+    shareAsText: 'உரையாகப் பகிர்',
+    edit: 'திருத்து',
+    addDetails: 'விவரங்களைச் சேர்',
+    empty: 'விவரங்கள் இன்னும் சேர்க்கப்படவில்லை',
+    reveal: 'முழு மதிப்பைக் காட்டு',
+    hide: 'மதிப்பை மறை',
+    updatedAgo: '{when} அன்று {name} புதுப்பித்தார்',
+    updated: 'புதுப்பிக்கப்பட்டது',
+    bankChanged: 'வங்கி விவரங்கள் {date} அன்று மாறின — செலுத்தும் முன் தொலைபேசியில் உறுதிசெய்யவும்',
+    noted: 'கவனித்தேன்',
+    save: 'சேமி',
+    invalidField: 'சரியான {field} உள்ளிடவும்',
+    saveFailed: 'விவரங்களைச் சேமிக்க முடியவில்லை',
+    bank: 'வங்கி',
+    contact: 'தொடர்பு',
   },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
@@ -20652,6 +20745,37 @@ const hi: UiStrings = {
     save: 'सहेजें',
     close: 'बंद करें',
   },
+  companyDetails: {
+    title: 'कंपनी का विवरण',
+    vendorDetails: 'विक्रेता का विवरण',
+    myDetails: 'मेरा विवरण',
+    accountName: 'खाते का नाम',
+    accountNumber: 'खाता संख्या',
+    ifsc: 'IFSC',
+    upi: 'UPI ID',
+    address: 'पता',
+    phone: 'फ़ोन',
+    email: 'ईमेल',
+    gstin: 'GSTIN',
+    pan: 'PAN',
+    note: 'टिप्पणी',
+    copied: 'कॉपी किया गया',
+    shareAsText: 'टेक्स्ट के रूप में साझा करें',
+    edit: 'बदलें',
+    addDetails: 'विवरण जोड़ें',
+    empty: 'अभी कोई विवरण नहीं जोड़ा गया',
+    reveal: 'पूरा मान दिखाएँ',
+    hide: 'मान छिपाएँ',
+    updatedAgo: '{when} {name} ने अपडेट किया',
+    updated: 'अपडेट किया गया',
+    bankChanged: 'बैंक विवरण {date} को बदले — भुगतान से पहले फ़ोन पर पुष्टि करें',
+    noted: 'ध्यान दिया',
+    save: 'सहेजें',
+    invalidField: 'मान्य {field} दर्ज करें',
+    saveFailed: 'विवरण सहेजे नहीं जा सके',
+    bank: 'बैंक',
+    contact: 'संपर्क',
+  },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
     sub: 'किराया, बिल और जो कुछ तय तारीख पर आता है। हर एक अपनी तारीख पर सबके लिए जुड़ जाता है।',
@@ -26744,6 +26868,37 @@ const ar: UiStrings = {
     inviteFailed: 'تعذر إنشاء دعوة. اتصل بالإنترنت وحاول مجددًا.',
     save: 'حفظ',
     close: 'إغلاق',
+  },
+  companyDetails: {
+    title: 'تفاصيل الشركة',
+    vendorDetails: 'تفاصيل المورّد',
+    myDetails: 'تفاصيلي',
+    accountName: 'اسم الحساب',
+    accountNumber: 'رقم الحساب',
+    ifsc: 'IFSC',
+    upi: 'معرّف UPI',
+    address: 'العنوان',
+    phone: 'الهاتف',
+    email: 'البريد الإلكتروني',
+    gstin: 'GSTIN',
+    pan: 'PAN',
+    note: 'ملاحظة',
+    copied: 'تم النسخ',
+    shareAsText: 'مشاركة كنص',
+    edit: 'تعديل',
+    addDetails: 'إضافة تفاصيل',
+    empty: 'لم تُضف أي تفاصيل بعد',
+    reveal: 'إظهار القيمة كاملة',
+    hide: 'إخفاء القيمة',
+    updatedAgo: 'حدّث {name} قبل {when}',
+    updated: 'تم التحديث',
+    bankChanged: 'تغيّرت التفاصيل المصرفية في {date} — أكّد عبر الهاتف قبل الدفع',
+    noted: 'تمت الملاحظة',
+    save: 'حفظ',
+    invalidField: 'أدخل {field} صالحًا',
+    saveFailed: 'تعذّر حفظ التفاصيل',
+    bank: 'البنك',
+    contact: 'التواصل',
   },
   groupRecurring: {
     title: 'المتكررة',
