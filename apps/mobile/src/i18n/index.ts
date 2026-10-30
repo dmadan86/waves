@@ -1597,9 +1597,7 @@ export interface UiStrings {
     overviewOnLeave: string;
     ovAttendance: string;
     ovPickDate: string;
-    ovPresentPct: string;
     ovVsLast: string;
-    ovTasksAllDone: string;
     ovTaskDone: string;
     ovEscAdvance: string;
     ovEscExpense: string;
@@ -1612,13 +1610,22 @@ export interface UiStrings {
     ovAgoHour: string;
     ovAgoDay: string;
     ovAllClearBody: string;
+    ovAttention: string;
+    ovTodayOverview: string;
+    ovPresentOf: string;
+    ovAllMarked: string;
+    ovMarkAttendance: string;
+    ovComingUp: string;
+    ovOverdue: string;
+    ovBlocked: string;
+    ovPendingPayments: string;
+    ovNothingToPay: string;
+    ovNoPaymentsYet: string;
+    ovNoAdvancesOut: string;
     ovPayrollRun: string;
     ovPaidMonth: string;
     ovAdvances: string;
     ovCrore: string;
-    ovTasksTitle: string;
-    ovTasksNone: string;
-    ovUrgent: string;
     ovAllClear: string;
     ovPaymentsPendingN: PluralForms;
     ovAttendanceToday: string;
@@ -8346,14 +8353,12 @@ const en: UiStrings = {
     overviewActiveToday: 'Active today',
     overviewPresent: 'Present',
     overviewAbsent: 'Absent',
-    overviewUnmarked: 'Not marked',
+    overviewUnmarked: 'Pending',
     ovBell: 'Notifications',
     overviewOnLeave: 'On leave',
     ovAttendance: 'Attendance',
     ovPickDate: 'Pick a day',
-    ovPresentPct: 'present ({pct}%)',
-    ovVsLast: '{pct}% vs last month',
-    ovTasksAllDone: "All of today's tasks are done",
+    ovVsLast: '{pct} vs last month',
     ovTaskDone: 'Mark done: {title}',
     ovEscAdvance: 'Advance request',
     ovEscExpense: 'Expense approval pending',
@@ -8365,14 +8370,23 @@ const en: UiStrings = {
     ovAgoMin: '{n}m ago',
     ovAgoHour: '{n}h ago',
     ovAgoDay: '{n}d ago',
-    ovAllClearBody: 'Nothing needs you right now',
+    ovAllClearBody: 'No pending tasks or urgent issues.',
+    ovAttention: 'Needs your attention',
+    ovTodayOverview: "Today's overview",
+    ovPresentOf: '{n} of {total} present',
+    ovAllMarked: 'All marked',
+    ovMarkAttendance: 'Mark attendance',
+    ovComingUp: 'Coming up',
+    ovOverdue: 'Overdue',
+    ovBlocked: 'Blocked',
+    ovPendingPayments: 'Pending payments',
+    ovNothingToPay: 'Nothing to pay',
+    ovNoPaymentsYet: 'No payments yet this month',
+    ovNoAdvancesOut: 'No advances out',
     ovPayrollRun: 'Payroll run',
     ovPaidMonth: 'Paid this month',
-    ovAdvances: 'Advances outstanding',
+    ovAdvances: 'Outstanding advances',
     ovCrore: '{n} Cr',
-    ovTasksTitle: "Today's tasks",
-    ovTasksNone: 'No tasks today',
-    ovUrgent: 'Urgent escalations',
     ovAllClear: 'All clear',
     ovPaymentsPendingN: { one: '{n} payment pending', other: '{n} payments pending' },
     ovAttendanceToday: "Today's attendance",
@@ -14557,14 +14571,12 @@ const ta: UiStrings = {
     overviewActiveToday: 'இன்று செயலில்',
     overviewPresent: 'வருகை',
     overviewAbsent: 'வரவில்லை',
-    overviewUnmarked: 'குறிக்கப்படவில்லை',
+    overviewUnmarked: 'நிலுவை',
     ovBell: 'அறிவிப்புகள்',
     overviewOnLeave: 'விடுப்பில்',
     ovAttendance: 'வருகை',
     ovPickDate: 'நாளைத் தேர்ந்தெடுக்கவும்',
-    ovPresentPct: 'வந்துள்ளனர் ({pct}%)',
-    ovVsLast: 'கடந்த மாதத்தை விட {pct}%',
-    ovTasksAllDone: 'இன்றைய பணிகள் அனைத்தும் முடிந்தன',
+    ovVsLast: 'கடந்த மாதத்தை விட {pct}',
     ovTaskDone: 'முடிந்தது எனக் குறி: {title}',
     ovEscAdvance: 'முன்பணக் கோரிக்கை',
     ovEscExpense: 'செலவு ஒப்புதல் நிலுவை',
@@ -14576,14 +14588,23 @@ const ta: UiStrings = {
     ovAgoMin: '{n} நிமி முன்',
     ovAgoHour: '{n} மணி முன்',
     ovAgoDay: '{n} நாள் முன்',
-    ovAllClearBody: 'உங்கள் கவனம் தேவைப்படுவது எதுவுமில்லை',
+    ovAllClearBody: 'நிலுவை பணிகளோ அவசர விஷயங்களோ இல்லை.',
+    ovAttention: 'உங்கள் கவனம் தேவை',
+    ovTodayOverview: 'இன்றைய சுருக்கம்',
+    ovPresentOf: '{total} பேரில் {n} பேர் வந்துள்ளனர்',
+    ovAllMarked: 'அனைவரும் குறிக்கப்பட்டனர்',
+    ovMarkAttendance: 'வருகையைக் குறி',
+    ovComingUp: 'விரைவில்',
+    ovOverdue: 'தாமதம்',
+    ovBlocked: 'தடைபட்டது',
+    ovPendingPayments: 'நிலுவை பணம் செலுத்தல்கள்',
+    ovNothingToPay: 'செலுத்த எதுவுமில்லை',
+    ovNoPaymentsYet: 'இந்த மாதம் இன்னும் பணம் செலுத்தப்படவில்லை',
+    ovNoAdvancesOut: 'முன்பணம் எதுவும் இல்லை',
     ovPayrollRun: 'சம்பளப் பட்டியல்',
     ovPaidMonth: 'இம்மாதம் செலுத்தியது',
     ovAdvances: 'நிலுவை முன்பணம்',
     ovCrore: '{n} கோடி',
-    ovTasksTitle: 'இன்றைய பணிகள்',
-    ovTasksNone: 'இன்று பணிகள் இல்லை',
-    ovUrgent: 'அவசர கவனம்',
     ovAllClear: 'அனைத்தும் சரி',
     ovPaymentsPendingN: { one: '{n} கொடுப்பனவுகள் நிலுவை', other: '{n} கொடுப்பனவுகள் நிலுவை' },
     ovAttendanceToday: 'இன்றைய வருகை',
@@ -20933,14 +20954,12 @@ const hi: UiStrings = {
     overviewActiveToday: 'आज सक्रिय',
     overviewPresent: 'उपस्थित',
     overviewAbsent: 'अनुपस्थित',
-    overviewUnmarked: 'चिह्नित नहीं',
+    overviewUnmarked: 'लंबित',
     ovBell: 'सूचनाएँ',
     overviewOnLeave: 'छुट्टी पर',
     ovAttendance: 'उपस्थिति',
     ovPickDate: 'दिन चुनें',
-    ovPresentPct: 'उपस्थित ({pct}%)',
-    ovVsLast: 'पिछले महीने से {pct}%',
-    ovTasksAllDone: 'आज के सभी कार्य पूरे हो गए',
+    ovVsLast: 'पिछले महीने से {pct}',
     ovTaskDone: 'पूरा चिह्नित करें: {title}',
     ovEscAdvance: 'अग्रिम का अनुरोध',
     ovEscExpense: 'खर्च की मंज़ूरी बाकी',
@@ -20952,14 +20971,23 @@ const hi: UiStrings = {
     ovAgoMin: '{n} मिनट पहले',
     ovAgoHour: '{n} घंटे पहले',
     ovAgoDay: '{n} दिन पहले',
-    ovAllClearBody: 'अभी आपके ध्यान की कोई ज़रूरत नहीं',
+    ovAllClearBody: 'कोई लंबित कार्य या ज़रूरी मामला नहीं।',
+    ovAttention: 'आपके ध्यान की ज़रूरत',
+    ovTodayOverview: 'आज का सार',
+    ovPresentOf: '{total} में से {n} उपस्थित',
+    ovAllMarked: 'सभी चिह्नित',
+    ovMarkAttendance: 'उपस्थिति लगाएँ',
+    ovComingUp: 'आगे आने वाला',
+    ovOverdue: 'देर हो चुकी',
+    ovBlocked: 'रुका हुआ',
+    ovPendingPayments: 'लंबित भुगतान',
+    ovNothingToPay: 'देने को कुछ नहीं',
+    ovNoPaymentsYet: 'इस महीने अभी कोई भुगतान नहीं',
+    ovNoAdvancesOut: 'कोई अग्रिम बाकी नहीं',
     ovPayrollRun: 'वेतन भुगतान',
     ovPaidMonth: 'इस महीने भुगतान',
     ovAdvances: 'बकाया अग्रिम',
     ovCrore: '{n} करोड़',
-    ovTasksTitle: 'आज के कार्य',
-    ovTasksNone: 'आज कोई कार्य नहीं',
-    ovUrgent: 'ज़रूरी मामले',
     ovAllClear: 'सब ठीक है',
     ovPaymentsPendingN: { one: '{n} भुगतान लंबित', other: '{n} भुगतान लंबित' },
     ovAttendanceToday: 'आज की उपस्थिति',
@@ -27201,14 +27229,12 @@ const ar: UiStrings = {
     overviewActiveToday: 'نشط اليوم',
     overviewPresent: 'حاضر',
     overviewAbsent: 'غائب',
-    overviewUnmarked: 'غير محدد',
+    overviewUnmarked: 'قيد الانتظار',
     ovBell: 'الإشعارات',
     overviewOnLeave: 'في إجازة',
     ovAttendance: 'الحضور',
     ovPickDate: 'اختر اليوم',
-    ovPresentPct: 'حاضر ({pct}%)',
-    ovVsLast: '{pct}% مقارنة بالشهر الماضي',
-    ovTasksAllDone: 'اكتملت كل مهام اليوم',
+    ovVsLast: '{pct} مقارنة بالشهر الماضي',
     ovTaskDone: 'وضع علامة مكتمل: {title}',
     ovEscAdvance: 'طلب سلفة',
     ovEscExpense: 'موافقة مصروف معلّقة',
@@ -27220,14 +27246,23 @@ const ar: UiStrings = {
     ovAgoMin: 'منذ {n} د',
     ovAgoHour: 'منذ {n} س',
     ovAgoDay: 'منذ {n} يوم',
-    ovAllClearBody: 'لا شيء يحتاج انتباهك الآن',
+    ovAllClearBody: 'لا مهام معلقة ولا أمور عاجلة.',
+    ovAttention: 'يحتاج إلى انتباهك',
+    ovTodayOverview: 'نظرة على اليوم',
+    ovPresentOf: '{n} من {total} حاضر',
+    ovAllMarked: 'تم تسجيل الجميع',
+    ovMarkAttendance: 'تسجيل الحضور',
+    ovComingUp: 'قريباً',
+    ovOverdue: 'متأخر',
+    ovBlocked: 'متوقف',
+    ovPendingPayments: 'مدفوعات معلقة',
+    ovNothingToPay: 'لا شيء للدفع',
+    ovNoPaymentsYet: 'لا مدفوعات هذا الشهر بعد',
+    ovNoAdvancesOut: 'لا توجد سلف',
     ovPayrollRun: 'صرف الرواتب',
     ovPaidMonth: 'المدفوع هذا الشهر',
     ovAdvances: 'السلف المستحقة',
     ovCrore: '{n} كرور',
-    ovTasksTitle: 'مهام اليوم',
-    ovTasksNone: 'لا مهام اليوم',
-    ovUrgent: 'تصعيدات عاجلة',
     ovAllClear: 'كل شيء على ما يرام',
     ovPaymentsPendingN: { one: '{n} دفعة معلقة', other: '{n} مدفوعات معلقة' },
     ovAttendanceToday: 'حضور اليوم',

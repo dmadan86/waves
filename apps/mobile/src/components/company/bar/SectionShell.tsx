@@ -59,11 +59,13 @@ export function SectionShell({
           showGear={view.isOwner}
           overview={overview}
           subtitle={
-            manager
-              ? fill(t.company.teamLine, {
-                  employees: plural(locale, team.length, t.company.employeeCount),
-                })
-              : counts(live)
+            overview
+              ? `${new Date().toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })} · ${plural(locale, live.filter((m) => m.role === 'member' && m.id !== view.me?.id).length, t.company.employeeCount)}`
+              : manager
+                ? fill(t.company.teamLine, {
+                    employees: plural(locale, team.length, t.company.employeeCount),
+                  })
+                : counts(live)
           }
           pill={manager ? t.company.manager : undefined}
           onBack={() => (overview ? switchTab('/') : router.replace(`/group/${groupId}`))}

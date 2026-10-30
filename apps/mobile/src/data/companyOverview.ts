@@ -136,7 +136,8 @@ export function useOverview(groupId: string, day: string): Overview {
     const siteName = new Map(projects.map((p) => [p.id, p.name]));
     const todays = allTasks.filter((task) => ids.has(task.memberId) && task.day === today);
     const open = todays
-      .filter((task) => task.status !== 'done')
+      // A blocked task is already an urgent escalation; it is not listed twice.
+      .filter((task) => task.status !== 'done' && task.status !== 'blocked')
       .sort(
         (a, b) =>
           (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') ||

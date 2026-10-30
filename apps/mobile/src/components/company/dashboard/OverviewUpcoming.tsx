@@ -18,7 +18,12 @@ import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
-import { buildUpcomingCards, clockText, type UpcomingKind } from '@/lib/overviewMath';
+import {
+  buildUpcomingCards,
+  clockText,
+  upcomingLayout,
+  type UpcomingKind,
+} from '@/lib/overviewMath';
 
 const KIND: Record<UpcomingKind, { icon: keyof typeof Ionicons.glyphMap; ink: string }> = {
   event: { icon: 'calendar-outline', ink: '#6C4FD8' },
@@ -59,10 +64,11 @@ export function OverviewUpcoming({ groupId }: { groupId: string }) {
       })),
     today,
   );
-  if (cards.length === 0) return null;
+  const layout = upcomingLayout(cards.length);
+  if (layout === 'none') return null;
   const members = new Map(view.members.map((m) => [m.id, m]));
-  // Four across on a phone like the mockup; more scroll sideways.
-  const cardWidth = Math.max(96, (width - 32 - 24) / 4);
+  // Two and a bit across, so a scrolling row shows the next card peeking in.
+  const cardWidth = Math.max(132, (width - 2 * theme.spacing.lg - 8) / 2.3);
   const date = (iso: string, year: boolean) =>
     new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, {
       month: 'short',
@@ -71,6 +77,90 @@ export function OverviewUpcoming({ groupId }: { groupId: string }) {
       timeZone: 'UTC',
     });
   const open = () => router.push(`/group/${groupId}/company-calendar`);
+  const renderCard = (c: (typeof cards)[number], single: boolean) => {
+    const { icon, ink } = KIND[c.kind];
+    const when =
+      c.kind === 'holiday' && c.endDay !== c.day
+        ? `${date(c.day, false)} – ${c.endDay.slice(0, 7) === c.day.slice(0, 7) ? new Date(`${c.endDay}T00:00:00Z`).getUTCDate() : date(c.endDay, false)}`
+        : c.day === today
+          ? [t.calendar.today, c.time ? clockText(c.time, locale) : null].filter(Boolean).join(', ')
+          : c.time
+            ? `${date(c.day, false)}, ${clockText(c.time, locale)}`
+            : date(c.day, true);
+    const title = c.kind === 'payroll' ? t.company.ovPayrollRun : c.title;
+    const who = c.people.map((id) => members.get(id)).filter((m) => !!m);
+    return (
+      <Pressable
+        key={c.key}
+        accessibilityRole="button"
+        accessibilityLabel={`${title}, ${when}`}
+        onPress={open}
+        style={single ? undefined : { width: cardWidth }}
+      >
+        <TintCard
+          ink={ink}
+          style={
+            single
+              ? { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10 }
+              : { flex: 1, padding: 10, gap: 6 }
+          }
+        >
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: withAlpha(ink, 0.16),
+            }}
+          >
+            <Ionicons name={icon} size={iconSize.base} color={ink} />
+          </View>
+          <View style={{ flex: single ? 1 : undefined, minWidth: 0, gap: 2 }}>
+            <Text
+              variant="caption"
+              numberOfLines={single ? 3 : 2}
+              style={{ fontWeight: '700', fontSize: 13 }}
+            >
+              {title}
+            </Text>
+            <Text variant="micro" tone="muted" numberOfLines={2}>
+              {when}
+            </Text>
+          </View>
+          {who.length > 0 ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
+              {who.slice(0, 3).map((m, i) => (
+                <View
+                  key={m.id}
+                  style={{
+                    marginStart: i === 0 ? 0 : -8,
+                    borderRadius: 12,
+                    borderWidth: 1.5,
+                    borderColor: theme.color.bg,
+                  }}
+                >
+                  <PersonAvatar
+                    member={m}
+                    name={displayName(m)}
+                    ghost={isGhost(m)}
+                    size={22}
+                    tint={TINTS[i % TINTS.length]}
+                  />
+                </View>
+              ))}
+              {who.length > 3 ? (
+                <Text variant="micro" tone="muted" style={{ marginStart: 4 }}>
+                  {`+${who.length - 3}`}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
+        </TintCard>
+      </Pressable>
+    );
+  };
   return (
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -79,7 +169,7 @@ export function OverviewUpcoming({ groupId }: { groupId: string }) {
           numberOfLines={1}
           style={{ flexShrink: 1, fontSize: 18, fontWeight: '700' }}
         >
-          {t.calendar.upcoming}
+          {t.company.ovComingUp}
         </Text>
         <Pressable
           accessibilityRole="button"
@@ -97,91 +187,19 @@ export function OverviewUpcoming({ groupId }: { groupId: string }) {
           />
         </Pressable>
       </View>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        // Bleed to the screen edge so a scrolling row reads as scrolling.
-        style={{ marginHorizontal: -theme.spacing.lg }}
-        contentContainerStyle={{ paddingHorizontal: theme.spacing.lg, gap: 8 }}
-      >
-        {cards.map((c) => {
-          const { icon, ink } = KIND[c.kind];
-          const when =
-            c.kind === 'holiday' && c.endDay !== c.day
-              ? `${date(c.day, false)} – ${c.endDay.slice(0, 7) === c.day.slice(0, 7) ? new Date(`${c.endDay}T00:00:00Z`).getUTCDate() : date(c.endDay, false)}`
-              : c.day === today
-                ? [t.calendar.today, c.time ? clockText(c.time, locale) : null]
-                    .filter(Boolean)
-                    .join(', ')
-                : c.time
-                  ? `${date(c.day, false)}, ${clockText(c.time, locale)}`
-                  : date(c.day, true);
-          const title = c.kind === 'payroll' ? t.company.ovPayrollRun : c.title;
-          const who = c.people.map((id) => members.get(id)).filter((m) => !!m);
-          return (
-            <Pressable
-              key={c.key}
-              accessibilityRole="button"
-              accessibilityLabel={`${title}, ${when}`}
-              onPress={open}
-              style={{ width: cardWidth }}
-            >
-              <TintCard ink={ink} style={{ flex: 1, padding: 10, gap: 6 }}>
-                <View
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 16,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: withAlpha(ink, 0.16),
-                  }}
-                >
-                  <Ionicons name={icon} size={iconSize.base} color={ink} />
-                </View>
-                <Text
-                  variant="caption"
-                  numberOfLines={2}
-                  style={{ fontWeight: '700', fontSize: 13 }}
-                >
-                  {title}
-                </Text>
-                <Text variant="micro" tone="muted" numberOfLines={2}>
-                  {when}
-                </Text>
-                {who.length > 0 ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                    {who.slice(0, 3).map((m, i) => (
-                      <View
-                        key={m.id}
-                        style={{
-                          marginStart: i === 0 ? 0 : -8,
-                          borderRadius: 12,
-                          borderWidth: 1.5,
-                          borderColor: theme.color.bg,
-                        }}
-                      >
-                        <PersonAvatar
-                          member={m}
-                          name={displayName(m)}
-                          ghost={isGhost(m)}
-                          size={22}
-                          tint={TINTS[i % TINTS.length]}
-                        />
-                      </View>
-                    ))}
-                    {who.length > 3 ? (
-                      <Text variant="micro" tone="muted" style={{ marginStart: 4 }}>
-                        {`+${who.length - 3}`}
-                      </Text>
-                    ) : null}
-                  </View>
-                ) : null}
-              </TintCard>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {layout === 'single' ? (
+        renderCard(cards[0], true)
+      ) : (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          // Bleed to the screen edge so a scrolling row reads as scrolling.
+          style={{ marginHorizontal: -theme.spacing.lg }}
+          contentContainerStyle={{ paddingHorizontal: theme.spacing.lg, gap: 8 }}
+        >
+          {cards.map((c) => renderCard(c, false))}
+        </ScrollView>
+      )}
     </View>
   );
 }

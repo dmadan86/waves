@@ -88,7 +88,7 @@ export function RecentCompanyActivity({ groupId }: { groupId: string }) {
   const { t } = useStrings();
   const view = useCompanyEntries(groupId);
   const { events, ready } = useCompanyActivity(groupId);
-  const latest = events.slice(0, 5);
+  const latest = events.slice(0, 3);
   return (
     <SectionCard
       title={t.company.recentTitle}
