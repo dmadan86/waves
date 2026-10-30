@@ -407,7 +407,11 @@ export function displayName(
 ): string {
   if (member.profile_id && member.profile_id === myProfileId) return 'You';
   if (member.profile_id && blocked?.has(member.profile_id)) return someoneLabel;
-  return member.profile?.display_name ?? member.ghost_name ?? someoneLabel;
+  const name = (member.profile?.display_name ?? member.ghost_name ?? '')
+    // Private-use glyphs (e.g. U+F8FF from iOS contacts) render as junk on Android.
+    .replace(/[\uE000-\uF8FF]/g, '')
+    .trim();
+  return name || someoneLabel;
 }
 
 /**
