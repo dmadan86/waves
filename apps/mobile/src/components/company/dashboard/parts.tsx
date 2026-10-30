@@ -290,28 +290,30 @@ export function DashHeader({
             <Ionicons name="mic-outline" size={iconSize.lg} color={theme.color.text} />
           </Pressable>
         ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.company.addEntry}
-          onPress={() => router.push(`/group/${groupId}/company-entry`)}
-          style={{
-            position: 'absolute',
-            right: theme.spacing.lg,
-            bottom: 4,
-            width: 54,
-            height: 54,
-            borderRadius: 27,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.buttonPrimary,
-            borderWidth: 2.5,
-            borderColor: theme.color.surface,
-            zIndex: 2,
-            elevation: 4,
-          }}
-        >
-          <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
-        </Pressable>
+        {!view.isVendor ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.company.addEntry}
+            onPress={() => router.push(`/group/${groupId}/company-entry`)}
+            style={{
+              position: 'absolute',
+              right: theme.spacing.lg,
+              bottom: 4,
+              width: 54,
+              height: 54,
+              borderRadius: 27,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.buttonPrimary,
+              borderWidth: 2.5,
+              borderColor: theme.color.surface,
+              zIndex: 2,
+              elevation: 4,
+            }}
+          >
+            <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
+          </Pressable>
+        ) : null}
       </View>
       {tabs}
       <Sheet
@@ -396,7 +398,11 @@ export function DashHeader({
                 } as OverflowMenuItem,
               ]
             : []),
-          { icon: 'download-outline', label: t.company.exportAction, route: `/group/${groupId}/export` },
+          {
+            icon: 'download-outline',
+            label: t.company.exportAction,
+            route: `/group/${groupId}/export`,
+          },
         ]}
       />
     </>

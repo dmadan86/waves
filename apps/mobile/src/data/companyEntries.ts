@@ -18,6 +18,7 @@ import {
   materialiseCompanyEntryAttachments,
   materialiseCompanyProjects,
   materialiseProjectMembers,
+  materialiseVendors,
   materialiseWageSplits,
   needsSecondOwner,
   poolBalance,
@@ -56,6 +57,8 @@ export interface CompanyView {
   /** An owner: company settings, pools, sites, promotions. */
   readonly isOwner: boolean;
   readonly isManager: boolean;
+  /** A vendor's own login: sees only their ledger with this company. */
+  readonly isVendor: boolean;
   /** Managers with at least one team member or pool entry exist (progressive disclosure). */
   readonly hasManagers: boolean;
   /** Whom the viewer may record money entries for (owner: everyone, manager: own team). */
@@ -145,6 +148,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
   const me = people.find((member) => isViewer(member, viewerId) && !member.left_at) ?? null;
   const isOwner = me?.role === 'admin';
   const isManager = me?.role === 'manager';
+  const isVendor = me?.role === 'vendor';
   const isAdmin = isOwner || isManager;
   const hasManagers = people.some((member) => member.role === 'manager' && !member.left_at);
   // The server only sends each person what they may read, but a phone that was once an
@@ -171,7 +175,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
   const manageableIds = useMemo(() => {
     const ids = new Set<string>();
     for (const member of people) {
-      if (member.id === me?.id || member.left_at) continue;
+      if (member.id === me?.id || member.left_at || member.role === 'vendor') continue;
       if (isManager && !visibleIds.has(member.id)) continue;
       if (
         isOwner
@@ -266,6 +270,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
     isAdmin,
     isOwner,
     isManager,
+    isVendor,
     hasManagers,
     manageableIds,
     currency,
@@ -565,7 +570,7 @@ export function usePayWages(groupId: string) {
  */
 export function usePoolBalance(groupId: string, managerId: string | null): bigint | null {
   const { entries, settledEntries } = useCompanyEntries(groupId);
-  const { queue } = useSync();
+  const { queue, mirror } = useSync();
   const queryClient = useQueryClient();
   // When a queued change is acknowledged its overlay disappears: refresh the server figure at once.
   const queued = queue.filter((m) => m.groupId === groupId && m.kind.startsWith('company')).length;
@@ -592,11 +597,18 @@ export function usePoolBalance(groupId: string, managerId: string | null): bigin
   // add only their own effect on top of it.
   return useMemo(() => {
     if (!managerId) return null;
-    const mine = poolBalance(entries, managerId).balance;
+    // A manager's vendor payments come out of their pool too (queued ones count at once).
+    const vendorOpts = { groupId, myMemberId: managerId, isVendor: false, isManager: true };
+    const vendorLines = materialiseVendors(mirror, queue, vendorOpts).lines;
+    const mine = poolBalance(entries, managerId, vendorLines).balance;
     if (server.data === undefined) return mine;
-    const settled = poolBalance(settledEntries, managerId).balance;
+    const settled = poolBalance(
+      settledEntries,
+      managerId,
+      materialiseVendors(mirror, [], vendorOpts).lines,
+    ).balance;
     return server.data + (mine - settled);
-  }, [entries, settledEntries, managerId, server.data]);
+  }, [entries, settledEntries, managerId, server.data, mirror, queue, groupId]);
 }
 
 /** Names-only directory (owners, my manager, my team, me) from the server; empty until it answers. */
@@ -612,7 +624,7 @@ export function useCompanyPeople(groupId: string) {
       return (data ?? []) as {
         member_id: string;
         display_name: string;
-        role: 'admin' | 'manager' | 'member';
+        role: 'admin' | 'manager' | 'member' | 'vendor';
         manager_id: string | null;
         detail: boolean;
       }[];

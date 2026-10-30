@@ -146,7 +146,7 @@ export interface MemberRow {
   profile_id: string | null;
   ghost_name: string | null;
   /** Company groups also have 'manager' (a team lead); everywhere else only admin / member. */
-  role: 'admin' | 'manager' | 'member';
+  role: 'admin' | 'manager' | 'member' | 'vendor';
   /** Company groups: the manager this employee reports to (null = the owners). */
   manager_id?: string | null;
   /** The UPI-shaped fields. Superseded by the rail pair; still read as a fallback. */

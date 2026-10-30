@@ -36,6 +36,7 @@ import {
   StatTriple,
   useMoney,
 } from '@/components/company/dashboard/parts';
+import { VendorsTab } from '@/components/company/vendors/VendorsTab';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useCompanyEntries, useCompanyProjects, type CompanyView } from '@/data/companyEntries';
@@ -46,7 +47,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
-type Tab = 'overview' | 'employees' | 'managers' | 'budgets' | 'payments';
+type Tab = 'overview' | 'employees' | 'managers' | 'budgets' | 'payments' | 'vendors';
 
 export function OwnerDashboard({ groupId }: { groupId: string }) {
   const theme = useTheme();
@@ -103,6 +104,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
         { value: 'managers' as Tab, label: t.company.tabManagers },
         { value: 'budgets' as Tab, label: t.company.tabBudgets },
         { value: 'payments' as Tab, label: t.company.tabPayments },
+        { value: 'vendors' as Tab, label: t.companyVendors.title },
       ]}
       value={tab}
       onChange={setTab}
@@ -155,6 +157,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
           tabs={tabs}
         />
         <DashBody>
+          {tab === 'vendors' ? <VendorsTab groupId={groupId} /> : null}
           {tab === 'overview' ? (
             <>
               <PendingApprovals groupId={groupId} view={view} />
