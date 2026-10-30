@@ -92,13 +92,14 @@ afterAll(async () => {
 });
 
 describe('company vendors: who sees what', () => {
-  it('owner sees every vendor, a manager only their own, an employee none, a vendor only itself', async () => {
-    expect(await vendorsSeenBy(0)).toHaveLength(3);
-    expect(await vendorsSeenBy(1)).toEqual([mine]);
-    expect(await vendorsSeenBy(2)).toEqual([other]);
-    expect(await vendorsSeenBy(3)).toEqual([]);
-    expect(await vendorsSeenBy(4)).toEqual([ravi]);
-  });
+  it('owner sees every vendor, a manager only their own, an employee none, a vendor only itself', () =>
+    isolated(async () => {
+      expect(await vendorsSeenBy(0)).toHaveLength(3);
+      expect(await vendorsSeenBy(1)).toEqual([mine]);
+      expect(await vendorsSeenBy(2)).toEqual([other]);
+      expect(await vendorsSeenBy(3)).toEqual([]);
+      expect(await vendorsSeenBy(4)).toEqual([ravi]);
+    }));
 
   it('ledger lines follow the same walls', () =>
     isolated(async () => {
