@@ -1583,6 +1583,10 @@ export interface UiStrings {
     controlApproveBody: string;
     switchCompanyBody: string;
     createCompanyNew: string;
+    newTitle: string;
+    createCompany: string;
+    nameLabel: string;
+    namePlaceholder: string;
     manageCompanies: string;
     companySettings: string;
     hierarchyTitle: string;
@@ -8164,6 +8168,10 @@ const en: UiStrings = {
     controlApproveBody: 'Managers can approve expenses and record payments',
     switchCompanyBody: 'Choose a company to manage',
     createCompanyNew: 'Create new',
+    newTitle: 'New company',
+    createCompany: 'Create company',
+    nameLabel: 'Company name',
+    namePlaceholder: 'e.g. Sri Murugan Traders',
     manageCompanies: 'Manage companies',
     companySettings: 'Company settings',
     hierarchyTitle: 'Hierarchy',
@@ -14197,6 +14205,10 @@ const ta: UiStrings = {
     controlApproveBody: 'மேலாளர்கள் செலவுகளை ஒப்புதல் அளித்து பணம் செலுத்தியதைப் பதிவு செய்யலாம்',
     switchCompanyBody: 'நிர்வகிக்க ஒரு நிறுவனத்தைத் தேர்ந்தெடுக்கவும்',
     createCompanyNew: 'புதிதாக உருவாக்கு',
+    newTitle: 'புதிய நிறுவனம்',
+    createCompany: 'நிறுவனத்தை உருவாக்கு',
+    nameLabel: 'நிறுவனத்தின் பெயர்',
+    namePlaceholder: 'எ.கா. ஸ்ரீ முருகன் டிரேடர்ஸ்',
     manageCompanies: 'நிறுவனங்களை நிர்வகி',
     companySettings: 'நிறுவன அமைப்புகள்',
     hierarchyTitle: 'படிநிலை',
@@ -20394,6 +20406,10 @@ const hi: UiStrings = {
     controlApproveBody: 'मैनेजर खर्च मंज़ूर कर सकते हैं और भुगतान दर्ज कर सकते हैं',
     switchCompanyBody: 'प्रबंधन के लिए कंपनी चुनें',
     createCompanyNew: 'नई बनाएँ',
+    newTitle: 'नई कंपनी',
+    createCompany: 'कंपनी बनाएँ',
+    nameLabel: 'कंपनी का नाम',
+    namePlaceholder: 'जैसे श्री मुरुगन ट्रेडर्स',
     manageCompanies: 'कंपनियाँ प्रबंधित करें',
     companySettings: 'कंपनी सेटिंग्स',
     hierarchyTitle: 'हाइरार्की',
@@ -26504,6 +26520,10 @@ const ar: UiStrings = {
     controlApproveBody: 'يمكن للمديرين الموافقة على المصروفات وتسجيل المدفوعات',
     switchCompanyBody: 'اختر شركة لإدارتها',
     createCompanyNew: 'إنشاء شركة جديدة',
+    newTitle: 'شركة جديدة',
+    createCompany: 'إنشاء شركة',
+    nameLabel: 'اسم الشركة',
+    namePlaceholder: 'مثال: شركة النور للتجارة',
     manageCompanies: 'إدارة الشركات',
     companySettings: 'إعدادات الشركة',
     hierarchyTitle: 'الهيكل',
