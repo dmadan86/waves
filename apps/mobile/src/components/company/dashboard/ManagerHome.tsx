@@ -19,8 +19,7 @@ import {
   useMoney,
 } from '@/components/company/dashboard/parts';
 import { SectionShell } from '@/components/company/bar/SectionShell';
-import { PendingCard } from '@/components/company/dashboard/PendingCard';
-import { TodayTiles } from '@/components/company/dashboard/TodayTiles';
+import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { WorkdayTiles } from '@/components/company/WorkdayEntries';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
@@ -67,8 +66,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
   return (
     <SectionShell groupId={groupId} view={view} overview>
       <>
-        <PendingCard groupId={groupId} />
-        <TodayTiles groupId={groupId} hasEmployees={team.length > 0} />
+        <OverviewTop groupId={groupId} />
         <StandardCard style={{ gap: theme.spacing.sm }}>
           <Text variant="caption" tone="muted">
             {t.company.yourBudget}

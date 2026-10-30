@@ -34,8 +34,11 @@ import { useCompanyProjects, useCompanySuspended, type CompanyView } from '@/dat
 import { useGroup, useGroups } from '@/data/hooks';
 import { displayName, type MemberRow, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
+import { useGroupUnread } from '@/lib/useGroupUnread';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
+
+const NO_GROUPS: readonly string[] = [];
 
 export function useMoney(currency: string): (minor: bigint) => string {
   const { locale } = useStrings();
@@ -170,6 +173,7 @@ export function DashHeader({
   voice,
   onBack,
   exportMenu,
+  overview = false,
 }: {
   groupId: string;
   view: CompanyView;
@@ -182,6 +186,8 @@ export function DashHeader({
   onBack?: () => void;
   /** Employees have no company bar, so Export stays in a ⋮ here. */
   exportMenu?: boolean;
+  /** The Overview hero: no back arrow, a bigger name, a bell for this company's activity. */
+  overview?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -191,6 +197,7 @@ export function DashHeader({
   const [switching, setSwitching] = useState(false);
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const unread = useGroupUnread(overview ? [groupId] : NO_GROUPS);
   const groups = useGroups().data ?? [];
   const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
 
@@ -199,7 +206,7 @@ export function DashHeader({
     : [theme.color.brandSoft, theme.color.surface];
   return (
     <>
-      <View style={{ paddingTop: insets.top + 6, paddingBottom: 34 }}>
+      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview ? 52 : 34 }}>
         <View
           pointerEvents="none"
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
@@ -211,10 +218,10 @@ export function DashHeader({
             fadeDuration={0}
             style={{
               position: 'absolute',
-              right: 24,
-              top: insets.top + 30,
-              width: 132,
-              height: 122,
+              right: overview ? 8 : 24,
+              top: insets.top + (overview ? 14 : 30),
+              width: overview ? 176 : 132,
+              height: overview ? 163 : 122,
               opacity: dark ? 0.48 : 0.68,
             }}
           />
@@ -237,14 +244,16 @@ export function DashHeader({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: theme.spacing.md,
+            paddingHorizontal: overview ? theme.spacing.lg : theme.spacing.md,
           }}
         >
-          <IconButton
-            icon={directionalIcon('arrow-back')}
-            label={t.common.back}
-            onPress={onBack ?? (() => router.back())}
-          />
+          {overview ? null : (
+            <IconButton
+              icon={directionalIcon('arrow-back')}
+              label={t.common.back}
+              onPress={onBack ?? (() => router.back())}
+            />
+          )}
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={`${view.name || t.extras.typeCompany}, ${t.company.switchCompany}`}
@@ -255,12 +264,37 @@ export function DashHeader({
               variant="heading"
               accessibilityRole="header"
               numberOfLines={1}
-              style={{ fontSize: 22, fontWeight: '800', flexShrink: 1 }}
+              style={{ fontSize: overview ? 28 : 22, fontWeight: '800', flexShrink: 1 }}
             >
               {view.name || t.extras.typeCompany}
             </Text>
             <Ionicons name="chevron-down" size={iconSize.md} color={theme.color.text} />
           </Pressable>
+          {overview ? (
+            <View>
+              <IconButton
+                icon="notifications-outline"
+                label={t.company.ovBell}
+                onPress={() => router.push(`/activity?group=${groupId}`)}
+              />
+              {unread.has(groupId) ? (
+                <View
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    top: 7,
+                    end: 9,
+                    width: 9,
+                    height: 9,
+                    borderRadius: 5,
+                    backgroundColor: theme.color.negative,
+                    borderWidth: 1.5,
+                    borderColor: theme.color.bg,
+                  }}
+                />
+              ) : null}
+            </View>
+          ) : null}
           {showGear ? (
             <IconButton
               icon="settings-outline"
@@ -281,13 +315,19 @@ export function DashHeader({
             flexDirection: 'row',
             alignItems: 'center',
             gap: 6,
-            marginStart: theme.spacing.md + 42,
-            marginEnd: 76,
+            marginStart: overview ? theme.spacing.lg : theme.spacing.md + 42,
+            marginEnd: overview ? 96 : 76,
             marginTop: 2,
           }}
         >
-          <Ionicons name="people-outline" size={iconSize.base} color={theme.color.text} />
-          <Text variant="caption" style={{ fontSize: 12.5 }}>
+          {overview ? null : (
+            <Ionicons name="people-outline" size={iconSize.base} color={theme.color.text} />
+          )}
+          <Text
+            variant="caption"
+            numberOfLines={2}
+            style={{ fontSize: overview ? 13 : 12.5, flexShrink: 1 }}
+          >
             {subtitle}
           </Text>
           {pill ? <RolePill label={pill} /> : null}
@@ -704,10 +744,20 @@ export function SectionCard({
           {title}
         </Text>
         {onViewAll ? (
-          <Pressable accessibilityRole="button" onPress={onViewAll} hitSlop={8}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onViewAll}
+            hitSlop={8}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+          >
             <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-              {t.company.viewAll}
+              {t.company.ovSeeAll}
             </Text>
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.brand}
+            />
           </Pressable>
         ) : null}
       </View>

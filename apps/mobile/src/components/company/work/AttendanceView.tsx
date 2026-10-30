@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
 import { EditTextSheet } from '@/components/EditTextSheet';
@@ -44,8 +45,14 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
     theme = useTheme(),
     clearance = useBottomClearance();
   const today = todayIso();
+  // The Overview opens this for the day it was showing; anything that is not a real past day falls back to today.
+  const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
+  const startDate =
+    typeof dateParam === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam <= today
+      ? dateParam
+      : today;
   const [period, setPeriod] = useState<Period>('daily'),
-    [date, setDate] = useState(today);
+    [date, setDate] = useState(startDate);
   const [search, setSearch] = useState(''),
     [filterOpen, setFilterOpen] = useState(false),
     [dateOpen, setDateOpen] = useState(false);
