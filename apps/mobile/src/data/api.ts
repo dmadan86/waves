@@ -2487,6 +2487,8 @@ export async function setCompanyEmployment(
     employed: boolean;
     endedOn?: string | null;
     note?: string | null;
+    clearEmployeeId?: boolean;
+    newEmployeeId?: string;
   },
 ): Promise<void> {
   const { error } = await backend.rpc('waves_company_employment_set', {
@@ -2495,6 +2497,8 @@ export async function setCompanyEmployment(
     p_employed: input.employed,
     p_ended_on: input.endedOn ?? null,
     p_note: input.note?.trim().slice(0, 200) || null,
+    p_clear_employee_id: input.clearEmployeeId ?? false,
+    p_new_employee_id: input.newEmployeeId?.trim() || null,
   });
   if (error) throw new Error(error.message);
 }

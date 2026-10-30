@@ -79,7 +79,7 @@ $function$;
 -- p_employed=true restores. Owner: any employee or manager (not another owner). Manager: only their own team.
 -- Ending a manager moves their team to "no manager" (owner) and revokes their invites; a manager who still
 -- holds company float must settle it first (MANAGER_HAS_POOL). Nothing is written to the ledger.
-CREATE FUNCTION public.waves_company_employment_set(p_group_id uuid, p_member_id uuid, p_employed boolean, p_ended_on date DEFAULT NULL, p_note text DEFAULT NULL) RETURNS void
+CREATE FUNCTION public.waves_company_employment_set(p_group_id uuid, p_member_id uuid, p_employed boolean, p_ended_on date DEFAULT NULL, p_note text DEFAULT NULL, p_clear_employee_id boolean DEFAULT false, p_new_employee_id text DEFAULT NULL) RETURNS void
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 DECLARE me uuid; t public.group_members%ROWTYPE; v_note text:=nullif(btrim(coalesce(p_note,'')),''); v_day date:=coalesce(p_ended_on,current_date);
 BEGIN
@@ -94,6 +94,7 @@ BEGIN
  IF p_employed THEN
   IF t.left_at IS NULL AND t.removed_at IS NULL THEN RETURN; END IF;
   UPDATE public.group_members SET left_at=NULL,removed_at=NULL,removed_by=NULL,employment_ended_on=NULL,employment_note=NULL,updated_at=now(),
+   employee_id=CASE WHEN p_clear_employee_id THEN NULL WHEN p_new_employee_id IS NOT NULL THEN btrim(p_new_employee_id) ELSE employee_id END,
    manager_id=CASE WHEN manager_id IS NOT NULL AND public.waves_company_manager_ok(p_group_id,manager_id) THEN manager_id END
    WHERE id=t.id;
   RETURN;
@@ -108,8 +109,8 @@ BEGIN
  UPDATE public.group_members SET left_at=now(),removed_at=now(),removed_by=public.waves_current_profile_id(),employment_ended_on=v_day,employment_note=v_note,updated_at=now() WHERE id=t.id;
 EXCEPTION WHEN unique_violation THEN RAISE EXCEPTION 'EMPLOYEE_ID_TAKEN' USING ERRCODE='check_violation';
 END $$;
-REVOKE ALL ON FUNCTION public.waves_company_employment_set(uuid,uuid,boolean,date,text) FROM PUBLIC,anon;
-GRANT EXECUTE ON FUNCTION public.waves_company_employment_set(uuid,uuid,boolean,date,text) TO authenticated,service_role;
+REVOKE ALL ON FUNCTION public.waves_company_employment_set(uuid,uuid,boolean,date,text,boolean,text) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.waves_company_employment_set(uuid,uuid,boolean,date,text,boolean,text) TO authenticated,service_role;
 
 -- Managers (and owners) keep seeing the not-employed people they may restore: their rows and history stay in scope.
 CREATE OR REPLACE FUNCTION public.waves_company_people(p_group_id uuid)

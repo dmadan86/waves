@@ -1444,6 +1444,10 @@ export interface UiStrings {
     employmentDenied: string;
     employmentFailed: string;
     employmentInvalidDate: string;
+    employeeIdInUseBy: string;
+    restoreWithoutId: string;
+    pickNewId: string;
+    newEmployeeId: string;
     employeeOptions: string;
     noEmployeesMatch: string;
     qaAdvance: string;
@@ -7969,6 +7973,10 @@ const en: UiStrings = {
     employmentDenied: 'You cannot change this person’s employment status',
     employmentFailed: 'Could not update employment. Try again.',
     employmentInvalidDate: 'Enter a valid date (YYYY-MM-DD)',
+    employeeIdInUseBy: '{id} is now used by {name}',
+    restoreWithoutId: 'Restore without an ID',
+    pickNewId: 'Pick a new ID',
+    newEmployeeId: 'New employee ID',
     employeeOptions: 'Employee options',
     noEmployeesMatch: 'No employee matches',
     qaAdvance: 'Give advance',
@@ -13948,6 +13956,10 @@ const ta: UiStrings = {
     employmentDenied: 'இவரின் பணி நிலையை மாற்ற முடியாது',
     employmentFailed: 'பணி நிலையை மாற்ற முடியவில்லை. மீண்டும் முயலவும்.',
     employmentInvalidDate: 'சரியான தேதியை உள்ளிடவும் (YYYY-MM-DD)',
+    employeeIdInUseBy: '{id} இப்போது {name} பயன்படுத்துகிறார்',
+    restoreWithoutId: 'ஊழியர் எண் இல்லாமல் மீட்டமை',
+    pickNewId: 'புதிய ஊழியர் எண்ணைத் தேர்ந்தெடு',
+    newEmployeeId: 'புதிய ஊழியர் எண்',
     employeeOptions: 'ஊழியர் விருப்பங்கள்',
     noEmployeesMatch: 'பொருந்தும் ஊழியர் இல்லை',
     qaAdvance: 'முன்பணம் கொடு',
@@ -20095,6 +20107,10 @@ const hi: UiStrings = {
     employmentDenied: 'आप इस व्यक्ति की रोजगार स्थिति नहीं बदल सकते',
     employmentFailed: 'रोजगार स्थिति अपडेट नहीं हुई। फिर कोशिश करें।',
     employmentInvalidDate: 'सही तारीख डालें (YYYY-MM-DD)',
+    employeeIdInUseBy: '{id} अब {name} इस्तेमाल कर रहे हैं',
+    restoreWithoutId: 'आईडी के बिना बहाल करें',
+    pickNewId: 'नई आईडी चुनें',
+    newEmployeeId: 'नई कर्मचारी आईडी',
     employeeOptions: 'कर्मचारी विकल्प',
     noEmployeesMatch: 'कोई कर्मचारी नहीं मिला',
     qaAdvance: 'एडवांस दें',
@@ -26134,6 +26150,10 @@ const ar: UiStrings = {
     employmentDenied: 'لا يمكنك تغيير حالة توظيف هذا الشخص',
     employmentFailed: 'تعذر تحديث التوظيف. حاول مجدداً.',
     employmentInvalidDate: 'أدخل تاريخاً صالحاً (YYYY-MM-DD)',
+    employeeIdInUseBy: 'أصبح {id} مستخدماً لدى {name}',
+    restoreWithoutId: 'استعد دون رقم موظف',
+    pickNewId: 'اختر رقماً جديداً',
+    newEmployeeId: 'رقم الموظف الجديد',
     employeeOptions: 'خيارات الموظف',
     noEmployeesMatch: 'لا يوجد موظف مطابق',
     qaAdvance: 'أعطِ سلفة',

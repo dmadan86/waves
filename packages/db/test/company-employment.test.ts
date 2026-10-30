@@ -483,4 +483,35 @@ describe('company employment status', () => {
       );
       expect(rows.map((r: { member_id: string }) => r.member_id)).toContain(g.memberIds[2]);
     }));
+
+  it('restores without an ID or with a new one when the old ID was taken meanwhile', () =>
+    isolated(async () => {
+      const setId = (member: number, id: string) =>
+        as(0, () =>
+          db.query('SELECT waves_company_employee_id_set($1,$2,$3)', [
+            g.groupId,
+            g.memberIds[member],
+            id,
+          ]),
+        );
+      await setId(2, 'WV-T-004');
+      await employment(0, 2, false);
+      await setId(3, 'WV-T-004');
+      const restore = (clear: boolean, id: string | null) =>
+        as(0, () =>
+          db.query('SELECT waves_company_employment_set($1,$2,true,NULL,NULL,$3,$4)', [
+            g.groupId,
+            g.memberIds[2],
+            clear,
+            id,
+          ]),
+        );
+      await denied(() => restore(false, null), /EMPLOYEE_ID_TAKEN/);
+      await restore(true, null);
+      expect(
+        (await db.query('SELECT employee_id FROM group_members WHERE id=$1', [g.memberIds[2]]))
+          .rows[0].employee_id,
+      ).toBeNull();
+      expect((await member()).left_at).toBeNull();
+    }));
 });
