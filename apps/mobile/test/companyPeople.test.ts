@@ -33,7 +33,7 @@ describe('employment type', () => {
 });
 
 describe('today maps', () => {
-  it('counts only today\'s tasks that are not done', () => {
+  it("counts only today's tasks that are not done", () => {
     const t = (memberId: string, day: string, status: string) =>
       ({ id: memberId + day + status, memberId, day, status }) as never;
     const map = openTasksToday(
@@ -52,7 +52,12 @@ describe('today maps', () => {
     const e = (memberId: string, amount: bigint, occurredOn: string, deleted = false) =>
       ({ kind: 'allocation', memberId, amount, occurredOn, deleted }) as never;
     const map = monthlyBudgets(
-      [e('m', 100n, '2026-10-02'), e('m', 50n, '2026-10-20'), e('m', 9n, '2026-09-30'), e('m', 7n, '2026-10-03', true)],
+      [
+        e('m', 100n, '2026-10-02'),
+        e('m', 50n, '2026-10-20'),
+        e('m', 9n, '2026-09-30'),
+        e('m', 7n, '2026-10-03', true),
+      ],
       '2026-10',
     );
     expect(map.get('m')).toBe(150n);

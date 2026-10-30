@@ -39,6 +39,7 @@ import {
   attendanceToday,
   balancesByMember,
   canSetEmploymentType,
+  managerBalances,
   monthlyBudgets,
   openTasksToday,
   type Balance,
@@ -49,6 +50,7 @@ import { canSetEmployment, employmentPeople, isNotEmployed } from '@/data/compan
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
+import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 
 type Tab = 'employees' | 'managers' | 'owners' | 'notEmployed';
@@ -97,9 +99,23 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
 
   // Maps built once; rows only look up.
   const balances = useMemo(
-    () => balancesByMember(view.entries, [...employeeRows, ...managers].map((m) => m.id), today),
+    () =>
+      balancesByMember(
+        view.entries,
+        employeeRows.map((m) => m.id),
+        today,
+      ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- members change identity every render; ids are what matter
     [view.entries, view.members, today],
+  );
+  const poolBalances = useMemo(
+    () =>
+      managerBalances(
+        view.entries,
+        managers.map((m) => m.id),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ids are what matter
+    [view.entries, view.members],
   );
   const tasks = useMemo(() => openTasksToday(allTasks, today), [allTasks, today]);
   const budgets = useMemo(
@@ -181,7 +197,9 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
         balanceText={amountText(balance)}
         chip={
           gone
-            ? (m.employment_ended_on ?? undefined)
+            ? m.employment_ended_on
+              ? showDate(m.employment_ended_on, locale)
+              : undefined
             : (m.employee_id ?? (balance.kind === 'settled' ? t.company.settled : undefined))
         }
         muted={gone}
@@ -279,10 +297,11 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   const managerCard = (m: MemberRow) => {
     const team = teamOf(m.id);
     const open = expanded === m.id;
-    const balance = balanceOf(m.id);
+    const balance = poolBalances.get(m.id) ?? SETTLED;
     const budget = budgets.get(m.id) ?? 0n;
     const teamTasks = team.reduce((sum, e) => sum + (tasks.get(e.id) ?? 0), 0);
-    const balanceColor = balance.kind === 'owesCompany' ? theme.color.negative : theme.color.positive;
+    const balanceColor =
+      balance.kind === 'owesCompany' ? theme.color.negative : theme.color.positive;
     const stat = (icon: keyof typeof Ionicons.glyphMap, value: string, label: string) => (
       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
         <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
@@ -341,7 +360,11 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
               color={balanceColor}
             />
             <View style={{ flexShrink: 1 }}>
-              <Text variant="body" style={{ fontWeight: '700', color: balanceColor }} numberOfLines={1}>
+              <Text
+                variant="body"
+                style={{ fontWeight: '700', color: balanceColor }}
+                numberOfLines={1}
+              >
                 {amountText(balance)}
               </Text>
               {balance.kind === 'settled' ? null : (
@@ -395,7 +418,11 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
         },
         ...(view.isOwner
           ? ([
-              { icon: 'people-circle-outline', count: managers.length, label: t.company.tabManagers },
+              {
+                icon: 'people-circle-outline',
+                count: managers.length,
+                label: t.company.tabManagers,
+              },
               {
                 icon: 'ribbon-outline',
                 count: owners.length,

@@ -3,9 +3,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Sheet, useTheme } from '@waves/ui';
 
 import { ListRow, SectionHeader } from '@/components/standard';
+import { employmentErrorKey } from '@/data/companyEmployment';
 import { asEmploymentType, EMPLOYMENT_TYPES, type EmploymentType } from '@/data/companyPeople';
 import { useSetEmploymentType } from '@/data/hooks';
 import { useStrings } from '@/i18n';
+import { useDialog } from '@/lib/dialog';
 
 export function useEmploymentTypeLabel(): (type: string | null | undefined) => string | undefined {
   const { t } = useStrings();
@@ -38,6 +40,7 @@ export function EmploymentTypeSheet({
   const { t } = useStrings();
   const label = useEmploymentTypeLabel();
   const set = useSetEmploymentType(groupId);
+  const { notify } = useDialog();
   const selected = asEmploymentType(current);
   const options: (EmploymentType | null)[] = [null, ...EMPLOYMENT_TYPES];
   return (
@@ -53,9 +56,20 @@ export function EmploymentTypeSheet({
                 <Ionicons name="checkmark" size={20} color={theme.color.brand} />
               ) : undefined
             }
-            onPress={() =>
-              set.mutate({ memberId, employmentType: type }, { onSuccess: onClose })
-            }
+            onPress={() => {
+              if (set.isPending) return;
+              set.mutate(
+                { memberId, employmentType: type },
+                {
+                  onSuccess: onClose,
+                  onError: (error) =>
+                    void notify({
+                      title: t.company.employmentFailed,
+                      body: t.company[employmentErrorKey(error)],
+                    }),
+                },
+              );
+            }}
             divider={i < options.length - 1}
           />
         ))}
