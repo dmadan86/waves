@@ -1,6 +1,6 @@
 /** Pure helpers behind the People screen: employment type, today's attendance/tasks and balances, built once per render. */
 
-import { dashboardStats, type CompanyEntry } from '@waves/core';
+import { dashboardStats, poolBalance, type CompanyEntry } from '@waves/core';
 
 import type { MirrorAttendance, MirrorWorkTask } from '@/data/companyWorkday';
 import type { MemberRow } from '@/data/types';
@@ -87,5 +87,28 @@ export function monthlyBudgets(
   for (const e of entries)
     if (e.kind === 'allocation' && !e.deleted && e.occurredOn.slice(0, 7) === month)
       out.set(e.memberId, (out.get(e.memberId) ?? 0n) + e.amount);
+  return out;
+}
+
+/**
+ * A manager's balance is their cash pool, not an employee ledger (allocations, returns and spend
+ * all count): float still held reads "owes company", a pool overspent reads "company owes".
+ */
+export function managerBalances(
+  entries: readonly CompanyEntry[],
+  managerIds: readonly string[],
+): ReadonlyMap<string, Balance> {
+  const out = new Map<string, Balance>();
+  for (const id of managerIds) {
+    const bal = poolBalance(entries, id).balance;
+    out.set(
+      id,
+      bal > 0n
+        ? { kind: 'owesCompany', amount: bal }
+        : bal < 0n
+          ? { kind: 'companyOwes', amount: -bal }
+          : { kind: 'settled', amount: 0n },
+    );
+  }
   return out;
 }
