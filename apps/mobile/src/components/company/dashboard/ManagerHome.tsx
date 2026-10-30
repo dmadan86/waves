@@ -19,7 +19,7 @@ import {
   useMoney,
 } from '@/components/company/dashboard/parts';
 import { SectionShell } from '@/components/company/bar/SectionShell';
-import { PendingApprovals } from '@/components/company/dashboard/PendingApprovals';
+import { PendingCard } from '@/components/company/dashboard/PendingCard';
 import { WorkdayTiles } from '@/components/company/WorkdayEntries';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
@@ -66,7 +66,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
   return (
     <SectionShell groupId={groupId} view={view} overview>
       <>
-        <PendingApprovals groupId={groupId} view={view} teaser />
+        <PendingCard groupId={groupId} />
         <StandardCard style={{ gap: theme.spacing.sm }}>
           <Text variant="caption" tone="muted">
             {t.company.yourBudget}
