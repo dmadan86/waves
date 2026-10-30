@@ -37,8 +37,13 @@ export function useCompanyCard(groupId: string): CardView {
   const suspended = useCompanySuspended(groupId);
   const myId = view.me?.id ?? null;
   const card = useMemo(
-    () => materialiseCompanyCard(mirror, queue, { groupId, myMemberId: myId }),
-    [mirror, queue, groupId, myId],
+    () =>
+      materialiseCompanyCard(mirror, queue, {
+        groupId,
+        myMemberId: myId,
+        canSeeBank: view.isOwner || view.isManager || view.isVendor,
+      }),
+    [mirror, queue, groupId, myId, view.isOwner, view.isManager, view.isVendor],
   );
   return {
     card,

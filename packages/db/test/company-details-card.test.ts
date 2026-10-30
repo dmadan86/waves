@@ -168,7 +168,7 @@ describe('vendor card', () => {
   it('visible to owner, owning manager and that vendor only', () =>
     isolated(async () => {
       await setVendor(0, ravi, card());
-      await setVendor(1, mine, card({ phone: '1' }));
+      await setVendor(1, mine, card({ phone: '123' }));
       expect((await rows(0, 'SELECT vendor_id FROM company_vendor_details')).length).toBe(2);
       expect(
         (await rows(1, 'SELECT vendor_id FROM company_vendor_details')).map((r) => r.vendor_id),
@@ -208,6 +208,7 @@ describe('validation and blocking', () => {
     ['upi', 'no-at-sign'],
     ['email', 'nope'],
     ['bankAccount', '12'],
+    ['phone', 'abc'],
     ['note', 'x'.repeat(501)],
     ['address', 'x'.repeat(301)],
   ])('rejects a bad %s', (k, v) =>

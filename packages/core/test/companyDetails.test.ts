@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { emptyMirror } from '../src/sync/mirror';
+import { materialiseCompanyCard } from '../src/sync/detailsMirror';
+import { SyncTable } from '../src/sync/protocol';
 import {
   bankNoticeKey,
   cleanDetails,
@@ -75,5 +78,31 @@ describe('details card', () => {
     expect(showBankNotice(card, 'm2', true)).toBe(false);
     expect(showBankNotice({ bankChangedAt: null, bankChangedBy: null }, 'm2', false)).toBe(false);
     expect(bankNoticeKey('c', card.bankChangedAt)).toBe('c:2026-10-28T10:00:00Z');
+  });
+});
+
+describe('details mirror', () => {
+  it('never shows a cached bank/PAN row to someone who may not see it', () => {
+    const state = emptyMirror() as unknown as { tables: Record<string, Record<string, unknown>> };
+    const g = 'g1';
+    state.tables[SyncTable.CompanyDetails]!['g1'] = {
+      id: g,
+      group_id: g,
+      phone: '123',
+      updated_at: 't',
+    };
+    state.tables[SyncTable.CompanyDetailsSecure]!['g1'] = {
+      id: g,
+      group_id: g,
+      bank_account: '123456785678',
+      pan: 'ABCDE1234F',
+    };
+    const base = { groupId: g, myMemberId: 'm' };
+    const emp = materialiseCompanyCard(state as never, [], { ...base, canSeeBank: false });
+    expect(emp?.values.phone).toBe('123');
+    expect(emp?.values.bankAccount).toBeNull();
+    expect(emp?.values.pan).toBeNull();
+    const owner = materialiseCompanyCard(state as never, [], { ...base, canSeeBank: true });
+    expect(owner?.values.bankAccount).toBe('123456785678');
   });
 });
