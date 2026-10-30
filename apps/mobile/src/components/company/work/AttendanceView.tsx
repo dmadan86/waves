@@ -33,6 +33,17 @@ import {
 } from '@/lib/companyAttendance';
 
 type Period = 'daily' | 'weekly' | 'monthly';
+
+/** present covers half days, as the Overview counts them; unmarked is no mark at all. */
+const matchesStatus = (
+  mark: AttendanceStatus | undefined,
+  filter: 'present' | 'absent' | 'unmarked',
+): boolean =>
+  filter === 'unmarked'
+    ? !mark
+    : filter === 'present'
+      ? mark === 'present' || mark === 'half'
+      : mark === 'absent';
 export default function AttendanceView({ groupId: id }: { groupId: string }) {
   const access = useWorkdayAccess(id),
     marks = useAttendance(id),
@@ -46,11 +57,20 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
     clearance = useBottomClearance();
   const today = todayIso();
   // The Overview opens this for the day it was showing; anything that is not a real past day falls back to today.
-  const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
+  const { date: dateParam, status: statusParam } = useLocalSearchParams<{
+    date?: string;
+    status?: string;
+  }>();
   const startDate =
     typeof dateParam === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam <= today
       ? dateParam
       : today;
+  // The Overview legend opens the list for one mark: present, absent or still pending.
+  const [statusFilter, setStatusFilter] = useState<'present' | 'absent' | 'unmarked' | null>(
+    statusParam === 'present' || statusParam === 'absent' || statusParam === 'unmarked'
+      ? statusParam
+      : null,
+  );
   const [period, setPeriod] = useState<Period>('daily'),
     [date, setDate] = useState(startDate);
   const [search, setSearch] = useState(''),
@@ -77,6 +97,11 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
       }),
     [access.people, search, department, manager, site, siteMembers],
   );
+  // The status filter only narrows the daily list; the counts above it stay for everyone.
+  const shown =
+    statusFilter && period === 'daily'
+      ? people.filter((p) => matchesStatus(marks.get(`${p.id}|${date}`)?.status, statusFilter))
+      : people;
   const dayRows = people
     .map((p) => marks.get(`${p.id}|${date}`))
     .filter((v): v is NonNullable<typeof v> => !!v);
@@ -99,6 +124,12 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
     year: 'numeric',
     timeZone: 'UTC',
   });
+  const statusLabel = (k: 'present' | 'absent' | 'unmarked') =>
+    k === 'present'
+      ? t.company.attendancePresent
+      : k === 'absent'
+        ? t.company.attendanceAbsent
+        : t.company.overviewUnmarked;
   const days = weekDays(date);
   const filtersOn = !!(department || manager || site);
   const filterChips = (
@@ -270,8 +301,30 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
                         }
                       />
                     </View>
+                    {statusFilter ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${t.common.close}: ${statusLabel(statusFilter)}`}
+                        onPress={() => setStatusFilter(null)}
+                        style={{
+                          alignSelf: 'flex-start',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 6,
+                          minHeight: 36,
+                          paddingHorizontal: 12,
+                          borderRadius: 18,
+                          backgroundColor: theme.color.brandSoft,
+                        }}
+                      >
+                        <Text style={{ color: theme.color.brand, fontWeight: '600' }}>
+                          {statusLabel(statusFilter)}
+                        </Text>
+                        <Ionicons name="close" size={16} color={theme.color.brand} />
+                      </Pressable>
+                    ) : null}
                     <StandardCard style={{ padding: 0, overflow: 'hidden' }}>
-                      {people.map((person, index) => {
+                      {shown.map((person, index) => {
                         const mark = marks.get(`${person.id}|${date}`);
                         const title = displayName(person);
                         return (
@@ -279,7 +332,7 @@ export default function AttendanceView({ groupId: id }: { groupId: string }) {
                             key={person.id}
                             style={{
                               padding: 12,
-                              borderBottomWidth: index < people.length - 1 ? 1 : 0,
+                              borderBottomWidth: index < shown.length - 1 ? 1 : 0,
                               borderColor: theme.color.border,
                               gap: 8,
                             }}

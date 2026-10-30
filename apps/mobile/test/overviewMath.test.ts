@@ -4,6 +4,11 @@ import {
   absentStreak,
   agoText,
   attendanceSegments,
+  attendanceSummary,
+  buildAttention,
+  moneyEmpty,
+  taskOverdue,
+  upcomingLayout,
   buildEscalations,
   buildUpcomingCards,
   compactMoney,
@@ -119,5 +124,70 @@ describe('overview math', () => {
     ]);
     expect(cards.find((c) => c.kind === 'payroll')?.people).toEqual(['a', 'b']);
     expect(buildUpcomingCards([], today)).toEqual([]);
+  });
+});
+
+describe('overview redesign rules', () => {
+  it('attendance counts add up, also with no employees', () => {
+    expect(attendanceSummary({ present: 2, leave: 1, unmarked: 3, absent: 1 })).toEqual({
+      total: 7,
+      present: 2,
+      allMarked: false,
+    });
+    expect(attendanceSummary({ present: 0, leave: 0, unmarked: 0, absent: 0 })).toEqual({
+      total: 0,
+      present: 0,
+      allMarked: true,
+    });
+    expect(attendanceSummary({ present: 3, leave: 0, unmarked: 0, absent: 1 }).allMarked).toBe(
+      true,
+    );
+  });
+  it('vs last month: up, down, no base, no change', () => {
+    expect(vsLastMonth(11200n, 10000n)).toEqual({ dir: 'up', pct: 12 });
+    expect(vsLastMonth(5000n, 10000n)).toEqual({ dir: 'down', pct: 50 });
+    expect(vsLastMonth(5000n, 0n)).toBeNull();
+    expect(vsLastMonth(10000n, 10000n)).toBeNull();
+  });
+  it('money cards say something helpful at zero', () => {
+    expect(moneyEmpty({ owes: 0n, pendingPayments: 0, paidMonth: 0n, advances: 0n })).toEqual({
+      owes: true,
+      paid: true,
+      advances: true,
+    });
+    expect(moneyEmpty({ owes: 5n, pendingPayments: 1, paidMonth: 1n, advances: 1n })).toEqual({
+      owes: false,
+      paid: false,
+      advances: false,
+    });
+  });
+  it('attention puts escalations first and caps at three', () => {
+    const esc = [
+      { key: 'e1', kind: 'advance' as const },
+      { key: 'e2', kind: 'expense' as const },
+    ];
+    const tasks = [
+      { id: 't1', dueTime: null },
+      { id: 't2', dueTime: null },
+    ];
+    const a = buildAttention(esc, tasks, 2, 2);
+    expect(a.items.map((i) => i.key)).toEqual(['e1', 'e2', 't1']);
+    expect(a.total).toBe(4);
+    expect(a.seeAll).toBe('work');
+    expect(buildAttention(esc, tasks, 5, 2).seeAll).toBe('pending');
+    expect(buildAttention([], tasks, 0, 2).seeAll).toBe('work');
+    expect(buildAttention(esc, [], 2, 0).seeAll).toBe('pending');
+    expect(buildAttention([], [], 0, 0)).toEqual({ items: [], total: 0, seeAll: 'work' });
+  });
+  it('overdue only when a due time has passed', () => {
+    const noon = new Date(2026, 9, 30, 12, 0).getTime();
+    expect(taskOverdue('09:00', noon)).toBe(true);
+    expect(taskOverdue('18:00', noon)).toBe(false);
+    expect(taskOverdue(null, noon)).toBe(false);
+  });
+  it('upcoming layout by count', () => {
+    expect(upcomingLayout(0)).toBe('none');
+    expect(upcomingLayout(1)).toBe('single');
+    expect(upcomingLayout(4)).toBe('many');
   });
 });

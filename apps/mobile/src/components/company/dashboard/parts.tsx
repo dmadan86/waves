@@ -240,7 +240,7 @@ export function DashHeader({
     : [theme.color.brandSoft, theme.color.surface];
   return (
     <>
-      <View style={{ paddingTop: insets.top + 6, paddingBottom: 34 }}>
+      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview ? 14 : 34 }}>
         <View
           pointerEvents="none"
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
@@ -307,25 +307,41 @@ export function DashHeader({
             />
           ) : null}
         </View>
-        {overview && !pill ? null : (
+        {overview ? (
+          <View
+            style={{
+              marginHorizontal: theme.spacing.lg,
+              marginTop: 10,
+              gap: 2,
+              // Keep the heading clear of the building art on the right.
+              marginEnd: 96,
+            }}
+          >
+            <Text variant="title" accessibilityRole="header" style={{ fontSize: 18 }}>
+              {t.company.ovTodayOverview}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text variant="caption" tone="muted" style={{ flexShrink: 1 }}>
+                {subtitle}
+              </Text>
+              {pill ? <RolePill label={pill} /> : null}
+            </View>
+          </View>
+        ) : (
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              marginStart: overview ? theme.spacing.lg : theme.spacing.md + 42,
-              marginEnd: overview ? 96 : 76,
+              marginStart: theme.spacing.md + 42,
+              marginEnd: 76,
               marginTop: 2,
             }}
           >
-            {overview ? null : (
-              <Ionicons name="people-outline" size={iconSize.base} color={theme.color.text} />
-            )}
-            {overview ? null : (
-              <Text variant="caption" numberOfLines={2} style={{ fontSize: 12.5, flexShrink: 1 }}>
-                {subtitle}
-              </Text>
-            )}
+            <Ionicons name="people-outline" size={iconSize.base} color={theme.color.text} />
+            <Text variant="caption" numberOfLines={2} style={{ fontSize: 12.5, flexShrink: 1 }}>
+              {subtitle}
+            </Text>
             {pill ? <RolePill label={pill} /> : null}
           </View>
         )}

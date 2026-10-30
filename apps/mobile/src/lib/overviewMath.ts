@@ -199,3 +199,72 @@ export function buildUpcomingCards(
     .sort((a, b) => a.day.localeCompare(b.day) || (a.time ?? '').localeCompare(b.time ?? ''))
     .slice(0, limit);
 }
+
+/** "X of N present" plus whether everyone is marked; zero employees is 0 of 0 and counts as nothing left to mark. */
+export function attendanceSummary(c: {
+  present: number;
+  leave: number;
+  unmarked: number;
+  absent: number;
+}): { total: number; present: number; allMarked: boolean } {
+  const total = c.present + c.leave + c.unmarked + c.absent;
+  return { total, present: c.present, allMarked: c.unmarked === 0 };
+}
+
+export type MoneyEmpty = { owes: boolean; paid: boolean; advances: boolean };
+
+/** Which money cards have nothing to say (the card then shows a helpful line instead of "0 payments"). */
+export function moneyEmpty(m: {
+  owes: bigint;
+  pendingPayments: number;
+  paidMonth: bigint;
+  advances: bigint;
+}): MoneyEmpty {
+  return {
+    owes: m.owes <= 0n && m.pendingPayments === 0,
+    paid: m.paidMonth <= 0n,
+    advances: m.advances <= 0n,
+  };
+}
+
+export type AttentionEsc = { key: string; kind: EscalationKind };
+export type AttentionTask = { id: string; dueTime: string | null };
+export type AttentionItem =
+  { type: 'escalation'; key: string; index: number } | { type: 'task'; key: string; index: number };
+
+/**
+ * One "Needs your attention" list: urgent escalations first, then today's open tasks, at most `limit`.
+ * `escTotal` / `taskTotal` are the whole counts; "See all" goes to Pending when an escalation is
+ * hidden (or only escalations exist), else to the Work screen.
+ */
+export function buildAttention(
+  esc: readonly AttentionEsc[],
+  tasks: readonly AttentionTask[],
+  escTotal: number,
+  taskTotal: number,
+  limit = 3,
+): { items: AttentionItem[]; total: number; seeAll: 'pending' | 'work' } {
+  const shownEsc = esc.slice(0, limit);
+  const shownTasks = tasks.slice(0, Math.max(0, limit - shownEsc.length));
+  const items: AttentionItem[] = [
+    ...shownEsc.map((e, index) => ({ type: 'escalation' as const, key: e.key, index })),
+    ...shownTasks.map((t, index) => ({ type: 'task' as const, key: t.id, index })),
+  ];
+  const hiddenEsc = escTotal > shownEsc.length;
+  const hiddenTasks = taskTotal > shownTasks.length;
+  const seeAll = hiddenEsc || (!hiddenTasks && escTotal > 0) ? 'pending' : 'work';
+  return { items, total: escTotal + taskTotal, seeAll };
+}
+
+/** An open task is overdue once its due time (today) has passed; tasks without a time never are. */
+export function taskOverdue(dueTime: string | null, nowMsValue: number): boolean {
+  if (!dueTime) return false;
+  const d = new Date(nowMsValue);
+  const hhmm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  return dueTime.slice(0, 5) < hhmm;
+}
+
+/** Upcoming layout by how many cards there are: none hides, one is a full-width row, several scroll sideways. */
+export function upcomingLayout(n: number): 'none' | 'single' | 'many' {
+  return n <= 0 ? 'none' : n === 1 ? 'single' : 'many';
+}
