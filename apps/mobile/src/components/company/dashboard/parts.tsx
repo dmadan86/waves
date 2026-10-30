@@ -202,34 +202,6 @@ function OverviewBell({ groupId }: { groupId: string }) {
   );
 }
 
-/** "Good evening," over the viewer's first name: the Overview hero's greeting. */
-function Greeting({ view }: { view: CompanyView }) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const hour = new Date().getHours();
-  const hello =
-    hour < 12 ? t.dashHero.morning : hour < 17 ? t.dashHero.afternoon : t.dashHero.evening;
-  const first = view.me ? displayName(view.me, null, null, '').trim().split(/\s+/)[0] : '';
-  return (
-    <View style={{ marginStart: theme.spacing.lg, marginEnd: 96, marginTop: 14 }}>
-      <Text variant="body" numberOfLines={1} style={{ fontSize: 16 }}>
-        {hello}
-      </Text>
-      {first ? (
-        <Text
-          variant="title"
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.6}
-          style={{ fontSize: 32, lineHeight: 38, fontWeight: '800' }}
-        >
-          {`${first} 👋`}
-        </Text>
-      ) : null}
-    </View>
-  );
-}
-
 export function DashHeader({
   groupId,
   view,
@@ -268,7 +240,7 @@ export function DashHeader({
     : [theme.color.brandSoft, theme.color.surface];
   return (
     <>
-      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview ? 52 : 34 }}>
+      <View style={{ paddingTop: insets.top + 6, paddingBottom: 34 }}>
         <View
           pointerEvents="none"
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
@@ -283,7 +255,7 @@ export function DashHeader({
               right: overview ? 8 : 24,
               top: insets.top + (overview ? 14 : 30),
               width: overview ? 176 : 132,
-              height: overview ? 163 : 122,
+              height: 122,
               opacity: dark ? 0.48 : 0.68,
             }}
           />
@@ -335,29 +307,28 @@ export function DashHeader({
             />
           ) : null}
         </View>
-        {overview ? <Greeting view={view} /> : null}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            marginStart: overview ? theme.spacing.lg : theme.spacing.md + 42,
-            marginEnd: overview ? 96 : 76,
-            marginTop: 2,
-          }}
-        >
-          {overview ? null : (
-            <Ionicons name="people-outline" size={iconSize.base} color={theme.color.text} />
-          )}
-          <Text
-            variant="caption"
-            numberOfLines={2}
-            style={{ fontSize: overview ? 13 : 12.5, flexShrink: 1 }}
+        {overview && !pill ? null : (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              marginStart: overview ? theme.spacing.lg : theme.spacing.md + 42,
+              marginEnd: overview ? 96 : 76,
+              marginTop: 2,
+            }}
           >
-            {subtitle}
-          </Text>
-          {pill ? <RolePill label={pill} /> : null}
-        </View>
+            {overview ? null : (
+              <Ionicons name="people-outline" size={iconSize.base} color={theme.color.text} />
+            )}
+            {overview ? null : (
+              <Text variant="caption" numberOfLines={2} style={{ fontSize: 12.5, flexShrink: 1 }}>
+                {subtitle}
+              </Text>
+            )}
+            {pill ? <RolePill label={pill} /> : null}
+          </View>
+        )}
         {voice && !view.suspended ? (
           <Pressable
             accessibilityRole="button"
