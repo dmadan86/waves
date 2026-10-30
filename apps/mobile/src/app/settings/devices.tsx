@@ -43,7 +43,7 @@ import { router } from '@/lib/navigation';
  * decides which glyph sits in front of a row — a browser session is a laptop,
  * everything else is the phone this app usually is.
  */
-function deviceGlyph(platform: string) {
+export function deviceGlyph(platform: string) {
   const p = platform.toLowerCase();
   const isDesktop = /web|mac|windows|linux|desktop|chrome|firefox|safari|browser|edge/.test(p);
   return isDesktop ? 'desktop-outline' : 'phone-portrait-outline';

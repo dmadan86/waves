@@ -167,7 +167,18 @@ export function ScenicHeader({
           )}
         </Row>
         {subtitle ? (
-          <Text variant="caption" tone="muted" align="center" style={{ marginTop: 2 }}>
+          <Text
+            variant="caption"
+            tone="muted"
+            align={titleAlign === 'start' ? 'left' : 'center'}
+            style={{
+              marginTop: 2,
+              // Sits under the title, past the back button, when the title is set against it.
+              marginStart: titleAlign === 'start' ? 40 + theme.spacing.md : 0,
+              // Leaves the right-hand end of the photo free for any art there.
+              marginEnd: titleAlign === 'start' ? theme.spacing.xxl : 0,
+            }}
+          >
             {subtitle}
           </Text>
         ) : null}
