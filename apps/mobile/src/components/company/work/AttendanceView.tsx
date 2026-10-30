@@ -75,7 +75,10 @@ export default function AttendanceView({
   const leave = useCalendar(id).leave;
   const [period, setPeriod] = useState<Period>('daily'),
     [date, setDate] = useState(
-      typeof dateParam === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) && dateParam <= today
+      typeof dateParam === 'string' &&
+        /^\d{4}-\d{2}-\d{2}$/.test(dateParam) &&
+        new Date(`${dateParam}T00:00:00Z`).toISOString().startsWith(dateParam) &&
+        dateParam <= today
         ? dateParam
         : today,
     );
