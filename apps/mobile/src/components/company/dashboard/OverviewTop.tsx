@@ -62,40 +62,45 @@ export function OverviewTop({
       </View>
     );
 
+  // No employees: an invite card in place of attendance and tasks; money and what is coming up still show.
   if (o.people.length === 0)
     return (
-      <TintCard
-        ink={theme.color.brand}
-        style={{ alignItems: 'center', gap: 8, padding: 20, marginTop: -28 }}
-      >
-        <IconDisc ink={theme.color.brand} size={48}>
-          <Ionicons name="person-add-outline" size={iconSize.lg} color={theme.color.brand} />
-        </IconDisc>
-        <Text variant="title" align="center">
-          {t.company.ovEmptyTitle}
-        </Text>
-        <Text variant="caption" tone="muted" align="center">
-          {t.company.ovEmptyBody}
-        </Text>
-        {o.isOwner && !o.suspended ? (
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => router.push(`/group/${groupId}/invite`)}
-            style={{
-              marginTop: 4,
-              paddingHorizontal: 18,
-              height: 42,
-              borderRadius: 14,
-              justifyContent: 'center',
-              backgroundColor: theme.color.brand,
-            }}
-          >
-            <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>
-              {t.company.qaInvite}
-            </Text>
-          </Pressable>
-        ) : null}
-      </TintCard>
+      <>
+        <TintCard
+          ink={theme.color.brand}
+          style={{ alignItems: 'center', gap: 8, padding: 20, marginTop: -28 }}
+        >
+          <IconDisc ink={theme.color.brand} size={48}>
+            <Ionicons name="person-add-outline" size={iconSize.lg} color={theme.color.brand} />
+          </IconDisc>
+          <Text variant="title" align="center">
+            {t.company.ovEmptyTitle}
+          </Text>
+          <Text variant="caption" tone="muted" align="center">
+            {t.company.ovEmptyBody}
+          </Text>
+          {o.isOwner && !o.suspended ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => router.push(`/group/${groupId}/invite`)}
+              style={{
+                marginTop: 4,
+                paddingHorizontal: 18,
+                height: 42,
+                borderRadius: 14,
+                justifyContent: 'center',
+                backgroundColor: theme.color.brand,
+              }}
+            >
+              <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+                {t.company.qaInvite}
+              </Text>
+            </Pressable>
+          ) : null}
+        </TintCard>
+        {afterAttendanceCard}
+        {afterTasks}
+      </>
     );
 
   const total = o.people.length;
