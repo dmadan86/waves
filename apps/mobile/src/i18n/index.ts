@@ -1254,6 +1254,8 @@ export interface UiStrings {
   company: {
     tab: string;
     listTitle: string;
+    listSubtitle: string;
+    currentCompany: string;
     myStatement: string;
     summary: string;
     employees: string;
@@ -7582,6 +7584,8 @@ const en: UiStrings = {
   company: {
     tab: 'Company',
     listTitle: 'Your companies',
+    listSubtitle: 'Manage and switch between your companies',
+    currentCompany: 'Current company',
     myStatement: 'My statement',
     summary: 'Company summary',
     employees: 'Employees',
@@ -13362,6 +13366,8 @@ const ta: UiStrings = {
   company: {
     tab: 'நிறுவனம்',
     listTitle: 'உங்கள் நிறுவனங்கள்',
+    listSubtitle: 'உங்கள் நிறுவனங்களை நிர்வகித்து மாற்றவும்',
+    currentCompany: 'தற்போதைய நிறுவனம்',
     myStatement: 'என் அறிக்கை',
     summary: 'நிறுவன சுருக்கம்',
     employees: 'ஊழியர்கள்',
@@ -19311,6 +19317,8 @@ const hi: UiStrings = {
   company: {
     tab: 'कंपनी',
     listTitle: 'आपकी कंपनियाँ',
+    listSubtitle: 'अपनी कंपनियाँ प्रबंधित करें और बदलें',
+    currentCompany: 'मौजूदा कंपनी',
     myStatement: 'मेरा स्टेटमेंट',
     summary: 'कंपनी सारांश',
     employees: 'कर्मचारी',
@@ -25148,6 +25156,8 @@ const ar: UiStrings = {
   company: {
     tab: 'الشركة',
     listTitle: 'شركاتك',
+    listSubtitle: 'أدر شركاتك وبدّل بينها',
+    currentCompany: 'الشركة الحالية',
     myStatement: 'كشف حسابي',
     summary: 'ملخص الشركة',
     employees: 'الموظفون',
