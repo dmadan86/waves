@@ -22,8 +22,9 @@ import { Sheet, Text, directionalIcon, iconSize, useTheme, type TintName } from 
 
 import { BUILDING_ART } from './art';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
+import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { ListRow, StandardCard } from '@/components/standard';
+import { StandardCard } from '@/components/standard';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { useCompanyTags } from '@/data/companyTags';
@@ -382,26 +383,22 @@ export function DashHeader({
           </Pressable>
         </ScrollView>
       </Sheet>
-      <Sheet visible={menu} onClose={() => setMenu(false)} closeLabel={t.common.close}>
-        {showGear ? (
-          <ListRow
-            title={t.company.companySettings}
-            leading={<Ionicons name="settings-outline" size={iconSize.md} />}
-            onPress={() => {
-              setMenu(false);
-              router.push(`/group/${groupId}/settings`);
-            }}
-          />
-        ) : null}
-        <ListRow
-          title={t.company.exportAction}
-          leading={<Ionicons name="download-outline" size={iconSize.md} />}
-          onPress={() => {
-            setMenu(false);
-            router.push(`/group/${groupId}/export`);
-          }}
-        />
-      </Sheet>
+      <OverflowMenu
+        visible={menu}
+        onClose={() => setMenu(false)}
+        items={[
+          ...(showGear
+            ? [
+                {
+                  icon: 'settings-outline',
+                  label: t.company.companySettings,
+                  route: `/group/${groupId}/settings`,
+                } as OverflowMenuItem,
+              ]
+            : []),
+          { icon: 'download-outline', label: t.company.exportAction, route: `/group/${groupId}/export` },
+        ]}
+      />
     </>
   );
 }
