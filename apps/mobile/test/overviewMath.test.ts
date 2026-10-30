@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  attendanceSegments,
   compactMoney,
   dayKind,
   dueText,
@@ -56,5 +57,16 @@ describe('overview math', () => {
       { key: 'absent', n: 1 },
       { key: 'vendorBills', n: 2 },
     ]);
+  });
+  it('builds attendance bar segments in order and drops zeros', () => {
+    expect(attendanceSegments({ present: 4, absent: 1, unmarked: 1 })).toEqual([
+      { key: 'present', n: 4 },
+      { key: 'unmarked', n: 1 },
+      { key: 'absent', n: 1 },
+    ]);
+    expect(attendanceSegments({ present: 0, absent: 0, unmarked: 3 })).toEqual([
+      { key: 'unmarked', n: 3 },
+    ]);
+    expect(attendanceSegments({ present: 0, absent: 0, unmarked: 0 })).toEqual([]);
   });
 });
