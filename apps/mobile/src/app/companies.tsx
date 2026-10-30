@@ -18,12 +18,14 @@ import { plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useViewerCompanyIds } from '@/lib/useCompanyTab';
+import { useRememberSpace } from '@/lib/useSpaces';
 import type { GroupRow } from '@/data/types';
 
 function Card({ group, current }: { group: GroupRow; current: boolean }) {
   const { t, locale } = useStrings();
   const { members } = useGroup(group.id);
   const logo = useGroupPhotoUrl(group.photo_path);
+  const remember = useRememberSpace();
   const live = (members.data ?? []).filter((m) => !m.left_at);
   const count = (role: string) => live.filter((m) => m.role === role).length;
   return (
@@ -35,7 +37,10 @@ function Card({ group, current }: { group: GroupRow; current: boolean }) {
       owners={plural(locale, count('admin'), t.company.ownerCount)}
       current={current}
       currentLabel={t.company.currentCompany}
-      onPress={() => router.replace(`/group/${group.id}`)}
+      onPress={() => {
+        remember(group.id);
+        router.replace(`/group/${group.id}`);
+      }}
     />
   );
 }

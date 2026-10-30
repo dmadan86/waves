@@ -3059,6 +3059,19 @@ export interface UiStrings {
   };
   /** The dashboard hero carousel's action slides — the promo-style cards that
       sit in the swipe deck after the balance (scan a receipt, add a person). */
+  spaces: {
+    personal: string;
+    personalBody: string;
+    switchTitle: string;
+    switchBody: string;
+    createTitle: string;
+    createBody: string;
+    owner: string;
+    manager: string;
+    employee: string;
+    vendor: string;
+    pillLabel: string;
+  };
   dashHero: {
     scanTitle: string;
     scanBody: string;
@@ -9610,6 +9623,19 @@ const en: UiStrings = {
     notJoined: 'Not joined',
     group: 'Group',
   },
+  spaces: {
+    personal: 'Personal',
+    personalBody: 'Friends, groups & expenses',
+    switchTitle: 'Switch space',
+    switchBody: 'Choose where you want to work',
+    createTitle: 'Create a new company',
+    createBody: 'Set up a company and invite people',
+    owner: 'Owner',
+    manager: 'Manager',
+    employee: 'Employee',
+    vendor: 'Vendor',
+    pillLabel: 'Switch space',
+  },
   dashHero: {
     scanTitle: 'Snap a receipt',
     scanBody: 'Scan a bill and the items fill themselves in — split it in seconds.',
@@ -15761,6 +15787,19 @@ const ta: UiStrings = {
     moreCurrencies: { one: '+{n} நாணயம்', other: '+{n} நாணயங்கள்' },
     notJoined: 'சேரவில்லை',
     group: 'குழு',
+  },
+  spaces: {
+    personal: 'தனிப்பட்டது',
+    personalBody: 'நண்பர்கள், குழுக்கள் & செலவுகள்',
+    switchTitle: 'இடத்தை மாற்று',
+    switchBody: 'நீங்கள் எங்கு வேலை செய்ய விரும்புகிறீர்கள் என்பதைத் தேர்ந்தெடுக்கவும்',
+    createTitle: 'புதிய நிறுவனத்தை உருவாக்கு',
+    createBody: 'நிறுவனத்தை அமைத்து ஆட்களை அழைக்கவும்',
+    owner: 'உரிமையாளர்',
+    manager: 'மேலாளர்',
+    employee: 'ஊழியர்',
+    vendor: 'விற்பனையாளர்',
+    pillLabel: 'இடத்தை மாற்று',
   },
   dashHero: {
     scanTitle: 'ரசீதைப் படம் எடுங்கள்',
@@ -22020,6 +22059,19 @@ const hi: UiStrings = {
     notJoined: 'शामिल नहीं',
     group: 'समूह',
   },
+  spaces: {
+    personal: 'व्यक्तिगत',
+    personalBody: 'दोस्त, ग्रुप और खर्च',
+    switchTitle: 'स्पेस बदलें',
+    switchBody: 'चुनें कि आप कहाँ काम करना चाहते हैं',
+    createTitle: 'नई कंपनी बनाएँ',
+    createBody: 'कंपनी सेट करें और लोगों को जोड़ें',
+    owner: 'मालिक',
+    manager: 'मैनेजर',
+    employee: 'कर्मचारी',
+    vendor: 'विक्रेता',
+    pillLabel: 'स्पेस बदलें',
+  },
   dashHero: {
     scanTitle: 'रसीद स्कैन करें',
     scanBody: 'बिल स्कैन करें और आइटम अपने आप भर जाते हैं — कुछ ही पलों में बाँटें.',
@@ -28237,6 +28289,19 @@ const ar: UiStrings = {
     },
     notJoined: 'لم ينضم',
     group: 'مجموعة',
+  },
+  spaces: {
+    personal: 'شخصي',
+    personalBody: 'الأصدقاء والمجموعات والمصروفات',
+    switchTitle: 'تبديل المساحة',
+    switchBody: 'اختر المكان الذي تريد العمل فيه',
+    createTitle: 'إنشاء شركة جديدة',
+    createBody: 'أنشئ شركة وادعُ الأشخاص',
+    owner: 'المالك',
+    manager: 'المدير',
+    employee: 'موظف',
+    vendor: 'المورد',
+    pillLabel: 'تبديل المساحة',
   },
   dashHero: {
     scanTitle: 'صوّر الإيصال',

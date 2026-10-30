@@ -42,6 +42,7 @@ import { useAuth } from '@/lib/auth';
 import { joinActions, routeForJoinAction, type JoinAction } from '@/lib/joinActions';
 import { pendingInvite } from '@/lib/pendingInvite';
 import { expectGroup } from '@/lib/groupArrival';
+import { useRememberSpace } from '@/lib/useSpaces';
 import { requestJoinPushPrompt } from '@/lib/pushPromptStore';
 import { router, useGoBack } from '@/lib/navigation';
 import { useSync } from '@/sync';
@@ -58,6 +59,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 export default function JoinScreen() {
   const theme = useTheme();
   const { t, locale } = useStrings();
+  const remember = useRememberSpace();
   // `from` says how the link was opened. The scanner sends `scan`, because a
   // link that turns out to be dead has a different next step there: point the
   // camera at another code, rather than being shown the door to the app.
@@ -155,6 +157,7 @@ export default function JoinScreen() {
       // Twice on purpose: a flush already in flight is joined rather than
       // restarted, and that one never asked for this group. The second runs
       // fresh with the id. Bounded, so a hung request cannot hold the button.
+      if (result.group.type === 'company') remember(result.group.id);
       expectGroup(result.group.id);
       const pull = async (): Promise<void> => {
         await flush([result.group.id]).catch(() => undefined);
