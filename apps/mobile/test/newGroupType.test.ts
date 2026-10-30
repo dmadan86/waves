@@ -12,9 +12,9 @@ describe('tileForType', () => {
     expect(tileForType(GroupType.Friends)).toBe(GroupType.Other);
   });
 
-  it('offers six tiles, Trip first, Company before Others', () => {
-    expect(NEW_GROUP_TILES).toHaveLength(6);
-    expect(NEW_GROUP_TILES[4]).toBe(GroupType.Company);
+  it('offers five tiles, Trip first, and none for Company (own flow)', () => {
+    expect(NEW_GROUP_TILES).toHaveLength(5);
+    expect(NEW_GROUP_TILES).not.toContain(GroupType.Company);
     expect(NEW_GROUP_TILES[0]).toBe(GroupType.Trip);
   });
 });

@@ -66,7 +66,7 @@ export default function CompaniesScreen() {
           <View style={{ flex: 1, alignItems: 'flex-end' }}>
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push('/new-group?type=company')}
+              onPress={() => router.push('/new-company')}
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
