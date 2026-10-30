@@ -91,6 +91,13 @@ describe('the block reducers', () => {
   });
 });
 
+describe('display names', () => {
+  it('drops private-use glyphs a contact name can carry (U+F8FF renders as junk on Android)', () => {
+    expect(displayName(member({ ghost_name: 'Vivin Joseph \uF8FF' }), 'me')).toBe('Vivin Joseph');
+    expect(displayName(member({ ghost_name: '\uF8FF' }), 'me', null, 'Someone')).toBe('Someone');
+  });
+});
+
 describe('ghosting a blocked person', () => {
   const blocked = new Set(['p-blocked']);
   const real = member({ profile_id: 'p-blocked', profile: { display_name: 'Ravi' } as never });
