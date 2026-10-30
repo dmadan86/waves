@@ -37,7 +37,12 @@ BEGIN
  PERFORM public.waves_company_actor(p_group_id);
  IF NOT public.is_group_admin(p_group_id) AND NOT public.waves_company_team(p_group_id,p_member_id) THEN RAISE EXCEPTION 'ADMIN_ONLY' USING ERRCODE='insufficient_privilege'; END IF;
  IF v IS NOT NULL AND length(v)>32 THEN RAISE EXCEPTION 'INVALID_DATA: employee id too long'; END IF;
- UPDATE public.group_members SET employee_id=v,updated_at=now() WHERE id=p_member_id AND group_id=p_group_id AND left_at IS NULL AND removed_at IS NULL;
+ BEGIN
+  UPDATE public.group_members SET employee_id=v,updated_at=now() WHERE id=p_member_id AND group_id=p_group_id AND left_at IS NULL AND removed_at IS NULL;
+ EXCEPTION WHEN unique_violation THEN
+  -- A race (two phones, one ID): a deterministic refusal the sync worker rejects, not a retry loop.
+  RAISE EXCEPTION 'DUPLICATE_EMPLOYEE_ID' USING ERRCODE='check_violation';
+ END;
  IF NOT FOUND THEN RAISE EXCEPTION 'UNKNOWN_MEMBER' USING ERRCODE='insufficient_privilege'; END IF;
 END $$;
 
