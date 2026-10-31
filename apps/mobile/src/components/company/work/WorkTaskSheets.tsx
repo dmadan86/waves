@@ -1,6 +1,7 @@
 import { Platform, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Sheet, useTheme } from '@waves/ui';
+import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { SectionHeader, SegmentedPills } from '@/components/standard';
 import type { CompanyWorkSetPayload } from '@waves/core';
@@ -11,6 +12,7 @@ type Field = { taskId: string; kind: 'note' | 'blockedReason' } | null;
 type Payload = CompanyWorkSetPayload;
 
 export function WorkTaskSheets({
+  groupId,
   dateOpen,
   setDateOpen,
   day,
@@ -32,6 +34,7 @@ export function WorkTaskSheets({
   canChange,
   write,
 }: {
+  groupId: string;
   dateOpen: boolean;
   setDateOpen: (open: boolean) => void;
   day: string;
@@ -107,6 +110,15 @@ export function WorkTaskSheets({
                 }}
               />
             </View>
+          ) : null}
+          {statusTask ? (
+            <CompanyEntryPhotos
+              kind="task"
+              groupId={groupId}
+              entryId={statusTask.id}
+              canAdd={false}
+              canRemove={() => false}
+            />
           ) : null}
         </View>
       </Sheet>

@@ -1554,6 +1554,7 @@ export interface UiStrings {
     workTeam: string;
     workFilter: string;
     workSortTitle: string;
+    workAllTasks: string;
     workTime: string;
     workNoTime: string;
     workMine: string;
@@ -8433,6 +8434,7 @@ const en: UiStrings = {
     workTeam: 'Team',
     workFilter: 'Filter',
     workSortTitle: 'Sort by title (A–Z)',
+    workAllTasks: 'All tasks',
     workTime: 'Time (HH:MM)',
     workNoTime: 'No time',
     workMine: 'My work today',
@@ -14773,6 +14775,7 @@ const ta: UiStrings = {
     workTeam: 'குழு',
     workFilter: 'வடிகட்டி',
     workSortTitle: 'தலைப்பு வரிசை (அ–ஃ)',
+    workAllTasks: 'அனைத்து பணிகள்',
     workTime: 'நேரம் (மணி:நிமிடம்)',
     workNoTime: 'நேரம் இல்லை',
     workMine: 'என் இன்றைய வேலை',
@@ -21277,6 +21280,7 @@ const hi: UiStrings = {
     workTeam: 'टीम',
     workFilter: 'फ़िल्टर',
     workSortTitle: 'शीर्षक के अनुसार क्रम (अ–ह)',
+    workAllTasks: 'सभी काम',
     workTime: 'समय (HH:MM)',
     workNoTime: 'समय नहीं',
     workMine: 'आज मेरा काम',
@@ -27685,6 +27689,7 @@ const ar: UiStrings = {
     workTeam: 'الفريق',
     workFilter: 'تصفية',
     workSortTitle: 'الترتيب حسب العنوان (أ–ي)',
+    workAllTasks: 'كل المهام',
     workTime: 'الوقت (HH:MM)',
     workNoTime: 'بلا وقت',
     workMine: 'عملي اليوم',

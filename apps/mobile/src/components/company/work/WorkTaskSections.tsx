@@ -7,19 +7,17 @@ import { StandardCard } from '@/components/standard';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import type { MenuAnchor } from '@/components/SortMenu';
 import type { MemberRow } from '@/data/types';
-import { displayName, isGhost } from '@/data/types';
+import { displayName } from '@/data/types';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
-import { useCompanyPhotos } from '@/data/companyEntries';
-import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { formatWorkTime } from '@/lib/companyWork';
 import { useStrings } from '@/i18n';
 import { WORK_INK } from './WorkSummaryControls';
 
+const TINTS = ['lilac', 'peach', 'sky', 'pink', 'mint', 'coral'] as const;
+
 function TaskRow({
-  groupId,
   task,
   person,
-  first,
   today,
   locale,
   canManage,
@@ -30,10 +28,8 @@ function TaskRow({
   onOpen,
   onMenu,
 }: {
-  groupId: string;
   task: MirrorWorkTask;
   person: MemberRow | undefined;
-  first: boolean;
   today: string;
   locale: string;
   canManage: boolean;
@@ -47,9 +43,8 @@ function TaskRow({
   const theme = useTheme();
   const { t } = useStrings();
   const menuRef = useRef<View>(null);
-  const photos = useCompanyPhotos(task.id).length;
   const done = task.status === 'done';
-  const ink = WORK_INK[task.status] ?? RED;
+  const ink = WORK_INK[task.status];
   const late = !done && task.day <= today;
   const dueInk = late ? RED : theme.color.textMuted;
   const label =
@@ -61,14 +56,7 @@ function TaskRow({
           ? t.company.workDone
           : t.company.workBlocked;
   return (
-    <View
-      style={{
-        borderTopWidth: first ? 0 : 1,
-        borderTopColor: theme.color.border,
-        paddingVertical: 10,
-        gap: 4,
-      }}
-    >
+    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, gap: 4, borderRadius: 22 }}>
       <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, minHeight: 48 }}>
         <Pressable
           accessibilityRole="checkbox"
@@ -114,15 +102,20 @@ function TaskRow({
               </Text>
             </View>
           ) : null}
+          {task.blockedReason || task.note ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {task.blockedReason ?? task.note}
+            </Text>
+          ) : null}
         </Pressable>
         <View style={{ alignItems: 'flex-end', gap: 4 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             {person ? (
               <PersonAvatar
-                member={person}
                 name={displayName(person)}
-                ghost={isGhost(person)}
-                size={26}
+                ghost
+                tint={TINTS[(person.id.charCodeAt(0) + person.id.length) % TINTS.length]}
+                size={34}
               />
             ) : null}
             <View
@@ -130,22 +123,14 @@ function TaskRow({
                 paddingHorizontal: 10,
                 paddingVertical: 3,
                 borderRadius: 12,
-                backgroundColor: withAlpha(ink ?? RED, 0.12),
+                backgroundColor: withAlpha(ink, 0.12),
               }}
             >
-              <Text variant="micro" style={{ color: ink ?? RED, fontWeight: '700' }}>
+              <Text variant="micro" style={{ color: ink, fontWeight: '700' }}>
                 {label}
               </Text>
             </View>
           </View>
-          {photos > 0 ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-              <Ionicons name="attach" size={iconSize.sm} color={theme.color.textMuted} />
-              <Text variant="caption" tone="muted">
-                {photos}
-              </Text>
-            </View>
-          ) : null}
         </View>
         {canManage ? (
           <View ref={menuRef} collapsable={false}>
@@ -168,24 +153,7 @@ function TaskRow({
           </View>
         ) : null}
       </View>
-      {task.blockedReason ? (
-        <Text variant="caption" tone="negative">
-          {task.blockedReason}
-        </Text>
-      ) : null}
-      {task.note ? (
-        <Text variant="caption" tone="muted">
-          {task.note}
-        </Text>
-      ) : null}
-      <CompanyEntryPhotos
-        kind="task"
-        groupId={groupId}
-        entryId={task.id}
-        canAdd={false}
-        canRemove={() => canManage}
-      />
-    </View>
+    </StandardCard>
   );
 }
 
@@ -219,14 +187,12 @@ export function WorkTaskSections({
   const { t } = useStrings();
   if (tasks.length === 0) return <Text tone="muted">{t.company.workEmpty}</Text>;
   return (
-    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 0, borderRadius: 22 }}>
-      {tasks.map((task, i) => (
+    <View style={{ gap: 8 }}>
+      {tasks.map((task) => (
         <TaskRow
           key={task.id}
-          groupId={groupId}
           task={task}
           person={people.find((p) => p.id === task.memberId)}
-          first={i === 0}
           today={today}
           locale={locale}
           canManage={canManage}
@@ -238,6 +204,6 @@ export function WorkTaskSections({
           onMenu={onMenu}
         />
       ))}
-    </StandardCard>
+    </View>
   );
 }

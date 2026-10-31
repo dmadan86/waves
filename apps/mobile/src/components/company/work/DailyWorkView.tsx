@@ -1,11 +1,11 @@
 import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
 import { useCallback, useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
-import { ScrollView } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import type { CompanyWorkSetPayload } from '@waves/core';
 import { useDepartments } from '@/data/companyDepartments';
-import { Text } from '@waves/ui';
+import { Text, useTheme } from '@waves/ui';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { ScenicBody } from '@/components/standard';
 import type { MenuAnchor } from '@/components/SortMenu';
@@ -22,12 +22,12 @@ import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { countWork, filterWork, type WorkChip } from '@/lib/companyWork';
+import { filterWork, type WorkChip } from '@/lib/companyWork';
 import { WorkTaskSections } from './WorkTaskSections';
 import { AddTaskSheet } from './AddTaskSheet';
 import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
 import { WorkTaskSheets } from './WorkTaskSheets';
-import { WorkChips, WorkToolbar } from './WorkSummaryControls';
+import { WorkToolbar } from './WorkSummaryControls';
 
 type Payload = CompanyWorkSetPayload;
 function shift(iso: string, n: number) {
@@ -69,6 +69,7 @@ export default function DailyWorkView({
   const save = useSetWorkTask(id);
   const remove = useRemoveWorkTask(id);
   const { t, locale } = useStrings();
+  const theme = useTheme();
   const clearance = useBottomClearance();
   const today = todayIso();
   const maxDay = shift(today, 7);
@@ -78,6 +79,7 @@ export default function DailyWorkView({
   const [addKey, setAddKey] = useState(0);
   const [menu, setMenu] = useState<{ id: string; anchor: MenuAnchor | null } | null>(null);
   const [sortAnchor, setSortAnchor] = useState<MenuAnchor | 'open' | null>(null);
+  const [statusMenu, setStatusMenu] = useState<MenuAnchor | 'open' | null>(null);
   const [byTitle, setByTitle] = useState(false);
   const [statusId, setStatusId] = useState<string | null>(null);
   const [reasonAfterClose, setReasonAfterClose] = useState<string | null>(null);
@@ -106,7 +108,6 @@ export default function DailyWorkView({
       (allowedPerson(task.memberId) || (access.isEmployee && task.memberId === access.me?.id)) &&
       (scope === 'team' || task.memberId === company.me?.id),
   );
-  const counts = countWork(dayTasks);
   const visibleTasks = filterWork(dayTasks, {
     search: query,
     siteId: siteFilter,
@@ -226,6 +227,13 @@ export default function DailyWorkView({
     }, []),
   );
   useClaimFab(embedded && focused && access.canManage, t.company.workAdd, openAdd);
+  const chipLabel: Record<WorkChip, string> = {
+    all: t.company.workAllTasks,
+    todo: t.company.workTodo,
+    doing: t.company.workDoing,
+    done: t.company.workDone,
+    blocked: t.company.workBlocked,
+  };
   const fieldTask = tasks.find((task) => task.id === field?.taskId);
   const statusTask = tasks.find((task) => task.id === statusId);
   return (
@@ -242,6 +250,23 @@ export default function DailyWorkView({
               <Text tone="muted">{t.company.attendanceEmpty}</Text>
             ) : (
               <>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Text variant="title" style={{ fontSize: 24, fontWeight: '800' }}>
+                    {t.company.teamTabTasks}
+                  </Text>
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 2,
+                      borderRadius: 12,
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '800' }}>
+                      {sortedTasks.length}
+                    </Text>
+                  </View>
+                </View>
                 <WorkToolbar
                   dayLabel={new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
                     weekday: 'short',
@@ -251,22 +276,11 @@ export default function DailyWorkView({
                     timeZone: 'UTC',
                   })}
                   onDay={() => setDateOpen(true)}
+                  statusLabel={chipLabel[chip]}
+                  onStatus={(a) => setStatusMenu(a ?? 'open')}
                   query={query}
                   onQueryChange={setQuery}
                   onSort={(a) => setSortAnchor(a ?? 'open')}
-                />
-                <WorkChips
-                  value={chip}
-                  onChange={setChip}
-                  chips={[
-                    { key: 'all', label: t.company.workAll },
-                    { key: 'todo', label: t.company.workTodo },
-                    { key: 'doing', label: t.company.workDoing },
-                    { key: 'done', label: t.company.workDone },
-                    ...(counts.blocked
-                      ? [{ key: 'blocked' as const, label: t.company.workBlocked }]
-                      : []),
-                  ]}
                 />
                 <WorkTaskSections
                   groupId={id}
@@ -299,6 +313,16 @@ export default function DailyWorkView({
         onClose={() => setMenu(null)}
         anchor={menu?.anchor ?? null}
         items={items}
+      />
+      <OverflowMenu
+        visible={statusMenu !== null}
+        onClose={() => setStatusMenu(null)}
+        anchor={statusMenu === 'open' ? null : statusMenu}
+        items={(Object.keys(chipLabel) as WorkChip[]).map((key) => ({
+          icon: chip === key ? 'checkmark-circle' : 'ellipse-outline',
+          label: chipLabel[key],
+          onPress: () => setChip(key),
+        }))}
       />
       <OverflowMenu
         visible={sortAnchor !== null}
@@ -348,6 +372,7 @@ export default function DailyWorkView({
         onSaved={setDay}
       />
       <WorkFiltersAndDraftSheet
+        groupId={id}
         filterOpen={filterOpen}
         setFilterOpen={setFilterOpen}
         sites={sites}
@@ -369,6 +394,7 @@ export default function DailyWorkView({
         write={write}
       />
       <WorkTaskSheets
+        groupId={id}
         dateOpen={dateOpen}
         setDateOpen={setDateOpen}
         day={day}
