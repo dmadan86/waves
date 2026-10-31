@@ -12,7 +12,16 @@ import { useState } from 'react';
 import { Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 
 import { isPaidTier } from '@waves/core';
-import { Button, EmptyState, iconSize, Row, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import {
+  Badge,
+  Button,
+  EmptyState,
+  iconSize,
+  Row,
+  Text,
+  useTabBarClearance,
+  useTheme,
+} from '@waves/ui';
 
 import { ListRow, PlainHeader, RowTile, SectionHeader, StandardCard } from '@/components/standard';
 import { fill, useStrings } from '@/i18n';
@@ -32,18 +41,18 @@ import {
 import { manageSubscription, restore, useCustomerTier } from '@/lib/purchases';
 import { useToast } from '@/lib/toast';
 
-const RECEIPT_URL =
-  Platform.OS === 'ios'
-    ? 'https://reportaproblem.apple.com'
-    : 'https://play.google.com/store/account/orderhistory';
+const RECEIPT_URL = {
+  apple: 'https://reportaproblem.apple.com',
+  play: 'https://play.google.com/store/account/orderhistory',
+};
 
-const PILL_TONE: Record<PurchaseStatus, 'positive' | 'negative' | 'brand' | 'muted'> = {
+const PILL_TONE: Record<PurchaseStatus, 'positive' | 'negative' | 'brand' | 'neutral'> = {
   active: 'positive',
   trial: 'brand',
-  renewsOff: 'muted',
+  renewsOff: 'neutral',
   billingIssue: 'negative',
-  expired: 'muted',
-  refunded: 'muted',
+  expired: 'neutral',
+  refunded: 'neutral',
   promo: 'brand',
 };
 
@@ -67,10 +76,11 @@ export default function PurchasesScreen() {
           'tier, period, status, current_period_end, store, store_txn_id, price_minor, currency',
         )
         .order('current_period_end', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(10);
       if (error) throw error;
-      return data as SubscriptionRow | null;
+      // A referral/promo row can outlive the paid one: show the store purchase.
+      const rows = (data ?? []) as SubscriptionRow[];
+      return rows.find((r) => storeKind(r.store) !== 'none') ?? rows[0] ?? null;
     },
   });
   const row = query.data ?? null;
@@ -81,6 +91,7 @@ export default function PurchasesScreen() {
   const kind = storeKind(ent?.store ?? row?.store);
   const wrongPlatform =
     (kind === 'play' && Platform.OS === 'ios') || (kind === 'apple' && Platform.OS !== 'ios');
+  const receiptStore = kind === 'none' ? (Platform.OS === 'ios' ? 'apple' : 'play') : kind;
   const storeName = kind === 'play' ? p.googlePlay : kind === 'apple' ? p.appStore : null;
 
   const date = (iso: string | null | undefined): string | null => {
@@ -170,18 +181,7 @@ export default function PurchasesScreen() {
                   {p.test}
                 </Text>
               ) : null}
-              <View
-                style={{
-                  backgroundColor: theme.color.brandSoft,
-                  borderRadius: theme.radius.pill,
-                  paddingHorizontal: theme.spacing.sm,
-                  paddingVertical: 2,
-                }}
-              >
-                <Text variant="micro" tone={PILL_TONE[status]} style={{ fontWeight: '700' }}>
-                  {p.status[status]}
-                </Text>
-              </View>
+              <Badge label={p.status[status]} tone={PILL_TONE[status]} />
             </Row>
             {priceLine ? <Text tone="muted">{priceLine}</Text> : null}
             {dateLine ? (
@@ -189,20 +189,16 @@ export default function PurchasesScreen() {
                 {dateLine}
               </Text>
             ) : null}
-            {kind !== 'none' ? (
-              <Row style={{ gap: theme.spacing.sm, marginTop: theme.spacing.xs }}>
-                <View style={{ flex: 1 }}>
-                  <Button
-                    label={t.upgradeScreen.manageSubscription}
-                    variant="secondary"
-                    disabled={wrongPlatform}
-                    onPress={onManage}
-                  />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Button label={p.changePlan} onPress={() => router.push('/settings/upgrade')} />
-                </View>
-              </Row>
+            {status === 'expired' || status === 'refunded' ? (
+              <Button label={p.seePlans} onPress={() => router.push('/settings/upgrade')} />
+            ) : kind !== 'none' ? (
+              // Plans are switched in the store, so Manage is also "Change plan".
+              <Button
+                label={t.upgradeScreen.manageSubscription}
+                variant="secondary"
+                disabled={wrongPlatform}
+                onPress={onManage}
+              />
             ) : null}
             {wrongPlatform ? (
               <Text variant="micro" tone="muted">
@@ -214,7 +210,7 @@ export default function PurchasesScreen() {
 
         {status !== null ? (
           <Text variant="micro" tone="muted">
-            {Platform.OS === 'ios' ? p.receiptsNoteApple : p.receiptsNotePlay}
+            {receiptStore === 'apple' ? p.receiptsNoteApple : p.receiptsNotePlay}
           </Text>
         ) : null}
 
@@ -225,7 +221,7 @@ export default function PurchasesScreen() {
               leading={tile('receipt-outline')}
               title={p.getReceipt}
               divider
-              onPress={() => void Linking.openURL(RECEIPT_URL)}
+              onPress={() => void Linking.openURL(RECEIPT_URL[receiptStore])}
             />
           ) : null}
           <ListRow
