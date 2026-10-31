@@ -42,36 +42,64 @@ async function readRemote(profileId: string): Promise<Record<string, unknown>> {
   return prefs?.overviewLayouts ?? {};
 }
 
+/** One write at a time, so a slow earlier save cannot land after a newer one. */
+function pushRemote(profileId: string, groupId: string, saved: Saved): void {
+  chain = chain.then(async () => {
+    try {
+      const all = await readRemote(profileId);
+      const { error } = await backend
+        .from('profiles')
+        .update({ ui_prefs: { overviewLayouts: { ...all, [groupId]: saved } } } as never)
+        .eq('id', profileId);
+      if (error) throw new Error(error.message);
+    } catch {
+      // Stays on this phone; it is sent again the next time the Overview opens.
+    }
+  });
+}
+
 export function useOverviewLayout(
   groupId: string,
   role: OverviewRole,
 ): { layout: OverviewLayout; save: (next: OverviewLayout) => void; reset: () => void } {
   const profileId = useAuth().profile?.id ?? null;
-  const [layout, setLayout] = useState<OverviewLayout>(() => defaultLayout(role));
+  const id = `${profileId}:${groupId}:${role}`;
+  // Keyed, so a new account, company or role never shows the previous one's layout.
+  const [state, setState] = useState<{ id: string; layout: OverviewLayout } | null>(null);
+  const layout = state?.id === id ? state.layout : defaultLayout(role);
+  const setLayout = useCallback((l: OverviewLayout) => setState({ id, layout: l }), [id]);
   const at = useRef(0);
   const edited = useRef(false);
 
   useEffect(() => {
+    // A new account, company or role starts from its own layout, not the previous one's.
+    at.current = 0;
+    edited.current = false;
     if (!profileId) return;
     let live = true;
-    const apply = (s: Saved | null): void => {
-      if (!live || edited.current || !s || s.at <= at.current) return;
+    const apply = (s: Saved | null): boolean => {
+      if (!live || edited.current || !s || s.at <= at.current) return false;
       at.current = s.at;
       setLayout(resolveLayout(role, s));
+      return true;
     };
     void (async () => {
+      let local: Saved | null = null;
       try {
-        apply(parse(JSON.parse((await AsyncStorage.getItem(key(profileId, groupId))) ?? 'null')));
+        local = parse(JSON.parse((await AsyncStorage.getItem(key(profileId, groupId))) ?? 'null'));
+        apply(local);
       } catch {
         // A bad local value is the default layout.
       }
       try {
         const remote = parse((await readRemote(profileId))[groupId]);
-        apply(remote);
-        if (remote && live && remote.at > 0)
+        if (apply(remote) && remote)
           void AsyncStorage.setItem(key(profileId, groupId), JSON.stringify(remote)).catch(
             () => undefined,
           );
+        // This phone has the newer one (changed offline): send it up.
+        else if (live && !edited.current && local && (!remote || local.at > remote.at))
+          pushRemote(profileId, groupId, local);
       } catch {
         // Offline or no column yet: the phone's copy stands.
       }
@@ -79,7 +107,7 @@ export function useOverviewLayout(
     return () => {
       live = false;
     };
-  }, [profileId, groupId, role]);
+  }, [profileId, groupId, role, setLayout]);
 
   const save = useCallback(
     (next: OverviewLayout): void => {
@@ -91,21 +119,9 @@ export function useOverviewLayout(
       void AsyncStorage.setItem(key(profileId, groupId), JSON.stringify(saved)).catch(
         () => undefined,
       );
-      // One write at a time, so a slow earlier save cannot land after a newer one.
-      chain = chain.then(async () => {
-        try {
-          const all = await readRemote(profileId);
-          const { error } = await backend
-            .from('profiles')
-            .update({ ui_prefs: { overviewLayouts: { ...all, [groupId]: saved } } } as never)
-            .eq('id', profileId);
-          if (error) throw new Error(error.message);
-        } catch {
-          // Stays on this phone; the next change tries again.
-        }
-      });
+      pushRemote(profileId, groupId, saved);
     },
-    [profileId, groupId],
+    [profileId, groupId, setLayout],
   );
 
   const reset = useCallback((): void => save(defaultLayout(role)), [save, role]);
