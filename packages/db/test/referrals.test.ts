@@ -2,8 +2,8 @@
  * Referral rewards (migration 20261015140000_referral_rewards).
  *
  * A friend claims a code after signing up; once they are verified and have
- * recorded a real expense in a group of two or more, both sides get 7 days of
- * Plus, capped at 30 earned days per account.
+ * recorded a real expense in a group of two or more, both sides get 50 credits
+ * (migration 20261115090000_referral_credits); a referrer is paid for 10 friends.
  *
  * Every test runs inside a transaction that is rolled back, on a stub
  * `auth.users` that this file widens with the columns the verification check
@@ -155,21 +155,22 @@ async function expense(groupId: string, memberId: string): Promise<string> {
 
 async function referralRow(referee: string) {
   const { rows } = await client.query(
-    `SELECT status, reject_reason, referrer_days, referee_days FROM referrals WHERE referee_id = $1`,
+    `SELECT status, reject_reason, referrer_credits, referee_credits FROM referrals WHERE referee_id = $1`,
     [referee],
   );
   return rows[0] as
-    | { status: string; reject_reason: string | null; referrer_days: number; referee_days: number }
+    | {
+        status: string;
+        reject_reason: string | null;
+        referrer_credits: number;
+        referee_credits: number;
+      }
     | undefined;
 }
 
-async function promoDays(profileId: string): Promise<number> {
-  const { rows } = await client.query(
-    `SELECT COALESCE(round(extract(epoch FROM max(current_period_end) - now()) / 86400), 0)::int AS d
-       FROM subscriptions WHERE profile_id = $1 AND store = 'promo'`,
-    [profileId],
-  );
-  return rows[0].d;
+async function credits(profileId: string): Promise<number> {
+  const { rows } = await client.query(`SELECT public.waves_credit_balance($1) AS c`, [profileId]);
+  return rows[0].c;
 }
 
 /** Friend claims, then creates a group with the referrer's friend and records an expense. */
@@ -297,15 +298,15 @@ describe('qualification', () => {
     const friend = await person();
     await claim(friend, await myCode(referrer));
     expect((await referralRow(friend))?.status).toBe('claimed');
-    expect(await promoDays(referrer)).toBe(0);
-    expect(await promoDays(friend)).toBe(0);
+    expect(await credits(referrer)).toBe(0);
+    expect(await credits(friend)).toBe(0);
   });
 
   it('rewards nothing when the friend is not verified', async () => {
     const referrer = await person();
     const friend = await friendUsesWaves(referrer, { unverified: true });
     expect((await referralRow(friend))?.status).toBe('claimed');
-    expect(await promoDays(referrer)).toBe(0);
+    expect(await credits(referrer)).toBe(0);
   });
 
   it('waits for a group of two or more, then rewards when the second person arrives', async () => {
@@ -319,8 +320,8 @@ describe('qualification', () => {
     await addMember(solo.groupId, await person());
     expect(await referralRow(friend)).toMatchObject({
       status: 'rewarded',
-      referrer_days: 7,
-      referee_days: 7,
+      referrer_credits: 50,
+      referee_credits: 50,
     });
   });
 
@@ -351,40 +352,41 @@ describe('qualification', () => {
     expect((await referralRow(friend))?.status).toBe('claimed');
   });
 
-  it('rewards both with 7 days of Plus that the plan logic sees, exactly once', async () => {
+  it('rewards both with 50 credits, exactly once, and no Pro days', async () => {
     const referrer = await person();
     const friend = await friendUsesWaves(referrer);
 
     expect(await referralRow(friend)).toMatchObject({
       status: 'rewarded',
-      referrer_days: 7,
-      referee_days: 7,
+      referrer_credits: 50,
+      referee_credits: 50,
     });
-    expect(await promoDays(referrer)).toBe(7);
-    expect(await promoDays(friend)).toBe(7);
-
-    for (const profile of [referrer, friend]) {
-      const { rows } = await client.query(
-        `SELECT public.waves_my_plan($1) AS p, public.waves_profile_is_paid($1) AS paid`,
-        [profile],
-      );
-      expect(rows[0].p.tier).toBe('plus');
-      expect(rows[0].paid).toBe(true);
-    }
+    expect(await credits(referrer)).toBe(50);
+    expect(await credits(friend)).toBe(50);
+    const { rows: subs } = await client.query(
+      `SELECT count(*)::int AS n FROM subscriptions WHERE profile_id IN ($1, $2)`,
+      [referrer, friend],
+    );
+    expect(subs[0].n).toBe(0);
 
     // A replay, and a further expense, grant nothing more.
     await client.query(`SELECT public.waves_referral_try_qualify($1)`, [friend]);
-    expect(await promoDays(referrer)).toBe(7);
-    const { rows } = await client.query(
-      `SELECT count(*)::int AS n FROM subscriptions WHERE store_txn_id LIKE 'referral:%'`,
-    );
-    expect(rows[0].n).toBe(2);
+    expect(await credits(referrer)).toBe(50);
     expect(await summary(referrer)).toMatchObject({
       rewarded: 1,
       pending: 0,
-      days_earned: 7,
-      days_remaining: 23,
+      credits_earned: 50,
+      friends_cap: 10,
     });
+    // Even a row forced back to "claimed" cannot pay again: the ledger ref is unique.
+    await client.query(`UPDATE referrals SET status = 'claimed' WHERE referee_id = $1`, [friend]);
+    await client.query(`SELECT public.waves_referral_try_qualify($1)`, [friend]);
+    expect(await credits(referrer)).toBe(50);
+    expect(await credits(friend)).toBe(50);
+    const { rows } = await client.query(
+      `SELECT count(*)::int AS n FROM credit_ledger WHERE ref LIKE 'referral:%'`,
+    );
+    expect(rows[0].n).toBe(2);
   });
 
   it('rewards a friend who signed up with a verified email identity (OAuth)', async () => {
@@ -392,65 +394,29 @@ describe('qualification', () => {
     const friend = await friendUsesWaves(referrer, { email: `f${randomUUID()}@example.com` });
     expect((await referralRow(friend))?.status).toBe('rewarded');
   });
-
-  it('puts referral days after an existing coverage instead of overlapping it', async () => {
-    const referrer = await person();
-    await client.query(
-      `INSERT INTO subscriptions (profile_id, tier, period, status, current_period_end, store, store_txn_id)
-       VALUES ($1, 'plus', 'monthly', 'active', now() + interval '10 days', 'play', $2)`,
-      [referrer, `GPA.${randomUUID()}`],
-    );
-    await friendUsesWaves(referrer);
-    const { rows } = await client.query(
-      `SELECT round(extract(epoch FROM max(current_period_end) - now()) / 86400)::int AS d
-         FROM subscriptions WHERE profile_id = $1`,
-      [referrer],
-    );
-    expect(rows[0].d).toBe(17);
-  });
 });
 
-describe('the 30 day cap', () => {
-  it('gives 7, 7, 7, 7, then 2, then nothing', async () => {
+describe('the 10 friend cap', () => {
+  it('pays the referrer for 10 friends, then nothing, while friends still get theirs', async () => {
     const referrer = await person();
-    const given: number[] = [];
-    for (let i = 0; i < 6; i += 1) {
-      const friend = await friendUsesWaves(referrer);
-      given.push((await referralRow(friend))!.referrer_days);
-    }
-    expect(given).toEqual([7, 7, 7, 7, 2, 0]);
-    expect(await summary(referrer)).toMatchObject({
-      days_earned: 30,
-      days_remaining: 0,
-      rewarded: 6,
-    });
-    // Coverage chains: the last grant ends 30 days from now.
-    expect(await promoDays(referrer)).toBe(30);
+    const friends: string[] = [];
+    for (let i = 0; i < 11; i += 1) friends.push(await friendUsesWaves(referrer));
+    for (const friend of friends) expect((await referralRow(friend))?.status).toBe('rewarded');
+    expect((await referralRow(friends[9]!))?.referrer_credits).toBe(50);
+    expect((await referralRow(friends[10]!))?.referrer_credits).toBe(0);
+    expect(await credits(referrer)).toBe(500);
+    expect(await credits(friends[10]!)).toBe(50);
+    expect(await summary(referrer)).toMatchObject({ credits_earned: 500, rewarded: 11 });
   });
 
-  it('counts the days a friend earned as a friend toward their own cap', async () => {
-    const star = await person();
-    // Earned as a friend of someone else: 7. Then refers four people: 7+7+7+7 = 28 -> total 35 > 30.
+  it('pays a friend once per account, whoever refers them', async () => {
     const sponsor = await person();
-    const starAsFriend = await person();
-    await claim(starAsFriend, await myCode(sponsor));
-    await expense(
-      (await group([starAsFriend, await person()])).groupId,
-      (await client.query(`SELECT id FROM group_members WHERE profile_id = $1`, [starAsFriend]))
-        .rows[0].id,
-    );
-    expect((await referralRow(starAsFriend))?.referee_days).toBe(7);
-
-    const given: number[] = [];
-    for (let i = 0; i < 4; i += 1) {
-      const friend = await person();
-      await claim(friend, await myCode(starAsFriend));
-      const g = await group([friend, await person()]);
-      await expense(g.groupId, g.members[0]!);
-      given.push((await referralRow(friend))!.referrer_days);
-    }
-    expect(given).toEqual([7, 7, 7, 2]);
-    expect(star).toBeTruthy();
+    const star = await friendUsesWaves(sponsor);
+    expect(await credits(star)).toBe(50);
+    // The friend is now a referrer too: their own friends add to the same wallet.
+    await friendUsesWaves(star);
+    expect(await credits(star)).toBe(100);
+    expect(await summary(star)).toMatchObject({ credits_earned: 100 });
   });
 });
 
@@ -462,8 +428,8 @@ describe('one reward per phone / identity', () => {
       status: 'rejected',
       reject_reason: 'SAME_IDENTITY',
     });
-    expect(await promoDays(referrer)).toBe(0);
-    expect(await promoDays(friend)).toBe(0);
+    expect(await credits(referrer)).toBe(0);
+    expect(await credits(friend)).toBe(0);
   });
 
   it('refuses a second friend on a phone that was already rewarded', async () => {
@@ -477,7 +443,7 @@ describe('one reward per phone / identity', () => {
       status: 'rejected',
       reject_reason: 'IDENTITY_REUSED',
     });
-    expect(await promoDays(other)).toBe(0);
+    expect(await credits(other)).toBe(0);
   });
 });
 

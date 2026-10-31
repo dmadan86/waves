@@ -82,7 +82,7 @@ const sections: LegalSection[] = [
     heading: 'Ads and rewards',
     body: [
       'On Free, you may choose to watch a short rewarded video ad to earn credits: each ad gives 6 credits and you can hold up to 30. Credits pay for AI voice commands (1 credit), receipt scans (2), exports (6) and extra groups (6; your first group is free). Credits are optional, have no cash value and cannot be transferred. We may limit how many you can earn in a day, or change what they cost. Using automation or tricks to fake an ad view or a referral may close the account.',
-      'Inviting friends can earn free Pro days: 7 days for you and 7 for the friend, when the friend genuinely uses Waves. One account can earn at most 30 referral days in total, and we may withhold days if we think a referral is not genuine.',
+      'Inviting friends can earn credits: 50 for you and 50 for the friend, when the friend genuinely uses Waves. You can be paid for at most 10 friends (500 credits), and a friend is paid once. Referral credits are added on top of the 30-credit ad limit, and we may withhold them if we think a referral is not genuine.',
     ],
   },
   {

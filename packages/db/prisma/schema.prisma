@@ -1690,6 +1690,9 @@ model Referral {
   qualifiedAt        DateTime? @map("qualified_at") @db.Timestamptz(6)
   referrerDays       Int       @default(0) @map("referrer_days")
   refereeDays        Int       @default(0) @map("referee_days")
+  /// Credits paid to each side (ledger refs `referral:<id>:referrer|referee`).
+  referrerCredits    Int       @default(0) @map("referrer_credits")
+  refereeCredits     Int       @default(0) @map("referee_credits")
   /// Salted identity hashes of the friend, stamped when evaluated.
   identityKeys       String[]  @default([]) @map("identity_keys")
   /// The referrer's identity hashes, stamped at the same time, so the lifetime
