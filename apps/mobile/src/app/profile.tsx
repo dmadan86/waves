@@ -32,9 +32,6 @@ import { useRemoveDemo } from '@/demo/useRemoveDemo';
 import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
-import { useCaptures } from '@/data/hooks';
-import { foldedCaptureCount } from '@/lib/captureBatch';
-import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { connectedAppsRowHint } from '@/lib/connectedApps';
 import { notificationsRowStatus } from '@/lib/notificationStatus';
 import { pushPermission, type PushPermission } from '@/lib/push';
@@ -117,9 +114,6 @@ function ProfileForm() {
   const referralsLive = useReferralsLive();
   const { profile, isGuest, signOut } = useAuth();
   const { isPaid } = useEntitlement();
-  // Company users lose the Review tab, so Review lives here for them.
-  const isCompanyUser = useViewerCompanyIds().length > 0;
-  const waiting = foldedCaptureCount(useCaptures().data ?? []);
   const credits = useQuery({
     queryKey: ['credits', profile?.id],
     queryFn: readCredits,
@@ -280,18 +274,6 @@ function ProfileForm() {
             app. Storage and your AI keys belong to the account too, so they sit
             here rather than each claiming a section of its own. Only their
             state-bearing rows keep a subtitle; the rest say enough in the label. */}
-        {isCompanyUser ? (
-          <SettingsSection
-            rows={[
-              {
-                icon: 'file-tray-full-outline',
-                label: t.review,
-                value: waiting > 0 ? String(waiting) : undefined,
-                onPress: () => router.navigate('/captures'),
-              },
-            ]}
-          />
-        ) : null}
         <SettingsSection
           title={t.account.sectionAccount}
           rows={[
