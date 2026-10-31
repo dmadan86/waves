@@ -2528,6 +2528,23 @@ export interface UiStrings {
     export: string;
     group: string;
     price: string;
+    yourCredits: string;
+    yourCreditsHint: string;
+    watchSub: string;
+    proSub: string;
+    getPro: string;
+    howUsed: string;
+    learnMore: string;
+    voiceSub: string;
+    scanSub: string;
+    exportSub: string;
+    groupSub: string;
+    buyTitle: string;
+    popular: string;
+    buy: string;
+    neverExpire: string;
+    neverExpireSub: string;
+    help: string;
   };
   adGates: {
     title: string;
@@ -9024,6 +9041,23 @@ const en: UiStrings = {
     export: 'Export',
     group: 'Additional group',
     price: '{n} credits',
+    yourCredits: 'Your Credits',
+    yourCreditsHint: 'Use credits for AI voice, receipt scan, exports and more.',
+    watchSub: 'Watch a short ad to get {n} credits',
+    proSub: 'No ads, more credits',
+    getPro: 'Get Pro',
+    howUsed: 'How credits are used',
+    learnMore: 'Learn more',
+    voiceSub: 'Add expenses using voice',
+    scanSub: 'Scan and extract details',
+    exportSub: 'Export to CSV or Excel',
+    groupSub: 'Create and manage extra groups',
+    buyTitle: 'Get more credits',
+    popular: 'Popular',
+    buy: 'Buy',
+    neverExpire: 'Credits never expire',
+    neverExpireSub: 'Use anytime. Monthly free uses are applied first.',
+    help: 'Help',
   },
   adGates: {
     title: 'Watch a short ad',
@@ -15067,6 +15101,25 @@ const ta: UiStrings = {
     export: 'ஏற்றுமதி',
     group: 'கூடுதல் குழு',
     price: '{n} கிரெடிட்கள்',
+    yourCredits: 'உங்கள் கிரெடிட்கள்',
+    yourCreditsHint:
+      'AI குரல், ரசீது ஸ்கேன், ஏற்றுமதி மற்றும் பலவற்றிற்கு கிரெடிட்களைப் பயன்படுத்துங்கள்.',
+    watchSub: '{n} கிரெடிட்கள் பெற ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
+    proSub: 'விளம்பரம் இல்லை, அதிக கிரெடிட்கள்',
+    getPro: 'Pro பெறுங்கள்',
+    howUsed: 'கிரெடிட்கள் எப்படி பயன்படுத்தப்படுகின்றன',
+    learnMore: 'மேலும் அறிக',
+    voiceSub: 'குரல் மூலம் செலவுகளைச் சேர்க்கவும்',
+    scanSub: 'ஸ்கேன் செய்து விவரங்களை எடுக்கவும்',
+    exportSub: 'CSV அல்லது Excel-க்கு ஏற்றுமதி',
+    groupSub: 'கூடுதல் குழுக்களை உருவாக்கி நிர்வகிக்கவும்',
+    buyTitle: 'மேலும் கிரெடிட்கள் பெறுங்கள்',
+    popular: 'பிரபலம்',
+    buy: 'வாங்கு',
+    neverExpire: 'கிரெடிட்கள் காலாவதியாகாது',
+    neverExpireSub:
+      'எப்போது வேண்டுமானாலும் பயன்படுத்துங்கள். மாத இலவசப் பயன்பாடுகள் முதலில் பயன்படுத்தப்படும்.',
+    help: 'உதவி',
   },
   adGates: {
     title: 'ஒரு சிறு விளம்பரம் பாருங்கள்',
@@ -21253,6 +21306,23 @@ const hi: UiStrings = {
     export: 'एक्सपोर्ट',
     group: 'अतिरिक्त समूह',
     price: '{n} क्रेडिट',
+    yourCredits: 'आपके क्रेडिट',
+    yourCreditsHint: 'AI वॉइस, रसीद स्कैन, एक्सपोर्ट और बहुत कुछ के लिए क्रेडिट इस्तेमाल करें।',
+    watchSub: '{n} क्रेडिट पाने के लिए एक छोटा विज्ञापन देखें',
+    proSub: 'कोई विज्ञापन नहीं, ज़्यादा क्रेडिट',
+    getPro: 'Pro लें',
+    howUsed: 'क्रेडिट कैसे खर्च होते हैं',
+    learnMore: 'और जानें',
+    voiceSub: 'आवाज़ से खर्च जोड़ें',
+    scanSub: 'स्कैन करें और जानकारी निकालें',
+    exportSub: 'CSV या Excel में एक्सपोर्ट',
+    groupSub: 'अतिरिक्त ग्रुप बनाएँ और संभालें',
+    buyTitle: 'और क्रेडिट पाएँ',
+    popular: 'लोकप्रिय',
+    buy: 'खरीदें',
+    neverExpire: 'क्रेडिट कभी समाप्त नहीं होते',
+    neverExpireSub: 'कभी भी इस्तेमाल करें। पहले महीने के मुफ़्त उपयोग खर्च होते हैं।',
+    help: 'मदद',
   },
   adGates: {
     title: 'एक छोटा विज्ञापन देखें',
@@ -27374,6 +27444,23 @@ const ar: UiStrings = {
     export: 'تصدير',
     group: 'مجموعة إضافية',
     price: '{n} من الرصيد',
+    yourCredits: 'رصيدك',
+    yourCreditsHint: 'استخدم الرصيد للصوت بالذكاء الاصطناعي ومسح الإيصالات والتصدير وغيرها.',
+    watchSub: 'شاهد إعلانًا قصيرًا لتحصل على {n} رصيد',
+    proSub: 'بدون إعلانات، رصيد أكثر',
+    getPro: 'احصل على Pro',
+    howUsed: 'كيف يُستخدم الرصيد',
+    learnMore: 'اعرف المزيد',
+    voiceSub: 'أضف المصروفات بالصوت',
+    scanSub: 'امسح واستخرج التفاصيل',
+    exportSub: 'تصدير إلى CSV أو Excel',
+    groupSub: 'أنشئ وأدر مجموعات إضافية',
+    buyTitle: 'احصل على رصيد أكثر',
+    popular: 'الأكثر شعبية',
+    buy: 'شراء',
+    neverExpire: 'الرصيد لا ينتهي',
+    neverExpireSub: 'استخدمه في أي وقت. تُستخدم الحصة الشهرية المجانية أولًا.',
+    help: 'مساعدة',
   },
   adGates: {
     title: 'شاهد إعلانًا قصيرًا',

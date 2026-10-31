@@ -19,11 +19,13 @@
 import { useSyncExternalStore } from 'react';
 import { AppState, Linking, Platform } from 'react-native';
 import Purchases, {
+  PRODUCT_CATEGORY,
   PRORATION_MODE,
   PURCHASES_ERROR_CODE,
   type CustomerInfo,
   type PurchasesOffering,
   type PurchasesPackage,
+  type PurchasesStoreProduct,
 } from 'react-native-purchases';
 
 import { PlanTier } from '@waves/core';
@@ -183,6 +185,39 @@ export async function purchase(pkg: PurchasesPackage): Promise<PurchaseOutcome> 
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg, null, change);
     accept(customerInfo);
+    return 'purchased';
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return 'cancelled';
+    if (code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) return 'pending';
+    throw error;
+  }
+}
+
+/** Store ids of the paid credit packs; the number is the credits they hold. */
+export const CREDIT_PACK_IDS = ['credits_50', 'credits_200', 'credits_500'] as const;
+
+/** The credit packs the store actually sells; empty when none are set up (the section stays hidden). */
+export async function loadCreditPacks(): Promise<PurchasesStoreProduct[]> {
+  if (!configured) return [];
+  try {
+    const found = await Purchases.getProducts(
+      [...CREDIT_PACK_IDS],
+      PRODUCT_CATEGORY.NON_SUBSCRIPTION,
+    );
+    return CREDIT_PACK_IDS.flatMap((id) => found.filter((p) => p.identifier.split(':')[0] === id));
+  } catch (error) {
+    reportHandled(error, 'purchases.creditPacks');
+    return [];
+  }
+}
+
+// shortcut: granting needs the revenuecat-webhook to credit the balance (credit_ledger) for these
+// products; until that exists the store would charge without crediting, so the packs only show
+// when the store returns them (no store products, no section).
+export async function buyCreditPack(product: PurchasesStoreProduct): Promise<PurchaseOutcome> {
+  try {
+    await Purchases.purchaseStoreProduct(product);
     return 'purchased';
   } catch (error) {
     const code = (error as { code?: string }).code;
