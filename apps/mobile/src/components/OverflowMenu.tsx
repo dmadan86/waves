@@ -71,6 +71,9 @@ export interface OverflowMenuItem {
   // A destructive row (Delete) paints its icon and label in the negative colour,
   // the WhatsApp/Vipps convention that a delete reads red before it is tapped.
   tone?: 'default' | 'danger';
+  /** Greyed and inert; `hint` says why, under the label. */
+  disabled?: boolean;
+  hint?: string;
 }
 
 /** An optional block above the rows: who you are (avatar + name), tappable to `route`. */
@@ -310,8 +313,10 @@ export function OverflowMenu({
                     )}
                     <Pressable
                       onPress={() => activate(item)}
+                      disabled={item.disabled}
                       accessibilityRole="button"
-                      accessibilityLabel={item.label}
+                      accessibilityState={{ disabled: !!item.disabled }}
+                      accessibilityLabel={item.hint ? `${item.label}, ${item.hint}` : item.label}
                       style={({ pressed }) => ({
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -322,6 +327,7 @@ export function OverflowMenu({
                         paddingHorizontal: theme.spacing.lg,
                         paddingVertical: theme.spacing.md,
                         backgroundColor: pressed ? theme.color.surfaceMuted : 'transparent',
+                        opacity: item.disabled ? 0.45 : 1,
                       })}
                     >
                       <Ionicons
@@ -331,9 +337,16 @@ export function OverflowMenu({
                           item.tone === 'danger' ? theme.color.negative : theme.color.textMuted
                         }
                       />
-                      <Text variant="body" tone={item.tone === 'danger' ? 'negative' : undefined}>
-                        {item.label}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text variant="body" tone={item.tone === 'danger' ? 'negative' : undefined}>
+                          {item.label}
+                        </Text>
+                        {item.hint ? (
+                          <Text variant="micro" tone="muted">
+                            {item.hint}
+                          </Text>
+                        ) : null}
+                      </View>
                     </Pressable>
                   </View>
                 );

@@ -9,37 +9,11 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
-import { ListRow, StandardCard } from '@/components/standard';
-import { useState } from 'react';
-import { MyDatesSheet } from '@/components/company/CompanyCalendarSheets';
-import { useStrings } from '@/i18n';
+import { StandardCard } from '@/components/standard';
 
 import { GREEN, GREEN_SOFT } from './dashboard/parts';
 
 type Icon = keyof typeof Ionicons.glyphMap;
-
-/** Owner/manager shortcut for maintaining this employee's birthday and joining date. */
-export function EmployeeDatesRow({ groupId, memberId }: { groupId: string; memberId: string }) {
-  const { t } = useStrings();
-  const theme = useTheme();
-  const [visible, setVisible] = useState(false);
-  return (
-    <>
-      <ListRow
-        leading={<Ionicons name="gift-outline" size={iconSize.md} color={theme.color.textMuted} />}
-        title={t.calendar.birthday}
-        subtitle={t.calendar.myDates}
-        onPress={() => setVisible(true)}
-      />
-      <MyDatesSheet
-        groupId={groupId}
-        visible={visible}
-        onClose={() => setVisible(false)}
-        memberId={memberId}
-      />
-    </>
-  );
-}
 
 /** A receipt with a rupee and a timer badge, in the house violet palette. */
 export function ReceiptTimerArt({ size = 96 }: { size?: number }) {
@@ -218,48 +192,5 @@ export function ReadyNote({ title, body }: { title: string; body: string }) {
         </Text>
       </View>
     </View>
-  );
-}
-
-export function ActionTile({
-  icon,
-  title,
-  sub,
-  onPress,
-}: {
-  icon: Icon;
-  title: string;
-  sub: string;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${title}, ${sub}`}
-      onPress={onPress}
-      style={{ flex: 1 }}
-    >
-      <StandardCard style={{ alignItems: 'center', gap: 2, padding: 10 }}>
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brandSoft,
-          }}
-        >
-          <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
-        </View>
-        <Text variant="caption" align="center" style={{ fontWeight: '700' }}>
-          {title}
-        </Text>
-        <Text variant="micro" tone="muted" align="center">
-          {sub}
-        </Text>
-      </StandardCard>
-    </Pressable>
   );
 }
