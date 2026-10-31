@@ -226,6 +226,7 @@ export function OverflowMenu({
               position: 'absolute',
               ...place,
               minWidth: 220,
+              maxWidth: windowWidth - 2 * theme.spacing.md,
               borderRadius: theme.radius.lg,
               transformOrigin: `${above ? 'bottom' : 'top'} ${rtl ? 'left' : 'right'}`,
               ...theme.shadow.lifted,
