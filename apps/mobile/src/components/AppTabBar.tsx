@@ -195,7 +195,6 @@ export function AppTabBar() {
     // Mount directly into the route's mode; only a real switch earns a tick.
     if (previousPersonal.current === alt) return;
     previousPersonal.current = alt;
-    hapticLight();
     p.value = withTiming(alt ? 1 : 0, {
       duration: reduced ? 120 : 280,
       easing: Easing.linear,
