@@ -1,6 +1,7 @@
 import { ScrollView, TextInput, View } from 'react-native';
 import { Button, Sheet, Text, useTheme } from '@waves/ui';
 import { SectionHeader, SegmentedPills } from '@/components/standard';
+import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
 import type { CompanyDepartment } from '@/data/companyDepartments';
@@ -19,6 +20,7 @@ export function WorkFiltersAndDraftSheet({
   setSiteFilter,
   departmentFilter,
   setDepartmentFilter,
+  groupId,
   canManage,
   scope,
   people,
@@ -39,6 +41,7 @@ export function WorkFiltersAndDraftSheet({
   setSiteFilter: (value: string | null) => void;
   departmentFilter: string | null;
   setDepartmentFilter: (value: string | null) => void;
+  groupId: string;
   canManage: boolean;
   scope: 'mine' | 'team';
   people: readonly MemberRow[];
@@ -183,6 +186,13 @@ export function WorkFiltersAndDraftSheet({
               options={[{ value: '', label: t.company.workNoTime }]}
               value={draft.dueTime ? 'time' : ''}
               onChange={() => setDraft({ ...draft, dueTime: null })}
+            />
+            <CompanyEntryPhotos
+              kind="task"
+              groupId={groupId}
+              entryId={draft.taskId}
+              canAdd={false}
+              canRemove={() => canManage}
             />
             {error ? <Text tone="negative">{t.company.workSaveError}</Text> : null}
             <Button
