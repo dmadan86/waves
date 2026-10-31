@@ -351,27 +351,6 @@ export default function HomeScreen() {
         route: '/settings/account',
         section: 'account',
       },
-      {
-        icon: 'notifications-outline',
-        label: t.account.notifications,
-        route: '/settings/notifications',
-        section: 'account',
-      },
-      {
-        icon: 'archive-outline',
-        label: t.group.archivedTitle,
-        route: '/settings/archived',
-        section: 'data',
-      },
-      // Backup sits with the other data rows rather than three taps down under
-      // the profile screen, because the moment somebody wants it is the moment
-      // they are worried about losing something.
-      {
-        icon: 'cloud-upload-outline',
-        label: t.backup.title,
-        route: '/settings/backup',
-        section: 'data',
-      },
       { icon: 'language-outline', label: t.language, route: '/settings/language', section: 'app' },
       { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene', section: 'app' },
       // Appearance is hidden while THEME_HIDDEN stands; the screen behind it is
