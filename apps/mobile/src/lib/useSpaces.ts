@@ -55,7 +55,8 @@ export function useColdStartSpace(ready: boolean, companyIds: readonly string[])
     if (takeColdStart(viewerId) && plan !== 'stay' && plan !== 'personal') {
       // Stay held: the redirect unmounts Home, and releasing now would repaint Personal.
       redirecting.current = true;
-      router.replace(`/group/${plan}`);
+      // Same quick fade as a bar tab switch, so launch never slides the company in.
+      router.replace(`/group/${plan}?nav=tab`);
       return;
     }
     setDoneFor(viewerId);
