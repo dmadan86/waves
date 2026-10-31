@@ -54,7 +54,7 @@ import { useCaptures } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
 import { hapticLight } from '@/lib/assistantHaptics';
-import { useAuth } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
 import {
@@ -62,7 +62,6 @@ import {
   companyBackRoute,
   companyBarActiveKey,
   companyBarRoute,
-  companyTabRoute,
   isCompanyBarRoot,
   isCompanyMode,
   isCompanyTabRoot,
@@ -72,6 +71,8 @@ import { useCompanySuspended } from '@/data/companyEntries';
 import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, switchTab } from '@/lib/navigation';
+import { companyTabTarget, readLastSpace } from '@/lib/spaces';
+import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
 import {
   isPersonalMode,
@@ -160,6 +161,7 @@ export function AppTabBar() {
   // The bar carries the mic, so it is where the mic's slow answers are fetched
   // ahead of the tap: the voice screen then opens straight onto a live mic.
   useVoiceWarmup();
+  useFollowSpace();
   // `useSegments` is typed as a union of fixed-length route tuples, so indexing
   // past the first element trips the tuple bounds check under the CI tsconfig.
   // We only ever read positions generically, so widen to a plain string array.
@@ -178,8 +180,9 @@ export function AppTabBar() {
   // destinations (same look, same mic); leaving them swaps it back. Route-derived.
   const personal = isPersonalMode(segments);
   // Company mode: an owner or manager inside their own company gets the company bar
-  // (Home · Overview · People · Team · Payments · More) with an add button, no mic.
+  // (Home · Team · Payments · More) with an add button, no mic.
   const companyIds = useViewerCompanyIds();
+  const viewerId = useViewerId();
   const role = useViewerRole(groupId);
   const company = isCompanyMode(segments, groupId, companyIds, role);
   const alt = personal || company;
@@ -307,9 +310,7 @@ export function AppTabBar() {
       ),
     });
     return [
-      item('home', t.home, 'home', 'home-outline'),
-      item('overview', t.company.tabOverview, 'grid', 'grid-outline', pendingCount),
-      item('people', t.company.barPeople, 'people', 'people-outline'),
+      item('home', t.home, 'home', 'home-outline', pendingCount),
       item('team', t.company.barTeam, 'people-circle', 'people-circle-outline'),
       item('payments', t.company.tabPayments, 'cash', 'cash-outline'),
       item(
@@ -397,7 +398,6 @@ export function AppTabBar() {
   const go = useCallback(
     (key: string): void => {
       if (company && groupId) {
-        if (key === 'home') return switchTab('/');
         if (key === activeKey && isCompanyBarRoot(segments)) return;
         // Siblings replace each other, like Personal's, so tabs never stack.
         router.replace(companyBarRoute(groupId, key) as never);
@@ -412,15 +412,17 @@ export function AppTabBar() {
         return;
       }
       if (key === 'company') {
-        const target = companyTabRoute(companyIds, activeKey === key ? groupId : null);
-        if (target && !(activeKey === key && isCompanyTabRoot(segments, groupId, companyIds)))
-          switchTab(target as never);
+        void readLastSpace(viewerId, true).then((last) => {
+          const target = companyTabTarget(companyIds, last);
+          if (target && !(activeKey === key && isCompanyTabRoot(segments, groupId, companyIds)))
+            switchTab(target as never);
+        });
         return;
       }
       const route = tabBarRouteForSelection(activeKey, key, isTabRoot(segments, key));
       if (route) switchTab(route);
     },
-    [activeKey, company, companyIds, groupId, personal, segments],
+    [activeKey, company, companyIds, groupId, personal, segments, viewerId],
   );
 
   // Nested Personal screens (entry, source, budgets, loans) pop their own stack.

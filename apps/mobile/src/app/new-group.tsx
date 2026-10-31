@@ -187,6 +187,10 @@ export default function NewGroupScreen() {
     assignCaptureId?: string;
   }>();
   const cloning = Boolean(from);
+  // Company has its own create flow; an old `?type=company` link lands there.
+  useEffect(() => {
+    if (initialType === 'company') router.replace('/new-company');
+  }, [initialType]);
   const source = useGroup(from ?? '');
   const captures = useCaptures();
 
@@ -203,9 +207,7 @@ export default function NewGroupScreen() {
   // same bargain the icon strikes. So the screen never opens assuming a trip: a
   // group called "Goa" still becomes one, "Dinner" does not, and an untyped
   // name falls back to Other rather than dragging trip fields in behind it.
-  const [pickedType, setPickedType] = useState<GroupType | null>(
-    initialType === 'company' ? GroupType.Company : null,
-  );
+  const [pickedType, setPickedType] = useState<GroupType | null>(null);
   // Event organizer (docs/event-organizer.md): which fixed sub-event list an
   // Event group starts with. Null until somebody picks one — a group is
   // allowed to stay a plain Event with no template, same as it is allowed to
@@ -455,6 +457,11 @@ export default function NewGroupScreen() {
     // from the local mirror, and putting the writes in a callback keeps the
     // React Compiler's no-synchronous-setState-in-effect rule satisfied (the
     // same shape GroupPhoto's signed-URL fetch uses).
+    // A company is not cloned through the group form.
+    if (group.type === GroupType.Company) {
+      router.replace('/new-company');
+      return;
+    }
     void Promise.resolve().then(() => {
       setName(group.name ? fill(t.clone.copyOf, { name: group.name }) : '');
       // The description comes across as-is. It describes what the group is for,
@@ -502,7 +509,6 @@ export default function NewGroupScreen() {
     [GroupType.Home]: 'home',
     [GroupType.Couple]: 'heart',
     [GroupType.Event]: 'people',
-    [GroupType.Company]: 'business',
     [GroupType.Other]: 'ellipsis-horizontal',
   };
   const tileLabels: Record<string, string> = {
@@ -510,7 +516,6 @@ export default function NewGroupScreen() {
     [GroupType.Home]: t.extras.typeHome,
     [GroupType.Couple]: t.extras.typeCouple,
     [GroupType.Event]: t.extras.typeEvent,
-    [GroupType.Company]: t.extras.typeCompany,
     [GroupType.Other]: t.extras.typeOther,
   };
 

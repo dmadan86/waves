@@ -123,6 +123,10 @@ export interface GroupRow {
   company_default_daily_rate_minor?: string | null;
   /** Company groups: new entries wait for an admin's approval. Off by default. */
   company_approvals_enabled?: boolean;
+  /** Company groups: holidays count as paid days in the wage prefill (default on). */
+  company_paid_holidays?: boolean;
+  /** Company groups: approved casual/sick leave counts as paid days (default off). */
+  company_paid_leave?: boolean;
   /** Company groups: large or owner-raised claims need an owner other than their creator. */
   /** Set while Waves has suspended this company: it is read-only for everyone. */
   suspended_at?: string | null;
@@ -157,6 +161,8 @@ export interface MemberRow {
   employee_id?: string | null;
   /** Company groups: the employee's department (an id in the group's company_departments). */
   department_id?: string | null;
+  /** Company groups: 'full_time' | 'part_time' | 'contractor', null/absent = not set. */
+  employment_type?: string | null;
   /** The UPI-shaped fields. Superseded by the rail pair; still read as a fallback. */
   vpa: string | null;
   /** Which rail this person is paid on here — a `RailId` from `@waves/core`. */
@@ -353,6 +359,9 @@ export interface ActivityGroup {
   /** The kind of group ('trip', 'home', …), for the feed's Trip filter. Absent
    *  on rows built before it was carried. */
   type?: string | null;
+  /** For the feed's tag pill: the event kind, and the member's own tag. */
+  event_template?: string | null;
+  custom_tag?: string | null;
 }
 
 export interface ActivityRow {

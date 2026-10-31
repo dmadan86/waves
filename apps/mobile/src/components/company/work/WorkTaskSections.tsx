@@ -6,10 +6,12 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 import type { MemberRow } from '@/data/types';
 import { displayName, isGhost } from '@/data/types';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
+import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { advanceWorkStatus } from '@/lib/companyWork';
 import { useStrings } from '@/i18n';
 
 export function WorkTaskSections({
+  groupId,
   tasks,
   people,
   locale,
@@ -21,6 +23,7 @@ export function WorkTaskSections({
   departmentFor,
   siteName,
 }: {
+  groupId: string;
   tasks: readonly MirrorWorkTask[];
   people: readonly MemberRow[];
   locale: string;
@@ -149,6 +152,13 @@ export function WorkTaskSections({
                         {task.note}
                       </Text>
                     ) : null}
+                    <CompanyEntryPhotos
+                      kind="task"
+                      groupId={groupId}
+                      entryId={task.id}
+                      canAdd={false}
+                      canRemove={() => canManage}
+                    />
                     {task.projectId ? (
                       <View
                         style={{

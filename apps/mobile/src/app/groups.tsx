@@ -21,6 +21,7 @@ import {
 } from '@waves/ui';
 
 import { useGroups, useHomeSummary } from '@/data/hooks';
+import { groupsOutsideCompanies } from '@/lib/spaces';
 import { groupLabel } from '@/data/types';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
@@ -80,7 +81,7 @@ export default function AllGroupsScreen() {
   const { profile } = useAuth();
   const summary = useHomeSummary(profile?.id ?? null);
   const groups = useGroups();
-  const list = useMemo(() => groups.data ?? [], [groups.data]);
+  const list = useMemo(() => groupsOutsideCompanies(groups.data ?? []), [groups.data]);
   const loading = groups.isLoading || summary.isLoading;
   // Groups someone else has touched since the reader last opened them.
   const groupIds = useMemo(() => list.map((group) => group.id), [list]);

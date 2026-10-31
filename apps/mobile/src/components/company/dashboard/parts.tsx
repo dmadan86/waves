@@ -5,7 +5,7 @@
  * it, so every action here says "record".
  */
 
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode, type RefObject } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
@@ -19,21 +19,22 @@ import {
   type CurrencyCode,
   type DashboardStats,
 } from '@waves/core';
-import { Sheet, Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves/ui';
+import { Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves/ui';
 
-import { BUILDING_ART } from './art';
 import { ReportCompanySheet, SuspendedBanner } from '@/components/company/SuspendedBanner';
-import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { type MenuAnchor } from '@/components/SortMenu';
+import { measureAnchor } from '@/lib/measureAnchor';
+import { SpacePill } from '@/components/SpaceSwitcher';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { StandardCard } from '@/components/standard';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { useCompanyTags } from '@/data/companyTags';
 import { useCompanyProjects, useCompanySuspended, type CompanyView } from '@/data/companyEntries';
-import { useGroup, useGroups } from '@/data/hooks';
-import { displayName, type MemberRow, type GroupRow } from '@/data/types';
+import { displayName, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
+import { useCompanyActivityUnread } from '@/data/companyActivity';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
 
@@ -86,7 +87,8 @@ export function TabPills<T extends string>({
   value,
   onChange,
 }: {
-  options: readonly { value: T; label: string }[];
+  /** `count` shows as a small badge inside the pill (omit to hide it). */
+  options: readonly { value: T; label: string; count?: number }[];
   value: T;
   onChange: (value: T) => void;
 }) {
@@ -112,9 +114,11 @@ export function TabPills<T extends string>({
             onPress={() => onChange(o.value)}
             style={{
               height: 36,
-              paddingHorizontal: 16,
+              paddingHorizontal: 14,
               borderRadius: theme.radius.pill,
-              justifyContent: 'center',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
               backgroundColor: on ? theme.color.buttonPrimary : theme.color.brandSoft,
             }}
           >
@@ -127,6 +131,29 @@ export function TabPills<T extends string>({
             >
               {o.label}
             </Text>
+            {o.count === undefined ? null : (
+              <View
+                style={{
+                  minWidth: 20,
+                  height: 20,
+                  paddingHorizontal: 6,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: on ? 'rgba(255,255,255,0.22)' : theme.color.surface,
+                }}
+              >
+                <Text
+                  variant="micro"
+                  style={{
+                    fontWeight: '700',
+                    color: on ? theme.color.onButtonPrimary : theme.color.textMuted,
+                  }}
+                >
+                  {o.count}
+                </Text>
+              </View>
+            )}
           </Pressable>
         );
       })}
@@ -138,19 +165,42 @@ function IconButton({
   icon,
   label,
   onPress,
+  round = false,
+  buttonRef,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
+  /** A white round button (the Team header) instead of a bare icon. */
+  round?: boolean;
+  buttonRef?: RefObject<View | null>;
 }) {
   const theme = useTheme();
   return (
     <Pressable
+      ref={buttonRef}
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
       hitSlop={6}
-      style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}
+      style={
+        round
+          ? {
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              marginStart: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.surface,
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }
+          : { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }
+      }
     >
       <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
     </Pressable>
@@ -161,6 +211,48 @@ function IconButton({
  * The hero: a soft sunset sky and the office building, then back, the company name with
  * its switcher, gear and menu, who is in it. Add and export live on the company bar (FAB, More).
  */
+/** The Overview bell: opens this company's own activity feed; the red count is what is new since it was last opened. */
+function OverviewBell({ groupId }: { groupId: string }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const unread = useCompanyActivityUnread(groupId);
+  return (
+    <View>
+      <IconButton
+        icon="notifications-outline"
+        label={unread > 0 ? `${t.company.ovBell}, ${unread}` : t.company.ovBell}
+        onPress={() => router.push(`/group/${groupId}/company-activity`)}
+      />
+      {unread > 0 ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 2,
+            end: 2,
+            minWidth: 17,
+            height: 17,
+            borderRadius: 9,
+            paddingHorizontal: 4,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.negative,
+            borderWidth: 1.5,
+            borderColor: theme.color.bg,
+          }}
+        >
+          <Text
+            variant="micro"
+            style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10, lineHeight: 12 }}
+          >
+            {unread > 99 ? '99+' : unread}
+          </Text>
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
 export function DashHeader({
   groupId,
   view,
@@ -170,6 +262,8 @@ export function DashHeader({
   voice,
   onBack,
   exportMenu,
+  overview = false,
+  menuItems,
 }: {
   groupId: string;
   view: CompanyView;
@@ -182,24 +276,28 @@ export function DashHeader({
   onBack?: () => void;
   /** Employees have no company bar, so Export stays in a ⋮ here. */
   exportMenu?: boolean;
+  /** The Overview hero: no back arrow, a bigger name, a bell for this company's activity. */
+  overview?: boolean;
+  /** The Team header: no back arrow or subtitle, round gear and a round ••• opening these items. */
+  menuItems?: readonly OverflowMenuItem[];
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
+  const bare = !!menuItems;
+  const dotsRef = useRef<View>(null);
+  const [dotsAnchor, setDotsAnchor] = useState<MenuAnchor | null>(null);
   const dark = theme.scheme === 'dark';
   useHeroStatusBar(dark ? 'light' : 'dark');
-  const [switching, setSwitching] = useState(false);
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
-  const groups = useGroups().data ?? [];
-  const companies = groups.filter((g) => g.type === 'company' && !g.deleted_at);
 
   const sky = dark
     ? [theme.color.bg, theme.color.surfaceMuted]
     : [theme.color.brandSoft, theme.color.surface];
   return (
     <>
-      <View style={{ paddingTop: insets.top + 6, paddingBottom: 34 }}>
+      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview ? 14 : bare ? 40 : 34 }}>
         <View
           pointerEvents="none"
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
@@ -211,9 +309,9 @@ export function DashHeader({
             fadeDuration={0}
             style={{
               position: 'absolute',
-              right: 24,
-              top: insets.top + 30,
-              width: 132,
+              right: overview ? 8 : 24,
+              top: insets.top + (overview ? 14 : 30),
+              width: overview ? 176 : 132,
               height: 122,
               opacity: dark ? 0.48 : 0.68,
             }}
@@ -237,35 +335,40 @@ export function DashHeader({
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            paddingHorizontal: theme.spacing.md,
+            paddingHorizontal: overview ? theme.spacing.lg : theme.spacing.md,
           }}
         >
-          <IconButton
-            icon={directionalIcon('arrow-back')}
-            label={t.common.back}
-            onPress={onBack ?? (() => router.back())}
-          />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${view.name || t.extras.typeCompany}, ${t.company.switchCompany}`}
-            onPress={() => setSwitching(true)}
-            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}
-          >
-            <Text
-              variant="heading"
-              accessibilityRole="header"
-              numberOfLines={1}
-              style={{ fontSize: 22, fontWeight: '800', flexShrink: 1 }}
-            >
-              {view.name || t.extras.typeCompany}
-            </Text>
-            <Ionicons name="chevron-down" size={iconSize.md} color={theme.color.text} />
-          </Pressable>
+          {overview || bare ? null : (
+            <IconButton
+              icon={directionalIcon('arrow-back')}
+              label={t.common.back}
+              onPress={onBack ?? (() => router.back())}
+            />
+          )}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <SpacePill current={groupId} label={view.name || t.extras.typeCompany} />
+          </View>
+          {overview ? <OverviewBell groupId={groupId} /> : null}
           {showGear ? (
             <IconButton
               icon="settings-outline"
               label={t.company.companySettings}
+              round={bare}
               onPress={() => router.push(`/group/${groupId}/settings`)}
+            />
+          ) : null}
+          {bare ? (
+            <IconButton
+              icon="ellipsis-horizontal"
+              label={t.group.more}
+              round
+              buttonRef={dotsRef}
+              onPress={() =>
+                measureAnchor(dotsRef, (a) => {
+                  setDotsAnchor(a);
+                  setMenu(true);
+                })
+              }
             />
           ) : null}
           {exportMenu ? (
@@ -276,22 +379,44 @@ export function DashHeader({
             />
           ) : null}
         </View>
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            marginStart: theme.spacing.md + 42,
-            marginEnd: 76,
-            marginTop: 2,
-          }}
-        >
-          <Ionicons name="people-outline" size={iconSize.base} color={theme.color.text} />
-          <Text variant="caption" style={{ fontSize: 12.5 }}>
-            {subtitle}
-          </Text>
-          {pill ? <RolePill label={pill} /> : null}
-        </View>
+        {overview ? (
+          <View
+            style={{
+              marginHorizontal: theme.spacing.lg,
+              marginTop: 10,
+              gap: 2,
+              // Keep the heading clear of the building art on the right.
+              marginEnd: 96,
+            }}
+          >
+            <Text variant="title" accessibilityRole="header" style={{ fontSize: 18 }}>
+              {t.company.ovTodayOverview}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text variant="caption" tone="muted" style={{ flexShrink: 1 }}>
+                {subtitle}
+              </Text>
+              {pill ? <RolePill label={pill} /> : null}
+            </View>
+          </View>
+        ) : bare ? null : (
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              marginStart: theme.spacing.md + 42,
+              marginEnd: 76,
+              marginTop: 2,
+            }}
+          >
+            <Ionicons name="people-outline" size={iconSize.base} color={theme.color.text} />
+            <Text variant="caption" numberOfLines={2} style={{ fontSize: 12.5, flexShrink: 1 }}>
+              {subtitle}
+            </Text>
+            {pill ? <RolePill label={pill} /> : null}
+          </View>
+        )}
         {voice && !view.suspended ? (
           <Pressable
             accessibilityRole="button"
@@ -323,99 +448,33 @@ export function DashHeader({
         visible={reporting}
         onClose={() => setReporting(false)}
       />
-      <Sheet
-        visible={switching}
-        onClose={() => setSwitching(false)}
-        closeLabel={t.common.close}
-        title={t.company.switchCompany}
-        titleAction={
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setSwitching(false);
-              router.push('/new-group?type=company');
-            }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 4,
-              borderRadius: theme.radius.pill,
-              padding: 10,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Ionicons name="add-circle" size={18} color={theme.color.brand} />
-            <Text variant="caption" style={{ color: theme.color.brand }}>
-              {t.company.createCompanyNew}
-            </Text>
-          </Pressable>
-        }
-      >
-        <ScrollView contentContainerStyle={{ gap: 10 }}>
-          <Text variant="caption" tone="muted" style={{ marginBottom: 6 }}>
-            {t.company.switchCompanyBody}
-          </Text>
-          {companies.map((g) => (
-            <CompanySwitchRow
-              key={g.id}
-              group={g}
-              current={g.id === groupId}
-              onPress={() => {
-                setSwitching(false);
-                if (g.id !== groupId) router.replace(`/group/${g.id}`);
-              }}
-            />
-          ))}
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              setSwitching(false);
-              router.push(`/companies?current=${groupId}`);
-            }}
-            style={{
-              marginTop: 12,
-              padding: 16,
-              borderRadius: theme.radius.lg,
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          >
-            <Ionicons name="settings-outline" size={22} color={theme.color.brand} />
-            <Text style={{ flex: 1, color: theme.color.brand }}>{t.company.manageCompanies}</Text>
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={20}
-              color={theme.color.brand}
-            />
-          </Pressable>
-        </ScrollView>
-      </Sheet>
       <OverflowMenu
         visible={menu}
         onClose={() => setMenu(false)}
-        items={[
-          ...(showGear
-            ? [
-                {
-                  icon: 'settings-outline',
-                  label: t.company.companySettings,
-                  route: `/group/${groupId}/settings`,
-                } as OverflowMenuItem,
-              ]
-            : []),
-          {
-            icon: 'download-outline',
-            label: t.company.exportAction,
-            route: `/group/${groupId}/export`,
-          },
-          {
-            icon: 'flag-outline',
-            label: t.company.reportCompany,
-            onPress: () => setReporting(true),
-          },
-        ]}
+        anchor={bare ? dotsAnchor : null}
+        items={
+          menuItems ?? [
+            ...(showGear
+              ? [
+                  {
+                    icon: 'settings-outline',
+                    label: t.company.companySettings,
+                    route: `/group/${groupId}/settings`,
+                  } as OverflowMenuItem,
+                ]
+              : []),
+            {
+              icon: 'download-outline',
+              label: t.company.exportAction,
+              route: `/group/${groupId}/export`,
+            },
+            {
+              icon: 'flag-outline',
+              label: t.company.reportCompany,
+              onPress: () => setReporting(true),
+            },
+          ]
+        }
       />
     </>
   );
@@ -704,10 +763,20 @@ export function SectionCard({
           {title}
         </Text>
         {onViewAll ? (
-          <Pressable accessibilityRole="button" onPress={onViewAll} hitSlop={8}>
+          <Pressable
+            accessibilityRole="button"
+            onPress={onViewAll}
+            hitSlop={8}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+          >
             <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
-              {t.company.viewAll}
+              {t.company.ovSeeAll}
             </Text>
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.brand}
+            />
           </Pressable>
         ) : null}
       </View>
@@ -990,53 +1059,4 @@ export function useCompanyCounts() {
       plural(locale, live.filter((m) => m.role === 'admin').length, t.company.ownerCount),
     ].join(' · ');
   };
-}
-
-function CompanySwitchRow({
-  group,
-  current,
-  onPress,
-}: {
-  group: GroupRow;
-  current: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const { members } = useGroup(group.id);
-  const counts = useCompanyCounts();
-  const logo = useGroupPhotoUrl(group.photo_path);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: current }}
-      onPress={onPress}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 10,
-        padding: 12,
-        borderRadius: theme.radius.lg,
-        borderWidth: 1,
-        borderColor: current ? theme.color.brand : theme.color.border,
-        backgroundColor: current ? theme.color.brandSoft : theme.color.surface,
-      }}
-    >
-      <Image
-        source={logo ? { uri: logo } : BUILDING_ART}
-        style={{ width: 54, height: 54, borderRadius: 12 }}
-      />
-      <View style={{ flex: 1, gap: 4 }}>
-        <Text style={{ fontWeight: '700' }}>{group.name || t.extras.typeCompany}</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          <Ionicons name="people-outline" size={14} color={theme.color.textMuted} />
-          <Text variant="micro" tone="muted" style={{ flex: 1 }}>
-            {counts(members.data ?? [])}
-          </Text>
-        </View>
-      </View>
-      {current ? <Ionicons name="checkmark-circle" size={24} color={theme.color.brand} /> : null}
-      <Ionicons name={directionalIcon('chevron-forward')} size={20} color={theme.color.textMuted} />
-    </Pressable>
-  );
 }

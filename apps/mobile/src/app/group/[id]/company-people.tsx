@@ -1,10 +1,10 @@
-/** Company bar: people. */
+/** Old People route: opens Team on its People segment. */
 
 import { useLocalSearchParams } from 'expo-router';
 
-import { CompanyPeople } from '@/components/company/bar/CompanyPeople';
+import TeamScreen from '@/components/company/work/TeamScreen';
 
 export default function CompanyPeopleScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  return <CompanyPeople groupId={id ?? ''} />;
+  return <TeamScreen groupId={id ?? ''} initialTab="people" />;
 }

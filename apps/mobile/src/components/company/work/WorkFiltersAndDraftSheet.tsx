@@ -5,7 +5,6 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
 import type { CompanyDepartment } from '@/data/companyDepartments';
 import type { CompanyWorkSetPayload } from '@waves/core';
-import type { MirrorWorkTask } from '@/data/companyWorkday';
 import { useStrings } from '@/i18n';
 
 type Payload = CompanyWorkSetPayload;
@@ -27,7 +26,6 @@ export function WorkFiltersAndDraftSheet({
   setPersonFilter,
   draft,
   setDraft,
-  tasks,
   busy,
   error,
   allowedPerson,
@@ -48,7 +46,6 @@ export function WorkFiltersAndDraftSheet({
   setPersonFilter: (value: string | null) => void;
   draft: Payload | null;
   setDraft: (next: Payload | null) => void;
-  tasks: readonly MirrorWorkTask[];
   busy: boolean;
   error: boolean;
   allowedPerson: (memberId: string) => boolean;
@@ -103,13 +100,7 @@ export function WorkFiltersAndDraftSheet({
             keyboardShouldPersistTaps="handled"
             contentContainerStyle={{ gap: theme.spacing.md }}
           >
-            <SectionHeader
-              title={
-                tasks.some((task) => task.id === draft.taskId)
-                  ? t.company.workEdit
-                  : t.company.workAdd
-              }
-            />
+            <SectionHeader title={t.company.workEdit} />
             <TextInput
               accessibilityLabel={t.company.workTitleField}
               placeholder={t.company.workTitleField}

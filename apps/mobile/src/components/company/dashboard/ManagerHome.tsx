@@ -11,17 +11,12 @@ import { dashboardStats, poolBalance } from '@waves/core';
 import { AmountField, Button, Row, Sheet, Text, useTheme } from '@waves/ui';
 import type { CurrencyCode } from '@waves/core';
 
-import {
-  QuickActions,
-  RecentActivity,
-  StatTriple,
-  TitleRow,
-  useMoney,
-} from '@/components/company/dashboard/parts';
+import { QuickActions, StatTriple, TitleRow, useMoney } from '@/components/company/dashboard/parts';
+import { RecentCompanyActivity } from '@/components/company/CompanyActivityFeed';
 import { SectionShell } from '@/components/company/bar/SectionShell';
-import { PendingCard } from '@/components/company/dashboard/PendingCard';
-import { TodayTiles } from '@/components/company/dashboard/TodayTiles';
+import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { WorkdayTiles } from '@/components/company/WorkdayEntries';
+import { OverviewUpcoming } from '@/components/company/dashboard/OverviewUpcoming';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useAskBudget, useCompanyEntries, usePoolBalance } from '@/data/companyEntries';
@@ -59,16 +54,10 @@ export function ManagerHome({ groupId }: { groupId: string }) {
   const thread = (id: string): void =>
     router.push(`/group/${groupId}/company-statement?member=${id}`);
 
-  const teamIds = new Set(team.map((m) => m.id));
-  const teamEntries = view.entries.filter(
-    (e) => teamIds.has(e.memberId) || (e.paidByCompany && e.createdBy === me?.id),
-  );
-
   return (
     <SectionShell groupId={groupId} view={view} overview>
       <>
-        <PendingCard groupId={groupId} />
-        <TodayTiles groupId={groupId} hasEmployees={team.length > 0} />
+        <OverviewTop groupId={groupId} afterTasks={<OverviewUpcoming groupId={groupId} />} />
         <StandardCard style={{ gap: theme.spacing.sm }}>
           <Text variant="caption" tone="muted">
             {t.company.yourBudget}
@@ -155,11 +144,7 @@ export function ManagerHome({ groupId }: { groupId: string }) {
             />
           ))}
         </StandardCard>
-        <TitleRow
-          title={t.company.recentTitle}
-          onViewAll={() => router.replace(`/group/${groupId}/company-payments`)}
-        />
-        <RecentActivity groupId={groupId} view={view} entries={teamEntries} limit={4} />
+        <RecentCompanyActivity groupId={groupId} />
       </>
       <Sheet visible={asking} onClose={() => setAsking(false)} closeLabel={t.common.close}>
         <View style={{ gap: theme.spacing.lg }}>

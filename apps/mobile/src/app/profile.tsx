@@ -27,18 +27,11 @@ import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
 import { SkeletonList } from '@/components/Skeletons';
-import { useDemoActive } from '@/demo/useDemoActive';
-import { useRemoveDemo } from '@/demo/useRemoveDemo';
-import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
+import { isRtlLanguage, LANGUAGE_NAMES, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
-import { useCaptures } from '@/data/hooks';
-import { foldedCaptureCount } from '@/lib/captureBatch';
-import { useViewerCompanyIds } from '@/lib/useCompanyTab';
-import { connectedAppsRowHint } from '@/lib/connectedApps';
 import { notificationsRowStatus } from '@/lib/notificationStatus';
 import { pushPermission, type PushPermission } from '@/lib/push';
-import { useConnectedApps } from '@/lib/useConnectedApps';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { buildStamp } from '@/lib/buildIdentity';
 import { router } from '@/lib/navigation';
@@ -117,9 +110,6 @@ function ProfileForm() {
   const referralsLive = useReferralsLive();
   const { profile, isGuest, signOut } = useAuth();
   const { isPaid } = useEntitlement();
-  // Company users lose the Review tab, so Review lives here for them.
-  const isCompanyUser = useViewerCompanyIds().length > 0;
-  const waiting = foldedCaptureCount(useCaptures().data ?? []);
   const credits = useQuery({
     queryKey: ['credits', profile?.id],
     queryFn: readCredits,
@@ -138,7 +128,6 @@ function ProfileForm() {
   const { preference: syncNetwork } = useSyncNetwork();
   const { preference: themePreference, overridden: themeOverridden } = useThemePreference();
   const { language, stored: languageChosen, restartNeeded } = useLanguage();
-  const connectedApps = useConnectedApps();
   // The phone's own permission is local and cheap; the per-kind switches live
   // on the server, so the row reports only what the phone allows.
   const [osPush, setOsPush] = useState<PushPermission | null>(null);
@@ -156,8 +145,6 @@ function ProfileForm() {
       sub.remove();
     };
   }, []);
-  const demoActive = useDemoActive(profile?.id ?? null, false);
-  const removeDemo = useRemoveDemo();
 
   // The portrait, its sheet and its spinner are one behaviour shared with the
   // account screen — see `lib/avatarEditor`.
@@ -280,18 +267,6 @@ function ProfileForm() {
             app. Storage and your AI keys belong to the account too, so they sit
             here rather than each claiming a section of its own. Only their
             state-bearing rows keep a subtitle; the rest say enough in the label. */}
-        {isCompanyUser ? (
-          <SettingsSection
-            rows={[
-              {
-                icon: 'file-tray-full-outline',
-                label: t.review,
-                value: waiting > 0 ? String(waiting) : undefined,
-                onPress: () => router.navigate('/captures'),
-              },
-            ]}
-          />
-        ) : null}
         <SettingsSection
           title={t.account.sectionAccount}
           rows={[
@@ -415,6 +390,12 @@ function ProfileForm() {
           title={t.account.sectionData}
           rows={[
             {
+              icon: 'finger-print-outline',
+              label: t.lock.title,
+              hint: lockSummary,
+              route: '/settings/lock',
+            },
+            {
               icon: 'pricetags-outline',
               label: t.tags.settingsRow,
               route: '/settings/categories',
@@ -441,53 +422,6 @@ function ProfileForm() {
               icon: 'shield-checkmark-outline',
               label: t.privacy.row,
               route: '/settings/privacy',
-            },
-            // Only while the demo trip is actually there to remove — once it
-            // is gone, this row would be an action with nothing left to act on.
-            ...(demoActive
-              ? [
-                  {
-                    icon: 'flask-outline' as const,
-                    label: t.demo.removeAction,
-                    hint: t.demo.removeHint,
-                    destructive: true,
-                    onPress: () => void removeDemo(),
-                  },
-                ]
-              : []),
-          ]}
-        />
-
-        {/* Security: the one group somebody comes to Settings looking *for*,
-            and now the only place App lock is offered — it had a second row on
-            the Privacy screen, which meant two copies of the "on, after two
-            minutes" summary that had to be kept saying the same thing.
-            Sign out and Delete used to live here too — but ending a session and
-            ending an account are not security settings, and burying an
-            irreversible act in a list is how it gets tapped by accident. They
-            are pulled out below. */}
-        <SettingsSection
-          title={t.account.sectionSecurity}
-          rows={[
-            {
-              icon: 'finger-print-outline',
-              label: t.lock.appLock,
-              hint: lockSummary,
-              route: '/settings/lock',
-            },
-            {
-              icon: 'phone-portrait-outline',
-              label: t.devices.row,
-              route: '/settings/devices',
-            },
-            {
-              icon: 'sparkles-outline',
-              label: t.connectedApps.row,
-              hint:
-                connectedAppsRowHint(connectedApps.data?.length, t.connectedApps.rowNone, (n) =>
-                  plural(locale, n, t.connectedApps.rowCount),
-                ) ?? t.connectedApps.rowHint,
-              route: '/settings/connected-apps',
             },
           ]}
         />

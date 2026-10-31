@@ -452,6 +452,21 @@ function prevMonth(month: string): string {
   return m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
 }
 
+/** What the company owes each person now (net of what it paid); only people it owes more than zero. */
+export function owedByMember(
+  entries: readonly CompanyEntry[],
+  memberIds: readonly string[],
+): Map<string, bigint> {
+  const ids = new Set(memberIds);
+  const net = new Map<string, bigint>();
+  for (const e of entries) {
+    if (e.deleted || !ids.has(e.memberId) || !counted(e)) continue;
+    net.set(e.memberId, (net.get(e.memberId) ?? 0n) + entryDeltaOf(e));
+  }
+  for (const [id, n] of net) if (n <= 0n) net.delete(id);
+  return net;
+}
+
 /** What the viewer's numbers say: money out this month (net payments, reimbursements, wages), owed, advances. */
 export function dashboardStats(
   entries: readonly CompanyEntry[],
