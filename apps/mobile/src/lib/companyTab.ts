@@ -71,7 +71,7 @@ export function homeSecondActionKey(companyIds: readonly string[]): 'review' | '
 
 // ───────────────────────────────────────────── company mode (owner / manager) ──
 
-export type CompanyBarKey = 'home' | 'team' | 'payments' | 'more';
+export type CompanyBarKey = 'home' | 'team' | 'payments' | 'vendors' | 'more';
 
 /** The viewer's live role in one group, from the members mirror; null when not a member. */
 export function viewerRoleIn(
@@ -122,6 +122,7 @@ const BAR_SCREEN: Readonly<Record<string, CompanyBarKey>> = {
   'company-pending': 'home',
   'company-payments': 'payments',
   'company-wages': 'payments',
+  'company-vendors': 'vendors',
   'company-more': 'more',
   'company-budgets': 'more',
   settings: 'more',
@@ -142,6 +143,8 @@ export function companyBarRoute(groupId: string, key: string): string {
       return `/group/${groupId}/company-team`;
     case 'payments':
       return `/group/${groupId}/company-payments`;
+    case 'vendors':
+      return `/group/${groupId}/company-vendors`;
     case 'more':
       return `/group/${groupId}/company-more`;
     default:
@@ -156,6 +159,7 @@ const SUB_TAB_SCREENS = [
   'company-attendance',
   'company-pending',
   'company-payments',
+  'company-vendors',
   'company-more',
 ];
 
