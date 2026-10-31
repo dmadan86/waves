@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
-import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 import { dashboardStats } from '@waves/core';
 import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
 import { EditTextSheet } from '@/components/EditTextSheet';
@@ -28,17 +28,17 @@ import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
 import { plural, fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
+import { useDialog } from '@/lib/dialog';
+import { router } from '@/lib/navigation';
+import type { MenuAnchor } from '@/components/SortMenu';
 import {
   attendanceStatusLetter,
   dayCounts,
   matchesStatus,
-  markAllTargets,
-  riseIsGood,
-  signedDelta,
-  stepIso,
   weekDays,
 } from '@/lib/companyAttendance';
 import { AttendanceRow, GREEN, RED } from './AttendanceRow';
+import { AttendanceToolbar } from './AttendanceToolbar';
 
 type Period = 'daily' | 'weekly' | 'monthly';
 type StatusFilter = AttendanceStatus | 'unmarked';
@@ -58,6 +58,7 @@ export default function AttendanceView({
     sites = useCompanyProjects(id),
     siteMembers = useCompanyProjectMembers(id),
     departments = useDepartments(id);
+  const { confirm } = useDialog();
   const { t, locale } = useStrings(),
     theme = useTheme(),
     clearance = useBottomClearance(),
@@ -81,7 +82,7 @@ export default function AttendanceView({
   const [search, setSearch] = useState(''),
     [filterOpen, setFilterOpen] = useState(false),
     [dateOpen, setDateOpen] = useState(false),
-    [menuOpen, setMenuOpen] = useState(false);
+    [menuAnchor, setMenuAnchor] = useState<MenuAnchor | 'open' | null>(null);
   const [department, setDepartment] = useState<string | null>(null),
     [manager, setManager] = useState<string | null>(null),
     [site, setSite] = useState<string | null>(null),
@@ -136,7 +137,6 @@ export default function AttendanceView({
   );
   // The stat card counts everyone the viewer may mark; only the list below follows the filters.
   const counts = dayCounts(access.people, marks, date);
-  const before = dayCounts(access.people, marks, stepIso(date, -1, 'day'));
   const taskCount = useMemo(() => {
     const byPerson = new Map<string, number>();
     for (const task of tasks)
@@ -157,6 +157,7 @@ export default function AttendanceView({
       !access.canManage ||
       busy ||
       date > today ||
+      leaveOf(memberId) === 'approved' ||
       !access.people.some((p) => p.id === memberId)
     )
       return;
@@ -171,9 +172,6 @@ export default function AttendanceView({
     timeZone: 'UTC',
   });
   const days = weekDays(date);
-  const unit = period === 'monthly' ? 'month' : 'day';
-  const step = (dir: 1 | -1) => setDate(stepIso(date, dir * (period === 'weekly' ? 7 : 1), unit));
-  const filtersOn = !!(department || manager || site || statusFilter);
   const statusText = (status: AttendanceStatus | undefined) =>
     status === 'present'
       ? t.company.attendancePresent
@@ -215,23 +213,6 @@ export default function AttendanceView({
       </View>
     </View>
   );
-  const circle = (icon: keyof typeof Ionicons.glyphMap, label: string, onPress: () => void) => (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      style={{
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: theme.color.surface,
-      }}
-    >
-      <Ionicons name={icon} size={20} color={theme.color.brand} />
-    </Pressable>
-  );
   const periodItems: OverflowMenuItem[] = (
     [
       ['daily', 'today-outline', t.company.attendanceDailyView],
@@ -241,20 +222,32 @@ export default function AttendanceView({
   )
     .filter(([p]) => p !== period)
     .map(([p, icon, label]) => ({ icon, label, onPress: () => setPeriod(p) }));
-  const delta = (kind: 'present' | 'half' | 'absent' | 'total', now: number, was: number) => {
-    const d = now - was,
-      good = riseIsGood(kind);
-    const color = d === 0 || good === null ? theme.color.textMuted : d > 0 === good ? GREEN : RED;
-    return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 1 }}>
-        {d !== 0 && good !== null ? (
-          <Ionicons name={d > 0 ? 'arrow-up' : 'arrow-down'} size={11} color={color} />
-        ) : null}
-        <Text variant="micro" numberOfLines={1} style={{ color }}>
-          {fill(t.company.attendanceVsYesterday, { delta: signedDelta(d, locale) })}
-        </Text>
-      </View>
+  const leaveOf = (memberId: string) => {
+    const on = leave.filter(
+      (l) => l.memberId === memberId && l.startDay <= date && date <= l.endDay,
     );
+    return on.some((l) => l.status === 'approved')
+      ? ('approved' as const)
+      : on.some((l) => l.status === 'pending')
+        ? ('pending' as const)
+        : null;
+  };
+  const markAll = async (status: 'present' | 'absent') => {
+    // People on approved leave are locked, so a bulk mark leaves them alone.
+    const targets = people.filter((p) => leaveOf(p.id) !== 'approved');
+    const change = targets.filter((p) => marks.get(`${p.id}|${date}`)?.status !== status);
+    const replacing = change.filter((p) => marks.has(`${p.id}|${date}`)).length;
+    if (
+      replacing &&
+      !(await confirm({
+        title: t.company.attendanceOverwriteTitle,
+        body: fill(t.company.attendanceOverwriteBody, { n: String(replacing) }),
+        confirmLabel:
+          status === 'present' ? t.company.attendanceMarkAll : t.company.attendanceMarkAllAbsent,
+      }))
+    )
+      return;
+    for (const p of change) write(p.id, status, marks.get(`${p.id}|${date}`)?.note ?? null);
   };
   const pickPerson = access.people.find((p) => p.id === pickFor);
   const pickMark = pickFor ? marks.get(`${pickFor}|${date}`) : undefined;
@@ -275,280 +268,100 @@ export default function AttendanceView({
               <Text tone="muted">{t.company.attendanceEmpty}</Text>
             ) : access.canManage ? (
               <View style={{ gap: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      period === 'monthly'
-                        ? t.company.attendancePreviousMonth
-                        : t.company.workPreviousDay
-                    }
-                    disabled={date <= '2000-01-01'}
-                    onPress={() => step(-1)}
-                    style={{
-                      width: 36,
-                      height: 44,
-                      borderRadius: 22,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: theme.color.surface,
-                    }}
-                  >
-                    <Ionicons name="chevron-back" size={18} color={theme.color.brand} />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => setDateOpen(true)}
-                    style={{
-                      flex: 1,
-                      minHeight: 44,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      paddingHorizontal: 8,
-                      borderRadius: 22,
-                      backgroundColor: theme.color.surface,
-                    }}
-                  >
-                    <Ionicons name="calendar-outline" size={18} color={theme.color.brand} />
-                    <Text
-                      numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.7}
-                      style={{ flexShrink: 1, fontWeight: '600' }}
-                    >
-                      {period === 'monthly'
-                        ? new Date(`${date.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString(locale, {
-                            month: 'long',
-                            year: 'numeric',
-                            timeZone: 'UTC',
-                          })
-                        : labelDate}
+                {embedded ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                    <Text variant="title" style={{ fontSize: 24, fontWeight: '800' }}>
+                      {t.company.attendanceTitle}
                     </Text>
-                    <Ionicons name="chevron-down" size={14} color={theme.color.brand} />
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={
-                      period === 'monthly' ? t.company.attendanceNextMonth : t.company.workNextDay
-                    }
-                    disabled={date >= today}
-                    onPress={() => step(1)}
-                    style={{
-                      width: 36,
-                      height: 44,
-                      borderRadius: 22,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: date >= today ? 0.4 : 1,
-                      backgroundColor: theme.color.surface,
-                    }}
-                  >
-                    <Ionicons name="chevron-forward" size={18} color={theme.color.brand} />
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="button"
-                    onPress={() => setFilterOpen(true)}
-                    style={{
-                      minHeight: 44,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4,
-                      paddingHorizontal: 10,
-                      borderRadius: 22,
-                      backgroundColor: filtersOn ? theme.color.brandSoft : theme.color.surface,
-                    }}
-                  >
-                    <Ionicons name="options-outline" size={18} color={theme.color.brand} />
-                    <Text
-                      numberOfLines={1}
-                      style={{ color: theme.color.brand, fontWeight: '600', maxWidth: 88 }}
-                    >
-                      {t.company.attendanceFilters}
-                    </Text>
-                    <Ionicons name="chevron-down" size={14} color={theme.color.brand} />
-                  </Pressable>
-                  {circle('ellipsis-horizontal', t.company.attendanceMore, () => setMenuOpen(true))}
-                </View>
-                {period === 'daily' ? (
-                  <>
-                    <StandardCard
+                    <View
                       style={{
-                        flexDirection: 'row',
-                        paddingVertical: 14,
-                        paddingHorizontal: 4,
+                        paddingHorizontal: 10,
+                        paddingVertical: 2,
+                        borderRadius: 12,
+                        backgroundColor: theme.color.brandSoft,
                       }}
                     >
-                      {(
-                        [
-                          [
-                            'present',
-                            counts.present,
-                            before.present,
-                            t.company.attendancePresent,
-                            'person-circle',
-                            GREEN,
-                          ],
-                          [
-                            'half',
-                            counts.half,
-                            before.half,
-                            t.company.attendanceHalfDay,
-                            'contrast',
-                            theme.color.warning,
-                          ],
-                          [
-                            'absent',
-                            counts.absent,
-                            before.absent,
-                            t.company.attendanceAbsent,
-                            'remove-circle',
-                            RED,
-                          ],
-                          [
-                            'total',
-                            access.people.length,
-                            access.people.length,
-                            t.company.attendanceTotal,
-                            'people-circle',
-                            theme.color.brand,
-                          ],
-                        ] as const
-                      ).map(([kind, now, was, label, icon, color], i) => (
-                        <View
-                          key={kind}
-                          style={{
-                            flex: 1,
-                            alignItems: 'center',
-                            gap: 2,
-                            borderStartWidth: i ? 1 : 0,
-                            borderColor: theme.color.border,
-                          }}
-                        >
-                          <Ionicons name={icon} size={24} color={color} />
-                          <Text variant="heading">{now}</Text>
-                          <Text variant="caption" tone="muted" numberOfLines={1}>
-                            {label}
-                          </Text>
-                          {delta(kind, now, was)}
-                        </View>
-                      ))}
-                    </StandardCard>
-                    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                      <View
-                        style={{
-                          flex: 1,
-                          minHeight: 44,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 8,
-                          borderRadius: 22,
-                          backgroundColor: theme.color.surface,
-                          paddingHorizontal: 12,
-                        }}
+                      <Text
+                        variant="caption"
+                        style={{ color: theme.color.brand, fontWeight: '800' }}
                       >
-                        <Ionicons name="search" size={18} color={theme.color.textMuted} />
-                        <TextInput
-                          value={search}
-                          onChangeText={setSearch}
-                          placeholder={t.company.attendanceSearch}
-                          placeholderTextColor={theme.color.textMuted}
-                          style={{ flex: 1, color: theme.color.text }}
-                        />
-                      </View>
-                      <Pressable
-                        accessibilityRole="button"
-                        disabled={
-                          busy || markAllTargets(people, marks, date).length === 0 || date > today
-                        }
-                        onPress={() =>
-                          markAllTargets(people, marks, date).forEach((memberId) =>
-                            write(memberId, 'present', null),
-                          )
-                        }
-                        style={{
-                          minHeight: 44,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 4,
-                          paddingHorizontal: 12,
-                          borderRadius: 22,
-                          backgroundColor: theme.color.brand,
-                          opacity:
-                            busy || markAllTargets(people, marks, date).length === 0 || date > today
-                              ? 0.5
-                              : 1,
-                        }}
-                      >
-                        <Ionicons name="checkmark" size={18} color={theme.color.onBrand} />
-                        <Text
-                          numberOfLines={2}
-                          style={{
-                            color: theme.color.onBrand,
-                            fontWeight: '700',
-                            maxWidth: 96,
-                            fontSize: 13,
-                          }}
-                        >
-                          {t.company.attendanceMarkAll}
-                        </Text>
-                      </Pressable>
+                        {counts.present}/{access.people.length}
+                      </Text>
                     </View>
+                  </View>
+                ) : null}
+                <AttendanceToolbar
+                  dayLabel={
+                    period === 'monthly'
+                      ? new Date(`${date.slice(0, 7)}-01T00:00:00Z`).toLocaleDateString(locale, {
+                          month: 'long',
+                          year: 'numeric',
+                          timeZone: 'UTC',
+                        })
+                      : labelDate
+                  }
+                  onDay={() => setDateOpen(true)}
+                  query={search}
+                  onQueryChange={setSearch}
+                  onMenu={(a) => setMenuAnchor(a ?? 'open')}
+                  menuLabel={t.company.attendanceMore}
+                />
+                {period === 'daily' ? (
+                  <>
                     <StandardCard style={{ padding: 0, overflow: 'hidden' }}>
                       {people.map((person, index) => {
                         const mark = marks.get(`${person.id}|${date}`);
-                        const title = displayName(person);
-                        const bal = balances.get(person.id) ?? { owes: 0n, advances: 0n };
-                        const dept = departmentName(departments, person.department_id);
+                        const lv = leaveOf(person.id);
                         return (
                           <AttendanceRow
                             key={person.id}
                             member={person}
-                            name={title}
+                            name={displayName(person)}
                             ghost={isGhost(person)}
-                            subtitle={[dept, person.employee_id].filter(Boolean).join(' · ')}
-                            chip={dept ?? null}
+                            subtitle={person.employee_id ?? ''}
                             status={mark?.status}
-                            statusLabel={statusText(mark?.status)}
-                            tasksLabel={plural(
-                              locale,
-                              taskCount.get(person.id) ?? 0,
-                              t.company.attendanceTasks,
-                            )}
-                            balance={
-                              bal.owes > 0n
-                                ? { kind: 'companyOwes', text: money(bal.owes) }
-                                : bal.advances > 0n
-                                  ? { kind: 'owesCompany', text: money(bal.advances) }
-                                  : { kind: 'settled', text: money(0n) }
-                            }
-                            canEdit={!busy && date <= today}
+                            leave={lv}
+                            chip={mark?.status === 'half' ? t.company.attendanceHalfDay : null}
                             hasNote={!!mark?.note}
-                            noteLabel={t.company.attendanceNote}
-                            menuLabel={t.company.attendanceMore}
-                            menuItems={[
-                              {
-                                icon: 'document-text-outline',
-                                label: t.company.viewStatement,
-                                route: `/group/${id}/company-statement?member=${person.id}`,
-                              },
-                              ...(mark && date <= today && !busy
-                                ? [
-                                    {
-                                      icon: 'chatbox-outline',
-                                      label: t.company.attendanceNote,
-                                      onPress: () => setNoteFor(person.id),
-                                    } as OverflowMenuItem,
-                                  ]
-                                : []),
-                            ]}
-                            onStatus={() => setPickFor(person.id)}
-                            onNote={() => setNoteFor(person.id)}
+                            canEdit={!busy && date <= today}
+                            labels={{
+                              present: t.company.attendancePresent,
+                              absent: t.company.attendanceAbsent,
+                              onLeave: t.company.attendanceOnLeave,
+                              leaveApplied: t.company.attendanceLeaveApplied,
+                              leave: t.company.attendanceLeave,
+                            }}
+                            onMark={(status) => write(person.id, status, mark?.note ?? null)}
+                            onOpen={() => setPickFor(person.id)}
                             divider={index < people.length - 1}
                           />
                         );
                       })}
                     </StandardCard>
+                    <View
+                      style={{
+                        alignSelf: 'center',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 20,
+                        backgroundColor: theme.color.brandSoft,
+                      }}
+                    >
+                      <Ionicons
+                        name="checkmark-circle-outline"
+                        size={18}
+                        color={theme.color.brand}
+                      />
+                      <Text
+                        variant="caption"
+                        style={{ color: theme.color.brand, fontWeight: '700' }}
+                      >
+                        {t.company.attendanceAutoSaved}
+                      </Text>
+                    </View>
                   </>
                 ) : (
                   <AttendanceReadOnly
@@ -578,10 +391,29 @@ export default function AttendanceView({
         </ScenicBody>
       </ScrollView>
       <OverflowMenu
-        visible={menuOpen}
-        onClose={() => setMenuOpen(false)}
+        visible={menuAnchor !== null}
+        onClose={() => setMenuAnchor(null)}
+        anchor={menuAnchor === 'open' ? null : menuAnchor}
         items={[
-          ...periodItems,
+          {
+            icon: 'checkmark-circle',
+            label: t.company.attendanceMarkAll,
+            disabled: busy || date > today || period !== 'daily',
+            onPress: () => void markAll('present'),
+          },
+          {
+            icon: 'close-circle',
+            label: t.company.attendanceMarkAllAbsent,
+            disabled: busy || date > today || period !== 'daily',
+            onPress: () => void markAll('absent'),
+          },
+          {
+            icon: 'options-outline',
+            label: t.company.attendanceFilters,
+            section: 'more',
+            onPress: () => setFilterOpen(true),
+          },
+          ...periodItems.map((item) => ({ ...item, section: 'more' })),
           {
             icon: 'download-outline',
             label: t.company.exportAction,
@@ -595,6 +427,19 @@ export default function AttendanceView({
           {pickPerson ? (
             <Text tone="muted" numberOfLines={1}>
               {displayName(pickPerson)}
+            </Text>
+          ) : null}
+          {pickPerson ? (
+            <Text variant="caption" tone="muted" numberOfLines={2}>
+              {[
+                departmentName(departments, pickPerson.department_id),
+                plural(locale, taskCount.get(pickPerson.id) ?? 0, t.company.attendanceTasks),
+                balances.get(pickPerson.id)?.owes
+                  ? `↓ ${money(balances.get(pickPerson.id)!.owes)}`
+                  : `↑ ${money(balances.get(pickPerson.id)?.advances ?? 0n)}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </Text>
           ) : null}
           {(['present', 'half', 'absent', null] as const).map((status) => {
@@ -612,7 +457,9 @@ export default function AttendanceView({
                 key={status ?? 'clear'}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
-                disabled={busy || (status === null && !pickMark)}
+                disabled={
+                  busy || leaveOf(pickFor ?? '') === 'approved' || (status === null && !pickMark)
+                }
                 onPress={() => choose(status)}
                 style={{
                   flexDirection: 'row',
@@ -645,6 +492,34 @@ export default function AttendanceView({
               </Pressable>
             );
           })}
+          {pickMark && date <= today && !busy ? (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                setNoteFor(pickFor);
+                setPickFor(null);
+              }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
+            >
+              <Ionicons name="chatbox-outline" size={20} color={theme.color.brand} />
+              <Text style={{ color: theme.color.brand, fontWeight: '600' }}>
+                {t.company.attendanceNote}
+              </Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              router.push(`/group/${id}/company-statement?member=${pickFor}`);
+              setPickFor(null);
+            }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
+          >
+            <Ionicons name="document-text-outline" size={20} color={theme.color.brand} />
+            <Text style={{ color: theme.color.brand, fontWeight: '600' }}>
+              {t.company.viewStatement}
+            </Text>
+          </Pressable>
         </View>
       </Sheet>
       <Sheet visible={filterOpen} onClose={() => setFilterOpen(false)} closeLabel={t.common.close}>
