@@ -120,63 +120,42 @@ export function balanceTone(b: Balance): 'negative' | 'positive' {
 }
 
 export type PersonRole = 'employee' | 'manager' | 'owner';
-export type PeopleSort = 'name' | 'attendance' | 'balance' | 'tasks';
-export type PeopleMark = 'present' | 'half' | 'absent' | 'unmarked';
 
 export interface PeopleRow {
   readonly id: string;
   readonly name: string;
   readonly role: PersonRole;
   readonly former: boolean;
-  readonly departmentId: string | null;
   readonly mark: MirrorAttendance['status'] | null;
   readonly tasks: number;
   /** Null for owners: they carry no ledger. */
   readonly balance: Balance | null;
 }
 
-export interface PeopleFilter {
-  readonly roles: readonly PersonRole[];
-  readonly status: 'employed' | 'notEmployed';
-  readonly departmentId: string | null;
-  readonly mark: PeopleMark | null;
+export interface PeopleView {
+  /** A-Z by name; off keeps the given order (employees, managers, owners). */
+  readonly byName: boolean;
+  /** Include managers and owners (employed list only). */
+  readonly admins: boolean;
+  /** The Not employed list instead of the employed one. */
+  readonly notEmployed: boolean;
 }
 
-/** Employed people, employees and managers; owners only when the filter picks them. */
-export const DEFAULT_PEOPLE_FILTER: PeopleFilter = {
-  roles: ['employee', 'manager'],
-  status: 'employed',
-  departmentId: null,
-  mark: null,
-};
+/** Employees by name; admins hidden. */
+export const DEFAULT_PEOPLE_VIEW: PeopleView = { byName: true, admins: false, notEmployed: false };
 
-const MARK_RANK = { present: 0, half: 1, absent: 2 } as const;
-
-/** Filter, search and sort in one pass; ties always fall back to the name. */
+/** Filter, search and sort in one pass. */
 export function listPeople(
   rows: readonly PeopleRow[],
-  filter: PeopleFilter,
-  sort: PeopleSort,
+  view: PeopleView,
   query: string,
 ): PeopleRow[] {
   const q = query.trim().toLowerCase();
-  const byName = (a: PeopleRow, b: PeopleRow) => a.name.localeCompare(b.name);
-  const rank = (r: PeopleRow) => (r.mark ? MARK_RANK[r.mark] : 3);
-  const amount = (r: PeopleRow) => r.balance?.amount ?? 0n;
-  const order: Record<PeopleSort, (a: PeopleRow, b: PeopleRow) => number> = {
-    name: byName,
-    attendance: (a, b) => rank(a) - rank(b),
-    balance: (a, b) => (amount(a) === amount(b) ? 0 : amount(a) > amount(b) ? -1 : 1),
-    tasks: (a, b) => b.tasks - a.tasks,
-  };
-  return rows
-    .filter(
-      (r) =>
-        r.former === (filter.status === 'notEmployed') &&
-        filter.roles.includes(r.role) &&
-        (!filter.departmentId || r.departmentId === filter.departmentId) &&
-        (!filter.mark || (r.mark ?? 'unmarked') === filter.mark) &&
-        (!q || r.name.toLowerCase().includes(q)),
-    )
-    .sort((a, b) => order[sort](a, b) || byName(a, b));
+  const out = rows.filter(
+    (r) =>
+      r.former === view.notEmployed &&
+      (view.notEmployed || view.admins || r.role === 'employee') &&
+      (!q || r.name.toLowerCase().includes(q)),
+  );
+  return view.byName ? out.sort((a, b) => a.name.localeCompare(b.name)) : out;
 }

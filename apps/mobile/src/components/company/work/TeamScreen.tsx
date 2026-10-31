@@ -33,6 +33,7 @@ export default function TeamScreen({
   const view = useCompanyEntries(groupId);
   const access = useWorkdayAccess(groupId);
   const [departments, setDepartments] = useState(false);
+  const [notEmployed, setNotEmployed] = useState(false);
   const [tab, setTab] = useState<TeamTab>(initialTab ?? 'attendance');
   useEffect(() => {
     if (initialTab) {
@@ -72,6 +73,14 @@ export default function TeamScreen({
     );
   }
   const menuItems: OverflowMenuItem[] = [
+    {
+      icon: 'person-remove-outline',
+      label: t.company.notEmployed,
+      onPress: () => {
+        choose('people');
+        setNotEmployed(true);
+      },
+    },
     { icon: 'download-outline', label: t.company.exportAction, route: `/group/${groupId}/export` },
     ...(view.isOwner && !view.suspended
       ? [
@@ -96,7 +105,11 @@ export default function TeamScreen({
       segment={<TeamSegment groupId={groupId} value={tab} onChange={choose} />}
     >
       {tab === 'people' ? (
-        <CompanyPeople groupId={groupId} />
+        <CompanyPeople
+          groupId={groupId}
+          notEmployed={notEmployed}
+          onLeaveNotEmployed={() => setNotEmployed(false)}
+        />
       ) : tab === 'attendance' ? (
         <AttendanceView groupId={groupId} embedded />
       ) : (

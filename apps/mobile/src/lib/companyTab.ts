@@ -71,7 +71,7 @@ export function homeSecondActionKey(companyIds: readonly string[]): 'review' | '
 
 // ───────────────────────────────────────────── company mode (owner / manager) ──
 
-export type CompanyBarKey = 'home' | 'overview' | 'team' | 'payments' | 'more';
+export type CompanyBarKey = 'home' | 'team' | 'payments' | 'more';
 
 /** The viewer's live role in one group, from the members mirror; null when not a member. */
 export function viewerRoleIn(
@@ -119,7 +119,7 @@ const BAR_SCREEN: Readonly<Record<string, CompanyBarKey>> = {
   'company-work': 'team',
   'company-attendance': 'team',
   // Pending is a card at the top of Overview now; its full list belongs to that tab.
-  'company-pending': 'overview',
+  'company-pending': 'home',
   'company-payments': 'payments',
   'company-wages': 'payments',
   'company-more': 'more',
@@ -131,15 +131,13 @@ const BAR_SCREEN: Readonly<Record<string, CompanyBarKey>> = {
 /** Which company-bar tab reads as current; '' for screens that belong to none (entry forms). */
 export function companyBarActiveKey(segments: readonly string[]): CompanyBarKey | '' {
   if (segments[0] !== 'group') return '';
-  if (segments.length <= 2) return 'overview';
+  if (segments.length <= 2) return 'home';
   return BAR_SCREEN[segments[2] ?? ''] ?? '';
 }
 
 /** Where a company-bar tab goes. */
 export function companyBarRoute(groupId: string, key: string): string {
   switch (key) {
-    case 'home':
-      return '/';
     case 'team':
       return `/group/${groupId}/company-team`;
     case 'payments':

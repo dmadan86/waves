@@ -1693,17 +1693,13 @@ export interface UiStrings {
     empTypePartTime: string;
     empTypeContractor: string;
     empTypeNone: string;
-    filterDepartment: string;
-    filterAttendance: string;
-    filterBalance: string;
-    peopleSortBy: string;
-    filterClear: string;
     qaAddEmployee: string;
     searchEmployees: string;
     filterEmployees: string;
+    peopleSortName: string;
+    peopleShowAdmins: string;
     empFilterAll: string;
     viewStatement: string;
-    employed: string;
     notEmployed: string;
     markNotEmployed: string;
     markEmployed: string;
@@ -1762,7 +1758,6 @@ export interface UiStrings {
     fullNameRequired: string;
     phoneHelper: string;
     emailHelper: string;
-    roleLabel: string;
     roleEmployee: string;
     nameAloneBody: string;
     fromContacts: string;
@@ -8503,16 +8498,12 @@ const en: UiStrings = {
     empTypePartTime: 'Part-time',
     empTypeContractor: 'Contractor',
     empTypeNone: 'Not set',
-    filterDepartment: 'Department',
-    filterAttendance: 'Attendance today',
-    filterBalance: 'Balance',
-    peopleSortBy: 'Sort by',
-    filterClear: 'Clear filters',
     searchEmployees: 'Search employees...',
     filterEmployees: 'Show employees',
+    peopleSortName: 'Sort by name (A–Z)',
+    peopleShowAdmins: 'Show admins',
     empFilterAll: 'All',
     viewStatement: 'View statement',
-    employed: 'Employed',
     notEmployed: 'Not employed',
     markNotEmployed: 'Mark as not employed',
     markEmployed: 'Mark as employed',
@@ -8574,7 +8565,6 @@ const en: UiStrings = {
     fullNameRequired: 'Full name *',
     phoneHelper: 'Share an invite link by WhatsApp or SMS',
     emailHelper: 'Share an invite link by email',
-    roleLabel: 'Role',
     roleEmployee: 'Employee',
     nameAloneBody:
       "A name alone is enough. They don't need the app or an email to be part of the company. When they join later, they can claim everything already recorded under their name.",
@@ -14770,16 +14760,12 @@ const ta: UiStrings = {
     empTypePartTime: 'பகுதி நேரம்',
     empTypeContractor: 'ஒப்பந்தம்',
     empTypeNone: 'அமைக்கப்படவில்லை',
-    filterDepartment: 'துறை',
-    filterAttendance: 'இன்றைய வருகை',
-    filterBalance: 'இருப்பு',
-    peopleSortBy: 'வரிசைப்படுத்து',
-    filterClear: 'வடிகட்டிகளை அழி',
     searchEmployees: 'ஊழியர்களைத் தேடு...',
     filterEmployees: 'ஊழியர்களைக் காட்டு',
+    peopleSortName: 'பெயர் வரிசை (அ–ஃ)',
+    peopleShowAdmins: 'நிர்வாகிகளைக் காட்டு',
     empFilterAll: 'அனைவரும்',
     viewStatement: 'அறிக்கையைப் பார்',
-    employed: 'பணியில் உள்ளவர்',
     notEmployed: 'பணியில் இல்லை',
     markNotEmployed: 'பணியில் இல்லை எனக் குறிக்கவும்',
     markEmployed: 'பணியில் உள்ளவர் எனக் குறிக்கவும்',
@@ -14842,7 +14828,6 @@ const ta: UiStrings = {
     fullNameRequired: 'முழுப் பெயர் *',
     phoneHelper: 'WhatsApp அல்லது SMS மூலம் அழைப்பு இணைப்பைப் பகிருங்கள்',
     emailHelper: 'மின்னஞ்சல் மூலம் அழைப்பு இணைப்பைப் பகிருங்கள்',
-    roleLabel: 'பங்கு',
     roleEmployee: 'ஊழியர்',
     nameAloneBody:
       'பெயர் மட்டும் போதும். நிறுவனத்தில் இருக்க அவர்களுக்கு செயலியோ மின்னஞ்சலோ தேவையில்லை. பின்னர் சேரும்போது, அவர்கள் பெயரில் ஏற்கனவே பதிவான அனைத்தையும் கோரலாம்.',
@@ -21201,16 +21186,12 @@ const hi: UiStrings = {
     empTypePartTime: 'अंशकालिक',
     empTypeContractor: 'ठेकेदार',
     empTypeNone: 'तय नहीं',
-    filterDepartment: 'विभाग',
-    filterAttendance: 'आज की उपस्थिति',
-    filterBalance: 'बकाया',
-    peopleSortBy: 'क्रमबद्ध करें',
-    filterClear: 'फ़िल्टर हटाएँ',
     searchEmployees: 'कर्मचारी खोजें...',
     filterEmployees: 'कर्मचारी दिखाएँ',
+    peopleSortName: 'नाम के अनुसार क्रम (अ–ह)',
+    peopleShowAdmins: 'एडमिन दिखाएँ',
     empFilterAll: 'सभी',
     viewStatement: 'स्टेटमेंट देखें',
-    employed: 'कार्यरत',
     notEmployed: 'कार्यरत नहीं',
     markNotEmployed: 'कार्यरत नहीं चिह्नित करें',
     markEmployed: 'कार्यरत चिह्नित करें',
@@ -21271,7 +21252,6 @@ const hi: UiStrings = {
     fullNameRequired: 'पूरा नाम *',
     phoneHelper: 'WhatsApp या SMS से आमंत्रण लिंक भेजें',
     emailHelper: 'ईमेल से आमंत्रण लिंक भेजें',
-    roleLabel: 'भूमिका',
     roleEmployee: 'कर्मचारी',
     nameAloneBody:
       'सिर्फ़ नाम काफ़ी है। कंपनी का हिस्सा बनने के लिए उन्हें ऐप या ईमेल की ज़रूरत नहीं। बाद में जुड़ने पर वे अपने नाम पर पहले से दर्ज सब कुछ अपना सकते हैं।',
@@ -27549,16 +27529,12 @@ const ar: UiStrings = {
     empTypePartTime: 'دوام جزئي',
     empTypeContractor: 'متعاقد',
     empTypeNone: 'غير محدد',
-    filterDepartment: 'القسم',
-    filterAttendance: 'حضور اليوم',
-    filterBalance: 'الرصيد',
-    peopleSortBy: 'ترتيب حسب',
-    filterClear: 'مسح التصفية',
     searchEmployees: 'ابحث عن موظف...',
     filterEmployees: 'عرض الموظفين',
+    peopleSortName: 'الترتيب حسب الاسم (أ–ي)',
+    peopleShowAdmins: 'عرض المسؤولين',
     empFilterAll: 'الكل',
     viewStatement: 'عرض الكشف',
-    employed: 'موظف',
     notEmployed: 'غير موظف',
     markNotEmployed: 'تعيين كغير موظف',
     markEmployed: 'تعيين كموظف',
@@ -27618,7 +27594,6 @@ const ar: UiStrings = {
     fullNameRequired: 'الاسم الكامل *',
     phoneHelper: 'شارك رابط دعوة عبر واتساب أو رسالة نصية',
     emailHelper: 'شارك رابط دعوة عبر البريد الإلكتروني',
-    roleLabel: 'الدور',
     roleEmployee: 'موظف',
     nameAloneBody:
       'يكفي الاسم وحده. لا يحتاجون إلى التطبيق أو بريد إلكتروني ليكونوا جزءًا من الشركة. عندما ينضمون لاحقًا، يمكنهم المطالبة بكل ما سُجّل باسمهم.',
