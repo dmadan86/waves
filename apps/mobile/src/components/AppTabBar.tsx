@@ -398,7 +398,6 @@ export function AppTabBar() {
   const go = useCallback(
     (key: string): void => {
       if (company && groupId) {
-        if (key === 'home') return switchTab('/');
         if (key === activeKey && isCompanyBarRoot(segments)) return;
         // Siblings replace each other, like Personal's, so tabs never stack.
         router.replace(companyBarRoute(groupId, key) as never);
