@@ -53,7 +53,6 @@ import {
 import { useCaptures } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
-import { hapticLight } from '@/lib/assistantHaptics';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
@@ -71,6 +70,7 @@ import { useCompanySuspended } from '@/data/companyEntries';
 import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, switchTab } from '@/lib/navigation';
+import { useFabOverride } from '@/lib/fabOverride';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
@@ -195,7 +195,6 @@ export function AppTabBar() {
     // Mount directly into the route's mode; only a real switch earns a tick.
     if (previousPersonal.current === alt) return;
     previousPersonal.current = alt;
-    hapticLight();
     p.value = withTiming(alt ? 1 : 0, {
       duration: reduced ? 120 : 280,
       easing: Easing.linear,
@@ -313,6 +312,7 @@ export function AppTabBar() {
       item('home', t.home, 'home', 'home-outline', pendingCount),
       item('team', t.company.barTeam, 'people-circle', 'people-circle-outline'),
       item('payments', t.company.tabPayments, 'cash', 'cash-outline'),
+      item('vendors', t.companyVendors.title, 'storefront', 'storefront-outline'),
       item(
         'more',
         t.company.barMore,
@@ -320,7 +320,7 @@ export function AppTabBar() {
         'ellipsis-horizontal-circle-outline',
       ),
     ];
-  }, [pendingCount, t.company, t.home]);
+  }, [pendingCount, t.company, t.companyVendors.title, t.home]);
   const altItems = company ? companyItems : personalItems;
 
   const sharedItems = useMemo<PillTabItem[]>(
@@ -448,7 +448,8 @@ export function AppTabBar() {
   useEffect(() => {
     if (companyBack === null) return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (companyBack === '/') switchTab('/');
+      // dismissTo pops to Home, so the Overview slides out to the right like a Back.
+      if (companyBack === '/') router.dismissTo('/');
       else router.replace(companyBack as never);
       return true;
     });
@@ -532,15 +533,17 @@ export function AppTabBar() {
   );
 
   // Company mode's round add button, in the place Personal moves the mic to.
+  const fabOverride = useFabOverride();
   const add = useMemo<PillTabAction>(
     () => ({
-      accessibilityLabel: t.company.addEntry,
+      accessibilityLabel: fabOverride?.label ?? t.company.addEntry,
       onPress: () => {
-        if (groupId) router.push(`/group/${groupId}/company-entry`);
+        if (fabOverride) fabOverride.run();
+        else if (groupId) router.push(`/group/${groupId}/company-entry`);
       },
       icon: (color: string) => <Ionicons name="add" size={iconSize.xl} color={color} />,
     }),
-    [groupId, t.company.addEntry],
+    [groupId, t.company.addEntry, fabOverride],
   );
 
   // Hidden, unless a hold is running — see `holding` above. A hold wins over a

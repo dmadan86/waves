@@ -7,6 +7,7 @@
 import { useState, type ReactNode } from 'react';
 import { Redirect } from 'expo-router';
 import { ScrollView, View } from 'react-native';
+import { NestableScrollContainer } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Screen, useTheme } from '@waves/ui';
@@ -16,13 +17,15 @@ import type { OverflowMenuItem } from '@/components/OverflowMenu';
 import type { CompanyView } from '@/data/companyEntries';
 import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { router, switchTab } from '@/lib/navigation';
+import { companyOverviewRoute } from '@/lib/companyTab';
+import { router } from '@/lib/navigation';
 
 export function SectionShell({
   groupId,
   view,
   overview = false,
   ownerOnly = false,
+  editing = false,
   subtitle,
   segment,
   menuItems,
@@ -34,6 +37,8 @@ export function SectionShell({
   overview?: boolean;
   /** Budgets & sites: a manager who lands here is sent back to Overview. */
   ownerOnly?: boolean;
+  /** Overview edit mode: the body is a scroll container the drag list can auto-scroll. */
+  editing?: boolean;
   /** Replaces the default owner line (employee, manager and owner counts). */
   subtitle?: string;
   /** Team: a fixed segment under the header; children then scroll themselves. */
@@ -60,7 +65,7 @@ export function SectionShell({
       groupId={groupId}
       view={view}
       showGear={view.isOwner}
-      menuItems={segment ? menuItems : undefined}
+      menuItems={segment || overview ? menuItems : undefined}
       overview={overview}
       subtitle={
         overview
@@ -72,7 +77,11 @@ export function SectionShell({
             : (subtitle ?? counts(live))
       }
       pill={manager ? t.company.manager : undefined}
-      onBack={() => (overview ? switchTab('/') : router.replace(`/group/${groupId}`))}
+      onBack={() =>
+        overview
+          ? router.dismissTo('/')
+          : router.replace(companyOverviewRoute(groupId, 'back') as never)
+      }
     />
   );
   if (segment)
@@ -85,9 +94,10 @@ export function SectionShell({
         <View style={{ flex: 1 }}>{children}</View>
       </Screen>
     );
+  const Scroller = editing ? NestableScrollContainer : ScrollView;
   return (
     <Screen edges={[]}>
-      <ScrollView
+      <Scroller
         contentContainerStyle={{ paddingBottom: clearance + 24 }}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={32}
@@ -95,7 +105,7 @@ export function SectionShell({
       >
         {header}
         <DashBody>{children}</DashBody>
-      </ScrollView>
+      </Scroller>
       {scrolled ? (
         <View
           pointerEvents="none"

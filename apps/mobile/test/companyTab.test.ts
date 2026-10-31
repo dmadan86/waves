@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { resolveFab } from '../src/lib/tabBar';
 import {
   companyActiveKey,
+  companyOverviewRoute,
   companyBackRoute,
   companyBarActiveKey,
   companyBarRoute,
@@ -145,18 +146,27 @@ describe('company bar navigation', () => {
     expect(companyBarActiveKey(['group', '[id]', 'company-attendance'])).toBe('team');
     expect(companyBarActiveKey(['group', '[id]', 'company-pending'])).toBe('home');
     expect(companyBarActiveKey(['group', '[id]', 'company-entry'])).toBe('');
-    expect(companyBarRoute('a', 'home')).toBe('/group/a');
+    expect(companyBarRoute('a', 'home')).toBe('/group/a?nav=tab');
+    expect(companyBarActiveKey(['group', '[id]', 'company-vendors'])).toBe('vendors');
+    expect(companyBarRoute('a', 'vendors')).toBe('/group/a/company-vendors');
     expect(companyBarRoute('a', 'team')).toBe('/group/a/company-team');
   });
   it('Back goes sub-tab to Overview, Overview to Home, and nowhere on deeper screens', () => {
-    expect(companyBackRoute(['group', '[id]', 'company-more'], 'a')).toBe('/group/a');
-    expect(companyBackRoute(['group', '[id]', 'company-team'], 'a')).toBe('/group/a');
-    expect(companyBackRoute(['group', '[id]', 'company-work'], 'a')).toBe('/group/a');
-    expect(companyBackRoute(['group', '[id]', 'company-people'], 'a')).toBe('/group/a');
-    expect(companyBackRoute(['group', '[id]', 'company-attendance'], 'a')).toBe('/group/a');
-    expect(companyBackRoute(['group', '[id]', 'company-pending'], 'a')).toBe('/group/a');
+    expect(companyBackRoute(['group', '[id]', 'company-more'], 'a')).toBe('/group/a?nav=back');
+    expect(companyBackRoute(['group', '[id]', 'company-team'], 'a')).toBe('/group/a?nav=back');
+    expect(companyBackRoute(['group', '[id]', 'company-work'], 'a')).toBe('/group/a?nav=back');
+    expect(companyBackRoute(['group', '[id]', 'company-people'], 'a')).toBe('/group/a?nav=back');
+    expect(companyBackRoute(['group', '[id]', 'company-attendance'], 'a')).toBe(
+      '/group/a?nav=back',
+    );
+    expect(companyBackRoute(['group', '[id]', 'company-pending'], 'a')).toBe('/group/a?nav=back');
+    expect(companyBackRoute(['group', '[id]', 'company-vendors'], 'a')).toBe('/group/a?nav=back');
     expect(companyBackRoute(['group', '[id]'], 'a')).toBe('/');
     expect(companyBackRoute(['group', '[id]', 'company-statement'], 'a')).toBeNull();
+  });
+  it('marks Overview arrivals as tab or back so only forward pushes slide in', () => {
+    expect(companyOverviewRoute('a', 'tab')).toBe('/group/a?nav=tab');
+    expect(companyOverviewRoute('a', 'back')).toBe('/group/a?nav=back');
   });
   it('hides the add button on entry, wages, invite and export', () => {
     for (const s of ['company-entry', 'company-wages', 'invite', 'export'])

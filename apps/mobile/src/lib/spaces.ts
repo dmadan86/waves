@@ -17,6 +17,20 @@ export function resolveSpace(stored: string | null, companyIds: readonly string[
   return stored !== null && companyIds.includes(stored) ? stored : 'personal';
 }
 
+/**
+ * Cold-start decision for the first Home mount: 'wait' (company list needed but not ready),
+ * 'stay' (Personal) or the company id to open. Personal never waits, so it never flashes blank.
+ */
+export function coldStartPlan(
+  stored: string | null,
+  ready: boolean,
+  companyIds: readonly string[],
+): 'wait' | 'stay' | Space {
+  if (stored === null || stored === 'personal') return 'stay';
+  if (!ready) return 'wait';
+  return resolveSpace(stored, companyIds);
+}
+
 /** Where the shared bar's Company tab goes: the last company, the only one, or the list. */
 export function companyTabTarget(
   companyIds: readonly string[],
