@@ -346,12 +346,6 @@ export default function HomeScreen() {
           ]
         : []),
       {
-        icon: 'person-circle-outline',
-        label: t.account.yourAccount,
-        route: '/settings/account',
-        section: 'account',
-      },
-      {
         icon: 'notifications-outline',
         label: t.account.notifications,
         route: '/settings/notifications',
@@ -836,9 +830,9 @@ export default function HomeScreen() {
         onClose={() => setMenuOpen(false)}
         items={menuItems}
         header={{
-          name: firstName,
+          name: displayName,
           avatar: <PersonAvatar name={displayName} avatarUrl={profile?.avatar_url} size={40} />,
-          route: '/profile',
+          route: '/settings/account',
         }}
       />
       <SpaceSwitchSheet current="personal" open={switchOpen} onClose={() => setSwitchOpen(false)} />
