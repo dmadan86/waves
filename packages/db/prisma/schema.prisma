@@ -151,6 +151,8 @@ model Profile {
   defaultCurrency     String   @default("INR") @map("default_currency") @db.Char(3)
   locale              String   @default("en")
   notificationPrefs   Json     @default("{}") @map("notification_prefs")
+  /// Per-person UI preferences synced across devices, e.g. `overviewLayouts` (company id -> card order/hidden).
+  uiPrefs             Json     @default("{}") @map("ui_prefs")
   /// Can somebody who types this account's exact phone number find it
   /// (`waves_find_person`)? Search only — it does not affect being recognised
   /// by a person who is adding you to their group.

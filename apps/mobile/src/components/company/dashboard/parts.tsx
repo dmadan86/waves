@@ -284,7 +284,8 @@ export function DashHeader({
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
-  const bare = !!menuItems;
+  const bare = !!menuItems && !overview;
+  const dots = !!menuItems;
   const dotsRef = useRef<View>(null);
   const [dotsAnchor, setDotsAnchor] = useState<MenuAnchor | null>(null);
   const dark = theme.scheme === 'dark';
@@ -357,11 +358,11 @@ export function DashHeader({
               onPress={() => router.push(`/group/${groupId}/settings`)}
             />
           ) : null}
-          {bare ? (
+          {dots ? (
             <IconButton
-              icon="ellipsis-horizontal"
+              icon={bare ? 'ellipsis-horizontal' : 'ellipsis-vertical'}
               label={t.group.more}
-              round
+              round={bare}
               buttonRef={dotsRef}
               onPress={() =>
                 measureAnchor(dotsRef, (a) => {
@@ -451,7 +452,7 @@ export function DashHeader({
       <OverflowMenu
         visible={menu}
         onClose={() => setMenu(false)}
-        anchor={bare ? dotsAnchor : null}
+        anchor={dots ? dotsAnchor : null}
         items={
           menuItems ?? [
             ...(showGear
