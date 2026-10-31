@@ -921,6 +921,7 @@ function AuthGate() {
           <Stack.Screen name="settings/packs/[slug]" />
           <Stack.Screen name="settings/paying" />
           <Stack.Screen name="settings/upgrade" />
+          <Stack.Screen name="settings/purchases" />
           <Stack.Screen name="settings/redeem" />
           <Stack.Screen name="settings/invite" />
           <Stack.Screen name="settings/account" />
