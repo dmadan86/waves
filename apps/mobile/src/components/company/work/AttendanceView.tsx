@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
@@ -8,7 +8,7 @@ import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { Sheet, Text, useTheme } from '@waves/ui';
-import { ScenicBody, ScenicHeader, StandardCard } from '@/components/standard';
+import { ScenicBody, StandardCard } from '@/components/standard';
 import { useMoney } from '@/components/company/dashboard/parts';
 import {
   useAttendance,
@@ -24,7 +24,6 @@ import {
 } from '@/data/companyEntries';
 import { useCalendar } from '@/data/companyCalendar';
 import { useDepartments, departmentName } from '@/data/companyDepartments';
-import { useGroup } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
 import { plural, fill, useStrings } from '@/i18n';
@@ -45,13 +44,11 @@ type Period = 'daily' | 'weekly' | 'monthly';
 type StatusFilter = AttendanceStatus | 'unmarked';
 export default function AttendanceView({
   groupId: id,
-  segment,
-  onSwitch,
+  embedded = false,
 }: {
   groupId: string;
-  /** The Attendance | Daily work switch. With `onSwitch`, this view draws its own header. */
-  segment?: ReactNode;
-  onSwitch?: () => void;
+  /** Inside the Team shell, which draws the header and segment: no header of its own. */
+  embedded?: boolean;
 }) {
   const access = useWorkdayAccess(id),
     marks = useAttendance(id),
@@ -60,8 +57,7 @@ export default function AttendanceView({
   const company = useCompanyEntries(id),
     sites = useCompanyProjects(id),
     siteMembers = useCompanyProjectMembers(id),
-    departments = useDepartments(id),
-    group = useGroup(id).group.data;
+    departments = useDepartments(id);
   const { t, locale } = useStrings(),
     theme = useTheme(),
     clearance = useBottomClearance(),
@@ -236,25 +232,6 @@ export default function AttendanceView({
       <Ionicons name={icon} size={20} color={theme.color.brand} />
     </Pressable>
   );
-  const header =
-    onSwitch && access.canManage ? (
-      <ScenicHeader
-        wash
-        titleAlign="start"
-        title={t.company.attendanceTitle}
-        titleHint={t.company.workTitle}
-        onTitlePress={onSwitch}
-        subtitle={fill(plural(locale, access.people.length, t.company.attendanceSubtitle), {
-          company: group?.name ?? '',
-        })}
-        action={
-          <View style={{ flexDirection: 'row', gap: 8 }}>
-            {circle('calendar-outline', t.company.attendancePickDate, () => setDateOpen(true))}
-            {circle('ellipsis-horizontal', t.company.attendanceMore, () => setMenuOpen(true))}
-          </View>
-        }
-      />
-    ) : null;
   const periodItems: OverflowMenuItem[] = (
     [
       ['daily', 'today-outline', t.company.attendanceDailyView],
@@ -292,9 +269,7 @@ export default function AttendanceView({
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {header}
-        <ScenicBody>
-          {segment}
+        <ScenicBody flush={embedded}>
           <ReadOnlyWhenSuspended groupId={id}>
             {!access.enabled ? (
               <Text tone="muted">{t.company.attendanceEmpty}</Text>
@@ -393,6 +368,7 @@ export default function AttendanceView({
                     </Text>
                     <Ionicons name="chevron-down" size={14} color={theme.color.brand} />
                   </Pressable>
+                  {circle('ellipsis-horizontal', t.company.attendanceMore, () => setMenuOpen(true))}
                 </View>
                 {period === 'daily' ? (
                   <>

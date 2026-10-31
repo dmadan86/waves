@@ -312,7 +312,6 @@ export function AppTabBar() {
     return [
       item('home', t.home, 'home', 'home-outline'),
       item('overview', t.company.tabOverview, 'grid', 'grid-outline', pendingCount),
-      item('people', t.company.barPeople, 'people', 'people-outline'),
       item('team', t.company.barTeam, 'people-circle', 'people-circle-outline'),
       item('payments', t.company.tabPayments, 'cash', 'cash-outline'),
       item(

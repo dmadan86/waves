@@ -49,12 +49,13 @@ function payload(task: MirrorWorkTask): Payload {
 export default function DailyWorkView({
   groupId: id,
   header,
-  segment,
+  embedded = false,
 }: {
   groupId: string;
+  /** A header for the standalone (non-manager) view; the Team shell draws its own. */
   header?: ReactNode;
-  /** The Attendance | Daily work switch, first in the body. */
-  segment?: ReactNode;
+  /** Inside the Team shell: no header of its own. */
+  embedded?: boolean;
 }) {
   const access = useWorkdayAccess(id);
   const tasks = useWorkTasks(id);
@@ -206,8 +207,7 @@ export default function DailyWorkView({
         showsVerticalScrollIndicator={false}
       >
         {header}
-        <ScenicBody>
-          {segment}
+        <ScenicBody flush={embedded}>
           <ReadOnlyWhenSuspended groupId={id}>
             {!access.enabled ? (
               <Text tone="muted">{t.company.attendanceEmpty}</Text>

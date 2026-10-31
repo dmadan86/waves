@@ -23,6 +23,7 @@ export function SectionShell({
   overview = false,
   ownerOnly = false,
   subtitle,
+  segment,
   children,
 }: {
   groupId: string;
@@ -33,6 +34,8 @@ export function SectionShell({
   ownerOnly?: boolean;
   /** Replaces the default owner line (employee, manager and owner counts). */
   subtitle?: string;
+  /** Team: a fixed segment under the header; children then scroll themselves. */
+  segment?: ReactNode;
   children: ReactNode;
 }) {
   const clearance = useBottomClearance();
@@ -48,6 +51,35 @@ export function SectionShell({
   // An employee (or a stale deep link) has no company bar: send them to their own home.
   if (view.ready && (ownerOnly ? !view.isOwner : !view.isAdmin))
     return <Redirect href={`/group/${groupId}`} />;
+  const header = (
+    <DashHeader
+      groupId={groupId}
+      view={view}
+      showGear={view.isOwner}
+      overview={overview}
+      subtitle={
+        overview
+          ? `${new Date().toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })} · ${plural(locale, live.filter((m) => m.role === 'member' && m.id !== view.me?.id).length, t.company.employeeCount)}`
+          : manager
+            ? fill(t.company.teamLine, {
+                employees: plural(locale, team.length, t.company.employeeCount),
+              })
+            : (subtitle ?? counts(live))
+      }
+      pill={manager ? t.company.manager : undefined}
+      onBack={() => (overview ? switchTab('/') : router.replace(`/group/${groupId}`))}
+    />
+  );
+  if (segment)
+    return (
+      <Screen edges={[]}>
+        {header}
+        <View style={{ marginTop: -22, paddingHorizontal: theme.spacing.lg, zIndex: 1 }}>
+          {segment}
+        </View>
+        <View style={{ flex: 1 }}>{children}</View>
+      </Screen>
+    );
   return (
     <Screen edges={[]}>
       <ScrollView
@@ -56,23 +88,7 @@ export function SectionShell({
         scrollEventThrottle={32}
         onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.y > insets.top)}
       >
-        <DashHeader
-          groupId={groupId}
-          view={view}
-          showGear={view.isOwner}
-          overview={overview}
-          subtitle={
-            overview
-              ? `${new Date().toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })} · ${plural(locale, live.filter((m) => m.role === 'member' && m.id !== view.me?.id).length, t.company.employeeCount)}`
-              : manager
-                ? fill(t.company.teamLine, {
-                    employees: plural(locale, team.length, t.company.employeeCount),
-                  })
-                : (subtitle ?? counts(live))
-          }
-          pill={manager ? t.company.manager : undefined}
-          onBack={() => (overview ? switchTab('/') : router.replace(`/group/${groupId}`))}
-        />
+        {header}
         <DashBody>{children}</DashBody>
       </ScrollView>
       {scrolled ? (
