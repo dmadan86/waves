@@ -49,6 +49,7 @@ export function storeKind(store: string | null | undefined): StoreKind {
 export function purchaseStatus(
   info: InfoLike | null | undefined,
   row: SubscriptionRow | null | undefined,
+  now: number = Date.now(),
 ): PurchaseStatus | null {
   if (row?.status === 'refunded') return 'refunded';
   const ent = activeEntitlement(info);
@@ -61,7 +62,8 @@ export function purchaseStatus(
   }
   // No live entitlement (offline, no SDK key): fall back to what the server last wrote.
   if (!row) return null;
-  if (row.status === 'expired') return 'expired';
+  const over = row.current_period_end ? Date.parse(row.current_period_end) < now : false;
+  if (row.status === 'expired' || over) return 'expired';
   if (row.status === 'grace') return 'billingIssue';
   return storeKind(row.store) === 'none' ? 'promo' : 'active';
 }

@@ -45,6 +45,9 @@ describe('purchaseStatus', () => {
     expect(purchaseStatus(null, row({ status: 'expired' }))).toBe('expired');
     expect(purchaseStatus(null, row({ status: 'grace' }))).toBe('billingIssue');
     expect(purchaseStatus(null, row())).toBe('active');
+    expect(purchaseStatus(null, row({ current_period_end: '2020-01-01T00:00:00Z' }))).toBe(
+      'expired',
+    );
   });
   it('classifies stores', () => {
     expect(storeKind('PLAY_STORE')).toBe('play');
