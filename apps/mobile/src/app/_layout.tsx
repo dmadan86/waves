@@ -889,6 +889,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/company-people" options={{ animation: 'none' }} />
           <Stack.Screen name="group/[id]/company-pending" options={{ animation: 'none' }} />
           <Stack.Screen name="group/[id]/company-payments" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-vendors" options={{ animation: 'none' }} />
           <Stack.Screen name="group/[id]/company-more" options={{ animation: 'none' }} />
           <Stack.Screen name="group/[id]/company-budgets" />
           <Stack.Screen name="group/[id]/company-entry-view" />

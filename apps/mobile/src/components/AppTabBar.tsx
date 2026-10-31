@@ -313,6 +313,7 @@ export function AppTabBar() {
       item('home', t.home, 'home', 'home-outline', pendingCount),
       item('team', t.company.barTeam, 'people-circle', 'people-circle-outline'),
       item('payments', t.company.tabPayments, 'cash', 'cash-outline'),
+      item('vendors', t.companyVendors.title, 'storefront', 'storefront-outline'),
       item(
         'more',
         t.company.barMore,
@@ -320,7 +321,7 @@ export function AppTabBar() {
         'ellipsis-horizontal-circle-outline',
       ),
     ];
-  }, [pendingCount, t.company, t.home]);
+  }, [pendingCount, t.company, t.companyVendors.title, t.home]);
   const altItems = company ? companyItems : personalItems;
 
   const sharedItems = useMemo<PillTabItem[]>(

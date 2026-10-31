@@ -29,14 +29,6 @@ export function CompanyMore({ groupId }: { groupId: string }) {
       <StandardCard>
         {vendors.canManage ? (
           <ListRow
-            leading={lead('storefront-outline')}
-            title={t.companyVendors.title}
-            onPress={() => router.push(`/group/${groupId}/company-vendors`)}
-            divider
-          />
-        ) : null}
-        {vendors.canManage ? (
-          <ListRow
             leading={lead('business-outline')}
             title={t.companyDetails.title}
             onPress={() => router.push(`/group/${groupId}/company-details`)}

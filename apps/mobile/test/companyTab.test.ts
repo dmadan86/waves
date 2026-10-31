@@ -146,6 +146,8 @@ describe('company bar navigation', () => {
     expect(companyBarActiveKey(['group', '[id]', 'company-pending'])).toBe('home');
     expect(companyBarActiveKey(['group', '[id]', 'company-entry'])).toBe('');
     expect(companyBarRoute('a', 'home')).toBe('/group/a');
+    expect(companyBarActiveKey(['group', '[id]', 'company-vendors'])).toBe('vendors');
+    expect(companyBarRoute('a', 'vendors')).toBe('/group/a/company-vendors');
     expect(companyBarRoute('a', 'team')).toBe('/group/a/company-team');
   });
   it('Back goes sub-tab to Overview, Overview to Home, and nowhere on deeper screens', () => {
@@ -155,6 +157,7 @@ describe('company bar navigation', () => {
     expect(companyBackRoute(['group', '[id]', 'company-people'], 'a')).toBe('/group/a');
     expect(companyBackRoute(['group', '[id]', 'company-attendance'], 'a')).toBe('/group/a');
     expect(companyBackRoute(['group', '[id]', 'company-pending'], 'a')).toBe('/group/a');
+    expect(companyBackRoute(['group', '[id]', 'company-vendors'], 'a')).toBe('/group/a');
     expect(companyBackRoute(['group', '[id]'], 'a')).toBe('/');
     expect(companyBackRoute(['group', '[id]', 'company-statement'], 'a')).toBeNull();
   });
