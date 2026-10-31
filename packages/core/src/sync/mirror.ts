@@ -132,6 +132,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyVendors,
   SyncTable.CompanyVendorEntries,
   SyncTable.CompanyVendorEntryAttachments,
+  SyncTable.CompanyWorkTaskAttachments,
   SyncTable.CompanyDocuments,
   SyncTable.CompanyAttendance,
   SyncTable.CompanyWorkTasks,
@@ -1746,7 +1747,7 @@ export interface MirrorCompanyEntryAttachment extends MirrorRow {
   readonly deleted_at: string | null;
 }
 
-/** The live photos on one entry or vendor ledger line (ids never collide), oldest first. */
+/** The live photos on one entry, vendor ledger line or work task (ids never collide), oldest first. */
 export function materialiseCompanyEntryAttachments(
   state: MirrorState,
   options: { readonly entryId: string },
@@ -1755,6 +1756,7 @@ export function materialiseCompanyEntryAttachments(
     [
       ...rowsFor(state, SyncTable.CompanyEntryAttachments),
       ...rowsFor(state, SyncTable.CompanyVendorEntryAttachments),
+      ...rowsFor(state, SyncTable.CompanyWorkTaskAttachments),
     ] as MirrorCompanyEntryAttachment[]
   )
     .filter((row) => row.entry_id === options.entryId && row.deleted_at === null)

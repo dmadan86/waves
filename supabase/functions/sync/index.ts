@@ -363,6 +363,7 @@ const GROUP_TABLES = [
   ['company_vendors', '*'],
   ['company_vendor_entries', '*'],
   ['company_vendor_entry_attachments', '*'],
+  ['company_work_task_attachments', '*'],
   // Estimates and bills: RLS gives an owner all, a manager only the ones they created, others none.
   ['company_documents', '*'],
   // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.

@@ -35,7 +35,7 @@ export function CompanyEntryPhotos({
   canRemove,
   kind = 'entry',
 }: {
-  kind?: 'entry' | 'vendor';
+  kind?: 'entry' | 'vendor' | 'task';
   groupId: string;
   entryId: string;
   canAdd: boolean;
@@ -148,7 +148,7 @@ export function CompanyEntryPhotos({
           {add.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
         </View>
       ) : null}
-      {photos.length > 0 ? (
+      {photos.length > 0 && kind !== 'task' ? (
         <Text variant="micro" tone="muted">
           {kind === 'vendor' ? t.companyVendors.photoPrivacy : t.company.photoPrivacy}
         </Text>

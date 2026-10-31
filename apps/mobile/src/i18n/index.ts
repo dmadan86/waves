@@ -1514,6 +1514,20 @@ export interface UiStrings {
     workNextDay: string;
     workSeeAll: string;
     workSaveError: string;
+    taskDescription: string;
+    taskDescriptionHint: string;
+    taskAssignTo: string;
+    taskPeople: PluralForms;
+    taskDeadline: string;
+    taskPhotoLabel: string;
+    taskAddPhoto: string;
+    taskVoiceTitle: string;
+    taskVoiceBody: string;
+    taskSave: string;
+    taskNeedTitle: string;
+    taskNeedPeople: string;
+    taskBadDay: string;
+    taskPhotoFailed: string;
 
     tab: string;
     listTitle: string;
@@ -8288,6 +8302,20 @@ const en: UiStrings = {
     workNextDay: 'Next day',
     workSeeAll: 'See all',
     workSaveError: 'Could not save. Try again.',
+    taskDescription: 'Task description',
+    taskDescriptionHint: 'What do you want to do?',
+    taskAssignTo: 'Assign to',
+    taskPeople: { one: '{n} person', other: '{n} people' },
+    taskDeadline: 'Deadline (optional)',
+    taskPhotoLabel: 'Attach photo (optional)',
+    taskAddPhoto: 'Add Photo',
+    taskVoiceTitle: 'Or just say it…',
+    taskVoiceBody: 'Tap the mic to add your task by voice',
+    taskSave: 'Save Task',
+    taskNeedTitle: 'Write what needs to be done.',
+    taskNeedPeople: 'Choose at least one person.',
+    taskBadDay: 'Pick a deadline from today to a week ahead.',
+    taskPhotoFailed: 'Tasks saved, but a photo did not upload. Tap Save Task to try it again.',
 
     tab: 'Company',
     listTitle: 'Your companies',
@@ -14520,6 +14548,21 @@ const ta: UiStrings = {
     workNextDay: 'அடுத்த நாள்',
     workSeeAll: 'அனைத்தையும் காண்க',
     workSaveError: 'சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    taskDescription: 'வேலை விவரம்',
+    taskDescriptionHint: 'என்ன செய்ய வேண்டும்?',
+    taskAssignTo: 'ஒதுக்கப்படுபவர்',
+    taskPeople: { one: '{n} நபர்', other: '{n} நபர்கள்' },
+    taskDeadline: 'கடைசி நாள் (விருப்பம்)',
+    taskPhotoLabel: 'புகைப்படம் இணை (விருப்பம்)',
+    taskAddPhoto: 'புகைப்படம் சேர்',
+    taskVoiceTitle: 'அல்லது சொல்லுங்கள்…',
+    taskVoiceBody: 'மைக்கைத் தொட்டு குரலில் வேலையைச் சேர்க்கவும்',
+    taskSave: 'வேலையைச் சேமி',
+    taskNeedTitle: 'என்ன செய்ய வேண்டும் என்று எழுதவும்.',
+    taskNeedPeople: 'குறைந்தது ஒருவரைத் தேர்வுசெய்யவும்.',
+    taskBadDay: 'இன்று முதல் ஒரு வாரத்திற்குள் கடைசி நாளைத் தேர்வுசெய்யவும்.',
+    taskPhotoFailed:
+      'வேலைகள் சேமிக்கப்பட்டன, ஆனால் ஒரு புகைப்படம் ஏறவில்லை. மீண்டும் முயல வேலையைச் சேமி என்பதைத் தொடவும்.',
 
     tab: 'நிறுவனம்',
     listTitle: 'உங்கள் நிறுவனங்கள்',
@@ -20919,6 +20962,21 @@ const hi: UiStrings = {
     workNextDay: 'अगला दिन',
     workSeeAll: 'सभी देखें',
     workSaveError: 'सेव नहीं हुआ। फिर कोशिश करें।',
+    taskDescription: 'काम का विवरण',
+    taskDescriptionHint: 'आप क्या करवाना चाहते हैं?',
+    taskAssignTo: 'किसे सौंपें',
+    taskPeople: { one: '{n} व्यक्ति', other: '{n} लोग' },
+    taskDeadline: 'अंतिम तारीख (वैकल्पिक)',
+    taskPhotoLabel: 'फ़ोटो जोड़ें (वैकल्पिक)',
+    taskAddPhoto: 'फ़ोटो जोड़ें',
+    taskVoiceTitle: 'या बस बोल दें…',
+    taskVoiceBody: 'माइक दबाकर आवाज़ से काम जोड़ें',
+    taskSave: 'काम सेव करें',
+    taskNeedTitle: 'लिखें कि क्या करना है।',
+    taskNeedPeople: 'कम से कम एक व्यक्ति चुनें।',
+    taskBadDay: 'आज से एक हफ़्ते के भीतर की अंतिम तारीख चुनें।',
+    taskPhotoFailed:
+      'काम सेव हो गए, पर एक फ़ोटो अपलोड नहीं हुई। फिर कोशिश के लिए काम सेव करें दबाएँ।',
 
     tab: 'कंपनी',
     listTitle: 'आपकी कंपनियाँ',
@@ -27224,6 +27282,26 @@ const ar: UiStrings = {
     workNextDay: 'اليوم التالي',
     workSeeAll: 'عرض الكل',
     workSaveError: 'تعذر الحفظ. حاول مجددًا.',
+    taskDescription: 'وصف المهمة',
+    taskDescriptionHint: 'ماذا تريد أن يُنجز؟',
+    taskAssignTo: 'إسناد إلى',
+    taskPeople: {
+      one: 'شخص واحد',
+      two: 'شخصان',
+      few: '{n} أشخاص',
+      many: '{n} شخصًا',
+      other: '{n} شخص',
+    },
+    taskDeadline: 'الموعد النهائي (اختياري)',
+    taskPhotoLabel: 'إرفاق صورة (اختياري)',
+    taskAddPhoto: 'إضافة صورة',
+    taskVoiceTitle: 'أو قُلها فقط…',
+    taskVoiceBody: 'اضغط على الميكروفون لإضافة مهمتك بالصوت',
+    taskSave: 'حفظ المهمة',
+    taskNeedTitle: 'اكتب ما يجب إنجازه.',
+    taskNeedPeople: 'اختر شخصًا واحدًا على الأقل.',
+    taskBadDay: 'اختر موعدًا نهائيًا من اليوم حتى أسبوع قادم.',
+    taskPhotoFailed: 'تم حفظ المهام، لكن تعذر رفع صورة. اضغط حفظ المهمة للمحاولة مجددًا.',
 
     tab: 'الشركة',
     listTitle: 'شركاتك',

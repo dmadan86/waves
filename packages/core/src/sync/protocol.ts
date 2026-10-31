@@ -947,6 +947,8 @@ export enum SyncTable {
   CompanyVendorEntries = 'company_vendor_entries',
   /** Group-scoped, pull-only. Photos on a vendor ledger line; readable exactly where the line is (RLS). */
   CompanyVendorEntryAttachments = 'company_vendor_entry_attachments',
+  /** Group-scoped, pull-only. Photos on a daily-work task; readable exactly where the task is (RLS). */
+  CompanyWorkTaskAttachments = 'company_work_task_attachments',
   /** Group-scoped, pull-only: estimates and bills; owners see all, a manager only their own (RLS). */
   CompanyDocuments = 'company_documents',
   /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
