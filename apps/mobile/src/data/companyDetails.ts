@@ -64,7 +64,13 @@ export function useVendorCard(groupId: string, vendorId: string): CardView {
   );
   // The list is already narrowed to the vendors this viewer may see (owner: all, manager: theirs, vendor: itself).
   const visible = vendors.vendors.some((v) => v.id === vendorId);
-  return { card, canEdit: visible && !suspended, myMemberId: myId, cardId: `vendor:${vendorId}` };
+  // A stale cached card must not show once RLS no longer lets this viewer read it.
+  return {
+    card: visible ? card : null,
+    canEdit: visible && !suspended,
+    myMemberId: myId,
+    cardId: `vendor:${vendorId}`,
+  };
 }
 
 export function useSetCompanyCard(groupId: string) {
