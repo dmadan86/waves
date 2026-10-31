@@ -164,7 +164,6 @@ export default function HomeScreen() {
   });
   const displayName = profile?.display_name ?? t.account.you;
   // First word only, so a long name never truncates to "Hi, Madan Dei…".
-  const firstName = displayName.trim().split(/\s+/)[0] || displayName;
   const companyIds = useViewerCompanyIds();
 
   /**
@@ -222,7 +221,7 @@ export default function HomeScreen() {
   // The placeholder covers both: nothing read yet, or nothing read *and* nothing
   // confirmed. Everything else paints.
   const showSkeleton = hydrating || unknownYet;
-  useColdStartSpace(!showSkeleton, companyIds);
+  const coldStartHold = useColdStartSpace(!showSkeleton, companyIds);
   const settling = !showSkeleton && summary.pendingFirstSync;
 
   // A ledger import running in the background (see `@/lib/importProgress`): its
@@ -345,33 +344,6 @@ export default function HomeScreen() {
             },
           ]
         : []),
-      {
-        icon: 'person-circle-outline',
-        label: t.account.yourAccount,
-        route: '/settings/account',
-        section: 'account',
-      },
-      {
-        icon: 'notifications-outline',
-        label: t.account.notifications,
-        route: '/settings/notifications',
-        section: 'account',
-      },
-      {
-        icon: 'archive-outline',
-        label: t.group.archivedTitle,
-        route: '/settings/archived',
-        section: 'data',
-      },
-      // Backup sits with the other data rows rather than three taps down under
-      // the profile screen, because the moment somebody wants it is the moment
-      // they are worried about losing something.
-      {
-        icon: 'cloud-upload-outline',
-        label: t.backup.title,
-        route: '/settings/backup',
-        section: 'data',
-      },
       { icon: 'language-outline', label: t.language, route: '/settings/language', section: 'app' },
       { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene', section: 'app' },
       // Appearance is hidden while THEME_HIDDEN stands; the screen behind it is
@@ -495,6 +467,8 @@ export default function HomeScreen() {
   );
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
+
+  if (coldStartHold) return <Screen edges={[]}>{null}</Screen>;
 
   return (
     <Screen edges={[]}>
@@ -836,9 +810,9 @@ export default function HomeScreen() {
         onClose={() => setMenuOpen(false)}
         items={menuItems}
         header={{
-          name: firstName,
+          name: displayName,
           avatar: <PersonAvatar name={displayName} avatarUrl={profile?.avatar_url} size={40} />,
-          route: '/profile',
+          route: '/settings/account',
         }}
       />
       <SpaceSwitchSheet current="personal" open={switchOpen} onClose={() => setSwitchOpen(false)} />

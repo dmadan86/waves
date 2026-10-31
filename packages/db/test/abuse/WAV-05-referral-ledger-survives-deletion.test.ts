@@ -39,11 +39,11 @@ const claim = async (id: string, code: string) =>
   (await asUser(client, id, () => client.query(`SELECT waves_claim_referral($1) AS r`, [code])))
     .rows[0].r as { ok: boolean; reason?: string };
 const earned = async (id: string) =>
-  (await client.query(`SELECT waves_referral_days_earned($1) AS d`, [id])).rows[0].d as number;
+  (await client.query(`SELECT waves_referral_credits_earned($1) AS d`, [id])).rows[0].d as number;
 const row = async (referee: string) =>
   (
     await client.query(
-      `SELECT status, reject_reason, referrer_id, referee_id, referrer_days, referee_days
+      `SELECT status, reject_reason, referrer_id, referee_id, referrer_credits, referee_credits
          FROM referrals WHERE referee_id = $1`,
       [referee],
     )
@@ -58,20 +58,20 @@ async function friendQualifies(referrer: string, friend: string): Promise<void> 
 }
 
 describe('WAV-05 the referral ledger outlives the accounts', () => {
-  it("deleting the rewarded friend keeps the row and the referrer's earned days", async () => {
+  it("deleting the rewarded friend keeps the row and the referrer's earned credits", async () => {
     const referrer = await person(client);
     const friend = await person(client);
     await friendQualifies(referrer, friend);
-    expect(await row(friend)).toMatchObject({ status: 'rewarded', referrer_days: 7 });
-    expect(await earned(referrer)).toBe(7);
+    expect(await row(friend)).toMatchObject({ status: 'rewarded', referrer_credits: 50 });
+    expect(await earned(referrer)).toBe(50);
 
     await asUser(client, friend, () => client.query(`SELECT waves_delete_my_account()`));
     const kept = await client.query(
-      `SELECT status, referee_id, referrer_days FROM referrals WHERE referrer_id = $1`,
+      `SELECT status, referee_id, referrer_credits FROM referrals WHERE referrer_id = $1`,
       [referrer],
     );
-    expect(kept.rows).toEqual([{ status: 'rewarded', referee_id: null, referrer_days: 7 }]);
-    expect(await earned(referrer)).toBe(7);
+    expect(kept.rows).toEqual([{ status: 'rewarded', referee_id: null, referrer_credits: 50 }]);
+    expect(await earned(referrer)).toBe(50);
   });
 
   it('the friend cannot be referred again on the same phone after deleting the account', async () => {
@@ -95,18 +95,19 @@ describe('WAV-05 the referral ledger outlives the accounts', () => {
   it('a referrer who deletes and signs up again on the same phone keeps the cap they used', async () => {
     const phone = `9144${Math.floor(Math.random() * 1e8)}`;
     const referrer = await person(client, { phone });
-    for (let i = 0; i < 2; i += 1) await friendQualifies(referrer, await person(client));
-    expect(await earned(referrer)).toBe(14);
+    for (let i = 0; i < 8; i += 1) await friendQualifies(referrer, await person(client));
+    expect(await earned(referrer)).toBe(400);
     await asUser(client, referrer, () => client.query(`SELECT waves_delete_my_account()`));
     await client.query(`DELETE FROM auth.users WHERE id = $1`, [referrer]);
 
     const reborn = await person(client, { phone });
-    expect(await earned(reborn)).toBe(14);
+    expect(await earned(reborn)).toBe(400);
+    const credited = async (id: string) =>
+      (await client.query(`SELECT waves_credit_balance($1) AS c`, [id])).rows[0].c as number;
     for (let i = 0; i < 3; i += 1) await friendQualifies(reborn, await person(client));
-    // 14 + 7 + 7 + 2 = 30, the lifetime cap, across both accounts.
-    expect(await earned(reborn)).toBe(30);
-    await friendQualifies(reborn, await person(client));
-    expect(await earned(reborn)).toBe(30);
+    // 8 + 2 more friends are paid (10 across both accounts); the 11th is not.
+    expect(await earned(reborn)).toBe(500);
+    expect(await credited(reborn)).toBe(100);
   });
 
   it('the same device on both sides is a self-referral', async () => {

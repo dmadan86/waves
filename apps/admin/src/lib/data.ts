@@ -381,6 +381,8 @@ export interface ReferralRow {
   qualified_at: string | null;
   referrer_days: number;
   referee_days: number;
+  referrer_credits: number;
+  referee_credits: number;
 }
 
 export const referrals = () => call<ReferralRow>('waves_admin_referrals', { p_limit: 100 });

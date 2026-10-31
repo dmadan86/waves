@@ -1553,6 +1553,8 @@ export interface UiStrings {
     workMineTasks: string;
     workTeam: string;
     workFilter: string;
+    workSortTitle: string;
+    workAllTasks: string;
     workTime: string;
     workNoTime: string;
     workMine: string;
@@ -1722,6 +1724,26 @@ export interface UiStrings {
     ovSeeAll: string;
     ovEmptyTitle: string;
     ovEmptyBody: string;
+    ovEditLayout: string;
+    ovLayoutHint: string;
+    ovResetLayout: string;
+    ovHiddenCards: string;
+    ovHideCard: string;
+    ovAddCard: string;
+    ovMoveUp: string;
+    ovMoveDown: string;
+    ovReorderCard: string;
+    ovAlwaysFirst: string;
+    ovCardAttendance: string;
+    ovCardMoney: string;
+    ovCardAttention: string;
+    ovCardUpcoming: string;
+    ovCardActivity: string;
+    ovCardBudget: string;
+    ovCardStats: string;
+    ovCardQuick: string;
+    ovCardWorkday: string;
+    ovCardTeam: string;
     overviewNoOwes: string;
     overviewNoPaid: string;
     overviewNoAdvances: string;
@@ -2814,6 +2836,25 @@ export interface UiStrings {
     export: string;
     group: string;
     price: string;
+    yourCredits: string;
+    yourCreditsHint: string;
+    watchSub: string;
+    proSub: string;
+    getPro: string;
+    howUsed: string;
+    learnMore: string;
+    voiceSub: string;
+    scanSub: string;
+    exportSub: string;
+    groupSub: string;
+    buyTitle: string;
+    popular: string;
+    buy: string;
+    neverExpire: string;
+    neverExpireSub: string;
+    nextAt: string;
+    paidNote: string;
+    help: string;
   };
   adGates: {
     title: string;
@@ -3376,13 +3417,6 @@ export interface UiStrings {
   };
   activityScreen: {
     subtitle: string;
-    all: string;
-    expenses: string;
-    edits: string;
-    trip: string;
-    more: string;
-    viewDetails: string;
-    openGroup: string;
     noneForFilter: string;
     /** "Imported {n} expenses": the feed row for one import into a group. */
     importedHeadline: PluralForms;
@@ -6049,6 +6083,44 @@ export interface UiStrings {
     manageSubscription: string;
     whatCosts: string;
   };
+  /** The Purchases settings screen (`/settings/purchases`). */
+  purchases: {
+    title: string;
+    row: string;
+    rowHint: string;
+    link: string;
+    proMonthly: string;
+    proYearly: string;
+    status: {
+      active: string;
+      trial: string;
+      renewsOff: string;
+      billingIssue: string;
+      expired: string;
+      refunded: string;
+      promo: string;
+    };
+    test: string;
+    renews: string;
+    ends: string;
+    ended: string;
+    promoUntil: string;
+    changePlan: string;
+    manageOnAndroid: string;
+    manageOnIphone: string;
+    receiptsNotePlay: string;
+    receiptsNoteApple: string;
+    help: string;
+    getReceipt: string;
+    orderId: string;
+    contactSupport: string;
+    copied: string;
+    emptyTitle: string;
+    emptyBody: string;
+    seePlans: string;
+    googlePlay: string;
+    appStore: string;
+  };
   /**
    * The paywall (`/paywall`, behind the `paywall` route flag): the Pro
    * card priced from the store through RevenueCat, a monthly/yearly switch
@@ -6184,18 +6256,10 @@ export interface UiStrings {
     title: string;
     headline: string;
     body: string;
-    youGetTitle: string;
-    youGetBody: string;
-    friendGetsTitle: string;
-    friendGetsBody: string;
-    /** Milestone label under a node on the progress path: "{n} days" */
-    milestoneDays: string;
     share: string;
     shareMessage: string;
-    /** "{earned} of {cap} days earned" */
-    progress: string;
-    /** "... all {cap} days ..." */
-    capReached: string;
+    /** "{n} of {cap} friends joined · {credits} credits earned" */
+    friendsJoined: string;
     pending: PluralForms;
     loadError: string;
     haveCode: string;
@@ -8431,6 +8495,8 @@ const en: UiStrings = {
     workMineTasks: 'My tasks',
     workTeam: 'Team',
     workFilter: 'Filter',
+    workSortTitle: 'Sort by title (A–Z)',
+    workAllTasks: 'All tasks',
     workTime: 'Time (HH:MM)',
     workNoTime: 'No time',
     workMine: 'My work today',
@@ -8442,7 +8508,7 @@ const en: UiStrings = {
     workSite: 'Site',
     workNoSite: 'No site',
     workTodo: 'To do',
-    workDoing: 'Doing',
+    workDoing: 'In progress',
     workDone: 'Done',
     workBlocked: 'Blocked',
     workReason: 'Why is it blocked?',
@@ -8602,6 +8668,26 @@ const en: UiStrings = {
     ovSeeAll: 'See all',
     ovEmptyTitle: 'Add your first employee',
     ovEmptyBody: 'Invite people to see attendance, tasks and payments here.',
+    ovEditLayout: 'Edit layout',
+    ovLayoutHint: 'Hold ≡ and drag to reorder',
+    ovResetLayout: 'Reset to default',
+    ovHiddenCards: 'Hidden cards',
+    ovHideCard: 'Hide {name}',
+    ovAddCard: 'Add {name}',
+    ovMoveUp: 'Move up',
+    ovMoveDown: 'Move down',
+    ovReorderCard: 'Reorder {name}',
+    ovAlwaysFirst: 'Always first',
+    ovCardAttendance: 'Attendance',
+    ovCardMoney: 'Money',
+    ovCardAttention: 'Needs attention',
+    ovCardUpcoming: 'Coming up',
+    ovCardActivity: 'Recent activity',
+    ovCardBudget: 'Your budget',
+    ovCardStats: 'Team stats',
+    ovCardQuick: 'Quick actions',
+    ovCardWorkday: 'Workday',
+    ovCardTeam: 'My team',
     overviewNoOwes: 'No amount owed',
     overviewNoPaid: 'Nothing paid yet',
     overviewNoAdvances: 'No advances',
@@ -9613,6 +9699,25 @@ const en: UiStrings = {
     export: 'Export',
     group: 'Additional group',
     price: '{n} credits',
+    yourCredits: 'Your Credits',
+    yourCreditsHint: 'Use credits for AI voice, receipt scan, exports and more.',
+    watchSub: 'Watch a short ad to get {n} credits',
+    proSub: 'No ads, more credits',
+    getPro: 'Get Pro',
+    howUsed: 'How credits are used',
+    learnMore: 'Learn more',
+    voiceSub: 'Add expenses using voice',
+    scanSub: 'Scan and extract details',
+    exportSub: 'Export to CSV or Excel',
+    groupSub: 'Create and manage extra groups',
+    buyTitle: 'Get more credits',
+    popular: 'Popular',
+    buy: 'Buy',
+    neverExpire: 'Credits never expire',
+    neverExpireSub: 'Use anytime. Monthly free uses are applied first.',
+    nextAt: 'You can watch the next ad after {time}.',
+    paidNote: 'You’re on Pro, so there are no ads. Your credits stay in your wallet.',
+    help: 'Help',
   },
   adGates: {
     title: 'Watch a short ad',
@@ -9891,7 +9996,7 @@ const en: UiStrings = {
     badge: 'Tour',
     next: 'Next',
     done: 'Done',
-    replay: 'Take the tour again',
+    replay: 'Take a tour',
     introTitle: 'Welcome to Waves',
     introBody: 'A quick look at where things live — your balances, and the two ways to add.',
     balanceTitle: 'Your balances, up top',
@@ -10150,13 +10255,6 @@ const en: UiStrings = {
   },
   activityScreen: {
     subtitle: 'Your recent transactions and updates',
-    all: 'All',
-    expenses: 'Expenses',
-    edits: 'Edits',
-    trip: 'Trip',
-    more: 'More',
-    viewDetails: 'View details',
-    openGroup: 'Open group',
     noneForFilter: 'Nothing here for this filter yet.',
     importedHeadline: { one: 'Imported {n} expense', other: 'Imported {n} expenses' },
     importedSentence: { one: '{who} imported {n} expense', other: '{who} imported {n} expenses' },
@@ -12421,6 +12519,43 @@ const en: UiStrings = {
     manageSubscription: 'Manage subscription',
     whatCosts: 'What the plans add',
   },
+  purchases: {
+    title: 'Purchases',
+    row: 'Purchases',
+    rowHint: 'Plan, history, receipts',
+    link: 'Purchases and receipts',
+    proMonthly: 'Waves Pro · Monthly',
+    proYearly: 'Waves Pro · Yearly',
+    status: {
+      active: 'Active',
+      trial: 'Trial',
+      renewsOff: 'Renews off',
+      billingIssue: 'Payment issue',
+      expired: 'Expired',
+      refunded: 'Refunded',
+      promo: 'Promo',
+    },
+    test: 'TEST',
+    renews: 'Renews {date}',
+    ends: 'Ends {date}',
+    ended: 'Ended {date}',
+    promoUntil: 'Promo until {date}',
+    changePlan: 'Change plan',
+    manageOnAndroid: 'Manage on Android',
+    manageOnIphone: 'Manage on your iPhone',
+    receiptsNotePlay: 'Receipts and tax invoices are emailed by Google Play.',
+    receiptsNoteApple: 'Receipts and tax invoices are emailed by the App Store.',
+    help: 'Help',
+    getReceipt: 'Get receipt',
+    orderId: 'Order ID',
+    contactSupport: 'Contact support',
+    copied: 'Order ID copied',
+    emptyTitle: 'No purchases yet',
+    emptyBody: 'When you subscribe to Waves Pro, your plan and receipts show up here.',
+    seePlans: 'See plans',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
+  },
   paywall: {
     title: 'Choose your plan',
     proTitle: 'Pro',
@@ -12510,19 +12645,13 @@ const en: UiStrings = {
   },
   referral: {
     row: 'Invite your friends',
-    rowHint: 'Earn days of Pro together',
+    rowHint: 'Earn 50 credits together',
     title: 'Invite your friends',
-    headline: 'Money is easier together.',
+    headline: 'Invite a friend. You both get 50 credits.',
     body: 'Share a group with friends and unlock a little more from Waves.',
-    youGetTitle: 'You get 7 days of Pro',
-    youGetBody: 'After your friend starts using Waves.',
-    friendGetsTitle: 'Your friend gets 7 days too',
-    friendGetsBody: 'Try premium features together.',
-    milestoneDays: '{n} days',
     share: 'Share invite link',
     shareMessage: 'I use Waves to split expenses with friends. Join me:',
-    progress: '{earned} of {cap} days earned',
-    capReached: 'You have earned all {cap} days. Thank you!',
+    friendsJoined: '{n} of {cap} friends joined · {credits} credits earned',
     pending: {
       one: '{n} friend has joined. Waiting for their first shared expense.',
       other: '{n} friends have joined. Waiting for their first shared expense.',
@@ -12533,7 +12662,7 @@ const en: UiStrings = {
     yourCode: 'Your code',
     copyCode: 'Copy code',
     codeCopied: 'Copied',
-    applied: 'Done. When you record your first shared expense, you both get 7 days of Pro.',
+    applied: 'Done. When you record your first shared expense, you both get 50 credits.',
     unknownCode: 'That code does not match anyone.',
     ownCode: 'That is your own code.',
     alreadyUsed: 'You have already used an invite.',
@@ -14770,6 +14899,8 @@ const ta: UiStrings = {
     workMineTasks: 'என் பணிகள்',
     workTeam: 'குழு',
     workFilter: 'வடிகட்டி',
+    workSortTitle: 'தலைப்பு வரிசை (அ–ஃ)',
+    workAllTasks: 'அனைத்து பணிகள்',
     workTime: 'நேரம் (மணி:நிமிடம்)',
     workNoTime: 'நேரம் இல்லை',
     workMine: 'என் இன்றைய வேலை',
@@ -14943,6 +15074,26 @@ const ta: UiStrings = {
     ovSeeAll: 'அனைத்தும்',
     ovEmptyTitle: 'உங்கள் முதல் ஊழியரைச் சேருங்கள்',
     ovEmptyBody: 'வருகை, பணிகள், கொடுப்பனவுகளை இங்கே காண ஊழியர்களை அழைக்கவும்.',
+    ovEditLayout: 'அமைப்பைத் திருத்து',
+    ovLayoutHint: 'வரிசை மாற்ற ≡ ஐ அழுத்திப் பிடித்து இழுக்கவும்',
+    ovResetLayout: 'இயல்புநிலைக்கு மாற்று',
+    ovHiddenCards: 'மறைத்த அட்டைகள்',
+    ovHideCard: '{name} ஐ மறை',
+    ovAddCard: '{name} ஐச் சேர்',
+    ovMoveUp: 'மேலே நகர்த்து',
+    ovMoveDown: 'கீழே நகர்த்து',
+    ovReorderCard: '{name} வரிசையை மாற்று',
+    ovAlwaysFirst: 'எப்போதும் முதலில்',
+    ovCardAttendance: 'வருகை',
+    ovCardMoney: 'பணம்',
+    ovCardAttention: 'கவனம் தேவை',
+    ovCardUpcoming: 'வரவிருப்பவை',
+    ovCardActivity: 'சமீபத்திய செயல்பாடு',
+    ovCardBudget: 'உங்கள் பட்ஜெட்',
+    ovCardStats: 'குழு புள்ளிவிவரம்',
+    ovCardQuick: 'விரைவு செயல்கள்',
+    ovCardWorkday: 'வேலை நாள்',
+    ovCardTeam: 'என் குழு',
     overviewNoOwes: 'நிலுவைத் தொகை இல்லை',
     overviewNoPaid: 'இன்னும் பணம் செலுத்தப்படவில்லை',
     overviewNoAdvances: 'முன்பணம் இல்லை',
@@ -15965,6 +16116,28 @@ const ta: UiStrings = {
     export: 'ஏற்றுமதி',
     group: 'கூடுதல் குழு',
     price: '{n} கிரெடிட்கள்',
+    yourCredits: 'உங்கள் கிரெடிட்கள்',
+    yourCreditsHint:
+      'AI குரல், ரசீது ஸ்கேன், ஏற்றுமதி மற்றும் பலவற்றிற்கு கிரெடிட்களைப் பயன்படுத்துங்கள்.',
+    watchSub: '{n} கிரெடிட்கள் பெற ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
+    proSub: 'விளம்பரம் இல்லை, அதிக கிரெடிட்கள்',
+    getPro: 'Pro பெறுங்கள்',
+    howUsed: 'கிரெடிட்கள் எப்படி பயன்படுத்தப்படுகின்றன',
+    learnMore: 'மேலும் அறிக',
+    voiceSub: 'குரல் மூலம் செலவுகளைச் சேர்க்கவும்',
+    scanSub: 'ஸ்கேன் செய்து விவரங்களை எடுக்கவும்',
+    exportSub: 'CSV அல்லது Excel-க்கு ஏற்றுமதி',
+    groupSub: 'கூடுதல் குழுக்களை உருவாக்கி நிர்வகிக்கவும்',
+    buyTitle: 'மேலும் கிரெடிட்கள் பெறுங்கள்',
+    popular: 'பிரபலம்',
+    buy: 'வாங்கு',
+    neverExpire: 'கிரெடிட்கள் காலாவதியாகாது',
+    neverExpireSub:
+      'எப்போது வேண்டுமானாலும் பயன்படுத்துங்கள். மாத இலவசப் பயன்பாடுகள் முதலில் பயன்படுத்தப்படும்.',
+    nextAt: 'அடுத்த விளம்பரத்தை {time} க்குப் பிறகு பார்க்கலாம்.',
+    paidNote:
+      'நீங்கள் Pro-வில் உள்ளீர்கள், விளம்பரங்கள் இல்லை. உங்கள் கிரெடிட்கள் வாலெட்டில் இருக்கும்.',
+    help: 'உதவி',
   },
   adGates: {
     title: 'ஒரு சிறு விளம்பரம் பாருங்கள்',
@@ -16517,13 +16690,6 @@ const ta: UiStrings = {
   },
   activityScreen: {
     subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
-    all: 'அனைத்தும்',
-    expenses: 'செலவுகள்',
-    edits: 'திருத்தங்கள்',
-    trip: 'பயணம்',
-    more: 'மேலும்',
-    viewDetails: 'விவரங்களைப் பார்',
-    openGroup: 'குழுவைத் திற',
     noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
     importedHeadline: {
       one: '{n} செலவு இறக்குமதி செய்யப்பட்டது',
@@ -18921,6 +19087,43 @@ const ta: UiStrings = {
     manageSubscription: 'சந்தாவை நிர்வகி',
     whatCosts: 'திட்டங்கள் சேர்ப்பவை',
   },
+  purchases: {
+    title: 'வாங்குதல்கள்',
+    row: 'வாங்குதல்கள்',
+    rowHint: 'திட்டம், வரலாறு, ரசீதுகள்',
+    link: 'வாங்குதல்கள் மற்றும் ரசீதுகள்',
+    proMonthly: 'Waves Pro · மாதம்',
+    proYearly: 'Waves Pro · ஆண்டு',
+    status: {
+      active: 'செயலில்',
+      trial: 'சோதனை',
+      renewsOff: 'புதுப்பிப்பு நிறுத்தம்',
+      billingIssue: 'பணம் செலுத்தலில் சிக்கல்',
+      expired: 'காலாவதி',
+      refunded: 'பணம் திரும்பப்பெற்றது',
+      promo: 'விளம்பரச் சலுகை',
+    },
+    test: 'சோதனை',
+    renews: '{date} அன்று புதுப்பிக்கப்படும்',
+    ends: '{date} அன்று முடிகிறது',
+    ended: '{date} அன்று முடிந்தது',
+    promoUntil: '{date} வரை சலுகை',
+    changePlan: 'திட்டத்தை மாற்று',
+    manageOnAndroid: 'Android-இல் நிர்வகிக்கவும்',
+    manageOnIphone: 'உங்கள் iPhone-இல் நிர்வகிக்கவும்',
+    receiptsNotePlay: 'ரசீதுகளையும் வரி விலைப்பட்டியல்களையும் Google Play மின்னஞ்சலில் அனுப்பும்.',
+    receiptsNoteApple: 'ரசீதுகளையும் வரி விலைப்பட்டியல்களையும் App Store மின்னஞ்சலில் அனுப்பும்.',
+    help: 'உதவி',
+    getReceipt: 'ரசீது பெறு',
+    orderId: 'ஆர்டர் ஐடி',
+    contactSupport: 'ஆதரவைத் தொடர்புகொள்',
+    copied: 'ஆர்டர் ஐடி நகலெடுக்கப்பட்டது',
+    emptyTitle: 'வாங்குதல்கள் இல்லை',
+    emptyBody: 'Waves Pro-வுக்கு சந்தா செலுத்தினால், உங்கள் திட்டமும் ரசீதுகளும் இங்கே தெரியும்.',
+    seePlans: 'திட்டங்களைப் பார்',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
+  },
   paywall: {
     title: 'உங்கள் திட்டத்தைத் தேர்ந்தெடுக்கவும்',
     proTitle: 'Pro',
@@ -19014,20 +19217,14 @@ const ta: UiStrings = {
   },
   referral: {
     row: 'நண்பர்களை அழையுங்கள்',
-    rowHint: 'சேர்ந்து Pro நாட்களைப் பெறுங்கள்',
+    rowHint: 'சேர்ந்து 50 கிரெடிட்கள் பெறுங்கள்',
     title: 'நண்பர்களை அழையுங்கள்',
-    headline: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது.',
+    headline: 'ஒரு நண்பரை அழையுங்கள். இருவருக்கும் 50 கிரெடிட்கள்.',
     body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
-    youGetTitle: 'உங்களுக்கு 7 நாட்கள் Pro கிடைக்கும்',
-    youGetBody: 'உங்கள் நண்பர் Waves-ஐப் பயன்படுத்தத் தொடங்கிய பிறகு.',
-    friendGetsTitle: 'உங்கள் நண்பருக்கும் 7 நாட்கள் கிடைக்கும்',
-    friendGetsBody: 'பிரீமியம் வசதிகளை சேர்ந்து முயன்று பாருங்கள்.',
-    milestoneDays: '{n} நாட்கள்',
     share: 'அழைப்புச் சுட்டியைப் பகிர்',
     shareMessage:
       'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
-    progress: '{cap} நாட்களில் {earned} நாட்கள் கிடைத்துள்ளன',
-    capReached: 'நீங்கள் முழு {cap} நாட்களையும் பெற்றுவிட்டீர்கள். நன்றி!',
+    friendsJoined: '{cap} நண்பர்களில் {n} பேர் சேர்ந்தனர் · {credits} கிரெடிட்கள் கிடைத்தன',
     pending: {
       one: '{n} நண்பர் சேர்ந்துள்ளார். அவரது முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
       other:
@@ -19040,7 +19237,7 @@ const ta: UiStrings = {
     copyCode: 'குறியீட்டை நகலெடு',
     codeCopied: 'நகலெடுக்கப்பட்டது',
     applied:
-      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Pro கிடைக்கும்.',
+      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 50 கிரெடிட்கள் கிடைக்கும்.',
     unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
     ownCode: 'இது உங்கள் சொந்தக் குறியீடு.',
     alreadyUsed: 'நீங்கள் ஏற்கெனவே ஒரு அழைப்பைப் பயன்படுத்திவிட்டீர்கள்.',
@@ -21273,6 +21470,8 @@ const hi: UiStrings = {
     workMineTasks: 'मेरे काम',
     workTeam: 'टीम',
     workFilter: 'फ़िल्टर',
+    workSortTitle: 'शीर्षक के अनुसार क्रम (अ–ह)',
+    workAllTasks: 'सभी काम',
     workTime: 'समय (HH:MM)',
     workNoTime: 'समय नहीं',
     workMine: 'आज मेरा काम',
@@ -21445,6 +21644,26 @@ const hi: UiStrings = {
     ovSeeAll: 'सभी देखें',
     ovEmptyTitle: 'अपना पहला कर्मचारी जोड़ें',
     ovEmptyBody: 'उपस्थिति, कार्य और भुगतान यहाँ देखने के लिए लोगों को आमंत्रित करें।',
+    ovEditLayout: 'लेआउट बदलें',
+    ovLayoutHint: 'क्रम बदलने के लिए ≡ को दबाकर खींचें',
+    ovResetLayout: 'डिफ़ॉल्ट पर लौटें',
+    ovHiddenCards: 'छिपे कार्ड',
+    ovHideCard: '{name} छिपाएँ',
+    ovAddCard: '{name} जोड़ें',
+    ovMoveUp: 'ऊपर ले जाएँ',
+    ovMoveDown: 'नीचे ले जाएँ',
+    ovReorderCard: '{name} का क्रम बदलें',
+    ovAlwaysFirst: 'हमेशा सबसे ऊपर',
+    ovCardAttendance: 'उपस्थिति',
+    ovCardMoney: 'पैसा',
+    ovCardAttention: 'ध्यान चाहिए',
+    ovCardUpcoming: 'आने वाले',
+    ovCardActivity: 'हाल की गतिविधि',
+    ovCardBudget: 'आपका बजट',
+    ovCardStats: 'टीम के आँकड़े',
+    ovCardQuick: 'त्वरित कार्य',
+    ovCardWorkday: 'कार्यदिवस',
+    ovCardTeam: 'मेरी टीम',
     overviewNoOwes: 'कोई बकाया नहीं',
     overviewNoPaid: 'अभी तक भुगतान नहीं',
     overviewNoAdvances: 'कोई अग्रिम नहीं',
@@ -22454,6 +22673,25 @@ const hi: UiStrings = {
     export: 'एक्सपोर्ट',
     group: 'अतिरिक्त समूह',
     price: '{n} क्रेडिट',
+    yourCredits: 'आपके क्रेडिट',
+    yourCreditsHint: 'AI वॉइस, रसीद स्कैन, एक्सपोर्ट और बहुत कुछ के लिए क्रेडिट इस्तेमाल करें।',
+    watchSub: '{n} क्रेडिट पाने के लिए एक छोटा विज्ञापन देखें',
+    proSub: 'कोई विज्ञापन नहीं, ज़्यादा क्रेडिट',
+    getPro: 'Pro लें',
+    howUsed: 'क्रेडिट कैसे खर्च होते हैं',
+    learnMore: 'और जानें',
+    voiceSub: 'आवाज़ से खर्च जोड़ें',
+    scanSub: 'स्कैन करें और जानकारी निकालें',
+    exportSub: 'CSV या Excel में एक्सपोर्ट',
+    groupSub: 'अतिरिक्त ग्रुप बनाएँ और संभालें',
+    buyTitle: 'और क्रेडिट पाएँ',
+    popular: 'लोकप्रिय',
+    buy: 'खरीदें',
+    neverExpire: 'क्रेडिट कभी समाप्त नहीं होते',
+    neverExpireSub: 'कभी भी इस्तेमाल करें। पहले महीने के मुफ़्त उपयोग खर्च होते हैं।',
+    nextAt: 'अगला विज्ञापन {time} के बाद देख सकते हैं।',
+    paidNote: 'आप Pro पर हैं, इसलिए कोई विज्ञापन नहीं। आपके क्रेडिट वॉलेट में रहते हैं।',
+    help: 'मदद',
   },
   adGates: {
     title: 'एक छोटा विज्ञापन देखें',
@@ -22990,13 +23228,6 @@ const hi: UiStrings = {
   },
   activityScreen: {
     subtitle: 'आपके हाल के लेन-देन और अपडेट',
-    all: 'सभी',
-    expenses: 'खर्च',
-    edits: 'बदलाव',
-    trip: 'ट्रिप',
-    more: 'और',
-    viewDetails: 'विवरण देखें',
-    openGroup: 'समूह खोलें',
     noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
     importedHeadline: { one: '{n} ख़र्च इम्पोर्ट हुआ', other: '{n} ख़र्च इम्पोर्ट हुए' },
     importedSentence: {
@@ -25280,6 +25511,43 @@ const hi: UiStrings = {
     manageSubscription: 'सदस्यता प्रबंधित करें',
     whatCosts: 'प्लान में क्या जुड़ता है',
   },
+  purchases: {
+    title: 'खरीदारियाँ',
+    row: 'खरीदारियाँ',
+    rowHint: 'प्लान, इतिहास, रसीदें',
+    link: 'खरीदारियाँ और रसीदें',
+    proMonthly: 'Waves Pro · मासिक',
+    proYearly: 'Waves Pro · वार्षिक',
+    status: {
+      active: 'सक्रिय',
+      trial: 'ट्रायल',
+      renewsOff: 'नवीनीकरण बंद',
+      billingIssue: 'भुगतान में समस्या',
+      expired: 'समाप्त',
+      refunded: 'रिफ़ंड हुआ',
+      promo: 'प्रोमो',
+    },
+    test: 'टेस्ट',
+    renews: '{date} को नवीनीकरण',
+    ends: '{date} को समाप्त',
+    ended: '{date} को समाप्त हुआ',
+    promoUntil: '{date} तक प्रोमो',
+    changePlan: 'प्लान बदलें',
+    manageOnAndroid: 'Android पर प्रबंधित करें',
+    manageOnIphone: 'अपने iPhone पर प्रबंधित करें',
+    receiptsNotePlay: 'रसीदें और टैक्स इनवॉइस Google Play ईमेल करता है।',
+    receiptsNoteApple: 'रसीदें और टैक्स इनवॉइस App Store ईमेल करता है।',
+    help: 'मदद',
+    getReceipt: 'रसीद पाएँ',
+    orderId: 'ऑर्डर आईडी',
+    contactSupport: 'सहायता से संपर्क करें',
+    copied: 'ऑर्डर आईडी कॉपी हुई',
+    emptyTitle: 'अभी कोई खरीदारी नहीं',
+    emptyBody: 'Waves Pro की सदस्यता लेने पर आपका प्लान और रसीदें यहाँ दिखेंगी।',
+    seePlans: 'प्लान देखें',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
+  },
   paywall: {
     title: 'अपना प्लान चुनें',
     proTitle: 'Pro',
@@ -25369,19 +25637,13 @@ const hi: UiStrings = {
   },
   referral: {
     row: 'दोस्तों को आमंत्रित करें',
-    rowHint: 'साथ में Pro के दिन पाएँ',
+    rowHint: 'साथ में 50 क्रेडिट पाएँ',
     title: 'दोस्तों को आमंत्रित करें',
-    headline: 'पैसों की बात साथ मिलकर आसान होती है।',
+    headline: 'एक दोस्त को बुलाएँ। आप दोनों को 50 क्रेडिट मिलेंगे।',
     body: 'दोस्तों के साथ कोई ग्रुप शेयर करें और Waves से थोड़ा और पाएँ।',
-    youGetTitle: 'आपको 7 दिन का Pro मिलेगा',
-    youGetBody: 'आपके दोस्त के Waves इस्तेमाल करना शुरू करने के बाद।',
-    friendGetsTitle: 'आपके दोस्त को भी 7 दिन मिलेंगे',
-    friendGetsBody: 'प्रीमियम फ़ीचर साथ में आज़माएँ।',
-    milestoneDays: '{n} दिन',
     share: 'आमंत्रण लिंक शेयर करें',
     shareMessage: 'Waves से दोस्तों के साथ खर्च बाँटना आसान है। मेरे साथ जुड़ें:',
-    progress: '{cap} में से {earned} दिन मिल चुके हैं',
-    capReached: 'आपने पूरे {cap} दिन पा लिए हैं। धन्यवाद!',
+    friendsJoined: '{cap} में से {n} दोस्त जुड़े · {credits} क्रेडिट मिले',
     pending: {
       one: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
       other: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
@@ -25392,7 +25654,7 @@ const hi: UiStrings = {
     yourCode: 'आपका कोड',
     copyCode: 'कोड कॉपी करें',
     codeCopied: 'कॉपी हो गया',
-    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Pro मिलेगा।',
+    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 50 क्रेडिट मिलेंगे।',
     unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
     ownCode: 'यह आपका अपना कोड है।',
     alreadyUsed: 'आप पहले ही एक आमंत्रण इस्तेमाल कर चुके हैं।',
@@ -27680,6 +27942,8 @@ const ar: UiStrings = {
     workMineTasks: 'مهامي',
     workTeam: 'الفريق',
     workFilter: 'تصفية',
+    workSortTitle: 'الترتيب حسب العنوان (أ–ي)',
+    workAllTasks: 'كل المهام',
     workTime: 'الوقت (HH:MM)',
     workNoTime: 'بلا وقت',
     workMine: 'عملي اليوم',
@@ -27856,6 +28120,26 @@ const ar: UiStrings = {
     ovSeeAll: 'عرض الكل',
     ovEmptyTitle: 'أضف أول موظف لديك',
     ovEmptyBody: 'ادعُ الأشخاص لترى الحضور والمهام والمدفوعات هنا.',
+    ovEditLayout: 'تعديل التخطيط',
+    ovLayoutHint: 'اضغط مطولاً على ≡ واسحب لإعادة الترتيب',
+    ovResetLayout: 'إعادة الضبط الافتراضي',
+    ovHiddenCards: 'البطاقات المخفية',
+    ovHideCard: 'إخفاء {name}',
+    ovAddCard: 'إضافة {name}',
+    ovMoveUp: 'نقل لأعلى',
+    ovMoveDown: 'نقل لأسفل',
+    ovReorderCard: 'إعادة ترتيب {name}',
+    ovAlwaysFirst: 'دائماً في الأعلى',
+    ovCardAttendance: 'الحضور',
+    ovCardMoney: 'المال',
+    ovCardAttention: 'يحتاج انتباهك',
+    ovCardUpcoming: 'القادم',
+    ovCardActivity: 'النشاط الأخير',
+    ovCardBudget: 'ميزانيتك',
+    ovCardStats: 'إحصاءات الفريق',
+    ovCardQuick: 'إجراءات سريعة',
+    ovCardWorkday: 'يوم العمل',
+    ovCardTeam: 'فريقي',
     overviewNoOwes: 'لا توجد مستحقات',
     overviewNoPaid: 'لم يتم الدفع بعد',
     overviewNoAdvances: 'لا توجد سلف',
@@ -28903,6 +29187,25 @@ const ar: UiStrings = {
     export: 'تصدير',
     group: 'مجموعة إضافية',
     price: '{n} من الرصيد',
+    yourCredits: 'رصيدك',
+    yourCreditsHint: 'استخدم الرصيد للصوت بالذكاء الاصطناعي ومسح الإيصالات والتصدير وغيرها.',
+    watchSub: 'شاهد إعلانًا قصيرًا لتحصل على {n} رصيد',
+    proSub: 'بدون إعلانات، رصيد أكثر',
+    getPro: 'احصل على Pro',
+    howUsed: 'كيف يُستخدم الرصيد',
+    learnMore: 'اعرف المزيد',
+    voiceSub: 'أضف المصروفات بالصوت',
+    scanSub: 'امسح واستخرج التفاصيل',
+    exportSub: 'تصدير إلى CSV أو Excel',
+    groupSub: 'أنشئ وأدر مجموعات إضافية',
+    buyTitle: 'احصل على رصيد أكثر',
+    popular: 'الأكثر شعبية',
+    buy: 'شراء',
+    neverExpire: 'الرصيد لا ينتهي',
+    neverExpireSub: 'استخدمه في أي وقت. تُستخدم الحصة الشهرية المجانية أولًا.',
+    nextAt: 'يمكنك مشاهدة الإعلان التالي بعد {time}.',
+    paidNote: 'أنت على Pro، لذلك لا إعلانات. تبقى أرصدتك في محفظتك.',
+    help: 'مساعدة',
   },
   adGates: {
     title: 'شاهد إعلانًا قصيرًا',
@@ -29457,13 +29760,6 @@ const ar: UiStrings = {
   },
   activityScreen: {
     subtitle: 'معاملاتك وتحديثاتك الأخيرة',
-    all: 'الكل',
-    expenses: 'المصروفات',
-    edits: 'التعديلات',
-    trip: 'الرحلة',
-    more: 'المزيد',
-    viewDetails: 'عرض التفاصيل',
-    openGroup: 'فتح المجموعة',
     noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
     importedHeadline: {
       zero: 'استيراد {n} مصروف',
@@ -32234,6 +32530,43 @@ const ar: UiStrings = {
     manageSubscription: 'إدارة الاشتراك',
     whatCosts: 'ما تضيفه الخطط',
   },
+  purchases: {
+    title: 'المشتريات',
+    row: 'المشتريات',
+    rowHint: 'الخطة والسجل والإيصالات',
+    link: 'المشتريات والإيصالات',
+    proMonthly: 'Waves Pro · شهري',
+    proYearly: 'Waves Pro · سنوي',
+    status: {
+      active: 'نشط',
+      trial: 'تجريبي',
+      renewsOff: 'التجديد متوقف',
+      billingIssue: 'مشكلة في الدفع',
+      expired: 'منتهٍ',
+      refunded: 'تم الاسترداد',
+      promo: 'ترويجي',
+    },
+    test: 'اختبار',
+    renews: 'يتجدد في {date}',
+    ends: 'ينتهي في {date}',
+    ended: 'انتهى في {date}',
+    promoUntil: 'ترويجي حتى {date}',
+    changePlan: 'تغيير الخطة',
+    manageOnAndroid: 'أدِر الاشتراك على Android',
+    manageOnIphone: 'أدِر الاشتراك على iPhone',
+    receiptsNotePlay: 'يرسل Google Play الإيصالات والفواتير الضريبية بالبريد الإلكتروني.',
+    receiptsNoteApple: 'يرسل App Store الإيصالات والفواتير الضريبية بالبريد الإلكتروني.',
+    help: 'مساعدة',
+    getReceipt: 'احصل على الإيصال',
+    orderId: 'رقم الطلب',
+    contactSupport: 'تواصل مع الدعم',
+    copied: 'تم نسخ رقم الطلب',
+    emptyTitle: 'لا توجد مشتريات بعد',
+    emptyBody: 'عند الاشتراك في Waves Pro ستظهر خطتك وإيصالاتك هنا.',
+    seePlans: 'عرض الخطط',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
+  },
   paywall: {
     title: 'اختر خطتك',
     proTitle: 'Pro',
@@ -32329,19 +32662,13 @@ const ar: UiStrings = {
   },
   referral: {
     row: 'ادعُ أصدقاءك',
-    rowHint: 'اكسبوا أيام Pro معًا',
+    rowHint: 'اكسبوا 50 رصيدًا معًا',
     title: 'ادعُ أصدقاءك',
-    headline: 'المال أسهل حين نتشاركه.',
+    headline: 'ادعُ صديقًا. تحصلان معًا على 50 رصيدًا.',
     body: 'شارك مجموعة مع أصدقائك واحصل على المزيد من Waves.',
-    youGetTitle: 'تحصل على 7 أيام من Pro',
-    youGetBody: 'بعد أن يبدأ صديقك باستخدام Waves.',
-    friendGetsTitle: 'ويحصل صديقك على 7 أيام أيضًا',
-    friendGetsBody: 'جرّبا الميزات المميزة معًا.',
-    milestoneDays: '{n} أيام',
     share: 'شارك رابط الدعوة',
     shareMessage: 'أستخدم Waves لتقسيم المصاريف مع الأصدقاء. انضم إليّ:',
-    progress: 'تم كسب {earned} من {cap} يومًا',
-    capReached: 'لقد كسبت الأيام الـ {cap} كاملة. شكرًا لك!',
+    friendsJoined: 'انضم {n} من {cap} أصدقاء · كسبت {credits} رصيدًا',
     pending: {
       zero: 'لا أصدقاء بانتظار أول مصروف مشترك.',
       one: 'انضم صديق واحد. ننتظر أول مصروف مشترك له.',
@@ -32356,7 +32683,7 @@ const ar: UiStrings = {
     yourCode: 'رمزك',
     copyCode: 'نسخ الرمز',
     codeCopied: 'تم النسخ',
-    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Pro.',
+    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 50 رصيدًا.',
     unknownCode: 'هذا الرمز لا يطابق أي شخص.',
     ownCode: 'هذا رمزك الخاص.',
     alreadyUsed: 'لقد استخدمت دعوة من قبل.',

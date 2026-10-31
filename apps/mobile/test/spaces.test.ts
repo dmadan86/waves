@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
+  coldStartPlan,
   coldStartSettled,
   companyTabTarget,
   followSpace,
@@ -77,5 +78,17 @@ describe('following the route', () => {
     settleColdStart('u2');
     expect(coldStartSettled('u2')).toBe(true);
     expect(takeColdStart('u2')).toBe(false);
+  });
+});
+
+describe('coldStartPlan', () => {
+  it('stays on Personal without waiting for the company list', () => {
+    expect(coldStartPlan(null, false, [])).toBe('stay');
+    expect(coldStartPlan('personal', false, [])).toBe('stay');
+  });
+  it('waits for the list, then opens the remembered company or falls back', () => {
+    expect(coldStartPlan('c1', false, [])).toBe('wait');
+    expect(coldStartPlan('c1', true, ['c1', 'c2'])).toBe('c1');
+    expect(coldStartPlan('gone', true, ['c1'])).toBe('personal');
   });
 });

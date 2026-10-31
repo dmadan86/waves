@@ -285,6 +285,17 @@ function ProfileForm() {
               hint: t.account.upgradeHint,
               route: '/settings/upgrade',
             },
+            // Receipts and restore live here; a guest has no profile id to hold a purchase.
+            ...(profile?.id && !isGuest
+              ? [
+                  {
+                    icon: 'receipt-outline' as const,
+                    label: t.purchases.row,
+                    hint: t.purchases.rowHint,
+                    route: '/settings/purchases' as const,
+                  },
+                ]
+              : []),
             // Invite-and-earn only where Pro can be bought (the upgrade
             // screen's `plansLive`): the reward is days of a plan.
             ...(referralsLive && !isGuest
@@ -417,6 +428,11 @@ function ProfileForm() {
               label: t.backup.title,
               hint: t.backup.row,
               route: '/settings/backup',
+            },
+            {
+              icon: 'archive-outline',
+              label: t.group.archivedTitle,
+              route: '/settings/archived',
             },
             {
               icon: 'shield-checkmark-outline',

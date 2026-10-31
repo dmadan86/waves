@@ -1,16 +1,16 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
 
 import { useViewerId } from '@/lib/auth';
 import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { router } from '@/lib/navigation';
 import {
+  coldStartPlan,
   coldStartSettled,
   followSpace,
   isHomeTab,
   readLastSpace,
   rememberSpace,
-  resolveSpace,
   settleColdStart,
   spaceForRoute,
   takeColdStart,
@@ -24,23 +24,46 @@ export function useRememberSpace(): (space: Space) => void {
 }
 
 /**
- * Cold start: the first time Home is ready, open the remembered company. Deep links never
- * mount Home first, so they are left alone. `ready` waits for the local mirror.
+ * Cold start: the first Home mount opens the remembered company. Returns true while that is
+ * undecided, so Home paints nothing (no Personal flash) until it stays or redirects. Deep links
+ * never mount Home first, so they are left alone. `ready` waits for the local mirror.
  */
-export function useColdStartSpace(ready: boolean, companyIds: readonly string[]): void {
+export function useColdStartSpace(ready: boolean, companyIds: readonly string[]): boolean {
   const viewerId = useViewerId();
+  // Both are tagged with the account they belong to, so an account change can't reuse them.
+  const [read, setRead] = useState<{ id: string; value: string | null } | null>(null);
+  const [doneFor, setDoneFor] = useState<string | null>(null);
+  const redirecting = useRef(false);
+  const holding =
+    viewerId !== null &&
+    doneFor !== viewerId &&
+    // eslint-disable-next-line react-hooks/refs -- synchronous flag; state would repaint Personal first
+    (redirecting.current || !coldStartSettled(viewerId));
   useEffect(() => {
-    if (!ready || viewerId === null) return;
+    if (viewerId === null || coldStartSettled(viewerId)) return;
     let stale = false;
-    void readLastSpace(viewerId).then((stored) => {
-      if (stale || !takeColdStart(viewerId)) return;
-      const space = resolveSpace(stored, companyIds);
-      if (space !== 'personal') router.replace(`/group/${space}`);
-    });
+    void readLastSpace(viewerId).then((value) => !stale && setRead({ id: viewerId, value }));
     return () => {
       stale = true;
     };
-  }, [ready, viewerId, companyIds]);
+  }, [viewerId]);
+  useEffect(() => {
+    if (viewerId === null || read?.id !== viewerId || doneFor === viewerId || redirecting.current)
+      return;
+    const plan = coldStartPlan(read.value, ready, companyIds);
+    if (plan === 'wait') return;
+    // A deep link that settled first wins: takeColdStart is then false and nothing redirects.
+    if (takeColdStart(viewerId) && plan !== 'stay' && plan !== 'personal') {
+      // Stay held: the redirect unmounts Home, and releasing now would repaint Personal.
+      redirecting.current = true;
+      // Same quick fade as a bar tab switch, so launch never slides the company in.
+      router.replace(`/group/${plan}?nav=tab`);
+      return;
+    }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot release once the plan is known
+    setDoneFor(viewerId);
+  }, [viewerId, read, ready, companyIds, doneFor]);
+  return holding;
 }
 
 const ONBOARDING = new Set([
