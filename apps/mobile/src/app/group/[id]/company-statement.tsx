@@ -85,6 +85,7 @@ export default function CompanyStatementScreen() {
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   const dotsRef = useRef<View>(null);
   const [tab, setTab] = useState<EmployeeTab>('overview');
+  const [attMonth, setAttMonth] = useState(todayIso().slice(0, 7));
   const [period, setPeriod] = useState<CompanyPeriod>('all');
   const typeLabel = useEmploymentTypeLabel();
   const setEmployeeId = useSetEmployeeId(groupId);
@@ -105,7 +106,7 @@ export default function CompanyStatementScreen() {
   const canType =
     detail && !!member && employee && canSetEmploymentType(view.me, member, view.suspended);
   const canEmployment = detail && !!member && canSetEmployment(view.me, member, view.suspended);
-  const canDelete = canEmployment && employee;
+  const canDelete = canEmployment && employee && !member?.left_at;
   const showAttendance =
     !!member &&
     employee &&
@@ -285,7 +286,8 @@ export default function CompanyStatementScreen() {
                   currency={view.currency}
                   dueCount={due.length}
                   dueTotal={dueTotal}
-                  month={todayIso().slice(0, 7)}
+                  month={attMonth}
+                  onMonth={setAttMonth}
                   showAttendance={showAttendance}
                   onTab={setTab}
                   onAddExpense={
@@ -303,7 +305,13 @@ export default function CompanyStatementScreen() {
                 />
               ) : null}
               {tab === 'attendance' && showAttendance ? (
-                <AttendanceMonth groupId={groupId} memberId={member.id} list />
+                <AttendanceMonth
+                  groupId={groupId}
+                  memberId={member.id}
+                  list
+                  month={attMonth}
+                  onMonth={setAttMonth}
+                />
               ) : null}
               {tab === 'expenses' ? (
                 <CompanyStatementView

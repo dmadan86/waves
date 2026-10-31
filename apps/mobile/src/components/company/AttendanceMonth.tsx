@@ -18,6 +18,8 @@ export function AttendanceMonth({
   memberId,
   onViewAll,
   list = false,
+  month: controlled,
+  onMonth,
 }: {
   groupId: string;
   memberId: string;
@@ -25,13 +27,18 @@ export function AttendanceMonth({
   onViewAll?: () => void;
   /** Attendance tab: also lists every mark of the month. */
   list?: boolean;
+  /** YYYY-MM kept by the parent so the Overview and Attendance tabs show the same month. */
+  month?: string;
+  onMonth?: (month: string) => void;
 }) {
   const { t, locale } = useStrings();
   const theme = useTheme();
   const marks = useAttendance(groupId);
   const calendar = useCalendar(groupId);
   const today = todayIso();
-  const [month, setMonth] = useState(today.slice(0, 7));
+  const [own, setOwn] = useState(today.slice(0, 7));
+  const month = controlled ?? own;
+  const setMonth = onMonth ?? setOwn;
   const first = new Date(`${month}-01T00:00:00Z`);
   const counts = monthCounts(marks, memberId, month);
   const monthName = first.toLocaleDateString(locale, {
