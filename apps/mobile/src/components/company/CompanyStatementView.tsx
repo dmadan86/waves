@@ -14,7 +14,6 @@ import { Platform, Pressable, Share, View } from 'react-native';
 import {
   buildReimbursementPreview,
   companyStatement,
-  isReimbursable,
   reimbursementOutcome,
   format,
   formatCompanyStatement,
@@ -26,10 +25,8 @@ import {
 import { Button, Text, iconSize, useTheme } from '@waves/ui';
 
 import { TAG_ICON } from './EntryForm';
-import { ActionTile, AmountCard, DueRow, EmployeeDatesRow, ReadyNote } from './EmployeeDetail';
-import { CompanyTeamCard } from './CompanyTeamCard';
-import { CompanyEmploymentControl } from './CompanyEmploymentControl';
-import { canSetEmployment } from '@/data/companyEmployment';
+import { AmountCard, DueRow, ReadyNote } from './EmployeeDetail';
+import { employeeDue } from '@/data/employeeDetail';
 
 import {
   ListRow,
@@ -105,6 +102,7 @@ export function CompanyStatementView({
   period,
   groupId,
   detail = false,
+  onPeriod,
 }: {
   view: CompanyView;
   member: MemberRow;
@@ -112,13 +110,14 @@ export function CompanyStatementView({
   groupId: string;
   /** An admin opening an employee: the pay-first layout of the employee screen. */
   detail?: boolean;
+  /** Detail: shows the period filter above the entries. */
+  onPeriod?: (next: CompanyPeriod) => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const tagLabel = useCompanyTags(groupId, view).label;
   const reimburse = useReimburseCompany(groupId);
   const [selecting, setSelecting] = useState(false);
-  const [panel, setPanel] = useState<'history' | 'summary' | null>(null);
   const [picked, setPicked] = useState<ReadonlySet<string>>(new Set());
   // Set when picked by date: every claim and credit through it is frozen into the payment.
   const [through, setThrough] = useState<string | null>(null);
@@ -164,13 +163,9 @@ export function CompanyStatementView({
   };
 
   // Claims an admin can pay now: approved, unpaid, and already on the server (a version to name).
-  const due = view.isAdmin
-    ? view.entries
-        .filter(
-          (e) => !e.paidByCompany && e.memberId === member.id && isReimbursable(e) && !e.pending,
-        )
-        .sort((a, b) => b.occurredOn.localeCompare(a.occurredOn))
-    : [];
+  const { due, total: dueTotal } = view.isAdmin
+    ? employeeDue(view.entries, member.id)
+    : { due: [] as CompanyEntry[], total: 0n };
   const preview = buildReimbursementPreview(view.entries, {
     memberId: member.id,
     ids: [...picked],
@@ -277,19 +272,10 @@ export function CompanyStatementView({
   );
 
   if (detail) {
-    // What paying all of it would record: advances and credits come off, like the Mark as paid total.
-    const dueNet = buildReimbursementPreview(view.entries, {
-      memberId: member.id,
-      ids: due.map((e) => e.id),
-    }).payoutMinor;
-    const dueTotal = dueNet < 0n ? 0n : dueNet;
     const dueParts = formatParts({ minor: dueTotal, currency }, { locale });
     const allPicked = due.length > 0 && picked.size === due.length;
     return (
       <>
-        {canSetEmployment(view.me, member, view.suspended) ? (
-          <CompanyEmploymentControl groupId={groupId} member={member} />
-        ) : null}
         <AmountCard
           label={t.company.amountToPay}
           lead={dueParts.lead}
@@ -435,46 +421,19 @@ export function CompanyStatementView({
           </Text>
         ) : null}
 
-        <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-          {view.manageableIds.has(member.id) ? (
-            <ActionTile
-              icon="add"
-              title={t.company.addEntry}
-              sub={t.company.tileAddSub}
-              onPress={() => router.push(`/group/${groupId}/company-entry?member=${member.id}`)}
-            />
-          ) : null}
-          <ActionTile
-            icon="document-text-outline"
-            title={t.company.tileHistory}
-            sub={t.company.tileHistorySub}
-            onPress={() => setPanel((p) => (p === 'history' ? null : 'history'))}
-          />
-          <ActionTile
-            icon="stats-chart"
-            title={t.company.tileSummary}
-            sub={t.company.tileSummarySub}
-            onPress={() => setPanel((p) => (p === 'summary' ? null : 'summary'))}
-          />
-        </View>
-        {detail && view.manageableIds.has(member.id) && member.profile_id ? (
-          <StandardCard>
-            <EmployeeDatesRow groupId={groupId} memberId={member.id} />
-          </StandardCard>
+        <StatCard
+          label={who}
+          lead={parts.lead}
+          fraction={`${parts.fraction}${parts.trail}`}
+          accessibilityLabel={`${t.company.balance}: ${fmt(abs)}`}
+          caption={sideText}
+        />
+        {onPeriod ? (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+            <CompanyPeriodPills value={period} onChange={onPeriod} />
+          </View>
         ) : null}
-        {panel === 'history' ? history : null}
-        {panel === 'summary' ? (
-          <>
-            <StatCard
-              label={who}
-              lead={parts.lead}
-              fraction={`${parts.fraction}${parts.trail}`}
-              accessibilityLabel={`${t.company.balance}: ${fmt(abs)}`}
-              caption={sideText}
-            />
-            <CompanyTeamCard groupId={groupId} view={view} member={member} />
-          </>
-        ) : null}
+        {history}
         <View
           style={{
             padding: 10,

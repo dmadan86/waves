@@ -597,6 +597,8 @@ export interface MirrorMember extends MirrorRow {
   readonly employee_id?: string | null;
   /** Company: the department (an id in the group's company_departments), null/absent = none. */
   readonly department_id?: string | null;
+  /** Company: full_time | part_time | contractor (null/absent = not set). */
+  readonly employment_type?: string | null;
   readonly pending?: boolean;
 }
 

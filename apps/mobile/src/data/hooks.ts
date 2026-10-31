@@ -123,6 +123,7 @@ import {
   leaveGroup,
   removeMember,
   setCompanyEmployment,
+  setCompanyEmploymentType,
   resplitDeparted,
   undoResplit,
   updateGroup,
@@ -3460,6 +3461,19 @@ export function useUndoResplit(groupId: string) {
         ? rejectDemoWrite<import('./api').UndoResplitResult>()
         : undoResplit(batchId),
     onSuccess: () => invalidateResplit(queryClient, groupId),
+  });
+}
+
+/** Owner, or the employee's manager: set (null clears) one employee's employment type. */
+export function useSetEmploymentType(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof setCompanyEmploymentType>[1]) =>
+      isDemoGroupId(groupId) ? rejectDemoWrite<void>() : setCompanyEmploymentType(groupId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['company-people', groupId] });
+      invalidateGroup(queryClient, groupId);
+    },
   });
 }
 
