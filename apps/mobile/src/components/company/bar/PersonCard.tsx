@@ -9,7 +9,7 @@ import { balanceTone, type Balance, type PersonRole } from '@/data/companyPeople
 import type { AttendanceStatus } from '@/data/companyWorkday';
 import { useStrings } from '@/i18n';
 
-/** One person in the People list: a compact white card (see the Team mockup). */
+/** One person in the People list: a row of the shared card, sized like the Home group rows. */
 export function PersonCard({
   member,
   name,
@@ -23,6 +23,7 @@ export function PersonCard({
   balanceText,
   note,
   muted,
+  divider,
   onPress,
 }: {
   member: PersonAvatarProps['member'];
@@ -39,6 +40,8 @@ export function PersonCard({
   /** A muted line-end note (the date someone left). */
   note?: string;
   muted?: boolean;
+  /** A hairline above the row, for every row but the first. */
+  divider?: boolean;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -76,19 +79,19 @@ export function PersonCard({
       accessibilityRole="button"
       accessibilityLabel={showMark ? `${name}, ${markSpec.label}` : name}
       onPress={onPress}
-      style={{
+      style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 8,
-        paddingHorizontal: 10,
-        gap: 10,
-        borderRadius: 16,
-        backgroundColor: c.surface,
-        opacity: muted ? 0.62 : 1,
-      }}
+        gap: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.sm,
+        borderTopWidth: divider ? 1 : 0,
+        borderTopColor: c.border,
+        opacity: pressed ? 0.6 : muted ? 0.62 : 1,
+      })}
     >
-      <PersonAvatar member={member} name={name} ghost={ghost} size={38} />
-      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+      <PersonAvatar member={member} name={name} ghost={ghost} size={44} />
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
           <Text variant="body" numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1 }}>
             {name}

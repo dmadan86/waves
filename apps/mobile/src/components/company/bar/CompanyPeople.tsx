@@ -305,31 +305,44 @@ export function CompanyPeople({
         </Pressable>
       ) : null}
 
-      {shown.map((r) => {
-        const m = byId.get(r.id)!;
-        return (
-          <PersonCard
-            key={r.id}
-            member={m}
-            name={r.name}
-            ghost={isGhost(m)}
-            role={r.role}
-            employeeId={m.employee_id}
-            note={
-              r.former && m.employment_ended_on
-                ? showDate(m.employment_ended_on, locale)
-                : undefined
-            }
-            mark={r.mark}
-            showMark={!r.former && r.role !== 'owner'}
-            tasks={plural(locale, r.tasks, t.company.tasksCount)}
-            balance={r.balance}
-            balanceText={r.balance ? wholeMoney(r.balance.amount, view.currency, locale) : ''}
-            muted={r.former}
-            onPress={() => thread(r.id)}
-          />
-        );
-      })}
+      {shown.length > 0 ? (
+        <View
+          style={{
+            backgroundColor: theme.color.surface,
+            borderRadius: theme.radius.lg,
+            borderWidth: 1,
+            borderColor: theme.color.border,
+            overflow: 'hidden',
+          }}
+        >
+          {shown.map((r, index) => {
+            const m = byId.get(r.id)!;
+            return (
+              <PersonCard
+                key={r.id}
+                member={m}
+                name={r.name}
+                ghost={isGhost(m)}
+                role={r.role}
+                employeeId={m.employee_id}
+                note={
+                  r.former && m.employment_ended_on
+                    ? showDate(m.employment_ended_on, locale)
+                    : undefined
+                }
+                mark={r.mark}
+                showMark={!r.former && r.role !== 'owner'}
+                tasks={plural(locale, r.tasks, t.company.tasksCount)}
+                balance={r.balance}
+                balanceText={r.balance ? wholeMoney(r.balance.amount, view.currency, locale) : ''}
+                muted={r.former}
+                divider={index > 0}
+                onPress={() => thread(r.id)}
+              />
+            );
+          })}
+        </View>
+      ) : null}
       {shown.length === 0 ? (
         <Text variant="caption" tone="muted" align="center" style={{ paddingVertical: 16 }}>
           {rows.some((r) => r.former === notEmployed)
