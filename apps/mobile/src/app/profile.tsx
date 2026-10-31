@@ -430,6 +430,11 @@ function ProfileForm() {
               route: '/settings/backup',
             },
             {
+              icon: 'archive-outline',
+              label: t.group.archivedTitle,
+              route: '/settings/archived',
+            },
+            {
               icon: 'shield-checkmark-outline',
               label: t.privacy.row,
               route: '/settings/privacy',
