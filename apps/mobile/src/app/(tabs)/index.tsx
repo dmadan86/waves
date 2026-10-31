@@ -344,7 +344,6 @@ export default function HomeScreen() {
             },
           ]
         : []),
-      {
       { icon: 'language-outline', label: t.language, route: '/settings/language', section: 'app' },
       { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene', section: 'app' },
       // Appearance is hidden while THEME_HIDDEN stands; the screen behind it is
