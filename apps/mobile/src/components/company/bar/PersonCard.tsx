@@ -46,41 +46,35 @@ export function PersonCard({
   const narrow = useWindowDimensions().width < 360;
   const c = theme.color;
   const markSpec = {
-    present: { label: t.company.attendancePresent, fg: c.positive, bg: c.positiveSoft },
-    half: { label: t.company.attHalfDay, fg: c.warning, bg: c.warningSoft },
-    absent: { label: t.company.attendanceAbsent, fg: c.negative, bg: c.negativeSoft },
-    none: { label: t.company.attNotMarked, fg: c.warning, bg: c.warningSoft },
+    present: { label: t.company.attendancePresent, fg: c.positive },
+    half: { label: t.company.attHalfDay, fg: c.warning },
+    absent: { label: t.company.attendanceAbsent, fg: c.negative },
+    none: { label: t.company.attNotMarked, fg: c.warning },
   }[mark ?? 'none'];
   const rolePill = {
     employee: { label: t.company.roleEmployee, fg: c.brand, bg: c.brandSoft },
     manager: { label: t.company.manager, fg: BLUE, bg: BLUE_SOFT },
     owner: { label: t.company.pillOwner, fg: c.text, bg: c.surfaceMuted },
   }[role];
-  const markPill = (
-    <>
-      {narrow ? null : (
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: markSpec.fg }} />
-      )}
-      <View
-        style={{
-          flexShrink: 0,
-          paddingHorizontal: 8,
-          paddingVertical: 1,
-          borderRadius: theme.radius.pill,
-          backgroundColor: markSpec.bg,
-        }}
-      >
-        <Text variant="micro" numberOfLines={1} style={{ color: markSpec.fg }}>
-          {markSpec.label}
-        </Text>
-      </View>
-    </>
+  // Just the coloured dot: the word repeated on every row read as noise.
+  const markDot = (
+    <View
+      accessible
+      accessibilityLabel={markSpec.label}
+      style={{
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: markSpec.fg,
+        flexShrink: 0,
+      }}
+    />
   );
   const tone = balance ? c[balanceTone(balance)] : c.textMuted;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={name}
+      accessibilityLabel={showMark ? `${name}, ${markSpec.label}` : name}
       onPress={onPress}
       style={{
         flexDirection: 'row',
@@ -99,7 +93,7 @@ export function PersonCard({
           <Text variant="body" numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1 }}>
             {name}
           </Text>
-          {showMark && !narrow ? markPill : null}
+          {showMark ? markDot : null}
         </View>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
           <View
@@ -115,7 +109,6 @@ export function PersonCard({
               {rolePill.label}
             </Text>
           </View>
-          {showMark && narrow ? markPill : null}
           {(employeeId || note) && !narrow ? (
             <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
               {'· '}
