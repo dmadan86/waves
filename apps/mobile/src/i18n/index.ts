@@ -6068,6 +6068,44 @@ export interface UiStrings {
     manageSubscription: string;
     whatCosts: string;
   };
+  /** The Purchases settings screen (`/settings/purchases`). */
+  purchases: {
+    title: string;
+    row: string;
+    rowHint: string;
+    link: string;
+    proMonthly: string;
+    proYearly: string;
+    status: {
+      active: string;
+      trial: string;
+      renewsOff: string;
+      billingIssue: string;
+      expired: string;
+      refunded: string;
+      promo: string;
+    };
+    test: string;
+    renews: string;
+    ends: string;
+    ended: string;
+    promoUntil: string;
+    changePlan: string;
+    manageOnAndroid: string;
+    manageOnIphone: string;
+    receiptsNotePlay: string;
+    receiptsNoteApple: string;
+    help: string;
+    getReceipt: string;
+    orderId: string;
+    contactSupport: string;
+    copied: string;
+    emptyTitle: string;
+    emptyBody: string;
+    seePlans: string;
+    googlePlay: string;
+    appStore: string;
+  };
   /**
    * The paywall (`/paywall`, behind the `paywall` route flag): the Pro
    * card priced from the store through RevenueCat, a monthly/yearly switch
@@ -12458,6 +12496,43 @@ const en: UiStrings = {
     plansPromise: 'The ledger is never locked.',
     manageSubscription: 'Manage subscription',
     whatCosts: 'What the plans add',
+  },
+  purchases: {
+    title: 'Purchases',
+    row: 'Purchases',
+    rowHint: 'Plan, history, receipts',
+    link: 'Purchases and receipts',
+    proMonthly: 'Waves Pro · Monthly',
+    proYearly: 'Waves Pro · Yearly',
+    status: {
+      active: 'Active',
+      trial: 'Trial',
+      renewsOff: 'Renews off',
+      billingIssue: 'Payment issue',
+      expired: 'Expired',
+      refunded: 'Refunded',
+      promo: 'Promo',
+    },
+    test: 'TEST',
+    renews: 'Renews {date}',
+    ends: 'Ends {date}',
+    ended: 'Ended {date}',
+    promoUntil: 'Promo until {date}',
+    changePlan: 'Change plan',
+    manageOnAndroid: 'Manage on Android',
+    manageOnIphone: 'Manage on your iPhone',
+    receiptsNotePlay: 'Receipts and tax invoices are emailed by Google Play.',
+    receiptsNoteApple: 'Receipts and tax invoices are emailed by the App Store.',
+    help: 'Help',
+    getReceipt: 'Get receipt',
+    orderId: 'Order ID',
+    contactSupport: 'Contact support',
+    copied: 'Order ID copied',
+    emptyTitle: 'No purchases yet',
+    emptyBody: 'When you subscribe to Waves Pro, your plan and receipts show up here.',
+    seePlans: 'See plans',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
   },
   paywall: {
     title: 'Choose your plan',
@@ -18981,6 +19056,43 @@ const ta: UiStrings = {
     manageSubscription: 'சந்தாவை நிர்வகி',
     whatCosts: 'திட்டங்கள் சேர்ப்பவை',
   },
+  purchases: {
+    title: 'வாங்குதல்கள்',
+    row: 'வாங்குதல்கள்',
+    rowHint: 'திட்டம், வரலாறு, ரசீதுகள்',
+    link: 'வாங்குதல்கள் மற்றும் ரசீதுகள்',
+    proMonthly: 'Waves Pro · மாதம்',
+    proYearly: 'Waves Pro · ஆண்டு',
+    status: {
+      active: 'செயலில்',
+      trial: 'சோதனை',
+      renewsOff: 'புதுப்பிப்பு நிறுத்தம்',
+      billingIssue: 'பணம் செலுத்தலில் சிக்கல்',
+      expired: 'காலாவதி',
+      refunded: 'பணம் திரும்பப்பெற்றது',
+      promo: 'விளம்பரச் சலுகை',
+    },
+    test: 'சோதனை',
+    renews: '{date} அன்று புதுப்பிக்கப்படும்',
+    ends: '{date} அன்று முடிகிறது',
+    ended: '{date} அன்று முடிந்தது',
+    promoUntil: '{date} வரை சலுகை',
+    changePlan: 'திட்டத்தை மாற்று',
+    manageOnAndroid: 'Android-இல் நிர்வகிக்கவும்',
+    manageOnIphone: 'உங்கள் iPhone-இல் நிர்வகிக்கவும்',
+    receiptsNotePlay: 'ரசீதுகளையும் வரி விலைப்பட்டியல்களையும் Google Play மின்னஞ்சலில் அனுப்பும்.',
+    receiptsNoteApple: 'ரசீதுகளையும் வரி விலைப்பட்டியல்களையும் App Store மின்னஞ்சலில் அனுப்பும்.',
+    help: 'உதவி',
+    getReceipt: 'ரசீது பெறு',
+    orderId: 'ஆர்டர் ஐடி',
+    contactSupport: 'ஆதரவைத் தொடர்புகொள்',
+    copied: 'ஆர்டர் ஐடி நகலெடுக்கப்பட்டது',
+    emptyTitle: 'வாங்குதல்கள் இல்லை',
+    emptyBody: 'Waves Pro-வுக்கு சந்தா செலுத்தினால், உங்கள் திட்டமும் ரசீதுகளும் இங்கே தெரியும்.',
+    seePlans: 'திட்டங்களைப் பார்',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
+  },
   paywall: {
     title: 'உங்கள் திட்டத்தைத் தேர்ந்தெடுக்கவும்',
     proTitle: 'Pro',
@@ -25358,6 +25470,43 @@ const hi: UiStrings = {
     plansPromise: 'लेजर कभी लॉक नहीं होता।',
     manageSubscription: 'सदस्यता प्रबंधित करें',
     whatCosts: 'प्लान में क्या जुड़ता है',
+  },
+  purchases: {
+    title: 'खरीदारियाँ',
+    row: 'खरीदारियाँ',
+    rowHint: 'प्लान, इतिहास, रसीदें',
+    link: 'खरीदारियाँ और रसीदें',
+    proMonthly: 'Waves Pro · मासिक',
+    proYearly: 'Waves Pro · वार्षिक',
+    status: {
+      active: 'सक्रिय',
+      trial: 'ट्रायल',
+      renewsOff: 'नवीनीकरण बंद',
+      billingIssue: 'भुगतान में समस्या',
+      expired: 'समाप्त',
+      refunded: 'रिफ़ंड हुआ',
+      promo: 'प्रोमो',
+    },
+    test: 'टेस्ट',
+    renews: '{date} को नवीनीकरण',
+    ends: '{date} को समाप्त',
+    ended: '{date} को समाप्त हुआ',
+    promoUntil: '{date} तक प्रोमो',
+    changePlan: 'प्लान बदलें',
+    manageOnAndroid: 'Android पर प्रबंधित करें',
+    manageOnIphone: 'अपने iPhone पर प्रबंधित करें',
+    receiptsNotePlay: 'रसीदें और टैक्स इनवॉइस Google Play ईमेल करता है।',
+    receiptsNoteApple: 'रसीदें और टैक्स इनवॉइस App Store ईमेल करता है।',
+    help: 'मदद',
+    getReceipt: 'रसीद पाएँ',
+    orderId: 'ऑर्डर आईडी',
+    contactSupport: 'सहायता से संपर्क करें',
+    copied: 'ऑर्डर आईडी कॉपी हुई',
+    emptyTitle: 'अभी कोई खरीदारी नहीं',
+    emptyBody: 'Waves Pro की सदस्यता लेने पर आपका प्लान और रसीदें यहाँ दिखेंगी।',
+    seePlans: 'प्लान देखें',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
   },
   paywall: {
     title: 'अपना प्लान चुनें',
@@ -32331,6 +32480,43 @@ const ar: UiStrings = {
     plansPromise: 'السجل لا يُقفل أبدًا.',
     manageSubscription: 'إدارة الاشتراك',
     whatCosts: 'ما تضيفه الخطط',
+  },
+  purchases: {
+    title: 'المشتريات',
+    row: 'المشتريات',
+    rowHint: 'الخطة والسجل والإيصالات',
+    link: 'المشتريات والإيصالات',
+    proMonthly: 'Waves Pro · شهري',
+    proYearly: 'Waves Pro · سنوي',
+    status: {
+      active: 'نشط',
+      trial: 'تجريبي',
+      renewsOff: 'التجديد متوقف',
+      billingIssue: 'مشكلة في الدفع',
+      expired: 'منتهٍ',
+      refunded: 'تم الاسترداد',
+      promo: 'ترويجي',
+    },
+    test: 'اختبار',
+    renews: 'يتجدد في {date}',
+    ends: 'ينتهي في {date}',
+    ended: 'انتهى في {date}',
+    promoUntil: 'ترويجي حتى {date}',
+    changePlan: 'تغيير الخطة',
+    manageOnAndroid: 'أدِر الاشتراك على Android',
+    manageOnIphone: 'أدِر الاشتراك على iPhone',
+    receiptsNotePlay: 'يرسل Google Play الإيصالات والفواتير الضريبية بالبريد الإلكتروني.',
+    receiptsNoteApple: 'يرسل App Store الإيصالات والفواتير الضريبية بالبريد الإلكتروني.',
+    help: 'مساعدة',
+    getReceipt: 'احصل على الإيصال',
+    orderId: 'رقم الطلب',
+    contactSupport: 'تواصل مع الدعم',
+    copied: 'تم نسخ رقم الطلب',
+    emptyTitle: 'لا توجد مشتريات بعد',
+    emptyBody: 'عند الاشتراك في Waves Pro ستظهر خطتك وإيصالاتك هنا.',
+    seePlans: 'عرض الخطط',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
   },
   paywall: {
     title: 'اختر خطتك',
