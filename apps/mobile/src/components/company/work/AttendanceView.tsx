@@ -157,6 +157,7 @@ export default function AttendanceView({
       !access.canManage ||
       busy ||
       date > today ||
+      leaveOf(memberId) === 'approved' ||
       !access.people.some((p) => p.id === memberId)
     )
       return;
@@ -434,8 +435,8 @@ export default function AttendanceView({
                 departmentName(departments, pickPerson.department_id),
                 plural(locale, taskCount.get(pickPerson.id) ?? 0, t.company.attendanceTasks),
                 balances.get(pickPerson.id)?.owes
-                  ? money(balances.get(pickPerson.id)!.owes)
-                  : money(balances.get(pickPerson.id)?.advances ?? 0n),
+                  ? `↓ ${money(balances.get(pickPerson.id)!.owes)}`
+                  : `↑ ${money(balances.get(pickPerson.id)?.advances ?? 0n)}`,
               ]
                 .filter(Boolean)
                 .join(' · ')}
@@ -456,7 +457,9 @@ export default function AttendanceView({
                 key={status ?? 'clear'}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
-                disabled={busy || (status === null && !pickMark)}
+                disabled={
+                  busy || leaveOf(pickFor ?? '') === 'approved' || (status === null && !pickMark)
+                }
                 onPress={() => choose(status)}
                 style={{
                   flexDirection: 'row',
