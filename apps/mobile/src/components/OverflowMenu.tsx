@@ -38,7 +38,14 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, Text, useTheme, MODAL_ORIENTATIONS, createOverlayCloseGuard } from '@waves/ui';
+import {
+  iconSize,
+  Text,
+  Toggle,
+  useTheme,
+  MODAL_ORIENTATIONS,
+  createOverlayCloseGuard,
+} from '@waves/ui';
 
 import { type MenuAnchor } from '@/components/SortMenu';
 import { useStrings } from '@/i18n';
@@ -74,6 +81,8 @@ export interface OverflowMenuItem {
   /** Greyed and inert; `hint` says why, under the label. */
   disabled?: boolean;
   hint?: string;
+  /** A switch row: a tap flips it and the menu stays open (no route / onPress). */
+  toggle?: { value: boolean; onChange: (next: boolean) => void };
 }
 
 /** An optional block above the rows: who you are (avatar + name), tappable to `route`. */
@@ -312,10 +321,15 @@ export function OverflowMenu({
                       />
                     )}
                     <Pressable
-                      onPress={() => activate(item)}
+                      onPress={() =>
+                        item.toggle ? item.toggle.onChange(!item.toggle.value) : activate(item)
+                      }
                       disabled={item.disabled}
-                      accessibilityRole="button"
-                      accessibilityState={{ disabled: !!item.disabled }}
+                      accessibilityRole={item.toggle ? 'switch' : 'button'}
+                      accessibilityState={{
+                        disabled: !!item.disabled,
+                        checked: item.toggle?.value,
+                      }}
                       accessibilityLabel={item.hint ? `${item.label}, ${item.hint}` : item.label}
                       style={({ pressed }) => ({
                         flexDirection: 'row',
@@ -347,6 +361,16 @@ export function OverflowMenu({
                           </Text>
                         ) : null}
                       </View>
+                      {item.toggle ? (
+                        // The row owns the tap; the switch only shows the state.
+                        <View pointerEvents="none">
+                          <Toggle
+                            value={item.toggle.value}
+                            onValueChange={item.toggle.onChange}
+                            accessibilityLabel={item.label}
+                          />
+                        </View>
+                      ) : null}
                     </Pressable>
                   </View>
                 );

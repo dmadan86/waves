@@ -1,24 +1,26 @@
 /**
  * People (the Team tab's first segment; TeamScreen draws the header): one compact card per person.
- * Default list = employed employees and managers (an owner's view also holds the owners, opt-in via
- * the filter sheet; a manager's view is already only their team). Every per-person number (today's
+ * Default list = employed employees by name; the sort pop-up toggles name sort and admins (managers and
+ * owners, within the viewer's visible set). Not employed is a mode set from the header menu. Every per-person number (today's
  * mark, open tasks, balance) is computed once per render into a map, never per row.
  * shortcut: no "On leave" (no leave data exists yet).
  */
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
-import { Sheet, Text, iconSize, useTheme } from '@waves/ui';
+import { Text, iconSize, useTheme } from '@waves/ui';
 
 import { PersonCard } from '@/components/company/bar/PersonCard';
+import { OverflowMenu } from '@/components/OverflowMenu';
+import type { MenuAnchor } from '@/components/SortMenu';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useActiveToday } from '@/data/companyOverview';
-import { useDepartments } from '@/data/companyDepartments';
 import {
-  DEFAULT_PEOPLE_FILTER,
+  DEFAULT_PEOPLE_VIEW,
   attendanceToday,
   balancesByMember,
   listPeople,
@@ -26,11 +28,8 @@ import {
   openTasksToday,
   wholeMoney,
   type Balance,
-  type PeopleFilter,
-  type PeopleMark,
   type PeopleRow,
-  type PeopleSort,
-  type PersonRole,
+  type PeopleView,
 } from '@/data/companyPeople';
 import { useAttendance, useWorkTasks } from '@/data/companyWorkday';
 import { employmentPeople, isNotEmployed } from '@/data/companyEmployment';
@@ -43,7 +42,17 @@ import { router } from '@/lib/navigation';
 
 const SETTLED: Balance = { kind: 'settled', amount: 0n };
 
-export function CompanyPeople({ groupId }: { groupId: string }) {
+const viewKey = (id: string) => `waves.company.people-view:${id}`;
+
+export function CompanyPeople({
+  groupId,
+  notEmployed,
+  onLeaveNotEmployed,
+}: {
+  groupId: string;
+  notEmployed: boolean;
+  onLeaveNotEmployed: () => void;
+}) {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -51,15 +60,39 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   const params = useLocalSearchParams<{ filter?: string }>();
   const activeToday = params.filter === 'activeToday';
   const active = useActiveToday(groupId);
-  const departments = useDepartments(groupId);
   const marks = useAttendance(groupId);
   const allTasks = useWorkTasks(groupId);
-  const windowHeight = useWindowDimensions().height;
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
-  const [filtering, setFiltering] = useState(false);
-  const [filter, setFilter] = useState<PeopleFilter>(DEFAULT_PEOPLE_FILTER);
-  const [sort, setSort] = useState<PeopleSort>('name');
+  const [menu, setMenu] = useState<MenuAnchor | 'open' | null>(null);
+  const [prefs, setPrefs] = useState({ byName: true, admins: false });
+  const buttonRef = useRef<View>(null);
+  // The two toggles are remembered per company on this device.
+  useEffect(() => {
+    let live = true;
+    void AsyncStorage.getItem(viewKey(groupId))
+      .then((raw) => {
+        const saved = raw ? (JSON.parse(raw) as Partial<typeof prefs>) : null;
+        if (live && saved)
+          setPrefs({ byName: saved.byName !== false, admins: saved.admins === true });
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [groupId]);
+  const setPref = (next: typeof prefs) => {
+    setPrefs(next);
+    void AsyncStorage.setItem(viewKey(groupId), JSON.stringify(next)).catch(() => undefined);
+  };
+  const openMenu = useCallback(
+    () =>
+      buttonRef.current?.measureInWindow((x, y, width, height) =>
+        setMenu(width > 0 ? { x, y, width, height } : 'open'),
+      ),
+    [],
+  );
+  const peopleView: PeopleView = { ...DEFAULT_PEOPLE_VIEW, ...prefs, notEmployed };
 
   const today = todayIso();
   const live = view.members.filter((m) => !m.left_at);
@@ -108,7 +141,6 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
       name: displayName(m, null, null, t.misc.someone),
       role: owner ? 'owner' : m.role === 'manager' ? 'manager' : 'employee',
       former: gone,
-      departmentId: m.department_id ?? null,
       mark: owner || gone ? null : attendanceToday(marks, m.id, today),
       tasks: tasks.get(m.id) ?? 0,
       balance: owner
@@ -118,34 +150,12 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
           : (balances.get(m.id) ?? SETTLED),
     };
   });
-  const shown = listPeople(rows, filter, sort, query).filter(
+  const shown = listPeople(rows, peopleView, query).filter(
     (r) => r.former || !activeToday || !!active?.activeIds.has(r.id),
   );
 
   const thread = (memberId: string): void =>
     router.push(`/group/${groupId}/company-statement?member=${memberId}`);
-  const customised =
-    sort !== 'name' ||
-    filter.status !== 'employed' ||
-    filter.departmentId !== null ||
-    filter.mark !== null ||
-    filter.roles.length !== 2 ||
-    !filter.roles.includes('employee') ||
-    !filter.roles.includes('manager');
-
-  const roleOptions: { value: PersonRole; label: string }[] = [
-    { value: 'employee', label: t.company.roleEmployee },
-    { value: 'manager', label: t.company.manager },
-    ...(view.isOwner ? [{ value: 'owner' as const, label: t.company.pillOwner }] : []),
-  ];
-  const toggleRole = (role: PersonRole) =>
-    setFilter((f) => {
-      const on = f.roles.includes(role);
-      // Never leave the list with no role at all.
-      if (on && f.roles.length === 1) return f;
-      return { ...f, roles: on ? f.roles.filter((r) => r !== role) : [...f.roles, role] };
-    });
-
   const round = (
     icon: keyof typeof Ionicons.glyphMap,
     label: string,
@@ -172,49 +182,6 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
         color={on ? theme.color.onBrand : theme.color.brand}
       />
     </Pressable>
-  );
-
-  const chips = <T extends string>(
-    title: string,
-    options: readonly { value: T; label: string }[],
-    isOn: (value: T) => boolean,
-    onPick: (value: T) => void,
-  ) => (
-    <View style={{ gap: 6 }}>
-      <Text variant="caption" tone="muted" style={{ fontWeight: '600' }}>
-        {title}
-      </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-        {options.map((o) => {
-          const on = isOn(o.value);
-          return (
-            <Pressable
-              key={o.value}
-              accessibilityRole="button"
-              accessibilityState={{ selected: on }}
-              onPress={() => onPick(o.value)}
-              style={{
-                paddingHorizontal: 14,
-                height: 34,
-                justifyContent: 'center',
-                borderRadius: theme.radius.pill,
-                backgroundColor: on ? theme.color.buttonPrimary : theme.color.brandSoft,
-              }}
-            >
-              <Text
-                variant="caption"
-                style={{
-                  fontWeight: '600',
-                  color: on ? theme.color.onButtonPrimary : theme.color.textMuted,
-                }}
-              >
-                {o.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
   );
 
   return (
@@ -284,15 +251,35 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
                   router.push(`/group/${groupId}/company-hierarchy`),
                 )
               : null}
-            {round(
-              'swap-vertical',
-              t.company.filterEmployees,
-              () => setFiltering(true),
-              customised,
-            )}
+            <View ref={buttonRef} collapsable={false}>
+              {/* eslint-disable-next-line react-hooks/refs -- openMenu reads the ref on press, not in render */}
+              {round('swap-vertical', t.company.filterEmployees, openMenu)}
+            </View>
           </>
         )}
       </View>
+
+      {notEmployed ? (
+        <Pressable
+          accessibilityRole="button"
+          onPress={onLeaveNotEmployed}
+          style={{
+            alignSelf: 'flex-start',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingHorizontal: 12,
+            height: 34,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.color.brandSoft,
+          }}
+        >
+          <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+            {t.company.notEmployed}
+          </Text>
+          <Ionicons name="close-circle-outline" size={iconSize.sm} color={theme.color.brand} />
+        </Pressable>
+      ) : null}
 
       {activeToday ? (
         <Pressable
@@ -343,82 +330,29 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
       })}
       {shown.length === 0 ? (
         <Text variant="caption" tone="muted" align="center" style={{ paddingVertical: 16 }}>
-          {rows.some((r) => r.former === (filter.status === 'notEmployed'))
+          {rows.some((r) => r.former === notEmployed)
             ? t.company.noEmployeesMatch
             : t.company.noEmployees}
         </Text>
       ) : null}
 
-      <Sheet visible={filtering} onClose={() => setFiltering(false)} closeLabel={t.common.close}>
-        <ScrollView
-          style={{ maxHeight: windowHeight * 0.7 }}
-          contentContainerStyle={{ gap: theme.spacing.md }}
-        >
-          {chips<PeopleSort>(
-            t.company.peopleSortBy,
-            [
-              { value: 'name', label: t.common.name },
-              { value: 'attendance', label: t.company.attendanceTitle },
-              { value: 'balance', label: t.company.filterBalance },
-              { value: 'tasks', label: t.company.teamTabTasks },
-            ],
-            (v) => v === sort,
-            setSort,
-          )}
-          {chips<PersonRole>(
-            t.company.roleLabel,
-            roleOptions,
-            (v) => filter.roles.includes(v),
-            toggleRole,
-          )}
-          {chips<PeopleFilter['status']>(
-            t.company.workStatus,
-            [
-              { value: 'employed', label: t.company.employed },
-              { value: 'notEmployed', label: t.company.notEmployed },
-            ],
-            (v) => v === filter.status,
-            (status) => setFilter((f) => ({ ...f, status })),
-          )}
-          {departments.length > 0
-            ? chips<string>(
-                t.company.filterDepartment,
-                [
-                  { value: '', label: t.company.empFilterAll },
-                  ...departments.map((d) => ({ value: d.id, label: d.name })),
-                ],
-                (v) => v === (filter.departmentId ?? ''),
-                (v) => setFilter((f) => ({ ...f, departmentId: v || null })),
-              )
-            : null}
-          {chips<PeopleMark | ''>(
-            t.company.filterAttendance,
-            [
-              { value: '', label: t.company.empFilterAll },
-              { value: 'present', label: t.company.attendancePresent },
-              { value: 'half', label: t.company.attHalfDay },
-              { value: 'absent', label: t.company.attendanceAbsent },
-              { value: 'unmarked', label: t.company.attNotMarked },
-            ],
-            (v) => v === (filter.mark ?? ''),
-            (v) => setFilter((f) => ({ ...f, mark: v || null })),
-          )}
-          {customised ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setFilter(DEFAULT_PEOPLE_FILTER);
-                setSort('name');
-              }}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-                {t.company.filterClear}
-              </Text>
-            </Pressable>
-          ) : null}
-        </ScrollView>
-      </Sheet>
+      <OverflowMenu
+        visible={menu !== null}
+        onClose={() => setMenu(null)}
+        anchor={menu === 'open' ? null : menu}
+        items={[
+          {
+            icon: 'text-outline',
+            label: t.company.peopleSortName,
+            toggle: { value: prefs.byName, onChange: (byName) => setPref({ ...prefs, byName }) },
+          },
+          {
+            icon: 'shield-outline',
+            label: t.company.peopleShowAdmins,
+            toggle: { value: prefs.admins, onChange: (admins) => setPref({ ...prefs, admins }) },
+          },
+        ]}
+      />
     </ScrollView>
   );
 }

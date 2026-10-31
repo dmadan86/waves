@@ -136,15 +136,16 @@ describe('isCompanyMode', () => {
 
 describe('company bar navigation', () => {
   it('highlights the tab a screen belongs to', () => {
-    expect(companyBarActiveKey(['group', '[id]'])).toBe('overview');
+    expect(companyBarActiveKey(['group', '[id]'])).toBe('home');
     expect(companyBarActiveKey(['group', '[id]', 'company-people'])).toBe('team');
     expect(companyBarActiveKey(['group', '[id]', 'members'])).toBe('team');
     expect(companyBarActiveKey(['group', '[id]', 'company-wages'])).toBe('payments');
     expect(companyBarActiveKey(['group', '[id]', 'company-team'])).toBe('team');
     expect(companyBarActiveKey(['group', '[id]', 'company-work'])).toBe('team');
     expect(companyBarActiveKey(['group', '[id]', 'company-attendance'])).toBe('team');
-    expect(companyBarActiveKey(['group', '[id]', 'company-pending'])).toBe('overview');
+    expect(companyBarActiveKey(['group', '[id]', 'company-pending'])).toBe('home');
     expect(companyBarActiveKey(['group', '[id]', 'company-entry'])).toBe('');
+    expect(companyBarRoute('a', 'home')).toBe('/group/a');
     expect(companyBarRoute('a', 'team')).toBe('/group/a/company-team');
   });
   it('Back goes sub-tab to Overview, Overview to Home, and nowhere on deeper screens', () => {
