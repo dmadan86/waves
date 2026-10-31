@@ -70,6 +70,7 @@ import { useCompanySuspended } from '@/data/companyEntries';
 import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, switchTab } from '@/lib/navigation';
+import { useFabOverride } from '@/lib/fabOverride';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
@@ -532,15 +533,17 @@ export function AppTabBar() {
   );
 
   // Company mode's round add button, in the place Personal moves the mic to.
+  const fabOverride = useFabOverride();
   const add = useMemo<PillTabAction>(
     () => ({
-      accessibilityLabel: t.company.addEntry,
+      accessibilityLabel: fabOverride?.label ?? t.company.addEntry,
       onPress: () => {
-        if (groupId) router.push(`/group/${groupId}/company-entry`);
+        if (fabOverride) fabOverride.run();
+        else if (groupId) router.push(`/group/${groupId}/company-entry`);
       },
       icon: (color: string) => <Ionicons name="add" size={iconSize.xl} color={color} />,
     }),
-    [groupId, t.company.addEntry],
+    [groupId, t.company.addEntry, fabOverride],
   );
 
   // Hidden, unless a hold is running — see `holding` above. A hold wins over a

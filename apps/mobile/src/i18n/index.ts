@@ -1553,6 +1553,8 @@ export interface UiStrings {
     workMineTasks: string;
     workTeam: string;
     workFilter: string;
+    workSortTitle: string;
+    workAllTasks: string;
     workTime: string;
     workNoTime: string;
     workMine: string;
@@ -8493,6 +8495,8 @@ const en: UiStrings = {
     workMineTasks: 'My tasks',
     workTeam: 'Team',
     workFilter: 'Filter',
+    workSortTitle: 'Sort by title (A–Z)',
+    workAllTasks: 'All tasks',
     workTime: 'Time (HH:MM)',
     workNoTime: 'No time',
     workMine: 'My work today',
@@ -8504,7 +8508,7 @@ const en: UiStrings = {
     workSite: 'Site',
     workNoSite: 'No site',
     workTodo: 'To do',
-    workDoing: 'Doing',
+    workDoing: 'In progress',
     workDone: 'Done',
     workBlocked: 'Blocked',
     workReason: 'Why is it blocked?',
@@ -14895,6 +14899,8 @@ const ta: UiStrings = {
     workMineTasks: 'என் பணிகள்',
     workTeam: 'குழு',
     workFilter: 'வடிகட்டி',
+    workSortTitle: 'தலைப்பு வரிசை (அ–ஃ)',
+    workAllTasks: 'அனைத்து பணிகள்',
     workTime: 'நேரம் (மணி:நிமிடம்)',
     workNoTime: 'நேரம் இல்லை',
     workMine: 'என் இன்றைய வேலை',
@@ -21464,6 +21470,8 @@ const hi: UiStrings = {
     workMineTasks: 'मेरे काम',
     workTeam: 'टीम',
     workFilter: 'फ़िल्टर',
+    workSortTitle: 'शीर्षक के अनुसार क्रम (अ–ह)',
+    workAllTasks: 'सभी काम',
     workTime: 'समय (HH:MM)',
     workNoTime: 'समय नहीं',
     workMine: 'आज मेरा काम',
@@ -27934,6 +27942,8 @@ const ar: UiStrings = {
     workMineTasks: 'مهامي',
     workTeam: 'الفريق',
     workFilter: 'تصفية',
+    workSortTitle: 'الترتيب حسب العنوان (أ–ي)',
+    workAllTasks: 'كل المهام',
     workTime: 'الوقت (HH:MM)',
     workNoTime: 'بلا وقت',
     workMine: 'عملي اليوم',
