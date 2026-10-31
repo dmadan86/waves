@@ -859,7 +859,18 @@ function AuthGate() {
               rather than cutting instantly the way a tab switch does. */}
           <Stack.Screen name="activity" options={slide} />
           <Stack.Screen name="groups" options={slide} />
-          <Stack.Screen name="group/[id]/index" options={slide} />
+          <Stack.Screen
+            name="group/[id]/index"
+            options={({ route }) => {
+              // `nav` is set by the company bar: a tab switch cuts, a Back-replace pops.
+              const nav = (route.params as { nav?: string } | undefined)?.nav;
+              // A short fade, not 'none': the same option also drives this screen's exit to Home.
+              if (nav === 'tab')
+                return { animation: reduceMotion ? 'none' : 'fade', animationDuration: 120 };
+              if (nav === 'back') return { animation: push, animationTypeForReplace: 'pop' };
+              return slide;
+            }}
+          />
           <Stack.Screen name="group/[id]/add-expense" options={slide} />
           <Stack.Screen name="group/[id]/settle" options={slide} />
           <Stack.Screen name="group/[id]/simplify" />
@@ -885,6 +896,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/company-attendance" />
           <Stack.Screen name="group/[id]/company-calendar" />
           <Stack.Screen name="group/[id]/company-work" />
+          <Stack.Screen name="group/[id]/company-team" options={{ animation: 'none' }} />
           <Stack.Screen name="group/[id]/company-hierarchy" />
           <Stack.Screen name="group/[id]/company-people" options={{ animation: 'none' }} />
           <Stack.Screen name="group/[id]/company-pending" options={{ animation: 'none' }} />
