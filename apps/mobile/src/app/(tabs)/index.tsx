@@ -164,7 +164,6 @@ export default function HomeScreen() {
   });
   const displayName = profile?.display_name ?? t.account.you;
   // First word only, so a long name never truncates to "Hi, Madan Dei…".
-  const firstName = displayName.trim().split(/\s+/)[0] || displayName;
   const companyIds = useViewerCompanyIds();
 
   /**
