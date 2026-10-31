@@ -17,7 +17,8 @@ import type { OverflowMenuItem } from '@/components/OverflowMenu';
 import type { CompanyView } from '@/data/companyEntries';
 import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { router, switchTab } from '@/lib/navigation';
+import { companyOverviewRoute } from '@/lib/companyTab';
+import { router } from '@/lib/navigation';
 
 export function SectionShell({
   groupId,
@@ -76,7 +77,11 @@ export function SectionShell({
             : (subtitle ?? counts(live))
       }
       pill={manager ? t.company.manager : undefined}
-      onBack={() => (overview ? switchTab('/') : router.replace(`/group/${groupId}`))}
+      onBack={() =>
+        overview
+          ? router.dismissTo('/')
+          : router.replace(companyOverviewRoute(groupId, 'back') as never)
+      }
     />
   );
   if (segment)
