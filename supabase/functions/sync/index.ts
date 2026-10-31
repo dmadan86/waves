@@ -123,6 +123,8 @@ type MutationKind =
   | 'company_vendor_entry.review'
   | 'company_vendor_entry.void'
   | 'company_vendor_entry.received'
+  | 'company_details.set'
+  | 'company_vendor_details.set'
   | 'company_doc.save'
   | 'company_doc.status'
   | 'company_doc.convert'
@@ -364,6 +366,10 @@ const GROUP_TABLES = [
   ['company_vendor_entries', '*'],
   ['company_vendor_entry_attachments', '*'],
   ['company_work_task_attachments', '*'],
+  // Details cards. The company's bank + PAN live in their own table whose RLS excludes employees, so an employee's pull never carries them.
+  ['company_details', '*'],
+  ['company_details_secure', '*'],
+  ['company_vendor_details', '*'],
   // Estimates and bills: RLS gives an owner all, a manager only the ones they created, others none.
   ['company_documents', '*'],
   // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
@@ -1301,6 +1307,17 @@ export class SyncSession {
         return await this.rpcAsCaller('waves_company_vendor_entry_received', {
           p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
           p_received: mutation.payload.received,
+        });
+      case 'company_details.set':
+        return await this.rpcAsCaller('waves_company_details_set', {
+          p_group_id: mutation.groupId,
+          p_data: companyCardData(mutation.payload.data),
+        });
+      case 'company_vendor_details.set':
+        return await this.rpcAsCaller('waves_company_vendor_details_set', {
+          p_group_id: mutation.groupId,
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_data: companyCardData(mutation.payload.data),
         });
       case 'company_member.rate_set':
         return await this.rpcAsCaller('waves_company_member_rate_set', {
@@ -2651,6 +2668,32 @@ function companyReason(value: unknown, field: string, required: boolean): string
   }
   if (typeof value !== 'string' || value.trim().length > 500) companyInvalid(field);
   return (value as string).trim();
+}
+/** Details card body: known keys, strings or null; the database checks each format. */
+const CARD_KEYS = [
+  'bankName',
+  'bankAccount',
+  'ifsc',
+  'upi',
+  'pan',
+  'address',
+  'phone',
+  'email',
+  'gstin',
+  'note',
+];
+function companyCardData(value: unknown): Record<string, string | null> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('data');
+  const d = value as Record<string, unknown>;
+  for (const k of Object.keys(d)) if (!CARD_KEYS.includes(k)) companyInvalid(k);
+  const out: Record<string, string | null> = {};
+  for (const k of CARD_KEYS) {
+    const v = d[k];
+    if (v !== null && v !== undefined && (typeof v !== 'string' || v.length > 500))
+      companyInvalid(k);
+    out[k] = typeof v === 'string' ? v : null;
+  }
+  return out;
 }
 /** Estimate / bill body: shape-checked here, amounts recomputed by the database. */
 function companyDocData(value: unknown): Record<string, unknown> {
