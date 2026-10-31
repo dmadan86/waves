@@ -19,7 +19,15 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href } from 'expo-router';
-import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import {
+  I18nManager,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -32,6 +40,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { iconSize, Text, useTheme, MODAL_ORIENTATIONS, createOverlayCloseGuard } from '@waves/ui';
 
+import { type MenuAnchor } from '@/components/SortMenu';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -76,15 +85,19 @@ export function OverflowMenu({
   onClose,
   items,
   header,
+  anchor = null,
 }: {
   visible: boolean;
   onClose: () => void;
   items: readonly OverflowMenuItem[];
   header?: OverflowMenuHeader;
+  /** The ⋮ it opened from (window coordinates). Set: the card drops below it, or
+      opens above when there is no room; null keeps the header's top-right corner. */
+  anchor?: MenuAnchor | null;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const { t } = useStrings();
   const reduceMotion = useReducedMotion();
 
@@ -133,6 +146,31 @@ export function OverflowMenu({
     };
   }, [visible, mounted, progress, closeGuard]);
 
+  const gap = theme.spacing.xs;
+  const rtl = I18nManager.isRTL;
+  const below = anchor ? anchor.y + anchor.height + gap : insets.top + 56;
+  const estimate = items.length * 44 + 2 * theme.spacing.xs;
+  // Flip above only when it will not fit below and there is more room above.
+  const above =
+    anchor !== null &&
+    windowHeight - insets.bottom - below < estimate &&
+    anchor.y - insets.top > windowHeight - insets.bottom - below;
+  const place = anchor
+    ? {
+        ...(above ? { bottom: windowHeight - anchor.y + gap } : { top: below }),
+        end: Math.max(
+          theme.spacing.md,
+          Math.min(
+            rtl ? anchor.x : windowWidth - (anchor.x + anchor.width),
+            windowWidth - 220 - theme.spacing.md,
+          ),
+        ),
+      }
+    : { top: below, right: theme.spacing.xl };
+  const room =
+    above && anchor
+      ? anchor.y - gap - insets.top - MENU_FOOT
+      : windowHeight - below - insets.bottom - MENU_FOOT;
   const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.get() }));
   const cardStyle = useAnimatedStyle(() => ({
     opacity: progress.get(),
@@ -195,11 +233,11 @@ export function OverflowMenu({
           style={[
             {
               position: 'absolute',
-              top: insets.top + 56,
-              right: theme.spacing.xl,
+              ...place,
               minWidth: 220,
+              maxWidth: windowWidth - 2 * theme.spacing.md,
               borderRadius: theme.radius.lg,
-              transformOrigin: 'top right',
+              transformOrigin: `${above ? 'bottom' : 'top'} ${rtl ? 'left' : 'right'}`,
               ...theme.shadow.lifted,
             },
             cardStyle,
@@ -218,7 +256,7 @@ export function OverflowMenu({
             {/* A long menu (every month of a ledger) scrolls inside the card,
                 capped to the room below it; a short one never scrolls. */}
             <ScrollView
-              style={{ maxHeight: windowHeight - (insets.top + 56) - insets.bottom - MENU_FOOT }}
+              style={{ maxHeight: room }}
               bounces={false}
               showsVerticalScrollIndicator={false}
             >

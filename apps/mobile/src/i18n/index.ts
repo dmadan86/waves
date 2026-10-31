@@ -1652,6 +1652,25 @@ export interface UiStrings {
     overviewNoAdvances: string;
     qaAddTask: string;
 
+    tasksCount: PluralForms;
+    attHalfDay: string;
+    attNotMarked: string;
+    companyOwnerLine: string;
+    noBudgetSet: string;
+    owesToCompany: string;
+    weOwe: string;
+    viewAllEmployees: string;
+    addManager: string;
+    searchManagers: string;
+    employmentType: string;
+    empTypeFullTime: string;
+    empTypePartTime: string;
+    empTypeContractor: string;
+    empTypeNone: string;
+    filterDepartment: string;
+    filterAttendance: string;
+    filterBalance: string;
+    filterClear: string;
     qaAddEmployee: string;
     searchEmployees: string;
     filterEmployees: string;
@@ -8429,6 +8448,25 @@ const en: UiStrings = {
     qaAddTask: 'Add task',
 
     qaAddEmployee: 'Add employee',
+    tasksCount: { one: '{n} task', other: '{n} tasks' },
+    attHalfDay: 'Half day',
+    attNotMarked: 'Not marked',
+    companyOwnerLine: 'Company owner',
+    noBudgetSet: 'No budget set',
+    owesToCompany: 'Owes to company',
+    weOwe: 'We owe',
+    viewAllEmployees: 'View all {n} employees',
+    addManager: 'Add manager',
+    searchManagers: 'Search managers...',
+    employmentType: 'Employment type',
+    empTypeFullTime: 'Full-time',
+    empTypePartTime: 'Part-time',
+    empTypeContractor: 'Contractor',
+    empTypeNone: 'Not set',
+    filterDepartment: 'Department',
+    filterAttendance: 'Attendance today',
+    filterBalance: 'Balance',
+    filterClear: 'Clear filters',
     searchEmployees: 'Search employees...',
     filterEmployees: 'Show employees',
     empFilterAll: 'All',
@@ -14662,6 +14700,25 @@ const ta: UiStrings = {
     qaAddTask: 'பணியைச் சேர்',
 
     qaAddEmployee: 'ஊழியரைச் சேர்',
+    tasksCount: { one: '{n} பணி', other: '{n} பணிகள்' },
+    attHalfDay: 'அரை நாள்',
+    attNotMarked: 'குறிக்கப்படவில்லை',
+    companyOwnerLine: 'நிறுவன உரிமையாளர்',
+    noBudgetSet: 'பட்ஜெட் அமைக்கப்படவில்லை',
+    owesToCompany: 'நிறுவனத்திற்குக் கொடுக்க வேண்டியது',
+    weOwe: 'நாம் கொடுக்க வேண்டியது',
+    viewAllEmployees: '{n} ஊழியர்கள் அனைவரையும் காண்க',
+    addManager: 'மேலாளரைச் சேர்',
+    searchManagers: 'மேலாளர்களைத் தேடு...',
+    employmentType: 'பணி வகை',
+    empTypeFullTime: 'முழு நேரம்',
+    empTypePartTime: 'பகுதி நேரம்',
+    empTypeContractor: 'ஒப்பந்தம்',
+    empTypeNone: 'அமைக்கப்படவில்லை',
+    filterDepartment: 'துறை',
+    filterAttendance: 'இன்றைய வருகை',
+    filterBalance: 'இருப்பு',
+    filterClear: 'வடிகட்டிகளை அழி',
     searchEmployees: 'ஊழியர்களைத் தேடு...',
     filterEmployees: 'ஊழியர்களைக் காட்டு',
     empFilterAll: 'அனைவரும்',
@@ -21060,6 +21117,25 @@ const hi: UiStrings = {
     qaAddTask: 'कार्य जोड़ें',
 
     qaAddEmployee: 'कर्मचारी जोड़ें',
+    tasksCount: { one: '{n} कार्य', other: '{n} कार्य' },
+    attHalfDay: 'आधा दिन',
+    attNotMarked: 'चिह्नित नहीं',
+    companyOwnerLine: 'कंपनी मालिक',
+    noBudgetSet: 'बजट तय नहीं',
+    owesToCompany: 'कंपनी को देना है',
+    weOwe: 'हमें देना है',
+    viewAllEmployees: 'सभी {n} कर्मचारी देखें',
+    addManager: 'मैनेजर जोड़ें',
+    searchManagers: 'मैनेजर खोजें...',
+    employmentType: 'रोज़गार का प्रकार',
+    empTypeFullTime: 'पूर्णकालिक',
+    empTypePartTime: 'अंशकालिक',
+    empTypeContractor: 'ठेकेदार',
+    empTypeNone: 'तय नहीं',
+    filterDepartment: 'विभाग',
+    filterAttendance: 'आज की उपस्थिति',
+    filterBalance: 'बकाया',
+    filterClear: 'फ़िल्टर हटाएँ',
     searchEmployees: 'कर्मचारी खोजें...',
     filterEmployees: 'कर्मचारी दिखाएँ',
     empFilterAll: 'सभी',
@@ -27364,6 +27440,32 @@ const ar: UiStrings = {
     qaAddTask: 'أضف مهمة',
 
     qaAddEmployee: 'أضف موظفاً',
+    tasksCount: {
+      zero: '{n} مهام',
+      one: '{n} مهمة',
+      two: 'مهمتان',
+      few: '{n} مهام',
+      many: '{n} مهمة',
+      other: '{n} مهمة',
+    },
+    attHalfDay: 'نصف يوم',
+    attNotMarked: 'غير مسجّل',
+    companyOwnerLine: 'مالك الشركة',
+    noBudgetSet: 'لم تُحدَّد ميزانية',
+    owesToCompany: 'مستحق للشركة',
+    weOwe: 'مستحق علينا',
+    viewAllEmployees: 'عرض كل الموظفين ({n})',
+    addManager: 'إضافة مدير',
+    searchManagers: 'ابحث عن المديرين...',
+    employmentType: 'نوع التوظيف',
+    empTypeFullTime: 'دوام كامل',
+    empTypePartTime: 'دوام جزئي',
+    empTypeContractor: 'متعاقد',
+    empTypeNone: 'غير محدد',
+    filterDepartment: 'القسم',
+    filterAttendance: 'حضور اليوم',
+    filterBalance: 'الرصيد',
+    filterClear: 'مسح التصفية',
     searchEmployees: 'ابحث عن موظف...',
     filterEmployees: 'عرض الموظفين',
     empFilterAll: 'الكل',

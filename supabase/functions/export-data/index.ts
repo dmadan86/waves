@@ -493,6 +493,7 @@ export async function handleExportData(
         'funding_manager',
         'Employee ID',
         'Department',
+        'Employment type',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -510,7 +511,7 @@ export async function handleExportData(
         anyFamilies
           ? [
               ...cells,
-              ...Array(Math.max(0, 38 - cells.length)).fill(''),
+              ...Array(Math.max(0, 39 - cells.length)).fill(''),
               familyName(units, memberId),
             ]
           : cells;
@@ -564,6 +565,12 @@ export async function handleExportData(
               row.paid_by_company
                 ? ''
                 : companyExportDepartment(entry.group, entry.members, row.member_id),
+              row.paid_by_company
+                ? ''
+                : String(
+                    entry.members.find((m: Record<string, unknown>) => m.id === row.member_id)
+                      ?.employment_type ?? '',
+                  ),
             ],
             row.member_id,
           ),
