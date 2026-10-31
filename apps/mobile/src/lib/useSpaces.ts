@@ -37,6 +37,7 @@ export function useColdStartSpace(ready: boolean, companyIds: readonly string[])
   const holding =
     viewerId !== null &&
     doneFor !== viewerId &&
+    // eslint-disable-next-line react-hooks/refs -- synchronous flag; state would repaint Personal first
     (redirecting.current || !coldStartSettled(viewerId));
   useEffect(() => {
     if (viewerId === null || coldStartSettled(viewerId)) return;
@@ -59,6 +60,7 @@ export function useColdStartSpace(ready: boolean, companyIds: readonly string[])
       router.replace(`/group/${plan}?nav=tab`);
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot release once the plan is known
     setDoneFor(viewerId);
   }, [viewerId, read, ready, companyIds, doneFor]);
   return holding;
