@@ -54,7 +54,7 @@ const MINUTE = 60_000;
  * A phone, a tablet or a computer, read off the free-text label and platform.
  * Only ever decides which glyph sits in front of a row.
  */
-function deviceGlyph(row: DeviceSession) {
+export function deviceGlyph(row: DeviceSession) {
   const p = `${row.label} ${row.platform}`.toLowerCase();
   if (/ipad|tablet/.test(p)) return 'tablet-portrait-outline';
   const isDesktop = /web|mac|windows|linux|desktop|chrome|firefox|safari|browser|edge/.test(p);
