@@ -71,7 +71,7 @@ export function homeSecondActionKey(companyIds: readonly string[]): 'review' | '
 
 // ───────────────────────────────────────────── company mode (owner / manager) ──
 
-export type CompanyBarKey = 'home' | 'overview' | 'people' | 'team' | 'payments' | 'more';
+export type CompanyBarKey = 'home' | 'overview' | 'team' | 'payments' | 'more';
 
 /** The viewer's live role in one group, from the members mirror; null when not a member. */
 export function viewerRoleIn(
@@ -110,10 +110,11 @@ export function isCompanyMode(
 }
 
 const BAR_SCREEN: Readonly<Record<string, CompanyBarKey>> = {
-  'company-people': 'people',
-  members: 'people',
-  'company-hierarchy': 'people',
-  'company-statement': 'people',
+  // People, Attendance and Tasks are one Team tab; the old routes still land on it.
+  'company-people': 'team',
+  members: 'team',
+  'company-hierarchy': 'team',
+  'company-statement': 'team',
   'company-team': 'team',
   'company-work': 'team',
   'company-attendance': 'team',
@@ -139,8 +140,6 @@ export function companyBarRoute(groupId: string, key: string): string {
   switch (key) {
     case 'home':
       return '/';
-    case 'people':
-      return `/group/${groupId}/company-people`;
     case 'team':
       return `/group/${groupId}/company-team`;
     case 'payments':

@@ -4,9 +4,9 @@ import { Text, useTheme } from '@waves/ui';
 import { useWorkdayCounts } from '@/data/companyWorkday';
 import { useStrings } from '@/i18n';
 
-export type TeamTab = 'attendance' | 'work';
+export type TeamTab = 'people' | 'attendance' | 'work';
 
-/** The white Attendance | Daily work switch that rides over the foot of the header. */
+/** The white People | Attendance | Tasks switch that rides over the foot of the header. */
 export function TeamSegment({
   groupId,
   value,
@@ -18,11 +18,12 @@ export function TeamSegment({
 }) {
   const theme = useTheme(),
     { t } = useStrings();
-  // A red dot on Daily work while any task today is blocked.
+  // A red dot on Tasks while any task today is blocked.
   const attention = useWorkdayCounts(groupId).blocked > 0;
   const items: { tab: TeamTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+    { tab: 'people', label: t.company.barPeople, icon: 'people' },
     { tab: 'attendance', label: t.company.attendanceTitle, icon: 'person-circle' },
-    { tab: 'work', label: t.company.workTitle, icon: 'checkbox-outline' },
+    { tab: 'work', label: t.company.teamTabTasks, icon: 'checkbox-outline' },
   ];
   return (
     <View
@@ -53,12 +54,13 @@ export function TeamSegment({
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 6,
+              gap: 4,
+              paddingHorizontal: 4,
               borderRadius: 16,
               backgroundColor: on ? theme.color.brand : 'transparent',
             }}
           >
-            <Ionicons name={icon} size={20} color={ink} />
+            <Ionicons name={icon} size={18} color={ink} />
             <Text numberOfLines={1} style={{ color: ink, fontWeight: '700', flexShrink: 1 }}>
               {label}
             </Text>

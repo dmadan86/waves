@@ -1,5 +1,5 @@
 /**
- * People: Employees / Managers / Owners / Not employed. An owner sees all four; a manager sees only
+ * People (the Team tab's first segment; TeamScreen draws the header): Employees / Managers / Owners / Not employed. An owner sees all four; a manager sees only
  * their own team (Employees / Not employed). Every per-person number (today's mark, open tasks,
  * balance) is computed once per render into a map, never per row.
  * shortcut: no "salary due in N days" and no "On leave" (no pay-day or leave data exists yet).
@@ -7,7 +7,7 @@
 
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { Sheet, Text, iconSize, useTheme } from '@waves/ui';
@@ -18,12 +18,12 @@ import {
   BLUE_SOFT,
   GREEN,
   GREEN_SOFT,
+  DashBody,
   RolePill,
   TabPills,
   useMoney,
 } from '@/components/company/dashboard/parts';
 import { EmployeeRow } from '@/components/company/dashboard/EmployeeRow';
-import { SectionShell } from '@/components/company/bar/SectionShell';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
 import { CompanyEmploymentControl } from '@/components/company/CompanyEmploymentControl';
@@ -52,6 +52,7 @@ import { todayIso } from '@/data/personal';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { showDate } from '@/lib/expenseDay';
+import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
 type Tab = 'employees' | 'managers' | 'owners' | 'notEmployed';
@@ -62,6 +63,7 @@ const SETTLED: Balance = { kind: 'settled', amount: 0n };
 
 export function CompanyPeople({ groupId }: { groupId: string }) {
   const theme = useTheme();
+  const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const view = useCompanyEntries(groupId);
   const params = useLocalSearchParams<{ filter?: string }>();
@@ -482,284 +484,300 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   );
 
   return (
-    <SectionShell groupId={groupId} view={view}>
-      <View style={{ marginHorizontal: -theme.spacing.lg }}>
-        <TabPills
-          options={tabs}
-          value={tab}
-          onChange={(next) => {
-            setTab(next);
-            setQuery('');
-          }}
-        />
-      </View>
-
-      {tab === 'employees' || tab === 'notEmployed' ? (
-        <>
-          {tab === 'employees' && activeToday ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.replace(`/group/${groupId}/company-people`)}
-              style={{
-                alignSelf: 'flex-start',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                paddingHorizontal: 12,
-                height: 34,
-                borderRadius: theme.radius.pill,
-                backgroundColor: theme.color.brandSoft,
-              }}
-            >
-              <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-                {t.company.overviewActiveToday}
-              </Text>
-              <Ionicons name="close-circle-outline" size={iconSize.sm} color={theme.color.brand} />
-            </Pressable>
-          ) : null}
-          {searchRow(t.company.searchEmployees, true)}
-          {listHeader(shown.length, tab === 'employees')}
-          <StandardCard>
-            {shown.map((m, i) => rowFor(m, i < shown.length - 1))}
-            {shown.length === 0 ? (
-              <Text variant="caption" tone="muted" align="center" style={{ paddingVertical: 16 }}>
-                {(tab === 'notEmployed' ? former : employees).length > 0
-                  ? t.company.noEmployeesMatch
-                  : t.company.noEmployees}
-              </Text>
-            ) : null}
-          </StandardCard>
-          <Text variant="caption" tone="muted">
-            {t.company.historyMoves}
-          </Text>
-        </>
-      ) : null}
-
-      {tab === 'managers' ? (
-        <>
-          {searchRow(t.company.searchManagers, false)}
-          <SectionHeader title={`${t.company.sectionOwners} (${owners.length})`} />
-          {ownerCard}
-          <SectionHeader
-            title={`${t.company.tabManagers} (${managers.length})`}
-            trailing={
-              employees.length > 0 ? (
-                <Pressable
-                  accessibilityRole="button"
-                  onPress={() => setPromoting(true)}
-                  hitSlop={8}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
-                >
-                  <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
-                  <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-                    {t.company.addManager}
-                  </Text>
-                </Pressable>
-              ) : undefined
-            }
+    <ScrollView
+      contentContainerStyle={{ paddingBottom: clearance + 24 }}
+      showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
+    >
+      <DashBody>
+        <View style={{ marginHorizontal: -theme.spacing.lg }}>
+          <TabPills
+            options={tabs}
+            value={tab}
+            onChange={(next) => {
+              setTab(next);
+              setQuery('');
+            }}
           />
-          {managers.length === 0 ? (
-            <StandardCard style={{ padding: 16, gap: 12 }}>
-              <ManagerTeamArt />
-              <Text variant="heading" align="center">
-                {t.company.managersEmptyTitle}
-              </Text>
-              <Text variant="caption" tone="muted" align="center">
-                {t.company.managersEmptyBody}
-              </Text>
+        </View>
+
+        {tab === 'employees' || tab === 'notEmployed' ? (
+          <>
+            {tab === 'employees' && activeToday ? (
               <Pressable
                 accessibilityRole="button"
-                onPress={() => (employees.length ? setPromoting(true) : router.push(people))}
+                onPress={() => router.replace(`/group/${groupId}/company-people`)}
                 style={{
-                  alignSelf: 'center',
+                  alignSelf: 'flex-start',
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: 6,
+                  paddingHorizontal: 12,
+                  height: 34,
                   borderRadius: theme.radius.pill,
-                  backgroundColor: theme.color.buttonPrimary,
-                  paddingHorizontal: 22,
-                  paddingVertical: 12,
+                  backgroundColor: theme.color.brandSoft,
                 }}
               >
-                <Ionicons name="add-circle-outline" size={20} color={theme.color.onButtonPrimary} />
-                <Text style={{ color: theme.color.onButtonPrimary, fontWeight: '700' }}>
-                  {t.company.makeManagerAction}
+                <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+                  {t.company.overviewActiveToday}
+                </Text>
+                <Ionicons
+                  name="close-circle-outline"
+                  size={iconSize.sm}
+                  color={theme.color.brand}
+                />
+              </Pressable>
+            ) : null}
+            {searchRow(t.company.searchEmployees, true)}
+            {listHeader(shown.length, tab === 'employees')}
+            <StandardCard>
+              {shown.map((m, i) => rowFor(m, i < shown.length - 1))}
+              {shown.length === 0 ? (
+                <Text variant="caption" tone="muted" align="center" style={{ paddingVertical: 16 }}>
+                  {(tab === 'notEmployed' ? former : employees).length > 0
+                    ? t.company.noEmployeesMatch
+                    : t.company.noEmployees}
+                </Text>
+              ) : null}
+            </StandardCard>
+            <Text variant="caption" tone="muted">
+              {t.company.historyMoves}
+            </Text>
+          </>
+        ) : null}
+
+        {tab === 'managers' ? (
+          <>
+            {searchRow(t.company.searchManagers, false)}
+            <SectionHeader title={`${t.company.sectionOwners} (${owners.length})`} />
+            {ownerCard}
+            <SectionHeader
+              title={`${t.company.tabManagers} (${managers.length})`}
+              trailing={
+                employees.length > 0 ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => setPromoting(true)}
+                    hitSlop={8}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                  >
+                    <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
+                    <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+                      {t.company.addManager}
+                    </Text>
+                  </Pressable>
+                ) : undefined
+              }
+            />
+            {managers.length === 0 ? (
+              <StandardCard style={{ padding: 16, gap: 12 }}>
+                <ManagerTeamArt />
+                <Text variant="heading" align="center">
+                  {t.company.managersEmptyTitle}
+                </Text>
+                <Text variant="caption" tone="muted" align="center">
+                  {t.company.managersEmptyBody}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => (employees.length ? setPromoting(true) : router.push(people))}
+                  style={{
+                    alignSelf: 'center',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: theme.color.buttonPrimary,
+                    paddingHorizontal: 22,
+                    paddingVertical: 12,
+                  }}
+                >
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={20}
+                    color={theme.color.onButtonPrimary}
+                  />
+                  <Text style={{ color: theme.color.onButtonPrimary, fontWeight: '700' }}>
+                    {t.company.makeManagerAction}
+                  </Text>
+                </Pressable>
+                <View
+                  style={{ height: 1, backgroundColor: theme.color.border, marginVertical: 4 }}
+                />
+                <Text variant="title">{t.company.whyManagers}</Text>
+                {(
+                  [
+                    [
+                      'people-outline',
+                      'organizeTeams',
+                      'organizeTeamsBody',
+                      theme.color.brandSoft,
+                      theme.color.brand,
+                    ],
+                    ['wallet-outline', 'managerPools', 'managerPoolsBody', BLUE_SOFT, BLUE],
+                    [
+                      'document-text-outline',
+                      'controlApprove',
+                      'controlApproveBody',
+                      GREEN_SOFT,
+                      GREEN,
+                    ],
+                  ] as const
+                ).map(([icon, title, body, bg, fg]) => (
+                  <View key={title} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <View style={{ padding: 10, borderRadius: 24, backgroundColor: bg }}>
+                      <Ionicons name={icon} size={22} color={fg} />
+                    </View>
+                    <View style={{ flex: 1, gap: 2 }}>
+                      <Text style={{ fontWeight: '700' }}>{t.company[title]}</Text>
+                      <Text variant="caption" tone="muted">
+                        {t.company[body]}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </StandardCard>
+            ) : (
+              <>
+                {shownManagers.map(managerCard)}
+                {employees.length > 0 ? (
+                  <StandardCard>
+                    <ListRow
+                      title={t.company.makeManagerPick}
+                      leading={
+                        <Ionicons
+                          name="ribbon-outline"
+                          size={iconSize.md}
+                          color={theme.color.brand}
+                        />
+                      }
+                      onPress={() => setPromoting(true)}
+                    />
+                  </StandardCard>
+                ) : null}
+              </>
+            )}
+          </>
+        ) : null}
+
+        {tab === 'owners' ? (
+          <>
+            <SectionHeader title={`${t.company.sectionOwners} (${owners.length})`} />
+            {ownerCard}
+          </>
+        ) : null}
+
+        <Sheet visible={filtering} onClose={() => setFiltering(false)} closeLabel={t.common.close}>
+          <View style={{ gap: theme.spacing.md }}>
+            {departments.length > 0
+              ? chipGroup(
+                  t.company.filterDepartment,
+                  departmentFilter ?? '',
+                  [
+                    { value: '', label: t.company.empFilterAll },
+                    ...departments.map((d) => ({ value: d.id, label: d.name })),
+                  ],
+                  (next) => setDepartmentFilter(next || null),
+                )
+              : null}
+            {view.isOwner && managers.length > 0
+              ? chipGroup(
+                  t.company.manager,
+                  managerFilter ?? '',
+                  [
+                    { value: '', label: t.company.empFilterAll },
+                    ...managers.map((m) => ({
+                      value: m.id,
+                      label: displayName(m, null, null, t.misc.someone),
+                    })),
+                  ],
+                  (next) => setManagerFilter(next || null),
+                )
+              : null}
+            {chipGroup<MarkFilter>(
+              t.company.filterAttendance,
+              markFilter,
+              [
+                { value: 'all', label: t.company.empFilterAll },
+                { value: 'present', label: t.company.attendancePresent },
+                { value: 'half', label: t.company.attHalfDay },
+                { value: 'absent', label: t.company.attendanceAbsent },
+                { value: 'unmarked', label: t.company.attNotMarked },
+              ],
+              setMarkFilter,
+            )}
+            {chipGroup<BalanceFilter>(
+              t.company.filterBalance,
+              balanceFilter,
+              [
+                { value: 'all', label: t.company.empFilterAll },
+                { value: 'owesCompany', label: t.company.empFilterOwes },
+                { value: 'companyOwes', label: t.company.empFilterCompanyOwes },
+                { value: 'settled', label: t.company.empFilterSettled },
+              ],
+              setBalanceFilter,
+            )}
+            {anyFilter ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setBalanceFilter('all');
+                  setMarkFilter('all');
+                  setDepartmentFilter(null);
+                  setManagerFilter(null);
+                }}
+                style={{ alignSelf: 'flex-start' }}
+              >
+                <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+                  {t.company.filterClear}
                 </Text>
               </Pressable>
-              <View style={{ height: 1, backgroundColor: theme.color.border, marginVertical: 4 }} />
-              <Text variant="title">{t.company.whyManagers}</Text>
-              {(
-                [
-                  [
-                    'people-outline',
-                    'organizeTeams',
-                    'organizeTeamsBody',
-                    theme.color.brandSoft,
-                    theme.color.brand,
-                  ],
-                  ['wallet-outline', 'managerPools', 'managerPoolsBody', BLUE_SOFT, BLUE],
-                  [
-                    'document-text-outline',
-                    'controlApprove',
-                    'controlApproveBody',
-                    GREEN_SOFT,
-                    GREEN,
-                  ],
-                ] as const
-              ).map(([icon, title, body, bg, fg]) => (
-                <View key={title} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <View style={{ padding: 10, borderRadius: 24, backgroundColor: bg }}>
-                    <Ionicons name={icon} size={22} color={fg} />
-                  </View>
-                  <View style={{ flex: 1, gap: 2 }}>
-                    <Text style={{ fontWeight: '700' }}>{t.company[title]}</Text>
-                    <Text variant="caption" tone="muted">
-                      {t.company[body]}
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </StandardCard>
-          ) : (
-            <>
-              {shownManagers.map(managerCard)}
-              {employees.length > 0 ? (
-                <StandardCard>
-                  <ListRow
-                    title={t.company.makeManagerPick}
-                    leading={
-                      <Ionicons
-                        name="ribbon-outline"
-                        size={iconSize.md}
-                        color={theme.color.brand}
-                      />
-                    }
-                    onPress={() => setPromoting(true)}
-                  />
-                </StandardCard>
-              ) : null}
-            </>
-          )}
-        </>
-      ) : null}
-
-      {tab === 'owners' ? (
-        <>
-          <SectionHeader title={`${t.company.sectionOwners} (${owners.length})`} />
-          {ownerCard}
-        </>
-      ) : null}
-
-      <Sheet visible={filtering} onClose={() => setFiltering(false)} closeLabel={t.common.close}>
-        <View style={{ gap: theme.spacing.md }}>
-          {departments.length > 0
-            ? chipGroup(
-                t.company.filterDepartment,
-                departmentFilter ?? '',
-                [
-                  { value: '', label: t.company.empFilterAll },
-                  ...departments.map((d) => ({ value: d.id, label: d.name })),
-                ],
-                (next) => setDepartmentFilter(next || null),
-              )
-            : null}
-          {view.isOwner && managers.length > 0
-            ? chipGroup(
-                t.company.manager,
-                managerFilter ?? '',
-                [
-                  { value: '', label: t.company.empFilterAll },
-                  ...managers.map((m) => ({
-                    value: m.id,
-                    label: displayName(m, null, null, t.misc.someone),
-                  })),
-                ],
-                (next) => setManagerFilter(next || null),
-              )
-            : null}
-          {chipGroup<MarkFilter>(
-            t.company.filterAttendance,
-            markFilter,
-            [
-              { value: 'all', label: t.company.empFilterAll },
-              { value: 'present', label: t.company.attendancePresent },
-              { value: 'half', label: t.company.attHalfDay },
-              { value: 'absent', label: t.company.attendanceAbsent },
-              { value: 'unmarked', label: t.company.attNotMarked },
-            ],
-            setMarkFilter,
-          )}
-          {chipGroup<BalanceFilter>(
-            t.company.filterBalance,
-            balanceFilter,
-            [
-              { value: 'all', label: t.company.empFilterAll },
-              { value: 'owesCompany', label: t.company.empFilterOwes },
-              { value: 'companyOwes', label: t.company.empFilterCompanyOwes },
-              { value: 'settled', label: t.company.empFilterSettled },
-            ],
-            setBalanceFilter,
-          )}
-          {anyFilter ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setBalanceFilter('all');
-                setMarkFilter('all');
-                setDepartmentFilter(null);
-                setManagerFilter(null);
-              }}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-                {t.company.filterClear}
-              </Text>
-            </Pressable>
-          ) : null}
-        </View>
-      </Sheet>
-      {employmentMember ? (
-        <CompanyEmploymentControl
-          key={employmentMember.id}
-          groupId={groupId}
-          member={employmentMember}
-          autoOpen
-          onClose={() => setEmploymentMember(null)}
-        />
-      ) : null}
-      {typeMember ? (
-        <EmploymentTypeSheet
-          key={typeMember.id}
-          groupId={groupId}
-          memberId={typeMember.id}
-          current={typeMember.employment_type}
-          visible
-          onClose={() => setTypeMember(null)}
-        />
-      ) : null}
-      <Sheet visible={promoting} onClose={() => setPromoting(false)} closeLabel={t.common.close}>
-        <View>
-          {employees.map((m, i) => (
-            <ListRow
-              key={m.id}
-              leading={
-                <PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={36} />
-              }
-              title={displayName(m, null, null, t.misc.someone)}
-              subtitle={
-                [m.employee_id, departmentName(departments, m.department_id)]
-                  .filter(Boolean)
-                  .join(' · ') || undefined
-              }
-              onPress={() => {
-                setPromoting(false);
-                role.mutate({ memberId: m.id, role: 'manager' });
-              }}
-              divider={i < employees.length - 1}
-            />
-          ))}
-        </View>
-      </Sheet>
-    </SectionShell>
+            ) : null}
+          </View>
+        </Sheet>
+        {employmentMember ? (
+          <CompanyEmploymentControl
+            key={employmentMember.id}
+            groupId={groupId}
+            member={employmentMember}
+            autoOpen
+            onClose={() => setEmploymentMember(null)}
+          />
+        ) : null}
+        {typeMember ? (
+          <EmploymentTypeSheet
+            key={typeMember.id}
+            groupId={groupId}
+            memberId={typeMember.id}
+            current={typeMember.employment_type}
+            visible
+            onClose={() => setTypeMember(null)}
+          />
+        ) : null}
+        <Sheet visible={promoting} onClose={() => setPromoting(false)} closeLabel={t.common.close}>
+          <View>
+            {employees.map((m, i) => (
+              <ListRow
+                key={m.id}
+                leading={
+                  <PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={36} />
+                }
+                title={displayName(m, null, null, t.misc.someone)}
+                subtitle={
+                  [m.employee_id, departmentName(departments, m.department_id)]
+                    .filter(Boolean)
+                    .join(' · ') || undefined
+                }
+                onPress={() => {
+                  setPromoting(false);
+                  role.mutate({ memberId: m.id, role: 'manager' });
+                }}
+                divider={i < employees.length - 1}
+              />
+            ))}
+          </View>
+        </Sheet>
+      </DashBody>
+    </ScrollView>
   );
 }

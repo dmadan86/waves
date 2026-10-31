@@ -217,12 +217,13 @@ export function ScenicHeader({
 }
 
 /** The body under a `ScenicHeader`: rides up over the photo, with the standard gutters and gaps. */
-export function ScenicBody({ children }: { children: ReactNode }) {
+/** `flush`: no header above to ride over (the Team shell draws its own), so no overlap. */
+export function ScenicBody({ children, flush = false }: { children: ReactNode; flush?: boolean }) {
   const theme = useTheme();
   return (
     <View
       style={{
-        marginTop: -SCENIC_OVERLAP,
+        marginTop: flush ? theme.spacing.md : -SCENIC_OVERLAP,
         paddingHorizontal: theme.spacing.lg,
         gap: theme.spacing.xl,
       }}

@@ -137,7 +137,8 @@ describe('isCompanyMode', () => {
 describe('company bar navigation', () => {
   it('highlights the tab a screen belongs to', () => {
     expect(companyBarActiveKey(['group', '[id]'])).toBe('overview');
-    expect(companyBarActiveKey(['group', '[id]', 'company-people'])).toBe('people');
+    expect(companyBarActiveKey(['group', '[id]', 'company-people'])).toBe('team');
+    expect(companyBarActiveKey(['group', '[id]', 'members'])).toBe('team');
     expect(companyBarActiveKey(['group', '[id]', 'company-wages'])).toBe('payments');
     expect(companyBarActiveKey(['group', '[id]', 'company-team'])).toBe('team');
     expect(companyBarActiveKey(['group', '[id]', 'company-work'])).toBe('team');
@@ -150,6 +151,8 @@ describe('company bar navigation', () => {
     expect(companyBackRoute(['group', '[id]', 'company-more'], 'a')).toBe('/group/a');
     expect(companyBackRoute(['group', '[id]', 'company-team'], 'a')).toBe('/group/a');
     expect(companyBackRoute(['group', '[id]', 'company-work'], 'a')).toBe('/group/a');
+    expect(companyBackRoute(['group', '[id]', 'company-people'], 'a')).toBe('/group/a');
+    expect(companyBackRoute(['group', '[id]', 'company-attendance'], 'a')).toBe('/group/a');
     expect(companyBackRoute(['group', '[id]', 'company-pending'], 'a')).toBe('/group/a');
     expect(companyBackRoute(['group', '[id]'], 'a')).toBe('/');
     expect(companyBackRoute(['group', '[id]', 'company-statement'], 'a')).toBeNull();
