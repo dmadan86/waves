@@ -549,6 +549,7 @@ model GroupMember {
   vendorLinesCreated CompanyVendorEntry[] @relation("CompanyVendorLineCreator")
   vendorLinesFunded CompanyVendorEntry[] @relation("CompanyVendorLineFunder")
   vendorPhotos CompanyVendorEntryAttachment[]
+  taskPhotos CompanyWorkTaskAttachment[]
   @@map("group_members")
   @@schema("public")
 }
@@ -3212,6 +3213,24 @@ model CompanyVendorEntryAttachment {
   @@map("company_vendor_entry_attachments")
   @@schema("public")
 }
+model CompanyWorkTaskAttachment {
+  id String @id @db.Uuid
+  entryId String @map("entry_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  uploaderMemberId String @map("uploader_member_id") @db.Uuid
+  storagePath String @unique @map("storage_path")
+  preview String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  entry CompanyWorkTask @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  uploader GroupMember @relation(fields: [uploaderMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_work_task_attachments_uploader_member_id_group_id_fkey")
+  @@index([groupId,updatedSeq], map: "company_work_task_attachments_group_seq_idx")
+  @@index([entryId,deletedAt], map: "company_work_task_attachments_entry_idx")
+  @@map("company_work_task_attachments")
+  @@schema("public")
+}
 model CompanyPlan {
  groupId String @id @map("group_id") @db.Uuid
  plan String @default("free")
@@ -3451,6 +3470,8 @@ model CompanyWorkTask {
   member GroupMember @relation("CompanyWorkTaskMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   creator GroupMember @relation("CompanyWorkTaskCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   project CompanyProject? @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  attachments CompanyWorkTaskAttachment[]
+  @@unique([id,groupId], map: "company_work_tasks_id_group_id_key")
   @@index([groupId,updatedSeq], map: "company_work_tasks_sync_idx")
   @@index([groupId,day,memberId], map: "company_work_tasks_day_idx")
   @@map("company_work_tasks")

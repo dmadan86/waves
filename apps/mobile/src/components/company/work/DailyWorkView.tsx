@@ -21,6 +21,7 @@ import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { countWork, filterWork } from '@/lib/companyWork';
 import { WorkTaskSections } from './WorkTaskSections';
+import { AddTaskSheet } from './AddTaskSheet';
 import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
 import { WorkTaskSheets } from './WorkTaskSheets';
 import { WorkSearchControl, WorkStatTiles } from './WorkSummaryControls';
@@ -70,6 +71,8 @@ export default function DailyWorkView({
   const maxDay = shift(today, 7);
   const [day, setDay] = useState(today);
   const [draft, setDraft] = useState<Payload | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addKey, setAddKey] = useState(0);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [statusId, setStatusId] = useState<string | null>(null);
   const [reasonAfterClose, setReasonAfterClose] = useState<string | null>(null);
@@ -258,19 +261,10 @@ export default function DailyWorkView({
                   <Button
                     label={`+ ${t.company.workAdd}`}
                     disabled={busy || access.people.length === 0 || day > maxDay}
-                    onPress={() =>
-                      setDraft({
-                        taskId: randomUUID(),
-                        memberId: access.people[0]?.id ?? '',
-                        day,
-                        title: '',
-                        projectId: null,
-                        dueTime: null,
-                        status: 'todo',
-                        blockedReason: null,
-                        note: null,
-                      })
-                    }
+                    onPress={() => {
+                      setAddKey((key) => key + 1);
+                      setAddOpen(true);
+                    }}
                   />
                 ) : null}
                 <WorkStatTiles counts={counts} />
@@ -319,6 +313,7 @@ export default function DailyWorkView({
                   })}
                 </ScrollView>
                 <WorkTaskSections
+                  groupId={id}
                   tasks={visibleTasks}
                   people={people}
                   locale={locale}
@@ -344,6 +339,24 @@ export default function DailyWorkView({
         </ScenicBody>
       </ScrollView>
       <OverflowMenu visible={menuId !== null} onClose={() => setMenuId(null)} items={items} />
+      <AddTaskSheet
+        key={addKey}
+        groupId={id}
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        people={access.people}
+        defaultMemberIds={
+          personFilter && allowedPerson(personFilter)
+            ? [personFilter]
+            : access.people.length === 1
+              ? access.people.map((p) => p.id)
+              : []
+        }
+        defaultDay={day}
+        today={today}
+        maxDay={maxDay}
+        onSaved={setDay}
+      />
       <WorkFiltersAndDraftSheet
         filterOpen={filterOpen}
         setFilterOpen={setFilterOpen}
@@ -360,7 +373,6 @@ export default function DailyWorkView({
         setPersonFilter={setPersonFilter}
         draft={draft}
         setDraft={setDraft}
-        tasks={tasks}
         busy={busy}
         error={error}
         allowedPerson={allowedPerson}

@@ -207,6 +207,14 @@ async function groupOfSubject(
       .maybeSingle();
     if (lineError) throw new HttpError(500, 'INTERNAL', lineError.message);
     if (line) return (line as { group_id: string }).group_id;
+    // ...and so does a daily-work task.
+    const { data: work, error: workError } = await service
+      .from('company_work_tasks')
+      .select('group_id')
+      .eq('id', subjectId)
+      .maybeSingle();
+    if (workError) throw new HttpError(500, 'INTERNAL', workError.message);
+    if (work) return (work as { group_id: string }).group_id;
   }
   if (!data) throw new HttpError(404, 'NOT_FOUND', 'No such subject');
   return (data as { group_id: string }).group_id;
@@ -244,13 +252,18 @@ async function requireRestrictedParty(
     );
     if (lineError) throw new HttpError(500, 'INTERNAL', lineError.message);
     if (line === true) return;
+    const { data: work, error: workError } = await caller.rpc('waves_can_read_company_work_task', {
+      p_task_id: subjectId,
+    });
+    if (workError) throw new HttpError(500, 'INTERNAL', workError.message);
+    if (work === true) return;
   }
   throw new HttpError(403, 'NOT_A_PARTY', 'Not a party to this');
 }
 
-/** True when the caller can see this entry as live: a company entry, or a vendor ledger line. */
+/** True when the caller can see this entry as live: a company entry, a vendor ledger line or a work task. */
 async function companyEntryIsLive(caller: SupabaseClient, entryId: string): Promise<boolean> {
-  for (const table of ['company_entries', 'company_vendor_entries']) {
+  for (const table of ['company_entries', 'company_vendor_entries', 'company_work_tasks']) {
     const { data, error } = await caller
       .from(table)
       .select('id')
@@ -301,7 +314,9 @@ async function assertRestrictedPath(
   }
   // A company image belongs to an entry or to a vendor ledger line; only one table matches.
   const tables =
-    bucket === 'company-entry-images' ? [table, 'company_vendor_entry_attachments'] : [table];
+    bucket === 'company-entry-images'
+      ? [table, 'company_vendor_entry_attachments', 'company_work_task_attachments']
+      : [table];
   for (const name of tables) {
     let query = caller.from(name).select('id').eq(subjectCol, subjectId).eq('storage_path', path);
     query = deletingWith ? query.eq('uploader_member_id', memberId) : query.is('deleted_at', null);
@@ -476,7 +491,11 @@ async function authorizeWrite(
       await requireUploaderOrAdmin(caller, service, uid, memberId, bucket, path, groupId, action);
       // Evidence changes go through the RPC, which increments the entry version.
       let attached = false;
-      for (const table of ['company_entry_attachments', 'company_vendor_entry_attachments']) {
+      for (const table of [
+        'company_entry_attachments',
+        'company_vendor_entry_attachments',
+        'company_work_task_attachments',
+      ]) {
         const { data, error: attachmentError } = await service
           .from(table)
           .select('id')
