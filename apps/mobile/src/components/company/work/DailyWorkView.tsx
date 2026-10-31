@@ -1,12 +1,15 @@
 import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
-import { useState, type ReactNode } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import type { CompanyWorkSetPayload } from '@waves/core';
-import { useDepartments, departmentName } from '@/data/companyDepartments';
-import { Button, Text, useTheme } from '@waves/ui';
+import { useDepartments } from '@/data/companyDepartments';
+import { Text } from '@waves/ui';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { ScenicBody, SegmentedPills } from '@/components/standard';
+import { ScenicBody } from '@/components/standard';
+import type { MenuAnchor } from '@/components/SortMenu';
+import { useClaimFab } from '@/lib/fabOverride';
 import { useCompanyEntries, useCompanyProjects } from '@/data/companyEntries';
 import {
   useRemoveWorkTask,
@@ -19,12 +22,12 @@ import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { countWork, filterWork } from '@/lib/companyWork';
+import { countWork, filterWork, type WorkChip } from '@/lib/companyWork';
 import { WorkTaskSections } from './WorkTaskSections';
 import { AddTaskSheet } from './AddTaskSheet';
 import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
 import { WorkTaskSheets } from './WorkTaskSheets';
-import { WorkSearchControl, WorkStatTiles } from './WorkSummaryControls';
+import { WorkChips, WorkToolbar } from './WorkSummaryControls';
 
 type Payload = CompanyWorkSetPayload;
 function shift(iso: string, n: number) {
@@ -66,7 +69,6 @@ export default function DailyWorkView({
   const save = useSetWorkTask(id);
   const remove = useRemoveWorkTask(id);
   const { t, locale } = useStrings();
-  const theme = useTheme();
   const clearance = useBottomClearance();
   const today = todayIso();
   const maxDay = shift(today, 7);
@@ -74,7 +76,9 @@ export default function DailyWorkView({
   const [draft, setDraft] = useState<Payload | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addKey, setAddKey] = useState(0);
-  const [menuId, setMenuId] = useState<string | null>(null);
+  const [menu, setMenu] = useState<{ id: string; anchor: MenuAnchor | null } | null>(null);
+  const [sortAnchor, setSortAnchor] = useState<MenuAnchor | 'open' | null>(null);
+  const [byTitle, setByTitle] = useState(false);
   const [statusId, setStatusId] = useState<string | null>(null);
   const [reasonAfterClose, setReasonAfterClose] = useState<string | null>(null);
   const [field, setField] = useState<{ taskId: string; kind: 'note' | 'blockedReason' } | null>(
@@ -83,7 +87,7 @@ export default function DailyWorkView({
   const [error, setError] = useState(false);
   const [scope, setScope] = useState<'mine' | 'team'>(access.isEmployee ? 'mine' : 'team');
   const [query, setQuery] = useState('');
-  const [chip, setChip] = useState<'all' | 'todo' | 'doing' | 'done' | 'blocked'>('all');
+  const [chip, setChip] = useState<WorkChip>('all');
   const [siteFilter, setSiteFilter] = useState<string | null>(null);
   const [personFilter, setPersonFilter] = useState<string | null>(null);
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
@@ -117,6 +121,12 @@ export default function DailyWorkView({
     },
     siteName: (projectId) => projects.find((project) => project.id === projectId)?.name ?? '',
   });
+  const sortedTasks = [...visibleTasks].sort((a, b) =>
+    byTitle
+      ? a.title.localeCompare(b.title, locale)
+      : (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') ||
+        a.title.localeCompare(b.title, locale),
+  );
   const people = access.isEmployee && access.me ? [access.me] : access.people;
   const write = (next: Payload, onSuccess?: () => void) => {
     const current = tasks.find((task) => task.id === next.taskId);
@@ -160,7 +170,7 @@ export default function DailyWorkView({
       else setField({ taskId: task.id, kind: 'blockedReason' });
     } else write({ ...payload(task), status, blockedReason: null });
   };
-  const menuTask = tasks.find((task) => task.id === menuId);
+  const menuTask = tasks.find((task) => task.id === menu?.id);
   const items: OverflowMenuItem[] =
     menuTask && allowedPerson(menuTask.memberId) && canChange(menuTask) && !busy
       ? [
@@ -168,6 +178,11 @@ export default function DailyWorkView({
             icon: 'create-outline',
             label: t.company.workEdit,
             onPress: () => setDraft(payload(menuTask)),
+          },
+          {
+            icon: 'swap-horizontal-outline',
+            label: t.company.workStatus,
+            onPress: () => setStatusId(menuTask.id),
           },
           ...(menuTask.status !== 'done' && shift(menuTask.day, 1) <= maxDay
             ? [
@@ -197,6 +212,20 @@ export default function DailyWorkView({
           },
         ]
       : [];
+  const openAdd = () => {
+    if (busy || access.people.length === 0 || day > maxDay) return;
+    setAddKey((key) => key + 1);
+    setAddOpen(true);
+  };
+  // Embedded in Team, the company bar's round + adds a task here instead of a ledger entry.
+  const [focused, setFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  useClaimFab(embedded && focused && access.canManage, t.company.workAdd, openAdd);
   const fieldTask = tasks.find((task) => task.id === field?.taskId);
   const statusTask = tasks.find((task) => task.id === statusId);
   return (
@@ -213,121 +242,48 @@ export default function DailyWorkView({
               <Text tone="muted">{t.company.attendanceEmpty}</Text>
             ) : (
               <>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <Button
-                    label="‹"
-                    accessibilityLabel={t.company.workPreviousDay}
-                    variant="secondary"
-                    repeatable
-                    onPress={() => setDay(shift(day, -1))}
-                  />
-                  <Pressable onPress={() => setDateOpen(true)}>
-                    <Text>
-                      {new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
-                        weekday: 'short',
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                        timeZone: 'UTC',
-                      })}
-                    </Text>
-                  </Pressable>
-                  <Button
-                    label="›"
-                    accessibilityLabel={t.company.workNextDay}
-                    variant="secondary"
-                    repeatable
-                    disabled={day >= maxDay}
-                    onPress={() => setDay(shift(day, 1))}
-                  />
-                </View>
-                {access.canManage ? (
-                  <SegmentedPills
-                    options={[
-                      { value: 'mine', label: t.company.workMineTasks },
-                      { value: 'team', label: t.company.workTeam },
-                    ]}
-                    value={scope}
-                    onChange={setScope}
-                  />
-                ) : null}
-                {access.canManage ? (
-                  <Button
-                    label={`+ ${t.company.workAdd}`}
-                    disabled={busy || access.people.length === 0 || day > maxDay}
-                    onPress={() => {
-                      setAddKey((key) => key + 1);
-                      setAddOpen(true);
-                    }}
-                  />
-                ) : null}
-                <WorkStatTiles counts={counts} />
-                <WorkSearchControl
+                <WorkToolbar
+                  dayLabel={new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
+                    weekday: 'short',
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    timeZone: 'UTC',
+                  })}
+                  onDay={() => setDateOpen(true)}
                   query={query}
                   onQueryChange={setQuery}
-                  onFilter={() => setFilterOpen(true)}
+                  onSort={(a) => setSortAnchor(a ?? 'open')}
                 />
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={{ gap: theme.spacing.xs }}
-                >
-                  {(
-                    [
-                      'all',
-                      'todo',
-                      'doing',
-                      'done',
-                      ...(counts.blocked ? ['blocked'] : []),
-                    ] as const
-                  ).map((key) => {
-                    const n =
-                      key === 'all'
-                        ? counts.total
-                        : dayTasks.filter((task) => task.status === key).length;
-                    const label =
-                      key === 'all'
-                        ? t.company.workAll
-                        : key === 'todo'
-                          ? t.company.workTodo
-                          : key === 'doing'
-                            ? t.company.workDoing
-                            : key === 'done'
-                              ? t.company.workDone
-                              : t.company.workBlocked;
-                    return (
-                      <Button
-                        key={key}
-                        size="sm"
-                        variant={chip === key ? 'primary' : 'secondary'}
-                        label={`${label} (${n})`}
-                        onPress={() => setChip(key as typeof chip)}
-                      />
-                    );
-                  })}
-                </ScrollView>
+                <WorkChips
+                  value={chip}
+                  onChange={setChip}
+                  chips={[
+                    { key: 'all', label: t.company.workAll },
+                    { key: 'todo', label: t.company.workTodo },
+                    { key: 'doing', label: t.company.workDoing },
+                    { key: 'done', label: t.company.workDone },
+                    ...(counts.blocked
+                      ? [{ key: 'blocked' as const, label: t.company.workBlocked }]
+                      : []),
+                  ]}
+                />
                 <WorkTaskSections
                   groupId={id}
-                  tasks={visibleTasks}
+                  tasks={sortedTasks}
+                  today={today}
                   people={people}
                   locale={locale}
                   canManage={access.canManage}
                   busy={busy}
                   canChange={canChange}
                   onChangeStatus={changeStatus}
-                  onOpen={(task) => (access.canManage ? setMenuId(task.id) : setStatusId(task.id))}
-                  departmentFor={(memberId) =>
-                    departmentName(
-                      departments,
-                      people.find((p) => p.id === memberId)?.department_id,
-                    )
+                  onOpen={(task) =>
+                    access.canManage && canChange(task)
+                      ? setDraft(payload(task))
+                      : setStatusId(task.id)
                   }
+                  onMenu={(task, anchor) => setMenu({ id: task.id, anchor })}
                   siteName={(projectId) =>
                     projects.find((project) => project.id === projectId)?.name ?? ''
                   }
@@ -338,7 +294,41 @@ export default function DailyWorkView({
           </ReadOnlyWhenSuspended>
         </ScenicBody>
       </ScrollView>
-      <OverflowMenu visible={menuId !== null} onClose={() => setMenuId(null)} items={items} />
+      <OverflowMenu
+        visible={menu !== null}
+        onClose={() => setMenu(null)}
+        anchor={menu?.anchor ?? null}
+        items={items}
+      />
+      <OverflowMenu
+        visible={sortAnchor !== null}
+        onClose={() => setSortAnchor(null)}
+        anchor={sortAnchor === 'open' ? null : sortAnchor}
+        items={[
+          {
+            icon: 'text-outline',
+            label: t.company.workSortTitle,
+            toggle: { value: byTitle, onChange: setByTitle },
+          },
+          ...(access.canManage
+            ? [
+                {
+                  icon: 'person-outline' as const,
+                  label: t.company.workMineTasks,
+                  toggle: {
+                    value: scope === 'mine',
+                    onChange: (on: boolean) => setScope(on ? 'mine' : 'team'),
+                  },
+                },
+              ]
+            : []),
+          {
+            icon: 'filter-outline',
+            label: t.company.workFilter,
+            onPress: () => setFilterOpen(true),
+          },
+        ]}
+      />
       <AddTaskSheet
         key={addKey}
         groupId={id}
