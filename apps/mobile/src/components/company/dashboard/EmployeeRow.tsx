@@ -85,7 +85,7 @@ export function EmployeeRow({
               {name}
             </Text>
             {employeeId ? (
-              <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 0 }}>
+              <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 0, maxWidth: 110 }}>
                 {'· '}
                 {employeeId}
               </Text>
