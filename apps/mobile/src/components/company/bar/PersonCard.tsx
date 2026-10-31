@@ -56,6 +56,26 @@ export function PersonCard({
     manager: { label: t.company.manager, fg: BLUE, bg: BLUE_SOFT },
     owner: { label: t.company.pillOwner, fg: c.text, bg: c.surfaceMuted },
   }[role];
+  const markPill = (
+    <>
+      {narrow ? null : (
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: markSpec.fg }} />
+      )}
+      <View
+        style={{
+          flexShrink: 0,
+          paddingHorizontal: 8,
+          paddingVertical: 1,
+          borderRadius: theme.radius.pill,
+          backgroundColor: markSpec.bg,
+        }}
+      >
+        <Text variant="micro" numberOfLines={1} style={{ color: markSpec.fg }}>
+          {markSpec.label}
+        </Text>
+      </View>
+    </>
+  );
   const tone = balance ? c[balanceTone(balance)] : c.textMuted;
   return (
     <Pressable
@@ -79,30 +99,9 @@ export function PersonCard({
           <Text variant="body" numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1 }}>
             {name}
           </Text>
-          {showMark ? (
-            <>
-              {narrow ? null : (
-                <View
-                  style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: markSpec.fg }}
-                />
-              )}
-              <View
-                style={{
-                  flexShrink: 0,
-                  paddingHorizontal: 8,
-                  paddingVertical: 1,
-                  borderRadius: theme.radius.pill,
-                  backgroundColor: markSpec.bg,
-                }}
-              >
-                <Text variant="micro" numberOfLines={1} style={{ color: markSpec.fg }}>
-                  {markSpec.label}
-                </Text>
-              </View>
-            </>
-          ) : null}
+          {showMark && !narrow ? markPill : null}
         </View>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
           <View
             style={{
               flexShrink: 0,
@@ -116,7 +115,8 @@ export function PersonCard({
               {rolePill.label}
             </Text>
           </View>
-          {employeeId || note ? (
+          {showMark && narrow ? markPill : null}
+          {(employeeId || note) && !narrow ? (
             <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
               {'· '}
               {employeeId ?? note}

@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, TextInput, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
 import { Sheet, Text, iconSize, useTheme } from '@waves/ui';
@@ -54,6 +54,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   const departments = useDepartments(groupId);
   const marks = useAttendance(groupId);
   const allTasks = useWorkTasks(groupId);
+  const windowHeight = useWindowDimensions().height;
   const [searching, setSearching] = useState(false);
   const [query, setQuery] = useState('');
   const [filtering, setFiltering] = useState(false);
@@ -85,7 +86,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
     () =>
       managerBalances(
         view.entries,
-        managers.map((m) => m.id),
+        [...managers, ...employeeRows].filter((m) => m.role === 'manager').map((m) => m.id),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- ids are what matter
     [view.entries, view.members],
@@ -349,7 +350,10 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
       ) : null}
 
       <Sheet visible={filtering} onClose={() => setFiltering(false)} closeLabel={t.common.close}>
-        <View style={{ gap: theme.spacing.md }}>
+        <ScrollView
+          style={{ maxHeight: windowHeight * 0.7 }}
+          contentContainerStyle={{ gap: theme.spacing.md }}
+        >
           {chips<PeopleSort>(
             t.company.peopleSortBy,
             [
@@ -413,7 +417,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
               </Text>
             </Pressable>
           ) : null}
-        </View>
+        </ScrollView>
       </Sheet>
     </ScrollView>
   );
