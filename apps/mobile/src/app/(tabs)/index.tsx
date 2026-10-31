@@ -221,7 +221,7 @@ export default function HomeScreen() {
   // The placeholder covers both: nothing read yet, or nothing read *and* nothing
   // confirmed. Everything else paints.
   const showSkeleton = hydrating || unknownYet;
-  useColdStartSpace(!showSkeleton, companyIds);
+  const coldStartHold = useColdStartSpace(!showSkeleton, companyIds);
   const settling = !showSkeleton && summary.pendingFirstSync;
 
   // A ledger import running in the background (see `@/lib/importProgress`): its
@@ -468,6 +468,8 @@ export default function HomeScreen() {
   );
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
+
+  if (coldStartHold) return <Screen edges={[]}>{null}</Screen>;
 
   return (
     <Screen edges={[]}>

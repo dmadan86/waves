@@ -53,7 +53,6 @@ import {
 import { useCaptures } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
-import { hapticLight } from '@/lib/assistantHaptics';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
@@ -195,7 +194,6 @@ export function AppTabBar() {
     // Mount directly into the route's mode; only a real switch earns a tick.
     if (previousPersonal.current === alt) return;
     previousPersonal.current = alt;
-    hapticLight();
     p.value = withTiming(alt ? 1 : 0, {
       duration: reduced ? 120 : 280,
       easing: Easing.linear,
