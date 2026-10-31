@@ -3,12 +3,15 @@ import { describe, expect, it } from 'vitest';
 import {
   asEmploymentType,
   attendanceToday,
-  balanceLabel,
+  balanceTone,
+  DEFAULT_PEOPLE_FILTER,
+  listPeople,
+  type PeopleRow,
+  type PeopleSort,
+  wholeMoney,
   balancesByMember,
   canSetEmploymentType,
-  monthlyBudgets,
   openTasksToday,
-  peopleTabCounts,
 } from '../src/data/companyPeople';
 
 const admin = { id: 'o', role: 'admin', left_at: null } as const;
@@ -50,20 +53,6 @@ describe('today maps', () => {
     expect(attendanceToday(marks, 'a', 'd1')).toBe('half');
     expect(attendanceToday(marks, 'a', 'd2')).toBeNull();
   });
-  it('sums this month allocations per manager, skipping deleted', () => {
-    const e = (memberId: string, amount: bigint, occurredOn: string, deleted = false) =>
-      ({ kind: 'allocation', memberId, amount, occurredOn, deleted }) as never;
-    const map = monthlyBudgets(
-      [
-        e('m', 100n, '2026-10-02'),
-        e('m', 50n, '2026-10-20'),
-        e('m', 9n, '2026-09-30'),
-        e('m', 7n, '2026-10-03', true),
-      ],
-      '2026-10',
-    );
-    expect(map.get('m')).toBe(150n);
-  });
   it('gives a settled balance to someone with no entries', () => {
     expect(balancesByMember([], ['a'], '2026-10-30').get('a')).toEqual({
       kind: 'settled',
@@ -72,21 +61,59 @@ describe('today maps', () => {
   });
 });
 
-describe('People tab counts and balance label', () => {
-  it('shows counts per tab and hides an empty Not employed', () => {
-    expect(peopleTabCounts({ employees: 6, managers: 2, owners: 1, former: 3 })).toEqual({
-      employees: 6,
-      managers: 2,
-      owners: 1,
-      notEmployed: 3,
-    });
-    expect(
-      peopleTabCounts({ employees: 6, managers: 0, owners: 1, former: 0 }).notEmployed,
-    ).toBeUndefined();
+describe('People list', () => {
+  const row = (id: string, over: Partial<PeopleRow> = {}): PeopleRow => ({
+    id,
+    name: id,
+    role: 'employee',
+    former: false,
+    departmentId: null,
+    mark: null,
+    tasks: 0,
+    balance: { kind: 'settled', amount: 0n },
+    ...over,
   });
-  it('reads Settled, not 0.00, for a zero balance', () => {
-    const fmt = (m: bigint) => `₹${m}`;
-    expect(balanceLabel({ kind: 'settled', amount: 0n }, 'Settled', fmt)).toBe('Settled');
-    expect(balanceLabel({ kind: 'owesCompany', amount: 500n }, 'Settled', fmt)).toBe('₹500');
+  const rows = [
+    row('Zed', { mark: 'absent', tasks: 5, balance: { kind: 'owesCompany', amount: 300n } }),
+    row('Amy', { mark: 'present', tasks: 1, balance: { kind: 'companyOwes', amount: 900n } }),
+    row('Bob', { role: 'manager', departmentId: 'd1' }),
+    row('Own', { role: 'owner', balance: null }),
+    row('Gone', { former: true }),
+  ];
+  const names = (f = DEFAULT_PEOPLE_FILTER, sort: PeopleSort = 'name', q = '') =>
+    listPeople(rows, f, sort, q).map((r) => r.id);
+
+  it('defaults to employed employees and managers, no owners', () => {
+    expect(names()).toEqual(['Amy', 'Bob', 'Zed']);
+  });
+  it('shows owners only when picked, former only under Not employed', () => {
+    expect(names({ ...DEFAULT_PEOPLE_FILTER, roles: ['owner'] })).toEqual(['Own']);
+    expect(names({ ...DEFAULT_PEOPLE_FILTER, status: 'notEmployed' })).toEqual(['Gone']);
+  });
+  it("filters by department and today's mark (unmarked = no mark)", () => {
+    expect(names({ ...DEFAULT_PEOPLE_FILTER, departmentId: 'd1' })).toEqual(['Bob']);
+    expect(names({ ...DEFAULT_PEOPLE_FILTER, mark: 'unmarked' })).toEqual(['Bob']);
+    expect(names({ ...DEFAULT_PEOPLE_FILTER, mark: 'absent' })).toEqual(['Zed']);
+  });
+  it('sorts by attendance, balance and tasks, ties by name', () => {
+    expect(names(DEFAULT_PEOPLE_FILTER, 'attendance')).toEqual(['Amy', 'Zed', 'Bob']);
+    expect(names(DEFAULT_PEOPLE_FILTER, 'balance')).toEqual(['Amy', 'Zed', 'Bob']);
+    expect(names(DEFAULT_PEOPLE_FILTER, 'tasks')).toEqual(['Zed', 'Amy', 'Bob']);
+  });
+  it('searches by name', () => {
+    expect(names(DEFAULT_PEOPLE_FILTER, 'name', ' ze ')).toEqual(['Zed']);
+  });
+});
+
+describe('People money', () => {
+  it('is red only when the person owes the company', () => {
+    expect(balanceTone({ kind: 'owesCompany', amount: 5n })).toBe('negative');
+    expect(balanceTone({ kind: 'companyOwes', amount: 5n })).toBe('positive');
+    expect(balanceTone({ kind: 'settled', amount: 0n })).toBe('positive');
+  });
+  it('drops .00 but keeps real paise', () => {
+    expect(wholeMoney(125000n, 'INR', 'en-IN')).toBe('₹1,250');
+    expect(wholeMoney(125050n, 'INR', 'en-IN')).toBe('₹1,250.50');
+    expect(wholeMoney(0n, 'INR', 'en-IN')).toBe('₹0');
   });
 });

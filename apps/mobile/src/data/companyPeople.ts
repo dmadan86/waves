@@ -1,6 +1,13 @@
 /** Pure helpers behind the People screen: employment type, today's attendance/tasks and balances, built once per render. */
 
-import { dashboardStats, poolBalance, type CompanyEntry } from '@waves/core';
+import {
+  dashboardStats,
+  formatParts,
+  money,
+  minorUnitScale,
+  poolBalance,
+  type CompanyEntry,
+} from '@waves/core';
 
 import type { MirrorAttendance, MirrorWorkTask } from '@/data/companyWorkday';
 import type { MemberRow } from '@/data/types';
@@ -29,26 +36,6 @@ export type BalanceKind = 'settled' | 'companyOwes' | 'owesCompany';
 export interface Balance {
   readonly kind: BalanceKind;
   readonly amount: bigint;
-}
-
-/** What a row shows for a balance: "Settled" text for zero, never "₹0.00". */
-export function balanceLabel(b: Balance, settled: string, fmt: (minor: bigint) => string): string {
-  return b.kind === 'settled' ? settled : fmt(b.amount);
-}
-
-/** Counts shown inside the People tabs; Not employed is hidden (undefined) at zero. */
-export function peopleTabCounts(n: {
-  employees: number;
-  managers: number;
-  owners: number;
-  former: number;
-}): Record<'employees' | 'managers' | 'owners' | 'notEmployed', number | undefined> {
-  return {
-    employees: n.employees,
-    managers: n.managers,
-    owners: n.owners,
-    notEmployed: n.former || undefined,
-  };
 }
 
 /** Each person's balance, one pass: entries grouped by member first so no row rescans them all. */
@@ -98,18 +85,6 @@ export function attendanceToday(
   return marks.get(`${memberId}|${day}`)?.status ?? null;
 }
 
-/** This month's allocation per manager (cash given to spend), one pass over the entries. */
-export function monthlyBudgets(
-  entries: readonly CompanyEntry[],
-  month: string,
-): ReadonlyMap<string, bigint> {
-  const out = new Map<string, bigint>();
-  for (const e of entries)
-    if (e.kind === 'allocation' && !e.deleted && e.occurredOn.slice(0, 7) === month)
-      out.set(e.memberId, (out.get(e.memberId) ?? 0n) + e.amount);
-  return out;
-}
-
 /**
  * A manager's balance is their cash pool, not an employee ledger (allocations, returns and spend
  * all count): float still held reads "owes company", a pool overspent reads "company owes".
@@ -131,4 +106,77 @@ export function managerBalances(
     );
   }
   return out;
+}
+
+/** Whole rupees ("₹1,250") when there are no paise; the full amount otherwise. */
+export function wholeMoney(minor: bigint, currency: string, locale: string): string {
+  const parts = formatParts(money(minor, currency), { locale });
+  return minor % minorUnitScale(currency) === 0n ? parts.lead + parts.trail : parts.text;
+}
+
+/** Red = owes the company; green = settled or the company owes them. */
+export function balanceTone(b: Balance): 'negative' | 'positive' {
+  return b.kind === 'owesCompany' ? 'negative' : 'positive';
+}
+
+export type PersonRole = 'employee' | 'manager' | 'owner';
+export type PeopleSort = 'name' | 'attendance' | 'balance' | 'tasks';
+export type PeopleMark = 'present' | 'half' | 'absent' | 'unmarked';
+
+export interface PeopleRow {
+  readonly id: string;
+  readonly name: string;
+  readonly role: PersonRole;
+  readonly former: boolean;
+  readonly departmentId: string | null;
+  readonly mark: MirrorAttendance['status'] | null;
+  readonly tasks: number;
+  /** Null for owners: they carry no ledger. */
+  readonly balance: Balance | null;
+}
+
+export interface PeopleFilter {
+  readonly roles: readonly PersonRole[];
+  readonly status: 'employed' | 'notEmployed';
+  readonly departmentId: string | null;
+  readonly mark: PeopleMark | null;
+}
+
+/** Employed people, employees and managers; owners only when the filter picks them. */
+export const DEFAULT_PEOPLE_FILTER: PeopleFilter = {
+  roles: ['employee', 'manager'],
+  status: 'employed',
+  departmentId: null,
+  mark: null,
+};
+
+const MARK_RANK = { present: 0, half: 1, absent: 2 } as const;
+
+/** Filter, search and sort in one pass; ties always fall back to the name. */
+export function listPeople(
+  rows: readonly PeopleRow[],
+  filter: PeopleFilter,
+  sort: PeopleSort,
+  query: string,
+): PeopleRow[] {
+  const q = query.trim().toLowerCase();
+  const byName = (a: PeopleRow, b: PeopleRow) => a.name.localeCompare(b.name);
+  const rank = (r: PeopleRow) => (r.mark ? MARK_RANK[r.mark] : 3);
+  const amount = (r: PeopleRow) => r.balance?.amount ?? 0n;
+  const order: Record<PeopleSort, (a: PeopleRow, b: PeopleRow) => number> = {
+    name: byName,
+    attendance: (a, b) => rank(a) - rank(b),
+    balance: (a, b) => (amount(a) === amount(b) ? 0 : amount(a) > amount(b) ? -1 : 1),
+    tasks: (a, b) => b.tasks - a.tasks,
+  };
+  return rows
+    .filter(
+      (r) =>
+        r.former === (filter.status === 'notEmployed') &&
+        filter.roles.includes(r.role) &&
+        (!filter.departmentId || r.departmentId === filter.departmentId) &&
+        (!filter.mark || (r.mark ?? 'unmarked') === filter.mark) &&
+        (!q || r.name.toLowerCase().includes(q)),
+    )
+    .sort((a, b) => order[sort](a, b) || byName(a, b));
 }
