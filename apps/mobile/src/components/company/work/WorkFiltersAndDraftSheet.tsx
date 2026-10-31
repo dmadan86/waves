@@ -187,6 +187,11 @@ export function WorkFiltersAndDraftSheet({
               value={draft.dueTime ? 'time' : ''}
               onChange={() => setDraft({ ...draft, dueTime: null })}
             />
+            {draft.blockedReason || draft.note ? (
+              <Text variant="caption" tone="muted">
+                {[draft.blockedReason, draft.note].filter(Boolean).join(' · ')}
+              </Text>
+            ) : null}
             <CompanyEntryPhotos
               kind="task"
               groupId={groupId}

@@ -1,6 +1,6 @@
 import { Platform, View } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Sheet, useTheme } from '@waves/ui';
+import { Sheet, Text, useTheme } from '@waves/ui';
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { SectionHeader, SegmentedPills } from '@/components/standard';
@@ -110,6 +110,16 @@ export function WorkTaskSheets({
                 }}
               />
             </View>
+          ) : null}
+          {statusTask?.blockedReason ? (
+            <Text variant="caption" tone="negative">
+              {statusTask.blockedReason}
+            </Text>
+          ) : null}
+          {statusTask?.note ? (
+            <Text variant="caption" tone="muted">
+              {statusTask.note}
+            </Text>
           ) : null}
           {statusTask ? (
             <CompanyEntryPhotos
