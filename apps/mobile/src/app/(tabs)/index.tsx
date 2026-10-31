@@ -164,7 +164,6 @@ export default function HomeScreen() {
   });
   const displayName = profile?.display_name ?? t.account.you;
   // First word only, so a long name never truncates to "Hi, Madan Dei…".
-  const firstName = displayName.trim().split(/\s+/)[0] || displayName;
   const companyIds = useViewerCompanyIds();
 
   /**
@@ -346,11 +345,6 @@ export default function HomeScreen() {
           ]
         : []),
       {
-        icon: 'person-circle-outline',
-        label: t.account.yourAccount,
-        route: '/settings/account',
-        section: 'account',
-      },
       { icon: 'language-outline', label: t.language, route: '/settings/language', section: 'app' },
       { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene', section: 'app' },
       // Appearance is hidden while THEME_HIDDEN stands; the screen behind it is
@@ -815,9 +809,9 @@ export default function HomeScreen() {
         onClose={() => setMenuOpen(false)}
         items={menuItems}
         header={{
-          name: firstName,
+          name: displayName,
           avatar: <PersonAvatar name={displayName} avatarUrl={profile?.avatar_url} size={40} />,
-          route: '/profile',
+          route: '/settings/account',
         }}
       />
       <SpaceSwitchSheet current="personal" open={switchOpen} onClose={() => setSwitchOpen(false)} />

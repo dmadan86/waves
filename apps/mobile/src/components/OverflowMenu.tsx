@@ -291,7 +291,7 @@ export function OverflowMenu({
                   {header.avatar}
                   <Text
                     variant="body"
-                    numberOfLines={1}
+                    numberOfLines={2}
                     style={{ flexShrink: 1, fontWeight: '700' }}
                   >
                     {header.name}
