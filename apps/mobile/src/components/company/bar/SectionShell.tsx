@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen, useTheme } from '@waves/ui';
 
 import { DashBody, DashHeader, useCompanyCounts } from '@/components/company/dashboard/parts';
+import type { OverflowMenuItem } from '@/components/OverflowMenu';
 import type { CompanyView } from '@/data/companyEntries';
 import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -24,6 +25,7 @@ export function SectionShell({
   ownerOnly = false,
   subtitle,
   segment,
+  menuItems,
   children,
 }: {
   groupId: string;
@@ -36,6 +38,8 @@ export function SectionShell({
   subtitle?: string;
   /** Team: a fixed segment under the header; children then scroll themselves. */
   segment?: ReactNode;
+  /** Team: the round ••• menu in the header (also drops the back arrow and subtitle). */
+  menuItems?: readonly OverflowMenuItem[];
   children: ReactNode;
 }) {
   const clearance = useBottomClearance();
@@ -56,6 +60,7 @@ export function SectionShell({
       groupId={groupId}
       view={view}
       showGear={view.isOwner}
+      menuItems={segment ? menuItems : undefined}
       overview={overview}
       subtitle={
         overview

@@ -1604,7 +1604,6 @@ export interface UiStrings {
     kWages: string;
     salaryPayment: string;
     tabOverview: string;
-    tabEmployees: string;
     overviewTasks: string;
     tabManagers: string;
     tabBudgets: string;
@@ -1615,7 +1614,6 @@ export interface UiStrings {
     barMore: string;
     barTeam: string;
     teamTabTasks: string;
-    sectionOwners: string;
     moreBudgets: string;
     moreStatements: string;
     moreRules: string;
@@ -1689,13 +1687,7 @@ export interface UiStrings {
     tasksCount: PluralForms;
     attHalfDay: string;
     attNotMarked: string;
-    companyOwnerLine: string;
     noBudgetSet: string;
-    owesToCompany: string;
-    weOwe: string;
-    viewAllEmployees: string;
-    addManager: string;
-    searchManagers: string;
     employmentType: string;
     empTypeFullTime: string;
     empTypePartTime: string;
@@ -1704,14 +1696,12 @@ export interface UiStrings {
     filterDepartment: string;
     filterAttendance: string;
     filterBalance: string;
+    peopleSortBy: string;
     filterClear: string;
     qaAddEmployee: string;
     searchEmployees: string;
     filterEmployees: string;
     empFilterAll: string;
-    empFilterOwes: string;
-    empFilterCompanyOwes: string;
-    empFilterSettled: string;
     viewStatement: string;
     employed: string;
     notEmployed: string;
@@ -1789,7 +1779,6 @@ export interface UiStrings {
     askSent: string;
     budgetRequests: string;
     managersNone: string;
-    makeManagerPick: string;
     paymentsNone: string;
     yourManager: string;
     yourOwners: string;
@@ -1804,17 +1793,7 @@ export interface UiStrings {
     employeeCount: PluralForms;
     managerCount: PluralForms;
     ownerCount: PluralForms;
-    makeManagerAction: string;
-    managersEmptyTitle: string;
-    managersEmptyBody: string;
     overallControl: string;
-    whyManagers: string;
-    organizeTeams: string;
-    organizeTeamsBody: string;
-    managerPools: string;
-    managerPoolsBody: string;
-    controlApprove: string;
-    controlApproveBody: string;
     switchCompanyBody: string;
     createCompanyNew: string;
     newTitle: string;
@@ -8434,7 +8413,6 @@ const en: UiStrings = {
     kWages: 'Wages paid',
     salaryPayment: 'Salary payment',
     tabOverview: 'Overview',
-    tabEmployees: 'Employees',
     overviewTasks: 'Tasks',
     tabManagers: 'Managers',
     tabBudgets: 'Budgets',
@@ -8445,7 +8423,6 @@ const en: UiStrings = {
     barMore: 'More',
     barTeam: 'Team',
     teamTabTasks: 'Tasks',
-    sectionOwners: 'Owners',
     moreBudgets: 'Budgets & sites',
     moreStatements: 'Statements & export',
     moreRules: 'Rules',
@@ -8520,13 +8497,7 @@ const en: UiStrings = {
     tasksCount: { one: '{n} task', other: '{n} tasks' },
     attHalfDay: 'Half day',
     attNotMarked: 'Not marked',
-    companyOwnerLine: 'Company owner',
     noBudgetSet: 'No budget set',
-    owesToCompany: 'Owes to company',
-    weOwe: 'We owe',
-    viewAllEmployees: 'View all {n} employees',
-    addManager: 'Add manager',
-    searchManagers: 'Search managers...',
     employmentType: 'Employment type',
     empTypeFullTime: 'Full-time',
     empTypePartTime: 'Part-time',
@@ -8535,13 +8506,11 @@ const en: UiStrings = {
     filterDepartment: 'Department',
     filterAttendance: 'Attendance today',
     filterBalance: 'Balance',
+    peopleSortBy: 'Sort by',
     filterClear: 'Clear filters',
     searchEmployees: 'Search employees...',
     filterEmployees: 'Show employees',
     empFilterAll: 'All',
-    empFilterOwes: 'Owes company',
-    empFilterCompanyOwes: 'Company owes',
-    empFilterSettled: 'Settled',
     viewStatement: 'View statement',
     employed: 'Employed',
     notEmployed: 'Not employed',
@@ -8623,7 +8592,6 @@ const en: UiStrings = {
     askSent: 'Request sent',
     budgetRequests: 'Budget requests',
     managersNone: 'No managers yet. Make an employee a manager.',
-    makeManagerPick: 'Make someone a manager',
     paymentsNone: 'No payments yet',
     yourManager: 'Your manager: {name}',
     yourOwners: 'Your company owner',
@@ -8638,17 +8606,7 @@ const en: UiStrings = {
     employeeCount: { one: '{n} employee', other: '{n} employees' },
     managerCount: { one: '{n} manager', other: '{n} managers' },
     ownerCount: { one: '{n} owner', other: '{n} owners' },
-    makeManagerAction: 'Make a manager',
-    managersEmptyTitle: 'No managers yet',
-    managersEmptyBody: 'Assign managers to organize employees, set budgets and approve expenses.',
     overallControl: 'Overall control',
-    whyManagers: 'Why add managers?',
-    organizeTeams: 'Organize teams',
-    organizeTeamsBody: 'Group employees under managers',
-    managerPools: 'Set budgets',
-    managerPoolsBody: 'Give each manager a cash pool',
-    controlApprove: 'Control and approve',
-    controlApproveBody: 'Managers can approve expenses and record payments',
     switchCompanyBody: 'Choose a company to manage',
     createCompanyNew: 'Create new',
     newTitle: 'New company',
@@ -14722,7 +14680,6 @@ const ta: UiStrings = {
     kWages: 'செலுத்திய சம்பளம்',
     salaryPayment: 'சம்பளம் கொடுப்பு',
     tabOverview: 'கண்ணோட்டம்',
-    tabEmployees: 'ஊழியர்கள்',
     overviewTasks: 'பணிகள்',
     tabManagers: 'மேலாளர்கள்',
     tabBudgets: 'பட்ஜெட்',
@@ -14733,7 +14690,6 @@ const ta: UiStrings = {
     barMore: 'மேலும்',
     barTeam: 'குழு',
     teamTabTasks: 'பணிகள்',
-    sectionOwners: 'உரிமையாளர்கள்',
     moreBudgets: 'பட்ஜெட் & இடங்கள்',
     moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
     moreRules: 'விதிகள்',
@@ -14808,13 +14764,7 @@ const ta: UiStrings = {
     tasksCount: { one: '{n} பணி', other: '{n} பணிகள்' },
     attHalfDay: 'அரை நாள்',
     attNotMarked: 'குறிக்கப்படவில்லை',
-    companyOwnerLine: 'நிறுவன உரிமையாளர்',
     noBudgetSet: 'பட்ஜெட் அமைக்கப்படவில்லை',
-    owesToCompany: 'நிறுவனத்திற்குக் கொடுக்க வேண்டியது',
-    weOwe: 'நாம் கொடுக்க வேண்டியது',
-    viewAllEmployees: '{n} ஊழியர்கள் அனைவரையும் காண்க',
-    addManager: 'மேலாளரைச் சேர்',
-    searchManagers: 'மேலாளர்களைத் தேடு...',
     employmentType: 'பணி வகை',
     empTypeFullTime: 'முழு நேரம்',
     empTypePartTime: 'பகுதி நேரம்',
@@ -14823,13 +14773,11 @@ const ta: UiStrings = {
     filterDepartment: 'துறை',
     filterAttendance: 'இன்றைய வருகை',
     filterBalance: 'இருப்பு',
+    peopleSortBy: 'வரிசைப்படுத்து',
     filterClear: 'வடிகட்டிகளை அழி',
     searchEmployees: 'ஊழியர்களைத் தேடு...',
     filterEmployees: 'ஊழியர்களைக் காட்டு',
     empFilterAll: 'அனைவரும்',
-    empFilterOwes: 'நிறுவனத்திற்குக் கொடுக்க வேண்டியவர்',
-    empFilterCompanyOwes: 'நிறுவனம் கொடுக்க வேண்டியவர்',
-    empFilterSettled: 'தீர்ந்தவர்',
     viewStatement: 'அறிக்கையைப் பார்',
     employed: 'பணியில் உள்ளவர்',
     notEmployed: 'பணியில் இல்லை',
@@ -14912,7 +14860,6 @@ const ta: UiStrings = {
     askSent: 'கோரிக்கை அனுப்பப்பட்டது',
     budgetRequests: 'பட்ஜெட் கோரிக்கைகள்',
     managersNone: 'மேலாளர் இல்லை. ஒரு ஊழியரை மேலாளர் ஆக்குங்கள்.',
-    makeManagerPick: 'ஒருவரை மேலாளர் ஆக்கு',
     paymentsNone: 'கொடுப்பனவுகள் இல்லை',
     yourManager: 'உங்கள் மேலாளர்: {name}',
     yourOwners: 'உங்கள் நிறுவன உரிமையாளர்',
@@ -14927,18 +14874,7 @@ const ta: UiStrings = {
     employeeCount: { one: '{n} ஊழியர்', other: '{n} ஊழியர்கள்' },
     managerCount: { one: '{n} மேலாளர்', other: '{n} மேலாளர்கள்' },
     ownerCount: { one: '{n} உரிமையாளர்', other: '{n} உரிமையாளர்கள்' },
-    makeManagerAction: 'மேலாளரை நியமிக்கவும்',
-    managersEmptyTitle: 'மேலாளர்கள் இன்னும் இல்லை',
-    managersEmptyBody:
-      'ஊழியர்களை ஒருங்கிணைக்கவும், வரவு செலவுகளை அமைக்கவும், செலவுகளை ஒப்புதல் அளிக்கவும் மேலாளர்களை நியமிக்கவும்.',
     overallControl: 'முழு கட்டுப்பாடு',
-    whyManagers: 'மேலாளர்களை ஏன் சேர்க்க வேண்டும்?',
-    organizeTeams: 'குழுக்களை ஒருங்கிணைக்கவும்',
-    organizeTeamsBody: 'மேலாளர்களின் கீழ் ஊழியர்களைச் சேர்க்கவும்',
-    managerPools: 'வரவு செலவுகளை அமைக்கவும்',
-    managerPoolsBody: 'ஒவ்வொரு மேலாளருக்கும் பணத் தொகுப்பை ஒதுக்கவும்',
-    controlApprove: 'கட்டுப்பாடும் ஒப்புதலும்',
-    controlApproveBody: 'மேலாளர்கள் செலவுகளை ஒப்புதல் அளித்து பணம் செலுத்தியதைப் பதிவு செய்யலாம்',
     switchCompanyBody: 'நிர்வகிக்க ஒரு நிறுவனத்தைத் தேர்ந்தெடுக்கவும்',
     createCompanyNew: 'புதிதாக உருவாக்கு',
     newTitle: 'புதிய நிறுவனம்',
@@ -21175,7 +21111,6 @@ const hi: UiStrings = {
     kWages: 'दिया गया वेतन',
     salaryPayment: 'वेतन भुगतान',
     tabOverview: 'अवलोकन',
-    tabEmployees: 'कर्मचारी',
     overviewTasks: 'कार्य',
     tabManagers: 'मैनेजर',
     tabBudgets: 'बजट',
@@ -21186,7 +21121,6 @@ const hi: UiStrings = {
     barMore: 'और',
     barTeam: 'टीम',
     teamTabTasks: 'काम',
-    sectionOwners: 'मालिक',
     moreBudgets: 'बजट और साइट',
     moreStatements: 'स्टेटमेंट और निर्यात',
     moreRules: 'नियम',
@@ -21261,13 +21195,7 @@ const hi: UiStrings = {
     tasksCount: { one: '{n} कार्य', other: '{n} कार्य' },
     attHalfDay: 'आधा दिन',
     attNotMarked: 'चिह्नित नहीं',
-    companyOwnerLine: 'कंपनी मालिक',
     noBudgetSet: 'बजट तय नहीं',
-    owesToCompany: 'कंपनी को देना है',
-    weOwe: 'हमें देना है',
-    viewAllEmployees: 'सभी {n} कर्मचारी देखें',
-    addManager: 'मैनेजर जोड़ें',
-    searchManagers: 'मैनेजर खोजें...',
     employmentType: 'रोज़गार का प्रकार',
     empTypeFullTime: 'पूर्णकालिक',
     empTypePartTime: 'अंशकालिक',
@@ -21276,13 +21204,11 @@ const hi: UiStrings = {
     filterDepartment: 'विभाग',
     filterAttendance: 'आज की उपस्थिति',
     filterBalance: 'बकाया',
+    peopleSortBy: 'क्रमबद्ध करें',
     filterClear: 'फ़िल्टर हटाएँ',
     searchEmployees: 'कर्मचारी खोजें...',
     filterEmployees: 'कर्मचारी दिखाएँ',
     empFilterAll: 'सभी',
-    empFilterOwes: 'कंपनी का बकाया',
-    empFilterCompanyOwes: 'कंपनी पर बकाया',
-    empFilterSettled: 'चुकता',
     viewStatement: 'स्टेटमेंट देखें',
     employed: 'कार्यरत',
     notEmployed: 'कार्यरत नहीं',
@@ -21363,7 +21289,6 @@ const hi: UiStrings = {
     askSent: 'अनुरोध भेजा गया',
     budgetRequests: 'बजट अनुरोध',
     managersNone: 'अभी कोई मैनेजर नहीं। किसी कर्मचारी को मैनेजर बनाएँ।',
-    makeManagerPick: 'किसी को मैनेजर बनाएँ',
     paymentsNone: 'अभी कोई भुगतान नहीं',
     yourManager: 'आपके मैनेजर: {name}',
     yourOwners: 'आपकी कंपनी के मालिक',
@@ -21378,18 +21303,7 @@ const hi: UiStrings = {
     employeeCount: { one: '{n} कर्मचारी', other: '{n} कर्मचारी' },
     managerCount: { one: '{n} मैनेजर', other: '{n} मैनेजर' },
     ownerCount: { one: '{n} मालिक', other: '{n} मालिक' },
-    makeManagerAction: 'मैनेजर बनाएँ',
-    managersEmptyTitle: 'अभी कोई मैनेजर नहीं',
-    managersEmptyBody:
-      'कर्मचारियों को व्यवस्थित करने, बजट तय करने और खर्च मंज़ूर करने के लिए मैनेजर बनाएँ।',
     overallControl: 'पूरा नियंत्रण',
-    whyManagers: 'मैनेजर क्यों जोड़ें?',
-    organizeTeams: 'टीम व्यवस्थित करें',
-    organizeTeamsBody: 'कर्मचारियों को मैनेजर के अंतर्गत रखें',
-    managerPools: 'बजट तय करें',
-    managerPoolsBody: 'हर मैनेजर को नकद पूल दें',
-    controlApprove: 'नियंत्रण और मंज़ूरी',
-    controlApproveBody: 'मैनेजर खर्च मंज़ूर कर सकते हैं और भुगतान दर्ज कर सकते हैं',
     switchCompanyBody: 'प्रबंधन के लिए कंपनी चुनें',
     createCompanyNew: 'नई बनाएँ',
     newTitle: 'नई कंपनी',
@@ -27538,7 +27452,6 @@ const ar: UiStrings = {
     kWages: 'أجور مدفوعة',
     salaryPayment: 'دفعة راتب',
     tabOverview: 'نظرة عامة',
-    tabEmployees: 'الموظفون',
     overviewTasks: 'المهام',
     tabManagers: 'المديرون',
     tabBudgets: 'الميزانيات',
@@ -27549,7 +27462,6 @@ const ar: UiStrings = {
     barMore: 'المزيد',
     barTeam: 'الفريق',
     teamTabTasks: 'المهام',
-    sectionOwners: 'المالكون',
     moreBudgets: 'الميزانيات والمواقع',
     moreStatements: 'الكشوف والتصدير',
     moreRules: 'القواعد',
@@ -27631,13 +27543,7 @@ const ar: UiStrings = {
     },
     attHalfDay: 'نصف يوم',
     attNotMarked: 'غير مسجّل',
-    companyOwnerLine: 'مالك الشركة',
     noBudgetSet: 'لم تُحدَّد ميزانية',
-    owesToCompany: 'مستحق للشركة',
-    weOwe: 'مستحق علينا',
-    viewAllEmployees: 'عرض كل الموظفين ({n})',
-    addManager: 'إضافة مدير',
-    searchManagers: 'ابحث عن المديرين...',
     employmentType: 'نوع التوظيف',
     empTypeFullTime: 'دوام كامل',
     empTypePartTime: 'دوام جزئي',
@@ -27646,13 +27552,11 @@ const ar: UiStrings = {
     filterDepartment: 'القسم',
     filterAttendance: 'حضور اليوم',
     filterBalance: 'الرصيد',
+    peopleSortBy: 'ترتيب حسب',
     filterClear: 'مسح التصفية',
     searchEmployees: 'ابحث عن موظف...',
     filterEmployees: 'عرض الموظفين',
     empFilterAll: 'الكل',
-    empFilterOwes: 'مدين للشركة',
-    empFilterCompanyOwes: 'الشركة مدينة له',
-    empFilterSettled: 'مسوّى',
     viewStatement: 'عرض الكشف',
     employed: 'موظف',
     notEmployed: 'غير موظف',
@@ -27732,7 +27636,6 @@ const ar: UiStrings = {
     askSent: 'تم إرسال الطلب',
     budgetRequests: 'طلبات الميزانية',
     managersNone: 'لا مديرين بعد. اجعل موظفاً مديراً.',
-    makeManagerPick: 'اجعل شخصاً مديراً',
     paymentsNone: 'لا مدفوعات بعد',
     yourManager: 'مديرك: {name}',
     yourOwners: 'مالك الشركة',
@@ -27768,17 +27671,7 @@ const ar: UiStrings = {
       few: '{n} مالكين',
       many: '{n} مالكاً',
     },
-    makeManagerAction: 'تعيين مدير',
-    managersEmptyTitle: 'لا مديرين بعد',
-    managersEmptyBody: 'عيّن مديرين لتنظيم الموظفين وتحديد الميزانيات والموافقة على المصروفات.',
     overallControl: 'تحكم كامل',
-    whyManagers: 'لماذا تضيف مديرين؟',
-    organizeTeams: 'تنظيم الفرق',
-    organizeTeamsBody: 'تجميع الموظفين تحت إدارة المديرين',
-    managerPools: 'تحديد الميزانيات',
-    managerPoolsBody: 'خصّص رصيداً نقدياً لكل مدير',
-    controlApprove: 'التحكم والموافقة',
-    controlApproveBody: 'يمكن للمديرين الموافقة على المصروفات وتسجيل المدفوعات',
     switchCompanyBody: 'اختر شركة لإدارتها',
     createCompanyNew: 'إنشاء شركة جديدة',
     newTitle: 'شركة جديدة',

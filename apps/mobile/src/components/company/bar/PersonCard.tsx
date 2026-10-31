@@ -1,0 +1,153 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+
+import { Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
+
+import { BLUE, BLUE_SOFT } from '@/components/company/dashboard/parts';
+import { PersonAvatar, type PersonAvatarProps } from '@/components/PersonAvatar';
+import { balanceTone, type Balance, type PersonRole } from '@/data/companyPeople';
+import type { AttendanceStatus } from '@/data/companyWorkday';
+import { useStrings } from '@/i18n';
+
+/** One person in the People list: a compact white card (see the Team mockup). */
+export function PersonCard({
+  member,
+  name,
+  ghost,
+  role,
+  employeeId,
+  mark,
+  showMark,
+  tasks,
+  balance,
+  balanceText,
+  note,
+  muted,
+  onPress,
+}: {
+  member: PersonAvatarProps['member'];
+  name: string;
+  ghost?: boolean;
+  role: PersonRole;
+  employeeId?: string | null;
+  mark: AttendanceStatus | null;
+  /** False for owners and people no longer employed: there is no mark to show. */
+  showMark: boolean;
+  tasks: string;
+  balance: Balance | null;
+  balanceText: string;
+  /** A muted line-end note (the date someone left). */
+  note?: string;
+  muted?: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const narrow = useWindowDimensions().width < 360;
+  const c = theme.color;
+  const markSpec = {
+    present: { label: t.company.attendancePresent, fg: c.positive, bg: c.positiveSoft },
+    half: { label: t.company.attHalfDay, fg: c.warning, bg: c.warningSoft },
+    absent: { label: t.company.attendanceAbsent, fg: c.negative, bg: c.negativeSoft },
+    none: { label: t.company.attNotMarked, fg: c.warning, bg: c.warningSoft },
+  }[mark ?? 'none'];
+  const rolePill = {
+    employee: { label: t.company.roleEmployee, fg: c.brand, bg: c.brandSoft },
+    manager: { label: t.company.manager, fg: BLUE, bg: BLUE_SOFT },
+    owner: { label: t.company.pillOwner, fg: c.text, bg: c.surfaceMuted },
+  }[role];
+  const tone = balance ? c[balanceTone(balance)] : c.textMuted;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={name}
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        gap: 10,
+        borderRadius: 16,
+        backgroundColor: c.surface,
+        opacity: muted ? 0.62 : 1,
+      }}
+    >
+      <PersonAvatar member={member} name={name} ghost={ghost} size={38} />
+      <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text variant="body" numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1 }}>
+            {name}
+          </Text>
+          {showMark ? (
+            <>
+              {narrow ? null : (
+                <View
+                  style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: markSpec.fg }}
+                />
+              )}
+              <View
+                style={{
+                  flexShrink: 0,
+                  paddingHorizontal: 8,
+                  paddingVertical: 1,
+                  borderRadius: theme.radius.pill,
+                  backgroundColor: markSpec.bg,
+                }}
+              >
+                <Text variant="micro" numberOfLines={1} style={{ color: markSpec.fg }}>
+                  {markSpec.label}
+                </Text>
+              </View>
+            </>
+          ) : null}
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <View
+            style={{
+              flexShrink: 0,
+              paddingHorizontal: 8,
+              paddingVertical: 1,
+              borderRadius: theme.radius.pill,
+              backgroundColor: rolePill.bg,
+            }}
+          >
+            <Text variant="micro" numberOfLines={1} style={{ color: rolePill.fg }}>
+              {rolePill.label}
+            </Text>
+          </View>
+          {employeeId || note ? (
+            <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+              {'· '}
+              {employeeId ?? note}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+      <View
+        style={{ width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: c.border }}
+      />
+      <View style={{ minWidth: 64, maxWidth: 96, gap: 4 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Ionicons name="reader-outline" size={iconSize.sm} color={c.textMuted} />
+          <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {tasks}
+          </Text>
+        </View>
+        {balance ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="cash-outline" size={iconSize.sm} color={tone} />
+            <Text
+              variant="caption"
+              numberOfLines={1}
+              style={{ color: tone, fontWeight: '700', flexShrink: 1 }}
+            >
+              {balanceText}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+      <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={c.textMuted} />
+    </Pressable>
+  );
+}

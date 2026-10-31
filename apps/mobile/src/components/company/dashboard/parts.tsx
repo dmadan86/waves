@@ -5,7 +5,7 @@
  * it, so every action here says "record".
  */
 
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode, type RefObject } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
@@ -23,6 +23,8 @@ import { Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves
 
 import { ReportCompanySheet, SuspendedBanner } from '@/components/company/SuspendedBanner';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { type MenuAnchor } from '@/components/SortMenu';
+import { measureAnchor } from '@/lib/measureAnchor';
 import { SpacePill } from '@/components/SpaceSwitcher';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { StandardCard } from '@/components/standard';
@@ -163,19 +165,42 @@ function IconButton({
   icon,
   label,
   onPress,
+  round = false,
+  buttonRef,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
+  /** A white round button (the Team header) instead of a bare icon. */
+  round?: boolean;
+  buttonRef?: RefObject<View | null>;
 }) {
   const theme = useTheme();
   return (
     <Pressable
+      ref={buttonRef}
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
       hitSlop={6}
-      style={{ width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }}
+      style={
+        round
+          ? {
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              marginStart: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.surface,
+              shadowColor: '#000',
+              shadowOpacity: 0.08,
+              shadowRadius: 6,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }
+          : { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }
+      }
     >
       <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
     </Pressable>
@@ -238,6 +263,7 @@ export function DashHeader({
   onBack,
   exportMenu,
   overview = false,
+  menuItems,
 }: {
   groupId: string;
   view: CompanyView;
@@ -252,10 +278,15 @@ export function DashHeader({
   exportMenu?: boolean;
   /** The Overview hero: no back arrow, a bigger name, a bell for this company's activity. */
   overview?: boolean;
+  /** The Team header: no back arrow or subtitle, round gear and a round ••• opening these items. */
+  menuItems?: readonly OverflowMenuItem[];
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
+  const bare = !!menuItems;
+  const dotsRef = useRef<View>(null);
+  const [dotsAnchor, setDotsAnchor] = useState<MenuAnchor | null>(null);
   const dark = theme.scheme === 'dark';
   useHeroStatusBar(dark ? 'light' : 'dark');
   const [menu, setMenu] = useState(false);
@@ -266,7 +297,7 @@ export function DashHeader({
     : [theme.color.brandSoft, theme.color.surface];
   return (
     <>
-      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview ? 14 : 34 }}>
+      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview ? 14 : bare ? 40 : 34 }}>
         <View
           pointerEvents="none"
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
@@ -307,7 +338,7 @@ export function DashHeader({
             paddingHorizontal: overview ? theme.spacing.lg : theme.spacing.md,
           }}
         >
-          {overview ? null : (
+          {overview || bare ? null : (
             <IconButton
               icon={directionalIcon('arrow-back')}
               label={t.common.back}
@@ -322,7 +353,22 @@ export function DashHeader({
             <IconButton
               icon="settings-outline"
               label={t.company.companySettings}
+              round={bare}
               onPress={() => router.push(`/group/${groupId}/settings`)}
+            />
+          ) : null}
+          {bare ? (
+            <IconButton
+              icon="ellipsis-horizontal"
+              label={t.group.more}
+              round
+              buttonRef={dotsRef}
+              onPress={() =>
+                measureAnchor(dotsRef, (a) => {
+                  setDotsAnchor(a);
+                  setMenu(true);
+                })
+              }
             />
           ) : null}
           {exportMenu ? (
@@ -353,7 +399,7 @@ export function DashHeader({
               {pill ? <RolePill label={pill} /> : null}
             </View>
           </View>
-        ) : (
+        ) : bare ? null : (
           <View
             style={{
               flexDirection: 'row',
@@ -405,27 +451,30 @@ export function DashHeader({
       <OverflowMenu
         visible={menu}
         onClose={() => setMenu(false)}
-        items={[
-          ...(showGear
-            ? [
-                {
-                  icon: 'settings-outline',
-                  label: t.company.companySettings,
-                  route: `/group/${groupId}/settings`,
-                } as OverflowMenuItem,
-              ]
-            : []),
-          {
-            icon: 'download-outline',
-            label: t.company.exportAction,
-            route: `/group/${groupId}/export`,
-          },
-          {
-            icon: 'flag-outline',
-            label: t.company.reportCompany,
-            onPress: () => setReporting(true),
-          },
-        ]}
+        anchor={bare ? dotsAnchor : null}
+        items={
+          menuItems ?? [
+            ...(showGear
+              ? [
+                  {
+                    icon: 'settings-outline',
+                    label: t.company.companySettings,
+                    route: `/group/${groupId}/settings`,
+                  } as OverflowMenuItem,
+                ]
+              : []),
+            {
+              icon: 'download-outline',
+              label: t.company.exportAction,
+              route: `/group/${groupId}/export`,
+            },
+            {
+              icon: 'flag-outline',
+              label: t.company.reportCompany,
+              onPress: () => setReporting(true),
+            },
+          ]
+        }
       />
     </>
   );

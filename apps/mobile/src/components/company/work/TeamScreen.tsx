@@ -4,6 +4,8 @@ import { Redirect } from 'expo-router';
 import { Screen } from '@waves/ui';
 import { CompanyPeople } from '@/components/company/bar/CompanyPeople';
 import { SectionShell } from '@/components/company/bar/SectionShell';
+import { DepartmentSheet } from '@/components/company/DepartmentSheet';
+import type { OverflowMenuItem } from '@/components/OverflowMenu';
 import { ScenicHeader } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useWorkdayAccess } from '@/data/companyWorkday';
@@ -30,6 +32,7 @@ export default function TeamScreen({
   const { t } = useStrings();
   const view = useCompanyEntries(groupId);
   const access = useWorkdayAccess(groupId);
+  const [departments, setDepartments] = useState(false);
   const [tab, setTab] = useState<TeamTab>(initialTab ?? 'attendance');
   useEffect(() => {
     if (initialTab) {
@@ -68,10 +71,28 @@ export default function TeamScreen({
       </Screen>
     );
   }
+  const menuItems: OverflowMenuItem[] = [
+    { icon: 'download-outline', label: t.company.exportAction, route: `/group/${groupId}/export` },
+    ...(view.isOwner && !view.suspended
+      ? [
+          {
+            icon: 'person-add-outline',
+            label: t.people.inviteTitle,
+            route: `/group/${groupId}/invite`,
+          } as OverflowMenuItem,
+          {
+            icon: 'git-branch-outline',
+            label: t.company.departments,
+            onPress: () => setDepartments(true),
+          } as OverflowMenuItem,
+        ]
+      : []),
+  ];
   return (
     <SectionShell
       groupId={groupId}
       view={view}
+      menuItems={menuItems}
       segment={<TeamSegment groupId={groupId} value={tab} onChange={choose} />}
     >
       {tab === 'people' ? (
@@ -81,6 +102,14 @@ export default function TeamScreen({
       ) : (
         <DailyWorkView groupId={groupId} embedded />
       )}
+      {view.isOwner ? (
+        <DepartmentSheet
+          groupId={groupId}
+          visible={departments}
+          onClose={() => setDepartments(false)}
+          manageOnly
+        />
+      ) : null}
     </SectionShell>
   );
 }
