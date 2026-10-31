@@ -23,7 +23,6 @@ import {
   useMoney,
 } from '@/components/company/dashboard/parts';
 import { EmployeeRow } from '@/components/company/dashboard/EmployeeRow';
-import { StatChips } from '@/components/company/bar/PeopleParts';
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
@@ -37,11 +36,13 @@ import { useActiveToday } from '@/data/companyOverview';
 import { departmentName, useDepartments } from '@/data/companyDepartments';
 import {
   attendanceToday,
+  balanceLabel,
   balancesByMember,
   canSetEmploymentType,
   managerBalances,
   monthlyBudgets,
   openTasksToday,
+  peopleTabCounts,
   type Balance,
 } from '@/data/companyPeople';
 import { useAttendance, useWorkTasks } from '@/data/companyWorkday';
@@ -145,7 +146,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   );
   const shownManagers = managers.filter(matches);
 
-  const amountText = (b: Balance): string => fmt(b.amount);
+  const amountText = (b: Balance): string => balanceLabel(b, t.company.settled, fmt);
   const taskText = (id: string): string | undefined => {
     const n = tasks.get(id) ?? 0;
     return n ? plural(locale, n, t.company.tasksCount) : undefined;
@@ -195,13 +196,8 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
         tasks={gone ? undefined : taskText(m.id)}
         balance={balance}
         balanceText={amountText(balance)}
-        chip={
-          gone
-            ? m.employment_ended_on
-              ? showDate(m.employment_ended_on, locale)
-              : undefined
-            : (m.employee_id ?? (balance.kind === 'settled' ? t.company.settled : undefined))
-        }
+        employeeId={m.employee_id}
+        note={gone && m.employment_ended_on ? showDate(m.employment_ended_on, locale) : undefined}
         muted={gone}
         compact={compact}
         menuLabel={t.company.employeeOptions}
@@ -212,16 +208,22 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
     );
   };
 
-  const tabs: { value: Tab; label: string }[] = view.isOwner
+  const counts = peopleTabCounts({
+    employees: employees.length,
+    managers: managers.length,
+    owners: owners.length,
+    former: former.length,
+  });
+  const tabs: { value: Tab; label: string; count?: number }[] = view.isOwner
     ? [
-        { value: 'employees', label: t.company.tabEmployees },
-        { value: 'managers', label: t.company.tabManagers },
-        { value: 'owners', label: t.company.sectionOwners },
-        { value: 'notEmployed', label: t.company.notEmployed },
+        { value: 'employees', label: t.company.tabEmployees, count: counts.employees },
+        { value: 'managers', label: t.company.tabManagers, count: counts.managers },
+        { value: 'owners', label: t.company.sectionOwners, count: counts.owners },
+        { value: 'notEmployed', label: t.company.notEmployed, count: counts.notEmployed },
       ]
     : [
-        { value: 'employees', label: t.company.tabMyTeam },
-        { value: 'notEmployed', label: t.company.notEmployed },
+        { value: 'employees', label: t.company.tabMyTeam, count: counts.employees },
+        { value: 'notEmployed', label: t.company.notEmployed, count: counts.notEmployed },
       ];
 
   const searchRow = (placeholder: string, withFilter: boolean) => (
@@ -408,32 +410,6 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
     );
   };
 
-  const chips = (
-    <StatChips
-      items={[
-        {
-          icon: 'people-outline',
-          count: employees.length,
-          label: view.isOwner ? t.company.tabEmployees : t.company.tabMyTeam,
-        },
-        ...(view.isOwner
-          ? ([
-              {
-                icon: 'people-circle-outline',
-                count: managers.length,
-                label: t.company.tabManagers,
-              },
-              {
-                icon: 'ribbon-outline',
-                count: owners.length,
-                label: owners.length === 1 ? t.company.pillOwner : t.company.sectionOwners,
-              },
-            ] as const)
-          : []),
-      ]}
-    />
-  );
-
   const listHeader = (count: number, add: boolean) => (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
       <Text variant="heading" style={{ flex: 1, fontSize: 20, fontWeight: '800' }}>
@@ -506,8 +482,7 @@ export function CompanyPeople({ groupId }: { groupId: string }) {
   );
 
   return (
-    <SectionShell groupId={groupId} view={view} subtitle={t.company.companyManagement}>
-      {chips}
+    <SectionShell groupId={groupId} view={view}>
       <View style={{ marginHorizontal: -theme.spacing.lg }}>
         <TabPills
           options={tabs}

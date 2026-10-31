@@ -1,18 +1,20 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Text, iconSize, useTheme } from '@waves/ui';
 
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { type MenuAnchor } from '@/components/SortMenu';
 import { PersonAvatar, type PersonAvatarProps } from '@/components/PersonAvatar';
 import { AttendancePill, BalanceText, TaskCount } from '@/components/company/bar/PeopleParts';
 import type { Balance } from '@/data/companyPeople';
 import type { AttendanceStatus } from '@/data/companyWorkday';
+import { measureAnchor } from '@/lib/measureAnchor';
 
 /**
  * One person in the People list: avatar, name, "Full-time · Marketing", today's attendance, then a meta line
- * (open tasks, balance, employee ID or "All settled"). `compact` is the shorter row inside a manager's team.
+ * (open tasks, balance or "All settled"). `compact` is the shorter row inside a manager's team.
  */
 export function EmployeeRow({
   member,
@@ -23,7 +25,8 @@ export function EmployeeRow({
   tasks,
   balance,
   balanceText,
-  chip,
+  employeeId,
+  note,
   menuItems,
   menuLabel,
   onPress,
@@ -39,8 +42,10 @@ export function EmployeeRow({
   tasks?: string;
   balance?: Balance;
   balanceText?: string;
-  /** The trailing chip: the employee ID, else "All settled". */
-  chip?: string;
+  /** Muted, small, right after the name; never wraps (the name ellipsizes first). */
+  employeeId?: string | null;
+  /** A muted line-end note (e.g. the date someone left). */
+  note?: string;
   menuItems: readonly OverflowMenuItem[];
   menuLabel: string;
   onPress: () => void;
@@ -50,6 +55,8 @@ export function EmployeeRow({
 }) {
   const theme = useTheme();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
+  const dotsRef = useRef<View>(null);
   const meta = (
     <>
       {tasks ? <TaskCount text={tasks} /> : null}
@@ -77,6 +84,12 @@ export function EmployeeRow({
             <Text variant="body" numberOfLines={1} style={{ fontWeight: '600', flexShrink: 1 }}>
               {name}
             </Text>
+            {employeeId ? (
+              <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 0 }}>
+                {'· '}
+                {employeeId}
+              </Text>
+            ) : null}
             {compact ? null : (
               <View style={{ marginStart: 'auto' }}>
                 <AttendancePill status={attendance ?? null} />
@@ -96,37 +109,36 @@ export function EmployeeRow({
           ) : (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 20 }}>
               {meta}
-              {chip ? (
-                <View
-                  style={{
-                    marginStart: 'auto',
-                    paddingHorizontal: 8,
-                    paddingVertical: 2,
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: theme.color.surfaceMuted,
-                  }}
-                >
-                  <Text variant="micro" tone="muted">
-                    {chip}
-                  </Text>
-                </View>
+              {note ? (
+                <Text variant="micro" tone="muted">
+                  {note}
+                </Text>
               ) : null}
             </View>
           )}
         </View>
         <Pressable
+          ref={dotsRef}
           accessibilityRole="button"
           accessibilityLabel={menuLabel}
           onPress={(event) => {
             event.stopPropagation();
-            setMenuOpen(true);
+            measureAnchor(dotsRef, (a) => {
+              setAnchor(a);
+              setMenuOpen(true);
+            });
           }}
           style={{ width: 36, height: 40, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.textMuted} />
         </Pressable>
       </Pressable>
-      <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
+      <OverflowMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={menuItems}
+        anchor={anchor}
+      />
     </>
   );
 }

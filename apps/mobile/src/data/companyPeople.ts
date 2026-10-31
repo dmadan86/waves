@@ -31,6 +31,26 @@ export interface Balance {
   readonly amount: bigint;
 }
 
+/** What a row shows for a balance: "Settled" text for zero, never "₹0.00". */
+export function balanceLabel(b: Balance, settled: string, fmt: (minor: bigint) => string): string {
+  return b.kind === 'settled' ? settled : fmt(b.amount);
+}
+
+/** Counts shown inside the People tabs; Not employed is hidden (undefined) at zero. */
+export function peopleTabCounts(n: {
+  employees: number;
+  managers: number;
+  owners: number;
+  former: number;
+}): Record<'employees' | 'managers' | 'owners' | 'notEmployed', number | undefined> {
+  return {
+    employees: n.employees,
+    managers: n.managers,
+    owners: n.owners,
+    notEmployed: n.former || undefined,
+  };
+}
+
 /** Each person's balance, one pass: entries grouped by member first so no row rescans them all. */
 export function balancesByMember(
   entries: readonly CompanyEntry[],
