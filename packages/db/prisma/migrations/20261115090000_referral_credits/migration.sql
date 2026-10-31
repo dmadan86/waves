@@ -210,3 +210,26 @@ END
 $$;
 REVOKE ALL ON FUNCTION public.waves_my_referral() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.waves_my_referral() TO authenticated, service_role;
+
+-- The admin list gains the credits paid (0 for the referrer past the 10 friend cap).
+DROP FUNCTION public.waves_admin_referrals(integer);
+CREATE FUNCTION public.waves_admin_referrals(p_limit integer DEFAULT 50)
+RETURNS TABLE(id uuid, referrer_id uuid, referrer_name text, referee_id uuid, referee_name text,
+              source text, status text, reject_reason text, claimed_at timestamp with time zone,
+              qualified_at timestamp with time zone, referrer_days integer, referee_days integer,
+              referrer_credits integer, referee_credits integer)
+    LANGUAGE sql STABLE
+    SET search_path TO 'public', 'pg_temp'
+    AS $$
+  SELECT r.id, r.referrer_id, COALESCE(a.display_name, '(deleted)'), r.referee_id,
+         COALESCE(b.display_name, '(deleted)'),
+         r.source, r.status, r.reject_reason, r.claimed_at, r.qualified_at,
+         r.referrer_days, r.referee_days, r.referrer_credits, r.referee_credits
+    FROM public.referrals r
+    LEFT JOIN public.profiles a ON a.id = r.referrer_id
+    LEFT JOIN public.profiles b ON b.id = r.referee_id
+   ORDER BY r.claimed_at DESC
+   LIMIT GREATEST(1, LEAST(COALESCE(p_limit, 50), 500));
+$$;
+REVOKE ALL ON FUNCTION public.waves_admin_referrals(integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_admin_referrals(integer) TO service_role;
