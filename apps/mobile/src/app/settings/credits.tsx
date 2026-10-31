@@ -21,6 +21,7 @@ import { buyCreditPack, loadCreditPacks, purchasesAvailable } from '@/lib/purcha
 import { watchCreditAd } from '@/lib/watchCreditAd';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { router } from '@/lib/navigation';
+import { useDialog } from '@/lib/dialog';
 
 const USES = [
   { kind: 'voice', icon: 'mic-outline', sub: 'voiceSub', tint: 'lilac' },
@@ -47,7 +48,19 @@ export default function CreditsScreen() {
   const [help, setHelp] = useState(false);
   const [packs, setPacks] = useState<PurchasesStoreProduct[]>([]);
   const s = wallet.data;
-  const free = !!s && !isPaid;
+  const free = !isPaid;
+  const { notify } = useDialog();
+  // One pop-up that says why, instead of a disabled tile with a raw status line.
+  const explain = (key: 'tomorrow' | 'later' | 'full' | 'unavailable') =>
+    notify({
+      title: key === 'unavailable' ? t.adGates.blockedTitle : t.credits[key],
+      body:
+        key === 'unavailable'
+          ? t.adGates.blockedBody
+          : s?.nextAt
+            ? fill(t.credits.nextAt, { time: new Date(s.nextAt).toLocaleString() })
+            : t.credits.earn,
+    });
 
   useEffect(() => {
     if (!free || !purchasesAvailable()) return;
@@ -59,17 +72,18 @@ export default function CreditsScreen() {
   }, [free]);
 
   const watch = async () => {
-    if (busy || !viewerId || isPaid || !s?.canWatch) return;
+    if (busy || !viewerId || isPaid) return;
+    if (!s?.canWatch) {
+      const key = s ? creditButtonKey(s) : 'unavailable';
+      return void explain(key === 'watch' ? 'unavailable' : key);
+    }
     setBusy(true);
     try {
       const result = await watchCreditAd(viewerId, 'voluntary', 'credit_voluntary');
-      setMessage(
-        result === 'credited'
-          ? fill(t.credits.balance, { n: (await readCredits())?.credits ?? s.credits })
-          : result === 'pending'
-            ? t.rewardedAds.pending
-            : t.rewardedAds.error,
-      );
+      if (result === 'credited')
+        setMessage(fill(t.credits.balance, { n: (await readCredits())?.credits ?? s.credits }));
+      else if (result === 'pending') setMessage(t.rewardedAds.pending);
+      else void explain('unavailable');
       await wallet.refetch();
     } finally {
       setBusy(false);
@@ -125,7 +139,7 @@ export default function CreditsScreen() {
                   {t.credits.yourCredits}
                 </Text>
                 <Text style={{ fontSize: 34, lineHeight: 40, fontWeight: '800' }} tabular>
-                  {s.credits}
+                  {s?.credits ?? '–'}
                 </Text>
                 <Text variant="caption" tone="muted">
                   {t.credits.yourCreditsHint}
@@ -135,24 +149,18 @@ export default function CreditsScreen() {
               <Row style={{ gap: theme.spacing.md }}>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityState={{ disabled: busy || !s.canWatch }}
-                  disabled={busy || !s.canWatch}
+                  accessibilityState={{ disabled: busy }}
+                  disabled={busy}
                   onPress={() => void watch()}
                   style={[tile, { flexDirection: 'row', backgroundColor: c.brand }]}
                 >
                   <Ionicons name="play-circle" size={iconSize.xl} color={c.onBrand} />
-                  <View style={{ flex: 1, opacity: s.canWatch ? 1 : 0.7 }}>
+                  <View style={{ flex: 1 }}>
                     <Text style={{ color: c.onBrand, fontWeight: '700' }} numberOfLines={1}>
-                      {s.canWatch
-                        ? fill(t.credits.watch, { n: s.perAd })
-                        : t.credits[creditButtonKey(s)]}
+                      {fill(t.credits.watch, { n: s?.perAd ?? 6 })}
                     </Text>
                     <Text variant="micro" style={{ color: c.onBrand }} numberOfLines={2}>
-                      {s.canWatch
-                        ? fill(t.credits.watchSub, { n: s.perAd })
-                        : s.nextAt
-                          ? new Date(s.nextAt).toLocaleString()
-                          : t.credits.unavailable}
+                      {fill(t.credits.watchSub, { n: s?.perAd ?? 6 })}
                     </Text>
                   </View>
                 </Pressable>
@@ -174,26 +182,28 @@ export default function CreditsScreen() {
               </Row>
               {message ? <Text variant="caption">{message}</Text> : null}
 
-              <StandardCard>
-                <SectionHeader
-                  title={t.credits.howUsed}
-                  action={{ label: t.credits.learnMore, onPress: () => setHelp(true) }}
-                />
-                {USES.map(({ kind, icon, sub, tint }, i) => (
-                  <ListRow
-                    key={kind}
-                    divider={i < USES.length - 1}
-                    leading={
-                      <RowTile tint={theme.tint[tint].bg}>
-                        <Ionicons name={icon} size={iconSize.md} color={theme.tint[tint].ink} />
-                      </RowTile>
-                    }
-                    title={t.credits[kind]}
-                    subtitle={t.credits[sub]}
-                    amount={fill(t.credits.price, { n: s.costs[kind] })}
+              {s ? (
+                <StandardCard>
+                  <SectionHeader
+                    title={t.credits.howUsed}
+                    action={{ label: t.credits.learnMore, onPress: () => setHelp(true) }}
                   />
-                ))}
-              </StandardCard>
+                  {USES.map(({ kind, icon, sub, tint }, i) => (
+                    <ListRow
+                      key={kind}
+                      divider={i < USES.length - 1}
+                      leading={
+                        <RowTile tint={theme.tint[tint].bg}>
+                          <Ionicons name={icon} size={iconSize.md} color={theme.tint[tint].ink} />
+                        </RowTile>
+                      }
+                      title={t.credits[kind]}
+                      subtitle={t.credits[sub]}
+                      amount={fill(t.credits.price, { n: s.costs[kind] })}
+                    />
+                  ))}
+                </StandardCard>
+              ) : null}
 
               {packs.length > 0 ? (
                 <View style={{ gap: theme.spacing.md }}>
@@ -252,7 +262,7 @@ export default function CreditsScreen() {
             </>
           ) : (
             <Text variant="caption" tone="muted">
-              {t.credits.unavailable}
+              {t.credits.paidNote}
             </Text>
           )}
         </ScenicBody>

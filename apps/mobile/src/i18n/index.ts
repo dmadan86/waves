@@ -2544,6 +2544,8 @@ export interface UiStrings {
     buy: string;
     neverExpire: string;
     neverExpireSub: string;
+    nextAt: string;
+    paidNote: string;
     help: string;
   };
   adGates: {
@@ -9057,6 +9059,8 @@ const en: UiStrings = {
     buy: 'Buy',
     neverExpire: 'Credits never expire',
     neverExpireSub: 'Use anytime. Monthly free uses are applied first.',
+    nextAt: 'You can watch the next ad after {time}.',
+    paidNote: 'You’re on Pro, so there are no ads. Your credits stay in your wallet.',
     help: 'Help',
   },
   adGates: {
@@ -15119,6 +15123,9 @@ const ta: UiStrings = {
     neverExpire: 'கிரெடிட்கள் காலாவதியாகாது',
     neverExpireSub:
       'எப்போது வேண்டுமானாலும் பயன்படுத்துங்கள். மாத இலவசப் பயன்பாடுகள் முதலில் பயன்படுத்தப்படும்.',
+    nextAt: 'அடுத்த விளம்பரத்தை {time} க்குப் பிறகு பார்க்கலாம்.',
+    paidNote:
+      'நீங்கள் Pro-வில் உள்ளீர்கள், விளம்பரங்கள் இல்லை. உங்கள் கிரெடிட்கள் வாலெட்டில் இருக்கும்.',
     help: 'உதவி',
   },
   adGates: {
@@ -21322,6 +21329,8 @@ const hi: UiStrings = {
     buy: 'खरीदें',
     neverExpire: 'क्रेडिट कभी समाप्त नहीं होते',
     neverExpireSub: 'कभी भी इस्तेमाल करें। पहले महीने के मुफ़्त उपयोग खर्च होते हैं।',
+    nextAt: 'अगला विज्ञापन {time} के बाद देख सकते हैं।',
+    paidNote: 'आप Pro पर हैं, इसलिए कोई विज्ञापन नहीं। आपके क्रेडिट वॉलेट में रहते हैं।',
     help: 'मदद',
   },
   adGates: {
@@ -27460,6 +27469,8 @@ const ar: UiStrings = {
     buy: 'شراء',
     neverExpire: 'الرصيد لا ينتهي',
     neverExpireSub: 'استخدمه في أي وقت. تُستخدم الحصة الشهرية المجانية أولًا.',
+    nextAt: 'يمكنك مشاهدة الإعلان التالي بعد {time}.',
+    paidNote: 'أنت على Pro، لذلك لا إعلانات. تبقى أرصدتك في محفظتك.',
     help: 'مساعدة',
   },
   adGates: {
