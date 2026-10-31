@@ -170,10 +170,9 @@ export default async function Promotions({
 
       <h2 className="section">Referrals</h2>
       <Lede>
-        Friends who joined through a personal link or a group invite. Both sides get 7 days of Pro
-        (30 per account at most) once the friend is verified and has recorded a real expense in a
-        group of two or more, granted as <code>store = &lsquo;promo&rsquo;</code> rows like the
-        above.
+        Friends who joined through a personal link or a group invite. Both sides get 50 credits (the
+        referrer for 10 friends at most) once the friend is verified and has recorded a real expense
+        in a group of two or more, added to the credit ledger.
       </Lede>
       <Card bare>
         {referralRows.length === 0 ? (
@@ -193,7 +192,7 @@ export default async function Promotions({
                   <th scope="col">Claimed</th>
                   <th scope="col">Rewarded</th>
                   <th scope="col" className="n">
-                    Days (referrer / friend)
+                    Credits (referrer / friend)
                   </th>
                 </tr>
               </thead>
@@ -212,7 +211,7 @@ export default async function Promotions({
                     <td>{day(row.claimed_at)}</td>
                     <td>{day(row.qualified_at)}</td>
                     <td className="n">
-                      {num(row.referrer_days)} / {num(row.referee_days)}
+                      {num(row.referrer_credits)} / {num(row.referee_credits)}
                     </td>
                   </tr>
                 ))}

@@ -9,8 +9,7 @@ import { redirectSystemPath } from '@/app/+native-intent';
 import {
   campaignFromInstallReferrer,
   captureInstallReferrer,
-  daysEarnedText,
-  daysFraction,
+  friendsJoinedText,
   isDefinitiveRefusal,
   makePendingReferralStore,
   normalizeReferralCode,
@@ -20,7 +19,6 @@ import {
   referralCodeFromInstallReferrer,
   referralCodeFromUrl,
   referralLink,
-  referralMilestones,
   referralShareText,
 } from '@/lib/referral';
 
@@ -104,9 +102,8 @@ describe('parseMyReferral', () => {
     invited: 3,
     pending: 1,
     rewarded: 2,
-    days_earned: 14,
-    days_cap: 30,
-    days_remaining: 16,
+    credits_earned: 100,
+    friends_cap: 10,
   };
 
   it('reads the server shape', () => {
@@ -115,16 +112,15 @@ describe('parseMyReferral', () => {
       invited: 3,
       pending: 1,
       rewarded: 2,
-      daysEarned: 14,
-      daysCap: 30,
-      daysRemaining: 16,
+      creditsEarned: 100,
+      friendsCap: 10,
     });
   });
 
   it('refuses a guest answer, a bad code and missing numbers', () => {
     expect(parseMyReferral({ ok: false, reason: 'ACCOUNT_REQUIRED' })).toBeNull();
     expect(parseMyReferral({ ...good, code: 'x' })).toBeNull();
-    expect(parseMyReferral({ ...good, days_earned: undefined })).toBeNull();
+    expect(parseMyReferral({ ...good, credits_earned: undefined })).toBeNull();
     expect(parseMyReferral({ ...good, pending: -1 })).toBeNull();
     expect(parseMyReferral(null)).toBeNull();
     expect(parseMyReferral('nope')).toBeNull();
@@ -159,46 +155,22 @@ describe('claim outcomes', () => {
   });
 });
 
-describe('days text', () => {
-  const copy = { progress: '{earned} of {cap} days earned', capReached: 'All {cap} days earned' };
+describe('friendsJoinedText', () => {
+  const template = '{n} of {cap} friends joined · {credits} credits earned';
 
-  it('says how many days are earned out of the cap', () => {
-    expect(daysEarnedText({ daysEarned: 0, daysCap: 30, daysRemaining: 30 }, copy)).toBe(
-      '0 of 30 days earned',
+  it('says how many friends joined and what they earned', () => {
+    expect(friendsJoinedText({ rewarded: 0, friendsCap: 10, creditsEarned: 0 }, template)).toBe(
+      '0 of 10 friends joined · 0 credits earned',
     );
-    expect(daysEarnedText({ daysEarned: 21, daysCap: 30, daysRemaining: 9 }, copy)).toBe(
-      '21 of 30 days earned',
-    );
-  });
-
-  it('switches to the cap sentence when nothing more can be earned', () => {
-    expect(daysEarnedText({ daysEarned: 30, daysCap: 30, daysRemaining: 0 }, copy)).toBe(
-      'All 30 days earned',
+    expect(friendsJoinedText({ rewarded: 3, friendsCap: 10, creditsEarned: 150 }, template)).toBe(
+      '3 of 10 friends joined · 150 credits earned',
     );
   });
 
-  it('turns earned days into a 0-1 fraction that never leaves that range', () => {
-    expect(daysFraction({ daysEarned: 15, daysCap: 30 })).toBe(0.5);
-    expect(daysFraction({ daysEarned: 45, daysCap: 30 })).toBe(1);
-    expect(daysFraction({ daysEarned: 0, daysCap: 0 })).toBe(0);
-  });
-});
-
-describe('milestones', () => {
-  it('marks nothing but the start before any day is earned', () => {
-    expect(referralMilestones(0).map((m) => m.reached)).toEqual([true, false, false, false]);
-  });
-
-  it('reaches a mark exactly at its value, not before', () => {
-    expect(referralMilestones(9).map((m) => m.reached)).toEqual([true, false, false, false]);
-    expect(referralMilestones(10).map((m) => m.reached)).toEqual([true, true, false, false]);
-    expect(referralMilestones(21).map((m) => m.reached)).toEqual([true, true, true, false]);
-  });
-
-  it('reaches every mark at the cap', () => {
-    const marks = referralMilestones(30);
-    expect(marks.map((m) => m.value)).toEqual([0, 10, 20, 30]);
-    expect(marks.every((m) => m.reached)).toBe(true);
+  it('never counts friends past the cap', () => {
+    expect(friendsJoinedText({ rewarded: 14, friendsCap: 10, creditsEarned: 500 }, template)).toBe(
+      '10 of 10 friends joined · 500 credits earned',
+    );
   });
 });
 

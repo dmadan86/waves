@@ -6241,18 +6241,10 @@ export interface UiStrings {
     title: string;
     headline: string;
     body: string;
-    youGetTitle: string;
-    youGetBody: string;
-    friendGetsTitle: string;
-    friendGetsBody: string;
-    /** Milestone label under a node on the progress path: "{n} days" */
-    milestoneDays: string;
     share: string;
     shareMessage: string;
-    /** "{earned} of {cap} days earned" */
-    progress: string;
-    /** "... all {cap} days ..." */
-    capReached: string;
+    /** "{n} of {cap} friends joined · {credits} credits earned" */
+    friendsJoined: string;
     pending: PluralForms;
     loadError: string;
     haveCode: string;
@@ -12623,19 +12615,13 @@ const en: UiStrings = {
   },
   referral: {
     row: 'Invite your friends',
-    rowHint: 'Earn days of Pro together',
+    rowHint: 'Earn 50 credits together',
     title: 'Invite your friends',
-    headline: 'Money is easier together.',
+    headline: 'Invite a friend. You both get 50 credits.',
     body: 'Share a group with friends and unlock a little more from Waves.',
-    youGetTitle: 'You get 7 days of Pro',
-    youGetBody: 'After your friend starts using Waves.',
-    friendGetsTitle: 'Your friend gets 7 days too',
-    friendGetsBody: 'Try premium features together.',
-    milestoneDays: '{n} days',
     share: 'Share invite link',
     shareMessage: 'I use Waves to split expenses with friends. Join me:',
-    progress: '{earned} of {cap} days earned',
-    capReached: 'You have earned all {cap} days. Thank you!',
+    friendsJoined: '{n} of {cap} friends joined · {credits} credits earned',
     pending: {
       one: '{n} friend has joined. Waiting for their first shared expense.',
       other: '{n} friends have joined. Waiting for their first shared expense.',
@@ -12646,7 +12632,7 @@ const en: UiStrings = {
     yourCode: 'Your code',
     copyCode: 'Copy code',
     codeCopied: 'Copied',
-    applied: 'Done. When you record your first shared expense, you both get 7 days of Pro.',
+    applied: 'Done. When you record your first shared expense, you both get 50 credits.',
     unknownCode: 'That code does not match anyone.',
     ownCode: 'That is your own code.',
     alreadyUsed: 'You have already used an invite.',
@@ -19186,20 +19172,14 @@ const ta: UiStrings = {
   },
   referral: {
     row: 'நண்பர்களை அழையுங்கள்',
-    rowHint: 'சேர்ந்து Pro நாட்களைப் பெறுங்கள்',
+    rowHint: 'சேர்ந்து 50 கிரெடிட்கள் பெறுங்கள்',
     title: 'நண்பர்களை அழையுங்கள்',
-    headline: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது.',
+    headline: 'ஒரு நண்பரை அழையுங்கள். இருவருக்கும் 50 கிரெடிட்கள்.',
     body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
-    youGetTitle: 'உங்களுக்கு 7 நாட்கள் Pro கிடைக்கும்',
-    youGetBody: 'உங்கள் நண்பர் Waves-ஐப் பயன்படுத்தத் தொடங்கிய பிறகு.',
-    friendGetsTitle: 'உங்கள் நண்பருக்கும் 7 நாட்கள் கிடைக்கும்',
-    friendGetsBody: 'பிரீமியம் வசதிகளை சேர்ந்து முயன்று பாருங்கள்.',
-    milestoneDays: '{n} நாட்கள்',
     share: 'அழைப்புச் சுட்டியைப் பகிர்',
     shareMessage:
       'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
-    progress: '{cap} நாட்களில் {earned} நாட்கள் கிடைத்துள்ளன',
-    capReached: 'நீங்கள் முழு {cap} நாட்களையும் பெற்றுவிட்டீர்கள். நன்றி!',
+    friendsJoined: '{cap} நண்பர்களில் {n} பேர் சேர்ந்தனர் · {credits} கிரெடிட்கள் கிடைத்தன',
     pending: {
       one: '{n} நண்பர் சேர்ந்துள்ளார். அவரது முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
       other:
@@ -19212,7 +19192,7 @@ const ta: UiStrings = {
     copyCode: 'குறியீட்டை நகலெடு',
     codeCopied: 'நகலெடுக்கப்பட்டது',
     applied:
-      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Pro கிடைக்கும்.',
+      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 50 கிரெடிட்கள் கிடைக்கும்.',
     unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
     ownCode: 'இது உங்கள் சொந்தக் குறியீடு.',
     alreadyUsed: 'நீங்கள் ஏற்கெனவே ஒரு அழைப்பைப் பயன்படுத்திவிட்டீர்கள்.',
@@ -25597,19 +25577,13 @@ const hi: UiStrings = {
   },
   referral: {
     row: 'दोस्तों को आमंत्रित करें',
-    rowHint: 'साथ में Pro के दिन पाएँ',
+    rowHint: 'साथ में 50 क्रेडिट पाएँ',
     title: 'दोस्तों को आमंत्रित करें',
-    headline: 'पैसों की बात साथ मिलकर आसान होती है।',
+    headline: 'एक दोस्त को बुलाएँ। आप दोनों को 50 क्रेडिट मिलेंगे।',
     body: 'दोस्तों के साथ कोई ग्रुप शेयर करें और Waves से थोड़ा और पाएँ।',
-    youGetTitle: 'आपको 7 दिन का Pro मिलेगा',
-    youGetBody: 'आपके दोस्त के Waves इस्तेमाल करना शुरू करने के बाद।',
-    friendGetsTitle: 'आपके दोस्त को भी 7 दिन मिलेंगे',
-    friendGetsBody: 'प्रीमियम फ़ीचर साथ में आज़माएँ।',
-    milestoneDays: '{n} दिन',
     share: 'आमंत्रण लिंक शेयर करें',
     shareMessage: 'Waves से दोस्तों के साथ खर्च बाँटना आसान है। मेरे साथ जुड़ें:',
-    progress: '{cap} में से {earned} दिन मिल चुके हैं',
-    capReached: 'आपने पूरे {cap} दिन पा लिए हैं। धन्यवाद!',
+    friendsJoined: '{cap} में से {n} दोस्त जुड़े · {credits} क्रेडिट मिले',
     pending: {
       one: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
       other: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
@@ -25620,7 +25594,7 @@ const hi: UiStrings = {
     yourCode: 'आपका कोड',
     copyCode: 'कोड कॉपी करें',
     codeCopied: 'कॉपी हो गया',
-    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Pro मिलेगा।',
+    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 50 क्रेडिट मिलेंगे।',
     unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
     ownCode: 'यह आपका अपना कोड है।',
     alreadyUsed: 'आप पहले ही एक आमंत्रण इस्तेमाल कर चुके हैं।',
@@ -32613,19 +32587,13 @@ const ar: UiStrings = {
   },
   referral: {
     row: 'ادعُ أصدقاءك',
-    rowHint: 'اكسبوا أيام Pro معًا',
+    rowHint: 'اكسبوا 50 رصيدًا معًا',
     title: 'ادعُ أصدقاءك',
-    headline: 'المال أسهل حين نتشاركه.',
+    headline: 'ادعُ صديقًا. تحصلان معًا على 50 رصيدًا.',
     body: 'شارك مجموعة مع أصدقائك واحصل على المزيد من Waves.',
-    youGetTitle: 'تحصل على 7 أيام من Pro',
-    youGetBody: 'بعد أن يبدأ صديقك باستخدام Waves.',
-    friendGetsTitle: 'ويحصل صديقك على 7 أيام أيضًا',
-    friendGetsBody: 'جرّبا الميزات المميزة معًا.',
-    milestoneDays: '{n} أيام',
     share: 'شارك رابط الدعوة',
     shareMessage: 'أستخدم Waves لتقسيم المصاريف مع الأصدقاء. انضم إليّ:',
-    progress: 'تم كسب {earned} من {cap} يومًا',
-    capReached: 'لقد كسبت الأيام الـ {cap} كاملة. شكرًا لك!',
+    friendsJoined: 'انضم {n} من {cap} أصدقاء · كسبت {credits} رصيدًا',
     pending: {
       zero: 'لا أصدقاء بانتظار أول مصروف مشترك.',
       one: 'انضم صديق واحد. ننتظر أول مصروف مشترك له.',
@@ -32640,7 +32608,7 @@ const ar: UiStrings = {
     yourCode: 'رمزك',
     copyCode: 'نسخ الرمز',
     codeCopied: 'تم النسخ',
-    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Pro.',
+    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 50 رصيدًا.',
     unknownCode: 'هذا الرمز لا يطابق أي شخص.',
     ownCode: 'هذا رمزك الخاص.',
     alreadyUsed: 'لقد استخدمت دعوة من قبل.',
