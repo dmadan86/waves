@@ -501,6 +501,16 @@ export default function UpgradeScreen() {
                     <Text style={{ fontWeight: '700', fontSize: 17 }}>
                       {t.planScreen.alreadyPro}
                     </Text>
+                    <Pressable
+                      accessibilityRole="link"
+                      accessibilityLabel={t.purchases.link}
+                      onPress={() => router.push('/settings/purchases')}
+                      hitSlop={8}
+                    >
+                      <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+                        {t.purchases.link}
+                      </Text>
+                    </Pressable>
                     {canManage ? (
                       <Pressable
                         accessibilityRole="button"
