@@ -1472,6 +1472,25 @@ export interface UiStrings {
     attendanceSummary: PluralForms;
     attendancePreviousMonth: string;
     attendanceNextMonth: string;
+    tabDetails: string;
+    editEmployee: string;
+    changeEmploymentType: string;
+    deleteEmployee: string;
+    deleteEmployeeTitle: string;
+    deleteEmployeeBody: string;
+    deleteHasHistory: string;
+    statusActive: string;
+    attendanceMonthTitle: string;
+    daysPresent: string;
+    daysPresentIn: string;
+    viewReport: string;
+    viewFullAttendance: string;
+    birthdayJoining: string;
+    addBirthdayJoining: string;
+    joiningDate: string;
+    detailPhone: string;
+    detailEmail: string;
+    detailMileage: string;
     workTitle: string;
     departments: string;
     department: string;
@@ -8265,6 +8284,26 @@ const en: UiStrings = {
     attendanceSummary: { one: '{n} day present', other: '{n} days present' },
     attendancePreviousMonth: 'Previous month',
     attendanceNextMonth: 'Next month',
+    tabDetails: 'Details',
+    editEmployee: 'Edit employee',
+    changeEmploymentType: 'Change employment type',
+    deleteEmployee: 'Delete employee',
+    deleteEmployeeTitle: 'Delete {name}?',
+    deleteEmployeeBody:
+      'They are removed from your team. Nothing is lost: they have no entries or attendance.',
+    deleteHasHistory: 'Has history — mark as not employed instead',
+    statusActive: 'Active',
+    attendanceMonthTitle: 'Attendance ({month})',
+    daysPresent: 'days present',
+    daysPresentIn: 'Days present in {month}: {n}',
+    viewReport: 'View report',
+    viewFullAttendance: 'View full attendance',
+    birthdayJoining: 'Birthday & Joining',
+    addBirthdayJoining: 'Add birthday and joining date',
+    joiningDate: 'Joining date',
+    detailPhone: 'Phone',
+    detailEmail: 'Email',
+    detailMileage: 'Mileage rate',
     workTitle: 'Daily work',
     departments: 'Departments',
     department: 'Department',
@@ -14516,6 +14555,26 @@ const ta: UiStrings = {
     attendanceSummary: { other: '{n} நாட்கள் வருகை' },
     attendancePreviousMonth: 'முந்தைய மாதம்',
     attendanceNextMonth: 'அடுத்த மாதம்',
+    tabDetails: 'விவரங்கள்',
+    editEmployee: 'ஊழியரைத் திருத்து',
+    changeEmploymentType: 'பணி வகையை மாற்று',
+    deleteEmployee: 'ஊழியரை நீக்கு',
+    deleteEmployeeTitle: '{name} ஐ நீக்கவா?',
+    deleteEmployeeBody:
+      'அவர் உங்கள் குழுவிலிருந்து நீக்கப்படுவார். எதுவும் இழக்கப்படாது: பதிவுகள் அல்லது வருகை இல்லை.',
+    deleteHasHistory: 'வரலாறு உள்ளது — பணியில் இல்லை எனக் குறிக்கவும்',
+    statusActive: 'செயலில்',
+    attendanceMonthTitle: 'வருகை ({month})',
+    daysPresent: 'நாட்கள் வருகை',
+    daysPresentIn: '{month} மாதத்தில் வருகை நாட்கள்: {n}',
+    viewReport: 'அறிக்கையைப் பார்',
+    viewFullAttendance: 'முழு வருகையைப் பார்',
+    birthdayJoining: 'பிறந்தநாள் & சேர்ந்த நாள்',
+    addBirthdayJoining: 'பிறந்தநாள், சேர்ந்த நாளைச் சேர்',
+    joiningDate: 'சேர்ந்த நாள்',
+    detailPhone: 'தொலைபேசி',
+    detailEmail: 'மின்னஞ்சல்',
+    detailMileage: 'கிலோமீட்டர் கட்டணம்',
     workTitle: 'தினசரி வேலை',
     departments: 'துறைகள்',
     department: 'துறை',
@@ -20934,6 +20993,26 @@ const hi: UiStrings = {
     attendanceSummary: { other: '{n} दिन हाज़िर' },
     attendancePreviousMonth: 'पिछला महीना',
     attendanceNextMonth: 'अगला महीना',
+    tabDetails: 'विवरण',
+    editEmployee: 'कर्मचारी संपादित करें',
+    changeEmploymentType: 'रोज़गार प्रकार बदलें',
+    deleteEmployee: 'कर्मचारी हटाएँ',
+    deleteEmployeeTitle: '{name} को हटाएँ?',
+    deleteEmployeeBody:
+      'उन्हें आपकी टीम से हटा दिया जाएगा। कुछ नहीं खोएगा: उनकी कोई एंट्री या हाज़िरी नहीं है।',
+    deleteHasHistory: 'इतिहास है — इसके बजाय कार्यरत नहीं चिह्नित करें',
+    statusActive: 'सक्रिय',
+    attendanceMonthTitle: 'हाज़िरी ({month})',
+    daysPresent: 'दिन हाज़िर',
+    daysPresentIn: '{month} में हाज़िर दिन: {n}',
+    viewReport: 'रिपोर्ट देखें',
+    viewFullAttendance: 'पूरी हाज़िरी देखें',
+    birthdayJoining: 'जन्मदिन और जॉइनिंग',
+    addBirthdayJoining: 'जन्मदिन और जॉइनिंग की तारीख़ जोड़ें',
+    joiningDate: 'जॉइनिंग की तारीख़',
+    detailPhone: 'फ़ोन',
+    detailEmail: 'ईमेल',
+    detailMileage: 'माइलेज दर',
     workTitle: 'रोज़ का काम',
     departments: 'विभाग',
     department: 'विभाग',
@@ -27258,6 +27337,25 @@ const ar: UiStrings = {
     },
     attendancePreviousMonth: 'الشهر السابق',
     attendanceNextMonth: 'الشهر التالي',
+    tabDetails: 'التفاصيل',
+    editEmployee: 'تعديل الموظف',
+    changeEmploymentType: 'تغيير نوع التوظيف',
+    deleteEmployee: 'حذف الموظف',
+    deleteEmployeeTitle: 'حذف {name}؟',
+    deleteEmployeeBody: 'ستتم إزالته من فريقك. لن يضيع شيء: ليس لديه أي إدخالات أو حضور.',
+    deleteHasHistory: 'لديه سجل — عيّنه كغير موظف بدلاً من ذلك',
+    statusActive: 'نشط',
+    attendanceMonthTitle: 'الحضور ({month})',
+    daysPresent: 'أيام حضور',
+    daysPresentIn: 'أيام الحضور في {month}: {n}',
+    viewReport: 'عرض التقرير',
+    viewFullAttendance: 'عرض الحضور الكامل',
+    birthdayJoining: 'تاريخ الميلاد والانضمام',
+    addBirthdayJoining: 'أضف تاريخ الميلاد والانضمام',
+    joiningDate: 'تاريخ الانضمام',
+    detailPhone: 'الهاتف',
+    detailEmail: 'البريد الإلكتروني',
+    detailMileage: 'سعر الكيلومتر',
     workTitle: 'العمل اليومي',
     departments: 'الأقسام',
     department: 'القسم',
