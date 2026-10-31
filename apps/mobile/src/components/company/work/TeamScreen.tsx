@@ -32,7 +32,12 @@ export default function TeamScreen({
   const access = useWorkdayAccess(groupId);
   const [tab, setTab] = useState<TeamTab>(initialTab ?? 'attendance');
   useEffect(() => {
-    if (initialTab) return;
+    if (initialTab) {
+      // An explicit route is the latest choice: Team reopens there next time.
+      if (access.canManage)
+        void AsyncStorage.setItem(key(groupId), initialTab).catch(() => undefined);
+      return;
+    }
     let live = true;
     void AsyncStorage.getItem(key(groupId))
       .then((saved) => {
@@ -42,7 +47,7 @@ export default function TeamScreen({
     return () => {
       live = false;
     };
-  }, [groupId, initialTab]);
+  }, [groupId, initialTab, access.canManage]);
   const choose = (next: TeamTab) => {
     setTab(next);
     void AsyncStorage.setItem(key(groupId), next).catch(() => undefined);
