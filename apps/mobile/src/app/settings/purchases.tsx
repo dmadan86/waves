@@ -11,6 +11,7 @@ import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 
+import { isPaidTier } from '@waves/core';
 import { Button, EmptyState, iconSize, Row, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { ListRow, PlainHeader, RowTile, SectionHeader, StandardCard } from '@/components/standard';
@@ -117,7 +118,7 @@ export default function PurchasesScreen() {
   const onRestore = async () => {
     setRestoring(true);
     try {
-      const found = (await restore()) !== 'free';
+      const found = isPaidTier(await restore());
       toast.show(
         found ? t.paywall.restoredSuccess : t.paywall.restoredNothing,
         found ? 'positive' : 'info',
