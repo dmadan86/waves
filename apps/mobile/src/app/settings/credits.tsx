@@ -80,7 +80,7 @@ export default function CreditsScreen() {
     if (busy) return;
     setBusy(true);
     try {
-      await buyCreditPack(pack);
+      if ((await buyCreditPack(pack)) === 'pending') setMessage(t.rewardedAds.pending);
       await wallet.refetch();
     } catch {
       setMessage(t.rewardedAds.error);
