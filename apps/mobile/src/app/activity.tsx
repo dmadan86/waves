@@ -310,7 +310,7 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
         {/* Who · what · when. What is the expense's category, else the kind of
             group, each with its small icon. An archived group, or one no longer
             on this device, gets a badge. */}
-        <Row style={{ gap: 4, alignItems: 'center' }}>
+        <Row style={{ gap: 4, alignItems: 'center', overflow: 'hidden' }}>
           {view.who ? <MetaText>{`${view.who} ·`}</MetaText> : null}
           {view.groupName ? (
             // Name ellipsizes first; a long custom tag is capped. One line at 360dp.
@@ -375,7 +375,10 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
 function MetaText({ children }: { children: string }) {
   const theme = useTheme();
   return (
-    <Text numberOfLines={1} style={{ fontSize: 12, lineHeight: 16, color: theme.color.textMuted }}>
+    <Text
+      numberOfLines={1}
+      style={{ fontSize: 12, lineHeight: 16, color: theme.color.textMuted, flexShrink: 1 }}
+    >
       {children}
     </Text>
   );
