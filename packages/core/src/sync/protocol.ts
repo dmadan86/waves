@@ -103,6 +103,9 @@ export enum MutationKind {
   CompanyVendorEntryReview = 'company_vendor_entry.review',
   CompanyVendorEntryVoid = 'company_vendor_entry.void',
   CompanyVendorEntryReceived = 'company_vendor_entry.received',
+  // Details card (contact + bank), one per side. Owner sets the company's; owner, owning manager or the vendor set a vendor's.
+  CompanyDetailsSet = 'company_details.set',
+  CompanyVendorDetailsSet = 'company_vendor_details.set',
   // Estimates and bills (owners; managers for their own). The server numbers them and recomputes totals.
   CompanyDocSave = 'company_doc.save',
   CompanyDocStatus = 'company_doc.status',
@@ -949,6 +952,11 @@ export enum SyncTable {
   CompanyVendorEntryAttachments = 'company_vendor_entry_attachments',
   /** Group-scoped, pull-only. Photos on a daily-work task; readable exactly where the task is (RLS). */
   CompanyWorkTaskAttachments = 'company_work_task_attachments',
+  /** Group-scoped, pull-only. The company card: public part to every live member; secure part (bank, PAN) never to an employee (RLS). */
+  CompanyDetails = 'company_details',
+  CompanyDetailsSecure = 'company_details_secure',
+  /** Group-scoped, pull-only. A vendor's card, readable exactly where the vendor is (RLS). */
+  CompanyVendorDetails = 'company_vendor_details',
   /** Group-scoped, pull-only: estimates and bills; owners see all, a manager only their own (RLS). */
   CompanyDocuments = 'company_documents',
   /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
