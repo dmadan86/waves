@@ -101,7 +101,8 @@ export function PersonCard({
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 6 }}>
           <View
             style={{
-              flexShrink: 0,
+              flexShrink: 1,
+              minWidth: 0,
               paddingHorizontal: 8,
               paddingVertical: 1,
               borderRadius: theme.radius.pill,
