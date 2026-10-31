@@ -67,13 +67,14 @@ export function CompanyPeople({
   const [menu, setMenu] = useState<MenuAnchor | 'open' | null>(null);
   const [prefs, setPrefs] = useState({ byName: true, admins: false });
   const buttonRef = useRef<View>(null);
+  const edited = useRef(false);
   // The two toggles are remembered per company on this device.
   useEffect(() => {
     let live = true;
     void AsyncStorage.getItem(viewKey(groupId))
       .then((raw) => {
         const saved = raw ? (JSON.parse(raw) as Partial<typeof prefs>) : null;
-        if (live && saved)
+        if (live && saved && !edited.current)
           setPrefs({ byName: saved.byName !== false, admins: saved.admins === true });
       })
       .catch(() => undefined);
@@ -82,6 +83,7 @@ export function CompanyPeople({
     };
   }, [groupId]);
   const setPref = (next: typeof prefs) => {
+    edited.current = true;
     setPrefs(next);
     void AsyncStorage.setItem(viewKey(groupId), JSON.stringify(next)).catch(() => undefined);
   };
