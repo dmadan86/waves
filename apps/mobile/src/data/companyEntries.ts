@@ -448,7 +448,7 @@ export async function attachCompanyPhoto(
           ? 'waves_attach_company_task_image'
           : 'waves_attach_company_entry_image',
       {
-        p_entry_id: entryId,
+        [kind === 'task' ? 'p_task_id' : 'p_entry_id']: entryId,
         p_storage_path: path,
         p_attachment_id: attachmentId,
         p_preview: picked.preview ?? null,

@@ -91,8 +91,13 @@ async function photo(caller: number, taskId: string) {
   const id = key.split('/')[1]!;
   await reserve(caller, key);
   await commit(caller, key);
-  await user(caller, () =>
-    db.query('SELECT waves_attach_company_task_image($1,$2,$3)', [taskId, key, id]),
+  await user(
+    caller,
+    () =>
+      db.query(
+        'SELECT waves_attach_company_task_image(p_task_id => $1, p_storage_path => $2, p_attachment_id => $3)',
+        [taskId, key, id],
+      ), // the app calls it by name
   );
   return id;
 }

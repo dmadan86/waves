@@ -2826,7 +2826,15 @@ export function purgeCompanyInvisible(
     // Documents are private to their creator (and owners): a phone that lost that visibility drops them.
     drop(SyncTable.CompanyDocuments, (row) => mine(row) && !ok.has(row.created_by as string));
     drop(SyncTable.CompanyAttendance, (row) => mine(row) && !ok.has(row.member_id as string));
-    drop(SyncTable.CompanyWorkTasks, (row) => mine(row) && !ok.has(row.member_id as string));
+    const tasks = drop(
+      SyncTable.CompanyWorkTasks,
+      (row) => mine(row) && !ok.has(row.member_id as string),
+    );
+    // A task's photo previews are as private as the task: they go with it.
+    drop(
+      SyncTable.CompanyWorkTaskAttachments,
+      (row) => mine(row) && tasks.has(row.entry_id as string),
+    );
     drop(SyncTable.CompanyLeave, (row) => mine(row) && !ok.has(row.member_id as string));
     // A colleague's birthday stays only while they allow it to be shown.
     drop(
