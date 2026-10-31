@@ -136,6 +136,14 @@ export function companyBarActiveKey(segments: readonly string[]): CompanyBarKey 
   return BAR_SCREEN[segments[2] ?? ''] ?? '';
 }
 
+/**
+ * How an Overview arrival should animate. `tab`: a bar switch, no slide. `back`: a replace that
+ * stands in for Back, so it slides in from the leading edge like a pop. Absent: a forward push.
+ */
+export function companyOverviewRoute(groupId: string, nav: 'tab' | 'back'): string {
+  return `/group/${groupId}?nav=${nav}`;
+}
+
 /** Where a company-bar tab goes. */
 export function companyBarRoute(groupId: string, key: string): string {
   switch (key) {
@@ -148,7 +156,7 @@ export function companyBarRoute(groupId: string, key: string): string {
     case 'more':
       return `/group/${groupId}/company-more`;
     default:
-      return `/group/${groupId}`;
+      return companyOverviewRoute(groupId, 'tab');
   }
 }
 
@@ -175,5 +183,5 @@ export function isCompanyBarRoot(segments: readonly string[]): boolean {
 /** Where hardware Back goes from a company-bar root: a sub-tab to Overview, Overview to Home. */
 export function companyBackRoute(segments: readonly string[], groupId: string): string | null {
   if (!isCompanyBarRoot(segments)) return null;
-  return segments.length === 2 ? '/' : `/group/${groupId}`;
+  return segments.length === 2 ? '/' : companyOverviewRoute(groupId, 'back');
 }
