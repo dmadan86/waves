@@ -1,16 +1,16 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
 
 import { useViewerId } from '@/lib/auth';
 import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { router } from '@/lib/navigation';
 import {
+  coldStartPlan,
   coldStartSettled,
   followSpace,
   isHomeTab,
   readLastSpace,
   rememberSpace,
-  resolveSpace,
   settleColdStart,
   spaceForRoute,
   takeColdStart,
@@ -24,23 +24,33 @@ export function useRememberSpace(): (space: Space) => void {
 }
 
 /**
- * Cold start: the first time Home is ready, open the remembered company. Deep links never
- * mount Home first, so they are left alone. `ready` waits for the local mirror.
+ * Cold start: the first Home mount opens the remembered company. Returns true while that is
+ * undecided, so Home paints nothing (no Personal flash) until it stays or redirects. Deep links
+ * never mount Home first, so they are left alone. `ready` waits for the local mirror.
  */
-export function useColdStartSpace(ready: boolean, companyIds: readonly string[]): void {
+export function useColdStartSpace(ready: boolean, companyIds: readonly string[]): boolean {
   const viewerId = useViewerId();
+  const [stored, setStored] = useState<string | null | undefined>(undefined);
+  const [done, setDone] = useState(false);
+  const holding = viewerId !== null && !done && !coldStartSettled(viewerId);
   useEffect(() => {
-    if (!ready || viewerId === null) return;
+    if (viewerId === null || coldStartSettled(viewerId)) return;
     let stale = false;
-    void readLastSpace(viewerId).then((stored) => {
-      if (stale || !takeColdStart(viewerId)) return;
-      const space = resolveSpace(stored, companyIds);
-      if (space !== 'personal') router.replace(`/group/${space}`);
-    });
+    void readLastSpace(viewerId).then((value) => !stale && setStored(value));
     return () => {
       stale = true;
     };
-  }, [ready, viewerId, companyIds]);
+  }, [viewerId]);
+  useEffect(() => {
+    if (viewerId === null || stored === undefined || done) return;
+    const plan = coldStartPlan(stored, ready, companyIds);
+    if (plan === 'wait') return;
+    // A deep link that settled first wins: takeColdStart is then false and nothing redirects.
+    if (takeColdStart(viewerId) && plan !== 'stay' && plan !== 'personal')
+      router.replace(`/group/${plan}`);
+    setDone(true);
+  }, [viewerId, stored, ready, companyIds, done]);
+  return holding;
 }
 
 const ONBOARDING = new Set([
