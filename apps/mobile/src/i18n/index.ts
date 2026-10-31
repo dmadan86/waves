@@ -9891,7 +9891,7 @@ const en: UiStrings = {
     badge: 'Tour',
     next: 'Next',
     done: 'Done',
-    replay: 'Take the tour again',
+    replay: 'Take a tour',
     introTitle: 'Welcome to Waves',
     introBody: 'A quick look at where things live — your balances, and the two ways to add.',
     balanceTitle: 'Your balances, up top',
