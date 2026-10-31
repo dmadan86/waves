@@ -161,6 +161,8 @@ export interface MemberRow {
   employee_id?: string | null;
   /** Company groups: the employee's department (an id in the group's company_departments). */
   department_id?: string | null;
+  /** Company groups: 'full_time' | 'part_time' | 'contractor', null/absent = not set. */
+  employment_type?: string | null;
   /** The UPI-shaped fields. Superseded by the rail pair; still read as a fallback. */
   vpa: string | null;
   /** Which rail this person is paid on here — a `RailId` from `@waves/core`. */

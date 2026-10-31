@@ -2480,6 +2480,18 @@ export interface UndoResplitResult {
   skipped: number;
 }
 
+export async function setCompanyEmploymentType(
+  groupId: string,
+  input: { memberId: string; employmentType: string | null },
+): Promise<void> {
+  const { error } = await backend.rpc('waves_company_employment_type_set', {
+    p_group_id: groupId,
+    p_member_id: input.memberId,
+    p_type: input.employmentType,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export async function setCompanyEmployment(
   groupId: string,
   input: {
