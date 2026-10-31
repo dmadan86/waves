@@ -449,7 +449,8 @@ export function AppTabBar() {
   useEffect(() => {
     if (companyBack === null) return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (companyBack === '/') switchTab('/');
+      // dismissTo pops to Home, so the Overview slides out to the right like a Back.
+      if (companyBack === '/') router.dismissTo('/');
       else router.replace(companyBack as never);
       return true;
     });
