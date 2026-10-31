@@ -70,6 +70,8 @@ export function recentActivity(
       archived_at: string | null;
       deleted_at: string | null;
       type?: string | null;
+      event_template?: string | null;
+      custom_tag?: string | null;
     };
     if (g.deleted_at) {
       deleted.add(g.id);
@@ -81,6 +83,8 @@ export function recentActivity(
       cover_emoji: g.cover_emoji,
       archived_at: g.archived_at ?? null,
       type: g.type ?? null,
+      event_template: g.event_template ?? null,
+      custom_tag: g.custom_tag ?? null,
     });
   }
 
