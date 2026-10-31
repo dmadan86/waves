@@ -30,14 +30,11 @@ import { attendanceSegments, attendanceSummary, type AttendanceKey } from '@/lib
 
 export function OverviewTop({
   groupId,
-  afterAttendanceCard,
-  afterTasks,
+  compose,
 }: {
   groupId: string;
-  /** Owner's money cards: they sit right under the attendance card. */
-  afterAttendanceCard?: ReactNode;
-  /** Upcoming row: it follows the tasks and urgent cards. */
-  afterTasks?: ReactNode;
+  /** Lays out the cards once they have loaded; `attendance` and `attention` are this file's two. */
+  compose: (own: { attendance: ReactNode; attention?: ReactNode; sheet?: ReactNode }) => ReactNode;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -63,8 +60,8 @@ export function OverviewTop({
 
   // No employees: an invite card in place of attendance and tasks; money and what is coming up still show.
   if (o.people.length === 0)
-    return (
-      <>
+    return compose({
+      attendance: (
         <TintCard ink={theme.color.brand} style={{ alignItems: 'center', gap: 8, padding: 20 }}>
           <IconDisc ink={theme.color.brand} size={48}>
             <Ionicons name="person-add-outline" size={iconSize.lg} color={theme.color.brand} />
@@ -94,10 +91,8 @@ export function OverviewTop({
             </Pressable>
           ) : null}
         </TintCard>
-        {afterAttendanceCard}
-        {afterTasks}
-      </>
-    );
+      ),
+    });
 
   // With leave in play "not marked" turns grey and leave takes the amber; otherwise as the mockup draws it.
   const color: Record<AttendanceKey, string> = {
@@ -129,118 +124,112 @@ export function OverviewTop({
       `/group/${groupId}/company-attendance?date=${day}${status && status !== 'leave' ? `&status=${status}` : ''}`,
     );
 
-  return (
-    <>
-      <StandardCard
-        style={{ paddingHorizontal: 14, paddingVertical: 14, borderRadius: 22, gap: 10 }}
+  const attendance = (
+    <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 14, borderRadius: 22, gap: 10 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`${t.company.ovPickDate}: ${title}, ${dateText}`}
+        onPress={() => setPicking(true)}
+        hitSlop={8}
+        style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
       >
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${t.company.ovPickDate}: ${title}, ${dateText}`}
-          onPress={() => setPicking(true)}
-          hitSlop={8}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}
-        >
-          <Text variant="title" style={{ flexShrink: 1, fontSize: 17, fontWeight: '700' }}>
-            {`${title} — ${dateText}`}
-          </Text>
-          <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.brand} />
-        </Pressable>
-        <Text variant="title" style={{ fontSize: 22, fontWeight: '800' }}>
-          {fill(t.company.ovPresentOf, { n: summary.present, total: summary.total })}
+        <Text variant="title" style={{ flexShrink: 1, fontSize: 17, fontWeight: '700' }}>
+          {`${title} — ${dateText}`}
         </Text>
-        <View
-          accessibilityElementsHidden
-          style={{
-            flexDirection: 'row',
-            height: 12,
-            borderRadius: 6,
-            overflow: 'hidden',
-            backgroundColor: theme.color.surfaceMuted,
-          }}
-        >
-          {segments.map((s, i) => (
-            <View
-              key={s.key}
-              style={{ flex: s.n, backgroundColor: color[s.key], marginStart: i > 0 ? 1 : 0 }}
-            />
-          ))}
-        </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 14 }}>
-          {legend.map((l) => (
-            <Pressable
-              key={l.key}
-              accessibilityRole="button"
-              accessibilityLabel={`${l.label} ${l.n}`}
-              onPress={() => open(l.key)}
-              hitSlop={{ top: 4, bottom: 4 }}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36 }}
-            >
-              <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: l.color }} />
-              <Text variant="caption" style={{ fontWeight: '700', color: theme.color.text }}>
-                {l.n}
-              </Text>
-              <Text variant="caption" tone="muted">
-                {l.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        {summary.allMarked ? (
+        <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.brand} />
+      </Pressable>
+      <Text variant="title" style={{ fontSize: 22, fontWeight: '800' }}>
+        {fill(t.company.ovPresentOf, { n: summary.present, total: summary.total })}
+      </Text>
+      <View
+        accessibilityElementsHidden
+        style={{
+          flexDirection: 'row',
+          height: 12,
+          borderRadius: 6,
+          overflow: 'hidden',
+          backgroundColor: theme.color.surfaceMuted,
+        }}
+      >
+        {segments.map((s, i) => (
           <View
-            accessible
-            accessibilityLabel={t.company.ovAllMarked}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 }}
-          >
-            <Ionicons name="checkmark-circle" size={iconSize.base} color={GREEN} />
-            <Text variant="caption" tone="muted">
-              {t.company.ovAllMarked}
-            </Text>
-          </View>
-        ) : (
+            key={s.key}
+            style={{ flex: s.n, backgroundColor: color[s.key], marginStart: i > 0 ? 1 : 0 }}
+          />
+        ))}
+      </View>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 14 }}>
+        {legend.map((l) => (
           <Pressable
+            key={l.key}
             accessibilityRole="button"
-            onPress={() => open()}
-            style={{
-              minHeight: 44,
-              paddingVertical: 10,
-              paddingHorizontal: 16,
-              borderRadius: 14,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.brand,
-            }}
+            accessibilityLabel={`${l.label} ${l.n}`}
+            onPress={() => open(l.key)}
+            hitSlop={{ top: 4, bottom: 4 }}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36 }}
           >
-            <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>
-              {t.company.ovMarkAttendance}
+            <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: l.color }} />
+            <Text variant="caption" style={{ fontWeight: '700', color: theme.color.text }}>
+              {l.n}
+            </Text>
+            <Text variant="caption" tone="muted">
+              {l.label}
             </Text>
           </Pressable>
-        )}
-      </StandardCard>
-
-      {afterAttendanceCard}
-
-      <AttentionList groupId={groupId} o={o} />
-
-      {afterTasks}
-
-      <Sheet
-        visible={picking}
-        onClose={() => setPicking(false)}
-        closeLabel={t.common.close}
-        title={t.company.ovPickDate}
-      >
-        <DateTimePicker
-          value={dateFrom(day)}
-          maximumDate={dateFrom(today)}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onChange={(_, d) => {
-            setPicking(false);
-            if (d) setPicked(isoDate(d) > today ? today : isoDate(d));
+        ))}
+      </View>
+      {summary.allMarked ? (
+        <View
+          accessible
+          accessibilityLabel={t.company.ovAllMarked}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 }}
+        >
+          <Ionicons name="checkmark-circle" size={iconSize.base} color={GREEN} />
+          <Text variant="caption" tone="muted">
+            {t.company.ovAllMarked}
+          </Text>
+        </View>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => open()}
+          style={{
+            minHeight: 44,
+            paddingVertical: 10,
+            paddingHorizontal: 16,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.brand,
           }}
-        />
-      </Sheet>
-    </>
+        >
+          <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+            {t.company.ovMarkAttendance}
+          </Text>
+        </Pressable>
+      )}
+    </StandardCard>
   );
+
+  const sheet = (
+    <Sheet
+      visible={picking}
+      onClose={() => setPicking(false)}
+      closeLabel={t.common.close}
+      title={t.company.ovPickDate}
+    >
+      <DateTimePicker
+        value={dateFrom(day)}
+        maximumDate={dateFrom(today)}
+        mode="date"
+        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+        onChange={(_, d) => {
+          setPicking(false);
+          if (d) setPicked(isoDate(d) > today ? today : isoDate(d));
+        }}
+      />
+    </Sheet>
+  );
+
+  return compose({ attendance, attention: <AttentionList groupId={groupId} o={o} />, sheet });
 }

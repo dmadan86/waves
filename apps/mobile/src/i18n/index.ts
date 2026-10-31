@@ -1722,6 +1722,26 @@ export interface UiStrings {
     ovSeeAll: string;
     ovEmptyTitle: string;
     ovEmptyBody: string;
+    ovEditLayout: string;
+    ovLayoutHint: string;
+    ovResetLayout: string;
+    ovHiddenCards: string;
+    ovHideCard: string;
+    ovAddCard: string;
+    ovMoveUp: string;
+    ovMoveDown: string;
+    ovReorderCard: string;
+    ovAlwaysFirst: string;
+    ovCardAttendance: string;
+    ovCardMoney: string;
+    ovCardAttention: string;
+    ovCardUpcoming: string;
+    ovCardActivity: string;
+    ovCardBudget: string;
+    ovCardStats: string;
+    ovCardQuick: string;
+    ovCardWorkday: string;
+    ovCardTeam: string;
     overviewNoOwes: string;
     overviewNoPaid: string;
     overviewNoAdvances: string;
@@ -8644,6 +8664,26 @@ const en: UiStrings = {
     ovSeeAll: 'See all',
     ovEmptyTitle: 'Add your first employee',
     ovEmptyBody: 'Invite people to see attendance, tasks and payments here.',
+    ovEditLayout: 'Edit layout',
+    ovLayoutHint: 'Hold ≡ and drag to reorder',
+    ovResetLayout: 'Reset to default',
+    ovHiddenCards: 'Hidden cards',
+    ovHideCard: 'Hide {name}',
+    ovAddCard: 'Add {name}',
+    ovMoveUp: 'Move up',
+    ovMoveDown: 'Move down',
+    ovReorderCard: 'Reorder {name}',
+    ovAlwaysFirst: 'Always first',
+    ovCardAttendance: 'Attendance',
+    ovCardMoney: 'Money',
+    ovCardAttention: 'Needs attention',
+    ovCardUpcoming: 'Coming up',
+    ovCardActivity: 'Recent activity',
+    ovCardBudget: 'Your budget',
+    ovCardStats: 'Team stats',
+    ovCardQuick: 'Quick actions',
+    ovCardWorkday: 'Workday',
+    ovCardTeam: 'My team',
     overviewNoOwes: 'No amount owed',
     overviewNoPaid: 'Nothing paid yet',
     overviewNoAdvances: 'No advances',
@@ -15028,6 +15068,26 @@ const ta: UiStrings = {
     ovSeeAll: 'அனைத்தும்',
     ovEmptyTitle: 'உங்கள் முதல் ஊழியரைச் சேருங்கள்',
     ovEmptyBody: 'வருகை, பணிகள், கொடுப்பனவுகளை இங்கே காண ஊழியர்களை அழைக்கவும்.',
+    ovEditLayout: 'அமைப்பைத் திருத்து',
+    ovLayoutHint: 'வரிசை மாற்ற ≡ ஐ அழுத்திப் பிடித்து இழுக்கவும்',
+    ovResetLayout: 'இயல்புநிலைக்கு மாற்று',
+    ovHiddenCards: 'மறைத்த அட்டைகள்',
+    ovHideCard: '{name} ஐ மறை',
+    ovAddCard: '{name} ஐச் சேர்',
+    ovMoveUp: 'மேலே நகர்த்து',
+    ovMoveDown: 'கீழே நகர்த்து',
+    ovReorderCard: '{name} வரிசையை மாற்று',
+    ovAlwaysFirst: 'எப்போதும் முதலில்',
+    ovCardAttendance: 'வருகை',
+    ovCardMoney: 'பணம்',
+    ovCardAttention: 'கவனம் தேவை',
+    ovCardUpcoming: 'வரவிருப்பவை',
+    ovCardActivity: 'சமீபத்திய செயல்பாடு',
+    ovCardBudget: 'உங்கள் பட்ஜெட்',
+    ovCardStats: 'குழு புள்ளிவிவரம்',
+    ovCardQuick: 'விரைவு செயல்கள்',
+    ovCardWorkday: 'வேலை நாள்',
+    ovCardTeam: 'என் குழு',
     overviewNoOwes: 'நிலுவைத் தொகை இல்லை',
     overviewNoPaid: 'இன்னும் பணம் செலுத்தப்படவில்லை',
     overviewNoAdvances: 'முன்பணம் இல்லை',
@@ -21576,6 +21636,26 @@ const hi: UiStrings = {
     ovSeeAll: 'सभी देखें',
     ovEmptyTitle: 'अपना पहला कर्मचारी जोड़ें',
     ovEmptyBody: 'उपस्थिति, कार्य और भुगतान यहाँ देखने के लिए लोगों को आमंत्रित करें।',
+    ovEditLayout: 'लेआउट बदलें',
+    ovLayoutHint: 'क्रम बदलने के लिए ≡ को दबाकर खींचें',
+    ovResetLayout: 'डिफ़ॉल्ट पर लौटें',
+    ovHiddenCards: 'छिपे कार्ड',
+    ovHideCard: '{name} छिपाएँ',
+    ovAddCard: '{name} जोड़ें',
+    ovMoveUp: 'ऊपर ले जाएँ',
+    ovMoveDown: 'नीचे ले जाएँ',
+    ovReorderCard: '{name} का क्रम बदलें',
+    ovAlwaysFirst: 'हमेशा सबसे ऊपर',
+    ovCardAttendance: 'उपस्थिति',
+    ovCardMoney: 'पैसा',
+    ovCardAttention: 'ध्यान चाहिए',
+    ovCardUpcoming: 'आने वाले',
+    ovCardActivity: 'हाल की गतिविधि',
+    ovCardBudget: 'आपका बजट',
+    ovCardStats: 'टीम के आँकड़े',
+    ovCardQuick: 'त्वरित कार्य',
+    ovCardWorkday: 'कार्यदिवस',
+    ovCardTeam: 'मेरी टीम',
     overviewNoOwes: 'कोई बकाया नहीं',
     overviewNoPaid: 'अभी तक भुगतान नहीं',
     overviewNoAdvances: 'कोई अग्रिम नहीं',
@@ -28030,6 +28110,26 @@ const ar: UiStrings = {
     ovSeeAll: 'عرض الكل',
     ovEmptyTitle: 'أضف أول موظف لديك',
     ovEmptyBody: 'ادعُ الأشخاص لترى الحضور والمهام والمدفوعات هنا.',
+    ovEditLayout: 'تعديل التخطيط',
+    ovLayoutHint: 'اضغط مطولاً على ≡ واسحب لإعادة الترتيب',
+    ovResetLayout: 'إعادة الضبط الافتراضي',
+    ovHiddenCards: 'البطاقات المخفية',
+    ovHideCard: 'إخفاء {name}',
+    ovAddCard: 'إضافة {name}',
+    ovMoveUp: 'نقل لأعلى',
+    ovMoveDown: 'نقل لأسفل',
+    ovReorderCard: 'إعادة ترتيب {name}',
+    ovAlwaysFirst: 'دائماً في الأعلى',
+    ovCardAttendance: 'الحضور',
+    ovCardMoney: 'المال',
+    ovCardAttention: 'يحتاج انتباهك',
+    ovCardUpcoming: 'القادم',
+    ovCardActivity: 'النشاط الأخير',
+    ovCardBudget: 'ميزانيتك',
+    ovCardStats: 'إحصاءات الفريق',
+    ovCardQuick: 'إجراءات سريعة',
+    ovCardWorkday: 'يوم العمل',
+    ovCardTeam: 'فريقي',
     overviewNoOwes: 'لا توجد مستحقات',
     overviewNoPaid: 'لم يتم الدفع بعد',
     overviewNoAdvances: 'لا توجد سلف',
