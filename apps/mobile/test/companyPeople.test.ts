@@ -3,10 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
   asEmploymentType,
   attendanceToday,
+  balanceLabel,
   balancesByMember,
   canSetEmploymentType,
   monthlyBudgets,
   openTasksToday,
+  peopleTabCounts,
 } from '../src/data/companyPeople';
 
 const admin = { id: 'o', role: 'admin', left_at: null } as const;
@@ -67,5 +69,24 @@ describe('today maps', () => {
       kind: 'settled',
       amount: 0n,
     });
+  });
+});
+
+describe('People tab counts and balance label', () => {
+  it('shows counts per tab and hides an empty Not employed', () => {
+    expect(peopleTabCounts({ employees: 6, managers: 2, owners: 1, former: 3 })).toEqual({
+      employees: 6,
+      managers: 2,
+      owners: 1,
+      notEmployed: 3,
+    });
+    expect(
+      peopleTabCounts({ employees: 6, managers: 0, owners: 1, former: 0 }).notEmployed,
+    ).toBeUndefined();
+  });
+  it('reads Settled, not 0.00, for a zero balance', () => {
+    const fmt = (m: bigint) => `₹${m}`;
+    expect(balanceLabel({ kind: 'settled', amount: 0n }, 'Settled', fmt)).toBe('Settled');
+    expect(balanceLabel({ kind: 'owesCompany', amount: 500n }, 'Settled', fmt)).toBe('₹500');
   });
 });

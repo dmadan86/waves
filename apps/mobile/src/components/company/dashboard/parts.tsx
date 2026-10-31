@@ -86,7 +86,8 @@ export function TabPills<T extends string>({
   value,
   onChange,
 }: {
-  options: readonly { value: T; label: string }[];
+  /** `count` shows as a small badge inside the pill (omit to hide it). */
+  options: readonly { value: T; label: string; count?: number }[];
   value: T;
   onChange: (value: T) => void;
 }) {
@@ -112,9 +113,11 @@ export function TabPills<T extends string>({
             onPress={() => onChange(o.value)}
             style={{
               height: 36,
-              paddingHorizontal: 16,
+              paddingHorizontal: 14,
               borderRadius: theme.radius.pill,
-              justifyContent: 'center',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
               backgroundColor: on ? theme.color.buttonPrimary : theme.color.brandSoft,
             }}
           >
@@ -127,6 +130,29 @@ export function TabPills<T extends string>({
             >
               {o.label}
             </Text>
+            {o.count === undefined ? null : (
+              <View
+                style={{
+                  minWidth: 20,
+                  height: 20,
+                  paddingHorizontal: 6,
+                  borderRadius: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: on ? 'rgba(255,255,255,0.22)' : theme.color.surface,
+                }}
+              >
+                <Text
+                  variant="micro"
+                  style={{
+                    fontWeight: '700',
+                    color: on ? theme.color.onButtonPrimary : theme.color.textMuted,
+                  }}
+                >
+                  {o.count}
+                </Text>
+              </View>
+            )}
           </Pressable>
         );
       })}

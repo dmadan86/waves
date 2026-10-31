@@ -1,52 +1,13 @@
-/** Small pieces of the People screen: stat chips, today's attendance pill, tasks and balance meta. */
+/** Small pieces of the People screen: today's attendance pill, tasks and balance meta. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
-import { Text, iconSize, useTheme } from '@waves/ui';
+import { Text, useTheme } from '@waves/ui';
 
 import type { Balance } from '@/data/companyPeople';
 import type { AttendanceStatus } from '@/data/companyWorkday';
 import { useStrings } from '@/i18n';
-
-/** The headline numbers under the header: employed people only. */
-export function StatChips({
-  items,
-}: {
-  items: readonly { icon: keyof typeof Ionicons.glyphMap; count: number; label: string }[];
-}) {
-  const theme = useTheme();
-  return (
-    <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-      {items.map((item) => (
-        <View
-          key={item.label}
-          style={{
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 8,
-            padding: 10,
-            borderRadius: theme.radius.lg,
-            backgroundColor: theme.color.surface,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-          }}
-        >
-          <Ionicons name={item.icon} size={iconSize.lg} color={theme.color.brand} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text variant="heading" style={{ fontWeight: '800' }}>
-              {item.count}
-            </Text>
-            <Text variant="micro" tone="muted" numberOfLines={1}>
-              {item.label}
-            </Text>
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
 
 /** Today's mark: green present, amber half day, red absent. Nothing when not marked. */
 export function AttendancePill({ status }: { status: AttendanceStatus | null }) {
@@ -97,6 +58,12 @@ export function AttendancePill({ status }: { status: AttendanceStatus | null }) 
 /** Balance with its direction: green up = settled or nothing owed, red up = owes the company, green down = the company owes them. */
 export function BalanceText({ balance, text }: { balance: Balance; text: string }) {
   const theme = useTheme();
+  if (balance.kind === 'settled')
+    return (
+      <Text variant="micro" tone="muted">
+        {text}
+      </Text>
+    );
   const owes = balance.kind === 'owesCompany';
   const color = owes ? theme.color.negative : theme.color.positive;
   return (

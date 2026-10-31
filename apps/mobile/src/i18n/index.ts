@@ -1471,7 +1471,6 @@ export interface UiStrings {
     overviewNoAdvances: string;
     qaAddTask: string;
 
-    companyManagement: string;
     tasksCount: PluralForms;
     attHalfDay: string;
     attNotMarked: string;
@@ -8069,7 +8068,6 @@ const en: UiStrings = {
     qaAddTask: 'Add task',
 
     qaAddEmployee: 'Add employee',
-    companyManagement: 'Company management',
     tasksCount: { one: '{n} task', other: '{n} tasks' },
     attHalfDay: 'Half day',
     attNotMarked: 'Not marked',
@@ -14120,7 +14118,6 @@ const ta: UiStrings = {
     qaAddTask: 'பணியைச் சேர்',
 
     qaAddEmployee: 'ஊழியரைச் சேர்',
-    companyManagement: 'நிறுவன மேலாண்மை',
     tasksCount: { one: '{n} பணி', other: '{n} பணிகள்' },
     attHalfDay: 'அரை நாள்',
     attNotMarked: 'குறிக்கப்படவில்லை',
@@ -20339,7 +20336,6 @@ const hi: UiStrings = {
     qaAddTask: 'कार्य जोड़ें',
 
     qaAddEmployee: 'कर्मचारी जोड़ें',
-    companyManagement: 'कंपनी प्रबंधन',
     tasksCount: { one: '{n} कार्य', other: '{n} कार्य' },
     attHalfDay: 'आधा दिन',
     attNotMarked: 'चिह्नित नहीं',
@@ -26450,7 +26446,6 @@ const ar: UiStrings = {
     qaAddTask: 'أضف مهمة',
 
     qaAddEmployee: 'أضف موظفاً',
-    companyManagement: 'إدارة الشركة',
     tasksCount: {
       zero: '{n} مهام',
       one: '{n} مهمة',
