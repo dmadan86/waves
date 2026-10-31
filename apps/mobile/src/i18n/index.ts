@@ -3395,13 +3395,6 @@ export interface UiStrings {
   };
   activityScreen: {
     subtitle: string;
-    all: string;
-    expenses: string;
-    edits: string;
-    trip: string;
-    more: string;
-    viewDetails: string;
-    openGroup: string;
     noneForFilter: string;
     /** "Imported {n} expenses": the feed row for one import into a group. */
     importedHeadline: PluralForms;
@@ -10218,13 +10211,6 @@ const en: UiStrings = {
   },
   activityScreen: {
     subtitle: 'Your recent transactions and updates',
-    all: 'All',
-    expenses: 'Expenses',
-    edits: 'Edits',
-    trip: 'Trip',
-    more: 'More',
-    viewDetails: 'View details',
-    openGroup: 'Open group',
     noneForFilter: 'Nothing here for this filter yet.',
     importedHeadline: { one: 'Imported {n} expense', other: 'Imported {n} expenses' },
     importedSentence: { one: '{who} imported {n} expense', other: '{who} imported {n} expenses' },
@@ -16638,13 +16624,6 @@ const ta: UiStrings = {
   },
   activityScreen: {
     subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
-    all: 'அனைத்தும்',
-    expenses: 'செலவுகள்',
-    edits: 'திருத்தங்கள்',
-    trip: 'பயணம்',
-    more: 'மேலும்',
-    viewDetails: 'விவரங்களைப் பார்',
-    openGroup: 'குழுவைத் திற',
     noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
     importedHeadline: {
       one: '{n} செலவு இறக்குமதி செய்யப்பட்டது',
@@ -23161,13 +23140,6 @@ const hi: UiStrings = {
   },
   activityScreen: {
     subtitle: 'आपके हाल के लेन-देन और अपडेट',
-    all: 'सभी',
-    expenses: 'खर्च',
-    edits: 'बदलाव',
-    trip: 'ट्रिप',
-    more: 'और',
-    viewDetails: 'विवरण देखें',
-    openGroup: 'समूह खोलें',
     noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
     importedHeadline: { one: '{n} ख़र्च इम्पोर्ट हुआ', other: '{n} ख़र्च इम्पोर्ट हुए' },
     importedSentence: {
@@ -29678,13 +29650,6 @@ const ar: UiStrings = {
   },
   activityScreen: {
     subtitle: 'معاملاتك وتحديثاتك الأخيرة',
-    all: 'الكل',
-    expenses: 'المصروفات',
-    edits: 'التعديلات',
-    trip: 'الرحلة',
-    more: 'المزيد',
-    viewDetails: 'عرض التفاصيل',
-    openGroup: 'فتح المجموعة',
     noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
     importedHeadline: {
       zero: 'استيراد {n} مصروف',
