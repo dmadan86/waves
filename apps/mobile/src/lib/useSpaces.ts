@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
 
 import { useViewerId } from '@/lib/auth';
@@ -30,26 +30,36 @@ export function useRememberSpace(): (space: Space) => void {
  */
 export function useColdStartSpace(ready: boolean, companyIds: readonly string[]): boolean {
   const viewerId = useViewerId();
-  const [stored, setStored] = useState<string | null | undefined>(undefined);
-  const [done, setDone] = useState(false);
-  const holding = viewerId !== null && !done && !coldStartSettled(viewerId);
+  // Both are tagged with the account they belong to, so an account change can't reuse them.
+  const [read, setRead] = useState<{ id: string; value: string | null } | null>(null);
+  const [doneFor, setDoneFor] = useState<string | null>(null);
+  const redirecting = useRef(false);
+  const holding =
+    viewerId !== null &&
+    doneFor !== viewerId &&
+    (redirecting.current || !coldStartSettled(viewerId));
   useEffect(() => {
     if (viewerId === null || coldStartSettled(viewerId)) return;
     let stale = false;
-    void readLastSpace(viewerId).then((value) => !stale && setStored(value));
+    void readLastSpace(viewerId).then((value) => !stale && setRead({ id: viewerId, value }));
     return () => {
       stale = true;
     };
   }, [viewerId]);
   useEffect(() => {
-    if (viewerId === null || stored === undefined || done) return;
-    const plan = coldStartPlan(stored, ready, companyIds);
+    if (viewerId === null || read?.id !== viewerId || doneFor === viewerId || redirecting.current)
+      return;
+    const plan = coldStartPlan(read.value, ready, companyIds);
     if (plan === 'wait') return;
     // A deep link that settled first wins: takeColdStart is then false and nothing redirects.
-    if (takeColdStart(viewerId) && plan !== 'stay' && plan !== 'personal')
+    if (takeColdStart(viewerId) && plan !== 'stay' && plan !== 'personal') {
+      // Stay held: the redirect unmounts Home, and releasing now would repaint Personal.
+      redirecting.current = true;
       router.replace(`/group/${plan}`);
-    setDone(true);
-  }, [viewerId, stored, ready, companyIds, done]);
+      return;
+    }
+    setDoneFor(viewerId);
+  }, [viewerId, read, ready, companyIds, doneFor]);
   return holding;
 }
 
