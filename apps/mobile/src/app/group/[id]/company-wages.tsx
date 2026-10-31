@@ -15,7 +15,6 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   allowanceAmount,
-  attendanceDaysText,
   buildWageRun,
   format,
   money,
@@ -27,6 +26,7 @@ import {
   type CurrencyCode,
   type WageTerms,
 } from '@waves/core';
+import { usePayRule, workedDaysText } from '@/data/companyCalendar';
 import { Button, Chip, ChipRow, Screen, Text, iconSize, useTheme } from '@waves/ui';
 
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -105,9 +105,10 @@ function CompanyWagesScreenInner() {
 
   // Days come from attendance for this period (present = 1, half = 0.5) until the person is edited.
   const attendance = useAttendance(groupId);
+  const rule = usePayRule(groupId);
   const defaultRow = (memberId: string): { mode: Mode; days: string; fixed: string } => ({
     mode: rateOf(memberId) > 0n ? 'days_rate' : 'fixed_weekly',
-    days: attendanceDaysText(attendance.values(), memberId, start, end),
+    days: workedDaysText(attendance.values(), memberId, start, end, rule),
     fixed: '',
   });
 
@@ -128,7 +129,7 @@ function CompanyWagesScreenInner() {
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [terms, view.entries, people.length, start, end, attendance]);
+  }, [terms, view.entries, people.length, start, end, attendance, rule]);
 
   const lines = buildWageRun(view.entries, termMap, end);
   const chosen = lines.filter((l) => !skipped.has(l.memberId));
@@ -190,6 +191,9 @@ function CompanyWagesScreenInner() {
           />
         </ScenicHeader>
         <ScenicBody>
+          <Text variant="caption" tone="muted">
+            {t.calendar.wageRuleNote}
+          </Text>
           {people.length === 0 ? (
             <Text variant="body" tone="muted">
               {t.company.wagesNoTeam}

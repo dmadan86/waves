@@ -426,7 +426,7 @@ export async function attachCompanyPhoto(
   groupId: string,
   entryId: string,
   picked: PickedImage,
-  kind: 'entry' | 'vendor' = 'entry',
+  kind: 'entry' | 'vendor' | 'task' = 'entry',
 ): Promise<void> {
   const attachmentId = randomUUID();
   const path = `${entryId}/${attachmentId}/${randomUUID()}.jpg`;
@@ -444,9 +444,11 @@ export async function attachCompanyPhoto(
     const { error } = await backend.rpc(
       kind === 'vendor'
         ? 'waves_attach_company_vendor_entry_image'
-        : 'waves_attach_company_entry_image',
+        : kind === 'task'
+          ? 'waves_attach_company_task_image'
+          : 'waves_attach_company_entry_image',
       {
-        p_entry_id: entryId,
+        [kind === 'task' ? 'p_task_id' : 'p_entry_id']: entryId,
         p_storage_path: path,
         p_attachment_id: attachmentId,
         p_preview: picked.preview ?? null,
@@ -463,7 +465,7 @@ export async function attachCompanyPhoto(
 export function useAddCompanyPhoto(
   groupId: string,
   entryId: string,
-  kind: 'entry' | 'vendor' = 'entry',
+  kind: 'entry' | 'vendor' | 'task' = 'entry',
 ) {
   const { flush } = useSync();
   return useMutation({
@@ -479,14 +481,19 @@ export function useAddCompanyPhoto(
   });
 }
 
-export function useRemoveCompanyPhoto(groupId: string, kind: 'entry' | 'vendor' = 'entry') {
+export function useRemoveCompanyPhoto(
+  groupId: string,
+  kind: 'entry' | 'vendor' | 'task' = 'entry',
+) {
   const { flush } = useSync();
   return useMutation({
     mutationFn: async (input: { photoId: string }) => {
       const { error } = await backend.rpc(
         kind === 'vendor'
           ? 'waves_remove_company_vendor_entry_image'
-          : 'waves_remove_company_entry_image',
+          : kind === 'task'
+            ? 'waves_remove_company_task_image'
+            : 'waves_remove_company_entry_image',
         { p_attachment_id: input.photoId },
       );
       if (error) throw new Error(error.message);

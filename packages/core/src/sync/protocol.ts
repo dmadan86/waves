@@ -83,6 +83,15 @@ export enum MutationKind {
   CompanyAttendanceSet = 'company_attendance.set',
   CompanyWorkSet = 'company_work.set',
   CompanyWorkRemove = 'company_work.remove',
+  CompanyCalendarSettingsSet = 'company_calendar.settings_set',
+  CompanyHolidaySet = 'company_holiday.set',
+  CompanyHolidayRemove = 'company_holiday.remove',
+  CompanyLeaveSet = 'company_leave.set',
+  CompanyLeaveDecide = 'company_leave.decide',
+  CompanyLeaveRemove = 'company_leave.remove',
+  CompanyEventSet = 'company_event.set',
+  CompanyEventRemove = 'company_event.remove',
+  CompanyDatesSet = 'company_dates.set',
   CompanyProjectSet = 'company_project.set',
   CompanyPoolPost = 'company_pool.post',
   CompanyWagePay = 'company_wage.pay',
@@ -94,6 +103,9 @@ export enum MutationKind {
   CompanyVendorEntryReview = 'company_vendor_entry.review',
   CompanyVendorEntryVoid = 'company_vendor_entry.void',
   CompanyVendorEntryReceived = 'company_vendor_entry.received',
+  // Details card (contact + bank), one per side. Owner sets the company's; owner, owning manager or the vendor set a vendor's.
+  CompanyDetailsSet = 'company_details.set',
+  CompanyVendorDetailsSet = 'company_vendor_details.set',
   // Estimates and bills (owners; managers for their own). The server numbers them and recomputes totals.
   CompanyDocSave = 'company_doc.save',
   CompanyDocStatus = 'company_doc.status',
@@ -589,6 +601,61 @@ export interface CompanyWorkRemovePayload {
   readonly taskId: string;
 }
 
+/** Owner: whether holidays and approved sick/casual leave count as paid days in the wage-days prefill. */
+export interface CompanyCalendarSettingsSetPayload {
+  readonly paidHolidays: boolean;
+  readonly paidLeave: boolean;
+}
+/** Owner: add or edit a holiday (a day or a range). */
+export interface CompanyHolidaySetPayload {
+  readonly id: string;
+  readonly startDay: string;
+  readonly endDay: string;
+  readonly name: string;
+}
+export interface CompanyHolidayRemovePayload {
+  readonly id: string;
+}
+export type LeaveKind = 'casual' | 'sick' | 'other';
+/** A person asks for their own leave (pending); the owner or their manager records it (approved). */
+export interface CompanyLeaveSetPayload {
+  readonly id: string;
+  readonly memberId: string;
+  readonly startDay: string;
+  readonly endDay: string;
+  readonly halfDay: boolean;
+  readonly kind: LeaveKind;
+  readonly reason: string | null;
+}
+export interface CompanyLeaveDecidePayload {
+  readonly id: string;
+  readonly approve: boolean;
+  readonly note: string | null;
+}
+export interface CompanyLeaveRemovePayload {
+  readonly id: string;
+}
+/** Owner/manager: a simple dated event. `people` empty = the whole company (owner only). */
+export interface CompanyEventSetPayload {
+  readonly id: string;
+  readonly title: string;
+  readonly day: string;
+  readonly time: string | null;
+  readonly projectId: string | null;
+  readonly people: readonly string[];
+}
+export interface CompanyEventRemovePayload {
+  readonly id: string;
+}
+/** Birthday (day + month only) and joining date; `showBirthday` is honoured only from the person themself. */
+export interface CompanyDatesSetPayload {
+  readonly memberId: string;
+  readonly birthDay: number | null;
+  readonly birthMonth: number | null;
+  readonly joinedOn: string | null;
+  readonly showBirthday: boolean;
+}
+
 export interface CompanyMemberProjectsSetPayload {
   readonly memberId: string;
   readonly projectIds: readonly string[];
@@ -883,11 +950,23 @@ export enum SyncTable {
   CompanyVendorEntries = 'company_vendor_entries',
   /** Group-scoped, pull-only. Photos on a vendor ledger line; readable exactly where the line is (RLS). */
   CompanyVendorEntryAttachments = 'company_vendor_entry_attachments',
+  /** Group-scoped, pull-only. Photos on a daily-work task; readable exactly where the task is (RLS). */
+  CompanyWorkTaskAttachments = 'company_work_task_attachments',
+  /** Group-scoped, pull-only. The company card: public part to every live member; secure part (bank, PAN) never to an employee (RLS). */
+  CompanyDetails = 'company_details',
+  CompanyDetailsSecure = 'company_details_secure',
+  /** Group-scoped, pull-only. A vendor's card, readable exactly where the vendor is (RLS). */
+  CompanyVendorDetails = 'company_vendor_details',
   /** Group-scoped, pull-only: estimates and bills; owners see all, a manager only their own (RLS). */
   CompanyDocuments = 'company_documents',
   /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
   CompanyAttendance = 'company_attendance',
   CompanyWorkTasks = 'company_work_tasks',
+  /** Group-scoped, pull-only: holidays (every member), leave and birthdays/joining dates (RLS: own, team, owner; opted-in birthdays), events (those involved). */
+  CompanyHolidays = 'company_holidays',
+  CompanyLeave = 'company_leave',
+  CompanyEvents = 'company_events',
+  CompanyMemberDates = 'company_member_dates',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',

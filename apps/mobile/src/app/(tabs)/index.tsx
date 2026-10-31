@@ -55,6 +55,8 @@ import { tourMayStart, useOverlayBusy } from '@/lib/firstRun';
 import { GroupMark } from '@/components/GroupMark';
 import { useCoverTile } from '@/lib/groupCoverColor';
 import { useViewerCompanyIds } from '@/lib/useCompanyTab';
+import { groupsOutsideCompanies } from '@/lib/spaces';
+import { useColdStartSpace } from '@/lib/useSpaces';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { LinkRequestsCard } from '@/components/LinkRequestsCard';
 import { SkeletonList } from '@/components/Skeletons';
@@ -67,7 +69,9 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/HomeBalanceCard';
-import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
+import { HeroIconButton } from '@/components/home/HeroControls';
+import { SpaceSwitchSheet } from '@/components/SpaceSwitcher';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
@@ -77,8 +81,6 @@ import { useHeroStatusBar } from '@/components/ScreenHero';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
-import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { groupLabel, GroupType } from '@/data/types';
 import { GroupTypeTag, useGroupTypeTag, useGroupTypeTagSpoken } from '@/components/GroupTypeTag';
 import { useBalanceHidden } from '@/lib/balanceHidden';
@@ -123,8 +125,6 @@ export default function HomeScreen() {
   // before an Image can show it — the same resolution the profile screen does.
   // Without this the dashboard falls back to initials while settings shows the
   // photo, which reads as the picture "not loading" on the home screen.
-  const viewerFace = useViewerIdentity();
-  const avatarUrl = useAvatarUrl(viewerFace.avatarUrl);
 
   const groups = useGroups();
   const totalGroupCount = groups.data?.length ?? 0;
@@ -184,7 +184,10 @@ export default function HomeScreen() {
    * there are still rows to lose.
    */
   const list = useMemo(
-    () => orderByActivity(groups.data ?? [], (group) => summary.lastActivityFor(group.id)),
+    () =>
+      orderByActivity(groupsOutsideCompanies(groups.data ?? []), (group) =>
+        summary.lastActivityFor(group.id),
+      ),
     [groups.data, summary],
   );
   // Two states, not one, because they deserve different answers.
@@ -219,6 +222,7 @@ export default function HomeScreen() {
   // The placeholder covers both: nothing read yet, or nothing read *and* nothing
   // confirmed. Everything else paints.
   const showSkeleton = hydrating || unknownYet;
+  useColdStartSpace(!showSkeleton, companyIds);
   const settling = !showSkeleton && summary.pendingFirstSync;
 
   // A ledger import running in the background (see `@/lib/importProgress`): its
@@ -311,8 +315,16 @@ export default function HomeScreen() {
   // and this build can buy. A guest signs up first, so the row waits for that.
   const canUpgrade = useReferralsLive() && !isGuest;
   const proTrial = useProTrial();
+  const [switchOpen, setSwitchOpen] = useState(false);
   const menuItems: OverflowMenuItem[] = useMemo(
     () => [
+      // Opens the Switch space sheet; OverflowMenu closes first, then runs this.
+      {
+        icon: 'swap-horizontal-outline',
+        label: t.spaces.pillLabel,
+        onPress: () => setSwitchOpen(true),
+        section: 'space',
+      },
       // The `section` keys are internal grouping only (not user-visible): they
       // cluster the rows into account / data / app / settings, and
       // OverflowMenu draws a divider wherever two adjacent rows fall in
@@ -517,58 +529,12 @@ export default function HomeScreen() {
             paddingBottom: HERO_OVERLAP + theme.spacing.xs,
           }}
         >
-          {/* Face, "Hi, {name} 👋" over the time of day; then the glyphs that
-              lead somewhere: sync, activity, the menu. */}
+          {/* The bell and the menu, right-aligned; the greeting sits under them. */}
           <Row
             onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
             style={{ alignItems: 'center', gap: theme.spacing.md }}
           >
-            <HeroAvatar
-              name={displayName}
-              photoUrl={avatarUrl}
-              onPress={() => router.navigate('/profile')}
-              label={t.profile}
-              ink={darkInk ? heroInk : undefined}
-            />
-            {/* The name gives way first: it shrinks to an ellipsis before it
-                ever reaches the icons, and the wave stays whole after it. */}
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.profile}
-              onPress={() => router.navigate('/profile')}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                flex: 1,
-                minWidth: 0,
-                marginEnd: theme.spacing.xs,
-                opacity: pressed ? 0.5 : 1,
-              })}
-            >
-              <Row style={{ alignItems: 'center', minWidth: 0 }}>
-                <Text
-                  numberOfLines={1}
-                  ellipsizeMode="tail"
-                  style={{
-                    flexShrink: 1,
-                    minWidth: 0,
-                    fontSize: 18,
-                    lineHeight: 23,
-                    fontWeight: '700',
-                    color: heroInk,
-                  }}
-                >
-                  {t.dashHero.hi.replace('{name}', firstName)}
-                </Text>
-                <Text style={{ fontSize: 18, lineHeight: 23, color: heroInk }}>{' 👋'}</Text>
-              </Row>
-              <Text
-                variant="body"
-                numberOfLines={1}
-                style={{ color: heroInk, opacity: darkInk ? 0.75 : 0.9 }}
-              >
-                {`${t.dashHero[greetKey]}!`}
-              </Text>
-            </Pressable>
+            <View style={{ flex: 1 }} />
             <HeroIconButton
               icon="notifications-outline"
               label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
@@ -583,6 +549,15 @@ export default function HomeScreen() {
               ink={heroInk}
             />
           </Row>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.profile}
+            onPress={() => router.navigate('/profile')}
+            hitSlop={8}
+            style={{ marginTop: theme.spacing.sm }}
+          >
+            <Text style={{ color: heroInk, opacity: 0.9 }}>{`${t.dashHero[greetKey]},`}</Text>
+          </Pressable>
         </View>
 
         {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
@@ -794,10 +769,7 @@ export default function HomeScreen() {
                               : null
                           }
                           coverEmoji={group.cover_emoji}
-                          coverColor={
-                            group.cover_color ??
-                            (companyIds.includes(group.id) ? companyCoverKey(group.id) : null)
-                          }
+                          coverColor={group.cover_color}
                           groupType={group.type}
                           eventTemplate={group.event_template}
                           customTag={group.custom_tag}
@@ -859,7 +831,17 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
+      <OverflowMenu
+        visible={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        items={menuItems}
+        header={{
+          name: firstName,
+          avatar: <PersonAvatar name={displayName} avatarUrl={profile?.avatar_url} size={40} />,
+          route: '/profile',
+        }}
+      />
+      <SpaceSwitchSheet current="personal" open={switchOpen} onClose={() => setSwitchOpen(false)} />
       <NewGroupMenu
         open={newGroupOpen}
         anchor={newGroupAnchor}
@@ -1060,15 +1042,6 @@ const HERO_OVERLAP = 56;
 
 /** How far down the balance card the scene reaches before it has faded into
  *  the page — its lower part, never on behind the groups. */
-/** A stable soft tile per company group (hash of its id) so the building icons
- *  are told apart; only used when the group has no colour of its own. */
-const COMPANY_TILES = ['iris', 'blue', 'green', 'aqua', 'yellow', 'orange'] as const;
-function companyCoverKey(id: string): string {
-  let h = 0;
-  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
-  return COMPANY_TILES[h % COMPANY_TILES.length]!;
-}
-
 const SCENE_INTO_CARD = 0.72;
 
 /**

@@ -119,6 +119,7 @@ export async function handleExportData(
         companyEntries,
         vendors,
         vendorEntries,
+        calendar,
       ] = await Promise.all([
         caller.from('groups').select('*').eq('id', groupId).single(),
         memberReader
@@ -165,6 +166,17 @@ export async function handleExportData(
               )
               .eq('group_id', groupId)
           : Promise.resolve({ data: [], error: null }),
+        // Calendar (holidays, leave, events, dates): read as the caller, so each role exports only what it can see.
+        scope?.type === 'company'
+          ? Promise.all(
+              ['company_holidays', 'company_leave', 'company_events', 'company_member_dates'].map(
+                (table) => caller.from(table).select('*').eq('group_id', groupId),
+              ),
+            ).then((rs) => ({
+              data: rs.map((r) => (r.data ?? []).filter((row) => !row.deleted_at)),
+              error: rs.find((r) => r.error)?.error ?? null,
+            }))
+          : Promise.resolve({ data: [[], [], [], []], error: null }),
       ]);
 
       // An export that quietly omits half the ledger is worse than no export at
@@ -178,6 +190,7 @@ export async function handleExportData(
         companyEntries,
         vendors,
         vendorEntries,
+        calendar,
       })) {
         if (result.error) {
           console.error(JSON.stringify({ fn: 'export-data', label, detail: result.error.message }));
@@ -194,6 +207,10 @@ export async function handleExportData(
         companyEntries: companyEntries.data ?? [],
         companyVendors: vendors.data ?? [],
         companyVendorEntries: vendorEntries.data ?? [],
+        companyHolidays: calendar.data[0] ?? [],
+        companyLeave: calendar.data[1] ?? [],
+        companyEvents: calendar.data[2] ?? [],
+        companyMemberDates: calendar.data[3] ?? [],
       });
     }
 
@@ -476,6 +493,7 @@ export async function handleExportData(
         'funding_manager',
         'Employee ID',
         'Department',
+        'Employment type',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -493,7 +511,7 @@ export async function handleExportData(
         anyFamilies
           ? [
               ...cells,
-              ...Array(Math.max(0, 38 - cells.length)).fill(''),
+              ...Array(Math.max(0, 39 - cells.length)).fill(''),
               familyName(units, memberId),
             ]
           : cells;
@@ -547,6 +565,12 @@ export async function handleExportData(
               row.paid_by_company
                 ? ''
                 : companyExportDepartment(entry.group, entry.members, row.member_id),
+              row.paid_by_company
+                ? ''
+                : String(
+                    entry.members.find((m: Record<string, unknown>) => m.id === row.member_id)
+                      ?.employment_type ?? '',
+                  ),
             ],
             row.member_id,
           ),

@@ -7,6 +7,8 @@ import { Button, Screen, Text, useTheme } from '@waves/ui';
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { useMoney } from '@/components/company/dashboard/parts';
 import { VendorForm, VendorLineForm } from '@/components/company/vendors/forms';
+import { BankChangedNotice } from '@/components/company/details/DetailsCard';
+import { useVendorCard, useBankNotice } from '@/data/companyDetails';
 import { VendorHistory, VendorMore } from '@/components/company/vendors/VendorHistory';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import {
@@ -47,6 +49,8 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
   const [form, setForm] = useState<'bill' | 'payment' | null>(null);
   const [inviting, setInviting] = useState(false);
   const vendor = view.vendors.find((v) => v.id === vendorId);
+  const detailView = useVendorCard(groupId, vendorId);
+  const bankNotice = useBankNotice(detailView);
   const lines = view.lines.filter((l) => l.vendorId === vendorId);
   const pending = sortVendorLines(pendingVendorBills(lines));
   const balance = view.balances.get(vendorId) ?? 0n;
@@ -77,6 +81,11 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                 },
               ]
             : []),
+          {
+            icon: 'business-outline',
+            label: t.companyDetails.title,
+            route: `/group/${groupId}/company-details`,
+          },
           { icon: 'pencil-outline', label: s.rename, onPress: () => setRename(true) },
           {
             icon: 'trash-outline',
@@ -115,6 +124,20 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                     <Button label={s.recordPayment} onPress={() => setForm('payment')} />
                   </View>
                 ) : null}
+              </StandardCard>
+              {bankNotice.show ? (
+                <BankChangedNotice
+                  view={{ show: bankNotice.show, at: detailView.card?.bankChangedAt }}
+                  onNoted={bankNotice.markNoted}
+                />
+              ) : null}
+              <StandardCard>
+                <ListRow
+                  title={t.companyDetails.vendorDetails}
+                  onPress={() =>
+                    router.push(`/group/${groupId}/company-details?vendorId=${vendorId}`)
+                  }
+                />
               </StandardCard>
               {view.canManage && pending.length ? (
                 <>

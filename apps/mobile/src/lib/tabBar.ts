@@ -30,6 +30,7 @@ export const TAB_BAR_HIDDEN_ROUTES: ReadonlySet<string> = new Set([
   'add-from-another-group',
   'scan',
   'new-group',
+  'new-company',
   'add-expense',
   'settle',
   'invite',

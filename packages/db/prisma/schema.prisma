@@ -271,6 +271,12 @@ model Group {
   suspendedAt DateTime? @map("suspended_at") @db.Timestamptz(6)
   companyAttendance CompanyAttendance[]
   companyWorkTasks CompanyWorkTask[]
+  companyHolidays CompanyHoliday[]
+  companyLeave CompanyLeave[]
+  companyEvents CompanyEvent[]
+  companyMemberDates CompanyMemberDates[]
+  companyPaidHolidays Boolean @default(true) @map("company_paid_holidays")
+  companyPaidLeave Boolean @default(false) @map("company_paid_leave")
   companyDefaultMileageRateMinor BigInt? @map("company_default_mileage_rate_minor")
   companyApprovalsEnabled Boolean @default(false) @map("company_approvals_enabled")
   companySecondApproval Boolean @default(false) @map("company_second_approval")
@@ -417,6 +423,8 @@ model Group {
   /// happening, which is a small minority of them.
   @@index([startDate, endDate], map: "groups_reminder_window_idx")
   vendors CompanyVendor[]
+  companyDetails CompanyDetails?
+  companyDetailsSecure CompanyDetailsSecure?
   @@map("groups")
   @@schema("public")
 }
@@ -448,6 +456,7 @@ model GroupMember {
   dailyRateMinor     BigInt?    @map("daily_rate_minor")
   employeeId         String?    @map("employee_id")
   departmentId       String?    @map("department_id") @db.Uuid
+  employmentType     String?    @map("employment_type")
   employmentEndedOn  DateTime?  @map("employment_ended_on") @db.Date
   employmentNote     String?    @map("employment_note")
   /// The import that minted this ghost (`import_batches`); null for everyone else.
@@ -486,6 +495,12 @@ model GroupMember {
   markedAttendance CompanyAttendance[] @relation("CompanyAttendanceMarker")
   companyWorkTasks CompanyWorkTask[] @relation("CompanyWorkTaskMember")
   createdWorkTasks CompanyWorkTask[] @relation("CompanyWorkTaskCreator")
+  createdHolidays CompanyHoliday[] @relation("CompanyHolidayCreator")
+  leaveRequests CompanyLeave[] @relation("CompanyLeaveMember")
+  decidedLeave CompanyLeave[] @relation("CompanyLeaveDecider")
+  createdLeave CompanyLeave[] @relation("CompanyLeaveCreator")
+  createdEvents CompanyEvent[] @relation("CompanyEventCreator")
+  memberDates CompanyMemberDates[] @relation("CompanyMemberDatesMember")
   manager GroupMember? @relation("CompanyManager", fields: [managerId, groupId], references: [id, groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_member_manager_fk")
   team GroupMember[] @relation("CompanyManager")
   managedInvites Invite[] @relation("CompanyInviteManager")
@@ -537,6 +552,7 @@ model GroupMember {
   vendorLinesCreated CompanyVendorEntry[] @relation("CompanyVendorLineCreator")
   vendorLinesFunded CompanyVendorEntry[] @relation("CompanyVendorLineFunder")
   vendorPhotos CompanyVendorEntryAttachment[]
+  taskPhotos CompanyWorkTaskAttachment[]
   @@map("group_members")
   @@schema("public")
 }
@@ -3200,6 +3216,24 @@ model CompanyVendorEntryAttachment {
   @@map("company_vendor_entry_attachments")
   @@schema("public")
 }
+model CompanyWorkTaskAttachment {
+  id String @id @db.Uuid
+  entryId String @map("entry_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  uploaderMemberId String @map("uploader_member_id") @db.Uuid
+  storagePath String @unique @map("storage_path")
+  preview String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  entry CompanyWorkTask @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  uploader GroupMember @relation(fields: [uploaderMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_work_task_attachments_uploader_member_id_group_id_fkey")
+  @@index([groupId,updatedSeq], map: "company_work_task_attachments_group_seq_idx")
+  @@index([entryId,deletedAt], map: "company_work_task_attachments_entry_idx")
+  @@map("company_work_task_attachments")
+  @@schema("public")
+}
 model CompanyPlan {
  groupId String @id @map("group_id") @db.Uuid
  plan String @default("free")
@@ -3236,6 +3270,7 @@ model CompanyProject {
   entries CompanyEntry[]
   wageSplits CompanyWageSplit[]
   workTasks CompanyWorkTask[]
+  events CompanyEvent[]
   @@unique([id,groupId])
   @@index([groupId,updatedSeq], map: "company_projects_sync_idx")
   @@map("company_projects")
@@ -3290,6 +3325,7 @@ model CompanyVendor {
   login GroupMember? @relation("CompanyVendorLogin", fields: [memberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   entries CompanyVendorEntry[]
   invites Invite[]
+  details CompanyVendorDetails[]
   @@unique([id,groupId])
   @@index([groupId,updatedSeq], map: "company_vendors_sync_idx")
   @@map("company_vendors")
@@ -3438,9 +3474,93 @@ model CompanyWorkTask {
   member GroupMember @relation("CompanyWorkTaskMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   creator GroupMember @relation("CompanyWorkTaskCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   project CompanyProject? @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  attachments CompanyWorkTaskAttachment[]
+  @@unique([id,groupId], map: "company_work_tasks_id_group_id_key")
   @@index([groupId,updatedSeq], map: "company_work_tasks_sync_idx")
   @@index([groupId,day,memberId], map: "company_work_tasks_day_idx")
   @@map("company_work_tasks")
+  @@schema("public")
+}
+model CompanyHoliday {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  startDay DateTime @map("start_day") @db.Date
+  endDay DateTime @map("end_day") @db.Date
+  name String
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyHolidayCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_holidays_sync_idx")
+  @@map("company_holidays")
+  @@schema("public")
+}
+model CompanyLeave {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  startDay DateTime @map("start_day") @db.Date
+  endDay DateTime @map("end_day") @db.Date
+  halfDay Boolean @default(false) @map("half_day")
+  kind String
+  reason String?
+  status String @default("pending")
+  decidedBy String? @map("decided_by") @db.Uuid
+  decisionNote String? @map("decision_note")
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation("CompanyLeaveMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  decider GroupMember? @relation("CompanyLeaveDecider", fields: [decidedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyLeaveCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_leave_sync_idx")
+  @@index([groupId,memberId,startDay], map: "company_leave_member_idx")
+  @@map("company_leave")
+  @@schema("public")
+}
+model CompanyEvent {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  title String
+  day DateTime @db.Date
+  atTime String? @map("at_time")
+  projectId String? @map("project_id") @db.Uuid
+  people String[] @default([]) @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyEventCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project CompanyProject? @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_events_sync_idx")
+  @@map("company_events")
+  @@schema("public")
+}
+model CompanyMemberDates {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  birthDay Int? @map("birth_day") @db.SmallInt
+  birthMonth Int? @map("birth_month") @db.SmallInt
+  joinedOn DateTime? @map("joined_on") @db.Date
+  showBirthday Boolean @default(false) @map("show_birthday")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation("CompanyMemberDatesMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([groupId,memberId])
+  @@index([groupId,updatedSeq], map: "company_member_dates_sync_idx")
+  @@map("company_member_dates")
   @@schema("public")
 }
 model CompanyComplaint {
@@ -3469,5 +3589,71 @@ model CompanyModerationLog {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   @@index([groupId,createdAt(sort: Desc)], map: "company_moderation_log_group_idx")
   @@map("company_moderation_log")
+  @@schema("public")
+}
+
+model CompanyDetails {
+  groupId String @id @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  address String?
+  phone String?
+  email String?
+  gstin String?
+  note String?
+  updatedBy String? @map("updated_by") @db.Uuid
+  updatedByName String? @map("updated_by_name")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_details_sync_idx")
+  @@map("company_details")
+  @@schema("public")
+}
+model CompanyDetailsSecure {
+  groupId String @id @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  bankName String? @map("bank_name")
+  bankAccount String? @map("bank_account")
+  ifsc String?
+  upi String?
+  pan String?
+  bankChangedAt DateTime? @map("bank_changed_at") @db.Timestamptz(6)
+  bankChangedBy String? @map("bank_changed_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_details_secure_sync_idx")
+  @@map("company_details_secure")
+  @@schema("public")
+}
+model CompanyVendorDetails {
+  vendorId String @id @map("vendor_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  bankName String? @map("bank_name")
+  bankAccount String? @map("bank_account")
+  ifsc String?
+  upi String?
+  pan String?
+  address String?
+  phone String?
+  email String?
+  gstin String?
+  note String?
+  bankChangedAt DateTime? @map("bank_changed_at") @db.Timestamptz(6)
+  bankChangedBy String? @map("bank_changed_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+  updatedByName String? @map("updated_by_name")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  vendor CompanyVendor @relation(fields: [vendorId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_vendor_details_sync_idx")
+  @@map("company_vendor_details")
   @@schema("public")
 }

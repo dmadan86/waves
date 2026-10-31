@@ -37,17 +37,6 @@ export function reviewSlotKey(companyIds: readonly string[]): 'company' | 'captu
   return companyIds.length > 0 ? 'company' : 'captures';
 }
 
-/** Opens the sole or currently open company directly, or the company list when there are several. */
-export function companyTabRoute(
-  companyIds: readonly string[],
-  openCompanyId: string | null = null,
-): string | null {
-  if (companyIds.length === 0) return null;
-  if (openCompanyId !== null && companyIds.includes(openCompanyId))
-    return `/group/${openCompanyId}`;
-  return companyIds.length === 1 ? `/group/${companyIds[0]}` : '/companies';
-}
-
 /** Highlights Company on its list and any of the viewer's company screens. */
 export function companyActiveKey(
   segments: readonly string[],
@@ -82,7 +71,7 @@ export function homeSecondActionKey(companyIds: readonly string[]): 'review' | '
 
 // ───────────────────────────────────────────── company mode (owner / manager) ──
 
-export type CompanyBarKey = 'home' | 'overview' | 'people' | 'team' | 'payments' | 'more';
+export type CompanyBarKey = 'home' | 'team' | 'payments' | 'more';
 
 /** The viewer's live role in one group, from the members mirror; null when not a member. */
 export function viewerRoleIn(
@@ -121,15 +110,16 @@ export function isCompanyMode(
 }
 
 const BAR_SCREEN: Readonly<Record<string, CompanyBarKey>> = {
-  'company-people': 'people',
-  members: 'people',
-  'company-hierarchy': 'people',
-  'company-statement': 'people',
+  // People, Attendance and Tasks are one Team tab; the old routes still land on it.
+  'company-people': 'team',
+  members: 'team',
+  'company-hierarchy': 'team',
+  'company-statement': 'team',
   'company-team': 'team',
   'company-work': 'team',
   'company-attendance': 'team',
   // Pending is a card at the top of Overview now; its full list belongs to that tab.
-  'company-pending': 'overview',
+  'company-pending': 'home',
   'company-payments': 'payments',
   'company-wages': 'payments',
   'company-more': 'more',
@@ -141,17 +131,13 @@ const BAR_SCREEN: Readonly<Record<string, CompanyBarKey>> = {
 /** Which company-bar tab reads as current; '' for screens that belong to none (entry forms). */
 export function companyBarActiveKey(segments: readonly string[]): CompanyBarKey | '' {
   if (segments[0] !== 'group') return '';
-  if (segments.length <= 2) return 'overview';
+  if (segments.length <= 2) return 'home';
   return BAR_SCREEN[segments[2] ?? ''] ?? '';
 }
 
 /** Where a company-bar tab goes. */
 export function companyBarRoute(groupId: string, key: string): string {
   switch (key) {
-    case 'home':
-      return '/';
-    case 'people':
-      return `/group/${groupId}/company-people`;
     case 'team':
       return `/group/${groupId}/company-team`;
     case 'payments':

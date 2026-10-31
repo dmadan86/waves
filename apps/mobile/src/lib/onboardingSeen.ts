@@ -79,12 +79,28 @@ async function writeFlag(key: string): Promise<void> {
  * Unreadable storage reports "seen": the intro is a full-screen gate in front
  * of the app, and a phone that cannot answer must not trap somebody behind it.
  */
-export const onboardingSeen = (ownerId: string): Promise<boolean> =>
-  readFlag(introSlot(ownerId), true);
+export const onboardingSeen = async (ownerId: string): Promise<boolean> => {
+  const seen = await readFlag(introSlot(ownerId), true);
+  introAnswers.set(ownerId, seen);
+  return seen;
+};
+
+/**
+ * Answers already read this process, per account. The lock gate remounts the
+ * navigator after every unlock; asking storage again made the tour gate's
+ * spinner reappear for a frame on each one.
+ */
+const introAnswers = new Map<string, boolean>();
+
+/** The answer `onboardingSeen` already gave for this account, or `undefined`. */
+export const knownOnboardingSeen = (ownerId: string): boolean | undefined =>
+  introAnswers.get(ownerId);
 
 /** Remember that this account is done with the intro. Never rejects. */
-export const rememberOnboardingSeen = (ownerId: string): Promise<void> =>
-  writeFlag(introSlot(ownerId));
+export const rememberOnboardingSeen = (ownerId: string): Promise<void> => {
+  introAnswers.set(ownerId, true);
+  return writeFlag(introSlot(ownerId));
+};
 
 /**
  * Has this account already had the Home coach-marks? Never rejects.
@@ -122,6 +138,7 @@ export const rememberPersonalIntroSeen = (ownerId: string): Promise<void> =>
  * hygiene rather than a fix.
  */
 export async function forgetTours(ownerId: string): Promise<void> {
+  introAnswers.delete(ownerId);
   try {
     await AsyncStorage.removeItem(introSlot(ownerId));
     await AsyncStorage.removeItem(tourSlot(ownerId));

@@ -23,7 +23,6 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { BlurTargetView } from 'expo-blur';
 import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -79,6 +78,7 @@ import {
   usePersonalLedger,
   useUpsertPersonalRecord,
 } from '@/data/personal';
+import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
@@ -93,40 +93,6 @@ const SAVED_WASH = ['#1E5A8C', '#0C2E4A'] as const;
 
 // One faint watermark glyph, bled off the hero's corner.
 const HERO_GLYPH = 'wallet-outline' as const;
-
-/** The AsyncStorage key remembering whether the dashboard's figures are
- *  hidden behind the eye — its own key, so it is independent of Home's. */
-const AMOUNTS_HIDDEN_KEY = 'personal:amountsHidden';
-
-/**
- * The eye toggle's state, remembered across opens — the same shape as Home's
- * `useBalanceHidden`, kept local because this ledger's figures are a separate
- * concern from the shared dashboard's balance. Reads once on mount so a
- * hidden month stays hidden after a relaunch, and writes on every toggle.
- * Defaults to shown.
- */
-function usePersonalAmountsHidden(): { hidden: boolean; toggle: () => void } {
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    AsyncStorage.getItem(AMOUNTS_HIDDEN_KEY)
-      .then((value) => {
-        if (alive && value === '1') setHidden(true);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-  const toggle = useCallback(() => {
-    setHidden((was) => {
-      const next = !was;
-      void AsyncStorage.setItem(AMOUNTS_HIDDEN_KEY, next ? '1' : '0').catch(() => {});
-      return next;
-    });
-  }, []);
-  return { hidden, toggle };
-}
 
 /**
  * The account wall stands outside the ledger, not inside it: a guest session

@@ -22,6 +22,7 @@ import {
   useSetSecondApproval,
   type CompanyView,
 } from '@/data/companyEntries';
+import { useCalendarSettings, useSetCalendarSettings } from '@/data/companyCalendar';
 import { useStrings } from '@/i18n';
 
 export function CompanyRules({ groupId, view }: { groupId: string; view: CompanyView }) {
@@ -31,6 +32,8 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
   const settings = useSetCompanySettings(groupId);
   const setKm = useSetMileageRate(groupId);
   const setSecond = useSetSecondApproval(groupId);
+  const calendarSettings = useCalendarSettings(groupId);
+  const setCalendarSettings = useSetCalendarSettings(groupId);
   const [limit, setLimitOpen] = useState(false);
   const [policies, setPolicies] = useState(false);
   const [km, setKmOpen] = useState(false);
@@ -101,6 +104,41 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
             ) : null}
           </>
         ) : null}
+        <ListRow
+          leading={lead('sunny-outline')}
+          title={t.calendar.paidHolidays}
+          subtitle={t.calendar.paidHolidaysHint}
+          subtitleLines={2}
+          trailing={
+            <Toggle
+              value={calendarSettings.paidHolidays}
+              onValueChange={(paidHolidays) =>
+                setCalendarSettings.mutate({ paidHolidays, paidLeave: calendarSettings.paidLeave })
+              }
+              accessibilityLabel={t.calendar.paidHolidays}
+            />
+          }
+          divider
+        />
+        <ListRow
+          leading={lead('medical-outline')}
+          title={t.calendar.paidLeave}
+          subtitle={t.calendar.paidLeaveHint}
+          subtitleLines={2}
+          trailing={
+            <Toggle
+              value={calendarSettings.paidLeave}
+              onValueChange={(paidLeave) =>
+                setCalendarSettings.mutate({
+                  paidHolidays: calendarSettings.paidHolidays,
+                  paidLeave,
+                })
+              }
+              accessibilityLabel={t.calendar.paidLeave}
+            />
+          }
+          divider
+        />
         <ListRow
           leading={lead('calendar-outline')}
           title={t.company.dailyRate}

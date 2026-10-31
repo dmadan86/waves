@@ -3,7 +3,7 @@
  * entries and one big +. No tabs, no other people, no budgets.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { router } from '@/lib/navigation';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -12,10 +12,12 @@ import { companyStatement } from '@waves/core';
 import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
 import { MyWorkTodayCard } from '@/components/company/WorkdayEntries';
+import { CompanyUpcomingCard } from '@/components/company/CompanyUpcomingCard';
+import { LeaveFormSheet, MyDatesSheet } from '@/components/company/CompanyCalendarSheets';
 import { DashBody, DashHeader, useMoney } from '@/components/company/dashboard/parts';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
-import { StandardCard } from '@/components/standard';
-import { useCompanyEntries, useCompanyPeople } from '@/data/companyEntries';
+import { ListRow, StandardCard } from '@/components/standard';
+import { useCompanyEntries, useCompanyPeople, useCompanySuspended } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -25,6 +27,9 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
   const clearance = useBottomClearance();
   const { t } = useStrings();
   const view = useCompanyEntries(groupId);
+  const suspended = useCompanySuspended(groupId);
+  const [leaveForm, setLeaveForm] = useState(false);
+  const [dates, setDates] = useState(false);
   const people = useCompanyPeople(groupId).data ?? [];
   const fmt = useMoney(view.currency);
   const me = view.me;
@@ -96,11 +101,43 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
             ))}
           </StandardCard>
           <MyWorkTodayCard groupId={groupId} />
+          {!suspended ? (
+            <StandardCard>
+              <ListRow
+                leading={
+                  <Ionicons name="airplane-outline" size={iconSize.md} color={theme.color.brand} />
+                }
+                title={t.calendar.requestLeave}
+                onPress={() => setLeaveForm(true)}
+                divider
+              />
+              <ListRow
+                leading={
+                  <Ionicons name="calendar-outline" size={iconSize.md} color={theme.color.brand} />
+                }
+                title={t.calendar.myDates}
+                onPress={() => setDates(true)}
+              />
+            </StandardCard>
+          ) : null}
+          <CompanyUpcomingCard groupId={groupId} />
           {me ? (
             <CompanyStatementView view={view} member={me} period="all" groupId={groupId} />
           ) : null}
         </DashBody>
       </ScrollView>
+      <LeaveFormSheet
+        groupId={groupId}
+        visible={leaveForm && !suspended}
+        onClose={() => setLeaveForm(false)}
+        mode="request"
+      />
+      <MyDatesSheet
+        groupId={groupId}
+        visible={dates && !suspended}
+        onClose={() => setDates(false)}
+        memberId={me?.id}
+      />
       {/* The hero button scrolls away; statements are long, so keep an add action in reach. */}
       {view.suspended ? null : (
         <Pressable

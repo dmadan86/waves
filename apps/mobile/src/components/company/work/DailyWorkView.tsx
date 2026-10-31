@@ -1,5 +1,5 @@
 import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { Pressable, ScrollView, View } from 'react-native';
 import type { CompanyWorkSetPayload } from '@waves/core';
@@ -21,6 +21,7 @@ import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { countWork, filterWork } from '@/lib/companyWork';
 import { WorkTaskSections } from './WorkTaskSections';
+import { AddTaskSheet } from './AddTaskSheet';
 import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
 import { WorkTaskSheets } from './WorkTaskSheets';
 import { WorkSearchControl, WorkStatTiles } from './WorkSummaryControls';
@@ -45,7 +46,17 @@ function payload(task: MirrorWorkTask): Payload {
   };
 }
 
-export default function DailyWorkView({ groupId: id }: { groupId: string }) {
+export default function DailyWorkView({
+  groupId: id,
+  header,
+  embedded = false,
+}: {
+  groupId: string;
+  /** A header for the standalone (non-manager) view; the Team shell draws its own. */
+  header?: ReactNode;
+  /** Inside the Team shell: no header of its own. */
+  embedded?: boolean;
+}) {
   const access = useWorkdayAccess(id);
   const tasks = useWorkTasks(id);
   const projects = useCompanyProjects(id);
@@ -61,6 +72,8 @@ export default function DailyWorkView({ groupId: id }: { groupId: string }) {
   const maxDay = shift(today, 7);
   const [day, setDay] = useState(today);
   const [draft, setDraft] = useState<Payload | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addKey, setAddKey] = useState(0);
   const [menuId, setMenuId] = useState<string | null>(null);
   const [statusId, setStatusId] = useState<string | null>(null);
   const [reasonAfterClose, setReasonAfterClose] = useState<string | null>(null);
@@ -193,7 +206,8 @@ export default function DailyWorkView({ groupId: id }: { groupId: string }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <ScenicBody>
+        {header}
+        <ScenicBody flush={embedded}>
           <ReadOnlyWhenSuspended groupId={id}>
             {!access.enabled ? (
               <Text tone="muted">{t.company.attendanceEmpty}</Text>
@@ -247,19 +261,10 @@ export default function DailyWorkView({ groupId: id }: { groupId: string }) {
                   <Button
                     label={`+ ${t.company.workAdd}`}
                     disabled={busy || access.people.length === 0 || day > maxDay}
-                    onPress={() =>
-                      setDraft({
-                        taskId: randomUUID(),
-                        memberId: access.people[0]?.id ?? '',
-                        day,
-                        title: '',
-                        projectId: null,
-                        dueTime: null,
-                        status: 'todo',
-                        blockedReason: null,
-                        note: null,
-                      })
-                    }
+                    onPress={() => {
+                      setAddKey((key) => key + 1);
+                      setAddOpen(true);
+                    }}
                   />
                 ) : null}
                 <WorkStatTiles counts={counts} />
@@ -308,6 +313,7 @@ export default function DailyWorkView({ groupId: id }: { groupId: string }) {
                   })}
                 </ScrollView>
                 <WorkTaskSections
+                  groupId={id}
                   tasks={visibleTasks}
                   people={people}
                   locale={locale}
@@ -333,6 +339,24 @@ export default function DailyWorkView({ groupId: id }: { groupId: string }) {
         </ScenicBody>
       </ScrollView>
       <OverflowMenu visible={menuId !== null} onClose={() => setMenuId(null)} items={items} />
+      <AddTaskSheet
+        key={addKey}
+        groupId={id}
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        people={access.people}
+        defaultMemberIds={
+          personFilter && allowedPerson(personFilter)
+            ? [personFilter]
+            : access.people.length === 1
+              ? access.people.map((p) => p.id)
+              : []
+        }
+        defaultDay={day}
+        today={today}
+        maxDay={maxDay}
+        onSaved={setDay}
+      />
       <WorkFiltersAndDraftSheet
         filterOpen={filterOpen}
         setFilterOpen={setFilterOpen}
@@ -349,7 +373,6 @@ export default function DailyWorkView({ groupId: id }: { groupId: string }) {
         setPersonFilter={setPersonFilter}
         draft={draft}
         setDraft={setDraft}
-        tasks={tasks}
         busy={busy}
         error={error}
         allowedPerson={allowedPerson}

@@ -1,6 +1,7 @@
 import type { CompanyEntry } from '@waves/core';
 
 import { useCompanyEntries, type CompanyView } from '@/data/companyEntries';
+import { usePendingLeave } from '@/data/companyCalendar';
 import { usePendingVendorBills } from '@/data/companyVendors';
 import { useWorkdayCounts } from '@/data/companyWorkday';
 
@@ -17,7 +18,7 @@ export function awaitingApprovals(view: CompanyView): CompanyEntry[] {
 }
 
 /**
- * The Pending tab's badge: what needs this person to act (claims, vendor bills to confirm, blocked tasks).
+ * The Pending tab's badge: what needs this person to act (claims, vendor bills to confirm, blocked tasks, leave to decide).
  * Unpaid bills and people not marked today are listed on the screen but not counted.
  */
 export function usePendingCount(groupId: string | null): number {
@@ -25,5 +26,6 @@ export function usePendingCount(groupId: string | null): number {
   const view = useCompanyEntries(id);
   const vendorBills = usePendingVendorBills(id).count;
   const { blocked } = useWorkdayCounts(id);
-  return groupId === null ? 0 : awaitingApprovals(view).length + vendorBills + blocked;
+  const leave = usePendingLeave(id).length;
+  return groupId === null ? 0 : awaitingApprovals(view).length + vendorBills + blocked + leave;
 }

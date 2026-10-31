@@ -104,6 +104,15 @@ type MutationKind =
   | 'company_attendance.set'
   | 'company_work.set'
   | 'company_work.remove'
+  | 'company_calendar.settings_set'
+  | 'company_holiday.set'
+  | 'company_holiday.remove'
+  | 'company_leave.set'
+  | 'company_leave.decide'
+  | 'company_leave.remove'
+  | 'company_event.set'
+  | 'company_event.remove'
+  | 'company_dates.set'
   | 'company_project.set'
   | 'company_pool.post'
   | 'company_wage.pay'
@@ -114,6 +123,8 @@ type MutationKind =
   | 'company_vendor_entry.review'
   | 'company_vendor_entry.void'
   | 'company_vendor_entry.received'
+  | 'company_details.set'
+  | 'company_vendor_details.set'
   | 'company_doc.save'
   | 'company_doc.status'
   | 'company_doc.convert'
@@ -354,11 +365,21 @@ const GROUP_TABLES = [
   ['company_vendors', '*'],
   ['company_vendor_entries', '*'],
   ['company_vendor_entry_attachments', '*'],
+  ['company_work_task_attachments', '*'],
+  // Details cards. The company's bank + PAN live in their own table whose RLS excludes employees, so an employee's pull never carries them.
+  ['company_details', '*'],
+  ['company_details_secure', '*'],
+  ['company_vendor_details', '*'],
   // Estimates and bills: RLS gives an owner all, a manager only the ones they created, others none.
   ['company_documents', '*'],
   // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
   ['company_attendance', '*'],
   ['company_work_tasks', '*'],
+  // Calendar: holidays (every member), leave, events and birthdays; RLS filters each to what the caller may see.
+  ['company_holidays', '*'],
+  ['company_leave', '*'],
+  ['company_events', '*'],
+  ['company_member_dates', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -463,6 +484,10 @@ serveWithCors(async (request) => {
       .filter((row) => (row as { role?: string }).role !== 'admin')
       .map((row) => row.group_id as string);
     const companyVisible = await companyVisibleMembers(caller, managerGroupIds);
+    const calendarVisible = await companyCalendarVisible(
+      caller,
+      (mine.data ?? []).map((row) => row.group_id as string),
+    );
 
     return json({
       outcomes,
@@ -476,6 +501,7 @@ serveWithCors(async (request) => {
       // Company groups only: who this caller may still see. A phone drops cached
       // detail for anyone else (an employee who moved to another manager).
       companyVisible,
+      calendarVisible,
       serverTime: new Date().toISOString(),
     });
   } catch (error) {
@@ -1068,6 +1094,85 @@ export class SyncSession {
           p_group_id: mutation.groupId,
           p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
         });
+      case 'company_calendar.settings_set': {
+        const { paidHolidays, paidLeave } = mutation.payload;
+        if (typeof paidHolidays !== 'boolean' || typeof paidLeave !== 'boolean')
+          companyInvalid('settings');
+        return await this.rpcAsCaller('waves_company_calendar_settings_set', {
+          p_group_id: mutation.groupId,
+          p_paid_holidays: paidHolidays,
+          p_paid_leave: paidLeave,
+        });
+      }
+      case 'company_holiday.set':
+        return await this.rpcAsCaller('waves_company_holiday_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_start: companyDate(mutation.payload.startDay, 'startDay'),
+          p_end: companyDate(mutation.payload.endDay, 'endDay'),
+          p_name: companyReason(mutation.payload.name, 'name', true),
+        });
+      case 'company_holiday.remove':
+        return await this.rpcAsCaller('waves_company_holiday_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_leave.set': {
+        const kind = mutation.payload.kind;
+        if (kind !== 'casual' && kind !== 'sick' && kind !== 'other') companyInvalid('kind');
+        return await this.rpcAsCaller('waves_company_leave_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_start: companyDate(mutation.payload.startDay, 'startDay'),
+          p_end: companyDate(mutation.payload.endDay, 'endDay'),
+          p_half: mutation.payload.halfDay === true,
+          p_kind: kind,
+          p_reason: companyReason(mutation.payload.reason, 'reason', false),
+        });
+      }
+      case 'company_leave.decide':
+        if (typeof mutation.payload.approve !== 'boolean') companyInvalid('approve');
+        return await this.rpcAsCaller('waves_company_leave_decide', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_approve: mutation.payload.approve,
+          p_note: companyReason(mutation.payload.note, 'note', false),
+        });
+      case 'company_leave.remove':
+        return await this.rpcAsCaller('waves_company_leave_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_event.set':
+        return await this.rpcAsCaller('waves_company_event_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_title: companyReason(mutation.payload.title, 'title', true),
+          p_day: companyDate(mutation.payload.day, 'day'),
+          p_time: companyReason(mutation.payload.time, 'time', false),
+          p_project_id: companyUuid(mutation.payload.projectId ?? null, 'projectId', true),
+          p_people: companyUuidList(mutation.payload.people, 'people'),
+        });
+      case 'company_event.remove':
+        return await this.rpcAsCaller('waves_company_event_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_dates.set': {
+        const { birthDay, birthMonth } = mutation.payload;
+        const joined = mutation.payload.joinedOn;
+        if (birthDay !== null) companyNonnegativeInteger(birthDay, 'birthDay');
+        if (birthMonth !== null) companyNonnegativeInteger(birthMonth, 'birthMonth');
+        return await this.rpcAsCaller('waves_company_dates_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_birth_day: birthDay,
+          p_birth_month: birthMonth,
+          p_joined_on: joined === null ? null : companyDate(joined, 'joinedOn'),
+          p_show: mutation.payload.showBirthday === true,
+        });
+      }
       case 'company_member.projects_set':
         return await this.rpcAsCaller('waves_company_member_projects_set', {
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
@@ -1202,6 +1307,17 @@ export class SyncSession {
         return await this.rpcAsCaller('waves_company_vendor_entry_received', {
           p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
           p_received: mutation.payload.received,
+        });
+      case 'company_details.set':
+        return await this.rpcAsCaller('waves_company_details_set', {
+          p_group_id: mutation.groupId,
+          p_data: companyCardData(mutation.payload.data),
+        });
+      case 'company_vendor_details.set':
+        return await this.rpcAsCaller('waves_company_vendor_details_set', {
+          p_group_id: mutation.groupId,
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_data: companyCardData(mutation.payload.data),
         });
       case 'company_member.rate_set':
         return await this.rpcAsCaller('waves_company_member_rate_set', {
@@ -2553,6 +2669,32 @@ function companyReason(value: unknown, field: string, required: boolean): string
   if (typeof value !== 'string' || value.trim().length > 500) companyInvalid(field);
   return (value as string).trim();
 }
+/** Details card body: known keys, strings or null; the database checks each format. */
+const CARD_KEYS = [
+  'bankName',
+  'bankAccount',
+  'ifsc',
+  'upi',
+  'pan',
+  'address',
+  'phone',
+  'email',
+  'gstin',
+  'note',
+];
+function companyCardData(value: unknown): Record<string, string | null> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('data');
+  const d = value as Record<string, unknown>;
+  for (const k of Object.keys(d)) if (!CARD_KEYS.includes(k)) companyInvalid(k);
+  const out: Record<string, string | null> = {};
+  for (const k of CARD_KEYS) {
+    const v = d[k];
+    if (v !== null && v !== undefined && (typeof v !== 'string' || v.length > 500))
+      companyInvalid(k);
+    out[k] = typeof v === 'string' ? v : null;
+  }
+  return out;
+}
 /** Estimate / bill body: shape-checked here, amounts recomputed by the database. */
 function companyDocData(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('data');
@@ -2779,6 +2921,43 @@ function companyTag(
  * exactly the people whose entries they may hold). A group is left out when the list
  * could not be read in full, so a failure can never make a phone discard data.
  */
+/**
+ * Company groups only: the birthday rows and events the caller can read right now. RLS hides a row the
+ * moment access is revoked (a birthday switched off, removal from an event) without sending a tombstone,
+ * so the phone drops whatever is not on this list. A group whose list could not be read completely is left out.
+ */
+async function companyCalendarVisible(
+  caller: SupabaseClient,
+  groupIds: readonly string[],
+): Promise<Record<string, { dates: string[]; events: string[] }>> {
+  const out: Record<string, { dates: string[]; events: string[] }> = {};
+  if (groupIds.length === 0) return out;
+  const groups = await caller.from('groups').select('id').eq('type', 'company').in('id', groupIds);
+  if (groups.error) return out;
+  const PAGE = 1000;
+  const ids = async (table: string, groupId: string): Promise<string[] | null> => {
+    const all: string[] = [];
+    for (let from = 0; from < PAGE * 5; from += PAGE) {
+      const page = await caller
+        .from(table)
+        .select('id')
+        .eq('group_id', groupId)
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (page.error) return null;
+      all.push(...(page.data ?? []).map((row) => row.id as string));
+      if ((page.data ?? []).length < PAGE) return all;
+    }
+    return null;
+  };
+  for (const { id } of groups.data ?? []) {
+    const dates = await ids('company_member_dates', id as string);
+    const events = await ids('company_events', id as string);
+    if (dates && events) out[id as string] = { dates, events };
+  }
+  return out;
+}
+
 async function companyVisibleMembers(
   caller: SupabaseClient,
   groupIds: readonly string[],
