@@ -1510,6 +1510,13 @@ export interface UiStrings {
     attendanceWeeklyView: string;
     attendanceMonthlyView: string;
     attendanceSetStatus: string;
+    attendanceMarkAllAbsent: string;
+    attendanceOnLeave: string;
+    attendanceLeaveApplied: string;
+    attendanceLeave: string;
+    attendanceAutoSaved: string;
+    attendanceOverwriteTitle: string;
+    attendanceOverwriteBody: string;
     attendanceTasks: PluralForms;
     attendanceSubtitle: PluralForms;
     attendanceSummary: PluralForms;
@@ -8387,6 +8394,13 @@ const en: UiStrings = {
     attendanceWeeklyView: 'Weekly view',
     attendanceMonthlyView: 'Monthly view',
     attendanceSetStatus: 'Mark attendance',
+    attendanceMarkAllAbsent: 'Mark all absent',
+    attendanceOnLeave: 'On leave',
+    attendanceLeaveApplied: 'Leave applied',
+    attendanceLeave: 'Leave',
+    attendanceAutoSaved: 'Attendance is saved automatically',
+    attendanceOverwriteTitle: 'Replace existing marks?',
+    attendanceOverwriteBody: '{n} people already have a different mark for this day. Replace them?',
     attendanceTasks: { one: '{n} task', other: '{n} tasks' },
     attendanceSubtitle: { one: '{company} · {n} employee', other: '{company} · {n} employees' },
     attendanceSummary: { one: '{n} day present', other: '{n} days present' },
@@ -14726,6 +14740,13 @@ const ta: UiStrings = {
     attendanceWeeklyView: 'வாராந்திர பார்வை',
     attendanceMonthlyView: 'மாதாந்திர பார்வை',
     attendanceSetStatus: 'வருகையைக் குறிக்கவும்',
+    attendanceMarkAllAbsent: 'அனைவருக்கும் வரவில்லை',
+    attendanceOnLeave: 'விடுப்பில்',
+    attendanceLeaveApplied: 'விடுப்பு விண்ணப்பம்',
+    attendanceLeave: 'விடுப்பு',
+    attendanceAutoSaved: 'வருகை தானாகவே சேமிக்கப்படும்',
+    attendanceOverwriteTitle: 'இருக்கும் குறிகளை மாற்றவா?',
+    attendanceOverwriteBody: '{n} பேருக்கு இந்த நாளில் வேறு குறி உள்ளது. மாற்றவா?',
     attendanceTasks: { other: '{n} பணிகள்' },
     attendanceSubtitle: { other: '{company} · {n} பணியாளர்கள்' },
     attendanceSummary: { other: '{n} நாட்கள் வருகை' },
@@ -21229,6 +21250,13 @@ const hi: UiStrings = {
     attendanceWeeklyView: 'साप्ताहिक दृश्य',
     attendanceMonthlyView: 'मासिक दृश्य',
     attendanceSetStatus: 'हाज़िरी लगाएँ',
+    attendanceMarkAllAbsent: 'सबको गैरहाज़िर करें',
+    attendanceOnLeave: 'छुट्टी पर',
+    attendanceLeaveApplied: 'छुट्टी का आवेदन',
+    attendanceLeave: 'छुट्टी',
+    attendanceAutoSaved: 'हाज़िरी अपने आप सेव होती है',
+    attendanceOverwriteTitle: 'मौजूदा निशान बदलें?',
+    attendanceOverwriteBody: '{n} लोगों का इस दिन पहले से अलग निशान है। बदलें?',
     attendanceTasks: { other: '{n} कार्य' },
     attendanceSubtitle: { other: '{company} · {n} कर्मचारी' },
     attendanceSummary: { other: '{n} दिन हाज़िर' },
@@ -27618,6 +27646,13 @@ const ar: UiStrings = {
     attendanceWeeklyView: 'عرض أسبوعي',
     attendanceMonthlyView: 'عرض شهري',
     attendanceSetStatus: 'تسجيل الحضور',
+    attendanceMarkAllAbsent: 'تسجيل غياب الجميع',
+    attendanceOnLeave: 'في إجازة',
+    attendanceLeaveApplied: 'تم طلب إجازة',
+    attendanceLeave: 'إجازة',
+    attendanceAutoSaved: 'يتم حفظ الحضور تلقائيًا',
+    attendanceOverwriteTitle: 'استبدال العلامات الحالية؟',
+    attendanceOverwriteBody: 'لدى {n} أشخاص علامة مختلفة لهذا اليوم. هل تريد استبدالها؟',
     attendanceTasks: {
       zero: '{n} مهمة',
       one: 'مهمة واحدة',
