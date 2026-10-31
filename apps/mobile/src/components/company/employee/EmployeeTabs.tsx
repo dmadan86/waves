@@ -183,6 +183,7 @@ export function OverviewTab({
   dueCount,
   dueTotal,
   month,
+  onMonth,
   showAttendance,
   onTab,
   onAddExpense,
@@ -199,8 +200,9 @@ export function OverviewTab({
   currency: string;
   dueCount: number;
   dueTotal: bigint;
-  /** YYYY-MM, this month. */
+  /** YYYY-MM shown in the cards and calendar. */
   month: string;
+  onMonth: (month: string) => void;
   showAttendance: boolean;
   onTab: (tab: EmployeeTab) => void;
   /** Omitted when the viewer cannot add entries for this person. */
@@ -283,6 +285,8 @@ export function OverviewTab({
         <AttendanceMonth
           groupId={groupId}
           memberId={memberId}
+          month={month}
+          onMonth={onMonth}
           onViewAll={() => onTab('attendance')}
         />
       ) : null}
