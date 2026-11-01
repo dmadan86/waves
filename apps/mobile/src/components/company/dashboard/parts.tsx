@@ -164,7 +164,7 @@ export function TabPills<T extends string>({
   );
 }
 
-function IconButton({
+export function IconButton({
   icon,
   label,
   onPress,
@@ -267,6 +267,8 @@ export function DashHeader({
   exportMenu,
   overview = false,
   menuItems,
+  tab = false,
+  actions,
 }: {
   groupId: string;
   view: CompanyView;
@@ -283,11 +285,15 @@ export function DashHeader({
   overview?: boolean;
   /** The Team header: no back arrow or subtitle, round gear and a round ••• opening these items. */
   menuItems?: readonly OverflowMenuItem[];
+  /** A company-bar tab root: the Team header (no back arrow or subtitle), with or without a menu. */
+  tab?: boolean;
+  /** Extra round buttons before the gear. */
+  actions?: ReactNode;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
-  const bare = !!menuItems && !overview;
+  const bare = (!!menuItems || tab) && !overview;
   const g = greetingFor(new Date().getHours());
   const greeting =
     g === 'morning'
@@ -360,6 +366,7 @@ export function DashHeader({
             <SpacePill current={groupId} label={view.name || t.extras.typeCompany} />
           </View>
           {overview ? <OverviewBell groupId={groupId} /> : null}
+          {actions}
           {showGear ? (
             <IconButton
               icon="settings-outline"

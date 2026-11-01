@@ -29,6 +29,7 @@ export function SectionShell({
   subtitle,
   segment,
   menuItems,
+  tab = false,
   children,
 }: {
   groupId: string;
@@ -45,6 +46,8 @@ export function SectionShell({
   segment?: ReactNode;
   /** Team: the round ••• menu in the header (also drops the back arrow and subtitle). */
   menuItems?: readonly OverflowMenuItem[];
+  /** A bar tab root (Payments, More): the Team header, no back arrow. */
+  tab?: boolean;
   children: ReactNode;
 }) {
   const clearance = useBottomClearance();
@@ -67,6 +70,7 @@ export function SectionShell({
       showGear={view.isOwner}
       menuItems={segment || overview ? menuItems : undefined}
       overview={overview}
+      tab={tab}
       subtitle={
         overview
           ? t.company.ovGlance

@@ -28,7 +28,7 @@ export function CompanyPayments({ groupId }: { groupId: string }) {
       (view.isOwner || teamIds.has(e.memberId)),
   );
   return (
-    <SectionShell groupId={groupId} view={view}>
+    <SectionShell groupId={groupId} view={view} tab>
       <>
         <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 12, gap: 4 }}>
           <Text variant="title" style={{ fontSize: 16 }}>
