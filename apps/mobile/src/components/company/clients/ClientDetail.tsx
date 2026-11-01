@@ -460,12 +460,12 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                 </>
               ) : (
                 <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
-                  {(tab === 'bills' ? docs : bills).length === 0 ? (
+                  {(tab === 'bills' ? bills : docs).length === 0 ? (
                     <Text tone="muted" style={{ paddingVertical: theme.spacing.md }}>
                       {tab === 'bills' ? s.billsEmpty : s.docsEmpty}
                     </Text>
                   ) : (
-                    (tab === 'bills' ? docs : bills).map((d, index, list) => (
+                    (tab === 'bills' ? bills : docs).map((d, index, list) => (
                       <ListRow
                         key={d.id}
                         title={docNumberLabel(d.docType, d.number)}

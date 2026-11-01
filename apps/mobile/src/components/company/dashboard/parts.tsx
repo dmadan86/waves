@@ -33,6 +33,7 @@ import { useHeroStatusBar } from '@/components/ScreenHero';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { useCompanyTags } from '@/data/companyTags';
 import { useCompanyProjects, useCompanySuspended, type CompanyView } from '@/data/companyEntries';
+import { companyCountsLine } from '@/lib/companyCounts';
 import { displayName, type MemberRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useCompanyActivityUnread } from '@/data/companyActivity';
@@ -1056,10 +1057,15 @@ export function useCompanyCounts() {
   const { t, locale } = useStrings();
   return (members: readonly MemberRow[]) => {
     const live = members.filter((m) => !m.left_at);
-    return [
-      plural(locale, live.filter((m) => m.role === 'member').length, t.company.employeeCount),
-      plural(locale, live.filter((m) => m.role === 'manager').length, t.company.managerCount),
-      plural(locale, live.filter((m) => m.role === 'admin').length, t.company.ownerCount),
-    ].join(' · ');
+    const n = (role: string) => live.filter((m) => m.role === role).length;
+    return companyCountsLine(
+      locale,
+      { employees: n('member'), managers: n('manager'), owners: n('admin') },
+      {
+        employees: t.company.employeeCount,
+        managers: t.company.managerCount,
+        owners: t.company.ownerCount,
+      },
+    );
   };
 }
