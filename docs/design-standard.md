@@ -24,6 +24,14 @@ do not draw your own header, card, pill or row.
 - Colour: theme tokens only. Selected pill `#1F1B4D`; accent links `brand`; category colours from the rank palette (`RANK_COLORS`) in charts.
 - Money: never convert between currencies and never re-divide an expense; use the `@waves/core` helpers.
 
+## Forms and cards (Create group is the reference)
+
+- Group label (Group name, Add friends, Group type, More options): `SectionLabel` only. A 28dp `brandSoft` disc, 16dp `brand` glyph, title 16sp/700 in full ink, 8dp gap. Never a bare muted label, never an icon without the disc.
+- Sub-captions inside a group ("Suggested", "See all") are 13sp/600: muted, or `brand` for a link. Field text is 16sp; placeholders `textFaint`.
+- Option rows (`DetailRow`) in a form card are always `tint={{ bg: brandSoft, ink: brand }}` and `dense`: the same 28dp disc, bold title, value on the right. No row without a disc.
+- Cards: `FormCard` 20dp radius, 14dp padding, `spacing.sm` (8dp) between cards. Selected tile/chip: `brandSoft` fill with a `brand` outline.
+- When you add a section to a form, use these; do not size a label or an icon by hand.
+
 ## Rules
 
 - An action is drawn only when it does something. Pass `undefined` for `SectionHeader.action` when there is nothing to open; no inert "See all", no empty chevron.

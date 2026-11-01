@@ -3860,7 +3860,6 @@ export interface UiStrings {
     descriptionLabel: string;
     optional: string;
     seeAll: string;
-    addManually: string;
     moreOptions: string;
   };
   /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
@@ -11044,7 +11043,7 @@ const en: UiStrings = {
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
     addFriendsSub: 'Add people to start sharing expenses',
     addContacts: 'Add contacts',
-    personPlaceholder: 'Search name or phone number',
+    personPlaceholder: 'Add name',
     groupType: 'Group type',
     groupTypeSub: 'Choose a type to personalize your group',
     datesSub: 'Set your travel dates (optional)',
@@ -11057,7 +11056,6 @@ const en: UiStrings = {
     descriptionLabel: 'Description (optional)',
     optional: '(optional)',
     seeAll: 'See all',
-    addManually: 'Add manually',
     moreOptions: 'More options',
   },
   captureForm: {
@@ -17855,7 +17853,7 @@ const ta: UiStrings = {
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
     addFriendsSub: 'செலவுகளைப் பகிர நபர்களைச் சேர்க்கவும்',
     addContacts: 'தொடர்புகள்',
-    personPlaceholder: 'பெயர் அல்லது தொலைபேசி எண்ணைத் தேடுங்கள்',
+    personPlaceholder: 'பெயரைச் சேர்',
     groupType: 'குழு வகை',
     groupTypeSub: 'உங்கள் குழுவுக்கு ஏற்ற வகையைத் தேர்வுசெய்யுங்கள்',
     datesSub: 'பயணத் தேதிகள் (விருப்பம்)',
@@ -17868,7 +17866,6 @@ const ta: UiStrings = {
     descriptionLabel: 'விளக்கம் (விருப்பத்தேர்வு)',
     optional: '(விருப்பத்தேர்வு)',
     seeAll: 'அனைத்தும்',
-    addManually: 'கைமுறையாகச் சேர்',
     moreOptions: 'மேலும் விருப்பங்கள்',
   },
   captureForm: {
@@ -24759,7 +24756,7 @@ const hi: UiStrings = {
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
     addFriendsSub: 'खर्च बाँटने के लिए लोगों को जोड़ें',
     addContacts: 'संपर्क जोड़ें',
-    personPlaceholder: 'नाम या फ़ोन नंबर खोजें',
+    personPlaceholder: 'नाम जोड़ें',
     groupType: 'समूह का प्रकार',
     groupTypeSub: 'अपने ग्रुप के लिए एक प्रकार चुनें',
     datesSub: 'यात्रा की तारीखें (वैकल्पिक)',
@@ -24772,7 +24769,6 @@ const hi: UiStrings = {
     descriptionLabel: 'विवरण (वैकल्पिक)',
     optional: '(वैकल्पिक)',
     seeAll: 'सभी देखें',
-    addManually: 'खुद जोड़ें',
     moreOptions: 'और विकल्प',
   },
   captureForm: {
@@ -31671,7 +31667,7 @@ const ar: UiStrings = {
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
     addFriendsSub: 'أضف أشخاصًا لبدء تقاسم المصروفات',
     addContacts: 'إضافة جهات اتصال',
-    personPlaceholder: 'ابحث بالاسم أو رقم الهاتف',
+    personPlaceholder: 'أضف اسمًا',
     groupType: 'نوع المجموعة',
     groupTypeSub: 'اختر نوعاً يناسب مجموعتك',
     datesSub: 'حدّد تواريخ السفر (اختياري)',
@@ -31684,7 +31680,6 @@ const ar: UiStrings = {
     descriptionLabel: 'الوصف (اختياري)',
     optional: '(اختياري)',
     seeAll: 'عرض الكل',
-    addManually: 'إضافة يدويًا',
     moreOptions: 'خيارات إضافية',
   },
   captureForm: {
