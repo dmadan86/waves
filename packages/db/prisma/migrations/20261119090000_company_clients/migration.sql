@@ -92,6 +92,8 @@ BEGIN
  END IF;
  IF v_owner IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.group_members WHERE id=v_owner AND group_id=p_group_id AND role::text IN ('admin','manager','member') AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL) THEN RAISE EXCEPTION 'UNKNOWN_MEMBER' USING ERRCODE='insufficient_privilege'; END IF;
  IF r.id IS NOT NULL THEN
+  -- A new follow-up person must also receive the history: re-stamp the notes so their next pull carries them.
+  IF v_owner IS DISTINCT FROM r.owner_member_id THEN UPDATE public.company_client_notes SET updated_at=now() WHERE client_id=r.id; END IF;
   UPDATE public.company_clients SET name=v_name,phone=v_phone,need=v_need,source=v_src,expected_value=v_val,address=v_addr,stage=v_stage,lost_reason=v_lost,owner_member_id=v_owner,version=version+1,updated_at=now() WHERE id=r.id;
   RETURN r.id;
  END IF;
