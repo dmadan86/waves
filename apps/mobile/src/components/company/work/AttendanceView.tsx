@@ -31,12 +31,7 @@ import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
 import type { MenuAnchor } from '@/components/SortMenu';
-import {
-  attendanceStatusLetter,
-  dayCounts,
-  matchesStatus,
-  weekDays,
-} from '@/lib/companyAttendance';
+import { attendanceStatusLetter, matchesStatus, weekDays } from '@/lib/companyAttendance';
 import { AttendanceRow, GREEN, RED } from './AttendanceRow';
 import { AttendanceToolbar } from './AttendanceToolbar';
 
@@ -137,7 +132,6 @@ export default function AttendanceView({
     ],
   );
   // The stat card counts everyone the viewer may mark; only the list below follows the filters.
-  const counts = dayCounts(access.people, marks, date);
   const taskCount = useMemo(() => {
     const byPerson = new Map<string, number>();
     for (const task of tasks)
@@ -152,7 +146,12 @@ export default function AttendanceView({
     }
     return byPerson;
   }, [people, company.entries, today]);
-  const write = (memberId: string, status: AttendanceStatus | null, note: string | null) => {
+  const write = (
+    memberId: string,
+    status: AttendanceStatus | null,
+    note: string | null,
+    onSuccess?: () => void,
+  ) => {
     if (
       !access.enabled ||
       !access.canManage ||
@@ -163,7 +162,10 @@ export default function AttendanceView({
     )
       return;
     setError(false);
-    save.mutate({ memberId, day: date, status, note }, { onError: () => setError(true) });
+    save.mutate(
+      { memberId, day: date, status, note },
+      { onSuccess, onError: () => setError(true) },
+    );
   };
   const labelDate = new Date(`${date}T00:00:00Z`).toLocaleDateString(locale, {
     weekday: 'short',
@@ -264,8 +266,11 @@ export default function AttendanceView({
     draftStatus !== (pickMark?.status ?? null) ||
     (!!draftStatus && draftNote.trim() !== (pickMark?.note ?? ''));
   const saveDraft = () => {
-    if (pickFor) write(pickFor, draftStatus, draftStatus ? draftNote.trim() || null : null);
-    setPickFor(null);
+    // Stay open on failure so the draft survives for a retry.
+    if (pickFor)
+      write(pickFor, draftStatus, draftStatus ? draftNote.trim() || null : null, () =>
+        setPickFor(null),
+      );
   };
   return (
     <>
