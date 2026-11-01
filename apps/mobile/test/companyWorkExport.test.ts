@@ -80,6 +80,13 @@ describe('company work reports', () => {
       ['Plant', '1', '1', '1', '2'],
     ]);
   });
+  it('keeps two people with the same name apart', () => {
+    const model = buildWorkReport({ ...base, report: 'person', personName: () => 'Sam' });
+    expect(rows(model)).toEqual([
+      ['Sam', '1', '1', '1', '2'],
+      ['Sam', '1', '0', '1', '1'],
+    ]);
+  });
   it('overdue report gives the completion rate and the late tasks with days late', () => {
     const model = buildWorkReport({ ...base, report: 'overdue' });
     expect(model.headline.find(([k]) => k === 'Rate')?.[1]).toBe('33%');
