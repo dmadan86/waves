@@ -2191,6 +2191,14 @@ export interface UiStrings {
     toReceive: string;
     search: string;
     newInquiry: string;
+    subtitle: string;
+    fUnpaid: string;
+    quickActions: string;
+    createQuote: string;
+    createBill: string;
+    quotesN: string;
+    billsN: string;
+    open: string;
     editClient: string;
     bannerToday: string;
     bannerOverdue: string;
@@ -9339,6 +9347,14 @@ const en: UiStrings = {
     toReceive: 'To receive',
     search: 'Search clients',
     newInquiry: 'New inquiry',
+    subtitle: 'Manage inquiries, quotes and bills',
+    fUnpaid: 'Unpaid',
+    quickActions: 'Quick actions',
+    createQuote: 'Create quote',
+    createBill: 'Create bill',
+    quotesN: '{n} quotes',
+    billsN: '{n} bills',
+    open: 'Open',
     editClient: 'Edit client',
     bannerToday: '{n} follow-ups today',
     bannerOverdue: '{n} overdue',
@@ -15944,6 +15960,14 @@ const ta: UiStrings = {
     toReceive: 'பெற வேண்டியது',
     search: 'வாடிக்கையாளர்களைத் தேடு',
     newInquiry: 'புதிய விசாரணை',
+    subtitle: 'விசாரணைகள், மதிப்பீடுகள், பில்களை நிர்வகிக்கவும்',
+    fUnpaid: 'நிலுவை',
+    quickActions: 'விரைவு செயல்கள்',
+    createQuote: 'மதிப்பீடு உருவாக்கு',
+    createBill: 'பில் உருவாக்கு',
+    quotesN: '{n} மதிப்பீடுகள்',
+    billsN: '{n} பில்கள்',
+    open: 'திற',
     editClient: 'வாடிக்கையாளரை திருத்து',
     bannerToday: 'இன்று {n} பின்தொடர்தல்',
     bannerOverdue: '{n} தாமதம்',
@@ -22708,6 +22732,14 @@ const hi: UiStrings = {
     toReceive: 'पाना बाकी',
     search: 'ग्राहक खोजें',
     newInquiry: 'नई पूछताछ',
+    subtitle: 'पूछताछ, कोटेशन और बिल संभालें',
+    fUnpaid: 'बकाया',
+    quickActions: 'त्वरित कार्य',
+    createQuote: 'कोटेशन बनाएं',
+    createBill: 'बिल बनाएं',
+    quotesN: '{n} कोटेशन',
+    billsN: '{n} बिल',
+    open: 'खोलें',
     editClient: 'ग्राहक बदलें',
     bannerToday: 'आज {n} फॉलो-अप',
     bannerOverdue: '{n} देर',
@@ -29411,6 +29443,14 @@ const ar: UiStrings = {
     toReceive: 'مستحق القبض',
     search: 'ابحث في العملاء',
     newInquiry: 'استفسار جديد',
+    subtitle: 'إدارة الاستفسارات وعروض الأسعار والفواتير',
+    fUnpaid: 'غير مدفوع',
+    quickActions: 'إجراءات سريعة',
+    createQuote: 'إنشاء عرض سعر',
+    createBill: 'إنشاء فاتورة',
+    quotesN: '{n} عروض أسعار',
+    billsN: '{n} فواتير',
+    open: 'فتح',
     editClient: 'تعديل العميل',
     bannerToday: '{n} متابعات اليوم',
     bannerOverdue: '{n} متأخرة',
