@@ -46,10 +46,16 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const sortRef = useRef<View>(null);
   const counts = clientCounts(view.clients);
   const owed = (id: string) => money.byClient.get(id) ?? 0n;
-  const unpaidClients = view.clients.filter((c) => c.stage !== 'lost' && owed(c.id) > 0n);
+  const unpaidClients = view.clients.filter((c) => owed(c.id) > 0n);
   const unpaidTotal = unpaidClients.reduce((n, c) => n + owed(c.id), 0n);
-  const base = filterClients(view.clients, filter === 'unpaid' ? 'all' : filter, query);
-  const listed = filter === 'unpaid' ? base.filter((c) => owed(c.id) > 0n) : base;
+  const q = query.trim().toLocaleLowerCase();
+  // Unpaid ignores stage: a lost client's open bills are still owed.
+  const listed =
+    filter === 'unpaid'
+      ? unpaidClients.filter((c) =>
+          [c.name, c.phone, c.need].some((v) => !q || v?.toLocaleLowerCase().includes(q)),
+        )
+      : filterClients(view.clients, filter, query);
   const rows = byName ? [...listed].sort((a, b) => a.name.localeCompare(b.name)) : listed;
   const chips: { value: Filter; label: string }[] = [
     { value: 'all', label: `${s.fAll} ${counts.all}` },
