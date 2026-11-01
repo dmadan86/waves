@@ -2264,6 +2264,12 @@ export interface UiStrings {
     catOther: string;
   };
   companyStorage: {
+    addMore: string;
+    packLine: string;
+    packNote: string;
+    bought: string;
+    pending: string;
+    buyFailed: string;
     title: string;
     usedOfQuota: string;
     percentUsed: string;
@@ -9294,6 +9300,13 @@ const en: UiStrings = {
     catOther: 'Other',
   },
   companyStorage: {
+    addMore: 'Add more storage',
+    packLine: '{size} · {price}/month',
+    packNote:
+      'One pack per company; switch any time. If it ends, your photos stay and only new uploads stop.',
+    bought: 'Thanks. Your space will update in a moment.',
+    pending: 'Purchase pending. Storage updates once it completes.',
+    buyFailed: 'Could not complete the purchase. Try again.',
     title: 'Storage',
     usedOfQuota: '{used} of {quota}',
     percentUsed: '{percent}% used',
@@ -15781,6 +15794,13 @@ const ta: UiStrings = {
     catOther: 'மற்றவை',
   },
   companyStorage: {
+    addMore: 'மேலும் சேமிப்பைச் சேர்க்கவும்',
+    packLine: '{size} · மாதம் {price}',
+    packNote:
+      'ஒரு நிறுவனத்திற்கு ஒரு பேக்; எப்போது வேண்டுமானாலும் மாற்றலாம். முடிந்தால் புகைப்படங்கள் இருக்கும், புதிய பதிவேற்றங்கள் மட்டும் நிற்கும்.',
+    bought: 'நன்றி. உங்கள் இடம் சற்று நேரத்தில் புதுப்பிக்கப்படும்.',
+    pending: 'கொள்முதல் நிலுவையில் உள்ளது. முடிந்ததும் சேமிப்பு புதுப்பிக்கப்படும்.',
+    buyFailed: 'கொள்முதலை முடிக்க முடியவில்லை. மீண்டும் முயலவும்.',
     title: 'சேமிப்பு',
     usedOfQuota: '{quota}-இல் {used}',
     percentUsed: '{percent}% பயன்பாடு',
@@ -22425,6 +22445,13 @@ const hi: UiStrings = {
     catOther: 'अन्य',
   },
   companyStorage: {
+    addMore: 'और स्टोरेज जोड़ें',
+    packLine: '{size} · {price}/माह',
+    packNote:
+      'हर कंपनी के लिए एक पैक; कभी भी बदलें। खत्म होने पर फ़ोटो रहेंगी, सिर्फ़ नई अपलोड रुकेंगी।',
+    bought: 'धन्यवाद। आपकी जगह कुछ ही पल में अपडेट हो जाएगी।',
+    pending: 'खरीद लंबित है। पूरी होने पर स्टोरेज अपडेट होगा।',
+    buyFailed: 'खरीद पूरी नहीं हो सकी। फिर कोशिश करें।',
     title: 'स्टोरेज',
     usedOfQuota: '{quota} में से {used}',
     percentUsed: '{percent}% उपयोग',
@@ -29009,6 +29036,13 @@ const ar: UiStrings = {
     catOther: 'أخرى',
   },
   companyStorage: {
+    addMore: 'أضف المزيد من التخزين',
+    packLine: '{size} · {price}/شهريًا',
+    packNote:
+      'حزمة واحدة لكل شركة، ويمكن تبديلها في أي وقت. إذا انتهت تبقى الصور ويتوقف الرفع الجديد فقط.',
+    bought: 'شكرًا. ستتحدث المساحة بعد لحظات.',
+    pending: 'الشراء قيد الانتظار. يتحدث التخزين عند اكتماله.',
+    buyFailed: 'تعذر إكمال الشراء. حاول مرة أخرى.',
     title: 'التخزين',
     usedOfQuota: '{used} من {quota}',
     percentUsed: 'مستخدم {percent}%',
