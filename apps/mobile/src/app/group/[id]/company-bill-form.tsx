@@ -200,7 +200,10 @@ function DocumentForm({
     setItems(items.map((i) => (i.key === key ? { ...i, ...p } : i)));
   const step = (key: number, delta: bigint) => {
     const item = items.find((i) => i.key === key)!;
-    const next = (parseQtyMilli(item.qty) ?? 1000n) + delta;
+    const cur = parseQtyMilli(item.qty) ?? 1000n;
+    // Minus never goes below 1 and never raises a fractional qty (0.5 stays 0.5).
+    if (delta < 0n && cur <= 1000n) return;
+    const next = cur + delta;
     patch(key, { qty: formatQty(next < 1000n ? 1000n : next) });
   };
   const busy = save.isPending || pay.isPending;
