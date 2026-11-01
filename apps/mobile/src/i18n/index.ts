@@ -1530,6 +1530,8 @@ export interface UiStrings {
     attendanceLeave: string;
     attendanceSaving: string;
     attendanceMember: string;
+    attendanceMarkHoliday: string;
+    attendanceHolidayEdit: string;
     attendancePrevious: string;
     attendanceNext: string;
     attendanceSaved: string;
@@ -8842,6 +8844,8 @@ const en: UiStrings = {
     attendanceLeave: 'Leave',
     attendanceSaving: 'Saving',
     attendanceMember: 'Member',
+    attendanceMarkHoliday: 'Mark as holiday',
+    attendanceHolidayEdit: 'Holiday: {name}',
     attendancePrevious: 'Previous',
     attendanceNext: 'Next',
     attendanceSaved: 'Saved',
@@ -15620,6 +15624,8 @@ const ta: UiStrings = {
     attendanceLeave: 'விடுப்பு',
     attendanceSaving: 'சேமிக்கிறது',
     attendanceMember: 'உறுப்பினர்',
+    attendanceMarkHoliday: 'விடுமுறையாகக் குறி',
+    attendanceHolidayEdit: 'விடுமுறை: {name}',
     attendancePrevious: 'முந்தைய',
     attendanceNext: 'அடுத்து',
     attendanceSaved: 'சேமிக்கப்பட்டது',
@@ -22564,6 +22570,8 @@ const hi: UiStrings = {
     attendanceLeave: 'छुट्टी',
     attendanceSaving: 'सेव हो रहा है',
     attendanceMember: 'सदस्य',
+    attendanceMarkHoliday: 'छुट्टी के रूप में चिह्नित करें',
+    attendanceHolidayEdit: 'छुट्टी: {name}',
     attendancePrevious: 'पिछला',
     attendanceNext: 'अगला',
     attendanceSaved: 'सेव हो गया',
@@ -29391,6 +29399,8 @@ const ar: UiStrings = {
     attendanceLeave: 'إجازة',
     attendanceSaving: 'جارٍ الحفظ',
     attendanceMember: 'العضو',
+    attendanceMarkHoliday: 'تحديد كعطلة',
+    attendanceHolidayEdit: 'عطلة: {name}',
     attendancePrevious: 'السابق',
     attendanceNext: 'التالي',
     attendanceSaved: 'تم الحفظ',
