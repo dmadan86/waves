@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { dashboardStats } from '@waves/core';
@@ -23,7 +23,8 @@ import {
   useCompanyProjects,
   useCompanyProjectMembers,
 } from '@/data/companyEntries';
-import { useCalendar } from '@/data/companyCalendar';
+import { useCalendar, useCalendarAccess } from '@/data/companyCalendar';
+import { HolidayFormSheet } from '@/components/company/CompanyCalendarSheets';
 import { useDepartments, departmentName } from '@/data/companyDepartments';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
@@ -67,7 +68,9 @@ export default function AttendanceView({
     date?: string;
     status?: string;
   }>();
-  const leave = useCalendar(id).leave;
+  const { leave, holidays } = useCalendar(id);
+  const isOwner = useCalendarAccess(id).isOwner;
+  const [holidayOpen, setHolidayOpen] = useState(false);
   const [period, setPeriod] = useState<Period>('daily'),
     [date, setDate] = useState(
       typeof dateParam === 'string' &&
@@ -228,6 +231,19 @@ export default function AttendanceView({
   )
     .filter(([p]) => p !== period)
     .map(([p, icon, label]) => ({ icon, label, onPress: () => setPeriod(p) }));
+  // Android's picker is its own dialog; inside a Sheet it left an empty sheet behind it.
+  const openDate = () =>
+    Platform.OS === 'android'
+      ? DateTimePickerAndroid.open({
+          value: new Date(`${date}T12:00:00`),
+          maximumDate: new Date(`${today}T23:59:59`),
+          mode: 'date',
+          onChange: (event, d) => {
+            if (event.type === 'set' && d) setDate(d.toISOString().slice(0, 10));
+          },
+        })
+      : setDateOpen(true);
+  const holidayOn = holidays.find((h) => h.startDay <= date && date <= h.endDay);
   const leaveOf = (memberId: string) => {
     const on = leave.filter(
       (l) => l.memberId === memberId && l.startDay <= date && date <= l.endDay,
@@ -298,7 +314,7 @@ export default function AttendanceView({
                         })
                       : labelDate
                   }
-                  onDay={() => setDateOpen(true)}
+                  onDay={openDate}
                   saveState={saveState}
                   query={search}
                   onQueryChange={setSearch}
@@ -346,6 +362,7 @@ export default function AttendanceView({
                     people={people}
                     marks={marks}
                     leave={leave}
+                    holidays={holidays}
                     departments={departments}
                     locale={locale}
                     onDate={(d) => setDate(d > today ? today : d)}
@@ -361,6 +378,7 @@ export default function AttendanceView({
                 people={[access.me]}
                 marks={marks}
                 leave={leave}
+                holidays={holidays}
                 departments={departments}
                 locale={locale}
                 onDate={(d) => setDate(d > today ? today : d)}
@@ -371,6 +389,14 @@ export default function AttendanceView({
           </ReadOnlyWhenSuspended>
         </ScenicBody>
       </ScrollView>
+      <HolidayFormSheet
+        key={`${date}|${holidayOn?.id ?? ''}`}
+        groupId={id}
+        visible={holidayOpen}
+        onClose={() => setHolidayOpen(false)}
+        day={holidayOn ? undefined : date}
+        holiday={holidayOn}
+      />
       <OverflowMenu
         visible={menuAnchor !== null}
         onClose={() => setMenuAnchor(null)}
@@ -388,6 +414,17 @@ export default function AttendanceView({
             disabled: busy || date > today || period !== 'daily',
             onPress: () => void markAll('absent'),
           },
+          ...(isOwner
+            ? [
+                {
+                  icon: 'sunny-outline' as const,
+                  label: holidayOn
+                    ? fill(t.company.attendanceHolidayEdit, { name: holidayOn.name })
+                    : t.company.attendanceMarkHoliday,
+                  onPress: () => setHolidayOpen(true),
+                },
+              ]
+            : []),
           {
             icon: 'options-outline',
             label: t.company.attendanceFilters,
@@ -585,8 +622,8 @@ export default function AttendanceView({
           )}
         </ScrollView>
       </Sheet>
-      <Sheet visible={dateOpen} onClose={() => setDateOpen(false)} closeLabel={t.common.close}>
-        {Platform.OS === 'ios' ? (
+      {Platform.OS === 'ios' ? (
+        <Sheet visible={dateOpen} onClose={() => setDateOpen(false)} closeLabel={t.common.close}>
           <DateTimePicker
             value={new Date(`${date}T12:00:00`)}
             maximumDate={new Date(`${today}T23:59:59`)}
@@ -597,18 +634,8 @@ export default function AttendanceView({
               setDateOpen(false);
             }}
           />
-        ) : (
-          <DateTimePicker
-            value={new Date(`${date}T12:00:00`)}
-            maximumDate={new Date(`${today}T23:59:59`)}
-            mode="date"
-            onChange={(_, d) => {
-              setDateOpen(false);
-              if (d) setDate(d.toISOString().slice(0, 10));
-            }}
-          />
-        )}
-      </Sheet>
+        </Sheet>
+      ) : null}
     </>
   );
 }
@@ -623,6 +650,7 @@ function AttendanceReadOnly({
   people,
   marks,
   leave,
+  holidays,
   departments,
   locale,
   onDate,
@@ -635,6 +663,7 @@ function AttendanceReadOnly({
   people: readonly import('@/data/types').MemberRow[];
   marks: ReadonlyMap<string, import('@/data/companyWorkday').MirrorAttendance>;
   leave: readonly LeaveSpan[];
+  holidays: readonly { startDay: string; endDay: string; name: string }[];
   departments: readonly import('@/data/companyDepartments').CompanyDepartment[];
   locale: string;
   onDate: (iso: string) => void;
@@ -657,6 +686,7 @@ function AttendanceReadOnly({
       (l) =>
         l.memberId === memberId && l.status === 'approved' && l.startDay <= day && day <= l.endDay,
     );
+  const isHoliday = (day: string) => holidays.some((h) => h.startDay <= day && day <= h.endDay);
   const ROW = 48,
     HEAD = 40,
     NAME = 120,
@@ -672,7 +702,9 @@ function AttendanceReadOnly({
             ? ([null, AMBER] as const)
             : onLeave(memberId, day)
               ? (['umbrella-outline', LEAVE] as const)
-              : ([null, null] as const);
+              : isHoliday(day)
+                ? (['sunny-outline', HOLIDAY] as const)
+                : ([null, null] as const);
     return (
       <View
         key={day}
@@ -750,6 +782,7 @@ function AttendanceReadOnly({
     ['checkmark', GREEN, t.company.attendancePresent],
     [null, AMBER, t.company.attendanceHalfDay],
     ['umbrella-outline', LEAVE, t.company.attendanceLeave],
+    ['sunny-outline', HOLIDAY, t.calendar.addHoliday],
     ['close', RED, t.company.attendanceAbsent],
   ];
   return (
@@ -849,6 +882,7 @@ function AttendanceReadOnly({
 }
 
 const LEAVE = '#EA580C';
+const HOLIDAY = '#2563EB';
 
 function shiftIso(iso: string, days: number): string {
   const d = new Date(`${iso}T00:00:00Z`);
