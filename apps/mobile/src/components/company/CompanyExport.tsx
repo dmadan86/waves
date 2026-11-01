@@ -184,9 +184,8 @@ export function CompanyExport({ groupId }: { groupId: string }) {
         const m = view.members.find((member) => member.id === memberId);
         return m ? displayName(m, null, null, t.misc.someone) : '';
       };
-      // Same rule as the Work tab: an owner or manager reads their team, an employee only themselves.
-      const visible = (memberId: string) =>
-        view.isAdmin ? view.manageableIds.has(memberId) : memberId === view.me?.id;
+      // The server already limits what an owner or manager can read, so former employees stay in history.
+      const visible = (memberId: string) => view.isAdmin || memberId === view.me?.id;
       const slug = (view.name || 'company')
         .toLowerCase()
         .replace(/[^\p{L}\p{N}]+/gu, '-')
@@ -215,10 +214,28 @@ export function CompanyExport({ groupId }: { groupId: string }) {
             memberId: view.me.id,
             employeeName: displayName(view.me, null, null, t.misc.someone),
           });
+      // Only the entries list: balances over some kinds alone would mislead.
+      const paymentsModel = (m: typeof companyModel) => {
+        const sec = m.sections.find((x) => x.heading === c.entries);
+        const drop = sec ? sec.columns.indexOf(c.colBalance) : -1;
+        return {
+          ...m,
+          headline: [],
+          title: `${c.exportPayments} · ${view.name}`,
+          sections: sec
+            ? [
+                {
+                  ...sec,
+                  columns: sec.columns.filter((_, i) => i !== drop),
+                  rows: sec.rows.map((row) => row.filter((_, i) => i !== drop)),
+                },
+              ]
+            : [],
+        };
+      };
       const model =
         report === 'payments'
-          ? // A balance over only some kinds would mislead, so the payments report has none.
-            { ...companyModel, headline: [], title: `${c.exportPayments} · ${view.name}` }
+          ? paymentsModel(companyModel)
           : report === 'attendance'
             ? buildAttendanceReport({
                 marks: [...marks.values()].filter((m) => visible(m.memberId)),
