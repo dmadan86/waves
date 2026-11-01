@@ -230,7 +230,13 @@ export function SettleGroupList({
     { icon: 'person-add-outline' as const, label: d.settleCreate, go: () => '/new-group' },
     { icon: 'scan-outline' as const, label: d.settleScan, go: () => `/capture?scan=${Date.now()}` },
     ...(referralsLive && !isGuest
-      ? [{ icon: 'paper-plane-outline' as const, label: d.settleInvite, go: () => '/settings/invite' }]
+      ? [
+          {
+            icon: 'paper-plane-outline' as const,
+            label: d.settleInvite,
+            go: () => '/settings/invite',
+          },
+        ]
       : []),
   ];
   const footer = (
