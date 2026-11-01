@@ -159,30 +159,32 @@ export function ScenicHeader({
           {identity ? (
             <View style={{ flex: 1, marginStart: theme.spacing.sm }}>{identity}</View>
           ) : (
-          <Pressable
-            disabled={!onTitlePress}
-            accessibilityRole={onTitlePress ? 'button' : undefined}
-            accessibilityLabel={onTitlePress ? titleHint : undefined}
-            onPress={onTitlePress}
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: titleAlign === 'start' ? 'flex-start' : 'center',
-              gap: 4,
-              marginStart: titleAlign === 'start' ? theme.spacing.md : 0,
-            }}
-          >
-            <Text
-              variant="heading"
-              accessibilityRole="header"
-              numberOfLines={1}
-              style={{ flexShrink: 1, fontSize: 22, fontWeight: '800' }}
+            <Pressable
+              disabled={!onTitlePress}
+              accessibilityRole={onTitlePress ? 'button' : undefined}
+              accessibilityLabel={onTitlePress ? titleHint : undefined}
+              onPress={onTitlePress}
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: titleAlign === 'start' ? 'flex-start' : 'center',
+                gap: 4,
+                marginStart: titleAlign === 'start' ? theme.spacing.md : 0,
+              }}
             >
-              {title}
-            </Text>
-            {onTitlePress ? <Ionicons name="chevron-down" size={iconSize.md} color={ink} /> : null}
-          </Pressable>
+              <Text
+                variant="heading"
+                accessibilityRole="header"
+                numberOfLines={1}
+                style={{ flexShrink: 1, fontSize: 22, fontWeight: '800' }}
+              >
+                {title}
+              </Text>
+              {onTitlePress ? (
+                <Ionicons name="chevron-down" size={iconSize.md} color={ink} />
+              ) : null}
+            </Pressable>
           )}
           {titleAlign === 'start' && !action ? null : (
             <View style={{ minWidth: 40, alignItems: 'flex-end' }}>{action}</View>
