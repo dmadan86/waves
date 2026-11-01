@@ -75,6 +75,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
+import { greetingLine } from '@/lib/greetingLine';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScreenHero';
@@ -530,7 +531,9 @@ export default function HomeScreen() {
             hitSlop={8}
             style={{ marginTop: theme.spacing.sm }}
           >
-            <Text style={{ color: heroInk, opacity: 0.9 }}>{`${t.dashHero[greetKey]},`}</Text>
+            <Text style={{ color: heroInk, opacity: 0.9 }}>
+              {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
+            </Text>
           </Pressable>
         </View>
 
