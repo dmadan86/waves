@@ -1983,6 +1983,23 @@ export interface UiStrings {
     wagesRecord: string;
     wagesDone: string;
     wagesNoTeam: string;
+    wagesSubtitle: string;
+    wagesTeam: string;
+    wagesWorkingDays: string;
+    wagesTotal: string;
+    wagesAll: string;
+    wagesPresent: string;
+    wagesLeave: string;
+    wagesAbsent: string;
+    wagesDailyTag: string;
+    wagesFixedTag: string;
+    wagesRateTimesDays: string;
+    wagesSelected: string;
+    wagesTotalPayout: string;
+    wagesPayAction: string;
+    wagesAddMember: string;
+    wagesManageRates: string;
+    wagesManageRatesSub: string;
     wagesGross: string;
     wagesPaidFromPool: string;
     sites: string;
@@ -9298,6 +9315,23 @@ const en: UiStrings = {
     wagesRecord: 'Pay {n} · {amount}',
     wagesDone: 'Wages recorded',
     wagesNoTeam: 'Add people first.',
+    wagesSubtitle: 'Calculate and pay your team',
+    wagesTeam: 'Team',
+    wagesWorkingDays: 'Working days',
+    wagesTotal: 'Total wages',
+    wagesAll: 'All',
+    wagesPresent: 'Present',
+    wagesLeave: 'Leave',
+    wagesAbsent: 'Absent',
+    wagesDailyTag: 'Daily',
+    wagesFixedTag: 'Fixed',
+    wagesRateTimesDays: '{rate} × {n} days',
+    wagesSelected: '{n} selected',
+    wagesTotalPayout: 'Total payout',
+    wagesPayAction: 'Pay wages',
+    wagesAddMember: 'Add member',
+    wagesManageRates: 'Manage rates',
+    wagesManageRatesSub: 'Daily / Fixed',
     wagesGross: 'Wages {amount}',
     wagesPaidFromPool: 'Paid from your cash',
     sites: 'Sites',
@@ -16075,6 +16109,23 @@ const ta: UiStrings = {
     wagesRecord: '{n} பேருக்கு · {amount}',
     wagesDone: 'சம்பளம் பதிவானது',
     wagesNoTeam: 'முதலில் ஆட்களைச் சேர்க்கவும்.',
+    wagesSubtitle: 'உங்கள் குழுவுக்கு கணக்கிட்டு சம்பளம் கொடுங்கள்',
+    wagesTeam: 'குழு',
+    wagesWorkingDays: 'வேலை நாட்கள்',
+    wagesTotal: 'மொத்த சம்பளம்',
+    wagesAll: 'அனைத்தும்',
+    wagesPresent: 'வந்தவர்',
+    wagesLeave: 'விடுப்பு',
+    wagesAbsent: 'வராதவர்',
+    wagesDailyTag: 'தினசரி',
+    wagesFixedTag: 'நிலையான',
+    wagesRateTimesDays: '{rate} × {n} நாட்கள்',
+    wagesSelected: '{n} தேர்வு',
+    wagesTotalPayout: 'மொத்த கொடுப்பனவு',
+    wagesPayAction: 'சம்பளம் கொடு',
+    wagesAddMember: 'உறுப்பினரைச் சேர்',
+    wagesManageRates: 'ஊதிய விகிதங்கள்',
+    wagesManageRatesSub: 'தினசரி / நிலையான',
     wagesGross: 'சம்பளம் {amount}',
     wagesPaidFromPool: 'உங்கள் பணத்தில் இருந்து',
     sites: 'தளங்கள்',
@@ -23012,6 +23063,23 @@ const hi: UiStrings = {
     wagesRecord: '{n} को दें · {amount}',
     wagesDone: 'वेतन दर्ज हुआ',
     wagesNoTeam: 'पहले लोगों को जोड़ें।',
+    wagesSubtitle: 'अपनी टीम का हिसाब करें और वेतन दें',
+    wagesTeam: 'टीम',
+    wagesWorkingDays: 'कार्य दिवस',
+    wagesTotal: 'कुल वेतन',
+    wagesAll: 'सभी',
+    wagesPresent: 'उपस्थित',
+    wagesLeave: 'छुट्टी',
+    wagesAbsent: 'अनुपस्थित',
+    wagesDailyTag: 'दैनिक',
+    wagesFixedTag: 'तय',
+    wagesRateTimesDays: '{rate} × {n} दिन',
+    wagesSelected: '{n} चुने गए',
+    wagesTotalPayout: 'कुल भुगतान',
+    wagesPayAction: 'वेतन दें',
+    wagesAddMember: 'सदस्य जोड़ें',
+    wagesManageRates: 'दरें प्रबंधित करें',
+    wagesManageRatesSub: 'दैनिक / तय',
     wagesGross: 'वेतन {amount}',
     wagesPaidFromPool: 'आपके नकद से',
     sites: 'साइटें',
@@ -29884,6 +29952,23 @@ const ar: UiStrings = {
     wagesRecord: 'ادفع لـ {n} · {amount}',
     wagesDone: 'تم تسجيل الأجور',
     wagesNoTeam: 'أضف أشخاصاً أولاً.',
+    wagesSubtitle: 'احسب وادفع لفريقك',
+    wagesTeam: 'الفريق',
+    wagesWorkingDays: 'أيام العمل',
+    wagesTotal: 'إجمالي الأجور',
+    wagesAll: 'الكل',
+    wagesPresent: 'حاضر',
+    wagesLeave: 'إجازة',
+    wagesAbsent: 'غائب',
+    wagesDailyTag: 'يومي',
+    wagesFixedTag: 'ثابت',
+    wagesRateTimesDays: '{rate} × {n} أيام',
+    wagesSelected: '{n} محدد',
+    wagesTotalPayout: 'إجمالي الدفع',
+    wagesPayAction: 'ادفع الأجور',
+    wagesAddMember: 'إضافة عضو',
+    wagesManageRates: 'إدارة الأجور',
+    wagesManageRatesSub: 'يومي / ثابت',
     wagesGross: 'الأجر {amount}',
     wagesPaidFromPool: 'من نقدك',
     sites: 'المواقع',
