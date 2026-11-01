@@ -3470,6 +3470,7 @@ model CompanyWorkTask {
   blockedReason String? @map("blocked_reason")
   note String?
   dueTime DateTime? @map("due_time") @db.Time(6)
+  seq Int?
   createdBy String @map("created_by") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
@@ -3481,6 +3482,7 @@ model CompanyWorkTask {
   project CompanyProject? @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   attachments CompanyWorkTaskAttachment[]
   @@unique([id,groupId], map: "company_work_tasks_id_group_id_key")
+  @@unique([groupId,seq], map: "company_work_tasks_group_seq_key")
   @@index([groupId,updatedSeq], map: "company_work_tasks_sync_idx")
   @@index([groupId,day,memberId], map: "company_work_tasks_day_idx")
   @@map("company_work_tasks")
