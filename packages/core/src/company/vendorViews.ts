@@ -35,14 +35,23 @@ export interface VendorDashboard {
   readonly counts: Record<VendorFilter, number>;
 }
 
-/** The part of a vendor's balance that is overdue on `today` (YYYY-MM-DD). */
+/** The part of a vendor's balance that is overdue on `today` (YYYY-MM-DD): payments settle the oldest bills first. */
 export function vendorOverdue(lines: readonly VendorLine[], today: string): bigint {
-  const balance = vendorBalance(lines);
-  if (balance <= 0n) return 0n;
+  let credit = 0n;
+  const bills: VendorLine[] = [];
+  for (const l of lines) {
+    if (!vendorLineCounts(l)) continue;
+    if (l.kind === 'bill') bills.push(l);
+    else credit += l.amount;
+  }
+  bills.sort((a, b) => (a.dueOn ?? a.occurredOn).localeCompare(b.dueOn ?? b.occurredOn));
   let late = 0n;
-  for (const l of lines)
-    if (vendorLineCounts(l) && l.kind === 'bill' && l.dueOn && l.dueOn < today) late += l.amount;
-  return late < balance ? late : balance;
+  for (const b of bills) {
+    const used = credit < b.amount ? credit : b.amount;
+    credit -= used;
+    if (b.dueOn && b.dueOn < today) late += b.amount - used;
+  }
+  return late;
 }
 
 export function vendorStatus(balance: bigint, overdue: bigint, toReview: number): VendorStatus {

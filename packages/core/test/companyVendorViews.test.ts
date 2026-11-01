@@ -5,6 +5,7 @@ import {
   filterVendorRows,
   paymentOutcome,
   vendorDashboard,
+  vendorOverdue,
   type Vendor,
   type VendorLine,
 } from '../src';
@@ -81,6 +82,15 @@ describe('vendor dashboard', () => {
       today,
     );
     expect(paid.overdueVendors).toBe(0);
+  });
+  it('payments settle the oldest bill first, so a paid overdue bill is not overdue', () => {
+    const l = [
+      line('a', 'bill', 100, '2026-09-01', { dueOn: '2026-09-10' }),
+      line('a', 'payment', 100, '2026-09-20'),
+      line('a', 'bill', 200, '2026-11-01', { dueOn: '2026-12-01' }),
+    ];
+    expect(vendorDashboard([vendors[0]!], l, today).overdueVendors).toBe(0);
+    expect(vendorOverdue(l.slice(0, 1), today)).toBe(100n);
   });
   it('filters and searches name or phone', () => {
     expect(filterVendorRows(d.rows, 'toPay').map((r) => r.vendor.id)).toEqual(['a', 'b']);
