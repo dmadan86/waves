@@ -11,7 +11,7 @@ export function countWork(tasks: readonly MirrorWorkTask[]) {
   };
 }
 
-/** Search by title, person and site, and optionally one site. */
+/** Search by title, person, site and task number ("#42" or "42"), and optionally one site. */
 export function filterWork(
   tasks: readonly MirrorWorkTask[],
   options: {
@@ -26,6 +26,7 @@ export function filterWork(
     if (options.siteId && task.projectId !== options.siteId) return false;
     return (
       !query ||
+      (task.number !== null && String(task.number) === query.replace(/^#/, '')) ||
       [task.title, options.personName?.(task.memberId), options.siteName?.(task.projectId)].some(
         (value) => value?.toLocaleLowerCase().includes(query),
       )
