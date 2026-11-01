@@ -2982,15 +2982,15 @@ function companyTag(
  * could not be read in full, so a failure can never make a phone discard data.
  */
 /**
- * Company groups only: the birthday rows and events the caller can read right now. RLS hides a row the
+ * Company groups only: the birthday rows, events and clients the caller can read right now. RLS hides a row the
  * moment access is revoked (a birthday switched off, removal from an event) without sending a tombstone,
  * so the phone drops whatever is not on this list. A group whose list could not be read completely is left out.
  */
 async function companyCalendarVisible(
   caller: SupabaseClient,
   groupIds: readonly string[],
-): Promise<Record<string, { dates: string[]; events: string[] }>> {
-  const out: Record<string, { dates: string[]; events: string[] }> = {};
+): Promise<Record<string, { dates: string[]; events: string[]; clients: string[] }>> {
+  const out: Record<string, { dates: string[]; events: string[]; clients: string[] }> = {};
   if (groupIds.length === 0) return out;
   const groups = await caller.from('groups').select('id').eq('type', 'company').in('id', groupIds);
   if (groups.error) return out;
@@ -3013,7 +3013,8 @@ async function companyCalendarVisible(
   for (const { id } of groups.data ?? []) {
     const dates = await ids('company_member_dates', id as string);
     const events = await ids('company_events', id as string);
-    if (dates && events) out[id as string] = { dates, events };
+    const clients = await ids('company_clients', id as string);
+    if (dates && events && clients) out[id as string] = { dates, events, clients };
   }
   return out;
 }

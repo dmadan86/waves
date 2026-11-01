@@ -2798,7 +2798,12 @@ export function purgeCompanyInvisible(
   visible: Readonly<Record<string, readonly string[]>>,
   /** Per company: the birthday-row and event ids the caller can read now. RLS hides a row without a tombstone
    *  (a birthday switched off, someone removed from an event), so anything not listed is dropped here. */
-  calendar: Readonly<Record<string, { dates: readonly string[]; events: readonly string[] }>> = {},
+  calendar: Readonly<
+    Record<
+      string,
+      { dates: readonly string[]; events: readonly string[]; clients?: readonly string[] }
+    >
+  > = {},
 ): { state: MirrorState; removed: { table: SyncTable; id: string }[] } {
   const tables = { ...state.tables };
   const removed: { table: SyncTable; id: string }[] = [];
@@ -2816,6 +2821,17 @@ export function purgeCompanyInvisible(
     return dropped;
   };
   for (const [groupId, ids] of Object.entries(calendar)) {
+    // A client reassigned to someone else stops being readable here without a tombstone: drop it and its notes (a follow-up assigned to this phone's user stays: it is theirs by its own RLS).
+    if (ids.clients) {
+      const clients = new Set(ids.clients);
+      const gone = drop(
+        SyncTable.CompanyClients,
+        (row) => row.group_id === groupId && !clients.has(row.id as string),
+      );
+      const orphan = (row: Record<string, unknown>): boolean =>
+        row.group_id === groupId && gone.has(row.client_id as string);
+      drop(SyncTable.CompanyClientNotes, orphan);
+    }
     const dates = new Set(ids.dates);
     const events = new Set(ids.events);
     drop(
