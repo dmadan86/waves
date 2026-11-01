@@ -140,6 +140,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyVendorOrderItems,
   SyncTable.CompanyVendorOrderEvents,
   SyncTable.CompanyDocuments,
+  SyncTable.CompanyClients,
+  SyncTable.CompanyClientNotes,
   SyncTable.CompanyAttendance,
   SyncTable.CompanyWorkTasks,
   SyncTable.CompanyHolidays,
@@ -2343,6 +2345,8 @@ export interface MirrorWorkTask {
   readonly dueTime: string | null;
   /** The company's task number (#42), given by the server; null until the task has synced. */
   readonly number: number | null;
+  /** The client a follow-up is about. */
+  readonly clientId?: string | null;
   readonly pending?: boolean;
 }
 
@@ -2364,6 +2368,7 @@ export function materialiseWorkTasks(
     note: string | null;
     due_time?: string | null;
     seq?: number | null;
+    client_id?: string | null;
     created_at: string;
     deleted_at: string | null;
   }[]) {
@@ -2379,6 +2384,7 @@ export function materialiseWorkTasks(
       note: row.note,
       dueTime: row.due_time?.slice(0, 5) ?? null,
       number: row.seq ?? null,
+      clientId: row.client_id ?? null,
     });
   }
   for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
@@ -2396,6 +2402,7 @@ export function materialiseWorkTasks(
         note: p.note,
         dueTime: p.dueTime === undefined ? (byId.get(p.taskId)?.dueTime ?? null) : p.dueTime,
         number: byId.get(p.taskId)?.number ?? null,
+        clientId: p.clientId === undefined ? (byId.get(p.taskId)?.clientId ?? null) : p.clientId,
         pending: true,
       });
     } else if (mutation.kind === 'company_work.remove') {
@@ -2622,6 +2629,7 @@ export interface MirrorCompanyDoc {
   readonly convertedTo: string | null;
   readonly convertedFrom: string | null;
   readonly createdBy: string;
+  readonly clientId?: string | null;
   readonly deleted: boolean;
   readonly pending: boolean;
 }
@@ -2658,6 +2666,7 @@ function docFromRow(r: Record<string, unknown>): MirrorCompanyDoc {
     convertedTo: (r.converted_to as string | null) ?? null,
     convertedFrom: (r.converted_from as string | null) ?? null,
     createdBy: r.created_by as string,
+    clientId: (r.client_id as string | null) ?? null,
     deleted: !!r.deleted_at,
     pending: false,
   };
@@ -2702,6 +2711,7 @@ export function materialiseCompanyDocs(
         discountMinor: BigInt(p.data.discountMinor),
         totalMinor: t.totalMinor,
         notes: p.data.notes,
+        ...(p.data.clientId === undefined ? {} : { clientId: p.data.clientId }),
       };
       byId.set(
         p.docId,
@@ -2721,6 +2731,7 @@ export function materialiseCompanyDocs(
                 convertedTo: null,
                 convertedFrom: null,
                 createdBy: options.viewerMemberId,
+                clientId: p.data.clientId ?? null,
                 deleted: false,
                 pending: true,
               },
@@ -2790,7 +2801,12 @@ export function purgeCompanyInvisible(
   visible: Readonly<Record<string, readonly string[]>>,
   /** Per company: the birthday-row and event ids the caller can read now. RLS hides a row without a tombstone
    *  (a birthday switched off, someone removed from an event), so anything not listed is dropped here. */
-  calendar: Readonly<Record<string, { dates: readonly string[]; events: readonly string[] }>> = {},
+  calendar: Readonly<
+    Record<
+      string,
+      { dates: readonly string[]; events: readonly string[]; clients?: readonly string[] }
+    >
+  > = {},
 ): { state: MirrorState; removed: { table: SyncTable; id: string }[] } {
   const tables = { ...state.tables };
   const removed: { table: SyncTable; id: string }[] = [];
@@ -2808,6 +2824,17 @@ export function purgeCompanyInvisible(
     return dropped;
   };
   for (const [groupId, ids] of Object.entries(calendar)) {
+    // A client reassigned to someone else stops being readable here without a tombstone: drop it and its notes (a follow-up assigned to this phone's user stays: it is theirs by its own RLS).
+    if (ids.clients) {
+      const clients = new Set(ids.clients);
+      const gone = drop(
+        SyncTable.CompanyClients,
+        (row) => row.group_id === groupId && !clients.has(row.id as string),
+      );
+      const orphan = (row: Record<string, unknown>): boolean =>
+        row.group_id === groupId && gone.has(row.client_id as string);
+      drop(SyncTable.CompanyClientNotes, orphan);
+    }
     const dates = new Set(ids.dates);
     const events = new Set(ids.events);
     drop(

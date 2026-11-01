@@ -22,6 +22,7 @@ import { AmountField, Button, Screen, Sheet, Text, useTheme } from '@waves/ui';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { ListRow, PlainHeader, StandardCard, SectionHeader } from '@/components/standard';
+import { stageChange, useCompanyClients, useSetClient } from '@/data/companyClients';
 import {
   useCompanyDocs,
   useConvertToBill,
@@ -73,6 +74,8 @@ export default function CompanyBillScreen() {
   const convert = useConvertToBill(id);
   const payment = useRecordDocPayment(id);
   const remove = useVoidCompanyDoc(id);
+  const clients = useCompanyClients(id);
+  const setClient = useSetClient(id);
   const { t, locale } = useStrings();
   const c = t.companyDocs;
   const theme = useTheme();
@@ -259,7 +262,15 @@ export default function CompanyBillScreen() {
                 label={c[s]}
                 variant="brand"
                 disabled={busy}
-                onPress={() => void run(() => status.mutateAsync({ docId: doc.id, status: s }))}
+                onPress={() =>
+                  void run(async () => {
+                    await status.mutateAsync({ docId: doc.id, status: s });
+                    // Sending an estimate to a client who is still an inquiry makes them Quoted.
+                    const client = clients.clients.find((x) => x.id === doc.clientId);
+                    if (s === 'sent' && client?.stage === 'inquiry' && clients.canManage)
+                      await setClient.mutateAsync(stageChange(client, 'quoted'));
+                  })
+                }
               />
             ))}
             <Button
