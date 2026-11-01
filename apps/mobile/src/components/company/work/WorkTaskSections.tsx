@@ -56,8 +56,8 @@ function TaskRow({
           ? t.company.workDone
           : t.company.workBlocked;
   return (
-    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, gap: 4, borderRadius: 22 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, minHeight: 48 }}>
+    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: done, disabled: !canChange || busy }}
@@ -68,7 +68,6 @@ function TaskRow({
           style={{
             width: 22,
             height: 22,
-            marginTop: 1,
             borderRadius: 6,
             alignItems: 'center',
             justifyContent: 'center',
@@ -85,51 +84,49 @@ function TaskRow({
           onPress={() => onOpen(task)}
           style={{ flex: 1, minWidth: 0, gap: 2 }}
         >
-          <Text variant="body" numberOfLines={2} style={{ fontWeight: '700' }}>
+          <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
             {task.title}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Ionicons name="calendar-outline" size={iconSize.sm} color={dueInk} />
-            <Text variant="caption" numberOfLines={1} style={{ color: dueInk, flexShrink: 1 }}>
+            <Text variant="caption" numberOfLines={1} style={{ color: dueInk, flexShrink: 0 }}>
               {formatWorkTime(task.day, task.dueTime ?? null, today, locale, t.company.workToday)}
             </Text>
-          </View>
-          {site ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="location-outline" size={iconSize.sm} color={theme.color.textMuted} />
-              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {site}
-              </Text>
-            </View>
-          ) : null}
-          {task.blockedReason || task.note ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {task.blockedReason ?? task.note}
-            </Text>
-          ) : null}
-        </Pressable>
-        <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {person ? (
-              <PersonAvatar
-                name={displayName(person)}
-                ghost
-                tint={TINTS[(person.id.charCodeAt(0) + person.id.length) % TINTS.length]}
-                size={34}
-              />
+            {site ? (
+              <>
+                <Ionicons
+                  name="location-outline"
+                  size={iconSize.sm}
+                  color={theme.color.textMuted}
+                  style={{ marginLeft: 4 }}
+                />
+                <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {site}
+                </Text>
+              </>
             ) : null}
-            <View
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 3,
-                borderRadius: 12,
-                backgroundColor: withAlpha(ink, 0.12),
-              }}
-            >
-              <Text variant="micro" style={{ color: ink, fontWeight: '700' }}>
-                {label}
-              </Text>
-            </View>
+          </View>
+        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {person ? (
+            <PersonAvatar
+              name={displayName(person)}
+              ghost
+              tint={TINTS[(person.id.charCodeAt(0) + person.id.length) % TINTS.length]}
+              size={26}
+            />
+          ) : null}
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 12,
+              backgroundColor: withAlpha(ink, 0.12),
+            }}
+          >
+            <Text variant="micro" style={{ color: ink, fontWeight: '700' }}>
+              {label}
+            </Text>
           </View>
         </View>
         {canManage ? (
@@ -187,7 +184,7 @@ export function WorkTaskSections({
   const { t } = useStrings();
   if (tasks.length === 0) return <Text tone="muted">{t.company.workEmpty}</Text>;
   return (
-    <View style={{ gap: 8 }}>
+    <View style={{ gap: 6 }}>
       {tasks.map((task) => (
         <TaskRow
           key={task.id}
