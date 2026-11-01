@@ -203,12 +203,12 @@ describe('one task per person (multi-assign)', () => {
       await denied(() => task(3, 3)); // an employee cannot assign
     }));
 
-  it('rejects a day beyond a week', () =>
+  it('rejects a day beyond two years', () =>
     isolated(async () => {
       await denied(() =>
         user(0, () =>
           db.query(
-            "SELECT waves_company_work_set($1,$2,$3,current_date+8,'x',NULL,'todo',NULL,NULL,NULL)",
+            "SELECT waves_company_work_set($1,$2,$3,current_date+731,'x',NULL,'todo',NULL,NULL,NULL)",
             [g.groupId, randomUUID(), g.memberIds[3]],
           ),
         ),

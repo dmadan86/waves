@@ -2338,6 +2338,8 @@ export interface MirrorWorkTask {
   readonly blockedReason: string | null;
   readonly note: string | null;
   readonly dueTime: string | null;
+  /** The company's task number (#42), given by the server; null until the task has synced. */
+  readonly number: number | null;
   readonly pending?: boolean;
 }
 
@@ -2358,6 +2360,7 @@ export function materialiseWorkTasks(
     blocked_reason: string | null;
     note: string | null;
     due_time?: string | null;
+    seq?: number | null;
     created_at: string;
     deleted_at: string | null;
   }[]) {
@@ -2372,6 +2375,7 @@ export function materialiseWorkTasks(
       blockedReason: row.blocked_reason,
       note: row.note,
       dueTime: row.due_time?.slice(0, 5) ?? null,
+      number: row.seq ?? null,
     });
   }
   for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
@@ -2388,6 +2392,7 @@ export function materialiseWorkTasks(
         blockedReason: p.status === 'blocked' ? p.blockedReason : null,
         note: p.note,
         dueTime: p.dueTime === undefined ? (byId.get(p.taskId)?.dueTime ?? null) : p.dueTime,
+        number: byId.get(p.taskId)?.number ?? null,
         pending: true,
       });
     } else if (mutation.kind === 'company_work.remove') {

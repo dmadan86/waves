@@ -16,6 +16,8 @@ import { Card, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
 
+import { useDialog } from '@/lib/dialog';
+
 import { isPhoneCountryError } from '@/lib/phone';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { SyncNetworkPreference, useSyncNetwork } from '@/lib/syncNetwork';
@@ -187,6 +189,7 @@ export function SyncBanner({ groupId }: { groupId?: string }) {
   const { t, locale } = useStrings();
   const { status, queue, rejected, retry, discard } = useSync();
   const { preference: syncNetwork } = useSyncNetwork();
+  const { confirm } = useDialog();
 
   // Refusals stay in the queue now (they are what keeps their row on screen),
   // so "pending" has to mean the ones still on their way — otherwise a refused
@@ -196,131 +199,92 @@ export function SyncBanner({ groupId }: { groupId?: string }) {
   const refused = groupId ? rejected.filter((item) => item.groupId === groupId) : rejected;
   const stuck = deadLettered(pending);
 
-  if (refused.length > 0) {
-    const first = refused[0];
+  // A refused change and a stuck one ask the same decision, so they share one
+  // compact row: what happened, why, Try again, and ✕ to let it go.
+  const stopped = refused[0] ?? stuck[0];
+  if (stopped) {
+    const isRefused = refused.length > 0;
     // Trying again only helps when the cause can pass; for the rest the one
     // honest action is to let the change go.
-    const reason = refusalReason(first?.code ?? '');
-    const canRetry = reason === RefusalReason.Conflict || reason === RefusalReason.Generic;
+    const reason = refusalReason(refused[0]?.code ?? '');
+    const canRetry =
+      !isRefused || reason === RefusalReason.Conflict || reason === RefusalReason.Generic;
+    // Never the raw server string; a bare uncoded number gets the one friendly
+    // sentence, anything else the specific reason for its code. The raw reason
+    // still travels to Sentry via the sync engine.
+    const detail = !isRefused
+      ? t.sync.stuckShort
+      : isPhoneCountryError(stopped)
+        ? t.people.phoneNeedsCountryCode
+        : t.sync.refusal[reason];
+    const letGo = async () => {
+      // ✕ reads as "dismiss", but it drops data only this phone has, so ask once.
+      const ok = await confirm({
+        title: t.sync.discardTitle,
+        body: t.sync.discardBody,
+        confirmLabel: t.extras.discardIt,
+        tone: 'danger',
+      });
+      if (ok) void discard(stopped.clientMutationId);
+    };
     return (
-      <Card style={{ backgroundColor: theme.color.negativeSoft, gap: theme.spacing.md }}>
-        <Row style={{ gap: theme.spacing.sm }}>
-          <Ionicons name="alert-circle" size={iconSize.md} color={theme.color.negative} />
-          <Text variant="subheading" tone="negative">
-            {t.extras.oneChangeFailed}
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          paddingVertical: 10,
+          paddingLeft: 12,
+          paddingRight: 6,
+          borderRadius: 16,
+          backgroundColor: theme.color.negativeSoft,
+        }}
+      >
+        <Ionicons name="alert-circle" size={26} color={theme.color.negative} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="body" tone="negative" numberOfLines={1} style={{ fontWeight: '700' }}>
+            {isRefused ? t.extras.oneChangeFailed : plural(locale, stuck.length, t.sync.stuckCount)}
           </Text>
-        </Row>
-        {/* Never the raw server string. `first.message` arrives as an internal
-            code like "PHONE_NEEDS_COUNTRY_CODE: 9535621101 has no country code";
-            a bare uncoded number gets the one friendly, localized sentence that
-            actually helps, and anything else the specific reason for its code
-            (core/sync/refusal.ts). The raw reason still travels to Sentry via
-            the sync engine. */}
-        <Text variant="caption" tone="muted">
-          {first && isPhoneCountryError(first)
-            ? t.people.phoneNeedsCountryCode
-            : t.sync.refusal[reason]}
-        </Text>
-        {/* The two recovery actions for a refused change — the buttons a person
-            most needs to hit. A caption Text alone left the tap area ~18pt tall;
-            a 44pt floor plus hitSlop makes each a real target, and an explicit
-            label names the action for a screen reader rather than leaning on the
-            child text. */}
-        <Row style={{ gap: theme.spacing.lg }}>
-          {canRetry ? (
-            <Pressable
-              onPress={() => first && void retry(first.clientMutationId)}
-              accessibilityRole="button"
-              accessibilityLabel={t.extras.tryAgain}
-              hitSlop={8}
-              style={({ pressed }) => ({
-                minHeight: 44,
-                justifyContent: 'center',
-                opacity: pressed ? 0.6 : 1,
-              })}
-            >
-              <Text variant="caption" tone="brand">
-                {t.extras.tryAgain}
-              </Text>
-            </Pressable>
-          ) : null}
-          <Pressable
-            onPress={() => first && void discard(first.clientMutationId)}
-            accessibilityRole="button"
-            accessibilityLabel={t.extras.discardIt}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              minHeight: 44,
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text variant="caption" tone="muted">
-              {t.extras.discardIt}
-            </Text>
-          </Pressable>
-        </Row>
-      </Card>
-    );
-  }
-
-  // Nothing refused, but something has stopped trying.
-  //
-  // `MAX_ATTEMPTS` backoffs is roughly eight and a half minutes of a transport
-  // that will not take this mutation — a payload an older server rejects at the
-  // edge, a body too large, a bug. `nextBatch` then skips the whole group, so
-  // everything entered after it in that group waits behind it with nothing on
-  // screen to say why. `deadLettered` has existed since the queue was written
-  // and was called from nowhere; this is the surface it was waiting for.
-  if (stuck.length > 0) {
-    // The head of the queue is what blocks the group — order is preserved
-    // within a group, so retrying or dropping the oldest is what actually gets
-    // the rest moving. `deadLettered` preserves queue order, so this is it.
-    const head = stuck[0];
-    return (
-      <Card style={{ backgroundColor: theme.color.negativeSoft, gap: theme.spacing.md }}>
-        <Row style={{ gap: theme.spacing.sm }}>
-          <Ionicons name="alert-circle" size={iconSize.md} color={theme.color.negative} />
-          <Text variant="subheading" tone="negative">
-            {plural(locale, stuck.length, t.sync.stuckCount)}
+          <Text variant="caption" tone="muted" numberOfLines={2}>
+            {detail}
           </Text>
-        </Row>
-        <Text variant="caption" tone="muted">
-          {t.sync.stuckExplain}
-        </Text>
-        <Row style={{ gap: theme.spacing.lg }}>
+        </View>
+        {canRetry ? (
           <Pressable
-            onPress={() => head && void retry(head.clientMutationId)}
+            onPress={() => void retry(stopped.clientMutationId)}
             accessibilityRole="button"
             accessibilityLabel={t.extras.tryAgain}
-            hitSlop={8}
+            hitSlop={6}
             style={({ pressed }) => ({
-              minHeight: 44,
-              justifyContent: 'center',
+              paddingHorizontal: 12,
+              paddingVertical: 6,
+              borderRadius: 999,
+              borderWidth: 1.5,
+              borderColor: theme.color.brand,
               opacity: pressed ? 0.6 : 1,
             })}
           >
-            <Text variant="caption" tone="brand">
+            <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
               {t.extras.tryAgain}
             </Text>
           </Pressable>
-          <Pressable
-            onPress={() => head && void discard(head.clientMutationId)}
-            accessibilityRole="button"
-            accessibilityLabel={t.extras.discardIt}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              minHeight: 44,
-              justifyContent: 'center',
-              opacity: pressed ? 0.6 : 1,
-            })}
-          >
-            <Text variant="caption" tone="muted">
-              {t.extras.discardIt}
-            </Text>
-          </Pressable>
-        </Row>
-      </Card>
+        ) : null}
+        <Pressable
+          onPress={() => void letGo()}
+          accessibilityRole="button"
+          accessibilityLabel={t.extras.discardIt}
+          hitSlop={8}
+          style={({ pressed }) => ({
+            width: 32,
+            height: 32,
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: pressed ? 0.6 : 1,
+          })}
+        >
+          <Ionicons name="close" size={20} color={theme.color.textMuted} />
+        </Pressable>
+      </View>
     );
   }
 

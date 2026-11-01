@@ -492,3 +492,25 @@ describe('ordering and delivery', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 });
+
+describe('company storage packs', () => {
+  it('goes to the pack RPC, not the subscriptions one', async () => {
+    const { deps, rpc } = makeDeps();
+    const response = await handleRevenueCatWebhook(
+      request(
+        rcEvent('INITIAL_PURCHASE', {
+          product_id: 'waves_company_storage_5gb',
+          entitlement_ids: null,
+          subscriber_attributes: { company_group_id: { value: 'g-1' } },
+        }),
+      ),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    const [name, args] = rpc.mock.calls[0]!;
+    expect(name).toBe('waves_company_storage_pack_apply');
+    expect(args).toMatchObject({
+      p_action: { kind: 'company_storage', group_id: 'g-1', pack_bytes: 5 * 1024 ** 3 },
+    });
+  });
+});
