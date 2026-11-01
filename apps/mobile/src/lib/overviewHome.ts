@@ -85,7 +85,17 @@ export function buildComingUp(
 ): ComingCard[] {
   const first = payroll ?? nextEvent;
   return [
-    ...(first ? [{ kind: payroll ? 'payroll' : 'event', ...first } as ComingCard] : []),
+    // Calendar items carry their own `kind`; copy only the fields so it can't overwrite the card's.
+    ...(first
+      ? [
+          {
+            kind: payroll ? 'payroll' : 'event',
+            title: first.title,
+            day: first.day,
+            time: first.time,
+          } as ComingCard,
+        ]
+      : []),
     ...(dueTasks > 0 ? [{ kind: 'tasks', n: dueTasks } as ComingCard] : []),
     ...(approvals > 0 ? [{ kind: 'approvals', n: approvals } as ComingCard] : []),
   ];
