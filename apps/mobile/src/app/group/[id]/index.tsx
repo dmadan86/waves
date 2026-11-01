@@ -1404,7 +1404,8 @@ function LedgerGroupScreen() {
                       // the old column showed a dash to everybody whose handle is
                       // a Pix key, a PayID or a Venmo name. With none, words
                       // rather than a bare dash that read as missing data.
-                      (payableAt(member)?.handle ?? t.notJoinedYet)}
+                      // Joined but no handle yet: not "Not on Waves yet".
+                      (payableAt(member)?.handle ?? t.misc.noUpiYet)}
               </Text>
             </Row>
           </View>
