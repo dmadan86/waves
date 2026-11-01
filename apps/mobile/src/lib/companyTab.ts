@@ -71,7 +71,7 @@ export function homeSecondActionKey(companyIds: readonly string[]): 'review' | '
 
 // ───────────────────────────────────────────── company mode (owner / manager) ──
 
-export type CompanyBarKey = 'home' | 'team' | 'payments' | 'clients' | 'more';
+export type CompanyBarKey = 'home' | 'team' | 'payments' | 'vendors' | 'clients' | 'more';
 
 /** The viewer's live role in one group, from the members mirror; null when not a member. */
 export function viewerRoleIn(
@@ -122,8 +122,7 @@ const BAR_SCREEN: Readonly<Record<string, CompanyBarKey>> = {
   'company-pending': 'home',
   'company-payments': 'payments',
   'company-wages': 'payments',
-  // Vendors left the bar for Clients; it opens from More now.
-  'company-vendors': 'more',
+  'company-vendors': 'vendors',
   'company-more': 'more',
   'company-clients': 'clients',
   'company-client': 'clients',
@@ -156,6 +155,8 @@ export function companyBarRoute(groupId: string, key: string): string {
       return `/group/${groupId}/company-team`;
     case 'payments':
       return `/group/${groupId}/company-payments`;
+    case 'vendors':
+      return `/group/${groupId}/company-vendors`;
     case 'clients':
       return `/group/${groupId}/company-clients`;
     case 'more':

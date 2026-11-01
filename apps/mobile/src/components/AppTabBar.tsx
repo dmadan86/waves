@@ -180,7 +180,7 @@ export function AppTabBar() {
   // destinations (same look, same mic); leaving them swaps it back. Route-derived.
   const personal = isPersonalMode(segments);
   // Company mode: an owner or manager inside their own company gets the company bar
-  // (Home · Team · Payments · Clients · More) with an add button, no mic.
+  // (Home · Team · Payments · Vendors · Clients · More) with an add button, no mic.
   const companyIds = useViewerCompanyIds();
   const viewerId = useViewerId();
   const role = useViewerRole(groupId);
@@ -312,6 +312,7 @@ export function AppTabBar() {
       item('home', t.home, 'home', 'home-outline', pendingCount),
       item('team', t.company.barTeam, 'people-circle', 'people-circle-outline'),
       item('payments', t.company.tabPayments, 'cash', 'cash-outline'),
+      item('vendors', t.companyVendors.title, 'storefront', 'storefront-outline'),
       item('clients', t.companyClients.title, 'briefcase', 'briefcase-outline'),
       item(
         'more',
@@ -320,7 +321,7 @@ export function AppTabBar() {
         'ellipsis-horizontal-circle-outline',
       ),
     ];
-  }, [pendingCount, t.company, t.companyClients.title, t.home]);
+  }, [pendingCount, t.company, t.companyClients.title, t.companyVendors.title, t.home]);
   const altItems = company ? companyItems : personalItems;
 
   const sharedItems = useMemo<PillTabItem[]>(
