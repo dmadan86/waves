@@ -83,8 +83,6 @@ export default function DailyWorkView({
   const [error, setError] = useState(false);
   const [scope, setScope] = useState<'mine' | 'team'>(access.isEmployee ? 'mine' : 'team');
   const [query, setQuery] = useState('');
-  const [siteFilter, setSiteFilter] = useState<string | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
   const busy = save.isPending || remove.isPending;
   const allowedPerson = (memberId: string) =>
     access.canManage && access.people.some((p) => p.id === memberId);
@@ -102,7 +100,6 @@ export default function DailyWorkView({
   );
   const visibleTasks = filterWork(ownTasks, {
     search: query,
-    siteId: siteFilter,
     personName,
     siteName: (projectId) => projects.find((project) => project.id === projectId)?.name ?? '',
   });
@@ -272,12 +269,6 @@ export default function DailyWorkView({
         onClose={() => setMoreAnchor(null)}
         anchor={moreAnchor === 'open' ? null : moreAnchor}
         items={[
-          {
-            icon: 'location-outline',
-            label: t.company.workSiteFilter,
-            hint: sites.find((site) => site.id === siteFilter)?.name,
-            onPress: () => setFilterOpen(true),
-          },
           ...(access.canManage
             ? [
                 {
@@ -303,11 +294,7 @@ export default function DailyWorkView({
       />
       <WorkFiltersAndDraftSheet
         groupId={id}
-        filterOpen={filterOpen}
-        setFilterOpen={setFilterOpen}
         sites={sites}
-        siteFilter={siteFilter}
-        setSiteFilter={setSiteFilter}
         canManage={access.canManage}
         people={access.people}
         draft={draft}
