@@ -217,7 +217,7 @@ export function CompanyExport({ groupId }: { groupId: string }) {
       // Only the entries list: balances over some kinds alone would mislead.
       const paymentsModel = (m: typeof companyModel) => {
         const sec = m.sections.find((x) => x.heading === c.entries);
-        const drop = sec ? sec.columns.indexOf(c.colBalance) : -1;
+        const drop = sec ? sec.columns.indexOf(t.groupExport.colBalance) : -1;
         return {
           ...m,
           headline: [],
