@@ -227,10 +227,10 @@ export function SettleGroupList({
   // Where to go when there is nothing to settle (or in addition to what is).
   // Invite is the referral screen, which exists only where plans are live.
   const actions = [
-    { icon: 'person-add-outline' as const, label: d.settleCreate, go: '/new-group' },
-    { icon: 'scan-outline' as const, label: d.settleScan, go: `/capture?scan=${Date.now()}` },
+    { icon: 'person-add-outline' as const, label: d.settleCreate, go: () => '/new-group' },
+    { icon: 'scan-outline' as const, label: d.settleScan, go: () => `/capture?scan=${Date.now()}` },
     ...(referralsLive && !isGuest
-      ? [{ icon: 'paper-plane-outline' as const, label: d.settleInvite, go: '/settings/invite' }]
+      ? [{ icon: 'paper-plane-outline' as const, label: d.settleInvite, go: () => '/settings/invite' }]
       : []),
   ];
   const footer = (
@@ -248,7 +248,7 @@ export function SettleGroupList({
           key={a.label}
           accessibilityRole="button"
           accessibilityLabel={a.label}
-          onPress={() => router.push(a.go as never)}
+          onPress={() => router.push(a.go() as never)}
           style={({ pressed }) => ({
             flex: 1,
             alignItems: 'center',
