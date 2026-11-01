@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { Linking, ScrollView, View } from 'react-native';
 
-import { buildReceipt, receiptLabel } from '@waves/core';
+import { buildReceipt, receiptLabel, receiptStatus } from '@waves/core';
 import { Button, Screen, Text, useTheme } from '@waves/ui';
 
 import { Pill, useMethodLabels, useVendorFormat } from '@/components/company/vendors/parts';
@@ -40,7 +40,9 @@ export default function CompanyVendorReceiptScreen() {
     vendor,
     view.lines.filter((l) => l.vendorId === vendor.id),
   );
-  const status = r.pending ? s.pending : r.received ? s.received : s.waitingVendor;
+  const status = { pending: s.waitingSync, received: s.received, recorded: s.waitingVendor }[
+    receiptStatus(r)
+  ];
   const rows: [string, string][] = [
     [s.companyLabel, company.name],
     [s.vendorLabel, vendor.name],
@@ -62,6 +64,7 @@ export default function CompanyVendorReceiptScreen() {
         methods,
         recorded: s.recorded,
         received: s.received,
+        waitingSync: s.waitingSync,
       },
       f,
     );

@@ -6,7 +6,6 @@ import {
   buildVendorStatement,
   lastVendorPayment,
   pendingVendorBills,
-  receiptLabel,
   sortVendorLines,
   vendorOverdue,
 } from '@waves/core';
@@ -15,7 +14,7 @@ import { Button, Screen, Text, useTheme } from '@waves/ui';
 import { OrderRow } from '@/components/company/vendors/orderParts';
 import { useVendorOrders } from '@/data/companyVendorOrders';
 import { todayIso } from '@/data/personal';
-import { useMethodLabels, useVendorFormat } from '@/components/company/vendors/parts';
+import { Pill, useVendorFormat, useMethodLabels } from '@/components/company/vendors/parts';
 import { renderStatementHtml, shareHtmlAsPdf } from '@/lib/vendorPdf';
 import { reminderUrls } from '@/lib/paymentProof';
 
@@ -24,7 +23,8 @@ import { useMoney } from '@/components/company/dashboard/parts';
 import { VendorForm, VendorLineForm } from '@/components/company/vendors/forms';
 import { BankChangedNotice } from '@/components/company/details/DetailsCard';
 import { useVendorCard, useBankNotice } from '@/data/companyDetails';
-import { VendorHistory, VendorMore } from '@/components/company/vendors/VendorHistory';
+import { VendorActivity } from '@/components/company/vendors/VendorActivity';
+import { VendorMore } from '@/components/company/vendors/VendorHistory';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import {
   ListRow,
@@ -41,7 +41,7 @@ import {
   useRemoveVendor,
   useReviewVendorLine,
 } from '@/data/companyVendors';
-import { fill, useStrings } from '@/i18n';
+import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
@@ -76,6 +76,41 @@ function RoundAction({
   );
 }
 
+function ActionTile({
+  icon,
+  label,
+  onPress,
+  filled = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  filled?: boolean;
+}) {
+  const theme = useTheme();
+  const ink = filled ? theme.color.onBrand : theme.color.text;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={{
+        flex: filled ? 1.4 : 1,
+        minHeight: 72,
+        gap: theme.spacing.xs,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: theme.radius.lg,
+        backgroundColor: filled ? theme.color.brand : theme.color.brandSoft,
+      }}
+    >
+      <Ionicons name={icon} size={22} color={filled ? ink : theme.color.brand} />
+      <Text variant="caption" style={{ color: ink, fontWeight: '700' }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId: string }) {
   const theme = useTheme();
   const clearance = useBottomClearance();
@@ -95,7 +130,7 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
   const [menu, setMenu] = useState(false);
   const [rename, setRename] = useState(false);
   const [form, setForm] = useState<'bill' | null>(null);
-  const [tab, setTab] = useState<'tx' | 'orders' | 'docs'>('tx');
+  const [tab, setTab] = useState<'tx' | 'orders' | 'bills'>('tx');
   const [pdfError, setPdfError] = useState(false);
   const [inviting, setInviting] = useState(false);
   const vendor = view.vendors.find((v) => v.id === vendorId);
@@ -129,63 +164,64 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
       setPdfError(true);
     }
   };
-  const items: OverflowMenuItem[] =
-    vendor && view.canManage
-      ? [
-          {
-            icon: 'document-text-outline' as const,
-            label: s.addBill,
-            onPress: () => setForm('bill'),
-          },
-          ...(!vendor.memberId
-            ? [
-                {
-                  icon: 'person-add-outline' as const,
-                  label: s.invite,
-                  onPress: () => {
-                    if (inviting) return;
-                    setInviting(true);
-                    void (async () => {
-                      try {
-                        await Share.share({ message: await createVendorInviteLink(vendor.id) });
-                      } catch (error) {
-                        await notify({
-                          title: friendlyError(error, s.inviteFailed, 'vendor.invite'),
-                          tone: 'danger',
-                        });
-                      } finally {
-                        setInviting(false);
-                      }
-                    })();
-                  },
+  const items: OverflowMenuItem[] = vendor
+    ? [
+        { icon: 'download-outline' as const, label: s.statement, onPress: () => void statement() },
+        ...(view.canManage
+          ? ([
+              ...(!vendor.memberId
+                ? [
+                    {
+                      icon: 'person-add-outline' as const,
+                      label: s.invite,
+                      onPress: () => {
+                        if (inviting) return;
+                        setInviting(true);
+                        void (async () => {
+                          try {
+                            await Share.share({ message: await createVendorInviteLink(vendor.id) });
+                          } catch (error) {
+                            await notify({
+                              title: friendlyError(error, s.inviteFailed, 'vendor.invite'),
+                              tone: 'danger',
+                            });
+                          } finally {
+                            setInviting(false);
+                          }
+                        })();
+                      },
+                    },
+                  ]
+                : []),
+              {
+                icon: 'business-outline',
+                label: t.companyDetails.title,
+                route: `/group/${groupId}/company-details`,
+              },
+              { icon: 'pencil-outline', label: s.rename, onPress: () => setRename(true) },
+              {
+                icon: 'trash-outline',
+                label: s.delete,
+                tone: 'danger',
+                onPress: () => {
+                  void confirm({
+                    title: s.deleteConfirm,
+                    confirmLabel: s.delete,
+                    tone: 'danger',
+                  }).then((yes) => {
+                    if (yes) remove.mutate(vendor.id, { onSuccess: () => router.back() });
+                  });
                 },
-              ]
-            : []),
-          {
-            icon: 'business-outline',
-            label: t.companyDetails.title,
-            route: `/group/${groupId}/company-details`,
-          },
-          { icon: 'pencil-outline', label: s.rename, onPress: () => setRename(true) },
-          {
-            icon: 'trash-outline',
-            label: s.delete,
-            tone: 'danger',
-            onPress: () => {
-              void confirm({ title: s.deleteConfirm, confirmLabel: s.delete, tone: 'danger' }).then(
-                (yes) => {
-                  if (yes) remove.mutate(vendor.id, { onSuccess: () => router.back() });
-                },
-              );
-            },
-          },
-        ]
-      : [];
+              },
+            ] as OverflowMenuItem[])
+          : []),
+      ]
+    : [];
   return (
     <Screen edges={[]}>
       <ScrollView contentContainerStyle={{ paddingBottom: clearance + theme.spacing.xl }}>
         <PlainHeader
-          title={t.companyDetails.vendorDetails}
+          title={s.vendorTitle}
           trailing={items.length ? <VendorMore onPress={() => setMenu(true)} /> : undefined}
         />
         <ScenicBody flush>
@@ -193,6 +229,18 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
             <>
               <StandardCard style={{ gap: theme.spacing.md }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+                  <View
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: theme.radius.lg,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Ionicons name="storefront-outline" size={24} color={theme.color.brand} />
+                  </View>
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Text variant="heading" style={{ fontWeight: '800' }}>
                       {vendor.name}
@@ -218,51 +266,78 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                     </>
                   ) : null}
                 </View>
-                <Text variant="caption" tone="muted">
-                  {balance > 0n ? s.statusToPay : balance < 0n ? s.advance : s.settled}
-                </Text>
-                <Text tabular style={{ fontSize: 28, fontWeight: '800' }}>
-                  {fmt(balance < 0n ? -balance : balance)}
-                </Text>
-                {overdue > 0n ? (
-                  <Text variant="caption" tone="negative">
-                    {fill(s.overdueLine, { amount: fmt(overdue) })}
-                  </Text>
-                ) : null}
-                <Text variant="caption" tone="muted">
-                  {last
-                    ? fill(s.lastPayment, {
-                        amount: fmt(last.amount),
-                        date: `${f.date(last.occurredOn)}${last.method ? ` · ${methods[last.method]}` : ''}`,
-                      })
-                    : s.noPayments}
-                </Text>
-                {view.canManage ? (
-                  <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-                    <Button
-                      label={s.newOrder}
-                      onPress={() =>
-                        router.push(`/group/${groupId}/company-vendor-order?vendorId=${vendorId}`)
-                      }
-                    />
-                    <Button
-                      label={s.recordPayment}
-                      variant="brand"
-                      onPress={() =>
-                        router.push(`/group/${groupId}/company-vendor-payment?vendorId=${vendorId}`)
-                      }
-                    />
-                    <Button label={s.statement} onPress={() => void statement()} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+                  <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                    {overdue > 0n ? (
+                      <Pill
+                        icon="alert-circle"
+                        tone="bad"
+                        label={`${s.statusOverdue} ${fmt(overdue)}`}
+                      />
+                    ) : balance > 0n ? (
+                      <Pill label={s.statusToPay} />
+                    ) : balance < 0n ? (
+                      <Pill label={s.advance} tone="warn" />
+                    ) : (
+                      <Pill icon="checkmark-circle" tone="good" label={s.settled} />
+                    )}
+                    <Text tabular style={{ fontSize: 28, fontWeight: '800' }}>
+                      {fmt(balance < 0n ? -balance : balance)}
+                    </Text>
                   </View>
-                ) : (
-                  <Button label={s.statement} onPress={() => void statement()} />
-                )}
+                  {last ? (
+                    <>
+                      <View
+                        style={{
+                          width: 1,
+                          alignSelf: 'stretch',
+                          backgroundColor: theme.color.border,
+                        }}
+                      />
+                      <View style={{ flex: 1, gap: 2 }}>
+                        <Text variant="caption" tone="muted">
+                          {s.lastPaymentLabel}
+                        </Text>
+                        <Text tabular style={{ fontWeight: '700' }}>
+                          {fmt(last.amount)}
+                        </Text>
+                        <Text variant="caption" tone="muted">
+                          {`${f.date(last.occurredOn)}${last.method ? ` · ${methods[last.method]}` : ''}`}
+                        </Text>
+                      </View>
+                    </>
+                  ) : null}
+                </View>
                 {pdfError ? (
                   <Text variant="caption" tone="negative">
                     {s.pdfFailed}
                   </Text>
                 ) : null}
               </StandardCard>
+              {view.canManage ? (
+                <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                  <ActionTile
+                    icon="document-attach-outline"
+                    label={s.newOrder}
+                    onPress={() =>
+                      router.push(`/group/${groupId}/company-vendor-order?vendorId=${vendorId}`)
+                    }
+                  />
+                  <ActionTile
+                    icon="receipt-outline"
+                    label={s.recordPayment}
+                    filled
+                    onPress={() =>
+                      router.push(`/group/${groupId}/company-vendor-payment?vendorId=${vendorId}`)
+                    }
+                  />
+                  <ActionTile
+                    icon="scan-outline"
+                    label={s.addBill}
+                    onPress={() => setForm('bill')}
+                  />
+                </View>
+              ) : null}
               {bankNotice.show ? (
                 <BankChangedNotice
                   view={{ show: bankNotice.show, at: detailView.card?.bankChangedAt }}
@@ -288,6 +363,9 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                         subtitle={[line.occurredOn, line.note].filter(Boolean).join(' · ')}
                         subtitleLines={3}
                         amount={fmt(line.amount)}
+                        onPress={() =>
+                          router.push(`/group/${groupId}/company-vendor-line?entryId=${line.id}`)
+                        }
                         footer={
                           <View style={{ gap: theme.spacing.sm }}>
                             <CompanyEntryPhotos
@@ -319,33 +397,21 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
               <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                 <SegmentedPills
                   options={[
-                    { value: 'tx', label: s.transactions },
-                    { value: 'orders', label: `${s.ordersTab} ${orders.length}`.trim() },
-                    { value: 'docs', label: s.documents },
+                    { value: 'tx', label: s.activityTab },
+                    { value: 'orders', label: `${s.ordersTab} (${orders.length})` },
+                    {
+                      value: 'bills',
+                      label: `${s.billsTab} (${lines.filter((l) => l.kind === 'bill').length})`,
+                    },
                   ]}
                   value={tab}
                   onChange={setTab}
                 />
               </View>
-              {tab === 'tx' ? (
-                <VendorHistory groupId={groupId} lines={lines} />
-              ) : tab === 'orders' ? (
+              {tab === 'orders' ? (
                 <StandardCard>
                   {orders.length === 0 ? (
-                    <View style={{ gap: theme.spacing.md }}>
-                      <Text tone="muted">{s.noOrders}</Text>
-                      {view.canManage ? (
-                        <Button
-                          label={s.createOrder}
-                          variant="brand"
-                          onPress={() =>
-                            router.push(
-                              `/group/${groupId}/company-vendor-order?vendorId=${vendorId}`,
-                            )
-                          }
-                        />
-                      ) : null}
-                    </View>
+                    <Text tone="muted">{s.noOrders}</Text>
                   ) : (
                     orders.map((o, index) => (
                       <OrderRow
@@ -363,49 +429,13 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                   )}
                 </StandardCard>
               ) : (
-                <>
-                  <SectionHeader title={s.receiptsHeading} />
-                  <StandardCard>
-                    {lines.filter((l) => l.kind === 'payment' && l.receiptNo).length === 0 ? (
-                      <Text tone="muted">{s.noDocs}</Text>
-                    ) : (
-                      sortVendorLines(lines)
-                        .filter((l) => l.kind === 'payment' && l.receiptNo)
-                        .map((l) => (
-                          <ListRow
-                            key={l.id}
-                            title={`${s.receipt} ${receiptLabel(l.receiptNo)}`}
-                            subtitle={f.date(l.occurredOn)}
-                            amount={fmt(l.amount)}
-                            onPress={() =>
-                              router.push(
-                                `/group/${groupId}/company-vendor-receipt?entryId=${l.id}`,
-                              )
-                            }
-                          />
-                        ))
-                    )}
-                  </StandardCard>
-                  <SectionHeader title={s.billPhotos} />
-                  <StandardCard style={{ gap: theme.spacing.md }}>
-                    {sortVendorLines(lines)
-                      .filter((l) => l.kind === 'bill')
-                      .map((l) => (
-                        <View key={l.id} style={{ gap: theme.spacing.xs }}>
-                          <Text variant="caption" tone="muted">
-                            {`${f.date(l.occurredOn)} · ${fmt(l.amount)}`}
-                          </Text>
-                          <CompanyEntryPhotos
-                            kind="vendor"
-                            groupId={groupId}
-                            entryId={l.id}
-                            canAdd={view.canManage}
-                            canRemove={() => view.canManage}
-                          />
-                        </View>
-                      ))}
-                  </StandardCard>
-                </>
+                <VendorActivity
+                  groupId={groupId}
+                  lines={lines}
+                  money={fmt}
+                  date={f.date}
+                  billsOnly={tab === 'bills'}
+                />
               )}
             </>
           ) : (
