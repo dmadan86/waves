@@ -2,6 +2,8 @@
 ALTER TABLE public.company_plans
  ADD COLUMN pack_txn text,
  ADD COLUMN pack_event_at timestamptz;
+-- One store subscription pays for at most one company.
+CREATE UNIQUE INDEX company_plans_pack_txn_key ON public.company_plans(pack_txn) WHERE pack_txn IS NOT NULL;
 
 -- Called by revenuecat-webhook for a pack event. Dedupes on the same ledger as waves_revenuecat_apply.
 -- A pack sets the quota to the free default + pack; when it ends the quota reverts to the default.
@@ -42,7 +44,7 @@ BEGIN
   ELSIF plan.pack_txn IS DISTINCT FROM v_txn THEN v_out:='stale';
   ELSIF plan.pack_event_at IS NOT NULL AND p_event_at IS NOT NULL AND plan.pack_event_at>p_event_at THEN v_out:='stale';
   ELSE
-   UPDATE public.company_plans SET storage_quota_bytes=NULL,pack_txn=NULL,pack_event_at=p_event_at,updated_at=now() WHERE group_id=v_group;
+   UPDATE public.company_plans SET storage_quota_bytes=NULL,pack_txn=NULL,pack_event_at=p_event_at,updated_at=now() WHERE group_id=v_group OR pack_txn=v_txn;
    v_out:='applied';
   END IF;
  END IF;
