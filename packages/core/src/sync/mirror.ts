@@ -2821,7 +2821,7 @@ export function purgeCompanyInvisible(
     return dropped;
   };
   for (const [groupId, ids] of Object.entries(calendar)) {
-    // A client reassigned to someone else stops being readable here without a tombstone: drop it, its notes and its follow-ups.
+    // A client reassigned to someone else stops being readable here without a tombstone: drop it and its notes (a follow-up assigned to this phone's user stays: it is theirs by its own RLS).
     if (ids.clients) {
       const clients = new Set(ids.clients);
       const gone = drop(
@@ -2831,7 +2831,6 @@ export function purgeCompanyInvisible(
       const orphan = (row: Record<string, unknown>): boolean =>
         row.group_id === groupId && gone.has(row.client_id as string);
       drop(SyncTable.CompanyClientNotes, orphan);
-      drop(SyncTable.CompanyWorkTasks, orphan);
     }
     const dates = new Set(ids.dates);
     const events = new Set(ids.events);

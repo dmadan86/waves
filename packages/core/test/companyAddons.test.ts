@@ -224,7 +224,7 @@ describe('purgeCompanyInvisible (client reassigned to someone else)', () => {
   ]);
   const ids = (s: typeof state, t: SyncTable) => Object.keys(s.tables[t]).sort();
 
-  it('drops the client, its notes and its follow-up tasks, nothing else', () => {
+  it('drops the client and its notes; follow-up tasks stay (they are visible by their own assignee)', () => {
     const { state: next } = purgeCompanyInvisible(
       state,
       {},
@@ -232,7 +232,7 @@ describe('purgeCompanyInvisible (client reassigned to someone else)', () => {
     );
     expect(ids(next, SyncTable.CompanyClients)).toEqual(['kept']);
     expect(ids(next, SyncTable.CompanyClientNotes)).toEqual(['n1']);
-    expect(ids(next, SyncTable.CompanyWorkTasks)).toEqual(['t1', 't3']);
+    expect(ids(next, SyncTable.CompanyWorkTasks)).toEqual(['t1', 't2', 't3']);
   });
 
   it('keeps everything when the server sent no client list (older server)', () => {
