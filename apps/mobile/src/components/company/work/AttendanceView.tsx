@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { dashboardStats } from '@waves/core';
@@ -23,7 +23,8 @@ import {
   useCompanyProjects,
   useCompanyProjectMembers,
 } from '@/data/companyEntries';
-import { useCalendar } from '@/data/companyCalendar';
+import { useCalendar, useCalendarAccess } from '@/data/companyCalendar';
+import { HolidayFormSheet } from '@/components/company/CompanyCalendarSheets';
 import { useDepartments, departmentName } from '@/data/companyDepartments';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
@@ -32,8 +33,9 @@ import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
 import type { MenuAnchor } from '@/components/SortMenu';
-import { attendanceStatusLetter, matchesStatus, weekDays } from '@/lib/companyAttendance';
-import { AttendanceRow, GREEN, RED } from './AttendanceRow';
+import { matchesStatus, weekDays } from '@/lib/companyAttendance';
+import { AMBER, AttendanceRow, GREEN, RED } from './AttendanceRow';
+import { withAlpha } from '@/components/company/dashboard/overviewKit';
 import { AttendanceToolbar } from './AttendanceToolbar';
 
 type Period = 'daily' | 'weekly' | 'monthly';
@@ -66,7 +68,9 @@ export default function AttendanceView({
     date?: string;
     status?: string;
   }>();
-  const leave = useCalendar(id).leave;
+  const { leave, holidays } = useCalendar(id);
+  const isOwner = useCalendarAccess(id).isOwner;
+  const [holidayOpen, setHolidayOpen] = useState(false);
   const [period, setPeriod] = useState<Period>('daily'),
     [date, setDate] = useState(
       typeof dateParam === 'string' &&
@@ -227,6 +231,19 @@ export default function AttendanceView({
   )
     .filter(([p]) => p !== period)
     .map(([p, icon, label]) => ({ icon, label, onPress: () => setPeriod(p) }));
+  // Android's picker is its own dialog; inside a Sheet it left an empty sheet behind it.
+  const openDate = () =>
+    Platform.OS === 'android'
+      ? DateTimePickerAndroid.open({
+          value: new Date(`${date}T12:00:00`),
+          maximumDate: new Date(`${today}T23:59:59`),
+          mode: 'date',
+          onChange: (event, d) => {
+            if (event.type === 'set' && d) setDate(d.toISOString().slice(0, 10));
+          },
+        })
+      : setDateOpen(true);
+  const holidayOn = holidays.find((h) => h.startDay <= date && date <= h.endDay);
   const leaveOf = (memberId: string) => {
     const on = leave.filter(
       (l) => l.memberId === memberId && l.startDay <= date && date <= l.endDay,
@@ -297,7 +314,7 @@ export default function AttendanceView({
                         })
                       : labelDate
                   }
-                  onDay={() => setDateOpen(true)}
+                  onDay={openDate}
                   saveState={saveState}
                   query={search}
                   onQueryChange={setSearch}
@@ -344,8 +361,12 @@ export default function AttendanceView({
                     days={days}
                     people={people}
                     marks={marks}
+                    leave={leave}
+                    holidays={holidays}
                     departments={departments}
                     locale={locale}
+                    onDate={(d) => setDate(d > today ? today : d)}
+                    groupId={id}
                   />
                 )}
               </View>
@@ -356,14 +377,26 @@ export default function AttendanceView({
                 days={days}
                 people={[access.me]}
                 marks={marks}
+                leave={leave}
+                holidays={holidays}
                 departments={departments}
                 locale={locale}
+                onDate={(d) => setDate(d > today ? today : d)}
+                groupId={id}
               />
             ) : null}
             {error ? <Text tone="negative">{t.company.workSaveError}</Text> : null}
           </ReadOnlyWhenSuspended>
         </ScenicBody>
       </ScrollView>
+      <HolidayFormSheet
+        key={`${date}|${holidayOn?.id ?? ''}`}
+        groupId={id}
+        visible={holidayOpen}
+        onClose={() => setHolidayOpen(false)}
+        day={holidayOn ? undefined : date}
+        holiday={holidayOn}
+      />
       <OverflowMenu
         visible={menuAnchor !== null}
         onClose={() => setMenuAnchor(null)}
@@ -381,6 +414,17 @@ export default function AttendanceView({
             disabled: busy || date > today || period !== 'daily',
             onPress: () => void markAll('absent'),
           },
+          ...(isOwner
+            ? [
+                {
+                  icon: 'sunny-outline' as const,
+                  label: holidayOn
+                    ? fill(t.company.attendanceHolidayEdit, { name: holidayOn.name })
+                    : t.company.attendanceMarkHoliday,
+                  onPress: () => setHolidayOpen(true),
+                },
+              ]
+            : []),
           {
             icon: 'options-outline',
             label: t.company.attendanceFilters,
@@ -578,8 +622,8 @@ export default function AttendanceView({
           )}
         </ScrollView>
       </Sheet>
-      <Sheet visible={dateOpen} onClose={() => setDateOpen(false)} closeLabel={t.common.close}>
-        {Platform.OS === 'ios' ? (
+      {Platform.OS === 'ios' ? (
+        <Sheet visible={dateOpen} onClose={() => setDateOpen(false)} closeLabel={t.common.close}>
           <DateTimePicker
             value={new Date(`${date}T12:00:00`)}
             maximumDate={new Date(`${today}T23:59:59`)}
@@ -590,97 +634,271 @@ export default function AttendanceView({
               setDateOpen(false);
             }}
           />
-        ) : (
-          <DateTimePicker
-            value={new Date(`${date}T12:00:00`)}
-            maximumDate={new Date(`${today}T23:59:59`)}
-            mode="date"
-            onChange={(_, d) => {
-              setDateOpen(false);
-              if (d) setDate(d.toISOString().slice(0, 10));
-            }}
-          />
-        )}
-      </Sheet>
+        </Sheet>
+      ) : null}
     </>
   );
 }
 
+type LeaveSpan = { memberId: string; status: string; startDay: string; endDay: string };
+
+/** Week (7 cells) or month (every day, scrolls sideways) grid: member on the left, one cell per day. */
 function AttendanceReadOnly({
   period,
   date,
   days,
   people,
   marks,
+  leave,
+  holidays,
   departments,
   locale,
+  onDate,
+  groupId,
 }: {
+  groupId: string;
   period: Period;
   date: string;
   days: string[];
   people: readonly import('@/data/types').MemberRow[];
   marks: ReadonlyMap<string, import('@/data/companyWorkday').MirrorAttendance>;
+  leave: readonly LeaveSpan[];
+  holidays: readonly { startDay: string; endDay: string; name: string }[];
   departments: readonly import('@/data/companyDepartments').CompanyDepartment[];
   locale: string;
+  onDate: (iso: string) => void;
 }) {
   const theme = useTheme();
+  const { t } = useStrings();
+  const today = todayIso();
   const month = date.slice(0, 7);
-  const rows = period === 'weekly' ? days : [];
-  return (
-    <StandardCard style={{ gap: 10 }}>
-      {people.map((person, index) => {
-        const title = displayName(person);
-        if (period === 'weekly')
-          return (
-            <View key={person.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <View style={{ flex: 1 }}>
-                <Text numberOfLines={1}>{title}</Text>
-                <Text variant="micro" tone="muted">
-                  {departmentName(departments, person.department_id) ?? person.employee_id ?? ''}
-                </Text>
-              </View>
-              {rows.map((day) => (
-                <View key={day} style={{ width: 22, alignItems: 'center' }}>
-                  <Text variant="micro" tone="muted">
-                    {new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
-                      weekday: 'narrow',
-                      timeZone: 'UTC',
-                    })}
-                  </Text>
-                  <Text style={{ color: theme.color.brand }}>
-                    {attendanceStatusLetter(marks.get(`${person.id}|${day}`)?.status)}
-                  </Text>
-                </View>
-              ))}
-              <Text>{rows.reduce((n, d) => n + (marks.has(`${person.id}|${d}`) ? 1 : 0), 0)}</Text>
-            </View>
-          );
-        const counts = { present: 0, half: 0, absent: 0 };
-        for (const [key, m] of marks)
-          if (key.startsWith(`${person.id}|${month}-`)) counts[m.status]++;
-        return (
+  const weekly = period === 'weekly';
+  const cols = weekly ? days : monthDays(month);
+  const show = (iso: string, options: Intl.DateTimeFormatOptions) =>
+    new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { ...options, timeZone: 'UTC' });
+  const title = weekly
+    ? `${show(days[0]!, { month: 'short', day: 'numeric' })} – ${show(days[6]!, { month: 'short', day: 'numeric', year: 'numeric' })}`
+    : show(`${month}-01`, { month: 'long', year: 'numeric' });
+  const prev = weekly ? shiftIso(days[0]!, -7) : shiftMonth(month, -1);
+  const next = weekly ? shiftIso(days[0]!, 7) : shiftMonth(month, 1);
+  const onLeave = (memberId: string, day: string) =>
+    leave.some(
+      (l) =>
+        l.memberId === memberId && l.status === 'approved' && l.startDay <= day && day <= l.endDay,
+    );
+  const isHoliday = (day: string) => holidays.some((h) => h.startDay <= day && day <= h.endDay);
+  const ROW = 48,
+    HEAD = 40,
+    NAME = 120,
+    CELL = 30;
+  const cell = (memberId: string, day: string) => {
+    const status = marks.get(`${memberId}|${day}`)?.status;
+    const [icon, ink] =
+      status === 'present'
+        ? (['checkmark', GREEN] as const)
+        : status === 'absent'
+          ? (['close', RED] as const)
+          : status === 'half'
+            ? ([null, AMBER] as const)
+            : onLeave(memberId, day)
+              ? (['umbrella-outline', LEAVE] as const)
+              : isHoliday(day)
+                ? (['sunny-outline', HOLIDAY] as const)
+                : ([null, null] as const);
+    return (
+      <View
+        key={day}
+        style={{
+          ...(weekly ? { flex: 1 } : { width: CELL }),
+          height: 34,
+          marginHorizontal: 2,
+          borderRadius: 8,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: ink ? withAlpha(ink, 0.12) : theme.color.surfaceMuted,
+        }}
+      >
+        {icon ? (
+          <Ionicons name={icon} size={16} color={ink} />
+        ) : status === 'half' ? (
+          <Text variant="caption" style={{ color: AMBER, fontWeight: '700' }}>
+            ½
+          </Text>
+        ) : null}
+      </View>
+    );
+  };
+  const grid = (
+    <View>
+      <View style={{ flexDirection: 'row', height: HEAD, alignItems: 'center' }}>
+        {cols.map((day) => (
           <View
-            key={person.id}
+            key={day}
             style={{
-              flexDirection: 'row',
+              ...(weekly ? { flex: 1 } : { width: CELL }),
+              marginHorizontal: 2,
               alignItems: 'center',
-              paddingVertical: 8,
-              borderBottomWidth: index < people.length - 1 ? 1 : 0,
-              borderColor: theme.color.border,
             }}
           >
-            <View style={{ flex: 1 }}>
-              <Text>{title}</Text>
-              <Text variant="micro" tone="muted">
-                {departmentName(departments, person.department_id) ?? person.employee_id ?? ''}
-              </Text>
-            </View>
-            <Text>
-              {counts.present} P · {counts.half} ½ · {counts.absent} A
+            <Text variant="micro" tone="muted">
+              {show(day, { weekday: weekly ? 'short' : 'narrow' })}
+            </Text>
+            <Text
+              variant="micro"
+              style={{
+                fontWeight: '700',
+                color: day === today ? theme.color.brand : theme.color.text,
+              }}
+            >
+              {Number(day.slice(8))}
             </Text>
           </View>
-        );
-      })}
+        ))}
+      </View>
+      {people.map((person) => (
+        <View key={person.id} style={{ flexDirection: 'row', height: ROW, alignItems: 'center' }}>
+          {cols.map((day) => cell(person.id, day))}
+        </View>
+      ))}
+    </View>
+  );
+  const arrow = (to: string, icon: 'chevron-back' | 'chevron-forward', label: string) => {
+    const off = to > today;
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: off }}
+        disabled={off}
+        onPress={() => onDate(to)}
+        hitSlop={8}
+        style={{ padding: 4, opacity: off ? 0.3 : 1 }}
+      >
+        <Ionicons name={icon} size={20} color={theme.color.text} />
+      </Pressable>
+    );
+  };
+  const legend: [string | null, string, string][] = [
+    ['checkmark', GREEN, t.company.attendancePresent],
+    [null, AMBER, t.company.attendanceHalfDay],
+    ['umbrella-outline', LEAVE, t.company.attendanceLeave],
+    ['sunny-outline', HOLIDAY, t.calendar.addHoliday],
+    ['close', RED, t.company.attendanceAbsent],
+  ];
+  return (
+    <StandardCard style={{ padding: 0, overflow: 'hidden' }}>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 16,
+          paddingVertical: 10,
+        }}
+      >
+        {arrow(prev, 'chevron-back', t.company.attendancePrevious)}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Ionicons name="calendar-outline" size={16} color={theme.color.brand} />
+          <Text variant="caption" style={{ fontWeight: '700' }}>
+            {title}
+          </Text>
+        </View>
+        {arrow(next, 'chevron-forward', t.company.attendanceNext)}
+      </View>
+      <View style={{ flexDirection: 'row', paddingHorizontal: 8 }}>
+        <View style={{ width: NAME }}>
+          <View style={{ height: HEAD, justifyContent: 'center', paddingStart: 4 }}>
+            <Text variant="micro" tone="muted" style={{ fontWeight: '600' }}>
+              {t.company.attendanceMember}
+            </Text>
+          </View>
+          {people.map((person) => (
+            <Pressable
+              key={person.id}
+              accessibilityRole="button"
+              accessibilityLabel={displayName(person)}
+              onPress={() => router.push(`/group/${groupId}/company-statement?member=${person.id}`)}
+              style={({ pressed }) => ({
+                height: ROW,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <PersonAvatar
+                member={person}
+                name={displayName(person)}
+                ghost={isGhost(person)}
+                size={28}
+              />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text variant="caption" numberOfLines={1} style={{ fontWeight: '700' }}>
+                  {displayName(person)}
+                </Text>
+                <Text variant="micro" tone="muted" numberOfLines={1}>
+                  {person.employee_id ?? departmentName(departments, person.department_id) ?? ''}
+                </Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+        {weekly ? (
+          <View style={{ flex: 1 }}>{grid}</View>
+        ) : (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+            {grid}
+          </ScrollView>
+        )}
+      </View>
+      <View
+        style={{
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: 12,
+          paddingHorizontal: 12,
+          paddingVertical: 10,
+          borderTopWidth: 1,
+          borderColor: theme.color.border,
+        }}
+      >
+        {legend.map(([icon, ink, label]) => (
+          <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            {icon ? (
+              <Ionicons name={icon as 'close'} size={14} color={ink} />
+            ) : (
+              <Text variant="micro" style={{ color: ink, fontWeight: '700' }}>
+                ½
+              </Text>
+            )}
+            <Text variant="micro" tone="muted">
+              {label}
+            </Text>
+          </View>
+        ))}
+      </View>
     </StandardCard>
   );
+}
+
+const LEAVE = '#EA580C';
+const HOLIDAY = '#2563EB';
+
+function shiftIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/** First day of the month `by` months from `month` (yyyy-mm). */
+function shiftMonth(month: string, by: number): string {
+  const d = new Date(`${month}-01T00:00:00Z`);
+  d.setUTCMonth(d.getUTCMonth() + by);
+  return d.toISOString().slice(0, 10);
+}
+
+function monthDays(month: string): string[] {
+  const first = new Date(`${month}-01T00:00:00Z`);
+  const count = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
+  return Array.from({ length: count }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`);
 }
