@@ -2294,6 +2294,7 @@ export interface UiStrings {
     billsTab: string;
     lastPaymentLabel: string;
     waitingSync: string;
+    entryDetails: string;
     documents: string;
     transactions: string;
     outstanding: string;
@@ -9449,6 +9450,7 @@ const en: UiStrings = {
     billsTab: 'Bills',
     lastPaymentLabel: 'Last payment',
     waitingSync: 'Waiting to sync',
+    entryDetails: 'Entry details',
     documents: 'Documents',
     transactions: 'Transactions',
     outstanding: 'Outstanding',
@@ -16062,6 +16064,7 @@ const ta: UiStrings = {
     billsTab: 'பில்கள்',
     lastPaymentLabel: 'கடைசி கட்டணம்',
     waitingSync: 'ஒத்திசைவுக்காகக் காத்திருக்கிறது',
+    entryDetails: 'பதிவு விவரங்கள்',
     documents: 'ஆவணங்கள்',
     transactions: 'பரிவர்த்தனைகள்',
     outstanding: 'நிலுவை',
@@ -22832,6 +22835,7 @@ const hi: UiStrings = {
     billsTab: 'बिल',
     lastPaymentLabel: 'आखिरी भुगतान',
     waitingSync: 'सिंक का इंतज़ार',
+    entryDetails: 'प्रविष्टि का विवरण',
     documents: 'दस्तावेज़',
     transactions: 'लेन-देन',
     outstanding: 'बकाया',
@@ -29542,6 +29546,7 @@ const ar: UiStrings = {
     billsTab: 'الفواتير',
     lastPaymentLabel: 'آخر دفعة',
     waitingSync: 'بانتظار المزامنة',
+    entryDetails: 'تفاصيل القيد',
     documents: 'المستندات',
     transactions: 'المعاملات',
     outstanding: 'المستحق',
