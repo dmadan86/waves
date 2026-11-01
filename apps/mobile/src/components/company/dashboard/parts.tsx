@@ -38,6 +38,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useCompanyActivityUnread } from '@/data/companyActivity';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
+import { greetingFor } from '@/lib/overviewHome';
 
 export function useMoney(currency: string): (minor: bigint) => string {
   const { locale } = useStrings();
@@ -286,6 +287,13 @@ export function DashHeader({
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
   const bare = !!menuItems && !overview;
+  const g = greetingFor(new Date().getHours());
+  const greeting =
+    g === 'morning'
+      ? t.company.greetMorning
+      : g === 'afternoon'
+        ? t.company.greetAfternoon
+        : t.company.greetEvening;
   const dots = !!menuItems;
   const dotsRef = useRef<View>(null);
   const [dotsAnchor, setDotsAnchor] = useState<MenuAnchor | null>(null);
@@ -392,7 +400,7 @@ export function DashHeader({
             }}
           >
             <Text variant="title" accessibilityRole="header" style={{ fontSize: 18 }}>
-              {t.company.ovTodayOverview}
+              {greeting}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text variant="caption" tone="muted" style={{ flexShrink: 1 }}>
