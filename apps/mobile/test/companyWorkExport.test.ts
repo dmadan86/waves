@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildWorkReport, workRange, type WorkReportLabels } from '../src/data/companyWorkExport';
+import {
+  buildAttendanceReport,
+  buildWorkReport,
+  workRange,
+  type WorkReportLabels,
+} from '../src/data/companyWorkExport';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
 
 const labels: WorkReportLabels = {
@@ -98,5 +103,42 @@ describe('company work reports', () => {
   it('finds this week (Monday to Sunday) and this month', () => {
     expect(workRange('week', '2026-10-31')).toEqual({ from: '2026-10-26', to: '2026-11-01' });
     expect(workRange('month', '2026-10-31')).toEqual({ from: '2026-10-01', to: '2026-10-31' });
+  });
+  it('builds an attendance report for the range, counted and sorted', () => {
+    const mark = (memberId: string, day: string, status: 'present' | 'half' | 'absent') => ({
+      memberId,
+      day,
+      status,
+      note: null,
+    });
+    const model = buildAttendanceReport({
+      marks: [
+        mark('b', '2026-10-02', 'half'),
+        mark('a', '2026-10-02', 'present'),
+        mark('a', '2026-09-01', 'absent'),
+      ],
+      from: '2026-10-01',
+      to: '2026-10-31',
+      company: 'Acme',
+      generatedOn: '2026-11-01',
+      locale: 'en',
+      personName: (id) => id.toUpperCase(),
+      labels: {
+        title: 'Attendance',
+        date: 'Date',
+        person: 'Person',
+        status: 'Status',
+        note: 'Note',
+        present: 'Present',
+        half: 'Half',
+        absent: 'Absent',
+      },
+    });
+    expect(model.headline).toEqual([
+      ['Present', '1'],
+      ['Half', '1'],
+      ['Absent', '0'],
+    ]);
+    expect(model.sections[0]!.rows.map((r) => r[1]!.text)).toEqual(['A', 'B']);
   });
 });
