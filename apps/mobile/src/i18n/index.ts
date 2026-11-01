@@ -1598,6 +1598,8 @@ export interface UiStrings {
     workRepSite: string;
     workRepOverdue: string;
     workExportSub: string;
+    exportPayments: string;
+    exportTasks: string;
     workFileFormat: string;
     workGenerate: string;
     workRepListSub: string;
@@ -8923,6 +8925,8 @@ const en: UiStrings = {
     workRepSite: 'Per site',
     workRepOverdue: 'Overdue & completion',
     workExportSub: 'Get a report of your tasks in PDF or Excel.',
+    exportPayments: 'Payments',
+    exportTasks: 'Tasks',
     workFileFormat: 'File format',
     workGenerate: 'Generate report',
     workRepListSub: 'All tasks with status',
@@ -15713,6 +15717,8 @@ const ta: UiStrings = {
     workRepSite: 'தளவாரி',
     workRepOverdue: 'தாமதம் & நிறைவு',
     workExportSub: 'உங்கள் பணிகளின் அறிக்கையை PDF அல்லது Excel-இல் பெறுங்கள்.',
+    exportPayments: 'கொடுப்பனவுகள்',
+    exportTasks: 'பணிகள்',
     workFileFormat: 'கோப்பு வடிவம்',
     workGenerate: 'அறிக்கை உருவாக்கு',
     workRepListSub: 'நிலையுடன் அனைத்துப் பணிகளும்',
@@ -22669,6 +22675,8 @@ const hi: UiStrings = {
     workRepSite: 'साइट के अनुसार',
     workRepOverdue: 'देरी और पूर्णता',
     workExportSub: 'अपने कामों की रिपोर्ट PDF या Excel में पाएँ।',
+    exportPayments: 'भुगतान',
+    exportTasks: 'काम',
     workFileFormat: 'फ़ाइल फ़ॉर्मैट',
     workGenerate: 'रिपोर्ट बनाएँ',
     workRepListSub: 'स्थिति के साथ सभी काम',
@@ -29526,6 +29534,8 @@ const ar: UiStrings = {
     workRepSite: 'حسب الموقع',
     workRepOverdue: 'المتأخرة ونسبة الإنجاز',
     workExportSub: 'احصل على تقرير بمهامك بصيغة PDF أو Excel.',
+    exportPayments: 'المدفوعات',
+    exportTasks: 'المهام',
     workFileFormat: 'صيغة الملف',
     workGenerate: 'إنشاء التقرير',
     workRepListSub: 'كل المهام مع الحالة',
