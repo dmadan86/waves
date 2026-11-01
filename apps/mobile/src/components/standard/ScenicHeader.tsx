@@ -47,6 +47,7 @@ export function ScenicHeader({
   wide = false,
   onTitlePress,
   titleHint,
+  identity,
 }: {
   title: string;
   /** Defaults to going back one screen. */
@@ -70,6 +71,8 @@ export function ScenicHeader({
   /** Makes the title a tap target with a chevron after it (a switcher); `titleHint` is its spoken label. */
   onTitlePress?: () => void;
   titleHint?: string;
+  /** Replaces the centred title with your own block (an icon tile, title and subtitle) beside the back button. */
+  identity?: ReactNode;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -153,6 +156,9 @@ export function ScenicHeader({
           >
             <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
           </Pressable>
+          {identity ? (
+            <View style={{ flex: 1, marginStart: theme.spacing.sm }}>{identity}</View>
+          ) : (
           <Pressable
             disabled={!onTitlePress}
             accessibilityRole={onTitlePress ? 'button' : undefined}
@@ -177,6 +183,7 @@ export function ScenicHeader({
             </Text>
             {onTitlePress ? <Ionicons name="chevron-down" size={iconSize.md} color={ink} /> : null}
           </Pressable>
+          )}
           {titleAlign === 'start' && !action ? null : (
             <View style={{ minWidth: 40, alignItems: 'flex-end' }}>{action}</View>
           )}
