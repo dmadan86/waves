@@ -26,6 +26,7 @@ import { useCompanyEntries } from '@/data/companyEntries';
 import { useCompanyStorage } from '@/data/companyStorage';
 import { useStrings } from '@/i18n';
 import { formatBytes } from '@/lib/bytes';
+import { backend } from '@/lib/backend';
 import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
 import {
@@ -57,12 +58,15 @@ export default function CompanyStorageScreen() {
   }, [view.isOwner]);
   const buy = async (pack: PurchasesStoreProduct) => {
     if (buying) return;
-    // The account already pays for a pack and this company has none: it is another company's, and a
-    // store product change would replace that pack instead of adding one. (250 MB = the free default.)
-    if (hasActiveCompanyStoragePack() && (usage.data?.quotaBytes ?? 0) <= 262144000) {
-      setSheet(false);
-      await notify({ title: t.companyStorage.packElsewhere });
-      return;
+    // This store account already pays a pack for another company: a store product change would
+    // replace that pack instead of adding one.
+    if (hasActiveCompanyStoragePack()) {
+      const { data: holder } = await backend.rpc('waves_my_pack_company');
+      if (holder && holder !== groupId) {
+        setSheet(false);
+        await notify({ title: t.companyStorage.packElsewhere });
+        return;
+      }
     }
     setBuying(true);
     try {
