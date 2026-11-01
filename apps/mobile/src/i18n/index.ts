@@ -2292,7 +2292,7 @@ export interface UiStrings {
     hubNothing: string;
     hubFiles: string;
     hubSettings: string;
-  },
+  };
   companyVendors: {
     photoPrivacy: string;
     historyEmpty: string;
