@@ -2263,6 +2263,15 @@ export interface UiStrings {
     catTransport: string;
     catOther: string;
   };
+  companyStorage: {
+    title: string;
+    usedOfQuota: string;
+    percentUsed: string;
+    banner: string;
+    note: string;
+    full: string;
+    loading: string;
+  };
   companyDetails: {
     title: string;
     vendorDetails: string;
@@ -9284,6 +9293,15 @@ const en: UiStrings = {
     catTransport: 'Transport',
     catOther: 'Other',
   },
+  companyStorage: {
+    title: 'Storage',
+    usedOfQuota: '{used} of {quota}',
+    percentUsed: '{percent}% used',
+    banner: 'Storage {percent}% full — add more',
+    note: 'Photos on entries, bills and tasks count here. Nothing is ever deleted.',
+    full: 'Company storage is full. The owner can add more in Settings.',
+    loading: 'Could not load storage. Pull to retry.',
+  },
   companyDetails: {
     title: 'Company details',
     vendorDetails: 'Vendor details',
@@ -15761,6 +15779,15 @@ const ta: UiStrings = {
     catUtilities: 'பயன்பாட்டுச் சேவைகள்',
     catTransport: 'போக்குவரத்து',
     catOther: 'மற்றவை',
+  },
+  companyStorage: {
+    title: 'சேமிப்பு',
+    usedOfQuota: '{quota}-இல் {used}',
+    percentUsed: '{percent}% பயன்பாடு',
+    banner: 'சேமிப்பு {percent}% நிரம்பியுள்ளது. மேலும் சேர்க்கவும்',
+    note: 'பதிவுகள், பில்கள், பணிகளின் புகைப்படங்கள் இங்கே கணக்கிடப்படும். எதுவும் நீக்கப்படாது.',
+    full: 'நிறுவன சேமிப்பு நிரம்பிவிட்டது. உரிமையாளர் அமைப்புகளில் மேலும் சேர்க்கலாம்.',
+    loading: 'சேமிப்பை ஏற்ற முடியவில்லை. மீண்டும் முயலவும்.',
   },
   companyDetails: {
     title: 'நிறுவன விவரங்கள்',
@@ -22397,6 +22424,15 @@ const hi: UiStrings = {
     catTransport: 'परिवहन',
     catOther: 'अन्य',
   },
+  companyStorage: {
+    title: 'स्टोरेज',
+    usedOfQuota: '{quota} में से {used}',
+    percentUsed: '{percent}% उपयोग',
+    banner: 'स्टोरेज {percent}% भर गया। और जोड़ें',
+    note: 'एंट्री, बिल और कामों की फ़ोटो यहाँ गिनी जाती हैं। कुछ भी कभी नहीं हटाया जाता।',
+    full: 'कंपनी का स्टोरेज भर गया है। मालिक सेटिंग्स में और जोड़ सकते हैं।',
+    loading: 'स्टोरेज लोड नहीं हो सका। दोबारा कोशिश करें।',
+  },
   companyDetails: {
     title: 'कंपनी का विवरण',
     vendorDetails: 'विक्रेता का विवरण',
@@ -28971,6 +29007,15 @@ const ar: UiStrings = {
     catUtilities: 'المرافق',
     catTransport: 'النقل',
     catOther: 'أخرى',
+  },
+  companyStorage: {
+    title: 'التخزين',
+    usedOfQuota: '{used} من {quota}',
+    percentUsed: 'مستخدم {percent}%',
+    banner: 'التخزين ممتلئ بنسبة {percent}%. أضف المزيد',
+    note: 'صور القيود والفواتير والمهام تُحتسب هنا. لا يُحذف أي شيء أبدًا.',
+    full: 'تخزين الشركة ممتلئ. يمكن للمالك إضافة المزيد من الإعدادات.',
+    loading: 'تعذر تحميل التخزين. حاول مرة أخرى.',
   },
   companyDetails: {
     title: 'تفاصيل الشركة',

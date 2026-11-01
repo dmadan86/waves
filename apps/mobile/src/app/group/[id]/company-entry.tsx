@@ -69,6 +69,7 @@ import { displayName } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
+import { companyPhotoError } from '@/data/companyStorage';
 import { friendlyError } from '@/lib/errors';
 import { dateFrom, isoDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
@@ -391,7 +392,7 @@ function CompanyEntryScreenInner() {
           for (const photo of photos) await attachCompanyPhoto(groupId, entryId, photo);
         } catch (caught) {
           await notify({
-            title: friendlyError(caught, t.company.photoFailed, 'company.photo.add'),
+            title: companyPhotoError(caught, t, 'company.photo.add'),
             tone: 'danger',
           });
         }
