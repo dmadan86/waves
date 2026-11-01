@@ -1788,6 +1788,28 @@ export interface UiStrings {
     ovCardQuick: string;
     ovCardWorkday: string;
     ovCardTeam: string;
+    greetMorning: string;
+    greetAfternoon: string;
+    greetEvening: string;
+    ovGlance: string;
+    ovTilePayments: string;
+    ovTileTasks: string;
+    ovTileAdvances: string;
+    ovNeedBlockedN: PluralForms;
+    ovNeedApproveN: PluralForms;
+    ovNeedTotal: string;
+    ovNeedOverdueN: PluralForms;
+    ovNeedDue: string;
+    ovCardGlance: string;
+    ovCardNeeds: string;
+    ovCardMoneyActions: string;
+    ovCardComingUp: string;
+    ovCdTasksN: PluralForms;
+    ovCdThisWeek: string;
+    ovCdApprovalsN: PluralForms;
+    ovCdWaiting: string;
+    ovAddBill: string;
+    ovCreateInvoice: string;
     overviewNoOwes: string;
     overviewNoPaid: string;
     overviewNoAdvances: string;
@@ -8816,6 +8838,28 @@ const en: UiStrings = {
     ovCardQuick: 'Quick actions',
     ovCardWorkday: 'Workday',
     ovCardTeam: 'My team',
+    greetMorning: 'Good morning!',
+    greetAfternoon: 'Good afternoon!',
+    greetEvening: 'Good evening!',
+    ovGlance: "Here's your company at a glance.",
+    ovTilePayments: 'Payments due',
+    ovTileTasks: 'Open tasks',
+    ovTileAdvances: 'Advances outstanding',
+    ovNeedBlockedN: { one: '{n} blocked task', other: '{n} blocked tasks' },
+    ovNeedApproveN: { one: '{n} payment to approve', other: '{n} payments to approve' },
+    ovNeedTotal: '{amount} total',
+    ovNeedOverdueN: { one: '{n} overdue task', other: '{n} overdue tasks' },
+    ovNeedDue: '{title} · Due {time}',
+    ovCardGlance: 'At a glance',
+    ovCardNeeds: 'Attention summary',
+    ovCardMoneyActions: 'Money actions',
+    ovCardComingUp: 'This week',
+    ovCdTasksN: { one: '{n} due task', other: '{n} due tasks' },
+    ovCdThisWeek: 'This week',
+    ovCdApprovalsN: { one: '{n} to approve', other: '{n} to approve' },
+    ovCdWaiting: 'Waiting for you',
+    ovAddBill: 'Add bill',
+    ovCreateInvoice: 'Create invoice',
     overviewNoOwes: 'No amount owed',
     overviewNoPaid: 'Nothing paid yet',
     overviewNoAdvances: 'No advances',
@@ -15307,6 +15351,28 @@ const ta: UiStrings = {
     ovCardQuick: 'விரைவு செயல்கள்',
     ovCardWorkday: 'வேலை நாள்',
     ovCardTeam: 'என் குழு',
+    greetMorning: 'காலை வணக்கம்!',
+    greetAfternoon: 'மதிய வணக்கம்!',
+    greetEvening: 'மாலை வணக்கம்!',
+    ovGlance: 'உங்கள் நிறுவனத்தின் சுருக்கம் இதோ.',
+    ovTilePayments: 'செலுத்த வேண்டியவை',
+    ovTileTasks: 'திறந்த பணிகள்',
+    ovTileAdvances: 'நிலுவை முன்பணங்கள்',
+    ovNeedBlockedN: { one: '{n} தடைபட்ட பணி', other: '{n} தடைபட்ட பணிகள்' },
+    ovNeedApproveN: { one: '{n} கொடுப்பனவு அனுமதிக்க', other: '{n} கொடுப்பனவுகள் அனுமதிக்க' },
+    ovNeedTotal: 'மொத்தம் {amount}',
+    ovNeedOverdueN: { one: '{n} தாமதமான பணி', other: '{n} தாமதமான பணிகள்' },
+    ovNeedDue: '{title} · கெடு {time}',
+    ovCardGlance: 'ஒரு பார்வையில்',
+    ovCardNeeds: 'கவனிக்க வேண்டியவை சுருக்கம்',
+    ovCardMoneyActions: 'பணப் பணிகள்',
+    ovCardComingUp: 'இந்த வாரம்',
+    ovCdTasksN: { one: '{n} கெடு பணி', other: '{n} கெடு பணிகள்' },
+    ovCdThisWeek: 'இந்த வாரம்',
+    ovCdApprovalsN: { one: '{n} அனுமதிக்க', other: '{n} அனுமதிக்க' },
+    ovCdWaiting: 'உங்களுக்காக காத்திருக்கிறது',
+    ovAddBill: 'பில் சேர்',
+    ovCreateInvoice: 'விலைப்பட்டியல் உருவாக்கு',
     overviewNoOwes: 'நிலுவைத் தொகை இல்லை',
     overviewNoPaid: 'இன்னும் பணம் செலுத்தப்படவில்லை',
     overviewNoAdvances: 'முன்பணம் இல்லை',
@@ -21962,6 +22028,28 @@ const hi: UiStrings = {
     ovCardQuick: 'त्वरित कार्य',
     ovCardWorkday: 'कार्यदिवस',
     ovCardTeam: 'मेरी टीम',
+    greetMorning: 'सुप्रभात!',
+    greetAfternoon: 'नमस्ते!',
+    greetEvening: 'शुभ संध्या!',
+    ovGlance: 'आपकी कंपनी एक नज़र में।',
+    ovTilePayments: 'देय भुगतान',
+    ovTileTasks: 'खुले कार्य',
+    ovTileAdvances: 'बकाया अग्रिम',
+    ovNeedBlockedN: { one: '{n} रुका हुआ कार्य', other: '{n} रुके हुए कार्य' },
+    ovNeedApproveN: { one: '{n} भुगतान मंज़ूर करना है', other: '{n} भुगतान मंज़ूर करने हैं' },
+    ovNeedTotal: 'कुल {amount}',
+    ovNeedOverdueN: { one: '{n} विलंबित कार्य', other: '{n} विलंबित कार्य' },
+    ovNeedDue: '{title} · देय {time}',
+    ovCardGlance: 'एक नज़र में',
+    ovCardNeeds: 'ध्यान देने योग्य सारांश',
+    ovCardMoneyActions: 'पैसे की कार्रवाइयाँ',
+    ovCardComingUp: 'इस सप्ताह',
+    ovCdTasksN: { one: '{n} देय कार्य', other: '{n} देय कार्य' },
+    ovCdThisWeek: 'इस सप्ताह',
+    ovCdApprovalsN: { one: '{n} मंज़ूर करना है', other: '{n} मंज़ूर करने हैं' },
+    ovCdWaiting: 'आपकी प्रतीक्षा में',
+    ovAddBill: 'बिल जोड़ें',
+    ovCreateInvoice: 'इनवॉइस बनाएँ',
     overviewNoOwes: 'कोई बकाया नहीं',
     overviewNoPaid: 'अभी तक भुगतान नहीं',
     overviewNoAdvances: 'कोई अग्रिम नहीं',
@@ -28523,6 +28611,28 @@ const ar: UiStrings = {
     ovCardQuick: 'إجراءات سريعة',
     ovCardWorkday: 'يوم العمل',
     ovCardTeam: 'فريقي',
+    greetMorning: 'صباح الخير!',
+    greetAfternoon: 'مساء الخير!',
+    greetEvening: 'مساء الخير!',
+    ovGlance: 'إليك نظرة سريعة على شركتك.',
+    ovTilePayments: 'مدفوعات مستحقة',
+    ovTileTasks: 'مهام مفتوحة',
+    ovTileAdvances: 'سلف مستحقة',
+    ovNeedBlockedN: { one: '{n} مهمة متوقفة', other: '{n} مهام متوقفة' },
+    ovNeedApproveN: { one: '{n} دفعة بانتظار الموافقة', other: '{n} مدفوعات بانتظار الموافقة' },
+    ovNeedTotal: 'الإجمالي {amount}',
+    ovNeedOverdueN: { one: '{n} مهمة متأخرة', other: '{n} مهام متأخرة' },
+    ovNeedDue: '{title} · الاستحقاق {time}',
+    ovCardGlance: 'نظرة سريعة',
+    ovCardNeeds: 'ملخص الانتباه',
+    ovCardMoneyActions: 'إجراءات مالية',
+    ovCardComingUp: 'هذا الأسبوع',
+    ovCdTasksN: { one: '{n} مهمة مستحقة', other: '{n} مهام مستحقة' },
+    ovCdThisWeek: 'هذا الأسبوع',
+    ovCdApprovalsN: { one: '{n} بانتظار الموافقة', other: '{n} بانتظار الموافقة' },
+    ovCdWaiting: 'بانتظارك',
+    ovAddBill: 'إضافة فاتورة',
+    ovCreateInvoice: 'إنشاء فاتورة مبيعات',
     overviewNoOwes: 'لا توجد مستحقات',
     overviewNoPaid: 'لم يتم الدفع بعد',
     overviewNoAdvances: 'لا توجد سلف',
