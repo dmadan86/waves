@@ -13,6 +13,7 @@ import {
 } from '@waves/core';
 import { AmountField, ChipRow, Screen, Text, useTheme } from '@waves/ui';
 
+import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { FieldLabel, SaveButton } from '@/components/company/EntryForm';
 import { useOrderLabels } from '@/components/company/vendors/orderParts';
 import { validIsoDate, VendorField } from '@/components/company/vendors/forms';
@@ -41,6 +42,15 @@ const blank = (): Row => ({ key: randomUUID(), name: '', qty: '1', unit: 'pieces
 
 /** New material order (or edit one that is still sent). */
 export default function CompanyVendorOrderScreen() {
+  const { id = '' } = useLocalSearchParams<{ id: string }>();
+  return (
+    <SuspendedGate groupId={id}>
+      <OrderForm />
+    </SuspendedGate>
+  );
+}
+
+function OrderForm() {
   const {
     id = '',
     vendorId: vendorParam,
