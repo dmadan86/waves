@@ -2,6 +2,8 @@ export * from './tags';
 export * from './phase4';
 export * from './vendors';
 export * from './clients';
+export * from './vendorViews';
+export * from './vendorOrders';
 export * from './details';
 export * from './workday';
 export * from './moneyDates';

@@ -47,6 +47,7 @@ export function ScenicHeader({
   wide = false,
   onTitlePress,
   titleHint,
+  identity,
 }: {
   title: string;
   /** Defaults to going back one screen. */
@@ -70,6 +71,8 @@ export function ScenicHeader({
   /** Makes the title a tap target with a chevron after it (a switcher); `titleHint` is its spoken label. */
   onTitlePress?: () => void;
   titleHint?: string;
+  /** Replaces the centred title with your own block (an icon tile, title and subtitle) beside the back button. */
+  identity?: ReactNode;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -153,30 +156,36 @@ export function ScenicHeader({
           >
             <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
           </Pressable>
-          <Pressable
-            disabled={!onTitlePress}
-            accessibilityRole={onTitlePress ? 'button' : undefined}
-            accessibilityLabel={onTitlePress ? titleHint : undefined}
-            onPress={onTitlePress}
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: titleAlign === 'start' ? 'flex-start' : 'center',
-              gap: 4,
-              marginStart: titleAlign === 'start' ? theme.spacing.md : 0,
-            }}
-          >
-            <Text
-              variant="heading"
-              accessibilityRole="header"
-              numberOfLines={1}
-              style={{ flexShrink: 1, fontSize: 22, fontWeight: '800' }}
+          {identity ? (
+            <View style={{ flex: 1, marginStart: theme.spacing.sm }}>{identity}</View>
+          ) : (
+            <Pressable
+              disabled={!onTitlePress}
+              accessibilityRole={onTitlePress ? 'button' : undefined}
+              accessibilityLabel={onTitlePress ? titleHint : undefined}
+              onPress={onTitlePress}
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: titleAlign === 'start' ? 'flex-start' : 'center',
+                gap: 4,
+                marginStart: titleAlign === 'start' ? theme.spacing.md : 0,
+              }}
             >
-              {title}
-            </Text>
-            {onTitlePress ? <Ionicons name="chevron-down" size={iconSize.md} color={ink} /> : null}
-          </Pressable>
+              <Text
+                variant="heading"
+                accessibilityRole="header"
+                numberOfLines={1}
+                style={{ flexShrink: 1, fontSize: 22, fontWeight: '800' }}
+              >
+                {title}
+              </Text>
+              {onTitlePress ? (
+                <Ionicons name="chevron-down" size={iconSize.md} color={ink} />
+              ) : null}
+            </Pressable>
+          )}
           {titleAlign === 'start' && !action ? null : (
             <View style={{ minWidth: 40, alignItems: 'flex-end' }}>{action}</View>
           )}

@@ -107,38 +107,14 @@ function validDate(value: string): boolean {
   return Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
-export function VendorLineForm({
-  groupId,
-  vendorId,
-  currency,
-  payment = false,
-  submitted = false,
-  onClose,
-}: {
-  groupId: string;
-  vendorId: string;
-  currency: string;
-  payment?: boolean;
-  submitted?: boolean;
-  onClose: () => void;
-}) {
-  const theme = useTheme();
+export function useLinePhotos(groupId: string) {
   const { t } = useStrings();
-  const s = t.companyVendors;
-  const add = useAddVendorLine(groupId);
-  const [amount, setAmount] = useState(0n);
-  const [date, setDate] = useState(todayIso());
-  const [note, setNote] = useState('');
-  const [kind, setKind] = useState<VendorLineKind>(payment ? 'payment' : 'bill');
   const [photos, setPhotos] = useState<PickedImage[]>([]);
   const [picking, setPicking] = useState(false);
   const { flush } = useSync();
   const { notify } = useDialog();
   const photoError = (error: unknown): void => {
-    void notify({
-      title: companyPhotoError(error, t, 'vendor.photo.add'),
-      tone: 'danger',
-    });
+    void notify({ title: companyPhotoError(error, t, 'vendor.photo.add'), tone: 'danger' });
   };
   const pickPhoto = async (source: 'camera' | 'library'): Promise<void> => {
     if (picking || photos.length >= MAX_COMPANY_PHOTOS) return;
@@ -169,7 +145,107 @@ export function VendorLineForm({
     }
     await flush([groupId]).catch(photoError);
   };
-  const valid = amount > 0n && validDate(date);
+  return { photos, setPhotos, uploadPhotos, pickPhoto };
+}
+
+export function PhotoStrip({
+  photos,
+  setPhotos,
+  pickPhoto,
+}: {
+  photos: PickedImage[];
+  setPhotos: (next: (previous: PickedImage[]) => PickedImage[]) => void;
+  pickPhoto: (source: 'camera' | 'library') => Promise<void>;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  return (
+    <>
+      {photos.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: theme.spacing.sm }}
+        >
+          {photos.map((photo, index) => (
+            <View key={index} style={{ width: 64, height: 64 }}>
+              <Image
+                source={{ uri: photo.uri }}
+                contentFit="cover"
+                style={{ width: 64, height: 64, borderRadius: theme.radius.md }}
+              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.company.removePhoto}
+                onPress={() => setPhotos((previous) => previous.filter((_, i) => i !== index))}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  end: 0,
+                  width: 32,
+                  height: 32,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: theme.radius.pill,
+                  backgroundColor: theme.color.surfaceMuted,
+                }}
+              >
+                <Ionicons name="close" size={20} color={theme.color.text} />
+              </Pressable>
+            </View>
+          ))}
+        </ScrollView>
+      ) : null}
+      {photos.length < MAX_COMPANY_PHOTOS ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+          <PillButton
+            label={t.company.takePhoto}
+            icon="camera-outline"
+            chevron={false}
+            onPress={() => void pickPhoto('camera')}
+          />
+          <PillButton
+            label={t.company.choosePhoto}
+            icon="image-outline"
+            chevron={false}
+            onPress={() => void pickPhoto('library')}
+          />
+        </View>
+      ) : null}
+    </>
+  );
+}
+
+export function validIsoDate(value: string): boolean {
+  return validDate(value);
+}
+
+export function VendorLineForm({
+  groupId,
+  vendorId,
+  currency,
+  payment = false,
+  submitted = false,
+  onClose,
+}: {
+  groupId: string;
+  vendorId: string;
+  currency: string;
+  payment?: boolean;
+  submitted?: boolean;
+  onClose: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const s = t.companyVendors;
+  const add = useAddVendorLine(groupId);
+  const [amount, setAmount] = useState(0n);
+  const [date, setDate] = useState(todayIso());
+  const [note, setNote] = useState('');
+  const [dueOn, setDueOn] = useState('');
+  const [kind, setKind] = useState<VendorLineKind>(payment ? 'payment' : 'bill');
+  const { photos, setPhotos, uploadPhotos, pickPhoto } = useLinePhotos(groupId);
+  const valid = amount > 0n && validDate(date) && (!dueOn || validDate(dueOn));
   return (
     <Sheet visible onClose={onClose} closeLabel={s.close}>
       <ScrollView
@@ -212,65 +288,30 @@ export function VendorLineForm({
             {s.invalidDate}
           </Text>
         ) : null}
+        {kind === 'bill' ? (
+          <VendorField
+            label={`${s.dueDate} (${s.dateHint})`}
+            value={dueOn}
+            onChange={setDueOn}
+            maxLength={10}
+          />
+        ) : null}
         <VendorField label={s.note} value={note} onChange={setNote} maxLength={500} />
-        {photos.length > 0 ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: theme.spacing.sm }}
-          >
-            {photos.map((photo, index) => (
-              <View key={index} style={{ width: 64, height: 64 }}>
-                <Image
-                  source={{ uri: photo.uri }}
-                  contentFit="cover"
-                  style={{ width: 64, height: 64, borderRadius: theme.radius.md }}
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.company.removePhoto}
-                  onPress={() => setPhotos((previous) => previous.filter((_, i) => i !== index))}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    end: 0,
-                    width: 32,
-                    height: 32,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: theme.color.surfaceMuted,
-                  }}
-                >
-                  <Ionicons name="close" size={20} color={theme.color.text} />
-                </Pressable>
-              </View>
-            ))}
-          </ScrollView>
-        ) : null}
-        {photos.length < MAX_COMPANY_PHOTOS ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-            <PillButton
-              label={t.company.takePhoto}
-              icon="camera-outline"
-              chevron={false}
-              onPress={() => void pickPhoto('camera')}
-            />
-            <PillButton
-              label={t.company.choosePhoto}
-              icon="image-outline"
-              chevron={false}
-              onPress={() => void pickPhoto('library')}
-            />
-          </View>
-        ) : null}
+        <PhotoStrip photos={photos} setPhotos={setPhotos} pickPhoto={pickPhoto} />
         <SaveButton
           label={payment ? s.recordPayment : s.addBill}
           disabled={!valid || add.isPending}
           onPress={() => {
             if (!valid || add.isPending) return;
             add.mutate(
-              { vendorId, kind, amountMinor: amount, occurredOn: date, note },
+              {
+                vendorId,
+                kind,
+                amountMinor: amount,
+                occurredOn: date,
+                note,
+                dueOn: kind === 'bill' ? dueOn : null,
+              },
               {
                 onSuccess: (lineId) => {
                   onClose();

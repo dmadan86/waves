@@ -319,6 +319,7 @@ export default function DailyWorkView({
         error={error}
         allowedPerson={allowedPerson}
         write={write}
+        today={today}
       />
       <WorkTaskSheets
         groupId={id}
