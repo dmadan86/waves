@@ -12,6 +12,7 @@ export {
   PillButton,
   PILL_SELECTED,
   SectionHeader,
+  SectionLabel,
   SegmentedPills,
   StandardCard,
   StatCard,

@@ -41,6 +41,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { SectionLabel } from '@/components/standard';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DictateButton } from '@/components/DictateButton';
 import { GroupPhoto } from '@/components/GroupPhoto';
@@ -796,6 +797,8 @@ export default function NewGroupScreen() {
     router.push('/contact-picker');
   };
 
+  const rowTint = { bg: theme.color.brandSoft, ink: theme.color.brand };
+
   return (
     <Screen edges={['bottom']}>
       <ScrollView
@@ -886,9 +889,7 @@ export default function NewGroupScreen() {
                 costing a row of its own; the accessibility label underneath
                 still names the field for a screen reader. */}
             <View style={{ flex: 1, minWidth: 0, justifyContent: 'center', gap: theme.spacing.xs }}>
-              <Text style={{ fontSize: 13, fontWeight: '600', color: muted(theme) }}>
-                {t.group.groupName}
-              </Text>
+              <SectionLabel icon="create-outline">{t.group.groupName}</SectionLabel>
               <Row style={[fieldBox(theme), { paddingEnd: theme.spacing.sm }]}>
                 <TextInput
                   value={name}
@@ -982,30 +983,13 @@ export default function NewGroupScreen() {
               second way in. Nobody's address book is uploaded (ADR-006). */}
           <FormCard style={{ gap: theme.spacing.sm }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: theme.color.brandSoft,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="people" size={18} color={accent(theme)} />
-              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${t.extras.addPeopleByName}. ${t.extras.ghostNote}`}
                 onPress={() => setShowGhostNote((open) => !open)}
                 style={{ flex: 1, minWidth: 0 }}
               >
-                <Text
-                  numberOfLines={1}
-                  style={{ fontSize: 16, lineHeight: 20, fontWeight: '600', color: ink(theme) }}
-                >
-                  {t.extras.addPeopleByName}
-                </Text>
+                <SectionLabel icon="people">{t.extras.addPeopleByName}</SectionLabel>
               </Pressable>
               {contactsInline ? (
                 <AddContactsButton label={t.newGroupForm.addContacts} onPress={openContactPicker} />
@@ -1113,13 +1097,6 @@ export default function NewGroupScreen() {
                       paddingHorizontal: theme.spacing.md,
                     }}
                   >
-                    <SuggestedPersonButton
-                      more
-                      name={t.newGroupForm.addManually}
-                      index={0}
-                      label={t.newGroupForm.addManually}
-                      onPress={() => ghostInput.current?.focus()}
-                    />
                     {shownSuggestions.map(({ person, label, picked }, index) => (
                       <SuggestedPersonButton
                         key={person.key}
@@ -1169,12 +1146,12 @@ export default function NewGroupScreen() {
               that reads as an event ("Birthday party") keeps its kind; Other
               is lit for it, the nearest of the six. */}
           <FormCard style={{ gap: theme.spacing.sm }}>
-            <FieldLabel icon="briefcase-outline">
+            <SectionLabel icon="briefcase-outline">
               {t.newGroupForm.groupType}
               <Text style={{ fontSize: 13, fontWeight: '400', color: muted(theme) }}>
                 {` ${t.newGroupForm.optional}`}
               </Text>
-            </FieldLabel>
+            </SectionLabel>
             <Row style={{ gap: theme.spacing.xs }}>
               {NEW_GROUP_TILES.map((value) => (
                 <TypeTile
@@ -1194,14 +1171,16 @@ export default function NewGroupScreen() {
               ADR-009: fewer repayments is presentation only — the pairwise
               ledger underneath is untouched. */}
           <FormCard style={{ paddingTop: theme.spacing.md - 2, paddingBottom: 0 }}>
-            <FieldLabel icon="settings-outline">
+            <SectionLabel icon="settings-outline">
               {t.newGroupForm.moreOptions}
               <Text style={{ fontSize: 13, fontWeight: '400', color: muted(theme) }}>
                 {` ${t.newGroupForm.optional}`}
               </Text>
-            </FieldLabel>
+            </SectionLabel>
             <DetailRows>
               <DetailRow
+                tint={rowTint}
+                dense
                 icon="cash-outline"
                 label={t.company.currencyRow}
                 value={groupCurrency}
@@ -1224,6 +1203,8 @@ export default function NewGroupScreen() {
               {type === GroupType.Trip || type === GroupType.Event ? (
                 <View>
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="calendar-outline"
                     label={
                       type === GroupType.Event
@@ -1252,6 +1233,8 @@ export default function NewGroupScreen() {
               {type === GroupType.Trip ? (
                 <View>
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="wallet-outline"
                     label={t.extras.tripBudget}
                     value={budget > 0n ? budgetSummary : t.add}
@@ -1273,6 +1256,8 @@ export default function NewGroupScreen() {
               {type === GroupType.Company ? (
                 <View>
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="wallet-outline"
                     label={t.company.defaultRateRow}
                     value={
@@ -1297,6 +1282,8 @@ export default function NewGroupScreen() {
                     </View>
                   ) : null}
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="image-outline"
                     label={t.company.logoRow}
                     value={companyLogo ? '✓' : t.add}
@@ -1324,6 +1311,8 @@ export default function NewGroupScreen() {
               {type === GroupType.Trip ? (
                 <View>
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="cash-outline"
                     label={t.newGroupForm.tripCurrency}
                     value={
@@ -1372,6 +1361,8 @@ export default function NewGroupScreen() {
               {type === GroupType.Event ? (
                 <View>
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="sparkles-outline"
                     label={t.eventOrganizer.templateLabel}
                     value={
@@ -1490,6 +1481,8 @@ export default function NewGroupScreen() {
               {/* The one row whose control says the value and changes it in the
                   same gesture, so it has no chevron. */}
               <DetailRow
+                tint={rowTint}
+                dense
                 icon="flash-outline"
                 label={t.group.simplifyDebts}
                 trailing={
@@ -1598,36 +1591,6 @@ function fieldBox(theme: Theme) {
     paddingHorizontal: theme.spacing.md,
     backgroundColor: theme.color.surface,
   };
-}
-
-/** A field's label: 15pt, semibold. */
-function FieldLabel({
-  children,
-  icon,
-  style,
-}: {
-  children: ReactNode;
-  /** A small glyph before the label, saying what the field is at a glance. */
-  icon?: keyof typeof Ionicons.glyphMap;
-  style?: object;
-}) {
-  const theme = useTheme();
-  return (
-    <Row style={[{ alignItems: 'center', gap: theme.spacing.sm }, style]}>
-      {icon ? <Ionicons name={icon} size={20} color={muted(theme)} /> : null}
-      <Text
-        style={{
-          flexShrink: 1,
-          fontSize: 15,
-          lineHeight: 20,
-          fontWeight: '600',
-          color: muted(theme),
-        }}
-      >
-        {children}
-      </Text>
-    </Row>
-  );
 }
 
 /** A white card with the spec's 22pt corners, 16pt padding and a soft lift. */
