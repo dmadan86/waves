@@ -31,9 +31,9 @@ export default function CompanyStorageScreen() {
   const { t, locale } = useStrings();
   const usage = useCompanyStorage(groupId);
   const data = usage.data;
-  const fraction = data && data.quotaBytes > 0 ? data.usedBytes / data.quotaBytes : 0;
+  const fraction = data ? (data.quotaBytes > 0 ? data.usedBytes / data.quotaBytes : 1) : 0;
   const percent = Math.min(100, Math.round(fraction * 100));
-  const full = !!data && data.quotaBytes > 0 && data.usedBytes >= data.quotaBytes;
+  const full = !!data && data.usedBytes >= data.quotaBytes;
   const fill = full ? theme.color.negative : theme.color.brand;
 
   return (
