@@ -61,7 +61,11 @@ export default function CompanyStorageScreen() {
     // This store account already pays a pack for another company: a store product change would
     // replace that pack instead of adding one.
     if (hasActiveCompanyStoragePack()) {
-      const { data: holder } = await backend.rpc('waves_my_pack_company');
+      const { data: holder, error } = await backend.rpc('waves_my_pack_company');
+      if (error) {
+        await notify({ title: t.companyStorage.buyFailed, tone: 'danger' });
+        return;
+      }
       if (holder && holder !== groupId) {
         setSheet(false);
         await notify({ title: t.companyStorage.packElsewhere });
