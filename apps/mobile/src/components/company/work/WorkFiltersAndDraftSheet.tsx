@@ -189,16 +189,6 @@ export function WorkFiltersAndDraftSheet({
             }}
           />
           {Platform.OS === 'ios' ? done : null}
-          {draft.dueTime ? (
-            <Button
-              label={t.company.workNoTime}
-              variant="secondary"
-              onPress={() => {
-                setDraft({ ...draft, dueTime: null });
-                setPanel('form');
-              }}
-            />
-          ) : null}
         </View>
       ) : draft ? (
         <ScrollView
@@ -301,6 +291,17 @@ export function WorkFiltersAndDraftSheet({
               <Text numberOfLines={1}>{timeLabel}</Text>
               {chevron}
             </Pressable>
+            {draft.dueTime ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.company.workNoTime}
+                disabled={busy}
+                hitSlop={8}
+                onPress={() => setDraft({ ...draft, dueTime: null })}
+              >
+                <Ionicons name="close-circle" size={iconSize.md} color={theme.color.textFaint} />
+              </Pressable>
+            ) : null}
           </View>
           <View style={[card, { alignItems: 'flex-start' }]}>
             <View style={{ paddingTop: theme.spacing.sm }}>{rowIcon('document-text-outline')}</View>
@@ -322,7 +323,7 @@ export function WorkFiltersAndDraftSheet({
                 accessibilityLabel={t.company.workNotesOptional}
                 value={draft.note ?? ''}
                 multiline
-                maxLength={500}
+                maxLength={200}
                 editable={!busy}
                 onChangeText={(note) => setDraft({ ...draft, note: note || null })}
                 style={{ color: theme.color.text, fontSize: 16, minHeight: 36, padding: 0 }}
