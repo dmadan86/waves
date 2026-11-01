@@ -1529,6 +1529,9 @@ export interface UiStrings {
     attendanceLeaveApplied: string;
     attendanceLeave: string;
     attendanceSaving: string;
+    attendanceMember: string;
+    attendancePrevious: string;
+    attendanceNext: string;
     attendanceSaved: string;
     attendanceOverwriteTitle: string;
     attendanceOverwriteBody: string;
@@ -8838,6 +8841,9 @@ const en: UiStrings = {
     attendanceLeaveApplied: 'Leave applied',
     attendanceLeave: 'Leave',
     attendanceSaving: 'Saving',
+    attendanceMember: 'Member',
+    attendancePrevious: 'Previous',
+    attendanceNext: 'Next',
     attendanceSaved: 'Saved',
     attendanceOverwriteTitle: 'Replace existing marks?',
     attendanceOverwriteBody: '{n} people already have a different mark for this day. Replace them?',
@@ -15613,6 +15619,9 @@ const ta: UiStrings = {
     attendanceLeaveApplied: 'விடுப்பு விண்ணப்பம்',
     attendanceLeave: 'விடுப்பு',
     attendanceSaving: 'சேமிக்கிறது',
+    attendanceMember: 'உறுப்பினர்',
+    attendancePrevious: 'முந்தைய',
+    attendanceNext: 'அடுத்து',
     attendanceSaved: 'சேமிக்கப்பட்டது',
     attendanceOverwriteTitle: 'இருக்கும் குறிகளை மாற்றவா?',
     attendanceOverwriteBody: '{n} பேருக்கு இந்த நாளில் வேறு குறி உள்ளது. மாற்றவா?',
@@ -22554,6 +22563,9 @@ const hi: UiStrings = {
     attendanceLeaveApplied: 'छुट्टी का आवेदन',
     attendanceLeave: 'छुट्टी',
     attendanceSaving: 'सेव हो रहा है',
+    attendanceMember: 'सदस्य',
+    attendancePrevious: 'पिछला',
+    attendanceNext: 'अगला',
     attendanceSaved: 'सेव हो गया',
     attendanceOverwriteTitle: 'मौजूदा निशान बदलें?',
     attendanceOverwriteBody: '{n} लोगों का इस दिन पहले से अलग निशान है। बदलें?',
@@ -29378,6 +29390,9 @@ const ar: UiStrings = {
     attendanceLeaveApplied: 'تم طلب إجازة',
     attendanceLeave: 'إجازة',
     attendanceSaving: 'جارٍ الحفظ',
+    attendanceMember: 'العضو',
+    attendancePrevious: 'السابق',
+    attendanceNext: 'التالي',
     attendanceSaved: 'تم الحفظ',
     attendanceOverwriteTitle: 'استبدال العلامات الحالية؟',
     attendanceOverwriteBody: 'لدى {n} أشخاص علامة مختلفة لهذا اليوم. هل تريد استبدالها؟',
