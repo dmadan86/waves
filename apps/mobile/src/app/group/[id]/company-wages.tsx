@@ -180,8 +180,22 @@ function CompanyWagesScreenInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [terms, view.entries, people.length, start, end, attendance, rule]);
 
+  const statusOf = (memberId: string): WageStatus =>
+    wageStatus(
+      memberId,
+      workedDaysText(attendance.values(), memberId, start, end, rule),
+      rule.leave,
+      start,
+      end,
+    );
+  const statuses = new Map(people.map((m) => [m.id, statusOf(m.id)] as const));
+  const countOf = (f: Filter): number =>
+    f === 'all' ? people.length : people.filter((m) => statuses.get(m.id) === f).length;
+  const shown = people.filter((m) => filter === 'all' || statuses.get(m.id) === filter);
   const lines = buildWageRun(view.entries, termMap, end);
-  const chosen = lines.filter((l) => !skipped.has(l.memberId));
+  // Only people in the current filter are paid, so nobody is paid out of sight.
+  const visible = new Set(shown.map((m) => m.id));
+  const chosen = lines.filter((l) => !skipped.has(l.memberId) && visible.has(l.memberId));
   const totals = wageRunTotals(chosen);
 
   const record = (): void => {
@@ -221,18 +235,6 @@ function CompanyWagesScreenInner() {
     );
   };
 
-  const statusOf = (memberId: string): WageStatus =>
-    wageStatus(
-      memberId,
-      workedDaysText(attendance.values(), memberId, start, end, rule),
-      rule.leave,
-      start,
-      end,
-    );
-  const statuses = new Map(people.map((m) => [m.id, statusOf(m.id)] as const));
-  const countOf = (f: Filter): number =>
-    f === 'all' ? people.length : people.filter((m) => statuses.get(m.id) === f).length;
-  const shown = people.filter((m) => filter === 'all' || statuses.get(m.id) === filter);
   const workingDays = teamWorkingDays(
     attendance.values(),
     new Set(people.map((m) => m.id)),
@@ -842,7 +844,13 @@ function CompanyWagesScreenInner() {
             <Text
               variant="heading"
               numberOfLines={1}
-              style={{ flex: 1, fontSize: 18, fontWeight: '800', color: theme.color.brand }}
+              style={{
+                flex: 1,
+                minWidth: 72,
+                fontSize: 18,
+                fontWeight: '800',
+                color: theme.color.brand,
+              }}
             >
               {fmt(totals.net)}
             </Text>
