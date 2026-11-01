@@ -2267,6 +2267,7 @@ export interface UiStrings {
     addMore: string;
     packLine: string;
     packNote: string;
+    packElsewhere: string;
     bought: string;
     pending: string;
     buyFailed: string;
@@ -9304,6 +9305,8 @@ const en: UiStrings = {
     packLine: '{size} · {price}/month',
     packNote:
       'One pack per company; switch any time. If it ends, your photos stay and only new uploads stop.',
+    packElsewhere:
+      'This store account already pays for storage for another company. Cancel it there first, or buy from a different account.',
     bought: 'Thanks. Your space will update in a moment.',
     pending: 'Purchase pending. Storage updates once it completes.',
     buyFailed: 'Could not complete the purchase. Try again.',
@@ -15798,6 +15801,8 @@ const ta: UiStrings = {
     packLine: '{size} · மாதம் {price}',
     packNote:
       'ஒரு நிறுவனத்திற்கு ஒரு பேக்; எப்போது வேண்டுமானாலும் மாற்றலாம். முடிந்தால் புகைப்படங்கள் இருக்கும், புதிய பதிவேற்றங்கள் மட்டும் நிற்கும்.',
+    packElsewhere:
+      'இந்த ஸ்டோர் கணக்கு ஏற்கனவே மற்றொரு நிறுவனத்திற்கான சேமிப்பிற்கு பணம் செலுத்துகிறது. முதலில் அங்கே ரத்து செய்யுங்கள், அல்லது வேறு கணக்கில் வாங்குங்கள்.',
     bought: 'நன்றி. உங்கள் இடம் சற்று நேரத்தில் புதுப்பிக்கப்படும்.',
     pending: 'கொள்முதல் நிலுவையில் உள்ளது. முடிந்ததும் சேமிப்பு புதுப்பிக்கப்படும்.',
     buyFailed: 'கொள்முதலை முடிக்க முடியவில்லை. மீண்டும் முயலவும்.',
@@ -22449,6 +22454,8 @@ const hi: UiStrings = {
     packLine: '{size} · {price}/माह',
     packNote:
       'हर कंपनी के लिए एक पैक; कभी भी बदलें। खत्म होने पर फ़ोटो रहेंगी, सिर्फ़ नई अपलोड रुकेंगी।',
+    packElsewhere:
+      'यह स्टोर खाता पहले से किसी दूसरी कंपनी के स्टोरेज के लिए भुगतान कर रहा है। पहले वहाँ रद्द करें, या किसी दूसरे खाते से खरीदें।',
     bought: 'धन्यवाद। आपकी जगह कुछ ही पल में अपडेट हो जाएगी।',
     pending: 'खरीद लंबित है। पूरी होने पर स्टोरेज अपडेट होगा।',
     buyFailed: 'खरीद पूरी नहीं हो सकी। फिर कोशिश करें।',
@@ -29040,6 +29047,8 @@ const ar: UiStrings = {
     packLine: '{size} · {price}/شهريًا',
     packNote:
       'حزمة واحدة لكل شركة، ويمكن تبديلها في أي وقت. إذا انتهت تبقى الصور ويتوقف الرفع الجديد فقط.',
+    packElsewhere:
+      'هذا الحساب في المتجر يدفع بالفعل مقابل التخزين لشركة أخرى. ألغِه هناك أولاً، أو اشترِ من حساب مختلف.',
     bought: 'شكرًا. ستتحدث المساحة بعد لحظات.',
     pending: 'الشراء قيد الانتظار. يتحدث التخزين عند اكتماله.',
     buyFailed: 'تعذر إكمال الشراء. حاول مرة أخرى.',
