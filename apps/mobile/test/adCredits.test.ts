@@ -1,5 +1,5 @@
 import { beforeEach, expect, it, vi } from 'vitest';
-import { readCredits, spendCredits } from '@/lib/adCredits';
+import { queryCredits, readCredits, spendCredits } from '@/lib/adCredits';
 import { decideGate } from '@/lib/adGateEngine';
 import { showCreditsRow } from '@/lib/adCreditsPure';
 import { withScanCredits } from '@/lib/scanCredits';
@@ -71,4 +71,9 @@ it('buys one scan only after quota refusal, then retries the same scan once', as
   expect(await withScanCredits(scan, toast)).toBe('scan');
   expect(scan).toHaveBeenCalledTimes(2);
   expect(toast).toHaveBeenCalledWith(2);
+});
+
+it('queryCredits throws on a failed read so a refetch keeps the last balance', async () => {
+  rpc.mockResolvedValue({ error: { code: 'timeout' }, data: null });
+  await expect(queryCredits()).rejects.toThrow();
 });
