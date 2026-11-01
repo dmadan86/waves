@@ -163,8 +163,7 @@ describe('company expense lifecycle scenarios', () => {
     expect(second.rows.map((x) => x.id)).not.toContain(managed);
   });
 
-  // BUG: reimbursement rejects approved claims as UNKNOWN_MEMBER after employment ends.
-  it.fails(
+  it(
     'ended employee approved claim stays visible to owner and manager and can be paid',
     async () => {
       const f = await fixture(true),
