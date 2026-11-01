@@ -1497,6 +1497,7 @@ export interface UiStrings {
     attendanceDepartment: string;
     workToday: string;
     attendanceNote: string;
+    attendanceNotePlaceholder: string;
     attendanceHalfDay: string;
     attendanceMark: string;
     attendanceClear: string;
@@ -8381,6 +8382,7 @@ const en: UiStrings = {
     attendanceDepartment: 'Department',
     workToday: 'Today',
     attendanceNote: 'Add note',
+    attendanceNotePlaceholder: 'Add a note (optional)',
     attendanceHalfDay: 'Half day',
     attendanceMark: 'Mark',
     attendanceClear: 'Clear',
@@ -14727,6 +14729,7 @@ const ta: UiStrings = {
     attendanceDepartment: 'துறை',
     workToday: 'இன்று',
     attendanceNote: 'குறிப்பு சேர்க்க',
+    attendanceNotePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
     attendanceHalfDay: 'அரை நாள்',
     attendanceMark: 'குறி',
     attendanceClear: 'நீக்கு',
@@ -21237,6 +21240,7 @@ const hi: UiStrings = {
     attendanceDepartment: 'विभाग',
     workToday: 'आज',
     attendanceNote: 'नोट जोड़ें',
+    attendanceNotePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
     attendanceHalfDay: 'आधा दिन',
     attendanceMark: 'चिह्नित करें',
     attendanceClear: 'हटाएँ',
@@ -27633,6 +27637,7 @@ const ar: UiStrings = {
     attendanceDepartment: 'القسم',
     workToday: 'اليوم',
     attendanceNote: 'إضافة ملاحظة',
+    attendanceNotePlaceholder: 'إضافة ملاحظة (اختياري)',
     attendanceHalfDay: 'نصف يوم',
     attendanceMark: 'تسجيل',
     attendanceClear: 'مسح',

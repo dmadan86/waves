@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
-import { Platform, Pressable, ScrollView, View } from 'react-native';
+import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { dashboardStats } from '@waves/core';
 import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
-import { EditTextSheet } from '@/components/EditTextSheet';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { Sheet, Text, useTheme } from '@waves/ui';
+import { Button, Sheet, Text, useTheme } from '@waves/ui';
 import { ScenicBody, StandardCard } from '@/components/standard';
 import { useMoney } from '@/components/company/dashboard/parts';
 import {
@@ -91,8 +91,9 @@ export default function AttendanceView({
         ? statusParam
         : null,
     );
-  const [noteFor, setNoteFor] = useState<string | null>(null),
-    [pickFor, setPickFor] = useState<string | null>(null),
+  const [pickFor, setPickFor] = useState<string | null>(null),
+    [draftStatus, setDraftStatus] = useState<AttendanceStatus | null>(null),
+    [draftNote, setDraftNote] = useState(''),
     [error, setError] = useState(false);
   const busy = save.isPending;
   const people = useMemo(
@@ -251,8 +252,19 @@ export default function AttendanceView({
   };
   const pickPerson = access.people.find((p) => p.id === pickFor);
   const pickMark = pickFor ? marks.get(`${pickFor}|${date}`) : undefined;
-  const choose = (status: AttendanceStatus | null) => {
-    if (pickFor) write(pickFor, status, status ? (pickMark?.note ?? null) : null);
+  // Staged: the tiles and note only change the draft; Save writes it (one write, status and note together).
+  const openPick = (memberId: string) => {
+    const m = marks.get(`${memberId}|${date}`);
+    setDraftStatus(m?.status ?? null);
+    setDraftNote(m?.note ?? '');
+    setPickFor(memberId);
+  };
+  const locked = !!pickFor && (date > today || leaveOf(pickFor) === 'approved');
+  const changed =
+    draftStatus !== (pickMark?.status ?? null) ||
+    (!!draftStatus && draftNote.trim() !== (pickMark?.note ?? ''));
+  const saveDraft = () => {
+    if (pickFor) write(pickFor, draftStatus, draftStatus ? draftNote.trim() || null : null);
     setPickFor(null);
   };
   return (
@@ -310,7 +322,7 @@ export default function AttendanceView({
                               leave: t.company.attendanceLeave,
                             }}
                             onMark={(status) => write(person.id, status, mark?.note ?? null)}
-                            onOpen={() => setPickFor(person.id)}
+                            onOpen={() => openPick(person.id)}
                             divider={index < people.length - 1}
                           />
                         );
@@ -400,104 +412,150 @@ export default function AttendanceView({
         ]}
       />
       <Sheet visible={!!pickFor} onClose={() => setPickFor(null)} closeLabel={t.common.close}>
-        <View style={{ padding: 16, gap: 8 }}>
+        <View style={{ padding: 16, gap: 12 }}>
           <Text variant="heading">{t.company.attendanceSetStatus}</Text>
           {pickPerson ? (
-            <Text tone="muted" numberOfLines={1}>
-              {displayName(pickPerson)}
-            </Text>
-          ) : null}
-          {pickPerson ? (
-            <Text variant="caption" tone="muted" numberOfLines={2}>
-              {[
-                departmentName(departments, pickPerson.department_id),
-                plural(locale, taskCount.get(pickPerson.id) ?? 0, t.company.attendanceTasks),
-                balances.get(pickPerson.id)?.owes
-                  ? `↓ ${money(balances.get(pickPerson.id)!.owes)}`
-                  : `↑ ${money(balances.get(pickPerson.id)?.advances ?? 0n)}`,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            </Text>
-          ) : null}
-          {(['present', 'half', 'absent', null] as const).map((status) => {
-            const on = (pickMark?.status ?? null) === status;
-            const color =
-              status === 'present'
-                ? GREEN
-                : status === 'half'
-                  ? theme.color.warning
-                  : status === 'absent'
-                    ? RED
-                    : theme.color.textMuted;
-            return (
-              <Pressable
-                key={status ?? 'clear'}
-                accessibilityRole="button"
-                accessibilityState={{ selected: on }}
-                disabled={
-                  busy || leaveOf(pickFor ?? '') === 'approved' || (status === null && !pickMark)
-                }
-                onPress={() => choose(status)}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <PersonAvatar
+                member={pickPerson}
+                name={displayName(pickPerson)}
+                ghost={isGhost(pickPerson)}
+                size={40}
+              />
+              <View
+                style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }}
+              />
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: '700' }} numberOfLines={1}>
+                  {displayName(pickPerson)}
+                </Text>
+                <Text variant="caption" tone="muted" numberOfLines={1}>
+                  {[
+                    plural(locale, taskCount.get(pickPerson.id) ?? 0, t.company.attendanceTasks),
+                    balances.get(pickPerson.id)?.owes
+                      ? `↓ ${money(balances.get(pickPerson.id)!.owes)}`
+                      : `↑ ${money(balances.get(pickPerson.id)?.advances ?? 0n)}`,
+                  ].join(' · ')}
+                </Text>
+              </View>
+              <View
                 style={{
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 10,
-                  minHeight: 48,
-                  paddingHorizontal: 14,
+                  gap: 4,
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
                   borderRadius: 16,
-                  backgroundColor: on ? `${color}22` : theme.color.surfaceMuted,
-                  opacity: status === null && !pickMark ? 0.4 : 1,
+                  backgroundColor: theme.color.brandSoft,
                 }}
               >
-                <Ionicons
-                  name={
-                    status === 'present'
-                      ? 'checkmark-circle'
-                      : status === 'half'
-                        ? 'contrast'
-                        : status === 'absent'
-                          ? 'remove-circle'
-                          : 'close-circle-outline'
-                  }
-                  size={22}
-                  color={color}
-                />
-                <Text style={{ fontWeight: '600', flex: 1 }}>
-                  {status ? statusText(status) : t.company.attendanceClear}
+                <Ionicons name="calendar-outline" size={14} color={theme.color.brand} />
+                <Text variant="micro" style={{ color: theme.color.brand, fontWeight: '600' }}>
+                  {labelDate}
                 </Text>
-                {on ? <Ionicons name="checkmark" size={18} color={color} /> : null}
-              </Pressable>
-            );
-          })}
-          {pickMark && date <= today && !busy ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setNoteFor(pickFor);
-                setPickFor(null);
-              }}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
-            >
-              <Ionicons name="chatbox-outline" size={20} color={theme.color.brand} />
-              <Text style={{ color: theme.color.brand, fontWeight: '600' }}>
-                {t.company.attendanceNote}
-              </Text>
-            </Pressable>
+              </View>
+            </View>
           ) : null}
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {(['present', 'half', 'absent', null] as const).map((status) => {
+              const on = draftStatus === status;
+              const color =
+                status === 'present'
+                  ? GREEN
+                  : status === 'half'
+                    ? theme.color.warning
+                    : status === 'absent'
+                      ? RED
+                      : theme.color.textMuted;
+              return (
+                <Pressable
+                  key={status ?? 'clear'}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  disabled={locked}
+                  onPress={() => setDraftStatus(status)}
+                  style={{
+                    flex: 1,
+                    alignItems: 'center',
+                    gap: 6,
+                    paddingVertical: 12,
+                    borderRadius: 14,
+                    borderWidth: 1.5,
+                    borderColor: on ? color : 'transparent',
+                    backgroundColor: `${color}${on ? '26' : '14'}`,
+                    opacity: locked ? 0.5 : 1,
+                  }}
+                >
+                  <Ionicons
+                    name={
+                      status === 'present'
+                        ? 'checkmark-circle'
+                        : status === 'half'
+                          ? 'contrast'
+                          : status === 'absent'
+                            ? 'remove-circle'
+                            : 'close-circle-outline'
+                    }
+                    size={26}
+                    color={color}
+                  />
+                  <Text variant="caption" style={{ fontWeight: '600' }} numberOfLines={1}>
+                    {status ? statusText(status) : t.company.attendanceClear}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 8,
+              paddingHorizontal: 12,
+              borderRadius: 14,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              opacity: draftStatus && !locked ? 1 : 0.5,
+            }}
+          >
+            <Ionicons name="chatbox-outline" size={20} color={theme.color.textMuted} />
+            <TextInput
+              value={draftNote}
+              onChangeText={setDraftNote}
+              editable={!!draftStatus && !locked}
+              maxLength={200}
+              placeholder={t.company.attendanceNotePlaceholder}
+              placeholderTextColor={theme.color.textFaint}
+              accessibilityLabel={t.company.attendanceNote}
+              style={{ flex: 1, minHeight: 44, color: theme.color.text }}
+            />
+          </View>
           <Pressable
             accessibilityRole="button"
             onPress={() => {
               router.push(`/group/${id}/company-statement?member=${pickFor}`);
               setPickFor(null);
             }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 44 }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              minHeight: 44,
+              paddingHorizontal: 12,
+              borderRadius: 14,
+              backgroundColor: theme.color.brandSoft,
+            }}
           >
             <Ionicons name="document-text-outline" size={20} color={theme.color.brand} />
-            <Text style={{ color: theme.color.brand, fontWeight: '600' }}>
-              {t.company.viewStatement}
-            </Text>
+            <Text style={{ fontWeight: '600', flex: 1 }}>{t.company.viewStatement}</Text>
+            <Ionicons name="chevron-forward" size={18} color={theme.color.textMuted} />
           </Pressable>
+          <Button
+            label={t.common.save}
+            icon="checkmark"
+            disabled={locked || busy || !changed}
+            onPress={saveDraft}
+          />
         </View>
       </Sheet>
       <Sheet visible={filterOpen} onClose={() => setFilterOpen(false)} closeLabel={t.common.close}>
@@ -560,27 +618,6 @@ export default function AttendanceView({
           />
         )}
       </Sheet>
-      <EditTextSheet
-        visible={!!noteFor}
-        title={t.company.attendanceNote}
-        maxLength={200}
-        saving={busy}
-        error={error ? t.company.workSaveError : undefined}
-        value={noteFor ? (marks.get(`${noteFor}|${date}`)?.note ?? '') : ''}
-        onClose={() => setNoteFor(null)}
-        onSave={(note) => {
-          if (noteFor) {
-            const mark = marks.get(`${noteFor}|${date}`);
-            if (mark) {
-              setError(false);
-              save.mutate(
-                { memberId: noteFor, day: date, status: mark.status, note: note || null },
-                { onSuccess: () => setNoteFor(null), onError: () => setError(true) },
-              );
-            }
-          }
-        }}
-      />
     </>
   );
 }
