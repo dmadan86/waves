@@ -228,7 +228,7 @@ export function SettleGroupList({
   // Invite is the referral screen, which exists only where plans are live.
   const actions = [
     { icon: 'person-add-outline' as const, label: d.settleCreate, go: '/new-group' },
-    { icon: 'scan-outline' as const, label: d.settleScan, go: '/scan' },
+    { icon: 'scan-outline' as const, label: d.settleScan, go: `/capture?scan=${Date.now()}` },
     ...(referralsLive && !isGuest
       ? [{ icon: 'paper-plane-outline' as const, label: d.settleInvite, go: '/settings/invite' }]
       : []),
@@ -245,7 +245,7 @@ export function SettleGroupList({
     >
       {actions.map((a) => (
         <Pressable
-          key={a.go}
+          key={a.label}
           accessibilityRole="button"
           accessibilityLabel={a.label}
           onPress={() => router.push(a.go as never)}
