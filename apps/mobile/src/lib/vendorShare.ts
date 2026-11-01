@@ -11,8 +11,13 @@ export function parseVendorShare(raw: string): VendorShare | null {
   const text = raw.trim();
   if (!text) return null;
   if (PHONE.test(text)) return { phone: text.replace(/[\s-]/g, '') };
-  if (/^tel:/i.test(text))
-    return { phone: decodeURIComponent(text.slice(4)).replace(/[\s-]/g, '') };
+  if (/^tel:/i.test(text)) {
+    try {
+      return { phone: decodeURIComponent(text.slice(4)).replace(/[\s-]/g, '') };
+    } catch {
+      return null;
+    }
+  }
   if (!/^upi:\/\//i.test(text)) return null;
   const query = text.split('?')[1] ?? '';
   const get = (key: string): string => {
