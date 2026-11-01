@@ -4,6 +4,7 @@ import {
   buildVendorStatement,
   filterVendorRows,
   paymentOutcome,
+  receiptStatus,
   inVendorPeriod,
   vendorDashboard,
   vendorReceiptCount,
@@ -150,5 +151,13 @@ describe('payment outcome, receipt, statement', () => {
     const s = buildVendorStatement(lines.filter((l) => l.vendorId === 'd' || l.vendorId === 'a'));
     expect(s.rows.map((r) => r.balance)).toEqual([1000n, 700n]);
     expect(s.balance).toBe(700n);
+  });
+});
+
+describe('receiptStatus', () => {
+  it('is pending until synced, whatever else is set', () => {
+    expect(receiptStatus({ pending: true, received: true })).toBe('pending');
+    expect(receiptStatus({ pending: false, received: true })).toBe('received');
+    expect(receiptStatus({ pending: false, received: false })).toBe('recorded');
   });
 });

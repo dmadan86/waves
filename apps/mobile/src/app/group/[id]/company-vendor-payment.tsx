@@ -26,6 +26,7 @@ import {
   SegmentedPills,
   StandardCard,
 } from '@/components/standard';
+import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { useAddVendorLine, useCompanyVendors } from '@/data/companyVendors';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
@@ -34,6 +35,15 @@ import { router } from '@/lib/navigation';
 
 /** Record a payment (or an advance) against a vendor. It records; it never sends money. */
 export default function CompanyVendorPaymentScreen() {
+  const { id = '' } = useLocalSearchParams<{ id: string }>();
+  return (
+    <SuspendedGate groupId={id}>
+      <PaymentForm />
+    </SuspendedGate>
+  );
+}
+
+function PaymentForm() {
   const { id = '', vendorId = '' } = useLocalSearchParams<{ id: string; vendorId?: string }>();
   const theme = useTheme();
   const { t } = useStrings();
