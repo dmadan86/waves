@@ -25,6 +25,7 @@ import { filterWork, groupWorkTasks, maxTaskDay, type WorkMode } from '@/lib/com
 import { WorkTaskSections } from './WorkTaskSections';
 import { AddTaskSheet } from './AddTaskSheet';
 import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
+import { WorkExportSheet } from './WorkExportSheet';
 import { WorkTaskSheets } from './WorkTaskSheets';
 import { WorkToolbar } from './WorkSummaryControls';
 
@@ -83,6 +84,7 @@ export default function DailyWorkView({
   const [error, setError] = useState(false);
   const [scope, setScope] = useState<'mine' | 'team'>(access.isEmployee ? 'mine' : 'team');
   const [query, setQuery] = useState('');
+  const [exportOpen, setExportOpen] = useState(false);
   const busy = save.isPending || remove.isPending;
   const allowedPerson = (memberId: string) =>
     access.canManage && access.people.some((p) => p.id === memberId);
@@ -281,7 +283,21 @@ export default function DailyWorkView({
                 },
               ]
             : []),
+          {
+            icon: 'download-outline',
+            label: t.company.workExport,
+            onPress: () => setExportOpen(true),
+          },
         ]}
+      />
+      <WorkExportSheet
+        visible={exportOpen}
+        onClose={() => setExportOpen(false)}
+        tasks={ownTasks}
+        today={today}
+        company={company.name}
+        personName={personName}
+        siteName={(projectId) => projects.find((project) => project.id === projectId)?.name ?? ''}
       />
       <AddTaskSheet
         key={addKey}

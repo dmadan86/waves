@@ -1572,6 +1572,34 @@ export interface UiStrings {
     workDoneN: string;
     workSiteFilter: string;
     workNoTasks: string;
+    workExport: string;
+    workExportRange: string;
+    workThisWeek: string;
+    workThisMonth: string;
+    workCustom: string;
+    workFrom: string;
+    workTo: string;
+    workReportType: string;
+    workRepList: string;
+    workRepPerson: string;
+    workRepSite: string;
+    workRepOverdue: string;
+    workExportSub: string;
+    workFileFormat: string;
+    workGenerate: string;
+    workRepListSub: string;
+    workRepPersonSub: string;
+    workRepSiteSub: string;
+    workRepOverdueSub: string;
+    workColNumber: string;
+    workColTitle: string;
+    workColDate: string;
+    workColStatus: string;
+    workColOpen: string;
+    workColTotal: string;
+    workCompletion: string;
+    workDaysLate: string;
+    workProBadge: string;
     workAdd: string;
     workEdit: string;
     workTitleField: string;
@@ -8527,6 +8555,34 @@ const en: UiStrings = {
     workDoneN: 'Done · {n}',
     workSiteFilter: 'Site filter',
     workNoTasks: 'No tasks yet.',
+    workExport: 'Export report',
+    workExportRange: 'Time period',
+    workThisWeek: 'This week',
+    workThisMonth: 'This month',
+    workCustom: 'Custom',
+    workFrom: 'From',
+    workTo: 'To',
+    workReportType: 'Report type',
+    workRepList: 'Task list',
+    workRepPerson: 'Per person',
+    workRepSite: 'Per site',
+    workRepOverdue: 'Overdue & completion',
+    workExportSub: 'Get a report of your tasks in PDF or Excel.',
+    workFileFormat: 'File format',
+    workGenerate: 'Generate report',
+    workRepListSub: 'All tasks with status',
+    workRepPersonSub: 'Tasks by assignee',
+    workRepSiteSub: 'Tasks by site/location',
+    workRepOverdueSub: 'Overdue, completed & pending',
+    workColNumber: '#',
+    workColTitle: 'Task',
+    workColDate: 'Date',
+    workColStatus: 'Status',
+    workColOpen: 'Open',
+    workColTotal: 'Total',
+    workCompletion: 'Completion rate',
+    workDaysLate: 'Days late',
+    workProBadge: 'Pro',
     workAdd: 'Add task',
     workEdit: 'Edit task',
     workTitleField: 'Task title',
@@ -14944,6 +15000,34 @@ const ta: UiStrings = {
     workDoneN: 'முடிந்தவை · {n}',
     workSiteFilter: 'பணித்தள வடிகட்டி',
     workNoTasks: 'இன்னும் பணிகள் இல்லை.',
+    workExport: 'அறிக்கை ஏற்றுமதி',
+    workExportRange: 'காலம்',
+    workThisWeek: 'இந்த வாரம்',
+    workThisMonth: 'இந்த மாதம்',
+    workCustom: 'தனிப்பயன்',
+    workFrom: 'இருந்து',
+    workTo: 'வரை',
+    workReportType: 'அறிக்கை வகை',
+    workRepList: 'பணிப் பட்டியல்',
+    workRepPerson: 'நபர்வாரி',
+    workRepSite: 'தளவாரி',
+    workRepOverdue: 'தாமதம் & நிறைவு',
+    workExportSub: 'உங்கள் பணிகளின் அறிக்கையை PDF அல்லது Excel-இல் பெறுங்கள்.',
+    workFileFormat: 'கோப்பு வடிவம்',
+    workGenerate: 'அறிக்கை உருவாக்கு',
+    workRepListSub: 'நிலையுடன் அனைத்துப் பணிகளும்',
+    workRepPersonSub: 'பொறுப்பாளர் வாரியாக பணிகள்',
+    workRepSiteSub: 'தளம்/இடம் வாரியாக பணிகள்',
+    workRepOverdueSub: 'தாமதம், முடிந்தவை & நிலுவை',
+    workColNumber: '#',
+    workColTitle: 'பணி',
+    workColDate: 'தேதி',
+    workColStatus: 'நிலை',
+    workColOpen: 'திறந்தவை',
+    workColTotal: 'மொத்தம்',
+    workCompletion: 'நிறைவு விகிதம்',
+    workDaysLate: 'தாமத நாட்கள்',
+    workProBadge: 'Pro',
     workAdd: 'வேலை சேர்க்க',
     workEdit: 'வேலை திருத்த',
     workTitleField: 'வேலைத் தலைப்பு',
@@ -21528,6 +21612,34 @@ const hi: UiStrings = {
     workDoneN: 'पूरे · {n}',
     workSiteFilter: 'साइट फ़िल्टर',
     workNoTasks: 'अभी कोई काम नहीं।',
+    workExport: 'रिपोर्ट एक्सपोर्ट',
+    workExportRange: 'समय अवधि',
+    workThisWeek: 'इस सप्ताह',
+    workThisMonth: 'इस महीने',
+    workCustom: 'कस्टम',
+    workFrom: 'से',
+    workTo: 'तक',
+    workReportType: 'रिपोर्ट का प्रकार',
+    workRepList: 'काम की सूची',
+    workRepPerson: 'व्यक्ति के अनुसार',
+    workRepSite: 'साइट के अनुसार',
+    workRepOverdue: 'देरी और पूर्णता',
+    workExportSub: 'अपने कामों की रिपोर्ट PDF या Excel में पाएँ।',
+    workFileFormat: 'फ़ाइल फ़ॉर्मैट',
+    workGenerate: 'रिपोर्ट बनाएँ',
+    workRepListSub: 'स्थिति के साथ सभी काम',
+    workRepPersonSub: 'ज़िम्मेदार के अनुसार काम',
+    workRepSiteSub: 'साइट/जगह के अनुसार काम',
+    workRepOverdueSub: 'देरी, पूरे और बाकी',
+    workColNumber: '#',
+    workColTitle: 'काम',
+    workColDate: 'तारीख',
+    workColStatus: 'स्थिति',
+    workColOpen: 'खुले',
+    workColTotal: 'कुल',
+    workCompletion: 'पूर्णता दर',
+    workDaysLate: 'देरी के दिन',
+    workProBadge: 'Pro',
     workAdd: 'काम जोड़ें',
     workEdit: 'काम बदलें',
     workTitleField: 'काम का नाम',
@@ -28013,6 +28125,34 @@ const ar: UiStrings = {
     workDoneN: 'منجزة · {n}',
     workSiteFilter: 'تصفية الموقع',
     workNoTasks: 'لا مهام بعد.',
+    workExport: 'تصدير تقرير',
+    workExportRange: 'الفترة الزمنية',
+    workThisWeek: 'هذا الأسبوع',
+    workThisMonth: 'هذا الشهر',
+    workCustom: 'مخصص',
+    workFrom: 'من',
+    workTo: 'إلى',
+    workReportType: 'نوع التقرير',
+    workRepList: 'قائمة المهام',
+    workRepPerson: 'حسب الشخص',
+    workRepSite: 'حسب الموقع',
+    workRepOverdue: 'المتأخرة ونسبة الإنجاز',
+    workExportSub: 'احصل على تقرير بمهامك بصيغة PDF أو Excel.',
+    workFileFormat: 'صيغة الملف',
+    workGenerate: 'إنشاء التقرير',
+    workRepListSub: 'كل المهام مع الحالة',
+    workRepPersonSub: 'المهام حسب المكلّف',
+    workRepSiteSub: 'المهام حسب الموقع',
+    workRepOverdueSub: 'المتأخرة والمكتملة والمعلّقة',
+    workColNumber: '#',
+    workColTitle: 'المهمة',
+    workColDate: 'التاريخ',
+    workColStatus: 'الحالة',
+    workColOpen: 'مفتوحة',
+    workColTotal: 'الإجمالي',
+    workCompletion: 'نسبة الإنجاز',
+    workDaysLate: 'أيام التأخير',
+    workProBadge: 'Pro',
     workAdd: 'إضافة مهمة',
     workEdit: 'تعديل المهمة',
     workTitleField: 'عنوان المهمة',
