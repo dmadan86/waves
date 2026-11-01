@@ -34,3 +34,7 @@ BEGIN
  IF p_project_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.company_projects WHERE id=p_project_id AND group_id=p_group_id AND deleted_at IS NULL) THEN RAISE EXCEPTION 'INVALID_DATA: site'; END IF;
  INSERT INTO public.company_work_tasks(id,group_id,member_id,day,title,project_id,status,blocked_reason,note,due_time,created_by) VALUES(p_task_id,p_group_id,p_member_id,p_day,v_title,p_project_id,p_status,v_reason,v_note,p_due_time,v_me);
 END $$;
+
+-- Same caller model as before (CREATE OR REPLACE keeps it; stated here for scripts/check-definer-grants.mjs).
+REVOKE ALL ON FUNCTION public.waves_company_work_set(uuid,uuid,uuid,date,text,uuid,text,text,text,time) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_company_work_set(uuid,uuid,uuid,date,text,uuid,text,text,text,time) TO authenticated,service_role;
