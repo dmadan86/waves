@@ -8,10 +8,14 @@ interface PermissionSource {
 }
 
 /** Microphone + speech permission through the shared explainer-then-native flow. */
-export function ensureMicPermission(speech: PermissionSource): Promise<PermissionState> {
+export function ensureMicPermission(
+  speech: PermissionSource,
+  direct = false,
+): Promise<PermissionState> {
   return ensurePermission('mic', {
     check: () => speech.getPermissionsAsync().catch(() => ({ granted: false, canAskAgain: true })),
     request: () => speech.requestPermissionsAsync(),
     openSettings: () => Linking.openSettings(),
+    direct,
   });
 }

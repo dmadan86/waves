@@ -632,6 +632,13 @@ export default function VoiceScreen() {
   const agentReady = agentStatusReady && voiceConsent.ready;
   const consentSheetOpen =
     agentServerOn && voiceConsent.ready && voiceConsent.state === 'needed' && !consentDeclined;
+  // The mic waits for the consent answer (and the status that decides whether
+  // consent is asked), so the consent sheet is never up with the system mic
+  // dialog over it.
+  const consentHold =
+    consentSheetOpen ||
+    (agentServerOn && !voiceConsent.ready) ||
+    (!agentStatusReady && agentLastKnown !== false);
   // Which engine heard the capture — its pill shows only while listening.
   const [, setEngine] = useState<VoiceEngineInfo | null>(null);
   // The agent's open question and what prompted it, while the next clip is its
@@ -3261,7 +3268,7 @@ export default function VoiceScreen() {
                   heard={noAmount ? heardText : ''}
                   onSuggestion={pickSuggestion}
                   canPick={canPickSuggestion}
-                  autoStart={!noAmount}
+                  autoStart={!noAmount && !consentHold}
                   endSignal={hold.ended}
                   onEndConsumed={() => pushToTalk.take()}
                   onListen={() => {
