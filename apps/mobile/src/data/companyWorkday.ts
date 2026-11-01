@@ -129,7 +129,6 @@ export function useAttendanceSaveState(groupId: string): 'saving' | 'saved' | nu
     }
     if (!wasSaving.current) return;
     wasSaving.current = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot: the queue just emptied
     setSaved(true);
     const timer = setTimeout(() => setSaved(false), 2000);
     return () => clearTimeout(timer);

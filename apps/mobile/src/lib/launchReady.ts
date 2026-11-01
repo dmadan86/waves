@@ -13,14 +13,29 @@
 import { useSyncExternalStore } from 'react';
 
 let ready = false;
+let screenReady = false;
+// Home holds the splash while it decides whether launch reopens a company, so Personal never shows first.
+let held = false;
 const listeners = new Set<() => void>();
 
-/** Called by whichever screen is first to be worth showing. Idempotent. */
-export function markLaunchReady(): void {
-  if (ready) return;
+function settle(): void {
+  if (ready || !screenReady || held) return;
   ready = true;
   for (const listener of listeners) listener();
   listeners.clear();
+}
+
+/** Called by whichever screen is first to be worth showing. Idempotent. */
+export function markLaunchReady(): void {
+  screenReady = true;
+  settle();
+}
+
+/** Keeps the splash up (on) until the first screen is the right one. No effect once lifted. */
+export function holdLaunch(on: boolean): void {
+  if (ready) return;
+  held = on;
+  settle();
 }
 
 export function isLaunchReady(): boolean {
@@ -42,5 +57,7 @@ export function useLaunchReady(): boolean {
 /** Tests only: a fresh process. */
 export function resetLaunchReadyForTest(): void {
   ready = false;
+  screenReady = false;
+  held = false;
   listeners.clear();
 }

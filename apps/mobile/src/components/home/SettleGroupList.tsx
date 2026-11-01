@@ -20,7 +20,9 @@ import { SplitMoney } from '@/components/SplitMoney';
 import { relativeTime } from '@/data/activity';
 import { GroupType } from '@/data/types';
 import { plural, useStrings } from '@/i18n';
+import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
+import { useReferralsLive } from '@/lib/useReferralsLive';
 import { router } from '@/lib/navigation';
 import { settleHref } from '@/lib/groupTab';
 
@@ -57,6 +59,8 @@ export function SettleGroupList({
   const { t, locale } = useStrings();
   const clearance = useBottomClearance();
   const d = t.homeDash;
+  const referralsLive = useReferralsLive();
+  const { isGuest } = useAuth();
 
   // Biggest balance first — the order people want — with ties keeping the
   // given order (stable sort).
@@ -177,10 +181,96 @@ export function SettleGroupList({
     );
   };
 
-  const empty = (
+  const empty = narrowed ? (
     <Text variant="body" tone="muted" align="center" style={{ paddingVertical: theme.spacing.xl }}>
-      {narrowed ? t.noGroupsMatch : d.settleEmpty}
+      {t.noGroupsMatch}
     </Text>
+  ) : (
+    <View style={{ alignItems: 'center', paddingVertical: theme.spacing.lg, gap: 2 }}>
+      <View
+        style={{
+          width: 88,
+          height: 88,
+          borderRadius: 44,
+          backgroundColor: theme.color.brandSoft,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: theme.spacing.sm,
+        }}
+      >
+        <Ionicons name="receipt-outline" size={44} color={theme.color.brand} />
+        <View
+          style={{
+            position: 'absolute',
+            right: 4,
+            bottom: 4,
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: theme.color.positive,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="checkmark" size={iconSize.md} color={theme.color.onBrand} />
+        </View>
+      </View>
+      <Text variant="title" align="center">
+        {d.settleAllDone}
+      </Text>
+      <Text variant="body" tone="muted" align="center">
+        {d.settleAllDoneBody}
+      </Text>
+    </View>
+  );
+
+  // Where to go when there is nothing to settle (or in addition to what is).
+  // Invite is the referral screen, which exists only where plans are live.
+  const actions = [
+    { icon: 'person-add-outline' as const, label: d.settleCreate, go: () => '/new-group' },
+    { icon: 'scan-outline' as const, label: d.settleScan, go: () => `/capture?scan=${Date.now()}` },
+    ...(referralsLive && !isGuest
+      ? [
+          {
+            icon: 'paper-plane-outline' as const,
+            label: d.settleInvite,
+            go: () => '/settings/invite',
+          },
+        ]
+      : []),
+  ];
+  const footer = (
+    <View
+      style={{
+        flexDirection: 'row',
+        marginTop: theme.spacing.sm,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.surface,
+        ...theme.shadow.soft,
+      }}
+    >
+      {actions.map((a) => (
+        <Pressable
+          key={a.label}
+          accessibilityRole="button"
+          accessibilityLabel={a.label}
+          onPress={() => router.push(a.go() as never)}
+          style={({ pressed }) => ({
+            flex: 1,
+            alignItems: 'center',
+            gap: theme.spacing.xs,
+            paddingVertical: theme.spacing.md,
+            paddingHorizontal: theme.spacing.xs,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons name={a.icon} size={iconSize.lg} color={theme.color.brand} />
+          <Text variant="caption" align="center" style={{ fontWeight: '600' }} numberOfLines={2}>
+            {a.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
   );
 
   return (
@@ -189,6 +279,7 @@ export function SettleGroupList({
       keyExtractor={(item) => item.id}
       renderItem={renderRow}
       ListEmptyComponent={empty}
+      ListFooterComponent={footer}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
       style={{ flex: 1 }}

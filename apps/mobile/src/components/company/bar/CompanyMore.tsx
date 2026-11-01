@@ -5,10 +5,9 @@ import { Pressable, useWindowDimensions, View } from 'react-native';
 import { Text, directionalIcon, useTheme } from '@waves/ui';
 
 import { DepartmentSheet } from '@/components/company/DepartmentSheet';
-import { CompanyRules } from '@/components/company/CompanyRules';
 import { useMoney } from '@/components/company/dashboard/parts';
 import { SectionShell } from '@/components/company/bar/SectionShell';
-import { SectionHeader, StandardCard } from '@/components/standard';
+import { StandardCard } from '@/components/standard';
 import { useClientMoney, useCompanyClients, useFollowUps } from '@/data/companyClients';
 import { useUnpaidBills } from '@/data/companyDocuments';
 import { useCompanyEntries } from '@/data/companyEntries';
@@ -237,7 +236,7 @@ export function CompanyMore({ groupId }: { groupId: string }) {
   ).filter((g) => g.tiles.length > 0);
 
   return (
-    <SectionShell groupId={groupId} view={view}>
+    <SectionShell groupId={groupId} view={view} tab>
       <View style={{ gap: theme.spacing.md }}>
         {groups.map((g) => (
           <StandardCard key={g.label} style={{ padding: PAD, gap: 10 }}>
@@ -318,12 +317,6 @@ export function CompanyMore({ groupId }: { groupId: string }) {
             </View>
           </StandardCard>
         ))}
-        {view.isOwner ? (
-          <>
-            <SectionHeader title={t.company.moreRules} />
-            <CompanyRules groupId={groupId} view={view} />
-          </>
-        ) : null}
       </View>
       {view.isOwner ? (
         <DepartmentSheet

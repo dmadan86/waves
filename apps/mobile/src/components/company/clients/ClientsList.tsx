@@ -1,217 +1,284 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { clientCounts, filterClients, type ClientFilter } from '@waves/core';
-import { iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
+import { docNumberLabel } from '@waves/core';
+import { Button, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui';
 
-import { useMoney } from '@/components/company/dashboard/parts';
-import { StageChip } from '@/components/company/clients/parts';
-import { OverflowMenu } from '@/components/OverflowMenu';
+import { DashBody, DashHeader, IconButton } from '@/components/company/dashboard/parts';
+import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { type MenuAnchor } from '@/components/SortMenu';
-import {
-  ListRow,
-  ScenicBody,
-  ScenicHeader,
-  SegmentedPills,
-  StandardCard,
-} from '@/components/standard';
-import { useClientMoney, useCompanyClients, useFollowUps } from '@/data/companyClients';
-import { useCompanySuspended } from '@/data/companyEntries';
+import { ListRow, SegmentedPills, StandardCard } from '@/components/standard';
+import { useCompanyClients } from '@/data/companyClients';
+import { useCompanyDocs } from '@/data/companyDocuments';
+import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
+import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { companyOverviewRoute } from '@/lib/companyTab';
+import {
+  buildClientRows,
+  daysAgo,
+  listClientRows,
+  tabCounts,
+  type ClientSort,
+  type ClientStatus,
+  type ClientTab,
+  type DateRange,
+} from '@/lib/clientRows';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { router } from '@/lib/navigation';
+import { compactMoney } from '@/lib/overviewMath';
 
-type Filter = ClientFilter | 'unpaid';
+const BLUE = { fg: '#2563EB', bg: '#EAF2FF' };
+const FILTER_STATUSES: readonly ClientStatus[] = [
+  'inquiry',
+  'quoted',
+  'unpaid',
+  'part_paid',
+  'paid',
+  'lost',
+];
 
-/** Clients and inquiries: stat tiles, filter pills, a search field and one card per client. */
+/** Clients and inquiries: KPI tiles, tabs with counts, a sort and filter row, and one divided card of clients. */
 export function ClientsList({ groupId }: { groupId: string }) {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const s = t.companyClients;
   const clearance = useBottomClearance();
   const view = useCompanyClients(groupId);
   const suspended = useCompanySuspended(groupId);
-  const money = useClientMoney(groupId);
-  const followUps = useFollowUps(groupId);
-  const fmt = useMoney(view.currency);
-  const [filter, setFilter] = useState<Filter>('all');
+  const entries = useCompanyEntries(groupId);
+  const { docs, canUse: canDocs } = useCompanyDocs(groupId);
+  const [tab, setTab] = useState<ClientTab>('all');
+  const [status, setStatus] = useState<ClientStatus | null>(null);
+  const [range, setRange] = useState<DateRange>('all');
+  const [sort, setSort] = useState<ClientSort>('recent');
   const [query, setQuery] = useState('');
-  const [byName, setByName] = useState(false);
-  const [sortAnchor, setSortAnchor] = useState<MenuAnchor | null>(null);
-  const [sortOpen, setSortOpen] = useState(false);
+  const [owing, setOwing] = useState(false);
+  const [searching, setSearching] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [menu, setMenu] = useState<'sort' | 'add' | null>(null);
+  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   const sortRef = useRef<View>(null);
-  const counts = clientCounts(view.clients);
-  const owed = (id: string) => money.byClient.get(id) ?? 0n;
-  const unpaidClients = view.clients.filter((c) => owed(c.id) > 0n);
-  const unpaidTotal = unpaidClients.reduce((n, c) => n + owed(c.id), 0n);
-  const q = query.trim().toLocaleLowerCase();
-  // Unpaid ignores stage: a lost client's open bills are still owed.
-  const listed =
-    filter === 'unpaid'
-      ? unpaidClients.filter((c) =>
-          [c.name, c.phone, c.need].some((v) => !q || v?.toLocaleLowerCase().includes(q)),
-        )
-      : filterClients(view.clients, filter, query);
-  const rows = byName ? [...listed].sort((a, b) => a.name.localeCompare(b.name)) : listed;
-  const chips: { value: Filter; label: string }[] = [
-    { value: 'all', label: `${s.fAll} ${counts.all}` },
-    { value: 'inquiry', label: `${s.fInquiry} ${counts.inquiry}` },
-    { value: 'quoted', label: `${s.fQuoted} ${counts.quoted}` },
-    { value: 'client', label: `${s.fClient} ${counts.client}` },
-    ...(counts.lost ? [{ value: 'lost' as const, label: `${s.fLost} ${counts.lost}` }] : []),
-  ];
-  const stats = [
+  const addRef = useRef<View>(null);
+  const today = todayIso();
+  const fmt = (minor: bigint) => compactMoney(minor, view.currency, locale, t.company.ovCrore);
+  const all = useMemo(
+    () => buildClientRows(view.clients, docs, view.notes),
+    [view.clients, docs, view.notes],
+  );
+  const counts = tabCounts(all);
+  const outstanding = all.reduce((n, r) => n + r.dueMinor, 0n);
+  const rows = listClientRows(all, { tab, status, range, sort, query, today, owing });
+  const filtered = status !== null || range !== 'all';
+  const canAdd = view.canAdd && !suspended;
+  const open = (m: 'sort' | 'add', ref: typeof sortRef) =>
+    measureAnchor(ref, (a) => {
+      setAnchor(a);
+      setMenu(m);
+    });
+  const sortName = { recent: s.sortUpdated, amount: s.sortAmount, name: s.sortName }[sort];
+  const items: OverflowMenuItem[] =
+    menu === 'sort'
+      ? [
+          { icon: 'time-outline', label: s.sortUpdated, onPress: () => setSort('recent') },
+          { icon: 'cash-outline', label: s.sortAmount, onPress: () => setSort('amount') },
+          { icon: 'text-outline', label: s.sortName, onPress: () => setSort('name') },
+        ]
+      : [
+          {
+            icon: 'person-add-outline',
+            label: s.addClient,
+            onPress: () => router.push(`/group/${groupId}/company-client-add`),
+          },
+          ...(canDocs
+            ? ([
+                {
+                  icon: 'document-text-outline',
+                  label: s.createQuote,
+                  onPress: () => router.push(`/group/${groupId}/company-bill-form?type=estimate`),
+                },
+                {
+                  icon: 'receipt-outline',
+                  label: s.createInvoice,
+                  onPress: () => router.push(`/group/${groupId}/company-bill-form?type=bill`),
+                },
+              ] as const)
+            : []),
+        ];
+  const kpis = [
     {
-      f: 'all',
-      label: s.fClient,
-      value: counts.all,
+      tab: 'all',
+      label: s.kClients,
+      text: `${counts.all}`,
       icon: 'people',
-      color: '#16A34A',
+      fg: '#16A34A',
       bg: '#ECFDF3',
     },
     {
-      f: 'inquiry',
-      label: s.fInquiry,
-      value: counts.inquiry,
+      tab: 'inquiry',
+      label: s.kInquiries,
+      text: `${counts.inquiry}`,
       icon: 'document-text',
-      color: '#2563EB',
-      bg: '#EAF2FF',
+      ...BLUE,
     },
     {
-      f: 'quoted',
-      label: s.fQuoted,
-      value: counts.quoted,
-      icon: 'time',
-      color: '#EA8A0C',
+      tab: 'quote',
+      label: s.kQuotes,
+      text: `${counts.quote}`,
+      icon: 'document-attach',
+      fg: '#EA8A0C',
       bg: '#FFF4E5',
     },
     {
-      f: 'unpaid',
-      label: s.fUnpaid,
-      value: unpaidClients.length,
+      tab: 'invoice',
+      label: s.kInvoices,
+      text: `${counts.invoice}`,
+      icon: 'receipt',
+      fg: '#16A34A',
+      bg: '#ECFDF3',
+    },
+    {
+      tab: 'invoice',
+      label: s.kOutstanding,
+      text: fmt(outstanding),
       icon: 'cash',
-      color: '#DC2626',
+      fg: '#DC2626',
       bg: '#FDECEC',
     },
   ] as const;
-  const canAdd = view.canAdd && !suspended;
-  const banner = [
-    followUps.dueToday ? fill(s.bannerToday, { n: followUps.dueToday }) : null,
-    followUps.overdue ? fill(s.bannerOverdue, { n: followUps.overdue }) : null,
-  ]
-    .filter(Boolean)
-    .join(' · ');
-  const sortItems = [
-    { icon: 'time-outline' as const, label: s.sortRecent, onPress: () => setByName(false) },
-    { icon: 'text-outline' as const, label: s.sortName, onPress: () => setByName(true) },
-  ];
+  const pill = (st: ClientStatus) => {
+    const c = theme.color;
+    return {
+      inquiry: { label: s.docInquiry, fg: BLUE.fg, bg: BLUE.bg },
+      quoted: { label: s.stQuoted, fg: c.warning, bg: c.warningSoft },
+      unpaid: { label: s.stUnpaid, fg: c.negative, bg: c.negativeSoft },
+      part_paid: { label: s.stPartPaid, fg: c.warning, bg: c.warningSoft },
+      paid: { label: `✓ ${s.stPaid}`, fg: c.positive, bg: c.positiveSoft },
+      client: { label: s.stClient, fg: c.positive, bg: c.positiveSoft },
+      lost: { label: s.stLost, fg: c.textMuted, bg: c.surfaceMuted },
+    }[st];
+  };
+  const statusLabel = (st: ClientStatus) => pill(st).label.replace('✓ ', '');
+  const circle = {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.color.surface,
+  } as const;
   return (
     <Screen edges={[]}>
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: clearance + theme.spacing.lg }}
       >
-        <ScenicHeader
-          title={s.title}
-          subtitle={s.subtitle}
-          titleAlign="start"
-          onBack={() => router.replace(companyOverviewRoute(groupId, 'back') as never)}
-          action={
-            canAdd ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={s.newInquiry}
-                onPress={() => router.push(`/group/${groupId}/company-client-add`)}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.color.brand,
+        <DashHeader
+          tab
+          groupId={groupId}
+          view={entries}
+          subtitle=""
+          showGear={entries.isOwner}
+          actions={
+            <>
+              <IconButton
+                round
+                icon={searching ? 'close' : 'search-outline'}
+                label={s.search}
+                onPress={() => {
+                  if (searching) setQuery('');
+                  setSearching(!searching);
                 }}
-              >
-                <Ionicons name="add" size={iconSize.xxl} color="#FFFFFF" />
-              </Pressable>
-            ) : undefined
+              />
+              {canAdd ? (
+                <View ref={addRef} collapsable={false} style={{ marginStart: 8 }}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={s.addLabel}
+                    onPress={() => open('add', addRef)}
+                    style={{
+                      height: 40,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      paddingHorizontal: theme.spacing.md,
+                      borderRadius: 20,
+                      backgroundColor: theme.color.brand,
+                    }}
+                  >
+                    <Ionicons name="add" size={iconSize.base} color={theme.color.onBrand} />
+                    <Text
+                      variant="caption"
+                      style={{ fontWeight: '700', color: theme.color.onBrand }}
+                    >
+                      {s.addLabel}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+            </>
           }
         />
-        <ScenicBody>
-          <Row style={{ gap: theme.spacing.sm }}>
-            {stats.map((x) => (
+        <DashBody>
+          <Row style={{ gap: theme.spacing.xs }}>
+            {kpis.map((k) => (
               <Pressable
-                key={x.f}
+                key={k.label}
                 accessibilityRole="button"
-                accessibilityLabel={`${x.label} ${x.value}`}
-                onPress={() => setFilter(x.f)}
+                accessibilityLabel={`${k.label} ${k.text}`}
+                onPress={() => {
+                  setTab(k.tab);
+                  setStatus(null);
+                  setOwing(k.label === s.kOutstanding);
+                  if (k.label === s.kOutstanding) setSort('amount');
+                }}
                 style={{
                   flex: 1,
-                  padding: theme.spacing.md,
+                  minWidth: 0,
+                  paddingVertical: theme.spacing.sm,
+                  paddingHorizontal: 2,
                   borderRadius: theme.radius.lg,
-                  backgroundColor: x.bg,
+                  backgroundColor: k.bg,
                   gap: 2,
                   alignItems: 'center',
                 }}
               >
-                <Ionicons name={x.icon} size={iconSize.md} color={x.color} />
-                <Text style={{ fontWeight: '800', color: '#111827' }}>{x.value}</Text>
-                <Row style={{ alignItems: 'center' }}>
-                  <Text
-                    variant="micro"
-                    numberOfLines={1}
-                    style={{ color: '#374151', flexShrink: 1 }}
-                  >
-                    {x.label}
-                  </Text>
-                  <Ionicons name="chevron-forward" size={12} color="#374151" />
-                </Row>
-                {x.f === 'unpaid' && unpaidTotal > 0n ? (
-                  <Text
-                    variant="micro"
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    style={{ color: '#6B7280' }}
-                  >
-                    {fmt(unpaidTotal)}
-                  </Text>
-                ) : null}
+                <Ionicons name={k.icon} size={iconSize.md} color={k.fg} />
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  style={{ fontWeight: '800', color: '#111827', fontSize: 15 }}
+                >
+                  {k.text}
+                </Text>
+                <Text variant="micro" numberOfLines={1} style={{ color: '#374151' }}>
+                  {k.label}
+                </Text>
               </Pressable>
             ))}
           </Row>
-          {banner ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => router.push(`/group/${groupId}/company-followups`)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                backgroundColor: theme.color.warningSoft,
-                borderRadius: theme.radius.lg,
-                paddingHorizontal: theme.spacing.md,
-                paddingVertical: theme.spacing.sm,
-              }}
-            >
-              <Ionicons name="time-outline" size={18} color={theme.color.warning} />
-              <Text variant="caption" style={{ flex: 1, fontWeight: '700' }}>
-                {banner}
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color={theme.color.warning} />
-            </Pressable>
-          ) : null}
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-              <SegmentedPills options={chips} value={filter} onChange={setFilter} />
+              <SegmentedPills
+                options={[
+                  { value: 'all' as const, label: fill(s.tAll, { n: counts.all }) },
+                  { value: 'inquiry' as const, label: fill(s.tInquiries, { n: counts.inquiry }) },
+                  { value: 'quote' as const, label: fill(s.tQuotes, { n: counts.quote }) },
+                  { value: 'invoice' as const, label: fill(s.tInvoices, { n: counts.invoice }) },
+                ]}
+                value={tab}
+                onChange={(v) => {
+                  setOwing(false);
+                  setTab(v);
+                }}
+              />
             </View>
           </ScrollView>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          {searching ? (
             <View
               style={{
-                flex: 1,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: theme.spacing.sm,
@@ -223,6 +290,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
             >
               <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
               <TextInput
+                autoFocus
                 accessibilityLabel={s.search}
                 value={query}
                 onChangeText={setQuery}
@@ -231,102 +299,177 @@ export function ClientsList({ groupId }: { groupId: string }) {
                 style={{ flex: 1, color: theme.color.text, fontSize: 16 }}
               />
             </View>
+          ) : null}
+          <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <Pressable
               ref={sortRef}
               accessibilityRole="button"
               accessibilityLabel={s.sortLabel}
-              onPress={() =>
-                measureAnchor(sortRef, (a) => {
-                  setSortAnchor(a);
-                  setSortOpen(true);
-                })
-              }
+              onPress={() => open('sort', sortRef)}
               style={{
-                width: 44,
-                height: 44,
-                borderRadius: 22,
+                height: 40,
+                flexDirection: 'row',
                 alignItems: 'center',
-                justifyContent: 'center',
+                gap: theme.spacing.xs,
+                paddingHorizontal: theme.spacing.md,
+                borderRadius: 20,
                 backgroundColor: theme.color.surface,
               }}
             >
+              <Text variant="caption" style={{ fontWeight: '600' }}>
+                {fill(s.sortBy, { by: sortName })}
+              </Text>
+              <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={s.filterTitle}
+              onPress={() => setFilterOpen(true)}
+              style={circle}
+            >
               <Ionicons name="filter" size={iconSize.md} color={theme.color.text} />
+              {filtered ? (
+                <View
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    end: 8,
+                    width: 9,
+                    height: 9,
+                    borderRadius: 5,
+                    backgroundColor: theme.color.brand,
+                    borderWidth: 1.5,
+                    borderColor: theme.color.surface,
+                  }}
+                />
+              ) : null}
             </Pressable>
           </Row>
-          {rows.length === 0 ? (
+          {all.length === 0 ? (
+            <StandardCard style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+              <Ionicons name="clipboard-outline" size={48} color={theme.color.brand} />
+              <Text variant="title" style={{ fontSize: 18 }}>
+                {s.emptyTitle}
+              </Text>
+              <Text tone="muted" style={{ textAlign: 'center' }}>
+                {s.emptyBody}
+              </Text>
+              {canAdd ? (
+                <Row style={{ gap: theme.spacing.sm, flexWrap: 'wrap', justifyContent: 'center' }}>
+                  <Button
+                    label={s.addClient}
+                    variant="brand"
+                    size="sm"
+                    onPress={() => router.push(`/group/${groupId}/company-client-add`)}
+                  />
+                </Row>
+              ) : null}
+            </StandardCard>
+          ) : rows.length === 0 ? (
             <StandardCard>
-              <Text tone="muted" style={{ paddingVertical: theme.spacing.md }}>
-                {view.clients.length === 0 ? s.empty : s.emptyFilter}
+              <Text tone="muted" style={{ paddingVertical: theme.spacing.md, textAlign: 'center' }}>
+                {s.noMatches}
               </Text>
             </StandardCard>
           ) : (
-            rows.map((c) => {
-              const due = owed(c.id);
-              const mine = money.docs.filter((d) => !d.deleted && d.clientId === c.id);
-              const bills = mine.filter((d) => d.docType === 'bill');
-              // The amount and chip come only from bills linked to this client.
-              const amount = due > 0n ? due : (c.expectedValueMinor ?? undefined);
-              const status =
-                due > 0n
-                  ? { label: s.statusDue, fg: theme.color.negative, bg: theme.color.negativeSoft }
-                  : bills.length > 0
-                    ? {
-                        label: s.statusPaid,
-                        fg: theme.color.positive,
-                        bg: theme.color.positiveSoft,
-                      }
-                    : null;
-              return (
-                <StandardCard key={c.id} style={{ paddingVertical: theme.spacing.xs }}>
+            <StandardCard style={{ paddingVertical: 0 }}>
+              {rows.map((r, i) => {
+                const c = r.client;
+                const st = pill(r.status);
+                const word = r.latest?.type === 'bill' ? s.docInvoice : s.docQuote;
+                const doc = r.latest
+                  ? r.latest.number == null
+                    ? word
+                    : `${word} #${docNumberLabel(r.latest.type, r.latest.number)}`
+                  : s.docInquiry;
+                const days = daysAgo(r.lastDay, today);
+                return (
                   <ListRow
+                    key={c.id}
+                    divider={i < rows.length - 1}
                     title={c.name}
+                    subtitle={`${doc} · ${days === 0 ? s.today : fill(s.daysAgo, { n: days })}`}
                     leading={<PersonAvatar name={c.name} size={40} />}
-                    footer={
-                      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                        <StageChip stage={c.stage} />
-                        {mine.length ? (
-                          <Text variant="micro" tone="muted">
-                            {fill(mine.length === 1 ? s.itemN : s.itemsN, { n: mine.length })}
-                          </Text>
-                        ) : null}
-                      </Row>
-                    }
                     trailing={
-                      <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-                        <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                          {amount ? <Text style={{ fontWeight: '700' }}>{fmt(amount)}</Text> : null}
-                          {status ? (
-                            <View
-                              style={{
-                                backgroundColor: status.bg,
-                                borderRadius: theme.radius.pill,
-                                paddingHorizontal: theme.spacing.sm,
-                                paddingVertical: 2,
-                              }}
-                            >
-                              <Text variant="micro" style={{ color: status.fg, fontWeight: '700' }}>
-                                {status.label}
-                              </Text>
-                            </View>
-                          ) : null}
+                      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                        <View
+                          style={{
+                            backgroundColor: st.bg,
+                            borderRadius: theme.radius.pill,
+                            paddingHorizontal: theme.spacing.sm,
+                            paddingVertical: 2,
+                          }}
+                        >
+                          <Text variant="micro" style={{ color: st.fg, fontWeight: '700' }}>
+                            {st.label}
+                          </Text>
                         </View>
+                        <Text
+                          tabular
+                          style={{ fontWeight: '700', minWidth: 52, textAlign: 'right' }}
+                        >
+                          {r.amountMinor == null ? '—' : fmt(r.amountMinor)}
+                        </Text>
                         <Ionicons name="chevron-forward" size={18} color={theme.color.textMuted} />
                       </Row>
                     }
                     onPress={() => router.push(`/group/${groupId}/company-client?clientId=${c.id}`)}
                   />
-                </StandardCard>
-              );
-            })
+                );
+              })}
+            </StandardCard>
           )}
-        </ScenicBody>
+        </DashBody>
       </ScrollView>
       <OverflowMenu
-        visible={sortOpen}
-        onClose={() => setSortOpen(false)}
-        items={sortItems}
-        anchor={sortAnchor}
+        visible={menu !== null}
+        onClose={() => setMenu(null)}
+        items={items}
+        anchor={anchor}
       />
+      <Sheet visible={filterOpen} onClose={() => setFilterOpen(false)} closeLabel={t.common.close}>
+        <View style={{ gap: theme.spacing.md }}>
+          <Text variant="title">{s.filterTitle}</Text>
+          <Text variant="caption" tone="muted">
+            {s.fStatus}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+            {FILTER_STATUSES.map((st) => (
+              <SegmentedPills
+                key={st}
+                options={[{ value: st, label: statusLabel(st) }]}
+                value={status ?? ('' as ClientStatus)}
+                onChange={(v) => setStatus(status === v ? null : v)}
+              />
+            ))}
+          </View>
+          <Text variant="caption" tone="muted">
+            {s.fDate}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+            <SegmentedPills
+              options={[
+                { value: 'all' as const, label: s.rAll },
+                { value: 'month' as const, label: s.rMonth },
+                { value: 'quarter' as const, label: s.rQuarter },
+              ]}
+              value={range}
+              onChange={setRange}
+            />
+          </View>
+          <Row style={{ gap: theme.spacing.sm }}>
+            <Button
+              label={s.fClear}
+              variant="secondary"
+              onPress={() => {
+                setStatus(null);
+                setRange('all');
+              }}
+            />
+            <Button label={t.common.done} variant="brand" onPress={() => setFilterOpen(false)} />
+          </Row>
+        </View>
+      </Sheet>
     </Screen>
   );
 }

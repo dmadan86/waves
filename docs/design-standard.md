@@ -24,6 +24,14 @@ do not draw your own header, card, pill or row.
 - Colour: theme tokens only. Selected pill `#1F1B4D`; accent links `brand`; category colours from the rank palette (`RANK_COLORS`) in charts.
 - Money: never convert between currencies and never re-divide an expense; use the `@waves/core` helpers.
 
+## Forms and cards (Create group is the reference)
+
+- Group label (Group name, Add friends, Group type, More options): `SectionLabel` only. A 28dp `brandSoft` disc, 16dp `brand` glyph, title 16sp/700 in full ink, 8dp gap. Never a bare muted label, never an icon without the disc.
+- Sub-captions inside a group ("Suggested", "See all") are 13sp/600: muted, or `brand` for a link. Field text is 16sp; placeholders `textFaint`.
+- Option rows (`DetailRow`) in a form card are always `tint={{ bg: brandSoft, ink: brand }}` and `dense`: the same 28dp disc, bold title, value on the right. No row without a disc.
+- Cards: `FormCard` 20dp radius, 14dp padding, `spacing.sm` (8dp) between cards. Selected tile/chip: `brandSoft` fill with a `brand` outline.
+- When you add a section to a form, use these; do not size a label or an icon by hand.
+
 ## Rules
 
 - An action is drawn only when it does something. Pass `undefined` for `SectionHeader.action` when there is nothing to open; no inert "See all", no empty chevron.
@@ -34,5 +42,6 @@ do not draw your own header, card, pill or row.
 - All action buttons use the brand violet; no black buttons.
 - Every ⋮ (more) button opens `OverflowMenu`, the pop-up card anchored at the top corner, as on Home, the group screen and an expense. Never a bottom `Sheet` for a ⋮ menu. A bottom sheet is for a picker or form (switch company, add someone).
 - Company mode: owner/manager inside a company get the company bar (Home (company overview) · Team · Payments · Vendors · More (Vendors is its own tab, not a More row); the bar is full at five, so Clients and Follow-ups live in More, which is a menu of tiles in four groups: Money in, Money out, Team, Books; leave the company via the space switcher) with an add FAB, no mic; Team opens one screen with the company header (SpacePill) and a white People | Attendance | Tasks segment under it (remembers the last per company; red dot on Tasks while a task is blocked); People lists employees by name, with a sort pop-up of two switches (Sort by name, Show admins) and Not employed in the header menu, and the old people / attendance / work routes open Team on that segment (none of the three views draws its own header); Pending is a card at the top of Overview ("View all" opens company-pending) and Home carries the pending-count badge; employees keep the shared bar.
+- Bottom-bar tab roots (Personal and Company) use the one tab header (company: `DashHeader` with `tab`, i.e. the Team header: SpacePill, round gear / ⋯ / action buttons, no subtitle); never a back button. Sub-screens use the back header (`ScenicHeader`).
 - Customizable layouts: a screen of cards (the company Overview) may let people reorder and hide cards, never restyle them. Entry is the ⋮ OverflowMenu › "Edit layout", or a long press on the cards. Edit mode is one list: a − to hide, a ≡ handle to drag, a Hidden cards list with + to bring back, Reset to default and Done; the first card is locked (shown with a lock). Haptics only on pick-up and drop; every row has move up / move down / hide accessibility actions. The layout is a pure model (`lib/overviewLayout.ts`: per-role default merged with the saved one), saved per account and company on the phone and mirrored to `profiles.ui_prefs`.
 - Spaces: Personal and each company are separate spaces, switched from the pill at the top left ("Personal" / the company name, with a chevron) which opens one "Switch space" sheet (`SpacePill` in `components/SpaceSwitcher.tsx`). Personal Home lists every group type except company; a company never shows groups. The last explicit switch (sheet, create, accept invite) is remembered per account and the app opens there; a company that is gone or left falls back to Personal. The Company tab opens the last company. Users with no company see a plain "Personal" label, no chevron.

@@ -172,6 +172,44 @@ export function SectionHeader({
   );
 }
 
+/**
+ * The label of a group of fields inside a card (Group name, Add friends,
+ * Group type, More options): a 28dp brandSoft disc with a brand 16dp glyph,
+ * then the title at 16sp bold in full ink. The disc matches a dense
+ * `DetailRow`'s, so a label and the rows under it share one icon language.
+ */
+export function SectionLabel({
+  icon,
+  children,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  children: ReactNode;
+}) {
+  const theme = useTheme();
+  return (
+    <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+      <View
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          backgroundColor: theme.color.brandSoft,
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <Ionicons name={icon} size={iconSize.base} color={theme.color.brand} />
+      </View>
+      <Text
+        accessibilityRole="header"
+        style={{ flexShrink: 1, fontSize: 16, lineHeight: 22, fontWeight: '700' }}
+      >
+        {children}
+      </Text>
+    </Row>
+  );
+}
+
 /** The white rounded card with its soft shadow. */
 export function StandardCard({
   children,

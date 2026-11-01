@@ -65,5 +65,8 @@ describe('need rows and coming up', () => {
       'approvals',
     ]);
     expect(buildComingUp(null, null, 0, 0)).toEqual([]);
+    // A calendar item's own kind must not replace the card's (it rendered as "NaN to approve").
+    const wage = { ...ev, kind: 'money', subKind: 'wage' } as typeof ev;
+    expect(buildComingUp(wage, null, 0, 0)).toEqual([{ kind: 'payroll', ...ev }]);
   });
 });
