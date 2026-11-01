@@ -1033,6 +1033,9 @@ export interface UiStrings {
      *  so it needs a person to retry it or let it go. */
     stuckCount: PluralForms;
     /** The line under that heading: still saved, just not sent. */
+    stuckShort: string;
+    discardTitle: string;
+    discardBody: string;
     stuckExplain: string;
     /** Screen-reader hint on the header's red sync mark, which opens the
      *  account-wide banner carrying retry and discard. */
@@ -8003,6 +8006,9 @@ const en: UiStrings = {
       one: '{n} change is stuck',
       other: '{n} changes are stuck',
     },
+    stuckShort: "Saved on this phone, but it's not sent yet.",
+    discardTitle: 'Discard this change?',
+    discardBody: 'It is only on this phone. Once discarded, it is gone.',
     stuckExplain:
       'Still saved on this phone — it just keeps failing to send. Try again, or let it go.',
     openDetail: 'Opens what needs your decision',
@@ -14396,6 +14402,9 @@ const ta: UiStrings = {
       one: '{n} மாற்றம் சிக்கிக்கொண்டது',
       other: '{n} மாற்றங்கள் சிக்கிக்கொண்டன',
     },
+    stuckShort: 'இந்த ஃபோனில் சேமிக்கப்பட்டது, ஆனால் இன்னும் அனுப்பப்படவில்லை.',
+    discardTitle: 'இந்த மாற்றத்தை நீக்கவா?',
+    discardBody: 'இது இந்த ஃபோனில் மட்டுமே உள்ளது. நீக்கினால் திரும்ப வராது.',
     stuckExplain:
       'இந்த ஃபோனில் இன்னும் சேமிக்கப்பட்டுள்ளது — அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது நீக்கிவிடவும்.',
     openDetail: 'உங்கள் முடிவு தேவைப்படுவதைத் திறக்கும்',
@@ -20975,6 +20984,9 @@ const hi: UiStrings = {
       one: '{n} बदलाव अटका है',
       other: '{n} बदलाव अटके हैं',
     },
+    stuckShort: 'इस फ़ोन पर सेव है, पर अभी भेजा नहीं गया।',
+    discardTitle: 'यह बदलाव छोड़ दें?',
+    discardBody: 'यह सिर्फ़ इस फ़ोन पर है। छोड़ने पर वापस नहीं आएगा।',
     stuckExplain:
       'इस फ़ोन पर अब भी सहेजा है — बस भेजा नहीं जा पा रहा। दोबारा कोशिश करें, या हटा दें।',
     openDetail: 'आपके निर्णय की ज़रूरत वाली चीज़ खोलता है',
@@ -27394,6 +27406,9 @@ const ar: UiStrings = {
       many: '{n} تغييرًا عالقًا',
       other: '{n} تغيير عالق',
     },
+    stuckShort: 'محفوظ على هذا الهاتف، لكنه لم يُرسَل بعد.',
+    discardTitle: 'تجاهل هذا التغيير؟',
+    discardBody: 'إنه على هذا الهاتف فقط. بعد تجاهله لن يعود.',
     stuckExplain: 'ما زال محفوظًا على هذا الهاتف — لكنه لا يُرسَل. أعد المحاولة، أو تجاهله.',
     openDetail: 'يفتح ما يحتاج إلى قرارك',
   },
