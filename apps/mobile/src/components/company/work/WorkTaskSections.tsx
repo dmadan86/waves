@@ -86,6 +86,9 @@ function TaskRow({
           style={{ flex: 1, minWidth: 0, gap: 2 }}
         >
           <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
+            <Text variant="caption" tone="muted">
+              {`#${task.number ?? '—'} `}
+            </Text>
             {task.title}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
