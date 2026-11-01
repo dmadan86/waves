@@ -61,6 +61,28 @@ describe('company storage packs', () => {
     expect(
       await apply(randomUUID(), { ...base, pack_bytes: GB }, new Date(), g.profileIds[1]),
     ).toBe('not_owner');
+    // A renewal naming another company stays with the company the subscription first paid for.
+    const elsewhere = randomUUID();
+    await db.query(`INSERT INTO groups(id,type,created_by) VALUES($1,'company',$2)`, [
+      elsewhere,
+      g.profileIds[0],
+    ]);
+    await db.query(`INSERT INTO group_members(group_id,profile_id,role) VALUES($1,$2,'admin')`, [
+      elsewhere,
+      g.profileIds[0],
+    ]);
+    await apply(
+      randomUUID(),
+      { group_id: elsewhere, store_txn_id: txn, pack_bytes: GB },
+      new Date(t0 + 1500),
+    );
+    expect(
+      (
+        await db.query('SELECT storage_quota_bytes q FROM company_plans WHERE group_id=$1', [
+          elsewhere,
+        ])
+      ).rows[0].q,
+    ).toBeNull();
     const dup = randomUUID();
     await apply(dup, { ...base, pack_bytes: 5 * GB }, new Date(t0 + 2000));
     expect(await apply(dup, { ...base, pack_bytes: GB })).toBe('duplicate');

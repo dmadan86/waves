@@ -18,11 +18,10 @@ BEGIN
  INSERT INTO public.revenuecat_events(id,type,app_user_id,event_at) VALUES(p_event_id,p_type,p_app_user_id,p_event_at) ON CONFLICT(id) DO NOTHING;
  IF NOT FOUND THEN RETURN 'duplicate'; END IF;
 
- IF coalesce(p_action->>'group_id','') ~ uuid_re THEN v_group:=(p_action->>'group_id')::uuid; END IF;
- -- An ending pack may arrive without the attribute: find the company by the subscription it was bought on.
- IF v_bytes=0 THEN
-  SELECT group_id INTO v_group FROM public.company_plans WHERE pack_txn=v_txn;
- END IF;
+ -- A subscription stays with the company it first paid for: the subscriber attribute is mutable
+ -- (a later purchase for another company changes it), so only a subscription with no company yet reads it.
+ SELECT group_id INTO v_group FROM public.company_plans WHERE pack_txn=v_txn;
+ IF v_group IS NULL AND v_bytes>0 AND coalesce(p_action->>'group_id','') ~ uuid_re THEN v_group:=(p_action->>'group_id')::uuid; END IF;
  IF v_group IS NULL THEN v_out:='unknown_company';
  ELSE
   PERFORM pg_advisory_xact_lock(hashtextextended('company-storage:'||v_group::text,0));

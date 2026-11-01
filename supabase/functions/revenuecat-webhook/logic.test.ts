@@ -510,6 +510,15 @@ describe('company storage packs', () => {
       }),
     ).toMatchObject({ pack_bytes: 5 * 1024 ** 3 });
   });
+  it('a downgrade keeps the current pack until the renewal', () => {
+    expect(
+      pack({
+        type: 'PRODUCT_CHANGE',
+        product_id: 'waves_company_storage_5gb',
+        new_product_id: 'waves_company_storage_1gb',
+      }),
+    ).toMatchObject({ pack_bytes: 5 * 1024 ** 3 });
+  });
   it('expiry and refund end the pack, even with no attribute', () => {
     expect(pack({ type: 'EXPIRATION', subscriber_attributes: null })).toMatchObject({
       kind: 'company_storage',

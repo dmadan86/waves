@@ -256,8 +256,12 @@ export function mapEvent(event: RcEvent, options: { ignoreSandbox?: boolean } = 
   if (!txn) return ignore('no transaction id');
 
   // A company storage pack changes one company's quota; it is never a Pro subscription.
-  const packProduct =
-    type === 'PRODUCT_CHANGE' ? (event.new_product_id ?? event.product_id) : event.product_id;
+  // A change to a bigger pack applies now; a downgrade keeps the current pack until its renewal
+  // arrives as a RENEWAL of the new product (the stores apply downgrades at the period end).
+  const upgrade =
+    type === 'PRODUCT_CHANGE' &&
+    (companyPackBytes(event.new_product_id) ?? 0) > (companyPackBytes(event.product_id) ?? 0);
+  const packProduct = upgrade ? event.new_product_id : event.product_id;
   const pack = companyPackBytes(packProduct);
   if (pack !== null) {
     const status = statusFor(event);
