@@ -26,9 +26,14 @@ import { useCompanyEntries } from '@/data/companyEntries';
 import { useCompanyStorage } from '@/data/companyStorage';
 import { useStrings } from '@/i18n';
 import { formatBytes } from '@/lib/bytes';
+import { backend } from '@/lib/backend';
 import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
-import { buyCompanyStoragePack, loadCompanyStoragePacks } from '@/lib/purchases';
+import {
+  buyCompanyStoragePack,
+  hasActiveCompanyStoragePack,
+  loadCompanyStoragePacks,
+} from '@/lib/purchases';
 
 export default function CompanyStorageScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,6 +58,20 @@ export default function CompanyStorageScreen() {
   }, [view.isOwner]);
   const buy = async (pack: PurchasesStoreProduct) => {
     if (buying) return;
+    // This store account already pays a pack for another company: a store product change would
+    // replace that pack instead of adding one.
+    if (hasActiveCompanyStoragePack()) {
+      const { data: holder, error } = await backend.rpc('waves_my_pack_company');
+      if (error) {
+        await notify({ title: t.companyStorage.buyFailed, tone: 'danger' });
+        return;
+      }
+      if (holder && holder !== groupId) {
+        setSheet(false);
+        await notify({ title: t.companyStorage.packElsewhere });
+        return;
+      }
+    }
     setBuying(true);
     try {
       const outcome = await buyCompanyStoragePack(pack, groupId);
