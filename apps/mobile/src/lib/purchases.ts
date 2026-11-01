@@ -227,6 +227,62 @@ export async function buyCreditPack(product: PurchasesStoreProduct): Promise<Pur
   }
 }
 
+/** Store ids of the company storage packs (monthly subscriptions): 1 GB and 5 GB. */
+export const COMPANY_STORAGE_PACK_IDS = [
+  'waves_company_storage_1gb',
+  'waves_company_storage_5gb',
+] as const;
+
+/** The packs the store actually sells; empty until the products exist (the Buy button stays hidden). */
+export async function loadCompanyStoragePacks(): Promise<PurchasesStoreProduct[]> {
+  if (!configured) return [];
+  try {
+    const found = await Purchases.getProducts(
+      [...COMPANY_STORAGE_PACK_IDS],
+      PRODUCT_CATEGORY.SUBSCRIPTION,
+    );
+    return COMPANY_STORAGE_PACK_IDS.flatMap((id) =>
+      found.filter((p) => p.identifier.split(':')[0] === id),
+    );
+  } catch (error) {
+    reportHandled(error, 'purchases.companyStoragePacks');
+    return [];
+  }
+}
+
+/**
+ * Buy a pack for one company. The company id travels as a subscriber attribute, which
+ * revenuecat-webhook reads to set that company's quota. One pack per company: on Android a
+ * different pack already held is replaced in place; iOS does that with the subscription group.
+ */
+export async function buyCompanyStoragePack(
+  product: PurchasesStoreProduct,
+  groupId: string,
+): Promise<PurchaseOutcome> {
+  try {
+    await Purchases.setAttributes({ company_group_id: groupId });
+    const target = product.identifier.split(':')[0];
+    const current = (snapshot.info?.activeSubscriptions ?? [])
+      .map((id) => id.split(':')[0])
+      .find((id) => id !== target && (COMPANY_STORAGE_PACK_IDS as readonly string[]).includes(id!));
+    await Purchases.purchaseStoreProduct(
+      product,
+      Platform.OS === 'android' && current
+        ? {
+            oldProductIdentifier: current,
+            prorationMode: PRORATION_MODE.IMMEDIATE_WITH_TIME_PRORATION,
+          }
+        : null,
+    );
+    return 'purchased';
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return 'cancelled';
+    if (code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) return 'pending';
+    throw error;
+  }
+}
+
 /** Restore: re-reads the store account's purchases. Returns the tier it found. */
 export async function restore(): Promise<PlanTier> {
   const info = await Purchases.restorePurchases();
