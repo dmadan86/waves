@@ -21,6 +21,7 @@ import {
 } from '@waves/core';
 import { Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves/ui';
 
+import { CompanyStorageBanner } from '@/components/company/CompanyStorageBanner';
 import { ReportCompanySheet, SuspendedBanner } from '@/components/company/SuspendedBanner';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { type MenuAnchor } from '@/components/SortMenu';
@@ -444,6 +445,7 @@ export function DashHeader({
         ) : null}
       </View>
       {view.suspended ? <SuspendedBanner /> : null}
+      {overview && view.isAdmin ? <CompanyStorageBanner groupId={groupId} /> : null}
       <ReportCompanySheet
         groupId={groupId}
         visible={reporting}

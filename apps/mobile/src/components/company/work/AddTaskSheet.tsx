@@ -14,6 +14,7 @@ import { Button, IconButton, iconSize, Sheet, Text, useTheme } from '@waves/ui';
 
 import { DictateButton, dictationAvailable } from '@/components/DictateButton';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { StorageCapError } from '@/lib/storage';
 import { attachCompanyPhoto } from '@/data/companyEntries';
 import { useSetWorkTask } from '@/data/companyWorkday';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
@@ -55,7 +56,7 @@ export function AddTaskSheet({
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const { choose } = useDialog();
+  const { choose, notify } = useDialog();
   const { flush } = useSync();
   const save = useSetWorkTask(groupId);
   const [panel, setPanel] = useState<Panel>('form');
@@ -125,6 +126,7 @@ export function AddTaskSheet({
     }
     if (photos.length > 0) {
       let failed = false;
+      let full = false;
       try {
         // The photos attach to real server rows, so the queued tasks go up first.
         await flush([groupId]);
@@ -135,13 +137,16 @@ export function AddTaskSheet({
             try {
               await attachCompanyPhoto(groupId, payload.taskId, photo.picked, 'task');
               uploaded.current.add(mark);
-            } catch {
-              failed = true;
+            } catch (caught) {
+              // A full company is not retryable: the tasks are saved, say so once and move on.
+              if (caught instanceof StorageCapError) full = true;
+              else failed = true;
             }
           }
       } catch {
         failed = true;
       }
+      if (full) await notify({ title: t.companyStorage.full, tone: 'danger' });
       if (failed) {
         setProblem('photos');
         setBusy(false);
