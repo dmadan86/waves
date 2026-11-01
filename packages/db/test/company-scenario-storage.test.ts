@@ -19,7 +19,7 @@ async function user<T>(i: number, run: () => Promise<T>): Promise<T> {
   await db.query('SAVEPOINT actor_scope');
   try {
     await db.query("SELECT set_config('request.jwt.claims',$1,true)", [
-      JSON.stringify({ sub: g.profileIds[i], role: 'authenticated' }),
+      JSON.stringify({ sub: g.profileIds[i]!, role: 'authenticated' }),
     ]);
     await db.query('SET LOCAL ROLE authenticated');
     return await run();
@@ -33,7 +33,7 @@ async function user<T>(i: number, run: () => Promise<T>): Promise<T> {
   }
 }
 
-async function isolated(run: () => Promise<void>) {
+async function _isolated(run: () => Promise<void>) {
   await db.query('BEGIN');
   try {
     await run();
@@ -42,7 +42,7 @@ async function isolated(run: () => Promise<void>) {
   }
 }
 
-async function denied(run: () => Promise<unknown>) {
+async function _denied(run: () => Promise<unknown>) {
   await db.query('SAVEPOINT expected_failure');
   try {
     await expectDenied(run());
@@ -81,12 +81,12 @@ beforeAll(async () => {
   g.groupId = randomUUID();
   await db.query(
     "INSERT INTO groups(id,type,default_currency,country_code,created_by) VALUES($1,'company','INR','IN',$2)",
-    [g.groupId, g.profileIds[0]],
+    [g.groupId, g.profileIds[0]!],
   );
   for (let i = 0; i < 2; i++) {
     await db.query(
       "INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)",
-      [g.memberIds[i], g.groupId, g.profileIds[i], i === 0 ? 'admin' : 'manager'],
+      [g.memberIds[i]!, g.groupId, g.profileIds[i]!, i === 0 ? 'admin' : 'manager'],
     );
   }
   // Ensure company_plans row exists
@@ -101,11 +101,11 @@ beforeAll(async () => {
   other.groupId = randomUUID();
   await db.query(
     "INSERT INTO groups(id,type,default_currency,country_code,created_by) VALUES($1,'company','INR','IN',$2)",
-    [other.groupId, other.profileIds[0]],
+    [other.groupId, other.profileIds[0]!],
   );
   await db.query(
     "INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,'admin')",
-    [other.memberIds[0], other.groupId, other.profileIds[0]],
+    [other.memberIds[0]!, other.groupId, other.profileIds[0]!],
   );
   await db.query(
     "INSERT INTO company_plans(group_id,plan) VALUES($1,'free') ON CONFLICT DO NOTHING",
@@ -114,7 +114,7 @@ beforeAll(async () => {
 
   // Seed the company_entry for reservations
   await db.query("SELECT set_config('request.jwt.claims',$1,false)", [
-    JSON.stringify({ sub: g.profileIds[0], role: 'authenticated' }),
+    JSON.stringify({ sub: g.profileIds[0]!, role: 'authenticated' }),
   ]);
 });
 
@@ -149,26 +149,26 @@ describe('G37: storage quota – default, override, isolation', () => {
     const entryA = randomUUID();
     const entryB = randomUUID();
     await db.query("SELECT set_config('request.jwt.claims',$1,false)", [
-      JSON.stringify({ sub: g.profileIds[0], role: 'authenticated' }),
+      JSON.stringify({ sub: g.profileIds[0]!, role: 'authenticated' }),
     ]);
     await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-      g.groupId, entryA, g.memberIds[0], 'expense',
+      g.groupId, entryA, g.memberIds[0]!, 'expense',
       JSON.stringify({ amount: '1', occurredOn: today }),
     ]);
     await db.query("SELECT set_config('request.jwt.claims',$1,false)", [
-      JSON.stringify({ sub: other.profileIds[0], role: 'authenticated' }),
+      JSON.stringify({ sub: other.profileIds[0]!, role: 'authenticated' }),
     ]);
     await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-      other.groupId, entryB, other.memberIds[0], 'expense',
+      other.groupId, entryB, other.memberIds[0]!, 'expense',
       JSON.stringify({ amount: '1', occurredOn: today }),
     ]);
     await db.query("SELECT set_config('request.jwt.claims','',false)");
 
     // Reserve 400 bytes for other company – should not affect company A's quota
-    await reserve(other.profileIds[0], other.groupId, entryB, 400);
+    await reserve(other.profileIds[0]!, other.groupId, entryB, 400);
 
     // Company A can still reserve within its own 500-byte quota
-    await reserve(g.profileIds[0], g.groupId, entryA, 400);
+    await reserve(g.profileIds[0]!, g.groupId, entryA, 400);
 
     await setDefault(262144000);
   });
@@ -181,17 +181,17 @@ describe('G38: quota at exact limit; duplicate commit; pack apply idempotency', 
 
     const entryId = randomUUID();
     await db.query("SELECT set_config('request.jwt.claims',$1,false)", [
-      JSON.stringify({ sub: g.profileIds[0], role: 'authenticated' }),
+      JSON.stringify({ sub: g.profileIds[0]!, role: 'authenticated' }),
     ]);
     await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-      g.groupId, entryId, g.memberIds[0], 'expense',
+      g.groupId, entryId, g.memberIds[0]!, 'expense',
       JSON.stringify({ amount: '1', occurredOn: today }),
     ]);
     await db.query("SELECT set_config('request.jwt.claims','',false)");
 
     // Reserve 100 bytes (over the 1-byte quota)
     await expect(
-      reserve(g.profileIds[0], g.groupId, entryId, 100),
+      reserve(g.profileIds[0]!, g.groupId, entryId, 100),
     ).rejects.toThrow(/STORAGE_CAP/);
 
     await setQuota(g.groupId, null);
@@ -224,7 +224,7 @@ describe('G38: quota at exact limit; duplicate commit; pack apply idempotency', 
     await db.query('SELECT waves_company_storage_pack_apply($1,$2,$3,$4,$5)', [
       eventId,
       'INITIAL_PURCHASE',
-      g.profileIds[0], // must be company owner
+      g.profileIds[0]!, // must be company owner
       new Date().toISOString(),
       JSON.stringify({ group_id: g.groupId, pack_bytes: GB1, store_txn_id: `txn-${eventId}` }),
     ]);
@@ -236,7 +236,7 @@ describe('G38: quota at exact limit; duplicate commit; pack apply idempotency', 
     const r = await db.query('SELECT waves_company_storage_pack_apply($1,$2,$3,$4,$5) AS r', [
       eventId,
       'INITIAL_PURCHASE',
-      g.profileIds[0],
+      g.profileIds[0]!,
       new Date().toISOString(),
       JSON.stringify({ group_id: g.groupId, pack_bytes: GB1, store_txn_id: `txn-${eventId}` }),
     ]);
@@ -251,3 +251,7 @@ describe('G38: quota at exact limit; duplicate commit; pack apply idempotency', 
     await setQuota(g.groupId, null);
   });
 });
+
+void user;
+void _isolated;
+void _denied;

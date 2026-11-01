@@ -81,7 +81,7 @@ describe('G44: billing – storage packs, idempotency, cross-company attribution
       10,
     );
 
-    await packApply(`billing-only-a-${randomUUID()}`, ga.groupId, ga.profileIds[0], GB1);
+    await packApply(`billing-only-a-${randomUUID()}`, ga.groupId, ga.profileIds[0]!, GB1);
 
     const afterA = parseInt(
       (await db.query('SELECT waves_company_storage_quota($1) AS q', [ga.groupId])).rows[0].q,
@@ -102,7 +102,7 @@ describe('G44: billing – storage packs, idempotency, cross-company attribution
     ]);
     const eventId = `billing-idempotent-${randomUUID()}`;
 
-    await packApply(eventId, ga.groupId, ga.profileIds[0], GB1);
+    await packApply(eventId, ga.groupId, ga.profileIds[0]!, GB1);
     const after1 = parseInt(
       (await db.query('SELECT waves_company_storage_quota($1) AS q', [ga.groupId])).rows[0].q,
       10,
@@ -112,7 +112,7 @@ describe('G44: billing – storage packs, idempotency, cross-company attribution
     const result = await db.query('SELECT waves_company_storage_pack_apply($1,$2,$3,$4,$5) AS r', [
       eventId,
       'INITIAL_PURCHASE',
-      ga.profileIds[0],
+      ga.profileIds[0]!,
       new Date().toISOString(),
       JSON.stringify({
         group_id: ga.groupId,
@@ -136,7 +136,7 @@ describe('G44: billing – storage packs, idempotency, cross-company attribution
     await db.query('UPDATE company_plans SET storage_quota_bytes=NULL WHERE group_id=$1', [
       ga.groupId,
     ]);
-    await packApply(`billing-1gb-${randomUUID()}`, ga.groupId, ga.profileIds[0], GB1);
+    await packApply(`billing-1gb-${randomUUID()}`, ga.groupId, ga.profileIds[0]!, GB1);
     const after1gb = parseInt(
       (await db.query('SELECT waves_company_storage_quota($1) AS q', [ga.groupId])).rows[0].q,
       10,
@@ -146,7 +146,7 @@ describe('G44: billing – storage packs, idempotency, cross-company attribution
     await db.query('UPDATE company_plans SET storage_quota_bytes=NULL WHERE group_id=$1', [
       gb.groupId,
     ]);
-    await packApply(`billing-5gb-${randomUUID()}`, gb.groupId, gb.profileIds[0], GB5);
+    await packApply(`billing-5gb-${randomUUID()}`, gb.groupId, gb.profileIds[0]!, GB5);
     const after5gb = parseInt(
       (await db.query('SELECT waves_company_storage_quota($1) AS q', [gb.groupId])).rows[0].q,
       10,
