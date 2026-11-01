@@ -2193,6 +2193,31 @@ export interface UiStrings {
     inviteFailed: string;
     save: string;
     close: string;
+    addSubtitle: string;
+    scanQr: string;
+    fromLink: string;
+    wavesId: string;
+    useLink: string;
+    findId: string;
+    helpScan: string;
+    helpLink: string;
+    helpId: string;
+    linkPlaceholder: string;
+    idPlaceholder: string;
+    idHint: string;
+    lookupFailed: string;
+    allowCamera: string;
+    or: string;
+    enterManually: string;
+    phoneOptional: string;
+    categoryOptional: string;
+    saveVendor: string;
+    catSupplier: string;
+    catContractor: string;
+    catLandlord: string;
+    catUtilities: string;
+    catTransport: string;
+    catOther: string;
   };
   companyDetails: {
     title: string;
@@ -9145,6 +9170,31 @@ const en: UiStrings = {
     inviteFailed: 'Could not create an invite. Connect to the internet and try again.',
     save: 'Save',
     close: 'Close',
+    addSubtitle: 'Add a vendor to manage payments and bills in Waves.',
+    scanQr: 'Scan QR',
+    fromLink: 'From Link',
+    wavesId: 'Waves ID',
+    useLink: 'Use link',
+    findId: 'Find',
+    helpScan: 'Scan a payment QR or a QR shared by the vendor',
+    helpLink: 'Paste a payment link or a phone number',
+    helpId: 'Enter their email or phone to find them on Waves',
+    linkPlaceholder: 'Paste link or phone number',
+    idPlaceholder: 'Email or phone number',
+    idHint: 'Enter a valid email or phone number',
+    lookupFailed: "Couldn't read that. Fill in the details below.",
+    allowCamera: 'Allow camera',
+    or: 'OR',
+    enterManually: 'Enter Manually',
+    phoneOptional: 'Phone number (optional)',
+    categoryOptional: 'Category (optional)',
+    saveVendor: 'Save Vendor',
+    catSupplier: 'Supplier',
+    catContractor: 'Contractor',
+    catLandlord: 'Landlord',
+    catUtilities: 'Utilities',
+    catTransport: 'Transport',
+    catOther: 'Other',
   },
   companyDetails: {
     title: 'Company details',
@@ -15554,6 +15604,31 @@ const ta: UiStrings = {
     inviteFailed: 'அழைப்பை உருவாக்க முடியவில்லை. இணையத்தில் இணைந்து மீண்டும் முயலவும்.',
     save: 'சேமி',
     close: 'மூடு',
+    addSubtitle: 'Waves-இல் பணம் மற்றும் பில்களை நிர்வகிக்க விற்பனையாளரைச் சேர்க்கவும்.',
+    scanQr: 'QR ஸ்கேன்',
+    fromLink: 'இணைப்பிலிருந்து',
+    wavesId: 'Waves ID',
+    useLink: 'இணைப்பைப் பயன்படுத்து',
+    findId: 'தேடு',
+    helpScan: 'பணம் செலுத்தும் QR அல்லது விற்பனையாளர் பகிர்ந்த QR-ஐ ஸ்கேன் செய்யவும்',
+    helpLink: 'பணம் செலுத்தும் இணைப்பு அல்லது தொலைபேசி எண்ணை ஒட்டவும்',
+    helpId: 'Waves-இல் கண்டறிய மின்னஞ்சல் அல்லது தொலைபேசி எண்ணை உள்ளிடவும்',
+    linkPlaceholder: 'இணைப்பு அல்லது தொலைபேசி எண்ணை ஒட்டவும்',
+    idPlaceholder: 'மின்னஞ்சல் அல்லது தொலைபேசி எண்',
+    idHint: 'சரியான மின்னஞ்சல் அல்லது தொலைபேசி எண்ணை உள்ளிடவும்',
+    lookupFailed: 'படிக்க முடியவில்லை. கீழே விவரங்களை நிரப்பவும்.',
+    allowCamera: 'கேமராவை அனுமதி',
+    or: 'அல்லது',
+    enterManually: 'கைமுறையாக உள்ளிடு',
+    phoneOptional: 'தொலைபேசி எண் (விருப்பம்)',
+    categoryOptional: 'வகை (விருப்பம்)',
+    saveVendor: 'விற்பனையாளரைச் சேமி',
+    catSupplier: 'சப்ளையர்',
+    catContractor: 'ஒப்பந்ததாரர்',
+    catLandlord: 'நில உரிமையாளர்',
+    catUtilities: 'பயன்பாட்டுச் சேவைகள்',
+    catTransport: 'போக்குவரத்து',
+    catOther: 'மற்றவை',
   },
   companyDetails: {
     title: 'நிறுவன விவரங்கள்',
@@ -22120,6 +22195,31 @@ const hi: UiStrings = {
     inviteFailed: 'आमंत्रण नहीं बन सका। इंटरनेट से जुड़कर फिर कोशिश करें।',
     save: 'सहेजें',
     close: 'बंद करें',
+    addSubtitle: 'Waves में भुगतान और बिल संभालने के लिए विक्रेता जोड़ें।',
+    scanQr: 'QR स्कैन',
+    fromLink: 'लिंक से',
+    wavesId: 'Waves ID',
+    useLink: 'लिंक उपयोग करें',
+    findId: 'खोजें',
+    helpScan: 'भुगतान QR या विक्रेता का भेजा QR स्कैन करें',
+    helpLink: 'भुगतान लिंक या फ़ोन नंबर चिपकाएँ',
+    helpId: 'Waves पर ढूँढने के लिए ईमेल या फ़ोन दर्ज करें',
+    linkPlaceholder: 'लिंक या फ़ोन नंबर चिपकाएँ',
+    idPlaceholder: 'ईमेल या फ़ोन नंबर',
+    idHint: 'सही ईमेल या फ़ोन नंबर दर्ज करें',
+    lookupFailed: 'पढ़ नहीं सका। नीचे विवरण भरें।',
+    allowCamera: 'कैमरा अनुमति दें',
+    or: 'या',
+    enterManually: 'हाथ से भरें',
+    phoneOptional: 'फ़ोन नंबर (वैकल्पिक)',
+    categoryOptional: 'श्रेणी (वैकल्पिक)',
+    saveVendor: 'विक्रेता सहेजें',
+    catSupplier: 'सप्लायर',
+    catContractor: 'ठेकेदार',
+    catLandlord: 'मकान मालिक',
+    catUtilities: 'बिजली-पानी आदि',
+    catTransport: 'परिवहन',
+    catOther: 'अन्य',
   },
   companyDetails: {
     title: 'कंपनी का विवरण',
@@ -28626,6 +28726,31 @@ const ar: UiStrings = {
     inviteFailed: 'تعذر إنشاء دعوة. اتصل بالإنترنت وحاول مجددًا.',
     save: 'حفظ',
     close: 'إغلاق',
+    addSubtitle: 'أضف مورّدًا لإدارة المدفوعات والفواتير في Waves.',
+    scanQr: 'مسح QR',
+    fromLink: 'من رابط',
+    wavesId: 'معرّف Waves',
+    useLink: 'استخدم الرابط',
+    findId: 'بحث',
+    helpScan: 'امسح رمز QR للدفع أو رمزًا شاركه المورّد',
+    helpLink: 'الصق رابط الدفع أو رقم الهاتف',
+    helpId: 'أدخل البريد أو الهاتف للعثور عليه في Waves',
+    linkPlaceholder: 'الصق الرابط أو رقم الهاتف',
+    idPlaceholder: 'البريد الإلكتروني أو رقم الهاتف',
+    idHint: 'أدخل بريدًا أو رقم هاتف صالحًا',
+    lookupFailed: 'تعذّرت القراءة. املأ التفاصيل أدناه.',
+    allowCamera: 'السماح بالكاميرا',
+    or: 'أو',
+    enterManually: 'إدخال يدوي',
+    phoneOptional: 'رقم الهاتف (اختياري)',
+    categoryOptional: 'الفئة (اختياري)',
+    saveVendor: 'حفظ المورّد',
+    catSupplier: 'مورّد',
+    catContractor: 'مقاول',
+    catLandlord: 'مالك العقار',
+    catUtilities: 'المرافق',
+    catTransport: 'النقل',
+    catOther: 'أخرى',
   },
   companyDetails: {
     title: 'تفاصيل الشركة',
