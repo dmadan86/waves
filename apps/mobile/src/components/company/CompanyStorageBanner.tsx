@@ -13,9 +13,9 @@ export function CompanyStorageBanner({ groupId }: { groupId: string }) {
   const { t } = useStrings();
   const usage = useCompanyStorage(groupId);
   const data = usage.data;
-  if (!data || data.quotaBytes <= 0 || data.usedBytes / data.quotaBytes < STORAGE_WARN_AT)
-    return null;
-  const percent = Math.min(100, Math.floor((data.usedBytes / data.quotaBytes) * 100));
+  const fraction = data ? (data.quotaBytes > 0 ? data.usedBytes / data.quotaBytes : 1) : 0;
+  if (!data || fraction < STORAGE_WARN_AT) return null;
+  const percent = Math.min(100, Math.floor(fraction * 100));
   return (
     <Pressable
       accessibilityRole="button"
