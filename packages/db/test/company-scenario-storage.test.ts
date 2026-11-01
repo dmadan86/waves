@@ -66,10 +66,12 @@ const reserve = async (
   entryId: string,
   bytes: number,
 ): Promise<void> => {
-  await db.query(
-    `SELECT waves_company_storage_write($1,$2,$3,$4,'image/jpeg',false)`,
-    [profileId, groupId, `${entryId}/${randomUUID()}/${randomUUID()}.jpg`, bytes],
-  );
+  await db.query(`SELECT waves_company_storage_write($1,$2,$3,$4,'image/jpeg',false)`, [
+    profileId,
+    groupId,
+    `${entryId}/${randomUUID()}/${randomUUID()}.jpg`,
+    bytes,
+  ]);
 };
 
 beforeAll(async () => {
@@ -84,10 +86,12 @@ beforeAll(async () => {
     [g.groupId, g.profileIds[0]!],
   );
   for (let i = 0; i < 2; i++) {
-    await db.query(
-      "INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)",
-      [g.memberIds[i]!, g.groupId, g.profileIds[i]!, i === 0 ? 'admin' : 'manager'],
-    );
+    await db.query('INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)', [
+      g.memberIds[i]!,
+      g.groupId,
+      g.profileIds[i]!,
+      i === 0 ? 'admin' : 'manager',
+    ]);
   }
   // Ensure company_plans row exists
   await db.query(
@@ -152,14 +156,20 @@ describe('G37: storage quota – default, override, isolation', () => {
       JSON.stringify({ sub: g.profileIds[0]!, role: 'authenticated' }),
     ]);
     await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-      g.groupId, entryA, g.memberIds[0]!, 'expense',
+      g.groupId,
+      entryA,
+      g.memberIds[0]!,
+      'expense',
       JSON.stringify({ amount: '1', occurredOn: today }),
     ]);
     await db.query("SELECT set_config('request.jwt.claims',$1,false)", [
       JSON.stringify({ sub: other.profileIds[0]!, role: 'authenticated' }),
     ]);
     await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-      other.groupId, entryB, other.memberIds[0]!, 'expense',
+      other.groupId,
+      entryB,
+      other.memberIds[0]!,
+      'expense',
       JSON.stringify({ amount: '1', occurredOn: today }),
     ]);
     await db.query("SELECT set_config('request.jwt.claims','',false)");
@@ -184,15 +194,16 @@ describe('G38: quota at exact limit; duplicate commit; pack apply idempotency', 
       JSON.stringify({ sub: g.profileIds[0]!, role: 'authenticated' }),
     ]);
     await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-      g.groupId, entryId, g.memberIds[0]!, 'expense',
+      g.groupId,
+      entryId,
+      g.memberIds[0]!,
+      'expense',
       JSON.stringify({ amount: '1', occurredOn: today }),
     ]);
     await db.query("SELECT set_config('request.jwt.claims','',false)");
 
     // Reserve 100 bytes (over the 1-byte quota)
-    await expect(
-      reserve(g.profileIds[0]!, g.groupId, entryId, 100),
-    ).rejects.toThrow(/STORAGE_CAP/);
+    await expect(reserve(g.profileIds[0]!, g.groupId, entryId, 100)).rejects.toThrow(/STORAGE_CAP/);
 
     await setQuota(g.groupId, null);
   });

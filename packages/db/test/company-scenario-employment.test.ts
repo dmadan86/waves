@@ -120,9 +120,7 @@ describe('G36: employment status and type matrix', () => {
       await employmentSet(0, 2, false, today);
       await employmentSet(0, 2, true);
       const row = (
-        await db.query('SELECT left_at,removed_at FROM group_members WHERE id=$1', [
-          g.memberIds[2],
-        ])
+        await db.query('SELECT left_at,removed_at FROM group_members WHERE id=$1', [g.memberIds[2]])
       ).rows[0];
       expect(row.left_at).toBeNull();
       expect(row.removed_at).toBeNull();
@@ -174,7 +172,6 @@ describe('G36: employment status and type matrix', () => {
     expect(row.prosrc).toContain('FORBIDDEN_COLUMN');
     expect(row.prosrc).toContain('waves_company_employment_type_set');
   });
-
 
   it('not-employed employee cannot create new company entries', () =>
     isolated(async () => {

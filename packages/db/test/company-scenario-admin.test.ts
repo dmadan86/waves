@@ -49,7 +49,10 @@ async function isolated(run: () => Promise<void>) {
   }
 }
 
-async function denied(run: () => Promise<unknown>, match = /permission denied|NOT_ALLOWED|INVALID_DATA/) {
+async function denied(
+  run: () => Promise<unknown>,
+  match = /permission denied|NOT_ALLOWED|INVALID_DATA/,
+) {
   await db.query('SAVEPOINT expected_failure');
   try {
     expect(await expectDenied(run())).toMatch(match);
@@ -59,12 +62,10 @@ async function denied(run: () => Promise<unknown>, match = /permission denied|NO
 }
 
 const block = (reason = 'Complaint from staff') =>
-  admin(() =>
-    db.query("SELECT waves_admin_company_block($1,'complaint',$2)", [g.groupId, reason]),
-  );
+  admin(() => db.query("SELECT waves_admin_company_block($1,'complaint',$2)", [g.groupId, reason]));
 
 const unblock = (reason = 'Resolved') =>
-  admin(() => db.query("SELECT waves_admin_company_unblock($1,$2)", [g.groupId, reason]));
+  admin(() => db.query('SELECT waves_admin_company_unblock($1,$2)', [g.groupId, reason]));
 
 const expense = (i: number) =>
   as(g.profileIds[i]!, () =>
@@ -107,7 +108,10 @@ beforeAll(async () => {
   ]);
   await db.query('RESET ROLE');
   await db.query("SELECT set_config('request.jwt.claims','',false)");
-  await db.query('UPDATE company_vendors SET member_id=$1 WHERE id=$2', [g.memberIds[3]!, vendorId]);
+  await db.query('UPDATE company_vendors SET member_id=$1 WHERE id=$2', [
+    g.memberIds[3]!,
+    vendorId,
+  ]);
 });
 
 afterAll(async () => {
@@ -138,7 +142,10 @@ describe('G42: admin RPCs – block, unblock, export, records, complaint', () =>
   it('block requires a non-blank reason', () =>
     isolated(async () => {
       await denied(
-        () => admin(() => db.query("SELECT waves_admin_company_block($1,'complaint','  ')", [g.groupId])),
+        () =>
+          admin(() =>
+            db.query("SELECT waves_admin_company_block($1,'complaint','  ')", [g.groupId]),
+          ),
         /INVALID_DATA/,
       );
     }));
@@ -146,15 +153,13 @@ describe('G42: admin RPCs – block, unblock, export, records, complaint', () =>
   it('block suspends the company; unblock restores it; both are logged', () =>
     isolated(async () => {
       await block('Staff wages complaint');
-      const suspended = (
-        await db.query('SELECT suspended_at FROM groups WHERE id=$1', [g.groupId])
-      ).rows[0].suspended_at;
+      const suspended = (await db.query('SELECT suspended_at FROM groups WHERE id=$1', [g.groupId]))
+        .rows[0].suspended_at;
       expect(suspended).not.toBeNull();
 
       await unblock();
-      const restored = (
-        await db.query('SELECT suspended_at FROM groups WHERE id=$1', [g.groupId])
-      ).rows[0].suspended_at;
+      const restored = (await db.query('SELECT suspended_at FROM groups WHERE id=$1', [g.groupId]))
+        .rows[0].suspended_at;
       expect(restored).toBeNull();
 
       const log = (
@@ -204,10 +209,9 @@ describe('G42: admin RPCs – block, unblock, export, records, complaint', () =>
       expect(recs).toBeDefined();
 
       const actions = (
-        await db.query(
-          'SELECT action FROM company_moderation_log WHERE group_id=$1 ORDER BY id',
-          [g.groupId],
-        )
+        await db.query('SELECT action FROM company_moderation_log WHERE group_id=$1 ORDER BY id', [
+          g.groupId,
+        ])
       ).rows.map((r) => r.action);
       expect(actions).toContain('records_opened');
     }));
@@ -236,18 +240,16 @@ describe('G43: moderation – rate limits, reports, blocked state', () => {
       const r0 = await as(
         g.profileIds[0]!,
         async () =>
-          (
-            await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId])
-          ).rows[0].r,
+          (await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId]))
+            .rows[0].r,
       );
       expect(r0.ok).toBe(true);
 
       const r3 = await as(
         g.profileIds[3]!,
         async () =>
-          (
-            await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId])
-          ).rows[0].r,
+          (await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId]))
+            .rows[0].r,
       );
       expect(r3.ok).toBe(true);
 
@@ -278,9 +280,8 @@ describe('G43: moderation – rate limits, reports, blocked state', () => {
       const limited = await as(
         g.profileIds[2]!,
         async () =>
-          (
-            await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId])
-          ).rows[0].r,
+          (await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId]))
+            .rows[0].r,
       );
       expect(limited).toMatchObject({ ok: false, reason: 'RATE_LIMITED' });
 
@@ -288,9 +289,8 @@ describe('G43: moderation – rate limits, reports, blocked state', () => {
       const other = await as(
         g.profileIds[1]!,
         async () =>
-          (
-            await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId])
-          ).rows[0].r,
+          (await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId]))
+            .rows[0].r,
       );
       expect(other.ok).toBe(true);
     }));

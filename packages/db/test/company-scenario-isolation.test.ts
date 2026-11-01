@@ -101,15 +101,19 @@ describe('G39: cross-company isolation – entries, tasks, attendance, documents
       await db.query('SET LOCAL ROLE authenticated');
       const entryId = randomUUID();
       await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-        ga.groupId, entryId, ga.memberIds[2]!, 'expense',
+        ga.groupId,
+        entryId,
+        ga.memberIds[2]!,
+        'expense',
         JSON.stringify({ amount: '500', occurredOn: today }),
       ]);
       await db.query('RESET ROLE');
       await db.query("SELECT set_config('request.jwt.claims','',true)");
 
       // Company B owner queries
-      const seen = await asProfile(gb.profileIds[0]!, async () =>
-        (await db.query('SELECT id FROM company_entries WHERE id=$1', [entryId])).rows,
+      const seen = await asProfile(
+        gb.profileIds[0]!,
+        async () => (await db.query('SELECT id FROM company_entries WHERE id=$1', [entryId])).rows,
       );
       expect(seen).toHaveLength(0);
     }));
@@ -121,8 +125,10 @@ describe('G39: cross-company isolation – entries, tasks, attendance, documents
         'INSERT INTO company_work_tasks(id,group_id,member_id,day,title,created_by) VALUES($1,$2,$3,$4,$5,$3)',
         [taskId, ga.groupId, ga.memberIds[2]!, today, 'Task A'],
       );
-      const seen = await asProfile(gb.profileIds[0]!, async () =>
-        (await db.query('SELECT id FROM company_work_tasks WHERE id=$1', [taskId])).rows,
+      const seen = await asProfile(
+        gb.profileIds[0]!,
+        async () =>
+          (await db.query('SELECT id FROM company_work_tasks WHERE id=$1', [taskId])).rows,
       );
       expect(seen).toHaveLength(0);
     }));
@@ -134,13 +140,22 @@ describe('G39: cross-company isolation – entries, tasks, attendance, documents
       ]);
       await db.query('SET LOCAL ROLE authenticated');
       await db.query('SELECT waves_company_attendance_set($1,$2,$3,$4,NULL)', [
-        ga.groupId, ga.memberIds[2]!, today, 'present',
+        ga.groupId,
+        ga.memberIds[2]!,
+        today,
+        'present',
       ]);
       await db.query('RESET ROLE');
       await db.query("SELECT set_config('request.jwt.claims','',true)");
 
-      const seen = await asProfile(gb.profileIds[0]!, async () =>
-        (await db.query('SELECT member_id FROM company_attendance WHERE member_id=$1', [ga.memberIds[2]!])).rows,
+      const seen = await asProfile(
+        gb.profileIds[0]!,
+        async () =>
+          (
+            await db.query('SELECT member_id FROM company_attendance WHERE member_id=$1', [
+              ga.memberIds[2]!,
+            ])
+          ).rows,
       );
       expect(seen).toHaveLength(0);
     }));
@@ -164,10 +179,7 @@ describe('G39: cross-company isolation – entries, tasks, attendance, documents
       if (!threw) {
         // Verify the row wasn't actually inserted for company A
         const rows = (
-          await db.query(
-            'SELECT id FROM company_entries WHERE group_id=$1',
-            [ga.groupId],
-          )
+          await db.query('SELECT id FROM company_entries WHERE group_id=$1', [ga.groupId])
         ).rows;
         // If it inserted 0 rows it's still safe (RPC may have silently no-op'd)
         expect(rows.length).toBeLessThanOrEqual(0);
@@ -182,7 +194,8 @@ describe('G39: cross-company isolation – entries, tasks, attendance, documents
       await db.query('SET LOCAL ROLE authenticated');
       const hid = randomUUID();
       await db.query('SELECT waves_company_holiday_set($1,$2,$3,$4,$5)', [
-        ga.groupId, hid,
+        ga.groupId,
+        hid,
         new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
         new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
         'Diwali',
@@ -190,8 +203,9 @@ describe('G39: cross-company isolation – entries, tasks, attendance, documents
       await db.query('RESET ROLE');
       await db.query("SELECT set_config('request.jwt.claims','',true)");
 
-      const seen = await asProfile(gb.profileIds[0]!, async () =>
-        (await db.query('SELECT id FROM company_holidays WHERE id=$1', [hid])).rows,
+      const seen = await asProfile(
+        gb.profileIds[0]!,
+        async () => (await db.query('SELECT id FROM company_holidays WHERE id=$1', [hid])).rows,
       );
       expect(seen).toHaveLength(0);
     }));
@@ -210,7 +224,10 @@ describe('G40: removed employee access – only historical own rows survive', ()
       try {
         await asProfile(ga.profileIds[2]!, () =>
           db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-            ga.groupId, randomUUID(), ga.memberIds[2]!, 'expense',
+            ga.groupId,
+            randomUUID(),
+            ga.memberIds[2]!,
+            'expense',
             JSON.stringify({ amount: '100', occurredOn: today }),
           ]),
         );
@@ -228,7 +245,12 @@ describe('G40: removed employee access – only historical own rows survive', ()
       try {
         await asProfile(ga.profileIds[2]!, () =>
           db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,NULL,NULL,NULL)', [
-            ga.groupId, randomUUID(), ga.memberIds[2]!, today, 'Hijack', 'todo',
+            ga.groupId,
+            randomUUID(),
+            ga.memberIds[2]!,
+            today,
+            'Hijack',
+            'todo',
           ]),
         );
       } catch {
@@ -246,7 +268,10 @@ describe('G40: removed employee access – only historical own rows survive', ()
       await db.query('SET LOCAL ROLE authenticated');
       const myEntryId = randomUUID();
       await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-        ga.groupId, myEntryId, ga.memberIds[2]!, 'expense',
+        ga.groupId,
+        myEntryId,
+        ga.memberIds[2]!,
+        'expense',
         JSON.stringify({ amount: '100', occurredOn: today }),
       ]);
       // Create another entry as owner
@@ -259,7 +284,10 @@ describe('G40: removed employee access – only historical own rows survive', ()
       await db.query('SET LOCAL ROLE authenticated');
       const ownerEntryId = randomUUID();
       await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-        ga.groupId, ownerEntryId, ga.memberIds[0]!, 'expense',
+        ga.groupId,
+        ownerEntryId,
+        ga.memberIds[0]!,
+        'expense',
         JSON.stringify({ amount: '200', occurredOn: today }),
       ]);
       await db.query('RESET ROLE');
@@ -293,7 +321,10 @@ describe('G40: removed employee access – only historical own rows survive', ()
       ]);
       await db.query('SET LOCAL ROLE authenticated');
       await db.query('SELECT waves_company_attendance_set($1,$2,$3,$4,NULL)', [
-        ga.groupId, ga.memberIds[2]!, today, 'present',
+        ga.groupId,
+        ga.memberIds[2]!,
+        today,
+        'present',
       ]);
       await db.query('RESET ROLE');
       await db.query("SELECT set_config('request.jwt.claims','',true)");
@@ -303,9 +334,9 @@ describe('G40: removed employee access – only historical own rows survive', ()
 
       // Former employee 2 should not be able to read attendance anymore
       const seen = await asProfile(ga.profileIds[2]!, async () =>
-        (await db.query('SELECT member_id FROM company_attendance WHERE deleted_at IS NULL')).rows.map(
-          (r) => r.member_id as string,
-        ),
+        (
+          await db.query('SELECT member_id FROM company_attendance WHERE deleted_at IS NULL')
+        ).rows.map((r) => r.member_id as string),
       );
       // waves_company_detail requires left_at IS NULL for the requester - so removed employee sees nothing
       expect(seen).toHaveLength(0);
@@ -319,7 +350,8 @@ describe('G40: removed employee access – only historical own rows survive', ()
       await db.query('SET LOCAL ROLE authenticated');
       const hid = randomUUID();
       await db.query('SELECT waves_company_holiday_set($1,$2,$3,$4,$5)', [
-        ga.groupId, hid,
+        ga.groupId,
+        hid,
         new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
         new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10),
         'Diwali',
@@ -329,8 +361,9 @@ describe('G40: removed employee access – only historical own rows survive', ()
 
       await db.query('UPDATE group_members SET left_at=now() WHERE id=$1', [ga.memberIds[2]!]);
 
-      const seen = await asProfile(ga.profileIds[2]!, async () =>
-        (await db.query('SELECT id FROM company_holidays WHERE id=$1', [hid])).rows,
+      const seen = await asProfile(
+        ga.profileIds[2]!,
+        async () => (await db.query('SELECT id FROM company_holidays WHERE id=$1', [hid])).rows,
       );
       expect(seen).toHaveLength(0);
     }));

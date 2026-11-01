@@ -69,7 +69,10 @@ describe('vendor lifecycle compositions', () => {
         ]),
       );
       // Vendor-role RPC access requires the vendor login to be linked to this vendor.
-      await db.query('UPDATE company_vendors SET member_id=$1 WHERE id=$2', [g.memberIds[3], vendor]);
+      await db.query('UPDATE company_vendors SET member_id=$1 WHERE id=$2', [
+        g.memberIds[3],
+        vendor,
+      ]);
       await as(1, () =>
         db.query('SELECT waves_company_vendor_set($1,$2,$3)', [
           g.groupId,

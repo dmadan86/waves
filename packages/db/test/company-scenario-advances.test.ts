@@ -118,7 +118,11 @@ describe('advance ledger compositions', () => {
     scenario(async () => {
       const id = randomUUID();
       let createDenied = false;
-      try { await create(2, 2, 'advance', '220', id); } catch (error) { createDenied = String(error).includes('NOT_ALLOWED'); }
+      try {
+        await create(2, 2, 'advance', '220', id);
+      } catch (error) {
+        createDenied = String(error).includes('NOT_ALLOWED');
+      }
       expect(createDenied).toBe(true);
       await create(0, 2, 'advance', '220', id);
       let denied = false;
@@ -146,13 +150,25 @@ describe('advance ledger compositions', () => {
     scenario(async () => {
       const id = randomUUID();
       let createDenied = false;
-      try { await create(2, 2, 'advance', '220', id); } catch (error) { createDenied = String(error).includes('NOT_ALLOWED'); }
+      try {
+        await create(2, 2, 'advance', '220', id);
+      } catch (error) {
+        createDenied = String(error).includes('NOT_ALLOWED');
+      }
       expect(createDenied).toBe(true);
       await create(0, 2, 'advance', '220', id);
       let employeeEditDenied = false;
-      try { await as(2, () => db.query('SELECT waves_company_entry_update($1,\'{"amount":"260"}\')', [id])); } catch { employeeEditDenied = true; }
+      try {
+        await as(2, () =>
+          db.query('SELECT waves_company_entry_update($1,\'{"amount":"260"}\')', [id]),
+        );
+      } catch {
+        employeeEditDenied = true;
+      }
       expect(employeeEditDenied).toBe(true);
-      await as(1, () => db.query('SELECT waves_company_entry_update($1,\'{"amount":"260"}\')', [id]));
+      await as(1, () =>
+        db.query('SELECT waves_company_entry_update($1,\'{"amount":"260"}\')', [id]),
+      );
       expect(
         (await db.query('SELECT amount FROM company_entries WHERE id=$1', [id])).rows[0].amount,
       ).toBe('260');
@@ -161,8 +177,12 @@ describe('advance ledger compositions', () => {
       await as(0, () =>
         db.query("SELECT waves_company_entry_transition($1,'approved',NULL,$2)", [id, version]),
       );
-      await as(1, () => db.query('SELECT waves_company_entry_update($1,\'{"amount":"300"}\')', [id]));
-      expect((await db.query('SELECT amount FROM company_entries WHERE id=$1', [id])).rows[0].amount).toBe('300');
+      await as(1, () =>
+        db.query('SELECT waves_company_entry_update($1,\'{"amount":"300"}\')', [id]),
+      );
+      expect(
+        (await db.query('SELECT amount FROM company_entries WHERE id=$1', [id])).rows[0].amount,
+      ).toBe('300');
     }));
   it('voiding an unrecovered approved employee advance removes it from outstanding totals', () =>
     scenario(async () => {
