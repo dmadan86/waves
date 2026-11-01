@@ -6,6 +6,13 @@ import { withScanCredits } from '@/lib/scanCredits';
 const { rpc } = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock('@/lib/backend', () => ({ backend: { rpc } }));
 vi.mock('expo-crypto', () => ({ randomUUID: () => 'event-id' }));
+const store = new Map<string, string>();
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: async (k: string) => store.get(k) ?? null,
+    setItem: async (k: string, v: string) => void store.set(k, v),
+  },
+}));
 beforeEach(() => {
   rpc.mockReset();
 });
@@ -73,7 +80,12 @@ it('buys one scan only after quota refusal, then retries the same scan once', as
   expect(toast).toHaveBeenCalledWith(2);
 });
 
-it('queryCredits throws on a failed read so a refetch keeps the last balance', async () => {
+it('queryCredits keeps the last good balance on the phone for a failed refresh', async () => {
+  const queryKey = ['credits', 'p1'] as const;
   rpc.mockResolvedValue({ error: { code: 'timeout' }, data: null });
-  await expect(queryCredits()).rejects.toThrow();
+  await expect(queryCredits({ queryKey })).rejects.toThrow();
+  rpc.mockResolvedValue({ error: null, data: wallet });
+  const good = await queryCredits({ queryKey });
+  rpc.mockResolvedValue({ error: { code: 'timeout' }, data: null });
+  await expect(queryCredits({ queryKey })).resolves.toEqual(good);
 });
