@@ -16,6 +16,7 @@ import {
   type Vendor,
   type VendorLine,
   type VendorLineKind,
+  type VendorPayMethod,
 } from '@waves/core';
 
 import { groupJoinLink } from '@/data/api';
@@ -121,8 +122,13 @@ export function useAddVendorLine(groupId: string) {
       amountMinor: bigint;
       occurredOn: string;
       note?: string | null;
+      dueOn?: string | null;
+      method?: VendorPayMethod | null;
+      reference?: string | null;
+      /** Reuse one id for a retry of the same form, so a double tap cannot record twice. */
+      entryId?: string;
     }) => {
-      const entryId = randomUUID();
+      const entryId = input.entryId ?? randomUUID();
       await mutate(MutationKind.CompanyVendorEntryCreate, groupId, {
         entryId,
         vendorId: input.vendorId,
@@ -130,6 +136,9 @@ export function useAddVendorLine(groupId: string) {
         amountMinor: input.amountMinor.toString(),
         occurredOn: input.occurredOn,
         note: input.note?.trim() || null,
+        dueOn: input.dueOn || null,
+        method: input.method || null,
+        reference: input.reference?.trim() || null,
       });
       return entryId;
     },

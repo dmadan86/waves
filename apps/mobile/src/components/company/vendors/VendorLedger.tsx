@@ -1,8 +1,21 @@
 import { useState } from 'react';
-import { ScrollView, Share, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Linking, Pressable, ScrollView, Share, View } from 'react-native';
 
-import { pendingVendorBills, sortVendorLines } from '@waves/core';
+import {
+  buildVendorStatement,
+  lastVendorPayment,
+  pendingVendorBills,
+  receiptLabel,
+  sortVendorLines,
+  vendorOverdue,
+} from '@waves/core';
 import { Button, Screen, Text, useTheme } from '@waves/ui';
+
+import { todayIso } from '@/data/personal';
+import { useMethodLabels, useVendorFormat } from '@/components/company/vendors/parts';
+import { renderStatementHtml, shareHtmlAsPdf } from '@/lib/vendorPdf';
+import { reminderUrls } from '@/lib/paymentProof';
 
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { useMoney } from '@/components/company/dashboard/parts';
@@ -13,12 +26,13 @@ import { VendorHistory, VendorMore } from '@/components/company/vendors/VendorHi
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import {
   ListRow,
+  PlainHeader,
   ScenicBody,
-  ScenicHeader,
   SectionHeader,
+  SegmentedPills,
   StandardCard,
 } from '@/components/standard';
-import { useCompanySuspended } from '@/data/companyEntries';
+import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
 import {
   createVendorInviteLink,
   useCompanyVendors,
@@ -31,6 +45,35 @@ import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 
+function RoundAction({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={{
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.color.brandSoft,
+      }}
+    >
+      <Ionicons name={icon} size={20} color={theme.color.brand} />
+    </Pressable>
+  );
+}
+
 export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId: string }) {
   const theme = useTheme();
   const clearance = useBottomClearance();
@@ -41,12 +84,17 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
   // A suspended company is read-only: nothing to add, confirm or remove.
   const view = { ...raw, canManage: raw.canManage && !suspended };
   const fmt = useMoney(view.currency);
+  const f = useVendorFormat(view.currency);
+  const methods = useMethodLabels();
+  const company = useCompanyEntries(groupId);
   const { confirm, notify } = useDialog();
   const remove = useRemoveVendor(groupId);
   const review = useReviewVendorLine(groupId);
   const [menu, setMenu] = useState(false);
   const [rename, setRename] = useState(false);
-  const [form, setForm] = useState<'bill' | 'payment' | null>(null);
+  const [form, setForm] = useState<'bill' | null>(null);
+  const [tab, setTab] = useState<'tx' | 'docs'>('tx');
+  const [pdfError, setPdfError] = useState(false);
   const [inviting, setInviting] = useState(false);
   const vendor = view.vendors.find((v) => v.id === vendorId);
   const detailView = useVendorCard(groupId, vendorId);
@@ -54,9 +102,38 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
   const lines = view.lines.filter((l) => l.vendorId === vendorId);
   const pending = sortVendorLines(pendingVendorBills(lines));
   const balance = view.balances.get(vendorId) ?? 0n;
+  const overdue = vendorOverdue(lines, todayIso());
+  const last = lastVendorPayment(lines);
+  const phoneUrls = reminderUrls(vendor?.phone, '');
+  const statement = async () => {
+    setPdfError(false);
+    if (!vendor) return;
+    const st = buildVendorStatement(lines);
+    const html = renderStatementHtml(
+      vendor.name,
+      company.name,
+      st.rows,
+      st.balance,
+      {
+        ...s,
+        kinds: { bill: s.bill, advance: s.advance, payment: s.payment },
+      },
+      f,
+    );
+    try {
+      if (!(await shareHtmlAsPdf(html, `${s.statementTitle} ${vendor.name}`))) setPdfError(true);
+    } catch {
+      setPdfError(true);
+    }
+  };
   const items: OverflowMenuItem[] =
     vendor && view.canManage
       ? [
+          {
+            icon: 'document-text-outline' as const,
+            label: s.addBill,
+            onPress: () => setForm('bill'),
+          },
           ...(!vendor.memberId
             ? [
                 {
@@ -104,25 +181,78 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
   return (
     <Screen edges={[]}>
       <ScrollView contentContainerStyle={{ paddingBottom: clearance + theme.spacing.xl }}>
-        <ScenicHeader
-          title={vendor?.name ?? s.title}
-          action={items.length ? <VendorMore onPress={() => setMenu(true)} /> : undefined}
+        <PlainHeader
+          title={t.companyDetails.vendorDetails}
+          trailing={items.length ? <VendorMore onPress={() => setMenu(true)} /> : undefined}
         />
-        <ScenicBody>
+        <ScenicBody flush>
           {vendor ? (
             <>
-              <StandardCard style={{ gap: theme.spacing.lg }}>
-                <Text variant="title">
-                  {fill(balance > 0n ? s.oweName : balance < 0n ? s.advanceName : s.settledName, {
-                    name: vendor.name,
-                    amount: fmt(balance < 0n ? -balance : balance),
-                  })}
+              <StandardCard style={{ gap: theme.spacing.md }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text variant="heading" style={{ fontWeight: '800' }}>
+                      {vendor.name}
+                    </Text>
+                    <Text variant="caption" tone="muted">
+                      {[vendor.category, vendor.phone].filter(Boolean).join(' · ')}
+                    </Text>
+                  </View>
+                  {vendor.phone ? (
+                    <>
+                      <RoundAction
+                        icon="call-outline"
+                        label={s.call}
+                        onPress={() => void Linking.openURL(`tel:${vendor.phone}`)}
+                      />
+                      {phoneUrls.length ? (
+                        <RoundAction
+                          icon="logo-whatsapp"
+                          label={s.whatsapp}
+                          onPress={() => void Linking.openURL(phoneUrls[1]!)}
+                        />
+                      ) : null}
+                    </>
+                  ) : null}
+                </View>
+                <Text variant="caption" tone="muted">
+                  {balance > 0n ? s.statusToPay : balance < 0n ? s.advance : s.settled}
+                </Text>
+                <Text tabular style={{ fontSize: 28, fontWeight: '800' }}>
+                  {fmt(balance < 0n ? -balance : balance)}
+                </Text>
+                {overdue > 0n ? (
+                  <Text variant="caption" tone="negative">
+                    {fill(s.overdueLine, { amount: fmt(overdue) })}
+                  </Text>
+                ) : null}
+                <Text variant="caption" tone="muted">
+                  {last
+                    ? fill(s.lastPayment, {
+                        amount: fmt(last.amount),
+                        date: `${f.date(last.occurredOn)}${last.method ? ` · ${methods[last.method]}` : ''}`,
+                      })
+                    : s.noPayments}
                 </Text>
                 {view.canManage ? (
-                  <View style={{ flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-                    <Button label={s.addBill} onPress={() => setForm('bill')} />
-                    <Button label={s.recordPayment} onPress={() => setForm('payment')} />
+                  <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                    {/* New order joins here with the orders PR. */}
+                    <Button
+                      label={s.recordPayment}
+                      variant="brand"
+                      onPress={() =>
+                        router.push(`/group/${groupId}/company-vendor-payment?vendorId=${vendorId}`)
+                      }
+                    />
+                    <Button label={s.statement} onPress={() => void statement()} />
                   </View>
+                ) : (
+                  <Button label={s.statement} onPress={() => void statement()} />
+                )}
+                {pdfError ? (
+                  <Text variant="caption" tone="negative">
+                    {s.pdfFailed}
+                  </Text>
                 ) : null}
               </StandardCard>
               {bankNotice.show ? (
@@ -178,8 +308,63 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                   </StandardCard>
                 </>
               ) : null}
-              <SectionHeader title={s.history} />
-              <VendorHistory groupId={groupId} lines={lines} />
+              <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                <SegmentedPills
+                  options={[
+                    { value: 'tx', label: s.transactions },
+                    { value: 'docs', label: s.documents },
+                  ]}
+                  value={tab}
+                  onChange={setTab}
+                />
+              </View>
+              {tab === 'tx' ? (
+                <VendorHistory groupId={groupId} lines={lines} />
+              ) : (
+                <>
+                  <SectionHeader title={s.receiptsHeading} />
+                  <StandardCard>
+                    {lines.filter((l) => l.kind === 'payment' && l.receiptNo).length === 0 ? (
+                      <Text tone="muted">{s.noDocs}</Text>
+                    ) : (
+                      sortVendorLines(lines)
+                        .filter((l) => l.kind === 'payment' && l.receiptNo)
+                        .map((l) => (
+                          <ListRow
+                            key={l.id}
+                            title={`${s.receipt} ${receiptLabel(l.receiptNo)}`}
+                            subtitle={f.date(l.occurredOn)}
+                            amount={fmt(l.amount)}
+                            onPress={() =>
+                              router.push(
+                                `/group/${groupId}/company-vendor-receipt?entryId=${l.id}`,
+                              )
+                            }
+                          />
+                        ))
+                    )}
+                  </StandardCard>
+                  <SectionHeader title={s.billPhotos} />
+                  <StandardCard style={{ gap: theme.spacing.md }}>
+                    {sortVendorLines(lines)
+                      .filter((l) => l.kind === 'bill')
+                      .map((l) => (
+                        <View key={l.id} style={{ gap: theme.spacing.xs }}>
+                          <Text variant="caption" tone="muted">
+                            {`${f.date(l.occurredOn)} · ${fmt(l.amount)}`}
+                          </Text>
+                          <CompanyEntryPhotos
+                            kind="vendor"
+                            groupId={groupId}
+                            entryId={l.id}
+                            canAdd={view.canManage}
+                            canRemove={() => view.canManage}
+                          />
+                        </View>
+                      ))}
+                  </StandardCard>
+                </>
+              )}
             </>
           ) : (
             <Text tone="muted">{s.notFound}</Text>
@@ -195,7 +380,6 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
           groupId={groupId}
           vendorId={vendor.id}
           currency={view.currency}
-          payment={form === 'payment'}
           onClose={() => setForm(null)}
         />
       ) : null}

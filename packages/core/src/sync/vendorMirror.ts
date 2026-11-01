@@ -58,6 +58,10 @@ export function materialiseVendors(
       version: Number(r.version ?? 1),
       createdAt: String(r.created_at ?? ''),
       deleted: r.deleted_at != null,
+      dueOn: r.due_on ? String(r.due_on).slice(0, 10) : null,
+      method: str(r.method) as VendorLine['method'],
+      reference: str(r.reference),
+      receiptNo: r.receipt_no == null ? null : Number(r.receipt_no),
     });
 
   for (const m of [...queue].sort((a, b) => a.seq - b.seq)) {
@@ -99,6 +103,10 @@ export function materialiseVendors(
         createdAt: m.clientCreatedAt,
         deleted: false,
         pending: true,
+        dueOn: p.dueOn ?? null,
+        method: p.method ?? null,
+        reference: p.reference ?? null,
+        receiptNo: null,
       });
     } else if (m.kind === 'company_vendor_entry.review') {
       const p = m.payload as unknown as CompanyVendorEntryReviewPayload;

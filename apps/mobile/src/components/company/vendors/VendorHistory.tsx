@@ -2,11 +2,12 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
-import { sortVendorLines, type VendorLine } from '@waves/core';
+import { receiptLabel, sortVendorLines, type VendorLine } from '@waves/core';
 import { Button, Text, useTheme } from '@waves/ui';
 
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { useMoney } from '@/components/company/dashboard/parts';
+import { Pill, useMethodLabels } from '@/components/company/vendors/parts';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { ListRow, StandardCard } from '@/components/standard';
 import {
@@ -14,8 +15,9 @@ import {
   useMarkVendorPaymentReceived,
   useVoidVendorLine,
 } from '@/data/companyVendors';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
+import { router } from '@/lib/navigation';
 
 export function VendorMore({ onPress }: { onPress: () => void }) {
   const theme = useTheme();
@@ -46,6 +48,7 @@ export function VendorHistory({
   const s = t.companyVendors;
   const view = useCompanyVendors(groupId);
   const fmt = useMoney(view.currency);
+  const methods = useMethodLabels();
   const { confirm } = useDialog();
   const remove = useVoidVendorLine(groupId);
   const received = useMarkVendorPaymentReceived(groupId);
@@ -69,20 +72,36 @@ export function VendorHistory({
                 ? line.kind === 'bill' && line.status === 'pending'
                 : view.canManage && line.status !== 'pending');
             const status =
-              line.status === 'pending'
+              line.pending || line.status === 'pending'
                 ? s.pending
                 : line.status === 'rejected'
                   ? s.rejected
-                  : vendorView
-                    ? s.confirmed
-                    : null;
+                  : line.kind !== 'bill'
+                    ? line.receivedAt
+                      ? s.received
+                      : s.recorded
+                    : vendorView
+                      ? s.confirmed
+                      : null;
             return (
               <ListRow
                 key={line.id}
-                title={s[line.kind]}
+                title={
+                  line.kind === 'payment' && line.receiptNo
+                    ? `${s.payment} ${receiptLabel(line.receiptNo)}`
+                    : s[line.kind]
+                }
+                onPress={
+                  line.kind === 'payment'
+                    ? () =>
+                        router.push(`/group/${groupId}/company-vendor-receipt?entryId=${line.id}`)
+                    : undefined
+                }
                 amount={`${line.kind === 'bill' ? '+' : '−'}${fmt(line.amount)}`}
                 subtitle={[
                   new Date(`${line.occurredOn}T12:00:00`).toLocaleDateString(locale),
+                  line.method ? methods[line.method] : null,
+                  line.dueOn ? fill(s.dueOn, { date: line.dueOn }) : null,
                   line.note,
                 ]
                   .filter(Boolean)
@@ -104,24 +123,17 @@ export function VendorHistory({
                       />
                     </View>
                     {status ? (
-                      <View
-                        style={{
-                          borderRadius: theme.radius.pill,
-                          paddingHorizontal: theme.spacing.sm,
-                          paddingVertical: theme.spacing.xs,
-                          backgroundColor: theme.color.surfaceMuted,
-                        }}
-                      >
-                        <Text variant="micro" tone="muted">
-                          {status}
-                        </Text>
-                      </View>
+                      <Pill
+                        label={status}
+                        tone={
+                          line.status === 'rejected' ? 'bad' : line.receivedAt ? 'good' : undefined
+                        }
+                      />
                     ) : null}
-                    {line.receivedAt ? (
-                      <Text variant="caption" tone="muted">
-                        {s.received}
-                      </Text>
-                    ) : vendorView && line.kind !== 'bill' && line.status === 'approved' ? (
+                    {!line.receivedAt &&
+                    vendorView &&
+                    line.kind !== 'bill' &&
+                    line.status === 'approved' ? (
                       <Button
                         label={s.markReceived}
                         disabled={received.isPending}

@@ -3355,6 +3355,10 @@ model CompanyVendorEntry {
   receivedAt DateTime? @map("received_at") @db.Timestamptz(6)
   voidReason String? @map("void_reason")
   requestHash String? @map("request_hash")
+  dueOn DateTime? @map("due_on") @db.Date
+  method String?
+  reference String?
+  receiptNo Int? @map("receipt_no")
   version Int @default(1)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
