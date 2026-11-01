@@ -147,7 +147,8 @@ describe('company bar navigation', () => {
     expect(companyBarActiveKey(['group', '[id]', 'company-pending'])).toBe('home');
     expect(companyBarActiveKey(['group', '[id]', 'company-entry'])).toBe('');
     expect(companyBarRoute('a', 'home')).toBe('/group/a?nav=tab');
-    expect(companyBarActiveKey(['group', '[id]', 'company-vendors'])).toBe('more');
+    expect(companyBarActiveKey(['group', '[id]', 'company-vendors'])).toBe('vendors');
+    expect(companyBarRoute('a', 'vendors')).toBe('/group/a/company-vendors');
     expect(companyBarActiveKey(['group', '[id]', 'company-clients'])).toBe('clients');
     expect(companyBarActiveKey(['group', '[id]', 'company-client'])).toBe('clients');
     expect(companyBarRoute('a', 'clients')).toBe('/group/a/company-clients');
