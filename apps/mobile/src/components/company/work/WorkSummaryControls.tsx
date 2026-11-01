@@ -1,11 +1,13 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { iconSize, useTheme } from '@waves/ui';
 import { GREEN } from '@/components/company/dashboard/parts';
 import { RED } from '@/components/company/dashboard/overviewKit';
 import type { MenuAnchor } from '@/components/SortMenu';
+import { SegmentedPills } from '@/components/standard';
 import { useStrings } from '@/i18n';
+import type { WorkMode } from '@/lib/companyWork';
 
 /** The tint each status wears in its row pill (the mockup: blue, amber, green, red). */
 export const WORK_INK = {
@@ -48,23 +50,20 @@ function Anchored({
   );
 }
 
-/** Date pill, status dropdown, round search (expands to a field) and round sort button. */
+/** [By date | By person] (managers only), round search (expands to a field) and the round ⋮. */
 export function WorkToolbar({
-  dayLabel,
-  onDay,
-  statusLabel,
-  onStatus,
+  mode,
+  onMode,
   query,
   onQueryChange,
-  onSort,
+  onMore,
 }: {
-  dayLabel: string;
-  onDay: () => void;
-  statusLabel: string;
-  onStatus: (anchor: MenuAnchor | null) => void;
+  /** Null hides the switch (an employee only sees their own tasks). */
+  mode: WorkMode | null;
+  onMode: (mode: WorkMode) => void;
   query: string;
   onQueryChange: (value: string) => void;
-  onSort: (anchor: MenuAnchor | null) => void;
+  onMore: (anchor: MenuAnchor | null) => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -110,26 +109,17 @@ export function WorkToolbar({
     );
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={dayLabel}
-        onPress={onDay}
-        style={{ ...pill, flexShrink: 1, minWidth: 0 }}
-      >
-        <Ionicons name="calendar-outline" size={iconSize.base} color={theme.color.brand} />
-        <Text variant="caption" numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1 }}>
-          {dayLabel}
-        </Text>
-        <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
-      </Pressable>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Anchored onAnchor={onStatus} label={statusLabel} style={pill}>
-          <Ionicons name="layers-outline" size={iconSize.base} color={theme.color.brand} />
-          <Text variant="caption" numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1 }}>
-            {statusLabel}
-          </Text>
-          <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
-        </Anchored>
+      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', gap: 6 }}>
+        {mode ? (
+          <SegmentedPills
+            options={[
+              { value: 'date' as WorkMode, label: t.company.workByDate },
+              { value: 'person' as WorkMode, label: t.company.workByPerson },
+            ]}
+            value={mode}
+            onChange={onMode}
+          />
+        ) : null}
       </View>
       <Pressable
         accessibilityRole="button"
@@ -139,8 +129,8 @@ export function WorkToolbar({
       >
         <Ionicons name="search-outline" size={iconSize.base} color={theme.color.text} />
       </Pressable>
-      <Anchored onAnchor={onSort} label={t.company.workFilter} style={round}>
-        <Ionicons name="swap-vertical" size={iconSize.base} color={theme.color.text} />
+      <Anchored onAnchor={onMore} label={t.company.workFilter} style={round}>
+        <Ionicons name="ellipsis-vertical" size={iconSize.base} color={theme.color.text} />
       </Anchored>
     </View>
   );

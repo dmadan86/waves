@@ -1,5 +1,4 @@
-import { Platform, View } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { View } from 'react-native';
 import { Sheet, Text, useTheme } from '@waves/ui';
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { EditTextSheet } from '@/components/EditTextSheet';
@@ -13,12 +12,6 @@ type Payload = CompanyWorkSetPayload;
 
 export function WorkTaskSheets({
   groupId,
-  dateOpen,
-  setDateOpen,
-  day,
-  setDay,
-  today,
-  maxDay,
   statusId,
   setStatusId,
   statusTask,
@@ -35,12 +28,6 @@ export function WorkTaskSheets({
   write,
 }: {
   groupId: string;
-  dateOpen: boolean;
-  setDateOpen: (open: boolean) => void;
-  day: string;
-  setDay: (day: string) => void;
-  today: string;
-  maxDay: string;
   statusId: string | null;
   setStatusId: (id: string | null) => void;
   statusTask: MirrorWorkTask | undefined;
@@ -71,21 +58,6 @@ export function WorkTaskSheets({
   });
   return (
     <>
-      <Sheet visible={dateOpen} onClose={() => setDateOpen(false)} closeLabel={t.common.close}>
-        <DateTimePicker
-          value={new Date(`${day}T12:00:00`)}
-          mode="date"
-          minimumDate={new Date(`${shift(today, -400)}T00:00:00`)}
-          maximumDate={new Date(`${maxDay}T23:59:59`)}
-          onChange={(event, picked) => {
-            if (Platform.OS !== 'ios') setDateOpen(false);
-            if (event.type === 'set' && picked)
-              setDay(
-                `${picked.getFullYear()}-${String(picked.getMonth() + 1).padStart(2, '0')}-${String(picked.getDate()).padStart(2, '0')}`,
-              );
-          }}
-        />
-      </Sheet>
       <Sheet
         visible={statusId !== null}
         onClosed={() => {
@@ -166,10 +138,4 @@ export function WorkTaskSheets({
       />
     </>
   );
-}
-
-function shift(iso: string, n: number) {
-  const date = new Date(`${iso}T00:00:00Z`);
-  date.setUTCDate(date.getUTCDate() + n);
-  return date.toISOString().slice(0, 10);
 }
