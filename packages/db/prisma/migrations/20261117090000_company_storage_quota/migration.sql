@@ -80,3 +80,6 @@ BEGIN
 END $fn$;
 REVOKE ALL ON FUNCTION public.waves_admin_company_storage(uuid),public.waves_admin_company_storage_set(uuid,bigint) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_admin_company_storage(uuid),public.waves_admin_company_storage_set(uuid,bigint) TO service_role;
+
+-- Trigger function from task_number: not callable by app roles (definer-grant-tightening).
+REVOKE ALL ON FUNCTION public.waves_company_task_seq() FROM PUBLIC,anon,authenticated;
