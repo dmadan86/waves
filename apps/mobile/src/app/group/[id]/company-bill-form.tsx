@@ -17,7 +17,7 @@ import {
 } from '@waves/core';
 import { AmountField, Screen, Sheet, Text, useTheme } from '@waves/ui';
 import { OverflowMenu } from '@/components/OverflowMenu';
-import { ListRow, PlainHeader, StandardCard } from '@/components/standard';
+import { ListRow, PlainHeader } from '@/components/standard';
 import { useCompanyClients } from '@/data/companyClients';
 import { useCompanyDocs, useRecordDocPayment, useSaveCompanyDoc } from '@/data/companyDocuments';
 import { todayIso } from '@/data/personal';
