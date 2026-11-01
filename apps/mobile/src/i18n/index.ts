@@ -2222,6 +2222,17 @@ export interface UiStrings {
     exportAction: string;
   };
   companyVendors: {
+    subtitle: string;
+    receipts: string;
+    pendingN: string;
+    receiptOne: string;
+    receiptMany: string;
+    periodMonth: string;
+    periodLast: string;
+    periodYear: string;
+    periodAll: string;
+    allVendors: string;
+    pendingReview: string;
     photoPrivacy: string;
     historyEmpty: string;
     title: string;
@@ -2297,6 +2308,115 @@ export interface UiStrings {
     catUtilities: string;
     catTransport: string;
     catOther: string;
+    totalToPay: string;
+    overdueCount: string;
+    paidThisMonth: string;
+    billsToReview: string;
+    filterAll: string;
+    filterToPay: string;
+    filterToReview: string;
+    search: string;
+    emptyList: string;
+    noMatch: string;
+    statusOverdue: string;
+    statusToReview: string;
+    statusToPay: string;
+    call: string;
+    whatsapp: string;
+    statement: string;
+    vendorTitle: string;
+    activityTab: string;
+    billsTab: string;
+    lastPaymentLabel: string;
+    waitingSync: string;
+    entryDetails: string;
+    documents: string;
+    transactions: string;
+    outstanding: string;
+    overdueLine: string;
+    lastPayment: string;
+    noPayments: string;
+    noDocs: string;
+    dueOn: string;
+    dueDate: string;
+    method: string;
+    mUpi: string;
+    mBank: string;
+    mCash: string;
+    mOther: string;
+    reference: string;
+    proofPhoto: string;
+    currentOutstanding: string;
+    remainingAfter: string;
+    keptAsAdvance: string;
+    recorded: string;
+    paymentRecorded: string;
+    receipt: string;
+    receiptTitle: string;
+    receiptFooter: string;
+    companyLabel: string;
+    vendorLabel: string;
+    balanceAfter: string;
+    statusLabel: string;
+    sharePdf: string;
+    viewTransaction: string;
+    pdfFailed: string;
+    statementTitle: string;
+    balance: string;
+    receiptsHeading: string;
+    billPhotos: string;
+    shareWhatsapp: string;
+    amountLabel: string;
+    dateLabel: string;
+    quickFull: string;
+    quickOverdue: string;
+    stillToPay: string;
+    paidBy: string;
+    recordsNote: string;
+    waitingVendor: string;
+    openInVendor: string;
+    downloadPdf: string;
+    advanceKind: string;
+    paidTo: string;
+    newOrder: string;
+    ordersTab: string;
+    orderTitle: string;
+    editOrder: string;
+    itemName: string;
+    itemQty: string;
+    itemUnit: string;
+    itemPrice: string;
+    addItem: string;
+    removeItem: string;
+    expectedDelivery: string;
+    orderTotalItems: string;
+    orderNotBill: string;
+    sendOrder: string;
+    orderSent: string;
+    noOrders: string;
+    createOrder: string;
+    ordSent: string;
+    ordAccepted: string;
+    ordRejected: string;
+    ordDelivered: string;
+    ordCancelled: string;
+    accept: string;
+    markDelivered: string;
+    cancelOrder: string;
+    cancelOrderConfirm: string;
+    orderTimeline: string;
+    unitBags: string;
+    unitPieces: string;
+    unitKg: string;
+    unitLitres: string;
+    unitMetres: string;
+    unitOther: string;
+    orderPdf: string;
+    purchaseOrder: string;
+    expectedOn: string;
+    orderItems: string;
+    orderTotal: string;
+    itemsCount: string;
   };
   companyStorage: {
     addMore: string;
@@ -9294,6 +9414,17 @@ const en: UiStrings = {
     exportAction: 'Export',
   },
   companyVendors: {
+    subtitle: 'Bills · Payments · Receipts',
+    receipts: 'Receipts',
+    pendingN: '{n} Pending',
+    receiptOne: '{n} Receipt',
+    receiptMany: '{n} Receipts',
+    periodMonth: 'This month',
+    periodLast: 'Last month',
+    periodYear: 'This year',
+    periodAll: 'All time',
+    allVendors: 'All vendors',
+    pendingReview: 'Pending review',
     photoPrivacy: 'Only people who can see this ledger line can see these photos.',
     historyEmpty: 'No entries yet',
     title: 'Vendors',
@@ -9369,6 +9500,115 @@ const en: UiStrings = {
     catUtilities: 'Utilities',
     catTransport: 'Transport',
     catOther: 'Other',
+    totalToPay: 'Total to pay',
+    overdueCount: '{n} overdue',
+    paidThisMonth: 'Paid this month',
+    billsToReview: 'Bills to review',
+    filterAll: 'All',
+    filterToPay: 'To pay',
+    filterToReview: 'To review',
+    search: 'Search vendors',
+    emptyList: 'Your vendors will appear here.',
+    noMatch: 'No vendors match.',
+    statusOverdue: 'Overdue',
+    statusToReview: 'To review',
+    statusToPay: 'To pay',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    statement: 'Statement',
+    vendorTitle: 'Vendor',
+    activityTab: 'Activity',
+    billsTab: 'Bills',
+    lastPaymentLabel: 'Last payment',
+    waitingSync: 'Waiting to sync',
+    entryDetails: 'Entry details',
+    documents: 'Documents',
+    transactions: 'Transactions',
+    outstanding: 'Outstanding',
+    overdueLine: '{amount} overdue',
+    lastPayment: 'Last payment {amount} · {date}',
+    noPayments: 'No payments recorded yet.',
+    noDocs: 'No documents yet.',
+    dueOn: 'Due {date}',
+    dueDate: 'Due date (optional)',
+    method: 'Method',
+    mUpi: 'UPI',
+    mBank: 'Bank transfer',
+    mCash: 'Cash',
+    mOther: 'Other',
+    reference: 'Reference (optional)',
+    proofPhoto: 'Proof photo (optional)',
+    currentOutstanding: 'Current outstanding',
+    remainingAfter: 'Remaining after this: {amount}',
+    keptAsAdvance: '{amount} will be kept as advance.',
+    recorded: 'Recorded',
+    paymentRecorded: 'Payment recorded',
+    receipt: 'Receipt',
+    receiptTitle: 'Payment receipt',
+    receiptFooter: 'Payment recorded in Waves — not a bank confirmation or a tax invoice.',
+    companyLabel: 'Company',
+    vendorLabel: 'Vendor',
+    balanceAfter: 'Balance after',
+    statusLabel: 'Status',
+    sharePdf: 'Share PDF',
+    viewTransaction: 'View transaction',
+    pdfFailed: 'Could not make the PDF.',
+    statementTitle: 'Vendor statement',
+    balance: 'Balance',
+    receiptsHeading: 'Payment receipts',
+    billPhotos: 'Bill photos',
+    shareWhatsapp: 'Share on WhatsApp',
+    amountLabel: 'Amount',
+    dateLabel: 'Date',
+    quickFull: 'Full {amount}',
+    quickOverdue: 'Overdue {amount}',
+    stillToPay: 'Still to pay after this: {amount}',
+    paidBy: 'Paid by',
+    recordsNote: "This records the payment in Waves. It doesn't send money.",
+    waitingVendor: 'Recorded · waiting for vendor',
+    openInVendor: "Open in {name}'s transactions",
+    downloadPdf: 'Download PDF',
+    advanceKind: 'Advance',
+    paidTo: 'paid to {name}',
+    newOrder: 'New order',
+    ordersTab: 'Orders',
+    orderTitle: 'New material order',
+    editOrder: 'Edit order',
+    itemName: 'Item',
+    itemQty: 'Qty',
+    itemUnit: 'Unit',
+    itemPrice: 'Price / unit',
+    addItem: 'Add item',
+    removeItem: 'Remove item',
+    expectedDelivery: 'Expected delivery (optional)',
+    orderTotalItems: 'Total · {n} items',
+    orderNotBill: "An order doesn't add to what you owe. The vendor's bill does.",
+    sendOrder: 'Send order',
+    orderSent: 'Order sent',
+    noOrders: 'No orders yet.',
+    createOrder: 'Create order',
+    ordSent: 'Sent',
+    ordAccepted: 'Accepted',
+    ordRejected: 'Rejected',
+    ordDelivered: 'Delivered',
+    ordCancelled: 'Cancelled',
+    accept: 'Accept',
+    markDelivered: 'Mark delivered',
+    cancelOrder: 'Cancel order',
+    cancelOrderConfirm: 'Cancel this order?',
+    orderTimeline: 'Timeline',
+    unitBags: 'Bags',
+    unitPieces: 'Pieces',
+    unitKg: 'kg',
+    unitLitres: 'Litres',
+    unitMetres: 'Metres',
+    unitOther: 'Other',
+    orderPdf: 'Purchase order PDF',
+    purchaseOrder: 'Purchase order',
+    expectedOn: 'Expected {date}',
+    orderItems: 'Items',
+    orderTotal: 'Total',
+    itemsCount: '{n} items',
   },
   companyStorage: {
     addMore: 'Add more storage',
@@ -15825,6 +16065,17 @@ const ta: UiStrings = {
     exportAction: 'ஏற்றுமதி',
   },
   companyVendors: {
+    subtitle: 'பில்கள் · கட்டணங்கள் · ரசீதுகள்',
+    receipts: 'ரசீதுகள்',
+    pendingN: '{n} நிலுவை',
+    receiptOne: '{n} ரசீது',
+    receiptMany: '{n} ரசீதுகள்',
+    periodMonth: 'இந்த மாதம்',
+    periodLast: 'கடந்த மாதம்',
+    periodYear: 'இந்த ஆண்டு',
+    periodAll: 'எல்லா நேரமும்',
+    allVendors: 'அனைத்து விற்பனையாளர்கள்',
+    pendingReview: 'மதிப்பாய்வு நிலுவை',
     photoPrivacy:
       'இந்தக் கணக்குப் பதிவைப் பார்க்க அனுமதி உள்ளவர்கள் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
     historyEmpty: 'இன்னும் பதிவுகள் இல்லை',
@@ -15901,6 +16152,115 @@ const ta: UiStrings = {
     catUtilities: 'பயன்பாட்டுச் சேவைகள்',
     catTransport: 'போக்குவரத்து',
     catOther: 'மற்றவை',
+    totalToPay: 'செலுத்த வேண்டிய மொத்தம்',
+    overdueCount: '{n} தாமதம்',
+    paidThisMonth: 'இந்த மாதம் செலுத்தியது',
+    billsToReview: 'சரிபார்க்க வேண்டிய பில்கள்',
+    filterAll: 'அனைத்தும்',
+    filterToPay: 'செலுத்த',
+    filterToReview: 'சரிபார்க்க',
+    search: 'விற்பனையாளரைத் தேடு',
+    emptyList: 'உங்கள் விற்பனையாளர்கள் இங்கே தோன்றுவர்.',
+    noMatch: 'பொருந்தும் விற்பனையாளர் இல்லை.',
+    statusOverdue: 'தாமதம்',
+    statusToReview: 'சரிபார்க்க',
+    statusToPay: 'செலுத்த',
+    call: 'அழை',
+    whatsapp: 'வாட்ஸ்அப்',
+    statement: 'அறிக்கை',
+    vendorTitle: 'விற்பனையாளர்',
+    activityTab: 'செயல்பாடு',
+    billsTab: 'பில்கள்',
+    lastPaymentLabel: 'கடைசி கட்டணம்',
+    waitingSync: 'ஒத்திசைவுக்காகக் காத்திருக்கிறது',
+    entryDetails: 'பதிவு விவரங்கள்',
+    documents: 'ஆவணங்கள்',
+    transactions: 'பரிவர்த்தனைகள்',
+    outstanding: 'நிலுவை',
+    overdueLine: '{amount} தாமதம்',
+    lastPayment: 'கடைசி கட்டணம் {amount} · {date}',
+    noPayments: 'இன்னும் கட்டணங்கள் பதிவாகவில்லை.',
+    noDocs: 'இன்னும் ஆவணங்கள் இல்லை.',
+    dueOn: 'கடைசி தேதி {date}',
+    dueDate: 'செலுத்த வேண்டிய தேதி (விருப்பம்)',
+    method: 'முறை',
+    mUpi: 'UPI',
+    mBank: 'வங்கி பரிமாற்றம்',
+    mCash: 'ரொக்கம்',
+    mOther: 'மற்றவை',
+    reference: 'குறிப்பு எண் (விருப்பம்)',
+    proofPhoto: 'ஆதாரப் புகைப்படம் (விருப்பம்)',
+    currentOutstanding: 'தற்போதைய நிலுவை',
+    remainingAfter: 'இதற்குப் பின் மீதம்: {amount}',
+    keptAsAdvance: '{amount} முன்பணமாக வைக்கப்படும்.',
+    recorded: 'பதிவானது',
+    paymentRecorded: 'கட்டணம் பதிவானது',
+    receipt: 'ரசீது',
+    receiptTitle: 'கட்டண ரசீது',
+    receiptFooter: 'கட்டணம் Waves-இல் பதிவானது — வங்கி உறுதிப்பாடோ வரி விலைப்பட்டியலோ அல்ல.',
+    companyLabel: 'நிறுவனம்',
+    vendorLabel: 'விற்பனையாளர்',
+    balanceAfter: 'பின் இருப்பு',
+    statusLabel: 'நிலை',
+    sharePdf: 'PDF பகிர்',
+    viewTransaction: 'பரிவர்த்தனையைக் காண்',
+    pdfFailed: 'PDF உருவாக்க முடியவில்லை.',
+    statementTitle: 'விற்பனையாளர் அறிக்கை',
+    balance: 'இருப்பு',
+    receiptsHeading: 'கட்டண ரசீதுகள்',
+    billPhotos: 'பில் புகைப்படங்கள்',
+    shareWhatsapp: 'வாட்ஸ்அப்பில் பகிர்',
+    amountLabel: 'தொகை',
+    dateLabel: 'தேதி',
+    quickFull: 'முழுவதும் {amount}',
+    quickOverdue: 'தாமதம் {amount}',
+    stillToPay: 'இதற்குப் பின் செலுத்த வேண்டியது: {amount}',
+    paidBy: 'செலுத்திய முறை',
+    recordsNote: 'இது Waves-இல் கட்டணத்தைப் பதிவு செய்கிறது. பணம் அனுப்பாது.',
+    waitingVendor: 'பதிவானது · விற்பனையாளருக்காகக் காத்திருக்கிறது',
+    openInVendor: '{name} பரிவர்த்தனைகளில் திற',
+    downloadPdf: 'PDF பதிவிறக்கு',
+    advanceKind: 'முன்பணம்',
+    paidTo: '{name}-க்கு செலுத்தியது',
+    newOrder: 'புதிய ஆர்டர்',
+    ordersTab: 'ஆர்டர்கள்',
+    orderTitle: 'புதிய பொருள் ஆர்டர்',
+    editOrder: 'ஆர்டரைத் திருத்து',
+    itemName: 'பொருள்',
+    itemQty: 'அளவு',
+    itemUnit: 'அலகு',
+    itemPrice: 'விலை / அலகு',
+    addItem: 'பொருள் சேர்',
+    removeItem: 'பொருளை நீக்கு',
+    expectedDelivery: 'எதிர்பார்க்கும் டெலிவரி (விருப்பம்)',
+    orderTotalItems: 'மொத்தம் · {n} பொருட்கள்',
+    orderNotBill: 'ஆர்டர் நீங்கள் தர வேண்டிய தொகையைக் கூட்டாது. விற்பனையாளரின் பில் கூட்டும்.',
+    sendOrder: 'ஆர்டர் அனுப்பு',
+    orderSent: 'ஆர்டர் அனுப்பப்பட்டது',
+    noOrders: 'இன்னும் ஆர்டர்கள் இல்லை.',
+    createOrder: 'ஆர்டர் உருவாக்கு',
+    ordSent: 'அனுப்பப்பட்டது',
+    ordAccepted: 'ஏற்கப்பட்டது',
+    ordRejected: 'நிராகரிக்கப்பட்டது',
+    ordDelivered: 'டெலிவரி ஆனது',
+    ordCancelled: 'ரத்து செய்யப்பட்டது',
+    accept: 'ஏற்கவும்',
+    markDelivered: 'டெலிவரி ஆனதாகக் குறி',
+    cancelOrder: 'ஆர்டரை ரத்து செய்',
+    cancelOrderConfirm: 'இந்த ஆர்டரை ரத்து செய்யவா?',
+    orderTimeline: 'காலவரிசை',
+    unitBags: 'பைகள்',
+    unitPieces: 'துண்டுகள்',
+    unitKg: 'கிலோ',
+    unitLitres: 'லிட்டர்',
+    unitMetres: 'மீட்டர்',
+    unitOther: 'மற்றவை',
+    orderPdf: 'கொள்முதல் ஆர்டர் PDF',
+    purchaseOrder: 'கொள்முதல் ஆர்டர்',
+    expectedOn: 'எதிர்பார்ப்பு {date}',
+    orderItems: 'பொருட்கள்',
+    orderTotal: 'மொத்தம்',
+    itemsCount: '{n} பொருட்கள்',
   },
   companyStorage: {
     addMore: 'மேலும் சேமிப்பைச் சேர்க்கவும்',
@@ -22514,6 +22874,17 @@ const hi: UiStrings = {
     exportAction: 'निर्यात',
   },
   companyVendors: {
+    subtitle: 'बिल · भुगतान · रसीदें',
+    receipts: 'रसीदें',
+    pendingN: '{n} लंबित',
+    receiptOne: '{n} रसीद',
+    receiptMany: '{n} रसीदें',
+    periodMonth: 'इस महीने',
+    periodLast: 'पिछले महीने',
+    periodYear: 'इस साल',
+    periodAll: 'सभी समय',
+    allVendors: 'सभी विक्रेता',
+    pendingReview: 'समीक्षा लंबित',
     photoPrivacy: 'ये फ़ोटो सिर्फ़ वे लोग देख सकते हैं जो इस खाते की प्रविष्टि को देख सकते हैं।',
     historyEmpty: 'अभी कोई प्रविष्टि नहीं',
     title: 'विक्रेता',
@@ -22589,6 +22960,115 @@ const hi: UiStrings = {
     catUtilities: 'बिजली-पानी आदि',
     catTransport: 'परिवहन',
     catOther: 'अन्य',
+    totalToPay: 'कुल देय राशि',
+    overdueCount: '{n} अतिदेय',
+    paidThisMonth: 'इस महीने चुकाया',
+    billsToReview: 'जांचने के बिल',
+    filterAll: 'सभी',
+    filterToPay: 'चुकाना है',
+    filterToReview: 'जांचना है',
+    search: 'विक्रेता खोजें',
+    emptyList: 'आपके विक्रेता यहाँ दिखेंगे।',
+    noMatch: 'कोई विक्रेता नहीं मिला।',
+    statusOverdue: 'अतिदेय',
+    statusToReview: 'जांचना है',
+    statusToPay: 'चुकाना है',
+    call: 'कॉल',
+    whatsapp: 'व्हाट्सऐप',
+    statement: 'विवरण',
+    vendorTitle: 'विक्रेता',
+    activityTab: 'गतिविधि',
+    billsTab: 'बिल',
+    lastPaymentLabel: 'आखिरी भुगतान',
+    waitingSync: 'सिंक का इंतज़ार',
+    entryDetails: 'प्रविष्टि का विवरण',
+    documents: 'दस्तावेज़',
+    transactions: 'लेन-देन',
+    outstanding: 'बकाया',
+    overdueLine: '{amount} अतिदेय',
+    lastPayment: 'पिछला भुगतान {amount} · {date}',
+    noPayments: 'अभी तक कोई भुगतान दर्ज नहीं।',
+    noDocs: 'अभी कोई दस्तावेज़ नहीं।',
+    dueOn: 'देय तिथि {date}',
+    dueDate: 'देय तिथि (वैकल्पिक)',
+    method: 'तरीका',
+    mUpi: 'UPI',
+    mBank: 'बैंक ट्रांसफर',
+    mCash: 'नकद',
+    mOther: 'अन्य',
+    reference: 'संदर्भ (वैकल्पिक)',
+    proofPhoto: 'सबूत की फोटो (वैकल्पिक)',
+    currentOutstanding: 'वर्तमान बकाया',
+    remainingAfter: 'इसके बाद शेष: {amount}',
+    keptAsAdvance: '{amount} अग्रिम के रूप में रखा जाएगा।',
+    recorded: 'दर्ज',
+    paymentRecorded: 'भुगतान दर्ज हुआ',
+    receipt: 'रसीद',
+    receiptTitle: 'भुगतान रसीद',
+    receiptFooter: 'भुगतान Waves में दर्ज हुआ — यह बैंक पुष्टि या टैक्स इनवॉइस नहीं है।',
+    companyLabel: 'कंपनी',
+    vendorLabel: 'विक्रेता',
+    balanceAfter: 'बाद का शेष',
+    statusLabel: 'स्थिति',
+    sharePdf: 'PDF साझा करें',
+    viewTransaction: 'लेन-देन देखें',
+    pdfFailed: 'PDF नहीं बन सका।',
+    statementTitle: 'विक्रेता विवरण',
+    balance: 'शेष',
+    receiptsHeading: 'भुगतान रसीदें',
+    billPhotos: 'बिल की फोटो',
+    shareWhatsapp: 'व्हाट्सऐप पर भेजें',
+    amountLabel: 'राशि',
+    dateLabel: 'तारीख',
+    quickFull: 'पूरा {amount}',
+    quickOverdue: 'अतिदेय {amount}',
+    stillToPay: 'इसके बाद चुकाना बाकी: {amount}',
+    paidBy: 'भुगतान का तरीका',
+    recordsNote: 'यह Waves में भुगतान दर्ज करता है। पैसे नहीं भेजता।',
+    waitingVendor: 'दर्ज · विक्रेता की प्रतीक्षा',
+    openInVendor: '{name} के लेन-देन में खोलें',
+    downloadPdf: 'PDF डाउनलोड करें',
+    advanceKind: 'अग्रिम',
+    paidTo: '{name} को भुगतान',
+    newOrder: 'नया ऑर्डर',
+    ordersTab: 'ऑर्डर',
+    orderTitle: 'नया सामग्री ऑर्डर',
+    editOrder: 'ऑर्डर बदलें',
+    itemName: 'सामान',
+    itemQty: 'मात्रा',
+    itemUnit: 'इकाई',
+    itemPrice: 'कीमत / इकाई',
+    addItem: 'सामान जोड़ें',
+    removeItem: 'सामान हटाएँ',
+    expectedDelivery: 'अपेक्षित डिलीवरी (वैकल्पिक)',
+    orderTotalItems: 'कुल · {n} सामान',
+    orderNotBill: 'ऑर्डर से आपका देय नहीं बढ़ता। विक्रेता का बिल बढ़ाता है।',
+    sendOrder: 'ऑर्डर भेजें',
+    orderSent: 'ऑर्डर भेजा गया',
+    noOrders: 'अभी कोई ऑर्डर नहीं।',
+    createOrder: 'ऑर्डर बनाएँ',
+    ordSent: 'भेजा गया',
+    ordAccepted: 'स्वीकृत',
+    ordRejected: 'अस्वीकृत',
+    ordDelivered: 'डिलीवर हुआ',
+    ordCancelled: 'रद्द',
+    accept: 'स्वीकार करें',
+    markDelivered: 'डिलीवर हुआ चिह्नित करें',
+    cancelOrder: 'ऑर्डर रद्द करें',
+    cancelOrderConfirm: 'यह ऑर्डर रद्द करें?',
+    orderTimeline: 'समयरेखा',
+    unitBags: 'बोरे',
+    unitPieces: 'नग',
+    unitKg: 'किग्रा',
+    unitLitres: 'लीटर',
+    unitMetres: 'मीटर',
+    unitOther: 'अन्य',
+    orderPdf: 'परचेज़ ऑर्डर PDF',
+    purchaseOrder: 'परचेज़ ऑर्डर',
+    expectedOn: 'अपेक्षित {date}',
+    orderItems: 'सामान',
+    orderTotal: 'कुल',
+    itemsCount: '{n} सामान',
   },
   companyStorage: {
     addMore: 'और स्टोरेज जोड़ें',
@@ -29142,6 +29622,17 @@ const ar: UiStrings = {
     exportAction: 'تصدير',
   },
   companyVendors: {
+    subtitle: 'الفواتير · المدفوعات · الإيصالات',
+    receipts: 'الإيصالات',
+    pendingN: '{n} معلّق',
+    receiptOne: '{n} إيصال',
+    receiptMany: '{n} إيصالات',
+    periodMonth: 'هذا الشهر',
+    periodLast: 'الشهر الماضي',
+    periodYear: 'هذه السنة',
+    periodAll: 'كل الوقت',
+    allVendors: 'كل الموردين',
+    pendingReview: 'بانتظار المراجعة',
     photoPrivacy: 'لا يرى هذه الصور إلا من يمكنه رؤية هذا القيد في السجل.',
     historyEmpty: 'لا توجد قيود بعد',
     title: 'الموردون',
@@ -29217,6 +29708,115 @@ const ar: UiStrings = {
     catUtilities: 'المرافق',
     catTransport: 'النقل',
     catOther: 'أخرى',
+    totalToPay: 'إجمالي المستحق',
+    overdueCount: '{n} متأخر',
+    paidThisMonth: 'المدفوع هذا الشهر',
+    billsToReview: 'فواتير للمراجعة',
+    filterAll: 'الكل',
+    filterToPay: 'للدفع',
+    filterToReview: 'للمراجعة',
+    search: 'ابحث عن مورد',
+    emptyList: 'سيظهر مورّدوك هنا.',
+    noMatch: 'لا يوجد مورّد مطابق.',
+    statusOverdue: 'متأخر',
+    statusToReview: 'للمراجعة',
+    statusToPay: 'للدفع',
+    call: 'اتصال',
+    whatsapp: 'واتساب',
+    statement: 'كشف الحساب',
+    vendorTitle: 'المورّد',
+    activityTab: 'النشاط',
+    billsTab: 'الفواتير',
+    lastPaymentLabel: 'آخر دفعة',
+    waitingSync: 'بانتظار المزامنة',
+    entryDetails: 'تفاصيل القيد',
+    documents: 'المستندات',
+    transactions: 'المعاملات',
+    outstanding: 'المستحق',
+    overdueLine: '{amount} متأخر',
+    lastPayment: 'آخر دفعة {amount} · {date}',
+    noPayments: 'لم تُسجَّل دفعات بعد.',
+    noDocs: 'لا توجد مستندات بعد.',
+    dueOn: 'الاستحقاق {date}',
+    dueDate: 'تاريخ الاستحقاق (اختياري)',
+    method: 'الطريقة',
+    mUpi: 'UPI',
+    mBank: 'تحويل بنكي',
+    mCash: 'نقدًا',
+    mOther: 'أخرى',
+    reference: 'المرجع (اختياري)',
+    proofPhoto: 'صورة إثبات (اختياري)',
+    currentOutstanding: 'المستحق الحالي',
+    remainingAfter: 'المتبقي بعد هذا: {amount}',
+    keptAsAdvance: 'سيُحتفظ بـ {amount} كدفعة مقدّمة.',
+    recorded: 'مسجّل',
+    paymentRecorded: 'تم تسجيل الدفعة',
+    receipt: 'إيصال',
+    receiptTitle: 'إيصال دفع',
+    receiptFooter: 'تم تسجيل الدفعة في Waves — وليست تأكيدًا من البنك ولا فاتورة ضريبية.',
+    companyLabel: 'الشركة',
+    vendorLabel: 'المورّد',
+    balanceAfter: 'الرصيد بعد',
+    statusLabel: 'الحالة',
+    sharePdf: 'مشاركة PDF',
+    viewTransaction: 'عرض المعاملة',
+    pdfFailed: 'تعذّر إنشاء PDF.',
+    statementTitle: 'كشف حساب المورّد',
+    balance: 'الرصيد',
+    receiptsHeading: 'إيصالات الدفع',
+    billPhotos: 'صور الفواتير',
+    shareWhatsapp: 'مشاركة عبر واتساب',
+    amountLabel: 'المبلغ',
+    dateLabel: 'التاريخ',
+    quickFull: 'الكل {amount}',
+    quickOverdue: 'المتأخر {amount}',
+    stillToPay: 'المتبقي للدفع بعد هذا: {amount}',
+    paidBy: 'طريقة الدفع',
+    recordsNote: 'يسجّل هذا الدفعة في Waves. ولا يرسل المال.',
+    waitingVendor: 'مسجّل · بانتظار المورّد',
+    openInVendor: 'افتح في معاملات {name}',
+    downloadPdf: 'تنزيل PDF',
+    advanceKind: 'دفعة مقدّمة',
+    paidTo: 'مدفوع إلى {name}',
+    newOrder: 'طلب جديد',
+    ordersTab: 'الطلبات',
+    orderTitle: 'طلب مواد جديد',
+    editOrder: 'تعديل الطلب',
+    itemName: 'الصنف',
+    itemQty: 'الكمية',
+    itemUnit: 'الوحدة',
+    itemPrice: 'السعر / الوحدة',
+    addItem: 'إضافة صنف',
+    removeItem: 'إزالة الصنف',
+    expectedDelivery: 'التسليم المتوقع (اختياري)',
+    orderTotalItems: 'الإجمالي · {n} أصناف',
+    orderNotBill: 'الطلب لا يزيد ما عليك. فاتورة المورّد هي التي تفعل.',
+    sendOrder: 'إرسال الطلب',
+    orderSent: 'تم إرسال الطلب',
+    noOrders: 'لا توجد طلبات بعد.',
+    createOrder: 'إنشاء طلب',
+    ordSent: 'مُرسل',
+    ordAccepted: 'مقبول',
+    ordRejected: 'مرفوض',
+    ordDelivered: 'تم التسليم',
+    ordCancelled: 'ملغى',
+    accept: 'قبول',
+    markDelivered: 'تحديد كمُسلَّم',
+    cancelOrder: 'إلغاء الطلب',
+    cancelOrderConfirm: 'إلغاء هذا الطلب؟',
+    orderTimeline: 'الجدول الزمني',
+    unitBags: 'أكياس',
+    unitPieces: 'قطع',
+    unitKg: 'كغ',
+    unitLitres: 'لترات',
+    unitMetres: 'أمتار',
+    unitOther: 'أخرى',
+    orderPdf: 'ملف PDF لأمر الشراء',
+    purchaseOrder: 'أمر شراء',
+    expectedOn: 'المتوقع {date}',
+    orderItems: 'الأصناف',
+    orderTotal: 'الإجمالي',
+    itemsCount: '{n} أصناف',
   },
   companyStorage: {
     addMore: 'أضف المزيد من التخزين',

@@ -10,6 +10,8 @@ import { useCompanyCard, useBankNotice } from '@/data/companyDetails';
 import { VendorHistory } from '@/components/company/vendors/VendorHistory';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
+import { OrderRow } from '@/components/company/vendors/orderParts';
+import { useVendorOrders } from '@/data/companyVendorOrders';
 import { useCompanyVendors } from '@/data/companyVendors';
 import { fill, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -27,6 +29,7 @@ export function VendorHome({ groupId }: { groupId: string }) {
   const vendor = view.vendors.find((v) => v.memberId === view.myMemberId);
   const companyCard = useCompanyCard(groupId);
   const bankNotice = useBankNotice(companyCard);
+  const orders = useVendorOrders(groupId);
   const balance = vendor ? (view.balances.get(vendor.id) ?? 0n) : 0n;
   return (
     <Screen edges={[]}>
@@ -67,6 +70,24 @@ export function VendorHome({ groupId }: { groupId: string }) {
                     router.push(`/group/${groupId}/company-details?vendorId=${vendor.id}&mine=1`)
                   }
                 />
+              </StandardCard>
+              <SectionHeader title={s.ordersTab} />
+              <StandardCard>
+                {orders.length === 0 ? (
+                  <Text tone="muted">{s.noOrders}</Text>
+                ) : (
+                  orders.map((o, index) => (
+                    <OrderRow
+                      key={o.id}
+                      order={o}
+                      money={fmt}
+                      divider={index < orders.length - 1}
+                      onPress={() =>
+                        router.push(`/group/${groupId}/company-vendor-order-detail?orderId=${o.id}`)
+                      }
+                    />
+                  ))
+                )}
               </StandardCard>
               <SectionHeader title={s.history} />
               <VendorHistory
