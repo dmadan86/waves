@@ -109,6 +109,19 @@ describe('buildClientRows', () => {
       listClientRows(rows, { ...o, range: 'month', sort: 'recent', today: '2026-11-02' }),
     ).toEqual([]);
   });
+  it('owing lists every debtor, lost or not', () => {
+    const r = buildClientRows([client('l', { stage: 'lost' })], [doc('l', {})]);
+    const o = {
+      tab: 'all',
+      status: null,
+      range: 'all',
+      sort: 'recent',
+      query: '',
+      today: '2026-10-25',
+    } as const;
+    expect(listClientRows(r, { ...o, owing: true })).toHaveLength(1);
+    expect(listClientRows(r, o)).toHaveLength(0);
+  });
   it('daysAgo never goes negative', () => {
     expect(daysAgo('2026-10-23', '2026-10-25')).toBe(2);
     expect(daysAgo('2026-10-30', '2026-10-25')).toBe(0);

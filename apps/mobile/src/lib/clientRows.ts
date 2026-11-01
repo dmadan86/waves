@@ -83,7 +83,8 @@ export function buildClientRows(
       status,
       latest: latestDoc ? { type: latestDoc.docType, number: latestDoc.number } : null,
       lastDay,
-      amountMinor: dueMinor > 0n ? dueMinor : latestDoc ? latestDoc.totalMinor : null,
+      amountMinor:
+        dueMinor > 0n ? dueMinor : latestDoc ? latestDoc.totalMinor : client.expectedValueMinor,
       dueMinor,
       hasEstimate: mine.some((d) => d.docType === 'estimate'),
       hasBill: bills.length > 0,
@@ -103,7 +104,7 @@ export function inTab(r: ClientRow, tab: ClientTab): boolean {
     : tab === 'inquiry'
       ? r.status === 'inquiry'
       : tab === 'quote'
-        ? r.hasEstimate
+        ? r.hasEstimate || r.status === 'quoted'
         : r.hasBill;
 }
 
@@ -126,6 +127,8 @@ export function listClientRows(
     sort: ClientSort;
     query: string;
     today: string;
+    /** Only clients who still owe, whatever their stage or tab (the Outstanding tile). */
+    owing?: boolean;
   },
 ): ClientRow[] {
   const q = o.query.trim().toLocaleLowerCase();
@@ -136,7 +139,11 @@ export function listClientRows(
       : daysAgo(r.lastDay, o.today) <= 90);
   return rows
     .filter((r) =>
-      o.status ? r.status === o.status && (o.tab === 'all' || inTab(r, o.tab)) : inTab(r, o.tab),
+      o.owing
+        ? r.dueMinor > 0n
+        : o.status
+          ? r.status === o.status && (o.tab === 'all' || inTab(r, o.tab))
+          : inTab(r, o.tab),
     )
     .filter(inRange)
     .filter(
