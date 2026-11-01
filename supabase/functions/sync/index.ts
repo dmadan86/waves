@@ -125,6 +125,8 @@ type MutationKind =
   | 'company_vendor_entry.received'
   | 'company_details.set'
   | 'company_vendor_details.set'
+  | 'company_vendor_order.set'
+  | 'company_vendor_order.status'
   | 'company_doc.save'
   | 'company_doc.status'
   | 'company_doc.convert'
@@ -370,6 +372,9 @@ const GROUP_TABLES = [
   ['company_details', '*'],
   ['company_details_secure', '*'],
   ['company_vendor_details', '*'],
+  ['company_vendor_orders', '*'],
+  ['company_vendor_order_items', '*'],
+  ['company_vendor_order_events', '*'],
   // Estimates and bills: RLS gives an owner all, a manager only the ones they created, others none.
   ['company_documents', '*'],
   // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
@@ -1288,6 +1293,16 @@ export class SyncSession {
             amount: companyDecimal(mutation.payload.amountMinor, 'amountMinor'),
             occurredOn: companyDate(mutation.payload.occurredOn, 'occurredOn'),
             note: companyReason(mutation.payload.note ?? null, 'note', false),
+            // Only sent when set, so an older client's request hash is unchanged.
+            ...(mutation.payload.dueOn
+              ? { dueOn: companyDate(mutation.payload.dueOn, 'dueOn') }
+              : {}),
+            ...(mutation.payload.method
+              ? { method: requireString(mutation.payload.method, 'method') }
+              : {}),
+            ...(mutation.payload.reference
+              ? { reference: companyReason(mutation.payload.reference, 'reference', false) }
+              : {}),
           },
         });
       case 'company_vendor_entry.review':
@@ -1318,6 +1333,18 @@ export class SyncSession {
           p_group_id: mutation.groupId,
           p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
           p_data: companyCardData(mutation.payload.data),
+        });
+      case 'company_vendor_order.set':
+        return await this.rpcAsCaller('waves_company_vendor_order_set', {
+          p_group_id: mutation.groupId,
+          p_order_id: companyUuid(mutation.payload.orderId, 'orderId'),
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_data: companyOrderData(mutation.payload),
+        });
+      case 'company_vendor_order.status':
+        return await this.rpcAsCaller('waves_company_vendor_order_status', {
+          p_order_id: companyUuid(mutation.payload.orderId, 'orderId'),
+          p_to: requireString(mutation.payload.to, 'to'),
         });
       case 'company_member.rate_set':
         return await this.rpcAsCaller('waves_company_member_rate_set', {
@@ -2668,6 +2695,21 @@ function companyReason(value: unknown, field: string, required: boolean): string
   }
   if (typeof value !== 'string' || value.trim().length > 500) companyInvalid(field);
   return (value as string).trim();
+}
+/** Order body: the database checks every item; this only keeps the shape and size sane. */
+function companyOrderData(payload: Record<string, unknown>): Record<string, unknown> {
+  const items = payload.items;
+  if (!Array.isArray(items) || items.length < 1 || items.length > 50) companyInvalid('items');
+  return {
+    expectedOn: payload.expectedOn ? companyDate(payload.expectedOn, 'expectedOn') : null,
+    note: companyReason(payload.note ?? null, 'note', false),
+    items: (items as Record<string, unknown>[]).map((i) => ({
+      name: requireString(i?.name, 'name'),
+      qty: requireString(i?.qty, 'qty'),
+      unit: requireString(i?.unit, 'unit'),
+      unitPrice: companyDecimal(i?.unitPrice, 'unitPrice'),
+    })),
+  };
 }
 /** Details card body: known keys, strings or null; the database checks each format. */
 const CARD_KEYS = [

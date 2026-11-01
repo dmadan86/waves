@@ -39,7 +39,15 @@ export interface VendorLine {
   readonly createdAt: string;
   readonly deleted: boolean;
   readonly pending?: boolean;
+  /** Bills: when payment is due. */
+  readonly dueOn?: string | null;
+  /** Payments: how it was paid, an optional reference, and the company's receipt number (#R-12). */
+  readonly method?: VendorPayMethod | null;
+  readonly reference?: string | null;
+  readonly receiptNo?: number | null;
 }
+
+export type VendorPayMethod = 'upi' | 'bank' | 'cash' | 'other';
 
 /** A line that moves the balance: a confirmed bill, or any recorded advance/payment. */
 export const vendorLineCounts = (l: VendorLine): boolean => !l.deleted && l.status === 'approved';
@@ -91,6 +99,9 @@ export interface CompanyVendorEntryCreatePayload {
   readonly amountMinor: string;
   readonly occurredOn: string;
   readonly note: string | null;
+  readonly dueOn?: string | null;
+  readonly method?: VendorPayMethod | null;
+  readonly reference?: string | null;
 }
 export interface CompanyVendorEntryReviewPayload {
   readonly entryId: string;
