@@ -2292,6 +2292,11 @@ export interface UiStrings {
     hubNothing: string;
     hubFiles: string;
     hubSettings: string;
+    hubDue: string;
+    hubInSub: string;
+    hubOutSub: string;
+    hubTeamSub: string;
+    hubBooksSub: string;
   };
   companyVendors: {
     photoPrivacy: string;
@@ -9424,7 +9429,7 @@ const en: UiStrings = {
     hubMoneyIn: 'Money in',
     hubMoneyOut: 'Money out',
     hubTeam: 'Team',
-    hubBooks: 'Books',
+    hubBooks: 'Books & company',
     hubNew: 'NEW',
     hubToReceive: '{amount} to receive',
     hubToday: '{n} today',
@@ -9435,6 +9440,11 @@ const en: UiStrings = {
     hubNothing: 'Nothing due',
     hubFiles: 'PDF & Excel',
     hubSettings: 'Company settings',
+    hubDue: '{n} due',
+    hubInSub: 'Track what you receive',
+    hubOutSub: 'Manage expenses and payments',
+    hubTeamSub: 'People, work and attendance',
+    hubBooksSub: 'Records, reports and setup',
   },
   companyVendors: {
     photoPrivacy: 'Only people who can see this ledger line can see these photos.',
@@ -16024,7 +16034,7 @@ const ta: UiStrings = {
     hubMoneyIn: 'வரவு',
     hubMoneyOut: 'செலவு',
     hubTeam: 'குழு',
-    hubBooks: 'கணக்குகள்',
+    hubBooks: 'கணக்குகள் & நிறுவனம்',
     hubNew: 'புதியது',
     hubToReceive: '{amount} பெற வேண்டும்',
     hubToday: 'இன்று {n}',
@@ -16035,6 +16045,11 @@ const ta: UiStrings = {
     hubNothing: 'நிலுவை இல்லை',
     hubFiles: 'PDF & Excel',
     hubSettings: 'நிறுவன அமைப்புகள்',
+    hubDue: '{n} நிலுவை',
+    hubInSub: 'வரும் பணத்தைக் கண்காணிக்கவும்',
+    hubOutSub: 'செலவுகள், பணம் செலுத்துதலை நிர்வகிக்கவும்',
+    hubTeamSub: 'ஆட்கள், வேலை, வருகை',
+    hubBooksSub: 'பதிவுகள், அறிக்கைகள், அமைப்பு',
   },
   companyVendors: {
     photoPrivacy:
@@ -22783,7 +22798,7 @@ const hi: UiStrings = {
     hubMoneyIn: 'आमदनी',
     hubMoneyOut: 'खर्च',
     hubTeam: 'टीम',
-    hubBooks: 'खाते',
+    hubBooks: 'खाते और कंपनी',
     hubNew: 'नया',
     hubToReceive: '{amount} पाना बाकी',
     hubToday: 'आज {n}',
@@ -22794,6 +22809,11 @@ const hi: UiStrings = {
     hubNothing: 'कुछ बाकी नहीं',
     hubFiles: 'PDF और Excel',
     hubSettings: 'कंपनी सेटिंग',
+    hubDue: '{n} बाकी',
+    hubInSub: 'जो पैसा आता है उसे देखें',
+    hubOutSub: 'खर्च और भुगतान संभालें',
+    hubTeamSub: 'लोग, काम और हाज़िरी',
+    hubBooksSub: 'रिकॉर्ड, रिपोर्ट और सेटअप',
   },
   companyVendors: {
     photoPrivacy: 'ये फ़ोटो सिर्फ़ वे लोग देख सकते हैं जो इस खाते की प्रविष्टि को देख सकते हैं।',
@@ -29481,7 +29501,7 @@ const ar: UiStrings = {
     hubMoneyIn: 'الإيرادات',
     hubMoneyOut: 'المصروفات',
     hubTeam: 'الفريق',
-    hubBooks: 'الدفاتر',
+    hubBooks: 'الدفاتر والشركة',
     hubNew: 'جديد',
     hubToReceive: '{amount} مستحق القبض',
     hubToday: '{n} اليوم',
@@ -29492,6 +29512,11 @@ const ar: UiStrings = {
     hubNothing: 'لا شيء مستحق',
     hubFiles: 'PDF وExcel',
     hubSettings: 'إعدادات الشركة',
+    hubDue: '{n} مستحقة',
+    hubInSub: 'تابع ما تستلمه',
+    hubOutSub: 'إدارة المصروفات والمدفوعات',
+    hubTeamSub: 'الأشخاص والعمل والحضور',
+    hubBooksSub: 'السجلات والتقارير والإعداد',
   },
   companyVendors: {
     photoPrivacy: 'لا يرى هذه الصور إلا من يمكنه رؤية هذا القيد في السجل.',
