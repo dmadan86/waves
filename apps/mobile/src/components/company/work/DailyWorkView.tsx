@@ -21,7 +21,7 @@ import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { filterWork, groupWorkTasks, type WorkMode } from '@/lib/companyWork';
+import { filterWork, groupWorkTasks, maxTaskDay, type WorkMode } from '@/lib/companyWork';
 import { WorkTaskSections } from './WorkTaskSections';
 import { AddTaskSheet } from './AddTaskSheet';
 import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
@@ -117,6 +117,7 @@ export default function DailyWorkView({
     if (
       !access.enabled ||
       busy ||
+      next.day > maxTaskDay(today) ||
       !next.title.trim() ||
       next.title.length > 200 ||
       (next.note?.length ?? 0) > 200 ||
@@ -167,7 +168,7 @@ export default function DailyWorkView({
             label: t.company.workStatus,
             onPress: () => setStatusId(menuTask.id),
           },
-          ...(menuTask.status !== 'done'
+          ...(menuTask.status !== 'done' && shift(menuTask.day, 1) <= maxTaskDay(today)
             ? [
                 {
                   icon: 'copy-outline' as const,
