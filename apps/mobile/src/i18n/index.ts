@@ -2033,6 +2033,7 @@ export interface UiStrings {
     addReceipt: string;
     todayDate: string;
     tagAll: string;
+    tagViewAll: string;
     tagNew: string;
     tagNamePh: string;
     tagAdd: string;
@@ -9068,6 +9069,7 @@ const en: UiStrings = {
     addReceipt: 'Add receipt or photo (optional)',
     todayDate: 'Today, {date}',
     tagAll: 'All tags',
+    tagViewAll: 'View all',
     tagNew: 'New tag',
     tagNamePh: 'Tag name',
     tagAdd: 'Add',
@@ -15560,6 +15562,7 @@ const ta: UiStrings = {
     addReceipt: 'ரசீது அல்லது புகைப்படம் சேர் (விருப்பம்)',
     todayDate: 'இன்று, {date}',
     tagAll: 'எல்லா குறிச்சொற்கள்',
+    tagViewAll: 'அனைத்தும் பார்',
     tagNew: 'புதிய குறிச்சொல்',
     tagNamePh: 'குறிச்சொல் பெயர்',
     tagAdd: 'சேர்',
@@ -22213,6 +22216,7 @@ const hi: UiStrings = {
     addReceipt: 'रसीद या फ़ोटो जोड़ें (वैकल्पिक)',
     todayDate: 'आज, {date}',
     tagAll: 'सभी टैग',
+    tagViewAll: 'सभी देखें',
     tagNew: 'नया टैग',
     tagNamePh: 'टैग का नाम',
     tagAdd: 'जोड़ें',
@@ -28804,6 +28808,7 @@ const ar: UiStrings = {
     addReceipt: 'أضف إيصالاً أو صورة (اختياري)',
     todayDate: 'اليوم، {date}',
     tagAll: 'كل الوسوم',
+    tagViewAll: 'عرض الكل',
     tagNew: 'وسم جديد',
     tagNamePh: 'اسم الوسم',
     tagAdd: 'إضافة',

@@ -42,14 +42,13 @@ import {
   type CurrencyCode,
   type PolicyFlag,
 } from '@waves/core';
-import { AmountField, Button, ChipRow, iconSize, Text, useTheme } from '@waves/ui';
+import { AmountField, Button, ChipRow, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
 import { ScenicBody, ScenicHeader, StandardCard, PillButton } from '@/components/standard';
 import {
   DashedRow,
   FieldLabel,
   KindTile,
-  SaveButton,
   SelectField,
   TagGrid,
 } from '@/components/company/EntryForm';
@@ -490,7 +489,34 @@ function CompanyEntryScreenInner() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <ScenicHeader title={t.company.addEntry} subtitle={view.name} circleBack />
+          <ScenicHeader
+            title={t.company.addEntry}
+            subtitle={view.name}
+            circleBack
+            titleAlign="start"
+            action={
+              saved ? null : (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityState={{ disabled: add.isPending || !view.ready }}
+                  disabled={add.isPending || !view.ready}
+                  onPress={() => void save()}
+                  style={{
+                    height: 36,
+                    justifyContent: 'center',
+                    paddingHorizontal: theme.spacing.lg,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: theme.color.brand,
+                    opacity: add.isPending || !view.ready ? 0.45 : 1,
+                  }}
+                >
+                  <Text variant="body" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+                    {t.company.save}
+                  </Text>
+                </Pressable>
+              )
+            }
+          />
           <ScenicBody>
             {intro === '1' ? (
               <Text variant="caption" tone="muted">
@@ -617,17 +643,6 @@ function CompanyEntryScreenInner() {
                   <View
                     style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
                   >
-                    <View style={{ flex: 1 }}>
-                      <AmountField
-                        key={formKey}
-                        autoFocus
-                        currency={currency}
-                        value={amount}
-                        onChange={setAmount}
-                        size="hero"
-                        framed
-                      />
-                    </View>
                     <View
                       style={{
                         height: 44,
@@ -641,13 +656,50 @@ function CompanyEntryScreenInner() {
                         {currency}
                       </Text>
                     </View>
+                    <View style={{ flex: 1 }}>
+                      <AmountField
+                        key={formKey}
+                        autoFocus
+                        currency={currency}
+                        value={amount}
+                        onChange={setAmount}
+                        size="hero"
+                        framed
+                      />
+                    </View>
                   </View>
                 </>
               )}
 
               {kind === 'expense' ? (
                 <>
-                  <FieldLabel>{t.company.formCategory}</FieldLabel>
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <FieldLabel>{t.company.formCategory}</FieldLabel>
+                    <Pressable
+                      accessibilityRole="button"
+                      hitSlop={8}
+                      onPress={() => setTagsOpen(true)}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+                    >
+                      <Text
+                        variant="caption"
+                        style={{ color: theme.color.brand, fontWeight: '700' }}
+                      >
+                        {t.company.tagViewAll}
+                      </Text>
+                      <Ionicons
+                        name={directionalIcon('chevron-forward')}
+                        size={iconSize.sm}
+                        color={theme.color.brand}
+                      />
+                    </Pressable>
+                  </View>
                   <TagGrid
                     tags={
                       paidByCompany
@@ -743,6 +795,25 @@ function CompanyEntryScreenInner() {
                 placeholder={!paidByCompany && !employee}
                 onPress={canPickPerson ? () => void pickEmployee() : undefined}
               />
+
+              {showGst ? (
+                <>
+                  <FieldLabel>{t.company.gstRate}</FieldLabel>
+                  <ChipRow
+                    wrap
+                    onCard
+                    options={[0, 500, 1200, 1800, 2800].map((bps) => ({
+                      value: String(bps),
+                      label: `${bps / 100}%`,
+                    }))}
+                    value={gstRateBps === null ? '' : String(gstRateBps)}
+                    onChange={(value) => {
+                      setGstRateBps(Number(value));
+                      setGstTouched(null);
+                    }}
+                  />
+                </>
+              ) : null}
 
               {paidByCompany && view.isManager ? (
                 <Text variant="caption" tone="muted">
@@ -894,20 +965,6 @@ function CompanyEntryScreenInner() {
                               {t.company.gstinBad}
                             </Text>
                           ) : null}
-                          <FieldLabel>{t.company.gstRate}</FieldLabel>
-                          <ChipRow
-                            wrap
-                            onCard
-                            options={[0, 500, 1200, 1800, 2800].map((bps) => ({
-                              value: String(bps),
-                              label: `${bps / 100}%`,
-                            }))}
-                            value={gstRateBps === null ? '' : String(gstRateBps)}
-                            onChange={(value) => {
-                              setGstRateBps(Number(value));
-                              setGstTouched(null);
-                            }}
-                          />
                           <FieldLabel>{t.company.gstAmount}</FieldLabel>
                           <AmountField
                             currency={currency}
@@ -963,13 +1020,7 @@ function CompanyEntryScreenInner() {
                 </View>
               </View>
             </>
-          ) : (
-            <SaveButton
-              label={t.company.save}
-              onPress={() => void save()}
-              disabled={add.isPending || !view.ready}
-            />
-          )}
+          ) : null}
         </View>
       </KeyboardAvoidingView>
       <CompanyTagsSheet
