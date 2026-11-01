@@ -237,7 +237,7 @@ export function CompanyMore({ groupId }: { groupId: string }) {
   ).filter((g) => g.tiles.length > 0);
 
   return (
-    <SectionShell groupId={groupId} view={view}>
+    <SectionShell groupId={groupId} view={view} tab>
       <View style={{ gap: theme.spacing.md }}>
         {groups.map((g) => (
           <StandardCard key={g.label} style={{ padding: PAD, gap: 10 }}>
