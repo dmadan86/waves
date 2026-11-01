@@ -20,6 +20,7 @@ const task = (id: string, status: MirrorWorkTask['status']): MirrorWorkTask => (
   projectId: 's1',
   status,
   dueTime: '17:00',
+  number: 7,
   blockedReason: null,
   note: null,
 });
@@ -38,6 +39,12 @@ describe('company work helpers', () => {
     expect(
       filterWork([task('1', 'todo')], { search: 'asha', personName: () => 'Asha' }),
     ).toHaveLength(1);
+  });
+  it('finds a task by its number, with or without the hash', () => {
+    const list = [task('1', 'todo')];
+    expect(filterWork(list, { search: '#7' })).toHaveLength(1);
+    expect(filterWork(list, { search: '7' })).toHaveLength(1);
+    expect(filterWork(list, { search: '8' })).toHaveLength(0);
   });
   it('groups by date: overdue first, today next, old done tasks in one tail', () => {
     const t = (id: string, day: string, status: MirrorWorkTask['status'], title = id) => ({

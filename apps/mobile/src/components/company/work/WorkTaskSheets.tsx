@@ -83,6 +83,11 @@ export function WorkTaskSheets({
               />
             </View>
           ) : null}
+          {statusTask ? (
+            <Text variant="body" style={{ fontWeight: '700' }}>
+              {`#${statusTask.number ?? '—'} ${statusTask.title}`}
+            </Text>
+          ) : null}
           {statusTask?.blockedReason ? (
             <Text variant="caption" tone="negative">
               {statusTask.blockedReason}
