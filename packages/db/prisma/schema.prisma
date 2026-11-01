@@ -3245,6 +3245,7 @@ model CompanyPlan {
  ownerProfileId String? @map("owner_profile_id") @db.Uuid
  storageQuotaBytes BigInt? @map("storage_quota_bytes")
  packTxn String? @map("pack_txn")
+ packProfile String? @map("pack_profile") @db.Uuid
  packEventAt DateTime? @map("pack_event_at") @db.Timestamptz(6)
  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)

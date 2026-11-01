@@ -1,3 +1,5 @@
+-- Who paid for the pack (the store account's app user), so the app can tell which company a store subscription pays for.
+ALTER TABLE public.company_plans ADD COLUMN pack_profile uuid;
 -- A store subscription belongs to the company of its first purchase for good: expiry keeps pack_txn
 -- (a company's next subscription replaces it, which the unique index still allows).
 CREATE OR REPLACE FUNCTION public.waves_company_storage_pack_apply(
@@ -29,7 +31,7 @@ BEGIN
    ELSIF plan.pack_event_at IS NOT NULL AND p_event_at IS NOT NULL AND plan.pack_event_at>p_event_at THEN v_out:='stale';
    ELSE
     UPDATE public.company_plans SET storage_quota_bytes=public.waves_company_free_storage_bytes()+v_bytes,
-     pack_txn=v_txn,pack_event_at=p_event_at,updated_at=now() WHERE group_id=v_group;
+     pack_txn=v_txn,pack_profile=v_profile,pack_event_at=p_event_at,updated_at=now() WHERE group_id=v_group;
     v_out:='applied';
    END IF;
   -- Ending reverts the quota but keeps pack_txn: the binding is permanent, so a late event for this
@@ -48,3 +50,10 @@ REVOKE ALL ON FUNCTION public.waves_company_storage_pack_apply(text,text,text,ti
 GRANT EXECUTE ON FUNCTION public.waves_company_storage_pack_apply(text,text,text,timestamptz,jsonb) TO service_role;
 REVOKE ALL ON FUNCTION public.waves_company_storage_pack_apply(text,text,text,timestamptz,jsonb) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_company_storage_pack_apply(text,text,text,timestamptz,jsonb) TO service_role;
+
+-- The company this caller's store account currently pays a pack for (null when none).
+CREATE FUNCTION public.waves_my_pack_company() RETURNS uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $fn$
+ SELECT group_id FROM public.company_plans WHERE pack_profile=public.waves_current_profile_id() AND storage_quota_bytes IS NOT NULL LIMIT 1
+$fn$;
+REVOKE ALL ON FUNCTION public.waves_my_pack_company() FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.waves_my_pack_company() TO authenticated,service_role;
