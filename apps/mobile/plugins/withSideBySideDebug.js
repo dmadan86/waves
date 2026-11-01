@@ -144,13 +144,17 @@ module.exports = function withSideBySideDebug(config) {
           'utf8',
         );
 
-        if (source && appId) {
+        const services = source && appId ? JSON.parse(readFileSync(source, 'utf8')) : null;
+        const registered = services?.client?.some(
+          (c) => c.client_info?.android_client_info?.package_name === `${appId}${suffix}`,
+        );
+        // Firebase knows this variant's id (the preview app is registered): the root file already works.
+        if (services && !registered) {
           // Rewritten by walking the parsed object rather than replacing text: the
           // package name appears in `client_info` for each client, and a blind
           // string replace would also hit an `oauth_client` entry that names the
           // same package with a *different* signing certificate, which is a
           // credential rather than an id.
-          const services = JSON.parse(readFileSync(source, 'utf8'));
           for (const client of services.client ?? []) {
             const info = client.client_info?.android_client_info;
             if (info?.package_name === appId) info.package_name = `${appId}${suffix}`;
