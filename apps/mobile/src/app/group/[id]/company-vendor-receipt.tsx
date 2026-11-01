@@ -113,6 +113,10 @@ export default function CompanyVendorReceiptScreen() {
             label={fill(s.openInVendor, { name: vendor.name })}
             onPress={() => router.replace(`/group/${id}/company-vendor?vendorId=${vendor.id}`)}
           />
+          <Button
+            label={s.entryDetails}
+            onPress={() => router.push(`/group/${id}/company-vendor-line?entryId=${line.id}`)}
+          />
           <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
             <Button label={s.downloadPdf} variant="brand" onPress={() => void share()} />
             {vendor.phone ? <Button label={s.shareWhatsapp} onPress={whatsapp} /> : null}
