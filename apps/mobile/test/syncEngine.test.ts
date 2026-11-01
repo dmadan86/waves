@@ -1486,3 +1486,35 @@ describe('refusals nobody should see', () => {
     expect(held?.nextAttemptAt).toBeGreaterThan(Date.now());
   });
 });
+
+describe('attendance taps', () => {
+  it('go to the server as one request after a short pause, not one per tap', async () => {
+    online();
+    h.invoke.mockResolvedValue({ data: discoveryResponse(), error: null });
+    vi.useFakeTimers();
+    try {
+      const engine = new SyncEngine();
+      await engine.hydrate();
+      for (const memberId of ['m1', 'm2', 'm3'])
+        await engine.enqueue({
+          clientMutationId: `mark-${memberId}`,
+          kind: 'company_attendance.set' as never,
+          groupId: 'g-goa',
+          clientCreatedAt: '2026-08-09T00:00:00.000Z',
+          payload: { memberId, day: '2026-08-09', status: 'present', note: null },
+        });
+      await vi.advanceTimersByTimeAsync(1000);
+    } finally {
+      vi.useRealTimers();
+    }
+    // Other tests' engines share this mock, so count only the requests that carried marks.
+    const calls = h.invoke.mock.calls as [
+      string,
+      { body: { mutations: { clientMutationId: string }[] } },
+    ][];
+    const sent = calls
+      .map(([, options]) => options.body.mutations.map((m) => m.clientMutationId))
+      .filter((ids) => ids.some((id) => id.startsWith('mark-')));
+    expect(sent).toEqual([['mark-m1', 'mark-m2', 'mark-m3']]);
+  });
+});

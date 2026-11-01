@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, TextInput, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Pressable, TextInput, View, type ViewStyle } from 'react-native';
 import { iconSize, Text, useTheme } from '@waves/ui';
 import type { MenuAnchor } from '@/components/SortMenu';
 import { useStrings } from '@/i18n';
@@ -13,6 +13,7 @@ export function AttendanceToolbar({
   onQueryChange,
   onMenu,
   menuLabel,
+  saveState = null,
 }: {
   dayLabel: string;
   onDay: () => void;
@@ -20,6 +21,8 @@ export function AttendanceToolbar({
   onQueryChange: (value: string) => void;
   onMenu: (anchor: MenuAnchor | null) => void;
   menuLabel: string;
+  /** Marks on their way to the server ('saving'), or just landed ('saved'). */
+  saveState?: 'saving' | 'saved' | null;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -78,6 +81,20 @@ export function AttendanceToolbar({
         </Text>
         <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
       </Pressable>
+      {saveState === 'saving' ? (
+        <ActivityIndicator
+          size="small"
+          color={theme.color.brand}
+          accessibilityLabel={t.company.attendanceSaving}
+        />
+      ) : saveState === 'saved' ? (
+        <Ionicons
+          name="checkmark-circle"
+          size={iconSize.base}
+          color={theme.color.positive}
+          accessibilityLabel={t.company.attendanceSaved}
+        />
+      ) : null}
       <View style={{ flex: 1 }} />
       <Pressable
         accessibilityRole="button"
