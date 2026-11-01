@@ -72,13 +72,18 @@ export function buildWorkReport(input: {
   const overdue = tasks.filter(late).length;
   const rate = tasks.length ? Math.round(((tasks.length - open) / tasks.length) * 100) : 0;
 
-  const grouped = (keyOf: (t: MirrorWorkTask) => string, header: string) => {
+  const grouped = (
+    keyOf: (t: MirrorWorkTask) => string,
+    nameOf: (key: string) => string,
+    header: string,
+  ) => {
     const groups = new Map<string, MirrorWorkTask[]>();
     for (const t of tasks) groups.set(keyOf(t), [...(groups.get(keyOf(t)) ?? []), t]);
     return {
       heading: l.titles[input.report],
       columns: [header, l.open, l.done, l.overdue, l.total],
       rows: [...groups.entries()]
+        .map(([key, list]) => [nameOf(key), list] as const)
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([name, list]) => [
           text(name),
@@ -110,8 +115,13 @@ export function buildWorkReport(input: {
       ]),
     };
   else if (input.report === 'person')
-    section = grouped((t) => input.personName(t.memberId), l.person);
-  else if (input.report === 'site') section = grouped(site, l.site);
+    section = grouped((t) => t.memberId, input.personName, l.person);
+  else if (input.report === 'site')
+    section = grouped(
+      (t) => t.projectId ?? '',
+      (id) => (id ? input.siteName(id) : '') || l.noSite,
+      l.site,
+    );
   else {
     headline.splice(2, 0, [l.done, String(tasks.length - open)]);
     headline.push([l.completion, `${rate}%`]);
