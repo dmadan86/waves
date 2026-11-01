@@ -1714,6 +1714,31 @@ export async function listCompanies(params: {
 export async function companyDetail(id: string): Promise<CompanyDetail | null> {
   return companyJson<CompanyDetail>('waves_admin_company_detail', { p_group_id: companyId(id) });
 }
+export interface CompanyStorage {
+  used_bytes: number;
+  quota_bytes: number;
+  /** The company's own figure (admin edit or pack); null means the free default applies. */
+  override_bytes: number | null;
+}
+export async function companyStorage(id: string): Promise<CompanyStorage> {
+  const row = await companyJson<CompanyStorage>('waves_admin_company_storage', {
+    p_group_id: companyId(id),
+  });
+  if (!row) throw new Error('Company storage was not returned.');
+  return row;
+}
+/** `megabytes` null resets the company to the free default. */
+export async function setCompanyStorage(id: string, megabytes: number | null): Promise<void> {
+  if (
+    megabytes !== null &&
+    (!Number.isInteger(megabytes) || megabytes < 0 || megabytes > 1_000_000)
+  )
+    throw new Error('Storage is a whole number of MB, zero or more.');
+  await companyJson<null>('waves_admin_company_storage_set', {
+    p_group_id: companyId(id),
+    p_bytes: megabytes === null ? null : megabytes * 1024 * 1024,
+  });
+}
 function companyReason(reason: string, minimum = 1): string {
   const value = reason.trim();
   if (value.length < minimum || value.length > 2000)
