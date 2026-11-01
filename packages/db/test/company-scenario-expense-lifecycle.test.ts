@@ -27,19 +27,19 @@ type F = Awaited<ReturnType<typeof fixture>>;
 const act = async <T>(f: F, n: number, fn: () => Promise<T>): Promise<T> => {
   await db.query('BEGIN');
   try {
-    await db.query("SELECT set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:f.profileIds[n],role:'authenticated'})]);
+    await db.query("SELECT set_config('request.jwt.claims',$1,true)",[JSON.stringify({sub:f.profileIds[n]!,role:'authenticated'})]);
     await db.query('SET LOCAL ROLE authenticated');
     const result=await fn();
     await db.query('COMMIT');
     return result;
   } catch (error) { await db.query('ROLLBACK'); throw error; }
 };
-const create = (f: F, n: number, amount: number) => act(f,n,async()=>{ const id=randomUUID(); await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5::jsonb)',[f.groupId,id,f.memberIds[n],'expense',JSON.stringify({amount:String(amount),occurredOn:'2026-10-20'})]); return id; });
+const create = (f: F, n: number, amount: number) => act(f,n,async()=>{ const id=randomUUID(); await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5::jsonb)',[f.groupId,id,f.memberIds[n]!,'expense',JSON.stringify({amount:String(amount),occurredOn:'2026-10-20'})]); return id; });
 const update = (id:string, amount:number) => db.query("SELECT waves_company_entry_update($1,$2::jsonb)",[id,JSON.stringify({amount:String(amount)})]);
 const transition = (id:string,to:string,version=1) => db.query('SELECT waves_company_entry_transition($1,$2,NULL,$3)',[id,to,version]);
 const row = async(id:string) => (await db.query('SELECT * FROM company_entries WHERE id=$1',[id])).rows[0];
 const summary = async(f:F) => db.query("SELECT COALESCE(sum(amount) FILTER(WHERE status='approved' AND entry_kind='expense'),0)::text approved, COALESCE(sum(amount) FILTER(WHERE status='reimbursed'),0)::text reimbursed FROM company_entries WHERE group_id=$1 AND deleted_at IS NULL",[f.groupId]);
-const pay = (f:F,id:string,member:number,amount:number,reimbursementId=randomUUID()) => db.query('SELECT waves_company_reimburse($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7,$8,$9)',[f.groupId,reimbursementId,f.memberIds[member],JSON.stringify([{entryId:id,expectedVersion:(amount,1)}]),'[]','2026-10-31','2026-11-01',String(amount),null]);
+const pay = (f:F,id:string,member:number,amount:number,reimbursementId=randomUUID()) => db.query('SELECT waves_company_reimburse($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7,$8,$9)',[f.groupId,reimbursementId,f.memberIds[member]!,JSON.stringify([{entryId:id,expectedVersion:1}]),'[]','2026-10-31','2026-11-01',String(amount),null]);
 
 describe('company expense lifecycle scenarios', () => {
   it.each([true,false])('employee edit, review, owner reimbursement and retry (approvals=%s)', async approvals => {
@@ -76,26 +76,27 @@ describe('company expense lifecycle scenarios', () => {
   // BUG: reimbursement rejects approved claims as UNKNOWN_MEMBER after employment ends.
   it.fails('ended employee approved claim stays visible to owner and manager and can be paid',async()=>{
     const f=await fixture(true), id=await create(f,2,90); await act(f,1,()=>transition(id,'approved',1));
-    await act(f,0,()=>db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)',[f.groupId,f.memberIds[2],'2026-10-31','left']));
+    await act(f,0,()=>db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)',[f.groupId,f.memberIds[2]!,'2026-10-31','left']));
     for(const n of [0,1]) { const visible=await act(f,n,()=>db.query('SELECT id FROM company_entries WHERE id=$1',[id])); expect(visible.rowCount).toBe(1); }
     await act(f,0,()=>pay(f,id,2,90)); expect((await row(id)).status).toBe('reimbursed');
   });
 
   it('removed user historical reads remain self scoped and writes fail',async()=>{
     const f=await fixture(false), own=await create(f,2,50), other=await create(f,4,75);
-    await act(f,0,()=>db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)',[f.groupId,f.memberIds[2],'2026-10-31','left']));
+    await act(f,0,()=>db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)',[f.groupId,f.memberIds[2]!,'2026-10-31','left']));
     // waves_company_detail permits the employee to read their own history only while they are an active member.
     const mine=await act(f,2,()=>db.query('SELECT id FROM company_entries WHERE group_id=$1',[f.groupId])); expect(mine.rows.map(x=>x.id)).toEqual([]);
     expect(await act(f,2,()=>db.query('SELECT id FROM company_entries WHERE id=$1',[other]))).toMatchObject({rowCount:0});
     expect(await act(f,2,()=>db.query('SELECT id FROM groups WHERE id=$1',[f.groupId]))).toMatchObject({rowCount:0});
-    for(const write of [()=>create(f,2,10),()=>update(own,60),()=>transition(own,'rejected',1),()=>db.query("SELECT waves_company_entry_void($1,'x')",[own])]) expect(await expectDenied(act(f,2,write))).toBeTruthy();
+    const writes: Array<() => Promise<unknown>> = [() => create(f,2,10), () => update(own,60), () => transition(own,'rejected',1), () => db.query("SELECT waves_company_entry_void($1,'x')",[own])];
+    for (const write of writes) expect(await expectDenied(act(f,2,write))).toBeTruthy();
   });
 
   it.each(['company summary','members list','other company entries','other company summary'])(
     'removed user cannot read %s', async scope => {
       const f=await fixture(), other=await fixture(), own=await create(f,2,44);
       await create(f,4,88);
-      await act(f,0,()=>db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)',[f.groupId,f.memberIds[2],'2026-10-31','left']));
+      await act(f,0,()=>db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)',[f.groupId,f.memberIds[2]!,'2026-10-31','left']));
       const query=scope==='company summary' ? ['SELECT id FROM groups WHERE id=$1',[f.groupId]]
         : scope==='members list' ? ['SELECT id FROM group_members WHERE group_id=$1',[f.groupId]]
         : scope==='other company entries' ? ['SELECT id FROM company_entries WHERE group_id=$1',[other.groupId]]
@@ -107,8 +108,8 @@ describe('company expense lifecycle scenarios', () => {
   it.each(['create','update','void','transition'])(
     'removed employee write RPC %s is denied', async operation => {
       const f=await fixture(), id=await create(f,2,44);
-      await act(f,0,()=>db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)',[f.groupId,f.memberIds[2],'2026-10-31','left']));
-      const run=operation==='create' ? ()=>create(f,2,10) : operation==='update' ? ()=>update(id,55) : operation==='void' ? ()=>db.query("SELECT waves_company_entry_void($1,'x')",[id]) : ()=>transition(id,'rejected',1);
+      await act(f,0,()=>db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)',[f.groupId,f.memberIds[2]!,'2026-10-31','left']));
+      const run: () => Promise<unknown> = operation==='create' ? ()=>create(f,2,10) : operation==='update' ? ()=>update(id,55) : operation==='void' ? ()=>db.query("SELECT waves_company_entry_void($1,'x')",[id]) : ()=>transition(id,'rejected',1);
       expect(await expectDenied(act(f,2,run))).toBeTruthy();
     });
 

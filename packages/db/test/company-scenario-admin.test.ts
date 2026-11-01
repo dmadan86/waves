@@ -67,11 +67,11 @@ const unblock = (reason = 'Resolved') =>
   admin(() => db.query("SELECT waves_admin_company_unblock($1,$2)", [g.groupId, reason]));
 
 const expense = (i: number) =>
-  as(g.profileIds[i], () =>
+  as(g.profileIds[i]!, () =>
     db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
       g.groupId,
       randomUUID(),
-      g.memberIds[i],
+      g.memberIds[i]!,
       'expense',
       JSON.stringify({ amount: '100', occurredOn: today }),
     ]),
@@ -85,19 +85,19 @@ beforeAll(async () => {
   g.groupId = randomUUID();
   await db.query(
     "INSERT INTO groups(id,name,type,default_currency,country_code,created_by) VALUES($1,'Acme Works','company','INR','IN',$2)",
-    [g.groupId, g.profileIds[0]],
+    [g.groupId, g.profileIds[0]!],
   );
   const roles = ['admin', 'manager', 'member', 'vendor'];
   for (let i = 0; i < 4; i++) {
     await db.query(
       'INSERT INTO group_members(id,group_id,profile_id,role,manager_id) VALUES($1,$2,$3,$4,$5)',
-      [g.memberIds[i], g.groupId, g.profileIds[i], roles[i], i === 2 ? g.memberIds[1] : null],
+      [g.memberIds[i]!, g.groupId, g.profileIds[i]!, roles[i], i === 2 ? g.memberIds[1]! : null],
     );
   }
 
   // Seed a vendor (can't use as() here because SAVEPOINT requires a transaction)
   await db.query("SELECT set_config('request.jwt.claims',$1,false)", [
-    JSON.stringify({ sub: g.profileIds[0], role: 'authenticated' }),
+    JSON.stringify({ sub: g.profileIds[0]!, role: 'authenticated' }),
   ]);
   await db.query('SET ROLE authenticated');
   await db.query('SELECT waves_company_vendor_set($1,$2,$3)', [
@@ -107,7 +107,7 @@ beforeAll(async () => {
   ]);
   await db.query('RESET ROLE');
   await db.query("SELECT set_config('request.jwt.claims','',false)");
-  await db.query('UPDATE company_vendors SET member_id=$1 WHERE id=$2', [g.memberIds[3], vendorId]);
+  await db.query('UPDATE company_vendors SET member_id=$1 WHERE id=$2', [g.memberIds[3]!, vendorId]);
 });
 
 afterAll(async () => {
@@ -122,12 +122,12 @@ describe('G42: admin RPCs – block, unblock, export, records, complaint', () =>
     isolated(async () => {
       for (let i = 0; i < 4; i++) {
         await denied(
-          () => as(g.profileIds[i], () => db.query('SELECT waves_admin_companies()')),
+          () => as(g.profileIds[i]!, () => db.query('SELECT waves_admin_companies()')),
           /permission denied/,
         );
         await denied(
           () =>
-            as(g.profileIds[i], () =>
+            as(g.profileIds[i]!, () =>
               db.query("SELECT waves_admin_company_block($1,'other','x')", [g.groupId]),
             ),
           /permission denied/,
@@ -170,7 +170,7 @@ describe('G42: admin RPCs – block, unblock, export, records, complaint', () =>
   it('admin detail shows complaint body but omits reporter profile_id', () =>
     isolated(async () => {
       await db.query("DELETE FROM rate_limit_hits WHERE bucket='company-report'");
-      await as(g.profileIds[2], () =>
+      await as(g.profileIds[2]!, () =>
         db.query("SELECT waves_company_report($1,'wages','They owe me')", [g.groupId]),
       );
       const detail = await admin(
@@ -234,7 +234,7 @@ describe('G43: moderation – rate limits, reports, blocked state', () => {
     isolated(async () => {
       await db.query("DELETE FROM rate_limit_hits WHERE bucket='company-report'");
       const r0 = await as(
-        g.profileIds[0],
+        g.profileIds[0]!,
         async () =>
           (
             await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId])
@@ -243,7 +243,7 @@ describe('G43: moderation – rate limits, reports, blocked state', () => {
       expect(r0.ok).toBe(true);
 
       const r3 = await as(
-        g.profileIds[3],
+        g.profileIds[3]!,
         async () =>
           (
             await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId])
@@ -271,12 +271,12 @@ describe('G43: moderation – rate limits, reports, blocked state', () => {
     isolated(async () => {
       await db.query("DELETE FROM rate_limit_hits WHERE bucket='company-report'");
       for (let i = 0; i < 5; i++) {
-        await as(g.profileIds[2], () =>
+        await as(g.profileIds[2]!, () =>
           db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId]),
         );
       }
       const limited = await as(
-        g.profileIds[2],
+        g.profileIds[2]!,
         async () =>
           (
             await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId])
@@ -286,7 +286,7 @@ describe('G43: moderation – rate limits, reports, blocked state', () => {
 
       // Other person is not rate-limited
       const other = await as(
-        g.profileIds[1],
+        g.profileIds[1]!,
         async () =>
           (
             await db.query("SELECT waves_company_report($1,'wages','Not paid') AS r", [g.groupId])
@@ -304,7 +304,7 @@ describe('G43: moderation – rate limits, reports, blocked state', () => {
       // Members can still report even when blocked
       await db.query("DELETE FROM rate_limit_hits WHERE bucket='company-report'");
       const r = await as(
-        g.profileIds[2],
+        g.profileIds[2]!,
         async () =>
           (
             await db.query("SELECT waves_company_report($1,'wages','Still unpaid') AS r", [

@@ -21,7 +21,7 @@ async function user<T>(i: number, run: () => Promise<T>): Promise<T> {
   await db.query('SAVEPOINT actor_scope');
   try {
     await db.query("SELECT set_config('request.jwt.claims',$1,true)", [
-      JSON.stringify({ sub: g.profileIds[i], role: 'authenticated' }),
+      JSON.stringify({ sub: g.profileIds[i]!, role: 'authenticated' }),
     ]);
     await db.query('SET LOCAL ROLE authenticated');
     return await run();
@@ -82,7 +82,7 @@ const setTask = (
     db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,$7,NULL,$8)', [
       g.groupId,
       id,
-      g.memberIds[member],
+      g.memberIds[member]!,
       extra.day ?? today,
       extra.title ?? 'Fix the gate',
       status,
@@ -109,13 +109,13 @@ beforeAll(async () => {
   g.groupId = randomUUID();
   await db.query(
     "INSERT INTO groups(id,type,default_currency,country_code,created_by) VALUES($1,'company','INR','IN',$2)",
-    [g.groupId, g.profileIds[0]],
+    [g.groupId, g.profileIds[0]!],
   );
   const roles = ['admin', 'manager', 'member', 'member', 'manager'];
   for (let i = 0; i < 5; i++) {
     await db.query(
       'INSERT INTO group_members(id,group_id,profile_id,role,manager_id) VALUES($1,$2,$3,$4,$5)',
-      [g.memberIds[i], g.groupId, g.profileIds[i], roles[i], i === 2 ? g.memberIds[1] : null],
+      [g.memberIds[i]!, g.groupId, g.profileIds[i]!, roles[i], i === 2 ? g.memberIds[1]! : null],
     );
   }
 
@@ -124,12 +124,12 @@ beforeAll(async () => {
   b.groupId = randomUUID();
   await db.query(
     "INSERT INTO groups(id,type,default_currency,country_code,created_by) VALUES($1,'company','INR','IN',$2)",
-    [b.groupId, b.profileIds[0]],
+    [b.groupId, b.profileIds[0]!],
   );
   for (let i = 0; i < 2; i++) {
     await db.query(
       'INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)',
-      [b.memberIds[i], b.groupId, b.profileIds[i], i === 0 ? 'admin' : 'member'],
+      [b.memberIds[i]!, b.groupId, b.profileIds[i]!, i === 0 ? 'admin' : 'member'],
     );
   }
 });
@@ -228,15 +228,15 @@ describe('G25: per-company seq_no is monotonic and cannot be edited', () => {
 
     await db.query(
       'INSERT INTO company_work_tasks(id,group_id,member_id,day,title,created_by) VALUES($1,$2,$3,$4,$5,$3)',
-      [taskA1, g.groupId, g.memberIds[0], today, 'Task A1'],
+      [taskA1, g.groupId, g.memberIds[0]!, today, 'Task A1'],
     );
     await db.query(
       'INSERT INTO company_work_tasks(id,group_id,member_id,day,title,created_by) VALUES($1,$2,$3,$4,$5,$3)',
-      [taskA2, g.groupId, g.memberIds[0], today, 'Task A2'],
+      [taskA2, g.groupId, g.memberIds[0]!, today, 'Task A2'],
     );
     await db.query(
       'INSERT INTO company_work_tasks(id,group_id,member_id,day,title,created_by) VALUES($1,$2,$3,$4,$5,$3)',
-      [taskB1, b.groupId, b.memberIds[0], today, 'Task B1'],
+      [taskB1, b.groupId, b.memberIds[0]!, today, 'Task B1'],
     );
 
     const rows = await db.query(
@@ -247,14 +247,14 @@ describe('G25: per-company seq_no is monotonic and cannot be edited', () => {
       .filter((r: { id: string }) => r.id === taskA1 || r.id === taskA2)
       .map((r: { seq: number }) => r.seq)
       .sort((a: number, b: number) => a - b);
-    expect(aSeqs[1] - aSeqs[0]).toBe(1);
+    expect(aSeqs[1]! - aSeqs[0]!).toBe(1);
 
     // Delete one and insert another; new seq must be higher
     await db.query('UPDATE company_work_tasks SET deleted_at=now() WHERE id=$1', [taskA2]);
     const taskA3 = randomUUID();
     await db.query(
       'INSERT INTO company_work_tasks(id,group_id,member_id,day,title,created_by) VALUES($1,$2,$3,$4,$5,$3)',
-      [taskA3, g.groupId, g.memberIds[0], today, 'Task A3'],
+      [taskA3, g.groupId, g.memberIds[0]!, today, 'Task A3'],
     );
     const newSeq = (
       await db.query('SELECT seq FROM company_work_tasks WHERE id=$1', [taskA3])
@@ -266,7 +266,7 @@ describe('G25: per-company seq_no is monotonic and cannot be edited', () => {
     const id = randomUUID();
     await db.query(
       'INSERT INTO company_work_tasks(id,group_id,member_id,day,title,created_by) VALUES($1,$2,$3,$4,$5,$3)',
-      [id, g.groupId, g.memberIds[0], today, 'Seq test'],
+      [id, g.groupId, g.memberIds[0]!, today, 'Seq test'],
     );
     const orig = (
       await db.query('SELECT seq FROM company_work_tasks WHERE id=$1', [id])
@@ -287,7 +287,7 @@ describe('G26: removed employee loses task visibility and write access', () => {
     isolated(async () => {
       const id = randomUUID();
       await setTask(1, 2, id, 'todo');
-      await db.query('UPDATE group_members SET left_at=now() WHERE id=$1', [g.memberIds[2]]);
+      await db.query('UPDATE group_members SET left_at=now() WHERE id=$1', [g.memberIds[2]!]);
 
       const ownerSees = await seenTaskIds(0);
       expect(ownerSees).toContain(id);
@@ -304,7 +304,7 @@ describe('G26: removed employee loses task visibility and write access', () => {
     isolated(async () => {
       const id = randomUUID();
       await setTask(1, 2, id, 'todo');
-      await db.query('UPDATE group_members SET left_at=now() WHERE id=$1', [g.memberIds[2]]);
+      await db.query('UPDATE group_members SET left_at=now() WHERE id=$1', [g.memberIds[2]!]);
       await denied(() => setTask(2, 2, id, 'doing'));
     }));
 });
@@ -317,7 +317,7 @@ describe('G27: cross-company task isolation', () => {
     isolated(async () => {
       const id = randomUUID();
       await setTask(0, 2, id, 'todo');
-      const seen = await asId(b.profileIds[0], async () =>
+      const seen = await asId(b.profileIds[0]!, async () =>
         (await db.query('SELECT id FROM company_work_tasks WHERE id=$1', [id])).rows,
       );
       expect(seen).toHaveLength(0);
@@ -330,7 +330,7 @@ describe('G27: cross-company task isolation', () => {
       await db.query('SAVEPOINT xcompany');
       try {
         await expectDenied(
-          asId(b.profileIds[0], () =>
+          asId(b.profileIds[0]!, () =>
             db.query('SELECT waves_company_work_remove($1,$2)', [g.groupId, id]),
           ),
         );
@@ -356,7 +356,7 @@ describe('G28: due-time compat – task retains due_time when employee uses 9-ar
         db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,NULL,NULL,$7)', [
           g.groupId,
           id,
-          g.memberIds[2],
+          g.memberIds[2]!,
           today,
           'Finish by 5',
           'todo',
@@ -368,7 +368,7 @@ describe('G28: due-time compat – task retains due_time when employee uses 9-ar
         db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,NULL,NULL)', [
           g.groupId,
           id,
-          g.memberIds[2],
+          g.memberIds[2]!,
           today,
           'Finish by 5',
           'doing',
@@ -391,7 +391,7 @@ describe('G28: due-time compat – task retains due_time when employee uses 9-ar
           db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,NULL,NULL,NULL)', [
             g.groupId,
             id,
-            g.memberIds[3],
+            g.memberIds[3]!,
             today,
             'Fix the gate',
             'todo',
@@ -403,7 +403,7 @@ describe('G28: due-time compat – task retains due_time when employee uses 9-ar
         db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,NULL,NULL,NULL)', [
           g.groupId,
           id,
-          g.memberIds[3],
+          g.memberIds[3]!,
           today,
           'Fix the gate',
           'todo',
@@ -412,6 +412,6 @@ describe('G28: due-time compat – task retains due_time when employee uses 9-ar
       const row = (
         await db.query('SELECT member_id FROM company_work_tasks WHERE id=$1', [id])
       ).rows[0];
-      expect(row.member_id).toBe(g.memberIds[3]);
+      expect(row.member_id).toBe(g.memberIds[3]!);
     }));
 });
