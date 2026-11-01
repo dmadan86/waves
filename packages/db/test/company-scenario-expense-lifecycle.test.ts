@@ -39,7 +39,7 @@ const update = (id:string, amount:number) => db.query("SELECT waves_company_entr
 const transition = (id:string,to:string,version=1) => db.query('SELECT waves_company_entry_transition($1,$2,NULL,$3)',[id,to,version]);
 const row = async(id:string) => (await db.query('SELECT * FROM company_entries WHERE id=$1',[id])).rows[0];
 const summary = async(f:F) => db.query("SELECT COALESCE(sum(amount) FILTER(WHERE status='approved' AND entry_kind='expense'),0)::text approved, COALESCE(sum(amount) FILTER(WHERE status='reimbursed'),0)::text reimbursed FROM company_entries WHERE group_id=$1 AND deleted_at IS NULL",[f.groupId]);
-const pay = (f:F,id:string,member:number,amount:number) => db.query('SELECT waves_company_reimburse($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7,$8,$9)',[f.groupId,randomUUID(),f.memberIds[member],JSON.stringify([{entryId:id,expectedVersion:(amount,1)}]),'[]','2026-10-31','2026-11-01',String(amount),null]);
+const pay = (f:F,id:string,member:number,amount:number,reimbursementId=randomUUID()) => db.query('SELECT waves_company_reimburse($1,$2,$3,$4::jsonb,$5::jsonb,$6,$7,$8,$9)',[f.groupId,reimbursementId,f.memberIds[member],JSON.stringify([{entryId:id,expectedVersion:(amount,1)}]),'[]','2026-10-31','2026-11-01',String(amount),null]);
 
 describe('company expense lifecycle scenarios', () => {
   it.each([true,false])('employee edit, review, owner reimbursement and retry (approvals=%s)', async approvals => {
@@ -48,11 +48,17 @@ describe('company expense lifecycle scenarios', () => {
     await act(f,2,()=>update(id,175)); expect((await row(id)).amount).toBe('175');
     if(approvals) { await act(f,1,()=>transition(id,'approved',2)); expect((await row(id)).status).toBe('approved'); }
     expect((await summary(f)).rows[0].approved).toBe('175');
-    await act(f,0,()=>pay(f,id,2,175)); expect((await row(id)).status).toBe('reimbursed');
+    const reimbursementId=randomUUID();
+    const firstPayment=await act(f,0,()=>pay(f,id,2,175,reimbursementId));
+    expect(firstPayment.rows[0].waves_company_reimburse).toBe(reimbursementId);
+    expect((await row(id)).status).toBe('reimbursed');
     expect((await row(id)).amount).toBe('175'); expect((await summary(f)).rows[0].reimbursed).toBe('175');
     const count=(await db.query('SELECT count(*)::int n FROM company_entries WHERE reimbursement_id IS NOT NULL AND group_id=$1',[f.groupId])).rows[0].n;
-    await act(f,0,()=>pay(f,id,2,175));
+    const retry=await act(f,0,()=>pay(f,id,2,175,reimbursementId));
+    expect(retry.rows[0].waves_company_reimburse).toBe(reimbursementId);
+    expect(retry.rows[0].waves_company_reimburse).toBe(firstPayment.rows[0].waves_company_reimburse);
     expect((await db.query('SELECT count(*)::int n FROM company_entries WHERE reimbursement_id IS NOT NULL AND group_id=$1',[f.groupId])).rows[0].n).toBe(count);
+    expect((await summary(f)).rows[0].reimbursed).toBe('175');
   });
 
   it('manager-owner reviews managed and own expense with separate owner and team scopes', async()=>{
