@@ -5,23 +5,16 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 import { clientCounts, filterClients, type ClientFilter } from '@waves/core';
 import { iconSize, Row, Screen, Text, useTheme } from '@waves/ui';
 
-import { useMoney } from '@/components/company/dashboard/parts';
+import { DashBody, DashHeader, IconButton, useMoney } from '@/components/company/dashboard/parts';
 import { StageChip } from '@/components/company/clients/parts';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { type MenuAnchor } from '@/components/SortMenu';
-import {
-  ListRow,
-  ScenicBody,
-  ScenicHeader,
-  SegmentedPills,
-  StandardCard,
-} from '@/components/standard';
+import { ListRow, SegmentedPills, StandardCard } from '@/components/standard';
 import { useClientMoney, useCompanyClients, useFollowUps } from '@/data/companyClients';
-import { useCompanySuspended } from '@/data/companyEntries';
+import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { companyOverviewRoute } from '@/lib/companyTab';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { router } from '@/lib/navigation';
 
@@ -35,6 +28,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const clearance = useBottomClearance();
   const view = useCompanyClients(groupId);
   const suspended = useCompanySuspended(groupId);
+  const entries = useCompanyEntries(groupId);
   const money = useClientMoney(groupId);
   const followUps = useFollowUps(groupId);
   const fmt = useMoney(view.currency);
@@ -115,32 +109,24 @@ export function ClientsList({ groupId }: { groupId: string }) {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: clearance + theme.spacing.lg }}
       >
-        <ScenicHeader
-          title={s.title}
-          subtitle={s.subtitle}
-          titleAlign="start"
-          onBack={() => router.replace(companyOverviewRoute(groupId, 'back') as never)}
-          action={
+        <DashHeader
+          tab
+          groupId={groupId}
+          view={entries}
+          subtitle=""
+          showGear={entries.isOwner}
+          actions={
             canAdd ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={s.newInquiry}
+              <IconButton
+                round
+                icon="add"
+                label={s.newInquiry}
                 onPress={() => router.push(`/group/${groupId}/company-client-add`)}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.color.brand,
-                }}
-              >
-                <Ionicons name="add" size={iconSize.xxl} color="#FFFFFF" />
-              </Pressable>
+              />
             ) : undefined
           }
         />
-        <ScenicBody>
+        <DashBody>
           <Row style={{ gap: theme.spacing.sm }}>
             {stats.map((x) => (
               <Pressable
@@ -319,7 +305,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
               );
             })
           )}
-        </ScenicBody>
+        </DashBody>
       </ScrollView>
       <OverflowMenu
         visible={sortOpen}
