@@ -68,6 +68,14 @@ export function CompanyMore({ groupId }: { groupId: string }) {
         />
         {view.isOwner ? (
           <ListRow
+            leading={lead('cloud-outline')}
+            title={t.companyStorage.title}
+            onPress={() => router.push(`/group/${groupId}/company-storage`)}
+            divider
+          />
+        ) : null}
+        {view.isOwner ? (
+          <ListRow
             leading={lead('settings-outline')}
             title={t.company.companySettings}
             onPress={() => router.push(`/group/${groupId}/settings`)}

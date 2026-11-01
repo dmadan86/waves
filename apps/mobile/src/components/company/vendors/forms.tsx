@@ -13,7 +13,8 @@ import { attachVendorPhoto, useAddVendorLine, useSetVendor } from '@/data/compan
 import { todayIso } from '@/data/personal';
 import { useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
-import { friendlyError } from '@/lib/errors';
+import { StorageCapError } from '@/lib/storage';
+import { companyPhotoError } from '@/data/companyStorage';
 import { captureReceipt, pickAlbumPhoto, type PickedImage } from '@/lib/image';
 import { useSync } from '@/sync';
 
@@ -135,7 +136,7 @@ export function VendorLineForm({
   const { notify } = useDialog();
   const photoError = (error: unknown): void => {
     void notify({
-      title: friendlyError(error, t.company.photoFailed, 'vendor.photo.add'),
+      title: companyPhotoError(error, t, 'vendor.photo.add'),
       tone: 'danger',
     });
   };
@@ -163,6 +164,7 @@ export function VendorLineForm({
         await attachVendorPhoto(groupId, lineId, photo);
       } catch (error) {
         photoError(error);
+        if (error instanceof StorageCapError) break;
       }
     }
     await flush([groupId]).catch(photoError);

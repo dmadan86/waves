@@ -21,7 +21,7 @@ import { PillButton } from '@/components/standard';
 import { useAddCompanyPhoto, useCompanyPhotos, useRemoveCompanyPhoto } from '@/data/companyEntries';
 import { useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
-import { friendlyError } from '@/lib/errors';
+import { companyPhotoError } from '@/data/companyStorage';
 import { restrictedImageUrl } from '@/lib/storage';
 
 const THUMB = 64;
@@ -68,7 +68,7 @@ export function CompanyEntryPhotos({
     add.mutate(source, {
       onError: (caught) => {
         void notify({
-          title: friendlyError(caught, t.company.photoFailed, 'company.photo.add'),
+          title: companyPhotoError(caught, t, 'company.photo.add'),
           tone: 'danger',
         });
       },
