@@ -250,6 +250,13 @@ export async function loadCompanyStoragePacks(): Promise<PurchasesStoreProduct[]
   }
 }
 
+/** True while this store account has a pack subscription running (for some company). */
+export function hasActiveCompanyStoragePack(): boolean {
+  return (snapshot.info?.activeSubscriptions ?? []).some((id) =>
+    (COMPANY_STORAGE_PACK_IDS as readonly string[]).includes(id.split(':')[0]!),
+  );
+}
+
 /**
  * Buy a pack for one company. The company id travels as a subscriber attribute, which
  * revenuecat-webhook reads to set that company's quota. One pack per company: on Android a

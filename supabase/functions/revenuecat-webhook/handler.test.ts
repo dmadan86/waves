@@ -513,4 +513,24 @@ describe('company storage packs', () => {
       p_action: { kind: 'company_storage', group_id: 'g-1', pack_bytes: 5 * 1024 ** 3 },
     });
   });
+
+  it('passes a product change with the new company attribute; the database keeps the bound company', async () => {
+    const { deps, rpc } = makeDeps();
+    await handleRevenueCatWebhook(
+      request(
+        rcEvent('PRODUCT_CHANGE', {
+          product_id: 'waves_company_storage_1gb',
+          new_product_id: 'waves_company_storage_5gb',
+          entitlement_ids: null,
+          subscriber_attributes: { company_group_id: { value: 'g-B' } },
+        }),
+      ),
+      deps,
+    );
+    const [name, args] = rpc.mock.calls[0]!;
+    expect(name).toBe('waves_company_storage_pack_apply');
+    expect(args).toMatchObject({
+      p_action: { group_id: 'g-B', pack_bytes: 5 * 1024 ** 3, store_txn_id: expect.any(String) },
+    });
+  });
 });

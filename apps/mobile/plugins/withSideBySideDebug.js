@@ -35,6 +35,12 @@
  * Check attestation is refused by the server. What changes is that the app now
  * starts.
  *
+ * The same goes for the `preview` build type: a release build (minified, bundled
+ * JS, release signing) under `<package>.preview`, labelled "Waves test", so a test
+ * build can sit next to the one installed from the Play Store instead of replacing
+ * it. Build it with `./gradlew assemblePreview`. Purchases never work in it: Play
+ * only bills the application id it publishes.
+ *
  * To give the debug build push as well: add an Android app for `<package>.debug`
  * in the Firebase console and download the regenerated `google-services.json`
  * (it carries both clients) — the file written here is then redundant, and this
@@ -52,6 +58,24 @@ const DEBUG_LABEL = 'Waves dev';
 
 /** The suffix, in one place: the gradle patch and the config rewrite must agree. */
 const SUFFIX = '.debug';
+
+const PREVIEW_LABEL = 'Waves test';
+const PREVIEW_SUFFIX = '.preview';
+
+/** Appended after the main `android {}` block so `initWith release` copies a finished release. */
+const PREVIEW_BUILD_TYPE = `
+// ${MARKER} — see apps/mobile/plugins/withSideBySideDebug.js
+android {
+    buildTypes {
+        preview {
+            initWith release
+            applicationIdSuffix '.preview'
+            versionNameSuffix '-preview'
+            matchingFallbacks = ['release']
+        }
+    }
+}
+`;
 
 const DEBUG_BUILD_TYPE = `        debug {
             signingConfig signingConfigs.debug`;
@@ -93,45 +117,50 @@ module.exports = function withSideBySideDebug(config) {
     if (!contents.includes(anchor)) {
       throw new Error('withSideBySideDebug: could not find the debug buildType in build.gradle');
     }
-    gradleConfig.modResults.contents = contents.replace(anchor, DEBUG_BUILD_TYPE_PATCHED);
+    gradleConfig.modResults.contents =
+      contents.replace(anchor, DEBUG_BUILD_TYPE_PATCHED) + PREVIEW_BUILD_TYPE;
     return gradleConfig;
   });
 
-  // Both files live in the debug source set rather than in `main`, where they
-  // would change the release build too. A resource or a config defined in a
+  // Both files live in the debug / preview source sets rather than in `main`,
+  // where they would change the release build too. A resource or a config defined in a
   // build type's source set replaces the one in `main` for that variant only.
   return withDangerousMod(withGradle, [
     'android',
     (modConfig) => {
-      const debugSrc = join(modConfig.modRequest.platformProjectRoot, 'app', 'src', 'debug');
-
-      const values = join(debugSrc, 'res', 'values');
-      mkdirSync(values, { recursive: true });
-      writeFileSync(
-        join(values, 'strings.xml'),
-        `<resources>\n  <string name="app_name">${DEBUG_LABEL}</string>\n</resources>\n`,
-        'utf8',
-      );
-
       const source = sourceGoogleServices(modConfig.modRequest.projectRoot);
       const appId = modConfig.android?.package;
-      if (source && appId) {
-        // Rewritten by walking the parsed object rather than replacing text: the
-        // package name appears in `client_info` for each client, and a blind
-        // string replace would also hit an `oauth_client` entry that names the
-        // same package with a *different* signing certificate, which is a
-        // credential rather than an id.
-        const services = JSON.parse(readFileSync(source, 'utf8'));
-        for (const client of services.client ?? []) {
-          const info = client.client_info?.android_client_info;
-          if (info?.package_name === appId) info.package_name = `${appId}${SUFFIX}`;
-        }
-        mkdirSync(debugSrc, { recursive: true });
+      for (const [variant, label, suffix] of [
+        ['debug', DEBUG_LABEL, SUFFIX],
+        ['preview', PREVIEW_LABEL, PREVIEW_SUFFIX],
+      ]) {
+        const src = join(modConfig.modRequest.platformProjectRoot, 'app', 'src', variant);
+
+        const values = join(src, 'res', 'values');
+        mkdirSync(values, { recursive: true });
         writeFileSync(
-          join(debugSrc, 'google-services.json'),
-          `${JSON.stringify(services, null, 2)}\n`,
+          join(values, 'strings.xml'),
+          `<resources>\n  <string name="app_name">${label}</string>\n</resources>\n`,
           'utf8',
         );
+
+        if (source && appId) {
+          // Rewritten by walking the parsed object rather than replacing text: the
+          // package name appears in `client_info` for each client, and a blind
+          // string replace would also hit an `oauth_client` entry that names the
+          // same package with a *different* signing certificate, which is a
+          // credential rather than an id.
+          const services = JSON.parse(readFileSync(source, 'utf8'));
+          for (const client of services.client ?? []) {
+            const info = client.client_info?.android_client_info;
+            if (info?.package_name === appId) info.package_name = `${appId}${suffix}`;
+          }
+          writeFileSync(
+            join(src, 'google-services.json'),
+            `${JSON.stringify(services, null, 2)}\n`,
+            'utf8',
+          );
+        }
       }
 
       return modConfig;
