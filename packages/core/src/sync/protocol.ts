@@ -103,6 +103,10 @@ export enum MutationKind {
   CompanyVendorEntryReview = 'company_vendor_entry.review',
   CompanyVendorEntryVoid = 'company_vendor_entry.void',
   CompanyVendorEntryReceived = 'company_vendor_entry.received',
+  // Clients and inquiries (one record with a stage); notes are append-only text.
+  CompanyClientSet = 'company_client.set',
+  CompanyClientRemove = 'company_client.remove',
+  CompanyClientNoteAdd = 'company_client_note.add',
   // Details card (contact + bank), one per side. Owner sets the company's; owner, owning manager or the vendor set a vendor's.
   CompanyDetailsSet = 'company_details.set',
   CompanyVendorDetailsSet = 'company_vendor_details.set',
@@ -595,6 +599,8 @@ export interface CompanyWorkSetPayload {
   readonly note: string | null;
   /** Optional time of day, 'HH:MM'. */
   readonly dueTime?: string | null;
+  /** The client this task follows up. Absent keeps the saved link; null clears it. */
+  readonly clientId?: string | null;
 }
 
 export interface CompanyWorkRemovePayload {
@@ -695,7 +701,32 @@ export interface CompanyDocSavePayload {
     }[];
     readonly discountMinor: string;
     readonly notes: string | null;
+    /** The client this document is for. Absent keeps the saved link; null clears it. */
+    readonly clientId?: string | null;
   };
+}
+export type ClientStage = 'inquiry' | 'quoted' | 'client' | 'lost';
+export type ClientSource = 'walk_in' | 'call' | 'whatsapp' | 'referral' | 'other';
+/** Create or edit a client. The whole record travels each time; money as a decimal string. */
+export interface CompanyClientSetPayload {
+  readonly clientId: string;
+  readonly name: string;
+  readonly phone: string | null;
+  readonly need: string | null;
+  readonly source: ClientSource;
+  readonly expectedValueMinor: string | null;
+  readonly address: string | null;
+  readonly stage: ClientStage;
+  readonly lostReason: string | null;
+  readonly ownerMemberId: string | null;
+}
+export interface CompanyClientRemovePayload {
+  readonly clientId: string;
+}
+export interface CompanyClientNoteAddPayload {
+  readonly noteId: string;
+  readonly clientId: string;
+  readonly body: string;
 }
 export interface CompanyDocStatusPayload {
   readonly docId: string;
@@ -959,6 +990,9 @@ export enum SyncTable {
   CompanyVendorDetails = 'company_vendor_details',
   /** Group-scoped, pull-only: estimates and bills; owners see all, a manager only their own (RLS). */
   CompanyDocuments = 'company_documents',
+  /** Group-scoped, pull-only: clients and their notes; owner and manager all, an employee only theirs (RLS). */
+  CompanyClients = 'company_clients',
+  CompanyClientNotes = 'company_client_notes',
   /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
   CompanyAttendance = 'company_attendance',
   CompanyWorkTasks = 'company_work_tasks',

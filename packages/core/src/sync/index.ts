@@ -7,4 +7,5 @@ export * from './lww';
 export * from './refusal';
 export * from './refusalConvert';
 export * from './vendorMirror';
+export * from './clientMirror';
 export * from './detailsMirror';

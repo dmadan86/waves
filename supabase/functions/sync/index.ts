@@ -123,6 +123,9 @@ type MutationKind =
   | 'company_vendor_entry.review'
   | 'company_vendor_entry.void'
   | 'company_vendor_entry.received'
+  | 'company_client.set'
+  | 'company_client.remove'
+  | 'company_client_note.add'
   | 'company_details.set'
   | 'company_vendor_details.set'
   | 'company_doc.save'
@@ -372,6 +375,9 @@ const GROUP_TABLES = [
   ['company_vendor_details', '*'],
   // Estimates and bills: RLS gives an owner all, a manager only the ones they created, others none.
   ['company_documents', '*'],
+  // Clients and notes: owner and manager all, an employee only the ones assigned to them (RLS).
+  ['company_clients', '*'],
+  ['company_client_notes', '*'],
   // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
   ['company_attendance', '*'],
   ['company_work_tasks', '*'],
@@ -1084,9 +1090,15 @@ export class SyncSession {
           p_blocked_reason: companyReason(mutation.payload.blockedReason, 'blockedReason', false),
           p_note: companyReason(mutation.payload.note, 'note', false),
           // An older client omits dueTime: leave it out so the 9-argument wrapper keeps the saved time.
-          ...(mutation.payload.dueTime === undefined
-            ? {}
-            : { p_due_time: companyTime(mutation.payload.dueTime) }),
+          // clientId names the 11-argument form, which has no default for the time: keep the sent one.
+          ...(mutation.payload.clientId === undefined
+            ? mutation.payload.dueTime === undefined
+              ? {}
+              : { p_due_time: companyTime(mutation.payload.dueTime) }
+            : {
+                p_due_time: companyTime(mutation.payload.dueTime ?? null),
+                p_client_id: companyUuid(mutation.payload.clientId, 'clientId', true),
+              }),
         });
       }
       case 'company_work.remove':
@@ -1308,6 +1320,52 @@ export class SyncSession {
           p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
           p_received: mutation.payload.received,
         });
+      case 'company_client.set': {
+        const source = mutation.payload.source;
+        const stage = mutation.payload.stage;
+        if (!['walk_in', 'call', 'whatsapp', 'referral', 'other'].includes(source as string))
+          companyInvalid('source');
+        if (!['inquiry', 'quoted', 'client', 'lost'].includes(stage as string))
+          companyInvalid('stage');
+        return await this.rpcAsCaller('waves_company_client_set', {
+          p_group_id: mutation.groupId,
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+          p_data: {
+            name: companyReason(mutation.payload.name, 'name', true),
+            phone: companyReason(mutation.payload.phone ?? null, 'phone', false),
+            need: companyReason(mutation.payload.need ?? null, 'need', false),
+            source,
+            expectedValue: companyDecimal(
+              mutation.payload.expectedValueMinor ?? null,
+              'expectedValueMinor',
+              true,
+            ),
+            address: companyReason(mutation.payload.address ?? null, 'address', false),
+            stage,
+            lostReason: companyReason(mutation.payload.lostReason ?? null, 'lostReason', false),
+            ownerMemberId: companyUuid(
+              mutation.payload.ownerMemberId ?? null,
+              'ownerMemberId',
+              true,
+            ),
+          },
+        });
+      }
+      case 'company_client.remove':
+        return await this.rpcAsCaller('waves_company_client_remove', {
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+        });
+      case 'company_client_note.add': {
+        const body = mutation.payload.body;
+        if (typeof body !== 'string' || !body.trim() || body.trim().length > 1000)
+          companyInvalid('body');
+        return await this.rpcAsCaller('waves_company_client_note_add', {
+          p_group_id: mutation.groupId,
+          p_note_id: companyUuid(mutation.payload.noteId, 'noteId'),
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+          p_body: body.trim(),
+        });
+      }
       case 'company_details.set':
         return await this.rpcAsCaller('waves_company_details_set', {
           p_group_id: mutation.groupId,
@@ -2708,6 +2766,8 @@ function companyDocData(value: unknown): Record<string, unknown> {
     customerPhone: companyReason(d.customerPhone ?? null, 'customerPhone', false),
     docDate: companyDate(d.docDate, 'docDate'),
     discountMinor: companyDecimal(d.discountMinor ?? '0', 'discountMinor'),
+    // Absent keeps the saved link; null clears it.
+    ...(d.clientId === undefined ? {} : { clientId: companyUuid(d.clientId, 'clientId', true) }),
     notes:
       d.notes === null || d.notes === undefined || d.notes === ''
         ? null
