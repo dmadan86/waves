@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { randomUUID } from 'expo-crypto';
 import { backend } from '@/lib/backend';
 import { adTimeout } from '@/lib/adTimeout';
@@ -10,11 +11,21 @@ export async function readCredits() {
     return null;
   }
 }
-/** For `['credits', …]` queries: a failed read throws so the cache keeps the last good balance. */
-export async function queryCredits() {
+/**
+ * For `['credits', viewerId]` queries. Each good read is kept on the phone, so a failed or
+ * slow refresh (and a cold start offline) shows the last known balance instead of none.
+ */
+export async function queryCredits({ queryKey }: { queryKey: readonly unknown[] }) {
+  const key = `credits:last:${String(queryKey[1])}`;
   const credits = await readCredits();
-  if (!credits) throw new Error('credits unavailable');
-  return credits;
+  if (credits) {
+    void AsyncStorage.setItem(key, JSON.stringify(credits)).catch(() => {});
+    return credits;
+  }
+  const saved = await AsyncStorage.getItem(key).catch(() => null);
+  if (saved) return JSON.parse(saved) as NonNullable<typeof credits>;
+  // Throwing keeps whatever the cache already holds.
+  throw new Error('credits unavailable');
 }
 export async function spendCredits(kind: CreditKind) {
   try {
