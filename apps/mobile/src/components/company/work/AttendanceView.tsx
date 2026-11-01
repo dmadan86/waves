@@ -349,6 +349,7 @@ export default function AttendanceView({
                     departments={departments}
                     locale={locale}
                     onDate={(d) => setDate(d > today ? today : d)}
+                    groupId={id}
                   />
                 )}
               </View>
@@ -363,6 +364,7 @@ export default function AttendanceView({
                 departments={departments}
                 locale={locale}
                 onDate={(d) => setDate(d > today ? today : d)}
+                groupId={id}
               />
             ) : null}
             {error ? <Text tone="negative">{t.company.workSaveError}</Text> : null}
@@ -624,7 +626,9 @@ function AttendanceReadOnly({
   departments,
   locale,
   onDate,
+  groupId,
 }: {
+  groupId: string;
   period: Period;
   date: string;
   days: string[];
@@ -776,9 +780,18 @@ function AttendanceReadOnly({
             </Text>
           </View>
           {people.map((person) => (
-            <View
+            <Pressable
               key={person.id}
-              style={{ height: ROW, flexDirection: 'row', alignItems: 'center', gap: 6 }}
+              accessibilityRole="button"
+              accessibilityLabel={displayName(person)}
+              onPress={() => router.push(`/group/${groupId}/company-statement?member=${person.id}`)}
+              style={({ pressed }) => ({
+                height: ROW,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                opacity: pressed ? 0.6 : 1,
+              })}
             >
               <PersonAvatar
                 member={person}
@@ -794,7 +807,7 @@ function AttendanceReadOnly({
                   {person.employee_id ?? departmentName(departments, person.department_id) ?? ''}
                 </Text>
               </View>
-            </View>
+            </Pressable>
           ))}
         </View>
         {weekly ? (
