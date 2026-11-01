@@ -106,6 +106,9 @@ export enum MutationKind {
   // Details card (contact + bank), one per side. Owner sets the company's; owner, owning manager or the vendor set a vendor's.
   CompanyDetailsSet = 'company_details.set',
   CompanyVendorDetailsSet = 'company_vendor_details.set',
+  // Material orders: the company creates/edits/cancels; the vendor accepts, rejects or marks delivered.
+  CompanyVendorOrderSet = 'company_vendor_order.set',
+  CompanyVendorOrderStatus = 'company_vendor_order.status',
   // Estimates and bills (owners; managers for their own). The server numbers them and recomputes totals.
   CompanyDocSave = 'company_doc.save',
   CompanyDocStatus = 'company_doc.status',
@@ -957,6 +960,10 @@ export enum SyncTable {
   CompanyDetailsSecure = 'company_details_secure',
   /** Group-scoped, pull-only. A vendor's card, readable exactly where the vendor is (RLS). */
   CompanyVendorDetails = 'company_vendor_details',
+  /** Group-scoped, pull-only. Orders, their items and status history; readable exactly where the vendor is (RLS). */
+  CompanyVendorOrders = 'company_vendor_orders',
+  CompanyVendorOrderItems = 'company_vendor_order_items',
+  CompanyVendorOrderEvents = 'company_vendor_order_events',
   /** Group-scoped, pull-only: estimates and bills; owners see all, a manager only their own (RLS). */
   CompanyDocuments = 'company_documents',
   /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */

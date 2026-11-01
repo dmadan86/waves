@@ -11,6 +11,8 @@ import {
 } from '@waves/core';
 import { Button, Screen, Text, useTheme } from '@waves/ui';
 
+import { OrderRow } from '@/components/company/vendors/orderParts';
+import { useVendorOrders } from '@/data/companyVendorOrders';
 import { todayIso } from '@/data/personal';
 import { Pill, useVendorFormat, useMethodLabels } from '@/components/company/vendors/parts';
 import { renderStatementHtml, shareHtmlAsPdf } from '@/lib/vendorPdf';
@@ -128,7 +130,7 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
   const [menu, setMenu] = useState(false);
   const [rename, setRename] = useState(false);
   const [form, setForm] = useState<'bill' | null>(null);
-  const [tab, setTab] = useState<'tx' | 'bills'>('tx');
+  const [tab, setTab] = useState<'tx' | 'orders' | 'bills'>('tx');
   const [pdfError, setPdfError] = useState(false);
   const [inviting, setInviting] = useState(false);
   const vendor = view.vendors.find((v) => v.id === vendorId);
@@ -137,6 +139,7 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
   const lines = view.lines.filter((l) => l.vendorId === vendorId);
   const pending = sortVendorLines(pendingVendorBills(lines));
   const balance = view.balances.get(vendorId) ?? 0n;
+  const orders = useVendorOrders(groupId).filter((o) => o.vendorId === vendorId);
   const overdue = vendorOverdue(lines, todayIso());
   const last = lastVendorPayment(lines);
   const phoneUrls = reminderUrls(vendor?.phone, '');
@@ -313,7 +316,13 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
               </StandardCard>
               {view.canManage ? (
                 <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-                  {/* New order joins here with the orders PR. */}
+                  <ActionTile
+                    icon="document-attach-outline"
+                    label={s.newOrder}
+                    onPress={() =>
+                      router.push(`/group/${groupId}/company-vendor-order?vendorId=${vendorId}`)
+                    }
+                  />
                   <ActionTile
                     icon="receipt-outline"
                     label={s.recordPayment}
@@ -389,6 +398,7 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                 <SegmentedPills
                   options={[
                     { value: 'tx', label: s.activityTab },
+                    { value: 'orders', label: `${s.ordersTab} (${orders.length})` },
                     {
                       value: 'bills',
                       label: `${s.billsTab} (${lines.filter((l) => l.kind === 'bill').length})`,
@@ -398,13 +408,35 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                   onChange={setTab}
                 />
               </View>
-              <VendorActivity
-                groupId={groupId}
-                lines={lines}
-                money={fmt}
-                date={f.date}
-                billsOnly={tab === 'bills'}
-              />
+              {tab === 'orders' ? (
+                <StandardCard>
+                  {orders.length === 0 ? (
+                    <Text tone="muted">{s.noOrders}</Text>
+                  ) : (
+                    orders.map((o, index) => (
+                      <OrderRow
+                        key={o.id}
+                        order={o}
+                        money={fmt}
+                        divider={index < orders.length - 1}
+                        onPress={() =>
+                          router.push(
+                            `/group/${groupId}/company-vendor-order-detail?orderId=${o.id}`,
+                          )
+                        }
+                      />
+                    ))
+                  )}
+                </StandardCard>
+              ) : (
+                <VendorActivity
+                  groupId={groupId}
+                  lines={lines}
+                  money={fmt}
+                  date={f.date}
+                  billsOnly={tab === 'bills'}
+                />
+              )}
             </>
           ) : (
             <Text tone="muted">{s.notFound}</Text>

@@ -2343,6 +2343,45 @@ export interface UiStrings {
     downloadPdf: string;
     advanceKind: string;
     paidTo: string;
+    newOrder: string;
+    ordersTab: string;
+    orderTitle: string;
+    editOrder: string;
+    itemName: string;
+    itemQty: string;
+    itemUnit: string;
+    itemPrice: string;
+    addItem: string;
+    removeItem: string;
+    expectedDelivery: string;
+    orderTotalItems: string;
+    orderNotBill: string;
+    sendOrder: string;
+    orderSent: string;
+    noOrders: string;
+    createOrder: string;
+    ordSent: string;
+    ordAccepted: string;
+    ordRejected: string;
+    ordDelivered: string;
+    ordCancelled: string;
+    accept: string;
+    markDelivered: string;
+    cancelOrder: string;
+    cancelOrderConfirm: string;
+    orderTimeline: string;
+    unitBags: string;
+    unitPieces: string;
+    unitKg: string;
+    unitLitres: string;
+    unitMetres: string;
+    unitOther: string;
+    orderPdf: string;
+    purchaseOrder: string;
+    expectedOn: string;
+    orderItems: string;
+    orderTotal: string;
+    itemsCount: string;
   };
   companyStorage: {
     addMore: string;
@@ -9460,6 +9499,45 @@ const en: UiStrings = {
     downloadPdf: 'Download PDF',
     advanceKind: 'Advance',
     paidTo: 'paid to {name}',
+    newOrder: 'New order',
+    ordersTab: 'Orders',
+    orderTitle: 'New material order',
+    editOrder: 'Edit order',
+    itemName: 'Item',
+    itemQty: 'Qty',
+    itemUnit: 'Unit',
+    itemPrice: 'Price / unit',
+    addItem: 'Add item',
+    removeItem: 'Remove item',
+    expectedDelivery: 'Expected delivery (optional)',
+    orderTotalItems: 'Total · {n} items',
+    orderNotBill: "An order doesn't add to what you owe. The vendor's bill does.",
+    sendOrder: 'Send order',
+    orderSent: 'Order sent',
+    noOrders: 'No orders yet.',
+    createOrder: 'Create order',
+    ordSent: 'Sent',
+    ordAccepted: 'Accepted',
+    ordRejected: 'Rejected',
+    ordDelivered: 'Delivered',
+    ordCancelled: 'Cancelled',
+    accept: 'Accept',
+    markDelivered: 'Mark delivered',
+    cancelOrder: 'Cancel order',
+    cancelOrderConfirm: 'Cancel this order?',
+    orderTimeline: 'Timeline',
+    unitBags: 'Bags',
+    unitPieces: 'Pieces',
+    unitKg: 'kg',
+    unitLitres: 'Litres',
+    unitMetres: 'Metres',
+    unitOther: 'Other',
+    orderPdf: 'Purchase order PDF',
+    purchaseOrder: 'Purchase order',
+    expectedOn: 'Expected {date}',
+    orderItems: 'Items',
+    orderTotal: 'Total',
+    itemsCount: '{n} items',
   },
   companyStorage: {
     addMore: 'Add more storage',
@@ -16035,6 +16113,45 @@ const ta: UiStrings = {
     downloadPdf: 'PDF பதிவிறக்கு',
     advanceKind: 'முன்பணம்',
     paidTo: '{name}-க்கு செலுத்தியது',
+    newOrder: 'புதிய ஆர்டர்',
+    ordersTab: 'ஆர்டர்கள்',
+    orderTitle: 'புதிய பொருள் ஆர்டர்',
+    editOrder: 'ஆர்டரைத் திருத்து',
+    itemName: 'பொருள்',
+    itemQty: 'அளவு',
+    itemUnit: 'அலகு',
+    itemPrice: 'விலை / அலகு',
+    addItem: 'பொருள் சேர்',
+    removeItem: 'பொருளை நீக்கு',
+    expectedDelivery: 'எதிர்பார்க்கும் டெலிவரி (விருப்பம்)',
+    orderTotalItems: 'மொத்தம் · {n} பொருட்கள்',
+    orderNotBill: 'ஆர்டர் நீங்கள் தர வேண்டிய தொகையைக் கூட்டாது. விற்பனையாளரின் பில் கூட்டும்.',
+    sendOrder: 'ஆர்டர் அனுப்பு',
+    orderSent: 'ஆர்டர் அனுப்பப்பட்டது',
+    noOrders: 'இன்னும் ஆர்டர்கள் இல்லை.',
+    createOrder: 'ஆர்டர் உருவாக்கு',
+    ordSent: 'அனுப்பப்பட்டது',
+    ordAccepted: 'ஏற்கப்பட்டது',
+    ordRejected: 'நிராகரிக்கப்பட்டது',
+    ordDelivered: 'டெலிவரி ஆனது',
+    ordCancelled: 'ரத்து செய்யப்பட்டது',
+    accept: 'ஏற்கவும்',
+    markDelivered: 'டெலிவரி ஆனதாகக் குறி',
+    cancelOrder: 'ஆர்டரை ரத்து செய்',
+    cancelOrderConfirm: 'இந்த ஆர்டரை ரத்து செய்யவா?',
+    orderTimeline: 'காலவரிசை',
+    unitBags: 'பைகள்',
+    unitPieces: 'துண்டுகள்',
+    unitKg: 'கிலோ',
+    unitLitres: 'லிட்டர்',
+    unitMetres: 'மீட்டர்',
+    unitOther: 'மற்றவை',
+    orderPdf: 'கொள்முதல் ஆர்டர் PDF',
+    purchaseOrder: 'கொள்முதல் ஆர்டர்',
+    expectedOn: 'எதிர்பார்ப்பு {date}',
+    orderItems: 'பொருட்கள்',
+    orderTotal: 'மொத்தம்',
+    itemsCount: '{n} பொருட்கள்',
   },
   companyStorage: {
     addMore: 'மேலும் சேமிப்பைச் சேர்க்கவும்',
@@ -22767,6 +22884,45 @@ const hi: UiStrings = {
     downloadPdf: 'PDF डाउनलोड करें',
     advanceKind: 'अग्रिम',
     paidTo: '{name} को भुगतान',
+    newOrder: 'नया ऑर्डर',
+    ordersTab: 'ऑर्डर',
+    orderTitle: 'नया सामग्री ऑर्डर',
+    editOrder: 'ऑर्डर बदलें',
+    itemName: 'सामान',
+    itemQty: 'मात्रा',
+    itemUnit: 'इकाई',
+    itemPrice: 'कीमत / इकाई',
+    addItem: 'सामान जोड़ें',
+    removeItem: 'सामान हटाएँ',
+    expectedDelivery: 'अपेक्षित डिलीवरी (वैकल्पिक)',
+    orderTotalItems: 'कुल · {n} सामान',
+    orderNotBill: 'ऑर्डर से आपका देय नहीं बढ़ता। विक्रेता का बिल बढ़ाता है।',
+    sendOrder: 'ऑर्डर भेजें',
+    orderSent: 'ऑर्डर भेजा गया',
+    noOrders: 'अभी कोई ऑर्डर नहीं।',
+    createOrder: 'ऑर्डर बनाएँ',
+    ordSent: 'भेजा गया',
+    ordAccepted: 'स्वीकृत',
+    ordRejected: 'अस्वीकृत',
+    ordDelivered: 'डिलीवर हुआ',
+    ordCancelled: 'रद्द',
+    accept: 'स्वीकार करें',
+    markDelivered: 'डिलीवर हुआ चिह्नित करें',
+    cancelOrder: 'ऑर्डर रद्द करें',
+    cancelOrderConfirm: 'यह ऑर्डर रद्द करें?',
+    orderTimeline: 'समयरेखा',
+    unitBags: 'बोरे',
+    unitPieces: 'नग',
+    unitKg: 'किग्रा',
+    unitLitres: 'लीटर',
+    unitMetres: 'मीटर',
+    unitOther: 'अन्य',
+    orderPdf: 'परचेज़ ऑर्डर PDF',
+    purchaseOrder: 'परचेज़ ऑर्डर',
+    expectedOn: 'अपेक्षित {date}',
+    orderItems: 'सामान',
+    orderTotal: 'कुल',
+    itemsCount: '{n} सामान',
   },
   companyStorage: {
     addMore: 'और स्टोरेज जोड़ें',
@@ -29439,6 +29595,45 @@ const ar: UiStrings = {
     downloadPdf: 'تنزيل PDF',
     advanceKind: 'دفعة مقدّمة',
     paidTo: 'مدفوع إلى {name}',
+    newOrder: 'طلب جديد',
+    ordersTab: 'الطلبات',
+    orderTitle: 'طلب مواد جديد',
+    editOrder: 'تعديل الطلب',
+    itemName: 'الصنف',
+    itemQty: 'الكمية',
+    itemUnit: 'الوحدة',
+    itemPrice: 'السعر / الوحدة',
+    addItem: 'إضافة صنف',
+    removeItem: 'إزالة الصنف',
+    expectedDelivery: 'التسليم المتوقع (اختياري)',
+    orderTotalItems: 'الإجمالي · {n} أصناف',
+    orderNotBill: 'الطلب لا يزيد ما عليك. فاتورة المورّد هي التي تفعل.',
+    sendOrder: 'إرسال الطلب',
+    orderSent: 'تم إرسال الطلب',
+    noOrders: 'لا توجد طلبات بعد.',
+    createOrder: 'إنشاء طلب',
+    ordSent: 'مُرسل',
+    ordAccepted: 'مقبول',
+    ordRejected: 'مرفوض',
+    ordDelivered: 'تم التسليم',
+    ordCancelled: 'ملغى',
+    accept: 'قبول',
+    markDelivered: 'تحديد كمُسلَّم',
+    cancelOrder: 'إلغاء الطلب',
+    cancelOrderConfirm: 'إلغاء هذا الطلب؟',
+    orderTimeline: 'الجدول الزمني',
+    unitBags: 'أكياس',
+    unitPieces: 'قطع',
+    unitKg: 'كغ',
+    unitLitres: 'لترات',
+    unitMetres: 'أمتار',
+    unitOther: 'أخرى',
+    orderPdf: 'ملف PDF لأمر الشراء',
+    purchaseOrder: 'أمر شراء',
+    expectedOn: 'المتوقع {date}',
+    orderItems: 'الأصناف',
+    orderTotal: 'الإجمالي',
+    itemsCount: '{n} أصناف',
   },
   companyStorage: {
     addMore: 'أضف المزيد من التخزين',

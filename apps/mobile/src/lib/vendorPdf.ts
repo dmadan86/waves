@@ -2,10 +2,14 @@ import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 import {
+  orderLabel,
+  orderLineTotal,
+  orderTotal,
   receiptLabel,
   receiptStatus,
-  type VendorStatementRow,
+  type VendorOrder,
   type VendorReceipt,
+  type VendorStatementRow,
 } from '@waves/core';
 
 import { printAvailable, printHtmlToFile } from '@/lib/print';
@@ -93,6 +97,45 @@ export function renderStatementHtml(
 <div class="brand">Waves</div><h1>${esc(l.statementTitle)}</h1><p>${esc(company)} · ${esc(vendorName)}</p>
 <table><tr><th>${esc(l.dateLabel)}</th><th></th><th class="num">${esc(l.amountLabel)}</th><th class="num">${esc(l.balance)}</th></tr>${body}</table>
 <p class="big">${esc(l.balance)}: ${esc(f.money(balance))}</p></body></html>`;
+}
+
+export interface OrderLabels {
+  purchaseOrder: string;
+  companyLabel: string;
+  vendorLabel: string;
+  itemName: string;
+  itemQty: string;
+  amountLabel: string;
+  /** "Expected {date}" */
+  expectedOn: string;
+  total: string;
+  units: Record<string, string>;
+}
+
+export function renderOrderHtml(
+  o: VendorOrder,
+  vendorName: string,
+  company: string,
+  l: OrderLabels,
+  f: PdfFormat,
+): string {
+  const rows = o.items
+    .map(
+      (i) =>
+        `<tr><td>${esc(i.name)}</td><td>${esc(i.qty.includes('.') ? i.qty.replace(/\.?0+$/, '') : i.qty)} ${esc(
+          l.units[i.unit] ?? i.unit,
+        )}</td><td class="num">${esc(f.money(i.unitPrice))}</td><td class="num">${esc(
+          f.money(orderLineTotal(i.qty, i.unitPrice)),
+        )}</td></tr>`,
+    )
+    .join('');
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${CSS}</style></head><body>
+<div class="brand">Waves</div><h1>${esc(l.purchaseOrder)} ${esc(orderLabel(o.orderNo))}</h1>
+<p>${esc(l.companyLabel)}: ${esc(company)}<br>${esc(l.vendorLabel)}: ${esc(vendorName)}${
+    o.expectedOn ? `<br>${esc(l.expectedOn.replace('{date}', f.date(o.expectedOn)))}` : ''
+  }</p>
+<table><tr><th>${esc(l.itemName)}</th><th>${esc(l.itemQty)}</th><th class="num"></th><th class="num">${esc(l.amountLabel)}</th></tr>${rows}</table>
+<p class="big">${esc(l.total)}: ${esc(f.money(orderTotal(o.items)))}</p>${o.note ? `<p>${esc(o.note)}</p>` : ''}</body></html>`;
 }
 
 /** Render and open the share sheet. False when printing/sharing is unavailable. */
