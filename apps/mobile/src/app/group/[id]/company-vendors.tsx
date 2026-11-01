@@ -13,7 +13,6 @@ import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
 import { useCompanyVendors } from '@/data/companyVendors';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { router } from '@/lib/navigation';
 
 /** The vendors dashboard (linked from the company bar and the More screen). */
 export default function CompanyVendorsScreen() {
