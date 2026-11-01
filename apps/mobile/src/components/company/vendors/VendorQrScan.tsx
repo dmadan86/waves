@@ -19,7 +19,12 @@ export default function VendorQrScan({
   const [permission, ask] = useCameraPermissions();
   const done = useRef(false);
   return (
-    <Modal visible animationType="slide" supportedOrientations={MODAL_ORIENTATIONS} onRequestClose={onClose}>
+    <Modal
+      visible
+      animationType="slide"
+      supportedOrientations={MODAL_ORIENTATIONS}
+      onRequestClose={onClose}
+    >
       <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'flex-end' }}>
         {permission?.granted ? (
           <CameraView
