@@ -2187,6 +2187,17 @@ export interface UiStrings {
     exportAction: string;
   };
   companyVendors: {
+    subtitle: string;
+    receipts: string;
+    pendingN: string;
+    receiptOne: string;
+    receiptMany: string;
+    periodMonth: string;
+    periodLast: string;
+    periodYear: string;
+    periodAll: string;
+    allVendors: string;
+    pendingReview: string;
     photoPrivacy: string;
     historyEmpty: string;
     title: string;
@@ -9287,6 +9298,17 @@ const en: UiStrings = {
     exportAction: 'Export',
   },
   companyVendors: {
+    subtitle: 'Bills · Payments · Receipts',
+    receipts: 'Receipts',
+    pendingN: '{n} Pending',
+    receiptOne: '{n} Receipt',
+    receiptMany: '{n} Receipts',
+    periodMonth: 'This month',
+    periodLast: 'Last month',
+    periodYear: 'This year',
+    periodAll: 'All time',
+    allVendors: 'All vendors',
+    pendingReview: 'Pending review',
     photoPrivacy: 'Only people who can see this ledger line can see these photos.',
     historyEmpty: 'No entries yet',
     title: 'Vendors',
@@ -15844,6 +15866,17 @@ const ta: UiStrings = {
     exportAction: 'ஏற்றுமதி',
   },
   companyVendors: {
+    subtitle: 'பில்கள் · கட்டணங்கள் · ரசீதுகள்',
+    receipts: 'ரசீதுகள்',
+    pendingN: '{n} நிலுவை',
+    receiptOne: '{n} ரசீது',
+    receiptMany: '{n} ரசீதுகள்',
+    periodMonth: 'இந்த மாதம்',
+    periodLast: 'கடந்த மாதம்',
+    periodYear: 'இந்த ஆண்டு',
+    periodAll: 'எல்லா நேரமும்',
+    allVendors: 'அனைத்து விற்பனையாளர்கள்',
+    pendingReview: 'மதிப்பாய்வு நிலுவை',
     photoPrivacy:
       'இந்தக் கணக்குப் பதிவைப் பார்க்க அனுமதி உள்ளவர்கள் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
     historyEmpty: 'இன்னும் பதிவுகள் இல்லை',
@@ -22560,6 +22593,17 @@ const hi: UiStrings = {
     exportAction: 'निर्यात',
   },
   companyVendors: {
+    subtitle: 'बिल · भुगतान · रसीदें',
+    receipts: 'रसीदें',
+    pendingN: '{n} लंबित',
+    receiptOne: '{n} रसीद',
+    receiptMany: '{n} रसीदें',
+    periodMonth: 'इस महीने',
+    periodLast: 'पिछले महीने',
+    periodYear: 'इस साल',
+    periodAll: 'सभी समय',
+    allVendors: 'सभी विक्रेता',
+    pendingReview: 'समीक्षा लंबित',
     photoPrivacy: 'ये फ़ोटो सिर्फ़ वे लोग देख सकते हैं जो इस खाते की प्रविष्टि को देख सकते हैं।',
     historyEmpty: 'अभी कोई प्रविष्टि नहीं',
     title: 'विक्रेता',
@@ -29215,6 +29259,17 @@ const ar: UiStrings = {
     exportAction: 'تصدير',
   },
   companyVendors: {
+    subtitle: 'الفواتير · المدفوعات · الإيصالات',
+    receipts: 'الإيصالات',
+    pendingN: '{n} معلّق',
+    receiptOne: '{n} إيصال',
+    receiptMany: '{n} إيصالات',
+    periodMonth: 'هذا الشهر',
+    periodLast: 'الشهر الماضي',
+    periodYear: 'هذه السنة',
+    periodAll: 'كل الوقت',
+    allVendors: 'كل الموردين',
+    pendingReview: 'بانتظار المراجعة',
     photoPrivacy: 'لا يرى هذه الصور إلا من يمكنه رؤية هذا القيد في السجل.',
     historyEmpty: 'لا توجد قيود بعد',
     title: 'الموردون',

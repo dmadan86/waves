@@ -12,7 +12,31 @@ import {
 } from './vendors';
 
 export type VendorStatus = 'settled' | 'overdue' | 'toReview' | 'toPay';
-export type VendorFilter = 'all' | 'toPay' | 'settled' | 'toReview';
+export type VendorFilter = 'all' | 'toPay' | 'settled' | 'toReview' | 'overdue' | 'receipts';
+export type VendorPeriod = 'month' | 'lastMonth' | 'year' | 'all';
+
+/** Is `date` (YYYY-MM-DD) inside the period, as of `today`? */
+export function inVendorPeriod(date: string, period: VendorPeriod, today: string): boolean {
+  if (period === 'all') return true;
+  if (period === 'year') return date.startsWith(today.slice(0, 4));
+  if (period === 'month') return date.startsWith(today.slice(0, 7));
+  const y = Number(today.slice(0, 4));
+  const m = Number(today.slice(5, 7));
+  const last = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+  return date.startsWith(last);
+}
+
+/** Payments recorded (counting lines) inside the period: the "Receipts" number. */
+export function vendorReceiptCount(
+  lines: readonly VendorLine[],
+  period: VendorPeriod,
+  today: string,
+): number {
+  return lines.filter(
+    (l) =>
+      vendorLineCounts(l) && l.kind === 'payment' && inVendorPeriod(l.occurredOn, period, today),
+  ).length;
+}
 
 export interface VendorRow {
   readonly vendor: Vendor;
@@ -20,6 +44,8 @@ export interface VendorRow {
   /** Part of the balance on approved bills past their due date (never more than the balance). */
   readonly overdue: bigint;
   readonly toReview: number;
+  /** Receipts (payments) in the dashboard's period. */
+  readonly receipts: number;
   readonly status: VendorStatus;
   /** Newest live line, for the row's subtitle. */
   readonly latest: VendorLine | null;
@@ -31,6 +57,8 @@ export interface VendorDashboard {
   readonly paidThisMonth: bigint;
   /** Vendor bills waiting for the company to confirm. */
   readonly billsToReview: number;
+  /** Receipts in the period, across vendors. */
+  readonly receipts: number;
   readonly rows: readonly VendorRow[];
   readonly counts: Record<VendorFilter, number>;
 }
@@ -64,6 +92,7 @@ export function vendorDashboard(
   vendors: readonly Vendor[],
   lines: readonly VendorLine[],
   today: string,
+  period: VendorPeriod = 'month',
 ): VendorDashboard {
   const month = today.slice(0, 7);
   const byVendor = new Map<string, VendorLine[]>();
@@ -73,6 +102,7 @@ export function vendorDashboard(
   let totalToPay = 0n;
   let overdueVendors = 0;
   let billsToReview = 0;
+  let receipts = 0;
   let paidThisMonth = 0n;
   const rows: VendorRow[] = [];
   for (const vendor of vendors) {
@@ -83,6 +113,8 @@ export function vendorDashboard(
     if (balance > 0n) totalToPay += balance;
     if (overdue > 0n) overdueVendors += 1;
     billsToReview += toReview;
+    const ownReceipts = vendorReceiptCount(own, period, today);
+    receipts += ownReceipts;
     for (const l of own)
       if (vendorLineCounts(l) && l.kind === 'payment' && l.occurredOn.startsWith(month))
         paidThisMonth += l.amount;
@@ -91,6 +123,7 @@ export function vendorDashboard(
       balance,
       overdue,
       toReview,
+      receipts: ownReceipts,
       status: vendorStatus(balance, overdue, toReview),
       latest: sortVendorLines(own)[0] ?? null,
     });
@@ -100,8 +133,10 @@ export function vendorDashboard(
     toPay: filterVendorRows(rows, 'toPay').length,
     settled: filterVendorRows(rows, 'settled').length,
     toReview: filterVendorRows(rows, 'toReview').length,
+    overdue: filterVendorRows(rows, 'overdue').length,
+    receipts: filterVendorRows(rows, 'receipts').length,
   };
-  return { totalToPay, overdueVendors, paidThisMonth, billsToReview, rows, counts };
+  return { totalToPay, overdueVendors, paidThisMonth, billsToReview, receipts, rows, counts };
 }
 
 /** Filter chip + search box (name or phone, case-insensitive). */
@@ -115,6 +150,8 @@ export function filterVendorRows(
     if (filter === 'toPay' && r.balance <= 0n) return false;
     if (filter === 'settled' && r.balance > 0n) return false;
     if (filter === 'toReview' && r.toReview === 0) return false;
+    if (filter === 'overdue' && r.overdue === 0n) return false;
+    if (filter === 'receipts' && r.receipts === 0) return false;
     return !q || r.vendor.name.toLowerCase().includes(q) || (r.vendor.phone ?? '').includes(q);
   });
 }

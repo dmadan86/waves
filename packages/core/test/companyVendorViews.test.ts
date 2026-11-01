@@ -4,7 +4,9 @@ import {
   buildVendorStatement,
   filterVendorRows,
   paymentOutcome,
+  inVendorPeriod,
   vendorDashboard,
+  vendorReceiptCount,
   vendorOverdue,
   type Vendor,
   type VendorLine,
@@ -73,7 +75,7 @@ describe('vendor dashboard', () => {
   it('statuses and counts', () => {
     const s = Object.fromEntries(d.rows.map((r) => [r.vendor.id, r.status]));
     expect(s).toEqual({ a: 'overdue', b: 'toPay', c: 'settled', d: 'toReview' });
-    expect(d.counts).toEqual({ all: 4, toPay: 2, settled: 2, toReview: 1 });
+    expect(d.counts).toMatchObject({ all: 4, toPay: 2, settled: 2, toReview: 1, overdue: 1 });
   });
   it('a bill past due is not overdue once paid off, nor when only pending', () => {
     const paid = vendorDashboard(
@@ -96,6 +98,37 @@ describe('vendor dashboard', () => {
     expect(filterVendorRows(d.rows, 'toPay').map((r) => r.vendor.id)).toEqual(['a', 'b']);
     expect(filterVendorRows(d.rows, 'all', 'ASHA')).toHaveLength(1);
     expect(filterVendorRows(d.rows, 'all', '98')).toHaveLength(1);
+  });
+});
+
+describe('vendor periods, receipts and stat filters', () => {
+  it('periods', () => {
+    expect(inVendorPeriod('2026-10-31', 'lastMonth', '2026-11-05')).toBe(true);
+    expect(inVendorPeriod('2026-12-31', 'lastMonth', '2027-01-05')).toBe(true);
+    expect(inVendorPeriod('2026-11-05', 'lastMonth', '2026-11-05')).toBe(false);
+    expect(inVendorPeriod('2026-01-01', 'year', '2026-11-05')).toBe(true);
+    expect(inVendorPeriod('2025-12-31', 'year', '2026-11-05')).toBe(false);
+    expect(inVendorPeriod('2001-01-01', 'all', '2026-11-05')).toBe(true);
+  });
+  it('counts only live approved payments in the period, per row and in total', () => {
+    const l = [
+      line('a', 'payment', 5, '2026-11-02'),
+      line('a', 'payment', 5, '2026-10-02'),
+      line('a', 'bill', 5, '2026-11-02'),
+      line('a', 'payment', 5, '2026-11-03', { deleted: true }),
+    ];
+    expect(vendorReceiptCount(l, 'month', '2026-11-05')).toBe(1);
+    expect(vendorReceiptCount(l, 'all', '2026-11-05')).toBe(2);
+    const d = vendorDashboard([vendors[0]!, vendors[1]!], l, '2026-11-05', 'all');
+    expect(d.receipts).toBe(2);
+    expect(filterVendorRows(d.rows, 'receipts').map((r) => r.vendor.id)).toEqual(['a']);
+  });
+  it('overdue filter keeps vendors with overdue money', () => {
+    expect(
+      filterVendorRows(vendorDashboard(vendors, lines, today).rows, 'overdue').map(
+        (r) => r.vendor.id,
+      ),
+    ).toEqual(['a']);
   });
 });
 
