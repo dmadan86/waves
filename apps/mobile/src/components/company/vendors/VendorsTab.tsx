@@ -9,9 +9,9 @@ import {
   type VendorPeriod,
   type VendorRow,
 } from '@waves/core';
-import { directionalIcon, Text, useTheme } from '@waves/ui';
+import { Text, useTheme } from '@waves/ui';
 
-import { Pill, useVendorFormat } from '@/components/company/vendors/parts';
+import { useVendorFormat } from '@/components/company/vendors/parts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { useGlass, StandardCard } from '@/components/standard';
@@ -250,55 +250,67 @@ function VendorRowView({
   const { t } = useStrings();
   const s = t.companyVendors;
   const { vendor, balance } = row;
-  const settled = row.status === 'settled';
+  // Same row as the Home dashboard's group row: one name line, one muted line,
+  // the amount with its standing in small words under it.
+  const extras = [
+    row.toReview > 0 ? fill(s.pendingN, { n: String(row.toReview) }) : null,
+    row.receipts > 0
+      ? fill(row.receipts === 1 ? s.receiptOne : s.receiptMany, { n: String(row.receipts) })
+      : null,
+  ].filter(Boolean);
+  const overdue = row.overdue > 0n;
   return (
     <Pressable
       accessibilityRole="button"
       onPress={onPress}
-      style={{
+      style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.spacing.md,
-        paddingVertical: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
         borderBottomWidth: last ? 0 : 1,
         borderBottomColor: theme.color.border,
-      }}
+        opacity: pressed ? 0.6 : 1,
+      })}
     >
       <PersonAvatar name={vendor.name} size={44} />
       <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-          {vendor.name}
-        </Text>
-        {vendor.category ? (
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {vendor.category}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+          <Text numberOfLines={1} style={{ flexShrink: 1, fontWeight: '600' }}>
+            {vendor.name}
           </Text>
-        ) : null}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-          {row.toReview > 0 ? (
-            <Pill
-              icon="clipboard-outline"
-              tone="warn"
-              label={fill(s.pendingN, { n: String(row.toReview) })}
-            />
+          {overdue ? (
+            <View
+              style={{
+                paddingHorizontal: 6,
+                paddingVertical: 1,
+                borderRadius: 6,
+                backgroundColor: theme.color.negativeSoft,
+              }}
+            >
+              <Text variant="micro" tone="negative" style={{ fontWeight: '700' }}>
+                {s.statusOverdue}
+              </Text>
+            </View>
           ) : null}
-          {row.receipts > 0 ? (
-            <Pill
-              icon="receipt-outline"
-              tone="info"
-              label={fill(row.receipts === 1 ? s.receiptOne : s.receiptMany, {
-                n: String(row.receipts),
-              })}
-            />
-          ) : null}
-          {settled ? <Pill icon="checkmark-circle-outline" tone="good" label={s.settled} /> : null}
-          {row.overdue > 0n ? <Pill tone="bad" label={s.statusOverdue} /> : null}
         </View>
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {vendor.category ?? ''}
+          {extras.length > 0 ? (
+            <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
+              {`${vendor.category ? ' · ' : ''}${extras.join(' · ')}`}
+            </Text>
+          ) : null}
+        </Text>
       </View>
-      <Text tabular numberOfLines={1} style={{ fontWeight: '800' }}>
-        {balance < 0n ? fill(s.hasAdvance, { amount: money(-balance) }) : money(balance)}
-      </Text>
-      <Ionicons name={directionalIcon('chevron-forward')} size={18} color={theme.color.textMuted} />
+      <View style={{ alignItems: 'flex-end', gap: 2 }}>
+        <Text tabular numberOfLines={1} style={{ fontWeight: '700' }}>
+          {money(balance < 0n ? -balance : balance)}
+        </Text>
+        <Text variant="micro" tone="muted" numberOfLines={1}>
+          {balance < 0n ? s.advance : balance === 0n ? s.settled : s.filterToPay}
+        </Text>
+      </View>
     </Pressable>
   );
 }
