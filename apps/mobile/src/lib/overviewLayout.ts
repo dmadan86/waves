@@ -16,11 +16,15 @@ export type CardId =
   | 'stats'
   | 'quick'
   | 'workday'
-  | 'team';
+  | 'team'
+  | 'glance'
+  | 'needs'
+  | 'moneyActions'
+  | 'comingUp';
 
 /** Default order per role. The first card is the locked one: always first, never hidden. */
 export const DEFAULT_CARDS: Record<OverviewRole, readonly CardId[]> = {
-  owner: ['attendance', 'money', 'attention', 'upcoming', 'activity'],
+  owner: ['glance', 'needs', 'moneyActions', 'comingUp', 'activity'],
   manager: [
     'attendance',
     'attention',
@@ -34,6 +38,12 @@ export const DEFAULT_CARDS: Record<OverviewRole, readonly CardId[]> = {
   ],
 };
 
+/** Cards a role has but starts with off; they come back from the Hidden list. */
+export const DEFAULT_HIDDEN: Record<OverviewRole, readonly CardId[]> = {
+  owner: ['attendance', 'money', 'attention', 'upcoming'],
+  manager: [],
+};
+
 export interface OverviewLayout {
   /** Shown cards, top to bottom. */
   order: CardId[];
@@ -45,7 +55,7 @@ export const isLocked = (role: OverviewRole, id: CardId): boolean => DEFAULT_CAR
 
 export const defaultLayout = (role: OverviewRole): OverviewLayout => ({
   order: [...DEFAULT_CARDS[role]],
-  hidden: [],
+  hidden: [...DEFAULT_HIDDEN[role]],
 });
 
 /**
@@ -55,10 +65,13 @@ export const defaultLayout = (role: OverviewRole): OverviewLayout => ({
  */
 export function resolveLayout(role: OverviewRole, saved: unknown): OverviewLayout {
   const catalogue = DEFAULT_CARDS[role];
-  const known = new Set<CardId>(catalogue);
+  const known = new Set<CardId>([...catalogue, ...DEFAULT_HIDDEN[role]]);
   const list = (v: unknown): CardId[] =>
     Array.isArray(v) ? (v.filter((x) => known.has(x as CardId)) as CardId[]) : [];
   const raw = (saved ?? {}) as { order?: unknown; hidden?: unknown };
+  // An owner layout saved before the Home redesign has no Summary card: start from the new default.
+  if (role === 'owner' && ![...list(raw.order), ...list(raw.hidden)].includes('glance'))
+    return defaultLayout(role);
   const seen = new Set<CardId>();
   const take = (ids: CardId[]): CardId[] =>
     ids.filter((id) => (seen.has(id) ? false : (seen.add(id), true)));
@@ -73,6 +86,8 @@ export function resolveLayout(role: OverviewRole, saved: unknown): OverviewLayou
     order.splice(order.indexOf(before) + 1 || order.length, 0, id);
     seen.add(id);
   });
+  // A card the role starts with off and the saved layout has never seen stays off.
+  for (const id of DEFAULT_HIDDEN[role]) if (!seen.has(id)) hidden.push(id);
   return { order, hidden };
 }
 

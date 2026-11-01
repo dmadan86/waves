@@ -10,6 +10,12 @@ import { useState } from 'react';
 import { RecentCompanyActivity } from '@/components/company/CompanyActivityFeed';
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { LayoutEditor, OverviewCards } from '@/components/company/dashboard/OverviewGrid';
+import {
+  ComingUpRow,
+  GlanceTiles,
+  MoneyActions,
+  NeedsAttention,
+} from '@/components/company/dashboard/OverviewHome';
 import { MoneyCards } from '@/components/company/dashboard/OverviewMoney';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { OverviewUpcoming } from '@/components/company/dashboard/OverviewUpcoming';
@@ -49,6 +55,10 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                 layout={layout}
                 onEdit={() => setEditing(true)}
                 cards={{
+                  glance: <GlanceTiles groupId={groupId} />,
+                  needs: <NeedsAttention groupId={groupId} />,
+                  moneyActions: <MoneyActions groupId={groupId} />,
+                  comingUp: <ComingUpRow groupId={groupId} />,
                   attendance: own.attendance,
                   attention: own.attention,
                   money: <MoneyCards groupId={groupId} />,
