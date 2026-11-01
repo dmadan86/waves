@@ -3937,6 +3937,12 @@ export interface UiStrings {
     settleTitle: string;
     settleEmpty: string;
     settleSubtitle: string;
+    settleSquareBody: string;
+    settleAllDone: string;
+    settleAllDoneBody: string;
+    settleCreate: string;
+    settleScan: string;
+    settleInvite: string;
     /** "{members} · Last activity {when}" under a group's name. */
     settleMeta: string;
     settleAllGroups: string;
@@ -11161,6 +11167,12 @@ const en: UiStrings = {
     settleTitle: 'Settle up in',
     settleEmpty: "You're square everywhere",
     settleSubtitle: 'Pick a group to view balances and settle up.',
+    settleSquareBody: 'No pending balances across your groups.',
+    settleAllDone: "You're all settled!",
+    settleAllDoneBody: 'No balances to settle right now.',
+    settleCreate: 'Create group',
+    settleScan: 'Scan & add bill',
+    settleInvite: 'Invite members',
     settleMeta: '{members} · Last activity {when}',
     settleAllGroups: 'All groups',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
@@ -18001,6 +18013,12 @@ const ta: UiStrings = {
     settleTitle: 'எந்தக் குழுவில் தீர்க்க வேண்டும்?',
     settleEmpty: 'எல்லா குழுக்களிலும் கணக்கு சரியாக உள்ளது.',
     settleSubtitle: 'ஒரு குழுவைத் தேர்ந்தெடுத்து இருப்புகளைப் பார்த்து தீர்க்கவும்.',
+    settleSquareBody: 'உங்கள் குழுக்களில் நிலுவை இருப்புகள் இல்லை.',
+    settleAllDone: 'எல்லாம் தீர்ந்துவிட்டது!',
+    settleAllDoneBody: 'தீர்க்க வேண்டிய இருப்பு இப்போது இல்லை.',
+    settleCreate: 'குழுவை உருவாக்கு',
+    settleScan: 'பில் ஸ்கேன் செய்து சேர்',
+    settleInvite: 'உறுப்பினர்களை அழை',
     settleMeta: '{members} · கடைசி செயல்பாடு {when}',
     settleAllGroups: 'எல்லா குழுக்களும்',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
@@ -24934,6 +24952,12 @@ const hi: UiStrings = {
     settleTitle: 'किस समूह में हिसाब चुकाएँ?',
     settleEmpty: 'हर समूह में हिसाब बराबर है।',
     settleSubtitle: 'बैलेंस देखने और हिसाब चुकाने के लिए समूह चुनें।',
+    settleSquareBody: 'आपके समूहों में कोई बकाया बैलेंस नहीं है।',
+    settleAllDone: 'सब हिसाब बराबर है!',
+    settleAllDoneBody: 'अभी चुकाने के लिए कोई बैलेंस नहीं है।',
+    settleCreate: 'समूह बनाएँ',
+    settleScan: 'बिल स्कैन करके जोड़ें',
+    settleInvite: 'सदस्यों को आमंत्रित करें',
     settleMeta: '{members} · आखिरी गतिविधि {when}',
     settleAllGroups: 'सभी समूह',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
@@ -31875,6 +31899,12 @@ const ar: UiStrings = {
     settleTitle: 'التسوية في أي مجموعة؟',
     settleEmpty: 'حساباتك مسوّاة في كل المجموعات.',
     settleSubtitle: 'اختر مجموعة لعرض الأرصدة والتسوية.',
+    settleSquareBody: 'لا أرصدة معلّقة في مجموعاتك.',
+    settleAllDone: 'كل شيء مسوّى!',
+    settleAllDoneBody: 'لا أرصدة للتسوية الآن.',
+    settleCreate: 'إنشاء مجموعة',
+    settleScan: 'امسح فاتورة وأضفها',
+    settleInvite: 'دعوة أعضاء',
     settleMeta: '{members} · آخر نشاط {when}',
     settleAllGroups: 'كل المجموعات',
     acrossGroups: {
