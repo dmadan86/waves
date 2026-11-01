@@ -2236,6 +2236,39 @@ export interface UiStrings {
     open: string;
     sortRecent: string;
     sortName: string;
+    kClients: string;
+    kInquiries: string;
+    kQuotes: string;
+    kInvoices: string;
+    kOutstanding: string;
+    tAll: string;
+    tInquiries: string;
+    tQuotes: string;
+    tInvoices: string;
+    sortBy: string;
+    sortUpdated: string;
+    sortAmount: string;
+    filterTitle: string;
+    fStatus: string;
+    fDate: string;
+    rAll: string;
+    rMonth: string;
+    rQuarter: string;
+    stUnpaid: string;
+    stPartPaid: string;
+    stPaid: string;
+    fClear: string;
+    addClient: string;
+    createInvoice: string;
+    addLabel: string;
+    docInquiry: string;
+    docQuote: string;
+    docInvoice: string;
+    today: string;
+    daysAgo: string;
+    emptyTitle: string;
+    emptyBody: string;
+    noMatches: string;
     itemsN: string;
     itemN: string;
     statusDue: string;
@@ -9555,6 +9588,39 @@ const en: UiStrings = {
     open: 'Open',
     sortRecent: 'Recent',
     sortName: 'Name',
+    kClients: 'Clients',
+    kInquiries: 'Inquiries',
+    kQuotes: 'Quotes',
+    kInvoices: 'Invoices',
+    kOutstanding: 'Outstanding',
+    tAll: 'All ({n})',
+    tInquiries: 'Inquiries ({n})',
+    tQuotes: 'Quotes ({n})',
+    tInvoices: 'Invoices ({n})',
+    sortBy: 'Sort: {by}',
+    sortUpdated: 'Last updated',
+    sortAmount: 'Amount',
+    filterTitle: 'Filter',
+    fStatus: 'Status',
+    fDate: 'Date',
+    rAll: 'All time',
+    rMonth: 'This month',
+    rQuarter: 'Last 3 months',
+    stUnpaid: 'Unpaid',
+    stPartPaid: 'Part paid',
+    stPaid: 'Paid',
+    fClear: 'Clear',
+    addClient: 'Add client',
+    createInvoice: 'Create invoice',
+    addLabel: 'Add',
+    docInquiry: 'Inquiry',
+    docQuote: 'Quote',
+    docInvoice: 'Invoice',
+    today: 'Today',
+    daysAgo: '{n}d ago',
+    emptyTitle: 'No clients yet?',
+    emptyBody: 'Add a client or create an inquiry to get started.',
+    noMatches: 'No matches',
     itemsN: '{n} items',
     itemN: '{n} item',
     statusDue: 'Due',
@@ -16333,6 +16399,39 @@ const ta: UiStrings = {
     open: 'திற',
     sortRecent: 'சமீபத்தியவை',
     sortName: 'பெயர்',
+    kClients: 'வாடிக்கையாளர்கள்',
+    kInquiries: 'விசாரணைகள்',
+    kQuotes: 'மேற்கோள்கள்',
+    kInvoices: 'விலைப்பட்டியல்கள்',
+    kOutstanding: 'நிலுவை',
+    tAll: 'அனைத்தும் ({n})',
+    tInquiries: 'விசாரணைகள் ({n})',
+    tQuotes: 'மேற்கோள்கள் ({n})',
+    tInvoices: 'விலைப்பட்டியல்கள் ({n})',
+    sortBy: 'வரிசை: {by}',
+    sortUpdated: 'கடைசியாக புதுப்பித்தது',
+    sortAmount: 'தொகை',
+    filterTitle: 'வடிகட்டி',
+    fStatus: 'நிலை',
+    fDate: 'தேதி',
+    rAll: 'எல்லா நேரமும்',
+    rMonth: 'இந்த மாதம்',
+    rQuarter: 'கடந்த 3 மாதங்கள்',
+    stUnpaid: 'செலுத்தவில்லை',
+    stPartPaid: 'பகுதி செலுத்தியது',
+    stPaid: 'செலுத்தியது',
+    fClear: 'அழி',
+    addClient: 'வாடிக்கையாளரைச் சேர்',
+    createInvoice: 'விலைப்பட்டியல் உருவாக்கு',
+    addLabel: 'சேர்',
+    docInquiry: 'விசாரணை',
+    docQuote: 'மேற்கோள்',
+    docInvoice: 'விலைப்பட்டியல்',
+    today: 'இன்று',
+    daysAgo: '{n} நாள் முன்',
+    emptyTitle: 'இன்னும் வாடிக்கையாளர்கள் இல்லையா?',
+    emptyBody: 'தொடங்க வாடிக்கையாளரைச் சேர்க்கவும் அல்லது விசாரணையை உருவாக்கவும்.',
+    noMatches: 'பொருத்தம் இல்லை',
     itemsN: '{n} உருப்படிகள்',
     itemN: '{n} உருப்படி',
     statusDue: 'நிலுவை',
@@ -23269,6 +23368,39 @@ const hi: UiStrings = {
     open: 'खोलें',
     sortRecent: 'हाल के',
     sortName: 'नाम',
+    kClients: 'ग्राहक',
+    kInquiries: 'पूछताछ',
+    kQuotes: 'कोटेशन',
+    kInvoices: 'इनवॉइस',
+    kOutstanding: 'बकाया',
+    tAll: 'सभी ({n})',
+    tInquiries: 'पूछताछ ({n})',
+    tQuotes: 'कोटेशन ({n})',
+    tInvoices: 'इनवॉइस ({n})',
+    sortBy: 'क्रम: {by}',
+    sortUpdated: 'हाल का अपडेट',
+    sortAmount: 'राशि',
+    filterTitle: 'फ़िल्टर',
+    fStatus: 'स्थिति',
+    fDate: 'तारीख़',
+    rAll: 'सभी समय',
+    rMonth: 'इस महीने',
+    rQuarter: 'पिछले 3 महीने',
+    stUnpaid: 'अवैतनिक',
+    stPartPaid: 'आंशिक भुगतान',
+    stPaid: 'भुगतान हो गया',
+    fClear: 'साफ़ करें',
+    addClient: 'ग्राहक जोड़ें',
+    createInvoice: 'इनवॉइस बनाएँ',
+    addLabel: 'जोड़ें',
+    docInquiry: 'पूछताछ',
+    docQuote: 'कोटेशन',
+    docInvoice: 'इनवॉइस',
+    today: 'आज',
+    daysAgo: '{n} दिन पहले',
+    emptyTitle: 'अभी कोई ग्राहक नहीं?',
+    emptyBody: 'शुरू करने के लिए ग्राहक जोड़ें या पूछताछ बनाएँ।',
+    noMatches: 'कोई मिलान नहीं',
     itemsN: '{n} आइटम',
     itemN: '{n} आइटम',
     statusDue: 'बकाया',
@@ -28520,7 +28652,7 @@ const ar: UiStrings = {
     reminded: 'تم التذكير {ago}',
     agoMinutes: 'منذ {n} د',
     agoHours: 'منذ {n} س',
-    agoDays: 'منذ {n} ي',
+    agoDays: 'منذ {n} يوم',
     remindFailed: 'تعذّر إرسال التذكير. حاول مرة أخرى.',
     remindMessage:
       'مرحباً {name}، دفعت لك {amount} في {group} بتاريخ {date}. يرجى تأكيد ذلك في Waves.',
@@ -30144,6 +30276,39 @@ const ar: UiStrings = {
     open: 'فتح',
     sortRecent: 'الأحدث',
     sortName: 'الاسم',
+    kClients: 'العملاء',
+    kInquiries: 'الاستفسارات',
+    kQuotes: 'عروض الأسعار',
+    kInvoices: 'الفواتير',
+    kOutstanding: 'المستحق',
+    tAll: 'الكل ({n})',
+    tInquiries: 'الاستفسارات ({n})',
+    tQuotes: 'عروض الأسعار ({n})',
+    tInvoices: 'الفواتير ({n})',
+    sortBy: 'الترتيب: {by}',
+    sortUpdated: 'آخر تحديث',
+    sortAmount: 'المبلغ',
+    filterTitle: 'تصفية',
+    fStatus: 'الحالة',
+    fDate: 'التاريخ',
+    rAll: 'كل الأوقات',
+    rMonth: 'هذا الشهر',
+    rQuarter: 'آخر 3 أشهر',
+    stUnpaid: 'غير مدفوعة',
+    stPartPaid: 'مدفوعة جزئيًا',
+    stPaid: 'مدفوعة',
+    fClear: 'مسح',
+    addClient: 'إضافة عميل',
+    createInvoice: 'إنشاء فاتورة',
+    addLabel: 'إضافة',
+    docInquiry: 'استفسار',
+    docQuote: 'عرض سعر',
+    docInvoice: 'فاتورة',
+    today: 'اليوم',
+    daysAgo: 'منذ {n} يوم',
+    emptyTitle: 'لا عملاء بعد؟',
+    emptyBody: 'أضف عميلًا أو أنشئ استفسارًا للبدء.',
+    noMatches: 'لا نتائج',
     itemsN: '{n} عناصر',
     itemN: '{n} عنصر',
     statusDue: 'مستحق',
