@@ -75,7 +75,7 @@ export function HomeQuickActions({
     {
       key: 'group',
       label: t.homeDash.newGroup,
-      glyph: (color) => <GroupAddIcon size={24} color={color} />,
+      glyph: (color) => <GroupAddIcon size={28} color={color} />,
       onPress: () => measureAnchor(groupRef, onNewGroup),
       ref: groupRef,
       tourId: 'addGroup',
@@ -86,13 +86,13 @@ export function HomeQuickActions({
           label: t.review,
           badge: reviewBadge,
           badgeColor: theme.color.negative,
-          glyph: (color) => <Ionicons name="file-tray-full-outline" size={24} color={color} />,
+          glyph: (color) => <Ionicons name="file-tray-full-outline" size={28} color={color} />,
           onPress: onReview,
         }
       : {
           key: 'settle',
           label: t.homeDash.settleUp,
-          glyph: (color) => <Ionicons name="cash-outline" size={24} color={color} />,
+          glyph: (color) => <Ionicons name="cash-outline" size={28} color={color} />,
           onPress: onSettleUp,
         },
     ...(viewerId && !isPaid
@@ -102,10 +102,8 @@ export function HomeQuickActions({
             label: fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 }),
             badge: creditAction.badge,
             badgeColor: theme.color.brand,
-            tileColor: theme.color.warningSoft,
-            tileInk: theme.color.text,
             accessibilityLabel: `${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`,
-            glyph: () => <Ionicons name="flash" size={24} color={theme.color.warning} />,
+            glyph: () => <Ionicons name="flash" size={28} color={theme.color.warning} />,
             onPress: () => void adOffer.offer('voice', { userInitiated: true, homeCredits: true }),
           },
         ]
@@ -114,20 +112,7 @@ export function HomeQuickActions({
     {
       key: 'expense',
       label: t.homeDash.addExpense,
-      glyph: () => (
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brand,
-          }}
-        >
-          <Ionicons name="add" size={20} color={theme.color.onBrand} />
-        </View>
-      ),
+      glyph: (color) => <Ionicons name="add-circle-outline" size={28} color={color} />,
       onPress: onAddExpense,
       onLongPress: onAddExpenseLong,
       tourId: 'addExpense',
@@ -139,10 +124,10 @@ export function HomeQuickActions({
       <QuickActionsRow
         actions={actions}
         radius={radius}
-        discColor={theme.color.brandSoft}
+        discColor="transparent"
         iconColor={theme.color.brand}
-        rowPadding={theme.spacing.xs}
-        tile
+        discSize={32}
+        rowPadding={theme.spacing.sm}
       />
       {adOffer.sheet}
     </>
