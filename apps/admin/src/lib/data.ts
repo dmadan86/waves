@@ -808,6 +808,8 @@ export interface AdminUserListRow {
   device_count: number;
   app_version: string | null;
   platform: string | null;
+  /** Live companies this person created (groups of type company, not deleted). */
+  companies_created: number;
 }
 
 export interface AdminUserList {
@@ -843,7 +845,27 @@ export async function listUsers(params: {
     throw new Error(`waves_admin_users failed: ${error.message}`);
   }
   const payload = (data ?? {}) as { total?: number | string; rows?: AdminUserListRow[] };
-  return { total: Number(payload.total ?? 0), rows: payload.rows ?? [] };
+  const rows = payload.rows ?? [];
+  // Companies created per person on this page: one round trip, counted here.
+  const created = new Map<string, number>();
+  if (rows.length > 0) {
+    const { data: groups, error: groupsError } = await client()
+      .from('groups')
+      .select('created_by')
+      .eq('type', 'company')
+      .is('deleted_at', null)
+      .in(
+        'created_by',
+        rows.map((r) => r.id),
+      );
+    if (groupsError) throw new Error(`counting companies failed: ${groupsError.message}`);
+    for (const g of groups ?? []) {
+      const by = g.created_by as string;
+      created.set(by, (created.get(by) ?? 0) + 1);
+    }
+  }
+  for (const row of rows) row.companies_created = created.get(row.id) ?? 0;
+  return { total: Number(payload.total ?? 0), rows };
 }
 
 /** Mark an address confirmed by hand — the OTP a person never received. */
@@ -1713,6 +1735,31 @@ export async function listCompanies(params: {
 }
 export async function companyDetail(id: string): Promise<CompanyDetail | null> {
   return companyJson<CompanyDetail>('waves_admin_company_detail', { p_group_id: companyId(id) });
+}
+export interface CompanyStorage {
+  used_bytes: number;
+  quota_bytes: number;
+  /** The company's own figure (admin edit or pack); null means the free default applies. */
+  override_bytes: number | null;
+}
+export async function companyStorage(id: string): Promise<CompanyStorage> {
+  const row = await companyJson<CompanyStorage>('waves_admin_company_storage', {
+    p_group_id: companyId(id),
+  });
+  if (!row) throw new Error('Company storage was not returned.');
+  return row;
+}
+/** `megabytes` null resets the company to the free default. */
+export async function setCompanyStorage(id: string, megabytes: number | null): Promise<void> {
+  if (
+    megabytes !== null &&
+    (!Number.isInteger(megabytes) || megabytes < 0 || megabytes > 1_000_000)
+  )
+    throw new Error('Storage is a whole number of MB, zero or more.');
+  await companyJson<null>('waves_admin_company_storage_set', {
+    p_group_id: companyId(id),
+    p_bytes: megabytes === null ? null : megabytes * 1024 * 1024,
+  });
 }
 function companyReason(reason: string, minimum = 1): string {
   const value = reason.trim();

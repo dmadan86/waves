@@ -97,6 +97,7 @@ describe('mirror: attendance and work', () => {
       blocked_reason: null,
       note: null,
       due_time: '17:00:00',
+      seq: 42,
     }),
     row(SyncTable.CompanyWorkTasks, {
       id: 't2',
@@ -152,6 +153,7 @@ describe('mirror: attendance and work', () => {
       status: 'blocked',
       blockedReason: 'No cement',
       dueTime: '17:00',
+      number: 42,
     });
   });
   it('a manager who loses a person drops their marks and tasks', () => {

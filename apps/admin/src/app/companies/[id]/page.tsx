@@ -7,14 +7,18 @@ import { guardMutation } from '@/lib/csrf';
 import {
   blockCompany,
   companyDetail,
+  companyStorage,
   isCompanyId,
   openCompanyRecords,
   setCompanyComplaint,
+  setCompanyStorage,
   unblockCompany,
 } from '@/lib/data';
 import { companyMoney, companyWhen } from '@/lib/company-format';
 
 export const dynamic = 'force-dynamic';
+
+const mb = (bytes: number) => Math.round((Number(bytes) / 1048576) * 10) / 10;
 
 export default async function Company({
   params,
@@ -28,6 +32,7 @@ export default async function Company({
   const detail = await companyDetail(id);
   if (!detail) notFound();
   const { facts, members, weeks, complaints, log } = detail;
+  const storage = await companyStorage(id);
   const { error, saved } = await searchParams;
   const back = `/companies/${id}`;
 
@@ -68,6 +73,21 @@ export default async function Company({
     }
     if (failure) redirect(`${back}?error=${encodeURIComponent(failure)}`);
     revalidatePath('/companies');
+    revalidatePath(back);
+    redirect(`${back}?saved=1`);
+  }
+
+  async function storageSave(formData: FormData) {
+    'use server';
+    let failure: string | null = null;
+    try {
+      await guardMutation(formData);
+      const raw = String(formData.get('megabytes') ?? '').trim();
+      await setCompanyStorage(id, raw === '' ? null : Number(raw));
+    } catch (caught) {
+      failure = caught instanceof Error ? caught.message : String(caught);
+    }
+    if (failure) redirect(`${back}?error=${encodeURIComponent(failure)}`);
     revalidatePath(back);
     redirect(`${back}?saved=1`);
   }
@@ -140,6 +160,38 @@ export default async function Company({
               </>
             ) : null}
           </dl>
+        </Card>
+        <Card
+          title="Photo storage"
+          note="Blank resets to the free default. A lapsed pack only blocks new uploads; files are never deleted."
+        >
+          <dl>
+            <dt>Used</dt>
+            <dd>{mb(storage.used_bytes)} MB</dd>
+            <dt>Quota</dt>
+            <dd>
+              {mb(storage.quota_bytes)} MB{storage.override_bytes === null ? ' (free default)' : ''}
+            </dd>
+          </dl>
+          <form action={storageSave} className="form">
+            <CsrfField />
+            <Field label="Quota (MB)" hint="whole number">
+              <input
+                type="number"
+                name="megabytes"
+                min={0}
+                step={1}
+                defaultValue={
+                  storage.override_bytes === null
+                    ? ''
+                    : Math.round(storage.override_bytes / 1048576)
+                }
+              />
+            </Field>
+            <button type="submit" className="btn">
+              Save quota
+            </button>
+          </form>
         </Card>
         <Card title="Members" bare>
           {members.length ? (

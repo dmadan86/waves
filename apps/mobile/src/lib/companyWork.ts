@@ -1,7 +1,6 @@
 import type { CompanyWorkSetPayload } from '@waves/core';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
 
-export type WorkChip = 'all' | 'todo' | 'doing' | 'done' | 'blocked';
 export function countWork(tasks: readonly MirrorWorkTask[]) {
   return {
     total: tasks.length,
@@ -12,15 +11,12 @@ export function countWork(tasks: readonly MirrorWorkTask[]) {
   };
 }
 
+/** Search by title, person, site and task number ("#42" or "42"), and optionally one site. */
 export function filterWork(
   tasks: readonly MirrorWorkTask[],
   options: {
     search?: string;
     siteId?: string | null;
-    personId?: string | null;
-    departmentId?: string | null;
-    departmentIdForPerson?: (id: string) => string | null | undefined;
-    chip?: WorkChip;
     personName?: (id: string) => string;
     siteName?: (id: string | null) => string;
   },
@@ -28,20 +24,77 @@ export function filterWork(
   const query = options.search?.trim().toLocaleLowerCase() ?? '';
   return tasks.filter((task) => {
     if (options.siteId && task.projectId !== options.siteId) return false;
-    if (options.personId && task.memberId !== options.personId) return false;
-    if (
-      options.departmentId &&
-      options.departmentIdForPerson?.(task.memberId) !== options.departmentId
-    )
-      return false;
-    if (options.chip && options.chip !== 'all' && task.status !== options.chip) return false;
     return (
       !query ||
+      (task.number !== null && String(task.number) === query.replace(/^#/, '')) ||
       [task.title, options.personName?.(task.memberId), options.siteName?.(task.projectId)].some(
         (value) => value?.toLocaleLowerCase().includes(query),
       )
     );
   });
+}
+
+export type WorkMode = 'date' | 'person';
+export interface WorkSection {
+  key: string;
+  kind: 'overdue' | 'day' | 'person';
+  /** ISO day for a `day` section, member id for a `person` section. */
+  ref: string;
+  tasks: MirrorWorkTask[];
+  /** Open tasks that are blocked or past their day (a person section's red count). */
+  alert: number;
+  /** Open (not done) tasks in the section. */
+  open: number;
+}
+
+const RANK = { blocked: 0, doing: 1, todo: 2, done: 3 } as const;
+/** Blocked, doing, todo, done; then day, due time and title. */
+function compareTasks(a: MirrorWorkTask, b: MirrorWorkTask): number {
+  return (
+    RANK[a.status] - RANK[b.status] ||
+    a.day.localeCompare(b.day) ||
+    (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') ||
+    a.title.localeCompare(b.title)
+  );
+}
+
+/**
+ * The Tasks list. By date: Overdue (open, before today), then one section per day from today on.
+ * By person: one section per person. Either way, done tasks from before today collapse into one
+ * `done` tail; done tasks from today on stay in their section.
+ */
+export function groupWorkTasks(
+  tasks: readonly MirrorWorkTask[],
+  options: { mode: WorkMode; today: string; personName?: (id: string) => string },
+): { sections: WorkSection[]; done: MirrorWorkTask[] } {
+  const { today } = options;
+  const done = tasks.filter((t) => t.status === 'done' && t.day < today).sort(compareTasks);
+  const live = tasks.filter((t) => !(t.status === 'done' && t.day < today)).sort(compareTasks);
+  const buckets = new Map<string, WorkSection>();
+  for (const task of live) {
+    const overdue = task.status !== 'done' && task.day < today;
+    const [key, kind, ref] =
+      options.mode === 'person'
+        ? [`p:${task.memberId}`, 'person' as const, task.memberId]
+        : overdue
+          ? ['overdue', 'overdue' as const, '']
+          : [`d:${task.day}`, 'day' as const, task.day];
+    let section = buckets.get(key);
+    if (!section) buckets.set(key, (section = { key, kind, ref, tasks: [], alert: 0, open: 0 }));
+    section.tasks.push(task);
+    if (task.status !== 'done') {
+      section.open += 1;
+      if (task.status === 'blocked' || overdue) section.alert += 1;
+    }
+  }
+  const sections = [...buckets.values()];
+  const name = (s: WorkSection) => options.personName?.(s.ref) ?? '';
+  sections.sort((a, b) =>
+    options.mode === 'person'
+      ? name(a).localeCompare(name(b))
+      : (a.kind === 'overdue' ? '' : a.ref).localeCompare(b.kind === 'overdue' ? '' : b.ref),
+  );
+  return { sections, done };
 }
 
 export function advanceWorkStatus(status: MirrorWorkTask['status']): MirrorWorkTask['status'] {
@@ -72,6 +125,13 @@ export function formatWorkTime(
   return `${day === today ? todayLabel : new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' })}, ${time}`;
 }
 
+/** How far ahead a task may be set; the server's limit is the same. */
+export function maxTaskDay(today: string): string {
+  const date = new Date(`${today}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + 730);
+  return date.toISOString().slice(0, 10);
+}
+
 /** Most photos on one new task (each assignee's task gets its own copy of the upload). */
 export const MAX_TASK_PHOTOS = 4;
 
@@ -80,7 +140,7 @@ export type AddTaskError = 'title' | 'people' | 'day';
 /**
  * What stops the Add task sheet from saving, checked in the app before anything is queued.
  * `allowed` is who the viewer may assign to (owner: everyone, manager: their team); the deadline is
- * the task's day, which for a new task is today up to the same week-ahead limit the server holds.
+ * the task's day, which for a new task is today up to `maxTaskDay` (the limit the server holds).
  */
 export function addTaskError(input: {
   title: string;

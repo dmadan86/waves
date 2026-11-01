@@ -4,7 +4,6 @@ import { SectionHeader, SegmentedPills } from '@/components/standard';
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
-import type { CompanyDepartment } from '@/data/companyDepartments';
 import type { CompanyWorkSetPayload } from '@waves/core';
 import { useStrings } from '@/i18n';
 
@@ -12,20 +11,10 @@ type Payload = CompanyWorkSetPayload;
 type Site = { id: string; name: string };
 
 export function WorkFiltersAndDraftSheet({
-  filterOpen,
-  setFilterOpen,
   sites,
-  departments,
-  siteFilter,
-  setSiteFilter,
-  departmentFilter,
-  setDepartmentFilter,
   groupId,
   canManage,
-  scope,
   people,
-  personFilter,
-  setPersonFilter,
   draft,
   setDraft,
   busy,
@@ -33,20 +22,10 @@ export function WorkFiltersAndDraftSheet({
   allowedPerson,
   write,
 }: {
-  filterOpen: boolean;
-  setFilterOpen: (open: boolean) => void;
   sites: readonly Site[];
-  departments: readonly CompanyDepartment[];
-  siteFilter: string | null;
-  setSiteFilter: (value: string | null) => void;
-  departmentFilter: string | null;
-  setDepartmentFilter: (value: string | null) => void;
   groupId: string;
   canManage: boolean;
-  scope: 'mine' | 'team';
   people: readonly MemberRow[];
-  personFilter: string | null;
-  setPersonFilter: (value: string | null) => void;
   draft: Payload | null;
   setDraft: (next: Payload | null) => void;
   busy: boolean;
@@ -58,39 +37,6 @@ export function WorkFiltersAndDraftSheet({
   const { t } = useStrings();
   return (
     <>
-      <Sheet visible={filterOpen} onClose={() => setFilterOpen(false)} closeLabel={t.common.close}>
-        <View style={{ gap: theme.spacing.md }}>
-          <SectionHeader title={t.company.workFilter} />
-          <SegmentedPills
-            options={[
-              { value: '', label: t.company.workAll },
-              ...sites.map((site) => ({ value: site.id, label: site.name })),
-            ]}
-            value={siteFilter ?? ''}
-            onChange={(value) => setSiteFilter(value || null)}
-          />
-          {departments.length ? (
-            <SegmentedPills
-              options={[
-                { value: '', label: t.company.workAll },
-                ...departments.map((d) => ({ value: d.id, label: d.name })),
-              ]}
-              value={departmentFilter ?? ''}
-              onChange={(value) => setDepartmentFilter(value || null)}
-            />
-          ) : null}
-          {canManage && scope === 'team' ? (
-            <SegmentedPills
-              options={[
-                { value: '', label: t.company.workAll },
-                ...people.map((person) => ({ value: person.id, label: displayName(person) })),
-              ]}
-              value={personFilter ?? ''}
-              onChange={(value) => setPersonFilter(value || null)}
-            />
-          ) : null}
-        </View>
-      </Sheet>
       <Sheet
         visible={draft !== null}
         onClose={() => {

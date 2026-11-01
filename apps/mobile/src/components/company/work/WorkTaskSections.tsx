@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 import { iconSize, Text, useTheme } from '@waves/ui';
@@ -9,7 +9,8 @@ import type { MenuAnchor } from '@/components/SortMenu';
 import type { MemberRow } from '@/data/types';
 import { displayName } from '@/data/types';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
-import { formatWorkTime } from '@/lib/companyWork';
+import { dayHeading } from '@/data/activity';
+import { formatWorkTime, type WorkMode, type WorkSection } from '@/lib/companyWork';
 import { useStrings } from '@/i18n';
 import { WORK_INK } from './WorkSummaryControls';
 
@@ -45,7 +46,7 @@ function TaskRow({
   const menuRef = useRef<View>(null);
   const done = task.status === 'done';
   const ink = WORK_INK[task.status];
-  const late = !done && task.day <= today;
+  const late = !done && task.day < today;
   const dueInk = late ? RED : theme.color.textMuted;
   const label =
     task.status === 'todo'
@@ -56,8 +57,8 @@ function TaskRow({
           ? t.company.workDone
           : t.company.workBlocked;
   return (
-    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, gap: 4, borderRadius: 22 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10, minHeight: 48 }}>
+    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <Pressable
           accessibilityRole="checkbox"
           accessibilityState={{ checked: done, disabled: !canChange || busy }}
@@ -68,7 +69,6 @@ function TaskRow({
           style={{
             width: 22,
             height: 22,
-            marginTop: 1,
             borderRadius: 6,
             alignItems: 'center',
             justifyContent: 'center',
@@ -85,51 +85,52 @@ function TaskRow({
           onPress={() => onOpen(task)}
           style={{ flex: 1, minWidth: 0, gap: 2 }}
         >
-          <Text variant="body" numberOfLines={2} style={{ fontWeight: '700' }}>
+          <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
+            <Text variant="caption" tone="muted">
+              {`#${task.number ?? '—'} `}
+            </Text>
             {task.title}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Ionicons name="calendar-outline" size={iconSize.sm} color={dueInk} />
-            <Text variant="caption" numberOfLines={1} style={{ color: dueInk, flexShrink: 1 }}>
+            <Text variant="caption" numberOfLines={1} style={{ color: dueInk, flexShrink: 0 }}>
               {formatWorkTime(task.day, task.dueTime ?? null, today, locale, t.company.workToday)}
             </Text>
-          </View>
-          {site ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-              <Ionicons name="location-outline" size={iconSize.sm} color={theme.color.textMuted} />
-              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                {site}
-              </Text>
-            </View>
-          ) : null}
-          {task.blockedReason || task.note ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {task.blockedReason ?? task.note}
-            </Text>
-          ) : null}
-        </Pressable>
-        <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            {person ? (
-              <PersonAvatar
-                name={displayName(person)}
-                ghost
-                tint={TINTS[(person.id.charCodeAt(0) + person.id.length) % TINTS.length]}
-                size={34}
-              />
+            {site ? (
+              <>
+                <Ionicons
+                  name="location-outline"
+                  size={iconSize.sm}
+                  color={theme.color.textMuted}
+                  style={{ marginLeft: 4 }}
+                />
+                <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {site}
+                </Text>
+              </>
             ) : null}
-            <View
-              style={{
-                paddingHorizontal: 10,
-                paddingVertical: 3,
-                borderRadius: 12,
-                backgroundColor: withAlpha(ink, 0.12),
-              }}
-            >
-              <Text variant="micro" style={{ color: ink, fontWeight: '700' }}>
-                {label}
-              </Text>
-            </View>
+          </View>
+        </Pressable>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          {person ? (
+            <PersonAvatar
+              name={displayName(person)}
+              ghost
+              tint={TINTS[(person.id.charCodeAt(0) + person.id.length) % TINTS.length]}
+              size={26}
+            />
+          ) : null}
+          <View
+            style={{
+              paddingHorizontal: 8,
+              paddingVertical: 2,
+              borderRadius: 12,
+              backgroundColor: withAlpha(ink, 0.12),
+            }}
+          >
+            <Text variant="micro" style={{ color: ink, fontWeight: '700' }}>
+              {label}
+            </Text>
           </View>
         </View>
         {canManage ? (
@@ -159,7 +160,9 @@ function TaskRow({
 
 export function WorkTaskSections({
   groupId,
-  tasks,
+  sections,
+  done,
+  mode,
   people,
   locale,
   today,
@@ -172,7 +175,10 @@ export function WorkTaskSections({
   siteName,
 }: {
   groupId: string;
-  tasks: readonly MirrorWorkTask[];
+  sections: readonly WorkSection[];
+  /** Done tasks from before today: one collapsed tail. */
+  done: readonly MirrorWorkTask[];
+  mode: WorkMode;
   people: readonly MemberRow[];
   locale: string;
   today: string;
@@ -185,25 +191,85 @@ export function WorkTaskSections({
   siteName: (projectId: string) => string;
 }) {
   const { t } = useStrings();
-  if (tasks.length === 0) return <Text tone="muted">{t.company.workEmpty}</Text>;
+  const theme = useTheme();
+  const [showDone, setShowDone] = useState(false);
+  if (sections.length === 0 && done.length === 0)
+    return <Text tone="muted">{t.company.workNoTasks}</Text>;
+  const rows = (tasks: readonly MirrorWorkTask[]) =>
+    tasks.map((task) => (
+      <TaskRow
+        key={task.id}
+        task={task}
+        person={people.find((p) => p.id === task.memberId)}
+        today={today}
+        locale={locale}
+        canManage={canManage}
+        canChange={canChange(task)}
+        busy={busy}
+        site={task.projectId ? siteName(task.projectId) : ''}
+        onChangeStatus={onChangeStatus}
+        onOpen={onOpen}
+        onMenu={onMenu}
+      />
+    ));
+  const heading = (section: WorkSection) => {
+    const red = section.kind === 'overdue';
+    const text =
+      section.kind === 'overdue'
+        ? `${t.company.workOverdue} · ${section.tasks.length}`
+        : section.kind === 'day'
+          ? dayHeading(locale, `${section.ref}T12:00:00`)
+          : (() => {
+              const p = people.find((m) => m.id === section.ref);
+              return `${p ? displayName(p) : ''} · ${t.company.workOpenN.replace('{n}', String(section.open))}`;
+            })();
+    return (
+      <Text
+        variant="caption"
+        tone={red ? undefined : 'muted'}
+        style={{
+          textTransform: 'uppercase',
+          letterSpacing: 0.6,
+          fontWeight: '600',
+          color: red || (section.kind === 'person' && section.alert > 0) ? RED : undefined,
+        }}
+      >
+        {text}
+      </Text>
+    );
+  };
   return (
-    <View style={{ gap: 8 }}>
-      {tasks.map((task) => (
-        <TaskRow
-          key={task.id}
-          task={task}
-          person={people.find((p) => p.id === task.memberId)}
-          today={today}
-          locale={locale}
-          canManage={canManage}
-          canChange={canChange(task)}
-          busy={busy}
-          site={task.projectId ? siteName(task.projectId) : ''}
-          onChangeStatus={onChangeStatus}
-          onOpen={onOpen}
-          onMenu={onMenu}
-        />
+    <View style={{ gap: theme.spacing.md }}>
+      {sections.map((section) => (
+        <View key={section.key} style={{ gap: 6 }}>
+          {heading(section)}
+          {rows(section.tasks)}
+        </View>
       ))}
+      {done.length > 0 ? (
+        <View style={{ gap: 6 }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: showDone }}
+            onPress={() => setShowDone((v) => !v)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+          >
+            <Ionicons
+              name={showDone ? 'chevron-down' : 'chevron-forward'}
+              size={iconSize.sm}
+              color={theme.color.textMuted}
+            />
+            <Text
+              variant="caption"
+              tone="muted"
+              style={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600' }}
+            >
+              {t.company.workDoneN.replace('{n}', String(done.length))}
+            </Text>
+          </Pressable>
+          {showDone ? rows(done) : null}
+        </View>
+      ) : null}
     </View>
   );
 }

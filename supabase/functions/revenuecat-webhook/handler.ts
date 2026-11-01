@@ -95,13 +95,18 @@ export async function handleRevenueCatWebhook(request: Request, deps: Deps): Pro
   // real Pro rows whenever the old opt-out variable was left unset.
   const mapped = mapEvent(event, { ignoreSandbox: !allowSandbox(deps.env) });
 
-  const { data, error } = await deps.service.rpc('waves_revenuecat_apply', {
-    p_event_id: mapped.eventId,
-    p_type: mapped.type || 'UNKNOWN',
-    p_app_user_id: mapped.appUserId,
-    p_event_at: mapped.eventAt,
-    p_action: mapped.action,
-  });
+  const { data, error } = await deps.service.rpc(
+    mapped.action.kind === 'company_storage'
+      ? 'waves_company_storage_pack_apply'
+      : 'waves_revenuecat_apply',
+    {
+      p_event_id: mapped.eventId,
+      p_type: mapped.type || 'UNKNOWN',
+      p_app_user_id: mapped.appUserId,
+      p_event_at: mapped.eventAt,
+      p_action: mapped.action,
+    },
+  );
   if (error) throw new Error(`waves_revenuecat_apply failed: ${error.message}`);
 
   const outcome = typeof data === 'string' ? data : 'applied';

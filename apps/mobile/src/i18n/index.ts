@@ -1033,6 +1033,9 @@ export interface UiStrings {
      *  so it needs a person to retry it or let it go. */
     stuckCount: PluralForms;
     /** The line under that heading: still saved, just not sent. */
+    stuckShort: string;
+    discardTitle: string;
+    discardBody: string;
     stuckExplain: string;
     /** Screen-reader hint on the header's red sync mark, which opens the
      *  account-wide banner carrying retry and discard. */
@@ -1497,6 +1500,7 @@ export interface UiStrings {
     attendanceDepartment: string;
     workToday: string;
     attendanceNote: string;
+    attendanceNotePlaceholder: string;
     attendanceHalfDay: string;
     attendanceMark: string;
     attendanceClear: string;
@@ -1510,6 +1514,13 @@ export interface UiStrings {
     attendanceWeeklyView: string;
     attendanceMonthlyView: string;
     attendanceSetStatus: string;
+    attendanceMarkAllAbsent: string;
+    attendanceOnLeave: string;
+    attendanceLeaveApplied: string;
+    attendanceLeave: string;
+    attendanceAutoSaved: string;
+    attendanceOverwriteTitle: string;
+    attendanceOverwriteBody: string;
     attendanceTasks: PluralForms;
     attendanceSubtitle: PluralForms;
     attendanceSummary: PluralForms;
@@ -1553,12 +1564,45 @@ export interface UiStrings {
     workMineTasks: string;
     workTeam: string;
     workFilter: string;
-    workSortTitle: string;
-    workAllTasks: string;
     workTime: string;
     workNoTime: string;
     workMine: string;
     workEmpty: string;
+    workByDate: string;
+    workByPerson: string;
+    workOverdue: string;
+    workOpenN: string;
+    workDoneN: string;
+    workSiteFilter: string;
+    workNoTasks: string;
+    workExport: string;
+    workExportRange: string;
+    workThisWeek: string;
+    workThisMonth: string;
+    workCustom: string;
+    workFrom: string;
+    workTo: string;
+    workReportType: string;
+    workRepList: string;
+    workRepPerson: string;
+    workRepSite: string;
+    workRepOverdue: string;
+    workExportSub: string;
+    workFileFormat: string;
+    workGenerate: string;
+    workRepListSub: string;
+    workRepPersonSub: string;
+    workRepSiteSub: string;
+    workRepOverdueSub: string;
+    workColNumber: string;
+    workColTitle: string;
+    workColDate: string;
+    workColStatus: string;
+    workColOpen: string;
+    workColTotal: string;
+    workCompletion: string;
+    workDaysLate: string;
+    workProBadge: string;
     workAdd: string;
     workEdit: string;
     workTitleField: string;
@@ -2193,6 +2237,46 @@ export interface UiStrings {
     inviteFailed: string;
     save: string;
     close: string;
+    addSubtitle: string;
+    scanQr: string;
+    fromLink: string;
+    wavesId: string;
+    useLink: string;
+    findId: string;
+    helpScan: string;
+    helpLink: string;
+    helpId: string;
+    linkPlaceholder: string;
+    idPlaceholder: string;
+    idHint: string;
+    lookupFailed: string;
+    allowCamera: string;
+    or: string;
+    enterManually: string;
+    phoneOptional: string;
+    categoryOptional: string;
+    saveVendor: string;
+    catSupplier: string;
+    catContractor: string;
+    catLandlord: string;
+    catUtilities: string;
+    catTransport: string;
+    catOther: string;
+  };
+  companyStorage: {
+    addMore: string;
+    packLine: string;
+    packNote: string;
+    bought: string;
+    pending: string;
+    buyFailed: string;
+    title: string;
+    usedOfQuota: string;
+    percentUsed: string;
+    banner: string;
+    note: string;
+    full: string;
+    loading: string;
   };
   companyDetails: {
     title: string;
@@ -8003,6 +8087,9 @@ const en: UiStrings = {
       one: '{n} change is stuck',
       other: '{n} changes are stuck',
     },
+    stuckShort: "Saved on this phone, but it's not sent yet.",
+    discardTitle: 'Discard this change?',
+    discardBody: 'It is only on this phone. Once discarded, it is gone.',
     stuckExplain:
       'Still saved on this phone — it just keeps failing to send. Try again, or let it go.',
     openDetail: 'Opens what needs your decision',
@@ -8438,6 +8525,7 @@ const en: UiStrings = {
     attendanceDepartment: 'Department',
     workToday: 'Today',
     attendanceNote: 'Add note',
+    attendanceNotePlaceholder: 'Add a note (optional)',
     attendanceHalfDay: 'Half day',
     attendanceMark: 'Mark',
     attendanceClear: 'Clear',
@@ -8451,6 +8539,13 @@ const en: UiStrings = {
     attendanceWeeklyView: 'Weekly view',
     attendanceMonthlyView: 'Monthly view',
     attendanceSetStatus: 'Mark attendance',
+    attendanceMarkAllAbsent: 'Mark all absent',
+    attendanceOnLeave: 'On leave',
+    attendanceLeaveApplied: 'Leave applied',
+    attendanceLeave: 'Leave',
+    attendanceAutoSaved: 'Attendance is saved automatically',
+    attendanceOverwriteTitle: 'Replace existing marks?',
+    attendanceOverwriteBody: '{n} people already have a different mark for this day. Replace them?',
     attendanceTasks: { one: '{n} task', other: '{n} tasks' },
     attendanceSubtitle: { one: '{company} · {n} employee', other: '{company} · {n} employees' },
     attendanceSummary: { one: '{n} day present', other: '{n} days present' },
@@ -8495,12 +8590,45 @@ const en: UiStrings = {
     workMineTasks: 'My tasks',
     workTeam: 'Team',
     workFilter: 'Filter',
-    workSortTitle: 'Sort by title (A–Z)',
-    workAllTasks: 'All tasks',
     workTime: 'Time (HH:MM)',
     workNoTime: 'No time',
     workMine: 'My work today',
     workEmpty: 'No tasks for this day.',
+    workByDate: 'By date',
+    workByPerson: 'By person',
+    workOverdue: 'Overdue',
+    workOpenN: '{n} open',
+    workDoneN: 'Done · {n}',
+    workSiteFilter: 'Site filter',
+    workNoTasks: 'No tasks yet.',
+    workExport: 'Export report',
+    workExportRange: 'Time period',
+    workThisWeek: 'This week',
+    workThisMonth: 'This month',
+    workCustom: 'Custom',
+    workFrom: 'From',
+    workTo: 'To',
+    workReportType: 'Report type',
+    workRepList: 'Task list',
+    workRepPerson: 'Per person',
+    workRepSite: 'Per site',
+    workRepOverdue: 'Overdue & completion',
+    workExportSub: 'Get a report of your tasks in PDF or Excel.',
+    workFileFormat: 'File format',
+    workGenerate: 'Generate report',
+    workRepListSub: 'All tasks with status',
+    workRepPersonSub: 'Tasks by assignee',
+    workRepSiteSub: 'Tasks by site/location',
+    workRepOverdueSub: 'Overdue, completed & pending',
+    workColNumber: '#',
+    workColTitle: 'Task',
+    workColDate: 'Date',
+    workColStatus: 'Status',
+    workColOpen: 'Open',
+    workColTotal: 'Total',
+    workCompletion: 'Completion rate',
+    workDaysLate: 'Days late',
+    workProBadge: 'Pro',
     workAdd: 'Add task',
     workEdit: 'Edit task',
     workTitleField: 'Task title',
@@ -9145,6 +9273,47 @@ const en: UiStrings = {
     inviteFailed: 'Could not create an invite. Connect to the internet and try again.',
     save: 'Save',
     close: 'Close',
+    addSubtitle: 'Add a vendor to manage payments and bills in Waves.',
+    scanQr: 'Scan QR',
+    fromLink: 'From Link',
+    wavesId: 'Waves ID',
+    useLink: 'Use link',
+    findId: 'Find',
+    helpScan: 'Scan a payment QR or a QR shared by the vendor',
+    helpLink: 'Paste a payment link or a phone number',
+    helpId: 'Enter their email or phone to find them on Waves',
+    linkPlaceholder: 'Paste link or phone number',
+    idPlaceholder: 'Email or phone number',
+    idHint: 'Enter a valid email or phone number',
+    lookupFailed: "Couldn't read that. Fill in the details below.",
+    allowCamera: 'Allow camera',
+    or: 'OR',
+    enterManually: 'Enter Manually',
+    phoneOptional: 'Phone number (optional)',
+    categoryOptional: 'Category (optional)',
+    saveVendor: 'Save Vendor',
+    catSupplier: 'Supplier',
+    catContractor: 'Contractor',
+    catLandlord: 'Landlord',
+    catUtilities: 'Utilities',
+    catTransport: 'Transport',
+    catOther: 'Other',
+  },
+  companyStorage: {
+    addMore: 'Add more storage',
+    packLine: '{size} · {price}/month',
+    packNote:
+      'One pack per company; switch any time. If it ends, your photos stay and only new uploads stop.',
+    bought: 'Thanks. Your space will update in a moment.',
+    pending: 'Purchase pending. Storage updates once it completes.',
+    buyFailed: 'Could not complete the purchase. Try again.',
+    title: 'Storage',
+    usedOfQuota: '{used} of {quota}',
+    percentUsed: '{percent}% used',
+    banner: 'Storage {percent}% full — add more',
+    note: 'Photos on entries, bills and tasks count here. Nothing is ever deleted.',
+    full: 'Company storage is full. The owner can add more in Settings.',
+    loading: 'Could not load storage. Pull to retry.',
   },
   companyDetails: {
     title: 'Company details',
@@ -14396,6 +14565,9 @@ const ta: UiStrings = {
       one: '{n} மாற்றம் சிக்கிக்கொண்டது',
       other: '{n} மாற்றங்கள் சிக்கிக்கொண்டன',
     },
+    stuckShort: 'இந்த ஃபோனில் சேமிக்கப்பட்டது, ஆனால் இன்னும் அனுப்பப்படவில்லை.',
+    discardTitle: 'இந்த மாற்றத்தை நீக்கவா?',
+    discardBody: 'இது இந்த ஃபோனில் மட்டுமே உள்ளது. நீக்கினால் திரும்ப வராது.',
     stuckExplain:
       'இந்த ஃபோனில் இன்னும் சேமிக்கப்பட்டுள்ளது — அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது நீக்கிவிடவும்.',
     openDetail: 'உங்கள் முடிவு தேவைப்படுவதைத் திறக்கும்',
@@ -14842,6 +15014,7 @@ const ta: UiStrings = {
     attendanceDepartment: 'துறை',
     workToday: 'இன்று',
     attendanceNote: 'குறிப்பு சேர்க்க',
+    attendanceNotePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
     attendanceHalfDay: 'அரை நாள்',
     attendanceMark: 'குறி',
     attendanceClear: 'நீக்கு',
@@ -14855,6 +15028,13 @@ const ta: UiStrings = {
     attendanceWeeklyView: 'வாராந்திர பார்வை',
     attendanceMonthlyView: 'மாதாந்திர பார்வை',
     attendanceSetStatus: 'வருகையைக் குறிக்கவும்',
+    attendanceMarkAllAbsent: 'அனைவருக்கும் வரவில்லை',
+    attendanceOnLeave: 'விடுப்பில்',
+    attendanceLeaveApplied: 'விடுப்பு விண்ணப்பம்',
+    attendanceLeave: 'விடுப்பு',
+    attendanceAutoSaved: 'வருகை தானாகவே சேமிக்கப்படும்',
+    attendanceOverwriteTitle: 'இருக்கும் குறிகளை மாற்றவா?',
+    attendanceOverwriteBody: '{n} பேருக்கு இந்த நாளில் வேறு குறி உள்ளது. மாற்றவா?',
     attendanceTasks: { other: '{n} பணிகள்' },
     attendanceSubtitle: { other: '{company} · {n} பணியாளர்கள்' },
     attendanceSummary: { other: '{n} நாட்கள் வருகை' },
@@ -14899,12 +15079,45 @@ const ta: UiStrings = {
     workMineTasks: 'என் பணிகள்',
     workTeam: 'குழு',
     workFilter: 'வடிகட்டி',
-    workSortTitle: 'தலைப்பு வரிசை (அ–ஃ)',
-    workAllTasks: 'அனைத்து பணிகள்',
     workTime: 'நேரம் (மணி:நிமிடம்)',
     workNoTime: 'நேரம் இல்லை',
     workMine: 'என் இன்றைய வேலை',
     workEmpty: 'இந்த நாளில் வேலைகள் இல்லை.',
+    workByDate: 'தேதிப்படி',
+    workByPerson: 'நபர்படி',
+    workOverdue: 'தாமதம்',
+    workOpenN: '{n} திறந்தவை',
+    workDoneN: 'முடிந்தவை · {n}',
+    workSiteFilter: 'பணித்தள வடிகட்டி',
+    workNoTasks: 'இன்னும் பணிகள் இல்லை.',
+    workExport: 'அறிக்கை ஏற்றுமதி',
+    workExportRange: 'காலம்',
+    workThisWeek: 'இந்த வாரம்',
+    workThisMonth: 'இந்த மாதம்',
+    workCustom: 'தனிப்பயன்',
+    workFrom: 'இருந்து',
+    workTo: 'வரை',
+    workReportType: 'அறிக்கை வகை',
+    workRepList: 'பணிப் பட்டியல்',
+    workRepPerson: 'நபர்வாரி',
+    workRepSite: 'தளவாரி',
+    workRepOverdue: 'தாமதம் & நிறைவு',
+    workExportSub: 'உங்கள் பணிகளின் அறிக்கையை PDF அல்லது Excel-இல் பெறுங்கள்.',
+    workFileFormat: 'கோப்பு வடிவம்',
+    workGenerate: 'அறிக்கை உருவாக்கு',
+    workRepListSub: 'நிலையுடன் அனைத்துப் பணிகளும்',
+    workRepPersonSub: 'பொறுப்பாளர் வாரியாக பணிகள்',
+    workRepSiteSub: 'தளம்/இடம் வாரியாக பணிகள்',
+    workRepOverdueSub: 'தாமதம், முடிந்தவை & நிலுவை',
+    workColNumber: '#',
+    workColTitle: 'பணி',
+    workColDate: 'தேதி',
+    workColStatus: 'நிலை',
+    workColOpen: 'திறந்தவை',
+    workColTotal: 'மொத்தம்',
+    workCompletion: 'நிறைவு விகிதம்',
+    workDaysLate: 'தாமத நாட்கள்',
+    workProBadge: 'Pro',
     workAdd: 'வேலை சேர்க்க',
     workEdit: 'வேலை திருத்த',
     workTitleField: 'வேலைத் தலைப்பு',
@@ -15554,6 +15767,47 @@ const ta: UiStrings = {
     inviteFailed: 'அழைப்பை உருவாக்க முடியவில்லை. இணையத்தில் இணைந்து மீண்டும் முயலவும்.',
     save: 'சேமி',
     close: 'மூடு',
+    addSubtitle: 'Waves-இல் பணம் மற்றும் பில்களை நிர்வகிக்க விற்பனையாளரைச் சேர்க்கவும்.',
+    scanQr: 'QR ஸ்கேன்',
+    fromLink: 'இணைப்பிலிருந்து',
+    wavesId: 'Waves ID',
+    useLink: 'இணைப்பைப் பயன்படுத்து',
+    findId: 'தேடு',
+    helpScan: 'பணம் செலுத்தும் QR அல்லது விற்பனையாளர் பகிர்ந்த QR-ஐ ஸ்கேன் செய்யவும்',
+    helpLink: 'பணம் செலுத்தும் இணைப்பு அல்லது தொலைபேசி எண்ணை ஒட்டவும்',
+    helpId: 'Waves-இல் கண்டறிய மின்னஞ்சல் அல்லது தொலைபேசி எண்ணை உள்ளிடவும்',
+    linkPlaceholder: 'இணைப்பு அல்லது தொலைபேசி எண்ணை ஒட்டவும்',
+    idPlaceholder: 'மின்னஞ்சல் அல்லது தொலைபேசி எண்',
+    idHint: 'சரியான மின்னஞ்சல் அல்லது தொலைபேசி எண்ணை உள்ளிடவும்',
+    lookupFailed: 'படிக்க முடியவில்லை. கீழே விவரங்களை நிரப்பவும்.',
+    allowCamera: 'கேமராவை அனுமதி',
+    or: 'அல்லது',
+    enterManually: 'கைமுறையாக உள்ளிடு',
+    phoneOptional: 'தொலைபேசி எண் (விருப்பம்)',
+    categoryOptional: 'வகை (விருப்பம்)',
+    saveVendor: 'விற்பனையாளரைச் சேமி',
+    catSupplier: 'சப்ளையர்',
+    catContractor: 'ஒப்பந்ததாரர்',
+    catLandlord: 'நில உரிமையாளர்',
+    catUtilities: 'பயன்பாட்டுச் சேவைகள்',
+    catTransport: 'போக்குவரத்து',
+    catOther: 'மற்றவை',
+  },
+  companyStorage: {
+    addMore: 'மேலும் சேமிப்பைச் சேர்க்கவும்',
+    packLine: '{size} · மாதம் {price}',
+    packNote:
+      'ஒரு நிறுவனத்திற்கு ஒரு பேக்; எப்போது வேண்டுமானாலும் மாற்றலாம். முடிந்தால் புகைப்படங்கள் இருக்கும், புதிய பதிவேற்றங்கள் மட்டும் நிற்கும்.',
+    bought: 'நன்றி. உங்கள் இடம் சற்று நேரத்தில் புதுப்பிக்கப்படும்.',
+    pending: 'கொள்முதல் நிலுவையில் உள்ளது. முடிந்ததும் சேமிப்பு புதுப்பிக்கப்படும்.',
+    buyFailed: 'கொள்முதலை முடிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    title: 'சேமிப்பு',
+    usedOfQuota: '{quota}-இல் {used}',
+    percentUsed: '{percent}% பயன்பாடு',
+    banner: 'சேமிப்பு {percent}% நிரம்பியுள்ளது. மேலும் சேர்க்கவும்',
+    note: 'பதிவுகள், பில்கள், பணிகளின் புகைப்படங்கள் இங்கே கணக்கிடப்படும். எதுவும் நீக்கப்படாது.',
+    full: 'நிறுவன சேமிப்பு நிரம்பிவிட்டது. உரிமையாளர் அமைப்புகளில் மேலும் சேர்க்கலாம்.',
+    loading: 'சேமிப்பை ஏற்ற முடியவில்லை. மீண்டும் முயலவும்.',
   },
   companyDetails: {
     title: 'நிறுவன விவரங்கள்',
@@ -20975,6 +21229,9 @@ const hi: UiStrings = {
       one: '{n} बदलाव अटका है',
       other: '{n} बदलाव अटके हैं',
     },
+    stuckShort: 'इस फ़ोन पर सेव है, पर अभी भेजा नहीं गया।',
+    discardTitle: 'यह बदलाव छोड़ दें?',
+    discardBody: 'यह सिर्फ़ इस फ़ोन पर है। छोड़ने पर वापस नहीं आएगा।',
     stuckExplain:
       'इस फ़ोन पर अब भी सहेजा है — बस भेजा नहीं जा पा रहा। दोबारा कोशिश करें, या हटा दें।',
     openDetail: 'आपके निर्णय की ज़रूरत वाली चीज़ खोलता है',
@@ -21413,6 +21670,7 @@ const hi: UiStrings = {
     attendanceDepartment: 'विभाग',
     workToday: 'आज',
     attendanceNote: 'नोट जोड़ें',
+    attendanceNotePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
     attendanceHalfDay: 'आधा दिन',
     attendanceMark: 'चिह्नित करें',
     attendanceClear: 'हटाएँ',
@@ -21426,6 +21684,13 @@ const hi: UiStrings = {
     attendanceWeeklyView: 'साप्ताहिक दृश्य',
     attendanceMonthlyView: 'मासिक दृश्य',
     attendanceSetStatus: 'हाज़िरी लगाएँ',
+    attendanceMarkAllAbsent: 'सबको गैरहाज़िर करें',
+    attendanceOnLeave: 'छुट्टी पर',
+    attendanceLeaveApplied: 'छुट्टी का आवेदन',
+    attendanceLeave: 'छुट्टी',
+    attendanceAutoSaved: 'हाज़िरी अपने आप सेव होती है',
+    attendanceOverwriteTitle: 'मौजूदा निशान बदलें?',
+    attendanceOverwriteBody: '{n} लोगों का इस दिन पहले से अलग निशान है। बदलें?',
     attendanceTasks: { other: '{n} कार्य' },
     attendanceSubtitle: { other: '{company} · {n} कर्मचारी' },
     attendanceSummary: { other: '{n} दिन हाज़िर' },
@@ -21470,12 +21735,45 @@ const hi: UiStrings = {
     workMineTasks: 'मेरे काम',
     workTeam: 'टीम',
     workFilter: 'फ़िल्टर',
-    workSortTitle: 'शीर्षक के अनुसार क्रम (अ–ह)',
-    workAllTasks: 'सभी काम',
     workTime: 'समय (HH:MM)',
     workNoTime: 'समय नहीं',
     workMine: 'आज मेरा काम',
     workEmpty: 'इस दिन कोई काम नहीं।',
+    workByDate: 'तारीख के अनुसार',
+    workByPerson: 'व्यक्ति के अनुसार',
+    workOverdue: 'देरी',
+    workOpenN: '{n} खुले',
+    workDoneN: 'पूरे · {n}',
+    workSiteFilter: 'साइट फ़िल्टर',
+    workNoTasks: 'अभी कोई काम नहीं।',
+    workExport: 'रिपोर्ट एक्सपोर्ट',
+    workExportRange: 'समय अवधि',
+    workThisWeek: 'इस सप्ताह',
+    workThisMonth: 'इस महीने',
+    workCustom: 'कस्टम',
+    workFrom: 'से',
+    workTo: 'तक',
+    workReportType: 'रिपोर्ट का प्रकार',
+    workRepList: 'काम की सूची',
+    workRepPerson: 'व्यक्ति के अनुसार',
+    workRepSite: 'साइट के अनुसार',
+    workRepOverdue: 'देरी और पूर्णता',
+    workExportSub: 'अपने कामों की रिपोर्ट PDF या Excel में पाएँ।',
+    workFileFormat: 'फ़ाइल फ़ॉर्मैट',
+    workGenerate: 'रिपोर्ट बनाएँ',
+    workRepListSub: 'स्थिति के साथ सभी काम',
+    workRepPersonSub: 'ज़िम्मेदार के अनुसार काम',
+    workRepSiteSub: 'साइट/जगह के अनुसार काम',
+    workRepOverdueSub: 'देरी, पूरे और बाकी',
+    workColNumber: '#',
+    workColTitle: 'काम',
+    workColDate: 'तारीख',
+    workColStatus: 'स्थिति',
+    workColOpen: 'खुले',
+    workColTotal: 'कुल',
+    workCompletion: 'पूर्णता दर',
+    workDaysLate: 'देरी के दिन',
+    workProBadge: 'Pro',
     workAdd: 'काम जोड़ें',
     workEdit: 'काम बदलें',
     workTitleField: 'काम का नाम',
@@ -22120,6 +22418,47 @@ const hi: UiStrings = {
     inviteFailed: 'आमंत्रण नहीं बन सका। इंटरनेट से जुड़कर फिर कोशिश करें।',
     save: 'सहेजें',
     close: 'बंद करें',
+    addSubtitle: 'Waves में भुगतान और बिल संभालने के लिए विक्रेता जोड़ें।',
+    scanQr: 'QR स्कैन',
+    fromLink: 'लिंक से',
+    wavesId: 'Waves ID',
+    useLink: 'लिंक उपयोग करें',
+    findId: 'खोजें',
+    helpScan: 'भुगतान QR या विक्रेता का भेजा QR स्कैन करें',
+    helpLink: 'भुगतान लिंक या फ़ोन नंबर चिपकाएँ',
+    helpId: 'Waves पर ढूँढने के लिए ईमेल या फ़ोन दर्ज करें',
+    linkPlaceholder: 'लिंक या फ़ोन नंबर चिपकाएँ',
+    idPlaceholder: 'ईमेल या फ़ोन नंबर',
+    idHint: 'सही ईमेल या फ़ोन नंबर दर्ज करें',
+    lookupFailed: 'पढ़ नहीं सका। नीचे विवरण भरें।',
+    allowCamera: 'कैमरा अनुमति दें',
+    or: 'या',
+    enterManually: 'हाथ से भरें',
+    phoneOptional: 'फ़ोन नंबर (वैकल्पिक)',
+    categoryOptional: 'श्रेणी (वैकल्पिक)',
+    saveVendor: 'विक्रेता सहेजें',
+    catSupplier: 'सप्लायर',
+    catContractor: 'ठेकेदार',
+    catLandlord: 'मकान मालिक',
+    catUtilities: 'बिजली-पानी आदि',
+    catTransport: 'परिवहन',
+    catOther: 'अन्य',
+  },
+  companyStorage: {
+    addMore: 'और स्टोरेज जोड़ें',
+    packLine: '{size} · {price}/माह',
+    packNote:
+      'हर कंपनी के लिए एक पैक; कभी भी बदलें। खत्म होने पर फ़ोटो रहेंगी, सिर्फ़ नई अपलोड रुकेंगी।',
+    bought: 'धन्यवाद। आपकी जगह कुछ ही पल में अपडेट हो जाएगी।',
+    pending: 'खरीद लंबित है। पूरी होने पर स्टोरेज अपडेट होगा।',
+    buyFailed: 'खरीद पूरी नहीं हो सकी। फिर कोशिश करें।',
+    title: 'स्टोरेज',
+    usedOfQuota: '{quota} में से {used}',
+    percentUsed: '{percent}% उपयोग',
+    banner: 'स्टोरेज {percent}% भर गया। और जोड़ें',
+    note: 'एंट्री, बिल और कामों की फ़ोटो यहाँ गिनी जाती हैं। कुछ भी कभी नहीं हटाया जाता।',
+    full: 'कंपनी का स्टोरेज भर गया है। मालिक सेटिंग्स में और जोड़ सकते हैं।',
+    loading: 'स्टोरेज लोड नहीं हो सका। दोबारा कोशिश करें।',
   },
   companyDetails: {
     title: 'कंपनी का विवरण',
@@ -27394,6 +27733,9 @@ const ar: UiStrings = {
       many: '{n} تغييرًا عالقًا',
       other: '{n} تغيير عالق',
     },
+    stuckShort: 'محفوظ على هذا الهاتف، لكنه لم يُرسَل بعد.',
+    discardTitle: 'تجاهل هذا التغيير؟',
+    discardBody: 'إنه على هذا الهاتف فقط. بعد تجاهله لن يعود.',
     stuckExplain: 'ما زال محفوظًا على هذا الهاتف — لكنه لا يُرسَل. أعد المحاولة، أو تجاهله.',
     openDetail: 'يفتح ما يحتاج إلى قرارك',
   },
@@ -27867,6 +28209,7 @@ const ar: UiStrings = {
     attendanceDepartment: 'القسم',
     workToday: 'اليوم',
     attendanceNote: 'إضافة ملاحظة',
+    attendanceNotePlaceholder: 'إضافة ملاحظة (اختياري)',
     attendanceHalfDay: 'نصف يوم',
     attendanceMark: 'تسجيل',
     attendanceClear: 'مسح',
@@ -27880,6 +28223,13 @@ const ar: UiStrings = {
     attendanceWeeklyView: 'عرض أسبوعي',
     attendanceMonthlyView: 'عرض شهري',
     attendanceSetStatus: 'تسجيل الحضور',
+    attendanceMarkAllAbsent: 'تسجيل غياب الجميع',
+    attendanceOnLeave: 'في إجازة',
+    attendanceLeaveApplied: 'تم طلب إجازة',
+    attendanceLeave: 'إجازة',
+    attendanceAutoSaved: 'يتم حفظ الحضور تلقائيًا',
+    attendanceOverwriteTitle: 'استبدال العلامات الحالية؟',
+    attendanceOverwriteBody: 'لدى {n} أشخاص علامة مختلفة لهذا اليوم. هل تريد استبدالها؟',
     attendanceTasks: {
       zero: '{n} مهمة',
       one: 'مهمة واحدة',
@@ -27942,12 +28292,45 @@ const ar: UiStrings = {
     workMineTasks: 'مهامي',
     workTeam: 'الفريق',
     workFilter: 'تصفية',
-    workSortTitle: 'الترتيب حسب العنوان (أ–ي)',
-    workAllTasks: 'كل المهام',
     workTime: 'الوقت (HH:MM)',
     workNoTime: 'بلا وقت',
     workMine: 'عملي اليوم',
     workEmpty: 'لا مهام لهذا اليوم.',
+    workByDate: 'حسب التاريخ',
+    workByPerson: 'حسب الشخص',
+    workOverdue: 'متأخرة',
+    workOpenN: '{n} مفتوحة',
+    workDoneN: 'منجزة · {n}',
+    workSiteFilter: 'تصفية الموقع',
+    workNoTasks: 'لا مهام بعد.',
+    workExport: 'تصدير تقرير',
+    workExportRange: 'الفترة الزمنية',
+    workThisWeek: 'هذا الأسبوع',
+    workThisMonth: 'هذا الشهر',
+    workCustom: 'مخصص',
+    workFrom: 'من',
+    workTo: 'إلى',
+    workReportType: 'نوع التقرير',
+    workRepList: 'قائمة المهام',
+    workRepPerson: 'حسب الشخص',
+    workRepSite: 'حسب الموقع',
+    workRepOverdue: 'المتأخرة ونسبة الإنجاز',
+    workExportSub: 'احصل على تقرير بمهامك بصيغة PDF أو Excel.',
+    workFileFormat: 'صيغة الملف',
+    workGenerate: 'إنشاء التقرير',
+    workRepListSub: 'كل المهام مع الحالة',
+    workRepPersonSub: 'المهام حسب المكلّف',
+    workRepSiteSub: 'المهام حسب الموقع',
+    workRepOverdueSub: 'المتأخرة والمكتملة والمعلّقة',
+    workColNumber: '#',
+    workColTitle: 'المهمة',
+    workColDate: 'التاريخ',
+    workColStatus: 'الحالة',
+    workColOpen: 'مفتوحة',
+    workColTotal: 'الإجمالي',
+    workCompletion: 'نسبة الإنجاز',
+    workDaysLate: 'أيام التأخير',
+    workProBadge: 'Pro',
     workAdd: 'إضافة مهمة',
     workEdit: 'تعديل المهمة',
     workTitleField: 'عنوان المهمة',
@@ -28626,6 +29009,47 @@ const ar: UiStrings = {
     inviteFailed: 'تعذر إنشاء دعوة. اتصل بالإنترنت وحاول مجددًا.',
     save: 'حفظ',
     close: 'إغلاق',
+    addSubtitle: 'أضف مورّدًا لإدارة المدفوعات والفواتير في Waves.',
+    scanQr: 'مسح QR',
+    fromLink: 'من رابط',
+    wavesId: 'معرّف Waves',
+    useLink: 'استخدم الرابط',
+    findId: 'بحث',
+    helpScan: 'امسح رمز QR للدفع أو رمزًا شاركه المورّد',
+    helpLink: 'الصق رابط الدفع أو رقم الهاتف',
+    helpId: 'أدخل البريد أو الهاتف للعثور عليه في Waves',
+    linkPlaceholder: 'الصق الرابط أو رقم الهاتف',
+    idPlaceholder: 'البريد الإلكتروني أو رقم الهاتف',
+    idHint: 'أدخل بريدًا أو رقم هاتف صالحًا',
+    lookupFailed: 'تعذّرت القراءة. املأ التفاصيل أدناه.',
+    allowCamera: 'السماح بالكاميرا',
+    or: 'أو',
+    enterManually: 'إدخال يدوي',
+    phoneOptional: 'رقم الهاتف (اختياري)',
+    categoryOptional: 'الفئة (اختياري)',
+    saveVendor: 'حفظ المورّد',
+    catSupplier: 'مورّد',
+    catContractor: 'مقاول',
+    catLandlord: 'مالك العقار',
+    catUtilities: 'المرافق',
+    catTransport: 'النقل',
+    catOther: 'أخرى',
+  },
+  companyStorage: {
+    addMore: 'أضف المزيد من التخزين',
+    packLine: '{size} · {price}/شهريًا',
+    packNote:
+      'حزمة واحدة لكل شركة، ويمكن تبديلها في أي وقت. إذا انتهت تبقى الصور ويتوقف الرفع الجديد فقط.',
+    bought: 'شكرًا. ستتحدث المساحة بعد لحظات.',
+    pending: 'الشراء قيد الانتظار. يتحدث التخزين عند اكتماله.',
+    buyFailed: 'تعذر إكمال الشراء. حاول مرة أخرى.',
+    title: 'التخزين',
+    usedOfQuota: '{used} من {quota}',
+    percentUsed: 'مستخدم {percent}%',
+    banner: 'التخزين ممتلئ بنسبة {percent}%. أضف المزيد',
+    note: 'صور القيود والفواتير والمهام تُحتسب هنا. لا يُحذف أي شيء أبدًا.',
+    full: 'تخزين الشركة ممتلئ. يمكن للمالك إضافة المزيد من الإعدادات.',
+    loading: 'تعذر تحميل التخزين. حاول مرة أخرى.',
   },
   companyDetails: {
     title: 'تفاصيل الشركة',
