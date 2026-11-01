@@ -149,6 +149,9 @@ describe('company bar navigation', () => {
     expect(companyBarRoute('a', 'home')).toBe('/group/a?nav=tab');
     expect(companyBarActiveKey(['group', '[id]', 'company-vendors'])).toBe('vendors');
     expect(companyBarRoute('a', 'vendors')).toBe('/group/a/company-vendors');
+    expect(companyBarActiveKey(['group', '[id]', 'company-clients'])).toBe('clients');
+    expect(companyBarActiveKey(['group', '[id]', 'company-client'])).toBe('clients');
+    expect(companyBarRoute('a', 'clients')).toBe('/group/a/company-clients');
     expect(companyBarRoute('a', 'team')).toBe('/group/a/company-team');
   });
   it('Back goes sub-tab to Overview, Overview to Home, and nowhere on deeper screens', () => {
