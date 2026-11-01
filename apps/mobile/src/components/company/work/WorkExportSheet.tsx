@@ -9,7 +9,14 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { ActivityIndicator, Platform, Pressable, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { Button, iconSize, Sheet, Text, useTheme } from '@waves/ui';
 
 import { SectionHeader } from '@/components/standard';
@@ -65,6 +72,7 @@ export function WorkExportSheet({
   siteName: (projectId: string | null) => string;
 }) {
   const theme = useTheme();
+  const { height } = useWindowDimensions();
   const { t, locale } = useStrings();
   const c = t.company;
   const adGate = useAdGate();
@@ -277,7 +285,10 @@ export function WorkExportSheet({
             ) : null}
           </View>
         ) : (
-          <View style={{ gap: theme.spacing.sm }}>
+          <ScrollView
+            style={{ maxHeight: height * 0.8 }}
+            contentContainerStyle={{ gap: theme.spacing.sm }}
+          >
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
               <View
                 style={{
@@ -385,7 +396,7 @@ export function WorkExportSheet({
                 )
               }
             />
-          </View>
+          </ScrollView>
         )}
       </Sheet>
       {adGate.sheet}
