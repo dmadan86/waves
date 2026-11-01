@@ -45,6 +45,9 @@ import { loadSyncNetworkPreference, networkAllows, SyncNetworkPreference } from 
 import type { RetainedWork } from './retention';
 import { createLocalStore, type LocalStore, type StoredRow } from './store';
 
+/** How long attendance taps wait to be sent together. */
+export const ATTENDANCE_FLUSH_DELAY_MS = 800;
+
 export enum SyncStatus {
   Idle = 'idle',
   Syncing = 'syncing',
@@ -192,6 +195,9 @@ export class SyncEngine {
 
   private listeners = new Set<(state: SyncState) => void>();
   private flushing: Promise<void> | null = null;
+  // A flush asked for while one is in flight: one follow-up, run once it settles, shared by every such ask.
+  private followUp: Promise<void> | null = null;
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   /** `start()` was called and `stop()` has not been since: a session wants the poll. */
   private polling = false;
@@ -266,6 +272,8 @@ export class SyncEngine {
   stop(): void {
     this.polling = false;
     this.disarm();
+    if (this.flushTimer) clearTimeout(this.flushTimer);
+    this.flushTimer = null;
   }
 
   /**
@@ -433,7 +441,17 @@ export class SyncEngine {
     const queue = enqueueMutation(this.state.queue, envelope);
     this.set({ queue });
     await this.writeQueue(queue);
-    void this.flush();
+    if (envelope.kind === MutationKind.CompanyAttendanceSet) this.flushSoon();
+    else void this.flush();
+  }
+
+  /** Attendance is marked in quick runs of taps: send the run as one request, not one per tap. */
+  private flushSoon(): void {
+    if (this.flushTimer) clearTimeout(this.flushTimer);
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+      void this.flush();
+    }, ATTENDANCE_FLUSH_DELAY_MS);
   }
 
   async retry(clientMutationId: string): Promise<void> {
@@ -481,7 +499,13 @@ export class SyncEngine {
     // One in flight at a time: two concurrent flushes would send the same batch
     // twice. Harmless thanks to idempotency, but it wastes a round trip and
     // makes the outcome bookkeeping race.
-    this.flushing ??= this.runFlush(options)
+    // Without the follow-up, what was queued mid-flight would wait out the 30s poll.
+    if (this.flushing)
+      return (this.followUp ??= this.flushing.then(() => {
+        this.followUp = null;
+        return this.flush(options);
+      }));
+    this.flushing = this.runFlush(options)
       .catch((error: unknown) => {
         // Hydration and disk failures arrive here. Flush is fired and forgotten
         // from four places — a timer, foreground, reconnect and every enqueue —
