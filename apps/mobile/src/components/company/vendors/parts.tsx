@@ -10,7 +10,7 @@ import { useStrings } from '@/i18n';
 import { showDate } from '@/lib/expenseDay';
 
 /** Chip colours: [text, fill]. Tweak here when the reference design arrives. */
-const TONES = {
+export const TONES = {
   good: ['#17703C', '#EAF7EF'],
   bad: ['#C0262D', '#FDECEC'],
   warn: ['#A85F00', '#FFF3E3'],
