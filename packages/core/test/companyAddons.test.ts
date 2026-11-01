@@ -211,3 +211,31 @@ describe('purgeCompanyInvisible (employee moved to another manager)', () => {
     expect(purgeCompanyInvisible(state, {}).state).toBe(state);
   });
 });
+
+describe('purgeCompanyInvisible (client reassigned to someone else)', () => {
+  const state = mirrorWith([
+    row(SyncTable.CompanyClients, { id: 'kept' }),
+    row(SyncTable.CompanyClients, { id: 'gone' }),
+    row(SyncTable.CompanyClientNotes, { id: 'n1', client_id: 'kept' }),
+    row(SyncTable.CompanyClientNotes, { id: 'n2', client_id: 'gone' }),
+    row(SyncTable.CompanyWorkTasks, { id: 't1', client_id: 'kept', member_id: 'me' }),
+    row(SyncTable.CompanyWorkTasks, { id: 't2', client_id: 'gone', member_id: 'me' }),
+    row(SyncTable.CompanyWorkTasks, { id: 't3', client_id: null, member_id: 'me' }),
+  ]);
+  const ids = (s: typeof state, t: SyncTable) => Object.keys(s.tables[t]).sort();
+
+  it('drops the client and its notes; follow-up tasks stay (they are visible by their own assignee)', () => {
+    const { state: next } = purgeCompanyInvisible(
+      state,
+      {},
+      { g: { dates: [], events: [], clients: ['kept'] } },
+    );
+    expect(ids(next, SyncTable.CompanyClients)).toEqual(['kept']);
+    expect(ids(next, SyncTable.CompanyClientNotes)).toEqual(['n1']);
+    expect(ids(next, SyncTable.CompanyWorkTasks)).toEqual(['t1', 't2', 't3']);
+  });
+
+  it('keeps everything when the server sent no client list (older server)', () => {
+    expect(purgeCompanyInvisible(state, {}, { g: { dates: [], events: [] } }).state).toBe(state);
+  });
+});
