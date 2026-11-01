@@ -28,7 +28,11 @@ import { useStrings } from '@/i18n';
 import { formatBytes } from '@/lib/bytes';
 import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
-import { buyCompanyStoragePack, loadCompanyStoragePacks } from '@/lib/purchases';
+import {
+  buyCompanyStoragePack,
+  hasActiveCompanyStoragePack,
+  loadCompanyStoragePacks,
+} from '@/lib/purchases';
 
 export default function CompanyStorageScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -53,6 +57,13 @@ export default function CompanyStorageScreen() {
   }, [view.isOwner]);
   const buy = async (pack: PurchasesStoreProduct) => {
     if (buying) return;
+    // The account already pays for a pack and this company has none: it is another company's, and a
+    // store product change would replace that pack instead of adding one. (250 MB = the free default.)
+    if (hasActiveCompanyStoragePack() && (usage.data?.quotaBytes ?? 0) <= 262144000) {
+      setSheet(false);
+      await notify({ title: t.companyStorage.packElsewhere });
+      return;
+    }
     setBuying(true);
     try {
       const outcome = await buyCompanyStoragePack(pack, groupId);

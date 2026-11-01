@@ -116,6 +116,31 @@ describe('company storage packs', () => {
       ),
     ).toBe('applied');
     expect(await quota()).toBeNull();
+    // The binding survives expiry: a late renewal naming another company still applies to this one.
+    const other = randomUUID();
+    await db.query(`INSERT INTO groups(id,type,created_by) VALUES($1,'company',$2)`, [
+      other,
+      g.profileIds[0],
+    ]);
+    await db.query(`INSERT INTO group_members(group_id,profile_id,role) VALUES($1,$2,'admin')`, [
+      other,
+      g.profileIds[0],
+    ]);
+    expect(
+      await apply(
+        randomUUID(),
+        { group_id: other, store_txn_id: txn, pack_bytes: 5 * GB },
+        new Date(t0 + 3),
+      ),
+    ).toBe('applied');
+    expect(await quota()).toBe(String(FREE + 5 * GB));
+    expect(
+      (
+        await db.query('SELECT 1 FROM company_plans WHERE group_id=$1 AND pack_txn IS NOT NULL', [
+          other,
+        ])
+      ).rowCount,
+    ).toBe(0);
     const files = await db.query(
       'SELECT count(*)::int n FROM storage_objects WHERE company_group_id=$1',
       [company],
