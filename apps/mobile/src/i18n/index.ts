@@ -1483,6 +1483,16 @@ export interface UiStrings {
     deleteTitle: string;
     deleteBody: string;
     unpaidTotal: string;
+    searchLabel: string;
+    searchPlaceholder: string;
+    addLabel: string;
+    docsCount: string;
+    billsCount: string;
+    noDocsTitle: string;
+    noDocsBody: string;
+    createBill: string;
+    createEstimate: string;
+    noMatch: string;
   };
   company: {
     attendanceTitle: string;
@@ -8477,7 +8487,7 @@ const en: UiStrings = {
     billPaid: 'Bill {number} for {customer} was paid',
   },
   companyDocs: {
-    title: 'Estimates & bills',
+    title: 'Estimates & Bills',
     estimate: 'Estimate',
     bill: 'Bill',
     all: 'All',
@@ -8533,6 +8543,16 @@ const en: UiStrings = {
     deleteTitle: 'Delete document?',
     deleteBody: 'This document will be removed.',
     unpaidTotal: '{amount} unpaid',
+    searchLabel: 'Search',
+    searchPlaceholder: 'Search by number, name or title',
+    addLabel: 'New',
+    docsCount: '{n} documents',
+    billsCount: '{n} bills',
+    noDocsTitle: 'No estimates or bills yet',
+    noDocsBody: 'Create estimates, add bills, and track payments in one place.',
+    createBill: 'Create Bill',
+    createEstimate: 'Create Estimate',
+    noMatch: 'Nothing matches',
   },
   company: {
     attendanceTitle: 'Attendance',
@@ -15048,6 +15068,17 @@ const ta: UiStrings = {
     deleteTitle: 'ஆவணத்தை நீக்கவா?',
     deleteBody: 'இந்த ஆவணம் நீக்கப்படும்.',
     unpaidTotal: '{amount} நிலுவை',
+    searchLabel: 'தேடு',
+    searchPlaceholder: 'எண், பெயர் அல்லது தலைப்பால் தேடுங்கள்',
+    addLabel: 'புதிது',
+    docsCount: '{n} ஆவணங்கள்',
+    billsCount: '{n} பில்கள்',
+    noDocsTitle: 'இன்னும் மதிப்பீடுகள் அல்லது பில்கள் இல்லை',
+    noDocsBody:
+      'மதிப்பீடுகளை உருவாக்கி, பில்களைச் சேர்த்து, கட்டணங்களை ஒரே இடத்தில் கண்காணிக்கவும்.',
+    createBill: 'பில் உருவாக்கு',
+    createEstimate: 'மதிப்பீடு உருவாக்கு',
+    noMatch: 'எதுவும் பொருந்தவில்லை',
   },
   company: {
     attendanceTitle: 'வருகை',
@@ -21730,6 +21761,16 @@ const hi: UiStrings = {
     deleteTitle: 'दस्तावेज़ हटाएँ?',
     deleteBody: 'यह दस्तावेज़ हटा दिया जाएगा।',
     unpaidTotal: '{amount} बकाया',
+    searchLabel: 'खोजें',
+    searchPlaceholder: 'नंबर, नाम या शीर्षक से खोजें',
+    addLabel: 'नया',
+    docsCount: '{n} दस्तावेज़',
+    billsCount: '{n} बिल',
+    noDocsTitle: 'अभी कोई एस्टिमेट या बिल नहीं',
+    noDocsBody: 'एस्टिमेट बनाएँ, बिल जोड़ें और भुगतान एक ही जगह ट्रैक करें।',
+    createBill: 'बिल बनाएँ',
+    createEstimate: 'एस्टिमेट बनाएँ',
+    noMatch: 'कुछ नहीं मिला',
   },
   company: {
     attendanceTitle: 'हाज़िरी',
@@ -28295,6 +28336,16 @@ const ar: UiStrings = {
     deleteTitle: 'حذف المستند؟',
     deleteBody: 'سيتم حذف هذا المستند.',
     unpaidTotal: '{amount} غير مدفوع',
+    searchLabel: 'بحث',
+    searchPlaceholder: 'ابحث بالرقم أو الاسم أو العنوان',
+    addLabel: 'جديد',
+    docsCount: '{n} مستندات',
+    billsCount: '{n} فواتير',
+    noDocsTitle: 'لا توجد عروض أسعار أو فواتير بعد',
+    noDocsBody: 'أنشئ عروض الأسعار وأضف الفواتير وتابع الدفعات في مكان واحد.',
+    createBill: 'إنشاء فاتورة',
+    createEstimate: 'إنشاء عرض سعر',
+    noMatch: 'لا نتائج',
   },
   company: {
     attendanceTitle: 'الحضور',
