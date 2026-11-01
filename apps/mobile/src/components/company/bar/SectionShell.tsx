@@ -69,7 +69,7 @@ export function SectionShell({
       overview={overview}
       subtitle={
         overview
-          ? `${new Date().toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })} · ${plural(locale, live.filter((m) => m.role === 'member' && m.id !== view.me?.id).length, t.company.employeeCount)}`
+          ? t.company.ovGlance
           : manager
             ? fill(t.company.teamLine, {
                 employees: plural(locale, team.length, t.company.employeeCount),

@@ -44,6 +44,10 @@ export function useCardNames(): Record<CardId, string> {
     quick: c.ovCardQuick,
     workday: c.ovCardWorkday,
     team: c.ovCardTeam,
+    glance: c.ovCardGlance,
+    needs: c.ovCardNeeds,
+    moneyActions: c.ovCardMoneyActions,
+    comingUp: c.ovCardComingUp,
   };
 }
 
