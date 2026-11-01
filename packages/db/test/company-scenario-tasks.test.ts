@@ -127,10 +127,12 @@ beforeAll(async () => {
     [b.groupId, b.profileIds[0]!],
   );
   for (let i = 0; i < 2; i++) {
-    await db.query(
-      'INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)',
-      [b.memberIds[i]!, b.groupId, b.profileIds[i]!, i === 0 ? 'admin' : 'member'],
-    );
+    await db.query('INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)', [
+      b.memberIds[i]!,
+      b.groupId,
+      b.profileIds[i]!,
+      i === 0 ? 'admin' : 'member',
+    ]);
   }
 });
 
@@ -146,9 +148,8 @@ describe('G24: task lifecycle – create, status transitions, remove', () => {
     isolated(async () => {
       const id = randomUUID();
       await setTask(0, 3, id, 'todo');
-      const row = (
-        await db.query('SELECT status FROM company_work_tasks WHERE id=$1', [id])
-      ).rows[0];
+      const row = (await db.query('SELECT status FROM company_work_tasks WHERE id=$1', [id]))
+        .rows[0];
       expect(row.status).toBe('todo');
     }));
 
@@ -182,9 +183,8 @@ describe('G24: task lifecycle – create, status transitions, remove', () => {
       const id = randomUUID();
       await setTask(1, 2, id, 'todo');
       await setTask(2, 2, id, 'doing', { title: 'Hijacked title' });
-      const row = (
-        await db.query('SELECT title,status FROM company_work_tasks WHERE id=$1', [id])
-      ).rows[0];
+      const row = (await db.query('SELECT title,status FROM company_work_tasks WHERE id=$1', [id]))
+        .rows[0];
       expect(row.title).toBe('Fix the gate');
       expect(row.status).toBe('doing');
     }));
@@ -210,9 +210,8 @@ describe('G24: task lifecycle – create, status transitions, remove', () => {
       const id = randomUUID();
       await setTask(0, 2, id, 'done');
       await setTask(0, 2, id, 'todo');
-      const row = (
-        await db.query('SELECT status FROM company_work_tasks WHERE id=$1', [id])
-      ).rows[0];
+      const row = (await db.query('SELECT status FROM company_work_tasks WHERE id=$1', [id]))
+        .rows[0];
       expect(row.status).toBe('todo');
     }));
 });
@@ -239,10 +238,9 @@ describe('G25: per-company seq_no is monotonic and cannot be edited', () => {
       [taskB1, b.groupId, b.memberIds[0]!, today, 'Task B1'],
     );
 
-    const rows = await db.query(
-      'SELECT id,seq FROM company_work_tasks WHERE id=ANY($1)',
-      [[taskA1, taskA2, taskB1]],
-    );
+    const rows = await db.query('SELECT id,seq FROM company_work_tasks WHERE id=ANY($1)', [
+      [taskA1, taskA2, taskB1],
+    ]);
     const aSeqs = rows.rows
       .filter((r: { id: string }) => r.id === taskA1 || r.id === taskA2)
       .map((r: { seq: number }) => r.seq)
@@ -256,9 +254,8 @@ describe('G25: per-company seq_no is monotonic and cannot be edited', () => {
       'INSERT INTO company_work_tasks(id,group_id,member_id,day,title,created_by) VALUES($1,$2,$3,$4,$5,$3)',
       [taskA3, g.groupId, g.memberIds[0]!, today, 'Task A3'],
     );
-    const newSeq = (
-      await db.query('SELECT seq FROM company_work_tasks WHERE id=$1', [taskA3])
-    ).rows[0].seq as number;
+    const newSeq = (await db.query('SELECT seq FROM company_work_tasks WHERE id=$1', [taskA3]))
+      .rows[0].seq as number;
     expect(newSeq).toBeGreaterThan(aSeqs[1] as number);
   });
 
@@ -268,13 +265,11 @@ describe('G25: per-company seq_no is monotonic and cannot be edited', () => {
       'INSERT INTO company_work_tasks(id,group_id,member_id,day,title,created_by) VALUES($1,$2,$3,$4,$5,$3)',
       [id, g.groupId, g.memberIds[0]!, today, 'Seq test'],
     );
-    const orig = (
-      await db.query('SELECT seq FROM company_work_tasks WHERE id=$1', [id])
-    ).rows[0].seq as number;
+    const orig = (await db.query('SELECT seq FROM company_work_tasks WHERE id=$1', [id])).rows[0]
+      .seq as number;
     await db.query('UPDATE company_work_tasks SET seq=9999 WHERE id=$1', [id]);
-    const after = (
-      await db.query('SELECT seq FROM company_work_tasks WHERE id=$1', [id])
-    ).rows[0].seq as number;
+    const after = (await db.query('SELECT seq FROM company_work_tasks WHERE id=$1', [id])).rows[0]
+      .seq as number;
     expect(after).toBe(orig);
   });
 });
@@ -317,8 +312,9 @@ describe('G27: cross-company task isolation', () => {
     isolated(async () => {
       const id = randomUUID();
       await setTask(0, 2, id, 'todo');
-      const seen = await asId(b.profileIds[0]!, async () =>
-        (await db.query('SELECT id FROM company_work_tasks WHERE id=$1', [id])).rows,
+      const seen = await asId(
+        b.profileIds[0]!,
+        async () => (await db.query('SELECT id FROM company_work_tasks WHERE id=$1', [id])).rows,
       );
       expect(seen).toHaveLength(0);
     }));
@@ -336,7 +332,9 @@ describe('G27: cross-company task isolation', () => {
         );
       } catch {
         const row = (
-          await db.query('SELECT id FROM company_work_tasks WHERE id=$1 AND deleted_at IS NULL', [id])
+          await db.query('SELECT id FROM company_work_tasks WHERE id=$1 AND deleted_at IS NULL', [
+            id,
+          ])
         ).rows[0];
         expect(row).toBeDefined();
       } finally {
@@ -409,9 +407,8 @@ describe('G28: due-time compat – task retains due_time when employee uses 9-ar
           'todo',
         ]),
       );
-      const row = (
-        await db.query('SELECT member_id FROM company_work_tasks WHERE id=$1', [id])
-      ).rows[0];
+      const row = (await db.query('SELECT member_id FROM company_work_tasks WHERE id=$1', [id]))
+        .rows[0];
       expect(row.member_id).toBe(g.memberIds[3]!);
     }));
 });

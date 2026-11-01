@@ -80,12 +80,7 @@ const docVoid = (caller: number, docId: string) =>
 
 const docPayment = (caller: number, docId: string, amount: number) =>
   user(caller, () =>
-    db.query('SELECT waves_company_doc_payment($1,$2,$3,$4)', [
-      docId,
-      randomUUID(),
-      amount,
-      today,
-    ]),
+    db.query('SELECT waves_company_doc_payment($1,$2,$3,$4)', [docId, randomUUID(), amount, today]),
   );
 
 beforeAll(async () => {
@@ -148,12 +143,10 @@ describe('G32: document create, number allocation, payment, void, cross-company'
       const bill = randomUUID();
       await saveDoc(0, est, 'estimate');
       await saveDoc(0, bill, 'bill');
-      const estRow = (
-        await db.query('SELECT number FROM company_documents WHERE id=$1', [est])
-      ).rows[0];
-      const billRow = (
-        await db.query('SELECT number FROM company_documents WHERE id=$1', [bill])
-      ).rows[0];
+      const estRow = (await db.query('SELECT number FROM company_documents WHERE id=$1', [est]))
+        .rows[0];
+      const billRow = (await db.query('SELECT number FROM company_documents WHERE id=$1', [bill]))
+        .rows[0];
       expect(estRow.number).toBeGreaterThan(0);
       expect(billRow.number).toBeGreaterThan(0);
     }));
@@ -177,9 +170,8 @@ describe('G32: document create, number allocation, payment, void, cross-company'
 
       const remaining = total - parseInt(mid.paid_minor, 10);
       await docPayment(0, docId, remaining);
-      const full = (
-        await db.query('SELECT status FROM company_documents WHERE id=$1', [docId])
-      ).rows[0];
+      const full = (await db.query('SELECT status FROM company_documents WHERE id=$1', [docId]))
+        .rows[0];
       expect(full.status).toBe('paid');
     }));
 
@@ -211,9 +203,8 @@ describe('G32: document create, number allocation, payment, void, cross-company'
 
       // Owner can void manager's doc
       await docVoid(0, docId);
-      const row = (
-        await db.query('SELECT deleted_at FROM company_documents WHERE id=$1', [docId])
-      ).rows[0];
+      const row = (await db.query('SELECT deleted_at FROM company_documents WHERE id=$1', [docId]))
+        .rows[0];
       expect(row.deleted_at).not.toBeNull();
     }));
 
@@ -244,18 +235,14 @@ describe('G33: document visibility by role', () => {
 
       const ownerSeen = await user(0, async () =>
         (
-          await db.query(
-            'SELECT id FROM company_documents WHERE deleted_at IS NULL ORDER BY id',
-          )
+          await db.query('SELECT id FROM company_documents WHERE deleted_at IS NULL ORDER BY id')
         ).rows.map((r) => r.id as string),
       );
       expect(ownerSeen.sort()).toEqual([ownerDoc, mgrDoc].sort());
 
       const mgrSeen = await user(1, async () =>
         (
-          await db.query(
-            'SELECT id FROM company_documents WHERE deleted_at IS NULL ORDER BY id',
-          )
+          await db.query('SELECT id FROM company_documents WHERE deleted_at IS NULL ORDER BY id')
         ).rows.map((r) => r.id as string),
       );
       // Manager sees only their own doc (waves_company_paid_visible)
@@ -266,8 +253,10 @@ describe('G33: document visibility by role', () => {
     isolated(async () => {
       const docId = randomUUID();
       await saveDoc(0, docId);
-      const empSeen = await user(2, async () =>
-        (await db.query('SELECT id FROM company_documents WHERE deleted_at IS NULL')).rows,
+      const empSeen = await user(
+        2,
+        async () =>
+          (await db.query('SELECT id FROM company_documents WHERE deleted_at IS NULL')).rows,
       );
       expect(empSeen).toHaveLength(0);
     }));

@@ -53,10 +53,7 @@ const depId2 = randomUUID();
 
 const setDepts = (caller: number, depts: { id: string; name: string }[]) =>
   user(caller, () =>
-    db.query('SELECT waves_company_departments_set($1,$2)', [
-      g.groupId,
-      JSON.stringify(depts),
-    ]),
+    db.query('SELECT waves_company_departments_set($1,$2)', [g.groupId, JSON.stringify(depts)]),
   );
 
 const setDept = (caller: number, member: number, deptId: string | null) =>
@@ -172,20 +169,22 @@ describe('G31: project visibility by role', () => {
   it('owner can see all projects; employee can only see projects where they are a project member', () =>
     isolated(async () => {
       const projId = randomUUID();
-      await db.query(
-        "INSERT INTO company_projects(id,group_id,name) VALUES($1,$2,'Site Alpha')",
-        [projId, g.groupId],
-      );
+      await db.query("INSERT INTO company_projects(id,group_id,name) VALUES($1,$2,'Site Alpha')", [
+        projId,
+        g.groupId,
+      ]);
 
       // Owner (admin) can see it via waves_company_project_visible (admin short-circuit)
-      const ownerSeen = await user(0, async () =>
-        (await db.query('SELECT id FROM company_projects WHERE id=$1', [projId])).rows,
+      const ownerSeen = await user(
+        0,
+        async () => (await db.query('SELECT id FROM company_projects WHERE id=$1', [projId])).rows,
       );
       expect(ownerSeen).toHaveLength(1);
 
       // Employee cannot see it yet (not in company_project_members)
-      const empNoSeen = await user(2, async () =>
-        (await db.query('SELECT id FROM company_projects WHERE id=$1', [projId])).rows,
+      const empNoSeen = await user(
+        2,
+        async () => (await db.query('SELECT id FROM company_projects WHERE id=$1', [projId])).rows,
       );
       expect(empNoSeen).toHaveLength(0);
 
@@ -196,8 +195,9 @@ describe('G31: project visibility by role', () => {
       );
 
       // Now employee 2 can see it
-      const empSeen = await user(2, async () =>
-        (await db.query('SELECT id FROM company_projects WHERE id=$1', [projId])).rows,
+      const empSeen = await user(
+        2,
+        async () => (await db.query('SELECT id FROM company_projects WHERE id=$1', [projId])).rows,
       );
       expect(empSeen).toHaveLength(1);
     }));
@@ -215,14 +215,26 @@ describe('G31: project visibility by role', () => {
       );
 
       // Owner (admin) can see budget
-      const ownerSeen = await user(0, async () =>
-        (await db.query('SELECT project_id FROM company_project_budgets WHERE project_id=$1', [projId])).rows,
+      const ownerSeen = await user(
+        0,
+        async () =>
+          (
+            await db.query('SELECT project_id FROM company_project_budgets WHERE project_id=$1', [
+              projId,
+            ])
+          ).rows,
       );
       expect(ownerSeen).toHaveLength(1);
 
       // Employee cannot see budget (policy: waves_company_detail AND is_group_admin)
-      const empSeen = await user(2, async () =>
-        (await db.query('SELECT project_id FROM company_project_budgets WHERE project_id=$1', [projId])).rows,
+      const empSeen = await user(
+        2,
+        async () =>
+          (
+            await db.query('SELECT project_id FROM company_project_budgets WHERE project_id=$1', [
+              projId,
+            ])
+          ).rows,
       );
       expect(empSeen).toHaveLength(0);
     }));

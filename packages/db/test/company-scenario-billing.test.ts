@@ -44,10 +44,12 @@ async function setupCompany(seed: Awaited<ReturnType<typeof seedGroup>>) {
     "INSERT INTO groups(id,type,default_currency,country_code,created_by) VALUES($1,'company','INR','IN',$2)",
     [groupId, seed.profileIds[0]],
   );
-  await db.query(
-    'INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)',
-    [seed.memberIds[0], groupId, seed.profileIds[0], 'admin'],
-  );
+  await db.query('INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)', [
+    seed.memberIds[0],
+    groupId,
+    seed.profileIds[0],
+    'admin',
+  ]);
   await db.query(
     "INSERT INTO company_plans(group_id,plan) VALUES($1,'free') ON CONFLICT DO NOTHING",
     [groupId],

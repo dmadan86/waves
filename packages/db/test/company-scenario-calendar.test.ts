@@ -52,7 +52,13 @@ async function denied(run: () => Promise<unknown>) {
   }
 }
 
-const holiday = (caller: number, id = randomUUID(), start = iso(5), end = iso(5), name = 'Diwali') =>
+const holiday = (
+  caller: number,
+  id = randomUUID(),
+  start = iso(5),
+  end = iso(5),
+  name = 'Diwali',
+) =>
   user(caller, () =>
     db.query('SELECT waves_company_holiday_set($1,$2,$3,$4,$5)', [g.groupId, id, start, end, name]),
   ).then(() => id);
@@ -140,16 +146,16 @@ describe('G34: calendar – holidays, leave, events, member dates', () => {
       const hid = await holiday(0);
       // All members (waves_company_member_ok) can see holidays
       const ownerSeen = await user(0, async () =>
-        (
-          await db.query('SELECT id FROM company_holidays WHERE deleted_at IS NULL')
-        ).rows.map((r) => r.id as string),
+        (await db.query('SELECT id FROM company_holidays WHERE deleted_at IS NULL')).rows.map(
+          (r) => r.id as string,
+        ),
       );
       expect(ownerSeen).toContain(hid);
 
       const empSeen = await user(2, async () =>
-        (
-          await db.query('SELECT id FROM company_holidays WHERE deleted_at IS NULL')
-        ).rows.map((r) => r.id as string),
+        (await db.query('SELECT id FROM company_holidays WHERE deleted_at IS NULL')).rows.map(
+          (r) => r.id as string,
+        ),
       );
       expect(empSeen).toContain(hid);
 
@@ -161,12 +167,14 @@ describe('G34: calendar – holidays, leave, events, member dates', () => {
     isolated(async () => {
       const hid = await holiday(0);
       await removeHoliday(0, hid);
-      const seen = await user(2, async () =>
-        (
-          await db.query('SELECT id FROM company_holidays WHERE deleted_at IS NULL AND id=$1', [
-            hid,
-          ])
-        ).rows,
+      const seen = await user(
+        2,
+        async () =>
+          (
+            await db.query('SELECT id FROM company_holidays WHERE deleted_at IS NULL AND id=$1', [
+              hid,
+            ])
+          ).rows,
       );
       expect(seen).toHaveLength(0);
     }));
@@ -175,16 +183,12 @@ describe('G34: calendar – holidays, leave, events, member dates', () => {
     isolated(async () => {
       // Manager submitting on behalf of their team member → immediately approved
       const lid = await leaveSet(1, 2);
-      const row = (
-        await db.query('SELECT status FROM company_leave WHERE id=$1', [lid])
-      ).rows[0];
+      const row = (await db.query('SELECT status FROM company_leave WHERE id=$1', [lid])).rows[0];
       expect(row.status).toBe('approved'); // auto-approved when boss submits
 
       // Employee self-submit for non-overlapping dates → pending
       const lid2 = await leaveSet(2, 2, randomUUID(), iso(10), iso(11));
-      const row2 = (
-        await db.query('SELECT status FROM company_leave WHERE id=$1', [lid2])
-      ).rows[0];
+      const row2 = (await db.query('SELECT status FROM company_leave WHERE id=$1', [lid2])).rows[0];
       expect(row2.status).toBe('pending');
     }));
 
@@ -195,9 +199,7 @@ describe('G34: calendar – holidays, leave, events, member dates', () => {
       await denied(() => leaveDecide(4, lid, true));
       // Owner can approve
       await leaveDecide(0, lid, true);
-      const row = (
-        await db.query('SELECT status FROM company_leave WHERE id=$1', [lid])
-      ).rows[0];
+      const row = (await db.query('SELECT status FROM company_leave WHERE id=$1', [lid])).rows[0];
       expect(row.status).toBe('approved');
     }));
 
@@ -205,9 +207,8 @@ describe('G34: calendar – holidays, leave, events, member dates', () => {
     isolated(async () => {
       const lid = await leaveSet(2, 2);
       await leaveRemove(2, lid); // cancel own pending leave
-      const row = (
-        await db.query('SELECT deleted_at FROM company_leave WHERE id=$1', [lid])
-      ).rows[0];
+      const row = (await db.query('SELECT deleted_at FROM company_leave WHERE id=$1', [lid]))
+        .rows[0];
       expect(row.deleted_at).not.toBeNull();
     }));
 
@@ -224,9 +225,9 @@ describe('G34: calendar – holidays, leave, events, member dates', () => {
       expect(ownerSeen.sort()).toEqual([lid2, lid3].sort());
 
       const mgr1Seen = await user(1, async () =>
-        (
-          await db.query('SELECT id FROM company_leave WHERE deleted_at IS NULL')
-        ).rows.map((r) => r.id as string),
+        (await db.query('SELECT id FROM company_leave WHERE deleted_at IS NULL')).rows.map(
+          (r) => r.id as string,
+        ),
       );
       expect(mgr1Seen).toContain(lid2);
       expect(mgr1Seen).not.toContain(lid3);
@@ -235,13 +236,15 @@ describe('G34: calendar – holidays, leave, events, member dates', () => {
   it('event created by owner; participants see it; non-participants do not', () =>
     isolated(async () => {
       const eid = await eventSet(0, [2, 3]); // invite members 2 and 3
-      const mem2Seen = await user(2, async () =>
-        (await db.query('SELECT id FROM company_events WHERE id=$1', [eid])).rows,
+      const mem2Seen = await user(
+        2,
+        async () => (await db.query('SELECT id FROM company_events WHERE id=$1', [eid])).rows,
       );
       expect(mem2Seen).toHaveLength(1);
 
-      const mem4Seen = await user(4, async () =>
-        (await db.query('SELECT id FROM company_events WHERE id=$1', [eid])).rows,
+      const mem4Seen = await user(
+        4,
+        async () => (await db.query('SELECT id FROM company_events WHERE id=$1', [eid])).rows,
       );
       expect(mem4Seen).toHaveLength(0);
     }));
@@ -251,15 +254,27 @@ describe('G34: calendar – holidays, leave, events, member dates', () => {
       await datesSet(2, 2, true); // employee 2 opts in (birth_month set by waves_company_dates_set)
       // Need to set a birth month (otherwise show_birthday AND birth_month IS NOT NULL = false)
       // Check if the row has a birth_month
-      const mgr1Seen = await user(1, async () =>
-        (await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [g.memberIds[2]])).rows,
+      const mgr1Seen = await user(
+        1,
+        async () =>
+          (
+            await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [
+              g.memberIds[2],
+            ])
+          ).rows,
       );
       // Manager sees via waves_company_detail (team member)
       expect(mgr1Seen).toHaveLength(1);
 
       // Owner sees via waves_company_detail (admin)
-      const ownerSeen = await user(0, async () =>
-        (await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [g.memberIds[2]])).rows,
+      const ownerSeen = await user(
+        0,
+        async () =>
+          (
+            await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [
+              g.memberIds[2],
+            ])
+          ).rows,
       );
       expect(ownerSeen).toHaveLength(1);
     }));
@@ -269,21 +284,39 @@ describe('G34: calendar – holidays, leave, events, member dates', () => {
       await datesSet(2, 2, false); // employee 2 opts out (p_show=false)
       // waves_company_dates_visible: show_birthday AND birth_month IS NOT NULL = false
       // Falls through to waves_company_detail: admin + direct manager + self can still see
-      const mgr1Seen = await user(1, async () =>
-        (await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [g.memberIds[2]])).rows,
+      const mgr1Seen = await user(
+        1,
+        async () =>
+          (
+            await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [
+              g.memberIds[2],
+            ])
+          ).rows,
       );
       // Direct manager CAN see (waves_company_detail)
       expect(mgr1Seen).toHaveLength(1);
 
       // Employee themselves can see
-      const selfSeen = await user(2, async () =>
-        (await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [g.memberIds[2]])).rows,
+      const selfSeen = await user(
+        2,
+        async () =>
+          (
+            await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [
+              g.memberIds[2],
+            ])
+          ).rows,
       );
       expect(selfSeen).toHaveLength(1);
 
       // Manager 4 (no team) cannot see (not admin, not their manager)
-      const mgr4Seen = await user(4, async () =>
-        (await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [g.memberIds[2]])).rows,
+      const mgr4Seen = await user(
+        4,
+        async () =>
+          (
+            await db.query('SELECT member_id FROM company_member_dates WHERE member_id=$1', [
+              g.memberIds[2],
+            ])
+          ).rows,
       );
       expect(mgr4Seen).toHaveLength(0);
     }));

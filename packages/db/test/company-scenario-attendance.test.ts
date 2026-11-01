@@ -64,12 +64,14 @@ const mark = (caller: number, member: number, status: string | null, day = today
   );
 
 const seenAttendance = (caller: number) =>
-  user(caller, async () =>
-    (
-      await db.query(
-        'SELECT member_id,status FROM company_attendance WHERE deleted_at IS NULL ORDER BY member_id',
-      )
-    ).rows as { member_id: string; status: string }[],
+  user(
+    caller,
+    async () =>
+      (
+        await db.query(
+          'SELECT member_id,status FROM company_attendance WHERE deleted_at IS NULL ORDER BY member_id',
+        )
+      ).rows as { member_id: string; status: string }[],
   );
 
 beforeAll(async () => {
@@ -99,10 +101,12 @@ beforeAll(async () => {
     [other.groupId, other.profileIds[0]],
   );
   for (let i = 0; i < 2; i++) {
-    await db.query(
-      "INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)",
-      [other.memberIds[i], other.groupId, other.profileIds[i], i === 0 ? 'admin' : 'member'],
-    );
+    await db.query('INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)', [
+      other.memberIds[i],
+      other.groupId,
+      other.profileIds[i],
+      i === 0 ? 'admin' : 'member',
+    ]);
   }
 });
 
@@ -193,9 +197,7 @@ describe('G29: attendance – upsert, clear, visibility, cross-company', () => {
       await db.query('UPDATE group_members SET left_at=now() WHERE id=$1', [g.memberIds[2]]);
       const seen = await user(2, async () =>
         (
-          await db.query(
-            'SELECT member_id FROM company_attendance WHERE deleted_at IS NULL',
-          )
+          await db.query('SELECT member_id FROM company_attendance WHERE deleted_at IS NULL')
         ).rows.map((r) => r.member_id as string),
       );
       expect(seen).toEqual([]);
