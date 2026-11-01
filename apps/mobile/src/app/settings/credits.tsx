@@ -14,7 +14,7 @@ import {
 } from '@/components/standard';
 import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
-import { readCredits } from '@/lib/adCredits';
+import { queryCredits, readCredits } from '@/lib/adCredits';
 import { creditButtonKey } from '@/lib/adCreditsPure';
 import { useBottomClearance } from '@/lib/clearance';
 import { buyCreditPack, loadCreditPacks, purchasesAvailable } from '@/lib/purchases';
@@ -39,7 +39,7 @@ export default function CreditsScreen() {
   const { isPaid } = useEntitlement();
   const wallet = useQuery({
     queryKey: ['credits', viewerId],
-    queryFn: readCredits,
+    queryFn: queryCredits,
     enabled: !!viewerId,
     refetchInterval: 30000,
   });

@@ -1,4 +1,4 @@
-import { readCredits } from './adCredits';
+import { queryCredits, readCredits } from './adCredits';
 import { watchCreditAd } from './watchCreditAd';
 import { watchBlocked, type CreditsStatus } from './adCreditsPure';
 import { logAdEvent } from '@/lib/adEvents';
@@ -73,7 +73,7 @@ export function useRewardedAdOffer(): RewardedAdOffer {
   });
   const wallet = useQuery({
     queryKey: ['credits', viewerId],
-    queryFn: readCredits,
+    queryFn: queryCredits,
     enabled: !!viewerId,
     refetchInterval: 30000,
   });
