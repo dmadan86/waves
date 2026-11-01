@@ -1288,6 +1288,16 @@ export class SyncSession {
             amount: companyDecimal(mutation.payload.amountMinor, 'amountMinor'),
             occurredOn: companyDate(mutation.payload.occurredOn, 'occurredOn'),
             note: companyReason(mutation.payload.note ?? null, 'note', false),
+            // Only sent when set, so an older client's request hash is unchanged.
+            ...(mutation.payload.dueOn
+              ? { dueOn: companyDate(mutation.payload.dueOn, 'dueOn') }
+              : {}),
+            ...(mutation.payload.method
+              ? { method: requireString(mutation.payload.method, 'method') }
+              : {}),
+            ...(mutation.payload.reference
+              ? { reference: companyReason(mutation.payload.reference, 'reference', false) }
+              : {}),
           },
         });
       case 'company_vendor_entry.review':
