@@ -268,28 +268,6 @@ export default function AttendanceView({
               <Text tone="muted">{t.company.attendanceEmpty}</Text>
             ) : access.canManage ? (
               <View style={{ gap: 14 }}>
-                {embedded ? (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <Text variant="title" style={{ fontSize: 24, fontWeight: '800' }}>
-                      {t.company.attendanceTitle}
-                    </Text>
-                    <View
-                      style={{
-                        paddingHorizontal: 10,
-                        paddingVertical: 2,
-                        borderRadius: 12,
-                        backgroundColor: theme.color.brandSoft,
-                      }}
-                    >
-                      <Text
-                        variant="caption"
-                        style={{ color: theme.color.brand, fontWeight: '800' }}
-                      >
-                        {counts.present}/{access.people.length}
-                      </Text>
-                    </View>
-                  </View>
-                ) : null}
                 <AttendanceToolbar
                   dayLabel={
                     period === 'monthly'
