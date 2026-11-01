@@ -1,11 +1,9 @@
-import { useState } from 'react';
 import { View } from 'react-native';
 
 import { Text, useTheme } from '@waves/ui';
 
 import { SaveButton } from '@/components/company/EntryForm';
 import { useMoney } from '@/components/company/dashboard/parts';
-import { VendorForm } from '@/components/company/vendors/forms';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
 import { useCompanySuspended } from '@/data/companyEntries';
@@ -22,7 +20,6 @@ export function VendorsTab({ groupId }: { groupId: string }) {
   // A suspended company is read-only: nothing to add, confirm or remove.
   const view = { ...raw, canManage: raw.canManage && !suspended };
   const fmt = useMoney(view.currency);
-  const [adding, setAdding] = useState(false);
   const open = (id: string) => router.push(`/group/${groupId}/company-vendor?vendorId=${id}`);
   return (
     <View style={{ gap: theme.spacing.lg }}>
@@ -54,10 +51,11 @@ export function VendorsTab({ groupId }: { groupId: string }) {
         )}
       </StandardCard>
       {view.canManage ? (
-        <SaveButton label={s.addVendor} disabled={false} onPress={() => setAdding(true)} />
-      ) : null}
-      {adding ? (
-        <VendorForm groupId={groupId} onClose={() => setAdding(false)} onSaved={open} />
+        <SaveButton
+          label={s.addVendor}
+          disabled={false}
+          onPress={() => router.push(`/group/${groupId}/company-vendor-add`)}
+        />
       ) : null}
     </View>
   );
