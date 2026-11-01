@@ -321,7 +321,7 @@ export function MoneyActions({ groupId }: { groupId: string }) {
       icon: 'document-attach-outline',
       label: t.company.ovAddBill,
       ink: LAVENDER,
-      onPress: go('company-bill-form?type=bill'),
+      onPress: go('company-vendors'),
     },
     {
       icon: 'document-text-outline',
