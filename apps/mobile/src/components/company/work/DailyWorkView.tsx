@@ -4,7 +4,6 @@ import { randomUUID } from 'expo-crypto';
 import { ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import type { CompanyWorkSetPayload } from '@waves/core';
-import { useDepartments } from '@/data/companyDepartments';
 import { Text } from '@waves/ui';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { ScenicBody } from '@/components/standard';
@@ -22,7 +21,7 @@ import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { filterWork, type WorkChip } from '@/lib/companyWork';
+import { filterWork, groupWorkTasks, maxTaskDay, type WorkMode } from '@/lib/companyWork';
 import { WorkTaskSections } from './WorkTaskSections';
 import { AddTaskSheet } from './AddTaskSheet';
 import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
@@ -65,21 +64,17 @@ export default function DailyWorkView({
   const projects = useCompanyProjects(id);
   const company = useCompanyEntries(id);
   const sites = projects.filter((p) => !p.archived_at);
-  const departments = useDepartments(id);
   const save = useSetWorkTask(id);
   const remove = useRemoveWorkTask(id);
   const { t, locale } = useStrings();
   const clearance = useBottomClearance();
   const today = todayIso();
-  const maxDay = shift(today, 7);
-  const [day, setDay] = useState(today);
   const [draft, setDraft] = useState<Payload | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [addKey, setAddKey] = useState(0);
   const [menu, setMenu] = useState<{ id: string; anchor: MenuAnchor | null } | null>(null);
-  const [sortAnchor, setSortAnchor] = useState<MenuAnchor | 'open' | null>(null);
-  const [statusMenu, setStatusMenu] = useState<MenuAnchor | 'open' | null>(null);
-  const [byTitle, setByTitle] = useState(false);
+  const [moreAnchor, setMoreAnchor] = useState<MenuAnchor | 'open' | null>(null);
+  const [mode, setMode] = useState<WorkMode>('date');
   const [statusId, setStatusId] = useState<string | null>(null);
   const [reasonAfterClose, setReasonAfterClose] = useState<string | null>(null);
   const [field, setField] = useState<{ taskId: string; kind: 'note' | 'blockedReason' } | null>(
@@ -88,52 +83,38 @@ export default function DailyWorkView({
   const [error, setError] = useState(false);
   const [scope, setScope] = useState<'mine' | 'team'>(access.isEmployee ? 'mine' : 'team');
   const [query, setQuery] = useState('');
-  const [chip, setChip] = useState<WorkChip>('all');
-  const [siteFilter, setSiteFilter] = useState<string | null>(null);
-  const [personFilter, setPersonFilter] = useState<string | null>(null);
-  const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [dateOpen, setDateOpen] = useState(false);
   const busy = save.isPending || remove.isPending;
   const allowedPerson = (memberId: string) =>
     access.canManage && access.people.some((p) => p.id === memberId);
   const canChange = (task: MirrorWorkTask) =>
     access.enabled &&
-    task.day <= maxDay &&
     (allowedPerson(task.memberId) || (access.isEmployee && task.memberId === access.me?.id));
-  const dayTasks = tasks.filter(
+  const personName = (memberId: string) => {
+    const p = access.people.find((person) => person.id === memberId) ?? access.me;
+    return p ? displayName(p) : '';
+  };
+  const ownTasks = tasks.filter(
     (task) =>
-      task.day === day &&
       (allowedPerson(task.memberId) || (access.isEmployee && task.memberId === access.me?.id)) &&
       (scope === 'team' || task.memberId === company.me?.id),
   );
-  const visibleTasks = filterWork(dayTasks, {
+  const visibleTasks = filterWork(ownTasks, {
     search: query,
-    siteId: siteFilter,
-    personId: personFilter,
-    departmentId: departmentFilter,
-    departmentIdForPerson: (memberId) =>
-      access.people.find((person) => person.id === memberId)?.department_id ?? null,
-    chip,
-    personName: (memberId) => {
-      const p = access.people.find((person) => person.id === memberId) ?? access.me;
-      return p ? displayName(p) : '';
-    },
+    personName,
     siteName: (projectId) => projects.find((project) => project.id === projectId)?.name ?? '',
   });
-  const sortedTasks = [...visibleTasks].sort((a, b) =>
-    byTitle
-      ? a.title.localeCompare(b.title, locale)
-      : (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') ||
-        a.title.localeCompare(b.title, locale),
-  );
+  const grouped = groupWorkTasks(visibleTasks, {
+    mode: access.canManage ? mode : 'date',
+    today,
+    personName,
+  });
   const people = access.isEmployee && access.me ? [access.me] : access.people;
   const write = (next: Payload, onSuccess?: () => void) => {
     const current = tasks.find((task) => task.id === next.taskId);
     if (
       !access.enabled ||
       busy ||
-      next.day > maxDay ||
+      next.day > maxTaskDay(today) ||
       !next.title.trim() ||
       next.title.length > 200 ||
       (next.note?.length ?? 0) > 200 ||
@@ -184,7 +165,7 @@ export default function DailyWorkView({
             label: t.company.workStatus,
             onPress: () => setStatusId(menuTask.id),
           },
-          ...(menuTask.status !== 'done' && shift(menuTask.day, 1) <= maxDay
+          ...(menuTask.status !== 'done' && shift(menuTask.day, 1) <= maxTaskDay(today)
             ? [
                 {
                   icon: 'copy-outline' as const,
@@ -213,7 +194,7 @@ export default function DailyWorkView({
         ]
       : [];
   const openAdd = () => {
-    if (busy || access.people.length === 0 || day > maxDay) return;
+    if (busy || access.people.length === 0) return;
     setAddKey((key) => key + 1);
     setAddOpen(true);
   };
@@ -226,13 +207,6 @@ export default function DailyWorkView({
     }, []),
   );
   useClaimFab(embedded && focused && access.canManage, t.company.workAdd, openAdd);
-  const chipLabel: Record<WorkChip, string> = {
-    all: t.company.workAllTasks,
-    todo: t.company.workTodo,
-    doing: t.company.workDoing,
-    done: t.company.workDone,
-    blocked: t.company.workBlocked,
-  };
   const fieldTask = tasks.find((task) => task.id === field?.taskId);
   const statusTask = tasks.find((task) => task.id === statusId);
   return (
@@ -250,23 +224,17 @@ export default function DailyWorkView({
             ) : (
               <>
                 <WorkToolbar
-                  dayLabel={new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
-                    weekday: 'short',
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                    timeZone: 'UTC',
-                  })}
-                  onDay={() => setDateOpen(true)}
-                  statusLabel={chipLabel[chip]}
-                  onStatus={(a) => setStatusMenu(a ?? 'open')}
+                  mode={access.canManage ? mode : null}
+                  onMode={setMode}
                   query={query}
                   onQueryChange={setQuery}
-                  onSort={(a) => setSortAnchor(a ?? 'open')}
+                  onMore={(a) => setMoreAnchor(a ?? 'open')}
                 />
                 <WorkTaskSections
                   groupId={id}
-                  tasks={sortedTasks}
+                  sections={grouped.sections}
+                  done={grouped.done}
+                  mode={access.canManage ? mode : 'date'}
                   today={today}
                   people={people}
                   locale={locale}
@@ -297,25 +265,10 @@ export default function DailyWorkView({
         items={items}
       />
       <OverflowMenu
-        visible={statusMenu !== null}
-        onClose={() => setStatusMenu(null)}
-        anchor={statusMenu === 'open' ? null : statusMenu}
-        items={(Object.keys(chipLabel) as WorkChip[]).map((key) => ({
-          icon: chip === key ? 'checkmark-circle' : 'ellipse-outline',
-          label: chipLabel[key],
-          onPress: () => setChip(key),
-        }))}
-      />
-      <OverflowMenu
-        visible={sortAnchor !== null}
-        onClose={() => setSortAnchor(null)}
-        anchor={sortAnchor === 'open' ? null : sortAnchor}
+        visible={moreAnchor !== null}
+        onClose={() => setMoreAnchor(null)}
+        anchor={moreAnchor === 'open' ? null : moreAnchor}
         items={[
-          {
-            icon: 'text-outline',
-            label: t.company.workSortTitle,
-            toggle: { value: byTitle, onChange: setByTitle },
-          },
           ...(access.canManage
             ? [
                 {
@@ -328,11 +281,6 @@ export default function DailyWorkView({
                 },
               ]
             : []),
-          {
-            icon: 'filter-outline',
-            label: t.company.workFilter,
-            onPress: () => setFilterOpen(true),
-          },
         ]}
       />
       <AddTaskSheet
@@ -341,33 +289,14 @@ export default function DailyWorkView({
         visible={addOpen}
         onClose={() => setAddOpen(false)}
         people={access.people}
-        defaultMemberIds={
-          personFilter && allowedPerson(personFilter)
-            ? [personFilter]
-            : access.people.length === 1
-              ? access.people.map((p) => p.id)
-              : []
-        }
-        defaultDay={day}
+        defaultMemberIds={access.people.length === 1 ? access.people.map((p) => p.id) : []}
         today={today}
-        maxDay={maxDay}
-        onSaved={setDay}
       />
       <WorkFiltersAndDraftSheet
         groupId={id}
-        filterOpen={filterOpen}
-        setFilterOpen={setFilterOpen}
         sites={sites}
-        departments={departments}
-        siteFilter={siteFilter}
-        setSiteFilter={setSiteFilter}
-        departmentFilter={departmentFilter}
-        setDepartmentFilter={setDepartmentFilter}
         canManage={access.canManage}
-        scope={scope}
         people={access.people}
-        personFilter={personFilter}
-        setPersonFilter={setPersonFilter}
         draft={draft}
         setDraft={setDraft}
         busy={busy}
@@ -377,12 +306,6 @@ export default function DailyWorkView({
       />
       <WorkTaskSheets
         groupId={id}
-        dateOpen={dateOpen}
-        setDateOpen={setDateOpen}
-        day={day}
-        setDay={setDay}
-        today={today}
-        maxDay={maxDay}
         statusId={statusId}
         setStatusId={setStatusId}
         statusTask={statusTask}
