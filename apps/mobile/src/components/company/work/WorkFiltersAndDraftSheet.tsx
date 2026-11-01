@@ -11,11 +11,7 @@ type Payload = CompanyWorkSetPayload;
 type Site = { id: string; name: string };
 
 export function WorkFiltersAndDraftSheet({
-  filterOpen,
-  setFilterOpen,
   sites,
-  siteFilter,
-  setSiteFilter,
   groupId,
   canManage,
   people,
@@ -26,11 +22,7 @@ export function WorkFiltersAndDraftSheet({
   allowedPerson,
   write,
 }: {
-  filterOpen: boolean;
-  setFilterOpen: (open: boolean) => void;
   sites: readonly Site[];
-  siteFilter: string | null;
-  setSiteFilter: (value: string | null) => void;
   groupId: string;
   canManage: boolean;
   people: readonly MemberRow[];
@@ -45,19 +37,6 @@ export function WorkFiltersAndDraftSheet({
   const { t } = useStrings();
   return (
     <>
-      <Sheet visible={filterOpen} onClose={() => setFilterOpen(false)} closeLabel={t.common.close}>
-        <View style={{ gap: theme.spacing.md }}>
-          <SectionHeader title={t.company.workFilter} />
-          <SegmentedPills
-            options={[
-              { value: '', label: t.company.workAll },
-              ...sites.map((site) => ({ value: site.id, label: site.name })),
-            ]}
-            value={siteFilter ?? ''}
-            onChange={(value) => setSiteFilter(value || null)}
-          />
-        </View>
-      </Sheet>
       <Sheet
         visible={draft !== null}
         onClose={() => {
