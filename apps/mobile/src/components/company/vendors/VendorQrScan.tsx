@@ -3,7 +3,7 @@ import { useRef } from 'react';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Modal, View } from 'react-native';
 
-import { Button, Text, useTheme } from '@waves/ui';
+import { Button, MODAL_ORIENTATIONS, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 
@@ -19,7 +19,7 @@ export default function VendorQrScan({
   const [permission, ask] = useCameraPermissions();
   const done = useRef(false);
   return (
-    <Modal visible animationType="slide" onRequestClose={onClose}>
+    <Modal visible animationType="slide" supportedOrientations={MODAL_ORIENTATIONS} onRequestClose={onClose}>
       <View style={{ flex: 1, backgroundColor: '#000', justifyContent: 'flex-end' }}>
         {permission?.granted ? (
           <CameraView
