@@ -1528,7 +1528,8 @@ export interface UiStrings {
     attendanceOnLeave: string;
     attendanceLeaveApplied: string;
     attendanceLeave: string;
-    attendanceAutoSaved: string;
+    attendanceSaving: string;
+    attendanceSaved: string;
     attendanceOverwriteTitle: string;
     attendanceOverwriteBody: string;
     attendanceTasks: PluralForms;
@@ -8836,7 +8837,8 @@ const en: UiStrings = {
     attendanceOnLeave: 'On leave',
     attendanceLeaveApplied: 'Leave applied',
     attendanceLeave: 'Leave',
-    attendanceAutoSaved: 'Attendance is saved automatically',
+    attendanceSaving: 'Saving',
+    attendanceSaved: 'Saved',
     attendanceOverwriteTitle: 'Replace existing marks?',
     attendanceOverwriteBody: '{n} people already have a different mark for this day. Replace them?',
     attendanceTasks: { one: '{n} task', other: '{n} tasks' },
@@ -15610,7 +15612,8 @@ const ta: UiStrings = {
     attendanceOnLeave: 'விடுப்பில்',
     attendanceLeaveApplied: 'விடுப்பு விண்ணப்பம்',
     attendanceLeave: 'விடுப்பு',
-    attendanceAutoSaved: 'வருகை தானாகவே சேமிக்கப்படும்',
+    attendanceSaving: 'சேமிக்கிறது',
+    attendanceSaved: 'சேமிக்கப்பட்டது',
     attendanceOverwriteTitle: 'இருக்கும் குறிகளை மாற்றவா?',
     attendanceOverwriteBody: '{n} பேருக்கு இந்த நாளில் வேறு குறி உள்ளது. மாற்றவா?',
     attendanceTasks: { other: '{n} பணிகள்' },
@@ -22550,7 +22553,8 @@ const hi: UiStrings = {
     attendanceOnLeave: 'छुट्टी पर',
     attendanceLeaveApplied: 'छुट्टी का आवेदन',
     attendanceLeave: 'छुट्टी',
-    attendanceAutoSaved: 'हाज़िरी अपने आप सेव होती है',
+    attendanceSaving: 'सेव हो रहा है',
+    attendanceSaved: 'सेव हो गया',
     attendanceOverwriteTitle: 'मौजूदा निशान बदलें?',
     attendanceOverwriteBody: '{n} लोगों का इस दिन पहले से अलग निशान है। बदलें?',
     attendanceTasks: { other: '{n} कार्य' },
@@ -29373,7 +29377,8 @@ const ar: UiStrings = {
     attendanceOnLeave: 'في إجازة',
     attendanceLeaveApplied: 'تم طلب إجازة',
     attendanceLeave: 'إجازة',
-    attendanceAutoSaved: 'يتم حفظ الحضور تلقائيًا',
+    attendanceSaving: 'جارٍ الحفظ',
+    attendanceSaved: 'تم الحفظ',
     attendanceOverwriteTitle: 'استبدال العلامات الحالية؟',
     attendanceOverwriteBody: 'لدى {n} أشخاص علامة مختلفة لهذا اليوم. هل تريد استبدالها؟',
     attendanceTasks: {

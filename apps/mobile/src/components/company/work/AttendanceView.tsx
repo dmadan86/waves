@@ -12,6 +12,7 @@ import { ScenicBody, StandardCard } from '@/components/standard';
 import { useMoney } from '@/components/company/dashboard/parts';
 import {
   useAttendance,
+  useAttendanceSaveState,
   useSetAttendance,
   useWorkdayAccess,
   useWorkTasks,
@@ -48,6 +49,7 @@ export default function AttendanceView({
   const access = useWorkdayAccess(id),
     marks = useAttendance(id),
     save = useSetAttendance(id),
+    saveState = useAttendanceSaveState(id),
     tasks = useWorkTasks(id);
   const company = useCompanyEntries(id),
     sites = useCompanyProjects(id),
@@ -296,6 +298,7 @@ export default function AttendanceView({
                       : labelDate
                   }
                   onDay={() => setDateOpen(true)}
+                  saveState={saveState}
                   query={search}
                   onQueryChange={setSearch}
                   onMenu={(a) => setMenuAnchor(a ?? 'open')}
@@ -333,30 +336,6 @@ export default function AttendanceView({
                         );
                       })}
                     </StandardCard>
-                    <View
-                      style={{
-                        alignSelf: 'center',
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 6,
-                        paddingHorizontal: 14,
-                        paddingVertical: 8,
-                        borderRadius: 20,
-                        backgroundColor: theme.color.brandSoft,
-                      }}
-                    >
-                      <Ionicons
-                        name="checkmark-circle-outline"
-                        size={18}
-                        color={theme.color.brand}
-                      />
-                      <Text
-                        variant="caption"
-                        style={{ color: theme.color.brand, fontWeight: '700' }}
-                      >
-                        {t.company.attendanceAutoSaved}
-                      </Text>
-                    </View>
                   </>
                 ) : (
                   <AttendanceReadOnly

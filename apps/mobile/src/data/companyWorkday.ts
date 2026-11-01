@@ -4,7 +4,7 @@
  * the helpers here only decide what the viewer may do and show.
  */
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   materialiseAttendance,
@@ -109,4 +109,30 @@ export function useWorkdayCounts(groupId: string): WorkdayCounts {
         : { blocked: 0, unmarked: 0 },
     [access, marks, tasks],
   );
+}
+
+/**
+ * Attendance marks for this company still on their way to the server: 'saving' while any is queued,
+ * then 'saved' for a moment once they have all landed. A refused mark is not "saving" (it never lands).
+ */
+export function useAttendanceSaveState(groupId: string): 'saving' | 'saved' | null {
+  const { queue } = useSync();
+  const saving = queue.some(
+    (m) => m.groupId === groupId && m.kind === MutationKind.CompanyAttendanceSet && !m.rejection,
+  );
+  const [saved, setSaved] = useState(false);
+  const wasSaving = useRef(false);
+  useEffect(() => {
+    if (saving) {
+      wasSaving.current = true;
+      return;
+    }
+    if (!wasSaving.current) return;
+    wasSaving.current = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot: the queue just emptied
+    setSaved(true);
+    const timer = setTimeout(() => setSaved(false), 2000);
+    return () => clearTimeout(timer);
+  }, [saving]);
+  return saving ? 'saving' : saved ? 'saved' : null;
 }
