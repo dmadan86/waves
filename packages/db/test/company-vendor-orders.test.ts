@@ -29,7 +29,6 @@ async function userIn<T>(grp: typeof g, i: number, run: () => Promise<T>): Promi
     await db.query('RELEASE SAVEPOINT actor_scope');
   }
 }
-const user = <T>(i: number, run: () => Promise<T>) => userIn(g, i, run);
 async function isolated(run: () => Promise<void>) {
   await db.query('BEGIN');
   try {
