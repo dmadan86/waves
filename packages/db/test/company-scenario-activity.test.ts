@@ -68,29 +68,37 @@ afterAll(async () => {
 describe('G41: company activity – visibility and attribution', () => {
   it('owner can read activity_log for the company; non-owner cannot', () =>
     isolated(async () => {
-      // Create an expense to generate activity
-      await asProfile(g.profileIds[0], () =>
-        db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
-          g.groupId,
-          randomUUID(),
-          g.memberIds[0],
-          'expense',
-          JSON.stringify({ amount: '100', occurredOn: today }),
-        ]),
+      // Seed the activity directly as the superuser connection. The company
+      // entry RPC does not write an activity_log row.
+      const activityId = randomUUID();
+      const objectId = randomUUID();
+      await db.query(
+        `INSERT INTO activity_log
+          (group_id, actor_member_id, verb, object_type, object_id, payload)
+         VALUES ($1, $2, $3, $4, $5, $6::jsonb)`,
+        [g.groupId, g.memberIds[0], 'created', 'expense', objectId, JSON.stringify({ amount: '100' })],
       );
 
       // Owner can read activity_log for the company
       const ownerSeen = await asProfile(g.profileIds[0], async () =>
         (
           await db.query(
-            'SELECT id FROM activity_log WHERE group_id=$1 ORDER BY created_at DESC LIMIT 10',
+            'SELECT id, group_id, actor_member_id, verb, object_type, object_id, payload FROM activity_log WHERE group_id=$1',
             [g.groupId],
           )
         ).rows,
       );
-      // Owner should see activity rows (the policy allows company admin to read)
-      // If the policy restricts this, this test surfaces that boundary
-      expect(Array.isArray(ownerSeen)).toBe(true);
+      expect(ownerSeen).toEqual([
+        {
+          id: expect.any(String),
+          group_id: g.groupId,
+          actor_member_id: g.memberIds[0],
+          verb: 'created',
+          object_type: 'expense',
+          object_id: objectId,
+          payload: { amount: '100' },
+        },
+      ]);
 
       // Manager (non-admin) should not see company activity_log
       const mgrSeen = await asProfile(g.profileIds[1], async () =>
@@ -113,6 +121,15 @@ describe('G41: company activity – visibility and attribution', () => {
         ).rows,
       );
       expect(empSeen).toHaveLength(0);
+
+      // A different company's owner must not see this company's activity.
+      const other = await seedGroup(db, { memberCount: 1 });
+      const otherOwnerSeen = await asProfile(other.profileIds[0], async () =>
+        (
+          await db.query('SELECT id FROM activity_log WHERE group_id=$1', [g.groupId])
+        ).rows,
+      );
+      expect(otherOwnerSeen).toHaveLength(0);
     }));
 
   it('blocked company: existing activity is still readable by owner; no new write activity', () =>
