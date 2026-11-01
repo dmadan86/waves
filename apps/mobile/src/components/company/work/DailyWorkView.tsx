@@ -1,11 +1,11 @@
 import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
 import { useCallback, useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
-import { ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import type { CompanyWorkSetPayload } from '@waves/core';
 import { useDepartments } from '@/data/companyDepartments';
-import { Text, useTheme } from '@waves/ui';
+import { Text } from '@waves/ui';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { ScenicBody } from '@/components/standard';
 import type { MenuAnchor } from '@/components/SortMenu';
@@ -69,7 +69,6 @@ export default function DailyWorkView({
   const save = useSetWorkTask(id);
   const remove = useRemoveWorkTask(id);
   const { t, locale } = useStrings();
-  const theme = useTheme();
   const clearance = useBottomClearance();
   const today = todayIso();
   const maxDay = shift(today, 7);
@@ -250,23 +249,6 @@ export default function DailyWorkView({
               <Text tone="muted">{t.company.attendanceEmpty}</Text>
             ) : (
               <>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                  <Text variant="title" style={{ fontSize: 24, fontWeight: '800' }}>
-                    {t.company.teamTabTasks}
-                  </Text>
-                  <View
-                    style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 2,
-                      borderRadius: 12,
-                      backgroundColor: theme.color.brandSoft,
-                    }}
-                  >
-                    <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '800' }}>
-                      {sortedTasks.length}
-                    </Text>
-                  </View>
-                </View>
                 <WorkToolbar
                   dayLabel={new Date(`${day}T00:00:00Z`).toLocaleDateString(locale, {
                     weekday: 'short',
