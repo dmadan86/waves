@@ -163,31 +163,27 @@ describe('company expense lifecycle scenarios', () => {
     expect(second.rows.map((x) => x.id)).not.toContain(managed);
   });
 
-  // BUG: reimbursement rejects approved claims as UNKNOWN_MEMBER after employment ends.
-  it.fails(
-    'ended employee approved claim stays visible to owner and manager and can be paid',
-    async () => {
-      const f = await fixture(true),
-        id = await create(f, 2, 90);
-      await act(f, 1, () => transition(id, 'approved', 1));
-      await act(f, 0, () =>
-        db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)', [
-          f.groupId,
-          f.memberIds[2]!,
-          '2026-10-31',
-          'left',
-        ]),
+  it('ended employee approved claim stays visible to owner and manager and can be paid', async () => {
+    const f = await fixture(true),
+      id = await create(f, 2, 90);
+    await act(f, 1, () => transition(id, 'approved', 1));
+    await act(f, 0, () =>
+      db.query('SELECT waves_company_employment_set($1,$2,false,$3,$4,false,NULL)', [
+        f.groupId,
+        f.memberIds[2]!,
+        '2026-10-31',
+        'left',
+      ]),
+    );
+    for (const n of [0, 1]) {
+      const visible = await act(f, n, () =>
+        db.query('SELECT id FROM company_entries WHERE id=$1', [id]),
       );
-      for (const n of [0, 1]) {
-        const visible = await act(f, n, () =>
-          db.query('SELECT id FROM company_entries WHERE id=$1', [id]),
-        );
-        expect(visible.rowCount).toBe(1);
-      }
-      await act(f, 0, () => pay(f, id, 2, 90));
-      expect((await row(id)).status).toBe('reimbursed');
-    },
-  );
+      expect(visible.rowCount).toBe(1);
+    }
+    await act(f, 0, () => pay(f, id, 2, 90));
+    expect((await row(id)).status).toBe('reimbursed');
+  });
 
   it('removed user historical reads remain self scoped and writes fail', async () => {
     const f = await fixture(false),
