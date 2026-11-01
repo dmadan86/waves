@@ -224,6 +224,33 @@ describe('company clients: who sees what', () => {
       ).rows[0].updated_seq;
       expect(BigInt(after)).toBeGreaterThan(BigInt(before));
     }));
+
+  // The sync function lists these ids per caller; a phone drops any cached client not on its list.
+  it('the id list a phone is given drops a reassigned client and its notes, and keeps a removed one', () =>
+    isolated(async () => {
+      const note = randomUUID();
+      await user(0, () =>
+        db.query('SELECT waves_company_client_note_add($1,$2,$3,$4)', [
+          g.groupId,
+          note,
+          forA,
+          'Hi',
+        ]),
+      );
+      const notes = (caller: number) =>
+        user(caller, async () =>
+          (await db.query('SELECT id FROM company_client_notes')).rows.map((r) => r.id as string),
+        );
+      expect(await seen(2)).toContain(forA);
+      expect(await notes(2)).toEqual([note]);
+      await setClient(1, forA, { name: 'A Client', ownerMemberId: g.memberIds[3] });
+      expect(await seen(2)).not.toContain(forA);
+      expect(await notes(2)).toEqual([]);
+      expect(await seen(3)).toContain(forA);
+      // A removal is a tombstone row the phone still receives, so it stays on the list.
+      await user(1, () => db.query('SELECT waves_company_client_remove($1)', [forA]));
+      expect(await seen(3)).toContain(forA);
+    }));
 });
 
 describe('company clients: stages', () => {
