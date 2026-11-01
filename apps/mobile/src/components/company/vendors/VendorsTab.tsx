@@ -1,119 +1,304 @@
-import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, View } from 'react-native';
 
-import { filterVendorRows, vendorDashboard, type VendorFilter } from '@waves/core';
-import { ChipRow, Text, useTheme } from '@waves/ui';
+import {
+  filterVendorRows,
+  vendorDashboard,
+  type VendorFilter,
+  type VendorPeriod,
+  type VendorRow,
+} from '@waves/core';
+import { directionalIcon, Text, useTheme } from '@waves/ui';
 
-import { SaveButton } from '@/components/company/EntryForm';
-import { Pill, StatusChip, useVendorFormat } from '@/components/company/vendors/parts';
+import { Pill, useVendorFormat } from '@/components/company/vendors/parts';
+import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { ListRow, StandardCard } from '@/components/standard';
-import { useCompanySuspended } from '@/data/companyEntries';
+import { useGlass, StandardCard } from '@/components/standard';
+import { type MenuAnchor } from '@/components/SortMenu';
 import { useCompanyVendors } from '@/data/companyVendors';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
-function Tile({ label, value }: { label: string; value: string }) {
+const PERIODS: readonly VendorPeriod[] = ['month', 'lastMonth', 'year', 'all'];
+const FILTERS: readonly VendorFilter[] = ['all', 'toPay', 'settled', 'toReview', 'overdue'];
+const ORANGE = '#A85F00';
+const PURPLE = '#4B35B8';
+const GREEN = '#17703C';
+
+/** One column of the overview card; a tap filters the list to it (tap again clears). */
+function Stat({
+  icon,
+  tone,
+  value,
+  label,
+  selected,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  tone: string;
+  value: number;
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
   const theme = useTheme();
   return (
-    <View
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={`${value} ${label}`}
+      onPress={onPress}
       style={{
         flex: 1,
         minWidth: 0,
-        gap: 2,
-        padding: theme.spacing.md,
-        borderRadius: theme.radius.lg,
-        backgroundColor: theme.color.surfaceMuted,
+        alignItems: 'center',
+        paddingVertical: theme.spacing.xs,
+        borderRadius: theme.radius.md,
+        backgroundColor: selected ? theme.color.surfaceMuted : undefined,
       }}
     >
-      <Text variant="caption" tone="muted" numberOfLines={1}>
-        {label}
-      </Text>
-      <Text tabular style={{ fontWeight: '700' }} numberOfLines={1}>
+      <Ionicons name={icon} size={20} color={tone} />
+      <Text tabular style={{ fontSize: 20, fontWeight: '800' }}>
         {value}
       </Text>
+      <Text variant="micro" numberOfLines={1} style={{ color: tone, fontWeight: '600' }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+/** A pill that opens an anchored menu of choices. */
+function Dropdown({
+  icon,
+  label,
+  items,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  items: readonly OverflowMenuItem[];
+}) {
+  const theme = useTheme();
+  const glass = useGlass();
+  const ref = useRef<View>(null);
+  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
+  const [open, setOpen] = useState(false);
+  const show = () =>
+    ref.current?.measureInWindow((x, y, width, height) => {
+      setAnchor(width > 0 ? { x, y, width, height } : null);
+      setOpen(true);
+    }) ?? setOpen(true);
+  return (
+    <View ref={ref} collapsable={false} style={{ flex: 1 }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={show}
+        style={{
+          height: 40,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.md,
+          borderRadius: theme.radius.pill,
+          backgroundColor: glass,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+        }}
+      >
+        <Ionicons name={icon} size={18} color={theme.color.text} />
+        <Text numberOfLines={1} style={{ flex: 1, fontWeight: '700' }}>
+          {label}
+        </Text>
+        <Ionicons name="chevron-down" size={16} color={theme.color.text} />
+      </Pressable>
+      <OverflowMenu visible={open} onClose={() => setOpen(false)} items={items} anchor={anchor} />
     </View>
   );
 }
 
-/** The Vendors dashboard body: overview card, filters, rows. `query` is the header's search text. */
+/** The Vendors dashboard body: overview card, two dropdowns, rows. `query` is the header's search text. */
 export function VendorsTab({ groupId, query }: { groupId: string; query: string }) {
   const theme = useTheme();
   const { t } = useStrings();
   const s = t.companyVendors;
   const raw = useCompanyVendors(groupId);
-  const suspended = useCompanySuspended(groupId);
-  const canManage = raw.canManage && !suspended;
   const fmt = useVendorFormat(raw.currency).money;
   const [filter, setFilter] = useState<VendorFilter>('all');
+  const [period, setPeriod] = useState<VendorPeriod>('month');
   const dash = useMemo(
-    () => vendorDashboard(raw.vendors, raw.lines, todayIso()),
-    [raw.vendors, raw.lines],
+    () => vendorDashboard(raw.vendors, raw.lines, todayIso(), period),
+    [raw.vendors, raw.lines, period],
   );
   const rows = filterVendorRows(dash.rows, filter, query);
   const open = (id: string) => router.push(`/group/${groupId}/company-vendor?vendorId=${id}`);
+  const toggle = (f: VendorFilter) => setFilter(filter === f ? 'all' : f);
+  const periodLabel: Record<VendorPeriod, string> = {
+    month: s.periodMonth,
+    lastMonth: s.periodLast,
+    year: s.periodYear,
+    all: s.periodAll,
+  };
+  const filterLabel: Record<VendorFilter, string> = {
+    all: s.allVendors,
+    toPay: s.filterToPay,
+    settled: s.settled,
+    toReview: s.pendingReview,
+    overdue: s.statusOverdue,
+    receipts: s.receipts,
+  };
+  const check = (on: boolean): keyof typeof Ionicons.glyphMap =>
+    on ? 'checkmark' : 'ellipse-outline';
   return (
     <View style={{ gap: theme.spacing.lg }}>
-      <StandardCard style={{ gap: theme.spacing.md }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text variant="caption" tone="muted">
-              {s.totalToPay}
-            </Text>
-            <Text tabular style={{ fontSize: 28, fontWeight: '800' }} numberOfLines={1}>
-              {fmt(dash.totalToPay)}
-            </Text>
-          </View>
-          {dash.overdueVendors > 0 ? (
-            <Pill label={fill(s.overdueCount, { n: String(dash.overdueVendors) })} tone="bad" />
-          ) : null}
+      <StandardCard style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+        <View style={{ flex: 1.2, minWidth: 0 }}>
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {s.totalToPay}
+          </Text>
+          <Text
+            tabular
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            style={{ fontSize: 24, fontWeight: '800' }}
+          >
+            {fmt(dash.totalToPay)}
+          </Text>
         </View>
-        <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
-          <Tile label={s.paidThisMonth} value={fmt(dash.paidThisMonth)} />
-          <Tile label={s.billsToReview} value={String(dash.billsToReview)} />
+        <View style={{ flex: 2, flexDirection: 'row', alignItems: 'center' }}>
+          <Stat
+            icon="clipboard-outline"
+            tone={ORANGE}
+            value={dash.billsToReview}
+            label={s.pending}
+            selected={filter === 'toReview'}
+            onPress={() => toggle('toReview')}
+          />
+          <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
+          <Stat
+            icon="receipt-outline"
+            tone={PURPLE}
+            value={dash.receipts}
+            label={s.receipts}
+            selected={filter === 'receipts'}
+            onPress={() => toggle('receipts')}
+          />
+          <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
+          <Stat
+            icon="checkmark-circle-outline"
+            tone={GREEN}
+            value={dash.counts.settled}
+            label={s.settled}
+            selected={filter === 'settled'}
+            onPress={() => toggle('settled')}
+          />
         </View>
       </StandardCard>
-      <ChipRow
-        variant="brand"
-        value={filter}
-        onChange={setFilter}
-        options={[
-          { value: 'all', label: `${s.filterAll} ${dash.counts.all}` },
-          { value: 'toPay', label: `${s.filterToPay} ${dash.counts.toPay}` },
-          { value: 'settled', label: `${s.settled} ${dash.counts.settled}` },
-          { value: 'toReview', label: `${s.filterToReview} ${dash.counts.toReview}` },
-        ]}
-      />
+      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+        <Dropdown
+          icon="calendar-outline"
+          label={periodLabel[period]}
+          items={PERIODS.map((p) => ({
+            icon: check(p === period),
+            label: periodLabel[p],
+            onPress: () => setPeriod(p),
+          }))}
+        />
+        <Dropdown
+          icon="filter-outline"
+          label={filterLabel[filter]}
+          items={FILTERS.map((f) => ({
+            icon: check(f === filter),
+            label: filterLabel[f],
+            onPress: () => setFilter(f),
+          }))}
+        />
+      </View>
       <StandardCard>
         {rows.length === 0 ? (
           <Text tone="muted">{dash.rows.length === 0 ? s.emptyList : s.noMatch}</Text>
         ) : (
-          rows.map((row, index) => {
-            const { vendor, balance } = row;
-            return (
-              <ListRow
-                key={vendor.id}
-                title={vendor.name}
-                titleLines={2}
-                leading={<PersonAvatar name={vendor.name} size={40} />}
-                subtitle={vendor.category ?? row.latest?.note ?? vendor.phone ?? undefined}
-                amount={balance < 0n ? fill(s.hasAdvance, { amount: fmt(-balance) }) : fmt(balance)}
-                footer={<StatusChip status={row.status} />}
-                onPress={() => open(vendor.id)}
-                divider={index < rows.length - 1}
-              />
-            );
-          })
+          rows.map((row, index) => (
+            <VendorRowView
+              key={row.vendor.id}
+              row={row}
+              money={fmt}
+              last={index === rows.length - 1}
+              onPress={() => open(row.vendor.id)}
+            />
+          ))
         )}
       </StandardCard>
-      {canManage ? (
-        <SaveButton
-          label={s.addVendor}
-          disabled={false}
-          onPress={() => router.push(`/group/${groupId}/company-vendor-add`)}
-        />
-      ) : null}
     </View>
+  );
+}
+
+function VendorRowView({
+  row,
+  money,
+  last,
+  onPress,
+}: {
+  row: VendorRow;
+  money: (v: bigint) => string;
+  last: boolean;
+  onPress: () => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const s = t.companyVendors;
+  const { vendor, balance } = row;
+  const settled = row.status === 'settled';
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        paddingVertical: theme.spacing.md,
+        borderBottomWidth: last ? 0 : 1,
+        borderBottomColor: theme.color.border,
+      }}
+    >
+      <PersonAvatar name={vendor.name} size={44} />
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text numberOfLines={1} style={{ fontWeight: '700' }}>
+          {vendor.name}
+        </Text>
+        {vendor.category ? (
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {vendor.category}
+          </Text>
+        ) : null}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
+          {row.toReview > 0 ? (
+            <Pill
+              icon="clipboard-outline"
+              tone="warn"
+              label={fill(s.pendingN, { n: String(row.toReview) })}
+            />
+          ) : null}
+          {row.receipts > 0 ? (
+            <Pill
+              icon="receipt-outline"
+              tone="info"
+              label={fill(row.receipts === 1 ? s.receiptOne : s.receiptMany, {
+                n: String(row.receipts),
+              })}
+            />
+          ) : null}
+          {settled ? <Pill icon="checkmark-circle-outline" tone="good" label={s.settled} /> : null}
+          {row.overdue > 0n ? <Pill tone="bad" label={s.statusOverdue} /> : null}
+        </View>
+      </View>
+      <Text tabular numberOfLines={1} style={{ fontWeight: '800' }}>
+        {balance < 0n ? fill(s.hasAdvance, { amount: money(-balance) }) : money(balance)}
+      </Text>
+      <Ionicons name={directionalIcon('chevron-forward')} size={18} color={theme.color.textMuted} />
+    </Pressable>
   );
 }

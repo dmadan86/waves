@@ -1,4 +1,5 @@
 /** Small pieces the vendor screens share: status chip, money/date formatting, PDF labels. */
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
 import type { VendorStatus } from '@waves/core';
@@ -13,21 +14,34 @@ const TONES = {
   good: ['#17703C', '#EAF7EF'],
   bad: ['#C0262D', '#FDECEC'],
   warn: ['#A85F00', '#FFF3E3'],
+  info: ['#4B35B8', '#EEEAFD'],
 } as const;
 
-export function Pill({ label, tone }: { label: string; tone?: keyof typeof TONES }) {
+export function Pill({
+  label,
+  tone,
+  icon,
+}: {
+  label: string;
+  tone?: keyof typeof TONES;
+  icon?: keyof typeof Ionicons.glyphMap;
+}) {
   const theme = useTheme();
   const [ink, fill] = tone ? TONES[tone] : [theme.color.textMuted, theme.color.surfaceMuted];
   return (
     <View
       style={{
         alignSelf: 'flex-start',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         borderRadius: theme.radius.pill,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
         backgroundColor: fill,
       }}
     >
+      {icon ? <Ionicons name={icon} size={12} color={ink} /> : null}
       <Text variant="micro" style={{ color: ink, fontWeight: '600' }}>
         {label}
       </Text>
