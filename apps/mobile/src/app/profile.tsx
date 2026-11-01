@@ -1,7 +1,7 @@
 import { AdSlot } from '@/components/AdSlot';
 import { useAdPlan } from '@/lib/useAdPlan';
 import { useQuery } from '@tanstack/react-query';
-import { readCredits } from '@/lib/adCredits';
+import { queryCredits } from '@/lib/adCredits';
 import { showCreditsRow } from '@/lib/adCreditsPure';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useEffect, useState } from 'react';
@@ -112,7 +112,7 @@ function ProfileForm() {
   const { isPaid } = useEntitlement();
   const credits = useQuery({
     queryKey: ['credits', profile?.id],
-    queryFn: readCredits,
+    queryFn: queryCredits,
     enabled: !!profile?.id,
   });
   const showVoiceRecorder = __DEV__;

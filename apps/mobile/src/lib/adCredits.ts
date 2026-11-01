@@ -10,6 +10,12 @@ export async function readCredits() {
     return null;
   }
 }
+/** For `['credits', …]` queries: a failed read throws so the cache keeps the last good balance. */
+export async function queryCredits() {
+  const credits = await readCredits();
+  if (!credits) throw new Error('credits unavailable');
+  return credits;
+}
 export async function spendCredits(kind: CreditKind) {
   try {
     const result = await adTimeout(
