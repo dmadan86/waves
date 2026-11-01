@@ -3,7 +3,7 @@
  * Same pipeline as the company export (print, workbook, ad gate for Free). While the
  * `task_reports_pro` flag is on, reports 2-4 are Pro and send Free users to the plans.
  */
-import { useState } from 'react';
+import { useState, type ComponentProps } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { decode } from 'base64-arraybuffer';
@@ -12,7 +12,7 @@ import * as Sharing from 'expo-sharing';
 import { ActivityIndicator, Platform, Pressable, View } from 'react-native';
 import { Button, iconSize, Sheet, Text, useTheme } from '@waves/ui';
 
-import { SectionHeader, SegmentedPills } from '@/components/standard';
+import { SectionHeader } from '@/components/standard';
 import { buildCompanyExportWorkbook, renderCompanyExportHtml } from '@/data/companyExport';
 import {
   buildWorkReport,
@@ -35,6 +35,12 @@ const XLSX_UTI = 'org.openxmlformats.spreadsheetml.sheet';
 type Preset = 'week' | 'month' | 'custom';
 type Format = 'pdf' | 'excel';
 const REPORTS: readonly WorkReport[] = ['list', 'person', 'site', 'overdue'];
+const REPORT_ICON: Record<WorkReport, ComponentProps<typeof Ionicons>['name']> = {
+  list: 'list-outline',
+  person: 'person-outline',
+  site: 'location-outline',
+  overdue: 'stats-chart-outline',
+};
 
 function localIso(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -77,6 +83,12 @@ export function WorkExportSheet({
     person: c.workRepPerson,
     site: c.workRepSite,
     overdue: c.workRepOverdue,
+  };
+  const subs: Record<WorkReport, string> = {
+    list: c.workRepListSub,
+    person: c.workRepPersonSub,
+    site: c.workRepSiteSub,
+    overdue: c.workRepOverdueSub,
   };
   const locked = (r: WorkReport) => proReports && r !== 'list' && !isPaid;
   const picked = preset === 'custom' ? custom : workRange(preset, today);
@@ -172,6 +184,55 @@ export function WorkExportSheet({
     }
   };
 
+  // Selected = brand outline + soft fill; the check circle marks it.
+  const selectable = (on: boolean, borderRadius: number) => ({
+    borderRadius,
+    borderWidth: on ? 1.5 : 1,
+    borderColor: on ? theme.color.brand : theme.color.border,
+    backgroundColor: on ? theme.color.brandSoft : theme.color.surface,
+  });
+  const check = <Ionicons name="checkmark-circle" size={iconSize.base} color={theme.color.brand} />;
+  const heading = (icon: ComponentProps<typeof Ionicons>['name'], label: string) => (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+      <Ionicons name={icon} size={iconSize.base} color={theme.color.textMuted} />
+      <Text variant="subheading">{label}</Text>
+    </View>
+  );
+  const pill = (
+    on: boolean,
+    label: string,
+    onPress: () => void,
+    icon?: ComponentProps<typeof Ionicons>['name'],
+    iconColor?: string,
+  ) => (
+    <Pressable
+      key={label}
+      accessibilityRole="radio"
+      accessibilityState={{ selected: on }}
+      onPress={onPress}
+      style={[
+        selectable(on, theme.radius.pill),
+        {
+          flex: 1,
+          height: 40,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+        },
+      ]}
+    >
+      {on ? (
+        check
+      ) : icon ? (
+        <Ionicons name={icon} size={iconSize.base} color={iconColor ?? theme.color.textMuted} />
+      ) : null}
+      <Text variant="caption" style={{ fontWeight: '700' }}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+
   const dateRow = (which: 'from' | 'to') => (
     <Pressable
       accessibilityRole="button"
@@ -216,21 +277,36 @@ export function WorkExportSheet({
             ) : null}
           </View>
         ) : (
-          <View style={{ gap: theme.spacing.md }}>
-            <SectionHeader title={c.workExport} />
-            <Text variant="caption" tone="muted">
-              {c.workExportRange}
-            </Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-              <SegmentedPills
-                options={[
-                  { value: 'week' as Preset, label: c.workThisWeek },
-                  { value: 'month' as Preset, label: c.workThisMonth },
-                  { value: 'custom' as Preset, label: c.workCustom },
-                ]}
-                value={preset}
-                onChange={setPreset}
-              />
+          <View style={{ gap: theme.spacing.sm }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+              <View
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.color.brandSoft,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="download-outline" size={iconSize.lg} color={theme.color.brand} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="heading">{c.workExport}</Text>
+                <Text variant="caption" tone="muted">
+                  {c.workExportSub}
+                </Text>
+              </View>
+            </View>
+            {heading('calendar-outline', c.workExportRange)}
+            <View style={{ flexDirection: 'row', gap: theme.spacing.xs }}>
+              {(
+                [
+                  ['week', c.workThisWeek],
+                  ['month', c.workThisMonth],
+                  ['custom', c.workCustom],
+                ] as const
+              ).map(([value, label]) => pill(preset === value, label, () => setPreset(value)))}
             </View>
             {preset === 'custom' ? (
               <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
@@ -238,49 +314,76 @@ export function WorkExportSheet({
                 {dateRow('to')}
               </View>
             ) : null}
-            <Text variant="caption" tone="muted">
-              {c.workReportType}
-            </Text>
-            <View style={{ gap: 2 }}>
+            {heading('layers-outline', c.workReportType)}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
               {REPORTS.map((r) => (
                 <Pressable
                   key={r}
                   accessibilityRole="radio"
                   accessibilityState={{ selected: report === r }}
                   onPress={() => (locked(r) ? upgrade() : setReport(r))}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, height: 40 }}
+                  style={[
+                    selectable(report === r, theme.radius.md),
+                    { width: '49%', flexGrow: 1, padding: theme.spacing.sm, gap: 2 },
+                  ]}
                 >
-                  <Ionicons
-                    name={report === r ? 'radio-button-on' : 'radio-button-off'}
-                    size={iconSize.base}
-                    color={report === r ? theme.color.brand : theme.color.textMuted}
-                  />
-                  <Text style={{ flex: 1 }}>{names[r]}</Text>
-                  {locked(r) ? (
-                    <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-                      {c.workProBadge}
-                    </Text>
-                  ) : null}
+                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                    <Ionicons
+                      name={REPORT_ICON[r]}
+                      size={iconSize.base}
+                      color={theme.color.brand}
+                    />
+                    <View style={{ flex: 1 }} />
+                    {locked(r) ? (
+                      <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
+                        {c.workProBadge}
+                      </Text>
+                    ) : report === r ? (
+                      check
+                    ) : null}
+                  </View>
+                  <Text variant="caption" style={{ fontWeight: '700' }}>
+                    {names[r]}
+                  </Text>
+                  <Text variant="micro" tone="muted" numberOfLines={2}>
+                    {subs[r]}
+                  </Text>
                 </Pressable>
               ))}
             </View>
+            {heading('document-text-outline', c.workFileFormat)}
             <View style={{ flexDirection: 'row', gap: theme.spacing.xs }}>
-              <SegmentedPills
-                options={[
-                  { value: 'pdf' as Format, label: t.groupExport.pdf },
-                  { value: 'excel' as Format, label: t.groupExport.excel },
-                ]}
-                value={format}
-                onChange={setFormat}
-              />
+              {pill(
+                format === 'pdf',
+                t.groupExport.pdf,
+                () => setFormat('pdf'),
+                'document-text-outline',
+              )}
+              {pill(
+                format === 'excel',
+                t.groupExport.excel,
+                () => setFormat('excel'),
+                'grid-outline',
+                '#1D8A4B',
+              )}
             </View>
             {error ? <Text tone="negative">{error}</Text> : null}
             <Button
-              label={busy ? t.groupExport.preparing : t.groupExport.generate}
+              label={busy ? t.groupExport.preparing : c.workGenerate}
               variant="brand"
               disabled={busy}
               onPress={() => void run()}
-              icon={busy ? <ActivityIndicator color={theme.color.onBrand} /> : undefined}
+              icon={
+                busy ? (
+                  <ActivityIndicator color={theme.color.onBrand} />
+                ) : (
+                  <Ionicons
+                    name="download-outline"
+                    size={iconSize.base}
+                    color={theme.color.onBrand}
+                  />
+                )
+              }
             />
           </View>
         )}
