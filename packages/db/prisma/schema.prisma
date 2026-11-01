@@ -550,6 +550,7 @@ model GroupMember {
   @@index([groupId, managerId], map: "company_members_manager_idx")
   @@unique([id, groupId], map: "company_members_id_group_unique")
   vendorsAdded CompanyVendor[] @relation("CompanyVendorAddedBy")
+  vendorOrdersCreated CompanyVendorOrder[] @relation("CompanyVendorOrderCreator")
   vendorLogin CompanyVendor[] @relation("CompanyVendorLogin")
   vendorLinesCreated CompanyVendorEntry[] @relation("CompanyVendorLineCreator")
   vendorLinesFunded CompanyVendorEntry[] @relation("CompanyVendorLineFunder")
@@ -3370,6 +3371,7 @@ model CompanyVendorEntry {
   funder GroupMember? @relation("CompanyVendorLineFunder", fields: [fundingManagerId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   attachments CompanyVendorEntryAttachment[]
   @@unique([id,groupId], map: "company_vendor_entries_id_group_key")
+  @@unique([groupId, receiptNo], map: "company_vendor_entries_group_receipt_key")
   @@index([groupId,updatedSeq], map: "company_vendor_entries_sync_idx")
   @@index([vendorId,occurredOn], map: "company_vendor_entries_vendor_idx")
   @@map("company_vendor_entries")
@@ -3688,6 +3690,7 @@ model CompanyVendorOrder {
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
   updatedSeq BigInt @default(0) @map("updated_seq")
   vendor CompanyVendor @relation(fields: [vendorId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyVendorOrderCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   items CompanyVendorOrderItem[]
   events CompanyVendorOrderEvent[]
   @@unique([id, groupId])
