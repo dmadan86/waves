@@ -18,6 +18,7 @@ import { useSourceLabel } from '@/components/company/clients/parts';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { PlainHeader, StandardCard } from '@/components/standard';
 import { useAddFollowUp, useCompanyClients, useSetClient } from '@/data/companyClients';
+import { useCompanyEntries } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -46,6 +47,7 @@ function ClientForm({ groupId }: { groupId: string }) {
   const clearance = useBottomClearance();
   const { notify, choose } = useDialog();
   const view = useCompanyClients(groupId);
+  const entries = useCompanyEntries(groupId);
   const existing = view.clients.find((c) => c.id === clientId);
   const save = useSetClient(groupId);
   const addFollowUp = useAddFollowUp(groupId);
@@ -71,8 +73,12 @@ function ClientForm({ groupId }: { groupId: string }) {
     pick: pickedDay,
     none: null,
   }[follow];
+  // A manager can hand work only to their own team or themself; the server refuses the rest.
+  const assignable = view.owners.filter(
+    (m) => entries.isOwner || m.id === view.myMemberId || entries.manageableIds.has(m.id),
+  );
   const ownerRow = view.owners.find((m) => m.id === owner);
-  const canPickOwner = view.canManage && view.owners.length > 1;
+  const canPickOwner = view.canManage && assignable.length > 1;
   const busy = save.isPending || addFollowUp.isPending;
 
   const openPick = () => {
@@ -91,7 +97,7 @@ function ClientForm({ groupId }: { groupId: string }) {
   const pickOwner = async () => {
     const id = await choose({
       title: s.whoFollows,
-      options: view.owners.map((m) => ({ id: m.id, label: displayName(m) })),
+      options: assignable.map((m) => ({ id: m.id, label: displayName(m) })),
     });
     if (id) setOwner(id);
   };

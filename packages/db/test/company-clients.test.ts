@@ -203,9 +203,26 @@ describe('company clients: who sees what', () => {
 
   it('reassigning moves visibility to the new employee', () =>
     isolated(async () => {
+      const note = randomUUID();
+      await user(0, () =>
+        db.query('SELECT waves_company_client_note_add($1,$2,$3,$4)', [
+          g.groupId,
+          note,
+          forA,
+          'Hi',
+        ]),
+      );
+      const before = (
+        await db.query('SELECT updated_seq FROM company_client_notes WHERE id=$1', [note])
+      ).rows[0].updated_seq;
       await setClient(1, forA, { name: 'A Client', ownerMemberId: g.memberIds[3] });
       expect(await seen(2)).toEqual([]);
       expect(await seen(3)).toHaveLength(2);
+      // The note is re-stamped so the new owner's next pull carries it.
+      const after = (
+        await db.query('SELECT updated_seq FROM company_client_notes WHERE id=$1', [note])
+      ).rows[0].updated_seq;
+      expect(BigInt(after)).toBeGreaterThan(BigInt(before));
     }));
 });
 
