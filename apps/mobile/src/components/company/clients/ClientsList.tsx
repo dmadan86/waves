@@ -20,6 +20,7 @@ import { useClientMoney, useCompanyClients, useFollowUps } from '@/data/companyC
 import { useCompanySuspended } from '@/data/companyEntries';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
+import { companyOverviewRoute } from '@/lib/companyTab';
 import { router } from '@/lib/navigation';
 
 /** Clients and inquiries: one list with a stage chip per row and filter chips on top. */
@@ -59,6 +60,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
       >
         <ScenicHeader
           title={s.title}
+          onBack={() => router.replace(companyOverviewRoute(groupId, 'back') as never)}
           action={
             <Pressable
               accessibilityRole="button"
