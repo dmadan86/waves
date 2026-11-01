@@ -112,7 +112,8 @@ function DocumentForm({
   const [openCustomer, setOpenCustomer] = useState(false);
   const [openDiscount, setOpenDiscount] = useState(false);
   const [openNotes, setOpenNotes] = useState(!!doc?.notes);
-  const [expanded, setExpanded] = useState<number | null>(doc ? null : 0);
+  // Open the first line on edit too: collapsed rows read as a read-only list.
+  const [expanded, setExpanded] = useState<number | null>(0);
   const [payChoice, setPayChoice] = useState<BillPayChoice>('unpaid');
   const [partMinor, setPartMinor] = useState(0n);
   const [name, setName] = useState(doc?.customerName ?? client?.name ?? '');
@@ -424,18 +425,25 @@ function DocumentForm({
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => setExpanded(expanded === item.key ? null : item.key)}
-                  style={{ flex: 1 }}
+                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}
                 >
-                  <Text
-                    numberOfLines={1}
-                    style={{ fontWeight: '700' }}
-                    tone={item.description ? undefined : 'muted'}
-                  >
-                    {item.description || c.description}
-                  </Text>
-                  <Text variant="caption" tone="muted" numberOfLines={1}>
-                    {fill(c.rateEach, { rate: fmt(item.rateMinor) })}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text
+                      numberOfLines={1}
+                      style={{ fontWeight: '700' }}
+                      tone={item.description ? undefined : 'muted'}
+                    >
+                      {item.description || c.description}
+                    </Text>
+                    <Text variant="caption" tone="muted" numberOfLines={1}>
+                      {fill(c.rateEach, { rate: fmt(item.rateMinor) })}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name={expanded === item.key ? 'chevron-up' : 'create-outline'}
+                    size={16}
+                    color={theme.color.brand}
+                  />
                 </Pressable>
                 <View
                   style={{
