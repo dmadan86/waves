@@ -55,6 +55,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const [range, setRange] = useState<DateRange>('all');
   const [sort, setSort] = useState<ClientSort>('recent');
   const [query, setQuery] = useState('');
+  const [owing, setOwing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [menu, setMenu] = useState<'sort' | 'add' | null>(null);
@@ -69,7 +70,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
   );
   const counts = tabCounts(all);
   const outstanding = all.reduce((n, r) => n + r.dueMinor, 0n);
-  const rows = listClientRows(all, { tab, status, range, sort, query, today });
+  const rows = listClientRows(all, { tab, status, range, sort, query, today, owing });
   const filtered = status !== null || range !== 'all';
   const canAdd = view.canAdd && !suspended;
   const open = (m: 'sort' | 'add', ref: typeof sortRef) =>
@@ -230,6 +231,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
                 onPress={() => {
                   setTab(k.tab);
                   setStatus(null);
+                  setOwing(k.label === s.kOutstanding);
                   if (k.label === s.kOutstanding) setSort('amount');
                 }}
                 style={{
@@ -267,7 +269,10 @@ export function ClientsList({ groupId }: { groupId: string }) {
                   { value: 'invoice' as const, label: fill(s.tInvoices, { n: counts.invoice }) },
                 ]}
                 value={tab}
-                onChange={setTab}
+                onChange={(v) => {
+                  setOwing(false);
+                  setTab(v);
+                }}
               />
             </View>
           </ScrollView>
