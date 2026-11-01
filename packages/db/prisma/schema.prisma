@@ -3369,6 +3369,7 @@ model CompanyVendorEntry {
   funder GroupMember? @relation("CompanyVendorLineFunder", fields: [fundingManagerId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   attachments CompanyVendorEntryAttachment[]
   @@unique([id,groupId], map: "company_vendor_entries_id_group_key")
+  @@unique([groupId, receiptNo], map: "company_vendor_entries_group_receipt_key")
   @@index([groupId,updatedSeq], map: "company_vendor_entries_sync_idx")
   @@index([vendorId,occurredOn], map: "company_vendor_entries_vendor_idx")
   @@map("company_vendor_entries")

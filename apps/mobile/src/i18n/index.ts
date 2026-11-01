@@ -9425,7 +9425,7 @@ const en: UiStrings = {
     openInVendor: "Open in {name}'s transactions",
     downloadPdf: 'Download PDF',
     advanceKind: 'Advance',
-    paidTo: "paid to {name}",
+    paidTo: 'paid to {name}',
   },
   companyStorage: {
     addMore: 'Add more storage',
@@ -15983,7 +15983,7 @@ const ta: UiStrings = {
     openInVendor: '{name} பரிவர்த்தனைகளில் திற',
     downloadPdf: 'PDF பதிவிறக்கு',
     advanceKind: 'முன்பணம்',
-    paidTo: "{name}-க்கு செலுத்தியது",
+    paidTo: '{name}-க்கு செலுத்தியது',
   },
   companyStorage: {
     addMore: 'மேலும் சேமிப்பைச் சேர்க்கவும்',
@@ -22698,7 +22698,7 @@ const hi: UiStrings = {
     openInVendor: '{name} के लेन-देन में खोलें',
     downloadPdf: 'PDF डाउनलोड करें',
     advanceKind: 'अग्रिम',
-    paidTo: "{name} को भुगतान",
+    paidTo: '{name} को भुगतान',
   },
   companyStorage: {
     addMore: 'और स्टोरेज जोड़ें',
@@ -29353,7 +29353,7 @@ const ar: UiStrings = {
     openInVendor: 'افتح في معاملات {name}',
     downloadPdf: 'تنزيل PDF',
     advanceKind: 'دفعة مقدّمة',
-    paidTo: "مدفوع إلى {name}",
+    paidTo: 'مدفوع إلى {name}',
   },
   companyStorage: {
     addMore: 'أضف المزيد من التخزين',
