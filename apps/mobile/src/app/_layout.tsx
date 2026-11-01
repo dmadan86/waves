@@ -865,6 +865,7 @@ function AuthGate() {
               // `nav` is set by the company bar: a tab switch cuts, a Back-replace pops.
               const nav = (route.params as { nav?: string } | undefined)?.nav;
               // A short fade, not 'none': the same option also drives this screen's exit to Home.
+              if (nav === 'launch') return { animation: 'none' };
               if (nav === 'tab')
                 return { animation: reduceMotion ? 'none' : 'fade', animationDuration: 120 };
               if (nav === 'back') return { animation: push, animationTypeForReplace: 'pop' };

@@ -26,7 +26,7 @@ import { friendlyError } from '@/lib/errors';
 import { printAvailable, printHtmlToFile } from '@/lib/print';
 import { useAuth } from '@/lib/auth';
 import { plural, useStrings } from '@/i18n';
-import { readCredits } from '@/lib/adCredits';
+import { queryCredits } from '@/lib/adCredits';
 import { exportCreditsLabel } from '@/lib/exportCreditsLabel';
 import { useEntitlement } from '@/lib/useEntitlement';
 import {
@@ -79,7 +79,7 @@ export default function GroupExportScreen() {
   const { isPaid } = useEntitlement();
   const wallet = useQuery({
     queryKey: ['credits', profile?.id],
-    queryFn: readCredits,
+    queryFn: queryCredits,
     enabled: !!profile?.id && !isPaid,
     refetchInterval: 30000,
   });

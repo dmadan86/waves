@@ -302,7 +302,9 @@ let permissionGranted = false;
 
 async function ensurePermission(): Promise<{ granted: boolean; canAskAgain: boolean }> {
   if (permissionGranted) return { granted: true, canAskAgain: true };
-  const asked = await ensureMicPermission(ExpoSpeechRecognitionModule);
+  // Direct: the voice screen is already the explanation, so no second in-app
+  // prompt stacks under the system dialog.
+  const asked = await ensureMicPermission(ExpoSpeechRecognitionModule, true);
   if (asked.granted) permissionGranted = true;
   return asked;
 }

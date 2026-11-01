@@ -6,7 +6,7 @@
 
 import type { CompanyExportModel, CompanyCell } from '@/data/companyExport';
 import { isRtlLocale } from '@/data/groupExport';
-import type { MirrorWorkTask } from '@/data/companyWorkday';
+import type { MirrorAttendance, MirrorWorkTask } from '@/data/companyWorkday';
 
 export type WorkReport = 'list' | 'person' | 'site' | 'overdue';
 
@@ -146,6 +146,61 @@ export function buildWorkReport(input: {
     generatedOn: input.generatedOn,
     headline,
     sections: [section],
+    isRtl: isRtlLocale(input.locale),
+    footer: '',
+  };
+}
+
+export interface AttendanceReportLabels {
+  readonly title: string;
+  readonly date: string;
+  readonly person: string;
+  readonly status: string;
+  readonly note: string;
+  readonly present: string;
+  readonly half: string;
+  readonly absent: string;
+}
+
+/** Attendance marks in a date range as a document: three counts, then one row per mark. */
+export function buildAttendanceReport(input: {
+  marks: Iterable<MirrorAttendance>;
+  from: string;
+  to: string;
+  company: string;
+  generatedOn: string;
+  locale: string;
+  personName: (memberId: string) => string;
+  labels: AttendanceReportLabels;
+}): CompanyExportModel {
+  const { labels: l } = input;
+  const marks = [...input.marks]
+    .filter((m) => m.day >= input.from && m.day <= input.to)
+    .sort((a, b) => a.day.localeCompare(b.day) || a.memberId.localeCompare(b.memberId));
+  const count = (status: MirrorAttendance['status']) =>
+    String(marks.filter((m) => m.status === status).length);
+  const label = { present: l.present, half: l.half, absent: l.absent };
+  return {
+    title: l.title,
+    subtitle: `${input.company} · ${input.from} – ${input.to}`,
+    generatedOn: input.generatedOn,
+    headline: [
+      [l.present, count('present')],
+      [l.half, count('half')],
+      [l.absent, count('absent')],
+    ],
+    sections: [
+      {
+        heading: l.title,
+        columns: [l.date, l.person, l.status, l.note],
+        rows: marks.map((m) => [
+          text(m.day),
+          text(input.personName(m.memberId)),
+          text(label[m.status]),
+          text(m.note ?? ''),
+        ]),
+      },
+    ],
     isRtl: isRtlLocale(input.locale),
     footer: '',
   };

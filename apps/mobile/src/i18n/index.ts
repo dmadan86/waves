@@ -1493,6 +1493,17 @@ export interface UiStrings {
     createBill: string;
     createEstimate: string;
     noMatch: string;
+    billSubtitle: string;
+    estimateSubtitle: string;
+    selectCustomer: string;
+    pickClient: string;
+    billDate: string;
+    currency: string;
+    itemsCount: string;
+    rateEach: string;
+    notesOptional: string;
+    paymentStatus: string;
+    saveShare: string;
   };
   company: {
     attendanceTitle: string;
@@ -1604,6 +1615,8 @@ export interface UiStrings {
     workRepSite: string;
     workRepOverdue: string;
     workExportSub: string;
+    exportPayments: string;
+    exportTasks: string;
     workFileFormat: string;
     workGenerate: string;
     workRepListSub: string;
@@ -1989,6 +2002,23 @@ export interface UiStrings {
     wagesRecord: string;
     wagesDone: string;
     wagesNoTeam: string;
+    wagesSubtitle: string;
+    wagesTeam: string;
+    wagesWorkingDays: string;
+    wagesTotal: string;
+    wagesAll: string;
+    wagesPresent: string;
+    wagesLeave: string;
+    wagesAbsent: string;
+    wagesDailyTag: string;
+    wagesFixedTag: string;
+    wagesRateTimesDays: string;
+    wagesSelected: string;
+    wagesTotalPayout: string;
+    wagesPayAction: string;
+    wagesAddMember: string;
+    wagesManageRates: string;
+    wagesManageRatesSub: string;
     wagesGross: string;
     wagesPaidFromPool: string;
     sites: string;
@@ -2242,6 +2272,39 @@ export interface UiStrings {
     open: string;
     sortRecent: string;
     sortName: string;
+    kClients: string;
+    kInquiries: string;
+    kQuotes: string;
+    kInvoices: string;
+    kOutstanding: string;
+    tAll: string;
+    tInquiries: string;
+    tQuotes: string;
+    tInvoices: string;
+    sortBy: string;
+    sortUpdated: string;
+    sortAmount: string;
+    filterTitle: string;
+    fStatus: string;
+    fDate: string;
+    rAll: string;
+    rMonth: string;
+    rQuarter: string;
+    stUnpaid: string;
+    stPartPaid: string;
+    stPaid: string;
+    fClear: string;
+    addClient: string;
+    createInvoice: string;
+    addLabel: string;
+    docInquiry: string;
+    docQuote: string;
+    docInvoice: string;
+    today: string;
+    daysAgo: string;
+    emptyTitle: string;
+    emptyBody: string;
+    noMatches: string;
     itemsN: string;
     itemN: string;
     statusDue: string;
@@ -3866,7 +3929,6 @@ export interface UiStrings {
     descriptionLabel: string;
     optional: string;
     seeAll: string;
-    addManually: string;
     moreOptions: string;
   };
   /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
@@ -3914,6 +3976,12 @@ export interface UiStrings {
     settleTitle: string;
     settleEmpty: string;
     settleSubtitle: string;
+    settleSquareBody: string;
+    settleAllDone: string;
+    settleAllDoneBody: string;
+    settleCreate: string;
+    settleScan: string;
+    settleInvite: string;
     /** "{members} · Last activity {when}" under a group's name. */
     settleMeta: string;
     settleAllGroups: string;
@@ -8807,6 +8875,17 @@ const en: UiStrings = {
     createBill: 'Create Bill',
     createEstimate: 'Create Estimate',
     noMatch: 'Nothing matches',
+    billSubtitle: 'Make an itemised bill and share',
+    estimateSubtitle: 'Make an itemised estimate and share',
+    selectCustomer: 'Select or add customer',
+    pickClient: 'Pick a client',
+    billDate: 'Bill date',
+    currency: 'Currency',
+    itemsCount: 'Items ({n})',
+    rateEach: '{rate} each',
+    notesOptional: 'Notes (optional)',
+    paymentStatus: 'Payment status',
+    saveShare: 'Save & share',
   },
   company: {
     attendanceTitle: 'Attendance',
@@ -8919,6 +8998,8 @@ const en: UiStrings = {
     workRepSite: 'Per site',
     workRepOverdue: 'Overdue & completion',
     workExportSub: 'Get a report of your tasks in PDF or Excel.',
+    exportPayments: 'Payments',
+    exportTasks: 'Tasks',
     workFileFormat: 'File format',
     workGenerate: 'Generate report',
     workRepListSub: 'All tasks with status',
@@ -9310,6 +9391,23 @@ const en: UiStrings = {
     wagesRecord: 'Pay {n} · {amount}',
     wagesDone: 'Wages recorded',
     wagesNoTeam: 'Add people first.',
+    wagesSubtitle: 'Calculate and pay your team',
+    wagesTeam: 'Team',
+    wagesWorkingDays: 'Working days',
+    wagesTotal: 'Total wages',
+    wagesAll: 'All',
+    wagesPresent: 'Present',
+    wagesLeave: 'Leave',
+    wagesAbsent: 'Absent',
+    wagesDailyTag: 'Daily',
+    wagesFixedTag: 'Fixed',
+    wagesRateTimesDays: '{rate} × {n} days',
+    wagesSelected: '{n} selected',
+    wagesTotalPayout: 'Total payout',
+    wagesPayAction: 'Pay wages',
+    wagesAddMember: 'Add member',
+    wagesManageRates: 'Manage rates',
+    wagesManageRatesSub: 'Daily / Fixed',
     wagesGross: 'Wages {amount}',
     wagesPaidFromPool: 'Paid from your cash',
     sites: 'Sites',
@@ -9567,6 +9665,39 @@ const en: UiStrings = {
     open: 'Open',
     sortRecent: 'Recent',
     sortName: 'Name',
+    kClients: 'Clients',
+    kInquiries: 'Inquiries',
+    kQuotes: 'Quotes',
+    kInvoices: 'Invoices',
+    kOutstanding: 'Outstanding',
+    tAll: 'All ({n})',
+    tInquiries: 'Inquiries ({n})',
+    tQuotes: 'Quotes ({n})',
+    tInvoices: 'Invoices ({n})',
+    sortBy: 'Sort: {by}',
+    sortUpdated: 'Last updated',
+    sortAmount: 'Amount',
+    filterTitle: 'Filter',
+    fStatus: 'Status',
+    fDate: 'Date',
+    rAll: 'All time',
+    rMonth: 'This month',
+    rQuarter: 'Last 3 months',
+    stUnpaid: 'Unpaid',
+    stPartPaid: 'Part paid',
+    stPaid: 'Paid',
+    fClear: 'Clear',
+    addClient: 'Add client',
+    createInvoice: 'Create invoice',
+    addLabel: 'Add',
+    docInquiry: 'Inquiry',
+    docQuote: 'Quote',
+    docInvoice: 'Invoice',
+    today: 'Today',
+    daysAgo: '{n}d ago',
+    emptyTitle: 'No clients yet?',
+    emptyBody: 'Add a client or create an inquiry to get started.',
+    noMatches: 'No matches',
     itemsN: '{n} items',
     itemN: '{n} item',
     statusDue: 'Due',
@@ -11056,7 +11187,7 @@ const en: UiStrings = {
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
     addFriendsSub: 'Add people to start sharing expenses',
     addContacts: 'Add contacts',
-    personPlaceholder: 'Search name or phone number',
+    personPlaceholder: 'Add name',
     groupType: 'Group type',
     groupTypeSub: 'Choose a type to personalize your group',
     datesSub: 'Set your travel dates (optional)',
@@ -11069,7 +11200,6 @@ const en: UiStrings = {
     descriptionLabel: 'Description (optional)',
     optional: '(optional)',
     seeAll: 'See all',
-    addManually: 'Add manually',
     moreOptions: 'More options',
   },
   captureForm: {
@@ -11115,6 +11245,12 @@ const en: UiStrings = {
     settleTitle: 'Settle up in',
     settleEmpty: "You're square everywhere",
     settleSubtitle: 'Pick a group to view balances and settle up.',
+    settleSquareBody: 'No pending balances across your groups.',
+    settleAllDone: "You're all settled!",
+    settleAllDoneBody: 'No balances to settle right now.',
+    settleCreate: 'Create group',
+    settleScan: 'Scan & add bill',
+    settleInvite: 'Invite members',
     settleMeta: '{members} · Last activity {when}',
     settleAllGroups: 'All groups',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
@@ -15587,6 +15723,17 @@ const ta: UiStrings = {
     createBill: 'பில் உருவாக்கு',
     createEstimate: 'மதிப்பீடு உருவாக்கு',
     noMatch: 'எதுவும் பொருந்தவில்லை',
+    billSubtitle: 'விவரப் பில் உருவாக்கிப் பகிருங்கள்',
+    estimateSubtitle: 'விவர மதிப்பீடு உருவாக்கிப் பகிருங்கள்',
+    selectCustomer: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும் அல்லது சேர்க்கவும்',
+    pickClient: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும்',
+    billDate: 'பில் தேதி',
+    currency: 'நாணயம்',
+    itemsCount: 'பொருட்கள் ({n})',
+    rateEach: 'ஒன்றுக்கு {rate}',
+    notesOptional: 'குறிப்புகள் (விருப்பம்)',
+    paymentStatus: 'கட்டண நிலை',
+    saveShare: 'சேமித்துப் பகிர்',
   },
   company: {
     attendanceTitle: 'வருகை',
@@ -15699,6 +15846,8 @@ const ta: UiStrings = {
     workRepSite: 'தளவாரி',
     workRepOverdue: 'தாமதம் & நிறைவு',
     workExportSub: 'உங்கள் பணிகளின் அறிக்கையை PDF அல்லது Excel-இல் பெறுங்கள்.',
+    exportPayments: 'கொடுப்பனவுகள்',
+    exportTasks: 'பணிகள்',
     workFileFormat: 'கோப்பு வடிவம்',
     workGenerate: 'அறிக்கை உருவாக்கு',
     workRepListSub: 'நிலையுடன் அனைத்துப் பணிகளும்',
@@ -16093,6 +16242,23 @@ const ta: UiStrings = {
     wagesRecord: '{n} பேருக்கு · {amount}',
     wagesDone: 'சம்பளம் பதிவானது',
     wagesNoTeam: 'முதலில் ஆட்களைச் சேர்க்கவும்.',
+    wagesSubtitle: 'உங்கள் குழுவுக்கு கணக்கிட்டு சம்பளம் கொடுங்கள்',
+    wagesTeam: 'குழு',
+    wagesWorkingDays: 'வேலை நாட்கள்',
+    wagesTotal: 'மொத்த சம்பளம்',
+    wagesAll: 'அனைத்தும்',
+    wagesPresent: 'வந்தவர்',
+    wagesLeave: 'விடுப்பு',
+    wagesAbsent: 'வராதவர்',
+    wagesDailyTag: 'தினசரி',
+    wagesFixedTag: 'நிலையான',
+    wagesRateTimesDays: '{rate} × {n} நாட்கள்',
+    wagesSelected: '{n} தேர்வு',
+    wagesTotalPayout: 'மொத்த கொடுப்பனவு',
+    wagesPayAction: 'சம்பளம் கொடு',
+    wagesAddMember: 'உறுப்பினரைச் சேர்',
+    wagesManageRates: 'ஊதிய விகிதங்கள்',
+    wagesManageRatesSub: 'தினசரி / நிலையான',
     wagesGross: 'சம்பளம் {amount}',
     wagesPaidFromPool: 'உங்கள் பணத்தில் இருந்து',
     sites: 'தளங்கள்',
@@ -16351,6 +16517,39 @@ const ta: UiStrings = {
     open: 'திற',
     sortRecent: 'சமீபத்தியவை',
     sortName: 'பெயர்',
+    kClients: 'வாடிக்கையாளர்கள்',
+    kInquiries: 'விசாரணைகள்',
+    kQuotes: 'மேற்கோள்கள்',
+    kInvoices: 'விலைப்பட்டியல்கள்',
+    kOutstanding: 'நிலுவை',
+    tAll: 'அனைத்தும் ({n})',
+    tInquiries: 'விசாரணைகள் ({n})',
+    tQuotes: 'மேற்கோள்கள் ({n})',
+    tInvoices: 'விலைப்பட்டியல்கள் ({n})',
+    sortBy: 'வரிசை: {by}',
+    sortUpdated: 'கடைசியாக புதுப்பித்தது',
+    sortAmount: 'தொகை',
+    filterTitle: 'வடிகட்டி',
+    fStatus: 'நிலை',
+    fDate: 'தேதி',
+    rAll: 'எல்லா நேரமும்',
+    rMonth: 'இந்த மாதம்',
+    rQuarter: 'கடந்த 3 மாதங்கள்',
+    stUnpaid: 'செலுத்தவில்லை',
+    stPartPaid: 'பகுதி செலுத்தியது',
+    stPaid: 'செலுத்தியது',
+    fClear: 'அழி',
+    addClient: 'வாடிக்கையாளரைச் சேர்',
+    createInvoice: 'விலைப்பட்டியல் உருவாக்கு',
+    addLabel: 'சேர்',
+    docInquiry: 'விசாரணை',
+    docQuote: 'மேற்கோள்',
+    docInvoice: 'விலைப்பட்டியல்',
+    today: 'இன்று',
+    daysAgo: '{n} நாள் முன்',
+    emptyTitle: 'இன்னும் வாடிக்கையாளர்கள் இல்லையா?',
+    emptyBody: 'தொடங்க வாடிக்கையாளரைச் சேர்க்கவும் அல்லது விசாரணையை உருவாக்கவும்.',
+    noMatches: 'பொருத்தம் இல்லை',
     itemsN: '{n} உருப்படிகள்',
     itemN: '{n} உருப்படி',
     statusDue: 'நிலுவை',
@@ -17873,7 +18072,7 @@ const ta: UiStrings = {
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
     addFriendsSub: 'செலவுகளைப் பகிர நபர்களைச் சேர்க்கவும்',
     addContacts: 'தொடர்புகள்',
-    personPlaceholder: 'பெயர் அல்லது தொலைபேசி எண்ணைத் தேடுங்கள்',
+    personPlaceholder: 'பெயரைச் சேர்',
     groupType: 'குழு வகை',
     groupTypeSub: 'உங்கள் குழுவுக்கு ஏற்ற வகையைத் தேர்வுசெய்யுங்கள்',
     datesSub: 'பயணத் தேதிகள் (விருப்பம்)',
@@ -17886,7 +18085,6 @@ const ta: UiStrings = {
     descriptionLabel: 'விளக்கம் (விருப்பத்தேர்வு)',
     optional: '(விருப்பத்தேர்வு)',
     seeAll: 'அனைத்தும்',
-    addManually: 'கைமுறையாகச் சேர்',
     moreOptions: 'மேலும் விருப்பங்கள்',
   },
   captureForm: {
@@ -17932,6 +18130,12 @@ const ta: UiStrings = {
     settleTitle: 'எந்தக் குழுவில் தீர்க்க வேண்டும்?',
     settleEmpty: 'எல்லா குழுக்களிலும் கணக்கு சரியாக உள்ளது.',
     settleSubtitle: 'ஒரு குழுவைத் தேர்ந்தெடுத்து இருப்புகளைப் பார்த்து தீர்க்கவும்.',
+    settleSquareBody: 'உங்கள் குழுக்களில் நிலுவை இருப்புகள் இல்லை.',
+    settleAllDone: 'எல்லாம் தீர்ந்துவிட்டது!',
+    settleAllDoneBody: 'தீர்க்க வேண்டிய இருப்பு இப்போது இல்லை.',
+    settleCreate: 'குழுவை உருவாக்கு',
+    settleScan: 'பில் ஸ்கேன் செய்து சேர்',
+    settleInvite: 'உறுப்பினர்களை அழை',
     settleMeta: '{members} · கடைசி செயல்பாடு {when}',
     settleAllGroups: 'எல்லா குழுக்களும்',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
@@ -22533,6 +22737,17 @@ const hi: UiStrings = {
     createBill: 'बिल बनाएँ',
     createEstimate: 'एस्टिमेट बनाएँ',
     noMatch: 'कुछ नहीं मिला',
+    billSubtitle: 'विवरण वाला बिल बनाएँ और भेजें',
+    estimateSubtitle: 'विवरण वाला अनुमान बनाएँ और भेजें',
+    selectCustomer: 'ग्राहक चुनें या जोड़ें',
+    pickClient: 'क्लाइंट चुनें',
+    billDate: 'बिल की तारीख',
+    currency: 'मुद्रा',
+    itemsCount: 'आइटम ({n})',
+    rateEach: '{rate} प्रति',
+    notesOptional: 'नोट्स (वैकल्पिक)',
+    paymentStatus: 'भुगतान स्थिति',
+    saveShare: 'सेव करें और भेजें',
   },
   company: {
     attendanceTitle: 'हाज़िरी',
@@ -22645,6 +22860,8 @@ const hi: UiStrings = {
     workRepSite: 'साइट के अनुसार',
     workRepOverdue: 'देरी और पूर्णता',
     workExportSub: 'अपने कामों की रिपोर्ट PDF या Excel में पाएँ।',
+    exportPayments: 'भुगतान',
+    exportTasks: 'काम',
     workFileFormat: 'फ़ाइल फ़ॉर्मैट',
     workGenerate: 'रिपोर्ट बनाएँ',
     workRepListSub: 'स्थिति के साथ सभी काम',
@@ -23036,6 +23253,23 @@ const hi: UiStrings = {
     wagesRecord: '{n} को दें · {amount}',
     wagesDone: 'वेतन दर्ज हुआ',
     wagesNoTeam: 'पहले लोगों को जोड़ें।',
+    wagesSubtitle: 'अपनी टीम का हिसाब करें और वेतन दें',
+    wagesTeam: 'टीम',
+    wagesWorkingDays: 'कार्य दिवस',
+    wagesTotal: 'कुल वेतन',
+    wagesAll: 'सभी',
+    wagesPresent: 'उपस्थित',
+    wagesLeave: 'छुट्टी',
+    wagesAbsent: 'अनुपस्थित',
+    wagesDailyTag: 'दैनिक',
+    wagesFixedTag: 'तय',
+    wagesRateTimesDays: '{rate} × {n} दिन',
+    wagesSelected: '{n} चुने गए',
+    wagesTotalPayout: 'कुल भुगतान',
+    wagesPayAction: 'वेतन दें',
+    wagesAddMember: 'सदस्य जोड़ें',
+    wagesManageRates: 'दरें प्रबंधित करें',
+    wagesManageRatesSub: 'दैनिक / तय',
     wagesGross: 'वेतन {amount}',
     wagesPaidFromPool: 'आपके नकद से',
     sites: 'साइटें',
@@ -23293,6 +23527,39 @@ const hi: UiStrings = {
     open: 'खोलें',
     sortRecent: 'हाल के',
     sortName: 'नाम',
+    kClients: 'ग्राहक',
+    kInquiries: 'पूछताछ',
+    kQuotes: 'कोटेशन',
+    kInvoices: 'इनवॉइस',
+    kOutstanding: 'बकाया',
+    tAll: 'सभी ({n})',
+    tInquiries: 'पूछताछ ({n})',
+    tQuotes: 'कोटेशन ({n})',
+    tInvoices: 'इनवॉइस ({n})',
+    sortBy: 'क्रम: {by}',
+    sortUpdated: 'हाल का अपडेट',
+    sortAmount: 'राशि',
+    filterTitle: 'फ़िल्टर',
+    fStatus: 'स्थिति',
+    fDate: 'तारीख़',
+    rAll: 'सभी समय',
+    rMonth: 'इस महीने',
+    rQuarter: 'पिछले 3 महीने',
+    stUnpaid: 'अवैतनिक',
+    stPartPaid: 'आंशिक भुगतान',
+    stPaid: 'भुगतान हो गया',
+    fClear: 'साफ़ करें',
+    addClient: 'ग्राहक जोड़ें',
+    createInvoice: 'इनवॉइस बनाएँ',
+    addLabel: 'जोड़ें',
+    docInquiry: 'पूछताछ',
+    docQuote: 'कोटेशन',
+    docInvoice: 'इनवॉइस',
+    today: 'आज',
+    daysAgo: '{n} दिन पहले',
+    emptyTitle: 'अभी कोई ग्राहक नहीं?',
+    emptyBody: 'शुरू करने के लिए ग्राहक जोड़ें या पूछताछ बनाएँ।',
+    noMatches: 'कोई मिलान नहीं',
     itemsN: '{n} आइटम',
     itemN: '{n} आइटम',
     statusDue: 'बकाया',
@@ -24783,7 +25050,7 @@ const hi: UiStrings = {
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
     addFriendsSub: 'खर्च बाँटने के लिए लोगों को जोड़ें',
     addContacts: 'संपर्क जोड़ें',
-    personPlaceholder: 'नाम या फ़ोन नंबर खोजें',
+    personPlaceholder: 'नाम जोड़ें',
     groupType: 'समूह का प्रकार',
     groupTypeSub: 'अपने ग्रुप के लिए एक प्रकार चुनें',
     datesSub: 'यात्रा की तारीखें (वैकल्पिक)',
@@ -24796,7 +25063,6 @@ const hi: UiStrings = {
     descriptionLabel: 'विवरण (वैकल्पिक)',
     optional: '(वैकल्पिक)',
     seeAll: 'सभी देखें',
-    addManually: 'खुद जोड़ें',
     moreOptions: 'और विकल्प',
   },
   captureForm: {
@@ -24842,6 +25108,12 @@ const hi: UiStrings = {
     settleTitle: 'किस समूह में हिसाब चुकाएँ?',
     settleEmpty: 'हर समूह में हिसाब बराबर है।',
     settleSubtitle: 'बैलेंस देखने और हिसाब चुकाने के लिए समूह चुनें।',
+    settleSquareBody: 'आपके समूहों में कोई बकाया बैलेंस नहीं है।',
+    settleAllDone: 'सब हिसाब बराबर है!',
+    settleAllDoneBody: 'अभी चुकाने के लिए कोई बैलेंस नहीं है।',
+    settleCreate: 'समूह बनाएँ',
+    settleScan: 'बिल स्कैन करके जोड़ें',
+    settleInvite: 'सदस्यों को आमंत्रित करें',
     settleMeta: '{members} · आखिरी गतिविधि {when}',
     settleAllGroups: 'सभी समूह',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
@@ -28544,7 +28816,7 @@ const ar: UiStrings = {
     reminded: 'تم التذكير {ago}',
     agoMinutes: 'منذ {n} د',
     agoHours: 'منذ {n} س',
-    agoDays: 'منذ {n} ي',
+    agoDays: 'منذ {n} يوم',
     remindFailed: 'تعذّر إرسال التذكير. حاول مرة أخرى.',
     remindMessage:
       'مرحباً {name}، دفعت لك {amount} في {group} بتاريخ {date}. يرجى تأكيد ذلك في Waves.',
@@ -29362,6 +29634,17 @@ const ar: UiStrings = {
     createBill: 'إنشاء فاتورة',
     createEstimate: 'إنشاء عرض سعر',
     noMatch: 'لا نتائج',
+    billSubtitle: 'أنشئ فاتورة مفصّلة وشاركها',
+    estimateSubtitle: 'أنشئ تقديرًا مفصّلًا وشاركه',
+    selectCustomer: 'اختر العميل أو أضفه',
+    pickClient: 'اختر عميلًا',
+    billDate: 'تاريخ الفاتورة',
+    currency: 'العملة',
+    itemsCount: 'العناصر ({n})',
+    rateEach: '{rate} للوحدة',
+    notesOptional: 'ملاحظات (اختياري)',
+    paymentStatus: 'حالة الدفع',
+    saveShare: 'احفظ وشارك',
   },
   company: {
     attendanceTitle: 'الحضور',
@@ -29492,6 +29775,8 @@ const ar: UiStrings = {
     workRepSite: 'حسب الموقع',
     workRepOverdue: 'المتأخرة ونسبة الإنجاز',
     workExportSub: 'احصل على تقرير بمهامك بصيغة PDF أو Excel.',
+    exportPayments: 'المدفوعات',
+    exportTasks: 'المهام',
     workFileFormat: 'صيغة الملف',
     workGenerate: 'إنشاء التقرير',
     workRepListSub: 'كل المهام مع الحالة',
@@ -29914,6 +30199,23 @@ const ar: UiStrings = {
     wagesRecord: 'ادفع لـ {n} · {amount}',
     wagesDone: 'تم تسجيل الأجور',
     wagesNoTeam: 'أضف أشخاصاً أولاً.',
+    wagesSubtitle: 'احسب وادفع لفريقك',
+    wagesTeam: 'الفريق',
+    wagesWorkingDays: 'أيام العمل',
+    wagesTotal: 'إجمالي الأجور',
+    wagesAll: 'الكل',
+    wagesPresent: 'حاضر',
+    wagesLeave: 'إجازة',
+    wagesAbsent: 'غائب',
+    wagesDailyTag: 'يومي',
+    wagesFixedTag: 'ثابت',
+    wagesRateTimesDays: '{rate} × {n} أيام',
+    wagesSelected: '{n} محدد',
+    wagesTotalPayout: 'إجمالي الدفع',
+    wagesPayAction: 'ادفع الأجور',
+    wagesAddMember: 'إضافة عضو',
+    wagesManageRates: 'إدارة الأجور',
+    wagesManageRatesSub: 'يومي / ثابت',
     wagesGross: 'الأجر {amount}',
     wagesPaidFromPool: 'من نقدك',
     sites: 'المواقع',
@@ -30174,6 +30476,39 @@ const ar: UiStrings = {
     open: 'فتح',
     sortRecent: 'الأحدث',
     sortName: 'الاسم',
+    kClients: 'العملاء',
+    kInquiries: 'الاستفسارات',
+    kQuotes: 'عروض الأسعار',
+    kInvoices: 'الفواتير',
+    kOutstanding: 'المستحق',
+    tAll: 'الكل ({n})',
+    tInquiries: 'الاستفسارات ({n})',
+    tQuotes: 'عروض الأسعار ({n})',
+    tInvoices: 'الفواتير ({n})',
+    sortBy: 'الترتيب: {by}',
+    sortUpdated: 'آخر تحديث',
+    sortAmount: 'المبلغ',
+    filterTitle: 'تصفية',
+    fStatus: 'الحالة',
+    fDate: 'التاريخ',
+    rAll: 'كل الأوقات',
+    rMonth: 'هذا الشهر',
+    rQuarter: 'آخر 3 أشهر',
+    stUnpaid: 'غير مدفوعة',
+    stPartPaid: 'مدفوعة جزئيًا',
+    stPaid: 'مدفوعة',
+    fClear: 'مسح',
+    addClient: 'إضافة عميل',
+    createInvoice: 'إنشاء فاتورة',
+    addLabel: 'إضافة',
+    docInquiry: 'استفسار',
+    docQuote: 'عرض سعر',
+    docInvoice: 'فاتورة',
+    today: 'اليوم',
+    daysAgo: 'منذ {n} يوم',
+    emptyTitle: 'لا عملاء بعد؟',
+    emptyBody: 'أضف عميلًا أو أنشئ استفسارًا للبدء.',
+    noMatches: 'لا نتائج',
     itemsN: '{n} عناصر',
     itemN: '{n} عنصر',
     statusDue: 'مستحق',
@@ -31701,7 +32036,7 @@ const ar: UiStrings = {
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
     addFriendsSub: 'أضف أشخاصًا لبدء تقاسم المصروفات',
     addContacts: 'إضافة جهات اتصال',
-    personPlaceholder: 'ابحث بالاسم أو رقم الهاتف',
+    personPlaceholder: 'أضف اسمًا',
     groupType: 'نوع المجموعة',
     groupTypeSub: 'اختر نوعاً يناسب مجموعتك',
     datesSub: 'حدّد تواريخ السفر (اختياري)',
@@ -31714,7 +32049,6 @@ const ar: UiStrings = {
     descriptionLabel: 'الوصف (اختياري)',
     optional: '(اختياري)',
     seeAll: 'عرض الكل',
-    addManually: 'إضافة يدويًا',
     moreOptions: 'خيارات إضافية',
   },
   captureForm: {
@@ -31760,6 +32094,12 @@ const ar: UiStrings = {
     settleTitle: 'التسوية في أي مجموعة؟',
     settleEmpty: 'حساباتك مسوّاة في كل المجموعات.',
     settleSubtitle: 'اختر مجموعة لعرض الأرصدة والتسوية.',
+    settleSquareBody: 'لا أرصدة معلّقة في مجموعاتك.',
+    settleAllDone: 'كل شيء مسوّى!',
+    settleAllDoneBody: 'لا أرصدة للتسوية الآن.',
+    settleCreate: 'إنشاء مجموعة',
+    settleScan: 'امسح فاتورة وأضفها',
+    settleInvite: 'دعوة أعضاء',
     settleMeta: '{members} · آخر نشاط {when}',
     settleAllGroups: 'كل المجموعات',
     acrossGroups: {

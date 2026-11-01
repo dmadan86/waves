@@ -6,6 +6,7 @@ import { TextInput, View } from 'react-native';
 
 import { ChipRow, directionalIcon, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
 
+import { SplitMoney } from '@/components/SplitMoney';
 import { SettleGroupList } from '@/components/home/SettleGroupList';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
@@ -18,7 +19,7 @@ import { useSettleCandidates } from '@/lib/useSettleCandidates';
 
 export default function SettleUpScreen() {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const groups = useSettleCandidates();
   const [filter, setFilter] = useState<SettleFilter>('all');
   const [searchOpen, setSearchOpen] = useState(false);
@@ -28,6 +29,12 @@ export default function SettleUpScreen() {
     () => filterSettleCandidates(filterSettleByBalance(groups, filter), query),
     [groups, filter, query],
   );
+
+  // Totals only when one currency; mixed currencies are never added together.
+  const sameCurrency = groups.length > 0 && groups.every((g) => g.currency === groups[0]!.currency);
+  const owedTotal = groups.reduce((n, g) => (g.balance > 0n ? n + g.balance : n), 0n);
+  const oweTotal = groups.reduce((n, g) => (g.balance < 0n ? n - g.balance : n), 0n);
+  const square = groups.length === 0;
 
   const options = [
     {
@@ -125,6 +132,75 @@ export default function SettleUpScreen() {
           />
         </View>
       ) : null}
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.md,
+          marginHorizontal: theme.spacing.lg,
+          marginBottom: theme.spacing.sm,
+          padding: theme.spacing.md,
+          borderRadius: theme.radius.lg,
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: square ? theme.color.positive : theme.color.surface,
+          }}
+        >
+          <Ionicons
+            name={square ? 'checkmark' : 'swap-vertical'}
+            size={iconSize.lg}
+            color={square ? theme.color.onBrand : theme.color.brand}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          {square ? (
+            <>
+              <Text style={{ fontWeight: '700' }}>{t.homeDash.settleEmpty}</Text>
+              <Text variant="caption" tone="muted">
+                {t.homeDash.settleSquareBody}
+              </Text>
+            </>
+          ) : sameCurrency ? (
+            <>
+              {[
+                { label: t.youAreOwed, amount: owedTotal, color: theme.color.positive },
+                { label: t.youOwe, amount: oweTotal, color: theme.color.negative },
+              ]
+                .filter((x) => x.amount > 0n)
+                .map((x) => (
+                  <View
+                    key={x.label}
+                    style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+                  >
+                    <Text variant="caption" tone="muted">
+                      {x.label}
+                    </Text>
+                    <SplitMoney
+                      amount={x.amount}
+                      currency={groups[0]!.currency}
+                      locale={locale}
+                      color={x.color}
+                      fontSize={16}
+                    />
+                  </View>
+                ))}
+            </>
+          ) : (
+            <Text style={{ fontWeight: '700' }}>
+              {t.homeDash.acrossGroups.other.replace('{n}', String(groups.length))}
+            </Text>
+          )}
+        </View>
+      </View>
 
       <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
         <ChipRow options={options} value={filter} onChange={setFilter} variant="brand" onCard />

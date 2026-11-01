@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
 
 import { useViewerId } from '@/lib/auth';
+import { holdLaunch } from '@/lib/launchReady';
 import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { router } from '@/lib/navigation';
 import {
@@ -56,13 +57,18 @@ export function useColdStartSpace(ready: boolean, companyIds: readonly string[])
     if (takeColdStart(viewerId) && plan !== 'stay' && plan !== 'personal') {
       // Stay held: the redirect unmounts Home, and releasing now would repaint Personal.
       redirecting.current = true;
-      // Same quick fade as a bar tab switch, so launch never slides the company in.
-      router.replace(`/group/${plan}?nav=tab`);
+      // Under the splash, so no animation: the splash lifts straight onto the company.
+      router.replace(`/group/${plan}?nav=launch`);
+      requestAnimationFrame(() => holdLaunch(false));
       return;
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot release once the plan is known
     setDoneFor(viewerId);
   }, [viewerId, read, ready, companyIds, doneFor]);
+  useEffect(() => {
+    holdLaunch(holding);
+    return () => holdLaunch(false);
+  }, [holding]);
   return holding;
 }
 

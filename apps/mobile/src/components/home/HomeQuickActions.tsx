@@ -23,7 +23,7 @@ import { QuickActionsRow, type QuickAction } from '@/components/home/QuickAction
 import type { MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { fill, useStrings } from '@/i18n';
-import { readCredits } from '@/lib/adCredits';
+import { queryCredits } from '@/lib/adCredits';
 import { useViewerId } from '@/lib/auth';
 import { useCaptures } from '@/data/hooks';
 import { foldedCaptureCount } from '@/lib/captureBatch';
@@ -60,7 +60,7 @@ export function HomeQuickActions({
   const adOffer = useRewardedAdOffer();
   const credits = useQuery({
     queryKey: ['credits', viewerId],
-    queryFn: readCredits,
+    queryFn: queryCredits,
     enabled: !!viewerId,
   });
 

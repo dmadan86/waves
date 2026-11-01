@@ -4,6 +4,7 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { iconSize, Text, useTheme } from '@waves/ui';
 
+import { SectionLabel } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import { GROUP_TAG_MAX } from '@/lib/groupTypeTag';
 
@@ -145,12 +146,7 @@ export function GroupTagField({
   return (
     <View style={{ gap: theme.spacing.xs }}>
       {filled ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-          <Ionicons name="pricetag-outline" size={20} color={theme.color.textMuted} />
-          <Text style={{ fontSize: 15, lineHeight: 20, fontWeight: '600' }} tone="muted">
-            {t.extras.tagLabel}
-          </Text>
-        </View>
+        <SectionLabel icon="pricetag-outline">{t.extras.tagLabel}</SectionLabel>
       ) : (
         <Text variant="caption" tone="muted">
           {t.extras.tagLabel}
