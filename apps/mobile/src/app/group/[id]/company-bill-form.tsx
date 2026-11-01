@@ -15,6 +15,7 @@ import {
 } from '@waves/core';
 import { AmountField, Button, Screen, Text, useTheme } from '@waves/ui';
 import { ListRow, PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
+import { useCompanyClients } from '@/data/companyClients';
 import { useCompanyDocs, useSaveCompanyDoc } from '@/data/companyDocuments';
 import { todayIso } from '@/data/personal';
 import { useStrings } from '@/i18n';
@@ -36,7 +37,8 @@ function BillForm() {
     id = '',
     docId,
     type,
-  } = useLocalSearchParams<{ id: string; docId?: string; type?: string }>();
+    clientId,
+  } = useLocalSearchParams<{ id: string; docId?: string; type?: string; clientId?: string }>();
   const view = useCompanyDocs(id);
   const { t } = useStrings();
   const doc = view.docs.find((d) => d.id === docId && !d.deleted);
@@ -49,19 +51,25 @@ function BillForm() {
       </Screen>
     );
   if (doc?.convertedTo) return null;
-  return <DocumentForm key={doc?.id ?? 'new'} groupId={id} doc={doc} type={type} />;
+  return (
+    <DocumentForm key={doc?.id ?? 'new'} groupId={id} doc={doc} type={type} clientId={clientId} />
+  );
 }
 
 function DocumentForm({
   groupId,
   doc,
   type,
+  clientId,
 }: {
   groupId: string;
   doc?: ReturnType<typeof useCompanyDocs>['docs'][number];
   type?: string;
+  /** A new document started from a client: prefills the name and phone and links it. */
+  clientId?: string;
 }) {
   const view = useCompanyDocs(groupId);
+  const client = useCompanyClients(groupId).clients.find((c) => c.id === clientId);
   const save = useSaveCompanyDoc(groupId);
   const { t, locale } = useStrings();
   const c = t.companyDocs;
@@ -69,8 +77,8 @@ function DocumentForm({
   const clearance = useBottomClearance();
   const currency = view.currency as CurrencyCode;
   const docType = doc?.docType ?? (type === 'bill' ? 'bill' : 'estimate');
-  const [name, setName] = useState(doc?.customerName ?? '');
-  const [phone, setPhone] = useState(doc?.customerPhone ?? '');
+  const [name, setName] = useState(doc?.customerName ?? client?.name ?? '');
+  const [phone, setPhone] = useState(doc?.customerPhone ?? client?.phone ?? '');
   const [date, setDate] = useState(doc?.docDate ?? todayIso());
   const [picking, setPicking] = useState(false);
   const [notes, setNotes] = useState(doc?.notes ?? '');
@@ -120,6 +128,7 @@ function DocumentForm({
       items: parsed,
       discountMinor: discount,
       notes,
+      ...(doc || !client ? {} : { clientId: client.id }),
     };
     const code = validateDoc(values, doc?.paidMinor ?? 0n);
     if (code) {

@@ -2186,6 +2186,113 @@ export interface UiStrings {
     notCounted: string;
     exportAction: string;
   };
+  companyClients: {
+    title: string;
+    toReceive: string;
+    search: string;
+    newInquiry: string;
+    editClient: string;
+    bannerToday: string;
+    bannerOverdue: string;
+    bannerNone: string;
+    more: string;
+    fAll: string;
+    fInquiry: string;
+    fQuoted: string;
+    fClient: string;
+    fLost: string;
+    empty: string;
+    emptyFilter: string;
+    stInquiry: string;
+    stQuoted: string;
+    stClient: string;
+    stLost: string;
+    srcWalkIn: string;
+    srcCall: string;
+    srcWhatsapp: string;
+    srcReferral: string;
+    srcOther: string;
+    namePh: string;
+    phonePh: string;
+    needPh: string;
+    cameFrom: string;
+    followUp: string;
+    fuToday: string;
+    fuTomorrow: string;
+    fuThreeDays: string;
+    fuPick: string;
+    fuNone: string;
+    whoFollows: string;
+    extra: string;
+    expectedValue: string;
+    addressPh: string;
+    saveInquiry: string;
+    save: string;
+    followTitle: string;
+    saveFailed: string;
+    viaSource: string;
+    follows: string;
+    markWon: string;
+    markLost: string;
+    reopen: string;
+    lostWhy: string;
+    lostPrice: string;
+    lostOther: string;
+    lostSilent: string;
+    lostSkip: string;
+    tabActivity: string;
+    tabBills: string;
+    tabDocs: string;
+    btnFollowUp: string;
+    btnEstimate: string;
+    btnMoney: string;
+    call: string;
+    whatsapp: string;
+    overdueSince: string;
+    dueAt: string;
+    done: string;
+    noFollowUp: string;
+    addNote: string;
+    notePh: string;
+    noteSave: string;
+    evCreated: string;
+    evNote: string;
+    evFollowUp: string;
+    evFollowUpDone: string;
+    evReceipt: string;
+    activityEmpty: string;
+    billsEmpty: string;
+    docsEmpty: string;
+    owes: string;
+    remove: string;
+    removeConfirm: string;
+    whenNext: string;
+    nextTomorrow: string;
+    nextWeek: string;
+    nextNone: string;
+    fuTitle: string;
+    gOverdue: string;
+    gToday: string;
+    gWeek: string;
+    gLater: string;
+    mine: string;
+    everyone: string;
+    fuEmpty: string;
+    hubMoneyIn: string;
+    hubMoneyOut: string;
+    hubTeam: string;
+    hubBooks: string;
+    hubNew: string;
+    hubToReceive: string;
+    hubToday: string;
+    hubOpen: string;
+    hubToPay: string;
+    hubToApprove: string;
+    hubPeople: string;
+    hubNothing: string;
+    hubFiles: string;
+    hubSettings: string;
+  },
   companyVendors: {
     photoPrivacy: string;
     historyEmpty: string;
@@ -9222,6 +9329,113 @@ const en: UiStrings = {
     notCounted: 'Not counted until approved',
     exportAction: 'Export',
   },
+  companyClients: {
+    title: 'Clients',
+    toReceive: 'To receive',
+    search: 'Search clients',
+    newInquiry: 'New inquiry',
+    editClient: 'Edit client',
+    bannerToday: '{n} follow-ups today',
+    bannerOverdue: '{n} overdue',
+    bannerNone: 'No follow-ups due',
+    more: 'More options',
+    fAll: 'All',
+    fInquiry: 'Inquiries',
+    fQuoted: 'Quoted',
+    fClient: 'Clients',
+    fLost: 'Lost',
+    empty: 'No clients yet. Add the first inquiry.',
+    emptyFilter: 'Nothing here yet.',
+    stInquiry: 'Inquiry',
+    stQuoted: 'Quoted',
+    stClient: 'Client',
+    stLost: 'Lost',
+    srcWalkIn: 'Walk-in',
+    srcCall: 'Phone call',
+    srcWhatsapp: 'WhatsApp',
+    srcReferral: 'Referral',
+    srcOther: 'Other',
+    namePh: 'Name *',
+    phonePh: 'Phone',
+    needPh: 'What do they need?',
+    cameFrom: 'Came from',
+    followUp: 'Follow up',
+    fuToday: 'Today',
+    fuTomorrow: 'Tomorrow',
+    fuThreeDays: 'In 3 days',
+    fuPick: 'Pick',
+    fuNone: 'None',
+    whoFollows: 'Who follows up',
+    extra: 'Expected value, address',
+    expectedValue: 'Expected value',
+    addressPh: 'Address',
+    saveInquiry: 'Save inquiry',
+    save: 'Save',
+    followTitle: 'Follow up with {name}',
+    saveFailed: 'Could not save. Try again.',
+    viaSource: 'via {source}',
+    follows: '{name} follows',
+    markWon: 'Mark won',
+    markLost: 'Mark lost',
+    reopen: 'Reopen',
+    lostWhy: 'Why was it lost?',
+    lostPrice: 'Too costly',
+    lostOther: 'Chose someone else',
+    lostSilent: 'No response',
+    lostSkip: 'Other reason',
+    tabActivity: 'Activity',
+    tabBills: 'Estimates & bills',
+    tabDocs: 'Documents',
+    btnFollowUp: 'Follow-up',
+    btnEstimate: 'Estimate',
+    btnMoney: 'Money received',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    overdueSince: 'Follow-up overdue · {when}',
+    dueAt: 'Follow-up · {when}',
+    done: 'Done',
+    noFollowUp: 'No follow-up planned',
+    addNote: 'Add a note',
+    notePh: 'Write a note',
+    noteSave: 'Save note',
+    evCreated: 'Inquiry added',
+    evNote: 'Note',
+    evFollowUp: 'Follow-up',
+    evFollowUpDone: 'Follow-up done',
+    evReceipt: 'Money received',
+    activityEmpty: 'Nothing yet.',
+    billsEmpty: 'No estimates or bills yet.',
+    docsEmpty: 'Bill PDFs will appear here.',
+    owes: '{amount} to receive',
+    remove: 'Remove client',
+    removeConfirm: 'Remove this client?',
+    whenNext: 'When next?',
+    nextTomorrow: 'Tomorrow',
+    nextWeek: 'Next week',
+    nextNone: 'No more follow-up',
+    fuTitle: 'Follow-ups',
+    gOverdue: 'Overdue',
+    gToday: 'Today',
+    gWeek: 'This week',
+    gLater: 'Later',
+    mine: 'Mine',
+    everyone: 'All',
+    fuEmpty: 'No follow-ups due. Add one from a client.',
+    hubMoneyIn: 'Money in',
+    hubMoneyOut: 'Money out',
+    hubTeam: 'Team',
+    hubBooks: 'Books',
+    hubNew: 'NEW',
+    hubToReceive: '{amount} to receive',
+    hubToday: '{n} today',
+    hubOpen: '{n} open',
+    hubToPay: '{amount} to pay',
+    hubToApprove: '{n} to approve',
+    hubPeople: '{n} people',
+    hubNothing: 'Nothing due',
+    hubFiles: 'PDF & Excel',
+    hubSettings: 'Company settings',
+  },
   companyVendors: {
     photoPrivacy: 'Only people who can see this ledger line can see these photos.',
     historyEmpty: 'No entries yet',
@@ -15714,6 +15928,113 @@ const ta: UiStrings = {
     colReview: 'மதிப்பாய்வு குறிப்பு',
     notCounted: 'ஒப்புதல் வரை கணக்கில் சேராது',
     exportAction: 'ஏற்றுமதி',
+  },
+  companyClients: {
+    title: 'வாடிக்கையாளர்கள்',
+    toReceive: 'பெற வேண்டியது',
+    search: 'வாடிக்கையாளர்களைத் தேடு',
+    newInquiry: 'புதிய விசாரணை',
+    editClient: 'வாடிக்கையாளரை திருத்து',
+    bannerToday: 'இன்று {n} பின்தொடர்தல்',
+    bannerOverdue: '{n} தாமதம்',
+    bannerNone: 'பின்தொடர்தல் இல்லை',
+    more: 'மேலும் விருப்பங்கள்',
+    fAll: 'அனைத்தும்',
+    fInquiry: 'விசாரணைகள்',
+    fQuoted: 'மதிப்பீடு',
+    fClient: 'வாடிக்கையாளர்கள்',
+    fLost: 'இழந்தவை',
+    empty: 'இன்னும் வாடிக்கையாளர்கள் இல்லை. முதல் விசாரணையைச் சேர்க்கவும்.',
+    emptyFilter: 'இங்கே எதுவும் இல்லை.',
+    stInquiry: 'விசாரணை',
+    stQuoted: 'மதிப்பீடு',
+    stClient: 'வாடிக்கையாளர்',
+    stLost: 'இழந்தது',
+    srcWalkIn: 'நேரில் வந்தவர்',
+    srcCall: 'தொலைபேசி அழைப்பு',
+    srcWhatsapp: 'வாட்ஸ்அப்',
+    srcReferral: 'பரிந்துரை',
+    srcOther: 'மற்றவை',
+    namePh: 'பெயர் *',
+    phonePh: 'தொலைபேசி',
+    needPh: 'அவர்களுக்கு என்ன தேவை?',
+    cameFrom: 'எங்கிருந்து வந்தது',
+    followUp: 'பின்தொடர்',
+    fuToday: 'இன்று',
+    fuTomorrow: 'நாளை',
+    fuThreeDays: '3 நாட்களில்',
+    fuPick: 'தேர்வு',
+    fuNone: 'இல்லை',
+    whoFollows: 'யார் பின்தொடர்வது',
+    extra: 'எதிர்பார்க்கும் மதிப்பு, முகவரி',
+    expectedValue: 'எதிர்பார்க்கும் மதிப்பு',
+    addressPh: 'முகவரி',
+    saveInquiry: 'விசாரணையைச் சேமி',
+    save: 'சேமி',
+    followTitle: '{name} உடன் பின்தொடர்',
+    saveFailed: 'சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    viaSource: '{source} மூலம்',
+    follows: '{name} பின்தொடர்கிறார்',
+    markWon: 'வெற்றி எனக் குறி',
+    markLost: 'இழந்தது எனக் குறி',
+    reopen: 'மீண்டும் திற',
+    lostWhy: 'ஏன் இழந்தது?',
+    lostPrice: 'விலை அதிகம்',
+    lostOther: 'வேறொருவரைத் தேர்ந்தார்',
+    lostSilent: 'பதில் இல்லை',
+    lostSkip: 'வேறு காரணம்',
+    tabActivity: 'செயல்பாடு',
+    tabBills: 'மதிப்பீடுகள் & பில்கள்',
+    tabDocs: 'ஆவணங்கள்',
+    btnFollowUp: 'பின்தொடர்தல்',
+    btnEstimate: 'மதிப்பீடு',
+    btnMoney: 'பணம் பெறப்பட்டது',
+    call: 'அழை',
+    whatsapp: 'வாட்ஸ்அப்',
+    overdueSince: 'பின்தொடர்தல் தாமதம் · {when}',
+    dueAt: 'பின்தொடர்தல் · {when}',
+    done: 'முடிந்தது',
+    noFollowUp: 'பின்தொடர்தல் திட்டமிடப்படவில்லை',
+    addNote: 'குறிப்பைச் சேர்',
+    notePh: 'குறிப்பு எழுதவும்',
+    noteSave: 'குறிப்பைச் சேமி',
+    evCreated: 'விசாரணை சேர்க்கப்பட்டது',
+    evNote: 'குறிப்பு',
+    evFollowUp: 'பின்தொடர்தல்',
+    evFollowUpDone: 'பின்தொடர்தல் முடிந்தது',
+    evReceipt: 'பணம் பெறப்பட்டது',
+    activityEmpty: 'இன்னும் எதுவும் இல்லை.',
+    billsEmpty: 'மதிப்பீடுகள் அல்லது பில்கள் இல்லை.',
+    docsEmpty: 'பில் PDF இங்கே தோன்றும்.',
+    owes: '{amount} பெற வேண்டும்',
+    remove: 'வாடிக்கையாளரை நீக்கு',
+    removeConfirm: 'இந்த வாடிக்கையாளரை நீக்கவா?',
+    whenNext: 'அடுத்து எப்போது?',
+    nextTomorrow: 'நாளை',
+    nextWeek: 'அடுத்த வாரம்',
+    nextNone: 'இனி பின்தொடர்தல் வேண்டாம்',
+    fuTitle: 'பின்தொடர்தல்கள்',
+    gOverdue: 'தாமதம்',
+    gToday: 'இன்று',
+    gWeek: 'இந்த வாரம்',
+    gLater: 'பிறகு',
+    mine: 'என்னுடையவை',
+    everyone: 'அனைத்தும்',
+    fuEmpty: 'பின்தொடர்தல் எதுவும் இல்லை. வாடிக்கையாளரிடமிருந்து சேர்க்கவும்.',
+    hubMoneyIn: 'வரவு',
+    hubMoneyOut: 'செலவு',
+    hubTeam: 'குழு',
+    hubBooks: 'கணக்குகள்',
+    hubNew: 'புதியது',
+    hubToReceive: '{amount} பெற வேண்டும்',
+    hubToday: 'இன்று {n}',
+    hubOpen: '{n} திறந்தவை',
+    hubToPay: '{amount} செலுத்த வேண்டும்',
+    hubToApprove: '{n} அனுமதிக்க',
+    hubPeople: '{n} பேர்',
+    hubNothing: 'நிலுவை இல்லை',
+    hubFiles: 'PDF & Excel',
+    hubSettings: 'நிறுவன அமைப்புகள்',
   },
   companyVendors: {
     photoPrivacy:
@@ -22367,6 +22688,113 @@ const hi: UiStrings = {
     notCounted: 'मंज़ूरी तक गिनी नहीं जाएगी',
     exportAction: 'निर्यात',
   },
+  companyClients: {
+    title: 'ग्राहक',
+    toReceive: 'पाना बाकी',
+    search: 'ग्राहक खोजें',
+    newInquiry: 'नई पूछताछ',
+    editClient: 'ग्राहक बदलें',
+    bannerToday: 'आज {n} फॉलो-अप',
+    bannerOverdue: '{n} देर',
+    bannerNone: 'कोई फॉलो-अप बाकी नहीं',
+    more: 'और विकल्प',
+    fAll: 'सभी',
+    fInquiry: 'पूछताछ',
+    fQuoted: 'कोटेशन',
+    fClient: 'ग्राहक',
+    fLost: 'खोए',
+    empty: 'अभी कोई ग्राहक नहीं। पहली पूछताछ जोड़ें।',
+    emptyFilter: 'यहाँ अभी कुछ नहीं।',
+    stInquiry: 'पूछताछ',
+    stQuoted: 'कोटेशन',
+    stClient: 'ग्राहक',
+    stLost: 'खोया',
+    srcWalkIn: 'सीधे आए',
+    srcCall: 'फ़ोन कॉल',
+    srcWhatsapp: 'व्हाट्सऐप',
+    srcReferral: 'रेफ़रल',
+    srcOther: 'अन्य',
+    namePh: 'नाम *',
+    phonePh: 'फ़ोन',
+    needPh: 'उन्हें क्या चाहिए?',
+    cameFrom: 'कहाँ से आए',
+    followUp: 'फॉलो-अप',
+    fuToday: 'आज',
+    fuTomorrow: 'कल',
+    fuThreeDays: '3 दिन में',
+    fuPick: 'चुनें',
+    fuNone: 'नहीं',
+    whoFollows: 'फॉलो-अप कौन करेगा',
+    extra: 'अपेक्षित मूल्य, पता',
+    expectedValue: 'अपेक्षित मूल्य',
+    addressPh: 'पता',
+    saveInquiry: 'पूछताछ सहेजें',
+    save: 'सहेजें',
+    followTitle: '{name} से फॉलो-अप',
+    saveFailed: 'सहेजा नहीं जा सका। फिर कोशिश करें।',
+    viaSource: '{source} से',
+    follows: '{name} फॉलो-अप करते हैं',
+    markWon: 'जीता चिह्नित करें',
+    markLost: 'खोया चिह्नित करें',
+    reopen: 'फिर खोलें',
+    lostWhy: 'क्यों खोया?',
+    lostPrice: 'बहुत महँगा',
+    lostOther: 'किसी और को चुना',
+    lostSilent: 'कोई जवाब नहीं',
+    lostSkip: 'अन्य कारण',
+    tabActivity: 'गतिविधि',
+    tabBills: 'अनुमान और बिल',
+    tabDocs: 'दस्तावेज़',
+    btnFollowUp: 'फॉलो-अप',
+    btnEstimate: 'अनुमान',
+    btnMoney: 'पैसे मिले',
+    call: 'कॉल',
+    whatsapp: 'व्हाट्सऐप',
+    overdueSince: 'फॉलो-अप में देर · {when}',
+    dueAt: 'फॉलो-अप · {when}',
+    done: 'हो गया',
+    noFollowUp: 'कोई फॉलो-अप तय नहीं',
+    addNote: 'नोट जोड़ें',
+    notePh: 'नोट लिखें',
+    noteSave: 'नोट सहेजें',
+    evCreated: 'पूछताछ जोड़ी गई',
+    evNote: 'नोट',
+    evFollowUp: 'फॉलो-अप',
+    evFollowUpDone: 'फॉलो-अप हो गया',
+    evReceipt: 'पैसे मिले',
+    activityEmpty: 'अभी कुछ नहीं।',
+    billsEmpty: 'अभी कोई अनुमान या बिल नहीं।',
+    docsEmpty: 'बिल PDF यहाँ दिखेंगे।',
+    owes: '{amount} पाना बाकी',
+    remove: 'ग्राहक हटाएँ',
+    removeConfirm: 'इस ग्राहक को हटाएँ?',
+    whenNext: 'अगला कब?',
+    nextTomorrow: 'कल',
+    nextWeek: 'अगले हफ़्ते',
+    nextNone: 'अब फॉलो-अप नहीं',
+    fuTitle: 'फॉलो-अप',
+    gOverdue: 'देर से',
+    gToday: 'आज',
+    gWeek: 'इस हफ़्ते',
+    gLater: 'बाद में',
+    mine: 'मेरे',
+    everyone: 'सभी',
+    fuEmpty: 'कोई फॉलो-अप बाकी नहीं। ग्राहक से जोड़ें।',
+    hubMoneyIn: 'आमदनी',
+    hubMoneyOut: 'खर्च',
+    hubTeam: 'टीम',
+    hubBooks: 'खाते',
+    hubNew: 'नया',
+    hubToReceive: '{amount} पाना बाकी',
+    hubToday: 'आज {n}',
+    hubOpen: '{n} खुले',
+    hubToPay: '{amount} देना बाकी',
+    hubToApprove: '{n} मंज़ूर करने हैं',
+    hubPeople: '{n} लोग',
+    hubNothing: 'कुछ बाकी नहीं',
+    hubFiles: 'PDF और Excel',
+    hubSettings: 'कंपनी सेटिंग',
+  },
   companyVendors: {
     photoPrivacy: 'ये फ़ोटो सिर्फ़ वे लोग देख सकते हैं जो इस खाते की प्रविष्टि को देख सकते हैं।',
     historyEmpty: 'अभी कोई प्रविष्टि नहीं',
@@ -28957,6 +29385,113 @@ const ar: UiStrings = {
     colReview: 'ملاحظة المراجعة',
     notCounted: 'لا يُحتسب حتى الموافقة',
     exportAction: 'تصدير',
+  },
+  companyClients: {
+    title: 'العملاء',
+    toReceive: 'مستحق القبض',
+    search: 'ابحث في العملاء',
+    newInquiry: 'استفسار جديد',
+    editClient: 'تعديل العميل',
+    bannerToday: '{n} متابعات اليوم',
+    bannerOverdue: '{n} متأخرة',
+    bannerNone: 'لا متابعات مستحقة',
+    more: 'خيارات أخرى',
+    fAll: 'الكل',
+    fInquiry: 'استفسارات',
+    fQuoted: 'عروض أسعار',
+    fClient: 'عملاء',
+    fLost: 'مفقودة',
+    empty: 'لا عملاء بعد. أضف أول استفسار.',
+    emptyFilter: 'لا شيء هنا بعد.',
+    stInquiry: 'استفسار',
+    stQuoted: 'عرض سعر',
+    stClient: 'عميل',
+    stLost: 'مفقود',
+    srcWalkIn: 'زيارة مباشرة',
+    srcCall: 'مكالمة هاتفية',
+    srcWhatsapp: 'واتساب',
+    srcReferral: 'ترشيح',
+    srcOther: 'أخرى',
+    namePh: 'الاسم *',
+    phonePh: 'الهاتف',
+    needPh: 'ماذا يحتاجون؟',
+    cameFrom: 'مصدر الاستفسار',
+    followUp: 'المتابعة',
+    fuToday: 'اليوم',
+    fuTomorrow: 'غدًا',
+    fuThreeDays: 'بعد 3 أيام',
+    fuPick: 'اختر',
+    fuNone: 'لا شيء',
+    whoFollows: 'من يتابع',
+    extra: 'القيمة المتوقعة، العنوان',
+    expectedValue: 'القيمة المتوقعة',
+    addressPh: 'العنوان',
+    saveInquiry: 'حفظ الاستفسار',
+    save: 'حفظ',
+    followTitle: 'متابعة {name}',
+    saveFailed: 'تعذّر الحفظ. حاول مرة أخرى.',
+    viaSource: 'عبر {source}',
+    follows: '{name} يتابع',
+    markWon: 'تم الفوز',
+    markLost: 'تم الفقد',
+    reopen: 'إعادة فتح',
+    lostWhy: 'لماذا فُقد؟',
+    lostPrice: 'السعر مرتفع',
+    lostOther: 'اختار غيرنا',
+    lostSilent: 'لا رد',
+    lostSkip: 'سبب آخر',
+    tabActivity: 'النشاط',
+    tabBills: 'عروض الأسعار والفواتير',
+    tabDocs: 'المستندات',
+    btnFollowUp: 'متابعة',
+    btnEstimate: 'عرض سعر',
+    btnMoney: 'تم استلام مبلغ',
+    call: 'اتصال',
+    whatsapp: 'واتساب',
+    overdueSince: 'متابعة متأخرة · {when}',
+    dueAt: 'متابعة · {when}',
+    done: 'تم',
+    noFollowUp: 'لا متابعة مخططة',
+    addNote: 'أضف ملاحظة',
+    notePh: 'اكتب ملاحظة',
+    noteSave: 'حفظ الملاحظة',
+    evCreated: 'تمت إضافة الاستفسار',
+    evNote: 'ملاحظة',
+    evFollowUp: 'متابعة',
+    evFollowUpDone: 'تمت المتابعة',
+    evReceipt: 'تم استلام مبلغ',
+    activityEmpty: 'لا شيء بعد.',
+    billsEmpty: 'لا عروض أسعار أو فواتير بعد.',
+    docsEmpty: 'ستظهر ملفات PDF للفواتير هنا.',
+    owes: '{amount} مستحق القبض',
+    remove: 'حذف العميل',
+    removeConfirm: 'حذف هذا العميل؟',
+    whenNext: 'متى التالية؟',
+    nextTomorrow: 'غدًا',
+    nextWeek: 'الأسبوع القادم',
+    nextNone: 'لا مزيد من المتابعة',
+    fuTitle: 'المتابعات',
+    gOverdue: 'متأخرة',
+    gToday: 'اليوم',
+    gWeek: 'هذا الأسبوع',
+    gLater: 'لاحقًا',
+    mine: 'خاصتي',
+    everyone: 'الكل',
+    fuEmpty: 'لا متابعات مستحقة. أضف واحدة من صفحة العميل.',
+    hubMoneyIn: 'الإيرادات',
+    hubMoneyOut: 'المصروفات',
+    hubTeam: 'الفريق',
+    hubBooks: 'الدفاتر',
+    hubNew: 'جديد',
+    hubToReceive: '{amount} مستحق القبض',
+    hubToday: '{n} اليوم',
+    hubOpen: '{n} مفتوحة',
+    hubToPay: '{amount} مستحق الدفع',
+    hubToApprove: '{n} بانتظار الموافقة',
+    hubPeople: '{n} أشخاص',
+    hubNothing: 'لا شيء مستحق',
+    hubFiles: 'PDF وExcel',
+    hubSettings: 'إعدادات الشركة',
   },
   companyVendors: {
     photoPrivacy: 'لا يرى هذه الصور إلا من يمكنه رؤية هذا القيد في السجل.',
