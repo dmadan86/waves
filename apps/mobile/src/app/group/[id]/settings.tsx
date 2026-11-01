@@ -32,6 +32,8 @@ import { format, money, type CurrencyCode } from '@waves/core';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { CompanyLogoField } from '@/components/company/CompanyLogoField';
+import { CompanyRules } from '@/components/company/CompanyRules';
+import { useCompanyEntries } from '@/data/companyEntries';
 import { removeImage } from '@/lib/storage';
 import { LinkMemberSheet } from '@/components/LinkMemberSheet';
 import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
@@ -136,6 +138,7 @@ export default function GroupSettingsScreen() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
+  const companyView = useCompanyEntries(groupId);
   const tripRates = useGroupFxRates(groupId);
   const tripRateStore = useGroupTripRateStore(groupId);
 
@@ -1225,6 +1228,12 @@ export default function GroupSettingsScreen() {
             </StandardCard>
           ) : null}
           <MissingRatesCard groupId={groupId} />
+          {isCompany && companyView.isOwner ? (
+            <>
+              <SectionHeader title={t.company.moreRules} />
+              <CompanyRules groupId={groupId} view={companyView} />
+            </>
+          ) : null}
 
           {/* A company's people live in People (company bar), not here. */}
           {!isCompany ? (
