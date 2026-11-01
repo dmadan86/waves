@@ -1,5 +1,7 @@
 -- Who paid for the pack (the store account's app user), so the app can tell which company a store subscription pays for.
 ALTER TABLE public.company_plans ADD COLUMN pack_profile uuid;
+-- Packs bought before this: best guess is the company owner (only an admin can attach a pack).
+UPDATE public.company_plans SET pack_profile=owner_profile_id WHERE pack_txn IS NOT NULL;
 -- A store subscription belongs to the company of its first purchase for good: expiry keeps pack_txn
 -- (a company's next subscription replaces it, which the unique index still allows).
 CREATE OR REPLACE FUNCTION public.waves_company_storage_pack_apply(
