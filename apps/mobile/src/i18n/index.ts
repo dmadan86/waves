@@ -1493,6 +1493,17 @@ export interface UiStrings {
     createBill: string;
     createEstimate: string;
     noMatch: string;
+    billSubtitle: string;
+    estimateSubtitle: string;
+    selectCustomer: string;
+    pickClient: string;
+    billDate: string;
+    currency: string;
+    itemsCount: string;
+    rateEach: string;
+    notesOptional: string;
+    paymentStatus: string;
+    saveShare: string;
   };
   company: {
     attendanceTitle: string;
@@ -8801,6 +8812,17 @@ const en: UiStrings = {
     createBill: 'Create Bill',
     createEstimate: 'Create Estimate',
     noMatch: 'Nothing matches',
+    billSubtitle: 'Make an itemised bill and share',
+    estimateSubtitle: 'Make an itemised estimate and share',
+    selectCustomer: 'Select or add customer',
+    pickClient: 'Pick a client',
+    billDate: 'Bill date',
+    currency: 'Currency',
+    itemsCount: 'Items ({n})',
+    rateEach: '{rate} each',
+    notesOptional: 'Notes (optional)',
+    paymentStatus: 'Payment status',
+    saveShare: 'Save & share',
   },
   company: {
     attendanceTitle: 'Attendance',
@@ -15575,6 +15597,17 @@ const ta: UiStrings = {
     createBill: 'பில் உருவாக்கு',
     createEstimate: 'மதிப்பீடு உருவாக்கு',
     noMatch: 'எதுவும் பொருந்தவில்லை',
+    billSubtitle: 'விவரப் பில் உருவாக்கிப் பகிருங்கள்',
+    estimateSubtitle: 'விவர மதிப்பீடு உருவாக்கிப் பகிருங்கள்',
+    selectCustomer: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும் அல்லது சேர்க்கவும்',
+    pickClient: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும்',
+    billDate: 'பில் தேதி',
+    currency: 'நாணயம்',
+    itemsCount: 'பொருட்கள் ({n})',
+    rateEach: 'ஒன்றுக்கு {rate}',
+    notesOptional: 'குறிப்புகள் (விருப்பம்)',
+    paymentStatus: 'கட்டண நிலை',
+    saveShare: 'சேமித்துப் பகிர்',
   },
   company: {
     attendanceTitle: 'வருகை',
@@ -22515,6 +22548,17 @@ const hi: UiStrings = {
     createBill: 'बिल बनाएँ',
     createEstimate: 'एस्टिमेट बनाएँ',
     noMatch: 'कुछ नहीं मिला',
+    billSubtitle: 'विवरण वाला बिल बनाएँ और भेजें',
+    estimateSubtitle: 'विवरण वाला अनुमान बनाएँ और भेजें',
+    selectCustomer: 'ग्राहक चुनें या जोड़ें',
+    pickClient: 'क्लाइंट चुनें',
+    billDate: 'बिल की तारीख',
+    currency: 'मुद्रा',
+    itemsCount: 'आइटम ({n})',
+    rateEach: '{rate} प्रति',
+    notesOptional: 'नोट्स (वैकल्पिक)',
+    paymentStatus: 'भुगतान स्थिति',
+    saveShare: 'सेव करें और भेजें',
   },
   company: {
     attendanceTitle: 'हाज़िरी',
@@ -29338,6 +29382,17 @@ const ar: UiStrings = {
     createBill: 'إنشاء فاتورة',
     createEstimate: 'إنشاء عرض سعر',
     noMatch: 'لا نتائج',
+    billSubtitle: 'أنشئ فاتورة مفصّلة وشاركها',
+    estimateSubtitle: 'أنشئ تقديرًا مفصّلًا وشاركه',
+    selectCustomer: 'اختر العميل أو أضفه',
+    pickClient: 'اختر عميلًا',
+    billDate: 'تاريخ الفاتورة',
+    currency: 'العملة',
+    itemsCount: 'العناصر ({n})',
+    rateEach: '{rate} للوحدة',
+    notesOptional: 'ملاحظات (اختياري)',
+    paymentStatus: 'حالة الدفع',
+    saveShare: 'احفظ وشارك',
   },
   company: {
     attendanceTitle: 'الحضور',

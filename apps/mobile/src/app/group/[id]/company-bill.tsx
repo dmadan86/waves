@@ -1,5 +1,5 @@
 import { useCompanySuspended } from '@/data/companyEntries';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
@@ -66,7 +66,11 @@ export async function shareCompanyDocPdf(
 }
 
 export default function CompanyBillScreen() {
-  const { id = '', docId } = useLocalSearchParams<{ id: string; docId?: string }>();
+  const {
+    id = '',
+    docId,
+    share,
+  } = useLocalSearchParams<{ id: string; docId?: string; share?: string }>();
   const view = useCompanyDocs(id);
   const { group } = useGroup(id);
   const logoUrl = useGroupPhotoUrl(group.data?.photo_path);
@@ -107,6 +111,35 @@ export default function CompanyBillScreen() {
       setError(c.failed);
     }
   };
+  const sharePdf = () =>
+    run(async () => {
+      if (!doc) return;
+      setSharing(true);
+      try {
+        if (!printAvailable()) {
+          setError(t.groupExport.updateNeeded);
+          return;
+        }
+        const shared = await shareCompanyDocPdf(doc, {
+          companyName: view.companyName,
+          logoUrl,
+          labels: c,
+          formatMoney: fmt,
+          formatDate: (d) => showDate(d, locale),
+        });
+        if (!shared) setError(t.groupExport.exportFailed);
+      } finally {
+        setSharing(false);
+      }
+    });
+  // "Save & share" on the form lands here with share=1: open the share sheet once.
+  const autoShared = useRef(false);
+  useEffect(() => {
+    if (share === '1' && doc && view.canUse && !autoShared.current) {
+      autoShared.current = true;
+      void sharePdf();
+    }
+  });
   const openDate = () => {
     if (Platform.OS === 'android')
       DateTimePickerAndroid.open({
@@ -307,27 +340,7 @@ export default function CompanyBillScreen() {
           label={c.sharePdf}
           variant="brand"
           disabled={busy}
-          onPress={() =>
-            void run(async () => {
-              setSharing(true);
-              try {
-                if (!printAvailable()) {
-                  setError(t.groupExport.updateNeeded);
-                  return;
-                }
-                const shared = await shareCompanyDocPdf(doc, {
-                  companyName: view.companyName,
-                  logoUrl,
-                  labels: c,
-                  formatMoney: fmt,
-                  formatDate: (d) => showDate(d, locale),
-                });
-                if (!shared) setError(t.groupExport.exportFailed);
-              } finally {
-                setSharing(false);
-              }
-            })
-          }
+          onPress={() => void sharePdf()}
         />
         {error ? (
           <Text variant="caption" tone="negative">
