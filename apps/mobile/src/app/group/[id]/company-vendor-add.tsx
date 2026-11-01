@@ -119,8 +119,8 @@ export default function AddVendorScreen() {
   const help = { scan: s.helpScan, link: s.helpLink, id: s.helpId }[mode];
   const apply = (found: { name?: string; phone?: string } | null): void => {
     if (!found) return setNote(s.lookupFailed);
-    if (found.name) setName(found.name);
-    if (found.phone) setPhone(found.phone);
+    setName(found.name ?? '');
+    setPhone(found.phone ?? '');
     setNote(null);
   };
   const run = async (): Promise<void> => {
