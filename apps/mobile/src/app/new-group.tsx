@@ -858,7 +858,7 @@ export default function NewGroupScreen() {
                 emoji={emoji}
                 color={pickedColor}
                 bare
-                size={Math.round(cover * 0.56)}
+                size={Math.round(cover * 0.4)}
               />
               {/* The camera as a white disc inside the cover's corner, its glyph in
                   the accent, lifted by a soft shadow. */}
