@@ -635,10 +635,17 @@ export default function VoiceScreen() {
   // The mic waits for the consent answer (and the status that decides whether
   // consent is asked), so the consent sheet is never up with the system mic
   // dialog over it.
+  // The status wait is capped so an offline open still falls back to the
+  // on-device mic.
+  const [statusWaitOver, setStatusWaitOver] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setStatusWaitOver(true), 1500);
+    return () => clearTimeout(id);
+  }, []);
   const consentHold =
     consentSheetOpen ||
     (agentServerOn && !voiceConsent.ready) ||
-    (!agentStatusReady && agentLastKnown !== false);
+    (!agentStatusReady && agentLastKnown !== false && !statusWaitOver);
   // Which engine heard the capture — its pill shows only while listening.
   const [, setEngine] = useState<VoiceEngineInfo | null>(null);
   // The agent's open question and what prompted it, while the next clip is its
