@@ -48,6 +48,8 @@ export interface PermissionOps {
   openSettings?: () => void | Promise<void>;
   /** Overrides the registered explainer (tests). */
   explain?: Explainer;
+  /** Skip our explainer and ask natively at once, for a caller already on its own prompt. */
+  direct?: boolean;
 }
 
 /**
@@ -79,7 +81,7 @@ async function ask(kind: PermissionKind, ops: PermissionOps): Promise<Permission
   const step = permissionStep(current);
   if (step === 'proceed') return current;
 
-  const explain = ops.explain ?? explainer;
+  const explain = ops.direct ? null : (ops.explain ?? explainer);
   if (explain) {
     const choice = await explain(kind, step);
     if (choice === 'settings') {
