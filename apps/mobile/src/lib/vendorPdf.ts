@@ -32,6 +32,7 @@ export interface ReceiptLabels {
   method: string;
   reference: string;
   balanceAfter: string;
+  advance: string;
   statusLabel: string;
   recorded: string;
   received: string;
@@ -51,7 +52,7 @@ export function renderReceiptHtml(
 <div class="big">${esc(f.money(r.amount))}</div><table>
 ${row(l.companyLabel, company)}${row(l.vendorLabel, r.vendorName)}${row(l.dateLabel, f.date(r.date))}
 ${r.method ? row(l.method, l.methods[r.method] ?? r.method) : ''}${r.reference ? row(l.reference, r.reference) : ''}
-${row(l.balanceAfter, f.money(r.balanceAfter < 0n ? -r.balanceAfter : r.balanceAfter))}
+${row(l.balanceAfter, r.balanceAfter < 0n ? `${f.money(-r.balanceAfter)} ${l.advance}` : f.money(r.balanceAfter))}
 ${row(l.statusLabel, r.received ? l.received : l.recorded)}</table>
 <div class="foot">${esc(l.receiptFooter)}</div></body></html>`;
 }

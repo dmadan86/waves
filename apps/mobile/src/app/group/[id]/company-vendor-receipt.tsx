@@ -47,7 +47,10 @@ export default function CompanyVendorReceiptScreen() {
     [s.dateLabel, f.date(r.date)],
     ...(r.method ? [[s.method, methods[r.method] ?? r.method] as [string, string]] : []),
     ...(r.reference ? [[s.reference, r.reference] as [string, string]] : []),
-    [s.balanceAfter, f.money(r.balanceAfter < 0n ? -r.balanceAfter : r.balanceAfter)],
+    [
+      s.balanceAfter,
+      r.balanceAfter < 0n ? `${f.money(-r.balanceAfter)} ${s.advance}` : f.money(r.balanceAfter),
+    ],
   ];
   const share = async () => {
     setError(false);
