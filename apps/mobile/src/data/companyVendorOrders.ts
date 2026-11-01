@@ -12,21 +12,23 @@ import {
 } from '@waves/core';
 
 import { useCompanyEntries } from '@/data/companyEntries';
+import { useCompanyVendors } from '@/data/companyVendors';
 import { useSync } from '@/sync';
 
 export function useVendorOrders(groupId: string): readonly VendorOrder[] {
   const { mirror, queue } = useSync();
   const view = useCompanyEntries(groupId);
+  // Same filter as the vendors: a phone that once held more (an owner's) must not keep showing it.
+  const visible = useCompanyVendors(groupId).vendors;
   const myId = view.me?.id ?? null;
-  return useMemo(
-    () =>
-      materialiseVendorOrders(mirror, queue, {
-        groupId,
-        myMemberId: myId,
-        isVendor: view.isVendor,
-      }),
-    [mirror, queue, groupId, myId, view.isVendor],
-  );
+  return useMemo(() => {
+    const ids = new Set(visible.map((v) => v.id));
+    return materialiseVendorOrders(mirror, queue, {
+      groupId,
+      myMemberId: myId,
+      isVendor: view.isVendor,
+    }).filter((o) => ids.has(o.vendorId));
+  }, [mirror, queue, groupId, myId, view.isVendor, visible]);
 }
 
 export interface OrderDraftItem {
