@@ -215,6 +215,10 @@ export function buildReceipt(
   };
 }
 
+/** What a receipt may claim: never "recorded" while the payment has not reached the server. */
+export const receiptStatus = (r: Pick<VendorReceipt, 'pending' | 'received'>) =>
+  r.pending ? 'pending' : r.received ? 'received' : 'recorded';
+
 // ---- statement ----
 
 export interface VendorStatementRow {

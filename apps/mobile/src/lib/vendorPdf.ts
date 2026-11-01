@@ -1,7 +1,12 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
-import { receiptLabel, type VendorStatementRow, type VendorReceipt } from '@waves/core';
+import {
+  receiptLabel,
+  receiptStatus,
+  type VendorStatementRow,
+  type VendorReceipt,
+} from '@waves/core';
 
 import { printAvailable, printHtmlToFile } from '@/lib/print';
 
@@ -36,6 +41,7 @@ export interface ReceiptLabels {
   statusLabel: string;
   recorded: string;
   received: string;
+  waitingSync: string;
   receiptFooter: string;
   methods: Record<string, string>;
 }
@@ -53,7 +59,7 @@ export function renderReceiptHtml(
 ${row(l.companyLabel, company)}${row(l.vendorLabel, r.vendorName)}${row(l.dateLabel, f.date(r.date))}
 ${r.method ? row(l.method, l.methods[r.method] ?? r.method) : ''}${r.reference ? row(l.reference, r.reference) : ''}
 ${row(l.balanceAfter, r.balanceAfter < 0n ? `${f.money(-r.balanceAfter)} ${l.advance}` : f.money(r.balanceAfter))}
-${row(l.statusLabel, r.received ? l.received : l.recorded)}</table>
+${row(l.statusLabel, { pending: l.waitingSync, received: l.received, recorded: l.recorded }[receiptStatus(r)])}</table>
 <div class="foot">${esc(l.receiptFooter)}</div></body></html>`;
 }
 

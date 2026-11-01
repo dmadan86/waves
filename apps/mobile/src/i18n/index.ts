@@ -2289,6 +2289,11 @@ export interface UiStrings {
     call: string;
     whatsapp: string;
     statement: string;
+    vendorTitle: string;
+    activityTab: string;
+    billsTab: string;
+    lastPaymentLabel: string;
+    waitingSync: string;
     documents: string;
     transactions: string;
     outstanding: string;
@@ -9400,6 +9405,11 @@ const en: UiStrings = {
     call: 'Call',
     whatsapp: 'WhatsApp',
     statement: 'Statement',
+    vendorTitle: 'Vendor',
+    activityTab: 'Activity',
+    billsTab: 'Bills',
+    lastPaymentLabel: 'Last payment',
+    waitingSync: 'Waiting to sync',
     documents: 'Documents',
     transactions: 'Transactions',
     outstanding: 'Outstanding',
@@ -15969,6 +15979,11 @@ const ta: UiStrings = {
     call: 'அழை',
     whatsapp: 'வாட்ஸ்அப்',
     statement: 'அறிக்கை',
+    vendorTitle: 'விற்பனையாளர்',
+    activityTab: 'செயல்பாடு',
+    billsTab: 'பில்கள்',
+    lastPaymentLabel: 'கடைசி கட்டணம்',
+    waitingSync: 'ஒத்திசைவுக்காகக் காத்திருக்கிறது',
     documents: 'ஆவணங்கள்',
     transactions: 'பரிவர்த்தனைகள்',
     outstanding: 'நிலுவை',
@@ -22695,6 +22710,11 @@ const hi: UiStrings = {
     call: 'कॉल',
     whatsapp: 'व्हाट्सऐप',
     statement: 'विवरण',
+    vendorTitle: 'विक्रेता',
+    activityTab: 'गतिविधि',
+    billsTab: 'बिल',
+    lastPaymentLabel: 'आखिरी भुगतान',
+    waitingSync: 'सिंक का इंतज़ार',
     documents: 'दस्तावेज़',
     transactions: 'लेन-देन',
     outstanding: 'बकाया',
@@ -29361,6 +29381,11 @@ const ar: UiStrings = {
     call: 'اتصال',
     whatsapp: 'واتساب',
     statement: 'كشف الحساب',
+    vendorTitle: 'المورّد',
+    activityTab: 'النشاط',
+    billsTab: 'الفواتير',
+    lastPaymentLabel: 'آخر دفعة',
+    waitingSync: 'بانتظار المزامنة',
     documents: 'المستندات',
     transactions: 'المعاملات',
     outstanding: 'المستحق',
