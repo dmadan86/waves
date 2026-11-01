@@ -1615,6 +1615,8 @@ export interface UiStrings {
     workBlocked: string;
     workReason: string;
     workNote: string;
+    workDue: string;
+    workNotesOptional: string;
     workRepeat: string;
     workRemove: string;
     workStatus: string;
@@ -8642,6 +8644,8 @@ const en: UiStrings = {
     workBlocked: 'Blocked',
     workReason: 'Why is it blocked?',
     workNote: 'Note',
+    workDue: 'Due date & time',
+    workNotesOptional: 'Notes (optional)',
     workRepeat: 'Repeat tomorrow',
     workRemove: 'Remove',
     workStatus: 'Status',
@@ -15133,6 +15137,8 @@ const ta: UiStrings = {
     workBlocked: 'தடை',
     workReason: 'தடைக்கான காரணம்?',
     workNote: 'குறிப்பு',
+    workDue: 'கடைசி தேதி மற்றும் நேரம்',
+    workNotesOptional: 'குறிப்புகள் (விருப்பம்)',
     workRepeat: 'நாளை மீண்டும்',
     workRemove: 'நீக்கு',
     workStatus: 'நிலை',
@@ -21791,6 +21797,8 @@ const hi: UiStrings = {
     workBlocked: 'रुका हुआ',
     workReason: 'काम क्यों रुका है?',
     workNote: 'नोट',
+    workDue: 'नियत तारीख और समय',
+    workNotesOptional: 'नोट्स (वैकल्पिक)',
     workRepeat: 'कल दोहराएँ',
     workRemove: 'हटाएँ',
     workStatus: 'स्थिति',
@@ -28350,6 +28358,8 @@ const ar: UiStrings = {
     workBlocked: 'متوقفة',
     workReason: 'لماذا توقفت؟',
     workNote: 'ملاحظة',
+    workDue: 'تاريخ ووقت الاستحقاق',
+    workNotesOptional: 'ملاحظات (اختياري)',
     workRepeat: 'تكرار غدًا',
     workRemove: 'إزالة',
     workStatus: 'الحالة',
