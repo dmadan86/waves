@@ -52,9 +52,11 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const [menu, setMenu] = useState<{ id: string; anchor: MenuAnchor | null } | null>(null);
   const rowRefs = useRef(new Map<string, View | null>());
   const counts = clientCounts(view.clients);
-  const unpaidCount = view.clients.filter(
+  const unpaidClients = view.clients.filter(
     (c) => c.stage !== 'lost' && (money.byClient.get(c.id) ?? 0n) > 0n,
-  ).length;
+  );
+  const unpaidCount = unpaidClients.length;
+  const unpaidTotal = unpaidClients.reduce((n, c) => n + (money.byClient.get(c.id) ?? 0n), 0n);
   const rows =
     filter === 'unpaid'
       ? filterClients(view.clients, 'all', query).filter(
@@ -94,7 +96,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
     {
       label: s.fUnpaid,
       value: String(unpaidCount),
-      sub: money.total > 0n ? fmt(money.total) : undefined,
+      sub: unpaidTotal > 0n ? fmt(unpaidTotal) : undefined,
       icon: 'cash',
       color: '#2563EB',
       bg: '#EAF2FF',
