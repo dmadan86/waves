@@ -42,7 +42,11 @@ function RoundButton({
         backgroundColor: primary ? theme.color.brand : glass,
       }}
     >
-      <Ionicons name={icon} size={primary ? 24 : 20} color={primary ? '#FFFFFF' : theme.color.text} />
+      <Ionicons
+        name={icon}
+        size={primary ? 24 : 20}
+        color={primary ? '#FFFFFF' : theme.color.text}
+      />
     </Pressable>
   );
 }
@@ -85,7 +89,11 @@ export default function CompanyVendorsScreen() {
                 <Ionicons name="storefront-outline" size={26} color={theme.color.brand} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Text variant="heading" numberOfLines={1} style={{ fontSize: 22, fontWeight: '800' }}>
+                <Text
+                  variant="heading"
+                  numberOfLines={1}
+                  style={{ fontSize: 22, fontWeight: '800' }}
+                >
                   {t.companyVendors.title}
                 </Text>
                 <Text variant="micro" numberOfLines={1}>
