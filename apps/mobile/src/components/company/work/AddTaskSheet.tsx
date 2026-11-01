@@ -2,7 +2,7 @@
  * The Add task sheet (Team › Daily work): what to do, who gets it, by when, an optional photo, and the
  * mic. One task is saved per person picked, all with the same description, deadline and photos.
  * The deadline is the task's day, so it appears on that day's Daily work. Everything is checked here
- * first; the parent remounts it (a new `key`) on every open so nothing is left over. The server's own limits (scope, a week ahead) are the same ones, so it never has to refuse.
+ * first; the parent remounts it (a new `key`) on every open so nothing is left over. The server's own limits (scope, two years ahead) are the same ones, so it never has to refuse.
  */
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -24,6 +24,7 @@ import {
   addTaskError,
   addTaskPayloads,
   MAX_TASK_PHOTOS,
+  maxTaskDay,
   type AddTaskError,
 } from '@/lib/companyWork';
 import { useSync } from '@/sync';
@@ -42,10 +43,7 @@ export function AddTaskSheet({
   onClose,
   people,
   defaultMemberIds,
-  defaultDay,
   today,
-  maxDay,
-  onSaved,
 }: {
   groupId: string;
   visible: boolean;
@@ -53,12 +51,7 @@ export function AddTaskSheet({
   /** Whom the viewer may assign to: the owner anyone, a manager their own team. */
   people: readonly MemberRow[];
   defaultMemberIds: readonly string[];
-  /** The day Daily work is showing; the deadline starts here (never before today). */
-  defaultDay: string;
   today: string;
-  maxDay: string;
-  /** Called with the deadline day once saved, so Daily work can show the new tasks. */
-  onSaved: (day: string) => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -68,9 +61,8 @@ export function AddTaskSheet({
   const [panel, setPanel] = useState<Panel>('form');
   const [title, setTitle] = useState('');
   const [ids, setIds] = useState<string[]>(() => [...defaultMemberIds]);
-  const [day, setDay] = useState(() =>
-    defaultDay < today ? today : defaultDay > maxDay ? maxDay : defaultDay,
-  );
+  const maxDay = maxTaskDay(today);
+  const [day, setDay] = useState(today);
   const [photos, setPhotos] = useState<{ key: string; picked: PickedImage }[]>([]);
   const [problem, setProblem] = useState<Problem>(null);
   const [busy, setBusy] = useState(false);
@@ -151,13 +143,11 @@ export function AddTaskSheet({
         failed = true;
       }
       if (failed) {
-        onSaved(day);
         setProblem('photos');
         setBusy(false);
         return;
       }
     }
-    onSaved(day);
     setBusy(false);
     onClose();
   };

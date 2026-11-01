@@ -1553,12 +1553,17 @@ export interface UiStrings {
     workMineTasks: string;
     workTeam: string;
     workFilter: string;
-    workSortTitle: string;
-    workAllTasks: string;
     workTime: string;
     workNoTime: string;
     workMine: string;
     workEmpty: string;
+    workByDate: string;
+    workByPerson: string;
+    workOverdue: string;
+    workOpenN: string;
+    workDoneN: string;
+    workSiteFilter: string;
+    workNoTasks: string;
     workAdd: string;
     workEdit: string;
     workTitleField: string;
@@ -8495,12 +8500,17 @@ const en: UiStrings = {
     workMineTasks: 'My tasks',
     workTeam: 'Team',
     workFilter: 'Filter',
-    workSortTitle: 'Sort by title (A–Z)',
-    workAllTasks: 'All tasks',
     workTime: 'Time (HH:MM)',
     workNoTime: 'No time',
     workMine: 'My work today',
     workEmpty: 'No tasks for this day.',
+    workByDate: 'By date',
+    workByPerson: 'By person',
+    workOverdue: 'Overdue',
+    workOpenN: '{n} open',
+    workDoneN: 'Done · {n}',
+    workSiteFilter: 'Site filter',
+    workNoTasks: 'No tasks yet.',
     workAdd: 'Add task',
     workEdit: 'Edit task',
     workTitleField: 'Task title',
@@ -14899,12 +14909,17 @@ const ta: UiStrings = {
     workMineTasks: 'என் பணிகள்',
     workTeam: 'குழு',
     workFilter: 'வடிகட்டி',
-    workSortTitle: 'தலைப்பு வரிசை (அ–ஃ)',
-    workAllTasks: 'அனைத்து பணிகள்',
     workTime: 'நேரம் (மணி:நிமிடம்)',
     workNoTime: 'நேரம் இல்லை',
     workMine: 'என் இன்றைய வேலை',
     workEmpty: 'இந்த நாளில் வேலைகள் இல்லை.',
+    workByDate: 'தேதிப்படி',
+    workByPerson: 'நபர்படி',
+    workOverdue: 'தாமதம்',
+    workOpenN: '{n} திறந்தவை',
+    workDoneN: 'முடிந்தவை · {n}',
+    workSiteFilter: 'பணித்தள வடிகட்டி',
+    workNoTasks: 'இன்னும் பணிகள் இல்லை.',
     workAdd: 'வேலை சேர்க்க',
     workEdit: 'வேலை திருத்த',
     workTitleField: 'வேலைத் தலைப்பு',
@@ -21470,12 +21485,17 @@ const hi: UiStrings = {
     workMineTasks: 'मेरे काम',
     workTeam: 'टीम',
     workFilter: 'फ़िल्टर',
-    workSortTitle: 'शीर्षक के अनुसार क्रम (अ–ह)',
-    workAllTasks: 'सभी काम',
     workTime: 'समय (HH:MM)',
     workNoTime: 'समय नहीं',
     workMine: 'आज मेरा काम',
     workEmpty: 'इस दिन कोई काम नहीं।',
+    workByDate: 'तारीख के अनुसार',
+    workByPerson: 'व्यक्ति के अनुसार',
+    workOverdue: 'देरी',
+    workOpenN: '{n} खुले',
+    workDoneN: 'पूरे · {n}',
+    workSiteFilter: 'साइट फ़िल्टर',
+    workNoTasks: 'अभी कोई काम नहीं।',
     workAdd: 'काम जोड़ें',
     workEdit: 'काम बदलें',
     workTitleField: 'काम का नाम',
@@ -27942,12 +27962,17 @@ const ar: UiStrings = {
     workMineTasks: 'مهامي',
     workTeam: 'الفريق',
     workFilter: 'تصفية',
-    workSortTitle: 'الترتيب حسب العنوان (أ–ي)',
-    workAllTasks: 'كل المهام',
     workTime: 'الوقت (HH:MM)',
     workNoTime: 'بلا وقت',
     workMine: 'عملي اليوم',
     workEmpty: 'لا مهام لهذا اليوم.',
+    workByDate: 'حسب التاريخ',
+    workByPerson: 'حسب الشخص',
+    workOverdue: 'متأخرة',
+    workOpenN: '{n} مفتوحة',
+    workDoneN: 'منجزة · {n}',
+    workSiteFilter: 'تصفية الموقع',
+    workNoTasks: 'لا مهام بعد.',
     workAdd: 'إضافة مهمة',
     workEdit: 'تعديل المهمة',
     workTitleField: 'عنوان المهمة',
