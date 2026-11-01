@@ -75,7 +75,7 @@ export function SegmentedPills<T extends string>({
   value,
   onChange,
 }: {
-  options: readonly { value: T; label: string }[];
+  options: readonly { value: T; label: string; icon?: keyof typeof Ionicons.glyphMap }[];
   value: T;
   onChange: (value: T) => void;
 }) {
@@ -95,10 +95,20 @@ export function SegmentedPills<T extends string>({
               height: 38,
               paddingHorizontal: theme.spacing.lg,
               borderRadius: theme.radius.pill,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.xs,
               justifyContent: 'center',
               backgroundColor: selected ? PILL_SELECTED : glass,
             }}
           >
+            {option.icon ? (
+              <Ionicons
+                name={option.icon}
+                size={iconSize.base}
+                color={selected ? '#FFFFFF' : theme.color.textMuted}
+              />
+            ) : null}
             <Text
               variant="caption"
               style={{ fontWeight: '600', color: selected ? '#FFFFFF' : theme.color.textMuted }}
