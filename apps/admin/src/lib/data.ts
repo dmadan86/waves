@@ -808,6 +808,8 @@ export interface AdminUserListRow {
   device_count: number;
   app_version: string | null;
   platform: string | null;
+  /** Live companies this person created (groups of type company, not deleted). */
+  companies_created: number;
 }
 
 export interface AdminUserList {
@@ -843,7 +845,27 @@ export async function listUsers(params: {
     throw new Error(`waves_admin_users failed: ${error.message}`);
   }
   const payload = (data ?? {}) as { total?: number | string; rows?: AdminUserListRow[] };
-  return { total: Number(payload.total ?? 0), rows: payload.rows ?? [] };
+  const rows = payload.rows ?? [];
+  // Companies created per person on this page: one round trip, counted here.
+  const created = new Map<string, number>();
+  if (rows.length > 0) {
+    const { data: groups, error: groupsError } = await client()
+      .from('groups')
+      .select('created_by')
+      .eq('type', 'company')
+      .is('deleted_at', null)
+      .in(
+        'created_by',
+        rows.map((r) => r.id),
+      );
+    if (groupsError) throw new Error(`counting companies failed: ${groupsError.message}`);
+    for (const g of groups ?? []) {
+      const by = g.created_by as string;
+      created.set(by, (created.get(by) ?? 0) + 1);
+    }
+  }
+  for (const row of rows) row.companies_created = created.get(row.id) ?? 0;
+  return { total: Number(payload.total ?? 0), rows };
 }
 
 /** Mark an address confirmed by hand — the OTP a person never received. */
