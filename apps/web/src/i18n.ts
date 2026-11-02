@@ -2447,7 +2447,8 @@ const en: WebStrings = {
     unverified: 'Waves has not verified this application.',
     companyLabel: 'Company access',
     noCompany: 'No company (personal groups only)',
-    companyHelp: 'This assistant will work in one company only. The company owner can switch it off at any time.',
+    companyHelp:
+      'This assistant will work in one company only. The company owner can switch it off at any time.',
   },
   errors: {
     couldNotLoad: 'Couldn’t load this. Try again in a moment.',
@@ -3589,7 +3590,8 @@ const ta: WebStrings = {
     unverified: 'இந்தப் பயன்பாட்டை Waves சரிபார்க்கவில்லை.',
     companyLabel: 'நிறுவன அணுகல்',
     noCompany: 'நிறுவனம் வேண்டாம் (தனிப்பட்ட குழுக்கள் மட்டும்)',
-    companyHelp: 'இந்த உதவியாளர் ஒரே ஒரு நிறுவனத்தில் மட்டுமே செயல்படும். நிறுவன உரிமையாளர் எப்போது வேண்டுமானாலும் இதை நிறுத்தலாம்.',
+    companyHelp:
+      'இந்த உதவியாளர் ஒரே ஒரு நிறுவனத்தில் மட்டுமே செயல்படும். நிறுவன உரிமையாளர் எப்போது வேண்டுமானாலும் இதை நிறுத்தலாம்.',
   },
   errors: {
     couldNotLoad: 'இதை ஏற்ற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
@@ -4699,7 +4701,8 @@ const hi: WebStrings = {
     unverified: 'Waves ने इस ऐप्लिकेशन की जाँच नहीं की है।',
     companyLabel: 'कंपनी की पहुँच',
     noCompany: 'कोई कंपनी नहीं (सिर्फ़ निजी ग्रुप)',
-    companyHelp: 'यह सहायक सिर्फ़ एक कंपनी में काम करेगा। कंपनी का मालिक इसे कभी भी बंद कर सकता है।',
+    companyHelp:
+      'यह सहायक सिर्फ़ एक कंपनी में काम करेगा। कंपनी का मालिक इसे कभी भी बंद कर सकता है।',
   },
   errors: {
     couldNotLoad: 'यह लोड नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',

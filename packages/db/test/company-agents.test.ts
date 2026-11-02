@@ -63,9 +63,8 @@ const settings = (enabled: boolean, approval = true, group = g.groupId) =>
 const link = (i: number, group: string | null = g.groupId, client = CLIENT) =>
   as(i, null, () => db.query('SELECT waves_company_agent_link($1,$2)', [group, client]));
 const gate = async (i: number, group = g.groupId, client = CLIENT) =>
-  (
-    await as(i, client, () => db.query('SELECT waves_company_agent_gate($1) AS role', [group]))
-  ).rows[0].role as string;
+  (await as(i, client, () => db.query('SELECT waves_company_agent_gate($1) AS role', [group])))
+    .rows[0].role as string;
 const enableAndLink = async (i = 0) => {
   await settings(true);
   await link(i);
@@ -173,7 +172,9 @@ describe('the gate', () => {
       expect(await denied(() => gate(0, other))).toMatch(/NOT_LINKED/);
       expect(await denied(() => gate(0, g.groupId, 'someone-else'))).toMatch(/NOT_LINKED/);
       expect(
-        await denied(() => as(0, null, () => db.query('SELECT waves_company_agent_gate($1)', [g.groupId]))),
+        await denied(() =>
+          as(0, null, () => db.query('SELECT waves_company_agent_gate($1)', [g.groupId])),
+        ),
       ).toMatch(/NOT_LINKED/);
     }));
 
@@ -192,9 +193,11 @@ describe('the gate', () => {
       await settings(true);
       await link(2);
       const id = (await db.query('SELECT id FROM company_agent_links')).rows[0].id;
-      expect(await denied(() => as(3, null, () => db.query('SELECT waves_company_agent_link_revoke($1)', [id])))).toMatch(
-        /NOT_ALLOWED/,
-      );
+      expect(
+        await denied(() =>
+          as(3, null, () => db.query('SELECT waves_company_agent_link_revoke($1)', [id])),
+        ),
+      ).toMatch(/NOT_ALLOWED/);
       await as(0, null, () => db.query('SELECT waves_company_agent_link_revoke($1)', [id]));
       expect(await denied(() => gate(2))).toMatch(/NOT_LINKED/);
       await link(2); // connecting again restores it
@@ -230,13 +233,17 @@ describe('owner controls', () => {
     isolated(async () => {
       const as1 = (fn: string, ...args: unknown[]) =>
         as(1, null, () => db.query(`SELECT ${fn}`, args));
-      expect(await denied(() => as1('waves_company_agent_settings_set($1,true,true)', g.groupId))).toMatch(
+      expect(
+        await denied(() => as1('waves_company_agent_settings_set($1,true,true)', g.groupId)),
+      ).toMatch(/ADMIN_ONLY/);
+      expect(await denied(() => as1('waves_company_agent_links_list($1)', g.groupId))).toMatch(
         /ADMIN_ONLY/,
       );
-      expect(await denied(() => as1('waves_company_agent_links_list($1)', g.groupId))).toMatch(/ADMIN_ONLY/);
       await enableAndLink(2);
       const listed = (
-        await as(0, null, () => db.query('SELECT waves_company_agent_links_list($1) AS l', [g.groupId]))
+        await as(0, null, () =>
+          db.query('SELECT waves_company_agent_links_list($1) AS l', [g.groupId]),
+        )
       ).rows[0].l;
       expect(listed).toMatchObject({ enabled: true, approval: true });
       expect(listed.links).toHaveLength(1);
@@ -259,14 +266,16 @@ describe('owner controls', () => {
       await enableAndLink();
       await denied(() =>
         as(0, null, () =>
-          db.query("INSERT INTO company_agent_links(group_id,profile_id,client_id) VALUES($1,$2,'x')", [
-            g.groupId,
-            g.profileIds[0],
-          ]),
+          db.query(
+            "INSERT INTO company_agent_links(group_id,profile_id,client_id) VALUES($1,$2,'x')",
+            [g.groupId, g.profileIds[0]],
+          ),
         ),
       );
       await denied(() =>
-        as(0, null, () => db.query('UPDATE groups SET company_agents_enabled=false WHERE id=$1', [g.groupId])),
+        as(0, null, () =>
+          db.query('UPDATE groups SET company_agents_enabled=false WHERE id=$1', [g.groupId]),
+        ),
       );
     }));
 
@@ -283,12 +292,18 @@ describe('owner controls', () => {
     isolated(async () => {
       await enableAndLink(2);
       await as(2, CLIENT, () =>
-        db.query("SELECT waves_record_agent_write('company_entry.add',$1,$2,12500,'INR')", [g.groupId, randomUUID()]),
+        db.query("SELECT waves_record_agent_write('company_entry.add',$1,$2,12500,'INR')", [
+          g.groupId,
+          randomUUID(),
+        ]),
       );
       const rows = (i: number) =>
         as(i, null, () => db.query('SELECT * FROM waves_company_agent_writes($1,10)', [g.groupId]));
       expect((await rows(0)).rows).toHaveLength(1);
-      expect((await rows(1)).rows[0]).toMatchObject({ action: 'company_entry.add', person: 'Member 3' });
+      expect((await rows(1)).rows[0]).toMatchObject({
+        action: 'company_entry.add',
+        person: 'Member 3',
+      });
       expect(await denied(() => rows(2))).toMatch(/NOT_ALLOWED/);
       expect(await denied(() => rows(4))).toMatch(/NOT_A_MEMBER/);
     }));
@@ -335,7 +350,9 @@ describe('what an assistant writes', () => {
       await addEntry(3, null, randomUUID(), 3);
       for (const i of [0, 2, 3]) await link(i);
       const seen = (i: number) =>
-        as(i, CLIENT, async () => (await db.query('SELECT member_id FROM company_entries')).rows.map((r) => r.member_id));
+        as(i, CLIENT, async () =>
+          (await db.query('SELECT member_id FROM company_entries')).rows.map((r) => r.member_id),
+        );
       expect(await seen(2)).toEqual([g.memberIds[2]]);
       expect(await seen(3)).toEqual([g.memberIds[3]]);
       expect(await seen(0)).toHaveLength(2);
@@ -347,23 +364,28 @@ describe('the database enforces the binding below the tools', () => {
     as(i, agent, async () => ({
       entries: (await db.query('SELECT 1 FROM company_entries')).rowCount,
       clients: (await db.query('SELECT 1 FROM company_clients')).rowCount,
-      members: (await db.query('SELECT 1 FROM group_members WHERE group_id=$1', [g.groupId])).rowCount,
+      members: (await db.query('SELECT 1 FROM group_members WHERE group_id=$1', [g.groupId]))
+        .rowCount,
       groups: (await db.query('SELECT 1 FROM groups WHERE id=$1', [g.groupId])).rowCount,
     }));
   const seed = async () => {
     await settings(true, false);
     await addEntry(2, null);
-    await db.query("INSERT INTO company_clients(id,group_id,name,created_by) VALUES($1,$2,'C',$3)", [
-      randomUUID(),
-      g.groupId,
-      g.memberIds[0],
-    ]);
+    await db.query(
+      "INSERT INTO company_clients(id,group_id,name,created_by) VALUES($1,$2,'C',$3)",
+      [randomUUID(), g.groupId, g.memberIds[0]],
+    );
   };
 
   it('an unlinked assistant token reads nothing of the company, the app reads as usual', () =>
     isolated(async () => {
       await seed();
-      expect(await rowsAs(0, 'never-linked')).toEqual({ entries: 0, clients: 0, members: 0, groups: 0 });
+      expect(await rowsAs(0, 'never-linked')).toEqual({
+        entries: 0,
+        clients: 0,
+        members: 0,
+        groups: 0,
+      });
       expect((await rowsAs(0, null)).entries).toBe(1);
     }));
 
@@ -428,7 +450,10 @@ describe('the database enforces the binding below the tools', () => {
       const id = await addEntry(2, null); // approved: company approvals are off
       expect(await statusOf(id)).toBe('approved');
       await as(0, CLIENT, () =>
-        db.query('SELECT waves_company_entry_update($1,$2)', [id, JSON.stringify({ amount: '99900' })]),
+        db.query('SELECT waves_company_entry_update($1,$2)', [
+          id,
+          JSON.stringify({ amount: '99900' }),
+        ]),
       );
       expect(await statusOf(id)).toBe('submitted');
     }));
@@ -448,7 +473,9 @@ describe('the database enforces the binding below the tools', () => {
       const id = randomUUID();
       expect((await add(id, '12500')).rows[0].s).toBe('submitted');
       expect((await add(id, '12500')).rows[0].s).toBe('submitted'); // a retry adds and counts nothing
-      const audit = await db.query('SELECT amount_minor FROM agent_writes WHERE object_id=$1', [id]);
+      const audit = await db.query('SELECT amount_minor FROM agent_writes WHERE object_id=$1', [
+        id,
+      ]);
       expect(audit.rows).toHaveLength(1);
       expect(await denied(() => add(randomUUID(), '5000001'))).toMatch(/AGENT_CAP_SINGLE/);
     }));
@@ -481,7 +508,12 @@ describe('a linked assistant cannot go round the tools through the plain RPCs', 
       ).rejects.toThrow(/AGENT_CAP_SINGLE/);
       const id = await addEntry(2, CLIENT);
       expect(
-        (await db.query('SELECT 1 FROM agent_writes WHERE object_id=$1 AND action=$2', [id, 'company_entry.add'])).rowCount,
+        (
+          await db.query('SELECT 1 FROM agent_writes WHERE object_id=$1 AND action=$2', [
+            id,
+            'company_entry.add',
+          ])
+        ).rowCount,
       ).toBe(1);
     }));
 
@@ -495,7 +527,12 @@ describe('a linked assistant cannot go round the tools through the plain RPCs', 
               g.groupId,
               randomUUID(),
               'expense',
-              JSON.stringify({ paidByCompany: true, amount: '100', category: 'fuel', occurredOn: today }),
+              JSON.stringify({
+                paidByCompany: true,
+                amount: '100',
+                category: 'fuel',
+                occurredOn: today,
+              }),
             ]),
           ),
         ),
@@ -521,7 +558,11 @@ describe('a linked assistant cannot go round the tools through the plain RPCs', 
       expect(await denied(() => save('bill'))).toMatch(/draft estimates/);
       await save('estimate');
       expect(
-        (await db.query("SELECT 1 FROM agent_writes WHERE action='estimate.save' AND amount_minor=100000")).rowCount,
+        (
+          await db.query(
+            "SELECT 1 FROM agent_writes WHERE action='estimate.save' AND amount_minor=100000",
+          )
+        ).rowCount,
       ).toBe(1);
     }));
 
@@ -529,7 +570,9 @@ describe('a linked assistant cannot go round the tools through the plain RPCs', 
     isolated(async () => {
       await enableAndLink(0);
       expect(
-        await denied(() => as(0, CLIENT, () => db.query('SELECT * FROM waves_company_past_people($1)', [g.groupId]))),
+        await denied(() =>
+          as(0, CLIENT, () => db.query('SELECT * FROM waves_company_past_people($1)', [g.groupId])),
+        ),
       ).toMatch(/NOT_ALLOWED/);
       await as(0, null, () => db.query('SELECT * FROM waves_company_past_people($1)', [g.groupId]));
     }));
@@ -564,7 +607,9 @@ describe('an assistant cannot turn a claim into something that skips review', ()
         "entry_kind='advance'",
         'paid_by_company=true',
       ]) {
-        expect(await denied(() => update(id, set, CLIENT)), set).toMatch(/records expense claims only|ENTRY_SCOPE|violates/);
+        expect(await denied(() => update(id, set, CLIENT)), set).toMatch(
+          /records expense claims only|ENTRY_SCOPE|violates/,
+        );
       }
     }));
 
@@ -573,7 +618,9 @@ describe('an assistant cannot turn a claim into something that skips review', ()
       await enableAndLink(2);
       const id = await addEntry(2, CLIENT);
       for (const status of ['approved', 'rejected', 'reimbursed'])
-        expect(await denied(() => update(id, `status='${status}'`, CLIENT))).toMatch(/cannot approve, reject or reimburse/);
+        expect(await denied(() => update(id, `status='${status}'`, CLIENT))).toMatch(
+          /cannot approve, reject or reimburse/,
+        );
     }));
 
   it('the app itself is unaffected: the same updates pass without an assistant claim', () =>
@@ -590,11 +637,16 @@ describe('an assistant cannot turn a claim into something that skips review', ()
       await enableAndLink(0);
       const ghost = (grp: string) =>
         withClaims(0, CLIENT, () =>
-          db.query("INSERT INTO group_members(id,group_id,ghost_name,joined_via) VALUES(gen_random_uuid(),$1,'X','ghost')", [grp]),
+          db.query(
+            "INSERT INTO group_members(id,group_id,ghost_name,joined_via) VALUES(gen_random_uuid(),$1,'X','ghost')",
+            [grp],
+          ),
         );
       expect(await denied(() => ghost(g.groupId))).toMatch(/cannot change this/);
       expect(
-        await denied(() => withClaims(0, CLIENT, () => db.query("UPDATE groups SET name='x' WHERE id=$1", [other]))),
+        await denied(() =>
+          withClaims(0, CLIENT, () => db.query("UPDATE groups SET name='x' WHERE id=$1", [other])),
+        ),
       ).toMatch(/NOT_LINKED/);
     }));
 
@@ -609,7 +661,9 @@ describe('an assistant cannot turn a claim into something that skips review', ()
     }));
 
   it('the activity log is behind the same gate', async () => {
-    const r = await db.query("SELECT 1 FROM pg_policy WHERE polrelid='public.activity_log'::regclass AND polname='company_agent_gate'");
+    const r = await db.query(
+      "SELECT 1 FROM pg_policy WHERE polrelid='public.activity_log'::regclass AND polname='company_agent_gate'",
+    );
     expect(r.rowCount).toBe(1);
   });
 });

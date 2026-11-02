@@ -177,7 +177,15 @@ function Consent() {
         setDeciding(null);
       }
     },
-    [company, companies.length, deciding, pending, t.errors.couldNotSave, t.errors.offline, t.errors.tooMany],
+    [
+      company,
+      companies.length,
+      deciding,
+      pending,
+      t.errors.couldNotSave,
+      t.errors.offline,
+      t.errors.tooMany,
+    ],
   );
 
   const back = (

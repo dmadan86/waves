@@ -81,7 +81,10 @@ describe('the client cannot choose what this screen renders', () => {
   /** An `href` on this origin is script execution, on the one screen where
    *  somebody is deciding whether to trust a stranger. */
   it('drops a javascript: website', () => {
-    const step = nextStep({ ...details, client: { id: 'client_1', name: 'Agent', uri: 'javascript:alert(1)' } });
+    const step = nextStep({
+      ...details,
+      client: { id: 'client_1', name: 'Agent', uri: 'javascript:alert(1)' },
+    });
     expect(step.kind).toBe('consent');
     if (step.kind !== 'consent') return;
     expect(step.pending.clientUri).toBeNull();
