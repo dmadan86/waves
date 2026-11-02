@@ -70,7 +70,7 @@ export function SectionShell({
       showGear={view.isOwner}
       menuItems={segment || overview ? menuItems : undefined}
       overview={overview}
-      tab={tab}
+      tab={tab || !!segment}
       subtitle={
         overview
           ? t.company.ovGlance
