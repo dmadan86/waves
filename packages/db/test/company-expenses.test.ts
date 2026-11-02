@@ -244,10 +244,15 @@ describe('company privacy and write boundaries', () => {
   it('refuses replay of an id owned by a different company', async () => {
     const otherGroup = randomUUID();
     const otherMember = randomUUID();
+    // A fixture insert, not a user creating a second company: run it without claims so the slot guard stands aside.
+    await client.query(`SELECT set_config('request.jwt.claims','',false)`);
     await client.query(
       `INSERT INTO groups(id,type,default_currency,created_by) VALUES($1,'company','INR',$2)`,
       [otherGroup, g.profileIds[0]],
     );
+    await client.query(`SELECT set_config('request.jwt.claims',$1,false)`, [
+      JSON.stringify({ sub: g.profileIds[0], role: 'authenticated' }),
+    ]);
     await client.query(
       `INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,'admin')`,
       [otherMember, otherGroup, g.profileIds[0]],
