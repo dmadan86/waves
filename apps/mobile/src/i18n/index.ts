@@ -2526,6 +2526,85 @@ export interface UiStrings {
     hubTeamSub: string;
     hubBooksSub: string;
   };
+  companyImport: {
+    title: string;
+    menuRow: string;
+    menuRowSub: string;
+    whatTitle: string;
+    employees: string;
+    employeesSub: string;
+    clients: string;
+    clientsSub: string;
+    vendors: string;
+    vendorsSub: string;
+    sourceTitle: string;
+    srcFile: string;
+    srcFileSub: string;
+    srcContacts: string;
+    srcContactsSub: string;
+    srcSheet: string;
+    srcSheetSub: string;
+    template: string;
+    templateFailed: string;
+    sheetPlaceholder: string;
+    sheetGo: string;
+    sheetBad: string;
+    sheetPrivate: string;
+    sheetTooBig: string;
+    sheetNetwork: string;
+    fileTooLarge: string;
+    fileTooMany: string;
+    fileEmpty: string;
+    fileEncoding: string;
+    fileUnreadable: string;
+    noRows: string;
+    columnsTitle: string;
+    columnsHint: string;
+    none: string;
+    fName: string;
+    fPhone: string;
+    fEmployeeId: string;
+    fDepartment: string;
+    fManager: string;
+    fJoinedOn: string;
+    fDailyRate: string;
+    fNeed: string;
+    fSource: string;
+    fAddress: string;
+    fExpectedValue: string;
+    fStage: string;
+    fCategory: string;
+    fOpeningBalance: string;
+    previewTitle: string;
+    cNew: string;
+    cDup: string;
+    cErr: string;
+    importN: string;
+    next: string;
+    back: string;
+    progress: string;
+    resultTitle: string;
+    resultLine: string;
+    downloadErrors: string;
+    done: string;
+    pName: string;
+    pPhone: string;
+    pDate: string;
+    pAmount: string;
+    pNegative: string;
+    pDupFile: string;
+    pDupExisting: string;
+    pFailed: string;
+    wDept: string;
+    wManager: string;
+    wEmpId: string;
+    wStage: string;
+    warnLine: string;
+    noAccess: string;
+    errCsvRow: string;
+    errCsvProblem: string;
+    contactsAdded: string;
+  };
   companyVendors: {
     subtitle: string;
     receipts: string;
@@ -10051,6 +10130,86 @@ const en: UiStrings = {
     hubTeamSub: 'People, work and attendance',
     hubBooksSub: 'Records, reports and setup',
   },
+  companyImport: {
+    title: 'Import',
+    menuRow: 'Import',
+    menuRowSub: 'Employees, clients and vendors from a file, contacts or Google Sheets',
+    whatTitle: 'What do you want to import?',
+    employees: 'Employees',
+    employeesSub: 'Name, phone, ID, joining date',
+    clients: 'Clients & enquiries',
+    clientsSub: 'Name, phone, requirement, status',
+    vendors: 'Vendors',
+    vendorsSub: 'Name, phone, category, opening balance',
+    sourceTitle: 'Where is it?',
+    srcFile: 'Excel or CSV file',
+    srcFileSub: '.xlsx, .xls or .csv',
+    srcContacts: 'Phone contacts',
+    srcContactsSub: 'Pick people from your address book',
+    srcSheet: 'Google Sheet link',
+    srcSheetSub: 'Shared as Anyone with the link can view',
+    template: 'Download template',
+    templateFailed: 'Could not share the template.',
+    sheetPlaceholder: 'Paste the share link',
+    sheetGo: 'Read sheet',
+    sheetBad: 'That is not a Google Sheets link.',
+    sheetPrivate:
+      'Waves cannot open this sheet. Share it as Anyone with the link can view, then try again.',
+    sheetTooBig: 'That sheet is too large (5 MB at most).',
+    sheetNetwork: 'Could not reach Google Sheets. Check your connection.',
+    fileTooLarge: 'That file is too large (5 MB at most).',
+    fileTooMany: 'Too many rows (2,000 at most).',
+    fileEmpty: 'That file has nothing in it.',
+    fileEncoding: 'Save the file as CSV UTF-8 and try again.',
+    fileUnreadable: 'Could not read that file. Try saving it as CSV.',
+    noRows: 'No rows found below the header.',
+    columnsTitle: 'Match the columns',
+    columnsHint: 'The first row is read as headers. Change a match if it is wrong.',
+    none: 'Not in my file',
+    fName: 'Name',
+    fPhone: 'Phone',
+    fEmployeeId: 'Employee ID',
+    fDepartment: 'Department',
+    fManager: 'Manager',
+    fJoinedOn: 'Joining date',
+    fDailyRate: 'Daily rate',
+    fNeed: 'Requirement',
+    fSource: 'Source',
+    fAddress: 'Address',
+    fExpectedValue: 'Expected value',
+    fStage: 'Status',
+    fCategory: 'Category',
+    fOpeningBalance: 'Opening balance (to pay)',
+    previewTitle: 'Check before importing',
+    cNew: '{n} new',
+    cDup: '{n} duplicates, skipped',
+    cErr: '{n} with errors, skipped',
+    importN: 'Import {n}',
+    next: 'Continue',
+    back: 'Back',
+    progress: 'Adding {done} of {total}',
+    resultTitle: 'Import finished',
+    resultLine: '{added} added, {dups} skipped as duplicates, {errors} errors',
+    downloadErrors: 'Download error rows',
+    done: 'Done',
+    pName: 'Name is missing',
+    pPhone: 'Phone number is not valid',
+    pDate: 'Date is not valid',
+    pAmount: 'Amount is not valid',
+    pNegative: 'Amount cannot be negative',
+    pDupFile: 'Repeated in this file',
+    pDupExisting: 'Already in your list',
+    pFailed: 'Could not add this one. Try again.',
+    wDept: 'Department not found, left blank',
+    wManager: 'Manager not found, left blank',
+    wEmpId: 'Employee ID already used, left blank',
+    wStage: 'Status not recognised, added as client',
+    warnLine: '{n} rows were added without some details.',
+    noAccess: 'Only owners and managers can import.',
+    errCsvRow: 'Row',
+    errCsvProblem: 'Problem',
+    contactsAdded: '{n} contacts picked',
+  },
   companyVendors: {
     subtitle: 'Bills · Payments · Receipts',
     receipts: 'Receipts',
@@ -17037,6 +17196,87 @@ const ta: UiStrings = {
     hubOutSub: 'செலவுகள், பணம் செலுத்துதலை நிர்வகிக்கவும்',
     hubTeamSub: 'ஆட்கள், வேலை, வருகை',
     hubBooksSub: 'பதிவுகள், அறிக்கைகள், அமைப்பு',
+  },
+  companyImport: {
+    title: 'இறக்குமதி',
+    menuRow: 'இறக்குமதி',
+    menuRowSub:
+      'கோப்பு, தொடர்புகள் அல்லது Google Sheets-இலிருந்து ஊழியர்கள், வாடிக்கையாளர்கள், விற்பனையாளர்கள்',
+    whatTitle: 'எதை இறக்குமதி செய்ய வேண்டும்?',
+    employees: 'ஊழியர்கள்',
+    employeesSub: 'பெயர், தொலைபேசி, ஐடி, சேர்ந்த தேதி',
+    clients: 'வாடிக்கையாளர்கள் & விசாரணைகள்',
+    clientsSub: 'பெயர், தொலைபேசி, தேவை, நிலை',
+    vendors: 'விற்பனையாளர்கள்',
+    vendorsSub: 'பெயர், தொலைபேசி, வகை, தொடக்க இருப்பு',
+    sourceTitle: 'எங்கே உள்ளது?',
+    srcFile: 'Excel அல்லது CSV கோப்பு',
+    srcFileSub: '.xlsx, .xls அல்லது .csv',
+    srcContacts: 'தொலைபேசி தொடர்புகள்',
+    srcContactsSub: 'முகவரி புத்தகத்திலிருந்து தேர்ந்தெடுக்கவும்',
+    srcSheet: 'Google Sheet இணைப்பு',
+    srcSheetSub: 'இணைப்பு உள்ள அனைவரும் பார்க்கலாம் என பகிரவும்',
+    template: 'மாதிரி கோப்பைப் பதிவிறக்கு',
+    templateFailed: 'மாதிரியைப் பகிர முடியவில்லை.',
+    sheetPlaceholder: 'பகிர்வு இணைப்பை ஒட்டவும்',
+    sheetGo: 'Sheet-ஐப் படி',
+    sheetBad: 'இது Google Sheets இணைப்பு அல்ல.',
+    sheetPrivate:
+      'Waves-ஆல் இந்த Sheet-ஐத் திறக்க முடியவில்லை. இணைப்பு உள்ள அனைவரும் பார்க்கலாம் என பகிர்ந்து மீண்டும் முயற்சிக்கவும்.',
+    sheetTooBig: 'அந்த Sheet மிகப் பெரியது (அதிகபட்சம் 5 MB).',
+    sheetNetwork: 'Google Sheets-ஐ அடைய முடியவில்லை. இணைப்பைச் சரிபார்க்கவும்.',
+    fileTooLarge: 'அந்தக் கோப்பு மிகப் பெரியது (அதிகபட்சம் 5 MB).',
+    fileTooMany: 'வரிசைகள் மிக அதிகம் (அதிகபட்சம் 2,000).',
+    fileEmpty: 'அந்தக் கோப்பில் எதுவும் இல்லை.',
+    fileEncoding: 'கோப்பை CSV UTF-8 ஆகச் சேமித்து மீண்டும் முயற்சிக்கவும்.',
+    fileUnreadable: 'அந்தக் கோப்பைப் படிக்க முடியவில்லை. CSV ஆகச் சேமித்துப் பார்க்கவும்.',
+    noRows: 'தலைப்பு வரிசைக்குக் கீழே வரிசைகள் இல்லை.',
+    columnsTitle: 'நெடுவரிசைகளைப் பொருத்தவும்',
+    columnsHint: 'முதல் வரிசை தலைப்புகளாகப் படிக்கப்படும். தவறாக இருந்தால் மாற்றவும்.',
+    none: 'என் கோப்பில் இல்லை',
+    fName: 'பெயர்',
+    fPhone: 'தொலைபேசி',
+    fEmployeeId: 'ஊழியர் ஐடி',
+    fDepartment: 'துறை',
+    fManager: 'மேலாளர்',
+    fJoinedOn: 'சேர்ந்த தேதி',
+    fDailyRate: 'தினசரி ஊதியம்',
+    fNeed: 'தேவை',
+    fSource: 'மூலம்',
+    fAddress: 'முகவரி',
+    fExpectedValue: 'எதிர்பார்க்கும் மதிப்பு',
+    fStage: 'நிலை',
+    fCategory: 'வகை',
+    fOpeningBalance: 'தொடக்க இருப்பு (தர வேண்டியது)',
+    previewTitle: 'இறக்குமதிக்கு முன் சரிபார்க்கவும்',
+    cNew: '{n} புதியவை',
+    cDup: '{n} நகல்கள், தவிர்க்கப்பட்டன',
+    cErr: '{n} பிழைகள், தவிர்க்கப்பட்டன',
+    importN: '{n} இறக்குமதி செய்',
+    next: 'தொடர்',
+    back: 'பின்',
+    progress: '{total}-இல் {done} சேர்க்கப்படுகிறது',
+    resultTitle: 'இறக்குமதி முடிந்தது',
+    resultLine: '{added} சேர்க்கப்பட்டன, {dups} நகல்களாகத் தவிர்க்கப்பட்டன, {errors} பிழைகள்',
+    downloadErrors: 'பிழை வரிசைகளைப் பதிவிறக்கு',
+    done: 'முடிந்தது',
+    pName: 'பெயர் இல்லை',
+    pPhone: 'தொலைபேசி எண் செல்லாது',
+    pDate: 'தேதி செல்லாது',
+    pAmount: 'தொகை செல்லாது',
+    pNegative: 'தொகை எதிர்மறையாக இருக்கக் கூடாது',
+    pDupFile: 'இந்தக் கோப்பில் மீண்டும் உள்ளது',
+    pDupExisting: 'ஏற்கனவே பட்டியலில் உள்ளது',
+    pFailed: 'இதைச் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    wDept: 'துறை கிடைக்கவில்லை, காலியாக விடப்பட்டது',
+    wManager: 'மேலாளர் கிடைக்கவில்லை, காலியாக விடப்பட்டது',
+    wEmpId: 'ஊழியர் ஐடி ஏற்கனவே உள்ளது, காலியாக விடப்பட்டது',
+    wStage: 'நிலை அறியப்படவில்லை, வாடிக்கையாளராகச் சேர்க்கப்பட்டது',
+    warnLine: '{n} வரிசைகள் சில விவரங்கள் இல்லாமல் சேர்க்கப்பட்டன.',
+    noAccess: 'உரிமையாளர்களும் மேலாளர்களும் மட்டுமே இறக்குமதி செய்யலாம்.',
+    errCsvRow: 'வரிசை',
+    errCsvProblem: 'சிக்கல்',
+    contactsAdded: '{n} தொடர்புகள் தேர்ந்தெடுக்கப்பட்டன',
   },
   companyVendors: {
     subtitle: 'பில்கள் · கட்டணங்கள் · ரசீதுகள்',
@@ -24185,6 +24425,86 @@ const hi: UiStrings = {
     hubTeamSub: 'लोग, काम और हाज़िरी',
     hubBooksSub: 'रिकॉर्ड, रिपोर्ट और सेटअप',
   },
+  companyImport: {
+    title: 'इम्पोर्ट',
+    menuRow: 'इम्पोर्ट',
+    menuRowSub: 'फ़ाइल, कॉन्टैक्ट या Google Sheets से कर्मचारी, ग्राहक और विक्रेता',
+    whatTitle: 'क्या इम्पोर्ट करना है?',
+    employees: 'कर्मचारी',
+    employeesSub: 'नाम, फ़ोन, आईडी, जॉइनिंग तिथि',
+    clients: 'ग्राहक और पूछताछ',
+    clientsSub: 'नाम, फ़ोन, ज़रूरत, स्थिति',
+    vendors: 'विक्रेता',
+    vendorsSub: 'नाम, फ़ोन, श्रेणी, ओपनिंग बैलेंस',
+    sourceTitle: 'कहाँ से?',
+    srcFile: 'Excel या CSV फ़ाइल',
+    srcFileSub: '.xlsx, .xls या .csv',
+    srcContacts: 'फ़ोन कॉन्टैक्ट',
+    srcContactsSub: 'अपनी एड्रेस बुक से लोग चुनें',
+    srcSheet: 'Google Sheet लिंक',
+    srcSheetSub: 'लिंक वाला कोई भी देख सके, ऐसे शेयर करें',
+    template: 'टेम्पलेट डाउनलोड करें',
+    templateFailed: 'टेम्पलेट शेयर नहीं हो सका।',
+    sheetPlaceholder: 'शेयर लिंक पेस्ट करें',
+    sheetGo: 'शीट पढ़ें',
+    sheetBad: 'यह Google Sheets का लिंक नहीं है।',
+    sheetPrivate:
+      'Waves यह शीट नहीं खोल पा रहा। इसे लिंक वाला कोई भी देख सके, ऐसे शेयर करें, फिर दोबारा कोशिश करें।',
+    sheetTooBig: 'यह शीट बहुत बड़ी है (अधिकतम 5 MB)।',
+    sheetNetwork: 'Google Sheets तक नहीं पहुँच सके। कनेक्शन जाँचें।',
+    fileTooLarge: 'यह फ़ाइल बहुत बड़ी है (अधिकतम 5 MB)।',
+    fileTooMany: 'बहुत ज़्यादा पंक्तियाँ (अधिकतम 2,000)।',
+    fileEmpty: 'इस फ़ाइल में कुछ नहीं है।',
+    fileEncoding: 'फ़ाइल को CSV UTF-8 में सेव करके दोबारा कोशिश करें।',
+    fileUnreadable: 'फ़ाइल पढ़ी नहीं जा सकी। उसे CSV में सेव करके देखें।',
+    noRows: 'हेडर के नीचे कोई पंक्ति नहीं मिली।',
+    columnsTitle: 'कॉलम मिलाएँ',
+    columnsHint: 'पहली पंक्ति हेडर मानी जाती है। गलत हो तो बदलें।',
+    none: 'मेरी फ़ाइल में नहीं है',
+    fName: 'नाम',
+    fPhone: 'फ़ोन',
+    fEmployeeId: 'कर्मचारी आईडी',
+    fDepartment: 'विभाग',
+    fManager: 'मैनेजर',
+    fJoinedOn: 'जॉइनिंग तिथि',
+    fDailyRate: 'दैनिक दर',
+    fNeed: 'ज़रूरत',
+    fSource: 'स्रोत',
+    fAddress: 'पता',
+    fExpectedValue: 'अपेक्षित मूल्य',
+    fStage: 'स्थिति',
+    fCategory: 'श्रेणी',
+    fOpeningBalance: 'ओपनिंग बैलेंस (देना है)',
+    previewTitle: 'इम्पोर्ट से पहले जाँचें',
+    cNew: '{n} नए',
+    cDup: '{n} डुप्लिकेट, छोड़े गए',
+    cErr: '{n} में गलती, छोड़े गए',
+    importN: '{n} इम्पोर्ट करें',
+    next: 'आगे',
+    back: 'पीछे',
+    progress: '{total} में से {done} जोड़े जा रहे हैं',
+    resultTitle: 'इम्पोर्ट पूरा हुआ',
+    resultLine: '{added} जोड़े गए, {dups} डुप्लिकेट होने से छोड़े गए, {errors} गलतियाँ',
+    downloadErrors: 'गलत पंक्तियाँ डाउनलोड करें',
+    done: 'पूरा हुआ',
+    pName: 'नाम नहीं है',
+    pPhone: 'फ़ोन नंबर सही नहीं है',
+    pDate: 'तिथि सही नहीं है',
+    pAmount: 'राशि सही नहीं है',
+    pNegative: 'राशि ऋणात्मक नहीं हो सकती',
+    pDupFile: 'इस फ़ाइल में दोहराया गया',
+    pDupExisting: 'पहले से सूची में है',
+    pFailed: 'यह जोड़ा नहीं जा सका। दोबारा कोशिश करें।',
+    wDept: 'विभाग नहीं मिला, खाली छोड़ा',
+    wManager: 'मैनेजर नहीं मिला, खाली छोड़ा',
+    wEmpId: 'कर्मचारी आईडी पहले से इस्तेमाल में है, खाली छोड़ी',
+    wStage: 'स्थिति पहचानी नहीं गई, ग्राहक के रूप में जोड़ा',
+    warnLine: '{n} पंक्तियाँ कुछ जानकारी के बिना जोड़ी गईं।',
+    noAccess: 'सिर्फ़ मालिक और मैनेजर इम्पोर्ट कर सकते हैं।',
+    errCsvRow: 'पंक्ति',
+    errCsvProblem: 'समस्या',
+    contactsAdded: '{n} कॉन्टैक्ट चुने गए',
+  },
   companyVendors: {
     subtitle: 'बिल · भुगतान · रसीदें',
     receipts: 'रसीदें',
@@ -31267,6 +31587,86 @@ const ar: UiStrings = {
     hubOutSub: 'إدارة المصروفات والمدفوعات',
     hubTeamSub: 'الأشخاص والعمل والحضور',
     hubBooksSub: 'السجلات والتقارير والإعداد',
+  },
+  companyImport: {
+    title: 'استيراد',
+    menuRow: 'استيراد',
+    menuRowSub: 'موظفون وعملاء وموردون من ملف أو جهات الاتصال أو Google Sheets',
+    whatTitle: 'ماذا تريد أن تستورد؟',
+    employees: 'الموظفون',
+    employeesSub: 'الاسم، الهاتف، المعرّف، تاريخ الانضمام',
+    clients: 'العملاء والاستفسارات',
+    clientsSub: 'الاسم، الهاتف، الطلب، الحالة',
+    vendors: 'الموردون',
+    vendorsSub: 'الاسم، الهاتف، الفئة، الرصيد الافتتاحي',
+    sourceTitle: 'من أين؟',
+    srcFile: 'ملف Excel أو CSV',
+    srcFileSub: '.xlsx أو .xls أو .csv',
+    srcContacts: 'جهات اتصال الهاتف',
+    srcContactsSub: 'اختر أشخاصاً من دفتر العناوين',
+    srcSheet: 'رابط Google Sheet',
+    srcSheetSub: 'شاركه ليتمكن أي شخص لديه الرابط من العرض',
+    template: 'تنزيل القالب',
+    templateFailed: 'تعذّرت مشاركة القالب.',
+    sheetPlaceholder: 'الصق رابط المشاركة',
+    sheetGo: 'قراءة الجدول',
+    sheetBad: 'هذا ليس رابط Google Sheets.',
+    sheetPrivate:
+      'لا يستطيع Waves فتح هذا الجدول. شاركه ليتمكن أي شخص لديه الرابط من العرض ثم حاول مجدداً.',
+    sheetTooBig: 'الجدول كبير جداً (5 ميغابايت كحد أقصى).',
+    sheetNetwork: 'تعذّر الوصول إلى Google Sheets. تحقق من اتصالك.',
+    fileTooLarge: 'الملف كبير جداً (5 ميغابايت كحد أقصى).',
+    fileTooMany: 'عدد الصفوف كبير جداً (2,000 كحد أقصى).',
+    fileEmpty: 'الملف فارغ.',
+    fileEncoding: 'احفظ الملف بصيغة CSV UTF-8 وحاول مجدداً.',
+    fileUnreadable: 'تعذّرت قراءة الملف. جرّب حفظه بصيغة CSV.',
+    noRows: 'لا توجد صفوف تحت صف العناوين.',
+    columnsTitle: 'مطابقة الأعمدة',
+    columnsHint: 'يُقرأ الصف الأول كعناوين. غيّر المطابقة إذا كانت خاطئة.',
+    none: 'غير موجود في ملفي',
+    fName: 'الاسم',
+    fPhone: 'الهاتف',
+    fEmployeeId: 'معرّف الموظف',
+    fDepartment: 'القسم',
+    fManager: 'المدير',
+    fJoinedOn: 'تاريخ الانضمام',
+    fDailyRate: 'الأجر اليومي',
+    fNeed: 'الطلب',
+    fSource: 'المصدر',
+    fAddress: 'العنوان',
+    fExpectedValue: 'القيمة المتوقعة',
+    fStage: 'الحالة',
+    fCategory: 'الفئة',
+    fOpeningBalance: 'الرصيد الافتتاحي (المستحق)',
+    previewTitle: 'تحقق قبل الاستيراد',
+    cNew: '{n} جديد',
+    cDup: '{n} مكرر، تم تخطيه',
+    cErr: '{n} بأخطاء، تم تخطيه',
+    importN: 'استيراد {n}',
+    next: 'متابعة',
+    back: 'رجوع',
+    progress: 'جارٍ إضافة {done} من {total}',
+    resultTitle: 'اكتمل الاستيراد',
+    resultLine: 'تمت إضافة {added}، وتخطي {dups} كمكرر، و{errors} أخطاء',
+    downloadErrors: 'تنزيل الصفوف الخاطئة',
+    done: 'تم',
+    pName: 'الاسم مفقود',
+    pPhone: 'رقم الهاتف غير صالح',
+    pDate: 'التاريخ غير صالح',
+    pAmount: 'المبلغ غير صالح',
+    pNegative: 'لا يمكن أن يكون المبلغ سالباً',
+    pDupFile: 'مكرر في هذا الملف',
+    pDupExisting: 'موجود بالفعل في قائمتك',
+    pFailed: 'تعذّرت إضافة هذا. حاول مجدداً.',
+    wDept: 'القسم غير موجود، تُرك فارغاً',
+    wManager: 'المدير غير موجود، تُرك فارغاً',
+    wEmpId: 'معرّف الموظف مستخدم بالفعل، تُرك فارغاً',
+    wStage: 'الحالة غير معروفة، أُضيف كعميل',
+    warnLine: 'أُضيفت {n} صفوف دون بعض التفاصيل.',
+    noAccess: 'يمكن للمالكين والمديرين فقط الاستيراد.',
+    errCsvRow: 'الصف',
+    errCsvProblem: 'المشكلة',
+    contactsAdded: 'تم اختيار {n} من جهات الاتصال',
   },
   companyVendors: {
     subtitle: 'الفواتير · المدفوعات · الإيصالات',

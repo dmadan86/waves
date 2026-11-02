@@ -82,6 +82,15 @@ export default function TeamScreen({
       },
     },
     { icon: 'download-outline', label: t.company.exportAction, route: `/group/${groupId}/export` },
+    ...(view.isAdmin && !view.suspended
+      ? [
+          {
+            icon: 'cloud-upload-outline',
+            label: t.companyImport.menuRow,
+            route: `/group/${groupId}/company-import?entity=employee`,
+          } as OverflowMenuItem,
+        ]
+      : []),
     ...(view.isOwner && !view.suspended
       ? [
           {
