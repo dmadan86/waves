@@ -12539,7 +12539,7 @@ const en: UiStrings = {
     rejectConfirm: 'Reject',
     cancelSettlement: 'Cancel payment',
     paymentsToSettle: 'Payments to settle',
-    everyonesBalance: 'Everyone’s balance',
+    everyonesBalance: 'Where everyone stands',
     cancelTitle: 'Cancel this payment?',
     cancelBody:
       'Removes the payment you recorded. {name} won’t be asked to confirm it, and no balance changes.',
@@ -19733,7 +19733,7 @@ const ta: UiStrings = {
     rejectConfirm: 'நிராகரி',
     cancelSettlement: 'பணத்தை ரத்து செய்',
     paymentsToSettle: 'தீர்க்க வேண்டிய கொடுப்பனவுகள்',
-    everyonesBalance: 'அனைவரின் இருப்பு',
+    everyonesBalance: 'ஒவ்வொருவரின் நிலை',
     cancelTitle: 'இந்தப் பணத்தை ரத்து செய்யவா?',
     cancelBody:
       'நீங்கள் பதிவு செய்த பணத்தை நீக்கும். {name} உறுதிப்படுத்தக் கேட்கப்பட மாட்டார், எந்த இருப்பும் மாறாது.',
@@ -26955,7 +26955,7 @@ const hi: UiStrings = {
     rejectConfirm: 'अस्वीकारें',
     cancelSettlement: 'भुगतान रद्द करें',
     paymentsToSettle: 'चुकाने वाले भुगतान',
-    everyonesBalance: 'सबका बैलेंस',
+    everyonesBalance: 'किसका कितना',
     cancelTitle: 'यह भुगतान रद्द करें?',
     cancelBody:
       'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
@@ -34321,7 +34321,7 @@ const ar: UiStrings = {
     rejectConfirm: 'رفض',
     cancelSettlement: 'إلغاء الدفعة',
     paymentsToSettle: 'دفعات للتسوية',
-    everyonesBalance: 'رصيد الجميع',
+    everyonesBalance: 'وضع كل شخص',
     cancelTitle: 'إلغاء هذه الدفعة؟',
     cancelBody:
       'سيؤدي هذا إلى إزالة الدفعة التي سجّلتها. لن يُطلب من {name} تأكيدها، ولا يتغيّر أي رصيد.',

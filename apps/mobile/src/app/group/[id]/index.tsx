@@ -1514,49 +1514,20 @@ function LedgerGroupScreen() {
             <SectionHeader
               title={t.group.everyonesBalance}
               trailing={
-                familiesOn ? (
+                <Row style={{ gap: theme.spacing.xs }}>
+                  {familiesOn ? (
+                    <PillButton
+                      label={lens === 'families' ? t.families.byFamily : t.families.byPerson}
+                      onPress={() => void pickLens()}
+                    />
+                  ) : null}
                   <PillButton
-                    label={lens === 'families' ? t.families.byFamily : t.families.byPerson}
-                    onPress={() => void pickLens()}
+                    label={t.misc.balanceSimplified}
+                    onPress={() => router.push(`/group/${groupId}/simplify`)}
                   />
-                ) : undefined
+                </Row>
               }
             />
-            <Row
-              style={{
-                alignSelf: 'flex-end',
-                backgroundColor: theme.color.brandSoft,
-                borderRadius: theme.radius.pill,
-                padding: theme.spacing.xs,
-              }}
-            >
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: true }}
-                accessibilityLabel={t.sort.amount}
-                style={{
-                  backgroundColor: theme.color.brand,
-                  borderRadius: theme.radius.pill,
-                  paddingHorizontal: theme.spacing.md,
-                  paddingVertical: theme.spacing.sm,
-                }}
-              >
-                <Text variant="caption" tone="onBrand">
-                  {t.sort.amount}
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: false }}
-                accessibilityLabel={t.misc.balanceSimplified}
-                onPress={() => router.push(`/group/${groupId}/simplify`)}
-                style={{ paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm }}
-              >
-                <Text variant="caption" tone="brand">
-                  {t.misc.balanceSimplified}
-                </Text>
-              </Pressable>
-            </Row>
           </View>
         ) : null}
       </>
