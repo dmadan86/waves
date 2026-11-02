@@ -4,13 +4,14 @@ import type { PlanTransfer } from './settlePlan';
 /** Amount order comes from the ledger's currency-aware grouping; never sum currencies. */
 export function sortPeopleDebts(
   people: readonly PersonDebts[],
-  sort: 'amount' | 'name',
+  sort: 'amount' | 'amountLow' | 'name',
   nameOf: (id: string) => string,
   locale: string,
 ): PersonDebts[] {
-  return sort === 'amount'
-    ? [...people]
-    : [...people].sort((a, b) => nameOf(a.memberId).localeCompare(nameOf(b.memberId), locale));
+  if (sort === 'amount') return [...people];
+  // Low-first is the same grouped order read backwards.
+  if (sort === 'amountLow') return [...people].reverse();
+  return [...people].sort((a, b) => nameOf(a.memberId).localeCompare(nameOf(b.memberId), locale));
 }
 
 export function filterOtherTransfers(

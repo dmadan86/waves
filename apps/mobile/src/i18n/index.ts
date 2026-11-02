@@ -5650,6 +5650,10 @@ export interface UiStrings {
     paymentsToMake: string;
     balanceSortAmount: string;
     balanceSortName: string;
+    sortPill: string;
+    sortAmountHigh: string;
+    sortAmountLow: string;
+    settleInOneGo: string;
     balanceSimplified: string;
     balanceIsOwed: string;
     balanceOwesYou: string;
@@ -12678,6 +12682,10 @@ const en: UiStrings = {
     paymentsToMake: 'Payments to make',
     balanceSortAmount: 'Sort by amount',
     balanceSortName: 'Sort by name',
+    sortPill: 'Sort: {label}',
+    sortAmountHigh: 'Amount high',
+    sortAmountLow: 'Amount low',
+    settleInOneGo: 'Settle in one go',
     balanceSimplified: 'Simplified',
     balanceIsOwed: 'is owed',
     balanceOwesYou: 'owes you',
@@ -19752,6 +19760,10 @@ const ta: UiStrings = {
     paymentsToMake: 'செலுத்த வேண்டியவை',
     balanceSortAmount: 'தொகைப்படி வரிசை',
     balanceSortName: 'பெயர்ப்படி வரிசை',
+    sortPill: 'வரிசை: {label}',
+    sortAmountHigh: 'அதிக தொகை',
+    sortAmountLow: 'குறைந்த தொகை',
+    settleInOneGo: 'ஒரே முறையில் தீர்க்கவும்',
     balanceSimplified: 'எளிமைப்படுத்தியது',
     balanceIsOwed: 'பெற வேண்டும்',
     balanceOwesYou: 'உங்களுக்குத் தர வேண்டும்',
@@ -26819,6 +26831,10 @@ const hi: UiStrings = {
     paymentsToMake: 'करने वाले भुगतान',
     balanceSortAmount: 'राशि के अनुसार',
     balanceSortName: 'नाम के अनुसार',
+    sortPill: 'क्रम: {label}',
+    sortAmountHigh: 'ज़्यादा राशि',
+    sortAmountLow: 'कम राशि',
+    settleInOneGo: 'एक साथ निपटाएँ',
     balanceSimplified: 'सरलीकृत',
     balanceIsOwed: 'लेना है',
     balanceOwesYou: 'आपको देना है',
@@ -34097,6 +34113,10 @@ const ar: UiStrings = {
     paymentsToMake: 'دفعات مستحقة',
     balanceSortAmount: 'ترتيب حسب المبلغ',
     balanceSortName: 'ترتيب حسب الاسم',
+    sortPill: 'ترتيب: {label}',
+    sortAmountHigh: 'الأعلى مبلغًا',
+    sortAmountLow: 'الأقل مبلغًا',
+    settleInOneGo: 'سوّ الحسابات دفعة واحدة',
     balanceSimplified: 'مبسّط',
     balanceIsOwed: 'له مستحقات',
     balanceOwesYou: 'مدين لك',
