@@ -864,10 +864,8 @@ function AuthGate() {
             options={({ route }) => {
               // `nav` is set by the company bar: a tab switch cuts, a Back-replace pops.
               const nav = (route.params as { nav?: string } | undefined)?.nav;
-              // A short fade, not 'none': the same option also drives this screen's exit to Home.
-              if (nav === 'launch') return { animation: 'none' };
-              if (nav === 'tab')
-                return { animation: reduceMotion ? 'none' : 'fade', animationDuration: 120 };
+              // Bar switches cut, like every other tab: a fade here cross-faded Home against its siblings.
+              if (nav === 'launch' || nav === 'tab') return { animation: 'none' };
               if (nav === 'back') return { animation: push, animationTypeForReplace: 'pop' };
               return slide;
             }}
@@ -904,7 +902,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/company-payments" options={{ animation: 'none' }} />
           <Stack.Screen name="group/[id]/company-vendors" options={{ animation: 'none' }} />
           <Stack.Screen name="group/[id]/company-more" options={{ animation: 'none' }} />
-          <Stack.Screen name="group/[id]/company-clients" />
+          <Stack.Screen name="group/[id]/company-clients" options={{ animation: 'none' }} />
           <Stack.Screen name="group/[id]/company-client" />
           <Stack.Screen name="group/[id]/company-client-add" />
           <Stack.Screen name="group/[id]/company-followups" />

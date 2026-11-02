@@ -35,11 +35,13 @@ const between = (source: string, from: string, to: string): string => {
 describe('settings page layout', () => {
   it('uses a plain header with a back arrow, the title and a ⋮ that opens the exit sheet', () => {
     expect(SCREEN).toContain('<PlainHeader');
-    expect(SCREEN).not.toContain('<ScenicHeader');
-    const header = between(SCREEN, '<PlainHeader', '/>\n\n');
+    // Only a company gets the scenic header; every other group keeps the plain one.
+    expect(SCREEN).toContain('{isCompany ? (\n          <ScenicHeader');
+    const header = between(SCREEN, '<PlainHeader', ')}');
     expect(header).toContain('t.group.settings');
-    expect(header).toContain('ellipsis-vertical');
-    expect(header).toContain('setExitOpen(true)');
+    const exit = between(SCREEN, 'const exitButton', 'const scrollToLogo');
+    expect(exit).toContain('ellipsis-vertical');
+    expect(exit).toContain('setExitOpen(true)');
   });
 
   it('draws the header inside the one card: cover with a camera badge, name with a pencil, members then created', () => {
@@ -57,7 +59,7 @@ describe('settings page layout', () => {
   it('has group type as a pill row opening a sheet of the six kinds, and no inline chips', () => {
     const card = between(
       SCREEN,
-      't.extras.groupTypeTitle}\n                  trailing',
+      't.extras.groupTypeTitle}\n                    trailing',
       'setTypeOpen(true)',
     );
     expect(card).toContain('currentType.label');
@@ -82,7 +84,7 @@ describe('settings page layout', () => {
   it('shows Other currencies for every group type, as a row that opens the rates editor in a sheet', () => {
     const row = between(
       SCREEN,
-      't.fx.otherCurrencies}\n              subtitle',
+      't.fx.otherCurrencies}\n                subtitle',
       'setRatesOpen(true)',
     );
     expect(row).toContain('t.fx.currencyOnly');

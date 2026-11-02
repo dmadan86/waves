@@ -1012,6 +1012,7 @@ export interface UiStrings {
       notFound: string;
       conflict: string;
       guestExpired: string;
+      companySlot: string;
       generic: string;
     };
     title: string;
@@ -1504,6 +1505,24 @@ export interface UiStrings {
     notesOptional: string;
     paymentStatus: string;
     saveShare: string;
+    createdBy: string;
+    activity: string;
+    nextAction: string;
+    add: string;
+    duplicate: string;
+    print: string;
+    markSent: string;
+    paymentEvt: string;
+    viewAll: string;
+    showLess: string;
+    editEstimate: string;
+    editBill: string;
+    saveChanges: string;
+    preview: string;
+    estimateNo: string;
+    billNo: string;
+    status: string;
+    detailsTitle: string;
   };
   company: {
     attendanceTitle: string;
@@ -1750,6 +1769,13 @@ export interface UiStrings {
     agentsActions: string;
     agentsLastUsed: string;
     agentsNeverUsed: string;
+    companyRulesTitle: string;
+    moreSettings: string;
+    moreSettingsHint: string;
+    tileCurrency: string;
+    tileDetails: string;
+    tileBranding: string;
+    tileBrandingHint: string;
     pendingNone: string;
     pendingNoneBody: string;
     pendingVendorBills: string;
@@ -1989,6 +2015,9 @@ export interface UiStrings {
     moreOptions: string;
     wageFormula: string;
     canPayPeople: string;
+    canPayPeopleHint: string;
+    employeeDetails: string;
+    permissions: string;
     setDailyRate: string;
     kAllocation: string;
     kPoolReturn: string;
@@ -2270,6 +2299,74 @@ export interface UiStrings {
     notCounted: string;
     exportAction: string;
   };
+  companyTickets: {
+    title: string;
+    tOpen: string;
+    tEscalated: string;
+    tResolved: string;
+    newComplaint: string;
+    editComplaint: string;
+    emptyTitle: string;
+    emptyBody: string;
+    emptyTab: string;
+    seeAll: string;
+    noneForClient: string;
+    clientLabel: string;
+    noClient: string;
+    pickClient: string;
+    searchClients: string;
+    titlePh: string;
+    detailsPh: string;
+    priority: string;
+    pLow: string;
+    pNormal: string;
+    pHigh: string;
+    pUrgent: string;
+    assignedTo: string;
+    assignTo: string;
+    you: string;
+    someone: string;
+    owner: string;
+    save: string;
+    log: string;
+    dueIn: string;
+    overdue: string;
+    escalatedTo: string;
+    unitM: string;
+    unitH: string;
+    unitD: string;
+    call: string;
+    whatsapp: string;
+    reassign: string;
+    actStart: string;
+    actResolve: string;
+    actReopen: string;
+    actClose: string;
+    resolveTitle: string;
+    resolvePh: string;
+    solved: string;
+    stOpen: string;
+    stInProgress: string;
+    stResolved: string;
+    stClosed: string;
+    timeline: string;
+    evCreated: string;
+    evAssigned: string;
+    evStarted: string;
+    evReopened: string;
+    evEscalated: string;
+    evBy: string;
+    commentPh: string;
+    send: string;
+    edit: string;
+    remove: string;
+    removeConfirm: string;
+    more: string;
+    notFound: string;
+    hubOverdue: string;
+    hubOpen: string;
+    hubNone: string;
+  };
   companyClients: {
     title: string;
     toReceive: string;
@@ -2389,6 +2486,18 @@ export interface UiStrings {
     noteSave: string;
     evCreated: string;
     evNote: string;
+    fuOverdueDays: string;
+    fuSubToday: string;
+    fuSubOverdue: string;
+    fuSubOn: string;
+    howWent: string;
+    outSpoke: string;
+    outNoAnswer: string;
+    outNotInterested: string;
+    noteSpoke: string;
+    noteNoAnswer: string;
+    noteNotInterested: string;
+    fuNotifTitle: string;
     evFollowUp: string;
     evFollowUpDone: string;
     evReceipt: string;
@@ -2626,6 +2735,23 @@ export interface UiStrings {
     orderItems: string;
     orderTotal: string;
     itemsCount: string;
+  };
+  companySlot: {
+    addRow: string;
+    addRowHint: string;
+    title: string;
+    body: string;
+    subscribe: string;
+    restore: string;
+    restored: string;
+    noneFound: string;
+    unavailable: string;
+    pending: string;
+    buyFailed: string;
+    setupSlow: string;
+    lapsedBanner: string;
+    lapsedReadOnly: string;
+    renew: string;
   };
   companyStorage: {
     addMore: string;
@@ -3752,6 +3878,7 @@ export interface UiStrings {
     personalBody: string;
     switchTitle: string;
     switchBody: string;
+    switchedTo: string;
     createTitle: string;
     createBody: string;
     owner: string;
@@ -5536,6 +5663,10 @@ export interface UiStrings {
     paymentsToMake: string;
     balanceSortAmount: string;
     balanceSortName: string;
+    sortPill: string;
+    sortAmountHigh: string;
+    sortAmountLow: string;
+    settleInOneGo: string;
     balanceSimplified: string;
     balanceIsOwed: string;
     balanceOwesYou: string;
@@ -8440,6 +8571,8 @@ const en: UiStrings = {
       notFound: "Something this change refers to was removed, so it can't be saved.",
       conflict: 'Someone else changed this at the same time. Review it and try again.',
       guestExpired: 'Your guest trial has ended. Sign up to keep saving.',
+      companySlot:
+        'An extra company needs its own subscription. Discard this one, then subscribe from Add company.',
       generic: "This change couldn't be saved. Review it, or discard it.",
     },
     title: 'Sync over',
@@ -8899,6 +9032,24 @@ const en: UiStrings = {
     notesOptional: 'Notes (optional)',
     paymentStatus: 'Payment status',
     saveShare: 'Save & share',
+    createdBy: 'Created by',
+    activity: 'Activity',
+    nextAction: 'Next action',
+    add: 'Add',
+    duplicate: 'Duplicate',
+    print: 'Print',
+    markSent: 'Mark as sent',
+    paymentEvt: 'Payment received',
+    viewAll: 'View all',
+    showLess: 'Show less',
+    editEstimate: 'Edit estimate',
+    editBill: 'Edit bill',
+    saveChanges: 'Save changes',
+    preview: 'Preview',
+    estimateNo: 'Estimate no.',
+    billNo: 'Bill no.',
+    status: 'Status',
+    detailsTitle: '{type} details',
   },
   company: {
     attendanceTitle: 'Attendance',
@@ -9148,6 +9299,13 @@ const en: UiStrings = {
     agentsActions: 'Agent actions',
     agentsLastUsed: 'Last used {when}',
     agentsNeverUsed: 'Not used yet',
+    companyRulesTitle: 'Company rules',
+    moreSettings: 'More settings',
+    moreSettingsHint: 'Attendance, expenses, estimates, invoices and more',
+    tileCurrency: 'Currency',
+    tileDetails: 'Details',
+    tileBranding: 'Branding',
+    tileBrandingHint: 'Logo',
     pendingNone: 'Nothing is waiting',
     pendingNoneBody: 'Claims and budget requests that need you show up here.',
     pendingVendorBills: '{n} vendor bills to confirm',
@@ -9390,7 +9548,10 @@ const en: UiStrings = {
     addPerson: 'Add a person',
     moreOptions: 'More',
     wageFormula: '{gross} - advance {cut} = {net}',
-    canPayPeople: 'Can pay people',
+    canPayPeople: 'Can record payments',
+    canPayPeopleHint: 'Lets this employee record payments to team members.',
+    employeeDetails: 'Employee Details',
+    permissions: 'Permissions',
     setDailyRate: 'Set daily rate',
     kAllocation: 'Cash given to manager',
     kPoolReturn: 'Cash taken back',
@@ -9676,6 +9837,75 @@ const en: UiStrings = {
     notCounted: 'Not counted until approved',
     exportAction: 'Export',
   },
+  companyTickets: {
+    title: 'Complaints',
+    tOpen: 'Open · {n}',
+    tEscalated: 'Escalated · {n}',
+    tResolved: 'Resolved · {n}',
+    newComplaint: 'New complaint',
+    editComplaint: 'Edit complaint',
+    emptyTitle: 'No complaints yet',
+    emptyBody:
+      'Log a customer complaint and give it to someone. If it is not solved in time it moves up to their manager, then the owner.',
+    emptyTab: 'Nothing here',
+    seeAll: 'All',
+    noneForClient: 'No complaints for this client',
+    clientLabel: 'Client',
+    noClient: 'No client',
+    pickClient: 'Choose client',
+    searchClients: 'Search clients',
+    titlePh: 'What is the complaint?',
+    detailsPh: 'Details (optional)',
+    priority: 'Priority',
+    pLow: 'Low',
+    pNormal: 'Normal',
+    pHigh: 'High',
+    pUrgent: 'Urgent',
+    assignedTo: 'Assigned to',
+    assignTo: 'Assign to',
+    you: 'You',
+    someone: 'Someone',
+    owner: 'the owner',
+    save: 'Save',
+    log: 'Log complaint',
+    dueIn: 'Due in {t}',
+    overdue: 'Overdue {t}',
+    escalatedTo: 'Escalated to {name}',
+    unitM: '{n}m',
+    unitH: '{n}h',
+    unitD: '{n}d',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    reassign: 'Reassign',
+    actStart: 'Start',
+    actResolve: 'Resolve',
+    actReopen: 'Reopen',
+    actClose: 'Close',
+    resolveTitle: 'How was it solved?',
+    resolvePh: 'Short note for the record',
+    solved: 'Solved: {note}',
+    stOpen: 'Open',
+    stInProgress: 'In progress',
+    stResolved: 'Resolved',
+    stClosed: 'Closed',
+    timeline: 'Timeline',
+    evCreated: 'Logged · assigned to {name}',
+    evAssigned: 'Assigned to {name}',
+    evStarted: 'Started',
+    evReopened: 'Reopened',
+    evEscalated: 'Escalated to {name}',
+    evBy: 'by {name}',
+    commentPh: 'Add a comment',
+    send: 'Send',
+    edit: 'Edit',
+    remove: 'Delete',
+    removeConfirm: 'Delete this complaint?',
+    more: 'More',
+    notFound: 'This complaint is not available.',
+    hubOverdue: '{n} overdue',
+    hubOpen: '{n} open',
+    hubNone: 'All on time',
+  },
   companyClients: {
     title: 'Clients',
     toReceive: 'To receive',
@@ -9795,6 +10025,18 @@ const en: UiStrings = {
     noteSave: 'Save note',
     evCreated: 'Inquiry added',
     evNote: 'Note',
+    fuOverdueDays: '{n}d overdue',
+    fuSubToday: 'Follow up today',
+    fuSubOverdue: 'Overdue {n}d',
+    fuSubOn: 'Follow up {when}',
+    howWent: 'How did it go?',
+    outSpoke: 'Spoke',
+    outNoAnswer: 'No answer',
+    outNotInterested: 'Not interested',
+    noteSpoke: 'Follow-up: Spoke',
+    noteNoAnswer: 'Follow-up: No answer',
+    noteNotInterested: 'Follow-up: Not interested',
+    fuNotifTitle: 'Follow-up due today',
     evFollowUp: 'Follow-up',
     evFollowUpDone: 'Follow-up done',
     evReceipt: 'Money received',
@@ -10032,6 +10274,26 @@ const en: UiStrings = {
     orderItems: 'Items',
     orderTotal: 'Total',
     itemsCount: '{n} items',
+  },
+  companySlot: {
+    addRow: 'Add company',
+    addRowHint: 'Your first company is free',
+    title: 'Add another company',
+    body: 'Your first company is free. Each extra company is {price}/month.',
+    subscribe: 'Subscribe',
+    restore: 'Restore',
+    restored: 'Subscription restored.',
+    noneFound: 'No active company subscription found.',
+    unavailable:
+      'Extra companies cannot be bought in this version of the app. Update from the store and try again.',
+    pending: 'Your purchase is waiting for approval. Add the company once it goes through.',
+    buyFailed: 'Could not complete the purchase. You have not been charged.',
+    setupSlow: 'Your subscription is still being confirmed. Try again in a minute.',
+    lapsedBanner:
+      "This company's subscription ended, so it is read-only. Nothing is deleted. Renew to edit again.",
+    lapsedReadOnly:
+      "This company's subscription ended. You can view and export, but not add or edit.",
+    renew: 'Renew subscription',
   },
   companyStorage: {
     addMore: 'Add more storage',
@@ -11038,6 +11300,7 @@ const en: UiStrings = {
     personalBody: 'Friends, groups & expenses',
     switchTitle: 'Switch space',
     switchBody: 'Choose where you want to work',
+    switchedTo: 'Switched to {name}',
     createTitle: 'Create a new company',
     createBody: 'Set up a company and invite people',
     owner: 'Owner',
@@ -12446,6 +12709,10 @@ const en: UiStrings = {
     paymentsToMake: 'Payments to make',
     balanceSortAmount: 'Sort by amount',
     balanceSortName: 'Sort by name',
+    sortPill: 'Sort: {label}',
+    sortAmountHigh: 'Amount high',
+    sortAmountLow: 'Amount low',
+    settleInOneGo: 'Settle in one go',
     balanceSimplified: 'Simplified',
     balanceIsOwed: 'is owed',
     balanceOwesYou: 'owes you',
@@ -15288,6 +15555,8 @@ const ta: UiStrings = {
       conflict: 'அதே நேரத்தில் வேறொருவர் இதை மாற்றிவிட்டார். சரிபார்த்து மீண்டும் முயலவும்.',
       guestExpired:
         'உங்கள் விருந்தினர் சோதனைக் காலம் முடிந்தது. தொடர்ந்து சேமிக்கப் பதிவு செய்யவும்.',
+      companySlot:
+        'கூடுதல் நிறுவனத்துக்குத் தனி சந்தா தேவை. இதை நீக்கிவிட்டு, நிறுவனத்தைச் சேர் என்பதில் சந்தாதாரராகுங்கள்.',
       generic: 'இந்த மாற்றத்தைச் சேமிக்க முடியவில்லை. சரிபார்க்கவும் அல்லது கைவிடவும்.',
     },
     title: 'எதன் மூலம் ஒத்திசைவு',
@@ -15760,6 +16029,24 @@ const ta: UiStrings = {
     notesOptional: 'குறிப்புகள் (விருப்பம்)',
     paymentStatus: 'கட்டண நிலை',
     saveShare: 'சேமித்துப் பகிர்',
+    createdBy: 'உருவாக்கியவர்',
+    activity: 'செயல்பாடு',
+    nextAction: 'அடுத்த செயல்',
+    add: 'சேர்',
+    duplicate: 'நகலெடு',
+    print: 'அச்சிடு',
+    markSent: 'அனுப்பியதாகக் குறி',
+    paymentEvt: 'பணம் பெறப்பட்டது',
+    viewAll: 'அனைத்தையும் காண்க',
+    showLess: 'குறைவாகக் காட்டு',
+    editEstimate: 'மதிப்பீட்டைத் திருத்து',
+    editBill: 'பில்லைத் திருத்து',
+    saveChanges: 'மாற்றங்களைச் சேமி',
+    preview: 'முன்னோட்டம்',
+    estimateNo: 'மதிப்பீட்டு எண்',
+    billNo: 'பில் எண்',
+    status: 'நிலை',
+    detailsTitle: '{type} விவரங்கள்',
   },
   company: {
     attendanceTitle: 'வருகை',
@@ -16004,13 +16291,21 @@ const ta: UiStrings = {
     agentsApproval: 'முகவர் மாற்றங்களுக்கு ஒப்புதல் தேவை',
     agentsApprovalHint: 'முகவர் சேர்க்கும் செலவுகள் உங்கள் ஒப்புதலுக்காகக் காத்திருக்கும்.',
     agentsConnected: 'இணைந்தவை',
-    agentsEmpty: 'முகவர்கள் இணைக்கப்படவில்லை. மக்கள் Claude/ChatGPT-இல் Connect → Waves வழியாக இணைக்கலாம்.',
+    agentsEmpty:
+      'முகவர்கள் இணைக்கப்படவில்லை. மக்கள் Claude/ChatGPT-இல் Connect → Waves வழியாக இணைக்கலாம்.',
     agentsActivity: 'முகவர் செயல்பாடு',
     agentsActivityEmpty: 'இன்னும் எதுவுமில்லை.',
     agentsRevoke: 'நீக்கு',
     agentsActions: 'முகவர் செயல்கள்',
     agentsLastUsed: 'கடைசியாக பயன்படுத்தியது {when}',
     agentsNeverUsed: 'இன்னும் பயன்படுத்தவில்லை',
+    companyRulesTitle: 'நிறுவன விதிகள்',
+    moreSettings: 'மேலும் அமைப்புகள்',
+    moreSettingsHint: 'வருகை, செலவுகள், மதிப்பீடுகள், இன்வாய்ஸ்கள் மற்றும் பல',
+    tileCurrency: 'நாணயம்',
+    tileDetails: 'விவரங்கள்',
+    tileBranding: 'பிராண்டிங்',
+    tileBrandingHint: 'லோகோ',
     pendingNone: 'எதுவும் காத்திருக்கவில்லை',
     pendingNoneBody: 'உங்கள் கவனம் தேவைப்படும் கோரிக்கைகள் இங்கே தோன்றும்.',
     pendingVendorBills: 'உறுதிசெய்ய {n} விற்பனையாளர் பில்கள்',
@@ -16254,7 +16549,10 @@ const ta: UiStrings = {
     addPerson: 'நபரைச் சேர்',
     moreOptions: 'மேலும்',
     wageFormula: '{gross} - முன்பணம் {cut} = {net}',
-    canPayPeople: 'ஆட்களுக்கு பணம் தரலாம்',
+    canPayPeople: 'பணம் கொடுத்ததைப் பதிவு செய்யலாம்',
+    canPayPeopleHint: 'இந்த ஊழியர் குழு உறுப்பினர்களுக்கான கட்டணங்களைப் பதிவு செய்ய அனுமதிக்கும்.',
+    employeeDetails: 'ஊழியர் விவரங்கள்',
+    permissions: 'அனுமதிகள்',
     setDailyRate: 'தினசரி விகிதம் அமை',
     kAllocation: 'மேலாளருக்கு பணம்',
     kPoolReturn: 'திரும்பப் பெற்ற பணம்',
@@ -16541,6 +16839,75 @@ const ta: UiStrings = {
     notCounted: 'ஒப்புதல் வரை கணக்கில் சேராது',
     exportAction: 'ஏற்றுமதி',
   },
+  companyTickets: {
+    title: 'புகார்கள்',
+    tOpen: 'திறந்தவை · {n}',
+    tEscalated: 'உயர்த்தப்பட்டவை · {n}',
+    tResolved: 'தீர்க்கப்பட்டவை · {n}',
+    newComplaint: 'புதிய புகார்',
+    editComplaint: 'புகாரைத் திருத்து',
+    emptyTitle: 'இன்னும் புகார்கள் இல்லை',
+    emptyBody:
+      'வாடிக்கையாளர் புகாரைப் பதிவு செய்து ஒருவருக்கு ஒதுக்குங்கள். நேரத்தில் தீர்க்கப்படாவிட்டால் அது அவரது மேலாளருக்கும், பிறகு உரிமையாளருக்கும் செல்லும்.',
+    emptyTab: 'இங்கே எதுவும் இல்லை',
+    seeAll: 'அனைத்தும்',
+    noneForClient: 'இந்த வாடிக்கையாளருக்கு புகார்கள் இல்லை',
+    clientLabel: 'வாடிக்கையாளர்',
+    noClient: 'வாடிக்கையாளர் இல்லை',
+    pickClient: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும்',
+    searchClients: 'வாடிக்கையாளரைத் தேடு',
+    titlePh: 'புகார் என்ன?',
+    detailsPh: 'விவரங்கள் (விருப்பம்)',
+    priority: 'முன்னுரிமை',
+    pLow: 'குறைவு',
+    pNormal: 'சாதாரணம்',
+    pHigh: 'அதிகம்',
+    pUrgent: 'அவசரம்',
+    assignedTo: 'ஒதுக்கப்பட்டவர்',
+    assignTo: 'ஒதுக்கு',
+    you: 'நீங்கள்',
+    someone: 'ஒருவர்',
+    owner: 'உரிமையாளர்',
+    save: 'சேமி',
+    log: 'புகாரைப் பதிவு செய்',
+    dueIn: '{t}-இல் முடிக்க வேண்டும்',
+    overdue: '{t} தாமதம்',
+    escalatedTo: '{name}-க்கு உயர்த்தப்பட்டது',
+    unitM: '{n}நி',
+    unitH: '{n}ம',
+    unitD: '{n}நா',
+    call: 'அழை',
+    whatsapp: 'WhatsApp',
+    reassign: 'மாற்றி ஒதுக்கு',
+    actStart: 'தொடங்கு',
+    actResolve: 'தீர்',
+    actReopen: 'மீண்டும் திற',
+    actClose: 'மூடு',
+    resolveTitle: 'எப்படி தீர்க்கப்பட்டது?',
+    resolvePh: 'பதிவுக்கான சிறு குறிப்பு',
+    solved: 'தீர்வு: {note}',
+    stOpen: 'திறந்தது',
+    stInProgress: 'நடைபெறுகிறது',
+    stResolved: 'தீர்க்கப்பட்டது',
+    stClosed: 'மூடப்பட்டது',
+    timeline: 'நிகழ்வுகள்',
+    evCreated: 'பதிவு செய்யப்பட்டது · {name}-க்கு ஒதுக்கப்பட்டது',
+    evAssigned: '{name}-க்கு ஒதுக்கப்பட்டது',
+    evStarted: 'தொடங்கப்பட்டது',
+    evReopened: 'மீண்டும் திறக்கப்பட்டது',
+    evEscalated: '{name}-க்கு உயர்த்தப்பட்டது',
+    evBy: '{name} மூலம்',
+    commentPh: 'கருத்தைச் சேர்',
+    send: 'அனுப்பு',
+    edit: 'திருத்து',
+    remove: 'நீக்கு',
+    removeConfirm: 'இந்தப் புகாரை நீக்கவா?',
+    more: 'மேலும்',
+    notFound: 'இந்தப் புகார் கிடைக்கவில்லை.',
+    hubOverdue: '{n} தாமதம்',
+    hubOpen: '{n} திறந்தவை',
+    hubNone: 'எல்லாம் நேரத்தில்',
+  },
   companyClients: {
     title: 'வாடிக்கையாளர்கள்',
     toReceive: 'பெற வேண்டியது',
@@ -16660,6 +17027,18 @@ const ta: UiStrings = {
     noteSave: 'குறிப்பைச் சேமி',
     evCreated: 'விசாரணை சேர்க்கப்பட்டது',
     evNote: 'குறிப்பு',
+    fuOverdueDays: '{n} நாள் தாமதம்',
+    fuSubToday: 'இன்று பின்தொடர்',
+    fuSubOverdue: '{n} நாள் தாமதம்',
+    fuSubOn: 'பின்தொடர் {when}',
+    howWent: 'எப்படி இருந்தது?',
+    outSpoke: 'பேசினேன்',
+    outNoAnswer: 'பதில் இல்லை',
+    outNotInterested: 'ஆர்வமில்லை',
+    noteSpoke: 'பின்தொடர்தல்: பேசினேன்',
+    noteNoAnswer: 'பின்தொடர்தல்: பதில் இல்லை',
+    noteNotInterested: 'பின்தொடர்தல்: ஆர்வமில்லை',
+    fuNotifTitle: 'இன்று பின்தொடர்தல்',
     evFollowUp: 'பின்தொடர்தல்',
     evFollowUpDone: 'பின்தொடர்தல் முடிந்தது',
     evReceipt: 'பணம் பெறப்பட்டது',
@@ -16898,6 +17277,28 @@ const ta: UiStrings = {
     orderItems: 'பொருட்கள்',
     orderTotal: 'மொத்தம்',
     itemsCount: '{n} பொருட்கள்',
+  },
+  companySlot: {
+    addRow: 'நிறுவனத்தைச் சேர்',
+    addRowHint: 'உங்கள் முதல் நிறுவனம் இலவசம்',
+    title: 'மேலும் ஒரு நிறுவனத்தைச் சேர்',
+    body: 'உங்கள் முதல் நிறுவனம் இலவசம். கூடுதல் நிறுவனம் ஒவ்வொன்றும் மாதம் {price}.',
+    subscribe: 'சந்தாதாரராகு',
+    restore: 'மீட்டெடு',
+    restored: 'சந்தா மீட்டெடுக்கப்பட்டது.',
+    noneFound: 'செயலில் உள்ள நிறுவன சந்தா எதுவும் இல்லை.',
+    unavailable:
+      'இந்தப் பதிப்பில் கூடுதல் நிறுவனங்களை வாங்க முடியாது. ஸ்டோரிலிருந்து புதுப்பித்து மீண்டும் முயலுங்கள்.',
+    pending:
+      'உங்கள் வாங்குதல் ஒப்புதலுக்காகக் காத்திருக்கிறது. அது முடிந்ததும் நிறுவனத்தைச் சேர்க்கவும்.',
+    buyFailed: 'வாங்குதலை முடிக்க முடியவில்லை. உங்களிடம் கட்டணம் வசூலிக்கப்படவில்லை.',
+    setupSlow:
+      'உங்கள் சந்தா இன்னும் உறுதிசெய்யப்படுகிறது. ஒரு நிமிடம் கழித்து மீண்டும் முயலுங்கள்.',
+    lapsedBanner:
+      'இந்த நிறுவனத்தின் சந்தா முடிந்துவிட்டது, அதனால் இது பார்க்க மட்டுமே. எதுவும் நீக்கப்படவில்லை. மீண்டும் திருத்த சந்தாவைப் புதுப்பியுங்கள்.',
+    lapsedReadOnly:
+      'இந்த நிறுவனத்தின் சந்தா முடிந்துவிட்டது. பார்க்கவும் ஏற்றுமதி செய்யவும் முடியும், சேர்க்கவோ திருத்தவோ முடியாது.',
+    renew: 'சந்தாவைப் புதுப்பி',
   },
   companyStorage: {
     addMore: 'மேலும் சேமிப்பைச் சேர்க்கவும்',
@@ -17930,6 +18331,7 @@ const ta: UiStrings = {
     personalBody: 'நண்பர்கள், குழுக்கள் & செலவுகள்',
     switchTitle: 'இடத்தை மாற்று',
     switchBody: 'நீங்கள் எங்கு வேலை செய்ய விரும்புகிறீர்கள் என்பதைத் தேர்ந்தெடுக்கவும்',
+    switchedTo: '{name} க்கு மாற்றப்பட்டது',
     createTitle: 'புதிய நிறுவனத்தை உருவாக்கு',
     createBody: 'நிறுவனத்தை அமைத்து ஆட்களை அழைக்கவும்',
     owner: 'உரிமையாளர்',
@@ -19400,6 +19802,10 @@ const ta: UiStrings = {
     paymentsToMake: 'செலுத்த வேண்டியவை',
     balanceSortAmount: 'தொகைப்படி வரிசை',
     balanceSortName: 'பெயர்ப்படி வரிசை',
+    sortPill: 'வரிசை: {label}',
+    sortAmountHigh: 'அதிக தொகை',
+    sortAmountLow: 'குறைந்த தொகை',
+    settleInOneGo: 'ஒரே முறையில் தீர்க்கவும்',
     balanceSimplified: 'எளிமைப்படுத்தியது',
     balanceIsOwed: 'பெற வேண்டும்',
     balanceOwesYou: 'உங்களுக்குத் தர வேண்டும்',
@@ -22324,6 +22730,8 @@ const hi: UiStrings = {
       notFound: 'इस बदलाव से जुड़ी कोई चीज़ हटा दी गई है, इसलिए इसे सहेजा नहीं जा सकता।',
       conflict: 'उसी समय किसी और ने इसे बदल दिया। जाँचें और फिर कोशिश करें।',
       guestExpired: 'आपकी अतिथि ट्रायल अवधि खत्म हो गई है। सहेजते रहने के लिए साइन अप करें।',
+      companySlot:
+        'अतिरिक्त कंपनी के लिए अलग सब्सक्रिप्शन चाहिए। इसे हटाएँ, फिर कंपनी जोड़ें से सब्सक्राइब करें।',
       generic: 'यह बदलाव सहेजा नहीं जा सका। जाँचें या हटा दें।',
     },
     title: 'किस पर सिंक करें',
@@ -22787,6 +23195,24 @@ const hi: UiStrings = {
     notesOptional: 'नोट्स (वैकल्पिक)',
     paymentStatus: 'भुगतान स्थिति',
     saveShare: 'सेव करें और भेजें',
+    createdBy: 'बनाने वाले',
+    activity: 'गतिविधि',
+    nextAction: 'अगला कदम',
+    add: 'जोड़ें',
+    duplicate: 'डुप्लिकेट',
+    print: 'प्रिंट',
+    markSent: 'भेजा हुआ चिह्नित करें',
+    paymentEvt: 'भुगतान मिला',
+    viewAll: 'सभी देखें',
+    showLess: 'कम दिखाएँ',
+    editEstimate: 'अनुमान संपादित करें',
+    editBill: 'बिल संपादित करें',
+    saveChanges: 'बदलाव सेव करें',
+    preview: 'पूर्वावलोकन',
+    estimateNo: 'अनुमान नं.',
+    billNo: 'बिल नं.',
+    status: 'स्थिति',
+    detailsTitle: '{type} का विवरण',
   },
   company: {
     attendanceTitle: 'हाज़िरी',
@@ -23037,6 +23463,13 @@ const hi: UiStrings = {
     agentsActions: 'एजेंट की कार्रवाइयाँ',
     agentsLastUsed: 'आख़िरी बार {when}',
     agentsNeverUsed: 'अभी इस्तेमाल नहीं हुआ',
+    companyRulesTitle: 'कंपनी के नियम',
+    moreSettings: 'और सेटिंग्स',
+    moreSettingsHint: 'हाज़िरी, ख़र्च, अनुमान, इनवॉइस और बहुत कुछ',
+    tileCurrency: 'मुद्रा',
+    tileDetails: 'विवरण',
+    tileBranding: 'ब्रांडिंग',
+    tileBrandingHint: 'लोगो',
     pendingNone: 'कुछ भी प्रतीक्षा में नहीं',
     pendingNoneBody: 'आपके ध्यान की ज़रूरत वाले दावे और बजट अनुरोध यहाँ दिखेंगे।',
     pendingVendorBills: 'पुष्टि के लिए {n} वेंडर बिल',
@@ -23278,7 +23711,10 @@ const hi: UiStrings = {
     addPerson: 'व्यक्ति जोड़ें',
     moreOptions: 'और',
     wageFormula: '{gross} - एडवांस {cut} = {net}',
-    canPayPeople: 'लोगों को भुगतान कर सकते हैं',
+    canPayPeople: 'भुगतान दर्ज कर सकते हैं',
+    canPayPeopleHint: 'यह कर्मचारी टीम के सदस्यों को किए भुगतान दर्ज कर सकेगा।',
+    employeeDetails: 'कर्मचारी विवरण',
+    permissions: 'अनुमतियाँ',
     setDailyRate: 'दैनिक दर तय करें',
     kAllocation: 'मैनेजर को नकद',
     kPoolReturn: 'वापस लिया नकद',
@@ -23564,6 +24000,75 @@ const hi: UiStrings = {
     notCounted: 'मंज़ूरी तक गिनी नहीं जाएगी',
     exportAction: 'निर्यात',
   },
+  companyTickets: {
+    title: 'शिकायतें',
+    tOpen: 'खुली · {n}',
+    tEscalated: 'बढ़ाई गई · {n}',
+    tResolved: 'सुलझी · {n}',
+    newComplaint: 'नई शिकायत',
+    editComplaint: 'शिकायत संपादित करें',
+    emptyTitle: 'अभी कोई शिकायत नहीं',
+    emptyBody:
+      'ग्राहक की शिकायत दर्ज करें और किसी को सौंपें। समय पर न सुलझे तो वह उसके मैनेजर और फिर मालिक तक पहुँचती है।',
+    emptyTab: 'यहाँ कुछ नहीं',
+    seeAll: 'सभी',
+    noneForClient: 'इस ग्राहक की कोई शिकायत नहीं',
+    clientLabel: 'ग्राहक',
+    noClient: 'कोई ग्राहक नहीं',
+    pickClient: 'ग्राहक चुनें',
+    searchClients: 'ग्राहक खोजें',
+    titlePh: 'शिकायत क्या है?',
+    detailsPh: 'विवरण (वैकल्पिक)',
+    priority: 'प्राथमिकता',
+    pLow: 'कम',
+    pNormal: 'सामान्य',
+    pHigh: 'उच्च',
+    pUrgent: 'तत्काल',
+    assignedTo: 'सौंपा गया',
+    assignTo: 'सौंपें',
+    you: 'आप',
+    someone: 'कोई',
+    owner: 'मालिक',
+    save: 'सहेजें',
+    log: 'शिकायत दर्ज करें',
+    dueIn: '{t} में देय',
+    overdue: '{t} की देरी',
+    escalatedTo: '{name} को बढ़ाई गई',
+    unitM: '{n}मि',
+    unitH: '{n}घं',
+    unitD: '{n}दिन',
+    call: 'कॉल करें',
+    whatsapp: 'WhatsApp',
+    reassign: 'दोबारा सौंपें',
+    actStart: 'शुरू करें',
+    actResolve: 'सुलझाएँ',
+    actReopen: 'फिर खोलें',
+    actClose: 'बंद करें',
+    resolveTitle: 'यह कैसे सुलझी?',
+    resolvePh: 'रिकॉर्ड के लिए छोटा नोट',
+    solved: 'समाधान: {note}',
+    stOpen: 'खुली',
+    stInProgress: 'जारी है',
+    stResolved: 'सुलझी',
+    stClosed: 'बंद',
+    timeline: 'टाइमलाइन',
+    evCreated: 'दर्ज की गई · {name} को सौंपी',
+    evAssigned: '{name} को सौंपी गई',
+    evStarted: 'शुरू की गई',
+    evReopened: 'फिर खोली गई',
+    evEscalated: '{name} को बढ़ाई गई',
+    evBy: '{name} द्वारा',
+    commentPh: 'टिप्पणी जोड़ें',
+    send: 'भेजें',
+    edit: 'संपादित करें',
+    remove: 'हटाएँ',
+    removeConfirm: 'यह शिकायत हटाएँ?',
+    more: 'और',
+    notFound: 'यह शिकायत उपलब्ध नहीं है।',
+    hubOverdue: '{n} विलंबित',
+    hubOpen: '{n} खुली',
+    hubNone: 'सब समय पर',
+  },
   companyClients: {
     title: 'ग्राहक',
     toReceive: 'पाना बाकी',
@@ -23683,6 +24188,18 @@ const hi: UiStrings = {
     noteSave: 'नोट सहेजें',
     evCreated: 'पूछताछ जोड़ी गई',
     evNote: 'नोट',
+    fuOverdueDays: '{n} दिन अतिदेय',
+    fuSubToday: 'आज फ़ॉलो-अप',
+    fuSubOverdue: '{n} दिन अतिदेय',
+    fuSubOn: 'फ़ॉलो-अप {when}',
+    howWent: 'कैसा रहा?',
+    outSpoke: 'बात हुई',
+    outNoAnswer: 'जवाब नहीं',
+    outNotInterested: 'रुचि नहीं',
+    noteSpoke: 'फ़ॉलो-अप: बात हुई',
+    noteNoAnswer: 'फ़ॉलो-अप: जवाब नहीं',
+    noteNotInterested: 'फ़ॉलो-अप: रुचि नहीं',
+    fuNotifTitle: 'आज फ़ॉलो-अप है',
     evFollowUp: 'फॉलो-अप',
     evFollowUpDone: 'फॉलो-अप हो गया',
     evReceipt: 'पैसे मिले',
@@ -23920,6 +24437,26 @@ const hi: UiStrings = {
     orderItems: 'सामान',
     orderTotal: 'कुल',
     itemsCount: '{n} सामान',
+  },
+  companySlot: {
+    addRow: 'कंपनी जोड़ें',
+    addRowHint: 'आपकी पहली कंपनी मुफ़्त है',
+    title: 'एक और कंपनी जोड़ें',
+    body: 'आपकी पहली कंपनी मुफ़्त है। हर अतिरिक्त कंपनी {price}/माह है।',
+    subscribe: 'सब्सक्राइब करें',
+    restore: 'बहाल करें',
+    restored: 'सब्सक्रिप्शन बहाल हो गया।',
+    noneFound: 'कोई सक्रिय कंपनी सब्सक्रिप्शन नहीं मिला।',
+    unavailable:
+      'इस संस्करण में अतिरिक्त कंपनियाँ नहीं खरीदी जा सकतीं। स्टोर से अपडेट करके फिर कोशिश करें।',
+    pending: 'आपकी खरीद की मंज़ूरी का इंतज़ार है। पूरी होने पर कंपनी जोड़ें।',
+    buyFailed: 'खरीद पूरी नहीं हो सकी। आपसे कोई शुल्क नहीं लिया गया।',
+    setupSlow: 'आपका सब्सक्रिप्शन अभी पुष्ट हो रहा है। एक मिनट बाद फिर कोशिश करें।',
+    lapsedBanner:
+      'इस कंपनी का सब्सक्रिप्शन समाप्त हो गया है, इसलिए यह सिर्फ़ देखने के लिए है। कुछ भी हटाया नहीं गया। दोबारा बदलाव के लिए नवीनीकरण करें।',
+    lapsedReadOnly:
+      'इस कंपनी का सब्सक्रिप्शन समाप्त हो गया है। आप देख और एक्सपोर्ट कर सकते हैं, जोड़ या बदल नहीं सकते।',
+    renew: 'सब्सक्रिप्शन नवीनीकृत करें',
   },
   companyStorage: {
     addMore: 'और स्टोरेज जोड़ें',
@@ -24924,6 +25461,7 @@ const hi: UiStrings = {
     personalBody: 'दोस्त, ग्रुप और खर्च',
     switchTitle: 'स्पेस बदलें',
     switchBody: 'चुनें कि आप कहाँ काम करना चाहते हैं',
+    switchedTo: '{name} पर स्विच किया गया',
     createTitle: 'नई कंपनी बनाएँ',
     createBody: 'कंपनी सेट करें और लोगों को जोड़ें',
     owner: 'मालिक',
@@ -26349,6 +26887,10 @@ const hi: UiStrings = {
     paymentsToMake: 'करने वाले भुगतान',
     balanceSortAmount: 'राशि के अनुसार',
     balanceSortName: 'नाम के अनुसार',
+    sortPill: 'क्रम: {label}',
+    sortAmountHigh: 'ज़्यादा राशि',
+    sortAmountLow: 'कम राशि',
+    settleInOneGo: 'एक साथ निपटाएँ',
     balanceSimplified: 'सरलीकृत',
     balanceIsOwed: 'लेना है',
     balanceOwesYou: 'आपको देना है',
@@ -29196,6 +29738,7 @@ const ar: UiStrings = {
       notFound: 'حُذف شيء مرتبط بهذا التغيير، لذا لا يمكن حفظه.',
       conflict: 'عدّل شخص آخر هذا في الوقت نفسه. راجعه وحاول مجدداً.',
       guestExpired: 'انتهت فترتك التجريبية كضيف. أنشئ حساباً لمواصلة الحفظ.',
+      companySlot: 'الشركة الإضافية تحتاج اشتراكاً خاصاً بها. تخلَّ عن هذه ثم اشترك من إضافة شركة.',
       generic: 'تعذّر حفظ هذا التغيير. راجعه أو تجاهله.',
     },
     title: 'المزامنة عبر',
@@ -29697,6 +30240,24 @@ const ar: UiStrings = {
     notesOptional: 'ملاحظات (اختياري)',
     paymentStatus: 'حالة الدفع',
     saveShare: 'احفظ وشارك',
+    createdBy: 'أنشأه',
+    activity: 'النشاط',
+    nextAction: 'الإجراء التالي',
+    add: 'إضافة',
+    duplicate: 'تكرار',
+    print: 'طباعة',
+    markSent: 'تحديد كمرسل',
+    paymentEvt: 'تم استلام دفعة',
+    viewAll: 'عرض الكل',
+    showLess: 'عرض أقل',
+    editEstimate: 'تعديل عرض السعر',
+    editBill: 'تعديل الفاتورة',
+    saveChanges: 'حفظ التغييرات',
+    preview: 'معاينة',
+    estimateNo: 'رقم عرض السعر',
+    billNo: 'رقم الفاتورة',
+    status: 'الحالة',
+    detailsTitle: 'تفاصيل {type}',
   },
   company: {
     attendanceTitle: 'الحضور',
@@ -29969,6 +30530,13 @@ const ar: UiStrings = {
     agentsActions: 'إجراءات الوكيل',
     agentsLastUsed: 'آخر استخدام {when}',
     agentsNeverUsed: 'لم يُستخدم بعد',
+    companyRulesTitle: 'قواعد الشركة',
+    moreSettings: 'المزيد من الإعدادات',
+    moreSettingsHint: 'الحضور والمصروفات والتقديرات والفواتير وغيرها',
+    tileCurrency: 'العملة',
+    tileDetails: 'التفاصيل',
+    tileBranding: 'الهوية',
+    tileBrandingHint: 'الشعار',
     pendingNone: 'لا شيء بانتظارك',
     pendingNoneBody: 'ستظهر هنا المطالبات وطلبات الميزانية التي تحتاج إليك.',
     pendingVendorBills: '{n} فواتير موردين بانتظار التأكيد',
@@ -30237,7 +30805,10 @@ const ar: UiStrings = {
     addPerson: 'أضف شخصاً',
     moreOptions: 'المزيد',
     wageFormula: '{gross} - سلفة {cut} = {net}',
-    canPayPeople: 'يمكنه الدفع للناس',
+    canPayPeople: 'يمكنه تسجيل المدفوعات',
+    canPayPeopleHint: 'يتيح لهذا الموظف تسجيل المدفوعات لأعضاء الفريق.',
+    employeeDetails: 'بيانات الموظف',
+    permissions: 'الصلاحيات',
     setDailyRate: 'حدد الأجر اليومي',
     kAllocation: 'نقد للمدير',
     kPoolReturn: 'نقد مسترجع',
@@ -30526,6 +31097,75 @@ const ar: UiStrings = {
     notCounted: 'لا يُحتسب حتى الموافقة',
     exportAction: 'تصدير',
   },
+  companyTickets: {
+    title: 'الشكاوى',
+    tOpen: 'مفتوحة · {n}',
+    tEscalated: 'مصعّدة · {n}',
+    tResolved: 'تمت معالجتها · {n}',
+    newComplaint: 'شكوى جديدة',
+    editComplaint: 'تعديل الشكوى',
+    emptyTitle: 'لا توجد شكاوى بعد',
+    emptyBody:
+      'سجّل شكوى العميل وأسندها لشخص ما. إن لم تُحل في الوقت المناسب فتصل إلى مديره ثم إلى المالك.',
+    emptyTab: 'لا شيء هنا',
+    seeAll: 'الكل',
+    noneForClient: 'لا شكاوى لهذا العميل',
+    clientLabel: 'العميل',
+    noClient: 'بدون عميل',
+    pickClient: 'اختر العميل',
+    searchClients: 'ابحث في العملاء',
+    titlePh: 'ما هي الشكوى؟',
+    detailsPh: 'التفاصيل (اختياري)',
+    priority: 'الأولوية',
+    pLow: 'منخفضة',
+    pNormal: 'عادية',
+    pHigh: 'عالية',
+    pUrgent: 'عاجلة',
+    assignedTo: 'مُسندة إلى',
+    assignTo: 'إسناد إلى',
+    you: 'أنت',
+    someone: 'شخص ما',
+    owner: 'المالك',
+    save: 'حفظ',
+    log: 'تسجيل الشكوى',
+    dueIn: 'يستحق خلال {t}',
+    overdue: 'متأخرة {t}',
+    escalatedTo: 'صُعّدت إلى {name}',
+    unitM: '{n}د',
+    unitH: '{n}س',
+    unitD: '{n}ي',
+    call: 'اتصال',
+    whatsapp: 'واتساب',
+    reassign: 'إعادة الإسناد',
+    actStart: 'ابدأ',
+    actResolve: 'حلّ',
+    actReopen: 'إعادة فتح',
+    actClose: 'إغلاق',
+    resolveTitle: 'كيف تم حلها؟',
+    resolvePh: 'ملاحظة قصيرة للسجل',
+    solved: 'الحل: {note}',
+    stOpen: 'مفتوحة',
+    stInProgress: 'قيد المعالجة',
+    stResolved: 'تمت المعالجة',
+    stClosed: 'مغلقة',
+    timeline: 'السجل الزمني',
+    evCreated: 'سُجّلت · أُسندت إلى {name}',
+    evAssigned: 'أُسندت إلى {name}',
+    evStarted: 'بدأت المعالجة',
+    evReopened: 'أُعيد فتحها',
+    evEscalated: 'صُعّدت إلى {name}',
+    evBy: 'بواسطة {name}',
+    commentPh: 'أضف تعليقًا',
+    send: 'إرسال',
+    edit: 'تعديل',
+    remove: 'حذف',
+    removeConfirm: 'حذف هذه الشكوى؟',
+    more: 'المزيد',
+    notFound: 'هذه الشكوى غير متاحة.',
+    hubOverdue: '{n} متأخرة',
+    hubOpen: '{n} مفتوحة',
+    hubNone: 'الكل في موعده',
+  },
   companyClients: {
     title: 'العملاء',
     toReceive: 'مستحق القبض',
@@ -30645,6 +31285,18 @@ const ar: UiStrings = {
     noteSave: 'حفظ الملاحظة',
     evCreated: 'تمت إضافة الاستفسار',
     evNote: 'ملاحظة',
+    fuOverdueDays: 'متأخر {n} يوم',
+    fuSubToday: 'متابعة اليوم',
+    fuSubOverdue: 'متأخر {n} يوم',
+    fuSubOn: 'متابعة {when}',
+    howWent: 'كيف سارت؟',
+    outSpoke: 'تم الحديث',
+    outNoAnswer: 'لا رد',
+    outNotInterested: 'غير مهتم',
+    noteSpoke: 'متابعة: تم الحديث',
+    noteNoAnswer: 'متابعة: لا رد',
+    noteNotInterested: 'متابعة: غير مهتم',
+    fuNotifTitle: 'متابعة مستحقة اليوم',
     evFollowUp: 'متابعة',
     evFollowUpDone: 'تمت المتابعة',
     evReceipt: 'تم استلام مبلغ',
@@ -30882,6 +31534,24 @@ const ar: UiStrings = {
     orderItems: 'الأصناف',
     orderTotal: 'الإجمالي',
     itemsCount: '{n} أصناف',
+  },
+  companySlot: {
+    addRow: 'إضافة شركة',
+    addRowHint: 'شركتك الأولى مجانية',
+    title: 'إضافة شركة أخرى',
+    body: 'شركتك الأولى مجانية. كل شركة إضافية بسعر {price} شهرياً.',
+    subscribe: 'اشترك',
+    restore: 'استعادة',
+    restored: 'تمت استعادة الاشتراك.',
+    noneFound: 'لا يوجد اشتراك شركة نشط.',
+    unavailable: 'لا يمكن شراء شركات إضافية في هذا الإصدار. حدّث التطبيق من المتجر وحاول مجدداً.',
+    pending: 'عملية الشراء بانتظار الموافقة. أضف الشركة بعد اكتمالها.',
+    buyFailed: 'تعذّر إكمال الشراء. لم يتم خصم أي مبلغ.',
+    setupSlow: 'ما زال اشتراكك قيد التأكيد. حاول مجدداً بعد دقيقة.',
+    lapsedBanner:
+      'انتهى اشتراك هذه الشركة فهي للعرض فقط. لم يُحذف أي شيء. جدّد الاشتراك لتعديلها من جديد.',
+    lapsedReadOnly: 'انتهى اشتراك هذه الشركة. يمكنك العرض والتصدير لكن لا الإضافة أو التعديل.',
+    renew: 'تجديد الاشتراك',
   },
   companyStorage: {
     addMore: 'أضف المزيد من التخزين',
@@ -31903,6 +32573,7 @@ const ar: UiStrings = {
     personalBody: 'الأصدقاء والمجموعات والمصروفات',
     switchTitle: 'تبديل المساحة',
     switchBody: 'اختر المكان الذي تريد العمل فيه',
+    switchedTo: 'تم التبديل إلى {name}',
     createTitle: 'إنشاء شركة جديدة',
     createBody: 'أنشئ شركة وادعُ الأشخاص',
     owner: 'المالك',
@@ -33512,6 +34183,10 @@ const ar: UiStrings = {
     paymentsToMake: 'دفعات مستحقة',
     balanceSortAmount: 'ترتيب حسب المبلغ',
     balanceSortName: 'ترتيب حسب الاسم',
+    sortPill: 'ترتيب: {label}',
+    sortAmountHigh: 'الأعلى مبلغًا',
+    sortAmountLow: 'الأقل مبلغًا',
+    settleInOneGo: 'سوّ الحسابات دفعة واحدة',
     balanceSimplified: 'مبسّط',
     balanceIsOwed: 'له مستحقات',
     balanceOwesYou: 'مدين لك',

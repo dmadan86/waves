@@ -142,6 +142,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyDocuments,
   SyncTable.CompanyClients,
   SyncTable.CompanyClientNotes,
+  SyncTable.CompanyTickets,
+  SyncTable.CompanyTicketEvents,
   SyncTable.CompanyAttendance,
   SyncTable.CompanyWorkTasks,
   SyncTable.CompanyHolidays,
@@ -2629,6 +2631,10 @@ export interface MirrorCompanyDoc {
   readonly convertedTo: string | null;
   readonly convertedFrom: string | null;
   readonly createdBy: string;
+  /** From the server row; absent on a document that has not synced yet. */
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+  readonly updatedBy?: string | null;
   readonly clientId?: string | null;
   readonly deleted: boolean;
   readonly pending: boolean;
@@ -2666,6 +2672,9 @@ function docFromRow(r: Record<string, unknown>): MirrorCompanyDoc {
     convertedTo: (r.converted_to as string | null) ?? null,
     convertedFrom: (r.converted_from as string | null) ?? null,
     createdBy: r.created_by as string,
+    createdAt: (r.created_at as string | null) ?? null,
+    updatedAt: (r.updated_at as string | null) ?? null,
+    updatedBy: (r.updated_by as string | null) ?? null,
     clientId: (r.client_id as string | null) ?? null,
     deleted: !!r.deleted_at,
     pending: false,
@@ -2804,7 +2813,12 @@ export function purgeCompanyInvisible(
   calendar: Readonly<
     Record<
       string,
-      { dates: readonly string[]; events: readonly string[]; clients?: readonly string[] }
+      {
+        dates: readonly string[];
+        events: readonly string[];
+        clients?: readonly string[];
+        tickets?: readonly string[];
+      }
     >
   > = {},
 ): { state: MirrorState; removed: { table: SyncTable; id: string }[] } {
@@ -2834,6 +2848,18 @@ export function purgeCompanyInvisible(
       const orphan = (row: Record<string, unknown>): boolean =>
         row.group_id === groupId && gone.has(row.client_id as string);
       drop(SyncTable.CompanyClientNotes, orphan);
+    }
+    // Same for a ticket reassigned or whose employee changed manager: drop it and its timeline.
+    if (ids.tickets) {
+      const tickets = new Set(ids.tickets);
+      const gone = drop(
+        SyncTable.CompanyTickets,
+        (row) => row.group_id === groupId && !tickets.has(row.id as string),
+      );
+      drop(
+        SyncTable.CompanyTicketEvents,
+        (row) => row.group_id === groupId && gone.has(row.ticket_id as string),
+      );
     }
     const dates = new Set(ids.dates);
     const events = new Set(ids.events);

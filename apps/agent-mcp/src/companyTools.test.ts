@@ -21,21 +21,39 @@ const OTHER = randomUUID();
 
 type Log = string[];
 
-function fake(opts: { role?: string; gateError?: string; rpcError?: Record<string, string>; existing?: unknown[]; rpcResult?: Record<string, unknown> } = {}) {
+function fake(
+  opts: {
+    role?: string;
+    gateError?: string;
+    rpcError?: Record<string, string>;
+    existing?: unknown[];
+    rpcResult?: Record<string, unknown>;
+  } = {},
+) {
   const log: Log = [];
   const rpcs: { fn: string; args: Record<string, unknown> }[] = [];
   const from = (table: string) => {
     log.push(`from:${table}`);
     const rows =
       table === 'groups'
-        ? [{ id: COMPANY, name: 'Asha Works', type: 'company', default_currency: 'INR', company_approvals_enabled: false, company_agent_approval: true }]
+        ? [
+            {
+              id: COMPANY,
+              name: 'Asha Works',
+              type: 'company',
+              default_currency: 'INR',
+              company_approvals_enabled: false,
+              company_agent_approval: true,
+            },
+          ]
         : table === 'company_entries'
           ? (opts.existing ?? [])
           : [];
     const query: Record<string, unknown> = {
       then: (resolve: (v: unknown) => unknown) => resolve({ data: rows, error: null }),
     };
-    for (const m of ['select', 'eq', 'neq', 'is', 'gte', 'lte', 'order', 'limit', 'ilike']) query[m] = () => query;
+    for (const m of ['select', 'eq', 'neq', 'is', 'gte', 'lte', 'order', 'limit', 'ilike'])
+      query[m] = () => query;
     return query;
   };
   const client = {
@@ -101,7 +119,9 @@ const CALLS: Record<string, Record<string, unknown>> = {
 describe('every company tool opens with the gate', () => {
   for (const [name, args] of Object.entries(CALLS)) {
     it(`${name}: a refusal stops everything else`, async () => {
-      const { client, log } = fake({ gateError: 'AGENTS_OFF: AI agents are switched off for this company' });
+      const { client, log } = fake({
+        gateError: 'AGENTS_OFF: AI agents are switched off for this company',
+      });
       const result = await call(client, name, args);
       expect(result.isError).toBe(true);
       expect(result.text).toContain('AGENTS_OFF');
@@ -122,9 +142,23 @@ describe('read-only connections', () => {
     const client = await connect(fake().client, true);
     const names = (await client.listTools()).tools.map((t) => t.name);
     await client.close();
-    for (const read of ['company_overview', 'list_company_people', 'list_company_entries', 'list_attendance', 'list_work_tasks', 'list_clients', 'list_company_agent_writes'])
+    for (const read of [
+      'company_overview',
+      'list_company_people',
+      'list_company_entries',
+      'list_attendance',
+      'list_work_tasks',
+      'list_clients',
+      'list_company_agent_writes',
+    ])
       expect(names).toContain(read);
-    for (const write of ['add_company_entry', 'set_attendance', 'set_work_task', 'upsert_client', 'save_estimate_draft'])
+    for (const write of [
+      'add_company_entry',
+      'set_attendance',
+      'set_work_task',
+      'upsert_client',
+      'save_estimate_draft',
+    ])
       expect(names).not.toContain(write);
   });
 });
@@ -134,8 +168,14 @@ describe('writes', () => {
     const f = fake({ rpcResult: { waves_company_agent_entry_add: 'submitted' } });
     const result = await call(f.client, 'add_company_entry', { ...entry, entryId: OTHER });
     expect(result.isError).toBe(false);
-    expect(JSON.parse(result.text)).toMatchObject({ status: 'submitted', waitingForApproval: true });
-    expect(f.rpcs.map((r) => r.fn)).toEqual(['waves_company_agent_gate', 'waves_company_agent_entry_add']);
+    expect(JSON.parse(result.text)).toMatchObject({
+      status: 'submitted',
+      waitingForApproval: true,
+    });
+    expect(f.rpcs.map((r) => r.fn)).toEqual([
+      'waves_company_agent_gate',
+      'waves_company_agent_entry_add',
+    ]);
     expect(f.rpcs[1]!.args).toMatchObject({
       p_group_id: COMPANY,
       p_entry_id: OTHER,
@@ -164,22 +204,37 @@ describe('writes', () => {
     const fns = f.rpcs.map((r) => r.fn);
     expect(fns[0]).toBe('waves_company_agent_gate');
     expect(fns.indexOf(rpc)).toBeGreaterThan(0);
-    expect(f.rpcs.at(-1)).toMatchObject({ fn: 'waves_record_agent_write', args: { p_action: action, p_group_id: COMPANY } });
+    expect(f.rpcs.at(-1)).toMatchObject({
+      fn: 'waves_record_agent_write',
+      args: { p_action: action, p_group_id: COMPANY },
+    });
   });
 
   it('save_estimate_draft: one RPC enforces draft-only, cap and audit', async () => {
     const f = fake({ rpcResult: { waves_company_agent_estimate_save: '100000' } });
     const result = await call(f.client, 'save_estimate_draft', CALLS.save_estimate_draft!);
     expect(JSON.parse(result.text)).toMatchObject({ status: 'draft', totalMinor: '100000' });
-    expect(f.rpcs.map((r) => r.fn)).toEqual(['waves_company_agent_gate', 'waves_company_agent_estimate_save']);
+    expect(f.rpcs.map((r) => r.fn)).toEqual([
+      'waves_company_agent_gate',
+      'waves_company_agent_estimate_save',
+    ]);
   });
 
   it('employees cannot mark attendance, save clients or estimates (no RPC is called)', async () => {
-    for (const tool of ['set_attendance', 'upsert_client', 'save_estimate_draft', 'list_clients', 'list_company_agent_writes']) {
+    for (const tool of [
+      'set_attendance',
+      'upsert_client',
+      'save_estimate_draft',
+      'list_clients',
+      'list_company_agent_writes',
+    ]) {
       const f = fake({ role: 'member' });
       const result = await call(f.client, tool, CALLS[tool]!);
       expect(result.isError, tool).toBe(true);
-      expect(f.rpcs.map((r) => r.fn), tool).toEqual(['waves_company_agent_gate']);
+      expect(
+        f.rpcs.map((r) => r.fn),
+        tool,
+      ).toEqual(['waves_company_agent_gate']);
     }
   });
 });
@@ -191,7 +246,9 @@ describe('personal tools and company groups', () => {
       (t) => ((t.inputSchema as { required?: string[] }).required ?? []).join() === 'groupId',
     );
     await client.close();
-    expect(tools.map((t) => t.name)).toEqual(expect.arrayContaining(['list_members', 'get_balances', 'list_expenses', 'invite_link']));
+    expect(tools.map((t) => t.name)).toEqual(
+      expect.arrayContaining(['list_members', 'get_balances', 'list_expenses', 'invite_link']),
+    );
     for (const tool of tools) {
       const f = fake();
       const result = await call(f.client, tool.name, { groupId: COMPANY });

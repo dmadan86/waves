@@ -703,7 +703,9 @@ function keepToPersonalGroups(server: McpServer, supabase: SupabaseClient): () =
         const { data, error } = await supabase.from('groups').select('type').eq('id', groupId);
         if (error) return fail(error.message);
         if ([data ?? []].flat().some((g) => (g as { type?: string }).type === 'company')) {
-          return fail('That is a company. Company work uses the company_* tools with the company id.');
+          return fail(
+            'That is a company. Company work uses the company_* tools with the company id.',
+          );
         }
       }
       return handler(...a);

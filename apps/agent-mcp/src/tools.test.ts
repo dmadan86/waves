@@ -118,7 +118,10 @@ function recordingSupabase(
         : { data: [], error: null };
     const query: Record<string, unknown> = {
       then: (resolve: (v: unknown) => unknown) =>
-        resolve({ data: table === 'groups' ? [{ default_currency: 'INR', type: 'other' }] : [], error: null }),
+        resolve({
+          data: table === 'groups' ? [{ default_currency: 'INR', type: 'other' }] : [],
+          error: null,
+        }),
       single: async () => result,
       maybeSingle: async () => result,
     };

@@ -85,9 +85,7 @@ export function registerCompanyTools(
       if (refused(g)) return g;
       const { data, error } = await supabase
         .from('groups')
-        .select(
-          'id, name, default_currency, company_approvals_enabled, company_agent_approval',
-        )
+        .select('id, name, default_currency, company_approvals_enabled, company_agent_approval')
         .eq('id', companyId)
         .is('deleted_at', null);
       if (error) return fail(error.message);
@@ -280,7 +278,15 @@ export function registerCompanyTools(
         note: z.string().max(500).optional(),
       },
     },
-    async ({ companyId, entryId, member, amount, category, occurredOn, note }): Promise<ToolResult> => {
+    async ({
+      companyId,
+      entryId,
+      member,
+      amount,
+      category,
+      occurredOn,
+      note,
+    }): Promise<ToolResult> => {
       const g = await gate(companyId);
       if (refused(g)) return g;
       const id = entryId ?? randomUUID();
@@ -313,7 +319,8 @@ export function registerCompanyTools(
     async ({ companyId, member, day, status, note }): Promise<ToolResult> => {
       const g = await gate(companyId);
       if (refused(g)) return g;
-      if (g.role === 'member') return fail("Only the owner or the person's manager can mark attendance.");
+      if (g.role === 'member')
+        return fail("Only the owner or the person's manager can mark attendance.");
       const { error } = await supabase.rpc('waves_company_attendance_set', {
         p_group_id: companyId,
         p_member_id: member,
@@ -334,24 +341,43 @@ export function registerCompanyTools(
         'Create or update a work task. Owner and managers can set everything (send all fields when editing). An employee can only change the status and note of a task assigned to them. taskId makes a retry safe.',
       inputSchema: {
         companyId: Company,
-        taskId: z.string().uuid().optional().describe('Omit to create; pass an existing id to update'),
+        taskId: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Omit to create; pass an existing id to update'),
         member: Member.describe('Who the task is for'),
         day: Day,
         title: z.string().min(1).max(200),
         status: z.enum(['todo', 'doing', 'done', 'blocked']).default('todo'),
         blockedReason: z.string().max(120).optional().describe('Required when status is blocked'),
         note: z.string().max(200).optional(),
-        dueTime: z.string().regex(/^\d{2}:\d{2}$/).optional().describe('HH:MM'),
+        dueTime: z
+          .string()
+          .regex(/^\d{2}:\d{2}$/)
+          .optional()
+          .describe('HH:MM'),
       },
     },
-    async ({ companyId, taskId, member, day, title, status, blockedReason, note, dueTime }): Promise<ToolResult> => {
+    async ({
+      companyId,
+      taskId,
+      member,
+      day,
+      title,
+      status,
+      blockedReason,
+      note,
+      dueTime,
+    }): Promise<ToolResult> => {
       const g = await gate(companyId);
       if (refused(g)) return g;
       const id = taskId ?? randomUUID();
       // Keep the site the task is already on; the RPC would otherwise clear it.
       const prior = await supabase.from('company_work_tasks').select('project_id').eq('id', id);
       if (prior.error) return fail(prior.error.message);
-      const projectId = ((prior.data ?? [])[0] as { project_id?: string | null } | undefined)?.project_id ?? null;
+      const projectId =
+        ((prior.data ?? [])[0] as { project_id?: string | null } | undefined)?.project_id ?? null;
       const { error } = await supabase.rpc('waves_company_work_set', {
         p_group_id: companyId,
         p_task_id: id,
@@ -377,7 +403,11 @@ export function registerCompanyTools(
         'Create or update a client or lead (owner and managers only). When updating, send every field you want to keep: omitted fields are cleared. expectedValue is minor units.',
       inputSchema: {
         companyId: Company,
-        clientId: z.string().uuid().optional().describe('Omit to create; pass an existing id to update'),
+        clientId: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Omit to create; pass an existing id to update'),
         name: z.string().min(1).max(120),
         phone: z.string().max(32).optional(),
         need: z.string().max(500).optional(),
@@ -413,7 +443,11 @@ export function registerCompanyTools(
         'Create or edit a DRAFT estimate (owner and managers only). It is never sent or converted to a bill from here - the owner does that in the app. Amounts are minor units; qtyMilli is quantity x 1000 (2 units = "2000").',
       inputSchema: {
         companyId: Company,
-        docId: z.string().uuid().optional().describe('Omit to create; pass a draft estimate id to edit'),
+        docId: z
+          .string()
+          .uuid()
+          .optional()
+          .describe('Omit to create; pass a draft estimate id to edit'),
         customerName: z.string().min(1).max(120),
         customerPhone: z.string().max(32).optional(),
         docDate: Day,
@@ -432,7 +466,17 @@ export function registerCompanyTools(
         clientId: z.string().uuid().optional(),
       },
     },
-    async ({ companyId, docId, customerName, customerPhone, docDate, items, discountMinor, notes, clientId }): Promise<ToolResult> => {
+    async ({
+      companyId,
+      docId,
+      customerName,
+      customerPhone,
+      docDate,
+      items,
+      discountMinor,
+      notes,
+      clientId,
+    }): Promise<ToolResult> => {
       const g = await gate(companyId);
       if (refused(g)) return g;
       if (g.role === 'member') return fail('Only the owner and managers can save estimates.');

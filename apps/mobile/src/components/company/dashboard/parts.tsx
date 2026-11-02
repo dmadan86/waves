@@ -170,6 +170,7 @@ export function IconButton({
   onPress,
   round = false,
   buttonRef,
+  badge = 0,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -177,36 +178,71 @@ export function IconButton({
   /** A white round button (the Team header) instead of a bare icon. */
   round?: boolean;
   buttonRef?: RefObject<View | null>;
+  /** A red count on the corner; hidden at 0. */
+  badge?: number;
 }) {
   const theme = useTheme();
   return (
-    <Pressable
-      ref={buttonRef}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      hitSlop={6}
-      style={
-        round
-          ? {
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              marginStart: 8,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.surface,
-              shadowColor: '#000',
-              shadowOpacity: 0.08,
-              shadowRadius: 6,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: 2,
-            }
-          : { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }
-      }
+    <View>
+      <Pressable
+        ref={buttonRef}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        hitSlop={6}
+        style={
+          round
+            ? {
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                marginStart: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.surface,
+                shadowColor: '#000',
+                shadowOpacity: 0.08,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 2,
+              }
+            : { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }
+        }
+      >
+        <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
+      </Pressable>
+      {badge > 0 ? <CountBadge n={badge} /> : null}
+    </View>
+  );
+}
+
+function CountBadge({ n }: { n: number }) {
+  const theme = useTheme();
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 2,
+        end: 2,
+        minWidth: 17,
+        height: 17,
+        borderRadius: 9,
+        paddingHorizontal: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.color.negative,
+        borderWidth: 1.5,
+        borderColor: theme.color.bg,
+      }}
     >
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
-    </Pressable>
+      <Text
+        variant="micro"
+        style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10, lineHeight: 12 }}
+      >
+        {n > 99 ? '99+' : n}
+      </Text>
+    </View>
   );
 }
 
@@ -215,44 +251,17 @@ export function IconButton({
  * its switcher, gear and menu, who is in it. Add and export live on the company bar (FAB, More).
  */
 /** The Overview bell: opens this company's own activity feed; the red count is what is new since it was last opened. */
-function OverviewBell({ groupId }: { groupId: string }) {
-  const theme = useTheme();
+function OverviewBell({ groupId, round }: { groupId: string; round?: boolean }) {
   const { t } = useStrings();
   const unread = useCompanyActivityUnread(groupId);
   return (
-    <View>
-      <IconButton
-        icon="notifications-outline"
-        label={unread > 0 ? `${t.company.ovBell}, ${unread}` : t.company.ovBell}
-        onPress={() => router.push(`/group/${groupId}/company-activity`)}
-      />
-      {unread > 0 ? (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 2,
-            end: 2,
-            minWidth: 17,
-            height: 17,
-            borderRadius: 9,
-            paddingHorizontal: 4,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.negative,
-            borderWidth: 1.5,
-            borderColor: theme.color.bg,
-          }}
-        >
-          <Text
-            variant="micro"
-            style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10, lineHeight: 12 }}
-          >
-            {unread > 99 ? '99+' : unread}
-          </Text>
-        </View>
-      ) : null}
-    </View>
+    <IconButton
+      icon="notifications-outline"
+      round={round}
+      badge={unread}
+      label={unread > 0 ? `${t.company.ovBell}, ${unread}` : t.company.ovBell}
+      onPress={() => router.push(`/group/${groupId}/company-activity`)}
+    />
   );
 }
 
@@ -294,6 +303,8 @@ export function DashHeader({
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
   const bare = (!!menuItems || tab) && !overview;
+  // Every bar tab root (Home included) shares one header: round buttons, bell, gear, then ⋮.
+  const root = overview || bare;
   const g = greetingFor(new Date().getHours());
   const greeting =
     g === 'morning'
@@ -324,12 +335,13 @@ export function DashHeader({
             source={BUILDING}
             accessibilityIgnoresInvertColors
             fadeDuration={0}
+            resizeMode="cover"
             style={{
               position: 'absolute',
-              right: overview ? 8 : 24,
-              top: insets.top + (overview ? 14 : 30),
-              width: overview ? 176 : 132,
-              height: 122,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 200,
               opacity: dark ? 0.48 : 0.68,
             }}
           />
@@ -365,21 +377,21 @@ export function DashHeader({
           <View style={{ flex: 1, minWidth: 0 }}>
             <SpacePill current={groupId} label={view.name || t.extras.typeCompany} />
           </View>
-          {overview ? <OverviewBell groupId={groupId} /> : null}
           {actions}
+          {root ? <OverviewBell groupId={groupId} round /> : null}
           {showGear ? (
             <IconButton
               icon="settings-outline"
               label={t.company.companySettings}
-              round={bare}
+              round={root}
               onPress={() => router.push(`/group/${groupId}/settings`)}
             />
           ) : null}
           {dots ? (
             <IconButton
-              icon={bare ? 'ellipsis-horizontal' : 'ellipsis-vertical'}
+              icon={root ? 'ellipsis-horizontal' : 'ellipsis-vertical'}
               label={t.group.more}
-              round={bare}
+              round={root}
               buttonRef={dotsRef}
               onPress={() =>
                 measureAnchor(dotsRef, (a) => {
@@ -460,7 +472,7 @@ export function DashHeader({
           </Pressable>
         ) : null}
       </View>
-      {view.suspended ? <SuspendedBanner /> : null}
+      {view.suspended ? <SuspendedBanner groupId={groupId} /> : null}
       {overview && view.isAdmin ? <CompanyStorageBanner groupId={groupId} /> : null}
       <ReportCompanySheet
         groupId={groupId}

@@ -6,27 +6,36 @@ import { useLocalSearchParams } from 'expo-router';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import {
   computeDocTotals,
+  docNumberLabel,
   format,
   formatQty,
   lineAmount,
   money,
   parseQtyMilli,
   validateDoc,
-  currencySymbol,
   type CurrencyCode,
 } from '@waves/core';
 import { AmountField, Screen, Sheet, Text, useTheme } from '@waves/ui';
+import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { ListRow, PlainHeader } from '@/components/standard';
 import { useCompanyClients } from '@/data/companyClients';
-import { useCompanyDocs, useRecordDocPayment, useSaveCompanyDoc } from '@/data/companyDocuments';
+import {
+  useCompanyDocs,
+  useRecordDocPayment,
+  useSaveCompanyDoc,
+  useSetEstimateStatus,
+} from '@/data/companyDocuments';
+import { useGroup } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
 import { decideBillPayment, type BillPayChoice } from '@/lib/billPayment';
 import { useBottomClearance } from '@/lib/clearance';
+import { renderCompanyDocHtml } from '@/lib/companyDocPdf';
+import { percentToMinor } from '@/lib/discount';
 import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
-import { printAvailable } from '@/lib/print';
+import { printAvailable, printHtml } from '@/lib/print';
 
 export default function CompanyBillFormScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
@@ -43,12 +52,20 @@ function BillForm() {
     docId,
     type,
     clientId,
-  } = useLocalSearchParams<{ id: string; docId?: string; type?: string; clientId?: string }>();
+    copyFrom,
+  } = useLocalSearchParams<{
+    id: string;
+    docId?: string;
+    type?: string;
+    clientId?: string;
+    copyFrom?: string;
+  }>();
   const view = useCompanyDocs(id);
   const { t } = useStrings();
   const doc = view.docs.find((d) => d.id === docId && !d.deleted);
+  const copy = view.docs.find((d) => d.id === copyFrom && !d.deleted);
   if (!view.canUse) return null;
-  if (docId && !doc)
+  if ((docId && !doc) || (copyFrom && !copy))
     return (
       <Screen>
         <PlainHeader title={t.companyDocs.title} />
@@ -57,7 +74,14 @@ function BillForm() {
     );
   if (doc?.convertedTo) return null;
   return (
-    <DocumentForm key={doc?.id ?? 'new'} groupId={id} doc={doc} type={type} clientId={clientId} />
+    <DocumentForm
+      key={doc?.id ?? 'new'}
+      groupId={id}
+      doc={doc}
+      seed={doc ?? copy}
+      type={type}
+      clientId={clientId}
+    />
   );
 }
 
@@ -84,11 +108,14 @@ function IconCircle({ name }: { name: IconName }) {
 function DocumentForm({
   groupId,
   doc,
+  seed,
   type,
   clientId,
 }: {
   groupId: string;
   doc?: ReturnType<typeof useCompanyDocs>['docs'][number];
+  /** What the fields start from: the doc being edited, or a doc being duplicated into a new one. */
+  seed?: ReturnType<typeof useCompanyDocs>['docs'][number];
   type?: string;
   /** A new document started from a client: prefills the name and phone and links it. */
   clientId?: string;
@@ -98,31 +125,38 @@ function DocumentForm({
   const clients = useCompanyClients(groupId).clients;
   const save = useSaveCompanyDoc(groupId);
   const pay = useRecordDocPayment(groupId);
+  const setStatus = useSetEstimateStatus(groupId);
+  const { group } = useGroup(groupId);
+  const logoUrl = useGroupPhotoUrl(group.data?.photo_path);
   const { t, locale } = useStrings();
   const c = t.companyDocs;
   const theme = useTheme();
   const clearance = useBottomClearance();
   const currency = view.currency as CurrencyCode;
   const [docType, setDocType] = useState<'bill' | 'estimate'>(
-    doc?.docType ?? (type === 'bill' ? 'bill' : 'estimate'),
+    seed?.docType ?? (type === 'bill' ? 'bill' : 'estimate'),
   );
-  const [typeMenu, setTypeMenu] = useState(false);
   const [pickClient, setPickClient] = useState(false);
-  const [linkedClient, setLinkedClient] = useState(client?.id);
+  const [linkedClient, setLinkedClient] = useState(client?.id ?? seed?.clientId ?? undefined);
   const [openCustomer, setOpenCustomer] = useState(false);
-  const [openDiscount, setOpenDiscount] = useState(false);
-  const [openNotes, setOpenNotes] = useState(!!doc?.notes);
-  const [expanded, setExpanded] = useState<number | null>(doc ? null : 0);
+  const [rowMenu, setRowMenu] = useState<number | null>(null);
+  const [statusMenu, setStatusMenu] = useState(false);
+  const [moreMenu, setMoreMenu] = useState(false);
+  const [statusSel, setStatusSel] = useState(doc?.status ?? 'draft');
+  const [pctMode, setPctMode] = useState(false);
+  const [pct, setPct] = useState('');
+  const [openNotes, setOpenNotes] = useState(!!seed?.notes);
+  const [expanded, setExpanded] = useState<number | null>(0);
   const [payChoice, setPayChoice] = useState<BillPayChoice>('unpaid');
   const [partMinor, setPartMinor] = useState(0n);
-  const [name, setName] = useState(doc?.customerName ?? client?.name ?? '');
-  const [phone, setPhone] = useState(doc?.customerPhone ?? client?.phone ?? '');
+  const [name, setName] = useState(seed?.customerName ?? client?.name ?? '');
+  const [phone, setPhone] = useState(seed?.customerPhone ?? client?.phone ?? '');
   const [date, setDate] = useState(doc?.docDate ?? todayIso());
   const [picking, setPicking] = useState(false);
-  const [notes, setNotes] = useState(doc?.notes ?? '');
-  const [discount, setDiscount] = useState(doc?.discountMinor ?? 0n);
+  const [notes, setNotes] = useState(seed?.notes ?? '');
+  const [amountDiscount, setDiscount] = useState(seed?.discountMinor ?? 0n);
   const [items, setItems] = useState(
-    doc?.items.map((i, index) => ({
+    seed?.items.map((i, index) => ({
       key: index,
       description: i.description,
       qty: formatQty(i.qtyMilli),
@@ -136,6 +170,9 @@ function DocumentForm({
     qtyMilli: parseQtyMilli(i.qty) ?? 0n,
     rateMinor: i.rateMinor,
   }));
+  const subtotal = computeDocTotals(parsed, 0n).subtotalMinor;
+  // A percentage is turned into minor units here, so the server only ever sees an amount.
+  const discount = pctMode ? percentToMinor(subtotal, pct) : amountDiscount;
   const totals = computeDocTotals(parsed, discount);
   const total = totals.totalMinor;
   const fmt = (v: bigint) => format(money(v, currency), { locale });
@@ -158,7 +195,7 @@ function DocumentForm({
     else setPicking(!picking);
   };
   const submit = async (share: boolean) => {
-    if (save.isPending || pay.isPending) return;
+    if (save.isPending || pay.isPending || setStatus.isPending) return;
     const values = {
       docType,
       customerName: name,
@@ -187,6 +224,17 @@ function DocumentForm({
       setError(c.failed);
       return;
     }
+    if (doc && docType === 'estimate' && statusSel !== doc.status) {
+      try {
+        await setStatus.mutateAsync({
+          docId: doc.id,
+          status: statusSel as 'draft' | 'sent' | 'accepted' | 'declined',
+        });
+      } catch {
+        setError(c.failed);
+        return;
+      }
+    }
     // The doc is saved; a failed payment is recorded later from the doc screen.
     if (owed !== null)
       await pay
@@ -198,15 +246,30 @@ function DocumentForm({
   };
   const patch = (key: number, p: Partial<(typeof items)[number]>) =>
     setItems(items.map((i) => (i.key === key ? { ...i, ...p } : i)));
-  const step = (key: number, delta: bigint) => {
-    const item = items.find((i) => i.key === key)!;
-    const cur = parseQtyMilli(item.qty) ?? 1000n;
-    // Minus never goes below 1 and never raises a fractional qty (0.5 stays 0.5).
-    if (delta < 0n && cur <= 1000n) return;
-    const next = cur + delta;
-    patch(key, { qty: formatQty(next < 1000n ? 1000n : next) });
-  };
-  const busy = save.isPending || pay.isPending;
+  const preview = () =>
+    doc &&
+    void printHtml(
+      renderCompanyDocHtml(
+        {
+          ...doc,
+          customerName: name.trim(),
+          customerPhone: phone.trim() || null,
+          docDate: date,
+          items: parsed.map((i, n) => ({ ...i, amountMinor: totals.lines[n]! })),
+          discountMinor: discount,
+          totalMinor: total,
+          notes: notes.trim() || null,
+        },
+        {
+          companyName: view.companyName,
+          logoUrl,
+          labels: c,
+          formatMoney: fmt,
+          formatDate: (d) => showDate(d, locale),
+        },
+      ),
+    ).catch(() => setError(t.groupExport.exportFailed));
+  const busy = save.isPending || pay.isPending || setStatus.isPending;
   const card = {
     backgroundColor: theme.color.surface,
     borderRadius: theme.radius.lg,
@@ -231,37 +294,82 @@ function DocumentForm({
     ['part', c.part_paid],
     ['paid', c.paid],
   ];
+  const typeLabel = docType === 'bill' ? c.bill : c.estimate;
+  const numberLabel = doc ? docNumberLabel(doc.docType, doc.number) : '';
+  const box = {
+    minHeight: 44,
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.color.border,
+  };
+  const saveAndShare = {
+    icon: 'paper-plane-outline' as const,
+    label: c.saveShare,
+    onPress: () => void submit(true),
+  };
+  const moreItems = [
+    ...(doc
+      ? []
+      : [
+          { icon: 'receipt-outline' as const, label: c.bill, onPress: () => setDocType('bill') },
+          {
+            icon: 'document-text-outline' as const,
+            label: c.estimate,
+            onPress: () => setDocType('estimate'),
+          },
+        ]),
+    ...(busy ? [] : [saveAndShare]),
+  ];
+  const statusOptions = ['draft', 'sent', 'accepted', 'declined'] as const;
   return (
     <Screen edges={[]}>
       <PlainHeader
         title={
           doc
             ? docType === 'bill'
-              ? c.bill
-              : c.estimate
+              ? c.editBill
+              : c.editEstimate
             : docType === 'bill'
-              ? c.createBill
-              : c.createEstimate
+              ? c.newBill
+              : c.newEstimate
         }
+        subtitle={doc ? `${numberLabel} · ${c[doc.status]}` : undefined}
         trailing={
-          doc ? undefined : (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => setTypeMenu(true)}
-              style={{
-                height: 36,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.pill,
-                backgroundColor: theme.color.surface,
-              }}
-            >
-              <Text style={{ fontWeight: '700' }}>{docType === 'bill' ? c.bill : c.estimate}</Text>
-              <Ionicons name="chevron-down" size={16} color={theme.color.text} />
-            </Pressable>
-          )
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+            {doc && printAvailable() ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => void preview()}
+                style={{
+                  height: 36,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  paddingHorizontal: theme.spacing.md,
+                  borderRadius: theme.radius.pill,
+                  borderWidth: 1,
+                  borderColor: theme.color.brandSoft,
+                }}
+              >
+                <Ionicons name="eye-outline" size={18} color={theme.color.brand} />
+                <Text style={{ color: theme.color.brand, fontWeight: '700' }}>{c.preview}</Text>
+              </Pressable>
+            ) : null}
+            {moreItems.length ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.group.more}
+                hitSlop={12}
+                onPress={() => setMoreMenu(true)}
+              >
+                <Ionicons name="ellipsis-vertical" size={24} color={theme.color.text} />
+              </Pressable>
+            ) : null}
+          </View>
         }
       />
       <ScrollView
@@ -273,28 +381,40 @@ function DocumentForm({
           gap: theme.spacing.md,
         }}
       >
-        <Text variant="caption" tone="muted">
-          {docType === 'bill' ? c.billSubtitle : c.estimateSubtitle}
-        </Text>
         <View style={card}>
           <View style={rowStyle}>
             <Pressable
               accessibilityRole="button"
               onPress={() => setOpenCustomer(!openCustomer)}
-              style={{ ...rowStyle, flex: 1 }}
+              style={{ ...rowStyle, flex: 1, paddingVertical: theme.spacing.sm }}
             >
-              <IconCircle name="person-outline" />
+              <View
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: theme.radius.md,
+                  backgroundColor: theme.color.brandSoft,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="storefront-outline" size={24} color={theme.color.brand} />
+              </View>
               <View style={{ flex: 1 }}>
-                <Text variant="caption" tone="muted">
-                  {c.customer}
-                </Text>
                 <Text
+                  variant="heading"
                   numberOfLines={1}
-                  style={{ fontWeight: '700' }}
+                  style={{ fontWeight: '800' }}
                   tone={name ? undefined : 'muted'}
                 >
                   {name || c.selectCustomer}
                 </Text>
+                {phone ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Ionicons name="call-outline" size={16} color={theme.color.textMuted} />
+                    <Text tone="muted">{phone}</Text>
+                  </View>
+                ) : null}
               </View>
               <Ionicons
                 name={openCustomer ? 'chevron-down' : 'chevron-forward'}
@@ -344,26 +464,50 @@ function DocumentForm({
             </View>
           ) : null}
         </View>
-        <View style={{ ...card, flexDirection: 'row' }}>
-          <Pressable accessibilityRole="button" onPress={openDate} style={{ ...rowStyle, flex: 1 }}>
-            <IconCircle name="calendar-outline" />
-            <View>
+        <View style={{ ...card, paddingVertical: theme.spacing.md, gap: theme.spacing.md }}>
+          <Text variant="heading" style={{ fontWeight: '800' }}>
+            {fill(c.detailsTitle, { type: typeLabel })}
+          </Text>
+          <View style={{ flexDirection: 'row', gap: theme.spacing.md, flexWrap: 'wrap' }}>
+            {doc ? (
+              <View style={{ flex: 1, minWidth: 140, gap: 4 }}>
+                <Text variant="caption" tone="muted">
+                  {docType === 'bill' ? c.billNo : c.estimateNo}
+                </Text>
+                <View style={box}>
+                  <Text>{numberLabel}</Text>
+                </View>
+              </View>
+            ) : null}
+            <View style={{ flex: 1, minWidth: 140, gap: 4 }}>
               <Text variant="caption" tone="muted">
-                {c.billDate}
+                {c.date}
               </Text>
-              <Text style={{ fontWeight: '700' }}>{showDate(date, locale)}</Text>
+              <Pressable accessibilityRole="button" onPress={openDate} style={box}>
+                <Ionicons name="calendar-outline" size={18} color={theme.color.textMuted} />
+                <Text>{showDate(date, locale)}</Text>
+              </Pressable>
             </View>
-          </Pressable>
-          <View style={{ ...rowStyle, flex: 1 }}>
-            <IconCircle name="cash-outline" />
-            <View>
-              <Text variant="caption" tone="muted">
-                {c.currency}
-              </Text>
-              <Text style={{ fontWeight: '700' }}>
-                {currency} {currencySymbol(currency, locale)}
-              </Text>
-            </View>
+            {doc && docType === 'estimate' ? (
+              <View style={{ flex: 1, minWidth: 140, gap: 4 }}>
+                <Text variant="caption" tone="muted">
+                  {c.status}
+                </Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => setStatusMenu(true)}
+                  style={{
+                    ...box,
+                    backgroundColor: theme.color.brandSoft,
+                    justifyContent: 'space-between',
+                  }}
+                >
+                  <Ionicons name="create-outline" size={18} color={theme.color.brand} />
+                  <Text style={{ flex: 1, color: theme.color.brand }}>{c[statusSel]}</Text>
+                  <Ionicons name="chevron-down" size={18} color={theme.color.brand} />
+                </Pressable>
+              </View>
+            ) : null}
           </View>
         </View>
         {picking && Platform.OS !== 'android' ? (
@@ -376,51 +520,64 @@ function DocumentForm({
             }}
           />
         ) : null}
-        <View
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginTop: theme.spacing.sm,
-          }}
-        >
-          <Text variant="heading" style={{ fontWeight: '800' }}>
-            {fill(c.itemsCount, { n: items.length })}
-          </Text>
-          {items.length < 50 ? (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() => {
-                setItems([...items, { key: nextKey, description: '', qty: '1', rateMinor: 0n }]);
-                setExpanded(nextKey);
-                setNextKey(nextKey + 1);
-              }}
-              style={{
-                height: 36,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 4,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.pill,
-                backgroundColor: theme.color.brandSoft,
-              }}
-            >
-              <Ionicons name="add" size={18} color={theme.color.brand} />
-              <Text style={{ color: theme.color.brand, fontWeight: '700' }}>{c.addItem}</Text>
-            </Pressable>
-          ) : null}
-        </View>
         <View style={card}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              paddingVertical: theme.spacing.md,
+            }}
+          >
+            <Text variant="heading" style={{ fontWeight: '800' }}>
+              {fill(c.itemsCount, { n: items.length })}
+            </Text>
+            {items.length < 50 ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setItems([...items, { key: nextKey, description: '', qty: '1', rateMinor: 0n }]);
+                  setExpanded(nextKey);
+                  setNextKey(nextKey + 1);
+                }}
+                style={{
+                  height: 36,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: theme.spacing.md,
+                  borderRadius: theme.radius.pill,
+                  borderWidth: 1,
+                  borderColor: theme.color.brandSoft,
+                }}
+              >
+                <Ionicons name="add" size={18} color={theme.color.brand} />
+                <Text style={{ color: theme.color.brand, fontWeight: '700' }}>{c.addItem}</Text>
+              </Pressable>
+            ) : null}
+          </View>
           {items.map((item, index) => (
             <View
               key={item.key}
               style={{
-                borderTopWidth: index ? 1 : 0,
+                borderTopWidth: 1,
                 borderTopColor: theme.color.border,
                 paddingVertical: theme.spacing.sm,
               }}
             >
               <View style={{ ...rowStyle, minHeight: 56, gap: theme.spacing.sm }}>
+                <View
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: theme.radius.md,
+                    backgroundColor: theme.color.surfaceMuted,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="cube-outline" size={20} color={theme.color.brand} />
+                </View>
                 <Pressable
                   accessibilityRole="button"
                   onPress={() => setExpanded(expanded === item.key ? null : item.key)}
@@ -434,49 +591,19 @@ function DocumentForm({
                     {item.description || c.description}
                   </Text>
                   <Text variant="caption" tone="muted" numberOfLines={1}>
-                    {fill(c.rateEach, { rate: fmt(item.rateMinor) })}
+                    {`${item.qty} × ${fmt(item.rateMinor)}`}
                   </Text>
                 </Pressable>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    borderRadius: theme.radius.pill,
-                    backgroundColor: theme.color.surfaceMuted,
-                  }}
-                >
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="-"
-                    hitSlop={6}
-                    onPress={() => step(item.key, -1000n)}
-                    style={{ padding: 6 }}
-                  >
-                    <Ionicons name="remove" size={16} color={theme.color.brand} />
-                  </Pressable>
-                  <Text style={{ minWidth: 24, textAlign: 'center', fontWeight: '700' }}>
-                    {item.qty}
-                  </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel="+"
-                    hitSlop={6}
-                    onPress={() => step(item.key, 1000n)}
-                    style={{ padding: 6 }}
-                  >
-                    <Ionicons name="add" size={16} color={theme.color.brand} />
-                  </Pressable>
+                <View style={{ ...box, minHeight: 36, paddingHorizontal: theme.spacing.sm }}>
+                  <Text style={{ fontWeight: '700' }}>{fmt(lineAmount(parsed[index]!))}</Text>
                 </View>
-                <Text style={{ fontWeight: '700', minWidth: 64, textAlign: 'right' }}>
-                  {fmt(lineAmount(parsed[index]!))}
-                </Text>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={c.removeItem}
+                  accessibilityLabel={t.group.more}
                   hitSlop={8}
-                  onPress={() => setItems(items.filter((i) => i.key !== item.key))}
+                  onPress={() => setRowMenu(item.key)}
                 >
-                  <Ionicons name="close" size={18} color={theme.color.textMuted} />
+                  <Ionicons name="ellipsis-vertical" size={20} color={theme.color.textMuted} />
                 </Pressable>
               </View>
               {expanded === item.key ? (
@@ -516,31 +643,76 @@ function DocumentForm({
             </View>
           ))}
         </View>
-        <View style={card}>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => setOpenDiscount(!openDiscount)}
-            style={rowStyle}
-          >
-            <IconCircle name="pricetag-outline" />
-            <Text style={{ flex: 1, fontWeight: '700' }}>{c.discount}</Text>
-            {discount > 0n ? <Text tone="muted">{fmt(discount)}</Text> : null}
-            <Ionicons
-              name={openDiscount ? 'chevron-down' : 'chevron-forward'}
-              size={18}
-              color={theme.color.textMuted}
-            />
-          </Pressable>
-          {openDiscount ? (
-            <View style={{ paddingBottom: theme.spacing.md }}>
-              <AmountField
-                currency={currency}
-                value={discount}
-                onChange={setDiscount}
-                size="compact"
-              />
+        <View style={{ ...card, paddingVertical: theme.spacing.md, gap: theme.spacing.sm }}>
+          <ListRow title={c.subtotal} amount={fmt(totals.subtotalMinor)} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+            <Text style={{ fontWeight: '600' }}>{c.discount}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => setPctMode(!pctMode)}
+              style={{
+                height: 32,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                paddingHorizontal: theme.spacing.md,
+                borderRadius: theme.radius.pill,
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Text style={{ color: theme.color.brand, fontWeight: '700' }}>
+                {pctMode ? '%' : currency}
+              </Text>
+              <Ionicons name="swap-horizontal" size={14} color={theme.color.brand} />
+            </Pressable>
+            <View style={{ flex: 1, alignItems: 'flex-end' }}>
+              {pctMode ? (
+                <View style={{ ...box, width: 120 }}>
+                  <TextInput
+                    accessibilityLabel={c.discount}
+                    keyboardType="decimal-pad"
+                    value={pct}
+                    onChangeText={setPct}
+                    placeholder="0"
+                    placeholderTextColor={theme.color.textFaint}
+                    style={{ flex: 1, textAlign: 'right', color: theme.color.text, fontSize: 16 }}
+                  />
+                  <Text tone="muted">%</Text>
+                </View>
+              ) : (
+                <View style={{ width: 160 }}>
+                  <AmountField
+                    currency={currency}
+                    value={amountDiscount}
+                    onChange={setDiscount}
+                    size="compact"
+                  />
+                </View>
+              )}
             </View>
+          </View>
+          {pctMode && discount > 0n ? (
+            <Text variant="caption" tone="muted" style={{ textAlign: 'right' }}>
+              {'−'} {fmt(discount)}
+            </Text>
           ) : null}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: theme.spacing.md,
+              borderRadius: theme.radius.md,
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Text variant="heading" style={{ fontWeight: '800' }}>
+              {c.total}
+            </Text>
+            <Text variant="heading" style={{ fontWeight: '800', fontSize: 22 }}>
+              {fmt(total)}
+            </Text>
+          </View>
         </View>
         <View style={card}>
           <Pressable
@@ -565,31 +737,6 @@ function DocumentForm({
               style={{ ...input, marginBottom: theme.spacing.md }}
             />
           ) : null}
-        </View>
-        <View style={{ ...card, paddingVertical: theme.spacing.md, gap: theme.spacing.sm }}>
-          <ListRow title={c.subtotal} amount={fmt(totals.subtotalMinor)} />
-          {discount > 0n ? (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ color: theme.color.positive }}>{c.discount}</Text>
-              <Text style={{ color: theme.color.positive }}>
-                {'\u2212'} {fmt(totals.subtotalMinor - total)}
-              </Text>
-            </View>
-          ) : null}
-          <View style={{ height: 1, backgroundColor: theme.color.border }} />
-          <View
-            style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
-          >
-            <Text variant="heading" style={{ fontWeight: '800' }}>
-              {c.total}
-            </Text>
-            <Text
-              variant="heading"
-              style={{ color: theme.color.brand, fontWeight: '800', fontSize: 22 }}
-            >
-              {fmt(total)}
-            </Text>
-          </View>
         </View>
         {!doc && docType === 'bill' ? (
           <View style={{ ...card, paddingVertical: theme.spacing.md, gap: theme.spacing.sm }}>
@@ -645,7 +792,7 @@ function DocumentForm({
         <Pressable
           accessibilityRole="button"
           disabled={busy}
-          onPress={() => void submit(true)}
+          onPress={() => void submit(false)}
           style={{
             flex: 2,
             height: 48,
@@ -658,13 +805,14 @@ function DocumentForm({
             opacity: busy ? 0.45 : 1,
           }}
         >
-          <Ionicons name="paper-plane-outline" size={18} color={theme.color.onBrand} />
-          <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>{c.saveShare}</Text>
+          <Ionicons name="checkmark-circle-outline" size={20} color={theme.color.onBrand} />
+          <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+            {doc ? c.saveChanges : c.save}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
-          disabled={busy}
-          onPress={() => void submit(false)}
+          onPress={() => router.back()}
           style={{
             flex: 1,
             height: 48,
@@ -672,22 +820,36 @@ function DocumentForm({
             justifyContent: 'center',
             borderRadius: theme.radius.pill,
             borderWidth: 1.5,
-            borderColor: theme.color.brand,
-            opacity: busy ? 0.45 : 1,
+            borderColor: theme.color.brandSoft,
           }}
         >
-          <Text style={{ color: theme.color.brand, fontWeight: '700' }}>{c.save}</Text>
+          <Text style={{ fontWeight: '700' }}>{t.common.cancel}</Text>
         </Pressable>
       </View>
+      <OverflowMenu visible={moreMenu} onClose={() => setMoreMenu(false)} items={moreItems} />
       <OverflowMenu
-        visible={typeMenu}
-        onClose={() => setTypeMenu(false)}
+        visible={statusMenu}
+        onClose={() => setStatusMenu(false)}
+        items={statusOptions.map((s) => ({
+          icon: 'create-outline' as const,
+          label: c[s],
+          onPress: () => setStatusSel(s),
+        }))}
+      />
+      <OverflowMenu
+        visible={rowMenu !== null}
+        onClose={() => setRowMenu(null)}
         items={[
-          { icon: 'receipt-outline', label: c.bill, onPress: () => setDocType('bill') },
           {
-            icon: 'document-text-outline',
-            label: c.estimate,
-            onPress: () => setDocType('estimate'),
+            icon: 'create-outline',
+            label: c.edit,
+            onPress: () => setExpanded(rowMenu),
+          },
+          {
+            icon: 'trash-outline',
+            label: c.removeItem,
+            tone: 'danger',
+            onPress: () => setItems(items.filter((i) => i.key !== rowMenu)),
           },
         ]}
       />

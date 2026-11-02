@@ -21,6 +21,8 @@ export type ClientDoc = Pick<
   | 'deleted'
 >;
 
+const dayNum = (day: string) => Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10));
+
 export interface ClientRow {
   readonly client: CompanyClient;
   readonly status: ClientStatus;
@@ -33,12 +35,41 @@ export interface ClientRow {
   readonly dueMinor: bigint;
   readonly hasEstimate: boolean;
   readonly hasBill: boolean;
+  /** ISO day of the soonest open follow-up, if any. */
+  readonly nextFollowUp: string | null;
+}
+
+/** Soonest open follow-up day per client, from tasks linked to a client. */
+export function nextFollowUpDays(
+  tasks: readonly { clientId?: string | null; day: string; status: string }[],
+): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const t of tasks) {
+    if (!t.clientId || t.status === 'done') continue;
+    const cur = out.get(t.clientId);
+    if (!cur || t.day < cur) out.set(t.clientId, t.day);
+  }
+  return out;
+}
+
+export type FollowUpTag =
+  { kind: 'today' } | { kind: 'overdue'; n: number } | { kind: 'on'; weekday: boolean };
+
+/** How a follow-up day reads on a client row: today, overdue by n days, else a weekday (within 7 days) or a date. */
+export function followUpTag(day: string, today: string): FollowUpTag {
+  const n = Math.round((dayNum(day) - dayNum(today)) / 86_400_000);
+  return n === 0
+    ? { kind: 'today' }
+    : n < 0
+      ? { kind: 'overdue', n: -n }
+      : { kind: 'on', weekday: n <= 7 };
 }
 
 export function buildClientRows(
   clients: readonly CompanyClient[],
   docs: readonly ClientDoc[],
   notes: readonly Pick<ClientNote, 'clientId' | 'createdAt'>[] = [],
+  followUps: ReadonlyMap<string, string> = new Map(),
 ): ClientRow[] {
   const byClient = new Map<string, ClientDoc[]>();
   for (const d of docs) {
@@ -88,6 +119,7 @@ export function buildClientRows(
       dueMinor,
       hasEstimate: mine.some((d) => d.docType === 'estimate'),
       hasBill: bills.length > 0,
+      nextFollowUp: followUps.get(client.id) ?? null,
     };
   });
 }
@@ -113,7 +145,6 @@ export function tabCounts(rows: readonly ClientRow[]): Record<ClientTab, number>
   return { all: n('all'), inquiry: n('inquiry'), quote: n('quote'), invoice: n('invoice') };
 }
 
-const dayNum = (day: string) => Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10));
 /** Whole days from `day` to `today`, never negative. */
 export const daysAgo = (day: string, today: string): number =>
   Math.max(0, Math.round((dayNum(today) - dayNum(day)) / 86_400_000));
