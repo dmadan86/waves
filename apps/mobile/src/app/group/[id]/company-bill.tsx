@@ -8,6 +8,7 @@ import * as Sharing from 'expo-sharing';
 import { Linking, Platform, Pressable, ScrollView, View } from 'react-native';
 import {
   billDueMinor,
+  billUpiLink,
   computeDocTotals,
   docNumberLabel,
   format,
@@ -20,6 +21,8 @@ import {
 } from '@waves/core';
 import { AmountField, Button, Screen, Sheet, Text, useTheme } from '@waves/ui';
 import type { ComponentProps } from 'react';
+import { UpiPayCard } from '@/components/company/UpiPayCard';
+import { useCompanyCard } from '@/data/companyDetails';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -98,7 +101,11 @@ export default function CompanyBillScreen() {
   const [paymentError, setPaymentError] = useState('');
   const [sharing, setSharing] = useState(false);
   const [allEvents, setAllEvents] = useState(false);
-  const members = useCompanyEntries(id).members;
+  const entries = useCompanyEntries(id);
+  const members = entries.members;
+  // Bank details (incl. UPI ID) only reach the owner and managers, so nobody else sees the QR.
+  const vpa = useCompanyCard(id).card?.values.upi ?? null;
+  const qrRef = useRef<{ toDataURL: (cb: (b64: string) => void) => void } | null>(null);
   const doc = view.docs.find((d) => d.id === docId && !d.deleted);
   const suspended = useCompanySuspended(id);
   const busy =
@@ -124,9 +131,28 @@ export default function CompanyBillScreen() {
     formatMoney: fmt,
     formatDate: (d) => showDate(d, locale),
   };
+  // The PDF carries the same QR as the screen: read it back off the mounted code.
+  const pdfWithUpi = async (): Promise<CompanyDocPdfOptions> => {
+    const b64 =
+      vpa && upiLink
+        ? await new Promise<string | null>((res) =>
+            qrRef.current ? qrRef.current.toDataURL(res) : res(null),
+          )
+        : null;
+    return b64 && vpa
+      ? {
+          ...pdfOptions,
+          upi: {
+            id: vpa,
+            qrDataUrl: `data:image/png;base64,${b64}`,
+            scanLabel: fill(c.upiScan, { amount: fmt(due) }),
+          },
+        }
+      : pdfOptions;
+  };
   const printDoc = () =>
     run(async () => {
-      if (doc && !(await printHtml(renderCompanyDocHtml(doc, pdfOptions))))
+      if (doc && !(await printHtml(renderCompanyDocHtml(doc, await pdfWithUpi()))))
         setError(t.groupExport.updateNeeded);
     });
   const sharePdf = () =>
@@ -138,7 +164,7 @@ export default function CompanyBillScreen() {
           setError(t.groupExport.updateNeeded);
           return;
         }
-        const shared = await shareCompanyDocPdf(doc, pdfOptions);
+        const shared = await shareCompanyDocPdf(doc, await pdfWithUpi());
         if (!shared) setError(t.groupExport.exportFailed);
       } finally {
         setSharing(false);
@@ -234,6 +260,17 @@ export default function CompanyBillScreen() {
       : [];
   const canConvert = doc.docType === 'estimate' && !doc.convertedTo;
   const canPay = doc.docType === 'bill' && due > 0n;
+  const upiLink =
+    vpa && doc.docType === 'bill'
+      ? billUpiLink({
+          vpa,
+          payeeName: view.companyName,
+          totalMinor: doc.totalMinor,
+          paidMinor: doc.paidMinor,
+          currency: view.currency,
+          number: doc.number,
+        })
+      : null;
   const record = async () => {
     if (busy) return;
     const code = validatePayment(doc.totalMinor, doc.paidMinor, amount);
@@ -488,13 +525,14 @@ export default function CompanyBillScreen() {
               ) : null}
               {canPay ? (
                 <ActionButton
-                  label={c.recordPayment}
+                  label={c.markReceived}
                   icon="cash-outline"
                   bg={theme.color.brand}
                   ink={theme.color.onBrand}
                   disabled={busy}
                   onPress={() => {
                     setPaymentError('');
+                    setAmount(due);
                     setRecording(true);
                   }}
                 />
@@ -510,6 +548,26 @@ export default function CompanyBillScreen() {
               ) : null}
             </View>
           </StandardCard>
+        ) : null}
+        {upiLink && vpa ? (
+          <UpiPayCard
+            link={upiLink}
+            vpa={vpa}
+            note={docNumberLabel('bill', doc.number)}
+            amountText={fmt(due)}
+            qrRef={qrRef}
+          />
+        ) : canPay && entries.isOwner && view.currency === 'INR' ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.push(`/group/${id}/company-details`)}
+          >
+            <StandardCard>
+              <Text tone="brand" style={{ fontWeight: '600' }}>
+                {c.upiAdd}
+              </Text>
+            </StandardCard>
+          </Pressable>
         ) : null}
         <StandardCard>
           <View style={{ flexDirection: 'row' }}>
@@ -672,7 +730,7 @@ export default function CompanyBillScreen() {
             </Text>
           ) : null}
           <Button
-            label={c.recordPayment}
+            label={c.markReceived}
             variant="brand"
             disabled={busy}
             onPress={() => void record()}
