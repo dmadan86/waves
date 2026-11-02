@@ -282,6 +282,10 @@ export function mapEvent(event: RcEvent, options: { ignoreSandbox?: boolean } = 
 
   // A company slot never grants Pro or a quota: it only lets its buyer own one more company.
   if (isCompanySlot(event)) {
+    // RevenueCat's stand-in while a store is down: it has no real transaction to bind or expire, so
+    // it could never be taken back. The real purchase that follows opens the slot.
+    if (type === 'TEMPORARY_ENTITLEMENT_GRANT')
+      return ignore('temporary grant does not open a slot');
     const status = statusFor(event);
     return {
       ...base,

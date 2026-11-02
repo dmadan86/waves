@@ -554,6 +554,9 @@ describe('company slots', () => {
     expect(slot({ type: 'EXPIRATION' })).toMatchObject({ active: false });
     expect(slot({ type: 'REFUND' })).toMatchObject({ active: false });
   });
+  it('a temporary entitlement grant never opens a slot', () => {
+    expect(slot({ type: 'TEMPORARY_ENTITLEMENT_GRANT' })).toMatchObject({ kind: 'ignore' });
+  });
   it('is recognised by the entitlement alone', () => {
     expect(slot({ product_id: 'something_else' })).toMatchObject({ kind: 'company_slot' });
   });
