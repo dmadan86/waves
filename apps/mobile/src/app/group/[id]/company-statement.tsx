@@ -11,10 +11,17 @@ import {
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { Linking, Pressable, ScrollView, View } from 'react-native';
+import {
+  Linking,
+  Pressable,
+  ScrollView,
+  View,
+  type ScrollView as ScrollViewType,
+} from 'react-native';
 
 import { Screen, Text, iconSize, useTheme } from '@waves/ui';
 
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { type MenuAnchor } from '@/components/SortMenu';
@@ -33,6 +40,7 @@ import {
   birthdayText,
   DetailRow,
   OverviewTab,
+  RateTile,
   type EmployeeTab,
 } from '@/components/company/employee/EmployeeTabs';
 import { ScenicBody, ScenicHeader, SegmentedPills, StandardCard } from '@/components/standard';
@@ -52,7 +60,7 @@ import { useAttendance, useWorkdayAccess, useWorkTasks } from '@/data/companyWor
 import { employeeDue, hasHistory } from '@/data/employeeDetail';
 import { useRemoveMember } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
-import { displayName } from '@/data/types';
+import { displayName, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
@@ -84,6 +92,11 @@ export default function CompanyStatementScreen() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   const dotsRef = useRef<View>(null);
+  const [editMenuOpen, setEditMenuOpen] = useState(false);
+  const [editAnchor, setEditAnchor] = useState<MenuAnchor | null>(null);
+  const editRef = useRef<View>(null);
+  const scrollRef = useRef<ScrollViewType>(null);
+  const permsRef = useRef<View>(null);
   const [tab, setTab] = useState<EmployeeTab>('overview');
   const [attMonth, setAttMonth] = useState(todayIso().slice(0, 7));
   const [period, setPeriod] = useState<CompanyPeriod>('all');
@@ -134,6 +147,21 @@ export default function CompanyStatementScreen() {
   const manager = member?.manager_id
     ? view.members.find((m) => m.id === member.manager_id)
     : undefined;
+
+  // The reports-to chips (in the Permissions card) show for an owner viewing an employee when a manager exists.
+  const canPickManager =
+    !!member &&
+    view.isOwner &&
+    member.role === 'member' &&
+    member.id !== view.me?.id &&
+    view.members.some((m) => m.role === 'manager' && !m.left_at);
+  const scrollToPerms = (): void => {
+    const root = scrollRef.current;
+    if (root)
+      permsRef.current?.measureLayout(root as never, (_x, y) =>
+        root.scrollTo({ y: Math.max(0, y - 16), animated: true }),
+      );
+  };
 
   const openIdEditor = (): void => {
     setIdError(null);
@@ -211,11 +239,49 @@ export default function CompanyStatementScreen() {
           : []),
       ]
     : [];
+  const editItems: OverflowMenuItem[] = [
+    { icon: 'id-card-outline', label: t.company.employeeId, onPress: openIdEditor },
+    ...(canType
+      ? [
+          {
+            icon: 'briefcase-outline' as const,
+            label: t.company.employmentType,
+            onPress: () => setTypeOpen(true),
+          },
+        ]
+      : []),
+    ...(employee
+      ? [
+          {
+            icon: 'people-outline' as const,
+            label: t.company.department,
+            onPress: () => setDepartmentOpen(true),
+          },
+        ]
+      : []),
+    ...(canDates
+      ? [
+          {
+            icon: 'calendar-outline' as const,
+            label: t.company.joiningDate,
+            onPress: () => setDatesOpen(true),
+          },
+        ]
+      : []),
+  ];
   const tabs = [
-    { value: 'overview' as const, label: t.company.tabOverview },
-    ...(showAttendance ? [{ value: 'attendance' as const, label: t.company.attendanceTitle }] : []),
-    { value: 'expenses' as const, label: t.company.expenses },
-    { value: 'details' as const, label: t.company.tabDetails },
+    { value: 'overview' as const, label: t.company.tabOverview, icon: 'grid-outline' as const },
+    ...(showAttendance
+      ? [
+          {
+            value: 'attendance' as const,
+            label: t.company.attendanceTitle,
+            icon: 'calendar-outline' as const,
+          },
+        ]
+      : []),
+    { value: 'expenses' as const, label: t.company.expenses, icon: 'receipt-outline' as const },
+    { value: 'details' as const, label: t.company.tabDetails, icon: 'person-outline' as const },
   ];
   const { due, total: dueTotal } =
     member && detail ? employeeDue(view.entries, member.id) : { due: [], total: 0n };
@@ -248,6 +314,7 @@ export default function CompanyStatementScreen() {
   return (
     <Screen edges={[]}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={{ paddingBottom: clearance + 80 }}
         showsVerticalScrollIndicator={false}
       >
@@ -260,10 +327,9 @@ export default function CompanyStatementScreen() {
             <EmployeeIdentity
               member={member}
               activeToday={!!active?.activeIds.has(member.id)}
-              typeLabel={employee ? typeText : null}
               departmentLabel={employee ? deptText : null}
+              siteLabel={site?.name ?? null}
               onEditId={canEdit ? openIdEditor : undefined}
-              onPickType={canType ? () => setTypeOpen(true) : undefined}
               onPickDepartment={canEdit && employee ? () => setDepartmentOpen(true) : undefined}
             />
           ) : null}
@@ -271,14 +337,16 @@ export default function CompanyStatementScreen() {
         <ScenicBody>
           {member && detail ? (
             <>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: theme.spacing.sm }}
-                style={{ flexGrow: 0 }}
-              >
-                <SegmentedPills options={tabs} value={tab} onChange={setTab} />
-              </ScrollView>
+              <StandardCard style={{ padding: theme.spacing.xs, borderRadius: 28 }}>
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ gap: theme.spacing.xs }}
+                  style={{ flexGrow: 0 }}
+                >
+                  <SegmentedPills options={tabs} value={tab} onChange={setTab} />
+                </ScrollView>
+              </StandardCard>
               {tab === 'overview' ? (
                 <OverviewTab
                   groupId={groupId}
@@ -331,10 +399,67 @@ export default function CompanyStatementScreen() {
                       paddingHorizontal: theme.spacing.md,
                     }}
                   >
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: theme.spacing.sm,
+                        paddingVertical: theme.spacing.xs,
+                      }}
+                    >
+                      <Ionicons
+                        name="person-circle-outline"
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
+                      <Text
+                        variant="heading"
+                        accessibilityRole="header"
+                        style={{ flex: 1, fontSize: 18 }}
+                      >
+                        {t.company.employeeDetails}
+                      </Text>
+                      {canEdit ? (
+                        <Pressable
+                          ref={editRef}
+                          accessibilityRole="button"
+                          accessibilityLabel={t.common.edit}
+                          onPress={() =>
+                            measureAnchor(editRef, (a) => {
+                              setEditAnchor(a);
+                              setEditMenuOpen(true);
+                            })
+                          }
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 6,
+                            height: 34,
+                            paddingHorizontal: theme.spacing.md,
+                            borderRadius: theme.radius.pill,
+                            borderWidth: 1,
+                            borderColor: theme.color.brand,
+                          }}
+                        >
+                          <Ionicons
+                            name="create-outline"
+                            size={iconSize.base}
+                            color={theme.color.brand}
+                          />
+                          <Text
+                            variant="caption"
+                            style={{ fontWeight: '600', color: theme.color.brand }}
+                          >
+                            {t.common.edit}
+                          </Text>
+                        </Pressable>
+                      ) : null}
+                    </View>
                     <DetailRow
                       icon="id-card-outline"
                       label={t.company.employeeId}
                       value={member.employee_id || notSet}
+                      muted={!member.employee_id}
                       onPress={canEdit ? openIdEditor : undefined}
                     />
                     {employee ? (
@@ -359,6 +484,33 @@ export default function CompanyStatementScreen() {
                               ? displayName(manager, null, null, t.misc.someone)
                               : t.company.owners
                           }
+                          valueNode={
+                            manager ? (
+                              <View
+                                style={{
+                                  flex: 1,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  gap: theme.spacing.sm,
+                                }}
+                              >
+                                <PersonAvatar
+                                  member={manager}
+                                  name={displayName(manager, null, null, t.misc.someone)}
+                                  ghost={isGhost(manager)}
+                                  size={28}
+                                />
+                                <Text
+                                  variant="body"
+                                  style={{ flex: 1, fontWeight: '600' }}
+                                  numberOfLines={1}
+                                >
+                                  {displayName(manager, null, null, t.misc.someone)}
+                                </Text>
+                              </View>
+                            ) : undefined
+                          }
+                          onPress={canPickManager ? scrollToPerms : undefined}
                         />
                       </>
                     ) : null}
@@ -377,42 +529,43 @@ export default function CompanyStatementScreen() {
                         value={member.invite_email}
                       />
                     ) : null}
-                    {site ? (
-                      <DetailRow
-                        icon="location-outline"
-                        label={t.company.sites}
-                        value={site.name}
-                      />
-                    ) : null}
                     <DetailRow
                       icon="calendar-outline"
                       label={t.company.joiningDate}
                       value={joined ?? notSet}
+                      muted={!joined}
                       onPress={canDates ? () => setDatesOpen(true) : undefined}
                     />
                     <DetailRow
                       icon="gift-outline"
                       label={t.calendar.birthday}
                       value={birthday ?? notSet}
+                      muted={!birthday}
                       onPress={canDates ? () => setDatesOpen(true) : undefined}
+                      divider={false}
                     />
-                    {employee ? (
-                      <>
-                        <DetailRow
-                          icon="cash-outline"
-                          label={t.company.rateTitle}
-                          value={rate(member.daily_rate_minor, view.defaultRateMinor)}
-                        />
-                        <DetailRow
-                          icon="car-outline"
-                          label={t.company.detailMileage}
-                          value={rate(member.mileage_rate_minor, view.defaultMileageRateMinor)}
-                          divider={false}
-                        />
-                      </>
-                    ) : null}
                   </StandardCard>
-                  <CompanyTeamCard groupId={groupId} view={view} member={member} />
+                  {employee ? (
+                    <StandardCard style={{ flexDirection: 'row', gap: theme.spacing.md }}>
+                      <RateTile
+                        icon="wallet-outline"
+                        label={t.company.rateTitle}
+                        value={rate(member.daily_rate_minor, view.defaultRateMinor)}
+                        muted={rate(member.daily_rate_minor, view.defaultRateMinor) === notSet}
+                      />
+                      <RateTile
+                        icon="car-outline"
+                        label={t.company.detailMileage}
+                        value={rate(member.mileage_rate_minor, view.defaultMileageRateMinor)}
+                        muted={
+                          rate(member.mileage_rate_minor, view.defaultMileageRateMinor) === notSet
+                        }
+                      />
+                    </StandardCard>
+                  ) : null}
+                  <View ref={permsRef} collapsable={false}>
+                    <CompanyTeamCard groupId={groupId} view={view} member={member} />
+                  </View>
                 </>
               ) : null}
             </>
@@ -441,6 +594,12 @@ export default function CompanyStatementScreen() {
         onClose={() => setMenuOpen(false)}
         items={menuItems}
         anchor={anchor}
+      />
+      <OverflowMenu
+        visible={editMenuOpen}
+        onClose={() => setEditMenuOpen(false)}
+        items={editItems}
+        anchor={editAnchor}
       />
       {member && employmentOpen ? (
         <CompanyEmploymentControl

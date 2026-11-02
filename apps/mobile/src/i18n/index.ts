@@ -1976,6 +1976,9 @@ export interface UiStrings {
     moreOptions: string;
     wageFormula: string;
     canPayPeople: string;
+    canPayPeopleHint: string;
+    employeeDetails: string;
+    permissions: string;
     setDailyRate: string;
     kAllocation: string;
     kPoolReturn: string;
@@ -9364,7 +9367,10 @@ const en: UiStrings = {
     addPerson: 'Add a person',
     moreOptions: 'More',
     wageFormula: '{gross} - advance {cut} = {net}',
-    canPayPeople: 'Can pay people',
+    canPayPeople: 'Can record payments',
+    canPayPeopleHint: 'Lets this employee record payments to team members.',
+    employeeDetails: 'Employee Details',
+    permissions: 'Permissions',
     setDailyRate: 'Set daily rate',
     kAllocation: 'Cash given to manager',
     kPoolReturn: 'Cash taken back',
@@ -16215,7 +16221,10 @@ const ta: UiStrings = {
     addPerson: 'நபரைச் சேர்',
     moreOptions: 'மேலும்',
     wageFormula: '{gross} - முன்பணம் {cut} = {net}',
-    canPayPeople: 'ஆட்களுக்கு பணம் தரலாம்',
+    canPayPeople: 'பணம் கொடுத்ததைப் பதிவு செய்யலாம்',
+    canPayPeopleHint: 'இந்த ஊழியர் குழு உறுப்பினர்களுக்கான கட்டணங்களைப் பதிவு செய்ய அனுமதிக்கும்.',
+    employeeDetails: 'ஊழியர் விவரங்கள்',
+    permissions: 'அனுமதிகள்',
     setDailyRate: 'தினசரி விகிதம் அமை',
     kAllocation: 'மேலாளருக்கு பணம்',
     kPoolReturn: 'திரும்பப் பெற்ற பணம்',
@@ -23226,7 +23235,10 @@ const hi: UiStrings = {
     addPerson: 'व्यक्ति जोड़ें',
     moreOptions: 'और',
     wageFormula: '{gross} - एडवांस {cut} = {net}',
-    canPayPeople: 'लोगों को भुगतान कर सकते हैं',
+    canPayPeople: 'भुगतान दर्ज कर सकते हैं',
+    canPayPeopleHint: 'यह कर्मचारी टीम के सदस्यों को किए भुगतान दर्ज कर सकेगा।',
+    employeeDetails: 'कर्मचारी विवरण',
+    permissions: 'अनुमतियाँ',
     setDailyRate: 'दैनिक दर तय करें',
     kAllocation: 'मैनेजर को नकद',
     kPoolReturn: 'वापस लिया नकद',
@@ -30172,7 +30184,10 @@ const ar: UiStrings = {
     addPerson: 'أضف شخصاً',
     moreOptions: 'المزيد',
     wageFormula: '{gross} - سلفة {cut} = {net}',
-    canPayPeople: 'يمكنه الدفع للناس',
+    canPayPeople: 'يمكنه تسجيل المدفوعات',
+    canPayPeopleHint: 'يتيح لهذا الموظف تسجيل المدفوعات لأعضاء الفريق.',
+    employeeDetails: 'بيانات الموظف',
+    permissions: 'الصلاحيات',
     setDailyRate: 'حدد الأجر اليومي',
     kAllocation: 'نقد للمدير',
     kPoolReturn: 'نقد مسترجع',
