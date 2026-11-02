@@ -534,3 +534,21 @@ describe('company storage packs', () => {
     });
   });
 });
+
+describe('company slots', () => {
+  it('goes to the slot RPC', async () => {
+    const { deps, rpc } = makeDeps();
+    await handleRevenueCatWebhook(
+      request(
+        rcEvent('INITIAL_PURCHASE', {
+          product_id: 'waves_company_slot_monthly',
+          entitlement_ids: ['company_slot'],
+        }),
+      ),
+      deps,
+    );
+    const [name, args] = rpc.mock.calls[0]!;
+    expect(name).toBe('waves_company_slot_apply');
+    expect(args).toMatchObject({ p_action: { kind: 'company_slot', active: true } });
+  });
+});

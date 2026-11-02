@@ -924,6 +924,8 @@ export enum SyncRejectionCode {
   RateLimited = 'RATE_LIMITED',
   /** Waves suspended the company; its queued writes are dropped, never listed as refused. */
   CompanyBlocked = 'COMPANY_BLOCKED',
+  /** The owner already has a company; another needs its own company subscription. The app shows the paywall. */
+  CompanySlotRequired = 'COMPANY_SLOT_REQUIRED',
   /** Two admins edited the families at the same time; the sender's baseUnits differ from the current DB value. */
   UnitsConflict = 'UNITS_CONFLICT',
 }
