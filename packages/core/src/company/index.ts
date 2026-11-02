@@ -3,6 +3,7 @@ export * from './phase4';
 export * from './vendors';
 export * from './clients';
 export * from './inquiries';
+export * from './tickets';
 export * from './vendorViews';
 export * from './vendorOrders';
 export * from './details';
@@ -977,3 +978,4 @@ export function employeeIdTaken(
   );
 }
 export * from './documents';
+export * from './billUpi';

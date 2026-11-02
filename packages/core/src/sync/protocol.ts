@@ -112,6 +112,11 @@ export enum MutationKind {
   CompanyInquiryReject = 'company_inquiry.reject',
   CompanyInquiryRemove = 'company_inquiry.remove',
   CompanyClientAssign = 'company_client.assign',
+  // Complaints: a ticket for a client, assigned to an employee; escalation is derived from its due time.
+  CompanyTicketSet = 'company_ticket.set',
+  CompanyTicketStatus = 'company_ticket.status',
+  CompanyTicketCommentAdd = 'company_ticket_comment.add',
+  CompanyTicketRemove = 'company_ticket.remove',
   // Details card (contact + bank), one per side. Owner sets the company's; owner, owning manager or the vendor set a vendor's.
   CompanyDetailsSet = 'company_details.set',
   CompanyVendorDetailsSet = 'company_vendor_details.set',
@@ -762,6 +767,32 @@ export interface CompanyClientAssignPayload {
   readonly clientId: string;
   readonly memberIds: readonly string[];
 }
+export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+/** Create or edit a ticket (reassigning is an edit). `dueAt` is an ISO instant the phone set from the priority. */
+export interface CompanyTicketSetPayload {
+  readonly ticketId: string;
+  readonly clientId: string | null;
+  readonly title: string;
+  readonly details: string | null;
+  readonly priority: TicketPriority;
+  readonly assigneeMemberId: string;
+  readonly dueAt: string;
+}
+/** `note` is required to resolve. */
+export interface CompanyTicketStatusPayload {
+  readonly ticketId: string;
+  readonly status: TicketStatus;
+  readonly note: string | null;
+}
+export interface CompanyTicketCommentAddPayload {
+  readonly eventId: string;
+  readonly ticketId: string;
+  readonly body: string;
+}
+export interface CompanyTicketRemovePayload {
+  readonly ticketId: string;
+}
 export interface CompanyDocStatusPayload {
   readonly docId: string;
   readonly status: 'draft' | 'sent' | 'accepted' | 'declined';
@@ -955,6 +986,8 @@ export enum SyncRejectionCode {
   RateLimited = 'RATE_LIMITED',
   /** Waves suspended the company; its queued writes are dropped, never listed as refused. */
   CompanyBlocked = 'COMPANY_BLOCKED',
+  /** The owner already has a company; another needs its own company subscription. The app shows the paywall. */
+  CompanySlotRequired = 'COMPANY_SLOT_REQUIRED',
   /** Two admins edited the families at the same time; the sender's baseUnits differ from the current DB value. */
   UnitsConflict = 'UNITS_CONFLICT',
 }
@@ -1034,6 +1067,9 @@ export enum SyncTable {
   /** Group-scoped, pull-only: a client's inquiries and assigned people; readable exactly where the client is (RLS). */
   CompanyInquiries = 'company_inquiries',
   CompanyClientAssignees = 'company_client_assignees',
+  /** Group-scoped, pull-only: complaints and their timeline; owner all, a manager their team's, an employee their own (RLS). */
+  CompanyTickets = 'company_tickets',
+  CompanyTicketEvents = 'company_ticket_events',
   /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
   CompanyAttendance = 'company_attendance',
   CompanyWorkTasks = 'company_work_tasks',

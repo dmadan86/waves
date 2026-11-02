@@ -65,6 +65,11 @@ export function authorized(header: string | null, secret: string): boolean {
   return exact || bearer;
 }
 
+const RPC_FOR: Record<string, string> = {
+  company_storage: 'waves_company_storage_pack_apply',
+  company_slot: 'waves_company_slot_apply',
+};
+
 export async function handleRevenueCatWebhook(request: Request, deps: Deps): Promise<Response> {
   if (request.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use POST');
 
@@ -96,9 +101,7 @@ export async function handleRevenueCatWebhook(request: Request, deps: Deps): Pro
   const mapped = mapEvent(event, { ignoreSandbox: !allowSandbox(deps.env) });
 
   const { data, error } = await deps.service.rpc(
-    mapped.action.kind === 'company_storage'
-      ? 'waves_company_storage_pack_apply'
-      : 'waves_revenuecat_apply',
+    RPC_FOR[mapped.action.kind] ?? 'waves_revenuecat_apply',
     {
       p_event_id: mapped.eventId,
       p_type: mapped.type || 'UNKNOWN',

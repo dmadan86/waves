@@ -96,7 +96,10 @@ interface SyncResponseBody {
    *  phone drops cached detail for anyone else. Absent on older servers (nothing is dropped). */
   companyVisible?: Record<string, string[]>;
   /** Company groups: birthday-row, event and client ids the caller can still read (RLS hides revoked rows silently). */
-  calendarVisible?: Record<string, { dates: string[]; events: string[]; clients?: string[] }>;
+  calendarVisible?: Record<
+    string,
+    { dates: string[]; events: string[]; clients?: string[]; tickets?: string[] }
+  >;
 }
 
 /** While the app is open and online, catch anything Realtime missed. */

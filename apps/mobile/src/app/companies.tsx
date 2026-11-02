@@ -14,9 +14,10 @@ import { CompanyCard } from '@/components/company/CompanyCard';
 import { ScenicBody, ScenicHeader } from '@/components/standard';
 import { useGroup, useGroups } from '@/data/hooks';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
-import { plural, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
+import { useToast } from '@/lib/toast';
 import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { useRememberSpace } from '@/lib/useSpaces';
 import type { GroupRow } from '@/data/types';
@@ -26,6 +27,7 @@ function Card({ group, current }: { group: GroupRow; current: boolean }) {
   const { members } = useGroup(group.id);
   const logo = useGroupPhotoUrl(group.photo_path);
   const remember = useRememberSpace();
+  const toast = useToast();
   const live = (members.data ?? []).filter((m) => !m.left_at);
   const count = (role: string) => live.filter((m) => m.role === role).length;
   return (
@@ -39,6 +41,8 @@ function Card({ group, current }: { group: GroupRow; current: boolean }) {
       currentLabel={t.company.currentCompany}
       onPress={() => {
         remember(group.id);
+        if (!current)
+          toast.show(fill(t.spaces.switchedTo, { name: group.name?.trim() || t.company.tab }));
         router.replace(`/group/${group.id}`);
       }}
     />

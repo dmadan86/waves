@@ -4,6 +4,8 @@
  * The server is authoritative (and keeps bank + PAN away from employees); this validates, masks and formats.
  */
 
+import { isValidVpa } from '../settlement/apply';
+
 export const DETAIL_KEYS = [
   'bankName',
   'bankAccount',
@@ -45,7 +47,7 @@ const RULES: Readonly<Partial<Record<DetailKey, (v: string) => boolean>>> = {
   bankName: (v) => v.length <= 120,
   bankAccount: (v) => /^[0-9A-Za-z]{4,34}$/.test(v),
   ifsc: (v) => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(v),
-  upi: (v) => /^[^@\s]{1,100}@[^@\s]{1,100}$/.test(v),
+  upi: isValidVpa,
   pan: (v) => /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(v),
   address: (v) => v.length <= 300,
   phone: (v) => v.length <= 32 && /^[+0-9()\-.\s]{3,}$/.test(v),

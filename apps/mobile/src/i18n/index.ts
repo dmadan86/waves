@@ -1012,6 +1012,7 @@ export interface UiStrings {
       notFound: string;
       conflict: string;
       guestExpired: string;
+      companySlot: string;
       generic: string;
     };
     title: string;
@@ -1458,6 +1459,12 @@ export interface UiStrings {
     total: string;
     payments: string;
     amountLeft: string;
+    markReceived: string;
+    upiTitle: string;
+    upiScan: string;
+    upiCopy: string;
+    upiShare: string;
+    upiAdd: string;
     billTo: string;
     estimateFor: string;
     recordPayment: string;
@@ -1504,6 +1511,24 @@ export interface UiStrings {
     notesOptional: string;
     paymentStatus: string;
     saveShare: string;
+    createdBy: string;
+    activity: string;
+    nextAction: string;
+    add: string;
+    duplicate: string;
+    print: string;
+    markSent: string;
+    paymentEvt: string;
+    viewAll: string;
+    showLess: string;
+    editEstimate: string;
+    editBill: string;
+    saveChanges: string;
+    preview: string;
+    estimateNo: string;
+    billNo: string;
+    status: string;
+    detailsTitle: string;
   };
   company: {
     attendanceTitle: string;
@@ -1737,6 +1762,26 @@ export interface UiStrings {
     moreBudgets: string;
     moreStatements: string;
     moreRules: string;
+    agentsTitle: string;
+    agentsAllow: string;
+    agentsAllowHint: string;
+    agentsApproval: string;
+    agentsApprovalHint: string;
+    agentsConnected: string;
+    agentsEmpty: string;
+    agentsActivity: string;
+    agentsActivityEmpty: string;
+    agentsRevoke: string;
+    agentsActions: string;
+    agentsLastUsed: string;
+    agentsNeverUsed: string;
+    companyRulesTitle: string;
+    moreSettings: string;
+    moreSettingsHint: string;
+    tileCurrency: string;
+    tileDetails: string;
+    tileBranding: string;
+    tileBrandingHint: string;
     pendingNone: string;
     pendingNoneBody: string;
     pendingVendorBills: string;
@@ -1976,6 +2021,9 @@ export interface UiStrings {
     moreOptions: string;
     wageFormula: string;
     canPayPeople: string;
+    canPayPeopleHint: string;
+    employeeDetails: string;
+    permissions: string;
     setDailyRate: string;
     kAllocation: string;
     kPoolReturn: string;
@@ -2257,6 +2305,74 @@ export interface UiStrings {
     notCounted: string;
     exportAction: string;
   };
+  companyTickets: {
+    title: string;
+    tOpen: string;
+    tEscalated: string;
+    tResolved: string;
+    newComplaint: string;
+    editComplaint: string;
+    emptyTitle: string;
+    emptyBody: string;
+    emptyTab: string;
+    seeAll: string;
+    noneForClient: string;
+    clientLabel: string;
+    noClient: string;
+    pickClient: string;
+    searchClients: string;
+    titlePh: string;
+    detailsPh: string;
+    priority: string;
+    pLow: string;
+    pNormal: string;
+    pHigh: string;
+    pUrgent: string;
+    assignedTo: string;
+    assignTo: string;
+    you: string;
+    someone: string;
+    owner: string;
+    save: string;
+    log: string;
+    dueIn: string;
+    overdue: string;
+    escalatedTo: string;
+    unitM: string;
+    unitH: string;
+    unitD: string;
+    call: string;
+    whatsapp: string;
+    reassign: string;
+    actStart: string;
+    actResolve: string;
+    actReopen: string;
+    actClose: string;
+    resolveTitle: string;
+    resolvePh: string;
+    solved: string;
+    stOpen: string;
+    stInProgress: string;
+    stResolved: string;
+    stClosed: string;
+    timeline: string;
+    evCreated: string;
+    evAssigned: string;
+    evStarted: string;
+    evReopened: string;
+    evEscalated: string;
+    evBy: string;
+    commentPh: string;
+    send: string;
+    edit: string;
+    remove: string;
+    removeConfirm: string;
+    more: string;
+    notFound: string;
+    hubOverdue: string;
+    hubOpen: string;
+    hubNone: string;
+  };
   companyClients: {
     title: string;
     toReceive: string;
@@ -2464,6 +2580,85 @@ export interface UiStrings {
     hubTeamSub: string;
     hubBooksSub: string;
   };
+  companyImport: {
+    title: string;
+    menuRow: string;
+    menuRowSub: string;
+    whatTitle: string;
+    employees: string;
+    employeesSub: string;
+    clients: string;
+    clientsSub: string;
+    vendors: string;
+    vendorsSub: string;
+    sourceTitle: string;
+    srcFile: string;
+    srcFileSub: string;
+    srcContacts: string;
+    srcContactsSub: string;
+    srcSheet: string;
+    srcSheetSub: string;
+    template: string;
+    templateFailed: string;
+    sheetPlaceholder: string;
+    sheetGo: string;
+    sheetBad: string;
+    sheetPrivate: string;
+    sheetTooBig: string;
+    sheetNetwork: string;
+    fileTooLarge: string;
+    fileTooMany: string;
+    fileEmpty: string;
+    fileEncoding: string;
+    fileUnreadable: string;
+    noRows: string;
+    columnsTitle: string;
+    columnsHint: string;
+    none: string;
+    fName: string;
+    fPhone: string;
+    fEmployeeId: string;
+    fDepartment: string;
+    fManager: string;
+    fJoinedOn: string;
+    fDailyRate: string;
+    fNeed: string;
+    fSource: string;
+    fAddress: string;
+    fExpectedValue: string;
+    fStage: string;
+    fCategory: string;
+    fOpeningBalance: string;
+    previewTitle: string;
+    cNew: string;
+    cDup: string;
+    cErr: string;
+    importN: string;
+    next: string;
+    back: string;
+    progress: string;
+    resultTitle: string;
+    resultLine: string;
+    downloadErrors: string;
+    done: string;
+    pName: string;
+    pPhone: string;
+    pDate: string;
+    pAmount: string;
+    pNegative: string;
+    pDupFile: string;
+    pDupExisting: string;
+    pFailed: string;
+    wDept: string;
+    wManager: string;
+    wEmpId: string;
+    wStage: string;
+    warnLine: string;
+    noAccess: string;
+    errCsvRow: string;
+    errCsvProblem: string;
+    contactsAdded: string;
+  };
   companyVendors: {
     subtitle: string;
     receipts: string;
@@ -2660,6 +2855,23 @@ export interface UiStrings {
     orderItems: string;
     orderTotal: string;
     itemsCount: string;
+  };
+  companySlot: {
+    addRow: string;
+    addRowHint: string;
+    title: string;
+    body: string;
+    subscribe: string;
+    restore: string;
+    restored: string;
+    noneFound: string;
+    unavailable: string;
+    pending: string;
+    buyFailed: string;
+    setupSlow: string;
+    lapsedBanner: string;
+    lapsedReadOnly: string;
+    renew: string;
   };
   companyStorage: {
     addMore: string;
@@ -3786,6 +3998,7 @@ export interface UiStrings {
     personalBody: string;
     switchTitle: string;
     switchBody: string;
+    switchedTo: string;
     createTitle: string;
     createBody: string;
     owner: string;
@@ -5570,6 +5783,10 @@ export interface UiStrings {
     paymentsToMake: string;
     balanceSortAmount: string;
     balanceSortName: string;
+    sortPill: string;
+    sortAmountHigh: string;
+    sortAmountLow: string;
+    settleInOneGo: string;
     balanceSimplified: string;
     balanceIsOwed: string;
     balanceOwesYou: string;
@@ -8474,6 +8691,8 @@ const en: UiStrings = {
       notFound: "Something this change refers to was removed, so it can't be saved.",
       conflict: 'Someone else changed this at the same time. Review it and try again.',
       guestExpired: 'Your guest trial has ended. Sign up to keep saving.',
+      companySlot:
+        'An extra company needs its own subscription. Discard this one, then subscribe from Add company.',
       generic: "This change couldn't be saved. Review it, or discard it.",
     },
     title: 'Sync over',
@@ -8887,6 +9106,12 @@ const en: UiStrings = {
     total: 'Total',
     payments: 'Payments received',
     amountLeft: 'Balance due',
+    markReceived: 'Mark received',
+    upiTitle: 'Pay by UPI',
+    upiScan: 'Scan to pay {amount}',
+    upiCopy: 'Copy UPI ID',
+    upiShare: 'Share',
+    upiAdd: 'Add your UPI ID to show a payment QR',
     billTo: 'Bill to',
     estimateFor: 'Estimate for',
     recordPayment: 'Record payment',
@@ -8933,6 +9158,24 @@ const en: UiStrings = {
     notesOptional: 'Notes (optional)',
     paymentStatus: 'Payment status',
     saveShare: 'Save & share',
+    createdBy: 'Created by',
+    activity: 'Activity',
+    nextAction: 'Next action',
+    add: 'Add',
+    duplicate: 'Duplicate',
+    print: 'Print',
+    markSent: 'Mark as sent',
+    paymentEvt: 'Payment received',
+    viewAll: 'View all',
+    showLess: 'Show less',
+    editEstimate: 'Edit estimate',
+    editBill: 'Edit bill',
+    saveChanges: 'Save changes',
+    preview: 'Preview',
+    estimateNo: 'Estimate no.',
+    billNo: 'Bill no.',
+    status: 'Status',
+    detailsTitle: '{type} details',
   },
   company: {
     attendanceTitle: 'Attendance',
@@ -9169,6 +9412,26 @@ const en: UiStrings = {
     moreBudgets: 'Budgets & sites',
     moreStatements: 'Statements & export',
     moreRules: 'Rules',
+    agentsTitle: 'AI agents',
+    agentsAllow: 'Allow AI agents',
+    agentsAllowHint: 'People can connect Claude or ChatGPT to this company.',
+    agentsApproval: 'Agent changes need approval',
+    agentsApprovalHint: 'Expenses an agent adds wait for you to approve them.',
+    agentsConnected: 'Connected',
+    agentsEmpty: 'No agents connected. People connect from Claude/ChatGPT via Connect → Waves.',
+    agentsActivity: 'Agent activity',
+    agentsActivityEmpty: 'Nothing yet.',
+    agentsRevoke: 'Revoke',
+    agentsActions: 'Agent actions',
+    agentsLastUsed: 'Last used {when}',
+    agentsNeverUsed: 'Not used yet',
+    companyRulesTitle: 'Company rules',
+    moreSettings: 'More settings',
+    moreSettingsHint: 'Attendance, expenses, estimates, invoices and more',
+    tileCurrency: 'Currency',
+    tileDetails: 'Details',
+    tileBranding: 'Branding',
+    tileBrandingHint: 'Logo',
     pendingNone: 'Nothing is waiting',
     pendingNoneBody: 'Claims and budget requests that need you show up here.',
     pendingVendorBills: '{n} vendor bills to confirm',
@@ -9411,7 +9674,10 @@ const en: UiStrings = {
     addPerson: 'Add a person',
     moreOptions: 'More',
     wageFormula: '{gross} - advance {cut} = {net}',
-    canPayPeople: 'Can pay people',
+    canPayPeople: 'Can record payments',
+    canPayPeopleHint: 'Lets this employee record payments to team members.',
+    employeeDetails: 'Employee Details',
+    permissions: 'Permissions',
     setDailyRate: 'Set daily rate',
     kAllocation: 'Cash given to manager',
     kPoolReturn: 'Cash taken back',
@@ -9697,6 +9963,75 @@ const en: UiStrings = {
     notCounted: 'Not counted until approved',
     exportAction: 'Export',
   },
+  companyTickets: {
+    title: 'Complaints',
+    tOpen: 'Open · {n}',
+    tEscalated: 'Escalated · {n}',
+    tResolved: 'Resolved · {n}',
+    newComplaint: 'New complaint',
+    editComplaint: 'Edit complaint',
+    emptyTitle: 'No complaints yet',
+    emptyBody:
+      'Log a customer complaint and give it to someone. If it is not solved in time it moves up to their manager, then the owner.',
+    emptyTab: 'Nothing here',
+    seeAll: 'All',
+    noneForClient: 'No complaints for this client',
+    clientLabel: 'Client',
+    noClient: 'No client',
+    pickClient: 'Choose client',
+    searchClients: 'Search clients',
+    titlePh: 'What is the complaint?',
+    detailsPh: 'Details (optional)',
+    priority: 'Priority',
+    pLow: 'Low',
+    pNormal: 'Normal',
+    pHigh: 'High',
+    pUrgent: 'Urgent',
+    assignedTo: 'Assigned to',
+    assignTo: 'Assign to',
+    you: 'You',
+    someone: 'Someone',
+    owner: 'the owner',
+    save: 'Save',
+    log: 'Log complaint',
+    dueIn: 'Due in {t}',
+    overdue: 'Overdue {t}',
+    escalatedTo: 'Escalated to {name}',
+    unitM: '{n}m',
+    unitH: '{n}h',
+    unitD: '{n}d',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    reassign: 'Reassign',
+    actStart: 'Start',
+    actResolve: 'Resolve',
+    actReopen: 'Reopen',
+    actClose: 'Close',
+    resolveTitle: 'How was it solved?',
+    resolvePh: 'Short note for the record',
+    solved: 'Solved: {note}',
+    stOpen: 'Open',
+    stInProgress: 'In progress',
+    stResolved: 'Resolved',
+    stClosed: 'Closed',
+    timeline: 'Timeline',
+    evCreated: 'Logged · assigned to {name}',
+    evAssigned: 'Assigned to {name}',
+    evStarted: 'Started',
+    evReopened: 'Reopened',
+    evEscalated: 'Escalated to {name}',
+    evBy: 'by {name}',
+    commentPh: 'Add a comment',
+    send: 'Send',
+    edit: 'Edit',
+    remove: 'Delete',
+    removeConfirm: 'Delete this complaint?',
+    more: 'More',
+    notFound: 'This complaint is not available.',
+    hubOverdue: '{n} overdue',
+    hubOpen: '{n} open',
+    hubNone: 'All on time',
+  },
   companyClients: {
     title: 'Clients',
     toReceive: 'To receive',
@@ -9904,6 +10239,86 @@ const en: UiStrings = {
     hubTeamSub: 'People, work and attendance',
     hubBooksSub: 'Records, reports and setup',
   },
+  companyImport: {
+    title: 'Import',
+    menuRow: 'Import',
+    menuRowSub: 'Employees, clients and vendors from a file, contacts or Google Sheets',
+    whatTitle: 'What do you want to import?',
+    employees: 'Employees',
+    employeesSub: 'Name, phone, ID, joining date',
+    clients: 'Clients & enquiries',
+    clientsSub: 'Name, phone, requirement, status',
+    vendors: 'Vendors',
+    vendorsSub: 'Name, phone, category, opening balance',
+    sourceTitle: 'Where is it?',
+    srcFile: 'Excel or CSV file',
+    srcFileSub: '.xlsx, .xls or .csv',
+    srcContacts: 'Phone contacts',
+    srcContactsSub: 'Pick people from your address book',
+    srcSheet: 'Google Sheet link',
+    srcSheetSub: 'Shared as Anyone with the link can view',
+    template: 'Download template',
+    templateFailed: 'Could not share the template.',
+    sheetPlaceholder: 'Paste the share link',
+    sheetGo: 'Read sheet',
+    sheetBad: 'That is not a Google Sheets link.',
+    sheetPrivate:
+      'Waves cannot open this sheet. Share it as Anyone with the link can view, then try again.',
+    sheetTooBig: 'That sheet is too large (5 MB at most).',
+    sheetNetwork: 'Could not reach Google Sheets. Check your connection.',
+    fileTooLarge: 'That file is too large (5 MB at most).',
+    fileTooMany: 'Too many rows (2,000 at most).',
+    fileEmpty: 'That file has nothing in it.',
+    fileEncoding: 'Save the file as CSV UTF-8 and try again.',
+    fileUnreadable: 'Could not read that file. Try saving it as CSV.',
+    noRows: 'No rows found below the header.',
+    columnsTitle: 'Match the columns',
+    columnsHint: 'The first row is read as headers. Change a match if it is wrong.',
+    none: 'Not in my file',
+    fName: 'Name',
+    fPhone: 'Phone',
+    fEmployeeId: 'Employee ID',
+    fDepartment: 'Department',
+    fManager: 'Manager',
+    fJoinedOn: 'Joining date',
+    fDailyRate: 'Daily rate',
+    fNeed: 'Requirement',
+    fSource: 'Source',
+    fAddress: 'Address',
+    fExpectedValue: 'Expected value',
+    fStage: 'Status',
+    fCategory: 'Category',
+    fOpeningBalance: 'Opening balance (to pay)',
+    previewTitle: 'Check before importing',
+    cNew: '{n} new',
+    cDup: '{n} duplicates, skipped',
+    cErr: '{n} with errors, skipped',
+    importN: 'Import {n}',
+    next: 'Continue',
+    back: 'Back',
+    progress: 'Adding {done} of {total}',
+    resultTitle: 'Import finished',
+    resultLine: '{added} added, {dups} skipped as duplicates, {errors} errors',
+    downloadErrors: 'Download error rows',
+    done: 'Done',
+    pName: 'Name is missing',
+    pPhone: 'Phone number is not valid',
+    pDate: 'Date is not valid',
+    pAmount: 'Amount is not valid',
+    pNegative: 'Amount cannot be negative',
+    pDupFile: 'Repeated in this file',
+    pDupExisting: 'Already in your list',
+    pFailed: 'Could not add this one. Try again.',
+    wDept: 'Department not found, left blank',
+    wManager: 'Manager not found, left blank',
+    wEmpId: 'Employee ID already used, left blank',
+    wStage: 'Status not recognised, added as client',
+    warnLine: '{n} rows were added without some details.',
+    noAccess: 'Only owners and managers can import.',
+    errCsvRow: 'Row',
+    errCsvProblem: 'Problem',
+    contactsAdded: '{n} contacts picked',
+  },
   companyVendors: {
     subtitle: 'Bills · Payments · Receipts',
     receipts: 'Receipts',
@@ -10100,6 +10515,26 @@ const en: UiStrings = {
     orderItems: 'Items',
     orderTotal: 'Total',
     itemsCount: '{n} items',
+  },
+  companySlot: {
+    addRow: 'Add company',
+    addRowHint: 'Your first company is free',
+    title: 'Add another company',
+    body: 'Your first company is free. Each extra company is {price}/month.',
+    subscribe: 'Subscribe',
+    restore: 'Restore',
+    restored: 'Subscription restored.',
+    noneFound: 'No active company subscription found.',
+    unavailable:
+      'Extra companies cannot be bought in this version of the app. Update from the store and try again.',
+    pending: 'Your purchase is waiting for approval. Add the company once it goes through.',
+    buyFailed: 'Could not complete the purchase. You have not been charged.',
+    setupSlow: 'Your subscription is still being confirmed. Try again in a minute.',
+    lapsedBanner:
+      "This company's subscription ended, so it is read-only. Nothing is deleted. Renew to edit again.",
+    lapsedReadOnly:
+      "This company's subscription ended. You can view and export, but not add or edit.",
+    renew: 'Renew subscription',
   },
   companyStorage: {
     addMore: 'Add more storage',
@@ -11106,6 +11541,7 @@ const en: UiStrings = {
     personalBody: 'Friends, groups & expenses',
     switchTitle: 'Switch space',
     switchBody: 'Choose where you want to work',
+    switchedTo: 'Switched to {name}',
     createTitle: 'Create a new company',
     createBody: 'Set up a company and invite people',
     owner: 'Owner',
@@ -12514,6 +12950,10 @@ const en: UiStrings = {
     paymentsToMake: 'Payments to make',
     balanceSortAmount: 'Sort by amount',
     balanceSortName: 'Sort by name',
+    sortPill: 'Sort: {label}',
+    sortAmountHigh: 'Amount high',
+    sortAmountLow: 'Amount low',
+    settleInOneGo: 'Settle in one go',
     balanceSimplified: 'Simplified',
     balanceIsOwed: 'is owed',
     balanceOwesYou: 'owes you',
@@ -15356,6 +15796,8 @@ const ta: UiStrings = {
       conflict: 'அதே நேரத்தில் வேறொருவர் இதை மாற்றிவிட்டார். சரிபார்த்து மீண்டும் முயலவும்.',
       guestExpired:
         'உங்கள் விருந்தினர் சோதனைக் காலம் முடிந்தது. தொடர்ந்து சேமிக்கப் பதிவு செய்யவும்.',
+      companySlot:
+        'கூடுதல் நிறுவனத்துக்குத் தனி சந்தா தேவை. இதை நீக்கிவிட்டு, நிறுவனத்தைச் சேர் என்பதில் சந்தாதாரராகுங்கள்.',
       generic: 'இந்த மாற்றத்தைச் சேமிக்க முடியவில்லை. சரிபார்க்கவும் அல்லது கைவிடவும்.',
     },
     title: 'எதன் மூலம் ஒத்திசைவு',
@@ -15781,6 +16223,12 @@ const ta: UiStrings = {
     total: 'மொத்தம்',
     payments: 'பெற்ற தொகைகள்',
     amountLeft: 'மீதித் தொகை',
+    markReceived: 'பெற்றதாகக் குறி',
+    upiTitle: 'UPI மூலம் செலுத்து',
+    upiScan: '{amount} செலுத்த ஸ்கேன் செய்யுங்கள்',
+    upiCopy: 'UPI ஐடியை நகலெடு',
+    upiShare: 'பகிர்',
+    upiAdd: 'கட்டண QR காட்ட உங்கள் UPI ஐடியைச் சேர்க்கவும்',
     billTo: 'பில் பெறுநர்',
     estimateFor: 'மதிப்பீடு பெறுநர்',
     recordPayment: 'பெற்ற தொகையைப் பதிவு செய்',
@@ -15828,6 +16276,24 @@ const ta: UiStrings = {
     notesOptional: 'குறிப்புகள் (விருப்பம்)',
     paymentStatus: 'கட்டண நிலை',
     saveShare: 'சேமித்துப் பகிர்',
+    createdBy: 'உருவாக்கியவர்',
+    activity: 'செயல்பாடு',
+    nextAction: 'அடுத்த செயல்',
+    add: 'சேர்',
+    duplicate: 'நகலெடு',
+    print: 'அச்சிடு',
+    markSent: 'அனுப்பியதாகக் குறி',
+    paymentEvt: 'பணம் பெறப்பட்டது',
+    viewAll: 'அனைத்தையும் காண்க',
+    showLess: 'குறைவாகக் காட்டு',
+    editEstimate: 'மதிப்பீட்டைத் திருத்து',
+    editBill: 'பில்லைத் திருத்து',
+    saveChanges: 'மாற்றங்களைச் சேமி',
+    preview: 'முன்னோட்டம்',
+    estimateNo: 'மதிப்பீட்டு எண்',
+    billNo: 'பில் எண்',
+    status: 'நிலை',
+    detailsTitle: '{type} விவரங்கள்',
   },
   company: {
     attendanceTitle: 'வருகை',
@@ -16066,6 +16532,27 @@ const ta: UiStrings = {
     moreBudgets: 'பட்ஜெட் & இடங்கள்',
     moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
     moreRules: 'விதிகள்',
+    agentsTitle: 'AI முகவர்கள்',
+    agentsAllow: 'AI முகவர்களை அனுமதி',
+    agentsAllowHint: 'Claude அல்லது ChatGPT-ஐ இந்த நிறுவனத்துடன் மக்கள் இணைக்கலாம்.',
+    agentsApproval: 'முகவர் மாற்றங்களுக்கு ஒப்புதல் தேவை',
+    agentsApprovalHint: 'முகவர் சேர்க்கும் செலவுகள் உங்கள் ஒப்புதலுக்காகக் காத்திருக்கும்.',
+    agentsConnected: 'இணைந்தவை',
+    agentsEmpty:
+      'முகவர்கள் இணைக்கப்படவில்லை. மக்கள் Claude/ChatGPT-இல் Connect → Waves வழியாக இணைக்கலாம்.',
+    agentsActivity: 'முகவர் செயல்பாடு',
+    agentsActivityEmpty: 'இன்னும் எதுவுமில்லை.',
+    agentsRevoke: 'நீக்கு',
+    agentsActions: 'முகவர் செயல்கள்',
+    agentsLastUsed: 'கடைசியாக பயன்படுத்தியது {when}',
+    agentsNeverUsed: 'இன்னும் பயன்படுத்தவில்லை',
+    companyRulesTitle: 'நிறுவன விதிகள்',
+    moreSettings: 'மேலும் அமைப்புகள்',
+    moreSettingsHint: 'வருகை, செலவுகள், மதிப்பீடுகள், இன்வாய்ஸ்கள் மற்றும் பல',
+    tileCurrency: 'நாணயம்',
+    tileDetails: 'விவரங்கள்',
+    tileBranding: 'பிராண்டிங்',
+    tileBrandingHint: 'லோகோ',
     pendingNone: 'எதுவும் காத்திருக்கவில்லை',
     pendingNoneBody: 'உங்கள் கவனம் தேவைப்படும் கோரிக்கைகள் இங்கே தோன்றும்.',
     pendingVendorBills: 'உறுதிசெய்ய {n} விற்பனையாளர் பில்கள்',
@@ -16309,7 +16796,10 @@ const ta: UiStrings = {
     addPerson: 'நபரைச் சேர்',
     moreOptions: 'மேலும்',
     wageFormula: '{gross} - முன்பணம் {cut} = {net}',
-    canPayPeople: 'ஆட்களுக்கு பணம் தரலாம்',
+    canPayPeople: 'பணம் கொடுத்ததைப் பதிவு செய்யலாம்',
+    canPayPeopleHint: 'இந்த ஊழியர் குழு உறுப்பினர்களுக்கான கட்டணங்களைப் பதிவு செய்ய அனுமதிக்கும்.',
+    employeeDetails: 'ஊழியர் விவரங்கள்',
+    permissions: 'அனுமதிகள்',
     setDailyRate: 'தினசரி விகிதம் அமை',
     kAllocation: 'மேலாளருக்கு பணம்',
     kPoolReturn: 'திரும்பப் பெற்ற பணம்',
@@ -16596,6 +17086,75 @@ const ta: UiStrings = {
     notCounted: 'ஒப்புதல் வரை கணக்கில் சேராது',
     exportAction: 'ஏற்றுமதி',
   },
+  companyTickets: {
+    title: 'புகார்கள்',
+    tOpen: 'திறந்தவை · {n}',
+    tEscalated: 'உயர்த்தப்பட்டவை · {n}',
+    tResolved: 'தீர்க்கப்பட்டவை · {n}',
+    newComplaint: 'புதிய புகார்',
+    editComplaint: 'புகாரைத் திருத்து',
+    emptyTitle: 'இன்னும் புகார்கள் இல்லை',
+    emptyBody:
+      'வாடிக்கையாளர் புகாரைப் பதிவு செய்து ஒருவருக்கு ஒதுக்குங்கள். நேரத்தில் தீர்க்கப்படாவிட்டால் அது அவரது மேலாளருக்கும், பிறகு உரிமையாளருக்கும் செல்லும்.',
+    emptyTab: 'இங்கே எதுவும் இல்லை',
+    seeAll: 'அனைத்தும்',
+    noneForClient: 'இந்த வாடிக்கையாளருக்கு புகார்கள் இல்லை',
+    clientLabel: 'வாடிக்கையாளர்',
+    noClient: 'வாடிக்கையாளர் இல்லை',
+    pickClient: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும்',
+    searchClients: 'வாடிக்கையாளரைத் தேடு',
+    titlePh: 'புகார் என்ன?',
+    detailsPh: 'விவரங்கள் (விருப்பம்)',
+    priority: 'முன்னுரிமை',
+    pLow: 'குறைவு',
+    pNormal: 'சாதாரணம்',
+    pHigh: 'அதிகம்',
+    pUrgent: 'அவசரம்',
+    assignedTo: 'ஒதுக்கப்பட்டவர்',
+    assignTo: 'ஒதுக்கு',
+    you: 'நீங்கள்',
+    someone: 'ஒருவர்',
+    owner: 'உரிமையாளர்',
+    save: 'சேமி',
+    log: 'புகாரைப் பதிவு செய்',
+    dueIn: '{t}-இல் முடிக்க வேண்டும்',
+    overdue: '{t} தாமதம்',
+    escalatedTo: '{name}-க்கு உயர்த்தப்பட்டது',
+    unitM: '{n}நி',
+    unitH: '{n}ம',
+    unitD: '{n}நா',
+    call: 'அழை',
+    whatsapp: 'WhatsApp',
+    reassign: 'மாற்றி ஒதுக்கு',
+    actStart: 'தொடங்கு',
+    actResolve: 'தீர்',
+    actReopen: 'மீண்டும் திற',
+    actClose: 'மூடு',
+    resolveTitle: 'எப்படி தீர்க்கப்பட்டது?',
+    resolvePh: 'பதிவுக்கான சிறு குறிப்பு',
+    solved: 'தீர்வு: {note}',
+    stOpen: 'திறந்தது',
+    stInProgress: 'நடைபெறுகிறது',
+    stResolved: 'தீர்க்கப்பட்டது',
+    stClosed: 'மூடப்பட்டது',
+    timeline: 'நிகழ்வுகள்',
+    evCreated: 'பதிவு செய்யப்பட்டது · {name}-க்கு ஒதுக்கப்பட்டது',
+    evAssigned: '{name}-க்கு ஒதுக்கப்பட்டது',
+    evStarted: 'தொடங்கப்பட்டது',
+    evReopened: 'மீண்டும் திறக்கப்பட்டது',
+    evEscalated: '{name}-க்கு உயர்த்தப்பட்டது',
+    evBy: '{name} மூலம்',
+    commentPh: 'கருத்தைச் சேர்',
+    send: 'அனுப்பு',
+    edit: 'திருத்து',
+    remove: 'நீக்கு',
+    removeConfirm: 'இந்தப் புகாரை நீக்கவா?',
+    more: 'மேலும்',
+    notFound: 'இந்தப் புகார் கிடைக்கவில்லை.',
+    hubOverdue: '{n} தாமதம்',
+    hubOpen: '{n} திறந்தவை',
+    hubNone: 'எல்லாம் நேரத்தில்',
+  },
   companyClients: {
     title: 'வாடிக்கையாளர்கள்',
     toReceive: 'பெற வேண்டியது',
@@ -16803,6 +17362,87 @@ const ta: UiStrings = {
     hubTeamSub: 'ஆட்கள், வேலை, வருகை',
     hubBooksSub: 'பதிவுகள், அறிக்கைகள், அமைப்பு',
   },
+  companyImport: {
+    title: 'இறக்குமதி',
+    menuRow: 'இறக்குமதி',
+    menuRowSub:
+      'கோப்பு, தொடர்புகள் அல்லது Google Sheets-இலிருந்து ஊழியர்கள், வாடிக்கையாளர்கள், விற்பனையாளர்கள்',
+    whatTitle: 'எதை இறக்குமதி செய்ய வேண்டும்?',
+    employees: 'ஊழியர்கள்',
+    employeesSub: 'பெயர், தொலைபேசி, ஐடி, சேர்ந்த தேதி',
+    clients: 'வாடிக்கையாளர்கள் & விசாரணைகள்',
+    clientsSub: 'பெயர், தொலைபேசி, தேவை, நிலை',
+    vendors: 'விற்பனையாளர்கள்',
+    vendorsSub: 'பெயர், தொலைபேசி, வகை, தொடக்க இருப்பு',
+    sourceTitle: 'எங்கே உள்ளது?',
+    srcFile: 'Excel அல்லது CSV கோப்பு',
+    srcFileSub: '.xlsx, .xls அல்லது .csv',
+    srcContacts: 'தொலைபேசி தொடர்புகள்',
+    srcContactsSub: 'முகவரி புத்தகத்திலிருந்து தேர்ந்தெடுக்கவும்',
+    srcSheet: 'Google Sheet இணைப்பு',
+    srcSheetSub: 'இணைப்பு உள்ள அனைவரும் பார்க்கலாம் என பகிரவும்',
+    template: 'மாதிரி கோப்பைப் பதிவிறக்கு',
+    templateFailed: 'மாதிரியைப் பகிர முடியவில்லை.',
+    sheetPlaceholder: 'பகிர்வு இணைப்பை ஒட்டவும்',
+    sheetGo: 'Sheet-ஐப் படி',
+    sheetBad: 'இது Google Sheets இணைப்பு அல்ல.',
+    sheetPrivate:
+      'Waves-ஆல் இந்த Sheet-ஐத் திறக்க முடியவில்லை. இணைப்பு உள்ள அனைவரும் பார்க்கலாம் என பகிர்ந்து மீண்டும் முயற்சிக்கவும்.',
+    sheetTooBig: 'அந்த Sheet மிகப் பெரியது (அதிகபட்சம் 5 MB).',
+    sheetNetwork: 'Google Sheets-ஐ அடைய முடியவில்லை. இணைப்பைச் சரிபார்க்கவும்.',
+    fileTooLarge: 'அந்தக் கோப்பு மிகப் பெரியது (அதிகபட்சம் 5 MB).',
+    fileTooMany: 'வரிசைகள் மிக அதிகம் (அதிகபட்சம் 2,000).',
+    fileEmpty: 'அந்தக் கோப்பில் எதுவும் இல்லை.',
+    fileEncoding: 'கோப்பை CSV UTF-8 ஆகச் சேமித்து மீண்டும் முயற்சிக்கவும்.',
+    fileUnreadable: 'அந்தக் கோப்பைப் படிக்க முடியவில்லை. CSV ஆகச் சேமித்துப் பார்க்கவும்.',
+    noRows: 'தலைப்பு வரிசைக்குக் கீழே வரிசைகள் இல்லை.',
+    columnsTitle: 'நெடுவரிசைகளைப் பொருத்தவும்',
+    columnsHint: 'முதல் வரிசை தலைப்புகளாகப் படிக்கப்படும். தவறாக இருந்தால் மாற்றவும்.',
+    none: 'என் கோப்பில் இல்லை',
+    fName: 'பெயர்',
+    fPhone: 'தொலைபேசி',
+    fEmployeeId: 'ஊழியர் ஐடி',
+    fDepartment: 'துறை',
+    fManager: 'மேலாளர்',
+    fJoinedOn: 'சேர்ந்த தேதி',
+    fDailyRate: 'தினசரி ஊதியம்',
+    fNeed: 'தேவை',
+    fSource: 'மூலம்',
+    fAddress: 'முகவரி',
+    fExpectedValue: 'எதிர்பார்க்கும் மதிப்பு',
+    fStage: 'நிலை',
+    fCategory: 'வகை',
+    fOpeningBalance: 'தொடக்க இருப்பு (தர வேண்டியது)',
+    previewTitle: 'இறக்குமதிக்கு முன் சரிபார்க்கவும்',
+    cNew: '{n} புதியவை',
+    cDup: '{n} நகல்கள், தவிர்க்கப்பட்டன',
+    cErr: '{n} பிழைகள், தவிர்க்கப்பட்டன',
+    importN: '{n} இறக்குமதி செய்',
+    next: 'தொடர்',
+    back: 'பின்',
+    progress: '{total}-இல் {done} சேர்க்கப்படுகிறது',
+    resultTitle: 'இறக்குமதி முடிந்தது',
+    resultLine: '{added} சேர்க்கப்பட்டன, {dups} நகல்களாகத் தவிர்க்கப்பட்டன, {errors} பிழைகள்',
+    downloadErrors: 'பிழை வரிசைகளைப் பதிவிறக்கு',
+    done: 'முடிந்தது',
+    pName: 'பெயர் இல்லை',
+    pPhone: 'தொலைபேசி எண் செல்லாது',
+    pDate: 'தேதி செல்லாது',
+    pAmount: 'தொகை செல்லாது',
+    pNegative: 'தொகை எதிர்மறையாக இருக்கக் கூடாது',
+    pDupFile: 'இந்தக் கோப்பில் மீண்டும் உள்ளது',
+    pDupExisting: 'ஏற்கனவே பட்டியலில் உள்ளது',
+    pFailed: 'இதைச் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    wDept: 'துறை கிடைக்கவில்லை, காலியாக விடப்பட்டது',
+    wManager: 'மேலாளர் கிடைக்கவில்லை, காலியாக விடப்பட்டது',
+    wEmpId: 'ஊழியர் ஐடி ஏற்கனவே உள்ளது, காலியாக விடப்பட்டது',
+    wStage: 'நிலை அறியப்படவில்லை, வாடிக்கையாளராகச் சேர்க்கப்பட்டது',
+    warnLine: '{n} வரிசைகள் சில விவரங்கள் இல்லாமல் சேர்க்கப்பட்டன.',
+    noAccess: 'உரிமையாளர்களும் மேலாளர்களும் மட்டுமே இறக்குமதி செய்யலாம்.',
+    errCsvRow: 'வரிசை',
+    errCsvProblem: 'சிக்கல்',
+    contactsAdded: '{n} தொடர்புகள் தேர்ந்தெடுக்கப்பட்டன',
+  },
   companyVendors: {
     subtitle: 'பில்கள் · கட்டணங்கள் · ரசீதுகள்',
     receipts: 'ரசீதுகள்',
@@ -17000,6 +17640,28 @@ const ta: UiStrings = {
     orderItems: 'பொருட்கள்',
     orderTotal: 'மொத்தம்',
     itemsCount: '{n} பொருட்கள்',
+  },
+  companySlot: {
+    addRow: 'நிறுவனத்தைச் சேர்',
+    addRowHint: 'உங்கள் முதல் நிறுவனம் இலவசம்',
+    title: 'மேலும் ஒரு நிறுவனத்தைச் சேர்',
+    body: 'உங்கள் முதல் நிறுவனம் இலவசம். கூடுதல் நிறுவனம் ஒவ்வொன்றும் மாதம் {price}.',
+    subscribe: 'சந்தாதாரராகு',
+    restore: 'மீட்டெடு',
+    restored: 'சந்தா மீட்டெடுக்கப்பட்டது.',
+    noneFound: 'செயலில் உள்ள நிறுவன சந்தா எதுவும் இல்லை.',
+    unavailable:
+      'இந்தப் பதிப்பில் கூடுதல் நிறுவனங்களை வாங்க முடியாது. ஸ்டோரிலிருந்து புதுப்பித்து மீண்டும் முயலுங்கள்.',
+    pending:
+      'உங்கள் வாங்குதல் ஒப்புதலுக்காகக் காத்திருக்கிறது. அது முடிந்ததும் நிறுவனத்தைச் சேர்க்கவும்.',
+    buyFailed: 'வாங்குதலை முடிக்க முடியவில்லை. உங்களிடம் கட்டணம் வசூலிக்கப்படவில்லை.',
+    setupSlow:
+      'உங்கள் சந்தா இன்னும் உறுதிசெய்யப்படுகிறது. ஒரு நிமிடம் கழித்து மீண்டும் முயலுங்கள்.',
+    lapsedBanner:
+      'இந்த நிறுவனத்தின் சந்தா முடிந்துவிட்டது, அதனால் இது பார்க்க மட்டுமே. எதுவும் நீக்கப்படவில்லை. மீண்டும் திருத்த சந்தாவைப் புதுப்பியுங்கள்.',
+    lapsedReadOnly:
+      'இந்த நிறுவனத்தின் சந்தா முடிந்துவிட்டது. பார்க்கவும் ஏற்றுமதி செய்யவும் முடியும், சேர்க்கவோ திருத்தவோ முடியாது.',
+    renew: 'சந்தாவைப் புதுப்பி',
   },
   companyStorage: {
     addMore: 'மேலும் சேமிப்பைச் சேர்க்கவும்',
@@ -18032,6 +18694,7 @@ const ta: UiStrings = {
     personalBody: 'நண்பர்கள், குழுக்கள் & செலவுகள்',
     switchTitle: 'இடத்தை மாற்று',
     switchBody: 'நீங்கள் எங்கு வேலை செய்ய விரும்புகிறீர்கள் என்பதைத் தேர்ந்தெடுக்கவும்',
+    switchedTo: '{name} க்கு மாற்றப்பட்டது',
     createTitle: 'புதிய நிறுவனத்தை உருவாக்கு',
     createBody: 'நிறுவனத்தை அமைத்து ஆட்களை அழைக்கவும்',
     owner: 'உரிமையாளர்',
@@ -19502,6 +20165,10 @@ const ta: UiStrings = {
     paymentsToMake: 'செலுத்த வேண்டியவை',
     balanceSortAmount: 'தொகைப்படி வரிசை',
     balanceSortName: 'பெயர்ப்படி வரிசை',
+    sortPill: 'வரிசை: {label}',
+    sortAmountHigh: 'அதிக தொகை',
+    sortAmountLow: 'குறைந்த தொகை',
+    settleInOneGo: 'ஒரே முறையில் தீர்க்கவும்',
     balanceSimplified: 'எளிமைப்படுத்தியது',
     balanceIsOwed: 'பெற வேண்டும்',
     balanceOwesYou: 'உங்களுக்குத் தர வேண்டும்',
@@ -22426,6 +23093,8 @@ const hi: UiStrings = {
       notFound: 'इस बदलाव से जुड़ी कोई चीज़ हटा दी गई है, इसलिए इसे सहेजा नहीं जा सकता।',
       conflict: 'उसी समय किसी और ने इसे बदल दिया। जाँचें और फिर कोशिश करें।',
       guestExpired: 'आपकी अतिथि ट्रायल अवधि खत्म हो गई है। सहेजते रहने के लिए साइन अप करें।',
+      companySlot:
+        'अतिरिक्त कंपनी के लिए अलग सब्सक्रिप्शन चाहिए। इसे हटाएँ, फिर कंपनी जोड़ें से सब्सक्राइब करें।',
       generic: 'यह बदलाव सहेजा नहीं जा सका। जाँचें या हटा दें।',
     },
     title: 'किस पर सिंक करें',
@@ -22843,6 +23512,12 @@ const hi: UiStrings = {
     total: 'कुल',
     payments: 'प्राप्त भुगतान',
     amountLeft: 'बकाया राशि',
+    markReceived: 'प्राप्त हुआ चिह्नित करें',
+    upiTitle: 'UPI से भुगतान',
+    upiScan: '{amount} चुकाने के लिए स्कैन करें',
+    upiCopy: 'UPI ID कॉपी करें',
+    upiShare: 'साझा करें',
+    upiAdd: 'भुगतान QR दिखाने के लिए अपनी UPI ID जोड़ें',
     billTo: 'बिल प्राप्तकर्ता',
     estimateFor: 'अनुमान प्राप्तकर्ता',
     recordPayment: 'भुगतान दर्ज करें',
@@ -22889,6 +23564,24 @@ const hi: UiStrings = {
     notesOptional: 'नोट्स (वैकल्पिक)',
     paymentStatus: 'भुगतान स्थिति',
     saveShare: 'सेव करें और भेजें',
+    createdBy: 'बनाने वाले',
+    activity: 'गतिविधि',
+    nextAction: 'अगला कदम',
+    add: 'जोड़ें',
+    duplicate: 'डुप्लिकेट',
+    print: 'प्रिंट',
+    markSent: 'भेजा हुआ चिह्नित करें',
+    paymentEvt: 'भुगतान मिला',
+    viewAll: 'सभी देखें',
+    showLess: 'कम दिखाएँ',
+    editEstimate: 'अनुमान संपादित करें',
+    editBill: 'बिल संपादित करें',
+    saveChanges: 'बदलाव सेव करें',
+    preview: 'पूर्वावलोकन',
+    estimateNo: 'अनुमान नं.',
+    billNo: 'बिल नं.',
+    status: 'स्थिति',
+    detailsTitle: '{type} का विवरण',
   },
   company: {
     attendanceTitle: 'हाज़िरी',
@@ -23126,6 +23819,26 @@ const hi: UiStrings = {
     moreBudgets: 'बजट और साइट',
     moreStatements: 'स्टेटमेंट और निर्यात',
     moreRules: 'नियम',
+    agentsTitle: 'AI एजेंट',
+    agentsAllow: 'AI एजेंट की अनुमति दें',
+    agentsAllowHint: 'लोग Claude या ChatGPT को इस कंपनी से जोड़ सकते हैं।',
+    agentsApproval: 'एजेंट के बदलावों पर मंज़ूरी चाहिए',
+    agentsApprovalHint: 'एजेंट जो खर्च जोड़ता है वह आपकी मंज़ूरी का इंतज़ार करता है।',
+    agentsConnected: 'जुड़े हुए',
+    agentsEmpty: 'कोई एजेंट नहीं जुड़ा। लोग Claude/ChatGPT में Connect → Waves से जोड़ते हैं।',
+    agentsActivity: 'एजेंट गतिविधि',
+    agentsActivityEmpty: 'अभी कुछ नहीं।',
+    agentsRevoke: 'हटाएँ',
+    agentsActions: 'एजेंट की कार्रवाइयाँ',
+    agentsLastUsed: 'आख़िरी बार {when}',
+    agentsNeverUsed: 'अभी इस्तेमाल नहीं हुआ',
+    companyRulesTitle: 'कंपनी के नियम',
+    moreSettings: 'और सेटिंग्स',
+    moreSettingsHint: 'हाज़िरी, ख़र्च, अनुमान, इनवॉइस और बहुत कुछ',
+    tileCurrency: 'मुद्रा',
+    tileDetails: 'विवरण',
+    tileBranding: 'ब्रांडिंग',
+    tileBrandingHint: 'लोगो',
     pendingNone: 'कुछ भी प्रतीक्षा में नहीं',
     pendingNoneBody: 'आपके ध्यान की ज़रूरत वाले दावे और बजट अनुरोध यहाँ दिखेंगे।',
     pendingVendorBills: 'पुष्टि के लिए {n} वेंडर बिल',
@@ -23367,7 +24080,10 @@ const hi: UiStrings = {
     addPerson: 'व्यक्ति जोड़ें',
     moreOptions: 'और',
     wageFormula: '{gross} - एडवांस {cut} = {net}',
-    canPayPeople: 'लोगों को भुगतान कर सकते हैं',
+    canPayPeople: 'भुगतान दर्ज कर सकते हैं',
+    canPayPeopleHint: 'यह कर्मचारी टीम के सदस्यों को किए भुगतान दर्ज कर सकेगा।',
+    employeeDetails: 'कर्मचारी विवरण',
+    permissions: 'अनुमतियाँ',
     setDailyRate: 'दैनिक दर तय करें',
     kAllocation: 'मैनेजर को नकद',
     kPoolReturn: 'वापस लिया नकद',
@@ -23653,6 +24369,75 @@ const hi: UiStrings = {
     notCounted: 'मंज़ूरी तक गिनी नहीं जाएगी',
     exportAction: 'निर्यात',
   },
+  companyTickets: {
+    title: 'शिकायतें',
+    tOpen: 'खुली · {n}',
+    tEscalated: 'बढ़ाई गई · {n}',
+    tResolved: 'सुलझी · {n}',
+    newComplaint: 'नई शिकायत',
+    editComplaint: 'शिकायत संपादित करें',
+    emptyTitle: 'अभी कोई शिकायत नहीं',
+    emptyBody:
+      'ग्राहक की शिकायत दर्ज करें और किसी को सौंपें। समय पर न सुलझे तो वह उसके मैनेजर और फिर मालिक तक पहुँचती है।',
+    emptyTab: 'यहाँ कुछ नहीं',
+    seeAll: 'सभी',
+    noneForClient: 'इस ग्राहक की कोई शिकायत नहीं',
+    clientLabel: 'ग्राहक',
+    noClient: 'कोई ग्राहक नहीं',
+    pickClient: 'ग्राहक चुनें',
+    searchClients: 'ग्राहक खोजें',
+    titlePh: 'शिकायत क्या है?',
+    detailsPh: 'विवरण (वैकल्पिक)',
+    priority: 'प्राथमिकता',
+    pLow: 'कम',
+    pNormal: 'सामान्य',
+    pHigh: 'उच्च',
+    pUrgent: 'तत्काल',
+    assignedTo: 'सौंपा गया',
+    assignTo: 'सौंपें',
+    you: 'आप',
+    someone: 'कोई',
+    owner: 'मालिक',
+    save: 'सहेजें',
+    log: 'शिकायत दर्ज करें',
+    dueIn: '{t} में देय',
+    overdue: '{t} की देरी',
+    escalatedTo: '{name} को बढ़ाई गई',
+    unitM: '{n}मि',
+    unitH: '{n}घं',
+    unitD: '{n}दिन',
+    call: 'कॉल करें',
+    whatsapp: 'WhatsApp',
+    reassign: 'दोबारा सौंपें',
+    actStart: 'शुरू करें',
+    actResolve: 'सुलझाएँ',
+    actReopen: 'फिर खोलें',
+    actClose: 'बंद करें',
+    resolveTitle: 'यह कैसे सुलझी?',
+    resolvePh: 'रिकॉर्ड के लिए छोटा नोट',
+    solved: 'समाधान: {note}',
+    stOpen: 'खुली',
+    stInProgress: 'जारी है',
+    stResolved: 'सुलझी',
+    stClosed: 'बंद',
+    timeline: 'टाइमलाइन',
+    evCreated: 'दर्ज की गई · {name} को सौंपी',
+    evAssigned: '{name} को सौंपी गई',
+    evStarted: 'शुरू की गई',
+    evReopened: 'फिर खोली गई',
+    evEscalated: '{name} को बढ़ाई गई',
+    evBy: '{name} द्वारा',
+    commentPh: 'टिप्पणी जोड़ें',
+    send: 'भेजें',
+    edit: 'संपादित करें',
+    remove: 'हटाएँ',
+    removeConfirm: 'यह शिकायत हटाएँ?',
+    more: 'और',
+    notFound: 'यह शिकायत उपलब्ध नहीं है।',
+    hubOverdue: '{n} विलंबित',
+    hubOpen: '{n} खुली',
+    hubNone: 'सब समय पर',
+  },
   companyClients: {
     title: 'ग्राहक',
     toReceive: 'पाना बाकी',
@@ -23860,6 +24645,86 @@ const hi: UiStrings = {
     hubTeamSub: 'लोग, काम और हाज़िरी',
     hubBooksSub: 'रिकॉर्ड, रिपोर्ट और सेटअप',
   },
+  companyImport: {
+    title: 'इम्पोर्ट',
+    menuRow: 'इम्पोर्ट',
+    menuRowSub: 'फ़ाइल, कॉन्टैक्ट या Google Sheets से कर्मचारी, ग्राहक और विक्रेता',
+    whatTitle: 'क्या इम्पोर्ट करना है?',
+    employees: 'कर्मचारी',
+    employeesSub: 'नाम, फ़ोन, आईडी, जॉइनिंग तिथि',
+    clients: 'ग्राहक और पूछताछ',
+    clientsSub: 'नाम, फ़ोन, ज़रूरत, स्थिति',
+    vendors: 'विक्रेता',
+    vendorsSub: 'नाम, फ़ोन, श्रेणी, ओपनिंग बैलेंस',
+    sourceTitle: 'कहाँ से?',
+    srcFile: 'Excel या CSV फ़ाइल',
+    srcFileSub: '.xlsx, .xls या .csv',
+    srcContacts: 'फ़ोन कॉन्टैक्ट',
+    srcContactsSub: 'अपनी एड्रेस बुक से लोग चुनें',
+    srcSheet: 'Google Sheet लिंक',
+    srcSheetSub: 'लिंक वाला कोई भी देख सके, ऐसे शेयर करें',
+    template: 'टेम्पलेट डाउनलोड करें',
+    templateFailed: 'टेम्पलेट शेयर नहीं हो सका।',
+    sheetPlaceholder: 'शेयर लिंक पेस्ट करें',
+    sheetGo: 'शीट पढ़ें',
+    sheetBad: 'यह Google Sheets का लिंक नहीं है।',
+    sheetPrivate:
+      'Waves यह शीट नहीं खोल पा रहा। इसे लिंक वाला कोई भी देख सके, ऐसे शेयर करें, फिर दोबारा कोशिश करें।',
+    sheetTooBig: 'यह शीट बहुत बड़ी है (अधिकतम 5 MB)।',
+    sheetNetwork: 'Google Sheets तक नहीं पहुँच सके। कनेक्शन जाँचें।',
+    fileTooLarge: 'यह फ़ाइल बहुत बड़ी है (अधिकतम 5 MB)।',
+    fileTooMany: 'बहुत ज़्यादा पंक्तियाँ (अधिकतम 2,000)।',
+    fileEmpty: 'इस फ़ाइल में कुछ नहीं है।',
+    fileEncoding: 'फ़ाइल को CSV UTF-8 में सेव करके दोबारा कोशिश करें।',
+    fileUnreadable: 'फ़ाइल पढ़ी नहीं जा सकी। उसे CSV में सेव करके देखें।',
+    noRows: 'हेडर के नीचे कोई पंक्ति नहीं मिली।',
+    columnsTitle: 'कॉलम मिलाएँ',
+    columnsHint: 'पहली पंक्ति हेडर मानी जाती है। गलत हो तो बदलें।',
+    none: 'मेरी फ़ाइल में नहीं है',
+    fName: 'नाम',
+    fPhone: 'फ़ोन',
+    fEmployeeId: 'कर्मचारी आईडी',
+    fDepartment: 'विभाग',
+    fManager: 'मैनेजर',
+    fJoinedOn: 'जॉइनिंग तिथि',
+    fDailyRate: 'दैनिक दर',
+    fNeed: 'ज़रूरत',
+    fSource: 'स्रोत',
+    fAddress: 'पता',
+    fExpectedValue: 'अपेक्षित मूल्य',
+    fStage: 'स्थिति',
+    fCategory: 'श्रेणी',
+    fOpeningBalance: 'ओपनिंग बैलेंस (देना है)',
+    previewTitle: 'इम्पोर्ट से पहले जाँचें',
+    cNew: '{n} नए',
+    cDup: '{n} डुप्लिकेट, छोड़े गए',
+    cErr: '{n} में गलती, छोड़े गए',
+    importN: '{n} इम्पोर्ट करें',
+    next: 'आगे',
+    back: 'पीछे',
+    progress: '{total} में से {done} जोड़े जा रहे हैं',
+    resultTitle: 'इम्पोर्ट पूरा हुआ',
+    resultLine: '{added} जोड़े गए, {dups} डुप्लिकेट होने से छोड़े गए, {errors} गलतियाँ',
+    downloadErrors: 'गलत पंक्तियाँ डाउनलोड करें',
+    done: 'पूरा हुआ',
+    pName: 'नाम नहीं है',
+    pPhone: 'फ़ोन नंबर सही नहीं है',
+    pDate: 'तिथि सही नहीं है',
+    pAmount: 'राशि सही नहीं है',
+    pNegative: 'राशि ऋणात्मक नहीं हो सकती',
+    pDupFile: 'इस फ़ाइल में दोहराया गया',
+    pDupExisting: 'पहले से सूची में है',
+    pFailed: 'यह जोड़ा नहीं जा सका। दोबारा कोशिश करें।',
+    wDept: 'विभाग नहीं मिला, खाली छोड़ा',
+    wManager: 'मैनेजर नहीं मिला, खाली छोड़ा',
+    wEmpId: 'कर्मचारी आईडी पहले से इस्तेमाल में है, खाली छोड़ी',
+    wStage: 'स्थिति पहचानी नहीं गई, ग्राहक के रूप में जोड़ा',
+    warnLine: '{n} पंक्तियाँ कुछ जानकारी के बिना जोड़ी गईं।',
+    noAccess: 'सिर्फ़ मालिक और मैनेजर इम्पोर्ट कर सकते हैं।',
+    errCsvRow: 'पंक्ति',
+    errCsvProblem: 'समस्या',
+    contactsAdded: '{n} कॉन्टैक्ट चुने गए',
+  },
   companyVendors: {
     subtitle: 'बिल · भुगतान · रसीदें',
     receipts: 'रसीदें',
@@ -24056,6 +24921,26 @@ const hi: UiStrings = {
     orderItems: 'सामान',
     orderTotal: 'कुल',
     itemsCount: '{n} सामान',
+  },
+  companySlot: {
+    addRow: 'कंपनी जोड़ें',
+    addRowHint: 'आपकी पहली कंपनी मुफ़्त है',
+    title: 'एक और कंपनी जोड़ें',
+    body: 'आपकी पहली कंपनी मुफ़्त है। हर अतिरिक्त कंपनी {price}/माह है।',
+    subscribe: 'सब्सक्राइब करें',
+    restore: 'बहाल करें',
+    restored: 'सब्सक्रिप्शन बहाल हो गया।',
+    noneFound: 'कोई सक्रिय कंपनी सब्सक्रिप्शन नहीं मिला।',
+    unavailable:
+      'इस संस्करण में अतिरिक्त कंपनियाँ नहीं खरीदी जा सकतीं। स्टोर से अपडेट करके फिर कोशिश करें।',
+    pending: 'आपकी खरीद की मंज़ूरी का इंतज़ार है। पूरी होने पर कंपनी जोड़ें।',
+    buyFailed: 'खरीद पूरी नहीं हो सकी। आपसे कोई शुल्क नहीं लिया गया।',
+    setupSlow: 'आपका सब्सक्रिप्शन अभी पुष्ट हो रहा है। एक मिनट बाद फिर कोशिश करें।',
+    lapsedBanner:
+      'इस कंपनी का सब्सक्रिप्शन समाप्त हो गया है, इसलिए यह सिर्फ़ देखने के लिए है। कुछ भी हटाया नहीं गया। दोबारा बदलाव के लिए नवीनीकरण करें।',
+    lapsedReadOnly:
+      'इस कंपनी का सब्सक्रिप्शन समाप्त हो गया है। आप देख और एक्सपोर्ट कर सकते हैं, जोड़ या बदल नहीं सकते।',
+    renew: 'सब्सक्रिप्शन नवीनीकृत करें',
   },
   companyStorage: {
     addMore: 'और स्टोरेज जोड़ें',
@@ -25060,6 +25945,7 @@ const hi: UiStrings = {
     personalBody: 'दोस्त, ग्रुप और खर्च',
     switchTitle: 'स्पेस बदलें',
     switchBody: 'चुनें कि आप कहाँ काम करना चाहते हैं',
+    switchedTo: '{name} पर स्विच किया गया',
     createTitle: 'नई कंपनी बनाएँ',
     createBody: 'कंपनी सेट करें और लोगों को जोड़ें',
     owner: 'मालिक',
@@ -26485,6 +27371,10 @@ const hi: UiStrings = {
     paymentsToMake: 'करने वाले भुगतान',
     balanceSortAmount: 'राशि के अनुसार',
     balanceSortName: 'नाम के अनुसार',
+    sortPill: 'क्रम: {label}',
+    sortAmountHigh: 'ज़्यादा राशि',
+    sortAmountLow: 'कम राशि',
+    settleInOneGo: 'एक साथ निपटाएँ',
     balanceSimplified: 'सरलीकृत',
     balanceIsOwed: 'लेना है',
     balanceOwesYou: 'आपको देना है',
@@ -29332,6 +30222,7 @@ const ar: UiStrings = {
       notFound: 'حُذف شيء مرتبط بهذا التغيير، لذا لا يمكن حفظه.',
       conflict: 'عدّل شخص آخر هذا في الوقت نفسه. راجعه وحاول مجدداً.',
       guestExpired: 'انتهت فترتك التجريبية كضيف. أنشئ حساباً لمواصلة الحفظ.',
+      companySlot: 'الشركة الإضافية تحتاج اشتراكاً خاصاً بها. تخلَّ عن هذه ثم اشترك من إضافة شركة.',
       generic: 'تعذّر حفظ هذا التغيير. راجعه أو تجاهله.',
     },
     title: 'المزامنة عبر',
@@ -29787,6 +30678,12 @@ const ar: UiStrings = {
     total: 'الإجمالي',
     payments: 'الدفعات المستلمة',
     amountLeft: 'الرصيد المستحق',
+    markReceived: 'تحديد كمستلم',
+    upiTitle: 'الدفع عبر UPI',
+    upiScan: 'امسح للدفع {amount}',
+    upiCopy: 'نسخ معرّف UPI',
+    upiShare: 'مشاركة',
+    upiAdd: 'أضف معرّف UPI لعرض رمز الدفع',
     billTo: 'فاتورة إلى',
     estimateFor: 'تقدير إلى',
     recordPayment: 'تسجيل دفعة',
@@ -29833,6 +30730,24 @@ const ar: UiStrings = {
     notesOptional: 'ملاحظات (اختياري)',
     paymentStatus: 'حالة الدفع',
     saveShare: 'احفظ وشارك',
+    createdBy: 'أنشأه',
+    activity: 'النشاط',
+    nextAction: 'الإجراء التالي',
+    add: 'إضافة',
+    duplicate: 'تكرار',
+    print: 'طباعة',
+    markSent: 'تحديد كمرسل',
+    paymentEvt: 'تم استلام دفعة',
+    viewAll: 'عرض الكل',
+    showLess: 'عرض أقل',
+    editEstimate: 'تعديل عرض السعر',
+    editBill: 'تعديل الفاتورة',
+    saveChanges: 'حفظ التغييرات',
+    preview: 'معاينة',
+    estimateNo: 'رقم عرض السعر',
+    billNo: 'رقم الفاتورة',
+    status: 'الحالة',
+    detailsTitle: 'تفاصيل {type}',
   },
   company: {
     attendanceTitle: 'الحضور',
@@ -30092,6 +31007,26 @@ const ar: UiStrings = {
     moreBudgets: 'الميزانيات والمواقع',
     moreStatements: 'الكشوف والتصدير',
     moreRules: 'القواعد',
+    agentsTitle: 'وكلاء الذكاء الاصطناعي',
+    agentsAllow: 'السماح لوكلاء الذكاء الاصطناعي',
+    agentsAllowHint: 'يمكن للأشخاص ربط Claude أو ChatGPT بهذه الشركة.',
+    agentsApproval: 'تغييرات الوكيل تحتاج موافقة',
+    agentsApprovalHint: 'المصروفات التي يضيفها الوكيل تنتظر موافقتك.',
+    agentsConnected: 'المتصلون',
+    agentsEmpty: 'لا يوجد وكلاء متصلون. يتصل الأشخاص من Claude/ChatGPT عبر Connect ← Waves.',
+    agentsActivity: 'نشاط الوكيل',
+    agentsActivityEmpty: 'لا شيء بعد.',
+    agentsRevoke: 'إلغاء الاتصال',
+    agentsActions: 'إجراءات الوكيل',
+    agentsLastUsed: 'آخر استخدام {when}',
+    agentsNeverUsed: 'لم يُستخدم بعد',
+    companyRulesTitle: 'قواعد الشركة',
+    moreSettings: 'المزيد من الإعدادات',
+    moreSettingsHint: 'الحضور والمصروفات والتقديرات والفواتير وغيرها',
+    tileCurrency: 'العملة',
+    tileDetails: 'التفاصيل',
+    tileBranding: 'الهوية',
+    tileBrandingHint: 'الشعار',
     pendingNone: 'لا شيء بانتظارك',
     pendingNoneBody: 'ستظهر هنا المطالبات وطلبات الميزانية التي تحتاج إليك.',
     pendingVendorBills: '{n} فواتير موردين بانتظار التأكيد',
@@ -30360,7 +31295,10 @@ const ar: UiStrings = {
     addPerson: 'أضف شخصاً',
     moreOptions: 'المزيد',
     wageFormula: '{gross} - سلفة {cut} = {net}',
-    canPayPeople: 'يمكنه الدفع للناس',
+    canPayPeople: 'يمكنه تسجيل المدفوعات',
+    canPayPeopleHint: 'يتيح لهذا الموظف تسجيل المدفوعات لأعضاء الفريق.',
+    employeeDetails: 'بيانات الموظف',
+    permissions: 'الصلاحيات',
     setDailyRate: 'حدد الأجر اليومي',
     kAllocation: 'نقد للمدير',
     kPoolReturn: 'نقد مسترجع',
@@ -30649,6 +31587,75 @@ const ar: UiStrings = {
     notCounted: 'لا يُحتسب حتى الموافقة',
     exportAction: 'تصدير',
   },
+  companyTickets: {
+    title: 'الشكاوى',
+    tOpen: 'مفتوحة · {n}',
+    tEscalated: 'مصعّدة · {n}',
+    tResolved: 'تمت معالجتها · {n}',
+    newComplaint: 'شكوى جديدة',
+    editComplaint: 'تعديل الشكوى',
+    emptyTitle: 'لا توجد شكاوى بعد',
+    emptyBody:
+      'سجّل شكوى العميل وأسندها لشخص ما. إن لم تُحل في الوقت المناسب فتصل إلى مديره ثم إلى المالك.',
+    emptyTab: 'لا شيء هنا',
+    seeAll: 'الكل',
+    noneForClient: 'لا شكاوى لهذا العميل',
+    clientLabel: 'العميل',
+    noClient: 'بدون عميل',
+    pickClient: 'اختر العميل',
+    searchClients: 'ابحث في العملاء',
+    titlePh: 'ما هي الشكوى؟',
+    detailsPh: 'التفاصيل (اختياري)',
+    priority: 'الأولوية',
+    pLow: 'منخفضة',
+    pNormal: 'عادية',
+    pHigh: 'عالية',
+    pUrgent: 'عاجلة',
+    assignedTo: 'مُسندة إلى',
+    assignTo: 'إسناد إلى',
+    you: 'أنت',
+    someone: 'شخص ما',
+    owner: 'المالك',
+    save: 'حفظ',
+    log: 'تسجيل الشكوى',
+    dueIn: 'يستحق خلال {t}',
+    overdue: 'متأخرة {t}',
+    escalatedTo: 'صُعّدت إلى {name}',
+    unitM: '{n}د',
+    unitH: '{n}س',
+    unitD: '{n}ي',
+    call: 'اتصال',
+    whatsapp: 'واتساب',
+    reassign: 'إعادة الإسناد',
+    actStart: 'ابدأ',
+    actResolve: 'حلّ',
+    actReopen: 'إعادة فتح',
+    actClose: 'إغلاق',
+    resolveTitle: 'كيف تم حلها؟',
+    resolvePh: 'ملاحظة قصيرة للسجل',
+    solved: 'الحل: {note}',
+    stOpen: 'مفتوحة',
+    stInProgress: 'قيد المعالجة',
+    stResolved: 'تمت المعالجة',
+    stClosed: 'مغلقة',
+    timeline: 'السجل الزمني',
+    evCreated: 'سُجّلت · أُسندت إلى {name}',
+    evAssigned: 'أُسندت إلى {name}',
+    evStarted: 'بدأت المعالجة',
+    evReopened: 'أُعيد فتحها',
+    evEscalated: 'صُعّدت إلى {name}',
+    evBy: 'بواسطة {name}',
+    commentPh: 'أضف تعليقًا',
+    send: 'إرسال',
+    edit: 'تعديل',
+    remove: 'حذف',
+    removeConfirm: 'حذف هذه الشكوى؟',
+    more: 'المزيد',
+    notFound: 'هذه الشكوى غير متاحة.',
+    hubOverdue: '{n} متأخرة',
+    hubOpen: '{n} مفتوحة',
+    hubNone: 'الكل في موعده',
+  },
   companyClients: {
     title: 'العملاء',
     toReceive: 'مستحق القبض',
@@ -30856,6 +31863,86 @@ const ar: UiStrings = {
     hubTeamSub: 'الأشخاص والعمل والحضور',
     hubBooksSub: 'السجلات والتقارير والإعداد',
   },
+  companyImport: {
+    title: 'استيراد',
+    menuRow: 'استيراد',
+    menuRowSub: 'موظفون وعملاء وموردون من ملف أو جهات الاتصال أو Google Sheets',
+    whatTitle: 'ماذا تريد أن تستورد؟',
+    employees: 'الموظفون',
+    employeesSub: 'الاسم، الهاتف، المعرّف، تاريخ الانضمام',
+    clients: 'العملاء والاستفسارات',
+    clientsSub: 'الاسم، الهاتف، الطلب، الحالة',
+    vendors: 'الموردون',
+    vendorsSub: 'الاسم، الهاتف، الفئة، الرصيد الافتتاحي',
+    sourceTitle: 'من أين؟',
+    srcFile: 'ملف Excel أو CSV',
+    srcFileSub: '.xlsx أو .xls أو .csv',
+    srcContacts: 'جهات اتصال الهاتف',
+    srcContactsSub: 'اختر أشخاصاً من دفتر العناوين',
+    srcSheet: 'رابط Google Sheet',
+    srcSheetSub: 'شاركه ليتمكن أي شخص لديه الرابط من العرض',
+    template: 'تنزيل القالب',
+    templateFailed: 'تعذّرت مشاركة القالب.',
+    sheetPlaceholder: 'الصق رابط المشاركة',
+    sheetGo: 'قراءة الجدول',
+    sheetBad: 'هذا ليس رابط Google Sheets.',
+    sheetPrivate:
+      'لا يستطيع Waves فتح هذا الجدول. شاركه ليتمكن أي شخص لديه الرابط من العرض ثم حاول مجدداً.',
+    sheetTooBig: 'الجدول كبير جداً (5 ميغابايت كحد أقصى).',
+    sheetNetwork: 'تعذّر الوصول إلى Google Sheets. تحقق من اتصالك.',
+    fileTooLarge: 'الملف كبير جداً (5 ميغابايت كحد أقصى).',
+    fileTooMany: 'عدد الصفوف كبير جداً (2,000 كحد أقصى).',
+    fileEmpty: 'الملف فارغ.',
+    fileEncoding: 'احفظ الملف بصيغة CSV UTF-8 وحاول مجدداً.',
+    fileUnreadable: 'تعذّرت قراءة الملف. جرّب حفظه بصيغة CSV.',
+    noRows: 'لا توجد صفوف تحت صف العناوين.',
+    columnsTitle: 'مطابقة الأعمدة',
+    columnsHint: 'يُقرأ الصف الأول كعناوين. غيّر المطابقة إذا كانت خاطئة.',
+    none: 'غير موجود في ملفي',
+    fName: 'الاسم',
+    fPhone: 'الهاتف',
+    fEmployeeId: 'معرّف الموظف',
+    fDepartment: 'القسم',
+    fManager: 'المدير',
+    fJoinedOn: 'تاريخ الانضمام',
+    fDailyRate: 'الأجر اليومي',
+    fNeed: 'الطلب',
+    fSource: 'المصدر',
+    fAddress: 'العنوان',
+    fExpectedValue: 'القيمة المتوقعة',
+    fStage: 'الحالة',
+    fCategory: 'الفئة',
+    fOpeningBalance: 'الرصيد الافتتاحي (المستحق)',
+    previewTitle: 'تحقق قبل الاستيراد',
+    cNew: '{n} جديد',
+    cDup: '{n} مكرر، تم تخطيه',
+    cErr: '{n} بأخطاء، تم تخطيه',
+    importN: 'استيراد {n}',
+    next: 'متابعة',
+    back: 'رجوع',
+    progress: 'جارٍ إضافة {done} من {total}',
+    resultTitle: 'اكتمل الاستيراد',
+    resultLine: 'تمت إضافة {added}، وتخطي {dups} كمكرر، و{errors} أخطاء',
+    downloadErrors: 'تنزيل الصفوف الخاطئة',
+    done: 'تم',
+    pName: 'الاسم مفقود',
+    pPhone: 'رقم الهاتف غير صالح',
+    pDate: 'التاريخ غير صالح',
+    pAmount: 'المبلغ غير صالح',
+    pNegative: 'لا يمكن أن يكون المبلغ سالباً',
+    pDupFile: 'مكرر في هذا الملف',
+    pDupExisting: 'موجود بالفعل في قائمتك',
+    pFailed: 'تعذّرت إضافة هذا. حاول مجدداً.',
+    wDept: 'القسم غير موجود، تُرك فارغاً',
+    wManager: 'المدير غير موجود، تُرك فارغاً',
+    wEmpId: 'معرّف الموظف مستخدم بالفعل، تُرك فارغاً',
+    wStage: 'الحالة غير معروفة، أُضيف كعميل',
+    warnLine: 'أُضيفت {n} صفوف دون بعض التفاصيل.',
+    noAccess: 'يمكن للمالكين والمديرين فقط الاستيراد.',
+    errCsvRow: 'الصف',
+    errCsvProblem: 'المشكلة',
+    contactsAdded: 'تم اختيار {n} من جهات الاتصال',
+  },
   companyVendors: {
     subtitle: 'الفواتير · المدفوعات · الإيصالات',
     receipts: 'الإيصالات',
@@ -31052,6 +32139,24 @@ const ar: UiStrings = {
     orderItems: 'الأصناف',
     orderTotal: 'الإجمالي',
     itemsCount: '{n} أصناف',
+  },
+  companySlot: {
+    addRow: 'إضافة شركة',
+    addRowHint: 'شركتك الأولى مجانية',
+    title: 'إضافة شركة أخرى',
+    body: 'شركتك الأولى مجانية. كل شركة إضافية بسعر {price} شهرياً.',
+    subscribe: 'اشترك',
+    restore: 'استعادة',
+    restored: 'تمت استعادة الاشتراك.',
+    noneFound: 'لا يوجد اشتراك شركة نشط.',
+    unavailable: 'لا يمكن شراء شركات إضافية في هذا الإصدار. حدّث التطبيق من المتجر وحاول مجدداً.',
+    pending: 'عملية الشراء بانتظار الموافقة. أضف الشركة بعد اكتمالها.',
+    buyFailed: 'تعذّر إكمال الشراء. لم يتم خصم أي مبلغ.',
+    setupSlow: 'ما زال اشتراكك قيد التأكيد. حاول مجدداً بعد دقيقة.',
+    lapsedBanner:
+      'انتهى اشتراك هذه الشركة فهي للعرض فقط. لم يُحذف أي شيء. جدّد الاشتراك لتعديلها من جديد.',
+    lapsedReadOnly: 'انتهى اشتراك هذه الشركة. يمكنك العرض والتصدير لكن لا الإضافة أو التعديل.',
+    renew: 'تجديد الاشتراك',
   },
   companyStorage: {
     addMore: 'أضف المزيد من التخزين',
@@ -32073,6 +33178,7 @@ const ar: UiStrings = {
     personalBody: 'الأصدقاء والمجموعات والمصروفات',
     switchTitle: 'تبديل المساحة',
     switchBody: 'اختر المكان الذي تريد العمل فيه',
+    switchedTo: 'تم التبديل إلى {name}',
     createTitle: 'إنشاء شركة جديدة',
     createBody: 'أنشئ شركة وادعُ الأشخاص',
     owner: 'المالك',
@@ -33682,6 +34788,10 @@ const ar: UiStrings = {
     paymentsToMake: 'دفعات مستحقة',
     balanceSortAmount: 'ترتيب حسب المبلغ',
     balanceSortName: 'ترتيب حسب الاسم',
+    sortPill: 'ترتيب: {label}',
+    sortAmountHigh: 'الأعلى مبلغًا',
+    sortAmountLow: 'الأقل مبلغًا',
+    settleInOneGo: 'سوّ الحسابات دفعة واحدة',
     balanceSimplified: 'مبسّط',
     balanceIsOwed: 'له مستحقات',
     balanceOwesYou: 'مدين لك',

@@ -31,6 +31,8 @@ export interface CompanyDocPdfOptions {
   labels: CompanyDocPdfLabels;
   formatMoney: (minor: bigint) => string;
   formatDate: (date: string) => string;
+  /** Pay-by-UPI block: shown on a bill with an amount due. `qrDataUrl` is a PNG data URI of the UPI link. */
+  upi?: { id: string; qrDataUrl: string; scanLabel: string };
 }
 const escape = (text: string): string =>
   text.replace(
@@ -66,5 +68,6 @@ export function renderCompanyDocHtml(doc: MirrorCompanyDoc, options: CompanyDocP
   <table><thead><tr>${[l.description, l.qty, l.rate, l.amount].map((v) => `<th>${escape(v)}</th>`).join('')}</tr></thead><tbody>${doc.items.map((i) => `<tr><td>${escape(i.description)}</td><td>${escape(formatQty(i.qtyMilli))}</td><td class="num">${money(i.rateMinor)}</td><td class="num">${money(lineAmount(i))}</td></tr>`).join('')}</tbody></table>
   <table class="summary">${row(l.subtotal, totals.subtotalMinor)}${row(l.discount, doc.discountMinor)}${row(l.total, doc.totalMinor)}${doc.docType === 'bill' ? row(l.payments, doc.paidMinor) + row(l.amountLeft, billDueMinor(doc.totalMinor, doc.paidMinor)) : ''}</table>
   ${doc.docType === 'bill' && doc.payments.length ? `<h2>${escape(l.payments)}</h2><table>${doc.payments.map((p) => `<tr><td>${escape(formatDate(p.paidOn))}</td><td class="num">${money(p.amountMinor)}</td></tr>`).join('')}</table>` : ''}
+  ${doc.docType === 'bill' && options.upi && billDueMinor(doc.totalMinor, doc.paidMinor) > 0n && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(options.upi.qrDataUrl) ? `<div style="text-align:center;break-inside:avoid"><img alt="" style="width:140px;height:140px" src="${options.upi.qrDataUrl}"><p><b>${escape(options.upi.scanLabel)}</b><br>${escape(options.upi.id)}</p></div>` : ''}
   ${doc.notes ? `<h2>${escape(l.notes)}</h2><p>${escape(doc.notes)}</p>` : ''}<footer>${escape(l.footer)}</footer></body></html>`;
 }

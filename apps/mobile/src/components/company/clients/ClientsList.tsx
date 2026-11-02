@@ -13,6 +13,7 @@ import { ListRow, SegmentedPills, StandardCard } from '@/components/standard';
 import { useCompanyClients, useFollowUps } from '@/data/companyClients';
 import { useCompanyDocs } from '@/data/companyDocuments';
 import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
+import { useCompanyTickets } from '@/data/companyTickets';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -54,6 +55,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const suspended = useCompanySuspended(groupId);
   const entries = useCompanyEntries(groupId);
   const { docs, canUse: canDocs } = useCompanyDocs(groupId);
+  const tickets = useCompanyTickets(groupId);
   const [tab, setTab] = useState<ClientTab>('all');
   const [status, setStatus] = useState<ClientStatus | null>(null);
   const [range, setRange] = useState<DateRange>('all');
@@ -115,6 +117,11 @@ export function ClientsList({ groupId }: { groupId: string }) {
       label: s.addClient,
       onPress: () => router.push(`/group/${groupId}/company-client-add`),
     },
+    {
+      icon: 'cloud-upload-outline',
+      label: t.companyImport.menuRow,
+      onPress: () => router.push(`/group/${groupId}/company-import?entity=client`),
+    },
     ...(canDocs
       ? ([
           {
@@ -128,6 +135,19 @@ export function ClientsList({ groupId }: { groupId: string }) {
             onPress: () => router.push(`/group/${groupId}/company-bill-form?type=bill`),
           },
         ] as const)
+      : []),
+  ];
+  // Complaints open from this ⋮ for anyone who can log them, even when they cannot add clients.
+  const menuItems: OverflowMenuItem[] = [
+    ...(canAdd ? addItems : []),
+    ...(tickets.canAdd
+      ? [
+          {
+            icon: 'chatbubbles-outline' as const,
+            label: t.companyTickets.title,
+            onPress: () => router.push(`/group/${groupId}/company-tickets`),
+          },
+        ]
       : []),
   ];
   const pill = (st: ClientStatus) => {
@@ -164,7 +184,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
           view={entries}
           subtitle=""
           showGear={entries.isOwner}
-          menuItems={canAdd ? addItems : undefined}
+          menuItems={menuItems.length ? menuItems : undefined}
           actions={
             <>
               <IconButton

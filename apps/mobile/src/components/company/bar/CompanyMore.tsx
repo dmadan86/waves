@@ -9,6 +9,7 @@ import { useMoney } from '@/components/company/dashboard/parts';
 import { SectionShell } from '@/components/company/bar/SectionShell';
 import { StandardCard } from '@/components/standard';
 import { useClientMoney, useCompanyClients, useFollowUps } from '@/data/companyClients';
+import { useTicketBadge } from '@/data/companyTickets';
 import { useUnpaidBills } from '@/data/companyDocuments';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useCompanyVendors } from '@/data/companyVendors';
@@ -52,6 +53,7 @@ export function CompanyMore({ groupId }: { groupId: string }) {
   const clients = useCompanyClients(groupId);
   const clientMoney = useClientMoney(groupId);
   const followUps = useFollowUps(groupId);
+  const complaints = useTicketBadge(groupId);
   const unpaid = useUnpaidBills(groupId);
   const pending = usePendingCount(groupId);
   const access = useWorkdayAccess(groupId);
@@ -95,6 +97,21 @@ export function CompanyMore({ groupId }: { groupId: string }) {
                   icon: 'checkbox-outline',
                   sub: due ? fill(h.hubDue, { n: due }) : h.hubNothing,
                   onPress: go('company-followups'),
+                },
+              ]
+            : []),
+          ...(complaints.show
+            ? [
+                {
+                  name: t.companyTickets.title,
+                  icon: 'chatbubbles-outline',
+                  badge: complaints.escalated ? { n: complaints.escalated, red: true } : undefined,
+                  sub: complaints.escalated
+                    ? fill(t.companyTickets.hubOverdue, { n: complaints.escalated })
+                    : complaints.open
+                      ? fill(t.companyTickets.hubOpen, { n: complaints.open })
+                      : t.companyTickets.hubNone,
+                  onPress: go('company-tickets'),
                 },
               ]
             : []),

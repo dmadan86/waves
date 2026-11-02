@@ -68,7 +68,7 @@ export default function CompanyCalendarScreen() {
       >
         <ScenicHeader title={t.calendar.title} onBack={() => router.back()} />
         <ScenicBody>
-          {suspended ? <SuspendedBanner /> : null}
+          {suspended ? <SuspendedBanner groupId={id} /> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
             <SegmentedPills
               options={[

@@ -63,6 +63,30 @@ $$;
 CREATE POLICY company_inquiries_select ON public.company_inquiries FOR SELECT TO authenticated USING(public.waves_company_client_visible(group_id,client_id));
 CREATE POLICY company_client_assignees_select ON public.company_client_assignees FOR SELECT TO authenticated USING(public.waves_company_client_visible(group_id,client_id));
 
+-- Agents (20261121090000_company_agents): the same restrictive gate and write guard every other company_* table got from its loop.
+CREATE POLICY company_agent_gate ON public.company_inquiries AS RESTRICTIVE FOR ALL TO authenticated USING (public.waves_agent_client_id() IS NULL OR public.waves_company_agent_allowed(group_id));
+CREATE POLICY company_agent_gate ON public.company_client_assignees AS RESTRICTIVE FOR ALL TO authenticated USING (public.waves_agent_client_id() IS NULL OR public.waves_company_agent_allowed(group_id));
+CREATE TRIGGER aa_company_agent_guard BEFORE INSERT OR UPDATE OR DELETE ON public.company_inquiries FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_write_guard();
+CREATE TRIGGER aa_company_agent_guard BEFORE INSERT OR UPDATE OR DELETE ON public.company_client_assignees FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_write_guard();
+-- Drift check: body is the one in 20261121090000_company_agents (its only definition) plus two allowed tables. An assistant's company_client_set fires
+-- the owner-assignee trigger below, which writes the two new tables; without this an assistant could not add or edit a client at all.
+-- Nothing else widens: both tables have no write grant or policy, and the four new RPCs refuse an assistant outright.
+CREATE OR REPLACE FUNCTION public.waves_company_agent_write_guard() RETURNS trigger
+ LANGUAGE plpgsql SET search_path TO 'public','pg_temp' AS $$
+DECLARE v_group uuid;
+BEGIN
+ IF public.waves_agent_client_id() IS NULL THEN RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END; END IF;
+ IF TG_OP = 'DELETE' THEN v_group := OLD.group_id; ELSE v_group := NEW.group_id; END IF;
+ IF NOT public.waves_company_agent_allowed(v_group) THEN
+  RAISE EXCEPTION 'NOT_LINKED: this assistant is not connected to that company' USING ERRCODE='insufficient_privilege';
+ END IF;
+ -- Inside a company an assistant may only touch what its tools write; money, vendors, people, pools and the rest stay human.
+ IF public.waves_is_company(v_group) AND TG_TABLE_NAME <> ALL (ARRAY['company_entries','company_attendance','company_work_tasks','company_clients','company_client_notes','company_documents','company_client_assignees','company_inquiries']) THEN
+  RAISE EXCEPTION 'NOT_ALLOWED: an assistant cannot change this' USING ERRCODE='insufficient_privilege';
+ END IF;
+ RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END $$;
+
 -- The owner is always an assignee. Handing the client to a different owner (the edit form) hands it over: the previous owner is no longer an
 -- assignee (the assign list below keeps whoever it names). A new owner also receives the history: re-stamp the rows so their next pull carries them.
 CREATE FUNCTION public.waves_company_client_owner_assignee() RETURNS trigger
@@ -91,6 +115,7 @@ CREATE FUNCTION public.waves_company_inquiry_set(p_group_id uuid,p_inquiry_id uu
 DECLARE me uuid; rl text; r public.company_inquiries%ROWTYPE; c public.company_clients%ROWTYPE;
  v_title text; v_details text; v_val bigint; v_date date; v_n integer;
 BEGIN
+ IF public.waves_agent_client_id() IS NOT NULL THEN RAISE EXCEPTION 'NOT_ALLOWED: an assistant cannot do this' USING ERRCODE='insufficient_privilege'; END IF;
  me:=public.waves_company_actor(p_group_id);
  SELECT role::text INTO rl FROM public.group_members WHERE id=me;
  IF rl NOT IN ('admin','manager','member') THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
@@ -121,6 +146,7 @@ CREATE FUNCTION public.waves_company_inquiry_reject(p_inquiry_id uuid,p_rejected
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 DECLARE r public.company_inquiries%ROWTYPE; me uuid; rl text; v_reason text:=nullif(btrim(coalesce(p_reason,'')),''); st text;
 BEGIN
+ IF public.waves_agent_client_id() IS NOT NULL THEN RAISE EXCEPTION 'NOT_ALLOWED: an assistant cannot do this' USING ERRCODE='insufficient_privilege'; END IF;
  SELECT * INTO r FROM public.company_inquiries WHERE id=p_inquiry_id FOR UPDATE;
  IF NOT FOUND OR r.deleted_at IS NOT NULL OR p_rejected IS NULL THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
  IF length(coalesce(v_reason,''))>200 THEN RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
@@ -139,6 +165,7 @@ CREATE FUNCTION public.waves_company_inquiry_remove(p_inquiry_id uuid) RETURNS v
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 DECLARE r public.company_inquiries%ROWTYPE; me uuid; rl text;
 BEGIN
+ IF public.waves_agent_client_id() IS NOT NULL THEN RAISE EXCEPTION 'NOT_ALLOWED: an assistant cannot do this' USING ERRCODE='insufficient_privilege'; END IF;
  SELECT * INTO r FROM public.company_inquiries WHERE id=p_inquiry_id FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
  me:=public.waves_company_actor(r.group_id);
@@ -154,6 +181,7 @@ CREATE FUNCTION public.waves_company_client_assign(p_group_id uuid,p_client_id u
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 DECLARE me uuid; rl text; r public.company_clients%ROWTYPE; ids uuid[]; v_owner uuid;
 BEGIN
+ IF public.waves_agent_client_id() IS NOT NULL THEN RAISE EXCEPTION 'NOT_ALLOWED: an assistant cannot do this' USING ERRCODE='insufficient_privilege'; END IF;
  me:=public.waves_company_actor(p_group_id);
  SELECT role::text INTO rl FROM public.group_members WHERE id=me;
  IF rl NOT IN ('admin','manager') THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;

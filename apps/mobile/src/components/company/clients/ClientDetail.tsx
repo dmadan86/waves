@@ -22,6 +22,7 @@ import {
   InquiryTile,
 } from '@/components/company/clients/InquiryParts';
 import { StageChip, useWhen } from '@/components/company/clients/parts';
+import { ClientComplaints } from '@/components/company/tickets/ClientComplaints';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import {
@@ -573,6 +574,7 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                   </View>
                 ) : null}
               </StandardCard>
+              <ClientComplaints groupId={groupId} clientId={clientId} />
               <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                 <SegmentedPills
                   options={[

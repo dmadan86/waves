@@ -196,6 +196,7 @@ model Profile {
   groupPins                 GroupPin[]
   groupMutes                GroupMute[]
   agentWrites               AgentWrite[]
+  companyAgentLinks         CompanyAgentLink[]
   pushTokens                PushToken[]
   notifications             Notification[]
   emailEvents               EmailEvent[]
@@ -238,6 +239,7 @@ model Profile {
   apiApps                   ApiApp[]
   apiTokens                 ApiToken[]
   apiCodes                  ApiAuthorizationCode[]
+  companySlots              CompanySlot[]
 
   @@map("profiles")
   @@schema("public")
@@ -271,6 +273,7 @@ model Group {
   companyPolicies Json @default("{\"version\":1,\"rules\":[]}") @map("company_policies")
   companyPolicyRevision Int @default(0) @map("company_policy_revision")
   suspendedAt DateTime? @map("suspended_at") @db.Timestamptz(6)
+  slotLapsedAt DateTime? @map("slot_lapsed_at") @db.Timestamptz(6)
   companyAttendance CompanyAttendance[]
   companyWorkTasks CompanyWorkTask[]
   companyHolidays CompanyHoliday[]
@@ -281,6 +284,9 @@ model Group {
   companyPaidLeave Boolean @default(false) @map("company_paid_leave")
   companyDefaultMileageRateMinor BigInt? @map("company_default_mileage_rate_minor")
   companyApprovalsEnabled Boolean @default(false) @map("company_approvals_enabled")
+  companyAgentsEnabled Boolean @default(false) @map("company_agents_enabled")
+  companyAgentApproval Boolean @default(true) @map("company_agent_approval")
+  companyAgentLinks CompanyAgentLink[]
   companySecondApproval Boolean @default(false) @map("company_second_approval")
   companySecondApprovalThresholdMinor BigInt? @map("company_second_approval_threshold_minor")
   companyPlan CompanyPlan?
@@ -427,6 +433,7 @@ model Group {
   vendors CompanyVendor[]
   companyClients CompanyClient[]
   companyInquiries CompanyInquiry[]
+  companyTickets CompanyTicket[]
   companyDetails CompanyDetails?
   companyDetailsSecure CompanyDetailsSecure?
   @@map("groups")
@@ -560,6 +567,10 @@ model GroupMember {
   inquiriesCreated CompanyInquiry[] @relation("CompanyInquiryCreator")
   inquiriesUpdated CompanyInquiry[] @relation("CompanyInquiryUpdater")
   clientAssignments CompanyClientAssignee[]
+  ticketsAssigned CompanyTicket[] @relation("CompanyTicketAssignee")
+  ticketsCreated CompanyTicket[] @relation("CompanyTicketCreator")
+  ticketsUpdated CompanyTicket[] @relation("CompanyTicketUpdater")
+  ticketEvents CompanyTicketEvent[]
   vendorLinesCreated CompanyVendorEntry[] @relation("CompanyVendorLineCreator")
   vendorLinesFunded CompanyVendorEntry[] @relation("CompanyVendorLineFunder")
   vendorPhotos CompanyVendorEntryAttachment[]
@@ -2512,6 +2523,7 @@ model AgentWrite {
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([profileId, createdAt(sort: Desc)], map: "agent_writes_profile_created_idx")
+  @@index([groupId, createdAt(sort: Desc)], map: "agent_writes_group_created_idx")
   @@map("agent_writes")
   @@schema("public")
 }
@@ -3751,6 +3763,22 @@ model CompanyVendorOrderEvent {
   @@map("company_vendor_order_events")
   @@schema("public")
 }
+/// An AI assistant (OAuth client) bound to exactly one company by one person; written only by definer RPCs.
+model CompanyAgentLink {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  profileId String @map("profile_id") @db.Uuid
+  clientId String @map("client_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  @@unique([profileId, clientId])
+  @@index([groupId], map: "company_agent_links_group_idx")
+  @@map("company_agent_links")
+  @@schema("public")
+}
 model CompanyClient {
   id String @id @db.Uuid
   groupId String @map("group_id") @db.Uuid
@@ -3773,6 +3801,7 @@ model CompanyClient {
   owner GroupMember? @relation("CompanyClientOwner", fields: [ownerMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   creator GroupMember @relation("CompanyClientCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   notes CompanyClientNote[]
+  tickets CompanyTicket[]
   tasks CompanyWorkTask[]
   documents CompanyDocument[]
   inquiries CompanyInquiry[]
@@ -3845,5 +3874,79 @@ model CompanyClientAssignee {
   @@unique([clientId,memberId])
   @@index([groupId,updatedSeq], map: "company_client_assignees_sync_idx")
   @@map("company_client_assignees")
+  @@schema("public")
+}
+
+model CompanyTicket {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  clientId String? @map("client_id") @db.Uuid
+  clientName String? @map("client_name")
+  clientPhone String? @map("client_phone")
+  number Int
+  title String
+  details String?
+  priority String @default("normal")
+  status String @default("open")
+  assigneeMemberId String @map("assignee_member_id") @db.Uuid
+  dueAt DateTime @map("due_at") @db.Timestamptz(6)
+  resolution String?
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  createdBy String @map("created_by") @db.Uuid
+  updatedBy String @map("updated_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  client CompanyClient? @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  assignee GroupMember @relation("CompanyTicketAssignee", fields: [assigneeMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyTicketCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  updater GroupMember @relation("CompanyTicketUpdater", fields: [updatedBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  events CompanyTicketEvent[]
+  @@unique([id,groupId])
+  @@unique([groupId,number])
+  @@index([groupId,updatedSeq], map: "company_tickets_sync_idx")
+  @@index([groupId,assigneeMemberId], map: "company_tickets_assignee_idx")
+  @@map("company_tickets")
+  @@schema("public")
+}
+model CompanyTicketEvent {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  ticketId String @map("ticket_id") @db.Uuid
+  kind String
+  body String?
+  toStatus String? @map("to_status")
+  memberId String? @map("member_id") @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  ticket CompanyTicket @relation(fields: [ticketId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_ticket_events_sync_idx")
+  @@index([ticketId,createdAt], map: "company_ticket_events_ticket_idx")
+  @@map("company_ticket_events")
+  @@schema("public")
+}
+
+/// One row per company-slot store subscription (waves_company_slot_monthly). `groupId` has no FK: the binding outlives a deleted company.
+model CompanySlot {
+  storeTxnId String    @id @map("store_txn_id")
+  profileId  String    @map("profile_id") @db.Uuid
+  active     Boolean
+  eventAt    DateTime? @map("event_at") @db.Timestamptz(6)
+  groupId    String?   @map("group_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([profileId], map: "company_slots_profile_idx")
+  @@index([groupId], map: "company_slots_group_idx")
+  @@map("company_slots")
   @@schema("public")
 }
