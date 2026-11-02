@@ -1674,6 +1674,8 @@ export interface UiStrings {
     workRepeat: string;
     workRemove: string;
     workStatus: string;
+    workUpdateStatus: string;
+    workAddNote: string;
     workPreviousDay: string;
     workNextDay: string;
     workSeeAll: string;
@@ -9322,6 +9324,8 @@ const en: UiStrings = {
     workRepeat: 'Repeat tomorrow',
     workRemove: 'Remove',
     workStatus: 'Status',
+    workUpdateStatus: 'Update status',
+    workAddNote: 'Add a note (optional)',
     workPreviousDay: 'Previous day',
     workNextDay: 'Next day',
     workSeeAll: 'See all',
@@ -16440,6 +16444,8 @@ const ta: UiStrings = {
     workRepeat: 'நாளை மீண்டும்',
     workRemove: 'நீக்கு',
     workStatus: 'நிலை',
+    workUpdateStatus: 'நிலையை மாற்று',
+    workAddNote: 'குறிப்பு சேர் (விருப்பம்)',
     workPreviousDay: 'முந்தைய நாள்',
     workNextDay: 'அடுத்த நாள்',
     workSeeAll: 'அனைத்தையும் காண்க',
@@ -23728,6 +23734,8 @@ const hi: UiStrings = {
     workRepeat: 'कल दोहराएँ',
     workRemove: 'हटाएँ',
     workStatus: 'स्थिति',
+    workUpdateStatus: 'स्थिति बदलें',
+    workAddNote: 'नोट जोड़ें (वैकल्पिक)',
     workPreviousDay: 'पिछला दिन',
     workNextDay: 'अगला दिन',
     workSeeAll: 'सभी देखें',
@@ -30912,6 +30920,8 @@ const ar: UiStrings = {
     workRepeat: 'تكرار غدًا',
     workRemove: 'إزالة',
     workStatus: 'الحالة',
+    workUpdateStatus: 'تحديث الحالة',
+    workAddNote: 'أضف ملاحظة (اختياري)',
     workPreviousDay: 'اليوم السابق',
     workNextDay: 'اليوم التالي',
     workSeeAll: 'عرض الكل',

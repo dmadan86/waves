@@ -1,8 +1,9 @@
-import { View } from 'react-native';
-import { Sheet, Text, useTheme } from '@waves/ui';
-import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable } from 'react-native';
+import { iconSize, Sheet, useTheme } from '@waves/ui';
 import { EditTextSheet } from '@/components/EditTextSheet';
-import { SectionHeader, SegmentedPills } from '@/components/standard';
+import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
+import { StatusSheetBody } from './StatusSheetBody';
 import type { CompanyWorkSetPayload } from '@waves/core';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
 import { useStrings } from '@/i18n';
@@ -15,8 +16,6 @@ export function WorkTaskSheets({
   statusId,
   setStatusId,
   statusTask,
-  statusOptions,
-  changeStatus,
   reasonAfterClose,
   setReasonAfterClose,
   setField,
@@ -31,8 +30,6 @@ export function WorkTaskSheets({
   statusId: string | null;
   setStatusId: (id: string | null) => void;
   statusTask: MirrorWorkTask | undefined;
-  statusOptions: readonly { value: Payload['status']; label: string }[];
-  changeStatus: (task: MirrorWorkTask, status: Payload['status']) => void;
   reasonAfterClose: string | null;
   setReasonAfterClose: (id: string | null) => void;
   setField: (field: Field) => void;
@@ -68,46 +65,53 @@ export function WorkTaskSheets({
         }}
         onClose={() => setStatusId(null)}
         closeLabel={t.common.close}
+        title={t.company.workUpdateStatus}
+        titleAction={
+          <Pressable
+            onPress={() => setStatusId(null)}
+            accessibilityRole="button"
+            accessibilityLabel={t.common.close}
+            hitSlop={8}
+          >
+            <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
+          </Pressable>
+        }
       >
-        <View style={{ gap: theme.spacing.md }}>
-          <SectionHeader title={t.company.workStatus} />
-          {statusTask ? (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
-              <SegmentedPills
-                options={statusOptions}
-                value={statusTask.status}
-                onChange={(status) => {
-                  changeStatus(statusTask, status);
-                  setStatusId(null);
-                }}
-              />
-            </View>
-          ) : null}
-          {statusTask ? (
-            <Text variant="body" style={{ fontWeight: '700' }}>
-              {`#${statusTask.number ?? '—'} ${statusTask.title}`}
-            </Text>
-          ) : null}
-          {statusTask?.blockedReason ? (
-            <Text variant="caption" tone="negative">
-              {statusTask.blockedReason}
-            </Text>
-          ) : null}
-          {statusTask?.note ? (
-            <Text variant="caption" tone="muted">
-              {statusTask.note}
-            </Text>
-          ) : null}
-          {statusTask ? (
-            <CompanyEntryPhotos
-              kind="task"
-              groupId={groupId}
-              entryId={statusTask.id}
-              canAdd={false}
-              canRemove={() => false}
-            />
-          ) : null}
-        </View>
+        {statusTask ? (
+          <StatusSheetBody
+            key={statusTask.id}
+            task={statusTask}
+            enabled={canChange(statusTask) && !busy}
+            error={error}
+            onPick={(status, text) => {
+              const base = makePayload(statusTask);
+              const next: Payload =
+                status === 'blocked'
+                  ? { ...base, status, blockedReason: text || statusTask.blockedReason }
+                  : {
+                      ...base,
+                      status,
+                      blockedReason: null,
+                      // Add to the task's note, never replace it.
+                      note: text
+                        ? statusTask.note
+                          ? `${statusTask.note}\n${text}`
+                          : text
+                        : statusTask.note,
+                    };
+              write(next, () => setStatusId(null));
+            }}
+          />
+        ) : null}
+        {statusTask ? (
+          <CompanyEntryPhotos
+            kind="task"
+            groupId={groupId}
+            entryId={statusTask.id}
+            canAdd={false}
+            canRemove={() => false}
+          />
+        ) : null}
       </Sheet>
       <EditTextSheet
         required={field?.kind === 'blockedReason'}

@@ -139,12 +139,6 @@ export default function DailyWorkView({
     setError(false);
     save.mutate(next, { onSuccess, onError: () => setError(true) });
   };
-  const statusOptions = [
-    { value: 'todo' as const, label: t.company.workTodo },
-    { value: 'doing' as const, label: t.company.workDoing },
-    { value: 'done' as const, label: t.company.workDone },
-    { value: 'blocked' as const, label: t.company.workBlocked },
-  ];
   const changeStatus = (task: MirrorWorkTask, status: Payload['status']) => {
     if (!canChange(task) || busy) return;
     if (status === 'blocked') {
@@ -326,8 +320,6 @@ export default function DailyWorkView({
         statusId={statusId}
         setStatusId={setStatusId}
         statusTask={statusTask}
-        statusOptions={statusOptions}
-        changeStatus={changeStatus}
         reasonAfterClose={reasonAfterClose}
         setReasonAfterClose={setReasonAfterClose}
         setField={setField}
