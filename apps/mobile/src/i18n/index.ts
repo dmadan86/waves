@@ -1755,6 +1755,13 @@ export interface UiStrings {
     moreBudgets: string;
     moreStatements: string;
     moreRules: string;
+    companyRulesTitle: string;
+    moreSettings: string;
+    moreSettingsHint: string;
+    tileCurrency: string;
+    tileDetails: string;
+    tileBranding: string;
+    tileBrandingHint: string;
     pendingNone: string;
     pendingNoneBody: string;
     pendingVendorBills: string;
@@ -9158,6 +9165,13 @@ const en: UiStrings = {
     moreBudgets: 'Budgets & sites',
     moreStatements: 'Statements & export',
     moreRules: 'Rules',
+    companyRulesTitle: 'Company rules',
+    moreSettings: 'More settings',
+    moreSettingsHint: 'Attendance, expenses, estimates, invoices and more',
+    tileCurrency: 'Currency',
+    tileDetails: 'Details',
+    tileBranding: 'Branding',
+    tileBrandingHint: 'Logo',
     pendingNone: 'Nothing is waiting',
     pendingNoneBody: 'Claims and budget requests that need you show up here.',
     pendingVendorBills: '{n} vendor bills to confirm',
@@ -16026,6 +16040,13 @@ const ta: UiStrings = {
     moreBudgets: 'பட்ஜெட் & இடங்கள்',
     moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
     moreRules: 'விதிகள்',
+    companyRulesTitle: 'நிறுவன விதிகள்',
+    moreSettings: 'மேலும் அமைப்புகள்',
+    moreSettingsHint: 'வருகை, செலவுகள், மதிப்பீடுகள், இன்வாய்ஸ்கள் மற்றும் பல',
+    tileCurrency: 'நாணயம்',
+    tileDetails: 'விவரங்கள்',
+    tileBranding: 'பிராண்டிங்',
+    tileBrandingHint: 'லோகோ',
     pendingNone: 'எதுவும் காத்திருக்கவில்லை',
     pendingNoneBody: 'உங்கள் கவனம் தேவைப்படும் கோரிக்கைகள் இங்கே தோன்றும்.',
     pendingVendorBills: 'உறுதிசெய்ய {n} விற்பனையாளர் பில்கள்',
@@ -23057,6 +23078,13 @@ const hi: UiStrings = {
     moreBudgets: 'बजट और साइट',
     moreStatements: 'स्टेटमेंट और निर्यात',
     moreRules: 'नियम',
+    companyRulesTitle: 'कंपनी के नियम',
+    moreSettings: 'और सेटिंग्स',
+    moreSettingsHint: 'हाज़िरी, ख़र्च, अनुमान, इनवॉइस और बहुत कुछ',
+    tileCurrency: 'मुद्रा',
+    tileDetails: 'विवरण',
+    tileBranding: 'ब्रांडिंग',
+    tileBrandingHint: 'लोगो',
     pendingNone: 'कुछ भी प्रतीक्षा में नहीं',
     pendingNoneBody: 'आपके ध्यान की ज़रूरत वाले दावे और बजट अनुरोध यहाँ दिखेंगे।',
     pendingVendorBills: 'पुष्टि के लिए {n} वेंडर बिल',
@@ -29994,6 +30022,13 @@ const ar: UiStrings = {
     moreBudgets: 'الميزانيات والمواقع',
     moreStatements: 'الكشوف والتصدير',
     moreRules: 'القواعد',
+    companyRulesTitle: 'قواعد الشركة',
+    moreSettings: 'المزيد من الإعدادات',
+    moreSettingsHint: 'الحضور والمصروفات والتقديرات والفواتير وغيرها',
+    tileCurrency: 'العملة',
+    tileDetails: 'التفاصيل',
+    tileBranding: 'الهوية',
+    tileBrandingHint: 'الشعار',
     pendingNone: 'لا شيء بانتظارك',
     pendingNoneBody: 'ستظهر هنا المطالبات وطلبات الميزانية التي تحتاج إليك.',
     pendingVendorBills: '{n} فواتير موردين بانتظار التأكيد',
