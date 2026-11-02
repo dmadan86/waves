@@ -25,6 +25,21 @@ interface Input {
   title: string;
 }
 
+/** Sign-out: drop every follow-up alarm of ours (they name clients), after any queued sync has settled. */
+export function cancelFollowUpReminders(): Promise<void> {
+  chain = chain.then(async () => {
+    if (!pushSupported) return;
+    try {
+      for (const r of await Notifications.getAllScheduledNotificationsAsync())
+        if ((r.content.data as { key?: string } | undefined)?.key === KEY)
+          await Notifications.cancelScheduledNotificationAsync(r.identifier);
+    } catch {
+      // Nothing more to do; the next sign-in's sync reconciles.
+    }
+  });
+  return chain;
+}
+
 async function run(input: Input): Promise<void> {
   if (!pushSupported) return;
   try {
