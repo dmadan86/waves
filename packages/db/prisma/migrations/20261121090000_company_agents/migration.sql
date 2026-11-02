@@ -141,16 +141,13 @@ GRANT EXECUTE ON FUNCTION public.waves_company_agent_link(uuid,text), public.wav
 
 -- ───────────────────────────────────────────────────── approval for agents ──
 
--- Identical to 20261112090000_company_paid_direct except an assistant's refusal for no-review kinds, the INSERT branch and the material-UPDATE branch: an entry written
+-- Identical to 20261112090000_company_paid_direct except the INSERT branch and the material-UPDATE branch: an entry written
 -- or edited through an assistant is also held for review while the company's "agent changes need approval" switch is on,
 -- whatever the approvals setting.
 CREATE OR REPLACE FUNCTION public.waves_company_review_guard() RETURNS trigger
  LANGUAGE plpgsql  SECURITY DEFINER SET search_path TO 'public', 'pg_temp' AS $fn$
 BEGIN
  IF NEW.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM public.groups WHERE id=NEW.group_id AND deleted_at IS NULL) THEN RAISE EXCEPTION 'GROUP_DELETED'; END IF;
- IF public.waves_agent_client_id() IS NOT NULL AND TG_OP='INSERT' AND (NEW.paid_by_company OR NEW.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment','advance','reimbursement')) THEN
-  RAISE EXCEPTION 'NOT_ALLOWED: an assistant records expense claims only' USING ERRCODE='insufficient_privilege';
- END IF;
  IF NEW.paid_by_company OR NEW.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') OR (NEW.entry_kind IN ('advance','reimbursement') AND EXISTS(SELECT 1 FROM public.group_members WHERE id=NEW.created_by AND role::text='manager')) THEN NEW.status:='approved'; RETURN NEW; END IF;
  IF TG_OP='INSERT' THEN
   IF (SELECT company_approvals_enabled FROM public.groups WHERE id=NEW.group_id)
@@ -173,16 +170,23 @@ BEGIN
 END
 $fn$;
 
--- An assistant can never approve or reject: it would be reviewing its own work.
+-- An assistant writes expense claims and nothing that skips review: no company-paid entries, advances, wages, pool or
+-- reimbursement kinds - on insert OR update (a claim must not be edited into one) - and it never approves, rejects or
+-- reimburses anything: reviewing is a human's job. Fires first (aa_), before any other trigger rewrites the row.
 CREATE FUNCTION public.waves_company_agent_no_review() RETURNS trigger
  LANGUAGE plpgsql SET search_path TO 'public','pg_temp' AS $$
 BEGIN
- IF public.waves_agent_client_id() IS NOT NULL AND OLD.status = 'submitted' AND NEW.status IN ('approved','rejected') THEN
-  RAISE EXCEPTION 'NOT_ALLOWED: an assistant cannot approve or reject claims' USING ERRCODE='insufficient_privilege';
+ IF public.waves_agent_client_id() IS NULL THEN RETURN NEW; END IF;
+ IF NEW.paid_by_company OR NEW.entry_kind NOT IN ('expense','allowance')
+  OR (TG_OP = 'UPDATE' AND (OLD.paid_by_company OR OLD.entry_kind NOT IN ('expense','allowance') OR NEW.entry_kind IS DISTINCT FROM OLD.entry_kind OR NEW.paid_by_company IS DISTINCT FROM OLD.paid_by_company)) THEN
+  RAISE EXCEPTION 'NOT_ALLOWED: an assistant records expense claims only' USING ERRCODE='insufficient_privilege';
+ END IF;
+ IF TG_OP = 'UPDATE' AND NEW.status IS DISTINCT FROM OLD.status AND NEW.status IN ('approved','rejected','reimbursed') THEN
+  RAISE EXCEPTION 'NOT_ALLOWED: an assistant cannot approve, reject or reimburse claims' USING ERRCODE='insufficient_privilege';
  END IF;
  RETURN NEW;
 END $$;
-CREATE TRIGGER aa_company_agent_no_review BEFORE UPDATE ON public.company_entries FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_no_review();
+CREATE TRIGGER aa_company_agent_no_review BEFORE INSERT OR UPDATE ON public.company_entries FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_no_review();
 
 -- ───────────────────────────────────── the database enforces the binding too ──
 
@@ -213,6 +217,10 @@ BEGIN
  IF NOT public.waves_company_agent_allowed(v_group) THEN
   RAISE EXCEPTION 'NOT_LINKED: this assistant is not connected to that company' USING ERRCODE='insufficient_privilege';
  END IF;
+ -- Inside a company an assistant may only touch what its tools write; money, vendors, people, pools and the rest stay human.
+ IF public.waves_is_company(v_group) AND TG_TABLE_NAME <> ALL (ARRAY['company_entries','company_attendance','company_work_tasks','company_clients','company_client_notes','company_documents']) THEN
+  RAISE EXCEPTION 'NOT_ALLOWED: an assistant cannot change this' USING ERRCODE='insufficient_privilege';
+ END IF;
  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
 END $$;
 
@@ -221,7 +229,7 @@ DO $$ DECLARE t text; BEGIN
  FOR t IN SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relrowsecurity AND c.relname LIKE 'company\_%' AND c.relname <> 'company_agent_links'
   AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'group_id' AND NOT a.attisdropped)
-  UNION SELECT 'group_members'
+  UNION SELECT unnest(ARRAY['group_members','activity_log'])
  LOOP
   EXECUTE format('CREATE POLICY company_agent_gate ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING (public.waves_agent_client_id() IS NULL OR public.waves_company_agent_allowed(group_id))', t);
  END LOOP;
@@ -328,3 +336,15 @@ DO $$ DECLARE f regprocedure; d text; BEGIN
   EXECUTE d;
  END LOOP;
 END $$;
+
+CREATE FUNCTION public.waves_company_agent_group_guard() RETURNS trigger
+ LANGUAGE plpgsql SET search_path TO 'public','pg_temp' AS $$
+BEGIN
+ IF public.waves_agent_client_id() IS NOT NULL AND NOT public.waves_company_agent_allowed(COALESCE(NEW.id, OLD.id)) THEN
+  RAISE EXCEPTION 'NOT_LINKED: this assistant is not connected to that company' USING ERRCODE='insufficient_privilege';
+ END IF;
+ RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END $$;
+REVOKE ALL ON FUNCTION public.waves_company_agent_group_guard() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_company_agent_group_guard() TO service_role;
+CREATE TRIGGER aa_company_agent_guard BEFORE INSERT OR UPDATE OR DELETE ON public.groups FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_group_guard();

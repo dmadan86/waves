@@ -534,3 +534,72 @@ describe('a linked assistant cannot go round the tools through the plain RPCs', 
       await as(0, null, () => db.query('SELECT * FROM waves_company_past_people($1)', [g.groupId]));
     }));
 });
+
+describe('an assistant cannot turn a claim into something that skips review', () => {
+  /** The caller's claims without a role switch: lets a test run raw UPDATEs and still hit the row triggers. */
+  async function withClaims<T>(i: number, agent: string | null, run: () => Promise<T>): Promise<T> {
+    await db.query('SAVEPOINT claims_scope');
+    try {
+      const claims: Record<string, unknown> = { sub: g.profileIds[i], role: 'authenticated' };
+      if (agent) claims.client_id = agent;
+      await db.query("SELECT set_config('request.jwt.claims',$1,true)", [JSON.stringify(claims)]);
+      return await run();
+    } catch (error) {
+      await db.query('ROLLBACK TO SAVEPOINT claims_scope');
+      throw error;
+    } finally {
+      await db.query("SELECT set_config('request.jwt.claims','',true)");
+      await db.query('RELEASE SAVEPOINT claims_scope');
+    }
+  }
+  const update = (id: string, set: string, agent: string | null) =>
+    withClaims(2, agent, () => db.query(`UPDATE company_entries SET ${set} WHERE id=$1`, [id]));
+
+  it('insert a claim, then edit it into a wage payment, an advance or a company-paid entry: refused', () =>
+    isolated(async () => {
+      await enableAndLink(2);
+      const id = await addEntry(2, CLIENT);
+      for (const set of [
+        "entry_kind='wage_payment'",
+        "entry_kind='advance'",
+        'paid_by_company=true',
+      ]) {
+        expect(await denied(() => update(id, set, CLIENT)), set).toMatch(/records expense claims only|ENTRY_SCOPE|violates/);
+      }
+    }));
+
+  it('an assistant never changes a claim to approved, rejected or reimbursed', () =>
+    isolated(async () => {
+      await enableAndLink(2);
+      const id = await addEntry(2, CLIENT);
+      for (const status of ['approved', 'rejected', 'reimbursed'])
+        expect(await denied(() => update(id, `status='${status}'`, CLIENT))).toMatch(/cannot approve, reject or reimburse/);
+    }));
+
+  it('the app itself is unaffected: the same updates pass without an assistant claim', () =>
+    isolated(async () => {
+      await settings(true, true);
+      const id = await addEntry(2, null);
+      await update(id, "status='rejected'", null);
+      await update(id, "status='approved'", null);
+      expect(await statusOf(id)).toBe('approved');
+    }));
+
+  it('outside what its tools write, an assistant changes nothing in a company, and nothing in another', () =>
+    isolated(async () => {
+      await enableAndLink(0);
+      const ghost = (grp: string) =>
+        withClaims(0, CLIENT, () =>
+          db.query("INSERT INTO group_members(id,group_id,ghost_name,joined_via) VALUES(gen_random_uuid(),$1,'X','ghost')", [grp]),
+        );
+      expect(await denied(() => ghost(g.groupId))).toMatch(/cannot change this/);
+      expect(
+        await denied(() => withClaims(0, CLIENT, () => db.query("UPDATE groups SET name='x' WHERE id=$1", [other]))),
+      ).toMatch(/NOT_LINKED/);
+    }));
+
+  it('the activity log is behind the same gate', async () => {
+    const r = await db.query("SELECT 1 FROM pg_policy WHERE polrelid='public.activity_log'::regclass AND polname='company_agent_gate'");
+    expect(r.rowCount).toBe(1);
+  });
+});
