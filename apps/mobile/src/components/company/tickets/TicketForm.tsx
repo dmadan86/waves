@@ -53,6 +53,7 @@ export function TicketForm({ groupId }: { groupId: string }) {
   const [customDue, setCustomDue] = useState<string | null>(null);
   const [pickClient, setPickClient] = useState(false);
   const [query, setQuery] = useState('');
+  const [now] = useState(() => Date.now());
   const client = clients.clients.find((c) => c.id === clientId);
   const clientName =
     client?.name ?? (existing && existing.clientId === clientId ? existing.clientName : null);
@@ -61,8 +62,8 @@ export function TicketForm({ groupId }: { groupId: string }) {
     customDue ??
     (existing && existing.priority === priority
       ? existing.dueAt
-      : defaultDueAt(priority, Date.now()));
-  const dueMs = new Date(dueAt).getTime() - Date.now();
+      : defaultDueAt(priority, now));
+  const dueMs = new Date(dueAt).getTime() - now;
   const busy = save.isPending;
 
   const pickAssignee = async () => {
