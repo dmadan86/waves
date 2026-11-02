@@ -187,11 +187,9 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
     label:
       resplit ??
       describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone, ctx.labels),
-    headline: resplit ?? activityHeadline(
-        entry,
-        ctx.labels,
-        category?.label ?? ctx.t.activityScreen.anExpense,
-      ),
+    headline:
+      resplit ??
+      activityHeadline(entry, ctx.labels, category?.label ?? ctx.t.activityScreen.anExpense),
     // Nobody did an auto-event, so it carries no actor — omit it rather than say
     // "Someone". A blocked or since-left actor still resolves through actorName.
     who: entry.actor

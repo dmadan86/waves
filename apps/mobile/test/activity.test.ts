@@ -183,14 +183,17 @@ describe('what happened', () => {
  * rather than by whose name comes first.
  */
 describe('activityHeadline untitled expense', () => {
-  it.each(['', '   ', undefined])('names blank description %j by fallback, not the bare verb', (d) => {
-    const payload = d === undefined ? {} : { description: d };
-    expect(activityHeadline(row({ payload }))).toBe('Added an expense');
-    expect(activityHeadline(row({ verb: 'edited', payload }), undefined, 'Food & drinks')).toBe(
-      'Edited Food & drinks',
-    );
-    expect(describeActivity(row({ payload }), null)).not.toMatch(/added\s*$/);
-  });
+  it.each(['', '   ', undefined])(
+    'names blank description %j by fallback, not the bare verb',
+    (d) => {
+      const payload = d === undefined ? {} : { description: d };
+      expect(activityHeadline(row({ payload }))).toBe('Added an expense');
+      expect(activityHeadline(row({ verb: 'edited', payload }), undefined, 'Food & drinks')).toBe(
+        'Edited Food & drinks',
+      );
+      expect(describeActivity(row({ payload }), null)).not.toMatch(/added\s*$/);
+    },
+  );
 });
 
 describe('activityHeadline', () => {
