@@ -1,5 +1,6 @@
 /** The employee screen's tab bodies: Overview (summary cards, calendar, expenses, dates) and Details (every field). */
 
+import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View, useWindowDimensions } from 'react-native';
 
@@ -140,12 +141,18 @@ export function DetailRow({
   value,
   onPress,
   divider = true,
+  muted = false,
+  valueNode,
 }: {
   icon: Icon;
   label: string;
   value: string;
   onPress?: () => void;
   divider?: boolean;
+  /** An empty field: shown italic and muted. */
+  muted?: boolean;
+  /** Replaces the value text (e.g. an avatar and a name). */
+  valueNode?: ReactNode;
 }) {
   const theme = useTheme();
   return (
@@ -168,11 +175,70 @@ export function DetailRow({
       <Text variant="caption" tone="muted" style={{ flexBasis: 110, flexShrink: 1 }}>
         {label}
       </Text>
-      <Text variant="body" style={{ flex: 1 }} numberOfLines={2}>
-        {value}
-      </Text>
+      {valueNode ?? (
+        <Text
+          variant="body"
+          tone={muted ? 'muted' : undefined}
+          style={{
+            flex: 1,
+            fontWeight: muted ? '400' : '600',
+            fontStyle: muted ? 'italic' : 'normal',
+          }}
+          numberOfLines={2}
+        >
+          {value}
+        </Text>
+      )}
       {onPress ? <Chevron /> : null}
     </Pressable>
+  );
+}
+
+/** A rate tile: tinted icon square, label, value. Read-only (no per-employee rate editor exists yet). */
+export function RateTile({
+  icon,
+  label,
+  value,
+  muted,
+}: {
+  icon: Icon;
+  label: string;
+  value: string;
+  muted: boolean;
+}) {
+  const theme = useTheme();
+  return (
+    <View
+      accessible
+      accessibilityLabel={`${label}, ${value}`}
+      style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 14,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+      </View>
+      <View style={{ flex: 1 }}>
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {label}
+        </Text>
+        <Text
+          variant="body"
+          tone={muted ? 'muted' : undefined}
+          numberOfLines={1}
+          style={{ fontWeight: muted ? '400' : '700' }}
+        >
+          {value}
+        </Text>
+      </View>
+    </View>
   );
 }
 
