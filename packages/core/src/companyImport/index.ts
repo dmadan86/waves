@@ -365,7 +365,9 @@ export function buildImportRows(
   const takenIds = new Set((ctx.existingEmployeeIds ?? []).map((s) => s.toLowerCase()));
   const dept = new Map((ctx.departments ?? []).map((d) => [nameKey(d.name), d.id]));
   const people = new Map((ctx.people ?? []).map((p) => [nameKey(p.name), p.id]));
-  const inFile = new Set<string>();
+  const filePhones = new Set<string>();
+  const fileNoPhone = new Set<string>();
+  const fileNames = new Set<string>();
 
   return rows.map((r, i): ImportRow => {
     const line = lines[i] ?? i + 2;
@@ -409,9 +411,14 @@ export function buildImportRows(
     if (phone ? seenPhones.has(phone) || namesWithoutPhone.has(nk) : namesAll.has(nk)) {
       return bad('duplicate_existing', 'duplicate');
     }
+    // The same rule inside the file, so "Acme" with a phone and "Acme" without are one vendor.
+    if (phone ? filePhones.has(phone) || fileNoPhone.has(nk) : fileNames.has(nk)) {
+      return bad('duplicate_in_file', 'duplicate');
+    }
     const fileKey = phone ?? `n:${nk}`;
-    if (inFile.has(fileKey)) return bad('duplicate_in_file', 'duplicate');
-    inFile.add(fileKey);
+    fileNames.add(nk);
+    if (phone) filePhones.add(phone);
+    else fileNoPhone.add(nk);
 
     let employeeId: string | null = cell(r, 'employeeId').slice(0, 32) || null;
     if (employeeId && takenIds.has(employeeId.toLowerCase())) {
