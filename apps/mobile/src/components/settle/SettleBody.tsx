@@ -677,12 +677,11 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
   );
 }
 
-/** Past payments, and the way out to the who-pays-whom view. */
+/** Past payments. (Who pays whom is the button beside Group totals.) */
 export function SettleHistory({ flow }: { flow: SettleFlow }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const {
-    groupId,
     ghostFor,
     history,
     historyExpandable,
@@ -752,13 +751,6 @@ export function SettleHistory({ flow }: { flow: SettleFlow }) {
   return (
     <>
       <Row style={{ gap: theme.spacing.sm }}>
-        {tile({
-          icon: 'stats-chart',
-          title: t.whoPaysWhom,
-          subtitle: t.misc.settleInOneGo,
-          role: 'link',
-          onPress: () => router.push(`/group/${groupId}/simplify`),
-        })}
         {tile({
           icon: 'time-outline',
           title: t.misc.settleHistory,
