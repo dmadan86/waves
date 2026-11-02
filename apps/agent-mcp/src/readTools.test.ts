@@ -37,7 +37,7 @@ function fakeSupabase(answers: Record<string, Answer>, email: string | null = 'm
         then: (resolve: (v: unknown) => unknown, reject: (e: unknown) => unknown) =>
           Promise.resolve(result).then(resolve, reject),
       };
-      for (const m of ['select', 'eq', 'is', 'order', 'limit']) {
+      for (const m of ['select', 'eq', 'neq', 'is', 'order', 'limit']) {
         query[m] = (...args: unknown[]) => {
           filters.push([m, ...args]);
           return query;
@@ -85,12 +85,19 @@ describe('the read-only server', () => {
     await client.close();
 
     expect(tools.map((t) => t.name).sort()).toEqual([
+      'company_overview',
       'get_balances',
       'list_agent_writes',
+      'list_attendance',
+      'list_clients',
+      'list_company_agent_writes',
+      'list_company_entries',
+      'list_company_people',
       'list_expenses',
       'list_groups',
       'list_members',
       'list_settlements',
+      'list_work_tasks',
       'payment_link',
       'settlement_plan',
       'whoami',

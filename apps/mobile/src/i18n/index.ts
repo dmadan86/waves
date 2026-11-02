@@ -1737,6 +1737,19 @@ export interface UiStrings {
     moreBudgets: string;
     moreStatements: string;
     moreRules: string;
+    agentsTitle: string;
+    agentsAllow: string;
+    agentsAllowHint: string;
+    agentsApproval: string;
+    agentsApprovalHint: string;
+    agentsConnected: string;
+    agentsEmpty: string;
+    agentsActivity: string;
+    agentsActivityEmpty: string;
+    agentsRevoke: string;
+    agentsActions: string;
+    agentsLastUsed: string;
+    agentsNeverUsed: string;
     pendingNone: string;
     pendingNoneBody: string;
     pendingVendorBills: string;
@@ -9122,6 +9135,19 @@ const en: UiStrings = {
     moreBudgets: 'Budgets & sites',
     moreStatements: 'Statements & export',
     moreRules: 'Rules',
+    agentsTitle: 'AI agents',
+    agentsAllow: 'Allow AI agents',
+    agentsAllowHint: 'People can connect Claude or ChatGPT to this company.',
+    agentsApproval: 'Agent changes need approval',
+    agentsApprovalHint: 'Expenses an agent adds wait for you to approve them.',
+    agentsConnected: 'Connected',
+    agentsEmpty: 'No agents connected. People connect from Claude/ChatGPT via Connect → Waves.',
+    agentsActivity: 'Agent activity',
+    agentsActivityEmpty: 'Nothing yet.',
+    agentsRevoke: 'Revoke',
+    agentsActions: 'Agent actions',
+    agentsLastUsed: 'Last used {when}',
+    agentsNeverUsed: 'Not used yet',
     pendingNone: 'Nothing is waiting',
     pendingNoneBody: 'Claims and budget requests that need you show up here.',
     pendingVendorBills: '{n} vendor bills to confirm',
@@ -15972,6 +15998,19 @@ const ta: UiStrings = {
     moreBudgets: 'பட்ஜெட் & இடங்கள்',
     moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
     moreRules: 'விதிகள்',
+    agentsTitle: 'AI முகவர்கள்',
+    agentsAllow: 'AI முகவர்களை அனுமதி',
+    agentsAllowHint: 'Claude அல்லது ChatGPT-ஐ இந்த நிறுவனத்துடன் மக்கள் இணைக்கலாம்.',
+    agentsApproval: 'முகவர் மாற்றங்களுக்கு ஒப்புதல் தேவை',
+    agentsApprovalHint: 'முகவர் சேர்க்கும் செலவுகள் உங்கள் ஒப்புதலுக்காகக் காத்திருக்கும்.',
+    agentsConnected: 'இணைந்தவை',
+    agentsEmpty: 'முகவர்கள் இணைக்கப்படவில்லை. மக்கள் Claude/ChatGPT-இல் Connect → Waves வழியாக இணைக்கலாம்.',
+    agentsActivity: 'முகவர் செயல்பாடு',
+    agentsActivityEmpty: 'இன்னும் எதுவுமில்லை.',
+    agentsRevoke: 'நீக்கு',
+    agentsActions: 'முகவர் செயல்கள்',
+    agentsLastUsed: 'கடைசியாக பயன்படுத்தியது {when}',
+    agentsNeverUsed: 'இன்னும் பயன்படுத்தவில்லை',
     pendingNone: 'எதுவும் காத்திருக்கவில்லை',
     pendingNoneBody: 'உங்கள் கவனம் தேவைப்படும் கோரிக்கைகள் இங்கே தோன்றும்.',
     pendingVendorBills: 'உறுதிசெய்ய {n} விற்பனையாளர் பில்கள்',
@@ -22985,6 +23024,19 @@ const hi: UiStrings = {
     moreBudgets: 'बजट और साइट',
     moreStatements: 'स्टेटमेंट और निर्यात',
     moreRules: 'नियम',
+    agentsTitle: 'AI एजेंट',
+    agentsAllow: 'AI एजेंट की अनुमति दें',
+    agentsAllowHint: 'लोग Claude या ChatGPT को इस कंपनी से जोड़ सकते हैं।',
+    agentsApproval: 'एजेंट के बदलावों पर मंज़ूरी चाहिए',
+    agentsApprovalHint: 'एजेंट जो खर्च जोड़ता है वह आपकी मंज़ूरी का इंतज़ार करता है।',
+    agentsConnected: 'जुड़े हुए',
+    agentsEmpty: 'कोई एजेंट नहीं जुड़ा। लोग Claude/ChatGPT में Connect → Waves से जोड़ते हैं।',
+    agentsActivity: 'एजेंट गतिविधि',
+    agentsActivityEmpty: 'अभी कुछ नहीं।',
+    agentsRevoke: 'हटाएँ',
+    agentsActions: 'एजेंट की कार्रवाइयाँ',
+    agentsLastUsed: 'आख़िरी बार {when}',
+    agentsNeverUsed: 'अभी इस्तेमाल नहीं हुआ',
     pendingNone: 'कुछ भी प्रतीक्षा में नहीं',
     pendingNoneBody: 'आपके ध्यान की ज़रूरत वाले दावे और बजट अनुरोध यहाँ दिखेंगे।',
     pendingVendorBills: 'पुष्टि के लिए {n} वेंडर बिल',
@@ -29904,6 +29956,19 @@ const ar: UiStrings = {
     moreBudgets: 'الميزانيات والمواقع',
     moreStatements: 'الكشوف والتصدير',
     moreRules: 'القواعد',
+    agentsTitle: 'وكلاء الذكاء الاصطناعي',
+    agentsAllow: 'السماح لوكلاء الذكاء الاصطناعي',
+    agentsAllowHint: 'يمكن للأشخاص ربط Claude أو ChatGPT بهذه الشركة.',
+    agentsApproval: 'تغييرات الوكيل تحتاج موافقة',
+    agentsApprovalHint: 'المصروفات التي يضيفها الوكيل تنتظر موافقتك.',
+    agentsConnected: 'المتصلون',
+    agentsEmpty: 'لا يوجد وكلاء متصلون. يتصل الأشخاص من Claude/ChatGPT عبر Connect ← Waves.',
+    agentsActivity: 'نشاط الوكيل',
+    agentsActivityEmpty: 'لا شيء بعد.',
+    agentsRevoke: 'إلغاء الاتصال',
+    agentsActions: 'إجراءات الوكيل',
+    agentsLastUsed: 'آخر استخدام {when}',
+    agentsNeverUsed: 'لم يُستخدم بعد',
     pendingNone: 'لا شيء بانتظارك',
     pendingNoneBody: 'ستظهر هنا المطالبات وطلبات الميزانية التي تحتاج إليك.',
     pendingVendorBills: '{n} فواتير موردين بانتظار التأكيد',

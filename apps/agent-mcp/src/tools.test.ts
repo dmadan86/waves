@@ -117,11 +117,12 @@ function recordingSupabase(
         ? { data: { default_currency: 'INR' }, error: null }
         : { data: [], error: null };
     const query: Record<string, unknown> = {
-      then: (resolve: (v: unknown) => unknown) => resolve({ data: [], error: null }),
+      then: (resolve: (v: unknown) => unknown) =>
+        resolve({ data: table === 'groups' ? [{ default_currency: 'INR', type: 'other' }] : [], error: null }),
       single: async () => result,
       maybeSingle: async () => result,
     };
-    for (const m of ['select', 'eq', 'is', 'in', 'order', 'limit']) query[m] = () => query;
+    for (const m of ['select', 'eq', 'neq', 'is', 'in', 'order', 'limit']) query[m] = () => query;
     return query;
   };
   return {
@@ -130,6 +131,9 @@ function recordingSupabase(
       calls.push({ fn, args });
       if (refuse.has(fn)) return { data: null, error: { message: `${fn} refused` } };
       if (fn === 'waves_my_agent_writes') return { data: [], error: null };
+      if (fn === 'waves_company_agent_gate') return { data: 'admin', error: null };
+      if (fn === 'waves_company_people' || fn === 'waves_company_agent_writes')
+        return { data: [], error: null };
       return { data: fn === 'waves_ensure_group_join_token' ? 'token' : randomUUID(), error: null };
     },
     functions: { invoke: async () => ({ data: {}, error: null }) },
@@ -175,11 +179,41 @@ const WRITE_CALLS: { name: string; arguments: Record<string, unknown> }[] = [
   },
   { name: 'add_people', arguments: { groupId: group, names: ['Priya'] } },
   { name: 'invite_link', arguments: { groupId: group } },
+  {
+    name: 'add_company_entry',
+    arguments: {
+      companyId: group,
+      member: me,
+      amount: '12500',
+      category: 'fuel',
+      occurredOn: '2026-11-01',
+    },
+  },
+  {
+    name: 'set_attendance',
+    arguments: { companyId: group, member: me, day: '2026-11-01', status: 'present' },
+  },
+  {
+    name: 'set_work_task',
+    arguments: { companyId: group, member: me, day: '2026-11-01', title: 'Site visit' },
+  },
+  { name: 'upsert_client', arguments: { companyId: group, name: 'Asha Traders' } },
+  {
+    name: 'save_estimate_draft',
+    arguments: {
+      companyId: group,
+      customerName: 'Asha',
+      docDate: '2026-11-01',
+      items: [{ description: 'Paint', qtyMilli: '2000', rateMinor: '50000' }],
+    },
+  },
 ];
 
 /** The read tools that go through an RPC rather than a table, held to the same check. */
 const READ_RPC_CALLS: { name: string; arguments: Record<string, unknown> }[] = [
   { name: 'list_agent_writes', arguments: {} },
+  { name: 'list_company_people', arguments: { companyId: group } },
+  { name: 'list_company_agent_writes', arguments: { companyId: group } },
 ];
 
 async function readOnlyToolNames(): Promise<Set<string>> {
@@ -244,7 +278,9 @@ describe('agent RPC calls against the migrated schema', () => {
     const calls = await driveWriteTools();
 
     const called = new Set(calls.map((c) => c.fn));
-    const source = readFileSync(join(import.meta.dirname, 'tools.ts'), 'utf8');
+    const source = ['tools.ts', 'companyTools.ts']
+      .map((f) => readFileSync(join(import.meta.dirname, f), 'utf8'))
+      .join('\n');
     const inSource = new Set([...source.matchAll(/\.rpc\(\s*'(\w+)'/g)].map((m) => m[1]!));
     expect([...called].sort()).toEqual([...inSource].sort());
 

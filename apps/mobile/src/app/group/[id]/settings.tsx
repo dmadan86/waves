@@ -32,6 +32,7 @@ import { format, money, type CurrencyCode } from '@waves/core';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { CompanyLogoField } from '@/components/company/CompanyLogoField';
+import { AgentAccessSection } from '@/components/company/AgentAccessSection';
 import { CompanyRules } from '@/components/company/CompanyRules';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { removeImage } from '@/lib/storage';
@@ -1232,6 +1233,7 @@ export default function GroupSettingsScreen() {
             <>
               <SectionHeader title={t.company.moreRules} />
               <CompanyRules groupId={groupId} view={companyView} />
+              <AgentAccessSection groupId={groupId} />
             </>
           ) : null}
 

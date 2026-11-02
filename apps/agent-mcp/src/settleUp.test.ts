@@ -510,7 +510,7 @@ describe('"Matt paid me ₹100 in cash"', () => {
     expect(rpcs).toHaveLength(0);
   });
 
-  it('still takes two member ids without reading the group', async () => {
+  it('still takes two member ids without reading the members', async () => {
     const { client, rpcs, queries } = fake({});
     await call(client, 'record_settlement', {
       groupId: GROUP,
@@ -518,7 +518,8 @@ describe('"Matt paid me ₹100 in cash"', () => {
       toMemberId: M_ME,
       amount: '500',
     });
-    expect(queries).toHaveLength(0);
+    // Only the personal-group check reads anything (the group's type); no member lookup.
+    expect(queries.map((q) => q.table)).toEqual(['groups']);
     expect(rpcs[0]!.args).toMatchObject({ p_from_member_id: M_MATT, p_to_member_id: M_ME });
   });
 });

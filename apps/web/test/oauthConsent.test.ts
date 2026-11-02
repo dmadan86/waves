@@ -14,7 +14,7 @@ import { nextStep, readAuthorizationId } from '@/lib/oauthConsent';
 const details = {
   authorization_id: 'auth_123',
   redirect_uri: 'https://agent.example/callback',
-  client: { name: 'Someone Else’s Agent', uri: 'https://agent.example' },
+  client: { id: 'client_1', name: 'Someone Else’s Agent', uri: 'https://agent.example' },
   user: { email: 'priya@example.com' },
 };
 
@@ -57,6 +57,7 @@ describe('which response arrived', () => {
     if (step.kind !== 'consent') return;
     expect(step.pending).toEqual({
       authorizationId: 'auth_123',
+      clientId: 'client_1',
       clientName: 'Someone Else’s Agent',
       clientUri: 'https://agent.example',
       redirectUri: 'https://agent.example/callback',
@@ -80,7 +81,7 @@ describe('the client cannot choose what this screen renders', () => {
   /** An `href` on this origin is script execution, on the one screen where
    *  somebody is deciding whether to trust a stranger. */
   it('drops a javascript: website', () => {
-    const step = nextStep({ ...details, client: { name: 'Agent', uri: 'javascript:alert(1)' } });
+    const step = nextStep({ ...details, client: { id: 'client_1', name: 'Agent', uri: 'javascript:alert(1)' } });
     expect(step.kind).toBe('consent');
     if (step.kind !== 'consent') return;
     expect(step.pending.clientUri).toBeNull();
@@ -88,14 +89,14 @@ describe('the client cannot choose what this screen renders', () => {
 
   it('drops data:, relative and protocol-relative forms', () => {
     for (const uri of ['data:text/html,<script>', '/phish', '//evil.example', 'mailto:a@b.c']) {
-      const step = nextStep({ ...details, client: { name: 'Agent', uri } });
+      const step = nextStep({ ...details, client: { id: 'client_1', name: 'Agent', uri } });
       if (step.kind !== 'consent') throw new Error('expected consent');
       expect(step.pending.clientUri).toBeNull();
     }
   });
 
   it('keeps a missing website as null rather than inventing one', () => {
-    const step = nextStep({ ...details, client: { name: 'Agent', uri: null } });
+    const step = nextStep({ ...details, client: { id: 'client_1', name: 'Agent', uri: null } });
     if (step.kind !== 'consent') throw new Error('expected consent');
     expect(step.pending.clientUri).toBeNull();
   });
@@ -109,7 +110,7 @@ describe('the client cannot choose what this screen renders', () => {
   it('carries the name through unchanged', () => {
     const step = nextStep({
       ...details,
-      client: { name: '<b>Waves</b> Official', uri: 'https://agent.example' },
+      client: { id: 'client_1', name: '<b>Waves</b> Official', uri: 'https://agent.example' },
     });
     if (step.kind !== 'consent') throw new Error('expected consent');
     expect(step.pending.clientName).toBe('<b>Waves</b> Official');
