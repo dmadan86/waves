@@ -44,6 +44,10 @@ vi.mock('@/sync', async () => (await import('./support/hookHarness')).fakeSync);
 vi.mock('@/lib/smsDraftStore', async () =>
   (await import('./support/memoryDraftStore')).memoryDraftStoreModule(),
 );
+vi.mock('@/lib/companiesEnabled', async () => ({
+  COMPANIES_ENABLED: true,
+  ...(await import('../src/lib/companiesGate')),
+}));
 vi.mock('expo-crypto', () => ({ randomUUID: () => 'uuid-fixed' }));
 // `@/lib/phone` reads the device region from here; the real module pulls React Native.
 vi.mock('@/i18n', () => ({ deviceCountry: () => 'IN' }));

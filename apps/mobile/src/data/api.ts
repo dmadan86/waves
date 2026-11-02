@@ -977,7 +977,13 @@ export async function deleteGroup(groupId: string): Promise<void> {
 export { INVITE_BASE, groupJoinLink } from '@/lib/webUrl';
 
 export interface InvitePreview {
-  group: { id: string; name: string; cover_emoji: string | null; default_currency: string } | null;
+  group: {
+    id: string;
+    name: string;
+    cover_emoji: string | null;
+    default_currency: string;
+    type?: string;
+  } | null;
   memberCount: number;
   claimable: { memberId: string; name: string | null }[];
 }

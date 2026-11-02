@@ -36,6 +36,7 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 
+import { COMPANIES_ENABLED, COMPANIES_SOON_MESSAGE } from '@/lib/companiesEnabled';
 import { acceptInvite, previewInvite, type InvitePreview } from '@/data/api';
 import { keys } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
@@ -136,6 +137,7 @@ export default function JoinScreen() {
     // this is the same rule for any other caller, and the server enforces it
     // regardless (`ACCOUNT_REQUIRED`).
     if (gate !== JoinGate.Ready) return;
+    if (!COMPANIES_ENABLED && preview?.group?.type === 'company') return;
     setJoining(true);
     setError(null);
     try {
@@ -254,6 +256,19 @@ export default function JoinScreen() {
               <Button label={t.misc.goToWaves} onPress={() => router.replace('/')} />
             )
           }
+        />
+      </Screen>
+    );
+  }
+
+  if (!COMPANIES_ENABLED && preview.group.type === 'company') {
+    return (
+      <Screen>
+        <BackRow onPress={goBack} label={t.common.back} />
+        <EmptyState
+          title={preview.group.name}
+          body={COMPANIES_SOON_MESSAGE}
+          action={<Button label={t.misc.goToWaves} onPress={() => router.replace('/')} />}
         />
       </Screen>
     );

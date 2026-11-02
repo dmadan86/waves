@@ -1,4 +1,5 @@
 import { owedByGroup, viewerEdge, type OwedDirection, type OwedGroupMeta } from '@/lib/owedByGroup';
+import { COMPANIES_ENABLED, visibleGroups } from '@/lib/companiesEnabled';
 import { requestActionAd, AdGateCancelledError } from '@/lib/adGateBridge';
 /**
  * React Query hooks + the realtime bridge.
@@ -30,6 +31,8 @@ import {
   materialiseExpenses,
   materialiseGroup,
   materialiseGroups,
+  type MirrorState,
+  type QueuedMutation,
   materialiseLedgerGroupIds,
   materialiseLedgerGroups,
   materialiseMemberBudgets,
@@ -216,6 +219,14 @@ function useLocalRead<T>(data: T): LocalRead<T> {
   };
 }
 
+/** Mirror groups minus company groups when companies are off (iPhone). */
+function shownGroups(mirror: MirrorState, queue: readonly QueuedMutation[]): GroupRow[] {
+  return visibleGroups(
+    materialiseGroups(mirror, queue) as unknown as GroupRow[],
+    COMPANIES_ENABLED,
+  );
+}
+
 /**
  * ADR-005: the UI reads local-first, always.
  *
@@ -227,10 +238,7 @@ function useLocalRead<T>(data: T): LocalRead<T> {
 export function useGroups(): LocalRead<GroupRow[]> {
   const { mirror, queue } = useSync();
   const viewerId = useViewerId();
-  const realGroups = useMemo(
-    () => materialiseGroups(mirror, queue) as unknown as GroupRow[],
-    [mirror, queue],
-  );
+  const realGroups = useMemo(() => shownGroups(mirror, queue), [mirror, queue]);
   // The authoritative "is this account brand new" read: this is the hook
   // every list screen calls first, Home included, so it is the one place the
   // demo decision (`demo/store.ts`) can trust `realGroups.length === 0` as
@@ -263,7 +271,7 @@ export function useAllGroupMembers(): readonly MemberRow[] {
   const { mirror, queue } = useSync();
   return useMemo(() => {
     const members: MemberRow[] = [];
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[])
+    for (const group of shownGroups(mirror, queue))
       members.push(
         ...(materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]),
       );
@@ -319,7 +327,7 @@ export function useOneToOneGroupIds(): LocalRead<Set<string>> {
   const { mirror, queue } = useSync();
   const ids = useMemo(() => {
     const set = new Set<string>();
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of shownGroups(mirror, queue)) {
       const members = (
         materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]
       ).filter((member) => member.left_at === null);
@@ -344,7 +352,7 @@ export function useGroupPeopleSignatures(
   const sigs = useMemo(() => {
     if (!profileId) return [] as { groupId: string; names: string[] }[];
     const out: { groupId: string; names: string[] }[] = [];
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of shownGroups(mirror, queue)) {
       const members = (
         materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]
       ).filter((member) => member.left_at === null);
@@ -431,7 +439,7 @@ export function useGroupLabeller(): (group: Pick<GroupRow, 'id' | 'name'>) => st
   const viewerId = useViewerId();
   const membersOfUnnamed = useMemo(() => {
     const map = new Map<string, MemberRow[]>();
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of shownGroups(mirror, queue)) {
       if (group.name?.trim()) continue;
       map.set(
         group.id,
@@ -462,7 +470,7 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
   const { blockedIds } = useBlockedUsers();
   const rows = useMemo(() => {
     const out: TimelineEntry[] = [];
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of shownGroups(mirror, queue)) {
       const members = materialiseMembers(mirror, queue, {
         groupId: group.id,
       }) as unknown as MemberRow[];
@@ -529,10 +537,7 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
 export function useHomeSummary(profileId: string | null) {
   const { mirror, queue, hydrated, status, hasSynced, flush } = useSync();
   const monthPrefix = useLocalMonthPrefix();
-  const realGroupsForDemo = useMemo(
-    () => materialiseGroups(mirror, queue) as unknown as GroupRow[],
-    [mirror, queue],
-  );
+  const realGroupsForDemo = useMemo(() => shownGroups(mirror, queue), [mirror, queue]);
   const demoActive = useDemoActive(profileId, realGroupsForDemo.length === 0);
 
   const summary = useMemo(() => {
@@ -1270,7 +1275,12 @@ export function useRecentActivity(
 ): RecentActivityRow[] {
   const { mirror } = useSync();
   return useMemo(
-    () => (enabled ? recentActivity(mirror, myProfileId) : NO_ACTIVITY),
+    () =>
+      enabled
+        ? recentActivity(mirror, myProfileId).filter(
+            (row) => COMPANIES_ENABLED || row.group?.type !== 'company',
+          )
+        : NO_ACTIVITY,
     [mirror, myProfileId, enabled],
   );
 }
@@ -1278,7 +1288,10 @@ export function useRecentActivity(
 /** When somebody else last did something in any group, in ms (0: never). */
 export function useNewestActivityFromOthers(myProfileId: string | null): number {
   const { mirror } = useSync();
-  return useMemo(() => newestActivityFromOthers(mirror, myProfileId), [mirror, myProfileId]);
+  return useMemo(
+    () => newestActivityFromOthers(mirror, myProfileId, !COMPANIES_ENABLED),
+    [mirror, myProfileId],
+  );
 }
 
 /** Per group, when somebody else last did something in it, in ms (absent: never). */
@@ -1286,7 +1299,10 @@ export function useNewestActivityFromOthersByGroup(
   myProfileId: string | null,
 ): Map<string, number> {
   const { mirror } = useSync();
-  return useMemo(() => newestActivityFromOthersByGroup(mirror, myProfileId), [mirror, myProfileId]);
+  return useMemo(
+    () => newestActivityFromOthersByGroup(mirror, myProfileId, !COMPANIES_ENABLED),
+    [mirror, myProfileId],
+  );
 }
 
 /** How much a destination (group, or a person's 1:1 group) has been used. */
@@ -1912,9 +1928,7 @@ export function useRecordSettlement(groupId: string) {
       // takes only that currency (the server refuses the rest with
       // UPDATE_APP_TO_SETTLE). A debt in another one is a bill with no rate yet;
       // the screens offer "Add rate" instead, and nothing reaches the queue.
-      const group = (materialiseGroups(mirror, queue) as unknown as GroupRow[]).find(
-        (row) => row.id === input.groupId,
-      );
+      const group = shownGroups(mirror, queue).find((row) => row.id === input.groupId);
       if (
         group &&
         isRatelessTransfer(
