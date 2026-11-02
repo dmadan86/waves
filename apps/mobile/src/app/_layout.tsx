@@ -96,6 +96,7 @@ import {
   takeExternalLink,
   takeQueuedDeepLink,
 } from '@/lib/deepLink';
+import { COMPANIES_ENABLED, isCompanyRoute } from '@/lib/companiesEnabled';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
 import { holdPhonesUpright } from '@/lib/phoneOrientation';
@@ -469,7 +470,8 @@ function PushRouting() {
     // One gate for both paths: the cold-start "last response" survives root
     // remounts, so without it the same tap re-navigated every time.
     const handle = async (response: Notifications.NotificationResponse) => {
-      const route = routeForNotification(response);
+      const target = routeForNotification(response);
+      const route = target && !COMPANIES_ENABLED && isCompanyRoute(target) ? '/' : target;
       if (!route || !(await firstTime(response.notification.request.identifier))) return;
       if (signedIn.current) openDeepLink(router, route);
       else await queueDeepLink(AsyncStorage, route);

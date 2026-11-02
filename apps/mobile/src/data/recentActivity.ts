@@ -183,11 +183,15 @@ function categoryFor(
  * it is cheap enough to run on the dashboard as the mirror moves. Rows from a
  * deleted group are skipped, the same as the feed skips them.
  */
-export function newestActivityFromOthers(mirror: MirrorState, myProfileId: string | null): number {
+export function newestActivityFromOthers(
+  mirror: MirrorState,
+  myProfileId: string | null,
+  hideCompanies = false,
+): number {
   const deleted = new Set<string>();
   for (const row of rowsFor(mirror, SyncTable.Groups)) {
-    const g = row as unknown as { id: string; deleted_at: string | null };
-    if (g.deleted_at) deleted.add(g.id);
+    const g = row as unknown as { id: string; deleted_at: string | null; type?: string | null };
+    if (g.deleted_at || (hideCompanies && g.type === 'company')) deleted.add(g.id);
   }
   const mine = new Set<string>();
   if (myProfileId) {
@@ -216,11 +220,12 @@ export function newestActivityFromOthers(mirror: MirrorState, myProfileId: strin
 export function newestActivityFromOthersByGroup(
   mirror: MirrorState,
   myProfileId: string | null,
+  hideCompanies = false,
 ): Map<string, number> {
   const deleted = new Set<string>();
   for (const row of rowsFor(mirror, SyncTable.Groups)) {
-    const g = row as unknown as { id: string; deleted_at: string | null };
-    if (g.deleted_at) deleted.add(g.id);
+    const g = row as unknown as { id: string; deleted_at: string | null; type?: string | null };
+    if (g.deleted_at || (hideCompanies && g.type === 'company')) deleted.add(g.id);
   }
   // Every member id that is the reader, across all groups: their own rows are
   // never news to them, whichever group they were written in.
