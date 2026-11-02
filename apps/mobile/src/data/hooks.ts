@@ -887,7 +887,6 @@ export function useMergeCandidates(someoneLabel: string): LocalRead<MergeCandida
  */
 export function useKnownPeopleCount(profileId: string | null): LocalRead<number> {
   const { mirror, queue } = useSync();
-  const demoActive = useDemoActive(profileId, false);
 
   const count = useMemo(() => {
     if (!profileId) return 0;
@@ -898,12 +897,8 @@ export function useKnownPeopleCount(profileId: string | null): LocalRead<number>
       }) as unknown as MemberRow[];
       total += countOthersInGroup(members, profileId);
     }
-    // The three demo friends count too — "no friends yet" has to stop
-    // showing the moment a brand-new account's demo trip has friends in it,
-    // same as it would for a real one.
-    if (demoActive) total += countOthersInGroup(demoMembers(profileId), profileId);
     return total;
-  }, [mirror, queue, profileId, demoActive]);
+  }, [mirror, queue, profileId]);
 
   return useLocalRead(count);
 }
