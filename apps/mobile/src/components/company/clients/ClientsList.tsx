@@ -58,10 +58,9 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const [owing, setOwing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [menu, setMenu] = useState<'sort' | 'add' | null>(null);
+  const [menu, setMenu] = useState<'sort' | null>(null);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   const sortRef = useRef<View>(null);
-  const addRef = useRef<View>(null);
   const today = todayIso();
   const fmt = (minor: bigint) => compactMoney(minor, view.currency, locale, t.company.ovCrore);
   const all = useMemo(
@@ -73,40 +72,39 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const rows = listClientRows(all, { tab, status, range, sort, query, today, owing });
   const filtered = status !== null || range !== 'all';
   const canAdd = view.canAdd && !suspended;
-  const open = (m: 'sort' | 'add', ref: typeof sortRef) =>
-    measureAnchor(ref, (a) => {
+  const openSort = () =>
+    measureAnchor(sortRef, (a) => {
       setAnchor(a);
-      setMenu(m);
+      setMenu('sort');
     });
   const sortName = { recent: s.sortUpdated, amount: s.sortAmount, name: s.sortName }[sort];
-  const items: OverflowMenuItem[] =
-    menu === 'sort'
-      ? [
-          { icon: 'time-outline', label: s.sortUpdated, onPress: () => setSort('recent') },
-          { icon: 'cash-outline', label: s.sortAmount, onPress: () => setSort('amount') },
-          { icon: 'text-outline', label: s.sortName, onPress: () => setSort('name') },
-        ]
-      : [
+  const items: OverflowMenuItem[] = [
+    { icon: 'time-outline', label: s.sortUpdated, onPress: () => setSort('recent') },
+    { icon: 'cash-outline', label: s.sortAmount, onPress: () => setSort('amount') },
+    { icon: 'text-outline', label: s.sortName, onPress: () => setSort('name') },
+  ];
+  // The header ⋮: add actions the FAB does not offer (quote, invoice) live here, not in a duplicate pill.
+  const addItems: OverflowMenuItem[] = [
+    {
+      icon: 'person-add-outline',
+      label: s.addClient,
+      onPress: () => router.push(`/group/${groupId}/company-client-add`),
+    },
+    ...(canDocs
+      ? ([
           {
-            icon: 'person-add-outline',
-            label: s.addClient,
-            onPress: () => router.push(`/group/${groupId}/company-client-add`),
+            icon: 'document-text-outline',
+            label: s.createQuote,
+            onPress: () => router.push(`/group/${groupId}/company-bill-form?type=estimate`),
           },
-          ...(canDocs
-            ? ([
-                {
-                  icon: 'document-text-outline',
-                  label: s.createQuote,
-                  onPress: () => router.push(`/group/${groupId}/company-bill-form?type=estimate`),
-                },
-                {
-                  icon: 'receipt-outline',
-                  label: s.createInvoice,
-                  onPress: () => router.push(`/group/${groupId}/company-bill-form?type=bill`),
-                },
-              ] as const)
-            : []),
-        ];
+          {
+            icon: 'receipt-outline',
+            label: s.createInvoice,
+            onPress: () => router.push(`/group/${groupId}/company-bill-form?type=bill`),
+          },
+        ] as const)
+      : []),
+  ];
   const kpis = [
     {
       tab: 'all',
@@ -181,6 +179,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
           view={entries}
           subtitle=""
           showGear={entries.isOwner}
+          menuItems={canAdd ? addItems : undefined}
           actions={
             <>
               <IconButton
@@ -192,32 +191,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
                   setSearching(!searching);
                 }}
               />
-              {canAdd ? (
-                <View ref={addRef} collapsable={false} style={{ marginStart: 8 }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={s.addLabel}
-                    onPress={() => open('add', addRef)}
-                    style={{
-                      height: 40,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4,
-                      paddingHorizontal: theme.spacing.md,
-                      borderRadius: 20,
-                      backgroundColor: theme.color.brand,
-                    }}
-                  >
-                    <Ionicons name="add" size={iconSize.base} color={theme.color.onBrand} />
-                    <Text
-                      variant="caption"
-                      style={{ fontWeight: '700', color: theme.color.onBrand }}
-                    >
-                      {s.addLabel}
-                    </Text>
-                  </Pressable>
-                </View>
-              ) : null}
             </>
           }
         />
@@ -305,7 +278,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
               ref={sortRef}
               accessibilityRole="button"
               accessibilityLabel={s.sortLabel}
-              onPress={() => open('sort', sortRef)}
+              onPress={openSort}
               style={{
                 height: 40,
                 flexDirection: 'row',
