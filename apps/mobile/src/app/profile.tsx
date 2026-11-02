@@ -285,6 +285,17 @@ function ProfileForm() {
               hint: t.account.upgradeHint,
               route: '/settings/upgrade',
             },
+            // The first company is free; the create flow shows the paywall for an extra one.
+            ...(profile?.id && !isGuest
+              ? [
+                  {
+                    icon: 'business-outline' as const,
+                    label: t.companySlot.addRow,
+                    hint: t.companySlot.addRowHint,
+                    route: '/new-company' as const,
+                  },
+                ]
+              : []),
             // Receipts and restore live here; a guest has no profile id to hold a purchase.
             ...(profile?.id && !isGuest
               ? [
