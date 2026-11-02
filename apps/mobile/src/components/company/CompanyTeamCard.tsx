@@ -5,11 +5,12 @@
  * never sees either.
  */
 
-import { View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, View } from 'react-native';
 
-import { Chip, ChipRow, Text, Toggle, useTheme } from '@waves/ui';
+import { Chip, iconSize, Text, Toggle, useTheme } from '@waves/ui';
 
-import { ListRow, StandardCard } from '@/components/standard';
+import { ListRow, PILL_SELECTED, StandardCard } from '@/components/standard';
 import {
   useAssignCompanyMember,
   useCompanyProjectMembers,
@@ -45,9 +46,16 @@ export function CompanyTeamCard({
 
   return (
     <StandardCard style={{ gap: theme.spacing.md }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+        <Ionicons name="shield-checkmark-outline" size={iconSize.lg} color={theme.color.brand} />
+        <Text variant="heading" accessibilityRole="header" style={{ fontSize: 18 }}>
+          {t.company.permissions}
+        </Text>
+      </View>
       <ListRow
         title={t.company.canPayPeople}
-        subtitle={isManager && hasTeam ? t.company.moveTeamFirst : undefined}
+        subtitle={isManager && hasTeam ? t.company.moveTeamFirst : t.company.canPayPeopleHint}
+        subtitleLines={2}
         trailing={
           <Toggle
             value={isManager}
@@ -60,29 +68,63 @@ export function CompanyTeamCard({
         }
       />
       {!isManager && managers.length > 0 ? (
-        <View style={{ gap: theme.spacing.xs }}>
-          <Text variant="caption" tone="muted">
-            {t.company.reportsTo}
-          </Text>
-          <ChipRow
-            wrap
-            onCard
-            options={[
+        <View style={{ gap: theme.spacing.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+            <Ionicons name="git-network-outline" size={iconSize.md} color={theme.color.brand} />
+            <Text variant="body" style={{ fontWeight: '700' }}>
+              {t.company.reportsTo}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+            {[
               { value: '', label: t.company.owners },
               ...managers.map((m) => ({
                 value: m.id as string,
                 label: displayName(m, null, null, t.misc.someone),
               })),
-            ]}
-            value={member.manager_id ?? ''}
-            onChange={(next) => {
-              if ((next || null) === (member.manager_id ?? null)) return;
-              assign.mutate({ memberId: member.id, managerId: next || null, reason: '' });
-            }}
-          />
-          <Text variant="caption" tone="muted">
-            {t.company.historyMoves}
-          </Text>
+            ].map((o) => {
+              const on = o.value === (member.manager_id ?? '');
+              return (
+                <Pressable
+                  key={o.value}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: on }}
+                  disabled={assign.isPending}
+                  onPress={() => {
+                    if (on) return;
+                    assign.mutate({ memberId: member.id, managerId: o.value || null, reason: '' });
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    height: 36,
+                    paddingHorizontal: theme.spacing.md,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: on ? PILL_SELECTED : theme.color.brandSoft,
+                  }}
+                >
+                  {on ? <Ionicons name="checkmark" size={iconSize.base} color="#FFFFFF" /> : null}
+                  <Text
+                    variant="caption"
+                    style={{ fontWeight: '600', color: on ? '#FFFFFF' : theme.color.text }}
+                  >
+                    {o.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons
+              name="information-circle-outline"
+              size={iconSize.base}
+              color={theme.color.textMuted}
+            />
+            <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+              {t.company.historyMoves}
+            </Text>
+          </View>
         </View>
       ) : null}
       {!isManager && projects.length > 0 ? (
