@@ -1514,6 +1514,14 @@ export interface UiStrings {
     paymentEvt: string;
     viewAll: string;
     showLess: string;
+    editEstimate: string;
+    editBill: string;
+    saveChanges: string;
+    preview: string;
+    estimateNo: string;
+    billNo: string;
+    status: string;
+    detailsTitle: string;
   };
   company: {
     attendanceTitle: string;
@@ -8906,6 +8914,14 @@ const en: UiStrings = {
     paymentEvt: 'Payment received',
     viewAll: 'View all',
     showLess: 'Show less',
+    editEstimate: 'Edit estimate',
+    editBill: 'Edit bill',
+    saveChanges: 'Save changes',
+    preview: 'Preview',
+    estimateNo: 'Estimate no.',
+    billNo: 'Bill no.',
+    status: 'Status',
+    detailsTitle: '{type} details',
   },
   company: {
     attendanceTitle: 'Attendance',
@@ -15764,6 +15780,14 @@ const ta: UiStrings = {
     paymentEvt: 'பணம் பெறப்பட்டது',
     viewAll: 'அனைத்தையும் காண்க',
     showLess: 'குறைவாகக் காட்டு',
+    editEstimate: 'மதிப்பீட்டைத் திருத்து',
+    editBill: 'பில்லைத் திருத்து',
+    saveChanges: 'மாற்றங்களைச் சேமி',
+    preview: 'முன்னோட்டம்',
+    estimateNo: 'மதிப்பீட்டு எண்',
+    billNo: 'பில் எண்',
+    status: 'நிலை',
+    detailsTitle: '{type} விவரங்கள்',
   },
   company: {
     attendanceTitle: 'வருகை',
@@ -22788,6 +22812,14 @@ const hi: UiStrings = {
     paymentEvt: 'भुगतान मिला',
     viewAll: 'सभी देखें',
     showLess: 'कम दिखाएँ',
+    editEstimate: 'अनुमान संपादित करें',
+    editBill: 'बिल संपादित करें',
+    saveChanges: 'बदलाव सेव करें',
+    preview: 'पूर्वावलोकन',
+    estimateNo: 'अनुमान नं.',
+    billNo: 'बिल नं.',
+    status: 'स्थिति',
+    detailsTitle: '{type} का विवरण',
   },
   company: {
     attendanceTitle: 'हाज़िरी',
@@ -29695,6 +29727,14 @@ const ar: UiStrings = {
     paymentEvt: 'تم استلام دفعة',
     viewAll: 'عرض الكل',
     showLess: 'عرض أقل',
+    editEstimate: 'تعديل عرض السعر',
+    editBill: 'تعديل الفاتورة',
+    saveChanges: 'حفظ التغييرات',
+    preview: 'معاينة',
+    estimateNo: 'رقم عرض السعر',
+    billNo: 'رقم الفاتورة',
+    status: 'الحالة',
+    detailsTitle: 'تفاصيل {type}',
   },
   company: {
     attendanceTitle: 'الحضور',
