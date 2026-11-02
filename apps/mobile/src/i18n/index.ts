@@ -1504,6 +1504,24 @@ export interface UiStrings {
     notesOptional: string;
     paymentStatus: string;
     saveShare: string;
+    createdBy: string;
+    activity: string;
+    nextAction: string;
+    add: string;
+    duplicate: string;
+    print: string;
+    markSent: string;
+    paymentEvt: string;
+    viewAll: string;
+    showLess: string;
+    editEstimate: string;
+    editBill: string;
+    saveChanges: string;
+    preview: string;
+    estimateNo: string;
+    billNo: string;
+    status: string;
+    detailsTitle: string;
   };
   company: {
     attendanceTitle: string;
@@ -1737,6 +1755,13 @@ export interface UiStrings {
     moreBudgets: string;
     moreStatements: string;
     moreRules: string;
+    companyRulesTitle: string;
+    moreSettings: string;
+    moreSettingsHint: string;
+    tileCurrency: string;
+    tileDetails: string;
+    tileBranding: string;
+    tileBrandingHint: string;
     pendingNone: string;
     pendingNoneBody: string;
     pendingVendorBills: string;
@@ -1976,6 +2001,9 @@ export interface UiStrings {
     moreOptions: string;
     wageFormula: string;
     canPayPeople: string;
+    canPayPeopleHint: string;
+    employeeDetails: string;
+    permissions: string;
     setDailyRate: string;
     kAllocation: string;
     kPoolReturn: string;
@@ -3818,6 +3846,7 @@ export interface UiStrings {
     personalBody: string;
     switchTitle: string;
     switchBody: string;
+    switchedTo: string;
     createTitle: string;
     createBody: string;
     owner: string;
@@ -5602,6 +5631,10 @@ export interface UiStrings {
     paymentsToMake: string;
     balanceSortAmount: string;
     balanceSortName: string;
+    sortPill: string;
+    sortAmountHigh: string;
+    sortAmountLow: string;
+    settleInOneGo: string;
     balanceSimplified: string;
     balanceIsOwed: string;
     balanceOwesYou: string;
@@ -8965,6 +8998,24 @@ const en: UiStrings = {
     notesOptional: 'Notes (optional)',
     paymentStatus: 'Payment status',
     saveShare: 'Save & share',
+    createdBy: 'Created by',
+    activity: 'Activity',
+    nextAction: 'Next action',
+    add: 'Add',
+    duplicate: 'Duplicate',
+    print: 'Print',
+    markSent: 'Mark as sent',
+    paymentEvt: 'Payment received',
+    viewAll: 'View all',
+    showLess: 'Show less',
+    editEstimate: 'Edit estimate',
+    editBill: 'Edit bill',
+    saveChanges: 'Save changes',
+    preview: 'Preview',
+    estimateNo: 'Estimate no.',
+    billNo: 'Bill no.',
+    status: 'Status',
+    detailsTitle: '{type} details',
   },
   company: {
     attendanceTitle: 'Attendance',
@@ -9201,6 +9252,13 @@ const en: UiStrings = {
     moreBudgets: 'Budgets & sites',
     moreStatements: 'Statements & export',
     moreRules: 'Rules',
+    companyRulesTitle: 'Company rules',
+    moreSettings: 'More settings',
+    moreSettingsHint: 'Attendance, expenses, estimates, invoices and more',
+    tileCurrency: 'Currency',
+    tileDetails: 'Details',
+    tileBranding: 'Branding',
+    tileBrandingHint: 'Logo',
     pendingNone: 'Nothing is waiting',
     pendingNoneBody: 'Claims and budget requests that need you show up here.',
     pendingVendorBills: '{n} vendor bills to confirm',
@@ -9443,7 +9501,10 @@ const en: UiStrings = {
     addPerson: 'Add a person',
     moreOptions: 'More',
     wageFormula: '{gross} - advance {cut} = {net}',
-    canPayPeople: 'Can pay people',
+    canPayPeople: 'Can record payments',
+    canPayPeopleHint: 'Lets this employee record payments to team members.',
+    employeeDetails: 'Employee Details',
+    permissions: 'Permissions',
     setDailyRate: 'Set daily rate',
     kAllocation: 'Cash given to manager',
     kPoolReturn: 'Cash taken back',
@@ -11171,6 +11232,7 @@ const en: UiStrings = {
     personalBody: 'Friends, groups & expenses',
     switchTitle: 'Switch space',
     switchBody: 'Choose where you want to work',
+    switchedTo: 'Switched to {name}',
     createTitle: 'Create a new company',
     createBody: 'Set up a company and invite people',
     owner: 'Owner',
@@ -12579,6 +12641,10 @@ const en: UiStrings = {
     paymentsToMake: 'Payments to make',
     balanceSortAmount: 'Sort by amount',
     balanceSortName: 'Sort by name',
+    sortPill: 'Sort: {label}',
+    sortAmountHigh: 'Amount high',
+    sortAmountLow: 'Amount low',
+    settleInOneGo: 'Settle in one go',
     balanceSimplified: 'Simplified',
     balanceIsOwed: 'is owed',
     balanceOwesYou: 'owes you',
@@ -15893,6 +15959,24 @@ const ta: UiStrings = {
     notesOptional: 'குறிப்புகள் (விருப்பம்)',
     paymentStatus: 'கட்டண நிலை',
     saveShare: 'சேமித்துப் பகிர்',
+    createdBy: 'உருவாக்கியவர்',
+    activity: 'செயல்பாடு',
+    nextAction: 'அடுத்த செயல்',
+    add: 'சேர்',
+    duplicate: 'நகலெடு',
+    print: 'அச்சிடு',
+    markSent: 'அனுப்பியதாகக் குறி',
+    paymentEvt: 'பணம் பெறப்பட்டது',
+    viewAll: 'அனைத்தையும் காண்க',
+    showLess: 'குறைவாகக் காட்டு',
+    editEstimate: 'மதிப்பீட்டைத் திருத்து',
+    editBill: 'பில்லைத் திருத்து',
+    saveChanges: 'மாற்றங்களைச் சேமி',
+    preview: 'முன்னோட்டம்',
+    estimateNo: 'மதிப்பீட்டு எண்',
+    billNo: 'பில் எண்',
+    status: 'நிலை',
+    detailsTitle: '{type} விவரங்கள்',
   },
   company: {
     attendanceTitle: 'வருகை',
@@ -16131,6 +16215,13 @@ const ta: UiStrings = {
     moreBudgets: 'பட்ஜெட் & இடங்கள்',
     moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
     moreRules: 'விதிகள்',
+    companyRulesTitle: 'நிறுவன விதிகள்',
+    moreSettings: 'மேலும் அமைப்புகள்',
+    moreSettingsHint: 'வருகை, செலவுகள், மதிப்பீடுகள், இன்வாய்ஸ்கள் மற்றும் பல',
+    tileCurrency: 'நாணயம்',
+    tileDetails: 'விவரங்கள்',
+    tileBranding: 'பிராண்டிங்',
+    tileBrandingHint: 'லோகோ',
     pendingNone: 'எதுவும் காத்திருக்கவில்லை',
     pendingNoneBody: 'உங்கள் கவனம் தேவைப்படும் கோரிக்கைகள் இங்கே தோன்றும்.',
     pendingVendorBills: 'உறுதிசெய்ய {n} விற்பனையாளர் பில்கள்',
@@ -16374,7 +16465,10 @@ const ta: UiStrings = {
     addPerson: 'நபரைச் சேர்',
     moreOptions: 'மேலும்',
     wageFormula: '{gross} - முன்பணம் {cut} = {net}',
-    canPayPeople: 'ஆட்களுக்கு பணம் தரலாம்',
+    canPayPeople: 'பணம் கொடுத்ததைப் பதிவு செய்யலாம்',
+    canPayPeopleHint: 'இந்த ஊழியர் குழு உறுப்பினர்களுக்கான கட்டணங்களைப் பதிவு செய்ய அனுமதிக்கும்.',
+    employeeDetails: 'ஊழியர் விவரங்கள்',
+    permissions: 'அனுமதிகள்',
     setDailyRate: 'தினசரி விகிதம் அமை',
     kAllocation: 'மேலாளருக்கு பணம்',
     kPoolReturn: 'திரும்பப் பெற்ற பணம்',
@@ -18131,6 +18225,7 @@ const ta: UiStrings = {
     personalBody: 'நண்பர்கள், குழுக்கள் & செலவுகள்',
     switchTitle: 'இடத்தை மாற்று',
     switchBody: 'நீங்கள் எங்கு வேலை செய்ய விரும்புகிறீர்கள் என்பதைத் தேர்ந்தெடுக்கவும்',
+    switchedTo: '{name} க்கு மாற்றப்பட்டது',
     createTitle: 'புதிய நிறுவனத்தை உருவாக்கு',
     createBody: 'நிறுவனத்தை அமைத்து ஆட்களை அழைக்கவும்',
     owner: 'உரிமையாளர்',
@@ -19601,6 +19696,10 @@ const ta: UiStrings = {
     paymentsToMake: 'செலுத்த வேண்டியவை',
     balanceSortAmount: 'தொகைப்படி வரிசை',
     balanceSortName: 'பெயர்ப்படி வரிசை',
+    sortPill: 'வரிசை: {label}',
+    sortAmountHigh: 'அதிக தொகை',
+    sortAmountLow: 'குறைந்த தொகை',
+    settleInOneGo: 'ஒரே முறையில் தீர்க்கவும்',
     balanceSimplified: 'எளிமைப்படுத்தியது',
     balanceIsOwed: 'பெற வேண்டும்',
     balanceOwesYou: 'உங்களுக்குத் தர வேண்டும்',
@@ -22988,6 +23087,24 @@ const hi: UiStrings = {
     notesOptional: 'नोट्स (वैकल्पिक)',
     paymentStatus: 'भुगतान स्थिति',
     saveShare: 'सेव करें और भेजें',
+    createdBy: 'बनाने वाले',
+    activity: 'गतिविधि',
+    nextAction: 'अगला कदम',
+    add: 'जोड़ें',
+    duplicate: 'डुप्लिकेट',
+    print: 'प्रिंट',
+    markSent: 'भेजा हुआ चिह्नित करें',
+    paymentEvt: 'भुगतान मिला',
+    viewAll: 'सभी देखें',
+    showLess: 'कम दिखाएँ',
+    editEstimate: 'अनुमान संपादित करें',
+    editBill: 'बिल संपादित करें',
+    saveChanges: 'बदलाव सेव करें',
+    preview: 'पूर्वावलोकन',
+    estimateNo: 'अनुमान नं.',
+    billNo: 'बिल नं.',
+    status: 'स्थिति',
+    detailsTitle: '{type} का विवरण',
   },
   company: {
     attendanceTitle: 'हाज़िरी',
@@ -23225,6 +23342,13 @@ const hi: UiStrings = {
     moreBudgets: 'बजट और साइट',
     moreStatements: 'स्टेटमेंट और निर्यात',
     moreRules: 'नियम',
+    companyRulesTitle: 'कंपनी के नियम',
+    moreSettings: 'और सेटिंग्स',
+    moreSettingsHint: 'हाज़िरी, ख़र्च, अनुमान, इनवॉइस और बहुत कुछ',
+    tileCurrency: 'मुद्रा',
+    tileDetails: 'विवरण',
+    tileBranding: 'ब्रांडिंग',
+    tileBrandingHint: 'लोगो',
     pendingNone: 'कुछ भी प्रतीक्षा में नहीं',
     pendingNoneBody: 'आपके ध्यान की ज़रूरत वाले दावे और बजट अनुरोध यहाँ दिखेंगे।',
     pendingVendorBills: 'पुष्टि के लिए {n} वेंडर बिल',
@@ -23466,7 +23590,10 @@ const hi: UiStrings = {
     addPerson: 'व्यक्ति जोड़ें',
     moreOptions: 'और',
     wageFormula: '{gross} - एडवांस {cut} = {net}',
-    canPayPeople: 'लोगों को भुगतान कर सकते हैं',
+    canPayPeople: 'भुगतान दर्ज कर सकते हैं',
+    canPayPeopleHint: 'यह कर्मचारी टीम के सदस्यों को किए भुगतान दर्ज कर सकेगा।',
+    employeeDetails: 'कर्मचारी विवरण',
+    permissions: 'अनुमतियाँ',
     setDailyRate: 'दैनिक दर तय करें',
     kAllocation: 'मैनेजर को नकद',
     kPoolReturn: 'वापस लिया नकद',
@@ -25192,6 +25319,7 @@ const hi: UiStrings = {
     personalBody: 'दोस्त, ग्रुप और खर्च',
     switchTitle: 'स्पेस बदलें',
     switchBody: 'चुनें कि आप कहाँ काम करना चाहते हैं',
+    switchedTo: '{name} पर स्विच किया गया',
     createTitle: 'नई कंपनी बनाएँ',
     createBody: 'कंपनी सेट करें और लोगों को जोड़ें',
     owner: 'मालिक',
@@ -26617,6 +26745,10 @@ const hi: UiStrings = {
     paymentsToMake: 'करने वाले भुगतान',
     balanceSortAmount: 'राशि के अनुसार',
     balanceSortName: 'नाम के अनुसार',
+    sortPill: 'क्रम: {label}',
+    sortAmountHigh: 'ज़्यादा राशि',
+    sortAmountLow: 'कम राशि',
+    settleInOneGo: 'एक साथ निपटाएँ',
     balanceSimplified: 'सरलीकृत',
     balanceIsOwed: 'लेना है',
     balanceOwesYou: 'आपको देना है',
@@ -29965,6 +30097,24 @@ const ar: UiStrings = {
     notesOptional: 'ملاحظات (اختياري)',
     paymentStatus: 'حالة الدفع',
     saveShare: 'احفظ وشارك',
+    createdBy: 'أنشأه',
+    activity: 'النشاط',
+    nextAction: 'الإجراء التالي',
+    add: 'إضافة',
+    duplicate: 'تكرار',
+    print: 'طباعة',
+    markSent: 'تحديد كمرسل',
+    paymentEvt: 'تم استلام دفعة',
+    viewAll: 'عرض الكل',
+    showLess: 'عرض أقل',
+    editEstimate: 'تعديل عرض السعر',
+    editBill: 'تعديل الفاتورة',
+    saveChanges: 'حفظ التغييرات',
+    preview: 'معاينة',
+    estimateNo: 'رقم عرض السعر',
+    billNo: 'رقم الفاتورة',
+    status: 'الحالة',
+    detailsTitle: 'تفاصيل {type}',
   },
   company: {
     attendanceTitle: 'الحضور',
@@ -30224,6 +30374,13 @@ const ar: UiStrings = {
     moreBudgets: 'الميزانيات والمواقع',
     moreStatements: 'الكشوف والتصدير',
     moreRules: 'القواعد',
+    companyRulesTitle: 'قواعد الشركة',
+    moreSettings: 'المزيد من الإعدادات',
+    moreSettingsHint: 'الحضور والمصروفات والتقديرات والفواتير وغيرها',
+    tileCurrency: 'العملة',
+    tileDetails: 'التفاصيل',
+    tileBranding: 'الهوية',
+    tileBrandingHint: 'الشعار',
     pendingNone: 'لا شيء بانتظارك',
     pendingNoneBody: 'ستظهر هنا المطالبات وطلبات الميزانية التي تحتاج إليك.',
     pendingVendorBills: '{n} فواتير موردين بانتظار التأكيد',
@@ -30492,7 +30649,10 @@ const ar: UiStrings = {
     addPerson: 'أضف شخصاً',
     moreOptions: 'المزيد',
     wageFormula: '{gross} - سلفة {cut} = {net}',
-    canPayPeople: 'يمكنه الدفع للناس',
+    canPayPeople: 'يمكنه تسجيل المدفوعات',
+    canPayPeopleHint: 'يتيح لهذا الموظف تسجيل المدفوعات لأعضاء الفريق.',
+    employeeDetails: 'بيانات الموظف',
+    permissions: 'الصلاحيات',
     setDailyRate: 'حدد الأجر اليومي',
     kAllocation: 'نقد للمدير',
     kPoolReturn: 'نقد مسترجع',
@@ -32238,6 +32398,7 @@ const ar: UiStrings = {
     personalBody: 'الأصدقاء والمجموعات والمصروفات',
     switchTitle: 'تبديل المساحة',
     switchBody: 'اختر المكان الذي تريد العمل فيه',
+    switchedTo: 'تم التبديل إلى {name}',
     createTitle: 'إنشاء شركة جديدة',
     createBody: 'أنشئ شركة وادعُ الأشخاص',
     owner: 'المالك',
@@ -33847,6 +34008,10 @@ const ar: UiStrings = {
     paymentsToMake: 'دفعات مستحقة',
     balanceSortAmount: 'ترتيب حسب المبلغ',
     balanceSortName: 'ترتيب حسب الاسم',
+    sortPill: 'ترتيب: {label}',
+    sortAmountHigh: 'الأعلى مبلغًا',
+    sortAmountLow: 'الأقل مبلغًا',
+    settleInOneGo: 'سوّ الحسابات دفعة واحدة',
     balanceSimplified: 'مبسّط',
     balanceIsOwed: 'له مستحقات',
     balanceOwesYou: 'مدين لك',

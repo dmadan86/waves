@@ -1,4 +1,4 @@
-import { Fragment, useState, type ReactNode } from 'react';
+import { Fragment, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
@@ -37,7 +37,16 @@ import { useCompanyEntries } from '@/data/companyEntries';
 import { removeImage } from '@/lib/storage';
 import { LinkMemberSheet } from '@/components/LinkMemberSheet';
 import { linkReasonText, membersAsPeople, type LinkPerson } from '@/lib/linkMember';
-import { ListRow, PlainHeader, RowTile, SectionHeader, StandardCard } from '@/components/standard';
+import {
+  ListRow,
+  PlainHeader,
+  RowTile,
+  SCENIC_OVERLAP,
+  ScenicHeader,
+  SectionHeader,
+  StandardCard,
+} from '@/components/standard';
+import { CompanySettingsTop } from '@/components/company/CompanySettingsTop';
 import { type PickedContact } from '@/components/ContactPicker';
 import { offerFromOtherGroups } from '@/lib/addFromAnotherGroup';
 import { requestAddFromAnotherGroup } from '@/lib/addFromAnotherGroupBridge';
@@ -173,6 +182,12 @@ export default function GroupSettingsScreen() {
   // The "Add someone" sheet, opened from the "+ Add" pill beside the member count.
   const [addOpen, setAddOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
+  // Company only: "More settings" expands inline; the Branding tile and the logo badge
+  // scroll to the logo card (its y is the body's y plus its own within the body).
+  const [moreOpen, setMoreOpen] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const bodyY = useRef(0);
+  const logoY = useRef(0);
   const [tagOpen, setTagOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
   const [datesOpen, setDatesOpen] = useState(false);
@@ -979,29 +994,85 @@ export default function GroupSettingsScreen() {
     return to ? `${text(from)} ${locale === 'ar' ? '←' : '→'} ${text(to)}` : text(from);
   })();
 
+  const exitButton = (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t.group.exitActions}
+      hitSlop={10}
+      onPress={() => setExitOpen(true)}
+    >
+      <Ionicons name="ellipsis-vertical" size={iconSize.xl} color={theme.color.text} />
+    </Pressable>
+  );
+  const scrollToLogo = () =>
+    scrollRef.current?.scrollTo({
+      y: Math.max(0, bodyY.current + logoY.current - 8),
+      animated: true,
+    });
+  // Company: tiles that go somewhere. Branding only for an admin (the logo card is theirs).
+  const companyTiles = [
+    {
+      key: 'team',
+      icon: 'people-outline' as const,
+      title: t.company.barTeam,
+      subtitle: plural(locale, memberCount, t.memberCount),
+      onPress: () => router.push(`/group/${groupId}/company-team`),
+    },
+    {
+      key: 'currency',
+      icon: 'cash-outline' as const,
+      title: t.company.tileCurrency,
+      subtitle:
+        tripRateStore.rows.length > 0
+          ? [currency, ...tripRateStore.rows.map((row) => row.from)].join(', ')
+          : fill(t.fx.currencyOnly, { currency }),
+      onPress: () => setRatesOpen(true),
+    },
+    {
+      key: 'details',
+      icon: 'business-outline' as const,
+      title: t.company.tileDetails,
+      subtitle: `${t.companyDetails.address}, ${t.companyDetails.gstin}`,
+      onPress: () => router.push(`/group/${groupId}/company-details`),
+    },
+    ...(isAdmin
+      ? [
+          {
+            key: 'branding',
+            icon: 'image-outline' as const,
+            title: t.company.tileBranding,
+            subtitle: t.company.tileBrandingHint,
+            onPress: scrollToLogo,
+          },
+        ]
+      : []),
+  ];
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: clearance }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <PlainHeader
-          title={groupType === GroupType.Company ? t.company.companySettings : t.group.settings}
-          trailing={
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.group.exitActions}
-              hitSlop={10}
-              onPress={() => setExitOpen(true)}
-            >
-              <Ionicons name="ellipsis-vertical" size={iconSize.xl} color={theme.color.text} />
-            </Pressable>
-          }
-        />
+        {isCompany ? (
+          <ScenicHeader title={t.company.companySettings} action={exitButton} />
+        ) : (
+          <PlainHeader title={t.group.settings} trailing={exitButton} />
+        )}
 
-        <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.lg }}>
+        <View
+          onLayout={(event) => {
+            bodyY.current = event.nativeEvent.layout.y;
+          }}
+          style={{
+            paddingHorizontal: theme.spacing.lg,
+            gap: isCompany ? theme.spacing.xl : theme.spacing.lg,
+            marginTop: isCompany ? -SCENIC_OVERLAP : 0,
+          }}
+        >
           {/* Changes save as they are made, so a plain "Saved" is not news;
               only other messages (an error, a person added) are shown. */}
           {status && status !== t.account.saved ? (
@@ -1022,210 +1093,235 @@ export default function GroupSettingsScreen() {
               that currency at their own saved rates (ADR-003 amendment): on for
               new groups; an existing group opts in once every foreign bill has a
               rate. */}
-          <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
-            <Row
-              style={{
-                alignItems: 'center',
-                gap: theme.spacing.md,
-                paddingVertical: theme.spacing.md,
-              }}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.group.changeCover}
-                onPress={() => setCoverOpen(true)}
+          {isCompany ? (
+            <CompanySettingsTop
+              photoPath={group.data.photo_path}
+              busy={uploading}
+              name={groupName}
+              meta={[plural(locale, memberCount, t.memberCount), createdLabel]
+                .filter((part): part is string => Boolean(part))
+                .map((part) => part.replace(/ /g, ' '))
+                .join(' • ')}
+              onEditName={() => setEditOpen(true)}
+              onLogo={isAdmin ? scrollToLogo : undefined}
+              tiles={companyTiles}
+            />
+          ) : (
+            <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
+              <Row
+                style={{
+                  alignItems: 'center',
+                  gap: theme.spacing.md,
+                  paddingVertical: theme.spacing.md,
+                }}
               >
-                <GroupPhoto
-                  photoPath={group.data.photo_path}
-                  emoji={group.data.cover_emoji}
-                  color={group.data.cover_color}
-                  size={72}
-                  busy={uploading}
-                />
-                <View
-                  style={{
-                    position: 'absolute',
-                    right: -2,
-                    bottom: -2,
-                    width: 28,
-                    height: 28,
-                    borderRadius: 14,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: '#2B2B3A',
-                    borderWidth: 2,
-                    borderColor: theme.color.surface,
-                  }}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.group.changeCover}
+                  onPress={() => setCoverOpen(true)}
                 >
-                  <Ionicons name="camera" size={14} color="#FFFFFF" />
-                </View>
-              </Pressable>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                  <Text
-                    variant="heading"
-                    numberOfLines={1}
-                    style={{ fontSize: 22, fontWeight: '800', flexShrink: 1 }}
+                  <GroupPhoto
+                    photoPath={group.data.photo_path}
+                    emoji={group.data.cover_emoji}
+                    color={group.data.cover_color}
+                    size={72}
+                    busy={uploading}
+                  />
+                  <View
+                    style={{
+                      position: 'absolute',
+                      right: -2,
+                      bottom: -2,
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#2B2B3A',
+                      borderWidth: 2,
+                      borderColor: theme.color.surface,
+                    }}
                   >
-                    {groupName}
-                  </Text>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t.group.editGroup}
-                    hitSlop={10}
-                    onPress={() => setEditOpen(true)}
-                  >
-                    <Ionicons name="create-outline" size={iconSize.md} color={theme.color.brand} />
-                  </Pressable>
-                </Row>
-                <Text variant="caption" tone="muted" numberOfLines={2}>
-                  {/* Non-breaking spaces keep each part whole, so a narrow
-                      screen wraps between them rather than inside "4 members". */}
-                  {[plural(locale, memberCount, t.memberCount), createdLabel]
-                    .filter((part): part is string => Boolean(part))
-                    .map((part) => part.replace(/ /g, '\u00A0'))
-                    .join(' • ')}
-                </Text>
-              </View>
-            </Row>
-            {!isCompany ? (
-              <>
-                {divider}
-                {/* The kind of group. Only changes the label, cover default and trip
-              affordances: nothing already recorded moves. */}
-                <PlainListRow
-                  leading={
-                    <RowTile tint={theme.color.brandSoft}>
-                      <Ionicons
-                        name="people-outline"
-                        size={iconSize.lg}
-                        color={theme.color.brand}
-                      />
-                    </RowTile>
-                  }
-                  title={t.extras.groupTypeTitle}
-                  trailing={
-                    <Row
-                      style={{
-                        alignItems: 'center',
-                        gap: theme.spacing.sm,
-                        paddingHorizontal: theme.spacing.md,
-                        height: 40,
-                        borderRadius: theme.radius.pill,
-                        backgroundColor: theme.color.brandSoft,
-                      }}
+                    <Ionicons name="camera" size={14} color="#FFFFFF" />
+                  </View>
+                </Pressable>
+                <View style={{ flex: 1, gap: 2 }}>
+                  <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                    <Text
+                      variant="heading"
+                      numberOfLines={1}
+                      style={{ fontSize: 22, fontWeight: '800', flexShrink: 1 }}
+                    >
+                      {groupName}
+                    </Text>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={t.group.editGroup}
+                      hitSlop={10}
+                      onPress={() => setEditOpen(true)}
                     >
                       <Ionicons
-                        name={currentType.icon}
-                        size={iconSize.base}
+                        name="create-outline"
+                        size={iconSize.md}
                         color={theme.color.brand}
                       />
-                      <Text style={{ color: theme.color.text, fontWeight: '700' }}>
-                        {currentType.label}
-                      </Text>
-                    </Row>
-                  }
-                  onPress={() => setTypeOpen(true)}
-                />
-              </>
-            ) : null}
-            {/* Trip and event dates appear for a trip or an event and go when the
+                    </Pressable>
+                  </Row>
+                  <Text variant="caption" tone="muted" numberOfLines={2}>
+                    {/* Non-breaking spaces keep each part whole, so a narrow
+                      screen wraps between them rather than inside "4 members". */}
+                    {[plural(locale, memberCount, t.memberCount), createdLabel]
+                      .filter((part): part is string => Boolean(part))
+                      .map((part) => part.replace(/ /g, '\u00A0'))
+                      .join(' • ')}
+                  </Text>
+                </View>
+              </Row>
+              {!isCompany ? (
+                <>
+                  {divider}
+                  {/* The kind of group. Only changes the label, cover default and trip
+              affordances: nothing already recorded moves. */}
+                  <PlainListRow
+                    leading={
+                      <RowTile tint={theme.color.brandSoft}>
+                        <Ionicons
+                          name="people-outline"
+                          size={iconSize.lg}
+                          color={theme.color.brand}
+                        />
+                      </RowTile>
+                    }
+                    title={t.extras.groupTypeTitle}
+                    trailing={
+                      <Row
+                        style={{
+                          alignItems: 'center',
+                          gap: theme.spacing.sm,
+                          paddingHorizontal: theme.spacing.md,
+                          height: 40,
+                          borderRadius: theme.radius.pill,
+                          backgroundColor: theme.color.brandSoft,
+                        }}
+                      >
+                        <Ionicons
+                          name={currentType.icon}
+                          size={iconSize.base}
+                          color={theme.color.brand}
+                        />
+                        <Text style={{ color: theme.color.text, fontWeight: '700' }}>
+                          {currentType.label}
+                        </Text>
+                      </Row>
+                    }
+                    onPress={() => setTypeOpen(true)}
+                  />
+                </>
+              ) : null}
+              {/* Trip and event dates appear for a trip or an event and go when the
               type changes. */}
-            {hasDates ? (
-              <>
-                {divider}
-                <PlainListRow
-                  leading={
-                    <RowTile tint={theme.scheme === 'dark' ? '#4CAF5038' : '#E4F5E6'}>
-                      <Ionicons name="calendar-outline" size={iconSize.lg} color="#2E9E4F" />
-                    </RowTile>
-                  }
-                  title={t.extras.datesRow}
-                  subtitle={datesSummary}
-                  trailing={chevron}
-                  onPress={() => setDatesOpen(true)}
-                />
-              </>
-            ) : null}
-            {divider}
-            {/* The currencies this group is also paid in, beside its own: one per
+              {hasDates ? (
+                <>
+                  {divider}
+                  <PlainListRow
+                    leading={
+                      <RowTile tint={theme.scheme === 'dark' ? '#4CAF5038' : '#E4F5E6'}>
+                        <Ionicons name="calendar-outline" size={iconSize.lg} color="#2E9E4F" />
+                      </RowTile>
+                    }
+                    title={t.extras.datesRow}
+                    subtitle={datesSummary}
+                    trailing={chevron}
+                    onPress={() => setDatesOpen(true)}
+                  />
+                </>
+              ) : null}
+              {divider}
+              {/* The currencies this group is also paid in, beside its own: one per
               pinned rate. Any kind of group — a flat with a bill in dollars
               counts as much as a trip — and the same sheet of rates behind it. */}
-            <PlainListRow
-              leading={
-                <RowTile tint={theme.scheme === 'dark' ? '#F5A62338' : '#FDEFD6'}>
-                  <Ionicons name="cash-outline" size={iconSize.lg} color="#E8890C" />
-                </RowTile>
-              }
-              title={t.fx.otherCurrencies}
-              subtitle={
-                tripRateStore.rows.length > 0
-                  ? `${currency} · ${tripRateStore.rows.map((row) => row.from).join(', ')}`
-                  : fill(t.fx.currencyOnly, { currency })
-              }
-              trailing={chevron}
-              onPress={() => setRatesOpen(true)}
-            />
-            {familiesOn && !isCompany ? (
-              <>
-                {divider}
-                <PlainListRow
-                  leading={
-                    <RowTile tint={theme.color.brandSoft}>
-                      <Ionicons
-                        name="people-outline"
-                        size={iconSize.lg}
-                        color={theme.color.brand}
-                      />
-                    </RowTile>
-                  }
-                  title={t.families.title}
-                  subtitle={
-                    families.length > 0
-                      ? `${plural(locale, families.length, t.families.summary)} · ${plural(
-                          locale,
-                          families.reduce((sum, family) => sum + family.members.length, 0),
-                          t.families.people,
-                        )}`
-                      : t.families.rowHint
-                  }
-                  trailing={chevron}
-                  onPress={() => router.push(`/group/${groupId}/families`)}
-                />
-              </>
-            ) : null}
-            {!isCompany ? (
-              <>
-                {divider}
-                {/* The member's own short tag, shown instead of the automatic type tag
-              on Home and the group header: one row here, edited in a sheet. */}
-                <PlainListRow
-                  leading={
-                    <RowTile tint={theme.color.brandSoft}>
-                      <Ionicons
-                        name="pricetag-outline"
-                        size={iconSize.lg}
-                        color={theme.color.brand}
-                      />
-                    </RowTile>
-                  }
-                  title={t.extras.tagLabel}
-                  subtitle={tag.trim() || t.extras.tagPlaceholder}
-                  trailing={chevron}
-                  onPress={() => setTagOpen(true)}
-                />
-              </>
-            ) : null}
-          </StandardCard>
-          {groupType === GroupType.Company && isAdmin ? (
-            <StandardCard style={{ padding: theme.spacing.md }}>
-              <CompanyLogoField
-                photoPath={group.data.photo_path}
-                busy={uploading}
-                onImage={saveLogo}
-                onRemove={() => void dropPhoto()}
+              <PlainListRow
+                leading={
+                  <RowTile tint={theme.scheme === 'dark' ? '#F5A62338' : '#FDEFD6'}>
+                    <Ionicons name="cash-outline" size={iconSize.lg} color="#E8890C" />
+                  </RowTile>
+                }
+                title={t.fx.otherCurrencies}
+                subtitle={
+                  tripRateStore.rows.length > 0
+                    ? `${currency} · ${tripRateStore.rows.map((row) => row.from).join(', ')}`
+                    : fill(t.fx.currencyOnly, { currency })
+                }
+                trailing={chevron}
+                onPress={() => setRatesOpen(true)}
               />
+              {familiesOn && !isCompany ? (
+                <>
+                  {divider}
+                  <PlainListRow
+                    leading={
+                      <RowTile tint={theme.color.brandSoft}>
+                        <Ionicons
+                          name="people-outline"
+                          size={iconSize.lg}
+                          color={theme.color.brand}
+                        />
+                      </RowTile>
+                    }
+                    title={t.families.title}
+                    subtitle={
+                      families.length > 0
+                        ? `${plural(locale, families.length, t.families.summary)} · ${plural(
+                            locale,
+                            families.reduce((sum, family) => sum + family.members.length, 0),
+                            t.families.people,
+                          )}`
+                        : t.families.rowHint
+                    }
+                    trailing={chevron}
+                    onPress={() => router.push(`/group/${groupId}/families`)}
+                  />
+                </>
+              ) : null}
+              {!isCompany ? (
+                <>
+                  {divider}
+                  {/* The member's own short tag, shown instead of the automatic type tag
+              on Home and the group header: one row here, edited in a sheet. */}
+                  <PlainListRow
+                    leading={
+                      <RowTile tint={theme.color.brandSoft}>
+                        <Ionicons
+                          name="pricetag-outline"
+                          size={iconSize.lg}
+                          color={theme.color.brand}
+                        />
+                      </RowTile>
+                    }
+                    title={t.extras.tagLabel}
+                    subtitle={tag.trim() || t.extras.tagPlaceholder}
+                    trailing={chevron}
+                    onPress={() => setTagOpen(true)}
+                  />
+                </>
+              ) : null}
             </StandardCard>
+          )}
+          {groupType === GroupType.Company && isAdmin ? (
+            <View
+              onLayout={(event) => {
+                logoY.current = event.nativeEvent.layout.y;
+              }}
+            >
+              <StandardCard style={{ padding: theme.spacing.md }}>
+                <CompanyLogoField
+                  photoPath={group.data.photo_path}
+                  busy={uploading}
+                  onImage={saveLogo}
+                  onRemove={() => void dropPhoto()}
+                />
+              </StandardCard>
+            </View>
           ) : null}
           <MissingRatesCard groupId={groupId} />
           {isCompany && companyView.isAdmin && !companyView.suspended ? (
@@ -1244,10 +1340,39 @@ export default function GroupSettingsScreen() {
             </StandardCard>
           ) : null}
           {isCompany && companyView.isOwner ? (
-            <>
-              <SectionHeader title={t.company.moreRules} />
-              <CompanyRules groupId={groupId} view={companyView} />
-            </>
+            <View style={{ gap: theme.spacing.md }}>
+              <SectionHeader title={t.company.companyRulesTitle} />
+              <CompanyRules groupId={groupId} view={companyView} part="main" />
+            </View>
+          ) : null}
+          {isCompany ? (
+            <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
+              <ListRow
+                leading={
+                  <RowTile tint={theme.color.brandSoft}>
+                    <Ionicons
+                      name="settings-outline"
+                      size={iconSize.lg}
+                      color={theme.color.brand}
+                    />
+                  </RowTile>
+                }
+                title={t.company.moreSettings}
+                subtitle={t.company.moreSettingsHint}
+                subtitleLines={2}
+                trailing={
+                  <Ionicons
+                    name={moreOpen ? 'chevron-up' : directionalIcon('chevron-forward')}
+                    size={iconSize.sm}
+                    color={theme.color.textFaint}
+                  />
+                }
+                onPress={() => setMoreOpen((open) => !open)}
+              />
+            </StandardCard>
+          ) : null}
+          {isCompany && moreOpen && companyView.isOwner ? (
+            <CompanyRules groupId={groupId} view={companyView} part="more" />
           ) : null}
 
           {/* A company's people live in People (company bar), not here. */}
@@ -1394,101 +1519,103 @@ export default function GroupSettingsScreen() {
             </View>
           ) : null}
 
-          <View style={{ gap: theme.spacing.md }}>
-            <SectionHeader title={t.group.groupActions} />
-            <StandardCard>
-              {/* ADR-009: simplification is presentation only — the pairwise ledger
+          {!isCompany || moreOpen ? (
+            <View style={{ gap: theme.spacing.md }}>
+              <SectionHeader title={t.group.groupActions} />
+              <StandardCard>
+                {/* ADR-009: simplification is presentation only — the pairwise ledger
                 underneath is untouched, so this is safe to toggle at any time.
                 Mute is this person's own switch, not the group's: pushes about
                 the group stop reaching them, the inbox keeps everything, and the
                 others are never told (the `group_mutes` migration). */}
-              {/* A company records, never splits: nothing to simplify. */}
-              {!isCompany ? (
-                <ListRow
-                  leading={chip('swap-horizontal', null)}
-                  title={t.group.simplifyDebts}
-                  subtitle={t.group.simplifyDebtsSub}
-                  subtitleLines={2}
-                  titleAccessory={infoDot('simplify', t.group.simplifyDebts)}
-                  footer={infoText('simplify', t.group.simplifyDebtsBody)}
-                  divider
-                  trailing={
-                    <Toggle
-                      value={group.data.simplify_debts}
-                      onValueChange={(value) => updateGroup.mutate({ simplify_debts: value })}
-                      accessibilityLabel={t.group.simplifyDebts}
-                    />
-                  }
-                />
-              ) : null}
-              <ListRow
-                leading={chip('notifications-outline', null)}
-                title={t.group.muteNotifications}
-                subtitle={t.group.muteSub}
-                subtitleLines={2}
-                titleAccessory={infoDot('mute', t.group.muteNotifications)}
-                footer={infoText('mute', t.group.muteNotificationsBody)}
-                trailing={
-                  <Toggle
-                    value={muted}
-                    onValueChange={(value) => setGroupMute.mutate({ groupId, muted: value })}
-                    accessibilityLabel={t.group.muteNotifications}
-                  />
-                }
-                divider
-              />
-              {group.data?.isDemo ? (
-                // The demo group has exactly one way out — archiving and leaving
-                // both assume a real membership and a real server row, neither
-                // of which this group has.
-                <ListRow
-                  leading={chip('flask-outline', '#E5384B')}
-                  title={t.demo.removeAction}
-                  subtitle={t.demo.removeHint}
-                  destructive
-                  onPress={() => void removeDemo()}
-                />
-              ) : (
-                <>
-                  {!isCompany ? (
-                    <ListRow
-                      leading={chip('copy-outline', '#2F80ED')}
-                      title={t.clone.duplicateTitle}
-                      subtitle={t.clone.duplicateHint}
-                      onPress={() => router.push(`/new-group?from=${groupId}`)}
-                      divider
-                    />
-                  ) : null}
+                {/* A company records, never splits: nothing to simplify. */}
+                {!isCompany ? (
                   <ListRow
-                    leading={chip(isFavorite(groupId) ? 'star' : 'star-outline', '#F5A301')}
-                    title={t.clone.favoriteTitle}
-                    subtitle={t.clone.favoriteHint}
+                    leading={chip('swap-horizontal', null)}
+                    title={t.group.simplifyDebts}
+                    subtitle={t.group.simplifyDebtsSub}
                     subtitleLines={2}
+                    titleAccessory={infoDot('simplify', t.group.simplifyDebts)}
+                    footer={infoText('simplify', t.group.simplifyDebtsBody)}
                     divider
                     trailing={
                       <Toggle
-                        value={isFavorite(groupId)}
-                        onValueChange={() => toggleFavorite(groupId)}
-                        accessibilityLabel={t.clone.favoriteTitle}
+                        value={group.data.simplify_debts}
+                        onValueChange={(value) => updateGroup.mutate({ simplify_debts: value })}
+                        accessibilityLabel={t.group.simplifyDebts}
                       />
                     }
                   />
-                  {/* Archive, leave and delete are rare and final, so they share
-                      one row that opens a sheet instead of taking three. */}
+                ) : null}
+                <ListRow
+                  leading={chip('notifications-outline', null)}
+                  title={t.group.muteNotifications}
+                  subtitle={t.group.muteSub}
+                  subtitleLines={2}
+                  titleAccessory={infoDot('mute', t.group.muteNotifications)}
+                  footer={infoText('mute', t.group.muteNotificationsBody)}
+                  trailing={
+                    <Toggle
+                      value={muted}
+                      onValueChange={(value) => setGroupMute.mutate({ groupId, muted: value })}
+                      accessibilityLabel={t.group.muteNotifications}
+                    />
+                  }
+                  divider
+                />
+                {group.data?.isDemo ? (
+                  // The demo group has exactly one way out — archiving and leaving
+                  // both assume a real membership and a real server row, neither
+                  // of which this group has.
                   <ListRow
-                    leading={chip('exit-outline', '#E5566D')}
-                    title={isAdmin ? t.group.exitActions : t.group.exitActionsMember}
-                    subtitle={t.group.exitActionsHint}
-                    onPress={() => setExitOpen(true)}
+                    leading={chip('flask-outline', '#E5384B')}
+                    title={t.demo.removeAction}
+                    subtitle={t.demo.removeHint}
+                    destructive
+                    onPress={() => void removeDemo()}
                   />
-                </>
-              )}
-            </StandardCard>
-            {/* Why the group is still here, under the card rather than fading: a
+                ) : (
+                  <>
+                    {!isCompany ? (
+                      <ListRow
+                        leading={chip('copy-outline', '#2F80ED')}
+                        title={t.clone.duplicateTitle}
+                        subtitle={t.clone.duplicateHint}
+                        onPress={() => router.push(`/new-group?from=${groupId}`)}
+                        divider
+                      />
+                    ) : null}
+                    <ListRow
+                      leading={chip(isFavorite(groupId) ? 'star' : 'star-outline', '#F5A301')}
+                      title={t.clone.favoriteTitle}
+                      subtitle={t.clone.favoriteHint}
+                      subtitleLines={2}
+                      divider
+                      trailing={
+                        <Toggle
+                          value={isFavorite(groupId)}
+                          onValueChange={() => toggleFavorite(groupId)}
+                          accessibilityLabel={t.clone.favoriteTitle}
+                        />
+                      }
+                    />
+                    {/* Archive, leave and delete are rare and final, so they share
+                      one row that opens a sheet instead of taking three. */}
+                    <ListRow
+                      leading={chip('exit-outline', '#E5566D')}
+                      title={isAdmin ? t.group.exitActions : t.group.exitActionsMember}
+                      subtitle={t.group.exitActionsHint}
+                      onPress={() => setExitOpen(true)}
+                    />
+                  </>
+                )}
+              </StandardCard>
+              {/* Why the group is still here, under the card rather than fading: a
                 refused delete leaves the screen looking exactly as it did. The
                 unsettled warning lives in the confirm dialog itself. */}
-            {deleteError !== null ? <Callout tone="negative">{deleteError}</Callout> : null}
-          </View>
+              {deleteError !== null ? <Callout tone="negative">{deleteError}</Callout> : null}
+            </View>
+          ) : null}
         </View>
       </ScrollView>
 

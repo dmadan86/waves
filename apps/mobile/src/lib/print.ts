@@ -56,6 +56,14 @@ function loadPrint(): typeof ExpoPrint | null {
   }
 }
 
+/** Open the system print dialog for an HTML page; false when expo-print is unavailable. */
+export async function printHtml(html: string): Promise<boolean> {
+  const Print = loadPrint();
+  if (!Print) return false;
+  await Print.printAsync({ html });
+  return true;
+}
+
 /**
  * Render an HTML string to a PDF file and return its `file://` uri, or `null`
  * when expo-print is unavailable (so the caller shows the update message). Any

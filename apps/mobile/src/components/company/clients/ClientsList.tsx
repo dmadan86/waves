@@ -16,6 +16,7 @@ import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
+import { useFavorites } from '@/lib/favorites';
 import {
   buildClientRows,
   daysAgo,
@@ -55,13 +56,11 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const [range, setRange] = useState<DateRange>('all');
   const [sort, setSort] = useState<ClientSort>('recent');
   const [query, setQuery] = useState('');
-  const [owing, setOwing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [menu, setMenu] = useState<'sort' | 'add' | null>(null);
+  const [menu, setMenu] = useState<'sort' | null>(null);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
   const sortRef = useRef<View>(null);
-  const addRef = useRef<View>(null);
   const today = todayIso();
   const fmt = (minor: bigint) => compactMoney(minor, view.currency, locale, t.company.ovCrore);
   const all = useMemo(
@@ -69,90 +68,51 @@ export function ClientsList({ groupId }: { groupId: string }) {
     [view.clients, docs, view.notes],
   );
   const counts = tabCounts(all);
-  const outstanding = all.reduce((n, r) => n + r.dueMinor, 0n);
-  const rows = listClientRows(all, { tab, status, range, sort, query, today, owing });
+  // Client stars share the device-local favourites set with group stars (ids never collide).
+  const fav = useFavorites();
+  const rows = listClientRows(all, { tab, status, range, sort, query, today }).sort(
+    (a, b) => Number(fav.isFavorite(b.client.id)) - Number(fav.isFavorite(a.client.id)),
+  );
   const filtered = status !== null || range !== 'all';
   const canAdd = view.canAdd && !suspended;
-  const open = (m: 'sort' | 'add', ref: typeof sortRef) =>
-    measureAnchor(ref, (a) => {
+  const openSort = () =>
+    measureAnchor(sortRef, (a) => {
       setAnchor(a);
-      setMenu(m);
+      setMenu('sort');
     });
   const sortName = { recent: s.sortUpdated, amount: s.sortAmount, name: s.sortName }[sort];
-  const items: OverflowMenuItem[] =
-    menu === 'sort'
-      ? [
-          { icon: 'time-outline', label: s.sortUpdated, onPress: () => setSort('recent') },
-          { icon: 'cash-outline', label: s.sortAmount, onPress: () => setSort('amount') },
-          { icon: 'text-outline', label: s.sortName, onPress: () => setSort('name') },
-        ]
-      : [
+  const items: OverflowMenuItem[] = [
+    { icon: 'time-outline', label: s.sortUpdated, onPress: () => setSort('recent') },
+    { icon: 'cash-outline', label: s.sortAmount, onPress: () => setSort('amount') },
+    { icon: 'text-outline', label: s.sortName, onPress: () => setSort('name') },
+  ];
+  // The header ⋮: add actions the FAB does not offer (quote, invoice) live here, not in a duplicate pill.
+  const addItems: OverflowMenuItem[] = [
+    {
+      icon: 'person-add-outline',
+      label: s.addClient,
+      onPress: () => router.push(`/group/${groupId}/company-client-add`),
+    },
+    {
+      icon: 'cloud-upload-outline',
+      label: t.companyImport.menuRow,
+      onPress: () => router.push(`/group/${groupId}/company-import?entity=client`),
+    },
+    ...(canDocs
+      ? ([
           {
-            icon: 'person-add-outline',
-            label: s.addClient,
-            onPress: () => router.push(`/group/${groupId}/company-client-add`),
+            icon: 'document-text-outline',
+            label: s.createQuote,
+            onPress: () => router.push(`/group/${groupId}/company-bill-form?type=estimate`),
           },
           {
-            icon: 'cloud-upload-outline',
-            label: t.companyImport.menuRow,
-            onPress: () => router.push(`/group/${groupId}/company-import?entity=client`),
+            icon: 'receipt-outline',
+            label: s.createInvoice,
+            onPress: () => router.push(`/group/${groupId}/company-bill-form?type=bill`),
           },
-          ...(canDocs
-            ? ([
-                {
-                  icon: 'document-text-outline',
-                  label: s.createQuote,
-                  onPress: () => router.push(`/group/${groupId}/company-bill-form?type=estimate`),
-                },
-                {
-                  icon: 'receipt-outline',
-                  label: s.createInvoice,
-                  onPress: () => router.push(`/group/${groupId}/company-bill-form?type=bill`),
-                },
-              ] as const)
-            : []),
-        ];
-  const kpis = [
-    {
-      tab: 'all',
-      label: s.kClients,
-      text: `${counts.all}`,
-      icon: 'people',
-      fg: '#16A34A',
-      bg: '#ECFDF3',
-    },
-    {
-      tab: 'inquiry',
-      label: s.kInquiries,
-      text: `${counts.inquiry}`,
-      icon: 'document-text',
-      ...BLUE,
-    },
-    {
-      tab: 'quote',
-      label: s.kQuotes,
-      text: `${counts.quote}`,
-      icon: 'document-attach',
-      fg: '#EA8A0C',
-      bg: '#FFF4E5',
-    },
-    {
-      tab: 'invoice',
-      label: s.kInvoices,
-      text: `${counts.invoice}`,
-      icon: 'receipt',
-      fg: '#16A34A',
-      bg: '#ECFDF3',
-    },
-    {
-      tab: 'invoice',
-      label: s.kOutstanding,
-      text: fmt(outstanding),
-      icon: 'cash',
-      fg: '#DC2626',
-      bg: '#FDECEC',
-    },
-  ] as const;
+        ] as const)
+      : []),
+  ];
   const pill = (st: ClientStatus) => {
     const c = theme.color;
     return {
@@ -186,8 +146,15 @@ export function ClientsList({ groupId }: { groupId: string }) {
           view={entries}
           subtitle=""
           showGear={entries.isOwner}
+          menuItems={canAdd ? addItems : undefined}
           actions={
             <>
+              <IconButton
+                round
+                icon="checkbox-outline"
+                label={s.fuTitle}
+                onPress={() => router.push(`/group/${groupId}/company-followups`)}
+              />
               <IconButton
                 round
                 icon={searching ? 'close' : 'search-outline'}
@@ -197,73 +164,10 @@ export function ClientsList({ groupId }: { groupId: string }) {
                   setSearching(!searching);
                 }}
               />
-              {canAdd ? (
-                <View ref={addRef} collapsable={false} style={{ marginStart: 8 }}>
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={s.addLabel}
-                    onPress={() => open('add', addRef)}
-                    style={{
-                      height: 40,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4,
-                      paddingHorizontal: theme.spacing.md,
-                      borderRadius: 20,
-                      backgroundColor: theme.color.brand,
-                    }}
-                  >
-                    <Ionicons name="add" size={iconSize.base} color={theme.color.onBrand} />
-                    <Text
-                      variant="caption"
-                      style={{ fontWeight: '700', color: theme.color.onBrand }}
-                    >
-                      {s.addLabel}
-                    </Text>
-                  </Pressable>
-                </View>
-              ) : null}
             </>
           }
         />
         <DashBody>
-          <Row style={{ gap: theme.spacing.xs }}>
-            {kpis.map((k) => (
-              <Pressable
-                key={k.label}
-                accessibilityRole="button"
-                accessibilityLabel={`${k.label} ${k.text}`}
-                onPress={() => {
-                  setTab(k.tab);
-                  setStatus(null);
-                  setOwing(k.label === s.kOutstanding);
-                  if (k.label === s.kOutstanding) setSort('amount');
-                }}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  paddingVertical: theme.spacing.sm,
-                  paddingHorizontal: 2,
-                  borderRadius: theme.radius.lg,
-                  backgroundColor: k.bg,
-                  gap: 2,
-                  alignItems: 'center',
-                }}
-              >
-                <Ionicons name={k.icon} size={iconSize.md} color={k.fg} />
-                <Text
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  style={{ fontWeight: '800', color: '#111827', fontSize: 15 }}
-                >
-                  {k.text}
-                </Text>
-                <Text variant="micro" numberOfLines={1} style={{ color: '#374151' }}>
-                  {k.label}
-                </Text>
-              </Pressable>
-            ))}
-          </Row>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
               <SegmentedPills
@@ -275,7 +179,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
                 ]}
                 value={tab}
                 onChange={(v) => {
-                  setOwing(false);
                   setTab(v);
                 }}
               />
@@ -310,7 +213,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
               ref={sortRef}
               accessibilityRole="button"
               accessibilityLabel={s.sortLabel}
-              onPress={() => open('sort', sortRef)}
+              onPress={openSort}
               style={{
                 height: 40,
                 flexDirection: 'row',
@@ -397,6 +300,23 @@ export function ClientsList({ groupId }: { groupId: string }) {
                     leading={<PersonAvatar name={c.name} size={40} />}
                     trailing={
                       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={fill(
+                            fav.isFavorite(c.id) ? t.clone.unstar : t.clone.star,
+                            { name: c.name },
+                          )}
+                          hitSlop={8}
+                          onPress={() => fav.toggle(c.id)}
+                        >
+                          <Ionicons
+                            name={fav.isFavorite(c.id) ? 'star' : 'star-outline'}
+                            size={18}
+                            color={
+                              fav.isFavorite(c.id) ? theme.color.warning : theme.color.textMuted
+                            }
+                          />
+                        </Pressable>
                         <View
                           style={{
                             backgroundColor: st.bg,

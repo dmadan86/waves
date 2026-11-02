@@ -2629,6 +2629,10 @@ export interface MirrorCompanyDoc {
   readonly convertedTo: string | null;
   readonly convertedFrom: string | null;
   readonly createdBy: string;
+  /** From the server row; absent on a document that has not synced yet. */
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+  readonly updatedBy?: string | null;
   readonly clientId?: string | null;
   readonly deleted: boolean;
   readonly pending: boolean;
@@ -2666,6 +2670,9 @@ function docFromRow(r: Record<string, unknown>): MirrorCompanyDoc {
     convertedTo: (r.converted_to as string | null) ?? null,
     convertedFrom: (r.converted_from as string | null) ?? null,
     createdBy: r.created_by as string,
+    createdAt: (r.created_at as string | null) ?? null,
+    updatedAt: (r.updated_at as string | null) ?? null,
+    updatedBy: (r.updated_by as string | null) ?? null,
     clientId: (r.client_id as string | null) ?? null,
     deleted: !!r.deleted_at,
     pending: false,
