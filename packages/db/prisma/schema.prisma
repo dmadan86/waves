@@ -238,6 +238,7 @@ model Profile {
   apiApps                   ApiApp[]
   apiTokens                 ApiToken[]
   apiCodes                  ApiAuthorizationCode[]
+  companySlots              CompanySlot[]
 
   @@map("profiles")
   @@schema("public")
@@ -271,6 +272,7 @@ model Group {
   companyPolicies Json @default("{\"version\":1,\"rules\":[]}") @map("company_policies")
   companyPolicyRevision Int @default(0) @map("company_policy_revision")
   suspendedAt DateTime? @map("suspended_at") @db.Timestamptz(6)
+  slotLapsedAt DateTime? @map("slot_lapsed_at") @db.Timestamptz(6)
   companyAttendance CompanyAttendance[]
   companyWorkTasks CompanyWorkTask[]
   companyHolidays CompanyHoliday[]
@@ -3854,5 +3856,22 @@ model CompanyTicketEvent {
   @@index([groupId,updatedSeq], map: "company_ticket_events_sync_idx")
   @@index([ticketId,createdAt], map: "company_ticket_events_ticket_idx")
   @@map("company_ticket_events")
+  @@schema("public")
+}
+
+/// One row per company-slot store subscription (waves_company_slot_monthly). `groupId` has no FK: the binding outlives a deleted company.
+model CompanySlot {
+  storeTxnId String    @id @map("store_txn_id")
+  profileId  String    @map("profile_id") @db.Uuid
+  active     Boolean
+  eventAt    DateTime? @map("event_at") @db.Timestamptz(6)
+  groupId    String?   @map("group_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId], map: "company_slots_profile_idx")
+  @@index([groupId], map: "company_slots_group_idx")
+  @@map("company_slots")
   @@schema("public")
 }

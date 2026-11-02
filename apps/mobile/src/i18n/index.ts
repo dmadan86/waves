@@ -1012,6 +1012,7 @@ export interface UiStrings {
       notFound: string;
       conflict: string;
       guestExpired: string;
+      companySlot: string;
       generic: string;
     };
     title: string;
@@ -2472,6 +2473,18 @@ export interface UiStrings {
     noteSave: string;
     evCreated: string;
     evNote: string;
+    fuOverdueDays: string;
+    fuSubToday: string;
+    fuSubOverdue: string;
+    fuSubOn: string;
+    howWent: string;
+    outSpoke: string;
+    outNoAnswer: string;
+    outNotInterested: string;
+    noteSpoke: string;
+    noteNoAnswer: string;
+    noteNotInterested: string;
+    fuNotifTitle: string;
     evFollowUp: string;
     evFollowUpDone: string;
     evReceipt: string;
@@ -2709,6 +2722,23 @@ export interface UiStrings {
     orderItems: string;
     orderTotal: string;
     itemsCount: string;
+  };
+  companySlot: {
+    addRow: string;
+    addRowHint: string;
+    title: string;
+    body: string;
+    subscribe: string;
+    restore: string;
+    restored: string;
+    noneFound: string;
+    unavailable: string;
+    pending: string;
+    buyFailed: string;
+    setupSlow: string;
+    lapsedBanner: string;
+    lapsedReadOnly: string;
+    renew: string;
   };
   companyStorage: {
     addMore: string;
@@ -8528,6 +8558,8 @@ const en: UiStrings = {
       notFound: "Something this change refers to was removed, so it can't be saved.",
       conflict: 'Someone else changed this at the same time. Review it and try again.',
       guestExpired: 'Your guest trial has ended. Sign up to keep saving.',
+      companySlot:
+        'An extra company needs its own subscription. Discard this one, then subscribe from Add company.',
       generic: "This change couldn't be saved. Review it, or discard it.",
     },
     title: 'Sync over',
@@ -9787,7 +9819,8 @@ const en: UiStrings = {
     newComplaint: 'New complaint',
     editComplaint: 'Edit complaint',
     emptyTitle: 'No complaints yet',
-    emptyBody: 'Log a customer complaint and give it to someone. If it is not solved in time it moves up to their manager, then the owner.',
+    emptyBody:
+      'Log a customer complaint and give it to someone. If it is not solved in time it moves up to their manager, then the owner.',
     emptyTab: 'Nothing here',
     seeAll: 'All',
     noneForClient: 'No complaints for this client',
@@ -9966,6 +9999,18 @@ const en: UiStrings = {
     noteSave: 'Save note',
     evCreated: 'Inquiry added',
     evNote: 'Note',
+    fuOverdueDays: '{n}d overdue',
+    fuSubToday: 'Follow up today',
+    fuSubOverdue: 'Overdue {n}d',
+    fuSubOn: 'Follow up {when}',
+    howWent: 'How did it go?',
+    outSpoke: 'Spoke',
+    outNoAnswer: 'No answer',
+    outNotInterested: 'Not interested',
+    noteSpoke: 'Follow-up: Spoke',
+    noteNoAnswer: 'Follow-up: No answer',
+    noteNotInterested: 'Follow-up: Not interested',
+    fuNotifTitle: 'Follow-up due today',
     evFollowUp: 'Follow-up',
     evFollowUpDone: 'Follow-up done',
     evReceipt: 'Money received',
@@ -10203,6 +10248,26 @@ const en: UiStrings = {
     orderItems: 'Items',
     orderTotal: 'Total',
     itemsCount: '{n} items',
+  },
+  companySlot: {
+    addRow: 'Add company',
+    addRowHint: 'Your first company is free',
+    title: 'Add another company',
+    body: 'Your first company is free. Each extra company is {price}/month.',
+    subscribe: 'Subscribe',
+    restore: 'Restore',
+    restored: 'Subscription restored.',
+    noneFound: 'No active company subscription found.',
+    unavailable:
+      'Extra companies cannot be bought in this version of the app. Update from the store and try again.',
+    pending: 'Your purchase is waiting for approval. Add the company once it goes through.',
+    buyFailed: 'Could not complete the purchase. You have not been charged.',
+    setupSlow: 'Your subscription is still being confirmed. Try again in a minute.',
+    lapsedBanner:
+      "This company's subscription ended, so it is read-only. Nothing is deleted. Renew to edit again.",
+    lapsedReadOnly:
+      "This company's subscription ended. You can view and export, but not add or edit.",
+    renew: 'Renew subscription',
   },
   companyStorage: {
     addMore: 'Add more storage',
@@ -15464,6 +15529,8 @@ const ta: UiStrings = {
       conflict: 'அதே நேரத்தில் வேறொருவர் இதை மாற்றிவிட்டார். சரிபார்த்து மீண்டும் முயலவும்.',
       guestExpired:
         'உங்கள் விருந்தினர் சோதனைக் காலம் முடிந்தது. தொடர்ந்து சேமிக்கப் பதிவு செய்யவும்.',
+      companySlot:
+        'கூடுதல் நிறுவனத்துக்குத் தனி சந்தா தேவை. இதை நீக்கிவிட்டு, நிறுவனத்தைச் சேர் என்பதில் சந்தாதாரராகுங்கள்.',
       generic: 'இந்த மாற்றத்தைச் சேமிக்க முடியவில்லை. சரிபார்க்கவும் அல்லது கைவிடவும்.',
     },
     title: 'எதன் மூலம் ஒத்திசைவு',
@@ -16740,7 +16807,8 @@ const ta: UiStrings = {
     newComplaint: 'புதிய புகார்',
     editComplaint: 'புகாரைத் திருத்து',
     emptyTitle: 'இன்னும் புகார்கள் இல்லை',
-    emptyBody: 'வாடிக்கையாளர் புகாரைப் பதிவு செய்து ஒருவருக்கு ஒதுக்குங்கள். நேரத்தில் தீர்க்கப்படாவிட்டால் அது அவரது மேலாளருக்கும், பிறகு உரிமையாளருக்கும் செல்லும்.',
+    emptyBody:
+      'வாடிக்கையாளர் புகாரைப் பதிவு செய்து ஒருவருக்கு ஒதுக்குங்கள். நேரத்தில் தீர்க்கப்படாவிட்டால் அது அவரது மேலாளருக்கும், பிறகு உரிமையாளருக்கும் செல்லும்.',
     emptyTab: 'இங்கே எதுவும் இல்லை',
     seeAll: 'அனைத்தும்',
     noneForClient: 'இந்த வாடிக்கையாளருக்கு புகார்கள் இல்லை',
@@ -16919,6 +16987,18 @@ const ta: UiStrings = {
     noteSave: 'குறிப்பைச் சேமி',
     evCreated: 'விசாரணை சேர்க்கப்பட்டது',
     evNote: 'குறிப்பு',
+    fuOverdueDays: '{n} நாள் தாமதம்',
+    fuSubToday: 'இன்று பின்தொடர்',
+    fuSubOverdue: '{n} நாள் தாமதம்',
+    fuSubOn: 'பின்தொடர் {when}',
+    howWent: 'எப்படி இருந்தது?',
+    outSpoke: 'பேசினேன்',
+    outNoAnswer: 'பதில் இல்லை',
+    outNotInterested: 'ஆர்வமில்லை',
+    noteSpoke: 'பின்தொடர்தல்: பேசினேன்',
+    noteNoAnswer: 'பின்தொடர்தல்: பதில் இல்லை',
+    noteNotInterested: 'பின்தொடர்தல்: ஆர்வமில்லை',
+    fuNotifTitle: 'இன்று பின்தொடர்தல்',
     evFollowUp: 'பின்தொடர்தல்',
     evFollowUpDone: 'பின்தொடர்தல் முடிந்தது',
     evReceipt: 'பணம் பெறப்பட்டது',
@@ -17157,6 +17237,28 @@ const ta: UiStrings = {
     orderItems: 'பொருட்கள்',
     orderTotal: 'மொத்தம்',
     itemsCount: '{n} பொருட்கள்',
+  },
+  companySlot: {
+    addRow: 'நிறுவனத்தைச் சேர்',
+    addRowHint: 'உங்கள் முதல் நிறுவனம் இலவசம்',
+    title: 'மேலும் ஒரு நிறுவனத்தைச் சேர்',
+    body: 'உங்கள் முதல் நிறுவனம் இலவசம். கூடுதல் நிறுவனம் ஒவ்வொன்றும் மாதம் {price}.',
+    subscribe: 'சந்தாதாரராகு',
+    restore: 'மீட்டெடு',
+    restored: 'சந்தா மீட்டெடுக்கப்பட்டது.',
+    noneFound: 'செயலில் உள்ள நிறுவன சந்தா எதுவும் இல்லை.',
+    unavailable:
+      'இந்தப் பதிப்பில் கூடுதல் நிறுவனங்களை வாங்க முடியாது. ஸ்டோரிலிருந்து புதுப்பித்து மீண்டும் முயலுங்கள்.',
+    pending:
+      'உங்கள் வாங்குதல் ஒப்புதலுக்காகக் காத்திருக்கிறது. அது முடிந்ததும் நிறுவனத்தைச் சேர்க்கவும்.',
+    buyFailed: 'வாங்குதலை முடிக்க முடியவில்லை. உங்களிடம் கட்டணம் வசூலிக்கப்படவில்லை.',
+    setupSlow:
+      'உங்கள் சந்தா இன்னும் உறுதிசெய்யப்படுகிறது. ஒரு நிமிடம் கழித்து மீண்டும் முயலுங்கள்.',
+    lapsedBanner:
+      'இந்த நிறுவனத்தின் சந்தா முடிந்துவிட்டது, அதனால் இது பார்க்க மட்டுமே. எதுவும் நீக்கப்படவில்லை. மீண்டும் திருத்த சந்தாவைப் புதுப்பியுங்கள்.',
+    lapsedReadOnly:
+      'இந்த நிறுவனத்தின் சந்தா முடிந்துவிட்டது. பார்க்கவும் ஏற்றுமதி செய்யவும் முடியும், சேர்க்கவோ திருத்தவோ முடியாது.',
+    renew: 'சந்தாவைப் புதுப்பி',
   },
   companyStorage: {
     addMore: 'மேலும் சேமிப்பைச் சேர்க்கவும்',
@@ -22588,6 +22690,8 @@ const hi: UiStrings = {
       notFound: 'इस बदलाव से जुड़ी कोई चीज़ हटा दी गई है, इसलिए इसे सहेजा नहीं जा सकता।',
       conflict: 'उसी समय किसी और ने इसे बदल दिया। जाँचें और फिर कोशिश करें।',
       guestExpired: 'आपकी अतिथि ट्रायल अवधि खत्म हो गई है। सहेजते रहने के लिए साइन अप करें।',
+      companySlot:
+        'अतिरिक्त कंपनी के लिए अलग सब्सक्रिप्शन चाहिए। इसे हटाएँ, फिर कंपनी जोड़ें से सब्सक्राइब करें।',
       generic: 'यह बदलाव सहेजा नहीं जा सका। जाँचें या हटा दें।',
     },
     title: 'किस पर सिंक करें',
@@ -23851,7 +23955,8 @@ const hi: UiStrings = {
     newComplaint: 'नई शिकायत',
     editComplaint: 'शिकायत संपादित करें',
     emptyTitle: 'अभी कोई शिकायत नहीं',
-    emptyBody: 'ग्राहक की शिकायत दर्ज करें और किसी को सौंपें। समय पर न सुलझे तो वह उसके मैनेजर और फिर मालिक तक पहुँचती है।',
+    emptyBody:
+      'ग्राहक की शिकायत दर्ज करें और किसी को सौंपें। समय पर न सुलझे तो वह उसके मैनेजर और फिर मालिक तक पहुँचती है।',
     emptyTab: 'यहाँ कुछ नहीं',
     seeAll: 'सभी',
     noneForClient: 'इस ग्राहक की कोई शिकायत नहीं',
@@ -24030,6 +24135,18 @@ const hi: UiStrings = {
     noteSave: 'नोट सहेजें',
     evCreated: 'पूछताछ जोड़ी गई',
     evNote: 'नोट',
+    fuOverdueDays: '{n} दिन अतिदेय',
+    fuSubToday: 'आज फ़ॉलो-अप',
+    fuSubOverdue: '{n} दिन अतिदेय',
+    fuSubOn: 'फ़ॉलो-अप {when}',
+    howWent: 'कैसा रहा?',
+    outSpoke: 'बात हुई',
+    outNoAnswer: 'जवाब नहीं',
+    outNotInterested: 'रुचि नहीं',
+    noteSpoke: 'फ़ॉलो-अप: बात हुई',
+    noteNoAnswer: 'फ़ॉलो-अप: जवाब नहीं',
+    noteNotInterested: 'फ़ॉलो-अप: रुचि नहीं',
+    fuNotifTitle: 'आज फ़ॉलो-अप है',
     evFollowUp: 'फॉलो-अप',
     evFollowUpDone: 'फॉलो-अप हो गया',
     evReceipt: 'पैसे मिले',
@@ -24267,6 +24384,26 @@ const hi: UiStrings = {
     orderItems: 'सामान',
     orderTotal: 'कुल',
     itemsCount: '{n} सामान',
+  },
+  companySlot: {
+    addRow: 'कंपनी जोड़ें',
+    addRowHint: 'आपकी पहली कंपनी मुफ़्त है',
+    title: 'एक और कंपनी जोड़ें',
+    body: 'आपकी पहली कंपनी मुफ़्त है। हर अतिरिक्त कंपनी {price}/माह है।',
+    subscribe: 'सब्सक्राइब करें',
+    restore: 'बहाल करें',
+    restored: 'सब्सक्रिप्शन बहाल हो गया।',
+    noneFound: 'कोई सक्रिय कंपनी सब्सक्रिप्शन नहीं मिला।',
+    unavailable:
+      'इस संस्करण में अतिरिक्त कंपनियाँ नहीं खरीदी जा सकतीं। स्टोर से अपडेट करके फिर कोशिश करें।',
+    pending: 'आपकी खरीद की मंज़ूरी का इंतज़ार है। पूरी होने पर कंपनी जोड़ें।',
+    buyFailed: 'खरीद पूरी नहीं हो सकी। आपसे कोई शुल्क नहीं लिया गया।',
+    setupSlow: 'आपका सब्सक्रिप्शन अभी पुष्ट हो रहा है। एक मिनट बाद फिर कोशिश करें।',
+    lapsedBanner:
+      'इस कंपनी का सब्सक्रिप्शन समाप्त हो गया है, इसलिए यह सिर्फ़ देखने के लिए है। कुछ भी हटाया नहीं गया। दोबारा बदलाव के लिए नवीनीकरण करें।',
+    lapsedReadOnly:
+      'इस कंपनी का सब्सक्रिप्शन समाप्त हो गया है। आप देख और एक्सपोर्ट कर सकते हैं, जोड़ या बदल नहीं सकते।',
+    renew: 'सब्सक्रिप्शन नवीनीकृत करें',
   },
   companyStorage: {
     addMore: 'और स्टोरेज जोड़ें',
@@ -29548,6 +29685,7 @@ const ar: UiStrings = {
       notFound: 'حُذف شيء مرتبط بهذا التغيير، لذا لا يمكن حفظه.',
       conflict: 'عدّل شخص آخر هذا في الوقت نفسه. راجعه وحاول مجدداً.',
       guestExpired: 'انتهت فترتك التجريبية كضيف. أنشئ حساباً لمواصلة الحفظ.',
+      companySlot: 'الشركة الإضافية تحتاج اشتراكاً خاصاً بها. تخلَّ عن هذه ثم اشترك من إضافة شركة.',
       generic: 'تعذّر حفظ هذا التغيير. راجعه أو تجاهله.',
     },
     title: 'المزامنة عبر',
@@ -30901,7 +31039,8 @@ const ar: UiStrings = {
     newComplaint: 'شكوى جديدة',
     editComplaint: 'تعديل الشكوى',
     emptyTitle: 'لا توجد شكاوى بعد',
-    emptyBody: 'سجّل شكوى العميل وأسندها لشخص ما. إن لم تُحل في الوقت المناسب فتصل إلى مديره ثم إلى المالك.',
+    emptyBody:
+      'سجّل شكوى العميل وأسندها لشخص ما. إن لم تُحل في الوقت المناسب فتصل إلى مديره ثم إلى المالك.',
     emptyTab: 'لا شيء هنا',
     seeAll: 'الكل',
     noneForClient: 'لا شكاوى لهذا العميل',
@@ -31080,6 +31219,18 @@ const ar: UiStrings = {
     noteSave: 'حفظ الملاحظة',
     evCreated: 'تمت إضافة الاستفسار',
     evNote: 'ملاحظة',
+    fuOverdueDays: 'متأخر {n} يوم',
+    fuSubToday: 'متابعة اليوم',
+    fuSubOverdue: 'متأخر {n} يوم',
+    fuSubOn: 'متابعة {when}',
+    howWent: 'كيف سارت؟',
+    outSpoke: 'تم الحديث',
+    outNoAnswer: 'لا رد',
+    outNotInterested: 'غير مهتم',
+    noteSpoke: 'متابعة: تم الحديث',
+    noteNoAnswer: 'متابعة: لا رد',
+    noteNotInterested: 'متابعة: غير مهتم',
+    fuNotifTitle: 'متابعة مستحقة اليوم',
     evFollowUp: 'متابعة',
     evFollowUpDone: 'تمت المتابعة',
     evReceipt: 'تم استلام مبلغ',
@@ -31317,6 +31468,24 @@ const ar: UiStrings = {
     orderItems: 'الأصناف',
     orderTotal: 'الإجمالي',
     itemsCount: '{n} أصناف',
+  },
+  companySlot: {
+    addRow: 'إضافة شركة',
+    addRowHint: 'شركتك الأولى مجانية',
+    title: 'إضافة شركة أخرى',
+    body: 'شركتك الأولى مجانية. كل شركة إضافية بسعر {price} شهرياً.',
+    subscribe: 'اشترك',
+    restore: 'استعادة',
+    restored: 'تمت استعادة الاشتراك.',
+    noneFound: 'لا يوجد اشتراك شركة نشط.',
+    unavailable: 'لا يمكن شراء شركات إضافية في هذا الإصدار. حدّث التطبيق من المتجر وحاول مجدداً.',
+    pending: 'عملية الشراء بانتظار الموافقة. أضف الشركة بعد اكتمالها.',
+    buyFailed: 'تعذّر إكمال الشراء. لم يتم خصم أي مبلغ.',
+    setupSlow: 'ما زال اشتراكك قيد التأكيد. حاول مجدداً بعد دقيقة.',
+    lapsedBanner:
+      'انتهى اشتراك هذه الشركة فهي للعرض فقط. لم يُحذف أي شيء. جدّد الاشتراك لتعديلها من جديد.',
+    lapsedReadOnly: 'انتهى اشتراك هذه الشركة. يمكنك العرض والتصدير لكن لا الإضافة أو التعديل.',
+    renew: 'تجديد الاشتراك',
   },
   companyStorage: {
     addMore: 'أضف المزيد من التخزين',

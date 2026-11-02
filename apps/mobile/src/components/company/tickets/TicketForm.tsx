@@ -60,9 +60,7 @@ export function TicketForm({ groupId }: { groupId: string }) {
   const assigneeRow = view.people.find((m) => m.id === assignee);
   const dueAt =
     customDue ??
-    (existing && existing.priority === priority
-      ? existing.dueAt
-      : defaultDueAt(priority, now));
+    (existing && existing.priority === priority ? existing.dueAt : defaultDueAt(priority, now));
   const dueMs = new Date(dueAt).getTime() - now;
   const busy = save.isPending;
 

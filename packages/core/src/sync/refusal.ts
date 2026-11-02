@@ -6,11 +6,14 @@ export enum RefusalReason {
   NotFound = 'notFound',
   Conflict = 'conflict',
   GuestExpired = 'guestExpired',
+  CompanySlot = 'companySlot',
   Generic = 'generic',
 }
 
 export function refusalReason(code: string): RefusalReason {
   switch (code) {
+    case 'COMPANY_SLOT_REQUIRED':
+      return RefusalReason.CompanySlot;
     case 'COMPANY_GROUP':
       return RefusalReason.CompanyGroup;
     case 'ADMIN_ONLY':

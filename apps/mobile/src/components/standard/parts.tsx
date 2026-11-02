@@ -348,6 +348,7 @@ export function ListRow({
   divider = false,
   trailing,
   subtitleLines = 1,
+  subtitleNegative = false,
   destructive = false,
   highlight,
   titleAccessory,
@@ -378,6 +379,8 @@ export function ListRow({
   trailing?: ReactNode;
   /** How many lines the subtitle may take before it is cut; one by default. */
   subtitleLines?: number;
+  /** Draw the subtitle in the negative colour (an overdue date). */
+  subtitleNegative?: boolean;
   /** The title is drawn in the negative colour, for the act that cannot be undone. */
   destructive?: boolean;
   /** A tint behind the whole row, for "this one is you". */
@@ -423,7 +426,12 @@ export function ListRow({
               {titleAccessory}
             </Row>
             {subtitle ? (
-              <Text variant="caption" tone="muted" numberOfLines={subtitleLines}>
+              <Text
+                variant="caption"
+                tone="muted"
+                numberOfLines={subtitleLines}
+                style={subtitleNegative ? { color: theme.color.negative } : undefined}
+              >
                 {subtitle}
               </Text>
             ) : null}
