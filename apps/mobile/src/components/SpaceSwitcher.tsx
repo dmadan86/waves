@@ -13,8 +13,9 @@ import { BUILDING_ART } from '@/components/company/dashboard/art';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { useGroups } from '@/data/hooks';
 import type { GroupRow } from '@/data/types';
-import { useStrings } from '@/i18n';
+import { fill, useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
+import { useToast } from '@/lib/toast';
 import type { Space } from '@/lib/spaces';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { useRememberSpace } from '@/lib/useSpaces';
@@ -118,6 +119,7 @@ export function SpaceSwitchSheet({
   const theme = useTheme();
   const { t } = useStrings();
   const remember = useRememberSpace();
+  const toast = useToast();
   const companyIds = useViewerCompanyIds();
   const groups = useGroups().data ?? [];
   const companies = companyIds.flatMap((id) => groups.filter((g) => g.id === id));
@@ -127,6 +129,11 @@ export function SpaceSwitchSheet({
     onClose();
     if (space === current) return;
     remember(space);
+    const name =
+      space === 'personal'
+        ? t.spaces.personal
+        : companies.find((g) => g.id === space)?.name?.trim() || t.company.tab;
+    toast.show(fill(t.spaces.switchedTo, { name }));
     const href = space === 'personal' ? '/' : `/group/${space}`;
     if (personal) router.push(href);
     else if (space === 'personal') router.navigate('/');
