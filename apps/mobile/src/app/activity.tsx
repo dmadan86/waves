@@ -187,7 +187,9 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
     label:
       resplit ??
       describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone, ctx.labels),
-    headline: resplit ?? activityHeadline(entry, ctx.labels),
+    headline:
+      resplit ??
+      activityHeadline(entry, ctx.labels, category?.label ?? ctx.t.activityScreen.anExpense),
     // Nobody did an auto-event, so it carries no actor — omit it rather than say
     // "Someone". A blocked or since-left actor still resolves through actorName.
     who: entry.actor
@@ -311,11 +313,11 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
             group, each with its small icon. An archived group, or one no longer
             on this device, gets a badge. */}
         <Row style={{ gap: 4, alignItems: 'center', overflow: 'hidden' }}>
-          {view.who ? <MetaText>{`${view.who} ·`}</MetaText> : null}
+          {view.who ? <MetaText shrink={0}>{`${view.who} ·`}</MetaText> : null}
           {view.groupName ? (
             // Name ellipsizes first; a long custom tag is capped. One line at 360dp.
             <Row style={{ gap: 4, alignItems: 'center', flexShrink: 1, maxWidth: '100%' }}>
-              <View style={{ flexShrink: 1 }}>
+              <View style={{ flexShrink: 3 }}>
                 <MetaText>{view.groupName}</MetaText>
               </View>
               {view.groupTag ? (
@@ -329,7 +331,7 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
           {view.tag ? (
             <>
               <GlyphIcon family={view.tag.family} name={view.tag.name} size={13} color={tagInk} />
-              <MetaText>{`${view.tag.label} ·`}</MetaText>
+              <MetaText shrink={0}>{`${view.tag.label} ·`}</MetaText>
             </>
           ) : null}
           {view.archived ? (
@@ -372,12 +374,12 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
 });
 
 /** One small word of a row's meta line. */
-function MetaText({ children }: { children: string }) {
+function MetaText({ children, shrink = 1 }: { children: string; shrink?: number }) {
   const theme = useTheme();
   return (
     <Text
       numberOfLines={1}
-      style={{ fontSize: 12, lineHeight: 16, color: theme.color.textMuted, flexShrink: 1 }}
+      style={{ fontSize: 12, lineHeight: 16, color: theme.color.textMuted, flexShrink: shrink }}
     >
       {children}
     </Text>

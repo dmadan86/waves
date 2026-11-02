@@ -439,7 +439,11 @@ export function describeActivity(
   labels: ActivityLabels = ENGLISH_LABELS,
 ): string {
   const { payload } = entry;
-  const description = typeof payload.description === 'string' ? payload.description : null;
+  // Blank counts as none: "Ravi added " is as unhelpful as the bare verb.
+  const description =
+    typeof payload.description === 'string' && payload.description.trim()
+      ? payload.description
+      : null;
   const who = actorName(entry.actor, myProfileId, blocked, someoneLabel);
 
   switch (entry.verb) {
@@ -559,29 +563,35 @@ export function describeActivity(
 export function activityHeadline(
   entry: ActivityRow,
   labels: ActivityLabels = ENGLISH_LABELS,
+  /** What to call an expense with no description: its category, else "an expense". */
+  untitled = 'an expense',
 ): string {
   const { payload } = entry;
-  const description = typeof payload.description === 'string' ? payload.description : null;
+  const description =
+    typeof payload.description === 'string' && payload.description.trim()
+      ? payload.description.trim()
+      : null;
   // Verb first, description second. An imported description can itself be a whole
   // clause ("Hethu paid Madan D."), and suffixing the verb onto that reads as a
   // dangling "... added". Leading with the verb keeps our word anchored and reads
   // cleanly whatever the description is. Lower-case fallback since it now trails
   // a capitalised verb.
   const what = description ?? 'expense';
+  const item = description ?? untitled;
 
   switch (entry.verb) {
     case 'added':
-      return `Added ${what}`;
+      return `Added ${item}`;
     case 'edited':
-      return `Edited ${what}`;
+      return `Edited ${item}`;
     case 'deleted':
-      return `Deleted ${what}`;
+      return `Deleted ${item}`;
     case 'restored':
-      return `Restored ${what}`;
+      return `Restored ${item}`;
     case 'superseded':
       return 'Edit replaced';
     case 'disputed':
-      return `Flagged ${what}`;
+      return `Flagged ${item}`;
     case 'withdrew_dispute':
       return 'Correction withdrawn';
     case 'accepted_dispute':
