@@ -2376,6 +2376,18 @@ export interface UiStrings {
     noteSave: string;
     evCreated: string;
     evNote: string;
+    fuOverdueDays: string;
+    fuSubToday: string;
+    fuSubOverdue: string;
+    fuSubOn: string;
+    howWent: string;
+    outSpoke: string;
+    outNoAnswer: string;
+    outNotInterested: string;
+    noteSpoke: string;
+    noteNoAnswer: string;
+    noteNotInterested: string;
+    fuNotifTitle: string;
     evFollowUp: string;
     evFollowUpDone: string;
     evReceipt: string;
@@ -9769,6 +9781,18 @@ const en: UiStrings = {
     noteSave: 'Save note',
     evCreated: 'Inquiry added',
     evNote: 'Note',
+    fuOverdueDays: '{n}d overdue',
+    fuSubToday: 'Follow up today',
+    fuSubOverdue: 'Overdue {n}d',
+    fuSubOn: 'Follow up {when}',
+    howWent: 'How did it go?',
+    outSpoke: 'Spoke',
+    outNoAnswer: 'No answer',
+    outNotInterested: 'Not interested',
+    noteSpoke: 'Follow-up: Spoke',
+    noteNoAnswer: 'Follow-up: No answer',
+    noteNotInterested: 'Follow-up: Not interested',
+    fuNotifTitle: 'Follow-up due today',
     evFollowUp: 'Follow-up',
     evFollowUpDone: 'Follow-up done',
     evReceipt: 'Money received',
@@ -16621,6 +16645,18 @@ const ta: UiStrings = {
     noteSave: 'குறிப்பைச் சேமி',
     evCreated: 'விசாரணை சேர்க்கப்பட்டது',
     evNote: 'குறிப்பு',
+    fuOverdueDays: '{n} நாள் தாமதம்',
+    fuSubToday: 'இன்று பின்தொடர்',
+    fuSubOverdue: '{n} நாள் தாமதம்',
+    fuSubOn: 'பின்தொடர் {when}',
+    howWent: 'எப்படி இருந்தது?',
+    outSpoke: 'பேசினேன்',
+    outNoAnswer: 'பதில் இல்லை',
+    outNotInterested: 'ஆர்வமில்லை',
+    noteSpoke: 'பின்தொடர்தல்: பேசினேன்',
+    noteNoAnswer: 'பின்தொடர்தல்: பதில் இல்லை',
+    noteNotInterested: 'பின்தொடர்தல்: ஆர்வமில்லை',
+    fuNotifTitle: 'இன்று பின்தொடர்தல்',
     evFollowUp: 'பின்தொடர்தல்',
     evFollowUpDone: 'பின்தொடர்தல் முடிந்தது',
     evReceipt: 'பணம் பெறப்பட்டது',
@@ -23631,6 +23667,18 @@ const hi: UiStrings = {
     noteSave: 'नोट सहेजें',
     evCreated: 'पूछताछ जोड़ी गई',
     evNote: 'नोट',
+    fuOverdueDays: '{n} दिन अतिदेय',
+    fuSubToday: 'आज फ़ॉलो-अप',
+    fuSubOverdue: '{n} दिन अतिदेय',
+    fuSubOn: 'फ़ॉलो-अप {when}',
+    howWent: 'कैसा रहा?',
+    outSpoke: 'बात हुई',
+    outNoAnswer: 'जवाब नहीं',
+    outNotInterested: 'रुचि नहीं',
+    noteSpoke: 'फ़ॉलो-अप: बात हुई',
+    noteNoAnswer: 'फ़ॉलो-अप: जवाब नहीं',
+    noteNotInterested: 'फ़ॉलो-अप: रुचि नहीं',
+    fuNotifTitle: 'आज फ़ॉलो-अप है',
     evFollowUp: 'फॉलो-अप',
     evFollowUpDone: 'फॉलो-अप हो गया',
     evReceipt: 'पैसे मिले',
@@ -30580,6 +30628,18 @@ const ar: UiStrings = {
     noteSave: 'حفظ الملاحظة',
     evCreated: 'تمت إضافة الاستفسار',
     evNote: 'ملاحظة',
+    fuOverdueDays: 'متأخر {n} يوم',
+    fuSubToday: 'متابعة اليوم',
+    fuSubOverdue: 'متأخر {n} يوم',
+    fuSubOn: 'متابعة {when}',
+    howWent: 'كيف سارت؟',
+    outSpoke: 'تم الحديث',
+    outNoAnswer: 'لا رد',
+    outNotInterested: 'غير مهتم',
+    noteSpoke: 'متابعة: تم الحديث',
+    noteNoAnswer: 'متابعة: لا رد',
+    noteNotInterested: 'متابعة: غير مهتم',
+    fuNotifTitle: 'متابعة مستحقة اليوم',
     evFollowUp: 'متابعة',
     evFollowUpDone: 'تمت المتابعة',
     evReceipt: 'تم استلام مبلغ',
