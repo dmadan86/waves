@@ -102,6 +102,7 @@ describe('follow-up grouping', () => {
   it('picks the next follow-up day', () => {
     expect(nextFollowUpDay('tomorrow', '2026-11-30')).toBe('2026-12-01');
     expect(nextFollowUpDay('next_week', '2026-11-10')).toBe('2026-11-17');
+    expect(nextFollowUpDay('three_days', '2026-11-30')).toBe('2026-12-03');
     expect(nextFollowUpDay('none', '2026-11-10')).toBeNull();
   });
 });
