@@ -1441,7 +1441,10 @@ function LedgerGroupScreen() {
                   to send it. Touch keeps the visible chip; screen readers get the
                   same affordance as a custom action on the row below, because a
                   nested accessible button can be hidden by an accessible parent. */}
-              {canRemind ? (
+              {/* The bell on the payments card above already reminds anyone in
+                  "owes you"; the chip stays only where that card has no row. */}
+              {canRemind &&
+              !settleFlow.split.owesMe.some((transfer) => transfer.from === member.id) ? (
                 <RemindChip
                   groupId={groupId}
                   member={member}

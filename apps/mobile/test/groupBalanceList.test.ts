@@ -22,6 +22,10 @@ describe('balance list helpers', () => {
       'a',
       'b',
     ]);
+    expect(sortPeopleDebts(people, 'amountLow', (id) => id, 'en').map((p) => p.memberId)).toEqual([
+      'a',
+      'b',
+    ]);
     expect(people[0].memberId).toBe('b');
   });
   it('filters either end of a transfer, with All retaining every currency', () => {
