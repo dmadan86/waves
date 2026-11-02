@@ -16,6 +16,7 @@ import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
+import { useFavorites } from '@/lib/favorites';
 import {
   buildClientRows,
   daysAgo,
@@ -67,7 +68,11 @@ export function ClientsList({ groupId }: { groupId: string }) {
     [view.clients, docs, view.notes],
   );
   const counts = tabCounts(all);
-  const rows = listClientRows(all, { tab, status, range, sort, query, today });
+  // Client stars share the device-local favourites set with group stars (ids never collide).
+  const fav = useFavorites();
+  const rows = listClientRows(all, { tab, status, range, sort, query, today }).sort(
+    (a, b) => Number(fav.isFavorite(b.client.id)) - Number(fav.isFavorite(a.client.id)),
+  );
   const filtered = status !== null || range !== 'all';
   const canAdd = view.canAdd && !suspended;
   const openSort = () =>
@@ -139,6 +144,12 @@ export function ClientsList({ groupId }: { groupId: string }) {
           menuItems={canAdd ? addItems : undefined}
           actions={
             <>
+              <IconButton
+                round
+                icon="checkbox-outline"
+                label={s.fuTitle}
+                onPress={() => router.push(`/group/${groupId}/company-followups`)}
+              />
               <IconButton
                 round
                 icon={searching ? 'close' : 'search-outline'}
@@ -284,6 +295,23 @@ export function ClientsList({ groupId }: { groupId: string }) {
                     leading={<PersonAvatar name={c.name} size={40} />}
                     trailing={
                       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={fill(
+                            fav.isFavorite(c.id) ? t.clone.unstar : t.clone.star,
+                            { name: c.name },
+                          )}
+                          hitSlop={8}
+                          onPress={() => fav.toggle(c.id)}
+                        >
+                          <Ionicons
+                            name={fav.isFavorite(c.id) ? 'star' : 'star-outline'}
+                            size={18}
+                            color={
+                              fav.isFavorite(c.id) ? theme.color.warning : theme.color.textMuted
+                            }
+                          />
+                        </Pressable>
                         <View
                           style={{
                             backgroundColor: st.bg,
