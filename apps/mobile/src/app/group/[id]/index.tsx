@@ -1514,49 +1514,34 @@ function LedgerGroupScreen() {
             <SectionHeader
               title={t.group.everyonesBalance}
               trailing={
-                familiesOn ? (
-                  <PillButton
-                    label={lens === 'families' ? t.families.byFamily : t.families.byPerson}
-                    onPress={() => void pickLens()}
-                  />
-                ) : undefined
+                <Row style={{ gap: theme.spacing.xs }}>
+                  {familiesOn ? (
+                    <PillButton
+                      label={lens === 'families' ? t.families.byFamily : t.families.byPerson}
+                      onPress={() => void pickLens()}
+                    />
+                  ) : null}
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => router.push(`/group/${groupId}/simplify`)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      minHeight: 36,
+                      paddingHorizontal: theme.spacing.md,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: theme.color.brand,
+                    }}
+                  >
+                    <Ionicons name="swap-horizontal" size={16} color={theme.color.onBrand} />
+                    <Text variant="caption" tone="onBrand" style={{ fontWeight: '700' }}>
+                      {t.whoPaysWhom}
+                    </Text>
+                  </Pressable>
+                </Row>
               }
             />
-            <Row
-              style={{
-                alignSelf: 'flex-end',
-                backgroundColor: theme.color.brandSoft,
-                borderRadius: theme.radius.pill,
-                padding: theme.spacing.xs,
-              }}
-            >
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: true }}
-                accessibilityLabel={t.sort.amount}
-                style={{
-                  backgroundColor: theme.color.brand,
-                  borderRadius: theme.radius.pill,
-                  paddingHorizontal: theme.spacing.md,
-                  paddingVertical: theme.spacing.sm,
-                }}
-              >
-                <Text variant="caption" tone="onBrand">
-                  {t.sort.amount}
-                </Text>
-              </Pressable>
-              <Pressable
-                accessibilityRole="tab"
-                accessibilityState={{ selected: false }}
-                accessibilityLabel={t.misc.balanceSimplified}
-                onPress={() => router.push(`/group/${groupId}/simplify`)}
-                style={{ paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm }}
-              >
-                <Text variant="caption" tone="brand">
-                  {t.misc.balanceSimplified}
-                </Text>
-              </Pressable>
-            </Row>
           </View>
         ) : null}
       </>
