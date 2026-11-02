@@ -533,3 +533,28 @@ describe('company storage packs', () => {
     });
   });
 });
+
+describe('company slots', () => {
+  const slot = (over: Partial<RcEvent> = {}) =>
+    mapEvent(
+      event({
+        product_id: 'waves_company_slot_monthly',
+        entitlement_ids: ['company_slot'],
+        ...over,
+      }),
+    ).action;
+
+  it('a purchase or renewal is an active slot, never a Pro row', () => {
+    expect(slot()).toEqual({ kind: 'company_slot', active: true, store_txn_id: 'GPA.1234-5678' });
+    expect(slot({ type: 'RENEWAL' })).toMatchObject({ active: true });
+    expect(slot({ type: 'BILLING_ISSUE' })).toMatchObject({ active: true });
+  });
+  it('a cancellation keeps the slot until it expires; expiry and refund end it', () => {
+    expect(slot({ type: 'CANCELLATION' })).toMatchObject({ active: true });
+    expect(slot({ type: 'EXPIRATION' })).toMatchObject({ active: false });
+    expect(slot({ type: 'REFUND' })).toMatchObject({ active: false });
+  });
+  it('is recognised by the entitlement alone', () => {
+    expect(slot({ product_id: 'something_else' })).toMatchObject({ kind: 'company_slot' });
+  });
+});
