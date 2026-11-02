@@ -141,13 +141,16 @@ GRANT EXECUTE ON FUNCTION public.waves_company_agent_link(uuid,text), public.wav
 
 -- ───────────────────────────────────────────────────── approval for agents ──
 
--- Identical to 20261112090000_company_paid_direct except the INSERT branch and the material-UPDATE branch: an entry written
+-- Identical to 20261112090000_company_paid_direct except an assistant's refusal for no-review kinds, the INSERT branch and the material-UPDATE branch: an entry written
 -- or edited through an assistant is also held for review while the company's "agent changes need approval" switch is on,
 -- whatever the approvals setting.
 CREATE OR REPLACE FUNCTION public.waves_company_review_guard() RETURNS trigger
  LANGUAGE plpgsql  SECURITY DEFINER SET search_path TO 'public', 'pg_temp' AS $fn$
 BEGIN
  IF NEW.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM public.groups WHERE id=NEW.group_id AND deleted_at IS NULL) THEN RAISE EXCEPTION 'GROUP_DELETED'; END IF;
+ IF public.waves_agent_client_id() IS NOT NULL AND TG_OP='INSERT' AND (NEW.paid_by_company OR NEW.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment','advance','reimbursement')) THEN
+  RAISE EXCEPTION 'NOT_ALLOWED: an assistant records expense claims only' USING ERRCODE='insufficient_privilege';
+ END IF;
  IF NEW.paid_by_company OR NEW.entry_kind IN ('allocation','pool_return','pool_adjustment','pool_request','wage_payment') OR (NEW.entry_kind IN ('advance','reimbursement') AND EXISTS(SELECT 1 FROM public.group_members WHERE id=NEW.created_by AND role::text='manager')) THEN NEW.status:='approved'; RETURN NEW; END IF;
  IF TG_OP='INSERT' THEN
   IF (SELECT company_approvals_enabled FROM public.groups WHERE id=NEW.group_id)
@@ -249,29 +252,25 @@ END $$;
 
 -- ───────────────────────── money writes: cap, write and audit in ONE transaction ──
 
--- Separate cap / write / audit requests could all pass the same remaining daily allowance. These take a per-person lock
--- and do all three together, so the cap sees every earlier write and a failed audit undoes the write.
+-- These take the per-person lock, replay safely and keep the draft-only rule; the cap and audit themselves live in the table
+-- triggers below, so they hold on every path (these RPCs, the plain company RPCs, direct writes) and in one transaction.
 CREATE FUNCTION public.waves_company_agent_entry_add(p_group_id uuid, p_entry_id uuid, p_member_id uuid, p_data jsonb) RETURNS text
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
-DECLARE v_amount bigint; v_status text; v_cur character(3);
+DECLARE v_status text;
 BEGIN
  IF public.waves_agent_client_id() IS NULL THEN RAISE EXCEPTION 'NOT_LINKED' USING ERRCODE='insufficient_privilege'; END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended(public.waves_current_profile_id()::text, 7));
  SELECT status INTO v_status FROM public.company_entries WHERE id = p_entry_id AND public.waves_can_read_company_entry(id);
  IF FOUND THEN RETURN v_status; END IF;
  IF coalesce(p_data->>'amount','') !~ '^\d{1,16}$' THEN RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
- v_amount := (p_data->>'amount')::bigint;
- PERFORM public.waves_assert_agent_cap(v_amount);
  PERFORM public.waves_company_entry_create(p_group_id, p_entry_id, p_member_id, 'expense', p_data);
- SELECT default_currency INTO v_cur FROM public.groups WHERE id = p_group_id;
- PERFORM public.waves_record_agent_write('company_entry.add', p_group_id, p_entry_id, v_amount, v_cur);
  SELECT status INTO v_status FROM public.company_entries WHERE id = p_entry_id;
  RETURN v_status;
 END $$;
 
 CREATE FUNCTION public.waves_company_agent_estimate_save(p_group_id uuid, p_doc_id uuid, p_data jsonb) RETURNS bigint
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
-DECLARE v_total bigint; v_cur character(3); r public.company_documents%ROWTYPE;
+DECLARE v_total bigint; r public.company_documents%ROWTYPE;
 BEGIN
  IF public.waves_agent_client_id() IS NULL THEN RAISE EXCEPTION 'NOT_LINKED' USING ERRCODE='insufficient_privilege'; END IF;
  PERFORM public.waves_company_actor(p_group_id);
@@ -282,9 +281,7 @@ BEGIN
  END IF;
  IF p_data->>'docType' IS DISTINCT FROM 'estimate' THEN RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
  PERFORM public.waves_company_doc_save(p_group_id, p_doc_id, p_data);
- SELECT total_minor, currency INTO v_total, v_cur FROM public.company_documents WHERE id = p_doc_id;
- PERFORM public.waves_assert_agent_cap(v_total);
- PERFORM public.waves_record_agent_write('estimate.save', p_group_id, p_doc_id, v_total, v_cur);
+ SELECT total_minor INTO v_total FROM public.company_documents WHERE id = p_doc_id;
  RETURN v_total;
 END $$;
 REVOKE ALL ON FUNCTION public.waves_company_agent_entry_add(uuid,uuid,uuid,jsonb), public.waves_company_agent_estimate_save(uuid,uuid,jsonb) FROM PUBLIC, anon;
@@ -292,3 +289,42 @@ GRANT EXECUTE ON FUNCTION public.waves_company_agent_entry_add(uuid,uuid,uuid,js
 
 REVOKE ALL ON FUNCTION public.waves_company_agent_no_review(), public.waves_company_agent_write_guard() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_company_agent_no_review(), public.waves_company_agent_write_guard() TO service_role;
+
+-- ───────────────── cap + audit + shape rules on the tables, for every path ──
+
+-- Any write by an assistant to an entry's amount is capped (per expense and per day) and audited in the same transaction,
+-- under a per-person lock so concurrent calls cannot spend the same remaining allowance.
+CREATE FUNCTION public.waves_company_agent_money_guard() RETURNS trigger
+ LANGUAGE plpgsql SET search_path TO 'public','pg_temp' AS $$
+DECLARE v_amount bigint; v_action text;
+BEGIN
+ IF public.waves_agent_client_id() IS NULL THEN RETURN NEW; END IF;
+ IF TG_TABLE_NAME = 'company_entries' THEN
+  IF TG_OP = 'UPDATE' AND NEW.amount IS NOT DISTINCT FROM OLD.amount THEN RETURN NEW; END IF;
+  v_amount := NEW.amount; v_action := CASE WHEN TG_OP = 'INSERT' THEN 'company_entry.add' ELSE 'company_entry.edit' END;
+ ELSE
+  -- Estimates and bills: an assistant only ever writes a draft estimate, and never converts it.
+  IF NEW.doc_type <> 'estimate' OR NEW.status <> 'draft' OR NEW.converted_to IS NOT NULL OR (TG_OP = 'UPDATE' AND (OLD.doc_type <> 'estimate' OR OLD.status <> 'draft' OR OLD.converted_to IS NOT NULL)) THEN
+   RAISE EXCEPTION 'NOT_ALLOWED: an assistant can only write draft estimates' USING ERRCODE='insufficient_privilege';
+  END IF;
+  v_amount := NEW.total_minor; v_action := 'estimate.save';
+ END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(public.waves_current_profile_id()::text, 7));
+ PERFORM public.waves_assert_agent_cap(v_amount);
+ PERFORM public.waves_record_agent_write(v_action, NEW.group_id, NEW.id, v_amount, NEW.currency);
+ RETURN NEW;
+END $$;
+REVOKE ALL ON FUNCTION public.waves_company_agent_money_guard() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_company_agent_money_guard() TO service_role;
+CREATE TRIGGER company_agent_money_guard BEFORE INSERT OR UPDATE ON public.company_entries FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_money_guard();
+CREATE TRIGGER company_agent_money_guard BEFORE INSERT OR UPDATE ON public.company_documents FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_money_guard();
+
+-- Cross-company people lookups read other companies and are not for assistants. Patched from the live definitions so
+-- nothing else about them can drift: the first statement block gains one refusal.
+DO $$ DECLARE f regprocedure; d text; BEGIN
+ FOREACH f IN ARRAY ARRAY['public.waves_company_past_people(uuid)'::regprocedure, 'public.waves_company_add_past_people(uuid,uuid[])'::regprocedure] LOOP
+  d := regexp_replace(pg_get_functiondef(f), 'BEGIN', E'BEGIN\n IF public.waves_agent_client_id() IS NOT NULL THEN RAISE EXCEPTION ''NOT_ALLOWED'' USING ERRCODE=''insufficient_privilege''; END IF;');
+  IF d = pg_get_functiondef(f) THEN RAISE EXCEPTION 'could not patch %', f; END IF;
+  EXECUTE d;
+ END LOOP;
+END $$;

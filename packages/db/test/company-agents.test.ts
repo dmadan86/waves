@@ -463,3 +463,74 @@ describe('the database enforces the binding below the tools', () => {
     expect(missing.rows).toEqual([]);
   });
 });
+
+describe('a linked assistant cannot go round the tools through the plain RPCs', () => {
+  it('the cap and the audit apply to the plain entry RPC too', () =>
+    isolated(async () => {
+      await enableAndLink(2);
+      await expect(
+        as(2, CLIENT, () =>
+          db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
+            g.groupId,
+            randomUUID(),
+            g.memberIds[2],
+            'expense',
+            JSON.stringify({ amount: '5000001', category: 'fuel', occurredOn: today }),
+          ]),
+        ),
+      ).rejects.toThrow(/AGENT_CAP_SINGLE/);
+      const id = await addEntry(2, CLIENT);
+      expect(
+        (await db.query('SELECT 1 FROM agent_writes WHERE object_id=$1 AND action=$2', [id, 'company_entry.add'])).rowCount,
+      ).toBe(1);
+    }));
+
+  it('company-paid entries and advances (which skip review) are refused', () =>
+    isolated(async () => {
+      await enableAndLink(0);
+      expect(
+        await denied(() =>
+          as(0, CLIENT, () =>
+            db.query('SELECT waves_company_entry_create($1,$2,NULL,$3,$4)', [
+              g.groupId,
+              randomUUID(),
+              'expense',
+              JSON.stringify({ paidByCompany: true, amount: '100', category: 'fuel', occurredOn: today }),
+            ]),
+          ),
+        ),
+      ).toMatch(/records expense claims only/);
+    }));
+
+  it('only draft estimates can be written, never a bill', () =>
+    isolated(async () => {
+      await enableAndLink(0);
+      const save = (docType: string, id = randomUUID()) =>
+        as(0, CLIENT, () =>
+          db.query('SELECT waves_company_doc_save($1,$2,$3)', [
+            g.groupId,
+            id,
+            JSON.stringify({
+              docType,
+              customerName: 'Asha',
+              docDate: today,
+              items: [{ description: 'Paint', qtyMilli: '2000', rateMinor: '50000' }],
+            }),
+          ]),
+        );
+      expect(await denied(() => save('bill'))).toMatch(/draft estimates/);
+      await save('estimate');
+      expect(
+        (await db.query("SELECT 1 FROM agent_writes WHERE action='estimate.save' AND amount_minor=100000")).rowCount,
+      ).toBe(1);
+    }));
+
+  it('cross-company people lookups are closed to assistants, open to the app', () =>
+    isolated(async () => {
+      await enableAndLink(0);
+      expect(
+        await denied(() => as(0, CLIENT, () => db.query('SELECT * FROM waves_company_past_people($1)', [g.groupId]))),
+      ).toMatch(/NOT_ALLOWED/);
+      await as(0, null, () => db.query('SELECT * FROM waves_company_past_people($1)', [g.groupId]));
+    }));
+});
