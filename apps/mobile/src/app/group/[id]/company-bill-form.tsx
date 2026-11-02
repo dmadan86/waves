@@ -43,12 +43,20 @@ function BillForm() {
     docId,
     type,
     clientId,
-  } = useLocalSearchParams<{ id: string; docId?: string; type?: string; clientId?: string }>();
+    copyFrom,
+  } = useLocalSearchParams<{
+    id: string;
+    docId?: string;
+    type?: string;
+    clientId?: string;
+    copyFrom?: string;
+  }>();
   const view = useCompanyDocs(id);
   const { t } = useStrings();
   const doc = view.docs.find((d) => d.id === docId && !d.deleted);
+  const copy = view.docs.find((d) => d.id === copyFrom && !d.deleted);
   if (!view.canUse) return null;
-  if (docId && !doc)
+  if ((docId && !doc) || (copyFrom && !copy))
     return (
       <Screen>
         <PlainHeader title={t.companyDocs.title} />
@@ -57,7 +65,14 @@ function BillForm() {
     );
   if (doc?.convertedTo) return null;
   return (
-    <DocumentForm key={doc?.id ?? 'new'} groupId={id} doc={doc} type={type} clientId={clientId} />
+    <DocumentForm
+      key={doc?.id ?? 'new'}
+      groupId={id}
+      doc={doc}
+      seed={doc ?? copy}
+      type={type}
+      clientId={clientId}
+    />
   );
 }
 
@@ -84,11 +99,14 @@ function IconCircle({ name }: { name: IconName }) {
 function DocumentForm({
   groupId,
   doc,
+  seed,
   type,
   clientId,
 }: {
   groupId: string;
   doc?: ReturnType<typeof useCompanyDocs>['docs'][number];
+  /** What the fields start from: the doc being edited, or a doc being duplicated into a new one. */
+  seed?: ReturnType<typeof useCompanyDocs>['docs'][number];
   type?: string;
   /** A new document started from a client: prefills the name and phone and links it. */
   clientId?: string;
@@ -104,25 +122,25 @@ function DocumentForm({
   const clearance = useBottomClearance();
   const currency = view.currency as CurrencyCode;
   const [docType, setDocType] = useState<'bill' | 'estimate'>(
-    doc?.docType ?? (type === 'bill' ? 'bill' : 'estimate'),
+    seed?.docType ?? (type === 'bill' ? 'bill' : 'estimate'),
   );
   const [typeMenu, setTypeMenu] = useState(false);
   const [pickClient, setPickClient] = useState(false);
-  const [linkedClient, setLinkedClient] = useState(client?.id);
+  const [linkedClient, setLinkedClient] = useState(client?.id ?? seed?.clientId ?? undefined);
   const [openCustomer, setOpenCustomer] = useState(false);
   const [openDiscount, setOpenDiscount] = useState(false);
-  const [openNotes, setOpenNotes] = useState(!!doc?.notes);
+  const [openNotes, setOpenNotes] = useState(!!seed?.notes);
   const [expanded, setExpanded] = useState<number | null>(doc ? null : 0);
   const [payChoice, setPayChoice] = useState<BillPayChoice>('unpaid');
   const [partMinor, setPartMinor] = useState(0n);
-  const [name, setName] = useState(doc?.customerName ?? client?.name ?? '');
-  const [phone, setPhone] = useState(doc?.customerPhone ?? client?.phone ?? '');
+  const [name, setName] = useState(seed?.customerName ?? client?.name ?? '');
+  const [phone, setPhone] = useState(seed?.customerPhone ?? client?.phone ?? '');
   const [date, setDate] = useState(doc?.docDate ?? todayIso());
   const [picking, setPicking] = useState(false);
-  const [notes, setNotes] = useState(doc?.notes ?? '');
-  const [discount, setDiscount] = useState(doc?.discountMinor ?? 0n);
+  const [notes, setNotes] = useState(seed?.notes ?? '');
+  const [discount, setDiscount] = useState(seed?.discountMinor ?? 0n);
   const [items, setItems] = useState(
-    doc?.items.map((i, index) => ({
+    seed?.items.map((i, index) => ({
       key: index,
       description: i.description,
       qty: formatQty(i.qtyMilli),

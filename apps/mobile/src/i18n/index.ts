@@ -1504,6 +1504,16 @@ export interface UiStrings {
     notesOptional: string;
     paymentStatus: string;
     saveShare: string;
+    createdBy: string;
+    activity: string;
+    nextAction: string;
+    add: string;
+    duplicate: string;
+    print: string;
+    markSent: string;
+    paymentEvt: string;
+    viewAll: string;
+    showLess: string;
   };
   company: {
     attendanceTitle: string;
@@ -8886,6 +8896,16 @@ const en: UiStrings = {
     notesOptional: 'Notes (optional)',
     paymentStatus: 'Payment status',
     saveShare: 'Save & share',
+    createdBy: 'Created by',
+    activity: 'Activity',
+    nextAction: 'Next action',
+    add: 'Add',
+    duplicate: 'Duplicate',
+    print: 'Print',
+    markSent: 'Mark as sent',
+    paymentEvt: 'Payment received',
+    viewAll: 'View all',
+    showLess: 'Show less',
   },
   company: {
     attendanceTitle: 'Attendance',
@@ -15734,6 +15754,16 @@ const ta: UiStrings = {
     notesOptional: 'குறிப்புகள் (விருப்பம்)',
     paymentStatus: 'கட்டண நிலை',
     saveShare: 'சேமித்துப் பகிர்',
+    createdBy: 'உருவாக்கியவர்',
+    activity: 'செயல்பாடு',
+    nextAction: 'அடுத்த செயல்',
+    add: 'சேர்',
+    duplicate: 'நகலெடு',
+    print: 'அச்சிடு',
+    markSent: 'அனுப்பியதாகக் குறி',
+    paymentEvt: 'பணம் பெறப்பட்டது',
+    viewAll: 'அனைத்தையும் காண்க',
+    showLess: 'குறைவாகக் காட்டு',
   },
   company: {
     attendanceTitle: 'வருகை',
@@ -22748,6 +22778,16 @@ const hi: UiStrings = {
     notesOptional: 'नोट्स (वैकल्पिक)',
     paymentStatus: 'भुगतान स्थिति',
     saveShare: 'सेव करें और भेजें',
+    createdBy: 'बनाने वाले',
+    activity: 'गतिविधि',
+    nextAction: 'अगला कदम',
+    add: 'जोड़ें',
+    duplicate: 'डुप्लिकेट',
+    print: 'प्रिंट',
+    markSent: 'भेजा हुआ चिह्नित करें',
+    paymentEvt: 'भुगतान मिला',
+    viewAll: 'सभी देखें',
+    showLess: 'कम दिखाएँ',
   },
   company: {
     attendanceTitle: 'हाज़िरी',
@@ -29645,6 +29685,16 @@ const ar: UiStrings = {
     notesOptional: 'ملاحظات (اختياري)',
     paymentStatus: 'حالة الدفع',
     saveShare: 'احفظ وشارك',
+    createdBy: 'أنشأه',
+    activity: 'النشاط',
+    nextAction: 'الإجراء التالي',
+    add: 'إضافة',
+    duplicate: 'تكرار',
+    print: 'طباعة',
+    markSent: 'تحديد كمرسل',
+    paymentEvt: 'تم استلام دفعة',
+    viewAll: 'عرض الكل',
+    showLess: 'عرض أقل',
   },
   company: {
     attendanceTitle: 'الحضور',
