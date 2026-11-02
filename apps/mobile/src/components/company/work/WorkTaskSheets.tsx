@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable } from 'react-native';
 import { iconSize, Sheet, useTheme } from '@waves/ui';
 import { EditTextSheet } from '@/components/EditTextSheet';
+import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { StatusSheetBody } from './StatusSheetBody';
 import type { CompanyWorkSetPayload } from '@waves/core';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
@@ -11,6 +12,7 @@ type Field = { taskId: string; kind: 'note' | 'blockedReason' } | null;
 type Payload = CompanyWorkSetPayload;
 
 export function WorkTaskSheets({
+  groupId,
   statusId,
   setStatusId,
   statusTask,
@@ -24,6 +26,7 @@ export function WorkTaskSheets({
   canChange,
   write,
 }: {
+  groupId: string;
   statusId: string | null;
   setStatusId: (id: string | null) => void;
   statusTask: MirrorWorkTask | undefined;
@@ -85,9 +88,28 @@ export function WorkTaskSheets({
               const next: Payload =
                 status === 'blocked'
                   ? { ...base, status, blockedReason: text || statusTask.blockedReason }
-                  : { ...base, status, blockedReason: null, note: text || statusTask.note };
+                  : {
+                      ...base,
+                      status,
+                      blockedReason: null,
+                      // Add to the task's note, never replace it.
+                      note: text
+                        ? statusTask.note
+                          ? `${statusTask.note}\n${text}`
+                          : text
+                        : statusTask.note,
+                    };
               write(next, () => setStatusId(null));
             }}
+          />
+        ) : null}
+        {statusTask ? (
+          <CompanyEntryPhotos
+            kind="task"
+            groupId={groupId}
+            entryId={statusTask.id}
+            canAdd={false}
+            canRemove={() => false}
           />
         ) : null}
       </Sheet>

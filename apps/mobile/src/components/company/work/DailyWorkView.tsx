@@ -316,6 +316,7 @@ export default function DailyWorkView({
         today={today}
       />
       <WorkTaskSheets
+        groupId={id}
         statusId={statusId}
         setStatusId={setStatusId}
         statusTask={statusTask}
