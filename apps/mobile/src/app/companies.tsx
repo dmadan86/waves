@@ -5,7 +5,7 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { Text, Screen, iconSize, useTheme } from '@waves/ui';
@@ -15,6 +15,7 @@ import { ScenicBody, ScenicHeader } from '@/components/standard';
 import { useGroup, useGroups } from '@/data/hooks';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
 import { fill, plural, useStrings } from '@/i18n';
+import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useToast } from '@/lib/toast';
@@ -49,7 +50,7 @@ function Card({ group, current }: { group: GroupRow; current: boolean }) {
   );
 }
 
-export default function CompaniesScreen() {
+function CompaniesScreenBody() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t } = useStrings();
@@ -101,4 +102,9 @@ export default function CompaniesScreen() {
       </ScrollView>
     </Screen>
   );
+}
+
+export default function CompaniesScreen() {
+  if (!COMPANIES_ENABLED) return <Redirect href="/" />;
+  return <CompaniesScreenBody />;
 }

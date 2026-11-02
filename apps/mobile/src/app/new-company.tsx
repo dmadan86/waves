@@ -4,6 +4,8 @@
  * group form, but none of that form's group controls apply to a company.
  */
 
+import { Redirect } from 'expo-router';
+import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
 
@@ -31,7 +33,7 @@ import { router } from '@/lib/navigation';
 import { useToast } from '@/lib/toast';
 import { useRememberSpace } from '@/lib/useSpaces';
 
-export default function NewCompanyScreen() {
+function NewCompanyScreenBody() {
   const theme = useTheme();
   const { t } = useStrings();
   const createGroup = useCreateGroup();
@@ -195,4 +197,9 @@ export default function NewCompanyScreen() {
       </View>
     </Screen>
   );
+}
+
+export default function NewCompanyScreen() {
+  if (!COMPANIES_ENABLED) return <Redirect href="/" />;
+  return <NewCompanyScreenBody />;
 }

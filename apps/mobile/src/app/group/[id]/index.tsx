@@ -3,7 +3,7 @@ import { placeSlots } from '@/lib/adPlanPure';
 import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
@@ -87,6 +87,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
 import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
+import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { useGroupBaseline, useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { newMarksSince, type NewKind } from '@/lib/groupNew';
 import { NewDot, NewPill, newTint } from '@/components/NewMark';
@@ -2170,6 +2171,7 @@ function LedgerGroupScreen() {
 export default function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { group } = useGroup(id ?? '');
+  if (!COMPANIES_ENABLED && group.data?.type === GroupType.Company) return <Redirect href="/" />;
   if (group.data?.type === GroupType.Company) return <CompanyHome groupId={id ?? ''} />;
   return <LedgerGroupScreen />;
 }

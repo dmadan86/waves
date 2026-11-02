@@ -30,6 +30,7 @@ import { SkeletonList } from '@/components/Skeletons';
 import { isRtlLanguage, LANGUAGE_NAMES, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
+import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { notificationsRowStatus } from '@/lib/notificationStatus';
 import { pushPermission, type PushPermission } from '@/lib/push';
 import { useAvatarEditor } from '@/lib/avatarEditor';
@@ -286,7 +287,7 @@ function ProfileForm() {
               route: '/settings/upgrade',
             },
             // The first company is free; the create flow shows the paywall for an extra one.
-            ...(profile?.id && !isGuest
+            ...(COMPANIES_ENABLED && profile?.id && !isGuest
               ? [
                   {
                     icon: 'business-outline' as const,
