@@ -3,7 +3,7 @@
  * The server's row-level security decides who sees which client; the filter here only keeps a phone that was once
  * an owner's from showing more than the viewer's role allows today.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { randomUUID } from 'expo-crypto';
 
@@ -20,6 +20,7 @@ import {
   type NextFollowUp,
 } from '@waves/core';
 
+import { syncFollowUpReminders } from '@/lib/followUpReminders';
 import { useCompanyDocs } from '@/data/companyDocuments';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
@@ -160,12 +161,19 @@ export function useFollowUps(groupId: string, scope: FollowUpScope = 'all') {
   const tasks = useWorkTasks(groupId);
   const view = useCompanyEntries(groupId);
   const myId = view.me?.id ?? null;
+  const { t } = useStrings();
+  const reminderTitle = t.companyClients.fuNotifTitle;
+  useEffect(() => {
+    void syncFollowUpReminders({ groupId, myId, tasks, title: reminderTitle });
+  }, [groupId, myId, tasks, reminderTitle]);
   return useMemo(() => {
     const today = todayIso();
     const linked = tasks.filter((t) => t.clientId && (scope === 'all' || t.memberId === myId));
     const groups = groupFollowUps(linked, today);
     return {
       groups,
+      /** Every open follow-up in scope. */
+      all: [...groups.overdue, ...groups.today, ...groups.week, ...groups.later],
       today,
       overdue: groups.overdue.length,
       dueToday: groups.today.length,

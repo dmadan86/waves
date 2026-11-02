@@ -23,6 +23,7 @@ import {
   type Viewer,
 } from '@waves/core';
 
+import { cancelFollowUpReminders } from '@/lib/followUpReminders';
 import { cancelNudges } from './captureNudge/schedule';
 import { clearCaptureNudge } from './captureNudge/settings';
 import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
@@ -594,7 +595,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // one deadline, and the sign-out goes ahead when they finish or when it
     // passes, whichever is first.
     await Promise.race([
-      Promise.allSettled([revokePushToken(), cancelNudges(), clearCaptureNudge(leaving)]),
+      Promise.allSettled([
+        revokePushToken(),
+        cancelNudges(),
+        cancelFollowUpReminders(),
+        clearCaptureNudge(leaving),
+      ]),
       new Promise((resolve) => setTimeout(resolve, SIGN_OUT_TIDY_UP_MS)),
     ]);
     // The one bit `SyncProvider` cannot work out for itself. Every way a
