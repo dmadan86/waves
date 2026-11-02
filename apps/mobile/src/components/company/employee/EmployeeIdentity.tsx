@@ -1,4 +1,4 @@
-/** The scenic header's identity block: big avatar with an active-today dot, name, ID and status pills, type and department chips. */
+/** The scenic header's identity block: big avatar with an active-today dot, name, ID and status pills, department and site. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View, useWindowDimensions } from 'react-native';
@@ -11,7 +11,7 @@ import { displayName, isGhost, type MemberRow } from '@/data/types';
 import { isNotEmployed } from '@/data/companyEmployment';
 import { useStrings } from '@/i18n';
 
-const AVATAR = 76;
+const AVATAR = 84;
 
 function Pill({
   label,
@@ -19,10 +19,12 @@ function Pill({
   bg,
   onPress,
   accessibilityLabel,
+  dot,
 }: {
   label: string;
   fg: string;
   bg: string;
+  dot?: boolean;
   onPress?: () => void;
   accessibilityLabel?: string;
 }) {
@@ -38,10 +40,14 @@ function Pill({
         paddingHorizontal: 10,
         paddingVertical: 3,
         maxWidth: 130,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
         borderRadius: theme.radius.pill,
         backgroundColor: bg,
       }}
     >
+      {dot ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: fg }} /> : null}
       <Text variant="caption" numberOfLines={1} style={{ color: fg, fontWeight: '600' }}>
         {label}
       </Text>
@@ -86,20 +92,18 @@ function Chip({
 export function EmployeeIdentity({
   member,
   activeToday,
-  typeLabel,
   departmentLabel,
+  siteLabel,
   onEditId,
-  onPickType,
   onPickDepartment,
 }: {
   member: MemberRow;
   activeToday: boolean;
   /** Already resolved ("Not set" when empty); null hides the chip (not an employee). */
-  typeLabel: string | null;
   departmentLabel: string | null;
+  siteLabel: string | null;
   /** Set when the viewer may edit; omitted = read-only. */
   onEditId?: () => void;
-  onPickType?: () => void;
   onPickDepartment?: () => void;
 }) {
   const theme = useTheme();
@@ -167,20 +171,29 @@ export function EmployeeIdentity({
             ) : (
               <Pill
                 label={t.company.statusActive}
+                dot
                 fg={GREEN}
                 bg={theme.scheme === 'dark' ? 'rgba(21,128,61,0.18)' : GREEN_SOFT}
               />
             )
           ) : null}
         </View>
-        {typeLabel !== null || departmentLabel !== null ? (
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.md }}>
-            {typeLabel !== null ? (
-              <Chip icon="briefcase" label={typeLabel} onPress={onPickType} />
-            ) : null}
+        {departmentLabel !== null || siteLabel ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+            }}
+          >
             {departmentLabel !== null ? (
-              <Chip icon="people" label={departmentLabel} onPress={onPickDepartment} />
+              <Chip icon="briefcase" label={departmentLabel} onPress={onPickDepartment} />
             ) : null}
+            {departmentLabel !== null && siteLabel ? (
+              <View style={{ width: 1, height: 14, backgroundColor: theme.color.border }} />
+            ) : null}
+            {siteLabel ? <Chip icon="location" label={siteLabel} /> : null}
           </View>
         ) : null}
       </View>
