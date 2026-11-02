@@ -17,7 +17,12 @@ import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { useSourceLabel } from '@/components/company/clients/parts';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { PlainHeader, StandardCard } from '@/components/standard';
-import { useAddFollowUp, useCompanyClients, useSetClient } from '@/data/companyClients';
+import {
+  useAddFollowUp,
+  useCompanyClients,
+  useSetClient,
+  useSetInquiry,
+} from '@/data/companyClients';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
@@ -51,6 +56,7 @@ function ClientForm({ groupId }: { groupId: string }) {
   const existing = view.clients.find((c) => c.id === clientId);
   const save = useSetClient(groupId);
   const addFollowUp = useAddFollowUp(groupId);
+  const addInquiry = useSetInquiry(groupId);
   const sourceLabel = useSourceLabel();
   const [name, setName] = useState(existing?.name ?? '');
   const [phone, setPhone] = useState(existing?.phone ?? '');
@@ -79,7 +85,7 @@ function ClientForm({ groupId }: { groupId: string }) {
   );
   const ownerRow = view.owners.find((m) => m.id === owner);
   const canPickOwner = view.canManage && assignable.length > 1;
-  const busy = save.isPending || addFollowUp.isPending;
+  const busy = save.isPending || addFollowUp.isPending || addInquiry.isPending;
 
   const openPick = () => {
     setFollow('pick');
@@ -116,6 +122,15 @@ function ClientForm({ groupId }: { groupId: string }) {
         stage: existing?.stage ?? 'inquiry',
         lostReason: existing?.lostReason ?? null,
       });
+      // A new client starts with its first inquiry (INQ-nnn), carrying what they need and the expected value.
+      if (!existing)
+        await addInquiry.mutateAsync({
+          clientId: savedId,
+          title: need.trim() || name.trim(),
+          details: need.trim().length > 120 ? need.trim() : null,
+          expectedValueMinor: value > 0n ? value.toString() : null,
+          inquiryDate: today,
+        });
       if (day && owner && !existing)
         await addFollowUp.mutateAsync({
           clientId: savedId,

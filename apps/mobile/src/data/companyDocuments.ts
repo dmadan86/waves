@@ -72,6 +72,8 @@ export interface DocFormValues {
   readonly notes: string;
   /** The client this document is for; leave out to keep the saved link. */
   readonly clientId?: string | null;
+  /** The client's inquiry this document answers; leave out to keep the saved link. */
+  readonly inquiryId?: string | null;
 }
 
 export function docSavePayload(docId: string, v: DocFormValues): CompanyDocSavePayload {
@@ -90,6 +92,7 @@ export function docSavePayload(docId: string, v: DocFormValues): CompanyDocSaveP
       discountMinor: v.discountMinor.toString(),
       notes: v.notes.trim().slice(0, 1000) || null,
       ...(v.clientId === undefined ? {} : { clientId: v.clientId }),
+      ...(v.inquiryId === undefined ? {} : { inquiryId: v.inquiryId }),
     },
   };
 }

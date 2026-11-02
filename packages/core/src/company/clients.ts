@@ -29,6 +29,12 @@ export interface CompanyClient {
   readonly pending?: boolean;
 }
 
+/** One person assigned to a client (the primary owner is always among them). */
+export interface ClientAssignee {
+  readonly clientId: string;
+  readonly memberId: string;
+}
+
 export interface ClientNote {
   readonly id: string;
   readonly clientId: string;

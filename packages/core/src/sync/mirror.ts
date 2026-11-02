@@ -142,6 +142,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyDocuments,
   SyncTable.CompanyClients,
   SyncTable.CompanyClientNotes,
+  SyncTable.CompanyInquiries,
+  SyncTable.CompanyClientAssignees,
   SyncTable.CompanyTickets,
   SyncTable.CompanyTicketEvents,
   SyncTable.CompanyAttendance,
@@ -2636,6 +2638,8 @@ export interface MirrorCompanyDoc {
   readonly updatedAt?: string | null;
   readonly updatedBy?: string | null;
   readonly clientId?: string | null;
+  /** The client's inquiry this estimate or bill belongs to. */
+  readonly inquiryId?: string | null;
   readonly deleted: boolean;
   readonly pending: boolean;
 }
@@ -2676,6 +2680,7 @@ function docFromRow(r: Record<string, unknown>): MirrorCompanyDoc {
     updatedAt: (r.updated_at as string | null) ?? null,
     updatedBy: (r.updated_by as string | null) ?? null,
     clientId: (r.client_id as string | null) ?? null,
+    inquiryId: (r.inquiry_id as string | null) ?? null,
     deleted: !!r.deleted_at,
     pending: false,
   };
@@ -2721,6 +2726,7 @@ export function materialiseCompanyDocs(
         totalMinor: t.totalMinor,
         notes: p.data.notes,
         ...(p.data.clientId === undefined ? {} : { clientId: p.data.clientId }),
+        ...(p.data.inquiryId === undefined ? {} : { inquiryId: p.data.inquiryId }),
       };
       byId.set(
         p.docId,
@@ -2741,6 +2747,7 @@ export function materialiseCompanyDocs(
                 convertedFrom: null,
                 createdBy: options.viewerMemberId,
                 clientId: p.data.clientId ?? null,
+                inquiryId: p.data.inquiryId ?? null,
                 deleted: false,
                 pending: true,
               },
@@ -2848,6 +2855,8 @@ export function purgeCompanyInvisible(
       const orphan = (row: Record<string, unknown>): boolean =>
         row.group_id === groupId && gone.has(row.client_id as string);
       drop(SyncTable.CompanyClientNotes, orphan);
+      drop(SyncTable.CompanyInquiries, orphan);
+      drop(SyncTable.CompanyClientAssignees, orphan);
     }
     // Same for a ticket reassigned or whose employee changed manager: drop it and its timeline.
     if (ids.tickets) {

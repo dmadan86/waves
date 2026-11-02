@@ -126,6 +126,10 @@ type MutationKind =
   | 'company_client.set'
   | 'company_client.remove'
   | 'company_client_note.add'
+  | 'company_inquiry.set'
+  | 'company_inquiry.reject'
+  | 'company_inquiry.remove'
+  | 'company_client.assign'
   | 'company_ticket.set'
   | 'company_ticket.status'
   | 'company_ticket_comment.add'
@@ -387,6 +391,8 @@ const GROUP_TABLES = [
   // Clients and notes: owner and manager all, an employee only the ones assigned to them (RLS).
   ['company_clients', '*'],
   ['company_client_notes', '*'],
+  ['company_inquiries', '*'],
+  ['company_client_assignees', '*'],
   // Complaints and their timeline: owner all, a manager their team's, an employee their own (RLS).
   ['company_tickets', '*'],
   ['company_ticket_events', '*'],
@@ -1388,6 +1394,40 @@ export class SyncSession {
           p_body: body.trim(),
         });
       }
+      case 'company_inquiry.set':
+        return await this.rpcAsCaller('waves_company_inquiry_set', {
+          p_group_id: mutation.groupId,
+          p_inquiry_id: companyUuid(mutation.payload.inquiryId, 'inquiryId'),
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+          p_data: {
+            title: companyReason(mutation.payload.title, 'title', true),
+            details: companyReason(mutation.payload.details ?? null, 'details', false),
+            expectedValue: companyDecimal(
+              mutation.payload.expectedValueMinor ?? null,
+              'expectedValueMinor',
+              true,
+            ),
+            inquiryDate: companyDate(mutation.payload.inquiryDate, 'inquiryDate'),
+          },
+        });
+      case 'company_inquiry.reject': {
+        if (typeof mutation.payload.rejected !== 'boolean') companyInvalid('rejected');
+        return await this.rpcAsCaller('waves_company_inquiry_reject', {
+          p_inquiry_id: companyUuid(mutation.payload.inquiryId, 'inquiryId'),
+          p_rejected: mutation.payload.rejected,
+          p_reason: companyReason(mutation.payload.reason ?? null, 'reason', false),
+        });
+      }
+      case 'company_inquiry.remove':
+        return await this.rpcAsCaller('waves_company_inquiry_remove', {
+          p_inquiry_id: companyUuid(mutation.payload.inquiryId, 'inquiryId'),
+        });
+      case 'company_client.assign':
+        return await this.rpcAsCaller('waves_company_client_assign', {
+          p_group_id: mutation.groupId,
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+          p_member_ids: companyUuidList(mutation.payload.memberIds, 'memberIds'),
+        });
       case 'company_ticket.set': {
         const priority = mutation.payload.priority;
         if (!['low', 'normal', 'high', 'urgent'].includes(priority as string))
@@ -2864,6 +2904,9 @@ function companyDocData(value: unknown): Record<string, unknown> {
     discountMinor: companyDecimal(d.discountMinor ?? '0', 'discountMinor'),
     // Absent keeps the saved link; null clears it.
     ...(d.clientId === undefined ? {} : { clientId: companyUuid(d.clientId, 'clientId', true) }),
+    ...(d.inquiryId === undefined
+      ? {}
+      : { inquiryId: companyUuid(d.inquiryId, 'inquiryId', true) }),
     notes:
       d.notes === null || d.notes === undefined || d.notes === ''
         ? null

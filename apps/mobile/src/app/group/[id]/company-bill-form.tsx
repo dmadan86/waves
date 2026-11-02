@@ -52,12 +52,14 @@ function BillForm() {
     docId,
     type,
     clientId,
+    inquiryId,
     copyFrom,
   } = useLocalSearchParams<{
     id: string;
     docId?: string;
     type?: string;
     clientId?: string;
+    inquiryId?: string;
     copyFrom?: string;
   }>();
   const view = useCompanyDocs(id);
@@ -81,6 +83,7 @@ function BillForm() {
       seed={doc ?? copy}
       type={type}
       clientId={clientId}
+      inquiryId={inquiryId}
     />
   );
 }
@@ -111,6 +114,7 @@ function DocumentForm({
   seed,
   type,
   clientId,
+  inquiryId,
 }: {
   groupId: string;
   doc?: ReturnType<typeof useCompanyDocs>['docs'][number];
@@ -119,6 +123,8 @@ function DocumentForm({
   type?: string;
   /** A new document started from a client: prefills the name and phone and links it. */
   clientId?: string;
+  /** With a client: the inquiry this estimate answers (dropped if another client is picked). */
+  inquiryId?: string;
 }) {
   const view = useCompanyDocs(groupId);
   const client = useCompanyClients(groupId).clients.find((c) => c.id === clientId);
@@ -205,6 +211,7 @@ function DocumentForm({
       discountMinor: discount,
       notes,
       ...(doc || !linkedClient ? {} : { clientId: linkedClient }),
+      ...(doc || !inquiryId || linkedClient !== clientId ? {} : { inquiryId }),
     };
     const code = validateDoc(values, doc?.paidMinor ?? 0n);
     if (code) {

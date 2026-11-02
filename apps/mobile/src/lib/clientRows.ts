@@ -2,13 +2,18 @@
 
 import {
   billDueMinor,
+  inquiryAmount,
+  inquiryStatus,
+  sortInquiries,
   type ClientNote,
   type CompanyClient,
+  type CompanyInquiry,
+  type InquiryDoc,
   type MirrorCompanyDoc,
 } from '@waves/core';
 
 export type ClientStatus =
-  'inquiry' | 'quoted' | 'unpaid' | 'part_paid' | 'paid' | 'client' | 'lost';
+  'inquiry' | 'quoted' | 'unpaid' | 'part_paid' | 'paid' | 'client' | 'rejected' | 'lost';
 export type ClientDoc = Pick<
   MirrorCompanyDoc,
   | 'docType'
@@ -19,7 +24,8 @@ export type ClientDoc = Pick<
   | 'payments'
   | 'clientId'
   | 'deleted'
->;
+> &
+  Partial<Pick<MirrorCompanyDoc, 'id' | 'status' | 'convertedTo' | 'inquiryId'>>;
 
 const dayNum = (day: string) => Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10));
 
@@ -35,6 +41,9 @@ export interface ClientRow {
   readonly dueMinor: bigint;
   readonly hasEstimate: boolean;
   readonly hasBill: boolean;
+  /** The client has an inquiry nobody has quoted, won or rejected yet. */
+  readonly hasOpenInquiry: boolean;
+  readonly inquiryCount: number;
   /** ISO day of the soonest open follow-up, if any. */
   readonly nextFollowUp: string | null;
 }
@@ -70,7 +79,11 @@ export function buildClientRows(
   docs: readonly ClientDoc[],
   notes: readonly Pick<ClientNote, 'clientId' | 'createdAt'>[] = [],
   followUps: ReadonlyMap<string, string> = new Map(),
+  inquiries: readonly CompanyInquiry[] = [],
 ): ClientRow[] {
+  const inqByClient = new Map<string, CompanyInquiry[]>();
+  for (const i of inquiries)
+    inqByClient.set(i.clientId, [...(inqByClient.get(i.clientId) ?? []), i]);
   const byClient = new Map<string, ClientDoc[]>();
   for (const d of docs) {
     if (d.deleted || !d.clientId) continue;
@@ -95,30 +108,66 @@ export function buildClientRows(
     const bills = mine.filter((d) => d.docType === 'bill');
     const open = bills.filter((d) => d.paidMinor < d.totalMinor);
     const dueMinor = open.reduce((n, d) => n + billDueMinor(d.totalMinor, d.paidMinor), 0n);
+    const billStatus: ClientStatus =
+      open.length > 0
+        ? open.some((d) => d.paidMinor > 0n)
+          ? 'part_paid'
+          : 'unpaid'
+        : bills.length > 0
+          ? 'paid'
+          : mine.length > 0 || client.stage === 'quoted'
+            ? 'quoted'
+            : client.stage === 'client'
+              ? 'client'
+              : 'inquiry';
+    // With inquiries, the row reads like the latest one: rejected, quoted, won (then what is owed), or open.
+    const asInquiryDocs = mine.map((d, n): InquiryDoc => ({
+      id: d.id ?? String(n),
+      docType: d.docType,
+      status: d.status ?? '',
+      docDate: d.docDate,
+      number: d.number,
+      totalMinor: d.totalMinor,
+      paidMinor: d.paidMinor,
+      convertedTo: d.convertedTo ?? null,
+      inquiryId: d.inquiryId ?? null,
+      clientId: d.clientId ?? null,
+      deleted: d.deleted,
+    }));
+    const myInquiries = sortInquiries(inqByClient.get(client.id) ?? []);
+    const latestInquiry = myInquiries[0];
+    const latestStatus = latestInquiry ? inquiryStatus(latestInquiry, asInquiryDocs) : null;
     const status: ClientStatus =
       client.stage === 'lost'
         ? 'lost'
-        : open.length > 0
-          ? open.some((d) => d.paidMinor > 0n)
-            ? 'part_paid'
-            : 'unpaid'
-          : bills.length > 0
-            ? 'paid'
-            : mine.length > 0 || client.stage === 'quoted'
+        : latestStatus === null
+          ? billStatus
+          : latestStatus === 'rejected'
+            ? 'rejected'
+            : latestStatus === 'quoted'
               ? 'quoted'
-              : client.stage === 'client'
-                ? 'client'
-                : 'inquiry';
+              : latestStatus === 'open'
+                ? client.stage === 'client'
+                  ? 'client'
+                  : 'inquiry'
+                : billStatus === 'quoted' || billStatus === 'inquiry'
+                  ? 'client'
+                  : billStatus;
+    const inquiryAmt = latestInquiry ? inquiryAmount(latestInquiry, asInquiryDocs) : null;
     return {
       client,
       status,
       latest: latestDoc ? { type: latestDoc.docType, number: latestDoc.number } : null,
       lastDay,
       amountMinor:
-        dueMinor > 0n ? dueMinor : latestDoc ? latestDoc.totalMinor : client.expectedValueMinor,
+        dueMinor > 0n
+          ? dueMinor
+          : (inquiryAmt ?? (latestDoc ? latestDoc.totalMinor : client.expectedValueMinor)),
       dueMinor,
       hasEstimate: mine.some((d) => d.docType === 'estimate'),
       hasBill: bills.length > 0,
+      hasOpenInquiry: myInquiries.some((i) => inquiryStatus(i, asInquiryDocs) === 'open'),
+      inquiryCount: myInquiries.length,
       nextFollowUp: followUps.get(client.id) ?? null,
     };
   });
@@ -134,7 +183,9 @@ export function inTab(r: ClientRow, tab: ClientTab): boolean {
   return tab === 'all'
     ? true
     : tab === 'inquiry'
-      ? r.status === 'inquiry'
+      ? r.inquiryCount > 0
+        ? r.hasOpenInquiry
+        : r.status === 'inquiry'
       : tab === 'quote'
         ? r.hasEstimate || r.status === 'quoted'
         : r.hasBill;
