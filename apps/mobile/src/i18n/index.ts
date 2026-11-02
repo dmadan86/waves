@@ -4114,6 +4114,8 @@ export interface UiStrings {
     undo: string;
   };
   activityScreen: {
+    /** Names an expense with no description and no category: "Added an expense". */
+    anExpense: string;
     subtitle: string;
     noneForFilter: string;
     /** "Imported {n} expenses": the feed row for one import into a group. */
@@ -11667,6 +11669,7 @@ const en: UiStrings = {
     undo: 'Undo',
   },
   activityScreen: {
+    anExpense: 'an expense',
     subtitle: 'Your recent transactions and updates',
     noneForFilter: 'Nothing here for this filter yet.',
     importedHeadline: { one: 'Imported {n} expense', other: 'Imported {n} expenses' },
@@ -18822,6 +18825,7 @@ const ta: UiStrings = {
     undo: 'செயல்தவிர்',
   },
   activityScreen: {
+    anExpense: 'ஒரு செலவு',
     subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
     noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
     importedHeadline: {
@@ -26075,6 +26079,7 @@ const hi: UiStrings = {
     undo: 'वापस लें',
   },
   activityScreen: {
+    anExpense: 'एक ख़र्च',
     subtitle: 'आपके हाल के लेन-देन और अपडेट',
     noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
     importedHeadline: { one: '{n} ख़र्च इम्पोर्ट हुआ', other: '{n} ख़र्च इम्पोर्ट हुए' },
@@ -33319,6 +33324,7 @@ const ar: UiStrings = {
     undo: 'تراجع',
   },
   activityScreen: {
+    anExpense: 'مصروف',
     subtitle: 'معاملاتك وتحديثاتك الأخيرة',
     noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
     importedHeadline: {
