@@ -182,6 +182,20 @@ describe('what happened', () => {
  * on the metadata line — so a column of rows is scannable by "what happened"
  * rather than by whose name comes first.
  */
+describe('activityHeadline untitled expense', () => {
+  it.each(['', '   ', undefined])(
+    'names blank description %j by fallback, not the bare verb',
+    (d) => {
+      const payload = d === undefined ? {} : { description: d };
+      expect(activityHeadline(row({ payload }))).toBe('Added an expense');
+      expect(activityHeadline(row({ verb: 'edited', payload }), undefined, 'Food & drinks')).toBe(
+        'Edited Food & drinks',
+      );
+      expect(describeActivity(row({ payload }), null)).not.toMatch(/added\s*$/);
+    },
+  );
+});
+
 describe('activityHeadline', () => {
   it('leads with the event, not the actor', () => {
     expect(activityHeadline(row({ payload: { description: 'Dinner' } }))).toBe('Added Dinner');
@@ -207,7 +221,7 @@ describe('activityHeadline', () => {
   });
 
   it('falls back to a lower-case noun when the payload names nothing', () => {
-    expect(activityHeadline(row({ verb: 'edited' }))).toBe('Edited expense');
+    expect(activityHeadline(row({ verb: 'edited' }))).toBe('Edited an expense');
   });
 
   it.each([
@@ -627,8 +641,8 @@ describe('activityHeadline, every known verb', () => {
     ['joined', 'Joined the group'],
     ['imported', 'Group imported'],
     ['auto_archived', 'Group archived'],
-    ['disputed', 'Flagged expense'],
-    ['restored', 'Restored expense'],
+    ['disputed', 'Flagged an expense'],
+    ['restored', 'Restored an expense'],
   ])('%s → %s', (verb, expected) => {
     expect(activityHeadline(row({ verb, payload: {} }))).toBe(expected);
   });
