@@ -1459,6 +1459,12 @@ export interface UiStrings {
     total: string;
     payments: string;
     amountLeft: string;
+    markReceived: string;
+    upiTitle: string;
+    upiScan: string;
+    upiCopy: string;
+    upiShare: string;
+    upiAdd: string;
     billTo: string;
     estimateFor: string;
     recordPayment: string;
@@ -9065,6 +9071,12 @@ const en: UiStrings = {
     total: 'Total',
     payments: 'Payments received',
     amountLeft: 'Balance due',
+    markReceived: 'Mark received',
+    upiTitle: 'Pay by UPI',
+    upiScan: 'Scan to pay {amount}',
+    upiCopy: 'Copy UPI ID',
+    upiShare: 'Share',
+    upiAdd: 'Add your UPI ID to show a payment QR',
     billTo: 'Bill to',
     estimateFor: 'Estimate for',
     recordPayment: 'Record payment',
@@ -16141,6 +16153,12 @@ const ta: UiStrings = {
     total: 'மொத்தம்',
     payments: 'பெற்ற தொகைகள்',
     amountLeft: 'மீதித் தொகை',
+    markReceived: 'பெற்றதாகக் குறி',
+    upiTitle: 'UPI மூலம் செலுத்து',
+    upiScan: '{amount} செலுத்த ஸ்கேன் செய்யுங்கள்',
+    upiCopy: 'UPI ஐடியை நகலெடு',
+    upiShare: 'பகிர்',
+    upiAdd: 'கட்டண QR காட்ட உங்கள் UPI ஐடியைச் சேர்க்கவும்',
     billTo: 'பில் பெறுநர்',
     estimateFor: 'மதிப்பீடு பெறுநர்',
     recordPayment: 'பெற்ற தொகையைப் பதிவு செய்',
@@ -23389,6 +23407,12 @@ const hi: UiStrings = {
     total: 'कुल',
     payments: 'प्राप्त भुगतान',
     amountLeft: 'बकाया राशि',
+    markReceived: 'प्राप्त हुआ चिह्नित करें',
+    upiTitle: 'UPI से भुगतान',
+    upiScan: '{amount} चुकाने के लिए स्कैन करें',
+    upiCopy: 'UPI ID कॉपी करें',
+    upiShare: 'साझा करें',
+    upiAdd: 'भुगतान QR दिखाने के लिए अपनी UPI ID जोड़ें',
     billTo: 'बिल प्राप्तकर्ता',
     estimateFor: 'अनुमान प्राप्तकर्ता',
     recordPayment: 'भुगतान दर्ज करें',
@@ -30514,6 +30538,12 @@ const ar: UiStrings = {
     total: 'الإجمالي',
     payments: 'الدفعات المستلمة',
     amountLeft: 'الرصيد المستحق',
+    markReceived: 'تحديد كمستلم',
+    upiTitle: 'الدفع عبر UPI',
+    upiScan: 'امسح للدفع {amount}',
+    upiCopy: 'نسخ معرّف UPI',
+    upiShare: 'مشاركة',
+    upiAdd: 'أضف معرّف UPI لعرض رمز الدفع',
     billTo: 'فاتورة إلى',
     estimateFor: 'تقدير إلى',
     recordPayment: 'تسجيل دفعة',
