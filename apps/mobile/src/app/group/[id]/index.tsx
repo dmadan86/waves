@@ -1521,10 +1521,24 @@ function LedgerGroupScreen() {
                       onPress={() => void pickLens()}
                     />
                   ) : null}
-                  <PillButton
-                    label={t.misc.balanceSimplified}
+                  <Pressable
+                    accessibilityRole="button"
                     onPress={() => router.push(`/group/${groupId}/simplify`)}
-                  />
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      minHeight: 36,
+                      paddingHorizontal: theme.spacing.md,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: theme.color.brand,
+                    }}
+                  >
+                    <Ionicons name="swap-horizontal" size={16} color={theme.color.onBrand} />
+                    <Text variant="caption" tone="onBrand" style={{ fontWeight: '700' }}>
+                      {t.whoPaysWhom}
+                    </Text>
+                  </Pressable>
                 </Row>
               }
             />
