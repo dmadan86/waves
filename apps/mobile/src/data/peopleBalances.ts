@@ -120,6 +120,8 @@ export function aggregatePeopleBalances(
   const groups = new Map<string, Group>();
 
   for (const c of contributions) {
+    // Sample-trip people are not friends: they never reach the Friends list.
+    if (c.isDemo === true) continue;
     const key = personKeyOf(c);
     const mapKey = `${key}|${c.currency}`;
     let group = groups.get(mapKey);
@@ -147,7 +149,6 @@ export function aggregatePeopleBalances(
     group.avatar_url = maxOrNull(group.avatar_url, c.avatarUrl);
     group.is_ghost = group.is_ghost && c.isGhost;
     group.last_activity_at = maxOrNull(group.last_activity_at, c.lastActivityAt);
-    group.is_demo = group.is_demo || c.isDemo === true;
   }
 
   const rows: PersonBalanceRow[] = [];
