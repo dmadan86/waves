@@ -9,20 +9,33 @@ import { TextInput, View } from 'react-native';
 
 import { Button, Chip, Sheet, Text, useTheme } from '@waves/ui';
 
-import { reportCompany, useCompanySuspended } from '@/data/companyEntries';
+import { CompanySlotSheet } from '@/components/company/CompanySlotSheet';
+import { reportCompany, useCompanySlotLapsed, useCompanySuspended } from '@/data/companyEntries';
+import { renewCompanySlot } from '@/data/companySlotApi';
+import { useSync } from '@/sync';
 import { useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { router } from '@/lib/navigation';
 
-export function SuspendedBanner() {
+export function SuspendedBanner({ groupId }: { groupId?: string }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const { notify } = useDialog();
+  const { flush } = useSync();
+  const { lapsed, mine } = useCompanySlotLapsed(groupId ?? '');
+  const [paywall, setPaywall] = useState(false);
+  // A lapsed extra company: only the owner who pays for the slot can renew; others just see read-only.
+  const renew = async () => {
+    try {
+      if (groupId && (await renewCompanySlot(groupId))) await flush([groupId]);
+    } catch {
+      await notify({ title: t.companySlot.buyFailed, tone: 'danger' });
+    }
+  };
   return (
     <View
       accessibilityRole="alert"
       style={{
-        flexDirection: 'row',
-        alignItems: 'center',
         gap: theme.spacing.sm,
         marginHorizontal: theme.spacing.md,
         marginBottom: theme.spacing.sm,
@@ -31,10 +44,22 @@ export function SuspendedBanner() {
         backgroundColor: theme.color.brandSoft,
       }}
     >
-      <Ionicons name="lock-closed" size={18} color={theme.color.brand} />
-      <Text variant="caption" style={{ flex: 1 }}>
-        {t.company.suspendedBanner}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+        <Ionicons name="lock-closed" size={18} color={theme.color.brand} />
+        <Text variant="caption" style={{ flex: 1 }}>
+          {lapsed ? t.companySlot.lapsedBanner : t.company.suspendedBanner}
+        </Text>
+      </View>
+      {mine ? (
+        <>
+          <Button label={t.companySlot.renew} onPress={() => setPaywall(true)} />
+          <CompanySlotSheet
+            visible={paywall}
+            onClose={() => setPaywall(false)}
+            onReady={() => void renew()}
+          />
+        </>
+      ) : null}
     </View>
   );
 }
@@ -42,6 +67,7 @@ export function SuspendedBanner() {
 /** Add/edit screens render this instead of their form while the company is suspended. */
 export function SuspendedGate({ groupId, children }: { groupId: string; children: ReactNode }) {
   const suspended = useCompanySuspended(groupId);
+  const { lapsed } = useCompanySlotLapsed(groupId);
   const theme = useTheme();
   const { t } = useStrings();
   if (!suspended) return <>{children}</>;
@@ -54,7 +80,9 @@ export function SuspendedGate({ groupId, children }: { groupId: string; children
         padding: theme.spacing.lg,
       }}
     >
-      <Text style={{ textAlign: 'center' }}>{t.company.suspendedReadOnly}</Text>
+      <Text style={{ textAlign: 'center' }}>
+        {lapsed ? t.companySlot.lapsedReadOnly : t.company.suspendedReadOnly}
+      </Text>
       <Button label={t.common.back} onPress={() => router.back()} />
     </View>
   );
@@ -72,7 +100,7 @@ export function ReadOnlyWhenSuspended({
   if (!suspended) return <>{children}</>;
   return (
     <>
-      <SuspendedBanner />
+      <SuspendedBanner groupId={groupId} />
       <View pointerEvents="none" style={{ opacity: 0.6, gap: 12 }}>
         {children}
       </View>

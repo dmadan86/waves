@@ -106,12 +106,21 @@ export interface CompanyStorageAction {
   store_txn_id: string;
 }
 
+/** A company slot (waves_company_slot_monthly): one extra owned company, bound server-side on creation. */
+export interface CompanySlotAction {
+  kind: 'company_slot';
+  /** False once the subscription ended (expired, refunded); the bound company then turns read-only. */
+  active: boolean;
+  store_txn_id: string;
+}
+
 export interface IgnoreAction {
   kind: 'ignore';
   reason: string;
 }
 
-export type Action = UpsertAction | TransferAction | CompanyStorageAction | IgnoreAction;
+export type Action =
+  UpsertAction | TransferAction | CompanyStorageAction | CompanySlotAction | IgnoreAction;
 
 export interface Mapped {
   eventId: string;
@@ -164,6 +173,22 @@ export const COMPANY_PACKS: Readonly<Record<string, number>> = {
 export function companyPackBytes(productId: string | null | undefined): number | null {
   if (!productId) return null;
   return COMPANY_PACKS[baseProductId(productId)] ?? COMPANY_PACKS[productId] ?? null;
+}
+
+/**
+ * The company slot subscription, one constant to edit once the owner creates the products
+ * (the app mirrors it in apps/mobile/src/lib/companySlots.ts). Same id on Android and iOS.
+ */
+export const COMPANY_SLOT_PRODUCT_IDS: readonly string[] = ['waves_company_slot_monthly'];
+export const COMPANY_SLOT_ENTITLEMENT = 'company_slot';
+export function isCompanySlot(event: RcEvent): boolean {
+  const ids = event.entitlement_ids ?? (event.entitlement_id ? [event.entitlement_id] : []);
+  const product = event.product_id ?? '';
+  return (
+    ids.includes(COMPANY_SLOT_ENTITLEMENT) ||
+    COMPANY_SLOT_PRODUCT_IDS.includes(baseProductId(product)) ||
+    COMPANY_SLOT_PRODUCT_IDS.includes(product)
+  );
 }
 
 function iso(ms: number | null | undefined): string | null {
@@ -254,6 +279,23 @@ export function mapEvent(event: RcEvent, options: { ignoreSandbox?: boolean } = 
     event.transaction_id ||
     (type === 'TEMPORARY_ENTITLEMENT_GRANT' && eventId ? `temp:${eventId}` : null);
   if (!txn) return ignore('no transaction id');
+
+  // A company slot never grants Pro or a quota: it only lets its buyer own one more company.
+  if (isCompanySlot(event)) {
+    // RevenueCat's stand-in while a store is down: it has no real transaction to bind or expire, so
+    // it could never be taken back. The real purchase that follows opens the slot.
+    if (type === 'TEMPORARY_ENTITLEMENT_GRANT')
+      return ignore('temporary grant does not open a slot');
+    const status = statusFor(event);
+    return {
+      ...base,
+      action: {
+        kind: 'company_slot',
+        active: status === 'active' || status === 'grace',
+        store_txn_id: txn,
+      },
+    };
+  }
 
   // A company storage pack changes one company's quota; it is never a Pro subscription.
   // A change to a bigger pack applies now; a downgrade keeps the current pack until its renewal

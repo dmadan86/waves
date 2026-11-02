@@ -130,6 +130,10 @@ export interface GroupRow {
   /** Company groups: large or owner-raised claims need an owner other than their creator. */
   /** Set while Waves has suspended this company: it is read-only for everyone. */
   suspended_at?: string | null;
+  /** Set while this extra company's slot subscription has lapsed: read-only until renewed (nothing is deleted). */
+  slot_lapsed_at?: string | null;
+  /** Who created the company; the owner who pays for its slot. Absent on a pending (queue-only) row. */
+  created_by?: string | null;
   company_second_approval?: boolean;
   company_second_approval_threshold_minor?: string | null;
   /** Company groups: default mileage rate per km, minor units (decimal string). */

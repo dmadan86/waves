@@ -8,6 +8,7 @@ import { Button, Screen, Text, useTheme } from '@waves/ui';
 import { useMoney } from '@/components/company/dashboard/parts';
 import { useDoneFollowUp } from '@/components/company/clients/FollowUps';
 import { StageChip, useSourceLabel, useWhen } from '@/components/company/clients/parts';
+import { ClientComplaints } from '@/components/company/tickets/ClientComplaints';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import {
   ListRow,
@@ -401,6 +402,7 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                   {docsAllowed ? action('cash-outline', s.btnMoney, receive) : null}
                 </View>
               </StandardCard>
+              <ClientComplaints groupId={groupId} clientId={clientId} />
               <SegmentedPills
                 options={[
                   { value: 'activity' as Tab, label: s.tabActivity },

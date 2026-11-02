@@ -10,15 +10,18 @@ import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { type MenuAnchor } from '@/components/SortMenu';
 import { ListRow, SegmentedPills, StandardCard } from '@/components/standard';
-import { useCompanyClients } from '@/data/companyClients';
+import { useCompanyClients, useFollowUps } from '@/data/companyClients';
 import { useCompanyDocs } from '@/data/companyDocuments';
 import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
+import { useCompanyTickets } from '@/data/companyTickets';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { useFavorites } from '@/lib/favorites';
 import {
   buildClientRows,
+  followUpTag,
+  nextFollowUpDays,
   daysAgo,
   listClientRows,
   tabCounts,
@@ -51,6 +54,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const suspended = useCompanySuspended(groupId);
   const entries = useCompanyEntries(groupId);
   const { docs, canUse: canDocs } = useCompanyDocs(groupId);
+  const tickets = useCompanyTickets(groupId);
   const [tab, setTab] = useState<ClientTab>('all');
   const [status, setStatus] = useState<ClientStatus | null>(null);
   const [range, setRange] = useState<DateRange>('all');
@@ -63,11 +67,30 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const sortRef = useRef<View>(null);
   const today = todayIso();
   const fmt = (minor: bigint) => compactMoney(minor, view.currency, locale, t.company.ovCrore);
+  const followUps = useFollowUps(groupId);
+  const nextDays = useMemo(() => nextFollowUpDays(followUps.all), [followUps.all]);
   const all = useMemo(
-    () => buildClientRows(view.clients, docs, view.notes),
-    [view.clients, docs, view.notes],
+    () => buildClientRows(view.clients, docs, view.notes, nextDays),
+    [view.clients, docs, view.notes, nextDays],
   );
   const counts = tabCounts(all);
+  // Subtitle for a client with an open follow-up: today, overdue, weekday or date.
+  const fuText = (day: string | null): string | null => {
+    if (!day) return null;
+    const tag = followUpTag(day, today);
+    return tag.kind === 'today'
+      ? s.fuSubToday
+      : tag.kind === 'overdue'
+        ? fill(s.fuSubOverdue, { n: tag.n })
+        : fill(s.fuSubOn, {
+            when: tag.weekday
+              ? new Date(`${day}T12:00:00`).toLocaleDateString(locale, { weekday: 'short' })
+              : new Date(`${day}T12:00:00`).toLocaleDateString(locale, {
+                  day: 'numeric',
+                  month: 'short',
+                }),
+          });
+  };
   // Client stars share the device-local favourites set with group stars (ids never collide).
   const fav = useFavorites();
   const rows = listClientRows(all, { tab, status, range, sort, query, today }).sort(
@@ -113,6 +136,19 @@ export function ClientsList({ groupId }: { groupId: string }) {
         ] as const)
       : []),
   ];
+  // Complaints open from this ⋮ for anyone who can log them, even when they cannot add clients.
+  const menuItems: OverflowMenuItem[] = [
+    ...(canAdd ? addItems : []),
+    ...(tickets.canAdd
+      ? [
+          {
+            icon: 'chatbubbles-outline' as const,
+            label: t.companyTickets.title,
+            onPress: () => router.push(`/group/${groupId}/company-tickets`),
+          },
+        ]
+      : []),
+  ];
   const pill = (st: ClientStatus) => {
     const c = theme.color;
     return {
@@ -146,12 +182,13 @@ export function ClientsList({ groupId }: { groupId: string }) {
           view={entries}
           subtitle=""
           showGear={entries.isOwner}
-          menuItems={canAdd ? addItems : undefined}
+          menuItems={menuItems.length ? menuItems : undefined}
           actions={
             <>
               <IconButton
                 round
                 icon="checkbox-outline"
+                badge={followUps.overdue + followUps.dueToday}
                 label={s.fuTitle}
                 onPress={() => router.push(`/group/${groupId}/company-followups`)}
               />
@@ -296,7 +333,11 @@ export function ClientsList({ groupId }: { groupId: string }) {
                     key={c.id}
                     divider={i < rows.length - 1}
                     title={c.name}
-                    subtitle={`${doc} · ${days === 0 ? s.today : fill(s.daysAgo, { n: days })}`}
+                    subtitleNegative={!!r.nextFollowUp && r.nextFollowUp < today}
+                    subtitle={
+                      fuText(r.nextFollowUp) ??
+                      `${doc} · ${days === 0 ? s.today : fill(s.daysAgo, { n: days })}`
+                    }
                     leading={<PersonAvatar name={c.name} size={40} />}
                     trailing={
                       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
