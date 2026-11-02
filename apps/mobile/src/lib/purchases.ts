@@ -30,6 +30,7 @@ import Purchases, {
 
 import { PlanTier } from '@waves/core';
 
+import { COMPANY_SLOT_PRODUCT_IDS } from './companySlots';
 import { reportHandled } from './observability';
 import { activeProductId, revenueCatApiKey, selectOffering, tierFromCustomerInfo } from './pricing';
 
@@ -281,6 +282,37 @@ export async function buyCompanyStoragePack(
           }
         : null,
     );
+    return 'purchased';
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return 'cancelled';
+    if (code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) return 'pending';
+    throw error;
+  }
+}
+
+/**
+ * The company-slot product to sell next: the first configured one this store account does not
+ * already hold (a store allows one subscription per product). Null until the products exist.
+ */
+export async function loadCompanySlotProduct(): Promise<PurchasesStoreProduct | null> {
+  if (!configured) return null;
+  try {
+    const held = new Set((snapshot.info?.activeSubscriptions ?? []).map((id) => id.split(':')[0]));
+    const ids = COMPANY_SLOT_PRODUCT_IDS.filter((id) => !held.has(id));
+    if (ids.length === 0) return null;
+    const found = await Purchases.getProducts(ids, PRODUCT_CATEGORY.SUBSCRIPTION);
+    return ids.flatMap((id) => found.filter((p) => p.identifier.split(':')[0] === id))[0] ?? null;
+  } catch (error) {
+    reportHandled(error, 'purchases.companySlot');
+    return null;
+  }
+}
+
+/** Buy one company slot. The server binds it to a company when that company is created or renewed. */
+export async function buyCompanySlot(product: PurchasesStoreProduct): Promise<PurchaseOutcome> {
+  try {
+    await Purchases.purchaseStoreProduct(product);
     return 'purchased';
   } catch (error) {
     const code = (error as { code?: string }).code;

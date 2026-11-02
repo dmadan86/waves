@@ -275,7 +275,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
     isOwner,
     isManager,
     isVendor,
-    suspended: group.data?.suspended_at != null,
+    suspended: group.data?.suspended_at != null || group.data?.slot_lapsed_at != null,
     hasManagers,
     manageableIds,
     currency,
@@ -298,7 +298,15 @@ export function useCompanyEntries(groupId: string): CompanyView {
 /** True while Waves has suspended this company. */
 export function useCompanySuspended(groupId: string): boolean {
   const { group } = useGroup(groupId);
-  return group.data?.suspended_at != null;
+  return group.data?.suspended_at != null || group.data?.slot_lapsed_at != null;
+}
+
+/** Read-only only because its slot subscription lapsed; `mine` when the viewer created it and can renew it. */
+export function useCompanySlotLapsed(groupId: string): { lapsed: boolean; mine: boolean } {
+  const { group } = useGroup(groupId);
+  const viewerId = useViewerId();
+  const lapsed = group.data?.slot_lapsed_at != null && group.data?.suspended_at == null;
+  return { lapsed, mine: lapsed && viewerId !== null && group.data?.created_by === viewerId };
 }
 
 /** Report a company to Waves. Needs a connection; never queued. */
