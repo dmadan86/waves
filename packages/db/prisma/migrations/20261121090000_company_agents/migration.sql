@@ -335,6 +335,11 @@ DO $$ DECLARE f regprocedure; d text; BEGIN
   IF d = pg_get_functiondef(f) THEN RAISE EXCEPTION 'could not patch %', f; END IF;
   EXECUTE d;
  END LOOP;
+ -- The join-token RPC discloses a company's reusable invite link: closed to an assistant not bound to that company.
+ f := 'public.waves_ensure_group_join_token(uuid)'::regprocedure;
+ d := regexp_replace(pg_get_functiondef(f), 'BEGIN', E'BEGIN\n IF public.waves_agent_client_id() IS NOT NULL AND NOT public.waves_company_agent_allowed(p_group_id) THEN RAISE EXCEPTION ''NOT_LINKED'' USING ERRCODE=''insufficient_privilege''; END IF;');
+ IF d = pg_get_functiondef(f) THEN RAISE EXCEPTION 'could not patch %', f; END IF;
+ EXECUTE d;
 END $$;
 
 CREATE FUNCTION public.waves_company_agent_group_guard() RETURNS trigger

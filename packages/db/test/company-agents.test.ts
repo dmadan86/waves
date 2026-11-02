@@ -598,6 +598,16 @@ describe('an assistant cannot turn a claim into something that skips review', ()
       ).toMatch(/NOT_LINKED/);
     }));
 
+  it('the join-link RPC does not disclose an unbound company invite to an assistant', () =>
+    isolated(async () => {
+      await settings(true);
+      const token = (agent: string | null) =>
+        as(0, agent, () => db.query('SELECT waves_ensure_group_join_token($1)', [g.groupId]));
+      expect(await denied(() => token('never-linked'))).toMatch(/NOT_LINKED/);
+      await link(0);
+      expect(await denied(() => token(CLIENT))).toMatch(/cannot change this/); // minting an invite is a human's job
+    }));
+
   it('the activity log is behind the same gate', async () => {
     const r = await db.query("SELECT 1 FROM pg_policy WHERE polrelid='public.activity_log'::regclass AND polname='company_agent_gate'");
     expect(r.rowCount).toBe(1);

@@ -94,6 +94,8 @@ function Consent() {
   /** Companies that allow agents. '' = not chosen yet; 'none' = personal groups only. */
   const [companies, setCompanies] = useState<AgentCompany[]>([]);
   const [company, setCompany] = useState('');
+  /** The list has settled (loaded or failed): approving earlier could leave an old company binding in place. */
+  const [companiesReady, setCompaniesReady] = useState(false);
 
   useEffect(() => {
     if (!authorizationId) return;
@@ -112,10 +114,12 @@ function Consent() {
         }
         setPending(step.pending);
         // A failure here just means no picker: the assistant stays personal-only.
-        void loadAgentCompanies(supabase).then(
-          (list) => active && setCompanies(list),
-          () => undefined,
-        );
+        void loadAgentCompanies(supabase)
+          .then(
+            (list) => active && setCompanies(list),
+            () => undefined,
+          )
+          .finally(() => active && setCompaniesReady(true));
       } catch (caught) {
         if (!active) return;
         setRefusal(
@@ -146,9 +150,10 @@ function Consent() {
       setDeciding(choice);
       setFailure(null);
       try {
-        // The binding comes first: if it fails nothing is approved. Denying binds nothing.
-        if (choice === 'approve' && companies.length > 0) {
-          await bindAssistant(supabase, pending.clientId, company === 'none' ? null : company);
+        // The binding comes first: if it fails nothing is approved. Always set - no company means unbind any old one.
+        if (choice === 'approve') {
+          const chosen = companies.length > 0 && company !== 'none' ? company : null;
+          await bindAssistant(supabase, pending.clientId, chosen);
         }
         const call =
           choice === 'approve'
@@ -311,7 +316,9 @@ function Consent() {
                 <button
                   type="button"
                   className="btn"
-                  disabled={deciding !== null || (companies.length > 0 && company === '')}
+                  disabled={
+                    deciding !== null || !companiesReady || (companies.length > 0 && company === '')
+                  }
                   aria-busy={deciding === 'approve'}
                   onClick={() => void decide('approve')}
                 >
