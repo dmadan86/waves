@@ -1328,6 +1328,12 @@ export interface WebStrings {
     denying: string;
     /** Shown instead of a client-supplied logo — see the page for why. */
     unverified: string;
+    /** Label over the company picker on the consent screen. */
+    companyLabel: string;
+    /** The explicit choice that keeps the assistant to personal groups. */
+    noCompany: string;
+    /** Why the choice is asked. */
+    companyHelp: string;
   };
   errors: {
     couldNotLoad: string;
@@ -2439,6 +2445,10 @@ const en: WebStrings = {
     deny: 'Deny',
     denying: 'Denying…',
     unverified: 'Waves has not verified this application.',
+    companyLabel: 'Company access',
+    noCompany: 'No company (personal groups only)',
+    companyHelp:
+      'This assistant will work in one company only. The company owner can switch it off at any time.',
   },
   errors: {
     couldNotLoad: 'Couldn’t load this. Try again in a moment.',
@@ -3578,6 +3588,10 @@ const ta: WebStrings = {
     deny: 'மறு',
     denying: 'மறுக்கிறது…',
     unverified: 'இந்தப் பயன்பாட்டை Waves சரிபார்க்கவில்லை.',
+    companyLabel: 'நிறுவன அணுகல்',
+    noCompany: 'நிறுவனம் வேண்டாம் (தனிப்பட்ட குழுக்கள் மட்டும்)',
+    companyHelp:
+      'இந்த உதவியாளர் ஒரே ஒரு நிறுவனத்தில் மட்டுமே செயல்படும். நிறுவன உரிமையாளர் எப்போது வேண்டுமானாலும் இதை நிறுத்தலாம்.',
   },
   errors: {
     couldNotLoad: 'இதை ஏற்ற முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
@@ -4685,6 +4699,10 @@ const hi: WebStrings = {
     deny: 'मना करें',
     denying: 'मना कर रहे हैं…',
     unverified: 'Waves ने इस ऐप्लिकेशन की जाँच नहीं की है।',
+    companyLabel: 'कंपनी की पहुँच',
+    noCompany: 'कोई कंपनी नहीं (सिर्फ़ निजी ग्रुप)',
+    companyHelp:
+      'यह सहायक सिर्फ़ एक कंपनी में काम करेगा। कंपनी का मालिक इसे कभी भी बंद कर सकता है।',
   },
   errors: {
     couldNotLoad: 'यह लोड नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
@@ -5847,6 +5865,9 @@ const ar: WebStrings = {
     deny: 'رفض',
     denying: 'جارٍ الرفض…',
     unverified: 'لم تتحقّق Waves من هذا التطبيق.',
+    companyLabel: 'الوصول إلى الشركة',
+    noCompany: 'بدون شركة (المجموعات الشخصية فقط)',
+    companyHelp: 'سيعمل هذا المساعد في شركة واحدة فقط. يمكن لمالك الشركة إيقافه في أي وقت.',
   },
   errors: {
     couldNotLoad: 'تعذّر تحميل هذا. حاول بعد قليل.',
