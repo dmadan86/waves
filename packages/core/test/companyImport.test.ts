@@ -123,6 +123,15 @@ describe('buildImportRows', () => {
     ]);
     expect(countRows(rows)).toEqual({ added: 2, duplicates: 3, errors: 0 });
   });
+  it('treats the same name with and without a phone in one file as one row', () => {
+    const rows = build([
+      ['Acme', '9000000002', '', ''],
+      ['acme', '', '', ''],
+      ['Beta', '', '', ''],
+      ['Beta', '9000000003', '', ''],
+    ]);
+    expect(rows.map((r) => r.status)).toEqual(['new', 'duplicate', 'new', 'duplicate']);
+  });
   it('gives the same id on every run', () => {
     const a = build([['Ravi', '9876543210', '', '']])[0];
     const b = build([['ravi', '+91 9876543210', '', '']])[0];
