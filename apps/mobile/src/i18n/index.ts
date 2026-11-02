@@ -3739,6 +3739,7 @@ export interface UiStrings {
     personalBody: string;
     switchTitle: string;
     switchBody: string;
+    switchedTo: string;
     createTitle: string;
     createBody: string;
     owner: string;
@@ -11012,6 +11013,7 @@ const en: UiStrings = {
     personalBody: 'Friends, groups & expenses',
     switchTitle: 'Switch space',
     switchBody: 'Choose where you want to work',
+    switchedTo: 'Switched to {name}',
     createTitle: 'Create a new company',
     createBody: 'Set up a company and invite people',
     owner: 'Owner',
@@ -17891,6 +17893,7 @@ const ta: UiStrings = {
     personalBody: 'நண்பர்கள், குழுக்கள் & செலவுகள்',
     switchTitle: 'இடத்தை மாற்று',
     switchBody: 'நீங்கள் எங்கு வேலை செய்ய விரும்புகிறீர்கள் என்பதைத் தேர்ந்தெடுக்கவும்',
+    switchedTo: '{name} க்கு மாற்றப்பட்டது',
     createTitle: 'புதிய நிறுவனத்தை உருவாக்கு',
     createBody: 'நிறுவனத்தை அமைத்து ஆட்களை அழைக்கவும்',
     owner: 'உரிமையாளர்',
@@ -24872,6 +24875,7 @@ const hi: UiStrings = {
     personalBody: 'दोस्त, ग्रुप और खर्च',
     switchTitle: 'स्पेस बदलें',
     switchBody: 'चुनें कि आप कहाँ काम करना चाहते हैं',
+    switchedTo: '{name} पर स्विच किया गया',
     createTitle: 'नई कंपनी बनाएँ',
     createBody: 'कंपनी सेट करें और लोगों को जोड़ें',
     owner: 'मालिक',
@@ -31838,6 +31842,7 @@ const ar: UiStrings = {
     personalBody: 'الأصدقاء والمجموعات والمصروفات',
     switchTitle: 'تبديل المساحة',
     switchBody: 'اختر المكان الذي تريد العمل فيه',
+    switchedTo: 'تم التبديل إلى {name}',
     createTitle: 'إنشاء شركة جديدة',
     createBody: 'أنشئ شركة وادعُ الأشخاص',
     owner: 'المالك',
