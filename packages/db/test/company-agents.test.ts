@@ -667,3 +667,51 @@ describe('an assistant cannot turn a claim into something that skips review', ()
     expect(r.rowCount).toBe(1);
   });
 });
+
+describe('clients with inquiries and assignees', () => {
+  it('lets a linked assistant add a client (owner becomes assignee) but not touch inquiries or assignments', () =>
+    isolated(async () => {
+      await enableAndLink();
+      const client = randomUUID();
+      await as(0, CLIENT, () =>
+        db.query('SELECT waves_company_client_set($1,$2,$3)', [
+          g.groupId,
+          client,
+          JSON.stringify({
+            name: 'Acme',
+            stage: 'inquiry',
+            source: 'other',
+            ownerMemberId: g.memberIds[2],
+          }),
+        ]),
+      );
+      const a = await db.query(
+        'SELECT 1 FROM company_client_assignees WHERE client_id=$1 AND member_id=$2 AND deleted_at IS NULL',
+        [client, g.memberIds[2]],
+      );
+      expect(a.rowCount).toBe(1);
+      expect(
+        await denied(() =>
+          as(0, CLIENT, () =>
+            db.query('SELECT waves_company_inquiry_set($1,$2,$3,$4)', [
+              g.groupId,
+              randomUUID(),
+              client,
+              JSON.stringify({ title: 'x', inquiryDate: today }),
+            ]),
+          ),
+        ),
+      ).toMatch(/NOT_ALLOWED/);
+      expect(
+        await denied(() =>
+          as(0, CLIENT, () =>
+            db.query('SELECT waves_company_client_assign($1,$2,$3)', [
+              g.groupId,
+              client,
+              [g.memberIds[1]],
+            ]),
+          ),
+        ),
+      ).toMatch(/NOT_ALLOWED/);
+    }));
+});

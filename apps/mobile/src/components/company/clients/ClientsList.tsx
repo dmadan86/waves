@@ -41,6 +41,7 @@ const FILTER_STATUSES: readonly ClientStatus[] = [
   'unpaid',
   'part_paid',
   'paid',
+  'rejected',
   'lost',
 ];
 
@@ -70,8 +71,8 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const followUps = useFollowUps(groupId);
   const nextDays = useMemo(() => nextFollowUpDays(followUps.all), [followUps.all]);
   const all = useMemo(
-    () => buildClientRows(view.clients, docs, view.notes, nextDays),
-    [view.clients, docs, view.notes, nextDays],
+    () => buildClientRows(view.clients, docs, view.notes, nextDays, view.inquiries),
+    [view.clients, docs, view.notes, nextDays, view.inquiries],
   );
   const counts = tabCounts(all);
   // Subtitle for a client with an open follow-up: today, overdue, weekday or date.
@@ -158,6 +159,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
       part_paid: { label: s.stPartPaid, fg: c.warning, bg: c.warningSoft },
       paid: { label: `✓ ${s.stPaid}`, fg: c.positive, bg: c.positiveSoft },
       client: { label: s.stClient, fg: c.positive, bg: c.positiveSoft },
+      rejected: { label: s.inqStRejected, fg: c.negative, bg: c.negativeSoft },
       lost: { label: s.stLost, fg: c.textMuted, bg: c.surfaceMuted },
     }[st];
   };

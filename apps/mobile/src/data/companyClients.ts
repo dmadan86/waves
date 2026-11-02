@@ -13,9 +13,12 @@ import {
   materialiseClients,
   MutationKind,
   nextFollowUpDay,
+  type ClientAssignee,
   type ClientNote,
   type CompanyClient,
   type CompanyClientSetPayload,
+  type CompanyInquiry,
+  type CompanyInquirySetPayload,
   type MirrorWorkTask,
   type NextFollowUp,
 } from '@waves/core';
@@ -33,6 +36,10 @@ export interface ClientsView {
   /** The clients this viewer may see. */
   readonly clients: readonly CompanyClient[];
   readonly notes: readonly ClientNote[];
+  /** The inquiries of the clients this viewer may see. */
+  readonly inquiries: readonly CompanyInquiry[];
+  /** Everyone assigned to the client, the primary owner first. */
+  readonly assigneeIds: (clientId: string) => string[];
   /** Owner or manager: sees every client, moves stages, reassigns and removes. */
   readonly canManage: boolean;
   /** May add an inquiry and notes: owner, manager or employee (not a vendor login). */
@@ -53,15 +60,28 @@ export function useCompanyClients(groupId: string): ClientsView {
   const isEmployee = !canManage && !view.isVendor && view.me?.role === 'member';
   return useMemo(() => {
     const all = materialiseClients(mirror, queue, { groupId });
+    // An employee sees a client they own or are one of the assignees of.
+    const mine = new Set(all.assignees.filter((a) => a.memberId === myId).map((a) => a.clientId));
     const clients = all.clients.filter((c) =>
-      canManage ? true : isEmployee ? c.ownerMemberId === myId : false,
+      canManage ? true : isEmployee ? c.ownerMemberId === myId || mine.has(c.id) : false,
     );
     const ids = new Set(clients.map((c) => c.id));
+    const byClient = new Map<string, ClientAssignee[]>();
+    for (const a of all.assignees)
+      byClient.set(a.clientId, [...(byClient.get(a.clientId) ?? []), a]);
     const owners = view.members.filter((m) => !m.left_at && m.role !== 'vendor');
     const names = new Map(owners.map((m) => [m.id, displayName(m)]));
     return {
       clients,
       notes: all.notes.filter((n) => ids.has(n.clientId)),
+      inquiries: all.inquiries.filter((i) => ids.has(i.clientId)),
+      assigneeIds: (clientId: string) => {
+        const owner = clients.find((c) => c.id === clientId)?.ownerMemberId ?? null;
+        const rest = (byClient.get(clientId) ?? [])
+          .map((a) => a.memberId)
+          .filter((m) => m !== owner);
+        return [...(owner ? [owner] : []), ...new Set(rest)];
+      },
       canManage,
       canAdd: canManage || isEmployee,
       myMemberId: myId,
@@ -132,6 +152,54 @@ export function stageChange(
     stage,
     lostReason,
   };
+}
+
+export type InquiryInput = Omit<CompanyInquirySetPayload, 'inquiryId'> & { inquiryId?: string };
+
+/** Add an inquiry to a client (a fresh id) or save one (its id). */
+export function useSetInquiry(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: async (input: InquiryInput) => {
+      const inquiryId = input.inquiryId ?? randomUUID();
+      await mutate(MutationKind.CompanyInquirySet, groupId, {
+        ...input,
+        inquiryId,
+        title: input.title.trim().slice(0, 120),
+        details: input.details?.trim() || null,
+      });
+      return inquiryId;
+    },
+  });
+}
+
+export function useRejectInquiry(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: { inquiryId: string; rejected: boolean; reason?: string | null }) =>
+      mutate(MutationKind.CompanyInquiryReject, groupId, {
+        inquiryId: input.inquiryId,
+        rejected: input.rejected,
+        reason: input.rejected ? input.reason?.trim() || null : null,
+      }),
+  });
+}
+
+export function useRemoveInquiry(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (inquiryId: string) =>
+      mutate(MutationKind.CompanyInquiryRemove, groupId, { inquiryId }),
+  });
+}
+
+/** Replace the people assigned to a client (owner and manager only). */
+export function useAssignClient(groupId: string) {
+  const { mutate } = useSync();
+  return useMutation({
+    mutationFn: (input: { clientId: string; memberIds: readonly string[] }) =>
+      mutate(MutationKind.CompanyClientAssign, groupId, input),
+  });
 }
 
 export function useRemoveClient(groupId: string) {

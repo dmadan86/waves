@@ -218,6 +218,10 @@ describe('purgeCompanyInvisible (client reassigned to someone else)', () => {
     row(SyncTable.CompanyClients, { id: 'gone' }),
     row(SyncTable.CompanyClientNotes, { id: 'n1', client_id: 'kept' }),
     row(SyncTable.CompanyClientNotes, { id: 'n2', client_id: 'gone' }),
+    row(SyncTable.CompanyInquiries, { id: 'i1', client_id: 'kept' }),
+    row(SyncTable.CompanyInquiries, { id: 'i2', client_id: 'gone' }),
+    row(SyncTable.CompanyClientAssignees, { id: 'a1', client_id: 'kept' }),
+    row(SyncTable.CompanyClientAssignees, { id: 'a2', client_id: 'gone' }),
     row(SyncTable.CompanyWorkTasks, { id: 't1', client_id: 'kept', member_id: 'me' }),
     row(SyncTable.CompanyWorkTasks, { id: 't2', client_id: 'gone', member_id: 'me' }),
     row(SyncTable.CompanyWorkTasks, { id: 't3', client_id: null, member_id: 'me' }),
@@ -232,6 +236,8 @@ describe('purgeCompanyInvisible (client reassigned to someone else)', () => {
     );
     expect(ids(next, SyncTable.CompanyClients)).toEqual(['kept']);
     expect(ids(next, SyncTable.CompanyClientNotes)).toEqual(['n1']);
+    expect(ids(next, SyncTable.CompanyInquiries)).toEqual(['i1']);
+    expect(ids(next, SyncTable.CompanyClientAssignees)).toEqual(['a1']);
     expect(ids(next, SyncTable.CompanyWorkTasks)).toEqual(['t1', 't2', 't3']);
   });
 
