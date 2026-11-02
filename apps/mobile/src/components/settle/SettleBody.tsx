@@ -453,11 +453,23 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
           <CardHeader title={title} subtitle={subtitle} />
         </View>
         <View ref={pillRef} collapsable={false}>
-          <FilterPill
-            label={fill(t.misc.sortPill, { label: sortLabel[sort] })}
-            open={sortOpen}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={fill(t.misc.sortPill, { label: sortLabel[sort] })}
+            accessibilityState={{ expanded: sortOpen }}
+            hitSlop={6}
             onPress={openSort}
-          />
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Ionicons name="swap-vertical" size={18} color={theme.color.brand} />
+          </Pressable>
         </View>
       </Row>
       <OverflowMenu
