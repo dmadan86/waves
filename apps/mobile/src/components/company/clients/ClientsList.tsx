@@ -116,6 +116,11 @@ export function ClientsList({ groupId }: { groupId: string }) {
       label: s.addClient,
       onPress: () => router.push(`/group/${groupId}/company-client-add`),
     },
+    {
+      icon: 'cloud-upload-outline',
+      label: t.companyImport.menuRow,
+      onPress: () => router.push(`/group/${groupId}/company-import?entity=client`),
+    },
     ...(canDocs
       ? ([
           {
