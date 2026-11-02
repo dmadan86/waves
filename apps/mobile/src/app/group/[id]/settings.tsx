@@ -1228,6 +1228,21 @@ export default function GroupSettingsScreen() {
             </StandardCard>
           ) : null}
           <MissingRatesCard groupId={groupId} />
+          {isCompany && companyView.isAdmin && !companyView.suspended ? (
+            <StandardCard>
+              <ListRow
+                leading={
+                  <RowTile tint={theme.color.brandSoft}>
+                    <Ionicons name="cloud-upload-outline" size={20} color={theme.color.brand} />
+                  </RowTile>
+                }
+                title={t.companyImport.menuRow}
+                subtitle={t.companyImport.menuRowSub}
+                subtitleLines={2}
+                onPress={() => router.push(`/group/${groupId}/company-import`)}
+              />
+            </StandardCard>
+          ) : null}
           {isCompany && companyView.isOwner ? (
             <>
               <SectionHeader title={t.company.moreRules} />

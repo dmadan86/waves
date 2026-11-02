@@ -19,6 +19,17 @@ import {
   type TableRead,
 } from '@waves/core';
 
+/** What the document picker offers for an import: CSV in its many labels, plus .xlsx. */
+export const IMPORT_PICKER_TYPES = [
+  'text/csv',
+  'text/comma-separated-values',
+  'text/tab-separated-values',
+  'text/plain',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/octet-stream',
+];
+
 export type FileFailure = 'too_large' | 'too_many_rows' | 'empty' | 'encoding' | 'unreadable';
 
 /** Why a file could not be read; the screen turns `failure` into a sentence. */
