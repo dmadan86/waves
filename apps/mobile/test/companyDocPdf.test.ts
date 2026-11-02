@@ -59,6 +59,20 @@ const render = (value = doc, logoUrl?: string) =>
   });
 
 describe('company document PDF', () => {
+  it('shows the UPI QR only on a bill with an amount due', () => {
+    const upi = { id: 'a@ybl', qrDataUrl: 'data:image/png;base64,AAAA', scanLabel: 'Scan to pay' };
+    const opts = (d: typeof doc) =>
+      renderCompanyDocHtml(d, {
+        companyName: 'Co',
+        labels,
+        formatMoney: String,
+        formatDate: (x) => x,
+        upi,
+      });
+    expect(opts({ ...doc, docType: 'bill' })).toContain('data:image/png;base64,AAAA');
+    expect(opts(doc)).not.toContain('a@ybl');
+    expect(opts({ ...doc, docType: 'bill', paidMinor: 15000n })).not.toContain('a@ybl');
+  });
   it('uses the exact legal footer and only the permitted wording', () => {
     const html = render();
     expect(html).toContain('This is not a tax invoice.');
