@@ -2280,7 +2280,8 @@ export function useAddGhostMember(groupId: string) {
   const { profile } = useAuth();
   return useMutation({
     mutationFn: async (
-      input: string | { name: string; email?: string | null; phone?: string | null },
+      input:
+        string | { name: string; email?: string | null; phone?: string | null; memberId?: string },
     ) => {
       const person = typeof input === 'string' ? { name: input } : input;
       // A bare local number ("9535621101") is read in the member's own region
@@ -2294,7 +2295,7 @@ export function useAddGhostMember(groupId: string) {
       // Chosen here so the expenses queued behind this member can already name
       // them. Adding somebody and immediately splitting a bill with them is one
       // action to a person, and offline it has to work like one.
-      const memberId = randomUUID();
+      const memberId = (typeof input === 'string' ? undefined : input.memberId) ?? randomUUID();
       await mutate(MutationKind.MemberAddGhost, groupId, {
         memberId,
         name: person.name,

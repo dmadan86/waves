@@ -34,6 +34,11 @@ export default function CompanyVendorsScreen() {
       route: `/group/${id}/company-vendor-add`,
     },
     {
+      icon: 'cloud-upload-outline',
+      label: t.companyImport.menuRow,
+      route: `/group/${id}/company-import?entity=vendor`,
+    },
+    {
       icon: 'business-outline',
       label: t.companyDetails.title,
       route: `/group/${id}/company-details`,
