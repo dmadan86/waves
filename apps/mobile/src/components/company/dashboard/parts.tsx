@@ -215,7 +215,7 @@ export function IconButton({
  * its switcher, gear and menu, who is in it. Add and export live on the company bar (FAB, More).
  */
 /** The Overview bell: opens this company's own activity feed; the red count is what is new since it was last opened. */
-function OverviewBell({ groupId }: { groupId: string }) {
+function OverviewBell({ groupId, round }: { groupId: string; round?: boolean }) {
   const theme = useTheme();
   const { t } = useStrings();
   const unread = useCompanyActivityUnread(groupId);
@@ -223,6 +223,7 @@ function OverviewBell({ groupId }: { groupId: string }) {
     <View>
       <IconButton
         icon="notifications-outline"
+        round={round}
         label={unread > 0 ? `${t.company.ovBell}, ${unread}` : t.company.ovBell}
         onPress={() => router.push(`/group/${groupId}/company-activity`)}
       />
@@ -294,6 +295,8 @@ export function DashHeader({
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
   const bare = (!!menuItems || tab) && !overview;
+  // Every bar tab root (Home included) shares one header: round buttons, bell, gear, then ⋮.
+  const root = overview || bare;
   const g = greetingFor(new Date().getHours());
   const greeting =
     g === 'morning'
@@ -324,12 +327,13 @@ export function DashHeader({
             source={BUILDING}
             accessibilityIgnoresInvertColors
             fadeDuration={0}
+            resizeMode="cover"
             style={{
               position: 'absolute',
-              right: overview ? 8 : 24,
-              top: insets.top + (overview ? 14 : 30),
-              width: overview ? 176 : 132,
-              height: 122,
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 200,
               opacity: dark ? 0.48 : 0.68,
             }}
           />
@@ -365,21 +369,21 @@ export function DashHeader({
           <View style={{ flex: 1, minWidth: 0 }}>
             <SpacePill current={groupId} label={view.name || t.extras.typeCompany} />
           </View>
-          {overview ? <OverviewBell groupId={groupId} /> : null}
           {actions}
+          {root ? <OverviewBell groupId={groupId} round /> : null}
           {showGear ? (
             <IconButton
               icon="settings-outline"
               label={t.company.companySettings}
-              round={bare}
+              round={root}
               onPress={() => router.push(`/group/${groupId}/settings`)}
             />
           ) : null}
           {dots ? (
             <IconButton
-              icon={bare ? 'ellipsis-horizontal' : 'ellipsis-vertical'}
+              icon={root ? 'ellipsis-horizontal' : 'ellipsis-vertical'}
               label={t.group.more}
-              round={bare}
+              round={root}
               buttonRef={dotsRef}
               onPress={() =>
                 measureAnchor(dotsRef, (a) => {
