@@ -1,8 +1,5 @@
+import { isValidVpa } from '../settlement/apply';
 import { billDueMinor, docNumberLabel } from './documents';
-
-/** UPI ID (VPA) shape: `name@handle`. */
-export const isValidVpa = (v: string): boolean =>
-  /^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,64}$/.test(v);
 
 /**
  * `upi://pay` link for the amount still due on a bill, or null when there is nothing to scan:

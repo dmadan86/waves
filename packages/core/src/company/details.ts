@@ -4,7 +4,7 @@
  * The server is authoritative (and keeps bank + PAN away from employees); this validates, masks and formats.
  */
 
-import { isValidVpa } from './billUpi';
+import { isValidVpa } from '../settlement/apply';
 
 export const DETAIL_KEYS = [
   'bankName',

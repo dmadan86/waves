@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { billUpiLink, invalidDetailKeys, cleanDetails, isValidVpa } from '../src/company/index.js';
+import { billUpiLink, invalidDetailKeys, cleanDetails } from '../src/company/index.js';
+import { isValidVpa } from '../src/settlement/apply.js';
 
 const base = {
   vpa: 'acme.shop@okhdfc',
