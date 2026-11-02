@@ -460,7 +460,7 @@ export function DashHeader({
           </Pressable>
         ) : null}
       </View>
-      {view.suspended ? <SuspendedBanner /> : null}
+      {view.suspended ? <SuspendedBanner groupId={groupId} /> : null}
       {overview && view.isAdmin ? <CompanyStorageBanner groupId={groupId} /> : null}
       <ReportCompanySheet
         groupId={groupId}

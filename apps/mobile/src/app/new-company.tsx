@@ -10,11 +10,15 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { Button, Callout, Screen, Text, useTheme } from '@waves/ui';
 
 import { CompanyLogoField } from '@/components/company/CompanyLogoField';
+import { CompanySlotSheet } from '@/components/company/CompanySlotSheet';
+import { fetchSlotStatus } from '@/data/companySlotApi';
+import { createGate, isSlotRequired, ownedCompanyCount } from '@/lib/companySlots';
+import { useViewerId } from '@/lib/auth';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { CurrencySheet } from '@/components/expense/CurrencySheet';
 import { ScenicBody, ScenicHeader, StandardCard } from '@/components/standard';
 import { canUploadGroupPhoto, uploadGroupPhoto } from '@/data/api';
-import { useCreateGroup } from '@/data/hooks';
+import { useCreateGroup, useGroups } from '@/data/hooks';
 import { GroupType } from '@/data/types';
 import { deviceCountry, useStrings } from '@/i18n';
 import { AdGateCancelledError } from '@/lib/adGateBridge';
@@ -35,6 +39,9 @@ export default function NewCompanyScreen() {
   const guard = useGuestGuard();
   const toast = useToast();
   const remember = useRememberSpace();
+  const groups = useGroups().data ?? [];
+  const viewerId = useViewerId();
+  const [paywall, setPaywall] = useState(false);
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState<string | null>(null);
   const [pickingCur, setPickingCur] = useState(false);
@@ -43,10 +50,18 @@ export default function NewCompanyScreen() {
   const [error, setError] = useState<string | null>(null);
   const trimmed = name.trim();
 
-  const submit = async (): Promise<void> => {
+  const submit = async (slotReady = false): Promise<void> => {
     // Same gates as a new group: guest limit here, the ad gate inside the hook.
     if (guard.blockAddGroup()) return;
     setError(null);
+    // The first company you own is free; another needs a company subscription (the server enforces it too).
+    const gate = slotReady
+      ? 'create'
+      : createGate(await fetchSlotStatus(), ownedCompanyCount(groups, viewerId));
+    if (gate === 'paywall') {
+      setPaywall(true);
+      return;
+    }
     try {
       const groupId = await createGroup.mutateAsync({
         name: trimmed,
@@ -76,6 +91,10 @@ export default function NewCompanyScreen() {
       router.replace(`/group/${groupId}`);
     } catch (caught) {
       if (caught instanceof AdGateCancelledError) return;
+      if (isSlotRequired(caught)) {
+        setPaywall(true);
+        return;
+      }
       setError(friendlyError(caught, t.couldNotSave, 'newCompany.create'));
     }
   };
@@ -154,6 +173,11 @@ export default function NewCompanyScreen() {
           onClose={() => setPickingCur(false)}
         />
       ) : null}
+      <CompanySlotSheet
+        visible={paywall}
+        onClose={() => setPaywall(false)}
+        onReady={() => void submit(true)}
+      />
       <View
         style={{
           paddingHorizontal: theme.spacing.lg,
