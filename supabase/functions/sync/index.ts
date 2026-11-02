@@ -126,6 +126,10 @@ type MutationKind =
   | 'company_client.set'
   | 'company_client.remove'
   | 'company_client_note.add'
+  | 'company_ticket.set'
+  | 'company_ticket.status'
+  | 'company_ticket_comment.add'
+  | 'company_ticket.remove'
   | 'company_details.set'
   | 'company_vendor_details.set'
   | 'company_vendor_order.set'
@@ -383,6 +387,9 @@ const GROUP_TABLES = [
   // Clients and notes: owner and manager all, an employee only the ones assigned to them (RLS).
   ['company_clients', '*'],
   ['company_client_notes', '*'],
+  // Complaints and their timeline: owner all, a manager their team's, an employee their own (RLS).
+  ['company_tickets', '*'],
+  ['company_ticket_events', '*'],
   // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
   ['company_attendance', '*'],
   ['company_work_tasks', '*'],
@@ -1381,6 +1388,53 @@ export class SyncSession {
           p_body: body.trim(),
         });
       }
+      case 'company_ticket.set': {
+        const priority = mutation.payload.priority;
+        if (!['low', 'normal', 'high', 'urgent'].includes(priority as string))
+          companyInvalid('priority');
+        const dueAt = mutation.payload.dueAt;
+        const details = mutation.payload.details;
+        if (details != null && (typeof details !== 'string' || details.trim().length > 1000))
+          companyInvalid('details');
+        if (typeof dueAt !== 'string' || Number.isNaN(Date.parse(dueAt))) companyInvalid('dueAt');
+        return await this.rpcAsCaller('waves_company_ticket_set', {
+          p_group_id: mutation.groupId,
+          p_ticket_id: companyUuid(mutation.payload.ticketId, 'ticketId'),
+          p_data: {
+            clientId: companyUuid(mutation.payload.clientId ?? null, 'clientId', true),
+            title: companyReason(mutation.payload.title, 'title', true),
+            details: typeof details === 'string' ? details.trim() || null : null,
+            priority,
+            assigneeMemberId: companyUuid(mutation.payload.assigneeMemberId, 'assigneeMemberId'),
+            dueAt: new Date(dueAt as string).toISOString(),
+          },
+        });
+      }
+      case 'company_ticket.status': {
+        const status = mutation.payload.status;
+        if (!['open', 'in_progress', 'resolved', 'closed'].includes(status as string))
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_ticket_status', {
+          p_ticket_id: companyUuid(mutation.payload.ticketId, 'ticketId'),
+          p_status: status,
+          p_note: companyReason(mutation.payload.note ?? null, 'note', false),
+        });
+      }
+      case 'company_ticket_comment.add': {
+        const body = mutation.payload.body;
+        if (typeof body !== 'string' || !body.trim() || body.trim().length > 1000)
+          companyInvalid('body');
+        return await this.rpcAsCaller('waves_company_ticket_comment_add', {
+          p_group_id: mutation.groupId,
+          p_event_id: companyUuid(mutation.payload.eventId, 'eventId'),
+          p_ticket_id: companyUuid(mutation.payload.ticketId, 'ticketId'),
+          p_body: body.trim(),
+        });
+      }
+      case 'company_ticket.remove':
+        return await this.rpcAsCaller('waves_company_ticket_remove', {
+          p_ticket_id: companyUuid(mutation.payload.ticketId, 'ticketId'),
+        });
       case 'company_details.set':
         return await this.rpcAsCaller('waves_company_details_set', {
           p_group_id: mutation.groupId,
@@ -3031,8 +3085,13 @@ function companyTag(
 async function companyCalendarVisible(
   caller: SupabaseClient,
   groupIds: readonly string[],
-): Promise<Record<string, { dates: string[]; events: string[]; clients: string[] }>> {
-  const out: Record<string, { dates: string[]; events: string[]; clients: string[] }> = {};
+): Promise<
+  Record<string, { dates: string[]; events: string[]; clients: string[]; tickets: string[] }>
+> {
+  const out: Record<
+    string,
+    { dates: string[]; events: string[]; clients: string[]; tickets: string[] }
+  > = {};
   if (groupIds.length === 0) return out;
   const groups = await caller.from('groups').select('id').eq('type', 'company').in('id', groupIds);
   if (groups.error) return out;
@@ -3056,7 +3115,9 @@ async function companyCalendarVisible(
     const dates = await ids('company_member_dates', id as string);
     const events = await ids('company_events', id as string);
     const clients = await ids('company_clients', id as string);
-    if (dates && events && clients) out[id as string] = { dates, events, clients };
+    const tickets = await ids('company_tickets', id as string);
+    if (dates && events && clients && tickets)
+      out[id as string] = { dates, events, clients, tickets };
   }
   return out;
 }
