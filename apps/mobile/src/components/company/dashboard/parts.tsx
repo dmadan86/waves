@@ -170,6 +170,7 @@ export function IconButton({
   onPress,
   round = false,
   buttonRef,
+  badge = 0,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
@@ -177,36 +178,71 @@ export function IconButton({
   /** A white round button (the Team header) instead of a bare icon. */
   round?: boolean;
   buttonRef?: RefObject<View | null>;
+  /** A red count on the corner; hidden at 0. */
+  badge?: number;
 }) {
   const theme = useTheme();
   return (
-    <Pressable
-      ref={buttonRef}
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      onPress={onPress}
-      hitSlop={6}
-      style={
-        round
-          ? {
-              width: 40,
-              height: 40,
-              borderRadius: 20,
-              marginStart: 8,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: theme.color.surface,
-              shadowColor: '#000',
-              shadowOpacity: 0.08,
-              shadowRadius: 6,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: 2,
-            }
-          : { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }
-      }
+    <View>
+      <Pressable
+        ref={buttonRef}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        hitSlop={6}
+        style={
+          round
+            ? {
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                marginStart: 8,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.surface,
+                shadowColor: '#000',
+                shadowOpacity: 0.08,
+                shadowRadius: 6,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 2,
+              }
+            : { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }
+        }
+      >
+        <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
+      </Pressable>
+      {badge > 0 ? <CountBadge n={badge} /> : null}
+    </View>
+  );
+}
+
+function CountBadge({ n }: { n: number }) {
+  const theme = useTheme();
+  return (
+    <View
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        top: 2,
+        end: 2,
+        minWidth: 17,
+        height: 17,
+        borderRadius: 9,
+        paddingHorizontal: 4,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: theme.color.negative,
+        borderWidth: 1.5,
+        borderColor: theme.color.bg,
+      }}
     >
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
-    </Pressable>
+      <Text
+        variant="micro"
+        style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10, lineHeight: 12 }}
+      >
+        {n > 99 ? '99+' : n}
+      </Text>
+    </View>
   );
 }
 
@@ -216,44 +252,16 @@ export function IconButton({
  */
 /** The Overview bell: opens this company's own activity feed; the red count is what is new since it was last opened. */
 function OverviewBell({ groupId, round }: { groupId: string; round?: boolean }) {
-  const theme = useTheme();
   const { t } = useStrings();
   const unread = useCompanyActivityUnread(groupId);
   return (
-    <View>
-      <IconButton
-        icon="notifications-outline"
-        round={round}
-        label={unread > 0 ? `${t.company.ovBell}, ${unread}` : t.company.ovBell}
-        onPress={() => router.push(`/group/${groupId}/company-activity`)}
-      />
-      {unread > 0 ? (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            top: 2,
-            end: 2,
-            minWidth: 17,
-            height: 17,
-            borderRadius: 9,
-            paddingHorizontal: 4,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.negative,
-            borderWidth: 1.5,
-            borderColor: theme.color.bg,
-          }}
-        >
-          <Text
-            variant="micro"
-            style={{ color: '#FFFFFF', fontWeight: '700', fontSize: 10, lineHeight: 12 }}
-          >
-            {unread > 99 ? '99+' : unread}
-          </Text>
-        </View>
-      ) : null}
-    </View>
+    <IconButton
+      icon="notifications-outline"
+      round={round}
+      badge={unread}
+      label={unread > 0 ? `${t.company.ovBell}, ${unread}` : t.company.ovBell}
+      onPress={() => router.push(`/group/${groupId}/company-activity`)}
+    />
   );
 }
 

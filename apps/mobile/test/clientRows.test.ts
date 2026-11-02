@@ -5,6 +5,8 @@ import type { CompanyClient } from '@waves/core';
 import {
   buildClientRows,
   daysAgo,
+  followUpTag,
+  nextFollowUpDays,
   listClientRows,
   tabCounts,
   type ClientDoc,
@@ -125,5 +127,26 @@ describe('buildClientRows', () => {
   it('daysAgo never goes negative', () => {
     expect(daysAgo('2026-10-23', '2026-10-25')).toBe(2);
     expect(daysAgo('2026-10-30', '2026-10-25')).toBe(0);
+  });
+});
+
+describe('follow-up helpers', () => {
+  it('picks the soonest open follow-up per client', () => {
+    const m = nextFollowUpDays([
+      { clientId: 'a', day: '2026-11-05', status: 'todo' },
+      { clientId: 'a', day: '2026-11-03', status: 'todo' },
+      { clientId: 'a', day: '2026-11-01', status: 'done' },
+      { clientId: null, day: '2026-11-01', status: 'todo' },
+    ]);
+    expect(m.get('a')).toBe('2026-11-03');
+    expect(m.size).toBe(1);
+    expect(buildClientRows([client('a')], [], [], m)[0]!.nextFollowUp).toBe('2026-11-03');
+    expect(buildClientRows([client('b')], [], [], m)[0]!.nextFollowUp).toBeNull();
+  });
+  it('tags today, overdue, weekday and date', () => {
+    expect(followUpTag('2026-11-02', '2026-11-02')).toEqual({ kind: 'today' });
+    expect(followUpTag('2026-10-31', '2026-11-02')).toEqual({ kind: 'overdue', n: 2 });
+    expect(followUpTag('2026-11-05', '2026-11-02')).toEqual({ kind: 'on', weekday: true });
+    expect(followUpTag('2026-11-20', '2026-11-02')).toEqual({ kind: 'on', weekday: false });
   });
 });
