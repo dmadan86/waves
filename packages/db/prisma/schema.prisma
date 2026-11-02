@@ -426,6 +426,7 @@ model Group {
   @@index([startDate, endDate], map: "groups_reminder_window_idx")
   vendors CompanyVendor[]
   companyClients CompanyClient[]
+  companyInquiries CompanyInquiry[]
   companyDetails CompanyDetails?
   companyDetailsSecure CompanyDetailsSecure?
   @@map("groups")
@@ -556,6 +557,9 @@ model GroupMember {
   clientsOwned CompanyClient[] @relation("CompanyClientOwner")
   clientsCreated CompanyClient[] @relation("CompanyClientCreator")
   clientNotes CompanyClientNote[]
+  inquiriesCreated CompanyInquiry[] @relation("CompanyInquiryCreator")
+  inquiriesUpdated CompanyInquiry[] @relation("CompanyInquiryUpdater")
+  clientAssignments CompanyClientAssignee[]
   vendorLinesCreated CompanyVendorEntry[] @relation("CompanyVendorLineCreator")
   vendorLinesFunded CompanyVendorEntry[] @relation("CompanyVendorLineFunder")
   vendorPhotos CompanyVendorEntryAttachment[]
@@ -3449,6 +3453,8 @@ model CompanyDocument {
   creator GroupMember @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
   clientId String? @map("client_id") @db.Uuid
   client CompanyClient? @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  inquiryId String? @map("inquiry_id") @db.Uuid
+  inquiry CompanyInquiry? @relation(fields: [inquiryId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   @@unique([groupId,docType,number])
   @@index([groupId,updatedSeq], map: "company_documents_sync_idx")
   @@index([groupId,createdBy], map: "company_documents_creator_idx")
@@ -3769,6 +3775,8 @@ model CompanyClient {
   notes CompanyClientNote[]
   tasks CompanyWorkTask[]
   documents CompanyDocument[]
+  inquiries CompanyInquiry[]
+  assignees CompanyClientAssignee[]
   @@unique([id,groupId])
   @@index([groupId,updatedSeq], map: "company_clients_sync_idx")
   @@index([groupId,ownerMemberId], map: "company_clients_owner_idx")
@@ -3791,5 +3799,51 @@ model CompanyClientNote {
   @@index([groupId,updatedSeq], map: "company_client_notes_sync_idx")
   @@index([clientId,createdAt], map: "company_client_notes_client_idx")
   @@map("company_client_notes")
+  @@schema("public")
+}
+model CompanyInquiry {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  clientId String @map("client_id") @db.Uuid
+  number Int
+  title String
+  details String?
+  expectedValueMinor BigInt? @map("expected_value_minor")
+  inquiryDate DateTime @default(dbgenerated("CURRENT_DATE")) @map("inquiry_date") @db.Date
+  rejectedAt DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectReason String? @map("reject_reason")
+  createdBy String @map("created_by") @db.Uuid
+  updatedBy String @map("updated_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  client CompanyClient @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyInquiryCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  updater GroupMember @relation("CompanyInquiryUpdater", fields: [updatedBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  documents CompanyDocument[]
+  @@unique([id,groupId])
+  @@unique([groupId,number])
+  @@index([groupId,updatedSeq], map: "company_inquiries_sync_idx")
+  @@index([clientId], map: "company_inquiries_client_idx")
+  @@map("company_inquiries")
+  @@schema("public")
+}
+model CompanyClientAssignee {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  clientId String @map("client_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  client CompanyClient @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation(fields: [memberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([clientId,memberId])
+  @@index([groupId,updatedSeq], map: "company_client_assignees_sync_idx")
+  @@map("company_client_assignees")
   @@schema("public")
 }

@@ -142,6 +142,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyDocuments,
   SyncTable.CompanyClients,
   SyncTable.CompanyClientNotes,
+  SyncTable.CompanyInquiries,
+  SyncTable.CompanyClientAssignees,
   SyncTable.CompanyAttendance,
   SyncTable.CompanyWorkTasks,
   SyncTable.CompanyHolidays,
@@ -2630,6 +2632,8 @@ export interface MirrorCompanyDoc {
   readonly convertedFrom: string | null;
   readonly createdBy: string;
   readonly clientId?: string | null;
+  /** The client's inquiry this estimate or bill belongs to. */
+  readonly inquiryId?: string | null;
   readonly deleted: boolean;
   readonly pending: boolean;
 }
@@ -2667,6 +2671,7 @@ function docFromRow(r: Record<string, unknown>): MirrorCompanyDoc {
     convertedFrom: (r.converted_from as string | null) ?? null,
     createdBy: r.created_by as string,
     clientId: (r.client_id as string | null) ?? null,
+    inquiryId: (r.inquiry_id as string | null) ?? null,
     deleted: !!r.deleted_at,
     pending: false,
   };
@@ -2712,6 +2717,7 @@ export function materialiseCompanyDocs(
         totalMinor: t.totalMinor,
         notes: p.data.notes,
         ...(p.data.clientId === undefined ? {} : { clientId: p.data.clientId }),
+        ...(p.data.inquiryId === undefined ? {} : { inquiryId: p.data.inquiryId }),
       };
       byId.set(
         p.docId,
@@ -2732,6 +2738,7 @@ export function materialiseCompanyDocs(
                 convertedFrom: null,
                 createdBy: options.viewerMemberId,
                 clientId: p.data.clientId ?? null,
+                inquiryId: p.data.inquiryId ?? null,
                 deleted: false,
                 pending: true,
               },
@@ -2834,6 +2841,8 @@ export function purgeCompanyInvisible(
       const orphan = (row: Record<string, unknown>): boolean =>
         row.group_id === groupId && gone.has(row.client_id as string);
       drop(SyncTable.CompanyClientNotes, orphan);
+      drop(SyncTable.CompanyInquiries, orphan);
+      drop(SyncTable.CompanyClientAssignees, orphan);
     }
     const dates = new Set(ids.dates);
     const events = new Set(ids.events);

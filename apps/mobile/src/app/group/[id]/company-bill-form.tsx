@@ -43,7 +43,14 @@ function BillForm() {
     docId,
     type,
     clientId,
-  } = useLocalSearchParams<{ id: string; docId?: string; type?: string; clientId?: string }>();
+    inquiryId,
+  } = useLocalSearchParams<{
+    id: string;
+    docId?: string;
+    type?: string;
+    clientId?: string;
+    inquiryId?: string;
+  }>();
   const view = useCompanyDocs(id);
   const { t } = useStrings();
   const doc = view.docs.find((d) => d.id === docId && !d.deleted);
@@ -57,7 +64,14 @@ function BillForm() {
     );
   if (doc?.convertedTo) return null;
   return (
-    <DocumentForm key={doc?.id ?? 'new'} groupId={id} doc={doc} type={type} clientId={clientId} />
+    <DocumentForm
+      key={doc?.id ?? 'new'}
+      groupId={id}
+      doc={doc}
+      type={type}
+      clientId={clientId}
+      inquiryId={inquiryId}
+    />
   );
 }
 
@@ -86,12 +100,15 @@ function DocumentForm({
   doc,
   type,
   clientId,
+  inquiryId,
 }: {
   groupId: string;
   doc?: ReturnType<typeof useCompanyDocs>['docs'][number];
   type?: string;
   /** A new document started from a client: prefills the name and phone and links it. */
   clientId?: string;
+  /** With a client: the inquiry this estimate answers (dropped if another client is picked). */
+  inquiryId?: string;
 }) {
   const view = useCompanyDocs(groupId);
   const client = useCompanyClients(groupId).clients.find((c) => c.id === clientId);
@@ -168,6 +185,7 @@ function DocumentForm({
       discountMinor: discount,
       notes,
       ...(doc || !linkedClient ? {} : { clientId: linkedClient }),
+      ...(doc || !inquiryId || linkedClient !== clientId ? {} : { inquiryId }),
     };
     const code = validateDoc(values, doc?.paidMinor ?? 0n);
     if (code) {

@@ -107,6 +107,11 @@ export enum MutationKind {
   CompanyClientSet = 'company_client.set',
   CompanyClientRemove = 'company_client.remove',
   CompanyClientNoteAdd = 'company_client_note.add',
+  // A client has many inquiries (INQ-001...) and several assigned people.
+  CompanyInquirySet = 'company_inquiry.set',
+  CompanyInquiryReject = 'company_inquiry.reject',
+  CompanyInquiryRemove = 'company_inquiry.remove',
+  CompanyClientAssign = 'company_client.assign',
   // Details card (contact + bank), one per side. Owner sets the company's; owner, owning manager or the vendor set a vendor's.
   CompanyDetailsSet = 'company_details.set',
   CompanyVendorDetailsSet = 'company_vendor_details.set',
@@ -706,6 +711,8 @@ export interface CompanyDocSavePayload {
     readonly notes: string | null;
     /** The client this document is for. Absent keeps the saved link; null clears it. */
     readonly clientId?: string | null;
+    /** The inquiry (of that client) this document answers. Absent keeps the saved link; null clears it. */
+    readonly inquiryId?: string | null;
   };
 }
 export type ClientStage = 'inquiry' | 'quoted' | 'client' | 'lost';
@@ -730,6 +737,30 @@ export interface CompanyClientNoteAddPayload {
   readonly noteId: string;
   readonly clientId: string;
   readonly body: string;
+}
+/** Create or edit an inquiry of a client. Money as a decimal string; the number is assigned by the server. */
+export interface CompanyInquirySetPayload {
+  readonly inquiryId: string;
+  readonly clientId: string;
+  readonly title: string;
+  readonly details: string | null;
+  readonly expectedValueMinor: string | null;
+  /** ISO day. */
+  readonly inquiryDate: string;
+}
+/** Reject (with a reason) or reopen. */
+export interface CompanyInquiryRejectPayload {
+  readonly inquiryId: string;
+  readonly rejected: boolean;
+  readonly reason: string | null;
+}
+export interface CompanyInquiryRemovePayload {
+  readonly inquiryId: string;
+}
+/** Replace the people assigned to a client; the primary owner stays when still listed, else the first becomes it. */
+export interface CompanyClientAssignPayload {
+  readonly clientId: string;
+  readonly memberIds: readonly string[];
 }
 export interface CompanyDocStatusPayload {
   readonly docId: string;
@@ -1000,6 +1031,9 @@ export enum SyncTable {
   /** Group-scoped, pull-only: clients and their notes; owner and manager all, an employee only theirs (RLS). */
   CompanyClients = 'company_clients',
   CompanyClientNotes = 'company_client_notes',
+  /** Group-scoped, pull-only: a client's inquiries and assigned people; readable exactly where the client is (RLS). */
+  CompanyInquiries = 'company_inquiries',
+  CompanyClientAssignees = 'company_client_assignees',
   /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
   CompanyAttendance = 'company_attendance',
   CompanyWorkTasks = 'company_work_tasks',

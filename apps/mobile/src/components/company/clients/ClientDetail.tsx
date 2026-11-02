@@ -1,18 +1,34 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Linking, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Linking, Pressable, ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 
-import { docNumberLabel, type ClientStage, type MirrorWorkTask } from '@waves/core';
-import { Button, Screen, Text, useTheme } from '@waves/ui';
+import {
+  clientInquiryStats,
+  docNumberLabel,
+  inquiryAmount,
+  inquiryLabel,
+  inquiryStatus,
+  sortInquiries,
+  type MirrorWorkTask,
+} from '@waves/core';
+import { Button, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { useMoney } from '@/components/company/dashboard/parts';
 import { useDoneFollowUp } from '@/components/company/clients/FollowUps';
-import { StageChip, useSourceLabel, useWhen } from '@/components/company/clients/parts';
+import {
+  AssigneeSheet,
+  InquirySheet,
+  InquiryStatusPill,
+  InquiryTile,
+} from '@/components/company/clients/InquiryParts';
+import { StageChip, useWhen } from '@/components/company/clients/parts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import {
   ListRow,
   ScenicBody,
   ScenicHeader,
+  SectionHeader,
   SegmentedPills,
   StandardCard,
 } from '@/components/standard';
@@ -29,6 +45,7 @@ import {
 import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
 import { useWorkTasks } from '@/data/companyWorkday';
 import { todayIso } from '@/data/personal';
+import { displayName } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { shiftDay, whatsappUrl } from '@/lib/companyClients';
@@ -46,9 +63,10 @@ interface Event {
 
 export function ClientDetail({ groupId, clientId }: { groupId: string; clientId: string }) {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const s = t.companyClients;
   const clearance = useBottomClearance();
+  const { width } = useWindowDimensions();
   const { confirm, choose } = useDialog();
   const view = useCompanyClients(groupId);
   const entries = useCompanyEntries(groupId);
@@ -58,7 +76,6 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
   const allTasks = useWorkTasks(groupId);
   const followUps = useFollowUps(groupId);
   const when = useWhen();
-  const sourceLabel = useSourceLabel();
   const setClient = useSetClient(groupId);
   const removeClient = useRemoveClient(groupId);
   const addNote = useAddClientNote(groupId);
@@ -67,6 +84,8 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
   const [tab, setTab] = useState<Tab>('activity');
   const [menu, setMenu] = useState(false);
   const [note, setNote] = useState('');
+  const [newInquiry, setNewInquiry] = useState(false);
+  const [assigning, setAssigning] = useState(false);
   const client = view.clients.find((c) => c.id === clientId);
   const today = todayIso();
   const edit = view.canManage && !suspended;
@@ -74,11 +93,15 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
   const docs = money.docs.filter((d) => d.clientId === clientId);
   const bills = docs.filter((d) => d.docType === 'bill');
   const openBills = bills.filter((d) => d.paidMinor < d.totalMinor);
-  const due = money.byClient.get(clientId) ?? 0n;
   const next: MirrorWorkTask | undefined = followUps.byClient(clientId)[0];
   const docsAllowed = entries.isAdmin && !suspended;
+  const inquiries = sortInquiries(view.inquiries.filter((i) => i.clientId === clientId));
+  const stats = clientInquiryStats(inquiries, docs);
+  const assignees = view.owners.filter((m) => view.assigneeIds(clientId).includes(m.id));
+  const shortDay = (day: string) =>
+    new Date(`${day}T12:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
-  const move = (stage: ClientStage, lostReason: string | null = null) =>
+  const move = (stage: 'inquiry' | 'lost', lostReason: string | null = null) =>
     client && setClient.mutate(stageChange(client, stage, lostReason));
   const markLost = async () => {
     const reason = await choose({
@@ -217,20 +240,13 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
       ].sort((a, b) => b.at.localeCompare(a.at))
     : [];
 
-  const stages: ClientStage[] = ['inquiry', 'quoted', 'client'];
-  const stageName = {
-    inquiry: s.stInquiry,
-    quoted: s.stQuoted,
-    client: s.stClient,
-    lost: s.stLost,
-  };
   const round = {
     width: 40,
     height: 40,
     borderRadius: 20,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
-    backgroundColor: theme.color.surface,
+    backgroundColor: theme.scheme === 'dark' ? 'rgba(20,20,34,0.82)' : '#FFFFFF',
   };
   const action = (icon: keyof typeof Ionicons.glyphMap, label: string, onPress: () => void) => (
     <Pressable
@@ -253,6 +269,108 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
       </Text>
     </Pressable>
   );
+  const stat = (
+    icon: keyof typeof Ionicons.glyphMap,
+    color: string,
+    label: string,
+    value: string,
+    first = false,
+  ) => (
+    <View
+      key={label}
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        gap: 2,
+        borderStartWidth: first ? 0 : 1,
+        borderStartColor: theme.color.border,
+      }}
+    >
+      <Ionicons name={icon} size={24} color={color} />
+      <Text variant="caption" tone="muted" numberOfLines={1}>
+        {label}
+      </Text>
+      <Text
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        style={{ fontSize: 22, lineHeight: 28, fontWeight: '800', color }}
+      >
+        {value}
+      </Text>
+    </View>
+  );
+  const identity = client ? (
+    <View style={{ width: width - 2 * theme.spacing.lg, gap: theme.spacing.md }}>
+      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+        <View
+          style={{
+            width: 64,
+            height: 64,
+            borderRadius: 18,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.brandSoft,
+          }}
+        >
+          <Ionicons name="storefront-outline" size={34} color={theme.color.brand} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text
+            accessibilityRole="header"
+            numberOfLines={1}
+            style={{ fontSize: 26, lineHeight: 32, fontWeight: '800' }}
+          >
+            {client.name}
+          </Text>
+          {client.need ? (
+            <Text tone="muted" numberOfLines={2}>
+              {client.need}
+            </Text>
+          ) : null}
+        </View>
+      </Row>
+      {assignees.length > 0 ? (
+        <Pressable
+          accessibilityRole={view.canManage && !suspended ? 'button' : 'text'}
+          disabled={!(view.canManage && !suspended)}
+          onPress={() => setAssigning(true)}
+          style={{
+            alignSelf: 'flex-start',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+            paddingVertical: 4,
+            paddingStart: 4,
+            paddingEnd: theme.spacing.md,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.scheme === 'dark' ? 'rgba(20,20,34,0.82)' : '#FFFFFF',
+          }}
+        >
+          <Row>
+            {assignees.slice(0, 3).map((m, i) => (
+              <View
+                key={m.id}
+                style={{
+                  marginStart: i ? -10 : 0,
+                  borderRadius: 18,
+                  borderWidth: 2,
+                  borderColor: theme.color.surface,
+                }}
+              >
+                <PersonAvatar name={displayName(m)} member={m} size={32} />
+              </View>
+            ))}
+          </Row>
+          <Text style={{ fontWeight: '700' }}>
+            {fill(s.assignedN, { n: String(assignees.length) })}
+          </Text>
+          {view.canManage && !suspended ? (
+            <Ionicons name="chevron-forward" size={16} color={theme.color.text} />
+          ) : null}
+        </Pressable>
+      ) : null}
+    </View>
+  ) : null;
   return (
     <Screen edges={[]}>
       <ScrollView
@@ -261,81 +379,13 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
       >
         <ScenicHeader
           title={client?.name ?? s.title}
-          subtitle={
-            client
-              ? [
-                  client.need,
-                  fill(s.viaSource, { source: sourceLabel(client.source) }),
-                  client.ownerMemberId
-                    ? fill(s.follows, { name: view.memberName(client.ownerMemberId) })
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(' · ')
-              : undefined
-          }
+          circleBack
+          identity={<View />}
           action={
-            items.length ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={s.more}
-                onPress={() => setMenu(true)}
-                style={round}
-              >
-                <Ionicons name="ellipsis-vertical" size={20} color={theme.color.text} />
-              </Pressable>
-            ) : undefined
-          }
-        />
-        <ScenicBody>
-          {client ? (
-            <>
-              <StandardCard style={{ gap: theme.spacing.md }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-                  {client.stage === 'lost' ? (
-                    <StageChip stage="lost" />
-                  ) : (
-                    stages.map((st, i) => (
-                      <View
-                        key={st}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: theme.spacing.sm,
-                        }}
-                      >
-                        {i ? (
-                          <Ionicons
-                            name="chevron-forward"
-                            size={12}
-                            color={theme.color.textMuted}
-                          />
-                        ) : null}
-                        {st === client.stage ? (
-                          <StageChip stage={st} />
-                        ) : (
-                          <Text variant="caption" tone="muted">
-                            {stageName[st]}
-                          </Text>
-                        )}
-                      </View>
-                    ))
-                  )}
-                  <View style={{ flex: 1 }} />
-                  {edit && (client.stage === 'inquiry' || client.stage === 'quoted') ? (
-                    <Button label={s.markWon} variant="brand" onPress={() => move('client')} />
-                  ) : null}
-                </View>
-                {client.lostReason ? (
-                  <Text variant="caption" tone="muted">
-                    {client.lostReason}
-                  </Text>
-                ) : null}
-                {due > 0n ? (
-                  <Text style={{ fontWeight: '700' }}>{fill(s.owes, { amount: fmt(due) })}</Text>
-                ) : null}
+            client ? (
+              <Row style={{ gap: theme.spacing.sm }}>
                 {client.phone ? (
-                  <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                  <>
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel={s.call}
@@ -348,12 +398,139 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                       accessibilityRole="button"
                       accessibilityLabel={s.whatsapp}
                       onPress={() => void Linking.openURL(whatsappUrl(client.phone!))}
-                      style={round}
+                      style={[round, { backgroundColor: '#25D366' }]}
                     >
-                      <Ionicons name="logo-whatsapp" size={20} color={theme.color.positive} />
+                      <Ionicons name="logo-whatsapp" size={22} color="#FFFFFF" />
                     </Pressable>
-                  </View>
+                  </>
                 ) : null}
+                {items.length ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={s.more}
+                    onPress={() => setMenu(true)}
+                    style={round}
+                  >
+                    <Ionicons name="ellipsis-vertical" size={20} color={theme.color.text} />
+                  </Pressable>
+                ) : null}
+              </Row>
+            ) : undefined
+          }
+        >
+          {identity}
+        </ScenicHeader>
+        <ScenicBody>
+          {client ? (
+            <>
+              <StandardCard style={{ flexDirection: 'row', paddingHorizontal: theme.spacing.sm }}>
+                {stat(
+                  'document-text-outline',
+                  theme.color.brand,
+                  s.statInquiries,
+                  String(stats.total),
+                  true,
+                )}
+                {stat('trophy-outline', theme.color.positive, s.statWon, String(stats.won))}
+                {stat(
+                  'close-circle-outline',
+                  theme.color.negative,
+                  s.statRejected,
+                  String(stats.rejected),
+                )}
+                {docsAllowed
+                  ? stat('wallet-outline', theme.color.brand, s.statPayments, fmt(stats.paidMinor))
+                  : null}
+              </StandardCard>
+              {client.stage === 'lost' ? (
+                <StandardCard style={{ gap: theme.spacing.sm }}>
+                  <StageChip stage="lost" />
+                  {client.lostReason ? (
+                    <Text variant="caption" tone="muted">
+                      {client.lostReason}
+                    </Text>
+                  ) : null}
+                </StandardCard>
+              ) : null}
+              <View style={{ gap: theme.spacing.md }}>
+                <SectionHeader
+                  title={s.inqTitle}
+                  trailing={
+                    canWrite && client.stage !== 'lost' ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={s.inqNew}
+                        onPress={() => setNewInquiry(true)}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                          height: 40,
+                          paddingHorizontal: theme.spacing.lg,
+                          borderRadius: theme.radius.pill,
+                          backgroundColor: theme.color.brandSoft,
+                        }}
+                      >
+                        <Ionicons name="add" size={20} color={theme.color.brand} />
+                        <Text style={{ color: theme.color.brand, fontWeight: '700' }}>
+                          {s.inqNew}
+                        </Text>
+                      </Pressable>
+                    ) : undefined
+                  }
+                />
+                {inquiries.length === 0 ? (
+                  <StandardCard>
+                    <Text tone="muted">{s.inqNone}</Text>
+                  </StandardCard>
+                ) : (
+                  inquiries.map((i) => {
+                    const status = inquiryStatus(i, docs);
+                    const amount = inquiryAmount(i, docs);
+                    return (
+                      <Pressable
+                        key={i.id}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${i.title}, ${inquiryLabel(i.number)}`}
+                        onPress={() =>
+                          router.push(`/group/${groupId}/company-inquiry?inquiryId=${i.id}`)
+                        }
+                      >
+                        <StandardCard
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: theme.spacing.md,
+                            paddingVertical: theme.spacing.md,
+                          }}
+                        >
+                          <InquiryTile inquiry={i} status={status} />
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text numberOfLines={1} style={{ fontSize: 17, fontWeight: '800' }}>
+                              {i.title}
+                            </Text>
+                            <Text variant="caption" tone="muted">
+                              {`${inquiryLabel(i.number)} · ${shortDay(i.inquiryDate)}`}
+                            </Text>
+                            {amount != null ? (
+                              <Text tabular style={{ fontSize: 18, fontWeight: '800' }}>
+                                {fmt(amount)}
+                              </Text>
+                            ) : null}
+                          </View>
+                          <InquiryStatusPill status={status} />
+                          <Ionicons
+                            name="chevron-forward"
+                            size={18}
+                            color={theme.color.textMuted}
+                          />
+                        </StandardCard>
+                      </Pressable>
+                    );
+                  })
+                )}
+              </View>
+              <StandardCard style={{ gap: theme.spacing.md }}>
                 <View
                   style={{
                     flexDirection: 'row',
@@ -387,77 +564,44 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                     <Button label={s.done} variant="brand" onPress={() => void done(next)} />
                   ) : null}
                 </View>
-                <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-                  {canWrite && assignee
-                    ? action('time-outline', s.btnFollowUp, () => void addFollow())
-                    : null}
-                  {docsAllowed
-                    ? action('document-text-outline', s.btnEstimate, () =>
-                        router.push(
-                          `/group/${groupId}/company-bill-form?type=estimate&clientId=${clientId}`,
-                        ),
-                      )
-                    : null}
-                  {docsAllowed ? action('cash-outline', s.btnMoney, receive) : null}
-                </View>
+                {(canWrite && assignee) || docsAllowed ? (
+                  <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                    {canWrite && assignee
+                      ? action('time-outline', s.btnFollowUp, () => void addFollow())
+                      : null}
+                    {docsAllowed ? action('cash-outline', s.btnMoney, receive) : null}
+                  </View>
+                ) : null}
               </StandardCard>
-              <SegmentedPills
-                options={[
-                  { value: 'activity' as Tab, label: s.tabActivity },
-                  ...(docsAllowed
-                    ? [
-                        { value: 'bills' as Tab, label: s.tabBills },
-                        { value: 'docs' as Tab, label: s.tabDocs },
-                      ]
-                    : []),
-                ]}
-                value={tab}
-                onChange={setTab}
-              />
+              <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                <SegmentedPills
+                  options={[
+                    { value: 'activity' as Tab, label: s.tabActivity },
+                    ...(docsAllowed
+                      ? [
+                          { value: 'bills' as Tab, label: s.tabBills },
+                          { value: 'docs' as Tab, label: s.tabDocs },
+                        ]
+                      : []),
+                  ]}
+                  value={tab}
+                  onChange={setTab}
+                />
+              </View>
               {tab === 'activity' ? (
-                <>
-                  {canWrite ? (
-                    <StandardCard
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: theme.spacing.sm,
-                        paddingVertical: theme.spacing.xs,
-                      }}
-                    >
-                      <TextInput
-                        accessibilityLabel={s.notePh}
-                        value={note}
-                        onChangeText={setNote}
-                        placeholder={s.notePh}
-                        placeholderTextColor={theme.color.textMuted}
-                        maxLength={1000}
-                        style={{ flex: 1, color: theme.color.text, fontSize: 15, minHeight: 44 }}
-                      />
-                      <Button
-                        label={s.noteSave}
-                        variant="brand"
-                        disabled={!note.trim() || addNote.isPending}
-                        onPress={() =>
-                          addNote.mutate({ clientId, body: note }, { onSuccess: () => setNote('') })
-                        }
-                      />
-                    </StandardCard>
-                  ) : null}
-                  <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
-                    {events.map((e, index) => (
-                      <ListRow
-                        key={e.key}
-                        title={e.title}
-                        subtitle={e.sub}
-                        subtitleLines={3}
-                        leading={<Ionicons name={e.icon} size={20} color={theme.color.textMuted} />}
-                        amount={when(e.at, today)}
-                        divider={index < events.length - 1}
-                      />
-                    ))}
-                  </StandardCard>
-                </>
+                <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
+                  {events.map((e, index) => (
+                    <ListRow
+                      key={e.key}
+                      title={e.title}
+                      subtitle={e.sub}
+                      subtitleLines={3}
+                      leading={<Ionicons name={e.icon} size={20} color={theme.color.textMuted} />}
+                      amount={when(e.at, today)}
+                      divider={index < events.length - 1}
+                    />
+                  ))}
+                </StandardCard>
               ) : (
                 <StandardCard style={{ paddingVertical: theme.spacing.xs }}>
                   {(tab === 'bills' ? bills : docs).length === 0 ? (
@@ -485,6 +629,50 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                   )}
                 </StandardCard>
               )}
+              {canWrite ? (
+                <StandardCard
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.sm,
+                    paddingVertical: theme.spacing.sm,
+                  }}
+                >
+                  <View
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: theme.spacing.md,
+                      minHeight: 48,
+                      paddingHorizontal: theme.spacing.md,
+                      borderRadius: theme.radius.lg,
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Ionicons name="create-outline" size={22} color={theme.color.textMuted} />
+                    <TextInput
+                      accessibilityLabel={s.notePh}
+                      value={note}
+                      onChangeText={setNote}
+                      placeholder={s.notePh}
+                      placeholderTextColor={theme.color.textMuted}
+                      maxLength={1000}
+                      style={{ flex: 1, color: theme.color.text, fontSize: 16, minHeight: 44 }}
+                    />
+                  </View>
+                  {note.trim() ? (
+                    <Button
+                      label={s.noteSave}
+                      variant="brand"
+                      disabled={addNote.isPending}
+                      onPress={() =>
+                        addNote.mutate({ clientId, body: note }, { onSuccess: () => setNote('') })
+                      }
+                    />
+                  ) : null}
+                </StandardCard>
+              ) : null}
             </>
           ) : (
             <StandardCard>
@@ -494,6 +682,27 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
         </ScenicBody>
       </ScrollView>
       <OverflowMenu visible={menu} onClose={() => setMenu(false)} items={items} />
+      {client && canWrite ? (
+        <InquirySheet
+          key={`new-${inquiries.length}`}
+          visible={newInquiry}
+          onClose={() => setNewInquiry(false)}
+          groupId={groupId}
+          clientId={clientId}
+          currency={view.currency}
+        />
+      ) : null}
+      {client && view.canManage && !suspended ? (
+        <AssigneeSheet
+          key={view.assigneeIds(clientId).join(',')}
+          visible={assigning}
+          onClose={() => setAssigning(false)}
+          groupId={groupId}
+          clientId={clientId}
+          members={view.owners}
+          current={view.assigneeIds(clientId)}
+        />
+      ) : null}
     </Screen>
   );
 }

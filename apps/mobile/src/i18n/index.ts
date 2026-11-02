@@ -2388,6 +2388,41 @@ export interface UiStrings {
     noteNoAnswer: string;
     noteNotInterested: string;
     fuNotifTitle: string;
+    inqTitle: string;
+    inqNew: string;
+    statInquiries: string;
+    statWon: string;
+    statRejected: string;
+    statPayments: string;
+    assignedN: string;
+    assignTitle: string;
+    assignHint: string;
+    assignSave: string;
+    inqStOpen: string;
+    inqStQuoted: string;
+    inqStRejected: string;
+    inqStWon: string;
+    inqFormNew: string;
+    inqFormEdit: string;
+    inqFieldTitle: string;
+    inqFieldDetails: string;
+    inqFieldValue: string;
+    inqFieldDate: string;
+    inqSave: string;
+    inqNone: string;
+    inqDetails: string;
+    inqAmount: string;
+    inqDocs: string;
+    inqNoDocs: string;
+    inqCreateEstimate: string;
+    inqReject: string;
+    inqRejectWhy: string;
+    inqReopen: string;
+    inqEdit: string;
+    inqRemove: string;
+    inqRemoveConfirm: string;
+    inqRejectedFor: string;
+    inqNotFound: string;
     evFollowUp: string;
     evFollowUpDone: string;
     evReceipt: string;
@@ -9793,6 +9828,41 @@ const en: UiStrings = {
     noteNoAnswer: 'Follow-up: No answer',
     noteNotInterested: 'Follow-up: Not interested',
     fuNotifTitle: 'Follow-up due today',
+    inqTitle: 'Inquiries',
+    inqNew: 'New Inquiry',
+    statInquiries: 'Inquiries',
+    statWon: 'Won',
+    statRejected: 'Rejected',
+    statPayments: 'Payments',
+    assignedN: 'Assigned ({n})',
+    assignTitle: 'Who handles this client?',
+    assignHint: 'The first person stays the main follow-up.',
+    assignSave: 'Save',
+    inqStOpen: 'Open',
+    inqStQuoted: 'Quoted',
+    inqStRejected: 'Rejected',
+    inqStWon: 'Won',
+    inqFormNew: 'New inquiry',
+    inqFormEdit: 'Edit inquiry',
+    inqFieldTitle: 'What do they need?',
+    inqFieldDetails: 'Details (optional)',
+    inqFieldValue: 'Expected value',
+    inqFieldDate: 'Date',
+    inqSave: 'Save',
+    inqNone: 'No inquiries yet. Add the first one.',
+    inqDetails: 'Details',
+    inqAmount: 'Amount',
+    inqDocs: 'Estimates and bills',
+    inqNoDocs: 'Nothing quoted yet.',
+    inqCreateEstimate: 'Create estimate',
+    inqReject: 'Mark rejected',
+    inqRejectWhy: 'Why was it rejected?',
+    inqReopen: 'Reopen',
+    inqEdit: 'Edit',
+    inqRemove: 'Remove inquiry',
+    inqRemoveConfirm: 'Remove this inquiry?',
+    inqRejectedFor: 'Rejected: {reason}',
+    inqNotFound: 'This inquiry is not available.',
     evFollowUp: 'Follow-up',
     evFollowUpDone: 'Follow-up done',
     evReceipt: 'Money received',
@@ -16657,6 +16727,41 @@ const ta: UiStrings = {
     noteNoAnswer: 'பின்தொடர்தல்: பதில் இல்லை',
     noteNotInterested: 'பின்தொடர்தல்: ஆர்வமில்லை',
     fuNotifTitle: 'இன்று பின்தொடர்தல்',
+    inqTitle: 'விசாரணைகள்',
+    inqNew: 'புதிய விசாரணை',
+    statInquiries: 'விசாரணைகள்',
+    statWon: 'வென்றவை',
+    statRejected: 'நிராகரிப்பு',
+    statPayments: 'பணம் பெறப்பட்டது',
+    assignedN: 'நியமிக்கப்பட்டவர் ({n})',
+    assignTitle: 'இந்த வாடிக்கையாளரை யார் பார்ப்பது?',
+    assignHint: 'முதலாவது நபர் முதன்மை பின்தொடர்பாளராக இருப்பார்.',
+    assignSave: 'சேமி',
+    inqStOpen: 'திறந்தது',
+    inqStQuoted: 'விலைப்புள்ளி',
+    inqStRejected: 'நிராகரிக்கப்பட்டது',
+    inqStWon: 'வென்றது',
+    inqFormNew: 'புதிய விசாரணை',
+    inqFormEdit: 'விசாரணையைத் திருத்து',
+    inqFieldTitle: 'அவர்களுக்கு என்ன தேவை?',
+    inqFieldDetails: 'விவரங்கள் (விருப்பம்)',
+    inqFieldValue: 'எதிர்பார்க்கும் மதிப்பு',
+    inqFieldDate: 'தேதி',
+    inqSave: 'சேமி',
+    inqNone: 'இன்னும் விசாரணை இல்லை. முதலாவதைச் சேர்க்கவும்.',
+    inqDetails: 'விவரங்கள்',
+    inqAmount: 'தொகை',
+    inqDocs: 'மதிப்பீடுகள் மற்றும் பில்கள்',
+    inqNoDocs: 'இன்னும் விலைப்புள்ளி இல்லை.',
+    inqCreateEstimate: 'மதிப்பீடு உருவாக்கு',
+    inqReject: 'நிராகரிக்கப்பட்டதாகக் குறி',
+    inqRejectWhy: 'ஏன் நிராகரிக்கப்பட்டது?',
+    inqReopen: 'மீண்டும் திற',
+    inqEdit: 'திருத்து',
+    inqRemove: 'விசாரணையை நீக்கு',
+    inqRemoveConfirm: 'இந்த விசாரணையை நீக்கவா?',
+    inqRejectedFor: 'நிராகரிப்பு: {reason}',
+    inqNotFound: 'இந்த விசாரணை கிடைக்கவில்லை.',
     evFollowUp: 'பின்தொடர்தல்',
     evFollowUpDone: 'பின்தொடர்தல் முடிந்தது',
     evReceipt: 'பணம் பெறப்பட்டது',
@@ -23679,6 +23784,41 @@ const hi: UiStrings = {
     noteNoAnswer: 'फ़ॉलो-अप: जवाब नहीं',
     noteNotInterested: 'फ़ॉलो-अप: रुचि नहीं',
     fuNotifTitle: 'आज फ़ॉलो-अप है',
+    inqTitle: 'पूछताछ',
+    inqNew: 'नई पूछताछ',
+    statInquiries: 'पूछताछ',
+    statWon: 'जीती',
+    statRejected: 'अस्वीकृत',
+    statPayments: 'भुगतान',
+    assignedN: 'असाइन ({n})',
+    assignTitle: 'इस क्लाइंट को कौन संभालेगा?',
+    assignHint: 'पहला व्यक्ति मुख्य फ़ॉलो-अप बना रहता है।',
+    assignSave: 'सेव करें',
+    inqStOpen: 'खुली',
+    inqStQuoted: 'कोटेशन दिया',
+    inqStRejected: 'अस्वीकृत',
+    inqStWon: 'जीती',
+    inqFormNew: 'नई पूछताछ',
+    inqFormEdit: 'पूछताछ बदलें',
+    inqFieldTitle: 'उन्हें क्या चाहिए?',
+    inqFieldDetails: 'विवरण (वैकल्पिक)',
+    inqFieldValue: 'अपेक्षित राशि',
+    inqFieldDate: 'तारीख',
+    inqSave: 'सेव करें',
+    inqNone: 'अभी कोई पूछताछ नहीं। पहली जोड़ें।',
+    inqDetails: 'विवरण',
+    inqAmount: 'राशि',
+    inqDocs: 'एस्टीमेट और बिल',
+    inqNoDocs: 'अभी कुछ कोट नहीं हुआ।',
+    inqCreateEstimate: 'एस्टीमेट बनाएँ',
+    inqReject: 'अस्वीकृत करें',
+    inqRejectWhy: 'क्यों अस्वीकृत हुई?',
+    inqReopen: 'फिर से खोलें',
+    inqEdit: 'बदलें',
+    inqRemove: 'पूछताछ हटाएँ',
+    inqRemoveConfirm: 'यह पूछताछ हटाएँ?',
+    inqRejectedFor: 'अस्वीकृत: {reason}',
+    inqNotFound: 'यह पूछताछ उपलब्ध नहीं है।',
     evFollowUp: 'फॉलो-अप',
     evFollowUpDone: 'फॉलो-अप हो गया',
     evReceipt: 'पैसे मिले',
@@ -30640,6 +30780,41 @@ const ar: UiStrings = {
     noteNoAnswer: 'متابعة: لا رد',
     noteNotInterested: 'متابعة: غير مهتم',
     fuNotifTitle: 'متابعة مستحقة اليوم',
+    inqTitle: 'الاستفسارات',
+    inqNew: 'استفسار جديد',
+    statInquiries: 'الاستفسارات',
+    statWon: 'مكسوبة',
+    statRejected: 'مرفوضة',
+    statPayments: 'المدفوعات',
+    assignedN: 'المكلّفون ({n})',
+    assignTitle: 'من يتولى هذا العميل؟',
+    assignHint: 'يبقى الشخص الأول المسؤول الأساسي عن المتابعة.',
+    assignSave: 'حفظ',
+    inqStOpen: 'مفتوح',
+    inqStQuoted: 'تم التسعير',
+    inqStRejected: 'مرفوض',
+    inqStWon: 'مكسوب',
+    inqFormNew: 'استفسار جديد',
+    inqFormEdit: 'تعديل الاستفسار',
+    inqFieldTitle: 'ماذا يحتاجون؟',
+    inqFieldDetails: 'التفاصيل (اختياري)',
+    inqFieldValue: 'القيمة المتوقعة',
+    inqFieldDate: 'التاريخ',
+    inqSave: 'حفظ',
+    inqNone: 'لا استفسارات بعد. أضف الأول.',
+    inqDetails: 'التفاصيل',
+    inqAmount: 'المبلغ',
+    inqDocs: 'العروض والفواتير',
+    inqNoDocs: 'لم يتم تسعير شيء بعد.',
+    inqCreateEstimate: 'إنشاء عرض سعر',
+    inqReject: 'تحديد كمرفوض',
+    inqRejectWhy: 'لماذا رُفض؟',
+    inqReopen: 'إعادة الفتح',
+    inqEdit: 'تعديل',
+    inqRemove: 'حذف الاستفسار',
+    inqRemoveConfirm: 'حذف هذا الاستفسار؟',
+    inqRejectedFor: 'مرفوض: {reason}',
+    inqNotFound: 'هذا الاستفسار غير متاح.',
     evFollowUp: 'متابعة',
     evFollowUpDone: 'تمت المتابعة',
     evReceipt: 'تم استلام مبلغ',

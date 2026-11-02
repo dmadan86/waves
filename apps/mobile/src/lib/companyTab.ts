@@ -127,6 +127,7 @@ const BAR_SCREEN: Readonly<Record<string, CompanyBarKey>> = {
   'company-clients': 'clients',
   'company-client': 'clients',
   'company-client-add': 'clients',
+  'company-inquiry': 'clients',
   'company-followups': 'clients',
   'company-budgets': 'more',
   settings: 'more',
