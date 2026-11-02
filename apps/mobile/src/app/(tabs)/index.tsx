@@ -74,7 +74,6 @@ import { SpaceSwitchSheet } from '@/components/SpaceSwitcher';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
-import { measureAnchor } from '@/lib/measureAnchor';
 import { greetingLine } from '@/lib/greetingLine';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { TipSheet } from '@/components/home/TipSheet';
@@ -394,7 +393,6 @@ export default function HomeScreen() {
     setNewGroupAnchor(anchor);
     setNewGroupOpen(true);
   };
-  const emptyGroupBtnRef = useRef<View>(null);
 
   /**
    * The headline is one currency, because there is no such thing as a total
@@ -622,8 +620,7 @@ export default function HomeScreen() {
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={t.newGroup}
-                  onPress={() => measureAnchor(emptyGroupBtnRef, openNewGroupMenu)}
-                  ref={emptyGroupBtnRef}
+                  onPress={openNewGroup}
                   style={({ pressed }) => ({
                     marginTop: 6,
                     height: 42,
