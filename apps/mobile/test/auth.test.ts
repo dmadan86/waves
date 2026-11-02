@@ -151,6 +151,7 @@ const spies = vi.hoisted(() => ({
 
 vi.mock('@/lib/captureNudge/schedule', () => ({ cancelNudges: spies.cancelNudges }));
 vi.mock('@/lib/captureNudge/settings', () => ({ clearCaptureNudge: spies.clearCaptureNudge }));
+vi.mock('@/lib/followUpReminders', () => ({ cancelFollowUpReminders: () => Promise.resolve() }));
 vi.mock('@/lib/nativeIdentity', () => ({
   googleNativeSignIn: spies.googleNativeSignIn,
   appleNativeSignIn: spies.appleNativeSignIn,

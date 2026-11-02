@@ -119,12 +119,14 @@ export function groupFollowUps<T extends FollowUpRow>(
   return out;
 }
 
-export type NextFollowUp = 'tomorrow' | 'next_week' | 'none';
+export type NextFollowUp = 'tomorrow' | 'three_days' | 'next_week' | 'none';
 /** The day for the next follow-up after "Done"; null when there is no more follow-up. */
 export function nextFollowUpDay(choice: NextFollowUp, today: string): string | null {
   return choice === 'tomorrow'
     ? addDays(today, 1)
-    : choice === 'next_week'
-      ? addDays(today, 7)
-      : null;
+    : choice === 'three_days'
+      ? addDays(today, 3)
+      : choice === 'next_week'
+        ? addDays(today, 7)
+        : null;
 }
