@@ -8,14 +8,12 @@ import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import { formatMinorInput, parseMinorInput, type CurrencyCode } from '@waves/core';
-import { View } from 'react-native';
-
-import { Text, Toggle, directionalIcon, iconSize, useTheme } from '@waves/ui';
+import { Toggle, directionalIcon, iconSize, useTheme } from '@waves/ui';
 
 import { CompanyPolicyEditor } from '@/components/company/CompanyPolicyEditor';
 import { useMoney } from '@/components/company/dashboard/parts';
 import { EditTextSheet } from '@/components/EditTextSheet';
-import { ListRow, StandardCard } from '@/components/standard';
+import { ListRow, RowTile, StandardCard } from '@/components/standard';
 import {
   useSetCompanySettings,
   useSetMileageRate,
@@ -25,7 +23,16 @@ import {
 import { useCalendarSettings, useSetCalendarSettings } from '@/data/companyCalendar';
 import { useStrings } from '@/i18n';
 
-export function CompanyRules({ groupId, view }: { groupId: string; view: CompanyView }) {
+export function CompanyRules({
+  groupId,
+  view,
+  part,
+}: {
+  groupId: string;
+  view: CompanyView;
+  /** 'main': the on/off rules under the heading; 'more': approvals' second owner, rates, policies. */
+  part: 'main' | 'more';
+}) {
   const theme = useTheme();
   const { t } = useStrings();
   const fmt = useMoney(view.currency);
@@ -45,139 +52,145 @@ export function CompanyRules({ groupId, view }: { groupId: string; view: Company
   const secondOn = view.secondApproval;
   const thresholdMinor = view.secondApprovalThresholdMinor;
   const lead = (name: keyof typeof Ionicons.glyphMap) => (
-    <Ionicons name={name} size={iconSize.lg} color={theme.color.textMuted} />
+    <RowTile tint={theme.color.brandSoft}>
+      <Ionicons name={name} size={iconSize.lg} color={theme.color.brand} />
+    </RowTile>
   );
+  const main = part === 'main';
   return (
     <>
-      <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 12 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <Ionicons name="settings-outline" size={iconSize.lg} color={theme.color.text} />
-          <Text variant="title" style={{ fontSize: 16 }}>
-            {t.company.paymentSettings}
-          </Text>
-        </View>
-        <ListRow
-          leading={lead('shield-checkmark-outline')}
-          title={t.company.approvalsTitle}
-          subtitle={t.company.approvalsHint}
-          subtitleLines={3}
-          trailing={
-            <Toggle
-              value={view.approvalsEnabled}
-              onValueChange={(next) => settings.mutate({ approvalsEnabled: next })}
-              accessibilityLabel={t.company.approvalsTitle}
-            />
-          }
-          divider
-        />
-        {view.approvalsEnabled && ownerCount > 1 ? (
+      <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
+        {main ? (
           <>
             <ListRow
-              leading={lead('people-outline')}
-              title={t.company.secondOwnerTitle}
-              subtitle={t.company.secondOwnerHint}
+              leading={lead('shield-checkmark-outline')}
+              title={t.company.approvalsTitle}
+              subtitle={t.company.approvalsHint}
               subtitleLines={3}
               trailing={
                 <Toggle
-                  value={secondOn}
-                  onValueChange={(next) =>
-                    setSecond.mutate({
-                      enabled: next,
-                      thresholdMinor: thresholdMinor?.toString() ?? null,
-                    })
-                  }
-                  accessibilityLabel={t.company.secondOwnerTitle}
+                  value={view.approvalsEnabled}
+                  onValueChange={(next) => settings.mutate({ approvalsEnabled: next })}
+                  accessibilityLabel={t.company.approvalsTitle}
                 />
               }
               divider
             />
-            {secondOn ? (
-              <ListRow
-                leading={lead('trending-up-outline')}
-                title={t.company.secondOwnerFrom}
-                subtitle={t.company.secondOwnerFromHint}
-                subtitleLines={2}
-                amount={thresholdMinor !== null ? fmt(thresholdMinor) : t.company.rateNotSet}
-                onPress={() => setLimitOpen(true)}
-                divider
-              />
-            ) : null}
+            <ListRow
+              leading={lead('sunny-outline')}
+              title={t.calendar.paidHolidays}
+              subtitle={t.calendar.paidHolidaysHint}
+              subtitleLines={2}
+              trailing={
+                <Toggle
+                  value={calendarSettings.paidHolidays}
+                  onValueChange={(paidHolidays) =>
+                    setCalendarSettings.mutate({
+                      paidHolidays,
+                      paidLeave: calendarSettings.paidLeave,
+                    })
+                  }
+                  accessibilityLabel={t.calendar.paidHolidays}
+                />
+              }
+              divider
+            />
+            <ListRow
+              leading={lead('medical-outline')}
+              title={t.calendar.paidLeave}
+              subtitle={t.calendar.paidLeaveHint}
+              subtitleLines={2}
+              trailing={
+                <Toggle
+                  value={calendarSettings.paidLeave}
+                  onValueChange={(paidLeave) =>
+                    setCalendarSettings.mutate({
+                      paidHolidays: calendarSettings.paidHolidays,
+                      paidLeave,
+                    })
+                  }
+                  accessibilityLabel={t.calendar.paidLeave}
+                />
+              }
+            />
           </>
-        ) : null}
-        <ListRow
-          leading={lead('sunny-outline')}
-          title={t.calendar.paidHolidays}
-          subtitle={t.calendar.paidHolidaysHint}
-          subtitleLines={2}
-          trailing={
-            <Toggle
-              value={calendarSettings.paidHolidays}
-              onValueChange={(paidHolidays) =>
-                setCalendarSettings.mutate({ paidHolidays, paidLeave: calendarSettings.paidLeave })
+        ) : (
+          <>
+            {view.approvalsEnabled && ownerCount > 1 ? (
+              <>
+                <ListRow
+                  leading={lead('people-outline')}
+                  title={t.company.secondOwnerTitle}
+                  subtitle={t.company.secondOwnerHint}
+                  subtitleLines={3}
+                  trailing={
+                    <Toggle
+                      value={secondOn}
+                      onValueChange={(next) =>
+                        setSecond.mutate({
+                          enabled: next,
+                          thresholdMinor: thresholdMinor?.toString() ?? null,
+                        })
+                      }
+                      accessibilityLabel={t.company.secondOwnerTitle}
+                    />
+                  }
+                  divider
+                />
+                {secondOn ? (
+                  <ListRow
+                    leading={lead('trending-up-outline')}
+                    title={t.company.secondOwnerFrom}
+                    subtitle={t.company.secondOwnerFromHint}
+                    subtitleLines={2}
+                    amount={thresholdMinor !== null ? fmt(thresholdMinor) : t.company.rateNotSet}
+                    onPress={() => setLimitOpen(true)}
+                    divider
+                  />
+                ) : null}
+              </>
+            ) : null}
+            <ListRow
+              leading={lead('calendar-outline')}
+              title={t.company.dailyRate}
+              subtitle={t.company.dailyRateHint}
+              subtitleLines={2}
+              amount={
+                view.defaultRateMinor !== null ? fmt(view.defaultRateMinor) : t.company.rateNotSet
               }
-              accessibilityLabel={t.calendar.paidHolidays}
+              onPress={() => setRateOpen(true)}
+              divider
             />
-          }
-          divider
-        />
-        <ListRow
-          leading={lead('medical-outline')}
-          title={t.calendar.paidLeave}
-          subtitle={t.calendar.paidLeaveHint}
-          subtitleLines={2}
-          trailing={
-            <Toggle
-              value={calendarSettings.paidLeave}
-              onValueChange={(paidLeave) =>
-                setCalendarSettings.mutate({
-                  paidHolidays: calendarSettings.paidHolidays,
-                  paidLeave,
-                })
+            <ListRow
+              leading={lead('car-outline')}
+              title={t.company.mileageRate}
+              subtitle={t.company.mileageRateHint}
+              subtitleLines={2}
+              amount={
+                view.defaultMileageRateMinor !== null
+                  ? fmt(view.defaultMileageRateMinor)
+                  : t.company.rateNotSet
               }
-              accessibilityLabel={t.calendar.paidLeave}
+              onPress={() => setKmOpen(true)}
+              divider
             />
-          }
-          divider
-        />
-        <ListRow
-          leading={lead('calendar-outline')}
-          title={t.company.dailyRate}
-          subtitle={t.company.dailyRateHint}
-          subtitleLines={2}
-          amount={
-            view.defaultRateMinor !== null ? fmt(view.defaultRateMinor) : t.company.rateNotSet
-          }
-          onPress={() => setRateOpen(true)}
-          divider
-        />
-        <ListRow
-          leading={lead('car-outline')}
-          title={t.company.mileageRate}
-          subtitle={t.company.mileageRateHint}
-          subtitleLines={2}
-          amount={
-            view.defaultMileageRateMinor !== null
-              ? fmt(view.defaultMileageRateMinor)
-              : t.company.rateNotSet
-          }
-          onPress={() => setKmOpen(true)}
-          divider
-        />
-        <ListRow
-          leading={lead('document-text-outline')}
-          title={t.company.policiesTitle}
-          subtitle={t.company.policiesHint}
-          amount={`${view.policies.rules.length}`}
-          trailing={
-            <Ionicons
-              name={policies ? 'chevron-up' : directionalIcon('chevron-forward')}
-              size={iconSize.sm}
-              color={theme.color.textFaint}
+            <ListRow
+              leading={lead('document-text-outline')}
+              title={t.company.policiesTitle}
+              subtitle={t.company.policiesHint}
+              amount={`${view.policies.rules.length}`}
+              trailing={
+                <Ionicons
+                  name={policies ? 'chevron-up' : directionalIcon('chevron-forward')}
+                  size={iconSize.sm}
+                  color={theme.color.textFaint}
+                />
+              }
+              onPress={() => setPolicies((open) => !open)}
             />
-          }
-          onPress={() => setPolicies((open) => !open)}
-        />
-        {policies ? <CompanyPolicyEditor groupId={groupId} view={view} /> : null}
+            {policies ? <CompanyPolicyEditor groupId={groupId} view={view} /> : null}
+          </>
+        )}
       </StandardCard>
       <EditTextSheet
         visible={rate}
