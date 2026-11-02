@@ -142,6 +142,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyDocuments,
   SyncTable.CompanyClients,
   SyncTable.CompanyClientNotes,
+  SyncTable.CompanyTickets,
+  SyncTable.CompanyTicketEvents,
   SyncTable.CompanyAttendance,
   SyncTable.CompanyWorkTasks,
   SyncTable.CompanyHolidays,
@@ -2811,7 +2813,12 @@ export function purgeCompanyInvisible(
   calendar: Readonly<
     Record<
       string,
-      { dates: readonly string[]; events: readonly string[]; clients?: readonly string[] }
+      {
+        dates: readonly string[];
+        events: readonly string[];
+        clients?: readonly string[];
+        tickets?: readonly string[];
+      }
     >
   > = {},
 ): { state: MirrorState; removed: { table: SyncTable; id: string }[] } {
@@ -2841,6 +2848,18 @@ export function purgeCompanyInvisible(
       const orphan = (row: Record<string, unknown>): boolean =>
         row.group_id === groupId && gone.has(row.client_id as string);
       drop(SyncTable.CompanyClientNotes, orphan);
+    }
+    // Same for a ticket reassigned or whose employee changed manager: drop it and its timeline.
+    if (ids.tickets) {
+      const tickets = new Set(ids.tickets);
+      const gone = drop(
+        SyncTable.CompanyTickets,
+        (row) => row.group_id === groupId && !tickets.has(row.id as string),
+      );
+      drop(
+        SyncTable.CompanyTicketEvents,
+        (row) => row.group_id === groupId && gone.has(row.ticket_id as string),
+      );
     }
     const dates = new Set(ids.dates);
     const events = new Set(ids.events);
