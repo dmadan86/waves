@@ -40,6 +40,11 @@ function fakeSupabase(answers: Record<string, Answer>, email: string | null = 'm
       for (const m of ['select', 'eq', 'neq', 'is', 'order', 'limit']) {
         query[m] = (...args: unknown[]) => {
           filters.push([m, ...args]);
+          // The personal-group guard's own probe (select 'type') is not what these tests are about.
+          if (m === 'select' && args[0] === 'type') {
+            const at = queries.findIndex((q) => q.filters === filters);
+            if (at >= 0) queries.splice(at, 1);
+          }
           return query;
         };
       }

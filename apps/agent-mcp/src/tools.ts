@@ -282,6 +282,7 @@ export function buildWavesServer(
   readOnly: boolean,
 ): McpServer {
   const server = new McpServer({ name: 'waves-agent', version: '0.1.0' });
+  const restoreRegister = keepToPersonalGroups(server, supabase);
 
   // ── reads ──────────────────────────────────────────────────────────────
 
@@ -672,19 +673,18 @@ export function buildWavesServer(
   // Registered only when the server is not in read-only mode.
 
   if (!readOnly) {
-    const restoreRegister = keepToPersonalGroups(server, supabase);
     registerWriteTools(server, supabase, meId);
-    restoreRegister();
   }
 
   // Company tools go through their own gate (binding, owner switch), not the personal-group rule above.
+  restoreRegister();
   registerCompanyTools(server, supabase, readOnly);
 
   return server;
 }
 
 /**
- * The personal WRITE tools only work on personal groups.
+ * The personal tools (reads and writes) only work on personal groups.
  *
  * A company is reachable through the company tools alone, behind the owner's switch and the connection's binding.
  * Without this, `invite_link` or `add_people` given a company's id would act on it with no gate at all. Returns a
@@ -702,7 +702,7 @@ function keepToPersonalGroups(server: McpServer, supabase: SupabaseClient): () =
       if (typeof groupId === 'string') {
         const { data, error } = await supabase.from('groups').select('type').eq('id', groupId);
         if (error) return fail(error.message);
-        if ((data ?? []).some((g) => (g as { type?: string }).type === 'company')) {
+        if ([data ?? []].flat().some((g) => (g as { type?: string }).type === 'company')) {
           return fail('That is a company. Company work uses the company_* tools with the company id.');
         }
       }

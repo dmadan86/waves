@@ -141,8 +141,9 @@ GRANT EXECUTE ON FUNCTION public.waves_company_agent_link(uuid,text), public.wav
 
 -- ───────────────────────────────────────────────────── approval for agents ──
 
--- Identical to 20261112090000_company_paid_direct except the INSERT branch: an entry written through an assistant is
--- also held for review while the company's "agent changes need approval" switch is on, whatever the approvals setting.
+-- Identical to 20261112090000_company_paid_direct except the INSERT branch and the material-UPDATE branch: an entry written
+-- or edited through an assistant is also held for review while the company's "agent changes need approval" switch is on,
+-- whatever the approvals setting.
 CREATE OR REPLACE FUNCTION public.waves_company_review_guard() RETURNS trigger
  LANGUAGE plpgsql  SECURITY DEFINER SET search_path TO 'public', 'pg_temp' AS $fn$
 BEGIN
@@ -155,7 +156,8 @@ BEGIN
   (to_jsonb(NEW)-ARRAY['status','review_note','reviewed_by','reviewed_at','version','updated_by','updated_at','updated_seq'])
   IS DISTINCT FROM
   (to_jsonb(OLD)-ARRAY['status','review_note','reviewed_by','reviewed_at','version','updated_by','updated_at','updated_seq'])
-  AND (SELECT company_approvals_enabled FROM public.groups WHERE id=NEW.group_id) THEN
+  AND ((SELECT company_approvals_enabled FROM public.groups WHERE id=NEW.group_id)
+   OR (public.waves_agent_client_id() IS NOT NULL AND (SELECT company_agent_approval FROM public.groups WHERE id=NEW.group_id))) THEN
   NEW.status:='submitted'; NEW.review_note:=NULL; NEW.reviewed_by:=NULL; NEW.reviewed_at:=NULL;
  ELSIF NEW.deleted_at IS NULL AND OLD.status='rejected' AND NEW.status='rejected'
   AND (to_jsonb(NEW)-ARRAY['status','review_note','reviewed_by','reviewed_at','version','updated_by','updated_at','updated_seq'])
@@ -167,3 +169,126 @@ BEGIN
  RETURN NEW;
 END
 $fn$;
+
+-- An assistant can never approve or reject: it would be reviewing its own work.
+CREATE FUNCTION public.waves_company_agent_no_review() RETURNS trigger
+ LANGUAGE plpgsql SET search_path TO 'public','pg_temp' AS $$
+BEGIN
+ IF public.waves_agent_client_id() IS NOT NULL AND OLD.status = 'submitted' AND NEW.status IN ('approved','rejected') THEN
+  RAISE EXCEPTION 'NOT_ALLOWED: an assistant cannot approve or reject claims' USING ERRCODE='insufficient_privilege';
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER aa_company_agent_no_review BEFORE UPDATE ON public.company_entries FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_no_review();
+
+-- ───────────────────────────────────── the database enforces the binding too ──
+
+-- An agent token is an ordinary user JWT and could call PostgREST directly, skipping the MCP gate. So the same rule is
+-- applied below the tools: true for the app itself (no client_id) and for any non-company group; for a company, the
+-- assistant needs a live link to exactly that company while the owner allows agents and it is not suspended.
+CREATE FUNCTION public.waves_company_agent_allowed(p_group_id uuid) RETURNS boolean
+ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+DECLARE v_client text := public.waves_agent_client_id();
+BEGIN
+ IF v_client IS NULL THEN RETURN true; END IF;
+ IF p_group_id IS NULL THEN RETURN false; END IF;
+ IF NOT public.waves_is_company(p_group_id) THEN RETURN true; END IF;
+ RETURN EXISTS (SELECT 1 FROM public.company_agent_links l JOIN public.groups g ON g.id = l.group_id
+  WHERE l.profile_id = public.waves_current_profile_id() AND l.client_id = v_client AND l.group_id = p_group_id
+  AND l.revoked_at IS NULL AND g.company_agents_enabled AND g.suspended_at IS NULL AND g.deleted_at IS NULL);
+END $$;
+REVOKE ALL ON FUNCTION public.waves_company_agent_allowed(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.waves_company_agent_allowed(uuid) TO authenticated, service_role;
+
+-- Every write path (RPC or direct) passes a row trigger; the claims travel with the transaction.
+CREATE FUNCTION public.waves_company_agent_write_guard() RETURNS trigger
+ LANGUAGE plpgsql SET search_path TO 'public','pg_temp' AS $$
+DECLARE v_group uuid;
+BEGIN
+ IF public.waves_agent_client_id() IS NULL THEN RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END; END IF;
+ IF TG_OP = 'DELETE' THEN v_group := OLD.group_id; ELSE v_group := NEW.group_id; END IF;
+ IF NOT public.waves_company_agent_allowed(v_group) THEN
+  RAISE EXCEPTION 'NOT_LINKED: this assistant is not connected to that company' USING ERRCODE='insufficient_privilege';
+ END IF;
+ RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END $$;
+
+DO $$ DECLARE t text; BEGIN
+ -- Every company_* table with a group, plus the shared tables a company's data also lives in.
+ FOR t IN SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relrowsecurity AND c.relname LIKE 'company\_%' AND c.relname <> 'company_agent_links'
+  AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'group_id' AND NOT a.attisdropped)
+  UNION SELECT 'group_members'
+ LOOP
+  EXECUTE format('CREATE POLICY company_agent_gate ON public.%I AS RESTRICTIVE FOR ALL TO authenticated USING (public.waves_agent_client_id() IS NULL OR public.waves_company_agent_allowed(group_id))', t);
+ END LOOP;
+ FOR t IN SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+  WHERE n.nspname = 'public' AND c.relkind = 'r' AND c.relname LIKE 'company\_%' AND c.relname <> 'company_agent_links'
+  AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid = c.oid AND a.attname = 'group_id' AND NOT a.attisdropped)
+  UNION SELECT unnest(ARRAY['group_members','invites','expenses','settlements'])
+ LOOP
+  EXECUTE format('CREATE TRIGGER aa_company_agent_guard BEFORE INSERT OR UPDATE OR DELETE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_write_guard()', t);
+ END LOOP;
+END $$;
+CREATE POLICY company_agent_gate ON public.groups AS RESTRICTIVE FOR ALL TO authenticated
+ USING (public.waves_agent_client_id() IS NULL OR public.waves_company_agent_allowed(id));
+
+-- Same as 20261110090000_company_managers_pools except the agent line: every company RPC resolves the caller here.
+CREATE OR REPLACE FUNCTION public.waves_company_actor(p_group_id uuid) RETURNS uuid
+ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+DECLARE v_me uuid;
+BEGIN
+ IF public.waves_current_profile_id() IS NULL THEN RAISE EXCEPTION 'NOT_SIGNED_IN' USING ERRCODE='insufficient_privilege'; END IF;
+ IF NOT public.waves_company_agent_allowed(p_group_id) THEN RAISE EXCEPTION 'NOT_LINKED: this assistant is not connected to that company' USING ERRCODE='insufficient_privilege'; END IF;
+ SELECT m.id INTO v_me FROM public.group_members m JOIN public.groups g ON g.id=m.group_id
+ WHERE m.group_id=p_group_id AND m.profile_id=public.waves_current_profile_id() AND m.left_at IS NULL
+ AND m.removed_at IS NULL AND m.merged_into_member_id IS NULL AND g.type='company' AND g.deleted_at IS NULL;
+ IF v_me IS NULL THEN RAISE EXCEPTION 'NOT_A_MEMBER: live company membership required' USING ERRCODE='insufficient_privilege'; END IF;
+ RETURN v_me;
+END $$;
+
+-- ───────────────────────── money writes: cap, write and audit in ONE transaction ──
+
+-- Separate cap / write / audit requests could all pass the same remaining daily allowance. These take a per-person lock
+-- and do all three together, so the cap sees every earlier write and a failed audit undoes the write.
+CREATE FUNCTION public.waves_company_agent_entry_add(p_group_id uuid, p_entry_id uuid, p_member_id uuid, p_data jsonb) RETURNS text
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+DECLARE v_amount bigint; v_status text; v_cur character(3);
+BEGIN
+ IF public.waves_agent_client_id() IS NULL THEN RAISE EXCEPTION 'NOT_LINKED' USING ERRCODE='insufficient_privilege'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended(public.waves_current_profile_id()::text, 7));
+ SELECT status INTO v_status FROM public.company_entries WHERE id = p_entry_id AND public.waves_can_read_company_entry(id);
+ IF FOUND THEN RETURN v_status; END IF;
+ IF coalesce(p_data->>'amount','') !~ '^\d{1,16}$' THEN RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
+ v_amount := (p_data->>'amount')::bigint;
+ PERFORM public.waves_assert_agent_cap(v_amount);
+ PERFORM public.waves_company_entry_create(p_group_id, p_entry_id, p_member_id, 'expense', p_data);
+ SELECT default_currency INTO v_cur FROM public.groups WHERE id = p_group_id;
+ PERFORM public.waves_record_agent_write('company_entry.add', p_group_id, p_entry_id, v_amount, v_cur);
+ SELECT status INTO v_status FROM public.company_entries WHERE id = p_entry_id;
+ RETURN v_status;
+END $$;
+
+CREATE FUNCTION public.waves_company_agent_estimate_save(p_group_id uuid, p_doc_id uuid, p_data jsonb) RETURNS bigint
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+DECLARE v_total bigint; v_cur character(3); r public.company_documents%ROWTYPE;
+BEGIN
+ IF public.waves_agent_client_id() IS NULL THEN RAISE EXCEPTION 'NOT_LINKED' USING ERRCODE='insufficient_privilege'; END IF;
+ PERFORM public.waves_company_actor(p_group_id);
+ PERFORM pg_advisory_xact_lock(hashtextextended(public.waves_current_profile_id()::text, 7));
+ SELECT * INTO r FROM public.company_documents WHERE id = p_doc_id;
+ IF FOUND AND (r.group_id <> p_group_id OR r.doc_type <> 'estimate' OR r.status <> 'draft') THEN
+  RAISE EXCEPTION 'NOT_ALLOWED: only a draft estimate can be edited by an assistant' USING ERRCODE='insufficient_privilege';
+ END IF;
+ IF p_data->>'docType' IS DISTINCT FROM 'estimate' THEN RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
+ PERFORM public.waves_company_doc_save(p_group_id, p_doc_id, p_data);
+ SELECT total_minor, currency INTO v_total, v_cur FROM public.company_documents WHERE id = p_doc_id;
+ PERFORM public.waves_assert_agent_cap(v_total);
+ PERFORM public.waves_record_agent_write('estimate.save', p_group_id, p_doc_id, v_total, v_cur);
+ RETURN v_total;
+END $$;
+REVOKE ALL ON FUNCTION public.waves_company_agent_entry_add(uuid,uuid,uuid,jsonb), public.waves_company_agent_estimate_save(uuid,uuid,jsonb) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.waves_company_agent_entry_add(uuid,uuid,uuid,jsonb), public.waves_company_agent_estimate_save(uuid,uuid,jsonb) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.waves_company_agent_no_review(), public.waves_company_agent_write_guard() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_company_agent_no_review(), public.waves_company_agent_write_guard() TO service_role;

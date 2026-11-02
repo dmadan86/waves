@@ -21,7 +21,7 @@ const OTHER = randomUUID();
 
 type Log = string[];
 
-function fake(opts: { role?: string; gateError?: string; rpcError?: Record<string, string>; existing?: unknown[] } = {}) {
+function fake(opts: { role?: string; gateError?: string; rpcError?: Record<string, string>; existing?: unknown[]; rpcResult?: Record<string, unknown> } = {}) {
   const log: Log = [];
   const rpcs: { fn: string; args: Record<string, unknown> }[] = [];
   const from = (table: string) => {
@@ -49,7 +49,7 @@ function fake(opts: { role?: string; gateError?: string; rpcError?: Record<strin
           : { data: opts.role ?? 'admin', error: null };
       }
       if (opts.rpcError?.[fn]) return { data: null, error: { message: opts.rpcError[fn] } };
-      return { data: [], error: null };
+      return { data: opts.rpcResult?.[fn] ?? [], error: null };
     },
     auth: { getUser: async () => ({ data: { user: null } }) },
   } as unknown as SupabaseClient;
@@ -130,47 +130,33 @@ describe('read-only connections', () => {
 });
 
 describe('writes', () => {
-  it('add_company_entry: gates, caps, writes through the company RPC, then records', async () => {
-    const f = fake();
+  it('add_company_entry: gates, then one RPC does cap, write and audit together', async () => {
+    const f = fake({ rpcResult: { waves_company_agent_entry_add: 'submitted' } });
     const result = await call(f.client, 'add_company_entry', { ...entry, entryId: OTHER });
     expect(result.isError).toBe(false);
-    expect(f.rpcs.map((r) => r.fn)).toEqual([
-      'waves_company_agent_gate',
-      'waves_assert_agent_cap',
-      'waves_company_entry_create',
-      'waves_record_agent_write',
-    ]);
-    expect(f.rpcs[2]!.args).toMatchObject({ p_group_id: COMPANY, p_entry_id: OTHER, p_member_id: MEMBER, p_entry_kind: 'expense' });
-    expect(f.rpcs[3]!.args).toMatchObject({ p_action: 'company_entry.add', p_group_id: COMPANY, p_object_id: OTHER, p_amount_minor: '12500', p_currency: 'INR' });
+    expect(JSON.parse(result.text)).toMatchObject({ status: 'submitted', waitingForApproval: true });
+    expect(f.rpcs.map((r) => r.fn)).toEqual(['waves_company_agent_gate', 'waves_company_agent_entry_add']);
+    expect(f.rpcs[1]!.args).toMatchObject({
+      p_group_id: COMPANY,
+      p_entry_id: OTHER,
+      p_member_id: MEMBER,
+      p_data: { amount: '12500', category: 'fuel' },
+    });
   });
 
-  it('add_company_entry: a refused cap writes nothing', async () => {
-    const f = fake({ rpcError: { waves_assert_agent_cap: 'AGENT_CAP_SINGLE: too large' } });
-    const result = await call(f.client, 'add_company_entry', entry);
-    expect(result.isError).toBe(true);
-    expect(f.rpcs.map((r) => r.fn)).toEqual(['waves_company_agent_gate', 'waves_assert_agent_cap']);
-  });
-
-  it('add_company_entry: an employee cannot write for a colleague, and nothing is recorded', async () => {
-    const f = fake({ role: 'member', rpcError: { waves_company_entry_create: 'NOT_ALLOWED' } });
-    const result = await call(f.client, 'add_company_entry', entry);
-    expect(result.isError).toBe(true);
-    expect(result.text).toContain('NOT_ALLOWED');
-    expect(f.rpcs.map((r) => r.fn)).not.toContain('waves_record_agent_write');
-  });
-
-  it('add_company_entry: a retry with the same id does not write or spend the cap twice', async () => {
-    const f = fake({ existing: [{ id: OTHER, status: 'submitted' }] });
-    const result = await call(f.client, 'add_company_entry', { ...entry, entryId: OTHER });
-    expect(JSON.parse(result.text)).toMatchObject({ alreadyRecorded: true, status: 'submitted' });
-    expect(f.rpcs.map((r) => r.fn)).toEqual(['waves_company_agent_gate']);
+  it('add_company_entry: a refusal (cap, or an employee writing for a colleague) surfaces as an error', async () => {
+    for (const message of ['AGENT_CAP_SINGLE: too large', 'NOT_ALLOWED']) {
+      const f = fake({ role: 'member', rpcError: { waves_company_agent_entry_add: message } });
+      const result = await call(f.client, 'add_company_entry', entry);
+      expect(result.isError).toBe(true);
+      expect(result.text).toContain(message);
+    }
   });
 
   it.each([
     ['set_attendance', 'waves_company_attendance_set', 'attendance.set'],
     ['set_work_task', 'waves_company_work_set', 'work_task.set'],
     ['upsert_client', 'waves_company_client_set', 'client.save'],
-    ['save_estimate_draft', 'waves_company_doc_save', 'estimate.save'],
   ])('%s records an agent write after %s', async (tool, rpc, action) => {
     const f = fake();
     const result = await call(f.client, tool, CALLS[tool]!);
@@ -181,11 +167,11 @@ describe('writes', () => {
     expect(f.rpcs.at(-1)).toMatchObject({ fn: 'waves_record_agent_write', args: { p_action: action, p_group_id: COMPANY } });
   });
 
-  it('estimates are capped on their total, and a bill or sent estimate is not editable here', async () => {
-    const f = fake({ rpcError: { waves_assert_agent_cap: 'AGENT_CAP_SINGLE' } });
-    expect((await call(f.client, 'save_estimate_draft', CALLS.save_estimate_draft!)).isError).toBe(true);
-    expect(f.rpcs.find((r) => r.fn === 'waves_assert_agent_cap')!.args).toEqual({ p_amount_minor: '100000' });
-    expect(f.rpcs.map((r) => r.fn)).not.toContain('waves_company_doc_save');
+  it('save_estimate_draft: one RPC enforces draft-only, cap and audit', async () => {
+    const f = fake({ rpcResult: { waves_company_agent_estimate_save: '100000' } });
+    const result = await call(f.client, 'save_estimate_draft', CALLS.save_estimate_draft!);
+    expect(JSON.parse(result.text)).toMatchObject({ status: 'draft', totalMinor: '100000' });
+    expect(f.rpcs.map((r) => r.fn)).toEqual(['waves_company_agent_gate', 'waves_company_agent_estimate_save']);
   });
 
   it('employees cannot mark attendance, save clients or estimates (no RPC is called)', async () => {
@@ -199,11 +185,19 @@ describe('writes', () => {
 });
 
 describe('personal tools and company groups', () => {
-  it('a personal write tool refuses a company id instead of acting on it ungated', async () => {
-    const f = fake();
-    const result = await call(f.client, 'invite_link', { groupId: COMPANY });
-    expect(result.isError).toBe(true);
-    expect(result.text).toContain('company');
-    expect(f.rpcs).toEqual([]);
+  it('every personal tool that takes a groupId refuses a company id, reads included', async () => {
+    const client = await connect(fake().client);
+    const tools = (await client.listTools()).tools.filter(
+      (t) => ((t.inputSchema as { required?: string[] }).required ?? []).join() === 'groupId',
+    );
+    await client.close();
+    expect(tools.map((t) => t.name)).toEqual(expect.arrayContaining(['list_members', 'get_balances', 'list_expenses', 'invite_link']));
+    for (const tool of tools) {
+      const f = fake();
+      const result = await call(f.client, tool.name, { groupId: COMPANY });
+      expect(result.isError, tool.name).toBe(true);
+      expect(result.text, tool.name).toContain('company');
+      expect(f.rpcs, tool.name).toEqual([]);
+    }
   });
 });

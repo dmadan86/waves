@@ -53,17 +53,6 @@ export function registerCompanyTools(
     return { role: String(data) };
   }
 
-  async function currencyOf(companyId: string): Promise<string | ToolResult> {
-    const { data, error } = await supabase
-      .from('groups')
-      .select('default_currency')
-      .eq('id', companyId)
-      .is('deleted_at', null);
-    if (error) return fail(error.message);
-    const row = (data ?? [])[0] as { default_currency?: string } | undefined;
-    return row?.default_currency ? String(row.default_currency) : fail('Company not found.');
-  }
-
   /** The write's audit row (and what the daily cap counts). */
   async function record(
     action: string,
@@ -79,11 +68,6 @@ export function registerCompanyTools(
       p_amount_minor: amount,
       p_currency: currency,
     });
-    return error ? fail(error.message) : null;
-  }
-
-  async function cap(amount: string): Promise<ToolResult | null> {
-    const { error } = await supabase.rpc('waves_assert_agent_cap', { p_amount_minor: amount });
     return error ? fail(error.message) : null;
   }
 
@@ -300,32 +284,16 @@ export function registerCompanyTools(
       const g = await gate(companyId);
       if (refused(g)) return g;
       const id = entryId ?? randomUUID();
-      const existing = await supabase.from('company_entries').select('id, status').eq('id', id);
-      if (existing.error) return fail(existing.error.message);
-      const seen = (existing.data ?? [])[0] as { status?: string } | undefined;
-      if (seen) return ok({ entryId: id, status: seen.status, alreadyRecorded: true });
-
-      const currency = await currencyOf(companyId);
-      if (typeof currency !== 'string') return currency;
-      const capped = await cap(amount);
-      if (capped) return capped;
-      const { error } = await supabase.rpc('waves_company_entry_create', {
+      // Cap, write and audit happen in one database transaction (see the RPC), so concurrent calls cannot overspend.
+      const { data, error } = await supabase.rpc('waves_company_agent_entry_add', {
         p_group_id: companyId,
         p_entry_id: id,
         p_member_id: member,
-        p_entry_kind: 'expense',
         p_data: { amount, category, occurredOn, ...(note ? { note } : {}) },
       });
       if (error) return fail(error.message);
-      const written = await record('company_entry.add', companyId, id, amount, currency);
-      if (written) return written;
-      const after = await supabase.from('company_entries').select('id, status').eq('id', id);
-      const status = ((after.data ?? [])[0] as { status?: string } | undefined)?.status ?? null;
-      return ok({
-        entryId: id,
-        status,
-        waitingForApproval: status === 'submitted',
-      });
+      const status = data ? String(data) : null;
+      return ok({ entryId: id, status, waitingForApproval: status === 'submitted' });
     },
   );
 
@@ -469,23 +437,8 @@ export function registerCompanyTools(
       if (refused(g)) return g;
       if (g.role === 'member') return fail('Only the owner and managers can save estimates.');
       const id = docId ?? randomUUID();
-      const prior = await supabase.from('company_documents').select('doc_type, status').eq('id', id);
-      if (prior.error) return fail(prior.error.message);
-      const row = (prior.data ?? [])[0] as { doc_type?: string; status?: string } | undefined;
-      if (row && (row.doc_type !== 'estimate' || row.status !== 'draft')) {
-        return fail('Only a draft estimate can be edited from here.');
-      }
-      const currency = await currencyOf(companyId);
-      if (typeof currency !== 'string') return currency;
-      const subtotal = items.reduce(
-        (sum, it) => sum + (BigInt(it.qtyMilli) * BigInt(it.rateMinor) + 500n) / 1000n,
-        0n,
-      );
-      const total = subtotal - BigInt(discountMinor ?? '0');
-      if (total <= 0n) return fail('The discount must be less than the total.');
-      const capped = await cap(String(total));
-      if (capped) return capped;
-      const { error } = await supabase.rpc('waves_company_doc_save', {
+      // Draft-only, cap and audit are enforced inside the RPC, in one transaction.
+      const { data, error } = await supabase.rpc('waves_company_agent_estimate_save', {
         p_group_id: companyId,
         p_doc_id: id,
         p_data: {
@@ -500,8 +453,7 @@ export function registerCompanyTools(
         },
       });
       if (error) return fail(error.message);
-      const written = await record('estimate.save', companyId, id, String(total), currency);
-      return written ?? ok({ docId: id, status: 'draft', totalMinor: String(total) });
+      return ok({ docId: id, status: 'draft', totalMinor: String(data ?? '') });
     },
   );
 }

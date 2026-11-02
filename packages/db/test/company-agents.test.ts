@@ -304,6 +304,7 @@ describe('what an assistant writes', () => {
   it('is approved straight away when the owner turns the switch off', () =>
     isolated(async () => {
       await settings(true, false);
+      await link(2);
       expect(await statusOf(await addEntry(2, CLIENT))).toBe('approved');
     }));
 
@@ -317,6 +318,7 @@ describe('what an assistant writes', () => {
     isolated(async () => {
       await settings(true, false);
       await db.query('UPDATE groups SET company_approvals_enabled=true WHERE id=$1', [g.groupId]);
+      await link(2);
       expect(await statusOf(await addEntry(2, CLIENT))).toBe('submitted');
     }));
 
@@ -331,10 +333,133 @@ describe('what an assistant writes', () => {
       await settings(true, false);
       await addEntry(2, null, randomUUID(), 2);
       await addEntry(3, null, randomUUID(), 3);
+      for (const i of [0, 2, 3]) await link(i);
       const seen = (i: number) =>
         as(i, CLIENT, async () => (await db.query('SELECT member_id FROM company_entries')).rows.map((r) => r.member_id));
       expect(await seen(2)).toEqual([g.memberIds[2]]);
       expect(await seen(3)).toEqual([g.memberIds[3]]);
       expect(await seen(0)).toHaveLength(2);
     }));
+});
+
+describe('the database enforces the binding below the tools', () => {
+  const rowsAs = (i: number, agent: string | null) =>
+    as(i, agent, async () => ({
+      entries: (await db.query('SELECT 1 FROM company_entries')).rowCount,
+      clients: (await db.query('SELECT 1 FROM company_clients')).rowCount,
+      members: (await db.query('SELECT 1 FROM group_members WHERE group_id=$1', [g.groupId])).rowCount,
+      groups: (await db.query('SELECT 1 FROM groups WHERE id=$1', [g.groupId])).rowCount,
+    }));
+  const seed = async () => {
+    await settings(true, false);
+    await addEntry(2, null);
+    await db.query("INSERT INTO company_clients(id,group_id,name,created_by) VALUES($1,$2,'C',$3)", [
+      randomUUID(),
+      g.groupId,
+      g.memberIds[0],
+    ]);
+  };
+
+  it('an unlinked assistant token reads nothing of the company, the app reads as usual', () =>
+    isolated(async () => {
+      await seed();
+      expect(await rowsAs(0, 'never-linked')).toEqual({ entries: 0, clients: 0, members: 0, groups: 0 });
+      expect((await rowsAs(0, null)).entries).toBe(1);
+    }));
+
+  it('a linked one reads it; switching agents off or revoking closes it again', () =>
+    isolated(async () => {
+      await seed();
+      await link(0);
+      expect(await rowsAs(0, CLIENT)).toMatchObject({ entries: 1, clients: 1, groups: 1 });
+      await settings(false);
+      expect(await rowsAs(0, CLIENT)).toEqual({ entries: 0, clients: 0, members: 0, groups: 0 });
+      await settings(true);
+      expect((await rowsAs(0, CLIENT)).entries).toBe(1);
+      await db.query('UPDATE company_agent_links SET revoked_at=now()');
+      expect((await rowsAs(0, CLIENT)).entries).toBe(0);
+    }));
+
+  it('company RPCs refuse an unlinked assistant, and a different company', () =>
+    isolated(async () => {
+      await settings(true);
+      await settings(true, true, other);
+      const people = (grp: string, agent = CLIENT) =>
+        as(0, agent, () => db.query('SELECT * FROM waves_company_people($1)', [grp]));
+      expect(await denied(() => people(g.groupId, 'never-linked'))).toMatch(/NOT_LINKED/);
+      await link(0);
+      expect((await people(g.groupId)).rowCount).toBeGreaterThan(0);
+      expect(await denied(() => people(other))).toMatch(/NOT_LINKED/);
+    }));
+
+  it('writes are refused at the table too', () =>
+    isolated(async () => {
+      await settings(true);
+      const add = (agent: string) =>
+        as(0, agent, () =>
+          db.query(
+            "INSERT INTO group_members(id,group_id,ghost_name,joined_via) VALUES(gen_random_uuid(),$1,'X','ghost')",
+            [g.groupId],
+          ),
+        );
+      expect(await denied(() => add('never-linked'))).toMatch(/NOT_LINKED/);
+    }));
+
+  it('an assistant cannot approve a claim, even as owner', () =>
+    isolated(async () => {
+      await settings(true, true);
+      await link(0);
+      await link(2);
+      const id = await addEntry(2, CLIENT);
+      expect(await statusOf(id)).toBe('submitted');
+      const review = (agent: string | null) =>
+        as(0, agent, () =>
+          db.query("SELECT waves_company_entry_transition($1,'approved',NULL,1)", [id]),
+        );
+      expect(await denied(() => review(CLIENT))).toMatch(/cannot approve/);
+      await review(null);
+      expect(await statusOf(id)).toBe('approved');
+    }));
+
+  it('an assistant edit of an approved entry goes back for approval', () =>
+    isolated(async () => {
+      await settings(true, true);
+      await link(0);
+      const id = await addEntry(2, null); // approved: company approvals are off
+      expect(await statusOf(id)).toBe('approved');
+      await as(0, CLIENT, () =>
+        db.query('SELECT waves_company_entry_update($1,$2)', [id, JSON.stringify({ amount: '99900' })]),
+      );
+      expect(await statusOf(id)).toBe('submitted');
+    }));
+
+  it('the money RPC does cap, write and audit together', () =>
+    isolated(async () => {
+      await enableAndLink(2);
+      const add = (id: string, amount: string) =>
+        as(2, CLIENT, () =>
+          db.query('SELECT waves_company_agent_entry_add($1,$2,$3,$4) AS s', [
+            g.groupId,
+            id,
+            g.memberIds[2],
+            JSON.stringify({ amount, category: 'fuel', occurredOn: today }),
+          ]),
+        );
+      const id = randomUUID();
+      expect((await add(id, '12500')).rows[0].s).toBe('submitted');
+      expect((await add(id, '12500')).rows[0].s).toBe('submitted'); // a retry adds and counts nothing
+      const audit = await db.query('SELECT amount_minor FROM agent_writes WHERE object_id=$1', [id]);
+      expect(audit.rows).toHaveLength(1);
+      expect(await denied(() => add(randomUUID(), '5000001'))).toMatch(/AGENT_CAP_SINGLE/);
+    }));
+
+  it('every company table with a group is covered by the policy and the write trigger', async () => {
+    const missing = await db.query(`
+      SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+      WHERE n.nspname='public' AND c.relkind='r' AND c.relrowsecurity AND c.relname LIKE 'company\\_%' AND c.relname<>'company_agent_links'
+        AND EXISTS (SELECT 1 FROM pg_attribute a WHERE a.attrelid=c.oid AND a.attname='group_id' AND NOT a.attisdropped)
+        AND (NOT EXISTS (SELECT 1 FROM pg_policy p WHERE p.polrelid=c.oid AND p.polname='company_agent_gate')
+          OR NOT EXISTS (SELECT 1 FROM pg_trigger t WHERE t.tgrelid=c.oid AND t.tgname='aa_company_agent_guard'))`);
+    expect(missing.rows).toEqual([]);
+  });
 });

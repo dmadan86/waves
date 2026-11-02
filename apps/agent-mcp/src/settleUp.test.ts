@@ -56,6 +56,11 @@ function fake(answers: Record<string, Answer>) {
       for (const m of ['select', 'eq', 'is', 'in', 'order', 'limit']) {
         query[m] = (...args: unknown[]) => {
           filters.push([m, ...args]);
+          // The personal-group guard's own probe (select 'type') is not what these tests are about.
+          if (m === 'select' && args[0] === 'type') {
+            const at = queries.findIndex((q) => q.filters === filters);
+            if (at >= 0) queries.splice(at, 1);
+          }
           return query;
         };
       }
@@ -510,7 +515,7 @@ describe('"Matt paid me ₹100 in cash"', () => {
     expect(rpcs).toHaveLength(0);
   });
 
-  it('still takes two member ids without reading the members', async () => {
+  it('still takes two member ids without reading the group', async () => {
     const { client, rpcs, queries } = fake({});
     await call(client, 'record_settlement', {
       groupId: GROUP,
@@ -518,8 +523,7 @@ describe('"Matt paid me ₹100 in cash"', () => {
       toMemberId: M_ME,
       amount: '500',
     });
-    // Only the personal-group check reads anything (the group's type); no member lookup.
-    expect(queries.map((q) => q.table)).toEqual(['groups']);
+    expect(queries).toHaveLength(0);
     expect(rpcs[0]!.args).toMatchObject({ p_from_member_id: M_MATT, p_to_member_id: M_ME });
   });
 });
