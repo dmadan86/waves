@@ -55,7 +55,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const [range, setRange] = useState<DateRange>('all');
   const [sort, setSort] = useState<ClientSort>('recent');
   const [query, setQuery] = useState('');
-  const [owing, setOwing] = useState(false);
   const [searching, setSearching] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [menu, setMenu] = useState<'sort' | null>(null);
@@ -68,8 +67,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
     [view.clients, docs, view.notes],
   );
   const counts = tabCounts(all);
-  const outstanding = all.reduce((n, r) => n + r.dueMinor, 0n);
-  const rows = listClientRows(all, { tab, status, range, sort, query, today, owing });
+  const rows = listClientRows(all, { tab, status, range, sort, query, today });
   const filtered = status !== null || range !== 'all';
   const canAdd = view.canAdd && !suspended;
   const openSort = () =>
@@ -105,47 +103,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
         ] as const)
       : []),
   ];
-  const kpis = [
-    {
-      tab: 'all',
-      label: s.kClients,
-      text: `${counts.all}`,
-      icon: 'people',
-      fg: '#16A34A',
-      bg: '#ECFDF3',
-    },
-    {
-      tab: 'inquiry',
-      label: s.kInquiries,
-      text: `${counts.inquiry}`,
-      icon: 'document-text',
-      ...BLUE,
-    },
-    {
-      tab: 'quote',
-      label: s.kQuotes,
-      text: `${counts.quote}`,
-      icon: 'document-attach',
-      fg: '#EA8A0C',
-      bg: '#FFF4E5',
-    },
-    {
-      tab: 'invoice',
-      label: s.kInvoices,
-      text: `${counts.invoice}`,
-      icon: 'receipt',
-      fg: '#16A34A',
-      bg: '#ECFDF3',
-    },
-    {
-      tab: 'invoice',
-      label: s.kOutstanding,
-      text: fmt(outstanding),
-      icon: 'cash',
-      fg: '#DC2626',
-      bg: '#FDECEC',
-    },
-  ] as const;
   const pill = (st: ClientStatus) => {
     const c = theme.color;
     return {
@@ -195,43 +152,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
           }
         />
         <DashBody>
-          <Row style={{ gap: theme.spacing.xs }}>
-            {kpis.map((k) => (
-              <Pressable
-                key={k.label}
-                accessibilityRole="button"
-                accessibilityLabel={`${k.label} ${k.text}`}
-                onPress={() => {
-                  setTab(k.tab);
-                  setStatus(null);
-                  setOwing(k.label === s.kOutstanding);
-                  if (k.label === s.kOutstanding) setSort('amount');
-                }}
-                style={{
-                  flex: 1,
-                  minWidth: 0,
-                  paddingVertical: theme.spacing.sm,
-                  paddingHorizontal: 2,
-                  borderRadius: theme.radius.lg,
-                  backgroundColor: k.bg,
-                  gap: 2,
-                  alignItems: 'center',
-                }}
-              >
-                <Ionicons name={k.icon} size={iconSize.md} color={k.fg} />
-                <Text
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  style={{ fontWeight: '800', color: '#111827', fontSize: 15 }}
-                >
-                  {k.text}
-                </Text>
-                <Text variant="micro" numberOfLines={1} style={{ color: '#374151' }}>
-                  {k.label}
-                </Text>
-              </Pressable>
-            ))}
-          </Row>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
               <SegmentedPills
@@ -243,7 +163,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
                 ]}
                 value={tab}
                 onChange={(v) => {
-                  setOwing(false);
                   setTab(v);
                 }}
               />
