@@ -32,6 +32,7 @@ import { format, money, type CurrencyCode } from '@waves/core';
 
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { CompanyLogoField } from '@/components/company/CompanyLogoField';
+import { AgentAccessSection } from '@/components/company/AgentAccessSection';
 import { CompanyRules } from '@/components/company/CompanyRules';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { removeImage } from '@/lib/storage';
@@ -1372,7 +1373,10 @@ export default function GroupSettingsScreen() {
             </StandardCard>
           ) : null}
           {isCompany && moreOpen && companyView.isOwner ? (
-            <CompanyRules groupId={groupId} view={companyView} part="more" />
+            <>
+              <CompanyRules groupId={groupId} view={companyView} part="more" />
+              <AgentAccessSection groupId={groupId} />
+            </>
           ) : null}
 
           {/* A company's people live in People (company bar), not here. */}

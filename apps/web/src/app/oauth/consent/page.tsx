@@ -53,6 +53,7 @@ import { Section } from '@/components/Shell';
 import { SkeletonRows } from '@/components/Skeleton';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
+import { bindAssistant, loadAgentCompanies, type AgentCompany } from '@/lib/agentCompanies';
 import { friendlyError } from '@/lib/errors';
 import { supabase } from '@/lib/waves';
 // Which parameter is trusted, which response arrived, and which of the
@@ -90,6 +91,11 @@ function Consent() {
   const [refusal, setRefusal] = useState<string | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
   const [deciding, setDeciding] = useState<'approve' | 'deny' | null>(null);
+  /** Companies that allow agents. '' = not chosen yet; 'none' = personal groups only. */
+  const [companies, setCompanies] = useState<AgentCompany[]>([]);
+  const [company, setCompany] = useState('');
+  /** The list has settled (loaded or failed): approving earlier could leave an old company binding in place. */
+  const [companiesReady, setCompaniesReady] = useState(false);
 
   useEffect(() => {
     if (!authorizationId) return;
@@ -107,6 +113,13 @@ function Consent() {
           return;
         }
         setPending(step.pending);
+        // A failure here just means no picker: the assistant stays personal-only.
+        void loadAgentCompanies(supabase)
+          .then(
+            (list) => active && setCompanies(list),
+            () => undefined,
+          )
+          .finally(() => active && setCompaniesReady(true));
       } catch (caught) {
         if (!active) return;
         setRefusal(
@@ -137,6 +150,11 @@ function Consent() {
       setDeciding(choice);
       setFailure(null);
       try {
+        // The binding comes first: if it fails nothing is approved. Always set - no company means unbind any old one.
+        if (choice === 'approve') {
+          const chosen = companies.length > 0 && company !== 'none' ? company : null;
+          await bindAssistant(supabase, pending.clientId, chosen);
+        }
         const call =
           choice === 'approve'
             ? supabase.auth.oauth.approveAuthorization
@@ -159,7 +177,15 @@ function Consent() {
         setDeciding(null);
       }
     },
-    [deciding, pending, t.errors.couldNotSave, t.errors.offline, t.errors.tooMany],
+    [
+      company,
+      companies.length,
+      deciding,
+      pending,
+      t.errors.couldNotSave,
+      t.errors.offline,
+      t.errors.tooMany,
+    ],
   );
 
   const back = (
@@ -259,6 +285,35 @@ function Consent() {
                 {t.agents.neverMoves}
               </p>
 
+              {companies.length > 0 ? (
+                <div style={{ marginBlockStart: 14 }}>
+                  <label htmlFor="agent-company" className="title">
+                    {t.agents.companyLabel}
+                  </label>
+                  <select
+                    id="agent-company"
+                    className="input"
+                    required
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    style={{ display: 'block', marginBlockStart: 6 }}
+                  >
+                    <option value="" disabled>
+                      —
+                    </option>
+                    <option value="none">{t.agents.noCompany}</option>
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="muted" style={{ marginBlockStart: 6 }}>
+                    {t.agents.companyHelp}
+                  </p>
+                </div>
+              ) : null}
+
               {failure ? (
                 <p className="error" role="alert" style={{ marginBlockStart: 12 }}>
                   {failure}
@@ -269,7 +324,9 @@ function Consent() {
                 <button
                   type="button"
                   className="btn"
-                  disabled={deciding !== null}
+                  disabled={
+                    deciding !== null || !companiesReady || (companies.length > 0 && company === '')
+                  }
                   aria-busy={deciding === 'approve'}
                   onClick={() => void decide('approve')}
                 >

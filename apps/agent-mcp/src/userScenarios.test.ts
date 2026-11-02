@@ -68,7 +68,7 @@ function world(opts: {
             }
           : { data: { default_currency: opts.currency ?? 'INR' }, error: null },
     };
-    for (const m of ['select', 'eq', 'is', 'order', 'limit']) query[m] = () => query;
+    for (const m of ['select', 'eq', 'neq', 'is', 'order', 'limit']) query[m] = () => query;
     return query;
   };
 

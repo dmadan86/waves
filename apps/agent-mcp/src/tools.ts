@@ -31,6 +31,7 @@ import { z } from 'zod';
 import { headOf, rollUpByFamily, unitIdOf, unitName, type Units } from './families';
 import { buildExpenseWriteBody, expenseParticipants, type AgentSplit } from './expense';
 import { findPair, foldName, pairIds, type PairGroup } from './pair';
+import { registerCompanyTools } from './companyTools';
 import { pairwiseTransfers, simplifyNet, type Transfer } from './settle';
 
 type ToolResult = {
@@ -281,6 +282,7 @@ export function buildWavesServer(
   readOnly: boolean,
 ): McpServer {
   const server = new McpServer({ name: 'waves-agent', version: '0.1.0' });
+  const restoreRegister = keepToPersonalGroups(server, supabase);
 
   // ── reads ──────────────────────────────────────────────────────────────
 
@@ -314,6 +316,7 @@ export function buildWavesServer(
         .from('groups')
         .select('id, name, type, default_currency, cover_emoji, archived_at, start_date, end_date')
         .is('deleted_at', null)
+        .neq('type', 'company')
         .order('created_at', { ascending: false });
       if (!includeArchived) query = query.is('archived_at', null);
       const { data, error } = await query;
@@ -673,7 +676,43 @@ export function buildWavesServer(
     registerWriteTools(server, supabase, meId);
   }
 
+  // Company tools go through their own gate (binding, owner switch), not the personal-group rule above.
+  restoreRegister();
+  registerCompanyTools(server, supabase, readOnly);
+
   return server;
+}
+
+/**
+ * The personal tools (reads and writes) only work on personal groups.
+ *
+ * A company is reachable through the company tools alone, behind the owner's switch and the connection's binding.
+ * Without this, `invite_link` or `add_people` given a company's id would act on it with no gate at all. Returns a
+ * function that puts the original registration back for the company tools.
+ */
+function keepToPersonalGroups(server: McpServer, supabase: SupabaseClient): () => void {
+  const original = server.registerTool.bind(server) as (...a: unknown[]) => unknown;
+  (server as unknown as { registerTool: unknown }).registerTool = (
+    name: string,
+    config: unknown,
+    handler: (...a: unknown[]) => Promise<ToolResult>,
+  ) =>
+    original(name, config, async (...a: unknown[]) => {
+      const groupId = (a[0] as { groupId?: unknown } | undefined)?.groupId;
+      if (typeof groupId === 'string') {
+        const { data, error } = await supabase.from('groups').select('type').eq('id', groupId);
+        if (error) return fail(error.message);
+        if ([data ?? []].flat().some((g) => (g as { type?: string }).type === 'company')) {
+          return fail(
+            'That is a company. Company work uses the company_* tools with the company id.',
+          );
+        }
+      }
+      return handler(...a);
+    });
+  return () => {
+    (server as unknown as { registerTool: unknown }).registerTool = original;
+  };
 }
 
 /** What people call themselves when they mean the signed-in person. */
