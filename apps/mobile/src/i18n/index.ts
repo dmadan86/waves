@@ -2257,6 +2257,74 @@ export interface UiStrings {
     notCounted: string;
     exportAction: string;
   };
+  companyTickets: {
+    title: string;
+    tOpen: string;
+    tEscalated: string;
+    tResolved: string;
+    newComplaint: string;
+    editComplaint: string;
+    emptyTitle: string;
+    emptyBody: string;
+    emptyTab: string;
+    seeAll: string;
+    noneForClient: string;
+    clientLabel: string;
+    noClient: string;
+    pickClient: string;
+    searchClients: string;
+    titlePh: string;
+    detailsPh: string;
+    priority: string;
+    pLow: string;
+    pNormal: string;
+    pHigh: string;
+    pUrgent: string;
+    assignedTo: string;
+    assignTo: string;
+    you: string;
+    someone: string;
+    owner: string;
+    save: string;
+    log: string;
+    dueIn: string;
+    overdue: string;
+    escalatedTo: string;
+    unitM: string;
+    unitH: string;
+    unitD: string;
+    call: string;
+    whatsapp: string;
+    reassign: string;
+    actStart: string;
+    actResolve: string;
+    actReopen: string;
+    actClose: string;
+    resolveTitle: string;
+    resolvePh: string;
+    solved: string;
+    stOpen: string;
+    stInProgress: string;
+    stResolved: string;
+    stClosed: string;
+    timeline: string;
+    evCreated: string;
+    evAssigned: string;
+    evStarted: string;
+    evReopened: string;
+    evEscalated: string;
+    evBy: string;
+    commentPh: string;
+    send: string;
+    edit: string;
+    remove: string;
+    removeConfirm: string;
+    more: string;
+    notFound: string;
+    hubOverdue: string;
+    hubOpen: string;
+    hubNone: string;
+  };
   companyClients: {
     title: string;
     toReceive: string;
@@ -9650,6 +9718,74 @@ const en: UiStrings = {
     notCounted: 'Not counted until approved',
     exportAction: 'Export',
   },
+  companyTickets: {
+    title: 'Complaints',
+    tOpen: 'Open · {n}',
+    tEscalated: 'Escalated · {n}',
+    tResolved: 'Resolved · {n}',
+    newComplaint: 'New complaint',
+    editComplaint: 'Edit complaint',
+    emptyTitle: 'No complaints yet',
+    emptyBody: 'Log a customer complaint and give it to someone. If it is not solved in time it moves up to their manager, then the owner.',
+    emptyTab: 'Nothing here',
+    seeAll: 'All',
+    noneForClient: 'No complaints for this client',
+    clientLabel: 'Client',
+    noClient: 'No client',
+    pickClient: 'Choose client',
+    searchClients: 'Search clients',
+    titlePh: 'What is the complaint?',
+    detailsPh: 'Details (optional)',
+    priority: 'Priority',
+    pLow: 'Low',
+    pNormal: 'Normal',
+    pHigh: 'High',
+    pUrgent: 'Urgent',
+    assignedTo: 'Assigned to',
+    assignTo: 'Assign to',
+    you: 'You',
+    someone: 'Someone',
+    owner: 'the owner',
+    save: 'Save',
+    log: 'Log complaint',
+    dueIn: 'Due in {t}',
+    overdue: 'Overdue {t}',
+    escalatedTo: 'Escalated to {name}',
+    unitM: '{n}m',
+    unitH: '{n}h',
+    unitD: '{n}d',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    reassign: 'Reassign',
+    actStart: 'Start',
+    actResolve: 'Resolve',
+    actReopen: 'Reopen',
+    actClose: 'Close',
+    resolveTitle: 'How was it solved?',
+    resolvePh: 'Short note for the record',
+    solved: 'Solved: {note}',
+    stOpen: 'Open',
+    stInProgress: 'In progress',
+    stResolved: 'Resolved',
+    stClosed: 'Closed',
+    timeline: 'Timeline',
+    evCreated: 'Logged · assigned to {name}',
+    evAssigned: 'Assigned to {name}',
+    evStarted: 'Started',
+    evReopened: 'Reopened',
+    evEscalated: 'Escalated to {name}',
+    evBy: 'by {name}',
+    commentPh: 'Add a comment',
+    send: 'Send',
+    edit: 'Edit',
+    remove: 'Delete',
+    removeConfirm: 'Delete this complaint?',
+    more: 'More',
+    notFound: 'This complaint is not available.',
+    hubOverdue: '{n} overdue',
+    hubOpen: '{n} open',
+    hubNone: 'All on time',
+  },
   companyClients: {
     title: 'Clients',
     toReceive: 'To receive',
@@ -16501,6 +16637,74 @@ const ta: UiStrings = {
     colReview: 'மதிப்பாய்வு குறிப்பு',
     notCounted: 'ஒப்புதல் வரை கணக்கில் சேராது',
     exportAction: 'ஏற்றுமதி',
+  },
+  companyTickets: {
+    title: 'புகார்கள்',
+    tOpen: 'திறந்தவை · {n}',
+    tEscalated: 'உயர்த்தப்பட்டவை · {n}',
+    tResolved: 'தீர்க்கப்பட்டவை · {n}',
+    newComplaint: 'புதிய புகார்',
+    editComplaint: 'புகாரைத் திருத்து',
+    emptyTitle: 'இன்னும் புகார்கள் இல்லை',
+    emptyBody: 'வாடிக்கையாளர் புகாரைப் பதிவு செய்து ஒருவருக்கு ஒதுக்குங்கள். நேரத்தில் தீர்க்கப்படாவிட்டால் அது அவரது மேலாளருக்கும், பிறகு உரிமையாளருக்கும் செல்லும்.',
+    emptyTab: 'இங்கே எதுவும் இல்லை',
+    seeAll: 'அனைத்தும்',
+    noneForClient: 'இந்த வாடிக்கையாளருக்கு புகார்கள் இல்லை',
+    clientLabel: 'வாடிக்கையாளர்',
+    noClient: 'வாடிக்கையாளர் இல்லை',
+    pickClient: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும்',
+    searchClients: 'வாடிக்கையாளரைத் தேடு',
+    titlePh: 'புகார் என்ன?',
+    detailsPh: 'விவரங்கள் (விருப்பம்)',
+    priority: 'முன்னுரிமை',
+    pLow: 'குறைவு',
+    pNormal: 'சாதாரணம்',
+    pHigh: 'அதிகம்',
+    pUrgent: 'அவசரம்',
+    assignedTo: 'ஒதுக்கப்பட்டவர்',
+    assignTo: 'ஒதுக்கு',
+    you: 'நீங்கள்',
+    someone: 'ஒருவர்',
+    owner: 'உரிமையாளர்',
+    save: 'சேமி',
+    log: 'புகாரைப் பதிவு செய்',
+    dueIn: '{t}-இல் முடிக்க வேண்டும்',
+    overdue: '{t} தாமதம்',
+    escalatedTo: '{name}-க்கு உயர்த்தப்பட்டது',
+    unitM: '{n}நி',
+    unitH: '{n}ம',
+    unitD: '{n}நா',
+    call: 'அழை',
+    whatsapp: 'WhatsApp',
+    reassign: 'மாற்றி ஒதுக்கு',
+    actStart: 'தொடங்கு',
+    actResolve: 'தீர்',
+    actReopen: 'மீண்டும் திற',
+    actClose: 'மூடு',
+    resolveTitle: 'எப்படி தீர்க்கப்பட்டது?',
+    resolvePh: 'பதிவுக்கான சிறு குறிப்பு',
+    solved: 'தீர்வு: {note}',
+    stOpen: 'திறந்தது',
+    stInProgress: 'நடைபெறுகிறது',
+    stResolved: 'தீர்க்கப்பட்டது',
+    stClosed: 'மூடப்பட்டது',
+    timeline: 'நிகழ்வுகள்',
+    evCreated: 'பதிவு செய்யப்பட்டது · {name}-க்கு ஒதுக்கப்பட்டது',
+    evAssigned: '{name}-க்கு ஒதுக்கப்பட்டது',
+    evStarted: 'தொடங்கப்பட்டது',
+    evReopened: 'மீண்டும் திறக்கப்பட்டது',
+    evEscalated: '{name}-க்கு உயர்த்தப்பட்டது',
+    evBy: '{name} மூலம்',
+    commentPh: 'கருத்தைச் சேர்',
+    send: 'அனுப்பு',
+    edit: 'திருத்து',
+    remove: 'நீக்கு',
+    removeConfirm: 'இந்தப் புகாரை நீக்கவா?',
+    more: 'மேலும்',
+    notFound: 'இந்தப் புகார் கிடைக்கவில்லை.',
+    hubOverdue: '{n} தாமதம்',
+    hubOpen: '{n} திறந்தவை',
+    hubNone: 'எல்லாம் நேரத்தில்',
   },
   companyClients: {
     title: 'வாடிக்கையாளர்கள்',
@@ -23512,6 +23716,74 @@ const hi: UiStrings = {
     notCounted: 'मंज़ूरी तक गिनी नहीं जाएगी',
     exportAction: 'निर्यात',
   },
+  companyTickets: {
+    title: 'शिकायतें',
+    tOpen: 'खुली · {n}',
+    tEscalated: 'बढ़ाई गई · {n}',
+    tResolved: 'सुलझी · {n}',
+    newComplaint: 'नई शिकायत',
+    editComplaint: 'शिकायत संपादित करें',
+    emptyTitle: 'अभी कोई शिकायत नहीं',
+    emptyBody: 'ग्राहक की शिकायत दर्ज करें और किसी को सौंपें। समय पर न सुलझे तो वह उसके मैनेजर और फिर मालिक तक पहुँचती है।',
+    emptyTab: 'यहाँ कुछ नहीं',
+    seeAll: 'सभी',
+    noneForClient: 'इस ग्राहक की कोई शिकायत नहीं',
+    clientLabel: 'ग्राहक',
+    noClient: 'कोई ग्राहक नहीं',
+    pickClient: 'ग्राहक चुनें',
+    searchClients: 'ग्राहक खोजें',
+    titlePh: 'शिकायत क्या है?',
+    detailsPh: 'विवरण (वैकल्पिक)',
+    priority: 'प्राथमिकता',
+    pLow: 'कम',
+    pNormal: 'सामान्य',
+    pHigh: 'उच्च',
+    pUrgent: 'तत्काल',
+    assignedTo: 'सौंपा गया',
+    assignTo: 'सौंपें',
+    you: 'आप',
+    someone: 'कोई',
+    owner: 'मालिक',
+    save: 'सहेजें',
+    log: 'शिकायत दर्ज करें',
+    dueIn: '{t} में देय',
+    overdue: '{t} की देरी',
+    escalatedTo: '{name} को बढ़ाई गई',
+    unitM: '{n}मि',
+    unitH: '{n}घं',
+    unitD: '{n}दिन',
+    call: 'कॉल करें',
+    whatsapp: 'WhatsApp',
+    reassign: 'दोबारा सौंपें',
+    actStart: 'शुरू करें',
+    actResolve: 'सुलझाएँ',
+    actReopen: 'फिर खोलें',
+    actClose: 'बंद करें',
+    resolveTitle: 'यह कैसे सुलझी?',
+    resolvePh: 'रिकॉर्ड के लिए छोटा नोट',
+    solved: 'समाधान: {note}',
+    stOpen: 'खुली',
+    stInProgress: 'जारी है',
+    stResolved: 'सुलझी',
+    stClosed: 'बंद',
+    timeline: 'टाइमलाइन',
+    evCreated: 'दर्ज की गई · {name} को सौंपी',
+    evAssigned: '{name} को सौंपी गई',
+    evStarted: 'शुरू की गई',
+    evReopened: 'फिर खोली गई',
+    evEscalated: '{name} को बढ़ाई गई',
+    evBy: '{name} द्वारा',
+    commentPh: 'टिप्पणी जोड़ें',
+    send: 'भेजें',
+    edit: 'संपादित करें',
+    remove: 'हटाएँ',
+    removeConfirm: 'यह शिकायत हटाएँ?',
+    more: 'और',
+    notFound: 'यह शिकायत उपलब्ध नहीं है।',
+    hubOverdue: '{n} विलंबित',
+    hubOpen: '{n} खुली',
+    hubNone: 'सब समय पर',
+  },
   companyClients: {
     title: 'ग्राहक',
     toReceive: 'पाना बाकी',
@@ -30460,6 +30732,74 @@ const ar: UiStrings = {
     colReview: 'ملاحظة المراجعة',
     notCounted: 'لا يُحتسب حتى الموافقة',
     exportAction: 'تصدير',
+  },
+  companyTickets: {
+    title: 'الشكاوى',
+    tOpen: 'مفتوحة · {n}',
+    tEscalated: 'مصعّدة · {n}',
+    tResolved: 'تمت معالجتها · {n}',
+    newComplaint: 'شكوى جديدة',
+    editComplaint: 'تعديل الشكوى',
+    emptyTitle: 'لا توجد شكاوى بعد',
+    emptyBody: 'سجّل شكوى العميل وأسندها لشخص ما. إن لم تُحل في الوقت المناسب فتصل إلى مديره ثم إلى المالك.',
+    emptyTab: 'لا شيء هنا',
+    seeAll: 'الكل',
+    noneForClient: 'لا شكاوى لهذا العميل',
+    clientLabel: 'العميل',
+    noClient: 'بدون عميل',
+    pickClient: 'اختر العميل',
+    searchClients: 'ابحث في العملاء',
+    titlePh: 'ما هي الشكوى؟',
+    detailsPh: 'التفاصيل (اختياري)',
+    priority: 'الأولوية',
+    pLow: 'منخفضة',
+    pNormal: 'عادية',
+    pHigh: 'عالية',
+    pUrgent: 'عاجلة',
+    assignedTo: 'مُسندة إلى',
+    assignTo: 'إسناد إلى',
+    you: 'أنت',
+    someone: 'شخص ما',
+    owner: 'المالك',
+    save: 'حفظ',
+    log: 'تسجيل الشكوى',
+    dueIn: 'يستحق خلال {t}',
+    overdue: 'متأخرة {t}',
+    escalatedTo: 'صُعّدت إلى {name}',
+    unitM: '{n}د',
+    unitH: '{n}س',
+    unitD: '{n}ي',
+    call: 'اتصال',
+    whatsapp: 'واتساب',
+    reassign: 'إعادة الإسناد',
+    actStart: 'ابدأ',
+    actResolve: 'حلّ',
+    actReopen: 'إعادة فتح',
+    actClose: 'إغلاق',
+    resolveTitle: 'كيف تم حلها؟',
+    resolvePh: 'ملاحظة قصيرة للسجل',
+    solved: 'الحل: {note}',
+    stOpen: 'مفتوحة',
+    stInProgress: 'قيد المعالجة',
+    stResolved: 'تمت المعالجة',
+    stClosed: 'مغلقة',
+    timeline: 'السجل الزمني',
+    evCreated: 'سُجّلت · أُسندت إلى {name}',
+    evAssigned: 'أُسندت إلى {name}',
+    evStarted: 'بدأت المعالجة',
+    evReopened: 'أُعيد فتحها',
+    evEscalated: 'صُعّدت إلى {name}',
+    evBy: 'بواسطة {name}',
+    commentPh: 'أضف تعليقًا',
+    send: 'إرسال',
+    edit: 'تعديل',
+    remove: 'حذف',
+    removeConfirm: 'حذف هذه الشكوى؟',
+    more: 'المزيد',
+    notFound: 'هذه الشكوى غير متاحة.',
+    hubOverdue: '{n} متأخرة',
+    hubOpen: '{n} مفتوحة',
+    hubNone: 'الكل في موعده',
   },
   companyClients: {
     title: 'العملاء',
