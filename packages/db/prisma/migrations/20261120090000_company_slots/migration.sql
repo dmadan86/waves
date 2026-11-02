@@ -168,3 +168,8 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.waves_company_slot_renew(uuid) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.waves_company_slot_renew(uuid) TO authenticated,service_role;
+
+REVOKE ALL ON FUNCTION public.waves_company_is_blocked(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.waves_company_is_blocked(uuid) TO authenticated,service_role;
+REVOKE ALL ON FUNCTION public.waves_company_block_group_guard() FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_company_block_group_guard() TO service_role;
