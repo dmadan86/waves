@@ -71,6 +71,16 @@ describe('send', () => {
     ).rejects.toMatchObject({ code: 'COMPANY_SLOT_REQUIRED', message: 'no slot' });
   });
 
+  it('hands over the folded mirror before throwing a rejection', async () => {
+    answerWrite({ status: 'rejected', code: 'X', message: 'no' }, [change(4, 'theirs')], { g1: 4 });
+    const folded = vi.fn();
+    await expect(
+      send(emptyMirror(), MutationKind.GroupCreate, 'g1', {}, folded),
+    ).rejects.toMatchObject({ code: 'X' });
+    expect(folded).toHaveBeenCalledOnce();
+    expect(folded.mock.calls[0]?.[0].tables.groups.theirs).toBeDefined();
+  });
+
   it('merges the changes the write returns', async () => {
     answerWrite({ status: 'applied' }, [change(3, 'new')], { g1: 3 });
     const mirror = await send(emptyMirror(), MutationKind.GroupCreate, 'g1', {});

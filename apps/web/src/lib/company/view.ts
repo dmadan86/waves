@@ -27,6 +27,7 @@ import {
 } from '@waves/core';
 
 import { useAuth } from '@/lib/auth';
+import { friendlyError } from '@/lib/errors';
 import { NO_QUEUE, useSync } from '@/lib/sync';
 import { supabase } from '@/lib/waves';
 
@@ -88,23 +89,35 @@ export interface CompanyView {
   readonly canApprove: (entry: CompanyEntry) => boolean;
   readonly receiptEntryIds: ReadonlySet<string>;
   readonly directory: readonly DirectoryPerson[];
+  /** The team directory could not be loaded: a manager would see no team. */
+  readonly directoryFailed: boolean;
   readonly ready: boolean;
 }
 
 /** Names-only directory (owners, my manager, my team, me) from the server; empty until it answers. */
-function useDirectory(groupId: string, enabled: boolean): readonly DirectoryPerson[] {
-  const [people, setPeople] = useState<readonly DirectoryPerson[]>([]);
+function useDirectory(
+  groupId: string,
+  enabled: boolean,
+): { people: readonly DirectoryPerson[]; failed: boolean } {
+  const [state, setState] = useState<{ people: readonly DirectoryPerson[]; failed: boolean }>({
+    people: [],
+    failed: false,
+  });
   useEffect(() => {
     if (!enabled) return;
     let active = true;
     void supabase.rpc('waves_company_people', { p_group_id: groupId }).then(({ data, error }) => {
-      if (active && !error) setPeople((data ?? []) as DirectoryPerson[]);
+      if (!active) return;
+      if (error) {
+        friendlyError(error, 'web.company.directory', { fallback: '' });
+        setState((s) => ({ ...s, failed: true }));
+      } else setState({ people: (data ?? []) as DirectoryPerson[], failed: false });
     });
     return () => {
       active = false;
     };
   }, [groupId, enabled]);
-  return people;
+  return state;
 }
 
 export function useCompanyView(groupId: string): CompanyView {
@@ -128,7 +141,7 @@ export function useCompanyView(groupId: string): CompanyView {
   const isManager = me?.role === 'manager';
   const isVendor = me?.role === 'vendor';
   const isAdmin = isOwner || isManager;
-  const directory = useDirectory(groupId, me !== null);
+  const { people: directory, failed: directoryFailed } = useDirectory(groupId, me !== null);
 
   // A phone that was once an owner's may still hold more than today's role allows: narrow it.
   const visibleIds = useMemo(() => {
@@ -232,6 +245,7 @@ export function useCompanyView(groupId: string): CompanyView {
     canApprove,
     receiptEntryIds,
     directory,
+    directoryFailed,
     ready: hydrated && group !== null,
   };
 }

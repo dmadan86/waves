@@ -66,6 +66,11 @@ function Inner({ groupId, children }: { groupId: string; children: ReactNode }) 
           ))}
         </nav>
       ) : null}
+      {view.directoryFailed ? (
+        <p className="error" role="alert" style={{ margin: '12px 16px 0' }}>
+          {t.company.common.couldNotLoad}
+        </p>
+      ) : null}
       {children}
     </>
   );

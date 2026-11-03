@@ -150,6 +150,8 @@ export async function send(
   kind: MutationKind,
   groupId: string,
   payload: unknown,
+  /** Called with the mirror after the answer is folded in, before a rejection throws. */
+  onFolded?: (mirror: MirrorState) => void,
 ): Promise<MirrorState> {
   const mutation: SyncMutation = {
     clientMutationId: crypto.randomUUID(),
@@ -161,6 +163,8 @@ export async function send(
   const response = await postSync(mirror.cursors, [mutation]);
   const outcome = response.outcomes.find((o) => o.clientMutationId === mutation.clientMutationId);
   if (outcome?.status === 'rejected') {
+    // Other people's rows in the same answer are still true: keep them.
+    onFolded?.(fold(mirror, response));
     throw new WavesApiError(
       outcome.message ?? 'The server refused this change',
       outcome.code ?? 'VALIDATION_FAILED',
@@ -232,7 +236,7 @@ function AccountSync({ profileId, children }: { profileId: string | null; childr
   const mutate = useCallback(
     (kind: MutationKind, groupId: string, payload: Record<string, unknown>) =>
       serial(async () => {
-        commit(await send(latest.current, kind, groupId, payload));
+        commit(await send(latest.current, kind, groupId, payload, commit));
       }),
     [commit, serial],
   );
