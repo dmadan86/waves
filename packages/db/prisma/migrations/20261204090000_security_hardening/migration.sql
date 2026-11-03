@@ -40,7 +40,7 @@ DO $$ DECLARE f regprocedure; d text; o text; BEGIN
 
  f := 'public.waves_redeem_promo(text)'::regprocedure;
  o := pg_get_functiondef(f);
- d := replace(o, 'SELECT * INTO v_code', E'IF public.waves_is_guest(v_profile) THEN\n    RAISE EXCEPTION ''NOT_ALLOWED'' USING ERRCODE = ''insufficient_privilege'';\n  END IF;\n  IF NOT (public.waves_rate_limit(v_profile::text, ''promo_redeem'', 10, 86400)->>''allowed'')::boolean THEN\n    RETURN jsonb_build_object(''ok'', false, ''reason'', ''RATE_LIMITED'');\n  END IF;\n\n  SELECT * INTO v_code');
+ d := replace(o, 'SELECT * INTO v_code', E'IF public.waves_is_guest(v_profile) THEN\n    RAISE EXCEPTION ''NOT_ALLOWED'' USING ERRCODE = ''insufficient_privilege'';\n  END IF;\n  IF (public.waves_rate_limit(v_profile::text, ''promo_redeem'', 10, 86400)->>''allowed'')::boolean IS NOT TRUE THEN\n    RETURN jsonb_build_object(''ok'', false, ''reason'', ''RATE_LIMITED'');\n  END IF;\n\n  SELECT * INTO v_code');
  IF d = o THEN RAISE EXCEPTION 'could not patch %', f; END IF;
  EXECUTE d;
 
