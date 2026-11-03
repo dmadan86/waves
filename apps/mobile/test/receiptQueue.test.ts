@@ -171,7 +171,7 @@ const Network = await import('expo-network');
 const { flush, renderHook } = await import('./support/fakeReact');
 
 const QUEUE_KEY = 'receipt-upload-queue.v1';
-const pendingPath = (fileName: string) => `cache-root/pending-receipts/${fileName}`;
+const pendingPath = (fileName: string) => `document-root/pending-receipts/${fileName}`;
 
 /** A stored entry, as a previous run of the app would have left it. */
 const entryFor = (overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -192,7 +192,7 @@ const entryFor = (overrides: Partial<Record<string, unknown>> = {}) => ({
 function parkOnDisk(overrides: Partial<Record<string, unknown>> = {}): void {
   const entry = entryFor(overrides);
   storage.data.set(QUEUE_KEY, JSON.stringify([entry]));
-  fs.dirs.add('cache-root/pending-receipts');
+  fs.dirs.add('document-root/pending-receipts');
   fs.files.set(pendingPath(entry.fileName), new Uint8Array([1, 2, 3]));
 }
 
@@ -494,7 +494,7 @@ describe('the Wi-Fi only preference', () => {
         entryFor({ attachmentId: 'a2', storagePath: 'e1/a2.jpg', fileName: 'a2.jpg' }),
       ]),
     );
-    fs.dirs.add('cache-root/pending-receipts');
+    fs.dirs.add('document-root/pending-receipts');
     fs.files.set(pendingPath('a1.jpg'), new Uint8Array([1]));
     fs.files.set(pendingPath('a2.jpg'), new Uint8Array([2]));
     onType('WIFI');
@@ -830,7 +830,7 @@ describe('receipt queue local privacy cleanup', () => {
       }),
     ];
     storage.data.set(QUEUE_KEY, JSON.stringify(entries));
-    fs.dirs.add('cache-root/pending-receipts');
+    fs.dirs.add('document-root/pending-receipts');
     fs.files.set(pendingPath('a1.jpg'), new Uint8Array([1]));
     fs.files.set(pendingPath('a2.jpg'), new Uint8Array([2]));
 
@@ -841,12 +841,12 @@ describe('receipt queue local privacy cleanup', () => {
     expect(getPendingReceiptsSnapshot()).toEqual([]);
     expect(fs.files.has(pendingPath('a1.jpg'))).toBe(false);
     expect(fs.files.has(pendingPath('a2.jpg'))).toBe(false);
-    expect(fs.dirs.has('cache-root/pending-receipts')).toBe(false);
+    expect(fs.dirs.has('document-root/pending-receipts')).toBe(false);
   });
 
   it('still removes the queue index when file deletion fails', async () => {
     storage.data.set(QUEUE_KEY, JSON.stringify([entryFor()]));
-    fs.dirs.add('cache-root/pending-receipts');
+    fs.dirs.add('document-root/pending-receipts');
     fs.files.set(pendingPath('a1.jpg'), new Uint8Array([1]));
     fs.failDelete = true;
 
@@ -859,7 +859,7 @@ describe('receipt queue local privacy cleanup', () => {
 
   it('removes orphan pending files when pending receipts are listed', async () => {
     storage.data.set(QUEUE_KEY, JSON.stringify([entryFor()]));
-    fs.dirs.add('cache-root/pending-receipts');
+    fs.dirs.add('document-root/pending-receipts');
     fs.files.set(pendingPath('a1.jpg'), new Uint8Array([1]));
     fs.files.set(pendingPath('orphan.jpg'), new Uint8Array([9]));
 
@@ -965,47 +965,6 @@ describe('parking a capture from a file', () => {
       enqueueReceipt({ expenseId: 'e1', groupId: 'g1', visibility: 'group', contentType: 'x' }),
     ).rejects.toThrow('needs either sourceUri or base64');
     expect(await listPendingReceipts()).toEqual([]);
-  });
-});
-
-describe('migrating pending files out of Documents', () => {
-  const oldPath = (name: string) => `document-root/pending-receipts/${name}`;
-
-  it('moves a queued file written by an older build, and still finds it meanwhile', async () => {
-    storage.data.set(QUEUE_KEY, JSON.stringify([entryFor()]));
-    fs.dirs.add('document-root/pending-receipts');
-    fs.files.set(oldPath('a1.jpg'), new Uint8Array([7, 7]));
-    // Before any sweep runs, the old location is still what a read resolves to.
-    expect(pendingReceiptUri(entryFor())).toBe(oldPath('a1.jpg'));
-
-    await expect(listPendingReceipts()).resolves.toEqual([entryFor()]);
-
-    expect(fs.files.get(pendingPath('a1.jpg'))).toEqual(new Uint8Array([7, 7]));
-    expect(fs.files.has(oldPath('a1.jpg'))).toBe(false);
-    expect(pendingReceiptUri(entryFor())).toBe(pendingPath('a1.jpg'));
-  });
-
-  it('keeps the old file when the copy fails, so no receipt is lost', async () => {
-    storage.data.set(QUEUE_KEY, JSON.stringify([entryFor()]));
-    fs.dirs.add('document-root/pending-receipts');
-    fs.files.set(oldPath('a1.jpg'), new Uint8Array([7]));
-    const copy = vi.spyOn(FakeFile.prototype, 'copy').mockRejectedValueOnce(new Error('disk'));
-
-    await listPendingReceipts();
-
-    copy.mockRestore();
-    expect(fs.files.has(oldPath('a1.jpg'))).toBe(true);
-    expect(pendingReceiptUri(entryFor())).toBe(oldPath('a1.jpg'));
-  });
-
-  it('removes legacy files nothing in the queue points at', async () => {
-    storage.data.set(QUEUE_KEY, JSON.stringify([]));
-    fs.dirs.add('document-root/pending-receipts');
-    fs.files.set(oldPath('orphan.jpg'), new Uint8Array([9]));
-
-    await listPendingReceipts();
-
-    expect(fs.files.has(oldPath('orphan.jpg'))).toBe(false);
   });
 });
 

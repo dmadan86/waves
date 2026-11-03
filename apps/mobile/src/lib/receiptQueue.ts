@@ -335,71 +335,29 @@ function inTurn<T>(run: () => Promise<T>): Promise<T> {
   return result;
 }
 
-/**
- * Pending photos live in the cache directory, which iOS leaves out of backups:
- * an unsent receipt is plaintext and should not ride into a device backup.
- * Before this they sat in Documents (`LEGACY_DIR`), so both are handled until
- * the old one has emptied out.
- *
- * shortcut: the OS may purge the cache under storage pressure, and a missing
- * file is dropped at flush; upgrade to a native exclude-from-backup flag on a
- * Documents copy if lost receipts show up.
- */
-const pendingDir = (): Directory => new Directory(Paths.cache, PENDING_DIR);
-const legacyDir = (): Directory => new Directory(Paths.document, PENDING_DIR);
-
-/** Move queued files left in Documents by older builds into the cache dir. */
-async function migrateLegacyFiles(queue: readonly PendingReceipt[]): Promise<void> {
+function cleanupOrphanFiles(queue: readonly PendingReceipt[]): void {
   try {
-    if (!legacyDir().exists) return;
-    const dir = pendingDir();
-    if (!dir.exists) dir.create({ intermediates: true });
-    for (const entry of queue) {
+    const dir = new Directory(Paths.document, PENDING_DIR);
+    if (!dir.exists) return;
+    const keep = new Set(queue.map((entry) => entry.fileName));
+    const entries = (dir as unknown as { list?: () => unknown[] }).list?.() ?? [];
+    for (const item of entries) {
+      const file = item instanceof File ? item : null;
+      if (!file || keep.has(file.name)) continue;
       try {
-        const old = new File(Paths.document, PENDING_DIR, entry.fileName);
-        if (!old.exists) continue;
-        const dest = new File(Paths.cache, PENDING_DIR, entry.fileName);
-        if (!dest.exists) await old.copy(dest);
-        // Only once the new copy is confirmed; otherwise it stays where it is
-        // and `pendingFile` keeps finding it there.
-        if (dest.exists) old.delete();
+        if (file.exists) file.delete();
       } catch {
-        // Left in Documents; retried on the next sweep.
+        // Best-effort orphan cleanup; continue with the rest.
       }
     }
   } catch {
-    // Best-effort; nothing is lost by not migrating yet.
-  }
-}
-
-function cleanupOrphanFiles(queue: readonly PendingReceipt[]): void {
-  const keep = new Set(queue.map((entry) => entry.fileName));
-  for (const dir of [pendingDir(), legacyDir()]) {
-    try {
-      if (!dir.exists) continue;
-      const entries = (dir as unknown as { list?: () => unknown[] }).list?.() ?? [];
-      for (const item of entries) {
-        const file = item instanceof File ? item : null;
-        if (!file || keep.has(file.name)) continue;
-        try {
-          if (file.exists) file.delete();
-        } catch {
-          // Best-effort orphan cleanup; continue with the rest.
-        }
-      }
-    } catch {
-      // Directory listing is best-effort and may not be available in every runtime.
-    }
+    // Directory listing is best-effort and may not be available in every runtime.
   }
 }
 
 /** The durable file holding one pending capture's bytes. */
 function pendingFile(entry: Pick<PendingReceipt, 'fileName'>): File {
-  const file = new File(Paths.cache, PENDING_DIR, entry.fileName);
-  if (file.exists) return file;
-  // Not migrated yet (or the copy failed): the old location still holds it.
-  const old = new File(Paths.document, PENDING_DIR, entry.fileName);
-  return old.exists ? old : file;
+  return new File(Paths.document, PENDING_DIR, entry.fileName);
 }
 
 /**
@@ -503,7 +461,6 @@ export async function listPendingReceipts(expenseId?: string): Promise<PendingRe
     // Inside the turn: an enqueue writes its bytes and its entry in one, so a
     // sweep that runs between those two would delete a receipt somebody just
     // added.
-    await migrateLegacyFiles(kept);
     cleanupOrphanFiles(kept);
     return kept;
   });
@@ -555,7 +512,8 @@ export async function clearReceiptQueue(): Promise<void> {
     }
 
     try {
-      for (const dir of [pendingDir(), legacyDir()]) if (dir.exists) dir.delete();
+      const dir = new Directory(Paths.document, PENDING_DIR);
+      if (dir.exists) dir.delete();
     } catch {
       // Some file-system implementations cannot delete non-empty dirs; queued files
       // above were already attempted, and the index removal below is the source of truth.
@@ -628,16 +586,14 @@ export async function enqueueReceipt(input: {
   // pointing at it — and the orphan sweep in `listPendingReceipts` is entitled
   // to delete exactly that.
   await inTurn(async () => {
-    const dir = pendingDir();
+    const dir = new Directory(Paths.document, PENDING_DIR);
     if (!dir.exists) dir.create({ intermediates: true });
     if (input.sourceUri) {
       // Copied, not moved: the source is the manipulator's own output in the cache
       // directory, and the caller may still be showing it as the tile's image.
-      await new File(input.sourceUri).copy(new File(Paths.cache, PENDING_DIR, entry.fileName));
+      await new File(input.sourceUri).copy(pendingFile(entry));
     } else if (input.base64) {
-      new File(Paths.cache, PENDING_DIR, entry.fileName).write(
-        new Uint8Array(decode(input.base64)),
-      );
+      pendingFile(entry).write(new Uint8Array(decode(input.base64)));
     }
     const queue = await readQueue();
     await writeQueue([...queue, entry]);
