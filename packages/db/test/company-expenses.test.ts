@@ -129,8 +129,8 @@ describe('company privacy and write boundaries', () => {
   it.each([
     ['2.5', '40000', '100000'],
     ['0.5', '1', '1'],
-  ])('calculates allowance %s × %s = %s', async (days, rate, amount) => {
-    await user(1, async () => {
+  ])('calculates allowance %s × %s = %s (admin-supplied rate)', async (days, rate, amount) => {
+    await user(0, async () => {
       const id = randomUUID();
       await create(id, g.memberIds[1]!, 'allowance', {
         days,
