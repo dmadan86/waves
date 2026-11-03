@@ -15,8 +15,12 @@ import { Button, Text, useTheme, iconSize } from '@waves/ui';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { ListRow, StandardCard } from '@/components/standard';
 import { relativeTime } from '@/data/activity';
+import { copySensitive } from '@/lib/sensitiveClipboard';
+import { usePreventCapture } from '@/lib/secretScreen';
 import { useToast } from '@/lib/toast';
 import { fill, useStrings } from '@/i18n';
+
+const SECRET_KEYS: readonly DetailKey[] = ['bankAccount', 'upi', 'pan'];
 
 const rows: readonly [
   DetailKey,
@@ -110,6 +114,7 @@ export function DetailsCard({
   const { t, locale } = useStrings();
   const s = t.companyDetails;
   const toast = useToast();
+  usePreventCapture('company-details');
   const [menu, setMenu] = useState(false);
   const [revealed, setRevealed] = useState<Partial<Record<DetailKey, boolean>>>({});
   const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
@@ -158,18 +163,25 @@ export function DetailsCard({
         rows.map(([key, label]) => {
           const value = values[key];
           if (!value) return null;
-          const masked = ['bankAccount', 'upi', 'pan'].includes(key) && !revealed[key];
+          const masked = SECRET_KEYS.includes(key) && !revealed[key];
           return (
             <ListRow
               key={key}
               title={s[label]}
               subtitle={masked ? maskValue(value) : value}
               subtitleLines={3}
-              onPress={() => {
-                void Clipboard.setStringAsync(value).then(() => toast.show(s.copied));
-              }}
+              // A masked value is not copyable: reveal first, so the copy is as
+              // deliberate as the look.
+              onPress={
+                masked
+                  ? undefined
+                  : () => {
+                      const copy = SECRET_KEYS.includes(key) ? copySensitive : Clipboard.setStringAsync;
+                      void copy(value).then(() => toast.show(s.copied));
+                    }
+              }
               trailing={
-                ['bankAccount', 'upi', 'pan'].includes(key) ? (
+                SECRET_KEYS.includes(key) ? (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={revealed[key] ? s.hide : s.reveal}

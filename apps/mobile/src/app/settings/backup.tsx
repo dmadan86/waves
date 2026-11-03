@@ -145,6 +145,8 @@ import { formatBytes } from '@/lib/bytes';
 import { useBackup, type BackupOutcome } from '@/lib/backup/useBackup';
 import { backupFailure } from '@/lib/backup/failure';
 import { BackupFrequency } from '@/lib/backup/schedule';
+import { copySensitive } from '@/lib/sensitiveClipboard';
+import { usePreventCapture } from '@/lib/secretScreen';
 import { formatRecoveryKey } from '@/lib/backup/recoveryKey';
 import { backupSetup, BackupStep } from '@/lib/backup/setup';
 import { BackupTier } from '@/lib/backup/tier';
@@ -242,6 +244,7 @@ function StepMark({ number, done, active }: { number: number; done: boolean; act
 export default function BackupSettingsScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
+  usePreventCapture('backup-key');
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
   const backup = useBackup();
@@ -1496,7 +1499,7 @@ export default function BackupSettingsScreen() {
                 variant="secondary"
                 onPress={() => {
                   if (!shownKey) return;
-                  void Clipboard.setStringAsync(formatRecoveryKey(shownKey));
+                  void copySensitive(formatRecoveryKey(shownKey));
                   setCopied(true);
                 }}
                 disabled={pending === 'extra'}
@@ -1542,7 +1545,7 @@ export default function BackupSettingsScreen() {
                   variant="secondary"
                   onPress={() => {
                     if (!shownKey) return;
-                    void Clipboard.setStringAsync(formatRecoveryKey(shownKey));
+                    void copySensitive(formatRecoveryKey(shownKey));
                     setCopied(true);
                   }}
                   fullWidth

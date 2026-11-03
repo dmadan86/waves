@@ -58,6 +58,7 @@
     "expo-quick-actions": "^6.0.2",
     "expo-router": "~57.0.29",
     "expo-screen-orientation": "~57.0.3",
+    "expo-screen-capture": "~57.0.4",
     "expo-secure-store": "~57.0.4",
     "expo-sharing": "~57.0.24",
     "expo-speech-recognition": "^57.1.1",

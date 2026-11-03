@@ -201,6 +201,11 @@ describe('the app lock', () => {
     expect(value()).toMatchObject({ enabled: true, locked: false });
     expect(env.secure.get('waves.app_lock_enabled')).toBe('true');
 
+    // Turning it off needs the owner too: a refused check leaves it on.
+    env.authResults = [false];
+    await value().setEnabled(false);
+    expect(value().enabled).toBe(true);
+    env.authResults = [true];
     await value().setEnabled(false);
     expect(value().enabled).toBe(false);
     expect(env.secure.get('waves.app_lock_enabled')).toBe('false');
@@ -289,6 +294,7 @@ describe('the app lock', () => {
     env.secure.set('waves.app_lock_enabled', 'true');
     const { value } = await mountLock();
     const withLock = env.appStateListeners.size;
+    env.authResults = [true];
     await value().setEnabled(false);
     expect(env.appStateListeners.size).toBe(withLock - 1);
   });
