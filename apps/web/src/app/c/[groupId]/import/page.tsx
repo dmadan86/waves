@@ -45,6 +45,8 @@ export default function CompanyImportPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [failed, setFailed] = useState<ReadonlySet<number>>(new Set());
+  // The error file of the last run, kept until the next run so "start over" cannot lose it.
+  const [lastErrors, setLastErrors] = useState<string | null>(null);
 
   const allowed = view.isAdmin && !view.suspended;
   const fields = ENTITY_FIELDS[entity].filter((f) => view.isOwner || (f !== 'manager' && f !== 'dailyRate'));
@@ -167,6 +169,7 @@ export default function CompanyImportPage() {
     if (busy) return;
     setBusy(true);
     setProgress(0);
+    setLastErrors(null);
     const todo = rows.filter((r) => r.status === 'new');
     const bad = new Set<number>();
     for (let i = 0; i < todo.length; i += 1) {
@@ -182,6 +185,12 @@ export default function CompanyImportPage() {
       setProgress(i + 1);
     }
     setFailed(bad);
+    const bounced = rows.filter((r) => r.status === 'error' || bad.has(r.line));
+    setLastErrors(
+      bounced.length === 0
+        ? null
+        : `\uFEFF${toCsv([[g.errCsvRow, g.errCsvProblem, ...(table?.rows[0] ?? [])], ...bounced.map((r) => [String(r.line), bad.has(r.line) ? g.pFailed : problemText(r), ...r.cells])])}`,
+    );
     setBusy(false);
     setStep('done');
   };
@@ -205,6 +214,11 @@ export default function CompanyImportPage() {
           {step === 'what' ? (
             <>
               <h2>{g.whatTitle}</h2>
+              {lastErrors ? (
+                <button type="button" className="btn soft" onClick={downloadErrors}>
+                  {g.downloadErrors}
+                </button>
+              ) : null}
               {(
                 [
                   ['employee', g.employees, g.employeesSub],
@@ -332,7 +346,7 @@ export default function CompanyImportPage() {
                   errors: String(counts.errors + failed.size),
                 })}
               </p>
-              {errorRows.length > 0 ? (
+              {lastErrors ? (
                 <button type="button" className="btn soft" onClick={downloadErrors}>
                   {g.downloadErrors}
                 </button>

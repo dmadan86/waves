@@ -635,8 +635,9 @@ interface AgentWrite {
 }
 
 function AgentAccess({ groupId }: { groupId: string }) {
-  const { t } = useCompanyText('INR');
+  const { t, err } = useCompanyText('INR');
   const s = t.company.settings;
+  const [problem, setProblem] = useState('');
   const [state, setState] = useState<AgentState | null>(null);
   const [writes, setWrites] = useState<AgentWrite[] | null>(null);
   const [showActivity, setShowActivity] = useState(false);
@@ -662,16 +663,21 @@ function AgentAccess({ groupId }: { groupId: string }) {
 
   if (failed || !state) return null;
   const save = async (next: { enabled: boolean; approval: boolean }) => {
-    await supabase.rpc('waves_company_agent_settings_set', { p_group_id: groupId, p_enabled: next.enabled, p_approval: next.approval });
+    setProblem('');
+    const { error } = await supabase.rpc('waves_company_agent_settings_set', { p_group_id: groupId, p_enabled: next.enabled, p_approval: next.approval });
+    if (error) setProblem(err(error, 'agents.save'));
     load();
   };
   const revoke = async (id: string) => {
     if (!window.confirm(s.agentsRevokeConfirm)) return;
-    await supabase.rpc('waves_company_agent_link_revoke', { p_link_id: id });
+    setProblem('');
+    const { error } = await supabase.rpc('waves_company_agent_link_revoke', { p_link_id: id });
+    if (error) setProblem(err(error, 'agents.revoke'));
     load();
   };
   return (
     <Section title={s.agentsTitle}>
+      {problem ? <p className="error" role="alert">{problem}</p> : null}
       <Toggle label={s.agentsAllow} hint={s.agentsAllowHint} value={state.enabled} onChange={(v) => void save({ enabled: v, approval: state.approval })} />
       {state.enabled ? (
         <>
