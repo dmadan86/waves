@@ -10,8 +10,6 @@ import {
   materialiseWorkTasks,
   MutationKind,
   nextFollowUpDay,
-  rowsFor,
-  SyncTable,
   type ClientAssignee,
   type ClientNote,
   type CompanyClient,
@@ -27,8 +25,8 @@ import {
 
 const NO_QUEUE: readonly QueuedMutation[] = [];
 
-/** A member row as the web needs it: role is the raw group_members.role. */
-export interface CompanyMember {
+/** A member as the client and ticket pages need it: role is the raw group_members.role. */
+export interface ClientMember {
   readonly id: string;
   readonly profileId: string | null;
   readonly role: string;
@@ -37,28 +35,43 @@ export interface CompanyMember {
   readonly name: string;
 }
 
-/** Live and past members from the mirror; `names` (member id -> display name) overrides the ghost name. */
-export function companyMembers(
-  mirror: MirrorState,
-  groupId: string,
-  names: ReadonlyMap<string, string> = new Map(),
-): CompanyMember[] {
-  const rows = rowsFor(mirror, SyncTable.GroupMembers, groupId) as unknown as {
+/** Members from the company view, named from the profile, the ghost name, or the names-only directory. */
+export function clientMembers(
+  members: readonly {
     id: string;
     profile_id: string | null;
     ghost_name: string | null;
-    role?: string | null;
+    role?: string;
     manager_id?: string | null;
     left_at: string | null;
-  }[];
-  return rows.map((r) => ({
-    id: r.id,
-    profileId: r.profile_id,
-    role: r.role ?? 'member',
-    managerId: r.manager_id ?? null,
-    left: !!r.left_at,
-    name: names.get(r.id) || r.ghost_name || '',
+    profile?: { display_name: string | null } | null;
+  }[],
+  directory: readonly { member_id: string; display_name: string }[],
+  someone: string,
+): ClientMember[] {
+  const dir = new Map(directory.map((p) => [p.member_id, p.display_name]));
+  const out = members.map((m) => ({
+    id: m.id,
+    profileId: m.profile_id,
+    role: m.role ?? 'member',
+    managerId: m.manager_id ?? null,
+    left: !!m.left_at,
+    name: (m.profile?.display_name ?? m.ghost_name ?? dir.get(m.id) ?? '').trim() || someone,
   }));
+  const have = new Set(out.map((m) => m.id));
+  for (const p of directory)
+    if (!have.has(p.member_id)) {
+      const d = p as unknown as { role?: string; manager_id?: string | null };
+      out.push({
+        id: p.member_id,
+        profileId: null,
+        role: d.role === 'admin' ? 'admin' : (d.role ?? 'member'),
+        managerId: d.manager_id ?? null,
+        left: false,
+        name: p.display_name || someone,
+      });
+    }
+  return out;
 }
 
 export interface ClientsView {
@@ -69,12 +82,12 @@ export interface ClientsView {
   readonly canManage: boolean;
   readonly canAdd: boolean;
   readonly myMemberId: string | null;
-  readonly owners: readonly CompanyMember[];
+  readonly owners: readonly ClientMember[];
   readonly memberName: (id: string | null) => string;
 }
 
 /** Who the viewer is in this company. */
-export function viewerRole(members: readonly CompanyMember[], profileId: string | null) {
+export function viewerRole(members: readonly ClientMember[], profileId: string | null) {
   const me = profileId ? (members.find((m) => m.profileId === profileId && !m.left) ?? null) : null;
   const isOwner = me?.role === 'admin';
   const isManager = me?.role === 'manager';
@@ -85,7 +98,7 @@ export function viewerRole(members: readonly CompanyMember[], profileId: string 
 export function buildClientsView(
   mirror: MirrorState,
   groupId: string,
-  members: readonly CompanyMember[],
+  members: readonly ClientMember[],
   profileId: string | null,
 ): ClientsView {
   const { me, isVendor, canManage } = viewerRole(members, profileId);
@@ -107,9 +120,7 @@ export function buildClientsView(
     inquiries: all.inquiries.filter((i) => ids.has(i.clientId)),
     assigneeIds: (clientId) => {
       const owner = clients.find((c) => c.id === clientId)?.ownerMemberId ?? null;
-      const rest = (byClient.get(clientId) ?? [])
-        .map((a) => a.memberId)
-        .filter((m) => m !== owner);
+      const rest = (byClient.get(clientId) ?? []).map((a) => a.memberId).filter((m) => m !== owner);
       return [...(owner ? [owner] : []), ...new Set(rest)];
     },
     canManage,

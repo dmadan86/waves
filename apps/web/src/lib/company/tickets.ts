@@ -18,14 +18,14 @@ import {
   type TicketStatus,
 } from '@waves/core';
 
-import { viewerRole, type ClientsView, type CompanyMember } from './clients';
+import { viewerRole, type ClientsView, type ClientMember } from './clients';
 
 const NO_QUEUE: readonly QueuedMutation[] = [];
 
 export interface TicketsView {
   readonly tickets: readonly CompanyTicket[];
   readonly events: readonly TicketEvent[];
-  readonly people: readonly CompanyMember[];
+  readonly people: readonly ClientMember[];
   readonly hierarchy: readonly TicketMember[];
   readonly canAdd: boolean;
   readonly canRemove: boolean;
@@ -36,7 +36,7 @@ export interface TicketsView {
 export function buildTicketsView(
   mirror: MirrorState,
   groupId: string,
-  members: readonly CompanyMember[],
+  members: readonly ClientMember[],
   profileId: string | null,
   clients: Pick<ClientsView, 'clients'>,
 ): TicketsView {
