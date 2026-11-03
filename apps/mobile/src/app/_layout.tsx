@@ -521,7 +521,9 @@ function LockGate({ children }: { children: React.ReactNode }) {
             { backgroundColor: theme.color.bg, alignItems: 'center', justifyContent: 'center' },
           ]}
         >
-          <Text style={{ fontSize: 56, lineHeight: 72, fontWeight: '700' }}>{t.common.appName}</Text>
+          <Text style={{ fontSize: 56, lineHeight: 72, fontWeight: '700' }}>
+            {t.common.appName}
+          </Text>
         </View>
       ) : null}
     </>

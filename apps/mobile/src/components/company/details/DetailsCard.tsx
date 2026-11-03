@@ -176,7 +176,9 @@ export function DetailsCard({
                 masked
                   ? undefined
                   : () => {
-                      const copy = SECRET_KEYS.includes(key) ? copySensitive : Clipboard.setStringAsync;
+                      const copy = SECRET_KEYS.includes(key)
+                        ? copySensitive
+                        : Clipboard.setStringAsync;
                       void copy(value).then(() => toast.show(s.copied));
                     }
               }

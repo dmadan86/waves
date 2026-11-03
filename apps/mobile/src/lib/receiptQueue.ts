@@ -344,7 +344,9 @@ function cleanupOrphanFiles(queue: readonly PendingReceipt[]): void {
   try {
     const dir = new Directory(Paths.document, PENDING_DIR);
     if (!dir.exists) return;
-    const keep = new Set(queue.flatMap((entry) => [entry.fileName, entry.fileName + SEALED_SUFFIX]));
+    const keep = new Set(
+      queue.flatMap((entry) => [entry.fileName, entry.fileName + SEALED_SUFFIX]),
+    );
     const entries = (dir as unknown as { list?: () => unknown[] }).list?.() ?? [];
     for (const item of entries) {
       const file = item instanceof File ? item : null;
