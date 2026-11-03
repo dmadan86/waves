@@ -38,12 +38,12 @@ describe('pull', () => {
     expect(mirror.cursors.g1).toBe(2);
   });
 
-  it('stops when hasMore is stuck and the cursors did not move', async () => {
+  it('rejects when hasMore is stuck and the cursors did not move', async () => {
     invoke.mockResolvedValue({
       data: { outcomes: [], changes: [], cursors: { g1: 5 }, hasMore: true },
       error: null,
     });
-    await pull({ cursors: { g1: 5 }, tables: emptyMirror().tables });
+    await expect(pull({ cursors: { g1: 5 }, tables: emptyMirror().tables })).rejects.toThrow();
     expect(invoke).toHaveBeenCalledTimes(1);
   });
 });
@@ -92,8 +92,15 @@ describe('postSync', () => {
   it('turns a failed invoke into a WavesApiError with the body code', async () => {
     invoke.mockResolvedValue({
       data: null,
-      error: { context: new Response(JSON.stringify({ code: 'RATE_LIMITED', message: 'slow down' }), { status: 429 }) },
+      error: {
+        context: new Response(JSON.stringify({ code: 'RATE_LIMITED', message: 'slow down' }), {
+          status: 429,
+        }),
+      },
     });
-    await expect(postSync({})).rejects.toMatchObject({ code: 'RATE_LIMITED', message: 'slow down' });
+    await expect(postSync({})).rejects.toMatchObject({
+      code: 'RATE_LIMITED',
+      message: 'slow down',
+    });
   });
 });

@@ -15,6 +15,7 @@ import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
 import { useStrings } from '@/i18n-context';
 import { useCompanyView } from '@/lib/company/view';
+import { useSync } from '@/lib/sync';
 
 export function CompanyFrame({ groupId, children }: { groupId: string; children: ReactNode }) {
   return (
@@ -26,6 +27,7 @@ export function CompanyFrame({ groupId, children }: { groupId: string; children:
 
 function Inner({ groupId, children }: { groupId: string; children: ReactNode }) {
   const { t } = useStrings();
+  const { hydrated } = useSync();
   const view = useCompanyView(groupId);
   const pathname = usePathname();
   const base = `/c/${groupId}`;
@@ -34,7 +36,7 @@ function Inner({ groupId, children }: { groupId: string; children: ReactNode }) 
     return (
       <div className="app-body">
         <div className="app-main">
-          <p className="faint">{t.company.common.loading}</p>
+          <p className="faint">{hydrated ? t.company.common.notFound : t.company.common.loading}</p>
         </div>
       </div>
     );

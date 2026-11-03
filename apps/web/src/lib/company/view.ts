@@ -191,7 +191,8 @@ export function useCompanyView(groupId: string): CompanyView {
     return ids;
   }, [members, directory]);
 
-  const secondEnabled = group?.company_second_approval === true && approvalsEnabled && ownerIds.size > 1;
+  const secondEnabled =
+    group?.company_second_approval === true && approvalsEnabled && ownerIds.size > 1;
   const secondThreshold = group?.company_second_approval_threshold_minor
     ? BigInt(group.company_second_approval_threshold_minor)
     : null;

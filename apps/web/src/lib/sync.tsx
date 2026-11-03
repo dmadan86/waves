@@ -130,10 +130,31 @@ async function drain(
   while (true) {
     const before = state.cursors;
     state = fold(state, response);
-    if (!response.hasMore || sameCursors(before, state.cursors)) break;
+    if (!response.hasMore) break;
+    // A full page always advances its cursor; stuck means the mirror is incomplete.
+    if (sameCursors(before, state.cursors)) throw new WavesApiError('Sync did not advance');
     response = await postSync(state.cursors);
   }
-  return purge(state, response);
+  return dropLeftGroups(purge(state, response), response.memberOf);
+}
+
+/** Drop every cached row of a group the server no longer lists us in (removed, or company deleted). */
+function dropLeftGroups(mirror: MirrorState, memberOf: readonly string[] | undefined): MirrorState {
+  if (!memberOf) return mirror;
+  const mine = new Set(memberOf);
+  const gone = new Set(Object.keys(mirror.tables.groups ?? {}).filter((id) => !mine.has(id)));
+  if (gone.size === 0) return mirror;
+  const tables = { ...mirror.tables };
+  for (const [name, rows] of Object.entries(tables)) {
+    const kept = Object.fromEntries(
+      Object.entries(rows ?? {}).filter(([id, row]) => {
+        const groupId = name === 'groups' ? id : (row as { group_id?: string }).group_id;
+        return !groupId || !gone.has(groupId);
+      }),
+    );
+    (tables as Record<string, unknown>)[name] = kept;
+  }
+  return { ...mirror, tables };
 }
 
 /** Pull the account from `mirror`'s cursors until the server has nothing more. */
@@ -170,7 +191,13 @@ export async function send(
       outcome.code ?? 'VALIDATION_FAILED',
     );
   }
-  return drain(mirror, response);
+  // The write is applied once it answered; a failed follow-up page must not read as a failed
+  // write (a retry would repeat it), so fall back to the folded answer and let the next poll finish.
+  try {
+    return await drain(mirror, response);
+  } catch {
+    return fold(mirror, response);
+  }
 }
 
 interface SyncValue {

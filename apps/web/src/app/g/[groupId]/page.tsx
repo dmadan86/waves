@@ -124,6 +124,7 @@ function GroupDetail({
 
   useEffect(() => {
     let active = true;
+    let redirected = false;
     void (async () => {
       try {
         // The four the ledger cannot be drawn without. The trail is not one of
@@ -140,6 +141,7 @@ function GroupDetail({
         if (!active) return;
         // A company is not a ledger of splits: it has its own screens.
         if (g?.type === GroupType.Company) {
+          redirected = true;
           router.replace(`/c/${groupId}`);
           return;
         }
@@ -156,7 +158,7 @@ function GroupDetail({
             }),
           );
       } finally {
-        if (active) setLoading(false);
+        if (active && !redirected) setLoading(false);
       }
     })();
     return () => {

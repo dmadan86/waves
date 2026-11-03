@@ -4,7 +4,11 @@ import type { WebStrings } from '@/i18n';
 import type { CompanyView } from '@/lib/company/view';
 
 /** What an entry is, in words: a tag name for an expense, else its kind. */
-export function kindLabel(t: WebStrings['company'], view: CompanyView, entry: CompanyEntry): string {
+export function kindLabel(
+  t: WebStrings['company'],
+  view: CompanyView,
+  entry: CompanyEntry,
+): string {
   switch (entry.kind) {
     case 'expense': {
       const tags = Array.isArray(view.group?.company_tags)

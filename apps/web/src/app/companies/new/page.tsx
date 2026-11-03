@@ -62,7 +62,10 @@ function NewCompany() {
           creatorProfileId: profileId,
         });
       } catch (caught) {
-        if (isSlotRequired(caught) || (caught as { code?: string }).code === 'COMPANY_SLOT_REQUIRED') {
+        if (
+          isSlotRequired(caught) ||
+          (caught as { code?: string }).code === 'COMPANY_SLOT_REQUIRED'
+        ) {
           setError(c.slotRequired);
           return;
         }
@@ -71,7 +74,8 @@ function NewCompany() {
       if (logo) {
         // The group exists on the server now (the write is synchronous), so the logo can go up at once.
         try {
-          const ext = logo.type === 'image/png' ? 'png' : logo.type === 'image/webp' ? 'webp' : 'jpg';
+          const ext =
+            logo.type === 'image/png' ? 'png' : logo.type === 'image/webp' ? 'webp' : 'jpg';
           const path = `${groupId}/logo.${ext}`;
           await putImage({
             bucket: 'group-photos',

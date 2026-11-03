@@ -8,10 +8,7 @@ import { webHref, type CompanyActivityEvent } from '@/lib/company/activity';
 import { money } from '@/lib/money';
 
 /** The sentence for one event, in the reader's language. */
-export function activityText(
-  a: Record<string, string>,
-  event: CompanyActivityEvent,
-): string {
+export function activityText(a: Record<string, string>, event: CompanyActivityEvent): string {
   const template = a[event.text] ?? event.text;
   const vars: Record<string, string | number> = { ...event.vars };
   // `status` arrives as a key (present/half/absent); say it in words.

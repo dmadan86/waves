@@ -18,7 +18,8 @@ export function usePoolBalance(
   /** Bump to refetch after a write. */
   version = 0,
 ): bigint | null {
-  const [server, setServer] = useState<bigint | null>(null);
+  const [server, setServer] = useState<{ key: string; balance: bigint } | null>(null);
+  const key = `${groupId}:${managerId ?? ''}`;
   useEffect(() => {
     if (!managerId) return;
     let active = true;
@@ -26,15 +27,15 @@ export function usePoolBalance(
       .rpc('waves_company_pool_balance', { p_group_id: groupId, p_manager_id: managerId })
       .then(({ data, error }) => {
         if (!active || error || !data) return;
-        setServer(BigInt(String((data as { balance: string | number }).balance)));
+        setServer({ key, balance: BigInt(String((data as { balance: string | number }).balance)) });
       });
     return () => {
       active = false;
     };
-  }, [groupId, managerId, version]);
+  }, [groupId, managerId, version, key]);
   const local = useMemo(
     () => (managerId ? poolBalance(view.entries, managerId).balance : null),
     [view.entries, managerId],
   );
-  return server ?? local;
+  return (managerId && server?.key === key ? server.balance : null) ?? local;
 }

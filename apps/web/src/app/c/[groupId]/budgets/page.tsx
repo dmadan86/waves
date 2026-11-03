@@ -9,7 +9,13 @@ import { CompanyFrame } from '@/components/CompanyFrame';
 import { ErrorLine, Page, toMinor, useAction, useMoney } from '@/components/company/Bits';
 import { useStrings } from '@/i18n-context';
 import { usePoolBalance } from '@/lib/company/pool';
-import { memberName, todayIso, useCompanyView, type CompanyMember, type CompanyView } from '@/lib/company/view';
+import {
+  memberName,
+  todayIso,
+  useCompanyView,
+  type CompanyMember,
+  type CompanyView,
+} from '@/lib/company/view';
 import { NO_QUEUE, useSync } from '@/lib/sync';
 
 export default function CompanyBudgetsPage() {
@@ -127,7 +133,12 @@ function Budgets({ groupId }: { groupId: string }) {
     [mirror, groupId],
   );
 
-  if (!view.isOwner) return <Page title={b.title}><p>{t.company.common.ownersOnly}</p></Page>;
+  if (!view.isOwner)
+    return (
+      <Page title={b.title}>
+        <p>{t.company.common.ownersOnly}</p>
+      </Page>
+    );
 
   const live = view.members.filter((m) => !m.left_at);
   const managers = live.filter((m) => m.role === 'manager');

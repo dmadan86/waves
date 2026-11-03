@@ -36,7 +36,13 @@ function Companies({ query }: { query: string }) {
       .map((g) => {
         const live = members.filter((m) => m.group_id === g.id && !m.left_at);
         const count = (role: string) => live.filter((m) => m.role === role).length;
-        return { id: g.id, name: g.name?.trim() || c.title, owners: count('admin'), managers: count('manager'), employees: count('member') };
+        return {
+          id: g.id,
+          name: g.name?.trim() || c.title,
+          owners: count('admin'),
+          managers: count('manager'),
+          employees: count('member'),
+        };
       });
   }, [mirror, c.title]);
 
@@ -68,8 +74,8 @@ function Companies({ query }: { query: string }) {
                 <span className="grow">
                   <span className="title">{x.name}</span>
                   <span className="meta">
-                    {fill(c.employees, { n: x.employees })} · {fill(c.managers, { n: x.managers })} ·{' '}
-                    {fill(c.owners, { n: x.owners })}
+                    {fill(c.employees, { n: x.employees })} · {fill(c.managers, { n: x.managers })}{' '}
+                    · {fill(c.owners, { n: x.owners })}
                   </span>
                 </span>
               </Link>

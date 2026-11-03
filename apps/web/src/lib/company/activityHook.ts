@@ -69,8 +69,13 @@ export function useCompanyActivity(groupId: string): {
           : 'employee';
 
     return buildCompanyActivity({
+      currency: view.currency,
       viewer: { memberId: myId, role, manageableIds, active: ready && !!me && !me.left_at },
-      labels: { you: t.company.activity.you, youObj: t.company.activity.youObj, someone: t.company.common.someone },
+      labels: {
+        you: t.company.activity.you,
+        youObj: t.company.activity.youObj,
+        someone: t.company.common.someone,
+      },
       names: new Map(members.map((m) => [m.id, memberName(m, t.company.common.someone)])),
       entries,
       entryReviews,
@@ -111,7 +116,20 @@ export function useCompanyActivity(groupId: string): {
         return s ? [{ doc, createdAt: str(s.created_at), updatedAt: str(s.updated_at) }] : [];
       }),
     });
-  }, [mirror, groupId, view.currency, isOwner, isVendor, isManager, me, members, manageableIds, entries, ready, t]);
+  }, [
+    mirror,
+    groupId,
+    view.currency,
+    isOwner,
+    isVendor,
+    isManager,
+    me,
+    members,
+    manageableIds,
+    entries,
+    ready,
+    t,
+  ]);
 
   return { events, ready };
 }

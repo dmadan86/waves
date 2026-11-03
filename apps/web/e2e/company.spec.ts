@@ -38,7 +38,10 @@ test.describe('company (signed in, mirror served from fixtures)', () => {
       rpc: { waves_company_people: people },
     });
     await page.goto(`/c/${GROUP}/pending`);
-    await page.getByRole('button', { name: /^approve$/i }).first().click();
+    await page
+      .getByRole('button', { name: /^approve$/i })
+      .first()
+      .click();
     await expect.poll(() => backend.mutations.length).toBe(1);
     const [m] = backend.mutations;
     expect(m.kind).toBe('company_entry.transition');

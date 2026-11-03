@@ -70,6 +70,7 @@ export interface CompanyActivityEvent {
 export type ActivityRole = 'owner' | 'manager' | 'employee' | 'vendor';
 
 export interface ActivityInput {
+  readonly currency: string;
   readonly viewer: {
     readonly memberId: string | null;
     readonly role: ActivityRole;
@@ -231,7 +232,7 @@ export function buildCompanyActivity(input: ActivityInput): CompanyActivityEvent
     const last = session[session.length - 1]!;
     const many = new Set(session.map((s) => s.memberId)).size > 1;
     push({
-      id: `a:${first.markedBy}:${first.status}:${first.t}`,
+      id: `a:${first.markedBy}:${first.status}:${first.day}:${first.t}`,
       at: last.t,
       group: 'attendance',
       icon: first.status === 'absent' ? 'close-circle-outline' : 'checkmark-done-outline',
@@ -336,7 +337,7 @@ export function buildCompanyActivity(input: ActivityInput): CompanyActivityEvent
       const vars = { actor: who(l.createdBy), vendor: v.name };
       const base = {
         group: 'vendors' as const,
-        amount: { minor: l.amount, currency: '' },
+        amount: { minor: l.amount, currency: input.currency },
         href: `company-vendor?vendorId=${v.id}`,
       };
       const text: ActivityText =
@@ -468,10 +469,6 @@ export function webHref(groupId: string, href: string): string {
       return `${base}/vendors?vendorId=${param('vendorId')}`;
     case 'company-bill':
       return `${base}/bills?docId=${param('docId')}`;
-    case 'company-attendance':
-      return `${base}/work`;
-    case 'company-work':
-      return `${base}/work`;
     default:
       return `${base}/more`;
   }

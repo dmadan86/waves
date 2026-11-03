@@ -120,7 +120,10 @@ export async function mockBackend(page: Page, options: BackendOptions): Promise<
       const cursors: Record<string, number> = {};
       for (const c of changes) cursors[c.groupId] = Math.max(cursors[c.groupId] ?? 0, c.seq);
       return json(route, {
-        outcomes: mutations.map((m) => ({ clientMutationId: m.clientMutationId, status: 'applied' })),
+        outcomes: mutations.map((m) => ({
+          clientMutationId: m.clientMutationId,
+          status: 'applied',
+        })),
         changes,
         cursors,
         serverTime: new Date().toISOString(),
@@ -136,7 +139,9 @@ export async function mockBackend(page: Page, options: BackendOptions): Promise<
       // `.single()` asks for one object; everything else for a list.
       const one = (req.headers()['accept'] ?? '').includes('vnd.pgrst.object');
       const rows = options.rest?.[url.pathname.split('/').pop() ?? ''] ?? [];
-      return one ? json(route, rows[0] ?? { message: 'none' }, rows[0] ? 200 : 406) : json(route, rows);
+      return one
+        ? json(route, rows[0] ?? { message: 'none' }, rows[0] ? 200 : 406)
+        : json(route, rows);
     }
     return json(route, {});
   });
@@ -217,10 +222,26 @@ export function ownerMirror(): Change[] {
 
 /** The same company as the employee sees it: their own member row and entries only. */
 export function employeeMirror(): Change[] {
-  return [companyGroup(), member(EMP_MEMBER, EMP_PROFILE, 'Ravi Employee'), entry({ note: 'diesel' })];
+  return [
+    companyGroup(),
+    member(EMP_MEMBER, EMP_PROFILE, 'Ravi Employee'),
+    entry({ note: 'diesel' }),
+  ];
 }
 
 export const people = [
-  { member_id: OWNER_MEMBER, display_name: 'Olivia Owner', role: 'admin', manager_id: null, detail: true },
-  { member_id: EMP_MEMBER, display_name: 'Ravi Employee', role: 'member', manager_id: null, detail: true },
+  {
+    member_id: OWNER_MEMBER,
+    display_name: 'Olivia Owner',
+    role: 'admin',
+    manager_id: null,
+    detail: true,
+  },
+  {
+    member_id: EMP_MEMBER,
+    display_name: 'Ravi Employee',
+    role: 'member',
+    manager_id: null,
+    detail: true,
+  },
 ];

@@ -70,9 +70,7 @@ function AdminHome({ groupId, manager = false }: { groupId: string; manager?: bo
   const [version, setVersion] = useState(0);
 
   const me = view.me;
-  const team = view.members.filter(
-    (m) => !m.left_at && m.id !== me?.id && m.role === 'member',
-  );
+  const team = view.members.filter((m) => !m.left_at && m.id !== me?.id && m.role === 'member');
   const stats = useMemo(
     () =>
       dashboardStats(
@@ -210,7 +208,9 @@ function EmployeeHome({ groupId }: { groupId: string }) {
   const month = todayIso().slice(0, 7);
 
   const sums = useMemo(() => {
-    const mine = view.entries.filter((e) => !e.paidByCompany && e.memberId === me?.id && !e.deleted);
+    const mine = view.entries.filter(
+      (e) => !e.paidByCompany && e.memberId === me?.id && !e.deleted,
+    );
     const st = me
       ? companyStatement(view.entries, { memberId: me.id, from: '0000-01-01', to: '9999-12-31' })
       : null;

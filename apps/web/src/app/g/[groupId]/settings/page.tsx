@@ -72,11 +72,11 @@ function GroupSettings({ profileId }: { profileId: string }) {
     // A company has its own settings screen.
     if (row?.type === GroupType.Company) {
       router.replace(`/c/${groupId}/settings`);
-      return;
+      return true;
     }
     setGroup(row);
     setPeople(members);
-    if (!row) return;
+    if (!row) return false;
     setName(row.name ?? '');
     setEmoji(row.cover_emoji);
     setCurrency(row.default_currency);
@@ -85,13 +85,15 @@ function GroupSettings({ profileId }: { profileId: string }) {
     setIAmAdmin(
       members.some((member) => member.profile_id === profileId && member.role === 'admin'),
     );
+    return false;
   }, [groupId, profileId, router]);
 
   useEffect(() => {
     let active = true;
+    let redirected = false;
     void (async () => {
       try {
-        await load();
+        redirected = await load();
       } catch (caught) {
         if (active)
           setError(
@@ -101,7 +103,7 @@ function GroupSettings({ profileId }: { profileId: string }) {
             }),
           );
       } finally {
-        if (active) setLoading(false);
+        if (active && !redirected) setLoading(false);
       }
     })();
     return () => {
