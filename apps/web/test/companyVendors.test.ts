@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { emptyMirror, MutationKind, SyncTable, type MirrorState, type VendorOrder } from '@waves/core';
+import {
+  emptyMirror,
+  MutationKind,
+  SyncTable,
+  type MirrorState,
+  type VendorOrder,
+} from '@waves/core';
 
-import { deriveAccess } from '@/lib/company/vendorAccess';
-import { companyDetailsMutation, vendorDetailsMutation, deriveCompanyCard } from '@/lib/company/details';
+import type { CompanyAccess } from '@/lib/company/vendorAccess';
+import {
+  companyDetailsMutation,
+  vendorDetailsMutation,
+  deriveCompanyCard,
+} from '@/lib/company/details';
 import { orderSetPayload, orderStatusPayload, trimQty } from '@/lib/company/vendorOrders';
 import { esc, renderOrderHtml } from '@/lib/company/vendorPrint';
 import {
@@ -35,27 +45,55 @@ const mirror = mirrorWith({
     { id: 'v2', group_id: G, name: 'Alpha', added_by: 'm-mgr', member_id: null, version: 1 },
   ],
   [SyncTable.CompanyVendorEntries]: [
-    { id: 'e1', group_id: G, vendor_id: 'v1', kind: 'bill', amount: '1000', occurred_on: '2026-01-01', status: 'approved', created_by: 'm-owner', version: 1 },
-    { id: 'e2', group_id: G, vendor_id: 'v1', kind: 'payment', amount: '400', occurred_on: '2026-01-02', status: 'approved', created_by: 'm-owner', version: 1 },
+    {
+      id: 'e1',
+      group_id: G,
+      vendor_id: 'v1',
+      kind: 'bill',
+      amount: '1000',
+      occurred_on: '2026-01-01',
+      status: 'approved',
+      created_by: 'm-owner',
+      version: 1,
+    },
+    {
+      id: 'e2',
+      group_id: G,
+      vendor_id: 'v1',
+      kind: 'payment',
+      amount: '400',
+      occurred_on: '2026-01-02',
+      status: 'approved',
+      created_by: 'm-owner',
+      version: 1,
+    },
   ],
 });
 
-describe('vendor access + view', () => {
-  it('reads the role and currency from the mirror', () => {
-    const a = deriveAccess(mirror, G, 'p1');
-    expect(a).toMatchObject({ isOwner: true, isManager: false, currency: 'INR', name: 'Acme' });
-    expect(deriveAccess(mirror, G, null).memberId).toBeNull();
-  });
+const access = (over: Partial<CompanyAccess>): CompanyAccess => ({
+  memberId: null,
+  isOwner: false,
+  isManager: false,
+  isVendor: false,
+  currency: 'INR',
+  name: 'Acme',
+  suspended: false,
+  ...over,
+});
+const ownerA = access({ memberId: 'm-owner', isOwner: true });
+const mgrA = access({ memberId: 'm-mgr', isManager: true });
+
+describe('vendor view', () => {
   it('owner sees all vendors sorted, manager only their own', () => {
-    const owner = deriveVendors(mirror, G, deriveAccess(mirror, G, 'p1'));
+    const owner = deriveVendors(mirror, G, ownerA);
     expect(owner.vendors.map((v) => v.name)).toEqual(['Alpha', 'Zed']);
     expect(owner.balances.get('v1')).toBe(600n);
-    const mgr = deriveVendors(mirror, G, deriveAccess(mirror, G, 'p2'));
+    const mgr = deriveVendors(mirror, G, mgrA);
     expect(mgr.vendors.map((v) => v.id)).toEqual(['v2']);
     expect(mgr.lines).toEqual([]);
   });
   it('a stranger sees nothing and no bank details', () => {
-    const a = deriveAccess(mirror, G, 'nobody');
+    const a = access({});
     expect(deriveVendors(mirror, G, a).vendors).toEqual([]);
     expect(deriveCompanyCard(mirror, G, a).canEdit).toBe(false);
   });
@@ -70,17 +108,52 @@ describe('payloads match mobile', () => {
   });
   it('entry create stringifies the amount', () => {
     expect(
-      vendorEntryCreatePayload({ entryId: 'e', vendorId: 'v', kind: 'bill', amountMinor: 1250n, occurredOn: '2026-02-03', note: ' hi ' }),
-    ).toEqual({ entryId: 'e', vendorId: 'v', kind: 'bill', amountMinor: '1250', occurredOn: '2026-02-03', note: 'hi', dueOn: null, method: null, reference: null });
+      vendorEntryCreatePayload({
+        entryId: 'e',
+        vendorId: 'v',
+        kind: 'bill',
+        amountMinor: 1250n,
+        occurredOn: '2026-02-03',
+        note: ' hi ',
+      }),
+    ).toEqual({
+      entryId: 'e',
+      vendorId: 'v',
+      kind: 'bill',
+      amountMinor: '1250',
+      occurredOn: '2026-02-03',
+      note: 'hi',
+      dueOn: null,
+      method: null,
+      reference: null,
+    });
   });
   it('review carries the expected version', () => {
-    expect(vendorEntryReviewPayload({ line: { id: 'e', version: 3 }, to: 'approved' })).toEqual({ entryId: 'e', to: 'approved', note: null, expectedVersion: 3 });
+    expect(vendorEntryReviewPayload({ line: { id: 'e', version: 3 }, to: 'approved' })).toEqual({
+      entryId: 'e',
+      to: 'approved',
+      note: null,
+      expectedVersion: 3,
+    });
   });
   it('orders and details', () => {
-    expect(orderSetPayload({ orderId: 'o', vendorId: 'v', items: [{ name: ' Sand ', qty: '2.5 ', unit: 'bags', unitPrice: 99n }] })).toEqual({
-      orderId: 'o', vendorId: 'v', expectedOn: null, note: null, items: [{ name: 'Sand', qty: '2.5', unit: 'bags', unitPrice: '99' }],
+    expect(
+      orderSetPayload({
+        orderId: 'o',
+        vendorId: 'v',
+        items: [{ name: ' Sand ', qty: '2.5 ', unit: 'bags', unitPrice: 99n }],
+      }),
+    ).toEqual({
+      orderId: 'o',
+      vendorId: 'v',
+      expectedOn: null,
+      note: null,
+      items: [{ name: 'Sand', qty: '2.5', unit: 'bags', unitPrice: '99' }],
     });
-    expect(orderStatusPayload({ orderId: 'o', to: 'accepted' })).toEqual({ orderId: 'o', to: 'accepted' });
+    expect(orderStatusPayload({ orderId: 'o', to: 'accepted' })).toEqual({
+      orderId: 'o',
+      to: 'accepted',
+    });
     expect(companyDetailsMutation({} as never).kind).toBe(MutationKind.CompanyDetailsSet);
     expect(vendorDetailsMutation('v', {} as never).payload).toMatchObject({ vendorId: 'v' });
     expect(trimQty('2.500')).toBe('2.5');
@@ -91,7 +164,10 @@ describe('payloads match mobile', () => {
 describe('helpers', () => {
   it('parses vendor shares', () => {
     expect(parseVendorShare('+91 98765-43210')).toEqual({ phone: '+919876543210' });
-    expect(parseVendorShare('upi://pay?pa=9876543210@ybl&pn=Ravi+Stores')).toEqual({ name: 'Ravi Stores', phone: '9876543210' });
+    expect(parseVendorShare('upi://pay?pa=9876543210@ybl&pn=Ravi+Stores')).toEqual({
+      name: 'Ravi Stores',
+      phone: '9876543210',
+    });
     expect(parseVendorShare('hello')).toBeNull();
     expect(parseVendorShare('')).toBeNull();
   });
@@ -103,8 +179,29 @@ describe('helpers', () => {
   });
   it('escapes printable html', () => {
     expect(esc('<b>"x"&')).toBe('&lt;b&gt;&quot;x&quot;&amp;');
-    const order = { orderNo: 1, items: [{ position: 0, name: '<i>', qty: '1', unit: 'pieces', unitPrice: 100n }], expectedOn: null, note: null } as unknown as VendorOrder;
-    const html = renderOrderHtml(order, 'V', 'C', { purchaseOrder: 'PO', companyLabel: 'Co', vendorLabel: 'Ven', itemName: 'I', itemQty: 'Q', amountLabel: 'A', expectedOn: '{date}', orderTotal: 'T' }, { pieces: 'pcs' }, { money: (m) => String(m), date: (d) => d });
+    const order = {
+      orderNo: 1,
+      items: [{ position: 0, name: '<i>', qty: '1', unit: 'pieces', unitPrice: 100n }],
+      expectedOn: null,
+      note: null,
+    } as unknown as VendorOrder;
+    const html = renderOrderHtml(
+      order,
+      'V',
+      'C',
+      {
+        purchaseOrder: 'PO',
+        companyLabel: 'Co',
+        vendorLabel: 'Ven',
+        itemName: 'I',
+        itemQty: 'Q',
+        amountLabel: 'A',
+        expectedOn: '{date}',
+        orderTotal: 'T',
+      },
+      { pieces: 'pcs' },
+      { money: (m) => String(m), date: (d) => d },
+    );
     expect(html).toContain('&lt;i&gt;');
     expect(html).not.toContain('<i>');
   });
