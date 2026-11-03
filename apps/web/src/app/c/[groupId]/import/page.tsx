@@ -235,7 +235,9 @@ export default function CompanyImportPage() {
   const downloadErrors = () =>
     downloadText(
       'waves-import-errors.csv',
-      `﻿${toCsv([[g.errCsvRow, g.errCsvProblem, ...(table?.rows[0] ?? [])], ...errorRows.map((r) => [String(r.line), problemText(r), ...r.cells])])}`,
+      // After "Done" the table is cleared; the CSV built at the end of the run is what is left.
+      lastErrors ??
+        `﻿${toCsv([[g.errCsvRow, g.errCsvProblem, ...(table?.rows[0] ?? [])], ...errorRows.map((r) => [String(r.line), problemText(r), ...r.cells])])}`,
       'text/csv',
     );
 
