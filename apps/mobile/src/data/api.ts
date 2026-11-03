@@ -2421,10 +2421,7 @@ export async function fetchDevices(): Promise<DeviceSession[]> {
  * `backend.auth.signOut({ scope: 'others' })`, which tears down the actual
  * sessions; doing both keeps the devices list honest about what just happened.
  */
-export async function signOutOtherDevices(
-  currentDeviceId: string,
-  erase = false,
-): Promise<number> {
+export async function signOutOtherDevices(currentDeviceId: string, erase = false): Promise<number> {
   const { data, error } = await backend.rpc('waves_sign_out_other_devices', {
     p_device_id: currentDeviceId,
     p_erase: erase,

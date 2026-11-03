@@ -314,8 +314,32 @@ describe('signing the other phones out', () => {
     await flush();
 
     expect(world.signOut).toHaveBeenCalledWith({ scope: 'others' });
-    expect(world.signOutOthersTable).toHaveBeenCalledWith('dev-1');
+    expect(world.signOutOthersTable).toHaveBeenCalledWith('dev-1', false);
     expect(app.gate).toBeUndefined();
+  });
+
+  it('erase flags the other phones without revoking their sessions, and rejects if the flag fails', async () => {
+    world.register.mockResolvedValue(OVER);
+    const app = await mount();
+
+    await expect(app.value.signOutOthers(true)).resolves.toBe(2);
+    expect(world.signOut).not.toHaveBeenCalledWith({ scope: 'others' });
+    expect(world.signOutOthersTable).toHaveBeenCalledWith('dev-1', true);
+
+    world.signOutOthersTable.mockRejectedValueOnce(new Error('flag failed'));
+    await expect(app.value.signOutOthers(true)).rejects.toThrow('flag failed');
+  });
+
+  it('erase flags the other phones without revoking their sessions, and rejects if the flag fails', async () => {
+    world.register.mockResolvedValue(OVER);
+    const app = await mount();
+
+    await expect(app.value.signOutOthers(true)).resolves.toBe(2);
+    expect(world.signOut).not.toHaveBeenCalledWith({ scope: 'others' });
+    expect(world.signOutOthersTable).toHaveBeenCalledWith('dev-1', true);
+
+    world.signOutOthersTable.mockRejectedValueOnce(new Error('flag failed'));
+    await expect(app.value.signOutOthers(true)).rejects.toThrow('flag failed');
   });
 
   it('reports an unconfirmed count, not a false zero, when only the list update fails', async () => {

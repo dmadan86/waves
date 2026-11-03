@@ -195,47 +195,50 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     };
   }, [register]);
 
-  const signOutOthers = useCallback(async (erase = false) => {
-    const identity = await deviceIdentity();
-    // The real session revocation first — this is the part that actually logs
-    // the other phones out; the table update below only makes the list say so.
-    // If this itself fails, nothing was revoked: surface the error, keep the gate.
-    try {
-      // signOut resolves with `{ error }` rather than throwing, so a revocation
-      // failure has to be read off the result and re-thrown; otherwise the gate
-      // below would dismiss on a sign-out that never happened.
-      // Erase keeps the other sessions alive until each phone checks in and
-      // learns it must wipe (a phone with no session cannot ask); the server
-      // ends them then. The RPC below is what flags them.
-      if (!erase) {
-        const { error } = await backend.auth.signOut({ scope: 'others' });
-        if (error) throw error;
-      }
-    } catch (caught) {
-      await register();
-      throw caught;
-    }
-    // The sessions are gone, so the gate has served its purpose whether or not
-    // the registry table catches up. Dismiss before the reconciliation that can
-    // still fail on a flaky network.
-    setDismissed(true);
-    try {
-      const revoked = await signOutOtherDevices(identity.deviceId, erase);
-      await register();
-      return revoked;
-    } catch (caught) {
-      // Erase has no session revocation of its own: if the flag did not land,
-      // nothing happened and the caller must hear it.
-      if (erase) {
+  const signOutOthers = useCallback(
+    async (erase = false) => {
+      const identity = await deviceIdentity();
+      // The real session revocation first — this is the part that actually logs
+      // the other phones out; the table update below only makes the list say so.
+      // If this itself fails, nothing was revoked: surface the error, keep the gate.
+      try {
+        // signOut resolves with `{ error }` rather than throwing, so a revocation
+        // failure has to be read off the result and re-thrown; otherwise the gate
+        // below would dismiss on a sign-out that never happened.
+        // Erase keeps the other sessions alive until each phone checks in and
+        // learns it must wipe (a phone with no session cannot ask); the server
+        // ends them then. The RPC below is what flags them.
+        if (!erase) {
+          const { error } = await backend.auth.signOut({ scope: 'others' });
+          if (error) throw error;
+        }
+      } catch (caught) {
         await register();
         throw caught;
       }
-      // Only the list update failed; the sessions are already revoked. Refresh
-      // what we can and report an unconfirmed count rather than a false zero.
-      await register();
-      return null;
-    }
-  }, [register]);
+      // The sessions are gone, so the gate has served its purpose whether or not
+      // the registry table catches up. Dismiss before the reconciliation that can
+      // still fail on a flaky network.
+      setDismissed(true);
+      try {
+        const revoked = await signOutOtherDevices(identity.deviceId, erase);
+        await register();
+        return revoked;
+      } catch (caught) {
+        // Erase has no session revocation of its own: if the flag did not land,
+        // nothing happened and the caller must hear it.
+        if (erase) {
+          await register();
+          throw caught;
+        }
+        // Only the list update failed; the sessions are already revoked. Refresh
+        // what we can and report an unconfirmed count rather than a false zero.
+        await register();
+        return null;
+      }
+    },
+    [register],
+  );
 
   const refresh = useCallback(async () => {
     await register();
