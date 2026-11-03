@@ -33,11 +33,19 @@ export function CompanyCalendarGrid({
     const next = new Date(Date.UTC(year, month - 1 + by, 1));
     onMonthChange(next.getUTCFullYear(), next.getUTCMonth() + 1);
   };
-  const cells = Array.from({ length: first.getUTCDay() + count }, (_, i) => i - first.getUTCDay() + 1);
+  const cells = Array.from(
+    { length: first.getUTCDay() + count },
+    (_, i) => i - first.getUTCDay() + 1,
+  );
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <button type="button" className="btn soft" aria-label={s.prevMonth} onClick={() => move(-1)}>
+        <button
+          type="button"
+          className="btn soft"
+          aria-label={s.prevMonth}
+          onClick={() => move(-1)}
+        >
           ‹
         </button>
         <strong>
@@ -87,7 +95,14 @@ export function CompanyCalendarGrid({
         {(['leave', 'money', 'work', 'birthday'] as const).map((k) => (
           <span key={k} className="faint">
             <span style={{ color: DOT[k] }}>●</span>{' '}
-            {{ leave: s.filterLeave, money: s.filterMoney, work: s.filterWork, birthday: s.filterBirthdays }[k]}
+            {
+              {
+                leave: s.filterLeave,
+                money: s.filterMoney,
+                work: s.filterWork,
+                birthday: s.filterBirthdays,
+              }[k]
+            }
           </span>
         ))}
       </div>

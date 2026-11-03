@@ -104,7 +104,10 @@ export default function CompanyWagesPage() {
         if (allowanceAmount(row.days, rateOf(m.id)) === null) continue;
         map.set(m.id, { calcMode: 'days_rate', days: row.days.trim(), rateMinor: rateOf(m.id) });
       } else if (row.fixed.trim() !== '') {
-        map.set(m.id, { calcMode: 'fixed_weekly', fixedMinor: parseMinorInput(row.fixed, currency) });
+        map.set(m.id, {
+          calcMode: 'fixed_weekly',
+          fixedMinor: parseMinorInput(row.fixed, currency),
+        });
       }
     }
     return map;
@@ -137,7 +140,9 @@ export default function CompanyWagesPage() {
   const teamIds = new Set(people.map((m) => m.id));
   const workingDays = new Set(
     [...attendance.values()]
-      .filter((m) => teamIds.has(m.memberId) && m.day >= start && m.day <= end && m.status !== 'absent')
+      .filter(
+        (m) => teamIds.has(m.memberId) && m.day >= start && m.day <= end && m.status !== 'absent',
+      )
       .map((m) => m.day),
   ).size;
 
@@ -288,8 +293,8 @@ export default function CompanyWagesPage() {
                               disabled={paid || !line}
                               onChange={() => setSkipped((cur) => toggle(cur, m.id))}
                             />{' '}
-                            <strong>{name}</strong> · {statusLabel[statuses.get(m.id) ?? 'absent']} ·{' '}
-                            {row.mode === 'days_rate' ? s.wagesDailyTag : s.wagesFixedTag} ·{' '}
+                            <strong>{name}</strong> · {statusLabel[statuses.get(m.id) ?? 'absent']}{' '}
+                            · {row.mode === 'days_rate' ? s.wagesDailyTag : s.wagesFixedTag} ·{' '}
                             {paid ? s.wagesPaid : line ? fmt(line.net) : '—'}
                             {line && !paid
                               ? ` (${
@@ -382,8 +387,12 @@ export default function CompanyWagesPage() {
                               <input
                                 inputMode="decimal"
                                 value={row.mode === 'days_rate' ? row.days : row.fixed}
-                                placeholder={row.mode === 'days_rate' ? s.wagesDays : s.wagesFixedAmount}
-                                aria-label={row.mode === 'days_rate' ? s.wagesDays : s.wagesFixedAmount}
+                                placeholder={
+                                  row.mode === 'days_rate' ? s.wagesDays : s.wagesFixedAmount
+                                }
+                                aria-label={
+                                  row.mode === 'days_rate' ? s.wagesDays : s.wagesFixedAmount
+                                }
                                 onChange={(e) =>
                                   patch(
                                     row.mode === 'days_rate'
@@ -399,13 +408,23 @@ export default function CompanyWagesPage() {
                                     <input
                                       inputMode="decimal"
                                       value={rateText}
-                                      onChange={(e) => setRateText(normaliseDecimalInput(e.target.value))}
+                                      onChange={(e) =>
+                                        setRateText(normaliseDecimalInput(e.target.value))
+                                      }
                                     />
                                   </label>{' '}
-                                  <button type="button" className="btn brand" onClick={() => void saveRate()}>
+                                  <button
+                                    type="button"
+                                    className="btn brand"
+                                    onClick={() => void saveRate()}
+                                  >
                                     {s.saveRate}
                                   </button>{' '}
-                                  <button type="button" className="btn soft" onClick={() => setRateFor(null)}>
+                                  <button
+                                    type="button"
+                                    className="btn soft"
+                                    onClick={() => setRateFor(null)}
+                                  >
                                     {s.cancel}
                                   </button>
                                 </div>

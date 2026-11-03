@@ -38,7 +38,11 @@ export function TeamPeople({ groupId }: { groupId: string }) {
     );
     const managers = live.filter((m) => m.role === 'manager' && m.id !== view.me?.id);
     const owners = view.isOwner ? live.filter((m) => m.role === 'admin') : [];
-    const balances = balancesByMember(view.entries, employeeRows.map((m) => m.id), today);
+    const balances = balancesByMember(
+      view.entries,
+      employeeRows.map((m) => m.id),
+      today,
+    );
     const pools = managerBalances(
       view.entries,
       [...managers, ...employeeRows].filter((m) => m.role === 'manager').map((m) => m.id),
@@ -59,7 +63,11 @@ export function TeamPeople({ groupId }: { groupId: string }) {
         former: gone,
         mark: owner || gone ? null : attendanceToday(marks, m.id, today),
         tasks: tasks.get(m.id) ?? 0,
-        balance: owner ? null : m.role === 'manager' ? (pools.get(m.id) ?? SETTLED) : (balances.get(m.id) ?? SETTLED),
+        balance: owner
+          ? null
+          : m.role === 'manager'
+            ? (pools.get(m.id) ?? SETTLED)
+            : (balances.get(m.id) ?? SETTLED),
       };
     });
   }, [view, marks, allTasks, today]);
@@ -72,7 +80,15 @@ export function TeamPeople({ groupId }: { groupId: string }) {
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 12 }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 8,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          marginBottom: 12,
+        }}
+      >
         <input
           type="search"
           value={query}
@@ -81,12 +97,18 @@ export function TeamPeople({ groupId }: { groupId: string }) {
           aria-label={s.search}
         />
         <label>
-          <input type="checkbox" checked={byName} onChange={(e) => setByName(e.target.checked)} /> {s.sortName}
+          <input type="checkbox" checked={byName} onChange={(e) => setByName(e.target.checked)} />{' '}
+          {s.sortName}
         </label>
         <label>
-          <input type="checkbox" checked={admins} onChange={(e) => setAdmins(e.target.checked)} /> {s.showAdmins}
+          <input type="checkbox" checked={admins} onChange={(e) => setAdmins(e.target.checked)} />{' '}
+          {s.showAdmins}
         </label>
-        <button type="button" className={former ? 'btn brand' : 'btn soft'} onClick={() => setFormer(!former)}>
+        <button
+          type="button"
+          className={former ? 'btn brand' : 'btn soft'}
+          onClick={() => setFormer(!former)}
+        >
           {s.notEmployed}
         </button>
         {view.isOwner && !view.suspended ? (
@@ -108,7 +130,13 @@ export function TeamPeople({ groupId }: { groupId: string }) {
             <Link
               key={r.id}
               href={`/c/${groupId}/statement/${r.id}`}
-              style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '10px 0', color: 'inherit' }}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                gap: 12,
+                padding: '10px 0',
+                color: 'inherit',
+              }}
             >
               <span>
                 <strong>{r.name}</strong>{' '}

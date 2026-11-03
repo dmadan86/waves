@@ -83,7 +83,9 @@ export function TeamAttendance({ groupId }: { groupId: string }) {
     return access.people.filter((p) => {
       const mark = marks.get(`${p.id}|${date}`)?.status;
       return (
-        (!q || memberName(p, '').toLowerCase().includes(q) || (p.employee_id ?? '').toLowerCase().includes(q)) &&
+        (!q ||
+          memberName(p, '').toLowerCase().includes(q) ||
+          (p.employee_id ?? '').toLowerCase().includes(q)) &&
         (!department || p.department_id === department) &&
         (!manager || p.manager_id === manager) &&
         (!site || (siteMembers.get(site) ?? []).includes(p.id)) &&
@@ -93,16 +95,32 @@ export function TeamAttendance({ groupId }: { groupId: string }) {
             !(
               statusFilter === 'unmarked' &&
               leave.some(
-                (l) => l.status === 'approved' && l.memberId === p.id && l.startDay <= date && date <= l.endDay,
+                (l) =>
+                  l.status === 'approved' &&
+                  l.memberId === p.id &&
+                  l.startDay <= date &&
+                  date <= l.endDay,
               )
             )))
       );
     });
-  }, [access.people, search, department, manager, site, siteMembers, statusFilter, marks, date, leave]);
+  }, [
+    access.people,
+    search,
+    department,
+    manager,
+    site,
+    siteMembers,
+    statusFilter,
+    marks,
+    date,
+    leave,
+  ]);
 
   const busy = inFlight > 0;
   const write = async (memberId: string, status: AttendanceStatus | null, note: string | null) => {
-    if (!access.enabled || !access.canManage || date > today || leaveOf(memberId) === 'approved') return false;
+    if (!access.enabled || !access.canManage || date > today || leaveOf(memberId) === 'approved')
+      return false;
     if (!access.people.some((p) => p.id === memberId)) return false;
     setError(null);
     setInFlight((n) => n + 1);
@@ -139,11 +157,13 @@ export function TeamAttendance({ groupId }: { groupId: string }) {
   const pickMark = pickFor ? marks.get(`${pickFor}|${date}`) : undefined;
   const locked = !!pickFor && (date > today || leaveOf(pickFor) === 'approved');
   const changed =
-    draftStatus !== (pickMark?.status ?? null) || (!!draftStatus && draftNote.trim() !== (pickMark?.note ?? ''));
+    draftStatus !== (pickMark?.status ?? null) ||
+    (!!draftStatus && draftNote.trim() !== (pickMark?.note ?? ''));
   const saveDraft = async () => {
     if (!pickFor) return;
     // Stay open on failure so the draft survives for a retry.
-    if (await write(pickFor, draftStatus, draftStatus ? draftNote.trim() || null : null)) setPickFor(null);
+    if (await write(pickFor, draftStatus, draftStatus ? draftNote.trim() || null : null))
+      setPickFor(null);
   };
 
   const markHoliday = async () => {
@@ -216,35 +236,70 @@ export function TeamAttendance({ groupId }: { groupId: string }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
         <div className="tabs">
           {(['daily', 'weekly', 'monthly'] as const).map((p) => (
-            <button key={p} type="button" className={`tab${period === p ? ' on' : ''}`} onClick={() => setPeriod(p)}>
+            <button
+              key={p}
+              type="button"
+              className={`tab${period === p ? ' on' : ''}`}
+              onClick={() => setPeriod(p)}
+            >
               {S[p]}
             </button>
           ))}
         </div>
-        <input type="date" value={date} max={today} onChange={(e) => e.target.value && go(e.target.value)} />
+        <input
+          type="date"
+          value={date}
+          max={today}
+          onChange={(e) => e.target.value && go(e.target.value)}
+        />
         <strong>{dayLabel}</strong>
         <span role="status" className="muted">
           {busy ? S.saving : saved ? S.saved : ''}
         </span>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        <input type="search" value={search} placeholder={S.search} onChange={(e) => setSearch(e.target.value)} />
-        <select aria-label={S.department} value={department} onChange={(e) => setDepartment(e.target.value)}>
-          <option value="">{S.department}: {S.all}</option>
+        <input
+          type="search"
+          value={search}
+          placeholder={S.search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          aria-label={S.department}
+          value={department}
+          onChange={(e) => setDepartment(e.target.value)}
+        >
+          <option value="">
+            {S.department}: {S.all}
+          </option>
           {departments.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
           ))}
         </select>
-        <select aria-label={S.managers} value={manager} onChange={(e) => setManager(e.target.value)}>
-          <option value="">{S.managers}: {S.all}</option>
+        <select
+          aria-label={S.managers}
+          value={manager}
+          onChange={(e) => setManager(e.target.value)}
+        >
+          <option value="">
+            {S.managers}: {S.all}
+          </option>
           {managers.map((m) => (
-            <option key={m.id} value={m.id}>{memberName(m, '')}</option>
+            <option key={m.id} value={m.id}>
+              {memberName(m, '')}
+            </option>
           ))}
         </select>
         <select aria-label={S.site} value={site} onChange={(e) => setSite(e.target.value)}>
-          <option value="">{S.site}: {S.all}</option>
+          <option value="">
+            {S.site}: {S.all}
+          </option>
           {sites.map((p) => (
-            <option key={p.id} value={p.id}>{p.name}</option>
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
           ))}
         </select>
         <select
@@ -252,7 +307,9 @@ export function TeamAttendance({ groupId }: { groupId: string }) {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as StatusFilter | '')}
         >
-          <option value="">{S.status}: {S.all}</option>
+          <option value="">
+            {S.status}: {S.all}
+          </option>
           <option value="present">{S.present}</option>
           <option value="half">{S.half}</option>
           <option value="absent">{S.absent}</option>
@@ -275,8 +332,17 @@ export function TeamAttendance({ groupId }: { groupId: string }) {
           </div>
         ) : (
           <div style={{ display: 'flex', gap: 8 }}>
-            <input value={holidayName} placeholder={S.holidayName} onChange={(e) => setHolidayName(e.target.value)} />
-            <button type="button" className="btn brand" disabled={!holidayName.trim()} onClick={() => void markHoliday()}>
+            <input
+              value={holidayName}
+              placeholder={S.holidayName}
+              onChange={(e) => setHolidayName(e.target.value)}
+            />
+            <button
+              type="button"
+              className="btn brand"
+              disabled={!holidayName.trim()}
+              onClick={() => void markHoliday()}
+            >
               {S.save}
             </button>
             <button type="button" className="btn soft" onClick={() => setHolidayName(null)}>
@@ -317,15 +383,27 @@ export function TeamAttendance({ groupId }: { groupId: string }) {
               return (
                 <div
                   key={p.id}
-                  style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', padding: 8 }}
+                  style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                    alignItems: 'center',
+                    padding: 8,
+                  }}
                 >
                   <div style={{ flex: 1, minWidth: 140 }}>
                     <div>{memberName(p, '')}</div>
                     <div className="muted">{p.employee_id ?? ''}</div>
                   </div>
-                  {lv ? <span className="muted">{lv === 'approved' ? S.onLeave : S.leaveApplied}</span> : null}
+                  {lv ? (
+                    <span className="muted">{lv === 'approved' ? S.onLeave : S.leaveApplied}</span>
+                  ) : null}
                   {mark?.status === 'half' ? <span className="muted">{S.half}</span> : null}
-                  {mark?.note ? <span className="muted" title={mark.note}>note</span> : null}
+                  {mark?.note ? (
+                    <span className="muted" title={mark.note}>
+                      note
+                    </span>
+                  ) : null}
                   <button
                     type="button"
                     className={`btn ${mark?.status === 'present' ? 'brand' : 'soft'}`}
@@ -348,20 +426,25 @@ export function TeamAttendance({ groupId }: { groupId: string }) {
                   {pickFor === p.id && pickPerson ? (
                     <div style={{ flexBasis: '100%', display: 'grid', gap: 8 }}>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                        {([['present', S.present], ['half', S.half], ['absent', S.absent], [null, S.clear]] as const).map(
-                          ([s, label]) => (
-                            <button
-                              key={s ?? 'clear'}
-                              type="button"
-                              aria-pressed={draftStatus === s}
-                              className={`btn ${draftStatus === s ? 'brand' : 'soft'}`}
-                              disabled={locked}
-                              onClick={() => setDraftStatus(s)}
-                            >
-                              {label}
-                            </button>
-                          ),
-                        )}
+                        {(
+                          [
+                            ['present', S.present],
+                            ['half', S.half],
+                            ['absent', S.absent],
+                            [null, S.clear],
+                          ] as const
+                        ).map(([s, label]) => (
+                          <button
+                            key={s ?? 'clear'}
+                            type="button"
+                            aria-pressed={draftStatus === s}
+                            className={`btn ${draftStatus === s ? 'brand' : 'soft'}`}
+                            disabled={locked}
+                            onClick={() => setDraftStatus(s)}
+                          >
+                            {label}
+                          </button>
+                        ))}
                       </div>
                       {draftStatus ? (
                         <input
@@ -455,12 +538,31 @@ function Grid({
   };
   return (
     <div className="card" style={{ overflowX: 'auto' }}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center', padding: 8 }}>
-        <button type="button" className="btn soft" aria-label={S.previous} onClick={() => onDate(prev)}>
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 8,
+        }}
+      >
+        <button
+          type="button"
+          className="btn soft"
+          aria-label={S.previous}
+          onClick={() => onDate(prev)}
+        >
           <ChevronLeft size={16} />
         </button>
         <strong>{title}</strong>
-        <button type="button" className="btn soft" aria-label={S.next} disabled={next > today} onClick={() => onDate(next)}>
+        <button
+          type="button"
+          className="btn soft"
+          aria-label={S.next}
+          disabled={next > today}
+          onClick={() => onDate(next)}
+        >
           <ChevronRight size={16} />
         </button>
       </div>
@@ -480,7 +582,9 @@ function Grid({
             <tr key={p.id}>
               <td style={{ padding: 4 }}>
                 {memberName(p, '')}
-                <div className="muted">{p.employee_id ?? departmentName(departments, p.department_id) ?? ''}</div>
+                <div className="muted">
+                  {p.employee_id ?? departmentName(departments, p.department_id) ?? ''}
+                </div>
               </td>
               {cols.map((d) => (
                 <td key={d} style={{ padding: 4, textAlign: 'center' }}>
@@ -492,7 +596,8 @@ function Grid({
         </tbody>
       </table>
       <p className="muted" style={{ padding: 8 }}>
-        P {S.present} · ½ {S.half} · A {S.absent} · L {S.leave} · H {S.holiday('').replace(': ', '')}
+        P {S.present} · ½ {S.half} · A {S.absent} · L {S.leave} · H{' '}
+        {S.holiday('').replace(': ', '')}
       </p>
     </div>
   );

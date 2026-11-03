@@ -18,7 +18,10 @@ export function TeamDepartments({ groupId }: { groupId: string }) {
         <div key={d.id} style={{ display: 'flex', gap: 8, padding: '4px 0' }}>
           {editing?.id === d.id ? (
             <>
-              <input value={editing.name} onChange={(e) => setEditing({ id: d.id, name: e.target.value })} />
+              <input
+                value={editing.name}
+                onChange={(e) => setEditing({ id: d.id, name: e.target.value })}
+              />
               <button
                 type="button"
                 className="btn brand"
@@ -30,10 +33,18 @@ export function TeamDepartments({ groupId }: { groupId: string }) {
           ) : (
             <>
               <span style={{ flex: 1 }}>{d.name}</span>
-              <button type="button" className="btn soft" onClick={() => setEditing({ id: d.id, name: d.name })}>
+              <button
+                type="button"
+                className="btn soft"
+                onClick={() => setEditing({ id: d.id, name: d.name })}
+              >
                 {s.rename}
               </button>
-              <button type="button" className="btn soft" onClick={() => window.confirm(`${s.remove} ${d.name}?`) && ed.remove(d.id)}>
+              <button
+                type="button"
+                className="btn soft"
+                onClick={() => window.confirm(`${s.remove} ${d.name}?`) && ed.remove(d.id)}
+              >
                 {s.remove}
               </button>
             </>
@@ -47,7 +58,12 @@ export function TeamDepartments({ groupId }: { groupId: string }) {
           if (ed.add(name)) setName('');
         }}
       >
-        <input value={name} onChange={(e) => setName(e.target.value)} maxLength={40} aria-label={s.addDepartment} />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={40}
+          aria-label={s.addDepartment}
+        />
         <button type="submit" className="btn brand" disabled={!name.trim()}>
           {s.addDepartment}
         </button>

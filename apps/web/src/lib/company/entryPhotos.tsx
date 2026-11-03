@@ -12,7 +12,11 @@ import { entryStrings as s } from './entryStrings';
 export const MAX_COMPANY_PHOTOS = 10;
 
 /** Upload one file and attach it; the entry must already exist on the server. */
-export async function attachEntryPhoto(groupId: string, entryId: string, file: File): Promise<void> {
+export async function attachEntryPhoto(
+  groupId: string,
+  entryId: string,
+  file: File,
+): Promise<void> {
   const attachmentId = crypto.randomUUID();
   const path = `${entryId}/${attachmentId}/${crypto.randomUUID()}.jpg`;
   const storagePath = await putImage({
@@ -74,7 +78,8 @@ export function CompanyEntryPhotos({
     try {
       const room = MAX_COMPANY_PHOTOS - photos.length;
       for (const file of Array.from(files).slice(0, room)) {
-        if (!file.type.startsWith('image/') || file.size > 15 * 1024 * 1024) throw new Error(s.photoFailed);
+        if (!file.type.startsWith('image/') || file.size > 15 * 1024 * 1024)
+          throw new Error(s.photoFailed);
         await attachEntryPhoto(groupId, entryId, file);
       }
     } catch (e) {
@@ -109,7 +114,13 @@ export function CompanyEntryPhotos({
               >
                 {url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={url} alt={s.photos} width={64} height={64} style={{ objectFit: 'cover' }} />
+                  <img
+                    src={url}
+                    alt={s.photos}
+                    width={64}
+                    height={64}
+                    style={{ objectFit: 'cover' }}
+                  />
                 ) : (
                   s.photos
                 )}
@@ -140,7 +151,9 @@ export function CompanyEntryPhotos({
         </label>
       ) : null}
       {error ? <p role="alert">{error}</p> : null}
-      {viewed && viewing ? <ImageViewer url={viewed} alt={s.photos} onClose={() => setViewing(null)} /> : null}
+      {viewed && viewing ? (
+        <ImageViewer url={viewed} alt={s.photos} onClose={() => setViewing(null)} />
+      ) : null}
     </div>
   );
 }

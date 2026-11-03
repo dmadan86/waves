@@ -24,7 +24,10 @@ export function periodRange(period: StatementPeriod, today: string): { from: str
         ? { y: year - 1, m: 12 }
         : { y: year, m: month - 1 };
   const last = new Date(Date.UTC(target.y, target.m, 0)).getUTCDate();
-  return { from: `${target.y}-${pad(target.m)}-01`, to: `${target.y}-${pad(target.m)}-${pad(last)}` };
+  return {
+    from: `${target.y}-${pad(target.m)}-01`,
+    to: `${target.y}-${pad(target.m)}-${pad(last)}`,
+  };
 }
 
 /** shortcut: web has no custom-tag hook yet, so a tag key reads as its words; upgrade when tags are ported. */

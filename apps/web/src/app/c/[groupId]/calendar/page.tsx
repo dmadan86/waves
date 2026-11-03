@@ -82,7 +82,9 @@ function CalendarBody({ groupId }: { groupId: string }) {
             : { t: 'leave', mode: kind === 'leave-request' ? 'request' : 'record' },
     );
   const setSwitch = (next: { paidHolidays: boolean; paidLeave: boolean }) =>
-    act.setSettings(next).catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
+    act
+      .setSettings(next)
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)));
   const day = selectedDay ?? undefined;
   return (
     <>
@@ -107,7 +109,9 @@ function CalendarBody({ groupId }: { groupId: string }) {
               type="checkbox"
               checked={sw.paidHolidays}
               disabled={suspended}
-              onChange={(e) => void setSwitch({ paidHolidays: e.target.checked, paidLeave: sw.paidLeave })}
+              onChange={(e) =>
+                void setSwitch({ paidHolidays: e.target.checked, paidLeave: sw.paidLeave })
+              }
             />{' '}
             {s.paidHolidays} <span className="faint">{s.paidHolidaysHint}</span>
           </label>
@@ -117,7 +121,9 @@ function CalendarBody({ groupId }: { groupId: string }) {
               type="checkbox"
               checked={sw.paidLeave}
               disabled={suspended}
-              onChange={(e) => void setSwitch({ paidHolidays: sw.paidHolidays, paidLeave: e.target.checked })}
+              onChange={(e) =>
+                void setSwitch({ paidHolidays: sw.paidHolidays, paidLeave: e.target.checked })
+              }
             />{' '}
             {s.paidLeave} <span className="faint">{s.paidLeaveHint}</span>
           </label>
@@ -128,16 +134,36 @@ function CalendarBody({ groupId }: { groupId: string }) {
           {s.add}
         </button>
       ) : null}
-      {panel?.t === 'chooser' ? <CalendarChooser groupId={groupId} onPick={pick} onClose={close} /> : null}
+      {panel?.t === 'chooser' ? (
+        <CalendarChooser groupId={groupId} onPick={pick} onClose={close} />
+      ) : null}
       {panel?.t === 'holiday' ? (
-        <HolidayForm key={panel.holiday?.id ?? 'new'} groupId={groupId} day={day} holiday={panel.holiday} onClose={close} />
+        <HolidayForm
+          key={panel.holiday?.id ?? 'new'}
+          groupId={groupId}
+          day={day}
+          holiday={panel.holiday}
+          onClose={close}
+        />
       ) : null}
       {panel?.t === 'event' ? (
-        <EventForm key={panel.event?.id ?? 'new'} groupId={groupId} day={day} event={panel.event} onClose={close} />
+        <EventForm
+          key={panel.event?.id ?? 'new'}
+          groupId={groupId}
+          day={day}
+          event={panel.event}
+          onClose={close}
+        />
       ) : null}
-      {panel?.t === 'leave' ? <LeaveForm groupId={groupId} day={day} mode={panel.mode} onClose={close} /> : null}
-      {panel?.t === 'decide' ? <LeaveDecision key={panel.leave.id} groupId={groupId} leave={panel.leave} onClose={close} /> : null}
-      {panel?.t === 'dates' ? <MyDatesForm groupId={groupId} memberId={access.meId ?? undefined} onClose={close} /> : null}
+      {panel?.t === 'leave' ? (
+        <LeaveForm groupId={groupId} day={day} mode={panel.mode} onClose={close} />
+      ) : null}
+      {panel?.t === 'decide' ? (
+        <LeaveDecision key={panel.leave.id} groupId={groupId} leave={panel.leave} onClose={close} />
+      ) : null}
+      {panel?.t === 'dates' ? (
+        <MyDatesForm groupId={groupId} memberId={access.meId ?? undefined} onClose={close} />
+      ) : null}
       <CompanyCalendarGrid
         year={year}
         month={month}
@@ -157,7 +183,8 @@ function CalendarBody({ groupId }: { groupId: string }) {
         onError={setError}
         onOpenLeave={(leave) => {
           const live = cal.leave.find((l) => l.id === leave.id);
-          if (live && live.status === 'pending' && access.canDecide(live)) setPanel({ t: 'decide', leave: live });
+          if (live && live.status === 'pending' && access.canDecide(live))
+            setPanel({ t: 'decide', leave: live });
         }}
         onOpenEvent={(event) => access.isOwner && setPanel({ t: 'event', event })}
         onOpenHoliday={(holiday) => access.isOwner && setPanel({ t: 'holiday', holiday })}

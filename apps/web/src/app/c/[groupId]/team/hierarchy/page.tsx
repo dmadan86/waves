@@ -40,7 +40,10 @@ function Tree({ groupId }: { groupId: string }) {
       (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
     );
   const row = (m: CompanyMember, pill?: string, sub?: string) => (
-    <div key={m.id} style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}>
+    <div
+      key={m.id}
+      style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between' }}
+    >
       <div>
         <Link href={`/c/${groupId}/statement/${m.id}`}>{memberName(m, s.someone)}</Link>
         {pill ? <span className="faint"> · {pill}</span> : null}
@@ -67,12 +70,20 @@ function Tree({ groupId }: { groupId: string }) {
     <>
       {error ? <p role="alert">{error}</p> : null}
       <h2>{s.owners}</h2>
-      <div className="card">{live.filter((m) => m.role === 'admin').map((m) => row(m, s.pillOwner))}</div>
+      <div className="card">
+        {live.filter((m) => m.role === 'admin').map((m) => row(m, s.pillOwner))}
+      </div>
       {managers.map((mgr) => {
         const team = live.filter((m) => m.manager_id === mgr.id);
         return (
           <div className="card" key={mgr.id}>
-            {row(mgr, s.manager, team.length === 1 ? s.employeeOne : s.employeeMany.replace('{n}', String(team.length)))}
+            {row(
+              mgr,
+              s.manager,
+              team.length === 1
+                ? s.employeeOne
+                : s.employeeMany.replace('{n}', String(team.length)),
+            )}
             {team.map((m) => row(m))}
           </div>
         );

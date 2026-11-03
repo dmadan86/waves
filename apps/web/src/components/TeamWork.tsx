@@ -85,19 +85,18 @@ export function TeamWork({ groupId }: { groupId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const people: readonly CompanyMember[] = access.isEmployee && access.me ? [access.me] : access.people;
+  const people: readonly CompanyMember[] =
+    access.isEmployee && access.me ? [access.me] : access.people;
   const someone = 'Someone';
   const personName = (id: string) =>
     memberName(people.find((p) => p.id === id) ?? access.me ?? undefined, '');
-  const siteName = (id: string | null) =>
-    (id && sites.find((p) => p.id === id)?.name) || '';
+  const siteName = (id: string | null) => (id && sites.find((p) => p.id === id)?.name) || '';
   const allowedPerson = (id: string) => access.canManage && access.people.some((p) => p.id === id);
   const canChange = (t: MirrorWorkTask) =>
-    access.enabled && (allowedPerson(t.memberId) || (access.isEmployee && t.memberId === access.me?.id));
+    access.enabled &&
+    (allowedPerson(t.memberId) || (access.isEmployee && t.memberId === access.me?.id));
 
-  const own = tasks.filter(
-    (t) => canChange(t) && (scope === 'team' || t.memberId === view.me?.id),
-  );
+  const own = tasks.filter((t) => canChange(t) && (scope === 'team' || t.memberId === view.me?.id));
   const grouped = groupWorkTasks(filterWork(own, query, personName, siteName), {
     mode: access.canManage ? mode : 'date',
     today,
@@ -185,7 +184,12 @@ export function TeamWork({ groupId }: { groupId: string }) {
         >
           {`#${t.number ?? '—'} ${t.title}`}
           <small style={{ display: 'block', color: late ? 'crimson' : undefined }}>
-            {[t.day === today ? s.today : t.day, t.dueTime, siteName(t.projectId), personName(t.memberId)]
+            {[
+              t.day === today ? s.today : t.day,
+              t.dueTime,
+              siteName(t.projectId),
+              personName(t.memberId),
+            ]
               .filter(Boolean)
               .join(' · ')}
           </small>
@@ -193,7 +197,12 @@ export function TeamWork({ groupId }: { groupId: string }) {
         <span>{label(t.status)}</span>
         {access.canManage && canChange(t) ? (
           <>
-            <button type="button" className="btn soft" disabled={busy} onClick={() => setPanel({ kind: 'status', id: t.id })}>
+            <button
+              type="button"
+              className="btn soft"
+              disabled={busy}
+              onClick={() => setPanel({ kind: 'status', id: t.id })}
+            >
               {s.status}
             </button>
             {t.status !== 'done' && shiftDay(t.day, 1) <= maxTaskDay(today) ? (
@@ -274,7 +283,12 @@ export function TeamWork({ groupId }: { groupId: string }) {
               </label>
             ) : null}
             {access.canManage && access.people.length > 0 ? (
-              <button type="button" className="btn brand" disabled={busy} onClick={() => setPanel({ kind: 'add' })}>
+              <button
+                type="button"
+                className="btn brand"
+                disabled={busy}
+                onClick={() => setPanel({ kind: 'add' })}
+              >
                 {s.add}
               </button>
             ) : null}
@@ -301,7 +315,11 @@ export function TeamWork({ groupId }: { groupId: string }) {
               error={error}
               canSave={allowedPerson(panel.draft.memberId)}
               canRemovePhoto={access.canManage}
-              onSave={() => void write({ ...panel.draft, title: panel.draft.title.trim() }, () => setPanel(null))}
+              onSave={() =>
+                void write({ ...panel.draft, title: panel.draft.title.trim() }, () =>
+                  setPanel(null),
+                )
+              }
               onClose={() => setPanel(null)}
             />
           ) : null}
@@ -322,7 +340,11 @@ export function TeamWork({ groupId }: { groupId: string }) {
                         status,
                         blockedReason: null,
                         // Add to the task's note, never replace it.
-                        note: text ? (statusTask.note ? `${statusTask.note}\n${text}` : text) : statusTask.note,
+                        note: text
+                          ? statusTask.note
+                            ? `${statusTask.note}\n${text}`
+                            : text
+                          : statusTask.note,
                       };
                 void write(next, () => setPanel(null));
               }}
@@ -332,7 +354,14 @@ export function TeamWork({ groupId }: { groupId: string }) {
           {grouped.sections.length === 0 && grouped.done.length === 0 ? <p>{s.noTasks}</p> : null}
           {grouped.sections.map((sec) => (
             <section key={sec.key}>
-              <h3 style={{ color: sec.kind === 'overdue' || (sec.kind === 'person' && sec.alert > 0) ? 'crimson' : undefined }}>
+              <h3
+                style={{
+                  color:
+                    sec.kind === 'overdue' || (sec.kind === 'person' && sec.alert > 0)
+                      ? 'crimson'
+                      : undefined,
+                }}
+              >
                 {heading(sec)}
               </h3>
               {sec.tasks.map(row)}
@@ -340,13 +369,20 @@ export function TeamWork({ groupId }: { groupId: string }) {
           ))}
           {grouped.done.length > 0 ? (
             <section>
-              <button type="button" className="btn soft" aria-expanded={showDone} onClick={() => setShowDone((v) => !v)}>
+              <button
+                type="button"
+                className="btn soft"
+                aria-expanded={showDone}
+                onClick={() => setShowDone((v) => !v)}
+              >
                 {s.doneN.replace('{n}', String(grouped.done.length))}
               </button>
               {showDone ? grouped.done.map(row) : null}
             </section>
           ) : null}
-          {error && panel?.kind !== 'edit' && panel?.kind !== 'status' ? <p role="alert">{error}</p> : null}
+          {error && panel?.kind !== 'edit' && panel?.kind !== 'status' ? (
+            <p role="alert">{error}</p>
+          ) : null}
         </>
       )}
     </div>
@@ -379,7 +415,9 @@ function StatusPanel({
     <div className="card" style={{ padding: 12 }}>
       <h3>{`${s.updateStatus}: #${task.number ?? '—'} ${task.title}`}</h3>
       {[task.blockedReason, task.note].filter(Boolean).map((v, i) => (
-        <p key={i} style={{ whiteSpace: 'pre-wrap' }}>{v}</p>
+        <p key={i} style={{ whiteSpace: 'pre-wrap' }}>
+          {v}
+        </p>
       ))}
       <div className="row" style={{ gap: 8 }}>
         {STATUSES.map((st) => (
@@ -452,11 +490,20 @@ function EditTask({
       <h3>{s.edit}</h3>
       <label className="field">
         <span className="field-label">{s.titleField}</span>
-        <input value={draft.title} maxLength={200} disabled={busy} onChange={(e) => setDraft({ ...draft, title: e.target.value })} />
+        <input
+          value={draft.title}
+          maxLength={200}
+          disabled={busy}
+          onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+        />
       </label>
       <label className="field">
         <span className="field-label">{s.assignTo}</span>
-        <select value={draft.memberId} disabled={busy} onChange={(e) => setDraft({ ...draft, memberId: e.target.value })}>
+        <select
+          value={draft.memberId}
+          disabled={busy}
+          onChange={(e) => setDraft({ ...draft, memberId: e.target.value })}
+        >
           {people.map((p) => (
             <option key={p.id} value={p.id}>
               {memberName(p, '')}
@@ -467,7 +514,11 @@ function EditTask({
       {sites.length > 0 ? (
         <label className="field">
           <span className="field-label">{s.site}</span>
-          <select value={draft.projectId ?? ''} disabled={busy} onChange={(e) => setDraft({ ...draft, projectId: e.target.value || null })}>
+          <select
+            value={draft.projectId ?? ''}
+            disabled={busy}
+            onChange={(e) => setDraft({ ...draft, projectId: e.target.value || null })}
+          >
             <option value="">{s.noSite}</option>
             {sites.map((p) => (
               <option key={p.id} value={p.id}>
@@ -491,17 +542,36 @@ function EditTask({
       </label>
       <label className="field">
         <span className="field-label">{s.time}</span>
-        <input type="time" value={draft.dueTime ?? ''} disabled={busy} onChange={(e) => setDraft({ ...draft, dueTime: e.target.value || null })} />
+        <input
+          type="time"
+          value={draft.dueTime ?? ''}
+          disabled={busy}
+          onChange={(e) => setDraft({ ...draft, dueTime: e.target.value || null })}
+        />
       </label>
       <label className="field">
         <span className="field-label">{s.notesOptional}</span>
-        <textarea value={draft.note ?? ''} maxLength={200} disabled={busy} onChange={(e) => setDraft({ ...draft, note: e.target.value || null })} />
+        <textarea
+          value={draft.note ?? ''}
+          maxLength={200}
+          disabled={busy}
+          onChange={(e) => setDraft({ ...draft, note: e.target.value || null })}
+        />
       </label>
       {draft.blockedReason ? <p>{draft.blockedReason}</p> : null}
       <Photos taskId={draft.taskId} canRemove={canRemovePhoto} />
       {error ? <p role="alert">{error}</p> : null}
       <div className="row" style={{ gap: 8 }}>
-        <button type="submit" className="btn brand" disabled={busy || !draft.title.trim() || !canSave || (draft.projectId !== null && !sites.some((p) => p.id === draft.projectId))}>
+        <button
+          type="submit"
+          className="btn brand"
+          disabled={
+            busy ||
+            !draft.title.trim() ||
+            !canSave ||
+            (draft.projectId !== null && !sites.some((p) => p.id === draft.projectId))
+          }
+        >
           {s.save}
         </button>
         <button type="button" className="btn soft" disabled={busy} onClick={onClose}>
@@ -614,7 +684,13 @@ function AddTask({
       <h3>{s.add}</h3>
       <label className="field">
         <span className="field-label">{s.description}</span>
-        <textarea value={title} maxLength={200} placeholder={s.descriptionHint} disabled={busy} onChange={(e) => setTitle(e.target.value)} />
+        <textarea
+          value={title}
+          maxLength={200}
+          placeholder={s.descriptionHint}
+          disabled={busy}
+          onChange={(e) => setTitle(e.target.value)}
+        />
       </label>
       <fieldset>
         <legend>{s.assignTo}</legend>
@@ -624,7 +700,11 @@ function AddTask({
               type="checkbox"
               checked={ids.includes(p.id)}
               disabled={busy}
-              onChange={(e) => setIds((prev) => (e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id)))}
+              onChange={(e) =>
+                setIds((prev) =>
+                  e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id),
+                )
+              }
             />{' '}
             {memberName(p, '')}
           </label>
@@ -632,7 +712,15 @@ function AddTask({
       </fieldset>
       <label className="field">
         <span className="field-label">{s.due}</span>
-        <input type="date" required value={day} min={today} max={maxDay} disabled={busy} onChange={(e) => e.target.value && setDay(e.target.value)} />
+        <input
+          type="date"
+          required
+          value={day}
+          min={today}
+          max={maxDay}
+          disabled={busy}
+          onChange={(e) => e.target.value && setDay(e.target.value)}
+        />
       </label>
       <label className="field">
         <span className="field-label">{s.photoLabel}</span>
@@ -642,7 +730,10 @@ function AddTask({
           multiple
           disabled={busy || files.length >= MAX_TASK_PHOTOS}
           onChange={(e) => {
-            const picked = [...(e.target.files ?? [])].map((file) => ({ key: crypto.randomUUID(), file }));
+            const picked = [...(e.target.files ?? [])].map((file) => ({
+              key: crypto.randomUUID(),
+              file,
+            }));
             setFiles((prev) => [...prev, ...picked].slice(0, MAX_TASK_PHOTOS));
             e.target.value = '';
           }}
@@ -651,7 +742,12 @@ function AddTask({
       {files.map((f) => (
         <div key={f.key} className="row" style={{ gap: 8, alignItems: 'center' }}>
           <span>{f.file.name}</span>
-          <button type="button" className="btn soft" disabled={busy} onClick={() => setFiles((prev) => prev.filter((x) => x.key !== f.key))}>
+          <button
+            type="button"
+            className="btn soft"
+            disabled={busy}
+            onClick={() => setFiles((prev) => prev.filter((x) => x.key !== f.key))}
+          >
             {s.removePhoto}
           </button>
         </div>

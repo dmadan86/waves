@@ -201,15 +201,5 @@ export function useCalendarItems(
       }
     }
     return items.sort((a, b) => a.day.localeCompare(b.day) || a.title.localeCompare(b.title));
-  }, [
-    cal,
-    tasks,
-    money,
-    company.members,
-    labels.birthdayOf,
-    labels.anniversaryOf,
-    year,
-    month,
-  ]);
+  }, [cal, tasks, money, company.members, labels.birthdayOf, labels.anniversaryOf, year, month]);
 }
-

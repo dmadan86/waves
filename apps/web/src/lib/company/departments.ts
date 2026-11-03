@@ -30,7 +30,10 @@ function parse(raw: unknown): CompanyDepartment[] {
 
 export function useDepartments(groupId: string): readonly CompanyDepartment[] {
   const { group } = useCompanyView(groupId);
-  return useMemo(() => parse((group as { company_departments?: unknown } | null)?.company_departments), [group]);
+  return useMemo(
+    () => parse((group as { company_departments?: unknown } | null)?.company_departments),
+    [group],
+  );
 }
 
 export function departmentName(

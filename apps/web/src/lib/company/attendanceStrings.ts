@@ -10,7 +10,8 @@ export const attendanceStrings = {
   markAllPresent: 'Mark all present',
   markAllAbsent: 'Mark all absent',
   overwriteTitle: 'Replace existing marks?',
-  overwriteBody: (n: number) => `${n} people already have a different mark for this day. Replace them?`,
+  overwriteBody: (n: number) =>
+    `${n} people already have a different mark for this day. Replace them?`,
   search: 'Search employees...',
   daily: 'Daily',
   weekly: 'Weekly',

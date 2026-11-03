@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { canSetEmployment, employeeIdHolder, isEmploymentDate } from '../src/lib/company/employment';
+import {
+  canSetEmployment,
+  employeeIdHolder,
+  isEmploymentDate,
+} from '../src/lib/company/employment';
 import { asEmploymentType, listPeople, DEFAULT_PEOPLE_VIEW } from '../src/lib/company/people';
 
-const m = (o: object) => ({ id: 'a', role: 'member', manager_id: null, left_at: null, ...o }) as never;
+const m = (o: object) =>
+  ({ id: 'a', role: 'member', manager_id: null, left_at: null, ...o }) as never;
 
 describe('company ports', () => {
   it('validates employment dates', () => {

@@ -3,7 +3,12 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { advanceRecovered, flagsForEntry, materialiseCompanyProjects, reimbursedOn } from '@waves/core';
+import {
+  advanceRecovered,
+  flagsForEntry,
+  materialiseCompanyProjects,
+  reimbursedOn,
+} from '@waves/core';
 
 import { CompanyFrame } from '@/components/CompanyFrame';
 import { useEntryActions } from '@/lib/company/entryActions';
@@ -36,13 +41,19 @@ function Inner({ groupId, entryId }: { groupId: string; entryId: string }) {
     entry.coversClaims ||
     entry.kind === 'wage_payment' ||
     advanceRecovered(view.entries, entry);
-  const canWithdraw = !frozen && (view.isAdmin || (mine && ownKind && entry.createdBy === view.me?.id));
+  const canWithdraw =
+    !frozen && (view.isAdmin || (mine && ownKind && entry.createdBy === view.me?.id));
   const canEdit = !frozen && (view.isAdmin || (mine && ownKind));
   const paidOn = reimbursedOn(entry, view.entries);
   const flags = flagsForEntry(entry, view.entries, view.policies, view.receiptEntryIds);
   const blockFlag = flags.find((f) => f.effect === 'block');
   const ownerName = entry.paidByCompany ? s.companyPayer : memberName(owner, 'Someone');
-  const status = entry.status === 'submitted' ? s.awaiting : entry.status === 'rejected' ? s.rejected : s.approved;
+  const status =
+    entry.status === 'submitted'
+      ? s.awaiting
+      : entry.status === 'rejected'
+        ? s.rejected
+        : s.approved;
 
   const run = async (work: () => Promise<unknown>): Promise<boolean> => {
     setError(null);
@@ -64,20 +75,44 @@ function Inner({ groupId, entryId }: { groupId: string; entryId: string }) {
   };
 
   const projectName =
-    materialiseCompanyProjects(mirror, NO_QUEUE, { groupId }).find((p) => p.id === entry.projectId)?.name ?? null;
+    materialiseCompanyProjects(mirror, NO_QUEUE, { groupId }).find((p) => p.id === entry.projectId)
+      ?.name ?? null;
   const rows: [string, string | null][] = [
-    [s.kind, entry.kind === 'expense' && entry.category ? `${s.kinds.expense} (${entry.category})` : (s.kinds[entry.kind] ?? entry.kind)],
+    [
+      s.kind,
+      entry.kind === 'expense' && entry.category
+        ? `${s.kinds.expense} (${entry.category})`
+        : (s.kinds[entry.kind] ?? entry.kind),
+    ],
     [s.amount, fmt(entry.amount)],
     [s.date, entry.occurredOn],
     [s.paidBy, entry.paidByCompany ? s.companyPayer : view.isAdmin ? ownerName : null],
     [s.site, projectName],
-    [s.days, entry.calcMode === 'days_rate' && entry.days && entry.rateMinor !== null ? s.daysAt(entry.days, fmt(entry.rateMinor)) : null],
-    [s.mileage, entry.calcMode === 'distance_rate' && entry.distanceKm && entry.rateMinor !== null ? s.mileageAt(entry.distanceKm, fmt(entry.rateMinor)) : null],
-    [`${s.from} / ${s.to}`, entry.fromText || entry.toText ? `${entry.fromText ?? ''} - ${entry.toText ?? ''}` : null],
+    [
+      s.days,
+      entry.calcMode === 'days_rate' && entry.days && entry.rateMinor !== null
+        ? s.daysAt(entry.days, fmt(entry.rateMinor))
+        : null,
+    ],
+    [
+      s.mileage,
+      entry.calcMode === 'distance_rate' && entry.distanceKm && entry.rateMinor !== null
+        ? s.mileageAt(entry.distanceKm, fmt(entry.rateMinor))
+        : null,
+    ],
+    [
+      `${s.from} / ${s.to}`,
+      entry.fromText || entry.toText ? `${entry.fromText ?? ''} - ${entry.toText ?? ''}` : null,
+    ],
     [s.vendor, entry.vendor],
     [s.gstin, entry.gstin],
     [s.invoiceNo, entry.invoiceNo],
-    [s.gstAmount, entry.gstAmount !== null ? `${s.gstBefore} ${fmt(entry.amount - entry.gstAmount)} · ${fmt(entry.gstAmount)}` : null],
+    [
+      s.gstAmount,
+      entry.gstAmount !== null
+        ? `${s.gstBefore} ${fmt(entry.amount - entry.gstAmount)} · ${fmt(entry.gstAmount)}`
+        : null,
+    ],
     [s.note, entry.note],
     [s.reviewNote, entry.reviewNote],
   ];
@@ -86,12 +121,14 @@ function Inner({ groupId, entryId }: { groupId: string; entryId: string }) {
     <div className="card">
       <h1>{s.entry}</h1>
       <dl>
-        {rows.filter(([, v]) => v).map(([label, v]) => (
-          <div key={label}>
-            <dt className="faint">{label}</dt>
-            <dd>{v}</dd>
-          </div>
-        ))}
+        {rows
+          .filter(([, v]) => v)
+          .map(([label, v]) => (
+            <div key={label}>
+              <dt className="faint">{label}</dt>
+              <dd>{v}</dd>
+            </div>
+          ))}
         <div>
           <dt className="faint">{s.status}</dt>
           <dd>
@@ -109,7 +146,11 @@ function Inner({ groupId, entryId }: { groupId: string; entryId: string }) {
             <p key={f.ruleId} className="faint">
               {f.code === 'RECEIPT'
                 ? s.policyHintReceipt(fmt(f.limitMinor))
-                : s.policyHintLimit(fmt(f.actualMinor), f.period === 'day' ? s.perDay : s.perMonth, fmt(f.limitMinor))}
+                : s.policyHintLimit(
+                    fmt(f.actualMinor),
+                    f.period === 'day' ? s.perDay : s.perMonth,
+                    fmt(f.limitMinor),
+                  )}
             </p>
           ))}
         </div>
@@ -127,7 +168,10 @@ function Inner({ groupId, entryId }: { groupId: string; entryId: string }) {
         </section>
       )}
 
-      {view.isAdmin && entry.status === 'submitted' && view.needsOtherOwner(entry) && !view.canApprove(entry) ? (
+      {view.isAdmin &&
+      entry.status === 'submitted' &&
+      view.needsOtherOwner(entry) &&
+      !view.canApprove(entry) ? (
         <p className="faint">{s.needsOtherOwner}</p>
       ) : null}
 
@@ -146,13 +190,20 @@ function Inner({ groupId, entryId }: { groupId: string; entryId: string }) {
               disabled={busy || !rejectNote.trim()}
               onClick={() =>
                 void run(() =>
-                  actions.review({ entryId: entry.id, to: 'rejected', note: rejectNote.trim(), expectedVersion: entry.version }),
+                  actions.review({
+                    entryId: entry.id,
+                    to: 'rejected',
+                    note: rejectNote.trim(),
+                    expectedVersion: entry.version,
+                  }),
                 ).then((ok) => ok && setRejecting(false))
               }
             >
               {s.rejectConfirm}
             </button>{' '}
-            <button type="button" className="btn soft" onClick={() => setRejecting(false)}>{s.cancel}</button>
+            <button type="button" className="btn soft" onClick={() => setRejecting(false)}>
+              {s.cancel}
+            </button>
           </div>
         ) : (
           <div>
@@ -160,26 +211,50 @@ function Inner({ groupId, entryId }: { groupId: string; entryId: string }) {
               type="button"
               className="btn brand"
               disabled={busy || !!entry.pending || !!blockFlag}
-              onClick={() => void run(() => actions.review({ entryId: entry.id, to: 'approved', expectedVersion: entry.version }))}
+              onClick={() =>
+                void run(() =>
+                  actions.review({
+                    entryId: entry.id,
+                    to: 'approved',
+                    expectedVersion: entry.version,
+                  }),
+                )
+              }
             >
               {s.approve}
             </button>{' '}
-            <button type="button" className="btn soft" disabled={busy || !!entry.pending} onClick={() => setRejecting(true)}>
+            <button
+              type="button"
+              className="btn soft"
+              disabled={busy || !!entry.pending}
+              onClick={() => setRejecting(true)}
+            >
               {s.reject}
             </button>
           </div>
         )
       ) : null}
 
-      {blockFlag && view.isAdmin ? <p role="alert">{s.policyBlocked(fmt(blockFlag.limitMinor))}</p> : null}
+      {blockFlag && view.isAdmin ? (
+        <p role="alert">{s.policyBlocked(fmt(blockFlag.limitMinor))}</p>
+      ) : null}
       {error ? <p role="alert">{error}</p> : null}
 
       <div>
         {canEdit ? (
-          <Link className="btn soft" href={`/c/${groupId}/entry/${entry.id}/edit`}>{s.edit}</Link>
+          <Link className="btn soft" href={`/c/${groupId}/entry/${entry.id}/edit`}>
+            {s.edit}
+          </Link>
         ) : null}{' '}
         {canWithdraw ? (
-          <button type="button" className="btn soft" disabled={busy} onClick={() => void withdraw()}>{s.removeEntry}</button>
+          <button
+            type="button"
+            className="btn soft"
+            disabled={busy}
+            onClick={() => void withdraw()}
+          >
+            {s.removeEntry}
+          </button>
         ) : null}
       </div>
       <p className="faint">{view.isAdmin ? s.privacyAdmin : s.privacyEmployee}</p>

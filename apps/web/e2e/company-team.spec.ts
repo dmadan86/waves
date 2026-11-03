@@ -1,9 +1,19 @@
 import { test, expect } from '@playwright/test';
 
-import { EMP_MEMBER, EMP_PROFILE, GROUP, employeeMirror, mockBackend, people, signInAs } from './support/company';
+import {
+  EMP_MEMBER,
+  EMP_PROFILE,
+  GROUP,
+  employeeMirror,
+  mockBackend,
+  people,
+  signInAs,
+} from './support/company';
 
 test.describe('company team slice (fixtures, no real account)', () => {
-  test('add entry sends company_entry.create with the typed amount, note and date', async ({ page }) => {
+  test('add entry sends company_entry.create with the typed amount, note and date', async ({
+    page,
+  }) => {
     await signInAs(page, EMP_PROFILE);
     const backend = await mockBackend(page, {
       changes: employeeMirror(),

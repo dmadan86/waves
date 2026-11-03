@@ -38,7 +38,10 @@ function TeamBody({ groupId }: { groupId: string }) {
           onChange={choose}
           tabs={[
             ...(access.canManage ? [{ value: 'people' as const, label: s.people }] : []),
-            { value: 'attendance' as const, label: access.canManage ? s.attendance : s.myAttendance },
+            {
+              value: 'attendance' as const,
+              label: access.canManage ? s.attendance : s.myAttendance,
+            },
             { value: 'work' as const, label: access.canManage ? s.work : s.myTasks },
           ]}
         />

@@ -41,7 +41,9 @@ export default function CompanyStatementPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const [lastPay, setLastPay] = useState<{ reimbursementId: string; claimIds: string[] } | null>(null);
+  const [lastPay, setLastPay] = useState<{ reimbursementId: string; claimIds: string[] } | null>(
+    null,
+  );
 
   // The member list only holds who this viewer may read, so a guessed id finds nothing.
   const member = view.members.find((m) => m.id === memberId) ?? null;
@@ -54,7 +56,9 @@ export default function CompanyStatementPage() {
     return companyStatement(view.entries, { memberId, from, to });
   }, [view.entries, memberId, period]);
 
-  const { due } = view.isAdmin ? employeeDue(view.entries, memberId) : { due: [] as CompanyEntry[] };
+  const { due } = view.isAdmin
+    ? employeeDue(view.entries, memberId)
+    : { due: [] as CompanyEntry[] };
   const preview = buildReimbursementPreview(view.entries, {
     memberId,
     ids: [...picked],
@@ -121,20 +125,21 @@ export default function CompanyStatementPage() {
     return (outcome?.alreadyPaid ?? [])
       .filter((a) => a.by)
       .map((a) => {
-        const payer = memberName(view.members.find((m) => m.id === a.by), 'Someone');
+        const payer = memberName(
+          view.members.find((m) => m.id === a.by),
+          'Someone',
+        );
         return a.count === 1
           ? fillText(s.payAlreadyOne, { name: payer })
           : fillText(s.payAlreadyMany, { count: a.count, name: payer });
       });
   }, [lastPay, view.entries, view.members]);
 
-  const bubbles = [
-    ...statement.rows.map(({ entry }) => entry),
-    ...statement.pending,
-  ].sort((a, b) =>
-    a.occurredOn === b.occurredOn
-      ? a.createdAt.localeCompare(b.createdAt)
-      : a.occurredOn.localeCompare(b.occurredOn),
+  const bubbles = [...statement.rows.map(({ entry }) => entry), ...statement.pending].sort(
+    (a, b) =>
+      a.occurredOn === b.occurredOn
+        ? a.createdAt.localeCompare(b.createdAt)
+        : a.occurredOn.localeCompare(b.occurredOn),
   );
 
   const text = (): string => statementText(statement, view.name, who, fmt);
@@ -293,8 +298,7 @@ export default function CompanyStatementPage() {
                     return (
                       <li key={e.id} style={{ opacity: waiting ? 0.7 : 1 }}>
                         <Link href={`/c/${groupId}/entry/${e.id}`}>
-                          {fmt(e.amount)} ·{' '}
-                          {wage ? s.paidWages : gave ? s.gaveMoney : kindLabel(e)}
+                          {fmt(e.amount)} · {wage ? s.paidWages : gave ? s.gaveMoney : kindLabel(e)}
                           {formula ? ` · ${formula}` : ''}
                           {e.note ? ` · ${e.note}` : ''} · {e.occurredOn}
                           {waiting ? ` · ${e.status === 'rejected' ? s.rejected : s.awaiting}` : ''}

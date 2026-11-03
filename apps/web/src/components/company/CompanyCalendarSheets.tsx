@@ -9,7 +9,8 @@ import { calendarStrings as s } from '@/lib/company/calendarStrings';
 import { memberName, todayIso, useCompanyView } from '@/lib/company/view';
 import { useProjects } from '@/lib/company/calendarProjects';
 
-const iso = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`));
+const iso = (v: string) =>
+  /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T00:00:00Z`));
 const days = (a: string, b: string) =>
   Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86400000) + 1;
 function shift(day: string, n: number) {
@@ -98,10 +99,22 @@ export function CalendarChooser({
 }) {
   const access = useCalendarAccess(groupId);
   const choices: [ChooserKind, string][] = access.isOwner
-    ? [['holiday', s.addHoliday], ['event', s.addEvent], ['leave-record', s.recordLeave], ['dates', s.myDates]]
+    ? [
+        ['holiday', s.addHoliday],
+        ['event', s.addEvent],
+        ['leave-record', s.recordLeave],
+        ['dates', s.myDates],
+      ]
     : access.canManage
-      ? [['event', s.addEvent], ['leave-record', s.recordLeave], ['dates', s.myDates]]
-      : [['leave-request', s.requestLeave], ['dates', s.myDates]];
+      ? [
+          ['event', s.addEvent],
+          ['leave-record', s.recordLeave],
+          ['dates', s.myDates],
+        ]
+      : [
+          ['leave-request', s.requestLeave],
+          ['dates', s.myDates],
+        ];
   return (
     <div className="card" style={{ display: 'grid', gap: 8 }}>
       {choices.map(([key, label]) => (
@@ -147,7 +160,12 @@ export function HolidayForm({
       disabled={suspended}
       onClose={onClose}
       onSave={() =>
-        act.setHoliday({ id: holiday?.id ?? crypto.randomUUID(), name: name.trim(), startDay: start, endDay: end })
+        act.setHoliday({
+          id: holiday?.id ?? crypto.randomUUID(),
+          name: name.trim(),
+          startDay: start,
+          endDay: end,
+        })
       }
       onRemove={holiday ? () => act.removeHoliday({ id: holiday.id }) : undefined}
     >
@@ -238,7 +256,8 @@ export function EventForm({
       <span className="faint">{s.eventPeople}</span>
       {view.isOwner ? (
         <label>
-          <input type="checkbox" checked={people.length === 0} onChange={() => setPeople([])} /> {s.eventEveryone}
+          <input type="checkbox" checked={people.length === 0} onChange={() => setPeople([])} />{' '}
+          {s.eventEveryone}
         </label>
       ) : null}
       {eligible.map((p) => (
@@ -280,7 +299,8 @@ export function LeaveForm({
       (view.isOwner ? p.id !== access.meId : view.manageableIds.has(p.id)),
   );
   const overlap = cal.leave.some(
-    (l) => l.memberId === memberId && l.status !== 'rejected' && l.startDay <= end && l.endDay >= start,
+    (l) =>
+      l.memberId === memberId && l.status !== 'rejected' && l.startDay <= end && l.endDay >= start,
   );
   const error =
     !iso(start) || !iso(end) || end < start || days(start, end) > 60
@@ -372,7 +392,11 @@ export function LeaveDecision({
         {leave.startDay} – {leave.endDay}
       </span>
       <span>
-        {leave.kind === 'casual' ? s.leaveCasual : leave.kind === 'sick' ? s.leaveSick : s.leaveOther}
+        {leave.kind === 'casual'
+          ? s.leaveCasual
+          : leave.kind === 'sick'
+            ? s.leaveSick
+            : s.leaveOther}
         {leave.halfDay ? ` · ${s.halfDay}` : ''}
       </span>
       {leave.reason ? <span>{leave.reason}</span> : null}
@@ -418,7 +442,12 @@ export function MyDatesForm({
   const today = todayIso();
   const birthdayValid =
     (!birth && !month) ||
-    (Number.isInteger(+birth) && +birth >= 1 && +birth <= 31 && Number.isInteger(+month) && +month >= 1 && +month <= 12);
+    (Number.isInteger(+birth) &&
+      +birth >= 1 &&
+      +birth <= 31 &&
+      Number.isInteger(+month) &&
+      +month >= 1 &&
+      +month <= 12);
   const error = !birthdayValid
     ? s.errBirthday
     : joined && (!iso(joined) || joined > today || joined < '1980-01-01')
@@ -456,7 +485,12 @@ export function MyDatesForm({
           <span className="faint"> {s.showBirthdayHint}</span>
         </label>
       ) : null}
-      <button type="button" className="btn soft" disabled={view.suspended || !id} onClick={() => void write(true).then(onClose)}>
+      <button
+        type="button"
+        className="btn soft"
+        disabled={view.suspended || !id}
+        onClick={() => void write(true).then(onClose)}
+      >
         {s.clear}
       </button>
     </Panel>

@@ -26,11 +26,7 @@ import {
   isNotEmployed,
 } from '@/lib/company/employment';
 import { useCalendar, useCalendarActions } from '@/lib/company/calendar';
-import {
-  asEmploymentType,
-  canSetEmploymentType,
-  EMPLOYMENT_TYPES,
-} from '@/lib/company/people';
+import { asEmploymentType, canSetEmploymentType, EMPLOYMENT_TYPES } from '@/lib/company/people';
 import { memberName, todayIso, useCompanyView, type CompanyMember } from '@/lib/company/view';
 import { useAttendance, useWorkTasks } from '@/lib/company/workday';
 import { NO_QUEUE, useSync } from '@/lib/sync';
@@ -79,13 +75,18 @@ export function CompanyEmployeePanel({ groupId, memberId }: { groupId: string; m
   const history = hasHistory(member.id, view.entries, marks, tasks);
   const dates = calendar.dates.get(member.id);
   const name = memberName(member, 'Someone');
-  const manager = member.manager_id ? view.members.find((m) => m.id === member.manager_id) : undefined;
+  const manager = member.manager_id
+    ? view.members.find((m) => m.id === member.manager_id)
+    : undefined;
   const rate = (minor: string | null | undefined, fallback: string | null | undefined): string => {
     const v = minor ?? fallback;
     return v ? format(money(BigInt(v), view.currency as CurrencyCode), { locale }) : s.notSet;
   };
 
-  const run = async (work: () => Promise<unknown>, onError?: (e: unknown) => string): Promise<boolean> => {
+  const run = async (
+    work: () => Promise<unknown>,
+    onError?: (e: unknown) => string,
+  ): Promise<boolean> => {
     if (busy) return false;
     setBusy(true);
     setError(null);
@@ -103,7 +104,9 @@ export function CompanyEmployeePanel({ groupId, memberId }: { groupId: string; m
   const remove = async (): Promise<void> => {
     if (!window.confirm(s.removeConfirm.replace('{name}', name))) return;
     const done = await run(async () => {
-      const { error: rpcError } = await supabase.rpc('waves_remove_member', { p_member_id: member.id });
+      const { error: rpcError } = await supabase.rpc('waves_remove_member', {
+        p_member_id: member.id,
+      });
       if (rpcError) throw new Error(rpcError.message);
       await refresh();
     });
@@ -127,7 +130,11 @@ export function CompanyEmployeePanel({ groupId, memberId }: { groupId: string; m
             <>
               {member.employee_id || <span className="faint">{s.notSet}</span>}{' '}
               {canEdit ? (
-                <button type="button" className="linklike" onClick={() => setEditingId(member.employee_id ?? '')}>
+                <button
+                  type="button"
+                  className="linklike"
+                  onClick={() => setEditingId(member.employee_id ?? '')}
+                >
                   {s.edit}
                 </button>
               ) : null}
@@ -139,11 +146,15 @@ export function CompanyEmployeePanel({ groupId, memberId }: { groupId: string; m
               onCancel={() => setEditingId(null)}
               onSave={async (raw) => {
                 const id = normaliseEmployeeId(raw);
-                const ok = await run(async () => {
-                  if (id && (await actions.isEmployeeIdTaken(view.members, id, member.id)))
-                    throw new Error('TAKEN');
-                  await actions.setEmployeeId({ memberId: member.id, employeeId: id || null });
-                }, (e) => (e instanceof Error && e.message === 'TAKEN' ? s.employeeIdTaken : s.failed));
+                const ok = await run(
+                  async () => {
+                    if (id && (await actions.isEmployeeIdTaken(view.members, id, member.id)))
+                      throw new Error('TAKEN');
+                    await actions.setEmployeeId({ memberId: member.id, employeeId: id || null });
+                  },
+                  (e) =>
+                    e instanceof Error && e.message === 'TAKEN' ? s.employeeIdTaken : s.failed,
+                );
                 if (ok) setEditingId(null);
               }}
             />
@@ -159,7 +170,11 @@ export function CompanyEmployeePanel({ groupId, memberId }: { groupId: string; m
                   aria-label={s.employmentType}
                   onChange={(e) =>
                     void run(
-                      () => actions.setEmploymentType({ memberId: member.id, employmentType: e.target.value || null }),
+                      () =>
+                        actions.setEmploymentType({
+                          memberId: member.id,
+                          employmentType: e.target.value || null,
+                        }),
                       (err) => s[employmentErrorKey(err)],
                     )
                   }
@@ -173,7 +188,7 @@ export function CompanyEmployeePanel({ groupId, memberId }: { groupId: string; m
                   ))}
                 </select>
               ) : (
-                TYPE_LABEL[member.employment_type ?? ''] ?? s.typeNone
+                (TYPE_LABEL[member.employment_type ?? ''] ?? s.typeNone)
               )}
             </Row>
             <Row label={s.department}>
@@ -184,7 +199,10 @@ export function CompanyEmployeePanel({ groupId, memberId }: { groupId: string; m
                   aria-label={s.department}
                   onChange={(e) =>
                     void run(() =>
-                      departments.setMemberDepartment({ memberId: member.id, departmentId: e.target.value || null }),
+                      departments.setMemberDepartment({
+                        memberId: member.id,
+                        departmentId: e.target.value || null,
+                      }),
                     )
                   }
                   style={{ width: 'auto' }}
@@ -197,11 +215,13 @@ export function CompanyEmployeePanel({ groupId, memberId }: { groupId: string; m
                   ))}
                 </select>
               ) : (
-                departmentName(departments.list, member.department_id) ?? s.departmentNone
+                (departmentName(departments.list, member.department_id) ?? s.departmentNone)
               )}
             </Row>
             <Row label={s.reportsTo}>{manager ? memberName(manager, 'Someone') : s.owners}</Row>
-            <Row label={s.dailyRate}>{rate(member.daily_rate_minor, view.group?.company_default_daily_rate_minor)}</Row>
+            <Row label={s.dailyRate}>
+              {rate(member.daily_rate_minor, view.group?.company_default_daily_rate_minor)}
+            </Row>
             <Row label={s.mileageRate}>
               {rate(
                 (member as { mileage_rate_minor?: string | null }).mileage_rate_minor,
@@ -221,12 +241,24 @@ export function CompanyEmployeePanel({ groupId, memberId }: { groupId: string; m
         </Row>
       </div>
 
-      {canDates ? <DatesForm key={`${calendar.dates.size}:${calendar.dates.get(member.id)?.birthDay ?? ''}:${calendar.dates.get(member.id)?.joinedOn ?? ''}`} groupId={groupId} memberId={member.id} own={own} /> : null}
+      {canDates ? (
+        <DatesForm
+          key={`${calendar.dates.size}:${calendar.dates.get(member.id)?.birthDay ?? ''}:${calendar.dates.get(member.id)?.joinedOn ?? ''}`}
+          groupId={groupId}
+          memberId={member.id}
+          own={own}
+        />
+      ) : null}
       <TeamCard groupId={groupId} member={member} />
       {canEmployment ? <EmploymentControl groupId={groupId} member={member} /> : null}
       {canDelete ? (
         <div>
-          <button type="button" className="btn soft" disabled={busy || history} onClick={() => void remove()}>
+          <button
+            type="button"
+            className="btn soft"
+            disabled={busy || history}
+            onClick={() => void remove()}
+          >
             {s.remove}
           </button>
           {history ? <p className="faint">{s.removeHasHistory}</p> : null}
@@ -251,7 +283,12 @@ function IdEditor({
   const [value, setValue] = useState(initial);
   return (
     <span>
-      <input value={value} maxLength={EMPLOYEE_ID_MAX} aria-label={s.employeeId} onChange={(e) => setValue(e.target.value)} />{' '}
+      <input
+        value={value}
+        maxLength={EMPLOYEE_ID_MAX}
+        aria-label={s.employeeId}
+        onChange={(e) => setValue(e.target.value)}
+      />{' '}
       <button type="button" className="btn brand" disabled={busy} onClick={() => onSave(value)}>
         {s.save}
       </button>{' '}
@@ -263,7 +300,15 @@ function IdEditor({
 }
 
 /** My dates: birthday and joining date (own row, or an owner/manager editing a report). */
-function DatesForm({ groupId, memberId, own }: { groupId: string; memberId: string; own: boolean }) {
+function DatesForm({
+  groupId,
+  memberId,
+  own,
+}: {
+  groupId: string;
+  memberId: string;
+  own: boolean;
+}) {
   const calendar = useCalendar(groupId);
   const { setDates } = useCalendarActions(groupId);
   const cur = calendar.dates.get(memberId);
@@ -278,12 +323,15 @@ function DatesForm({ groupId, memberId, own }: { groupId: string; memberId: stri
   const save = async (clear: boolean): Promise<void> => {
     const bad =
       !clear &&
-      ((!!day !== !!month ||
+      (!!day !== !!month ||
         (day !== '' && !(+day >= 1 && +day <= 31 && Number.isInteger(+day))) ||
         (month !== '' && !(+month >= 1 && +month <= 12 && Number.isInteger(+month)))) &&
-        s.errBirthday);
+      s.errBirthday;
     const badJoin =
-      !clear && joined && (!isEmploymentDate(joined) || joined > todayIso() || joined < '1980-01-01') && s.errDate;
+      !clear &&
+      joined &&
+      (!isEmploymentDate(joined) || joined > todayIso() || joined < '1980-01-01') &&
+      s.errDate;
     if (bad || badJoin) return setErr((bad || badJoin) as string);
     setBusy(true);
     setErr(null);
@@ -311,17 +359,40 @@ function DatesForm({ groupId, memberId, own }: { groupId: string; memberId: stri
     );
   return (
     <div className="field">
-      <input inputMode="numeric" placeholder={s.birthDay} aria-label={s.birthDay} value={day} onChange={(e) => setDay(e.target.value)} />
-      <input inputMode="numeric" placeholder={s.birthMonth} aria-label={s.birthMonth} value={month} onChange={(e) => setMonth(e.target.value)} />
-      <input placeholder={s.joinedOn} aria-label={s.joinedOn} value={joined} onChange={(e) => setJoined(e.target.value)} />
+      <input
+        inputMode="numeric"
+        placeholder={s.birthDay}
+        aria-label={s.birthDay}
+        value={day}
+        onChange={(e) => setDay(e.target.value)}
+      />
+      <input
+        inputMode="numeric"
+        placeholder={s.birthMonth}
+        aria-label={s.birthMonth}
+        value={month}
+        onChange={(e) => setMonth(e.target.value)}
+      />
+      <input
+        placeholder={s.joinedOn}
+        aria-label={s.joinedOn}
+        value={joined}
+        onChange={(e) => setJoined(e.target.value)}
+      />
       {own ? (
         <label>
-          <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} /> {s.showBirthday}
+          <input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />{' '}
+          {s.showBirthday}
         </label>
       ) : null}
       {err ? <p className="error">{err}</p> : null}
       <div>
-        <button type="button" className="btn brand" disabled={busy} onClick={() => void save(false)}>
+        <button
+          type="button"
+          className="btn brand"
+          disabled={busy}
+          onClick={() => void save(false)}
+        >
           {s.save}
         </button>{' '}
         <button type="button" className="btn soft" disabled={busy} onClick={() => void save(true)}>
@@ -344,14 +415,18 @@ function TeamCard({ groupId, member }: { groupId: string; member: CompanyMember 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const projects = useMemo(
-    () => materialiseCompanyProjects(mirror, NO_QUEUE, { groupId }).filter((p) => !p.deleted_at && !p.archived_at),
+    () =>
+      materialiseCompanyProjects(mirror, NO_QUEUE, { groupId }).filter(
+        (p) => !p.deleted_at && !p.archived_at,
+      ),
     [mirror, groupId],
   );
   const onSites = useMemo(
     () => materialiseProjectMembers(mirror, NO_QUEUE, { groupId }).get(member.id) ?? [],
     [mirror, groupId, member.id],
   );
-  if (!view.isOwner || view.suspended || member.id === view.me?.id || member.role === 'admin') return null;
+  if (!view.isOwner || view.suspended || member.id === view.me?.id || member.role === 'admin')
+    return null;
 
   const managers = view.members.filter((m) => m.role === 'manager' && !m.left_at);
   const isManager = member.role === 'manager';
@@ -393,9 +468,18 @@ function TeamCard({ groupId, member }: { groupId: string; member: CompanyMember 
       {!isManager && managers.length > 0 ? (
         <div>
           <p className="field-label">{s.reportsTo}</p>
-          <input placeholder={s.reason} aria-label={s.reason} value={reason} maxLength={200} onChange={(e) => setReason(e.target.value)} />
+          <input
+            placeholder={s.reason}
+            aria-label={s.reason}
+            value={reason}
+            maxLength={200}
+            onChange={(e) => setReason(e.target.value)}
+          />
           <div className="people">
-            {[{ id: '', label: s.owners }, ...managers.map((m) => ({ id: m.id, label: memberName(m, 'Someone') }))].map((o) => (
+            {[
+              { id: '', label: s.owners },
+              ...managers.map((m) => ({ id: m.id, label: memberName(m, 'Someone') })),
+            ].map((o) => (
               <button
                 key={o.id}
                 type="button"
@@ -403,7 +487,13 @@ function TeamCard({ groupId, member }: { groupId: string; member: CompanyMember 
                 disabled={busy}
                 onClick={() =>
                   o.id !== (member.manager_id ?? '') &&
-                  void go(() => actions.assign({ memberId: member.id, managerId: o.id || null, reason: reason.trim() }))
+                  void go(() =>
+                    actions.assign({
+                      memberId: member.id,
+                      managerId: o.id || null,
+                      reason: reason.trim(),
+                    }),
+                  )
                 }
               >
                 {o.label}
@@ -459,12 +549,18 @@ function EmploymentControl({ groupId, member }: { groupId: string; member: Compa
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const holder = member.employee_id ? employeeIdHolder(view.members, member.employee_id, member.id) : undefined;
+  const holder = member.employee_id
+    ? employeeIdHolder(view.members, member.employee_id, member.id)
+    : undefined;
   const send = async (input: Parameters<typeof actions.setEmployment>[0]): Promise<void> => {
     setBusy(true);
     setError(null);
     try {
-      if (input.employed && input.newEmployeeId && (await actions.isEmployeeIdTaken(view.members, input.newEmployeeId, member.id)))
+      if (
+        input.employed &&
+        input.newEmployeeId &&
+        (await actions.isEmployeeIdTaken(view.members, input.newEmployeeId, member.id))
+      )
         throw new Error('EMPLOYEE_ID_TAKEN');
       await actions.setEmployment(input);
       setOpen(false);
@@ -485,7 +581,10 @@ function EmploymentControl({ groupId, member }: { groupId: string; member: Compa
     void send({ memberId: member.id, employed: false, endedOn: date || null, note });
   };
   const markIn = async (): Promise<void> => {
-    if (member.employee_id && (holder || (await actions.isEmployeeIdTaken(view.members, member.employee_id, member.id)))) {
+    if (
+      member.employee_id &&
+      (holder || (await actions.isEmployeeIdTaken(view.members, member.employee_id, member.id)))
+    ) {
       setConflict(true);
       setOpen(true);
       return;
@@ -496,14 +595,30 @@ function EmploymentControl({ groupId, member }: { groupId: string; member: Compa
   return (
     <div className="card">
       {!open ? (
-        <button type="button" className="btn soft" disabled={busy} onClick={() => (employed ? setOpen(true) : void markIn())}>
+        <button
+          type="button"
+          className="btn soft"
+          disabled={busy}
+          onClick={() => (employed ? setOpen(true) : void markIn())}
+        >
           {employed ? s.markNotEmployed : s.markEmployed}
         </button>
       ) : employed ? (
         <div className="field">
           <p className="faint">{s.employmentHint}</p>
-          <input placeholder={s.endedOn} aria-label={s.endedOn} value={endedOn} onChange={(e) => setEndedOn(e.target.value)} />
-          <input placeholder={s.note} aria-label={s.note} value={note} maxLength={200} onChange={(e) => setNote(e.target.value.slice(0, 200))} />
+          <input
+            placeholder={s.endedOn}
+            aria-label={s.endedOn}
+            value={endedOn}
+            onChange={(e) => setEndedOn(e.target.value)}
+          />
+          <input
+            placeholder={s.note}
+            aria-label={s.note}
+            value={note}
+            maxLength={200}
+            onChange={(e) => setNote(e.target.value.slice(0, 200))}
+          />
           <div>
             <button type="button" className="btn brand" disabled={busy} onClick={markOut}>
               {s.markNotEmployed}
@@ -520,15 +635,29 @@ function EmploymentControl({ groupId, member }: { groupId: string; member: Compa
               .replace('{id}', member.employee_id ?? '')
               .replace('{name}', holder ? memberName(holder, 'Someone') : 'someone')}
           </p>
-          <button type="button" className="btn soft" disabled={busy} onClick={() => void send({ memberId: member.id, employed: true, clearEmployeeId: true })}>
+          <button
+            type="button"
+            className="btn soft"
+            disabled={busy}
+            onClick={() =>
+              void send({ memberId: member.id, employed: true, clearEmployeeId: true })
+            }
+          >
             {s.restoreWithoutId}
           </button>
-          <input placeholder={s.newEmployeeId} aria-label={s.newEmployeeId} value={newId} onChange={(e) => setNewId(e.target.value)} />
+          <input
+            placeholder={s.newEmployeeId}
+            aria-label={s.newEmployeeId}
+            value={newId}
+            onChange={(e) => setNewId(e.target.value)}
+          />
           <button
             type="button"
             className="btn brand"
             disabled={busy || !newId.trim()}
-            onClick={() => void send({ memberId: member.id, employed: true, newEmployeeId: newId.trim() })}
+            onClick={() =>
+              void send({ memberId: member.id, employed: true, newEmployeeId: newId.trim() })
+            }
           >
             {s.pickNewId}
           </button>{' '}
@@ -560,22 +689,41 @@ function AttendanceMonth({ groupId, memberId }: { groupId: string; memberId: str
     const day = `${month}-${String(i + 1).padStart(2, '0')}`;
     return { day, status: marks.get(`${memberId}|${day}`)?.status };
   }).filter((r) => r.status);
-  const present = rows.filter((r) => r.status === 'present').length + rows.filter((r) => r.status === 'half').length / 2;
-  const monthName = new Date(`${month}-01T00:00:00Z`).toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const present =
+    rows.filter((r) => r.status === 'present').length +
+    rows.filter((r) => r.status === 'half').length / 2;
+  const monthName = new Date(`${month}-01T00:00:00Z`).toLocaleDateString(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 
   return (
     <div className="card">
       <div className="panel-head">
         <span className="title grow">{s.attendance}</span>
-        <button type="button" className="icon-btn" aria-label={s.prevMonth} onClick={() => setMonth(shiftMonth(month, -1))}>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={s.prevMonth}
+          onClick={() => setMonth(shiftMonth(month, -1))}
+        >
           ‹
         </button>
         <span>{monthName}</span>
-        <button type="button" className="icon-btn" aria-label={s.nextMonth} disabled={month >= thisMonth} onClick={() => setMonth(shiftMonth(month, 1))}>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={s.nextMonth}
+          disabled={month >= thisMonth}
+          onClick={() => setMonth(shiftMonth(month, 1))}
+        >
           ›
         </button>
       </div>
-      <p className="faint">{s.daysPresent.replace('{n}', String(present)).replace('{month}', monthName)}</p>
+      <p className="faint">
+        {s.daysPresent.replace('{n}', String(present)).replace('{month}', monthName)}
+      </p>
       {rows.length === 0 ? (
         <p className="faint">{s.noMarks}</p>
       ) : (
@@ -589,7 +737,14 @@ function AttendanceMonth({ groupId, memberId }: { groupId: string; memberId: str
           <tbody>
             {rows.map((r) => (
               <tr key={r.day}>
-                <td>{new Date(`${r.day}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', weekday: 'short', timeZone: 'UTC' })}</td>
+                <td>
+                  {new Date(`${r.day}T00:00:00Z`).toLocaleDateString(locale, {
+                    day: 'numeric',
+                    month: 'short',
+                    weekday: 'short',
+                    timeZone: 'UTC',
+                  })}
+                </td>
                 <td>{label[r.status!]}</td>
               </tr>
             ))}

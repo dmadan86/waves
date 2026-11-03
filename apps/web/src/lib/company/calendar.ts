@@ -30,13 +30,19 @@ export { workedDaysText };
 export function useCalendar(groupId: string): MirrorCalendar {
   const { mirror } = useSync();
   const meId = useCompanyView(groupId).me?.id ?? null;
-  return useMemo(() => materialiseCalendar(mirror, NO_QUEUE, { groupId, meId }), [mirror, groupId, meId]);
+  return useMemo(
+    () => materialiseCalendar(mirror, NO_QUEUE, { groupId, meId }),
+    [mirror, groupId, meId],
+  );
 }
 
 type GroupSwitches = { company_paid_holidays?: boolean; company_paid_leave?: boolean };
 
 /** The two per-company wage switches (owner sets them). */
-export function useCalendarSettings(groupId: string): { paidHolidays: boolean; paidLeave: boolean } {
+export function useCalendarSettings(groupId: string): {
+  paidHolidays: boolean;
+  paidLeave: boolean;
+} {
   const { group } = useCompanyView(groupId);
   return {
     paidHolidays: (group as GroupSwitches | null)?.company_paid_holidays !== false,
