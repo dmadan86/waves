@@ -35,22 +35,18 @@ export const ROWS: readonly DetailKey[] = [
 
 /** "Noted" is remembered on this browser only, keyed by card + change time; nothing is synced. */
 export function useNoted(key: string | null) {
-  const [seen, setSeen] = useState<{ key: string; noted: boolean } | null>(null);
-  useEffect(() => {
-    if (!key) return;
-    let noted = false;
-    try {
-      noted = window.localStorage.getItem(key) === '1';
-    } catch {
-      // storage blocked: show the notice
-    }
-    setSeen({ key, noted });
-  }, [key]);
-  // Hidden until this browser's answer for this exact change has loaded.
-  const noted = key === null || seen?.key !== key ? true : seen.noted;
+  const [local, setLocal] = useState<string | null>(null);
+  // Read at render: the page only renders after the client-side sync, so there is no server pass to mismatch.
+  let stored = false;
+  try {
+    stored = key !== null && window.localStorage.getItem(key) === '1';
+  } catch {
+    // storage blocked: show the notice
+  }
+  const noted = key === null || stored || local === key;
   const markNoted = useCallback(() => {
     if (!key) return;
-    setSeen({ key, noted: true });
+    setLocal(key);
     try {
       window.localStorage.setItem(key, '1');
     } catch {
