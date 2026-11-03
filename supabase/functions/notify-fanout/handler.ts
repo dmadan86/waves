@@ -151,7 +151,13 @@ export async function handlePushFanout(
       try {
         const response = await deps.fetchImpl(EXPO_ENDPOINT, {
           method: 'POST',
-          headers: { 'content-type': 'application/json', accept: 'application/json' },
+          headers: {
+            'content-type': 'application/json',
+            accept: 'application/json',
+            ...(deps.env('EXPO_ACCESS_TOKEN')
+              ? { authorization: `Bearer ${deps.env('EXPO_ACCESS_TOKEN')}` }
+              : {}),
+          },
           body: JSON.stringify(messages),
         });
         const parsed = (await response.json()) as { data?: ExpoTicket[] };

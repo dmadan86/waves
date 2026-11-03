@@ -198,6 +198,24 @@ describe('claim → send → finish', () => {
     expect(dispatchEmail).toHaveBeenCalledOnce();
   });
 
+  it('sends Authorization to Expo only when EXPO_ACCESS_TOKEN is set', async () => {
+    for (const token of ['expo-secret', undefined]) {
+      const fetchImpl = vi.fn().mockResolvedValue(expoResponse([{ status: 'ok', id: 'r-1' }]));
+      const { deps } = harness({
+        serviceKey: SERVICE_KEY,
+        rpc: {
+          waves_claim_push_notifications: { data: [claimRow('n-1', ['ExponentPushToken[a]'])] },
+        },
+        fetchImpl,
+      });
+      const env = deps.env;
+      deps.env = (name) => (name === 'EXPO_ACCESS_TOKEN' ? token : env(name));
+      await handlePushFanout(authorizedRequest(), deps);
+      const headers = (fetchImpl.mock.calls[0][1] as RequestInit).headers as Record<string, string>;
+      expect(headers.authorization).toBe(token ? `Bearer ${token}` : undefined);
+    }
+  });
+
   it('marks a notification delivered when a device accepts it', async () => {
     const fetchImpl = vi.fn().mockResolvedValue(expoResponse([{ status: 'ok', id: 'r-1' }]));
     const { deps, service } = harness({
