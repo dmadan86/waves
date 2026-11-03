@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 
 import { type MirrorCompanyDoc } from '@waves/core';
 
-import { docPaymentPayload, docSavePayload, docStats, estimateActions, filterDocs } from '@/lib/company/documents';
+import {
+  docPaymentPayload,
+  docSavePayload,
+  docStats,
+  estimateActions,
+  filterDocs,
+} from '@/lib/company/documents';
 import { buildCompanyExportCsv, safeCellText, type CompanyExportModel } from '@/lib/company/export';
 import { percentToMinor } from '@/lib/company/discount';
 import { periodRange } from '@/lib/company/period';
@@ -47,17 +53,34 @@ describe('company documents', () => {
   });
 
   it('keeps client links only when given', () => {
-    const base = { docType: 'estimate', customerName: 'A', customerPhone: '', docDate: 'x', items: [], discountMinor: 0n, notes: '' } as const;
+    const base = {
+      docType: 'estimate',
+      customerName: 'A',
+      customerPhone: '',
+      docDate: 'x',
+      items: [],
+      discountMinor: 0n,
+      notes: '',
+    } as const;
     expect('clientId' in docSavePayload('i', base).data).toBe(false);
     expect(docSavePayload('i', { ...base, clientId: 'c' }).data).toMatchObject({ clientId: 'c' });
   });
 
   it('stringifies the payment amount', () => {
-    expect(docPaymentPayload('d', 'p', 5n, '2026-01-01')).toEqual({ docId: 'd', paymentId: 'p', amountMinor: '5', paidOn: '2026-01-01' });
+    expect(docPaymentPayload('d', 'p', 5n, '2026-01-01')).toEqual({
+      docId: 'd',
+      paymentId: 'p',
+      amountMinor: '5',
+      paidOn: '2026-01-01',
+    });
   });
 
   it('filters and counts', () => {
-    const docs = [doc({ id: 'a' }), doc({ id: 'b', docType: 'estimate', status: 'draft' }), doc({ id: 'c', deleted: true })];
+    const docs = [
+      doc({ id: 'a' }),
+      doc({ id: 'b', docType: 'estimate', status: 'draft' }),
+      doc({ id: 'c', deleted: true }),
+    ];
     const label = (d: MirrorCompanyDoc) => d.docType;
     expect(filterDocs(docs, 'all', '', label).map((d) => d.id)).toEqual(['a', 'b']);
     expect(filterDocs(docs, 'estimate', '', label).map((d) => d.id)).toEqual(['b']);
@@ -67,7 +90,10 @@ describe('company documents', () => {
 
   it('offers estimate next steps', () => {
     expect(estimateActions(doc({ docType: 'estimate', status: 'draft' }))).toEqual(['sent']);
-    expect(estimateActions(doc({ docType: 'estimate', status: 'sent' }))).toEqual(['accepted', 'declined']);
+    expect(estimateActions(doc({ docType: 'estimate', status: 'sent' }))).toEqual([
+      'accepted',
+      'declined',
+    ]);
     expect(estimateActions(doc({ docType: 'bill' }))).toEqual([]);
   });
 
@@ -91,7 +117,13 @@ describe('company export csv', () => {
       headline: [['a', 'b']],
       isRtl: false,
       footer: '',
-      sections: [{ heading: 'H', columns: ['c1', 'c2'], rows: [[{ text: '@x' }, { text: '1.00', value: 1 }]] }],
+      sections: [
+        {
+          heading: 'H',
+          columns: ['c1', 'c2'],
+          rows: [[{ text: '@x' }, { text: '1.00', value: 1 }]],
+        },
+      ],
     };
     const csv = buildCompanyExportCsv(model);
     expect(csv).toContain('"\'@x","1"');

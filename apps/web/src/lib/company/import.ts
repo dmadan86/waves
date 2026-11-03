@@ -63,7 +63,8 @@ export async function fetchSheetTable(pasted: string): Promise<TableRead> {
     if (!isGoogleHost(finalHost)) throw new ImportFileError('private');
     if ([401, 403, 404].includes(response.status)) throw new ImportFileError('private');
     if (!response.ok) throw new ImportFileError('network');
-    if (/text\/html/i.test(response.headers.get('content-type') ?? '')) throw new ImportFileError('private');
+    if (/text\/html/i.test(response.headers.get('content-type') ?? ''))
+      throw new ImportFileError('private');
     bytes = new Uint8Array(await response.arrayBuffer());
     if (bytes.byteLength > MAX_IMPORT_BYTES) throw new ImportFileError('too_large');
   } catch (caught) {

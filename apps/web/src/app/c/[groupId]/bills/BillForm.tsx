@@ -290,7 +290,12 @@ function Form({
         </label>
         <label className="field">
           <span className="field-label">{c.phone}</span>
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" maxLength={32} />
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            inputMode="tel"
+            maxLength={32}
+          />
         </label>
         <label className="field">
           <span className="field-label">{c.billDate}</span>
@@ -352,7 +357,15 @@ function Form({
           type="button"
           className="btn soft"
           onClick={() =>
-            setLines([...lines, { key: Math.max(...lines.map((l) => l.key)) + 1, description: '', qty: '1', rate: '' }])
+            setLines([
+              ...lines,
+              {
+                key: Math.max(...lines.map((l) => l.key)) + 1,
+                description: '',
+                qty: '1',
+                rate: '',
+              },
+            ])
           }
         >
           {c.addItem}
@@ -364,7 +377,12 @@ function Form({
           <span className="field-label">{pctMode ? c.percentOff : c.discount}</span>
           <div style={{ display: 'flex', gap: 8 }}>
             {pctMode ? (
-              <input value={pct} onChange={(e) => setPct(e.target.value)} inputMode="decimal" placeholder="%" />
+              <input
+                value={pct}
+                onChange={(e) => setPct(e.target.value)}
+                inputMode="decimal"
+                placeholder="%"
+              />
             ) : (
               <input
                 value={discountText}
@@ -380,7 +398,12 @@ function Form({
         </label>
         <label className="field">
           <span className="field-label">{c.notesOptional}</span>
-          <textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} rows={3} />
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            maxLength={1000}
+            rows={3}
+          />
         </label>
         <p>
           {c.subtotal}: {fmt(subtotal)}
@@ -420,7 +443,11 @@ function Form({
           {payChoice === 'part' ? (
             <label className="field">
               <span className="field-label">{c.partAmount}</span>
-              <input value={partText} onChange={(e) => setPartText(e.target.value)} inputMode="decimal" />
+              <input
+                value={partText}
+                onChange={(e) => setPartText(e.target.value)}
+                inputMode="decimal"
+              />
             </label>
           ) : null}
         </section>

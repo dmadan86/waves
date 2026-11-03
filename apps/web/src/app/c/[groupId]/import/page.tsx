@@ -22,7 +22,12 @@ import {
 
 import { CompanyPage, useCompanyText } from '@/components/CompanyPage';
 import { fill } from '@/i18n';
-import { fetchSheetTable, ImportFileError, tableFromBytes, writeImportRow } from '@/lib/company/import';
+import {
+  fetchSheetTable,
+  ImportFileError,
+  tableFromBytes,
+  writeImportRow,
+} from '@/lib/company/import';
 import { downloadText } from '@/lib/company/print';
 import { parseDepartments } from '@/lib/company/settings';
 import { todayIso, useCompanyView } from '@/lib/company/view';
@@ -49,7 +54,9 @@ export default function CompanyImportPage() {
   const [lastErrors, setLastErrors] = useState<string | null>(null);
 
   const allowed = view.isAdmin && !view.suspended;
-  const fields = ENTITY_FIELDS[entity].filter((f) => view.isOwner || (f !== 'manager' && f !== 'dailyRate'));
+  const fields = ENTITY_FIELDS[entity].filter(
+    (f) => view.isOwner || (f !== 'manager' && f !== 'dailyRate'),
+  );
   const label: Record<ImportFieldKey, string> = {
     name: g.fName,
     phone: g.fPhone,
@@ -67,36 +74,63 @@ export default function CompanyImportPage() {
     openingBalance: g.fOpeningBalance,
   };
   const departments = useMemo(
-    () => parseDepartments((view.group as { company_departments?: unknown } | null)?.company_departments),
+    () =>
+      parseDepartments(
+        (view.group as { company_departments?: unknown } | null)?.company_departments,
+      ),
     [view.group],
   );
 
   const rows = useMemo<ImportRow[]>(() => {
     if (!table || mapping.name === undefined) return [];
     const live = view.members.filter((m) => !m.left_at);
-    const nameOf = (m: (typeof live)[number]): string => m.profile?.display_name ?? m.ghost_name ?? '';
+    const nameOf = (m: (typeof live)[number]): string =>
+      m.profile?.display_name ?? m.ghost_name ?? '';
     const existing =
       entity === 'employee'
-        ? live.map((m) => ({ name: nameOf(m), phone: (m as { invite_phone?: string | null }).invite_phone ?? null }))
+        ? live.map((m) => ({
+            name: nameOf(m),
+            phone: (m as { invite_phone?: string | null }).invite_phone ?? null,
+          }))
         : entity === 'client'
-          ? materialiseClients(mirror, NO_QUEUE, { groupId }).clients.map((c) => ({ name: c.name, phone: c.phone }))
+          ? materialiseClients(mirror, NO_QUEUE, { groupId }).clients.map((c) => ({
+              name: c.name,
+              phone: c.phone,
+            }))
           : materialiseVendors(mirror, NO_QUEUE, {
-            groupId,
-            myMemberId: view.me?.id ?? null,
-            isVendor: view.isVendor,
-            isManager: view.isManager,
-          }).vendors.map((v) => ({ name: v.name, phone: v.phone ?? null }));
+              groupId,
+              myMemberId: view.me?.id ?? null,
+              isVendor: view.isVendor,
+              isManager: view.isManager,
+            }).vendors.map((v) => ({ name: v.name, phone: v.phone ?? null }));
     return buildImportRows(table.rows.slice(1), table.lines.slice(1), mapping, {
       entity,
       groupId,
       currency: view.currency as 'INR',
       dialCode: dialingCodeForCountry(view.group?.country_code) ?? '+91',
       existing: existing.filter((e) => e.name),
-      existingEmployeeIds: live.flatMap((m) => ((m as { employee_id?: string | null }).employee_id ? [(m as { employee_id: string }).employee_id] : [])),
+      existingEmployeeIds: live.flatMap((m) =>
+        (m as { employee_id?: string | null }).employee_id
+          ? [(m as { employee_id: string }).employee_id]
+          : [],
+      ),
       departments,
       people: live.map((m) => ({ id: m.id, name: nameOf(m) })).filter((p) => p.name),
     });
-  }, [table, mapping, entity, groupId, view.members, view.currency, view.group, view.me?.id, view.isVendor, view.isManager, mirror, departments]);
+  }, [
+    table,
+    mapping,
+    entity,
+    groupId,
+    view.members,
+    view.currency,
+    view.group,
+    view.me?.id,
+    view.isVendor,
+    view.isManager,
+    mirror,
+    departments,
+  ]);
   const counts = countRows(rows);
   const warned = rows.filter((r) => r.status === 'new' && r.warnings.length > 0).length;
 
@@ -130,16 +164,18 @@ export default function CompanyImportPage() {
   const failure = (caught: unknown): string => {
     const f = caught instanceof ImportFileError ? caught.failure : 'unreadable';
     return (
-      {
-        too_large: g.fileTooLarge,
-        too_many_rows: g.fileTooMany,
-        empty: g.fileEmpty,
-        encoding: g.fileEncoding,
-        bad_link: g.sheetBad,
-        private: g.sheetPrivate,
-        network: g.sheetNetwork,
-      } as Record<string, string>
-    )[f] ?? g.fileUnreadable;
+      (
+        {
+          too_large: g.fileTooLarge,
+          too_many_rows: g.fileTooMany,
+          empty: g.fileEmpty,
+          encoding: g.fileEncoding,
+          bad_link: g.sheetBad,
+          private: g.sheetPrivate,
+          network: g.sheetNetwork,
+        } as Record<string, string>
+      )[f] ?? g.fileUnreadable
+    );
   };
 
   const pickFile = async (file: File | undefined) => {
@@ -254,21 +290,40 @@ export default function CompanyImportPage() {
                 <span className="field-label">
                   {g.srcFile} - {g.srcFileSub}
                 </span>
-                <input type="file" accept=".csv,.tsv,.txt,text/csv" onChange={(e) => void pickFile(e.target.files?.[0])} />
+                <input
+                  type="file"
+                  accept=".csv,.tsv,.txt,text/csv"
+                  onChange={(e) => void pickFile(e.target.files?.[0])}
+                />
               </label>
               <label className="field">
                 <span className="field-label">
                   {g.srcSheet} - {g.srcSheetSub}
                 </span>
-                <input value={sheetLink} onChange={(e) => setSheetLink(e.target.value)} placeholder={g.sheetPlaceholder} />
+                <input
+                  value={sheetLink}
+                  onChange={(e) => setSheetLink(e.target.value)}
+                  placeholder={g.sheetPlaceholder}
+                />
               </label>
-              <button type="button" className="btn brand" disabled={busy || !sheetLink.trim()} onClick={() => void readSheet()}>
+              <button
+                type="button"
+                className="btn brand"
+                disabled={busy || !sheetLink.trim()}
+                onClick={() => void readSheet()}
+              >
                 {g.sheetGo}
               </button>{' '}
               <button
                 type="button"
                 className="btn soft"
-                onClick={() => downloadText(`waves-${entity}-template.csv`, `﻿${templateCsv(entity)}`, 'text/csv')}
+                onClick={() =>
+                  downloadText(
+                    `waves-${entity}-template.csv`,
+                    `﻿${templateCsv(entity)}`,
+                    'text/csv',
+                  )
+                }
               >
                 {g.template}
               </button>
@@ -308,7 +363,12 @@ export default function CompanyImportPage() {
               <button type="button" className="btn soft" onClick={() => setStep('source')}>
                 {g.back}
               </button>{' '}
-              <button type="button" className="btn brand" disabled={mapping.name === undefined} onClick={() => setStep('preview')}>
+              <button
+                type="button"
+                className="btn brand"
+                disabled={mapping.name === undefined}
+                onClick={() => setStep('preview')}
+              >
                 {g.next}
               </button>
             </>
@@ -320,17 +380,31 @@ export default function CompanyImportPage() {
               <p>{fill(g.cNew, { n: String(counts.added) })}</p>
               <p>{fill(g.cDup, { n: String(counts.duplicates) })}</p>
               <p>{fill(g.cErr, { n: String(counts.errors) })}</p>
-              {warned > 0 ? <p className="faint">{fill(g.warnLine, { n: String(warned) })}</p> : null}
+              {warned > 0 ? (
+                <p className="faint">{fill(g.warnLine, { n: String(warned) })}</p>
+              ) : null}
               {errorRows.slice(0, 20).map((r) => (
                 <p key={r.line} className="error">
                   {r.line}: {r.cells[mapping.name ?? 0] || '-'} - {problemText(r)}
                 </p>
               ))}
-              {busy ? <p>{fill(g.progress, { done: String(progress), total: String(counts.added) })}</p> : null}
-              <button type="button" className="btn soft" disabled={busy} onClick={() => setStep('columns')}>
+              {busy ? (
+                <p>{fill(g.progress, { done: String(progress), total: String(counts.added) })}</p>
+              ) : null}
+              <button
+                type="button"
+                className="btn soft"
+                disabled={busy}
+                onClick={() => setStep('columns')}
+              >
                 {g.back}
               </button>{' '}
-              <button type="button" className="btn brand" disabled={busy || counts.added === 0} onClick={() => void run()}>
+              <button
+                type="button"
+                className="btn brand"
+                disabled={busy || counts.added === 0}
+                onClick={() => void run()}
+              >
                 {fill(g.importN, { n: String(counts.added) })}
               </button>
             </>
@@ -351,7 +425,15 @@ export default function CompanyImportPage() {
                   {g.downloadErrors}
                 </button>
               ) : null}{' '}
-              <button type="button" className="btn brand" onClick={() => { setStep('what'); setTable(null); setFailed(new Set()); }}>
+              <button
+                type="button"
+                className="btn brand"
+                onClick={() => {
+                  setStep('what');
+                  setTable(null);
+                  setFailed(new Set());
+                }}
+              >
                 {g.done}
               </button>
             </>

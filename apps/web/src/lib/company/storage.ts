@@ -7,7 +7,11 @@ export interface CompanyStorageUsage {
 
 export function parseStorageUsage(data: unknown): CompanyStorageUsage {
   const row = (Array.isArray(data) ? data[0] : data) as
-    | { used_bytes?: number | string; reserved_bytes?: number | string; quota_bytes?: number | string }
+    | {
+        used_bytes?: number | string;
+        reserved_bytes?: number | string;
+        quota_bytes?: number | string;
+      }
     | null
     | undefined;
   return {

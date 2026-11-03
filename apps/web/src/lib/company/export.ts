@@ -18,7 +18,6 @@ import {
   type CurrencyCode,
 } from '@waves/core';
 
-
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')

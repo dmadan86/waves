@@ -5,7 +5,12 @@ import { useParams } from 'next/navigation';
 
 import { CompanyPage, useCompanyText } from '@/components/CompanyPage';
 import { fill } from '@/i18n';
-import { formatBytes, parseStorageUsage, storagePercent, type CompanyStorageUsage } from '@/lib/company/storage';
+import {
+  formatBytes,
+  parseStorageUsage,
+  storagePercent,
+  type CompanyStorageUsage,
+} from '@/lib/company/storage';
 import { useCompanyView } from '@/lib/company/view';
 import { supabase } from '@/lib/waves';
 
@@ -21,11 +26,13 @@ export default function CompanyStoragePage() {
   useEffect(() => {
     if (!view.isAdmin) return;
     let live = true;
-    void supabase.rpc('waves_company_storage_usage', { p_group_id: groupId }).then(({ data, error }) => {
-      if (!live) return;
-      if (error) setFailed(true);
-      else setUsage(parseStorageUsage(data));
-    });
+    void supabase
+      .rpc('waves_company_storage_usage', { p_group_id: groupId })
+      .then(({ data, error }) => {
+        if (!live) return;
+        if (error) setFailed(true);
+        else setUsage(parseStorageUsage(data));
+      });
     return () => {
       live = false;
     };
@@ -50,7 +57,11 @@ export default function CompanyStoragePage() {
               })}
             </b>
           </p>
-          <progress value={percent} max={100} aria-label={fill(c.percentUsed, { percent: String(percent) })} />
+          <progress
+            value={percent}
+            max={100}
+            aria-label={fill(c.percentUsed, { percent: String(percent) })}
+          />
           <p className="faint">{fill(c.percentUsed, { percent: String(percent) })}</p>
           {usage.usedBytes >= usage.quotaBytes ? <p className="error">{c.full}</p> : null}
           <p className="muted">{c.note}</p>

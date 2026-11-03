@@ -8,7 +8,8 @@ import type { MirrorAttendance, MirrorWorkTask } from '@waves/core';
 
 import type { CompanyExportModel, CompanyCell } from './export';
 
-const isRtlLocale = (locale: string): boolean => /^ar\b/i.test(locale) || locale.toLowerCase().startsWith('ar-');
+const isRtlLocale = (locale: string): boolean =>
+  /^ar\b/i.test(locale) || locale.toLowerCase().startsWith('ar-');
 
 export type WorkReport = 'list' | 'person' | 'site' | 'overdue';
 

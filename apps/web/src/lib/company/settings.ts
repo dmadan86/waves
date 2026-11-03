@@ -165,7 +165,9 @@ export function applyPack(
 /** A limit rule's warn/block flip; receipt rules have no flip. */
 export function flipEffect(rules: readonly CompanyPolicyRule[], id: string): CompanyPolicyRule[] {
   return rules.map((r) =>
-    r.id === id && r.type === 'period_limit' ? { ...r, effect: r.effect === 'warn' ? 'block' : 'warn' } : r,
+    r.id === id && r.type === 'period_limit'
+      ? { ...r, effect: r.effect === 'warn' ? 'block' : 'warn' }
+      : r,
   );
 }
 
@@ -179,7 +181,14 @@ export function newLimitRule(
   period: 'day' | 'month',
   limitMinor: bigint,
 ): CompanyPolicyRule {
-  return { id, type: 'period_limit', target, period, limitMinor: limitMinor.toString(), effect: 'warn' };
+  return {
+    id,
+    type: 'period_limit',
+    target,
+    period,
+    limitMinor: limitMinor.toString(),
+    effect: 'warn',
+  };
 }
 
 // ── logo ─────────────────────────────────────────────────────────────────────

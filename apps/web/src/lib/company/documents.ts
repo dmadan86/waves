@@ -70,9 +70,11 @@ export function filterDocs(
 ): MirrorCompanyDoc[] {
   const live = docs.filter((d) => !d.deleted);
   const q = query.trim().toLowerCase();
-  return (filter === 'unpaid' ? unpaidBills(live) : live.filter((d) => filter === 'all' || d.docType === filter)).filter(
-    (d) => !q || `${label(d)} ${d.customerName}`.toLowerCase().includes(q),
-  );
+  return (
+    filter === 'unpaid'
+      ? unpaidBills(live)
+      : live.filter((d) => filter === 'all' || d.docType === filter)
+  ).filter((d) => !q || `${label(d)} ${d.customerName}`.toLowerCase().includes(q));
 }
 
 export function docStats(docs: readonly MirrorCompanyDoc[]) {

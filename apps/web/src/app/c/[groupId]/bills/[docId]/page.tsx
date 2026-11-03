@@ -98,7 +98,12 @@ export default function CompanyBillPage() {
         })
       : null;
   const nameOf = (id: string | null | undefined) =>
-    id ? memberName(company.members.find((m) => m.id === id), '') : '';
+    id
+      ? memberName(
+          company.members.find((m) => m.id === id),
+          '',
+        )
+      : '';
   const day = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString(locale);
   const stamp = (at: string, dayOnly?: boolean) =>
     dayOnly ? day(at) : new Date(at).toLocaleString(locale);
@@ -125,7 +130,11 @@ export default function CompanyBillPage() {
       const client = materialiseClients(mirror, NO_QUEUE, { groupId }).clients.find(
         (x) => x.id === doc.clientId,
       );
-      if (s === 'sent' && client?.stage === 'inquiry' && (view.isOwner || client.ownerMemberId === company.me?.id))
+      if (
+        s === 'sent' &&
+        client?.stage === 'inquiry' &&
+        (view.isOwner || client.ownerMemberId === company.me?.id)
+      )
         await mutate(MutationKind.CompanyClientSet, groupId, {
           clientId: client.id,
           name: client.name,
@@ -143,7 +152,9 @@ export default function CompanyBillPage() {
   const convert = () =>
     run(async () => {
       const billId = crypto.randomUUID();
-      await mutate(MutationKind.CompanyDocConvert, groupId, { ...docConvertPayload(doc.id, billId) });
+      await mutate(MutationKind.CompanyDocConvert, groupId, {
+        ...docConvertPayload(doc.id, billId),
+      });
       router.replace(`${base}/${billId}`);
     });
 
@@ -184,7 +195,10 @@ export default function CompanyBillPage() {
       renderCompanyDocHtml(
         doc,
         png && vpa
-          ? { ...options, upi: { id: vpa, qrDataUrl: png, scanLabel: fill(c.upiScan, { amount: fmt(due) }) } }
+          ? {
+              ...options,
+              upi: { id: vpa, qrDataUrl: png, scanLabel: fill(c.upiScan, { amount: fmt(due) }) },
+            }
           : options,
       ),
     );
@@ -229,7 +243,9 @@ export default function CompanyBillPage() {
         ))}
         <div className="row">
           <span>{c.subtotal}</span>
-          <span className="row-right">{fmt(computeDocTotals(doc.items, doc.discountMinor).subtotalMinor)}</span>
+          <span className="row-right">
+            {fmt(computeDocTotals(doc.items, doc.discountMinor).subtotalMinor)}
+          </span>
         </div>
         <div className="row">
           <span>{c.discount}</span>
@@ -264,12 +280,23 @@ export default function CompanyBillPage() {
           <h2>{c.nextAction}</h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {estimateActions(doc).map((s) => (
-              <button key={s} type="button" className="btn soft" disabled={busy} onClick={() => void setStatus(s)}>
+              <button
+                key={s}
+                type="button"
+                className="btn soft"
+                disabled={busy}
+                onClick={() => void setStatus(s)}
+              >
                 {s === 'sent' ? c.markSent : c[s]}
               </button>
             ))}
             {doc.docType === 'estimate' && !doc.convertedTo ? (
-              <button type="button" className="btn soft" disabled={busy} onClick={() => void convert()}>
+              <button
+                type="button"
+                className="btn soft"
+                disabled={busy}
+                onClick={() => void convert()}
+              >
                 {c.convert}
               </button>
             ) : null}
@@ -297,13 +324,22 @@ export default function CompanyBillPage() {
             <div style={{ marginTop: 12 }}>
               <label className="field">
                 <span className="field-label">{c.amountField}</span>
-                <input value={amountText} onChange={(e) => setAmountText(e.target.value)} inputMode="decimal" />
+                <input
+                  value={amountText}
+                  onChange={(e) => setAmountText(e.target.value)}
+                  inputMode="decimal"
+                />
               </label>
               <label className="field">
                 <span className="field-label">{c.paymentDate}</span>
                 <input type="date" value={paidOn} onChange={(e) => setPaidOn(e.target.value)} />
               </label>
-              <button type="button" className="btn brand" disabled={busy} onClick={() => void record()}>
+              <button
+                type="button"
+                className="btn brand"
+                disabled={busy}
+                onClick={() => void record()}
+              >
                 {c.recordPayment}
               </button>{' '}
               <button type="button" className="btn soft" onClick={() => setRecording(false)}>
@@ -376,7 +412,9 @@ export default function CompanyBillPage() {
               <br />
               <span className="faint">{stamp(e.at, e.dayOnly)}</span>
             </span>
-            {e.amountMinor !== undefined ? <span className="row-right">{fmt(e.amountMinor)}</span> : null}
+            {e.amountMinor !== undefined ? (
+              <span className="row-right">{fmt(e.amountMinor)}</span>
+            ) : null}
           </div>
         ))}
         {events.length > 3 ? (

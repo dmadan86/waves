@@ -90,7 +90,9 @@ export default function CompanyExportPage() {
         entry.calcMode === 'distance_rate' && entry.distanceKm && entry.rateMinor !== null
           ? `${entry.distanceKm} km${entry.fromText || entry.toText ? ` (${entry.fromText ?? ''} - ${entry.toText ?? ''})` : ''}`
           : null,
-        reimbursedOn(entry, all) ? fill(e.reimbursedOn, { date: reimbursedOn(entry, all) ?? '' }) : null,
+        reimbursedOn(entry, all)
+          ? fill(e.reimbursedOn, { date: reimbursedOn(entry, all) ?? '' })
+          : null,
       ]
         .filter(Boolean)
         .join('; '),
@@ -121,7 +123,11 @@ export default function CompanyExportPage() {
     },
     category: tagLabel,
     status: (entry) =>
-      entry.status === 'submitted' ? e.awaiting : entry.status === 'rejected' ? e.rejected : e.statusApproved,
+      entry.status === 'submitted'
+        ? e.awaiting
+        : entry.status === 'rejected'
+          ? e.rejected
+          : e.statusApproved,
     totalRows: (totals) => [
       [e.expenses, totals.expenses],
       [e.bata, totals.allowance],
@@ -144,20 +150,50 @@ export default function CompanyExportPage() {
             ? custom
             : { from: custom.to, to: custom.from };
       const periodLabel =
-        period === 'month' ? e.periodMonth : period === 'last' ? e.periodLast : period === 'all' ? e.periodAll : `${from} - ${to}`;
+        period === 'month'
+          ? e.periodMonth
+          : period === 'last'
+            ? e.periodLast
+            : period === 'all'
+              ? e.periodAll
+              : `${from} - ${to}`;
       const day = todayIso();
-      const entries = report === 'payments' ? view.entries.filter((x) => PAYMENT_KINDS.includes(x.kind)) : view.entries;
-      const base = { entries, company: view.name, currency: view.currency, locale, from, to, generatedOn: day, periodLabel, labels };
-      const nameOfId = (id: string) => memberName(view.members.find((m) => m.id === id), t.company.common.someone);
+      const entries =
+        report === 'payments'
+          ? view.entries.filter((x) => PAYMENT_KINDS.includes(x.kind))
+          : view.entries;
+      const base = {
+        entries,
+        company: view.name,
+        currency: view.currency,
+        locale,
+        from,
+        to,
+        generatedOn: day,
+        periodLabel,
+        labels,
+      };
+      const nameOfId = (id: string) =>
+        memberName(
+          view.members.find((m) => m.id === id),
+          t.company.common.someone,
+        );
       const visible = (memberId: string) => view.isAdmin || memberId === view.me?.id;
       const companyModel = view.isAdmin
         ? buildCompanyExport({
             ...base,
             scope: 'admin',
-            employeeIds: new Map(view.members.map((m) => [m.id, (m as { employee_id?: string | null }).employee_id])),
+            employeeIds: new Map(
+              view.members.map((m) => [m.id, (m as { employee_id?: string | null }).employee_id]),
+            ),
             names: new Map(view.members.map((m) => [m.id, nameOfId(m.id)])),
           })
-        : buildCompanyExport({ ...base, scope: 'employee', memberId: view.me.id, employeeName: nameOfId(view.me.id) });
+        : buildCompanyExport({
+            ...base,
+            scope: 'employee',
+            memberId: view.me.id,
+            employeeName: nameOfId(view.me.id),
+          });
 
       let model = companyModel;
       if (report === 'payments') {
@@ -168,7 +204,13 @@ export default function CompanyExportPage() {
           headline: [],
           title: `${e.exportPayments} · ${view.name}`,
           sections: sec
-            ? [{ ...sec, columns: sec.columns.filter((_, i) => i !== drop), rows: sec.rows.map((r) => r.filter((_, i) => i !== drop)) }]
+            ? [
+                {
+                  ...sec,
+                  columns: sec.columns.filter((_, i) => i !== drop),
+                  rows: sec.rows.map((r) => r.filter((_, i) => i !== drop)),
+                },
+              ]
             : [],
         };
       } else if (report === 'attendance') {
@@ -196,7 +238,9 @@ export default function CompanyExportPage() {
         const projects = materialiseCompanyProjects(mirror, NO_QUEUE, { groupId });
         model = buildWorkReport({
           report: 'list',
-          tasks: materialiseWorkTasks(mirror, NO_QUEUE, { groupId }).filter((x) => visible(x.memberId)),
+          tasks: materialiseWorkTasks(mirror, NO_QUEUE, { groupId }).filter((x) =>
+            visible(x.memberId),
+          ),
           from,
           to,
           today: day,
@@ -206,7 +250,12 @@ export default function CompanyExportPage() {
           personName: nameOfId,
           siteName: (id) => projects.find((p) => p.id === id)?.name ?? '',
           labels: {
-            titles: { list: e.exportTasks, person: e.workRepPerson, site: e.workRepSite, overdue: e.workRepOverdue },
+            titles: {
+              list: e.exportTasks,
+              person: e.workRepPerson,
+              site: e.workRepSite,
+              overdue: e.workRepOverdue,
+            },
             number: e.workColNumber,
             task: e.workColTitle,
             person: e.workPerson,
@@ -220,13 +269,21 @@ export default function CompanyExportPage() {
             completion: e.workCompletion,
             daysLate: e.workDaysLate,
             noSite: e.workNoSite,
-            statuses: { todo: e.workTodo, doing: e.workDoing, done: e.workDone, blocked: e.workBlocked },
+            statuses: {
+              todo: e.workTodo,
+              doing: e.workDoing,
+              done: e.workDone,
+              blocked: e.workBlocked,
+            },
           },
         });
       }
       if (format === 'pdf') printHtml(renderCompanyExportHtml(model, e.none));
       else {
-        const slug = (view.name || 'company').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 40);
+        const slug = (view.name || 'company')
+          .toLowerCase()
+          .replace(/[^\p{L}\p{N}]+/gu, '-')
+          .slice(0, 40);
         downloadText(`waves-${slug}-${report}.csv`, buildCompanyExportCsv(model), 'text/csv');
       }
     } catch {
@@ -246,10 +303,22 @@ export default function CompanyExportPage() {
     ['custom', e.workCustom],
     ['all', e.periodAll],
   ];
-  const choice = <T extends string>(items: [T, string][], value: T, set: (v: T) => void, name: string) => (
+  const choice = <T extends string>(
+    items: [T, string][],
+    value: T,
+    set: (v: T) => void,
+    name: string,
+  ) => (
     <div role="radiogroup" aria-label={name} style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
       {items.map(([k, label]) => (
-        <button key={k} type="button" role="radio" aria-checked={value === k} className={value === k ? 'btn brand' : 'btn soft'} onClick={() => set(k)}>
+        <button
+          key={k}
+          type="button"
+          role="radio"
+          aria-checked={value === k}
+          className={value === k ? 'btn brand' : 'btn soft'}
+          onClick={() => set(k)}
+        >
           {label}
         </button>
       ))}
@@ -269,7 +338,15 @@ export default function CompanyExportPage() {
           <span className="field-label">{e.workReportType}</span>
           {choice(reports, report, setReport, e.workReportType)}
           <span className="field-label">{e.g_formatLabel}</span>
-          {choice<Format>([['pdf', e.print], ['csv', 'CSV']], format, setFormat, e.g_formatLabel)}
+          {choice<Format>(
+            [
+              ['pdf', e.print],
+              ['csv', 'CSV'],
+            ],
+            format,
+            setFormat,
+            e.g_formatLabel,
+          )}
           {format === 'csv' ? <p className="faint">{e.csvNote}</p> : null}
           <span className="field-label">{e.workExportRange}</span>
           {choice(ranges, period, setPeriod, e.workExportRange)}
@@ -277,16 +354,28 @@ export default function CompanyExportPage() {
             <div style={{ display: 'flex', gap: 8 }}>
               <label className="field">
                 <span className="field-label">{e.workFrom}</span>
-                <input type="date" value={custom.from} onChange={(ev) => setCustom({ ...custom, from: ev.target.value })} />
+                <input
+                  type="date"
+                  value={custom.from}
+                  onChange={(ev) => setCustom({ ...custom, from: ev.target.value })}
+                />
               </label>
               <label className="field">
                 <span className="field-label">{e.workTo}</span>
-                <input type="date" value={custom.to} onChange={(ev) => setCustom({ ...custom, to: ev.target.value })} />
+                <input
+                  type="date"
+                  value={custom.to}
+                  onChange={(ev) => setCustom({ ...custom, to: ev.target.value })}
+                />
               </label>
             </div>
           ) : null}
           <p className="faint">{view.isAdmin ? e.privacyAdmin : e.privacyEmployee}</p>
-          {error ? <p className="error" role="alert">{error}</p> : null}
+          {error ? (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          ) : null}
           <button type="button" className="btn brand" onClick={run}>
             {format === 'pdf' ? e.print : e.download}
           </button>

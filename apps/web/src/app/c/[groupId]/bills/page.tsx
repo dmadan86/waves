@@ -55,10 +55,12 @@ export default function CompanyBillsPage() {
               {c.total}: <b>{fmt(stats.total)}</b> ({fill(c.docsCount, { n: String(stats.count) })})
             </p>
             <p>
-              {c.unpaid}: <b>{fmt(stats.unpaidMinor)}</b> ({fill(c.billsCount, { n: String(stats.unpaidCount) })})
+              {c.unpaid}: <b>{fmt(stats.unpaidMinor)}</b> (
+              {fill(c.billsCount, { n: String(stats.unpaidCount) })})
             </p>
             <p>
-              {c.paid}: <b>{fmt(stats.paidMinor)}</b> ({fill(c.billsCount, { n: String(stats.paidCount) })})
+              {c.paid}: <b>{fmt(stats.paidMinor)}</b> (
+              {fill(c.billsCount, { n: String(stats.paidCount) })})
             </p>
           </section>
           <SegmentedTabs<DocFilter>

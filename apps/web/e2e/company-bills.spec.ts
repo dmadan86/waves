@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-import { GROUP, OWNER_PROFILE, mockBackend, ownerMirror, people, signInAs } from './support/company';
+import {
+  GROUP,
+  OWNER_PROFILE,
+  mockBackend,
+  ownerMirror,
+  people,
+  signInAs,
+} from './support/company';
 
 const owner = () => ({
   changes: ownerMirror(),
@@ -15,7 +22,10 @@ test.describe('company bills and settings slice (fixtures, no real account)', ()
     await page.getByLabel(/^customer name/i).fill('Walk-in customer');
     await page.getByLabel(/^description 1/i).fill('Tiles');
     await page.getByLabel(/^qty$/i).first().fill('3');
-    await page.getByLabel(/^rate$/i).first().fill('150.50');
+    await page
+      .getByLabel(/^rate$/i)
+      .first()
+      .fill('150.50');
     await page.getByLabel(/^discount/i).fill('51.50'); // discount
     // 3 x 150.50 = 451.50, less 51.50 = 400.00
     await expect(page.getByText(/Total:.*400\.00/)).toBeVisible();
@@ -42,6 +52,9 @@ test.describe('company bills and settings slice (fixtures, no real account)', ()
     expect(m.kind).toBe('company.policies_set');
     expect(m.payload.expectedRevision).toBe(0);
     expect(m.payload.policies.rules).toHaveLength(1);
-    expect(m.payload.policies.rules[0]).toMatchObject({ type: 'receipt_above', limitMinor: '50000' });
+    expect(m.payload.policies.rules[0]).toMatchObject({
+      type: 'receipt_above',
+      limitMinor: '50000',
+    });
   });
 });

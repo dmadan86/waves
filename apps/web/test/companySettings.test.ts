@@ -17,8 +17,14 @@ import { writeImportRow, tableFromBytes } from '@/lib/company/import';
 describe('company settings', () => {
   it('settings payload keeps the unchanged field', () => {
     const g = { company_default_daily_rate_minor: '500', company_approvals_enabled: true };
-    expect(settingsPayload(g, { approvalsEnabled: false })).toEqual({ defaultDailyRateMinor: '500', approvalsEnabled: false });
-    expect(settingsPayload(g, { defaultDailyRateMinor: null })).toEqual({ defaultDailyRateMinor: null, approvalsEnabled: true });
+    expect(settingsPayload(g, { approvalsEnabled: false })).toEqual({
+      defaultDailyRateMinor: '500',
+      approvalsEnabled: false,
+    });
+    expect(settingsPayload(g, { defaultDailyRateMinor: null })).toEqual({
+      defaultDailyRateMinor: null,
+      approvalsEnabled: true,
+    });
   });
 
   it('departments reject blanks, duplicates', () => {
@@ -31,7 +37,11 @@ describe('company settings', () => {
   });
 
   it('tags parse, rename and hide', () => {
-    const tags = parseCompanyTags([{ key: 'fuel', label: 'Fuel' }, { key: 'BAD KEY', label: 'x' }, 3]);
+    const tags = parseCompanyTags([
+      { key: 'fuel', label: 'Fuel' },
+      { key: 'BAD KEY', label: 'x' },
+      3,
+    ]);
     expect(tags).toEqual([{ key: 'fuel', label: 'Fuel' }]);
     expect(renameTag(tags, 'fuel', 'Diesel')[0]!.label).toBe('Diesel');
     expect(toggleTagHidden(tags, 'fuel')[0]!.hidden).toBe(true);
@@ -63,7 +73,14 @@ describe('company import', () => {
       async (k, _g, p) => void calls.push([k, p]),
       'g',
       'vendor',
-      { line: 2, cells: [], status: 'new', warnings: [], id: 'v1', values: { name: ' V ', phone: null, category: null, openingBalanceMinor: 700n } } as never,
+      {
+        line: 2,
+        cells: [],
+        status: 'new',
+        warnings: [],
+        id: 'v1',
+        values: { name: ' V ', phone: null, category: null, openingBalanceMinor: 700n },
+      } as never,
       { owner: true, myMemberId: 'm', today: '2026-01-01' },
     );
     expect(calls.map((c) => c[0])).toEqual(['company_vendor.set', 'company_vendor_entry.create']);
