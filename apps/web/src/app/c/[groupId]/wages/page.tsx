@@ -112,7 +112,18 @@ export default function CompanyWagesPage() {
     }
     return map;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [terms, view.entries, people.length, start, end, attendance, rule, defaultRate]);
+  }, [
+    terms,
+    view.entries,
+    view.members,
+    view.manageableIds,
+    currency,
+    start,
+    end,
+    attendance,
+    rule,
+    defaultRate,
+  ]);
 
   const statusOf = (memberId: string): Status => {
     const onLeave = rule.leave.some(
