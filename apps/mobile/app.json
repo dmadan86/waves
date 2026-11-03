@@ -14,6 +14,8 @@
     "updates": {
       "url": "https://u.expo.dev/d6e19674-a70b-4385-a925-1884ba5315d8",
       "fallbackToCacheTimeout": 0,
+      "codeSigningCertificate": "./certs/certificate.pem",
+      "codeSigningMetadata": { "keyid": "main", "alg": "rsa-v1_5-sha256" },
       "requestHeaders": {
         "expo-channel-name": "production"
       }

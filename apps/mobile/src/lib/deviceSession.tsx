@@ -39,6 +39,8 @@ import {
 } from 'react-native';
 
 import { isRevokedStatus, type DeviceLimitStatus } from '@waves/core';
+
+import { endingForRevocation, markDeliberateSignOut, SessionEnd } from '@/sync/retention';
 import { directionalIcon, Popup, Text, useTheme } from '@waves/ui';
 
 import { fill, useStrings } from '@/i18n';
@@ -69,7 +71,7 @@ interface DeviceSessionValue {
    * revoked but that count could not be confirmed. Rejects only when the session
    * revocation itself failed (nothing was signed out).
    */
-  signOutOthers: () => Promise<number | null>;
+  signOutOthers: (erase?: boolean) => Promise<number | null>;
   /** Re-ask the server where the account stands. */
   refresh: () => Promise<void>;
 }
@@ -112,9 +114,11 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
 
   // The server said another device signed this one out. End the local session
   // (no wipe: nothing here was lost, so the unsent queue is kept) and say why.
-  const leaveRevokedDevice = useCallback(async () => {
+  const leaveRevokedDevice = useCallback(async (erase?: boolean) => {
     if (leaving.current) return;
     leaving.current = true;
+    // Marked like a deliberate sign-out so the sync layer runs the full wipe.
+    if (endingForRevocation(erase) === SessionEnd.SignedOut) markDeliberateSignOut();
     try {
       await backend.auth.signOut({ scope: 'local' });
     } catch {
@@ -132,7 +136,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
       const identity = await deviceIdentity();
       const next = await registerDevice(identity);
       if (isRevokedStatus(next)) {
-        await leaveRevokedDevice();
+        await leaveRevokedDevice(next.erase);
         return;
       }
       lastBeatAt.current = Date.now();
@@ -156,7 +160,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
         const next = await registerDevice(identity);
         if (!active) return;
         if (isRevokedStatus(next)) {
-          await leaveRevokedDevice();
+          await leaveRevokedDevice(next.erase);
           return;
         }
         lastBeatAt.current = Date.now();
@@ -191,7 +195,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     };
   }, [register]);
 
-  const signOutOthers = useCallback(async () => {
+  const signOutOthers = useCallback(async (erase = false) => {
     const identity = await deviceIdentity();
     // The real session revocation first — this is the part that actually logs
     // the other phones out; the table update below only makes the list say so.
@@ -200,8 +204,13 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
       // signOut resolves with `{ error }` rather than throwing, so a revocation
       // failure has to be read off the result and re-thrown; otherwise the gate
       // below would dismiss on a sign-out that never happened.
-      const { error } = await backend.auth.signOut({ scope: 'others' });
-      if (error) throw error;
+      // Erase keeps the other sessions alive until each phone checks in and
+      // learns it must wipe (a phone with no session cannot ask); the server
+      // ends them then. The RPC below is what flags them.
+      if (!erase) {
+        const { error } = await backend.auth.signOut({ scope: 'others' });
+        if (error) throw error;
+      }
     } catch (caught) {
       await register();
       throw caught;
@@ -211,10 +220,16 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     // still fail on a flaky network.
     setDismissed(true);
     try {
-      const revoked = await signOutOtherDevices(identity.deviceId);
+      const revoked = await signOutOtherDevices(identity.deviceId, erase);
       await register();
       return revoked;
-    } catch {
+    } catch (caught) {
+      // Erase has no session revocation of its own: if the flag did not land,
+      // nothing happened and the caller must hear it.
+      if (erase) {
+        await register();
+        throw caught;
+      }
       // Only the list update failed; the sessions are already revoked. Refresh
       // what we can and report an unconfirmed count rather than a false zero.
       await register();

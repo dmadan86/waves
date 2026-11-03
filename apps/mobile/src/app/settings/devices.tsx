@@ -173,12 +173,12 @@ export default function DevicesScreen() {
     [locale],
   );
 
-  async function onSignOutOthers() {
+  async function onSignOutOthers(erase = false) {
     setConfirming(false);
     setBusy(true);
     setMessage(null);
     try {
-      const revoked = await signOutOthers();
+      const revoked = await signOutOthers(erase);
       // null means the sessions were revoked but the count could not be
       // confirmed; show a plain acknowledgement instead of a false "0 devices".
       setMessage(
@@ -426,6 +426,15 @@ export default function DevicesScreen() {
               />
             </View>
           </Row>
+          <Text variant="caption" tone="muted">
+            {t.devices.eraseOthersHint}
+          </Text>
+          <Button
+            label={t.devices.eraseOthers}
+            variant="danger"
+            onPress={() => void onSignOutOthers(true)}
+            fullWidth
+          />
         </View>
       </Popup>
     </Screen>
