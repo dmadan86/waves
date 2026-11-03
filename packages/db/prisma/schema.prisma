@@ -2155,6 +2155,7 @@ model DeviceSession {
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   lastSeenAt DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
   revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  eraseRequested Boolean @default(false) @map("erase_requested")
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 

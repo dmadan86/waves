@@ -66,7 +66,9 @@ class WavesWatchModule : Module() {
   }
 
   private fun emit(json: String) {
-    sendEvent("onWatchMessage", mapOf("payload" to jsonToMap(JSONObject(json))))
+    // Malformed watch JSON is dropped, never allowed to crash the phone app.
+    val obj = try { JSONObject(json) } catch (_: org.json.JSONException) { return }
+    sendEvent("onWatchMessage", mapOf("payload" to jsonToMap(obj)))
   }
 }
 
