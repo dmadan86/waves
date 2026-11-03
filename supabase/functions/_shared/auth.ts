@@ -202,3 +202,37 @@ export async function requireMembership(
 
   return { profileId: user.user.id, memberId: memberId as string };
 }
+
+/** receiptShareUrl is stored and later opened by other members: null or a bounded https URL only. */
+export function validReceiptShareUrl(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value !== 'string' || value.length > 2048) {
+    throw new HttpError(400, 'VALIDATION_FAILED', 'receiptShareUrl must be an https URL');
+  }
+  try {
+    if (new URL(value).protocol === 'https:') return value;
+  } catch {
+    /* falls through to the refusal */
+  }
+  throw new HttpError(400, 'VALIDATION_FAILED', 'receiptShareUrl must be an https URL');
+}
+/**
+ * Refuses a request whose GoTrue session was ended by "sign out other devices".
+ * Fails open on anything unclear (no session_id claim, rpc error, function not
+ * migrated yet): never lock somebody out of their data on a guess.
+ */
+export async function assertSessionLive(service: SupabaseClient, request: Request): Promise<void> {
+  let sid: string | undefined;
+  try {
+    const token = (request.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    sid = JSON.parse(atob(b64)).session_id; // already verified by auth.getUser()
+  } catch {
+    return;
+  }
+  if (!sid) return;
+  const { data, error } = await service.rpc('waves_session_is_live', { p_session: sid });
+  if (!error && data === false) {
+    throw new HttpError(401, 'SESSION_REVOKED', 'This device was signed out from another device');
+  }
+}
