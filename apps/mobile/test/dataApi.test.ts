@@ -745,7 +745,7 @@ const rpcCases: [string, () => Promise<unknown>, string, unknown, unknown, unkno
     'signOutOtherDevices',
     () => api.signOutOtherDevices('d1'),
     'waves_sign_out_other_devices',
-    { p_device_id: 'd1' },
+    { p_device_id: 'd1', p_erase: false },
     2,
     2,
   ],

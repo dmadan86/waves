@@ -19,6 +19,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   destroyedBy,
+  endingForRevocation,
   forgetSignOutMark,
   markDeliberateSignOut,
   Retention,
@@ -190,5 +191,25 @@ describe('how long a hold may sit', () => {
     // unsent expenses. The window catches it once the clock is right.
     const future = held({ retainedAt: new Date(NOW + 5 * 60_000).toISOString() });
     expect(retentionExpired(future, NOW)).toBe(false);
+  });
+});
+
+describe('revoked-device ending (erase other devices)', () => {
+  beforeEach(() => forgetSignOutMark());
+
+  it('a plain revoke stays Lost and keeps unsent work', () => {
+    expect(endingForRevocation(false)).toBe(SessionEnd.Lost);
+    expect(endingForRevocation(undefined)).toBe(SessionEnd.Lost);
+    expect(destroyedBy(endingForRevocation(undefined)).unsent).toBe(false);
+  });
+
+  it('an erase revoke escalates to the full wipe, key included', () => {
+    const scope = destroyedBy(endingForRevocation(true));
+    expect(scope).toMatchObject({ unsent: true, credentials: true, key: true });
+  });
+
+  it('marked like a deliberate sign-out, the session end reads as SignedOut', () => {
+    markDeliberateSignOut(1_000);
+    expect(takeSessionEnd(2_000)).toBe(SessionEnd.SignedOut);
   });
 });

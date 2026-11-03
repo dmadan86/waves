@@ -1208,6 +1208,8 @@ export interface UiStrings {
     signedOut: string;
     lastActive: string;
     signOutOthers: string;
+    eraseOthers: string;
+    eraseOthersHint: string;
     signOutOthersHint: string;
     signedOutOthers: PluralForms;
     onlyThisDevice: string;
@@ -8872,6 +8874,9 @@ const en: UiStrings = {
     signedOut: 'Signed out',
     lastActive: 'Last active {when}',
     signOutOthers: 'Log out all other devices',
+    eraseOthers: 'Sign out and erase other devices',
+    eraseOthersHint:
+      'For a lost phone: also wipes the other devices. Changes on them that have not synced yet will be lost for good.',
     signOutOthersHint: 'Signs out every device except this one. They ask for a login next time.',
     signedOutOthers: {
       one: 'Signed out {n} other device.',
@@ -15985,6 +15990,9 @@ const ta: UiStrings = {
     signedOut: 'வெளியேற்றப்பட்டது',
     lastActive: 'கடைசியாகச் செயலில் {when}',
     signOutOthers: 'மற்ற எல்லா சாதனங்களிலும் வெளியேறு',
+    eraseOthers: 'வெளியேறி மற்ற சாதனங்களை அழி',
+    eraseOthersHint:
+      'தொலைந்த போனுக்கு: மற்ற சாதனங்களில் உள்ள தரவையும் அழிக்கும். அவற்றில் ஒத்திசைக்கப்படாத மாற்றங்கள் நிரந்தரமாக இழக்கப்படும்.',
     signOutOthersHint:
       'இந்தச் சாதனம் தவிர மற்ற அனைத்திலும் வெளியேற்றும். அடுத்த முறை உள்நுழைவு கேட்கப்படும்.',
     signedOutOthers: {
@@ -23282,6 +23290,9 @@ const hi: UiStrings = {
     signedOut: 'साइन आउट',
     lastActive: 'आख़िरी बार सक्रिय {when}',
     signOutOthers: 'बाकी सभी डिवाइस से साइन आउट करें',
+    eraseOthers: 'साइन आउट करें और बाकी डिवाइस मिटाएँ',
+    eraseOthersHint:
+      'खोए फ़ोन के लिए: बाकी डिवाइस का डेटा भी मिटा देता है। उन पर जो बदलाव अभी सिंक नहीं हुए, वे हमेशा के लिए खो जाएँगे।',
     signOutOthersHint:
       'इस डिवाइस को छोड़कर हर डिवाइस से साइन आउट कर देता है। अगली बार उन पर लॉगिन माँगा जाएगा।',
     signedOutOthers: {
@@ -30450,6 +30461,9 @@ const ar: UiStrings = {
     signedOut: 'تم تسجيل الخروج',
     lastActive: 'آخر نشاط {when}',
     signOutOthers: 'تسجيل الخروج من كل الأجهزة الأخرى',
+    eraseOthers: 'تسجيل الخروج ومسح الأجهزة الأخرى',
+    eraseOthersHint:
+      'للهاتف المفقود: يمسح أيضًا بيانات الأجهزة الأخرى. ستُفقد نهائيًا التغييرات التي لم تتم مزامنتها عليها.',
     signOutOthersHint:
       'يُسجّل الخروج من كل جهاز عدا هذا الجهاز. ستُطلب منها تسجيل الدخول في المرة القادمة.',
     signedOutOthers: {

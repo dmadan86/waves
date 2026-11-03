@@ -576,3 +576,16 @@ cutover day.
 8. **Who owns the six cron jobs?** They exist only as live SQL on one project.
    Until they are in the repo, any rebuild is silently missing half the
    product's background behaviour.
+
+## Publishing a signed OTA update
+
+Updates are code-signed (`updates.codeSigningCertificate` in `apps/mobile/app.json`,
+certificate at `apps/mobile/certs/certificate.pem`). Every `eas update` must be
+signed with the private key kept at `~/.waves-keys/updates/private-key.pem`
+(never in the repo; back it up):
+
+    eas update --channel production --private-key-path ~/.waves-keys/updates/private-key.pem
+
+Only builds made after code signing was added verify signatures, and once one
+ships, an unsigned or wrongly signed update is rejected by it. Losing the key
+means no OTA until a new store build with a new certificate.
