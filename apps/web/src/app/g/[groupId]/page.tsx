@@ -29,7 +29,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { History, Receipt, Scale } from 'lucide-react';
 
 import {
@@ -102,6 +102,7 @@ function GroupDetail({
   query: string;
 }) {
   const { t, locale } = useStrings();
+  const router = useRouter();
 
   const [group, setGroup] = useState<Group | null>(null);
   // Everyone who was ever in the group, for naming the past; `members` is who is
@@ -137,6 +138,11 @@ function GroupDetail({
           waves.settlements(groupId),
         ]);
         if (!active) return;
+        // A company is not a ledger of splits: it has its own screens.
+        if (g?.type === GroupType.Company) {
+          router.replace(`/c/${groupId}`);
+          return;
+        }
         setGroup(g);
         setEveryone(m);
         setExpenses(e);
@@ -156,7 +162,7 @@ function GroupDetail({
     return () => {
       active = false;
     };
-  }, [groupId, t.errors.couldNotLoad, t.errors.offline]);
+  }, [groupId, router, t.errors.couldNotLoad, t.errors.offline]);
 
   // The group's trail, on its own errand. Failing it costs the Activity tab and
   // nothing else.

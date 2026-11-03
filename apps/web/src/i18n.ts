@@ -120,7 +120,10 @@ export type ScopeWords = {
   offline_access: string;
 };
 
+import { companyEn, type CompanyStrings } from './i18n-company';
+
 export interface WebStrings {
+  company: CompanyStrings;
   /** The page somebody reaches by typing the domain in. */
   home: {
     title: string;
@@ -1440,6 +1443,7 @@ export interface WebStrings {
 }
 
 const en: WebStrings = {
+  company: companyEn,
   home: {
     title: 'Waves',
     description:
@@ -2543,6 +2547,7 @@ const en: WebStrings = {
 };
 
 const ta: WebStrings = {
+  company: companyEn,
   home: {
     title: 'Waves',
     description:
@@ -3691,6 +3696,7 @@ const ta: WebStrings = {
 };
 
 const hi: WebStrings = {
+  company: companyEn,
   home: {
     title: 'Waves',
     description:
@@ -4797,6 +4803,7 @@ const hi: WebStrings = {
 };
 
 const ar: WebStrings = {
+  company: companyEn,
   home: {
     title: 'Waves',
     description:
