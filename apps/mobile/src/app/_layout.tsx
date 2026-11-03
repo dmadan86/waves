@@ -18,6 +18,7 @@ import { Stack, usePathname, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
+  AppState,
   I18nManager,
   Platform,
   StyleSheet,
@@ -500,6 +501,36 @@ function PushRouting() {
  * nothing has gone wrong" is for it to look like the app.
  */
 function LockGate({ children }: { children: React.ReactNode }) {
+  const { enabled } = useLock();
+  const [appState, setAppState] = useState(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', setAppState);
+    return () => sub.remove();
+  }, []);
+  const theme = useTheme();
+  const { t } = useStrings();
+  return (
+    <>
+      <LockScreenGate>{children}</LockScreenGate>
+      {/* Opaque cover so the app switcher / recents never snapshots the ledger. */}
+      {enabled && appState !== 'active' ? (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: theme.color.bg, alignItems: 'center', justifyContent: 'center' },
+          ]}
+        >
+          <Text style={{ fontSize: 56, lineHeight: 72, fontWeight: '700' }}>
+            {t.common.appName}
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
+function LockScreenGate({ children }: { children: React.ReactNode }) {
   const { locked, ready, unlock } = useLock();
   const theme = useTheme();
   const { t } = useStrings();

@@ -40,6 +40,7 @@ import { randomUUID } from 'expo-crypto';
 import { AndroidImportance } from 'expo-notifications';
 import { Linking, Platform } from 'react-native';
 
+import { stripResumeParam } from '@/lib/resumeParam';
 import { ensurePermission } from '@/lib/permissionFlow';
 
 import { backend } from './backend';
@@ -332,5 +333,17 @@ export function routeForNotification(response: Notifications.NotificationRespons
   // `waves://group/<id>` → `/group/<id>`. The scheme is only there because a
   // push has to survive being handed to the operating system; in the app it is
   // noise in front of the path.
-  return url.replace(/^waves:\/\//, '/');
+  const path = stripResumeParam(url.replace(/^waves:\/\//, '/'));
+  // A forged push must not reach /join, /redeem or an absolute URL: only the
+  // destinations our own senders write are routed.
+  return NOTIFICATION_PATHS.some((re) => re.test(path)) ? path : null;
 }
+
+const ID = '[A-Za-z0-9-]+';
+/** Every `data.url` shape the server (DB fan-out) and local reminders send. */
+const NOTIFICATION_PATHS = [
+  /^\/activity$/,
+  /^\/captures$/,
+  /^\/settings\/devices$/,
+  new RegExp(`^/group/${ID}(/(add-expense|company-followups|expense/${ID}))?$`),
+];

@@ -18,6 +18,7 @@ const fs = vi.hoisted(() => ({
 }));
 
 /** Unique ids per call, so a test can park more than one capture. */
+const secure = vi.hoisted(() => new Map<string, string>());
 const ids = vi.hoisted(() => ({ n: 0 }));
 
 /** The world outside the queue: the network, R2, and the attach RPC. */
@@ -84,8 +85,12 @@ class FakeFile {
     return fs.files.has(this.uri);
   }
 
-  write(bytes: Uint8Array): void {
-    fs.files.set(this.uri, new Uint8Array(bytes));
+  write(bytes: Uint8Array | string): void {
+    fs.files.set(this.uri, typeof bytes === 'string' ? Buffer.from(bytes) : new Uint8Array(bytes));
+  }
+
+  async text(): Promise<string> {
+    return Buffer.from(fs.files.get(this.uri) ?? new Uint8Array()).toString('utf8');
   }
 
   delete(): void {
@@ -106,7 +111,14 @@ class FakeFile {
 
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: storage }));
+vi.mock('expo-secure-store', () => ({
+  AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 1,
+  getItemAsync: async (k: string) => secure.get(k) ?? null,
+  setItemAsync: async (k: string, v: string) => void secure.set(k, v),
+  deleteItemAsync: async (k: string) => void secure.delete(k),
+}));
 vi.mock('expo-crypto', () => ({
+  getRandomBytes: (n: number) => globalThis.crypto.getRandomValues(new Uint8Array(n)),
   randomUUID: vi.fn(() => {
     ids.n += 1;
     return `uuid${ids.n}`;
@@ -167,11 +179,21 @@ const {
   subscribePendingReceipts,
   usePendingReceipts,
 } = await import('../src/lib/receiptQueue');
+const { decryptWith, loadKey } = await import('@/sync/rowCipher');
 const Network = await import('expo-network');
 const { flush, renderHook } = await import('./support/fakeReact');
 
 const QUEUE_KEY = 'receipt-upload-queue.v1';
 const pendingPath = (fileName: string) => `document-root/pending-receipts/${fileName}`;
+const has = (name: string) =>
+  fs.files.has(pendingPath(name)) || fs.files.has(pendingPath(`${name}.enc`));
+/** The bytes a parked capture holds, opening the sealed file when there is one. */
+async function readBack(name: string): Promise<Uint8Array> {
+  const sealed = fs.files.get(pendingPath(`${name}.enc`));
+  if (!sealed) return fs.files.get(pendingPath(name)) as Uint8Array;
+  const b64 = decryptWith(await loadKey(), Buffer.from(sealed).toString('utf8'), name);
+  return new Uint8Array(Buffer.from(b64, 'base64'));
+}
 
 /** A stored entry, as a previous run of the app would have left it. */
 const entryFor = (overrides: Partial<Record<string, unknown>> = {}) => ({
@@ -235,7 +257,7 @@ describe('parking a capture', () => {
 
     // The photograph exists somewhere other than memory from this moment on —
     // which is the whole reason the queue writes before it uploads.
-    expect(fs.files.get(pendingPath(entry.fileName))).toEqual(new Uint8Array([7, 8, 9]));
+    expect(await readBack(entry.fileName)).toEqual(new Uint8Array([7, 8, 9]));
     expect(await listPendingReceipts('e1')).toHaveLength(1);
     expect(world.put).not.toHaveBeenCalled();
     // And it is on screen straight away, as something waiting rather than sent.
@@ -261,7 +283,7 @@ describe('parking a capture', () => {
     // A gallery three screens away learns about both without asking.
     expect(seen.at(-1)).toBe(0);
     expect(seen).toContain(1);
-    expect(fs.files.has(pendingPath(entry.fileName))).toBe(false);
+    expect(has(entry.fileName)).toBe(false);
   });
 });
 
@@ -284,7 +306,7 @@ describe('a receipt added to an expense that is not saved yet', () => {
     const id = fresh();
     const entry = await addHeld(id);
 
-    expect(fs.files.get(pendingPath(entry.fileName))).toEqual(new Uint8Array([4, 5, 6]));
+    expect(await readBack(entry.fileName)).toEqual(new Uint8Array([4, 5, 6]));
     expect(await listPendingReceipts(id)).toHaveLength(1);
     const result = await flushReceiptQueue();
     // There is no expense row to attach it to yet, so nothing goes up.
@@ -336,7 +358,7 @@ describe('a receipt added to an expense that is not saved yet', () => {
     const entry = await addHeld(id);
     await discardHeldReceipts(id);
     expect(await listPendingReceipts()).toEqual([]);
-    expect(fs.files.has(pendingPath(entry.fileName))).toBe(false);
+    expect(has(entry.fileName)).toBe(false);
   });
 
   it('leaves a released receipt alone when the add screen closes after saving', async () => {
@@ -367,7 +389,7 @@ describe('a receipt added to an expense that is not saved yet', () => {
     const late = await addHeld(id);
 
     expect(await listPendingReceipts()).toEqual([]);
-    expect(fs.files.has(pendingPath(late.fileName))).toBe(false);
+    expect(has(late.fileName)).toBe(false);
   });
 
   it('is swept up a day later when the app was killed on the add screen', async () => {
@@ -387,7 +409,7 @@ describe('a receipt added to an expense that is not saved yet', () => {
     });
     await flushReceiptQueue();
     expect(await storedQueue()).toEqual([]);
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(false);
+    expect(has('a1.jpg')).toBe(false);
   });
 
   it('is kept while it is still recent, across a restart', async () => {
@@ -420,7 +442,7 @@ describe('resuming an interrupted upload', () => {
     expect(result.uploadedExpenseIds).toEqual(['e1']);
     // Sent, so the bytes move into the view cache and out of the pending dir.
     expect(world.cached).toEqual([{ bucket: 'expense-attachments', path: 'e1/a1.jpg' }]);
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(false);
+    expect(has('a1.jpg')).toBe(false);
     // The entry itself stays, marked sent — it is what the gallery draws until
     // the real row arrives, and dropping it here is what used to blank the strip.
     expect((await storedQueue()).map((entry) => entry.attachmentId)).toEqual(['a1']);
@@ -450,7 +472,7 @@ describe('resuming an interrupted upload', () => {
     expect(world.put).not.toHaveBeenCalled();
     expect(result.uploadedExpenseIds).toEqual([]);
     expect(await storedQueue()).toHaveLength(1);
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
+    expect(has('a1.jpg')).toBe(true);
   });
 
   it('keeps a capture parked when nothing is due yet', async () => {
@@ -506,7 +528,7 @@ describe('the Wi-Fi only preference', () => {
     await flushReceiptQueue();
 
     expect(world.put).toHaveBeenCalledTimes(1);
-    expect(fs.files.has(pendingPath('a2.jpg'))).toBe(true);
+    expect(has('a2.jpg')).toBe(true);
   });
 });
 
@@ -582,8 +604,8 @@ describe('the handover from the queue to the real row', () => {
 
     const [entry] = getPendingReceiptsSnapshot();
     expect(entry?.status).toBe('sent');
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
-    expect(entry && pendingReceiptUri(entry)).toBe(pendingPath('a1.jpg'));
+    expect(has('a1.jpg')).toBe(true);
+    expect(entry && pendingReceiptUri(entry)).toBe('cache-root/pending-previews/a1.jpg');
   });
 
   it('carries the stored placeholder up with the receipt', async () => {
@@ -619,7 +641,7 @@ describe('a capture that does not go up', () => {
     expect(stored?.lastError).toContain('Network request failed');
     expect(Date.parse(String(stored?.nextAttemptAt))).toBeGreaterThan(Date.now());
     // The bytes are still there — a failed send never costs the photograph.
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
+    expect(has('a1.jpg')).toBe(true);
     expect(getPendingReceiptsSnapshot()[0]?.status).toBe('failed');
 
     // A second flush straight away respects the backoff rather than hammering.
@@ -639,7 +661,7 @@ describe('a capture that does not go up', () => {
     expect(stored).toMatchObject({ permanent: true, nextAttemptAt: null });
     // Still on the phone, still on screen: a receipt that vanished with no
     // explanation is indistinguishable from a bug.
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
+    expect(has('a1.jpg')).toBe(true);
     expect(getPendingReceiptsSnapshot()[0]?.status).toBe('failed');
 
     await flushReceiptQueue();
@@ -669,7 +691,7 @@ describe('a capture that does not go up', () => {
     const [stored] = await storedQueue();
     expect(world.removed[0]?.path).toBe(stored?.storagePath);
     // And the capture itself is untouched: bytes on disk, entry still queued.
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
+    expect(has('a1.jpg')).toBe(true);
     expect(getPendingReceiptsSnapshot()[0]?.status).toBe('failed');
   });
 
@@ -751,7 +773,7 @@ describe('a capture parked while a flush is running', () => {
     expect(queue.map((entry) => entry.expenseId)).toEqual(['e1', 'e2']);
     expect(queue[1]).toMatchObject({ expenseId: 'e2', sentAt: null });
     // Its bytes are still under the pending dir — not orphaned by the write-back.
-    expect(fs.files.has(pendingPath(latecomerFile))).toBe(true);
+    expect(has(latecomerFile)).toBe(true);
   });
 });
 
@@ -781,10 +803,10 @@ describe('two things touching the queue at once', () => {
     void drop;
 
     expect((await storedQueue()).map((entry) => entry.attachmentId)).toEqual([added.attachmentId]);
-    expect(fs.files.has(pendingPath(added.fileName))).toBe(true);
+    expect(has(added.fileName)).toBe(true);
     // And the sweep that runs on the next read leaves it alone.
     await listPendingReceipts();
-    expect(fs.files.has(pendingPath(added.fileName))).toBe(true);
+    expect(has(added.fileName)).toBe(true);
   });
 
   it('does not sweep away the bytes of a receipt being added', async () => {
@@ -802,7 +824,7 @@ describe('two things touching the queue at once', () => {
       }),
     ]);
 
-    expect(fs.files.has(pendingPath(added.fileName))).toBe(true);
+    expect(has(added.fileName)).toBe(true);
     expect((await storedQueue()).map((entry) => entry.attachmentId)).toEqual([added.attachmentId]);
   });
 
@@ -839,8 +861,8 @@ describe('receipt queue local privacy cleanup', () => {
     expect(storage.removeItem).toHaveBeenCalledWith(QUEUE_KEY);
     expect(await listPendingReceipts()).toEqual([]);
     expect(getPendingReceiptsSnapshot()).toEqual([]);
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(false);
-    expect(fs.files.has(pendingPath('a2.jpg'))).toBe(false);
+    expect(has('a1.jpg')).toBe(false);
+    expect(has('a2.jpg')).toBe(false);
     expect(fs.dirs.has('document-root/pending-receipts')).toBe(false);
   });
 
@@ -865,8 +887,8 @@ describe('receipt queue local privacy cleanup', () => {
 
     await expect(listPendingReceipts()).resolves.toEqual([entryFor()]);
 
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
-    expect(fs.files.has(pendingPath('orphan.jpg'))).toBe(false);
+    expect(has('a1.jpg')).toBe(true);
+    expect(has('orphan.jpg')).toBe(false);
   });
 });
 
@@ -955,7 +977,7 @@ describe('parking a capture from a file', () => {
 
     expect(entry.fileName).toBe(`${entry.attachmentId}.${ext}`);
     expect(entry.storagePath).toMatch(new RegExp(`^e1/.+\\.${ext}$`));
-    expect(fs.files.get(pendingPath(entry.fileName))).toEqual(new Uint8Array([4, 5]));
+    expect(await readBack(entry.fileName)).toEqual(new Uint8Array([4, 5]));
     // Copied, not moved: the caller may still be drawing the source.
     expect(fs.files.has('cache-root/resized')).toBe(true);
   });
@@ -965,6 +987,41 @@ describe('parking a capture from a file', () => {
       enqueueReceipt({ expenseId: 'e1', groupId: 'g1', visibility: 'group', contentType: 'x' }),
     ).rejects.toThrow('needs either sourceUri or base64');
     expect(await listPendingReceipts()).toEqual([]);
+  });
+});
+
+describe('pending files sealed at rest', () => {
+  it('round-trips: ciphertext on disk, original bytes back, preview for the gallery', async () => {
+    const entry = await enqueueReceipt({
+      expenseId: 'e1',
+      groupId: 'g1',
+      visibility: 'group',
+      base64: Buffer.from([1, 2, 3, 4]).toString('base64'),
+      contentType: 'image/jpeg',
+    });
+    expect(fs.files.has(pendingPath(entry.fileName))).toBe(false);
+    const sealed = fs.files.get(pendingPath(`${entry.fileName}.enc`));
+    expect(Buffer.from(sealed as Uint8Array).toString('utf8')).toMatch(/^v1:/);
+    expect(await readBack(entry.fileName)).toEqual(new Uint8Array([1, 2, 3, 4]));
+    expect(pendingReceiptUri(entry)).toBe(`cache-root/pending-previews/${entry.fileName}`);
+  });
+
+  it('seals an existing plaintext file in place and removes the original', async () => {
+    parkOnDisk();
+    await listPendingReceipts();
+    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(false);
+    expect(await readBack('a1.jpg')).toEqual(new Uint8Array([1, 2, 3]));
+  });
+
+  it('keeps the plaintext original when sealing fails, and still sends it', async () => {
+    parkOnDisk();
+    const write = vi.spyOn(FakeFile.prototype, 'write').mockImplementation(() => {
+      throw new Error('disk full');
+    });
+    await listPendingReceipts();
+    write.mockRestore();
+    expect(fs.files.get(pendingPath('a1.jpg'))).toEqual(new Uint8Array([1, 2, 3]));
+    expect(has('a1.jpg')).toBe(true);
   });
 });
 
@@ -994,10 +1051,10 @@ describe('the handover edge cases', () => {
     parkOnDisk();
     await listPendingReceipts();
     await flushReceiptQueue();
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(true);
+    expect(has('a1.jpg')).toBe(true);
 
     await dropSettledReceipts(['a1']);
-    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(false);
+    expect(has('a1.jpg')).toBe(false);
     expect(await storedQueue()).toEqual([]);
   });
 

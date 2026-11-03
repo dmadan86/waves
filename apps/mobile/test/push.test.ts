@@ -273,7 +273,32 @@ describe('routeForNotification', () => {
   it('turns the waves:// link into an in-app path', async () => {
     const push = await load();
     expect(push.routeForNotification(response({ url: 'waves://group/g1' }))).toBe('/group/g1');
-    expect(push.routeForNotification(response({ url: '/settle/x' }))).toBe('/settle/x');
+    expect(push.routeForNotification(response({ url: 'waves://group/g1/expense/e1' }))).toBe(
+      '/group/g1/expense/e1',
+    );
+    expect(push.routeForNotification(response({ url: 'waves://activity' }))).toBe('/activity');
+  });
+
+  it('rejects forged destinations: join, redeem, absolute urls, odd paths', async () => {
+    const push = await load();
+    for (const url of [
+      '/join?token=X&resume=1',
+      'waves://join?token=X&resume=1',
+      'waves://redeem?code=A',
+      'https://evil.example/group/g1',
+      '//evil.example',
+      '/group/g1/../join',
+      '/settle/x',
+    ]) {
+      expect(push.routeForNotification(response({ url }))).toBeNull();
+    }
+  });
+
+  it('strips resume from an otherwise allowed link', async () => {
+    const push = await load();
+    expect(push.routeForNotification(response({ url: 'waves://group/g1?resume=1' }))).toBe(
+      '/group/g1',
+    );
   });
 
   it('goes nowhere without a string url', async () => {
