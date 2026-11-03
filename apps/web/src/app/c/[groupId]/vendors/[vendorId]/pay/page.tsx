@@ -65,9 +65,11 @@ function Inner({ groupId, vendorId }: { groupId: string; vendorId: string }) {
   const out = paymentOutcome(balance, minor);
   const valid = minor > 0n && validIsoDate(date) && !!vendor && d.canManage;
   const [done, setDone] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const submit = () => {
     if (!valid || action.busy || done) return;
+    let photoFailed = false;
     void action
       .run(
         async () => {
@@ -86,12 +88,29 @@ function Inner({ groupId, vendorId }: { groupId: string; vendorId: string }) {
             }),
           );
           setDone(true);
-          if (files.length)
-            await uploadLinePhotos(groupId, entryId, files, d.refresh, s.uploadFailed);
+          // The payment is saved; if a photo fails, stay here so the error is seen (`done` locks the form).
+          if (files.length) {
+            const failed = await uploadLinePhotos(
+              groupId,
+              entryId,
+              files,
+              d.refresh,
+              s.uploadFailed,
+            );
+            if (failed) {
+              setPhotoError(failed);
+              photoFailed = true;
+            }
+          }
         },
         (e) => friendlyError(e, 'web.vendors.pay', { fallback: s.failed }),
       )
-      .then((ok) => ok && router.replace(kind === 'payment' ? `${back}/receipt/${entryId}` : back));
+      .then(
+        (ok) =>
+          ok &&
+          !photoFailed &&
+          router.replace(kind === 'payment' ? `${back}/receipt/${entryId}` : back),
+      );
   };
 
   return (
@@ -179,7 +198,7 @@ function Inner({ groupId, vendorId }: { groupId: string; vendorId: string }) {
         <PhotoPicker files={files} setFiles={setFiles} />
       </div>
       <p className="faint">{s.recordsNote}</p>
-      {action.error ? <p className="error">{action.error}</p> : null}
+      {(action.error ?? photoError) ? <p className="error">{action.error ?? photoError}</p> : null}
       <button
         type="button"
         className="btn brand"
