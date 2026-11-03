@@ -25,4 +25,14 @@ describe('copySensitive', () => {
     await vi.advanceTimersByTimeAsync(60_000);
     expect(clip.value).toBe('shopping list');
   });
+
+  it('still wipes the first secret after a second was copied', async () => {
+    await copySensitive('A');
+    await vi.advanceTimersByTimeAsync(30_000);
+    await copySensitive('B');
+    await vi.advanceTimersByTimeAsync(30_000); // A's timer fires, clipboard holds B: untouched
+    expect(clip.value).toBe('B');
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(clip.value).toBe('');
+  });
 });
