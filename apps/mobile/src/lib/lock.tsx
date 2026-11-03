@@ -187,14 +187,18 @@ export function LockProvider({ children }: { children: ReactNode }) {
 
   const setEnabled = useCallback(
     async (value: boolean) => {
-      // Prove the device can actually unlock before locking them out of it.
-      if (value && !(await authenticate('Confirm to turn on app lock'))) return;
+      // Both directions: proving the device can unlock before turning on, and that
+      // it is the owner (not whoever holds an unlocked phone) before turning off.
+      const prompt = value ? 'Confirm to turn on app lock' : 'Confirm to turn off app lock';
+      // Web has no authenticator. A device that can no longer lock (passcode
+      // removed) has nothing to prove with, so turning off must not trap the user.
+      if (Platform.OS !== 'web' && (value || supported) && !(await authenticate(prompt))) return;
       // SecureStore has no web implementation, same as the read path above.
       if (Platform.OS !== 'web') await SecureStore.setItemAsync(KEY, value ? 'true' : 'false');
       setEnabledState(value);
       setNeeds(null);
     },
-    [authenticate],
+    [authenticate, supported],
   );
 
   const setGraceSeconds = useCallback(async (value: number) => {

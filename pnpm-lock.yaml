@@ -383,6 +383,9 @@ importers:
       expo-router:
         specifier: ~57.0.29
         version: 57.0.29(729c3aef1b728a0a67d68c7983932040)
+      expo-screen-capture:
+        specifier: ~57.0.4
+        version: 57.0.4(expo@57.0.31)(react@19.3.1)
       expo-screen-orientation:
         specifier: ~57.0.3
         version: 57.0.3(expo@57.0.31)(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))
@@ -7568,6 +7571,12 @@ packages:
         optional: true
       react-server-dom-webpack:
         optional: true
+
+  expo-screen-capture@57.0.4:
+    resolution: {integrity: sha512-08+bHhNnEKABCNB687LMYQPhVL200exgCqNdHnEkAo0UyS+SN8k+lh9w9bJ+tAmYpGa76o+hRYMqwpv7oBPEOA==}
+    peerDependencies:
+      expo: '*'
+      react: '*'
 
   expo-screen-orientation@57.0.3:
     resolution: {integrity: sha512-hKtTKAoinahalc5nzMmGfVtj1NfVj4pFJycJGy/HUzrBlu+1rOnHdGUKgaSKkMhr5Mr9GxAxcuLvuM+oyFNFLA==}
@@ -21344,6 +21353,11 @@ snapshots:
       - expo-font
       - react-native-worklets
       - supports-color
+
+  expo-screen-capture@57.0.4(expo@57.0.31)(react@19.3.1):
+    dependencies:
+      expo: 57.0.31(32370f0f25d39ad30cca7a8d2ea64cf6)
+      react: 19.3.1
 
   expo-screen-orientation@57.0.3(expo@57.0.31)(react-native@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1)):
     dependencies:
