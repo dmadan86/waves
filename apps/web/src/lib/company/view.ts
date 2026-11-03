@@ -48,6 +48,7 @@ export interface CompanyGroup {
   suspended_at: string | null;
   slot_lapsed_at: string | null;
   deleted_at: string | null;
+  company_tags?: unknown;
   company_approvals_enabled?: boolean;
   company_default_daily_rate_minor?: string | null;
   company_default_mileage_rate_minor?: string | null;

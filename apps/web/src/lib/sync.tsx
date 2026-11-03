@@ -127,7 +127,6 @@ async function drain(
 ): Promise<MirrorState> {
   let state = mirror;
   let response = first ?? (await postSync(state.cursors, mutations));
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const before = state.cursors;
     state = fold(state, response);
@@ -185,8 +184,17 @@ interface Internal extends SyncValue {
 
 const SyncContext = createContext<Internal | null>(null);
 
+/** Keyed by account: a different person remounts the state, so rows never leak across sign-ins. */
 export function SyncProvider({ children }: { children: ReactNode }) {
   const { profileId } = useAuth();
+  return (
+    <AccountSync key={profileId ?? 'signed-out'} profileId={profileId}>
+      {children}
+    </AccountSync>
+  );
+}
+
+function AccountSync({ profileId, children }: { profileId: string | null; children: ReactNode }) {
   const [mirror, setMirror] = useState<MirrorState>(emptyMirror);
   const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -228,13 +236,6 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       }),
     [commit, serial],
   );
-
-  // A different account must never see the previous one's rows.
-  useEffect(() => {
-    commit(emptyMirror());
-    setHydrated(false);
-    setError(null);
-  }, [profileId, commit]);
 
   useEffect(() => {
     if (wanted && profileId) void refresh().catch(() => undefined);
