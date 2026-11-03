@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { CompaniesBand } from '@/components/companies-band';
 import { AgentsBand } from '@/components/agents-band';
 import { DownloadBanner } from '@/components/download-banner';
 import { Faq } from '@/components/faq';
@@ -119,6 +120,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <VoiceBand t={t.voice} />
         <WearablesBand t={t.wearables} />
         <AgentsBand t={t.agents} locale={locale} />
+        <CompaniesBand t={t.companies} mock={t.companyMock} locale={locale} />
         <Pricing t={t.pricing} />
         <PrivacyBand t={t.privacy} locale={locale} />
         <Faq t={t.faq} />

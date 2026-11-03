@@ -17,6 +17,7 @@ type Nav = {
   offline: string;
   voice: string;
   wearables: string;
+  companies: string;
   agents: string;
   pricing: string;
   faq: string;
@@ -33,7 +34,18 @@ type Nav = {
   skip: string;
 };
 
-export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; appUrl: string }) {
+export function SiteHeader({
+  locale,
+  nav,
+  appUrl,
+  anchorBase = '',
+}: {
+  locale: Locale;
+  nav: Nav;
+  appUrl: string;
+  /** Prefix for the in-page links, so a secondary page can point them at the home page. */
+  anchorBase?: string;
+}) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpenOn, setMenuOpenOn] = useState<string | null>(null);
@@ -79,15 +91,16 @@ export function SiteHeader({ locale, nav, appUrl }: { locale: Locale; nav: Nav; 
   }, [langOpen]);
 
   const links = [
-    { href: '#features', label: nav.features },
-    { href: '#how', label: nav.how, mobileOnly: true },
-    { href: '#offline', label: nav.offline },
-    { href: '#voice', label: nav.voice },
-    { href: '#wearables', label: nav.wearables, mobileOnly: true },
-    { href: '#agents', label: nav.agents },
-    { href: '#pricing', label: nav.pricing },
-    { href: '#security', label: nav.security, mobileOnly: true },
-    { href: '#faq', label: nav.faq },
+    { href: `${anchorBase}#features`, label: nav.features },
+    { href: `${anchorBase}#how`, label: nav.how, mobileOnly: true },
+    { href: `${anchorBase}#offline`, label: nav.offline },
+    { href: `${anchorBase}#voice`, label: nav.voice },
+    { href: `${anchorBase}#wearables`, label: nav.wearables, mobileOnly: true },
+    { href: `${anchorBase}#agents`, label: nav.agents },
+    { href: `/${locale}/companies`, label: nav.companies },
+    { href: `${anchorBase}#pricing`, label: nav.pricing },
+    { href: `${anchorBase}#security`, label: nav.security, mobileOnly: true },
+    { href: `${anchorBase}#faq`, label: nav.faq },
   ];
 
   const localeHref = (next: Locale) => {
