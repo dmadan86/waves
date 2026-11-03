@@ -1,6 +1,15 @@
 import { test, expect } from '@playwright/test';
 
-import { GROUP, OWNER_MEMBER, OWNER_PROFILE, change, mockBackend, ownerMirror, people, signInAs } from './support/company';
+import {
+  GROUP,
+  OWNER_MEMBER,
+  OWNER_PROFILE,
+  change,
+  mockBackend,
+  ownerMirror,
+  people,
+  signInAs,
+} from './support/company';
 
 const VENDOR = 'dddddddd-0000-4000-8000-000000000001';
 const vendor = () =>
