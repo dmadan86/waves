@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { copySensitive } from '@/lib/sensitiveClipboard';
+
 const clip = vi.hoisted(() => ({ value: '' }));
 vi.mock('expo-clipboard', () => ({
   setStringAsync: vi.fn(async (v: string) => void (clip.value = v)),
   getStringAsync: vi.fn(async () => clip.value),
 }));
-
-import { copySensitive } from '@/lib/sensitiveClipboard';
 
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => vi.useRealTimers());
