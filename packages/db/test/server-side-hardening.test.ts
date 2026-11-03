@@ -13,6 +13,13 @@ let db: Client;
 let trip: Awaited<ReturnType<typeof seedGroup>>;
 let co: { groupId: string; profileIds: string[]; memberIds: string[] };
 
+// Index a seeded id list; fails loudly instead of yielding undefined.
+function at(list: string[], i: number): string {
+  const v = list[i];
+  if (v === undefined) throw new Error(`no seeded id at ${i}`);
+  return v;
+}
+
 // Every test runs in a transaction that is rolled back; `as` switches the caller for one statement block.
 async function isolated(run: () => Promise<void>) {
   await db.query('BEGIN');
@@ -49,17 +56,24 @@ async function makeGuest(profileId: string) {
   await db.query('CREATE SCHEMA IF NOT EXISTS auth');
   await db.query('CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY)');
   await db.query('ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS is_anonymous boolean');
-  await db.query('INSERT INTO auth.users (id, is_anonymous) VALUES ($1, true) ON CONFLICT (id) DO UPDATE SET is_anonymous = true', [profileId]);
+  await db.query(
+    'INSERT INTO auth.users (id, is_anonymous) VALUES ($1, true) ON CONFLICT (id) DO UPDATE SET is_anonymous = true',
+    [profileId],
+  );
 }
 
 beforeAll(async () => {
   db = await connect();
   trip = await seedGroup(db, { memberCount: 2 });
   const seed = await seedGroup(db, { memberCount: 3 });
-  co = { groupId: randomUUID(), profileIds: seed.profileIds, memberIds: seed.memberIds.map(() => randomUUID()) };
+  co = {
+    groupId: randomUUID(),
+    profileIds: seed.profileIds,
+    memberIds: seed.memberIds.map(() => randomUUID()),
+  };
   await db.query(
     "INSERT INTO groups(id,type,default_currency,country_code,created_by,company_default_daily_rate_minor,company_default_mileage_rate_minor) VALUES($1,'company','INR','IN',$2,100000,700)",
-    [co.groupId, co.profileIds[0]],
+    [co.groupId, at(co.profileIds, 0)],
   );
   for (let i = 0; i < 3; i++)
     await db.query('INSERT INTO group_members(id,group_id,profile_id,role) VALUES($1,$2,$3,$4)', [
@@ -78,46 +92,96 @@ const create = async (data: Record<string, unknown>, kind = 'allowance') => {
   await db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
     co.groupId,
     id,
-    co.memberIds[1],
+    at(co.memberIds, 1),
     kind,
     JSON.stringify({ occurredOn: '2026-12-01', ...data }),
   ]);
-  return (await db.query('SELECT amount, rate_minor FROM company_entries WHERE id=$1', [id])).rows[0];
+  return (await db.query('SELECT amount, rate_minor FROM company_entries WHERE id=$1', [id]))
+    .rows[0];
 };
 
 describe('company rates are server-side', () => {
   const days = { calcMode: 'days_rate', days: '3', rateMinor: '500000' };
   it('ignores an employee-supplied day rate', () =>
     isolated(async () => {
-      const r = await as(co.profileIds[1], () => create(days));
+      const r = await as(at(co.profileIds, 1), () => create(days));
       expect(r).toMatchObject({ amount: '300000', rate_minor: '100000' });
     }));
   it('honours an admin-supplied day rate', () =>
     isolated(async () => {
-      const r = await as(co.profileIds[0], () => create(days));
+      const r = await as(at(co.profileIds, 0), () => create(days));
       expect(r).toMatchObject({ amount: '1500000', rate_minor: '500000' });
     }));
   it('uses the stored mileage rate for an employee, the supplied one for an admin', () =>
     isolated(async () => {
-      const km = { calcMode: 'distance_rate', category: 'fuel', distanceKm: '10', rateMinor: '99999' };
-      expect(await as(co.profileIds[1], () => create(km, 'expense'))).toMatchObject({ amount: '7000', rate_minor: '700' });
-      expect(await as(co.profileIds[0], () => create(km, 'expense'))).toMatchObject({ amount: '999990', rate_minor: '99999' });
+      const km = {
+        calcMode: 'distance_rate',
+        category: 'fuel',
+        distanceKm: '10',
+        rateMinor: '99999',
+      };
+      expect(await as(at(co.profileIds, 1), () => create(km, 'expense'))).toMatchObject({
+        amount: '7000',
+        rate_minor: '700',
+      });
+      expect(await as(at(co.profileIds, 0), () => create(km, 'expense'))).toMatchObject({
+        amount: '999990',
+        rate_minor: '99999',
+      });
+    }));
+});
+
+describe('editing an admin-priced entry', () => {
+  it('keeps its rate for an employee and ignores a new one', () =>
+    isolated(async () => {
+      // The employee creates it (only the creator may edit), then an admin re-prices it.
+      const id = randomUUID();
+      await as(at(co.profileIds, 1), () =>
+        db.query('SELECT waves_company_entry_create($1,$2,$3,$4,$5)', [
+          co.groupId,
+          id,
+          at(co.memberIds, 1),
+          'allowance',
+          JSON.stringify({ occurredOn: '2026-12-01', calcMode: 'days_rate', days: '3' }),
+        ]),
+      );
+      await as(at(co.profileIds, 0), () =>
+        db.query('SELECT waves_company_entry_update($1,$2)', [
+          id,
+          JSON.stringify({ rateMinor: '500000' }),
+        ]),
+      );
+      const edit = (patch: object) =>
+        as(at(co.profileIds, 1), () =>
+          db.query('SELECT waves_company_entry_update($1,$2)', [id, JSON.stringify(patch)]),
+        );
+      const read = async () =>
+        (await db.query('SELECT amount, rate_minor, note FROM company_entries WHERE id=$1', [id]))
+          .rows[0];
+      await edit({ note: 'fixed' });
+      expect(await read()).toMatchObject({
+        amount: '1500000',
+        rate_minor: '500000',
+        note: 'fixed',
+      });
+      await edit({ rateMinor: '900000' });
+      expect(await read()).toMatchObject({ amount: '1500000', rate_minor: '500000' });
     }));
 });
 
 describe('guests', () => {
   it('cannot look people up', () =>
     isolated(async () => {
-      await makeGuest(trip.profileIds[0]);
-      const msg = await as(trip.profileIds[0], () =>
+      await makeGuest(at(trip.profileIds, 0));
+      const msg = await as(at(trip.profileIds, 0), () =>
         rejects(() => db.query("SELECT * FROM waves_find_person('email','someone@example.com')")),
       );
       expect(msg).toContain('NOT_ALLOWED');
     }));
   it('cannot redeem promo codes', () =>
     isolated(async () => {
-      await makeGuest(trip.profileIds[0]);
-      const msg = await as(trip.profileIds[0], () =>
+      await makeGuest(at(trip.profileIds, 0));
+      const msg = await as(at(trip.profileIds, 0), () =>
         rejects(() => db.query("SELECT waves_redeem_promo('ABCD1234')")),
       );
       expect(msg).toContain('NOT_ALLOWED');
@@ -130,7 +194,7 @@ describe('promo redemption attempts', () => {
       await db.query("INSERT INTO promo_codes(code) VALUES ('SECTEST1')");
       const redeem = (code: string) =>
         db.query('SELECT waves_redeem_promo($1) AS r', [code]).then((x) => x.rows[0].r);
-      await as(trip.profileIds[1], async () => {
+      await as(at(trip.profileIds, 1), async () => {
         for (let i = 0; i < 10; i++) expect((await redeem('NOPE' + i)).reason).toBe('UNKNOWN_CODE');
         expect(await redeem('SECTEST1')).toEqual({ ok: false, reason: 'RATE_LIMITED' });
       });
@@ -141,12 +205,12 @@ describe('company join link', () => {
   const token = (g: string) => db.query('SELECT waves_ensure_group_join_token($1) AS t', [g]);
   it('is refused to an employee, given to an admin', () =>
     isolated(async () => {
-      const msg = await as(co.profileIds[1], () => rejects(() => token(co.groupId)));
+      const msg = await as(at(co.profileIds, 1), () => rejects(() => token(co.groupId)));
       expect(msg).toContain('NOT_ALLOWED');
-      expect((await as(co.profileIds[0], () => token(co.groupId))).rows[0].t).toBeTruthy();
+      expect((await as(at(co.profileIds, 0), () => token(co.groupId))).rows[0].t).toBeTruthy();
     }));
   it('is still available to any member of an ordinary group', () =>
     isolated(async () => {
-      expect((await as(trip.profileIds[1], () => token(trip.groupId))).rows[0].t).toBeTruthy();
+      expect((await as(at(trip.profileIds, 1), () => token(trip.groupId))).rows[0].t).toBeTruthy();
     }));
 });

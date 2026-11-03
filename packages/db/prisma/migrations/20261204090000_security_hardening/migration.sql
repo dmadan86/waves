@@ -14,7 +14,8 @@ DO $$ DECLARE f regprocedure; d text; o text; BEGIN
  f := 'public.waves_company_entry_values(text,uuid,jsonb)'::regprocedure;
  o := pg_get_functiondef(f);
  d := replace(o, 'v_rate := (p_data->>''rateMinor'')::bigint;',
-  'v_rate := CASE WHEN public.waves_company_rate_trusted(p_member) THEN (p_data->>''rateMinor'')::bigint END;');
+  'v_rate := CASE WHEN public.waves_company_rate_trusted(p_member) THEN (p_data->>''rateMinor'')::bigint
+   ELSE nullif(current_setting(''waves.existing_rate'',true),'''')::bigint END;');
  IF d = o THEN RAISE EXCEPTION 'could not patch %', f; END IF;
  EXECUTE d;
 
@@ -22,7 +23,19 @@ DO $$ DECLARE f regprocedure; d text; o text; BEGIN
  o := pg_get_functiondef(f);
  d := replace(o, 'rate:=(p_data->>''rateMinor'')::bigint;',
   'rate:=coalesce(CASE WHEN public.waves_company_rate_trusted(p_member) THEN (p_data->>''rateMinor'')::bigint END,
+   nullif(current_setting(''waves.existing_rate'',true),'''')::bigint,
    (SELECT coalesce(m.mileage_rate_minor,g.company_default_mileage_rate_minor) FROM public.group_members m JOIN public.groups g ON g.id=m.group_id WHERE m.id=p_member));');
+ IF d = o THEN RAISE EXCEPTION 'could not patch %', f; END IF;
+ EXECUTE d;
+
+ -- An update keeps the row's existing rate for a caller who may not set one (a note/date fix must not re-price it).
+ f := 'public.waves_company_entry_update(uuid,jsonb)'::regprocedure;
+ o := pg_get_functiondef(f);
+ d := replace(o, ' d := public.waves_company_entry_values_v3(r.entry_kind,r.member_id,',
+  E' PERFORM set_config(''waves.existing_rate'', coalesce(r.rate_minor::text,''''), true);\n d := public.waves_company_entry_values_v3(r.entry_kind,r.member_id,');
+ IF d = o THEN RAISE EXCEPTION 'could not patch %', f; END IF;
+ o := d;
+ d := replace(o, ' UPDATE public.company_entries SET amount=(d->>''amount'')::bigint,', E' PERFORM set_config(''waves.existing_rate'','''', true);\n UPDATE public.company_entries SET amount=(d->>''amount'')::bigint,');
  IF d = o THEN RAISE EXCEPTION 'could not patch %', f; END IF;
  EXECUTE d;
 END $$;
