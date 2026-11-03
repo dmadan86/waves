@@ -47,6 +47,8 @@ import {
   serveWithCors,
   errorResponse,
   HttpError,
+  assertSessionLive,
+  validReceiptShareUrl,
   json,
   parseMinor,
 } from '../_shared/auth.ts';
@@ -447,6 +449,7 @@ serveWithCors(async (request) => {
       throw new HttpError(401, 'NOT_AUTHENTICATED', 'Sign in first');
     }
     const profileId = user.user.id;
+    await assertSessionLive(service, request);
 
     // A guest's writes stop after the trial (ADR-006 addendum); the pull below
     // still runs, so everything they made stays visible — read-only, not gone.
@@ -563,9 +566,18 @@ export class SyncSession {
     // Replay: return exactly what the first attempt produced.
     const { data: seen } = await this.service
       .from('sync_mutations')
-      .select('result')
+      .select('result, profile_id')
       .eq('client_mutation_id', clientMutationId)
       .maybeSingle();
+    // Another profile's id: refuse without echoing their stored result.
+    if (seen && seen.profile_id !== this.profileId) {
+      return {
+        clientMutationId,
+        status: 'rejected',
+        code: 'MUTATION_ID_CONFLICT',
+        message: 'That clientMutationId is already in use',
+      };
+    }
     if (seen) {
       if (!personal) this.touchedGroups.add(mutation.groupId);
       return { clientMutationId, status: 'duplicate', result: seen.result };
@@ -1709,7 +1721,7 @@ export class SyncSession {
         baseVersionNo: payload.baseVersionNo ?? null,
         fx: payload.fx ?? null,
         paymentMethod: payload.paymentMethod ?? null,
-        receiptShareUrl: payload.receiptShareUrl ?? null,
+        receiptShareUrl: validReceiptShareUrl(payload.receiptShareUrl),
         categoryMeta: payload.categoryMeta,
         location: payload.location,
         subEventId: payload.subEventId ?? null,

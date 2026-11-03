@@ -26,6 +26,7 @@ import {
   serveWithCors,
   errorResponse,
   HttpError,
+  validReceiptShareUrl,
   json,
   parseMinor,
   requireMembership,
@@ -125,10 +126,14 @@ serveWithCors(async (request) => {
     // Replay of a mutation we already applied: return what we wrote before.
     const { data: existing } = await service
       .from('expense_versions')
-      .select('id, expense_id, version_no')
+      .select('id, expense_id, version_no, author_member_id')
       .eq('client_mutation_id', body.clientMutationId)
       .maybeSingle();
     if (existing) {
+      // Another member's mutation id is not ours to replay (and its ids stay unleaked).
+      if (existing.author_member_id !== memberId) {
+        throw new HttpError(409, 'MUTATION_ID_CONFLICT', 'That clientMutationId is already in use');
+      }
       return json({
         expenseId: existing.expense_id,
         versionId: existing.id,
@@ -226,7 +231,7 @@ serveWithCors(async (request) => {
         baseVersionNo: body.baseVersionNo ?? null,
         fx: body.fx ?? null,
         paymentMethod: body.paymentMethod ?? null,
-        receiptShareUrl: body.receiptShareUrl ?? null,
+        receiptShareUrl: validReceiptShareUrl(body.receiptShareUrl),
         categoryMeta: body.categoryMeta,
         location: body.location,
         subEventId: body.subEventId ?? null,
