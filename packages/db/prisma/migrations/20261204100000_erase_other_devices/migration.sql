@@ -47,7 +47,8 @@ BEGIN
   SELECT TRUE, d.revoked_at IS NOT NULL, d.revoked_at, d.erase_requested
     INTO v_known, v_fresh, v_revoked_at, v_erase
   FROM public.device_sessions d
-  WHERE d.profile_id = v_profile AND d.device_id = p_device_id;
+  WHERE d.profile_id = v_profile AND d.device_id = p_device_id
+  FOR UPDATE; -- a concurrent erase request must not be overwritten by the upsert below
 
   IF NOT FOUND THEN
     v_known := FALSE;
@@ -152,7 +153,7 @@ BEGIN
       erase_requested = p_erase
   WHERE profile_id = v_profile
     AND device_id <> p_device_id
-    AND revoked_at IS NULL;
+    AND (revoked_at IS NULL OR (p_erase AND NOT erase_requested)); -- erase can escalate an earlier plain sign-out
 
   GET DIAGNOSTICS v_count = ROW_COUNT;
 
