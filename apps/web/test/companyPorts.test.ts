@@ -12,7 +12,7 @@ describe('webHref', () => {
     expect(webHref('g', 'company-entry-view?entry=e1')).toBe('/c/g/entry/e1');
     expect(webHref('g', 'company-statement?member=m1')).toBe('/c/g/statement/m1');
     expect(webHref('g', 'company-bill?docId=d1')).toBe('/c/g/bills?docId=d1');
-    expect(webHref('g', 'company-work')).toBe('/c/g/work');
+    expect(webHref('g', 'company-work')).toBe('/c/g/more');
     expect(webHref('g', 'unknown')).toBe('/c/g/more');
   });
 });
