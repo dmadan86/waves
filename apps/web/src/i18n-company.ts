@@ -424,7 +424,8 @@ export const companyEn = {
       newComplaint: 'New complaint',
       editComplaint: 'Edit complaint',
       emptyTitle: 'No complaints yet',
-      emptyBody: 'Log a customer complaint and give it to someone. If it is not solved in time it moves up to their manager, then the owner.',
+      emptyBody:
+        'Log a customer complaint and give it to someone. If it is not solved in time it moves up to their manager, then the owner.',
       emptyTab: 'Nothing here',
       seeAll: 'All',
       noneForClient: 'No complaints for this client',

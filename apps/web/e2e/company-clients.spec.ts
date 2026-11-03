@@ -51,7 +51,11 @@ test.describe('company clients slice (fixtures, no real account)', () => {
     await expect.poll(() => backend.mutations.length).toBeGreaterThanOrEqual(2);
     const [set, inquiry] = backend.mutations;
     expect(set.kind).toBe('company_client.set');
-    expect(set.payload).toMatchObject({ name: 'Meera Interiors', need: 'Wardrobe', stage: 'inquiry' });
+    expect(set.payload).toMatchObject({
+      name: 'Meera Interiors',
+      need: 'Wardrobe',
+      stage: 'inquiry',
+    });
     expect(inquiry.kind).toBe('company_inquiry.set');
     expect(inquiry.payload).toMatchObject({ clientId: set.payload.clientId, title: 'Wardrobe' });
   });
