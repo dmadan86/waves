@@ -85,12 +85,7 @@ describe('company client payloads', () => {
       dueTime: null,
       clientId: 'c',
     };
-    const out = completeFollowUpPayloads(
-      task as never,
-      { kind: 'none' } as never,
-      '2026-01-02',
-      'n2',
-    );
+    const out = completeFollowUpPayloads(task as never, 'none', '2026-01-02', 'n2');
     expect(out).toHaveLength(1);
     expect(out[0]).toMatchObject({ status: 'done', taskId: 't1' });
   });
