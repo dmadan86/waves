@@ -35,7 +35,7 @@ test.describe('company team slice (fixtures, no real account)', () => {
     });
     await page.goto(`/c/${GROUP}/entry/new`);
     await page.getByRole('button', { name: /^save$/i }).click();
-    await expect(page.getByRole('alert')).toBeVisible();
+    await expect(page.getByText('Enter an amount.')).toBeVisible();
     expect(backend.mutations).toHaveLength(0);
   });
 });
