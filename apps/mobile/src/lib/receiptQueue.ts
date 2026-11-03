@@ -39,6 +39,8 @@ import { randomUUID } from 'expo-crypto';
 import { Directory, File, Paths } from 'expo-file-system';
 import * as Network from 'expo-network';
 
+import { decryptWith, encryptWith, loadKey } from '@/sync/rowCipher';
+
 import { backend } from '@/lib/backend';
 import { loadSyncNetworkPreference, networkAllows } from '@/lib/syncNetwork';
 import { putImage, removeRestrictedImage } from '@/lib/storage';
@@ -53,6 +55,9 @@ const QUEUE_KEY = 'receipt-upload-queue.v1';
 
 /** Durable subdirectory (under the document dir) holding unsent capture bytes. */
 const PENDING_DIR = 'pending-receipts';
+/** Decrypted copies for the gallery to draw. Cache: purgeable and out of backups, and the sealed file stays the source of truth. */
+const PREVIEW_DIR = 'pending-previews';
+const SEALED_SUFFIX = '.enc';
 
 /**
  * How long a failed capture waits before a background flush tries it again,
@@ -339,7 +344,7 @@ function cleanupOrphanFiles(queue: readonly PendingReceipt[]): void {
   try {
     const dir = new Directory(Paths.document, PENDING_DIR);
     if (!dir.exists) return;
-    const keep = new Set(queue.map((entry) => entry.fileName));
+    const keep = new Set(queue.flatMap((entry) => [entry.fileName, entry.fileName + SEALED_SUFFIX]));
     const entries = (dir as unknown as { list?: () => unknown[] }).list?.() ?? [];
     for (const item of entries) {
       const file = item instanceof File ? item : null;
@@ -355,9 +360,93 @@ function cleanupOrphanFiles(queue: readonly PendingReceipt[]): void {
   }
 }
 
-/** The durable file holding one pending capture's bytes. */
-function pendingFile(entry: Pick<PendingReceipt, 'fileName'>): File {
-  return new File(Paths.document, PENDING_DIR, entry.fileName);
+/**
+ * The durable bytes of one pending capture, sealed at rest.
+ *
+ * They stay in Documents (the OS never purges it, so an unsent receipt cannot
+ * silently vanish) but are encrypted with the device-only key the offline
+ * mirror uses, so a backup holds ciphertext it cannot open; sign-out destroys
+ * that key. `<name>.enc` is the sealed file, `<name>` a plaintext one left by an
+ * older build (or by a failed seal) that migration seals. Both are handled.
+ */
+function pendingFile(entry: Pick<PendingReceipt, 'fileName'>) {
+  const plain = new File(Paths.document, PENDING_DIR, entry.fileName);
+  const sealed = new File(Paths.document, PENDING_DIR, entry.fileName + SEALED_SUFFIX);
+  const preview = new File(Paths.cache, PREVIEW_DIR, entry.fileName);
+  return {
+    plain,
+    sealed,
+    preview,
+    get exists(): boolean {
+      return sealed.exists || plain.exists;
+    },
+    delete(): void {
+      for (const f of [sealed, plain, preview]) if (f.exists) f.delete();
+    },
+    /** What a tile can draw: the decrypted preview, else a not-yet-sealed original. */
+    get uri(): string {
+      return preview.exists || !plain.exists ? preview.uri : plain.uri;
+    },
+    /** The image as base64, opened from the sealed file when there is one. */
+    async base64(): Promise<string> {
+      if (sealed.exists) {
+        return decryptWith(await loadKey(), await sealed.text(), entry.fileName);
+      }
+      return plain.base64();
+    },
+  };
+}
+
+/** Seal base64 bytes into `<name>.enc`, proving it opens before reporting success. */
+async function sealTo(entry: Pick<PendingReceipt, 'fileName'>, base64: string): Promise<void> {
+  const key = await loadKey();
+  const sealed = encryptWith(key, base64, entry.fileName);
+  if (decryptWith(key, sealed, entry.fileName) !== base64) throw new Error('seal check failed');
+  pendingFile(entry).sealed.write(sealed);
+}
+
+function writePreview(entry: Pick<PendingReceipt, 'fileName'>, base64: string): void {
+  const dir = new Directory(Paths.cache, PREVIEW_DIR);
+  if (!dir.exists) dir.create({ intermediates: true });
+  pendingFile(entry).preview.write(new Uint8Array(decode(base64)));
+}
+
+/**
+ * Seal any plaintext pending file and make sure a preview exists. Copy-then-
+ * delete: the original goes only after the sealed copy has been written and
+ * opened again, so a failure at any step leaves the receipt where it was.
+ */
+async function sealLegacyFiles(queue: readonly PendingReceipt[]): Promise<void> {
+  for (const entry of queue) {
+    try {
+      const file = pendingFile(entry);
+      if (file.plain.exists && !file.sealed.exists) {
+        const base64 = await file.plain.base64();
+        await sealTo(entry, base64);
+        if (!file.sealed.exists) continue;
+        file.plain.delete();
+        if (!file.preview.exists) writePreview(entry, base64);
+      } else if (file.sealed.exists && !file.preview.exists) {
+        writePreview(entry, await file.base64());
+      }
+    } catch {
+      // Left as it was (plaintext still readable); retried on the next sweep.
+    }
+  }
+}
+
+/** Seal and park the bytes; if sealing fails, park them plain rather than lose them (the next sweep seals). */
+async function parkBytes(entry: Pick<PendingReceipt, 'fileName'>, base64: string): Promise<void> {
+  try {
+    await sealTo(entry, base64);
+  } catch {
+    pendingFile(entry).plain.write(new Uint8Array(decode(base64)));
+  }
+  try {
+    writePreview(entry, base64);
+  } catch {
+    // A tile without a preview is untidy; the sweep recreates it.
+  }
 }
 
 /**
@@ -461,6 +550,7 @@ export async function listPendingReceipts(expenseId?: string): Promise<PendingRe
     // Inside the turn: an enqueue writes its bytes and its entry in one, so a
     // sweep that runs between those two would delete a receipt somebody just
     // added.
+    await sealLegacyFiles(kept);
     cleanupOrphanFiles(kept);
     return kept;
   });
@@ -512,8 +602,11 @@ export async function clearReceiptQueue(): Promise<void> {
     }
 
     try {
-      const dir = new Directory(Paths.document, PENDING_DIR);
-      if (dir.exists) dir.delete();
+      for (const dir of [
+        new Directory(Paths.document, PENDING_DIR),
+        new Directory(Paths.cache, PREVIEW_DIR),
+      ])
+        if (dir.exists) dir.delete();
     } catch {
       // Some file-system implementations cannot delete non-empty dirs; queued files
       // above were already attempted, and the index removal below is the source of truth.
@@ -591,9 +684,10 @@ export async function enqueueReceipt(input: {
     if (input.sourceUri) {
       // Copied, not moved: the source is the manipulator's own output in the cache
       // directory, and the caller may still be showing it as the tile's image.
-      await new File(input.sourceUri).copy(pendingFile(entry));
+      const base64 = await new File(input.sourceUri).base64();
+      await parkBytes(entry, base64);
     } else if (input.base64) {
-      pendingFile(entry).write(new Uint8Array(decode(input.base64)));
+      await parkBytes(entry, input.base64);
     }
     const queue = await readQueue();
     await writeQueue([...queue, entry]);
