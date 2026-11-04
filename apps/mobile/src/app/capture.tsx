@@ -1339,18 +1339,6 @@ function CaptureHeader({ title }: { title: string }) {
       <IconButton label={t.common.close} onPress={() => router.back()}>
         <Ionicons name="close" size={iconSize.xl} color={theme.color.text} />
       </IconButton>
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          backgroundColor: theme.color.brandSoft,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons name="receipt-outline" size={iconSize.lg} color={theme.color.brand} />
-      </View>
       <View style={{ flex: 1 }}>
         <Text variant="title" numberOfLines={1}>
           {title}
@@ -1360,7 +1348,7 @@ function CaptureHeader({ title }: { title: string }) {
   );
 }
 
-/** Save, as a full-width pill in the brand wash with an arrow after the word. */
+/** Save: a full-width brand button with an arrow after the word. */
 function SaveButton({
   label,
   disabled,
@@ -1381,8 +1369,8 @@ function SaveButton({
       style={({ pressed }) => ({ opacity: disabled ? 0.5 : pressed ? 0.85 : 1 })}
     >
       <Gradient
-        colors={SAVE_WASH}
-        radius={theme.radius.pill}
+        colors={[theme.color.brand]}
+        radius={theme.radius.md}
         style={{
           flexDirection: 'row',
           alignItems: 'center',
@@ -1403,6 +1391,3 @@ function SaveButton({
     </Pressable>
   );
 }
-
-/** The dashboard hero's violet-to-blue wash, so Save reads as the same brand. */
-const SAVE_WASH = ['#4F55E8', '#6A5AEC', '#8469F0'] as const;

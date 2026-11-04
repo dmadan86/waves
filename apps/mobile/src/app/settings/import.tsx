@@ -583,7 +583,6 @@ export default function ImportScreen() {
               {t.importLedger.ledgerHowTo}
             </Text>
           </View>
-          <CsvArt />
         </View>
 
         {/* Two ways in, one flow: the file's contents decide the format either
@@ -1316,88 +1315,6 @@ function TargetRow({
         />
       )}
     </Pressable>
-  );
-}
-
-/** The hero's picture: a CSV page, a dashed arrow, and the people it becomes.
- *  Drawn from views and glyphs, so it themes and costs no asset. */
-function CsvArt() {
-  const theme = useTheme();
-  const dark = theme.scheme === 'dark';
-  const disc = (color: string, size: number, style: object) => (
-    <View
-      style={[
-        {
-          position: 'absolute',
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: color,
-          borderWidth: 2,
-          borderColor: dark ? theme.color.surface : '#FFFFFF',
-        },
-        style,
-      ]}
-    >
-      <Ionicons name="person" size={size * 0.5} color="#FFFFFF" />
-    </View>
-  );
-  return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: 118, height: 84 }}
-    >
-      <View
-        style={{
-          position: 'absolute',
-          left: 6,
-          top: 14,
-          width: 50,
-          height: 62,
-          borderRadius: 8,
-          padding: 7,
-          gap: 5,
-          backgroundColor: dark ? theme.color.surfaceMuted : '#FFFFFF',
-          transform: [{ rotate: '-8deg' }],
-        }}
-      >
-        <View style={{ height: 3, borderRadius: 2, backgroundColor: '#DCD6FA' }} />
-        <View style={{ height: 3, width: 22, borderRadius: 2, backgroundColor: '#DCD6FA' }} />
-        <View
-          style={{
-            marginTop: 8,
-            alignSelf: 'flex-start',
-            paddingHorizontal: 5,
-            paddingVertical: 1,
-            borderRadius: 4,
-            backgroundColor: '#5A3FD8',
-          }}
-        >
-          <Text style={{ fontSize: 10, fontWeight: '800', color: '#FFFFFF' }}>CSV</Text>
-        </View>
-      </View>
-      <View
-        style={{
-          position: 'absolute',
-          left: 44,
-          top: 4,
-          width: 40,
-          height: 24,
-          borderTopWidth: 1.5,
-          borderRightWidth: 1.5,
-          borderStyle: 'dashed',
-          borderColor: '#8C7BF0',
-          borderTopRightRadius: 20,
-        }}
-      />
-      {disc('#9C8CF2', 30, { right: 6, top: 4 })}
-      {disc('#6FA4F5', 30, { right: 30, top: 42 })}
-      {disc('#F5A66F', 24, { right: 0, top: 44 })}
-    </View>
   );
 }
 

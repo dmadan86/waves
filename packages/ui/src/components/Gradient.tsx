@@ -5,7 +5,7 @@ import { useTheme } from '../theme';
 
 export interface GradientProps {
   children?: ReactNode;
-  /** Corner radius; defaults to the control radius. */
+  /** Corner radius; 0 is kept, anything capsule-sized (20+) becomes the control radius. */
   radius?: number;
   /** Kept for callers; only the first stop is painted (the calm system has no washes). */
   colors?: readonly string[];
@@ -21,7 +21,10 @@ export function Gradient({ children, radius, colors, style }: GradientProps) {
   return (
     <View
       style={[
-        { backgroundColor: colors?.[0] ?? theme.color.brand, borderRadius: radius ?? theme.radius.md },
+        {
+          backgroundColor: colors?.[0] ?? theme.color.brand,
+          borderRadius: radius === undefined || radius >= 20 ? theme.radius.md : radius,
+        },
         style,
       ]}
     >
