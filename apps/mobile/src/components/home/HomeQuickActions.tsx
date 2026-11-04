@@ -20,55 +20,17 @@ import { homeCreditsAction } from '@/lib/isHomeCreditsLow';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
 
-/**
- * The actions you start from Home, as one compact row under the balance:
- * Add expense (the primary, brand-filled; hold for type / scan / speak),
- * New group and Settle up (outlined). Free users also get a quiet credits
- * link underneath; a low balance shows its count as a small tag.
- */
-export function HomeQuickActions({
-  onAddExpense,
-  onAddExpenseLong,
-  onSettleUp,
-  onReview,
-  onNewGroup,
-}: {
-  onAddExpense: () => void;
-  onAddExpenseLong: () => void;
-  onSettleUp: () => void;
-  /** Company users: opens Review, which has no tab of its own for them. */
-  onReview: () => void;
-  /** Handed the button's window position so the menu can drop from it. */
-  onNewGroup: (anchor: MenuAnchor | null) => void;
+function ActionButton(opts: {
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  onPress: () => void;
+  onLongPress?: () => void;
+  primary?: boolean;
+  badge?: number;
 }) {
   const theme = useTheme();
-  const { t } = useStrings();
-  const groupRef = useRef<View>(null);
-  const viewerId = useViewerId();
-  const { isPaid } = useEntitlement();
-  const adOffer = useRewardedAdOffer();
-  const credits = useQuery({
-    queryKey: ['credits', viewerId],
-    queryFn: queryCredits,
-    enabled: !!viewerId,
-  });
-
-  const isReview = homeSecondActionKey(useViewerCompanyIds()) === 'review';
-  // Same folded count as the Review tab's badge.
-  const reviewBadge = captureInboxActionState(foldedCaptureCount(useCaptures().data ?? [])).badge;
-
-  const balance = credits.data?.credits;
-  const creditAction = homeCreditsAction(balance, credits.data?.costs.voice);
   const brand = theme.color.brand;
-
-  const button = (opts: {
-    label: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    onPress: () => void;
-    onLongPress?: () => void;
-    primary?: boolean;
-    badge?: number;
-  }) => (
+  return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={opts.badge != null ? `${opts.label} (${opts.badge})` : opts.label}
@@ -121,37 +83,81 @@ export function HomeQuickActions({
       ) : null}
     </Pressable>
   );
+}
+
+/**
+ * The actions you start from Home, as one compact row under the balance:
+ * Add expense (the primary, brand-filled; hold for type / scan / speak),
+ * New group and Settle up (outlined). Free users also get a quiet credits
+ * link underneath; a low balance shows its count as a small tag.
+ */
+export function HomeQuickActions({
+  onAddExpense,
+  onAddExpenseLong,
+  onSettleUp,
+  onReview,
+  onNewGroup,
+}: {
+  onAddExpense: () => void;
+  onAddExpenseLong: () => void;
+  onSettleUp: () => void;
+  /** Company users: opens Review, which has no tab of its own for them. */
+  onReview: () => void;
+  /** Handed the button's window position so the menu can drop from it. */
+  onNewGroup: (anchor: MenuAnchor | null) => void;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const groupRef = useRef<View>(null);
+  const viewerId = useViewerId();
+  const { isPaid } = useEntitlement();
+  const adOffer = useRewardedAdOffer();
+  const credits = useQuery({
+    queryKey: ['credits', viewerId],
+    queryFn: queryCredits,
+    enabled: !!viewerId,
+  });
+
+  const isReview = homeSecondActionKey(useViewerCompanyIds()) === 'review';
+  // Same folded count as the Review tab's badge.
+  const reviewBadge = captureInboxActionState(foldedCaptureCount(useCaptures().data ?? [])).badge;
+
+  const balance = credits.data?.credits;
+  const creditAction = homeCreditsAction(balance, credits.data?.costs.voice);
+  const brand = theme.color.brand;
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
       <Row style={{ gap: theme.spacing.sm }}>
         <TourTarget id="addExpense" style={{ flex: 1.3 }}>
-          {button({
-            label: t.homeDash.addExpense,
-            icon: 'add',
-            onPress: onAddExpense,
-            onLongPress: onAddExpenseLong,
-            primary: true,
-          })}
+          <ActionButton
+            label={t.homeDash.addExpense}
+            icon="add"
+            onPress={onAddExpense}
+            onLongPress={onAddExpenseLong}
+            primary
+          />
         </TourTarget>
         <View ref={groupRef} collapsable={false} style={{ flex: 1 }}>
           <TourTarget id="addGroup">
-            {button({
-              label: t.homeDash.newGroup,
-              icon: 'people-outline',
-              onPress: () => measureAnchor(groupRef, onNewGroup),
-            })}
+            <ActionButton
+              label={t.homeDash.newGroup}
+              icon="people-outline"
+              onPress={() => measureAnchor(groupRef, onNewGroup)}
+            />
           </TourTarget>
         </View>
         <View style={{ flex: 1 }}>
-          {isReview
-            ? button({
-                label: t.review,
-                icon: 'file-tray-full-outline',
-                onPress: onReview,
-                badge: reviewBadge,
-              })
-            : button({ label: t.homeDash.settleUp, icon: 'cash-outline', onPress: onSettleUp })}
+          {isReview ? (
+            <ActionButton
+              label={t.review}
+              icon="file-tray-full-outline"
+              onPress={onReview}
+              badge={reviewBadge}
+            />
+          ) : (
+            <ActionButton label={t.homeDash.settleUp} icon="cash-outline" onPress={onSettleUp} />
+          )}
         </View>
       </Row>
       {viewerId && !isPaid ? (
