@@ -648,6 +648,27 @@
      Widgets
      ───────────────────────────────────────────────────────────── */
 
+  /* Company figures: one ruled strip, not a row of boxes. */
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    margin-bottom: 18px;
+    border-block: 1px solid var(--w-border);
+  }
+  .stat-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-cell + .stat-cell {
+    border-inline-start: 1px solid var(--w-border);
+  }
+  .stat-cell strong {
+    font-size: var(--w-font-subheading);
+  }
+
   .stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));

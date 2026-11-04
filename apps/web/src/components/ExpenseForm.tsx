@@ -541,6 +541,22 @@ export function ExpenseForm({
           {amountText.trim() && amount === null ? (
             <p className="error">{t.add.notAnAmount}</p>
           ) : null}
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              marginTop: 10,
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={reimbursable}
+              onChange={(event) => setReimbursable(event.target.checked)}
+            />
+            <span>{t.add.workExpense}</span>
+          </label>
         </section>
 
         {/* What kind of spend. Ten, not fifty — the same ten the phone offers,
@@ -618,17 +634,6 @@ export function ExpenseForm({
             ) : null}
           </section>
         ) : null}
-
-        <section className="panel">
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={reimbursable}
-              onChange={(event) => setReimbursable(event.target.checked)}
-            />
-            <span>{t.add.workExpense}</span>
-          </label>
-        </section>
 
         <section className="panel">
           <div className="panel-head">
@@ -882,7 +887,7 @@ export function ExpenseForm({
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             type="button"
-            className="btn"
+            className="btn brand"
             onClick={() => void save()}
             disabled={!canSave || saving}
           >
