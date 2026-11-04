@@ -4,6 +4,8 @@
  * Non-English tables carry the English text until translated.
  */
 
+import { vendorStringsEn } from '@/lib/company/vendorStrings';
+
 export const companyEn = {
   nav: {
     overview: 'Overview',
@@ -483,9 +485,7 @@ export const companyEn = {
       notFound: 'This complaint is not available.',
     },
   },
-  vendors: {
-    title: 'Vendors',
-  },
+  vendors: vendorStringsEn,
   docs: {
     title: 'Estimates & bills',
   },
