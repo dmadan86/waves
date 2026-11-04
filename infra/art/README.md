@@ -132,7 +132,7 @@ also changing proportion, size and position inside the icon.
 
 The looping films on wavs.co.in (`/companies`, `/personal`) live in `videos/`
 and are served from `https://assets.wavs.co.in/videos/` rather than from
-Vercel. Each film is `<name>.mp4`, `<name>.webm` and `<name>.jpg` (poster).
+Vercel. Each film is `<name>.mp4` and `<name>.jpg` (poster); no WebM, Chrome failed to decode most of ours.
 Encode MP4s as H.264 `yuv420p` with `-movflags +faststart`: full-range
 `yuvj420p` or a trailing moov atom stops some phones from playing them. They
 cache for a day, so a re-cut published under the same name shows up next day.

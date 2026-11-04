@@ -5,7 +5,7 @@ import { useEffect, useRef } from 'react';
 /**
  * A silent looping film that plays only while it is on screen and never when
  * the visitor asked for reduced motion (the poster stays). Files live in the
- * public R2 bucket under videos/ as `<name>.mp4`, `<name>.webm` and `<name>.jpg`
+ * public R2 bucket under videos/ as `<name>.mp4` and `<name>.jpg`
  * (the poster); upload with infra/art/publish.sh.
  */
 const BASE = 'https://assets.wavs.co.in/videos';
@@ -58,7 +58,8 @@ export function LazyVideo({
       aria-label={label}
       className={`w-full rounded-2xl bg-chip object-cover shadow-[var(--w-shadow-card)] ${className}`}
     >
-      <source src={`${BASE}/${name}.webm`} type="video/webm" />
+      {/* MP4 only: Chrome picked the WebM copies and most failed to decode, and a
+          decode error never falls back to the next source. */}
       <source src={`${BASE}/${name}.mp4`} type="video/mp4" />
     </video>
   );
