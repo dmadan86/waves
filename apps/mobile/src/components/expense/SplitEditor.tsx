@@ -279,7 +279,7 @@ export function SplitKindSegments({
       style={{
         padding: 4,
         gap: 2,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.md,
         backgroundColor: theme.color.surfaceMuted,
       }}
     >
@@ -301,7 +301,7 @@ export function SplitKindSegments({
               gap: 4,
               minHeight: 40,
               paddingHorizontal: theme.spacing.xs,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: selected ? theme.color.brand : 'transparent',
               opacity: pressed ? 0.85 : 1,
             })}
