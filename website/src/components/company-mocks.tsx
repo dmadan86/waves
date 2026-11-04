@@ -243,3 +243,66 @@ export function TicketMock({ m }: { m: M }) {
     </InView>
   );
 }
+
+// P present, H half day, A absent, L leave, . not yet / weekend: a 5-week month.
+const MONTH = 'PPPPP..PPPPH..PPPPPA..PPLLP..PPHPP';
+
+export function AttendanceMock({ m }: { m: M }) {
+  const a = m.attendance;
+  const cell = (c: string) =>
+    c === 'P'
+      ? 'bg-accent'
+      : c === 'H'
+        ? 'bg-accent-wash ring-1 ring-accent'
+        : c === 'A'
+          ? 'bg-chip ring-1 ring-line'
+          : c === 'L'
+            ? 'bg-surface ring-1 ring-ink-3'
+            : 'bg-transparent';
+  return (
+    <InView>
+      <div aria-hidden="true" className={shell}>
+        <div className="flex items-center justify-between">
+          <p className={label}>{a.title}</p>
+          <span className="rounded-full bg-accent-wash px-2.5 py-0.5 text-[0.72rem] font-semibold text-accent">
+            <bdi>{a.count}</bdi>
+          </span>
+        </div>
+        <ul className="mt-3 grid grid-cols-7 gap-1.5">
+          {MONTH.split('').map((c, i) => (
+            <li
+              key={i}
+              className={`cm-fill h-5 rounded-md ${cell(c)}`}
+              style={{ '--i': i } as React.CSSProperties}
+            />
+          ))}
+        </ul>
+        <p className="mt-3 border-t border-line/70 pt-3 text-[0.82rem] text-ink-2">{a.today}</p>
+      </div>
+    </InView>
+  );
+}
+
+export function TaskMock({ m }: { m: M }) {
+  const t = m.tasks;
+  return (
+    <InView>
+      <div aria-hidden="true" className={`${shell} cm-flip`}>
+        <p className={label}>{t.title}</p>
+        <ul className="mt-3 grid grid-cols-3 gap-1 text-center text-[0.72rem] font-semibold text-ink-3">
+          {[t.todo, t.doing, t.done].map((c) => (
+            <li key={c} className="rounded-md bg-chip py-1">
+              {c}
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 grid h-[4.2rem] grid-cols-3 gap-1">
+          <div className="cm-task flex flex-col justify-center rounded-lg bg-accent px-1.5 text-center text-accent-ink">
+            <bdi className="truncate text-[0.74rem] font-semibold">#12 {t.task}</bdi>
+            <bdi className="truncate text-[0.66rem] opacity-80">{t.site}</bdi>
+          </div>
+        </div>
+      </div>
+    </InView>
+  );
+}

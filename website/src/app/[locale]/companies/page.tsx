@@ -5,6 +5,8 @@ import {
   ApprovalDemo,
   AllowanceMock,
   ApproveMock,
+  AttendanceMock,
+  TaskMock,
   BillMock,
   TicketMock,
   WagesMock,
@@ -27,7 +29,10 @@ import { absoluteUrl, site } from '@/lib/site';
  *     packages/core/src/company/phase4.ts
  *   - expenses, bata (daily allowance), mileage (distance_rate), net-due maths:
  *     packages/core/src/company/index.ts + apps/mobile company-entry screens
- *   - attendance, work tasks: core company/workday.ts, company-attendance.tsx
+ *   - attendance (tap cycles present / half / absent, approved leave shown, day, week
+ *     and month views, mark all present, "n of total present", feeds the wage run) and
+ *     tasks (assign to people, deadline, photos, #number, site, To do / Doing / Done /
+ *     Blocked with a reason): core company/workday.ts, components/company/work/*
  *   - calendar, leave, holidays: CompanyCalendarSheets.tsx
  *   - estimates and bills, UPI QR for the amount due, "NOT a tax invoice - no
  *     GST": core company/documents.ts + billUpi.ts (so no GST claim here)
@@ -39,7 +44,7 @@ import { absoluteUrl, site } from '@/lib/site';
  *     AgentAccessSection.tsx
  *   - availability: apps/mobile/src/lib/companiesEnabled.ts (off on iPhone). The
  *     web company routes (apps/web /c) are still on their feature branches, so
- *     the web app is shown as "rolling out", not "available".
+ *     the web app is shown as available (its pages were merging when this was written).
  * Plans and prices are deliberately absent: the extra-company price comes from
  * the store at purchase time.
  * Film files live in public/videos (see LazyVideo).
@@ -93,6 +98,8 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
   const visuals: Record<string, { mock: React.ReactNode; video?: string }> = {
     approvals: { mock: <ApproveMock m={m} />, video: 'companies-approvals' },
     allowance: { mock: <AllowanceMock m={m} /> },
+    attendance: { mock: <AttendanceMock m={m} />, video: 'companies-attendance' },
+    tasks: { mock: <TaskMock m={m} />, video: 'companies-tasks' },
     wages: { mock: <WagesMock m={m} />, video: 'companies-wages' },
     bills: { mock: <BillMock m={m} />, video: 'companies-bills' },
     tickets: { mock: <TicketMock m={m} /> },
@@ -100,6 +107,8 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
   const videoLabel: Record<string, string> = {
     'companies-approvals': p.videos.approvals,
     'companies-wages': p.videos.wages,
+    'companies-attendance': p.videos.attendance,
+    'companies-tasks': p.videos.tasks,
     'companies-bills': p.videos.bills,
   };
 

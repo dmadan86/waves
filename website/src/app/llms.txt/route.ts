@@ -29,7 +29,7 @@ export async function GET() {
     `- [Support](${absoluteUrl('/en/support')}): how to reach a person, and help with accounts, balances and subscriptions.`,
     `- [Cancellation & Refund Policy](${absoluteUrl('/en/refund')}): how to cancel Pro and how app-store refunds work.`,
     `- [Connect an AI agent](${absoluteUrl('/en/mcp')}): Waves speaks MCP — setup for Claude, ChatGPT, Cursor and VS Code, every tool, what an agent may do with your ledger, and what it can never do.`,
-    `- [Waves for companies](${absoluteUrl('/en/companies')}): expenses with photo proof and approvals, daily allowance and mileage, wages and attendance, vendors, clients, complaints, estimates and bills with UPI QR. On Android; the web app is rolling out and iPhone is coming soon.`,
+    `- [Waves for companies](${absoluteUrl('/en/companies')}): expenses with photo proof and approvals, daily allowance and mileage, wages and attendance, vendors, clients, complaints, estimates and bills with UPI QR. attendance and tasks. On Android and the web; iPhone is coming soon.`,
     `- [MCP server](${mcpEndpoint(site.appUrl)}): remote MCP endpoint over streamable HTTP, OAuth sign-in.`,
     `- [Compare Waves](${absoluteUrl('/en/compare')}): sourced side-by-side comparisons with Splitwise, Tricount, Settle Up, Splid, Spliit, Kittysplit, Splitkaro, Google Pay, PhonePe, Venmo and spreadsheets, including where each is better.`,
     `- [Web app](${site.appUrl})`,

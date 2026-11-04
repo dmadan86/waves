@@ -35,6 +35,9 @@
 }
 
 /* finished state */
+.cm-task {
+  translate: calc(var(--flip) * 200%) 0;
+}
 .cm-new-old {
   opacity: 0;
 }
@@ -88,6 +91,12 @@
   }
   .cm-iv[data-play] .cm-ticket {
     animation: cm-move 1.6s 0.4s cubic-bezier(0.6, 0, 0.2, 1) both;
+  }
+  .cm-iv[data-play] .cm-fill {
+    animation: cm-pop 0.35s calc(0.045s * var(--i, 0) + 0.2s) ease-out both;
+  }
+  .cm-iv[data-play] .cm-task {
+    animation: cm-steps 3.2s 0.4s cubic-bezier(0.6, 0, 0.2, 1) both;
   }
   .cm-swap {
     animation: cm-swap 0.3s ease-out both;
@@ -213,6 +222,16 @@
   0%,
   25% {
     translate: 0 0;
+  }
+}
+@keyframes cm-steps {
+  0%,
+  15% {
+    translate: 0 0;
+  }
+  45%,
+  60% {
+    translate: calc(var(--flip) * 100%) 0;
   }
 }
 @keyframes cm-swap {

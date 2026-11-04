@@ -787,10 +787,11 @@
     "points": [
       "Expenses and claims with photo proof",
       "Daily allowance and wages at your rates",
-      "Vendors, clients and bills in one place"
+      "Vendors, clients and bills in one place",
+      "Attendance and daily tasks for the team"
     ],
     "cta": "See Waves for companies",
-    "availability": "On Android now. iPhone coming soon."
+    "availability": "On Android and the web. iPhone coming soon."
   },
   "companyMock": {
     "title": "Approvals",
@@ -825,11 +826,24 @@
       "progress": "In progress",
       "resolved": "Resolved",
       "ticket": "Leaking tap"
+    },
+    "attendance": {
+      "title": "Attendance",
+      "today": "Present today",
+      "count": "9 of 12"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "todo": "To do",
+      "doing": "Doing",
+      "done": "Done",
+      "task": "Fix the pump",
+      "site": "Site 2"
     }
   },
   "companiesPage": {
     "metaTitle": "Waves for companies — expenses, wages and bills for your team",
-    "metaDescription": "Employees add expenses with a photo and you approve in a tap. Advances, daily allowance, wages, vendors, clients and bills in one simple app. On Android now; iPhone coming soon.",
+    "metaDescription": "Employees add expenses with a photo and you approve in a tap. Advances, daily allowance, wages, attendance, tasks, vendors, clients and bills in one simple app. On Android and the web; iPhone coming soon.",
     "eyebrow": "For companies",
     "titleStart": "Your team's money,",
     "titleAccent": "as simple as a chat.",
@@ -851,8 +865,8 @@
         },
         {
           "name": "Web app",
-          "status": "rolling",
-          "text": "Being added to the web app, so owners can also work from a computer."
+          "status": "available",
+          "text": "Create a company and work from a computer as well."
         },
         {
           "name": "iPhone",
@@ -894,6 +908,7 @@
         "blurb": "Looks after a team and keeps its claims moving.",
         "can": [
           "Review the team's claims",
+          "Mark the team's attendance and assign tasks",
           "Record advances and wages for the team",
           "Give money to the team and see what is left"
         ],
@@ -919,7 +934,8 @@
         "can": [
           "Add an expense with a photo",
           "Record daily allowance or mileage",
-          "See their own statement and what the company owes"
+          "See their own statement and what the company owes",
+          "See their own tasks and attendance"
         ],
         "mockTitle": "My account",
         "rows": [
@@ -963,14 +979,36 @@
         ]
       },
       {
+        "id": "attendance",
+        "eyebrow": "Attendance",
+        "title": "Mark the team's day in a tap",
+        "body": "Tap a name to mark present, half day or absent. See the whole month at a glance and how many are in today. People on approved leave show as on leave. The marks feed straight into wages.",
+        "points": [
+          "Present, half day, absent or on leave",
+          "Day, week and month views",
+          "Mark everyone present in one go"
+        ]
+      },
+      {
         "id": "wages",
         "eyebrow": "Wages and attendance",
         "title": "From attendance to wages, in one run",
-        "body": "Mark who was present, on half day or absent. When it is time to pay, the wage run adds up the days and any unpaid allowance. Record payment once it is paid.",
+        "body": "When it is time to pay, the wage run adds up the days from attendance and any unpaid allowance. Record payment once it is paid.",
         "points": [
-          "Present, half day or absent",
+          "Days come straight from attendance",
           "Calendar with leave and holidays",
-          "Work tasks with a deadline and a photo"
+          "Record payment once it is paid"
+        ]
+      },
+      {
+        "id": "tasks",
+        "eyebrow": "Tasks",
+        "title": "Give the work. See it get done.",
+        "body": "Create a task, give it to a person, and add a deadline and a photo. Each task gets a number and moves from To do to Doing to Done, or Blocked with a reason.",
+        "points": [
+          "Assign to one or more people, with a deadline",
+          "Photos and notes on every task",
+          "Numbered, and shown with their site"
         ]
       },
       {
@@ -1037,7 +1075,9 @@
       "hero": "A short film: an expense is approved and the balance updates",
       "approvals": "A short film: approving an expense",
       "wages": "A short film: attendance becomes a wage total",
-      "bills": "A short film: a bill with a UPI QR"
+      "bills": "A short film: a bill with a UPI QR",
+      "attendance": "A short film: the month fills with attendance marks",
+      "tasks": "A short film: a task moves from To do to Done"
     }
   }
 }
