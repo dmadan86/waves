@@ -78,7 +78,7 @@ describe('a selection is reported on the panel, not in the action bar', () => {
     it(`${name} offers "select all" on the hero, in the on-panel button`, () => {
       const { hero } = halves(source(path));
       expect(hero).toMatch(/t\.smsInbox\.selectNone/);
-      expect(hero).toMatch(/variant="onBrandOutline"/);
+      expect(hero).toMatch(/variant="secondary"/);
     });
   }
 });

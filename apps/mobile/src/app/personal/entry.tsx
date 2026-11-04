@@ -34,10 +34,8 @@ import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useLocalSearchParams } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   ActivityIndicator,
-  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -596,47 +594,13 @@ function EntryHeader({
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
-  // One row (the back button and the title block) plus a little scene room
-  // under it; the picture is its natural height at this width or that, whichever
-  // is taller — `cover` crops the sides rather than ever stretching it.
-  const artHeight = Math.max(
-    Math.round(width / ENTRY_ART_RATIO),
-    insets.top + HEADER_ROW + SCENE_ROOM,
-  );
   return (
-    <View style={{ minHeight: artHeight }}>
-      <Image
-        source={ENTRY_ART}
-        resizeMode="cover"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: artHeight }}
-      />
-      {/* A wash from the left so the dark title always reads over the picture,
-          and the picture's foot fading into the page. */}
-      <LinearGradient
-        colors={[`${theme.color.bg}F2`, `${theme.color.bg}B3`, `${theme.color.bg}00`]}
-        locations={[0, 0.45, 0.8]}
-        start={{ x: 0, y: 0.5 }}
-        end={{ x: 1, y: 0.5 }}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: artHeight }}
-      />
-      <LinearGradient
-        colors={[`${theme.color.bg}00`, theme.color.bg]}
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          top: artHeight * 0.72,
-          height: artHeight * 0.28 + 1,
-        }}
-      />
+    <View>
       <Row
         style={{
           paddingTop: insets.top + theme.spacing.xs,
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: SCENE_ROOM,
+          paddingBottom: theme.spacing.sm,
           alignItems: 'center',
           gap: theme.spacing.md,
         }}
@@ -692,7 +656,7 @@ function KindToggle({
       accessibilityRole="tablist"
       style={{
         padding: 3,
-        borderRadius: 24,
+        borderRadius: theme.radius.md,
         backgroundColor: theme.scheme === 'dark' ? theme.color.surfaceMuted : '#ECEBF6',
       }}
     >
@@ -1047,13 +1011,10 @@ function FormCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 22,
+          borderRadius: theme.radius.lg,
           padding: theme.spacing.lg,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.05,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 1,
+          borderWidth: 1,
+          borderColor: theme.color.border,
         },
         style,
       ]}
@@ -1082,16 +1043,11 @@ function SaveButton({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        height: 58,
-        borderRadius: 29,
+        height: 52,
+        borderRadius: theme.radius.md,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: accentOf(theme),
-        shadowColor: ACCENT,
-        shadowOpacity: 0.28,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 3,
         opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
       })}
     >
@@ -1177,17 +1133,8 @@ const QUICK_SOURCES: readonly string[] = [
 
 /** A quick pick's disc. */
 const PICK_DISC = 44;
-/** The header's one row (the 40pt back button plus its breathing room) and the
- *  scene left showing under it, as on the Create-new-group header. */
-const HEADER_ROW = 44;
-const SCENE_ROOM = 40;
 /** Below this window width the quick row offers four picks rather than five. */
 const NARROW_PICKS = 375;
-
-/** The header's picture — a lake at sunrise, a cup of coffee and a notebook on
- *  a table — and its shape (width over height). */
-const ENTRY_ART = require('../../../assets/images/entry-header.webp') as number;
-const ENTRY_ART_RATIO = 1852 / 849;
 
 /**
  * Behind the section shield: one unlock covers the Me tab and every room
