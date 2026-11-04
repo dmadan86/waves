@@ -19,6 +19,8 @@ export enum GroupType {
   /** Added with the Friends tab (#347); the database enum has carried it since. */
   Friends = 'friends',
   Other = 'other',
+  /** A business space (employees, advances, wages); the web hands these to /c/[groupId]. */
+  Company = 'company',
 }
 
 export interface GroupRow {
