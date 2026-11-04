@@ -408,6 +408,8 @@ describe('writes: every company table and the RPCs', () => {
       waves_add_ghost_member:
         'writes group_members (guarded); company path uses waves_company_actor',
       waves_can_upload_group_photo: 'boolean only; the photo write is guarded',
+      waves_two_step_may_act_for:
+        'rank check for reset/approval; callers demand a verified session first',
       waves_two_step_role: 'two-step RPCs look the role up ungated, then demand a verified session',
     };
     const unreviewed = rows.map((r) => r.proname).filter((name) => !(name in reviewed));
@@ -592,6 +594,81 @@ describe('toggle, reset and new-phone approval', () => {
         expect(rows[0].status).toBe('approved');
       });
     }
+  });
+});
+
+describe('reset and approval reach every company the person is in', () => {
+  rolledBack();
+  // Company B also requires two-step. p2 (a plain member of COMPANY, managed by p1) owns B; p0 and p1 are not in B.
+  const B = randomUUID();
+  async function seedB() {
+    await db.query(
+      "INSERT INTO groups(id,name,type,default_currency,country_code,created_by,require_two_step) VALUES($1,'B Co','company','INR','IN',$2,true)",
+      [B, p[2]],
+    );
+    await db.query("INSERT INTO group_members(group_id,profile_id,role) VALUES($1,$2,'admin')", [
+      B,
+      p[2],
+    ]);
+    await db.query(
+      "INSERT INTO two_step_sessions(session_id, profile_id, kind) VALUES ($1,$2,'phone')",
+      [VERIFIED, p[1]],
+    );
+  }
+  const reset = (i: number, group: string, member: string) =>
+    as(claims(i, VERIFIED), () => db.query('SELECT waves_two_step_reset($1,$2)', [group, member]));
+  const approve = (i: number, request: string, group: string) =>
+    as(claims(i, VERIFIED), () =>
+      db.query('SELECT waves_two_step_decide_device($1,$2,true)', [request, group]),
+    );
+  const request = async (profile: string) =>
+    (
+      await db.query('SELECT waves_two_step_request_device($1,$2,$3,NULL) AS id', [
+        profile,
+        randomUUID(),
+        `dev-${profile}`,
+      ])
+    ).rows[0].id as string;
+
+  it('nobody outside company B can reset its owner from another company', async () => {
+    await seedB();
+    // Manager of p2 in COMPANY, and even COMPANY's owner: neither outranks p2 in B.
+    expect(await fails(() => reset(1, COMPANY, m[2]))).toMatch(/NOT_ALLOWED/);
+    expect(await fails(() => reset(0, COMPANY, m[2]))).toMatch(/NOT_ALLOWED/);
+  });
+
+  it('nobody outside company B can approve a new phone for its owner', async () => {
+    await seedB();
+    const req = await request(p[2]);
+    expect(await fails(() => approve(1, req, COMPANY))).toMatch(/NOT_ALLOWED/);
+    expect(await fails(() => approve(0, req, COMPANY))).toMatch(/NOT_ALLOWED/);
+    const overview = await as(claims(0, VERIFIED), () =>
+      db.query('SELECT waves_company_two_step_overview($1) AS o', [COMPANY]),
+    );
+    expect(overview.rows[0].o.pendingDevices).toEqual([]);
+  });
+
+  it('an owner of every company the person is in may act', async () => {
+    await seedB();
+    await db.query("INSERT INTO group_members(group_id,profile_id,role) VALUES($1,$2,'admin')", [
+      B,
+      p[0],
+    ]);
+    await reset(0, COMPANY, m[2]);
+    const req = await request(p[2]);
+    await approve(0, req, COMPANY);
+  });
+
+  it('only from a company that itself requires two-step', async () => {
+    const member = (
+      await db.query('SELECT id FROM group_members WHERE group_id=$1 AND profile_id=$2', [
+        OPEN_COMPANY,
+        p[3],
+      ])
+    ).rows[0].id as string;
+    expect(await fails(() => reset(0, OPEN_COMPANY, member))).toMatch(/NOT_ALLOWED/);
+    const openReq = await request(p[3]);
+    expect(await fails(() => approve(0, openReq, OPEN_COMPANY))).toMatch(/NOT_ALLOWED/);
   });
 });
 

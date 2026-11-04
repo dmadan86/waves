@@ -947,8 +947,26 @@ BEGIN
     JOIN public.profiles p ON p.id = r.profile_id
    WHERE r.status = 'pending' AND r.created_at > now() - interval '7 days' AND m.left_at IS NULL AND m.removed_at IS NULL
      AND r.profile_id <> v_me.profile_id
-     AND (v_me.role::text = 'admin' OR m.role::text <> 'admin')), '[]'::jsonb));
+     AND public.waves_two_step_may_act_for(p_group_id, r.profile_id)), '[]'::jsonb));
 END $$;
+
+-- Factors are per person, not per company: a reset or an approval changes this person's two-step in every company.
+-- So the caller must outrank them in EVERY two-step company they are live in (an owner over anyone, a manager over
+-- plain members only), and the company acted from must itself require two-step.
+CREATE FUNCTION public.waves_two_step_may_act_for(p_group_id uuid, p_target uuid) RETURNS boolean
+ LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+ SELECT EXISTS (SELECT 1 FROM public.groups WHERE id = p_group_id AND type = 'company' AND require_two_step AND deleted_at IS NULL)
+  AND p_target IS DISTINCT FROM public.waves_current_profile_id()
+  AND NOT EXISTS (
+   SELECT 1 FROM public.group_members t JOIN public.groups g ON g.id = t.group_id
+    WHERE t.profile_id = p_target AND t.left_at IS NULL AND t.removed_at IS NULL AND t.merged_into_member_id IS NULL
+      AND g.type = 'company' AND g.require_two_step AND g.deleted_at IS NULL
+      AND NOT EXISTS (SELECT 1 FROM public.group_members me WHERE me.group_id = g.id
+        AND me.profile_id = public.waves_current_profile_id() AND me.left_at IS NULL AND me.removed_at IS NULL
+        AND me.merged_into_member_id IS NULL
+        AND (me.role::text = 'admin' OR (me.role::text = 'manager' AND t.role::text = 'member'))))
+$$;
+REVOKE ALL ON FUNCTION public.waves_two_step_may_act_for(uuid,uuid) FROM PUBLIC, anon, authenticated;
 
 -- Lost phone: clear someone's codes so their next phone sets up again. A manager cannot reset an owner.
 CREATE FUNCTION public.waves_two_step_reset(p_group_id uuid, p_member_id uuid) RETURNS void
@@ -958,7 +976,7 @@ BEGIN
  v_me := public.waves_two_step_manager_guard(p_group_id);
  SELECT * INTO v_target FROM public.group_members WHERE id = p_member_id AND group_id = p_group_id AND profile_id IS NOT NULL
   AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL;
- IF NOT FOUND OR (v_target.role::text = 'admin' AND v_me.role::text <> 'admin') THEN
+ IF NOT FOUND OR NOT public.waves_two_step_may_act_for(p_group_id, v_target.profile_id) THEN
   RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE = 'insufficient_privilege';
  END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended('two_step:' || v_target.profile_id::text, 0));
@@ -991,8 +1009,7 @@ BEGIN
  SELECT * INTO v_req FROM public.two_step_device_requests WHERE id = p_request_id AND status = 'pending' FOR UPDATE;
  SELECT m.role::text INTO v_role FROM public.group_members m WHERE m.group_id = p_group_id AND m.profile_id = v_req.profile_id
   AND m.left_at IS NULL AND m.removed_at IS NULL AND m.merged_into_member_id IS NULL;
- IF v_req.id IS NULL OR v_role IS NULL OR v_req.profile_id = v_me.profile_id
-    OR (v_role = 'admin' AND v_me.role::text <> 'admin') THEN
+ IF v_req.id IS NULL OR v_role IS NULL OR NOT public.waves_two_step_may_act_for(p_group_id, v_req.profile_id) THEN
   RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE = 'insufficient_privilege';
  END IF;
  UPDATE public.two_step_device_requests SET status = CASE WHEN p_approve THEN 'approved' ELSE 'declined' END,
