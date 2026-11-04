@@ -11,6 +11,7 @@ import {
   TicketMock,
   WagesMock,
 } from '@/components/company-mocks';
+import { FilmTabs } from '@/components/film-tabs';
 import { DownloadBanner } from '@/components/download-banner';
 import { LazyVideo } from '@/components/lazy-video';
 import { RoleSwitcher } from '@/components/role-switcher';
@@ -104,6 +105,11 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
     bills: { mock: <BillMock m={m} />, video: 'companies-bills' },
     tickets: { mock: <TicketMock m={m} /> },
   };
+  const filmOf: Record<string, string> = {
+    approvals: 'approvals',
+    bills: 'bills',
+    tickets: 'complaints',
+  };
   const videoLabel: Record<string, string> = {
     'companies-approvals': p.videos.approvals,
     'companies-wages': p.videos.wages,
@@ -169,6 +175,16 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
         </Container>
 
         <Container className="pb-10">
+          <div id="films" className="scroll-mt-24">
+            <h2 className="text-[1.35rem] font-bold tracking-[-0.025em] text-ink sm:text-[1.6rem]">
+              {p.films.title}
+            </h2>
+            <p className="mt-1.5 mb-4 text-[0.9rem] leading-[1.6] text-ink-2">{p.films.lead}</p>
+            <FilmTabs films={p.films.tabs} label={p.films.label} />
+          </div>
+        </Container>
+
+        <Container className="pb-10">
           <div className="grid gap-8 lg:grid-cols-[22rem_1fr] lg:items-start lg:gap-10">
             <div className="lg:sticky lg:top-24">
               <h2 className="text-[1.35rem] font-bold tracking-[-0.025em] text-ink sm:text-[1.6rem]">
@@ -210,6 +226,14 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
                     </ul>
                     {f.id === 'bills' ? (
                       <p className="mt-2 text-[0.8rem] text-ink-3">{p.billsNote}</p>
+                    ) : null}
+                    {filmOf[f.id] ? (
+                      <a
+                        href={`#film-${filmOf[f.id]}`}
+                        className="mt-3 inline-block text-[0.86rem] font-semibold text-accent hover:underline"
+                      >
+                        {p.films.watch}
+                      </a>
                     ) : null}
                     <div className="mt-4 grid items-start gap-4 sm:grid-cols-2">
                       {v.mock}
