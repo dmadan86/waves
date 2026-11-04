@@ -14,7 +14,6 @@ import {
   IconDisc,
   RED,
   Skeleton,
-  withAlpha,
 } from '@/components/company/dashboard/overviewKit';
 import { GREEN } from '@/components/company/dashboard/parts';
 import { StandardCard } from '@/components/standard';
@@ -92,9 +91,9 @@ function Tile({
         gap: 6,
         padding: 10,
         borderRadius: 12,
-        backgroundColor: withAlpha(ink, 0.1),
+        backgroundColor: theme.color.surface,
         borderWidth: 1,
-        borderColor: withAlpha(ink, 0.16),
+        borderColor: theme.color.border,
       }}
     >
       <IconDisc ink={ink} size={30}>
@@ -334,32 +333,30 @@ export function MoneyActions({ groupId }: { groupId: string }) {
   return (
     <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, gap: 8 }}>
       <Header icon="layers-outline" title={t.company.ovCardMoney} />
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {actions.map((a) => (
+      <View>
+        {actions.map((a, i) => (
           <Pressable
             key={a.label}
             accessibilityRole="button"
             onPress={a.onPress}
             style={{
-              flex: 1,
-              minWidth: 0,
-              minHeight: 76,
+              flexDirection: 'row',
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              padding: 8,
-              borderRadius: 12,
-              backgroundColor: withAlpha(a.ink, 0.1),
+              gap: 10,
+              minHeight: 48,
+              borderTopWidth: i === 0 ? 0 : 1,
+              borderTopColor: theme.color.border,
             }}
           >
-            <Ionicons name={a.icon} size={iconSize.lg} color={a.ink} />
-            <Text
-              variant="micro"
-              align="center"
-              style={{ fontWeight: '700', color: theme.color.text }}
-            >
+            <Ionicons name={a.icon} size={iconSize.md} color={a.ink} />
+            <Text variant="body" style={{ flex: 1 }}>
               {a.label}
             </Text>
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.sm}
+              color={theme.color.textMuted}
+            />
           </Pressable>
         ))}
       </View>
@@ -399,8 +396,8 @@ export function ComingUpRow({ groupId }: { groupId: string }) {
         title={c.ovComingUp}
         onSeeAll={() => router.push(`/group/${groupId}/company-calendar`)}
       />
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {cards.map((card) => {
+      <View>
+        {cards.map((card, i) => {
           const spec =
             card.kind === 'payroll' || card.kind === 'event'
               ? {
@@ -432,25 +429,19 @@ export function ComingUpRow({ groupId }: { groupId: string }) {
               accessibilityLabel={`${spec.title}, ${spec.detail}`}
               onPress={() => router.push(`/group/${groupId}/${spec.screen}`)}
               style={{
-                flex: 1,
-                minWidth: 0,
-                gap: 6,
-                padding: 8,
-                borderRadius: 12,
-                backgroundColor: withAlpha(spec.ink, 0.08),
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                minHeight: 48,
+                borderTopWidth: i === 0 ? 0 : 1,
+                borderTopColor: theme.color.border,
               }}
             >
-              <IconDisc ink={spec.ink} size={28}>
-                <Ionicons name={spec.icon as 'cash-outline'} size={iconSize.sm} color={spec.ink} />
-              </IconDisc>
-              <Text
-                variant="micro"
-                numberOfLines={2}
-                style={{ fontWeight: '700', color: theme.color.text }}
-              >
+              <Ionicons name={spec.icon as 'cash-outline'} size={iconSize.md} color={spec.ink} />
+              <Text variant="body" numberOfLines={1} style={{ flex: 1 }}>
                 {spec.title}
               </Text>
-              <Text variant="micro" tone="muted" numberOfLines={1}>
+              <Text variant="caption" tone="muted" numberOfLines={1}>
                 {spec.detail}
               </Text>
             </Pressable>
