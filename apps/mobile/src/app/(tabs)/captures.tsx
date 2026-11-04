@@ -74,7 +74,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   Image,
   Pressable,
@@ -113,7 +112,6 @@ import {
 } from '@/components/DestinationPicker';
 import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { PendingMark } from '@/components/PendingMark';
-import { ReviewHeroBackground } from '@/components/ReviewHeroBackground';
 import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
 import { InboxSkeleton } from '@/components/Skeletons';
 import { WatchingLine } from '@/components/WatchingLine';
@@ -139,7 +137,6 @@ import { planCaptureAssign, stillWaiting, type AssignMember } from '@/lib/captur
 import { friendlyError } from '@/lib/errors';
 import { useGuestGuard, usePersonalOffered } from '@/lib/guestGuard';
 import { suggestGroup, tripWindowsOf, type GroupSuggestion } from '@/lib/groupSuggestion';
-import { useHeroScene } from '@/lib/heroScenePreference';
 import { router } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { useTabBarStandDown } from '@/lib/useTabBarStandDown';
@@ -154,7 +151,6 @@ import {
   type ReviewFeedItem,
 } from '@/lib/reviewFeed';
 import { useReducedMotion } from '@/lib/reducedMotion';
-import { reviewMomentFor } from '@/lib/reviewScene';
 import { useSmsAutoRead } from '@/lib/smsAutoRead';
 import { isSmsDerived } from '@/lib/smsLocalDrafts';
 import { requestScanOnReturn } from '@/lib/smsReadBridge';
@@ -884,33 +880,20 @@ function ReviewEmptyState({
           accessibilityLabel={captureLabel}
           onPress={onCapture}
           style={({ pressed }) => ({
-            borderRadius: 26,
-            opacity: pressed ? 0.9 : 1,
-            shadowColor: theme.color.brand,
-            shadowOpacity: 0.25,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 6 },
-            elevation: 4,
+            height: 48,
+            borderRadius: theme.radius.md,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            backgroundColor: theme.color.brand,
+            opacity: pressed ? 0.85 : 1,
           })}
         >
-          <LinearGradient
-            colors={[theme.color.brand, '#8B6CF6']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{
-              height: 52,
-              borderRadius: 26,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-            }}
-          >
-            <Ionicons name="camera" size={iconSize.md} color={theme.color.onBrand} />
-            <Text variant="body" style={{ fontWeight: '700', color: theme.color.onBrand }}>
-              {captureLabel}
-            </Text>
-          </LinearGradient>
+          <Ionicons name="camera" size={iconSize.md} color={theme.color.onBrand} />
+          <Text variant="body" style={{ fontWeight: '700', color: theme.color.onBrand }}>
+            {captureLabel}
+          </Text>
         </Pressable>
         <Pressable
           accessibilityRole="button"
@@ -920,7 +903,7 @@ function ReviewEmptyState({
             alignSelf: 'center',
             height: 44,
             paddingHorizontal: theme.spacing.xl,
-            borderRadius: 22,
+            borderRadius: theme.radius.md,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 10,
@@ -939,52 +922,23 @@ function ReviewEmptyState({
 }
 
 /**
- * The compact hero Review opens on — the owner's own lakeside photograph
- * (`ReviewHeroBackground`) behind the title row and the waiting count, in
- * place of `ScreenHero`'s saturated gradient. Pulled out as its own
- * component (rather than written inline) so the shape has one name a test
- * can point at, the way `ScreenHero` itself is pinned for the screens that
- * still open on it.
- *
- * Review left the shared panel for the same reason Friends did (see
- * `screenHeroShape.test.ts`): a second, deliberately different hero shape is
- * not drift from the shared one when it is the redesign asking for it. Both
- * screens land on a photograph in the end, for the same reason — a drawn
- * gradient was never going to carry "this is a real desk, a real cup of
- * something" the way the owner's own picture does — so this stays close to
- * `FriendsHeroBackground`'s own shape rather than inventing a second one.
- *
- * Measures its own box (`onLayout`) and hands that size to the background,
- * which needs real pixels to `cover`-fit the photo by hand; nothing is drawn
- * until that first layout lands.
+ * Review's header block on the plain page: the title row and the waiting
+ * count, no photo. Review is a bar destination, so no back chevron.
  */
 function ReviewHero({ children }: { children: React.ReactNode }): React.JSX.Element {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const scene = useHeroScene();
-  const moment = reviewMomentFor(scene);
-  const [box, setBox] = useState({ width: 0, height: 0 });
+  useHeroStatusBar(theme.scheme === 'dark' ? 'light' : 'dark');
   return (
     <View
-      onLayout={(event) => {
-        const { width, height } = event.nativeEvent.layout;
-        setBox((current) =>
-          current.width === width && current.height === height ? current : { width, height },
-        );
+      style={{
+        paddingTop: insets.top + theme.spacing.xs,
+        paddingHorizontal: theme.spacing.lg,
+        paddingBottom: theme.spacing.md,
+        gap: theme.spacing.md,
       }}
-      style={{ overflow: 'hidden', backgroundColor: theme.color.bg }}
     >
-      <ReviewHeroBackground moment={moment} width={box.width} height={box.height} />
-      <View
-        style={{
-          paddingTop: insets.top + theme.spacing.md,
-          paddingHorizontal: theme.spacing.xl,
-          paddingBottom: theme.spacing.lg,
-          gap: theme.spacing.lg,
-        }}
-      >
-        {children}
-      </View>
+      {children}
     </View>
   );
 }
@@ -1021,9 +975,10 @@ function HeroRoundButton({
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: theme.color.surface,
+          borderWidth: 1,
+          borderColor: theme.color.border,
           opacity: pressed ? 0.75 : 1,
         },
-        theme.shadow.soft,
       ]}
     >
       <Ionicons
@@ -2201,12 +2156,11 @@ export default function CapturesScreen() {
           needs at the other end. */}
       <ReviewHero>
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <Ionicons name="file-tray-full-outline" size={iconSize.xl} color={theme.color.onBrand} />
           <Text
             variant="title"
-            tone="onBrand"
+            accessibilityRole="header"
             numberOfLines={1}
-            style={{ flex: 1, fontWeight: '800' }}
+            style={{ flex: 1, fontSize: 20, lineHeight: 26, fontWeight: '700' }}
           >
             {t.captures.title}
           </Text>
@@ -2253,7 +2207,6 @@ export default function CapturesScreen() {
             count below already says how much is waiting. */}
         {auto.enabled ? (
           <WatchingLine
-            onBrand
             checking={auto.checking}
             lastCheckedAt={auto.lastCheckedAt}
             now={now}
@@ -2281,7 +2234,7 @@ export default function CapturesScreen() {
               {/* The caption stays whether or not anything is waiting, so the
                   panel keeps one shape — caption over figure — like every
                   other hero, instead of collapsing to a single line. */}
-              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }}>
+              <Text variant="caption" tone="muted">
                 {t.captures.heroWaiting}
               </Text>
               {rows.length > 0 ? (
@@ -2294,7 +2247,11 @@ export default function CapturesScreen() {
                       short enough to stay on one line, which "N expenses waiting
                       to be added" was not: at 140 it wrapped and took the panel
                       with it. */}
-                  <Text variant="title" tone="onBrand" numberOfLines={1}>
+                  <Text
+                    variant="title"
+                    numberOfLines={1}
+                    style={{ fontSize: 24, lineHeight: 30, fontWeight: '700' }}
+                  >
                     {plural(locale, rows.length, t.captures.batchExpenses)}
                   </Text>
                 </>
@@ -2303,7 +2260,11 @@ export default function CapturesScreen() {
                    rather than showing a nought. Not "Nothing needs you": the
                    empty state under it says that, and the same sentence twice
                    on one screen read as a layout mistake. */
-                <Text variant="title" tone="onBrand" numberOfLines={1}>
+                <Text
+                  variant="title"
+                  numberOfLines={1}
+                  style={{ fontSize: 24, lineHeight: 30, fontWeight: '700' }}
+                >
                   {t.captures.heroCaughtUp}
                 </Text>
               )}
@@ -2334,12 +2295,16 @@ export default function CapturesScreen() {
                 selectAnim,
               ]}
             >
-              <Text variant="title" tone="onBrand" numberOfLines={1} style={{ flex: 1 }}>
+              <Text
+                variant="title"
+                numberOfLines={1}
+                style={{ flex: 1, fontSize: 24, lineHeight: 30, fontWeight: '700' }}
+              >
                 {plural(locale, chosenRows.length, t.smsInbox.selected)}
               </Text>
               <Button
                 label={everythingTicked ? t.smsInbox.selectNone : t.smsInbox.selectAll}
-                variant="onBrandOutline"
+                variant="secondary"
                 size="sm"
                 onPress={() => setSelected(everythingTicked ? new Set() : new Set(selectableIds))}
               />
