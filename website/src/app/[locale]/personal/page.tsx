@@ -49,8 +49,8 @@ import { absoluteUrl, site } from '@/lib/site';
  *     rest: packages/db schema (personal_records), supabase/functions/sync,
  *     docs/rewarded-coins-economy.md (A48), apps/mobile/src/lib/personalReceipt.ts
  * Prices are deliberately absent: the store sets them per country.
- * Film files live in public/videos (see LazyVideo); a film whose file is not there
- * is simply left out, never an empty box.
+ * Film files live in infra/art/videos, served from R2 (see LazyVideo); a film
+ * whose file is not there is simply left out, never an empty box.
  */
 
 export function generateStaticParams() {
@@ -92,8 +92,12 @@ export async function generateMetadata({
 const card = 'rounded-2xl bg-surface shadow-[var(--w-shadow-card)]';
 const h2 = 'text-[1.35rem] font-bold tracking-[-0.025em] text-ink sm:text-[1.6rem]';
 
-/** Build-time check, so a film that was not rendered leaves its slot out. */
-const hasFilm = (name: string) => existsSync(join(process.cwd(), 'public/videos', `${name}.mp4`));
+/**
+ * Build-time check, so a film that was not rendered leaves its slot out. The
+ * page is static and CI builds from the full checkout, so infra/ is there.
+ */
+const hasFilm = (name: string) =>
+  existsSync(join(process.cwd(), '../infra/art/videos', `${name}.mp4`));
 
 export default async function PersonalPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
