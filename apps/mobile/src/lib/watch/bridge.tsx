@@ -43,7 +43,8 @@ import {
   sweepStaleClips,
   transcribeFile,
 } from './voiceClip';
-import { parseWatchClip, processClip } from './voiceClipPure';
+import { captureLocationIfGranted } from '@/lib/location';
+import { parseWatchClip, placeForCapture, processClip } from './voiceClipPure';
 import {
   onWatchFile,
   onWatchMessage,
@@ -284,6 +285,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               // multi-expense utterance keeps server-generated ids — a replay of
               // that rarer case can duplicate, a documented v1 limitation.
               const single = items.length === 1;
+              const location = await placeForCapture(captureLocationIfGranted);
               for (const item of items) {
                 await createRef.current.mutateAsync({
                   captureId: single ? msg.id : undefined,
@@ -292,6 +294,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
                   description: item.note,
                   expenseDate: localDate(Date.now()),
                   rawText: msg.transcript,
+                  location,
                 });
               }
               sendToWatch({ t: 'ack', ok: true });
@@ -352,6 +355,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
             transcribe: (uri) => transcribeFile(uri, s.locale),
           });
           const single = outcome.captures.length === 1;
+          const location = await placeForCapture(captureLocationIfGranted);
           for (const item of outcome.captures) {
             await createRef.current.mutateAsync({
               captureId: single ? clip.id : undefined,
@@ -360,6 +364,7 @@ export function WatchBridgeProvider({ children }: { children?: ReactNode }) {
               description: item.note,
               expenseDate: today,
               rawText: outcome.rawText,
+              location,
             });
           }
           sendToWatch({ t: 'voiceResult', id: clip.id, ...outcome.result });
