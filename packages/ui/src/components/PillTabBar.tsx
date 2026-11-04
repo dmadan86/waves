@@ -428,15 +428,10 @@ export const CenterButton = memo(function CenterButton({ action }: { action: Pil
         // is the cradle behind it (see the bar), so it shows only above the bar.
         backgroundColor: theme.color.brand,
         opacity: pressed ? 0.9 : 1,
-        shadowColor: theme.color.brand,
-        shadowOpacity: 0.4,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: 8,
       })}
     >
       <Gradient
-        colors={theme.gradient.brand}
+        colors={[theme.color.brand, theme.color.brand]}
         radius={CENTER_SIZE / 2}
         style={{
           position: 'absolute',
@@ -520,7 +515,7 @@ const TabItem = memo(function TabItem({
               alignItems: 'center',
               justifyContent: 'center',
               overflow: 'hidden',
-              backgroundColor: focused ? theme.color.brandSoft : 'transparent',
+              backgroundColor: 'transparent',
             }}
           >
             {item.icon(ink, focused)}

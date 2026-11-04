@@ -61,7 +61,7 @@ export function Button({
 }: ButtonProps) {
   const theme = useTheme();
   const press = useSingleAction(onPress, { repeatable });
-  const height = size === 'sm' ? 38 : size === 'lg' ? 56 : 48;
+  const height = size === 'sm' ? 36 : size === 'lg' ? 50 : 46;
   const paddingHorizontal = size === 'sm' ? theme.spacing.lg : theme.spacing.xxl;
 
   return (
@@ -74,7 +74,7 @@ export function Button({
         {
           height,
           paddingHorizontal,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
