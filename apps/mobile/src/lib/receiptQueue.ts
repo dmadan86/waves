@@ -392,12 +392,21 @@ function pendingFile(entry: Pick<PendingReceipt, 'fileName'>) {
     /** The image as base64, opened from the sealed file when there is one. */
     async base64(): Promise<string> {
       if (sealed.exists) {
-        return decryptWith(await loadKey(), await sealed.text(), entry.fileName);
+        const text = await sealed.text();
+        const key = await loadKey();
+        try {
+          return decryptWith(key, text, entry.fileName);
+        } catch {
+          throw new UnreadableReceiptError();
+        }
       }
       return plain.base64();
     },
   };
 }
+
+/** The sealed copy does not open: its key is gone (a restore onto another phone) or it is corrupt. */
+class UnreadableReceiptError extends Error {}
 
 /** Seal base64 bytes into `<name>.enc`, proving it opens before reporting success. */
 async function sealTo(entry: Pick<PendingReceipt, 'fileName'>, base64: string): Promise<void> {
@@ -966,6 +975,12 @@ async function runFlush(): Promise<FlushResult> {
         });
         uploaded.add(entry.expenseId);
       } catch (caught) {
+        if (caught instanceof UnreadableReceiptError) {
+          // No key will ever open it again, so a retry only keeps a broken tile: drop it.
+          file.delete();
+          updates.set(entry.attachmentId, null);
+          continue;
+        }
         // The bytes went up but the row did not: take the object back out, or it
         // is orphaned in the bucket with nothing able to reach it. The local file
         // is still here and still the source of truth, so a retry re-uploads it

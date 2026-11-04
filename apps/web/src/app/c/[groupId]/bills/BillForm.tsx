@@ -204,11 +204,16 @@ function Form({
       await mutate(MutationKind.CompanyDocSave, groupId, { ...docSavePayload(id, v) });
       if (doc && docType === 'estimate' && status !== doc.status)
         await mutate(MutationKind.CompanyDocStatus, groupId, { ...docStatusPayload(id, status) });
-      if (owed !== null)
-        await mutate(MutationKind.CompanyDocPayment, groupId, {
+      // The bill is saved either way; a payment that failed is said on the bill, where it can be recorded again.
+      const paid =
+        owed === null ||
+        (await mutate(MutationKind.CompanyDocPayment, groupId, {
           ...docPaymentPayload(id, crypto.randomUUID(), owed, todayIso()),
-        }).catch(() => undefined);
-      router.replace(`/c/${groupId}/bills/${id}`);
+        }).then(
+          () => true,
+          () => false,
+        ));
+      router.replace(`/c/${groupId}/bills/${id}${paid ? '' : '?payment=failed'}`);
     } catch (caught) {
       setError(err(caught, 'docs.save'));
       setBusy(false);

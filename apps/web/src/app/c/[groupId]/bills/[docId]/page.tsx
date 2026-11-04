@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
@@ -48,6 +48,10 @@ export default function CompanyBillPage() {
   const c = t.company.docs;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('payment') === 'failed')
+      setError(c.paymentNotRecorded);
+  }, [c.paymentNotRecorded]);
   const [recording, setRecording] = useState(false);
   const [amountText, setAmountText] = useState('');
   const [paidOn, setPaidOn] = useState(todayIso());
@@ -146,7 +150,7 @@ export default function CompanyBillPage() {
           ownerMemberId: client.ownerMemberId,
           stage: 'quoted',
           lostReason: null,
-        }).catch(() => undefined);
+        });
     });
 
   const convert = () =>
