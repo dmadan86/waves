@@ -3,7 +3,7 @@ import { placeSlots } from '@/lib/adPlanPure';
 import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, TextInput, useWindowDimensions, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -34,14 +34,11 @@ import {
   type GroupsFilter,
   type GroupsSort,
 } from '@/lib/groupsList';
-import { useHeroScene } from '@/lib/heroScenePreference';
-import { HERO_THEMES } from '@/lib/scene';
 import { GroupMark } from '@/components/GroupMark';
 import { useCoverTile } from '@/lib/groupCoverColor';
 import { UnreadDot } from '@/components/UnreadDot';
 import { useGroupUnread } from '@/lib/useGroupUnread';
 import { SkeletonList } from '@/components/Skeletons';
-import { HeroScene } from '@/components/home/HeroScene';
 import { useHeroStatusBar } from '@/components/ScreenHero';
 import { router } from '@/lib/navigation';
 
@@ -54,9 +51,6 @@ const HEADER_BUTTON = 40;
  * the same three numbers, and the same rule (overlap never past the room), the
  * contact picker's scene uses.
  */
-const SCENE_ROOM = 26;
-const SCENE_OVERLAP = 14;
-const SCENE_INTO_CARD = 34;
 
 /**
  * The full, browsable list of every group — the "All groups" door off the
@@ -380,34 +374,16 @@ function GroupsHeader({
 }): React.JSX.Element {
   const theme = useTheme();
   const insetsTop = useSafeAreaInsets().top;
-  const { width: screenWidth } = useWindowDimensions();
-  const scene = useHeroScene();
-  const [headerHeight, setHeaderHeight] = useState(0);
-  const darkInk = HERO_THEMES[scene].ink === 'dark';
-  useHeroStatusBar(darkInk ? 'dark' : 'light');
-  const ink = darkInk ? theme.color.text : '#FFFFFF';
+  useHeroStatusBar(theme.scheme === 'dark' ? 'light' : 'dark');
+  const ink = theme.color.text;
 
   return (
     <View>
-      {headerHeight > 0 ? (
-        <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
-          <HeroScene
-            scene={scene}
-            width={screenWidth}
-            height={headerHeight + SCENE_INTO_CARD}
-            horizon={headerHeight - SCENE_OVERLAP}
-            headerBottom={insetsTop + HEADER_BUTTON}
-            pageColor={theme.color.bg}
-          />
-        </View>
-      ) : null}
-
       <View
-        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
         style={{
-          paddingTop: insetsTop + theme.spacing.sm,
+          paddingTop: insetsTop + theme.spacing.xs,
           paddingHorizontal: theme.spacing.md,
-          paddingBottom: SCENE_ROOM,
+          paddingBottom: theme.spacing.sm,
         }}
       >
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
@@ -430,19 +406,14 @@ function GroupsHeader({
               numberOfLines={1}
               style={{
                 color: ink,
-                fontSize: 22,
+                fontSize: 20,
                 lineHeight: 26,
-                fontWeight: '800',
-                ...inkShadow(darkInk),
+                fontWeight: '700',
               }}
             >
               {title}
             </Text>
-            <Text
-              variant="caption"
-              numberOfLines={1}
-              style={{ color: ink, opacity: darkInk ? 0.75 : 0.92, ...inkShadow(darkInk) }}
-            >
+            <Text variant="caption" numberOfLines={1} style={{ color: theme.color.textMuted }}>
               {subtitle}
             </Text>
           </View>
@@ -473,7 +444,7 @@ function GroupsHeader({
 
       {/* The search field rides up over the scene's foot by exactly the overlap
           the scene was drawn with. */}
-      <View style={{ marginTop: -SCENE_OVERLAP, paddingHorizontal: theme.spacing.md }}>
+      <View style={{ paddingHorizontal: theme.spacing.md }}>
         <Pressable
           onPress={() => searchRef.current?.focus()}
           accessible={false}
@@ -483,15 +454,10 @@ function GroupsHeader({
             gap: theme.spacing.sm,
             height: 40,
             paddingHorizontal: theme.spacing.md,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             backgroundColor: theme.color.surface,
             borderWidth: 1,
             borderColor: theme.color.border,
-            shadowColor: '#000',
-            shadowOpacity: 0.06,
-            shadowRadius: 6,
-            shadowOffset: { width: 0, height: 2 },
-            elevation: 2,
           }}
         >
           <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
@@ -523,17 +489,6 @@ function GroupsHeader({
   );
 }
 
-/** Light text over a bright patch of sky still reads with a soft shadow. */
-function inkShadow(darkInk: boolean) {
-  return darkInk
-    ? {}
-    : {
-        textShadowColor: 'rgba(0,0,0,0.25)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
-      };
-}
-
 /** A solid white disc — the header's own action buttons. */
 const whiteDisc = {
   width: HEADER_BUTTON,
@@ -542,6 +497,8 @@ const whiteDisc = {
   alignItems: 'center',
   justifyContent: 'center',
   backgroundColor: '#FFFFFF',
+  borderWidth: 1,
+  borderColor: '#E4E4EA',
 } as const;
 
 const SORT_KEYS: readonly GroupsSort[] = ['amount', 'recent', 'name'];
@@ -587,7 +544,7 @@ function FilterBar({
     gap: 4,
     height: 32,
     paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.radius.pill,
+    borderRadius: theme.radius.sm,
     borderWidth: 1,
   } as const;
 
