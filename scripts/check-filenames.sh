@@ -23,7 +23,7 @@
 
 set -euo pipefail
 
-EXTENSIONS='csv|tsv|ts|tsx|js|jsx|mjs|cjs|json|md|mdx|sql|prisma|ya?ml|xml|toml|css|html|svg|png|jpg|jpeg|webp|ico|ttf|otf|woff2?|sh|swift|kt|gradle|podspec|txt|example|gitignore|gitattributes|npmrc|nvmrc|prettierrc|prettierignore|vercelignore|gitleaksignore|py|editorconfig|lock|ofx|qfx|pem'
+EXTENSIONS='csv|tsv|ts|tsx|js|jsx|mjs|cjs|json|md|mdx|sql|prisma|ya?ml|xml|toml|css|html|svg|png|jpg|jpeg|webp|mp4|webm|ico|ttf|otf|woff2?|sh|swift|kt|gradle|podspec|txt|example|gitignore|gitattributes|npmrc|nvmrc|prettierrc|prettierignore|vercelignore|gitleaksignore|py|editorconfig|lock|ofx|qfx|pem'
 
 bad=""
 while IFS= read -r path; do
