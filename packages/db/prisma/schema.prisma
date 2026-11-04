@@ -131,6 +131,11 @@ enum DeliveryStatus {
 /// row is created by a trigger on auth.users (see migration SQL).
 model Profile {
   id                  String   @id @db.Uuid
+  twoStepSecrets      TwoStepSecret[]
+  twoStepLockout      TwoStepLockout?
+  twoStepSessions     TwoStepSession[]
+  twoStepDeviceRequests TwoStepDeviceRequest[] @relation("TwoStepDeviceRequester")
+  twoStepDecisions    TwoStepDeviceRequest[] @relation("TwoStepDeviceDecider")
   displayName         String   @map("display_name")
   avatarUrl           String?  @map("avatar_url")
   /// Optional UPI ID used to build settlement intents (ADR-007). Superseded by
@@ -286,6 +291,8 @@ model Group {
   companyApprovalsEnabled Boolean @default(false) @map("company_approvals_enabled")
   companyAgentsEnabled Boolean @default(false) @map("company_agents_enabled")
   companyAgentApproval Boolean @default(true) @map("company_agent_approval")
+  /// Company two-step login: every session must verify before it reads or writes this company.
+  requireTwoStep Boolean @default(false) @map("require_two_step")
   companyAgentLinks CompanyAgentLink[]
   companySecondApproval Boolean @default(false) @map("company_second_approval")
   companySecondApprovalThresholdMinor BigInt? @map("company_second_approval_threshold_minor")
@@ -3023,6 +3030,7 @@ model ApiToken {
   revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  twoStepVerifiedAt DateTime? @map("two_step_verified_at") @db.Timestamptz(6)
   profile  Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   app      ApiApp?    @relation(fields: [appId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   parent   ApiToken?  @relation("ApiTokenLineage", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -3052,6 +3060,7 @@ model ApiAuthorizationCode {
   consumedAt    DateTime? @map("consumed_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  twoStepVerifiedAt DateTime? @map("two_step_verified_at") @db.Timestamptz(6)
   app     ApiApp  @relation(fields: [appId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -3773,6 +3782,7 @@ model CompanyAgentLink {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(6)
   revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  twoStepVerifiedAt DateTime? @map("two_step_verified_at") @db.Timestamptz(6)
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   @@unique([profileId, clientId])
@@ -3949,5 +3959,67 @@ model CompanySlot {
   @@index([profileId], map: "company_slots_profile_idx")
   @@index([groupId], map: "company_slots_group_idx")
   @@map("company_slots")
+  @@schema("public")
+}
+
+/// Company two-step: code secrets, AES-256-GCM sealed by the edge functions. Service role only.
+model TwoStepSecret {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId   String    @map("profile_id") @db.Uuid
+  kind        String
+  deviceId    String?   @map("device_id")
+  secretEnc   String    @map("secret_enc")
+  active      Boolean   @default(false)
+  lastStep    BigInt    @default(0) @map("last_step")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  activatedAt DateTime? @map("activated_at") @db.Timestamptz(6)
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([profileId], map: "two_step_secrets_profile_idx")
+  @@map("two_step_secrets")
+  @@schema("public")
+}
+
+/// Company two-step: wrong-code counter, row-locked by every attempt.
+model TwoStepLockout {
+  profileId   String    @id @map("profile_id") @db.Uuid
+  failures    Int       @default(0)
+  lockedUntil DateTime? @map("locked_until") @db.Timestamptz(6)
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("two_step_lockouts")
+  @@schema("public")
+}
+
+/// Company two-step: a verified GoTrue session.
+model TwoStepSession {
+  sessionId  String   @map("session_id") @db.Uuid
+  profileId  String   @map("profile_id") @db.Uuid
+  kind       String
+  deviceId   String?  @map("device_id")
+  verifiedAt DateTime @default(now()) @map("verified_at") @db.Timestamptz(6)
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([sessionId, profileId])
+  @@index([profileId], map: "two_step_sessions_profile_idx")
+  @@map("two_step_sessions")
+  @@schema("public")
+}
+
+/// Company two-step: a new phone waiting for an owner's or manager's approval.
+model TwoStepDeviceRequest {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String    @map("profile_id") @db.Uuid
+  sessionId String    @map("session_id") @db.Uuid
+  deviceId  String    @map("device_id")
+  platform  String?
+  status    String    @default("pending")
+  decidedBy String?   @map("decided_by") @db.Uuid
+  decidedAt DateTime? @map("decided_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile   Profile   @relation("TwoStepDeviceRequester", fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  decider   Profile?  @relation("TwoStepDeviceDecider", fields: [decidedBy], references: [id], onUpdate: NoAction)
+
+  @@map("two_step_device_requests")
   @@schema("public")
 }
