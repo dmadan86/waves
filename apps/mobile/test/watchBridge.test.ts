@@ -29,6 +29,7 @@ const h = vi.hoisted(() => ({
   failureHandler: null as ((kind: string | null) => void) | null,
   unsubscribed: vi.fn(),
   unsubscribedFailure: vi.fn(),
+  place: null as { lat: number; lng: number; name: null } | null,
   mutateAsync: vi.fn(async (_input: Record<string, unknown>) => undefined),
   groups: [{ id: 'g1', name: 'Goa trip' }] as { id: string; name: string }[] | undefined,
   mirror: { tables: {} } as unknown,
@@ -76,6 +77,7 @@ vi.mock('@/i18n', () => ({
     locale: 'en-IN',
   }),
 }));
+vi.mock('@/lib/location', () => ({ captureLocationIfGranted: async () => h.place }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ session: h.session }) }));
 vi.mock('@/lib/currency', () => ({ useDefaultCurrency: () => h.currency }));
 vi.mock('@/lib/recentCount', () => ({ useRecentCount: () => ({ count: h.count }) }));
@@ -276,6 +278,21 @@ describe('WatchBridgeProvider', () => {
         }),
       );
       expect(sentOf('ack')).toEqual([{ t: 'ack', ok: true }]);
+    });
+
+    it('attaches the place to a spoken expense, and saves without one when there is none', async () => {
+      h.place = { lat: 12.9, lng: 77.6, name: null };
+      renderHook(() => WatchBridgeProvider({}));
+      h.messageHandler!({ t: 'voiceAdd', id: 'loc-1', transcript: '500 rupees tea' });
+      await settle();
+      expect(h.mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ location: { lat: 12.9, lng: 77.6, name: null } }),
+      );
+      h.mutateAsync.mockClear();
+      h.place = null;
+      h.messageHandler!({ t: 'voiceAdd', id: 'loc-2', transcript: '500 rupees tea' });
+      await settle();
+      expect(h.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({ location: null }));
     });
 
     it('books several spoken expenses with ids of their own, in the default currency', async () => {
