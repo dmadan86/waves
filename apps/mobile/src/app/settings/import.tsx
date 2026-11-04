@@ -1134,11 +1134,6 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
           borderRadius: 12,
           padding: 14,
           gap: 10,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
         },
         style,
       ]}
@@ -1366,11 +1361,6 @@ function CsvArt() {
           gap: 5,
           backgroundColor: dark ? theme.color.surfaceMuted : '#FFFFFF',
           transform: [{ rotate: '-8deg' }],
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.12,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: 3 },
-          elevation: 3,
         }}
       >
         <View style={{ height: 3, borderRadius: 2, backgroundColor: '#DCD6FA' }} />

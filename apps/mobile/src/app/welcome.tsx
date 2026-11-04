@@ -567,11 +567,6 @@ function SplitChip({
           paddingEnd: 10,
           borderRadius: 12,
           backgroundColor: 'rgba(255,255,255,0.92)',
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.12,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 4,
         },
         style,
       ]}

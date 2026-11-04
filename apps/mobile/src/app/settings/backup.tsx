@@ -1831,11 +1831,6 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
           borderRadius: 12,
           padding: theme.spacing.md,
           gap: theme.spacing.md,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
         },
         style,
       ]}
@@ -1923,11 +1918,6 @@ function DriveArt() {
           justifyContent: 'center',
           backgroundColor: theme.color.surface,
           transform: [{ rotate: '-10deg' }],
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.12,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: 2 },
-          elevation: 2,
         }}
       >
         <Ionicons name="image" size={20} color="#5B8DEF" />
@@ -1944,11 +1934,6 @@ function DriveArt() {
           justifyContent: 'center',
           backgroundColor: theme.color.surface,
           transform: [{ rotate: '8deg' }],
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.1,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: 2 },
-          elevation: 2,
         }}
       >
         <Ionicons name="document-text" size={18} color="#8C83FF" />
@@ -1964,11 +1949,6 @@ function DriveArt() {
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: theme.color.surface,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.14,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 4,
         }}
       >
         <MaterialCommunityIcons name="google-drive" size={34} color="#1FA463" />

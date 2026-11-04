@@ -198,11 +198,6 @@ export function IconButton({
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.color.surface,
-                shadowColor: '#000',
-                shadowOpacity: 0.08,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
               }
             : { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }
         }

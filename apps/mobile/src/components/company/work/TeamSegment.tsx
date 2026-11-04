@@ -32,11 +32,6 @@ export function TeamSegment({
         padding: 4,
         borderRadius: 12,
         backgroundColor: theme.color.surface,
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 2,
       }}
     >
       {items.map(({ tab, label, icon }) => {

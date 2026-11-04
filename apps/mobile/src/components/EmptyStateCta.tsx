@@ -76,11 +76,6 @@ export function EmptyStateCta({
           paddingHorizontal: theme.spacing.xl,
           borderRadius: 12,
           backgroundColor: accent,
-          shadowColor: accent,
-          shadowOpacity: 0.3,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 4,
           opacity: pressed ? 0.85 : 1,
         })}
       >
