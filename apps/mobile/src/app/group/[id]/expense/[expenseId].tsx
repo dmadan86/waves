@@ -627,7 +627,7 @@ export default function ExpenseDetailScreen() {
                 maxWidth: '100%',
                 paddingHorizontal: theme.spacing.sm,
                 paddingVertical: 2,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 backgroundColor: theme.color.surfaceMuted,
               }}
             >
@@ -717,7 +717,7 @@ export default function ExpenseDetailScreen() {
                 gap: 4,
                 paddingHorizontal: theme.spacing.sm,
                 paddingVertical: 2,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 backgroundColor: theme.color.surfaceMuted,
               }}
             >
@@ -758,7 +758,7 @@ export default function ExpenseDetailScreen() {
               gap: 4,
               paddingHorizontal: theme.spacing.sm,
               paddingVertical: 2,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: theme.color.surfaceMuted,
               opacity: pressed ? 0.6 : 1,
             })}

@@ -1521,7 +1521,7 @@ function LedgerGroupScreen() {
                       gap: 6,
                       minHeight: 36,
                       paddingHorizontal: theme.spacing.md,
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.sm,
                       backgroundColor: theme.color.brand,
                     }}
                   >
@@ -2131,7 +2131,7 @@ function LedgerGroupScreen() {
                   gap: 4,
                   paddingHorizontal: 10,
                   paddingVertical: 4,
-                  borderRadius: 999,
+                  borderRadius: 8,
                   backgroundColor: UNREAD_GREEN,
                 }}
               >

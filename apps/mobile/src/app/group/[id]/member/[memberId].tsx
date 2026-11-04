@@ -100,7 +100,7 @@ function HeaderPill({ label }: { label: string }) {
       style={{
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: theme.color.surfaceMuted,
       }}
     >
@@ -214,7 +214,7 @@ function SortPill({ oldestFirst, onToggle }: { oldestFirst: boolean; onToggle: (
         gap: theme.spacing.xs,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 4,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: theme.color.surfaceMuted,
         opacity: pressed ? 0.7 : 1,
       })}
