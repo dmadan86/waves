@@ -17,16 +17,15 @@ import { Card, directionalIcon, iconSize, Row, Text, useSingleAction, useTheme }
 
 import { Sparkline } from '@/components/SpendingCharts';
 
-/** The selected pill's navy. */
+/** The selected segment's ink. */
 export const PILL_SELECTED = '#1F1B4D';
 
-/** The translucent white a pill wears over the photo. */
+/** The fill of an unselected control on the page: the plain surface. */
 export function useGlass(): string {
-  const theme = useTheme();
-  return theme.scheme === 'dark' ? 'rgba(20,20,34,0.72)' : 'rgba(255,255,255,0.82)';
+  return useTheme().color.surface;
 }
 
-/** One white pill that opens something: an optional leading glyph, a label, a chevron. */
+/** A small outlined button that opens something: an optional leading glyph, a label, a chevron. */
 export function PillButton({
   label,
   icon,
@@ -49,27 +48,29 @@ export function PillButton({
       accessibilityLabel={accessibilityLabel ?? label}
       onPress={onPress}
       style={{
-        height: 38,
+        height: 34,
         flexDirection: 'row',
         alignItems: 'center',
-        gap: theme.spacing.sm,
+        gap: 6,
         paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
+        borderWidth: 1,
+        borderColor: theme.color.border,
         backgroundColor: glass,
       }}
     >
-      {icon ? <Ionicons name={icon} size={iconSize.base} color={theme.color.text} /> : null}
+      {icon ? <Ionicons name={icon} size={iconSize.sm} color={theme.color.textMuted} /> : null}
       <Text variant="caption" style={{ fontWeight: '600' }}>
         {label}
       </Text>
       {chevron ? (
-        <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.text} />
+        <Ionicons name="chevron-down" size={iconSize.xs} color={theme.color.textMuted} />
       ) : null}
     </Pressable>
   );
 }
 
-/** A row of choose-one pills: navy when selected, white when not. */
+/** Choose one of a few: a single grey track, the chosen segment drawn on the surface in full ink. */
 export function SegmentedPills<T extends string>({
   options,
   value,
@@ -80,45 +81,56 @@ export function SegmentedPills<T extends string>({
   onChange: (value: T) => void;
 }) {
   const theme = useTheme();
-  const glass = useGlass();
+  const track = theme.scheme === 'dark' ? theme.color.surfaceMuted : '#E8E8ED';
   return (
-    <>
+    <View
+      accessibilityRole="tablist"
+      style={{
+        flexDirection: 'row',
+        padding: 2,
+        borderRadius: theme.radius.sm + 2,
+        backgroundColor: track,
+      }}
+    >
       {options.map((option) => {
         const selected = option.value === value;
         return (
           <Pressable
             key={option.value}
-            accessibilityRole="button"
+            accessibilityRole="tab"
             accessibilityState={{ selected }}
             onPress={() => onChange(option.value)}
             style={{
-              height: 38,
-              paddingHorizontal: theme.spacing.lg,
-              borderRadius: theme.radius.pill,
+              minHeight: 32,
+              paddingHorizontal: theme.spacing.md,
+              borderRadius: theme.radius.sm,
               flexDirection: 'row',
               alignItems: 'center',
               gap: theme.spacing.xs,
               justifyContent: 'center',
-              backgroundColor: selected ? PILL_SELECTED : glass,
+              backgroundColor: selected ? theme.color.surface : 'transparent',
             }}
           >
             {option.icon ? (
               <Ionicons
                 name={option.icon}
-                size={iconSize.base}
-                color={selected ? '#FFFFFF' : theme.color.textMuted}
+                size={iconSize.sm}
+                color={selected ? theme.color.text : theme.color.textMuted}
               />
             ) : null}
             <Text
               variant="caption"
-              style={{ fontWeight: '600', color: selected ? '#FFFFFF' : theme.color.textMuted }}
+              style={{
+                fontWeight: selected ? '700' : '500',
+                color: selected ? theme.color.text : theme.color.textMuted,
+              }}
             >
               {option.label}
             </Text>
           </Pressable>
         );
       })}
-    </>
+    </View>
   );
 }
 
@@ -144,7 +156,7 @@ export function SectionHeader({
       <Text
         variant="heading"
         accessibilityRole="header"
-        style={{ fontSize: 20, lineHeight: 26, fontWeight: '800' }}
+        style={{ fontSize: 17, lineHeight: 22, fontWeight: '700' }}
       >
         {title}
       </Text>
@@ -174,9 +186,8 @@ export function SectionHeader({
 
 /**
  * The label of a group of fields inside a card (Group name, Add friends,
- * Group type, More options): a 28dp brandSoft disc with a brand 16dp glyph,
- * then the title at 16sp bold in full ink. The disc matches a dense
- * `DetailRow`'s, so a label and the rows under it share one icon language.
+ * Group type, More options): a muted 18dp glyph, then the title at 15sp bold
+ * in full ink. No disc: the glyph is a signpost, not a decoration.
  */
 export function SectionLabel({
   icon,
@@ -188,21 +199,10 @@ export function SectionLabel({
   const theme = useTheme();
   return (
     <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-      <View
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 14,
-          backgroundColor: theme.color.brandSoft,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons name={icon} size={iconSize.base} color={theme.color.brand} />
-      </View>
+      <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
       <Text
         accessibilityRole="header"
-        style={{ flexShrink: 1, fontSize: 16, lineHeight: 22, fontWeight: '700' }}
+        style={{ flexShrink: 1, fontSize: 15, lineHeight: 20, fontWeight: '700' }}
       >
         {children}
       </Text>
@@ -210,7 +210,7 @@ export function SectionLabel({
   );
 }
 
-/** The white rounded card with its soft shadow. */
+/** A grouped surface: flat, 12pt corners, a hairline edge instead of a shadow. */
 export function StandardCard({
   children,
   style,
@@ -227,8 +227,10 @@ export function StandardCard({
       padded={false}
       style={[
         {
-          borderRadius: theme.radius.xl,
-          padding: flush ? 0 : theme.spacing.lg,
+          borderRadius: theme.radius.lg,
+          borderWidth: theme.scheme === 'dark' ? 0 : 1,
+          borderColor: theme.color.border,
+          padding: flush ? 0 : theme.spacing.md + 2,
           overflow: flush ? 'hidden' : 'visible',
         },
         style,
@@ -240,9 +242,9 @@ export function StandardCard({
 }
 
 /**
- * The headline figure of a screen: a muted label with its glyph, the amount big
- * with the minor units grey, a line under it, and optionally a delta pill and a
- * sparkline along the foot.
+ * The headline figure of a screen, set straight on the page (no card): a muted
+ * label, the amount large with the minor units grey, a line under it, the
+ * change as plain text on the right, and optionally a sparkline along the foot.
  */
 export function StatCard({
   icon = 'wallet-outline',
@@ -270,64 +272,52 @@ export function StatCard({
 }) {
   const theme = useTheme();
   const up = delta ? delta.percent >= 0 : true;
-  const deltaColor = up ? '#16A34A' : theme.color.negative;
-  const amount = { fontSize: 34, lineHeight: 42, fontWeight: '800' } as const;
+  const amount = { fontSize: 30, lineHeight: 36, fontWeight: '700' } as const;
   return (
-    <StandardCard flush>
-      <View style={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
-        <Row style={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <View style={{ flex: 1 }}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <Ionicons name={icon} size={iconSize.lg} color={theme.color.textMuted} />
-              <Text tone="muted" style={{ fontSize: 15, lineHeight: 20 }}>
-                {label}
-              </Text>
-            </Row>
-            <Text
-              accessibilityLabel={accessibilityLabel}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              style={{ ...amount, color: theme.color.text, marginTop: theme.spacing.xs }}
-            >
-              {lead}
-              <Text style={{ ...amount, color: theme.color.textFaint }}>{fraction}</Text>
+    <View>
+      <Row
+        style={{ alignItems: 'flex-end', justifyContent: 'space-between', gap: theme.spacing.md }}
+      >
+        <View style={{ flex: 1 }}>
+          <Row style={{ alignItems: 'center', gap: 6 }}>
+            <Ionicons name={icon} size={iconSize.sm} color={theme.color.textMuted} />
+            <Text variant="caption" tone="muted">
+              {label}
             </Text>
-            {caption}
+          </Row>
+          <Text
+            accessibilityLabel={accessibilityLabel}
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            tabular
+            style={{ ...amount, color: theme.color.text, marginTop: 2 }}
+          >
+            {lead}
+            <Text style={{ ...amount, color: theme.color.textFaint }}>{fraction}</Text>
+          </Text>
+          {caption}
+        </View>
+        {delta ? (
+          <View style={{ alignItems: 'flex-end', paddingBottom: 4 }}>
+            <Text
+              variant="caption"
+              tabular
+              style={{ fontWeight: '700', color: up ? theme.color.text : theme.color.negative }}
+            >
+              {`${up ? '↑' : '↓'} ${Math.abs(delta.percent)}%`}
+            </Text>
+            <Text variant="micro" tone="muted">
+              {delta.caption}
+            </Text>
           </View>
-          {delta ? (
-            <View style={{ alignItems: 'center', gap: 2 }}>
-              <Row
-                style={{
-                  alignItems: 'center',
-                  gap: 2,
-                  paddingHorizontal: theme.spacing.md,
-                  paddingVertical: 4,
-                  borderRadius: theme.radius.pill,
-                  backgroundColor: up ? 'rgba(34,163,94,0.14)' : theme.color.negativeSoft,
-                }}
-              >
-                <Ionicons
-                  name={up ? 'arrow-up' : 'arrow-down'}
-                  size={iconSize.sm}
-                  color={deltaColor}
-                />
-                <Text variant="caption" style={{ fontWeight: '700', color: deltaColor }}>
-                  {`${Math.abs(delta.percent)}%`}
-                </Text>
-              </Row>
-              <Text variant="micro" tone="muted">
-                {delta.caption}
-              </Text>
-            </View>
-          ) : null}
-        </Row>
-      </View>
+        ) : null}
+      </Row>
       {trend && trend.length > 1 ? (
-        <Sparkline values={trend} />
-      ) : (
-        <View style={{ height: theme.spacing.md }} />
-      )}
-    </StandardCard>
+        <View style={{ marginTop: theme.spacing.sm }}>
+          <Sparkline values={trend} height={48} />
+        </View>
+      ) : null}
+    </View>
   );
 }
 

@@ -1,19 +1,16 @@
 /**
- * The standard screen header: a short photo band (the sea, the horizon, the
- * terrace) with a back chevron, a centred title and, optionally, a row of pills
- * underneath. The first card of the screen rides up over its foot by
- * `SCENIC_OVERLAP`.
+ * The standard screen header: a compact bar on the page colour with a back
+ * chevron, the title set against it, one optional control at the far end and,
+ * optionally, a row of controls underneath. No photo, no overlap: the screen
+ * is about its content, and on a small Android every row of height counts.
  *
- * See docs/design-standard.md — every new or touched screen starts here.
- *
- * Put it first in the screen's scroll content (or a list's header), then start
- * the body in a `ScenicBody` so the overlap and the side gutters are right.
+ * See docs/design-standard.md. Start the body in a `ScenicBody` for the gutters.
+ * (The name is historical; it is kept so every screen keeps compiling.)
  */
 
 import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Image, Pressable, useWindowDimensions, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
@@ -22,17 +19,8 @@ import { useHeroStatusBar } from '@/components/ScreenHero';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
-const SCENE = require('../../../assets/images/voice-scene.webp') as number;
-/** The photograph is 849 × 1852. */
-const SCENE_W = 849;
-const SCENE_H = 1852;
-/** Where the sea's horizon is in the photograph, and where it lands on screen (dp). */
-const SCENE_HORIZON = 1140;
-const HORIZON_Y = 52;
-/** The first card's top edge sits a fifth of the way down the screen. */
-const CARD_TOP = 0.2;
-/** How far the photo carries on behind the first card. */
-export const SCENIC_OVERLAP = 36;
+/** The body no longer rides over the header; kept at 0 for the screens that read it. */
+export const SCENIC_OVERLAP = 0;
 
 export function ScenicHeader({
   title,
@@ -41,10 +29,6 @@ export function ScenicHeader({
   trailing,
   subtitle,
   action,
-  titleAlign = 'center',
-  circleBack = false,
-  wash = false,
-  wide = false,
   onTitlePress,
   titleHint,
   identity,
@@ -60,11 +44,11 @@ export function ScenicHeader({
   subtitle?: string;
   /** One round control at the top-right, in the back button's place on the far side. */
   action?: ReactNode;
-  /** 'start' sets the title against the back button, for a screen with an identity row under it. */
+  /** Accepted for old callers; the title is always set against the back button now. */
   titleAlign?: 'center' | 'start';
-  /** A white circle behind the back chevron, so it reads over a busy photo. */
+  /** Accepted for old callers; there is no photo to read over. */
   circleBack?: boolean;
-  /** A soft wash of the page colour behind the text, for a header carrying small text over the photo. */
+  /** Accepted for old callers; there is no photo to read over. */
   wash?: boolean;
   /** The children fill the row, so a control inside them can sit at the far end. */
   wide?: boolean;
@@ -77,167 +61,102 @@ export function ScenicHeader({
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
-  const { width, height } = useWindowDimensions();
-  const dark = theme.scheme === 'dark';
-  useHeroStatusBar(dark ? 'light' : 'dark');
-
-  const photoH = Math.round(height * CARD_TOP) + SCENIC_OVERLAP;
-  const scale = width / SCENE_W;
+  useHeroStatusBar(theme.scheme === 'dark' ? 'light' : 'dark');
   const ink = theme.color.text;
-  const glassWhite = dark ? 'rgba(20,20,34,0.82)' : '#FFFFFF';
   return (
-    <View style={{ minHeight: photoH, overflow: 'hidden' }}>
-      <Image
-        source={SCENE}
-        accessibilityIgnoresInvertColors
-        accessibilityElementsHidden
-        importantForAccessibility="no"
-        fadeDuration={0}
-        style={{
-          position: 'absolute',
-          width: SCENE_W * scale,
-          height: SCENE_H * scale,
-          left: (width - SCENE_W * scale) / 2,
-          top: HORIZON_Y - SCENE_HORIZON * scale,
-        }}
-      />
-      {dark ? (
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.45)',
-          }}
-        />
-      ) : null}
-      <LinearGradient
-        pointerEvents="none"
-        colors={['rgba(0,0,0,0)', theme.color.bg]}
-        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56 }}
-      />
-      {wash ? (
-        <LinearGradient
-          pointerEvents="none"
-          colors={
-            dark
-              ? ['rgba(14,14,26,0.78)', 'rgba(14,14,26,0.55)', 'rgba(14,14,26,0)']
-              : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.66)', 'rgba(255,255,255,0)']
-          }
-          locations={[0, 0.55, 1]}
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 20 }}
-        />
-      ) : null}
-      <View
-        style={{
-          paddingTop: insets.top + theme.spacing.sm,
-          paddingHorizontal: theme.spacing.lg,
-          // Room for the body that rides up over the foot, so it never lands on a control.
-          paddingBottom: SCENIC_OVERLAP + theme.spacing.sm,
-        }}
-      >
-        <Row style={{ alignItems: 'center' }}>
+    <View
+      style={{
+        paddingTop: insets.top + theme.spacing.xs,
+        paddingHorizontal: theme.spacing.sm,
+        paddingBottom: theme.spacing.sm,
+      }}
+    >
+      <Row style={{ alignItems: 'center', minHeight: 44 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.common.back}
+          onPress={onBack ?? (() => router.back())}
+          hitSlop={8}
+          style={{ width: 40, height: 44, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
+        </Pressable>
+        {identity ? (
+          <View style={{ flex: 1, marginStart: theme.spacing.xs }}>{identity}</View>
+        ) : (
           <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.common.back}
-            onPress={onBack ?? (() => router.back())}
-            hitSlop={8}
+            disabled={!onTitlePress}
+            accessibilityRole={onTitlePress ? 'button' : undefined}
+            accessibilityLabel={onTitlePress ? titleHint : undefined}
+            onPress={onTitlePress}
             style={{
-              width: 40,
-              height: 40,
-              justifyContent: 'center',
-              alignItems: circleBack ? 'center' : undefined,
-              borderRadius: 20,
-              backgroundColor: circleBack ? glassWhite : undefined,
-            }}
-          >
-            <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
-          </Pressable>
-          {identity ? (
-            <View style={{ flex: 1, marginStart: theme.spacing.sm }}>{identity}</View>
-          ) : (
-            <Pressable
-              disabled={!onTitlePress}
-              accessibilityRole={onTitlePress ? 'button' : undefined}
-              accessibilityLabel={onTitlePress ? titleHint : undefined}
-              onPress={onTitlePress}
-              style={{
-                flex: 1,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: titleAlign === 'start' ? 'flex-start' : 'center',
-                gap: 4,
-                marginStart: titleAlign === 'start' ? theme.spacing.md : 0,
-              }}
-            >
-              <Text
-                variant="heading"
-                accessibilityRole="header"
-                numberOfLines={1}
-                style={{ flexShrink: 1, fontSize: 22, fontWeight: '800' }}
-              >
-                {title}
-              </Text>
-              {onTitlePress ? (
-                <Ionicons name="chevron-down" size={iconSize.md} color={ink} />
-              ) : null}
-            </Pressable>
-          )}
-          {titleAlign === 'start' && !action ? null : (
-            <View style={{ minWidth: 40, alignItems: 'flex-end' }}>{action}</View>
-          )}
-        </Row>
-        {subtitle ? (
-          <Text
-            variant="caption"
-            tone="muted"
-            align={titleAlign === 'start' ? 'left' : 'center'}
-            style={{
-              marginTop: 2,
-              // Sits under the title, past the back button, when the title is set against it.
-              marginStart: titleAlign === 'start' ? 40 + theme.spacing.md : 0,
-              // Leaves the right-hand end of the photo free for any art there.
-              marginEnd: titleAlign === 'start' ? theme.spacing.xxl : 0,
-            }}
-          >
-            {subtitle}
-          </Text>
-        ) : null}
-        {children || trailing ? (
-          <Row
-            style={{
+              flex: 1,
+              flexDirection: 'row',
               alignItems: 'center',
-              flexWrap: 'wrap',
-              justifyContent: 'space-between',
-              columnGap: theme.spacing.sm,
-              rowGap: theme.spacing.sm,
-              marginTop: theme.spacing.lg,
+              gap: 4,
+              marginStart: theme.spacing.xs,
             }}
           >
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexShrink: 1 }}>
-              {children}
-            </Row>
-            {trailing}
-          </Row>
+            <Text
+              variant="heading"
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={{ flexShrink: 1, fontSize: 20, lineHeight: 26 }}
+            >
+              {title}
+            </Text>
+            {onTitlePress ? (
+              <Ionicons name="chevron-down" size={iconSize.base} color={theme.color.textMuted} />
+            ) : null}
+          </Pressable>
+        )}
+        {action ? (
+          <View style={{ minWidth: 40, alignItems: 'flex-end', marginEnd: theme.spacing.sm }}>
+            {action}
+          </View>
         ) : null}
-      </View>
+      </Row>
+      {subtitle ? (
+        <Text
+          variant="caption"
+          tone="muted"
+          numberOfLines={2}
+          style={{ marginStart: 40 + theme.spacing.xs, marginEnd: theme.spacing.sm }}
+        >
+          {subtitle}
+        </Text>
+      ) : null}
+      {children || trailing ? (
+        <Row
+          style={{
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            justifyContent: 'space-between',
+            columnGap: theme.spacing.sm,
+            rowGap: theme.spacing.sm,
+            marginTop: theme.spacing.md,
+            paddingHorizontal: theme.spacing.sm,
+          }}
+        >
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexShrink: 1 }}>
+            {children}
+          </Row>
+          {trailing}
+        </Row>
+      ) : null}
     </View>
   );
 }
 
-/** The body under a `ScenicHeader`: rides up over the photo, with the standard gutters and gaps. */
-/** `flush`: no header above to ride over (the Team shell draws its own), so no overlap. */
+/** The body under a `ScenicHeader`: the standard gutters and gaps. `flush`: the Team shell draws its own header. */
 export function ScenicBody({ children, flush = false }: { children: ReactNode; flush?: boolean }) {
   const theme = useTheme();
   return (
     <View
       style={{
-        marginTop: flush ? theme.spacing.md : -SCENIC_OVERLAP,
+        marginTop: flush ? theme.spacing.md : theme.spacing.xs,
         paddingHorizontal: theme.spacing.lg,
-        gap: theme.spacing.xl,
+        gap: theme.spacing.lg,
       }}
     >
       {children}

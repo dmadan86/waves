@@ -742,55 +742,47 @@
   }
 
   /*
-   * The dashboard's one loud object: are you up, down, or square. It wears the
-   * brand wash when there is nothing to point at and a money wash when there is,
-   * which is the phone's rule — colour appears only when there is a debt. White
-   * text on all three, because every stop of every wash is dark enough for it.
+   * The dashboard's headline: are you up, down, or square. Set on the page, not
+   * in a coloured slab; the amount alone wears the money colour when there is a
+   * debt to point at, and plain ink when everything is settled.
    */
   .hero {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-bottom: 22px;
-    border-radius: var(--w-radius-lg);
-    padding: 24px 26px;
-    color: #fff;
-    background: var(--w-gradient-brand);
-    box-shadow: var(--w-shadow-soft);
+    gap: 2px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--w-border);
+    padding: 4px 0 18px;
+    color: var(--w-text);
   }
-  .hero-owed {
-    background: var(--w-gradient-positive);
+  .hero-owed .hero-amount {
+    color: var(--w-positive);
   }
-  .hero-owe {
-    background: var(--w-gradient-negative);
-  }
-  .hero-flat {
-    background: var(--w-gradient-brand);
+  .hero-owe .hero-amount {
+    color: var(--w-negative);
   }
   .hero-label {
     font-size: var(--w-font-caption);
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: rgb(255 255 255 / 0.76);
+    font-weight: 500;
+    color: var(--w-text-muted);
   }
   .hero-amount {
-    font-size: clamp(32px, 5vw, 44px);
-    line-height: 1.05;
-    font-weight: 800;
-    letter-spacing: -0.035em;
+    font-size: clamp(28px, 4vw, 36px);
+    line-height: 1.1;
+    font-weight: 700;
+    letter-spacing: -0.02em;
     font-variant-numeric: tabular-nums;
-    color: #fff;
+    color: var(--w-text);
   }
   .hero-flat-line {
-    font-size: 26px;
+    font-size: 22px;
     font-weight: 700;
-    color: #fff;
+    color: var(--w-text);
   }
   .hero-extra {
     font-size: var(--w-font-caption);
     font-variant-numeric: tabular-nums;
-    color: rgb(255 255 255 / 0.76);
+    color: var(--w-text-muted);
   }
 
   .panel {
@@ -847,9 +839,8 @@
     max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
-    border: 1px solid var(--w-border);
-    border-radius: 999px;
-    background: var(--w-surface);
+    border-radius: calc(var(--w-radius-sm) + 2px);
+    background: color-mix(in srgb, var(--w-text) 7%, transparent);
   }
   .tabs::-webkit-scrollbar {
     display: none;
@@ -860,9 +851,9 @@
     gap: 7px;
     flex: none;
     border: 0;
-    border-radius: 999px;
+    border-radius: var(--w-radius-sm);
     background: transparent;
-    padding: 8px 16px;
+    padding: 6px 14px;
     font-size: var(--w-font-caption);
     font-weight: 600;
     color: var(--w-text-muted);
@@ -875,8 +866,9 @@
     color: var(--w-text);
   }
   .tab[aria-selected='true'] {
-    background: var(--w-brand-soft);
-    color: var(--w-brand-pressed);
+    background: var(--w-surface);
+    color: var(--w-text);
+    font-weight: 700;
   }
   .tab-count {
     border-radius: 999px;
@@ -2863,9 +2855,9 @@
     align-items: center;
     gap: 6px;
     border: 1px solid var(--w-border-strong);
-    border-radius: 999px;
+    border-radius: var(--w-radius-sm);
     background: var(--w-surface);
-    padding: 7px 14px;
+    padding: 6px 12px;
     font-size: var(--w-font-caption);
     font-weight: 600;
     color: var(--w-text);
