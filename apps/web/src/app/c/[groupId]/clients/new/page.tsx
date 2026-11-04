@@ -3,7 +3,12 @@
 import { Suspense, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 
-import { CLIENT_SOURCES, type ClientSource } from '@waves/core';
+import {
+  CLIENT_SOURCES,
+  formatMinorInput,
+  type ClientSource,
+  type CurrencyCode,
+} from '@waves/core';
 
 import { useStrings } from '@/i18n-context';
 import {
@@ -58,7 +63,11 @@ function Form() {
     setSource(existing.source);
     setOwner(existing.ownerMemberId);
     setFollow('none');
-    setValue(existing.expectedValueMinor ? String(Number(existing.expectedValueMinor) / 100) : '');
+    setValue(
+      existing.expectedValueMinor
+        ? formatMinorInput(existing.expectedValueMinor, view.company.currency as CurrencyCode)
+        : '',
+    );
     setAddress(existing.address ?? '');
   }
   const ownerId = owner === undefined ? view.myMemberId : owner;
