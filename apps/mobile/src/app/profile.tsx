@@ -229,7 +229,7 @@ function ProfileForm() {
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.lg,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -240,7 +240,7 @@ function ProfileForm() {
           <ProfileAvatar
             name={profile?.display_name ?? t.account.you}
             avatarUrl={shownAvatar}
-            size={92}
+            size={72}
             onPress={profile ? photo.open : undefined}
             busy={photo.busy}
           />
@@ -493,10 +493,6 @@ function ProfileForm() {
               onPress: () => setSigningOut(true),
               destructive: true,
             },
-          ]}
-        />
-        <SettingsSection
-          rows={[
             {
               icon: 'trash-outline',
               label: t.privacy.deleteRow,
