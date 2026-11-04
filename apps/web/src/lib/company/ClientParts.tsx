@@ -7,7 +7,9 @@ import Link from 'next/link';
 
 import {
   nextFollowUpDay,
+  formatMinorInput,
   parseMinorInput,
+  type CurrencyCode,
   type ClientSource,
   type CompanyInquiry,
   type NextFollowUp,
@@ -102,7 +104,9 @@ export function InquiryForm({
   const [title, setTitle] = useState(inquiry?.title ?? '');
   const [details, setDetails] = useState(inquiry?.details ?? '');
   const [value, setValue] = useState(
-    inquiry?.expectedValueMinor ? String(Number(inquiry.expectedValueMinor) / 100) : '',
+    inquiry?.expectedValueMinor
+      ? formatMinorInput(inquiry.expectedValueMinor, currency as CurrencyCode)
+      : '',
   );
   const [date, setDate] = useState(inquiry?.inquiryDate ?? todayIso());
   const submit = async () => {

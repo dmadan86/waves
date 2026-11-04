@@ -423,10 +423,13 @@ async function sealLegacyFiles(queue: readonly PendingReceipt[]): Promise<void> 
     try {
       const file = pendingFile(entry);
       if (file.plain.exists) {
-        // A sealed copy may already exist when an earlier delete of the plain one failed: just retry the delete.
+        // A sealed copy may already exist when an earlier delete of the plain one failed, or a crash
+        // cut its write short: the original goes only once that copy opens to the same bytes.
         const base64 = await file.plain.base64();
-        if (!file.sealed.exists) await sealTo(entry, base64);
-        if (!file.sealed.exists) continue;
+        if (!file.sealed.exists || (await file.base64().catch(() => null)) !== base64) {
+          await sealTo(entry, base64);
+        }
+        if ((await file.base64().catch(() => null)) !== base64) continue;
         file.plain.delete();
         if (!file.preview.exists) writePreview(entry, base64);
       } else if (file.sealed.exists && !file.preview.exists) {
