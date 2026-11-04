@@ -66,11 +66,6 @@ const CARD = {
   backgroundColor: '#FFFFFF',
   borderRadius: 12,
   padding: 14,
-  shadowColor: '#2A1E6B',
-  shadowOpacity: 0.06,
-  shadowRadius: 16,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 3,
 } as const;
 const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
 const ART = require('../../assets/images/verify-phone.webp') as number;
@@ -590,11 +585,6 @@ function Pill({
       style={({ pressed }) => ({
         borderRadius: 12,
         opacity: pressed ? 0.9 : 1,
-        shadowColor: '#6A45E8',
-        shadowOpacity: disabled ? 0 : 0.25,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: disabled ? 0 : 4,
       })}
     >
       {disabled && !busy ? (

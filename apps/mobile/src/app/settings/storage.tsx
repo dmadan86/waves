@@ -257,11 +257,6 @@ function SoftCard({ children }: { children: ReactNode }) {
         borderRadius: theme.radius.md,
         padding: theme.spacing.md,
         gap: theme.spacing.sm,
-        shadowColor: '#2A1E6B',
-        shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
-        shadowRadius: 14,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: 2,
       }}
     >
       {children}
@@ -614,11 +609,6 @@ function FolderArtDrawing({
           gap: 4,
           backgroundColor: dark ? theme.color.surface : '#FFFFFF',
           transform: [{ rotate: '10deg' }],
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.12,
-          shadowRadius: 4,
-          shadowOffset: { width: 0, height: 2 },
-          elevation: 2,
         }}
       >
         <View style={{ height: 3, borderRadius: 2, backgroundColor: '#C9C2FA' }} />

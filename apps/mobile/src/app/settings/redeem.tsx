@@ -213,11 +213,6 @@ export default function RedeemScreen() {
               style={({ pressed }) => ({
                 borderRadius: 12,
                 opacity: !ready && !busy ? 0.5 : pressed ? 0.88 : 1,
-                shadowColor: '#5B3FD9',
-                shadowOpacity: dark ? 0 : 0.25,
-                shadowRadius: 12,
-                shadowOffset: { width: 0, height: 6 },
-                elevation: 4,
               })}
             >
               <View
@@ -302,11 +297,6 @@ function GiftArt() {
           transform: [{ rotate: '-24deg' }],
           padding: 8,
           gap: 5,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.14,
-          shadowRadius: 8,
-          shadowOffset: { width: 0, height: 3 },
-          elevation: 3,
         }}
       >
         <View style={{ width: 30, height: 4, borderRadius: 2, backgroundColor: '#D6CFFA' }} />

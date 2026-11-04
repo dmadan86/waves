@@ -449,11 +449,6 @@ function DeviceLimitGate({
                 justifyContent: 'center',
                 gap: theme.spacing.sm,
                 backgroundColor: accent,
-                shadowColor: accent,
-                shadowOpacity: 0.22,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 6 },
-                elevation: 4,
                 opacity: busy ? 0.7 : pressed ? 0.85 : 1,
               })}
             >

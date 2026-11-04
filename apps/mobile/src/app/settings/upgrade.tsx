@@ -351,12 +351,6 @@ export default function UpgradeScreen() {
             borderWidth: 1.5,
             borderColor: theme.color.brand,
             overflow: 'hidden',
-            shadowColor: '#2A1E6B',
-            shadowOpacity: theme.scheme !== 'dark' ? 0.1 : 0,
-            shadowRadius: 16,
-            shadowOffset: { width: 0, height: 4 },
-            // Android elevation leaves a box behind the translucent gradient.
-            elevation: Platform.OS === 'android' ? 0 : 3,
           }}
         >
           <View

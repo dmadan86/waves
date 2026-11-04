@@ -623,11 +623,6 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 borderTopLeftRadius: 30,
                 borderTopRightRadius: 30,
                 backgroundColor: '#FFFFFF',
-                shadowColor: '#2A1E6B',
-                shadowOpacity: 0.06,
-                shadowRadius: 16,
-                shadowOffset: { width: 0, height: -4 },
-                elevation: 3,
               }}
             >
               <ScrollView
@@ -826,11 +821,6 @@ function PrimaryPill({
       style={({ pressed }) => ({
         borderRadius: 12,
         opacity: pressed ? 0.9 : 1,
-        shadowColor: '#6A45E8',
-        shadowOpacity: disabled ? 0 : 0.22,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: disabled ? 0 : 3,
       })}
     >
       {disabled ? (
