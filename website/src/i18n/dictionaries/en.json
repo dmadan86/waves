@@ -1078,6 +1078,42 @@
       "bills": "A short film: a bill with a UPI QR",
       "attendance": "A short film: the month fills with attendance marks",
       "tasks": "A short film: a task moves from To do to Done"
+    },
+    "films": {
+      "title": "See it in action",
+      "lead": "Four short films, start to finish.",
+      "label": "Product films",
+      "watch": "Watch the film",
+      "tabs": [
+        {
+          "id": "inquiries",
+          "tab": "Inquiries",
+          "caption": "An inquiry comes in, gets assigned, followed up, quoted and won, then moves to Clients.",
+          "alt": "A short film: an inquiry is assigned, quoted and won, and the person lands in Clients",
+          "video": "companies-inquiry"
+        },
+        {
+          "id": "approvals",
+          "tab": "Approvals",
+          "caption": "An employee adds an expense with a photo. The manager and the owner approve, the owner records the payment, and everyone sees it settled.",
+          "alt": "A short film: an expense is approved by the manager and the owner, then paid",
+          "video": "companies-approval-flow"
+        },
+        {
+          "id": "bills",
+          "tab": "Bills",
+          "caption": "An estimate is sent and accepted, becomes a bill with a UPI QR, and is paid in parts until it shows Paid. Estimates and bills, not tax invoices.",
+          "alt": "A short film: an estimate becomes a bill, paid in two parts through UPI",
+          "video": "companies-invoice"
+        },
+        {
+          "id": "complaints",
+          "tab": "Complaints",
+          "caption": "A complaint is logged with a priority and an owner, moves to in progress, escalates if it runs late, and closes with a note.",
+          "alt": "A short film: a complaint is logged, escalated and resolved with a note",
+          "video": "companies-complaints"
+        }
+      ]
     }
   }
 }
