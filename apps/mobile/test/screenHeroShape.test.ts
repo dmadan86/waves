@@ -30,25 +30,10 @@ const SRC = join(__dirname, '../src');
 const source = (relativePath: string): string => readFileSync(join(SRC, relativePath), 'utf8');
 
 describe('every hero is a deliberate shape, not a drift from the shared one', () => {
-  it('the group hero uses the shared controls rather than its own copies', () => {
+  it('the group hero is a calm header on the page: no photo, no gradient', () => {
     const hero = source('components/GroupHero.tsx');
-    const shared = hero.match(/import \{([^}]*)\} from '@\/components\/ScreenHero';/);
-    expect(shared?.[1]).toMatch(/\bHeroPillButton\b/);
-    // The white pill and the dim disc were defined here and are now shared. A
-    // local `function HeroActionCircle` reappearing means somebody has forked
-    // them back apart.
+    expect(hero).not.toMatch(/HomeHeroBackground|HOME_HERO_PHOTOS|LinearGradient|Gradient/);
     expect(hero).not.toMatch(/function Hero(ActionCircle|PillButton)\b/);
-  });
-
-  it("the group hero wears Home's terrace photo, with its figure stacked under its label", () => {
-    // The group screen follows its own design: Home's time-of-day terrace
-    // photograph (`HOME_HERO_PHOTOS`) with "You are owed" over a large figure, rather than
-    // the shared one-line "Label: figure". A deliberate shape, pinned here.
-    const hero = source('components/GroupHero.tsx');
-    expect(hero).toMatch(
-      /import \{ HOME_HERO_PHOTOS \} from '@\/components\/home\/HomeHeroBackground';/,
-    );
-    expect(hero).not.toMatch(/<HeroFigureLine\b/);
   });
 
   it("Friends wears Home's own hero shape, not the shared gradient shell", () => {

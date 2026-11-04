@@ -36,7 +36,6 @@ import {
   Row,
   Screen,
   Text,
-  Gradient,
   Toggle,
   useTheme,
 } from '@waves/ui';
@@ -75,12 +74,8 @@ import { useKnownContacts } from '@/data/knownContacts';
 import { sameHuman, suggestPeople } from '@/lib/addFromAnotherGroup';
 import { membersToClone } from '@/lib/cloneMembers';
 import { NEW_GROUP_TILES, tileForType } from '@/lib/newGroupType';
-import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
-import { useHeroStatusBar } from '@/components/ScreenHero';
-import { useHomeHero } from '@/lib/useHomeHero';
 import { shortPersonNames } from '@/lib/shortPersonName';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
-import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { assignCaptureHref } from '@/lib/captureAssign';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
@@ -136,14 +131,6 @@ export default function NewGroupScreen() {
   // and where "Add contacts" sits. Everything else is flex and fits by itself.
   const { width: screenWidth } = useWindowDimensions();
   const narrow = screenWidth < NARROW_WIDTH;
-  // Home's photo behind the top of the form — the same one, for the same time
-  // of day — measured so it runs from under the status bar to just into the
-  // first card, where it fades out.
-  const hero = useHomeHero();
-  const [headerHeight, setHeaderHeight] = useState(0);
-  const insetsTop = useSafeAreaInsets().top;
-  // The photo's scrim keeps white text readable, as on Home.
-  useHeroStatusBar('light');
   // "Add contacts" beside the Add friends title only where both fit whole; on
   // a smaller phone it takes a line of its own rather than truncate the title.
   const contactsInline = screenWidth >= CONTACTS_INLINE_WIDTH;
@@ -808,30 +795,13 @@ export default function NewGroupScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {headerHeight > 0 ? (
-          <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
-            <HomeHeroBackground
-              hero={hero}
-              height={headerHeight + SCENE_INTO_CARD}
-              photoHeight={headerHeight + SCENE_INTO_CARD}
-              scrimHeight={insetsTop + HEADER_ROW}
-              pageColor={theme.color.bg}
-            />
-          </View>
-        ) : null}
-        <View onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}>
-          <NewGroupHeader
-            title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title}
-            ink="#FFFFFF"
-          />
+        <View>
+          <NewGroupHeader title={cloning ? t.clone.duplicateTitle : t.newGroupForm.title} />
         </View>
 
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            // The first card rides up over the scene's foot, as Home's balance
-            // card does.
-            marginTop: -SCENE_OVERLAP,
             gap: theme.spacing.sm,
           }}
         >
@@ -1558,15 +1528,6 @@ const MUTED = SPEC_MUTED;
 const ink = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.text : INK);
 const muted = (theme: Theme): string => (theme.scheme === 'dark' ? theme.color.textMuted : MUTED);
 
-/** Home's scene behind the header: the room under the title row where its
- *  landscape shows, how far the first card rides up over its foot, and how far
- *  it runs on under that card before it has faded into the page. */
-const SCENE_ROOM = 54;
-const SCENE_OVERLAP = 28;
-const SCENE_INTO_CARD = 60;
-/** The header row's own height (the 44pt back button plus its top padding),
- *  where the scene's readability shade ends. */
-const HEADER_ROW = 52;
 /** The cover tile's side — a little smaller on a narrow phone, so the two
  *  fields beside it keep a usable width. */
 const COVER = 80;
@@ -1593,7 +1554,7 @@ function fieldBox(theme: Theme) {
   };
 }
 
-/** A white card with the spec's 22pt corners, 16pt padding and a soft lift. */
+/** A flat card: 12pt corners, 14pt padding, a hairline instead of a shadow. */
 function FormCard({ children, style }: { children: ReactNode; style?: object }) {
   const theme = useTheme();
   return (
@@ -1601,13 +1562,10 @@ function FormCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 20,
+          borderRadius: theme.radius.lg,
+          borderWidth: 1,
+          borderColor: theme.color.border,
           padding: theme.spacing.md - 2,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.06,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 1,
         },
         style,
       ]}
@@ -1617,12 +1575,8 @@ function FormCard({ children, style }: { children: ReactNode; style?: object }) 
   );
 }
 
-/**
- * The header: a back chevron and the title on one line — the Activity screen's
- * shape — over Home's scene in the ink its sky calls for, with room under the row for the scene's
- * landscape to show before the first card rides up over it.
- */
-function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string }) {
+/** The header: a back chevron and the title on one line, on the page. */
+function NewGroupHeader({ title }: { title: string }) {
   const theme = useTheme();
   const { t } = useStrings();
   const insets = useSafeAreaInsets();
@@ -1630,32 +1584,30 @@ function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string 
     <Row
       style={{
         paddingTop: insets.top + theme.spacing.xs,
-        paddingHorizontal: theme.spacing.lg,
-        // Room under the row for the scene's mountains before the first card
-        // rides up over their foot.
-        paddingBottom: SCENE_ROOM,
+        paddingHorizontal: theme.spacing.sm,
+        paddingBottom: theme.spacing.sm,
         alignItems: 'center',
-        gap: theme.spacing.md,
+        gap: theme.spacing.xs,
       }}
     >
-      <TranslucentBackButton
-        dark={headerInk !== '#FFFFFF'}
-        label={t.common.back}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t.common.back}
         onPress={() => router.back()}
-      />
+        hitSlop={8}
+        style={{ width: 40, height: 44, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Ionicons
+          name={directionalIcon('chevron-back')}
+          size={iconSize.xl}
+          color={theme.color.text}
+        />
+      </Pressable>
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text
-          numberOfLines={1}
-          adjustsFontSizeToFit
-          minimumFontScale={0.8}
-          style={{ fontSize: 19, lineHeight: 24, fontWeight: '800', color: headerInk }}
-        >
+        <Text variant="heading" accessibilityRole="header" numberOfLines={1}>
           {title}
         </Text>
-        <Text
-          numberOfLines={2}
-          style={{ fontSize: 13, lineHeight: 17, color: headerInk, opacity: 0.85 }}
-        >
+        <Text variant="caption" tone="muted" numberOfLines={2}>
           {t.newGroupForm.tagline}
         </Text>
       </View>
@@ -1762,7 +1714,7 @@ function PersonChip({
 /** Blue, mint, peach and round again — the spec's three people, in order. */
 const CHIP_TINTS = ['sky', 'mint', 'peach', 'lilac', 'pink', 'coral'] as const;
 
-/** Create, as a full-width pill in the blue-to-violet wash with an arrow. */
+/** Create, as a full-width brand button with an arrow. */
 function CreateButton({
   label,
   disabled,
@@ -1782,33 +1734,27 @@ function CreateButton({
       onPress={onPress}
       style={({ pressed }) => ({ opacity: disabled ? 0.5 : pressed ? 0.85 : 1 })}
     >
-      <Gradient
-        colors={CREATE_WASH}
-        radius={25}
+      <View
         style={{
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'center',
           gap: theme.spacing.sm,
           height: 48,
+          borderRadius: theme.radius.md,
+          backgroundColor: theme.color.brand,
         }}
       >
-        <Text style={{ fontSize: 17, fontWeight: '600', color: '#FFFFFF' }}>{label}</Text>
-        <View
-          style={{
-            width: 1,
-            height: 26,
-            marginHorizontal: theme.spacing.md,
-            backgroundColor: 'rgba(255, 255, 255, 0.45)',
-          }}
+        <Text style={{ fontSize: 16, fontWeight: '600', color: theme.color.onBrand }}>{label}</Text>
+        <Ionicons
+          name={directionalIcon('arrow-forward')}
+          size={iconSize.lg}
+          color={theme.color.onBrand}
         />
-        <Ionicons name={directionalIcon('arrow-forward')} size={22} color="#FFFFFF" />
-      </Gradient>
+      </View>
     </Pressable>
   );
 }
-
-const CREATE_WASH = ['#3D63E8', ACCENT] as const;
 
 /** A suggested person: an initial in a tinted disc with a small + badge, the
  *  name under it. One tap adds them. `more` draws the list's last tile — a
