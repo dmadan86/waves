@@ -141,6 +141,16 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line(`${t.agents.cta}: ${absoluteUrl(`/${locale}/mcp`)}`);
   line();
 
+  line(`## ${t.companies.title}`);
+  line();
+  line(t.companies.body);
+  line();
+  line(`- ${t.companies.points.join('\n- ')}`);
+  line();
+  line(t.companies.availability);
+  line(`${t.companies.cta}: ${absoluteUrl(`/${locale}/companies`)}`);
+  line();
+
   line(`## ${t.faq.title}`);
   line();
   for (const item of t.faq.items) {

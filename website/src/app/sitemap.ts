@@ -10,7 +10,16 @@ import { absoluteUrl } from '@/lib/site';
 // `/mcp` is listed for the same reason as the line above it, minus the
 // obligation: somebody whose assistant refuses to connect goes looking for the
 // page, and a help page nobody can find is a support email instead.
-const paths = ['', '/privacy', '/terms', '/refund', '/support', '/delete-account', '/mcp'] as const;
+const paths = [
+  '',
+  '/privacy',
+  '/terms',
+  '/refund',
+  '/support',
+  '/delete-account',
+  '/mcp',
+  '/companies',
+] as const;
 
 // The compare pages exist in English only, so they are listed once with no
 // hreflang alternates rather than four times with three of them 404.
