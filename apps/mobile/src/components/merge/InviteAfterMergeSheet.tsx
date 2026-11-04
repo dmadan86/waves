@@ -112,26 +112,6 @@ export function InviteAfterMergeSheet({
             justifyContent: 'center',
           }}
         >
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 4,
-              width: 200,
-              height: 78,
-              borderRadius: 40,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              top: 6,
-              width: 130,
-              height: 70,
-              borderRadius: 40,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          />
           <Row style={{ alignItems: 'flex-end', marginTop: 12 }}>
             <Person size={58} colors={PURPLE} />
             <View style={{ marginStart: -10 }}>
