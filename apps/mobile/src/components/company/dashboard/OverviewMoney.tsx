@@ -22,10 +22,7 @@ export function MoneyCards({ groupId }: { groupId: string }) {
   const { t, locale } = useStrings();
   const o = useOverview(groupId, todayIso());
   if (!o.isOwner) return null;
-  if (!o.ready || !o.money)
-    return (
-      <Skeleton height={168} />
-    );
+  if (!o.ready || !o.money) return <Skeleton height={168} />;
   const m = o.money;
   const empty = moneyEmpty(m);
   const fmt = (minor: bigint) => compactMoney(minor, o.currency, locale, t.company.ovCrore);
