@@ -150,7 +150,7 @@ export default function RedeemScreen() {
                 height: 56,
                 paddingLeft: 16,
                 paddingRight: 10,
-                borderRadius: 16,
+                borderRadius: 12,
                 borderWidth: 1,
                 borderColor: dark ? theme.color.border : '#D9D3F6',
                 backgroundColor: theme.color.surface,
@@ -212,7 +212,7 @@ export default function RedeemScreen() {
               disabled={!ready}
               onPress={() => void redeem()}
               style={({ pressed }) => ({
-                borderRadius: 28,
+                borderRadius: 16,
                 opacity: !ready && !busy ? 0.5 : pressed ? 0.88 : 1,
                 shadowColor: '#5B3FD9',
                 shadowOpacity: dark ? 0 : 0.25,
@@ -227,7 +227,7 @@ export default function RedeemScreen() {
                 end={{ x: 1, y: 0 }}
                 style={{
                   height: 54,
-                  borderRadius: 28,
+                  borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}

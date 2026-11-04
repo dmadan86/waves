@@ -63,7 +63,7 @@ export function AttendanceRow({
           minWidth: 62,
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: 16,
+          borderRadius: 12,
           borderWidth: on && !green ? 1.5 : 0,
           borderColor: RED,
           backgroundColor: on ? (green ? GREEN : `${RED}14`) : 'transparent',
@@ -131,7 +131,7 @@ export function AttendanceRow({
             gap: 4,
             height: 32,
             paddingHorizontal: 12,
-            borderRadius: 16,
+            borderRadius: 12,
             backgroundColor: theme.color.surfaceMuted,
           }}
         >
@@ -144,7 +144,7 @@ export function AttendanceRow({
         <View
           style={{
             flexDirection: 'row',
-            borderRadius: 18,
+            borderRadius: 12,
             padding: 2,
             borderWidth: 1,
             borderColor: theme.color.border,

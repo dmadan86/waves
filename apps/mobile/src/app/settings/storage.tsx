@@ -195,7 +195,7 @@ export default function StorageUsageScreen() {
                 // for anything tappable) — the old 50pt disc read as a hero
                 // action this screen doesn't have room for any more.
                 height: 44,
-                borderRadius: 22,
+                borderRadius: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',

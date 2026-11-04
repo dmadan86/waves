@@ -329,7 +329,7 @@ export default function InviteFriendsScreen() {
                     alignItems: 'center',
                     gap: 8,
                     paddingHorizontal: 12,
-                    borderRadius: 14,
+                    borderRadius: 12,
                     backgroundColor: theme.color.surface,
                     borderWidth: StyleSheet.hairlineWidth,
                     borderColor: theme.color.border,

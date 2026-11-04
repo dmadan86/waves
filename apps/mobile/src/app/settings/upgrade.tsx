@@ -258,7 +258,7 @@ export default function UpgradeScreen() {
         <View
           style={{
             backgroundColor: theme.color.surface,
-            borderRadius: 20,
+            borderRadius: 12,
             borderWidth: 1,
             borderColor: theme.color.border,
             padding: theme.spacing.md,
@@ -271,7 +271,7 @@ export default function UpgradeScreen() {
               style={{
                 width: 56,
                 height: 56,
-                borderRadius: 14,
+                borderRadius: 12,
                 backgroundColor: theme.color.brandSoft,
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -348,7 +348,7 @@ export default function UpgradeScreen() {
         {/* ── Pro card ──────────────────────────────────────────────── */}
         <View
           style={{
-            borderRadius: 20,
+            borderRadius: 12,
             borderWidth: 1.5,
             borderColor: theme.color.brand,
             overflow: 'hidden',
@@ -370,7 +370,7 @@ export default function UpgradeScreen() {
                 style={{
                   width: 56,
                   height: 56,
-                  borderRadius: 14,
+                  borderRadius: 12,
                   backgroundColor: theme.color.brand,
                   alignItems: 'center',
                   justifyContent: 'center',

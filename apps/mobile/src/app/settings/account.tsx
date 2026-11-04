@@ -432,7 +432,7 @@ function AccountForm() {
     fontSize: 15,
     color: ink,
     backgroundColor: dark ? theme.color.surfaceMuted : '#F3F2F9',
-    borderRadius: 22,
+    borderRadius: 12,
     paddingHorizontal: theme.spacing.md,
     height: 44,
   };
@@ -850,7 +850,7 @@ function AccountForm() {
             gap: 10,
             paddingHorizontal: 12,
             paddingVertical: 10,
-            borderRadius: 14,
+            borderRadius: 12,
             backgroundColor: dark ? theme.color.surfaceMuted : '#EEECF7',
           }}
         >
@@ -907,7 +907,7 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 20,
+          borderRadius: 12,
           padding: theme.spacing.md,
           gap: theme.spacing.md,
           shadowColor: '#2A1E6B',
@@ -1019,7 +1019,7 @@ function PillButton({
       style={({ pressed }) => ({
         height: 44,
         paddingHorizontal: theme.spacing.lg,
-        borderRadius: 22,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: accent,
@@ -1135,7 +1135,7 @@ function ProviderRow({
     height: 28,
     minWidth: 64,
     paddingHorizontal: 12,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   };

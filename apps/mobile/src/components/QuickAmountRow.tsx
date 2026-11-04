@@ -55,7 +55,7 @@ export function QuickAmountRow({
       style={{
         gap: theme.spacing.sm,
         padding: theme.spacing.sm,
-        borderRadius: 16,
+        borderRadius: 12,
         backgroundColor: soft,
       }}
     >

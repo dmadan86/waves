@@ -217,7 +217,7 @@ export function RateTile({
         style={{
           width: 44,
           height: 44,
-          borderRadius: 14,
+          borderRadius: 12,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: theme.color.brandSoft,

@@ -91,7 +91,7 @@ function Tile({
         minWidth: 0,
         gap: 6,
         padding: 10,
-        borderRadius: 18,
+        borderRadius: 12,
         backgroundColor: withAlpha(ink, 0.1),
         borderWidth: 1,
         borderColor: withAlpha(ink, 0.16),
@@ -251,7 +251,7 @@ export function NeedsAttention({ groupId }: { groupId: string }) {
     };
   };
   return (
-    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 22, gap: 4 }}>
+    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, gap: 4 }}>
       <Header
         icon="radio-button-on-outline"
         title={c.ovAttention}
@@ -332,7 +332,7 @@ export function MoneyActions({ groupId }: { groupId: string }) {
   ] as const;
   if (view.suspended) return null;
   return (
-    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 22, gap: 8 }}>
+    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, gap: 8 }}>
       <Header icon="layers-outline" title={t.company.ovCardMoney} />
       <View style={{ flexDirection: 'row', gap: 8 }}>
         {actions.map((a) => (
@@ -348,7 +348,7 @@ export function MoneyActions({ groupId }: { groupId: string }) {
               justifyContent: 'center',
               gap: 6,
               padding: 8,
-              borderRadius: 16,
+              borderRadius: 12,
               backgroundColor: withAlpha(a.ink, 0.1),
             }}
           >
@@ -393,7 +393,7 @@ export function ComingUpRow({ groupId }: { groupId: string }) {
           timeZone: 'UTC',
         });
   return (
-    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 22, gap: 8 }}>
+    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, gap: 8 }}>
       <Header
         icon="calendar-outline"
         title={c.ovComingUp}
@@ -436,7 +436,7 @@ export function ComingUpRow({ groupId }: { groupId: string }) {
                 minWidth: 0,
                 gap: 6,
                 padding: 8,
-                borderRadius: 16,
+                borderRadius: 12,
                 backgroundColor: withAlpha(spec.ink, 0.08),
               }}
             >

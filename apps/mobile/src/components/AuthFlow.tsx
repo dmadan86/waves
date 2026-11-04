@@ -271,7 +271,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
     height: 46,
     borderWidth: 1,
     borderColor: FIELD_LINE,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
     flexDirection: 'row',
@@ -810,7 +810,7 @@ function PrimaryPill({
   );
   const shape = {
     height: 46,
-    borderRadius: 23,
+    borderRadius: 12,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -825,7 +825,7 @@ function PrimaryPill({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        borderRadius: 23,
+        borderRadius: 12,
         opacity: pressed ? 0.9 : 1,
         shadowColor: '#6A45E8',
         shadowOpacity: disabled ? 0 : 0.22,

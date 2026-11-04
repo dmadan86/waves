@@ -205,7 +205,7 @@ export default function AttendanceView({
             key={o.value}
             onPress={() => change((o.value || null) as V | null)}
             style={{
-              borderRadius: 20,
+              borderRadius: 12,
               paddingHorizontal: 12,
               paddingVertical: 8,
               backgroundColor:
@@ -473,7 +473,7 @@ export default function AttendanceView({
                   gap: 4,
                   paddingHorizontal: 10,
                   paddingVertical: 6,
-                  borderRadius: 16,
+                  borderRadius: 12,
                   backgroundColor: theme.color.brandSoft,
                 }}
               >
@@ -507,7 +507,7 @@ export default function AttendanceView({
                     alignItems: 'center',
                     gap: 6,
                     paddingVertical: 12,
-                    borderRadius: 14,
+                    borderRadius: 12,
                     borderWidth: 1.5,
                     borderColor: on ? color : 'transparent',
                     backgroundColor: `${color}${on ? '26' : '14'}`,
@@ -540,7 +540,7 @@ export default function AttendanceView({
               alignItems: 'center',
               gap: 8,
               paddingHorizontal: 12,
-              borderRadius: 14,
+              borderRadius: 12,
               borderWidth: 1,
               borderColor: theme.color.border,
               opacity: draftStatus && !locked ? 1 : 0.5,
@@ -570,7 +570,7 @@ export default function AttendanceView({
               gap: 10,
               minHeight: 44,
               paddingHorizontal: 12,
-              borderRadius: 14,
+              borderRadius: 12,
               backgroundColor: theme.color.brandSoft,
             }}
           >

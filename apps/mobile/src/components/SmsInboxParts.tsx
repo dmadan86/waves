@@ -35,7 +35,7 @@ function InboxIllustration(): React.JSX.Element {
           top: 8,
           width: 72,
           height: 128,
-          borderRadius: 20,
+          borderRadius: 12,
           borderWidth: 3,
           borderColor: theme.color.brand,
           backgroundColor: theme.color.surface,

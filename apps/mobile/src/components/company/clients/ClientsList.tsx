@@ -259,7 +259,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
                 alignItems: 'center',
                 gap: theme.spacing.xs,
                 paddingHorizontal: theme.spacing.md,
-                borderRadius: 20,
+                borderRadius: 12,
                 backgroundColor: theme.color.surface,
               }}
             >

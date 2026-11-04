@@ -72,7 +72,7 @@ export function SettleFirstDialog({
         if (!pending.current) onClose();
       }}
       closeLabel={g.settleFirstClose}
-      style={{ borderRadius: 28, padding: theme.spacing.lg, maxWidth: 420 }}
+      style={{ borderRadius: 16, padding: theme.spacing.lg, maxWidth: 420 }}
     >
       <View
         onLayout={(event) => setArtWidth(event.nativeEvent.layout.width)}

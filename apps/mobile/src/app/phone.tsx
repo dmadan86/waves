@@ -64,7 +64,7 @@ const DISPLAY = 'PlusJakartaSans-ExtraBold';
 const BODY = 'PlusJakartaSans-Medium';
 const CARD = {
   backgroundColor: '#FFFFFF',
-  borderRadius: 18,
+  borderRadius: 12,
   padding: 14,
   shadowColor: '#2A1E6B',
   shadowOpacity: 0.06,
@@ -392,7 +392,7 @@ export default function PhoneScreen() {
                       gap: 12,
                       minHeight: 46,
                       paddingHorizontal: 6,
-                      borderRadius: 14,
+                      borderRadius: 12,
                       borderWidth: 1,
                       borderColor: FIELD_LINE,
                     }}
@@ -572,7 +572,7 @@ function Pill({
   );
   const shape = {
     height: 46,
-    borderRadius: 23,
+    borderRadius: 12,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -586,7 +586,7 @@ function Pill({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        borderRadius: 23,
+        borderRadius: 12,
         opacity: pressed ? 0.9 : 1,
         shadowColor: '#6A45E8',
         shadowOpacity: disabled ? 0 : 0.25,

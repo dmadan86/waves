@@ -80,7 +80,7 @@ export function OverviewTop({
                 marginTop: 4,
                 paddingHorizontal: 18,
                 height: 42,
-                borderRadius: 14,
+                borderRadius: 12,
                 justifyContent: 'center',
                 backgroundColor: theme.color.brand,
               }}
@@ -125,7 +125,7 @@ export function OverviewTop({
     );
 
   const attendance = (
-    <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 14, borderRadius: 22, gap: 10 }}>
+    <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 14, borderRadius: 12, gap: 10 }}>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${t.company.ovPickDate}: ${title}, ${dateText}`}
@@ -197,7 +197,7 @@ export function OverviewTop({
             minHeight: 44,
             paddingVertical: 10,
             paddingHorizontal: 16,
-            borderRadius: 14,
+            borderRadius: 12,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brand,
