@@ -68,6 +68,8 @@ export const docsEn = {
   billTo: 'Bill to',
   estimateFor: 'Estimate for',
   recordPayment: 'Record payment',
+  paymentNotRecorded:
+    'Bill saved, but the {amount} payment may not have been recorded. Check payments below before recording it.',
   sharePdf: 'Share PDF',
   convert: 'Convert to bill',
   edit: 'Edit',
