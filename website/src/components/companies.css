@@ -1,0 +1,242 @@
+/*
+ * Motion for the companies page and the home teaser. Rules of the road:
+ *  - The un-animated markup IS the finished state. Reduced motion, no-JS and
+ *    browsers without @property all just see that, so nothing hides content.
+ *  - Only transform, opacity and counters move; no layout work, no layout shift
+ *    (every animated box has a fixed size).
+ *  - Loops run only while their wrapper is on screen (data-play, set by InView).
+ */
+@property --a {
+  syntax: '<integer>';
+  inherits: false;
+  initial-value: 0;
+}
+@property --b {
+  syntax: '<integer>';
+  inherits: false;
+  initial-value: 0;
+}
+@counter-style cm-pad3 {
+  system: extends decimal;
+  pad: 3 '0';
+}
+
+.cm-num {
+  counter-reset: cma var(--a) cmb var(--b);
+}
+.cm-num::after {
+  content: counter(cma) ',' counter(cmb, cm-pad3);
+}
+.cm-flip {
+  --flip: 1;
+}
+[dir='rtl'] .cm-flip {
+  --flip: -1;
+}
+
+/* finished state */
+.cm-task {
+  translate: calc(var(--flip) * 200%) 0;
+}
+.cm-new-old {
+  opacity: 0;
+}
+.cm-wait {
+  opacity: 0;
+}
+.cm-ticket {
+  translate: calc(var(--flip) * 200%) 0;
+}
+.cm-tick {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* looping hero / teaser card: an expense lands, gets approved, balance ticks */
+  .cm-iv[data-play] .cm-loop-row {
+    animation: cm-row 8s ease-in-out infinite;
+  }
+  .cm-iv[data-play] .cm-wait {
+    animation: cm-wait 8s ease-in-out infinite;
+  }
+  .cm-iv[data-play] .cm-ok {
+    animation: cm-ok 8s ease-in-out infinite;
+  }
+  .cm-iv[data-play] .cm-ok .cm-tick {
+    animation: cm-draw-loop 8s ease-in-out infinite;
+  }
+  .cm-iv[data-play] .cm-new-old {
+    animation: cm-bal-old 8s ease-in-out infinite;
+  }
+  .cm-iv[data-play] .cm-new-new {
+    animation: cm-bal-new 8s ease-in-out infinite;
+  }
+
+  /* one-shot mini mockups, played the first time they scroll into view */
+  .cm-iv[data-play] .cm-once .cm-tick {
+    animation: cm-draw 0.6s 0.5s ease-out both;
+  }
+  .cm-iv[data-play] .cm-once .cm-press {
+    animation: cm-press 0.5s 0.4s ease-out both;
+  }
+  .cm-iv[data-play] .cm-num {
+    animation: cm-count 1.4s 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .cm-iv[data-play] .cm-pop {
+    animation: cm-pop 0.4s calc(0.12s * var(--i, 0) + 0.2s) ease-out both;
+  }
+  .cm-iv[data-play] .cm-slide {
+    animation: cm-slide 0.45s calc(0.15s * var(--i, 0) + 0.2s) ease-out both;
+  }
+  .cm-iv[data-play] .cm-ticket {
+    animation: cm-move 1.6s 0.4s cubic-bezier(0.6, 0, 0.2, 1) both;
+  }
+  .cm-iv[data-play] .cm-fill {
+    animation: cm-pop 0.35s calc(0.045s * var(--i, 0) + 0.2s) ease-out both;
+  }
+  .cm-iv[data-play] .cm-task {
+    animation: cm-steps 3.2s 0.4s cubic-bezier(0.6, 0, 0.2, 1) both;
+  }
+  .cm-swap {
+    animation: cm-swap 0.3s ease-out both;
+  }
+}
+
+@keyframes cm-row {
+  0% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  8%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+}
+@keyframes cm-wait {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  38% {
+    opacity: 1;
+  }
+  42%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cm-ok {
+  0%,
+  40% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  46%,
+  88% {
+    opacity: 1;
+    transform: none;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes cm-draw-loop {
+  0%,
+  42% {
+    stroke-dashoffset: 24;
+  }
+  52%,
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes cm-bal-old {
+  0%,
+  52% {
+    opacity: 1;
+    transform: none;
+  }
+  60%,
+  94% {
+    opacity: 0;
+    transform: translateY(-60%);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cm-bal-new {
+  0%,
+  52% {
+    opacity: 0;
+    transform: translateY(60%);
+  }
+  60%,
+  92% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(60%);
+  }
+}
+@keyframes cm-draw {
+  from {
+    stroke-dashoffset: 24;
+  }
+}
+@keyframes cm-press {
+  40% {
+    transform: scale(0.94);
+  }
+}
+@keyframes cm-count {
+  from {
+    --a: 0;
+    --b: 0;
+  }
+}
+@keyframes cm-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+@keyframes cm-slide {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes cm-move {
+  0%,
+  25% {
+    translate: 0 0;
+  }
+}
+@keyframes cm-steps {
+  0%,
+  15% {
+    translate: 0 0;
+  }
+  45%,
+  60% {
+    translate: calc(var(--flip) * 100%) 0;
+  }
+}
+@keyframes cm-swap {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
