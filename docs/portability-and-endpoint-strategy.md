@@ -577,15 +577,14 @@ cutover day.
    Until they are in the repo, any rebuild is silently missing half the
    product's background behaviour.
 
-## Publishing a signed OTA update
+## OTA update signing (off)
 
-Updates are code-signed (`updates.codeSigningCertificate` in `apps/mobile/app.json`,
-certificate at `apps/mobile/certs/certificate.pem`). Every `eas update` must be
-signed with the private key kept at `~/.waves-keys/updates/private-key.pem`
-(never in the repo; back it up):
-
-    eas update --channel production --private-key-path ~/.waves-keys/updates/private-key.pem
-
-Only builds made after code signing was added verify signatures, and once one
-ships, an unsigned or wrongly signed update is rejected by it. Losing the key
-means no OTA until a new store build with a new certificate.
+EAS Update code signing needs a paid EAS plan (Production or Enterprise), so it
+is not enabled: `apps/mobile/app.json` has no `updates.codeSigningCertificate`.
+The certificate stays at `apps/mobile/certs/certificate.pem` and the private key
+at `~/.waves-keys/updates/private-key.pem` (never in the repo) for when the plan
+is upgraded. To turn it on: add `"codeSigningCertificate": "./certs/certificate.pem"`
+and `"codeSigningMetadata": { "keyid": "main", "alg": "rsa-v1_5-sha256" }` to
+`updates`, ship a store build, and publish every update with
+`eas update --private-key-path ~/.waves-keys/updates/private-key.pem`. Until then
+the defence is the Expo account itself: 2FA on, and no long-lived access tokens.
