@@ -38,7 +38,7 @@ describe('settle-first dialog', () => {
     expect(DIALOG).toContain('borderRadius: 16');
     expect(DIALOG).toContain('theme.color.brandSoft');
     expect(DIALOG).toContain('theme.color.brand');
-    expect(DIALOG).toContain('theme.radius.pill');
+    expect(DIALOG).toContain('theme.radius.md');
     expect(DIALOG).toContain('variant="brand"');
     expect(DIALOG).toContain("directionalIcon('chevron-forward')");
     const balanceCard = DIALOG.slice(DIALOG.indexOf('<Pressable'), DIALOG.indexOf('</Pressable>'));
