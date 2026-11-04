@@ -18,6 +18,7 @@ type Nav = {
   voice: string;
   wearables: string;
   companies: string;
+  personal: string;
   agents: string;
   pricing: string;
   faq: string;
@@ -97,6 +98,7 @@ export function SiteHeader({
     { href: `${anchorBase}#voice`, label: nav.voice },
     { href: `${anchorBase}#wearables`, label: nav.wearables, mobileOnly: true },
     { href: `${anchorBase}#agents`, label: nav.agents },
+    { href: `/${locale}/personal`, label: nav.personal },
     { href: `/${locale}/companies`, label: nav.companies },
     { href: `${anchorBase}#pricing`, label: nav.pricing },
     { href: `${anchorBase}#security`, label: nav.security, mobileOnly: true },

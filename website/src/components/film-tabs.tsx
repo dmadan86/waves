@@ -6,8 +6,18 @@ import { LazyVideo } from './lazy-video';
 
 type Film = { id: string; tab: string; caption: string; alt: string; video: string };
 
+/** `square`: 1:1 loops (the personal page) sit beside their caption instead of filling the width. */
+
 /** One film at a time. `#film-<id>` in the URL (from the feature rows) opens that tab. */
-export function FilmTabs({ films, label }: { films: Film[]; label: string }) {
+export function FilmTabs({
+  films,
+  label,
+  square = false,
+}: {
+  films: Film[];
+  label: string;
+  square?: boolean;
+}) {
   const [i, setI] = useState(0);
   const id = useId();
 
@@ -64,9 +74,21 @@ export function FilmTabs({ films, label }: { films: Film[]; label: string }) {
           </button>
         ))}
       </div>
-      <div id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${i}`} className="mt-4">
-        <LazyVideo key={film.video} name={film.video} label={film.alt} className="aspect-video" />
-        <p className="mt-3 max-w-2xl text-[0.92rem] leading-[1.6] text-ink-2">{film.caption}</p>
+      <div
+        id={`${id}-panel`}
+        role="tabpanel"
+        aria-labelledby={`${id}-tab-${i}`}
+        className={`mt-4 ${square ? 'grid items-center gap-4 sm:grid-cols-[minmax(0,26rem)_1fr] sm:gap-8' : ''}`}
+      >
+        <LazyVideo
+          key={film.video}
+          name={film.video}
+          label={film.alt}
+          className={square ? 'aspect-square' : 'aspect-video'}
+        />
+        <p className={`max-w-2xl text-[0.92rem] leading-[1.6] text-ink-2 ${square ? '' : 'mt-3'}`}>
+          {film.caption}
+        </p>
       </div>
     </div>
   );

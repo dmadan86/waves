@@ -19,6 +19,7 @@ const paths = [
   '/delete-account',
   '/mcp',
   '/companies',
+  '/personal',
 ] as const;
 
 // The compare pages exist in English only, so they are listed once with no

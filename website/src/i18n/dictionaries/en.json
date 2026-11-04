@@ -26,7 +26,8 @@
     "offline": "Offline",
     "voice": "AI voice",
     "wearables": "Watch & widgets",
-    "companies": "For companies"
+    "companies": "For companies",
+    "personal": "Your money"
   },
   "stores": {
     "downloadOn": "Download on the",
@@ -291,7 +292,8 @@
       "offline": "Offline",
       "voice": "AI voice",
       "wearables": "Watch & widgets",
-      "companies": "For companies"
+      "companies": "For companies",
+      "personal": "Your money"
     },
     "rights": "All rights reserved."
   },
@@ -1114,6 +1116,459 @@
           "video": "companies-complaints"
         }
       ]
+    }
+  },
+  "personal": {
+    "eyebrow": "Waves for your own money",
+    "title": "Your own money, kept just for you.",
+    "body": "Track spending, set budgets, remember who owes whom and see every bill that repeats. Add things by typing, speaking, pasting a bank message or importing a statement.",
+    "points": [
+      "Spending by category, month by month",
+      "Monthly budgets, overall or per category",
+      "Loans you lent or borrowed, and repeating bills",
+      "Bank messages and statements turned into entries"
+    ],
+    "cta": "See Waves for your own money",
+    "availability": "In the phone app. Private to you, not shared with groups."
+  },
+  "personalMock": {
+    "demo": {
+      "title": "This month",
+      "month": "November",
+      "bank": "Bank message",
+      "sms": "Rs.450.00 spent on card XX4821 at SWIGGY",
+      "item": "Swiggy",
+      "added": "Added to Food",
+      "budget": "Food budget",
+      "of": "of ₹6,000"
+    },
+    "spending": {
+      "title": "Spent this month",
+      "cats": [
+        {
+          "name": "Food & drink",
+          "amount": "₹9,800"
+        },
+        {
+          "name": "Shopping",
+          "amount": "₹6,400"
+        },
+        {
+          "name": "Travel",
+          "amount": "₹4,600"
+        },
+        {
+          "name": "Others",
+          "amount": "₹3,800"
+        }
+      ]
+    },
+    "budgets": {
+      "title": "Monthly budgets",
+      "items": [
+        {
+          "name": "Overall",
+          "of": "₹24,600 of ₹30,000",
+          "pct": 82,
+          "left": "₹5,400 left"
+        },
+        {
+          "name": "Food & drink",
+          "of": "₹9,800 of ₹8,000",
+          "pct": 100,
+          "left": "₹1,800 over"
+        },
+        {
+          "name": "Shopping",
+          "of": "₹6,400 of ₹10,000",
+          "pct": 64,
+          "left": "₹3,600 left"
+        }
+      ]
+    },
+    "loans": {
+      "title": "Loans",
+      "items": [
+        {
+          "name": "Ravi",
+          "amount": "₹5,000",
+          "dir": "You lent",
+          "note": "₹2,000 left",
+          "pct": 60
+        },
+        {
+          "name": "Priya",
+          "amount": "₹1,200",
+          "dir": "You borrowed",
+          "note": "₹900 left",
+          "pct": 25
+        }
+      ]
+    },
+    "recurring": {
+      "title": "Repeats",
+      "items": [
+        {
+          "icon": "🏠",
+          "name": "Rent",
+          "when": "Monthly",
+          "amount": "₹15,000"
+        },
+        {
+          "icon": "💪",
+          "name": "Gym",
+          "when": "Monthly",
+          "amount": "₹800"
+        },
+        {
+          "icon": "🛡️",
+          "name": "Insurance",
+          "when": "Yearly",
+          "amount": "₹12,000"
+        }
+      ]
+    },
+    "transactions": {
+      "title": "Transactions",
+      "tabs": ["All", "Expenses", "Income", "Transfers"],
+      "rows": [
+        {
+          "name": "Swiggy",
+          "amount": "₹450",
+          "income": false
+        },
+        {
+          "name": "Salary",
+          "amount": "+₹60,000",
+          "income": true
+        },
+        {
+          "name": "Groceries",
+          "amount": "₹1,230",
+          "income": false
+        },
+        {
+          "name": "Cab",
+          "amount": "₹210",
+          "income": false
+        }
+      ]
+    },
+    "sms": {
+      "bank": "Bank message",
+      "text": "Rs.450.00 spent on card XX4821 at SWIGGY on 03-11-26",
+      "fields": [
+        {
+          "k": "Amount",
+          "v": "₹450"
+        },
+        {
+          "k": "Where",
+          "v": "Swiggy"
+        },
+        {
+          "k": "When",
+          "v": "3 Nov"
+        }
+      ],
+      "save": "Add to Review"
+    },
+    "statement": {
+      "title": "Statement",
+      "count": "42 rows",
+      "rows": [
+        {
+          "name": "Swiggy",
+          "amount": "₹450",
+          "credit": false
+        },
+        {
+          "name": "Rent",
+          "amount": "₹15,000",
+          "credit": false
+        },
+        {
+          "name": "Salary",
+          "amount": "+₹60,000",
+          "credit": true
+        }
+      ],
+      "note": "Debits are ticked. You choose what to add."
+    },
+    "voice": {
+      "said": "Spent eighty on tea, just for me",
+      "item": "Tea",
+      "cat": "Food & drink · Just for me"
+    },
+    "receipt": {
+      "fields": [
+        {
+          "k": "Note",
+          "v": "Groceries"
+        },
+        {
+          "k": "Amount",
+          "v": "₹1,230"
+        },
+        {
+          "k": "Receipt",
+          "v": "Photo attached"
+        }
+      ]
+    }
+  },
+  "personalPage": {
+    "metaTitle": "Waves for your own money — spending, budgets, loans and bills",
+    "metaDescription": "Track your own spending by category, set monthly budgets, keep loans you lent or borrowed, and see repeating bills. Add by typing, voice, a pasted bank message or a statement import. Private to you.",
+    "eyebrow": "Your own money",
+    "titleStart": "Everything you spend,",
+    "titleAccent": "kept just for you.",
+    "subtitle": "A private ledger beside your groups. Spending by category, budgets, loans and repeating bills, with bank messages and statements turned into entries you review.",
+    "ctaPrimary": "Get the app",
+    "ctaSecondary": "See what is inside",
+    "avail": {
+      "title": "Where it works",
+      "labels": {
+        "all": "Phone app",
+        "android": "Android only",
+        "account": "Account"
+      },
+      "items": [
+        {
+          "name": "Spending, budgets, loans, bills",
+          "status": "all",
+          "text": "In the Waves phone app. Entries, voice, pasted bank messages and statement import work on iPhone and Android."
+        },
+        {
+          "name": "Reading your inbox",
+          "status": "android",
+          "text": "Reading bank messages on their own is Android only, opt-in, and switched on for some people first. Everywhere else, you paste the message."
+        },
+        {
+          "name": "Sign in",
+          "status": "account",
+          "text": "Your personal ledger needs a signed-in account. A guest session cannot be signed back into, so there is nowhere to keep it."
+        }
+      ]
+    },
+    "films": {
+      "title": "See it in action",
+      "lead": "Short loops, start to finish.",
+      "label": "Product films",
+      "tabs": [
+        {
+          "id": "sms",
+          "tab": "Bank message",
+          "caption": "A bank message is read on your phone, turned into an expense, and waits in Review until you confirm it.",
+          "alt": "A short film: a bank message becomes an expense draft",
+          "video": "personal-sms"
+        },
+        {
+          "id": "statement",
+          "tab": "Statement",
+          "caption": "Pick a statement, see what it holds, tick the rows to add, and they land in Review as drafts.",
+          "alt": "A short film: statement rows are ticked and added",
+          "video": "personal-statement"
+        },
+        {
+          "id": "voice",
+          "tab": "Voice",
+          "caption": "Say what you spent. You see the entry before anything is saved.",
+          "alt": "A short film: a spoken sentence becomes an expense",
+          "video": "personal-voice"
+        },
+        {
+          "id": "budgets",
+          "tab": "Budgets",
+          "caption": "A monthly cap, overall or per category, and a bar that shows what is left or how far over you are.",
+          "alt": "A short film: a budget bar fills as spending is added",
+          "video": "personal-budgets"
+        }
+      ]
+    },
+    "featuresTitle": "What is inside",
+    "features": [
+      {
+        "id": "spending",
+        "eyebrow": "Spending",
+        "title": "See where the month went",
+        "body": "Your own entries, taken apart so the number you can act on does not hide behind the rent.",
+        "points": [
+          "Top categories this month, with an Others bucket and a comparison to last month",
+          "Six months of earned against spent, and a month you can step through",
+          "Income, spending and what was left over, which is not the same as saved",
+          "One currency at a time: nothing is converted, and entries in other currencies are listed as left out"
+        ],
+        "note": ""
+      },
+      {
+        "id": "budgets",
+        "eyebrow": "Budgets",
+        "title": "A cap for the month",
+        "body": "Set a monthly limit for everything or for one category and watch it fill.",
+        "points": [
+          "A bar that says how much is left, or how much you are over",
+          "The last six months' spend shown while you choose the amount",
+          "Loan repayments never count against a budget",
+          "The Me tab names the category that is furthest over"
+        ],
+        "note": "Budgets show their state on screen. They do not send alerts."
+      },
+      {
+        "id": "loans",
+        "eyebrow": "Loans",
+        "title": "Who owes whom, with a running balance",
+        "body": "Record money you lent or borrowed, add payments as they happen, and see what is left.",
+        "points": [
+          "Pick the person from your contacts or from earlier loans",
+          "Record a payment against the loan; what is left is the amount less the payments",
+          "Close and reopen a loan when it is paid off",
+          "Share it with the other person: it becomes a balance between you two, so they can settle up"
+        ],
+        "note": ""
+      },
+      {
+        "id": "recurring",
+        "eyebrow": "Repeating",
+        "title": "Bills and income that come back",
+        "body": "Rent, subscriptions, salary: set it once and it comes back on schedule.",
+        "points": [
+          "Weekly, fortnightly, twice a month, monthly, quarterly, half-yearly, yearly or every N months, with an optional end date",
+          "Add automatically when the app opens, or just be shown what is due and add it with a tap",
+          "Missed months are caught up without duplicates, and a figure you changed by hand is never overwritten",
+          "A month-by-month view of each one: received, missed, expected or due"
+        ],
+        "note": "Due items are shown in the app. There is no push reminder for them."
+      },
+      {
+        "id": "transactions",
+        "eyebrow": "Transactions",
+        "title": "Every entry, easy to find",
+        "body": "Newest first, grouped by day, with the filters you would reach for.",
+        "points": [
+          "All, Expenses, Income and Transfers (loan payments)",
+          "Search by note, category or amount, and filter by category",
+          "Payment method on each entry: cash, UPI, card, bank transfer, wallet or other",
+          "Fifteen income sources from Salary to Refund, and a Reimbursable mark for work spend"
+        ],
+        "note": ""
+      },
+      {
+        "id": "sms",
+        "eyebrow": "Bank messages",
+        "title": "A bank message becomes an entry",
+        "body": "Paste a bank message and Waves reads the amount, the merchant and the date for you to check.",
+        "points": [
+          "Works on every phone: copy the message, paste it, tick what to add",
+          "Read on your phone, with no network. The message text is not sent anywhere",
+          "Ticked rows wait in Review as drafts; nothing is saved until you confirm",
+          "On Android, where it is switched on, Waves can read the inbox itself after a clear explanation and your permission"
+        ],
+        "note": "Reading the inbox is Android only and is not on for everyone yet."
+      },
+      {
+        "id": "statement",
+        "eyebrow": "Bank statements",
+        "title": "A whole statement in one go",
+        "body": "Bring a statement as a PDF, spreadsheet, CSV, OFX or a screenshot, and tick the rows you want.",
+        "points": [
+          "Debits are ticked, credits are not, and a row that looks like a repeat starts unticked",
+          "Rows whose balance does not add up are flagged",
+          "Ticked rows go to Review as drafts, and nothing is saved until you confirm",
+          "Account numbers are hidden before any AI reads a page, and a PDF password stays on your phone"
+        ],
+        "note": "Free: read on your phone and previewed twice a month. Pro: import up to 30 statements a month."
+      },
+      {
+        "id": "voice",
+        "eyebrow": "Voice",
+        "title": "Say it instead of typing",
+        "body": "Speak an expense, including several in one sentence, and check it before it is saved.",
+        "points": [
+          "Understands amounts, currencies and phrasing like “500 diya dinner ka”",
+          "Say “just for me” and it goes to your personal ledger",
+          "Speech recognition is English only",
+          "Audio is not stored"
+        ],
+        "note": "Advanced AI voice commands: 10 a month on Free, 100 on Pro."
+      },
+      {
+        "id": "receipt",
+        "eyebrow": "Receipts",
+        "title": "Keep the receipt with the entry",
+        "body": "Attach a photo to a personal entry from the camera or gallery, and open it full screen any time.",
+        "points": [
+          "Replace or remove the photo whenever you like",
+          "Stored privately: only you can read it",
+          "Deleting the entry deletes its photo"
+        ],
+        "note": "Photos on personal entries are a paid feature. Scanning a bill to read its items and total works when you split a bill in a group: 20 scans a month on Free, 300 on Pro."
+      }
+    ],
+    "plansTitle": "What is free and what is Pro",
+    "plansLead": "Writing entries yourself is free and unlimited. Pro adds the conveniences.",
+    "plans": [
+      {
+        "name": "Free",
+        "points": [
+          "Manual entries, budgets, loans and repeating items",
+          "Pasted bank messages",
+          "Statement preview: 2 a month, read on your phone",
+          "10 advanced voice commands a month",
+          "20 bill scans a month"
+        ]
+      },
+      {
+        "name": "Pro",
+        "points": [
+          "Statement import: 30 a month, including PDFs and screenshots",
+          "100 advanced voice commands a month",
+          "300 bill scans a month",
+          "Photos on personal entries"
+        ]
+      }
+    ],
+    "plansNote": "New accounts start with a free Pro trial. Prices are set by the app stores for each country, so none is shown here.",
+    "privacyTitle": "Private to you",
+    "privacyLead": "Your personal ledger sits apart from your groups. Here is what the app does, and no more.",
+    "privacy": [
+      {
+        "title": "Not shared with groups",
+        "body": "The Me tab says it plainly: private to you, not shared with groups. Only a loan you choose to share reaches another person."
+      },
+      {
+        "title": "Sealed on your phone",
+        "body": "The saved copy on your device is encrypted at rest with a key held in the phone's secure keystore, and signing out wipes it."
+      },
+      {
+        "title": "Tied to your account",
+        "body": "Entries sync to your account so they survive a lost phone. The server stores them without reading them. We do not claim end-to-end encryption."
+      },
+      {
+        "title": "Messages stay on the phone",
+        "body": "Bank messages are parsed on your device. The text of messages read from your inbox is not kept, synced or sent for analytics."
+      },
+      {
+        "title": "Statements are trimmed first",
+        "body": "Names, addresses and ids are left out and account numbers are masked before any AI reads a statement. A PDF password is used on your phone only, and nothing is kept."
+      },
+      {
+        "title": "Receipts are yours alone",
+        "body": "Receipt photos live in a private bucket where only you are given access, and are deleted with the entry."
+      }
+    ],
+    "privacyLink": "Read the full privacy page",
+    "videos": {
+      "hero": "A short film: a bank message becomes an expense and a budget bar fills",
+      "spending": "A short film: a month of spending split by category",
+      "budgets": "A short film: a budget bar fills as spending is added",
+      "loans": "A short film: a loan is lent, part paid and settled",
+      "recurring": "A short film: a bill repeats every month",
+      "transactions": "",
+      "sms": "A short film: a bank message becomes an expense draft",
+      "statement": "A short film: statement rows are ticked and added",
+      "voice": "A short film: a spoken sentence becomes an expense",
+      "receipt": "A short film: a receipt photo is attached to an entry"
     }
   }
 }
