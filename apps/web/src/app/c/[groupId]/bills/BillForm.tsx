@@ -213,7 +213,7 @@ function Form({
           () => true,
           () => false,
         ));
-      router.replace(`/c/${groupId}/bills/${id}${paid ? '' : '?payment=failed'}`);
+      router.replace(`/c/${groupId}/bills/${id}${paid ? '' : `?payment=failed&amount=${owed}`}`);
     } catch (caught) {
       setError(err(caught, 'docs.save'));
       setBusy(false);

@@ -977,7 +977,11 @@ async function runFlush(): Promise<FlushResult> {
       } catch (caught) {
         if (caught instanceof UnreadableReceiptError) {
           // No key will ever open it again, so a retry only keeps a broken tile: drop it.
-          file.delete();
+          try {
+            file.delete();
+          } catch {
+            // Best-effort; the orphan sweep takes a file no entry names.
+          }
           updates.set(entry.attachmentId, null);
           continue;
         }
