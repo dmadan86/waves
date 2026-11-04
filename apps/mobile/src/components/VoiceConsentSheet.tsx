@@ -88,7 +88,7 @@ export function VoiceConsentSheet({
             alignItems: 'center',
             gap: theme.spacing.sm,
             backgroundColor: theme.color.brandSoft,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.sm,
             paddingVertical: theme.spacing.sm,
             paddingHorizontal: theme.spacing.md,
           }}

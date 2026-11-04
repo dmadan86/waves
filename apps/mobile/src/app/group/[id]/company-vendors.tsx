@@ -81,7 +81,7 @@ export default function CompanyVendorsScreen() {
                 alignItems: 'center',
                 gap: theme.spacing.sm,
                 paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 backgroundColor: glass,
               }}
             >

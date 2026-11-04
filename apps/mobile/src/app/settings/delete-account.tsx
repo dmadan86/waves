@@ -373,7 +373,7 @@ export default function DeleteAccountScreen() {
               justifyContent: 'center',
               gap: theme.spacing.sm,
               minHeight: 54,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.md,
               backgroundColor: theme.color.negative,
               opacity: !armed || busy ? 0.45 : pressed ? 0.85 : 1,
             })}
@@ -429,7 +429,7 @@ function SectionHead({
         style={{
           paddingHorizontal: theme.spacing.sm,
           paddingVertical: 3,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.sm,
           backgroundColor: danger ? theme.color.negativeSoft : theme.color.positiveSoft,
         }}
       >

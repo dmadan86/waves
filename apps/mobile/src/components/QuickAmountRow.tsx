@@ -81,7 +81,7 @@ export function QuickAmountRow({
             gap: 4,
             minHeight: 34,
             paddingHorizontal: 10,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.sm,
             backgroundColor: theme.color.surface,
             opacity: pressed ? 0.6 : 1,
           })}
@@ -116,7 +116,7 @@ export function QuickAmountRow({
               alignItems: 'center',
               justifyContent: 'center',
               paddingHorizontal: 4,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: theme.color.surface,
               opacity: pressed ? 0.6 : 1,
             })}

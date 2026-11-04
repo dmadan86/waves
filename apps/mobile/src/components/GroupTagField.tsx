@@ -123,7 +123,7 @@ export function GroupTagField({
                       paddingHorizontal: theme.spacing.lg,
                       height: 36,
                       justifyContent: 'center',
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.sm,
                       backgroundColor: theme.color.brandSoft,
                       borderWidth: selected ? 1.5 : 0,
                       borderColor: theme.color.brand,
@@ -205,7 +205,7 @@ export function GroupTagField({
               style={({ pressed }) => ({
                 paddingHorizontal: theme.spacing.sm,
                 paddingVertical: filled ? 6 : 3,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 backgroundColor: selected ? theme.color.brandSoft : theme.color.surfaceMuted,
                 opacity: pressed ? 0.6 : 1,
               })}

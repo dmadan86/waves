@@ -175,7 +175,7 @@ export function SettleFirstDialog({
               alignItems: 'center',
               justifyContent: 'center',
               paddingHorizontal: theme.spacing.sm,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.md,
               borderWidth: 1.5,
               borderColor: theme.color.brand,
               backgroundColor: theme.color.surface,

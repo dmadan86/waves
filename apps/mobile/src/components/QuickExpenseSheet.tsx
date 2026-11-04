@@ -396,7 +396,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
               gap: 2,
               minHeight: 34,
               paddingHorizontal: 14,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: soft,
               opacity: pressed ? 0.6 : 1,
             })}

@@ -917,7 +917,7 @@ function PayPill({
       style={({ pressed }) => ({
         height: 32,
         paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: tinted
@@ -1001,7 +1001,7 @@ function FilterPill({
         maxWidth: 190,
         height: 34,
         paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: theme.color.brandSoft,
       }}
     >
@@ -1036,7 +1036,7 @@ function FilterChip({
         paddingHorizontal: theme.spacing.md,
         height: 32,
         justifyContent: 'center',
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: selected ? theme.color.brand : theme.color.surfaceMuted,
       }}
     >

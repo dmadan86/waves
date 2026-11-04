@@ -52,7 +52,7 @@ export function RolePill({ label }: { label: string }) {
       style={{
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: theme.color.brandSoft,
       }}
     >
@@ -116,7 +116,7 @@ export function TabPills<T extends string>({
             style={{
               height: 36,
               paddingHorizontal: 14,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,

@@ -250,7 +250,7 @@ export default function InviteFriendsScreen() {
                   accessibilityLabel={t.referral.share}
                   onPress={() => void share()}
                   style={({ pressed }) => ({
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.md,
                     overflow: 'hidden',
                     opacity: pressed ? 0.88 : 1,
                   })}

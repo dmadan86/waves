@@ -192,7 +192,7 @@ export function InviteAfterMergeSheet({
             alignSelf: 'stretch',
             marginTop: theme.spacing.lg,
             height: 48,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             overflow: 'hidden',
             opacity: pressed ? 0.9 : 1,
           })}
@@ -224,7 +224,7 @@ export function InviteAfterMergeSheet({
             alignSelf: 'stretch',
             marginTop: theme.spacing.sm,
             height: 48,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,

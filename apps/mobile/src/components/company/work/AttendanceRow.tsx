@@ -113,7 +113,7 @@ export function AttendanceRow({
               marginTop: 2,
               paddingHorizontal: 8,
               paddingVertical: 1,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: `${chipColor}1A`,
             }}
           >

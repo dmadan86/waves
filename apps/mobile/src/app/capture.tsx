@@ -215,7 +215,7 @@ function ReceiptField({
       style={({ pressed }) => ({
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: theme.spacing.xs,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: theme.color.brandSoft,
         opacity: pressed ? 0.6 : 1,
       })}

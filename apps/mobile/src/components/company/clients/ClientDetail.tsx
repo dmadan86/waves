@@ -468,7 +468,7 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                           gap: 4,
                           height: 40,
                           paddingHorizontal: theme.spacing.lg,
-                          borderRadius: theme.radius.pill,
+                          borderRadius: theme.radius.sm,
                           backgroundColor: theme.color.brandSoft,
                         }}
                       >

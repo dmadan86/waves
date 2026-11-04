@@ -238,7 +238,7 @@ export default function ArchivedGroupsScreen() {
                     gap: 6,
                     paddingHorizontal: theme.spacing.md,
                     height: 40,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.sm,
                     backgroundColor: theme.color.brandSoft,
                     opacity: pressed ? 0.7 : 1,
                   })}

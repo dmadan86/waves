@@ -336,7 +336,7 @@ export function ExpenseComments({
             gap: theme.spacing.xs,
             minHeight: 40,
             paddingHorizontal: theme.spacing.md,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.sm,
             backgroundColor: theme.color.surfaceMuted,
             opacity: pressed ? 0.7 : 1,
           })}

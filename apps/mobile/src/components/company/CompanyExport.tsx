@@ -526,7 +526,7 @@ export function CompanyExport({ groupId }: { groupId: string }) {
                     alignItems: 'center',
                     gap: theme.spacing.xs,
                     paddingHorizontal: theme.spacing.md,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.sm,
                     borderWidth: 1,
                     borderColor: on ? theme.color.brand : theme.color.border,
                     backgroundColor: on ? theme.color.brand : theme.color.surface,

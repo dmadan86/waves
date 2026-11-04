@@ -328,7 +328,7 @@ export function VoiceConfirmCard({
               gap: theme.spacing.xs,
               paddingHorizontal: theme.spacing.md,
               height: 40,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: brandSoft,
               opacity: pressed || busy ? 0.6 : 1,
             })}
@@ -485,7 +485,7 @@ export function VoiceConfirmCard({
                   maxWidth: '46%',
                   paddingHorizontal: theme.spacing.md,
                   height: 38,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.sm,
                   backgroundColor: brandSoft,
                   borderWidth: reason === 'group' ? 1.5 : 0,
                   borderColor: theme.color.negative,

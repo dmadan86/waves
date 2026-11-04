@@ -35,7 +35,7 @@ describe('settle-first dialog', () => {
 
   it('is a centred card with a pill outline door, a brand door and a tappable balance card', () => {
     expect(DIALOG).toContain('<Popup');
-    expect(DIALOG).toContain('borderRadius: 28');
+    expect(DIALOG).toContain('borderRadius: 16');
     expect(DIALOG).toContain('theme.color.brandSoft');
     expect(DIALOG).toContain('theme.color.brand');
     expect(DIALOG).toContain('theme.radius.pill');

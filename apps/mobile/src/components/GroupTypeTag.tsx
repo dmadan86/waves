@@ -90,7 +90,7 @@ export function GroupTypeTag({
         gap: 3,
         paddingHorizontal: 6,
         paddingVertical: 1,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: bg,
       }}
     >
