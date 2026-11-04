@@ -48,7 +48,7 @@ import { absoluteUrl, site } from '@/lib/site';
  *     the web app is shown as available (its pages were merging when this was written).
  * Plans and prices are deliberately absent: the extra-company price comes from
  * the store at purchase time.
- * Film files live in public/videos (see LazyVideo).
+ * Film files live in infra/art/videos, served from R2 (see LazyVideo).
  */
 
 export function generateStaticParams() {

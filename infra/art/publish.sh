@@ -8,14 +8,23 @@ set -euo pipefail
 BUCKET="${WAVES_ART_BUCKET:-waves-art}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-find "$ROOT" -type f \( -name '*.webp' -o -name '*.png' -o -name '*.svg' \) -print0 |
+find "$ROOT" -type f \( -name '*.webp' -o -name '*.png' -o -name '*.svg' \
+  -o -name '*.mp4' -o -name '*.webm' -o -name '*.jpg' \) -print0 |
   while IFS= read -r -d '' file; do
     key="${file#"$ROOT"/}"
     case "$key" in
       *.webp) type="image/webp" ;;
       *.png) type="image/png" ;;
       *.svg) type="image/svg+xml" ;;
+      *.mp4) type="video/mp4" ;;
+      *.webm) type="video/webm" ;;
+      *.jpg) type="image/jpeg" ;;
       *) continue ;;
+    esac
+    # Films get re-cut under the same name, so they cache for a day, not a year.
+    case "$key" in
+      videos/*) cache="public, max-age=86400" ;;
+      *) cache="public, max-age=31536000, immutable" ;;
     esac
     echo "→ $key"
     # A year of caching: the key is the identity of the picture, and a redraw is
@@ -23,7 +32,7 @@ find "$ROOT" -type f \( -name '*.webp' -o -name '*.png' -o -name '*.svg' \) -pri
     wrangler r2 object put "$BUCKET/$key" \
       --file "$file" \
       --content-type "$type" \
-      --cache-control "public, max-age=31536000, immutable" \
+      --cache-control "$cache" \
       --remote
   done
 
