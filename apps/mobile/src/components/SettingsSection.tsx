@@ -73,8 +73,8 @@ export function SettingsSection({ title, rows }: { title?: string; rows: Setting
                 leading={
                   <View
                     style={{
-                      width: 40,
-                      height: 40,
+                      width: 28,
+                      height: 28,
                       borderRadius: theme.radius.pill,
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -87,7 +87,7 @@ export function SettingsSection({ title, rows }: { title?: string; rows: Setting
                   >
                     <Ionicons
                       name={item.icon}
-                      size={iconSize.md}
+                      size={iconSize.sm}
                       color={
                         item.destructive
                           ? theme.color.negative

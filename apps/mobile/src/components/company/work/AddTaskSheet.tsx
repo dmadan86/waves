@@ -176,7 +176,7 @@ export function AddTaskSheet({
     gap: theme.spacing.sm,
     minHeight: 48,
     paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.radius.pill,
+    borderRadius: theme.radius.md,
     backgroundColor: theme.color.surfaceMuted,
     borderWidth: 1,
     borderColor: theme.color.border,

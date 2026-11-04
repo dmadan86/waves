@@ -307,7 +307,7 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
           style={{
             width: 64,
             height: 64,
-            borderRadius: 18,
+            borderRadius: 12,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,
@@ -468,7 +468,7 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                           gap: 4,
                           height: 40,
                           paddingHorizontal: theme.spacing.lg,
-                          borderRadius: theme.radius.pill,
+                          borderRadius: theme.radius.sm,
                           backgroundColor: theme.color.brandSoft,
                         }}
                       >

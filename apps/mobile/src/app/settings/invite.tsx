@@ -17,7 +17,6 @@ import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   Image,
   Platform,
@@ -30,7 +29,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import {
   Button,
@@ -61,7 +59,6 @@ import {
 } from '@/lib/referral';
 import { useReferralsLive } from '@/lib/useReferralsLive';
 
-const HERO_ART = require('../../../assets/images/invite/invite-hero.webp') as number;
 const GIFT_ART = require('../../../assets/images/invite/invite-gift.webp') as number;
 const HILLS_ART = require('../../../assets/images/invite/invite-hills.webp') as number;
 
@@ -150,9 +147,6 @@ export default function InviteFriendsScreen() {
     });
   };
 
-  const skyTop = theme.scheme === 'dark' ? '#1B2A44' : '#BFDFF7';
-  const skyMid = theme.scheme === 'dark' ? '#1F2140' : '#E4E9FB';
-
   return (
     <Screen edges={[]}>
       <ScrollView
@@ -162,19 +156,6 @@ export default function InviteFriendsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={{ paddingTop: insets.top }}>
-          <LinearGradient
-            colors={[skyTop, skyMid, theme.color.bg]}
-            locations={[0, 0.55, 1]}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          />
-          <Image
-            source={HERO_ART}
-            accessibilityIgnoresInvertColors
-            importantForAccessibility="no"
-            accessible={false}
-            resizeMode="contain"
-            style={{ position: 'absolute', end: 0, bottom: 0, width: 138, height: 128 }}
-          />
           <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
             <IconButton label={t.common.back} onPress={() => router.back()}>
               <Ionicons
@@ -183,12 +164,9 @@ export default function InviteFriendsScreen() {
                 color={theme.color.text}
               />
             </IconButton>
-            <View style={{ maxWidth: '62%', gap: theme.spacing.xs }}>
+            <View style={{ gap: theme.spacing.xs }}>
               <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}>
-                {t.referral.title}{' '}
-                <View accessibilityElementsHidden importantForAccessibility="no">
-                  <Sparkle color={theme.color.brand} />
-                </View>
+                {t.referral.title}
               </Text>
               <View style={{ gap: 2 }}>
                 <Text variant="subheading" style={{ fontWeight: '700' }}>
@@ -259,23 +237,23 @@ export default function InviteFriendsScreen() {
                   accessibilityLabel={t.referral.share}
                   onPress={() => void share()}
                   style={({ pressed }) => ({
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.md,
                     overflow: 'hidden',
                     opacity: pressed ? 0.88 : 1,
                   })}
                 >
-                  <LinearGradient
-                    colors={theme.gradient.brand as unknown as [string, string, ...string[]]}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={{
-                      height: 48,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 10,
-                      paddingHorizontal: 20,
-                    }}
+                  <View
+                    style={[
+                      { backgroundColor: theme.color.brand },
+                      {
+                        height: 48,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                        paddingHorizontal: 20,
+                      },
+                    ]}
                   >
                     <Ionicons name="share-outline" size={iconSize.lg} color={theme.color.onBrand} />
                     <Text variant="subheading" style={{ color: theme.color.onBrand }}>
@@ -287,7 +265,7 @@ export default function InviteFriendsScreen() {
                       color={theme.color.onBrand}
                       style={{ position: 'absolute', end: 18 }}
                     />
-                  </LinearGradient>
+                  </View>
                 </Pressable>
 
                 <View
@@ -329,7 +307,7 @@ export default function InviteFriendsScreen() {
                     alignItems: 'center',
                     gap: 8,
                     paddingHorizontal: 12,
-                    borderRadius: 14,
+                    borderRadius: 12,
                     backgroundColor: theme.color.surface,
                     borderWidth: StyleSheet.hairlineWidth,
                     borderColor: theme.color.border,
@@ -396,14 +374,4 @@ function panel(theme: Theme): ViewStyle {
     borderRadius: theme.radius.xl,
     ...theme.shadow.soft,
   };
-}
-
-function Sparkle({ color }: { color: string }) {
-  return (
-    <Svg width={16} height={18} viewBox="0 0 16 18" fill="none">
-      <Path d="M5 2.5 L12 4" stroke={color} strokeWidth={2} strokeLinecap="round" />
-      <Path d="M7 8.5 L14 8.5" stroke={color} strokeWidth={2} strokeLinecap="round" />
-      <Path d="M5 14.5 L12 13" stroke={color} strokeWidth={2} strokeLinecap="round" />
-    </Svg>
-  );
 }

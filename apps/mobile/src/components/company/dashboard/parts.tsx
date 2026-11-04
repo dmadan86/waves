@@ -51,7 +51,7 @@ export function RolePill({ label }: { label: string }) {
       style={{
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: theme.color.brandSoft,
       }}
     >
@@ -114,7 +114,7 @@ export function TabPills<T extends string>({
             style={{
               height: 36,
               paddingHorizontal: 14,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
@@ -240,7 +240,7 @@ function CountBadge({ n }: { n: number }) {
 }
 
 /**
- * The hero: a soft sunset sky and the office building, then back, the company name with
+ * The header: back, the company name with
  * its switcher, gear and menu, who is in it. Add and export live on the company bar (FAB, More).
  */
 /** The Overview bell: opens this company's own activity feed; the red count is what is new since it was last opened. */

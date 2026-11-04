@@ -279,7 +279,7 @@ export function TourOverlay() {
               style={{
                 alignSelf: 'flex-start',
                 backgroundColor: TOUR_ACCENT,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 paddingHorizontal: theme.spacing.md,
                 paddingVertical: theme.spacing.xs,
               }}

@@ -381,7 +381,7 @@ function DeviceLimitGate({
                 alignItems: 'center',
                 gap: theme.spacing.md,
                 padding: theme.spacing.lg,
-                borderRadius: 20,
+                borderRadius: 12,
                 backgroundColor: soft,
               }}
             >
@@ -443,17 +443,12 @@ function DeviceLimitGate({
               style={({ pressed }) => ({
                 minHeight: 46,
                 paddingVertical: 8,
-                borderRadius: 23,
+                borderRadius: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: theme.spacing.sm,
                 backgroundColor: accent,
-                shadowColor: accent,
-                shadowOpacity: 0.22,
-                shadowRadius: 10,
-                shadowOffset: { width: 0, height: 6 },
-                elevation: 4,
                 opacity: busy ? 0.7 : pressed ? 0.85 : 1,
               })}
             >
@@ -478,7 +473,7 @@ function DeviceLimitGate({
               style={({ pressed }) => ({
                 minHeight: 44,
                 paddingVertical: 8,
-                borderRadius: 22,
+                borderRadius: 12,
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderWidth: 1.5,

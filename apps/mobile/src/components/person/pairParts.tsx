@@ -241,7 +241,7 @@ export function GroupChip({ group }: { group: PairGroupRow }) {
         gap: 4,
         paddingHorizontal: theme.spacing.sm,
         height: 28,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: theme.color.surface,
         maxWidth: 160,
       }}

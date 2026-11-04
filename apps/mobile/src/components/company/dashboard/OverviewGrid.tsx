@@ -127,7 +127,7 @@ export function LayoutEditor({
     alignItems: 'center',
     minHeight: 52,
     paddingStart: 8,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: theme.color.border,
     backgroundColor: theme.color.surface,
@@ -194,7 +194,7 @@ export function LayoutEditor({
           style={{
             minHeight: 44,
             paddingHorizontal: 18,
-            borderRadius: 14,
+            borderRadius: 12,
             justifyContent: 'center',
             backgroundColor: theme.color.brand,
           }}
