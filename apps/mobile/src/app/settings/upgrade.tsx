@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Image, Platform, Pressable, ScrollView, View } from 'react-native';
+import { Platform, Pressable, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -50,8 +50,6 @@ import { reportHandled } from '@/lib/observability';
 import { useToast } from '@/lib/toast';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useProTrial } from '@/lib/useProTrial';
-
-const CROWN_ART = require('../../../assets/images/plan-crown.png') as number;
 
 type LoadState =
   | { status: 'loading' }
@@ -228,29 +226,13 @@ export default function UpgradeScreen() {
         {/* ── Hero row ──────────────────────────────────────────────── */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
           <View style={{ flex: 1, gap: 6 }}>
-            <Text
-              style={{
-                color: theme.color.brand,
-                fontSize: 10,
-                fontWeight: '700',
-                letterSpacing: 1.2,
-                textTransform: 'uppercase',
-              }}
-            >
-              {t.planScreen.heroEyebrow}
-            </Text>
-            <Text style={{ fontSize: 22, fontWeight: '800', lineHeight: 28 }} numberOfLines={2}>
+            <Text style={{ fontSize: 20, fontWeight: '700', lineHeight: 26 }} numberOfLines={2}>
               {t.planScreen.heroTitle}
             </Text>
             <Text variant="caption" tone="muted">
               {t.planScreen.heroBody}
             </Text>
           </View>
-          <Image
-            source={CROWN_ART}
-            style={{ width: 130, height: 118, resizeMode: 'contain' }}
-            accessibilityIgnoresInvertColors
-          />
         </View>
 
         {/* ── Free card ─────────────────────────────────────────────── */}
@@ -268,15 +250,15 @@ export default function UpgradeScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
             <View
               style={{
-                width: 56,
-                height: 56,
+                width: 40,
+                height: 40,
                 borderRadius: 12,
                 backgroundColor: theme.color.brandSoft,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              <Ionicons name="wallet-outline" size={26} color={theme.color.brand} />
+              <Ionicons name="wallet-outline" size={20} color={theme.color.brand} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
@@ -298,9 +280,6 @@ export default function UpgradeScreen() {
               </View>
               <Text variant="caption" tone="muted">
                 {t.planScreen.freePrice}
-              </Text>
-              <Text variant="caption" tone="muted">
-                {t.planScreen.freeCaption}
               </Text>
             </View>
           </View>
@@ -363,15 +342,15 @@ export default function UpgradeScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
               <View
                 style={{
-                  width: 56,
-                  height: 56,
+                  width: 40,
+                  height: 40,
                   borderRadius: 12,
                   backgroundColor: theme.color.brand,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <MaterialCommunityIcons name="crown" size={26} color={theme.color.onBrand} />
+                <MaterialCommunityIcons name="crown" size={20} color={theme.color.onBrand} />
               </View>
               <View style={{ flex: 1, gap: 2 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
