@@ -212,12 +212,6 @@ function GroupDetail({
             <SkeletonRows rows={6} />
           </div>
         </div>
-        <aside className="detail">
-          <div className="detail-hero">
-            <span className="sk sk-avatar" />
-            <span className="sk sk-line" style={{ width: 130, margin: '0 auto' }} />
-          </div>
-        </aside>
       </div>
     );
   }
@@ -293,50 +287,58 @@ function GroupDetail({
             <div className="sub">
               {plural(locale, members.length, t.group.peopleCount)} ·{' '}
               {plural(locale, live.length, t.group.expenseCount)}
+              {myNet !== 0n ? (
+                <>
+                  {' · '}
+                  <span className={`amount ${myNet > 0n ? 'pos' : 'neg'}`}>
+                    {`${myNet > 0n ? '+' : '−'}${money(myNet < 0n ? -myNet : myNet, currency, locale)}`}
+                  </span>
+                </>
+              ) : null}
             </div>
           </div>
-          {/* The three places a group leads that are not an expense. They were
+          <Link className="btn brand" href={`/g/${groupId}/add`}>
+            {t.group.addAnExpense}
+          </Link>
+        </div>
+        {/* The three places a group leads that are not an expense. They were
               reachable only by typing a URL, which meant a browser could join a
               group and then never invite anybody else to it. */}
-          <div className="people">
-            <Link className="btn soft" href={`/g/${groupId}/members`}>
-              {t.members.title}
-            </Link>
-            <Link className="btn soft" href={`/g/${groupId}/insights`}>
-              {t.insights.title}
-            </Link>
-            <Link className="btn soft" href={`/g/${groupId}/recurring`}>
-              {t.groupRecurring.title}
-            </Link>
-            {/* The two trip reads. Both are offered only when there is
+        <div className="people" style={{ marginBottom: 16 }}>
+          <Link className="btn soft" href={`/g/${groupId}/members`}>
+            {t.members.title}
+          </Link>
+          <Link className="btn soft" href={`/g/${groupId}/insights`}>
+            {t.insights.title}
+          </Link>
+          <Link className="btn soft" href={`/g/${groupId}/recurring`}>
+            {t.groupRecurring.title}
+          </Link>
+          {/* The two trip reads. Both are offered only when there is
                 something behind them: a recap of a flatshare's whole history is
                 a question nobody asked, and Places on a group where nothing
                 carries a location is a link to an empty page. */}
-            {group.type === GroupType.Trip ? (
-              <>
-                <Link className="btn soft" href={`/g/${groupId}/plan`}>
-                  {t.plan.title}
-                </Link>
-                <Link className="btn soft" href={`/g/${groupId}/recap`}>
-                  {t.recap.title}
-                </Link>
-              </>
-            ) : null}
-            {hasPlaces ? (
-              <Link className="btn soft" href={`/g/${groupId}/places`}>
-                {t.places.title}
+          {group.type === GroupType.Trip ? (
+            <>
+              <Link className="btn soft" href={`/g/${groupId}/plan`}>
+                {t.plan.title}
               </Link>
-            ) : null}
-            <Link className="btn soft" href={`/g/${groupId}/invite`}>
-              {t.invite.title}
+              <Link className="btn soft" href={`/g/${groupId}/recap`}>
+                {t.recap.title}
+              </Link>
+            </>
+          ) : null}
+          {hasPlaces ? (
+            <Link className="btn soft" href={`/g/${groupId}/places`}>
+              {t.places.title}
             </Link>
-            <Link className="btn soft" href={`/g/${groupId}/settings`}>
-              {t.groupSettings.title}
-            </Link>
-            <Link className="btn brand" href={`/g/${groupId}/add`}>
-              {t.group.addAnExpense}
-            </Link>
-          </div>
+          ) : null}
+          <Link className="btn soft" href={`/g/${groupId}/invite`}>
+            {t.invite.title}
+          </Link>
+          <Link className="btn soft" href={`/g/${groupId}/settings`}>
+            {t.groupSettings.title}
+          </Link>
         </div>
 
         <SegmentedTabs
@@ -473,9 +475,6 @@ function GroupDetail({
                 <div className="panel-head">
                   <h2>{t.group.whoPaysWhom}</h2>
                 </div>
-                <p className="faint" style={{ marginTop: -6, marginBottom: 10 }}>
-                  {t.group.whoPaysWhomNote}
-                </p>
                 {/* Split into the payments that touch the reader and everybody
                     else's, and said as a sentence rather than as two names with
                     an arrow between them. `simplifyItems` decides both, shared
