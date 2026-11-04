@@ -413,12 +413,7 @@ export default function WelcomeScreen() {
             onPress={() => signInWith(first)}
             style={({ pressed }) => ({ opacity: busy ? 0.5 : pressed ? 0.9 : 1 })}
           >
-            <LinearGradient
-              colors={['#5B6CF5', '#7A5CF5', '#8E5CF0']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={providerRow}
-            >
+            <View style={[{ backgroundColor: '#6A45E8' }, providerRow]}>
               <View style={markDisc}>
                 {first === 'apple' ? (
                   <AppleMark size={20} color="#000000" />
@@ -439,7 +434,7 @@ export default function WelcomeScreen() {
                 {labelFor(first)}
               </Text>
               <Ionicons name={directionalIcon('chevron-forward')} size={20} color="#FFFFFF" />
-            </LinearGradient>
+            </View>
           </Pressable>
 
           <Pressable

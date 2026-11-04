@@ -32,7 +32,6 @@
 
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   Image,
   Keyboard,
@@ -519,16 +518,16 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           width: Math.max(windowWidth, screenHeight * (849 / 1852)),
         }}
       />
-      <LinearGradient
+      <View
         pointerEvents="none"
-        colors={[
-          'rgba(248,245,255,0.94)',
-          'rgba(246,242,255,0.82)',
-          'rgba(244,239,253,0.58)',
-          'rgba(244,239,253,0.5)',
-        ]}
-        locations={[0, 0.28, 0.45, 1]}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(246,242,255,0.75)',
+        }}
       />
 
       <Screen edges={['top']} style={{ backgroundColor: 'transparent' }}>
@@ -837,14 +836,7 @@ function PrimaryPill({
       {disabled ? (
         <View style={[shape, { backgroundColor: PILL_REST }]}>{face}</View>
       ) : (
-        <LinearGradient
-          colors={['#6A45E8', '#8B6CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={shape}
-        >
-          {face}
-        </LinearGradient>
+        <View style={[{ backgroundColor: '#6A45E8' }, shape]}>{face}</View>
       )}
     </Pressable>
   );

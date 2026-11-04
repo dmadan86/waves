@@ -7,7 +7,6 @@
 
 import { useRef, useState, type ReactNode, type RefObject } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -71,7 +70,6 @@ export const BLUE = '#2F6FE0';
 export const BLUE_SOFT = '#DCEBFF';
 const ORANGE = '#F26B1D';
 const ORANGE_SOFT = '#FFE6D5';
-const BUILDING = require('../../../../assets/images/company/hero-building.webp') as number;
 const TEAM = require('../../../../assets/images/company/team.webp') as number;
 
 /** The body under the hero and tabs: standard gutters, tighter gaps than the scenic body. */
@@ -247,7 +245,7 @@ function CountBadge({ n }: { n: number }) {
 }
 
 /**
- * The hero: a soft sunset sky and the office building, then back, the company name with
+ * The header: back, the company name with
  * its switcher, gear and menu, who is in it. Add and export live on the company bar (FAB, More).
  */
 /** The Overview bell: opens this company's own activity feed; the red count is what is new since it was last opened. */
@@ -320,46 +318,9 @@ export function DashHeader({
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
 
-  const sky = dark
-    ? [theme.color.bg, theme.color.surfaceMuted]
-    : [theme.color.brandSoft, theme.color.surface];
   return (
     <>
-      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview ? 14 : bare ? 40 : 34 }}>
-        <View
-          pointerEvents="none"
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
-        >
-          <LinearGradient colors={sky as [string, string]} style={{ flex: 1 }} />
-          <Image
-            source={BUILDING}
-            accessibilityIgnoresInvertColors
-            fadeDuration={0}
-            resizeMode="cover"
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: 200,
-              opacity: dark ? 0.48 : 0.68,
-            }}
-          />
-          <LinearGradient
-            colors={[theme.color.bg, theme.color.bg + '00']}
-            style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '60%' }}
-          />
-          <LinearGradient
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            colors={[theme.color.bg, theme.color.bg + '00']}
-            style={{ position: 'absolute', left: 0, top: 0, bottom: 30, width: '65%' }}
-          />
-          <LinearGradient
-            colors={[theme.color.bg + '00', theme.color.bg]}
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 30 }}
-          />
-        </View>
+      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview ? 14 : 8 }}>
         <View
           style={{
             flexDirection: 'row',
@@ -415,8 +376,6 @@ export function DashHeader({
               marginHorizontal: theme.spacing.lg,
               marginTop: 10,
               gap: 2,
-              // Keep the heading clear of the building art on the right.
-              marginEnd: 96,
             }}
           >
             <Text variant="title" accessibilityRole="header" style={{ fontSize: 18 }}>

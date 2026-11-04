@@ -24,7 +24,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -561,20 +560,20 @@ export default function ImportScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <LinearGradient
-          colors={dark ? [theme.color.surface, theme.color.surface] : ['#FFFFFF', '#F1EEFD']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            borderRadius: 12,
-            paddingVertical: 14,
-            paddingLeft: 16,
-            paddingRight: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            overflow: 'hidden',
-          }}
+        <View
+          style={[
+            { backgroundColor: dark ? theme.color.surface : '#FFFFFF' },
+            {
+              borderRadius: 12,
+              paddingVertical: 14,
+              paddingLeft: 16,
+              paddingRight: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              overflow: 'hidden',
+            },
+          ]}
         >
           <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
             <Text style={{ fontSize: 17, fontWeight: '800', color: ink }}>
@@ -585,7 +584,7 @@ export default function ImportScreen() {
             </Text>
           </View>
           <CsvArt />
-        </LinearGradient>
+        </View>
 
         {/* Two ways in, one flow: the file's contents decide the format either
             way (see choose()), so these only set the picker's expectation and
@@ -1188,7 +1187,7 @@ function PillButton({
       onPress={onPress}
       style={({ pressed }) => ({
         height: 50,
-        borderRadius: 16,
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

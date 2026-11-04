@@ -212,9 +212,11 @@ export default function PhoneScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: PAGE }}>
       {/* A soft lavender page, swells of the brand along its foot. */}
-      <LinearGradient
-        colors={['#F7F5FE', '#F2EFFD', '#EEEAFC']}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      <View
+        style={[
+          { backgroundColor: PAGE },
+          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+        ]}
       />
       <Svg
         pointerEvents="none"
@@ -598,14 +600,7 @@ function Pill({
       {disabled && !busy ? (
         <View style={[shape, { backgroundColor: '#CFC4F6' }]}>{inner}</View>
       ) : (
-        <LinearGradient
-          colors={['#6A45E8', '#8B6CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={shape}
-        >
-          {inner}
-        </LinearGradient>
+        <View style={[{ backgroundColor: '#6A45E8' }, shape]}>{inner}</View>
       )}
     </Pressable>
   );

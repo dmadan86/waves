@@ -17,7 +17,6 @@ import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   Image,
   Platform,
@@ -150,9 +149,6 @@ export default function InviteFriendsScreen() {
     });
   };
 
-  const skyTop = theme.scheme === 'dark' ? '#1B2A44' : '#BFDFF7';
-  const skyMid = theme.scheme === 'dark' ? '#1F2140' : '#E4E9FB';
-
   return (
     <Screen edges={[]}>
       <ScrollView
@@ -162,11 +158,6 @@ export default function InviteFriendsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={{ paddingTop: insets.top }}>
-          <LinearGradient
-            colors={[skyTop, skyMid, theme.color.bg]}
-            locations={[0, 0.55, 1]}
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-          />
           <Image
             source={HERO_ART}
             accessibilityIgnoresInvertColors
@@ -264,18 +255,18 @@ export default function InviteFriendsScreen() {
                     opacity: pressed ? 0.88 : 1,
                   })}
                 >
-                  <LinearGradient
-                    colors={theme.gradient.brand as unknown as [string, string, ...string[]]}
-                    start={{ x: 0, y: 0.5 }}
-                    end={{ x: 1, y: 0.5 }}
-                    style={{
-                      height: 48,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 10,
-                      paddingHorizontal: 20,
-                    }}
+                  <View
+                    style={[
+                      { backgroundColor: theme.color.brand },
+                      {
+                        height: 48,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                        paddingHorizontal: 20,
+                      },
+                    ]}
                   >
                     <Ionicons name="share-outline" size={iconSize.lg} color={theme.color.onBrand} />
                     <Text variant="subheading" style={{ color: theme.color.onBrand }}>
@@ -287,7 +278,7 @@ export default function InviteFriendsScreen() {
                       color={theme.color.onBrand}
                       style={{ position: 'absolute', end: 18 }}
                     />
-                  </LinearGradient>
+                  </View>
                 </Pressable>
 
                 <View

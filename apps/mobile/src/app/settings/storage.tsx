@@ -14,7 +14,6 @@
 import type { ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Reanimated from 'react-native-reanimated';
 
@@ -46,7 +45,7 @@ export default function StorageUsageScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const { dark, ink, muted, accent } = useStorageInks();
+  const { ink, muted, accent } = useStorageInks();
 
   // "Am I paid" over the same SECURITY DEFINER path the photo gate uses
   // (`canUploadGroupPhoto(null)`, A39) — a paid account is uncapped, so the meter
@@ -186,27 +185,27 @@ export default function StorageUsageScreen() {
             onPress={() => router.push('/settings/upgrade')}
             style={({ pressed }) => ({ marginTop: theme.spacing.xs, opacity: pressed ? 0.88 : 1 })}
           >
-            <LinearGradient
-              colors={dark ? [theme.color.brand, theme.color.brand] : ['#5A3FD8', '#7A5CF5']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                // The standard button height (and this screen's 44pt floor
-                // for anything tappable) — the old 50pt disc read as a hero
-                // action this screen doesn't have room for any more.
-                height: 44,
-                borderRadius: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: theme.spacing.sm,
-              }}
+            <View
+              style={[
+                { backgroundColor: theme.color.brand },
+                {
+                  // The standard button height (and this screen's 44pt floor
+                  // for anything tappable) — the old 50pt disc read as a hero
+                  // action this screen doesn't have room for any more.
+                  height: 44,
+                  borderRadius: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.spacing.sm,
+                },
+              ]}
             >
               <Ionicons name="rocket-outline" size={18} color="#FFFFFF" />
               <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
                 {t.storage.upgrade}
               </Text>
-            </LinearGradient>
+            </View>
           </Pressable>
         </SoftCard>
       </>
@@ -292,16 +291,16 @@ function MeterCard({
   const { t } = useStrings();
   const { dark, muted, accent, lavender } = useStorageInks();
   return (
-    <LinearGradient
-      colors={dark ? [theme.color.surface, theme.color.surface] : ['#FFFFFF', '#F6F4FE']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{
-        borderRadius: theme.radius.md,
-        padding: theme.spacing.md,
-        gap: theme.spacing.sm,
-        overflow: 'hidden',
-      }}
+    <View
+      style={[
+        { backgroundColor: dark ? theme.color.surface : '#FFFFFF' },
+        {
+          borderRadius: theme.radius.md,
+          padding: theme.spacing.md,
+          gap: theme.spacing.sm,
+          overflow: 'hidden',
+        },
+      ]}
     >
       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
         <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
@@ -345,7 +344,7 @@ function MeterCard({
           </View>
         </Row>
       ) : null}
-    </LinearGradient>
+    </View>
   );
 }
 
@@ -627,16 +626,18 @@ function FolderArtDrawing({
         <View style={{ height: 3, borderRadius: 2, backgroundColor: '#C9C2FA' }} />
       </View>
       {/* Folder front. */}
-      <LinearGradient
-        colors={dark ? ['#5B52B0', '#4A4290'] : ['#E7E3FD', '#CFC8FA']}
-        style={{
-          position: 'absolute',
-          left: 16,
-          bottom: 6,
-          width: 74,
-          height: 38,
-          borderRadius: 10,
-        }}
+      <View
+        style={[
+          { backgroundColor: dark ? '#5B52B0' : '#E7E3FD' },
+          {
+            position: 'absolute',
+            left: 16,
+            bottom: 6,
+            width: 74,
+            height: 38,
+            borderRadius: 10,
+          },
+        ]}
       />
     </>
   );

@@ -23,7 +23,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Image, Pressable, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Defs, Path, RadialGradient, Stop } from 'react-native-svg';
 
 import { Callout, directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
@@ -37,12 +36,8 @@ import { useGoBack } from '@/lib/navigation';
     palette, held apart from the app theme on purpose. */
 /** The art's own edges are all but black; the field meets them there. */
 const FIELD = '#050F07';
-const FIELD_TOP = '#0B2010';
-const GLOW = '#3E6B2E';
-const EDGE = '#C9E3A0';
 /** The name in the title, and the button: the brand's violet. */
 const VIOLET = '#7B5CF5';
-const VIOLET_DEEP = '#6444EE';
 
 /** The placeholder in `entry.guestIntroTitle` where the app name is tinted. */
 const APP_TOKEN = '{app}';
@@ -74,12 +69,12 @@ export default function GuestWelcomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: FIELD }}>
-      <LinearGradient
-        colors={[FIELD_TOP, FIELD, '#030904']}
-        locations={[0, 0.55, 1]}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      <View
+        style={[
+          { backgroundColor: FIELD },
+          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+        ]}
       />
-      <FieldGlows />
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'bottom']}>
         <View
           style={{
@@ -165,25 +160,20 @@ export default function GuestWelcomeScreen() {
               disabled={busy}
               onPress={() => void onContinue()}
               style={({ pressed }) => ({
-                borderRadius: 16,
+                borderRadius: 12,
                 opacity: pressed ? 0.88 : 1,
-                shadowColor: VIOLET,
-                shadowOpacity: 0.45,
-                shadowRadius: 16,
-                shadowOffset: { width: 0, height: 6 },
-                elevation: 6,
               })}
             >
-              <LinearGradient
-                colors={['#8B6CFF', VIOLET_DEEP]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  height: 58,
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+              <View
+                style={[
+                  { backgroundColor: VIOLET },
+                  {
+                    height: 52,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                ]}
               >
                 {busy ? (
                   <ActivityIndicator color="#FFFFFF" />
@@ -192,37 +182,12 @@ export default function GuestWelcomeScreen() {
                     {t.entry.continueLabel}
                   </Text>
                 )}
-              </LinearGradient>
+              </View>
             </Pressable>
           </View>
         </View>
       </SafeAreaView>
     </View>
-  );
-}
-
-/** The field's own light: a soft glow high on the right, and the curve of a
-    hill low on the left. Behind everything, and never read. */
-function FieldGlows() {
-  return (
-    <Svg
-      pointerEvents="none"
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-      width="100%"
-      height="100%"
-      viewBox="0 0 400 860"
-      preserveAspectRatio="xMidYMid slice"
-    >
-      <Defs>
-        <RadialGradient id="corner" cx="100%" cy="0%" r="60%">
-          <Stop offset="0" stopColor={GLOW} stopOpacity="0.55" />
-          <Stop offset="1" stopColor={GLOW} stopOpacity="0" />
-        </RadialGradient>
-      </Defs>
-      <Path d="M0 0 H400 V520 H0 Z" fill="url(#corner)" />
-      <Path d="M-40 560 C 60 600, 120 700, 140 860 L -40 860 Z" fill={GLOW} opacity={0.22} />
-      <Path d="M-40 620 C 40 660, 90 740, 100 860" stroke={EDGE} strokeOpacity={0.12} fill="none" />
-    </Svg>
   );
 }
 
