@@ -494,7 +494,7 @@ export default function JoinScreen() {
               onPress={() => void join()}
               style={({ pressed }) => ({
                 minHeight: 54,
-                borderRadius: 16,
+                borderRadius: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',

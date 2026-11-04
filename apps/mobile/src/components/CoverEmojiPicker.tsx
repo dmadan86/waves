@@ -31,7 +31,6 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { GROUP_COVER_COLORS } from '@waves/core';
@@ -596,9 +595,11 @@ function CloudPreview({
   const blob = dark ? 'rgba(124,111,240,0.16)' : 'rgba(124,111,240,0.12)';
   return (
     <View style={{ borderRadius: 12, overflow: 'hidden' }}>
-      <LinearGradient
-        colors={dark ? ['#25233F', '#1B1A2E'] : ['#E9E5FF', '#F7F5FF']}
-        style={{ alignItems: 'center', paddingTop: 20, paddingBottom: 14, gap: 8 }}
+      <View
+        style={[
+          { backgroundColor: dark ? '#25233F' : '#E9E5FF' },
+          { alignItems: 'center', paddingTop: 20, paddingBottom: 14, gap: 8 },
+        ]}
       >
         <View
           pointerEvents="none"
@@ -667,7 +668,7 @@ function CloudPreview({
         >
           {name}
         </Text>
-      </LinearGradient>
+      </View>
     </View>
   );
 }

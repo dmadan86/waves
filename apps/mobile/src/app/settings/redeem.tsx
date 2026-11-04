@@ -14,7 +14,6 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -212,7 +211,7 @@ export default function RedeemScreen() {
               disabled={!ready}
               onPress={() => void redeem()}
               style={({ pressed }) => ({
-                borderRadius: 16,
+                borderRadius: 12,
                 opacity: !ready && !busy ? 0.5 : pressed ? 0.88 : 1,
                 shadowColor: '#5B3FD9',
                 shadowOpacity: dark ? 0 : 0.25,
@@ -221,16 +220,16 @@ export default function RedeemScreen() {
                 elevation: 4,
               })}
             >
-              <LinearGradient
-                colors={dark ? [theme.color.brand, theme.color.brand] : ['#5A3FD8', '#7A5CF5']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{
-                  height: 54,
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+              <View
+                style={[
+                  { backgroundColor: theme.color.brand },
+                  {
+                    height: 54,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  },
+                ]}
               >
                 {busy ? (
                   <ActivityIndicator color="#FFFFFF" />
@@ -245,7 +244,7 @@ export default function RedeemScreen() {
                   color="#FFFFFF"
                   style={{ position: 'absolute', end: 20 }}
                 />
-              </LinearGradient>
+              </View>
             </Pressable>
           </>
         )}

@@ -2006,7 +2006,7 @@ function LinkDriveButton({
         height: 52,
         paddingStart: 8,
         paddingEnd: theme.spacing.md,
-        borderRadius: 16,
+        borderRadius: 12,
         backgroundColor: accent,
         opacity: disabled && !working ? 0.5 : pressed ? 0.85 : 1,
       })}

@@ -9,7 +9,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, View } from 'react-native';
 
 import { iconSize, Popup, Row, Text, useTheme } from '@waves/ui';
@@ -27,22 +26,26 @@ function Person({ size, colors }: { size: number; colors: [string, string] }) {
   const head = size * 0.5;
   return (
     <View style={{ width: size, height: size, alignItems: 'center' }}>
-      <LinearGradient
-        colors={colors}
-        style={{ width: head, height: head, borderRadius: head / 2 }}
+      <View
+        style={[
+          { backgroundColor: colors[0] },
+          { width: head, height: head, borderRadius: head / 2 },
+        ]}
       />
-      <LinearGradient
-        colors={colors}
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          width: size,
-          height: size * 0.5,
-          borderTopLeftRadius: size / 2,
-          borderTopRightRadius: size / 2,
-          borderBottomLeftRadius: size * 0.14,
-          borderBottomRightRadius: size * 0.14,
-        }}
+      <View
+        style={[
+          { backgroundColor: colors[0] },
+          {
+            position: 'absolute',
+            bottom: 0,
+            width: size,
+            height: size * 0.5,
+            borderTopLeftRadius: size / 2,
+            borderTopRightRadius: size / 2,
+            borderBottomLeftRadius: size * 0.14,
+            borderBottomRightRadius: size * 0.14,
+          },
+        ]}
       />
     </View>
   );
@@ -194,23 +197,23 @@ export function InviteAfterMergeSheet({
             opacity: pressed ? 0.9 : 1,
           })}
         >
-          <LinearGradient
-            colors={[theme.color.brand, theme.color.brandPressed]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.sm,
-            }}
+          <View
+            style={[
+              { backgroundColor: theme.color.brand },
+              {
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: theme.spacing.sm,
+              },
+            ]}
           >
             <Ionicons name="paper-plane-outline" size={iconSize.md} color={theme.color.onBrand} />
             <Text variant="subheading" tone="onBrand" numberOfLines={1}>
               {inviteLabel}
             </Text>
-          </LinearGradient>
+          </View>
         </Pressable>
 
         <Pressable

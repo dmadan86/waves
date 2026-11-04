@@ -19,7 +19,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { ActivityIndicator, Image, Pressable, TextInput, View } from 'react-native';
 
 import {
@@ -712,21 +711,21 @@ export function CurrencyRate({
             accessibilityRole="button"
             accessibilityLabel={t.common.done}
           >
-            <LinearGradient
-              colors={theme.gradient.brand as unknown as [string, string, ...string[]]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={{
-                height: 48,
-                borderRadius: 16,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+            <View
+              style={[
+                { backgroundColor: theme.color.brand },
+                {
+                  height: 48,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
             >
               <Text variant="body" style={{ color: theme.color.onBrand, fontWeight: '700' }}>
                 {t.common.done}
               </Text>
-            </LinearGradient>
+            </View>
           </Pressable>
         </View>
       </Sheet>

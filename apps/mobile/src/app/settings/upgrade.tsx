@@ -5,7 +5,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useQueryClient } from '@tanstack/react-query';
@@ -360,9 +359,11 @@ export default function UpgradeScreen() {
             elevation: Platform.OS === 'android' ? 0 : 3,
           }}
         >
-          <LinearGradient
-            colors={[`${theme.color.brand}18`, `${theme.color.brand}08`, 'transparent'] as const}
-            style={{ padding: theme.spacing.md, gap: theme.spacing.sm }}
+          <View
+            style={[
+              { backgroundColor: theme.color.surface },
+              { padding: theme.spacing.md, gap: theme.spacing.sm },
+            ]}
           >
             {/* Card header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
@@ -556,7 +557,7 @@ export default function UpgradeScreen() {
                 ) : null}
               </>
             )}
-          </LinearGradient>
+          </View>
         </View>
 
         {/* ── Renewal note ──────────────────────────────────────────── */}
