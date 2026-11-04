@@ -583,7 +583,7 @@
     width: 34px;
     height: 34px;
     border-radius: 999px;
-    background: var(--w-gradient-brand);
+    background: var(--w-brand-solid);
     font-size: var(--w-font-caption);
     font-weight: 700;
     color: #fff;
@@ -648,6 +648,27 @@
      Widgets
      ───────────────────────────────────────────────────────────── */
 
+  /* Company figures: one ruled strip, not a row of boxes. */
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    margin-bottom: 18px;
+    border-block: 1px solid var(--w-border);
+  }
+  .stat-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-cell + .stat-cell {
+    border-inline-start: 1px solid var(--w-border);
+  }
+  .stat-cell strong {
+    font-size: var(--w-font-subheading);
+  }
+
   .stat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(178px, 1fr));
@@ -658,15 +679,14 @@
   .stat {
     position: relative;
     display: flex;
-    min-height: 106px;
+    min-height: 0;
     flex-direction: column;
     gap: 6px;
     border: 1px solid var(--w-border);
     border-radius: var(--w-radius-md);
     background: var(--w-surface);
-    padding: 16px 18px;
+    padding: 12px 14px;
     color: var(--w-text);
-    box-shadow: var(--w-shadow-hairline);
   }
 
   .stat-top {
@@ -675,8 +695,6 @@
     gap: 8px;
     font-size: var(--w-font-micro);
     font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
     color: var(--w-text-muted);
   }
 
@@ -888,8 +906,6 @@
     padding-inline: 8px;
     font-size: var(--w-font-micro);
     font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
     color: var(--w-text-muted);
   }
   .list:first-of-type + .month-head,
@@ -1333,8 +1349,6 @@
     margin: 14px 0 2px;
     font-size: var(--w-font-micro);
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     color: var(--w-text-muted);
   }
   .list > .row-heading:first-child {
@@ -1502,8 +1516,6 @@
   .diff-line dt {
     font-size: var(--w-font-micro);
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     color: var(--w-text-muted);
   }
   /* Text flow, not a flex row. Two payers with their amounts is a long
@@ -2025,8 +2037,6 @@
   .plan-total-pair .k {
     font-size: var(--w-font-micro);
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
     color: var(--w-text-muted);
   }
   .plan-total-pair .v {
@@ -2803,8 +2813,6 @@
     margin-bottom: 6px;
     font-size: var(--w-font-micro);
     font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
     color: var(--w-text-muted);
   }
   .row-field {
@@ -3107,8 +3115,7 @@
     border: 1px solid var(--w-border);
     border-radius: var(--w-radius-lg);
     background: var(--w-surface);
-    padding: 16px;
-    box-shadow: var(--w-shadow-lifted);
+    padding: 14px;
   }
   .door-tile-a {
     inset-block-start: 0;
@@ -3258,9 +3265,8 @@
     border: 1px solid var(--w-border);
     border-radius: var(--w-radius-xl);
     background: var(--w-surface);
-    padding: 34px 32px;
+    padding: 28px 24px;
     text-align: start;
-    box-shadow: var(--w-shadow-lifted);
   }
   @media (min-width: 960px) {
     .signin-card {
