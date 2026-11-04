@@ -15,6 +15,7 @@ import {
   callerSession,
   codeRefusal,
   loadSecrets,
+  matchCode,
   newSecret,
   readCode,
   requireAppCheck,
@@ -51,7 +52,11 @@ export async function handleTwoStepTrust(request: Request, deps: TwoStepDeps): P
     const active = secrets.filter((row) => row.active);
     const myPhone = active.some((row) => row.kind === 'phone' && row.device_id === deviceId);
 
-    const issue = async (mode: 'first' | 'code' | 'approved') => {
+    /** A new phone secret, only on the database's say-so (see waves_two_step_trust_phone). */
+    const issue = async (
+      mode: 'first' | 'code' | 'approved',
+      match: { secretId: string | null; step: number | null } = { secretId: null, step: null },
+    ) => {
       const secret = newSecret();
       const { data, error } = await service.rpc('waves_two_step_trust_phone', {
         p_profile: profileId,
@@ -59,47 +64,50 @@ export async function handleTwoStepTrust(request: Request, deps: TwoStepDeps): P
         p_device: deviceId,
         p_secret_enc: await sealSecret(deps.env, secret.bytes),
         p_mode: mode,
+        p_secret_id: match.secretId,
+        p_step: match.step,
       });
       if (error) throw new HttpError(500, 'INTERNAL', error.message);
-      return (data as { ok: boolean }).ok ? secret.base32 : null;
+      const result = data as { ok: boolean; reason?: string };
+      return { secret: result.ok ? secret.base32 : null, reason: result.reason };
     };
 
-    if (await sessionMarked(service, profileId, sessionId)) {
-      if (hasSecret && !myPhone) return json({ status: 'revoked' });
-      if (!hasSecret) {
-        const secret = await issue('code');
-        if (secret) return json({ status: 'trusted', secret });
-      }
+    // A phone that already holds this person's phone secret stays trusted on a marked session. A session mark is never
+    // enough to *issue* a phone secret: that would let a stolen session take the phone factor over.
+    if (hasSecret && myPhone && (await sessionMarked(service, profileId, sessionId)) && !code) {
       return json({ status: 'trusted' });
     }
 
     if (code) {
       // A phone whose secret was replaced or reset cannot pass with it: tell it to start over instead of counting a miss.
       if (hasSecret && !myPhone) return json({ status: 'revoked' });
-      const outcome = await attemptCode(deps, service, {
-        profileId,
-        sessionId,
-        kind: 'phone',
-        deviceId,
-        code,
-        candidates: active,
-      });
-      if (outcome !== 'ok') throw codeRefusal(outcome);
-      if (!hasSecret) {
-        const secret = await issue('code');
-        if (secret) return json({ status: 'trusted', secret });
+      if (hasSecret) {
+        // This phone's own code: marks the session, issues nothing.
+        const outcome = await attemptCode(deps, service, {
+          profileId,
+          sessionId,
+          kind: 'phone',
+          deviceId,
+          code,
+          candidates: active,
+        });
+        if (outcome !== 'ok') throw codeRefusal(outcome);
+        return json({ status: 'trusted' });
       }
-      return json({ status: 'trusted' });
+      // A code from the old phone or an authenticator, consumed in the same transaction that moves the phone factor.
+      const issued = await issue('code', await matchCode(deps, code, active));
+      if (!issued.secret) throw codeRefusal(issued.reason === 'LOCKED' ? 'LOCKED' : 'BAD_CODE');
+      return json({ status: 'trusted', secret: issued.secret });
     }
     if (hasSecret && !myPhone) return json({ status: 'revoked' });
 
     if (active.length === 0) {
-      const secret = await issue('first');
-      if (secret) return json({ status: 'trusted', secret });
+      const first = await issue('first');
+      if (first.secret) return json({ status: 'trusted', secret: first.secret });
     }
 
     const approved = await issue('approved');
-    if (approved) return json({ status: 'trusted', secret: approved });
+    if (approved.secret) return json({ status: 'trusted', secret: approved.secret });
 
     const { error } = await service.rpc('waves_two_step_request_device', {
       p_profile: profileId,

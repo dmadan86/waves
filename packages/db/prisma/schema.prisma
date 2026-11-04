@@ -455,6 +455,8 @@ model GroupMember {
   profileId          String?    @map("profile_id") @db.Uuid
   ghostName          String?    @map("ghost_name")
   role               MemberRole @default(member)
+  /// Copy of groups.require_two_step (kept by trigger) so membership checks skip the gate cheaply.
+  companyTwoStep     Boolean    @default(false) @map("company_two_step")
   /// How they got here: 'creator' | 'invite_link' | 'ghost' | 'import'.
   joinedVia          String?    @map("joined_via")
   /// Where this person's invite should go. Lowercased. A hint for one invited

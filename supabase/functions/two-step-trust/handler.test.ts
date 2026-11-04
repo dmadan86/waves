@@ -200,6 +200,36 @@ describe('two-step-trust: a new phone (decision 3)', () => {
     expect(res.json).toMatchObject({ status: 'trusted', secret: expect.any(String) });
   });
 
+  it('a stolen verified session cannot take the phone factor over', async () => {
+    const { db } = await withOldPhone();
+    // The attacker's request carries the victim's verified session and a genuine App Check token.
+    db.state.sessions.push({ session_id: SESSION, profile_id: PROFILE, kind: 'phone' });
+    const res = await run(db, { hasSecret: false }, await signer.sign(appCheckClaims(NOW_S)));
+    expect(res.json).toEqual({ status: 'pending' });
+    expect(db.state.secrets.filter((s) => s.kind === 'phone').map((s) => s.device_id)).toEqual([
+      'phone-OLD',
+    ]);
+    // A wrong code does not do it either.
+    const wrong = await run(db, { code: '000000' }, await signer.sign(appCheckClaims(NOW_S)));
+    expect(wrong.status).toBe(400);
+    expect(db.state.secrets.filter((s) => s.kind === 'phone').map((s) => s.device_id)).toEqual([
+      'phone-OLD',
+    ]);
+  });
+
+  it('a code moves the phone factor only once (the code is consumed with the move)', async () => {
+    const { db, code } = await withOldPhone();
+    expect((await run(db, { code }, await signer.sign(appCheckClaims(NOW_S)))).json).toMatchObject({
+      status: 'trusted',
+    });
+    const again = await run(
+      db,
+      { code, deviceId: 'phone-B' },
+      await signer.sign(appCheckClaims(NOW_S)),
+    );
+    expect(again.status).toBe(400);
+  });
+
   it('tells a phone whose secret was replaced to start over', async () => {
     const { db, code } = await withOldPhone();
     const res = await run(db, { hasSecret: true, code }, await signer.sign(appCheckClaims(NOW_S)));

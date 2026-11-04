@@ -672,6 +672,149 @@ describe('reset and approval reach every company the person is in', () => {
   });
 });
 
+describe('review fixes: phone takeover, dead sessions, pushes, the member flag', () => {
+  rolledBack();
+
+  it('a session mark or a reused code never moves the phone factor', async () => {
+    const old = (
+      await db.query(
+        "INSERT INTO two_step_secrets(profile_id, kind, device_id, secret_enc, active) VALUES ($1,'phone','old-phone',repeat('o',40),true) RETURNING id",
+        [p[3]],
+      )
+    ).rows[0].id as string;
+    const thief = randomUUID();
+    await db.query(
+      "INSERT INTO two_step_sessions(session_id, profile_id, kind) VALUES ($1,$2,'phone')",
+      [thief, p[3]],
+    );
+    const trust = (mode: string, step: number | null) =>
+      db.query(
+        "SELECT waves_two_step_trust_phone($1,$2,'thief-phone',repeat('t',40),$3,$4,$5) AS r",
+        [p[3], thief, mode, step === null ? null : old, step],
+      );
+    // No 'code' without a fresh code, even on a marked session; no 'first' once a factor exists; no approval.
+    expect((await trust('code', null)).rows[0].r).toMatchObject({ ok: false });
+    expect((await trust('first', null)).rows[0].r).toMatchObject({
+      ok: false,
+      reason: 'HAS_FACTOR',
+    });
+    expect((await trust('approved', null)).rows[0].r).toMatchObject({
+      ok: false,
+      reason: 'NOT_APPROVED',
+    });
+    // A fresh code moves it once; the same step cannot move it again.
+    expect((await trust('code', 9000)).rows[0].r).toMatchObject({ ok: true });
+    const phones = await db.query(
+      "SELECT device_id FROM two_step_secrets WHERE profile_id = $1 AND kind = 'phone'",
+      [p[3]],
+    );
+    expect(phones.rows.map((r) => r.device_id)).toEqual(['thief-phone']);
+    const told = await db.query(
+      "SELECT count(*)::int n FROM notifications WHERE profile_id = $1 AND kind = 'two_step_new_phone'",
+      [p[3]],
+    );
+    expect(told.rows[0].n).toBe(1);
+  });
+
+  it('a revoked GoTrue session stops passing the gate', async () => {
+    await db.query('CREATE SCHEMA IF NOT EXISTS auth');
+    await db.query('CREATE TABLE IF NOT EXISTS auth.sessions (id uuid PRIMARY KEY, user_id uuid)');
+    await db.query('INSERT INTO auth.sessions(id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [
+      VERIFIED,
+      p[0],
+    ]);
+    expect(await visible(claims(0, VERIFIED), 'company_work_tasks', COMPANY)).toBeGreaterThan(0);
+    await db.query('DELETE FROM auth.sessions WHERE id = $1', [VERIFIED]);
+    expect(await visible(claims(0, VERIFIED), 'company_work_tasks', COMPANY)).toBe(0);
+  });
+
+  it('signing a device out, or signing out other devices, drops their marks', async () => {
+    const other = randomUUID();
+    await db.query(
+      "INSERT INTO two_step_sessions(session_id, profile_id, kind, device_id) VALUES ($1,$2,'phone','dev-x'),($3,$2,'web',NULL)",
+      [randomUUID(), p[1], other],
+    );
+    await db.query("INSERT INTO device_sessions(profile_id, device_id) VALUES ($1,'dev-x')", [
+      p[1],
+    ]);
+    await db.query(
+      "UPDATE device_sessions SET revoked_at = now() WHERE profile_id = $1 AND device_id = 'dev-x'",
+      [p[1]],
+    );
+    const phone = await db.query(
+      "SELECT count(*)::int n FROM two_step_sessions WHERE profile_id = $1 AND device_id = 'dev-x'",
+      [p[1]],
+    );
+    expect(phone.rows[0].n).toBe(0);
+    const mine = randomUUID();
+    await db.query(
+      "INSERT INTO two_step_sessions(session_id, profile_id, kind) VALUES ($1,$2,'phone')",
+      [mine, p[1]],
+    );
+    // Not through as(): its savepoint would roll the sign-out back before we look.
+    await db.query("SELECT set_config('request.jwt.claims',$1,true)", [
+      JSON.stringify(claims(1, mine)),
+    ]);
+    await db.query('SET LOCAL ROLE authenticated');
+    await db.query("SELECT waves_sign_out_other_devices('this-phone')");
+    await db.query('RESET ROLE');
+    const left = await db.query('SELECT session_id FROM two_step_sessions WHERE profile_id = $1', [
+      p[1],
+    ]);
+    expect(left.rows.map((r) => r.session_id)).toEqual([mine]);
+  });
+
+  it('pushes about a two-step company carry no company detail', async () => {
+    await db.query(
+      'INSERT INTO push_tokens(profile_id, expo_push_token, platform) VALUES ($1,\'ExponentPushToken[x]\',(enum_range(NULL::"DevicePlatform"))[1])',
+      [p[2]],
+    );
+    const ids = (
+      await db.query(
+        `INSERT INTO notifications(profile_id, group_id, kind, title, body, deep_link, payload) VALUES
+          ($1,$2,'x','Salary paid 5000','to Ravi','/c/1','{"amount":5000}'),
+          ($1,$3,'x','Dinner 300','Goa','/g/2','{"amount":300}') RETURNING id`,
+        [p[2], COMPANY, PERSONAL],
+      )
+    ).rows.map((r) => r.id as string);
+    const sent = await db.query(
+      'SELECT * FROM waves_claim_push_notifications(1000) WHERE id = ANY($1)',
+      [ids],
+    );
+    const byId = new Map(sent.rows.map((r) => [r.id as string, r]));
+    expect(byId.get(ids[0]!)).toMatchObject({
+      title: 'New activity in your company',
+      body: 'Open Waves to see it.',
+      deep_link: null,
+      payload: {},
+    });
+    expect(byId.get(ids[1]!)).toMatchObject({
+      title: 'Dinner 300',
+      body: 'Goa',
+      payload: { amount: 300 },
+    });
+  });
+
+  it('every member row carries the company flag, and it cannot be set by hand', async () => {
+    const flags = await db.query(
+      'SELECT DISTINCT company_two_step FROM group_members WHERE group_id = $1',
+      [COMPANY],
+    );
+    expect(flags.rows).toEqual([{ company_two_step: true }]);
+    await db.query('UPDATE group_members SET company_two_step = false WHERE id = $1', [m[2]]);
+    const still = await db.query('SELECT company_two_step FROM group_members WHERE id = $1', [
+      m[2],
+    ]);
+    expect(still.rows[0].company_two_step).toBe(true);
+    await db.query('UPDATE groups SET require_two_step = false WHERE id = $1', [COMPANY]);
+    const off = await db.query(
+      'SELECT DISTINCT company_two_step FROM group_members WHERE group_id = $1',
+      [COMPANY],
+    );
+    expect(off.rows).toEqual([{ company_two_step: false }]);
+  });
+});
+
 describe('code attempts are atomic', () => {
   it('two concurrent attempts with the same step: exactly one wins', async () => {
     const secret = (

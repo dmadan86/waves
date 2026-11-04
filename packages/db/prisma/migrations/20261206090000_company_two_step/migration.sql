@@ -10,6 +10,9 @@
 -- ───────────────────────────────────────────────────────────── tables ──
 
 ALTER TABLE public.groups ADD COLUMN require_two_step boolean NOT NULL DEFAULT false;
+-- A copy on every member row, so the per-row membership helpers can skip the gate for a company that does not require
+-- it without looking anything else up (kept in step by the triggers at the end of this migration).
+ALTER TABLE public.group_members ADD COLUMN company_two_step boolean NOT NULL DEFAULT false;
 
 -- Code secrets, AES-256-GCM encrypted by the edge functions (TWO_STEP_KEY); the database never sees them in clear.
 CREATE TABLE public.two_step_secrets (
@@ -95,12 +98,18 @@ CREATE FUNCTION public.waves_api_token_id() RETURNS uuid
  FROM (SELECT nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'waves_token_id' AS s) c
 $$;
 
--- Liveness is the JWT's: a signed-out session cannot refresh, exactly as for every other RLS check in the app.
+-- A mark counts only while its GoTrue session is still live: a signed-out or revoked session's JWT stops reading a
+-- two-step company at once, not when it expires. (waves_two_step_ok calls this once per statement per company.)
 CREATE FUNCTION public.waves_two_step_session_ok() RETURNS boolean
- LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
- SELECT EXISTS (SELECT 1 FROM public.two_step_sessions s
-   WHERE s.session_id = public.waves_jwt_session_id() AND s.profile_id = public.waves_current_profile_id())
-$$;
+ LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+DECLARE v_sid uuid := public.waves_jwt_session_id(); v_live boolean;
+BEGIN
+ IF v_sid IS NULL OR NOT EXISTS (SELECT 1 FROM public.two_step_sessions s
+   WHERE s.session_id = v_sid AND s.profile_id = public.waves_current_profile_id()) THEN RETURN false; END IF;
+ IF to_regclass('auth.sessions') IS NULL THEN RETURN true; END IF;
+ EXECUTE 'SELECT EXISTS (SELECT 1 FROM auth.sessions WHERE id = $1)' INTO v_live USING v_sid;
+ RETURN v_live;
+END $$;
 
 -- True unless the group is a company that requires two-step and this caller has not passed it. A request with no caller
 -- profile (service role, cron) passes here; every membership helper already refuses a caller without a profile.
@@ -158,11 +167,10 @@ AS $function$
   SELECT EXISTS (
     SELECT 1
     FROM public.group_members gm
-    JOIN public.groups g ON g.id = gm.group_id
     WHERE gm.group_id = p_group_id
       AND gm.profile_id = public.waves_current_profile_id()
       AND gm.left_at IS NULL
-      AND (NOT g.require_two_step OR public.waves_two_step_ok(p_group_id))
+      AND (NOT gm.company_two_step OR public.waves_two_step_ok(p_group_id))
   )
 $function$;
 
@@ -175,12 +183,11 @@ AS $function$
   SELECT EXISTS (
     SELECT 1
     FROM public.group_members gm
-    JOIN public.groups g ON g.id = gm.group_id
     WHERE gm.group_id = p_group_id
       AND gm.profile_id = public.waves_current_profile_id()
       AND gm.left_at IS NULL
       AND gm.role = 'admin'
-      AND (NOT g.require_two_step OR public.waves_two_step_ok(p_group_id))
+      AND (NOT gm.company_two_step OR public.waves_two_step_ok(p_group_id))
   )
 $function$;
 
@@ -192,11 +199,10 @@ CREATE OR REPLACE FUNCTION public.waves_my_member_id(p_group_id uuid)
 AS $function$
   SELECT gm.id
   FROM public.group_members gm
-  JOIN public.groups g ON g.id = gm.group_id
   WHERE gm.group_id = p_group_id
     AND gm.profile_id = public.waves_current_profile_id()
     AND gm.left_at IS NULL
-    AND (NOT g.require_two_step OR public.waves_two_step_ok(p_group_id))
+    AND (NOT gm.company_two_step OR public.waves_two_step_ok(p_group_id))
   LIMIT 1
 $function$;
 
@@ -1080,38 +1086,41 @@ BEGIN
  RETURN jsonb_build_object('ok', false, 'reason', CASE WHEN l.locked_until IS NOT NULL THEN 'LOCKED' ELSE 'BAD_CODE' END);
 END $$;
 
--- Mark this phone's session and, when given, make p_secret_enc its one active phone secret. p_mode says why it is
--- trusted, re-checked here under the per-person lock: 'first' (no factor at all yet), 'code' (session already marked
--- by an attempt) or 'approved' (an owner/manager approved this exact session and device).
-CREATE FUNCTION public.waves_two_step_trust_phone(p_profile uuid, p_session uuid, p_device text, p_secret_enc text, p_mode text)
+-- Make p_secret_enc this person's one active phone secret and mark the session. p_mode says why, re-checked here under
+-- the per-person lock: 'first' (no factor at all yet), 'code' (a fresh code from an existing factor, consumed in this
+-- same transaction, so it cannot be reused or detached from this issuance) or 'approved' (an owner/manager approved
+-- this exact session and device). A session mark alone never replaces a phone.
+CREATE FUNCTION public.waves_two_step_trust_phone(p_profile uuid, p_session uuid, p_device text, p_secret_enc text,
+ p_mode text, p_secret_id uuid DEFAULT NULL, p_step bigint DEFAULT NULL)
  RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
-DECLARE v_req uuid; v_new_phone boolean; r record;
+DECLARE v_req uuid; v_new_phone boolean; r record; v_attempt jsonb;
 BEGIN
- IF p_profile IS NULL OR p_session IS NULL OR p_device IS NULL OR p_mode NOT IN ('first','code','approved') THEN
+ IF p_profile IS NULL OR p_session IS NULL OR p_device IS NULL OR p_secret_enc IS NULL
+    OR p_mode NOT IN ('first','code','approved') THEN
   RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE = 'check_violation';
  END IF;
  PERFORM pg_advisory_xact_lock(hashtextextended('two_step:' || p_profile::text, 0));
  IF p_mode = 'first' AND EXISTS (SELECT 1 FROM public.two_step_secrets WHERE profile_id = p_profile AND active) THEN
   RETURN jsonb_build_object('ok', false, 'reason', 'HAS_FACTOR');
  END IF;
- IF p_mode = 'code' AND NOT EXISTS (SELECT 1 FROM public.two_step_sessions WHERE session_id = p_session AND profile_id = p_profile) THEN
-  RETURN jsonb_build_object('ok', false, 'reason', 'NOT_VERIFIED');
+ IF p_mode = 'code' THEN
+  v_attempt := public.waves_two_step_attempt(p_profile, p_secret_id, p_step, p_session, 'phone', p_device);
+  IF NOT (v_attempt ->> 'ok')::boolean THEN RETURN v_attempt; END IF;
  END IF;
  IF p_mode = 'approved' THEN
   UPDATE public.two_step_device_requests SET status = 'used' WHERE profile_id = p_profile AND session_id = p_session
    AND device_id = p_device AND status = 'approved' AND decided_at > now() - interval '1 day' RETURNING id INTO v_req;
   IF v_req IS NULL THEN RETURN jsonb_build_object('ok', false, 'reason', 'NOT_APPROVED'); END IF;
  END IF;
- v_new_phone := p_secret_enc IS NOT NULL AND EXISTS (SELECT 1 FROM public.two_step_secrets WHERE profile_id = p_profile AND active);
- IF p_secret_enc IS NOT NULL THEN
-  DELETE FROM public.two_step_secrets WHERE profile_id = p_profile AND kind = 'phone';
-  INSERT INTO public.two_step_secrets(profile_id, kind, device_id, secret_enc, active, activated_at)
-  VALUES (p_profile, 'phone', p_device, p_secret_enc, true, now());
-  UPDATE public.two_step_device_requests SET status = 'used' WHERE profile_id = p_profile AND device_id = p_device AND status = 'pending';
- END IF;
+ v_new_phone := EXISTS (SELECT 1 FROM public.two_step_secrets WHERE profile_id = p_profile AND active);
+ DELETE FROM public.two_step_secrets WHERE profile_id = p_profile AND kind = 'phone';
+ INSERT INTO public.two_step_secrets(profile_id, kind, device_id, secret_enc, active, activated_at)
+ VALUES (p_profile, 'phone', p_device, p_secret_enc, true, now());
+ UPDATE public.two_step_device_requests SET status = 'used' WHERE profile_id = p_profile AND device_id = p_device AND status = 'pending';
  INSERT INTO public.two_step_sessions(session_id, profile_id, kind, device_id) VALUES (p_session, p_profile, 'phone', p_device)
  ON CONFLICT (session_id, profile_id) DO UPDATE SET verified_at = now(), kind = 'phone', device_id = EXCLUDED.device_id;
  IF v_new_phone THEN
+  -- To the person: every device they have, the old phone included, gets this push.
   PERFORM public.waves_two_step_notify(p_profile, 'two_step_new_phone', 'A new phone now shows your two-step code',
    'If this was not you, ask your company owner to reset your two-step login.', 'two_step_phone:' || p_profile || ':' || p_device);
   FOR r IN SELECT DISTINCT o.profile_id FROM public.group_members me JOIN public.groups g ON g.id = me.group_id
@@ -1157,8 +1166,227 @@ BEGIN
 END $$;
 
 REVOKE ALL ON FUNCTION public.waves_two_step_attempt(uuid,uuid,bigint,uuid,text,text,boolean),
- public.waves_two_step_trust_phone(uuid,uuid,text,text,text), public.waves_two_step_request_device(uuid,uuid,text,text)
+ public.waves_two_step_trust_phone(uuid,uuid,text,text,text,uuid,bigint), public.waves_two_step_request_device(uuid,uuid,text,text)
  FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_two_step_attempt(uuid,uuid,bigint,uuid,text,text,boolean),
- public.waves_two_step_trust_phone(uuid,uuid,text,text,text), public.waves_two_step_request_device(uuid,uuid,text,text)
+ public.waves_two_step_trust_phone(uuid,uuid,text,text,text,uuid,bigint), public.waves_two_step_request_device(uuid,uuid,text,text)
  TO service_role;
+
+-- ───────────────────────────────────────────── the member rows' copy of the company flag ──
+
+-- Always copied from the company, whatever the writer sent, so it cannot be set by hand.
+CREATE FUNCTION public.waves_member_two_step_copy() RETURNS trigger
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+BEGIN
+ NEW.company_two_step := coalesce((SELECT g.require_two_step FROM public.groups g WHERE g.id = NEW.group_id), false);
+ RETURN NEW;
+END $$;
+CREATE TRIGGER a_two_step_copy BEFORE INSERT OR UPDATE ON public.group_members
+ FOR EACH ROW EXECUTE FUNCTION public.waves_member_two_step_copy();
+
+CREATE FUNCTION public.waves_group_two_step_fanout() RETURNS trigger
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+BEGIN
+ UPDATE public.group_members SET company_two_step = NEW.require_two_step
+  WHERE group_id = NEW.id AND company_two_step IS DISTINCT FROM NEW.require_two_step;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER two_step_fanout AFTER UPDATE OF require_two_step ON public.groups
+ FOR EACH ROW WHEN (NEW.require_two_step IS DISTINCT FROM OLD.require_two_step)
+ EXECUTE FUNCTION public.waves_group_two_step_fanout();
+REVOKE ALL ON FUNCTION public.waves_member_two_step_copy(), public.waves_group_two_step_fanout() FROM PUBLIC, anon, authenticated;
+
+-- ───────────────────────────────────────────── marks die with their session ──
+
+-- A device signed out or erased loses its phone mark at once.
+CREATE FUNCTION public.waves_two_step_forget_device() RETURNS trigger
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+BEGIN
+ DELETE FROM public.two_step_sessions WHERE profile_id = NEW.profile_id AND device_id = NEW.device_id;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER two_step_forget_device AFTER UPDATE OF revoked_at ON public.device_sessions
+ FOR EACH ROW WHEN (NEW.revoked_at IS NOT NULL AND OLD.revoked_at IS NULL)
+ EXECUTE FUNCTION public.waves_two_step_forget_device();
+
+-- And with the GoTrue session itself, where this role may attach a trigger to auth.sessions (hosted Supabase). Where it
+-- may not, the live-session check in waves_two_step_session_ok still refuses a dead session.
+CREATE FUNCTION public.waves_two_step_forget_session() RETURNS trigger
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+BEGIN
+ DELETE FROM public.two_step_sessions WHERE session_id = OLD.id;
+ RETURN OLD;
+END $$;
+REVOKE ALL ON FUNCTION public.waves_two_step_forget_device(), public.waves_two_step_forget_session() FROM PUBLIC, anon, authenticated;
+DO $$
+BEGIN
+ IF to_regclass('auth.sessions') IS NOT NULL THEN
+  EXECUTE 'CREATE TRIGGER waves_two_step_forget AFTER DELETE ON auth.sessions FOR EACH ROW EXECUTE FUNCTION public.waves_two_step_forget_session()';
+ END IF;
+EXCEPTION WHEN insufficient_privilege THEN
+ RAISE NOTICE 'two-step: no trigger on auth.sessions (not permitted); the live-session check covers it';
+END $$;
+
+CREATE OR REPLACE FUNCTION public.waves_sign_out_other_devices(p_device_id text, p_erase boolean DEFAULT false)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+  v_profile uuid := public.waves_current_profile_id();
+  v_count   int;
+  v_sid     uuid;
+BEGIN
+  IF v_profile IS NULL THEN
+    RAISE EXCEPTION 'NOT_SIGNED_IN: only a signed-in account has devices'
+      USING ERRCODE = 'insufficient_privilege';
+  END IF;
+
+  UPDATE public.device_sessions
+  SET revoked_at = now(),
+      erase_requested = p_erase
+  WHERE profile_id = v_profile
+    AND device_id <> p_device_id
+    AND (revoked_at IS NULL OR (p_erase AND NOT erase_requested)); -- erase can escalate an earlier plain sign-out
+
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+
+  -- End the other GoTrue sessions too (refresh tokens cascade), keeping the
+  -- one that is asking. Only when the caller's session is known: deleting
+  -- "everything but an unknown session" would sign this phone out as well.
+  BEGIN
+    v_sid := NULLIF(current_setting('request.jwt.claims', true)::jsonb ->> 'session_id', '')::uuid;
+  EXCEPTION WHEN OTHERS THEN
+    v_sid := NULL;
+  END;
+  -- Two-step marks of every other session go with them (the device rows above drop their phone marks by trigger).
+  IF v_sid IS NOT NULL THEN
+    DELETE FROM public.two_step_sessions WHERE profile_id = v_profile AND session_id <> v_sid;
+  END IF;
+  IF NOT p_erase AND v_sid IS NOT NULL AND to_regclass('auth.sessions') IS NOT NULL THEN
+    EXECUTE 'DELETE FROM auth.sessions WHERE user_id = $1 AND id <> $2' USING v_profile, v_sid;
+  END IF;
+
+  RETURN v_count;
+END
+$function$;
+
+-- ───────────────────────────────────────────── pushes about a two-step company ──
+
+CREATE OR REPLACE FUNCTION public.waves_claim_push_notifications(p_limit integer DEFAULT 200)
+ RETURNS TABLE(id uuid, kind text, title text, body text, deep_link text, payload jsonb, locale text, tokens text[])
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+  v_ids UUID[];
+BEGIN
+  -- `FOR UPDATE SKIP LOCKED` is what lets two runs overlap harmlessly: the
+  -- second finds the rows locked and moves on rather than sending them
+  -- again. A first try (`push_status IS NULL`) and a retry (`failed`, under
+  -- 3 attempts, backoff elapsed) are the same claim, differing only in which
+  -- half of the WHERE let the row through.
+  WITH picked AS (
+    SELECT n.id
+    FROM public.notifications n
+    WHERE (
+            n.push_status IS NULL
+         OR (n.push_status = 'failed'
+             AND n.push_attempts < 3
+             AND n.push_next_retry_at IS NOT NULL
+             AND n.push_next_retry_at <= now())
+          )
+      -- Anything older than this was missed while the fanout was down, and a
+      -- buzz about a two-day-old reminder is worse than silence.
+      AND n.created_at > now() - interval '2 days'
+    ORDER BY n.created_at
+    LIMIT p_limit
+    FOR UPDATE SKIP LOCKED
+  ),
+  claimed AS (
+    UPDATE public.notifications n
+       SET push_status = 'queued'
+      FROM picked
+     WHERE n.id = picked.id
+    RETURNING n.id
+  )
+  SELECT COALESCE(array_agg(claimed.id), '{}') INTO v_ids FROM claimed;
+
+  -- ── new: the four switches on the notifications screen ──────────────────
+  --
+  -- Absent key means on: `DEFAULT_NOTIFICATION_PREFS` has all four true, and a
+  -- profile written before a switch existed must not be read as having turned
+  -- it off. A kind with no mapping, and a kind mapped to NULL, both fall
+  -- through untouched.
+  UPDATE public.notifications n
+     SET push_status = 'suppressed',
+         push_next_retry_at = NULL
+   WHERE n.id = ANY(v_ids)
+     AND public.waves_pref_key_for_kind(n.kind) IS NOT NULL
+     AND NOT COALESCE(
+           (SELECT (p.notification_prefs ->> public.waves_pref_key_for_kind(n.kind))::boolean
+              FROM public.profiles p WHERE p.id = n.profile_id),
+           TRUE
+         );
+
+  -- ── new: a group this person has muted ─────────────────────────────────
+  --
+  -- A live row in `group_mutes` for (recipient, the notification's group)
+  -- silences the push, whatever the kind: muting a group means "stop buzzing me
+  -- about this group", like muting a chat. The row in `notifications` stays —
+  -- the inbox still lists it — which is the same line the switches above draw.
+  -- A notification with no group (a new-device login, the digests) is never
+  -- touched by a mute.
+  UPDATE public.notifications n
+     SET push_status = 'suppressed',
+         push_next_retry_at = NULL
+   WHERE n.id = ANY(v_ids)
+     AND n.push_status = 'queued'
+     AND n.group_id IS NOT NULL
+     AND EXISTS (
+       SELECT 1 FROM public.group_mutes m
+        WHERE m.owner_user_id = n.profile_id
+          AND m.group_id = n.group_id
+          AND m.deleted_at IS NULL
+     );
+
+  -- A separate statement: Postgres will not apply two updates to the same
+  -- row inside one statement, so folding this into the CTE above would
+  -- silently do nothing.
+  --
+  -- No device is a decision, not a failure — closed out terminally
+  -- (`push_next_retry_at` cleared, not just `push_status`) rather than left
+  -- retryable, or it would sit in the claim's way on every future run.
+  -- `push_attempts` is left alone: a new token showing up later is a
+  -- different signal than time passing, and not this branch's business.
+  UPDATE public.notifications n
+     SET push_status = 'failed',
+         push_next_retry_at = NULL
+   WHERE n.id = ANY(v_ids)
+     AND n.push_status = 'queued'
+     AND NOT EXISTS (
+       SELECT 1 FROM public.push_tokens t
+       WHERE t.profile_id = n.profile_id AND t.revoked_at IS NULL
+     );
+
+  -- A company that requires two-step: the push reaches phones that may not have verified, so it says only that
+  -- something happened; the inbox row keeps the detail behind the gate.
+  RETURN QUERY
+  SELECT n.id, n.kind,
+         CASE WHEN g.require_two_step THEN 'New activity in your company' ELSE n.title END,
+         CASE WHEN g.require_two_step THEN 'Open Waves to see it.' ELSE n.body END,
+         CASE WHEN g.require_two_step THEN NULL ELSE n.deep_link END,
+         CASE WHEN g.require_two_step THEN '{}'::jsonb ELSE n.payload END,
+         COALESCE(p.locale, 'en'),
+         ARRAY_AGG(t.expo_push_token)
+  FROM public.notifications n
+  LEFT JOIN public.profiles p ON p.id = n.profile_id
+  LEFT JOIN public.groups g ON g.id = n.group_id
+  JOIN public.push_tokens t
+    ON t.profile_id = n.profile_id AND t.revoked_at IS NULL
+  WHERE n.id = ANY(v_ids) AND n.push_status = 'queued'
+  GROUP BY n.id, n.kind, n.title, n.body, n.deep_link, n.payload, p.locale, g.require_two_step;
+END
+$function$;

@@ -166,8 +166,15 @@ export function fakeDb() {
     waves_two_step_trust_phone: (a) => {
       const active = state.secrets.filter((s) => s.active);
       if (a.p_mode === 'first' && active.length > 0) return { ok: false, reason: 'HAS_FACTOR' };
-      if (a.p_mode === 'code' && !state.sessions.some((s) => s.session_id === a.p_session))
-        return { ok: false };
+      if (a.p_mode === 'code') {
+        const attempt = rpcs.waves_two_step_attempt!({
+          p_secret_id: a.p_secret_id,
+          p_step: a.p_step,
+          p_session: a.p_session,
+          p_kind: 'phone',
+        }) as { ok: boolean };
+        if (!attempt.ok) return attempt;
+      }
       if (a.p_mode === 'approved') {
         const req = state.requests.find(
           (r) => r.session === a.p_session && r.device === a.p_device && r.status === 'approved',

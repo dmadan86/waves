@@ -169,6 +169,26 @@ export async function sessionMarked(
  * Check a typed code against `candidates` and record the attempt atomically. Every attempt goes to the database, a
  * miss included, so failures count toward the lock even when nothing matched.
  */
+/** Which secret and time step a typed code matches (nulls when none); checking it against reuse is the database's job. */
+export async function matchCode(
+  deps: TwoStepDeps,
+  code: string,
+  candidates: SecretRow[],
+): Promise<{ secretId: string | null; step: number | null }> {
+  let secretId: string | null = null;
+  let step: number | null = null;
+  for (const row of candidates) {
+    const secret = await openSecret(deps.env, row.secret_enc);
+    if (!secret) continue;
+    const matched = matchTotp(secret, code, deps.now());
+    if (matched !== null && secretId === null) {
+      secretId = row.id;
+      step = matched;
+    }
+  }
+  return { secretId, step };
+}
+
 export async function attemptCode(
   deps: TwoStepDeps,
   service: SupabaseClient,
@@ -182,17 +202,7 @@ export async function attemptCode(
     activate?: boolean;
   },
 ): Promise<'ok' | 'BAD_CODE' | 'LOCKED'> {
-  let secretId: string | null = null;
-  let step: number | null = null;
-  for (const row of args.candidates) {
-    const secret = await openSecret(deps.env, row.secret_enc);
-    if (!secret) continue;
-    const matched = matchTotp(secret, args.code, deps.now());
-    if (matched !== null && secretId === null) {
-      secretId = row.id;
-      step = matched;
-    }
-  }
+  const { secretId, step } = await matchCode(deps, args.code, args.candidates);
   const { data, error } = await service.rpc('waves_two_step_attempt', {
     p_profile: args.profileId,
     p_secret_id: secretId,
