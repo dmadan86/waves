@@ -28,17 +28,7 @@ import { ActivityIndicator, Platform, Pressable, ScrollView, View } from 'react-
 
 import { MutationKind, type CurrencyCode, type MemberId } from '@waves/core';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  AmountField,
-  Button,
-  Callout,
-  Gradient,
-  MoneyText,
-  Row,
-  Sheet,
-  Text,
-  useTheme,
-} from '@waves/ui';
+import { AmountField, Button, Callout, MoneyText, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { CategoryChoices } from '@/components/Category';
 import { DetailRow } from '@/components/DetailRows';
@@ -638,7 +628,7 @@ function SeveralPayers({
               gap: 2,
               height: 30,
               paddingHorizontal: theme.spacing.sm,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: theme.color.brandSoft,
               opacity: pressed ? 0.8 : 1,
             })}
@@ -683,10 +673,13 @@ function SeveralPayers({
         onPress={onOpenEditor}
         style={({ pressed }) => ({ opacity: pressed ? 0.85 : 1 })}
       >
-        <Gradient
-          colors={theme.gradient.brand}
-          radius={theme.radius.pill}
-          style={{ height: 46, justifyContent: 'center' }}
+        <View
+          style={{
+            height: 46,
+            justifyContent: 'center',
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.color.brand,
+          }}
         >
           <Row style={{ alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.onBrand }}>
@@ -694,7 +687,7 @@ function SeveralPayers({
             </Text>
             <Ionicons name="arrow-forward" size={16} color={theme.color.onBrand} />
           </Row>
-        </Gradient>
+        </View>
       </Pressable>
     </View>
   );
