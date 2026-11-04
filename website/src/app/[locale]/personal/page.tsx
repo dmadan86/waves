@@ -1,6 +1,3 @@
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
-
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -93,11 +90,15 @@ const card = 'rounded-2xl bg-surface shadow-[var(--w-shadow-card)]';
 const h2 = 'text-[1.35rem] font-bold tracking-[-0.025em] text-ink sm:text-[1.6rem]';
 
 /**
- * Build-time check, so a film that was not rendered leaves its slot out. The
- * page is static and CI builds from the full checkout, so infra/ is there.
+ * Films published to R2 (infra/art/videos). A film not listed leaves its slot
+ * out. A list, not a file check: Vercel builds from website/ alone.
  */
-const hasFilm = (name: string) =>
-  existsSync(join(process.cwd(), '../infra/art/videos', `${name}.mp4`));
+const PUBLISHED = new Set(
+  ['hero', 'spending', 'voice', 'receipt', 'sms', 'statement', 'budgets', 'recurring', 'loans'].map(
+    (n) => `personal-${n}`,
+  ),
+);
+const hasFilm = (name: string) => PUBLISHED.has(name);
 
 export default async function PersonalPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
