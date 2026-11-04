@@ -127,3 +127,12 @@ aspect 1.305 against the square's 1.629. That difference is exactly why the
 launcher icons are still cut from the picture rather than redrawn from the
 geometry: recolouring the picture moves them onto the new brand without the mark
 also changing proportion, size and position inside the icon.
+
+## Website films (`videos/`)
+
+The looping films on wavs.co.in (`/companies`, `/personal`) live in `videos/`
+and are served from `https://assets.wavs.co.in/videos/` rather than from
+Vercel. Each film is `<name>.mp4`, `<name>.webm` and `<name>.jpg` (poster).
+Encode MP4s as H.264 `yuv420p` with `-movflags +faststart`: full-range
+`yuvj420p` or a trailing moov atom stops some phones from playing them. They
+cache for a day, so a re-cut published under the same name shows up next day.
