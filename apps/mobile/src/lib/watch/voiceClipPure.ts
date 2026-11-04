@@ -210,3 +210,30 @@ export async function processClip(clip: WatchClip, deps: ClipDeps): Promise<Clip
 }
 
 export const clipFailure = failure;
+
+/** How long a watch capture waits for a place before saving without one. */
+export const WATCH_LOCATION_TIMEOUT_MS = 3000;
+
+/**
+ * The place for a watch capture: `read` (permission-gated, never prompts) raced
+ * against a short timeout. Any failure or a slow fix is `null`, so the capture
+ * is saved with no place rather than delayed or lost.
+ */
+export async function placeForCapture<T>(
+  read: () => Promise<T | null>,
+  timeoutMs: number = WATCH_LOCATION_TIMEOUT_MS,
+): Promise<T | null> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      read().catch(() => null),
+      new Promise<null>((resolve) => {
+        timer = setTimeout(() => resolve(null), timeoutMs);
+      }),
+    ]);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
