@@ -7,9 +7,8 @@
 
 import { useRef, useState, type ReactNode, type RefObject } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams } from 'expo-router';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -39,7 +38,6 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useCompanyActivityUnread } from '@/data/companyActivity';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
-import { greetingFor } from '@/lib/overviewHome';
 
 export function useMoney(currency: string): (minor: bigint) => string {
   const { locale } = useStrings();
@@ -71,8 +69,6 @@ export const BLUE = '#2F6FE0';
 export const BLUE_SOFT = '#DCEBFF';
 const ORANGE = '#F26B1D';
 const ORANGE_SOFT = '#FFE6D5';
-const BUILDING = require('../../../../assets/images/company/hero-building.webp') as number;
-const TEAM = require('../../../../assets/images/company/team.webp') as number;
 
 /** The body under the hero and tabs: standard gutters, tighter gaps than the scenic body. */
 export function DashBody({ children }: { children: ReactNode }) {
@@ -200,11 +196,8 @@ export function IconButton({
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.color.surface,
-                shadowColor: '#000',
-                shadowOpacity: 0.08,
-                shadowRadius: 6,
-                shadowOffset: { width: 0, height: 2 },
-                elevation: 2,
+                borderWidth: 1,
+                borderColor: theme.color.border,
               }
             : { width: 38, height: 38, alignItems: 'center', justifyContent: 'center' }
         }
@@ -305,13 +298,6 @@ export function DashHeader({
   const bare = (!!menuItems || tab) && !overview;
   // Every bar tab root (Home included) shares one header: round buttons, bell, gear, then ⋮.
   const root = overview || bare;
-  const g = greetingFor(new Date().getHours());
-  const greeting =
-    g === 'morning'
-      ? t.company.greetMorning
-      : g === 'afternoon'
-        ? t.company.greetAfternoon
-        : t.company.greetEvening;
   const dots = !!menuItems;
   const dotsRef = useRef<View>(null);
   const [dotsAnchor, setDotsAnchor] = useState<MenuAnchor | null>(null);
@@ -320,46 +306,9 @@ export function DashHeader({
   const [menu, setMenu] = useState(false);
   const [reporting, setReporting] = useState(false);
 
-  const sky = dark
-    ? [theme.color.bg, theme.color.surfaceMuted]
-    : [theme.color.brandSoft, theme.color.surface];
   return (
     <>
-      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview ? 14 : bare ? 40 : 34 }}>
-        <View
-          pointerEvents="none"
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, overflow: 'hidden' }}
-        >
-          <LinearGradient colors={sky as [string, string]} style={{ flex: 1 }} />
-          <Image
-            source={BUILDING}
-            accessibilityIgnoresInvertColors
-            fadeDuration={0}
-            resizeMode="cover"
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: 0,
-              bottom: 0,
-              width: 200,
-              opacity: dark ? 0.48 : 0.68,
-            }}
-          />
-          <LinearGradient
-            colors={[theme.color.bg, theme.color.bg + '00']}
-            style={{ position: 'absolute', left: 0, right: 0, top: 0, height: '60%' }}
-          />
-          <LinearGradient
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            colors={[theme.color.bg, theme.color.bg + '00']}
-            style={{ position: 'absolute', left: 0, top: 0, bottom: 30, width: '65%' }}
-          />
-          <LinearGradient
-            colors={[theme.color.bg + '00', theme.color.bg]}
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 30 }}
-          />
-        </View>
+      <View style={{ paddingTop: insets.top + 6, paddingBottom: overview || bare ? 8 : 12 }}>
         <View
           style={{
             flexDirection: 'row',
@@ -413,15 +362,9 @@ export function DashHeader({
           <View
             style={{
               marginHorizontal: theme.spacing.lg,
-              marginTop: 10,
-              gap: 2,
-              // Keep the heading clear of the building art on the right.
-              marginEnd: 96,
+              marginTop: 6,
             }}
           >
-            <Text variant="title" accessibilityRole="header" style={{ fontSize: 18 }}>
-              {greeting}
-            </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text variant="caption" tone="muted" style={{ flexShrink: 1 }}>
                 {subtitle}
@@ -465,7 +408,6 @@ export function DashHeader({
               borderWidth: 1,
               borderColor: theme.color.border,
               zIndex: 2,
-              elevation: 3,
             }}
           >
             <Ionicons name="mic-outline" size={iconSize.lg} color={theme.color.text} />
@@ -701,18 +643,7 @@ export function QuickActions({
           onPress={a.onPress}
           style={{ flex: 1, alignItems: 'center', gap: 6 }}
         >
-          <View
-            style={{
-              width: 42,
-              height: 42,
-              borderRadius: 21,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: tones[i % tones.length]![0],
-            }}
-          >
-            <Ionicons name={a.icon} size={iconSize.md} color={tones[i % tones.length]![1]} />
-          </View>
+          <Ionicons name={a.icon} size={iconSize.lg} color={tones[i % tones.length]![1]} />
           <Text variant="caption" align="center" numberOfLines={2} style={{ fontSize: 12 }}>
             {a.label}
           </Text>
@@ -733,7 +664,6 @@ export function InviteBanner({
   onPress: () => void;
 }) {
   const theme = useTheme();
-  const dark = theme.scheme === 'dark';
   if (useRouteCompanySuspended()) return null;
   return (
     <Pressable
@@ -746,15 +676,12 @@ export function InviteBanner({
         padding: 8,
         paddingEnd: 12,
         borderRadius: theme.radius.lg,
-        backgroundColor: dark ? theme.color.surface : '#FFF3E1',
+        borderWidth: 1,
+        borderColor: theme.color.border,
+        backgroundColor: theme.color.surface,
       }}
     >
-      <Image
-        source={TEAM}
-        accessibilityIgnoresInvertColors
-        fadeDuration={0}
-        style={{ width: 92, height: 57, borderRadius: 10 }}
-      />
+      <Ionicons name="people-outline" size={iconSize.xl} color={theme.color.brand} />
       <View style={{ flex: 1, gap: 2 }}>
         <Text variant="body" style={{ fontWeight: '700', fontSize: 14 }}>
           {title}
