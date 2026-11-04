@@ -31,6 +31,8 @@ export function TeamSegment({
         flexDirection: 'row',
         padding: 4,
         borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.color.border,
         backgroundColor: theme.color.surface,
       }}
     >

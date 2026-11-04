@@ -65,6 +65,8 @@ const BODY = 'PlusJakartaSans-Medium';
 const CARD = {
   backgroundColor: '#FFFFFF',
   borderRadius: 12,
+  borderWidth: 1,
+  borderColor: FIELD_LINE,
   padding: 14,
 } as const;
 const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;

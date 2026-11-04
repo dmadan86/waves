@@ -21,7 +21,6 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -206,17 +205,8 @@ export default function WelcomeScreen() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(255,244,236,0.18)',
+            backgroundColor: 'rgba(255,255,255,0.45)',
           }}
-        />
-        {/* A soft haze from the top-left only, where the words are; the vines,
-            the lamp and the sunset stay as they are. */}
-        <LinearGradient
-          colors={['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']}
-          locations={[0, 0.35, 0.7]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.85, y: 0.42 }}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
       </View>
 

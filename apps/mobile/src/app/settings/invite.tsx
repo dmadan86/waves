@@ -29,7 +29,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 
 import {
   Button,
@@ -60,7 +59,6 @@ import {
 } from '@/lib/referral';
 import { useReferralsLive } from '@/lib/useReferralsLive';
 
-const HERO_ART = require('../../../assets/images/invite/invite-hero.webp') as number;
 const GIFT_ART = require('../../../assets/images/invite/invite-gift.webp') as number;
 const HILLS_ART = require('../../../assets/images/invite/invite-hills.webp') as number;
 
@@ -158,14 +156,6 @@ export default function InviteFriendsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={{ paddingTop: insets.top }}>
-          <Image
-            source={HERO_ART}
-            accessibilityIgnoresInvertColors
-            importantForAccessibility="no"
-            accessible={false}
-            resizeMode="contain"
-            style={{ position: 'absolute', end: 0, bottom: 0, width: 138, height: 128 }}
-          />
           <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
             <IconButton label={t.common.back} onPress={() => router.back()}>
               <Ionicons
@@ -174,12 +164,9 @@ export default function InviteFriendsScreen() {
                 color={theme.color.text}
               />
             </IconButton>
-            <View style={{ maxWidth: '62%', gap: theme.spacing.xs }}>
+            <View style={{ gap: theme.spacing.xs }}>
               <Text style={{ fontSize: 24, lineHeight: 30, fontWeight: '800' }}>
-                {t.referral.title}{' '}
-                <View accessibilityElementsHidden importantForAccessibility="no">
-                  <Sparkle color={theme.color.brand} />
-                </View>
+                {t.referral.title}
               </Text>
               <View style={{ gap: 2 }}>
                 <Text variant="subheading" style={{ fontWeight: '700' }}>
@@ -387,14 +374,4 @@ function panel(theme: Theme): ViewStyle {
     borderRadius: theme.radius.xl,
     ...theme.shadow.soft,
   };
-}
-
-function Sparkle({ color }: { color: string }) {
-  return (
-    <Svg width={16} height={18} viewBox="0 0 16 18" fill="none">
-      <Path d="M5 2.5 L12 4" stroke={color} strokeWidth={2} strokeLinecap="round" />
-      <Path d="M7 8.5 L14 8.5" stroke={color} strokeWidth={2} strokeLinecap="round" />
-      <Path d="M5 14.5 L12 13" stroke={color} strokeWidth={2} strokeLinecap="round" />
-    </Svg>
-  );
 }

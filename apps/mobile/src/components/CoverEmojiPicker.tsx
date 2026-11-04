@@ -591,8 +591,6 @@ function CloudPreview({
   const theme = useTheme();
   const tile = useCoverTile(color, theme.color.brandSoft);
   const dark = theme.scheme === 'dark';
-  const cloud = dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)';
-  const blob = dark ? 'rgba(124,111,240,0.16)' : 'rgba(124,111,240,0.12)';
   return (
     <View style={{ borderRadius: 12, overflow: 'hidden' }}>
       <View
@@ -601,54 +599,6 @@ function CloudPreview({
           { alignItems: 'center', paddingTop: 20, paddingBottom: 14, gap: 8 },
         ]}
       >
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: -30,
-            top: -30,
-            width: 110,
-            height: 110,
-            borderRadius: 55,
-            backgroundColor: blob,
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            right: 44,
-            top: 34,
-            width: 26,
-            height: 26,
-            borderRadius: 13,
-            backgroundColor: blob,
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: -20,
-            bottom: -34,
-            width: 130,
-            height: 70,
-            borderRadius: 35,
-            backgroundColor: cloud,
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            right: -24,
-            bottom: -30,
-            width: 150,
-            height: 80,
-            borderRadius: 40,
-            backgroundColor: cloud,
-          }}
-        />
         <View
           style={{
             width: 86,
