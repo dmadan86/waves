@@ -51,6 +51,7 @@ import { backend } from '@/lib/backend';
 import { DEVICE_LIMIT_ART, DEVICE_LIMIT_ART_RATIO } from '@/lib/deviceLimitArt';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { useToast } from '@/lib/toast';
+import { useTrustPhone } from '@/lib/useTwoStep';
 import { COMPACT_TYPE_CAP } from '@/lib/typeCap';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
@@ -130,6 +131,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     notice.current.show(notice.current.message, 'info');
   }, []);
 
+  const trustPhone = useTrustPhone();
   const register = useCallback(async () => {
     if (!eligible) return;
     try {
@@ -165,6 +167,8 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
         }
         lastBeatAt.current = Date.now();
         setStatus(next);
+        // Company two-step: never awaited, never loud (trust is quiet on failure).
+        void trustPhone();
       } catch {
         // Best-effort: a failed registration must never keep somebody out of
         // their own app. The next foreground tries again.
@@ -173,7 +177,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [eligible, userId, leaveRevokedDevice]);
+  }, [eligible, userId, leaveRevokedDevice, trustPhone]);
 
   // Heartbeat: a foreground, throttled, is enough to keep last-seen fresh.
   useEffect(() => {
