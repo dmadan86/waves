@@ -43,7 +43,9 @@ import { AppFrame } from '@/components/AppFrame';
 import { ENDONYM } from '@/components/LanguagePicker';
 import { Section } from '@/components/Shell';
 import { useStrings } from '@/i18n-context';
+import { useTwoStepStatus } from '@/components/TwoStepGuard';
 import { useAuth } from '@/lib/auth';
+import { useFlagEnabled } from '@/lib/flags';
 import { THEME_HIDDEN, useTheme } from '@/lib/theme';
 
 interface RowLink {
@@ -60,6 +62,8 @@ function Settings() {
   const { t, language } = useStrings();
   const { isGuest, signOut, signInWithGoogle } = useAuth();
   const { choice } = useTheme();
+  const twoStepStatus = useTwoStepStatus();
+  const showTwoStep = useFlagEnabled('company_two_step') || !!twoStepStatus?.requiring.length;
 
   const appearance =
     choice === 'dark' ? t.theme.dark : choice === 'light' ? t.theme.light : t.theme.system;
@@ -111,6 +115,15 @@ function Settings() {
       title: t.settings.sectionSecurity,
       rows: [
         { href: '/settings/devices', title: t.devices.row, hint: t.devices.rowHint },
+        ...(showTwoStep
+          ? [
+              {
+                href: '/settings/two-step',
+                title: t.company.twoStep.row,
+                hint: t.company.twoStep.rowHint,
+              },
+            ]
+          : []),
         {
           href: '/settings/connected-apps',
           title: t.connectedApps.row,
