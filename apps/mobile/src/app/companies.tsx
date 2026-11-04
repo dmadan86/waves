@@ -83,7 +83,7 @@ function CompaniesScreenBody() {
                 gap: 6,
                 paddingVertical: 10,
                 paddingHorizontal: 16,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 backgroundColor: theme.color.brand,
               }}
             >

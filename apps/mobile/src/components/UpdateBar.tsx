@@ -150,7 +150,7 @@ export function UpdateBar() {
                   paddingHorizontal: 14,
                   height: 34,
                   justifyContent: 'center',
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.sm,
                   backgroundColor: theme.color.brandSoft,
                 }}
               >

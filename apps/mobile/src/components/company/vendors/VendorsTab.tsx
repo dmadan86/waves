@@ -102,7 +102,7 @@ function Dropdown({
           alignItems: 'center',
           gap: theme.spacing.sm,
           paddingHorizontal: theme.spacing.md,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.sm,
           backgroundColor: glass,
           borderWidth: 1,
           borderColor: theme.color.border,

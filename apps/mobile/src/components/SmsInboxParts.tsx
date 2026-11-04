@@ -216,7 +216,7 @@ export function SmsKindTabs({
               gap: 4,
               height: 38,
               paddingHorizontal: 8,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: on ? theme.color.brand : theme.color.surface,
               borderWidth: on ? 0 : 1,
               borderColor: theme.color.border,

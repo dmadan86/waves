@@ -231,7 +231,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
                 gap: theme.spacing.sm,
                 minHeight: 44,
                 paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.md,
                 backgroundColor: theme.color.surface,
               }}
             >
@@ -363,7 +363,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
                         <View
                           style={{
                             backgroundColor: st.bg,
-                            borderRadius: theme.radius.pill,
+                            borderRadius: theme.radius.sm,
                             paddingHorizontal: theme.spacing.sm,
                             paddingVertical: 2,
                           }}

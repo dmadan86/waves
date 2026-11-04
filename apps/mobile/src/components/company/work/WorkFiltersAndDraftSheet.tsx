@@ -64,7 +64,7 @@ export function WorkFiltersAndDraftSheet({
     gap: theme.spacing.xs,
     minHeight: 40,
     paddingHorizontal: theme.spacing.sm,
-    borderRadius: theme.radius.pill,
+    borderRadius: theme.radius.sm,
     backgroundColor: theme.color.surface,
     borderWidth: 1,
     borderColor: theme.color.border,

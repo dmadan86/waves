@@ -285,7 +285,7 @@ export default function UpgradeScreen() {
                   <View
                     style={{
                       backgroundColor: theme.color.brandSoft,
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.sm,
                       paddingHorizontal: theme.spacing.sm,
                       paddingVertical: 2,
                     }}
@@ -387,7 +387,7 @@ export default function UpgradeScreen() {
                       <View
                         style={{
                           backgroundColor: theme.color.brandSoft,
-                          borderRadius: theme.radius.pill,
+                          borderRadius: theme.radius.sm,
                           paddingHorizontal: theme.spacing.sm,
                           paddingVertical: 2,
                         }}
@@ -466,7 +466,7 @@ export default function UpgradeScreen() {
                         <View
                           style={{
                             backgroundColor: theme.color.brandSoft,
-                            borderRadius: theme.radius.pill,
+                            borderRadius: theme.radius.sm,
                             paddingHorizontal: 6,
                             paddingVertical: 1,
                           }}
@@ -532,7 +532,7 @@ export default function UpgradeScreen() {
                       justifyContent: 'center',
                       gap: theme.spacing.sm,
                       height: 52,
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.md,
                       backgroundColor: pressed ? theme.color.brandPressed : theme.color.brand,
                       opacity: ctaDisabled ? 0.5 : 1,
                     })}
@@ -681,7 +681,7 @@ function PeriodToggle({
               gap: 6,
               paddingHorizontal: theme.spacing.sm,
               paddingVertical: 7,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: active ? theme.color.brand : 'transparent',
             }}
           >

@@ -70,7 +70,7 @@ export function InquiryStatusPill({ status }: { status: InquiryStatus }) {
         alignItems: 'center',
         gap: 4,
         backgroundColor: look.bg,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         paddingHorizontal: theme.spacing.md,
         paddingVertical: 4,
       }}

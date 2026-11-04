@@ -39,7 +39,7 @@ export function VoiceTypedAnswer({ onSubmit, onVoice, autoFocus = true }: VoiceT
         height: 48,
         paddingLeft: theme.spacing.md,
         paddingRight: theme.spacing.xs,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: theme.color.border,
         backgroundColor: theme.color.bg,

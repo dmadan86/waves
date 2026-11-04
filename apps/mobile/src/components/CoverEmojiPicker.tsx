@@ -182,7 +182,7 @@ function IconGrid({ value, onPick }: { value: string | null; onPick: (emoji: str
           height: 44,
           marginHorizontal: theme.spacing.xl,
           paddingHorizontal: theme.spacing.lg,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           backgroundColor: theme.color.surfaceMuted,
         }}
       >
@@ -401,7 +401,7 @@ export function CoverEmojiPicker({
             gap: 6,
             height: 32,
             paddingHorizontal: theme.spacing.md,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.sm,
             backgroundColor: pill.backgroundColor,
             opacity: pressed ? 0.7 : 1,
           })}
@@ -828,7 +828,7 @@ export function GroupCoverSheet({
             accessibilityRole="tablist"
             style={{
               padding: 4,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: theme.color.surfaceMuted,
             }}
           >
@@ -847,7 +847,7 @@ export function GroupCoverSheet({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: theme.spacing.sm,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.sm,
                     backgroundColor: selected ? theme.color.brandSoft : 'transparent',
                   }}
                 >

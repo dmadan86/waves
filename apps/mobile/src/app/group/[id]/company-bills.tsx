@@ -144,7 +144,7 @@ export default function CompanyBillsScreen() {
             style={{
               height: 44,
               paddingHorizontal: theme.spacing.md,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.md,
               backgroundColor: theme.color.surface,
               color: theme.color.text,
             }}
@@ -210,7 +210,7 @@ export default function CompanyBillsScreen() {
                     style={{
                       alignSelf: 'flex-start',
                       backgroundColor: theme.color.brandSoft,
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.sm,
                       paddingHorizontal: theme.spacing.sm,
                       paddingVertical: theme.spacing.xs,
                     }}
@@ -262,7 +262,7 @@ export default function CompanyBillsScreen() {
                     style={{
                       flex: 1,
                       height: 48,
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.md,
                       alignItems: 'center',
                       justifyContent: 'center',
                       backgroundColor: type === 'bill' ? theme.color.brand : 'transparent',

@@ -236,7 +236,7 @@ export function EditGroupSheetBody({
         }}
         style={({ pressed }) => ({
           height: 56,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           backgroundColor: theme.color.brand,
           alignItems: 'center',
           justifyContent: 'center',

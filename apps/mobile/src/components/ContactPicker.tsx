@@ -525,7 +525,7 @@ export function ContactPicker({
           gap: theme.spacing.sm,
           height: 44,
           paddingHorizontal: theme.spacing.lg,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           // Compact rides up over the hero's scene (the caller's own negative
           // margin does the overlap) and needs to read as a card floating on
           // it, not the flat search field every other caller still gets.
@@ -1120,7 +1120,7 @@ function FilterPills({
               gap: 4,
               height: 32,
               paddingHorizontal: theme.spacing.md,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: active ? theme.color.brandSoft : theme.color.surfaceMuted,
             }}
           >
