@@ -4,6 +4,7 @@
  * Non-English tables carry the English text until translated.
  */
 
+import { docsEn, settingsEn } from '@/lib/company/docsStrings';
 import { vendorStringsEn } from '@/lib/company/vendorStrings';
 
 export const companyEn = {
@@ -486,13 +487,8 @@ export const companyEn = {
     },
   },
   vendors: vendorStringsEn,
-  docs: {
-    title: 'Estimates & bills',
-  },
-  settings: {
-    title: 'Company settings',
-    comingSoon: 'Company settings are coming to the web soon.',
-  },
+  docs: docsEn,
+  settings: settingsEn,
 };
 
 export type CompanyStrings = typeof companyEn;
