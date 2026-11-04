@@ -578,7 +578,7 @@ function BackRow({ onPress, label }: { onPress: () => void; label: string }) {
   const theme = useTheme();
   return (
     <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xs }}>
-      <TranslucentBackButton dark label={label} onPress={onPress} />
+      <TranslucentBackButton label={label} onPress={onPress} />
     </View>
   );
 }

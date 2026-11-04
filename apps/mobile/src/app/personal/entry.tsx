@@ -606,7 +606,6 @@ function EntryHeader({
         }}
       >
         <TranslucentBackButton
-          dark={theme.scheme !== 'dark'}
           label={t.common.back}
           onPress={() => router.back()}
         />

@@ -80,7 +80,6 @@ export function GroupNotFound({ groupId }: { groupId: string }) {
             invite link has no history to pop, so the chevron falls back to
             home rather than silently doing nothing. */}
         <TranslucentBackButton
-          dark={theme.scheme === 'light'}
           label={t.common.back}
           onPress={goBack}
         />

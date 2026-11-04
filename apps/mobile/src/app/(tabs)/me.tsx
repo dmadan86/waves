@@ -739,7 +739,6 @@ function MeLedger() {
         visible={gearOpen}
         onClose={() => setGearOpen(false)}
         items={[
-          { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene' },
           { icon: 'lock-closed-outline', label: t.personal.dash.settings, route: '/settings/lock' },
         ]}
       />
