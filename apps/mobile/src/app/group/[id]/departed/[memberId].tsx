@@ -19,13 +19,7 @@ import { useGroup, useGroupLedger, useResplitDeparted } from '@/data/hooks';
 import { CategoryBadge, builtinCategoryLabel } from '@/components/Category';
 import { BalanceSide } from '@/components/home/BalanceSide';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import {
-  PairHero,
-  HeroCircleButton,
-  HERO_OVERLAP,
-  HERO_TEXT_SHADOW,
-  Chevron,
-} from '@/components/person/pairParts';
+import { PairHero, HeroCircleButton, HERO_OVERLAP, Chevron } from '@/components/person/pairParts';
 import { expenseTitle } from '@/data/expenseTitle';
 import { displayName } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
@@ -228,10 +222,8 @@ export default function DepartedExpensesScreen() {
           >
             <PersonAvatar name={name} size={52} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="title" style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}>
-                {label}
-              </Text>
-              <Text variant="caption" style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}>
+              <Text variant="title">{label}</Text>
+              <Text variant="caption">
                 {amountLine(summary.net) ||
                   fill(plural(locale, listed.length, s.owed), { name, amount: fmt(0n) })}
               </Text>

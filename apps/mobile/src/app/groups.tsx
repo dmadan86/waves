@@ -392,7 +392,11 @@ function GroupsHeader({
             accessibilityLabel={backLabel}
             onPress={() => router.back()}
             hitSlop={6}
-            style={whiteDisc}
+            style={{
+              ...whiteDisc,
+              backgroundColor: theme.color.surface,
+              borderColor: theme.color.border,
+            }}
           >
             <Ionicons
               name={directionalIcon('arrow-back')}
@@ -424,7 +428,11 @@ function GroupsHeader({
             accessibilityLabel={joinLabel}
             onPress={() => router.push('/scan' as never)}
             hitSlop={6}
-            style={whiteDisc}
+            style={{
+              ...whiteDisc,
+              backgroundColor: theme.color.surface,
+              borderColor: theme.color.border,
+            }}
           >
             <Ionicons name="qr-code-outline" size={iconSize.lg} color={theme.color.brand} />
           </PressableScale>
@@ -435,7 +443,11 @@ function GroupsHeader({
             accessibilityLabel={newLabel}
             onPress={() => router.push('/new-group')}
             hitSlop={6}
-            style={whiteDisc}
+            style={{
+              ...whiteDisc,
+              backgroundColor: theme.color.surface,
+              borderColor: theme.color.border,
+            }}
           >
             <Ionicons name="add" size={iconSize.xl} color={theme.color.brand} />
           </PressableScale>
@@ -489,16 +501,14 @@ function GroupsHeader({
   );
 }
 
-/** A solid white disc — the header's own action buttons. */
+/** The header's round action buttons: a hairline circle on the page. */
 const whiteDisc = {
   width: HEADER_BUTTON,
   height: HEADER_BUTTON,
   borderRadius: HEADER_BUTTON / 2,
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: '#FFFFFF',
   borderWidth: 1,
-  borderColor: '#E4E4EA',
 } as const;
 
 const SORT_KEYS: readonly GroupsSort[] = ['amount', 'recent', 'name'];
