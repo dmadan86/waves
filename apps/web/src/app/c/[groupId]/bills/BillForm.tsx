@@ -152,6 +152,14 @@ function Form({
       return 0n;
     }
   };
+  // A typo in an amount must stop the save, not quietly become zero.
+  const unreadable = (text: string): boolean => {
+    try {
+      return text.trim() !== '' && parseMinorInput(text, currency) < 0n;
+    } catch {
+      return true;
+    }
+  };
   const parsed = lines.map((l) => ({
     description: l.description,
     qtyMilli: parseQtyMilli(l.qty) ?? 0n,
@@ -180,6 +188,8 @@ function Form({
   const submit = async () => {
     if (busy) return;
     const v = values();
+    if (lines.some((l) => unreadable(l.rate))) return setError(c.itemError);
+    if (!pctMode && unreadable(discountText)) return setError(c.discountError);
     const code = validateDoc(v, doc?.paidMinor ?? 0n);
     if (code) return setError(c[`${code}Error` as keyof typeof c] as string);
     const owed =

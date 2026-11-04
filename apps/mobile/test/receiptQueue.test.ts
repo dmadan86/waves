@@ -449,6 +449,17 @@ describe('resuming an interrupted upload', () => {
     expect(fresh.getPendingReceiptsSnapshot()[0]?.status).toBe('sent');
   });
 
+  it('re-seals instead of trusting a sealed copy whose write was cut short', async () => {
+    parkOnDisk();
+    fs.files.set(pendingPath('a1.jpg.enc'), new TextEncoder().encode('v1:trunc'));
+    const { listPendingReceipts } = await import('../src/lib/receiptQueue');
+
+    await listPendingReceipts();
+
+    expect(fs.files.has(pendingPath('a1.jpg'))).toBe(false);
+    expect([...(await readBack('a1.jpg'))]).toEqual([1, 2, 3]);
+  });
+
   it('says a capture is sending while it is in the air', async () => {
     parkOnDisk();
     let statusMidUpload: string | undefined;
