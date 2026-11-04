@@ -502,7 +502,9 @@ export default function HomeScreen() {
           ) : list.length === 0 ? (
             // The one screen where somebody has nothing to act on yet gets the
             // action spelled out.
-            <View style={{ alignItems: 'center', gap: theme.spacing.sm, paddingTop: theme.spacing.xl }}>
+            <View
+              style={{ alignItems: 'center', gap: theme.spacing.sm, paddingTop: theme.spacing.xl }}
+            >
               <Text variant="heading" accessibilityRole="header" align="center">
                 {t.tabs.noGroups}
               </Text>
@@ -560,93 +562,93 @@ export default function HomeScreen() {
               />
               {/* Divided rows on the page itself, not a card. */}
               <View>
-            {list.slice(0, GROUPS_PREVIEW).map((group, index) => {
-              const members = summary.membersFor(group.id);
-              const balance = summary.balanceFor(group.id);
-              // A running trip earns a live "on trip" tag; failing that, a
-              // just-made group wears "New" for its first couple of days.
-              // The demo group outranks both — it is never "New" and
-              // never genuinely "on trip", and it needs to read as
-              // what it is before anything else about the row does.
-              const onTrip = ongoingTripIds.has(group.id);
-              const isNew = nowMs - Date.parse(group.created_at) < NEW_GROUP_WINDOW_MS;
-              const tag = group.isDemo
-                ? t.demo.badge
-                : onTrip
-                  ? t.tagOnTrip
-                  : isNew
-                    ? t.tagNew
-                    : null;
-              return (
-                <Fragment key={group.id}>
-                  <GroupRow
-                    title={groupLabel(group, members, viewerId)}
-                    memberLabel={plural(
-                      locale,
-                      summary.memberCountFor(group.id),
-                      t.memberCount,
-                    )}
-                    draftLabel={
-                      draftsByGroup.has(group.id)
-                        ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
-                        : null
-                    }
-                    coverEmoji={group.cover_emoji}
-                    coverColor={group.cover_color}
-                    groupType={group.type}
-                    eventTemplate={group.event_template}
-                    customTag={group.custom_tag}
-                    balance={balance}
-                    currency={group.default_currency}
-                    locale={locale}
-                    statusLabel={
-                      balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
-                    }
-                    directionLabel={
-                      balance === 0n
-                        ? t.group.rowSettled
-                        : balance > 0n
-                          ? t.group.rowOwed
-                          : t.group.rowYouOwe
-                    }
-                    pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
-                    tag={tag}
-                    isDemo={group.isDemo === true}
-                    tagTone={group.isDemo ? 'warning' : onTrip ? 'positive' : 'brand'}
-                    divider={index > 0}
-                    // The eye in the hero shuts the whole screen's money, not
-                    // just the headline: masking one figure while twelve sit
-                    // uncovered below it is privacy theatre. Masked too until
-                    // the saved preference has loaded — `balanceHidden` starts
-                    // false while AsyncStorage resolves, so without the
-                    // `!balanceReady` guard a hidden balance flashes in plain
-                    // before the eye's state lands. The hero is already gated
-                    // this way upstream (it shows its skeleton until ready).
-                    hidden={balanceHidden || !balanceReady}
-                    // The just-imported group slides and fades into place
-                    // rather than blinking in under the success banner.
-                    enter={group.id === justAddedId}
-                    // Its balance materialises a beat after the group row does,
-                    // so mask the amount until the ledger lands rather than show
-                    // a confident wrong ₹0 that then jumps to the real figure.
-                    pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
-                    onPress={() => router.push(`/group/${group.id}`)}
-                    unread={unreadGroups.has(group.id)}
-                  />
-                  {/* One native card inside the list (>= 10 groups), never on the row that is sliding in. */}
-                  {homeAdSlot === index + 1 && justAddedId == null ? (
-                    <View style={{ paddingHorizontal: theme.spacing.sm }}>
-                      <AdSlot
-                        handle={homeAds}
-                        format="native"
-                        slot={index + 1}
-                        rowGap={theme.spacing.sm}
+                {list.slice(0, GROUPS_PREVIEW).map((group, index) => {
+                  const members = summary.membersFor(group.id);
+                  const balance = summary.balanceFor(group.id);
+                  // A running trip earns a live "on trip" tag; failing that, a
+                  // just-made group wears "New" for its first couple of days.
+                  // The demo group outranks both — it is never "New" and
+                  // never genuinely "on trip", and it needs to read as
+                  // what it is before anything else about the row does.
+                  const onTrip = ongoingTripIds.has(group.id);
+                  const isNew = nowMs - Date.parse(group.created_at) < NEW_GROUP_WINDOW_MS;
+                  const tag = group.isDemo
+                    ? t.demo.badge
+                    : onTrip
+                      ? t.tagOnTrip
+                      : isNew
+                        ? t.tagNew
+                        : null;
+                  return (
+                    <Fragment key={group.id}>
+                      <GroupRow
+                        title={groupLabel(group, members, viewerId)}
+                        memberLabel={plural(
+                          locale,
+                          summary.memberCountFor(group.id),
+                          t.memberCount,
+                        )}
+                        draftLabel={
+                          draftsByGroup.has(group.id)
+                            ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
+                            : null
+                        }
+                        coverEmoji={group.cover_emoji}
+                        coverColor={group.cover_color}
+                        groupType={group.type}
+                        eventTemplate={group.event_template}
+                        customTag={group.custom_tag}
+                        balance={balance}
+                        currency={group.default_currency}
+                        locale={locale}
+                        statusLabel={
+                          balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
+                        }
+                        directionLabel={
+                          balance === 0n
+                            ? t.group.rowSettled
+                            : balance > 0n
+                              ? t.group.rowOwed
+                              : t.group.rowYouOwe
+                        }
+                        pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
+                        tag={tag}
+                        isDemo={group.isDemo === true}
+                        tagTone={group.isDemo ? 'warning' : onTrip ? 'positive' : 'brand'}
+                        divider={index > 0}
+                        // The eye in the hero shuts the whole screen's money, not
+                        // just the headline: masking one figure while twelve sit
+                        // uncovered below it is privacy theatre. Masked too until
+                        // the saved preference has loaded — `balanceHidden` starts
+                        // false while AsyncStorage resolves, so without the
+                        // `!balanceReady` guard a hidden balance flashes in plain
+                        // before the eye's state lands. The hero is already gated
+                        // this way upstream (it shows its skeleton until ready).
+                        hidden={balanceHidden || !balanceReady}
+                        // The just-imported group slides and fades into place
+                        // rather than blinking in under the success banner.
+                        enter={group.id === justAddedId}
+                        // Its balance materialises a beat after the group row does,
+                        // so mask the amount until the ledger lands rather than show
+                        // a confident wrong ₹0 that then jumps to the real figure.
+                        pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
+                        onPress={() => router.push(`/group/${group.id}`)}
+                        unread={unreadGroups.has(group.id)}
                       />
-                    </View>
-                  ) : null}
-                </Fragment>
-              );
-            })}
+                      {/* One native card inside the list (>= 10 groups), never on the row that is sliding in. */}
+                      {homeAdSlot === index + 1 && justAddedId == null ? (
+                        <View style={{ paddingHorizontal: theme.spacing.sm }}>
+                          <AdSlot
+                            handle={homeAds}
+                            format="native"
+                            slot={index + 1}
+                            rowGap={theme.spacing.sm}
+                          />
+                        </View>
+                      ) : null}
+                    </Fragment>
+                  );
+                })}
               </View>
             </View>
           )}
