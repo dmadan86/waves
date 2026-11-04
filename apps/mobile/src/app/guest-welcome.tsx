@@ -165,7 +165,7 @@ export default function GuestWelcomeScreen() {
               disabled={busy}
               onPress={() => void onContinue()}
               style={({ pressed }) => ({
-                borderRadius: 30,
+                borderRadius: 16,
                 opacity: pressed ? 0.88 : 1,
                 shadowColor: VIOLET,
                 shadowOpacity: 0.45,
@@ -180,7 +180,7 @@ export default function GuestWelcomeScreen() {
                 end={{ x: 1, y: 1 }}
                 style={{
                   height: 58,
-                  borderRadius: 30,
+                  borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}

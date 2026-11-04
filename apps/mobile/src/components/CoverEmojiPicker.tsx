@@ -65,7 +65,7 @@ function CoverPreview({ value, color }: { value: string | null; color: string | 
         style={{
           width: 76,
           height: 76,
-          borderRadius: 26,
+          borderRadius: 16,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: tile.backgroundColor,
@@ -495,7 +495,7 @@ function QuickIconGrid({
               style={{
                 width: 58,
                 height: 58,
-                borderRadius: 18,
+                borderRadius: 12,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: quickTileBackground(quick.color, dark),
@@ -595,7 +595,7 @@ function CloudPreview({
   const cloud = dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)';
   const blob = dark ? 'rgba(124,111,240,0.16)' : 'rgba(124,111,240,0.12)';
   return (
-    <View style={{ borderRadius: 22, overflow: 'hidden' }}>
+    <View style={{ borderRadius: 12, overflow: 'hidden' }}>
       <LinearGradient
         colors={dark ? ['#25233F', '#1B1A2E'] : ['#E9E5FF', '#F7F5FF']}
         style={{ alignItems: 'center', paddingTop: 20, paddingBottom: 14, gap: 8 }}

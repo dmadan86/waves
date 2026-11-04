@@ -1828,7 +1828,7 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 20,
+          borderRadius: 12,
           padding: theme.spacing.md,
           gap: theme.spacing.md,
           shadowColor: '#2A1E6B',
@@ -2006,7 +2006,7 @@ function LinkDriveButton({
         height: 52,
         paddingStart: 8,
         paddingEnd: theme.spacing.md,
-        borderRadius: 26,
+        borderRadius: 16,
         backgroundColor: accent,
         opacity: disabled && !working ? 0.5 : pressed ? 0.85 : 1,
       })}
@@ -2098,7 +2098,7 @@ function ChoiceList<T extends string>({
   const theme = useTheme();
   const { ink, muted, accent, lavender, line } = useBackupInks();
   return (
-    <View style={{ borderWidth: 1, borderColor: line, borderRadius: 16, padding: 4 }}>
+    <View style={{ borderWidth: 1, borderColor: line, borderRadius: 12, padding: 4 }}>
       {choices.map((choice, index) => {
         const chosen = choice.value === value;
         const nextChosen = choices[index + 1]?.value === value;

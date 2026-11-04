@@ -1394,7 +1394,7 @@ function OtherTile({
             <View
               style={{
                 marginStart: -8,
-                borderRadius: 17,
+                borderRadius: 12,
                 borderWidth: 2,
                 borderColor: theme.color.surfaceMuted,
               }}

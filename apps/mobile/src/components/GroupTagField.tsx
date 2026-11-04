@@ -174,7 +174,7 @@ export function GroupTagField({
                 height: 44,
                 paddingVertical: 0,
                 paddingHorizontal: theme.spacing.md,
-                borderRadius: 22,
+                borderRadius: 12,
                 borderWidth: 1.5,
                 borderColor: focused ? theme.color.brand : 'transparent',
                 backgroundColor: theme.color.surfaceMuted,

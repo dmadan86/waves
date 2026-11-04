@@ -50,7 +50,7 @@ function Field({
         gap: theme.spacing.md,
         paddingHorizontal: theme.spacing.sm,
         minHeight: 56,
-        borderRadius: 18,
+        borderRadius: 12,
         backgroundColor: theme.color.surface,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.color.border,

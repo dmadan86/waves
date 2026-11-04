@@ -464,7 +464,7 @@ function BasketArt() {
         style={{
           position: 'absolute',
           inset: 0,
-          borderRadius: 48,
+          borderRadius: 16,
           backgroundColor: theme.color.negativeSoft,
           opacity: 0.6,
         }}

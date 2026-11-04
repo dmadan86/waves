@@ -539,7 +539,7 @@ export function CurrencyRate({
                   style={{
                     flex: 1,
                     height: 40,
-                    borderRadius: 20,
+                    borderRadius: 12,
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -718,7 +718,7 @@ export function CurrencyRate({
               end={{ x: 1, y: 1 }}
               style={{
                 height: 48,
-                borderRadius: 24,
+                borderRadius: 16,
                 alignItems: 'center',
                 justifyContent: 'center',
               }}

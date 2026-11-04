@@ -272,7 +272,7 @@ export default function WelcomeScreen() {
             style={({ pressed }) => ({
               height: 40,
               paddingHorizontal: 16,
-              borderRadius: 20,
+              borderRadius: 12,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
@@ -570,7 +570,7 @@ function SplitChip({
           paddingVertical: 6,
           paddingStart: 6,
           paddingEnd: 10,
-          borderRadius: 16,
+          borderRadius: 12,
           backgroundColor: 'rgba(255,255,255,0.92)',
           shadowColor: '#2A1E6B',
           shadowOpacity: 0.12,
@@ -651,7 +651,7 @@ function WayTile({
       style={({ pressed }) => ({
         flex: 1,
         height: 44,
-        borderRadius: 14,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: LINE,
         backgroundColor: '#FFFFFF',
@@ -677,7 +677,7 @@ function WayTile({
  *  leading edge, the label centred, a chevron trailing. */
 const providerRow = {
   height: 46,
-  borderRadius: 23,
+  borderRadius: 12,
   flexDirection: 'row' as const,
   alignItems: 'center' as const,
   paddingStart: 6,

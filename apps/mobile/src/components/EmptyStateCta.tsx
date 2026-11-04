@@ -74,7 +74,7 @@ export function EmptyStateCta({
           gap: theme.spacing.sm,
           height: 44,
           paddingHorizontal: theme.spacing.xl,
-          borderRadius: 22,
+          borderRadius: 12,
           backgroundColor: accent,
           shadowColor: accent,
           shadowOpacity: 0.3,

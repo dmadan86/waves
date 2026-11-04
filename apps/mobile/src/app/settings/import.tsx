@@ -566,7 +566,7 @@ export default function ImportScreen() {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{
-            borderRadius: 18,
+            borderRadius: 12,
             paddingVertical: 14,
             paddingLeft: 16,
             paddingRight: 8,
@@ -743,7 +743,7 @@ export default function ImportScreen() {
                         gap: 12,
                         height: 48,
                         paddingHorizontal: 14,
-                        borderRadius: 14,
+                        borderRadius: 12,
                         borderWidth: 1,
                         borderColor: line,
                         backgroundColor: theme.color.surface,
@@ -1132,7 +1132,7 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 18,
+          borderRadius: 12,
           padding: 14,
           gap: 10,
           shadowColor: '#2A1E6B',
@@ -1188,7 +1188,7 @@ function PillButton({
       onPress={onPress}
       style={({ pressed }) => ({
         height: 50,
-        borderRadius: 25,
+        borderRadius: 16,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1271,7 +1271,7 @@ function TargetRow({
         gap: 12,
         paddingVertical: 8,
         paddingHorizontal: 8,
-        borderRadius: 14,
+        borderRadius: 12,
         backgroundColor: selected ? lavender : 'transparent',
         opacity: pressed ? 0.8 : 1,
       })}

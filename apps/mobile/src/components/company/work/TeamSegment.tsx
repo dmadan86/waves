@@ -30,7 +30,7 @@ export function TeamSegment({
       style={{
         flexDirection: 'row',
         padding: 4,
-        borderRadius: 20,
+        borderRadius: 12,
         backgroundColor: theme.color.surface,
         shadowColor: '#000',
         shadowOpacity: 0.06,
@@ -56,7 +56,7 @@ export function TeamSegment({
               justifyContent: 'center',
               gap: 4,
               paddingHorizontal: 4,
-              borderRadius: 16,
+              borderRadius: 12,
               backgroundColor: on ? theme.color.brand : 'transparent',
             }}
           >

@@ -30,7 +30,7 @@ export function TintCard({
     <View
       style={[
         {
-          borderRadius: 18,
+          borderRadius: 12,
           padding: 12,
           backgroundColor: withAlpha(ink, 0.09),
           borderWidth: 1,
@@ -83,7 +83,7 @@ export function Skeleton({
   return (
     <View
       accessibilityElementsHidden
-      style={[{ height, flex, borderRadius: 18, backgroundColor: theme.color.surfaceMuted }, style]}
+      style={[{ height, flex, borderRadius: 12, backgroundColor: theme.color.surfaceMuted }, style]}
     />
   );
 }

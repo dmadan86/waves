@@ -104,7 +104,7 @@ export function InquiryTile({
       style={{
         width: 48,
         height: 48,
-        borderRadius: 14,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: look.tileBg,
