@@ -115,7 +115,6 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -991,7 +990,6 @@ export default function BackupSettingsScreen() {
                     <Benefit icon="refresh-outline" label={t.backup.benefitRestore} />
                   </View>
                 </View>
-                <DriveArt />
               </Row>
               <LinkDriveButton
                 label={t.backup.connect}
@@ -1887,75 +1885,6 @@ function Benefit({ icon, label }: { icon: IconName; label: string }) {
       <Ionicons name={icon} size={16} color={muted} />
       <Text style={{ flex: 1, fontSize: 13, color: muted }}>{label}</Text>
     </Row>
-  );
-}
-
-/** The link card's picture: a cloud, a photo and a page on their way into a
- *  Drive disc. Drawn from glyphs, so it themes and costs no asset. */
-function DriveArt() {
-  const theme = useTheme();
-  const dark = theme.scheme === 'dark';
-  return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: 104, height: 128 }}
-    >
-      <Ionicons
-        name="cloud"
-        size={96}
-        color={dark ? '#3A3470' : '#D9D2FB'}
-        style={{ position: 'absolute', top: -6, right: -4 }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          top: 26,
-          left: 6,
-          width: 36,
-          height: 36,
-          borderRadius: 8,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.surface,
-          transform: [{ rotate: '-10deg' }],
-        }}
-      >
-        <Ionicons name="image" size={20} color="#5B8DEF" />
-      </View>
-      <View
-        style={{
-          position: 'absolute',
-          top: 12,
-          left: 36,
-          width: 32,
-          height: 38,
-          borderRadius: 6,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.surface,
-          transform: [{ rotate: '8deg' }],
-        }}
-      >
-        <Ionicons name="document-text" size={18} color="#8C83FF" />
-      </View>
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          right: 4,
-          width: 62,
-          height: 62,
-          borderRadius: 31,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.surface,
-        }}
-      >
-        <MaterialCommunityIcons name="google-drive" size={34} color="#1FA463" />
-      </View>
-    </View>
   );
 }
 

@@ -113,7 +113,6 @@ export default function RedeemScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <GiftArt />
         {granted ? (
           <View style={{ gap: 12, alignItems: 'center' }}>
             <Ionicons name="checkmark-circle" size={44} color={theme.color.positive} />
@@ -248,92 +247,3 @@ export default function RedeemScreen() {
   );
 }
 
-/** The top picture: an open gift box with a starred ticket rising out of it,
- *  a little confetti and two leaves. Drawn from views and glyphs, so it themes
- *  and costs no asset. */
-function GiftArt() {
-  const theme = useTheme();
-  const dark = theme.scheme === 'dark';
-  return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ height: 170, alignItems: 'center', justifyContent: 'flex-end' }}
-    >
-      <View
-        style={{
-          position: 'absolute',
-          bottom: 4,
-          width: 230,
-          height: 36,
-          borderRadius: 115,
-          backgroundColor: dark ? theme.color.surfaceMuted : '#ECE8FC',
-        }}
-      />
-      <Ionicons
-        name="leaf"
-        size={40}
-        color={dark ? '#5A52A8' : '#B9AEF5'}
-        style={{ position: 'absolute', bottom: 18, left: '18%', transform: [{ rotate: '-35deg' }] }}
-      />
-      <Ionicons
-        name="leaf"
-        size={40}
-        color={dark ? '#5A52A8' : '#B9AEF5'}
-        style={{ position: 'absolute', bottom: 18, right: '18%', transform: [{ rotate: '35deg' }] }}
-      />
-      {/* The ticket, half out of the box. */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 18,
-          left: '50%',
-          marginLeft: -20,
-          width: 76,
-          height: 50,
-          borderRadius: 8,
-          backgroundColor: dark ? theme.color.surface : '#FFFFFF',
-          transform: [{ rotate: '-24deg' }],
-          padding: 8,
-          gap: 5,
-        }}
-      >
-        <View style={{ width: 30, height: 4, borderRadius: 2, backgroundColor: '#D6CFFA' }} />
-        <View style={{ width: 24, height: 4, borderRadius: 2, backgroundColor: '#D6CFFA' }} />
-        <View style={{ width: 28, height: 4, borderRadius: 2, backgroundColor: '#D6CFFA' }} />
-        <Ionicons
-          name="star"
-          size={20}
-          color="#F5B82E"
-          style={{ position: 'absolute', right: 8, top: 12 }}
-        />
-      </View>
-      <Ionicons name="gift" size={112} color={dark ? '#8C7FF0' : '#7B63EE'} />
-      <Ionicons
-        name="sparkles"
-        size={16}
-        color="#F5B82E"
-        style={{ position: 'absolute', top: 10, right: '28%' }}
-      />
-      <Ionicons
-        name="star"
-        size={12}
-        color="#F5B82E"
-        style={{ position: 'absolute', top: 58, right: '26%' }}
-      />
-      <View
-        style={{
-          position: 'absolute',
-          top: 34,
-          right: '31%',
-          width: 5,
-          height: 12,
-          borderRadius: 2,
-          backgroundColor: '#7B63EE',
-          transform: [{ rotate: '40deg' }],
-        }}
-      />
-    </View>
-  );
-}
