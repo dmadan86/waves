@@ -758,6 +758,18 @@ describe('a capture that does not go up', () => {
     expect(world.put).not.toHaveBeenCalled();
     expect(await storedQueue()).toEqual([]);
   });
+
+  it('drops a sealed capture no key can open instead of retrying it forever', async () => {
+    storage.data.set(QUEUE_KEY, JSON.stringify([entryFor()]));
+    fs.dirs.add('document-root/pending-receipts');
+    fs.files.set(pendingPath('a1.jpg.enc'), new TextEncoder().encode('v1:sealed-by-another-key'));
+
+    await flushReceiptQueue();
+
+    expect(world.put).not.toHaveBeenCalled();
+    expect(await storedQueue()).toEqual([]);
+    expect(has('a1.jpg')).toBe(false);
+  });
 });
 
 describe('a capture parked while a flush is running', () => {

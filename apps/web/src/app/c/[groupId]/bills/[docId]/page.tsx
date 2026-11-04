@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { Suspense, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 
 import {
@@ -39,6 +39,14 @@ import { memberName, todayIso, useCompanyView } from '@/lib/company/view';
 import { NO_QUEUE, useSync } from '@/lib/sync';
 
 export default function CompanyBillPage() {
+  return (
+    <Suspense fallback={null}>
+      <BillPage />
+    </Suspense>
+  );
+}
+
+function BillPage() {
   const { groupId, docId } = useParams<{ groupId: string; docId: string }>();
   const router = useRouter();
   const view = useCompanyDocs(groupId);
@@ -48,6 +56,10 @@ export default function CompanyBillPage() {
   const c = t.company.docs;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  // Set by the bill form when the first payment did not come back as saved.
+  const search = useSearchParams();
+  const unsureText = search.get('payment') === 'failed' ? (search.get('amount') ?? '') : '';
+  const unsure = /^\d+$/.test(unsureText) ? BigInt(unsureText) : null;
   const [recording, setRecording] = useState(false);
   const [amountText, setAmountText] = useState('');
   const [paidOn, setPaidOn] = useState(todayIso());
@@ -146,7 +158,7 @@ export default function CompanyBillPage() {
           ownerMemberId: client.ownerMemberId,
           stage: 'quoted',
           lostReason: null,
-        }).catch(() => undefined);
+        });
     });
 
   const convert = () =>
@@ -180,6 +192,7 @@ export default function CompanyBillPage() {
       });
       setRecording(false);
       setAmountText('');
+      if (unsure !== null) router.replace(`${base}/${doc.id}`);
     });
 
   const print = () => {
@@ -307,7 +320,7 @@ export default function CompanyBillPage() {
                 disabled={busy}
                 onClick={() => {
                   setError('');
-                  setAmountText(formatMinorInput(due, currency));
+                  setAmountText(formatMinorInput(unsure ?? due, currency));
                   setRecording(true);
                 }}
               >
@@ -375,6 +388,11 @@ export default function CompanyBillPage() {
         <p className="faint">{c.upiNeed}</p>
       ) : null}
 
+      {unsure !== null ? (
+        <p className="error" role="alert">
+          {fill(c.paymentNotRecorded, { amount: fmt(unsure) })}
+        </p>
+      ) : null}
       {error ? (
         <p className="error" role="alert">
           {error}
