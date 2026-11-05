@@ -3,6 +3,23 @@ import type { CompanyWorkSetPayload, TaskPriority } from '@waves/core';
 
 import type { MirrorWorkTask } from './workday';
 
+export type EmptyTasks =
+  { kind: 'search' } | { kind: 'mine'; blockedInTeam: number } | { kind: 'none' };
+/** Why the task list is empty: a search, "mine" hiding the team's tasks, or truly nothing. */
+export function emptyTasksState(options: {
+  search: string;
+  scope: 'mine' | 'team';
+  teamTasks: readonly { status: string }[];
+}): EmptyTasks {
+  if (options.search.trim()) return { kind: 'search' };
+  if (options.scope === 'mine' && options.teamTasks.length > 0)
+    return {
+      kind: 'mine',
+      blockedInTeam: options.teamTasks.filter((task) => task.status === 'blocked').length,
+    };
+  return { kind: 'none' };
+}
+
 export type WorkMode = 'date' | 'person';
 export interface WorkSection {
   key: string;

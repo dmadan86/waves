@@ -21,7 +21,13 @@ import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
 import { useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
-import { filterWork, groupWorkTasks, maxTaskDay, type WorkMode } from '@/lib/companyWork';
+import {
+  emptyTasksState,
+  filterWork,
+  groupWorkTasks,
+  maxTaskDay,
+  type WorkMode,
+} from '@/lib/companyWork';
 import { WorkTaskSections } from './WorkTaskSections';
 import { AddTaskSheet } from './AddTaskSheet';
 import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
@@ -248,6 +254,18 @@ export default function DailyWorkView({
                   siteName={(projectId) =>
                     projects.find((project) => project.id === projectId)?.name ?? ''
                   }
+                  empty={emptyTasksState({
+                    search: query,
+                    scope,
+                    teamTasks: tasks.filter(
+                      (task) =>
+                        allowedPerson(task.memberId) ||
+                        (access.isEmployee && task.memberId === access.me?.id),
+                    ),
+                  })}
+                  query={query}
+                  onShowTeam={() => setScope('team')}
+                  onAdd={access.canManage && access.people.length > 0 ? openAdd : undefined}
                 />
               </>
             )}

@@ -5,6 +5,7 @@ import {
   addTaskPayloads,
   advanceWorkStatus,
   countWork,
+  emptyTasksState,
   formatWorkTime,
   filterWork,
   groupWorkTasks,
@@ -180,5 +181,20 @@ describe('task priority', () => {
         'Late · {date}',
       ),
     ).toBe('Today');
+  });
+});
+
+describe('emptyTasksState', () => {
+  const team = [{ status: 'todo' }, { status: 'blocked' }, { status: 'blocked' }];
+  it('a search wins', () =>
+    expect(emptyTasksState({ search: ' x ', scope: 'mine', teamTasks: team }).kind).toBe('search'));
+  it('mine hides team tasks and counts their blocked', () =>
+    expect(emptyTasksState({ search: '', scope: 'mine', teamTasks: team })).toEqual({
+      kind: 'mine',
+      blockedInTeam: 2,
+    }));
+  it('truly nothing', () => {
+    expect(emptyTasksState({ search: '', scope: 'mine', teamTasks: [] }).kind).toBe('none');
+    expect(emptyTasksState({ search: '', scope: 'team', teamTasks: team }).kind).toBe('none');
   });
 });
