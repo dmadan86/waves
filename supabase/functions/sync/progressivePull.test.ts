@@ -11,7 +11,12 @@ const ME = 'me';
 const id = (n: number) => `00000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
 
 function stub(seqs: Record<string, number>) {
-  const rows = Object.entries(seqs).map(([gid, updated_seq]) => ({ id: gid, updated_seq }));
+  const rows = Object.entries(seqs).map(([gid, updated_seq]) => ({
+    id: gid,
+    updated_seq,
+    // ordering is by updated_at (seq is per-group), higher n = newer
+    updated_at: new Date(2026, 0, 1 + (updated_seq % 100)).toISOString(),
+  }));
   return {
     from: (table: string) => {
       const b: Record<string, unknown> = {};

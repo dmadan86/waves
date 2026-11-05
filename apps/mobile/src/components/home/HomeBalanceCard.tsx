@@ -157,7 +157,7 @@ export function HomeBalanceCard({
             currency={currency}
             locale={locale}
             hidden={hidden}
-            loading={loading}
+            loading={loading || !!catchUp}
           />
           <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
           <BalanceSide
@@ -171,7 +171,7 @@ export function HomeBalanceCard({
             currency={currency}
             locale={locale}
             hidden={hidden}
-            loading={loading}
+            loading={loading || !!catchUp}
             trailing
           />
         </Row>

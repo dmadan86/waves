@@ -92,10 +92,12 @@ export function catchUpProgress(
   memberOf: readonly string[] | undefined,
   hasMore: boolean | undefined,
 ): CatchUp | null {
-  if (!hasMore || !memberOf?.length) return null;
+  // One entry per visible member row, so a group appears once per co-member.
+  const groups = [...new Set(memberOf)];
+  if (!hasMore || !groups.length) return null;
   const have = mirror.tables[SyncTable.Groups] ?? {};
-  const loaded = memberOf.filter((id) => id in have).length;
-  return loaded < memberOf.length ? { total: memberOf.length, loaded } : null;
+  const loaded = groups.filter((id) => id in have).length;
+  return loaded < groups.length ? { total: groups.length, loaded } : null;
 }
 
 interface SyncResponseBody {

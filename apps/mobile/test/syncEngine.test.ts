@@ -1531,6 +1531,14 @@ describe('catchUpProgress', () => {
     });
   });
 
+  it('counts a group once however many member rows it has', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a']), ['a', 'a', 'b', 'b'], true)).toEqual({
+      total: 2,
+      loaded: 1,
+    });
+  });
+
   it('is null when done, complete, or the server said nothing', async () => {
     const { catchUpProgress } = await import('../src/sync/engine');
     expect(catchUpProgress(mirror(['a']), ['a', 'b'], false)).toBeNull();

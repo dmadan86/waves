@@ -2490,9 +2490,11 @@ export async function pull(
   const isFresh = (id: string) => !cursors[id];
   const fresh = groupList
     .filter((id) => isFresh(id) && !mustInclude.has(id) && groupRows.has(id))
+    // updated_seq is a per-group counter, so only updated_at compares across groups.
     .sort(
       (a, b) =>
-        Number(groupRows.get(b)?.updated_seq ?? 0) - Number(groupRows.get(a)?.updated_seq ?? 0),
+        Date.parse(String(groupRows.get(b)?.updated_at ?? 0)) -
+        Date.parse(String(groupRows.get(a)?.updated_at ?? 0)),
     );
   const leftOut = new Set(fresh.slice(FRESH_GROUPS_PER_PULL));
   if (leftOut.size > 0) {
