@@ -55,6 +55,15 @@ export function codeFor(secret: string | null, nowMs: number): string | null {
   return bytes ? totpNow(bytes, nowMs) : null;
 }
 
+/** Body for authenticator `start`: the server wants a current code from an existing factor, which this phone can make. */
+export async function authenticatorStartBody(
+  profileId: string,
+  nowMs: number = Date.now(),
+): Promise<{ action: 'start'; code?: string }> {
+  const code = codeFor(await readSecret(profileId), nowMs);
+  return code ? { action: 'start', code } : { action: 'start' };
+}
+
 /** The `{ code }` of an edge-function error body, if it has one. */
 export async function functionErrorCode(error: unknown): Promise<string | null> {
   const context = (error as { context?: Response }).context;

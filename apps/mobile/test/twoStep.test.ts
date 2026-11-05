@@ -15,7 +15,7 @@ vi.mock('expo-secure-store', () => ({
 vi.mock('@/lib/backend', () => ({ backend: { functions: { invoke: h.invoke } } }));
 vi.mock('@/lib/appCheck', () => ({ limitedUseAppCheckToken: h.token }));
 
-const { trustThisPhone, codeFor } = await import('@/lib/twoStep');
+const { trustThisPhone, codeFor, authenticatorStartBody } = await import('@/lib/twoStep');
 const { base32Encode, totpNow, totpSecondsLeft } = await import('@waves/core');
 
 const SECRET = base32Encode(new Uint8Array(20).fill(7));
@@ -40,6 +40,18 @@ describe('code and countdown', () => {
     expect(codeFor(null, now)).toBeNull();
     expect(totpSecondsLeft(now)).toBeGreaterThanOrEqual(1);
     expect(totpSecondsLeft(now)).toBeLessThanOrEqual(30);
+  });
+});
+
+describe('authenticatorStartBody', () => {
+  it("sends the phone's own current code, or nothing without a secret", async () => {
+    const now = 1_700_000_000_000;
+    expect(await authenticatorStartBody('me', now)).toEqual({ action: 'start' });
+    h.store.set(KEY, SECRET);
+    expect(await authenticatorStartBody('me', now)).toEqual({
+      action: 'start',
+      code: totpNow(new Uint8Array(20).fill(7), now),
+    });
   });
 });
 
