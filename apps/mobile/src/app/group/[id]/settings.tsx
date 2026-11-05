@@ -30,6 +30,7 @@ import {
 
 import { format, money, type CurrencyCode } from '@waves/core';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { CompanyLogoField } from '@/components/company/CompanyLogoField';
 import { AgentAccessSection } from '@/components/company/AgentAccessSection';
@@ -134,7 +135,7 @@ interface MemberAction {
 
 const ARCHIVE_ART = require('../../../../assets/images/archive-group-art.webp') as number;
 
-export default function GroupSettingsScreen() {
+function GroupSettingsScreen() {
   const theme = useTheme();
   // This screen renders under the persistent bottom nav, so it must pad for the
   // bar, not just the system inset — with the plain inset the last of the exit
@@ -1201,7 +1202,7 @@ export default function GroupSettingsScreen() {
                           gap: theme.spacing.sm,
                           paddingHorizontal: theme.spacing.md,
                           height: 40,
-                          borderRadius: theme.radius.sm,
+                          borderRadius: theme.radius.pill,
                           backgroundColor: theme.color.brandSoft,
                         }}
                       >
@@ -1401,7 +1402,7 @@ export default function GroupSettingsScreen() {
                       alignItems: 'center',
                       gap: theme.spacing.sm,
                       paddingHorizontal: theme.spacing.lg,
-                      borderRadius: theme.radius.sm,
+                      borderRadius: theme.radius.pill,
                       backgroundColor: theme.color.brandSoft,
                     }}
                   >
@@ -1465,7 +1466,7 @@ export default function GroupSettingsScreen() {
                               style={{
                                 paddingHorizontal: theme.spacing.md,
                                 paddingVertical: 4,
-                                borderRadius: theme.radius.sm,
+                                borderRadius: theme.radius.pill,
                                 backgroundColor: theme.color.brandSoft,
                               }}
                             >
@@ -1482,7 +1483,7 @@ export default function GroupSettingsScreen() {
                               style={{
                                 paddingHorizontal: theme.spacing.md,
                                 paddingVertical: 4,
-                                borderRadius: theme.radius.sm,
+                                borderRadius: theme.radius.pill,
                                 backgroundColor: theme.color.brand,
                               }}
                             >
@@ -2041,3 +2042,5 @@ export default function GroupSettingsScreen() {
     </View>
   );
 }
+
+export default withScenicGroup(GroupSettingsScreen);

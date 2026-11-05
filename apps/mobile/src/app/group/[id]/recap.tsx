@@ -27,6 +27,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { displayName } from '@/data/types';
 import { useGroup } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
@@ -35,7 +36,7 @@ import { useStrings, fill } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 
-export default function RecapScreen() {
+function RecapScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -239,3 +240,5 @@ function RecapRow({
     </Row>
   );
 }
+
+export default withScenicGroup(RecapScreen);

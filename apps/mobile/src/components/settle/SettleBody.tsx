@@ -917,7 +917,7 @@ function PayPill({
       style={({ pressed }) => ({
         height: 32,
         paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.sm,
+        borderRadius: theme.radius.pill,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: tinted
@@ -1001,7 +1001,7 @@ function FilterPill({
         maxWidth: 190,
         height: 34,
         paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.sm,
+        borderRadius: theme.radius.pill,
         backgroundColor: theme.color.brandSoft,
       }}
     >
@@ -1036,7 +1036,7 @@ function FilterChip({
         paddingHorizontal: theme.spacing.md,
         height: 32,
         justifyContent: 'center',
-        borderRadius: theme.radius.sm,
+        borderRadius: theme.radius.pill,
         backgroundColor: selected ? theme.color.brand : theme.color.surfaceMuted,
       }}
     >
@@ -1394,7 +1394,7 @@ function OtherTile({
             <View
               style={{
                 marginStart: -8,
-                borderRadius: 12,
+                borderRadius: 17,
                 borderWidth: 2,
                 borderColor: theme.color.surfaceMuted,
               }}

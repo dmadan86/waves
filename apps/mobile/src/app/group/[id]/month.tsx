@@ -24,15 +24,16 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { EmptyState, Text, useTheme } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { CategoryBadge } from '@/components/Category';
 import {
   ListRow,
-  SCENIC_OVERLAP,
   ScenicHeader,
   SectionHeader,
   SegmentedPills,
   StandardCard,
   StatCard,
+  useScenicOverlap,
 } from '@/components/standard';
 import { memberLookup, useGroup } from '@/data/hooks';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -60,7 +61,7 @@ function myShare(shares: { member_id: string; amount: string }[], memberId: stri
     .reduce((sum, share) => sum + BigInt(share.amount), 0n);
 }
 
-export default function SpendingMonthScreen() {
+function SpendingMonthScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -218,6 +219,7 @@ export default function SpendingMonthScreen() {
     </View>
   );
 
+  const overlap = useScenicOverlap();
   const header = (
     <>
       <ScenicHeader title={monthTitle}>
@@ -232,7 +234,7 @@ export default function SpendingMonthScreen() {
       </ScenicHeader>
       <View
         style={{
-          marginTop: -SCENIC_OVERLAP,
+          marginTop: -overlap,
           paddingHorizontal: theme.spacing.lg,
           marginBottom: theme.spacing.xl,
         }}
@@ -293,3 +295,5 @@ export default function SpendingMonthScreen() {
     </View>
   );
 }
+
+export default withScenicGroup(SpendingMonthScreen);

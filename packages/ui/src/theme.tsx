@@ -13,6 +13,7 @@ import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 
 import { darkTheme, lightTheme, type Theme, type TintPair } from './themes';
+import { scenic } from './tokens';
 
 export type { Theme, TintPair };
 
@@ -32,6 +33,37 @@ export function ThemeProvider({
   }, [forceScheme, systemScheme]);
 
   return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>;
+}
+
+const scenicCache = new WeakMap<Theme, Theme>();
+
+function scenicOf(theme: Theme): Theme {
+  const cached = scenicCache.get(theme);
+  if (cached) return cached;
+  const made: Theme = {
+    ...theme,
+    scenic: true,
+    radius: scenic.radius,
+    typography: scenic.typography,
+    shadow: { ...theme.shadow, soft: scenic.shadowSoft },
+    color:
+      theme.scheme === 'light'
+        ? { ...theme.color, bg: scenic.bg, border: scenic.border }
+        : theme.color,
+  };
+  scenicCache.set(theme, made);
+  return made;
+}
+
+/**
+ * Serves the pre-redesign look (bigger radii, soft shadow, larger type, vivid
+ * gradients) to a subtree. Wrap the personal social screens in it; the rest of
+ * the app keeps the calm tokens.
+ */
+export function ScenicTheme({ children }: { children: ReactNode }) {
+  const parent = useContext(ThemeContext);
+  const value = useMemo(() => scenicOf(parent), [parent]);
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme(): Theme {
