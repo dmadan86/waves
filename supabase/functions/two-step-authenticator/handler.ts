@@ -1,6 +1,6 @@
 /**
  * two-step-authenticator: add Google Authenticator (or any TOTP app) as a backup, from an already verified session.
- * `start` mints a pending secret and returns it with its otpauth:// link; `confirm` activates it once a code from the
+ * `start` (with a current code when a factor already exists) mints a pending secret and returns it with its otpauth:// link; `confirm` activates it once a code from the
  * app matches (the same atomic attempt, so misses count toward the lock).
  */
 
@@ -38,6 +38,26 @@ export async function handleTwoStepAuthenticator(
     }
 
     if (body.action === 'start') {
+      // A marked session alone must not swap the person's factors: with any active secret, prove a current code first.
+      const active = (await loadSecrets(service, profileId)).filter((row) => row.active);
+      if (active.length > 0) {
+        if (body.code === undefined || body.code === null || body.code === '') {
+          throw new HttpError(
+            403,
+            'CODE_REQUIRED',
+            'Enter the code from your Waves app or authenticator',
+          );
+        }
+        const proof = await attemptCode(deps, service, {
+          profileId,
+          sessionId,
+          kind: 'phone',
+          deviceId: null,
+          code: readCode(body.code),
+          candidates: active,
+        });
+        if (proof !== 'ok') throw codeRefusal(proof);
+      }
       const del = await service
         .from('two_step_secrets')
         .delete()

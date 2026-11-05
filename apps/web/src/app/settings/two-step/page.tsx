@@ -20,6 +20,8 @@ function Setup() {
   const router = useRouter();
   const [start, setStart] = useState<{ secret: string; uri: string } | null>(null);
   const [code, setCode] = useState('');
+  const [needProof, setNeedProof] = useState(false);
+  const [proof, setProof] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
@@ -35,7 +37,11 @@ function Setup() {
       router.replace('/auth/two-step?next=/settings/two-step');
     } else {
       if (known === 'NO_PENDING') setStart(null);
-      setError(known === 'BAD_CODE' ? s.badCode : known === 'NO_PENDING' ? s.noPending : s.failed);
+      if (known === 'CODE_REQUIRED') setNeedProof(true);
+      else
+        setError(
+          known === 'BAD_CODE' ? s.badCode : known === 'NO_PENDING' ? s.noPending : s.failed,
+        );
     }
     return null;
   }
@@ -59,18 +65,35 @@ function Setup() {
           {done ? (
             <p>{s.done}</p>
           ) : !start ? (
-            <button
-              type="button"
-              className="btn"
-              disabled={busy}
-              onClick={() =>
-                void run({ action: 'start' }, (d) =>
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                void run({ action: 'start', ...(needProof ? { code: proof } : {}) }, (d) =>
                   setStart({ secret: d.secret ?? '', uri: d.uri ?? '' }),
-                )
-              }
+                );
+              }}
             >
-              {s.start}
-            </button>
+              {needProof ? (
+                <>
+                  <p>{s.proveIntro}</p>
+                  <input
+                    aria-label={s.codeLabel}
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={proof}
+                    onChange={(event) => setProof(event.target.value.replace(/\D/g, ''))}
+                  />
+                </>
+              ) : null}
+              <button
+                type="submit"
+                className="btn"
+                disabled={busy || (needProof && proof.length !== 6)}
+              >
+                {s.start}
+              </button>
+            </form>
           ) : (
             <form
               onSubmit={(event) => {

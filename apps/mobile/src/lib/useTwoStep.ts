@@ -5,7 +5,12 @@ import { useFlagEnabled } from '@/lib/flags';
 import { useViewerId } from '@/lib/auth';
 import { backend } from '@/lib/backend';
 import { deviceId } from '@/lib/device';
-import { functionErrorCode, trustThisPhone, type TrustResult } from '@/lib/twoStep';
+import {
+  authenticatorStartBody,
+  functionErrorCode,
+  trustThisPhone,
+  type TrustResult,
+} from '@/lib/twoStep';
 import { syncEngine } from '@/sync';
 
 export interface TwoStepStatus {
@@ -58,9 +63,11 @@ export function useTrustPhone() {
   );
 }
 
-export async function startAuthenticator(): Promise<{ secret: string; uri: string }> {
+export async function startAuthenticator(
+  profileId: string,
+): Promise<{ secret: string; uri: string }> {
   const { data, error } = await backend.functions.invoke('two-step-authenticator', {
-    body: { action: 'start' },
+    body: await authenticatorStartBody(profileId),
   });
   if (error) throw new Error((await functionErrorCode(error)) ?? 'FAILED');
   return data as { secret: string; uri: string };
