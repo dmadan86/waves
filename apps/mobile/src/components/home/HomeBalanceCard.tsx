@@ -106,7 +106,9 @@ export function HomeBalanceCard({
               color={theme.color.textMuted}
             />
           </Pressable>
-          {settling || catchUp ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
+          {settling || catchUp ? (
+            <ActivityIndicator size="small" color={theme.color.brand} />
+          ) : null}
         </Row>
         {loading || catchUp ? (
           <Skeleton width={180} height={32} radius={8} />
