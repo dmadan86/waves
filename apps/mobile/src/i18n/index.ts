@@ -1625,6 +1625,11 @@ export interface UiStrings {
     workByDate: string;
     workByPerson: string;
     workOverdue: string;
+    workPriority: string;
+    workPrioNormal: string;
+    workPrioUrgent: string;
+    workPrioVeryUrgent: string;
+    workLateOn: string;
     workOpenN: string;
     workDoneN: string;
     workSiteFilter: string;
@@ -9281,6 +9286,11 @@ const en: UiStrings = {
     workByDate: 'By date',
     workByPerson: 'By person',
     workOverdue: 'Overdue',
+    workPriority: 'Priority',
+    workPrioNormal: 'Normal',
+    workPrioUrgent: 'Urgent',
+    workPrioVeryUrgent: 'Very urgent',
+    workLateOn: 'Late · {date}',
     workOpenN: '{n} open',
     workDoneN: 'Done · {n}',
     workSiteFilter: 'Site filter',
@@ -9490,7 +9500,7 @@ const en: UiStrings = {
     ovAllMarked: 'All marked',
     ovMarkAttendance: 'Mark attendance',
     ovComingUp: 'Coming up',
-    ovOverdue: 'Overdue',
+    ovOverdue: 'Late',
     ovBlocked: 'Blocked',
     ovPendingPayments: 'Pending payments',
     ovNothingToPay: 'Nothing to pay',
@@ -16406,6 +16416,11 @@ const ta: UiStrings = {
     workByDate: 'தேதிப்படி',
     workByPerson: 'நபர்படி',
     workOverdue: 'தாமதம்',
+    workPriority: 'முன்னுரிமை',
+    workPrioNormal: 'சாதாரண',
+    workPrioUrgent: 'அவசரம்',
+    workPrioVeryUrgent: 'மிக அவசரம்',
+    workLateOn: 'தாமதம் · {date}',
     workOpenN: '{n} திறந்தவை',
     workDoneN: 'முடிந்தவை · {n}',
     workSiteFilter: 'பணித்தள வடிகட்டி',
@@ -23701,6 +23716,11 @@ const hi: UiStrings = {
     workByDate: 'तारीख के अनुसार',
     workByPerson: 'व्यक्ति के अनुसार',
     workOverdue: 'देरी',
+    workPriority: 'प्राथमिकता',
+    workPrioNormal: 'सामान्य',
+    workPrioUrgent: 'ज़रूरी',
+    workPrioVeryUrgent: 'बहुत ज़रूरी',
+    workLateOn: 'देरी · {date}',
     workOpenN: '{n} खुले',
     workDoneN: 'पूरे · {n}',
     workSiteFilter: 'साइट फ़िल्टर',
@@ -30892,6 +30912,11 @@ const ar: UiStrings = {
     workByDate: 'حسب التاريخ',
     workByPerson: 'حسب الشخص',
     workOverdue: 'متأخرة',
+    workPriority: 'الأولوية',
+    workPrioNormal: 'عادية',
+    workPrioUrgent: 'عاجلة',
+    workPrioVeryUrgent: 'عاجلة جداً',
+    workLateOn: 'متأخرة · {date}',
     workOpenN: '{n} مفتوحة',
     workDoneN: 'منجزة · {n}',
     workSiteFilter: 'تصفية الموقع',
