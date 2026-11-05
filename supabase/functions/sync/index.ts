@@ -1116,7 +1116,16 @@ export class SyncSession {
         const status = mutation.payload.status;
         if (status !== 'todo' && status !== 'doing' && status !== 'done' && status !== 'blocked')
           companyInvalid('status');
-        return await this.rpcAsCaller('waves_company_work_set', {
+        // priority is its own call (the writer's overloads can't take another optional); absent (an older client) keeps the saved one.
+        const priority = mutation.payload.priority;
+        if (
+          priority !== undefined &&
+          priority !== 'normal' &&
+          priority !== 'urgent' &&
+          priority !== 'very_urgent'
+        )
+          companyInvalid('priority');
+        const written = await this.rpcAsCaller('waves_company_work_set', {
           p_group_id: mutation.groupId,
           p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
@@ -1137,6 +1146,13 @@ export class SyncSession {
                 p_client_id: companyUuid(mutation.payload.clientId, 'clientId', true),
               }),
         });
+        if (priority !== undefined)
+          await this.rpcAsCaller('waves_company_work_priority_set', {
+            p_group_id: mutation.groupId,
+            p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+            p_priority: priority,
+          });
+        return written;
       }
       case 'company_work.remove':
         return await this.rpcAsCaller('waves_company_work_remove', {

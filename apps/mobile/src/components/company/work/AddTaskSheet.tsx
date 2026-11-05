@@ -29,6 +29,8 @@ import {
   type AddTaskError,
 } from '@/lib/companyWork';
 import { useSync } from '@/sync';
+import type { TaskPriority } from '@waves/core';
+import { PriorityPicker } from './PriorityPicker';
 
 const TILE = 96;
 type Panel = 'form' | 'people' | 'date';
@@ -64,6 +66,7 @@ export function AddTaskSheet({
   const [ids, setIds] = useState<string[]>(() => [...defaultMemberIds]);
   const maxDay = maxTaskDay(today);
   const [day, setDay] = useState(today);
+  const [priority, setPriority] = useState<TaskPriority>('normal');
   const [photos, setPhotos] = useState<{ key: string; picked: PickedImage }[]>([]);
   const [problem, setProblem] = useState<Problem>(null);
   const [busy, setBusy] = useState(false);
@@ -109,6 +112,7 @@ export function AddTaskSheet({
       title,
       memberIds: ids,
       day,
+      priority,
       idFor: (memberId) => {
         const known = taskIds.current.get(memberId);
         if (known) return known;
@@ -375,6 +379,11 @@ export function AddTaskSheet({
                 <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
               </Pressable>
             </View>
+          </View>
+
+          <View style={{ gap: theme.spacing.sm }}>
+            {label('flag-outline', t.company.workPriority)}
+            <PriorityPicker value={priority} onChange={setPriority} />
           </View>
 
           <View style={{ gap: theme.spacing.sm }}>

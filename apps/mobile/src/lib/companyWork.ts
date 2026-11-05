@@ -1,4 +1,4 @@
-import type { CompanyWorkSetPayload } from '@waves/core';
+import type { CompanyWorkSetPayload, TaskPriority } from '@waves/core';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
 
 export function countWork(tasks: readonly MirrorWorkTask[]) {
@@ -48,9 +48,30 @@ export interface WorkSection {
 }
 
 const RANK = { blocked: 0, doing: 1, todo: 2, done: 3 } as const;
-/** Blocked, doing, todo, done; then day, due time and title. */
+const PRIORITY_RANK = { very_urgent: 0, urgent: 1, normal: 2 } as const;
+/** Lower sorts first: very urgent, urgent, normal. */
+export const priorityRank = (p: TaskPriority | undefined) => PRIORITY_RANK[p ?? 'normal'];
+/** The mark shown before a title: "!!" very urgent, "!" urgent, nothing for normal. */
+export const priorityMark = (p: TaskPriority | undefined) =>
+  p === 'very_urgent' ? '!!' : p === 'urgent' ? '!' : '';
+/** A not-done task before today. */
+export const isLate = (task: Pick<MirrorWorkTask, 'status' | 'day'>, today: string) =>
+  task.status !== 'done' && task.day < today;
+/** The date line of a task: "Late · <date>" when late (the caller paints it grey, never red). */
+export function workDueText(
+  task: Pick<MirrorWorkTask, 'status' | 'day' | 'dueTime'>,
+  today: string,
+  locale: string,
+  todayLabel: string,
+  lateTemplate: string,
+): string {
+  const text = formatWorkTime(task.day, task.dueTime ?? null, today, locale, todayLabel);
+  return isLate(task, today) ? lateTemplate.replace('{date}', text) : text;
+}
+/** Very urgent, urgent, normal; then blocked, doing, todo, done; then day, due time and title. */
 function compareTasks(a: MirrorWorkTask, b: MirrorWorkTask): number {
   return (
+    priorityRank(a.priority) - priorityRank(b.priority) ||
     RANK[a.status] - RANK[b.status] ||
     a.day.localeCompare(b.day) ||
     (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') ||
@@ -163,6 +184,7 @@ export function addTaskPayloads(input: {
   title: string;
   memberIds: readonly string[];
   day: string;
+  priority?: TaskPriority;
   idFor: (memberId: string) => string;
 }): CompanyWorkSetPayload[] {
   return [...new Set(input.memberIds)].map((memberId) => ({
@@ -175,5 +197,6 @@ export function addTaskPayloads(input: {
     blockedReason: null,
     note: null,
     dueTime: null,
+    priority: input.priority ?? 'normal',
   }));
 }
