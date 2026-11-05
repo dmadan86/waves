@@ -336,7 +336,7 @@ function CompanyWagesScreenInner() {
                   style={{
                     flex: on ? 1.6 : 1,
                     minHeight: 44,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.md,
                     alignItems: 'center',
                     justifyContent: 'center',
                     paddingHorizontal: theme.spacing.sm,
@@ -454,7 +454,7 @@ function CompanyWagesScreenInner() {
                         style={{
                           height: 38,
                           paddingHorizontal: theme.spacing.md,
-                          borderRadius: theme.radius.pill,
+                          borderRadius: theme.radius.sm,
                           flexDirection: 'row',
                           alignItems: 'center',
                           gap: theme.spacing.xs,
@@ -570,7 +570,7 @@ function CompanyWagesScreenInner() {
                                   gap: 3,
                                   paddingHorizontal: 6,
                                   paddingVertical: 1,
-                                  borderRadius: theme.radius.pill,
+                                  borderRadius: theme.radius.sm,
                                   backgroundColor: look.bg,
                                 }}
                               >
@@ -586,7 +586,7 @@ function CompanyWagesScreenInner() {
                                   gap: 3,
                                   paddingHorizontal: 6,
                                   paddingVertical: 1,
-                                  borderRadius: theme.radius.pill,
+                                  borderRadius: theme.radius.sm,
                                   backgroundColor: theme.color.brandSoft,
                                 }}
                               >

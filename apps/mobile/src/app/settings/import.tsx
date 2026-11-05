@@ -24,7 +24,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
@@ -561,20 +560,20 @@ export default function ImportScreen() {
         }}
         showsVerticalScrollIndicator={false}
       >
-        <LinearGradient
-          colors={dark ? [theme.color.surface, theme.color.surface] : ['#FFFFFF', '#F1EEFD']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{
-            borderRadius: 18,
-            paddingVertical: 14,
-            paddingLeft: 16,
-            paddingRight: 8,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            overflow: 'hidden',
-          }}
+        <View
+          style={[
+            { backgroundColor: dark ? theme.color.surface : '#FFFFFF' },
+            {
+              borderRadius: 12,
+              paddingVertical: 14,
+              paddingLeft: 16,
+              paddingRight: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              overflow: 'hidden',
+            },
+          ]}
         >
           <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
             <Text style={{ fontSize: 17, fontWeight: '800', color: ink }}>
@@ -584,8 +583,7 @@ export default function ImportScreen() {
               {t.importLedger.ledgerHowTo}
             </Text>
           </View>
-          <CsvArt />
-        </LinearGradient>
+        </View>
 
         {/* Two ways in, one flow: the file's contents decide the format either
             way (see choose()), so these only set the picker's expectation and
@@ -743,7 +741,7 @@ export default function ImportScreen() {
                         gap: 12,
                         height: 48,
                         paddingHorizontal: 14,
-                        borderRadius: 14,
+                        borderRadius: 12,
                         borderWidth: 1,
                         borderColor: line,
                         backgroundColor: theme.color.surface,
@@ -1132,14 +1130,11 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 18,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          borderRadius: 12,
           padding: 14,
           gap: 10,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
         },
         style,
       ]}
@@ -1188,7 +1183,7 @@ function PillButton({
       onPress={onPress}
       style={({ pressed }) => ({
         height: 50,
-        borderRadius: 25,
+        borderRadius: 12,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
@@ -1271,7 +1266,7 @@ function TargetRow({
         gap: 12,
         paddingVertical: 8,
         paddingHorizontal: 8,
-        borderRadius: 14,
+        borderRadius: 12,
         backgroundColor: selected ? lavender : 'transparent',
         opacity: pressed ? 0.8 : 1,
       })}
@@ -1320,93 +1315,6 @@ function TargetRow({
         />
       )}
     </Pressable>
-  );
-}
-
-/** The hero's picture: a CSV page, a dashed arrow, and the people it becomes.
- *  Drawn from views and glyphs, so it themes and costs no asset. */
-function CsvArt() {
-  const theme = useTheme();
-  const dark = theme.scheme === 'dark';
-  const disc = (color: string, size: number, style: object) => (
-    <View
-      style={[
-        {
-          position: 'absolute',
-          width: size,
-          height: size,
-          borderRadius: size / 2,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: color,
-          borderWidth: 2,
-          borderColor: dark ? theme.color.surface : '#FFFFFF',
-        },
-        style,
-      ]}
-    >
-      <Ionicons name="person" size={size * 0.5} color="#FFFFFF" />
-    </View>
-  );
-  return (
-    <View
-      pointerEvents="none"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: 118, height: 84 }}
-    >
-      <View
-        style={{
-          position: 'absolute',
-          left: 6,
-          top: 14,
-          width: 50,
-          height: 62,
-          borderRadius: 8,
-          padding: 7,
-          gap: 5,
-          backgroundColor: dark ? theme.color.surfaceMuted : '#FFFFFF',
-          transform: [{ rotate: '-8deg' }],
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.12,
-          shadowRadius: 6,
-          shadowOffset: { width: 0, height: 3 },
-          elevation: 3,
-        }}
-      >
-        <View style={{ height: 3, borderRadius: 2, backgroundColor: '#DCD6FA' }} />
-        <View style={{ height: 3, width: 22, borderRadius: 2, backgroundColor: '#DCD6FA' }} />
-        <View
-          style={{
-            marginTop: 8,
-            alignSelf: 'flex-start',
-            paddingHorizontal: 5,
-            paddingVertical: 1,
-            borderRadius: 4,
-            backgroundColor: '#5A3FD8',
-          }}
-        >
-          <Text style={{ fontSize: 10, fontWeight: '800', color: '#FFFFFF' }}>CSV</Text>
-        </View>
-      </View>
-      <View
-        style={{
-          position: 'absolute',
-          left: 44,
-          top: 4,
-          width: 40,
-          height: 24,
-          borderTopWidth: 1.5,
-          borderRightWidth: 1.5,
-          borderStyle: 'dashed',
-          borderColor: '#8C7BF0',
-          borderTopRightRadius: 20,
-        }}
-      />
-      {disc('#9C8CF2', 30, { right: 6, top: 4 })}
-      {disc('#6FA4F5', 30, { right: 30, top: 42 })}
-      {disc('#F5A66F', 24, { right: 0, top: 44 })}
-    </View>
   );
 }
 

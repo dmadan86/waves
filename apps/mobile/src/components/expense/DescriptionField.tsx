@@ -56,7 +56,6 @@ export function DescriptionField({
               paddingVertical: theme.spacing.xs,
               backgroundColor: theme.color.surface,
               borderRadius: theme.radius.md,
-              ...theme.shadow.soft,
             }
           : boxed
             ? {

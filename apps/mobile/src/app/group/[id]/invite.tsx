@@ -5,8 +5,6 @@ import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
 import {
   ActivityIndicator,
-  Image,
-  useWindowDimensions,
   Linking,
   Platform,
   Pressable,
@@ -51,12 +49,9 @@ import { shareInviteCard } from '@/lib/shareInviteCard';
 import type { ShareTarget } from '../../../../modules/waves-share';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
-const FRIENDS = require('../../../../assets/images/welcome-friends.webp') as number;
-
 // Sizes that make the screen fit one phone (~800dp) with no scrolling: header
 // ~50, illustration 112 (16 of it under the card), card ~350, share row ~95,
 // button 48, trust line ~28 and the gaps between.
-const ILLUSTRATION_HEIGHT = 112;
 const QR_SIZE = 148;
 // The shared picture is laid out at 360x540 dp and captured at 3x: 1080x1620 px.
 const SHARED_CARD_SCALE = 3;
@@ -86,7 +81,6 @@ const PILL_RESERVE = 112;
  */
 function InviteScreenInner() {
   const theme = useTheme();
-  const illustrationWidth = useWindowDimensions().width - theme.spacing.xl * 2;
   const clearance = useScreenClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -270,30 +264,13 @@ function InviteScreenInner() {
       >
         {link ? (
           <>
-            {/* Friends above the card, cropped from the top so it is faces that
-                show and the table is hidden by the card riding over it. Kept
-                short on purpose: this screen has to fit one phone. */}
-            <View style={{ height: ILLUSTRATION_HEIGHT, overflow: 'hidden' }}>
-              {/* Sized in numbers, not '100%' + aspectRatio: inside the clipped
-                  box Android laid that out far larger than the column, so all
-                  that showed was the tops of two heads. */}
-              <Image
-                source={FRIENDS}
-                accessible={false}
-                resizeMode="contain"
-                style={{ width: illustrationWidth, height: illustrationWidth * (614 / 1200) }}
-              />
-            </View>
-
             {/* The invitation. One object: whose group, who is in it, and the
                 code to join, then the link under it. */}
             <View
               style={{
-                marginTop: -theme.spacing.lg,
                 padding: theme.spacing.md,
-                borderRadius: theme.radius.xl,
+                borderRadius: theme.radius.lg,
                 backgroundColor: theme.color.surface,
-                ...theme.shadow.soft,
               }}
             >
               <View style={{ backgroundColor: theme.color.surface, gap: theme.spacing.sm }}>
@@ -397,7 +374,7 @@ function InviteScreenInner() {
                   alignItems: 'center',
                   gap: theme.spacing.xs,
                   paddingHorizontal: theme.spacing.sm,
-                  borderRadius: 999,
+                  borderRadius: theme.radius.sm,
                   backgroundColor: theme.color.brandSoft,
                   opacity: pressed ? 0.6 : 1,
                 })}
@@ -454,7 +431,7 @@ function InviteScreenInner() {
                     gap: theme.spacing.xs,
                     paddingHorizontal: theme.spacing.md,
                     paddingVertical: theme.spacing.sm,
-                    borderRadius: 999,
+                    borderRadius: theme.radius.sm,
                     backgroundColor: theme.color.brandSoft,
                     opacity: pressed ? 0.6 : 1,
                   })}

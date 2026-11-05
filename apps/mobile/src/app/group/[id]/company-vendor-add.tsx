@@ -58,7 +58,7 @@ function Field({
         paddingHorizontal: theme.spacing.md,
         borderWidth: 1,
         borderColor: theme.color.border,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.md,
       }}
     >
       <Ionicons name={icon} size={20} color={muted} />
@@ -222,7 +222,7 @@ export default function AddVendorScreen() {
               gap: theme.spacing.sm,
               alignItems: 'center',
               justifyContent: 'center',
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.md,
               backgroundColor: theme.color.brand,
               opacity: busy || (mode !== 'scan' && !code.trim()) ? 0.45 : 1,
             }}

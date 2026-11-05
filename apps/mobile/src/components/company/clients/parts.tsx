@@ -22,7 +22,7 @@ export function StageChip({ stage }: { stage: ClientStage }) {
     <View
       style={{
         backgroundColor: look[0],
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
       }}

@@ -286,7 +286,7 @@ export function SaveButton({
           height: 52,
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           backgroundColor: pressed ? theme.color.brandPressed : theme.color.brand,
           opacity: disabled ? 0.45 : 1,
         },

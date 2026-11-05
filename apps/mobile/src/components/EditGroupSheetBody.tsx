@@ -50,7 +50,7 @@ function Field({
         gap: theme.spacing.md,
         paddingHorizontal: theme.spacing.sm,
         minHeight: 56,
-        borderRadius: 18,
+        borderRadius: 12,
         backgroundColor: theme.color.surface,
         borderWidth: StyleSheet.hairlineWidth,
         borderColor: theme.color.border,
@@ -236,7 +236,7 @@ export function EditGroupSheetBody({
         }}
         style={({ pressed }) => ({
           height: 56,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           backgroundColor: theme.color.brand,
           alignItems: 'center',
           justifyContent: 'center',

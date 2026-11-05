@@ -331,7 +331,7 @@ export default function MembersScreen() {
               gap: 6,
               height: 32,
               paddingHorizontal: 12,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: theme.color.brandSoft,
             }}
           >

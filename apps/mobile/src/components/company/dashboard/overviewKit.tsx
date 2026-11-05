@@ -17,24 +17,25 @@ export const RED = '#DC2626';
 /** The mockup's amber bar segment (brighter than the AMBER ink on text and discs). */
 export const YELLOW = '#F5B82E';
 
+/** A plain hairline card. `ink` is kept for callers but no longer tints the surface (the calm system has no pastel cards). */
 export function TintCard({
-  ink,
   children,
   style,
 }: {
-  ink: string;
+  ink?: string;
   children: ReactNode;
   style?: ViewStyle;
 }) {
+  const theme = useTheme();
   return (
     <View
       style={[
         {
-          borderRadius: 18,
+          borderRadius: 12,
           padding: 12,
-          backgroundColor: withAlpha(ink, 0.09),
+          backgroundColor: theme.color.surface,
           borderWidth: 1,
-          borderColor: withAlpha(ink, 0.14),
+          borderColor: theme.color.border,
         },
         style,
       ]}
@@ -83,7 +84,7 @@ export function Skeleton({
   return (
     <View
       accessibilityElementsHidden
-      style={[{ height, flex, borderRadius: 18, backgroundColor: theme.color.surfaceMuted }, style]}
+      style={[{ height, flex, borderRadius: 12, backgroundColor: theme.color.surfaceMuted }, style]}
     />
   );
 }

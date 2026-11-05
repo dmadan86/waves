@@ -236,7 +236,7 @@ export default function ExportScreen() {
               justifyContent: 'center',
               gap: theme.spacing.sm,
               minHeight: 52,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.md,
               backgroundColor: theme.color.brand,
               opacity: busy ? 0.6 : pressed ? 0.85 : 1,
             })}

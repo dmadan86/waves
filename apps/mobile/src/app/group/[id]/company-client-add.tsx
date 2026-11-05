@@ -147,7 +147,7 @@ function ClientForm({ groupId }: { groupId: string }) {
   const chip = (on: boolean) => ({
     height: 36,
     paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.radius.pill,
+    borderRadius: theme.radius.sm,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     borderWidth: on ? 2 : 1,

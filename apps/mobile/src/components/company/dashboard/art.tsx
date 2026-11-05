@@ -110,7 +110,7 @@ export function ManagerTeamArt() {
             start: i === 0 ? 12 : 158,
             top: 0,
             padding: 8,
-            borderRadius: 14,
+            borderRadius: 12,
             backgroundColor: theme.color.brandSoft,
           }}
         >

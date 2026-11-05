@@ -1,40 +1,42 @@
 # Waves design system
 
-Derived from the two reference boards supplied at kickoff. Both share the same
-skeleton, and Waves takes it wholesale: a lavender canvas, white cards with
-generous corner radii and one soft shadow, a single saturated purple that owns
-every primary action and active state, and a pastel family for tinted
-category/stat cards. Navigation is a floating white pill; the active
-destination expands into a filled purple pill that also shows its label.
+The calm system (November 2026): Waves should read like a mature finance app,
+not a generated dashboard. A near-neutral grey canvas, flat white cards with
+12pt corners and a hairline instead of a shadow, plain headers on the page
+colour, one violet accent for every action, and money colours that mean money
+only. No gradients, no photo headers, no capsule buttons, no decoration that
+does not carry information. It replaced the original look (lavender canvas,
+soft-shadowed cushion cards, pills and a brand gradient), which read as
+generated.
 
 Everything below is code, in `packages/ui/src/tokens.ts` and `theme.tsx` — this
-file explains the _why_, the tokens are the source of truth.
+file explains the _why_, the tokens are the source of truth. The working rules
+for building a screen (principles, the five questions, which component to use)
+are in [docs/design-standard.md](./docs/design-standard.md).
 
 ## Colour
 
 | Role       | Light                                                                                                 | Notes                                           |
 | ---------- | ----------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Brand      | `#7A5AF8` (pressed `#6C4EE3`)                                                                         | CTAs, active tab pill, FAB, selected chips      |
+| Brand      | `#7A5AF8` (pressed `#6C4EE3`)                                                                         | CTAs, links, FAB, selected chips                |
 | Brand soft | `#E9E4FF`                                                                                             | secondary buttons, operator keys, badges        |
-| Canvas     | `#F3F1FB`                                                                                             | every screen background                         |
+| Canvas     | `#F4F4F6`                                                                                             | every screen background                         |
 | Surface    | `#FFFFFF`                                                                                             | cards, sheets, list containers                  |
 | Text       | `#14142B` / muted `#7B7B8F` / faint `#A8A9BA`                                                         | three levels, no more                           |
-| Tints      | lilac `#DCD9FB` · pink `#F8D7DA` · mint `#C7EDE4` · peach `#FBE0C4` · sky `#CFE6FA` · coral `#FFC5C5` | each with a matching ink colour for text on top |
+| Tints      | lilac `#DCD9FB` · pink `#F8D7DA` · mint `#DCE1FF` · peach `#FBE0C4` · sky `#CFE6FA` · coral `#FFC5C5` | each with a matching ink colour for text on top |
 
 Dark mode keeps the same hues at lower luminance (`theme.tsx`), so a group's
 colour identity survives the switch.
 
-**The brand wash** (`theme.gradient.brand`) is three stops off that same purple
-ramp, dark corner to light, and it is the only gradient in the app. It is a way
-of drawing the brand, not a second brand: every stop is dark enough to carry
-white text, because the balance and its labels sit on all of them. `Gradient`
-paints it, and falls back to flat brand if `expo-linear-gradient` is missing
-from a build — a decoration may never be the reason a screen fails to render.
+**No gradients.** `theme.gradient` and `Gradient` still exist so older callers
+compile, but `Gradient` paints one solid colour and squares off capsule radii.
+Identity comes from the accent, the money colours, tabular figures and a steady
+rhythm, not from effects.
 
 ### The one rule that is not decorative
 
 **Money colour is semantic and global.** Owed-to-you is always the
-positive/mint pair; you-owe is always the negative/pink pair. Nothing else in
+positive (periwinkle/blue) pair; you-owe is always the negative (pink/red) pair. Nothing else in
 the app may use those two colours, because in a ledger app colour is data:
 a user should be able to answer "am I up or down?" without reading a digit.
 
@@ -49,8 +51,9 @@ searching for a `.` would take the wrong one.
 
 ## Type
 
-One family, seven steps: `display 34 · title 24 · heading 19 · subheading 16 ·
-body 15 · caption 13 · micro 11`. Money always renders with tabular figures so
+One family, seven steps: `display 28 · title 22 · heading 17 · subheading 16 ·
+body 15 · caption 13 · micro 11`. Body is regular weight; bold is for titles and
+amounts. Screen titles are 20sp/700, section titles 17sp/700. Money always renders with tabular figures so
 columns do not jitter as digits change, and money always carries a spoken label
 ("You are owed ₹420") rather than a bare number — TDR §11.
 
@@ -59,17 +62,20 @@ of clipping.
 
 ## Shape and depth
 
-Radii: `sm 12 · md 16 · lg 20 · xl 24 · xxl 32 · pill 999`. Cards are `md`,
-anything interactive and small is a pill. The reference boards are drawn at
-tablet width, where `xl` reads as a gentle curve; on a phone the same radius eats
-into a card only a few hundred points wide and the panel starts to look like a
-pill, and pills are for things you tap.
+Radii: `sm 8 · md 10 · lg 12 · xl 12 · xxl 16 · pill 999`. Controls and chips
+are `sm`, buttons `md`, cards `lg`, sheets `xxl`. `pill` is only for circles
+(avatars, round icon buttons), never for a button with a word on it. A card is a
+12pt rectangle, not a cushion.
 
-Exactly two shadows: `soft` for resting cards, `lifted` for the header overflow
-menu and the FAB. Depth means "this floats above the page", never "this is
-pretty". The bottom bar is the exception that proves it — it sits flat on the
-page behind a top hairline rather than floating on a shadow (see **Bottom
-navigation**).
+One shadow: `lifted`, for things that float over content (menus, sheets,
+toasts, the FAB). `soft` is kept as a name so callers compile, but draws
+nothing. Cards and buttons sit flat; in light mode a card is separated from the
+page by a hairline border. Not everything is a card: the page itself, type,
+spacing and dividers do most of the grouping, and a card is for rows that belong
+together.
+
+Sub-screen headers are plain: a back chevron and the title on the page colour,
+no photo, no tinted band (`ScenicHeader`, a historical name).
 
 The doorway screens — the welcome and the lock screen — open with a brand-purple
 panel whose bottom edge sweeps rather than cuts (`CurvedPanel`). It is the one
@@ -120,26 +126,14 @@ headings and people, with `getItemType` telling it the two are different shapes.
 The rail is ours, forty lines, because every published React Native
 alphabet-index component was abandoned years ago.
 
-## A screen with three faces
+## Switching faces inside a page
 
-The account screen opens with a hero rather than a title: the avatar, the name,
-and one number in a pill under it. Below that, `SegmentedTabs` splits what used
-to be a single long scroll into **You · Paying · Settings**.
-
-`SegmentedTabs` is not `PillTabBar`. The bottom bar spans the foot of every
-screen and moves you between destinations; this sits in the page, under a rule,
-because the page you are on has three faces and this chooses which one. A bar and
-an in-page switch read as two different things — where you can go, and which face
-of this page you are on — which is the point.
-
-The pill under the name is **what has actually changed hands through you** —
-settled settlements only, per currency, in both directions. The board this was
-drawn from puts a points total there, and Waves has none: a score next to
-somebody's money is a number that means nothing sitting among numbers that mean
-everything. It is deliberately _not_ coloured like a balance, because paying and
-being paid are the same fact here — a debt closed. Currencies are counted rather
-than added; no rate turns rupees into euros, and this would be the only place in
-the app that guessed at money.
+A page with a few faces (Group / Just me, People | Attendance | Tasks) switches
+between them with a segmented control: one grey track, the chosen segment on the
+surface in full ink (`SegmentedPills`, or `SegmentedTabs` in `@waves/ui`). It is
+not the bottom bar. The bar moves you between destinations; the segmented
+control sits in the page and chooses which face of this page you see. The two
+read as different things, which is the point.
 
 ## Choosing a language, and the restart it sometimes costs
 
@@ -225,9 +219,10 @@ Notifications and Export is a row dressed up as a setting.
 ## Bottom navigation
 
 The bar is flat and pinned to the bottom edge on **every** screen, WhatsApp
-style — a top hairline, no float, no shadow. The selected destination wears a
-rounded active-indicator pill behind its icon in the brand's soft tint; its icon
-and label take the brand colour, the rest sit muted.
+style — a top hairline, no float, no shadow. The selected destination is shown
+by colour and weight alone: its icon and bold label take the brand colour, the
+rest sit muted. No tinted pill behind it. The centre mic is a plain solid brand
+circle, no glow.
 
 It is rendered once at the root over the whole navigation stack (`AppTabBar`),
 not inside the tabs navigator, so it stays put when a screen is pushed on top —
@@ -237,11 +232,10 @@ when it hides (the camera and the rise-from-bottom modals, the signed-out
 screens) and which destination reads as current are pure and tested in
 `lib/tabBar.ts` / `test/tabBar.test.ts`.
 
-Four destinations: **Home · Friends · Activity · Inbox**. The account is not one
-of them — it is reached from the header avatar, and its settings from the
-header's three-dot overflow menu (`OverflowMenu`), a small rounded card that
-drops from the top-right over a tap-away scrim. A face you own is a way in, not a
-tab.
+The destinations change with the space (Personal, a company, an employee) and
+are defined in `AppTabBar`; `docs/design-standard.md` has the company bar.
+Settings live behind the header's three-dot overflow menu (`OverflowMenu`), a
+small rounded card that drops from the top-right over a tap-away scrim.
 
 ## Components
 

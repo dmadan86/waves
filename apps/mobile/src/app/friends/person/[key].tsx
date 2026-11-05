@@ -51,7 +51,6 @@ import { OwesCard } from '@/components/person/OwesCard';
 import {
   GroupChip,
   HeroCircleButton,
-  HERO_TEXT_SHADOW,
   NavRow,
   PairGroupCard,
   PairHero,
@@ -193,20 +192,12 @@ export default function PersonDetailScreen() {
               ) : null}
             </View>
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-              <Text
-                variant="title"
-                numberOfLines={1}
-                style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
-              >
+              <Text variant="title" numberOfLines={1}>
                 {title}
                 {profile?.is_you ? ` (${t.person.you})` : ''}
               </Text>
               {groupCount > 0 ? (
-                <Text
-                  variant="caption"
-                  numberOfLines={1}
-                  style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
-                >
+                <Text variant="caption" numberOfLines={1}>
                   {plural(locale, groupCount, t.person.sharedGroups)}
                 </Text>
               ) : null}

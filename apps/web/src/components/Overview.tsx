@@ -15,7 +15,6 @@ import Link from 'next/link';
 
 import {
   groupLabel,
-  memberName,
   type ActivityGroup,
   type ActivityRow,
   type BalanceRow,
@@ -28,7 +27,7 @@ import { waves } from '@/lib/waves';
 import { SkeletonRows } from '@/components/Skeleton';
 import { money } from '@/lib/money';
 import { describeActivity, VerbIcon } from '@/lib/activity';
-import { plural, type PluralForms } from '@/i18n';
+import { plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
 
@@ -48,7 +47,6 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
   const [membersByGroup, setMembersByGroup] = useState<Map<string, MemberRow[]>>(new Map());
   const [activity, setActivity] = useState<(ActivityRow & { group: ActivityGroup | null })[]>([]);
   const [pendingGroups, setPendingGroups] = useState<Set<string>>(new Set());
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -156,15 +154,6 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
     return activity.filter((entry) => describeActivity(entry, profileId).toLowerCase().includes(q));
   }, [activity, query, profileId]);
 
-  // Effective selection: the clicked group if it is still present, else the
-  // first. Derived rather than synced in an effect, so there is no cascading
-  // render and no moment where the panel points at a group that has gone.
-  const effectiveId =
-    selectedId && groupNets.some((entry) => entry.group.id === selectedId)
-      ? selectedId
-      : (groupNets[0]?.group.id ?? null);
-  const selected = groupNets.find((entry) => entry.group.id === effectiveId) ?? null;
-
   if (loading) {
     return <OverviewSkeleton />;
   }
@@ -175,7 +164,6 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
         <div className="app-main">
           <p className="error">{error}</p>
         </div>
-        <aside className="detail" />
       </div>
     );
   }
@@ -184,10 +172,7 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
     <div className="app-body">
       <div className="app-main">
         <div className="page-head">
-          <div>
-            <h1>{t.dash.overviewTitle}</h1>
-            <div className="sub">{plural(locale, groups.length, t.dash.groupsCount)}</div>
-          </div>
+          <h1>{t.dash.overviewTitle}</h1>
         </div>
 
         {/* One dominant answer instead of four boxes of equal weight: are you
@@ -228,13 +213,7 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
                 const top = nonZero[0] ?? entry.totals[0] ?? null;
                 const moreCurrencies = Math.max(nonZero.length - 1, 0);
                 return (
-                  <button
-                    key={entry.group.id}
-                    type="button"
-                    className="item"
-                    aria-pressed={entry.group.id === effectiveId}
-                    onClick={() => setSelectedId(entry.group.id)}
-                  >
+                  <Link key={entry.group.id} href={`/g/${entry.group.id}`} className="item">
                     <span
                       className="tile-emoji"
                       aria-hidden
@@ -255,7 +234,7 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
                       <span className="unread-dot" role="img" aria-label={t.settle.pendingHead} />
                     ) : null}
                     <NetAmount total={top} locale={locale} settledLabel={t.dash.settledUp} />
-                  </button>
+                  </Link>
                 );
               })}
             </div>
@@ -289,21 +268,6 @@ export function Overview({ profileId, query }: { profileId: string; query: strin
           )}
         </section>
       </div>
-
-      <aside className="detail">
-        <DetailPanel
-          entry={selected}
-          profileId={profileId}
-          locale={locale}
-          selectHint={t.dash.selectGroupHint}
-          membersForms={t.dash.membersCount}
-          moreCurrenciesForms={t.dash.moreCurrencies}
-          yourNetLabel={t.dash.yourNet}
-          openLabel={t.dash.openGroup}
-          currencyLabel={t.dash.currencyLabel}
-          settledLabel={t.dash.settledUp}
-        />
-      </aside>
     </div>
   );
 }
@@ -335,19 +299,6 @@ function OverviewSkeleton() {
           </section>
         ))}
       </div>
-
-      <aside className="detail">
-        <div className="detail-hero">
-          <span className="sk sk-avatar" />
-          <span className="sk sk-line" style={{ width: 130, margin: '0 auto' }} />
-        </div>
-        {[0, 1].map((f) => (
-          <div key={f} className="detail-field">
-            <span className="sk sk-line" style={{ width: 70 }} />
-            <span className="sk sk-line" style={{ width: 90 }} />
-          </div>
-        ))}
-      </aside>
     </div>
   );
 }
@@ -370,81 +321,5 @@ function NetAmount({
       {positive ? '+' : '−'}
       {money(total.net < 0n ? -total.net : total.net, total.currency, locale)}
     </span>
-  );
-}
-
-function DetailPanel({
-  entry,
-  profileId,
-  locale,
-  selectHint,
-  membersForms,
-  moreCurrenciesForms,
-  yourNetLabel,
-  openLabel,
-  currencyLabel,
-  settledLabel,
-}: {
-  entry: GroupNet | null;
-  profileId: string;
-  locale: string;
-  selectHint: string;
-  membersForms: PluralForms;
-  moreCurrenciesForms: PluralForms;
-  yourNetLabel: string;
-  openLabel: string;
-  currencyLabel: string;
-  settledLabel: string;
-}) {
-  if (!entry) {
-    return <p className="detail-empty">{selectHint}</p>;
-  }
-  const label = groupLabel(entry.group, entry.members, profileId);
-  // A currency the user still owes in leads, so the net line never claims the
-  // group is settled while another currency is outstanding.
-  const nonZero = entry.totals.filter((total) => total.net !== 0n);
-  const top = nonZero[0] ?? entry.totals[0] ?? null;
-  const moreCurrencies = Math.max(nonZero.length - 1, 0);
-
-  return (
-    <>
-      <div className="detail-hero">
-        <div className="avatar" aria-hidden data-cover={entry.group.cover_color ?? undefined}>
-          {entry.group.cover_emoji ?? '💫'}
-        </div>
-        <h3>{label}</h3>
-        <div className="role">{plural(locale, entry.members.length, membersForms)}</div>
-      </div>
-
-      <div className="detail-field">
-        <span className="k">{yourNetLabel}</span>
-        <span className="v">
-          <NetAmount total={top} locale={locale} settledLabel={settledLabel} />
-          {moreCurrencies > 0 ? (
-            <span className="meta" style={{ marginInlineStart: 6 }}>
-              {plural(locale, moreCurrencies, moreCurrenciesForms)}
-            </span>
-          ) : null}
-        </span>
-      </div>
-      <div className="detail-field">
-        <span className="k">{currencyLabel}</span>
-        <span className="v">{entry.group.default_currency}</span>
-      </div>
-
-      <div className="list" style={{ marginTop: 8 }}>
-        {entry.members.slice(0, 8).map((member) => (
-          <div key={member.id} className="detail-field">
-            <span className="v" style={{ fontWeight: 500 }}>
-              {memberName(member, profileId)}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      <Link className="btn block" href={`/g/${entry.group.id}`} style={{ marginTop: 14 }}>
-        {openLabel}
-      </Link>
-    </>
   );
 }

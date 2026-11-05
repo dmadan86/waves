@@ -313,15 +313,10 @@ function EntryRow({
           paddingVertical: theme.spacing.sm,
           paddingStart: theme.spacing.sm + 2,
           paddingEnd: theme.spacing.xs,
-          borderRadius: 16,
+          borderRadius: 12,
           backgroundColor: focused ? theme.color.brandSoft : theme.color.surface,
           borderWidth: focused ? 1.5 : 0,
           borderColor: theme.color.brand,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: 3 },
-          elevation: 1,
           opacity: pressed ? 0.7 : 1,
         })}
       >

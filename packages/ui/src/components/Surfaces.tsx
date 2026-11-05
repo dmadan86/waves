@@ -98,10 +98,11 @@ export function Card({ children, padded = true, flat = false, style, ...rest }: 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: theme.radius.md,
-          padding: padded ? theme.spacing.xl : 0,
+          borderRadius: theme.radius.lg,
+          padding: padded ? theme.spacing.lg : 0,
         },
-        !flat && theme.shadow.soft,
+        // A hairline, not a shadow: on the near-white canvas it is enough to hold the edge.
+        !flat && theme.scheme === 'light' && { borderWidth: 1, borderColor: theme.color.border },
         style,
       ]}
       {...rest}

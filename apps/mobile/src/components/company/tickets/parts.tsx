@@ -65,7 +65,7 @@ export function PriorityChip({ priority }: { priority: TicketPriority }) {
     <View
       style={{
         backgroundColor: look[0],
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
       }}
@@ -91,7 +91,7 @@ export function StatusPill({ status }: { status: TicketStatus }) {
     <View
       style={{
         backgroundColor: look[0],
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
       }}

@@ -53,7 +53,7 @@ export function VoiceStatus({ status, text }: { status: VoiceStatusKey; text: st
         gap: theme.spacing.xs,
         minHeight: 36,
         paddingHorizontal: theme.spacing.lg,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: ready ? theme.color.brandSoft : 'transparent',
       }}
     >

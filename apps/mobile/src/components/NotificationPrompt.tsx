@@ -193,7 +193,7 @@ export function NotificationPrompt() {
         style={{
           width: 56,
           height: 56,
-          borderRadius: 14,
+          borderRadius: 12,
           backgroundColor: theme.color.brand,
           alignItems: 'center',
           justifyContent: 'center',

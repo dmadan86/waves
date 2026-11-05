@@ -271,7 +271,7 @@ export function SyncBanner({ groupId }: { groupId?: string }) {
           paddingVertical: 10,
           paddingLeft: 12,
           paddingRight: 6,
-          borderRadius: 16,
+          borderRadius: 12,
           backgroundColor: theme.color.negativeSoft,
         }}
       >
