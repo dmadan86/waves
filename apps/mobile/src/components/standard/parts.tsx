@@ -47,6 +47,8 @@ export function PillButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? label}
       onPress={onPress}
+      // Drawn 34dp tall to stay compact; the touch area reaches 46dp.
+      hitSlop={{ top: 6, bottom: 6 }}
       style={{
         height: 34,
         flexDirection: 'row',
@@ -100,6 +102,8 @@ export function SegmentedPills<T extends string>({
             accessibilityRole="tab"
             accessibilityState={{ selected }}
             onPress={() => onChange(option.value)}
+            // Vertical only: neighbours share the row, so sideways slop would overlap them. 32 + 12 = 44dp.
+            hitSlop={{ top: 6, bottom: 6 }}
             style={{
               minHeight: 32,
               paddingHorizontal: theme.spacing.md,
