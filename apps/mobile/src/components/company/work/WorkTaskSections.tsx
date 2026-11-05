@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, Text, useTheme } from '@waves/ui';
 import { RED, withAlpha } from '@/components/company/dashboard/overviewKit';
 import { StandardCard } from '@/components/standard';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -10,15 +10,23 @@ import type { MemberRow } from '@/data/types';
 import { displayName } from '@/data/types';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
 import { dayHeading } from '@/data/activity';
-import { formatWorkTime, type WorkMode, type WorkSection } from '@/lib/companyWork';
+import {
+  priorityMark,
+  workDueText,
+  type EmptyTasks,
+  type WorkMode,
+  type WorkSection,
+} from '@/lib/companyWork';
 import { useStrings } from '@/i18n';
 import { WORK_INK } from './WorkSummaryControls';
 
+const ORANGE = '#F08A24';
 const TINTS = ['lilac', 'peach', 'sky', 'pink', 'mint', 'coral'] as const;
 
 function TaskRow({
   task,
   person,
+  names,
   today,
   locale,
   canManage,
@@ -31,6 +39,8 @@ function TaskRow({
 }: {
   task: MirrorWorkTask;
   person: MemberRow | undefined;
+  /** A member's name, empty when this viewer cannot see them (an employee sees only themselves). */
+  names: (memberId: string) => string;
   today: string;
   locale: string;
   canManage: boolean;
@@ -46,8 +56,9 @@ function TaskRow({
   const menuRef = useRef<View>(null);
   const done = task.status === 'done';
   const ink = WORK_INK[task.status];
-  const late = !done && task.day < today;
-  const dueInk = late ? RED : theme.color.textMuted;
+  const dueInk = theme.color.textMuted;
+  const mark = priorityMark(task.priority);
+  const helpers = task.helperIds ?? [];
   const label =
     task.status === 'todo'
       ? t.company.workTodo
@@ -89,12 +100,19 @@ function TaskRow({
             <Text variant="caption" tone="muted">
               {`#${task.number ?? '—'} `}
             </Text>
+            {mark ? (
+              <Text
+                style={{ color: task.priority === 'very_urgent' ? RED : ORANGE, fontWeight: '800' }}
+              >
+                {`${mark} `}
+              </Text>
+            ) : null}
             {task.title}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Ionicons name="calendar-outline" size={iconSize.sm} color={dueInk} />
             <Text variant="caption" numberOfLines={1} style={{ color: dueInk, flexShrink: 0 }}>
-              {formatWorkTime(task.day, task.dueTime ?? null, today, locale, t.company.workToday)}
+              {workDueText(task, today, locale, t.company.workToday, t.company.workLateOn)}
             </Text>
             {site ? (
               <>
@@ -119,6 +137,19 @@ function TaskRow({
               tint={TINTS[(person.id.charCodeAt(0) + person.id.length) % TINTS.length]}
               size={26}
             />
+          ) : null}
+          {helpers.length > 0 ? (
+            <Text
+              variant="caption"
+              tone="muted"
+              style={{ fontWeight: '700' }}
+              accessibilityLabel={t.company.workAlsoOn.replace(
+                '{names}',
+                helpers.map(names).filter(Boolean).join(', ') || String(helpers.length),
+              )}
+            >
+              {`+${helpers.length}`}
+            </Text>
           ) : null}
           <View
             style={{
@@ -173,6 +204,10 @@ export function WorkTaskSections({
   onOpen,
   onMenu,
   siteName,
+  empty,
+  query,
+  onShowTeam,
+  onAdd,
 }: {
   groupId: string;
   sections: readonly WorkSection[];
@@ -189,18 +224,57 @@ export function WorkTaskSections({
   onOpen: (task: MirrorWorkTask) => void;
   onMenu: (task: MirrorWorkTask, anchor: MenuAnchor | null) => void;
   siteName: (projectId: string) => string;
+  empty: EmptyTasks;
+  query: string;
+  onShowTeam: () => void;
+  /** Only for people who can add tasks. */
+  onAdd?: () => void;
 }) {
   const { t } = useStrings();
   const theme = useTheme();
   const [showDone, setShowDone] = useState(false);
   if (sections.length === 0 && done.length === 0)
-    return <Text tone="muted">{t.company.workNoTasks}</Text>;
+    return (
+      <View style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+        {empty.kind === 'search' ? (
+          <Text tone="muted">{t.company.workNoMatch.replace('{q}', query.trim())}</Text>
+        ) : empty.kind === 'mine' ? (
+          <>
+            <Text tone="muted">
+              {t.company.workNoneForYou}
+              {empty.blockedInTeam > 0
+                ? ` · ${t.company.workBlockedInTeam.replace('{n}', String(empty.blockedInTeam))}`
+                : ''}
+            </Text>
+            <Pressable accessibilityRole="link" onPress={onShowTeam} hitSlop={8}>
+              <Text tone="brand">{t.company.workShowTeam}</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Text variant="subheading">{t.company.workNoTasks}</Text>
+            <Text tone="muted">{t.company.workNoTasksHint}</Text>
+            {onAdd ? (
+              <Button
+                label={t.company.workAdd}
+                onPress={onAdd}
+                style={{ borderRadius: theme.radius.md }}
+              />
+            ) : null}
+          </>
+        )}
+      </View>
+    );
   const rows = (tasks: readonly MirrorWorkTask[]) =>
     tasks.map((task) => (
       <TaskRow
         key={task.id}
         task={task}
         person={people.find((p) => p.id === task.memberId)}
+        names={(id) => {
+          const p = people.find((m) => m.id === id);
+          return p ? displayName(p) : '';
+        }}
         today={today}
         locale={locale}
         canManage={canManage}
@@ -213,7 +287,6 @@ export function WorkTaskSections({
       />
     ));
   const heading = (section: WorkSection) => {
-    const red = section.kind === 'overdue';
     const text =
       section.kind === 'overdue'
         ? `${t.company.workOverdue} · ${section.tasks.length}`
@@ -226,13 +299,8 @@ export function WorkTaskSections({
     return (
       <Text
         variant="caption"
-        tone={red ? undefined : 'muted'}
-        style={{
-          textTransform: 'uppercase',
-          letterSpacing: 0.6,
-          fontWeight: '600',
-          color: red || (section.kind === 'person' && section.alert > 0) ? RED : undefined,
-        }}
+        tone="muted"
+        style={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600' }}
       >
         {text}
       </Text>

@@ -321,6 +321,13 @@ const SETTLEMENT_SELECT = `
 const GROUP_CONCURRENCY = 4;
 
 /**
+ * How many never-synced groups one pull will take on. A fresh phone in 29 groups
+ * would otherwise download everything in one response and show nothing until it
+ * lands; the rest are picked up by the client's hasMore re-sync, newest first.
+ */
+const FRESH_GROUPS_PER_PULL = 2 * GROUP_CONCURRENCY;
+
+/**
  * How many times a personal-record write will re-read and re-merge before it
  * gives up and writes the blob whole.
  *
@@ -464,7 +471,7 @@ serveWithCors(async (request) => {
     // one abuser.
     await enforceRateLimit(service, request, 'sync', profileId);
 
-    const session = new SyncSession(caller, service, profileId);
+    const session = new SyncSession(caller, service, profileId, await twoStepBlocked(caller));
     const outcomes: Outcome[] = [];
 
     for (const mutation of mutations) {
@@ -492,28 +499,25 @@ serveWithCors(async (request) => {
     // could never get its first row, and being invited would do nothing until
     // you happened to open the group by link. The membership read runs as the
     // caller, so it can only ever return groups their own RLS already allows.
-    const mine = await caller.from('group_members').select('group_id, role').is('left_at', null);
-    if (mine.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${mine.error.message}`);
+    const { mine, memberOf } = await memberships(caller, service, profileId);
 
     const groupIds = new Set<string>([
       ...Object.keys(cursors),
       ...session.touchedGroups,
-      ...(mine.data ?? []).map((row) => row.group_id as string),
+      ...mine.map((row) => row.group_id),
     ]);
     const {
       changes,
       cursors: nextCursors,
       hasMore,
-    } = await pull(caller, groupIds, cursors, profileId);
+    } = await pull(caller, groupIds, cursors, profileId, session.touchedGroups);
     // Any phone that is not an owner's may still hold detail it can no longer read (an employee
     // moved to another manager, a manager demoted); owners see everyone, so they never purge.
-    const managerGroupIds = (mine.data ?? [])
-      .filter((row) => (row as { role?: string }).role !== 'admin')
-      .map((row) => row.group_id as string);
+    const managerGroupIds = mine.filter((row) => row.role !== 'admin').map((row) => row.group_id);
     const companyVisible = await companyVisibleMembers(caller, managerGroupIds);
     const calendarVisible = await companyCalendarVisible(
       caller,
-      (mine.data ?? []).map((row) => row.group_id as string),
+      mine.map((row) => row.group_id),
     );
 
     return json({
@@ -524,7 +528,11 @@ serveWithCors(async (request) => {
       // The groups this person is still in. Leaving or being removed hides a
       // group from the pull (RLS), so the pull alone can never say "it is gone";
       // this list lets a device drop a group an admin removed them from.
-      memberOf: (mine.data ?? []).map((row) => row.group_id as string),
+      // Read with the service client for this profile only, so a company hidden by two-step is still listed and the
+      // phone keeps its cached copy instead of treating the gate as a removal.
+      memberOf,
+      // Companies this session must verify two-step for before it can read or write them.
+      twoStepRequired: [...session.twoStepBlocked.keys()],
       // Company groups only: who this caller may still see. A phone drops cached
       // detail for anyone else (an employee who moved to another manager).
       companyVisible,
@@ -535,6 +543,44 @@ serveWithCors(async (request) => {
     return errorResponse(error, { fn: 'sync' });
   }
 });
+
+/**
+ * Which groups this person is in. `mine` is what the caller can read (RLS, so a two-step company this session has not
+ * verified is absent) and drives the pull and visibility lists; `memberOf` comes from the service client, filtered to
+ * this profile, so it still names gated companies and the phone does not drop them.
+ */
+export async function memberships(
+  caller: SupabaseClient,
+  service: SupabaseClient,
+  profileId: string,
+): Promise<{ mine: { group_id: string; role: string }[]; memberOf: string[] }> {
+  const [mine, all] = await Promise.all([
+    caller.from('group_members').select('group_id, role').is('left_at', null),
+    service
+      .from('group_members')
+      .select('group_id')
+      .eq('profile_id', profileId)
+      .is('left_at', null),
+  ]);
+  if (mine.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${mine.error.message}`);
+  if (all.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${all.error.message}`);
+  return {
+    mine: (mine.data ?? []) as { group_id: string; role: string }[],
+    memberOf: [...new Set(((all.data ?? []) as { group_id: string }[]).map((row) => row.group_id))],
+  };
+}
+
+/** Two-step companies (id → name) this session has not verified. RLS is the real gate; this names the refusal. */
+export async function twoStepBlocked(caller: SupabaseClient): Promise<Map<string, string>> {
+  const { data, error } = await caller.rpc('waves_two_step_status');
+  if (error || !data) return new Map();
+  const status = data as {
+    sessionVerified?: boolean;
+    requiring?: { groupId: string; name: string }[];
+  };
+  if (status.sessionVerified) return new Map();
+  return new Map((status.requiring ?? []).map((row) => [row.groupId, row.name]));
+}
 
 /**
  * Applies one batch, remembering per-group membership so a hundred mutations in
@@ -548,6 +594,7 @@ export class SyncSession {
     private readonly caller: SupabaseClient,
     private readonly service: SupabaseClient,
     private readonly profileId: string,
+    readonly twoStepBlocked: ReadonlyMap<string, string> = new Map(),
   ) {}
 
   async apply(mutation: MutationEnvelope): Promise<Outcome> {
@@ -581,6 +628,18 @@ export class SyncSession {
     if (seen) {
       if (!personal) this.touchedGroups.add(mutation.groupId);
       return { clientMutationId, status: 'duplicate', result: seen.result };
+    }
+
+    const blockedName = personal ? undefined : this.twoStepBlocked.get(mutation.groupId);
+    if (blockedName !== undefined) {
+      // Kept in the phone's queue (a transient refusal) and replayed once this device verifies.
+      await this.recordRefusal(mutation, 'TWO_STEP_REQUIRED', null);
+      return {
+        clientMutationId,
+        status: 'rejected',
+        code: 'TWO_STEP_REQUIRED',
+        message: `Verify two-step to keep working in ${blockedName}. If you do not see it, update Waves.`,
+      };
     }
 
     try {
@@ -1109,7 +1168,23 @@ export class SyncSession {
         const status = mutation.payload.status;
         if (status !== 'todo' && status !== 'doing' && status !== 'done' && status !== 'blocked')
           companyInvalid('status');
-        return await this.rpcAsCaller('waves_company_work_set', {
+        // priority is its own call (the writer's overloads can't take another optional); absent (an older client) keeps the saved one.
+        const priority = mutation.payload.priority;
+        if (
+          priority !== undefined &&
+          priority !== 'normal' &&
+          priority !== 'urgent' &&
+          priority !== 'very_urgent'
+        )
+          companyInvalid('priority');
+        // helpers are their own call too; absent (an older client) keeps the saved list. Validated here before any write.
+        const helpers =
+          mutation.payload.helperIds === undefined
+            ? undefined
+            : companyUuidList(mutation.payload.helperIds, 'helperIds');
+        if (helpers && (helpers.length > 5 || new Set(helpers).size !== helpers.length))
+          companyInvalid('helperIds');
+        const written = await this.rpcAsCaller('waves_company_work_set', {
           p_group_id: mutation.groupId,
           p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
@@ -1130,6 +1205,19 @@ export class SyncSession {
                 p_client_id: companyUuid(mutation.payload.clientId, 'clientId', true),
               }),
         });
+        if (priority !== undefined)
+          await this.rpcAsCaller('waves_company_work_priority_set', {
+            p_group_id: mutation.groupId,
+            p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+            p_priority: priority,
+          });
+        if (helpers)
+          await this.rpcAsCaller('waves_company_work_helpers_set', {
+            p_group_id: mutation.groupId,
+            p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+            p_helper_ids: helpers,
+          });
+        return written;
       }
       case 'company_work.remove':
         return await this.rpcAsCaller('waves_company_work_remove', {
@@ -2402,11 +2490,12 @@ export class SyncSession {
  * holds a row lock until commit — so within a group, sequence order and commit
  * order are the same and no lower-numbered row can appear after a higher one.
  */
-async function pull(
+export async function pull(
   caller: SupabaseClient,
   groupIds: Set<string>,
   cursors: Record<string, number>,
   profileId: string,
+  mustInclude: ReadonlySet<string> = new Set(),
 ): Promise<{ changes: SyncChange[]; cursors: Record<string, number>; hasMore: boolean }> {
   const changes: SyncChange[] = [];
   const nextCursors: Record<string, number> = {};
@@ -2466,7 +2555,7 @@ async function pull(
   // the '22P02 invalid input syntax for type uuid: "<id>:ghost_merges"' that
   // floods the logs every poll. Keep only bare ids so no scoped key can reach a
   // uuid column, whatever account minted it.
-  const groupList = [...groupIds].filter((id) => !id.includes(':'));
+  let groupList = [...groupIds].filter((id) => !id.includes(':'));
   const groupRows = new Map<string, Record<string, unknown>>();
   if (groupList.length > 0) {
     const { data, error } = await caller.from('groups').select('*').in('id', groupList);
@@ -2475,6 +2564,23 @@ async function pull(
       const record = row as Record<string, unknown>;
       groupRows.set(String(record.id), record);
     }
+  }
+
+  // Fresh = no cursor yet. Take the most recently active few per pull (groups made
+  // offline always ride along); left-out ones get no cursor, so they stay fresh.
+  const isFresh = (id: string) => !cursors[id];
+  const fresh = groupList
+    .filter((id) => isFresh(id) && !mustInclude.has(id) && groupRows.has(id))
+    // updated_seq is a per-group counter, so only updated_at compares across groups.
+    .sort(
+      (a, b) =>
+        Date.parse(String(groupRows.get(b)?.updated_at ?? 0)) -
+        Date.parse(String(groupRows.get(a)?.updated_at ?? 0)),
+    );
+  const leftOut = new Set(fresh.slice(FRESH_GROUPS_PER_PULL));
+  if (leftOut.size > 0) {
+    hasMore = true;
+    groupList = groupList.filter((id) => !leftOut.has(id));
   }
 
   /**

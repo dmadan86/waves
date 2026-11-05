@@ -720,3 +720,94 @@ it.each([
   ).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
   expect(scoped.rpc).not.toHaveBeenCalled();
 });
+
+describe('company task priority', () => {
+  const task = {
+    taskId: ENTRY,
+    memberId: MEMBER_ID,
+    day: '2026-11-04',
+    title: 'Fix the gate',
+    projectId: null,
+    status: 'todo',
+    blockedReason: null,
+    note: null,
+    dueTime: null,
+  };
+  it('sets the priority after the task write; an older client sends none', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+    await session.apply(mutation('company_work.set', { ...task, priority: 'very_urgent' }));
+    expect(scoped.rpc.mock.calls.map((c) => c[0])).toEqual([
+      'waves_company_work_set',
+      'waves_company_work_priority_set',
+    ]);
+    expect(scoped.rpc).toHaveBeenLastCalledWith('waves_company_work_priority_set', {
+      p_group_id: GROUP_ID,
+      p_task_id: ENTRY,
+      p_priority: 'very_urgent',
+    });
+    const old = caller();
+    await new SyncSession(old.client, service().client, OWNER).apply(
+      mutation('company_work.set', task),
+    );
+    expect(old.rpc.mock.calls.map((c) => c[0])).toEqual(['waves_company_work_set']);
+  });
+  it('rejects an unknown priority before any call', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+    expect(
+      await session.apply(mutation('company_work.set', { ...task, priority: 'loud' })),
+    ).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+    expect(scoped.rpc).not.toHaveBeenCalled();
+  });
+});
+
+describe('company task helpers', () => {
+  const task = {
+    taskId: ENTRY,
+    memberId: MEMBER_ID,
+    day: '2026-11-04',
+    title: 'Fix the gate',
+    projectId: null,
+    status: 'todo',
+    blockedReason: null,
+    note: null,
+    dueTime: null,
+  };
+  const ids = (n: number) =>
+    Array.from({ length: n }, (_, i) => `00000000-0000-4000-8000-00000000000${i + 1}`);
+  it('sets the helpers after the task write; an older client sends none', async () => {
+    const scoped = caller();
+    await new SyncSession(scoped.client, service().client, OWNER).apply(
+      mutation('company_work.set', { ...task, helperIds: ids(2) }),
+    );
+    expect(scoped.rpc.mock.calls.map((c) => c[0])).toEqual([
+      'waves_company_work_set',
+      'waves_company_work_helpers_set',
+    ]);
+    expect(scoped.rpc).toHaveBeenLastCalledWith('waves_company_work_helpers_set', {
+      p_group_id: GROUP_ID,
+      p_task_id: ENTRY,
+      p_helper_ids: ids(2),
+    });
+    const old = caller();
+    await new SyncSession(old.client, service().client, OWNER).apply(
+      mutation('company_work.set', task),
+    );
+    expect(old.rpc.mock.calls.map((c) => c[0])).toEqual(['waves_company_work_set']);
+  });
+  it.each([
+    ['more than five', ids(6)],
+    ['duplicates', [ids(1)[0], ids(1)[0]]],
+    ['not uuids', ['nope']],
+    ['not a list', 'x'],
+  ])('rejects %s before any call', async (_name, helperIds) => {
+    const scoped = caller();
+    expect(
+      await new SyncSession(scoped.client, service().client, OWNER).apply(
+        mutation('company_work.set', { ...task, helperIds }),
+      ),
+    ).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+    expect(scoped.rpc).not.toHaveBeenCalled();
+  });
+});

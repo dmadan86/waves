@@ -2,7 +2,11 @@
 
 /** Team > Work: daily tasks grouped by day or person; add, edit, change status, repeat, remove, photos. */
 import { useMemo, useRef, useState } from 'react';
-import { materialiseCompanyProjects, type CompanyWorkSetPayload } from '@waves/core';
+import {
+  materialiseCompanyProjects,
+  type CompanyWorkSetPayload,
+  type TaskPriority,
+} from '@waves/core';
 
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { memberName, todayIso, useCompanyView, type CompanyMember } from '@/lib/company/view';
@@ -10,6 +14,10 @@ import { useCompanyPhotos } from '@/lib/company/entryActions';
 import { workStrings as s } from '@/lib/company/workStrings';
 import {
   addTaskPayloads,
+  priorityMark,
+  emptyTasksState,
+  isOwnTask,
+  MAX_TASK_HELPERS,
   filterWork,
   groupWorkTasks,
   MAX_TASK_PHOTOS,
@@ -94,9 +102,10 @@ export function TeamWork({ groupId }: { groupId: string }) {
   const allowedPerson = (id: string) => access.canManage && access.people.some((p) => p.id === id);
   const canChange = (t: MirrorWorkTask) =>
     access.enabled &&
-    (allowedPerson(t.memberId) || (access.isEmployee && t.memberId === access.me?.id));
+    (allowedPerson(t.memberId) || (access.isEmployee && isOwnTask(t, access.me?.id)));
 
-  const own = tasks.filter((t) => canChange(t) && (scope === 'team' || t.memberId === view.me?.id));
+  const own = tasks.filter((t) => canChange(t) && (scope === 'team' || isOwnTask(t, view.me?.id)));
+  const empty = emptyTasksState({ search: query, scope, teamTasks: tasks.filter(canChange) });
   const grouped = groupWorkTasks(filterWork(own, query, personName, siteName), {
     mode: access.canManage ? mode : 'date',
     today,
@@ -121,7 +130,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
       if (
         !current ||
         !access.isEmployee ||
-        current.memberId !== access.me?.id ||
+        !isOwnTask(current, access.me?.id) ||
         next.memberId !== current.memberId ||
         next.day !== current.day ||
         next.title !== current.title ||
@@ -182,13 +191,26 @@ export function TeamWork({ groupId }: { groupId: string }) {
               : setPanel({ kind: 'status', id: t.id })
           }
         >
-          {`#${t.number ?? '—'} ${t.title}`}
-          <small style={{ display: 'block', color: late ? 'crimson' : undefined }}>
+          {`#${t.number ?? '—'} `}
+          {priorityMark(t.priority) ? (
+            <strong
+              role="img"
+              aria-label={t.priority === 'very_urgent' ? s.prioVeryUrgent : s.prioUrgent}
+              style={{
+                color: t.priority === 'very_urgent' ? 'var(--w-negative)' : 'var(--w-warning)',
+              }}
+            >
+              {priorityMark(t.priority)}{' '}
+            </strong>
+          ) : null}
+          {t.title}
+          <small style={{ display: 'block', opacity: 0.7 }}>
             {[
-              t.day === today ? s.today : t.day,
+              late ? s.lateOn.replace('{date}', t.day) : t.day === today ? s.today : t.day,
               t.dueTime,
               siteName(t.projectId),
               personName(t.memberId),
+              (t.helperIds ?? []).length > 0 ? `+${t.helperIds?.length}` : '',
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -351,19 +373,42 @@ export function TeamWork({ groupId }: { groupId: string }) {
             />
           ) : null}
 
-          {grouped.sections.length === 0 && grouped.done.length === 0 ? <p>{s.noTasks}</p> : null}
+          {grouped.sections.length === 0 && grouped.done.length === 0 ? (
+            empty.kind === 'search' ? (
+              <p>{s.noMatch.replace('{q}', query.trim())}</p>
+            ) : empty.kind === 'mine' ? (
+              <p>
+                {s.noneForYou}
+                {empty.blockedInTeam > 0
+                  ? ` · ${s.blockedInTeam.replace('{n}', String(empty.blockedInTeam))}`
+                  : ''}{' '}
+                <button type="button" className="btn" onClick={() => setScope('team')}>
+                  {s.showTeam}
+                </button>
+              </p>
+            ) : (
+              <div>
+                <p>
+                  <strong>{s.noTasks}</strong>
+                  <br />
+                  {s.noTasksHint}
+                </p>
+                {access.canManage && access.people.length > 0 ? (
+                  <button
+                    type="button"
+                    className="btn brand"
+                    disabled={busy}
+                    onClick={() => setPanel({ kind: 'add' })}
+                  >
+                    {s.add}
+                  </button>
+                ) : null}
+              </div>
+            )
+          ) : null}
           {grouped.sections.map((sec) => (
             <section key={sec.key}>
-              <h3
-                style={{
-                  color:
-                    sec.kind === 'overdue' || (sec.kind === 'person' && sec.alert > 0)
-                      ? 'crimson'
-                      : undefined,
-                }}
-              >
-                {heading(sec)}
-              </h3>
+              <h3>{heading(sec)}</h3>
               {sec.tasks.map(row)}
             </section>
           ))}
@@ -498,11 +543,17 @@ function EditTask({
         />
       </label>
       <label className="field">
-        <span className="field-label">{s.assignTo}</span>
+        <span className="field-label">{s.responsible}</span>
         <select
           value={draft.memberId}
           disabled={busy}
-          onChange={(e) => setDraft({ ...draft, memberId: e.target.value })}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              memberId: e.target.value,
+              helperIds: (draft.helperIds ?? []).filter((id) => id !== e.target.value),
+            })
+          }
         >
           {people.map((p) => (
             <option key={p.id} value={p.id}>
@@ -511,6 +562,32 @@ function EditTask({
           ))}
         </select>
       </label>
+      <fieldset className="field" disabled={busy}>
+        <legend className="field-label">{s.helpers}</legend>
+        {people
+          .filter((p) => p.id !== draft.memberId)
+          .map((p) => {
+            const on = (draft.helperIds ?? []).includes(p.id);
+            return (
+              <label key={p.id}>
+                <input
+                  type="checkbox"
+                  checked={on}
+                  disabled={!on && (draft.helperIds ?? []).length >= MAX_TASK_HELPERS}
+                  onChange={() =>
+                    setDraft({
+                      ...draft,
+                      helperIds: on
+                        ? (draft.helperIds ?? []).filter((id) => id !== p.id)
+                        : [...(draft.helperIds ?? []), p.id],
+                    })
+                  }
+                />{' '}
+                {memberName(p, '')}
+              </label>
+            );
+          })}
+      </fieldset>
       {sites.length > 0 ? (
         <label className="field">
           <span className="field-label">{s.site}</span>
@@ -549,6 +626,11 @@ function EditTask({
           onChange={(e) => setDraft({ ...draft, dueTime: e.target.value || null })}
         />
       </label>
+      <PriorityField
+        value={draft.priority}
+        onChange={(priority) => setDraft({ ...draft, priority })}
+        disabled={busy}
+      />
       <label className="field">
         <span className="field-label">{s.notesOptional}</span>
         <textarea
@@ -582,6 +664,31 @@ function EditTask({
   );
 }
 
+function PriorityField({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: TaskPriority | undefined;
+  onChange: (next: TaskPriority) => void;
+  disabled: boolean;
+}) {
+  return (
+    <label className="field">
+      <span className="field-label">{s.priority}</span>
+      <select
+        value={value ?? 'normal'}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value as TaskPriority)}
+      >
+        <option value="normal">{s.prioNormal}</option>
+        <option value="urgent">{s.prioUrgent}</option>
+        <option value="very_urgent">{s.prioVeryUrgent}</option>
+      </select>
+    </label>
+  );
+}
+
 function AddTask({
   groupId,
   people,
@@ -601,6 +708,8 @@ function AddTask({
   const [title, setTitle] = useState('');
   const [ids, setIds] = useState<string[]>(people.length === 1 ? [people[0]!.id] : []);
   const [day, setDay] = useState(today);
+  const [helperIds, setHelperIds] = useState<string[]>([]);
+  const [priority, setPriority] = useState<TaskPriority>('normal');
   const [files, setFiles] = useState<{ key: string; file: File }[]>([]);
   const [problem, setProblem] = useState('');
   const [busy, setBusy] = useState(false);
@@ -621,6 +730,8 @@ function AddTask({
       title,
       memberIds: ids,
       day,
+      priority,
+      helperIds,
       idFor: (memberId) => {
         const known = taskIds.current.get(memberId);
         if (known) return known;
@@ -700,15 +811,38 @@ function AddTask({
               type="checkbox"
               checked={ids.includes(p.id)}
               disabled={busy}
-              onChange={(e) =>
+              onChange={(e) => {
                 setIds((prev) =>
                   e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id),
-                )
-              }
+                );
+                if (e.target.checked && ids.length === 0)
+                  setHelperIds((prev) => prev.filter((x) => x !== p.id));
+              }}
             />{' '}
             {memberName(p, '')}
           </label>
         ))}
+      </fieldset>
+      <fieldset disabled={busy}>
+        <legend>{s.helpers}</legend>
+        {people
+          .filter((p) => !(ids.length === 1 && ids[0] === p.id))
+          .map((p) => {
+            const on = helperIds.includes(p.id);
+            return (
+              <label key={p.id} style={{ display: 'block' }}>
+                <input
+                  type="checkbox"
+                  checked={on}
+                  disabled={!on && helperIds.length >= MAX_TASK_HELPERS}
+                  onChange={() =>
+                    setHelperIds((prev) => (on ? prev.filter((x) => x !== p.id) : [...prev, p.id]))
+                  }
+                />{' '}
+                {memberName(p, '')}
+              </label>
+            );
+          })}
       </fieldset>
       <label className="field">
         <span className="field-label">{s.due}</span>
@@ -722,6 +856,7 @@ function AddTask({
           onChange={(e) => e.target.value && setDay(e.target.value)}
         />
       </label>
+      <PriorityField value={priority} onChange={setPriority} disabled={busy} />
       <label className="field">
         <span className="field-label">{s.photoLabel}</span>
         <input

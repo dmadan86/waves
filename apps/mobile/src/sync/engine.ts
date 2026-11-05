@@ -74,6 +74,32 @@ export interface SyncState {
   rejected: RejectedMutation[];
   lastSyncedAt: string | null;
   lastError: string | null;
+  /** Company groups this session cannot read or write until two-step is verified. */
+  twoStepRequired: string[];
+  /** First-sync progress: set only while the server is still handing over groups. */
+  catchUp: CatchUp | null;
+}
+
+export interface CatchUp {
+  total: number;
+  loaded: number;
+}
+
+/**
+ * How far a first sync has got. Non-null only while the server says more is
+ * coming and some of the groups this person is in are not in the mirror yet.
+ */
+export function catchUpProgress(
+  mirror: MirrorState,
+  memberOf: readonly string[] | undefined,
+  hasMore: boolean | undefined,
+): CatchUp | null {
+  // One entry per visible member row, so a group appears once per co-member.
+  const groups = [...new Set(memberOf)];
+  if (!hasMore || !groups.length) return null;
+  const have = mirror.tables[SyncTable.Groups] ?? {};
+  const loaded = groups.filter((id) => id in have).length;
+  return loaded < groups.length ? { total: groups.length, loaded } : null;
 }
 
 interface SyncResponseBody {
@@ -92,6 +118,8 @@ interface SyncResponseBody {
   /** The groups the caller is still an active member of. Absent on older
    *  servers, which means nothing can be concluded from it. */
   memberOf?: string[];
+  /** Company groups gated until this session verifies two-step. Kept, never dropped or purged. */
+  twoStepRequired?: string[];
   /** Company groups where the caller is a manager: the members they may still read. A
    *  phone drops cached detail for anyone else. Absent on older servers (nothing is dropped). */
   companyVisible?: Record<string, string[]>;
@@ -194,6 +222,8 @@ export class SyncEngine {
     rejected: [],
     lastSyncedAt: null,
     lastError: null,
+    twoStepRequired: [],
+    catchUp: null,
   };
 
   private listeners = new Set<(state: SyncState) => void>();
@@ -374,6 +404,8 @@ export class SyncEngine {
       status: SyncStatus.Idle,
       lastError: null,
       lastSyncedAt: null,
+      twoStepRequired: [],
+      catchUp: null,
     });
   }
 
@@ -592,6 +624,7 @@ export class SyncEngine {
       if (error) throw new Error(await describeFunctionError(error));
 
       const response = data as SyncResponseBody;
+      const gated = response.twoStepRequired ?? [];
       const outcomes = response.outcomes ?? [];
 
       // The queue this flush folds its answer into. `enqueue` does not wait for
@@ -732,16 +765,21 @@ export class SyncEngine {
         rejected,
         lastSyncedAt: response.serverTime ?? new Date().toISOString(),
         lastError: null,
+        twoStepRequired: sameIds(this.state.twoStepRequired, gated)
+          ? this.state.twoStepRequired
+          : gated,
+        catchUp: catchUpProgress(mirror, response.memberOf, response.hasMore),
       });
 
       // An employee moved to another manager: the server already stopped sending their
       // rows, so this phone drops what it downloaded (entries, photos, split wages, sites)
       // from memory and from disk. Fail safe: a missing list drops nothing.
       if (response.companyVisible || response.calendarVisible) {
+        // A gated company reads as empty to RLS: its cached data must stay.
         const purged = purgeCompanyInvisible(
           this.state.mirror,
-          response.companyVisible ?? {},
-          response.calendarVisible,
+          withoutGroups(response.companyVisible ?? {}, gated),
+          response.calendarVisible && withoutGroups(response.calendarVisible, gated),
         );
         if (purged.removed.length > 0) {
           // Disk first: if it fails the rows stay in memory too, so the next sync finds them again
@@ -764,7 +802,12 @@ export class SyncEngine {
       // The list is a snapshot, so the awaited drops cannot change it; the live
       // queue is re-read before each one, so a mutation enqueued meanwhile
       // keeps its group.
-      const dropped = groupsNoLongerMine(this.state.mirror, this.state.queue, response.memberOf);
+      const dropped = groupsNoLongerMine(
+        this.state.mirror,
+        this.state.queue,
+        response.memberOf,
+        gated,
+      );
       for (const groupId of dropped) {
         if (this.state.queue.some((mutation) => mutation.groupId === groupId)) continue;
         await this.dropGroup(groupId);
@@ -1001,6 +1044,15 @@ async function describeFunctionError(error: unknown): Promise<string> {
   return error instanceof Error ? error.message : String(error);
 }
 
+function sameIds(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((id, i) => id === b[i]);
+}
+
+function withoutGroups<T>(map: Record<string, T>, groups: readonly string[]): Record<string, T> {
+  if (groups.length === 0) return map;
+  return Object.fromEntries(Object.entries(map).filter(([id]) => !groups.includes(id)));
+}
+
 export const syncEngine = new SyncEngine();
 
 /**
@@ -1012,9 +1064,10 @@ export function groupsNoLongerMine(
   mirror: MirrorState,
   queue: readonly QueuedMutation[],
   memberOf: readonly string[] | undefined,
+  twoStepRequired: readonly string[] = [],
 ): string[] {
   if (!memberOf) return [];
-  const mine = new Set(memberOf);
+  const mine = new Set([...memberOf, ...twoStepRequired]);
   const queued = new Set(queue.map((mutation) => mutation.groupId));
   return Object.keys(mirror.tables[SyncTable.Groups] ?? {}).filter(
     (groupId) => !mine.has(groupId) && !queued.has(groupId),

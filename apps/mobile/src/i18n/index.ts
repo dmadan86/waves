@@ -258,6 +258,10 @@ export interface UiStrings {
     errDate: string;
     errBirthday: string;
     birthday: string;
+    datesTitle: string;
+    datesSubtitle: string;
+    joinedLabel: string;
+    selectDate: string;
     birthDay: string;
     birthMonth: string;
     joinedOn: string;
@@ -1003,8 +1007,57 @@ export interface UiStrings {
     hints: Record<HomeHero, string>;
   };
   /** Which networks sync may use, and what the banner says while it waits. */
+  twoStep: {
+    row: string;
+    rowHint: string;
+    title: string;
+    bannerVerify: string;
+    bannerVerifyGeneric: string;
+    wrongCode: string;
+    locked: string;
+    updateWaves: string;
+    tryLater: string;
+    verified: string;
+    verifyFirst: string;
+    newPhoneTitle: string;
+    newPhoneBody: string;
+    codeLabel: string;
+    continue: string;
+    checkAgain: string;
+    yourCode: string;
+    newCodeIn: string;
+    codeHint: string;
+    authenticatorTitle: string;
+    authenticatorOn: string;
+    authenticatorSteps: string;
+    copyKey: string;
+    copied: string;
+    openAuthenticator: string;
+    confirm: string;
+    addAuthenticator: string;
+    replaceAuthenticator: string;
+    requireTitle: string;
+    requireHint: string;
+    requireConfirmTitle: string;
+    requireConfirmBody: string;
+    requireConfirmOld: string;
+    requireOn: string;
+    peopleTitle: string;
+    approve: string;
+    decline: string;
+    approveTitle: string;
+    declineTitle: string;
+    approveBody: string;
+    declineBody: string;
+    resetTitle: string;
+    resetBody: string;
+    reset: string;
+    newPhoneRow: string;
+    memberOn: string;
+  };
   sync: {
     refusal: {
+      twoStep: string;
       companyGroup: string;
       adminOnly: string;
       notMember: string;
@@ -1625,10 +1678,20 @@ export interface UiStrings {
     workByDate: string;
     workByPerson: string;
     workOverdue: string;
+    workPriority: string;
+    workPrioNormal: string;
+    workPrioUrgent: string;
+    workPrioVeryUrgent: string;
+    workLateOn: string;
     workOpenN: string;
     workDoneN: string;
     workSiteFilter: string;
     workNoTasks: string;
+    workNoTasksHint: string;
+    workNoMatch: string;
+    workNoneForYou: string;
+    workShowTeam: string;
+    workBlockedInTeam: string;
     workExport: string;
     workExportRange: string;
     workThisWeek: string;
@@ -1685,6 +1748,11 @@ export interface UiStrings {
     taskDescription: string;
     taskDescriptionHint: string;
     taskAssignTo: string;
+    taskResponsible: string;
+    taskHelpers: string;
+    taskHelpersNone: string;
+    taskHelpersMax: string;
+    workAlsoOn: string;
     taskPeople: PluralForms;
     taskDeadline: string;
     taskPhotoLabel: string;
@@ -4226,6 +4294,7 @@ export interface UiStrings {
     totalOwed: string;
     totalOwe: string;
     totalSettled: string;
+    downloadingGroups: string;
     spentThisMonth: string;
     vsLastMonth: string;
     periodOverall: string;
@@ -8064,6 +8133,10 @@ const en: UiStrings = {
     errDate: 'Enter a valid date',
     errBirthday: 'Enter a real day and month',
     birthday: 'Birthday',
+    datesTitle: 'Birthday & Joining Date',
+    datesSubtitle: 'Keep these dates to remember and celebrate',
+    joinedLabel: 'Joining date (optional)',
+    selectDate: 'Select date',
     birthDay: 'Day',
     birthMonth: 'Month',
     joinedOn: 'Joining date, optional',
@@ -8687,8 +8760,60 @@ const en: UiStrings = {
       spring: 'Blossom season',
     },
   },
+  twoStep: {
+    row: 'Two-step login',
+    rowHint: 'Codes for companies that ask for them',
+    title: 'Two-step login',
+    bannerVerify: 'Verify two-step to keep working in {company}',
+    bannerVerifyGeneric: 'Verify two-step to keep working',
+    wrongCode: 'That code is not right.',
+    locked: 'Too many tries. Please wait a while.',
+    updateWaves: 'Please update Waves to continue.',
+    tryLater: 'Could not do that. Try again in a moment.',
+    verified: 'Verified',
+    verifyFirst: 'Verify two-step on this phone first.',
+    newPhoneTitle: 'New phone',
+    newPhoneBody: 'Enter the code from your other device, or ask your owner to approve this phone.',
+    codeLabel: '6-digit code',
+    continue: 'Continue',
+    checkAgain: 'Check again',
+    yourCode: 'Your code',
+    newCodeIn: 'New code in {n}s',
+    codeHint: 'Your company may ask for this code when you sign in on a new phone.',
+    authenticatorTitle: 'Add an authenticator app',
+    authenticatorOn: 'An authenticator app is set up.',
+    authenticatorSteps:
+      'Copy the key into your authenticator app, then type the 6-digit code it shows.',
+    copyKey: 'Copy key',
+    copied: 'Copied',
+    openAuthenticator: 'Open in authenticator',
+    confirm: 'Confirm',
+    addAuthenticator: 'Add an authenticator app',
+    replaceAuthenticator: 'Replace authenticator app',
+    requireTitle: 'Require two-step login',
+    requireHint: 'Everyone must verify on their phone before seeing company data.',
+    requireConfirmTitle: 'Require two-step login?',
+    requireConfirmBody: 'Everyone will need to verify two-step to open this company.',
+    requireConfirmOld: 'They will need to update Waves: {names}.',
+    requireOn: 'Turn on',
+    peopleTitle: 'Two-step',
+    approve: 'Approve',
+    decline: 'Decline',
+    approveTitle: "Approve {name}'s new phone?",
+    declineTitle: "Decline {name}'s new phone?",
+    approveBody:
+      'They will be able to open the company on that phone. Their code moves to the new phone and the old phone stops working.',
+    declineBody: 'That phone will not be let in.',
+    resetTitle: 'Reset two-step for {name}?',
+    resetBody:
+      'Their codes and every verified session, including browsers, are removed in all companies that require two-step. They set up the authenticator again and verify again.',
+    reset: 'Reset two-step',
+    newPhoneRow: 'New phone {platform}',
+    memberOn: 'Two-step is on',
+  },
   sync: {
     refusal: {
+      twoStep: 'Verify two-step on this phone, then this change will be saved.',
       companyGroup:
         "This is a company group, so this can't be added as a shared expense. Add it as a company entry instead.",
       adminOnly: 'Only the group admin can make this change.',
@@ -9280,10 +9405,20 @@ const en: UiStrings = {
     workByDate: 'By date',
     workByPerson: 'By person',
     workOverdue: 'Overdue',
+    workPriority: 'Priority',
+    workPrioNormal: 'Normal',
+    workPrioUrgent: 'Urgent',
+    workPrioVeryUrgent: 'Very urgent',
+    workLateOn: 'Late · {date}',
     workOpenN: '{n} open',
     workDoneN: 'Done · {n}',
     workSiteFilter: 'Site filter',
-    workNoTasks: 'No tasks yet.',
+    workNoTasks: 'No tasks yet',
+    workNoTasksHint: 'Add a task to assign work, set a due date and keep track easily.',
+    workNoMatch: 'No tasks match "{q}"',
+    workNoneForYou: 'No tasks for you',
+    workShowTeam: 'Show team tasks',
+    workBlockedInTeam: '{n} blocked in the team',
     workExport: 'Export report',
     workExportRange: 'Time period',
     workThisWeek: 'This week',
@@ -9340,6 +9475,11 @@ const en: UiStrings = {
     taskDescription: 'Task description',
     taskDescriptionHint: 'What do you want to do?',
     taskAssignTo: 'Assign to',
+    taskResponsible: 'Responsible',
+    taskHelpers: 'Also working on it (optional)',
+    taskHelpersNone: 'Nobody',
+    taskHelpersMax: 'Up to 5 people',
+    workAlsoOn: 'Also on it: {names}',
     taskPeople: { one: '{n} person', other: '{n} people' },
     taskDeadline: 'Deadline (optional)',
     taskPhotoLabel: 'Attach photo (optional)',
@@ -9489,7 +9629,7 @@ const en: UiStrings = {
     ovAllMarked: 'All marked',
     ovMarkAttendance: 'Mark attendance',
     ovComingUp: 'Coming up',
-    ovOverdue: 'Overdue',
+    ovOverdue: 'Late',
     ovBlocked: 'Blocked',
     ovPendingPayments: 'Pending payments',
     ovNothingToPay: 'Nothing to pay',
@@ -11771,6 +11911,7 @@ const en: UiStrings = {
     totalOwed: 'Total you are owed',
     totalOwe: 'Total you owe',
     totalSettled: 'You are all settled up',
+    downloadingGroups: 'Downloading your groups · {loaded} of {total}',
     spentThisMonth: 'You spent this month',
     vsLastMonth: 'vs last month',
     periodOverall: 'Overall',
@@ -15163,6 +15304,10 @@ const ta: UiStrings = {
     errDate: 'சரியான தேதியை உள்ளிடவும்',
     errBirthday: 'சரியான நாளையும் மாதத்தையும் உள்ளிடவும்',
     birthday: 'பிறந்தநாள்',
+    datesTitle: 'பிறந்தநாள் மற்றும் சேர்ந்த தேதி',
+    datesSubtitle: 'இந்த தேதிகளை நினைவில் வைத்து கொண்டாட',
+    joinedLabel: 'சேர்ந்த தேதி (விருப்பம்)',
+    selectDate: 'தேதியைத் தேர்ந்தெடுக்கவும்',
     birthDay: 'நாள்',
     birthMonth: 'மாதம்',
     joinedOn: 'பணியில் சேர்ந்த நாள், விருப்பமானது',
@@ -15796,8 +15941,61 @@ const ta: UiStrings = {
       spring: 'பூக்கும் காலம்',
     },
   },
+  twoStep: {
+    row: 'இரண்டு படி உள்நுழைவு',
+    rowHint: 'கேட்கும் நிறுவனங்களுக்கான குறியீடுகள்',
+    title: 'இரண்டு படி உள்நுழைவு',
+    bannerVerify: '{company} இல் தொடர இரண்டு படியை சரிபார்க்கவும்',
+    bannerVerifyGeneric: 'தொடர இரண்டு படியை சரிபார்க்கவும்',
+    wrongCode: 'அந்தக் குறியீடு சரியில்லை.',
+    locked: 'பல முறை முயன்றுவிட்டீர்கள். சிறிது நேரம் காத்திருக்கவும்.',
+    updateWaves: 'தொடர Waves-ஐ புதுப்பிக்கவும்.',
+    tryLater: 'முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
+    verified: 'சரிபார்க்கப்பட்டது',
+    verifyFirst: 'முதலில் இந்த ஃபோனில் இரண்டு படியை சரிபார்க்கவும்.',
+    newPhoneTitle: 'புதிய ஃபோன்',
+    newPhoneBody:
+      'உங்கள் மற்றொரு சாதனத்தின் குறியீட்டை உள்ளிடவும், அல்லது இந்த ஃபோனை அனுமதிக்க உரிமையாளரிடம் கேட்கவும்.',
+    codeLabel: '6 இலக்கக் குறியீடு',
+    continue: 'தொடர்க',
+    checkAgain: 'மீண்டும் சரிபார்',
+    yourCode: 'உங்கள் குறியீடு',
+    newCodeIn: 'புதிய குறியீடு {n} வினாடியில்',
+    codeHint: 'புதிய ஃபோனில் உள்நுழையும்போது உங்கள் நிறுவனம் இந்தக் குறியீட்டைக் கேட்கலாம்.',
+    authenticatorTitle: 'அங்கீகார செயலியைச் சேர்க்கவும்',
+    authenticatorOn: 'அங்கீகார செயலி அமைக்கப்பட்டுள்ளது.',
+    authenticatorSteps:
+      'விசையை உங்கள் அங்கீகார செயலியில் ஒட்டி, அது காட்டும் 6 இலக்கக் குறியீட்டை உள்ளிடவும்.',
+    copyKey: 'விசையை நகலெடு',
+    copied: 'நகலெடுக்கப்பட்டது',
+    openAuthenticator: 'அங்கீகார செயலியில் திற',
+    confirm: 'உறுதிசெய்',
+    addAuthenticator: 'அங்கீகார செயலியைச் சேர்க்கவும்',
+    replaceAuthenticator: 'அங்கீகார செயலியை மாற்று',
+    requireTitle: 'இரண்டு படி உள்நுழைவு தேவை',
+    requireHint: 'நிறுவனத் தரவைப் பார்க்கும் முன் அனைவரும் தங்கள் ஃபோனில் சரிபார்க்க வேண்டும்.',
+    requireConfirmTitle: 'இரண்டு படி உள்நுழைவு தேவையா?',
+    requireConfirmBody: 'இந்த நிறுவனத்தைத் திறக்க அனைவரும் இரண்டு படியை சரிபார்க்க வேண்டும்.',
+    requireConfirmOld: 'அவர்கள் Waves-ஐ புதுப்பிக்க வேண்டும்: {names}.',
+    requireOn: 'இயக்கு',
+    peopleTitle: 'இரண்டு படி',
+    approve: 'அனுமதி',
+    decline: 'நிராகரி',
+    approveTitle: '{name} இன் புதிய ஃபோனை அனுமதிக்கவா?',
+    declineTitle: '{name} இன் புதிய ஃபோனை நிராகரிக்கவா?',
+    approveBody:
+      'அந்த ஃபோனில் நிறுவனத்தைத் திறக்க முடியும். அவர்களின் குறியீடு புதிய ஃபோனுக்கு மாறும்; பழைய ஃபோன் செயல்படாது.',
+    declineBody: 'அந்த ஃபோன் உள்ளே விடப்படாது.',
+    resetTitle: '{name} க்கான இரண்டு படியை மீட்டமைக்கவா?',
+    resetBody:
+      'அவர்களின் குறியீடுகளும் உலாவிகள் உட்பட சரிபார்க்கப்பட்ட அனைத்து அமர்வுகளும், இரு-படி தேவைப்படும் எல்லா நிறுவனங்களிலும் நீக்கப்படும். அவர்கள் அங்கீகாரியை மீண்டும் அமைத்துச் சரிபார்க்க வேண்டும்.',
+    reset: 'இரண்டு படியை மீட்டமை',
+    newPhoneRow: 'புதிய ஃபோன் {platform}',
+    memberOn: 'இரண்டு படி இயக்கத்தில் உள்ளது',
+  },
   sync: {
     refusal: {
+      twoStep: 'இந்த ஃபோனில் இரண்டு படியை சரிபார்க்கவும்; பின் இந்த மாற்றம் சேமிக்கப்படும்.',
       companyGroup:
         'இது நிறுவனக் குழு என்பதால், பகிர்ந்த செலவாகச் சேர்க்க முடியாது. நிறுவனப் பதிவாகச் சேர்க்கவும்.',
       adminOnly: 'குழு நிர்வாகி மட்டுமே இந்த மாற்றத்தைச் செய்ய முடியும்.',
@@ -16404,10 +16602,20 @@ const ta: UiStrings = {
     workByDate: 'தேதிப்படி',
     workByPerson: 'நபர்படி',
     workOverdue: 'தாமதம்',
+    workPriority: 'முன்னுரிமை',
+    workPrioNormal: 'சாதாரண',
+    workPrioUrgent: 'அவசரம்',
+    workPrioVeryUrgent: 'மிக அவசரம்',
+    workLateOn: 'தாமதம் · {date}',
     workOpenN: '{n} திறந்தவை',
     workDoneN: 'முடிந்தவை · {n}',
     workSiteFilter: 'பணித்தள வடிகட்டி',
-    workNoTasks: 'இன்னும் பணிகள் இல்லை.',
+    workNoTasks: 'இன்னும் பணிகள் இல்லை',
+    workNoTasksHint: 'வேலையை ஒதுக்க, தேதி வைக்க, எளிதாகக் கண்காணிக்க ஒரு பணியைச் சேர்க்கவும்.',
+    workNoMatch: '"{q}" உடன் பணிகள் இல்லை',
+    workNoneForYou: 'உங்களுக்கு பணிகள் இல்லை',
+    workShowTeam: 'குழு பணிகளைக் காட்டு',
+    workBlockedInTeam: 'குழுவில் {n} தடைபட்டுள்ளன',
     workExport: 'அறிக்கை ஏற்றுமதி',
     workExportRange: 'காலம்',
     workThisWeek: 'இந்த வாரம்',
@@ -16464,6 +16672,11 @@ const ta: UiStrings = {
     taskDescription: 'வேலை விவரம்',
     taskDescriptionHint: 'என்ன செய்ய வேண்டும்?',
     taskAssignTo: 'ஒதுக்கப்படுபவர்',
+    taskResponsible: 'பொறுப்பாளர்',
+    taskHelpers: 'இதிலும் வேலை செய்பவர்கள் (விருப்பம்)',
+    taskHelpersNone: 'யாரும் இல்லை',
+    taskHelpersMax: 'அதிகபட்சம் 5 பேர்',
+    workAlsoOn: 'இதிலும்: {names}',
     taskPeople: { one: '{n} நபர்', other: '{n} நபர்கள்' },
     taskDeadline: 'கடைசி நாள் (விருப்பம்)',
     taskPhotoLabel: 'புகைப்படம் இணை (விருப்பம்)',
@@ -18936,6 +19149,7 @@ const ta: UiStrings = {
     totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
     totalOwe: 'நீங்கள் தர வேண்டிய மொத்தம்',
     totalSettled: 'எல்லாம் தீர்க்கப்பட்டது',
+    downloadingGroups: 'உங்கள் குழுக்களைப் பதிவிறக்குகிறது · {loaded} / {total}',
     spentThisMonth: 'இந்த மாதம் நீங்கள் செலவிட்டது',
     vsLastMonth: 'கடந்த மாதத்துடன் ஒப்பிட',
     periodOverall: 'மொத்தம்',
@@ -22479,6 +22693,10 @@ const hi: UiStrings = {
     errDate: 'मान्य तारीख दर्ज करें',
     errBirthday: 'सही दिन और महीना दर्ज करें',
     birthday: 'जन्मदिन',
+    datesTitle: 'जन्मदिन और जॉइनिंग तारीख',
+    datesSubtitle: 'इन तारीखों को याद रखें और मनाएँ',
+    joinedLabel: 'जॉइनिंग तारीख (वैकल्पिक)',
+    selectDate: 'तारीख चुनें',
     birthDay: 'दिन',
     birthMonth: 'महीना',
     joinedOn: 'काम शुरू करने की तारीख, वैकल्पिक',
@@ -23101,8 +23319,59 @@ const hi: UiStrings = {
       spring: 'खिलने का मौसम',
     },
   },
+  twoStep: {
+    row: 'दो-चरण लॉगिन',
+    rowHint: 'जो कंपनियाँ माँगती हैं उनके लिए कोड',
+    title: 'दो-चरण लॉगिन',
+    bannerVerify: '{company} में काम जारी रखने के लिए दो-चरण सत्यापित करें',
+    bannerVerifyGeneric: 'काम जारी रखने के लिए दो-चरण सत्यापित करें',
+    wrongCode: 'यह कोड सही नहीं है।',
+    locked: 'बहुत ज़्यादा कोशिशें हो गईं। कुछ देर रुकें।',
+    updateWaves: 'जारी रखने के लिए Waves अपडेट करें।',
+    tryLater: 'यह नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
+    verified: 'सत्यापित',
+    verifyFirst: 'पहले इस फ़ोन पर दो-चरण सत्यापित करें।',
+    newPhoneTitle: 'नया फ़ोन',
+    newPhoneBody: 'अपने दूसरे डिवाइस का कोड डालें, या मालिक से इस फ़ोन को मंज़ूर करने को कहें।',
+    codeLabel: '6 अंकों का कोड',
+    continue: 'जारी रखें',
+    checkAgain: 'फिर जाँचें',
+    yourCode: 'आपका कोड',
+    newCodeIn: 'नया कोड {n} सेकंड में',
+    codeHint: 'नए फ़ोन पर साइन इन करते समय आपकी कंपनी यह कोड माँग सकती है।',
+    authenticatorTitle: 'ऑथेंटिकेटर ऐप जोड़ें',
+    authenticatorOn: 'ऑथेंटिकेटर ऐप सेट है।',
+    authenticatorSteps: 'की को अपने ऑथेंटिकेटर ऐप में डालें, फिर उसमें दिखा 6 अंकों का कोड लिखें।',
+    copyKey: 'की कॉपी करें',
+    copied: 'कॉपी हो गया',
+    openAuthenticator: 'ऑथेंटिकेटर में खोलें',
+    confirm: 'पक्का करें',
+    addAuthenticator: 'ऑथेंटिकेटर ऐप जोड़ें',
+    replaceAuthenticator: 'ऑथेंटिकेटर ऐप बदलें',
+    requireTitle: 'दो-चरण लॉगिन ज़रूरी करें',
+    requireHint: 'कंपनी का डेटा देखने से पहले सबको अपने फ़ोन पर सत्यापित करना होगा।',
+    requireConfirmTitle: 'दो-चरण लॉगिन ज़रूरी करें?',
+    requireConfirmBody: 'इस कंपनी को खोलने के लिए सबको दो-चरण सत्यापित करना होगा।',
+    requireConfirmOld: 'उन्हें Waves अपडेट करना होगा: {names}।',
+    requireOn: 'चालू करें',
+    peopleTitle: 'दो-चरण',
+    approve: 'मंज़ूर करें',
+    decline: 'अस्वीकार करें',
+    approveTitle: '{name} का नया फ़ोन मंज़ूर करें?',
+    declineTitle: '{name} का नया फ़ोन अस्वीकार करें?',
+    approveBody:
+      'वे उस फ़ोन पर कंपनी खोल सकेंगे। उनका कोड नए फ़ोन पर चला जाएगा और पुराना फ़ोन काम नहीं करेगा।',
+    declineBody: 'उस फ़ोन को अंदर नहीं आने दिया जाएगा।',
+    resetTitle: '{name} का दो-चरण रीसेट करें?',
+    resetBody:
+      'उनके कोड और ब्राउज़र सहित सभी सत्यापित सत्र, दो-चरण वाली सभी कंपनियों में हटा दिए जाएँगे। उन्हें ऑथेंटिकेटर फिर से सेट करके दोबारा सत्यापित करना होगा।',
+    reset: 'दो-चरण रीसेट करें',
+    newPhoneRow: 'नया फ़ोन {platform}',
+    memberOn: 'दो-चरण चालू है',
+  },
   sync: {
     refusal: {
+      twoStep: 'इस फ़ोन पर दो-चरण सत्यापित करें, फिर यह बदलाव सेव हो जाएगा।',
       companyGroup:
         'यह कंपनी का समूह है, इसलिए इसे साझा खर्च के रूप में नहीं जोड़ सकते। इसे कंपनी की एंट्री के रूप में जोड़ें।',
       adminOnly: 'यह बदलाव केवल समूह का एडमिन कर सकता है।',
@@ -23698,10 +23967,20 @@ const hi: UiStrings = {
     workByDate: 'तारीख के अनुसार',
     workByPerson: 'व्यक्ति के अनुसार',
     workOverdue: 'देरी',
+    workPriority: 'प्राथमिकता',
+    workPrioNormal: 'सामान्य',
+    workPrioUrgent: 'ज़रूरी',
+    workPrioVeryUrgent: 'बहुत ज़रूरी',
+    workLateOn: 'देरी · {date}',
     workOpenN: '{n} खुले',
     workDoneN: 'पूरे · {n}',
     workSiteFilter: 'साइट फ़िल्टर',
-    workNoTasks: 'अभी कोई काम नहीं।',
+    workNoTasks: 'अभी कोई काम नहीं',
+    workNoTasksHint: 'काम सौंपने, तारीख तय करने और आसानी से ट्रैक करने के लिए एक काम जोड़ें।',
+    workNoMatch: '"{q}" से मेल खाता कोई काम नहीं',
+    workNoneForYou: 'आपके लिए कोई काम नहीं',
+    workShowTeam: 'टीम के काम दिखाएँ',
+    workBlockedInTeam: 'टीम में {n} अटके हैं',
     workExport: 'रिपोर्ट एक्सपोर्ट',
     workExportRange: 'समय अवधि',
     workThisWeek: 'इस सप्ताह',
@@ -23758,6 +24037,11 @@ const hi: UiStrings = {
     taskDescription: 'काम का विवरण',
     taskDescriptionHint: 'आप क्या करवाना चाहते हैं?',
     taskAssignTo: 'किसे सौंपें',
+    taskResponsible: 'जिम्मेदार',
+    taskHelpers: 'इसमें और कौन काम कर रहा है (वैकल्पिक)',
+    taskHelpersNone: 'कोई नहीं',
+    taskHelpersMax: 'अधिकतम 5 लोग',
+    workAlsoOn: 'साथ में: {names}',
     taskPeople: { one: '{n} व्यक्ति', other: '{n} लोग' },
     taskDeadline: 'अंतिम तारीख (वैकल्पिक)',
     taskPhotoLabel: 'फ़ोटो जोड़ें (वैकल्पिक)',
@@ -26190,6 +26474,7 @@ const hi: UiStrings = {
     totalOwed: 'आपको कुल मिलने हैं',
     totalOwe: 'आपको कुल देने हैं',
     totalSettled: 'सब हिसाब बराबर है',
+    downloadingGroups: 'आपके ग्रुप डाउनलोड हो रहे हैं · {loaded} / {total}',
     spentThisMonth: 'इस महीने आपने खर्च किए',
     vsLastMonth: 'पिछले महीने की तुलना में',
     periodOverall: 'कुल',
@@ -29588,6 +29873,10 @@ const ar: UiStrings = {
     errDate: 'أدخل تاريخاً صحيحاً',
     errBirthday: 'أدخل يوماً وشهراً صحيحين',
     birthday: 'عيد الميلاد',
+    datesTitle: 'عيد الميلاد وتاريخ الانضمام',
+    datesSubtitle: 'احتفظ بهذه التواريخ لتتذكرها وتحتفل بها',
+    joinedLabel: 'تاريخ الانضمام (اختياري)',
+    selectDate: 'اختر التاريخ',
     birthDay: 'اليوم',
     birthMonth: 'الشهر',
     joinedOn: 'تاريخ بدء العمل، اختياري',
@@ -30236,8 +30525,60 @@ const ar: UiStrings = {
       spring: 'موسم الأزهار',
     },
   },
+  twoStep: {
+    row: 'تسجيل الدخول بخطوتين',
+    rowHint: 'رموز للشركات التي تطلبها',
+    title: 'تسجيل الدخول بخطوتين',
+    bannerVerify: 'تحقق من الخطوتين لتواصل العمل في {company}',
+    bannerVerifyGeneric: 'تحقق من الخطوتين لتواصل العمل',
+    wrongCode: 'هذا الرمز غير صحيح.',
+    locked: 'محاولات كثيرة. انتظر قليلاً.',
+    updateWaves: 'حدّث Waves للمتابعة.',
+    tryLater: 'تعذّر ذلك. حاول بعد قليل.',
+    verified: 'تم التحقق',
+    verifyFirst: 'تحقق من الخطوتين على هذا الهاتف أولاً.',
+    newPhoneTitle: 'هاتف جديد',
+    newPhoneBody: 'أدخل الرمز من جهازك الآخر، أو اطلب من المالك الموافقة على هذا الهاتف.',
+    codeLabel: 'رمز من 6 أرقام',
+    continue: 'متابعة',
+    checkAgain: 'تحقق مجدداً',
+    yourCode: 'رمزك',
+    newCodeIn: 'رمز جديد خلال {n} ث',
+    codeHint: 'قد تطلب شركتك هذا الرمز عند تسجيل الدخول على هاتف جديد.',
+    authenticatorTitle: 'إضافة تطبيق مصادقة',
+    authenticatorOn: 'تطبيق المصادقة مُعدّ.',
+    authenticatorSteps:
+      'انسخ المفتاح إلى تطبيق المصادقة ثم اكتب الرمز المكوّن من 6 أرقام الذي يعرضه.',
+    copyKey: 'نسخ المفتاح',
+    copied: 'تم النسخ',
+    openAuthenticator: 'فتح في تطبيق المصادقة',
+    confirm: 'تأكيد',
+    addAuthenticator: 'إضافة تطبيق مصادقة',
+    replaceAuthenticator: 'استبدال تطبيق المصادقة',
+    requireTitle: 'اشتراط تسجيل الدخول بخطوتين',
+    requireHint: 'على الجميع التحقق على هواتفهم قبل رؤية بيانات الشركة.',
+    requireConfirmTitle: 'اشتراط الخطوتين؟',
+    requireConfirmBody: 'سيحتاج الجميع إلى التحقق من الخطوتين لفتح هذه الشركة.',
+    requireConfirmOld: 'سيحتاجون إلى تحديث Waves: {names}.',
+    requireOn: 'تشغيل',
+    peopleTitle: 'الخطوتان',
+    approve: 'موافقة',
+    decline: 'رفض',
+    approveTitle: 'الموافقة على هاتف {name} الجديد؟',
+    declineTitle: 'رفض هاتف {name} الجديد؟',
+    approveBody:
+      'سيتمكن من فتح الشركة على ذلك الهاتف. ينتقل رمزه إلى الهاتف الجديد ويتوقف الهاتف القديم.',
+    declineBody: 'لن يُسمح لذلك الهاتف بالدخول.',
+    resetTitle: 'إعادة ضبط الخطوتين لـ {name}؟',
+    resetBody:
+      'ستُحذف رموزه وكل الجلسات الموثّقة، بما فيها المتصفحات، في كل الشركات التي تشترط الخطوتين. عليه إعداد المصادقة من جديد والتوثّق مجددًا.',
+    reset: 'إعادة ضبط الخطوتين',
+    newPhoneRow: 'هاتف جديد {platform}',
+    memberOn: 'الخطوتان مفعّلتان',
+  },
   sync: {
     refusal: {
+      twoStep: 'تحقق من الخطوتين على هذا الهاتف ثم يُحفظ هذا التغيير.',
       companyGroup:
         'هذه مجموعة شركة، لذا لا يمكن إضافة هذا كمصروف مشترك. أضفه كقيد للشركة بدلاً من ذلك.',
       adminOnly: 'يمكن لمسؤول المجموعة فقط إجراء هذا التغيير.',
@@ -30888,10 +31229,20 @@ const ar: UiStrings = {
     workByDate: 'حسب التاريخ',
     workByPerson: 'حسب الشخص',
     workOverdue: 'متأخرة',
+    workPriority: 'الأولوية',
+    workPrioNormal: 'عادية',
+    workPrioUrgent: 'عاجلة',
+    workPrioVeryUrgent: 'عاجلة جداً',
+    workLateOn: 'متأخرة · {date}',
     workOpenN: '{n} مفتوحة',
     workDoneN: 'منجزة · {n}',
     workSiteFilter: 'تصفية الموقع',
-    workNoTasks: 'لا مهام بعد.',
+    workNoTasks: 'لا مهام بعد',
+    workNoTasksHint: 'أضف مهمة لإسناد العمل وتحديد موعد ومتابعته بسهولة.',
+    workNoMatch: 'لا توجد مهام تطابق "{q}"',
+    workNoneForYou: 'لا مهام لك',
+    workShowTeam: 'عرض مهام الفريق',
+    workBlockedInTeam: '{n} متعثرة في الفريق',
     workExport: 'تصدير تقرير',
     workExportRange: 'الفترة الزمنية',
     workThisWeek: 'هذا الأسبوع',
@@ -30948,6 +31299,11 @@ const ar: UiStrings = {
     taskDescription: 'وصف المهمة',
     taskDescriptionHint: 'ماذا تريد أن يُنجز؟',
     taskAssignTo: 'إسناد إلى',
+    taskResponsible: 'المسؤول',
+    taskHelpers: 'يعمل عليها أيضًا (اختياري)',
+    taskHelpersNone: 'لا أحد',
+    taskHelpersMax: 'حتى 5 أشخاص',
+    workAlsoOn: 'معه أيضًا: {names}',
     taskPeople: {
       one: 'شخص واحد',
       two: 'شخصان',
@@ -33449,6 +33805,7 @@ const ar: UiStrings = {
     totalOwed: 'إجمالي المستحق لك',
     totalOwe: 'إجمالي المستحق عليك',
     totalSettled: 'كل الحسابات مسوّاة',
+    downloadingGroups: 'جارٍ تنزيل مجموعاتك · {loaded} من {total}',
     spentThisMonth: 'أنفقت هذا الشهر',
     vsLastMonth: 'مقارنة بالشهر الماضي',
     periodOverall: 'الإجمالي',

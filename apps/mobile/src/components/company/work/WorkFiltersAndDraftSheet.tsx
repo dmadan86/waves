@@ -8,12 +8,14 @@ import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
 import { maxTaskDay } from '@/lib/companyWork';
+import { HelpersPanel, helpersSummary } from './HelpersPanel';
+import { PriorityPicker } from './PriorityPicker';
 import type { CompanyWorkSetPayload } from '@waves/core';
 import { useStrings } from '@/i18n';
 
 type Payload = CompanyWorkSetPayload;
 type Site = { id: string; name: string };
-type Panel = 'form' | 'person' | 'site' | 'date' | 'time';
+type Panel = 'form' | 'person' | 'helpers' | 'site' | 'date' | 'time';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -93,7 +95,7 @@ export function WorkFiltersAndDraftSheet({
     <Sheet visible={draft !== null} onClose={close} closeLabel={t.common.close}>
       {draft && panel === 'person' ? (
         <View style={{ gap: theme.spacing.md }}>
-          <Text variant="title">{t.company.taskAssignTo}</Text>
+          <Text variant="title">{t.company.taskResponsible}</Text>
           <ScrollView style={{ maxHeight: 360 }}>
             {people.map((p) => (
               <Pressable
@@ -101,7 +103,11 @@ export function WorkFiltersAndDraftSheet({
                 accessibilityRole="radio"
                 accessibilityState={{ selected: p.id === draft.memberId }}
                 onPress={() => {
-                  setDraft({ ...draft, memberId: p.id });
+                  setDraft({
+                    ...draft,
+                    memberId: p.id,
+                    helperIds: (draft.helperIds ?? []).filter((id) => id !== p.id),
+                  });
                   setPanel('form');
                 }}
                 style={{
@@ -122,6 +128,14 @@ export function WorkFiltersAndDraftSheet({
             ))}
           </ScrollView>
         </View>
+      ) : draft && panel === 'helpers' ? (
+        <HelpersPanel
+          people={people}
+          responsibleId={draft.memberId}
+          value={draft.helperIds ?? []}
+          onChange={(helperIds) => setDraft({ ...draft, helperIds })}
+          onDone={() => setPanel('form')}
+        />
       ) : draft && panel === 'site' ? (
         <View style={{ gap: theme.spacing.md }}>
           <Text variant="title">{t.company.workSite}</Text>
@@ -226,10 +240,10 @@ export function WorkFiltersAndDraftSheet({
           />
           <View style={card}>
             {rowIcon('people-outline')}
-            <Text style={{ flex: 1 }}>{t.company.taskAssignTo}</Text>
+            <Text style={{ flex: 1 }}>{t.company.taskResponsible}</Text>
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={t.company.taskAssignTo}
+              accessibilityLabel={t.company.taskResponsible}
               disabled={busy}
               onPress={() => setPanel('person')}
               style={pill}
@@ -244,6 +258,24 @@ export function WorkFiltersAndDraftSheet({
               ) : null}
               <Text numberOfLines={1} style={{ maxWidth: 140 }}>
                 {person ? displayName(person) : ''}
+              </Text>
+              {chevron}
+            </Pressable>
+          </View>
+          <View style={card}>
+            {rowIcon('people-circle-outline')}
+            <Text style={{ flex: 1 }} numberOfLines={2}>
+              {t.company.taskHelpers}
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.company.taskHelpers}
+              disabled={busy}
+              onPress={() => setPanel('helpers')}
+              style={pill}
+            >
+              <Text numberOfLines={1} style={{ maxWidth: 140 }}>
+                {helpersSummary(people, draft.helperIds ?? [], t.company.taskHelpersNone)}
               </Text>
               {chevron}
             </Pressable>
@@ -303,6 +335,14 @@ export function WorkFiltersAndDraftSheet({
               </Pressable>
             ) : null}
           </View>
+          <View style={card}>
+            {rowIcon('flag-outline')}
+            <Text style={{ flex: 1 }}>{t.company.workPriority}</Text>
+          </View>
+          <PriorityPicker
+            value={draft.priority}
+            onChange={(priority) => setDraft({ ...draft, priority })}
+          />
           <View style={[card, { alignItems: 'flex-start' }]}>
             <View style={{ paddingTop: theme.spacing.sm }}>{rowIcon('document-text-outline')}</View>
             <View

@@ -503,6 +503,61 @@ describe('removed by an admin', () => {
   });
 });
 
+describe('two-step gated company', () => {
+  it('keeps the group and its refused write, and reports the gate', async () => {
+    online();
+    h.invoke.mockResolvedValueOnce({
+      data: { ...discoveryResponse(), memberOf: ['g-goa'] },
+      error: null,
+    });
+    const engine = new SyncEngine();
+    await engine.flush();
+
+    await engine.enqueue({
+      clientMutationId: 'gated-edit',
+      kind: 'expense.create' as never,
+      groupId: 'g-goa',
+      clientCreatedAt: '2026-10-28T00:00:00.000Z',
+      payload: {},
+    });
+    h.invoke.mockResolvedValueOnce({
+      data: {
+        outcomes: [
+          {
+            clientMutationId: 'gated-edit',
+            status: 'rejected',
+            code: 'TWO_STEP_REQUIRED',
+            message: 'Verify two-step to keep working in Goa Trip',
+          },
+        ],
+        changes: [],
+        cursors: {},
+        // Gated and (defensively) absent from memberOf: still not dropped.
+        memberOf: [],
+        twoStepRequired: ['g-goa'],
+        serverTime: '2026-08-10T00:00:00.000Z',
+      },
+      error: null,
+    });
+    await engine.flush();
+
+    const state = engine.getState();
+    expect(state.twoStepRequired).toEqual(['g-goa']);
+    expect(groupIds(state.mirror, state.queue)).toEqual(['g-goa']);
+    expect(state.queue.map((item) => item.clientMutationId)).toEqual(['gated-edit']);
+    // Quiet retry, not a red refusal.
+    expect(state.rejected).toEqual([]);
+  });
+
+  it('never names a gated group as gone', () => {
+    const mirror = {
+      cursors: {},
+      tables: { groups: { 'g-a': { id: 'g-a' }, 'g-b': { id: 'g-b' } } },
+    } as unknown as MirrorState;
+    expect(groupsNoLongerMine(mirror, [], ['g-a'], ['g-b'])).toEqual([]);
+  });
+});
+
 describe('groupsNoLongerMine', () => {
   const mirror = {
     cursors: {},
@@ -1516,5 +1571,33 @@ describe('attendance taps', () => {
       .map(([, options]) => options.body.mutations.map((m) => m.clientMutationId))
       .filter((ids) => ids.some((id) => id.startsWith('mark-')));
     expect(sent).toEqual([['mark-m1', 'mark-m2', 'mark-m3']]);
+  });
+});
+
+describe('catchUpProgress', () => {
+  const mirror = (ids: string[]) =>
+    ({ cursors: {}, tables: { groups: Object.fromEntries(ids.map((i) => [i, {}])) } }) as never;
+
+  it('counts loaded groups while more is coming', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a', 'b']), ['a', 'b', 'c'], true)).toEqual({
+      total: 3,
+      loaded: 2,
+    });
+  });
+
+  it('counts a group once however many member rows it has', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a']), ['a', 'a', 'b', 'b'], true)).toEqual({
+      total: 2,
+      loaded: 1,
+    });
+  });
+
+  it('is null when done, complete, or the server said nothing', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a']), ['a', 'b'], false)).toBeNull();
+    expect(catchUpProgress(mirror(['a', 'b']), ['a', 'b'], true)).toBeNull();
+    expect(catchUpProgress(mirror([]), undefined, true)).toBeNull();
   });
 });

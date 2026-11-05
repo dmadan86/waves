@@ -197,10 +197,35 @@ export async function requireMembership(
   });
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
   if (!memberId) {
+    // Say why when the only thing missing is two-step (the membership itself is refused either way).
+    const gate = await caller.rpc('waves_two_step_ok', { p_group_id: groupId });
+    if (!gate.error && gate.data === false) {
+      throw new HttpError(
+        403,
+        'TWO_STEP_REQUIRED',
+        'Verify two-step to keep working in this company',
+      );
+    }
     throw new HttpError(403, 'NOT_A_MEMBER', 'You are not a member of this group');
   }
 
   return { profileId: user.user.id, memberId: memberId as string };
+}
+
+/**
+ * Throws TWO_STEP_REQUIRED when the group is a company that requires two-step login and this session has not
+ * verified. Call it before any service-role read of a group's data (the service role passes every RLS check).
+ */
+export async function requireTwoStep(caller: SupabaseClient, groupId: string): Promise<void> {
+  const { data, error } = await caller.rpc('waves_two_step_ok', { p_group_id: groupId });
+  if (error) throw new HttpError(500, 'INTERNAL', error.message);
+  if (data !== true) {
+    throw new HttpError(
+      403,
+      'TWO_STEP_REQUIRED',
+      'Verify two-step to keep working in this company',
+    );
+  }
 }
 
 /** receiptShareUrl is stored and later opened by other members: null or a bounded https URL only. */

@@ -614,7 +614,14 @@ export interface CompanyWorkSetPayload {
   readonly dueTime?: string | null;
   /** The client this task follows up. Absent keeps the saved link; null clears it. */
   readonly clientId?: string | null;
+  /** Absent keeps the saved priority (an older client never sends it). */
+  readonly priority?: TaskPriority;
+  /** The others working on it (max 5, never the responsible memberId). Absent keeps the saved list. */
+  readonly helperIds?: readonly string[];
 }
+
+export type TaskPriority = 'normal' | 'urgent' | 'very_urgent';
+export const TASK_PRIORITIES: readonly TaskPriority[] = ['normal', 'urgent', 'very_urgent'];
 
 export interface CompanyWorkRemovePayload {
   readonly taskId: string;

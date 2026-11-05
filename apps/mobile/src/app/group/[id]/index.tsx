@@ -806,7 +806,7 @@ function LedgerGroupScreen() {
   // The refused-change state still needs somewhere to act (retry / discard), so
   // the header glyph is paired with the one banner that carries buttons; the
   // ambient offline / syncing states are the header glyph's job now (below).
-  const { queue, rejected } = useSync();
+  const { queue, rejected, twoStepRequired } = useSync();
 
   const { group, members, everyone, expenses, settlements, activity } = useGroup(groupId);
   const [a11yRemindId, setA11yRemindId] = useState<string | null>(null);
@@ -1172,6 +1172,7 @@ function LedgerGroupScreen() {
   // change that has stopped retrying (which also blocks everything queued
   // behind it in this group — see `deadLettered` / `nextBatch` in @waves/core).
   const stalledHere =
+    twoStepRequired.includes(groupId) ||
     rejected.some((item) => item.groupId === groupId) ||
     deadLettered(queue.filter((item) => item.groupId === groupId)).length > 0;
   const pendingForMe = (settlements.data ?? []).filter(

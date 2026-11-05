@@ -232,7 +232,7 @@ export function AttentionList({ groupId, o }: { groupId: string; o: Overview }) 
                       </Text>
                     ) : null}
                     {taskOverdue(task.dueTime ?? null, o.now) ? (
-                      <Chip label={t.company.ovOverdue} ink={RED} />
+                      <Chip label={t.company.ovOverdue} ink={theme.color.textMuted} />
                     ) : null}
                     {site ? <Chip label={site} ink={theme.color.brand} /> : null}
                   </View>

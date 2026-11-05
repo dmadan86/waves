@@ -1,4 +1,4 @@
-import type { CompanyWorkSetPayload } from '@waves/core';
+import type { CompanyWorkSetPayload, TaskPriority } from '@waves/core';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
 
 export function countWork(tasks: readonly MirrorWorkTask[]) {
@@ -34,6 +34,23 @@ export function filterWork(
   });
 }
 
+export type EmptyTasks =
+  { kind: 'search' } | { kind: 'mine'; blockedInTeam: number } | { kind: 'none' };
+/** Why the task list is empty: a search, "mine" hiding the team's tasks, or truly nothing. */
+export function emptyTasksState(options: {
+  search: string;
+  scope: 'mine' | 'team';
+  teamTasks: readonly { status: string }[];
+}): EmptyTasks {
+  if (options.search.trim()) return { kind: 'search' };
+  if (options.scope === 'mine' && options.teamTasks.length > 0)
+    return {
+      kind: 'mine',
+      blockedInTeam: options.teamTasks.filter((task) => task.status === 'blocked').length,
+    };
+  return { kind: 'none' };
+}
+
 export type WorkMode = 'date' | 'person';
 export interface WorkSection {
   key: string;
@@ -48,9 +65,30 @@ export interface WorkSection {
 }
 
 const RANK = { blocked: 0, doing: 1, todo: 2, done: 3 } as const;
-/** Blocked, doing, todo, done; then day, due time and title. */
+const PRIORITY_RANK = { very_urgent: 0, urgent: 1, normal: 2 } as const;
+/** Lower sorts first: very urgent, urgent, normal. */
+export const priorityRank = (p: TaskPriority | undefined) => PRIORITY_RANK[p ?? 'normal'];
+/** The mark shown before a title: "!!" very urgent, "!" urgent, nothing for normal. */
+export const priorityMark = (p: TaskPriority | undefined) =>
+  p === 'very_urgent' ? '!!' : p === 'urgent' ? '!' : '';
+/** A not-done task before today. */
+export const isLate = (task: Pick<MirrorWorkTask, 'status' | 'day'>, today: string) =>
+  task.status !== 'done' && task.day < today;
+/** The date line of a task: "Late · <date>" when late (the caller paints it grey, never red). */
+export function workDueText(
+  task: Pick<MirrorWorkTask, 'status' | 'day' | 'dueTime'>,
+  today: string,
+  locale: string,
+  todayLabel: string,
+  lateTemplate: string,
+): string {
+  const text = formatWorkTime(task.day, task.dueTime ?? null, today, locale, todayLabel);
+  return isLate(task, today) ? lateTemplate.replace('{date}', text) : text;
+}
+/** Very urgent, urgent, normal; then blocked, doing, todo, done; then day, due time and title. */
 function compareTasks(a: MirrorWorkTask, b: MirrorWorkTask): number {
   return (
+    priorityRank(a.priority) - priorityRank(b.priority) ||
     RANK[a.status] - RANK[b.status] ||
     a.day.localeCompare(b.day) ||
     (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') ||
@@ -163,6 +201,9 @@ export function addTaskPayloads(input: {
   title: string;
   memberIds: readonly string[];
   day: string;
+  priority?: TaskPriority;
+  /** Also working on every one of these tasks (the responsible person is left out of their own list). */
+  helperIds?: readonly string[];
   idFor: (memberId: string) => string;
 }): CompanyWorkSetPayload[] {
   return [...new Set(input.memberIds)].map((memberId) => ({
@@ -175,5 +216,40 @@ export function addTaskPayloads(input: {
     blockedReason: null,
     note: null,
     dueTime: null,
+    priority: input.priority ?? 'normal',
+    helperIds: (input.helperIds ?? []).filter((id) => id !== memberId),
   }));
+}
+
+/** Most people who can also work on a task besides the responsible one. */
+export const MAX_TASK_HELPERS = 5;
+/** The viewer is the responsible person or one of the helpers. */
+export const isOwnTask = (
+  task: Pick<MirrorWorkTask, 'memberId' | 'helperIds'>,
+  meId: string | null | undefined,
+) => !!meId && (task.memberId === meId || (task.helperIds ?? []).includes(meId));
+/**
+ * May the viewer change this task's status? A manager for their people, an employee for their own tasks
+ * (responsible or helper). Title, day and people stay with the manager.
+ */
+export const canChangeTask = (
+  task: Pick<MirrorWorkTask, 'memberId' | 'helperIds'>,
+  who: {
+    enabled: boolean;
+    isEmployee: boolean;
+    meId: string | null | undefined;
+    allowedPerson: (memberId: string) => boolean;
+  },
+) =>
+  who.enabled &&
+  (who.allowedPerson(task.memberId) || (who.isEmployee && isOwnTask(task, who.meId)));
+/** Pick or drop a helper: the responsible person never counts, the list stops at the maximum. */
+export function toggleHelper(
+  helperIds: readonly string[],
+  id: string,
+  responsibleId: string,
+): string[] {
+  if (id === responsibleId) return [...helperIds];
+  if (helperIds.includes(id)) return helperIds.filter((x) => x !== id);
+  return helperIds.length >= MAX_TASK_HELPERS ? [...helperIds] : [...helperIds, id];
 }

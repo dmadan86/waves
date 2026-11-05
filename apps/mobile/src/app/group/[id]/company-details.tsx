@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native';
 
 import { Screen } from '@waves/ui';
 
+import { RequireTwoStep } from '@/components/company/twoStep/RequireTwoStep';
 import { DetailsScreenBody } from '@/components/company/details/CompanyDetailsView';
 import { ScenicBody, ScenicHeader } from '@/components/standard';
 import { useCompanyVendors } from '@/data/companyVendors';
@@ -30,6 +31,7 @@ export default function CompanyDetailsScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         <ScenicHeader title={title} />
         <ScenicBody>
+          {vendorId ? null : <RequireTwoStep groupId={id ?? ''} />}
           <DetailsScreenBody groupId={id ?? ''} vendorId={vendorId} />
         </ScenicBody>
       </ScrollView>
