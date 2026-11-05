@@ -1201,7 +1201,7 @@ export default function GroupSettingsScreen() {
                           gap: theme.spacing.sm,
                           paddingHorizontal: theme.spacing.md,
                           height: 40,
-                          borderRadius: theme.radius.pill,
+                          borderRadius: theme.radius.sm,
                           backgroundColor: theme.color.brandSoft,
                         }}
                       >
@@ -1401,7 +1401,7 @@ export default function GroupSettingsScreen() {
                       alignItems: 'center',
                       gap: theme.spacing.sm,
                       paddingHorizontal: theme.spacing.lg,
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.sm,
                       backgroundColor: theme.color.brandSoft,
                     }}
                   >
@@ -1465,7 +1465,7 @@ export default function GroupSettingsScreen() {
                               style={{
                                 paddingHorizontal: theme.spacing.md,
                                 paddingVertical: 4,
-                                borderRadius: theme.radius.pill,
+                                borderRadius: theme.radius.sm,
                                 backgroundColor: theme.color.brandSoft,
                               }}
                             >
@@ -1482,7 +1482,7 @@ export default function GroupSettingsScreen() {
                               style={{
                                 paddingHorizontal: theme.spacing.md,
                                 paddingVertical: 4,
-                                borderRadius: theme.radius.pill,
+                                borderRadius: theme.radius.sm,
                                 backgroundColor: theme.color.brand,
                               }}
                             >

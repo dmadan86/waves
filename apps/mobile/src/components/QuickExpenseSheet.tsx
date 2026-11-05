@@ -124,7 +124,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     gap: 6,
     height: CHIP_HEIGHT,
     paddingHorizontal: 12,
-    borderRadius: 19,
+    borderRadius: 12,
     borderWidth: 1.25,
     borderColor: picked ? accent : 'transparent',
     backgroundColor: picked ? (dark ? theme.color.brandSoft : '#FFFFFF') : soft,
@@ -396,7 +396,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
               gap: 2,
               minHeight: 34,
               paddingHorizontal: 14,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: soft,
               opacity: pressed ? 0.6 : 1,
             })}

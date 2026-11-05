@@ -341,7 +341,7 @@ export default function CompanyBillScreen() {
                 gap: 4,
                 paddingHorizontal: theme.spacing.md,
                 height: 32,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 backgroundColor: tone.bg,
               }}
             >
@@ -839,7 +839,7 @@ function SmallPill({
         gap: 4,
         paddingHorizontal: theme.spacing.md,
         height: 32,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         borderWidth: 1,
         borderColor: theme.color.brandSoft,
         backgroundColor: theme.color.surface,
@@ -882,7 +882,7 @@ function ActionButton({
         flexBasis: 0,
         minWidth: 100,
         height: 44,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.md,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',

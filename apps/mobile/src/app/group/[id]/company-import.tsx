@@ -504,7 +504,7 @@ export default function CompanyImportScreen() {
                             paddingHorizontal: theme.spacing.md,
                             minHeight: 36,
                             justifyContent: 'center',
-                            borderRadius: theme.radius.pill,
+                            borderRadius: theme.radius.sm,
                             borderWidth: 1.5,
                             borderColor: on ? theme.color.brand : 'transparent',
                             backgroundColor: on ? theme.color.brandSoft : theme.color.surface,

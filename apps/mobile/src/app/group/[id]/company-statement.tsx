@@ -337,7 +337,7 @@ export default function CompanyStatementScreen() {
         <ScenicBody>
           {member && detail ? (
             <>
-              <StandardCard style={{ padding: theme.spacing.xs, borderRadius: 28 }}>
+              <StandardCard style={{ padding: theme.spacing.xs, borderRadius: 16 }}>
                 <ScrollView
                   horizontal
                   showsHorizontalScrollIndicator={false}
@@ -436,7 +436,7 @@ export default function CompanyStatementScreen() {
                             gap: 6,
                             height: 34,
                             paddingHorizontal: theme.spacing.md,
-                            borderRadius: theme.radius.pill,
+                            borderRadius: theme.radius.sm,
                             borderWidth: 1,
                             borderColor: theme.color.brand,
                           }}

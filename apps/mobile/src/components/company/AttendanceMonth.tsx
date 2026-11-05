@@ -225,7 +225,7 @@ export function AttendanceMonth({
             justifyContent: 'center',
             gap: 4,
             minHeight: 40,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.sm,
             borderWidth: 1,
             borderColor: theme.color.border,
           }}

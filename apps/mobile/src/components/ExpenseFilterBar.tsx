@@ -132,7 +132,7 @@ export function ExpenseFilterBar({
             gap: theme.spacing.sm,
             height: 36,
             paddingHorizontal: theme.spacing.md,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.sm,
             backgroundColor: theme.color.surface,
             borderWidth: 1,
             borderColor: theme.color.border,

@@ -312,7 +312,7 @@ export default function DevicesScreen() {
                       gap: theme.spacing.sm,
                       paddingVertical: theme.spacing.md,
                       paddingHorizontal: theme.spacing.lg,
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.sm,
                       backgroundColor: theme.color.brandSoft,
                       opacity: busy ? 0.6 : 1,
                     }}
@@ -342,7 +342,7 @@ export default function DevicesScreen() {
                     gap: theme.spacing.xs,
                     paddingVertical: theme.spacing.md,
                     paddingHorizontal: theme.spacing.xl,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.sm,
                     backgroundColor: theme.color.brand,
                   }}
                 >

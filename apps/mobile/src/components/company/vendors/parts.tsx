@@ -35,7 +35,7 @@ export function Pill({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
         backgroundColor: fill,

@@ -32,7 +32,6 @@
 
 import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import {
   Image,
   Keyboard,
@@ -271,7 +270,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
     height: 46,
     borderWidth: 1,
     borderColor: FIELD_LINE,
-    borderRadius: 14,
+    borderRadius: 12,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
     flexDirection: 'row',
@@ -519,16 +518,16 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
           width: Math.max(windowWidth, screenHeight * (849 / 1852)),
         }}
       />
-      <LinearGradient
+      <View
         pointerEvents="none"
-        colors={[
-          'rgba(248,245,255,0.94)',
-          'rgba(246,242,255,0.82)',
-          'rgba(244,239,253,0.58)',
-          'rgba(244,239,253,0.5)',
-        ]}
-        locations={[0, 0.28, 0.45, 1]}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(246,242,255,0.75)',
+        }}
       />
 
       <Screen edges={['top']} style={{ backgroundColor: 'transparent' }}>
@@ -624,11 +623,6 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 borderTopLeftRadius: 30,
                 borderTopRightRadius: 30,
                 backgroundColor: '#FFFFFF',
-                shadowColor: '#2A1E6B',
-                shadowOpacity: 0.06,
-                shadowRadius: 16,
-                shadowOffset: { width: 0, height: -4 },
-                elevation: 3,
               }}
             >
               <ScrollView
@@ -810,7 +804,7 @@ function PrimaryPill({
   );
   const shape = {
     height: 46,
-    borderRadius: 23,
+    borderRadius: 12,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -825,26 +819,14 @@ function PrimaryPill({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        borderRadius: 23,
+        borderRadius: 12,
         opacity: pressed ? 0.9 : 1,
-        shadowColor: '#6A45E8',
-        shadowOpacity: disabled ? 0 : 0.22,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 4 },
-        elevation: disabled ? 0 : 3,
       })}
     >
       {disabled ? (
         <View style={[shape, { backgroundColor: PILL_REST }]}>{face}</View>
       ) : (
-        <LinearGradient
-          colors={['#6A45E8', '#8B6CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={shape}
-        >
-          {face}
-        </LinearGradient>
+        <View style={[{ backgroundColor: '#6A45E8' }, shape]}>{face}</View>
       )}
     </Pressable>
   );

@@ -8,11 +8,10 @@ import { describe, expect, it } from 'vitest';
 const read = (p: string) => readFileSync(join(process.cwd(), p), 'utf8');
 
 describe('voice screen background source', () => {
-  it('mounts VoiceScene, which is built from the shared FooterWaves', () => {
+  it('mounts VoiceScene, a plain page-colour backdrop', () => {
     expect(read('src/app/voice.tsx')).toContain('<VoiceScene />');
     const scene = read('src/components/voice/VoiceScene.tsx');
-    expect(scene).toContain("from '@/components/FooterWaves'");
-    expect(scene).toContain('<FooterWaves');
+    expect(scene).not.toContain('FooterWaves');
     expect(scene).not.toContain('voice-scene.webp');
   });
 

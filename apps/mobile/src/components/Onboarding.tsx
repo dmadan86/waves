@@ -17,7 +17,6 @@
 
 import { memo, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Animated, Image, Pressable, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -312,9 +311,11 @@ const SlideCard = memo(function SlideCard({
         paddingHorizontal: theme.spacing.xxxl,
       }}
     >
-      <LinearGradient
-        colors={slide.bg}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      <View
+        style={[
+          { backgroundColor: slide.bg[0] },
+          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+        ]}
       />
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <Text

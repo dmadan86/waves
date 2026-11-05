@@ -21,7 +21,6 @@
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Platform, Pressable, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, {
@@ -206,17 +205,8 @@ export default function WelcomeScreen() {
             left: 0,
             right: 0,
             bottom: 0,
-            backgroundColor: 'rgba(255,244,236,0.18)',
+            backgroundColor: 'rgba(255,255,255,0.45)',
           }}
-        />
-        {/* A soft haze from the top-left only, where the words are; the vines,
-            the lamp and the sunset stay as they are. */}
-        <LinearGradient
-          colors={['rgba(255,255,255,0.8)', 'rgba(255,255,255,0.35)', 'rgba(255,255,255,0)']}
-          locations={[0, 0.35, 0.7]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 0.85, y: 0.42 }}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
         />
       </View>
 
@@ -272,7 +262,7 @@ export default function WelcomeScreen() {
             style={({ pressed }) => ({
               height: 40,
               paddingHorizontal: 16,
-              borderRadius: 20,
+              borderRadius: 12,
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
@@ -413,12 +403,7 @@ export default function WelcomeScreen() {
             onPress={() => signInWith(first)}
             style={({ pressed }) => ({ opacity: busy ? 0.5 : pressed ? 0.9 : 1 })}
           >
-            <LinearGradient
-              colors={['#5B6CF5', '#7A5CF5', '#8E5CF0']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={providerRow}
-            >
+            <View style={[{ backgroundColor: '#6A45E8' }, providerRow]}>
               <View style={markDisc}>
                 {first === 'apple' ? (
                   <AppleMark size={20} color="#000000" />
@@ -439,7 +424,7 @@ export default function WelcomeScreen() {
                 {labelFor(first)}
               </Text>
               <Ionicons name={directionalIcon('chevron-forward')} size={20} color="#FFFFFF" />
-            </LinearGradient>
+            </View>
           </Pressable>
 
           <Pressable
@@ -570,13 +555,8 @@ function SplitChip({
           paddingVertical: 6,
           paddingStart: 6,
           paddingEnd: 10,
-          borderRadius: 16,
+          borderRadius: 12,
           backgroundColor: 'rgba(255,255,255,0.92)',
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.12,
-          shadowRadius: 10,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 4,
         },
         style,
       ]}
@@ -651,7 +631,7 @@ function WayTile({
       style={({ pressed }) => ({
         flex: 1,
         height: 44,
-        borderRadius: 14,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: LINE,
         backgroundColor: '#FFFFFF',
@@ -677,7 +657,7 @@ function WayTile({
  *  leading edge, the label centred, a chevron trailing. */
 const providerRow = {
   height: 46,
-  borderRadius: 23,
+  borderRadius: 12,
   flexDirection: 'row' as const,
   alignItems: 'center' as const,
   paddingStart: 6,

@@ -239,7 +239,7 @@ export function TicketForm({ groupId }: { groupId: string }) {
               color: theme.color.text,
               fontSize: 16,
               paddingHorizontal: theme.spacing.md,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.md,
               backgroundColor: theme.color.surfaceMuted,
             }}
           />

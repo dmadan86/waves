@@ -494,7 +494,7 @@ export default function JoinScreen() {
               onPress={() => void join()}
               style={({ pressed }) => ({
                 minHeight: 54,
-                borderRadius: 27,
+                borderRadius: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -578,7 +578,7 @@ function BackRow({ onPress, label }: { onPress: () => void; label: string }) {
   const theme = useTheme();
   return (
     <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xs }}>
-      <TranslucentBackButton dark label={label} onPress={onPress} />
+      <TranslucentBackButton label={label} onPress={onPress} />
     </View>
   );
 }

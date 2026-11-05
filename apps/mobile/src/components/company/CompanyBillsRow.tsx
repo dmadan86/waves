@@ -36,7 +36,7 @@ export function CompanyBillsRow({ groupId }: { groupId: string }) {
             style={{
               backgroundColor: theme.color.brandSoft,
               color: theme.color.brand,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               paddingHorizontal: theme.spacing.sm,
             }}
           >

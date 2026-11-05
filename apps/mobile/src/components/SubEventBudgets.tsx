@@ -196,7 +196,7 @@ export function SubEventBudgets({
                 style={{
                   paddingHorizontal: theme.spacing.md,
                   height: 36,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.sm,
                   justifyContent: 'center',
                   backgroundColor:
                     subEventId === subEvent.id ? theme.color.selectedFill : theme.color.surface,

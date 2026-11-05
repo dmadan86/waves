@@ -192,19 +192,20 @@ function Settings() {
             anybody else: an automatically created account is still an account
             somebody may want gone. */}
         <section className="panel">
-          <button type="button" className="btn soft" onClick={() => void signOut()}>
-            {t.settings.signOut}
-          </button>
-        </section>
-
-        <section className="panel">
-          <Link className="item" href="/settings/delete-account">
-            <span className="grow">
-              <span className="title">{t.privacy.deleteRow}</span>
-              <span className="meta">{t.privacy.deleteRowHint}</span>
-            </span>
-            <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
-          </Link>
+          <div className="list">
+            <button type="button" className="item" onClick={() => void signOut()}>
+              <span className="grow">
+                <span className="title">{t.settings.signOut}</span>
+              </span>
+            </button>
+            <Link className="item" href="/settings/delete-account">
+              <span className="grow">
+                <span className="title">{t.privacy.deleteRow}</span>
+                <span className="meta">{t.privacy.deleteRowHint}</span>
+              </span>
+              <ChevronRight size={16} strokeWidth={1.75} aria-hidden />
+            </Link>
+          </div>
         </section>
       </div>
       <aside className="detail" />

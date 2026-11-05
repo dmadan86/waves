@@ -110,7 +110,7 @@ export default function SettleUpScreen() {
             marginBottom: theme.spacing.sm,
             paddingHorizontal: theme.spacing.md,
             height: 40,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             backgroundColor: theme.color.surfaceMuted,
           }}
         >

@@ -365,7 +365,7 @@ function NativeSlot({
                       fontSize: 10,
                       borderWidth: 1,
                       borderColor: theme.color.border,
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.sm,
                       paddingHorizontal: theme.spacing.xs,
                       paddingVertical: 1,
                     }}
@@ -399,7 +399,7 @@ function NativeSlot({
                       maxWidth: '30%',
                       color: '#FFFFFF',
                       backgroundColor: theme.color.brand,
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.sm,
                       paddingHorizontal: theme.spacing.sm,
                       paddingVertical: theme.spacing.xs,
                       fontSize: 12,

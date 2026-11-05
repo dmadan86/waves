@@ -30,13 +30,10 @@ export function TeamSegment({
       style={{
         flexDirection: 'row',
         padding: 4,
-        borderRadius: 20,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: theme.color.border,
         backgroundColor: theme.color.surface,
-        shadowColor: '#000',
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 2 },
-        elevation: 2,
       }}
     >
       {items.map(({ tab, label, icon }) => {
@@ -56,7 +53,7 @@ export function TeamSegment({
               justifyContent: 'center',
               gap: 4,
               paddingHorizontal: 4,
-              borderRadius: 16,
+              borderRadius: 12,
               backgroundColor: on ? theme.color.brand : 'transparent',
             }}
           >

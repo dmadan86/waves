@@ -308,7 +308,7 @@ export function SourcePicker({
                         style={{
                           paddingHorizontal: theme.spacing.sm,
                           paddingVertical: 2,
-                          borderRadius: theme.radius.pill,
+                          borderRadius: theme.radius.sm,
                           backgroundColor: theme.color.brandSoft,
                         }}
                       >
