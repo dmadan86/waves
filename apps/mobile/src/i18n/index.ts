@@ -8758,7 +8758,8 @@ const en: UiStrings = {
     codeHint: 'Your company may ask for this code when you sign in on a new phone.',
     authenticatorTitle: 'Add an authenticator app',
     authenticatorOn: 'An authenticator app is set up.',
-    authenticatorSteps: 'Copy the key into your authenticator app, then type the 6-digit code it shows.',
+    authenticatorSteps:
+      'Copy the key into your authenticator app, then type the 6-digit code it shows.',
     copyKey: 'Copy key',
     copied: 'Copied',
     openAuthenticator: 'Open in authenticator',
@@ -8774,12 +8775,14 @@ const en: UiStrings = {
     peopleTitle: 'Two-step',
     approve: 'Approve',
     decline: 'Decline',
-    approveTitle: 'Approve {name}\'s new phone?',
-    declineTitle: 'Decline {name}\'s new phone?',
-    approveBody: 'They will be able to open the company on that phone. Their code moves to the new phone and the old phone stops working.',
+    approveTitle: "Approve {name}'s new phone?",
+    declineTitle: "Decline {name}'s new phone?",
+    approveBody:
+      'They will be able to open the company on that phone. Their code moves to the new phone and the old phone stops working.',
     declineBody: 'That phone will not be let in.',
     resetTitle: 'Reset two-step for {name}?',
-    resetBody: 'Their codes and every verified session, including browsers, are removed in all companies that require two-step. They set up the authenticator again and verify again.',
+    resetBody:
+      'Their codes and every verified session, including browsers, are removed in all companies that require two-step. They set up the authenticator again and verify again.',
     reset: 'Reset two-step',
     newPhoneRow: 'New phone {platform}',
     memberOn: 'Two-step is on',
@@ -15907,7 +15910,8 @@ const ta: UiStrings = {
     verified: 'சரிபார்க்கப்பட்டது',
     verifyFirst: 'முதலில் இந்த ஃபோனில் இரண்டு படியை சரிபார்க்கவும்.',
     newPhoneTitle: 'புதிய ஃபோன்',
-    newPhoneBody: 'உங்கள் மற்றொரு சாதனத்தின் குறியீட்டை உள்ளிடவும், அல்லது இந்த ஃபோனை அனுமதிக்க உரிமையாளரிடம் கேட்கவும்.',
+    newPhoneBody:
+      'உங்கள் மற்றொரு சாதனத்தின் குறியீட்டை உள்ளிடவும், அல்லது இந்த ஃபோனை அனுமதிக்க உரிமையாளரிடம் கேட்கவும்.',
     codeLabel: '6 இலக்கக் குறியீடு',
     continue: 'தொடர்க',
     checkAgain: 'மீண்டும் சரிபார்',
@@ -15916,7 +15920,8 @@ const ta: UiStrings = {
     codeHint: 'புதிய ஃபோனில் உள்நுழையும்போது உங்கள் நிறுவனம் இந்தக் குறியீட்டைக் கேட்கலாம்.',
     authenticatorTitle: 'அங்கீகார செயலியைச் சேர்க்கவும்',
     authenticatorOn: 'அங்கீகார செயலி அமைக்கப்பட்டுள்ளது.',
-    authenticatorSteps: 'விசையை உங்கள் அங்கீகார செயலியில் ஒட்டி, அது காட்டும் 6 இலக்கக் குறியீட்டை உள்ளிடவும்.',
+    authenticatorSteps:
+      'விசையை உங்கள் அங்கீகார செயலியில் ஒட்டி, அது காட்டும் 6 இலக்கக் குறியீட்டை உள்ளிடவும்.',
     copyKey: 'விசையை நகலெடு',
     copied: 'நகலெடுக்கப்பட்டது',
     openAuthenticator: 'அங்கீகார செயலியில் திற',
@@ -15934,10 +15939,12 @@ const ta: UiStrings = {
     decline: 'நிராகரி',
     approveTitle: '{name} இன் புதிய ஃபோனை அனுமதிக்கவா?',
     declineTitle: '{name} இன் புதிய ஃபோனை நிராகரிக்கவா?',
-    approveBody: 'அந்த ஃபோனில் நிறுவனத்தைத் திறக்க முடியும். அவர்களின் குறியீடு புதிய ஃபோனுக்கு மாறும்; பழைய ஃபோன் செயல்படாது.',
+    approveBody:
+      'அந்த ஃபோனில் நிறுவனத்தைத் திறக்க முடியும். அவர்களின் குறியீடு புதிய ஃபோனுக்கு மாறும்; பழைய ஃபோன் செயல்படாது.',
     declineBody: 'அந்த ஃபோன் உள்ளே விடப்படாது.',
     resetTitle: '{name} க்கான இரண்டு படியை மீட்டமைக்கவா?',
-    resetBody: 'அவர்களின் குறியீடுகளும் உலாவிகள் உட்பட சரிபார்க்கப்பட்ட அனைத்து அமர்வுகளும், இரு-படி தேவைப்படும் எல்லா நிறுவனங்களிலும் நீக்கப்படும். அவர்கள் அங்கீகாரியை மீண்டும் அமைத்துச் சரிபார்க்க வேண்டும்.',
+    resetBody:
+      'அவர்களின் குறியீடுகளும் உலாவிகள் உட்பட சரிபார்க்கப்பட்ட அனைத்து அமர்வுகளும், இரு-படி தேவைப்படும் எல்லா நிறுவனங்களிலும் நீக்கப்படும். அவர்கள் அங்கீகாரியை மீண்டும் அமைத்துச் சரிபார்க்க வேண்டும்.',
     reset: 'இரண்டு படியை மீட்டமை',
     newPhoneRow: 'புதிய ஃபோன் {platform}',
     memberOn: 'இரண்டு படி இயக்கத்தில் உள்ளது',
@@ -23288,10 +23295,12 @@ const hi: UiStrings = {
     decline: 'अस्वीकार करें',
     approveTitle: '{name} का नया फ़ोन मंज़ूर करें?',
     declineTitle: '{name} का नया फ़ोन अस्वीकार करें?',
-    approveBody: 'वे उस फ़ोन पर कंपनी खोल सकेंगे। उनका कोड नए फ़ोन पर चला जाएगा और पुराना फ़ोन काम नहीं करेगा।',
+    approveBody:
+      'वे उस फ़ोन पर कंपनी खोल सकेंगे। उनका कोड नए फ़ोन पर चला जाएगा और पुराना फ़ोन काम नहीं करेगा।',
     declineBody: 'उस फ़ोन को अंदर नहीं आने दिया जाएगा।',
     resetTitle: '{name} का दो-चरण रीसेट करें?',
-    resetBody: 'उनके कोड और ब्राउज़र सहित सभी सत्यापित सत्र, दो-चरण वाली सभी कंपनियों में हटा दिए जाएँगे। उन्हें ऑथेंटिकेटर फिर से सेट करके दोबारा सत्यापित करना होगा।',
+    resetBody:
+      'उनके कोड और ब्राउज़र सहित सभी सत्यापित सत्र, दो-चरण वाली सभी कंपनियों में हटा दिए जाएँगे। उन्हें ऑथेंटिकेटर फिर से सेट करके दोबारा सत्यापित करना होगा।',
     reset: 'दो-चरण रीसेट करें',
     newPhoneRow: 'नया फ़ोन {platform}',
     memberOn: 'दो-चरण चालू है',
@@ -30454,7 +30463,8 @@ const ar: UiStrings = {
     codeHint: 'قد تطلب شركتك هذا الرمز عند تسجيل الدخول على هاتف جديد.',
     authenticatorTitle: 'إضافة تطبيق مصادقة',
     authenticatorOn: 'تطبيق المصادقة مُعدّ.',
-    authenticatorSteps: 'انسخ المفتاح إلى تطبيق المصادقة ثم اكتب الرمز المكوّن من 6 أرقام الذي يعرضه.',
+    authenticatorSteps:
+      'انسخ المفتاح إلى تطبيق المصادقة ثم اكتب الرمز المكوّن من 6 أرقام الذي يعرضه.',
     copyKey: 'نسخ المفتاح',
     copied: 'تم النسخ',
     openAuthenticator: 'فتح في تطبيق المصادقة',
@@ -30472,10 +30482,12 @@ const ar: UiStrings = {
     decline: 'رفض',
     approveTitle: 'الموافقة على هاتف {name} الجديد؟',
     declineTitle: 'رفض هاتف {name} الجديد؟',
-    approveBody: 'سيتمكن من فتح الشركة على ذلك الهاتف. ينتقل رمزه إلى الهاتف الجديد ويتوقف الهاتف القديم.',
+    approveBody:
+      'سيتمكن من فتح الشركة على ذلك الهاتف. ينتقل رمزه إلى الهاتف الجديد ويتوقف الهاتف القديم.',
     declineBody: 'لن يُسمح لذلك الهاتف بالدخول.',
     resetTitle: 'إعادة ضبط الخطوتين لـ {name}؟',
-    resetBody: 'ستُحذف رموزه وكل الجلسات الموثّقة، بما فيها المتصفحات، في كل الشركات التي تشترط الخطوتين. عليه إعداد المصادقة من جديد والتوثّق مجددًا.',
+    resetBody:
+      'ستُحذف رموزه وكل الجلسات الموثّقة، بما فيها المتصفحات، في كل الشركات التي تشترط الخطوتين. عليه إعداد المصادقة من جديد والتوثّق مجددًا.',
     reset: 'إعادة ضبط الخطوتين',
     newPhoneRow: 'هاتف جديد {platform}',
     memberOn: 'الخطوتان مفعّلتان',

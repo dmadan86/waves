@@ -16,7 +16,11 @@ export function safeNext(next: string | null | undefined): string {
 }
 
 /** Where to send this page's reader to verify, or null to leave them where they are. */
-export function needsTwoStep(pathname: string, status: TwoStepStatus | null, search = ''): string | null {
+export function needsTwoStep(
+  pathname: string,
+  status: TwoStepStatus | null,
+  search = '',
+): string | null {
   if (!status || status.sessionVerified) return null;
   const groupId = /^\/c\/([^/]+)/.exec(pathname)?.[1];
   if (!groupId || !status.requiring.some((c) => c.groupId === groupId)) return null;

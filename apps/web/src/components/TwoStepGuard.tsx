@@ -30,7 +30,11 @@ export function TwoStepGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const status = useTwoStepStatus();
-  const target = needsTwoStep(pathname, status ?? null, typeof window === 'undefined' ? '' : window.location.search);
+  const target = needsTwoStep(
+    pathname,
+    status ?? null,
+    typeof window === 'undefined' ? '' : window.location.search,
+  );
   useEffect(() => {
     if (target) router.replace(target);
   }, [target, router]);
