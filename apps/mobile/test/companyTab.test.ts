@@ -142,7 +142,7 @@ describe('company bar navigation', () => {
     expect(companyBarActiveKey(['group', '[id]', 'members'])).toBe('team');
     expect(companyBarActiveKey(['group', '[id]', 'company-wages'])).toBe('payments');
     expect(companyBarActiveKey(['group', '[id]', 'company-team'])).toBe('team');
-    expect(companyBarActiveKey(['group', '[id]', 'company-work'])).toBe('team');
+    expect(companyBarActiveKey(['group', '[id]', 'company-work'])).toBe('more');
     expect(companyBarActiveKey(['group', '[id]', 'company-attendance'])).toBe('team');
     expect(companyBarActiveKey(['group', '[id]', 'company-pending'])).toBe('home');
     expect(companyBarActiveKey(['group', '[id]', 'company-entry'])).toBe('');

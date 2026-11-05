@@ -15,12 +15,12 @@ import DailyWorkView from './DailyWorkView';
 import { TeamSegment, type TeamTab } from './TeamSegment';
 
 const key = (id: string) => `waves.company.team-tab:${id}`;
-const isTab = (v: unknown): v is TeamTab => v === 'people' || v === 'attendance' || v === 'work';
+const isTab = (v: unknown): v is TeamTab => v === 'people' || v === 'attendance';
 
 /**
- * The company bar's Team tab: one shell (company header + People | Attendance | Tasks segment) and
- * the three views inside it, none of which draws a header of its own. The old people / attendance /
- * work routes open the same screen on their segment.
+ * The company bar's Team tab: one shell (company header + People | Attendance segment) and the two
+ * views inside it, neither of which draws a header of its own. The old people / attendance routes
+ * open the same screen on their segment; Tasks has its own screen (TasksScreen).
  */
 export default function TeamScreen({
   groupId,
@@ -111,7 +111,7 @@ export default function TeamScreen({
       groupId={groupId}
       view={view}
       menuItems={menuItems}
-      segment={<TeamSegment groupId={groupId} value={tab} onChange={choose} />}
+      segment={<TeamSegment value={tab} onChange={choose} />}
     >
       {tab === 'people' ? (
         <CompanyPeople
@@ -119,10 +119,8 @@ export default function TeamScreen({
           notEmployed={notEmployed}
           onLeaveNotEmployed={() => setNotEmployed(false)}
         />
-      ) : tab === 'attendance' ? (
-        <AttendanceView groupId={groupId} embedded />
       ) : (
-        <DailyWorkView groupId={groupId} embedded />
+        <AttendanceView groupId={groupId} embedded />
       )}
       {view.isOwner ? (
         <DepartmentSheet

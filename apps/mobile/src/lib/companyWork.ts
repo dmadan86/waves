@@ -51,11 +51,11 @@ export function emptyTasksState(options: {
   return { kind: 'none' };
 }
 
-export type WorkMode = 'date' | 'person';
+export type WorkMode = 'date' | 'person' | 'status';
 export interface WorkSection {
   key: string;
-  kind: 'overdue' | 'day' | 'person';
-  /** ISO day for a `day` section, member id for a `person` section. */
+  kind: 'overdue' | 'day' | 'person' | 'status';
+  /** ISO day for a `day` section, member id for a `person` section, status for a `status` one. */
   ref: string;
   tasks: MirrorWorkTask[];
   /** Open tasks that are blocked or past their day (a person section's red count). */
@@ -98,7 +98,7 @@ function compareTasks(a: MirrorWorkTask, b: MirrorWorkTask): number {
 
 /**
  * The Tasks list. By date: Overdue (open, before today), then one section per day from today on.
- * By person: one section per person. Either way, done tasks from before today collapse into one
+ * By person: one section per person. By status: blocked, in progress, to do, done. Each way, done tasks from before today collapse into one
  * `done` tail; done tasks from today on stay in their section.
  */
 export function groupWorkTasks(
@@ -114,9 +114,11 @@ export function groupWorkTasks(
     const [key, kind, ref] =
       options.mode === 'person'
         ? [`p:${task.memberId}`, 'person' as const, task.memberId]
-        : overdue
-          ? ['overdue', 'overdue' as const, '']
-          : [`d:${task.day}`, 'day' as const, task.day];
+        : options.mode === 'status'
+          ? [`s:${task.status}`, 'status' as const, task.status]
+          : overdue
+            ? ['overdue', 'overdue' as const, '']
+            : [`d:${task.day}`, 'day' as const, task.day];
     let section = buckets.get(key);
     if (!section) buckets.set(key, (section = { key, kind, ref, tasks: [], alert: 0, open: 0 }));
     section.tasks.push(task);
@@ -130,7 +132,9 @@ export function groupWorkTasks(
   sections.sort((a, b) =>
     options.mode === 'person'
       ? name(a).localeCompare(name(b))
-      : (a.kind === 'overdue' ? '' : a.ref).localeCompare(b.kind === 'overdue' ? '' : b.ref),
+      : options.mode === 'status'
+        ? RANK[a.ref as MirrorWorkTask['status']] - RANK[b.ref as MirrorWorkTask['status']]
+        : (a.kind === 'overdue' ? '' : a.ref).localeCompare(b.kind === 'overdue' ? '' : b.ref),
   );
   return { sections, done };
 }

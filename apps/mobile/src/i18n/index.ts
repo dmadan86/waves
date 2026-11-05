@@ -1677,6 +1677,7 @@ export interface UiStrings {
     workEmpty: string;
     workByDate: string;
     workByPerson: string;
+    workByStatus: string;
     workOverdue: string;
     workPriority: string;
     workPrioNormal: string;
@@ -9421,6 +9422,7 @@ const en: UiStrings = {
     workEmpty: 'No tasks for this day.',
     workByDate: 'By date',
     workByPerson: 'By person',
+    workByStatus: 'By status',
     workOverdue: 'Overdue',
     workPriority: 'Priority',
     workPrioNormal: 'Normal',
@@ -16635,6 +16637,7 @@ const ta: UiStrings = {
     workEmpty: 'இந்த நாளில் வேலைகள் இல்லை.',
     workByDate: 'தேதிப்படி',
     workByPerson: 'நபர்படி',
+    workByStatus: 'நிலைப்படி',
     workOverdue: 'தாமதம்',
     workPriority: 'முன்னுரிமை',
     workPrioNormal: 'சாதாரண',
@@ -24017,6 +24020,7 @@ const hi: UiStrings = {
     workEmpty: 'इस दिन कोई काम नहीं।',
     workByDate: 'तारीख के अनुसार',
     workByPerson: 'व्यक्ति के अनुसार',
+    workByStatus: 'स्थिति के अनुसार',
     workOverdue: 'देरी',
     workPriority: 'प्राथमिकता',
     workPrioNormal: 'सामान्य',
@@ -31296,6 +31300,7 @@ const ar: UiStrings = {
     workEmpty: 'لا مهام لهذا اليوم.',
     workByDate: 'حسب التاريخ',
     workByPerson: 'حسب الشخص',
+    workByStatus: 'حسب الحالة',
     workOverdue: 'متأخرة',
     workPriority: 'الأولوية',
     workPrioNormal: 'عادية',

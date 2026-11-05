@@ -115,6 +115,7 @@ export function WorkToolbar({
             options={[
               { value: 'date' as WorkMode, label: t.company.workByDate },
               { value: 'person' as WorkMode, label: t.company.workByPerson },
+              { value: 'status' as WorkMode, label: t.company.workByStatus },
             ]}
             value={mode}
             onChange={onMode}
