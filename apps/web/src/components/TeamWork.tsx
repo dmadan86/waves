@@ -189,7 +189,13 @@ export function TeamWork({ groupId }: { groupId: string }) {
         >
           {`#${t.number ?? '—'} `}
           {priorityMark(t.priority) ? (
-            <strong style={{ color: t.priority === 'very_urgent' ? 'crimson' : 'darkorange' }}>
+            <strong
+              role="img"
+              aria-label={t.priority === 'very_urgent' ? s.prioVeryUrgent : s.prioUrgent}
+              style={{
+                color: t.priority === 'very_urgent' ? 'var(--w-negative)' : 'var(--w-warning)',
+              }}
+            >
               {priorityMark(t.priority)}{' '}
             </strong>
           ) : null}

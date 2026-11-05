@@ -400,6 +400,9 @@ describe('G28: due-time compat – task retains due_time when employee uses 9-ar
       await setPriority(2, 'normal');
       expect(await read()).toBe('very_urgent');
       await denied(() => setPriority(0, 'loud'));
+      // A task that no longer exists fails (the sync retries) instead of silently dropping the priority.
+      await user(0, () => db.query('SELECT waves_company_work_remove($1,$2)', [g.groupId, id]));
+      await denied(() => setPriority(0, 'urgent'));
     }));
 
   it('manager can reassign within their team; outside-team reassign is denied', () =>
