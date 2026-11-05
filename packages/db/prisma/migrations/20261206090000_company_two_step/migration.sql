@@ -940,7 +940,7 @@ BEGIN
  RETURN jsonb_build_object(
   'requireTwoStep', (SELECT require_two_step FROM public.groups WHERE id = p_group_id),
   'members', coalesce((SELECT jsonb_agg(jsonb_build_object('memberId', m.id, 'name', coalesce(p.display_name, 'Someone'),
-     'role', m.role::text,
+     'role', m.role::text, 'canReset', public.waves_two_step_may_act_for(p_group_id, m.profile_id),
      'hasFactor', EXISTS (SELECT 1 FROM public.two_step_secrets s WHERE s.profile_id = m.profile_id AND s.active),
      'appVersion', (SELECT d.app_version FROM public.device_sessions d WHERE d.profile_id = m.profile_id AND d.revoked_at IS NULL
         ORDER BY d.last_seen_at DESC LIMIT 1)) ORDER BY p.display_name)
@@ -991,6 +991,10 @@ BEGIN
  UPDATE public.two_step_device_requests SET status = 'declined', decided_at = now(), decided_by = v_me.profile_id
   WHERE profile_id = v_target.profile_id AND status IN ('pending','approved');
  DELETE FROM public.two_step_lockouts WHERE profile_id = v_target.profile_id;
+ -- Credentials minted from the old verified session must not outlive the reset.
+ UPDATE public.api_tokens SET two_step_verified_at = NULL WHERE profile_id = v_target.profile_id AND two_step_verified_at IS NOT NULL;
+ UPDATE public.api_authorization_codes SET two_step_verified_at = NULL WHERE profile_id = v_target.profile_id AND two_step_verified_at IS NOT NULL;
+ UPDATE public.company_agent_links SET two_step_verified_at = NULL WHERE profile_id = v_target.profile_id AND two_step_verified_at IS NOT NULL;
  INSERT INTO public.activity_log (group_id, actor_member_id, verb, object_type, object_id, payload)
  VALUES (p_group_id, v_me.id, 'two_step_reset', 'member', v_target.id, '{}'::jsonb);
  SELECT name INTO v_name FROM public.groups WHERE id = p_group_id;
@@ -1080,8 +1084,10 @@ BEGIN
   RETURN jsonb_build_object('ok', true);
  END IF;
  UPDATE public.two_step_lockouts
-    SET locked_until = CASE WHEN failures + 1 >= 10 THEN now() + interval '15 minutes' END,
-        failures = CASE WHEN failures + 1 >= 10 THEN 0 ELSE failures + 1 END
+    SET failures = failures + 1,
+        -- Failures keep counting until a right code: 15 min after the 10th miss, doubling each 10 more, capped at 24 h.
+        locked_until = CASE WHEN (failures + 1) % 10 = 0
+          THEN now() + least(interval '24 hours', interval '15 minutes' * power(2, least((failures + 1) / 10 - 1, 7))) END
   WHERE profile_id = p_profile RETURNING * INTO l;
  RETURN jsonb_build_object('ok', false, 'reason', CASE WHEN l.locked_until IS NOT NULL THEN 'LOCKED' ELSE 'BAD_CODE' END);
 END $$;

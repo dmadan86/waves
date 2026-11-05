@@ -9,6 +9,8 @@ export interface TwoStepOverview {
     name: string;
     role: string;
     hasFactor: boolean;
+    /** Server-decided: the viewer outranks this person and may reset them. */
+    canReset: boolean;
     appVersion: string | null;
   }[];
   pendingDevices: {

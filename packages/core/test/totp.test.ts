@@ -78,7 +78,15 @@ describe('base32 + otpauth', () => {
     expect(base32Encode(ascii('foobar'))).toBe('MZXW6YTBOI');
     expect(hex(base32Decode('mzxw 6ytb-oi')!)).toBe(hex(ascii('foobar')));
     expect(base32Decode('not base32!')).toBeNull();
+    expect(hex(base32Decode('MZXW6YTBOI======')!)).toBe(hex(ascii('foobar')));
     expect(base32Decode(base32Encode(SEED))).toEqual(SEED);
+  });
+
+  it('refuses a long run of "=" quickly', () => {
+    const start = Date.now();
+    expect(base32Decode(`${'='.repeat(200_000)}x`)).toBeNull();
+    expect(base32Decode('='.repeat(200_000))).toBeNull();
+    expect(Date.now() - start).toBeLessThan(1000);
   });
   it('builds an authenticator link', () => {
     expect(otpauthUri('ABC', 'a@b.c')).toBe(

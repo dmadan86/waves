@@ -515,6 +515,12 @@ describe('toggle, reset and new-phone approval', () => {
         "INSERT INTO two_step_secrets(profile_id, kind, secret_enc, active) VALUES ($1,'phone',repeat('x',40),true)",
         [p[2]],
       );
+      const tokenId = randomUUID();
+      await db.query(
+        `INSERT INTO api_tokens(id, profile_id, kind, token_hash, token_prefix, scopes, two_step_verified_at)
+         VALUES ($1,$2,'personal',$3,'wavs_pat_rset', (SELECT ARRAY[min(s)] FROM unnest(waves_api_known_scopes()) s), now())`,
+        [tokenId, p[2], 'b'.repeat(64)],
+      );
       const reset = (i: number, target: string) =>
         as(claims(i, VERIFIED), () =>
           db.query('SELECT waves_two_step_reset($1,$2)', [COMPANY, target]),
@@ -536,6 +542,10 @@ describe('toggle, reset and new-phone approval', () => {
           [p[2]],
         );
         expect(left.rows[0].n).toBe(0);
+        const stamp = await db.query('SELECT two_step_verified_at FROM api_tokens WHERE id = $1', [
+          tokenId,
+        ]);
+        expect(stamp.rows[0].two_step_verified_at).toBeNull();
         const marks = await db.query(
           'SELECT count(*)::int n FROM two_step_sessions WHERE profile_id = $1',
           [p[2]],

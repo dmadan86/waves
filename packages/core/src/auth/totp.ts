@@ -111,7 +111,10 @@ export function base32Encode(bytes: Uint8Array): string {
 
 /** Null for anything that is not base32 (spaces, dashes and case are forgiven). */
 export function base32Decode(text: string): Uint8Array | null {
-  const clean = text.replace(/[\s-]/g, '').replace(/=+$/, '').toUpperCase();
+  let clean = text.replace(/[\s-]/g, '');
+  let end = clean.length;
+  while (end > 0 && clean[end - 1] === '=') end -= 1; // not /=+$/: that backtracks quadratically on long runs of '='
+  clean = clean.slice(0, end).toUpperCase();
   if (clean === '' || !/^[A-Z2-7]+$/.test(clean)) return null;
   const out: number[] = [];
   let bits = 0;

@@ -37,10 +37,7 @@ export function TwoStepPeople({ groupId }: { groupId: string }) {
   const data = overview.data;
   if (!flag || !data?.requireTwoStep) return null;
 
-  // A manager cannot reset an owner.
-  const resettable = data.members.filter(
-    (m) => m.hasFactor && (viewerIsOwner || m.role !== 'admin'),
-  );
+  const resettable = data.members.filter((m) => m.hasFactor && m.canReset);
   if (data.pendingDevices.length === 0 && resettable.length === 0) return null;
 
   const fail = () => toast.show(t.twoStep.tryLater, 'negative');

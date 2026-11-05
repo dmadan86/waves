@@ -1,6 +1,6 @@
 /**
  * two-step-verify (web, or a phone without App Check): a 6-digit code from the person's phone or authenticator marks
- * this session as verified. Rate limited (fail closed), ±1 step, no reuse, 10 misses lock for 15 minutes.
+ * this session as verified. Rate limited (fail closed), ±1 step, no reuse, 10 misses lock (15 min, doubling per 10 more).
  */
 
 import { errorResponse, HttpError, json } from '../_shared/auth.ts';

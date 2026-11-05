@@ -220,7 +220,7 @@ export async function attemptCode(
 
 export function codeRefusal(outcome: 'BAD_CODE' | 'LOCKED'): HttpError {
   return outcome === 'LOCKED'
-    ? new HttpError(423, 'LOCKED', 'Too many wrong codes. Try again in 15 minutes.')
+    ? new HttpError(423, 'LOCKED', 'Too many wrong codes. Try again later.')
     : new HttpError(
         400,
         'BAD_CODE',

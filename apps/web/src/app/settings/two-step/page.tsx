@@ -34,6 +34,7 @@ function Setup() {
     if (known === 'TWO_STEP_REQUIRED') {
       router.replace('/auth/two-step?next=/settings/two-step');
     } else {
+      if (known === 'NO_PENDING') setStart(null);
       setError(known === 'BAD_CODE' ? s.badCode : known === 'NO_PENDING' ? s.noPending : s.failed);
     }
     return null;

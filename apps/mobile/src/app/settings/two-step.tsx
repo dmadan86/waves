@@ -178,6 +178,12 @@ export default function TwoStepScreen() {
               {t.twoStep.codeHint}
             </Text>
           </StandardCard>
+        ) : result && problem(result) ? (
+          <StandardCard style={{ gap: theme.spacing.sm }}>
+            <Text variant="body" tone="muted">
+              {problem(result)}
+            </Text>
+          </StandardCard>
         ) : null}
 
         {!waiting ? (
