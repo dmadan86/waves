@@ -341,11 +341,15 @@ async function callerUserId(caller: SupabaseClient): Promise<string> {
 }
 
 /** True when the two profiles share at least one live group. */
-async function sharesGroup(service: SupabaseClient, a: string, b: string): Promise<boolean> {
+/**
+ * Read as the caller: `profiles_select` shows a profile to the people who share a group with it, and skips a two-step
+ * company this session has not verified, so an avatar is signed exactly when its profile is visible.
+ */
+async function sharesGroup(caller: SupabaseClient, a: string, b: string): Promise<boolean> {
   if (a === b) return true;
-  const { data, error } = await service.rpc('waves_profiles_share_group', { p_a: a, p_b: b });
+  const { data, error } = await caller.from('profiles').select('id').eq('id', b).maybeSingle();
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
-  return data === true;
+  return Boolean(data);
 }
 
 /** The mutating actions `authorizeWrite` guards. */
@@ -579,7 +583,7 @@ async function authorizeRead(
     return;
   }
   if (bucket === 'avatars') {
-    if (!ownerSegment || !(await sharesGroup(service, uid, ownerSegment))) {
+    if (!ownerSegment || !(await sharesGroup(caller, uid, ownerSegment))) {
       throw new HttpError(403, 'NOT_VISIBLE', 'That avatar is not visible to you');
     }
     return;

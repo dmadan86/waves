@@ -7,11 +7,15 @@ export enum RefusalReason {
   Conflict = 'conflict',
   GuestExpired = 'guestExpired',
   CompanySlot = 'companySlot',
+  /** A company that requires two-step login, from a session that has not verified. */
+  TwoStep = 'twoStep',
   Generic = 'generic',
 }
 
 export function refusalReason(code: string): RefusalReason {
   switch (code) {
+    case 'TWO_STEP_REQUIRED':
+      return RefusalReason.TwoStep;
     case 'COMPANY_SLOT_REQUIRED':
       return RefusalReason.CompanySlot;
     case 'COMPANY_GROUP':
@@ -58,6 +62,7 @@ export function refusalReason(code: string): RefusalReason {
   }
 }
 
+/** Kept in the queue and retried quietly. TWO_STEP_REQUIRED clears once this device verifies. */
 export function isTransientRefusal(code: string): boolean {
-  return code === 'RATE_LIMITED' || code === 'CONFLICT_SUPERSEDED';
+  return code === 'RATE_LIMITED' || code === 'CONFLICT_SUPERSEDED' || code === 'TWO_STEP_REQUIRED';
 }
