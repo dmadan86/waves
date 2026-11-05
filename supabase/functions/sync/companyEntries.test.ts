@@ -317,6 +317,32 @@ const cases = [
     },
   ],
   [
+    'company_vendor.set',
+    {
+      vendorId: MEMBER_ID,
+      name: 'Ravi',
+      phone: null,
+      category: 'Cement',
+      categories: [' Cement ', 'Labour'],
+    },
+    'waves_company_vendor_set',
+    {
+      p_group_id: GROUP_ID,
+      p_vendor_id: MEMBER_ID,
+      p_data: { name: 'Ravi', phone: null, category: 'Cement', categories: ['Cement', 'Labour'] },
+    },
+  ],
+  [
+    'company_vendor.set',
+    { vendorId: MEMBER_ID, name: 'Ravi', phone: null, category: 'Cement' },
+    'waves_company_vendor_set',
+    {
+      p_group_id: GROUP_ID,
+      p_vendor_id: MEMBER_ID,
+      p_data: { name: 'Ravi', phone: null, category: 'Cement' },
+    },
+  ],
+  [
     'company_vendor_entry.received',
     { entryId: ENTRY, received: true },
     'waves_company_vendor_entry_received',
@@ -376,6 +402,14 @@ describe('company sync mutations', () => {
     ],
     ['company_vendor_entry.received', { entryId: ENTRY, received: 'yes' }],
     ['company_vendor.set', { vendorId: MEMBER_ID, name: '  ' }],
+    ['company_vendor.set', { vendorId: MEMBER_ID, name: 'R', categories: 'Cement' }],
+    ['company_vendor.set', { vendorId: MEMBER_ID, name: 'R', categories: ['A', ''] }],
+    ['company_vendor.set', { vendorId: MEMBER_ID, name: 'R', categories: ['x'.repeat(41)] }],
+    ['company_vendor.set', { vendorId: MEMBER_ID, name: 'R', categories: [5] }],
+    [
+      'company_vendor.set',
+      { vendorId: MEMBER_ID, name: 'R', categories: Array.from({ length: 11 }, (_, i) => `c${i}`) },
+    ],
   ])('rejects malformed %s before RPC', async (kind, payload) => {
     const scoped = caller();
     const session = new SyncSession(scoped.client, service().client, OWNER);

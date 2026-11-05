@@ -157,7 +157,7 @@ function List({ groupId }: { groupId: string }) {
                     {row.overdue > 0n ? <Pill tone="bad">{s.statusOverdue}</Pill> : null}
                   </span>
                   <span className="meta">
-                    {[vendor.category, ...extras].filter(Boolean).join(' · ')}
+                    {[vendor.categories.join(' · '), ...extras].filter(Boolean).join(' · ')}
                   </span>
                 </span>
                 <span className="title">

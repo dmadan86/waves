@@ -243,3 +243,59 @@ describe('company vendors: who sees what', () => {
       expect(again.ok).toBe(false);
     }));
 });
+
+describe('company vendors: categories', () => {
+  const setData = (caller: number, id: string, data: Record<string, unknown>) =>
+    user(caller, () =>
+      db.query('SELECT waves_company_vendor_set($1,$2,$3)', [g.groupId, id, JSON.stringify(data)]),
+    );
+  const cats = async (id: string) =>
+    (await db.query('SELECT category,categories FROM company_vendors WHERE id=$1', [id])).rows[0];
+
+  it('stores the list and keeps `category` as the first one', () =>
+    isolated(async () => {
+      await setData(0, mine, { name: 'A Hardware', categories: ['Materials', ' Cement '] });
+      expect(await cats(mine)).toEqual({
+        category: 'Materials',
+        categories: ['Materials', 'Cement'],
+      });
+    }));
+
+  it('backfill shape: a row with only `category` gets it as its single category', () =>
+    isolated(async () => {
+      const id = randomUUID();
+      await db.query(
+        "INSERT INTO company_vendors(id,group_id,name,category,added_by) VALUES($1,$2,'Old',' Paint ',$3)",
+        [id, g.groupId, g.memberIds[0]],
+      );
+      expect(await cats(id)).toEqual({ category: 'Paint', categories: ['Paint'] });
+    }));
+
+  it('an old client writing `category` alone replaces the first and keeps the rest', () =>
+    isolated(async () => {
+      await setData(0, mine, { name: 'A', categories: ['Materials', 'Cement', 'Labour'] });
+      await setData(0, mine, { name: 'A', category: 'Hardware' });
+      expect(await cats(mine)).toEqual({
+        category: 'Hardware',
+        categories: ['Hardware', 'Cement', 'Labour'],
+      });
+      await setData(0, mine, { name: 'A', category: 'labour' });
+      expect((await cats(mine)).categories).toEqual(['labour', 'Cement']);
+      await setData(0, mine, { name: 'A', category: null });
+      expect(await cats(mine)).toEqual({ category: 'Cement', categories: ['Cement'] });
+      await setData(0, mine, { name: 'A2', category: 'Cement' });
+      expect((await cats(mine)).categories).toEqual(['Cement']);
+    }));
+
+  it('rejects too many, too long, empty and duplicate categories', () =>
+    isolated(async () => {
+      const bad = [
+        Array.from({ length: 11 }, (_, i) => `c${i}`),
+        ['x'.repeat(41)],
+        ['ok', '  '],
+        ['Cement', 'cement'],
+        [5],
+      ];
+      for (const categories of bad) await denied(() => setData(0, mine, { name: 'A', categories }));
+    }));
+});

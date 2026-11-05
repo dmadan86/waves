@@ -106,6 +106,20 @@ describe('payloads match mobile', () => {
       payload: { vendorId: 'v', name: 'A', phone: null, category: 'x' },
     });
   });
+  it('vendor set sends the whole category list, first one as category', () => {
+    expect(
+      vendorSetMutation({ vendorId: 'v', name: 'A', categories: ['Cement', 'Labour'] }),
+    ).toEqual({
+      kind: MutationKind.CompanyVendorSet,
+      payload: {
+        vendorId: 'v',
+        name: 'A',
+        phone: null,
+        category: 'Cement',
+        categories: ['Cement', 'Labour'],
+      },
+    });
+  });
   it('entry create stringifies the amount', () => {
     expect(
       vendorEntryCreatePayload({
