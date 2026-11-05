@@ -1634,6 +1634,11 @@ export interface UiStrings {
     workDoneN: string;
     workSiteFilter: string;
     workNoTasks: string;
+    workNoTasksHint: string;
+    workNoMatch: string;
+    workNoneForYou: string;
+    workShowTeam: string;
+    workBlockedInTeam: string;
     workExport: string;
     workExportRange: string;
     workThisWeek: string;
@@ -9294,7 +9299,12 @@ const en: UiStrings = {
     workOpenN: '{n} open',
     workDoneN: 'Done · {n}',
     workSiteFilter: 'Site filter',
-    workNoTasks: 'No tasks yet.',
+    workNoTasks: 'No tasks yet',
+    workNoTasksHint: 'Add a task to assign work, set a due date and keep track easily.',
+    workNoMatch: 'No tasks match "{q}"',
+    workNoneForYou: 'No tasks for you',
+    workShowTeam: 'Show team tasks',
+    workBlockedInTeam: '{n} blocked in the team',
     workExport: 'Export report',
     workExportRange: 'Time period',
     workThisWeek: 'This week',
@@ -16424,7 +16434,12 @@ const ta: UiStrings = {
     workOpenN: '{n} திறந்தவை',
     workDoneN: 'முடிந்தவை · {n}',
     workSiteFilter: 'பணித்தள வடிகட்டி',
-    workNoTasks: 'இன்னும் பணிகள் இல்லை.',
+    workNoTasks: 'இன்னும் பணிகள் இல்லை',
+    workNoTasksHint: 'வேலையை ஒதுக்க, தேதி வைக்க, எளிதாகக் கண்காணிக்க ஒரு பணியைச் சேர்க்கவும்.',
+    workNoMatch: '"{q}" உடன் பணிகள் இல்லை',
+    workNoneForYou: 'உங்களுக்கு பணிகள் இல்லை',
+    workShowTeam: 'குழு பணிகளைக் காட்டு',
+    workBlockedInTeam: 'குழுவில் {n} தடைபட்டுள்ளன',
     workExport: 'அறிக்கை ஏற்றுமதி',
     workExportRange: 'காலம்',
     workThisWeek: 'இந்த வாரம்',
@@ -23724,7 +23739,12 @@ const hi: UiStrings = {
     workOpenN: '{n} खुले',
     workDoneN: 'पूरे · {n}',
     workSiteFilter: 'साइट फ़िल्टर',
-    workNoTasks: 'अभी कोई काम नहीं।',
+    workNoTasks: 'अभी कोई काम नहीं',
+    workNoTasksHint: 'काम सौंपने, तारीख तय करने और आसानी से ट्रैक करने के लिए एक काम जोड़ें।',
+    workNoMatch: '"{q}" से मेल खाता कोई काम नहीं',
+    workNoneForYou: 'आपके लिए कोई काम नहीं',
+    workShowTeam: 'टीम के काम दिखाएँ',
+    workBlockedInTeam: 'टीम में {n} अटके हैं',
     workExport: 'रिपोर्ट एक्सपोर्ट',
     workExportRange: 'समय अवधि',
     workThisWeek: 'इस सप्ताह',
@@ -30920,7 +30940,12 @@ const ar: UiStrings = {
     workOpenN: '{n} مفتوحة',
     workDoneN: 'منجزة · {n}',
     workSiteFilter: 'تصفية الموقع',
-    workNoTasks: 'لا مهام بعد.',
+    workNoTasks: 'لا مهام بعد',
+    workNoTasksHint: 'أضف مهمة لإسناد العمل وتحديد موعد ومتابعته بسهولة.',
+    workNoMatch: 'لا توجد مهام تطابق "{q}"',
+    workNoneForYou: 'لا مهام لك',
+    workShowTeam: 'عرض مهام الفريق',
+    workBlockedInTeam: '{n} متعثرة في الفريق',
     workExport: 'تصدير تقرير',
     workExportRange: 'الفترة الزمنية',
     workThisWeek: 'هذا الأسبوع',

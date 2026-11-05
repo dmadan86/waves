@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
-import { iconSize, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, Text, useTheme } from '@waves/ui';
 import { RED, withAlpha } from '@/components/company/dashboard/overviewKit';
 import { StandardCard } from '@/components/standard';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -10,7 +10,13 @@ import type { MemberRow } from '@/data/types';
 import { displayName } from '@/data/types';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
 import { dayHeading } from '@/data/activity';
-import { priorityMark, workDueText, type WorkMode, type WorkSection } from '@/lib/companyWork';
+import {
+  priorityMark,
+  workDueText,
+  type EmptyTasks,
+  type WorkMode,
+  type WorkSection,
+} from '@/lib/companyWork';
 import { useStrings } from '@/i18n';
 import { WORK_INK } from './WorkSummaryControls';
 
@@ -181,6 +187,10 @@ export function WorkTaskSections({
   onOpen,
   onMenu,
   siteName,
+  empty,
+  query,
+  onShowTeam,
+  onAdd,
 }: {
   groupId: string;
   sections: readonly WorkSection[];
@@ -197,12 +207,47 @@ export function WorkTaskSections({
   onOpen: (task: MirrorWorkTask) => void;
   onMenu: (task: MirrorWorkTask, anchor: MenuAnchor | null) => void;
   siteName: (projectId: string) => string;
+  empty: EmptyTasks;
+  query: string;
+  onShowTeam: () => void;
+  /** Only for people who can add tasks. */
+  onAdd?: () => void;
 }) {
   const { t } = useStrings();
   const theme = useTheme();
   const [showDone, setShowDone] = useState(false);
   if (sections.length === 0 && done.length === 0)
-    return <Text tone="muted">{t.company.workNoTasks}</Text>;
+    return (
+      <View style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+        {empty.kind === 'search' ? (
+          <Text tone="muted">{t.company.workNoMatch.replace('{q}', query.trim())}</Text>
+        ) : empty.kind === 'mine' ? (
+          <>
+            <Text tone="muted">
+              {t.company.workNoneForYou}
+              {empty.blockedInTeam > 0
+                ? ` · ${t.company.workBlockedInTeam.replace('{n}', String(empty.blockedInTeam))}`
+                : ''}
+            </Text>
+            <Pressable accessibilityRole="link" onPress={onShowTeam} hitSlop={8}>
+              <Text tone="brand">{t.company.workShowTeam}</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Text variant="subheading">{t.company.workNoTasks}</Text>
+            <Text tone="muted">{t.company.workNoTasksHint}</Text>
+            {onAdd ? (
+              <Button
+                label={t.company.workAdd}
+                onPress={onAdd}
+                style={{ borderRadius: theme.radius.md }}
+              />
+            ) : null}
+          </>
+        )}
+      </View>
+    );
   const rows = (tasks: readonly MirrorWorkTask[]) =>
     tasks.map((task) => (
       <TaskRow

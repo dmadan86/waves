@@ -15,6 +15,7 @@ import { workStrings as s } from '@/lib/company/workStrings';
 import {
   addTaskPayloads,
   priorityMark,
+  emptyTasksState,
   filterWork,
   groupWorkTasks,
   MAX_TASK_PHOTOS,
@@ -102,6 +103,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
     (allowedPerson(t.memberId) || (access.isEmployee && t.memberId === access.me?.id));
 
   const own = tasks.filter((t) => canChange(t) && (scope === 'team' || t.memberId === view.me?.id));
+  const empty = emptyTasksState({ search: query, scope, teamTasks: tasks.filter(canChange) });
   const grouped = groupWorkTasks(filterWork(own, query, personName, siteName), {
     mode: access.canManage ? mode : 'date',
     today,
@@ -368,7 +370,39 @@ export function TeamWork({ groupId }: { groupId: string }) {
             />
           ) : null}
 
-          {grouped.sections.length === 0 && grouped.done.length === 0 ? <p>{s.noTasks}</p> : null}
+          {grouped.sections.length === 0 && grouped.done.length === 0 ? (
+            empty.kind === 'search' ? (
+              <p>{s.noMatch.replace('{q}', query.trim())}</p>
+            ) : empty.kind === 'mine' ? (
+              <p>
+                {s.noneForYou}
+                {empty.blockedInTeam > 0
+                  ? ` · ${s.blockedInTeam.replace('{n}', String(empty.blockedInTeam))}`
+                  : ''}{' '}
+                <button type="button" className="btn" onClick={() => setScope('team')}>
+                  {s.showTeam}
+                </button>
+              </p>
+            ) : (
+              <div>
+                <p>
+                  <strong>{s.noTasks}</strong>
+                  <br />
+                  {s.noTasksHint}
+                </p>
+                {access.canManage && access.people.length > 0 ? (
+                  <button
+                    type="button"
+                    className="btn brand"
+                    disabled={busy}
+                    onClick={() => setPanel({ kind: 'add' })}
+                  >
+                    {s.add}
+                  </button>
+                ) : null}
+              </div>
+            )
+          ) : null}
           {grouped.sections.map((sec) => (
             <section key={sec.key}>
               <h3>{heading(sec)}</h3>
