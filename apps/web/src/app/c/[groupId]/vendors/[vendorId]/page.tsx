@@ -33,6 +33,7 @@ import {
 import { printHtml, renderStatementHtml } from '@/lib/company/vendorPrint';
 import { BankNotice, useNoted } from '../../details/_components/DetailsCard';
 import { LineForm } from '../_components/LineForm';
+import { CategoriesField } from '../_components/CategoriesField';
 import {
   BackLink,
   Field,
@@ -64,9 +65,11 @@ function Inner({ groupId, vendorId }: { groupId: string; vendorId: string }) {
   const action = useAction();
   const [tab, setTab] = useState<Tab>('tx');
   const [form, setForm] = useState(false);
-  const [rename, setRename] = useState<{ name: string; phone: string; category: string } | null>(
-    null,
-  );
+  const [rename, setRename] = useState<{
+    name: string;
+    phone: string;
+    categories: string[];
+  } | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const vendor = d.vendors.vendors.find((v) => v.id === vendorId);
   const card = d.vendorCard(vendorId);
@@ -135,7 +138,9 @@ function Inner({ groupId, vendorId }: { groupId: string; vendorId: string }) {
     <Page title={vendor.name}>
       {back}
       <div className="panel">
-        <p className="faint">{[vendor.category, vendor.phone].filter(Boolean).join(' · ')}</p>
+        <p className="faint">
+          {[vendor.categories.join(' · '), vendor.phone].filter(Boolean).join(' · ')}
+        </p>
         {vendor.phone ? (
           <p>
             <a className="btn soft" href={`tel:${vendor.phone}`}>
@@ -201,7 +206,7 @@ function Inner({ groupId, vendorId }: { groupId: string; vendorId: string }) {
               setRename({
                 name: vendor.name,
                 phone: vendor.phone ?? '',
-                category: vendor.category ?? '',
+                categories: [...vendor.categories],
               })
             }
           >
@@ -226,10 +231,10 @@ function Inner({ groupId, vendorId }: { groupId: string; vendorId: string }) {
             value={rename.phone}
             onChange={(phone) => setRename({ ...rename, phone })}
           />
-          <Field
-            label={s.category}
-            value={rename.category}
-            onChange={(category) => setRename({ ...rename, category })}
+          <CategoriesField
+            value={rename.categories}
+            onChange={(categories) => setRename({ ...rename, categories })}
+            used={d.vendors.vendors.flatMap((v) => v.categories)}
           />
           <button
             type="button"

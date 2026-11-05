@@ -1402,6 +1402,10 @@ export class SyncSession {
             name: companyReason(mutation.payload.name, 'name', true),
             phone: companyReason(mutation.payload.phone ?? null, 'phone', false),
             category: companyReason(mutation.payload.category ?? null, 'category', false),
+            // Older apps send no list: the database then only replaces the first category.
+            ...(mutation.payload.categories === undefined
+              ? {}
+              : { categories: companyVendorCategories(mutation.payload.categories) }),
           },
         });
       case 'company_vendor.remove':
@@ -2965,6 +2969,14 @@ function companyReason(value: unknown, field: string, required: boolean): string
   }
   if (typeof value !== 'string' || value.trim().length > 500) companyInvalid(field);
   return (value as string).trim();
+}
+/** Up to 10 trimmed, non-empty names (the database also rejects duplicates and over-long ones). */
+function companyVendorCategories(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > 10) companyInvalid('categories');
+  return (value as unknown[]).map((c) => {
+    if (typeof c !== 'string' || !c.trim() || c.trim().length > 40) companyInvalid('categories');
+    return (c as string).trim();
+  });
 }
 /** Order body: the database checks every item; this only keeps the shape and size sane. */
 function companyOrderData(payload: Record<string, unknown>): Record<string, unknown> {

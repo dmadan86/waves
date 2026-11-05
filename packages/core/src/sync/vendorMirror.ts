@@ -41,6 +41,11 @@ export function materialiseVendors(
       name: String(r.name),
       phone: str(r.phone),
       category: str(r.category),
+      categories: Array.isArray(r.categories)
+        ? r.categories.map(String)
+        : r.category
+          ? [String(r.category)]
+          : [],
       addedBy: r.added_by as string,
       memberId: str(r.member_id),
       version: Number(r.version ?? 1),
@@ -82,7 +87,8 @@ export function materialiseVendors(
         id: p.vendorId,
         name: p.name,
         phone: p.phone,
-        category: p.category,
+        category: p.categories?.[0] ?? p.category,
+        categories: p.categories ?? (p.category ? [p.category] : []),
         addedBy: old?.addedBy ?? options.myMemberId ?? '',
         memberId: old?.memberId ?? null,
         version: old?.version ?? 1,

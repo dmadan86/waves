@@ -295,10 +295,10 @@ function VendorRowView({
           ) : null}
         </View>
         <Text variant="caption" tone="muted" numberOfLines={1}>
-          {vendor.category ?? ''}
+          {vendor.categories.join(' · ')}
           {extras.length > 0 ? (
             <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
-              {`${vendor.category ? ' · ' : ''}${extras.join(' · ')}`}
+              {`${vendor.categories.length ? ' · ' : ''}${extras.join(' · ')}`}
             </Text>
           ) : null}
         </Text>

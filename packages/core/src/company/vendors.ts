@@ -12,6 +12,8 @@ export interface Vendor {
   readonly name: string;
   readonly phone: string | null;
   readonly category: string | null;
+  /** All categories, `category` first. */
+  readonly categories: readonly string[];
   /** The owner or manager who added them: the only manager who sees them. */
   readonly addedBy: string;
   /** The vendor's own login (group member), once they accepted the invite. */
@@ -88,6 +90,8 @@ export interface CompanyVendorSetPayload {
   readonly name: string;
   readonly phone: string | null;
   readonly category: string | null;
+  /** Absent from older apps: then only `category` (the first one) changes. */
+  readonly categories?: readonly string[];
 }
 export interface CompanyVendorRemovePayload {
   readonly vendorId: string;

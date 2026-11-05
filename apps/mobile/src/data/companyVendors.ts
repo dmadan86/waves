@@ -91,13 +91,16 @@ export function useSetVendor(groupId: string) {
       name: string;
       phone?: string | null;
       category?: string | null;
+      /** The whole list; without it only `category` (the first) is written, as older apps did. */
+      categories?: readonly string[];
     }) => {
       const vendorId = input.vendorId ?? randomUUID();
       await mutate(MutationKind.CompanyVendorSet, groupId, {
         vendorId,
         name: input.name.trim(),
         phone: input.phone?.trim() || null,
-        category: input.category?.trim() || null,
+        category: input.categories ? (input.categories[0] ?? null) : input.category?.trim() || null,
+        ...(input.categories ? { categories: [...input.categories] } : {}),
       });
       return vendorId;
     },

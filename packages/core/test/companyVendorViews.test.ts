@@ -18,6 +18,7 @@ const vendor = (id: string, name: string, phone: string | null = null): Vendor =
   name,
   phone,
   category: null,
+  categories: [],
   addedBy: 'm',
   memberId: null,
   version: 1,
