@@ -9,12 +9,7 @@ import { Pressable, View } from 'react-native';
 
 import { directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
-import {
-  AMBER,
-  IconDisc,
-  RED,
-  Skeleton,
-} from '@/components/company/dashboard/overviewKit';
+import { AMBER, IconDisc, RED, Skeleton } from '@/components/company/dashboard/overviewKit';
 import { GREEN } from '@/components/company/dashboard/parts';
 import { StandardCard } from '@/components/standard';
 import { useUpcomingItems } from '@/data/companyCalendarItems';

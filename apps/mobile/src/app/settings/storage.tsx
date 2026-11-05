@@ -254,8 +254,8 @@ function SoftCard({ children }: { children: ReactNode }) {
     <View
       style={{
         backgroundColor: theme.color.surface,
-          borderWidth: 1,
-          borderColor: theme.color.border,
+        borderWidth: 1,
+        borderColor: theme.color.border,
         borderRadius: theme.radius.md,
         padding: theme.spacing.md,
         gap: theme.spacing.sm,
@@ -501,4 +501,3 @@ function Perk({
     </Row>
   );
 }
-

@@ -605,10 +605,7 @@ function EntryHeader({
           gap: theme.spacing.md,
         }}
       >
-        <TranslucentBackButton
-          label={t.common.back}
-          onPress={() => router.back()}
-        />
+        <TranslucentBackButton label={t.common.back} onPress={() => router.back()} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text
             numberOfLines={1}

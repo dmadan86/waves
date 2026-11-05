@@ -79,10 +79,7 @@ export function GroupNotFound({ groupId }: { groupId: string }) {
         {/* Never a dead control: a cold open from a notification or a stale
             invite link has no history to pop, so the chevron falls back to
             home rather than silently doing nothing. */}
-        <TranslucentBackButton
-          label={t.common.back}
-          onPress={goBack}
-        />
+        <TranslucentBackButton label={t.common.back} onPress={goBack} />
 
         <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
           <Image

@@ -246,4 +246,3 @@ export default function RedeemScreen() {
     </Screen>
   );
 }
-
