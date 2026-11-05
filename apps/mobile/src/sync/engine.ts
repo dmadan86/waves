@@ -76,6 +76,30 @@ export interface SyncState {
   lastError: string | null;
   /** Company groups this session cannot read or write until two-step is verified. */
   twoStepRequired: string[];
+  /** First-sync progress: set only while the server is still handing over groups. */
+  catchUp: CatchUp | null;
+}
+
+export interface CatchUp {
+  total: number;
+  loaded: number;
+}
+
+/**
+ * How far a first sync has got. Non-null only while the server says more is
+ * coming and some of the groups this person is in are not in the mirror yet.
+ */
+export function catchUpProgress(
+  mirror: MirrorState,
+  memberOf: readonly string[] | undefined,
+  hasMore: boolean | undefined,
+): CatchUp | null {
+  // One entry per visible member row, so a group appears once per co-member.
+  const groups = [...new Set(memberOf)];
+  if (!hasMore || !groups.length) return null;
+  const have = mirror.tables[SyncTable.Groups] ?? {};
+  const loaded = groups.filter((id) => id in have).length;
+  return loaded < groups.length ? { total: groups.length, loaded } : null;
 }
 
 interface SyncResponseBody {
@@ -199,6 +223,7 @@ export class SyncEngine {
     lastSyncedAt: null,
     lastError: null,
     twoStepRequired: [],
+    catchUp: null,
   };
 
   private listeners = new Set<(state: SyncState) => void>();
@@ -380,6 +405,7 @@ export class SyncEngine {
       lastError: null,
       lastSyncedAt: null,
       twoStepRequired: [],
+      catchUp: null,
     });
   }
 
@@ -742,6 +768,7 @@ export class SyncEngine {
         twoStepRequired: sameIds(this.state.twoStepRequired, gated)
           ? this.state.twoStepRequired
           : gated,
+        catchUp: catchUpProgress(mirror, response.memberOf, response.hasMore),
       });
 
       // An employee moved to another manager: the server already stopped sending their

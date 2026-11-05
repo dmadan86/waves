@@ -389,8 +389,17 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   // object, and a quiet poll is one that changes only `lastSyncedAt` (the
   // engine keeps `mirror`, `queue` and `rejected` by reference when nothing
   // moved) — so that tick no longer reaches the readers of this context.
-  const { status, hydrated, mirror, queue, rejected, lastError, lastSyncedAt, twoStepRequired } =
-    state;
+  const {
+    status,
+    hydrated,
+    mirror,
+    queue,
+    rejected,
+    lastError,
+    lastSyncedAt,
+    twoStepRequired,
+    catchUp,
+  } = state;
   const hasSynced = lastSyncedAt !== null;
   const value = useMemo<SyncContextValue>(
     () => ({
@@ -402,13 +411,25 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       twoStepRequired,
       lastError,
       hasSynced,
+      catchUp,
       ...actions,
       // What is genuinely still on its way. A refused mutation stays in the
       // queue so its row stays on screen, but it is not in flight — counting it
       // as pending would show a "sending…" that never finishes.
       pendingCount: pendingMutations(queue).length,
     }),
-    [status, hydrated, mirror, queue, rejected, twoStepRequired, lastError, hasSynced, actions],
+    [
+      status,
+      hydrated,
+      mirror,
+      queue,
+      rejected,
+      twoStepRequired,
+      lastError,
+      hasSynced,
+      catchUp,
+      actions,
+    ],
   );
 
   return (

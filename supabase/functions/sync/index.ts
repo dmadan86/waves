@@ -321,6 +321,13 @@ const SETTLEMENT_SELECT = `
 const GROUP_CONCURRENCY = 4;
 
 /**
+ * How many never-synced groups one pull will take on. A fresh phone in 29 groups
+ * would otherwise download everything in one response and show nothing until it
+ * lands; the rest are picked up by the client's hasMore re-sync, newest first.
+ */
+const FRESH_GROUPS_PER_PULL = 2 * GROUP_CONCURRENCY;
+
+/**
  * How many times a personal-record write will re-read and re-merge before it
  * gives up and writes the blob whole.
  *
@@ -503,7 +510,7 @@ serveWithCors(async (request) => {
       changes,
       cursors: nextCursors,
       hasMore,
-    } = await pull(caller, groupIds, cursors, profileId);
+    } = await pull(caller, groupIds, cursors, profileId, session.touchedGroups);
     // Any phone that is not an owner's may still hold detail it can no longer read (an employee
     // moved to another manager, a manager demoted); owners see everyone, so they never purge.
     const managerGroupIds = mine.filter((row) => row.role !== 'admin').map((row) => row.group_id);
@@ -1161,7 +1168,16 @@ export class SyncSession {
         const status = mutation.payload.status;
         if (status !== 'todo' && status !== 'doing' && status !== 'done' && status !== 'blocked')
           companyInvalid('status');
-        return await this.rpcAsCaller('waves_company_work_set', {
+        // priority is its own call (the writer's overloads can't take another optional); absent (an older client) keeps the saved one.
+        const priority = mutation.payload.priority;
+        if (
+          priority !== undefined &&
+          priority !== 'normal' &&
+          priority !== 'urgent' &&
+          priority !== 'very_urgent'
+        )
+          companyInvalid('priority');
+        const written = await this.rpcAsCaller('waves_company_work_set', {
           p_group_id: mutation.groupId,
           p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
           p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
@@ -1182,6 +1198,13 @@ export class SyncSession {
                 p_client_id: companyUuid(mutation.payload.clientId, 'clientId', true),
               }),
         });
+        if (priority !== undefined)
+          await this.rpcAsCaller('waves_company_work_priority_set', {
+            p_group_id: mutation.groupId,
+            p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+            p_priority: priority,
+          });
+        return written;
       }
       case 'company_work.remove':
         return await this.rpcAsCaller('waves_company_work_remove', {
@@ -2454,11 +2477,12 @@ export class SyncSession {
  * holds a row lock until commit — so within a group, sequence order and commit
  * order are the same and no lower-numbered row can appear after a higher one.
  */
-async function pull(
+export async function pull(
   caller: SupabaseClient,
   groupIds: Set<string>,
   cursors: Record<string, number>,
   profileId: string,
+  mustInclude: ReadonlySet<string> = new Set(),
 ): Promise<{ changes: SyncChange[]; cursors: Record<string, number>; hasMore: boolean }> {
   const changes: SyncChange[] = [];
   const nextCursors: Record<string, number> = {};
@@ -2518,7 +2542,7 @@ async function pull(
   // the '22P02 invalid input syntax for type uuid: "<id>:ghost_merges"' that
   // floods the logs every poll. Keep only bare ids so no scoped key can reach a
   // uuid column, whatever account minted it.
-  const groupList = [...groupIds].filter((id) => !id.includes(':'));
+  let groupList = [...groupIds].filter((id) => !id.includes(':'));
   const groupRows = new Map<string, Record<string, unknown>>();
   if (groupList.length > 0) {
     const { data, error } = await caller.from('groups').select('*').in('id', groupList);
@@ -2527,6 +2551,23 @@ async function pull(
       const record = row as Record<string, unknown>;
       groupRows.set(String(record.id), record);
     }
+  }
+
+  // Fresh = no cursor yet. Take the most recently active few per pull (groups made
+  // offline always ride along); left-out ones get no cursor, so they stay fresh.
+  const isFresh = (id: string) => !cursors[id];
+  const fresh = groupList
+    .filter((id) => isFresh(id) && !mustInclude.has(id) && groupRows.has(id))
+    // updated_seq is a per-group counter, so only updated_at compares across groups.
+    .sort(
+      (a, b) =>
+        Date.parse(String(groupRows.get(b)?.updated_at ?? 0)) -
+        Date.parse(String(groupRows.get(a)?.updated_at ?? 0)),
+    );
+  const leftOut = new Set(fresh.slice(FRESH_GROUPS_PER_PULL));
+  if (leftOut.size > 0) {
+    hasMore = true;
+    groupList = groupList.filter((id) => !leftOut.has(id));
   }
 
   /**

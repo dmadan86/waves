@@ -10,10 +10,11 @@ import type { MemberRow } from '@/data/types';
 import { displayName } from '@/data/types';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
 import { dayHeading } from '@/data/activity';
-import { formatWorkTime, type WorkMode, type WorkSection } from '@/lib/companyWork';
+import { priorityMark, workDueText, type WorkMode, type WorkSection } from '@/lib/companyWork';
 import { useStrings } from '@/i18n';
 import { WORK_INK } from './WorkSummaryControls';
 
+const ORANGE = '#F08A24';
 const TINTS = ['lilac', 'peach', 'sky', 'pink', 'mint', 'coral'] as const;
 
 function TaskRow({
@@ -46,8 +47,8 @@ function TaskRow({
   const menuRef = useRef<View>(null);
   const done = task.status === 'done';
   const ink = WORK_INK[task.status];
-  const late = !done && task.day < today;
-  const dueInk = late ? RED : theme.color.textMuted;
+  const dueInk = theme.color.textMuted;
+  const mark = priorityMark(task.priority);
   const label =
     task.status === 'todo'
       ? t.company.workTodo
@@ -89,12 +90,19 @@ function TaskRow({
             <Text variant="caption" tone="muted">
               {`#${task.number ?? '—'} `}
             </Text>
+            {mark ? (
+              <Text
+                style={{ color: task.priority === 'very_urgent' ? RED : ORANGE, fontWeight: '800' }}
+              >
+                {`${mark} `}
+              </Text>
+            ) : null}
             {task.title}
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
             <Ionicons name="calendar-outline" size={iconSize.sm} color={dueInk} />
             <Text variant="caption" numberOfLines={1} style={{ color: dueInk, flexShrink: 0 }}>
-              {formatWorkTime(task.day, task.dueTime ?? null, today, locale, t.company.workToday)}
+              {workDueText(task, today, locale, t.company.workToday, t.company.workLateOn)}
             </Text>
             {site ? (
               <>
@@ -213,7 +221,6 @@ export function WorkTaskSections({
       />
     ));
   const heading = (section: WorkSection) => {
-    const red = section.kind === 'overdue';
     const text =
       section.kind === 'overdue'
         ? `${t.company.workOverdue} · ${section.tasks.length}`
@@ -226,13 +233,8 @@ export function WorkTaskSections({
     return (
       <Text
         variant="caption"
-        tone={red ? undefined : 'muted'}
-        style={{
-          textTransform: 'uppercase',
-          letterSpacing: 0.6,
-          fontWeight: '600',
-          color: red || (section.kind === 'person' && section.alert > 0) ? RED : undefined,
-        }}
+        tone="muted"
+        style={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600' }}
       >
         {text}
       </Text>

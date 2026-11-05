@@ -1573,3 +1573,31 @@ describe('attendance taps', () => {
     expect(sent).toEqual([['mark-m1', 'mark-m2', 'mark-m3']]);
   });
 });
+
+describe('catchUpProgress', () => {
+  const mirror = (ids: string[]) =>
+    ({ cursors: {}, tables: { groups: Object.fromEntries(ids.map((i) => [i, {}])) } }) as never;
+
+  it('counts loaded groups while more is coming', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a', 'b']), ['a', 'b', 'c'], true)).toEqual({
+      total: 3,
+      loaded: 2,
+    });
+  });
+
+  it('counts a group once however many member rows it has', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a']), ['a', 'a', 'b', 'b'], true)).toEqual({
+      total: 2,
+      loaded: 1,
+    });
+  });
+
+  it('is null when done, complete, or the server said nothing', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a']), ['a', 'b'], false)).toBeNull();
+    expect(catchUpProgress(mirror(['a', 'b']), ['a', 'b'], true)).toBeNull();
+    expect(catchUpProgress(mirror([]), undefined, true)).toBeNull();
+  });
+});

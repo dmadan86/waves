@@ -1674,6 +1674,11 @@ export interface UiStrings {
     workByDate: string;
     workByPerson: string;
     workOverdue: string;
+    workPriority: string;
+    workPrioNormal: string;
+    workPrioUrgent: string;
+    workPrioVeryUrgent: string;
+    workLateOn: string;
     workOpenN: string;
     workDoneN: string;
     workSiteFilter: string;
@@ -4275,6 +4280,7 @@ export interface UiStrings {
     totalOwed: string;
     totalOwe: string;
     totalSettled: string;
+    downloadingGroups: string;
     spentThisMonth: string;
     vsLastMonth: string;
     periodOverall: string;
@@ -9381,6 +9387,11 @@ const en: UiStrings = {
     workByDate: 'By date',
     workByPerson: 'By person',
     workOverdue: 'Overdue',
+    workPriority: 'Priority',
+    workPrioNormal: 'Normal',
+    workPrioUrgent: 'Urgent',
+    workPrioVeryUrgent: 'Very urgent',
+    workLateOn: 'Late · {date}',
     workOpenN: '{n} open',
     workDoneN: 'Done · {n}',
     workSiteFilter: 'Site filter',
@@ -9590,7 +9601,7 @@ const en: UiStrings = {
     ovAllMarked: 'All marked',
     ovMarkAttendance: 'Mark attendance',
     ovComingUp: 'Coming up',
-    ovOverdue: 'Overdue',
+    ovOverdue: 'Late',
     ovBlocked: 'Blocked',
     ovPendingPayments: 'Pending payments',
     ovNothingToPay: 'Nothing to pay',
@@ -11872,6 +11883,7 @@ const en: UiStrings = {
     totalOwed: 'Total you are owed',
     totalOwe: 'Total you owe',
     totalSettled: 'You are all settled up',
+    downloadingGroups: 'Downloading your groups · {loaded} of {total}',
     spentThisMonth: 'You spent this month',
     vsLastMonth: 'vs last month',
     periodOverall: 'Overall',
@@ -16558,6 +16570,11 @@ const ta: UiStrings = {
     workByDate: 'தேதிப்படி',
     workByPerson: 'நபர்படி',
     workOverdue: 'தாமதம்',
+    workPriority: 'முன்னுரிமை',
+    workPrioNormal: 'சாதாரண',
+    workPrioUrgent: 'அவசரம்',
+    workPrioVeryUrgent: 'மிக அவசரம்',
+    workLateOn: 'தாமதம் · {date}',
     workOpenN: '{n} திறந்தவை',
     workDoneN: 'முடிந்தவை · {n}',
     workSiteFilter: 'பணித்தள வடிகட்டி',
@@ -19090,6 +19107,7 @@ const ta: UiStrings = {
     totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
     totalOwe: 'நீங்கள் தர வேண்டிய மொத்தம்',
     totalSettled: 'எல்லாம் தீர்க்கப்பட்டது',
+    downloadingGroups: 'உங்கள் குழுக்களைப் பதிவிறக்குகிறது · {loaded} / {total}',
     spentThisMonth: 'இந்த மாதம் நீங்கள் செலவிட்டது',
     vsLastMonth: 'கடந்த மாதத்துடன் ஒப்பிட',
     periodOverall: 'மொத்தம்',
@@ -23903,6 +23921,11 @@ const hi: UiStrings = {
     workByDate: 'तारीख के अनुसार',
     workByPerson: 'व्यक्ति के अनुसार',
     workOverdue: 'देरी',
+    workPriority: 'प्राथमिकता',
+    workPrioNormal: 'सामान्य',
+    workPrioUrgent: 'ज़रूरी',
+    workPrioVeryUrgent: 'बहुत ज़रूरी',
+    workLateOn: 'देरी · {date}',
     workOpenN: '{n} खुले',
     workDoneN: 'पूरे · {n}',
     workSiteFilter: 'साइट फ़िल्टर',
@@ -26395,6 +26418,7 @@ const hi: UiStrings = {
     totalOwed: 'आपको कुल मिलने हैं',
     totalOwe: 'आपको कुल देने हैं',
     totalSettled: 'सब हिसाब बराबर है',
+    downloadingGroups: 'आपके ग्रुप डाउनलोड हो रहे हैं · {loaded} / {total}',
     spentThisMonth: 'इस महीने आपने खर्च किए',
     vsLastMonth: 'पिछले महीने की तुलना में',
     periodOverall: 'कुल',
@@ -31145,6 +31169,11 @@ const ar: UiStrings = {
     workByDate: 'حسب التاريخ',
     workByPerson: 'حسب الشخص',
     workOverdue: 'متأخرة',
+    workPriority: 'الأولوية',
+    workPrioNormal: 'عادية',
+    workPrioUrgent: 'عاجلة',
+    workPrioVeryUrgent: 'عاجلة جداً',
+    workLateOn: 'متأخرة · {date}',
     workOpenN: '{n} مفتوحة',
     workDoneN: 'منجزة · {n}',
     workSiteFilter: 'تصفية الموقع',
@@ -33706,6 +33735,7 @@ const ar: UiStrings = {
     totalOwed: 'إجمالي المستحق لك',
     totalOwe: 'إجمالي المستحق عليك',
     totalSettled: 'كل الحسابات مسوّاة',
+    downloadingGroups: 'جارٍ تنزيل مجموعاتك · {loaded} من {total}',
     spentThisMonth: 'أنفقت هذا الشهر',
     vsLastMonth: 'مقارنة بالشهر الماضي',
     periodOverall: 'الإجمالي',

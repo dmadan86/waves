@@ -9,6 +9,8 @@ import {
   filterWork,
   groupWorkTasks,
   maxTaskDay,
+  priorityMark,
+  workDueText,
 } from '../src/lib/companyWork';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
 
@@ -140,5 +142,43 @@ describe('add task sheet', () => {
     expect(addTaskError({ ...base, day: '2026-11-07' })).toBeNull();
     expect(addTaskError({ ...base, day: '2026-10-30' })).toBe('day');
     expect(addTaskError({ ...base, day: '2026-11-08' })).toBe('day');
+  });
+});
+
+describe('task priority', () => {
+  const t = (
+    id: string,
+    priority: MirrorWorkTask['priority'],
+    status: MirrorWorkTask['status'],
+  ) => ({
+    ...task(id, status),
+    priority,
+  });
+  it('sorts very urgent first, then urgent, within a section', () => {
+    const { sections } = groupWorkTasks(
+      [t('a', 'normal', 'blocked'), t('b', 'urgent', 'todo'), t('c', 'very_urgent', 'done')],
+      { mode: 'date', today: '2026-10-30' },
+    );
+    expect(sections[0]?.tasks.map((x) => x.id)).toEqual(['c', 'b', 'a']);
+  });
+  it('marks ! and !! and shows nothing for normal or old tasks', () => {
+    expect(priorityMark('very_urgent')).toBe('!!');
+    expect(priorityMark('urgent')).toBe('!');
+    expect(priorityMark('normal')).toBe('');
+    expect(priorityMark(undefined)).toBe('');
+  });
+  it('a late open task reads "Late · date"; done or on-time ones do not', () => {
+    const args = ['2026-11-02', 'en-US', 'Today', 'Late · {date}'] as const;
+    expect(workDueText({ ...task('1', 'todo'), dueTime: null }, ...args)).toBe('Late · Oct 30');
+    expect(workDueText({ ...task('1', 'done'), dueTime: null }, ...args)).toBe('Oct 30');
+    expect(
+      workDueText(
+        { ...task('1', 'todo'), dueTime: null },
+        '2026-10-30',
+        'en-US',
+        'Today',
+        'Late · {date}',
+      ),
+    ).toBe('Today');
   });
 });
