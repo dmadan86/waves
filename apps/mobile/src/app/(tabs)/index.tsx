@@ -36,6 +36,7 @@ import {
 } from '@waves/ui';
 
 import { useCaptures, useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
+import { useSync } from '@/sync';
 import { useRecurringCatchUp } from '@/data/groupRecurring';
 import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
 import { useGroupUnread } from '@/lib/useGroupUnread';
@@ -129,6 +130,7 @@ export default function HomeScreen() {
   const groups = useGroups();
   const totalGroupCount = groups.data?.length ?? 0;
   const summary = useHomeSummary(viewerId);
+  const { catchUp } = useSync();
   const guard = useGuestGuard();
   const tour = useTour();
 
@@ -560,6 +562,7 @@ export default function HomeScreen() {
                 hidden={balanceHidden || !balanceReady}
                 onToggleHide={toggleBalance}
                 settling={settling}
+                catchUp={catchUp}
                 loading={showSkeleton || !balanceReady}
                 blurTarget={sceneRef}
                 footer={

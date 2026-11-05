@@ -43,6 +43,7 @@ export function HomeBalanceCard({
   loading,
   footer,
   blurTarget,
+  catchUp,
 }: {
   net: bigint;
   /** Everything owed to you, and everything you owe, before the net. */
@@ -64,11 +65,20 @@ export function HomeBalanceCard({
   /** What the glass blurs on Android — the hero's scene, wrapped in a
    *  `BlurTargetView`. iOS blurs whatever is behind it without being told. */
   blurTarget?: RefObject<View | null>;
+  /** First sync still handing over groups: say so instead of claiming a balance. */
+  catchUp?: { total: number; loaded: number } | null;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const label =
-    net === 0n ? t.homeDash.totalSettled : net > 0n ? t.homeDash.totalOwed : t.homeDash.totalOwe;
+  const label = catchUp
+    ? t.homeDash.downloadingGroups
+        .replace('{loaded}', String(catchUp.loaded))
+        .replace('{total}', String(catchUp.total))
+    : net === 0n
+      ? t.homeDash.totalSettled
+      : net > 0n
+        ? t.homeDash.totalOwed
+        : t.homeDash.totalOwe;
   const figure = net < 0n ? -net : net;
 
   return (
@@ -76,7 +86,7 @@ export function HomeBalanceCard({
       <Row
         style={{
           height: 34,
-          width: '50%',
+          width: catchUp ? '100%' : '50%',
           alignItems: 'center',
           paddingStart: theme.spacing.lg,
           paddingEnd: 14,
@@ -99,7 +109,7 @@ export function HomeBalanceCard({
             color={theme.color.textMuted}
           />
         </Pressable>
-        {settling ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
+        {settling || catchUp ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
       </Row>
       <View
         style={{
@@ -116,7 +126,7 @@ export function HomeBalanceCard({
           }}
         >
           <View style={{ flex: 1, gap: 2 }}>
-            {loading ? (
+            {loading || catchUp ? (
               <Skeleton width={180} height={32} radius={10} />
             ) : hidden ? (
               <Text style={AMOUNT_STYLE} numberOfLines={1}>
