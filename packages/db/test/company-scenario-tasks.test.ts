@@ -405,6 +405,92 @@ describe('G28: due-time compat – task retains due_time when employee uses 9-ar
       await denied(() => setPriority(0, 'urgent'));
     }));
 
+  it('helpers: a helper reads the task and changes its status, nothing else; others cannot; bad lists are rejected', () =>
+    isolated(async () => {
+      const id = randomUUID();
+      await setTask(0, 2, id, 'todo');
+      const setHelpers = (caller: number, ids: number[]) =>
+        user(caller, () =>
+          db.query('SELECT waves_company_work_helpers_set($1,$2,$3)', [
+            g.groupId,
+            id,
+            ids.map((i) => g.memberIds[i]!),
+          ]),
+        );
+      const readHelpers = async () =>
+        (await db.query('SELECT helper_ids FROM company_work_tasks WHERE id=$1', [id])).rows[0]
+          .helper_ids as string[];
+      const status = async () =>
+        (await db.query('SELECT status,title FROM company_work_tasks WHERE id=$1', [id])).rows[0];
+      const asHelperStatus = (caller: number, st: string, title = 'Fix the gate') =>
+        user(caller, () =>
+          db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,$7,NULL,NULL)', [
+            g.groupId,
+            id,
+            g.memberIds[2]!,
+            today,
+            title,
+            st,
+            st === 'blocked' ? 'waiting for parts' : null,
+          ]),
+        );
+      expect(await readHelpers()).toEqual([]);
+      // Not a helper yet: member 3 neither sees the task nor changes it.
+      expect(await seenTaskIds(3)).not.toContain(id);
+      await denied(() => asHelperStatus(3, 'doing'));
+      // A manager cannot add someone outside their team; the owner can.
+      await denied(() => setHelpers(1, [3]));
+      await setHelpers(0, [3]);
+      expect(await readHelpers()).toEqual([g.memberIds[3]!]);
+      // The helper now reads it and sets its status (with a reason when blocked), but cannot retitle it.
+      expect(await seenTaskIds(3)).toContain(id);
+      await asHelperStatus(3, 'doing');
+      expect((await status()).status).toBe('doing');
+      await asHelperStatus(3, 'blocked');
+      expect((await status()).status).toBe('blocked');
+      await asHelperStatus(3, 'done', 'Renamed by helper');
+      expect(await status()).toMatchObject({ status: 'done', title: 'Fix the gate' });
+      // A helper cannot change the helper list (silent no-op), the responsible person stays the owner of the counts.
+      await setHelpers(3, []);
+      expect(await readHelpers()).toEqual([g.memberIds[3]!]);
+      // Bad lists: the responsible person, a non-member, more than five, duplicates.
+      await denied(() => setHelpers(0, [2]));
+      await denied(() =>
+        user(0, () =>
+          db.query('SELECT waves_company_work_helpers_set($1,$2,$3)', [
+            g.groupId,
+            id,
+            [randomUUID()],
+          ]),
+        ),
+      );
+      await denied(() =>
+        user(0, () =>
+          db.query('SELECT waves_company_work_helpers_set($1,$2,$3)', [
+            g.groupId,
+            id,
+            Array.from({ length: 6 }, () => randomUUID()),
+          ]),
+        ),
+      );
+      await denied(() => setHelpers(0, [3, 3]));
+      // Reassigning the task to the helper drops them from the helpers.
+      await user(0, () =>
+        db.query('SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,$6,NULL,NULL,NULL)', [
+          g.groupId,
+          id,
+          g.memberIds[3]!,
+          today,
+          'Fix the gate',
+          'todo',
+        ]),
+      );
+      expect(await readHelpers()).toEqual([]);
+      // A task that no longer exists fails (the sync retries).
+      await user(0, () => db.query('SELECT waves_company_work_remove($1,$2)', [g.groupId, id]));
+      await denied(() => setHelpers(0, [3]));
+    }));
+
   it('manager can reassign within their team; outside-team reassign is denied', () =>
     isolated(async () => {
       const id = randomUUID();

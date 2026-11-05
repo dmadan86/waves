@@ -24,7 +24,9 @@ import { useBottomClearance } from '@/lib/clearance';
 import {
   emptyTasksState,
   filterWork,
+  canChangeTask,
   groupWorkTasks,
+  isOwnTask,
   maxTaskDay,
   type WorkMode,
 } from '@/lib/companyWork';
@@ -53,6 +55,7 @@ function payload(task: MirrorWorkTask): Payload {
     note: task.note,
     dueTime: task.dueTime ?? null,
     priority: task.priority ?? 'normal',
+    helperIds: task.helperIds ?? [],
   };
 }
 
@@ -95,17 +98,17 @@ export default function DailyWorkView({
   const busy = save.isPending || remove.isPending;
   const allowedPerson = (memberId: string) =>
     access.canManage && access.people.some((p) => p.id === memberId);
+  const who = { isEmployee: access.isEmployee, meId: access.me?.id, allowedPerson };
   const canChange = (task: MirrorWorkTask) =>
-    access.enabled &&
-    (allowedPerson(task.memberId) || (access.isEmployee && task.memberId === access.me?.id));
+    canChangeTask(task, { ...who, enabled: access.enabled });
   const personName = (memberId: string) => {
     const p = access.people.find((person) => person.id === memberId) ?? access.me;
     return p ? displayName(p) : '';
   };
   const ownTasks = tasks.filter(
     (task) =>
-      (allowedPerson(task.memberId) || (access.isEmployee && task.memberId === access.me?.id)) &&
-      (scope === 'team' || task.memberId === company.me?.id),
+      canChangeTask(task, { ...who, enabled: true }) &&
+      (scope === 'team' || isOwnTask(task, company.me?.id)),
   );
   const visibleTasks = filterWork(ownTasks, {
     search: query,
@@ -135,7 +138,7 @@ export default function DailyWorkView({
       if (
         !current ||
         !access.isEmployee ||
-        current.memberId !== access.me?.id ||
+        !isOwnTask(current, access.me?.id) ||
         next.memberId !== current.memberId ||
         next.day !== current.day ||
         next.title !== current.title ||
@@ -257,10 +260,8 @@ export default function DailyWorkView({
                   empty={emptyTasksState({
                     search: query,
                     scope,
-                    teamTasks: tasks.filter(
-                      (task) =>
-                        allowedPerson(task.memberId) ||
-                        (access.isEmployee && task.memberId === access.me?.id),
+                    teamTasks: tasks.filter((task) =>
+                      canChangeTask(task, { ...who, enabled: true }),
                     ),
                   })}
                   query={query}

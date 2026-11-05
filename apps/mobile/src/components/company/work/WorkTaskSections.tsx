@@ -26,6 +26,7 @@ const TINTS = ['lilac', 'peach', 'sky', 'pink', 'mint', 'coral'] as const;
 function TaskRow({
   task,
   person,
+  names,
   today,
   locale,
   canManage,
@@ -38,6 +39,8 @@ function TaskRow({
 }: {
   task: MirrorWorkTask;
   person: MemberRow | undefined;
+  /** A member's name, empty when this viewer cannot see them (an employee sees only themselves). */
+  names: (memberId: string) => string;
   today: string;
   locale: string;
   canManage: boolean;
@@ -55,6 +58,7 @@ function TaskRow({
   const ink = WORK_INK[task.status];
   const dueInk = theme.color.textMuted;
   const mark = priorityMark(task.priority);
+  const helpers = task.helperIds ?? [];
   const label =
     task.status === 'todo'
       ? t.company.workTodo
@@ -133,6 +137,19 @@ function TaskRow({
               tint={TINTS[(person.id.charCodeAt(0) + person.id.length) % TINTS.length]}
               size={26}
             />
+          ) : null}
+          {helpers.length > 0 ? (
+            <Text
+              variant="caption"
+              tone="muted"
+              style={{ fontWeight: '700' }}
+              accessibilityLabel={t.company.workAlsoOn.replace(
+                '{names}',
+                helpers.map(names).filter(Boolean).join(', ') || String(helpers.length),
+              )}
+            >
+              {`+${helpers.length}`}
+            </Text>
           ) : null}
           <View
             style={{
@@ -254,6 +271,10 @@ export function WorkTaskSections({
         key={task.id}
         task={task}
         person={people.find((p) => p.id === task.memberId)}
+        names={(id) => {
+          const p = people.find((m) => m.id === id);
+          return p ? displayName(p) : '';
+        }}
         today={today}
         locale={locale}
         canManage={canManage}

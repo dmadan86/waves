@@ -3518,6 +3518,7 @@ model CompanyWorkTask {
   dueTime DateTime? @map("due_time") @db.Time(6)
   seq Int?
   priority String @default("normal")
+  helperIds String[] @default([]) @map("helper_ids") @db.Uuid
   createdBy String @map("created_by") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)

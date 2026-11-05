@@ -2353,6 +2353,8 @@ export interface MirrorWorkTask {
   /** The client a follow-up is about. */
   readonly clientId?: string | null;
   readonly priority?: TaskPriority;
+  /** The others on the task besides the responsible memberId. */
+  readonly helperIds?: readonly string[];
   readonly pending?: boolean;
 }
 
@@ -2376,12 +2378,14 @@ export function materialiseWorkTasks(
     seq?: number | null;
     client_id?: string | null;
     priority?: TaskPriority | null;
+    helper_ids?: string[] | null;
     created_at: string;
     deleted_at: string | null;
   }[]) {
     if (row.deleted_at) continue;
     byId.set(row.id, {
       priority: row.priority ?? 'normal',
+      helperIds: row.helper_ids ?? [],
       id: row.id,
       memberId: row.member_id,
       day: row.day,
@@ -2412,6 +2416,7 @@ export function materialiseWorkTasks(
         number: byId.get(p.taskId)?.number ?? null,
         clientId: p.clientId === undefined ? (byId.get(p.taskId)?.clientId ?? null) : p.clientId,
         priority: p.priority ?? byId.get(p.taskId)?.priority ?? 'normal',
+        helperIds: p.helperIds ?? byId.get(p.taskId)?.helperIds ?? [],
         pending: true,
       });
     } else if (mutation.kind === 'company_work.remove') {
