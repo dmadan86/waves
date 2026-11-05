@@ -9,7 +9,7 @@ import type { ComponentType } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 
 import { ScenicTheme } from '@waves/ui';
-import { GroupType } from '@waves/api-client';
+import { GroupType } from '@/data/types';
 
 import { useGroup } from '@/data/hooks';
 
