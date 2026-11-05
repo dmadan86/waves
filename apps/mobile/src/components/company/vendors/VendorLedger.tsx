@@ -246,7 +246,7 @@ export function VendorLedger({ groupId, vendorId }: { groupId: string; vendorId:
                       {vendor.name}
                     </Text>
                     <Text variant="caption" tone="muted">
-                      {[vendor.category, vendor.phone].filter(Boolean).join(' · ')}
+                      {[vendor.categories.join(' · '), vendor.phone].filter(Boolean).join(' · ')}
                     </Text>
                   </View>
                   {vendor.phone ? (

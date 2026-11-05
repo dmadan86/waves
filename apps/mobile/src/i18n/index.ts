@@ -2811,6 +2811,23 @@ export interface UiStrings {
     enterManually: string;
     phoneOptional: string;
     categoryOptional: string;
+    editVendor: string;
+    vendorNameRequired: string;
+    categories: string;
+    addOrSelectCategory: string;
+    selectOrAddCategories: string;
+    addCategory: string;
+    showMore: string;
+    showLess: string;
+    removeCategory: string;
+    cancel: string;
+    catMaterials: string;
+    catCement: string;
+    catElectrical: string;
+    catPlumbing: string;
+    catPainting: string;
+    catHardware: string;
+    catLabour: string;
     saveVendor: string;
     catSupplier: string;
     catContractor: string;
@@ -10550,6 +10567,23 @@ const en: UiStrings = {
     enterManually: 'Enter Manually',
     phoneOptional: 'Phone number (optional)',
     categoryOptional: 'Category (optional)',
+    editVendor: 'Edit vendor',
+    vendorNameRequired: 'Vendor name *',
+    categories: 'Categories',
+    addOrSelectCategory: 'Add or select category',
+    selectOrAddCategories: 'Select or add categories',
+    addCategory: 'Add category',
+    showMore: 'Show more',
+    showLess: 'Show less',
+    removeCategory: 'Remove {name}',
+    cancel: 'Cancel',
+    catMaterials: 'Materials',
+    catCement: 'Cement',
+    catElectrical: 'Electrical',
+    catPlumbing: 'Plumbing',
+    catPainting: 'Painting',
+    catHardware: 'Hardware',
+    catLabour: 'Labour',
     saveVendor: 'Save Vendor',
     catSupplier: 'Supplier',
     catContractor: 'Contractor',
@@ -17754,6 +17788,23 @@ const ta: UiStrings = {
     enterManually: 'கைமுறையாக உள்ளிடு',
     phoneOptional: 'தொலைபேசி எண் (விருப்பம்)',
     categoryOptional: 'வகை (விருப்பம்)',
+    editVendor: 'விற்பனையாளரைத் திருத்து',
+    vendorNameRequired: 'விற்பனையாளர் பெயர் *',
+    categories: 'வகைகள்',
+    addOrSelectCategory: 'வகையைச் சேர் அல்லது தேர்வு செய்',
+    selectOrAddCategories: 'வகைகளைத் தேர்வு செய் அல்லது சேர்',
+    addCategory: 'வகை சேர்',
+    showMore: 'மேலும் காட்டு',
+    showLess: 'குறைவாகக் காட்டு',
+    removeCategory: '{name} நீக்கு',
+    cancel: 'ரத்து',
+    catMaterials: 'பொருட்கள்',
+    catCement: 'சிமெண்ட்',
+    catElectrical: 'மின்சாரம்',
+    catPlumbing: 'குழாய் வேலை',
+    catPainting: 'வண்ணம் பூசுதல்',
+    catHardware: 'ஹார்டுவேர்',
+    catLabour: 'தொழிலாளர்',
     saveVendor: 'விற்பனையாளரைச் சேமி',
     catSupplier: 'சப்ளையர்',
     catContractor: 'ஒப்பந்ததாரர்',
@@ -25112,6 +25163,23 @@ const hi: UiStrings = {
     enterManually: 'हाथ से भरें',
     phoneOptional: 'फ़ोन नंबर (वैकल्पिक)',
     categoryOptional: 'श्रेणी (वैकल्पिक)',
+    editVendor: 'विक्रेता संपादित करें',
+    vendorNameRequired: 'विक्रेता का नाम *',
+    categories: 'श्रेणियाँ',
+    addOrSelectCategory: 'श्रेणी जोड़ें या चुनें',
+    selectOrAddCategories: 'श्रेणियाँ चुनें या जोड़ें',
+    addCategory: 'श्रेणी जोड़ें',
+    showMore: 'और दिखाएँ',
+    showLess: 'कम दिखाएँ',
+    removeCategory: '{name} हटाएँ',
+    cancel: 'रद्द करें',
+    catMaterials: 'सामग्री',
+    catCement: 'सीमेंट',
+    catElectrical: 'इलेक्ट्रिकल',
+    catPlumbing: 'प्लंबिंग',
+    catPainting: 'पेंटिंग',
+    catHardware: 'हार्डवेयर',
+    catLabour: 'मज़दूरी',
     saveVendor: 'विक्रेता सहेजें',
     catSupplier: 'सप्लायर',
     catContractor: 'ठेकेदार',
@@ -32408,6 +32476,23 @@ const ar: UiStrings = {
     enterManually: 'إدخال يدوي',
     phoneOptional: 'رقم الهاتف (اختياري)',
     categoryOptional: 'الفئة (اختياري)',
+    editVendor: 'تعديل المورّد',
+    vendorNameRequired: 'اسم المورّد *',
+    categories: 'الفئات',
+    addOrSelectCategory: 'أضف فئة أو اختر',
+    selectOrAddCategories: 'اختر الفئات أو أضفها',
+    addCategory: 'إضافة فئة',
+    showMore: 'عرض المزيد',
+    showLess: 'عرض أقل',
+    removeCategory: 'إزالة {name}',
+    cancel: 'إلغاء',
+    catMaterials: 'مواد',
+    catCement: 'أسمنت',
+    catElectrical: 'كهرباء',
+    catPlumbing: 'سباكة',
+    catPainting: 'دهان',
+    catHardware: 'أدوات معدنية',
+    catLabour: 'عمالة',
     saveVendor: 'حفظ المورّد',
     catSupplier: 'مورّد',
     catContractor: 'مقاول',

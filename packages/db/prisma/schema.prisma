@@ -3354,6 +3354,7 @@ model CompanyVendor {
   name String
   phone String?
   category String?
+  categories String[] @default([])
   addedBy String @map("added_by") @db.Uuid
   memberId String? @unique @map("member_id") @db.Uuid
   version Int @default(1)
