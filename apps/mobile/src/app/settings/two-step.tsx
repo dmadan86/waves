@@ -89,7 +89,7 @@ export default function TwoStepScreen() {
   const begin = async () => {
     setBusy(true);
     try {
-      setSetup(await startAuthenticator());
+      setSetup(await startAuthenticator(viewer ?? ''));
     } catch (error) {
       toast.show(
         error instanceof Error && error.message === 'TWO_STEP_REQUIRED'

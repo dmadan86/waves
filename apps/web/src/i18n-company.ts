@@ -509,6 +509,7 @@ export const companyEn = {
     confirm: 'Turn on',
     done: 'Authenticator is on.',
     noPending: 'That setup expired. Start again.',
+    proveIntro: 'Enter the code from your Waves app or current authenticator',
   },
 };
 
