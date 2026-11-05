@@ -1,6 +1,8 @@
 /** English UI strings for the Team work (tasks) view. */
 export const workStrings = {
   add: 'Add task',
+  responsible: 'Responsible',
+  helpers: 'Also working on it (optional, up to 5)',
   edit: 'Edit task',
   titleField: 'Task title',
   site: 'Site',

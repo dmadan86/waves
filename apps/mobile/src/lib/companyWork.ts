@@ -202,6 +202,8 @@ export function addTaskPayloads(input: {
   memberIds: readonly string[];
   day: string;
   priority?: TaskPriority;
+  /** Also working on every one of these tasks (the responsible person is left out of their own list). */
+  helperIds?: readonly string[];
   idFor: (memberId: string) => string;
 }): CompanyWorkSetPayload[] {
   return [...new Set(input.memberIds)].map((memberId) => ({
@@ -215,5 +217,39 @@ export function addTaskPayloads(input: {
     note: null,
     dueTime: null,
     priority: input.priority ?? 'normal',
+    helperIds: (input.helperIds ?? []).filter((id) => id !== memberId),
   }));
+}
+
+/** Most people who can also work on a task besides the responsible one. */
+export const MAX_TASK_HELPERS = 5;
+/** The viewer is the responsible person or one of the helpers. */
+export const isOwnTask = (
+  task: Pick<MirrorWorkTask, 'memberId' | 'helperIds'>,
+  meId: string | null | undefined,
+) => !!meId && (task.memberId === meId || (task.helperIds ?? []).includes(meId));
+/**
+ * May the viewer change this task's status? A manager for their people, an employee for their own tasks
+ * (responsible or helper). Title, day and people stay with the manager.
+ */
+export const canChangeTask = (
+  task: Pick<MirrorWorkTask, 'memberId' | 'helperIds'>,
+  who: {
+    enabled: boolean;
+    isEmployee: boolean;
+    meId: string | null | undefined;
+    allowedPerson: (memberId: string) => boolean;
+  },
+) =>
+  who.enabled &&
+  (who.allowedPerson(task.memberId) || (who.isEmployee && isOwnTask(task, who.meId)));
+/** Pick or drop a helper: the responsible person never counts, the list stops at the maximum. */
+export function toggleHelper(
+  helperIds: readonly string[],
+  id: string,
+  responsibleId: string,
+): string[] {
+  if (id === responsibleId) return [...helperIds];
+  if (helperIds.includes(id)) return helperIds.filter((x) => x !== id);
+  return helperIds.length >= MAX_TASK_HELPERS ? [...helperIds] : [...helperIds, id];
 }

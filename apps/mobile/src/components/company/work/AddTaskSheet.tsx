@@ -31,9 +31,10 @@ import {
 import { useSync } from '@/sync';
 import type { TaskPriority } from '@waves/core';
 import { PriorityPicker } from './PriorityPicker';
+import { HelpersPanel, helpersSummary } from './HelpersPanel';
 
 const TILE = 96;
-type Panel = 'form' | 'people' | 'date';
+type Panel = 'form' | 'people' | 'helpers' | 'date';
 type Problem = AddTaskError | 'save' | 'photos' | null;
 
 function localIso(date: Date) {
@@ -66,6 +67,7 @@ export function AddTaskSheet({
   const [ids, setIds] = useState<string[]>(() => [...defaultMemberIds]);
   const maxDay = maxTaskDay(today);
   const [day, setDay] = useState(today);
+  const [helperIds, setHelperIds] = useState<string[]>([]);
   const [priority, setPriority] = useState<TaskPriority>('normal');
   const [photos, setPhotos] = useState<{ key: string; picked: PickedImage }[]>([]);
   const [problem, setProblem] = useState<Problem>(null);
@@ -113,6 +115,7 @@ export function AddTaskSheet({
       memberIds: ids,
       day,
       priority,
+      helperIds,
       idFor: (memberId) => {
         const known = taskIds.current.get(memberId);
         if (known) return known;
@@ -203,7 +206,7 @@ export function AddTaskSheet({
     >
       {panel === 'people' ? (
         <View style={{ gap: theme.spacing.md }}>
-          <Text variant="title">{t.company.taskAssignTo}</Text>
+          <Text variant="title">{t.company.taskResponsible}</Text>
           <ScrollView style={{ maxHeight: 360 }} contentContainerStyle={{ gap: theme.spacing.xs }}>
             {people.map((person) => {
               const on = ids.includes(person.id);
@@ -242,6 +245,14 @@ export function AddTaskSheet({
           </ScrollView>
           <Button label={t.common.done} onPress={() => setPanel('form')} />
         </View>
+      ) : panel === 'helpers' ? (
+        <HelpersPanel
+          people={people}
+          responsibleId={ids.length === 1 ? ids[0]! : ''}
+          value={helperIds}
+          onChange={setHelperIds}
+          onDone={() => setPanel('form')}
+        />
       ) : panel === 'date' ? (
         <View style={{ gap: theme.spacing.md }}>
           <Text variant="title">{t.company.taskDeadline}</Text>
@@ -336,10 +347,10 @@ export function AddTaskSheet({
 
           <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
             <View style={{ flex: 1, gap: theme.spacing.sm }}>
-              {label('people-outline', t.company.taskAssignTo)}
+              {label('people-outline', t.company.taskResponsible)}
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t.company.taskAssignTo}
+                accessibilityLabel={t.company.taskResponsible}
                 disabled={busy}
                 onPress={() => setPanel('people')}
                 style={pill}
@@ -379,6 +390,22 @@ export function AddTaskSheet({
                 <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
               </Pressable>
             </View>
+          </View>
+
+          <View style={{ gap: theme.spacing.sm }}>
+            {label('people-circle-outline', t.company.taskHelpers)}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.company.taskHelpers}
+              disabled={busy}
+              onPress={() => setPanel('helpers')}
+              style={pill}
+            >
+              <Text numberOfLines={1} style={{ flex: 1 }}>
+                {helpersSummary(people, helperIds, t.company.taskHelpersNone)}
+              </Text>
+              <Ionicons name="chevron-forward" size={iconSize.sm} color={theme.color.textMuted} />
+            </Pressable>
           </View>
 
           <View style={{ gap: theme.spacing.sm }}>
