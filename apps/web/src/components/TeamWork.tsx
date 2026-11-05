@@ -16,6 +16,8 @@ import {
   addTaskPayloads,
   priorityMark,
   emptyTasksState,
+  isOwnTask,
+  MAX_TASK_HELPERS,
   filterWork,
   groupWorkTasks,
   MAX_TASK_PHOTOS,
@@ -100,9 +102,9 @@ export function TeamWork({ groupId }: { groupId: string }) {
   const allowedPerson = (id: string) => access.canManage && access.people.some((p) => p.id === id);
   const canChange = (t: MirrorWorkTask) =>
     access.enabled &&
-    (allowedPerson(t.memberId) || (access.isEmployee && t.memberId === access.me?.id));
+    (allowedPerson(t.memberId) || (access.isEmployee && isOwnTask(t, access.me?.id)));
 
-  const own = tasks.filter((t) => canChange(t) && (scope === 'team' || t.memberId === view.me?.id));
+  const own = tasks.filter((t) => canChange(t) && (scope === 'team' || isOwnTask(t, view.me?.id)));
   const empty = emptyTasksState({ search: query, scope, teamTasks: tasks.filter(canChange) });
   const grouped = groupWorkTasks(filterWork(own, query, personName, siteName), {
     mode: access.canManage ? mode : 'date',
@@ -128,7 +130,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
       if (
         !current ||
         !access.isEmployee ||
-        current.memberId !== access.me?.id ||
+        !isOwnTask(current, access.me?.id) ||
         next.memberId !== current.memberId ||
         next.day !== current.day ||
         next.title !== current.title ||
@@ -208,6 +210,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
               t.dueTime,
               siteName(t.projectId),
               personName(t.memberId),
+              (t.helperIds ?? []).length > 0 ? `+${t.helperIds?.length}` : '',
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -540,11 +543,17 @@ function EditTask({
         />
       </label>
       <label className="field">
-        <span className="field-label">{s.assignTo}</span>
+        <span className="field-label">{s.responsible}</span>
         <select
           value={draft.memberId}
           disabled={busy}
-          onChange={(e) => setDraft({ ...draft, memberId: e.target.value })}
+          onChange={(e) =>
+            setDraft({
+              ...draft,
+              memberId: e.target.value,
+              helperIds: (draft.helperIds ?? []).filter((id) => id !== e.target.value),
+            })
+          }
         >
           {people.map((p) => (
             <option key={p.id} value={p.id}>
@@ -553,6 +562,32 @@ function EditTask({
           ))}
         </select>
       </label>
+      <fieldset className="field" disabled={busy}>
+        <legend className="field-label">{s.helpers}</legend>
+        {people
+          .filter((p) => p.id !== draft.memberId)
+          .map((p) => {
+            const on = (draft.helperIds ?? []).includes(p.id);
+            return (
+              <label key={p.id}>
+                <input
+                  type="checkbox"
+                  checked={on}
+                  disabled={!on && (draft.helperIds ?? []).length >= MAX_TASK_HELPERS}
+                  onChange={() =>
+                    setDraft({
+                      ...draft,
+                      helperIds: on
+                        ? (draft.helperIds ?? []).filter((id) => id !== p.id)
+                        : [...(draft.helperIds ?? []), p.id],
+                    })
+                  }
+                />{' '}
+                {memberName(p, '')}
+              </label>
+            );
+          })}
+      </fieldset>
       {sites.length > 0 ? (
         <label className="field">
           <span className="field-label">{s.site}</span>

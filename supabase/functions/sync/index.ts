@@ -1125,6 +1125,13 @@ export class SyncSession {
           priority !== 'very_urgent'
         )
           companyInvalid('priority');
+        // helpers are their own call too; absent (an older client) keeps the saved list. Validated here before any write.
+        const helpers =
+          mutation.payload.helperIds === undefined
+            ? undefined
+            : companyUuidList(mutation.payload.helperIds, 'helperIds');
+        if (helpers && (helpers.length > 5 || new Set(helpers).size !== helpers.length))
+          companyInvalid('helperIds');
         const written = await this.rpcAsCaller('waves_company_work_set', {
           p_group_id: mutation.groupId,
           p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
@@ -1151,6 +1158,12 @@ export class SyncSession {
             p_group_id: mutation.groupId,
             p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
             p_priority: priority,
+          });
+        if (helpers)
+          await this.rpcAsCaller('waves_company_work_helpers_set', {
+            p_group_id: mutation.groupId,
+            p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+            p_helper_ids: helpers,
           });
         return written;
       }

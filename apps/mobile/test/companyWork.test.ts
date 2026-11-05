@@ -4,6 +4,9 @@ import {
   addTaskError,
   addTaskPayloads,
   advanceWorkStatus,
+  canChangeTask,
+  isOwnTask,
+  toggleHelper,
   countWork,
   emptyTasksState,
   formatWorkTime,
@@ -196,5 +199,44 @@ describe('emptyTasksState', () => {
   it('truly nothing', () => {
     expect(emptyTasksState({ search: '', scope: 'mine', teamTasks: [] }).kind).toBe('none');
     expect(emptyTasksState({ search: '', scope: 'team', teamTasks: team }).kind).toBe('none');
+  });
+});
+
+describe('task helpers', () => {
+  const who = (meId: string, allowed: string[] = [], isEmployee = true) => ({
+    enabled: true,
+    isEmployee,
+    meId,
+    allowedPerson: (id: string) => allowed.includes(id),
+  });
+  const t = { memberId: 'resp', helperIds: ['h1', 'h2'] };
+  it('the responsible person and a helper may change status; another employee may not', () => {
+    expect(canChangeTask(t, who('resp'))).toBe(true);
+    expect(canChangeTask(t, who('h2'))).toBe(true);
+    expect(canChangeTask(t, who('other'))).toBe(false);
+    expect(canChangeTask({ memberId: 'resp' }, who('h1'))).toBe(false);
+  });
+  it('a manager changes tasks of their own people, helper or not', () => {
+    expect(canChangeTask(t, who('boss', ['resp'], false))).toBe(true);
+    expect(canChangeTask(t, who('boss', ['x'], false))).toBe(false);
+    expect(isOwnTask(t, 'h1')).toBe(true);
+    expect(isOwnTask(t, undefined)).toBe(false);
+  });
+  it('toggleHelper never adds the responsible person, caps at five, and removes on tap', () => {
+    expect(toggleHelper(['a'], 'resp', 'resp')).toEqual(['a']);
+    expect(toggleHelper(['a'], 'a', 'resp')).toEqual([]);
+    expect(toggleHelper(['a', 'b', 'c', 'd', 'e'], 'f', 'resp')).toHaveLength(5);
+    expect(toggleHelper(['a'], 'b', 'resp')).toEqual(['a', 'b']);
+  });
+  it('new tasks carry the helpers except the task owner', () => {
+    const [one, two] = addTaskPayloads({
+      title: 'x',
+      memberIds: ['p', 'q'],
+      day: '2026-11-05',
+      helperIds: ['p', 'h'],
+      idFor: (id) => `t-${id}`,
+    });
+    expect(one?.helperIds).toEqual(['h']);
+    expect(two?.helperIds).toEqual(['p', 'h']);
   });
 });

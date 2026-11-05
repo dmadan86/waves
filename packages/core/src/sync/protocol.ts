@@ -616,6 +616,8 @@ export interface CompanyWorkSetPayload {
   readonly clientId?: string | null;
   /** Absent keeps the saved priority (an older client never sends it). */
   readonly priority?: TaskPriority;
+  /** The others working on it (max 5, never the responsible memberId). Absent keeps the saved list. */
+  readonly helperIds?: readonly string[];
 }
 
 export type TaskPriority = 'normal' | 'urgent' | 'very_urgent';

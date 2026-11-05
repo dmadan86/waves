@@ -31,6 +31,14 @@ export interface WorkSection {
   open: number;
 }
 
+/** Most people who can also work on a task besides the responsible one. */
+export const MAX_TASK_HELPERS = 5;
+/** The viewer is the responsible person or one of the helpers. */
+export const isOwnTask = (
+  task: Pick<MirrorWorkTask, 'memberId' | 'helperIds'>,
+  meId: string | null | undefined,
+) => !!meId && (task.memberId === meId || (task.helperIds ?? []).includes(meId));
+
 export function filterWork(
   tasks: readonly MirrorWorkTask[],
   search: string,
@@ -125,6 +133,7 @@ export function taskPayload(task: MirrorWorkTask): CompanyWorkSetPayload {
     note: task.note,
     dueTime: task.dueTime ?? null,
     priority: task.priority ?? 'normal',
+    helperIds: task.helperIds ?? [],
   };
 }
 

@@ -1695,6 +1695,11 @@ export interface UiStrings {
     taskDescription: string;
     taskDescriptionHint: string;
     taskAssignTo: string;
+    taskResponsible: string;
+    taskHelpers: string;
+    taskHelpersNone: string;
+    taskHelpersMax: string;
+    workAlsoOn: string;
     taskPeople: PluralForms;
     taskDeadline: string;
     taskPhotoLabel: string;
@@ -9361,6 +9366,11 @@ const en: UiStrings = {
     taskDescription: 'Task description',
     taskDescriptionHint: 'What do you want to do?',
     taskAssignTo: 'Assign to',
+    taskResponsible: 'Responsible',
+    taskHelpers: 'Also working on it (optional)',
+    taskHelpersNone: 'Nobody',
+    taskHelpersMax: 'Up to 5 people',
+    workAlsoOn: 'Also on it: {names}',
     taskPeople: { one: '{n} person', other: '{n} people' },
     taskDeadline: 'Deadline (optional)',
     taskPhotoLabel: 'Attach photo (optional)',
@@ -16496,6 +16506,11 @@ const ta: UiStrings = {
     taskDescription: 'வேலை விவரம்',
     taskDescriptionHint: 'என்ன செய்ய வேண்டும்?',
     taskAssignTo: 'ஒதுக்கப்படுபவர்',
+    taskResponsible: 'பொறுப்பாளர்',
+    taskHelpers: 'இதிலும் வேலை செய்பவர்கள் (விருப்பம்)',
+    taskHelpersNone: 'யாரும் இல்லை',
+    taskHelpersMax: 'அதிகபட்சம் 5 பேர்',
+    workAlsoOn: 'இதிலும்: {names}',
     taskPeople: { one: '{n} நபர்', other: '{n} நபர்கள்' },
     taskDeadline: 'கடைசி நாள் (விருப்பம்)',
     taskPhotoLabel: 'புகைப்படம் இணை (விருப்பம்)',
@@ -23801,6 +23816,11 @@ const hi: UiStrings = {
     taskDescription: 'काम का विवरण',
     taskDescriptionHint: 'आप क्या करवाना चाहते हैं?',
     taskAssignTo: 'किसे सौंपें',
+    taskResponsible: 'जिम्मेदार',
+    taskHelpers: 'इसमें और कौन काम कर रहा है (वैकल्पिक)',
+    taskHelpersNone: 'कोई नहीं',
+    taskHelpersMax: 'अधिकतम 5 लोग',
+    workAlsoOn: 'साथ में: {names}',
     taskPeople: { one: '{n} व्यक्ति', other: '{n} लोग' },
     taskDeadline: 'अंतिम तारीख (वैकल्पिक)',
     taskPhotoLabel: 'फ़ोटो जोड़ें (वैकल्पिक)',
@@ -31002,6 +31022,11 @@ const ar: UiStrings = {
     taskDescription: 'وصف المهمة',
     taskDescriptionHint: 'ماذا تريد أن يُنجز؟',
     taskAssignTo: 'إسناد إلى',
+    taskResponsible: 'المسؤول',
+    taskHelpers: 'يعمل عليها أيضًا (اختياري)',
+    taskHelpersNone: 'لا أحد',
+    taskHelpersMax: 'حتى 5 أشخاص',
+    workAlsoOn: 'معه أيضًا: {names}',
     taskPeople: {
       one: 'شخص واحد',
       two: 'شخصان',
