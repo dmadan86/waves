@@ -46,6 +46,7 @@ function payload(task: MirrorWorkTask): Payload {
     blockedReason: task.blockedReason,
     note: task.note,
     dueTime: task.dueTime ?? null,
+    priority: task.priority ?? 'normal',
   };
 }
 

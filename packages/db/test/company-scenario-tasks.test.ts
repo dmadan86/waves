@@ -379,6 +379,29 @@ describe('G28: due-time compat – task retains due_time when employee uses 9-ar
       expect(row.due_time).toBe('17:00:00');
     }));
 
+  it('priority: defaults to normal, set by the owner, kept by older writers, ignored from an employee', () =>
+    isolated(async () => {
+      const id = randomUUID();
+      await setTask(0, 2, id, 'todo');
+      const read = async () =>
+        (await db.query('SELECT priority FROM company_work_tasks WHERE id=$1', [id])).rows[0]
+          .priority;
+      const setPriority = (caller: number, p: string) =>
+        user(caller, () =>
+          db.query('SELECT waves_company_work_priority_set($1,$2,$3)', [g.groupId, id, p]),
+        );
+      expect(await read()).toBe('normal');
+      await setPriority(0, 'very_urgent');
+      expect(await read()).toBe('very_urgent');
+      // The old 10-argument writer (no priority) keeps it.
+      await setTask(0, 2, id, 'doing');
+      expect(await read()).toBe('very_urgent');
+      // The assignee cannot change it.
+      await setPriority(2, 'normal');
+      expect(await read()).toBe('very_urgent');
+      await denied(() => setPriority(0, 'loud'));
+    }));
+
   it('manager can reassign within their team; outside-team reassign is denied', () =>
     isolated(async () => {
       const id = randomUUID();

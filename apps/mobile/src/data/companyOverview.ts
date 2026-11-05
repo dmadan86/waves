@@ -11,6 +11,7 @@ import { useCalendar } from '@/data/companyCalendar';
 import { todayIso } from '@/data/personal';
 import { displayName, type MemberRow } from '@/data/types';
 import { awaitingApprovals } from '@/lib/companyPending';
+import { priorityRank } from '@/lib/companyWork';
 import { backend } from '@/lib/backend';
 import {
   ABSENT_STREAK_DAYS,
@@ -140,6 +141,7 @@ export function useOverview(groupId: string, day: string): Overview {
       .filter((task) => task.status !== 'done' && task.status !== 'blocked')
       .sort(
         (a, b) =>
+          priorityRank(a.priority) - priorityRank(b.priority) ||
           (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') ||
           a.title.localeCompare(b.title),
       );

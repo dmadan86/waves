@@ -8,6 +8,7 @@ import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
 import { maxTaskDay } from '@/lib/companyWork';
+import { PriorityPicker } from './PriorityPicker';
 import type { CompanyWorkSetPayload } from '@waves/core';
 import { useStrings } from '@/i18n';
 
@@ -303,6 +304,14 @@ export function WorkFiltersAndDraftSheet({
               </Pressable>
             ) : null}
           </View>
+          <View style={card}>
+            {rowIcon('flag-outline')}
+            <Text style={{ flex: 1 }}>{t.company.workPriority}</Text>
+          </View>
+          <PriorityPicker
+            value={draft.priority}
+            onChange={(priority) => setDraft({ ...draft, priority })}
+          />
           <View style={[card, { alignItems: 'flex-start' }]}>
             <View style={{ paddingTop: theme.spacing.sm }}>{rowIcon('document-text-outline')}</View>
             <View

@@ -2,7 +2,11 @@
 
 /** Team > Work: daily tasks grouped by day or person; add, edit, change status, repeat, remove, photos. */
 import { useMemo, useRef, useState } from 'react';
-import { materialiseCompanyProjects, type CompanyWorkSetPayload } from '@waves/core';
+import {
+  materialiseCompanyProjects,
+  type CompanyWorkSetPayload,
+  type TaskPriority,
+} from '@waves/core';
 
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { memberName, todayIso, useCompanyView, type CompanyMember } from '@/lib/company/view';
@@ -10,6 +14,7 @@ import { useCompanyPhotos } from '@/lib/company/entryActions';
 import { workStrings as s } from '@/lib/company/workStrings';
 import {
   addTaskPayloads,
+  priorityMark,
   filterWork,
   groupWorkTasks,
   MAX_TASK_PHOTOS,
@@ -182,10 +187,16 @@ export function TeamWork({ groupId }: { groupId: string }) {
               : setPanel({ kind: 'status', id: t.id })
           }
         >
-          {`#${t.number ?? '—'} ${t.title}`}
-          <small style={{ display: 'block', color: late ? 'crimson' : undefined }}>
+          {`#${t.number ?? '—'} `}
+          {priorityMark(t.priority) ? (
+            <strong style={{ color: t.priority === 'very_urgent' ? 'crimson' : 'darkorange' }}>
+              {priorityMark(t.priority)}{' '}
+            </strong>
+          ) : null}
+          {t.title}
+          <small style={{ display: 'block', opacity: 0.7 }}>
             {[
-              t.day === today ? s.today : t.day,
+              late ? s.lateOn.replace('{date}', t.day) : t.day === today ? s.today : t.day,
               t.dueTime,
               siteName(t.projectId),
               personName(t.memberId),
@@ -354,16 +365,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
           {grouped.sections.length === 0 && grouped.done.length === 0 ? <p>{s.noTasks}</p> : null}
           {grouped.sections.map((sec) => (
             <section key={sec.key}>
-              <h3
-                style={{
-                  color:
-                    sec.kind === 'overdue' || (sec.kind === 'person' && sec.alert > 0)
-                      ? 'crimson'
-                      : undefined,
-                }}
-              >
-                {heading(sec)}
-              </h3>
+              <h3>{heading(sec)}</h3>
               {sec.tasks.map(row)}
             </section>
           ))}
@@ -549,6 +551,11 @@ function EditTask({
           onChange={(e) => setDraft({ ...draft, dueTime: e.target.value || null })}
         />
       </label>
+      <PriorityField
+        value={draft.priority}
+        onChange={(priority) => setDraft({ ...draft, priority })}
+        disabled={busy}
+      />
       <label className="field">
         <span className="field-label">{s.notesOptional}</span>
         <textarea
@@ -582,6 +589,31 @@ function EditTask({
   );
 }
 
+function PriorityField({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: TaskPriority | undefined;
+  onChange: (next: TaskPriority) => void;
+  disabled: boolean;
+}) {
+  return (
+    <label className="field">
+      <span className="field-label">{s.priority}</span>
+      <select
+        value={value ?? 'normal'}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value as TaskPriority)}
+      >
+        <option value="normal">{s.prioNormal}</option>
+        <option value="urgent">{s.prioUrgent}</option>
+        <option value="very_urgent">{s.prioVeryUrgent}</option>
+      </select>
+    </label>
+  );
+}
+
 function AddTask({
   groupId,
   people,
@@ -601,6 +633,7 @@ function AddTask({
   const [title, setTitle] = useState('');
   const [ids, setIds] = useState<string[]>(people.length === 1 ? [people[0]!.id] : []);
   const [day, setDay] = useState(today);
+  const [priority, setPriority] = useState<TaskPriority>('normal');
   const [files, setFiles] = useState<{ key: string; file: File }[]>([]);
   const [problem, setProblem] = useState('');
   const [busy, setBusy] = useState(false);
@@ -621,6 +654,7 @@ function AddTask({
       title,
       memberIds: ids,
       day,
+      priority,
       idFor: (memberId) => {
         const known = taskIds.current.get(memberId);
         if (known) return known;
@@ -722,6 +756,7 @@ function AddTask({
           onChange={(e) => e.target.value && setDay(e.target.value)}
         />
       </label>
+      <PriorityField value={priority} onChange={setPriority} disabled={busy} />
       <label className="field">
         <span className="field-label">{s.photoLabel}</span>
         <input
