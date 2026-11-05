@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { randomUUID } from 'expo-crypto';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
-import { Button, Callout, Chip, Row, Sheet, Text, useTheme } from '@waves/ui';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { Button, Callout, Chip, iconSize, Row, Sheet, Text, Toggle, useTheme } from '@waves/ui';
+import { FieldLabel, SelectField } from '@/components/company/EntryForm';
+import { birthdayToDate, dateToBirthday, formatBirthday, type Birthday } from '@/lib/birthday';
+import { dateFrom, isoDate, showDate } from '@/lib/expenseDay';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import {
   useCalendar,
@@ -463,7 +468,8 @@ function LeaveDecisionSheetInner({
 }
 
 function MyDatesSheetInner({ groupId, visible, onClose, memberId }: Props & { memberId?: string }) {
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
+  const theme = useTheme();
   const access = useCalendarAccess(groupId);
   const cal = useCalendar(groupId);
   const save = useSetDates(groupId);
@@ -471,60 +477,136 @@ function MyDatesSheetInner({ groupId, visible, onClose, memberId }: Props & { me
   const id = memberId ?? access.meId ?? '';
   const own = !memberId || memberId === access.meId;
   const current = cal.dates.get(id);
-  const [birth, setBirth] = useState(current?.birthDay ? String(current.birthDay) : '');
-  const [month, setMonth] = useState(current?.birthMonth ? String(current.birthMonth) : '');
+  const [birth, setBirth] = useState<Birthday | null>(
+    current?.birthDay && current?.birthMonth
+      ? { day: current.birthDay, month: current.birthMonth }
+      : null,
+  );
   const [joined, setJoined] = useState(current?.joinedOn ?? '');
   const [show, setShow] = useState(current?.showBirthday ?? false);
+  const [picking, setPicking] = useState<'birth' | 'join' | null>(null);
   const today = todayIso();
-  const birthdayValid =
-    (!birth && !month) ||
-    (Number.isInteger(+birth) &&
-      +birth >= 1 &&
-      +birth <= 31 &&
-      Number.isInteger(+month) &&
-      +month >= 1 &&
-      +month <= 12 &&
-      (!(+birth === 29 && +month === 2) || true));
-  const err = !birthdayValid
-    ? t.calendar.errBirthday
-    : joined && (!iso(joined) || joined > today || joined < '1980-01-01')
-      ? t.calendar.errDate
-      : null;
   const write = (clear = false) =>
     save.mutate(
       {
         memberId: id,
-        birthDay: clear || !birth ? null : Number(birth),
-        birthMonth: clear || !month ? null : Number(month),
+        birthDay: clear || !birth ? null : birth.day,
+        birthMonth: clear || !birth ? null : birth.month,
         joinedOn: clear || !joined ? null : joined,
         showBirthday: own && !clear && show,
       },
       { onSuccess: onClose },
     );
+  const open = (which: 'birth' | 'join') => {
+    const value =
+      which === 'birth' ? birthdayToDate(birth ?? { day: 1, month: 1 }) : dateFrom(joined || today);
+    const apply = (d: Date) =>
+      which === 'birth' ? setBirth(dateToBirthday(d)) : setJoined(isoDate(d));
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value,
+        mode: 'date',
+        ...(which === 'join'
+          ? { minimumDate: dateFrom('1980-01-01'), maximumDate: dateFrom(today) }
+          : {}),
+        onChange: (e, d) => e.type === 'set' && d && apply(d),
+      });
+    } else setPicking((p) => (p === which ? null : which));
+  };
+  const picker = (which: 'birth' | 'join') =>
+    Platform.OS === 'ios' && picking === which ? (
+      <DateTimePicker
+        value={
+          which === 'birth'
+            ? birthdayToDate(birth ?? { day: 1, month: 1 })
+            : dateFrom(joined || today)
+        }
+        mode="date"
+        display="inline"
+        {...(which === 'join'
+          ? { minimumDate: dateFrom('1980-01-01'), maximumDate: dateFrom(today) }
+          : {})}
+        onChange={(e, d) => {
+          if (e.type === 'dismissed' || !d) return;
+          if (which === 'birth') setBirth(dateToBirthday(d));
+          else setJoined(isoDate(d));
+        }}
+      />
+    ) : null;
   return (
     <FormSheet visible={visible} onClose={onClose}>
-      <Text variant="title">{t.calendar.myDates}</Text>
-      <Field label={t.calendar.birthDay} value={birth} onChange={setBirth} />
-      <Field label={t.calendar.birthMonth} value={month} onChange={setMonth} />
-      <Field label={t.calendar.joinedOn} value={joined} onChange={setJoined} />
-      {own ? (
-        <Pressable onPress={() => setShow(!show)}>
-          <Text>
-            {t.calendar.showBirthday}
-            {show ? ' ✓' : ''}
+      <Row style={{ gap: theme.spacing.md }}>
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.color.brandSoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="calendar-outline" size={iconSize.lg} color={theme.color.brand} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text variant="title">{t.calendar.datesTitle}</Text>
+          <Text variant="caption" tone="muted">
+            {t.calendar.datesSubtitle}
           </Text>
-        </Pressable>
-      ) : null}
-      {err ? <Callout tone="negative">{err}</Callout> : null}
-      <Actions
-        onClose={onClose}
-        onSave={() => write()}
-        disabled={!!err || suspended || !id || save.isPending}
-        saveLabel={t.calendar.save}
+        </View>
+      </Row>
+      <FieldLabel>{t.calendar.birthday}</FieldLabel>
+      <SelectField
+        icon="gift-outline"
+        label={t.calendar.birthday}
+        text={birth ? formatBirthday(birth, locale) : t.calendar.selectDate}
+        placeholder={!birth}
+        chevron={false}
+        onPress={() => open('birth')}
       />
+      {picker('birth')}
+      <FieldLabel>{t.calendar.joinedLabel}</FieldLabel>
+      <SelectField
+        icon="briefcase-outline"
+        label={t.calendar.joinedLabel}
+        text={joined ? showDate(joined, locale) : t.calendar.selectDate}
+        placeholder={!joined}
+        chevron={false}
+        onPress={() => open('join')}
+      />
+      {picker('join')}
+      {own ? (
+        <Row style={{ gap: theme.spacing.md }}>
+          <View style={{ flex: 1 }}>
+            <Text>{t.calendar.showBirthday}</Text>
+            <Text variant="caption" tone="muted">
+              {t.calendar.showBirthdayHint}
+            </Text>
+          </View>
+          <Toggle
+            value={show}
+            onValueChange={setShow}
+            accessibilityLabel={t.calendar.showBirthday}
+          />
+        </Row>
+      ) : null}
+      <Row style={{ gap: 8 }}>
+        <View style={{ flex: 1 }}>
+          <Button label={t.calendar.cancel} variant="secondary" fullWidth onPress={onClose} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Button
+            label={t.calendar.save}
+            fullWidth
+            icon={<Ionicons name="checkmark" size={iconSize.base} color={theme.color.onBrand} />}
+            disabled={suspended || !id || save.isPending}
+            onPress={() => write()}
+          />
+        </View>
+      </Row>
       <Button
         label={t.calendar.clear}
-        variant="secondary"
+        variant="ghost"
         fullWidth
         disabled={suspended || save.isPending || !id}
         onPress={() => write(true)}
