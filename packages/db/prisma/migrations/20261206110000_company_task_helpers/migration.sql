@@ -15,12 +15,13 @@ END $$;
 REVOKE ALL ON FUNCTION public.waves_company_task_helpers_clean() FROM PUBLIC,anon,authenticated;
 CREATE TRIGGER company_work_tasks_helpers_clean BEFORE INSERT OR UPDATE ON public.company_work_tasks FOR EACH ROW EXECUTE FUNCTION public.waves_company_task_helpers_clean();
 
--- Is the signed-in caller a live member of this company who is listed as a helper?
+-- Is the signed-in caller a live member of this company who is listed as a helper (and past the company's two-step gate)?
 CREATE FUNCTION public.waves_company_is_helper(p_group_id uuid,p_helper_ids uuid[]) RETURNS boolean
  LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
  SELECT EXISTS(SELECT 1 FROM public.group_members me JOIN public.groups g ON g.id=me.group_id
  WHERE me.group_id=p_group_id AND g.type='company' AND g.deleted_at IS NULL AND me.id=ANY(p_helper_ids)
- AND me.profile_id=public.waves_current_profile_id() AND me.left_at IS NULL AND me.removed_at IS NULL AND me.merged_into_member_id IS NULL);
+ AND me.profile_id=public.waves_current_profile_id() AND me.left_at IS NULL AND me.removed_at IS NULL AND me.merged_into_member_id IS NULL)
+ AND public.waves_two_step_ok(p_group_id);
 $$;
 REVOKE ALL ON FUNCTION public.waves_company_is_helper(uuid,uuid[]) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.waves_company_is_helper(uuid,uuid[]) TO authenticated,service_role;
