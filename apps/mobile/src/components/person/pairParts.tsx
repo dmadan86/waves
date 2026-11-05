@@ -6,43 +6,72 @@
  * Nothing here computes money. A row is handed a `PairGroupRow` (the figures
  * from core, plus the group's own facts) and draws it.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { directionalIcon, iconSize, MoneyText, Row, Sheet, Text, useTheme } from '@waves/ui';
 
+import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import type { CurrencyCode } from '@waves/core';
 import { fill, plural, useStrings } from '@/i18n';
+import { useHeroScene } from '@/lib/heroScenePreference';
 import { formatShortDateRange } from '@/lib/tripDateRange';
 import type { PairGroupRow } from '@/lib/usePairPerson';
 
-/** The sheet no longer rides over a photo; kept for callers that read it. */
-export const HERO_OVERLAP = 0;
+/** How far the page's sheet rides up over the scene, as Friends' balance card does. */
+export const HERO_OVERLAP = 28;
+
+/** A subtle dark lift under white text, so it holds over the brighter sky. */
+export const HERO_TEXT_SHADOW = {
+  textShadowColor: 'rgba(0, 0, 0, 0.35)',
+  textShadowOffset: { width: 0, height: 1 },
+  textShadowRadius: 3,
+} as const;
 
 /**
- * The top of a person page: the page's own content (back, avatars, the pair's
- * balance) on the plain page colour, as every other screen opens. `children`
- * is the hero's content; the caller follows it with a `PairSheet`.
+ * The scene a person page opens on: the same time-of-day photograph Home and
+ * Friends wear, with the page's own content laid over it. `children` is the
+ * hero's content; the caller follows it with a `PairSheet`.
  */
 export function PairHero({ children }: { children: ReactNode }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  useHeroStatusBar(theme.scheme === 'dark' ? 'light' : 'dark');
+  const { width } = useWindowDimensions();
+  const scene = useHeroScene();
+  useHeroStatusBar('light');
+  const [height, setHeight] = useState(insets.top + 150);
+
   return (
-    <View
-      style={{
-        paddingTop: insets.top + theme.spacing.sm,
-        paddingHorizontal: theme.spacing.lg,
-        paddingBottom: theme.spacing.sm,
-        gap: theme.spacing.sm,
-      }}
-    >
-      {children}
+    <View>
+      <View
+        pointerEvents="none"
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, height }}
+      >
+        <FriendsHeroBackground
+          scene={scene}
+          width={width}
+          height={height}
+          horizon={height - HERO_OVERLAP}
+          headerBottom={insets.top + 30}
+          pageColor={theme.color.bg}
+        />
+      </View>
+      <View
+        onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
+        style={{
+          paddingTop: insets.top + theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+          paddingBottom: HERO_OVERLAP + theme.spacing.sm,
+          gap: theme.spacing.sm,
+        }}
+      >
+        {children}
+      </View>
     </View>
   );
 }
@@ -212,7 +241,7 @@ export function GroupChip({ group }: { group: PairGroupRow }) {
         gap: 4,
         paddingHorizontal: theme.spacing.sm,
         height: 28,
-        borderRadius: theme.radius.sm,
+        borderRadius: theme.radius.pill,
         backgroundColor: theme.color.surface,
         maxWidth: 160,
       }}

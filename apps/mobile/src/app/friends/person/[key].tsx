@@ -42,6 +42,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenic } from '@/components/ScenicScope';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { ViewerButton } from '@/components/ViewerButton';
@@ -51,6 +52,7 @@ import { OwesCard } from '@/components/person/OwesCard';
 import {
   GroupChip,
   HeroCircleButton,
+  HERO_TEXT_SHADOW,
   NavRow,
   PairGroupCard,
   PairHero,
@@ -70,7 +72,7 @@ import { settleHref } from '@/lib/groupTab';
 /** Group chips shown under the name before the rest collapse into "+N". */
 const MAX_CHIPS = 3;
 
-export default function PersonDetailScreen() {
+function PersonDetailScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
@@ -192,12 +194,20 @@ export default function PersonDetailScreen() {
               ) : null}
             </View>
             <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-              <Text variant="title" numberOfLines={1}>
+              <Text
+                variant="title"
+                numberOfLines={1}
+                style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
+              >
                 {title}
                 {profile?.is_you ? ` (${t.person.you})` : ''}
               </Text>
               {groupCount > 0 ? (
-                <Text variant="caption" numberOfLines={1}>
+                <Text
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
+                >
                   {plural(locale, groupCount, t.person.sharedGroups)}
                 </Text>
               ) : null}
@@ -483,3 +493,5 @@ function InvitePrompt({
     </Row>
   );
 }
+
+export default withScenic(PersonDetailScreen);

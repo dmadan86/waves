@@ -24,6 +24,7 @@ import {
 
 import { EMPLOYEE_ID_MAX } from '@waves/core';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { familyOf } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { type PickedContact } from '@/components/ContactPicker';
@@ -65,7 +66,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 
 const TEAM = require('../../../../assets/images/company/team.webp') as number;
 
-export default function MembersScreen() {
+function MembersScreen() {
   const theme = useTheme();
   const inputStyle = {
     flex: 1,
@@ -331,7 +332,7 @@ export default function MembersScreen() {
               gap: 6,
               height: 32,
               paddingHorizontal: 12,
-              borderRadius: theme.radius.sm,
+              borderRadius: theme.radius.pill,
               backgroundColor: theme.color.brandSoft,
             }}
           >
@@ -919,3 +920,5 @@ function Helper({ children }: { children: ReactNode }) {
     </Text>
   );
 }
+
+export default withScenicGroup(MembersScreen);

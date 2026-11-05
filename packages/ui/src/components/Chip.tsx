@@ -51,8 +51,8 @@ export function Chip({
         alignItems: 'center',
         gap: theme.spacing.xs,
         paddingHorizontal: theme.spacing.lg,
-        height: 32,
-        borderRadius: theme.radius.sm,
+        height: theme.scenic ? 36 : 32,
+        borderRadius: theme.scenic ? theme.radius.pill : theme.radius.sm,
         backgroundColor: selected
           ? selectedFill
           : onCard
@@ -166,8 +166,8 @@ export function Badge({
         alignItems: 'center',
         gap: 4,
         paddingHorizontal: theme.spacing.md,
-        paddingVertical: 2,
-        borderRadius: 6,
+        paddingVertical: theme.scenic ? 4 : 2,
+        borderRadius: theme.scenic ? theme.radius.pill : 6,
         backgroundColor: background,
       }}
     >

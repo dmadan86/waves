@@ -16,13 +16,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { useHeroStatusBar } from '@/components/ScreenHero';
+import { PHOTO_OVERLAP, PhotoBody, PhotoHeader } from '@/components/standard/PhotoHeader';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
 /** The body no longer rides over the header; kept at 0 for the screens that read it. */
 export const SCENIC_OVERLAP = 0;
 
-export function ScenicHeader({
+type HeaderProps = Parameters<typeof PhotoHeader>[0];
+
+/** Inside `ScenicTheme` (personal social screens) the photo header; everywhere else the plain bar. */
+export function ScenicHeader(props: HeaderProps) {
+  const theme = useTheme();
+  return theme.scenic ? <PhotoHeader {...props} /> : <PlainBar {...props} />;
+}
+
+/** How far the body rides up over the header: the photo's overlap, 0 on the plain bar. */
+export function useScenicOverlap(): number {
+  return useTheme().scenic ? PHOTO_OVERLAP : SCENIC_OVERLAP;
+}
+
+function PlainBar({
   title,
   onBack,
   children,
@@ -149,7 +163,11 @@ export function ScenicHeader({
 }
 
 /** The body under a `ScenicHeader`: the standard gutters and gaps. `flush`: the Team shell draws its own header. */
-export function ScenicBody({ children, flush = false }: { children: ReactNode; flush?: boolean }) {
+export function ScenicBody(props: Parameters<typeof PhotoBody>[0]) {
+  return useTheme().scenic ? <PhotoBody {...props} /> : <PlainBody {...props} />;
+}
+
+function PlainBody({ children, flush = false }: { children: ReactNode; flush?: boolean }) {
   const theme = useTheme();
   return (
     <View

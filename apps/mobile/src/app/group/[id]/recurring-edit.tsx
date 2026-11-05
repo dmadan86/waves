@@ -42,6 +42,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { CategoryRow, CategorySheet } from '@/components/Category';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DescriptionField } from '@/components/expense/DescriptionField';
@@ -72,7 +73,7 @@ import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
-export default function GroupRecurringEditScreen() {
+function GroupRecurringEditScreen() {
   const { id, ruleId } = useLocalSearchParams<{ id: string; ruleId?: string }>();
   const groupId = id ?? '';
   useCompanyGroupGuard(groupId);
@@ -470,3 +471,5 @@ function EditForm({ groupId, ruleId }: { groupId: string; ruleId: string }) {
     </Screen>
   );
 }
+
+export default withScenicGroup(GroupRecurringEditScreen);

@@ -23,6 +23,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { LinkMemberSheet } from '@/components/LinkMemberSheet';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
@@ -100,7 +101,7 @@ function HeaderPill({ label }: { label: string }) {
       style={{
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 2,
-        borderRadius: theme.radius.sm,
+        borderRadius: theme.radius.pill,
         backgroundColor: theme.color.surfaceMuted,
       }}
     >
@@ -214,7 +215,7 @@ function SortPill({ oldestFirst, onToggle }: { oldestFirst: boolean; onToggle: (
         gap: theme.spacing.xs,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 4,
-        borderRadius: theme.radius.sm,
+        borderRadius: theme.radius.pill,
         backgroundColor: theme.color.surfaceMuted,
         opacity: pressed ? 0.7 : 1,
       })}
@@ -228,7 +229,7 @@ function SortPill({ oldestFirst, onToggle }: { oldestFirst: boolean; onToggle: (
   );
 }
 
-export default function MemberScreen() {
+function MemberScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -1147,3 +1148,5 @@ export default function MemberScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(MemberScreen);

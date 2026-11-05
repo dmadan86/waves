@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScrollView as RNScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { withScenicGroup } from '@/components/ScenicScope';
 import { familyOf } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -18,6 +19,7 @@ import {
   iconSize,
   ListRow,
   MoneyText,
+  Gradient,
   Row,
   Screen,
   SegmentedTabs,
@@ -95,7 +97,13 @@ function splitLabels(t: UiStrings): Record<string, string> {
   };
 }
 
-/** A round grey control in the header. 36pt is the compact size: three of
+/** White-on-wash glass for the hero's controls and chips: the same
+ *  white-with-alpha the hero's chips already used, so they read as one family. */
+const HERO_GLASS = 'rgba(255, 255, 255, 0.18)';
+/** Fainter still, for the decorative blob. */
+const HERO_GLASS_SOFT = 'rgba(255, 255, 255, 0.08)';
+
+/** A round translucent control on the hero. 36pt is the compact size: three of
  *  them, a back button and a title disc share one row on a phone, and `hitSlop`
  *  keeps the touch target generous. */
 function HeroButton({
@@ -120,11 +128,11 @@ function HeroButton({
         borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.color.surfaceMuted,
+        backgroundColor: HERO_GLASS,
         opacity: pressed ? 0.5 : 1,
       })}
     >
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
+      <Ionicons name={icon} size={iconSize.lg} color={theme.color.onBrand} />
     </Pressable>
   );
 }
@@ -145,7 +153,7 @@ function MemberAvatar({
   return <PersonAvatar name={name} avatarUrl={photo} ghost={ghost} size={size} />;
 }
 
-export default function ExpenseDetailScreen() {
+function ExpenseDetailScreen() {
   const theme = useTheme();
   const goBack = useGoBack();
   const { isPro } = useEntitlement();
@@ -553,17 +561,43 @@ export default function ExpenseDetailScreen() {
     <Screen edges={[]}>
       {/* The hero runs dark under the status bar, so its icons must be light —
           overriding the app's theme-driven default for this route. */}
-      <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
-      {/* The expense header: on the page, no wash. Fixed, a sibling before the
-          scroll so only the body below it scrolls. */}
-      <View
+      <StatusBar style="light" />
+      {/* The expense hero: one saturated wash edge to edge and up under the status
+          bar, white controls and amount on it. Neutral brand indigo, never a money
+          colour: the amount is a total that is nobody's balance. A fixed header —
+          it sits as a sibling before the scroll so only the body below it scrolls
+          — with only its bottom corners rounded. */}
+      <Gradient
+        radius={0}
+        colors={theme.gradient.brand}
         style={{
+          // Compact: a tight top, a short foot and small gaps, so the hero is a
+          // header over the page rather than half of it.
           paddingTop: insets.top + theme.spacing.sm,
-          paddingHorizontal: theme.spacing.lg,
-          paddingBottom: theme.spacing.sm,
+          paddingHorizontal: theme.spacing.xl,
+          paddingBottom: theme.spacing.md,
+          borderBottomLeftRadius: theme.radius.xxl,
+          borderBottomRightRadius: theme.radius.xxl,
           gap: theme.spacing.sm,
+          overflow: 'hidden',
         }}
       >
+        {/* A soft lighter blob bleeding off the top end: depth on the flat wash
+            without art. Decorative, so it is hidden from screen readers. */}
+        <View
+          pointerEvents="none"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={{
+            position: 'absolute',
+            top: -60,
+            end: -70,
+            width: 220,
+            height: 220,
+            borderRadius: 110,
+            backgroundColor: HERO_GLASS_SOFT,
+          }}
+        />
         {/* Back, the bill's identity, then the actions — one row, as the design
             has it. The glass buttons are round and translucent so they sit on the
             wash without a second colour. */}
@@ -585,7 +619,7 @@ export default function ExpenseDetailScreen() {
               borderRadius: 20,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: theme.color.brandSoft,
+              backgroundColor: theme.color.onBrand,
               opacity: pressed ? 0.6 : 1,
             })}
           >
@@ -609,7 +643,7 @@ export default function ExpenseDetailScreen() {
               >
                 <Text
                   variant="subheading"
-
+                  tone="onBrand"
                   numberOfLines={1}
                   style={changedFields.has('description') ? changedLine : undefined}
                 >
@@ -618,7 +652,7 @@ export default function ExpenseDetailScreen() {
               </Pressable>
               {deleted ? <Badge label={t.expense.deleted} tone="negative" /> : null}
             </Row>
-            {markLabel ? <NewPill label={markLabel} /> : null}
+            {markLabel ? <NewPill label={markLabel} onDark /> : null}
             <View
               style={{
                 flexDirection: 'row',
@@ -627,18 +661,18 @@ export default function ExpenseDetailScreen() {
                 maxWidth: '100%',
                 paddingHorizontal: theme.spacing.sm,
                 paddingVertical: 2,
-                borderRadius: theme.radius.sm,
-                backgroundColor: theme.color.surfaceMuted,
+                borderRadius: theme.radius.pill,
+                backgroundColor: HERO_GLASS,
               }}
             >
               <Ionicons
                 name={heroCategory.icon as keyof typeof Ionicons.glyphMap}
                 size={iconSize.sm}
-                color={theme.color.textMuted}
+                color={theme.color.onBrand}
               />
               <Text
                 variant="micro"
-
+                tone="onBrand"
                 numberOfLines={1}
                 style={{ fontWeight: '600', flexShrink: 1 }}
               >
@@ -679,7 +713,7 @@ export default function ExpenseDetailScreen() {
               currency={currency}
               locale={locale}
               variant="display"
-              style={{ fontSize: 32, lineHeight: 38 }}
+              style={{ color: theme.color.onBrand, fontSize: 32, lineHeight: 38 }}
             />
           ) : (
             <Pressable
@@ -703,7 +737,7 @@ export default function ExpenseDetailScreen() {
                 currency={currency}
                 locale={locale}
                 variant="display"
-                style={{ fontSize: 32, lineHeight: 38 }}
+                style={{ color: theme.color.onBrand, fontSize: 32, lineHeight: 38 }}
               />
             </Pressable>
           )}
@@ -717,12 +751,12 @@ export default function ExpenseDetailScreen() {
                 gap: 4,
                 paddingHorizontal: theme.spacing.sm,
                 paddingVertical: 2,
-                borderRadius: theme.radius.sm,
-                backgroundColor: theme.color.surfaceMuted,
+                borderRadius: theme.radius.pill,
+                backgroundColor: HERO_GLASS,
               }}
             >
-              <Ionicons name="eye-outline" size={iconSize.sm} color={theme.color.textMuted} />
-              <Text variant="micro" style={{ fontWeight: '600' }}>
+              <Ionicons name="eye-outline" size={iconSize.sm} color={theme.color.onBrand} />
+              <Text variant="micro" tone="onBrand" style={{ fontWeight: '600' }}>
                 {t.expense.notInvolvedChip}
               </Text>
             </View>
@@ -732,10 +766,10 @@ export default function ExpenseDetailScreen() {
             with what it came to in the group's money and the rate, small. */}
         {version.fx && convertedHome ? (
           <View style={{ gap: 2 }}>
-            <Text variant="caption" style={{ color: theme.color.text }}>
+            <Text variant="caption" style={{ color: theme.color.onBrand }}>
               {`= ${format(convertedHome, { locale })}`}
             </Text>
-            <Text variant="micro" tone="muted">
+            <Text variant="micro" tone="onBrand" style={{ opacity: 0.8 }}>
               {rateAt(version.fx, t.fx.viewAt)}
             </Text>
           </View>
@@ -758,19 +792,19 @@ export default function ExpenseDetailScreen() {
               gap: 4,
               paddingHorizontal: theme.spacing.sm,
               paddingVertical: 2,
-              borderRadius: theme.radius.sm,
-              backgroundColor: theme.color.surfaceMuted,
+              borderRadius: theme.radius.pill,
+              backgroundColor: HERO_GLASS,
               opacity: pressed ? 0.6 : 1,
             })}
           >
             {group.data?.cover_emoji ? (
               <Text variant="caption">{group.data.cover_emoji}</Text>
             ) : (
-              <Ionicons name="people-outline" size={iconSize.sm} color={theme.color.textMuted} />
+              <Ionicons name="people-outline" size={iconSize.sm} color={theme.color.onBrand} />
             )}
             <Text
               variant="caption"
-
+              tone="onBrand"
               numberOfLines={1}
               style={{ fontWeight: '600', flexShrink: 1 }}
             >
@@ -778,17 +812,17 @@ export default function ExpenseDetailScreen() {
             </Text>
           </Pressable>
           <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            <Ionicons name="calendar-outline" size={iconSize.sm} color={theme.color.textMuted} />
+            <Ionicons name="calendar-outline" size={iconSize.sm} color={theme.color.onBrand} />
             <Text
               variant="caption"
-
+              tone="onBrand"
               style={[{ fontWeight: '600' }, changedFields.has('date') ? changedLine : null]}
             >
               {heroDate}
             </Text>
           </Row>
         </Row>
-      </View>
+      </Gradient>
 
       {/* The two faces of the page — its breakdown and its edit history —
           sectioned so the audit is its own place rather than the tail of a long
@@ -1407,3 +1441,5 @@ function PaidAndShare({
     </>
   );
 }
+
+export default withScenicGroup(ExpenseDetailScreen);

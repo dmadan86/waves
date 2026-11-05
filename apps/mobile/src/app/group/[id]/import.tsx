@@ -33,6 +33,7 @@ import {
 } from '@waves/core';
 import { Button, Screen, useTheme } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { ColumnMapper, type PreviewRow } from '@/components/import/ColumnMapper';
 import { CommitPanel, ResultCard } from '@/components/import/CommitPanels';
 import { ImportFooter, ImportHeader } from '@/components/import/ImportChrome';
@@ -87,7 +88,7 @@ function leave(groupId: string): void {
   else router.replace(`/group/${groupId}`);
 }
 
-export default function GroupImportScreen() {
+function GroupImportScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -601,3 +602,5 @@ export default function GroupImportScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(GroupImportScreen);

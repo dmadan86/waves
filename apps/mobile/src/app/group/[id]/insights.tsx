@@ -38,6 +38,7 @@ import {
 } from '@waves/core';
 import { EmptyState, iconSize, Row, Text, useTheme } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { CategoryBadge } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import {
@@ -86,7 +87,7 @@ const MONTH_WINDOWS = [6, 12] as const;
 /** Leading categories the donut and its legend name; the rest are one slice. */
 const TOP_CATEGORIES = 5;
 
-export default function InsightsScreen() {
+function InsightsScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -457,7 +458,7 @@ function SpendingBody({
                   gap: theme.spacing.xs,
                   height: 34,
                   paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.sm,
+                  borderRadius: theme.radius.pill,
                   backgroundColor: theme.color.surface,
                   ...theme.shadow.soft,
                 }}
@@ -488,7 +489,7 @@ function SpendingBody({
                 style={{
                   height: 32,
                   paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.sm,
+                  borderRadius: theme.radius.pill,
                   justifyContent: 'center',
                   backgroundColor:
                     size === windowSize ? theme.color.selectedFill : theme.color.surface,
@@ -579,3 +580,5 @@ function monthLabel(month: string, locale: string, withYear = false): string {
     timeZone: 'UTC',
   }).format(date);
 }
+
+export default withScenicGroup(InsightsScreen);

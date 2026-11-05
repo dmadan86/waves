@@ -1,12 +1,25 @@
+/**
+ * The actions you start from Home — start a group, settle up, earn credits,
+ * add an expense — as a strip along the foot of the balance card rather than
+ * a row of tiles of their own: a small disc over a one-line word in each
+ * column, so the actions cost the card a band instead of the screen a block.
+ *
+ * Free users get a compact credits sheet. A low balance
+ * highlights that action while keeping every disc and label aligned.
+ *
+ * Draws itself with `QuickActionsRow`, the same disc-and-label strip
+ * Friends' own quick actions use — brand-tinted here, lilac there.
+ */
+
 import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import { iconSize, Row, Text, useTheme } from '@waves/ui';
+import { useTheme } from '@waves/ui';
 
-import { ActionButton } from '@/components/home/ActionButton';
-import { TourTarget } from '@/lib/tour';
+import { GroupAddIcon } from '@/components/GroupAddIcon';
+import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import type { MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { fill, useStrings } from '@/i18n';
@@ -21,26 +34,23 @@ import { homeCreditsAction } from '@/lib/isHomeCreditsLow';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
 
-/**
- * The actions you start from Home, as one compact row under the balance:
- * Add expense (the primary, brand-filled; hold for type / scan / speak),
- * New group and Settle up (outlined). Free users also get a quiet credits
- * link underneath; a low balance shows its count as a small tag.
- */
 export function HomeQuickActions({
   onAddExpense,
   onAddExpenseLong,
   onSettleUp,
   onReview,
   onNewGroup,
+  radius,
 }: {
   onAddExpense: () => void;
   onAddExpenseLong: () => void;
   onSettleUp: () => void;
   /** Company users: opens Review, which has no tab of its own for them. */
   onReview: () => void;
-  /** Handed the button's window position so the menu can drop from it. */
+  /** Handed the tile's window position so the menu can drop from it. */
   onNewGroup: (anchor: MenuAnchor | null) => void;
+  /** The card's corner radius, which the strip's bottom corners follow. */
+  radius: number;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -60,77 +70,66 @@ export function HomeQuickActions({
 
   const balance = credits.data?.credits;
   const creditAction = homeCreditsAction(balance, credits.data?.costs.voice);
-  const brand = theme.color.brand;
+
+  const actions: QuickAction[] = [
+    {
+      key: 'group',
+      label: t.homeDash.newGroup,
+      glyph: (color) => <GroupAddIcon size={28} color={color} />,
+      onPress: () => measureAnchor(groupRef, onNewGroup),
+      ref: groupRef,
+      tourId: 'addGroup',
+    },
+    isReview
+      ? {
+          key: 'review',
+          label: t.review,
+          badge: reviewBadge,
+          badgeColor: theme.color.negative,
+          glyph: (color) => <Ionicons name="file-tray-full-outline" size={28} color={color} />,
+          onPress: onReview,
+        }
+      : {
+          key: 'settle',
+          label: t.homeDash.settleUp,
+          glyph: (color) => <Ionicons name="cash-outline" size={28} color={color} />,
+          onPress: onSettleUp,
+        },
+    ...(viewerId && !isPaid
+      ? [
+          {
+            key: 'credits',
+            label: fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 }),
+            badge: creditAction.badge,
+            badgeColor: theme.color.brand,
+            accessibilityLabel: `${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`,
+            glyph: () => <Ionicons name="flash" size={28} color={theme.color.warning} />,
+            onPress: () => void adOffer.offer('voice', { userInitiated: true, homeCredits: true }),
+          },
+        ]
+      : []),
+    // Last, at the right-hand end: the one reached for most, under the thumb.
+    {
+      key: 'expense',
+      label: t.homeDash.addExpense,
+      glyph: (color) => <Ionicons name="add-circle-outline" size={28} color={color} />,
+      onPress: onAddExpense,
+      onLongPress: onAddExpenseLong,
+      tourId: 'addExpense',
+    },
+  ];
 
   return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <Row style={{ gap: theme.spacing.sm }}>
-        <TourTarget id="addExpense" style={{ flex: 1.3 }}>
-          <ActionButton
-            label={t.homeDash.addExpense}
-            icon="add"
-            onPress={onAddExpense}
-            onLongPress={onAddExpenseLong}
-            primary
-          />
-        </TourTarget>
-        <View ref={groupRef} collapsable={false} style={{ flex: 1 }}>
-          <TourTarget id="addGroup">
-            <ActionButton
-              label={t.homeDash.newGroup}
-              icon="people-outline"
-              onPress={() => measureAnchor(groupRef, onNewGroup)}
-            />
-          </TourTarget>
-        </View>
-        <View style={{ flex: 1 }}>
-          {isReview ? (
-            <ActionButton
-              label={t.review}
-              icon="file-tray-full-outline"
-              onPress={onReview}
-              badge={reviewBadge}
-            />
-          ) : (
-            <ActionButton label={t.homeDash.settleUp} icon="cash-outline" onPress={onSettleUp} />
-          )}
-        </View>
-      </Row>
-      {viewerId && !isPaid ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`}
-          onPress={() => void adOffer.offer('voice', { userInitiated: true, homeCredits: true })}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            alignSelf: 'flex-start',
-            opacity: pressed ? 0.6 : 1,
-          })}
-        >
-          <Ionicons name="flash" size={iconSize.sm} color={theme.color.warning} />
-          <Text variant="caption" style={{ fontWeight: '600', color: brand }}>
-            {fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 })}
-          </Text>
-          {creditAction.badge != null ? (
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 1,
-                borderRadius: 6,
-                backgroundColor: theme.color.brandSoft,
-              }}
-            >
-              <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-                {creditAction.badge}
-              </Text>
-            </View>
-          ) : null}
-        </Pressable>
-      ) : null}
+    <>
+      <QuickActionsRow
+        actions={actions}
+        radius={radius}
+        discColor="transparent"
+        iconColor={theme.color.brand}
+        discSize={32}
+        rowPadding={theme.spacing.sm}
+      />
       {adOffer.sheet}
-    </View>
+    </>
   );
 }

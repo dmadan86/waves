@@ -10,7 +10,8 @@ Waves should read like a mature finance app, not a generated dashboard.
 
 - Usability before decoration. Every element earns its space; if it can be removed or merged, it goes.
 - Compact and calm: tight rows, clear alignment, hairline dividers, one accent colour. Calm is not empty: keep the information people need.
-- No gradients, no soft shadows on cards, no capsule-shaped buttons, no decorative illustrations or photo headers. Shadows only on things that float (menus, sheets, toasts).
+- Two looks, by screen. The personal social screens (Home, Friends, group screens of personal groups, person pages, plus the scene picker) keep the scenic look: time-of-day photo heroes, the glass balance card, soft shadows, pills. They opt in with `withScenic` / `withScenicGroup` (`components/ScenicScope.tsx`), which serves the old tokens through `ScenicTheme`. Company screens, the Personal money tab, settings and the web use the calm system below.
+- In the calm system: no gradients, no soft shadows on cards, no capsule-shaped buttons, no decorative illustrations or photo headers. Shadows only on things that float (menus, sheets, toasts).
 - Not everything is a white card. Use the page itself, typography, spacing and dividers; a card groups rows that belong together.
 - Familiar patterns (back chevron, segmented control, list rows, ⋮ menu) so a first-time user needs no instructions.
 - Mobile first, down to small Androids (360dp wide): no fixed photo bands, nothing that only fits a large phone.

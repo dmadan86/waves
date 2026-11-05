@@ -1,3 +1,4 @@
+import { withScenicGroup } from '@/components/ScenicScope';
 import { AdSlot } from '@/components/AdSlot';
 import { placeSlots } from '@/lib/adPlanPure';
 import { useAdPlan } from '@/lib/useAdPlan';
@@ -1167,6 +1168,16 @@ function LedgerGroupScreen() {
   // falls back to Expenses rather than an empty body.
   const activeTab = tab === Tab.Vendors && !isEvent ? Tab.Expenses : tab;
   const currency = groupData.default_currency;
+  // The hero panel wears its verdict, the same rule the dashboard hero follows:
+  // a blue wash when the group owes you, a red one when you owe it, the brand
+  // indigo when all is settled. Every stop is dark enough to hold the white
+  // balance and its labels; the sign lives in the words, not just the hue.
+  const heroGradient =
+    ledger.myBalance > 0n
+      ? theme.gradient.positive
+      : ledger.myBalance < 0n
+        ? theme.gradient.negative
+        : theme.gradient.brand;
   // The two sync states that still earn an inline card, because both need a
   // decision the header glyph cannot offer: a change the server refused, and a
   // change that has stopped retrying (which also blocks everything queued
@@ -1522,7 +1533,7 @@ function LedgerGroupScreen() {
                       gap: 6,
                       minHeight: 36,
                       paddingHorizontal: theme.spacing.md,
-                      borderRadius: theme.radius.sm,
+                      borderRadius: theme.radius.pill,
                       backgroundColor: theme.color.brand,
                     }}
                   >
@@ -1654,7 +1665,8 @@ function LedgerGroupScreen() {
 
   return (
     <Screen edges={[]}>
-      <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
+      {/* The hero runs dark under the status bar; force light icons for it. */}
+      <StatusBar style="light" />
       {/* No entrance re-animation: the screen already slides in natively, and a
           second scale-up on top of that read as an unwanted zoom. */}
       <View style={{ flex: 1 }}>
@@ -1668,10 +1680,10 @@ function LedgerGroupScreen() {
           convertedFrom={ledger.convertedFrom}
           pending={ledger.pending}
           pendingForMe={pendingForMe}
+          heroGradient={heroGradient}
           nameOf={nameOf}
           leftOwing={leftWithBalance(everyone.data ?? [], ledger.balances)}
           onOpenMenu={() => setMenuOpen(true)}
-          onSettle={() => setTab(Tab.Balances)}
         />
         {/* The faces of the page, pinned between the hero and the list.
             It used to ride inside `ListHeaderComponent`, which meant scrolling
@@ -2132,7 +2144,7 @@ function LedgerGroupScreen() {
                   gap: 4,
                   paddingHorizontal: 10,
                   paddingVertical: 4,
-                  borderRadius: 8,
+                  borderRadius: 999,
                   backgroundColor: UNREAD_GREEN,
                 }}
               >
@@ -2158,10 +2170,12 @@ function LedgerGroupScreen() {
  * company's own (a statement for an employee, a summary for an admin). Every
  * other group opens the ledger screen above, untouched.
  */
-export default function GroupScreen() {
+function GroupScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { group } = useGroup(id ?? '');
   if (!COMPANIES_ENABLED && group.data?.type === GroupType.Company) return <Redirect href="/" />;
   if (group.data?.type === GroupType.Company) return <CompanyHome groupId={id ?? ''} />;
   return <LedgerGroupScreen />;
 }
+
+export default withScenicGroup(GroupScreen);

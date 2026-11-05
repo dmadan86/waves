@@ -4,7 +4,7 @@
  * screen, and reach for these before drawing anything of your own.
  */
 
-export { SCENIC_OVERLAP, ScenicBody, ScenicHeader } from './ScenicHeader';
+export { SCENIC_OVERLAP, ScenicBody, ScenicHeader, useScenicOverlap } from './ScenicHeader';
 export { PlainHeader } from './PlainHeader';
 export { RowTile } from './RowTile';
 export {

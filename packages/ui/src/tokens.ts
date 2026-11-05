@@ -206,3 +206,30 @@ export const duration = {
   fast: 140,
   normal: 220,
 } as const;
+
+/**
+ * The scenic look of the personal social screens (Home, Friends, groups,
+ * people): the values the app had before the calm redesign. `ScenicTheme`
+ * serves them to one screen's subtree; the calm tokens above stay the default.
+ */
+export const scenic = {
+  radius: { sm: 12, md: 16, lg: 20, xl: 24, xxl: 32, pill: 999 },
+  typography: {
+    display: { fontSize: 34, lineHeight: 40, fontWeight: '700' },
+    title: { fontSize: 24, lineHeight: 30, fontWeight: '700' },
+    heading: { fontSize: 19, lineHeight: 25, fontWeight: '700' },
+    subheading: { fontSize: 16, lineHeight: 22, fontWeight: '600' },
+    body: { fontSize: 15, lineHeight: 21, fontWeight: '500' },
+    caption: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
+    micro: { fontSize: 11, lineHeight: 15, fontWeight: '600' },
+  },
+  shadowSoft: {
+    shadowColor: '#1E1450',
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 4,
+  },
+  bg: '#F3F1FB',
+  border: '#EDEDF5',
+} as const;

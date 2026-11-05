@@ -1,3 +1,4 @@
+import { withScenicGroup } from '@/components/ScenicScope';
 import { useToast } from '@/lib/toast';
 import { useCompanyGroupGuard } from '@/lib/useCompanyGroupGuard';
 import { withScanCredits } from '@/lib/scanCredits';
@@ -98,7 +99,7 @@ interface DraftItem {
  * `actor_member_id`. The single exception is a ghost member, who has no phone
  * to tap with, and whom therefore anybody may claim for.
  */
-export default function ItemizeScreen() {
+function ItemizeScreen() {
   const theme = useTheme();
   const clearance = useScreenClearance();
   const { t, locale } = useStrings();
@@ -896,3 +897,5 @@ export default function ItemizeScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(ItemizeScreen);

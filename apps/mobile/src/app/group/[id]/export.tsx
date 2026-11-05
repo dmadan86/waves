@@ -1,3 +1,4 @@
+import { withScenicGroup } from '@/components/ScenicScope';
 import { useAdGate } from '@/lib/useAdGate';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -68,7 +69,7 @@ function slugify(name: string): string {
  * case shows an "update the app" message rather than crashing. The Excel path is
  * pure JS (SheetJS) and always works.
  */
-export default function GroupExportScreen() {
+function GroupExportScreen() {
   const adGate = useAdGate();
   const theme = useTheme();
   const clearance = useBottomClearance();
@@ -432,3 +433,5 @@ export default function GroupExportScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(GroupExportScreen);
