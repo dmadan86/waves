@@ -4226,6 +4226,7 @@ export interface UiStrings {
     totalOwed: string;
     totalOwe: string;
     totalSettled: string;
+    downloadingGroups: string;
     spentThisMonth: string;
     vsLastMonth: string;
     periodOverall: string;
@@ -11771,6 +11772,7 @@ const en: UiStrings = {
     totalOwed: 'Total you are owed',
     totalOwe: 'Total you owe',
     totalSettled: 'You are all settled up',
+    downloadingGroups: 'Downloading your groups · {loaded} of {total}',
     spentThisMonth: 'You spent this month',
     vsLastMonth: 'vs last month',
     periodOverall: 'Overall',
@@ -18936,6 +18938,7 @@ const ta: UiStrings = {
     totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
     totalOwe: 'நீங்கள் தர வேண்டிய மொத்தம்',
     totalSettled: 'எல்லாம் தீர்க்கப்பட்டது',
+    downloadingGroups: 'உங்கள் குழுக்களைப் பதிவிறக்குகிறது · {loaded} / {total}',
     spentThisMonth: 'இந்த மாதம் நீங்கள் செலவிட்டது',
     vsLastMonth: 'கடந்த மாதத்துடன் ஒப்பிட',
     periodOverall: 'மொத்தம்',
@@ -26190,6 +26193,7 @@ const hi: UiStrings = {
     totalOwed: 'आपको कुल मिलने हैं',
     totalOwe: 'आपको कुल देने हैं',
     totalSettled: 'सब हिसाब बराबर है',
+    downloadingGroups: 'आपके ग्रुप डाउनलोड हो रहे हैं · {loaded} / {total}',
     spentThisMonth: 'इस महीने आपने खर्च किए',
     vsLastMonth: 'पिछले महीने की तुलना में',
     periodOverall: 'कुल',
@@ -33449,6 +33453,7 @@ const ar: UiStrings = {
     totalOwed: 'إجمالي المستحق لك',
     totalOwe: 'إجمالي المستحق عليك',
     totalSettled: 'كل الحسابات مسوّاة',
+    downloadingGroups: 'جارٍ تنزيل مجموعاتك · {loaded} من {total}',
     spentThisMonth: 'أنفقت هذا الشهر',
     vsLastMonth: 'مقارنة بالشهر الماضي',
     periodOverall: 'الإجمالي',
