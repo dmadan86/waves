@@ -42,6 +42,8 @@ export function signUserJwt(
   config: ApiConfig,
   profileId: string,
   scopes: readonly string[],
+  /** The API token behind the request: lets a two-step company check the token was made from a verified session. */
+  tokenId?: string,
 ): string {
   if (!config.jwtSecret) {
     throw new ApiError(
@@ -66,6 +68,7 @@ export function signUserJwt(
       // can say the request came through the developer API rather than the app.
       waves_via: 'developer-api',
       waves_scopes: [...scopes],
+      ...(tokenId ? { waves_token_id: tokenId } : {}),
     }),
   );
   const signature = createHmac('sha256', config.jwtSecret)

@@ -147,3 +147,21 @@ describe('telling a deployment fault from a bad token', () => {
     expect(isSignatureRejection('nope')).toBe(false);
   });
 });
+
+describe('the token a two-step company checks', () => {
+  it('names the API token in the signed session, and only when there is one', async () => {
+    const { signUserJwt } = await import('../src/server/session');
+    const config = {
+      ...readConfig(),
+      jwtSecret: 'test-secret',
+      userJwtTtlSeconds: 60,
+    } as ApiConfig;
+    const claims = (jwt: string) =>
+      JSON.parse(Buffer.from(jwt.split('.')[1]!, 'base64url').toString()) as Record<
+        string,
+        unknown
+      >;
+    expect(claims(signUserJwt(config, 'p-1', [], 'tok-1')).waves_token_id).toBe('tok-1');
+    expect('waves_token_id' in claims(signUserJwt(config, 'p-1', []))).toBe(false);
+  });
+});

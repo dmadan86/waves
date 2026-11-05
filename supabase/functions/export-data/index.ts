@@ -17,6 +17,7 @@ import {
   HttpError,
   json,
   requireMembership,
+  requireTwoStep,
 } from '../_shared/auth.ts';
 import { enforceRateLimit } from '../_shared/rateLimit.ts';
 import {
@@ -101,6 +102,8 @@ export async function handleExportData(
 
     const exported = [];
     for (const groupId of groupIds) {
+      // Some reads below use the service role; two-step is checked before any of them.
+      await requireTwoStep(caller, groupId);
       // Keep company membership/profile reads under caller RLS, including in
       // account-wide exports. Company entries are always read as the caller.
       const { data: scope, error: scopeError } = await caller

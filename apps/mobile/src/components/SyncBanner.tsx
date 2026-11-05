@@ -11,12 +11,19 @@ import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Animated, Easing, Pressable, View } from 'react-native';
 
-import { deadLettered, pendingMutations, RefusalReason, refusalReason } from '@waves/core';
+import {
+  deadLettered,
+  pendingMutations,
+  RefusalReason,
+  refusalReason,
+  SyncTable,
+} from '@waves/core';
 import { Card, iconSize, Row, Sheet, Text, useTheme } from '@waves/ui';
 
-import { plural, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 
 import { useDialog } from '@/lib/dialog';
+import { router } from '@/lib/navigation';
 
 import { isPhoneCountryError } from '@/lib/phone';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -187,7 +194,7 @@ export function SyncStatusIcon({
 export function SyncBanner({ groupId }: { groupId?: string }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const { status, queue, rejected, retry, discard } = useSync();
+  const { status, queue, rejected, retry, discard, mirror, twoStepRequired } = useSync();
   const { preference: syncNetwork } = useSyncNetwork();
   const { confirm } = useDialog();
 
@@ -198,6 +205,34 @@ export function SyncBanner({ groupId }: { groupId?: string }) {
   const pending = groupId ? unsent.filter((item) => item.groupId === groupId) : unsent;
   const refused = groupId ? rejected.filter((item) => item.groupId === groupId) : rejected;
   const stuck = deadLettered(pending);
+
+  // Two-step comes first: it is the reason writes wait, and it has one fix.
+  const gated = groupId ? twoStepRequired.filter((id) => id === groupId) : twoStepRequired;
+  if (gated[0]) {
+    const company = mirror.tables[SyncTable.Groups]?.[gated[0]]?.name;
+    return (
+      <Pressable
+        onPress={() => router.push('/settings/two-step')}
+        accessibilityRole="button"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 10,
+          padding: 12,
+          borderRadius: 16,
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name="shield-checkmark" size={26} color={theme.color.brand} />
+        <Text variant="body" tone="brand" style={{ flex: 1, fontWeight: '700' }}>
+          {typeof company === 'string' && company
+            ? fill(t.twoStep.bannerVerify, { company })
+            : t.twoStep.bannerVerifyGeneric}
+        </Text>
+        <Ionicons name="chevron-forward" size={iconSize.base} color={theme.color.brand} />
+      </Pressable>
+    );
+  }
 
   // A refused change and a stuck one ask the same decision, so they share one
   // compact row: what happened, why, Try again, and ✕ to let it go.

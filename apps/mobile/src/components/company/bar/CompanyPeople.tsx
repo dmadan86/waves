@@ -16,6 +16,7 @@ import { Text, iconSize, useTheme } from '@waves/ui';
 
 import { PersonCard } from '@/components/company/bar/PersonCard';
 import { OverflowMenu } from '@/components/OverflowMenu';
+import { TwoStepPeople } from '@/components/company/twoStep/TwoStepPeople';
 import type { MenuAnchor } from '@/components/SortMenu';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useActiveToday } from '@/data/companyOverview';
@@ -304,6 +305,8 @@ export function CompanyPeople({
           <Ionicons name="close-circle-outline" size={iconSize.sm} color={theme.color.brand} />
         </Pressable>
       ) : null}
+
+      <TwoStepPeople groupId={groupId} />
 
       {shown.length > 0 ? (
         <View

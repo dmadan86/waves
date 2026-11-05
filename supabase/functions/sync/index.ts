@@ -471,7 +471,7 @@ serveWithCors(async (request) => {
     // one abuser.
     await enforceRateLimit(service, request, 'sync', profileId);
 
-    const session = new SyncSession(caller, service, profileId);
+    const session = new SyncSession(caller, service, profileId, await twoStepBlocked(caller));
     const outcomes: Outcome[] = [];
 
     for (const mutation of mutations) {
@@ -499,13 +499,12 @@ serveWithCors(async (request) => {
     // could never get its first row, and being invited would do nothing until
     // you happened to open the group by link. The membership read runs as the
     // caller, so it can only ever return groups their own RLS already allows.
-    const mine = await caller.from('group_members').select('group_id, role').is('left_at', null);
-    if (mine.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${mine.error.message}`);
+    const { mine, memberOf } = await memberships(caller, service, profileId);
 
     const groupIds = new Set<string>([
       ...Object.keys(cursors),
       ...session.touchedGroups,
-      ...(mine.data ?? []).map((row) => row.group_id as string),
+      ...mine.map((row) => row.group_id),
     ]);
     const {
       changes,
@@ -514,13 +513,11 @@ serveWithCors(async (request) => {
     } = await pull(caller, groupIds, cursors, profileId, session.touchedGroups);
     // Any phone that is not an owner's may still hold detail it can no longer read (an employee
     // moved to another manager, a manager demoted); owners see everyone, so they never purge.
-    const managerGroupIds = (mine.data ?? [])
-      .filter((row) => (row as { role?: string }).role !== 'admin')
-      .map((row) => row.group_id as string);
+    const managerGroupIds = mine.filter((row) => row.role !== 'admin').map((row) => row.group_id);
     const companyVisible = await companyVisibleMembers(caller, managerGroupIds);
     const calendarVisible = await companyCalendarVisible(
       caller,
-      (mine.data ?? []).map((row) => row.group_id as string),
+      mine.map((row) => row.group_id),
     );
 
     return json({
@@ -531,7 +528,11 @@ serveWithCors(async (request) => {
       // The groups this person is still in. Leaving or being removed hides a
       // group from the pull (RLS), so the pull alone can never say "it is gone";
       // this list lets a device drop a group an admin removed them from.
-      memberOf: (mine.data ?? []).map((row) => row.group_id as string),
+      // Read with the service client for this profile only, so a company hidden by two-step is still listed and the
+      // phone keeps its cached copy instead of treating the gate as a removal.
+      memberOf,
+      // Companies this session must verify two-step for before it can read or write them.
+      twoStepRequired: [...session.twoStepBlocked.keys()],
       // Company groups only: who this caller may still see. A phone drops cached
       // detail for anyone else (an employee who moved to another manager).
       companyVisible,
@@ -542,6 +543,44 @@ serveWithCors(async (request) => {
     return errorResponse(error, { fn: 'sync' });
   }
 });
+
+/**
+ * Which groups this person is in. `mine` is what the caller can read (RLS, so a two-step company this session has not
+ * verified is absent) and drives the pull and visibility lists; `memberOf` comes from the service client, filtered to
+ * this profile, so it still names gated companies and the phone does not drop them.
+ */
+export async function memberships(
+  caller: SupabaseClient,
+  service: SupabaseClient,
+  profileId: string,
+): Promise<{ mine: { group_id: string; role: string }[]; memberOf: string[] }> {
+  const [mine, all] = await Promise.all([
+    caller.from('group_members').select('group_id, role').is('left_at', null),
+    service
+      .from('group_members')
+      .select('group_id')
+      .eq('profile_id', profileId)
+      .is('left_at', null),
+  ]);
+  if (mine.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${mine.error.message}`);
+  if (all.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${all.error.message}`);
+  return {
+    mine: (mine.data ?? []) as { group_id: string; role: string }[],
+    memberOf: [...new Set(((all.data ?? []) as { group_id: string }[]).map((row) => row.group_id))],
+  };
+}
+
+/** Two-step companies (id → name) this session has not verified. RLS is the real gate; this names the refusal. */
+export async function twoStepBlocked(caller: SupabaseClient): Promise<Map<string, string>> {
+  const { data, error } = await caller.rpc('waves_two_step_status');
+  if (error || !data) return new Map();
+  const status = data as {
+    sessionVerified?: boolean;
+    requiring?: { groupId: string; name: string }[];
+  };
+  if (status.sessionVerified) return new Map();
+  return new Map((status.requiring ?? []).map((row) => [row.groupId, row.name]));
+}
 
 /**
  * Applies one batch, remembering per-group membership so a hundred mutations in
@@ -555,6 +594,7 @@ export class SyncSession {
     private readonly caller: SupabaseClient,
     private readonly service: SupabaseClient,
     private readonly profileId: string,
+    readonly twoStepBlocked: ReadonlyMap<string, string> = new Map(),
   ) {}
 
   async apply(mutation: MutationEnvelope): Promise<Outcome> {
@@ -588,6 +628,18 @@ export class SyncSession {
     if (seen) {
       if (!personal) this.touchedGroups.add(mutation.groupId);
       return { clientMutationId, status: 'duplicate', result: seen.result };
+    }
+
+    const blockedName = personal ? undefined : this.twoStepBlocked.get(mutation.groupId);
+    if (blockedName !== undefined) {
+      // Kept in the phone's queue (a transient refusal) and replayed once this device verifies.
+      await this.recordRefusal(mutation, 'TWO_STEP_REQUIRED', null);
+      return {
+        clientMutationId,
+        status: 'rejected',
+        code: 'TWO_STEP_REQUIRED',
+        message: `Verify two-step to keep working in ${blockedName}. If you do not see it, update Waves.`,
+      };
     }
 
     try {
