@@ -33,7 +33,6 @@ import type { CurrencyCode } from '@waves/core';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import {
   Chevron,
-  HERO_TEXT_SHADOW,
   HeroCircleButton,
   NavRow,
   PairGroupCard,
@@ -110,18 +109,10 @@ export default function PairSettleScreen() {
             />
           </Row>
           <View style={{ alignItems: 'center', gap: 2 }}>
-            <Text
-              variant="title"
-              accessibilityRole="header"
-              style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
-            >
+            <Text variant="title" accessibilityRole="header">
               {t.whoPaysWhom}
             </Text>
-            <Text
-              variant="body"
-              numberOfLines={1}
-              style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
-            >
+            <Text variant="body" numberOfLines={1}>
               {fill(t.person.pairSubtitle, { name: title })}
             </Text>
           </View>
@@ -309,7 +300,7 @@ function PairAvatar({ label, children }: { label: string; children: React.ReactN
   return (
     <View style={{ alignItems: 'center', gap: 2, maxWidth: 120 }}>
       {children}
-      <Text variant="caption" numberOfLines={1} style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}>
+      <Text variant="caption" numberOfLines={1}>
         {label}
       </Text>
     </View>

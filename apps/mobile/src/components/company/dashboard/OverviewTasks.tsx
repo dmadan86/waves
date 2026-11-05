@@ -123,7 +123,7 @@ export function AttentionList({ groupId, o }: { groupId: string; o: Overview }) 
           </Pressable>
         ) : null}
       </View>
-      <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 22 }}>
+      <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 4, borderRadius: 12 }}>
         {plan.items.length === 0 ? (
           <View
             style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14 }}

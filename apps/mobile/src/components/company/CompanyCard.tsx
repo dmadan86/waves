@@ -53,7 +53,7 @@ export function CompanyCard({
       <Image
         source={logo ? { uri: logo } : BUILDING_ART}
         resizeMode={logo ? 'contain' : 'cover'}
-        style={{ width: 64, height: 64, borderRadius: 14 }}
+        style={{ width: 64, height: 64, borderRadius: 12 }}
       />
       <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
         <Text style={{ fontWeight: '700' }}>{name}</Text>

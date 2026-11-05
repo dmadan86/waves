@@ -285,9 +285,10 @@ export function CompanyMore({ groupId }: { groupId: string }) {
                       backgroundColor: theme.color.surface,
                       gap: 4,
                       padding: 8,
+                      borderWidth: 1,
+                      borderColor: theme.color.border,
                       opacity: pressed ? 0.7 : 1,
                     },
-                    theme.shadow.soft,
                   ]}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>

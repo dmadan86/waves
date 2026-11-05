@@ -457,7 +457,7 @@ function SpendingBody({
                   gap: theme.spacing.xs,
                   height: 34,
                   paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.sm,
                   backgroundColor: theme.color.surface,
                   ...theme.shadow.soft,
                 }}
@@ -488,7 +488,7 @@ function SpendingBody({
                 style={{
                   height: 32,
                   paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.sm,
                   justifyContent: 'center',
                   backgroundColor:
                     size === windowSize ? theme.color.selectedFill : theme.color.surface,

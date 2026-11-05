@@ -38,9 +38,10 @@ export const palette = {
   ink400: '#7B7B8F',
   ink300: '#A8A9BA',
   ink200: '#D9DAE6',
-  ink100: '#EDEDF5',
+  ink100: '#E6E6EC',
 
-  lavender: '#F3F1FB',
+  // The canvas: a near-neutral grey with a trace of the brand, not a lavender wash.
+  lavender: '#F4F4F6',
   white: '#FFFFFF',
 
   // Two inks per pastel. `Ink` is the strong one (~7:1 on its own bg, for
@@ -128,12 +129,14 @@ export const gradients = {
 export const tints = ['lilac', 'pink', 'mint', 'peach', 'sky', 'coral'] as const;
 export type TintName = (typeof tints)[number];
 
+// Calm and tight: a card is a 12pt rectangle, not a cushion. `pill` stays for
+// circles (avatars, round buttons); nothing else should be a capsule.
 export const radius = {
-  sm: 12,
-  md: 16,
-  lg: 20,
-  xl: 24,
-  xxl: 32,
+  sm: 8,
+  md: 10,
+  lg: 12,
+  xl: 12,
+  xxl: 16,
   pill: 999,
 } as const;
 
@@ -170,29 +173,32 @@ export const spacing = {
 } as const;
 
 export const typography = {
-  display: { fontSize: 34, lineHeight: 40, fontWeight: '700' },
-  title: { fontSize: 24, lineHeight: 30, fontWeight: '700' },
-  heading: { fontSize: 19, lineHeight: 25, fontWeight: '700' },
+  display: { fontSize: 28, lineHeight: 34, fontWeight: '700' },
+  title: { fontSize: 22, lineHeight: 28, fontWeight: '700' },
+  heading: { fontSize: 17, lineHeight: 22, fontWeight: '700' },
   subheading: { fontSize: 16, lineHeight: 22, fontWeight: '600' },
-  body: { fontSize: 15, lineHeight: 21, fontWeight: '500' },
+  body: { fontSize: 15, lineHeight: 21, fontWeight: '400' },
   caption: { fontSize: 13, lineHeight: 18, fontWeight: '500' },
   micro: { fontSize: 11, lineHeight: 15, fontWeight: '600' },
 } as const;
 
+// Surfaces sit flat on the canvas and are told apart by tone and hairlines.
+// `soft` is kept as a name so callers compile, but draws nothing; only things
+// that float over content (menus, sheets, toasts) take `lifted`.
 export const shadow = {
   soft: {
-    shadowColor: '#1E1450',
-    shadowOpacity: 0.08,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    shadowColor: '#000000',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 0,
   },
   lifted: {
-    shadowColor: '#1E1450',
-    shadowOpacity: 0.16,
-    shadowRadius: 28,
-    shadowOffset: { width: 0, height: 12 },
-    elevation: 10,
+    shadowColor: '#101018',
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 6,
   },
 } as const;
 

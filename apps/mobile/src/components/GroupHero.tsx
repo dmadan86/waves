@@ -1,18 +1,24 @@
-import { useRef, useState } from 'react';
+/**
+ * The top of a group: a calm header on the page. Back chevron, the group's mark
+ * and name (with its type tag), sync / activity / menu; under it the one number
+ * that matters (your balance in this group, in its money colour) and the two
+ * actions it invites. A payment claim waiting on you rides under the balance.
+ */
+
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  I18nManager,
-  Platform,
-  Image,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  useWindowDimensions,
-} from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Badge, directionalIcon, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
+import {
+  Badge,
+  Button,
+  directionalIcon,
+  iconSize,
+  MoneyText,
+  Row,
+  Text,
+  useTheme,
+} from '@waves/ui';
 
 import { useConfirmSettlement, useDisputeSettlement, useSettlementProof } from '@/data/hooks';
 import {
@@ -27,11 +33,7 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
-import { HeroPillButton } from '@/components/ScreenHero';
-import { HOME_HERO_PHOTOS } from '@/components/home/HomeHeroBackground';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { useHomeHero } from '@/lib/useHomeHero';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useBlockedUsers } from '@/data/blocked';
 import { SyncStatusIcon } from '@/components/SyncBanner';
 import { router, useGoBack } from '@/lib/navigation';
@@ -39,32 +41,6 @@ import { convertedCaption } from '@/lib/settleCurrency';
 import { formatShortDateRange } from '@/lib/tripDateRange';
 import { useDialog } from '@/lib/dialog';
 
-/**
- * Which hero slide a paging scroll has landed on, correct in both directions.
- * Android reports a horizontal ScrollView's offset from the physical left even
- * under RTL (logical first slide at the far right); iOS handles RTL natively.
- * Only the Android-RTL case is flipped, so the dot pager tracks the same slide
- * the reader sees.
- */
-function heroPageOf(event: {
-  contentOffset: { x: number };
-  layoutMeasurement: { width: number };
-  contentSize: { width: number };
-}): number {
-  const width = event.layoutMeasurement.width;
-  if (width <= 0) return 0;
-  const flip = Platform.OS === 'android' && I18nManager.isRTL;
-  const maxOffset = Math.max(0, event.contentSize.width - width);
-  const fromStart = flip ? maxOffset - event.contentOffset.x : event.contentOffset.x;
-  return Math.max(0, Math.round(fromStart / width));
-}
-
-/**
- * Whole days left before a pending settlement auto-confirms — the 7-day window
- * the server's `waves_auto_confirm_settlements` job enforces, from when the
- * payer recorded it. Never below one; a claim past the window is auto-confirmed
- * by the cron and has already left the pending list.
- */
 const AUTO_CONFIRM_DAYS = 7;
 function daysToConfirm(initiatedIso: string, now: number = Date.now()): number {
   const parsed = Date.parse(initiatedIso);
@@ -72,19 +48,6 @@ function daysToConfirm(initiatedIso: string, now: number = Date.now()): number {
   const left = AUTO_CONFIRM_DAYS * 86_400_000 - (now - parsed);
   return Math.max(1, Math.ceil(left / 86_400_000));
 }
-
-/**
- * The group's fixed hero: the top controls, then a paging deck whose first slide
- * is the balance and its actions and whose second (only when something is
- * pending) is the incoming "they paid you" claim — one claim inline, or a
- * summary that opens the full review list for many. Rendered above the feed and
- * pinned, so the list scrolls under it rather than carrying it off the top.
- */
-// The last measured hero height. The scene is only drawn once the hero has a
-// height, so a cold first frame showed the flat sky and the scenery popped in a
-// pass later. Seeding from the previous open puts the scenery in the first frame
-// (onLayout still corrects it if this group's hero is a different size).
-let lastHeroHeight = 0;
 
 export function GroupHero({
   groupId,
@@ -96,10 +59,10 @@ export function GroupHero({
   convertedFrom = [],
   pending,
   pendingForMe,
-  heroGradient,
   nameOf,
   leftOwing = 0,
   onOpenMenu,
+  onSettle,
 }: {
   groupId: string;
   group: GroupRow;
@@ -107,22 +70,18 @@ export function GroupHero({
   profileId: string | null;
   currency: string;
   myBalance: bigint;
-  /** Currencies of bills counted in `currency` at their recorded rates
-   *  (ADR-003 amendment); named under the figure so a converted ₫ bill is
-   *  never mistaken for a rupee one. */
   convertedFrom?: readonly string[];
   pending: bigint;
   pendingForMe: readonly SettlementRow[];
-  heroGradient: readonly string[];
   nameOf: (memberId: string | null) => string;
-  /** Members who left but still have a balance: "2 members · 1 left". */
   leftOwing?: number;
   onOpenMenu: () => void;
+  /** Opens the balances to settle; the button shows only when something is owed. */
+  onSettle?: () => void;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
-  // Trips and events both carry a date range; show it beside the member count.
   const dateRange =
     group.type === 'trip' || group.type === 'event'
       ? formatShortDateRange(group.start_date, group.end_date, locale)
@@ -133,27 +92,8 @@ export function GroupHero({
   const goBack = useGoBack();
   const confirmSettlement = useConfirmSettlement(groupId);
   const disputeSettlement = useDisputeSettlement(groupId);
-
-  const { width: windowW } = useWindowDimensions();
-  const [heroSlideW, setHeroSlideW] = useState(0);
-  // Until the deck measures itself, size each slide from the window: the hero
-  // spans the screen, less its own side padding. Left undefined, a slide in a
-  // horizontal ScrollView shrinks to its content for that first frame, so the
-  // settle / who-pays-whom pair sat beside "Add expense" and then jumped right.
-  const slideW = heroSlideW || windowW - theme.spacing.xl * 2;
-  const [heroPage, setHeroPage] = useState(0);
-  // The hero's measured height. The scene is sized from it in points: an
-  // absolutely placed image sized by its edges lays out at zero on Android.
-  const [heroHeight, setHeroHeight] = useState(lastHeroHeight);
-  const heroDeckRef = useRef<ScrollView>(null);
-
   const busy = confirmSettlement.isPending || disputeSettlement.isPending;
 
-  // The one inline claim, if that is the case we are in — used to look up whether
-  // the payer attached a proof, so the fast path can offer to show it before the
-  // payee confirms rather than asking them to trust the amount blind. Called with
-  // an empty id (a harmless null lookup) whenever there is not exactly one claim,
-  // so the hook count never changes.
   const soleClaim = pendingForMe.length === 1 ? pendingForMe[0] : null;
   const soleProof = useSettlementProof(soleClaim?.id ?? '');
 
@@ -169,17 +109,8 @@ export function GroupHero({
     });
   };
 
-  // Home's photographs share one 1440x640 frame.
-  const photoScale = Math.max(windowW / 1440, heroHeight / 640);
-  const photoW = 1440 * photoScale;
-  const photoH = 640 * photoScale;
   const { blockedIds } = useBlockedUsers();
-  // The same terrace photograph Home wears for the hour (or the person's pick).
-  // Every photo is busy or bright, so the ink is always light, over a scrim.
-  const hero = useHomeHero();
-  const darkInk = false;
-  const ink = theme.color.onBrand;
-  const pillInk = theme.color.brand;
+  const ink = theme.color.text;
   const shownMembers = members.slice(0, MAX_FACES);
   const extraMembers = Math.max(0, members.length - shownMembers.length);
   const startedOn =
@@ -187,7 +118,6 @@ export function GroupHero({
     new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(
       new Date(group.created_at),
     );
-  const typeTagNode = typeTag ? <GroupTypeTag tag={typeTag} onBrand={!darkInk} /> : null;
 
   return (
     <View
@@ -195,51 +125,9 @@ export function GroupHero({
         paddingTop: insets.top + theme.spacing.xs,
         paddingHorizontal: theme.spacing.lg,
         paddingBottom: theme.spacing.sm,
-        borderBottomLeftRadius: theme.radius.xxl,
-        borderBottomRightRadius: theme.radius.xxl,
-        gap: theme.spacing.xs,
-        overflow: 'hidden',
-        backgroundColor: '#1B1340',
+        gap: theme.spacing.sm,
       }}
     >
-      {/* Measures the hero for the scene behind it; draws nothing. */}
-      <View
-        pointerEvents="none"
-        style={StyleSheet.absoluteFill}
-        onLayout={(event) => {
-          const next = Math.round(event.nativeEvent.layout.height);
-          lastHeroHeight = next;
-          setHeroHeight(next);
-        }}
-      />
-      {/* The photograph, `cover`-fitted by hand (the explicit-size Image renders
-          bundled photos in release builds) and anchored to the bottom, with a
-          shade top and bottom so the name, balance and actions read on it. */}
-      {heroHeight > 0 ? (
-        <View
-          pointerEvents="none"
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-          style={{ position: 'absolute', top: 0, left: 0, width: windowW, height: heroHeight }}
-        >
-          <Image
-            source={HOME_HERO_PHOTOS[hero]}
-            accessibilityIgnoresInvertColors
-            style={{
-              position: 'absolute',
-              width: photoW,
-              height: photoH,
-              left: (windowW - photoW) / 2,
-              top: heroHeight - photoH,
-            }}
-          />
-          <LinearGradient
-            colors={['rgba(8, 12, 32, 0.5)', 'rgba(8, 12, 32, 0.22)', 'rgba(8, 12, 32, 0.5)']}
-            locations={[0, 0.5, 1]}
-            style={StyleSheet.absoluteFill}
-          />
-        </View>
-      ) : null}
       <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
         <Pressable
           onPress={goBack}
@@ -247,7 +135,7 @@ export function GroupHero({
           accessibilityLabel={t.common.back}
           hitSlop={10}
         >
-          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xxl} color={ink} />
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
         </Pressable>
         <Pressable
           onPress={() => router.push(`/group/${groupId}/settings`)}
@@ -257,46 +145,25 @@ export function GroupHero({
             flex: 1,
             flexDirection: 'row',
             gap: theme.spacing.sm,
-            justifyContent: 'flex-start',
             alignItems: 'center',
             opacity: pressed ? 0.6 : 1,
           })}
         >
-          {/* The group's mark straight on a white tile, so it reads on any scene. */}
-          <View
-            style={{
-              borderRadius: TILE / 3,
-              shadowColor: '#1B1340',
-              shadowOpacity: 0.15,
-              shadowRadius: 6,
-              shadowOffset: { width: 0, height: 2 },
-              elevation: 3,
-            }}
-          >
-            <GroupPhoto
-              photoPath={group.photo_path}
-              emoji={group.cover_emoji}
-              color={group.cover_color}
-              size={TILE}
-              background="#FFFFFF"
-            />
-          </View>
+          <GroupPhoto
+            photoPath={group.photo_path}
+            emoji={group.cover_emoji}
+            color={group.cover_color}
+            size={TILE}
+          />
           <View style={{ flexShrink: 1, gap: 2 }}>
-            <Text
-              numberOfLines={1}
-              style={{ color: ink, fontSize: 18, lineHeight: 22, fontWeight: '700' }}
-            >
+            <Text numberOfLines={1} style={{ fontSize: 18, lineHeight: 22, fontWeight: '700' }}>
               {group.name?.trim()
                 ? group.name.trim()
                 : cleanLabel(groupLabel(group, members ?? [], profileId))}
             </Text>
             <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-              {typeTagNode}
-              <Text
-                variant="micro"
-                numberOfLines={1}
-                style={{ color: ink, opacity: 0.9, flexShrink: 1, fontSize: 12 }}
-              >
+              {typeTag ? <GroupTypeTag tag={typeTag} /> : null}
+              <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
                 {plural(locale, members?.length ?? 0, t.memberCount)}
                 {leftOwing > 0 ? ` · ${fill(t.memberLeftCount, { n: leftOwing })}` : ''}
                 {` · ${startedOn}`}
@@ -304,7 +171,7 @@ export function GroupHero({
             </Row>
           </View>
         </Pressable>
-        <SyncStatusIcon onBrand={!darkInk} groupId={groupId} />
+        <SyncStatusIcon groupId={groupId} />
         {/* The group's activity, beside the menu. The dot says a payment claim is
             waiting on you. */}
         <Pressable
@@ -313,7 +180,7 @@ export function GroupHero({
           accessibilityLabel={t.activity}
           hitSlop={10}
         >
-          <Ionicons name="notifications-outline" size={iconSize.xxl} color={ink} />
+          <Ionicons name="notifications-outline" size={iconSize.xl} color={ink} />
           {pendingForMe.length > 0 ? (
             <View
               style={{
@@ -325,7 +192,7 @@ export function GroupHero({
                 borderRadius: 5,
                 backgroundColor: theme.color.negative,
                 borderWidth: 1.5,
-                borderColor: darkInk ? theme.color.surface : '#3A2A78',
+                borderColor: theme.color.bg,
               }}
             />
           ) : null}
@@ -336,299 +203,203 @@ export function GroupHero({
           accessibilityLabel={t.group.more}
           hitSlop={10}
         >
-          <Ionicons name="ellipsis-vertical" size={iconSize.xxl} color={ink} />
+          <Ionicons name="ellipsis-vertical" size={iconSize.xl} color={ink} />
         </Pressable>
       </Row>
 
-      {/* The paging deck: balance and actions lead; a pending claim (one inline,
-          or a summary of many) rides as the second slide. */}
-      <View onLayout={(event) => setHeroSlideW(event.nativeEvent.layout.width)}>
-        <ScrollView
-          ref={heroDeckRef}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          scrollEnabled={pendingForMe.length > 0 && heroSlideW > 0}
-          onMomentumScrollEnd={(event) => setHeroPage(heroPageOf(event.nativeEvent))}
-          onContentSizeChange={() => {
-            // Acting on a claim drops it from the deck; if the view was parked on
-            // that now-gone slide it would show blank — snap back to the balance
-            // slide. A content-size callback, not an effect, so it stays off the
-            // hooks path. At most two slides, so the last valid page is 1 while
-            // anything is pending, 0 otherwise.
-            const maxPage = pendingForMe.length > 0 ? 1 : 0;
-            if (heroPage > maxPage) {
-              heroDeckRef.current?.scrollTo({ x: 0, animated: false });
-              setHeroPage(0);
-            }
-          }}
-        >
-          {/* Slide 0 — the verdict and its figure, then who is in and the one action. */}
-          <View style={{ width: slideW, gap: theme.spacing.sm }}>
-            <View>
-              <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    color: ink,
-                    fontSize: 14,
-                    lineHeight: 18,
-                    fontWeight: '600',
-                    opacity: 0.9,
-                    flexShrink: 1,
-                  }}
-                >
-                  {myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
-                </Text>
-                {pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : null}
-              </Row>
-              <MoneyText
-                amount={myBalance}
-                currency={currency}
-                locale={locale}
-                mode="balance"
-                variant="title"
-                tone="default"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-                style={{ color: ink, fontSize: 26, lineHeight: 30, fontWeight: '800' }}
-              />
-              {myBalance !== 0n && convertedNote ? (
-                <Text
-                  numberOfLines={1}
-                  style={{ color: ink, fontSize: 12, lineHeight: 16, opacity: 0.75 }}
-                >
-                  {convertedNote}
-                </Text>
-              ) : null}
-            </View>
-
-            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <Pressable
-                onPress={() => router.push(`/group/${groupId}/members`)}
-                accessibilityRole="button"
-                accessibilityLabel={t.group.membersLabel}
-                style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}
-              >
-                {shownMembers.map((member, index) => (
-                  <View
-                    key={member.id}
-                    style={{
-                      marginStart: index === 0 ? 0 : -6,
-                      borderRadius: FACE / 2,
-                      borderWidth: 1.5,
-                      borderColor: 'rgba(255,255,255,0.9)',
-                    }}
-                  >
-                    <PersonAvatar
-                      name={displayName(member, null, blockedIds, t.misc.someone)}
-                      member={member}
-                      ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
-                      size={FACE}
-                    />
-                  </View>
-                ))}
-                {extraMembers > 0 ? (
-                  <Text
-                    variant="micro"
-                    style={{ color: ink, marginStart: theme.spacing.xs, fontWeight: '700' }}
-                  >
-                    +{extraMembers}
-                  </Text>
-                ) : null}
-              </Pressable>
-              {/* The way to bring somebody in: the group's invite sheet. */}
-              <Pressable
-                onPress={() => router.push(`/group/${groupId}/invite`)}
-                accessibilityRole="button"
-                accessibilityLabel={t.people.inviteTitle}
-                hitSlop={6}
-                style={{
-                  width: FACE,
-                  height: FACE,
-                  borderRadius: FACE / 2,
-                  borderWidth: 1.5,
-                  borderStyle: 'dashed',
-                  borderColor: ink,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="add" size={iconSize.lg} color={ink} />
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.addExpense}
-                onPress={() => router.push(`/group/${groupId}/add-expense`)}
-                style={({ pressed }) => ({
-                  marginStart: 'auto',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.xs,
-                  height: 40,
-                  paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.pill,
-                  backgroundColor: '#FFFFFF',
-                  opacity: pressed ? 0.85 : 1,
-                })}
-              >
-                <Ionicons name="add" size={iconSize.xl} color={pillInk} />
-                <Text variant="subheading" style={{ color: pillInk }} numberOfLines={1}>
-                  {t.addExpense}
-                </Text>
-              </Pressable>
-            </Row>
-          </View>
-
-          {/* Exactly one claim: the fast path, amount and the two answers inline. */}
-          {pendingForMe.length === 1 &&
-            pendingForMe.map((settlement) => (
-              <View key={settlement.id} style={{ width: slideW, gap: theme.spacing.md }}>
-                <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }} numberOfLines={1}>
-                  {fill(t.group.saysTheyPaidYouWindow, {
-                    name: nameOf(settlement.from_member_id),
-                    window: plural(
-                      locale,
-                      daysToConfirm(settlement.initiated_at),
-                      t.group.daysToConfirm,
-                    ),
-                  })}
-                </Text>
-
-                <MoneyText
-                  amount={BigInt(settlement.amount)}
-                  currency={settlement.currency}
-                  locale={locale}
-                  variant="title"
-                  tone="default"
-                  style={{ color: theme.color.onBrand }}
-                />
-
-                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                  <HeroPillButton
-                    label={t.group.confirmReceived}
-                    icon="checkmark"
-                    gradient={heroGradient}
-                    disabled={busy}
-                    style={{ flex: 1 }}
-                    onPress={() => confirmSettlement.mutate(settlement.id)}
-                  />
-                  <Pressable
-                    accessibilityRole="button"
-                    accessibilityLabel={t.group.rejectSettlement}
-                    disabled={busy}
-                    onPress={() => rejectPrompt(settlement)}
-                    style={({ pressed }) => ({
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      paddingVertical: theme.spacing.sm,
-                      paddingHorizontal: theme.spacing.lg,
-                      borderRadius: theme.radius.pill,
-                      borderWidth: 1,
-                      borderColor: 'rgba(255, 255, 255, 0.5)',
-                      opacity: pressed ? 0.7 : 1,
-                    })}
-                  >
-                    <Text variant="subheading" tone="onBrand" numberOfLines={1}>
-                      {t.group.rejectSettlement}
-                    </Text>
-                  </Pressable>
-                </Row>
-
-                {/* The payer's evidence is on the review screen; surface a way in
-                    only when there is actually a proof to look at. */}
-                {soleProof.data ? (
-                  <Pressable
-                    onPress={() => router.push(`/group/${groupId}/pending`)}
-                    accessibilityRole="button"
-                    accessibilityLabel={t.proof.view}
-                    hitSlop={8}
-                    style={({ pressed }) => ({
-                      alignSelf: 'flex-start',
-                      opacity: pressed ? 0.6 : 0.9,
-                    })}
-                  >
-                    <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-                      <Ionicons
-                        name="image-outline"
-                        size={iconSize.sm}
-                        color={theme.color.onBrand}
-                      />
-                      <Text
-                        variant="micro"
-                        tone="onBrand"
-                        style={{ textDecorationLine: 'underline' }}
-                      >
-                        {t.proof.view}
-                      </Text>
-                    </Row>
-                  </Pressable>
-                ) : null}
-              </View>
-            ))}
-
-          {/* Two or more: a summary that opens the full review list. */}
-          {pendingForMe.length >= 2 ? (
-            <View style={{ width: slideW, gap: theme.spacing.md }}>
-              <Text variant="caption" tone="onBrand" style={{ opacity: 0.85 }} numberOfLines={1}>
-                {plural(locale, pendingForMe.length, t.group.peopleSaidPaid)}
-              </Text>
-              <MoneyText
-                amount={pendingForMe.reduce(
-                  (sum, settlement) => sum + BigInt(settlement.amount),
-                  0n,
-                )}
-                currency={currency}
-                locale={locale}
-                variant="title"
-                tone="default"
-                style={{ color: theme.color.onBrand }}
-              />
-              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                <HeroPillButton
-                  label={fill(t.group.reviewClaims, { count: pendingForMe.length })}
-                  trailingIcon="chevron-forward"
-                  gradient={heroGradient}
-                  onPress={() => router.push(`/group/${groupId}/pending`)}
-                />
-              </Row>
-            </View>
-          ) : null}
-        </ScrollView>
-
-        {pendingForMe.length > 0 ? (
-          <Row style={{ justifyContent: 'center', gap: 6, marginTop: theme.spacing.sm }}>
-            {Array.from({ length: 2 }).map((_, index) => (
-              <View
-                key={index}
-                style={{
-                  width: heroPage === index ? 18 : 6,
-                  height: 6,
-                  borderRadius: 3,
-                  backgroundColor: theme.color.onBrand,
-                  opacity: heroPage === index ? 1 : 0.4,
-                }}
-              />
-            ))}
-          </Row>
+      {/* The verdict and its figure, in its money colour. */}
+      <View>
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+            {myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
+          </Text>
+          {pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : null}
+        </Row>
+        <MoneyText
+          amount={myBalance}
+          currency={currency}
+          locale={locale}
+          mode="balance"
+          variant="title"
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.6}
+          style={{ fontSize: 30, lineHeight: 36, fontWeight: '700' }}
+        />
+        {myBalance !== 0n && convertedNote ? (
+          <Text variant="micro" tone="muted" numberOfLines={1}>
+            {convertedNote}
+          </Text>
         ) : null}
       </View>
+
+      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+        <Pressable
+          onPress={() => router.push(`/group/${groupId}/members`)}
+          accessibilityRole="button"
+          accessibilityLabel={t.group.membersLabel}
+          style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1 }}
+        >
+          {shownMembers.map((member, index) => (
+            <View
+              key={member.id}
+              style={{
+                marginStart: index === 0 ? 0 : -6,
+                borderRadius: FACE / 2,
+                borderWidth: 1.5,
+                borderColor: theme.color.bg,
+              }}
+            >
+              <PersonAvatar
+                name={displayName(member, null, blockedIds, t.misc.someone)}
+                member={member}
+                ghost={isGhost(member) || isBlockedMember(member, blockedIds)}
+                size={FACE}
+              />
+            </View>
+          ))}
+          {extraMembers > 0 ? (
+            <Text
+              variant="micro"
+              tone="muted"
+              style={{ marginStart: theme.spacing.xs, fontWeight: '700' }}
+            >
+              +{extraMembers}
+            </Text>
+          ) : null}
+        </Pressable>
+        {/* The way to bring somebody in: the group's invite sheet. */}
+        <Pressable
+          onPress={() => router.push(`/group/${groupId}/invite`)}
+          accessibilityRole="button"
+          accessibilityLabel={t.people.inviteTitle}
+          hitSlop={6}
+          style={{
+            width: FACE,
+            height: FACE,
+            borderRadius: FACE / 2,
+            borderWidth: 1.5,
+            borderStyle: 'dashed',
+            borderColor: theme.color.textFaint,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="add" size={iconSize.lg} color={theme.color.textMuted} />
+        </Pressable>
+        <Row style={{ marginStart: 'auto', gap: theme.spacing.sm }}>
+          {onSettle && myBalance !== 0n ? (
+            <Button
+              label={t.settleUp}
+              variant="secondary"
+              size="sm"
+              hitSlop={4}
+              onPress={onSettle}
+            />
+          ) : null}
+          <Button
+            label={t.addExpense}
+            variant="brand"
+            size="sm"
+            hitSlop={4}
+            icon={<Ionicons name="add" size={iconSize.lg} color={theme.color.onBrand} />}
+            onPress={() => router.push(`/group/${groupId}/add-expense`)}
+          />
+        </Row>
+      </Row>
+
+      {/* Exactly one claim: amount and the two answers inline. */}
+      {soleClaim ? (
+        <View
+          style={{
+            gap: theme.spacing.sm,
+            paddingTop: theme.spacing.sm,
+            borderTopWidth: 1,
+            borderTopColor: theme.color.border,
+          }}
+        >
+          <Text variant="caption" tone="muted" numberOfLines={2}>
+            {fill(t.group.saysTheyPaidYouWindow, {
+              name: nameOf(soleClaim.from_member_id),
+              window: plural(locale, daysToConfirm(soleClaim.initiated_at), t.group.daysToConfirm),
+            })}
+          </Text>
+          <MoneyText
+            amount={BigInt(soleClaim.amount)}
+            currency={soleClaim.currency}
+            locale={locale}
+            variant="title"
+          />
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+            <Button
+              label={t.group.confirmReceived}
+              variant="brand"
+              size="sm"
+              hitSlop={4}
+              disabled={busy}
+              onPress={() => confirmSettlement.mutate(soleClaim.id)}
+            />
+            <Button
+              label={t.group.rejectSettlement}
+              variant="secondary"
+              size="sm"
+              hitSlop={4}
+              disabled={busy}
+              onPress={() => rejectPrompt(soleClaim)}
+            />
+            {/* The payer's evidence is on the review screen; a way in only when
+                there is a proof to look at. */}
+            {soleProof.data ? (
+              <Pressable
+                onPress={() => router.push(`/group/${groupId}/pending`)}
+                accessibilityRole="button"
+                accessibilityLabel={t.proof.view}
+                hitSlop={8}
+                style={{ marginStart: 'auto' }}
+              >
+                <Ionicons name="image-outline" size={iconSize.lg} color={theme.color.brand} />
+              </Pressable>
+            ) : null}
+          </Row>
+        </View>
+      ) : null}
+
+      {/* Two or more: a summary that opens the full review list. */}
+      {pendingForMe.length >= 2 ? (
+        <View
+          style={{
+            gap: theme.spacing.sm,
+            paddingTop: theme.spacing.sm,
+            borderTopWidth: 1,
+            borderTopColor: theme.color.border,
+          }}
+        >
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {plural(locale, pendingForMe.length, t.group.peopleSaidPaid)}
+          </Text>
+          <MoneyText
+            amount={pendingForMe.reduce((sum, settlement) => sum + BigInt(settlement.amount), 0n)}
+            currency={currency}
+            locale={locale}
+            variant="title"
+          />
+          <Button
+            label={fill(t.group.reviewClaims, { count: pendingForMe.length })}
+            variant="brand"
+            size="sm"
+            hitSlop={4}
+            onPress={() => router.push(`/group/${groupId}/pending`)}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }
 
-/** The white tile the group's mark sits on. */
-const TILE = 48;
-
-/** The member faces under the balance, and how many are drawn before "+N". */
-const FACE = 32;
+const TILE = 40;
+const FACE = 28;
 const MAX_FACES = 4;
 
-/** A name built from people's names reads without the punctuation an address
- *  book puts in front of one (".Rvs Anoop" → "Rvs Anoop"). Only for that
- *  fallback: a name the group was given (".NET Team") is shown as typed. */
 function cleanLabel(label: string): string {
   return label.replace(/(^|,\s*)[^\p{L}\p{N}\s]+(?=\p{L}|\p{N})/gu, '$1');
 }

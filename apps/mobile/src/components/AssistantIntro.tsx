@@ -66,7 +66,7 @@ export function AssistantIntro({ viewerId }: { viewerId: string | null | undefin
               minHeight: CHIP_HEIGHT,
               justifyContent: 'center',
               paddingHorizontal: theme.spacing.lg,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: theme.color.brandSoft,
               borderWidth: 1,
               borderColor: theme.color.brand,

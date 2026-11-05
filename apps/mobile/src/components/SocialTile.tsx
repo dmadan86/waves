@@ -125,7 +125,7 @@ export function ProviderButton({
       onPress={onPress}
       style={({ pressed }) => ({
         height: 56,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.md,
         borderWidth: 1,
         flexDirection: 'row',
         alignItems: 'center',

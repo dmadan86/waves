@@ -33,7 +33,7 @@ export function CompanyHome({ groupId }: { groupId: string }) {
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="card" style={{ padding: 12, flex: 1, minWidth: 140 }}>
+    <div className="stat-cell">
       <div className="faint">{label}</div>
       <strong>{value}</strong>
     </div>
@@ -156,7 +156,7 @@ function AdminHome({ groupId, manager = false }: { groupId: string; manager?: bo
         </section>
       ) : null}
 
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div className="stat-strip">
         <Tile label={h.owesYou} value={fmt(stats.owes)} />
         <Tile label={h.pendingClaims} value={String(awaiting.length)} />
         <Tile label={t.company.nav.payments} value={fmt(stats.paidThisMonth)} />
@@ -241,7 +241,7 @@ function EmployeeHome({ groupId }: { groupId: string }) {
       <p className="faint">
         {boss ? fill(h.yourManager, { name: boss.display_name }) : h.yourOwners}
       </p>
-      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      <div className="stat-strip">
         <Tile label={h.advances} value={fmt(sums.advances)} />
         <Tile label={h.spent} value={fmt(sums.spent)} />
         <Tile label={h.wagesThisMonth} value={fmt(sums.wages)} />

@@ -404,7 +404,7 @@ export function DatesSheetBody({
                 gap: 6,
                 paddingHorizontal: theme.spacing.md,
                 paddingVertical: theme.spacing.sm,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 backgroundColor: theme.color.brandSoft,
                 opacity: pressed ? 0.6 : 1,
               })}
@@ -428,7 +428,7 @@ export function DatesSheetBody({
         onPress={save}
         style={({ pressed }) => ({
           height: 52,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           backgroundColor: theme.color.brand,
           alignItems: 'center',
           justifyContent: 'center',

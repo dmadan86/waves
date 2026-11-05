@@ -19,7 +19,6 @@ import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { BlurTargetView } from 'expo-blur';
 import {
   ActivityIndicator,
   BackHandler,
@@ -72,15 +71,13 @@ import { PressableScale } from '@/lib/anim';
 import { router } from '@/lib/navigation';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { BalanceSide } from '@/components/home/BalanceSide';
-import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
-import { GlassSurface } from '@/components/home/GlassSurface';
-import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
-import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
+import { ActionButton } from '@/components/home/ActionButton';
+import { TabHeader } from '@/components/home/TabHeader';
+import { useHeroCrossfade } from '@/components/ScreenHero';
 import { SortMenu } from '@/components/SortMenu';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { useBalanceHidden } from '@/lib/balanceHidden';
-import { useHeroScene } from '@/lib/heroScenePreference';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
 enum SortKey {
@@ -626,33 +623,12 @@ export default function FriendsScreen() {
 }
 
 /**
- * The Friends hero: its own photograph — the three friends on the rock,
- * watching the same lake and city through morning, midday, sunset, dusk and
- * night (`FriendsHeroBackground`) — standing in for the mountain art Home
- * draws in vector layers, but wearing the scene the same way Home's hero
- * does: the same clock (or the same Background-screen pick), the same top
- * shade for legibility, the same crossfade when the moment turns. Beneath it
- * sits the same overlapping glass balance card (`BalanceSide`'s "Owed to
- * you" / "You owe" either side of a hairline, exactly as Home's own card
- * draws its "You lent" / "You owe"), and the same disc-and-label
- * quick-action strip along its foot (`QuickActionsRow`) — not a hand-rolled
- * panel that happened to look similar, the very components Home's own
- * dashboard draws itself with, so the two tabs read as one app rather than
- * two designers.
- *
- * What rides on it is still Friends' own: "Net receivable" (or payable, or
- * settled), the eye that hides it — the same switch Home's balance wears —
- * and three actions, drawn as the lavender discs the mockup asks for: add a
- * person, settle up (Home's own group picker, so the two tabs open the
- * identical flow), and merge likely duplicates. Sort moved off this strip
- * onto the "Your friends" row below, where it now lives beside the list it
- * orders.
- *
- * Merge selection is a mode *inside* the title row, not a replacement for
- * it: `useHeroCrossfade` — the same 150ms ease Review's own balance-figure
- * swap rides — dissolves the people glyph and "Friends" into close / count /
- * Merge on the same scene, so the two gestures stay identical instead of
- * drifting apart.
+ * The Friends header and headline, on the plain page: the screen title (or, in
+ * merge selection, close / count / Merge, crossfaded in the same spot), then
+ * "Owed to you" / "You owe" side by side with their friend counts, then a
+ * compact row of actions: add a person (primary), settle up, scan an invite
+ * and merge likely duplicates (icon buttons, the merge one wearing a count).
+ * Sort lives on the "Your friends" row below, beside the list it orders.
  */
 function FriendsScene({
   rows,
@@ -673,7 +649,7 @@ function FriendsScene({
   totals: readonly CurrencyTotal[];
   locale: string;
   t: UiStrings;
-  /** Opens the add menu, told where the tile is so the menu drops from it. */
+  /** Opens the add menu, told where the button is so the menu drops from it. */
   onAdd: (anchor: MenuAnchor | null) => void;
   /** Opens the same group picker Home's own Settle up quick action does. */
   onSettleUp: () => void;
@@ -687,42 +663,10 @@ function FriendsScene({
   loading: boolean;
 }): React.JSX.Element {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
-  const { width: windowWidth } = useWindowDimensions();
-
-  // The scene wears the time of day, or the one picked on the Background
-  // screen — Home's own hook, so the two tabs always agree on what hour it is.
-  const scene = useHeroScene();
-  // Unlike Home's drawn sky, every one of the five photos is lit brightly
-  // enough at the top (even night's moon glow) that a white title over the
-  // scrim always wins — so the title and the status bar stay white and light
-  // on all five, not just the darker scenes the vector hero kept it for.
-  const heroInk = '#FFFFFF';
-  useHeroStatusBar('light');
-
-  // The picture band: visible at full strength from the top of the screen
-  // down to just above the balance card, ~130-150dp including the status
-  // bar — tall enough that the friends on the rock are plainly the picture,
-  // short enough that the title sits right under the status bar and the
-  // card right under the title, rather than leaving the top of the screen
-  // mostly empty. The header block is asked to be exactly this tall (below),
-  // so what `onLayout` measures back is this same figure; the card rides up
-  // over only its last `HERO_OVERLAP`.
-  const bandHeight = Math.min(150, Math.max(130, insets.top + 100));
-  const [headerHeight, setHeaderHeight] = useState(bandHeight);
-  const cardTop = headerHeight - HERO_OVERLAP;
-  // No deeper than the band itself: the old formula ran the photo on down
-  // through most of the card's own height for the glass to blur, which also
-  // ran the friends themselves down there, out of sight behind the card's
-  // opaque fill. The glass still gets the band's last `HERO_OVERLAP` to blur.
-  const sceneHeight = headerHeight;
-  const sceneRef = useRef<View>(null);
-
   const { restingStyle, overlayStyle } = useHeroCrossfade(selectMode);
 
   // The one eye for every balance on the phone (Home's own preference, A48):
-  // shutting the money on Home shuts it here too. No toggle on this card —
-  // just the shared answer, read here.
+  // shutting the money on Home shuts it here too.
   const { hidden: balanceHidden, ready: balanceReady } = useBalanceHidden();
 
   const addTileRef = useRef<View>(null);
@@ -736,154 +680,105 @@ function FriendsScene({
 
   return (
     <View>
-      <BlurTargetView
-        ref={sceneRef}
-        pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
-      >
-        <FriendsHeroBackground
-          scene={scene}
-          width={windowWidth}
-          height={sceneHeight}
-          horizon={cardTop}
-          headerBottom={insets.top + 30}
-          pageColor={theme.color.bg}
-        />
-      </BlurTargetView>
-
-      <View
-        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
-        style={{
-          minHeight: bandHeight,
-          // Minimal — right under the safe-area inset, not a further spacing
-          // token on top of it, so the title sits as close to the status bar
-          // as the status bar's own glyphs do.
-          paddingTop: insets.top,
-          paddingHorizontal: theme.spacing.lg,
-          paddingBottom: HERO_OVERLAP + theme.spacing.xs,
-        }}
-      >
-        {/* The title row and the selection toolbar share the same spot — one
-            crossfades into the other, never both at once. There is no
-            top-right currency/convert action today, so the row is just the
-            glyph and the name; scanning an invite QR has its own tile in the
-            balance card's round-button row instead of a header icon. */}
-        <View style={{ minHeight: 32, justifyContent: 'center' }}>
-          <Reanimated.View pointerEvents={selectMode ? 'none' : 'auto'} style={restingStyle}>
-            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-              <Ionicons name="people" size={iconSize.xl} color={heroInk} />
-              {/* Home's own greeting-row typography (`Hi, {name}`): the two
-                  tabs' titles now sit at the same size and weight, over the
-                  same scene. */}
-              <Text
-                numberOfLines={1}
-                style={{
-                  flex: 1,
-                  fontSize: 18,
-                  lineHeight: 23,
-                  fontWeight: '700',
-                  color: heroInk,
-                  ...HERO_TITLE_SHADOW,
-                }}
-              >
+      {/* The title row and the selection toolbar share the same spot — one
+          crossfades into the other, never both at once. */}
+      <TabHeader
+        left={
+          <View style={{ minHeight: 40, justifyContent: 'center' }}>
+            <Reanimated.View pointerEvents={selectMode ? 'none' : 'auto'} style={restingStyle}>
+              <Text accessibilityRole="header" numberOfLines={1} style={TITLE}>
                 {t.friends}
               </Text>
-            </Row>
-          </Reanimated.View>
-          <Reanimated.View
-            pointerEvents={selectMode ? 'auto' : 'none'}
-            style={[
-              {
-                position: 'absolute',
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.md,
-              },
-              overlayStyle,
-            ]}
-          >
-            <PressableScale
-              accessibilityRole="button"
-              accessibilityLabel={t.common.close}
-              onPress={onExitSelect}
-              hitSlop={10}
-              style={{ padding: theme.spacing.xs }}
+            </Reanimated.View>
+            <Reanimated.View
+              pointerEvents={selectMode ? 'auto' : 'none'}
+              style={[
+                {
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.md,
+                },
+                overlayStyle,
+              ]}
             >
-              <Ionicons name="close" size={iconSize.xl} color={heroInk} />
-            </PressableScale>
-            <Text
-              style={{
-                flex: 1,
-                fontSize: 18,
-                lineHeight: 23,
-                fontWeight: '700',
-                color: heroInk,
-                ...HERO_TITLE_SHADOW,
-              }}
-              numberOfLines={1}
-            >
-              {plural(locale, selectedCount, t.mergePeople.selected)}
-            </Text>
-            <Button
-              label={t.mergePeople.entry}
-              size="sm"
-              variant="onBrand"
-              disabled={selectedCount < 2}
-              onPress={onMerge}
-            />
-          </Reanimated.View>
-        </View>
-      </View>
-
-      <View
-        style={{
-          paddingHorizontal: theme.spacing.lg,
-          marginTop: -HERO_OVERLAP,
-        }}
-      >
-        <GlassSurface blurTarget={sceneRef}>
-          <FriendsBalanceCard
-            rows={rows}
-            totals={totals}
-            locale={locale}
-            t={t}
-            hidden={balanceHidden || !balanceReady}
-            loading={loading}
-            footer={
-              <FriendsQuickActions
-                addTileRef={addTileRef}
-                onAdd={openAdd}
-                onScan={() => router.push('/scan' as never)}
-                onSettleUp={onSettleUp}
-                duplicateCount={duplicateCount}
-                onMerge={onDuplicates}
-                t={t}
-                radius={theme.radius.xl}
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel={t.common.close}
+                onPress={onExitSelect}
+                hitSlop={10}
+                style={{ padding: theme.spacing.xs }}
+              >
+                <Ionicons name="close" size={iconSize.xl} color={theme.color.text} />
+              </PressableScale>
+              <Text style={[TITLE, { flex: 1 }]} numberOfLines={1}>
+                {plural(locale, selectedCount, t.mergePeople.selected)}
+              </Text>
+              <Button
+                label={t.mergePeople.entry}
+                size="sm"
+                disabled={selectedCount < 2}
+                onPress={onMerge}
               />
-            }
-          />
-        </GlassSurface>
+            </Reanimated.View>
+          </View>
+        }
+      />
+
+      <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.md }}>
+        <FriendsBalanceCard
+          rows={rows}
+          totals={totals}
+          locale={locale}
+          t={t}
+          hidden={balanceHidden || !balanceReady}
+          loading={loading}
+          footer={
+            <Row style={{ gap: theme.spacing.sm }}>
+              <View ref={addTileRef} collapsable={false} style={{ flex: 1.3 }}>
+                <ActionButton
+                  label={t.tabs.friendShort}
+                  icon="person-add-outline"
+                  onPress={openAdd}
+                  primary
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <ActionButton
+                  label={t.homeDash.settleUp}
+                  icon="cash-outline"
+                  onPress={onSettleUp}
+                />
+              </View>
+              <ActionButton
+                label={t.misc.scanToJoin}
+                icon="qr-code-outline"
+                onPress={() => router.push('/scan' as never)}
+                iconOnly
+              />
+              {/* Hidden at 0 or when the count is not yet known (`findDuplicates`),
+                  never a "(0)" badge nobody asked to see. */}
+              <ActionButton
+                label={t.mergePeople.entry}
+                icon="git-merge-outline"
+                onPress={onDuplicates}
+                badge={duplicateCount}
+                iconOnly
+              />
+            </Row>
+          }
+        />
       </View>
     </View>
   );
 }
 
-/** How far the balance card rides up over the bottom of the picture band —
- *  just enough to anchor it there, not so much that it climbs over the
- *  friends themselves, who sit in the band just above this line. */
-const HERO_OVERLAP = 28;
-
-/** A subtle dark lift under the white title, so it stays legible over the
- *  brighter patches of sky the short scrim alone does not reach. */
-const HERO_TITLE_SHADOW = {
-  textShadowColor: 'rgba(0, 0, 0, 0.35)',
-  textShadowOffset: { width: 0, height: 1 },
-  textShadowRadius: 3,
-} as const;
+/** Screen title on a tab root: 20sp/700. */
+const TITLE = { fontSize: 20, lineHeight: 26, fontWeight: '700' } as const;
 
 /**
  * The balance card's body: the same quiet two-column row Home's own card
@@ -942,13 +837,8 @@ function FriendsBalanceCard({
 
   return (
     <>
-      <View
-        style={{
-          paddingTop: theme.spacing.sm,
-          paddingBottom: theme.spacing.sm,
-        }}
-      >
-        <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
+      <View>
+        <Row style={{ alignItems: 'center' }}>
           <BalanceSide
             icon="arrow-up"
             color={theme.color.positive}
@@ -982,98 +872,6 @@ function FriendsBalanceCard({
 
 /** What stands in for an amount while the eye is shut. */
 const BALANCE_MASK = '••••••';
-
-/**
- * The round quick-action row along the balance card's foot — drawn by
- * `QuickActionsRow`, the very component Home's own quick actions use (a small
- * tinted disc over a one-line word, in equal columns), lilac-tinted rather
- * than Home's brand so the row reads as this card's own and matches the
- * mockup's "lavender" asks: add a person, scan an invite QR (the same flow
- * the "Add people" menu's own scan row used to open, before QR before Settle
- * up — scanning somebody else's invite and settling up are both "do a thing
- * with a person I may not have added yet", so it sits with that half of the
- * row rather than after it), settle up (the same group picker Home's own
- * "Settle up" opens), and merge likely duplicates, wearing a red count badge.
- * Sort used to be the middle tile here; it now lives beside "Your friends"
- * below, next to the list it orders, so this row only ever carries actions
- * rather than a view option. Four tiles rather than three now, so the discs
- * and labels run a size smaller than Home's own (`DISC_SIZE`, `LABEL_SIZE`)
- * — still a single line each, just a narrower column to fit it in.
- */
-function FriendsQuickActions({
-  addTileRef,
-  onAdd,
-  onScan,
-  onSettleUp,
-  duplicateCount,
-  onMerge,
-  t,
-  radius,
-}: {
-  addTileRef: React.RefObject<View | null>;
-  onAdd: () => void;
-  onScan: () => void;
-  onSettleUp: () => void;
-  duplicateCount: number;
-  onMerge: () => void;
-  t: UiStrings;
-  radius: number;
-}): React.JSX.Element {
-  const theme = useTheme();
-  const lilac = theme.tint.lilac;
-
-  const actions: QuickAction[] = [
-    {
-      key: 'add',
-      label: t.tabs.friendShort,
-      glyph: (color) => <Ionicons name="person-add-outline" size={19} color={color} />,
-      onPress: onAdd,
-      ref: addTileRef,
-    },
-    {
-      key: 'scan',
-      label: t.misc.scanToJoin,
-      glyph: (color) => <Ionicons name="qr-code-outline" size={19} color={color} />,
-      onPress: onScan,
-    },
-    {
-      key: 'settle',
-      label: t.homeDash.settleUp,
-      glyph: (color) => <Ionicons name="cash-outline" size={19} color={color} />,
-      onPress: onSettleUp,
-    },
-    {
-      key: 'merge',
-      label: t.mergePeople.entry,
-      glyph: (color) => <Ionicons name="git-merge-outline" size={19} color={color} />,
-      onPress: onMerge,
-      // Hidden at 0 or when the count is not yet known (`duplicateCount` is 0
-      // in both cases — see `findDuplicates`), never a "(0)" badge nobody asked
-      // to see.
-      badge: duplicateCount,
-    },
-  ];
-
-  return (
-    <QuickActionsRow
-      actions={actions}
-      radius={radius}
-      discColor={lilac.bg}
-      iconColor={lilac.ink}
-      discSize={FRIENDS_DISC_SIZE}
-      labelSize={FRIENDS_LABEL_SIZE}
-      rowPadding={theme.spacing.xs}
-    />
-  );
-}
-
-/** The quick-action row's own, smaller disc — Home's 34dp reads as the
- *  right weight for three tiles; a fourth asked for one size down. */
-const FRIENDS_DISC_SIZE = 38;
-
-/** 12pt labels for the same row, a point above the shared `micro` variant's
- *  11 — legible at the narrower column four tiles leave each one. */
-const FRIENDS_LABEL_SIZE = 12;
 
 /**
  * The list's own section header — "Your friends" on the left, the sort
@@ -1133,7 +931,7 @@ function FriendsListHeader({
             gap: 4,
             height: 32,
             paddingHorizontal: theme.spacing.md,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.sm,
             backgroundColor: theme.color.surface,
             borderWidth: 1,
             borderColor: theme.color.border,

@@ -1487,7 +1487,7 @@ export default function AddExpenseScreen() {
       <Screen edges={[]}>
         {/* The same banner the loaded form opens on, so the top does not repaint
             once the mirror read lands. */}
-        <View style={{ paddingHorizontal: theme.spacing.xl }}>
+        <View style={{ paddingHorizontal: theme.spacing.lg }}>
           <ExpenseBanner title={editing ? t.expense.edit : t.addExpense} subtitle="" />
         </View>
         <View style={{ paddingTop: theme.spacing.xxxl, alignItems: 'center' }}>
@@ -1983,7 +1983,7 @@ export default function AddExpenseScreen() {
           // FX rate. `md` between them keeps the grouping legible without
           // spending height a dense card no longer needs it to.
           contentContainerStyle={{
-            paddingHorizontal: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
             // The banner runs to the top edge, under the status bar.
             paddingTop: 0,
             paddingBottom: theme.spacing.md,
@@ -1999,13 +1999,7 @@ export default function AddExpenseScreen() {
 
           {/* The amount, laid over the banner's bottom edge: the one number the
             screen is for, with the currency it is counted in beside it. */}
-          <Card
-            padded={false}
-            style={{
-              padding: theme.spacing.md,
-              marginTop: -(theme.spacing.md + theme.spacing.lg),
-            }}
-          >
+          <Card padded={false} style={{ padding: theme.spacing.md }}>
             <Row
               style={{
                 alignItems: 'center',
@@ -2041,7 +2035,7 @@ export default function AddExpenseScreen() {
                   flexShrink: 0,
                   minHeight: 44,
                   paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.sm,
                   backgroundColor: theme.color.brandSoft,
                   opacity: pressed ? 0.7 : 1,
                 })}
@@ -2174,7 +2168,7 @@ export default function AddExpenseScreen() {
                       style={({ pressed }) => ({
                         paddingHorizontal: theme.spacing.md,
                         paddingVertical: theme.spacing.sm,
-                        borderRadius: theme.radius.pill,
+                        borderRadius: theme.radius.sm,
                         backgroundColor: theme.color.brandSoft,
                         opacity: pressed ? 0.6 : 1,
                       })}
@@ -2909,7 +2903,7 @@ export default function AddExpenseScreen() {
           that raised it, rather than lost up the scroll. */}
         <View
           style={{
-            paddingHorizontal: theme.spacing.xl,
+            paddingHorizontal: theme.spacing.lg,
             paddingTop: theme.spacing.sm,
             // The bar is the last thing on the screen, so it is the one that
             // owes the navigation bar its room — and it pays it as padding, not
@@ -2949,7 +2943,7 @@ export default function AddExpenseScreen() {
                 variant="brand"
                 size="lg"
                 icon={<Ionicons name="checkmark" size={iconSize.lg} color={theme.color.onBrand} />}
-                style={{ height: 52, ...theme.shadow.soft }}
+                style={{ height: 48 }}
                 disabled={!canSave || saving}
                 onPress={() => void submit()}
               />

@@ -30,7 +30,7 @@ export function AttendanceToolbar({
   const [searching, setSearching] = useState(query !== '');
   const pill: ViewStyle = {
     height: 44,
-    borderRadius: 22,
+    borderRadius: 12,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,

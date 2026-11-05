@@ -100,7 +100,7 @@ export function CompanyTeamCard({
                     gap: 6,
                     height: 36,
                     paddingHorizontal: theme.spacing.md,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.sm,
                     backgroundColor: on ? PILL_SELECTED : theme.color.brandSoft,
                   }}
                 >

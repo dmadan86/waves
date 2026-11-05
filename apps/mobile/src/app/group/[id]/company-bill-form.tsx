@@ -291,7 +291,7 @@ function DocumentForm({
   const pill = (active: boolean) => ({
     flex: 1,
     height: 40,
-    borderRadius: theme.radius.pill,
+    borderRadius: theme.radius.md,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     backgroundColor: active ? theme.color.brand : theme.color.surfaceMuted,
@@ -357,7 +357,7 @@ function DocumentForm({
                   alignItems: 'center',
                   gap: 6,
                   paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.sm,
                   borderWidth: 1,
                   borderColor: theme.color.brandSoft,
                 }}
@@ -553,7 +553,7 @@ function DocumentForm({
                   alignItems: 'center',
                   gap: 4,
                   paddingHorizontal: theme.spacing.md,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.sm,
                   borderWidth: 1,
                   borderColor: theme.color.brandSoft,
                 }}
@@ -663,7 +663,7 @@ function DocumentForm({
                 alignItems: 'center',
                 gap: 4,
                 paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 backgroundColor: theme.color.brandSoft,
               }}
             >
@@ -807,7 +807,7 @@ function DocumentForm({
             alignItems: 'center',
             justifyContent: 'center',
             gap: theme.spacing.sm,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             backgroundColor: theme.color.brand,
             opacity: busy ? 0.45 : 1,
           }}
@@ -825,7 +825,7 @@ function DocumentForm({
             height: 48,
             alignItems: 'center',
             justifyContent: 'center',
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             borderWidth: 1.5,
             borderColor: theme.color.brandSoft,
           }}

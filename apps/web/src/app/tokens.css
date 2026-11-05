@@ -11,10 +11,10 @@
  */
 
 :root {
-  --w-bg: #F3F1FB;
+  --w-bg: #F4F4F6;
   --w-surface: #FFFFFF;
   --w-surface-muted: #F5F2FF;
-  --w-border: #EDEDF5;
+  --w-border: #E6E6EC;
   --w-text: #14142B;
   --w-text-muted: #54566B;
   --w-text-faint: #7B7B8F;
@@ -65,9 +65,9 @@
   --w-rail-ink: #C3C8D4;
   --w-rail-ink-faint: #7C8393;
   --w-rail-line: rgb(255 255 255 / 0.08);
-  --w-shadow-soft: 0 8px 24px rgb(30 20 80 / 0.080);
+  --w-shadow-soft: none;
   --w-shadow-lifted: 0 12px 28px rgb(30 20 80 / 0.160);
-  --w-shadow-hairline: 0 1px 2px rgb(30 20 80 / 0.060);
+  --w-shadow-hairline: none;
   --w-shadow-menu: 0 10px 30px rgb(30 20 80 / 0.180);
 }
 
@@ -127,9 +127,9 @@
     --w-rail-ink: #C6C6DA;
     --w-rail-ink-faint: #83839C;
     --w-rail-line: rgb(255 255 255 / 0.1);
-    --w-shadow-soft: 0 8px 24px rgb(0 0 0 / 0.192);
+    --w-shadow-soft: none;
     --w-shadow-lifted: 0 12px 28px rgb(0 0 0 / 0.384);
-    --w-shadow-hairline: 0 1px 2px rgb(0 0 0 / 0.144);
+    --w-shadow-hairline: none;
     --w-shadow-menu: 0 10px 30px rgb(0 0 0 / 0.432);
   }
 }
@@ -189,18 +189,18 @@
   --w-rail-ink: #C6C6DA;
   --w-rail-ink-faint: #83839C;
   --w-rail-line: rgb(255 255 255 / 0.1);
-  --w-shadow-soft: 0 8px 24px rgb(0 0 0 / 0.192);
+  --w-shadow-soft: none;
   --w-shadow-lifted: 0 12px 28px rgb(0 0 0 / 0.384);
-  --w-shadow-hairline: 0 1px 2px rgb(0 0 0 / 0.144);
+  --w-shadow-hairline: none;
   --w-shadow-menu: 0 10px 30px rgb(0 0 0 / 0.432);
 }
 
 :root {
-  --w-radius-sm: 12px;
-  --w-radius-md: 16px;
-  --w-radius-lg: 20px;
-  --w-radius-xl: 24px;
-  --w-radius-xxl: 32px;
+  --w-radius-sm: 8px;
+  --w-radius-md: 10px;
+  --w-radius-lg: 12px;
+  --w-radius-xl: 12px;
+  --w-radius-xxl: 16px;
   --w-radius-pill: 999px;
   --w-space-xs: 4px;
   --w-space-sm: 8px;
@@ -221,21 +221,21 @@
   --w-icon-jumbo: 30px;
   --w-icon-huge: 36px;
   --w-icon-hero: 40px;
-  --w-font-display: 34px;
-  --w-leading-display: 40px;
+  --w-font-display: 28px;
+  --w-leading-display: 34px;
   --w-weight-display: 700;
-  --w-font-title: 24px;
-  --w-leading-title: 30px;
+  --w-font-title: 22px;
+  --w-leading-title: 28px;
   --w-weight-title: 700;
-  --w-font-heading: 19px;
-  --w-leading-heading: 25px;
+  --w-font-heading: 17px;
+  --w-leading-heading: 22px;
   --w-weight-heading: 700;
   --w-font-subheading: 16px;
   --w-leading-subheading: 22px;
   --w-weight-subheading: 600;
   --w-font-body: 15px;
   --w-leading-body: 21px;
-  --w-weight-body: 500;
+  --w-weight-body: 400;
   --w-font-caption: 13px;
   --w-leading-caption: 18px;
   --w-weight-caption: 500;

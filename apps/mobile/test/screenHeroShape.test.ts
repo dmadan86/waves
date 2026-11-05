@@ -30,62 +30,28 @@ const SRC = join(__dirname, '../src');
 const source = (relativePath: string): string => readFileSync(join(SRC, relativePath), 'utf8');
 
 describe('every hero is a deliberate shape, not a drift from the shared one', () => {
-  it('the group hero uses the shared controls rather than its own copies', () => {
+  it('the group hero is a calm header on the page: no photo, no gradient', () => {
     const hero = source('components/GroupHero.tsx');
-    const shared = hero.match(/import \{([^}]*)\} from '@\/components\/ScreenHero';/);
-    expect(shared?.[1]).toMatch(/\bHeroPillButton\b/);
-    // The white pill and the dim disc were defined here and are now shared. A
-    // local `function HeroActionCircle` reappearing means somebody has forked
-    // them back apart.
+    expect(hero).not.toMatch(/HomeHeroBackground|HOME_HERO_PHOTOS|LinearGradient|Gradient/);
     expect(hero).not.toMatch(/function Hero(ActionCircle|PillButton)\b/);
   });
 
-  it("the group hero wears Home's terrace photo, with its figure stacked under its label", () => {
-    // The group screen follows its own design: Home's time-of-day terrace
-    // photograph (`HOME_HERO_PHOTOS`) with "You are owed" over a large figure, rather than
-    // the shared one-line "Label: figure". A deliberate shape, pinned here.
-    const hero = source('components/GroupHero.tsx');
-    expect(hero).toMatch(
-      /import \{ HOME_HERO_PHOTOS \} from '@\/components\/home\/HomeHeroBackground';/,
-    );
-    expect(hero).not.toMatch(/<HeroFigureLine\b/);
-  });
-
-  it("Friends wears Home's own hero shape, not the shared gradient shell", () => {
-    // Friends used to open on `ScreenHero`, the same indigo panel Review and
-    // the group ledger do. The redesign asks for Home's overlapping glass
-    // card instead, over the owner's own photograph of the three friends
-    // (`FriendsHeroBackground`) rather than Home's drawn mountains — a second
-    // hero shape by design, not a screen that has drifted from the shared
-    // one, so it is pinned here rather than left for the test above to flag
-    // as a regression.
+  it('Friends is a plain tab header, no photo and no glass card', () => {
     const screen = source('app/(tabs)/friends.tsx');
-    expect(screen).toMatch(
-      /import \{[^}]*FriendsHeroBackground[^}]*\} from '@\/components\/home\/FriendsHeroBackground';/,
-    );
-    expect(screen).toMatch(
-      /import \{[^}]*GlassSurface[^}]*\} from '@\/components\/home\/GlassSurface';/,
-    );
+    expect(screen).not.toMatch(/FriendsHeroBackground/);
+    expect(screen).not.toMatch(/<GlassSurface\b/);
+    expect(screen).toMatch(/<TabHeader\b/);
     expect(screen).not.toMatch(/<ScreenHero\b/);
     expect(screen).toMatch(/<Screen edges=\{\[\]\}>/);
   });
 
-  it('Review wears its own photo hero, not the shared gradient shell', () => {
-    // Review's compact redesign swaps the indigo panel for the owner's own
-    // lakeside photograph (`ReviewHeroBackground`, folded by time of day
-    // through `reviewMomentFor`) behind a lighter title row — a second,
-    // deliberately different hero shape for the same reason Friends' is,
-    // so it is pinned here rather than left for the test above to flag as
-    // a regression the next time somebody touches this screen.
+  it('Review is a plain header block, no photo', () => {
     const screen = source('app/(tabs)/captures.tsx');
-    expect(screen).toMatch(
-      /import \{ ReviewHeroBackground \} from '@\/components\/ReviewHeroBackground';/,
-    );
-    expect(screen).toMatch(/import \{ reviewMomentFor \} from '@\/lib\/reviewScene';/);
+    expect(screen).not.toMatch(/ReviewHeroBackground/);
     expect(screen).toMatch(/<ReviewHero>/);
-    expect(screen).toMatch(/<ReviewHeroBackground\b/);
     expect(screen).not.toMatch(/<ScreenHero\b/);
     expect(screen).not.toMatch(/<Gradient\b/);
+    expect(screen).not.toMatch(/<LinearGradient\b/);
     expect(screen).toMatch(/<Screen edges=\{\[\]\}>/);
   });
 

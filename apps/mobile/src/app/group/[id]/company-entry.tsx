@@ -505,7 +505,7 @@ function CompanyEntryScreenInner() {
                     height: 36,
                     justifyContent: 'center',
                     paddingHorizontal: theme.spacing.lg,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.sm,
                     backgroundColor: theme.color.brand,
                     opacity: add.isPending || !view.ready ? 0.45 : 1,
                   }}

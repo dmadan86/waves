@@ -68,7 +68,7 @@ function TaskRow({
           ? t.company.workDone
           : t.company.workBlocked;
   return (
-    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16 }}>
+    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
         <Pressable
           accessibilityRole="checkbox"

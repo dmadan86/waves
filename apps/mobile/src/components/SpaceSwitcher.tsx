@@ -201,7 +201,7 @@ export function SpacePill({ current, label }: { current: Space; label: string })
           gap: 8,
           paddingVertical: 8,
           paddingHorizontal: 12,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.sm,
           backgroundColor: theme.color.surface,
           borderWidth: 1,
           borderColor: theme.color.border,
