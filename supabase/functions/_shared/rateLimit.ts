@@ -98,6 +98,11 @@ export const LIMITS = {
    * `app_config`; this is the value that ships.
    */
   'otp-send': { limit: 3, windowSeconds: 86400 },
+  /**
+   * Two-step codes (trust, verify, authenticator). Fails closed. With the 10-wrong-codes lock in
+   * `waves_two_step_attempt`, guessing a 6-digit code is hopeless; this also caps a phone's launch-time trust calls.
+   */
+  'two-step': { limit: 10, windowSeconds: 600 },
 } as const;
 
 /** Buckets where a broken limiter must not block the person (saving their own data). */

@@ -31,6 +31,7 @@ export * from './auth/firebaseToken';
 export * from './auth/guestLimits';
 export * from './auth/guestLeave';
 export * from './auth/joinGate';
+export * from './auth/totp';
 export * from './observability/index';
 export * from './version/index';
 export * from './appState/index';

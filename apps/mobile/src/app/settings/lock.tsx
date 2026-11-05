@@ -43,6 +43,7 @@ import { deviceId } from '@/lib/device';
 import { describeGrace, GRACE_CHOICES, useLock } from '@/lib/lock';
 import { router } from '@/lib/navigation';
 import { useConnectedApps } from '@/lib/useConnectedApps';
+import { useTwoStepAvailable } from '@/lib/useTwoStep';
 
 import { deviceGlyph } from './devices';
 
@@ -51,6 +52,7 @@ export default function LockSettingsScreen() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const connectedApps = useConnectedApps();
+  const twoStepAvailable = useTwoStepAvailable();
   const { enabled, supported, graceSeconds, setEnabled, setGraceSeconds } = useLock();
   const { session } = useAuth();
   const { hidden: amountsHidden, toggle: toggleAmounts } = usePersonalAmountsHidden();
@@ -321,6 +323,16 @@ export default function LockSettingsScreen() {
                 divider
                 onPress={() => router.push('/settings/connected-apps')}
               />
+              {twoStepAvailable ? (
+                <ListRow
+                  divider
+                  leading={tile('shield-checkmark-outline')}
+                  title={t.twoStep.row}
+                  subtitle={t.twoStep.rowHint}
+                  trailing={chevron}
+                  onPress={() => router.push('/settings/two-step')}
+                />
+              ) : null}
               <ListRow
                 destructive
                 leading={tile('trash-outline', theme.color.negativeSoft, theme.color.negative)}

@@ -37,6 +37,7 @@ function setup(
   options: {
     failEntries?: boolean;
     member?: boolean;
+    twoStep?: boolean;
     category?: string;
     approved?: boolean;
     paidByCompany?: boolean;
@@ -84,7 +85,9 @@ function setup(
     rpc: vi.fn((name: string) =>
       name === 'waves_my_profile'
         ? query({ id: 'a', display_name: 'Employee A' })
-        : Promise.resolve({ data: options.member === false ? null : 'employee-a', error: null }),
+        : name === 'waves_two_step_ok'
+          ? Promise.resolve({ data: options.twoStep !== false, error: null })
+          : Promise.resolve({ data: options.member === false ? null : 'employee-a', error: null }),
     ),
     from: vi.fn((table: string) =>
       table === 'groups'
@@ -168,6 +171,13 @@ describe('caller-visible company exports', () => {
   it('refuses a former member before reading ledger data', async () => {
     const t = setup({ member: false });
     expect((await handleExportData(t.request('json'), t.deps)).status).toBe(403);
+    expect(t.caller.from).not.toHaveBeenCalledWith('company_entries');
+  });
+  it('refuses a company that requires two-step before any service-role read', async () => {
+    const t = setup({ twoStep: false });
+    const response = await handleExportData(t.request('json'), t.deps);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: 'TWO_STEP_REQUIRED' });
     expect(t.caller.from).not.toHaveBeenCalledWith('company_entries');
   });
 });

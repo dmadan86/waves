@@ -489,6 +489,27 @@ export const companyEn = {
   vendors: vendorStringsEn,
   docs: docsEn,
   settings: settingsEn,
+  twoStep: {
+    title: 'Two-step check',
+    codeIntro: 'Enter the 6-digit code from your Waves phone app or authenticator.',
+    codeLabel: '6-digit code',
+    verify: 'Continue',
+    badCode: 'That code is not right. Try the new one.',
+    locked: 'Too many wrong codes. Try again in a little while.',
+    rateLimited: 'Too many tries. Wait a moment and try again.',
+    noFactor: 'Open Waves on your phone first to set up two-step.',
+    failed: 'Could not check the code. Try again.',
+    row: 'Two-step authenticator',
+    rowHint: 'Use an authenticator app for company sign-in',
+    setupIntro: 'Scan this with your authenticator app, then enter the code it shows.',
+    start: 'Set up',
+    key: 'Or type this key',
+    copy: 'Copy key',
+    copied: 'Copied',
+    confirm: 'Turn on',
+    done: 'Authenticator is on.',
+    noPending: 'That setup expired. Start again.',
+  },
 };
 
 export type CompanyStrings = typeof companyEn;
