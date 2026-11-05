@@ -9,6 +9,12 @@ does not carry information. It replaced the original look (lavender canvas,
 soft-shadowed cushion cards, pills and a brand gradient), which read as
 generated.
 
+The calm system covers company screens, the Personal money tab, settings and
+the web. The personal social screens (Home, Friends, groups of personal
+groups, person pages) keep the original scenic look: `ScenicTheme` in
+`packages/ui` serves the old radii, type scale, soft shadow, lavender canvas and
+vivid `Gradient` to a subtree, and `ScenicHeader` draws its photo band there.
+
 Everything below is code, in `packages/ui/src/tokens.ts` and `theme.tsx` — this
 file explains the _why_, the tokens are the source of truth. The working rules
 for building a screen (principles, the five questions, which component to use)

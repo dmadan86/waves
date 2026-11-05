@@ -15,11 +15,18 @@ import {
   Text,
   useTheme,
 } from '@waves/ui';
+import { withScenicGroup } from '@/components/ScenicScope';
 import { useGroup, useGroupLedger, useResplitDeparted } from '@/data/hooks';
 import { CategoryBadge, builtinCategoryLabel } from '@/components/Category';
 import { BalanceSide } from '@/components/home/BalanceSide';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { PairHero, HeroCircleButton, HERO_OVERLAP, Chevron } from '@/components/person/pairParts';
+import {
+  PairHero,
+  HeroCircleButton,
+  HERO_OVERLAP,
+  HERO_TEXT_SHADOW,
+  Chevron,
+} from '@/components/person/pairParts';
 import { expenseTitle } from '@/data/expenseTitle';
 import { displayName } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
@@ -43,7 +50,7 @@ import { settleHref } from '@/lib/groupTab';
 import { router, useGoBack } from '@/lib/navigation';
 import { SyncStatus, useSync } from '@/sync';
 
-export default function DepartedExpensesScreen() {
+function DepartedExpensesScreen() {
   const { id = '', memberId = '' } = useLocalSearchParams<{ id: string; memberId: string }>();
   const theme = useTheme();
   const goBack = useGoBack(`/group/${id}`);
@@ -222,8 +229,10 @@ export default function DepartedExpensesScreen() {
           >
             <PersonAvatar name={name} size={52} />
             <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="title">{label}</Text>
-              <Text variant="caption">
+              <Text variant="title" style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}>
+                {label}
+              </Text>
+              <Text variant="caption" style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}>
                 {amountLine(summary.net) ||
                   fill(plural(locale, listed.length, s.owed), { name, amount: fmt(0n) })}
               </Text>
@@ -533,3 +542,5 @@ export default function DepartedExpensesScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(DepartedExpensesScreen);

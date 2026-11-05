@@ -23,6 +23,7 @@ import {
   useGroup,
   useGroupLedger,
 } from '@/data/hooks';
+import { withScenicGroup } from '@/components/ScenicScope';
 import { SettlementProof } from '@/components/SettlementProof';
 import { useBlockedUsers } from '@/data/blocked';
 import { isGhost, type SettlementRow } from '@/data/types';
@@ -59,7 +60,7 @@ function daysToConfirm(initiatedIso: string, now: number = Date.now()): number {
  * claim, so a row leaves this list the moment it is acted on and the header
  * count follows it down to the all-clear.
  */
-export default function PendingConfirmationsScreen() {
+function PendingConfirmationsScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -240,3 +241,5 @@ export default function PendingConfirmationsScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(PendingConfirmationsScreen);

@@ -1,5 +1,5 @@
 /**
- * The full-screen contact picker, shared by every route that browses the
+ * The scenic full-screen contact picker, shared by every route that browses the
  * address book: `contact-picker` (adding to a group form) and `friends/contacts`
  * (adding people to Waves). One screen, so the two cannot drift apart.
  *
@@ -8,7 +8,8 @@
  * dress, and hands the ticked people to `onConfirm`.
  */
 
-import { Pressable, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -18,12 +19,32 @@ import { useStrings } from '@/i18n';
 
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
 import { type KnownIndex } from '@/lib/contactMatch';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
+import { HeroScene } from '@/components/home/HeroScene';
+import { useHeroScene } from '@/lib/heroScenePreference';
+import { HERO_THEMES } from '@/lib/scene';
 import { router } from '@/lib/navigation';
+import { SPEC_INK } from '@/lib/specPalette';
 
 /** The back button's own size, so the subtitle below it can line up under the
  *  title rather than under the button. */
 const BACK_BUTTON = 44;
+
+/**
+ * How far under the header's own text the mountains still show before the
+ * search card rides up over their foot, how far that ride is, and how far the
+ * scene keeps fading on under the card once it has.
+ *
+ * `SCENE_OVERLAP` is kept at or under `SCENE_ROOM` on purpose — the search
+ * card can only ride up as far as the empty sliver of mountain the header
+ * left for it. Let it ride further than that and it rides into the header's
+ * own text instead of the scene, which is exactly the bug a taller pair of
+ * these two numbers once drew: the subtitle sat in the room the overlap had
+ * already eaten.
+ */
+const SCENE_ROOM = 16;
+const SCENE_OVERLAP = 14;
+const SCENE_INTO_CARD = 34;
 
 export interface ContactPickerSceneProps {
   readonly onConfirm: (people: readonly PickedContact[]) => void;
@@ -46,16 +67,43 @@ export function ContactPickerScene({
   const theme = useTheme();
   const { t } = useStrings();
   const insetsTop = useSafeAreaInsets().top;
+  const { width: screenWidth } = useWindowDimensions();
 
-  useHeroStatusBar(theme.scheme === 'dark' ? 'light' : 'dark');
+  // The same scene Home and Personal wear, measured the way the new-group
+  // form measures its own header: the title block's height, read back off its
+  // layout, is what the scene and the overlap below it size themselves to.
+  const scene = useHeroScene();
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const darkInk = HERO_THEMES[scene].ink === 'dark';
+  useHeroStatusBar(darkInk ? 'dark' : 'light');
 
   return (
+    // `edges={['bottom']}` only: the top inset is read by hand (`insetsTop`)
+    // so the scene itself can run up under the status bar, the way every
+    // other scenic hero in the app does — the bottom is a plain safe area,
+    // so the confirm bar never sits under the home indicator.
     <Screen edges={['bottom']}>
+      {/* The scene, under the status bar down to just past the search card's
+          foot — the same layering `HeroScene` always draws in, just shorter. */}
+      {headerHeight > 0 ? (
+        <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+          <HeroScene
+            scene={scene}
+            width={screenWidth}
+            height={headerHeight + SCENE_INTO_CARD}
+            horizon={headerHeight - SCENE_OVERLAP}
+            headerBottom={insetsTop + BACK_BUTTON}
+            pageColor={theme.color.bg}
+          />
+        </View>
+      ) : null}
+
       <View
+        onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
         style={{
           paddingTop: insetsTop + theme.spacing.xs,
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: theme.spacing.sm,
+          paddingBottom: SCENE_ROOM,
           gap: 2,
         }}
       >
@@ -63,7 +111,11 @@ export function ContactPickerScene({
             a row of its own cost the header a whole extra line of height for
             nothing the title couldn't say beside it. */}
         <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-          <TranslucentBackButton label={t.common.back} onPress={() => router.back()} />
+          <TranslucentBackButton
+            dark={darkInk}
+            label={t.common.back}
+            onPress={() => router.back()}
+          />
           <Text
             numberOfLines={1}
             style={{
@@ -71,7 +123,7 @@ export function ContactPickerScene({
               fontSize: 19,
               lineHeight: 24,
               fontWeight: '800',
-              color: theme.color.text,
+              color: darkInk ? SPEC_INK : '#FFFFFF',
             }}
           >
             {t.misc.fromYourContacts}
@@ -86,16 +138,25 @@ export function ContactPickerScene({
             marginStart: BACK_BUTTON + theme.spacing.md,
             fontSize: 13,
             lineHeight: 17,
-            color: theme.color.textMuted,
+            color: darkInk ? SPEC_INK : '#FFFFFF',
+            opacity: 0.85,
           }}
         >
           {subtitle ?? t.pickers.fromYourContactsSubtitle}
         </Text>
       </View>
 
+      {/* The search card rides up over the scene's foot by exactly the overlap
+          the scene was drawn with — the same move the new-group form's first
+          card and Home's balance card make, applied to `ContactPicker`'s own
+          search row instead of a card this screen draws itself. Everything
+          `ContactPicker` renders keeps this screen's own rule: the search row
+          and the filter pills stay put, only the list scrolls, and the
+          confirm bar is pinned at the foot. */}
       <View
         style={{
           flex: 1,
+          marginTop: -SCENE_OVERLAP,
           paddingHorizontal: theme.spacing.lg,
           paddingBottom: theme.spacing.md,
         }}
@@ -113,15 +174,57 @@ export function ContactPickerScene({
   );
 }
 
-/** The round back button every plain header wears: a hairline circle. */
+/**
+ * The round translucent back button the reference board draws on its hero —
+ * a disc dim enough to read as glass over the scene rather than a chip
+ * floating above it. `HeroActionCircle` (`ScreenHero`) is the app's existing
+ * round-translucent action, but it is built for the indigo panel and always
+ * draws a white glyph; this scene can be pale enough at midday to need a dark
+ * one instead (`darkInk`, the same flag the title text follows), so this is
+ * its own small button rather than a second meaning bolted onto that one.
+ */
 export function TranslucentBackButton({
+  dark,
   label,
   onPress,
 }: {
+  /** Ink for the scenic version; ignored by the calm one. */
+  dark?: boolean;
   label: string;
   onPress: () => void;
 }): React.JSX.Element {
   const theme = useTheme();
+  // Outside the scenic screens (company, Personal money tab, settings) the calm hairline circle.
+  if (!theme.scenic) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        hitSlop={4}
+        style={({ pressed }) => ({
+          width: BACK_BUTTON,
+          height: BACK_BUTTON,
+          borderRadius: BACK_BUTTON / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Ionicons
+          name={directionalIcon('chevron-back')}
+          size={iconSize.xl}
+          color={theme.color.text}
+        />
+      </Pressable>
+    );
+  }
+  // The one back button every scenic header wears (new group, contacts, join,
+  // event plan…): a frosted white disc with a bold chevron in the scene's ink —
+  // near-black on a light scene, white on a dark one.
   return (
     <Pressable
       accessibilityRole="button"
@@ -134,16 +237,14 @@ export function TranslucentBackButton({
         borderRadius: BACK_BUTTON / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: theme.color.surface,
-        borderWidth: 1,
-        borderColor: theme.color.border,
+        backgroundColor: 'rgba(255, 255, 255, 0.35)',
         opacity: pressed ? 0.6 : 1,
       })}
     >
       <Ionicons
         name={directionalIcon('chevron-back')}
         size={iconSize.xl}
-        color={theme.color.text}
+        color={dark ? SPEC_INK : '#FFFFFF'}
       />
     </Pressable>
   );

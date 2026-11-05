@@ -1,3 +1,4 @@
+import { withScenic } from '@/components/ScenicScope';
 import { activityLabels, resplitActivityLabel } from '@/data/activityLabels';
 import { AdSlot } from '@/components/AdSlot';
 import { placeSlots } from '@/lib/adPlanPure';
@@ -5,8 +6,9 @@ import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { type Href, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { Pressable, RefreshControl, View } from 'react-native';
+import { Image, Pressable, RefreshControl, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 
@@ -41,7 +43,13 @@ import { actorName } from '@/data/types';
 import { GroupMark } from '@/components/GroupMark';
 import { SplitMoney } from '@/components/SplitMoney';
 import { GroupTypeTag, useGroupTypeTagLabels } from '@/components/GroupTypeTag';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
+import { HERO_TEXT_SHADOW } from '@/components/person/pairParts';
+import {
+  scrimColorsFor,
+  HERO_SCRIM_LOCATIONS,
+  HOME_HERO_PHOTOS,
+} from '@/components/home/HomeHeroBackground';
 import { useBlockedUsers } from '@/data/blocked';
 import { ActivityDateFilter, type DateRange } from '@/components/ActivityDateFilter';
 import { FeedSkeleton } from '@/components/Skeletons';
@@ -59,6 +67,7 @@ import {
   type GroupTypeTag as GroupTypeTagValue,
   type GroupTypeTagLabels,
 } from '@/lib/groupTypeTag';
+import { useHomeHero } from '@/lib/useHomeHero';
 import { useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { useGroups, useRecentActivity, useUndoResplit, type RecentActivityRow } from '@/data/hooks';
 import { useStrings } from '@/i18n';
@@ -378,7 +387,14 @@ function MetaText({ children, shrink = 1 }: { children: string; shrink?: number 
   );
 }
 
-export default function ActivityScreen() {
+/** Home's photographs share one 2.25:1 frame. */
+const PHOTO_W = 1440;
+const PHOTO_H = 640;
+/** The band's height below the status bar, and how far the sheet rides over it. */
+const HERO_BODY = 112;
+const SHEET_OVERLAP = 20;
+
+function ActivityScreen() {
   const [adVisible, setAdVisible] = useState(false);
   const theme = useTheme();
   const pull = usePullRefresh();
@@ -539,9 +555,15 @@ export default function ActivityScreen() {
       : `${showDay(range.start)} – ${showDay(range.end)}`
     : '';
 
-  useHeroStatusBar(theme.scheme === 'dark' ? 'light' : 'dark');
+  // Home's scene, with white ink over the same top scrim at every hour.
+  const hero = useHomeHero();
+  useHeroStatusBar('light');
   const insets = useSafeAreaInsets();
-  const heroInk = theme.color.text;
+  const { width: windowWidth } = useWindowDimensions();
+  const photoH = insets.top + HERO_BODY;
+  // `cover` by hand, anchored to the bottom, as Home's hero does.
+  const scale = Math.max(windowWidth / PHOTO_W, photoH / PHOTO_H);
+  const heroInk = '#FFFFFF';
   const circle = (
     label: string,
     onPress: () => void,
@@ -558,9 +580,7 @@ export default function ActivityScreen() {
         borderRadius: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: tinted ? theme.color.brandSoft : theme.color.surface,
-        borderWidth: 1,
-        borderColor: theme.color.border,
+        backgroundColor: tinted ? theme.color.brandSoft : 'rgba(255,255,255,0.92)',
         opacity: pressed ? 0.7 : 1,
       })}
     >
@@ -569,10 +589,29 @@ export default function ActivityScreen() {
   );
 
   const heroBand = (
-    <View style={{ paddingBottom: theme.spacing.sm }}>
+    <View style={{ height: photoH }}>
+      <Image
+        source={HOME_HERO_PHOTOS[hero]}
+        accessibilityIgnoresInvertColors
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        style={{
+          position: 'absolute',
+          width: PHOTO_W * scale,
+          height: PHOTO_H * scale,
+          left: (windowWidth - PHOTO_W * scale) / 2,
+          top: photoH - PHOTO_H * scale,
+        }}
+      />
+      <LinearGradient
+        pointerEvents="none"
+        colors={scrimColorsFor(hero)}
+        locations={HERO_SCRIM_LOCATIONS}
+        style={{ position: 'absolute', left: 0, right: 0, top: 0, height: photoH * 0.7 }}
+      />
       <Row
         style={{
-          paddingTop: insets.top + theme.spacing.xs,
+          paddingTop: insets.top + theme.spacing.sm,
           paddingHorizontal: theme.spacing.lg,
           alignItems: 'center',
           gap: theme.spacing.md,
@@ -583,24 +622,21 @@ export default function ActivityScreen() {
         {circle(
           t.common.back,
           () => router.back(),
-          <Ionicons
-            name={directionalIcon('chevron-back')}
-            size={iconSize.lg}
-            color={theme.color.text}
-          />,
+          <Ionicons name={directionalIcon('chevron-back')} size={iconSize.lg} color="#1B1840" />,
         )}
         <View style={{ flex: 1 }}>
           {shownGroup ? (
             <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-              <GroupMark emoji={shownGroup.cover_emoji} size={22} color={heroInk} />
+              <GroupMark emoji={shownGroup.cover_emoji} size={24} color={heroInk} />
               <Text
                 numberOfLines={1}
                 style={{
                   flexShrink: 1,
-                  fontSize: 20,
-                  lineHeight: 26,
-                  fontWeight: '700',
+                  fontSize: 24,
+                  lineHeight: 30,
+                  fontWeight: '800',
                   color: heroInk,
+                  ...HERO_TEXT_SHADOW,
                 }}
               >
                 {shownGroup.name}
@@ -610,10 +646,11 @@ export default function ActivityScreen() {
             <Text
               numberOfLines={1}
               style={{
-                fontSize: 20,
-                lineHeight: 26,
-                fontWeight: '700',
+                fontSize: 24,
+                lineHeight: 30,
+                fontWeight: '800',
                 color: heroInk,
+                ...HERO_TEXT_SHADOW,
               }}
             >
               {t.activity}
@@ -621,7 +658,7 @@ export default function ActivityScreen() {
           )}
           <Text
             numberOfLines={1}
-            style={{ fontSize: 13, lineHeight: 18, color: theme.color.textMuted }}
+            style={{ fontSize: 13, lineHeight: 18, color: heroInk, ...HERO_TEXT_SHADOW }}
           >
             {shownGroup ? t.activity : t.activityScreen.subtitle}
           </Text>
@@ -636,7 +673,7 @@ export default function ActivityScreen() {
               <Ionicons
                 name={range ? 'calendar' : 'calendar-outline'}
                 size={iconSize.lg}
-                color={range ? theme.color.brand : theme.color.text}
+                color={range ? theme.color.brand : '#1B1840'}
               />,
               !!range,
             )
@@ -648,12 +685,15 @@ export default function ActivityScreen() {
   // The list sheet: rounded top corners riding up over the band's foot.
   const sheetStyle = {
     flex: 1,
+    marginTop: -SHEET_OVERLAP,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     backgroundColor: theme.color.bg,
     overflow: 'hidden' as const,
   };
 
   const header = (
-    <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.sm }}>
+    <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.lg }}>
       {/* The active range as a clearable pill: tap the body to adjust it, the ✕
           to drop back to the full feed. Visible state so a narrowed feed never
           looks like a short one. */}
@@ -666,7 +706,7 @@ export default function ActivityScreen() {
               paddingLeft: theme.spacing.md,
               paddingRight: theme.spacing.xs,
               paddingVertical: 4,
-              borderRadius: theme.radius.sm,
+              borderRadius: theme.radius.pill,
               backgroundColor: theme.color.brandSoft,
             }}
           >
@@ -903,3 +943,5 @@ export default function ActivityScreen() {
     </Screen>
   );
 }
+
+export default withScenic(ActivityScreen);

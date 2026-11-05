@@ -30,6 +30,7 @@ import {
   type SimplifyItem,
 } from '@waves/core';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { familyLabel, familyTransfers, hasFamilies } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { memberLookup, useGhostMergePersonIds, useGroup, useGroupLedger } from '@/data/hooks';
@@ -154,7 +155,7 @@ function TransferRow({
   );
 }
 
-export default function SimplifyScreen() {
+function SimplifyScreen() {
   const theme = useTheme();
   // `useTabBarClearance`, not `useScreenClearance`: the app's bottom bar is
   // rendered once at the root and stays over pushed screens too, and this route
@@ -372,3 +373,5 @@ export default function SimplifyScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(SimplifyScreen);

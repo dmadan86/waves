@@ -30,9 +30,11 @@ import {
 } from '@waves/ui';
 import type { CurrencyCode } from '@waves/core';
 
+import { withScenic } from '@/components/ScenicScope';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import {
   Chevron,
+  HERO_TEXT_SHADOW,
   HeroCircleButton,
   NavRow,
   PairGroupCard,
@@ -48,7 +50,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { settleHref } from '@/lib/groupTab';
 
-export default function PairSettleScreen() {
+function PairSettleScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
@@ -109,10 +111,18 @@ export default function PairSettleScreen() {
             />
           </Row>
           <View style={{ alignItems: 'center', gap: 2 }}>
-            <Text variant="title" accessibilityRole="header">
+            <Text
+              variant="title"
+              accessibilityRole="header"
+              style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
+            >
               {t.whoPaysWhom}
             </Text>
-            <Text variant="body" numberOfLines={1}>
+            <Text
+              variant="body"
+              numberOfLines={1}
+              style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}
+            >
               {fill(t.person.pairSubtitle, { name: title })}
             </Text>
           </View>
@@ -300,7 +310,7 @@ function PairAvatar({ label, children }: { label: string; children: React.ReactN
   return (
     <View style={{ alignItems: 'center', gap: 2, maxWidth: 120 }}>
       {children}
-      <Text variant="caption" numberOfLines={1}>
+      <Text variant="caption" numberOfLines={1} style={{ color: '#FFFFFF', ...HERO_TEXT_SHADOW }}>
         {label}
       </Text>
     </View>
@@ -406,3 +416,5 @@ function OrDivider({ label }: { label: string }) {
     </Row>
   );
 }
+
+export default withScenic(PairSettleScreen);

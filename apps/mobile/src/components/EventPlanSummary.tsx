@@ -1,5 +1,5 @@
 /**
- * The Event Plan screen's plain header and its Planned / Spent / Left-or-Over
+ * The Event Plan screen's scenic header and its Planned / Spent / Left-or-Over
  * card (docs/event-organizer.md). The reading itself is `lib/planSummary`: no
  * budget shows Spent alone with "No budget set" (never a red bar); Left when
  * under, Over only when a budget exists and is exceeded.
@@ -7,43 +7,71 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
+import { useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Card, ChipRow, iconSize, MoneyText, Row, Text, useTheme } from '@waves/ui';
 
 import { TranslucentBackButton } from '@/components/ContactPickerScene';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { HeroScene } from '@/components/home/HeroScene';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { fill, useStrings } from '@/i18n';
+import { useHeroScene } from '@/lib/heroScenePreference';
 import { planSummary } from '@/lib/planSummary';
 import { router } from '@/lib/navigation';
+import { HERO_THEMES } from '@/lib/scene';
 
-const BACK_BUTTON = 44;
+const BACK_BUTTON = 40;
+const SCENE_ROOM = 16;
+const SCENE_OVERLAP = 14;
+const SCENE_INTO_CARD = 34;
 
-/** The plain "Plan" header: back button, title and a one-line subtitle. */
+/** The scenic "Plan" header: back button, title and a one-line subtitle. */
 export function EventPlanHeader() {
   const theme = useTheme();
   const { t } = useStrings();
   const insetsTop = useSafeAreaInsets().top;
-  useHeroStatusBar(theme.scheme === 'dark' ? 'light' : 'dark');
+  const { width } = useWindowDimensions();
+  const scene = useHeroScene();
+  const [height, setHeight] = useState(0);
+  const darkInk = HERO_THEMES[scene].ink === 'dark';
+  useHeroStatusBar(darkInk ? 'dark' : 'light');
+  const ink = darkInk ? theme.color.text : '#FFFFFF';
 
   return (
-    <View>
+    <View style={{ marginBottom: -SCENE_OVERLAP }}>
+      {height > 0 ? (
+        <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+          <HeroScene
+            scene={scene}
+            width={width}
+            height={height + SCENE_INTO_CARD}
+            horizon={height - SCENE_OVERLAP}
+            headerBottom={insetsTop + BACK_BUTTON}
+            pageColor={theme.color.bg}
+          />
+        </View>
+      ) : null}
       <View
+        onLayout={(event) => setHeight(event.nativeEvent.layout.height)}
         style={{
           paddingTop: insetsTop + theme.spacing.xs,
           paddingHorizontal: theme.spacing.lg,
-          paddingBottom: theme.spacing.sm,
+          paddingBottom: SCENE_ROOM,
           gap: 2,
         }}
       >
         <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <TranslucentBackButton label={t.common.back} onPress={() => router.back()} />
+          <TranslucentBackButton
+            dark={darkInk}
+            label={t.common.back}
+            onPress={() => router.back()}
+          />
           <Text
             variant="subheading"
             accessibilityRole="header"
             numberOfLines={1}
-            style={{ flex: 1 }}
+            style={{ flex: 1, color: ink }}
           >
             {t.plan}
           </Text>
@@ -51,8 +79,7 @@ export function EventPlanHeader() {
         <Text
           variant="micro"
           numberOfLines={1}
-          tone="muted"
-          style={{ marginStart: BACK_BUTTON + theme.spacing.sm }}
+          style={{ marginStart: BACK_BUTTON + theme.spacing.sm, color: ink, opacity: 0.85 }}
         >
           {t.eventOrganizer.planSubtitle}
         </Text>

@@ -37,6 +37,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import {
@@ -64,7 +65,7 @@ import {
   withFamily,
 } from '@/lib/families';
 
-export default function FamiliesScreen() {
+function FamiliesScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -701,3 +702,5 @@ export default function FamiliesScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(FamiliesScreen);
