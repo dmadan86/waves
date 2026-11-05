@@ -708,6 +708,7 @@ function AddTask({
   const [title, setTitle] = useState('');
   const [ids, setIds] = useState<string[]>(people.length === 1 ? [people[0]!.id] : []);
   const [day, setDay] = useState(today);
+  const [helperIds, setHelperIds] = useState<string[]>([]);
   const [priority, setPriority] = useState<TaskPriority>('normal');
   const [files, setFiles] = useState<{ key: string; file: File }[]>([]);
   const [problem, setProblem] = useState('');
@@ -730,6 +731,7 @@ function AddTask({
       memberIds: ids,
       day,
       priority,
+      helperIds,
       idFor: (memberId) => {
         const known = taskIds.current.get(memberId);
         if (known) return known;
@@ -809,15 +811,38 @@ function AddTask({
               type="checkbox"
               checked={ids.includes(p.id)}
               disabled={busy}
-              onChange={(e) =>
+              onChange={(e) => {
                 setIds((prev) =>
                   e.target.checked ? [...prev, p.id] : prev.filter((x) => x !== p.id),
-                )
-              }
+                );
+                if (e.target.checked && ids.length === 0)
+                  setHelperIds((prev) => prev.filter((x) => x !== p.id));
+              }}
             />{' '}
             {memberName(p, '')}
           </label>
         ))}
+      </fieldset>
+      <fieldset disabled={busy}>
+        <legend>{s.helpers}</legend>
+        {people
+          .filter((p) => !(ids.length === 1 && ids[0] === p.id))
+          .map((p) => {
+            const on = helperIds.includes(p.id);
+            return (
+              <label key={p.id} style={{ display: 'block' }}>
+                <input
+                  type="checkbox"
+                  checked={on}
+                  disabled={!on && helperIds.length >= MAX_TASK_HELPERS}
+                  onChange={() =>
+                    setHelperIds((prev) => (on ? prev.filter((x) => x !== p.id) : [...prev, p.id]))
+                  }
+                />{' '}
+                {memberName(p, '')}
+              </label>
+            );
+          })}
       </fieldset>
       <label className="field">
         <span className="field-label">{s.due}</span>

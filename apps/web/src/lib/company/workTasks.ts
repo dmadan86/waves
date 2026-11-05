@@ -143,6 +143,8 @@ export function addTaskPayloads(input: {
   memberIds: readonly string[];
   day: string;
   priority?: TaskPriority;
+  /** Also on every task; the task's own responsible person is left out of its list. */
+  helperIds?: readonly string[];
   idFor: (memberId: string) => string;
 }): CompanyWorkSetPayload[] {
   return [...new Set(input.memberIds)].map((memberId) => ({
@@ -156,5 +158,6 @@ export function addTaskPayloads(input: {
     note: null,
     dueTime: null,
     priority: input.priority ?? 'normal',
+    helperIds: (input.helperIds ?? []).filter((id) => id !== memberId),
   }));
 }
