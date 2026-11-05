@@ -258,6 +258,10 @@ export interface UiStrings {
     errDate: string;
     errBirthday: string;
     birthday: string;
+    datesTitle: string;
+    datesSubtitle: string;
+    joinedLabel: string;
+    selectDate: string;
     birthDay: string;
     birthMonth: string;
     joinedOn: string;
@@ -8065,6 +8069,10 @@ const en: UiStrings = {
     errDate: 'Enter a valid date',
     errBirthday: 'Enter a real day and month',
     birthday: 'Birthday',
+    datesTitle: 'Birthday & Joining Date',
+    datesSubtitle: 'Keep these dates to remember and celebrate',
+    joinedLabel: 'Joining date (optional)',
+    selectDate: 'Select date',
     birthDay: 'Day',
     birthMonth: 'Month',
     joinedOn: 'Joining date, optional',
@@ -15165,6 +15173,10 @@ const ta: UiStrings = {
     errDate: 'சரியான தேதியை உள்ளிடவும்',
     errBirthday: 'சரியான நாளையும் மாதத்தையும் உள்ளிடவும்',
     birthday: 'பிறந்தநாள்',
+    datesTitle: 'பிறந்தநாள் மற்றும் சேர்ந்த தேதி',
+    datesSubtitle: 'இந்த தேதிகளை நினைவில் வைத்து கொண்டாட',
+    joinedLabel: 'சேர்ந்த தேதி (விருப்பம்)',
+    selectDate: 'தேதியைத் தேர்ந்தெடுக்கவும்',
     birthDay: 'நாள்',
     birthMonth: 'மாதம்',
     joinedOn: 'பணியில் சேர்ந்த நாள், விருப்பமானது',
@@ -22482,6 +22494,10 @@ const hi: UiStrings = {
     errDate: 'मान्य तारीख दर्ज करें',
     errBirthday: 'सही दिन और महीना दर्ज करें',
     birthday: 'जन्मदिन',
+    datesTitle: 'जन्मदिन और जॉइनिंग तारीख',
+    datesSubtitle: 'इन तारीखों को याद रखें और मनाएँ',
+    joinedLabel: 'जॉइनिंग तारीख (वैकल्पिक)',
+    selectDate: 'तारीख चुनें',
     birthDay: 'दिन',
     birthMonth: 'महीना',
     joinedOn: 'काम शुरू करने की तारीख, वैकल्पिक',
@@ -29592,6 +29608,10 @@ const ar: UiStrings = {
     errDate: 'أدخل تاريخاً صحيحاً',
     errBirthday: 'أدخل يوماً وشهراً صحيحين',
     birthday: 'عيد الميلاد',
+    datesTitle: 'عيد الميلاد وتاريخ الانضمام',
+    datesSubtitle: 'احتفظ بهذه التواريخ لتتذكرها وتحتفل بها',
+    joinedLabel: 'تاريخ الانضمام (اختياري)',
+    selectDate: 'اختر التاريخ',
     birthDay: 'اليوم',
     birthMonth: 'الشهر',
     joinedOn: 'تاريخ بدء العمل، اختياري',
