@@ -286,16 +286,26 @@ export function WorkTaskSections({
         onMenu={onMenu}
       />
     ));
+  const statusLabel = (status: MirrorWorkTask['status']) =>
+    status === 'todo'
+      ? t.company.workTodo
+      : status === 'doing'
+        ? t.company.workDoing
+        : status === 'done'
+          ? t.company.workDone
+          : t.company.workBlocked;
   const heading = (section: WorkSection) => {
     const text =
       section.kind === 'overdue'
         ? `${t.company.workOverdue} · ${section.tasks.length}`
         : section.kind === 'day'
           ? dayHeading(locale, `${section.ref}T12:00:00`)
-          : (() => {
-              const p = people.find((m) => m.id === section.ref);
-              return `${p ? displayName(p) : ''} · ${t.company.workOpenN.replace('{n}', String(section.open))}`;
-            })();
+          : section.kind === 'status'
+            ? `${statusLabel(section.ref as MirrorWorkTask['status'])} · ${section.tasks.length}`
+            : (() => {
+                const p = people.find((m) => m.id === section.ref);
+                return `${p ? displayName(p) : ''} · ${t.company.workOpenN.replace('{n}', String(section.open))}`;
+              })();
     return (
       <Text
         variant="caption"

@@ -4,7 +4,7 @@ import { randomUUID } from 'expo-crypto';
 import { ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import type { CompanyWorkSetPayload } from '@waves/core';
-import { Text } from '@waves/ui';
+import { Button, Text } from '@waves/ui';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { ScenicBody } from '@/components/standard';
 import type { MenuAnchor } from '@/components/SortMenu';
@@ -63,12 +63,15 @@ export default function DailyWorkView({
   groupId: id,
   header,
   embedded = false,
+  memberId,
 }: {
   groupId: string;
   /** A header for the standalone (non-manager) view; the Team shell draws its own. */
   header?: ReactNode;
   /** Inside the Team shell: no header of its own. */
   embedded?: boolean;
+  /** One person's tasks (responsible or helping), drawn inside the employee screen's own scroll. */
+  memberId?: string;
 }) {
   const access = useWorkdayAccess(id);
   const tasks = useWorkTasks(id);
@@ -108,7 +111,8 @@ export default function DailyWorkView({
   const ownTasks = tasks.filter(
     (task) =>
       canChangeTask(task, { ...who, enabled: true }) &&
-      (scope === 'team' || isOwnTask(task, company.me?.id)),
+      (scope === 'team' || isOwnTask(task, company.me?.id)) &&
+      (!memberId || task.memberId === memberId || !!task.helperIds?.includes(memberId)),
   );
   const visibleTasks = filterWork(ownTasks, {
     search: query,
@@ -215,65 +219,75 @@ export default function DailyWorkView({
   useClaimFab(embedded && focused && access.canManage, t.company.workAdd, openAdd);
   const fieldTask = tasks.find((task) => task.id === field?.taskId);
   const statusTask = tasks.find((task) => task.id === statusId);
+  const body = (
+    <>
+      {header}
+      <ScenicBody flush={embedded || !!memberId}>
+        <ReadOnlyWhenSuspended groupId={id}>
+          {!access.enabled ? (
+            <Text tone="muted">{t.company.attendanceEmpty}</Text>
+          ) : (
+            <>
+              {memberId && access.canManage && allowedPerson(memberId) ? (
+                <Button label={t.company.workAdd} onPress={openAdd} disabled={busy} />
+              ) : null}
+              <WorkToolbar
+                mode={access.canManage ? mode : null}
+                onMode={setMode}
+                query={query}
+                onQueryChange={setQuery}
+                onMore={(a) => setMoreAnchor(a ?? 'open')}
+              />
+              <WorkTaskSections
+                groupId={id}
+                sections={grouped.sections}
+                done={grouped.done}
+                mode={access.canManage ? mode : 'date'}
+                today={today}
+                people={people}
+                locale={locale}
+                canManage={access.canManage}
+                busy={busy}
+                canChange={canChange}
+                onChangeStatus={changeStatus}
+                onOpen={(task) =>
+                  access.canManage && canChange(task)
+                    ? setDraft(payload(task))
+                    : setStatusId(task.id)
+                }
+                onMenu={(task, anchor) => setMenu({ id: task.id, anchor })}
+                siteName={(projectId) =>
+                  projects.find((project) => project.id === projectId)?.name ?? ''
+                }
+                empty={emptyTasksState({
+                  search: query,
+                  scope,
+                  teamTasks: tasks.filter((task) => canChangeTask(task, { ...who, enabled: true })),
+                })}
+                query={query}
+                onShowTeam={() => setScope('team')}
+                onAdd={access.canManage && access.people.length > 0 ? openAdd : undefined}
+              />
+            </>
+          )}
+          {error ? <Text tone="negative">{t.company.workSaveError}</Text> : null}
+        </ReadOnlyWhenSuspended>
+      </ScenicBody>
+    </>
+  );
   return (
     <>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance + 80 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        {header}
-        <ScenicBody flush={embedded}>
-          <ReadOnlyWhenSuspended groupId={id}>
-            {!access.enabled ? (
-              <Text tone="muted">{t.company.attendanceEmpty}</Text>
-            ) : (
-              <>
-                <WorkToolbar
-                  mode={access.canManage ? mode : null}
-                  onMode={setMode}
-                  query={query}
-                  onQueryChange={setQuery}
-                  onMore={(a) => setMoreAnchor(a ?? 'open')}
-                />
-                <WorkTaskSections
-                  groupId={id}
-                  sections={grouped.sections}
-                  done={grouped.done}
-                  mode={access.canManage ? mode : 'date'}
-                  today={today}
-                  people={people}
-                  locale={locale}
-                  canManage={access.canManage}
-                  busy={busy}
-                  canChange={canChange}
-                  onChangeStatus={changeStatus}
-                  onOpen={(task) =>
-                    access.canManage && canChange(task)
-                      ? setDraft(payload(task))
-                      : setStatusId(task.id)
-                  }
-                  onMenu={(task, anchor) => setMenu({ id: task.id, anchor })}
-                  siteName={(projectId) =>
-                    projects.find((project) => project.id === projectId)?.name ?? ''
-                  }
-                  empty={emptyTasksState({
-                    search: query,
-                    scope,
-                    teamTasks: tasks.filter((task) =>
-                      canChangeTask(task, { ...who, enabled: true }),
-                    ),
-                  })}
-                  query={query}
-                  onShowTeam={() => setScope('team')}
-                  onAdd={access.canManage && access.people.length > 0 ? openAdd : undefined}
-                />
-              </>
-            )}
-            {error ? <Text tone="negative">{t.company.workSaveError}</Text> : null}
-          </ReadOnlyWhenSuspended>
-        </ScenicBody>
-      </ScrollView>
+      {memberId ? (
+        body
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: clearance + 80 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {body}
+        </ScrollView>
+      )}
       <OverflowMenu
         visible={menu !== null}
         onClose={() => setMenu(null)}
@@ -319,7 +333,9 @@ export default function DailyWorkView({
         visible={addOpen}
         onClose={() => setAddOpen(false)}
         people={access.people}
-        defaultMemberIds={access.people.length === 1 ? access.people.map((p) => p.id) : []}
+        defaultMemberIds={
+          memberId ? [memberId] : access.people.length === 1 ? access.people.map((p) => p.id) : []
+        }
         today={today}
       />
       <WorkFiltersAndDraftSheet

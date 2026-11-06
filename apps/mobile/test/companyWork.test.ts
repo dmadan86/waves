@@ -98,6 +98,29 @@ describe('company work helpers', () => {
       ['a', 2, 2],
     ]);
   });
+  it('groups by status: blocked, in progress, to do, done; old done stays in the tail', () => {
+    const mk = (id: string, day: string, status: MirrorWorkTask['status']) => ({
+      ...task(id, status),
+      day,
+    });
+    const out = groupWorkTasks(
+      [
+        mk('1', '2026-10-31', 'todo'),
+        mk('2', '2026-10-31', 'done'),
+        mk('3', '2026-10-30', 'blocked'),
+        mk('4', '2026-10-30', 'done'),
+        mk('5', '2026-11-01', 'doing'),
+      ],
+      { mode: 'status', today: '2026-10-31' },
+    );
+    expect(out.sections.map((s) => [s.ref, s.tasks.map((x) => x.id)])).toEqual([
+      ['blocked', ['3']],
+      ['doing', ['5']],
+      ['todo', ['1']],
+      ['done', ['2']],
+    ]);
+    expect(out.done.map((x) => x.id)).toEqual(['4']);
+  });
   it('lets a deadline run two years ahead', () => {
     expect(maxTaskDay('2026-10-31')).toBe('2028-10-30');
   });

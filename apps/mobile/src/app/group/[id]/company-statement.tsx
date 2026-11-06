@@ -43,6 +43,7 @@ import {
   RateTile,
   type EmployeeTab,
 } from '@/components/company/employee/EmployeeTabs';
+import DailyWorkView from '@/components/company/work/DailyWorkView';
 import { ScenicBody, ScenicHeader, SegmentedPills, StandardCard } from '@/components/standard';
 import { canSetEmployment, isNotEmployed } from '@/data/companyEmployment';
 import { canSetEmploymentType } from '@/data/companyPeople';
@@ -278,6 +279,11 @@ export default function CompanyStatementScreen() {
             label: t.company.attendanceTitle,
             icon: 'calendar-outline' as const,
           },
+          {
+            value: 'tasks' as const,
+            label: t.company.teamTabTasks,
+            icon: 'checkbox-outline' as const,
+          },
         ]
       : []),
     { value: 'expenses' as const, label: t.company.expenses, icon: 'receipt-outline' as const },
@@ -380,6 +386,9 @@ export default function CompanyStatementScreen() {
                   month={attMonth}
                   onMonth={setAttMonth}
                 />
+              ) : null}
+              {tab === 'tasks' && showAttendance ? (
+                <DailyWorkView groupId={groupId} memberId={member.id} />
               ) : null}
               {tab === 'expenses' ? (
                 <CompanyStatementView
