@@ -13,7 +13,7 @@ import { monthCounts } from '@/data/employeeDetail';
 import { useAttendance } from '@/data/companyWorkday';
 import { fill, plural, useStrings } from '@/i18n';
 
-export type EmployeeTab = 'overview' | 'attendance' | 'expenses' | 'details';
+export type EmployeeTab = 'overview' | 'attendance' | 'tasks' | 'expenses' | 'details';
 
 type Icon = keyof typeof Ionicons.glyphMap;
 

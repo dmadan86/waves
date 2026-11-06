@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
-import TeamScreen from '@/components/company/work/TeamScreen';
+import TasksScreen from '@/components/company/work/TasksScreen';
 export default function CompanyWorkScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
-  return <TeamScreen groupId={id} initialTab="work" />;
+  return <TasksScreen groupId={id} />;
 }

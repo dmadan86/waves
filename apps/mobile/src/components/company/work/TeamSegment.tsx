@@ -1,29 +1,23 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 import { Text, useTheme } from '@waves/ui';
-import { useWorkdayCounts } from '@/data/companyWorkday';
 import { useStrings } from '@/i18n';
 
-export type TeamTab = 'people' | 'attendance' | 'work';
+export type TeamTab = 'people' | 'attendance';
 
-/** The white People | Attendance | Tasks switch that rides over the foot of the header. */
+/** The white People | Attendance switch under the company header. */
 export function TeamSegment({
-  groupId,
   value,
   onChange,
 }: {
-  groupId: string;
   value: TeamTab;
   onChange: (tab: TeamTab) => void;
 }) {
   const theme = useTheme(),
     { t } = useStrings();
-  // A red dot on Tasks while any task today is blocked.
-  const attention = useWorkdayCounts(groupId).blocked > 0;
   const items: { tab: TeamTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
     { tab: 'people', label: t.company.barPeople, icon: 'people' },
     { tab: 'attendance', label: t.company.attendanceTitle, icon: 'person-circle' },
-    { tab: 'work', label: t.company.teamTabTasks, icon: 'checkbox-outline' },
   ];
   return (
     <View
@@ -61,17 +55,6 @@ export function TeamSegment({
             <Text numberOfLines={1} style={{ color: ink, fontWeight: '700', flexShrink: 1 }}>
               {label}
             </Text>
-            {tab === 'work' && attention ? (
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: theme.color.negative,
-                  marginTop: -8,
-                }}
-              />
-            ) : null}
           </Pressable>
         );
       })}

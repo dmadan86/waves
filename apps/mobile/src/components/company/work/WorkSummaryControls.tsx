@@ -1,6 +1,13 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { iconSize, useTheme } from '@waves/ui';
 import { GREEN } from '@/components/company/dashboard/parts';
 import { RED } from '@/components/company/dashboard/overviewKit';
@@ -109,18 +116,25 @@ export function WorkToolbar({
     );
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      <View style={{ flex: 1, minWidth: 0, flexDirection: 'row', gap: 6 }}>
+      {/* Three pills can outgrow a narrow screen in longer languages: scroll rather than clip. */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flex: 1, minWidth: 0 }}
+        contentContainerStyle={{ gap: 6 }}
+      >
         {mode ? (
           <SegmentedPills
             options={[
               { value: 'date' as WorkMode, label: t.company.workByDate },
               { value: 'person' as WorkMode, label: t.company.workByPerson },
+              { value: 'status' as WorkMode, label: t.company.workByStatus },
             ]}
             value={mode}
             onChange={onMode}
           />
         ) : null}
-      </View>
+      </ScrollView>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t.company.workSearch}

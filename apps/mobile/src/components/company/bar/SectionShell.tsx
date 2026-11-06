@@ -42,7 +42,7 @@ export function SectionShell({
   editing?: boolean;
   /** Replaces the default owner line (employee, manager and owner counts). */
   subtitle?: string;
-  /** Team: a fixed segment under the header; children then scroll themselves. */
+  /** Team: a fixed segment under the header; children then scroll themselves. `null`: no segment, same fixed body (Tasks). */
   segment?: ReactNode;
   /** Team: the round ••• menu in the header (also drops the back arrow and subtitle). */
   menuItems?: readonly OverflowMenuItem[];
@@ -88,13 +88,11 @@ export function SectionShell({
       }
     />
   );
-  if (segment)
+  if (segment !== undefined)
     return (
       <Screen edges={[]}>
         {header}
-        <View style={{ marginTop: -22, paddingHorizontal: theme.spacing.lg, zIndex: 1 }}>
-          {segment}
-        </View>
+        <View style={{ paddingHorizontal: theme.spacing.lg }}>{segment}</View>
         <View style={{ flex: 1 }}>{children}</View>
       </Screen>
     );

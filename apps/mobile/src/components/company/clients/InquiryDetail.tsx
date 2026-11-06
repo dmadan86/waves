@@ -200,7 +200,8 @@ export function InquiryDetail({ groupId, inquiryId }: { groupId: string; inquiry
                 </StandardCard>
               ) : null}
               <View style={{ gap: theme.spacing.sm }}>
-                {docsAllowed && status !== 'rejected' ? (
+                {/* Won: the bill above is the next step, so no new estimate and no rejecting. */}
+                {docsAllowed && status !== 'rejected' && status !== 'won' ? (
                   <Button
                     label={s.inqCreateEstimate}
                     variant="brand"
@@ -211,7 +212,7 @@ export function InquiryDetail({ groupId, inquiryId }: { groupId: string; inquiry
                     }
                   />
                 ) : null}
-                {canWrite && status !== 'rejected' ? (
+                {canWrite && status !== 'rejected' && status !== 'won' ? (
                   <Button
                     label={s.inqReject}
                     variant="secondary"
