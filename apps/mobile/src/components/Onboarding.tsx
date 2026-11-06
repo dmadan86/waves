@@ -149,17 +149,15 @@ export function IntroCards({
             title={copy.title}
             body={copy.body}
             appName={t.common.appName}
-            skipLabel={skipLabel}
             width={width}
             height={height}
             rtl={rtl}
             topInset={insets.top}
             bottomInset={insets.bottom}
-            onSkip={onDone}
           />
         );
       }),
-    [SLIDES, COPY, skipLabel, rtl, t, width, height, insets.top, insets.bottom, onDone],
+    [SLIDES, COPY, rtl, t, width, height, insets.top, insets.bottom],
   );
 
   return (
@@ -172,6 +170,44 @@ export function IntroCards({
       >
         {cards}
       </TourPager>
+
+      {/* Skip sits over the pager, like the arrow: a Pressable inside an
+          Android ViewPager2 page never got its tap. */}
+      <View
+        pointerEvents="box-none"
+        style={{
+          position: 'absolute',
+          top: insets.top + theme.spacing.md,
+          left: theme.spacing.xxxl,
+          right: theme.spacing.xxxl,
+          height: 28,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          direction: rtl ? 'rtl' : 'ltr',
+        }}
+      >
+        <Pressable
+          onPress={onDone}
+          testID="intro-skip"
+          accessibilityRole="button"
+          accessibilityLabel={skipLabel}
+          hitSlop={12}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}
+        >
+          <Text
+            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
+            style={{ fontSize: 14, color: SLIDES[index]?.ink, fontWeight: '600' }}
+          >
+            {skipLabel}
+          </Text>
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.sm}
+            color={SLIDES[index]?.ink}
+          />
+        </Pressable>
+      </View>
 
       {/* The dots and the next arrow are the only things that track which card
           is showing, so they live here as one overlay rather than a copy baked
@@ -266,25 +302,21 @@ const SlideCard = memo(function SlideCard({
   title,
   body,
   appName,
-  skipLabel,
   width,
   height,
   rtl,
   topInset,
   bottomInset,
-  onSkip,
 }: {
   slide: IntroSlide;
   title: string;
   body: string;
   appName: string;
-  skipLabel: string;
   width: number;
   height: number;
   rtl: boolean;
   topInset: number;
   bottomInset: number;
-  onSkip: () => void;
 }) {
   const theme = useTheme();
   const { ink, inkMuted } = slide;
@@ -324,25 +356,6 @@ const SlideCard = memo(function SlideCard({
         >
           {appName}
         </Text>
-        {/* Skip carries the card's own ink, so it reads on every card. A
-            chevron makes it look like the shortcut it is, and it mirrors with
-            the layout. */}
-        <Pressable
-          onPress={onSkip}
-          testID="intro-skip"
-          accessibilityRole="button"
-          accessibilityLabel={skipLabel}
-          hitSlop={12}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}
-        >
-          <Text
-            maxFontSizeMultiplier={COMPACT_TYPE_CAP}
-            style={{ fontSize: 14, color: ink, fontWeight: '600' }}
-          >
-            {skipLabel}
-          </Text>
-          <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={ink} />
-        </Pressable>
       </View>
 
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
