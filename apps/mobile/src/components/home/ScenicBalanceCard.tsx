@@ -140,6 +140,7 @@ export function HomeBalanceCard({
                 color={theme.color.text}
                 fontSize={AMOUNT_STYLE.fontSize}
                 weight="800"
+                wholeUnits
               />
             )}
           </View>

@@ -13,6 +13,8 @@ export interface FormatOptions {
   locale?: Locale;
   /** Render the sign explicitly (+₹420). Negatives always show their sign. */
   signDisplay?: 'auto' | 'always' | 'never';
+  /** Round to whole units (₹2,09,256), for a single headline total — never a list column. */
+  whole?: boolean;
 }
 
 const DEFAULT_LOCALE: Locale = 'en-IN';
@@ -63,14 +65,14 @@ export function formatParts(amount: Money, options: FormatOptions = {}): MoneyPa
 }
 
 function parts(amount: Money, options: FormatOptions): Intl.NumberFormatPart[] {
-  const { locale = DEFAULT_LOCALE, signDisplay = 'auto' } = options;
+  const { locale = DEFAULT_LOCALE, signDisplay = 'auto', whole = false } = options;
   // Always the currency's own number of minor digits, whole amount or not.
   // There used to be an option to drop `.00`, and in a list it misreads: a
   // column of ₹24,182.42 and ₹80,100 invites the eye to line up 80,100 with
   // 24,182 and lose a digit, and the faint-fraction styling makes the short
   // one look truncated rather than round. A currency with no minor unit (JPY)
   // is unaffected — its exponent is already 0.
-  const fractionDigits = minorUnitExponent(amount.currency);
+  const fractionDigits = whole ? 0 : minorUnitExponent(amount.currency);
 
   const magnitude = signDisplay === 'never' && amount.minor < 0n ? -amount.minor : amount.minor;
 
@@ -101,6 +103,18 @@ function parts(amount: Money, options: FormatOptions): Intl.NumberFormatPart[] {
  */
 const formatters = new Map<string, Intl.NumberFormat>();
 
+/**
+ * Rupees read in lakhs (₹2,09,256) whatever region the phone is set to: an
+ * en-US or en-GB phone would otherwise print ₹209,256. The language stays the
+ * reader's; only the region moves to IN. Arabic keeps its own locale, whose
+ * digits an IN region could change.
+ */
+export function rupeeLocale(locale: Locale, currency: CurrencyCode): Locale {
+  if (currency !== 'INR') return locale;
+  const language = locale.split(/[-_]/)[0]?.toLowerCase() ?? '';
+  return !language || language === 'ar' ? locale : `${language}-IN`;
+}
+
 function currencyFormatter(
   locale: Locale,
   currency: CurrencyCode,
@@ -110,7 +124,7 @@ function currencyFormatter(
   const key = `${locale}|${currency}|${fractionDigits}|${signDisplay}`;
   let formatter = formatters.get(key);
   if (!formatter) {
-    formatter = new Intl.NumberFormat(locale, {
+    formatter = new Intl.NumberFormat(rupeeLocale(locale, currency), {
       style: 'currency',
       currency,
       minimumFractionDigits: fractionDigits,
