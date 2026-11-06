@@ -505,12 +505,34 @@ function HomeScreen() {
             paddingBottom: HERO_OVERLAP + theme.spacing.xs,
           }}
         >
-          {/* The bell and the menu, right-aligned; the greeting sits under them. */}
+          {/* The greeting at the start, the bell and the menu at the end, on one row. */}
           <Row
             onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
             style={{ alignItems: 'center', gap: theme.spacing.md }}
           >
-            <View style={{ flex: 1 }} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.profile}
+              onPress={() => router.navigate('/profile')}
+              hitSlop={8}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: heroInk,
+                  fontSize: 20,
+                  lineHeight: 26,
+                  fontWeight: '700',
+                  // White on a photograph: a soft shadow keeps it legible on bright skies.
+                  textShadowColor: 'rgba(0,0,0,0.35)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 4,
+                }}
+              >
+                {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
+              </Text>
+            </Pressable>
             <HeroIconButton
               icon="notifications-outline"
               label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
@@ -525,17 +547,6 @@ function HomeScreen() {
               ink={heroInk}
             />
           </Row>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.profile}
-            onPress={() => router.navigate('/profile')}
-            hitSlop={8}
-            style={{ marginTop: theme.spacing.sm }}
-          >
-            <Text style={{ color: heroInk, opacity: 0.9 }}>
-              {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
-            </Text>
-          </Pressable>
         </View>
 
         {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
