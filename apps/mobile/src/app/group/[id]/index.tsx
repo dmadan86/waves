@@ -264,21 +264,26 @@ interface ExpenseSection<T> {
 }
 
 /**
- * Cluster the feed into month sections without reordering within a month. The
- * list arrives newest-added first; we bucket by the month of each expense's
- * date so all of November sits together under one heading, in first-seen order,
- * rather than repeating the heading every time the created-order interleaves two
- * months. Undated rows (no current version) fall into their own leading bucket.
+ * Cluster the feed into month sections, newest expense date first. The list
+ * arrives newest-added first; a stable sort on the date puts a back-dated bill
+ * in its place (an Oct 13 lunch added today sits under Oct 13, not on top) and
+ * keeps newest-added first among same-day rows. Undated rows (no current
+ * version) trail, in their own bucket.
  */
 function groupExpensesByMonth<T extends { currentVersion: ExpenseVersionRow | null }>(
   items: readonly T[],
 ): ExpenseSection<T>[] {
   const order: string[] = [];
   const buckets = new Map<string, T[]>();
-  for (const item of items) {
+  // ISO dates, so a string compare is a date compare; "" puts undated rows last,
+  // as the web feed (lib/ledgerFeed.ts) does.
+  const dateOf = (item: T) => item.currentVersion?.expense_date ?? '';
+  const byDate = [...items].sort((a, b) =>
+    dateOf(a) < dateOf(b) ? 1 : dateOf(a) > dateOf(b) ? -1 : 0,
+  );
+  for (const item of byDate) {
     const date = item.currentVersion?.expense_date ?? null;
-    // "YYYY-MM" groups a calendar month; "~" is the sortless bucket for the rare
-    // undated row, kept out of the way at its natural position.
+    // "YYYY-MM" groups a calendar month; "~" is the bucket for the rare undated row.
     const key = date ? date.slice(0, 7) : '~';
     let bucket = buckets.get(key);
     if (!bucket) {
