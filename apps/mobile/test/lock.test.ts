@@ -1,6 +1,5 @@
 /**
- * The one app lock, driven through its provider: on by default where the device
- * can lock, locked on a cold start of a signed-in app, never right after a
+ * The one app lock, driven through its provider: off until the user says yes, locked on a cold start of a signed-in app, never right after a
  * sign-in, and re-locked only after being away at least the grace window.
  */
 
@@ -107,15 +106,31 @@ beforeEach(() => {
 });
 
 describe('the app lock', () => {
-  it('is on by default and locks a signed-in cold start', async () => {
+  it('is off until asked, and asks a signed-in cold start once', async () => {
     const { value } = await mountLock();
     expect(value()).toMatchObject({
-      enabled: true,
-      locked: true,
+      enabled: false,
+      locked: false,
+      shouldAsk: true,
       supported: true,
       ready: true,
       graceSeconds: DEFAULT_GRACE_SECONDS,
     });
+
+    // "Not now": stored as a no, with no fingerprint check for a lock that is already off.
+    await value().setEnabled(false);
+    expect(env.authCalls).toHaveLength(0);
+    expect(env.secure.get('waves.app_lock_enabled')).toBe('false');
+    expect(value().shouldAsk).toBe(false);
+  });
+
+  it('does not ask on the launch somebody signs in on', async () => {
+    env.userId = null;
+    const { view, value } = await mountLock();
+    env.userId = 'u2';
+    view.rerender();
+    await flush();
+    expect(value().shouldAsk).toBe(false);
   });
 
   it('respects an explicit off, and stays off with nothing to unlock with', async () => {
@@ -132,6 +147,7 @@ describe('the app lock', () => {
     expect((await mountLock()).value()).toMatchObject({ enabled: false, supported: false });
 
     env.level = 1; // a device passcode alone is enough
+    env.secure.set('waves.app_lock_enabled', 'true');
     expect((await mountLock()).value()).toMatchObject({ enabled: true, supported: true });
   });
 
@@ -147,6 +163,7 @@ describe('the app lock', () => {
   });
 
   it('does not carry a cold-start lock across sign-out and back in', async () => {
+    env.secure.set('waves.app_lock_enabled', 'true');
     const { view, value } = await mountLock();
     expect(value().locked).toBe(true);
 

@@ -17,11 +17,11 @@ export function canDeviceLock(
 }
 
 /**
- * Default ON. Only an explicit stored "false" (the user turned it off) wins;
- * anything else - nothing stored, or "true" - follows what the device can do.
+ * Default OFF: on only after the user said yes (the one-time ask, or Settings).
+ * Nothing stored means "not asked yet", which `LockPrompt` turns into a question.
  */
 export function resolveLockEnabled(stored: string | null, canLock: boolean): boolean {
-  return canLock && stored !== 'false';
+  return canLock && stored === 'true';
 }
 
 /** Back from being away: ask again once the absence reaches the grace window. */

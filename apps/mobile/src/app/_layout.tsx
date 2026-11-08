@@ -47,6 +47,7 @@ import { AppTabBar } from '@/components/AppTabBar';
 import { LanguageRestartPrompt } from '@/components/LanguageRestartPrompt';
 import { TransferProgressBar } from '@/components/TransferProgressBar';
 import { CampaignPopup } from '@/components/CampaignPopup';
+import { LockPrompt } from '@/components/LockPrompt';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
 import { PhoneLinkPrompt } from '@/components/PhoneLinkPrompt';
 import { TourOverlay } from '@/components/TourOverlay';
@@ -358,6 +359,8 @@ function RootLayout() {
                                         signed-in person whose permission is
                                         still undetermined. */}
                                               <NotificationPrompt />
+                                              {/* The one-time ask to turn the app lock on. */}
+                                              <LockPrompt />
                                               {/* The ask to add a phone number, so
                                         friends can find this account. */}
                                               <PhoneLinkPrompt />
