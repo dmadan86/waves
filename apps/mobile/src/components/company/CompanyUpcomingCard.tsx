@@ -25,7 +25,10 @@ const icons: Record<CalendarItem['subKind'], keyof typeof Ionicons.glyphMap> = {
 export function CompanyUpcomingCard({ groupId }: { groupId: string }) {
   const { t, locale } = useStrings();
   const theme = useTheme();
-  const items = useUpcomingItems(groupId, 5);
+  // Money dates only, so "See all" (the Upcoming screen) lists everything this card shows.
+  const items = useUpcomingItems(groupId, 400)
+    .filter((item) => item.kind === 'money')
+    .slice(0, 5);
   const company = useCompanyEntries(groupId);
   if (!items.length) return null;
   return (
@@ -34,7 +37,7 @@ export function CompanyUpcomingCard({ groupId }: { groupId: string }) {
         title={t.calendar.comingUp}
         action={{
           label: t.calendar.seeAll,
-          onPress: () => router.push(`/group/${groupId}/company-calendar`),
+          onPress: () => router.push(`/group/${groupId}/company-upcoming`),
         }}
       />
       <StandardCard>
