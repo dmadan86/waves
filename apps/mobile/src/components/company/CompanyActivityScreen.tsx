@@ -11,7 +11,7 @@ import { SegmentedPills, StandardCard } from '@/components/standard';
 import { useCompanyActivity } from '@/data/companyActivity';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
-import { useStrings } from '@/i18n';
+import { plural, useStrings } from '@/i18n';
 import { groupByDay, localDay, type ActivityGroup } from '@/lib/companyActivity';
 import { markCompanyActivitySeen } from '@/lib/companyActivitySeen';
 import { showDate } from '@/lib/expenseDay';
@@ -73,9 +73,27 @@ export function CompanyActivityScreen({ groupId }: { groupId: string }) {
         ) : null}
         {shown.map((d) => (
           <View key={d.day} style={{ gap: theme.spacing.sm }}>
-            <Text variant="caption" tone="muted">
-              {dayLabel(d.day)}
-            </Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Text variant="body" style={{ fontWeight: '700' }}>
+                {dayLabel(d.day)}
+              </Text>
+              <View
+                style={{
+                  backgroundColor: theme.color.surfaceMuted,
+                  borderRadius: 999,
+                  paddingHorizontal: theme.spacing.md,
+                  paddingVertical: 4,
+                }}
+              >
+                <Text variant="micro">{plural(locale, d.events.length, a.dayCount)}</Text>
+              </View>
+            </View>
             <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 4 }}>
               <ActivityRows groupId={groupId} events={d.events} currency={view.currency} />
             </StandardCard>

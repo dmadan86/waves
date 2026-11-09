@@ -351,6 +351,7 @@ export function ListRow({
   repeatable = true,
   accessibilityRole = 'button',
   accessibilityState,
+  accessibilityLabel,
 }: {
   /** Compact single-line choices keep a 44dp touch target. */
   compact?: boolean;
@@ -360,6 +361,8 @@ export function ListRow({
   repeatable?: boolean;
   accessibilityRole?: AccessibilityRole;
   accessibilityState?: AccessibilityState;
+  /** What a screen reader says for the row, when the footer carries words the default leaves out. */
+  accessibilityLabel?: string;
   leading?: ReactNode;
   title: string;
   subtitle?: string;
@@ -384,9 +387,11 @@ export function ListRow({
 }) {
   const theme = useTheme();
   const press = useSingleAction(onPress, { repeatable });
-  const spoken = [title, subtitle, amount, percent !== undefined ? `${percent}%` : null]
-    .filter(Boolean)
-    .join(', ');
+  const spoken =
+    accessibilityLabel ??
+    [title, subtitle, amount, percent !== undefined ? `${percent}%` : null]
+      .filter(Boolean)
+      .join(', ');
   const rowStyle = {
     alignItems: 'center',
     gap: theme.spacing.md,
