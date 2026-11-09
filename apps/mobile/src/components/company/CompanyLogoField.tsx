@@ -57,7 +57,8 @@ interface Props {
   busy?: boolean;
   /** Return an error message to show inline, or null when it worked. */
   onImage: (image: PickedImage) => Promise<string | null> | string | null;
-  onRemove?: () => void;
+  /** May return an error message to show inline, like `onImage`. */
+  onRemove?: () => void | string | null | Promise<string | null | void>;
 }
 
 export function CompanyLogoField({
@@ -148,7 +149,13 @@ export function CompanyLogoField({
             {chip(t.company.logoUpload, 'image-outline', pick('library'))}
             {chip(t.company.takePhoto, 'camera-outline', pick('camera'))}
             {chip(t.company.logoLink, 'link-outline', () => setLinkOpen((open) => !open))}
-            {has && onRemove ? chip(t.company.logoRemove, 'trash-outline', onRemove) : null}
+            {has && onRemove
+              ? chip(
+                  t.company.logoRemove,
+                  'trash-outline',
+                  () => void run(async () => (await onRemove()) ?? null),
+                )
+              : null}
           </View>
         </View>
       </View>
