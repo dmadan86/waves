@@ -8,7 +8,8 @@
 
 import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import {
   advanceRecovered,
@@ -19,7 +20,7 @@ import {
   type CompanyEntry,
   type CurrencyCode,
 } from '@waves/core';
-import { Button, Text, useTheme } from '@waves/ui';
+import { Button, iconSize, Text, useTheme } from '@waves/ui';
 
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { kindLabel } from '@/components/company/CompanyStatementView';
@@ -83,6 +84,17 @@ export default function CompanyEntryViewScreen() {
         ? t.company.rejected
         : t.company.statusApproved;
 
+  const banner =
+    entry?.status === 'submitted'
+      ? { bg: theme.color.warningSoft, fg: theme.color.warning, icon: 'time' as const }
+      : entry?.status === 'rejected'
+        ? { bg: theme.color.negativeSoft, fg: theme.color.negative, icon: 'close-circle' as const }
+        : {
+            bg: theme.color.positiveSoft,
+            fg: theme.color.positive,
+            icon: 'checkmark-circle' as const,
+          };
+
   const run = async (work: () => Promise<unknown>, scope: string): Promise<void> => {
     setError(null);
     try {
@@ -118,43 +130,88 @@ export default function CompanyEntryViewScreen() {
         <ScenicBody>
           {entry ? (
             <>
-              <StandardCard>
-                <ListRow
-                  title={kindLabel(t, entry, tagLabel)}
-                  subtitle={[
-                    entry.paidByCompany
-                      ? t.company.companyPayer
-                      : view.isAdmin && owner
-                        ? displayName(owner, null, null, t.misc.someone)
-                        : null,
-                    showDate(entry.occurredOn, locale),
-                    projects.find((p) => p.id === entry.projectId)?.name,
-                    entry.calcMode === 'days_rate' && entry.days && entry.rateMinor !== null
-                      ? fill(t.company.daysAt, { days: entry.days, rate: fmt(entry.rateMinor) })
-                      : null,
-                    entry.calcMode === 'distance_rate' &&
-                    entry.distanceKm &&
-                    entry.rateMinor !== null
-                      ? fill(t.company.mileageAt, {
-                          km: entry.distanceKm,
-                          rate: fmt(entry.rateMinor),
-                        })
-                      : null,
-                    entry.fromText || entry.toText
-                      ? `${entry.fromText ?? ''} - ${entry.toText ?? ''}`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                  subtitleLines={2}
-                  amount={fmt(entry.amount)}
-                  divider
-                />
-                <ListRow
-                  title={status}
-                  subtitle={entry.status === 'submitted' ? t.company.notCounted : undefined}
-                  divider={!!entry.note || !!entry.reviewNote}
-                />
+              <StandardCard style={{ gap: theme.spacing.md }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+                  <View
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: theme.radius.md,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Ionicons name="cash-outline" size={iconSize.lg} color={theme.color.brand} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text variant="subheading" numberOfLines={1}>
+                      {kindLabel(t, entry, tagLabel)}
+                    </Text>
+                    <Text variant="caption" tone="muted" numberOfLines={2}>
+                      {[
+                        entry.paidByCompany
+                          ? t.company.companyPayer
+                          : view.isAdmin && owner
+                            ? displayName(owner, null, null, t.misc.someone)
+                            : null,
+                        showDate(entry.occurredOn, locale),
+                        projects.find((p) => p.id === entry.projectId)?.name,
+                        entry.calcMode === 'days_rate' && entry.days && entry.rateMinor !== null
+                          ? fill(t.company.daysAt, { days: entry.days, rate: fmt(entry.rateMinor) })
+                          : null,
+                        entry.calcMode === 'distance_rate' &&
+                        entry.distanceKm &&
+                        entry.rateMinor !== null
+                          ? fill(t.company.mileageAt, {
+                              km: entry.distanceKm,
+                              rate: fmt(entry.rateMinor),
+                            })
+                          : null,
+                        entry.fromText || entry.toText
+                          ? `${entry.fromText ?? ''} - ${entry.toText ?? ''}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+
+                        .join(' • ')}
+                    </Text>
+                  </View>
+                  <View
+                    style={{
+                      paddingHorizontal: theme.spacing.md,
+                      paddingVertical: theme.spacing.sm,
+                      borderRadius: theme.radius.md,
+                      backgroundColor: theme.color.brandSoft,
+                    }}
+                  >
+                    <Text variant="heading" tone="brand" tabular>
+                      {fmt(entry.amount)}
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.sm,
+                    padding: theme.spacing.md,
+                    borderRadius: theme.radius.md,
+                    backgroundColor: banner.bg,
+                  }}
+                >
+                  <Ionicons name={banner.icon} size={iconSize.lg} color={banner.fg} />
+                  <View style={{ flex: 1 }}>
+                    <Text variant="subheading" style={{ color: banner.fg }}>
+                      {status}
+                    </Text>
+                    {entry.status === 'submitted' ? (
+                      <Text variant="caption" tone="muted">
+                        {t.company.notCounted}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
                 {paidOn ? (
                   <ListRow
                     title={fill(t.company.reimbursedOn, { date: showDate(paidOn, locale) })}
@@ -196,12 +253,22 @@ export default function CompanyEntryViewScreen() {
                   />
                 ) : null}
                 {entry.note ? (
-                  <ListRow
-                    title={t.company.formNote}
-                    subtitle={entry.note}
-                    subtitleLines={4}
-                    divider={!!entry.reviewNote}
-                  />
+                  <View style={{ gap: theme.spacing.xs }}>
+                    <Text variant="caption" tone="muted">
+                      {t.company.formNote}
+                    </Text>
+                    <View
+                      style={{
+                        padding: theme.spacing.md,
+                        borderRadius: theme.radius.md,
+                        borderWidth: 1,
+                        borderColor: theme.color.border,
+                        backgroundColor: theme.color.surfaceMuted,
+                      }}
+                    >
+                      <Text>{entry.note}</Text>
+                    </View>
+                  </View>
                 ) : null}
                 {entry.reviewNote ? (
                   <ListRow
@@ -214,9 +281,7 @@ export default function CompanyEntryViewScreen() {
 
               {entry.pending ? null : (
                 <StandardCard style={{ gap: theme.spacing.sm }}>
-                  <Text variant="caption" tone="muted">
-                    {t.company.photos}
-                  </Text>
+                  <Text variant="subheading">{t.company.photos}</Text>
                   <CompanyEntryPhotos
                     groupId={groupId}
                     entryId={entry.id}
@@ -267,12 +332,25 @@ export default function CompanyEntryViewScreen() {
                 </View>
               ) : null}
               {canWithdraw ? (
-                <Button
-                  label={t.company.removeEntry}
-                  variant="ghost"
-                  fullWidth
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.company.removeEntry}
                   onPress={() => void withdraw()}
-                />
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: theme.spacing.sm,
+                    minHeight: 48,
+                    borderRadius: theme.radius.md,
+                    backgroundColor: theme.color.negativeSoft,
+                  }}
+                >
+                  <Ionicons name="trash-outline" size={iconSize.md} color={theme.color.negative} />
+                  <Text variant="subheading" tone="negative">
+                    {t.company.removeEntry}
+                  </Text>
+                </Pressable>
               ) : null}
               {view.isAdmin && flags.some((f) => f.effect === 'block') ? (
                 <Text variant="caption" tone="negative">
@@ -286,9 +364,23 @@ export default function CompanyEntryViewScreen() {
                   {error}
                 </Text>
               ) : null}
-              <Text variant="micro" tone="muted" align="center">
-                {view.isAdmin ? t.company.privacyAdmin : t.company.privacyEmployee}
-              </Text>
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: theme.spacing.xs,
+                }}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={iconSize.sm}
+                  color={theme.color.textMuted}
+                />
+                <Text variant="micro" tone="muted" style={{ flexShrink: 1 }}>
+                  {view.isAdmin ? t.company.privacyAdmin : t.company.privacyEmployee}
+                </Text>
+              </View>
             </>
           ) : view.ready ? (
             <Text variant="caption" tone="muted">
