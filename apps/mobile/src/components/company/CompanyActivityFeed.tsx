@@ -3,10 +3,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
-import { Text, iconSize, useTheme } from '@waves/ui';
+import { Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
 
 import { SectionCard, useMoney, GREEN, BLUE } from '@/components/company/dashboard/parts';
-import { AMBER, IconDisc } from '@/components/company/dashboard/overviewKit';
+import { AMBER, IconDisc, RED } from '@/components/company/dashboard/overviewKit';
 import { ListRow } from '@/components/standard';
 import { useCompanyActivity } from '@/data/companyActivity';
 import { useCompanyEntries } from '@/data/companyEntries';
@@ -44,7 +44,7 @@ export function ActivityRows({
   currency: string;
 }) {
   const theme = useTheme();
-  const { locale } = useStrings();
+  const { t, locale } = useStrings();
   const text = useActivityText();
   const fmt = useMoney(currency);
   const ink: Record<ActivityGroup, string> = {
@@ -57,28 +57,44 @@ export function ActivityRows({
   const time = dateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' });
   return (
     <>
-      {events.map((e, i) => (
-        <ListRow
-          key={e.id}
-          leading={
-            <IconDisc ink={ink[e.group]} size={36}>
-              <Ionicons name={e.icon} size={iconSize.md} color={ink[e.group]} />
-            </IconDisc>
-          }
-          title={text(e)}
-          titleLines={2}
-          subtitle={e.amount ? fmt(e.amount.minor) : undefined}
-          trailing={
-            <View>
-              <Text variant="micro" tone="muted">
-                {time.format(e.at)}
-              </Text>
-            </View>
-          }
-          onPress={() => router.push(`/group/${groupId}/${e.href}`)}
-          divider={i < events.length - 1}
-        />
-      ))}
+      {events.map((e, i) => {
+        // Absent is the one attendance mark that reads as bad news: red, like the mockup.
+        const color = e.group === 'attendance' && e.vars.status === 'absent' ? RED : ink[e.group];
+        return (
+          <ListRow
+            key={e.id}
+            leading={
+              <IconDisc ink={color} size={36}>
+                <Ionicons name={e.icon} size={iconSize.md} color={color} />
+              </IconDisc>
+            }
+            title={fill(t.companyActivity.heads[e.text], e.vars)}
+            subtitle={text(e)}
+            subtitleLines={2}
+            footer={
+              e.amount ? (
+                <Text tabular style={{ fontWeight: '700' }}>
+                  {fmt(e.amount.minor)}
+                </Text>
+              ) : undefined
+            }
+            trailing={
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+                <Text variant="micro" tone="muted">
+                  {time.format(e.at)}
+                </Text>
+                <Ionicons
+                  name={directionalIcon('chevron-forward')}
+                  size={iconSize.sm}
+                  color={theme.color.textFaint}
+                />
+              </View>
+            }
+            onPress={() => router.push(`/group/${groupId}/${e.href}`)}
+            divider={i < events.length - 1}
+          />
+        );
+      })}
     </>
   );
 }
