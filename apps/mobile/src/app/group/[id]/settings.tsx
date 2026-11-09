@@ -475,13 +475,15 @@ function GroupSettingsScreen() {
     }
   };
 
-  const dropPhoto = async (): Promise<void> => {
+  /** Returns the error to show beside the logo (it sits in the Branding sheet, over the page's status line). */
+  const dropPhoto = async (): Promise<string | null> => {
     setStatus(null);
     try {
       await removeGroupPhoto(groupId, group.data?.photo_path ?? null);
       await group.refetch();
+      return null;
     } catch (caught) {
-      setStatus(friendlyError(caught, t.couldNotSave, 'groupSettings.dropPhoto'));
+      return friendlyError(caught, t.couldNotSave, 'groupSettings.dropPhoto');
     }
   };
 
@@ -1609,7 +1611,7 @@ function GroupSettingsScreen() {
             photoPath={group.data.photo_path}
             busy={uploading}
             onImage={saveLogo}
-            onRemove={() => void dropPhoto()}
+            onRemove={dropPhoto}
           />
         </Sheet>
       ) : null}
@@ -1934,7 +1936,7 @@ function GroupSettingsScreen() {
         hasPhoto={Boolean(group.data.photo_path)}
         photoStatus={photoStatus}
         onPickPhoto={() => void changePhoto()}
-        onRemovePhoto={() => void dropPhoto()}
+        onRemovePhoto={() => void dropPhoto().then((message) => message && setStatus(message))}
         onUpgrade={() => router.push('/settings/upgrade')}
       />
 
