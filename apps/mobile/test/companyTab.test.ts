@@ -172,7 +172,7 @@ describe('company bar navigation', () => {
     expect(companyOverviewRoute('a', 'back')).toBe('/group/a?nav=back');
   });
   it('hides the add button on entry, wages, invite and export', () => {
-    for (const s of ['company-entry', 'company-wages', 'invite', 'export'])
+    for (const s of ['company-entry', 'company-wages', 'company-calendar', 'invite', 'export'])
       expect(resolveFab(['group', '[id]', s])).toBe(false);
     expect(resolveFab(['group', '[id]', 'company-people'])).toBe(true);
   });

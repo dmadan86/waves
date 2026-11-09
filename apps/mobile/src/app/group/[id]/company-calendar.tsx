@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
-import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 import { Screen, useTheme } from '@waves/ui';
 import { ScenicBody, ScenicHeader, SegmentedPills } from '@/components/standard';
@@ -27,7 +27,6 @@ import { todayIso } from '@/data/personal';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useBottomClearance } from '@/lib/clearance';
-import { useClaimFab } from '@/lib/fabOverride';
 
 type Filter = 'all' | CalendarKind;
 export default function CompanyCalendarScreen() {
@@ -46,17 +45,7 @@ export default function CompanyCalendarScreen() {
   const { t } = useStrings();
   const theme = useTheme();
   const clearance = useBottomClearance();
-  // The company bar's own round + opens the calendar chooser here, so there is one + on screen.
-  const [focused, setFocused] = useState(false);
-  useFocusEffect(
-    useCallback(() => {
-      setFocused(true);
-      return () => setFocused(false);
-    }, []),
-  );
-  const openChooser = useCallback(() => setChooser(true), []);
   const suspended = useCompanySuspended(id);
-  useClaimFab(focused && !suspended, t.calendar.add, openChooser);
   const access = useCalendarAccess(id);
   const cal = useCalendar(id);
   const allItems = useCalendarItems(id, year, month);
@@ -73,7 +62,7 @@ export default function CompanyCalendarScreen() {
   return (
     <Screen edges={[]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance + 90 }}
+        contentContainerStyle={{ paddingBottom: clearance + theme.spacing.lg }}
         showsVerticalScrollIndicator={false}
       >
         <ScenicHeader title={t.calendar.title} onBack={() => router.back()} />
@@ -108,6 +97,7 @@ export default function CompanyCalendarScreen() {
             groupId={id}
             items={items}
             selectedDay={selectedDay}
+            onAdd={suspended ? undefined : () => setChooser(true)}
             onOpenLeave={(item) => {
               setLeave(item);
             }}
