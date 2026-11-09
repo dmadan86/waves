@@ -1,4 +1,4 @@
-/** Owners, their managers and each manager's team in one tree. Tap a person to manage them. */
+/** Owners, managers and employees of a company, one section each. Tap a person to manage them. */
 
 import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import { ScrollView } from 'react-native';
@@ -21,6 +21,9 @@ import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
 import { useLocalSearchParams } from 'expo-router';
 
+/** Room under the list so the company bar's round + never sits on the last person. */
+const FAB_ROOM = 88;
+
 function CompanyHierarchyScreenInner() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
@@ -28,53 +31,58 @@ function CompanyHierarchyScreenInner() {
   const clearance = useBottomClearance();
   const view = useCompanyEntries(groupId);
   const live = view.members.filter((m) => !m.left_at);
-  const row = (m: MemberRow, pill?: string, sub?: string) => (
-    <ListRow
-      key={m.id}
-      leading={<PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={40} />}
-      title={displayName(m, null, null, t.misc.someone)}
-      titleAccessory={pill ? <RolePill label={pill} /> : undefined}
-      subtitle={[m.employee_id, sub].filter(Boolean).join(' · ') || undefined}
-      onPress={() => router.push(`/group/${groupId}/company-statement?member=${m.id}`)}
-      divider
-    />
-  );
-  const direct = live.filter((m) => m.role === 'member' && !m.manager_id);
+  const owners = live.filter((m) => m.role === 'admin');
+  const managers = live.filter((m) => m.role === 'manager');
+  const employees = live.filter((m) => m.role === 'member');
+
+  const rows = (
+    list: readonly MemberRow[],
+    pill?: string,
+    sub?: (m: MemberRow) => string | undefined,
+  ) =>
+    list.map((m, i) => (
+      <ListRow
+        key={m.id}
+        leading={<PersonAvatar member={m} name={displayName(m)} ghost={isGhost(m)} size={44} />}
+        title={displayName(m, null, null, t.misc.someone)}
+        titleAccessory={pill ? <RolePill label={pill} /> : undefined}
+        subtitle={sub ? sub(m) : (m.employee_id ?? undefined)}
+        onPress={() => router.push(`/group/${groupId}/company-statement?member=${m.id}`)}
+        divider={i < list.length - 1}
+      />
+    ));
+
+  const section = (title: string, list: readonly MemberRow[], body: React.ReactNode) =>
+    list.length > 0 ? (
+      <>
+        <SectionHeader title={`${title} (${list.length})`} />
+        <StandardCard>{body}</StandardCard>
+      </>
+    ) : null;
+
   return (
     <Screen edges={[]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance }}
+        contentContainerStyle={{ paddingBottom: clearance + FAB_ROOM }}
         showsVerticalScrollIndicator={false}
       >
-        <ScenicHeader title={t.company.hierarchyTitle} />
+        <ScenicHeader title={t.company.hierarchyTitle} subtitle={t.company.hierarchySub} />
         <ScenicBody>
           {view.isOwner ? (
             <>
-              <SectionHeader title={t.company.owners} />
-              <StandardCard>
-                {live.filter((m) => m.role === 'admin').map((m) => row(m, t.company.pillOwner))}
-              </StandardCard>
-              {live
-                .filter((m) => m.role === 'manager')
-                .map((mgr) => {
-                  const team = live.filter((m) => m.manager_id === mgr.id);
-                  return (
-                    <StandardCard key={mgr.id}>
-                      {row(
-                        mgr,
-                        t.company.manager,
-                        plural(locale, team.length, t.company.employeeCount),
-                      )}
-                      {team.map((m) => row(m))}
-                    </StandardCard>
-                  );
-                })}
-              {direct.length > 0 ? (
-                <>
-                  <SectionHeader title={t.company.reportsToOwners} />
-                  <StandardCard>{direct.map((m) => row(m))}</StandardCard>
-                </>
-              ) : null}
+              {section(t.company.owners, owners, rows(owners, t.company.pillOwner))}
+              {section(
+                t.company.tabManagers,
+                managers,
+                rows(managers, t.company.manager, (mgr) =>
+                  plural(
+                    locale,
+                    live.filter((m) => m.manager_id === mgr.id).length,
+                    t.company.employeeCount,
+                  ),
+                ),
+              )}
+              {section(t.company.employees, employees, rows(employees))}
             </>
           ) : (
             <Text variant="caption" tone="muted">
