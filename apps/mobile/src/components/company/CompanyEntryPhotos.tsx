@@ -17,7 +17,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { IconButton, iconSize, MODAL_ORIENTATIONS, Text, useTheme } from '@waves/ui';
 
 import { ZoomableGallery, type GalleryPage } from '@/components/ZoomableGallery';
-import { PillButton } from '@/components/standard';
 import { useAddCompanyPhoto, useCompanyPhotos, useRemoveCompanyPhoto } from '@/data/companyEntries';
 import { useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
@@ -132,19 +131,33 @@ export function CompanyEntryPhotos({
         </ScrollView>
       ) : null}
       {showAdd ? (
-        <View style={{ flexDirection: 'row', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
-          <PillButton
-            label={t.company.takePhoto}
-            icon="camera-outline"
-            chevron={false}
-            onPress={() => addFrom('camera')}
-          />
-          <PillButton
-            label={t.company.choosePhoto}
-            icon="image-outline"
-            chevron={false}
-            onPress={() => addFrom('library')}
-          />
+        <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+          {(
+            [
+              ['camera', t.company.takePhoto, 'camera-outline'],
+              ['library', t.company.choosePhoto, 'image-outline'],
+            ] as const
+          ).map(([source, label, icon]) => (
+            <Pressable
+              key={source}
+              accessibilityRole="button"
+              accessibilityLabel={label}
+              onPress={() => addFrom(source)}
+              style={{
+                flex: 1,
+                alignItems: 'center',
+                gap: theme.spacing.xs,
+                paddingVertical: theme.spacing.md,
+                borderRadius: theme.radius.md,
+                borderWidth: 1,
+                borderColor: theme.color.border,
+                backgroundColor: theme.color.surfaceMuted,
+              }}
+            >
+              <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
+              <Text variant="caption">{label}</Text>
+            </Pressable>
+          ))}
           {add.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
         </View>
       ) : null}
