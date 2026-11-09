@@ -1,7 +1,7 @@
 /** Rows of the company activity feed, shared by the full screen and the Overview's latest five. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
+import { Pressable } from 'react-native';
 
 import { Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
 
@@ -60,6 +60,9 @@ export function ActivityRows({
       {events.map((e, i) => {
         // Absent is the one attendance mark that reads as bad news: red, like the mockup.
         const color = e.group === 'attendance' && e.vars.status === 'absent' ? RED : ink[e.group];
+        const title = fill(t.companyActivity.heads[e.text], e.vars);
+        const amount = e.amount ? fmt(e.amount.minor) : undefined;
+        const open = () => router.push(`/group/${groupId}/${e.href}`);
         return (
           <ListRow
             key={e.id}
@@ -68,18 +71,26 @@ export function ActivityRows({
                 <Ionicons name={e.icon} size={iconSize.md} color={color} />
               </IconDisc>
             }
-            title={fill(t.companyActivity.heads[e.text], e.vars)}
+            title={title}
+            accessibilityLabel={[title, text(e), amount].filter(Boolean).join(', ')}
             subtitle={text(e)}
             subtitleLines={2}
             footer={
-              e.amount ? (
+              amount ? (
                 <Text tabular style={{ fontWeight: '700' }}>
-                  {fmt(e.amount.minor)}
+                  {amount}
                 </Text>
               ) : undefined
             }
             trailing={
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
+              // Same tap as the row; hidden from screen readers, which already have the row.
+              <Pressable
+                onPress={open}
+                hitSlop={8}
+                accessible={false}
+                importantForAccessibility="no-hide-descendants"
+                style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}
+              >
                 <Text variant="micro" tone="muted">
                   {time.format(e.at)}
                 </Text>
@@ -88,9 +99,9 @@ export function ActivityRows({
                   size={iconSize.sm}
                   color={theme.color.textFaint}
                 />
-              </View>
+              </Pressable>
             }
-            onPress={() => router.push(`/group/${groupId}/${e.href}`)}
+            onPress={open}
             divider={i < events.length - 1}
           />
         );
