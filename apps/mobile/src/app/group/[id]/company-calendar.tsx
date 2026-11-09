@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, View } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Screen, Text, useTheme } from '@waves/ui';
+import { useCallback, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { ScrollView, View } from 'react-native';
+import { Screen, useTheme } from '@waves/ui';
 import { ScenicBody, ScenicHeader, SegmentedPills } from '@/components/standard';
 import { SuspendedBanner } from '@/components/company/SuspendedBanner';
 import { CompanyCalendarGrid } from '@/components/company/CompanyCalendarGrid';
@@ -28,6 +27,7 @@ import { todayIso } from '@/data/personal';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useBottomClearance } from '@/lib/clearance';
+import { useClaimFab } from '@/lib/fabOverride';
 
 type Filter = 'all' | CalendarKind;
 export default function CompanyCalendarScreen() {
@@ -46,7 +46,17 @@ export default function CompanyCalendarScreen() {
   const { t } = useStrings();
   const theme = useTheme();
   const clearance = useBottomClearance();
+  // The company bar's own round + opens the calendar chooser here, so there is one + on screen.
+  const [focused, setFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  const openChooser = useCallback(() => setChooser(true), []);
   const suspended = useCompanySuspended(id);
+  useClaimFab(focused && !suspended, t.calendar.add, openChooser);
   const access = useCalendarAccess(id);
   const cal = useCalendar(id);
   const allItems = useCalendarItems(id, year, month);
@@ -110,28 +120,6 @@ export default function CompanyCalendarScreen() {
           />
         </ScenicBody>
       </ScrollView>
-      {!suspended ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.calendar.add}
-          onPress={() => setChooser(true)}
-          style={{
-            position: 'absolute',
-            right: theme.spacing.lg,
-            bottom: clearance + theme.spacing.lg,
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            backgroundColor: theme.color.brand,
-            alignItems: 'center',
-            justifyContent: 'center',
-            elevation: 5,
-          }}
-        >
-          <Ionicons name="add" size={28} color={theme.color.onBrand} />
-          <Text style={{ display: 'none' }}>{t.calendar.add}</Text>
-        </Pressable>
-      ) : null}
       <CalendarChooserSheet
         groupId={id}
         visible={chooser}
