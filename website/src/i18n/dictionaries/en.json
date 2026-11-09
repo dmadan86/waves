@@ -193,13 +193,13 @@
         ]
       }
     ],
-    "freeNote": "Free is ad-supported: watch a short ad whenever you like and each one gives 6 credits (hold up to 30). AI voice costs 1 credit, a receipt scan 2, an export 6 and an extra group 6; your first group is free. People, expenses, currencies, splits and settling up are unlimited, with no card at sign-up. Pro has no ads.",
+    "freeNote": "Free is ad-supported: banner ads show on some screens, and you can watch a short ad whenever you like for 6 credits (hold up to 30). AI voice costs 1 credit, a receipt scan 2 after the first 20 a month, an export 6 and an extra group 6; your first group is free. People, expenses, currencies, splits and settling up are unlimited, with no card at sign-up. Pro has no ads.",
     "priceNote": "Prices shown are for India. In other countries the app store shows your local price. Subscribe from inside the app. New accounts get 15 days of Pro free, no card needed."
   },
   "privacy": {
     "eyebrow": "Your data, always yours",
     "title": "Private, secure and never sold.",
-    "body": "Your data belongs to you. We never sell your data. Free is ad-supported: you choose to watch a short ad for credits, and ads never appear on your money screens. Pro has none.",
+    "body": "Your data belongs to you. We never sell your data. Free is ad-supported, with banner ads on some screens and short ads you can watch for credits, never on the settle-up screen. Pro has none.",
     "cta": "Learn more",
     "pills": ["Private by default", "Encrypted on your device", "You own your data"],
     "alt": "A blue shield with a tick, framed by green leaves"
@@ -222,15 +222,15 @@
       },
       {
         "q": "Does everyone need to install the app?",
-        "a": "No. Share a link or a QR code and people can join and see the group in a browser, with no account and no download. They can create an account later if they want the app, and the ledger follows them."
+        "a": "No. Share a link or a QR code and people can join and see the group in a browser, with no download. Joining needs a free account, made in a minute with Google, Apple or an email address. If they want the app later, the ledger follows them."
       },
       {
         "q": "What do you do with my data?",
-        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free is ad-supported: you choose to watch a short ad for credits, never on your money screens; Pro has none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
+        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free is ad-supported, with banner ads on some screens and short ads you can watch for credits; Pro has none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
       },
       {
         "q": "Does Waves show ads?",
-        "a": "On Free, yes: the way to earn credits is to watch a short ad, which gives you 6 credits (you can hold up to 30). Credits pay for AI voice (1 credit), receipt scans (2), exports (6) and extra groups (6; your first group is free). Nothing is forced, and ads never appear on balances, groups, expenses or settling up. They are non-personalized and we do not track you across apps. Pro has no ads at all."
+        "a": "On Free, yes. Banner ads show on some screens, such as Home, Friends and a group's expense list, never on the settle-up screen. You can also watch a short ad for 6 credits (you can hold up to 30). Credits pay for AI voice (1 credit), receipt scans after the first 20 a month (2), exports (6) and extra groups (6; your first group is free). They are non-personalized and we do not track you across apps. Pro has no ads at all."
       },
       {
         "q": "Can I import or export my data?",

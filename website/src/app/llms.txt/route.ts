@@ -46,7 +46,7 @@ export async function GET() {
     '',
     '- Waves is not a bank and never holds, moves or touches money; settling hands off to the payment app the user already has.',
     '- Amounts are stored as integer minor units plus an ISO 4217 code, never as floating point.',
-    '- The free tier is ad-supported and unlimited for people, expenses, currencies, splits, offline use and settling up. Your first group is free; extra groups, AI voice (1 credit), receipt scans (2) and exports (6) use credits, and watching a short ad earns 6 credits (hold up to 30).',
+    '- The free tier is ad-supported (banner ads on some screens, never on settling up) and unlimited for people, expenses, currencies, splits, offline use and settling up. Your first group is free; extra groups, AI voice (1 credit), receipt scans after the first 20 a month (2) and exports (6) use credits, and watching a short ad earns 6 credits (hold up to 30).',
     '- There is no independent security audit yet, and the shared ledger is not end-to-end encrypted.',
     '',
   ].join('\n');

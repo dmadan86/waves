@@ -54,15 +54,15 @@ const W = {
     'Free forever. Pro is ₹79/month or ₹699/year in India; other countries priced in the app store',
   limits:
     'No limit on people, expenses, currencies or splits. First group free; extra groups cost 6 credits on Free',
-  ads: 'Free is ad-supported: watch a short ad to earn credits. Pro: no ads',
+  ads: 'Free is ad-supported: banner ads on some screens, and short ads you can watch for credits. Pro: no ads',
   offline: 'Yes, every expense is saved on the phone first and syncs later',
   currency: 'Every ISO 4217 currency, free. Fix the rate per bill, person or trip',
-  receipts: 'Yes: 2 credits a scan on Free, 300 scans a month on Pro',
+  receipts: 'Yes: 20 scans a month on Free, then 2 credits a scan; 300 a month on Pro',
   voice:
     'English, Hindi, Tamil, Arabic and Hinglish: 1 credit per AI command on Free, 100 a month on Pro',
   upi: 'Opens your UPI app with the exact amount. For PayPal it opens a payment link; for Venmo, PayNow, Pix and others it shows the payee details to copy. Waves never holds money',
   export: 'JSON, CSV and PDF. On Free an export costs 6 credits',
-  signup: 'Join a group from a link in a browser with no account (guest access is time-limited)',
+  signup: 'Join a group from a link in a browser or the app; joining needs a free account',
   languages: 'English, Hindi, Tamil and Arabic (right to left)',
   platforms: 'Android, iOS and web, plus Apple Watch and home-screen widgets',
   privacy: 'Never sold. The shared ledger is on our server and is not end-to-end encrypted',
@@ -136,15 +136,15 @@ export const competitors: Competitor[] = [
       },
       {
         title: 'Scan and convert without paying',
-        body: 'Currency handling is free, and Free scans receipts for 2 credits each. On Splitwise, scanning and automatic conversion sit behind Pro.',
+        body: 'Currency handling is free, and Free scans 20 receipts a month, then 2 credits each. On Splitwise, scanning and automatic conversion sit behind Pro.',
       },
       {
         title: 'Built for India first, not only India',
         body: 'Waves opens your UPI app with the exact amount, and understands "Ravi ne 300 diye chai ke liye" in Hindi, Tamil, Arabic or Hinglish.',
       },
       {
-        title: 'Ads are your choice',
-        body: 'Free is ad-supported: you choose when to watch a short ad, and it earns credits for scans and voice commands. Ads never appear on balances, groups or settling up.',
+        title: 'Ads stay off settling up',
+        body: 'Free is ad-supported: banner ads show on some screens, and you can watch a short ad to earn credits for scans, voice and exports. No ad ever sits on the settle-up screen. Pro has no ads.',
       },
     ],
     theyAreBetter: [
@@ -173,11 +173,11 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Does Waves have a daily expense limit?',
-        a: 'No. People, expenses and currencies are unlimited on Free. Credits cover AI voice (1), receipt scans (2), exports (6) and extra groups (6; the first group is free). Pro is ad-free with 100 AI voice commands and 300 scans a month.',
+        a: 'No. People, expenses and currencies are unlimited on Free. Credits cover AI voice (1), receipt scans after the first 20 a month (2), exports (6) and extra groups (6; the first group is free). Pro is ad-free with 100 AI voice commands and 300 scans a month.',
       },
       {
         q: 'Does everyone in my group have to switch?',
-        a: 'No. Anyone can open a Waves group from a link or QR code in a browser without an account, though guest access is limited in time.',
+        a: 'No. Invite them by link or QR code. They open it in a browser or the app and make a free account to join; there is no guest mode.',
       },
       {
         q: 'How much does Waves Pro cost compared with Splitwise Pro?',
@@ -185,7 +185,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Does Waves show ads?',
-        a: 'Free is ad-supported: you choose to watch a short ad, which earns 6 credits for scans, voice and exports. Pro has no ads.',
+        a: 'Free is ad-supported: banner ads show on some screens, and you can watch a short ad for 6 credits towards scans, voice and exports. Pro has no ads.',
       },
     ],
     sources: [
@@ -275,7 +275,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Does Waves need a sign-up?',
-        a: 'You can open a group from a shared link in a browser without an account. To use the full app you create an account; new accounts get 15 days of Pro free.',
+        a: 'Yes. Joining a group, from a link in a browser or in the app, needs a free account; new accounts get 15 days of Pro free.',
       },
       {
         q: 'Does Waves work offline?',
@@ -305,7 +305,7 @@ export const competitors: Competitor[] = [
       'Waves and Settle Up compared: free-plan ads, Premium prices, offline, currencies, receipts, voice, UPI and languages, and where Settle Up is stronger.',
     summary: [
       'Settle Up works offline, handles several currencies and shares groups by link or QR code. Its free version has ads and Premium removes them.',
-      'Waves does not put ads on money screens, adds receipt scanning and voice entry, and opens your UPI app to settle.',
+      'Waves keeps ads off the settle-up screen, adds receipt scanning and voice entry, and opens your UPI app to settle.',
     ],
     rows: [
       {
@@ -334,8 +334,8 @@ export const competitors: Competitor[] = [
     ],
     switchReasons: [
       {
-        title: 'No ads on the money screens',
-        body: 'Waves Free earns credits from short ads you choose to watch. Settle Up lists ads on its free version.',
+        title: 'Settling up is ad-free',
+        body: 'Waves Free shows banner ads on some screens and earns credits from short ads you choose to watch, but never on the settle-up screen. Settle Up lists ads on its free version.',
       },
       {
         title: 'Export and scanning in the free app',
@@ -364,7 +364,7 @@ export const competitors: Competitor[] = [
     faq: [
       {
         q: 'Does Settle Up have ads?',
-        a: 'Its free version contains ads and Premium removes them, per its store listings. Waves Free is ad-supported through short ads you choose to watch; none appear on money screens.',
+        a: 'Its free version contains ads and Premium removes them, per its store listings. Waves Free is ad-supported, with banner ads on some screens and short ads you can watch for credits; none on the settle-up screen.',
       },
       {
         q: 'Can I import from Settle Up?',
@@ -376,7 +376,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Can people see balances without installing Waves?',
-        a: 'Yes. A shared link or QR opens the group in a browser with no account, though guest access is limited in time.',
+        a: 'Yes. A shared link or QR opens the group in a browser or the app; they make a free account to join.',
       },
     ],
     sources: [
@@ -448,7 +448,7 @@ export const competitors: Competitor[] = [
     theyAreBetter: [
       {
         title: 'Account-free from the start',
-        body: 'Splid needs no sign-up at all. Waves lets friends join by link, but guest access is time-limited.',
+        body: 'Splid needs no sign-up at all. Waves lets friends join by link, but each of them makes a free account.',
       },
       {
         title: 'Lightweight',
@@ -471,7 +471,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Does Waves need sign-up?',
-        a: 'Friends can open a group by link without an account. The full app uses an account, and new accounts get 15 days of Pro free.',
+        a: 'Yes. Friends join by link with a free account; new accounts get 15 days of Pro free.',
       },
       { q: 'Does Waves work offline?', a: 'Yes. Every expense is saved on your phone first.' },
     ],
@@ -645,7 +645,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Do people need an account to join?',
-        a: 'A shared link opens a group in a browser with no account, although guest access is limited in time.',
+        a: 'A shared link opens the group in a browser or the app; joining needs a free account.',
       },
     ],
     sources: [
@@ -835,7 +835,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Do my friends need Waves?',
-        a: 'They can open a group by link in a browser without an account, with time-limited guest access.',
+        a: 'They join by link in a browser or the app, with a free account.',
       },
       {
         q: 'Can Waves settle with people outside India?',
@@ -936,7 +936,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Do my friends need PhonePe?',
-        a: 'Not for Waves. A shared link opens the group in a browser, with time-limited guest access.',
+        a: 'Not for Waves. A shared link opens the group in a browser or the app; they make a free Waves account to join.',
       },
       {
         q: 'Can I export my Waves data?',
@@ -1025,7 +1025,7 @@ export const competitors: Competitor[] = [
       },
       {
         q: 'Do my friends need Waves?',
-        a: 'They can open a group from a link in a browser with no account, with time-limited guest access.',
+        a: 'They join from a link in a browser or the app, with a free account.',
       },
     ],
     sources: [
