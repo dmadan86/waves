@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
-import { Pressable, ScrollView, View } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { Screen, Text, useTheme } from '@waves/ui';
+import { ScrollView, View } from 'react-native';
+import { Screen, useTheme } from '@waves/ui';
 import { ScenicBody, ScenicHeader, SegmentedPills } from '@/components/standard';
 import { SuspendedBanner } from '@/components/company/SuspendedBanner';
 import { CompanyCalendarGrid } from '@/components/company/CompanyCalendarGrid';
@@ -63,7 +62,7 @@ export default function CompanyCalendarScreen() {
   return (
     <Screen edges={[]}>
       <ScrollView
-        contentContainerStyle={{ paddingBottom: clearance + 90 }}
+        contentContainerStyle={{ paddingBottom: clearance + theme.spacing.lg }}
         showsVerticalScrollIndicator={false}
       >
         <ScenicHeader title={t.calendar.title} onBack={() => router.back()} />
@@ -98,6 +97,7 @@ export default function CompanyCalendarScreen() {
             groupId={id}
             items={items}
             selectedDay={selectedDay}
+            onAdd={suspended ? undefined : () => setChooser(true)}
             onOpenLeave={(item) => {
               setLeave(item);
             }}
@@ -110,28 +110,6 @@ export default function CompanyCalendarScreen() {
           />
         </ScenicBody>
       </ScrollView>
-      {!suspended ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.calendar.add}
-          onPress={() => setChooser(true)}
-          style={{
-            position: 'absolute',
-            right: theme.spacing.lg,
-            bottom: clearance + theme.spacing.lg,
-            width: 56,
-            height: 56,
-            borderRadius: 28,
-            backgroundColor: theme.color.brand,
-            alignItems: 'center',
-            justifyContent: 'center',
-            elevation: 5,
-          }}
-        >
-          <Ionicons name="add" size={28} color={theme.color.onBrand} />
-          <Text style={{ display: 'none' }}>{t.calendar.add}</Text>
-        </Pressable>
-      ) : null}
       <CalendarChooserSheet
         groupId={id}
         visible={chooser}

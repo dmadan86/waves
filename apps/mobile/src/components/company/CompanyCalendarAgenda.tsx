@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Button, Text, useTheme } from '@waves/ui';
 import { format } from '@waves/core';
 import { ListRow, SectionHeader, StandardCard } from '@/components/standard';
@@ -27,6 +27,7 @@ export function CompanyCalendarAgenda({
   onOpenLeave,
   onOpenEvent,
   onOpenHoliday,
+  onAdd,
 }: {
   groupId: string;
   items: readonly CalendarItem[];
@@ -34,6 +35,8 @@ export function CompanyCalendarAgenda({
   onOpenLeave: (leave: MirrorLeave) => void;
   onOpenEvent: (event: MirrorEvent) => void;
   onOpenHoliday: (holiday: MirrorHoliday) => void;
+  /** The calendar's one add action (Holiday / Event / Leave); absent while suspended. */
+  onAdd?: (() => void) | undefined;
 }) {
   const { t, locale } = useStrings();
   const theme = useTheme();
@@ -131,7 +134,36 @@ export function CompanyCalendarAgenda({
   };
   return (
     <StandardCard style={{ gap: theme.spacing.sm }}>
-      <SectionHeader title={title} />
+      <SectionHeader
+        title={title}
+        trailing={
+          onAdd ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.calendar.add}
+              onPress={onAdd}
+              hitSlop={8}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}
+            >
+              <Text variant="body" tone="brand" style={{ fontWeight: '600' }}>
+                {t.calendar.add}
+              </Text>
+              <View
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  backgroundColor: theme.color.brandSoft,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Ionicons name="add" size={20} color={theme.color.brand} />
+              </View>
+            </Pressable>
+          ) : undefined
+        }
+      />
       {visible.length === 0 ? (
         <Text tone="muted">
           {selectedDay ? t.calendar.nothingPlanned : t.calendar.nothingPlanned}

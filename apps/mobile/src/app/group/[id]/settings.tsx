@@ -1,4 +1,4 @@
-import { Fragment, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams } from 'expo-router';
@@ -185,11 +185,9 @@ function GroupSettingsScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [exitOpen, setExitOpen] = useState(false);
   // Company only: "More settings" expands inline; the Branding tile and the logo badge
-  // scroll to the logo card (its y is the body's y plus its own within the body).
+  // open the Branding sheet, where the logo lives.
   const [moreOpen, setMoreOpen] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
-  const bodyY = useRef(0);
-  const logoY = useRef(0);
+  const [brandingOpen, setBrandingOpen] = useState(false);
   const [tagOpen, setTagOpen] = useState(false);
   const [typeOpen, setTypeOpen] = useState(false);
   const [datesOpen, setDatesOpen] = useState(false);
@@ -477,13 +475,15 @@ function GroupSettingsScreen() {
     }
   };
 
-  const dropPhoto = async (): Promise<void> => {
+  /** Returns the error to show beside the logo (it sits in the Branding sheet, over the page's status line). */
+  const dropPhoto = async (): Promise<string | null> => {
     setStatus(null);
     try {
       await removeGroupPhoto(groupId, group.data?.photo_path ?? null);
       await group.refetch();
+      return null;
     } catch (caught) {
-      setStatus(friendlyError(caught, t.couldNotSave, 'groupSettings.dropPhoto'));
+      return friendlyError(caught, t.couldNotSave, 'groupSettings.dropPhoto');
     }
   };
 
@@ -1006,11 +1006,7 @@ function GroupSettingsScreen() {
       <Ionicons name="ellipsis-vertical" size={iconSize.xl} color={theme.color.text} />
     </Pressable>
   );
-  const scrollToLogo = () =>
-    scrollRef.current?.scrollTo({
-      y: Math.max(0, bodyY.current + logoY.current - 8),
-      animated: true,
-    });
+  const openBranding = () => setBrandingOpen(true);
   // Company: tiles that go somewhere. Branding only for an admin (the logo card is theirs).
   const companyTiles = [
     {
@@ -1044,7 +1040,7 @@ function GroupSettingsScreen() {
             icon: 'image-outline' as const,
             title: t.company.tileBranding,
             subtitle: t.company.tileBrandingHint,
-            onPress: scrollToLogo,
+            onPress: openBranding,
           },
         ]
       : []),
@@ -1053,7 +1049,6 @@ function GroupSettingsScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       <ScrollView
-        ref={scrollRef}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: clearance }}
         keyboardShouldPersistTaps="handled"
@@ -1066,9 +1061,6 @@ function GroupSettingsScreen() {
         )}
 
         <View
-          onLayout={(event) => {
-            bodyY.current = event.nativeEvent.layout.y;
-          }}
           style={{
             paddingHorizontal: theme.spacing.lg,
             gap: isCompany ? theme.spacing.xl : theme.spacing.lg,
@@ -1105,7 +1097,7 @@ function GroupSettingsScreen() {
                 .map((part) => part.replace(/ /g, ' '))
                 .join(' • ')}
               onEditName={() => setEditOpen(true)}
-              onLogo={isAdmin ? scrollToLogo : undefined}
+              onLogo={isAdmin ? openBranding : undefined}
               tiles={companyTiles}
             />
           ) : (
@@ -1309,22 +1301,6 @@ function GroupSettingsScreen() {
               ) : null}
             </StandardCard>
           )}
-          {groupType === GroupType.Company && isAdmin ? (
-            <View
-              onLayout={(event) => {
-                logoY.current = event.nativeEvent.layout.y;
-              }}
-            >
-              <StandardCard style={{ padding: theme.spacing.md }}>
-                <CompanyLogoField
-                  photoPath={group.data.photo_path}
-                  busy={uploading}
-                  onImage={saveLogo}
-                  onRemove={() => void dropPhoto()}
-                />
-              </StandardCard>
-            </View>
-          ) : null}
           <MissingRatesCard groupId={groupId} />
           {isCompany && companyView.isAdmin && !companyView.suspended ? (
             <StandardCard>
@@ -1624,6 +1600,21 @@ function GroupSettingsScreen() {
         </View>
       </ScrollView>
 
+      {isCompany && isAdmin ? (
+        <Sheet
+          visible={brandingOpen}
+          onClose={() => setBrandingOpen(false)}
+          title={t.company.tileBranding}
+          closeLabel={t.common.close}
+        >
+          <CompanyLogoField
+            photoPath={group.data.photo_path}
+            busy={uploading}
+            onImage={saveLogo}
+            onRemove={dropPhoto}
+          />
+        </Sheet>
+      ) : null}
       <Sheet
         visible={typeOpen}
         onClose={() => setTypeOpen(false)}
@@ -1945,7 +1936,7 @@ function GroupSettingsScreen() {
         hasPhoto={Boolean(group.data.photo_path)}
         photoStatus={photoStatus}
         onPickPhoto={() => void changePhoto()}
-        onRemovePhoto={() => void dropPhoto()}
+        onRemovePhoto={() => void dropPhoto().then((message) => message && setStatus(message))}
         onUpgrade={() => router.push('/settings/upgrade')}
       />
 

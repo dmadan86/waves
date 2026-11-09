@@ -67,9 +67,13 @@ export function CompanyCalendarGrid({
             key={`weekday-${i}`}
             style={{ width: '14.2857%', alignItems: 'center', paddingBottom: theme.spacing.xs }}
           >
-            <Text variant="micro" tone="muted">
+            <Text
+              variant="micro"
+              tone="muted"
+              style={i === 0 || i === 6 ? { color: theme.color.negative } : undefined}
+            >
               {new Date(Date.UTC(2026, 0, 4 + i)).toLocaleDateString(locale, {
-                weekday: 'narrow',
+                weekday: 'short',
                 timeZone: 'UTC',
               })}
             </Text>
@@ -106,7 +110,13 @@ export function CompanyCalendarGrid({
               >
                 <Text
                   variant="caption"
-                  style={{ color: selected ? theme.color.onBrand : theme.color.text }}
+                  style={{
+                    color: selected
+                      ? theme.color.onBrand
+                      : i % 7 === 0 || i % 7 === 6
+                        ? theme.color.negative
+                        : theme.color.text,
+                  }}
                 >
                   {day ? n : ''}
                 </Text>

@@ -30,6 +30,7 @@
  */
 
 import { createContext, useContext } from 'react';
+import type { ActivityText } from '@/lib/companyActivity';
 import { getLocales } from 'expo-localization';
 
 import {
@@ -1484,6 +1485,10 @@ export interface UiStrings {
     estimateCreated: string;
     billCreated: string;
     billPaid: string;
+    /** Short bold title per row; the sentence goes underneath. */
+    heads: Readonly<Record<ActivityText, string>>;
+    /** The pill beside each day: "3 activities". */
+    dayCount: PluralForms;
   };
   companyDocs: {
     title: string;
@@ -2081,6 +2086,8 @@ export interface UiStrings {
     manageCompanies: string;
     companySettings: string;
     hierarchyTitle: string;
+    /** The line under the Hierarchy title. */
+    hierarchySub: string;
     reportsToOwners: string;
     allocateNow: string;
     menuExport: string;
@@ -9231,6 +9238,39 @@ const en: UiStrings = {
     estimateCreated: '{actor} created estimate {number} for {customer}',
     billCreated: '{actor} created bill {number} for {customer}',
     billPaid: 'Bill {number} for {customer} was paid',
+    heads: {
+      expense: 'Expense added',
+      expenseFor: 'Expense added',
+      allowance: 'Bata added',
+      allowanceFor: 'Bata added',
+      advance: 'Advance given',
+      wages: 'Wages paid',
+      reimbursed: 'Reimbursed',
+      cashReturned: 'Cash returned',
+      companyPaid: 'Company payment',
+      approved: 'Claim approved',
+      rejected: 'Claim rejected',
+      attendanceOne: 'Attendance updated',
+      attendanceMany: 'Attendance updated',
+      taskAssigned: 'Task assigned',
+      taskDone: 'Task done',
+      taskBlocked: 'Task blocked',
+      joined: 'Joined',
+      joinedManager: 'Manager joined',
+      added: 'Person added',
+      markedNotEmployed: 'Marked not employed',
+      left: 'Left',
+      vendorBill: 'Vendor bill',
+      vendorBillPending: 'Vendor bill pending',
+      vendorBillRejected: 'Vendor bill rejected',
+      vendorPayment: 'Vendor payment',
+      vendorAdvance: 'Vendor advance',
+      vendorReceived: 'Payment confirmed',
+      estimateCreated: 'Estimate created · {number}',
+      billCreated: 'Bill created · {number}',
+      billPaid: 'Bill paid · {number}',
+    },
+    dayCount: { one: '{n} activity', other: '{n} activities' },
   },
   companyDocs: {
     title: 'Estimates & Bills',
@@ -9835,6 +9875,7 @@ const en: UiStrings = {
     manageCompanies: 'Manage companies',
     companySettings: 'Company settings',
     hierarchyTitle: 'Hierarchy',
+    hierarchySub: 'People and roles in your company',
     reportsToOwners: 'Reports to the owners',
     allocateNow: 'Allocate budget',
     menuExport: 'Export',
@@ -16448,6 +16489,39 @@ const ta: UiStrings = {
     estimateCreated: '{actor} {customer} க்கு மதிப்பீடு {number} உருவாக்கினார்',
     billCreated: '{actor} {customer} க்கு பில் {number} உருவாக்கினார்',
     billPaid: '{customer} க்கான பில் {number} செலுத்தப்பட்டது',
+    heads: {
+      expense: 'செலவு சேர்க்கப்பட்டது',
+      expenseFor: 'செலவு சேர்க்கப்பட்டது',
+      allowance: 'பேட்டா சேர்க்கப்பட்டது',
+      allowanceFor: 'பேட்டா சேர்க்கப்பட்டது',
+      advance: 'முன்பணம் கொடுக்கப்பட்டது',
+      wages: 'சம்பளம் செலுத்தப்பட்டது',
+      reimbursed: 'திருப்பிச் செலுத்தப்பட்டது',
+      cashReturned: 'பணம் திருப்பித் தரப்பட்டது',
+      companyPaid: 'நிறுவனச் செலுத்தல்',
+      approved: 'கோரிக்கை ஏற்கப்பட்டது',
+      rejected: 'கோரிக்கை நிராகரிக்கப்பட்டது',
+      attendanceOne: 'வருகை புதுப்பிக்கப்பட்டது',
+      attendanceMany: 'வருகை புதுப்பிக்கப்பட்டது',
+      taskAssigned: 'பணி ஒதுக்கப்பட்டது',
+      taskDone: 'பணி முடிந்தது',
+      taskBlocked: 'பணி தடைபட்டது',
+      joined: 'இணைந்தார்',
+      joinedManager: 'மேலாளர் இணைந்தார்',
+      added: 'நபர் சேர்க்கப்பட்டார்',
+      markedNotEmployed: 'பணியில் இல்லை எனக் குறிக்கப்பட்டது',
+      left: 'விலகினார்',
+      vendorBill: 'விற்பனையாளர் பில்',
+      vendorBillPending: 'விற்பனையாளர் பில் நிலுவையில்',
+      vendorBillRejected: 'விற்பனையாளர் பில் நிராகரிக்கப்பட்டது',
+      vendorPayment: 'விற்பனையாளர் செலுத்தல்',
+      vendorAdvance: 'விற்பனையாளர் முன்பணம்',
+      vendorReceived: 'செலுத்தல் உறுதிசெய்யப்பட்டது',
+      estimateCreated: 'மதிப்பீடு உருவாக்கப்பட்டது · {number}',
+      billCreated: 'பில் உருவாக்கப்பட்டது · {number}',
+      billPaid: 'பில் செலுத்தப்பட்டது · {number}',
+    },
+    dayCount: { one: '{n} செயல்பாடு', other: '{n} செயல்பாடுகள்' },
   },
   companyDocs: {
     title: 'மதிப்பீடுகள் & பில்கள்',
@@ -17057,6 +17131,7 @@ const ta: UiStrings = {
     manageCompanies: 'நிறுவனங்களை நிர்வகி',
     companySettings: 'நிறுவன அமைப்புகள்',
     hierarchyTitle: 'படிநிலை',
+    hierarchySub: 'உங்கள் நிறுவனத்தின் நபர்களும் பொறுப்புகளும்',
     reportsToOwners: 'உரிமையாளர்களிடம்',
     allocateNow: 'பட்ஜெட் ஒதுக்கு',
     menuExport: 'ஏற்றுமதி',
@@ -23835,6 +23910,39 @@ const hi: UiStrings = {
     estimateCreated: '{actor} ने {customer} के लिए अनुमान {number} बनाया',
     billCreated: '{actor} ने {customer} के लिए बिल {number} बनाया',
     billPaid: '{customer} का बिल {number} चुका दिया गया',
+    heads: {
+      expense: 'खर्च जोड़ा गया',
+      expenseFor: 'खर्च जोड़ा गया',
+      allowance: 'भत्ता जोड़ा गया',
+      allowanceFor: 'भत्ता जोड़ा गया',
+      advance: 'एडवांस दिया गया',
+      wages: 'वेतन दिया गया',
+      reimbursed: 'भुगतान लौटाया गया',
+      cashReturned: 'नकद लौटाया गया',
+      companyPaid: 'कंपनी भुगतान',
+      approved: 'दावा स्वीकृत',
+      rejected: 'दावा अस्वीकृत',
+      attendanceOne: 'हाज़िरी अपडेट हुई',
+      attendanceMany: 'हाज़िरी अपडेट हुई',
+      taskAssigned: 'काम सौंपा गया',
+      taskDone: 'काम पूरा',
+      taskBlocked: 'काम रुका',
+      joined: 'जुड़े',
+      joinedManager: 'मैनेजर जुड़े',
+      added: 'व्यक्ति जोड़ा गया',
+      markedNotEmployed: 'कार्यरत नहीं चिह्नित',
+      left: 'छोड़ दिया',
+      vendorBill: 'विक्रेता बिल',
+      vendorBillPending: 'विक्रेता बिल लंबित',
+      vendorBillRejected: 'विक्रेता बिल अस्वीकृत',
+      vendorPayment: 'विक्रेता भुगतान',
+      vendorAdvance: 'विक्रेता एडवांस',
+      vendorReceived: 'भुगतान की पुष्टि हुई',
+      estimateCreated: 'अनुमान बनाया गया · {number}',
+      billCreated: 'बिल बनाया गया · {number}',
+      billPaid: 'बिल चुकाया गया · {number}',
+    },
+    dayCount: { one: '{n} गतिविधि', other: '{n} गतिविधियाँ' },
   },
   companyDocs: {
     title: 'अनुमान और बिल',
@@ -24439,6 +24547,7 @@ const hi: UiStrings = {
     manageCompanies: 'कंपनियाँ प्रबंधित करें',
     companySettings: 'कंपनी सेटिंग्स',
     hierarchyTitle: 'हाइरार्की',
+    hierarchySub: 'आपकी कंपनी के लोग और उनकी भूमिकाएँ',
     reportsToOwners: 'मालिकों को रिपोर्ट',
     allocateNow: 'बजट आवंटित करें',
     menuExport: 'एक्सपोर्ट',
@@ -31100,6 +31209,46 @@ const ar: UiStrings = {
     estimateCreated: 'أنشأ {actor} عرض سعر {number} لـ {customer}',
     billCreated: 'أنشأ {actor} فاتورة {number} لـ {customer}',
     billPaid: 'تم دفع الفاتورة {number} الخاصة بـ {customer}',
+    heads: {
+      expense: 'أُضيف مصروف',
+      expenseFor: 'أُضيف مصروف',
+      allowance: 'أُضيف بدل',
+      allowanceFor: 'أُضيف بدل',
+      advance: 'سُلفة مدفوعة',
+      wages: 'أجور مدفوعة',
+      reimbursed: 'تم التعويض',
+      cashReturned: 'نقد مُعاد',
+      companyPaid: 'دفعة الشركة',
+      approved: 'طلب مقبول',
+      rejected: 'طلب مرفوض',
+      attendanceOne: 'تحديث الحضور',
+      attendanceMany: 'تحديث الحضور',
+      taskAssigned: 'مهمة مُسندة',
+      taskDone: 'مهمة منجزة',
+      taskBlocked: 'مهمة متوقفة',
+      joined: 'انضم',
+      joinedManager: 'انضم مدير',
+      added: 'أُضيف شخص',
+      markedNotEmployed: 'غير موظف',
+      left: 'غادر',
+      vendorBill: 'فاتورة مورّد',
+      vendorBillPending: 'فاتورة مورّد معلّقة',
+      vendorBillRejected: 'فاتورة مورّد مرفوضة',
+      vendorPayment: 'دفعة لمورّد',
+      vendorAdvance: 'سُلفة لمورّد',
+      vendorReceived: 'تأكيد الدفع',
+      estimateCreated: 'إنشاء عرض سعر · {number}',
+      billCreated: 'إنشاء فاتورة · {number}',
+      billPaid: 'دفع فاتورة · {number}',
+    },
+    dayCount: {
+      zero: '{n} نشاط',
+      one: 'نشاط واحد',
+      two: 'نشاطان',
+      few: '{n} أنشطة',
+      many: '{n} نشاطًا',
+      other: '{n} نشاط',
+    },
   },
   companyDocs: {
     title: 'التقديرات والفواتير',
@@ -31753,6 +31902,7 @@ const ar: UiStrings = {
     manageCompanies: 'إدارة الشركات',
     companySettings: 'إعدادات الشركة',
     hierarchyTitle: 'الهيكل',
+    hierarchySub: 'الأشخاص والأدوار في شركتك',
     reportsToOwners: 'يتبع المالكين',
     allocateNow: 'خصّص ميزانية',
     menuExport: 'تصدير',
