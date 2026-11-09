@@ -40,8 +40,14 @@ const GRACE_KEY = 'waves.app_lock_grace_seconds';
  */
 export const GRACE_CHOICES = [0, 15, 30, 60, 300] as const;
 interface LockValue {
-  /** Whether the lock is on (default on where the device can lock). */
+  /** Whether the lock is on (off until the user says yes). */
   enabled: boolean;
+  /**
+   * Ask once: the device can lock, nothing is stored yet, and this signed-in
+   * user was already signed in when the app started (so never on the launch
+   * they signed up on).
+   */
+  shouldAsk: boolean;
   /** Whether the app is currently waiting to be unlocked. */
   locked: boolean;
   supported: boolean;
@@ -66,7 +72,7 @@ const LockContext = createContext<LockValue | null>(null);
  * The one app-wide biometric / PIN lock (ADR-013). Money apps get handed around -
  * "check the split" should not mean "read my whole ledger".
  *
- * On by default where the device can lock. It asks on a cold start of a
+ * Off until the user agrees (`LockPrompt` asks once). Once on, it asks on a cold start of a
  * signed-in app and when the app comes back after being away longer than the
  * "Ask again after" window - never right after the user signed in or up.
  * This guards the UI only; the data itself is protected by RLS regardless.
@@ -78,6 +84,10 @@ export function LockProvider({ children }: { children: ReactNode }) {
   const [supported, setSupported] = useState(false);
   const [graceSeconds, setGraceState] = useState(DEFAULT_GRACE_SECONDS);
   const [ready, setReady] = useState(false);
+  /** Nothing stored yet: the user has not answered the one-time ask. */
+  const [unasked, setUnasked] = useState(false);
+  /** Who was signed in when the app started; the ask waits for a launch after sign-up. */
+  const [coldUser, setColdUser] = useState<string | null>(null);
   /**
    * The user id that must unlock, or null. Locked is "this id is signed in and
    * is the one waiting", so a different id signing in (a fresh sign-in or an
@@ -92,6 +102,7 @@ export function LockProvider({ children }: { children: ReactNode }) {
   if (!decided && ready && !authLoading) {
     setDecided(true);
     setNeeds(userId);
+    setColdUser(userId);
   } else if (decided && needs !== null && needs !== userId) {
     // Signed out or switched account: the unlock owed belonged to that account.
     setNeeds(null);
@@ -128,6 +139,7 @@ export function LockProvider({ children }: { children: ReactNode }) {
       const storedGrace = native ? await SecureStore.getItemAsync(GRACE_KEY) : null;
       if (!active) return;
       setSupported(canLock);
+      setUnasked(stored === null);
       setEnabledState(queryFailed ? stored === 'true' : resolveLockEnabled(stored, canLock));
       const parsed = Number(storedGrace);
       if (storedGrace !== null && Number.isFinite(parsed) && parsed >= 0) setGraceState(parsed);
@@ -192,13 +204,16 @@ export function LockProvider({ children }: { children: ReactNode }) {
       const prompt = value ? 'Confirm to turn on app lock' : 'Confirm to turn off app lock';
       // Web has no authenticator. A device that can no longer lock (passcode
       // removed) has nothing to prove with, so turning off must not trap the user.
-      if (Platform.OS !== 'web' && (value || supported) && !(await authenticate(prompt))) return;
+      // Declining while already off has nothing to protect, so it needs no check.
+      const needsProof = value || (supported && enabled);
+      if (Platform.OS !== 'web' && needsProof && !(await authenticate(prompt))) return;
       // SecureStore has no web implementation, same as the read path above.
       if (Platform.OS !== 'web') await SecureStore.setItemAsync(KEY, value ? 'true' : 'false');
       setEnabledState(value);
+      setUnasked(false);
       setNeeds(null);
     },
-    [authenticate, supported],
+    [authenticate, supported, enabled],
   );
 
   const setGraceSeconds = useCallback(async (value: number) => {
@@ -210,6 +225,7 @@ export function LockProvider({ children }: { children: ReactNode }) {
     <LockContext.Provider
       value={{
         enabled,
+        shouldAsk: ready && supported && unasked && userId !== null && userId === coldUser,
         locked,
         supported,
         ready,

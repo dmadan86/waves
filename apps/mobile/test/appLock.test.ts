@@ -10,7 +10,7 @@ import {
   shouldRelock,
 } from '../src/lib/appLock';
 
-describe('default-on rule', () => {
+describe('default-off rule', () => {
   it('can lock only with hardware plus biometrics or a passcode', () => {
     expect(canDeviceLock(true, true, true)).toBe(true); // enrolled biometrics
     expect(canDeviceLock(true, false, false)).toBe(true); // device passcode only
@@ -18,8 +18,8 @@ describe('default-on rule', () => {
     expect(canDeviceLock(false, true, false)).toBe(false); // no hardware
   });
 
-  it('is on when nothing is stored, off only for an explicit false', () => {
-    expect(resolveLockEnabled(null, true)).toBe(true);
+  it('is on only after an explicit yes', () => {
+    expect(resolveLockEnabled(null, true)).toBe(false);
     expect(resolveLockEnabled('true', true)).toBe(true);
     expect(resolveLockEnabled('false', true)).toBe(false);
     expect(resolveLockEnabled(null, false)).toBe(false);

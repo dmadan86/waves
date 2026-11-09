@@ -1107,6 +1107,9 @@ export interface UiStrings {
     title: string;
     requireBiometrics: string;
     appLock: string;
+    askTitle: string;
+    askBody: string;
+    askYes: string;
     unsupported: string;
     askAgainAfter: string;
     graceImmediate: string;
@@ -8883,6 +8886,10 @@ const en: UiStrings = {
     title: 'Security',
     requireBiometrics: 'Require biometrics or a passcode',
     appLock: 'App lock',
+    askTitle: 'Lock Waves with your fingerprint?',
+    askBody:
+      'Ask for your fingerprint, face or phone passcode each time Waves opens, so someone holding your phone cannot see your money. You can change this in Settings.',
+    askYes: 'Turn on app lock',
     unsupported: 'No Face ID, fingerprint or screen lock is set up on this device.',
     askAgainAfter: 'Ask again after',
     graceImmediate: 'Straight away',
@@ -16121,6 +16128,10 @@ const ta: UiStrings = {
     title: 'பாதுகாப்பு',
     requireBiometrics: 'கைரேகை அல்லது கடவுக்குறியீடு கேட்கவும்',
     appLock: 'ஆப் பூட்டு',
+    askTitle: 'கைரேகையால் Waves-ஐப் பூட்டவா?',
+    askBody:
+      'Waves திறக்கும் ஒவ்வொரு முறையும் கைரேகை, முகம் அல்லது ஃபோன் கடவுக்குறியீடு கேட்கும், அதனால் உங்கள் ஃபோனை வைத்திருப்பவர் உங்கள் பணத்தைப் பார்க்க முடியாது. இதை அமைப்புகளில் மாற்றலாம்.',
+    askYes: 'ஆப் பூட்டை இயக்கு',
     unsupported: 'இந்தச் சாதனத்தில் Face ID, கைரேகை அல்லது திரைப் பூட்டு அமைக்கப்படவில்லை.',
     askAgainAfter: 'மீண்டும் கேட்க',
     graceImmediate: 'உடனடியாக',
@@ -23546,6 +23557,10 @@ const hi: UiStrings = {
     title: 'सुरक्षा',
     requireBiometrics: 'बायोमेट्रिक या पासकोड माँगें',
     appLock: 'ऐप लॉक',
+    askTitle: 'Waves को फ़िंगरप्रिंट से लॉक करें?',
+    askBody:
+      'Waves खुलने पर हर बार फ़िंगरप्रिंट, चेहरा या फ़ोन पासकोड माँगा जाएगा, ताकि आपका फ़ोन पकड़ने वाला आपका पैसा न देख सके। इसे सेटिंग्स में बदल सकते हैं।',
+    askYes: 'ऐप लॉक चालू करें',
     unsupported: 'इस डिवाइस पर Face ID, फ़िंगरप्रिंट या स्क्रीन लॉक सेट नहीं है।',
     askAgainAfter: 'दोबारा पूछें',
     graceImmediate: 'तुरंत',
@@ -30806,6 +30821,10 @@ const ar: UiStrings = {
     title: 'الأمان',
     requireBiometrics: 'اطلب البصمة أو رمز المرور',
     appLock: 'قفل التطبيق',
+    askTitle: 'هل تريد قفل Waves ببصمتك؟',
+    askBody:
+      'سيطلب Waves بصمتك أو وجهك أو رمز مرور الهاتف في كل مرة يُفتح فيها، حتى لا يرى من يحمل هاتفك أموالك. يمكنك تغيير ذلك من الإعدادات.',
+    askYes: 'تفعيل قفل التطبيق',
     unsupported: 'لم يتم إعداد Face ID أو بصمة الإصبع أو قفل الشاشة على هذا الجهاز.',
     askAgainAfter: 'اسأل مرة أخرى بعد',
     graceImmediate: 'فورًا',
