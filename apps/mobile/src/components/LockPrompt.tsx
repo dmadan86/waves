@@ -5,7 +5,7 @@
  * and Settings > Privacy can still turn it on later.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSegments } from 'expo-router';
 
 import { useStrings } from '@/i18n';
@@ -18,10 +18,13 @@ export function LockPrompt() {
   const { confirm } = useDialog();
   const { shouldAsk, locked, setEnabled } = useLock();
   const onHome = useSegments()[0] === '(tabs)';
+  // Answered this launch, however it went: the slot goes back to the queue even
+  // when a cancelled check stored nothing (the ask then returns next launch).
+  const [done, setDone] = useState(false);
   const granted = usePromptSlot({
     id: 'lockPrompt',
     priority: 90,
-    active: shouldAsk && !locked && onHome,
+    active: shouldAsk && !done && !locked && onHome,
     delayMs: 300,
   });
   const asked = useRef(false);
@@ -37,7 +40,11 @@ export function LockPrompt() {
         cancelLabel: t.entry.notifyNotNow,
       });
       // A cancelled fingerprint check stores nothing, so the ask returns next launch.
-      await setEnabled(yes);
+      try {
+        await setEnabled(yes);
+      } finally {
+        setDone(true);
+      }
     })();
   }, [granted, confirm, setEnabled, t]);
 

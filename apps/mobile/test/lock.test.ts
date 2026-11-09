@@ -295,9 +295,11 @@ describe('the app lock', () => {
   });
 
   it('does not count its own biometric sheet as leaving, even with a zero window', async () => {
+    env.secure.set('waves.app_lock_enabled', 'true');
     env.secure.set('waves.app_lock_grace_seconds', '0');
     env.holdAuth = true;
     const { value } = await mountLock();
+    expect(value().locked).toBe(true);
     const asking = value().unlock();
     emit('inactive');
     emit('active');
