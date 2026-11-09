@@ -217,6 +217,11 @@ export interface UiStrings {
     birthdayOf: string;
     anniversaryOf: string;
     overdue: string;
+    overdueItems: PluralForms;
+    totalDue: string;
+    nothingDue: string;
+    nothingOverdue: string;
+    nothingUpcoming: string;
     moreCount: string;
     leaveCasual: string;
     leaveSick: string;
@@ -8119,6 +8124,11 @@ const en: UiStrings = {
     birthdayOf: "{name}'s birthday",
     anniversaryOf: '{name} · {n} years',
     overdue: 'Overdue',
+    overdueItems: { one: '{n} item overdue', other: '{n} items overdue' },
+    totalDue: 'Total due {amount}',
+    nothingDue: 'Nothing due',
+    nothingOverdue: 'Nothing overdue',
+    nothingUpcoming: 'Nothing upcoming',
     moreCount: '+{n} more',
     leaveCasual: 'Casual',
     leaveSick: 'Sick',
@@ -15346,6 +15356,11 @@ const ta: UiStrings = {
     birthdayOf: '{name} பிறந்தநாள்',
     anniversaryOf: '{name} · {n} ஆண்டுகள்',
     overdue: 'காலம் கடந்தது',
+    overdueItems: { one: '{n} உருப்படி தாமதம்', other: '{n} உருப்படிகள் தாமதம்' },
+    totalDue: 'மொத்த நிலுவை {amount}',
+    nothingDue: 'நிலுவை எதுவும் இல்லை',
+    nothingOverdue: 'தாமதம் எதுவும் இல்லை',
+    nothingUpcoming: 'வரவிருப்பது எதுவும் இல்லை',
     moreCount: 'மேலும் {n}',
     leaveCasual: 'சாதாரண விடுப்பு',
     leaveSick: 'நோய்விடுப்பு',
@@ -22791,6 +22806,11 @@ const hi: UiStrings = {
     birthdayOf: '{name} का जन्मदिन',
     anniversaryOf: '{name} · {n} वर्ष',
     overdue: 'समय सीमा बीत गई',
+    overdueItems: { one: '{n} मद की समय सीमा बीत गई', other: '{n} मदों की समय सीमा बीत गई' },
+    totalDue: 'कुल बकाया {amount}',
+    nothingDue: 'कुछ बकाया नहीं',
+    nothingOverdue: 'कुछ समय सीमा पार नहीं',
+    nothingUpcoming: 'कुछ आने वाला नहीं',
     moreCount: 'और {n}',
     leaveCasual: 'आकस्मिक',
     leaveSick: 'बीमारी',
@@ -30027,6 +30047,18 @@ const ar: UiStrings = {
     birthdayOf: 'عيد ميلاد {name}',
     anniversaryOf: '{name} · {n} سنوات',
     overdue: 'متأخر',
+    overdueItems: {
+      zero: '{n} بند متأخر',
+      one: 'بند متأخر',
+      two: 'بندان متأخران',
+      few: '{n} بنود متأخرة',
+      many: '{n} بندًا متأخرًا',
+      other: '{n} بند متأخر',
+    },
+    totalDue: 'إجمالي المستحق {amount}',
+    nothingDue: 'لا شيء مستحق',
+    nothingOverdue: 'لا شيء متأخر',
+    nothingUpcoming: 'لا شيء قادم',
     moreCount: 'و{n} أخرى',
     leaveCasual: 'اعتيادية',
     leaveSick: 'مرضية',
