@@ -714,6 +714,7 @@ test.describe.serial('company vendors and a vendor chain, one browser per person
       const res = await api.from('company_entries').select('id').eq('group_id', groupA);
       expect(res.error, label).toBeNull();
       expect(res.data, label).toEqual([]);
+      // shortcut: these tables are not seeded here, so this is an emptiness check only; seed them when a helper exists.
       for (const table of [
         'company_attendance',
         'company_leave',
