@@ -1473,6 +1473,19 @@ export class SyncSession {
               true,
             ),
             address: companyReason(mutation.payload.address ?? null, 'address', false),
+            // Only what the app sent: an absent key keeps the stored value.
+            ...(mutation.payload.email !== undefined && {
+              email: companyReason(mutation.payload.email ?? null, 'email', false),
+            }),
+            ...(mutation.payload.company !== undefined && {
+              company: companyReason(mutation.payload.company ?? null, 'company', false),
+            }),
+            ...(mutation.payload.category !== undefined && {
+              category: companyReason(mutation.payload.category ?? null, 'category', false),
+            }),
+            ...(mutation.payload.priority !== undefined && {
+              priority: mutation.payload.priority,
+            }),
             stage,
             lostReason: companyReason(mutation.payload.lostReason ?? null, 'lostReason', false),
             ownerMemberId: companyUuid(
