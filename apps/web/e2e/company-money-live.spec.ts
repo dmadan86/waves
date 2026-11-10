@@ -173,12 +173,16 @@ test.describe.serial('company money, one browser per person', () => {
 
     // Wages 20,000 for the employee.
     await page.goto(`/c/${groupId}/entry/new?member=${empMemberId}`);
-    await page.getByRole('combobox', { name: 'Type', exact: true }).selectOption({ label: 'Wages paid' });
+    await page
+      .getByRole('combobox', { name: 'Type', exact: true })
+      .selectOption({ label: 'Wages paid' });
     await saveEntry(page, '20000');
 
     // Company paid 3,000 directly: no employee on it.
     await page.goto(`/c/${groupId}/entry/new`);
-    await page.getByRole('combobox', { name: 'Paid by' }).selectOption({ label: 'Company paid directly' });
+    await page
+      .getByRole('combobox', { name: 'Paid by' })
+      .selectOption({ label: 'Company paid directly' });
     await saveEntry(page, '3000');
     await page.close();
 
