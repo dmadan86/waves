@@ -699,6 +699,7 @@ function LeaveFormSheetInner({
           const next = pickDay({ start, end, picking }, d);
           setStart(next.start);
           setEnd(next.end);
+          if (next.start !== next.end) setHalf(false); // half day only exists for a single day
           setPicking(next.picking);
         }}
       />
