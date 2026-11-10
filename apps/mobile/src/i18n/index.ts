@@ -1180,6 +1180,10 @@ export interface UiStrings {
     askTitle: string;
     askBody: string;
     askYes: string;
+    askFingerprint: string;
+    askFace: string;
+    askFaceAndroid: string;
+    askPasscode: string;
     unsupported: string;
     askAgainAfter: string;
     graceImmediate: string;
@@ -9150,10 +9154,14 @@ const en: UiStrings = {
     title: 'Security',
     requireBiometrics: 'Require biometrics or a passcode',
     appLock: 'App lock',
-    askTitle: 'Lock Waves with your fingerprint?',
+    askTitle: 'Lock Waves for privacy?',
     askBody:
-      'Ask for your fingerprint, face or phone passcode each time Waves opens, so someone holding your phone cannot see your money. You can change this in Settings.',
-    askYes: 'Turn on app lock',
+      'Use your fingerprint, face or phone passcode to keep your money and data private. You can change this anytime in Settings.',
+    askYes: 'Turn on App Lock',
+    askFingerprint: 'Fingerprint',
+    askFace: 'Face ID',
+    askFaceAndroid: 'Face unlock',
+    askPasscode: 'Phone passcode',
     unsupported: 'No Face ID, fingerprint or screen lock is set up on this device.',
     askAgainAfter: 'Ask again after',
     graceImmediate: 'Straight away',
@@ -16597,6 +16605,10 @@ const ta: UiStrings = {
     askBody:
       'Waves திறக்கும் ஒவ்வொரு முறையும் கைரேகை, முகம் அல்லது ஃபோன் கடவுக்குறியீடு கேட்கும், அதனால் உங்கள் ஃபோனை வைத்திருப்பவர் உங்கள் பணத்தைப் பார்க்க முடியாது. இதை அமைப்புகளில் மாற்றலாம்.',
     askYes: 'ஆப் பூட்டை இயக்கு',
+    askFingerprint: 'கைரேகை',
+    askFace: 'Face ID',
+    askFaceAndroid: 'முக அன்லாக்',
+    askPasscode: 'போன் பாஸ்கோடு',
     unsupported: 'இந்தச் சாதனத்தில் Face ID, கைரேகை அல்லது திரைப் பூட்டு அமைக்கப்படவில்லை.',
     askAgainAfter: 'மீண்டும் கேட்க',
     graceImmediate: 'உடனடியாக',
@@ -24225,6 +24237,10 @@ const hi: UiStrings = {
     askBody:
       'Waves खुलने पर हर बार फ़िंगरप्रिंट, चेहरा या फ़ोन पासकोड माँगा जाएगा, ताकि आपका फ़ोन पकड़ने वाला आपका पैसा न देख सके। इसे सेटिंग्स में बदल सकते हैं।',
     askYes: 'ऐप लॉक चालू करें',
+    askFingerprint: 'फ़िंगरप्रिंट',
+    askFace: 'Face ID',
+    askFaceAndroid: 'फ़ेस अनलॉक',
+    askPasscode: 'फ़ोन पासकोड',
     unsupported: 'इस डिवाइस पर Face ID, फ़िंगरप्रिंट या स्क्रीन लॉक सेट नहीं है।',
     askAgainAfter: 'दोबारा पूछें',
     graceImmediate: 'तुरंत',
@@ -31693,6 +31709,10 @@ const ar: UiStrings = {
     askBody:
       'سيطلب Waves بصمتك أو وجهك أو رمز مرور الهاتف في كل مرة يُفتح فيها، حتى لا يرى من يحمل هاتفك أموالك. يمكنك تغيير ذلك من الإعدادات.',
     askYes: 'تفعيل قفل التطبيق',
+    askFingerprint: 'البصمة',
+    askFace: 'Face ID',
+    askFaceAndroid: 'فتح بالوجه',
+    askPasscode: 'رمز مرور الهاتف',
     unsupported: 'لم يتم إعداد Face ID أو بصمة الإصبع أو قفل الشاشة على هذا الجهاز.',
     askAgainAfter: 'اسأل مرة أخرى بعد',
     graceImmediate: 'فورًا',
