@@ -234,6 +234,8 @@ export interface UiStrings {
     dayCount: string;
     oneDay: string;
     holidayName: string;
+    holidayTitle: string;
+    holidayPlaceholder: string;
     eventTitle: string;
     eventTime: string;
     eventPeople: string;
@@ -8141,6 +8143,8 @@ const en: UiStrings = {
     dayCount: '{n} days',
     oneDay: '1 day',
     holidayName: 'Holiday name',
+    holidayTitle: 'Add holiday',
+    holidayPlaceholder: 'e.g. Diwali, office holiday',
     eventTitle: 'Event title',
     eventTime: 'Time, optional',
     eventPeople: 'People involved',
@@ -15373,6 +15377,8 @@ const ta: UiStrings = {
     dayCount: '{n} நாட்கள்',
     oneDay: '1 நாள்',
     holidayName: 'விடுமுறைப் பெயர்',
+    holidayTitle: 'விடுமுறை சேர்',
+    holidayPlaceholder: 'எ.கா. தீபாவளி, அலுவலக விடுமுறை',
     eventTitle: 'நிகழ்வின் தலைப்பு',
     eventTime: 'நேரம், விருப்பமானது',
     eventPeople: 'பங்கேற்பவர்கள்',
@@ -22823,6 +22829,8 @@ const hi: UiStrings = {
     dayCount: '{n} दिन',
     oneDay: '1 दिन',
     holidayName: 'अवकाश का नाम',
+    holidayTitle: 'अवकाश जोड़ें',
+    holidayPlaceholder: 'जैसे दिवाली, ऑफ़िस अवकाश',
     eventTitle: 'कार्यक्रम का शीर्षक',
     eventTime: 'समय, वैकल्पिक',
     eventPeople: 'शामिल लोग',
@@ -30071,6 +30079,8 @@ const ar: UiStrings = {
     dayCount: '{n} أيام',
     oneDay: 'يوم واحد',
     holidayName: 'اسم العطلة',
+    holidayTitle: 'إضافة عطلة',
+    holidayPlaceholder: 'مثلاً: عيد الفطر، عطلة المكتب',
     eventTitle: 'عنوان الفعالية',
     eventTime: 'الوقت، اختياري',
     eventPeople: 'الأشخاص المعنيون',
