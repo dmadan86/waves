@@ -381,7 +381,8 @@ function ClientForm({ groupId }: { groupId: string }) {
       value={val}
       onChangeText={(v) => {
         set(v);
-        if (attached) setAttached(null);
+        // Only the identity fields detach; the rest are hidden while a customer is reused.
+        if (attached && (set === setName || set === setPhone)) setAttached(null);
       }}
       placeholder={label}
       placeholderTextColor={theme.color.textMuted}
@@ -440,21 +441,25 @@ function ClientForm({ groupId }: { groupId: string }) {
             label={s.phonePh}
             input={input(s.phonePh, phone, setPhone, 32, 'phone-pad')}
           />
-          <SelectField
-            icon="mail-outline"
-            label={s.emailPh}
-            input={input(s.emailPh, email, setEmail, 200, 'email-address')}
-          />
-          <SelectField
-            icon="business-outline"
-            label={s.companyPh}
-            input={input(s.companyPh, company, setCompany, 120)}
-          />
-          <SelectField
-            icon="location-outline"
-            label={s.addressPh}
-            input={input(s.addressPh, address, setAddress, 300)}
-          />
+          {attached ? null : (
+            <>
+              <SelectField
+                icon="mail-outline"
+                label={s.emailPh}
+                input={input(s.emailPh, email, setEmail, 200, 'email-address')}
+              />
+              <SelectField
+                icon="business-outline"
+                label={s.companyPh}
+                input={input(s.companyPh, company, setCompany, 120)}
+              />
+              <SelectField
+                icon="location-outline"
+                label={s.addressPh}
+                input={input(s.addressPh, address, setAddress, 300)}
+              />
+            </>
+          )}
         </Section>
         {matches.length ? (
           <ExistingCustomers
@@ -493,18 +498,20 @@ function ClientForm({ groupId }: { groupId: string }) {
               </Text>
             </View>
           </View>
-          <View style={{ gap: 4 }}>
-            <Text variant="caption" style={{ fontWeight: '600' }}>
-              {s.category}
-            </Text>
-            <SelectField
-              icon="layers-outline"
-              label={s.category}
-              text={category ? categoryLabel(category) : s.selectCategory}
-              placeholder={!category}
-              onPress={() => void pickCategory()}
-            />
-          </View>
+          {attached ? null : (
+            <View style={{ gap: 4 }}>
+              <Text variant="caption" style={{ fontWeight: '600' }}>
+                {s.category}
+              </Text>
+              <SelectField
+                icon="layers-outline"
+                label={s.category}
+                text={category ? categoryLabel(category) : s.selectCategory}
+                placeholder={!category}
+                onPress={() => void pickCategory()}
+              />
+            </View>
+          )}
           <View style={{ gap: 4 }}>
             <Text variant="caption" style={{ fontWeight: '600' }}>
               {s.expectedValue}
@@ -517,27 +524,29 @@ function ClientForm({ groupId }: { groupId: string }) {
             />
           </View>
         </Section>
-        <Section icon="megaphone-outline" title={s.cameFrom}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-            {CLIENT_SOURCES.map((src) => (
-              <Pressable
-                key={src}
-                accessibilityRole="button"
-                accessibilityState={{ selected: src === source }}
-                onPress={() => setSource(src)}
-                style={pill(src === source)}
-              >
-                <Ionicons name={SOURCE_ICON[src]} size={16} color={pillColor(src === source)} />
-                <Text
-                  variant="caption"
-                  style={{ fontWeight: '700', color: pillColor(src === source) }}
+        {attached ? null : (
+          <Section icon="megaphone-outline" title={s.cameFrom}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+              {CLIENT_SOURCES.map((src) => (
+                <Pressable
+                  key={src}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: src === source }}
+                  onPress={() => setSource(src)}
+                  style={pill(src === source)}
                 >
-                  {sourceLabel(src)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </Section>
+                  <Ionicons name={SOURCE_ICON[src]} size={16} color={pillColor(src === source)} />
+                  <Text
+                    variant="caption"
+                    style={{ fontWeight: '700', color: pillColor(src === source) }}
+                  >
+                    {sourceLabel(src)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </Section>
+        )}
         {!existing ? (
           <Section icon="calendar-outline" title={s.followUp}>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
@@ -586,26 +595,28 @@ function ClientForm({ groupId }: { groupId: string }) {
             {ownerField}
           </StandardCard>
         ) : null}
-        <Section icon="flag-outline" title={s.priority}>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-            {PRIORITIES.map((p) => (
-              <Pressable
-                key={p}
-                accessibilityRole="button"
-                accessibilityState={{ selected: p === priority }}
-                onPress={() => setPriority(p)}
-                style={pill(p === priority)}
-              >
-                <Text
-                  variant="caption"
-                  style={{ fontWeight: '700', color: pillColor(p === priority) }}
+        {attached ? null : (
+          <Section icon="flag-outline" title={s.priority}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+              {PRIORITIES.map((p) => (
+                <Pressable
+                  key={p}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: p === priority }}
+                  onPress={() => setPriority(p)}
+                  style={pill(p === priority)}
                 >
-                  {priorityLabel(p)}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </Section>
+                  <Text
+                    variant="caption"
+                    style={{ fontWeight: '700', color: pillColor(p === priority) }}
+                  >
+                    {priorityLabel(p)}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </Section>
+        )}
         {!existing ? (
           <Section icon="document-text-outline" title={s.notesOpt}>
             <View
