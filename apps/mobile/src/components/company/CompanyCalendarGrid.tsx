@@ -1,5 +1,6 @@
 import { Pressable, View } from 'react-native';
 import { Text, useTheme } from '@waves/ui';
+import { withAlpha } from '@/components/company/dashboard/overviewKit';
 import { StandardCard } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import type { CalendarItem } from '@/data/companyCalendarItems';
@@ -13,6 +14,8 @@ export function CompanyCalendarGrid({
   onSelect,
   onMonthChange,
   dots,
+  range,
+  isDisabled,
 }: {
   year: number;
   month: number;
@@ -22,6 +25,10 @@ export function CompanyCalendarGrid({
   onMonthChange: (year: number, month: number) => void;
   /** One dot colour per day (Tasks); replaces the per-kind dots and the legend. */
   dots?: Readonly<Record<string, string>>;
+  /** Highlight a start..end range (filled ends, soft fill between) instead of a single selected day. */
+  range?: { start: string; end: string };
+  /** Days that cannot be tapped (dimmed). */
+  isDisabled?: (day: string) => boolean;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -93,15 +100,24 @@ export function CompanyCalendarGrid({
           const kinds = [
             ...new Set(items.filter((item) => item.day === day).map((item) => item.kind)),
           ].slice(0, 4);
-          const selected = day === selectedDay;
+          const selected = range ? day === range.start || day === range.end : day === selectedDay;
+          const inRange = !!range && !!day && day >= range.start && day <= range.end;
+          const off = !!day && !!isDisabled?.(day);
           return (
             <Pressable
               key={`day-${i}`}
-              disabled={!day}
+              disabled={!day || off}
               accessibilityRole="button"
               accessibilityState={{ selected }}
               onPress={() => day && onSelect(day)}
-              style={{ width: '14.2857%', minHeight: 46, alignItems: 'center', paddingTop: 3 }}
+              style={{
+                width: '14.2857%',
+                minHeight: 46,
+                alignItems: 'center',
+                paddingTop: 3,
+                opacity: off ? 0.35 : 1,
+                backgroundColor: inRange ? withAlpha(theme.color.brand, 0.14) : 'transparent',
+              }}
             >
               <View
                 style={{

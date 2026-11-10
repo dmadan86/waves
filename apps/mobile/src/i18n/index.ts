@@ -289,6 +289,42 @@ export interface UiStrings {
     paidHolidaysHint: string;
     paidLeave: string;
     paidLeaveHint: string;
+    leavePolicy: string;
+    leavePolicyHint: string;
+    leavePolicyRow: string;
+    leaveTypeAdd: string;
+    leaveTypeEdit: string;
+    leaveTypeName: string;
+    leaveAccrual: string;
+    leaveCarry: string;
+    leaveCarryHint: string;
+    leaveCarryCap: string;
+    leaveAnnualCap: string;
+    leaveNoLimit: string;
+    leavePaid: string;
+    leavePaidHint: string;
+    leaveOverdraw: string;
+    leaveOverdrawHint: string;
+    leaveActive: string;
+    leaveParked: string;
+    leavePerMonth: string;
+    leaveCarries: string;
+    leaveResets: string;
+    leaveErrName: string;
+    leaveErrAccrual: string;
+    leaveErrCap: string;
+    leaveTypeNone: string;
+    leaveLeft: string;
+    leaveAfter: string;
+    leaveDaysSelected: string;
+    leaveDaysAvailable: string;
+    leaveBalances: string;
+    leaveEarned: string;
+    leaveTaken: string;
+    leaveRequested: string;
+    upcomingTimeOff: string;
+    leaveOverBalance: string;
+    leaveCannotApprove: string;
     wageRuleNote: string;
     holidayOnDay: string;
     leaveOnDay: string;
@@ -8350,6 +8386,42 @@ const en: UiStrings = {
     paidHolidaysHint: 'Holidays count as paid days in wage runs.',
     paidLeave: 'Paid sick/casual leave',
     paidLeaveHint: 'Approved sick and casual leave counts as paid days. Other leave is unpaid.',
+    leavePolicy: 'Leave policy',
+    leavePolicyHint: 'Casual, sick and other leave: how much each person earns every month.',
+    leavePolicyRow: 'Casual, sick and other leave each person earns',
+    leaveTypeAdd: 'Add leave type',
+    leaveTypeEdit: 'Edit leave type',
+    leaveTypeName: 'Name',
+    leaveAccrual: 'Days earned per month (0 to 5, halves ok)',
+    leaveCarry: 'Carry forward to next year',
+    leaveCarryHint: 'Unused days move into the next year. Off: they reset on 1 January.',
+    leaveCarryCap: 'Carry forward at most (days)',
+    leaveAnnualCap: 'Earn at most per year (days)',
+    leaveNoLimit: 'No limit',
+    leavePaid: 'Paid leave',
+    leavePaidHint: 'Counts as a paid day in wages',
+    leaveOverdraw: 'Allow going below zero',
+    leaveOverdrawHint: 'Off: a request beyond the balance cannot be approved.',
+    leaveActive: 'In use',
+    leaveParked: 'Not in use',
+    leavePerMonth: '{n} a month',
+    leaveCarries: 'carries forward',
+    leaveResets: 'resets every year',
+    leaveErrName: 'Give it a name.',
+    leaveErrAccrual: 'Days per month must be 0 to 5 in steps of 0.5.',
+    leaveErrCap: 'Limits must be a number of days, or empty for no limit.',
+    leaveTypeNone: 'Other (not counted)',
+    leaveLeft: '{n} left',
+    leaveAfter: '{n} left after this',
+    leaveDaysSelected: '{n} days selected',
+    leaveDaysAvailable: '{n} days available',
+    leaveBalances: 'Leave balance',
+    leaveEarned: 'Earned',
+    leaveTaken: 'Taken',
+    leaveRequested: 'Requested',
+    upcomingTimeOff: 'Upcoming time off',
+    leaveOverBalance: 'Only {n} days left in {type}. This request is longer.',
+    leaveCannotApprove: 'Cannot approve: only {n} days left in {type}.',
     wageRuleNote:
       'Wage days follow attendance. Holidays count as paid days when Paid holidays is on; approved leave counts as absent unless paid leave is on.',
     holidayOnDay: 'Holiday: {name}',
@@ -15741,6 +15813,44 @@ const ta: UiStrings = {
     paidLeave: 'ஊதியத்துடன் நோய்/சாதாரண விடுப்பு',
     paidLeaveHint:
       'ஒப்புதல் பெற்ற நோய் மற்றும் சாதாரண விடுப்புக்கு ஊதியம் உண்டு. மற்ற விடுப்பு ஊதியமற்றது.',
+    leavePolicy: 'விடுப்புக் கொள்கை',
+    leavePolicyHint: 'சாதாரண, நோய் மற்றும் பிற விடுப்பு: ஒவ்வொருவரும் மாதம் எவ்வளவு பெறுகிறார்கள்.',
+    leavePolicyRow: 'ஒவ்வொருவரும் பெறும் சாதாரண, நோய் மற்றும் பிற விடுப்பு',
+    leaveTypeAdd: 'விடுப்பு வகையைச் சேர்',
+    leaveTypeEdit: 'விடுப்பு வகையைத் திருத்து',
+    leaveTypeName: 'பெயர்',
+    leaveAccrual: 'மாதம் பெறும் நாட்கள் (0 முதல் 5, அரை நாள் சரி)',
+    leaveCarry: 'அடுத்த ஆண்டுக்கு எடுத்துச் செல்',
+    leaveCarryHint:
+      'பயன்படுத்தாத நாட்கள் அடுத்த ஆண்டுக்குச் செல்லும். அணைத்தால் ஜனவரி 1 அன்று மீட்டமையும்.',
+    leaveCarryCap: 'அதிகபட்சம் எடுத்துச் செல்லும் நாட்கள்',
+    leaveAnnualCap: 'ஆண்டுக்கு அதிகபட்சம் பெறும் நாட்கள்',
+    leaveNoLimit: 'வரம்பு இல்லை',
+    leavePaid: 'ஊதியத்துடன் கூடிய விடுப்பு',
+    leavePaidHint: 'சம்பளத்தில் ஊதிய நாளாகக் கணக்கிடப்படும்',
+    leaveOverdraw: 'பூஜ்யத்துக்குக் கீழ் செல்ல அனுமதி',
+    leaveOverdrawHint: 'அணைத்தால்: இருப்புக்கு மேல் கேட்கும் கோரிக்கையை ஏற்க முடியாது.',
+    leaveActive: 'பயன்பாட்டில்',
+    leaveParked: 'பயன்பாட்டில் இல்லை',
+    leavePerMonth: 'மாதம் {n}',
+    leaveCarries: 'எடுத்துச் செல்லும்',
+    leaveResets: 'ஆண்டுதோறும் மீட்டமையும்',
+    leaveErrName: 'பெயர் கொடுங்கள்.',
+    leaveErrAccrual: 'மாதத்துக்கு 0 முதல் 5 வரை, 0.5 படிகளில் இருக்க வேண்டும்.',
+    leaveErrCap:
+      'வரம்பு நாட்களின் எண்ணாக இருக்க வேண்டும், அல்லது வரம்பு இல்லையெனில் காலியாக விடுங்கள்.',
+    leaveTypeNone: 'பிற (கணக்கில் இல்லை)',
+    leaveLeft: '{n} மீதம்',
+    leaveAfter: 'இதற்குப் பின் {n} மீதம்',
+    leaveDaysSelected: '{n} நாட்கள் தேர்வு',
+    leaveDaysAvailable: '{n} நாட்கள் உள்ளன',
+    leaveBalances: 'விடுப்பு இருப்பு',
+    leaveEarned: 'பெற்றது',
+    leaveTaken: 'எடுத்தது',
+    leaveRequested: 'கோரியது',
+    upcomingTimeOff: 'வரவிருக்கும் விடுப்பு',
+    leaveOverBalance: '{type} இல் {n} நாட்கள் மட்டுமே உள்ளன. இந்தக் கோரிக்கை நீளமானது.',
+    leaveCannotApprove: 'ஏற்க முடியாது: {type} இல் {n} நாட்கள் மட்டுமே உள்ளன.',
     wageRuleNote:
       'ஊதிய நாட்கள் வருகையைப் பொறுத்தது. ஊதியத்துடன் விடுமுறை இயக்கப்பட்டால் விடுமுறை நாட்களுக்கு ஊதியம் உண்டு; ஊதிய விடுப்பு இயக்கப்படாவிட்டால் ஒப்புதல் பெற்ற விடுப்பு வராத நாளாகக் கணக்கிடப்படும்.',
     holidayOnDay: 'விடுமுறை: {name}',
@@ -23348,6 +23458,42 @@ const hi: UiStrings = {
     paidHolidaysHint: 'वेतन गणना में अवकाश के दिन सवेतन दिनों में गिने जाते हैं।',
     paidLeave: 'सवेतन बीमारी/आकस्मिक छुट्टी',
     paidLeaveHint: 'स्वीकृत बीमारी और आकस्मिक छुट्टी सवेतन हैं। अन्य छुट्टी अवैतनिक है।',
+    leavePolicy: 'छुट्टी नीति',
+    leavePolicyHint: 'आकस्मिक, बीमारी और अन्य छुट्टी: हर व्यक्ति हर महीने कितनी कमाता है।',
+    leavePolicyRow: 'हर व्यक्ति को मिलने वाली आकस्मिक, बीमारी और अन्य छुट्टी',
+    leaveTypeAdd: 'छुट्टी का प्रकार जोड़ें',
+    leaveTypeEdit: 'छुट्टी का प्रकार बदलें',
+    leaveTypeName: 'नाम',
+    leaveAccrual: 'प्रति माह दिन (0 से 5, आधा दिन ठीक)',
+    leaveCarry: 'अगले साल में ले जाएँ',
+    leaveCarryHint: 'बचे हुए दिन अगले साल में जाते हैं। बंद होने पर 1 जनवरी को शून्य हो जाते हैं।',
+    leaveCarryCap: 'अधिकतम आगे ले जाने वाले दिन',
+    leaveAnnualCap: 'साल में अधिकतम मिलने वाले दिन',
+    leaveNoLimit: 'कोई सीमा नहीं',
+    leavePaid: 'सवेतन छुट्टी',
+    leavePaidHint: 'वेतन में सवेतन दिन गिना जाएगा',
+    leaveOverdraw: 'शून्य से नीचे जाने दें',
+    leaveOverdrawHint: 'बंद: बैलेंस से ज़्यादा का अनुरोध मंज़ूर नहीं हो सकता।',
+    leaveActive: 'उपयोग में',
+    leaveParked: 'उपयोग में नहीं',
+    leavePerMonth: '{n} प्रति माह',
+    leaveCarries: 'आगे बढ़ती है',
+    leaveResets: 'हर साल शून्य होती है',
+    leaveErrName: 'नाम दीजिए।',
+    leaveErrAccrual: 'प्रति माह दिन 0 से 5 के बीच, 0.5 के चरणों में होने चाहिए।',
+    leaveErrCap: 'सीमा दिनों की संख्या हो, या बिना सीमा के लिए खाली छोड़ें।',
+    leaveTypeNone: 'अन्य (गिनी नहीं जाती)',
+    leaveLeft: '{n} बाकी',
+    leaveAfter: 'इसके बाद {n} बाकी',
+    leaveDaysSelected: '{n} दिन चुने',
+    leaveDaysAvailable: '{n} दिन उपलब्ध',
+    leaveBalances: 'छुट्टी बैलेंस',
+    leaveEarned: 'मिली',
+    leaveTaken: 'ली गई',
+    leaveRequested: 'माँगी गई',
+    upcomingTimeOff: 'आने वाली छुट्टी',
+    leaveOverBalance: '{type} में केवल {n} दिन बचे हैं। यह अनुरोध लंबा है।',
+    leaveCannotApprove: 'मंज़ूर नहीं हो सकता: {type} में केवल {n} दिन बचे हैं।',
     wageRuleNote:
       'वेतन के दिन उपस्थिति के अनुसार हैं। सवेतन अवकाश चालू होने पर अवकाश के दिन सवेतन हैं; सवेतन छुट्टी चालू न होने पर स्वीकृत छुट्टी अनुपस्थिति मानी जाती है।',
     holidayOnDay: 'अवकाश: {name}',
@@ -30752,6 +30898,42 @@ const ar: UiStrings = {
     paidHolidaysHint: 'تُحتسب العطلات أياماً مدفوعة في حساب الأجور.',
     paidLeave: 'إجازة مرضية/اعتيادية مدفوعة',
     paidLeaveHint: 'الإجازة المرضية والاعتيادية الموافق عليها مدفوعة. الإجازات الأخرى بلا أجر.',
+    leavePolicy: 'سياسة الإجازات',
+    leavePolicyHint: 'الإجازة الاعتيادية والمرضية وغيرها: كم يكسب كل شخص كل شهر.',
+    leavePolicyRow: 'الإجازة الاعتيادية والمرضية وغيرها التي يكسبها كل شخص',
+    leaveTypeAdd: 'إضافة نوع إجازة',
+    leaveTypeEdit: 'تعديل نوع الإجازة',
+    leaveTypeName: 'الاسم',
+    leaveAccrual: 'الأيام المكتسبة شهريًا (من 0 إلى 5، ونصف يوم مقبول)',
+    leaveCarry: 'ترحيل إلى العام التالي',
+    leaveCarryHint: 'الأيام غير المستخدمة تنتقل إلى العام التالي. عند الإيقاف تُصفَّر في 1 يناير.',
+    leaveCarryCap: 'الحد الأقصى للأيام المرحّلة',
+    leaveAnnualCap: 'الحد الأقصى للأيام المكتسبة سنويًا',
+    leaveNoLimit: 'بلا حد',
+    leavePaid: 'إجازة مدفوعة',
+    leavePaidHint: 'تُحتسب يومًا مدفوعًا في الأجور',
+    leaveOverdraw: 'السماح بالنزول تحت الصفر',
+    leaveOverdrawHint: 'متوقف: لا يمكن قبول طلب يتجاوز الرصيد.',
+    leaveActive: 'قيد الاستخدام',
+    leaveParked: 'غير مستخدم',
+    leavePerMonth: '{n} في الشهر',
+    leaveCarries: 'تُرحَّل',
+    leaveResets: 'تُصفَّر كل عام',
+    leaveErrName: 'أعطِه اسمًا.',
+    leaveErrAccrual: 'يجب أن تكون الأيام الشهرية من 0 إلى 5 بخطوات 0.5.',
+    leaveErrCap: 'يجب أن يكون الحد عددًا من الأيام، أو اتركه فارغًا لعدم وجود حد.',
+    leaveTypeNone: 'أخرى (غير محسوبة)',
+    leaveLeft: 'متبقّي {n}',
+    leaveAfter: 'يتبقى {n} بعد هذا',
+    leaveDaysSelected: '{n} أيام محددة',
+    leaveDaysAvailable: '{n} أيام متاحة',
+    leaveBalances: 'رصيد الإجازات',
+    leaveEarned: 'المكتسب',
+    leaveTaken: 'المأخوذ',
+    leaveRequested: 'المطلوب',
+    upcomingTimeOff: 'الإجازات القادمة',
+    leaveOverBalance: 'المتبقي {n} أيام فقط في {type}. هذا الطلب أطول.',
+    leaveCannotApprove: 'لا يمكن القبول: المتبقي {n} أيام فقط في {type}.',
     wageRuleNote:
       'تتبع أيام الأجر الحضور. تُحتسب العطلات أياماً مدفوعة عند تفعيل العطلات المدفوعة؛ وتُحسب الإجازة الموافق عليها غياباً ما لم تُفعّل الإجازة المدفوعة.',
     holidayOnDay: 'عطلة: {name}',

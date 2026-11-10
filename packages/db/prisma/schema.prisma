@@ -283,6 +283,7 @@ model Group {
   companyWorkTasks CompanyWorkTask[]
   companyHolidays CompanyHoliday[]
   companyLeave CompanyLeave[]
+  companyLeaveTypes CompanyLeaveType[]
   companyEvents CompanyEvent[]
   companyMemberDates CompanyMemberDates[]
   companyPaidHolidays Boolean @default(true) @map("company_paid_holidays")
@@ -3572,11 +3573,13 @@ model CompanyLeave {
   status String @default("pending")
   decidedBy String? @map("decided_by") @db.Uuid
   decisionNote String? @map("decision_note")
+  leaveTypeId String? @map("leave_type_id") @db.Uuid
   createdBy String @map("created_by") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
   updatedSeq BigInt @default(0) @map("updated_seq")
+  leaveType CompanyLeaveType? @relation(fields: [leaveTypeId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   member GroupMember @relation("CompanyLeaveMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   decider GroupMember? @relation("CompanyLeaveDecider", fields: [decidedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -3584,6 +3587,30 @@ model CompanyLeave {
   @@index([groupId,updatedSeq], map: "company_leave_sync_idx")
   @@index([groupId,memberId,startDay], map: "company_leave_member_idx")
   @@map("company_leave")
+  @@schema("public")
+}
+model CompanyLeaveType {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  kind String @default("other")
+  accrualDaysPerMonth Decimal @default(1) @map("accrual_days_per_month") @db.Decimal(4, 2)
+  carryForward Boolean @default(true) @map("carry_forward")
+  carryForwardCap Decimal? @map("carry_forward_cap") @db.Decimal(6, 2)
+  annualCap Decimal? @map("annual_cap") @db.Decimal(6, 2)
+  paid Boolean @default(false)
+  allowOverdraw Boolean @default(false) @map("allow_overdraw")
+  active Boolean @default(true)
+  startsOn DateTime @default(dbgenerated("((now() AT TIME ZONE 'UTC'::text))::date")) @map("starts_on") @db.Date
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  leave CompanyLeave[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_leave_types_sync_idx")
+  @@map("company_leave_types")
   @@schema("public")
 }
 model CompanyEvent {
