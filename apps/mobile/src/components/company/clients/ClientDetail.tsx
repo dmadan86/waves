@@ -44,6 +44,7 @@ import {
   useSetClient,
 } from '@/data/companyClients';
 import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
+import { useCompanyTickets } from '@/data/companyTickets';
 import { useWorkTasks } from '@/data/companyWorkday';
 import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
@@ -60,6 +61,7 @@ interface Event {
   readonly title: string;
   readonly sub?: string;
   readonly icon: keyof typeof Ionicons.glyphMap;
+  readonly docId?: string;
 }
 
 export function ClientDetail({ groupId, clientId }: { groupId: string; clientId: string }) {
@@ -76,6 +78,7 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
   const fmt = useMoney(view.currency);
   const allTasks = useWorkTasks(groupId);
   const followUps = useFollowUps(groupId);
+  const canComplain = useCompanyTickets(groupId).canAdd && !suspended;
   const when = useWhen();
   const setClient = useSetClient(groupId);
   const removeClient = useRemoveClient(groupId);
@@ -228,6 +231,7 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
           title: docNumberLabel(d.docType, d.number),
           sub: fmt(d.totalMinor),
           icon: 'document-text-outline' as const,
+          docId: d.id,
         })),
         ...docs.flatMap((d) =>
           d.payments.map((p) => ({
@@ -253,10 +257,12 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
     <Pressable
       key={label}
       accessibilityRole="button"
+      accessibilityLabel={label}
       onPress={onPress}
       style={{
         flex: 1,
-        height: 52,
+        minHeight: 64,
+        paddingHorizontal: theme.spacing.xs,
         borderRadius: theme.radius.lg,
         alignItems: 'center',
         justifyContent: 'center',
@@ -265,7 +271,11 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
       }}
     >
       <Ionicons name={icon} size={18} color={theme.color.brand} />
-      <Text variant="micro" style={{ color: theme.color.brand, fontWeight: '700' }}>
+      <Text
+        variant="caption"
+        numberOfLines={1}
+        style={{ color: theme.color.brand, fontWeight: '700' }}
+      >
         {label}
       </Text>
     </Pressable>
@@ -531,49 +541,69 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                   })
                 )}
               </View>
-              <StandardCard style={{ gap: theme.spacing.md }}>
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: theme.spacing.sm,
-                    backgroundColor: theme.color.warningSoft,
-                    borderRadius: theme.radius.lg,
-                    padding: theme.spacing.md,
-                  }}
-                >
-                  <Ionicons name="time-outline" size={18} color={theme.color.warning} />
-                  <View style={{ flex: 1 }}>
-                    <Text variant="caption" style={{ fontWeight: '700' }}>
-                      {next
-                        ? fill(next.day < today ? s.overdueSince : s.dueAt, {
-                            when: when(next.day, today, next.dueTime),
-                          })
-                        : s.noFollowUp}
-                    </Text>
-                    {next ? (
-                      <Text variant="caption" tone="muted" numberOfLines={1}>
-                        {next.title}
-                      </Text>
-                    ) : null}
-                  </View>
-                  {next &&
-                  canWrite &&
-                  (entries.isOwner ||
-                    next.memberId === view.myMemberId ||
-                    entries.manageableIds.has(next.memberId)) ? (
-                    <Button label={s.done} variant="brand" onPress={() => void done(next)} />
-                  ) : null}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.sm,
+                  backgroundColor: theme.color.warningSoft,
+                  borderRadius: theme.radius.lg,
+                  padding: theme.spacing.md,
+                }}
+              >
+                <Ionicons name="time-outline" size={26} color={theme.color.warning} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: '700' }}>
+                    {next
+                      ? fill(next.day < today ? s.overdueSince : s.dueAt, {
+                          when: when(next.day, today, next.dueTime),
+                        })
+                      : s.noFollowUp}
+                  </Text>
+                  <Text variant="caption" tone="muted" numberOfLines={2}>
+                    {next ? next.title : s.noFollowUpHint}
+                  </Text>
                 </View>
-                {(canWrite && assignee) || docsAllowed ? (
-                  <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-                    {canWrite && assignee
-                      ? action('time-outline', s.btnFollowUp, () => void addFollow())
-                      : null}
-                    {docsAllowed ? action('cash-outline', s.btnMoney, receive) : null}
-                  </View>
+                {!next && canWrite && assignee ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={s.scheduleFollowUp}
+                    onPress={() => void addFollow()}
+                    style={{
+                      minHeight: 44,
+                      justifyContent: 'center',
+                      paddingHorizontal: theme.spacing.md,
+                      borderRadius: theme.radius.md,
+                      borderWidth: 1,
+                      borderColor: theme.color.brand,
+                    }}
+                  >
+                    <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '700' }}>
+                      {s.scheduleFollowUp}
+                    </Text>
+                  </Pressable>
                 ) : null}
-              </StandardCard>
+                {next &&
+                canWrite &&
+                (entries.isOwner ||
+                  next.memberId === view.myMemberId ||
+                  entries.manageableIds.has(next.memberId)) ? (
+                  <Button label={s.done} variant="brand" onPress={() => void done(next)} />
+                ) : null}
+              </View>
+              {docsAllowed || (canWrite && client.stage !== 'lost') || canComplain ? (
+                <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+                  {docsAllowed ? action('wallet-outline', s.btnMoney, receive) : null}
+                  {canWrite && client.stage !== 'lost'
+                    ? action('document-text-outline', s.btnInquiry, () => setNewInquiry(true))
+                    : null}
+                  {canComplain
+                    ? action('alert-circle-outline', t.companyTickets.newComplaint, () =>
+                        router.push(`/group/${groupId}/company-ticket-add?clientId=${clientId}`),
+                      )
+                    : null}
+                </View>
+              ) : null}
               <ClientComplaints groupId={groupId} clientId={clientId} />
               <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
                 <SegmentedPills
@@ -600,6 +630,11 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
                       subtitleLines={3}
                       leading={<Ionicons name={e.icon} size={20} color={theme.color.textMuted} />}
                       amount={when(e.at, today)}
+                      onPress={
+                        e.docId && docsAllowed
+                          ? () => router.push(`/group/${groupId}/company-bill?docId=${e.docId}`)
+                          : undefined
+                      }
                       divider={index < events.length - 1}
                     />
                   ))}
