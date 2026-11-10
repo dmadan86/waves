@@ -11,7 +11,13 @@ import { Pressable, View, type GestureResponderEvent } from 'react-native';
 
 import { directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
-import { IconDisc, RED, Skeleton, withAlpha } from '@/components/company/dashboard/overviewKit';
+import {
+  AMBER,
+  IconDisc,
+  RED,
+  Skeleton,
+  withAlpha,
+} from '@/components/company/dashboard/overviewKit';
 import { GREEN } from '@/components/company/dashboard/parts';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -439,7 +445,7 @@ export function CompanyChips({ groupId }: { groupId: string }) {
   );
 }
 
-/** Add task, Add client, Add vendor, Upload file: each opens the screen that already does it. */
+/** All owner shortcuts in one wrapping grid, 4 a row: each opens the screen that already does it. */
 export function QuickActions({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -447,6 +453,19 @@ export function QuickActions({ groupId }: { groupId: string }) {
   if (view.suspended) return null;
   const go = (screen: string) => () => router.push(`/group/${groupId}/${screen}`);
   const actions = [
+    { icon: 'card-outline', label: t.company.qaRecord, ink: GREEN, screen: 'company-wages' },
+    {
+      icon: 'document-attach-outline',
+      label: t.company.ovAddBill,
+      ink: LAVENDER,
+      screen: 'company-vendors',
+    },
+    {
+      icon: 'document-text-outline',
+      label: t.company.ovCreateInvoice,
+      ink: BLUE,
+      screen: 'company-bill-form?type=bill',
+    },
     { icon: 'checkbox-outline', label: t.company.qaAddTask, ink: GREEN, screen: 'company-work' },
     {
       icon: 'person-add-outline',
@@ -466,20 +485,27 @@ export function QuickActions({ groupId }: { groupId: string }) {
       ink: RED,
       screen: 'company-storage',
     },
+    // No reminder feature exists: this opens the calendar's new-event sheet.
+    {
+      icon: 'alarm-outline',
+      label: t.company.qaAddReminder,
+      ink: AMBER,
+      screen: 'company-calendar?add=event',
+    },
   ] as const;
   return (
     <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, gap: 8 }}>
       <Text variant="title" accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
         {t.company.tkQuick}
       </Text>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 8 }}>
         {actions.map((a) => (
           <Pressable
             key={a.screen}
             accessibilityRole="button"
             accessibilityLabel={a.label}
             onPress={go(a.screen)}
-            style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: 6, paddingVertical: 4 }}
+            style={{ width: '25%', alignItems: 'center', gap: 6, paddingVertical: 4 }}
           >
             <IconDisc ink={a.ink} size={42}>
               <Ionicons name={a.icon} size={iconSize.md} color={a.ink} />

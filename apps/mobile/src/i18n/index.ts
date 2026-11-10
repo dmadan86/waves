@@ -1467,6 +1467,7 @@ export interface UiStrings {
     vendors: string;
     today: string;
     yesterday: string;
+    showOlder: string;
     empty: string;
     statusPresent: string;
     statusHalf: string;
@@ -1904,6 +1905,7 @@ export interface UiStrings {
     qaHierarchy: string;
     qaBudgets: string;
     qaRecord: string;
+    qaAddReminder: string;
     overviewActiveToday: string;
     overviewPresent: string;
     overviewAbsent: string;
@@ -9270,6 +9272,7 @@ const en: UiStrings = {
     vendors: 'Vendors & bills',
     today: 'Today',
     yesterday: 'Yesterday',
+    showOlder: 'Show older',
     empty: 'Nothing has happened yet',
     statusPresent: 'present',
     statusHalf: 'half day',
@@ -9739,6 +9742,7 @@ const en: UiStrings = {
     qaHierarchy: 'Manage hierarchy',
     qaBudgets: 'Allocate budgets',
     qaRecord: 'Record payment',
+    qaAddReminder: 'Add reminder',
     overviewActiveToday: 'Active today',
     overviewPresent: 'Present',
     overviewAbsent: 'Absent',
@@ -16573,6 +16577,7 @@ const ta: UiStrings = {
     vendors: 'விற்பனையாளர்கள் & பில்கள்',
     today: 'இன்று',
     yesterday: 'நேற்று',
+    showOlder: 'பழையதைக் காட்டு',
     empty: 'இன்னும் எதுவும் நடக்கவில்லை',
     statusPresent: 'வந்துள்ளார்',
     statusHalf: 'அரை நாள்',
@@ -17046,6 +17051,7 @@ const ta: UiStrings = {
     qaHierarchy: 'படிநிலை',
     qaBudgets: 'பட்ஜெட் ஒதுக்கு',
     qaRecord: 'கொடுப்பனவை பதிவு செய்',
+    qaAddReminder: 'நினைவூட்டல் சேர்',
     overviewActiveToday: 'இன்று செயலில்',
     overviewPresent: 'வருகை',
     overviewAbsent: 'வரவில்லை',
@@ -24046,6 +24052,7 @@ const hi: UiStrings = {
     vendors: 'विक्रेता और बिल',
     today: 'आज',
     yesterday: 'कल',
+    showOlder: 'पुराना दिखाएँ',
     empty: 'अभी तक कुछ नहीं हुआ',
     statusPresent: 'उपस्थित',
     statusHalf: 'आधा दिन',
@@ -24516,6 +24523,7 @@ const hi: UiStrings = {
     qaHierarchy: 'हाइरार्की संभालें',
     qaBudgets: 'बजट दें',
     qaRecord: 'भुगतान दर्ज करें',
+    qaAddReminder: 'रिमाइंडर जोड़ें',
     overviewActiveToday: 'आज सक्रिय',
     overviewPresent: 'उपस्थित',
     overviewAbsent: 'अनुपस्थित',
@@ -31403,6 +31411,7 @@ const ar: UiStrings = {
     vendors: 'الموردون والفواتير',
     today: 'اليوم',
     yesterday: 'أمس',
+    showOlder: 'عرض الأقدم',
     empty: 'لم يحدث شيء بعد',
     statusPresent: 'حاضر',
     statusHalf: 'نصف يوم',
@@ -31902,6 +31911,7 @@ const ar: UiStrings = {
     qaHierarchy: 'إدارة الهيكل',
     qaBudgets: 'وزّع الميزانيات',
     qaRecord: 'سجّل دفعة',
+    qaAddReminder: 'أضف تذكيراً',
     overviewActiveToday: 'نشط اليوم',
     overviewPresent: 'حاضر',
     overviewAbsent: 'غائب',

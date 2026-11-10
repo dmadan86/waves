@@ -10,10 +10,15 @@ import { rowsFor, SyncTable } from '@waves/core';
 import { useCompanyDocs } from '@/data/companyDocuments';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useCompanyVendors } from '@/data/companyVendors';
+import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
 import { useStrings } from '@/i18n';
 import {
+  ACTIVITY_WINDOW_DAYS,
+  activityCutoff,
+  activityWindow,
   buildCompanyActivity,
+  stampInWindow,
   countNewActivity,
   type ActivityRole,
   type CompanyActivityEvent,
@@ -24,7 +29,10 @@ import { useSync } from '@/sync';
 type Raw = Record<string, unknown>;
 const str = (v: unknown): string => (typeof v === 'string' ? v : '');
 
-export function useCompanyActivity(groupId: string): {
+export function useCompanyActivity(
+  groupId: string,
+  days: number = ACTIVITY_WINDOW_DAYS,
+): {
   readonly events: readonly CompanyActivityEvent[];
   readonly ready: boolean;
 } {
@@ -35,18 +43,30 @@ export function useCompanyActivity(groupId: string): {
   const docs = useCompanyDocs(groupId);
 
   // The raw synced rows carry the stamps the screens' own views drop (who marked, when).
+  const today = todayIso();
+  const cutoff = useMemo(
+    () => activityCutoff(new Date(`${today}T12:00:00`).getTime(), days),
+    [today, days],
+  );
   const raw = useMemo(() => {
     const rows = (table: SyncTable): Raw[] => rowsFor(mirror, table, groupId) as unknown as Raw[];
     const live = (r: Raw): boolean => !r.deleted_at;
+    // Rows with no stamp inside the window cannot make an event in it: drop them before building.
+    const recent = (r: Raw): boolean =>
+      live(r) && stampInWindow(cutoff, str(r.created_at), str(r.updated_at));
     return {
-      attendance: rows(SyncTable.CompanyAttendance).filter(live),
-      tasks: rows(SyncTable.CompanyWorkTasks).filter(live),
+      attendance: rows(SyncTable.CompanyAttendance).filter(
+        (r) => live(r) && stampInWindow(cutoff, str(r.updated_at)),
+      ),
+      tasks: rows(SyncTable.CompanyWorkTasks).filter(recent),
       members: rows(SyncTable.GroupMembers),
       entries: rows(SyncTable.CompanyEntries),
       vendorEntries: rows(SyncTable.CompanyVendorEntries),
-      docs: rows(SyncTable.CompanyDocuments),
+      docs: rows(SyncTable.CompanyDocuments).filter((r) =>
+        stampInWindow(cutoff, str(r.created_at), str(r.updated_at)),
+      ),
     };
-  }, [mirror, groupId]);
+  }, [mirror, groupId, cutoff]);
 
   const { isOwner, isVendor, isManager, me, members, manageableIds, entries, ready } = view;
   const vendorList = vendors.vendors;
@@ -69,7 +89,7 @@ export function useCompanyActivity(groupId: string): {
     for (const r of raw.vendorEntries)
       if (r.reviewed_at) vendorReviews.set(str(r.id), str(r.reviewed_at));
     const docStamps = new Map(raw.docs.map((r) => [str(r.id), r]));
-    return buildCompanyActivity({
+    const built = buildCompanyActivity({
       viewer: {
         memberId: me?.id ?? null,
         role,
@@ -118,7 +138,9 @@ export function useCompanyActivity(groupId: string): {
         return s ? [{ doc, createdAt: str(s.created_at), updatedAt: str(s.updated_at) }] : [];
       }),
     });
+    return activityWindow(built, cutoff);
   }, [
+    cutoff,
     isOwner,
     isVendor,
     isManager,

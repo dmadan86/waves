@@ -14,7 +14,6 @@ import { LayoutEditor, OverviewCards } from '@/components/company/dashboard/Over
 import {
   ComingUpRow,
   GlanceTiles,
-  MoneyActions,
   NeedsAttention,
 } from '@/components/company/dashboard/OverviewHome';
 import { MoneyCards } from '@/components/company/dashboard/OverviewMoney';
@@ -73,12 +72,7 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                       <NeedsAttention groupId={groupId} approvalsOnly />
                     </View>
                   ),
-                  moneyActions: (
-                    <View style={{ gap: 12 }}>
-                      <QuickActions groupId={groupId} />
-                      <MoneyActions groupId={groupId} />
-                    </View>
-                  ),
+                  moneyActions: <QuickActions groupId={groupId} />,
                   comingUp: <ComingUpRow groupId={groupId} />,
                   attendance: own.attendance,
                   attention: own.attention,

@@ -30,7 +30,7 @@ import { useBottomClearance } from '@/lib/clearance';
 
 type Filter = 'all' | CalendarKind;
 export default function CompanyCalendarScreen() {
-  const { id = '' } = useLocalSearchParams<{ id: string }>();
+  const { id = '', add } = useLocalSearchParams<{ id: string; add?: string }>();
   const today = todayIso();
   const [year, setYear] = useState(Number(today.slice(0, 4)));
   const [month, setMonth] = useState(Number(today.slice(5, 7)));
@@ -38,7 +38,9 @@ export default function CompanyCalendarScreen() {
   const [filter, setFilter] = useState<Filter>('all');
   const [chooser, setChooser] = useState(false);
   const [holiday, setHoliday] = useState<MirrorHoliday | null | undefined>(undefined);
-  const [event, setEvent] = useState<MirrorEvent | null | undefined>(undefined);
+  const [event, setEvent] = useState<MirrorEvent | null | undefined>(
+    add === 'event' ? null : undefined, // from Overview "Add reminder"
+  );
   const [leave, setLeave] = useState<MirrorLeave | null>(null);
   const [leaveForm, setLeaveForm] = useState<'request' | 'record' | null>(null);
   const [dates, setDates] = useState(false);
