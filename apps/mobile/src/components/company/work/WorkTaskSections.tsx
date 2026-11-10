@@ -253,17 +253,40 @@ export function WorkTaskSections({
             </Pressable>
           </>
         ) : (
-          <>
-            <Text variant="subheading">{t.company.workNoTasks}</Text>
-            <Text tone="muted">{t.company.workNoTasksHint}</Text>
+          <View style={{ alignSelf: 'stretch', alignItems: 'center', gap: theme.spacing.sm }}>
+            <View
+              style={{
+                width: 120,
+                height: 104,
+                borderRadius: 52,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: withAlpha('#7C5CFC', 0.12),
+              }}
+            >
+              <Ionicons name="clipboard-outline" size={56} color="#7C5CFC" />
+              <Ionicons
+                name="checkbox"
+                size={24}
+                color={theme.color.brand}
+                style={{ position: 'absolute', right: 6, bottom: 10 }}
+              />
+            </View>
+            <Text variant="subheading" style={{ fontWeight: '800' }}>
+              {t.company.workNoTasks}
+            </Text>
+            <Text tone="muted" style={{ textAlign: 'center' }}>
+              {t.company.workNoTasksHint}
+            </Text>
             {onAdd ? (
               <Button
-                label={t.company.workAdd}
+                label={'+ ' + t.company.workAdd}
                 onPress={onAdd}
-                style={{ borderRadius: theme.radius.md }}
+                accessibilityLabel={t.company.workAdd}
+                style={{ borderRadius: 22 }}
               />
             ) : null}
-          </>
+          </View>
         )}
       </View>
     );

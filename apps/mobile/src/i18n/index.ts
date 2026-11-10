@@ -1745,6 +1745,8 @@ export interface UiStrings {
     workSubtitle: string;
     workSearch: string;
     workTotal: string;
+    workAllTasks: string;
+    workDueToday: string;
     workCompleted: string;
     workInProgress: string;
     workPending: string;
@@ -9723,6 +9725,8 @@ const en: UiStrings = {
     workSubtitle: "Stay on top of your team's tasks and get things done.",
     workSearch: 'Search tasks, employees...',
     workTotal: 'Total tasks',
+    workAllTasks: 'All tasks',
+    workDueToday: 'Due today',
     workCompleted: 'Completed',
     workInProgress: 'In progress',
     workPending: 'Pending',
@@ -17177,6 +17181,8 @@ const ta: UiStrings = {
     workSubtitle: 'உங்கள் குழுவின் பணிகளைக் கண்காணித்து முடிக்கவும்.',
     workSearch: 'பணிகள், பணியாளர்களைத் தேடுங்கள்...',
     workTotal: 'மொத்தப் பணிகள்',
+    workAllTasks: 'அனைத்துப் பணிகள்',
+    workDueToday: 'இன்று முடிய வேண்டியவை',
     workCompleted: 'முடிந்தது',
     workInProgress: 'நடக்கிறது',
     workPending: 'நிலுவை',
@@ -24797,6 +24803,8 @@ const hi: UiStrings = {
     workSubtitle: 'अपनी टीम के कामों पर नज़र रखें और उन्हें पूरा करें।',
     workSearch: 'काम और कर्मचारियों को खोजें...',
     workTotal: 'कुल काम',
+    workAllTasks: 'सभी काम',
+    workDueToday: 'आज देय',
     workCompleted: 'पूरा हुआ',
     workInProgress: 'जारी है',
     workPending: 'लंबित',
@@ -32326,6 +32334,8 @@ const ar: UiStrings = {
     workSubtitle: 'تابع مهام فريقك وأنجزها.',
     workSearch: 'ابحث عن المهام والموظفين...',
     workTotal: 'إجمالي المهام',
+    workAllTasks: 'كل المهام',
+    workDueToday: 'مستحقة اليوم',
     workCompleted: 'مكتمل',
     workInProgress: 'قيد التنفيذ',
     workPending: 'معلّق',

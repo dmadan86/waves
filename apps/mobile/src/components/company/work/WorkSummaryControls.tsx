@@ -1,18 +1,10 @@
 import { useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import {
-  Pressable,
-  ScrollView,
-  TextInput,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { Pressable, TextInput, View, type StyleProp, type ViewStyle } from 'react-native';
 import { iconSize, Text, useTheme } from '@waves/ui';
 import { GREEN } from '@/components/company/dashboard/parts';
 import { RED } from '@/components/company/dashboard/overviewKit';
 import type { MenuAnchor } from '@/components/SortMenu';
-import { SegmentedPills } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import type { WorkMode } from '@/lib/companyWork';
 
@@ -57,6 +49,12 @@ function Anchored({
   );
 }
 
+const MODES = [
+  { value: 'date', label: 'workByDate', icon: 'calendar-outline' },
+  { value: 'person', label: 'workByPerson', icon: 'person-outline' },
+  { value: 'status', label: 'workByStatus', icon: 'flag-outline' },
+] as const;
+
 /** [By date | By person] (managers only), round search (expands to a field) and the round ⋮. */
 export function WorkToolbar({
   mode,
@@ -82,7 +80,7 @@ export function WorkToolbar({
   const [searching, setSearching] = useState(query !== '');
   const pill: ViewStyle = {
     height: 44,
-    borderRadius: 12,
+    borderRadius: 22,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -91,7 +89,13 @@ export function WorkToolbar({
     borderWidth: 1,
     borderColor: theme.color.border,
   };
-  const round: ViewStyle = { ...pill, width: 44, paddingHorizontal: 0, justifyContent: 'center' };
+  const round: ViewStyle = {
+    ...pill,
+    width: 44,
+    borderRadius: 22,
+    paddingHorizontal: 0,
+    justifyContent: 'center',
+  };
   if (searching)
     return (
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -144,7 +148,7 @@ export function WorkToolbar({
           style={{ ...pill, backgroundColor: theme.color.brand, borderColor: theme.color.brand }}
         >
           <Ionicons name="add" size={iconSize.base} color={theme.color.onBrand} />
-          <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>{t.calendar.add}</Text>
+          <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>{t.company.workAdd}</Text>
         </Pressable>
       ) : null}
     </>
@@ -154,7 +158,7 @@ export function WorkToolbar({
       {title ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Text variant="heading" numberOfLines={1} style={{ fontWeight: '800' }}>
+            <Text variant="title" numberOfLines={1} style={{ fontWeight: '800' }}>
               {title}
             </Text>
             <Text variant="caption" tone="muted" numberOfLines={2}>
@@ -166,25 +170,55 @@ export function WorkToolbar({
       ) : null}
       {mode || !title ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-          {/* Three pills can outgrow a narrow screen in longer languages: scroll rather than clip. */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={{ flex: 1, minWidth: 0 }}
-            contentContainerStyle={{ gap: 6 }}
-          >
-            {mode ? (
-              <SegmentedPills
-                options={[
-                  { value: 'date' as WorkMode, label: t.company.workByDate },
-                  { value: 'person' as WorkMode, label: t.company.workByPerson },
-                  { value: 'status' as WorkMode, label: t.company.workByStatus },
-                ]}
-                value={mode}
-                onChange={onMode}
-              />
-            ) : null}
-          </ScrollView>
+          {mode ? (
+            <View
+              accessibilityRole="tablist"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                flexDirection: 'row',
+                padding: 3,
+                gap: 2,
+                borderRadius: 14,
+                backgroundColor: theme.color.surface,
+                borderWidth: 1,
+                borderColor: theme.color.border,
+              }}
+            >
+              {MODES.map((option) => {
+                const on = option.value === mode;
+                const ink = on ? theme.color.onBrand : theme.color.textMuted;
+                return (
+                  <Pressable
+                    key={option.value}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    onPress={() => onMode(option.value)}
+                    style={{
+                      flex: 1,
+                      minWidth: 0,
+                      minHeight: 44,
+                      borderRadius: 11,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      backgroundColor: on ? theme.color.brand : 'transparent',
+                    }}
+                  >
+                    <Ionicons name={option.icon} size={iconSize.sm} color={ink} />
+                    <Text
+                      variant="caption"
+                      numberOfLines={1}
+                      style={{ color: ink, fontWeight: on ? '700' : '500', flexShrink: 1 }}
+                    >
+                      {t.company[option.label]}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          ) : null}
           {title ? null : buttons}
         </View>
       ) : null}
