@@ -72,7 +72,8 @@ function useBoard(groupId: string) {
   const sites = useCompanyProjects(groupId);
   const all = useWorkTasks(groupId);
   const today = todayIso();
-  const ids = new Set(access.people.map((m) => m.id));
+  // Assignees, not people: managers can hold tasks too (owner sees employees + managers).
+  const ids = new Set(access.assignees.map((m) => m.id));
   const buckets = bucketOverviewTasks(
     all.filter((x) => ids.has(x.memberId)),
     today,
