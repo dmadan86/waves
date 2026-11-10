@@ -13,6 +13,7 @@ import {
   canSetEmploymentType,
   openTasksToday,
   hierarchyRows,
+  visibleHierarchyRows,
 } from '../src/data/companyPeople';
 
 const admin = { id: 'o', role: 'admin', left_at: null } as const;
@@ -141,5 +142,29 @@ describe('hierarchyRows', () => {
       ['e1', 2, 0],
       ['e2', 1, 0],
     ]);
+  });
+});
+
+describe('visibleHierarchyRows', () => {
+  const m = (id: string, role: string, manager_id: string | null = null) =>
+    ({ id, role, manager_id, left_at: null }) as never;
+  const rows = hierarchyRows([
+    m('o', 'admin'),
+    m('m1', 'manager'),
+    m('e1', 'member', 'm1'),
+    m('m2', 'manager'),
+    m('e2', 'member', 'm2'),
+  ]);
+  const ids = (c: string[]) => visibleHierarchyRows(rows, new Set(c)).map((r) => r.member.id);
+  it('shows everything by default and marks only parents expandable', () => {
+    const all = visibleHierarchyRows(rows, new Set());
+    expect(all.map((r) => r.member.id)).toEqual(['o', 'm1', 'e1', 'm2', 'e2']);
+    expect(all.map((r) => r.expandable)).toEqual([true, true, false, true, false]);
+  });
+  it('collapsing a manager hides only their reports', () => {
+    expect(ids(['m1'])).toEqual(['o', 'm1', 'm2', 'e2']);
+  });
+  it('collapsing an owner hides managers and their reports', () => {
+    expect(ids(['o'])).toEqual(['o']);
   });
 });

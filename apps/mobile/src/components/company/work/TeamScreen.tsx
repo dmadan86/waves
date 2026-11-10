@@ -73,6 +73,16 @@ export default function TeamScreen({
     );
   }
   const menuItems: OverflowMenuItem[] = [
+    // The add button that used to float on People lives here now.
+    ...(view.suspended
+      ? []
+      : [
+          {
+            icon: 'person-add-outline',
+            label: t.company.qaAddEmployee,
+            route: `/group/${groupId}/members`,
+          } as OverflowMenuItem,
+        ]),
     {
       icon: 'person-remove-outline',
       label: t.company.notEmployed,

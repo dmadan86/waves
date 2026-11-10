@@ -144,6 +144,16 @@ module.exports = function withSideBySideDebug(config) {
           'utf8',
         );
 
+        // The update request header is baked into the manifest from EAS_BUILD_PROFILE, which local
+        // Gradle builds never set; the preview build type always asks for the preview channel.
+        if (variant === 'preview') {
+          writeFileSync(
+            join(src, 'AndroidManifest.xml'),
+            `<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">\n  <application>\n    <meta-data android:name="expo.modules.updates.UPDATES_CONFIGURATION_REQUEST_HEADERS_KEY" android:value="{&quot;expo-channel-name&quot;:&quot;preview&quot;}" tools:replace="android:value" />\n  </application>\n</manifest>\n`,
+            'utf8',
+          );
+        }
+
         const services = source && appId ? JSON.parse(readFileSync(source, 'utf8')) : null;
         const registered = services?.client?.some(
           (c) => c.client_info?.android_client_info?.package_name === `${appId}${suffix}`,

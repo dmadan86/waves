@@ -79,7 +79,7 @@ import {
   isTabRoot,
   personalActiveKey,
   personalRouteForSelection,
-  resolveFab,
+  showFab,
   resolveTabBar,
   tabBarRouteForSelection,
 } from '@/lib/tabBar';
@@ -552,7 +552,7 @@ export function AppTabBar() {
   // and taking it away mid-sentence would cancel what somebody is saying.
   const showBar = !((hidden || suppressed) && !holding);
   // Personal and company modes swap the raised mic for a floating button, so lists leave room.
-  const fab = alt && showBar && resolveFab(segments);
+  const fab = alt && showBar && showFab(segments, company);
   useEffect(() => {
     setTabBarFab(fab);
     return () => setTabBarFab(false);
@@ -620,7 +620,7 @@ export function AppTabBar() {
           />
         </Animated.View>
       ))}
-      {resolveFab(segments) ? (
+      {showFab(segments, company) ? (
         // Same button and the same hold-to-talk as the raised mic, floated
         // bottom-right (bottom-left in RTL) above the Personal bar.
         <Animated.View

@@ -23,6 +23,7 @@ import {
   followUpTag,
   nextFollowUpDays,
   daysAgo,
+  inTab,
   listClientRows,
   tabCounts,
   type ClientSort,
@@ -81,7 +82,9 @@ export function ClientsList({ groupId }: { groupId: string }) {
       : r.nextFollowUp || r.status === 'inquiry'
         ? 'followup'
         : 'active';
-  const tally = (k: string) => all.filter((r) => look(r) === k).length;
+  // Tiles and the All tab count the same set: lost clients sit outside both (see inTab).
+  const listed = all.filter((r) => inTab(r, 'all'));
+  const tally = (k: string) => listed.filter((r) => look(r) === k).length;
   // Subtitle for a client with an open follow-up: today, overdue, weekday or date.
   const fuText = (day: string | null): string | null => {
     if (!day) return null;
@@ -117,7 +120,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
     { icon: 'cash-outline', label: s.sortAmount, onPress: () => setSort('amount') },
     { icon: 'text-outline', label: s.sortName, onPress: () => setSort('name') },
   ];
-  // The header ⋮: add actions the FAB does not offer (quote, invoice) live here, not in a duplicate pill.
+  // The header ⋮ holds every add action (client, import, quote, invoice); there is no floating button.
   const addItems: OverflowMenuItem[] = [
     {
       icon: 'person-add-outline',
@@ -225,7 +228,7 @@ export function ClientsList({ groupId }: { groupId: string }) {
             tiles={[
               {
                 icon: 'people-outline',
-                value: all.length,
+                value: counts.all,
                 label: s.statTotal,
                 fg: theme.color.brand,
                 bg: theme.color.brandSoft,
@@ -371,13 +374,10 @@ export function ClientsList({ groupId }: { groupId: string }) {
                     divider={i < rows.length - 1}
                     title={c.name}
                     subtitleNegative={!!r.nextFollowUp && r.nextFollowUp < today}
-                    subtitle={[
+                    subtitle={
                       fuText(r.nextFollowUp) ??
-                        `${doc} · ${days === 0 ? s.today : fill(s.daysAgo, { n: days })}`,
-                      r.amountMinor == null ? null : fmt(r.amountMinor),
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
+                      `${doc} · ${days === 0 ? s.today : fill(s.daysAgo, { n: days })}`
+                    }
                     leading={
                       <RowTile tint={theme.color.brandSoft}>
                         <Ionicons
@@ -389,6 +389,11 @@ export function ClientsList({ groupId }: { groupId: string }) {
                     }
                     trailing={
                       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                        {r.amountMinor == null ? null : (
+                          <Text tabular style={{ fontWeight: '700' }}>
+                            {fmt(r.amountMinor)}
+                          </Text>
+                        )}
                         <View
                           style={{
                             backgroundColor: st.bg,
@@ -424,16 +429,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
           )}
         </DashBody>
       </ScrollView>
-      {canAdd ? (
-        <View style={{ position: 'absolute', end: theme.spacing.lg, bottom: clearance }}>
-          <Button
-            label={`+ ${s.addClient}`}
-            variant="brand"
-            size="sm"
-            onPress={() => router.push(`/group/${groupId}/company-client-add`)}
-          />
-        </View>
-      ) : null}
       <OverflowMenu
         visible={menu !== null}
         onClose={() => setMenu(null)}

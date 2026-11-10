@@ -28,6 +28,7 @@ import {
   balancesByMember,
   listPeople,
   hierarchyRows,
+  visibleHierarchyRows,
   managerBalances,
   openTasksToday,
   wholeMoney,
@@ -40,7 +41,7 @@ import { useAttendance, useWorkTasks } from '@/data/companyWorkday';
 import { employmentPeople, isNotEmployed } from '@/data/companyEmployment';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
-import { plural, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { showDate } from '@/lib/expenseDay';
 import { useBottomClearance } from '@/lib/clearance';
 import { router } from '@/lib/navigation';
@@ -69,6 +70,7 @@ export function CompanyPeople({
   const allTasks = useWorkTasks(groupId);
   const cal = useCalendar(groupId);
   const [tree, setTree] = useState(false);
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState<MenuAnchor | 'open' | null>(null);
   const [prefs, setPrefs] = useState({ byName: true, admins: false });
@@ -133,6 +135,9 @@ export function CompanyPeople({
     [view.entries, view.members],
   );
   const tasks = useMemo(() => openTasksToday(allTasks, today), [allTasks, today]);
+
+  const treeRows = hierarchyRows(view.members);
+  const parents = visibleHierarchyRows(treeRows, new Set()).filter((r) => r.expandable);
 
   const byId = new Map<string, MemberRow>();
   const rows: PeopleRow[] = [
@@ -228,7 +233,7 @@ export function CompanyPeople({
         contentContainerStyle={{
           padding: theme.spacing.lg,
           gap: 10,
-          paddingBottom: clearance + 80,
+          paddingBottom: clearance + 24,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -344,46 +349,90 @@ export function CompanyPeople({
 
         {tree && !notEmployed ? (
           <View>
-            {hierarchyRows(view.members).map(({ member: m, level, reports }) => {
-              const name = displayName(m, null, null, t.misc.someone);
-              const pill =
-                m.role === 'admin'
-                  ? t.company.pillOwner
-                  : m.role === 'manager'
-                    ? t.company.manager
-                    : null;
-              return (
-                <Pressable
-                  key={m.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={pill ? `${name}, ${pill}` : name}
-                  onPress={() => thread(m.id)}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 10,
-                    paddingVertical: 6,
-                    marginLeft: level * 18,
-                    paddingLeft: level > 0 ? 10 : 0,
-                    borderLeftWidth: level > 0 ? 1 : 0,
-                    borderLeftColor: theme.color.border,
-                  }}
-                >
-                  <PersonAvatar member={m} name={name} ghost={isGhost(m)} size={36} />
-                  <View style={{ flexShrink: 1 }}>
-                    <Text numberOfLines={1} style={{ fontWeight: '600' }}>
-                      {name}
-                    </Text>
-                    {m.role === 'manager' ? (
-                      <Text variant="caption" tone="muted">
-                        {plural(locale, reports, t.company.employeeCount)}
+            {parents.length > 0 ? (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() =>
+                  setCollapsed(
+                    collapsed.size > 0 ? new Set() : new Set(parents.map((r) => r.member.id)),
+                  )
+                }
+                style={{ alignSelf: 'flex-end', paddingVertical: 4 }}
+              >
+                <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+                  {collapsed.size > 0 ? t.company.expandAll : t.company.collapseAll}
+                </Text>
+              </Pressable>
+            ) : null}
+            {visibleHierarchyRows(treeRows, collapsed).map(
+              ({ member: m, level, reports, expandable }) => {
+                const name = displayName(m, null, null, t.misc.someone);
+                const open = !collapsed.has(m.id);
+                const pill =
+                  m.role === 'admin'
+                    ? t.company.pillOwner
+                    : m.role === 'manager'
+                      ? t.company.manager
+                      : null;
+                return (
+                  <Pressable
+                    key={m.id}
+                    accessibilityRole="button"
+                    accessibilityLabel={pill ? `${name}, ${pill}` : name}
+                    onPress={() => thread(m.id)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 10,
+                      paddingVertical: 6,
+                      marginLeft: level * 18,
+                      paddingLeft: level > 0 ? 10 : 0,
+                      borderLeftWidth: level > 0 ? 1 : 0,
+                      borderLeftColor: theme.color.border,
+                    }}
+                  >
+                    <PersonAvatar member={m} name={name} ghost={isGhost(m)} size={36} />
+                    <View style={{ flexShrink: 1 }}>
+                      <Text numberOfLines={1} style={{ fontWeight: '600' }}>
+                        {name}
                       </Text>
+                      {m.role === 'manager' ? (
+                        <Text variant="caption" tone="muted">
+                          {plural(locale, reports, t.company.employeeCount)}
+                        </Text>
+                      ) : null}
+                    </View>
+                    {pill ? <RolePill label={pill} /> : null}
+                    {expandable ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ expanded: open }}
+                        accessibilityLabel={fill(
+                          open ? t.company.collapseNamed : t.company.expandNamed,
+                          {
+                            name,
+                          },
+                        )}
+                        hitSlop={10}
+                        onPress={() => {
+                          const next = new Set(collapsed);
+                          if (open) next.add(m.id);
+                          else next.delete(m.id);
+                          setCollapsed(next);
+                        }}
+                        style={{ marginStart: 'auto', padding: 6 }}
+                      >
+                        <Ionicons
+                          name={open ? 'chevron-down' : 'chevron-forward'}
+                          size={iconSize.md}
+                          color={theme.color.textMuted}
+                        />
+                      </Pressable>
                     ) : null}
-                  </View>
-                  {pill ? <RolePill label={pill} /> : null}
-                </Pressable>
-              );
-            })}
+                  </Pressable>
+                );
+              },
+            )}
           </View>
         ) : null}
 
@@ -452,30 +501,6 @@ export function CompanyPeople({
           ]}
         />
       </ScrollView>
-      {view.suspended ? null : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.company.qaAddEmployee}
-          onPress={() => router.push(`/group/${groupId}/members`)}
-          style={{
-            position: 'absolute',
-            right: theme.spacing.lg,
-            bottom: clearance + 16,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            height: 48,
-            paddingHorizontal: 20,
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.brand,
-          }}
-        >
-          <Ionicons name="add" size={iconSize.md} color={theme.color.onBrand} />
-          <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>
-            {t.company.qaAddEmployee}
-          </Text>
-        </Pressable>
-      )}
     </View>
   );
 }

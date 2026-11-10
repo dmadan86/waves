@@ -6,8 +6,17 @@ import {
   personalRouteForSelection,
   resolveFab,
   resolveTabBar,
+  showFab,
+  COMPANY_FAB_ENABLED,
   tabBarRouteForSelection,
 } from '../src/lib/tabBar';
+
+it('hides the company FAB on every company screen while it is switched off, not Personal', () => {
+  expect(COMPANY_FAB_ENABLED).toBe(false);
+  for (const s of ['company-team', 'company-vendors', 'company-clients', 'company-people'])
+    expect(showFab(['group', '[id]', s], true)).toBe(false);
+  expect(showFab(['personal', 'transactions'], false)).toBe(true);
+});
 
 describe('tabBarRouteForSelection', () => {
   it('does not navigate when the selected tab is already active', () => {

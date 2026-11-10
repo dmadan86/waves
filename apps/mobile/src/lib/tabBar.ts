@@ -153,6 +153,14 @@ export function personalRouteForSelection(
 
 const screen2 = (segments: readonly string[]): string => segments[2] ?? '';
 
+/** Owner asked to hide the company round + for now; flip to true to bring it back. */
+export const COMPANY_FAB_ENABLED = false;
+
+/** The floating button the bar draws: the company one is off while COMPANY_FAB_ENABLED is false. */
+export function showFab(segments: readonly string[], company: boolean): boolean {
+  return resolveFab(segments) && (!company || COMPANY_FAB_ENABLED);
+}
+
 /** Forms keep the mic out of their input and footer space. */
 export function resolveFab(segments: readonly string[]): boolean {
   const [root, screen] = segments;

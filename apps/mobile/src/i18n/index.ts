@@ -2090,6 +2090,12 @@ export interface UiStrings {
     advanceTo: string;
     paymentTo: string;
     paymentFrom: string;
+    wagesTo: string;
+    cashReturnedBy: string;
+    expandNamed: string;
+    collapseNamed: string;
+    expandAll: string;
+    collapseAll: string;
     payWagesBody: string;
     gaveMoneyBody: string;
     recentPayments: string;
@@ -9947,6 +9953,12 @@ const en: UiStrings = {
     advanceTo: 'Advance to {name}',
     paymentTo: 'Payment to {name}',
     paymentFrom: 'Payment from {name}',
+    wagesTo: 'Wages to {name}',
+    cashReturnedBy: 'Cash returned by {name}',
+    expandNamed: 'Expand {name}',
+    collapseNamed: 'Collapse {name}',
+    expandAll: 'Expand all',
+    collapseAll: 'Collapse all',
     payWagesBody: 'Record salary for employees or managers',
     gaveMoneyBody: 'Record an advance or reimbursement',
     recentPayments: 'Recent payments',
@@ -17274,6 +17286,12 @@ const ta: UiStrings = {
     advanceTo: '{name}க்கு முன்பணம்',
     paymentTo: '{name}க்கு கட்டணம்',
     paymentFrom: '{name}இடமிருந்து கட்டணம்',
+    wagesTo: '{name}க்கு சம்பளம்',
+    cashReturnedBy: '{name} திருப்பிய பணம்',
+    expandNamed: '{name} விரிவாக்கு',
+    collapseNamed: '{name} சுருக்கு',
+    expandAll: 'அனைத்தும் விரிவாக்கு',
+    collapseAll: 'அனைத்தும் சுருக்கு',
     payWagesBody: 'ஊழியர்கள் அல்லது மேலாளர்களுக்கான சம்பளத்தைப் பதிவு செய்',
     gaveMoneyBody: 'முன்பணம் அல்லது திருப்பிக் கொடுத்ததைப் பதிவு செய்',
     recentPayments: 'சமீபத்திய கட்டணங்கள்',
@@ -24762,6 +24780,12 @@ const hi: UiStrings = {
     advanceTo: '{name} को अग्रिम',
     paymentTo: '{name} को भुगतान',
     paymentFrom: '{name} से भुगतान',
+    wagesTo: '{name} को वेतन',
+    cashReturnedBy: '{name} ने नकद लौटाया',
+    expandNamed: '{name} खोलें',
+    collapseNamed: '{name} समेटें',
+    expandAll: 'सब खोलें',
+    collapseAll: 'सब समेटें',
     payWagesBody: 'कर्मचारियों या मैनेजरों का वेतन दर्ज करें',
     gaveMoneyBody: 'अग्रिम या प्रतिपूर्ति दर्ज करें',
     recentPayments: 'हाल के भुगतान',
@@ -32173,6 +32197,12 @@ const ar: UiStrings = {
     advanceTo: 'سلفة إلى {name}',
     paymentTo: 'دفعة إلى {name}',
     paymentFrom: 'دفعة من {name}',
+    wagesTo: 'راتب إلى {name}',
+    cashReturnedBy: 'نقد أعاده {name}',
+    expandNamed: 'توسيع {name}',
+    collapseNamed: 'طي {name}',
+    expandAll: 'توسيع الكل',
+    collapseAll: 'طي الكل',
     payWagesBody: 'سجّل راتب الموظفين أو المديرين',
     gaveMoneyBody: 'سجّل سلفة أو تعويضًا',
     recentPayments: 'أحدث الدفعات',

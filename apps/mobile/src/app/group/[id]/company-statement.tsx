@@ -193,6 +193,16 @@ export default function CompanyStatementScreen() {
   const history = member ? hasHistory(member.id, view.entries, marks, tasks) : true;
   const menuItems: OverflowMenuItem[] = member
     ? [
+        // The floating + that used to sit on this screen lives here now.
+        ...(!detail && (view.manageableIds.has(member.id) || view.me?.id === member.id)
+          ? [
+              {
+                icon: 'add-circle-outline' as const,
+                label: t.company.addEntry,
+                onPress: () => router.push(`/group/${groupId}/company-entry?member=${member.id}`),
+              },
+            ]
+          : []),
         ...(canEdit
           ? [
               {
@@ -675,26 +685,6 @@ export default function CompanyStatementScreen() {
           })();
         }}
       />
-      {member && !detail && (view.manageableIds.has(member.id) || view.me?.id === member.id) ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.company.addEntry}
-          onPress={() => router.push(`/group/${groupId}/company-entry?member=${member.id}`)}
-          style={{
-            position: 'absolute',
-            right: theme.spacing.lg,
-            bottom: clearance,
-            width: 60,
-            height: 60,
-            borderRadius: 30,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.buttonPrimary,
-          }}
-        >
-          <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
-        </Pressable>
-      ) : null}
     </Screen>
   );
 }

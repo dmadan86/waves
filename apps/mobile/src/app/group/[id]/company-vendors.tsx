@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, View } from 'react-native';
+import { ScrollView } from 'react-native';
 
-import { Button, Screen, useTheme } from '@waves/ui';
+import { Screen, useTheme } from '@waves/ui';
 
 import type { OverflowMenuItem } from '@/components/OverflowMenu';
 import { DashBody, DashHeader } from '@/components/company/dashboard/parts';
@@ -9,7 +9,6 @@ import { VendorsTab } from '@/components/company/vendors/VendorsTab';
 import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
 import { useCompanyVendors } from '@/data/companyVendors';
 import { useStrings } from '@/i18n';
-import { router } from '@/lib/navigation';
 import { useBottomClearance } from '@/lib/clearance';
 
 /** The vendors dashboard (linked from the company bar and the More screen). */
@@ -58,16 +57,6 @@ export default function CompanyVendorsScreen() {
           <VendorsTab groupId={id} />
         </DashBody>
       </ScrollView>
-      {canManage ? (
-        <View style={{ position: 'absolute', end: theme.spacing.lg, bottom: clearance }}>
-          <Button
-            label={t.companyVendors.addVendor}
-            variant="brand"
-            size="sm"
-            onPress={() => router.push(`/group/${id}/company-vendor-add`)}
-          />
-        </View>
-      ) : null}
     </Screen>
   );
 }
