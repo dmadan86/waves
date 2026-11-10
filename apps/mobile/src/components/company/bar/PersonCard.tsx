@@ -1,13 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, View, useWindowDimensions } from 'react-native';
 
-import { Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
+import { Text, iconSize, useTheme } from '@waves/ui';
 
+import { withAlpha } from '@/components/company/dashboard/overviewKit';
 import { BLUE, BLUE_SOFT } from '@/components/company/dashboard/parts';
 import { PersonAvatar, type PersonAvatarProps } from '@/components/PersonAvatar';
 import { balanceTone, type Balance, type PersonRole } from '@/data/companyPeople';
 import type { AttendanceStatus } from '@/data/companyWorkday';
 import { useStrings } from '@/i18n';
+
+export type PersonStatus = 'active' | 'leave' | 'inactive';
 
 /** One person in the People list: a row of the shared card, sized like the Home group rows. */
 export function PersonCard({
@@ -22,6 +25,7 @@ export function PersonCard({
   balance,
   balanceText,
   note,
+  status,
   muted,
   divider,
   onPress,
@@ -39,6 +43,7 @@ export function PersonCard({
   balanceText: string;
   /** A muted line-end note (the date someone left). */
   note?: string;
+  status: PersonStatus;
   muted?: boolean;
   /** A hairline above the row, for every row but the first. */
   divider?: boolean;
@@ -73,11 +78,18 @@ export function PersonCard({
       }}
     />
   );
+  const pill = {
+    active: { label: t.company.statusActive, fg: c.positive },
+    leave: { label: t.company.overviewOnLeave, fg: c.warning },
+    inactive: { label: t.company.notEmployed, fg: c.textMuted },
+  }[status];
   const tone = balance ? c[balanceTone(balance)] : c.textMuted;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={showMark ? `${name}, ${markSpec.label}` : name}
+      accessibilityLabel={
+        showMark ? `${name}, ${pill.label}, ${markSpec.label}` : `${name}, ${pill.label}`
+      }
       onPress={onPress}
       style={({ pressed }) => ({
         flexDirection: 'row',
@@ -121,10 +133,19 @@ export function PersonCard({
           ) : null}
         </View>
       </View>
-      <View
-        style={{ width: StyleSheet.hairlineWidth, alignSelf: 'stretch', backgroundColor: c.border }}
-      />
-      <View style={{ minWidth: 64, maxWidth: 96, gap: 4 }}>
+      <View style={{ alignItems: 'flex-end', gap: 4, maxWidth: 110 }}>
+        <View
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 2,
+            borderRadius: theme.radius.pill,
+            backgroundColor: withAlpha(pill.fg, 0.14),
+          }}
+        >
+          <Text variant="micro" numberOfLines={1} style={{ color: pill.fg, fontWeight: '600' }}>
+            {pill.label}
+          </Text>
+        </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
           <Ionicons name="reader-outline" size={iconSize.sm} color={c.textMuted} />
           <Text variant="micro" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -132,19 +153,11 @@ export function PersonCard({
           </Text>
         </View>
         {balance ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Ionicons name="cash-outline" size={iconSize.sm} color={tone} />
-            <Text
-              variant="caption"
-              numberOfLines={1}
-              style={{ color: tone, fontWeight: '700', flexShrink: 1 }}
-            >
-              {balanceText}
-            </Text>
-          </View>
+          <Text variant="caption" numberOfLines={1} style={{ color: tone, fontWeight: '700' }}>
+            {balanceText}
+          </Text>
         ) : null}
       </View>
-      <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={c.textMuted} />
     </Pressable>
   );
 }

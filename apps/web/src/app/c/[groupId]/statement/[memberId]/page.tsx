@@ -142,6 +142,7 @@ export default function CompanyStatementPage() {
         : a.occurredOn.localeCompare(b.occurredOn),
   );
 
+  const runningById = new Map(statement.rows.map((r) => [r.entry.id, r.running]));
   const text = (): string => statementText(statement, view.name, who, fmt);
   const share = async (): Promise<void> => {
     try {
@@ -303,6 +304,9 @@ export default function CompanyStatementPage() {
                           {e.note ? ` · ${e.note}` : ''} · {e.occurredOn}
                           {waiting ? ` · ${e.status === 'rejected' ? s.rejected : s.awaiting}` : ''}
                           {view.receiptEntryIds.has(e.id) ? ` · ${s.receipt}` : ''}
+                          {runningById.has(e.id)
+                            ? ` · ${s.balance}: ${fmt(runningById.get(e.id) ?? 0n)}`
+                            : ''}
                         </Link>
                       </li>
                     );

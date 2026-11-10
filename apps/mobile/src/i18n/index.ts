@@ -1993,6 +1993,20 @@ export interface UiStrings {
     overviewNoPaid: string;
     overviewNoAdvances: string;
     qaAddTask: string;
+    tkAll: string;
+    tkLater: string;
+    tkCompleted: string;
+    tkScheduled: string;
+    tkNext: string;
+    tkQuick: string;
+    tkUpload: string;
+    tkAddClient: string;
+    tkAddVendor: string;
+    tkSites: PluralForms;
+    tkMore: string;
+    tkNone: string;
+    tkMenu: string;
+    tkViewAll: string;
 
     tasksCount: PluralForms;
     attHalfDay: string;
@@ -2049,6 +2063,13 @@ export interface UiStrings {
     policiesHint: string;
     recordPayment: string;
     recordPaymentBody: string;
+    totalPaid: string;
+    totalPending: string;
+    addExpenseAction: string;
+    recordBill: string;
+    advanceTo: string;
+    paymentTo: string;
+    paymentFrom: string;
     payWagesBody: string;
     gaveMoneyBody: string;
     recentPayments: string;
@@ -2479,6 +2500,10 @@ export interface UiStrings {
     title: string;
     toReceive: string;
     search: string;
+    statTotal: string;
+    statActive: string;
+    statFollowUp: string;
+    statInactive: string;
     newInquiry: string;
     subtitle: string;
     fUnpaid: string;
@@ -9803,6 +9828,20 @@ const en: UiStrings = {
     overviewNoPaid: 'Nothing paid yet',
     overviewNoAdvances: 'No advances',
     qaAddTask: 'Add task',
+    tkAll: 'All',
+    tkLater: 'Later',
+    tkCompleted: 'Completed',
+    tkScheduled: 'Scheduled',
+    tkNext: "What's next",
+    tkQuick: 'Quick actions',
+    tkUpload: 'Upload file',
+    tkAddClient: 'Add client',
+    tkAddVendor: 'Add vendor',
+    tkSites: { one: '{n} site', other: '{n} sites' },
+    tkMore: '+{n}',
+    tkNone: 'Nothing here',
+    tkMenu: 'Task options',
+    tkViewAll: 'View all',
 
     qaAddEmployee: 'Add employee',
     tasksCount: { one: '{n} task', other: '{n} tasks' },
@@ -9862,6 +9901,13 @@ const en: UiStrings = {
     policiesHint: 'Guidelines for your team',
     recordPayment: 'Record a payment',
     recordPaymentBody: 'Record salaries, advances or reimbursements.',
+    totalPaid: 'Total paid',
+    totalPending: 'Total pending',
+    addExpenseAction: 'Add expense',
+    recordBill: 'Record bill',
+    advanceTo: 'Advance to {name}',
+    paymentTo: 'Payment to {name}',
+    paymentFrom: 'Payment from {name}',
     payWagesBody: 'Record salary for employees or managers',
     gaveMoneyBody: 'Record an advance or reimbursement',
     recentPayments: 'Recent payments',
@@ -10298,6 +10344,10 @@ const en: UiStrings = {
     title: 'Clients',
     toReceive: 'To receive',
     search: 'Search clients',
+    statTotal: 'Total',
+    statActive: 'Active',
+    statFollowUp: 'Follow-up',
+    statInactive: 'Inactive',
     newInquiry: 'New inquiry',
     subtitle: 'Track your clients, invoices & payments',
     fUnpaid: 'Unpaid',
@@ -17085,6 +17135,20 @@ const ta: UiStrings = {
     overviewNoPaid: 'இன்னும் பணம் செலுத்தப்படவில்லை',
     overviewNoAdvances: 'முன்பணம் இல்லை',
     qaAddTask: 'பணியைச் சேர்',
+    tkAll: 'அனைத்தும்',
+    tkLater: 'பிறகு',
+    tkCompleted: 'முடிந்தவை',
+    tkScheduled: 'திட்டமிடப்பட்டது',
+    tkNext: 'அடுத்து என்ன',
+    tkQuick: 'விரைவு செயல்கள்',
+    tkUpload: 'கோப்பை பதிவேற்று',
+    tkAddClient: 'வாடிக்கையாளரைச் சேர்',
+    tkAddVendor: 'விற்பனையாளரைச் சேர்',
+    tkSites: { one: '{n} தளம்', other: '{n} தளங்கள்' },
+    tkMore: '+{n}',
+    tkNone: 'இங்கே எதுவும் இல்லை',
+    tkMenu: 'பணி விருப்பங்கள்',
+    tkViewAll: 'அனைத்தையும் பார்',
 
     qaAddEmployee: 'ஊழியரைச் சேர்',
     tasksCount: { one: '{n} பணி', other: '{n} பணிகள்' },
@@ -17144,6 +17208,13 @@ const ta: UiStrings = {
     policiesHint: 'உங்கள் குழுவுக்கான வழிகாட்டுதல்கள்',
     recordPayment: 'கட்டணத்தைப் பதிவு செய்',
     recordPaymentBody: 'சம்பளம், முன்பணம் அல்லது திருப்பிக் கொடுத்ததைப் பதிவு செய்யுங்கள்.',
+    totalPaid: 'மொத்தம் செலுத்தியது',
+    totalPending: 'மொத்தம் நிலுவை',
+    addExpenseAction: 'செலவு சேர்',
+    recordBill: 'பில் பதிவு',
+    advanceTo: '{name}க்கு முன்பணம்',
+    paymentTo: '{name}க்கு கட்டணம்',
+    paymentFrom: '{name}இடமிருந்து கட்டணம்',
     payWagesBody: 'ஊழியர்கள் அல்லது மேலாளர்களுக்கான சம்பளத்தைப் பதிவு செய்',
     gaveMoneyBody: 'முன்பணம் அல்லது திருப்பிக் கொடுத்ததைப் பதிவு செய்',
     recentPayments: 'சமீபத்திய கட்டணங்கள்',
@@ -17582,6 +17653,10 @@ const ta: UiStrings = {
     title: 'வாடிக்கையாளர்கள்',
     toReceive: 'பெற வேண்டியது',
     search: 'வாடிக்கையாளர்களைத் தேடு',
+    statTotal: 'மொத்தம்',
+    statActive: 'செயலில்',
+    statFollowUp: 'பின்தொடர்தல்',
+    statInactive: 'செயலற்றது',
     newInquiry: 'புதிய விசாரணை',
     subtitle: 'உங்கள் வாடிக்கையாளர்கள், பில்கள், பணம் செலுத்தல்களைக் கண்காணிக்கவும்',
     fUnpaid: 'நிலுவை',
@@ -24530,6 +24605,20 @@ const hi: UiStrings = {
     overviewNoPaid: 'अभी तक भुगतान नहीं',
     overviewNoAdvances: 'कोई अग्रिम नहीं',
     qaAddTask: 'कार्य जोड़ें',
+    tkAll: 'सभी',
+    tkLater: 'बाद में',
+    tkCompleted: 'पूर्ण',
+    tkScheduled: 'निर्धारित',
+    tkNext: 'आगे क्या',
+    tkQuick: 'त्वरित कार्य',
+    tkUpload: 'फ़ाइल अपलोड करें',
+    tkAddClient: 'ग्राहक जोड़ें',
+    tkAddVendor: 'वेंडर जोड़ें',
+    tkSites: { one: '{n} साइट', other: '{n} साइट' },
+    tkMore: '+{n}',
+    tkNone: 'यहाँ कुछ नहीं',
+    tkMenu: 'कार्य विकल्प',
+    tkViewAll: 'सभी देखें',
 
     qaAddEmployee: 'कर्मचारी जोड़ें',
     tasksCount: { one: '{n} कार्य', other: '{n} कार्य' },
@@ -24588,6 +24677,13 @@ const hi: UiStrings = {
     policiesHint: 'आपकी टीम के लिए दिशानिर्देश',
     recordPayment: 'भुगतान दर्ज करें',
     recordPaymentBody: 'वेतन, अग्रिम या प्रतिपूर्ति दर्ज करें।',
+    totalPaid: 'कुल भुगतान',
+    totalPending: 'कुल बकाया',
+    addExpenseAction: 'खर्च जोड़ें',
+    recordBill: 'बिल दर्ज करें',
+    advanceTo: '{name} को अग्रिम',
+    paymentTo: '{name} को भुगतान',
+    paymentFrom: '{name} से भुगतान',
     payWagesBody: 'कर्मचारियों या मैनेजरों का वेतन दर्ज करें',
     gaveMoneyBody: 'अग्रिम या प्रतिपूर्ति दर्ज करें',
     recentPayments: 'हाल के भुगतान',
@@ -25024,6 +25120,10 @@ const hi: UiStrings = {
     title: 'ग्राहक',
     toReceive: 'पाना बाकी',
     search: 'ग्राहक खोजें',
+    statTotal: 'कुल',
+    statActive: 'सक्रिय',
+    statFollowUp: 'फ़ॉलो-अप',
+    statInactive: 'निष्क्रिय',
     newInquiry: 'नई पूछताछ',
     subtitle: 'अपने ग्राहक, बिल और भुगतान ट्रैक करें',
     fUnpaid: 'बकाया',
@@ -31891,6 +31991,20 @@ const ar: UiStrings = {
     overviewNoPaid: 'لم يتم الدفع بعد',
     overviewNoAdvances: 'لا توجد سلف',
     qaAddTask: 'أضف مهمة',
+    tkAll: 'الكل',
+    tkLater: 'لاحقًا',
+    tkCompleted: 'المكتملة',
+    tkScheduled: 'مجدولة',
+    tkNext: 'التالي',
+    tkQuick: 'إجراءات سريعة',
+    tkUpload: 'رفع ملف',
+    tkAddClient: 'إضافة عميل',
+    tkAddVendor: 'إضافة مورّد',
+    tkSites: { one: '{n} موقع', other: '{n} مواقع' },
+    tkMore: '+{n}',
+    tkNone: 'لا شيء هنا',
+    tkMenu: 'خيارات المهمة',
+    tkViewAll: 'عرض الكل',
 
     qaAddEmployee: 'أضف موظفاً',
     tasksCount: {
@@ -31955,6 +32069,13 @@ const ar: UiStrings = {
     policiesHint: 'إرشادات لفريقك',
     recordPayment: 'سجّل دفعة',
     recordPaymentBody: 'سجّل الرواتب أو السلف أو التعويضات.',
+    totalPaid: 'إجمالي المدفوع',
+    totalPending: 'إجمالي المعلّق',
+    addExpenseAction: 'أضف مصروفًا',
+    recordBill: 'سجّل فاتورة',
+    advanceTo: 'سلفة إلى {name}',
+    paymentTo: 'دفعة إلى {name}',
+    paymentFrom: 'دفعة من {name}',
     payWagesBody: 'سجّل راتب الموظفين أو المديرين',
     gaveMoneyBody: 'سجّل سلفة أو تعويضًا',
     recentPayments: 'أحدث الدفعات',
@@ -32415,6 +32536,10 @@ const ar: UiStrings = {
     title: 'العملاء',
     toReceive: 'مستحق القبض',
     search: 'ابحث في العملاء',
+    statTotal: 'الإجمالي',
+    statActive: 'نشط',
+    statFollowUp: 'متابعة',
+    statInactive: 'غير نشط',
     newInquiry: 'استفسار جديد',
     subtitle: 'تابع عملاءك وفواتيرك ومدفوعاتك',
     fUnpaid: 'غير مدفوع',

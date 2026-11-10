@@ -14,6 +14,7 @@ export const teamStrings = {
   none: 'No employees yet.',
   noMatch: 'No employees match.',
   present: 'Present',
+  half: 'Half day',
   absent: 'Absent',
   openTasks: 'open tasks',
   companyOwes: 'Company owes',

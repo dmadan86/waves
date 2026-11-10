@@ -1,27 +1,22 @@
-import { useState } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams } from 'expo-router';
-import { ScrollView, TextInput, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
-import { Screen, useTheme } from '@waves/ui';
+import { Button, Screen, useTheme } from '@waves/ui';
 
 import type { OverflowMenuItem } from '@/components/OverflowMenu';
-import { DashBody, DashHeader, IconButton } from '@/components/company/dashboard/parts';
+import { DashBody, DashHeader } from '@/components/company/dashboard/parts';
 import { VendorsTab } from '@/components/company/vendors/VendorsTab';
-import { useGlass } from '@/components/standard';
 import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
 import { useCompanyVendors } from '@/data/companyVendors';
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import { useBottomClearance } from '@/lib/clearance';
 
 /** The vendors dashboard (linked from the company bar and the More screen). */
 export default function CompanyVendorsScreen() {
   const { id = '' } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
-  const glass = useGlass();
   const { t } = useStrings();
-  const [query, setQuery] = useState('');
-  const [searching, setSearching] = useState(false);
   const clearance = useBottomClearance();
   const view = useCompanyVendors(id);
   const suspended = useCompanySuspended(id);
@@ -58,49 +53,21 @@ export default function CompanyVendorsScreen() {
           subtitle=""
           showGear={entries.isOwner}
           menuItems={canManage ? menuItems : undefined}
-          actions={
-            <>
-              <IconButton
-                round
-                icon="search"
-                label={t.companyVendors.search}
-                onPress={() => {
-                  if (searching) setQuery('');
-                  setSearching(!searching);
-                }}
-              />
-            </>
-          }
         />
         <DashBody>
-          {searching ? (
-            <View
-              style={{
-                height: 38,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.sm,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.sm,
-                backgroundColor: glass,
-              }}
-            >
-              <Ionicons name="search" size={18} color={theme.color.textMuted} />
-              <TextInput
-                autoFocus
-                accessibilityLabel={t.companyVendors.search}
-                placeholder={t.companyVendors.search}
-                placeholderTextColor={theme.color.textMuted}
-                value={query}
-                onChangeText={setQuery}
-                returnKeyType="search"
-                style={{ flex: 1, color: theme.color.text, fontSize: 14, padding: 0 }}
-              />
-            </View>
-          ) : null}
-          <VendorsTab groupId={id} query={query} />
+          <VendorsTab groupId={id} />
         </DashBody>
       </ScrollView>
+      {canManage ? (
+        <View style={{ position: 'absolute', end: theme.spacing.lg, bottom: clearance }}>
+          <Button
+            label={t.companyVendors.addVendor}
+            variant="brand"
+            size="sm"
+            onPress={() => router.push(`/group/${id}/company-vendor-add`)}
+          />
+        </View>
+      ) : null}
     </Screen>
   );
 }

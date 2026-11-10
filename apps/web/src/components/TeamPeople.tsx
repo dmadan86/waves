@@ -142,7 +142,9 @@ export function TeamPeople({ groupId }: { groupId: string }) {
                 <strong>{r.name}</strong>{' '}
                 <span className="faint">
                   {r.role === 'owner' ? s.owner : r.role === 'manager' ? s.manager : ''}
-                  {r.mark ? ` · ${r.mark === 'present' ? s.present : s.absent}` : ''}
+                  {r.mark
+                    ? ` · ${r.mark === 'present' ? s.present : r.mark === 'half' ? s.half : s.absent}`
+                    : ''}
                   {r.tasks ? ` · ${r.tasks} ${s.openTasks}` : ''}
                 </span>
               </span>

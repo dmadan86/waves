@@ -6,6 +6,7 @@
  */
 
 import { useState } from 'react';
+import { View } from 'react-native';
 
 import { RecentCompanyActivity } from '@/components/company/CompanyActivityFeed';
 import { SectionShell } from '@/components/company/bar/SectionShell';
@@ -17,6 +18,11 @@ import {
   NeedsAttention,
 } from '@/components/company/dashboard/OverviewHome';
 import { MoneyCards } from '@/components/company/dashboard/OverviewMoney';
+import {
+  CompanyChips,
+  QuickActions,
+  TaskBoard,
+} from '@/components/company/dashboard/OverviewTaskBoard';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { OverviewUpcoming } from '@/components/company/dashboard/OverviewUpcoming';
 import { useCompanyEntries } from '@/data/companyEntries';
@@ -55,9 +61,24 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                 layout={layout}
                 onEdit={() => setEditing(true)}
                 cards={{
-                  glance: <GlanceTiles groupId={groupId} />,
-                  needs: <NeedsAttention groupId={groupId} />,
-                  moneyActions: <MoneyActions groupId={groupId} />,
+                  glance: (
+                    <View style={{ gap: 12 }}>
+                      <CompanyChips groupId={groupId} />
+                      <GlanceTiles groupId={groupId} />
+                    </View>
+                  ),
+                  needs: (
+                    <View style={{ gap: 12 }}>
+                      <TaskBoard groupId={groupId} />
+                      <NeedsAttention groupId={groupId} approvalsOnly />
+                    </View>
+                  ),
+                  moneyActions: (
+                    <View style={{ gap: 12 }}>
+                      <QuickActions groupId={groupId} />
+                      <MoneyActions groupId={groupId} />
+                    </View>
+                  ),
                   comingUp: <ComingUpRow groupId={groupId} />,
                   attendance: own.attendance,
                   attention: own.attention,
