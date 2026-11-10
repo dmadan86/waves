@@ -1,5 +1,14 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import { test, expect, type Browser, type BrowserContext, type Page } from '@playwright/test';
+import {
+  test,
+  expect as baseExpect,
+  type Browser,
+  type BrowserContext,
+  type Page,
+} from '@playwright/test';
+
+// `next dev` compiles each route on first visit, which can take well over the default 5 s.
+const expect = baseExpect.configure({ timeout: 30_000 });
 
 /**
  * Company money across DIFFERENT real accounts, against a real Supabase stack.
@@ -159,17 +168,17 @@ test.describe.serial('company money, one browser per person', () => {
 
     // Advance 500 given to the employee.
     await page.goto(`/c/${groupId}/entry/new?member=${empMemberId}`);
-    await expect(page.getByLabel('Type', { exact: true })).toHaveValue('advance');
+    await expect(page.getByRole('combobox', { name: 'Type', exact: true })).toHaveValue('advance');
     await saveEntry(page, '500');
 
     // Wages 20,000 for the employee.
     await page.goto(`/c/${groupId}/entry/new?member=${empMemberId}`);
-    await page.getByLabel('Type', { exact: true }).selectOption({ label: 'Wages paid' });
+    await page.getByRole('combobox', { name: 'Type', exact: true }).selectOption({ label: 'Wages paid' });
     await saveEntry(page, '20000');
 
     // Company paid 3,000 directly: no employee on it.
     await page.goto(`/c/${groupId}/entry/new`);
-    await page.getByLabel('Paid by').selectOption({ label: 'Company paid directly' });
+    await page.getByRole('combobox', { name: 'Paid by' }).selectOption({ label: 'Company paid directly' });
     await saveEntry(page, '3000');
     await page.close();
 
