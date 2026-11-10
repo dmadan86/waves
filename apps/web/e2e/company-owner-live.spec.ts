@@ -342,13 +342,23 @@ test.describe.serial('company owner, one browser per person', () => {
     await e.close();
   });
 
-  test("Team > People counts today's open tasks per employee", async () => {
+  test('Team > People counts open tasks (today + overdue) per employee', async () => {
+    // Expected counts come from the tasks this spec created: not done, dated today or earlier.
+    const all = await tasks();
+    const open = (who: Person) =>
+      all.filter((t) => t.member_id === memberOf[who.id] && t.status !== 'done' && t.day <= today)
+        .length;
+    // Ravi: Sweep (today) + the overdue pump; Fix the gate is done. Esha: Paint the wall + Sweep.
+    expect([open(ravi), open(esha)]).toEqual([2, 2]);
+
     const o = await ownerCtx.newPage();
     await o.goto(`/c/${groupId}/team?seg=people`);
-    // Ravi: Sweep (todo) today; Fix the gate is done; the overdue pump is not today's.
-    await expect(o.getByRole('link', { name: /Ravi Employee/ })).toContainText('1 open tasks');
-    // Esha: Paint the wall + Sweep the floor.
-    await expect(o.getByRole('link', { name: /Esha Employee/ })).toContainText('2 open tasks');
+    await expect(o.getByRole('link', { name: /Ravi Employee/ })).toContainText(
+      `${open(ravi)} open tasks`,
+    );
+    await expect(o.getByRole('link', { name: /Esha Employee/ })).toContainText(
+      `${open(esha)} open tasks`,
+    );
     await o.close();
   });
 
