@@ -101,3 +101,11 @@ BEGIN
  DELETE FROM public.storage_objects WHERE logical_bucket='company-entry-images' AND path IN(a.storage_path,a.storage_path||'.thumb.jpg');
 END
 $fn$;
+
+-- Caller model, restated (CREATE OR REPLACE keeps grants; these match what is already in place).
+REVOKE ALL ON FUNCTION public.waves_company_work_set(uuid,uuid,uuid,date,text,uuid,text,text,text,time,uuid),public.waves_company_work_remove(uuid,uuid),public.waves_company_work_priority_set(uuid,uuid,text) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_company_work_set(uuid,uuid,uuid,date,text,uuid,text,text,text,time,uuid),public.waves_company_work_remove(uuid,uuid),public.waves_company_work_priority_set(uuid,uuid,text) TO authenticated,service_role;
+REVOKE ALL ON FUNCTION public.waves_remove_company_task_image(uuid) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.waves_remove_company_task_image(uuid) TO authenticated,service_role;
+REVOKE ALL ON FUNCTION public.waves_company_task_photo_actor(uuid,uuid) FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_company_task_photo_actor(uuid,uuid) TO service_role;
