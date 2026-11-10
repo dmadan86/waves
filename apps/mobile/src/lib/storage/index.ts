@@ -245,6 +245,48 @@ async function uploadImage(input: PutImageInput): Promise<string> {
 }
 
 /**
+ * Upload one company file (any accepted type, up to 25 MB) at `cf/<groupId>/<fileId>`. The same three steps as an image
+ * (reserve + presigned PUT, then commit at the true size), but from raw bytes. Returns the key the file row keeps.
+ *
+ * @throws {StorageCapError} when the company is out of storage.
+ */
+export async function putCompanyFile(input: {
+  groupId: string;
+  fileId: string;
+  bytes: Uint8Array;
+  contentType: string;
+}): Promise<string> {
+  if (!r2Enabled()) throw new Error('Files need cloud storage enabled');
+  const path = `cf/${input.groupId}/${input.fileId}`;
+  const ids = { bucket: 'company-entry-images', path, subjectId: input.fileId };
+  const { url, headers } = await signCall({
+    action: 'put',
+    ...ids,
+    contentType: input.contentType,
+    contentLength: input.bytes.byteLength,
+    groupId: input.groupId,
+  });
+  if (!url) throw new Error('Could not start the upload');
+  const put = await fetch(url, {
+    method: 'PUT',
+    headers: { 'content-type': input.contentType, ...headers },
+    // A copy trimmed to exactly the file's bytes (the picker's buffer may be a larger view).
+    body: input.bytes.slice().buffer as ArrayBuffer,
+  }).catch(() => null);
+  if (!put?.ok) {
+    await signCall({ action: 'release', ...ids }).catch(() => {});
+    throw new Error(put ? `Upload failed (${put.status})` : 'Upload failed');
+  }
+  await signCall({
+    action: 'commit',
+    ...ids,
+    contentType: input.contentType,
+    groupId: input.groupId,
+  });
+  return path;
+}
+
+/**
  * Resolve a restricted object to a short-lived URL — by SUBJECT, never a path.
  * The server looks up the party-gated row and signs its stored key, so a
  * non-party (who cannot see the row) gets nothing. Null when not visible or not

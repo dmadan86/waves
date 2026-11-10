@@ -21,7 +21,12 @@ import {
   InquiryStatusPill,
   InquiryTile,
 } from '@/components/company/clients/InquiryParts';
-import { StageChip, useWhen } from '@/components/company/clients/parts';
+import {
+  StageChip,
+  useCategoryLabel,
+  usePriorityLabel,
+  useWhen,
+} from '@/components/company/clients/parts';
 import { ClientComplaints } from '@/components/company/tickets/ClientComplaints';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -80,6 +85,8 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
   const followUps = useFollowUps(groupId);
   const canComplain = useCompanyTickets(groupId).canAdd && !suspended;
   const when = useWhen();
+  const categoryLabel = useCategoryLabel();
+  const priorityLabel = usePriorityLabel();
   const setClient = useSetClient(groupId);
   const removeClient = useRemoveClient(groupId);
   const addNote = useAddClientNote(groupId);
@@ -101,6 +108,16 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
   const docsAllowed = entries.isAdmin && !suspended;
   const inquiries = sortInquiries(view.inquiries.filter((i) => i.clientId === clientId));
   const stats = clientInquiryStats(inquiries, docs);
+  const detailLine = client
+    ? [
+        client.companyName,
+        client.email,
+        client.category ? categoryLabel(client.category) : null,
+        client.priority !== 'normal' ? `${s.priority}: ${priorityLabel(client.priority)}` : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
   const assignees = view.owners.filter((m) => view.assigneeIds(clientId).includes(m.id));
   const shortDay = (day: string) =>
     new Date(`${day}T12:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
@@ -336,6 +353,11 @@ export function ClientDetail({ groupId, clientId }: { groupId: string; clientId:
           {client.need ? (
             <Text tone="muted" numberOfLines={2}>
               {client.need}
+            </Text>
+          ) : null}
+          {detailLine ? (
+            <Text variant="caption" tone="muted" numberOfLines={2}>
+              {detailLine}
             </Text>
           ) : null}
         </View>

@@ -95,7 +95,7 @@ import type {
   TagDeletePayload,
   TagUpsertPayload,
 } from './protocol';
-import type { QueuedMutation } from './queue';
+import { MAX_ATTEMPTS, type QueuedMutation } from './queue';
 import { byNewest, byOldest, compareStampsDesc } from '../time/iso';
 import { allowanceAmount, mileageAmount, normaliseEmployeeId } from '../company/index';
 import { firstOccurrenceOnOrAfter, nextOccurrenceAfter } from '../group/recurring';
@@ -151,6 +151,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyTicketEvents,
   SyncTable.CompanyAttendance,
   SyncTable.CompanyWorkTasks,
+  SyncTable.CompanyFileFolders,
+  SyncTable.CompanyFiles,
   SyncTable.CompanyHolidays,
   SyncTable.CompanyLeave,
   SyncTable.CompanyLeaveTypes,
@@ -2412,10 +2414,13 @@ export function materialiseWorkTasks(
       clientId: row.client_id ?? null,
     });
   }
+  const onServer = new Set(byId.keys());
   for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
     if (mutation.groupId !== options.groupId || mutation.rejection) continue;
     if (mutation.kind === 'company_work.set') {
       const p = mutation.payload as unknown as CompanyWorkSetPayload;
+      // An edit that has failed MAX_ATTEMPTS times is no longer shown over the server's task (it keeps retrying in the background).
+      if (mutation.attempts >= MAX_ATTEMPTS && onServer.has(p.taskId)) continue;
       byId.set(p.taskId, {
         id: p.taskId,
         memberId: p.memberId,
@@ -2907,6 +2912,8 @@ export function purgeCompanyInvisible(
         events: readonly string[];
         clients?: readonly string[];
         tickets?: readonly string[];
+        /** Folder and file ids the caller can read now (visibility can narrow without a tombstone). */
+        files?: readonly string[];
       }
     >
   > = {},
@@ -2951,6 +2958,11 @@ export function purgeCompanyInvisible(
         SyncTable.CompanyTicketEvents,
         (row) => row.group_id === groupId && gone.has(row.ticket_id as string),
       );
+    }
+    if (ids.files) {
+      const files = new Set(ids.files);
+      for (const table of [SyncTable.CompanyFiles, SyncTable.CompanyFileFolders])
+        drop(table, (row) => row.group_id === groupId && !files.has(row.id as string));
     }
     const dates = new Set(ids.dates);
     const events = new Set(ids.events);

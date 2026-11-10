@@ -298,7 +298,8 @@ export function DashHeader({
   const bare = (!!menuItems || tab) && !overview;
   // Every bar tab root (Home included) shares one header: round buttons, bell, gear, then ⋮.
   const root = overview || bare;
-  const dots = !!menuItems;
+  // The gear lives in this ⋮ now (Company settings + the app's Settings), so any gear means a ⋮.
+  const dots = !!menuItems || showGear;
   const dotsRef = useRef<View>(null);
   const [dotsAnchor, setDotsAnchor] = useState<MenuAnchor | null>(null);
   const dark = theme.scheme === 'dark';
@@ -328,14 +329,6 @@ export function DashHeader({
           </View>
           {actions}
           {root ? <OverviewBell groupId={groupId} round /> : null}
-          {showGear ? (
-            <IconButton
-              icon="settings-outline"
-              label={t.company.companySettings}
-              round={root}
-              onPress={() => router.push(`/group/${groupId}/settings`)}
-            />
-          ) : null}
           {dots ? (
             <IconButton
               icon={root ? 'ellipsis-horizontal' : 'ellipsis-vertical'}
@@ -350,7 +343,7 @@ export function DashHeader({
               }
             />
           ) : null}
-          {exportMenu ? (
+          {exportMenu && !dots ? (
             <IconButton
               icon="ellipsis-vertical"
               label={t.group.more}
@@ -425,17 +418,18 @@ export function DashHeader({
         visible={menu}
         onClose={() => setMenu(false)}
         anchor={dots ? dotsAnchor : null}
-        items={
-          menuItems ?? [
-            ...(showGear
-              ? [
-                  {
-                    icon: 'settings-outline',
-                    label: t.company.companySettings,
-                    route: `/group/${groupId}/settings`,
-                  } as OverflowMenuItem,
-                ]
-              : []),
+        items={[
+          ...(showGear
+            ? [
+                {
+                  icon: 'business-outline',
+                  label: t.company.companySettings,
+                  route: `/group/${groupId}/settings`,
+                } as OverflowMenuItem,
+              ]
+            : []),
+          { icon: 'settings-outline', label: t.account.faceSettings, route: '/profile' },
+          ...(menuItems ?? [
             {
               icon: 'download-outline',
               label: t.company.exportAction,
@@ -446,8 +440,8 @@ export function DashHeader({
               label: t.company.reportCompany,
               onPress: () => setReporting(true),
             },
-          ]
-        }
+          ]),
+        ]}
       />
     </>
   );

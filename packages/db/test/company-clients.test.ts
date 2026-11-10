@@ -372,3 +372,63 @@ describe('follow-up tasks and documents link to a client', () => {
       );
     }));
 });
+
+describe('company clients: email, company, category and priority', () => {
+  const row = async (id: string) =>
+    (
+      await db.query(
+        'SELECT email,company_name AS company,category,priority,name FROM company_clients WHERE id=$1',
+        [id],
+      )
+    ).rows[0];
+
+  it('saves them, defaults priority to normal, and keeps them when a later save leaves them out', () =>
+    isolated(async () => {
+      expect((await row(forA)).priority).toBe('normal');
+      await setClient(0, forA, {
+        name: 'A Client',
+        ownerMemberId: g.memberIds[2],
+        email: ' a@b.co ',
+        company: 'Acme',
+        category: 'plumbing',
+        priority: 'urgent',
+      });
+      expect(await row(forA)).toMatchObject({
+        email: 'a@b.co',
+        company: 'Acme',
+        category: 'plumbing',
+        priority: 'urgent',
+      });
+      // A stage change from an older app does not send them: they stay.
+      await setClient(0, forA, {
+        name: 'A Client 2',
+        ownerMemberId: g.memberIds[2],
+        stage: 'quoted',
+      });
+      expect(await row(forA)).toMatchObject({
+        name: 'A Client 2',
+        email: 'a@b.co',
+        priority: 'urgent',
+      });
+      // Sending an empty value clears one.
+      await setClient(0, forA, {
+        name: 'A Client 2',
+        ownerMemberId: g.memberIds[2],
+        stage: 'quoted',
+        company: '',
+      });
+      expect((await row(forA)).company).toBeNull();
+    }));
+
+  it('refuses a bad email, an unknown priority and over-long text', () =>
+    isolated(async () => {
+      const base = { name: 'X', ownerMemberId: g.memberIds[2] };
+      for (const bad of [
+        { email: 'not-an-email' },
+        { priority: 'asap' },
+        { company: 'c'.repeat(121) },
+        { category: 'c'.repeat(61) },
+      ])
+        await denied(() => setClient(0, randomUUID(), { ...base, ...bad }));
+    }));
+});

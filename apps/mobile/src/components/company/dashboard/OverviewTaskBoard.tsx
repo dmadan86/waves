@@ -72,7 +72,8 @@ function useBoard(groupId: string) {
   const sites = useCompanyProjects(groupId);
   const all = useWorkTasks(groupId);
   const today = todayIso();
-  const ids = new Set(access.people.map((m) => m.id));
+  // Assignees, not people: managers can hold tasks too (owner sees employees + managers).
+  const ids = new Set(access.assignees.map((m) => m.id));
   const buckets = bucketOverviewTasks(
     all.filter((x) => ids.has(x.memberId)),
     today,
@@ -483,7 +484,7 @@ export function QuickActions({ groupId }: { groupId: string }) {
       icon: 'cloud-upload-outline',
       label: t.company.tkUpload,
       ink: RED,
-      screen: 'company-storage',
+      screen: 'company-files',
     },
     // No reminder feature exists: this opens the calendar's new-event sheet.
     {

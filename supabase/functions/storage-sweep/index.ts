@@ -45,6 +45,9 @@ async function sweep(service: SupabaseClient): Promise<{ expired: number; delete
     'waves_company_expire_unattached',
   );
   if (unattachedError) throw new HttpError(500, 'INTERNAL', unattachedError.message);
+  // Uploaded company files that never got a file row.
+  const { error: filesError } = await service.rpc('waves_company_file_expire_unattached');
+  if (filesError) throw new HttpError(500, 'INTERNAL', filesError.message);
 
   const { data, error } = await service.rpc('waves_storage_orphans', { p_limit: SWEEP_BATCH });
   if (error) throw new HttpError(500, 'INTERNAL', error.message);

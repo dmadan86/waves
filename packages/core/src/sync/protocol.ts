@@ -751,6 +751,7 @@ export interface CompanyDocSavePayload {
   };
 }
 export type ClientStage = 'inquiry' | 'quoted' | 'client' | 'lost';
+export type ClientPriority = 'normal' | 'urgent' | 'high';
 export type ClientSource = 'walk_in' | 'call' | 'whatsapp' | 'referral' | 'other';
 /** Create or edit a client. The whole record travels each time; money as a decimal string. */
 export interface CompanyClientSetPayload {
@@ -761,6 +762,11 @@ export interface CompanyClientSetPayload {
   readonly source: ClientSource;
   readonly expectedValueMinor: string | null;
   readonly address: string | null;
+  /** The next four are optional: left out, the server keeps what the client already has. */
+  readonly email?: string | null;
+  readonly company?: string | null;
+  readonly category?: string | null;
+  readonly priority?: ClientPriority;
   readonly stage: ClientStage;
   readonly lostReason: string | null;
   readonly ownerMemberId: string | null;
@@ -1103,6 +1109,9 @@ export enum SyncTable {
   /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
   CompanyAttendance = 'company_attendance',
   CompanyWorkTasks = 'company_work_tasks',
+  /** Group-scoped, pull-only: company folders, files and links; each row shows to the roles its visibility names (RLS), never to a vendor. */
+  CompanyFileFolders = 'company_file_folders',
+  CompanyFiles = 'company_files',
   /** Group-scoped, pull-only: holidays (every member), leave and birthdays/joining dates (RLS: own, team, owner; opted-in birthdays), events (those involved). */
   CompanyHolidays = 'company_holidays',
   CompanyLeave = 'company_leave',
