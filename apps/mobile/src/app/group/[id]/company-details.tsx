@@ -29,7 +29,7 @@ export default function CompanyDetailsScreen() {
   return (
     <Screen edges={[]}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <ScenicHeader title={title} />
+        <ScenicHeader title={title} subtitle={vendorId ? undefined : t.companyDetails.subtitle} />
         <ScenicBody>
           {vendorId ? null : <RequireTwoStep groupId={id ?? ''} />}
           <DetailsScreenBody groupId={id ?? ''} vendorId={vendorId} />
