@@ -255,7 +255,10 @@ export default function DailyWorkView({
                 items={[]}
                 selectedDay={dayFilter ?? today}
                 onSelect={(day) => setDayFilter(day === dayFilter ? null : day)}
-                onMonthChange={(year, month) => setCal({ year, month })}
+                onMonthChange={(year, month) => {
+                  setCal({ year, month });
+                  setDayFilter(null);
+                }}
                 dots={Object.fromEntries(Object.entries(tones).map(([d, k]) => [d, toneColor[k]]))}
               />
               <WorkTaskSections
