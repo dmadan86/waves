@@ -3,7 +3,7 @@ import { useCallback, useState, type ReactNode } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import type { CompanyWorkSetPayload } from '@waves/core';
+import { isSelfMadeTask, type CompanyWorkSetPayload } from '@waves/core';
 import { Button, Text, useTheme } from '@waves/ui';
 import { CompanyCalendarGrid } from '@/components/company/CompanyCalendarGrid';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -107,13 +107,16 @@ export default function DailyWorkView({
   }));
   const [exportOpen, setExportOpen] = useState(false);
   const busy = save.isPending || remove.isPending;
+  // Others the viewer assigns to (never themself: their own tasks are theirs to edit only when they made them).
   const allowedPerson = (memberId: string) =>
-    access.canManage && access.people.some((p) => p.id === memberId);
-  const who = { isEmployee: access.isEmployee, meId: access.me?.id, allowedPerson };
+    access.canManage && memberId !== access.meId && access.assignees.some((p) => p.id === memberId);
+  const canEdit = (task: Pick<MirrorWorkTask, 'memberId' | 'createdBy'>) =>
+    allowedPerson(task.memberId) || isSelfMadeTask(task, access.meId);
+  const who = { isEmployee: !!access.meId, meId: access.meId, allowedPerson };
   const canChange = (task: MirrorWorkTask) =>
     canChangeTask(task, { ...who, enabled: access.enabled });
   const personName = (memberId: string) => {
-    const p = access.people.find((person) => person.id === memberId) ?? access.me;
+    const p = access.assignees.find((person) => person.id === memberId) ?? access.me;
     return p ? displayName(p) : '';
   };
   const ownTasks = tasks.filter(
@@ -141,7 +144,7 @@ export default function DailyWorkView({
     late: theme.color.warning,
     open: theme.color.brand,
   };
-  const people = access.isEmployee && access.me ? [access.me] : access.people;
+  const people = access.isEmployee && access.me ? [access.me] : access.assignees;
   const write = (next: Payload, onSuccess?: () => void) => {
     const current = tasks.find((task) => task.id === next.taskId);
     if (
@@ -155,11 +158,13 @@ export default function DailyWorkView({
       (next.status === 'blocked' && !next.blockedReason?.trim())
     )
       return;
-    if (!allowedPerson(next.memberId)) {
+    const mayEdit = current
+      ? canEdit(current) && (next.memberId === current.memberId || allowedPerson(next.memberId))
+      : allowedPerson(next.memberId) || next.memberId === access.meId;
+    if (!mayEdit) {
       if (
         !current ||
-        !access.isEmployee ||
-        !isOwnTask(current, access.me?.id) ||
+        !isOwnTask(current, access.meId) ||
         next.memberId !== current.memberId ||
         next.day !== current.day ||
         next.title !== current.title ||
@@ -172,7 +177,7 @@ export default function DailyWorkView({
   };
   const menuTask = tasks.find((task) => task.id === menu?.id);
   const items: OverflowMenuItem[] =
-    menuTask && allowedPerson(menuTask.memberId) && canChange(menuTask) && !busy
+    menuTask && canEdit(menuTask) && canChange(menuTask) && !busy
       ? [
           {
             icon: 'create-outline',
@@ -205,7 +210,7 @@ export default function DailyWorkView({
             label: t.company.workRemove,
             tone: 'danger',
             onPress: () => {
-              if (!allowedPerson(menuTask.memberId) || busy) return;
+              if (!canEdit(menuTask) || busy) return;
               setError(false);
               remove.mutate({ taskId: menuTask.id }, { onError: () => setError(true) });
             },
@@ -213,7 +218,7 @@ export default function DailyWorkView({
         ]
       : [];
   const openAdd = () => {
-    if (busy || access.people.length === 0) return;
+    if (busy || access.assignees.length === 0) return;
     setAddKey((key) => key + 1);
     setAddOpen(true);
   };
@@ -237,7 +242,7 @@ export default function DailyWorkView({
             <Text tone="muted">{t.company.attendanceEmpty}</Text>
           ) : (
             <>
-              {memberId && access.canManage && allowedPerson(memberId) ? (
+              {memberId && access.canManage && access.assignees.some((p) => p.id === memberId) ? (
                 <Button label={t.company.workAdd} onPress={openAdd} disabled={busy} />
               ) : null}
               <WorkToolbar
@@ -247,7 +252,7 @@ export default function DailyWorkView({
                 onQueryChange={setQuery}
                 onMore={(a) => setMoreAnchor(a ?? 'open')}
                 title={embedded ? t.company.workMineTasks : undefined}
-                onAdd={access.canManage && access.people.length > 0 ? openAdd : undefined}
+                onAdd={access.assignees.length > 0 ? openAdd : undefined}
               />
               <CompanyCalendarGrid
                 year={cal.year}
@@ -269,13 +274,11 @@ export default function DailyWorkView({
                 today={today}
                 people={people}
                 locale={locale}
-                canManage={access.canManage}
+                canManage={canEdit}
                 busy={busy}
                 canChange={canChange}
                 onOpen={(task) =>
-                  access.canManage && canChange(task)
-                    ? setDraft(payload(task))
-                    : setStatusId(task.id)
+                  canEdit(task) && canChange(task) ? setDraft(payload(task)) : setStatusId(task.id)
                 }
                 onMenu={(task, anchor) => setMenu({ id: task.id, anchor })}
                 siteName={(projectId) =>
@@ -288,7 +291,7 @@ export default function DailyWorkView({
                 })}
                 query={query}
                 onShowTeam={() => setScope('team')}
-                onAdd={access.canManage && access.people.length > 0 ? openAdd : undefined}
+                onAdd={access.assignees.length > 0 ? openAdd : undefined}
               />
             </>
           )}
@@ -354,9 +357,13 @@ export default function DailyWorkView({
         groupId={id}
         visible={addOpen}
         onClose={() => setAddOpen(false)}
-        people={access.people}
+        people={access.assignees}
         defaultMemberIds={
-          memberId ? [memberId] : access.people.length === 1 ? access.people.map((p) => p.id) : []
+          memberId
+            ? [memberId]
+            : access.assignees.length === 1
+              ? access.assignees.map((p) => p.id)
+              : []
         }
         today={today}
       />
@@ -364,12 +371,13 @@ export default function DailyWorkView({
         groupId={id}
         sites={sites}
         canManage={access.canManage}
-        people={access.people}
+        meId={access.meId}
+        people={access.assignees}
         draft={draft}
         setDraft={setDraft}
         busy={busy}
         error={error}
-        allowedPerson={allowedPerson}
+        allowedPerson={(id) => allowedPerson(id) || id === access.meId}
         write={write}
         today={today}
       />
@@ -387,6 +395,8 @@ export default function DailyWorkView({
         error={error}
         canChange={canChange}
         write={write}
+        canManage={access.canManage}
+        meId={access.meId}
       />
     </>
   );

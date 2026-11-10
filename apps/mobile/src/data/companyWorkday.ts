@@ -44,6 +44,10 @@ export interface WorkdayAccess {
   readonly canManage: boolean;
   /** Whom the viewer may mark / assign work to (owner: all, manager: own team). Empty for an employee. */
   readonly people: readonly MemberRow[];
+  /** Whom a task may be assigned to: the owner employees and managers, a manager their team and themself, an employee only themself. */
+  readonly assignees: readonly MemberRow[];
+  /** The viewer's own member id. */
+  readonly meId: string | null;
   /** The viewer as an employee (null for owners/managers who are not employees). */
   readonly me: MemberRow | null;
   readonly isEmployee: boolean;
@@ -56,14 +60,28 @@ export function useWorkdayAccess(groupId: string): WorkdayAccess {
     const canManage = view.isAdmin;
     const people = canManage ? live.filter((m) => view.manageableIds.has(m.id)) : [];
     const isEmployee = !canManage && view.me?.role === 'member';
+    const assignees = view.isOwner
+      ? view.members.filter(
+          (m) =>
+            !m.left_at &&
+            (m.role === 'member' || m.role === 'manager') &&
+            view.manageableIds.has(m.id),
+        )
+      : view.isManager && view.me
+        ? [...people, view.me]
+        : isEmployee && view.me
+          ? [view.me]
+          : [];
     return {
       enabled: live.length > 0,
       canManage,
       people,
+      assignees,
+      meId: view.me?.id ?? null,
       me: isEmployee ? view.me : null,
       isEmployee,
     };
-  }, [view.members, view.isAdmin, view.manageableIds, view.me]);
+  }, [view.members, view.isAdmin, view.isOwner, view.isManager, view.manageableIds, view.me]);
 }
 
 /** Owner/manager: set (null clears) one person's mark for one day. */

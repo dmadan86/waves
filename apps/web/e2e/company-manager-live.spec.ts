@@ -215,11 +215,14 @@ test.describe.serial('company manager, one browser per person', () => {
     const page = await managerCtx.newPage();
     await page.goto(`/c/${groupId}/team?seg=work`);
     await page.getByRole('button', { name: 'Add task' }).first().click();
-    // Only the managed employee is offered (the owner would see both).
+    // Offered: the managed employee and the manager themself; never the unmanaged employee.
     const assignTo = page.getByRole('group', { name: 'Assign to' });
-    await expect(assignTo.getByRole('checkbox')).toHaveCount(1);
+    await expect(assignTo.getByRole('checkbox')).toHaveCount(2);
     await expect(assignTo).toContainText(employee.name);
+    await expect(assignTo).toContainText(manager.name);
     await expect(assignTo).not.toContainText(other.name);
+    // Two people are offered, so nobody is pre-ticked.
+    await assignTo.getByLabel(employee.name).check();
     await page.getByLabel('Task description').fill(TASK);
     await page.getByRole('button', { name: 'Save task' }).click();
     await expect(page.getByText(TASK)).toBeVisible();

@@ -3,6 +3,7 @@
 /** Team > Work: daily tasks grouped by day or person; add, edit, change status, repeat, remove, photos. */
 import { useMemo, useRef, useState } from 'react';
 import {
+  isSelfMadeTask,
   materialiseCompanyProjects,
   type CompanyWorkSetPayload,
   type TaskPriority,
@@ -43,13 +44,49 @@ type Panel = { kind: 'add' } | { kind: 'edit'; draft: Payload } | { kind: 'statu
 const STATUSES: Status[] = ['todo', 'doing', 'done', 'blocked'];
 const label = (st: Status) => s[st];
 
-function Photos({ taskId, canRemove }: { taskId: string; canRemove: boolean }) {
+/** A task's photos; the assignee and helpers (anyone who can open the task here) add more and remove their own. */
+function Photos({
+  taskId,
+  groupId,
+  canRemove,
+  refresh,
+}: {
+  taskId: string;
+  groupId?: string;
+  /** May the viewer remove the photo that this member uploaded? */
+  canRemove: (uploaderMemberId: string) => boolean;
+  refresh?: () => Promise<unknown> | void;
+}) {
   const photos = useCompanyPhotos(taskId);
   const [err, setErr] = useState('');
-  if (photos.length === 0) return null;
+  const [busy, setBusy] = useState(false);
+  if (photos.length === 0 && !groupId) return null;
   return (
     <div>
       <strong>{s.photos}</strong>
+      {groupId && photos.length < MAX_TASK_PHOTOS ? (
+        <label className="field">
+          <span className="field-label">{s.photoLabel}</span>
+          <input
+            type="file"
+            accept="image/*"
+            disabled={busy}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file) return;
+              setBusy(true);
+              setErr('');
+              attachTaskPhoto(groupId, taskId, file)
+                .then(() => refresh?.())
+                .catch((caught: unknown) =>
+                  setErr(caught instanceof StorageCapError ? s.storageFull : s.photoFailed),
+                )
+                .finally(() => setBusy(false));
+            }}
+          />
+        </label>
+      ) : null}
       {photos.map((p, i) => (
         <div key={p.id} className="row" style={{ gap: 8, alignItems: 'center' }}>
           {p.preview?.startsWith('data:') ? (
@@ -58,7 +95,7 @@ function Photos({ taskId, canRemove }: { taskId: string; canRemove: boolean }) {
           ) : (
             <span>{`${s.photos} ${i + 1}`}</span>
           )}
-          {canRemove ? (
+          {canRemove(p.uploaderMemberId ?? '') ? (
             <button
               type="button"
               className="btn soft"
@@ -93,16 +130,18 @@ export function TeamWork({ groupId }: { groupId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const people: readonly CompanyMember[] =
-    access.isEmployee && access.me ? [access.me] : access.people;
+  const people: readonly CompanyMember[] = access.assignees;
   const someone = 'Someone';
   const personName = (id: string) =>
     memberName(people.find((p) => p.id === id) ?? access.me ?? undefined, '');
   const siteName = (id: string | null) => (id && sites.find((p) => p.id === id)?.name) || '';
-  const allowedPerson = (id: string) => access.canManage && access.people.some((p) => p.id === id);
+  // Others the viewer assigns to; their own tasks are theirs to edit only when they made them.
+  const allowedPerson = (id: string) =>
+    access.canManage && id !== access.meId && access.assignees.some((p) => p.id === id);
+  const canEdit = (t: Pick<MirrorWorkTask, 'memberId' | 'createdBy'>) =>
+    allowedPerson(t.memberId) || isSelfMadeTask(t, access.meId);
   const canChange = (t: MirrorWorkTask) =>
-    access.enabled &&
-    (allowedPerson(t.memberId) || (access.isEmployee && isOwnTask(t, access.me?.id)));
+    access.enabled && (allowedPerson(t.memberId) || (!!access.meId && isOwnTask(t, access.meId)));
 
   const own = tasks.filter((t) => canChange(t) && (scope === 'team' || isOwnTask(t, view.me?.id)));
   const empty = emptyTasksState({ search: query, scope, teamTasks: tasks.filter(canChange) });
@@ -126,11 +165,13 @@ export function TeamWork({ groupId }: { groupId: string }) {
       (next.status === 'blocked' && !next.blockedReason?.trim())
     )
       return;
-    if (!allowedPerson(next.memberId)) {
+    const mayEdit = current
+      ? canEdit(current) && (next.memberId === current.memberId || allowedPerson(next.memberId))
+      : allowedPerson(next.memberId) || next.memberId === access.meId;
+    if (!mayEdit) {
       if (
         !current ||
-        !access.isEmployee ||
-        !isOwnTask(current, access.me?.id) ||
+        !isOwnTask(current, access.meId) ||
         next.memberId !== current.memberId ||
         next.day !== current.day ||
         next.title !== current.title ||
@@ -157,7 +198,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
   };
 
   const del = async (t: MirrorWorkTask) => {
-    if (!allowedPerson(t.memberId) || busy || !window.confirm(`${t.title}?`)) return;
+    if (!canEdit(t) || busy || !window.confirm(`${t.title}?`)) return;
     setError('');
     setBusy(true);
     try {
@@ -186,7 +227,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
           style={{ flex: 1, textAlign: 'start' }}
           disabled={busy}
           onClick={() =>
-            access.canManage && canChange(t)
+            canEdit(t) && canChange(t)
               ? setPanel({ kind: 'edit', draft: taskPayload(t) })
               : setPanel({ kind: 'status', id: t.id })
           }
@@ -217,7 +258,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
           </small>
         </button>
         <span>{label(t.status)}</span>
-        {access.canManage && canChange(t) ? (
+        {canEdit(t) && canChange(t) ? (
           <>
             <button
               type="button"
@@ -304,7 +345,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
                 {s.mine}
               </label>
             ) : null}
-            {access.canManage && access.people.length > 0 ? (
+            {access.assignees.length > 0 ? (
               <button
                 type="button"
                 className="btn brand"
@@ -319,7 +360,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
           {panel?.kind === 'add' ? (
             <AddTask
               groupId={groupId}
-              people={access.people}
+              people={access.assignees}
               today={today}
               onClose={() => setPanel(null)}
               save={setTask}
@@ -330,13 +371,14 @@ export function TeamWork({ groupId }: { groupId: string }) {
             <EditTask
               draft={panel.draft}
               setDraft={(draft) => setPanel({ kind: 'edit', draft })}
-              people={access.people}
+              people={access.assignees}
               sites={sites}
               today={today}
               busy={busy}
               error={error}
-              canSave={allowedPerson(panel.draft.memberId)}
+              canSave={allowedPerson(panel.draft.memberId) || panel.draft.memberId === access.meId}
               canRemovePhoto={access.canManage}
+              meId={access.meId}
               onSave={() =>
                 void write({ ...panel.draft, title: panel.draft.title.trim() }, () =>
                   setPanel(null),
@@ -348,6 +390,10 @@ export function TeamWork({ groupId }: { groupId: string }) {
           {statusTask ? (
             <StatusPanel
               key={statusTask.id}
+              groupId={groupId}
+              meId={access.meId}
+              canRemoveAny={access.canManage}
+              refresh={refresh}
               task={statusTask}
               enabled={canChange(statusTask) && !busy}
               error={error}
@@ -393,7 +439,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
                   <br />
                   {s.noTasksHint}
                 </p>
-                {access.canManage && access.people.length > 0 ? (
+                {access.assignees.length > 0 ? (
                   <button
                     type="button"
                     className="btn brand"
@@ -435,12 +481,20 @@ export function TeamWork({ groupId }: { groupId: string }) {
 }
 
 function StatusPanel({
+  groupId,
+  meId,
+  canRemoveAny,
+  refresh,
   task,
   enabled,
   error,
   onPick,
   onClose,
 }: {
+  groupId: string;
+  meId: string | null;
+  canRemoveAny: boolean;
+  refresh: () => Promise<unknown> | void;
   task: MirrorWorkTask;
   enabled: boolean;
   error: string;
@@ -490,7 +544,12 @@ function StatusPanel({
       />
       {needReason ? <p role="alert">{s.reason}</p> : null}
       {error ? <p role="alert">{error}</p> : null}
-      <Photos taskId={task.id} canRemove={false} />
+      <Photos
+        taskId={task.id}
+        groupId={enabled ? groupId : undefined}
+        canRemove={(uploader) => canRemoveAny || uploader === meId}
+        refresh={refresh}
+      />
       <button type="button" className="btn soft" onClick={onClose}>
         {s.close}
       </button>
@@ -508,6 +567,7 @@ function EditTask({
   error,
   canSave,
   canRemovePhoto,
+  meId,
   onSave,
   onClose,
 }: {
@@ -520,6 +580,7 @@ function EditTask({
   error: string;
   canSave: boolean;
   canRemovePhoto: boolean;
+  meId: string | null;
   onSave: () => void;
   onClose: () => void;
 }) {
@@ -565,7 +626,7 @@ function EditTask({
       <fieldset className="field" disabled={busy}>
         <legend className="field-label">{s.helpers}</legend>
         {people
-          .filter((p) => p.id !== draft.memberId)
+          .filter((p) => p.role === 'member' && p.id !== draft.memberId)
           .map((p) => {
             const on = (draft.helperIds ?? []).includes(p.id);
             return (
@@ -641,7 +702,7 @@ function EditTask({
         />
       </label>
       {draft.blockedReason ? <p>{draft.blockedReason}</p> : null}
-      <Photos taskId={draft.taskId} canRemove={canRemovePhoto} />
+      <Photos taskId={draft.taskId} canRemove={(uploader) => canRemovePhoto || uploader === meId} />
       {error ? <p role="alert">{error}</p> : null}
       <div className="row" style={{ gap: 8 }}>
         <button
@@ -826,7 +887,7 @@ function AddTask({
       <fieldset disabled={busy}>
         <legend>{s.helpers}</legend>
         {people
-          .filter((p) => !(ids.length === 1 && ids[0] === p.id))
+          .filter((p) => p.role === 'member' && !(ids.length === 1 && ids[0] === p.id))
           .map((p) => {
             const on = helperIds.includes(p.id);
             return (

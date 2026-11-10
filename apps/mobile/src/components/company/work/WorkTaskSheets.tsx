@@ -22,6 +22,8 @@ export function WorkTaskSheets({
   field,
   fieldTask,
   busy,
+  canManage,
+  meId,
   error,
   canChange,
   write,
@@ -36,6 +38,8 @@ export function WorkTaskSheets({
   field: Field;
   fieldTask: MirrorWorkTask | undefined;
   busy: boolean;
+  canManage: boolean;
+  meId: string | null;
   error: boolean;
   canChange: (task: MirrorWorkTask) => boolean;
   write: (next: Payload, onSuccess?: () => void) => void;
@@ -108,8 +112,8 @@ export function WorkTaskSheets({
             kind="task"
             groupId={groupId}
             entryId={statusTask.id}
-            canAdd={false}
-            canRemove={() => false}
+            canAdd
+            canRemove={(uploader) => canManage || uploader === meId}
           />
         ) : null}
       </Sheet>

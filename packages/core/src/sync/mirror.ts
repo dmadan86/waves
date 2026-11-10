@@ -2355,8 +2355,16 @@ export interface MirrorWorkTask {
   readonly priority?: TaskPriority;
   /** The others on the task besides the responsible memberId. */
   readonly helperIds?: readonly string[];
+  /** Who made the task (a member id); an employee edits only a task they made for themself. */
+  readonly createdBy?: string | null;
   readonly pending?: boolean;
 }
+
+/** A task its assignee made for themself: theirs to edit and remove, not just to move along. */
+export const isSelfMadeTask = (
+  task: Pick<MirrorWorkTask, 'memberId' | 'createdBy'>,
+  meId: string | null | undefined,
+) => !!meId && task.memberId === meId && task.createdBy === meId;
 
 /** Daily tasks of one company (pulled rows plus this phone's queued adds, edits and removals), oldest first. */
 export function materialiseWorkTasks(
@@ -2379,11 +2387,13 @@ export function materialiseWorkTasks(
     client_id?: string | null;
     priority?: TaskPriority | null;
     helper_ids?: string[] | null;
+    created_by?: string | null;
     created_at: string;
     deleted_at: string | null;
   }[]) {
     if (row.deleted_at) continue;
     byId.set(row.id, {
+      createdBy: row.created_by ?? null,
       priority: row.priority ?? 'normal',
       helperIds: row.helper_ids ?? [],
       id: row.id,
@@ -2417,6 +2427,8 @@ export function materialiseWorkTasks(
         clientId: p.clientId === undefined ? (byId.get(p.taskId)?.clientId ?? null) : p.clientId,
         priority: p.priority ?? byId.get(p.taskId)?.priority ?? 'normal',
         helperIds: p.helperIds ?? byId.get(p.taskId)?.helperIds ?? [],
+        // A queued new task was made by whoever it is for when they are alone on their phone; the pull gives the truth.
+        createdBy: byId.get(p.taskId)?.createdBy ?? p.memberId,
         pending: true,
       });
     } else if (mutation.kind === 'company_work.remove') {
