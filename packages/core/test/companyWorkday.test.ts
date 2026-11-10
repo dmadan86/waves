@@ -241,6 +241,15 @@ describe('a task change that keeps failing', () => {
     } as QueuedMutation;
     expect(nextBatch([create, tick(0, 't1')], { now: 1 })).toEqual([]);
   });
+  it('a refused change on one document does not block task changes', () => {
+    const doc = {
+      ...queued('company_doc.status', { docId: 'd1', status: 'sent' }, 1),
+      rejection: { code: 'NOT_ALLOWED' },
+    } as unknown as QueuedMutation;
+    const again = { ...queued('company_doc.void', { docId: 'd1' }, 3) } as QueuedMutation;
+    const out = nextBatch([doc, { ...tick(0, 't1'), seq: 2 } as QueuedMutation, again], { now: 1 });
+    expect(out.map((m) => m.kind)).toEqual(['company_work.set']);
+  });
   it('is sent again after the ceiling instead of staying stuck', () => {
     expect(nextBatch([tick(MAX_ATTEMPTS + 3)], { now: 1 })).toHaveLength(1);
   });

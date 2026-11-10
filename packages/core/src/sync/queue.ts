@@ -531,6 +531,15 @@ function blockKey(item: QueuedMutation): string {
     const taskId = stringPayloadField(item.payload, 'taskId');
     if (taskId) return `${item.groupId}\u0000task\u0000${taskId}`;
   }
+  // A status, payment or void touches only its document; nothing else waits on it (a save or convert creates one, so those stay group-wide).
+  if (
+    item.kind === MutationKind.CompanyDocStatus ||
+    item.kind === MutationKind.CompanyDocPayment ||
+    item.kind === MutationKind.CompanyDocVoid
+  ) {
+    const docId = stringPayloadField(item.payload, 'docId');
+    if (docId) return `${item.groupId}\u0000doc\u0000${docId}`;
+  }
   return item.groupId;
 }
 
