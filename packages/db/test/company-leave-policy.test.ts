@@ -396,6 +396,8 @@ describe('approval cannot overspend committed or past balances', () => {
       expect(await stored()).toBe('2026-06-01'); // clamped to the day they were added
       await join(1); // their manager
       expect(await stored()).toBe('2026-01-01');
+      await join(2); // the person re-saving (a birthday edit) keeps the date their manager set
+      expect(await stored()).toBe('2026-01-01');
     }));
 });
 

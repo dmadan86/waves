@@ -226,7 +226,8 @@ BEGIN
  IF p_joined_on IS NOT NULL AND (p_joined_on>current_date OR p_joined_on<DATE '1980-01-01') THEN RAISE EXCEPTION 'INVALID_DATA: joined'; END IF;
  -- Leave accrues from the joining date. A person editing their OWN date cannot reach back before the day they
  -- were added (that would grant themselves leave); the owner and their manager can set any date. Clamped, not refused.
- IF p_member_id=v_me AND NOT (public.is_group_admin(p_group_id) OR public.waves_company_team(p_group_id,p_member_id)) AND v_joined IS NOT NULL THEN
+ IF p_member_id=v_me AND NOT (public.is_group_admin(p_group_id) OR public.waves_company_team(p_group_id,p_member_id)) AND v_joined IS NOT NULL
+  AND v_joined IS DISTINCT FROM (SELECT joined_on FROM public.company_member_dates WHERE group_id=p_group_id AND member_id=p_member_id AND deleted_at IS NULL) THEN -- an unchanged, owner-set date stays
   SELECT (created_at AT TIME ZONE 'UTC')::date INTO v_added FROM public.group_members WHERE id=p_member_id;
   v_joined:=greatest(v_joined,v_added);
  END IF;
