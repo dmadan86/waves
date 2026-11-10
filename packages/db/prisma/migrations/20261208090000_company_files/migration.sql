@@ -83,6 +83,14 @@ BEGIN
  RETURN me;
 END $$;
 
+-- Is this item visible to the caller now, counting the folder it sits in? Every change to an item starts here.
+CREATE FUNCTION public.waves_company_file_row_visible(p_group_id uuid,p_visibility text,p_folder_id uuid) RETURNS boolean
+ LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+ SELECT public.waves_company_file_can_see(p_group_id,p_visibility)
+ AND (p_folder_id IS NULL OR EXISTS(SELECT 1 FROM public.company_file_folders d WHERE d.id=p_folder_id AND d.group_id=p_group_id
+  AND public.waves_company_file_can_see(d.group_id,d.visibility)));
+$$;
+
 -- Create or rename/re-share a folder.
 CREATE FUNCTION public.waves_company_file_folder_set(p_group_id uuid,p_id uuid,p_name text,p_visibility text) RETURNS uuid
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
@@ -91,7 +99,8 @@ BEGIN
  IF p_id IS NULL OR length(v_name) NOT BETWEEN 1 AND 80 THEN RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
  SELECT * INTO r FROM public.company_file_folders WHERE id=p_id FOR UPDATE;
  IF FOUND THEN
-  IF r.group_id<>p_group_id OR r.deleted_at IS NOT NULL THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+  IF r.group_id<>p_group_id OR r.deleted_at IS NOT NULL OR NOT public.waves_company_file_can_see(r.group_id,r.visibility)
+  THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
   me:=public.waves_company_file_actor(p_group_id,r.created_by,p_visibility);
   UPDATE public.company_file_folders SET name=v_name,visibility=p_visibility,updated_at=now() WHERE id=p_id;
  ELSE
@@ -156,7 +165,7 @@ BEGIN
  SELECT * INTO r FROM public.company_files WHERE id=p_id FOR UPDATE;
  IF NOT FOUND OR r.deleted_at IS NOT NULL THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
  PERFORM public.waves_company_file_actor(r.group_id,r.created_by,p_visibility);
- IF NOT public.waves_company_file_can_see(r.group_id,r.visibility) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+ IF NOT public.waves_company_file_row_visible(r.group_id,r.visibility,r.folder_id) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
  IF length(v_name) NOT BETWEEN 1 AND 120 OR (r.kind='link' AND (p_url IS NULL OR length(p_url)>2048 OR p_url !~* '^https?://[^[:space:]]+$'))
  THEN RAISE EXCEPTION 'INVALID_DATA' USING ERRCODE='check_violation'; END IF;
  IF p_folder_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM public.company_file_folders f WHERE f.id=p_folder_id AND f.group_id=r.group_id AND f.deleted_at IS NULL
@@ -172,7 +181,7 @@ BEGIN
  SELECT * INTO r FROM public.company_files WHERE id=p_id FOR UPDATE;
  IF NOT FOUND THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
  PERFORM public.waves_company_file_actor(r.group_id,r.created_by,NULL);
- IF NOT public.waves_company_file_can_see(r.group_id,r.visibility) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+ IF NOT public.waves_company_file_row_visible(r.group_id,r.visibility,r.folder_id) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
  IF r.deleted_at IS NOT NULL THEN RETURN; END IF;
  UPDATE public.company_files SET deleted_at=now(),updated_at=now() WHERE id=p_id;
  IF r.r2_key IS NOT NULL THEN DELETE FROM public.storage_objects WHERE logical_bucket='company-entry-images' AND path=r.r2_key; END IF;
@@ -288,7 +297,7 @@ BEGIN
  RETURN public.waves_company_cancel_upload_entry(p_entry_id,p_path,p_profile_id,p_pending_only);
 END $fn$;
 
-REVOKE ALL ON FUNCTION public.waves_company_file_actor(uuid,uuid,text),public.waves_company_file_storage_write(uuid,uuid,text,bigint,text,boolean),
+REVOKE ALL ON FUNCTION public.waves_company_file_actor(uuid,uuid,text),public.waves_company_file_row_visible(uuid,text,uuid),public.waves_company_file_storage_write(uuid,uuid,text,bigint,text,boolean),
  public.waves_company_file_cancel_upload(uuid,text,uuid,boolean),public.waves_company_file_expire_unattached(),
  public.waves_company_storage_write(uuid,uuid,text,bigint,text,boolean),public.waves_company_cancel_upload(uuid,text,uuid,boolean) FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION public.waves_company_file_storage_write(uuid,uuid,text,bigint,text,boolean),

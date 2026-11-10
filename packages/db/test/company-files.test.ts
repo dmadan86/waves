@@ -253,6 +253,52 @@ describe('company files: who may change what', () => {
     }));
 });
 
+describe('company files: items under a folder the owner hid', () => {
+  it('stops the manager re-opening that folder, moving their file out of it, or deleting it', () =>
+    isolated(async () => {
+      const f = await folder(MGR_A, 'Mine');
+      const id = await link(MGR_A, 'inside', 'everyone', 'https://example.com/i', f);
+      await user(OWNER, () =>
+        db.query('SELECT waves_company_file_folder_set($1,$2,$3,$4)', [
+          g.groupId,
+          f,
+          'Mine',
+          'owners',
+        ]),
+      );
+      await denied(
+        () =>
+          user(MGR_A, () =>
+            db.query('SELECT waves_company_file_folder_set($1,$2,$3,$4)', [
+              g.groupId,
+              f,
+              'Mine',
+              'everyone',
+            ]),
+          ),
+        /NOT_ALLOWED/,
+      );
+      await denied(
+        () =>
+          user(MGR_A, () =>
+            db.query('SELECT waves_company_file_update($1,NULL,$2,$3,$4)', [
+              id,
+              'inside',
+              'everyone',
+              'https://example.com/i',
+            ]),
+          ),
+        /NOT_ALLOWED/,
+      );
+      await denied(
+        () => user(MGR_A, () => db.query('SELECT waves_company_file_delete($1)', [id])),
+        /NOT_ALLOWED/,
+      );
+      expect(await seenBy(EMP)).toEqual([]);
+      expect(await seenBy(OWNER)).toEqual(['inside']);
+    }));
+});
+
 describe('company files: link addresses', () => {
   it.each([
     'javascript:alert(1)',
