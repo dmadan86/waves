@@ -7,6 +7,7 @@ import { Button, directionalIcon, Screen, Sheet, Text, useTheme } from '@waves/u
 
 import { useWhen } from '@/components/company/clients/parts';
 import { ScenicBody, ScenicHeader, SectionHeader, StandardCard } from '@/components/standard';
+import { useCompanyEntries } from '@/data/companyEntries';
 import {
   stageChange,
   useAddClientNote,
@@ -89,6 +90,7 @@ export function FollowUps({ groupId }: { groupId: string }) {
   const s = t.companyClients;
   const clearance = useBottomClearance();
   const clients = useCompanyClients(groupId);
+  const entries = useCompanyEntries(groupId);
   const [scope, setScope] = useState<FollowUpScope>('all');
   const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
@@ -124,7 +126,11 @@ export function FollowUps({ groupId }: { groupId: string }) {
   // The client page's own flow: when, then a task for the client's owner (managers) or the viewer.
   const schedule = async (clientId: string) => {
     const client = byId.get(clientId);
-    const assignee = (clients.canManage ? client?.ownerMemberId : null) ?? clients.myMemberId;
+    const owner = client?.ownerMemberId;
+    const assignee =
+      owner && (entries.isOwner || entries.manageableIds.has(owner) || owner === clients.myMemberId)
+        ? owner
+        : clients.myMemberId;
     if (!client || !assignee) return;
     const days = await choose({
       title: s.followUp,
