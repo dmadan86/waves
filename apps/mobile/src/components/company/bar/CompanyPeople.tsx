@@ -252,7 +252,15 @@ export function CompanyPeople({
                   router.push(`/group/${groupId}/members`),
                 )}
             <View style={{ flex: 1 }} />
-            {round('search', t.company.searchEmployees, () => setSearching(true), !!query)}
+            {round(
+              'search',
+              t.company.searchEmployees,
+              () => {
+                setTree(false);
+                setSearching(true);
+              },
+              !!query,
+            )}
             {view.isOwner
               ? round('git-network-outline', t.company.hierTitle, () => setTree((v) => !v), tree)
               : null}
@@ -310,7 +318,7 @@ export function CompanyPeople({
 
       <TwoStepPeople groupId={groupId} />
 
-      {tree ? (
+      {tree && !notEmployed ? (
         <View>
           {hierarchyRows(view.members).map(({ member: m, level, reports }) => {
             const name = displayName(m, null, null, t.misc.someone);
@@ -355,7 +363,7 @@ export function CompanyPeople({
         </View>
       ) : null}
 
-      {!tree && shown.length > 0 ? (
+      {(!tree || notEmployed) && shown.length > 0 ? (
         <View
           style={{
             backgroundColor: theme.color.surface,
@@ -393,7 +401,7 @@ export function CompanyPeople({
           })}
         </View>
       ) : null}
-      {!tree && shown.length === 0 ? (
+      {(!tree || notEmployed) && shown.length === 0 ? (
         <Text variant="caption" tone="muted" align="center" style={{ paddingVertical: 16 }}>
           {rows.some((r) => r.former === notEmployed)
             ? t.company.noEmployeesMatch
