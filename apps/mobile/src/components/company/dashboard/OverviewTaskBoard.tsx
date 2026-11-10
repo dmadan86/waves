@@ -484,7 +484,7 @@ export function QuickActions({ groupId }: { groupId: string }) {
       icon: 'cloud-upload-outline',
       label: t.company.tkUpload,
       ink: RED,
-      screen: 'company-storage',
+      screen: 'company-files',
     },
     // No reminder feature exists: this opens the calendar's new-event sheet.
     {

@@ -126,7 +126,7 @@ interface SyncResponseBody {
   /** Company groups: birthday-row, event and client ids the caller can still read (RLS hides revoked rows silently). */
   calendarVisible?: Record<
     string,
-    { dates: string[]; events: string[]; clients?: string[]; tickets?: string[] }
+    { dates: string[]; events: string[]; clients?: string[]; tickets?: string[]; files?: string[] }
   >;
 }
 

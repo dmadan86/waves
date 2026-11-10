@@ -149,6 +149,8 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyTicketEvents,
   SyncTable.CompanyAttendance,
   SyncTable.CompanyWorkTasks,
+  SyncTable.CompanyFileFolders,
+  SyncTable.CompanyFiles,
   SyncTable.CompanyHolidays,
   SyncTable.CompanyLeave,
   SyncTable.CompanyEvents,
@@ -2850,6 +2852,8 @@ export function purgeCompanyInvisible(
         events: readonly string[];
         clients?: readonly string[];
         tickets?: readonly string[];
+        /** Folder and file ids the caller can read now (visibility can narrow without a tombstone). */
+        files?: readonly string[];
       }
     >
   > = {},
@@ -2894,6 +2898,11 @@ export function purgeCompanyInvisible(
         SyncTable.CompanyTicketEvents,
         (row) => row.group_id === groupId && gone.has(row.ticket_id as string),
       );
+    }
+    if (ids.files) {
+      const files = new Set(ids.files);
+      for (const table of [SyncTable.CompanyFiles, SyncTable.CompanyFileFolders])
+        drop(table, (row) => row.group_id === groupId && !files.has(row.id as string));
     }
     const dates = new Set(ids.dates);
     const events = new Set(ids.events);

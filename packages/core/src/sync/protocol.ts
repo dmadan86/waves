@@ -1086,6 +1086,9 @@ export enum SyncTable {
   /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
   CompanyAttendance = 'company_attendance',
   CompanyWorkTasks = 'company_work_tasks',
+  /** Group-scoped, pull-only: company folders, files and links; each row shows to the roles its visibility names (RLS), never to a vendor. */
+  CompanyFileFolders = 'company_file_folders',
+  CompanyFiles = 'company_files',
   /** Group-scoped, pull-only: holidays (every member), leave and birthdays/joining dates (RLS: own, team, owner; opted-in birthdays), events (those involved). */
   CompanyHolidays = 'company_holidays',
   CompanyLeave = 'company_leave',

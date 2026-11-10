@@ -33,6 +33,7 @@ import {
   requireMembership,
   type SupabaseClient,
 } from '../_shared/auth.ts';
+import { handleCompanyFile } from './companyFile.ts';
 import {
   LOGICAL_BUCKETS,
   type LogicalBucket,
@@ -632,6 +633,11 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
     const subjectId = restricted ? readSubject(body.subjectId) : null;
     const { path, authPath, isThumb } = readObjectKey(body.path);
     const maxBytes = isThumb ? MAX_THUMB_BYTES : MAX_OBJECT_BYTES;
+
+    // Company Files (`cf/<groupId>/<fileId>`) have their own rules: any allow-listed type, 25 MB, owner/manager writes.
+    if (bucket === 'company-entry-images' && path.startsWith('cf/')) {
+      return await handleCompanyFile(deps, caller, service, uid, body, path);
+    }
 
     // A restricted read is authorised by (SUBJECT, path): the server confirms a
     // party-visible row references that path before signing it, so a non-party

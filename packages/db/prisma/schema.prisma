@@ -439,6 +439,8 @@ model Group {
   @@index([startDate, endDate], map: "groups_reminder_window_idx")
   vendors CompanyVendor[]
   companyClients CompanyClient[]
+  companyFileFolders CompanyFileFolder[]
+  companyFiles CompanyFile[]
   companyInquiries CompanyInquiry[]
   companyTickets CompanyTicket[]
   companyDetails CompanyDetails?
@@ -571,6 +573,8 @@ model GroupMember {
   vendorOrdersCreated CompanyVendorOrder[] @relation("CompanyVendorOrderCreator")
   vendorLogin CompanyVendor[] @relation("CompanyVendorLogin")
   clientsOwned CompanyClient[] @relation("CompanyClientOwner")
+  fileFoldersCreated CompanyFileFolder[]
+  filesCreated CompanyFile[]
   clientsCreated CompanyClient[] @relation("CompanyClientCreator")
   clientNotes CompanyClientNote[]
   inquiriesCreated CompanyInquiry[] @relation("CompanyInquiryCreator")
@@ -3793,6 +3797,48 @@ model CompanyAgentLink {
   @@unique([profileId, clientId])
   @@index([groupId], map: "company_agent_links_group_idx")
   @@map("company_agent_links")
+  @@schema("public")
+}
+model CompanyFileFolder {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  visibility String @default("everyone")
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  files CompanyFile[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_file_folders_sync_idx")
+  @@map("company_file_folders")
+  @@schema("public")
+}
+model CompanyFile {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  folderId String? @map("folder_id") @db.Uuid
+  kind String
+  name String
+  url String?
+  r2Key String? @unique @map("r2_key")
+  sizeBytes BigInt? @map("size_bytes")
+  mime String?
+  visibility String @default("everyone")
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  folder CompanyFileFolder? @relation(fields: [folderId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_files_sync_idx")
+  @@index([folderId], map: "company_files_folder_idx")
+  @@map("company_files")
   @@schema("public")
 }
 model CompanyClient {
