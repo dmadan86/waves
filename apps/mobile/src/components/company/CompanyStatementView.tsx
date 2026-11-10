@@ -241,8 +241,8 @@ export function CompanyStatementView({
 
   // A chat reads oldest first; unpaid / rejected claims sit in it with a "waiting" mark.
   const bubbles = [
-    ...statement.rows.map(({ entry, delta }) => ({ entry, delta })),
-    ...statement.pending.map((entry) => ({ entry, delta: 0n })),
+    ...statement.rows.map(({ entry, running }) => ({ entry, running })),
+    ...statement.pending.map((entry) => ({ entry, running: null as bigint | null })),
   ].sort((a, b) =>
     a.entry.occurredOn === b.entry.occurredOn
       ? a.entry.createdAt.localeCompare(b.entry.createdAt)
@@ -256,7 +256,7 @@ export function CompanyStatementView({
           {t.company.threadEmpty}
         </Text>
       ) : (
-        bubbles.map(({ entry }) => (
+        bubbles.map(({ entry, running }) => (
           <Bubble
             key={entry.id}
             entry={entry}
@@ -264,6 +264,7 @@ export function CompanyStatementView({
             fmt={fmt}
             locale={locale}
             hasPhoto={view.receiptEntryIds.has(entry.id)}
+            running={running}
             onPress={() => open(entry)}
           />
         ))
@@ -568,7 +569,7 @@ export function CompanyStatementView({
         </Text>
       ) : (
         <View style={{ gap: theme.spacing.sm }}>
-          {bubbles.map(({ entry }) => (
+          {bubbles.map(({ entry, running }) => (
             <Bubble
               key={entry.id}
               entry={entry}
@@ -576,6 +577,7 @@ export function CompanyStatementView({
               fmt={fmt}
               locale={locale}
               hasPhoto={view.receiptEntryIds.has(entry.id)}
+              running={running}
               onPress={() => open(entry)}
             />
           ))}
@@ -601,6 +603,7 @@ function Bubble({
   fmt,
   locale,
   hasPhoto,
+  running,
   onPress,
 }: {
   entry: CompanyEntry;
@@ -608,6 +611,8 @@ function Bubble({
   fmt: (minor: bigint) => string;
   locale: string;
   hasPhoto: boolean;
+  /** Balance after this entry; null on a claim still waiting. */
+  running: bigint | null;
   onPress: () => void;
 }) {
   const theme = useTheme();
@@ -663,6 +668,7 @@ function Bubble({
           showDate(entry.occurredOn, locale),
           waiting ? (entry.status === 'rejected' ? t.company.rejected : t.company.awaiting) : null,
           entry.pending ? '\u23F2' : null,
+          running === null ? null : `${t.company.balance}: ${fmt(running)}`,
         ]
           .filter(Boolean)
           .join(' · ')}
