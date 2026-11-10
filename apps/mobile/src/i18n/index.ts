@@ -2710,6 +2710,15 @@ export interface UiStrings {
     mine: string;
     everyone: string;
     fuEmpty: string;
+    fuSubtitle: string;
+    fuUpcoming: string;
+    fuEmptyTitle: string;
+    fuEmptyBody: string;
+    fuAdd: string;
+    fuFromClient: string;
+    fuFromClientSub: string;
+    fuFromInquiry: string;
+    fuFromInquirySub: string;
     hubMoneyIn: string;
     hubMoneyOut: string;
     hubTeam: string;
@@ -10573,6 +10582,15 @@ const en: UiStrings = {
     mine: 'Mine',
     everyone: 'All',
     fuEmpty: 'No follow-ups due. Add one from a client.',
+    fuSubtitle: 'Keep track of client follow-ups',
+    fuUpcoming: 'Upcoming',
+    fuEmptyTitle: 'No follow-ups due',
+    fuEmptyBody: 'Add a follow-up from a client inquiry, meeting or conversation to stay on track.',
+    fuAdd: 'Add Follow-up',
+    fuFromClient: 'Add from client',
+    fuFromClientSub: 'Create a follow-up for an existing client',
+    fuFromInquiry: 'Add from inquiry',
+    fuFromInquirySub: 'Convert an inquiry into a follow-up',
     hubMoneyIn: 'Money in',
     hubMoneyOut: 'Money out',
     hubTeam: 'Team',
@@ -17902,6 +17920,16 @@ const ta: UiStrings = {
     mine: 'என்னுடையவை',
     everyone: 'அனைத்தும்',
     fuEmpty: 'பின்தொடர்தல் எதுவும் இல்லை. வாடிக்கையாளரிடமிருந்து சேர்க்கவும்.',
+    fuSubtitle: 'வாடிக்கையாளர் பின்தொடர்தல்களைக் கண்காணிக்கவும்',
+    fuUpcoming: 'வரவிருப்பவை',
+    fuEmptyTitle: 'நிலுவையில் பின்தொடர்தல் இல்லை',
+    fuEmptyBody:
+      'வாடிக்கையாளர் விசாரணை, சந்திப்பு அல்லது உரையாடலிலிருந்து பின்தொடர்தலைச் சேர்த்து தொடர்ந்து கண்காணிக்கவும்.',
+    fuAdd: 'பின்தொடர்தலைச் சேர்',
+    fuFromClient: 'வாடிக்கையாளரிடமிருந்து சேர்',
+    fuFromClientSub: 'இருக்கும் வாடிக்கையாளருக்கு பின்தொடர்தல் உருவாக்கவும்',
+    fuFromInquiry: 'விசாரணையிலிருந்து சேர்',
+    fuFromInquirySub: 'விசாரணையை பின்தொடர்தலாக மாற்றவும்',
     hubMoneyIn: 'வரவு',
     hubMoneyOut: 'செலவு',
     hubTeam: 'குழு',
@@ -25388,6 +25416,15 @@ const hi: UiStrings = {
     mine: 'मेरे',
     everyone: 'सभी',
     fuEmpty: 'कोई फॉलो-अप बाकी नहीं। ग्राहक से जोड़ें।',
+    fuSubtitle: 'ग्राहक फ़ॉलो-अप पर नज़र रखें',
+    fuUpcoming: 'आगामी',
+    fuEmptyTitle: 'कोई फ़ॉलो-अप बाकी नहीं',
+    fuEmptyBody: 'ट्रैक पर रहने के लिए ग्राहक की पूछताछ, मीटिंग या बातचीत से फ़ॉलो-अप जोड़ें।',
+    fuAdd: 'फ़ॉलो-अप जोड़ें',
+    fuFromClient: 'ग्राहक से जोड़ें',
+    fuFromClientSub: 'मौजूदा ग्राहक के लिए फ़ॉलो-अप बनाएँ',
+    fuFromInquiry: 'पूछताछ से जोड़ें',
+    fuFromInquirySub: 'पूछताछ को फ़ॉलो-अप में बदलें',
     hubMoneyIn: 'आमदनी',
     hubMoneyOut: 'खर्च',
     hubTeam: 'टीम',
@@ -32823,6 +32860,15 @@ const ar: UiStrings = {
     mine: 'خاصتي',
     everyone: 'الكل',
     fuEmpty: 'لا متابعات مستحقة. أضف واحدة من صفحة العميل.',
+    fuSubtitle: 'تابع متابعات العملاء',
+    fuUpcoming: 'القادمة',
+    fuEmptyTitle: 'لا متابعات مستحقة',
+    fuEmptyBody: 'أضف متابعة من استفسار عميل أو اجتماع أو محادثة لتبقى على المسار.',
+    fuAdd: 'إضافة متابعة',
+    fuFromClient: 'إضافة من عميل',
+    fuFromClientSub: 'أنشئ متابعة لعميل حالي',
+    fuFromInquiry: 'إضافة من استفسار',
+    fuFromInquirySub: 'حوّل استفساراً إلى متابعة',
     hubMoneyIn: 'الإيرادات',
     hubMoneyOut: 'المصروفات',
     hubTeam: 'الفريق',
