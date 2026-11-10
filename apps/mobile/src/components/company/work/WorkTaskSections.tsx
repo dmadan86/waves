@@ -4,7 +4,6 @@ import { Pressable, View } from 'react-native';
 import { Button, iconSize, Text, useTheme } from '@waves/ui';
 import { RED, withAlpha } from '@/components/company/dashboard/overviewKit';
 import { StandardCard } from '@/components/standard';
-import { PersonAvatar } from '@/components/PersonAvatar';
 import type { MenuAnchor } from '@/components/SortMenu';
 import type { MemberRow } from '@/data/types';
 import { displayName } from '@/data/types';
@@ -21,7 +20,6 @@ import { useStrings } from '@/i18n';
 import { WORK_INK } from './WorkSummaryControls';
 
 const ORANGE = '#F08A24';
-const TINTS = ['lilac', 'peach', 'sky', 'pink', 'mint', 'coral'] as const;
 
 function TaskRow({
   task,
@@ -33,7 +31,6 @@ function TaskRow({
   canChange,
   busy,
   site,
-  onChangeStatus,
   onOpen,
   onMenu,
 }: {
@@ -47,145 +44,151 @@ function TaskRow({
   canChange: boolean;
   busy: boolean;
   site: string;
-  onChangeStatus: (task: MirrorWorkTask, status: MirrorWorkTask['status']) => void;
   onOpen: (task: MirrorWorkTask) => void;
   onMenu: (task: MirrorWorkTask, anchor: MenuAnchor | null) => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const menuRef = useRef<View>(null);
-  const done = task.status === 'done';
-  const ink = WORK_INK[task.status];
-  const dueInk = theme.color.textMuted;
+  const ink = {
+    todo: theme.color.brand,
+    doing: '#1D4ED8',
+    done: WORK_INK.done,
+    blocked: WORK_INK.blocked,
+  }[task.status];
+  const statusIcon = {
+    todo: 'calendar-outline',
+    doing: 'play-circle-outline',
+    done: 'checkmark-circle',
+    blocked: 'alert-circle-outline',
+  } as const;
   const mark = priorityMark(task.priority);
   const helpers = task.helperIds ?? [];
-  const label =
-    task.status === 'todo'
-      ? t.company.workTodo
-      : task.status === 'doing'
-        ? t.company.workDoing
-        : done
-          ? t.company.workDone
-          : t.company.workBlocked;
+  const label = {
+    todo: t.company.workTodo,
+    doing: t.company.workDoing,
+    done: t.company.workDone,
+    blocked: t.company.workBlocked,
+  }[task.status];
+  // The tile reads the priority, else the site; no categories exist in the data.
+  const tile =
+    task.priority === 'very_urgent'
+      ? { icon: 'alert-circle-outline' as const, color: RED }
+      : task.priority === 'urgent'
+        ? { icon: 'flash' as const, color: ORANGE }
+        : {
+            icon: (site ? 'location-outline' : 'clipboard-outline') as 'clipboard-outline',
+            color: theme.color.brand,
+          };
+  const who = [
+    person ? displayName(person) + (helpers.length > 0 ? ` +${helpers.length}` : '') : '',
+    site,
+  ]
+    .filter(Boolean)
+    .join(' \u2022 ');
   return (
-    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <Pressable
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: done, disabled: !canChange || busy }}
-          accessibilityLabel={t.company.workDone}
-          disabled={!canChange || busy}
-          hitSlop={10}
-          onPress={() => onChangeStatus(task, done ? 'todo' : 'done')}
-          style={{
-            width: 22,
-            height: 22,
-            borderRadius: 6,
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderWidth: 1.5,
-            borderColor: done ? theme.color.positive : theme.color.textFaint,
-            backgroundColor: done ? theme.color.positive : 'transparent',
-          }}
-        >
-          {done ? <Ionicons name="checkmark" size={14} color="#fff" /> : null}
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          disabled={busy}
-          onPress={() => onOpen(task)}
-          style={{ flex: 1, minWidth: 0, gap: 2 }}
-        >
-          <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
-            <Text variant="caption" tone="muted">
-              {`#${task.number ?? '—'} `}
-            </Text>
-            {mark ? (
-              <Text
-                style={{ color: task.priority === 'very_urgent' ? RED : ORANGE, fontWeight: '800' }}
-              >
-                {`${mark} `}
-              </Text>
-            ) : null}
-            {task.title}
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <Ionicons name="calendar-outline" size={iconSize.sm} color={dueInk} />
-            <Text variant="caption" numberOfLines={1} style={{ color: dueInk, flexShrink: 0 }}>
-              {workDueText(task, today, locale, t.company.workToday, t.company.workLateOn)}
-            </Text>
-            {site ? (
-              <>
-                <Ionicons
-                  name="location-outline"
-                  size={iconSize.sm}
-                  color={theme.color.textMuted}
-                  style={{ marginLeft: 4 }}
-                />
-                <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                  {site}
-                </Text>
-              </>
-            ) : null}
-          </View>
-        </Pressable>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-          {person ? (
-            <PersonAvatar
-              name={displayName(person)}
-              ghost
-              tint={TINTS[(person.id.charCodeAt(0) + person.id.length) % TINTS.length]}
-              size={26}
-            />
-          ) : null}
-          {helpers.length > 0 ? (
-            <Text
-              variant="caption"
-              tone="muted"
-              style={{ fontWeight: '700' }}
-              accessibilityLabel={t.company.workAlsoOn.replace(
-                '{names}',
-                helpers.map(names).filter(Boolean).join(', ') || String(helpers.length),
-              )}
-            >
-              {`+${helpers.length}`}
-            </Text>
-          ) : null}
-          <View
-            style={{
-              paddingHorizontal: 8,
-              paddingVertical: 2,
-              borderRadius: 12,
-              backgroundColor: withAlpha(ink, 0.12),
-            }}
-          >
-            <Text variant="micro" style={{ color: ink, fontWeight: '700' }}>
-              {label}
-            </Text>
-          </View>
-        </View>
-        {canManage ? (
-          <View ref={menuRef} collapsable={false}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.company.workEdit}
-              disabled={busy}
-              hitSlop={8}
-              onPress={() =>
-                menuRef.current
-                  ? menuRef.current.measureInWindow((x, y, width, height) =>
-                      onMenu(task, width > 0 ? { x, y, width, height } : null),
-                    )
-                  : onMenu(task, null)
-              }
-              style={{ width: 24, height: 28, alignItems: 'center', justifyContent: 'center' }}
-            >
-              <Ionicons name="ellipsis-vertical" size={18} color={theme.color.textMuted} />
-            </Pressable>
-          </View>
-        ) : null}
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+      }}
+    >
+      <View
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 12,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: withAlpha(tile.color, 0.12),
+        }}
+      >
+        <Ionicons name={tile.icon} size={22} color={tile.color} />
       </View>
-    </StandardCard>
+      <Pressable
+        accessibilityRole="button"
+        disabled={busy}
+        onPress={() => onOpen(task)}
+        style={{ flex: 1, minWidth: 0, gap: 2 }}
+      >
+        <Text variant="body" numberOfLines={1} style={{ fontWeight: '700' }}>
+          {mark ? (
+            <Text
+              style={{ color: task.priority === 'very_urgent' ? RED : ORANGE, fontWeight: '800' }}
+            >
+              {`${mark} `}
+            </Text>
+          ) : null}
+          {task.title}
+        </Text>
+        {who ? (
+          <Text
+            variant="caption"
+            tone="muted"
+            numberOfLines={1}
+            accessibilityLabel={
+              helpers.length > 0
+                ? `${who}. ${t.company.workAlsoOn.replace(
+                    '{names}',
+                    helpers.map(names).filter(Boolean).join(', ') || String(helpers.length),
+                  )}`
+                : undefined
+            }
+          >
+            {who}
+          </Text>
+        ) : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+          <Ionicons name="time-outline" size={iconSize.sm} color={theme.color.textMuted} />
+          <Text variant="caption" numberOfLines={1} tone="muted" style={{ flexShrink: 1 }}>
+            {workDueText(task, today, locale, t.company.workToday, t.company.workLateOn)}
+          </Text>
+        </View>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        disabled={!canChange || busy}
+        onPress={() => onOpen(task)}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 4,
+          paddingHorizontal: 8,
+          paddingVertical: 4,
+          borderRadius: 14,
+          backgroundColor: withAlpha(ink, 0.12),
+        }}
+      >
+        <Ionicons name={statusIcon[task.status]} size={14} color={ink} />
+        <Text variant="micro" style={{ color: ink, fontWeight: '700' }}>
+          {label}
+        </Text>
+      </Pressable>
+      {canManage ? (
+        <View ref={menuRef} collapsable={false}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.company.workEdit}
+            disabled={busy}
+            hitSlop={8}
+            onPress={() =>
+              menuRef.current
+                ? menuRef.current.measureInWindow((x, y, width, height) =>
+                    onMenu(task, width > 0 ? { x, y, width, height } : null),
+                  )
+                : onMenu(task, null)
+            }
+            style={{ width: 24, height: 28, alignItems: 'center', justifyContent: 'center' }}
+          >
+            <Ionicons name="ellipsis-vertical" size={18} color={theme.color.textMuted} />
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
@@ -200,7 +203,6 @@ export function WorkTaskSections({
   canManage,
   busy,
   canChange,
-  onChangeStatus,
   onOpen,
   onMenu,
   siteName,
@@ -220,7 +222,6 @@ export function WorkTaskSections({
   canManage: boolean;
   busy: boolean;
   canChange: (task: MirrorWorkTask) => boolean;
-  onChangeStatus: (task: MirrorWorkTask, status: MirrorWorkTask['status']) => void;
   onOpen: (task: MirrorWorkTask) => void;
   onMenu: (task: MirrorWorkTask, anchor: MenuAnchor | null) => void;
   siteName: (projectId: string) => string;
@@ -265,27 +266,33 @@ export function WorkTaskSections({
         )}
       </View>
     );
-  const rows = (tasks: readonly MirrorWorkTask[]) =>
-    tasks.map((task) => (
-      <TaskRow
-        key={task.id}
-        task={task}
-        person={people.find((p) => p.id === task.memberId)}
-        names={(id) => {
-          const p = people.find((m) => m.id === id);
-          return p ? displayName(p) : '';
-        }}
-        today={today}
-        locale={locale}
-        canManage={canManage}
-        canChange={canChange(task)}
-        busy={busy}
-        site={task.projectId ? siteName(task.projectId) : ''}
-        onChangeStatus={onChangeStatus}
-        onOpen={onOpen}
-        onMenu={onMenu}
-      />
-    ));
+  const rows = (tasks: readonly MirrorWorkTask[]) => (
+    <StandardCard style={{ padding: 0, borderRadius: 14, overflow: 'hidden' }}>
+      {tasks.map((task, i) => (
+        <View
+          key={task.id}
+          style={i > 0 ? { borderTopWidth: 1, borderTopColor: theme.color.border } : undefined}
+        >
+          <TaskRow
+            task={task}
+            person={people.find((p) => p.id === task.memberId)}
+            names={(id) => {
+              const p = people.find((m) => m.id === id);
+              return p ? displayName(p) : '';
+            }}
+            today={today}
+            locale={locale}
+            canManage={canManage}
+            canChange={canChange(task)}
+            busy={busy}
+            site={task.projectId ? siteName(task.projectId) : ''}
+            onOpen={onOpen}
+            onMenu={onMenu}
+          />
+        </View>
+      ))}
+    </StandardCard>
+  );
   const statusLabel = (status: MirrorWorkTask['status']) =>
     status === 'todo'
       ? t.company.workTodo
@@ -297,23 +304,33 @@ export function WorkTaskSections({
   const heading = (section: WorkSection) => {
     const text =
       section.kind === 'overdue'
-        ? `${t.company.workOverdue} · ${section.tasks.length}`
+        ? t.company.workOverdue
         : section.kind === 'day'
           ? dayHeading(locale, `${section.ref}T12:00:00`)
           : section.kind === 'status'
-            ? `${statusLabel(section.ref as MirrorWorkTask['status'])} · ${section.tasks.length}`
+            ? statusLabel(section.ref as MirrorWorkTask['status'])
             : (() => {
                 const p = people.find((m) => m.id === section.ref);
                 return `${p ? displayName(p) : ''} · ${t.company.workOpenN.replace('{n}', String(section.open))}`;
               })();
     return (
-      <Text
-        variant="caption"
-        tone="muted"
-        style={{ textTransform: 'uppercase', letterSpacing: 0.6, fontWeight: '600' }}
-      >
-        {text}
-      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Text variant="body" style={{ fontWeight: '700', flexShrink: 1 }}>
+          {text}
+        </Text>
+        <View
+          style={{
+            paddingHorizontal: 10,
+            paddingVertical: 3,
+            borderRadius: 12,
+            backgroundColor: withAlpha(theme.color.brand, 0.12),
+          }}
+        >
+          <Text variant="micro" style={{ color: theme.color.brand, fontWeight: '700' }}>
+            {t.company.workTasksN.replace('{n}', String(section.tasks.length))}
+          </Text>
+        </View>
+      </View>
     );
   };
   return (

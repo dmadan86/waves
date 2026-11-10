@@ -14,6 +14,7 @@ import {
   groupWorkTasks,
   maxTaskDay,
   priorityMark,
+  taskDayTones,
   workDueText,
 } from '../src/lib/companyWork';
 import type { MirrorWorkTask } from '@/data/companyWorkday';
@@ -261,5 +262,21 @@ describe('task helpers', () => {
     });
     expect(one?.helperIds).toEqual(['h']);
     expect(two?.helperIds).toEqual(['p', 'h']);
+  });
+});
+
+describe('taskDayTones', () => {
+  it('marks done, late and open days', () => {
+    expect(
+      taskDayTones(
+        [
+          { day: '2026-11-05', status: 'done' },
+          { day: '2026-11-09', status: 'todo' },
+          { day: '2026-11-09', status: 'done' },
+          { day: '2026-11-12', status: 'doing' },
+        ],
+        '2026-11-10',
+      ),
+    ).toEqual({ '2026-11-05': 'done', '2026-11-09': 'late', '2026-11-12': 'open' });
   });
 });

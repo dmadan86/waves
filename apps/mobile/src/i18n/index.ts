@@ -1758,6 +1758,8 @@ export interface UiStrings {
     workTodo: string;
     workDoing: string;
     workDone: string;
+    workHeaderSub: string;
+    workTasksN: string;
     workBlocked: string;
     workReason: string;
     workNote: string;
@@ -9560,6 +9562,8 @@ const en: UiStrings = {
     workTodo: 'To do',
     workDoing: 'In progress',
     workDone: 'Done',
+    workHeaderSub: 'Site work, visits and follow-ups',
+    workTasksN: '{n} tasks',
     workBlocked: 'Blocked',
     workReason: 'Why is it blocked?',
     workNote: 'Note',
@@ -16832,6 +16836,8 @@ const ta: UiStrings = {
     workTodo: 'செய்ய வேண்டும்',
     workDoing: 'செய்கிறார்',
     workDone: 'முடிந்தது',
+    workHeaderSub: 'தளப் பணிகள், வருகைகள், பின்தொடர்தல்கள்',
+    workTasksN: '{n} பணிகள்',
     workBlocked: 'தடை',
     workReason: 'தடைக்கான காரணம்?',
     workNote: 'குறிப்பு',
@@ -24272,6 +24278,8 @@ const hi: UiStrings = {
     workTodo: 'करना है',
     workDoing: 'जारी है',
     workDone: 'पूरा',
+    workHeaderSub: 'साइट का काम, विज़िट और फ़ॉलो-अप',
+    workTasksN: '{n} काम',
     workBlocked: 'रुका हुआ',
     workReason: 'काम क्यों रुका है?',
     workNote: 'नोट',
@@ -31623,6 +31631,8 @@ const ar: UiStrings = {
     workTodo: 'للقيام بها',
     workDoing: 'قيد العمل',
     workDone: 'مكتملة',
+    workHeaderSub: 'أعمال الموقع والزيارات والمتابعات',
+    workTasksN: '{n} مهام',
     workBlocked: 'متوقفة',
     workReason: 'لماذا توقفت؟',
     workNote: 'ملاحظة',
