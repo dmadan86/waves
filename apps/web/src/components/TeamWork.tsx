@@ -626,7 +626,7 @@ function EditTask({
       <fieldset className="field" disabled={busy}>
         <legend className="field-label">{s.helpers}</legend>
         {people
-          .filter((p) => p.id !== draft.memberId)
+          .filter((p) => p.role === 'member' && p.id !== draft.memberId)
           .map((p) => {
             const on = (draft.helperIds ?? []).includes(p.id);
             return (
@@ -887,7 +887,7 @@ function AddTask({
       <fieldset disabled={busy}>
         <legend>{s.helpers}</legend>
         {people
-          .filter((p) => !(ids.length === 1 && ids[0] === p.id))
+          .filter((p) => p.role === 'member' && !(ids.length === 1 && ids[0] === p.id))
           .map((p) => {
             const on = helperIds.includes(p.id);
             return (

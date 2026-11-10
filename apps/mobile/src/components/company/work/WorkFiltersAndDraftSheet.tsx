@@ -131,7 +131,7 @@ export function WorkFiltersAndDraftSheet({
         </View>
       ) : draft && panel === 'helpers' ? (
         <HelpersPanel
-          people={people}
+          people={people.filter((p) => p.role === 'member')}
           responsibleId={draft.memberId}
           value={draft.helperIds ?? []}
           onChange={(helperIds) => setDraft({ ...draft, helperIds })}

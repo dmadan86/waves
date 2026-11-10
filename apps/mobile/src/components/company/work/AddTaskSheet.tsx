@@ -247,7 +247,7 @@ export function AddTaskSheet({
         </View>
       ) : panel === 'helpers' ? (
         <HelpersPanel
-          people={people}
+          people={people.filter((p) => p.role === 'member')}
           responsibleId={ids.length === 1 ? ids[0]! : ''}
           value={helperIds}
           onChange={setHelperIds}
