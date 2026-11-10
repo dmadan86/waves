@@ -3797,6 +3797,8 @@ export interface UiStrings {
     nudgesBody: string;
     digest: string;
     digestBody: string;
+    companyUpdates: string;
+    companyUpdatesBody: string;
     /** The weekly email is not a push notification, so it gets its own section. */
     emailSection: string;
     emailAll: string;
@@ -11537,6 +11539,9 @@ const en: UiStrings = {
       'A friendly nudge about money owed. Limited to one per person per day, in the database.',
     digest: 'Daily group summary',
     digestBody: 'Everything else, batched into one notification a day instead of a stream.',
+    companyUpdates: 'Company updates',
+    companyUpdatesBody:
+      'Leave, expenses, payments, tasks, calendar and complaints in your company.',
     emailSection: 'By email',
     emailAll: 'Email me at all',
     emailAllBody:
@@ -18836,6 +18841,9 @@ const ta: UiStrings = {
       'தர வேண்டிய பணம் குறித்த மென்மையான நினைவூட்டல். ஒரு நாளைக்கு ஒருவருக்கு ஒன்று மட்டுமே, தரவுத்தளத்திலேயே வரையறுக்கப்பட்டது.',
     digest: 'நாள்தோறும் குழுச் சுருக்கம்',
     digestBody: 'மற்ற அனைத்தும், தொடர்ச்சியாக அல்லாமல் நாளுக்கு ஒரு அறிவிப்பாகத் தொகுத்து.',
+    companyUpdates: 'நிறுவன அறிவிப்புகள்',
+    companyUpdatesBody:
+      'உங்கள் நிறுவனத்தின் விடுப்பு, செலவு, கட்டணம், பணிகள், நாட்காட்டி, புகார்கள்.',
     emailSection: 'மின்னஞ்சல் வழியாக',
     emailAll: 'மின்னஞ்சல் அனுப்பவும்',
     emailAllBody:
@@ -26256,6 +26264,8 @@ const hi: UiStrings = {
     nudgesBody: 'बाकी पैसे की एक विनम्र याद। डेटाबेस में ही सीमित — एक व्यक्ति को दिन में एक बार।',
     digest: 'दैनिक समूह सारांश',
     digestBody: 'बाकी सब कुछ, लगातार की जगह दिन में एक सूचना में इकट्ठा।',
+    companyUpdates: 'कंपनी अपडेट',
+    companyUpdatesBody: 'आपकी कंपनी में छुट्टी, खर्च, भुगतान, काम, कैलेंडर और शिकायतें।',
     emailSection: 'ईमेल से',
     emailAll: 'मुझे ईमेल भेजें',
     emailAllBody:
@@ -33648,6 +33658,8 @@ const ar: UiStrings = {
     nudgesBody: 'تذكير لطيف بالمال المستحق. مرة واحدة لكل شخص يوميًا، بحدٍّ في قاعدة البيانات.',
     digest: 'ملخص المجموعة اليومي',
     digestBody: 'كل ما تبقّى، مجمّعًا في إشعار واحد يوميًا بدل تدفق مستمر.',
+    companyUpdates: 'تحديثات الشركة',
+    companyUpdatesBody: 'الإجازات والمصروفات والدفعات والمهام والتقويم والشكاوى في شركتك.',
     emailSection: 'عبر البريد',
     emailAll: 'راسلني بالبريد',
     emailAllBody:

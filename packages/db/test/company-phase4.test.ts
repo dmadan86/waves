@@ -633,10 +633,15 @@ describe('company Phase 4: people, invites and approvals', () => {
         (await db.query('SELECT count(*)::int n FROM activity_log WHERE group_id=$1', [g.groupId]))
           .rows[0].n,
       ).toBe(0);
+      // The only notification is the employee hearing about their advance
+      // (company-notifications.test.ts); the owner's pool allocation is silent.
       expect(
-        (await db.query('SELECT count(*)::int n FROM notifications WHERE group_id=$1', [g.groupId]))
-          .rows[0].n,
-      ).toBe(0);
+        (
+          await db.query('SELECT kind, profile_id FROM notifications WHERE group_id=$1', [
+            g.groupId,
+          ])
+        ).rows,
+      ).toEqual([{ kind: 'company_payment', profile_id: g.profileIds[3] }]);
       for (const actor of [1, 3])
         await user(actor, async () =>
           expect(

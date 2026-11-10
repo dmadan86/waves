@@ -107,6 +107,26 @@ export enum NotificationKind {
    */
   GroupImport = 'group_import',
   Resplit = 'resplit',
+  /** Company mode: leave, claims, payments, tasks, calendar, estimates, complaints, vendors. */
+  CompanyLeaveRequested = 'company_leave_requested',
+  CompanyLeaveApproved = 'company_leave_approved',
+  CompanyLeaveRejected = 'company_leave_rejected',
+  CompanyClaimSubmitted = 'company_claim_submitted',
+  CompanyClaimApproved = 'company_claim_approved',
+  CompanyClaimRejected = 'company_claim_rejected',
+  CompanyClaimReimbursed = 'company_claim_reimbursed',
+  CompanyPayment = 'company_payment',
+  CompanyTaskAssigned = 'company_task_assigned',
+  CompanyTaskDone = 'company_task_done',
+  CompanyTaskBlocked = 'company_task_blocked',
+  CompanyEvent = 'company_event',
+  CompanyEstimateAccepted = 'company_estimate_accepted',
+  CompanyEstimateDeclined = 'company_estimate_declined',
+  CompanyBillPaid = 'company_bill_paid',
+  CompanyTicketAssigned = 'company_ticket_assigned',
+  CompanyTicketResolved = 'company_ticket_resolved',
+  CompanyVendorPayment = 'company_vendor_payment',
+  CompanyVendorOrder = 'company_vendor_order',
 }
 
 /**
@@ -306,6 +326,82 @@ const en: CopyStrings = {
       title: '{actor} imported expenses',
       body: '{count} expenses added to {group}',
     },
+    [NotificationKind.CompanyLeaveRequested]: {
+      title: '{name} asked for leave',
+      body: 'Tap to review in {group}',
+    },
+    [NotificationKind.CompanyLeaveApproved]: {
+      title: 'Your leave was approved',
+      body: '{group}',
+    },
+    [NotificationKind.CompanyLeaveRejected]: {
+      title: 'Your leave was declined',
+      body: '{group}',
+    },
+    [NotificationKind.CompanyClaimSubmitted]: {
+      title: '{name} submitted an expense',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimApproved]: {
+      title: 'Your expense was approved',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimRejected]: {
+      title: 'Your expense was declined',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimReimbursed]: {
+      title: 'You were reimbursed {amount}',
+      body: 'Paid back in {group}',
+    },
+    [NotificationKind.CompanyPayment]: {
+      title: 'A payment was recorded for you',
+      body: '{amount} · {group}',
+    },
+    [NotificationKind.CompanyTaskAssigned]: {
+      title: 'You were given a task',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTaskDone]: {
+      title: 'A task was finished',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTaskBlocked]: {
+      title: 'A task is blocked',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyEvent]: {
+      title: 'Calendar: {description}',
+      body: 'You are included · {group}',
+    },
+    [NotificationKind.CompanyEstimateAccepted]: {
+      title: 'Estimate accepted',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyEstimateDeclined]: {
+      title: 'Estimate declined',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyBillPaid]: {
+      title: 'A bill was paid in full',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyTicketAssigned]: {
+      title: 'A complaint was assigned to you',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTicketResolved]: {
+      title: 'Your complaint was resolved',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyVendorPayment]: {
+      title: 'A payment was recorded for you',
+      body: '{amount} · {group}',
+    },
+    [NotificationKind.CompanyVendorOrder]: {
+      title: 'You have a new order',
+      body: '{group}',
+    },
   },
   email: {
     confirmAction: 'Confirm you received it',
@@ -458,6 +554,82 @@ const ta: CopyStrings = {
       title: '{actor} செலவுகளை இறக்குமதி செய்தார்',
       body: '{group} இல் {count} செலவுகள் சேர்க்கப்பட்டன',
     },
+    [NotificationKind.CompanyLeaveRequested]: {
+      title: '{name} விடுப்பு கேட்டுள்ளார்',
+      body: '{group} இல் பார்க்க தட்டவும்',
+    },
+    [NotificationKind.CompanyLeaveApproved]: {
+      title: 'உங்கள் விடுப்பு ஒப்புக்கொள்ளப்பட்டது',
+      body: '{group}',
+    },
+    [NotificationKind.CompanyLeaveRejected]: {
+      title: 'உங்கள் விடுப்பு நிராகரிக்கப்பட்டது',
+      body: '{group}',
+    },
+    [NotificationKind.CompanyClaimSubmitted]: {
+      title: '{name} செலவைச் சமர்ப்பித்தார்',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimApproved]: {
+      title: 'உங்கள் செலவு ஒப்புக்கொள்ளப்பட்டது',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimRejected]: {
+      title: 'உங்கள் செலவு நிராகரிக்கப்பட்டது',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimReimbursed]: {
+      title: 'உங்களுக்கு {amount} திரும்ப வழங்கப்பட்டது',
+      body: '{group} இல் செலுத்தப்பட்டது',
+    },
+    [NotificationKind.CompanyPayment]: {
+      title: 'உங்களுக்கான கட்டணம் பதிவானது',
+      body: '{amount} · {group}',
+    },
+    [NotificationKind.CompanyTaskAssigned]: {
+      title: 'உங்களுக்கு ஒரு பணி வழங்கப்பட்டது',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTaskDone]: {
+      title: 'ஒரு பணி முடிந்தது',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTaskBlocked]: {
+      title: 'ஒரு பணி தடைப்பட்டுள்ளது',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyEvent]: {
+      title: 'நாட்காட்டி: {description}',
+      body: 'நீங்களும் இதில் உள்ளீர்கள் · {group}',
+    },
+    [NotificationKind.CompanyEstimateAccepted]: {
+      title: 'மதிப்பீடு ஏற்கப்பட்டது',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyEstimateDeclined]: {
+      title: 'மதிப்பீடு நிராகரிக்கப்பட்டது',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyBillPaid]: {
+      title: 'ஒரு பில் முழுமையாகச் செலுத்தப்பட்டது',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyTicketAssigned]: {
+      title: 'உங்களுக்கு ஒரு புகார் ஒதுக்கப்பட்டது',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTicketResolved]: {
+      title: 'உங்கள் புகார் தீர்க்கப்பட்டது',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyVendorPayment]: {
+      title: 'உங்களுக்கான கட்டணம் பதிவானது',
+      body: '{amount} · {group}',
+    },
+    [NotificationKind.CompanyVendorOrder]: {
+      title: 'உங்களுக்குப் புதிய ஆர்டர் வந்துள்ளது',
+      body: '{group}',
+    },
   },
   email: {
     confirmAction: 'கிடைத்தது என உறுதிப்படுத்தவும்',
@@ -607,6 +779,82 @@ const hi: CopyStrings = {
       title: '{actor} ने ख़र्च इम्पोर्ट किए',
       body: '{group} में {count} ख़र्च जुड़े',
     },
+    [NotificationKind.CompanyLeaveRequested]: {
+      title: '{name} ने छुट्टी माँगी',
+      body: '{group} में देखने के लिए टैप करें',
+    },
+    [NotificationKind.CompanyLeaveApproved]: {
+      title: 'आपकी छुट्टी मंज़ूर हुई',
+      body: '{group}',
+    },
+    [NotificationKind.CompanyLeaveRejected]: {
+      title: 'आपकी छुट्टी नामंज़ूर हुई',
+      body: '{group}',
+    },
+    [NotificationKind.CompanyClaimSubmitted]: {
+      title: '{name} ने खर्च जमा किया',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimApproved]: {
+      title: 'आपका खर्च मंज़ूर हुआ',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimRejected]: {
+      title: 'आपका खर्च नामंज़ूर हुआ',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimReimbursed]: {
+      title: 'आपको {amount} वापस मिले',
+      body: '{group} में चुकाया गया',
+    },
+    [NotificationKind.CompanyPayment]: {
+      title: 'आपके लिए भुगतान दर्ज हुआ',
+      body: '{amount} · {group}',
+    },
+    [NotificationKind.CompanyTaskAssigned]: {
+      title: 'आपको एक काम मिला',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTaskDone]: {
+      title: 'एक काम पूरा हुआ',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTaskBlocked]: {
+      title: 'एक काम अटका है',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyEvent]: {
+      title: 'कैलेंडर: {description}',
+      body: 'आप शामिल हैं · {group}',
+    },
+    [NotificationKind.CompanyEstimateAccepted]: {
+      title: 'अनुमान स्वीकार हुआ',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyEstimateDeclined]: {
+      title: 'अनुमान अस्वीकार हुआ',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyBillPaid]: {
+      title: 'एक बिल पूरा चुकाया गया',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyTicketAssigned]: {
+      title: 'आपको एक शिकायत सौंपी गई',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTicketResolved]: {
+      title: 'आपकी शिकायत सुलझ गई',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyVendorPayment]: {
+      title: 'आपके लिए भुगतान दर्ज हुआ',
+      body: '{amount} · {group}',
+    },
+    [NotificationKind.CompanyVendorOrder]: {
+      title: 'आपके पास नया ऑर्डर है',
+      body: '{group}',
+    },
   },
   email: {
     confirmAction: 'मिलने की पुष्टि करें',
@@ -755,6 +1003,82 @@ const ar: CopyStrings = {
     [NotificationKind.GroupImport]: {
       title: 'استورد {actor} مصروفات',
       body: 'أُضيفت {count} مصروفات إلى {group}',
+    },
+    [NotificationKind.CompanyLeaveRequested]: {
+      title: 'طلب {name} إجازة',
+      body: 'اضغط للمراجعة في {group}',
+    },
+    [NotificationKind.CompanyLeaveApproved]: {
+      title: 'تمت الموافقة على إجازتك',
+      body: '{group}',
+    },
+    [NotificationKind.CompanyLeaveRejected]: {
+      title: 'تم رفض إجازتك',
+      body: '{group}',
+    },
+    [NotificationKind.CompanyClaimSubmitted]: {
+      title: 'قدّم {name} مصروفًا',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimApproved]: {
+      title: 'تمت الموافقة على مصروفك',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimRejected]: {
+      title: 'تم رفض مصروفك',
+      body: '{amount} · {description}',
+    },
+    [NotificationKind.CompanyClaimReimbursed]: {
+      title: 'تم تعويضك {amount}',
+      body: 'تم السداد في {group}',
+    },
+    [NotificationKind.CompanyPayment]: {
+      title: 'تم تسجيل دفعة لك',
+      body: '{amount} · {group}',
+    },
+    [NotificationKind.CompanyTaskAssigned]: {
+      title: 'أُسندت إليك مهمة',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTaskDone]: {
+      title: 'تم إنجاز مهمة',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTaskBlocked]: {
+      title: 'مهمة متعثرة',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyEvent]: {
+      title: 'التقويم: {description}',
+      body: 'أنت مشمول · {group}',
+    },
+    [NotificationKind.CompanyEstimateAccepted]: {
+      title: 'تم قبول عرض السعر',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyEstimateDeclined]: {
+      title: 'تم رفض عرض السعر',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyBillPaid]: {
+      title: 'تم سداد فاتورة بالكامل',
+      body: '{description} · {amount}',
+    },
+    [NotificationKind.CompanyTicketAssigned]: {
+      title: 'أُسندت إليك شكوى',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyTicketResolved]: {
+      title: 'تم حل شكواك',
+      body: '{description}',
+    },
+    [NotificationKind.CompanyVendorPayment]: {
+      title: 'تم تسجيل دفعة لك',
+      body: '{amount} · {group}',
+    },
+    [NotificationKind.CompanyVendorOrder]: {
+      title: 'لديك طلب جديد',
+      body: '{group}',
     },
   },
   email: {

@@ -27,6 +27,8 @@ export interface NotificationPrefs {
    * noise.
    */
   involvesMe: boolean;
+  /** Company mode: leave, expense claims, payments, tasks, calendar, complaints. */
+  companyUpdates: boolean;
   /** The batched "what happened in this group" summary. */
   groupActivityDigest: boolean;
   /** Somebody says they paid me, or answered a payment I said I made. */
@@ -61,6 +63,7 @@ export interface NotificationPrefs {
  */
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   involvesMe: true,
+  companyUpdates: true,
   groupActivityDigest: true,
   settlementRequests: true,
   nudges: true,
