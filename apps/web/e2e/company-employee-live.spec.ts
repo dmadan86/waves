@@ -52,6 +52,9 @@ const BLOCK_REASON = 'Waiting for cement';
 /** "₹1,200" or "₹1,200.00", but never a prefix of a bigger number. */
 const inr = (n: number) => new RegExp(`₹\\s?${n.toLocaleString('en-IN')}(\\.00)?(?![\\d,])`);
 
+// Photo storage (R2) is configured on production only; set E2E_PHOTOS=1 when the target has it.
+const photos = process.env.E2E_PHOTOS === '1';
+
 // A 1x1 transparent PNG.
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
@@ -207,7 +210,7 @@ test.describe.serial('company as an employee, one browser per person', () => {
 
   test('owner assigns A a task with a photo, and B a different task', async () => {
     const page = await ownerCtx.newPage();
-    await addTask(page, TASK_A, empA, true);
+    await addTask(page, TASK_A, empA, photos);
     await addTask(page, TASK_B, empB);
     await page.close();
 
@@ -220,8 +223,10 @@ test.describe.serial('company as an employee, one browser per person', () => {
   test('A sees their task and the owner photo; B sees neither', async () => {
     const a = await aCtx.newPage();
     await openStatus(a, TASK_A);
-    await expect(a.getByText('Photos', { exact: true })).toBeVisible();
-    await expect(a.getByText('Photos 1', { exact: true })).toBeVisible();
+    if (photos) {
+      await expect(a.getByText('Photos', { exact: true })).toBeVisible();
+      await expect(a.getByText('Photos 1', { exact: true })).toBeVisible();
+    }
     await a.getByRole('button', { name: 'Close', exact: true }).click();
     await expect(a.getByText(TASK_B)).toHaveCount(0);
     await a.close();
