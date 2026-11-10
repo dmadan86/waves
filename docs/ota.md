@@ -31,7 +31,11 @@ EAS Update: same client (`expo-updates`), our own server and storage.
 with the same `version`. Bump `version` whenever native code, a native
 dependency or a config plugin changes. **Channel** comes from the build:
 EAS profile `production` / `preview` (or `OTA_CHANNEL`); a preview build never
-sees a production update.
+sees a production update. The channel header is baked into the native manifest,
+so a **local** Gradle build gets `production` unless `EAS_BUILD_PROFILE=preview`
+(or `OTA_CHANNEL=preview`) is exported before prebuild/gradle. The `preview`
+build type (`<package>.preview`, `withSideBySideDebug` plugin) overrides the header
+to `preview` itself after a fresh prebuild, so Settings > App updates shows it.
 
 ## One-time setup
 

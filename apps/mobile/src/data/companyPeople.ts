@@ -182,3 +182,20 @@ export function hierarchyRows(members: readonly MemberRow[]): TreeRow[] {
     ...staff.filter((m) => !m.manager_id || !managerIds.has(m.manager_id)).map((m) => row(m, 1)),
   ];
 }
+
+/** Tree rows minus collapsed branches; `expandable` marks rows that have people beneath them. */
+export function visibleHierarchyRows(
+  rows: readonly TreeRow[],
+  collapsedIds: ReadonlySet<string>,
+): (TreeRow & { expandable: boolean })[] {
+  const out: (TreeRow & { expandable: boolean })[] = [];
+  let hideBelow: number | null = null;
+  rows.forEach((r, i) => {
+    if (hideBelow !== null && r.level > hideBelow) return;
+    hideBelow = null;
+    const expandable = (rows[i + 1]?.level ?? 0) > r.level;
+    out.push({ ...r, expandable });
+    if (expandable && collapsedIds.has(r.member.id)) hideBelow = r.level;
+  });
+  return out;
+}

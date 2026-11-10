@@ -4,7 +4,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { router } from '@/lib/navigation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -105,6 +105,18 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
             <StandardCard>
               <ListRow
                 leading={
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={iconSize.md}
+                    color={theme.color.brand}
+                  />
+                }
+                title={t.company.addEntry}
+                onPress={() => router.push(`/group/${groupId}/company-entry`)}
+                divider
+              />
+              <ListRow
+                leading={
                   <Ionicons name="airplane-outline" size={iconSize.md} color={theme.color.brand} />
                 }
                 title={t.calendar.requestLeave}
@@ -138,28 +150,6 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
         onClose={() => setDates(false)}
         memberId={me?.id}
       />
-      {/* The hero button scrolls away; statements are long, so keep an add action in reach. */}
-      {view.suspended ? null : (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t.company.addEntry}
-          onPress={() => router.push(`/group/${groupId}/company-entry`)}
-          style={{
-            position: 'absolute',
-            right: theme.spacing.lg,
-            bottom: clearance + 8,
-            width: 54,
-            height: 54,
-            borderRadius: 27,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.buttonPrimary,
-            elevation: 4,
-          }}
-        >
-          <Ionicons name="add" size={iconSize.xl} color="#FFFFFF" />
-        </Pressable>
-      )}
     </Screen>
   );
 }

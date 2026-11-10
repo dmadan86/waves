@@ -13,10 +13,13 @@ import { RecentActivity, useMoney } from '@/components/company/dashboard/parts';
 import { ListRow, RowTile, SegmentedPills, StandardCard } from '@/components/standard';
 import { useCompanyDocs } from '@/data/companyDocuments';
 import { useCompanyEntries } from '@/data/companyEntries';
+import { useCompanyVendors } from '@/data/companyVendors';
+import { todayIso } from '@/data/personal';
 import { displayName } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
+import { paymentRowKind, paymentsHero } from '@/lib/paymentRows';
 
 /** A round tinted quick action with its label under it. */
 function Quick({
@@ -79,12 +82,19 @@ export function CompanyPayments({ groupId }: { groupId: string }) {
       e.kind === 'reimbursement',
   );
   const expenses = mine.filter((e) => e.kind === 'expense');
-  // A reimbursement the employee paid back to the company is money in.
-  const back = (e: (typeof mine)[number]) => e.direction === 'employee_to_company';
-  const sum = (list: typeof mine) => list.reduce((n, e) => n + e.amount, 0n);
-  const totalPaid = sum(payments.filter((e) => e.kind !== 'advance' && !back(e)));
-  // Pending: claims still waiting for approval.
-  const totalPending = sum(mine.filter((e) => e.status === 'submitted'));
+  const vendors = useCompanyVendors(groupId);
+  let toVendors = 0n;
+  if (view.isOwner) for (const v of vendors.balances.values()) if (v > 0n) toVendors += v;
+  // Same inputs as the Overview's "Payments due" tile, so the two never disagree.
+  const ids = view.members
+    .filter((m) => !m.left_at && (view.isOwner || teamIds.has(m.id)))
+    .map((m) => m.id);
+  const { paid: totalPaid, pending: totalPending } = paymentsHero(
+    view.entries,
+    ids,
+    todayIso(),
+    toVendors,
+  );
   const sorted = [...payments].sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
   const rows = showAllPayments ? sorted : sorted.slice(0, 5);
   return (
@@ -98,7 +108,7 @@ export function CompanyPayments({ groupId }: { groupId: string }) {
         >
           {(
             [
-              [t.company.totalPaid, totalPaid],
+              [t.companyVendors.paidThisMonth, totalPaid],
               [t.company.totalPending, totalPending],
             ] as const
           ).map(([label, v], i) => (
@@ -186,29 +196,18 @@ export function CompanyPayments({ groupId }: { groupId: string }) {
                   ? displayName(owner, null, null, t.misc.someone)
                   : t.misc.someone;
                 const advance = e.kind === 'advance';
-                const kindWord =
-                  e.kind === 'advance'
-                    ? t.company.advancesLabel
-                    : e.kind === 'reimbursement'
-                      ? t.company.paidOut
-                      : t.company.salaryPayment;
-                const sub = `${showDate(e.occurredOn, locale)} · ${kindWord}`;
-                const incoming = back(e);
+                const k = paymentRowKind(e);
+                const title = fill(t.company[k.title], { name });
+                const sub = `${showDate(e.occurredOn, locale)} · ${t.company[k.sub]}`;
+                const incoming = k.incoming;
                 const amount = `${incoming ? '+' : '−'}${fmt(e.amount)}`;
                 return (
                   <ListRow
                     key={e.id}
                     divider={i < rows.length - 1}
-                    title={fill(
-                      advance
-                        ? t.company.advanceTo
-                        : incoming
-                          ? t.company.paymentFrom
-                          : t.company.paymentTo,
-                      { name },
-                    )}
+                    title={title}
                     subtitle={sub}
-                    accessibilityLabel={`${fill(advance ? t.company.advanceTo : incoming ? t.company.paymentFrom : t.company.paymentTo, { name })}, ${sub}, ${amount}`}
+                    accessibilityLabel={`${title}, ${sub}, ${amount}`}
                     leading={
                       <RowTile tint={theme.color.brandSoft}>
                         <Ionicons
