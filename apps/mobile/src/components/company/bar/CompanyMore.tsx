@@ -120,7 +120,10 @@ export function CompanyMore({ groupId }: { groupId: string }) {
                 {
                   name: t.companyDocs.title,
                   icon: 'document-text-outline',
-                  sub: unpaid.count ? fill(h.hubOpen, { n: unpaid.count }) : undefined,
+                  sub:
+                    unpaid.count + unpaid.openEstimates
+                      ? fill(h.hubOpen, { n: unpaid.count + unpaid.openEstimates })
+                      : undefined,
                   onPress: go('company-bills'),
                 },
               ]
