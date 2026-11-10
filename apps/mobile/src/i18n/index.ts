@@ -1765,6 +1765,8 @@ export interface UiStrings {
     workNote: string;
     workDue: string;
     workNotesOptional: string;
+    workDueDate: string;
+    workDueTime: string;
     workRepeat: string;
     workRemove: string;
     workStatus: string;
@@ -9569,6 +9571,8 @@ const en: UiStrings = {
     workNote: 'Note',
     workDue: 'Due date & time',
     workNotesOptional: 'Notes (optional)',
+    workDueDate: 'Due date',
+    workDueTime: 'Due time',
     workRepeat: 'Repeat tomorrow',
     workRemove: 'Remove',
     workStatus: 'Status',
@@ -16843,6 +16847,8 @@ const ta: UiStrings = {
     workNote: 'குறிப்பு',
     workDue: 'கடைசி தேதி மற்றும் நேரம்',
     workNotesOptional: 'குறிப்புகள் (விருப்பம்)',
+    workDueDate: 'கடைசி தேதி',
+    workDueTime: 'கடைசி நேரம்',
     workRepeat: 'நாளை மீண்டும்',
     workRemove: 'நீக்கு',
     workStatus: 'நிலை',
@@ -24285,6 +24291,8 @@ const hi: UiStrings = {
     workNote: 'नोट',
     workDue: 'नियत तारीख और समय',
     workNotesOptional: 'नोट्स (वैकल्पिक)',
+    workDueDate: 'नियत तारीख',
+    workDueTime: 'नियत समय',
     workRepeat: 'कल दोहराएँ',
     workRemove: 'हटाएँ',
     workStatus: 'स्थिति',
@@ -31638,6 +31646,8 @@ const ar: UiStrings = {
     workNote: 'ملاحظة',
     workDue: 'تاريخ ووقت الاستحقاق',
     workNotesOptional: 'ملاحظات (اختياري)',
+    workDueDate: 'تاريخ الاستحقاق',
+    workDueTime: 'وقت الاستحقاق',
     workRepeat: 'تكرار غدًا',
     workRemove: 'إزالة',
     workStatus: 'الحالة',
