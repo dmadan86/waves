@@ -87,7 +87,11 @@ export function DetailsCardView({
   canEdit,
   notice,
   onSave,
+  editing,
+  setEditing,
 }: {
+  editing: boolean;
+  setEditing: (v: boolean) => void;
   title: string;
   card: Card | null;
   canEdit: boolean;
@@ -112,7 +116,6 @@ export function DetailsCardView({
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => void (timer.current && clearTimeout(timer.current)), []);
   const [notes, setNotes] = useState<string | null>(null);
-  const [editing, setEditing] = useState(false);
   const values = card?.values;
   const filled = values ? hasAnyDetail(values) : false;
 
