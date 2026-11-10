@@ -159,3 +159,26 @@ export function listPeople(
   );
   return view.byName ? out.sort((a, b) => a.name.localeCompare(b.name)) : out;
 }
+
+export type TreeRow = { member: MemberRow; level: 0 | 1 | 2; reports: number };
+
+/** Owners, then each manager with their team beneath, then employees without a live manager. Live members only. */
+export function hierarchyRows(members: readonly MemberRow[]): TreeRow[] {
+  const live = members.filter((m) => !m.left_at);
+  const managers = live.filter((m) => m.role === 'manager');
+  const managerIds = new Set(managers.map((m) => m.id));
+  const staff = live.filter((m) => m.role === 'member');
+  const row = (member: MemberRow, level: 0 | 1 | 2, reports = 0): TreeRow => ({
+    member,
+    level,
+    reports,
+  });
+  return [
+    ...live.filter((m) => m.role === 'admin').map((m) => row(m, 0)),
+    ...managers.flatMap((mgr) => {
+      const team = staff.filter((m) => m.manager_id === mgr.id);
+      return [row(mgr, 1, team.length), ...team.map((m) => row(m, 2))];
+    }),
+    ...staff.filter((m) => !m.manager_id || !managerIds.has(m.manager_id)).map((m) => row(m, 1)),
+  ];
+}
