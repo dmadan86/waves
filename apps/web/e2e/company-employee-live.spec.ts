@@ -153,7 +153,8 @@ async function addTask(page: Page, title: string, assignee: Person, photo?: bool
   }
   await page.getByRole('button', { name: 'Save task', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Add task' })).toHaveCount(0);
-  await expect(page.getByRole('alert')).toHaveCount(0);
+  // Next.js keeps an empty route-announcer alert on every page; only a visible message counts.
+  await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toHaveCount(0);
 }
 
 /** Open the status panel for a task from the employee's own task list. */
@@ -253,7 +254,9 @@ test.describe.serial('company as an employee, one browser per person', () => {
 
     await openStatus(page, TASK_A);
     await page.getByRole('button', { name: 'Blocked', exact: true }).click();
-    await expect(page.getByRole('alert')).toHaveText('Why is it blocked?');
+    await expect(page.getByRole('alert').filter({ hasText: /\S/ })).toHaveText(
+      'Why is it blocked?',
+    );
     await page.getByLabel('Add a note (optional)').fill(BLOCK_REASON);
     await page.getByRole('button', { name: 'Blocked', exact: true }).click();
     await expect.poll(() => taskStatus(TASK_A)).toBe('blocked');
