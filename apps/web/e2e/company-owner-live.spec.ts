@@ -282,7 +282,8 @@ test.describe.serial('company owner, one browser per person', () => {
   test('the employee marks a task done and the owner sees the new status', async () => {
     const r = await raviCtx.newPage();
     await r.goto(`/c/${groupId}/team?seg=work`);
-    await taskRow(r, 'Fix the gate').getByRole('checkbox', { name: 'Done' }).check();
+    // The box is controlled by the saved status, so it flips only after the save: click, then poll.
+    await taskRow(r, 'Fix the gate').getByRole('checkbox', { name: 'Done' }).click();
     await expect.poll(async () => (await taskTitled('Fix the gate'))[0]?.status).toBe('done');
     await r.close();
 
