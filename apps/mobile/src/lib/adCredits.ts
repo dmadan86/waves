@@ -23,7 +23,13 @@ export async function queryCredits({ queryKey }: { queryKey: readonly unknown[] 
     return credits;
   }
   const saved = await AsyncStorage.getItem(key).catch(() => null);
-  if (saved) return JSON.parse(saved) as NonNullable<typeof credits>;
+  if (saved) {
+    try {
+      return JSON.parse(saved) as NonNullable<typeof credits>;
+    } catch {
+      // A corrupt cache is no cache; fall through to the throw below.
+    }
+  }
   // Throwing keeps whatever the cache already holds.
   throw new Error('credits unavailable');
 }

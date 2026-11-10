@@ -110,16 +110,26 @@ export function logAdEvent(
   queue = queue
     .then(async () => {
       const key = `waves.adEvents.${profileId}`;
-      const rows = JSON.parse((await AsyncStorage.getItem(key)) ?? '[]') as PendingEvent[];
+      const rows = await readRows(key);
       rows.push(event);
       await AsyncStorage.setItem(key, JSON.stringify(rows));
       await flush(profileId);
     })
     .catch(() => undefined);
 }
+/** A corrupt queue is an empty one; otherwise every later event would throw and be lost. */
+async function readRows(key: string): Promise<PendingEvent[]> {
+  const raw = await AsyncStorage.getItem(key); // a read failure must throw, not look empty
+  try {
+    const rows: unknown = JSON.parse(raw ?? '[]');
+    return Array.isArray(rows) ? (rows as PendingEvent[]) : [];
+  } catch {
+    return [];
+  }
+}
 async function flush(profileId: string) {
   const key = `waves.adEvents.${profileId}`;
-  const rows = JSON.parse((await AsyncStorage.getItem(key)) ?? '[]') as PendingEvent[];
+  const rows = await readRows(key);
   while (rows.length) {
     const row = rows[0]!;
     const result = await adTimeout(
