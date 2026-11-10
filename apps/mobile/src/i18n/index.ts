@@ -241,6 +241,15 @@ export interface UiStrings {
     eventPeople: string;
     eventEveryone: string;
     eventSite: string;
+    eventDate: string;
+    eventTimeLabel: string;
+    eventSiteLabel: string;
+    eventOptional: string;
+    eventTitlePlaceholder: string;
+    eventSearch: string;
+    eventSelected: string;
+    eventCreate: string;
+    eventSave: string;
     person: string;
     startDate: string;
     endDate: string;
@@ -8149,6 +8158,15 @@ const en: UiStrings = {
     eventPeople: 'People involved',
     eventEveryone: 'Everyone',
     eventSite: 'Site, optional',
+    eventDate: 'Date',
+    eventTimeLabel: 'Time',
+    eventSiteLabel: 'Site',
+    eventOptional: '(optional)',
+    eventTitlePlaceholder: 'e.g. Site visit, Team meeting',
+    eventSearch: 'Search people…',
+    eventSelected: 'Selected: {n}',
+    eventCreate: 'Create event',
+    eventSave: 'Save event',
     person: 'Person',
     startDate: 'From',
     endDate: 'To',
@@ -15383,6 +15401,15 @@ const ta: UiStrings = {
     eventPeople: 'பங்கேற்பவர்கள்',
     eventEveryone: 'அனைவரும்',
     eventSite: 'இடம், விருப்பமானது',
+    eventDate: 'தேதி',
+    eventTimeLabel: 'நேரம்',
+    eventSiteLabel: 'இடம்',
+    eventOptional: '(விருப்பமானது)',
+    eventTitlePlaceholder: 'எ.கா. தள ஆய்வு, குழுக் கூட்டம்',
+    eventSearch: 'நபர்களைத் தேடு…',
+    eventSelected: 'தேர்ந்தவை: {n}',
+    eventCreate: 'நிகழ்வை உருவாக்கு',
+    eventSave: 'நிகழ்வைச் சேமி',
     person: 'நபர்',
     startDate: 'தொடக்கம்',
     endDate: 'முடிவு',
@@ -22835,6 +22862,15 @@ const hi: UiStrings = {
     eventPeople: 'शामिल लोग',
     eventEveryone: 'सभी',
     eventSite: 'स्थान, वैकल्पिक',
+    eventDate: 'तारीख',
+    eventTimeLabel: 'समय',
+    eventSiteLabel: 'स्थान',
+    eventOptional: '(वैकल्पिक)',
+    eventTitlePlaceholder: 'जैसे साइट विज़िट, टीम मीटिंग',
+    eventSearch: 'लोगों को खोजें…',
+    eventSelected: 'चुने गए: {n}',
+    eventCreate: 'कार्यक्रम बनाएँ',
+    eventSave: 'कार्यक्रम सहेजें',
     person: 'व्यक्ति',
     startDate: 'से',
     endDate: 'तक',
@@ -30085,6 +30121,15 @@ const ar: UiStrings = {
     eventPeople: 'الأشخاص المعنيون',
     eventEveryone: 'الجميع',
     eventSite: 'الموقع، اختياري',
+    eventDate: 'التاريخ',
+    eventTimeLabel: 'الوقت',
+    eventSiteLabel: 'الموقع',
+    eventOptional: '(اختياري)',
+    eventTitlePlaceholder: 'مثلاً: زيارة موقع، اجتماع الفريق',
+    eventSearch: 'ابحث عن الأشخاص…',
+    eventSelected: 'المحدد: {n}',
+    eventCreate: 'إنشاء فعالية',
+    eventSave: 'حفظ الفعالية',
     person: 'الشخص',
     startDate: 'من',
     endDate: 'إلى',
