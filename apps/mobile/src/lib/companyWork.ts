@@ -257,3 +257,21 @@ export function toggleHelper(
   if (helperIds.includes(id)) return helperIds.filter((x) => x !== id);
   return helperIds.length >= MAX_TASK_HELPERS ? [...helperIds] : [...helperIds, id];
 }
+
+/**
+ * The owner Overview's task buckets for `today`: open tasks before today (overdue), today, the next seven
+ * days (week) and anything after (later), each in the Tasks list order; `done` counts today's finished ones.
+ */
+export function bucketOverviewTasks(tasks: readonly MirrorWorkTask[], today: string) {
+  const weekEnd = new Date(`${today}T00:00:00Z`);
+  weekEnd.setUTCDate(weekEnd.getUTCDate() + 7);
+  const end = weekEnd.toISOString().slice(0, 10);
+  const open = tasks.filter((x) => x.status !== 'done').sort(compareTasks);
+  return {
+    overdue: open.filter((x) => x.day < today),
+    today: open.filter((x) => x.day === today),
+    week: open.filter((x) => x.day > today && x.day <= end),
+    later: open.filter((x) => x.day > end),
+    done: tasks.filter((x) => x.status === 'done' && x.day === today).length,
+  };
+}
