@@ -38,14 +38,21 @@ describe('employment type', () => {
 });
 
 describe('today maps', () => {
-  it("counts only today's tasks that are not done", () => {
+  it('counts open tasks due today or overdue', () => {
     const t = (memberId: string, day: string, status: string) =>
       ({ id: memberId + day + status, memberId, day, status }) as never;
     const map = openTasksToday(
-      [t('a', 'd1', 'todo'), t('a', 'd1', 'doing'), t('a', 'd1', 'done'), t('a', 'd0', 'todo')],
+      [
+        t('a', 'd1', 'todo'),
+        t('a', 'd1', 'doing'),
+        t('a', 'd1', 'done'),
+        t('a', 'd0', 'todo'),
+        t('a', 'd0', 'done'),
+        t('a', 'd2', 'todo'),
+      ],
       'd1',
     );
-    expect(map.get('a')).toBe(2);
+    expect(map.get('a')).toBe(3);
     expect(map.get('b')).toBeUndefined();
   });
   it('reads a mark by member and day', () => {
