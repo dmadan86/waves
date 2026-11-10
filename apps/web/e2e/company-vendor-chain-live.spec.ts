@@ -723,7 +723,8 @@ test.describe.serial('company vendors and a vendor chain, one browser per person
         'company_clients',
       ]) {
         const other = await api.from(table).select('id').eq('group_id', groupA);
-        expect(other.data ?? [], `${label} ${table}`).toEqual([]);
+        expect(other.error, `${label} ${table}`).toBeNull();
+        expect(other.data, `${label} ${table}`).toEqual([]);
       }
     }
 
