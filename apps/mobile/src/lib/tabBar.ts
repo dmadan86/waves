@@ -160,9 +160,14 @@ export function resolveFab(segments: readonly string[]): boolean {
   // Company mode: forms and the export/invite screens keep the add button out of their footers.
   if (
     root === 'group' &&
-    ['company-entry', 'company-wages', 'company-calendar', 'invite', 'export'].includes(
-      screen2(segments),
-    )
+    [
+      'company-entry',
+      'company-wages',
+      'company-calendar',
+      'company-bills',
+      'invite',
+      'export',
+    ].includes(screen2(segments))
   )
     return false;
   if (root === 'captures' && (screen === 'paste' || screen === 'statement')) return false;
