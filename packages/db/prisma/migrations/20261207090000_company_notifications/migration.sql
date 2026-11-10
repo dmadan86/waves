@@ -197,7 +197,7 @@ BEGIN
       v_desc := COALESCE(NULLIF(NEW.note, ''), NEW.category, '');
       v_facts := jsonb_build_object('amount', NEW.amount::text, 'currency', NEW.currency, 'description', v_desc);
       IF NEW.member_id IS NOT NULL AND NEW.entry_kind IN ('expense', 'allowance')
-         AND (TG_OP = 'INSERT' OR OLD.status = 'submitted')
+         AND (TG_OP = 'INSERT' OR OLD.status = 'submitted' OR NEW.status = 'submitted') -- an edited, resubmitted claim needs review again
          AND NEW.status IN ('submitted', 'approved', 'rejected')
          AND (TG_OP = 'INSERT' OR NEW.status <> OLD.status) THEN
         IF NEW.status = 'submitted' THEN

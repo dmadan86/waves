@@ -175,6 +175,15 @@ describe('expense claims and payments', () => {
       expect(await heard()).toEqual({ company_claim_approved: [2], company_claim_rejected: [2] });
     }));
 
+  it('an edited claim sent back for review notifies the approver again', () =>
+    isolated(async () => {
+      const id = (await as(2, () => entry(2, 'expense', 'rejected', 2))).rows[0].id;
+      await as(2, () =>
+        db.query("UPDATE company_entries SET status='submitted' WHERE id=$1", [id]),
+      );
+      expect(await heard()).toEqual({ company_claim_submitted: [1] });
+    }));
+
   it('reimbursed: the employee hears; employee-to-company does not notify', () =>
     isolated(async () => {
       await as(0, () =>
