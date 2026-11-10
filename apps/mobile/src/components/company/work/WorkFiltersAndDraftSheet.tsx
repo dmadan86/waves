@@ -9,7 +9,6 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 import { displayName, isGhost, type MemberRow } from '@/data/types';
 import { maxTaskDay } from '@/lib/companyWork';
 import { HelpersPanel, helpersSummary } from './HelpersPanel';
-import { PriorityPicker } from './PriorityPicker';
 import type { CompanyWorkSetPayload } from '@waves/core';
 import { useStrings } from '@/i18n';
 
@@ -211,13 +210,30 @@ export function WorkFiltersAndDraftSheet({
           contentContainerStyle={{ gap: theme.spacing.sm }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-            <Ionicons name="calendar-outline" size={iconSize.lg} color={theme.color.brand} />
+            <View
+              style={{
+                width: 44,
+                height: 44,
+                borderRadius: theme.radius.md,
+                backgroundColor: theme.color.brandSoft,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Ionicons name="calendar-outline" size={iconSize.lg} color={theme.color.brand} />
+            </View>
             <Text variant="title" style={{ flex: 1 }}>
               {t.company.workEdit}
             </Text>
             <IconButton label={t.common.close} onPress={close}>
               <Ionicons name="close" size={iconSize.lg} color={theme.color.text} />
             </IconButton>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+            <Ionicons name="checkbox-outline" size={iconSize.md} color={theme.color.brand} />
+            <Text style={{ fontWeight: '600' }}>
+              {t.company.workTitleField} <Text tone="negative">*</Text>
+            </Text>
           </View>
           <TextInput
             accessibilityLabel={t.company.workTitleField}
@@ -298,56 +314,119 @@ export function WorkFiltersAndDraftSheet({
               </Pressable>
             </View>
           ) : null}
-          <View style={card}>
-            {rowIcon('calendar-outline')}
-            <Text style={{ flex: 1 }} numberOfLines={2}>
-              {t.company.workDue}
-            </Text>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.company.workDue}
-              disabled={busy}
-              onPress={() => setPanel('date')}
-              style={pill}
-            >
-              <Text numberOfLines={1}>{dayLabel}</Text>
-              {chevron}
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.company.workTime}
-              disabled={busy}
-              onPress={() => setPanel('time')}
-              style={pill}
-            >
-              <Text numberOfLines={1}>{timeLabel}</Text>
-              {chevron}
-            </Pressable>
-            {draft.dueTime ? (
+          <View style={[card, { alignItems: 'flex-start' }]}>
+            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+                {rowIcon('calendar-outline')}
+                <Text style={{ fontWeight: '600' }}>
+                  {t.company.workDueDate} <Text tone="negative">*</Text>
+                </Text>
+              </View>
               <Pressable
                 accessibilityRole="button"
-                accessibilityLabel={t.company.workNoTime}
+                accessibilityLabel={t.company.workDueDate}
                 disabled={busy}
-                hitSlop={8}
-                onPress={() => setDraft({ ...draft, dueTime: null })}
+                onPress={() => setPanel('date')}
+                style={pill}
               >
-                <Ionicons name="close-circle" size={iconSize.md} color={theme.color.textFaint} />
+                <Ionicons
+                  name="calendar-outline"
+                  size={iconSize.sm}
+                  color={theme.color.textMuted}
+                />
+                <Text numberOfLines={1} style={{ flex: 1 }}>
+                  {dayLabel}
+                </Text>
+                {chevron}
               </Pressable>
-            ) : null}
+            </View>
+            <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
+            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+                {rowIcon('time-outline')}
+                <Text style={{ fontWeight: '600', flex: 1 }}>{t.company.workDueTime}</Text>
+                {draft.dueTime ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.company.workNoTime}
+                    disabled={busy}
+                    hitSlop={8}
+                    onPress={() => setDraft({ ...draft, dueTime: null })}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={iconSize.md}
+                      color={theme.color.textFaint}
+                    />
+                  </Pressable>
+                ) : null}
+              </View>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.company.workDueTime}
+                disabled={busy}
+                onPress={() => setPanel('time')}
+                style={pill}
+              >
+                <Text numberOfLines={1} style={{ flex: 1 }}>
+                  {timeLabel}
+                </Text>
+                {chevron}
+              </Pressable>
+            </View>
           </View>
-          <View style={card}>
-            {rowIcon('flag-outline')}
-            <Text style={{ flex: 1 }}>{t.company.workPriority}</Text>
+          <View style={[card, { flexDirection: 'column', alignItems: 'stretch' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+              {rowIcon('flag-outline')}
+              <Text style={{ fontWeight: '600' }}>{t.company.workPriority}</Text>
+            </View>
+            <View
+              accessibilityLabel={t.company.workPriority}
+              style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}
+            >
+              {(
+                [
+                  ['normal', t.company.workPrioNormal],
+                  ['urgent', t.company.workPrioUrgent],
+                  ['very_urgent', t.company.workPrioVeryUrgent],
+                ] as const
+              ).map(([value, text]) => {
+                const on = (draft.priority ?? 'normal') === value;
+                return (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="radio"
+                    accessibilityLabel={text}
+                    accessibilityState={{ selected: on }}
+                    disabled={busy}
+                    onPress={() => setDraft({ ...draft, priority: value })}
+                    style={[
+                      pill,
+                      {
+                        justifyContent: 'center',
+                        paddingHorizontal: theme.spacing.md,
+                        backgroundColor: on ? theme.color.brandSoft : theme.color.surface,
+                      },
+                    ]}
+                  >
+                    <Text
+                      tone={on ? 'brand' : undefined}
+                      style={on ? { fontWeight: '700' } : undefined}
+                    >
+                      {text}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
           </View>
-          <PriorityPicker
-            value={draft.priority}
-            onChange={(priority) => setDraft({ ...draft, priority })}
-          />
-          <View style={[card, { alignItems: 'flex-start' }]}>
-            <View style={{ paddingTop: theme.spacing.sm }}>{rowIcon('document-text-outline')}</View>
+          <View style={[card, { flexDirection: 'column', alignItems: 'stretch' }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+              {rowIcon('document-text-outline')}
+              <Text style={{ fontWeight: '600' }}>{t.company.workNotesOptional}</Text>
+            </View>
             <View
               style={{
-                flex: 1,
                 borderWidth: 1,
                 borderColor: theme.color.border,
                 borderRadius: theme.radius.md,
@@ -356,9 +435,6 @@ export function WorkFiltersAndDraftSheet({
                 paddingVertical: theme.spacing.xs,
               }}
             >
-              <Text variant="caption" tone="muted">
-                {t.company.workNotesOptional}
-              </Text>
               <TextInput
                 accessibilityLabel={t.company.workNotesOptional}
                 value={draft.note ?? ''}
@@ -366,8 +442,12 @@ export function WorkFiltersAndDraftSheet({
                 maxLength={200}
                 editable={!busy}
                 onChangeText={(note) => setDraft({ ...draft, note: note || null })}
-                style={{ color: theme.color.text, fontSize: 16, minHeight: 36, padding: 0 }}
+                style={{ color: theme.color.text, fontSize: 16, minHeight: 72, padding: 0 }}
+                textAlignVertical="top"
               />
+              <Text variant="caption" tone="muted" style={{ alignSelf: 'flex-end' }}>
+                {(draft.note ?? '').length}/200
+              </Text>
             </View>
           </View>
           {draft.blockedReason ? (
