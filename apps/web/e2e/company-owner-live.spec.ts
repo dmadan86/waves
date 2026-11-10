@@ -247,10 +247,21 @@ test.describe.serial('company owner, one browser per person', () => {
     );
   });
 
-  test.fixme('owner assigns a task to the manager', async () => {
-    // Not supported: the Assign-to list is employees only (useWorkdayAccess.people keeps role
-    // 'member'), and waves_company_work_set rejects a manager as the responsible person unless
-    // the task is a client follow-up. Enable when managers can own tasks.
+  test('owner assigns a task to the manager, and the manager sees it', async ({ browser }) => {
+    const title = 'Check the stock room';
+    const page = await ownerCtx.newPage();
+    await addTask(page, title, [manager.name]);
+    await page.close();
+
+    expect((await taskTitled(title)).map((t) => [t.member_id, t.status, t.created_by])).toEqual([
+      [managerMemberId, 'todo', ownerMemberId],
+    ]);
+
+    const mgrCtx = await signInForm(browser, manager);
+    const m = await mgrCtx.newPage();
+    await m.goto(`/c/${groupId}/team?seg=work`);
+    await expect(taskRow(m, title)).toBeVisible();
+    await mgrCtx.close();
   });
 
   test('each employee sees only their own tasks, in their own browser and through RLS', async () => {

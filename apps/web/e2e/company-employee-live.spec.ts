@@ -383,14 +383,61 @@ test.describe.serial('company as an employee, one browser per person', () => {
     // Web has only /settings/notifications (preferences); there is no inbox or bell to open.
   });
 
-  test.fixme('A adds their own task', async () => {
-    // Web offers "Add task" only when canManage; the DB also limits an employee to moving the
-    // status/note of a task someone assigned them (company-scenario-tasks.test.ts G24).
+  test('A adds their own task; only A is offered as assignee', async () => {
+    const title = `A's own errand ${stamp}`;
+    const page = await aCtx.newPage();
+    await page.goto(`/c/${groupId}/team?seg=work`);
+    await page.getByRole('button', { name: 'Add task', exact: true }).first().click();
+    const assignTo = page.getByRole('group', { name: 'Assign to' });
+    // Just themself (pre-ticked); B and the owner are not offered.
+    await expect(assignTo.getByRole('checkbox')).toHaveCount(1);
+    await expect(assignTo.getByRole('checkbox')).toBeChecked();
+    await expect(assignTo).not.toContainText(empB.name);
+    await expect(assignTo).not.toContainText(owner.name);
+    await page.getByLabel('Task description').fill(title);
+    await page.getByRole('button', { name: 'Save task', exact: true }).click();
+    await expect(page.getByRole('heading', { name: 'Add task' })).toHaveCount(0);
+    await page.close();
+
+    await expect
+      .poll(async () => (await taskRow(title)).map((t) => [t.member_id, t.created_by]))
+      .toEqual([[memberA, memberA]]);
+
+    // The server refuses a task for someone else.
+    const refused = await (
+      await apiAs(empA)
+    ).rpc('waves_company_work_set', {
+      p_group_id: groupId,
+      p_task_id: crypto.randomUUID(),
+      p_member_id: memberB,
+      p_title: `A tries B ${stamp}`,
+      p_day: new Date().toISOString().slice(0, 10),
+      p_status: 'todo',
+    });
+    expect(refused.error).not.toBeNull();
+    expect(await taskRow(`A tries B ${stamp}`)).toHaveLength(0);
   });
 
-  test.fixme('A uploads a completion photo to their task ("complete your upload")', async () => {
-    // Web: task photos can only be attached in the owner/manager Add task form; the employee's
-    // status panel lists photos read-only (Photos canRemove=false, no file input).
+  test('A uploads a completion photo to their own task', async () => {
+    test.skip(!photos, 'set E2E_PHOTOS=1 to exercise Storage uploads');
+    const page = await aCtx.newPage();
+    await openStatus(page, TASK_A);
+    await page.getByLabel('Attach photo (optional)').setInputFiles({
+      name: 'done.png',
+      mimeType: 'image/png',
+      buffer: PNG,
+    });
+    await expect
+      .poll(async () => {
+        const { data } = await admin
+          .from('company_task_photos')
+          .select('id')
+          .eq('task_id', (await taskRow(TASK_A))[0]!.id)
+          .eq('uploader_member_id', memberA);
+        return data?.length ?? 0;
+      })
+      .toBeGreaterThan(0);
+    await page.close();
   });
 
   test.fixme('A requests a payment from the company', async () => {
