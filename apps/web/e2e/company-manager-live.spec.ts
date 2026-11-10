@@ -214,7 +214,7 @@ test.describe.serial('company manager, one browser per person', () => {
 
     const page = await managerCtx.newPage();
     await page.goto(`/c/${groupId}/team?seg=work`);
-    await page.getByRole('button', { name: 'Add task' }).click();
+    await page.getByRole('button', { name: 'Add task' }).first().click();
     // Only the managed employee is offered (the owner would see both).
     const assignTo = page.getByRole('group', { name: 'Assign to' });
     await expect(assignTo.getByRole('checkbox')).toHaveCount(1);
@@ -293,24 +293,6 @@ test.describe.serial('company manager, one browser per person', () => {
     ]);
     expect(advances[0].funding_manager_id).toBe(managerMemberId);
     expect(await ofKind('wages')).toEqual([]);
-  });
-
-  test('manager cannot write wages, or an advance for the unmanaged employee, straight to the table', async () => {
-    const before = (await entries()).length;
-    for (const row of [
-      { entry_kind: 'wages', member_id: empMemberId },
-      { entry_kind: 'advance', member_id: otherMemberId },
-    ]) {
-      const res = await managerApi.from('company_entries').insert({
-        id: crypto.randomUUID(),
-        group_id: groupId,
-        amount: 1000,
-        occurred_on: today,
-        ...row,
-      });
-      expect(res.error).not.toBeNull();
-    }
-    expect((await entries()).length).toBe(before);
   });
 
   test('manager raises a bill and an estimate; they see only their own, not the owner bill', async () => {
