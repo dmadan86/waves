@@ -408,6 +408,9 @@ const GROUP_TABLES = [
   // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
   ['company_attendance', '*'],
   ['company_work_tasks', '*'],
+  // Files and links: each row shows to the roles its visibility names (RLS, read as the caller); a vendor login sees none.
+  ['company_file_folders', '*'],
+  ['company_files', '*'],
   // Calendar: holidays (every member), leave, events and birthdays; RLS filters each to what the caller may see.
   ['company_holidays', '*'],
   ['company_leave', '*'],
@@ -3259,11 +3262,14 @@ async function companyCalendarVisible(
   caller: SupabaseClient,
   groupIds: readonly string[],
 ): Promise<
-  Record<string, { dates: string[]; events: string[]; clients: string[]; tickets: string[] }>
+  Record<
+    string,
+    { dates: string[]; events: string[]; clients: string[]; tickets: string[]; files?: string[] }
+  >
 > {
   const out: Record<
     string,
-    { dates: string[]; events: string[]; clients: string[]; tickets: string[] }
+    { dates: string[]; events: string[]; clients: string[]; tickets: string[]; files?: string[] }
   > = {};
   if (groupIds.length === 0) return out;
   const groups = await caller.from('groups').select('id').eq('type', 'company').in('id', groupIds);
@@ -3289,8 +3295,17 @@ async function companyCalendarVisible(
     const events = await ids('company_events', id as string);
     const clients = await ids('company_clients', id as string);
     const tickets = await ids('company_tickets', id as string);
+    const folders = await ids('company_file_folders', id as string);
+    const files = await ids('company_files', id as string);
     if (dates && events && clients && tickets)
-      out[id as string] = { dates, events, clients, tickets };
+      out[id as string] = {
+        dates,
+        events,
+        clients,
+        tickets,
+        // Left out when unreadable, so a failure never makes a phone drop its files.
+        ...(folders && files ? { files: [...folders, ...files] } : {}),
+      };
   }
   return out;
 }

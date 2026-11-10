@@ -53,7 +53,7 @@ export interface SyncResponse {
   companyVisible?: Record<string, string[]>;
   calendarVisible?: Record<
     string,
-    { dates: string[]; events: string[]; clients?: string[]; tickets?: string[] }
+    { dates: string[]; events: string[]; clients?: string[]; tickets?: string[]; files?: string[] }
   >;
   serverTime?: string;
 }

@@ -3062,6 +3062,54 @@ export interface UiStrings {
     full: string;
     loading: string;
   };
+  companyFiles: {
+    title: string;
+    search: string;
+    all: string;
+    documents: string;
+    images: string;
+    sheets: string;
+    others: string;
+    links: string;
+    upload: string;
+    addLink: string;
+    newFolder: string;
+    folderItems: string;
+    empty: string;
+    emptyBody: string;
+    emptyFolder: string;
+    noMatches: string;
+    open: string;
+    rename: string;
+    editLink: string;
+    whoSees: string;
+    openFailed: string;
+    uploadFailed: string;
+    tooBig: string;
+    badType: string;
+    storageFull: string;
+    saveFailed: string;
+    linkName: string;
+    linkUrl: string;
+    linkUrlBad: string;
+    folderName: string;
+    fileName: string;
+    visEveryone: string;
+    visManagers: string;
+    visOwners: string;
+    visEveryoneHint: string;
+    visManagersHint: string;
+    visOwnersHint: string;
+    deleteFolderTitle: string;
+    deleteFolderBody: string;
+    deleteFileTitle: string;
+    deleteFileBody: string;
+    uploading: string;
+    allFiles: string;
+    listView: string;
+    gridView: string;
+    more: string;
+  };
   companyDetails: {
     title: string;
     vendorDetails: string;
@@ -10937,6 +10985,56 @@ const en: UiStrings = {
     full: 'Company storage is full. The owner can add more in Settings.',
     loading: 'Could not load storage. Pull to retry.',
   },
+  companyFiles: {
+    title: 'Files',
+    search: 'Search files…',
+    all: 'All',
+    documents: 'Documents',
+    images: 'Images',
+    sheets: 'Sheets',
+    others: 'Others',
+    links: 'Links',
+    upload: 'Upload',
+    addLink: 'Add link',
+    newFolder: 'New folder',
+    folderItems: '{n} items',
+    empty: 'No files yet',
+    emptyBody:
+      'Upload documents, photos and sheets, or add a link, and choose who can see each one.',
+    emptyFolder: 'This folder is empty',
+    noMatches: 'Nothing matches',
+    open: 'Open',
+    rename: 'Rename',
+    editLink: 'Edit link',
+    whoSees: 'Who can see',
+    openFailed: 'Could not open this file. Try again.',
+    uploadFailed: 'Could not upload this file. Try again.',
+    tooBig: 'This file is over 25 MB.',
+    badType:
+      'This kind of file cannot be uploaded. Use PDF, Word, Excel, PowerPoint, a photo, text or zip.',
+    storageFull: 'Company storage is full. The owner can add more in Settings.',
+    saveFailed: 'Could not save. Try again.',
+    linkName: 'Name',
+    linkUrl: 'Link (https://…)',
+    linkUrlBad: 'Enter a web address starting with http or https.',
+    folderName: 'Folder name',
+    fileName: 'Name',
+    visEveryone: 'Everyone',
+    visManagers: 'Managers and owners',
+    visOwners: 'Only owners',
+    visEveryoneHint: 'All members of the company',
+    visManagersHint: 'Hidden from employees',
+    visOwnersHint: 'Hidden from managers and employees',
+    deleteFolderTitle: 'Delete folder “{name}”?',
+    deleteFolderBody: 'Everything inside it is deleted too.',
+    deleteFileTitle: 'Delete “{name}”?',
+    deleteFileBody: 'It is removed for everyone.',
+    uploading: 'Uploading…',
+    allFiles: 'All files',
+    listView: 'List view',
+    gridView: 'Grid view',
+    more: 'More',
+  },
   companyDetails: {
     title: 'Company details',
     vendorDetails: 'Vendor details',
@@ -18275,6 +18373,56 @@ const ta: UiStrings = {
     note: 'பதிவுகள், பில்கள், பணிகளின் புகைப்படங்கள் இங்கே கணக்கிடப்படும். எதுவும் நீக்கப்படாது.',
     full: 'நிறுவன சேமிப்பு நிரம்பிவிட்டது. உரிமையாளர் அமைப்புகளில் மேலும் சேர்க்கலாம்.',
     loading: 'சேமிப்பை ஏற்ற முடியவில்லை. மீண்டும் முயலவும்.',
+  },
+  companyFiles: {
+    title: 'கோப்புகள்',
+    search: 'கோப்புகளைத் தேடுங்கள்…',
+    all: 'அனைத்தும்',
+    documents: 'ஆவணங்கள்',
+    images: 'படங்கள்',
+    sheets: 'தாள்கள்',
+    others: 'மற்றவை',
+    links: 'இணைப்புகள்',
+    upload: 'பதிவேற்று',
+    addLink: 'இணைப்பைச் சேர்',
+    newFolder: 'புதிய கோப்புறை',
+    folderItems: '{n} உருப்படிகள்',
+    empty: 'இன்னும் கோப்புகள் இல்லை',
+    emptyBody:
+      'ஆவணங்கள், படங்கள், தாள்களைப் பதிவேற்றுங்கள் அல்லது இணைப்பைச் சேர்த்து, யார் பார்க்கலாம் என்று தேர்ந்தெடுங்கள்.',
+    emptyFolder: 'இந்தக் கோப்புறை காலியாக உள்ளது',
+    noMatches: 'பொருந்துவது எதுவும் இல்லை',
+    open: 'திற',
+    rename: 'பெயர் மாற்று',
+    editLink: 'இணைப்பைத் திருத்து',
+    whoSees: 'யார் பார்க்கலாம்',
+    openFailed: 'இந்தக் கோப்பைத் திறக்க முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    uploadFailed: 'இந்தக் கோப்பைப் பதிவேற்ற முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    tooBig: 'இந்தக் கோப்பு 25 MB-ஐ விட பெரியது.',
+    badType:
+      'இந்த வகைக் கோப்பைப் பதிவேற்ற முடியாது. PDF, Word, Excel, PowerPoint, படம், உரை அல்லது zip பயன்படுத்துங்கள்.',
+    storageFull: 'நிறுவன சேமிப்பிடம் நிரம்பியுள்ளது. உரிமையாளர் அமைப்புகளில் கூடுதல் சேர்க்கலாம்.',
+    saveFailed: 'சேமிக்க முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    linkName: 'பெயர்',
+    linkUrl: 'இணைப்பு (https://…)',
+    linkUrlBad: 'http அல்லது https என தொடங்கும் இணைய முகவரியை உள்ளிடுங்கள்.',
+    folderName: 'கோப்புறையின் பெயர்',
+    fileName: 'பெயர்',
+    visEveryone: 'அனைவரும்',
+    visManagers: 'மேலாளர்கள் மற்றும் உரிமையாளர்கள்',
+    visOwners: 'உரிமையாளர்கள் மட்டும்',
+    visEveryoneHint: 'நிறுவனத்தின் அனைத்து உறுப்பினர்களும்',
+    visManagersHint: 'ஊழியர்களுக்குத் தெரியாது',
+    visOwnersHint: 'மேலாளர்கள், ஊழியர்களுக்குத் தெரியாது',
+    deleteFolderTitle: '“{name}” கோப்புறையை நீக்கவா?',
+    deleteFolderBody: 'அதில் உள்ள அனைத்தும் நீக்கப்படும்.',
+    deleteFileTitle: '“{name}” நீக்கவா?',
+    deleteFileBody: 'அனைவருக்கும் நீக்கப்படும்.',
+    uploading: 'பதிவேற்றுகிறது…',
+    allFiles: 'அனைத்து கோப்புகள்',
+    listView: 'பட்டியல் காட்சி',
+    gridView: 'கட்டக் காட்சி',
+    more: 'மேலும்',
   },
   companyDetails: {
     title: 'நிறுவன விவரங்கள்',
@@ -25764,6 +25912,56 @@ const hi: UiStrings = {
     full: 'कंपनी का स्टोरेज भर गया है। मालिक सेटिंग्स में और जोड़ सकते हैं।',
     loading: 'स्टोरेज लोड नहीं हो सका। दोबारा कोशिश करें।',
   },
+  companyFiles: {
+    title: 'फ़ाइलें',
+    search: 'फ़ाइलें खोजें…',
+    all: 'सभी',
+    documents: 'दस्तावेज़',
+    images: 'चित्र',
+    sheets: 'शीट',
+    others: 'अन्य',
+    links: 'लिंक',
+    upload: 'अपलोड',
+    addLink: 'लिंक जोड़ें',
+    newFolder: 'नया फ़ोल्डर',
+    folderItems: '{n} आइटम',
+    empty: 'अभी कोई फ़ाइल नहीं',
+    emptyBody:
+      'दस्तावेज़, फ़ोटो और शीट अपलोड करें या लिंक जोड़ें, और चुनें कि हर एक को कौन देख सकता है।',
+    emptyFolder: 'यह फ़ोल्डर खाली है',
+    noMatches: 'कुछ नहीं मिला',
+    open: 'खोलें',
+    rename: 'नाम बदलें',
+    editLink: 'लिंक बदलें',
+    whoSees: 'कौन देख सकता है',
+    openFailed: 'यह फ़ाइल नहीं खुल सकी। फिर कोशिश करें।',
+    uploadFailed: 'यह फ़ाइल अपलोड नहीं हो सकी। फिर कोशिश करें।',
+    tooBig: 'यह फ़ाइल 25 MB से बड़ी है।',
+    badType:
+      'इस तरह की फ़ाइल अपलोड नहीं हो सकती। PDF, Word, Excel, PowerPoint, फ़ोटो, टेक्स्ट या zip इस्तेमाल करें।',
+    storageFull: 'कंपनी का स्टोरेज भर गया है। मालिक सेटिंग में और जोड़ सकता है।',
+    saveFailed: 'सहेजा नहीं जा सका। फिर कोशिश करें।',
+    linkName: 'नाम',
+    linkUrl: 'लिंक (https://…)',
+    linkUrlBad: 'http या https से शुरू होने वाला वेब पता डालें।',
+    folderName: 'फ़ोल्डर का नाम',
+    fileName: 'नाम',
+    visEveryone: 'सभी',
+    visManagers: 'मैनेजर और मालिक',
+    visOwners: 'सिर्फ़ मालिक',
+    visEveryoneHint: 'कंपनी के सभी सदस्य',
+    visManagersHint: 'कर्मचारियों से छिपा',
+    visOwnersHint: 'मैनेजर और कर्मचारियों से छिपा',
+    deleteFolderTitle: 'फ़ोल्डर “{name}” हटाएँ?',
+    deleteFolderBody: 'इसके अंदर सब कुछ भी हट जाएगा।',
+    deleteFileTitle: '“{name}” हटाएँ?',
+    deleteFileBody: 'यह सबके लिए हट जाएगी।',
+    uploading: 'अपलोड हो रहा है…',
+    allFiles: 'सभी फ़ाइलें',
+    listView: 'सूची दृश्य',
+    gridView: 'ग्रिड दृश्य',
+    more: 'और',
+  },
   companyDetails: {
     title: 'कंपनी का विवरण',
     vendorDetails: 'विक्रेता का विवरण',
@@ -33202,6 +33400,55 @@ const ar: UiStrings = {
     note: 'صور القيود والفواتير والمهام تُحتسب هنا. لا يُحذف أي شيء أبدًا.',
     full: 'تخزين الشركة ممتلئ. يمكن للمالك إضافة المزيد من الإعدادات.',
     loading: 'تعذر تحميل التخزين. حاول مرة أخرى.',
+  },
+  companyFiles: {
+    title: 'الملفات',
+    search: 'ابحث في الملفات…',
+    all: 'الكل',
+    documents: 'المستندات',
+    images: 'الصور',
+    sheets: 'الجداول',
+    others: 'أخرى',
+    links: 'الروابط',
+    upload: 'رفع',
+    addLink: 'إضافة رابط',
+    newFolder: 'مجلد جديد',
+    folderItems: '{n} عنصر',
+    empty: 'لا توجد ملفات بعد',
+    emptyBody: 'ارفع مستندات وصورًا وجداول، أو أضف رابطًا، واختر من يمكنه رؤية كل منها.',
+    emptyFolder: 'هذا المجلد فارغ',
+    noMatches: 'لا توجد نتائج',
+    open: 'فتح',
+    rename: 'إعادة التسمية',
+    editLink: 'تعديل الرابط',
+    whoSees: 'من يمكنه الرؤية',
+    openFailed: 'تعذر فتح هذا الملف. حاول مرة أخرى.',
+    uploadFailed: 'تعذر رفع هذا الملف. حاول مرة أخرى.',
+    tooBig: 'هذا الملف أكبر من 25 ميغابايت.',
+    badType:
+      'لا يمكن رفع هذا النوع من الملفات. استخدم PDF أو Word أو Excel أو PowerPoint أو صورة أو نصًا أو zip.',
+    storageFull: 'مساحة الشركة ممتلئة. يمكن للمالك إضافة المزيد من الإعدادات.',
+    saveFailed: 'تعذر الحفظ. حاول مرة أخرى.',
+    linkName: 'الاسم',
+    linkUrl: 'الرابط (https://…)',
+    linkUrlBad: 'أدخل عنوان ويب يبدأ بـ http أو https.',
+    folderName: 'اسم المجلد',
+    fileName: 'الاسم',
+    visEveryone: 'الجميع',
+    visManagers: 'المديرون والمالكون',
+    visOwners: 'المالكون فقط',
+    visEveryoneHint: 'جميع أعضاء الشركة',
+    visManagersHint: 'مخفي عن الموظفين',
+    visOwnersHint: 'مخفي عن المديرين والموظفين',
+    deleteFolderTitle: 'حذف المجلد «{name}»؟',
+    deleteFolderBody: 'سيُحذف كل ما بداخله أيضًا.',
+    deleteFileTitle: 'حذف «{name}»؟',
+    deleteFileBody: 'سيُحذف للجميع.',
+    uploading: 'جارٍ الرفع…',
+    allFiles: 'كل الملفات',
+    listView: 'عرض القائمة',
+    gridView: 'عرض الشبكة',
+    more: 'المزيد',
   },
   companyDetails: {
     title: 'تفاصيل الشركة',
