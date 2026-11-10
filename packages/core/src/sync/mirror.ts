@@ -93,7 +93,7 @@ import type {
   TagDeletePayload,
   TagUpsertPayload,
 } from './protocol';
-import type { QueuedMutation } from './queue';
+import { MAX_ATTEMPTS, type QueuedMutation } from './queue';
 import { byNewest, byOldest, compareStampsDesc } from '../time/iso';
 import { allowanceAmount, mileageAmount, normaliseEmployeeId } from '../company/index';
 import { firstOccurrenceOnOrAfter, nextOccurrenceAfter } from '../group/recurring';
@@ -2413,6 +2413,8 @@ export function materialiseWorkTasks(
     if (mutation.groupId !== options.groupId || mutation.rejection) continue;
     if (mutation.kind === 'company_work.set') {
       const p = mutation.payload as unknown as CompanyWorkSetPayload;
+      // An edit that has failed MAX_ATTEMPTS times is no longer shown over the server's task (it keeps retrying in the background).
+      if (mutation.attempts >= MAX_ATTEMPTS && byId.has(p.taskId)) continue;
       byId.set(p.taskId, {
         id: p.taskId,
         memberId: p.memberId,
