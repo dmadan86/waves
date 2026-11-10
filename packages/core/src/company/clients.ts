@@ -20,6 +20,11 @@ export interface CompanyClient {
   readonly source: ClientSource;
   readonly expectedValueMinor: bigint | null;
   readonly address: string | null;
+  readonly email: string | null;
+  /** The customer's own company (not this one). */
+  readonly companyName: string | null;
+  readonly category: string | null;
+  readonly priority: ClientPriority;
   readonly stage: ClientStage;
   readonly lostReason: string | null;
   /** The member who follows up (employee, manager or owner). */

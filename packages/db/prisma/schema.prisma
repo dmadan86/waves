@@ -3804,6 +3804,10 @@ model CompanyClient {
   source String @default("other")
   expectedValue BigInt? @map("expected_value")
   address String?
+  email String?
+  companyName String? @map("company_name")
+  category String?
+  priority String @default("normal")
   stage String @default("inquiry")
   lostReason String? @map("lost_reason")
   ownerMemberId String? @map("owner_member_id") @db.Uuid

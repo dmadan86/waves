@@ -728,6 +728,7 @@ export interface CompanyDocSavePayload {
   };
 }
 export type ClientStage = 'inquiry' | 'quoted' | 'client' | 'lost';
+export type ClientPriority = 'normal' | 'urgent' | 'high';
 export type ClientSource = 'walk_in' | 'call' | 'whatsapp' | 'referral' | 'other';
 /** Create or edit a client. The whole record travels each time; money as a decimal string. */
 export interface CompanyClientSetPayload {
@@ -738,6 +739,11 @@ export interface CompanyClientSetPayload {
   readonly source: ClientSource;
   readonly expectedValueMinor: string | null;
   readonly address: string | null;
+  /** The next four are optional: left out, the server keeps what the client already has. */
+  readonly email?: string | null;
+  readonly company?: string | null;
+  readonly category?: string | null;
+  readonly priority?: ClientPriority;
   readonly stage: ClientStage;
   readonly lostReason: string | null;
   readonly ownerMemberId: string | null;
