@@ -20,18 +20,13 @@
  * No dependencies: requests are signed with AWS SigV4 by hand.
  */
 
-import {
-  X509Certificate,
-  createHash,
-  createHmac,
-  createSign,
-  createVerify,
-  randomUUID,
-} from 'node:crypto';
+import { X509Certificate, createHash, createHmac, createSign, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+
+import { verifyPublishedMetadata } from './ota-verify.mjs';
 
 const { values: args } = parseArgs({
   options: {
@@ -280,20 +275,21 @@ if (args.rollback) {
     const metadataText = await found.text();
     const sigResponse = await request('GET', `ota/${runtimes[p]}/${folder}/metadata.sig`);
     const certificate = new X509Certificate(readFileSync('certs/certificate.pem'));
-    if (
-      !sigResponse.ok ||
-      !createVerify('RSA-SHA256')
-        .update(metadataText)
-        .verify(certificate.publicKey, (await sigResponse.text()).trim(), 'base64')
-    ) {
-      fail(`update ${folder} has no valid signature for ${p}; cannot roll back to it`);
+    let published;
+    try {
+      published = verifyPublishedMetadata({
+        text: metadataText,
+        signature: sigResponse.ok ? await sigResponse.text() : '',
+        publicKey: certificate.publicKey,
+        runtime: runtimes[p],
+        channel: args.channel,
+        platform: p,
+        folder,
+      });
+    } catch (error) {
+      fail(`cannot roll back to ${folder} for ${p}/${args.channel}: ${error.message}`);
     }
-    const published = JSON.parse(metadataText);
-    const files = published.fileMetadata?.[p];
-    const wanted = files ? [files.bundle, ...files.assets.map((a) => a.path)] : [];
-    if (!files?.bundle || !wanted.every((path) => published.hashes?.[path])) {
-      fail(`update ${folder} was not published for ${p}`);
-    }
+    const files = published.fileMetadata[p];
     // Same files, new update id and date: to a device it is a newer update.
     staged.push(
       await stageManifest({
@@ -327,6 +323,7 @@ const digest = createHash('sha256')
   .update(metadataRaw)
   .update(configRaw)
   .update(platforms.join())
+  .update(args.channel) // metadata.json is signed per channel, so folders are too
   .digest();
 digest[6] = (digest[6] & 0x0f) | 0x40;
 digest[8] = (digest[8] & 0x3f) | 0x80;
@@ -360,7 +357,14 @@ for (const platform of platforms) {
 const createdAt = new Date().toISOString();
 for (const rt of new Set(Object.values(runtimes))) {
   const root = `ota/${rt}/${folder}`;
-  const augmented = Buffer.from(JSON.stringify({ ...metadata, hashes: hashes[rt], createdAt }));
+  const augmented = Buffer.from(
+    JSON.stringify({
+      ...metadata,
+      hashes: hashes[rt],
+      createdAt,
+      otaBinding: { runtimeVersion: rt, channel: args.channel, platforms, folder },
+    }),
+  );
   uploads.set(`${root}/metadata.json`, { body: augmented, contentType: 'application/json' });
   // Lets a later rollback prove these hashes are ours (see --rollback).
   uploads.set(`${root}/metadata.sig`, {

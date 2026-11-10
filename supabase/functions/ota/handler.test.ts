@@ -126,6 +126,23 @@ describe('ota matching', () => {
     expect((await ask({ ...asked, 'expo-channel-name': 'preview' })).status).toBe(204);
   });
 
+  it('sends the protocol headers on every 204 path', async () => {
+    const signed = { 'expo-expect-signature': 'sig' };
+    const responses = [
+      await ask({ 'expo-runtime-version': '9.9.9', 'expo-protocol-version': '0' }),
+      await ask({ ...signed, 'expo-channel-name': 'preview' }),
+    ];
+    for (const r of responses) {
+      expect(r.status).toBe(204);
+      expect(r.headers.get('expo-sfv-version')).toBe('0');
+      expect(r.headers.get('cache-control')).toBe('private, max-age=0');
+      expect(r.headers.has('expo-protocol-version')).toBe(true);
+      expect(r.headers.has('expo-manifest-filters')).toBe(true);
+      expect(r.headers.has('expo-server-defined-headers')).toBe(true);
+    }
+    expect(responses[1].headers.get('expo-protocol-version')).toBe('1');
+  });
+
   it('rejects an unsupported platform, a path-like runtime and a bad channel', async () => {
     expect((await ask({ 'expo-platform': 'web' })).status).toBe(400);
     expect((await ask({ 'expo-runtime-version': '../x' })).status).toBe(400);
