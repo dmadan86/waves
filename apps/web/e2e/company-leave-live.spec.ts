@@ -267,8 +267,9 @@ test.describe.serial('company leave policies, one browser per person', () => {
     const theirs = await ask(other, otherMemberId, casualId, dayIso(0), dayIso(0));
     expect((await decide(manager, theirs, true)).error).not.toBeNull();
     expect(await statusOf(theirs)).toBe('pending');
-    // No manager: every owner hears about it, the manager does not.
-    expect(await heard(manager.id, 'company_leave_requested')).toBe(1);
+    // No manager: every owner hears about it, the manager does not. The manager's 2 are their own
+    // employee's earlier requests (the 1-day Sick and the over-balance one); this one adds none.
+    expect(await heard(manager.id, 'company_leave_requested')).toBe(2);
     expect((await decide(owner, theirs, true)).error).toBeNull();
     expect(await balance(otherMemberId, casualId)).toBe(0);
   });
