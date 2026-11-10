@@ -70,6 +70,13 @@ export async function handleOta(request: Request, deps: OtaDeps): Promise<Respon
     const header = (name: string, query: string) =>
       request.headers.get(name) ?? url.searchParams.get(query);
 
+    // Stored responses are multipart/mixed only; say so rather than send a
+    // format the client did not ask for.
+    const accept = request.headers.get('accept');
+    if (accept && !/multipart\/mixed|multipart\/\*|\*\/\*/.test(accept)) {
+      throw new HttpError(406, 'NOT_ACCEPTABLE', 'Only multipart/mixed is served');
+    }
+
     const protocolVersion = request.headers.get('expo-protocol-version') === '1' ? '1' : '0';
     const platform = header('expo-platform', 'platform') ?? '';
     const runtime = header('expo-runtime-version', 'runtime-version') ?? '';

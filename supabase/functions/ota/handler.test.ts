@@ -132,6 +132,11 @@ describe('ota matching', () => {
     expect((await ask({ 'expo-channel-name': 'a/b' })).status).toBe(400);
   });
 
+  it('answers 406 when the client accepts nothing we serve', async () => {
+    expect((await ask({ accept: 'application/expo+json' })).status).toBe(406);
+    expect((await ask({ accept: 'multipart/mixed,application/expo+json' })).status).toBe(200);
+  });
+
   it('refuses anything but GET', async () => {
     const response = await handleOta(new Request('https://x.test/ota', { method: 'POST' }), deps);
     expect(response.status).toBe(405);

@@ -20,7 +20,14 @@
  * No dependencies: requests are signed with AWS SigV4 by hand.
  */
 
-import { createHash, createHmac, createSign, randomUUID } from 'node:crypto';
+import {
+  X509Certificate,
+  createHash,
+  createHmac,
+  createSign,
+  createVerify,
+  randomUUID,
+} from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -268,7 +275,20 @@ if (args.rollback) {
     const found = await request('GET', `ota/${runtimes[p]}/${folder}/metadata.json`);
     if (!found.ok)
       fail(`no published update ${folder} for runtime ${runtimes[p]} (${found.status})`);
-    const published = await found.json();
+    // metadata.json is only trusted if we signed it at publish time: a rollback
+    // must not sign hashes someone with bucket write access slipped in.
+    const metadataText = await found.text();
+    const sigResponse = await request('GET', `ota/${runtimes[p]}/${folder}/metadata.sig`);
+    const certificate = new X509Certificate(readFileSync('certs/certificate.pem'));
+    if (
+      !sigResponse.ok ||
+      !createVerify('RSA-SHA256')
+        .update(metadataText)
+        .verify(certificate.publicKey, (await sigResponse.text()).trim(), 'base64')
+    ) {
+      fail(`update ${folder} has no valid signature for ${p}; cannot roll back to it`);
+    }
+    const published = JSON.parse(metadataText);
     const files = published.fileMetadata?.[p];
     const wanted = files ? [files.bundle, ...files.assets.map((a) => a.path)] : [];
     if (!files?.bundle || !wanted.every((path) => published.hashes?.[path])) {
@@ -342,6 +362,11 @@ for (const rt of new Set(Object.values(runtimes))) {
   const root = `ota/${rt}/${folder}`;
   const augmented = Buffer.from(JSON.stringify({ ...metadata, hashes: hashes[rt], createdAt }));
   uploads.set(`${root}/metadata.json`, { body: augmented, contentType: 'application/json' });
+  // Lets a later rollback prove these hashes are ours (see --rollback).
+  uploads.set(`${root}/metadata.sig`, {
+    body: Buffer.from(sign(augmented.toString())),
+    contentType: 'text/plain',
+  });
   uploads.set(`${root}/expoConfig.json`, { body: configRaw, contentType: 'application/json' });
 }
 
