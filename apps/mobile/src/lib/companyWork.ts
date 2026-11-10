@@ -275,3 +275,17 @@ export function bucketOverviewTasks(tasks: readonly MirrorWorkTask[], today: str
     done: tasks.filter((x) => x.status === 'done' && x.day === today).length,
   };
 }
+
+/** Calendar dot per day: all done, something open and already late, or open ahead. */
+export function taskDayTones(
+  tasks: readonly Pick<MirrorWorkTask, 'status' | 'day'>[],
+  today: string,
+): Record<string, 'done' | 'late' | 'open'> {
+  const tones: Record<string, 'done' | 'late' | 'open'> = {};
+  for (const task of tasks) {
+    const now = tones[task.day];
+    const next = task.status === 'done' ? 'done' : task.day < today ? 'late' : 'open';
+    if (!now || now === 'done' || (now === 'open' && next === 'late')) tones[task.day] = next;
+  }
+  return tones;
+}

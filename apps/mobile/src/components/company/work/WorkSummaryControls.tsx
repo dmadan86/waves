@@ -8,7 +8,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { iconSize, useTheme } from '@waves/ui';
+import { iconSize, Text, useTheme } from '@waves/ui';
 import { GREEN } from '@/components/company/dashboard/parts';
 import { RED } from '@/components/company/dashboard/overviewKit';
 import type { MenuAnchor } from '@/components/SortMenu';
@@ -64,6 +64,8 @@ export function WorkToolbar({
   query,
   onQueryChange,
   onMore,
+  title,
+  onAdd,
 }: {
   /** Null hides the switch (an employee only sees their own tasks). */
   mode: WorkMode | null;
@@ -71,6 +73,9 @@ export function WorkToolbar({
   query: string;
   onQueryChange: (value: string) => void;
   onMore: (anchor: MenuAnchor | null) => void;
+  /** The Tasks page header: title with its subtitle, and the brand Add pill for those who can add. */
+  title?: string;
+  onAdd?: () => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -114,27 +119,8 @@ export function WorkToolbar({
         </Pressable>
       </View>
     );
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-      {/* Three pills can outgrow a narrow screen in longer languages: scroll rather than clip. */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={{ flex: 1, minWidth: 0 }}
-        contentContainerStyle={{ gap: 6 }}
-      >
-        {mode ? (
-          <SegmentedPills
-            options={[
-              { value: 'date' as WorkMode, label: t.company.workByDate },
-              { value: 'person' as WorkMode, label: t.company.workByPerson },
-              { value: 'status' as WorkMode, label: t.company.workByStatus },
-            ]}
-            value={mode}
-            onChange={onMode}
-          />
-        ) : null}
-      </ScrollView>
+  const buttons = (
+    <>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t.company.workSearch}
@@ -144,8 +130,64 @@ export function WorkToolbar({
         <Ionicons name="search-outline" size={iconSize.base} color={theme.color.text} />
       </Pressable>
       <Anchored onAnchor={onMore} label={t.company.workFilter} style={round}>
-        <Ionicons name="ellipsis-vertical" size={iconSize.base} color={theme.color.text} />
+        <Ionicons
+          name={title ? 'options-outline' : 'ellipsis-vertical'}
+          size={iconSize.base}
+          color={theme.color.text}
+        />
       </Anchored>
+      {title && onAdd ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.company.workAdd}
+          onPress={onAdd}
+          style={{ ...pill, backgroundColor: theme.color.brand, borderColor: theme.color.brand }}
+        >
+          <Ionicons name="add" size={iconSize.base} color={theme.color.onBrand} />
+          <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>{t.calendar.add}</Text>
+        </Pressable>
+      ) : null}
+    </>
+  );
+  return (
+    <View style={{ gap: 8 }}>
+      {title ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="heading" numberOfLines={1} style={{ fontWeight: '800' }}>
+              {title}
+            </Text>
+            <Text variant="caption" tone="muted" numberOfLines={2}>
+              {t.company.workHeaderSub}
+            </Text>
+          </View>
+          {buttons}
+        </View>
+      ) : null}
+      {mode || !title ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          {/* Three pills can outgrow a narrow screen in longer languages: scroll rather than clip. */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ flex: 1, minWidth: 0 }}
+            contentContainerStyle={{ gap: 6 }}
+          >
+            {mode ? (
+              <SegmentedPills
+                options={[
+                  { value: 'date' as WorkMode, label: t.company.workByDate },
+                  { value: 'person' as WorkMode, label: t.company.workByPerson },
+                  { value: 'status' as WorkMode, label: t.company.workByStatus },
+                ]}
+                value={mode}
+                onChange={onMode}
+              />
+            ) : null}
+          </ScrollView>
+          {title ? null : buttons}
+        </View>
+      ) : null}
     </View>
   );
 }

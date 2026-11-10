@@ -241,6 +241,15 @@ export interface UiStrings {
     eventPeople: string;
     eventEveryone: string;
     eventSite: string;
+    eventDate: string;
+    eventTimeLabel: string;
+    eventSiteLabel: string;
+    eventOptional: string;
+    eventTitlePlaceholder: string;
+    eventSearch: string;
+    eventSelected: string;
+    eventCreate: string;
+    eventSave: string;
     person: string;
     startDate: string;
     endDate: string;
@@ -1749,11 +1758,15 @@ export interface UiStrings {
     workTodo: string;
     workDoing: string;
     workDone: string;
+    workHeaderSub: string;
+    workTasksN: string;
     workBlocked: string;
     workReason: string;
     workNote: string;
     workDue: string;
     workNotesOptional: string;
+    workDueDate: string;
+    workDueTime: string;
     workRepeat: string;
     workRemove: string;
     workStatus: string;
@@ -8166,6 +8179,15 @@ const en: UiStrings = {
     eventPeople: 'People involved',
     eventEveryone: 'Everyone',
     eventSite: 'Site, optional',
+    eventDate: 'Date',
+    eventTimeLabel: 'Time',
+    eventSiteLabel: 'Site',
+    eventOptional: '(optional)',
+    eventTitlePlaceholder: 'e.g. Site visit, Team meeting',
+    eventSearch: 'Search people…',
+    eventSelected: 'Selected: {n}',
+    eventCreate: 'Create event',
+    eventSave: 'Save event',
     person: 'Person',
     startDate: 'From',
     endDate: 'To',
@@ -9556,11 +9578,15 @@ const en: UiStrings = {
     workTodo: 'To do',
     workDoing: 'In progress',
     workDone: 'Done',
+    workHeaderSub: 'Site work, visits and follow-ups',
+    workTasksN: '{n} tasks',
     workBlocked: 'Blocked',
     workReason: 'Why is it blocked?',
     workNote: 'Note',
     workDue: 'Due date & time',
     workNotesOptional: 'Notes (optional)',
+    workDueDate: 'Due date',
+    workDueTime: 'Due time',
     workRepeat: 'Repeat tomorrow',
     workRemove: 'Remove',
     workStatus: 'Status',
@@ -15417,6 +15443,15 @@ const ta: UiStrings = {
     eventPeople: 'பங்கேற்பவர்கள்',
     eventEveryone: 'அனைவரும்',
     eventSite: 'இடம், விருப்பமானது',
+    eventDate: 'தேதி',
+    eventTimeLabel: 'நேரம்',
+    eventSiteLabel: 'இடம்',
+    eventOptional: '(விருப்பமானது)',
+    eventTitlePlaceholder: 'எ.கா. தள ஆய்வு, குழுக் கூட்டம்',
+    eventSearch: 'நபர்களைத் தேடு…',
+    eventSelected: 'தேர்ந்தவை: {n}',
+    eventCreate: 'நிகழ்வை உருவாக்கு',
+    eventSave: 'நிகழ்வைச் சேமி',
     person: 'நபர்',
     startDate: 'தொடக்கம்',
     endDate: 'முடிவு',
@@ -16833,11 +16868,15 @@ const ta: UiStrings = {
     workTodo: 'செய்ய வேண்டும்',
     workDoing: 'செய்கிறார்',
     workDone: 'முடிந்தது',
+    workHeaderSub: 'தளப் பணிகள், வருகைகள், பின்தொடர்தல்கள்',
+    workTasksN: '{n} பணிகள்',
     workBlocked: 'தடை',
     workReason: 'தடைக்கான காரணம்?',
     workNote: 'குறிப்பு',
     workDue: 'கடைசி தேதி மற்றும் நேரம்',
     workNotesOptional: 'குறிப்புகள் (விருப்பம்)',
+    workDueDate: 'கடைசி தேதி',
+    workDueTime: 'கடைசி நேரம்',
     workRepeat: 'நாளை மீண்டும்',
     workRemove: 'நீக்கு',
     workStatus: 'நிலை',
@@ -22886,6 +22925,15 @@ const hi: UiStrings = {
     eventPeople: 'शामिल लोग',
     eventEveryone: 'सभी',
     eventSite: 'स्थान, वैकल्पिक',
+    eventDate: 'तारीख',
+    eventTimeLabel: 'समय',
+    eventSiteLabel: 'स्थान',
+    eventOptional: '(वैकल्पिक)',
+    eventTitlePlaceholder: 'जैसे साइट विज़िट, टीम मीटिंग',
+    eventSearch: 'लोगों को खोजें…',
+    eventSelected: 'चुने गए: {n}',
+    eventCreate: 'कार्यक्रम बनाएँ',
+    eventSave: 'कार्यक्रम सहेजें',
     person: 'व्यक्ति',
     startDate: 'से',
     endDate: 'तक',
@@ -24278,11 +24326,15 @@ const hi: UiStrings = {
     workTodo: 'करना है',
     workDoing: 'जारी है',
     workDone: 'पूरा',
+    workHeaderSub: 'साइट का काम, विज़िट और फ़ॉलो-अप',
+    workTasksN: '{n} काम',
     workBlocked: 'रुका हुआ',
     workReason: 'काम क्यों रुका है?',
     workNote: 'नोट',
     workDue: 'नियत तारीख और समय',
     workNotesOptional: 'नोट्स (वैकल्पिक)',
+    workDueDate: 'नियत तारीख',
+    workDueTime: 'नियत समय',
     workRepeat: 'कल दोहराएँ',
     workRemove: 'हटाएँ',
     workStatus: 'स्थिति',
@@ -30153,6 +30205,15 @@ const ar: UiStrings = {
     eventPeople: 'الأشخاص المعنيون',
     eventEveryone: 'الجميع',
     eventSite: 'الموقع، اختياري',
+    eventDate: 'التاريخ',
+    eventTimeLabel: 'الوقت',
+    eventSiteLabel: 'الموقع',
+    eventOptional: '(اختياري)',
+    eventTitlePlaceholder: 'مثلاً: زيارة موقع، اجتماع الفريق',
+    eventSearch: 'ابحث عن الأشخاص…',
+    eventSelected: 'المحدد: {n}',
+    eventCreate: 'إنشاء فعالية',
+    eventSave: 'حفظ الفعالية',
     person: 'الشخص',
     startDate: 'من',
     endDate: 'إلى',
@@ -31634,11 +31695,15 @@ const ar: UiStrings = {
     workTodo: 'للقيام بها',
     workDoing: 'قيد العمل',
     workDone: 'مكتملة',
+    workHeaderSub: 'أعمال الموقع والزيارات والمتابعات',
+    workTasksN: '{n} مهام',
     workBlocked: 'متوقفة',
     workReason: 'لماذا توقفت؟',
     workNote: 'ملاحظة',
     workDue: 'تاريخ ووقت الاستحقاق',
     workNotesOptional: 'ملاحظات (اختياري)',
+    workDueDate: 'تاريخ الاستحقاق',
+    workDueTime: 'وقت الاستحقاق',
     workRepeat: 'تكرار غدًا',
     workRemove: 'إزالة',
     workStatus: 'الحالة',
