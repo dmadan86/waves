@@ -456,7 +456,7 @@ export function countNewActivity(
 }
 
 /** The feed shows this many days by default; "Show older" adds the same again. */
-export const ACTIVITY_WINDOW_DAYS = 30;
+export const ACTIVITY_WINDOW_DAYS = 15;
 
 /** Local midnight `days` days before `now`: events at or after it are in the window. */
 export function activityCutoff(now: number, days: number): number {
