@@ -89,6 +89,8 @@ export enum MutationKind {
   CompanyLeaveSet = 'company_leave.set',
   CompanyLeaveDecide = 'company_leave.decide',
   CompanyLeaveRemove = 'company_leave.remove',
+  CompanyLeaveTypeSet = 'company_leave_type.set',
+  CompanyLeaveTypeRemove = 'company_leave_type.remove',
   CompanyEventSet = 'company_event.set',
   CompanyEventRemove = 'company_event.remove',
   CompanyDatesSet = 'company_dates.set',
@@ -652,6 +654,8 @@ export interface CompanyLeaveSetPayload {
   readonly halfDay: boolean;
   readonly kind: LeaveKind;
   readonly reason: string | null;
+  /** The leave type (policy) this request draws from; null/absent = unspecified, never deducted. */
+  readonly leaveTypeId?: string | null;
 }
 export interface CompanyLeaveDecidePayload {
   readonly id: string;
@@ -659,6 +663,25 @@ export interface CompanyLeaveDecidePayload {
   readonly note: string | null;
 }
 export interface CompanyLeaveRemovePayload {
+  readonly id: string;
+}
+/** Owner: create or edit a leave type (policy). Days are in quarters at the finest (0, 0.5, 1 ... 5). */
+export interface CompanyLeaveTypeSetPayload {
+  readonly id: string;
+  readonly name: string;
+  readonly accrualPerMonth: number;
+  readonly carryForward: boolean;
+  /** Max days carried into the next year; null = no cap. Ignored when carry forward is off. */
+  readonly carryForwardCap: number | null;
+  /** Max days earned per calendar year; null = no cap. */
+  readonly annualCap: number | null;
+  /** A paid type counts as a paid day in the wage-days prefill. */
+  readonly paid: boolean;
+  /** Allow approving beyond the balance (default off). */
+  readonly allowOverdraw: boolean;
+  readonly active: boolean;
+}
+export interface CompanyLeaveTypeRemovePayload {
   readonly id: string;
 }
 /** Owner/manager: a simple dated event. `people` empty = the whole company (owner only). */
@@ -1083,6 +1106,8 @@ export enum SyncTable {
   /** Group-scoped, pull-only: holidays (every member), leave and birthdays/joining dates (RLS: own, team, owner; opted-in birthdays), events (those involved). */
   CompanyHolidays = 'company_holidays',
   CompanyLeave = 'company_leave',
+  /** Group-scoped, pull-only: leave types (policies); every live member reads them. */
+  CompanyLeaveTypes = 'company_leave_types',
   CompanyEvents = 'company_events',
   CompanyMemberDates = 'company_member_dates',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;

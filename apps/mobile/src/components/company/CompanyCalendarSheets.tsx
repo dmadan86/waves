@@ -3,6 +3,7 @@ import { randomUUID } from 'expo-crypto';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { leaveDays } from '@waves/core';
 import { Button, Callout, Chip, iconSize, Row, Sheet, Text, Toggle, useTheme } from '@waves/ui';
 import { FieldLabel, SelectField } from '@/components/company/EntryForm';
 import { birthdayToDate, dateToBirthday, formatBirthday, type Birthday } from '@/lib/birthday';
@@ -21,6 +22,7 @@ import {
   type MirrorHoliday,
   type MirrorLeave,
 } from '@/data/companyCalendar';
+import { daysText, useLeaveBalances, useLeaveCheck, useLeaveTypes } from '@/data/companyLeave';
 import { useCompanyEntries, useCompanyProjects, useCompanySuspended } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { displayName, isGhost } from '@/data/types';
@@ -576,7 +578,13 @@ function LeaveFormSheetInner({
   const [start, setStart] = useState(day ?? today);
   const [end, setEnd] = useState(day ?? today);
   const [half, setHalf] = useState(false);
-  const [kind, setKind] = useState<'casual' | 'sick' | 'other'>('casual');
+  const types = useLeaveTypes(groupId, true);
+  const [pickedType, setType] = useState<string | null | undefined>(undefined);
+  // First type by default; null = "Unspecified" (counted nowhere), kept for leave that fits no policy.
+  const typeId = pickedType === undefined ? (types[0]?.id ?? null) : pickedType;
+  const balances = useLeaveBalances(groupId, memberId || null);
+  const type = types.find((x) => x.id === typeId);
+  const kind = type?.kind ?? 'other';
   const [reason, setReason] = useState('');
   const persons = view.members.filter(
     (p) =>
@@ -588,6 +596,15 @@ function LeaveFormSheetInner({
     (l) =>
       l.memberId === memberId && l.status !== 'rejected' && l.startDay <= end && l.endDay >= start,
   );
+  const rangeOk = iso(start) && iso(end) && end >= start;
+  const count = rangeOk ? leaveDays({ startDay: start, endDay: end, halfDay: half }) : 0;
+  const check = useLeaveCheck(groupId, {
+    memberId,
+    typeId,
+    startDay: start,
+    endDay: end,
+    halfDay: half && start === end,
+  });
   const error =
     !iso(start) || !iso(end) || end < start || days(start, end) > 60
       ? t.calendar.errRange
@@ -597,7 +614,11 @@ function LeaveFormSheetInner({
           ? t.calendar.errWindow
           : overlap
             ? t.calendar.errOverlap
-            : null;
+            : check && !check.ok
+              ? t.calendar.leaveOverBalance
+                  .replace('{n}', daysText(Math.max(0, check.available)))
+                  .replace('{type}', check.type.name)
+              : null;
   return (
     <FormSheet visible={visible} onClose={onClose}>
       <Text variant="title">
@@ -628,22 +649,37 @@ function LeaveFormSheetInner({
           </Text>
         </Pressable>
       ) : null}
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {(['casual', 'sick', 'other'] as const).map((k) => (
-          <Pressable key={k} onPress={() => setKind(k)}>
-            <Chip
-              label={
-                k === 'casual'
-                  ? t.calendar.leaveCasual
-                  : k === 'sick'
-                    ? t.calendar.leaveSick
-                    : t.calendar.leaveOther
-              }
-              selected={kind === k}
-            />
-          </Pressable>
-        ))}
+      <Text variant="caption" tone="muted">
+        {t.calendar.leaveType}
+      </Text>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+        {types.map((x) => {
+          const left = balances.find((b) => b.type.id === x.id)?.balance.balance;
+          return (
+            <Pressable key={x.id} onPress={() => setType(x.id)}>
+              <Chip
+                label={
+                  left === undefined
+                    ? x.name
+                    : `${x.name} · ${t.calendar.leaveLeft.replace('{n}', daysText(left))}`
+                }
+                selected={typeId === x.id}
+              />
+            </Pressable>
+          );
+        })}
+        <Pressable onPress={() => setType(null)}>
+          <Chip label={t.calendar.leaveTypeNone} selected={typeId === null} />
+        </Pressable>
       </View>
+      {count > 0 ? (
+        <Text variant="caption" tone="muted">
+          {t.calendar.leaveDaysSelected.replace('{n}', daysText(count))}
+          {check && check.ok
+            ? ` · ${t.calendar.leaveAfter.replace('{n}', daysText(check.available - check.days))}`
+            : ''}
+        </Text>
+      ) : null}
       <Field label={t.calendar.reason} value={reason} onChange={setReason} />
       {error ? <Callout tone="negative">{error}</Callout> : null}
       <Actions
@@ -658,6 +694,7 @@ function LeaveFormSheetInner({
               halfDay: half,
               kind,
               reason: reason.trim() || null,
+              leaveTypeId: typeId,
             },
             { onSuccess: onClose },
           )
@@ -680,7 +717,19 @@ function LeaveDecisionSheetInner({
   const decide = useDecideLeave(groupId);
   const [note, setNote] = useState('');
   const person = view.members.find((p) => p.id === leave?.memberId);
+  const types = useLeaveTypes(groupId);
+  // The server refuses an approval that would take the balance below zero; say so here instead.
+  const check = useLeaveCheck(groupId, {
+    memberId: leave?.memberId ?? '',
+    typeId: leave?.leaveTypeId ?? null,
+    startDay: leave?.startDay ?? '',
+    endDay: leave?.endDay ?? '',
+    halfDay: leave?.halfDay ?? false,
+    ignoreId: leave?.id,
+  });
   if (!leave) return null;
+  const typeName = types.find((x) => x.id === leave.leaveTypeId)?.name;
+  const blocked = !!check && !check.ok;
   const decision = (approve: boolean) =>
     decide.mutate({ id: leave.id, approve, note: note.trim() || null }, { onSuccess: onClose });
   return (
@@ -696,13 +745,22 @@ function LeaveDecisionSheetInner({
         {leave.startDay} – {leave.endDay}
       </Text>
       <Text>
-        {leave.kind === 'casual'
-          ? t.calendar.leaveCasual
-          : leave.kind === 'sick'
-            ? t.calendar.leaveSick
-            : t.calendar.leaveOther}
+        {typeName ??
+          (leave.kind === 'casual'
+            ? t.calendar.leaveCasual
+            : leave.kind === 'sick'
+              ? t.calendar.leaveSick
+              : t.calendar.leaveOther)}
         {leave.halfDay ? ` · ${t.calendar.halfDay}` : ''}
+        {` · ${t.calendar.leaveDaysSelected.replace('{n}', daysText(leaveDays(leave)))}`}
       </Text>
+      {blocked && check ? (
+        <Callout tone="negative">
+          {t.calendar.leaveCannotApprove
+            .replace('{n}', daysText(Math.max(0, check.available)))
+            .replace('{type}', check.type.name)}
+        </Callout>
+      ) : null}
       {leave.reason ? <Text>{leave.reason}</Text> : null}
       <Field label={t.calendar.decisionNote} value={note} onChange={setNote} />
       <Row style={{ gap: 8 }}>
@@ -715,7 +773,12 @@ function LeaveDecisionSheetInner({
           />
         </View>
         <View style={{ flex: 1 }}>
-          <Button label={t.calendar.approve} fullWidth onPress={() => decision(true)} />
+          <Button
+            label={t.calendar.approve}
+            fullWidth
+            disabled={blocked || decide.isPending}
+            onPress={() => decision(true)}
+          />
         </View>
       </Row>
     </FormSheet>

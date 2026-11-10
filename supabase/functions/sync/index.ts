@@ -112,6 +112,8 @@ type MutationKind =
   | 'company_leave.set'
   | 'company_leave.decide'
   | 'company_leave.remove'
+  | 'company_leave_type.set'
+  | 'company_leave_type.remove'
   | 'company_event.set'
   | 'company_event.remove'
   | 'company_dates.set'
@@ -411,6 +413,7 @@ const GROUP_TABLES = [
   // Calendar: holidays (every member), leave, events and birthdays; RLS filters each to what the caller may see.
   ['company_holidays', '*'],
   ['company_leave', '*'],
+  ['company_leave_types', '*'],
   ['company_events', '*'],
   ['company_member_dates', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
@@ -1259,8 +1262,37 @@ export class SyncSession {
           p_half: mutation.payload.halfDay === true,
           p_kind: kind,
           p_reason: companyReason(mutation.payload.reason, 'reason', false),
+          p_leave_type_id: companyUuid(mutation.payload.leaveTypeId ?? null, 'leaveTypeId', true),
         });
       }
+      case 'company_leave_type.set': {
+        const p = mutation.payload;
+        const days = (v: unknown, field: string, nullable: boolean): number | null => {
+          if (nullable && (v === null || v === undefined)) return null;
+          if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 366)
+            companyInvalid(field);
+          return v as number;
+        };
+        for (const f of ['carryForward', 'paid', 'allowOverdraw', 'active'] as const)
+          if (typeof p[f] !== 'boolean') companyInvalid(f);
+        return await this.rpcAsCaller('waves_company_leave_type_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(p.id, 'id'),
+          p_name: companyReason(p.name, 'name', true),
+          p_accrual: days(p.accrualPerMonth, 'accrualPerMonth', false),
+          p_carry: p.carryForward,
+          p_carry_cap: days(p.carryForwardCap, 'carryForwardCap', true),
+          p_annual_cap: days(p.annualCap, 'annualCap', true),
+          p_paid: p.paid,
+          p_allow_overdraw: p.allowOverdraw,
+          p_active: p.active,
+        });
+      }
+      case 'company_leave_type.remove':
+        return await this.rpcAsCaller('waves_company_leave_type_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
       case 'company_leave.decide':
         if (typeof mutation.payload.approve !== 'boolean') companyInvalid('approve');
         return await this.rpcAsCaller('waves_company_leave_decide', {

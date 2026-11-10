@@ -173,6 +173,8 @@ export interface MemberRow {
   payment_rail?: string | null;
   payment_handle?: string | null;
   left_at: string | null;
+  /** When they were added (ISO instant); a company's leave balance starts counting from here. */
+  created_at?: string | null;
   employment_ended_on?: string | null;
   employment_note?: string | null;
   /** Company groups: this employee's default daily bata rate, minor units (decimal string). */

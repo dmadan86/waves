@@ -71,6 +71,8 @@ export interface CalendarPayRule {
     readonly halfDay: boolean;
     readonly kind: 'casual' | 'sick' | 'other';
     readonly status: 'pending' | 'approved' | 'rejected';
+    /** The leave type's own "paid" setting; absent (no type) follows the company-wide switch. */
+    readonly paid?: boolean;
   }[];
   /** Company setting "Paid holidays" (default on). */
   readonly paidHolidays: boolean;
@@ -87,8 +89,8 @@ function addDays(iso: string, n: number): string {
 /**
  * Wage days for [start, end] from attendance plus the calendar. Per day, first match wins:
  *  1. an attendance mark (present 1, half 0.5, absent 0) - the owner's/manager's word is final;
- *  2. approved leave: 0 (absent), or when "Paid sick/casual leave" is on and the kind is casual/sick,
- *     1 day (0.5 for a half-day);
+ *  2. approved leave: 0 (absent), or 1 day (0.5 for a half-day) when it is paid: the leave type's own
+ *     "paid" setting, or for a request with no type "Paid sick/casual leave" on and kind casual/sick;
  *  3. a holiday: 1 when "Paid holidays" is on, else 0;
  *  4. otherwise 0 (unmarked).
  * Pending and rejected leave never counts. Returns "" when nothing counts, like attendanceDaysText.
@@ -113,7 +115,8 @@ export function workedDaysText(
     }
     const l = leave.find((x) => x.startDay <= day && day <= x.endDay);
     if (l) {
-      if (rule.paidLeave && l.kind !== 'other') hundredths += l.halfDay ? 50 : 100;
+      const paid = l.paid ?? (rule.paidLeave && l.kind !== 'other');
+      if (paid) hundredths += l.halfDay ? 50 : 100;
       continue;
     }
     if (rule.paidHolidays && rule.holidays.some((h) => h.startDay <= day && day <= h.endDay))

@@ -35,6 +35,7 @@ import {
 import { AttendanceMonth } from '@/components/company/AttendanceMonth';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
 import { CompanyTeamCard } from '@/components/company/CompanyTeamCard';
+import { LeaveBalanceCard } from '@/components/company/LeaveBalances';
 import { EmployeeIdentity } from '@/components/company/employee/EmployeeIdentity';
 import {
   birthdayText,
@@ -582,6 +583,7 @@ export default function CompanyStatementScreen() {
                       />
                     </StandardCard>
                   ) : null}
+                  <LeaveBalanceCard groupId={groupId} memberId={member.id} />
                   <View ref={permsRef} collapsable={false}>
                     <CompanyTeamCard groupId={groupId} view={view} member={member} />
                   </View>
@@ -592,6 +594,7 @@ export default function CompanyStatementScreen() {
           {member && !detail ? (
             <>
               {showAttendance ? <AttendanceMonth groupId={groupId} memberId={member.id} /> : null}
+              <LeaveBalanceCard groupId={groupId} memberId={member.id} />
               <CompanyTeamCard groupId={groupId} view={view} member={member} />
               <CompanyStatementView
                 view={view}

@@ -74,6 +74,8 @@ import type {
   CompanyLeaveSetPayload,
   CompanyLeaveDecidePayload,
   CompanyLeaveRemovePayload,
+  CompanyLeaveTypeSetPayload,
+  CompanyLeaveTypeRemovePayload,
   CompanyEventSetPayload,
   CompanyEventRemovePayload,
   CompanyDatesSetPayload,
@@ -151,6 +153,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CompanyWorkTasks,
   SyncTable.CompanyHolidays,
   SyncTable.CompanyLeave,
+  SyncTable.CompanyLeaveTypes,
   SyncTable.CompanyEvents,
   SyncTable.CompanyMemberDates,
   SyncTable.TripMemberBudgets,
@@ -2454,6 +2457,22 @@ export interface MirrorLeave {
   readonly reason: string | null;
   readonly status: 'pending' | 'approved' | 'rejected';
   readonly decisionNote: string | null;
+  readonly leaveTypeId: string | null;
+  readonly pending?: boolean;
+}
+export interface MirrorLeaveType {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: LeaveKind;
+  readonly accrualPerMonth: number;
+  readonly carryForward: boolean;
+  readonly carryForwardCap: number | null;
+  readonly annualCap: number | null;
+  readonly paid: boolean;
+  readonly allowOverdraw: boolean;
+  readonly active: boolean;
+  /** ISO date the type started earning. */
+  readonly startsOn: string;
   readonly pending?: boolean;
 }
 export interface MirrorEvent {
@@ -2474,6 +2493,7 @@ export interface MirrorMemberDates {
 export interface MirrorCalendar {
   readonly holidays: readonly MirrorHoliday[];
   readonly leave: readonly MirrorLeave[];
+  readonly leaveTypes: readonly MirrorLeaveType[];
   readonly events: readonly MirrorEvent[];
   readonly dates: ReadonlyMap<string, MirrorMemberDates>;
 }
@@ -2511,6 +2531,23 @@ export function materialiseCalendar(
       reason: (r.reason as string | null) ?? null,
       status: r.status as MirrorLeave['status'],
       decisionNote: (r.decision_note as string | null) ?? null,
+      leaveTypeId: (r.leave_type_id as string | null) ?? null,
+    });
+  const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+  const leaveTypes = new Map<string, MirrorLeaveType>();
+  for (const r of live(SyncTable.CompanyLeaveTypes))
+    leaveTypes.set(r.id as string, {
+      id: r.id as string,
+      name: r.name as string,
+      kind: r.kind as LeaveKind,
+      accrualPerMonth: Number(r.accrual_days_per_month),
+      carryForward: r.carry_forward === true,
+      carryForwardCap: num(r.carry_forward_cap),
+      annualCap: num(r.annual_cap),
+      paid: r.paid === true,
+      allowOverdraw: r.allow_overdraw === true,
+      active: r.active !== false,
+      startsOn: String(r.starts_on).slice(0, 10),
     });
   const events = new Map<string, MirrorEvent>();
   for (const r of live(SyncTable.CompanyEvents))
@@ -2545,6 +2582,7 @@ export function materialiseCalendar(
         ...l,
         status: options.meId && l.memberId !== options.meId ? 'approved' : 'pending',
         decisionNote: null,
+        leaveTypeId: l.leaveTypeId ?? null,
         pending: true,
       });
     } else if (m.kind === 'company_leave.decide') {
@@ -2557,6 +2595,25 @@ export function materialiseCalendar(
           decisionNote: d.note,
         });
     } else if (m.kind === 'company_leave.remove') leave.delete((p as CompanyLeaveRemovePayload).id);
+    else if (m.kind === 'company_leave_type.set') {
+      const t = p as CompanyLeaveTypeSetPayload;
+      const old = leaveTypes.get(t.id);
+      leaveTypes.set(t.id, {
+        id: t.id,
+        name: t.name.trim(),
+        kind: old?.kind ?? 'other',
+        accrualPerMonth: t.accrualPerMonth,
+        carryForward: t.carryForward,
+        carryForwardCap: t.carryForward ? t.carryForwardCap : null,
+        annualCap: t.annualCap,
+        paid: t.paid,
+        allowOverdraw: t.allowOverdraw,
+        active: t.active,
+        startsOn: old?.startsOn ?? m.clientCreatedAt.slice(0, 10),
+        pending: true,
+      });
+    } else if (m.kind === 'company_leave_type.remove')
+      leaveTypes.delete((p as CompanyLeaveTypeRemovePayload).id);
     else if (m.kind === 'company_event.set') {
       const e = p as CompanyEventSetPayload;
       events.set(e.id, {
@@ -2580,6 +2637,9 @@ export function materialiseCalendar(
   return {
     holidays: [...holidays.values()].sort((a, b) => byDay(a, b, a.startDay, b.startDay)),
     leave: [...leave.values()].sort((a, b) => byDay(a, b, a.startDay, b.startDay)),
+    leaveTypes: [...leaveTypes.values()].sort(
+      (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+    ),
     events: [...events.values()].sort((a, b) => byDay(a, b, a.day, b.day)),
     dates,
   };
