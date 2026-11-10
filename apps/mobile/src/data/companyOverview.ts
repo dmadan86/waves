@@ -135,12 +135,18 @@ export function useOverview(groupId: string, day: string): Overview {
     const ids = new Set(people.map((p) => p.member.id));
 
     const siteName = new Map(projects.map((p) => [p.id, p.name]));
-    const todays = allTasks.filter((task) => ids.has(task.memberId) && task.day === today);
+    // Today's tasks plus overdue ones still open, so the count matches each person's task list.
+    const todays = allTasks.filter(
+      (task) =>
+        ids.has(task.memberId) &&
+        (task.day === today || (task.day < today && task.status !== 'done')),
+    );
     const open = todays
       // A blocked task is already an urgent escalation; it is not listed twice.
       .filter((task) => task.status !== 'done' && task.status !== 'blocked')
       .sort(
         (a, b) =>
+          a.day.localeCompare(b.day) ||
           priorityRank(a.priority) - priorityRank(b.priority) ||
           (a.dueTime ?? '99:99').localeCompare(b.dueTime ?? '99:99') ||
           a.title.localeCompare(b.title),
