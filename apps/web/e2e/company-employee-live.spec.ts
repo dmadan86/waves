@@ -390,7 +390,7 @@ test.describe.serial('company as an employee, one browser per person', () => {
           .map((n) => Number(n.payload?.amount))
           .sort((x, y) => x - y),
       )
-      .toEqual([500, 20000]);
+      .toEqual([50000, 2000000]); // minor units (paise): 500 and 20,000
   });
 
   test('A is notified of an event the owner creates for them', async () => {
