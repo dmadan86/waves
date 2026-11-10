@@ -150,12 +150,8 @@ test.describe.serial('company money, one browser per person', () => {
 
   test.afterAll(async () => {
     await Promise.allSettled([ownerCtx?.close(), empCtx?.close(), clientCtx?.close()]);
-    if (!admin) return;
-    // Best effort: a failed cleanup must not hide the test result.
-    if (groupId) await admin.from('groups').delete().eq('id', groupId);
-    for (const p of [owner, employee, client]) {
-      if (p) await admin.auth.admin.deleteUser(p.id);
-    }
+    // No data cleanup: activity_log is append-only, so a company can't be deleted, even by the
+    // service role. Each run uses unique emails (as join-live.spec.ts does); run against staging only.
   });
 
   test('owner records an advance, wages and a company-paid expense (approvals off)', async () => {
