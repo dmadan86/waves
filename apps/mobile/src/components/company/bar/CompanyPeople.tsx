@@ -3,7 +3,6 @@
  * Default list = employed employees by name; the sort pop-up toggles name sort and admins (managers and
  * owners, within the viewer's visible set). Not employed is a mode set from the header menu. Every per-person number (today's
  * mark, open tasks, balance) is computed once per render into a map, never per row.
- * shortcut: no "On leave" (no leave data exists yet).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -15,8 +14,9 @@ import { useLocalSearchParams } from 'expo-router';
 import { Text, iconSize, useTheme } from '@waves/ui';
 
 import { RolePill } from '@/components/company/dashboard/parts';
+import { withAlpha } from '@/components/company/dashboard/overviewKit';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { PersonCard } from '@/components/company/bar/PersonCard';
+import { PersonCard, type PersonStatus } from '@/components/company/bar/PersonCard';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { TwoStepPeople } from '@/components/company/twoStep/TwoStepPeople';
 import type { MenuAnchor } from '@/components/SortMenu';
@@ -35,6 +35,7 @@ import {
   type PeopleRow,
   type PeopleView,
 } from '@/data/companyPeople';
+import { useCalendar } from '@/data/companyCalendar';
 import { useAttendance, useWorkTasks } from '@/data/companyWorkday';
 import { employmentPeople, isNotEmployed } from '@/data/companyEmployment';
 import { todayIso } from '@/data/personal';
@@ -66,7 +67,7 @@ export function CompanyPeople({
   const active = useActiveToday(groupId);
   const marks = useAttendance(groupId);
   const allTasks = useWorkTasks(groupId);
-  const [searching, setSearching] = useState(false);
+  const cal = useCalendar(groupId);
   const [tree, setTree] = useState(false);
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState<MenuAnchor | 'open' | null>(null);
@@ -161,6 +162,36 @@ export function CompanyPeople({
     (r) => r.former || !activeToday || !!active?.activeIds.has(r.id),
   );
 
+  const onLeave = new Set(
+    cal.leave
+      .filter((l) => l.status === 'approved' && l.startDay <= today && today <= l.endDay)
+      .map((l) => l.memberId),
+  );
+  const statusOf = (r: PeopleRow): PersonStatus =>
+    r.former ? 'inactive' : onLeave.has(r.id) ? 'leave' : 'active';
+  const count = (s: PersonStatus) => rows.filter((r) => statusOf(r) === s).length;
+  const tiles: { icon: keyof typeof Ionicons.glyphMap; n: number; label: string; ink: string }[] = [
+    { icon: 'people-outline', n: rows.length, label: t.members, ink: theme.color.brand },
+    {
+      icon: 'checkmark-circle-outline',
+      n: count('active'),
+      label: t.company.statusActive,
+      ink: theme.color.positive,
+    },
+    {
+      icon: 'person-outline',
+      n: count('leave'),
+      label: t.company.overviewOnLeave,
+      ink: theme.color.warning,
+    },
+    {
+      icon: 'alert-circle-outline',
+      n: count('inactive'),
+      label: t.company.notEmployed,
+      ink: theme.color.textMuted,
+    },
+  ];
+
   const thread = (memberId: string): void =>
     router.push(`/group/${groupId}/company-statement?member=${memberId}`);
   const round = (
@@ -192,240 +223,259 @@ export function CompanyPeople({
   );
 
   return (
-    <ScrollView
-      contentContainerStyle={{
-        padding: theme.spacing.lg,
-        gap: 10,
-        paddingBottom: clearance + 24,
-      }}
-      showsVerticalScrollIndicator={false}
-      keyboardShouldPersistTaps="handled"
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40 }}>
-        {searching ? (
-          <>
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        contentContainerStyle={{
+          padding: theme.spacing.lg,
+          gap: 10,
+          paddingBottom: clearance + 80,
+        }}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          {tiles.map((x) => (
             <View
+              key={x.label}
+              accessible
+              accessibilityLabel={`${x.label}: ${x.n}`}
               style={{
                 flex: 1,
-                flexDirection: 'row',
                 alignItems: 'center',
-                height: 40,
-                paddingHorizontal: 14,
-                gap: 8,
-                borderRadius: theme.radius.pill,
-                backgroundColor: theme.color.surface,
+                gap: 2,
+                paddingVertical: 10,
+                borderRadius: theme.radius.md,
+                backgroundColor: withAlpha(x.ink, 0.1),
               }}
             >
-              <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
-              <TextInput
-                autoFocus
-                value={query}
-                onChangeText={setQuery}
-                placeholder={t.company.searchEmployees}
-                placeholderTextColor={theme.color.textFaint}
-                accessibilityLabel={t.company.searchEmployees}
-                style={{
-                  flex: 1,
-                  paddingVertical: 0,
-                  fontSize: theme.typography.body.fontSize,
-                  color: theme.color.text,
-                }}
-              />
+              <Ionicons name={x.icon} size={iconSize.md} color={x.ink} />
+              <Text style={{ fontSize: 20, lineHeight: 24, fontWeight: '800' }}>{x.n}</Text>
+              <Text variant="micro" tone="muted" numberOfLines={1}>
+                {x.label}
+              </Text>
             </View>
-            {round('close', t.common.close, () => {
-              setSearching(false);
-              setQuery('');
-            })}
-          </>
-        ) : (
-          <>
-            <Text
-              accessibilityRole="header"
-              numberOfLines={1}
-              style={{ fontSize: 26, lineHeight: 32, fontWeight: '800', flexShrink: 1 }}
-            >
-              {t.company.barTeam}
+          ))}
+        </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 40 }}>
+          <View
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              height: 40,
+              paddingHorizontal: 14,
+              gap: 8,
+              borderRadius: theme.radius.md,
+              backgroundColor: theme.color.surface,
+            }}
+          >
+            <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
+            <TextInput
+              value={query}
+              onChangeText={(q) => {
+                setQuery(q);
+                if (q) setTree(false);
+              }}
+              placeholder={t.company.searchEmployees}
+              placeholderTextColor={theme.color.textFaint}
+              accessibilityLabel={t.company.searchEmployees}
+              style={{
+                flex: 1,
+                paddingVertical: 0,
+                fontSize: theme.typography.body.fontSize,
+                color: theme.color.text,
+              }}
+            />
+          </View>
+          {view.isOwner
+            ? round('git-network-outline', t.company.hierTitle, () => setTree((v) => !v), tree)
+            : null}
+          <View ref={buttonRef} collapsable={false}>
+            {/* eslint-disable-next-line react-hooks/refs -- openMenu reads the ref on press, not in render */}
+            {round('options-outline', t.company.filterEmployees, openMenu)}
+          </View>
+        </View>
+
+        {notEmployed ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={onLeaveNotEmployed}
+            style={{
+              alignSelf: 'flex-start',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 12,
+              height: 34,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+              {t.company.notEmployed}
             </Text>
-            {view.suspended
-              ? null
-              : round('add', t.company.qaAddEmployee, () =>
-                  router.push(`/group/${groupId}/members`),
-                )}
-            <View style={{ flex: 1 }} />
-            {round(
-              'search',
-              t.company.searchEmployees,
-              () => {
-                setTree(false);
-                setSearching(true);
-              },
-              !!query,
-            )}
-            {view.isOwner
-              ? round('git-network-outline', t.company.hierTitle, () => setTree((v) => !v), tree)
-              : null}
-            <View ref={buttonRef} collapsable={false}>
-              {/* eslint-disable-next-line react-hooks/refs -- openMenu reads the ref on press, not in render */}
-              {round('swap-vertical', t.company.filterEmployees, openMenu)}
-            </View>
-          </>
-        )}
-      </View>
+            <Ionicons name="close-circle-outline" size={iconSize.sm} color={theme.color.brand} />
+          </Pressable>
+        ) : null}
 
-      {notEmployed ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={onLeaveNotEmployed}
-          style={{
-            alignSelf: 'flex-start',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            paddingHorizontal: 12,
-            height: 34,
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.brandSoft,
-          }}
-        >
-          <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-            {t.company.notEmployed}
-          </Text>
-          <Ionicons name="close-circle-outline" size={iconSize.sm} color={theme.color.brand} />
-        </Pressable>
-      ) : null}
+        {activeToday ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.replace(`/group/${groupId}/company-people`)}
+            style={{
+              alignSelf: 'flex-start',
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              paddingHorizontal: 12,
+              height: 34,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+              {t.company.overviewActiveToday}
+            </Text>
+            <Ionicons name="close-circle-outline" size={iconSize.sm} color={theme.color.brand} />
+          </Pressable>
+        ) : null}
 
-      {activeToday ? (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => router.replace(`/group/${groupId}/company-people`)}
-          style={{
-            alignSelf: 'flex-start',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 6,
-            paddingHorizontal: 12,
-            height: 34,
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.color.brandSoft,
-          }}
-        >
-          <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-            {t.company.overviewActiveToday}
-          </Text>
-          <Ionicons name="close-circle-outline" size={iconSize.sm} color={theme.color.brand} />
-        </Pressable>
-      ) : null}
+        <TwoStepPeople groupId={groupId} />
 
-      <TwoStepPeople groupId={groupId} />
-
-      {tree && !notEmployed ? (
-        <View>
-          {hierarchyRows(view.members).map(({ member: m, level, reports }) => {
-            const name = displayName(m, null, null, t.misc.someone);
-            const pill =
-              m.role === 'admin'
-                ? t.company.pillOwner
-                : m.role === 'manager'
-                  ? t.company.manager
-                  : null;
-            return (
-              <Pressable
-                key={m.id}
-                accessibilityRole="button"
-                accessibilityLabel={pill ? `${name}, ${pill}` : name}
-                onPress={() => thread(m.id)}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 10,
-                  paddingVertical: 6,
-                  marginLeft: level * 18,
-                  paddingLeft: level > 0 ? 10 : 0,
-                  borderLeftWidth: level > 0 ? 1 : 0,
-                  borderLeftColor: theme.color.border,
-                }}
-              >
-                <PersonAvatar member={m} name={name} ghost={isGhost(m)} size={36} />
-                <View style={{ flexShrink: 1 }}>
-                  <Text numberOfLines={1} style={{ fontWeight: '600' }}>
-                    {name}
-                  </Text>
-                  {m.role === 'manager' ? (
-                    <Text variant="caption" tone="muted">
-                      {plural(locale, reports, t.company.employeeCount)}
+        {tree && !notEmployed ? (
+          <View>
+            {hierarchyRows(view.members).map(({ member: m, level, reports }) => {
+              const name = displayName(m, null, null, t.misc.someone);
+              const pill =
+                m.role === 'admin'
+                  ? t.company.pillOwner
+                  : m.role === 'manager'
+                    ? t.company.manager
+                    : null;
+              return (
+                <Pressable
+                  key={m.id}
+                  accessibilityRole="button"
+                  accessibilityLabel={pill ? `${name}, ${pill}` : name}
+                  onPress={() => thread(m.id)}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingVertical: 6,
+                    marginLeft: level * 18,
+                    paddingLeft: level > 0 ? 10 : 0,
+                    borderLeftWidth: level > 0 ? 1 : 0,
+                    borderLeftColor: theme.color.border,
+                  }}
+                >
+                  <PersonAvatar member={m} name={name} ghost={isGhost(m)} size={36} />
+                  <View style={{ flexShrink: 1 }}>
+                    <Text numberOfLines={1} style={{ fontWeight: '600' }}>
+                      {name}
                     </Text>
-                  ) : null}
-                </View>
-                {pill ? <RolePill label={pill} /> : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
+                    {m.role === 'manager' ? (
+                      <Text variant="caption" tone="muted">
+                        {plural(locale, reports, t.company.employeeCount)}
+                      </Text>
+                    ) : null}
+                  </View>
+                  {pill ? <RolePill label={pill} /> : null}
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : null}
 
-      {(!tree || notEmployed) && shown.length > 0 ? (
-        <View
+        {(!tree || notEmployed) && shown.length > 0 ? (
+          <View
+            style={{
+              backgroundColor: theme.color.surface,
+              borderRadius: theme.radius.lg,
+              borderWidth: 1,
+              borderColor: theme.color.border,
+              overflow: 'hidden',
+            }}
+          >
+            {shown.map((r, index) => {
+              const m = byId.get(r.id)!;
+              return (
+                <PersonCard
+                  key={r.id}
+                  member={m}
+                  name={r.name}
+                  ghost={isGhost(m)}
+                  role={r.role}
+                  employeeId={m.employee_id}
+                  note={
+                    r.former && m.employment_ended_on
+                      ? showDate(m.employment_ended_on, locale)
+                      : undefined
+                  }
+                  mark={r.mark}
+                  showMark={!r.former && r.role !== 'owner'}
+                  tasks={plural(locale, r.tasks, t.company.tasksCount)}
+                  balance={r.balance}
+                  balanceText={r.balance ? wholeMoney(r.balance.amount, view.currency, locale) : ''}
+                  status={statusOf(r)}
+                  muted={r.former}
+                  divider={index > 0}
+                  onPress={() => thread(r.id)}
+                />
+              );
+            })}
+          </View>
+        ) : null}
+        {(!tree || notEmployed) && shown.length === 0 ? (
+          <Text variant="caption" tone="muted" align="center" style={{ paddingVertical: 16 }}>
+            {rows.some((r) => r.former === notEmployed)
+              ? t.company.noEmployeesMatch
+              : t.company.noEmployees}
+          </Text>
+        ) : null}
+
+        <OverflowMenu
+          visible={menu !== null}
+          onClose={() => setMenu(null)}
+          anchor={menu === 'open' ? null : menu}
+          items={[
+            {
+              icon: 'text-outline',
+              label: t.company.peopleSortName,
+              toggle: { value: prefs.byName, onChange: (byName) => setPref({ ...prefs, byName }) },
+            },
+            {
+              icon: 'shield-outline',
+              label: t.company.peopleShowAdmins,
+              toggle: { value: prefs.admins, onChange: (admins) => setPref({ ...prefs, admins }) },
+            },
+          ]}
+        />
+      </ScrollView>
+      {view.suspended ? null : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.company.qaAddEmployee}
+          onPress={() => router.push(`/group/${groupId}/members`)}
           style={{
-            backgroundColor: theme.color.surface,
-            borderRadius: theme.radius.lg,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-            overflow: 'hidden',
+            position: 'absolute',
+            right: theme.spacing.lg,
+            bottom: clearance + 16,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            height: 48,
+            paddingHorizontal: 20,
+            borderRadius: theme.radius.pill,
+            backgroundColor: theme.color.brand,
           }}
         >
-          {shown.map((r, index) => {
-            const m = byId.get(r.id)!;
-            return (
-              <PersonCard
-                key={r.id}
-                member={m}
-                name={r.name}
-                ghost={isGhost(m)}
-                role={r.role}
-                employeeId={m.employee_id}
-                note={
-                  r.former && m.employment_ended_on
-                    ? showDate(m.employment_ended_on, locale)
-                    : undefined
-                }
-                mark={r.mark}
-                showMark={!r.former && r.role !== 'owner'}
-                tasks={plural(locale, r.tasks, t.company.tasksCount)}
-                balance={r.balance}
-                balanceText={r.balance ? wholeMoney(r.balance.amount, view.currency, locale) : ''}
-                muted={r.former}
-                divider={index > 0}
-                onPress={() => thread(r.id)}
-              />
-            );
-          })}
-        </View>
-      ) : null}
-      {(!tree || notEmployed) && shown.length === 0 ? (
-        <Text variant="caption" tone="muted" align="center" style={{ paddingVertical: 16 }}>
-          {rows.some((r) => r.former === notEmployed)
-            ? t.company.noEmployeesMatch
-            : t.company.noEmployees}
-        </Text>
-      ) : null}
-
-      <OverflowMenu
-        visible={menu !== null}
-        onClose={() => setMenu(null)}
-        anchor={menu === 'open' ? null : menu}
-        items={[
-          {
-            icon: 'text-outline',
-            label: t.company.peopleSortName,
-            toggle: { value: prefs.byName, onChange: (byName) => setPref({ ...prefs, byName }) },
-          },
-          {
-            icon: 'shield-outline',
-            label: t.company.peopleShowAdmins,
-            toggle: { value: prefs.admins, onChange: (admins) => setPref({ ...prefs, admins }) },
-          },
-        ]}
-      />
-    </ScrollView>
+          <Ionicons name="add" size={iconSize.md} color={theme.color.onBrand} />
+          <Text style={{ color: theme.color.onBrand, fontWeight: '700' }}>
+            {t.company.qaAddEmployee}
+          </Text>
+        </Pressable>
+      )}
+    </View>
   );
 }
