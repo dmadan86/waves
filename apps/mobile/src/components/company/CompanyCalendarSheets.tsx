@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { randomUUID } from 'expo-crypto';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
@@ -22,6 +22,8 @@ import {
   type MirrorHoliday,
   type MirrorLeave,
 } from '@/data/companyCalendar';
+import { CompanyCalendarGrid } from '@/components/company/CompanyCalendarGrid';
+import { isDayDisabled, markDays, pickDay, shiftDay, type Picking } from '@/lib/leaveRange';
 import { daysText, useLeaveBalances, useLeaveCheck, useLeaveTypes } from '@/data/companyLeave';
 import { useCompanyEntries, useCompanyProjects, useCompanySuspended } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
@@ -578,6 +580,12 @@ function LeaveFormSheetInner({
   const [start, setStart] = useState(day ?? today);
   const [end, setEnd] = useState(day ?? today);
   const [half, setHalf] = useState(false);
+  const theme = useTheme();
+  const [picking, setPicking] = useState<Picking>('start');
+  const [shown, setShown] = useState(() => {
+    const d = day ?? today;
+    return { year: Number(d.slice(0, 4)), month: Number(d.slice(5, 7)) };
+  });
   const types = useLeaveTypes(groupId, true);
   const [pickedType, setType] = useState<string | null | undefined>(undefined);
   // First type by default; null = "Unspecified" (counted nowhere), kept for leave that fits no policy.
@@ -595,6 +603,41 @@ function LeaveFormSheetInner({
   const overlap = cal.leave.some(
     (l) =>
       l.memberId === memberId && l.status !== 'rejected' && l.startDay <= end && l.endDay >= start,
+  );
+  // A dot on the member's own leave (amber) and on company holidays (brand), inside the allowed window.
+  const dots = useMemo(
+    () =>
+      markDays(
+        [
+          ...cal.leave
+            .filter((l) => l.memberId === memberId && l.status !== 'rejected')
+            .map((l) => ({ ...l, value: theme.color.warning })),
+          ...cal.holidays.map((h) => ({ ...h, value: theme.color.brand })),
+        ],
+        shiftDay(today, -60),
+        shiftDay(today, 365),
+      ),
+    [cal.leave, cal.holidays, memberId, today, theme],
+  );
+  const chip = (which: Picking, label: string, value: string) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: picking === which }}
+      onPress={() => setPicking(which)}
+      style={{
+        flex: 1,
+        borderWidth: picking === which ? 2 : 1,
+        borderColor: picking === which ? theme.color.brand : theme.color.border,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.md,
+        gap: 2,
+      }}
+    >
+      <Text variant="micro" tone="muted">
+        {label}
+      </Text>
+      <Text>{value}</Text>
+    </Pressable>
   );
   const rangeOk = iso(start) && iso(end) && end >= start;
   const count = rangeOk ? leaveDays({ startDay: start, endDay: end, halfDay: half }) : 0;
@@ -639,8 +682,26 @@ function LeaveFormSheetInner({
           ))}
         </>
       ) : null}
-      <Field label={t.calendar.startDate} value={start} onChange={setStart} />
-      <Field label={t.calendar.endDate} value={end} onChange={setEnd} />
+      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+        {chip('start', t.calendar.startDate, start)}
+        {chip('end', t.calendar.endDate, end)}
+      </View>
+      <CompanyCalendarGrid
+        year={shown.year}
+        month={shown.month}
+        items={[]}
+        selectedDay={null}
+        range={{ start, end }}
+        dots={dots}
+        isDisabled={(d) => isDayDisabled(d, today)}
+        onMonthChange={(year, month) => setShown({ year, month })}
+        onSelect={(d) => {
+          const next = pickDay({ start, end, picking }, d);
+          setStart(next.start);
+          setEnd(next.end);
+          setPicking(next.picking);
+        }}
+      />
       {start === end ? (
         <Pressable onPress={() => setHalf(!half)}>
           <Text>

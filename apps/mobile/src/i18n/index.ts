@@ -322,6 +322,7 @@ export interface UiStrings {
     leaveEarned: string;
     leaveTaken: string;
     leaveRequested: string;
+    upcomingTimeOff: string;
     leaveOverBalance: string;
     leaveCannotApprove: string;
     wageRuleNote: string;
@@ -8334,6 +8335,7 @@ const en: UiStrings = {
     leaveEarned: 'Earned',
     leaveTaken: 'Taken',
     leaveRequested: 'Requested',
+    upcomingTimeOff: 'Upcoming time off',
     leaveOverBalance: 'Only {n} days left in {type}. This request is longer.',
     leaveCannotApprove: 'Cannot approve: only {n} days left in {type}.',
     wageRuleNote:
@@ -15676,6 +15678,7 @@ const ta: UiStrings = {
     leaveEarned: 'பெற்றது',
     leaveTaken: 'எடுத்தது',
     leaveRequested: 'கோரியது',
+    upcomingTimeOff: 'வரவிருக்கும் விடுப்பு',
     leaveOverBalance: '{type} இல் {n} நாட்கள் மட்டுமே உள்ளன. இந்தக் கோரிக்கை நீளமானது.',
     leaveCannotApprove: 'ஏற்க முடியாது: {type} இல் {n} நாட்கள் மட்டுமே உள்ளன.',
     wageRuleNote:
@@ -23231,6 +23234,7 @@ const hi: UiStrings = {
     leaveEarned: 'मिली',
     leaveTaken: 'ली गई',
     leaveRequested: 'माँगी गई',
+    upcomingTimeOff: 'आने वाली छुट्टी',
     leaveOverBalance: '{type} में केवल {n} दिन बचे हैं। यह अनुरोध लंबा है।',
     leaveCannotApprove: 'मंज़ूर नहीं हो सकता: {type} में केवल {n} दिन बचे हैं।',
     wageRuleNote:
@@ -30584,6 +30588,7 @@ const ar: UiStrings = {
     leaveEarned: 'المكتسب',
     leaveTaken: 'المأخوذ',
     leaveRequested: 'المطلوب',
+    upcomingTimeOff: 'الإجازات القادمة',
     leaveOverBalance: 'المتبقي {n} أيام فقط في {type}. هذا الطلب أطول.',
     leaveCannotApprove: 'لا يمكن القبول: المتبقي {n} أيام فقط في {type}.',
     wageRuleNote:

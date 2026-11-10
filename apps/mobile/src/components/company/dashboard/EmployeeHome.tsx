@@ -15,6 +15,7 @@ import { MyWorkTodayCard } from '@/components/company/WorkdayEntries';
 import { CompanyUpcomingCard } from '@/components/company/CompanyUpcomingCard';
 import { LeaveFormSheet, MyDatesSheet } from '@/components/company/CompanyCalendarSheets';
 import { LeaveBalanceCard } from '@/components/company/LeaveBalances';
+import { UpcomingTimeOff } from '@/components/company/UpcomingTimeOff';
 import { DashBody, DashHeader, useMoney } from '@/components/company/dashboard/parts';
 import { CompanyStatementView } from '@/components/company/CompanyStatementView';
 import { ListRow, StandardCard } from '@/components/standard';
@@ -103,6 +104,7 @@ export function EmployeeHome({ groupId }: { groupId: string }) {
           </StandardCard>
           <MyWorkTodayCard groupId={groupId} />
           <LeaveBalanceCard groupId={groupId} memberId={me?.id ?? null} />
+          <UpcomingTimeOff groupId={groupId} memberId={me?.id ?? null} />
           {!suspended ? (
             <StandardCard>
               <ListRow

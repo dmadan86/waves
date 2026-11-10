@@ -24,6 +24,7 @@ import {
 } from '@/components/company/dashboard/OverviewTaskBoard';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { OverviewUpcoming } from '@/components/company/dashboard/OverviewUpcoming';
+import { UpcomingTimeOff } from '@/components/company/UpcomingTimeOff';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useStrings } from '@/i18n';
 import { useOverviewLayout } from '@/lib/overviewLayoutStore';
@@ -77,7 +78,12 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                   attendance: own.attendance,
                   attention: own.attention,
                   money: <MoneyCards groupId={groupId} />,
-                  upcoming: <OverviewUpcoming groupId={groupId} />,
+                  upcoming: (
+                    <View style={{ gap: 12 }}>
+                      <OverviewUpcoming groupId={groupId} />
+                      <UpcomingTimeOff groupId={groupId} company />
+                    </View>
+                  ),
                   activity: view.ready ? <RecentCompanyActivity groupId={groupId} /> : null,
                 }}
               />
