@@ -23,7 +23,7 @@ import {
 } from '@/data/companyCalendar';
 import { useCompanyEntries, useCompanyProjects, useCompanySuspended } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
-import { displayName } from '@/data/types';
+import { displayName, isGhost } from '@/data/types';
 import { useStrings } from '@/i18n';
 
 type Kind = 'holiday' | 'event' | 'leave-request' | 'leave-record' | 'dates';
@@ -312,7 +312,8 @@ function EventFormSheetInner({
   day,
   event,
 }: Props & { day?: string; event?: import('@waves/core').MirrorEvent }) {
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
+  const theme = useTheme();
   const view = useCompanyEntries(groupId);
   const projects = useCompanyProjects(groupId);
   const save = useSetEvent(groupId);
@@ -324,8 +325,13 @@ function EventFormSheetInner({
   const [time, setTime] = useState(event?.time ?? '');
   const [site, setSite] = useState(event?.projectId ?? '');
   const [people, setPeople] = useState<string[]>(event?.people ? [...event.people] : []);
+  const [query, setQuery] = useState('');
+  const [picking, setPicking] = useState<'date' | 'time' | null>(null);
   const eligible = view.members.filter(
     (p) => !p.left_at && p.role !== 'vendor' && (view.isOwner || view.manageableIds.has(p.id)),
+  );
+  const shown = eligible.filter((p) =>
+    displayName(p).toLowerCase().includes(query.trim().toLowerCase()),
   );
   const error = !title.trim()
     ? t.calendar.errTitle
@@ -338,38 +344,197 @@ function EventFormSheetInner({
           : null;
   const toggle = (id: string) =>
     setPeople((x) => (x.includes(id) ? x.filter((v) => v !== id) : [...x, id]));
+  const bounds = {
+    minimumDate: dateFrom(shift(today, -400)),
+    maximumDate: dateFrom(shift(today, 730)),
+  };
+  const timeValue = () => {
+    const d = new Date();
+    const [h, m] = (time || '09:00').split(':').map(Number);
+    d.setHours(h ?? 9, m ?? 0, 0, 0);
+    return d;
+  };
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const applyTime = (d: Date) => setTime(`${pad(d.getHours())}:${pad(d.getMinutes())}`);
+  const open = (which: 'date' | 'time') => {
+    if (Platform.OS !== 'android') return setPicking((p) => (p === which ? null : which));
+    if (which === 'date')
+      DateTimePickerAndroid.open({
+        value: dateFrom(date),
+        mode: 'date',
+        ...bounds,
+        onChange: (e, d) => e.type === 'set' && d && setDate(isoDate(d)),
+      });
+    else
+      DateTimePickerAndroid.open({
+        value: timeValue(),
+        mode: 'time',
+        is24Hour: true,
+        onChange: (e, d) => e.type === 'set' && d && applyTime(d),
+      });
+  };
+  const label = (
+    icon: React.ComponentProps<typeof Ionicons>['name'],
+    text: string,
+    mark?: 'required' | 'optional',
+  ) => (
+    <Row style={{ gap: theme.spacing.sm }}>
+      <Ionicons name={icon} size={iconSize.base} color={theme.color.brand} />
+      <Text variant="caption" style={{ fontWeight: '600' }}>
+        {text}
+        {mark === 'required' ? (
+          <Text variant="caption" tone="negative">
+            {' *'}
+          </Text>
+        ) : mark === 'optional' ? (
+          <Text variant="caption" tone="muted">
+            {` ${t.calendar.eventOptional}`}
+          </Text>
+        ) : null}
+      </Text>
+    </Row>
+  );
+  const input = {
+    borderWidth: 1,
+    borderColor: theme.color.border,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.md,
+    color: theme.color.text,
+    backgroundColor: theme.color.surface,
+  } as const;
+  const card = {
+    gap: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: theme.color.border,
+    borderRadius: theme.radius.lg,
+  } as const;
   return (
     <FormSheet visible={visible} onClose={onClose}>
-      <Text variant="title">{t.calendar.eventTitle}</Text>
-      <Field label={t.calendar.eventTitle} value={title} onChange={setTitle} />
-      <Field label={t.calendar.startDate} value={date} onChange={setDate} />
-      <Field label={t.calendar.eventTime} value={time} onChange={setTime} placeholder="HH:MM" />
-      <Field
-        label={t.calendar.eventSite}
-        value={site}
-        onChange={setSite}
-        placeholder={projects.map((p) => p.name).join(', ')}
-      />
-      <Text variant="caption" tone="muted">
-        {t.calendar.eventPeople}
-      </Text>
-      {view.isOwner ? (
-        <Pressable onPress={() => setPeople([])}>
-          <Chip label={t.calendar.eventEveryone} selected={people.length === 0} />
-        </Pressable>
-      ) : null}
-      {eligible.map((p) => (
-        <Pressable
-          key={p.id}
-          onPress={() => toggle(p.id)}
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 5 }}
-        >
-          <PersonAvatar name={displayName(p)} />
-          <Text>{displayName(p)}</Text>
-          <Text>{people.includes(p.id) ? '✓' : ''}</Text>
-        </Pressable>
-      ))}
-      {error ? <Callout tone="negative">{error}</Callout> : null}
+      <Text variant="title">{event ? t.calendar.eventTitle : t.calendar.eventCreate}</Text>
+      <View style={card}>
+        <View style={{ gap: 4 }}>
+          {label('calendar-outline', t.calendar.eventTitle, 'required')}
+          <TextInput
+            value={title}
+            onChangeText={setTitle}
+            accessibilityLabel={t.calendar.eventTitle}
+            placeholder={t.calendar.eventTitlePlaceholder}
+            placeholderTextColor={theme.color.textFaint}
+            style={input}
+          />
+        </View>
+        <Row style={{ gap: theme.spacing.md, alignItems: 'flex-start' }}>
+          <View style={{ flex: 1, gap: 4 }}>
+            {label('calendar-outline', t.calendar.eventDate, 'required')}
+            <SelectField
+              icon="calendar-outline"
+              label={t.calendar.eventDate}
+              text={showDate(date, locale)}
+              chevron={false}
+              onPress={() => open('date')}
+            />
+          </View>
+          <View style={{ flex: 1, gap: 4 }}>
+            {label('time-outline', t.calendar.eventTimeLabel, 'optional')}
+            <SelectField
+              icon="time-outline"
+              label={t.calendar.eventTimeLabel}
+              text={time || 'HH:MM'}
+              placeholder={!time}
+              onPress={() => open('time')}
+              trailing={
+                time ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.calendar.clear}
+                    hitSlop={8}
+                    onPress={() => setTime('')}
+                  >
+                    <Ionicons
+                      name="close-circle"
+                      size={iconSize.base}
+                      color={theme.color.textMuted}
+                    />
+                  </Pressable>
+                ) : undefined
+              }
+            />
+          </View>
+        </Row>
+        {Platform.OS === 'ios' && picking ? (
+          <DateTimePicker
+            value={picking === 'date' ? dateFrom(date) : timeValue()}
+            mode={picking}
+            display={picking === 'date' ? 'inline' : 'spinner'}
+            is24Hour
+            {...(picking === 'date' ? bounds : {})}
+            onChange={(e, d) => {
+              if (e.type === 'dismissed' || !d) return;
+              if (picking === 'date') setDate(isoDate(d));
+              else applyTime(d);
+            }}
+          />
+        ) : null}
+        <View style={{ gap: 4 }}>
+          {label('location-outline', t.calendar.eventSiteLabel, 'optional')}
+          <TextInput
+            value={site}
+            onChangeText={setSite}
+            accessibilityLabel={t.calendar.eventSite}
+            placeholder={projects.map((p) => p.name).join(', ')}
+            placeholderTextColor={theme.color.textFaint}
+            style={input}
+          />
+        </View>
+      </View>
+      <View style={card}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          {label('people-outline', t.calendar.eventPeople)}
+          <Text variant="caption" tone="muted">
+            {t.calendar.eventSelected.replace('{n}', String(people.length))}
+          </Text>
+        </Row>
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          accessibilityLabel={t.calendar.eventSearch}
+          placeholder={t.calendar.eventSearch}
+          placeholderTextColor={theme.color.textFaint}
+          style={input}
+        />
+        {view.isOwner ? (
+          <Pressable onPress={() => setPeople([])}>
+            <Chip label={t.calendar.eventEveryone} selected={people.length === 0} />
+          </Pressable>
+        ) : null}
+        {shown.map((p, i) => (
+          <Pressable
+            key={p.id}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: people.includes(p.id) }}
+            accessibilityLabel={displayName(p)}
+            onPress={() => toggle(p.id)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.md,
+              paddingVertical: theme.spacing.sm,
+              borderTopWidth: i ? 1 : 0,
+              borderTopColor: theme.color.border,
+            }}
+          >
+            <Ionicons
+              name={people.includes(p.id) ? 'checkbox' : 'square-outline'}
+              size={iconSize.lg}
+              color={people.includes(p.id) ? theme.color.brand : theme.color.textMuted}
+            />
+            <PersonAvatar name={displayName(p)} size={36} member={p} ghost={isGhost(p)} />
+            <Text style={{ flex: 1 }}>{displayName(p)}</Text>
+          </Pressable>
+        ))}
+      </View>
+      {title.trim() && error ? <Callout tone="negative">{error}</Callout> : null}
       <Actions
         onClose={onClose}
         onSave={() =>
@@ -386,7 +551,7 @@ function EventFormSheetInner({
           )
         }
         disabled={!!error || suspended || save.isPending}
-        saveLabel={t.calendar.save}
+        saveLabel={t.calendar.eventSave}
         remove={event ? () => remove.mutate({ id: event.id }, { onSuccess: onClose }) : undefined}
       />
     </FormSheet>
