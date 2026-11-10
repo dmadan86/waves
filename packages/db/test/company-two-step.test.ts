@@ -231,7 +231,8 @@ describe('reads: every company table, through RLS', () => {
         'activity_log',
       ]),
     );
-    expect(await visible(claims(2, VERIFIED), 'notifications', COMPANY)).toBe(1);
+    // the seeded task assignment notifies its employee as well
+    expect(await visible(claims(2, VERIFIED), 'notifications', COMPANY)).toBe(2);
     expect(await visible(claims(2, VERIFIED), 'company_attendance', COMPANY)).toBeGreaterThan(0);
   });
 
@@ -384,6 +385,7 @@ describe('writes: every company table and the RPCs', () => {
       waves_can_add_receipt: 'boolean only; the receipt write itself is guarded',
       waves_cancel_member_link: 'writes member_link_requests (guarded)',
       waves_claim_member_as_me: 'writes group_members (guarded)',
+      waves_company_notify: 'trigger helper: writes notifications only; not callable by clients',
       waves_company_report: 'writes company_complaints (guarded)',
       waves_create_group: 'creates a new group (never requires two-step yet)',
       waves_delete_my_account: 'erases the caller; anonymising own member rows is allowed',

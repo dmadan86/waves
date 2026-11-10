@@ -61,6 +61,13 @@ function pushRows(t: UiStrings): PrefRow[] {
       tint: 'lilac',
     },
     {
+      key: 'companyUpdates',
+      title: t.notifications.companyUpdates,
+      body: t.notifications.companyUpdatesBody,
+      icon: 'briefcase-outline',
+      tint: 'sky',
+    },
+    {
       key: 'settlementRequests',
       title: t.notifications.settlementRequests,
       body: t.notifications.settlementRequestsBody,
