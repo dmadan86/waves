@@ -81,7 +81,7 @@ function SetupRow({
         <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
       </IconDisc>
       <View style={{ flex: 1 }}>
-        <Text variant="bodyStrong">{title}</Text>
+        <Text variant="body" style={{ fontWeight: '700' }}>{title}</Text>
         <Text variant="caption" tone="muted">
           {subtitle}
         </Text>
@@ -111,8 +111,8 @@ export function CompanyDetailsSections({
   const { t, locale } = useStrings();
   const s = t.companyDetails;
   const { group, members } = useGroup(groupId);
-  const name = group?.name ?? s.title;
-  const count = members.filter((m) => !m.left_at).length;
+  const name = group.data?.name ?? s.title;
+  const count = members.data.filter((m) => !m.left_at).length;
   const v = card?.values;
   const edit = canEdit ? onEdit : undefined;
   const go = (path: string) => () => router.push(`/group/${groupId}/${path}`);
@@ -183,7 +183,7 @@ export function CompanyDetailsSections({
         ) : null}
       </LinearGradient>
 
-      <Text variant="bodyStrong">{s.companyInfo}</Text>
+      <Text variant="body" style={{ fontWeight: '700' }}>{s.companyInfo}</Text>
       <StandardCard style={{ gap: theme.spacing.sm }}>
         <Row icon="document-text-outline" title={s.legalName} value={name} />
         <Row
@@ -192,8 +192,8 @@ export function CompanyDetailsSections({
           value={v?.pan ? maskValue(v.pan) : undefined}
           onPress={edit}
         />
-        <Row icon="receipt-outline" title={s.gstin} value={v?.gstin} onPress={edit} />
-        <Row icon="location-outline" title={s.address} value={v?.address} onPress={edit} last />
+        <Row icon="receipt-outline" title={s.gstin} value={v?.gstin ?? undefined} onPress={edit} />
+        <Row icon="location-outline" title={s.address} value={v?.address ?? undefined} onPress={edit} last />
         {canEdit ? (
           <Pressable
             accessibilityRole="button"
@@ -207,14 +207,14 @@ export function CompanyDetailsSections({
               backgroundColor: theme.color.brandSoft,
             }}
           >
-            <Text variant="bodyStrong" style={{ color: theme.color.brand }}>
+            <Text variant="body" style={{ fontWeight: '700', color: theme.color.brand }}>
               + {s.addMore}
             </Text>
           </Pressable>
         ) : null}
       </StandardCard>
 
-      <Text variant="bodyStrong">{s.peopleAccess}</Text>
+      <Text variant="body" style={{ fontWeight: '700' }}>{s.peopleAccess}</Text>
       <StandardCard>
         <SetupRow
           icon="people-outline"
@@ -224,7 +224,7 @@ export function CompanyDetailsSections({
         />
       </StandardCard>
 
-      <Text variant="bodyStrong">{s.businessSetup}</Text>
+      <Text variant="body" style={{ fontWeight: '700' }}>{s.businessSetup}</Text>
       <StandardCard style={{ gap: theme.spacing.sm }}>
         <SetupRow
           icon="wallet-outline"
