@@ -170,7 +170,8 @@ function HolidayFormSheetInner({
   day,
   holiday,
 }: Props & { day?: string; holiday?: MirrorHoliday }) {
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
+  const theme = useTheme();
   const save = useSetHoliday(groupId);
   const remove = useRemoveHoliday(groupId);
   const suspended = useCompanySuspended(groupId);
@@ -190,13 +191,102 @@ function HolidayFormSheetInner({
       { id: holiday?.id ?? randomUUID(), name: name.trim(), startDay: start, endDay: end },
       { onSuccess: onClose },
     );
+  const [picking, setPicking] = useState<'start' | 'end' | null>(null);
+  const bounds = {
+    minimumDate: dateFrom(shift(today, -400)),
+    maximumDate: dateFrom(shift(today, 730)),
+  };
+  const apply = (which: 'start' | 'end', d: Date) => {
+    const v = isoDate(d);
+    if (which === 'start') {
+      setStart(v);
+      if (end < v) setEnd(v);
+    } else setEnd(v);
+  };
+  const open = (which: 'start' | 'end') => {
+    const value = dateFrom(which === 'start' ? start : end);
+    if (Platform.OS === 'android')
+      DateTimePickerAndroid.open({
+        value,
+        mode: 'date',
+        ...bounds,
+        onChange: (e, d) => e.type === 'set' && d && apply(which, d),
+      });
+    else setPicking((p) => (p === which ? null : which));
+  };
+  const required = (label: string) => (
+    <Text variant="caption" style={{ fontWeight: '600' }}>
+      {label}
+      <Text variant="caption" tone="negative">
+        {' *'}
+      </Text>
+    </Text>
+  );
+  const dateField = (which: 'start' | 'end', label: string) => (
+    <View style={{ flex: 1, gap: 4 }}>
+      {required(label)}
+      <SelectField
+        icon="calendar-outline"
+        label={label}
+        text={showDate(which === 'start' ? start : end, locale)}
+        chevron={false}
+        onPress={() => open(which)}
+      />
+    </View>
+  );
   return (
     <FormSheet visible={visible} onClose={onClose}>
-      <Text variant="title">{holiday ? t.calendar.holidayName : t.calendar.addHoliday}</Text>
-      <Field label={t.calendar.holidayName} value={name} onChange={setName} />
-      <Field label={t.calendar.startDate} value={start} onChange={setStart} />
-      <Field label={t.calendar.endDate} value={end} onChange={setEnd} />
-      {error ? <Callout tone="negative">{error}</Callout> : null}
+      <Row style={{ gap: theme.spacing.md }}>
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.color.brandSoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="calendar-outline" size={iconSize.lg} color={theme.color.brand} />
+        </View>
+        <Text variant="title" style={{ flex: 1 }}>
+          {holiday ? t.calendar.addHoliday : t.calendar.holidayTitle}
+        </Text>
+      </Row>
+      <View style={{ gap: 4 }}>
+        {required(t.calendar.holidayName)}
+        <TextInput
+          value={name}
+          onChangeText={setName}
+          accessibilityLabel={t.calendar.holidayName}
+          placeholder={t.calendar.holidayPlaceholder}
+          placeholderTextColor={theme.color.textFaint}
+          style={{
+            borderWidth: 1,
+            borderColor: theme.color.border,
+            borderRadius: theme.radius.lg,
+            padding: theme.spacing.md,
+            color: theme.color.text,
+            backgroundColor: theme.color.surface,
+          }}
+        />
+      </View>
+      <Row style={{ gap: theme.spacing.md, alignItems: 'flex-start' }}>
+        {dateField('start', t.calendar.startDate)}
+        {dateField('end', t.calendar.endDate)}
+      </Row>
+      {Platform.OS === 'ios' && picking ? (
+        <DateTimePicker
+          value={dateFrom(picking === 'start' ? start : end)}
+          mode="date"
+          display="inline"
+          {...bounds}
+          onChange={(e, d) => {
+            if (e.type !== 'dismissed' && d) apply(picking, d);
+          }}
+        />
+      ) : null}
+      {name.trim() && error ? <Callout tone="negative">{error}</Callout> : null}
       <Actions
         onClose={onClose}
         onSave={submit}
