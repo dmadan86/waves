@@ -6,7 +6,7 @@ import { filterTickets, ticketCounts, type TicketTab } from '@waves/core';
 import { Button, Screen, Text, useTheme } from '@waves/ui';
 
 import { TicketRow } from '@/components/company/tickets/parts';
-import { ScenicBody, ScenicHeader, SegmentedPills, StandardCard } from '@/components/standard';
+import { ScenicBody, ScenicHeader, StandardCard } from '@/components/standard';
 import { useCompanySuspended } from '@/data/companyEntries';
 import { useCompanyTickets, useNow } from '@/data/companyTickets';
 import { fill, useStrings } from '@/i18n';
@@ -38,52 +38,123 @@ export function TicketsList({ groupId, clientId }: { groupId: string; clientId?:
           title={s.title}
           action={
             canAdd ? (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={s.newComplaint}
+              <Button
+                label={s.newComplaint}
+                variant="brand"
+                size="sm"
+                icon={<Ionicons name="add" size={18} color={theme.color.onBrand} />}
                 onPress={add}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: theme.color.surface,
-                }}
-              >
-                <Ionicons name="add" size={22} color={theme.color.brand} />
-              </Pressable>
+              />
             ) : undefined
           }
         />
         <ScenicBody>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-              <SegmentedPills
-                options={[
-                  { value: 'open' as const, label: fill(s.tOpen, { n: counts.open }) },
-                  {
-                    value: 'escalated' as const,
-                    label: fill(s.tEscalated, { n: counts.escalated }),
-                  },
-                  { value: 'resolved' as const, label: fill(s.tResolved, { n: counts.resolved }) },
-                ]}
-                value={tab}
-                onChange={setTab}
-              />
+            <View
+              accessibilityRole="tablist"
+              style={{ flexDirection: 'row', gap: theme.spacing.sm }}
+            >
+              {(
+                [
+                  ['open', s.tOpen, counts.open],
+                  ['escalated', s.tEscalated, counts.escalated],
+                  ['resolved', s.tResolved, counts.resolved],
+                ] as const
+              ).map(([value, label, n]) => {
+                const on = tab === value;
+                // Every locale writes these as "<label> · {n}"; the count goes in its own badge here.
+                const name = label.split(' · ')[0];
+                return (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: on }}
+                    accessibilityLabel={fill(label, { n })}
+                    onPress={() => setTab(value)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                      height: 40,
+                      paddingHorizontal: 16,
+                      borderRadius: 20,
+                      borderWidth: 1,
+                      borderColor: on ? theme.color.brand : theme.color.border,
+                      backgroundColor: on ? theme.color.brand : theme.color.surface,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontWeight: '600',
+                        color: on ? theme.color.onBrand : theme.color.text,
+                      }}
+                    >
+                      {name}
+                    </Text>
+                    <View
+                      style={{
+                        minWidth: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        paddingHorizontal: 6,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: on ? 'rgba(255,255,255,0.25)' : theme.color.brandSoft,
+                      }}
+                    >
+                      <Text
+                        variant="caption"
+                        style={{
+                          fontWeight: '700',
+                          color: on ? theme.color.onBrand : theme.color.brand,
+                        }}
+                      >
+                        {n}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           </ScrollView>
           {scoped.length === 0 ? (
-            <StandardCard style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <Ionicons name="chatbubbles-outline" size={48} color={theme.color.brand} />
-              <Text variant="title" style={{ fontSize: 18 }}>
+            <StandardCard
+              style={{
+                alignItems: 'center',
+                gap: theme.spacing.sm,
+                paddingVertical: theme.spacing.xl,
+              }}
+            >
+              <View
+                accessible={false}
+                style={{
+                  width: 132,
+                  height: 112,
+                  borderRadius: 56,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: theme.color.brandSoft,
+                  marginBottom: theme.spacing.sm,
+                }}
+              >
+                <Ionicons name="clipboard-outline" size={64} color={theme.color.brand} />
+                <View style={{ position: 'absolute', top: 10, right: 18 }}>
+                  <Ionicons name="alert-circle" size={34} color={theme.color.brand} />
+                </View>
+              </View>
+              <Text variant="title" style={{ fontSize: 22 }}>
                 {s.emptyTitle}
               </Text>
               <Text tone="muted" style={{ textAlign: 'center' }}>
                 {s.emptyBody}
               </Text>
               {canAdd ? (
-                <Button label={s.newComplaint} variant="brand" size="sm" onPress={add} />
+                <Button
+                  label={s.newComplaint}
+                  variant="brand"
+                  icon={<Ionicons name="add" size={20} color={theme.color.onBrand} />}
+                  onPress={add}
+                />
               ) : null}
             </StandardCard>
           ) : rows.length === 0 ? (
