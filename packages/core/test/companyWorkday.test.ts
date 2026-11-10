@@ -3,6 +3,8 @@ import {
   allowanceAmount,
   attendanceDaysText,
   emptyMirror,
+  MAX_ATTEMPTS,
+  nextBatch,
   materialiseAttendance,
   materialiseWorkTasks,
   nextAttendance,
@@ -161,5 +163,55 @@ describe('mirror: attendance and work', () => {
     expect(Object.keys(next.tables[SyncTable.CompanyWorkTasks])).toEqual(['t1']);
     const { state: none } = purgeCompanyInvisible(state, { g: ['zzz'] });
     expect(Object.keys(none.tables[SyncTable.CompanyAttendance])).toEqual([]);
+  });
+});
+
+describe('a task change that keeps failing', () => {
+  const doing = reconcile(emptyMirror(), [
+    row(SyncTable.CompanyWorkTasks, {
+      id: 't9',
+      member_id: 'a',
+      day: '2026-11-01',
+      title: 'File GST',
+      project_id: null,
+      status: 'doing',
+      blocked_reason: null,
+      note: null,
+      helper_ids: [],
+      created_at: '2026-10-30T00:00:00Z',
+    }),
+  ]).state;
+  const tick = (attempts: number, taskId = 't9') =>
+    ({
+      ...queued(
+        'company_work.set',
+        {
+          taskId,
+          memberId: 'a',
+          day: '2026-11-01',
+          title: 'File GST',
+          projectId: null,
+          status: 'done',
+          blockedReason: null,
+          note: null,
+        },
+        1,
+      ),
+      attempts,
+      nextAttemptAt: 0,
+    }) as QueuedMutation;
+  it('shows over the server task while retrying, then the server truth once it has failed too often', () => {
+    const status = (q: QueuedMutation[]) =>
+      materialiseWorkTasks(doing, q, { groupId: 'g' })[0]?.status;
+    expect(status([tick(MAX_ATTEMPTS - 1)])).toBe('done');
+    expect(status([tick(MAX_ATTEMPTS)])).toBe('doing');
+  });
+  it('keeps a task only this phone knows about, however often sending failed', () => {
+    expect(materialiseWorkTasks(doing, [tick(MAX_ATTEMPTS, 'new')], { groupId: 'g' })).toHaveLength(
+      2,
+    );
+  });
+  it('is sent again after the ceiling instead of staying stuck', () => {
+    expect(nextBatch([tick(MAX_ATTEMPTS + 3)], { now: 1 })).toHaveLength(1);
   });
 });
