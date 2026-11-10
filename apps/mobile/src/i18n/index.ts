@@ -1838,6 +1838,8 @@ export interface UiStrings {
     taskHelpers: string;
     taskHelpersNone: string;
     taskHelpersMax: string;
+    taskAssignTitle: string;
+    taskAssignN: string;
     workAlsoOn: string;
     taskPeople: PluralForms;
     taskDeadline: string;
@@ -9816,6 +9818,8 @@ const en: UiStrings = {
     taskHelpers: 'Also working on it (optional)',
     taskHelpersNone: 'Nobody',
     taskHelpersMax: 'Up to 5 people',
+    taskAssignTitle: 'Assign to people',
+    taskAssignN: 'Assign ({n})',
     workAlsoOn: 'Also on it: {names}',
     taskPeople: { one: '{n} person', other: '{n} people' },
     taskDeadline: 'Deadline (optional)',
@@ -17270,6 +17274,8 @@ const ta: UiStrings = {
     taskHelpers: 'இதிலும் வேலை செய்பவர்கள் (விருப்பம்)',
     taskHelpersNone: 'யாரும் இல்லை',
     taskHelpersMax: 'அதிகபட்சம் 5 பேர்',
+    taskAssignTitle: 'நபர்களுக்கு ஒதுக்கு',
+    taskAssignN: 'ஒதுக்கு ({n})',
     workAlsoOn: 'இதிலும்: {names}',
     taskPeople: { one: '{n} நபர்', other: '{n} நபர்கள்' },
     taskDeadline: 'கடைசி நாள் (விருப்பம்)',
@@ -24890,6 +24896,8 @@ const hi: UiStrings = {
     taskHelpers: 'इसमें और कौन काम कर रहा है (वैकल्पिक)',
     taskHelpersNone: 'कोई नहीं',
     taskHelpersMax: 'अधिकतम 5 लोग',
+    taskAssignTitle: 'लोगों को सौंपें',
+    taskAssignN: 'सौंपें ({n})',
     workAlsoOn: 'साथ में: {names}',
     taskPeople: { one: '{n} व्यक्ति', other: '{n} लोग' },
     taskDeadline: 'अंतिम तारीख (वैकल्पिक)',
@@ -32419,6 +32427,8 @@ const ar: UiStrings = {
     taskHelpers: 'يعمل عليها أيضًا (اختياري)',
     taskHelpersNone: 'لا أحد',
     taskHelpersMax: 'حتى 5 أشخاص',
+    taskAssignTitle: 'إسناد إلى أشخاص',
+    taskAssignN: 'إسناد ({n})',
     workAlsoOn: 'معه أيضًا: {names}',
     taskPeople: {
       one: 'شخص واحد',
