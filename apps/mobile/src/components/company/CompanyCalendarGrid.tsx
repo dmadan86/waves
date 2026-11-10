@@ -12,6 +12,7 @@ export function CompanyCalendarGrid({
   selectedDay,
   onSelect,
   onMonthChange,
+  dots,
 }: {
   year: number;
   month: number;
@@ -19,6 +20,8 @@ export function CompanyCalendarGrid({
   selectedDay: string | null;
   onSelect: (day: string) => void;
   onMonthChange: (year: number, month: number) => void;
+  /** One dot colour per day (Tasks); replaces the per-kind dots and the legend. */
+  dots?: Readonly<Record<string, string>>;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -51,13 +54,17 @@ export function CompanyCalendarGrid({
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t.calendar.title}
+          accessibilityLabel={t.personal.prevMonth}
           onPress={() => move(-1)}
         >
           <Text variant="heading">‹</Text>
         </Pressable>
         <Text variant="body">{monthTitle}</Text>
-        <Pressable accessibilityRole="button" onPress={() => move(1)}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.personal.nextMonth}
+          onPress={() => move(1)}
+        >
           <Text variant="heading">›</Text>
         </Pressable>
       </View>
@@ -122,46 +129,59 @@ export function CompanyCalendarGrid({
                 </Text>
               </View>
               <View style={{ flexDirection: 'row', gap: 2, height: 6 }}>
-                {kinds.map((kind) => (
-                  <View
-                    key={kind}
-                    style={{ width: 4, height: 4, borderRadius: 3, backgroundColor: colors[kind] }}
-                  />
-                ))}
+                {dots
+                  ? dots[day] && (
+                      <View
+                        style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: dots[day] }}
+                      />
+                    )
+                  : kinds.map((kind) => (
+                      <View
+                        key={kind}
+                        style={{
+                          width: 4,
+                          height: 4,
+                          borderRadius: 3,
+                          backgroundColor: colors[kind],
+                        }}
+                      />
+                    ))}
               </View>
             </Pressable>
           );
         })}
       </View>
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: theme.spacing.xs,
-        }}
-      >
-        {labels.map((label, i) => (
-          <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-            <View
-              style={{
-                width: 6,
-                height: 6,
-                borderRadius: 3,
-                backgroundColor: [
-                  theme.color.warning,
-                  theme.color.positive,
-                  theme.color.brand,
-                  theme.color.negative,
-                ][i],
-              }}
-            />
-            <Text variant="micro" tone="muted">
-              {label}
-            </Text>
-          </View>
-        ))}
-      </View>
+      {dots ? null : (
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: theme.spacing.xs,
+          }}
+        >
+          {labels.map((label, i) => (
+            <View key={label} style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <View
+                style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: [
+                    theme.color.warning,
+                    theme.color.positive,
+                    theme.color.brand,
+                    theme.color.negative,
+                  ][i],
+                }}
+              />
+              <Text variant="micro" tone="muted">
+                {label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
     </StandardCard>
   );
 }

@@ -4,7 +4,8 @@ import { randomUUID } from 'expo-crypto';
 import { ScrollView } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import type { CompanyWorkSetPayload } from '@waves/core';
-import { Button, Text } from '@waves/ui';
+import { Button, Text, useTheme } from '@waves/ui';
+import { CompanyCalendarGrid } from '@/components/company/CompanyCalendarGrid';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { ScenicBody } from '@/components/standard';
 import type { MenuAnchor } from '@/components/SortMenu';
@@ -28,6 +29,7 @@ import {
   groupWorkTasks,
   isOwnTask,
   maxTaskDay,
+  taskDayTones,
   type WorkMode,
 } from '@/lib/companyWork';
 import { WorkTaskSections } from './WorkTaskSections';
@@ -81,6 +83,7 @@ export default function DailyWorkView({
   const save = useSetWorkTask(id);
   const remove = useRemoveWorkTask(id);
   const { t, locale } = useStrings();
+  const theme = useTheme();
   const clearance = useBottomClearance();
   const today = todayIso();
   const [draft, setDraft] = useState<Payload | null>(null);
@@ -97,6 +100,11 @@ export default function DailyWorkView({
   const [error, setError] = useState(false);
   const [scope, setScope] = useState<'mine' | 'team'>(access.isEmployee ? 'mine' : 'team');
   const [query, setQuery] = useState('');
+  const [dayFilter, setDayFilter] = useState<string | null>(null);
+  const [cal, setCal] = useState(() => ({
+    year: Number(todayIso().slice(0, 4)),
+    month: Number(todayIso().slice(5, 7)),
+  }));
   const [exportOpen, setExportOpen] = useState(false);
   const busy = save.isPending || remove.isPending;
   const allowedPerson = (memberId: string) =>
@@ -119,11 +127,20 @@ export default function DailyWorkView({
     personName,
     siteName: (projectId) => projects.find((project) => project.id === projectId)?.name ?? '',
   });
-  const grouped = groupWorkTasks(visibleTasks, {
-    mode: access.canManage ? mode : 'date',
-    today,
-    personName,
-  });
+  const grouped = groupWorkTasks(
+    dayFilter ? visibleTasks.filter((task) => task.day === dayFilter) : visibleTasks,
+    {
+      mode: access.canManage ? mode : 'date',
+      today,
+      personName,
+    },
+  );
+  const tones = taskDayTones(visibleTasks, today);
+  const toneColor = {
+    done: theme.color.positive,
+    late: theme.color.warning,
+    open: theme.color.brand,
+  };
   const people = access.isEmployee && access.me ? [access.me] : access.people;
   const write = (next: Payload, onSuccess?: () => void) => {
     const current = tasks.find((task) => task.id === next.taskId);
@@ -152,14 +169,6 @@ export default function DailyWorkView({
     }
     setError(false);
     save.mutate(next, { onSuccess, onError: () => setError(true) });
-  };
-  const changeStatus = (task: MirrorWorkTask, status: Payload['status']) => {
-    if (!canChange(task) || busy) return;
-    if (status === 'blocked') {
-      setStatusId(null);
-      if (statusId !== null) setReasonAfterClose(task.id);
-      else setField({ taskId: task.id, kind: 'blockedReason' });
-    } else write({ ...payload(task), status, blockedReason: null });
   };
   const menuTask = tasks.find((task) => task.id === menu?.id);
   const items: OverflowMenuItem[] =
@@ -237,6 +246,17 @@ export default function DailyWorkView({
                 query={query}
                 onQueryChange={setQuery}
                 onMore={(a) => setMoreAnchor(a ?? 'open')}
+                title={embedded ? t.company.workMineTasks : undefined}
+                onAdd={access.canManage && access.people.length > 0 ? openAdd : undefined}
+              />
+              <CompanyCalendarGrid
+                year={cal.year}
+                month={cal.month}
+                items={[]}
+                selectedDay={dayFilter ?? today}
+                onSelect={(day) => setDayFilter(day === dayFilter ? null : day)}
+                onMonthChange={(year, month) => setCal({ year, month })}
+                dots={Object.fromEntries(Object.entries(tones).map(([d, k]) => [d, toneColor[k]]))}
               />
               <WorkTaskSections
                 groupId={id}
@@ -249,7 +269,6 @@ export default function DailyWorkView({
                 canManage={access.canManage}
                 busy={busy}
                 canChange={canChange}
-                onChangeStatus={changeStatus}
                 onOpen={(task) =>
                   access.canManage && canChange(task)
                     ? setDraft(payload(task))

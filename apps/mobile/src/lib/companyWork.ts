@@ -257,3 +257,17 @@ export function toggleHelper(
   if (helperIds.includes(id)) return helperIds.filter((x) => x !== id);
   return helperIds.length >= MAX_TASK_HELPERS ? [...helperIds] : [...helperIds, id];
 }
+
+/** Calendar dot per day: all done, something open and already late, or open ahead. */
+export function taskDayTones(
+  tasks: readonly Pick<MirrorWorkTask, 'status' | 'day'>[],
+  today: string,
+): Record<string, 'done' | 'late' | 'open'> {
+  const tones: Record<string, 'done' | 'late' | 'open'> = {};
+  for (const task of tasks) {
+    const now = tones[task.day];
+    const next = task.status === 'done' ? 'done' : task.day < today ? 'late' : 'open';
+    if (!now || now === 'done' || (now === 'open' && next === 'late')) tones[task.day] = next;
+  }
+  return tones;
+}
