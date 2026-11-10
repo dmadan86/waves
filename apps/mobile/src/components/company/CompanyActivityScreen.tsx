@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, View } from 'react-native';
 
-import { Text, useTheme } from '@waves/ui';
+import { Button, Text, useTheme } from '@waves/ui';
 
 import { ActivityRows } from '@/components/company/CompanyActivityFeed';
 import { SectionShell } from '@/components/company/bar/SectionShell';
@@ -12,7 +12,12 @@ import { useCompanyActivity } from '@/data/companyActivity';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { todayIso } from '@/data/personal';
 import { plural, useStrings } from '@/i18n';
-import { groupByDay, localDay, type ActivityGroup } from '@/lib/companyActivity';
+import {
+  ACTIVITY_WINDOW_DAYS,
+  groupByDay,
+  localDay,
+  type ActivityGroup,
+} from '@/lib/companyActivity';
 import { markCompanyActivitySeen } from '@/lib/companyActivitySeen';
 import { showDate } from '@/lib/expenseDay';
 
@@ -23,7 +28,8 @@ export function CompanyActivityScreen({ groupId }: { groupId: string }) {
   const a = t.companyActivity;
   const theme = useTheme();
   const view = useCompanyEntries(groupId);
-  const { events, ready } = useCompanyActivity(groupId);
+  const [days, setDays] = useState(ACTIVITY_WINDOW_DAYS);
+  const { events, ready } = useCompanyActivity(groupId, days);
   const [filter, setFilter] = useState<Filter>('all');
 
   // Opening the feed is the look that clears the bell's dot.
@@ -99,6 +105,14 @@ export function CompanyActivityScreen({ groupId }: { groupId: string }) {
             </StandardCard>
           </View>
         ))}
+        {ready ? (
+          <Button
+            variant="secondary"
+            label={a.showOlder}
+            accessibilityLabel={a.showOlder}
+            onPress={() => setDays((d) => d + ACTIVITY_WINDOW_DAYS)}
+          />
+        ) : null}
       </>
     </SectionShell>
   );

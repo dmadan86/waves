@@ -454,3 +454,27 @@ export function countNewActivity(
 ): number {
   return seenAt === null ? 0 : events.filter((e) => !e.byMe && e.at > seenAt).length;
 }
+
+/** The feed shows this many days by default; "Show older" adds the same again. */
+export const ACTIVITY_WINDOW_DAYS = 30;
+
+/** Local midnight `days` days before `now`: events at or after it are in the window. */
+export function activityCutoff(now: number, days: number): number {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - days);
+  return d.getTime();
+}
+
+/** True when any stamp is inside the window (an unparseable stamp stays, so the builder decides). */
+export function stampInWindow(cutoff: number, ...stamps: string[]): boolean {
+  return stamps.some((s) => !(Date.parse(s) < cutoff));
+}
+
+/** Events at or after the cutoff. */
+export function activityWindow(
+  events: readonly CompanyActivityEvent[],
+  cutoff: number,
+): CompanyActivityEvent[] {
+  return events.filter((e) => e.at >= cutoff);
+}

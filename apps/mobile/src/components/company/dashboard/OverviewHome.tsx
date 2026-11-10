@@ -25,7 +25,6 @@ import { buildComingUp, buildNeedRows, taskFacts } from '@/lib/overviewHome';
 import { clockText, compactMoney } from '@/lib/overviewMath';
 
 const LAVENDER = '#7C5CE0';
-const BLUE = '#2F6FE0';
 
 /** Everything the blocks read, once per block: the viewer's tasks, claims awaiting them and what the company owes. */
 function useHome(groupId: string) {
@@ -309,62 +308,6 @@ export function NeedsAttention({
           );
         })
       )}
-    </StandardCard>
-  );
-}
-
-export function MoneyActions({ groupId }: { groupId: string }) {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const view = useCompanyEntries(groupId);
-  const go = (screen: string) => () => router.push(`/group/${groupId}/${screen}`);
-  // "New order" is left out until vendor orders ship (PR #1565).
-  const actions = [
-    { icon: 'card-outline', label: t.company.qaRecord, ink: GREEN, onPress: go('company-wages') },
-    {
-      icon: 'document-attach-outline',
-      label: t.company.ovAddBill,
-      ink: LAVENDER,
-      onPress: go('company-vendors'),
-    },
-    {
-      icon: 'document-text-outline',
-      label: t.company.ovCreateInvoice,
-      ink: BLUE,
-      onPress: go('company-bill-form?type=bill'),
-    },
-  ] as const;
-  if (view.suspended) return null;
-  return (
-    <StandardCard style={{ paddingHorizontal: 12, paddingVertical: 10, borderRadius: 12, gap: 8 }}>
-      <Header icon="layers-outline" title={t.company.ovCardMoney} />
-      <View>
-        {actions.map((a, i) => (
-          <Pressable
-            key={a.label}
-            accessibilityRole="button"
-            onPress={a.onPress}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 10,
-              minHeight: 48,
-              borderTopWidth: i === 0 ? 0 : 1,
-              borderTopColor: theme.color.border,
-            }}
-          >
-            <Ionicons name={a.icon} size={iconSize.md} color={a.ink} />
-            <Text variant="body" style={{ flex: 1 }}>
-              {a.label}
-            </Text>
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.sm}
-              color={theme.color.textMuted}
-            />
-          </Pressable>
-        ))}
-      </View>
     </StandardCard>
   );
 }
