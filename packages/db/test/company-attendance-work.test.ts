@@ -170,7 +170,8 @@ describe('company daily work: who adds, who moves it, who sees', () => {
       await setTask(0, 3, randomUUID());
       await setTask(1, 2, a);
       await denied(() => setTask(1, 3, randomUUID())); // not their team
-      await denied(() => setTask(2, 2, randomUUID())); // an employee cannot add
+      await setTask(2, 2, randomUUID()); // an employee may add a task for themself
+      await denied(() => setTask(2, 3, randomUUID())); // but not for anyone else
       await denied(() => setTask(0, 2, randomUUID(), 'blocked')); // blocked needs a reason
       await denied(() => setTask(0, 2, randomUUID(), 'todo', { title: '   ' }));
     }));

@@ -124,11 +124,11 @@ describe('task photos', () => {
       expect(await photosSeenBy(4)).toEqual([pb]);
     }));
 
-  it('cannot be attached, uploaded or removed by anyone else, the assignee included', () =>
+  it('cannot be attached, uploaded or removed by anyone unrelated to the task', () =>
     isolated(async () => {
       const a = await task(1, 3);
       const id = await photo(1, a);
-      for (const outsider of [2, 3, 4]) {
+      for (const outsider of [2, 4]) {
         const key = path(a);
         await denied(() => reserve(outsider, key));
         await denied(() => remove(outsider, id));
@@ -200,7 +200,7 @@ describe('one task per person (multi-assign)', () => {
       );
       await task(1, 3); // manager A: own team
       await denied(() => task(1, 4)); // manager A cannot assign to B's team
-      await denied(() => task(3, 3)); // an employee cannot assign
+      await denied(() => task(3, 4)); // an employee cannot assign to others
     }));
 
   it('rejects a day beyond two years', () =>
@@ -213,5 +213,68 @@ describe('one task per person (multi-assign)', () => {
           ),
         ),
       );
+    }));
+});
+
+const rename = (caller: number, id: string, assignee: number, title: string) =>
+  user(caller, () =>
+    db.query("SELECT waves_company_work_set($1,$2,$3,$4,$5,NULL,'todo',NULL,NULL,NULL)", [
+      g.groupId,
+      id,
+      g.memberIds[assignee],
+      day,
+      title,
+    ]),
+  );
+
+describe('task assignment permissions', () => {
+  it('the owner may assign to a manager; a manager to own employees and self, not to unmanaged people', () =>
+    isolated(async () => {
+      await task(0, 1);
+      await task(1, 3);
+      await task(1, 1);
+      await denied(() => task(1, 4)); // another manager's employee
+      await denied(() => task(1, 2)); // another manager
+      await denied(() => task(1, 0)); // the owner
+    }));
+
+  it('an employee may add a task for self only, and edit or remove only their own', () =>
+    isolated(async () => {
+      const mine = await task(3, 3);
+      await denied(() => task(3, 4));
+      await denied(() => task(3, 1)); // not even their own manager
+      await rename(3, mine, 3, 'Sweep the yard');
+      await denied(() => rename(3, mine, 4, 'Sweep the yard')); // cannot hand it on
+      const given = await task(1, 3); // assigned by the manager: status only
+      await rename(3, given, 3, 'Another title'); // status-only for them: the title stays
+      const title = await db.query('SELECT title FROM company_work_tasks WHERE id=$1', [given]);
+      expect(title.rows[0].title).toBe('Fix the gate');
+      await user(3, () =>
+        db.query(
+          "SELECT waves_company_work_set($1,$2,$3,$4,'Fix the gate',NULL,'doing',NULL,NULL,NULL)",
+          [g.groupId, given, g.memberIds[3], day],
+        ),
+      );
+      await denied(() =>
+        user(3, () => db.query('SELECT waves_company_work_remove($1,$2)', [g.groupId, given])),
+      );
+      await user(3, () => db.query('SELECT waves_company_work_remove($1,$2)', [g.groupId, mine]));
+      const left = await db.query(
+        'SELECT 1 FROM company_work_tasks WHERE id=$1 AND deleted_at IS NULL',
+        [mine],
+      );
+      expect(left.rowCount).toBe(0);
+    }));
+
+  it('the assignee adds photos to their task and removes only their own; unrelated members cannot', () =>
+    isolated(async () => {
+      const a = await task(1, 3);
+      const boss = await photo(1, a);
+      const own = await photo(3, a);
+      expect((await photosSeenBy(3)).sort()).toEqual([boss, own].sort());
+      await denied(() => remove(3, boss));
+      await remove(3, own);
+      await denied(() => photo(4, a));
+      await denied(() => photo(2, a));
     }));
 });

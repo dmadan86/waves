@@ -22,6 +22,7 @@ export function WorkFiltersAndDraftSheet({
   sites,
   groupId,
   canManage,
+  meId,
   people,
   draft,
   setDraft,
@@ -34,6 +35,7 @@ export function WorkFiltersAndDraftSheet({
   sites: readonly Site[];
   groupId: string;
   canManage: boolean;
+  meId: string | null;
   people: readonly MemberRow[];
   draft: Payload | null;
   setDraft: (next: Payload | null) => void;
@@ -460,7 +462,7 @@ export function WorkFiltersAndDraftSheet({
             groupId={groupId}
             entryId={draft.taskId}
             canAdd={false}
-            canRemove={() => canManage}
+            canRemove={(uploader) => canManage || uploader === meId}
           />
           {error ? <Text tone="negative">{t.company.workSaveError}</Text> : null}
           <Button

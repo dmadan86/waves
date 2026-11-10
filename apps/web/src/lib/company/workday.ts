@@ -40,6 +40,9 @@ export interface WorkdayAccess {
   readonly people: readonly MemberRow[];
   readonly me: MemberRow | null;
   readonly isEmployee: boolean;
+  /** Whom a task may be assigned to: the owner employees and managers, a manager their team and themself, an employee themself. */
+  readonly assignees: readonly MemberRow[];
+  readonly meId: string | null;
 }
 
 export function useWorkdayAccess(groupId: string): WorkdayAccess {
@@ -48,14 +51,28 @@ export function useWorkdayAccess(groupId: string): WorkdayAccess {
     const live = view.members.filter((m) => !m.left_at && m.role === 'member');
     const canManage = view.isAdmin;
     const isEmployee = !canManage && view.me?.role === 'member';
+    const assignees = view.isOwner
+      ? view.members.filter(
+          (m) =>
+            !m.left_at &&
+            (m.role === 'member' || m.role === 'manager') &&
+            view.manageableIds.has(m.id),
+        )
+      : view.isManager && view.me
+        ? [...live.filter((m) => view.manageableIds.has(m.id)), view.me]
+        : isEmployee && view.me
+          ? [view.me]
+          : [];
     return {
+      assignees,
+      meId: view.me?.id ?? null,
       enabled: live.length > 0,
       canManage,
       people: canManage ? live.filter((m) => view.manageableIds.has(m.id)) : [],
       me: isEmployee ? view.me : null,
       isEmployee,
     };
-  }, [view.members, view.isAdmin, view.manageableIds, view.me]);
+  }, [view.members, view.isAdmin, view.isOwner, view.isManager, view.manageableIds, view.me]);
 }
 
 /** The write side, payloads exactly as the mobile hooks send them. */

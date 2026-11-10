@@ -219,7 +219,8 @@ export function WorkTaskSections({
   people: readonly MemberRow[];
   locale: string;
   today: string;
-  canManage: boolean;
+  /** May the viewer edit this task (shows its menu)? */
+  canManage: (task: MirrorWorkTask) => boolean;
   busy: boolean;
   canChange: (task: MirrorWorkTask) => boolean;
   onOpen: (task: MirrorWorkTask) => void;
@@ -282,7 +283,7 @@ export function WorkTaskSections({
             }}
             today={today}
             locale={locale}
-            canManage={canManage}
+            canManage={canManage(task)}
             canChange={canChange(task)}
             busy={busy}
             site={task.projectId ? siteName(task.projectId) : ''}
