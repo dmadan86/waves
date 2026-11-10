@@ -126,7 +126,7 @@ const taskStatus = async (title: string) => (await taskRow(title))[0]?.status;
 async function notificationsFor(who: Person) {
   const { data, error } = await admin
     .from('notifications')
-    .select('kind, title, deep_link')
+    .select('kind, title, deep_link, payload, dedupe_key')
     .eq('group_id', groupId)
     .eq('profile_id', who.id);
   expect(error).toBeNull();
@@ -356,27 +356,65 @@ test.describe.serial('company as an employee, one browser per person', () => {
   });
 
   test('the control employee B is notified of nothing that was meant for A', async () => {
-    // True today because no company flow notifies anyone (see the fixmes). Keeps guarding
-    // recipient scoping once they do: B must never get a task, payment or event row of A's.
-    expect(await notificationsFor(empB)).toEqual([]);
+    // B legitimately gets rows for B's own task; none may reference A's task, A's event or A's payments.
+    const aTaskId = (await taskRow(TASK_A))[0]!.id as string;
+    await expect
+      .poll(async () => (await notificationsFor(empB)).map((n) => n.kind))
+      .toContain('company_task_assigned');
+    const leaked = (await notificationsFor(empB)).filter(
+      (n) =>
+        [TASK_A, EVENT].includes(n.payload?.description) ||
+        n.dedupe_key?.includes(aTaskId) ||
+        ['company_payment', 'company_claim_reimbursed'].includes(n.kind),
+    );
+    expect(leaked).toEqual([]);
   });
 
-  test.fixme('A is notified when the owner assigns them a task', async () => {
-    // No writer: waves_company_work_set never calls waves_notify, so no notifications row exists.
-    // When it ships: expect(await notificationsFor(empA)) to include a task-assigned kind.
+  test('A is notified when the owner assigns them a task', async () => {
+    await expect
+      .poll(
+        async () =>
+          (await notificationsFor(empA)).filter(
+            (n) => n.kind === 'company_task_assigned' && n.payload?.description === TASK_A,
+          ).length,
+      )
+      .toBe(1);
   });
 
-  test.fixme('A is notified of an advance, wages or a reimbursement paid to them', async () => {
-    // No writer: company entry RPCs are "outside activity, notifications and realtime"
-    // (company_expenses migration header). The statement is the only place A learns of a payment.
+  test('A is notified of an advance, wages or a reimbursement paid to them', async () => {
+    // An advance and wages both write `company_payment`, each with its amount in the payload.
+    await expect
+      .poll(async () =>
+        (await notificationsFor(empA))
+          .filter((n) => n.kind === 'company_payment')
+          .map((n) => Number(n.payload?.amount))
+          .sort((x, y) => x - y),
+      )
+      .toEqual([500, 20000]);
   });
 
-  test.fixme('A is notified of an event the owner creates for them', async () => {
-    // No writer: waves_company_event_set only stamps updated_at; nothing is queued for `people`.
+  test('A is notified of an event the owner creates for them', async () => {
+    await expect
+      .poll(
+        async () =>
+          (await notificationsFor(empA)).filter(
+            (n) => n.kind === 'company_event' && n.payload?.description === EVENT,
+          ).length,
+      )
+      .toBe(1);
   });
 
-  test.fixme('owner is notified when A changes a task status or marks it blocked', async () => {
-    // No writer: status changes produce no notifications row for the owner or manager.
+  test('owner is notified when A changes a task status or marks it blocked', async () => {
+    // A is not the task's creator, so whoever assigned it (the owner) hears about blocked and done.
+    for (const kind of ['company_task_blocked', 'company_task_done'])
+      await expect
+        .poll(
+          async () =>
+            (await notificationsFor(owner)).filter(
+              (n) => n.kind === kind && n.payload?.description === TASK_A,
+            ).length,
+        )
+        .toBeGreaterThan(0);
   });
 
   test.fixme('A sees company notifications in an in-app list on web', async () => {
