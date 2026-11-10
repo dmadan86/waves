@@ -58,7 +58,11 @@ export function useUnpaidBills(groupId: string) {
   const { docs } = useCompanyDocs(groupId);
   return useMemo(() => {
     const list = unpaidBills(docs);
-    return { count: list.length, dueMinor: unpaidBillsTotal(docs), bills: list };
+    // Estimates still awaiting an answer or a bill; the More hub counts them as open too.
+    const openEstimates = docs.filter(
+      (d) => !d.deleted && d.docType === 'estimate' && d.status !== 'declined' && !d.convertedTo,
+    ).length;
+    return { count: list.length, dueMinor: unpaidBillsTotal(docs), bills: list, openEstimates };
   }, [docs]);
 }
 

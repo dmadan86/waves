@@ -13,6 +13,7 @@ import { SaveButton } from '@/components/company/EntryForm';
 import { useStrings } from '@/i18n';
 import { useDialog } from '@/lib/dialog';
 import { friendlyError } from '@/lib/errors';
+import { usePreventCapture } from '@/lib/secretScreen';
 
 export function DetailsForm({
   visible,
@@ -28,6 +29,8 @@ export function DetailsForm({
   title: string;
 }) {
   const theme = useTheme();
+  // The form shows bank, UPI and PAN unmasked.
+  usePreventCapture('company-details-form');
   const { t, locale } = useStrings();
   const s = t.companyDetails;
   const { notify } = useDialog();

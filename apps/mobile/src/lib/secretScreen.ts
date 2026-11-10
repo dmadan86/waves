@@ -6,15 +6,16 @@ type CaptureModule = {
 };
 
 /**
- * Block screenshots and recordings while the calling screen is mounted.
+ * Block screenshots and recordings while the calling screen is mounted (and `on`).
  *
  * Reached through a guarded `require`, not an import: expo-screen-capture is
  * native, and a JS bundle that touches it on a build made before it was added
  * (an OTA update, an old dev client) would crash at launch. Without the module
  * this does nothing.
  */
-export function usePreventCapture(key: string): void {
+export function usePreventCapture(key: string, on = true): void {
   useEffect(() => {
+    if (!on) return;
     let mod: CaptureModule | null = null;
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -26,5 +27,5 @@ export function usePreventCapture(key: string): void {
     return () => {
       void mod.allowScreenCaptureAsync(key).catch(() => {});
     };
-  }, [key]);
+  }, [key, on]);
 }

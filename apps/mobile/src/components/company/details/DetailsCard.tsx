@@ -114,9 +114,13 @@ export function DetailsCard({
   const { t, locale } = useStrings();
   const s = t.companyDetails;
   const toast = useToast();
-  usePreventCapture('company-details');
   const [menu, setMenu] = useState(false);
   const [revealed, setRevealed] = useState<Partial<Record<DetailKey, boolean>>>({});
+  // Secrets are masked until revealed, so screenshots are only blocked while one is showing.
+  usePreventCapture(
+    'company-details',
+    SECRET_KEYS.some((k) => revealed[k]),
+  );
   const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
     () => () => {
@@ -127,14 +131,16 @@ export function DetailsCard({
   const values = card?.values;
   const filled = values ? hasAnyDetail(values) : false;
   const items: OverflowMenuItem[] = [
-    {
-      icon: 'share-outline',
-      label: s.shareAsText,
-      onPress: () => {
-        if (values)
-          void Share.share({ message: detailsToShareText(shareTitle, values, labelsFor(s)) });
-      },
-    },
+    ...(filled && values
+      ? [
+          {
+            icon: 'share-outline' as const,
+            label: s.shareAsText,
+            onPress: () =>
+              void Share.share({ message: detailsToShareText(shareTitle, values, labelsFor(s)) }),
+          },
+        ]
+      : []),
     ...(canEdit ? [{ icon: 'pencil-outline' as const, label: s.edit, onPress: onEdit }] : []),
   ];
   return (
