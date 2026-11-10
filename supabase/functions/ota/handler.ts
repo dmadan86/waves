@@ -87,8 +87,18 @@ export async function handleOta(request: Request, deps: OtaDeps): Promise<Respon
     const expectsSignature = request.headers.has('expo-expect-signature');
 
     const dir = `ota/${runtime}/${channel}/${platform}`;
+    // Expo clients accept an empty 204 only with the protocol headers present.
     const empty = () =>
-      new Response(null, { status: 204, headers: { 'cache-control': 'private, max-age=0' } });
+      new Response(null, {
+        status: 204,
+        headers: {
+          'expo-protocol-version': protocolVersion,
+          'expo-sfv-version': '0',
+          'cache-control': 'private, max-age=0',
+          'expo-manifest-filters': `expo-channel-name="${channel}"`,
+          'expo-server-defined-headers': '',
+        },
+      });
 
     // Protocol 0 has no directives, so "nothing new" is an empty 204. So is a
     // directive nobody signed, when the client insists on a signature: it would
