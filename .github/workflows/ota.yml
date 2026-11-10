@@ -5,13 +5,19 @@ name: OTA update
 #
 # MANUAL ONLY. Nothing ships to phones unless somebody runs this by hand.
 #
+# Two jobs, so the write credentials never sit next to `pnpm install`:
+#   build    installs dependencies and exports the bundles. No R2 secrets.
+#   publish  downloads the export and runs scripts/ota-publish.mjs. Holds the
+#            R2 secrets, runs no third-party code beyond this repo's script.
+# Every `uses:` is pinned to a commit SHA.
+#
 # Secrets:
 #   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY   Cloudflare R2 S3 credentials
 #   OTA_R2_BUCKET                                            bucket holding the updates
 #   OTA_PUBLIC_ENV (optional)  dotenv text of the EXPO_PUBLIC_* values the store
 #                              build gets from the EAS environment (ad unit ids,
 #                              RevenueCat keys, ...). Written to apps/mobile/.env
-#                              so the bundle is built with the same values.
+#                              in the build job so the bundle matches.
 
 on:
   workflow_dispatch:
@@ -52,19 +58,19 @@ permissions:
   contents: read
 
 jobs:
-  publish:
-    name: publish ${{ inputs.platform }} to ${{ inputs.channel }}
+  build:
+    name: export ${{ inputs.platform }} (${{ inputs.channel }})
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: apps/mobile
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           persist-credentials: false
 
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -83,21 +89,51 @@ jobs:
       - name: Export bundles
         env:
           OTA_CHANNEL: ${{ inputs.channel }}
+          PLATFORM: ${{ inputs.platform }}
           # Same public values as eas.json's `base` build env.
           EXPO_PUBLIC_SUPABASE_URL: https://ywojpnfyxxltvihqmcni.supabase.co
           EXPO_PUBLIC_CLARITY_PROJECT_ID: y0l49bcxl4
           EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_QmIIZxgp1tNw-OMxATbsfQ_aENGDmNz
           EXPO_PUBLIC_R2_ENABLED: 'true'
         run: |
-          if [ "${{ inputs.platform }}" = "all" ]; then platforms="--platform android --platform ios"; else platforms="--platform ${{ inputs.platform }}"; fi
+          if [ "$PLATFORM" = "all" ]; then platforms="--platform android --platform ios"; else platforms="--platform $PLATFORM"; fi
           npx expo export $platforms --output-dir dist
+          # Config and runtime versions resolved here, where node_modules exists.
+          node scripts/ota-publish.mjs --prepare --platform "$PLATFORM" --channel "$OTA_CHANNEL"
+          rm -f .env
 
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ota-dist
+          path: apps/mobile/dist
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    name: publish ${{ inputs.platform }} to ${{ inputs.channel }}
+    needs: build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ota-dist
+          path: apps/mobile/dist
+
+      # The runner's own Node; the script has no dependencies.
       - name: Publish to R2
         env:
           OTA_CHANNEL: ${{ inputs.channel }}
+          PLATFORM: ${{ inputs.platform }}
+          OTA_MESSAGE: ${{ inputs.message }}
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           OTA_R2_BUCKET: ${{ secrets.OTA_R2_BUCKET }}
-          OTA_MESSAGE: ${{ inputs.message }}
-        run: node scripts/ota-publish.mjs --platform "${{ inputs.platform }}" --channel "$OTA_CHANNEL" --message "$OTA_MESSAGE"
+        run: node scripts/ota-publish.mjs --platform "$PLATFORM" --channel "$OTA_CHANNEL" --message "$OTA_MESSAGE"

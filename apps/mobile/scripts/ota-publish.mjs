@@ -17,7 +17,7 @@
 
 import { createHash, createHmac, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 
@@ -28,6 +28,7 @@ const { values: args } = parseArgs({
     dist: { type: 'string', default: 'dist' },
     message: { type: 'string', default: '' },
     rollback: { type: 'string' },
+    prepare: { type: 'boolean', default: false },
     'dry-run': { type: 'boolean', default: false },
   },
 });
@@ -103,33 +104,47 @@ async function put(key, body, contentType, cacheControl) {
 
 // ─────────────────────────────────────────────────────── runtime version ──
 
-const config = JSON.parse(
-  execFileSync('npx', ['expo', 'config', '--json', '--type', 'public'], {
-    encoding: 'utf8',
-    env: { ...process.env, OTA_CHANNEL: args.channel },
-    stdio: ['ignore', 'pipe', 'inherit'],
-  }),
-);
+// `--prepare` (CI build job, no secrets) resolves config + runtime versions into
+// <dist>/ota-inputs.json; the publish job then needs no node_modules at all.
+const inputsPath = join(args.dist, 'ota-inputs.json');
+let config;
+let runtimes;
+if (!args.prepare && existsSync(inputsPath)) {
+  ({ config, runtimes } = JSON.parse(readFileSync(inputsPath, 'utf8')));
+} else {
+  config = JSON.parse(
+    execFileSync('npx', ['expo', 'config', '--json', '--type', 'public'], {
+      encoding: 'utf8',
+      env: { ...process.env, OTA_CHANNEL: args.channel },
+      stdio: ['ignore', 'pipe', 'inherit'],
+    }),
+  );
 
-/** The same runtime version the installed app computes from app.json. */
-function runtimeFor(platform) {
-  const rv = config.runtimeVersion;
-  if (typeof rv === 'string') return rv;
-  if (rv?.policy === 'appVersion') return config.version;
-  if (rv?.policy === 'fingerprint') {
-    const out = execFileSync(
-      'npx',
-      ['expo-updates', 'fingerprint:generate', '--platform', platform],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
-    );
-    return JSON.parse(out.slice(out.indexOf('{'))).hash;
-  }
-  return fail(`unsupported runtimeVersion ${JSON.stringify(rv)}`);
+  /** The same runtime version the installed app computes from app.json. */
+  const runtimeFor = (platform) => {
+    const rv = config.runtimeVersion;
+    if (typeof rv === 'string') return rv;
+    if (rv?.policy === 'appVersion') return config.version;
+    if (rv?.policy === 'fingerprint') {
+      const out = execFileSync(
+        'npx',
+        ['expo-updates', 'fingerprint:generate', '--platform', platform],
+        { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] },
+      );
+      return JSON.parse(out.slice(out.indexOf('{'))).hash;
+    }
+    return fail(`unsupported runtimeVersion ${JSON.stringify(rv)}`);
+  };
+  runtimes = Object.fromEntries(platforms.map((p) => [p, runtimeFor(p)]));
 }
-
-const runtimes = Object.fromEntries(platforms.map((p) => [p, runtimeFor(p)]));
-for (const [p, rt] of Object.entries(runtimes)) {
-  if (!/^[A-Za-z0-9._+-]{1,128}$/.test(rt ?? '')) fail(`bad runtime version for ${p}: ${rt}`);
+for (const p of platforms) {
+  if (!/^[A-Za-z0-9._+-]{1,128}$/.test(runtimes[p] ?? ''))
+    fail(`bad runtime version for ${p}: ${runtimes[p]}`);
+}
+if (args.prepare) {
+  writeFileSync(inputsPath, JSON.stringify({ config, runtimes }));
+  console.log(`wrote ${inputsPath}`);
+  process.exit(0);
 }
 
 const pointerKey = (platform) =>
