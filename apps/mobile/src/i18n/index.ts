@@ -2090,9 +2090,6 @@ export interface UiStrings {
     namePlaceholder: string;
     manageCompanies: string;
     companySettings: string;
-    hierarchyTitle: string;
-    /** The line under the Hierarchy title. */
-    hierarchySub: string;
     reportsToOwners: string;
     allocateNow: string;
     menuExport: string;
@@ -9885,8 +9882,6 @@ const en: UiStrings = {
     namePlaceholder: 'e.g. Sri Murugan Traders',
     manageCompanies: 'Manage companies',
     companySettings: 'Company settings',
-    hierarchyTitle: 'Hierarchy',
-    hierarchySub: 'People and roles in your company',
     reportsToOwners: 'Reports to the owners',
     allocateNow: 'Allocate budget',
     menuExport: 'Export',
@@ -17147,8 +17142,6 @@ const ta: UiStrings = {
     namePlaceholder: 'எ.கா. ஸ்ரீ முருகன் டிரேடர்ஸ்',
     manageCompanies: 'நிறுவனங்களை நிர்வகி',
     companySettings: 'நிறுவன அமைப்புகள்',
-    hierarchyTitle: 'படிநிலை',
-    hierarchySub: 'உங்கள் நிறுவனத்தின் நபர்களும் பொறுப்புகளும்',
     reportsToOwners: 'உரிமையாளர்களிடம்',
     allocateNow: 'பட்ஜெட் ஒதுக்கு',
     menuExport: 'ஏற்றுமதி',
@@ -24569,8 +24562,6 @@ const hi: UiStrings = {
     namePlaceholder: 'जैसे श्री मुरुगन ट्रेडर्स',
     manageCompanies: 'कंपनियाँ प्रबंधित करें',
     companySettings: 'कंपनी सेटिंग्स',
-    hierarchyTitle: 'हाइरार्की',
-    hierarchySub: 'आपकी कंपनी के लोग और उनकी भूमिकाएँ',
     reportsToOwners: 'मालिकों को रिपोर्ट',
     allocateNow: 'बजट आवंटित करें',
     menuExport: 'एक्सपोर्ट',
@@ -31937,8 +31928,6 @@ const ar: UiStrings = {
     namePlaceholder: 'مثال: شركة النور للتجارة',
     manageCompanies: 'إدارة الشركات',
     companySettings: 'إعدادات الشركة',
-    hierarchyTitle: 'الهيكل',
-    hierarchySub: 'الأشخاص والأدوار في شركتك',
     reportsToOwners: 'يتبع المالكين',
     allocateNow: 'خصّص ميزانية',
     menuExport: 'تصدير',

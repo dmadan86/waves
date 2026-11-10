@@ -14,6 +14,8 @@ import { useLocalSearchParams } from 'expo-router';
 
 import { Text, iconSize, useTheme } from '@waves/ui';
 
+import { RolePill } from '@/components/company/dashboard/parts';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { PersonCard } from '@/components/company/bar/PersonCard';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { TwoStepPeople } from '@/components/company/twoStep/TwoStepPeople';
@@ -25,6 +27,7 @@ import {
   attendanceToday,
   balancesByMember,
   listPeople,
+  hierarchyRows,
   managerBalances,
   openTasksToday,
   wholeMoney,
@@ -64,6 +67,7 @@ export function CompanyPeople({
   const marks = useAttendance(groupId);
   const allTasks = useWorkTasks(groupId);
   const [searching, setSearching] = useState(false);
+  const [tree, setTree] = useState(false);
   const [query, setQuery] = useState('');
   const [menu, setMenu] = useState<MenuAnchor | 'open' | null>(null);
   const [prefs, setPrefs] = useState({ byName: true, admins: false });
@@ -248,11 +252,17 @@ export function CompanyPeople({
                   router.push(`/group/${groupId}/members`),
                 )}
             <View style={{ flex: 1 }} />
-            {round('search', t.company.searchEmployees, () => setSearching(true), !!query)}
+            {round(
+              'search',
+              t.company.searchEmployees,
+              () => {
+                setTree(false);
+                setSearching(true);
+              },
+              !!query,
+            )}
             {view.isOwner
-              ? round('git-network-outline', t.company.hierTitle, () =>
-                  router.push(`/group/${groupId}/company-hierarchy`),
-                )
+              ? round('git-network-outline', t.company.hierTitle, () => setTree((v) => !v), tree)
               : null}
             <View ref={buttonRef} collapsable={false}>
               {/* eslint-disable-next-line react-hooks/refs -- openMenu reads the ref on press, not in render */}
@@ -308,7 +318,52 @@ export function CompanyPeople({
 
       <TwoStepPeople groupId={groupId} />
 
-      {shown.length > 0 ? (
+      {tree && !notEmployed ? (
+        <View>
+          {hierarchyRows(view.members).map(({ member: m, level, reports }) => {
+            const name = displayName(m, null, null, t.misc.someone);
+            const pill =
+              m.role === 'admin'
+                ? t.company.pillOwner
+                : m.role === 'manager'
+                  ? t.company.manager
+                  : null;
+            return (
+              <Pressable
+                key={m.id}
+                accessibilityRole="button"
+                accessibilityLabel={pill ? `${name}, ${pill}` : name}
+                onPress={() => thread(m.id)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                  paddingVertical: 6,
+                  marginLeft: level * 18,
+                  paddingLeft: level > 0 ? 10 : 0,
+                  borderLeftWidth: level > 0 ? 1 : 0,
+                  borderLeftColor: theme.color.border,
+                }}
+              >
+                <PersonAvatar member={m} name={name} ghost={isGhost(m)} size={36} />
+                <View style={{ flexShrink: 1 }}>
+                  <Text numberOfLines={1} style={{ fontWeight: '600' }}>
+                    {name}
+                  </Text>
+                  {m.role === 'manager' ? (
+                    <Text variant="caption" tone="muted">
+                      {plural(locale, reports, t.company.employeeCount)}
+                    </Text>
+                  ) : null}
+                </View>
+                {pill ? <RolePill label={pill} /> : null}
+              </Pressable>
+            );
+          })}
+        </View>
+      ) : null}
+
+      {(!tree || notEmployed) && shown.length > 0 ? (
         <View
           style={{
             backgroundColor: theme.color.surface,
@@ -346,7 +401,7 @@ export function CompanyPeople({
           })}
         </View>
       ) : null}
-      {shown.length === 0 ? (
+      {(!tree || notEmployed) && shown.length === 0 ? (
         <Text variant="caption" tone="muted" align="center" style={{ paddingVertical: 16 }}>
           {rows.some((r) => r.former === notEmployed)
             ? t.company.noEmployeesMatch

@@ -113,7 +113,6 @@ const BAR_SCREEN: Readonly<Record<string, CompanyBarKey>> = {
   // People and Attendance are one Team tab; the old routes still land on it. Tasks opens from More.
   'company-people': 'team',
   members: 'team',
-  'company-hierarchy': 'team',
   'company-statement': 'team',
   'company-team': 'team',
   'company-work': 'more',

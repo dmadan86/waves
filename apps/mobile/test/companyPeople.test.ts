@@ -12,6 +12,7 @@ import {
   balancesByMember,
   canSetEmploymentType,
   openTasksToday,
+  hierarchyRows,
 } from '../src/data/companyPeople';
 
 const admin = { id: 'o', role: 'admin', left_at: null } as const;
@@ -116,5 +117,29 @@ describe('People money', () => {
     expect(wholeMoney(125000n, 'INR', 'en-IN')).toBe('₹1,250');
     expect(wholeMoney(125050n, 'INR', 'en-IN')).toBe('₹1,250.50');
     expect(wholeMoney(0n, 'INR', 'en-IN')).toBe('₹0');
+  });
+});
+
+describe('hierarchyRows', () => {
+  it('nests a manager team, drops left members, keeps orphans at level 1', () => {
+    const m = (
+      id: string,
+      role: string,
+      manager_id: string | null = null,
+      left_at: string | null = null,
+    ) => ({ id, role, manager_id, left_at }) as never;
+    const rows = hierarchyRows([
+      m('e1', 'member', 'm1'),
+      m('e2', 'member', 'gone'),
+      m('e3', 'member', 'm1', 'x'),
+      m('m1', 'manager'),
+      m('o', 'admin'),
+    ]);
+    expect(rows.map((r) => [r.member.id, r.level, r.reports])).toEqual([
+      ['o', 0, 0],
+      ['m1', 1, 1],
+      ['e1', 2, 0],
+      ['e2', 1, 0],
+    ]);
   });
 });
