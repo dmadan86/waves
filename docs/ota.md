@@ -6,20 +6,26 @@ EAS Update: same client (`expo-updates`), our own server and storage.
 ## How it works
 
 1. `apps/mobile/scripts/ota-publish.mjs` uploads an `expo export` to Cloudflare
-   R2: every file under `ota/<runtime>/<folder>/`, then a pointer
-   `ota/<runtime>/<channel>/<platform>/latest.json` **last** (the atomic switch).
+   R2: the files under `ota/<runtime>/<folder>/`, then, per platform and
+   channel, a **manifest built and signed at publish time**
+   (`ota/<runtime>/<channel>/<platform>/<updateId>/manifest.json` + `manifest.sig`,
+   plus `directive.sig`), and the pointer `.../latest.json` **last** (the atomic
+   switch).
 2. The `ota` Supabase edge function (`supabase/functions/ota`, public,
-   `verify_jwt = false`) implements the expo-updates protocol. For a request it
-   reads the pointer for the device's `expo-runtime-version`, `expo-platform`
-   and `expo-channel-name`, builds the manifest (multipart/mixed, base64url
-   SHA-256 asset hashes, asset URLs), signs it, and answers. If the device
-   already runs that update, or nothing is published, it answers
-   `noUpdateAvailable`.
-3. Asset URLs are `OTA_ASSET_BASE_URL/<key>` when a public domain is set on the
-   bucket, else one-hour presigned R2 GETs.
-4. Signing: the app embeds `apps/mobile/certs/certificate.pem`; the function
-   signs with `OTA_PRIVATE_KEY` (RSA-SHA256). A device runs only updates we
-   signed, so a leaked bucket key cannot push code.
+   `verify_jwt = false`) implements the expo-updates protocol. It reads the
+   pointer for the device's `expo-runtime-version`, `expo-platform` and
+   `expo-channel-name` and serves the stored manifest bytes **verbatim** in a
+   multipart/mixed response, with the stored signature when the device sends
+   `expo-expect-signature`. If the device already runs that update, or nothing is
+   published, it answers `noUpdateAvailable`.
+3. Asset URLs inside the manifest are `OTA_ASSET_BASE_URL/<key>`: the bucket must
+   have a public custom domain (or `r2.dev` URL). Assets are public by design;
+   devices verify each one against the SHA-256 in the signed manifest.
+4. Signing: the app embeds `apps/mobile/certs/certificate.pem`. The private key
+   (`OTA_PRIVATE_KEY`) exists only in the `publish` job of the GitHub workflow
+   (and on the owner's machine for rollbacks). The edge function never holds it,
+   so stolen R2 credentials, or a compromised function, cannot get code signed:
+   devices reject anything not signed with that key.
 
 **Runtime version** is `appVersion` (`app.json`): updates only reach binaries
 with the same `version`. Bump `version` whenever native code, a native
@@ -27,34 +33,30 @@ dependency or a config plugin changes. **Channel** comes from the build:
 EAS profile `production` / `preview` (or `OTA_CHANNEL`); a preview build never
 sees a production update.
 
-**Known limit.** The server signs what it reads from the bucket. Someone who
-steals the R2 _write_ credentials could therefore get arbitrary code signed. The
-signing key is deliberately kept off CI and GitHub, so publishing cannot sign
-ahead of time. Keep the R2 token scoped to the OTA bucket only, and keep the
-publish job as the only place that holds it (it runs no third-party code).
-
 ## One-time setup
 
-1. **Bucket.** Create an R2 bucket (e.g. `waves-ota`). Optional but recommended:
-   attach a public custom domain (e.g. `ota.example.com`) so assets are plain
-   cacheable URLs.
-2. **R2 token.** Create an R2 API token with Object Read & Write on that bucket.
-3. **GitHub secrets** (repo > Settings > Secrets > Actions): `R2_ACCOUNT_ID`,
-   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `OTA_R2_BUCKET`. Optional
-   `OTA_PUBLIC_ENV`: the `EXPO_PUBLIC_*` values the store build gets from the
-   EAS environment (ad unit ids, RevenueCat keys, ...) as dotenv lines, so the
-   OTA bundle is built with the same values. The four Supabase/R2/Clarity values
-   from `eas.json` are already in the workflow.
-4. **Signing key.** The committed certificate already pairs with the private key
-   in `~/.waves-keys/updates/private-key.pem`; confirm with
-   `node apps/mobile/scripts/ota-keys.mjs check`. (Only if that key is lost:
-   `node apps/mobile/scripts/ota-keys.mjs generate`, which refuses to overwrite,
-   then ship a new store build, because installed apps trust the old
+1. **Bucket.** Create an R2 bucket (e.g. `waves-ota`) and attach a public custom
+   domain (e.g. `https://ota.example.com`); this is `OTA_ASSET_BASE_URL`.
+2. **R2 token.** Create an R2 API token with Object Read & Write on that bucket
+   only.
+3. **GitHub environments** (Settings > Environments): create `ota-production`
+   and `ota-preview`. On `ota-production` add **required reviewers**, so every
+   production publish waits for approval. Put these as **environment secrets**
+   on both (so the approval gates them): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+   `R2_SECRET_ACCESS_KEY`, `OTA_R2_BUCKET`, `OTA_ASSET_BASE_URL`,
+   `OTA_PRIVATE_KEY` (the full PEM from `~/.waves-keys/updates/private-key.pem`).
+   Optional repo secret `OTA_PUBLIC_ENV`: the `EXPO_PUBLIC_*` values the store
+   build gets from the EAS environment (ad unit ids, RevenueCat keys, ...) as
+   dotenv lines, so the OTA bundle is built with the same values.
+4. **Signing key.** The committed certificate already pairs with that key;
+   confirm with `node apps/mobile/scripts/ota-keys.mjs check`. (Only if the key
+   is lost: `node apps/mobile/scripts/ota-keys.mjs generate`, which refuses to
+   overwrite, then ship a new store build, because installed apps trust the old
    certificate.)
-5. **Supabase function secrets** (`supabase secrets set ...`):
-   `OTA_PRIVATE_KEY` (the PEM, as is), `OTA_R2_BUCKET`, `R2_ACCOUNT_ID`,
-   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (already set for photos; the token
-   must be able to read the OTA bucket), and optionally `OTA_ASSET_BASE_URL`.
+5. **Supabase function secrets** (`supabase secrets set ...`): `OTA_R2_BUCKET`,
+   `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`. The function only
+   _reads_; use a read-only token for it if you can. **Do not set
+   `OTA_PRIVATE_KEY` there.**
 6. **Deploy** the function: `supabase functions deploy ota`. Do not run
    `supabase config push` (prod auth config drifts from the repo); the
    `[functions.ota] verify_jwt = false` entry is picked up by the deploy.
@@ -66,10 +68,11 @@ publish job as the only place that holds it (it runs no third-party code).
 ## Publish
 
 GitHub > Actions > "OTA update" > Run workflow: pick platform, channel, and a
-message. It exports the bundles and runs `ota-publish.mjs`. It is manual only;
-the push trigger in `.github/workflows/ota.yml` is commented out.
+message. The `build` job (no secrets) exports the bundles; the `publish` job
+(secrets, behind the environment approval for production) signs and uploads. It
+is manual only; the push trigger in `.github/workflows/ota.yml` is commented out.
 
-Locally, from `apps/mobile`:
+Locally, from `apps/mobile` (needs the env vars listed in the script header):
 
 ```
 npx expo export --platform android --platform ios --output-dir dist
@@ -83,12 +86,17 @@ fetch the update on next launch and apply it on the launch after (or on
 
 ## Roll back
 
+Run on a machine that has the signing key (the workflow has no rollback input):
+
 ```
+OTA_PRIVATE_KEY="$(cat ~/.waves-keys/updates/private-key.pem)" \
+R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... \
+OTA_R2_BUCKET=... OTA_ASSET_BASE_URL=... \
 node scripts/ota-publish.mjs --rollback <folderId> --channel production
 ```
 
-This rewrites only `latest.json` to a fresh update id pointing at the old
-files, so devices see it as a newer update and move back on their next check.
+This signs a new manifest (fresh update id and date, old files) and then moves
+`latest.json`, so devices see a newer update and move back on their next check.
 
 ## Check on a phone
 

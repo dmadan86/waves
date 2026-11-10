@@ -14,6 +14,10 @@ name: OTA update
 # Secrets:
 #   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY   Cloudflare R2 S3 credentials
 #   OTA_R2_BUCKET                                            bucket holding the updates
+#   OTA_ASSET_BASE_URL                                       public https URL of that bucket
+#   OTA_PRIVATE_KEY                                          PEM that signs manifests (publish job only)
+# The publish-job secrets belong on the `ota-production` / `ota-preview`
+# environments (Settings > Environments), with required reviewers on production.
 #   OTA_PUBLIC_ENV (optional)  dotenv text of the EXPO_PUBLIC_* values the store
 #                              build gets from the EAS environment (ad unit ids,
 #                              RevenueCat keys, ...). Written to apps/mobile/.env
@@ -112,6 +116,9 @@ jobs:
   publish:
     name: publish ${{ inputs.platform }} to ${{ inputs.channel }}
     needs: build
+    # Put the secrets below on these environments and add "required reviewers"
+    # to ota-production: every production publish then waits for approval.
+    environment: ${{ inputs.channel == 'production' && 'ota-production' || 'ota-preview' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -136,4 +143,7 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           OTA_R2_BUCKET: ${{ secrets.OTA_R2_BUCKET }}
+          OTA_ASSET_BASE_URL: ${{ secrets.OTA_ASSET_BASE_URL }}
+          # Signs each manifest. Exists only in this job; the edge function has no key.
+          OTA_PRIVATE_KEY: ${{ secrets.OTA_PRIVATE_KEY }}
         run: node scripts/ota-publish.mjs --platform "$PLATFORM" --channel "$OTA_CHANNEL" --message "$OTA_MESSAGE"

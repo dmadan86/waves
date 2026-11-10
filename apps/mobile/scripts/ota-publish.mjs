@@ -8,14 +8,19 @@
  *   node scripts/ota-publish.mjs --rollback <folderId> [--platform ..] [--channel ..]
  *
  * Layout written (read by supabase/functions/ota/handler.ts, see docs/ota.md):
- *   ota/<runtime>/<folder>/...                        immutable files + metadata.json + expoConfig.json
- *   ota/<runtime>/<channel>/<platform>/latest.json    the pointer, written LAST (the atomic switch)
+ *   ota/<runtime>/<folder>/...                                     immutable files + metadata.json + expoConfig.json
+ *   ota/<runtime>/<channel>/<platform>/<updateId>/manifest.json    the manifest, built and SIGNED here
+ *   ota/<runtime>/<channel>/<platform>/<updateId>/manifest.sig
+ *   ota/<runtime>/<channel>/<platform>/directive.sig
+ *   ota/<runtime>/<channel>/<platform>/latest.json                 the pointer, written LAST (the atomic switch)
  *
- * Env: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, OTA_R2_BUCKET.
+ * Env: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, OTA_R2_BUCKET,
+ *      OTA_ASSET_BASE_URL (public https URL of the bucket), OTA_PRIVATE_KEY (PEM).
+ *      The signing key exists only where this script runs, never in the edge function.
  * No dependencies: requests are signed with AWS SigV4 by hand.
  */
 
-import { createHash, createHmac, randomUUID } from 'node:crypto';
+import { createHash, createHmac, createSign, randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -147,69 +152,7 @@ if (args.prepare) {
   process.exit(0);
 }
 
-const pointerKey = (platform) =>
-  `ota/${runtimes[platform]}/${args.channel}/${platform}/latest.json`;
-const pointerBody = (folder) =>
-  Buffer.from(
-    JSON.stringify({
-      updateId: randomUUID(),
-      folder,
-      createdAt: new Date().toISOString(),
-      message: args.message,
-    }),
-  );
-const putPointer = (platform, folder) =>
-  put(pointerKey(platform), pointerBody(folder), 'application/json', 'no-store');
-
-// ───────────────────────────────────────────────────────────── rollback ──
-
-if (args.rollback) {
-  const folder = args.rollback;
-  if (!/^[A-Za-z0-9._+-]{1,128}$/.test(folder)) fail(`bad folder id ${folder}`);
-  for (const p of platforms) {
-    console.log(`${dryRun ? '[dry-run] ' : ''}${pointerKey(p)} -> ${folder}`);
-    if (dryRun) continue;
-  }
-  if (!dryRun) {
-    // Check every target platform before moving any pointer.
-    for (const p of platforms) {
-      const found = await request('GET', `ota/${runtimes[p]}/${folder}/metadata.json`);
-      if (!found.ok)
-        fail(`no published update ${folder} for runtime ${runtimes[p]} (${found.status})`);
-      const published = await found.json();
-      const files = published.fileMetadata?.[p];
-      const wanted = files ? [files.bundle, ...files.assets.map((a) => a.path)] : [];
-      if (!files?.bundle || !wanted.every((path) => published.hashes?.[path])) {
-        fail(`update ${folder} was not published for ${p}`);
-      }
-    }
-    for (const p of platforms) await putPointer(p, folder);
-  }
-  process.exit(0);
-}
-
-// ───────────────────────────────────────────────────────────── publish ──
-
-const metadataPath = join(args.dist, 'metadata.json');
-if (!existsSync(metadataPath)) fail(`${metadataPath} not found — run \`npx expo export\` first`);
-const metadataRaw = readFileSync(metadataPath);
-const metadata = JSON.parse(metadataRaw);
-const configRaw = Buffer.from(JSON.stringify(config));
-
-// The folder id is the content hash shaped as a UUID, so re-publishing the same
-// build reuses its files; the id a device sees is minted fresh in the pointer.
-// The platform selection is part of it: a folder holds hashes for only the
-// platforms published into it.
-const digest = createHash('sha256')
-  .update(metadataRaw)
-  .update(configRaw)
-  .update(platforms.join())
-  .digest();
-digest[6] = (digest[6] & 0x0f) | 0x40;
-digest[8] = (digest[8] & 0x3f) | 0x80;
-const folder = [0, 4, 6, 8, 10]
-  .map((start, i, a) => digest.subarray(start, a[i + 1] ?? 16).toString('hex'))
-  .join('-');
+// ──────────────────────────────────────────────────────── manifest + signing ──
 
 const CONTENT_TYPES = {
   js: 'application/javascript',
@@ -228,6 +171,149 @@ const CONTENT_TYPES = {
   mp4: 'video/mp4',
   pdf: 'application/pdf',
 };
+
+// Both are publisher-side only: the edge function holds no key and builds no
+// manifest, so bucket write access alone cannot get code signed.
+const privateKey = (process.env.OTA_PRIVATE_KEY ?? '').replace(/\\n/g, '\n');
+const assetBase = (process.env.OTA_ASSET_BASE_URL ?? '').replace(/\/+$/, '');
+if (!dryRun) {
+  if (!privateKey.includes('PRIVATE KEY')) fail('OTA_PRIVATE_KEY is not set (PEM)');
+  if (!/^https:\/\//.test(assetBase))
+    fail('OTA_ASSET_BASE_URL must be the https URL of the bucket');
+}
+const sign = (text) =>
+  privateKey ? createSign('RSA-SHA256').update(text).sign(privateKey, 'base64') : 'DRY-RUN';
+
+const NO_UPDATE_DIRECTIVE = '{"type":"noUpdateAvailable"}'; // must match the handler
+const dirOf = (platform) => `ota/${runtimes[platform]}/${args.channel}/${platform}`;
+const assetUrl = (platform, folder, path) =>
+  `${assetBase || 'https://assets.example'}/${`ota/${runtimes[platform]}/${folder}/${path}`
+    .split('/')
+    .map(encodeURIComponent)
+    .join('/')}`;
+
+/** The exact manifest text devices will receive; the signature covers these bytes. */
+function manifestText({ platform, folder, files, hashes, updateId, createdAt }) {
+  const asset = (path, contentType, ext) => {
+    if (!hashes[path]) fail(`no hash for ${path}`);
+    return {
+      hash: hashes[path],
+      key: path.split('/').pop(),
+      contentType,
+      ...(ext ? { fileExtension: `.${ext}` } : {}),
+      url: assetUrl(platform, folder, path),
+    };
+  };
+  return JSON.stringify({
+    id: updateId,
+    createdAt,
+    runtimeVersion: runtimes[platform],
+    launchAsset: asset(files.bundle, 'application/javascript'),
+    assets: files.assets.map((a) =>
+      asset(a.path, CONTENT_TYPES[a.ext] ?? 'application/octet-stream', a.ext),
+    ),
+    metadata: { 'expo-channel-name': args.channel },
+    extra: { expoClient: config },
+  });
+}
+
+/** Sign + upload one platform's manifest; returns the pointer write to do LAST. */
+async function stageManifest(input) {
+  const { platform, updateId } = input;
+  const text = manifestText(input);
+  const dir = dirOf(platform);
+  if (dryRun) {
+    console.log(`  PUT ${dir}/${updateId}/manifest.json + manifest.sig (signed here)`);
+    console.log(`  PUT ${dir}/directive.sig`);
+  } else {
+    const immutable = 'public, max-age=31536000, immutable';
+    await put(`${dir}/${updateId}/manifest.json`, Buffer.from(text), 'application/json', immutable);
+    await put(`${dir}/${updateId}/manifest.sig`, Buffer.from(sign(text)), 'text/plain', immutable);
+    await put(
+      `${dir}/directive.sig`,
+      Buffer.from(sign(NO_UPDATE_DIRECTIVE)),
+      'text/plain',
+      'no-store',
+    );
+  }
+  return async () => {
+    const pointer = {
+      updateId,
+      folder: input.folder,
+      createdAt: input.createdAt,
+      message: args.message,
+    };
+    if (dryRun) return console.log(`  PUT ${dir}/latest.json  (last)`);
+    await put(
+      `${dir}/latest.json`,
+      Buffer.from(JSON.stringify(pointer)),
+      'application/json',
+      'no-store',
+    );
+  };
+}
+
+// ───────────────────────────────────────────────────────────── rollback ──
+
+if (args.rollback) {
+  const folder = args.rollback;
+  if (!/^[A-Za-z0-9._+-]{1,128}$/.test(folder)) fail(`bad folder id ${folder}`);
+  if (dryRun) {
+    for (const p of platforms) console.log(`[dry-run] ${dirOf(p)}/latest.json -> ${folder}`);
+    process.exit(0);
+  }
+  // Check every target platform before moving any pointer.
+  const staged = [];
+  for (const p of platforms) {
+    const found = await request('GET', `ota/${runtimes[p]}/${folder}/metadata.json`);
+    if (!found.ok)
+      fail(`no published update ${folder} for runtime ${runtimes[p]} (${found.status})`);
+    const published = await found.json();
+    const files = published.fileMetadata?.[p];
+    const wanted = files ? [files.bundle, ...files.assets.map((a) => a.path)] : [];
+    if (!files?.bundle || !wanted.every((path) => published.hashes?.[path])) {
+      fail(`update ${folder} was not published for ${p}`);
+    }
+    // Same files, new update id and date: to a device it is a newer update.
+    staged.push(
+      await stageManifest({
+        platform: p,
+        folder,
+        files,
+        hashes: published.hashes,
+        updateId: randomUUID(),
+        createdAt: new Date().toISOString(),
+      }),
+    );
+  }
+  for (const writePointer of staged) await writePointer();
+  console.log(`rolled back to ${folder}`);
+  process.exit(0);
+}
+
+// ───────────────────────────────────────────────────────────── publish ──
+
+const metadataPath = join(args.dist, 'metadata.json');
+if (!existsSync(metadataPath)) fail(`${metadataPath} not found — run \`npx expo export\` first`);
+const metadataRaw = readFileSync(metadataPath);
+const metadata = JSON.parse(metadataRaw);
+const configRaw = Buffer.from(JSON.stringify(config));
+
+// The folder id is the content hash shaped as a UUID, so re-publishing the same
+// build reuses its files; the id a device sees is minted fresh per publish.
+// The platform selection is part of it: a folder holds hashes for only the
+// platforms published into it.
+const digest = createHash('sha256')
+  .update(metadataRaw)
+  .update(configRaw)
+  .update(platforms.join())
+  .digest();
+digest[6] = (digest[6] & 0x0f) | 0x40;
+digest[8] = (digest[8] & 0x3f) | 0x80;
+const folder = [0, 4, 6, 8, 10]
+  .map((start, i, a) => digest.subarray(start, a[i + 1] ?? 16).toString('hex'))
+  .join('-');
+
 const uploads = new Map(); // key -> { body, contentType }
 const hashes = {}; // per runtime: path -> base64url sha256
 for (const platform of platforms) {
@@ -264,25 +350,35 @@ console.log(
     platforms.map((p) => `${p}@${runtimes[p]}`).join(' ') +
     `  ${uploads.size} objects`,
 );
-if (dryRun) {
-  for (const key of uploads.keys()) console.log(`  PUT ${key}`);
-  for (const p of platforms) console.log(`  PUT ${pointerKey(p)}  (last)`);
-  process.exit(0);
-}
+if (dryRun) for (const key of uploads.keys()) console.log(`  PUT ${key}`);
 
-// Immutable files first (metadata.json last among them), the pointer after
-// everything: a device never sees a pointer whose files are not there yet.
-const entries = [...uploads.entries()].sort(
-  ([a], [b]) => +a.endsWith('/metadata.json') - +b.endsWith('/metadata.json'),
-);
-for (let i = 0; i < entries.length; i += 8) {
-  await Promise.all(
-    entries
-      .slice(i, i + 8)
-      .map(([key, { body, contentType }]) =>
-        put(key, body, contentType, 'public, max-age=31536000, immutable'),
-      ),
+// Order: immutable files, then signed manifests, then the pointers last: a
+// device never sees a pointer whose manifest, signature or files are missing.
+if (!dryRun) {
+  const entries = [...uploads.entries()];
+  for (let i = 0; i < entries.length; i += 8) {
+    await Promise.all(
+      entries
+        .slice(i, i + 8)
+        .map(([key, { body, contentType }]) =>
+          put(key, body, contentType, 'public, max-age=31536000, immutable'),
+        ),
+    );
+  }
+}
+const pointers = [];
+for (const platform of platforms) {
+  pointers.push(
+    await stageManifest({
+      platform,
+      folder,
+      files: metadata.fileMetadata[platform],
+      hashes: hashes[runtimes[platform]],
+      updateId: randomUUID(),
+      createdAt,
+    }),
   );
 }
-for (const p of platforms) await putPointer(p, folder);
-console.log(`published ${folder} — roll back to a previous one with --rollback <folder>`);
+for (const writePointer of pointers) await writePointer();
+if (!dryRun)
+  console.log(`published ${folder} — roll back to a previous one with --rollback <folder>`);
