@@ -97,6 +97,7 @@ describe('companyStatement', () => {
     // -500000 + 120000 + 30000 + 100000 - 50000
     expect(s.closing).toBe(-300000n);
     expect(s.side).toBe('employee_owes');
+    expect(s.rows[s.rows.length - 1]?.running).toBe(s.closing);
     expect(s.rows.map((r) => r.running)).toEqual([
       -380000n,
       -350000n,
