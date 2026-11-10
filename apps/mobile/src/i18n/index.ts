@@ -1582,6 +1582,8 @@ export interface UiStrings {
     paymentStatus: string;
     saveShare: string;
     createdBy: string;
+    acceptedBy: string;
+    declinedBy: string;
     activity: string;
     nextAction: string;
     add: string;
@@ -9369,6 +9371,8 @@ const en: UiStrings = {
     paymentStatus: 'Payment status',
     saveShare: 'Save & share',
     createdBy: 'Created by',
+    acceptedBy: 'Accepted by',
+    declinedBy: 'Declined by',
     activity: 'Activity',
     nextAction: 'Next action',
     add: 'Add',
@@ -16627,6 +16631,8 @@ const ta: UiStrings = {
     paymentStatus: 'கட்டண நிலை',
     saveShare: 'சேமித்துப் பகிர்',
     createdBy: 'உருவாக்கியவர்',
+    acceptedBy: 'ஏற்றவர்',
+    declinedBy: 'நிராகரித்தவர்',
     activity: 'செயல்பாடு',
     nextAction: 'அடுத்த செயல்',
     add: 'சேர்',
@@ -24053,6 +24059,8 @@ const hi: UiStrings = {
     paymentStatus: 'भुगतान स्थिति',
     saveShare: 'सेव करें और भेजें',
     createdBy: 'बनाने वाले',
+    acceptedBy: 'स्वीकार करने वाले',
+    declinedBy: 'अस्वीकार करने वाले',
     activity: 'गतिविधि',
     nextAction: 'अगला कदम',
     add: 'जोड़ें',
@@ -31372,6 +31380,8 @@ const ar: UiStrings = {
     paymentStatus: 'حالة الدفع',
     saveShare: 'احفظ وشارك',
     createdBy: 'أنشأه',
+    acceptedBy: 'قبله',
+    declinedBy: 'رفضه',
     activity: 'النشاط',
     nextAction: 'الإجراء التالي',
     add: 'إضافة',
