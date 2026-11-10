@@ -82,7 +82,7 @@ export function leaveBalance(input: {
   const aCap = rule.annualCap === null ? Infinity : hundredths(rule.annualCap);
   const cCap = rule.carryForwardCap === null ? Infinity : hundredths(rule.carryForwardCap);
   const firstYear = Math.floor(first / 12);
-  const lastYear = yearOf(asOf);
+  const lastYear = Math.max(firstYear, yearOf(asOf));
 
   const usedIn = new Map<number, number>();
   for (const u of input.uses) {
@@ -112,29 +112,44 @@ export function leaveBalance(input: {
 
 export interface LeaveCheck {
   readonly days: number;
-  /** Balance the request is checked against (as of the later of its start and today). */
+  /** The most the person could take in place of this request. */
   readonly available: number;
   /** False when approving would make the balance negative and the type does not allow overdraw. */
   readonly ok: boolean;
 }
 
-/** The same check the server runs at approval (`waves_company_leave_check`), so the app can warn before submit. */
+/**
+ * The same check the server runs at approval (`waves_company_leave_check`), so the app can warn before submit.
+ * The balance, WITH this request counted, must stay at or above zero from the request's month to the end of the
+ * last year that holds approved leave of this type (so it cannot spend what later leave or a year-end reset took).
+ * `available` is the worst month's balance plus this request's days.
+ */
 export function leaveCheck(input: {
   readonly rule: LeaveBalanceRule;
   readonly allowOverdraw: boolean;
   readonly joinedOn: string;
-  readonly today: string;
   /** The person's other requests of this type (the one being checked must not be in here). */
   readonly uses: readonly LeaveUse[];
   readonly request: Pick<LeaveUse, 'startDay' | 'endDay' | 'halfDay'>;
 }): LeaveCheck {
-  const days = leaveDays(input.request);
-  const asOf = input.request.startDay > input.today ? input.request.startDay : input.today;
-  const available = leaveBalance({
-    rule: input.rule,
-    joinedOn: input.joinedOn,
-    asOf,
-    uses: input.uses,
-  }).balance;
-  return { days, available, ok: input.allowOverdraw || available - days >= 0 };
+  const { request } = input;
+  const days = leaveDays(request);
+  const mine: LeaveUse = { ...request, status: 'approved' };
+  const lastYear = Math.max(
+    yearOf(request.endDay),
+    ...input.uses.filter((u) => u.status === 'approved').map((u) => yearOf(u.startDay)),
+  );
+  let worst = Infinity;
+  for (let m = monthIndex(request.startDay); m <= lastYear * 12 + 11; m++) {
+    const year = String(Math.floor(m / 12)).padStart(4, '0');
+    const asOf = `${year}-${String((m % 12) + 1).padStart(2, '0')}-01`;
+    const b = leaveBalance({
+      rule: input.rule,
+      joinedOn: input.joinedOn,
+      asOf,
+      uses: [...input.uses, mine],
+    }).balance;
+    worst = Math.min(worst, b);
+  }
+  return { days, available: worst + days, ok: input.allowOverdraw || worst >= 0 };
 }

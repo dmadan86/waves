@@ -68,8 +68,9 @@ SELECT public.waves_company_leave_types_seed(id) FROM public.groups WHERE type::
 -- ── Balance (internal; mirrors leaveBalance.ts) ─────────────────────────────────────────────────────
 -- Months are year*12+month-1. Accrual starts at the later of the type's first month and the person's
 -- first month (joined day 1-15 earns that month, later joiners start next month). Leave counts in the
--- year it starts; leave starting after the as-of month is ignored; p_exclude leaves one request out.
-CREATE FUNCTION public.waves_company_leave_balance(p_group_id uuid,p_member_id uuid,p_type_id uuid,p_as_of date,p_exclude uuid DEFAULT NULL) RETURNS numeric
+-- year it starts; leave starting after the as-of month is ignored; p_exclude leaves one request out;
+-- p_extra_* counts one more (not yet approved) request of that many days as taken.
+CREATE FUNCTION public.waves_company_leave_balance(p_group_id uuid,p_member_id uuid,p_type_id uuid,p_as_of date,p_exclude uuid DEFAULT NULL,p_extra_start date DEFAULT NULL,p_extra_days numeric DEFAULT 0) RETURNS numeric
  LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
 DECLARE t public.company_leave_types; v_join date; v_first int; v_last int; fy int; ly int; y int;
  m_from int; m_to int; acc numeric; used numeric; closing numeric:=0; carried numeric:=0; v_out numeric:=0;
@@ -82,7 +83,7 @@ BEGIN
  v_first:=greatest(extract(year FROM t.starts_on)::int*12+extract(month FROM t.starts_on)::int-1,
   extract(year FROM v_join)::int*12+extract(month FROM v_join)::int-1+CASE WHEN extract(day FROM v_join)>15 THEN 1 ELSE 0 END);
  v_last:=extract(year FROM p_as_of)::int*12+extract(month FROM p_as_of)::int-1;
- fy:=v_first/12; ly:=extract(year FROM p_as_of)::int;
+ fy:=v_first/12; ly:=greatest(fy,extract(year FROM p_as_of)::int);
  FOR y IN fy..ly LOOP
   m_from:=greatest(v_first,y*12); m_to:=least(v_last,y*12+11);
   acc:=CASE WHEN m_to>=m_from THEN t.accrual_days_per_month*(m_to-m_from+1) ELSE 0 END;
@@ -92,23 +93,30 @@ BEGIN
    AND id IS DISTINCT FROM p_exclude
    AND extract(year FROM start_day)::int*12+extract(month FROM start_day)::int-1<=v_last
    AND greatest(fy,extract(year FROM start_day)::int)=y;
+  IF p_extra_start IS NOT NULL AND extract(year FROM p_extra_start)::int*12+extract(month FROM p_extra_start)::int-1<=v_last AND greatest(fy,extract(year FROM p_extra_start)::int)=y THEN used:=used+p_extra_days; END IF;
   closing:=carried+acc-used; v_out:=closing;
   carried:=CASE WHEN NOT t.carry_forward THEN 0 WHEN closing>0 THEN least(closing,coalesce(t.carry_forward_cap,closing)) ELSE closing END;
  END LOOP;
  RETURN v_out;
 END $$;
 
--- Refuse a request that would make the balance negative (unless the type allows overdraw).
+-- Refuse a request that would make the balance negative (unless the type allows overdraw). The balance is
+-- checked at every month from the request's month to the end of the last year that holds approved leave of this
+-- type, WITH the request counted, so it cannot spend what later approved leave or a year-end reset already took.
 -- The caller has locked the person's member row, so two approvals cannot both see the old balance.
 CREATE FUNCTION public.waves_company_leave_check(p_group_id uuid,p_member_id uuid,p_type_id uuid,p_start date,p_end date,p_half boolean,p_exclude uuid) RETURNS void
  LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
-DECLARE t public.company_leave_types; v_bal numeric; v_days numeric:=CASE WHEN p_half THEN 0.5 ELSE p_end-p_start+1 END;
+DECLARE t public.company_leave_types; v_bal numeric; v_days numeric:=CASE WHEN p_half THEN 0.5 ELSE p_end-p_start+1 END; m int; v_to int;
 BEGIN
  IF p_type_id IS NULL THEN RETURN; END IF; -- "Unspecified" leave is never deducted
  SELECT * INTO t FROM public.company_leave_types WHERE id=p_type_id AND group_id=p_group_id;
  IF NOT FOUND OR t.allow_overdraw THEN RETURN; END IF;
- v_bal:=public.waves_company_leave_balance(p_group_id,p_member_id,p_type_id,greatest(p_start,current_date),p_exclude);
- IF v_bal IS NULL OR v_bal-v_days<0 THEN RAISE EXCEPTION 'INSUFFICIENT_BALANCE: % days left', coalesce(v_bal,0) USING ERRCODE='check_violation'; END IF;
+ SELECT greatest(extract(year FROM p_end)::int,coalesce(max(extract(year FROM start_day)::int),0))*12+11 INTO v_to FROM public.company_leave
+  WHERE group_id=p_group_id AND member_id=p_member_id AND leave_type_id=p_type_id AND status='approved' AND deleted_at IS NULL AND id IS DISTINCT FROM p_exclude;
+ FOR m IN (extract(year FROM p_start)::int*12+extract(month FROM p_start)::int-1)..v_to LOOP
+  v_bal:=public.waves_company_leave_balance(p_group_id,p_member_id,p_type_id,make_date(m/12,m%12+1,1),p_exclude,p_start,v_days);
+  IF v_bal IS NULL OR v_bal<0 THEN RAISE EXCEPTION 'INSUFFICIENT_BALANCE: short by % days', coalesce(-v_bal,v_days) USING ERRCODE='check_violation'; END IF;
+ END LOOP;
 END $$;
 
 -- ── Types (owner) ───────────────────────────────────────────────────────────────────────────────────
@@ -203,9 +211,42 @@ BEGIN
  UPDATE public.company_leave SET status=v_to,decided_by=v_me,decision_note=v_note,updated_at=now() WHERE id=r.id;
 END $$;
 
+CREATE OR REPLACE FUNCTION public.waves_company_dates_set(p_group_id uuid,p_member_id uuid,p_birth_day int,p_birth_month int,p_joined_on date,p_show boolean) RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public','pg_temp' AS $$
+DECLARE v_me uuid; r public.company_member_dates; v_show boolean; v_joined date:=p_joined_on; v_added date;
+BEGIN
+ v_me:=public.waves_company_actor(p_group_id);
+ IF p_member_id IS DISTINCT FROM v_me AND NOT (public.is_group_admin(p_group_id) OR public.waves_company_team(p_group_id,p_member_id)) THEN RAISE EXCEPTION 'NOT_ALLOWED' USING ERRCODE='insufficient_privilege'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM public.group_members WHERE id=p_member_id AND group_id=p_group_id AND left_at IS NULL AND removed_at IS NULL AND merged_into_member_id IS NULL) THEN RAISE EXCEPTION 'UNKNOWN_MEMBER' USING ERRCODE='insufficient_privilege'; END IF;
+ IF (p_birth_day IS NULL)<>(p_birth_month IS NULL) THEN RAISE EXCEPTION 'INVALID_DATA: birthday'; END IF;
+ IF p_birth_day IS NOT NULL THEN
+  IF p_birth_month NOT BETWEEN 1 AND 12 OR p_birth_day NOT BETWEEN 1 AND 31 THEN RAISE EXCEPTION 'INVALID_DATA: birthday'; END IF;
+  BEGIN PERFORM make_date(2000,p_birth_month,p_birth_day); EXCEPTION WHEN OTHERS THEN RAISE EXCEPTION 'INVALID_DATA: birthday'; END; -- 2000 is a leap year: 29 Feb is allowed
+ END IF;
+ IF p_joined_on IS NOT NULL AND (p_joined_on>current_date OR p_joined_on<DATE '1980-01-01') THEN RAISE EXCEPTION 'INVALID_DATA: joined'; END IF;
+ -- Leave accrues from the joining date. A person editing their OWN date cannot reach back before the day they
+ -- were added (that would grant themselves leave); the owner and their manager can set any date. Clamped, not refused.
+ IF p_member_id=v_me AND NOT (public.is_group_admin(p_group_id) OR public.waves_company_team(p_group_id,p_member_id)) AND v_joined IS NOT NULL THEN
+  SELECT (created_at AT TIME ZONE 'UTC')::date INTO v_added FROM public.group_members WHERE id=p_member_id;
+  v_joined:=greatest(v_joined,v_added);
+ END IF;
+ SELECT * INTO r FROM public.company_member_dates WHERE group_id=p_group_id AND member_id=p_member_id FOR UPDATE;
+ v_show:=CASE WHEN p_member_id=v_me THEN coalesce(p_show,false) ELSE coalesce(r.show_birthday AND r.deleted_at IS NULL,false) END;
+ IF p_birth_day IS NULL AND p_joined_on IS NULL THEN
+  IF FOUND THEN UPDATE public.company_member_dates SET birth_day=NULL,birth_month=NULL,joined_on=NULL,show_birthday=v_show,deleted_at=now(),updated_at=now() WHERE id=r.id; END IF;
+  RETURN;
+ END IF;
+ IF FOUND THEN
+  UPDATE public.company_member_dates SET birth_day=p_birth_day,birth_month=p_birth_month,joined_on=v_joined,show_birthday=v_show,deleted_at=NULL,updated_at=now() WHERE id=r.id;
+ ELSE
+  INSERT INTO public.company_member_dates(group_id,member_id,birth_day,birth_month,joined_on,show_birthday) VALUES(p_group_id,p_member_id,p_birth_day,p_birth_month,v_joined,v_show);
+ END IF;
+END $$;
+
 REVOKE ALL ON FUNCTION
+ public.waves_company_dates_set(uuid,uuid,int,int,date,boolean),
  public.waves_company_leave_types_seed(uuid),public.waves_company_leave_types_seed_trg(),
- public.waves_company_leave_balance(uuid,uuid,uuid,date,uuid),
+ public.waves_company_leave_balance(uuid,uuid,uuid,date,uuid,date,numeric),
  public.waves_company_leave_check(uuid,uuid,uuid,date,date,boolean,uuid),
  public.waves_company_leave_type_set(uuid,uuid,text,numeric,boolean,numeric,numeric,boolean,boolean,boolean),
  public.waves_company_leave_type_remove(uuid,uuid),
@@ -213,12 +254,13 @@ REVOKE ALL ON FUNCTION
  public.waves_company_leave_decide(uuid,uuid,boolean,text)
  FROM PUBLIC,anon,authenticated;
 GRANT EXECUTE ON FUNCTION
- public.waves_company_leave_types_seed(uuid),public.waves_company_leave_balance(uuid,uuid,uuid,date,uuid),
+ public.waves_company_leave_types_seed(uuid),public.waves_company_leave_balance(uuid,uuid,uuid,date,uuid,date,numeric),
  public.waves_company_leave_check(uuid,uuid,uuid,date,date,boolean,uuid)
  TO service_role;
 GRANT EXECUTE ON FUNCTION
  public.waves_company_leave_type_set(uuid,uuid,text,numeric,boolean,numeric,numeric,boolean,boolean,boolean),
  public.waves_company_leave_type_remove(uuid,uuid),
  public.waves_company_leave_set(uuid,uuid,uuid,date,date,boolean,text,text,uuid),
- public.waves_company_leave_decide(uuid,uuid,boolean,text)
+ public.waves_company_leave_decide(uuid,uuid,boolean,text),
+ public.waves_company_dates_set(uuid,uuid,int,int,date,boolean)
  TO authenticated,service_role;

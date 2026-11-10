@@ -334,6 +334,71 @@ describe('SQL balance matches the core function (packages/core leaveBalance.ts)'
     }));
 });
 
+describe('approval cannot overspend committed or past balances', () => {
+  const pending = async (member: number, day: string) => {
+    const id = randomUUID();
+    await db.query(
+      `INSERT INTO company_leave(id,group_id,member_id,start_day,end_day,kind,status,created_by,leave_type_id)
+       VALUES($1,$2,$3,$4,$4,'casual','pending',$3,$5)`,
+      [id, g.groupId, g.memberIds[member], day, casual],
+    );
+    return id;
+  };
+  const approvedRow = async (member: number, day: string) => {
+    const id = await pending(member, day);
+    await db.query("UPDATE company_leave SET status='approved' WHERE id=$1", [id]);
+  };
+  const setup = async (over: string) => {
+    await db.query('UPDATE group_members SET created_at=$2 WHERE id=$1', [
+      g.memberIds[2],
+      '2026-01-01T12:00:00Z',
+    ]);
+    await db.query(`UPDATE company_leave_types SET starts_on='2026-01-01' ${over} WHERE id=$1`, [
+      casual,
+    ]);
+  };
+  it('annual cap 1: with March already taken, a February day is refused (and allowed with cap 2)', () =>
+    isolated(async () => {
+      await setup(',annual_cap=1');
+      await approvedRow(2, '2026-03-02');
+      const feb = await pending(2, '2026-02-02');
+      await denied(() => decide(1, feb));
+      await db.query('UPDATE company_leave_types SET annual_cap=2 WHERE id=$1', [casual]);
+      await decide(1, feb);
+    }));
+  it('a December request is held to December even when decided later, with carry forward off', () =>
+    isolated(async () => {
+      await setup(',annual_cap=1,carry_forward=false');
+      await approvedRow(2, '2026-12-01');
+      const second = await pending(2, '2026-12-02');
+      await denied(() => decide(1, second));
+    }));
+  it('a person cannot back-date their own joining date to earn more; the owner can', () =>
+    isolated(async () => {
+      await setup('');
+      await db.query('UPDATE group_members SET created_at=$2 WHERE id=$1', [
+        g.memberIds[2],
+        '2026-06-01T12:00:00Z',
+      ]);
+      const join = (caller: number) =>
+        q(caller, 'SELECT waves_company_dates_set($1,$2,NULL,NULL,$3,false)', [
+          g.groupId,
+          g.memberIds[2],
+          '2026-01-01',
+        ]);
+      const stored = async () =>
+        (
+          await db.query('SELECT joined_on::text j FROM company_member_dates WHERE member_id=$1', [
+            g.memberIds[2],
+          ])
+        ).rows[0].j;
+      await join(2);
+      expect(await stored()).toBe('2026-06-01'); // clamped to the day they were added
+      await join(1); // their manager
+      expect(await stored()).toBe('2026-01-01');
+    }));
+});
+
 describe('notifications keep working', () => {
   it('a request notifies the manager, the decision notifies the employee', () =>
     isolated(async () => {

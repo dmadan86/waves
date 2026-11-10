@@ -100,7 +100,6 @@ export function useLeaveCheck(
 ): (LeaveCheck & { type: MirrorLeaveType }) | null {
   const cal = useCalendar(groupId);
   const joinedOn = useJoinedOn(groupId);
-  const today = todayIso();
   const type = cal.leaveTypes.find((t) => t.id === req.typeId);
   if (!type || !req.memberId || req.endDay < req.startDay) return null;
   const uses: MirrorLeave[] = cal.leave.filter(
@@ -110,7 +109,6 @@ export function useLeaveCheck(
     rule: ruleOf(type),
     allowOverdraw: type.allowOverdraw,
     joinedOn: joinedOn(req.memberId),
-    today,
     uses,
     request: req,
   });

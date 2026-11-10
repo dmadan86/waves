@@ -16,7 +16,6 @@ describe('leaveCheck (the pre-submit warning)', () => {
       rule,
       allowOverdraw: over.allowOverdraw ?? false,
       joinedOn: '2026-01-01',
-      today: '2026-03-10',
       uses: over.uses ?? [],
       request: { startDay: '2026-03-12', endDay: `2026-03-${11 + days}`, halfDay: false },
     });
@@ -39,11 +38,36 @@ describe('leaveCheck (the pre-submit warning)', () => {
       rule,
       allowOverdraw: false,
       joinedOn: '2026-01-01',
-      today: '2026-03-10',
       uses: [],
       request: { startDay: '2026-05-04', endDay: '2026-05-08', halfDay: false },
     });
     expect(r).toEqual({ days: 5, available: 5, ok: true });
+  });
+  const day = (startDay: string): LeaveUse => ({
+    startDay,
+    endDay: startDay,
+    halfDay: false,
+    status: 'approved',
+  });
+  const one = (over: Partial<LeaveBalanceRule>, uses: LeaveUse[], startDay: string) =>
+    leaveCheck({
+      rule: { ...rule, ...over },
+      allowOverdraw: false,
+      joinedOn: '2026-01-01',
+      uses,
+      request: { startDay, endDay: startDay, halfDay: false },
+    }).ok;
+  it('cannot spend what later approved leave already took (annual cap 1: March taken, then February)', () => {
+    expect(one({ annualCap: 1 }, [day('2026-03-02')], '2026-02-02')).toBe(false);
+    expect(one({ annualCap: 2 }, [day('2026-03-02')], '2026-02-02')).toBe(true);
+  });
+  it('a December request is checked against December, not the January it is decided in', () => {
+    const noCarry = { annualCap: 1, carryForward: false };
+    expect(one(noCarry, [day('2026-12-01')], '2026-12-02')).toBe(false);
+    expect(one({ ...noCarry, carryForward: true }, [day('2026-12-01')], '2026-12-02')).toBe(false);
+  });
+  it('a request before the type or the person started has nothing to draw on', () => {
+    expect(one({ startDay: '2026-06-01' }, [], '2026-03-02')).toBe(false);
   });
 });
 
