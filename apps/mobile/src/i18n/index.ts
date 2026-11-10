@@ -1993,6 +1993,20 @@ export interface UiStrings {
     overviewNoPaid: string;
     overviewNoAdvances: string;
     qaAddTask: string;
+    tkAll: string;
+    tkLater: string;
+    tkCompleted: string;
+    tkScheduled: string;
+    tkNext: string;
+    tkQuick: string;
+    tkUpload: string;
+    tkAddClient: string;
+    tkAddVendor: string;
+    tkSites: PluralForms;
+    tkMore: string;
+    tkNone: string;
+    tkMenu: string;
+    tkViewAll: string;
 
     tasksCount: PluralForms;
     attHalfDay: string;
@@ -9812,6 +9826,20 @@ const en: UiStrings = {
     overviewNoPaid: 'Nothing paid yet',
     overviewNoAdvances: 'No advances',
     qaAddTask: 'Add task',
+    tkAll: 'All',
+    tkLater: 'Later',
+    tkCompleted: 'Completed',
+    tkScheduled: 'Scheduled',
+    tkNext: "What's next",
+    tkQuick: 'Quick actions',
+    tkUpload: 'Upload file',
+    tkAddClient: 'Add client',
+    tkAddVendor: 'Add vendor',
+    tkSites: { one: '{n} site', other: '{n} sites' },
+    tkMore: '+{n}',
+    tkNone: 'Nothing here',
+    tkMenu: 'Task options',
+    tkViewAll: 'View all',
 
     qaAddEmployee: 'Add employee',
     tasksCount: { one: '{n} task', other: '{n} tasks' },
@@ -17102,6 +17130,20 @@ const ta: UiStrings = {
     overviewNoPaid: 'இன்னும் பணம் செலுத்தப்படவில்லை',
     overviewNoAdvances: 'முன்பணம் இல்லை',
     qaAddTask: 'பணியைச் சேர்',
+    tkAll: 'அனைத்தும்',
+    tkLater: 'பிறகு',
+    tkCompleted: 'முடிந்தவை',
+    tkScheduled: 'திட்டமிடப்பட்டது',
+    tkNext: 'அடுத்து என்ன',
+    tkQuick: 'விரைவு செயல்கள்',
+    tkUpload: 'கோப்பை பதிவேற்று',
+    tkAddClient: 'வாடிக்கையாளரைச் சேர்',
+    tkAddVendor: 'விற்பனையாளரைச் சேர்',
+    tkSites: { one: '{n} தளம்', other: '{n} தளங்கள்' },
+    tkMore: '+{n}',
+    tkNone: 'இங்கே எதுவும் இல்லை',
+    tkMenu: 'பணி விருப்பங்கள்',
+    tkViewAll: 'அனைத்தையும் பார்',
 
     qaAddEmployee: 'ஊழியரைச் சேர்',
     tasksCount: { one: '{n} பணி', other: '{n} பணிகள்' },
@@ -24555,6 +24597,20 @@ const hi: UiStrings = {
     overviewNoPaid: 'अभी तक भुगतान नहीं',
     overviewNoAdvances: 'कोई अग्रिम नहीं',
     qaAddTask: 'कार्य जोड़ें',
+    tkAll: 'सभी',
+    tkLater: 'बाद में',
+    tkCompleted: 'पूर्ण',
+    tkScheduled: 'निर्धारित',
+    tkNext: 'आगे क्या',
+    tkQuick: 'त्वरित कार्य',
+    tkUpload: 'फ़ाइल अपलोड करें',
+    tkAddClient: 'ग्राहक जोड़ें',
+    tkAddVendor: 'वेंडर जोड़ें',
+    tkSites: { one: '{n} साइट', other: '{n} साइट' },
+    tkMore: '+{n}',
+    tkNone: 'यहाँ कुछ नहीं',
+    tkMenu: 'कार्य विकल्प',
+    tkViewAll: 'सभी देखें',
 
     qaAddEmployee: 'कर्मचारी जोड़ें',
     tasksCount: { one: '{n} कार्य', other: '{n} कार्य' },
@@ -31925,6 +31981,20 @@ const ar: UiStrings = {
     overviewNoPaid: 'لم يتم الدفع بعد',
     overviewNoAdvances: 'لا توجد سلف',
     qaAddTask: 'أضف مهمة',
+    tkAll: 'الكل',
+    tkLater: 'لاحقًا',
+    tkCompleted: 'المكتملة',
+    tkScheduled: 'مجدولة',
+    tkNext: 'التالي',
+    tkQuick: 'إجراءات سريعة',
+    tkUpload: 'رفع ملف',
+    tkAddClient: 'إضافة عميل',
+    tkAddVendor: 'إضافة مورّد',
+    tkSites: { one: '{n} موقع', other: '{n} مواقع' },
+    tkMore: '+{n}',
+    tkNone: 'لا شيء هنا',
+    tkMenu: 'خيارات المهمة',
+    tkViewAll: 'عرض الكل',
 
     qaAddEmployee: 'أضف موظفاً',
     tasksCount: {
