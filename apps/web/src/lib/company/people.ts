@@ -65,14 +65,14 @@ export function balancesByMember(
   return out;
 }
 
-/** Tasks still to do today per person (anything not done). */
+/** Tasks still to do per person: today's and overdue ones (anything not done). */
 export function openTasksToday(
   tasks: readonly MirrorWorkTask[],
   day: string,
 ): ReadonlyMap<string, number> {
   const out = new Map<string, number>();
   for (const task of tasks)
-    if (task.day === day && task.status !== 'done')
+    if (task.day <= day && task.status !== 'done')
       out.set(task.memberId, (out.get(task.memberId) ?? 0) + 1);
   return out;
 }

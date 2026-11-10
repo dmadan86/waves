@@ -7,9 +7,9 @@ import { Button, iconSize, Row, Screen, Sheet, Text, useTheme } from '@waves/ui'
 
 import { DashBody, DashHeader, IconButton } from '@/components/company/dashboard/parts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { PersonAvatar } from '@/components/PersonAvatar';
 import { type MenuAnchor } from '@/components/SortMenu';
-import { ListRow, SegmentedPills, StandardCard } from '@/components/standard';
+import { RowMenu, StatTiles } from '@/components/company/listParts';
+import { ListRow, RowTile, SegmentedPills, StandardCard } from '@/components/standard';
 import { useCompanyClients, useFollowUps } from '@/data/companyClients';
 import { useCompanyDocs } from '@/data/companyDocuments';
 import { useCompanyEntries, useCompanySuspended } from '@/data/companyEntries';
@@ -61,7 +61,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
   const [range, setRange] = useState<DateRange>('all');
   const [sort, setSort] = useState<ClientSort>('recent');
   const [query, setQuery] = useState('');
-  const [searching, setSearching] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [menu, setMenu] = useState<'sort' | null>(null);
   const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
@@ -75,6 +74,14 @@ export function ClientsList({ groupId }: { groupId: string }) {
     [view.clients, docs, view.notes, nextDays, view.inquiries],
   );
   const counts = tabCounts(all);
+  // Three plain states: an open follow-up or fresh inquiry, a lost or rejected client, else active.
+  const look = (r: (typeof all)[number]) =>
+    r.status === 'lost' || r.status === 'rejected'
+      ? 'inactive'
+      : r.nextFollowUp || r.status === 'inquiry'
+        ? 'followup'
+        : 'active';
+  const tally = (k: string) => all.filter((r) => look(r) === k).length;
   // Subtitle for a client with an open follow-up: today, overdue, weekday or date.
   const fuText = (day: string | null): string | null => {
     if (!day) return null;
@@ -165,9 +172,9 @@ export function ClientsList({ groupId }: { groupId: string }) {
   };
   const statusLabel = (st: ClientStatus) => pill(st).label.replace('✓ ', '');
   const circle = {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: theme.color.surface,
@@ -194,15 +201,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
                 label={s.fuTitle}
                 onPress={() => router.push(`/group/${groupId}/company-followups`)}
               />
-              <IconButton
-                round
-                icon={searching ? 'close' : 'search-outline'}
-                label={s.search}
-                onPress={() => {
-                  if (searching) setQuery('');
-                  setSearching(!searching);
-                }}
-              />
             </>
           }
         />
@@ -223,9 +221,42 @@ export function ClientsList({ groupId }: { groupId: string }) {
               />
             </View>
           </ScrollView>
-          {searching ? (
+          <StatTiles
+            tiles={[
+              {
+                icon: 'people-outline',
+                value: all.length,
+                label: s.statTotal,
+                fg: theme.color.brand,
+                bg: theme.color.brandSoft,
+              },
+              {
+                icon: 'checkmark-circle-outline',
+                value: tally('active'),
+                label: s.statActive,
+                fg: theme.color.positive,
+                bg: theme.color.positiveSoft,
+              },
+              {
+                icon: 'person-outline',
+                value: tally('followup'),
+                label: s.statFollowUp,
+                fg: theme.color.warning,
+                bg: theme.color.warningSoft,
+              },
+              {
+                icon: 'information-circle-outline',
+                value: tally('inactive'),
+                label: s.statInactive,
+                fg: theme.color.textMuted,
+                bg: theme.color.surfaceMuted,
+              },
+            ]}
+          />
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
             <View
               style={{
+                flex: 1,
                 flexDirection: 'row',
                 alignItems: 'center',
                 gap: theme.spacing.sm,
@@ -237,7 +268,6 @@ export function ClientsList({ groupId }: { groupId: string }) {
             >
               <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
               <TextInput
-                autoFocus
                 accessibilityLabel={s.search}
                 value={query}
                 onChangeText={setQuery}
@@ -246,27 +276,14 @@ export function ClientsList({ groupId }: { groupId: string }) {
                 style={{ flex: 1, color: theme.color.text, fontSize: 16 }}
               />
             </View>
-          ) : null}
-          <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
             <Pressable
               ref={sortRef}
               accessibilityRole="button"
-              accessibilityLabel={s.sortLabel}
+              accessibilityLabel={fill(s.sortBy, { by: sortName })}
               onPress={openSort}
-              style={{
-                height: 40,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: theme.spacing.xs,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: 12,
-                backgroundColor: theme.color.surface,
-              }}
+              style={circle}
             >
-              <Text variant="caption" style={{ fontWeight: '600' }}>
-                {fill(s.sortBy, { by: sortName })}
-              </Text>
-              <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
+              <Ionicons name="swap-vertical" size={iconSize.md} color={theme.color.text} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -322,7 +339,25 @@ export function ClientsList({ groupId }: { groupId: string }) {
             <StandardCard style={{ paddingVertical: 0 }}>
               {rows.map((r, i) => {
                 const c = r.client;
-                const st = pill(r.status);
+                const k = look(r);
+                const st = {
+                  active: {
+                    label: s.statActive,
+                    fg: theme.color.positive,
+                    bg: theme.color.positiveSoft,
+                  },
+                  followup: {
+                    label: s.statFollowUp,
+                    fg: theme.color.warning,
+                    bg: theme.color.warningSoft,
+                  },
+                  inactive: {
+                    label: s.statInactive,
+                    fg: theme.color.textMuted,
+                    bg: theme.color.surfaceMuted,
+                  },
+                }[k];
+                const go = () => router.push(`/group/${groupId}/company-client?clientId=${c.id}`);
                 const word = r.latest?.type === 'bill' ? s.docInvoice : s.docQuote;
                 const doc = r.latest
                   ? r.latest.number == null
@@ -336,30 +371,24 @@ export function ClientsList({ groupId }: { groupId: string }) {
                     divider={i < rows.length - 1}
                     title={c.name}
                     subtitleNegative={!!r.nextFollowUp && r.nextFollowUp < today}
-                    subtitle={
+                    subtitle={[
                       fuText(r.nextFollowUp) ??
-                      `${doc} · ${days === 0 ? s.today : fill(s.daysAgo, { n: days })}`
+                        `${doc} · ${days === 0 ? s.today : fill(s.daysAgo, { n: days })}`,
+                      r.amountMinor == null ? null : fmt(r.amountMinor),
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                    leading={
+                      <RowTile tint={theme.color.brandSoft}>
+                        <Ionicons
+                          name="business-outline"
+                          size={iconSize.md}
+                          color={theme.color.brand}
+                        />
+                      </RowTile>
                     }
-                    leading={<PersonAvatar name={c.name} size={40} />}
                     trailing={
                       <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                        <Pressable
-                          accessibilityRole="button"
-                          accessibilityLabel={fill(
-                            fav.isFavorite(c.id) ? t.clone.unstar : t.clone.star,
-                            { name: c.name },
-                          )}
-                          hitSlop={8}
-                          onPress={() => fav.toggle(c.id)}
-                        >
-                          <Ionicons
-                            name={fav.isFavorite(c.id) ? 'star' : 'star-outline'}
-                            size={18}
-                            color={
-                              fav.isFavorite(c.id) ? theme.color.warning : theme.color.textMuted
-                            }
-                          />
-                        </Pressable>
                         <View
                           style={{
                             backgroundColor: st.bg,
@@ -372,16 +401,22 @@ export function ClientsList({ groupId }: { groupId: string }) {
                             {st.label}
                           </Text>
                         </View>
-                        <Text
-                          tabular
-                          style={{ fontWeight: '700', minWidth: 52, textAlign: 'right' }}
-                        >
-                          {r.amountMinor == null ? '—' : fmt(r.amountMinor)}
-                        </Text>
-                        <Ionicons name="chevron-forward" size={18} color={theme.color.textMuted} />
+                        <RowMenu
+                          label={`${s.more}: ${c.name}`}
+                          items={[
+                            { icon: 'open-outline', label: s.open, onPress: go },
+                            {
+                              icon: fav.isFavorite(c.id) ? 'star' : 'star-outline',
+                              label: fill(fav.isFavorite(c.id) ? t.clone.unstar : t.clone.star, {
+                                name: c.name,
+                              }),
+                              onPress: () => fav.toggle(c.id),
+                            },
+                          ]}
+                        />
                       </Row>
                     }
-                    onPress={() => router.push(`/group/${groupId}/company-client?clientId=${c.id}`)}
+                    onPress={go}
                   />
                 );
               })}
@@ -389,6 +424,16 @@ export function ClientsList({ groupId }: { groupId: string }) {
           )}
         </DashBody>
       </ScrollView>
+      {canAdd ? (
+        <View style={{ position: 'absolute', end: theme.spacing.lg, bottom: clearance }}>
+          <Button
+            label={`+ ${s.addClient}`}
+            variant="brand"
+            size="sm"
+            onPress={() => router.push(`/group/${groupId}/company-client-add`)}
+          />
+        </View>
+      ) : null}
       <OverflowMenu
         visible={menu !== null}
         onClose={() => setMenu(null)}

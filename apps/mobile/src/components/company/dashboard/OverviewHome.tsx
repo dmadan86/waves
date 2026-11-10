@@ -208,13 +208,23 @@ function Header({
   );
 }
 
-export function NeedsAttention({ groupId }: { groupId: string }) {
+/** `approvalsOnly`: just the claims-awaiting row (the task block above already shows tasks). */
+export function NeedsAttention({
+  groupId,
+  approvalsOnly = false,
+}: {
+  groupId: string;
+  approvalsOnly?: boolean;
+}) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const { o, facts, approvals } = useHome(groupId);
   const fmt = useFmt(o.currency);
   if (!o.ready) return <Skeleton height={150} />;
-  const rows = buildNeedRows(facts, approvals);
+  const rows = buildNeedRows(facts, approvals).filter(
+    (r) => !approvalsOnly || r.kind === 'approve',
+  );
+  if (approvalsOnly && rows.length === 0) return null;
   const c = t.company;
   const go = (screen: string) => () => router.push(`/group/${groupId}/${screen}`);
   const line = (r: (typeof rows)[number]) => {

@@ -1,13 +1,12 @@
 /** Rows of the company activity feed, shared by the full screen and the Overview's latest five. */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import { Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
+import { Text, iconSize, useTheme } from '@waves/ui';
 
 import { SectionCard, useMoney, GREEN, BLUE } from '@/components/company/dashboard/parts';
 import { AMBER, IconDisc, RED } from '@/components/company/dashboard/overviewKit';
-import { ListRow } from '@/components/standard';
 import { useCompanyActivity } from '@/data/companyActivity';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { fill, useStrings } from '@/i18n';
@@ -64,46 +63,44 @@ export function ActivityRows({
         const amount = e.amount ? fmt(e.amount.minor) : undefined;
         const open = () => router.push(`/group/${groupId}/${e.href}`);
         return (
-          <ListRow
+          <Pressable
             key={e.id}
-            leading={
+            accessibilityRole="button"
+            accessibilityLabel={[title, text(e), amount].filter(Boolean).join(', ')}
+            onPress={open}
+            style={({ pressed }) => ({
+              flexDirection: 'row',
+              gap: theme.spacing.md,
+              opacity: pressed ? 0.6 : 1,
+            })}
+          >
+            <View style={{ alignItems: 'center' }}>
               <IconDisc ink={color} size={36}>
                 <Ionicons name={e.icon} size={iconSize.md} color={color} />
               </IconDisc>
-            }
-            title={title}
-            accessibilityLabel={[title, text(e), amount].filter(Boolean).join(', ')}
-            subtitle={text(e)}
-            subtitleLines={2}
-            footer={
-              amount ? (
-                <Text tabular style={{ fontWeight: '700' }}>
-                  {amount}
+              {i < events.length - 1 ? (
+                <View style={{ flex: 1, width: 2, backgroundColor: theme.color.border }} />
+              ) : null}
+            </View>
+            <View style={{ flex: 1, minWidth: 0, gap: 2, paddingBottom: theme.spacing.md }}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                <Text numberOfLines={2} style={{ fontWeight: '700', flex: 1 }}>
+                  {title}
                 </Text>
-              ) : undefined
-            }
-            trailing={
-              // Same tap as the row; hidden from screen readers, which already have the row.
-              <Pressable
-                onPress={open}
-                hitSlop={8}
-                accessible={false}
-                importantForAccessibility="no-hide-descendants"
-                style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}
-              >
                 <Text variant="micro" tone="muted">
                   {time.format(e.at)}
                 </Text>
-                <Ionicons
-                  name={directionalIcon('chevron-forward')}
-                  size={iconSize.sm}
-                  color={theme.color.textFaint}
-                />
-              </Pressable>
-            }
-            onPress={open}
-            divider={i < events.length - 1}
-          />
+              </View>
+              <Text variant="caption" tone="muted" numberOfLines={2}>
+                {text(e)}
+              </Text>
+              {amount ? (
+                <Text tabular style={{ fontWeight: '700' }}>
+                  {amount}
+                </Text>
+              ) : null}
+            </View>
+          </Pressable>
         );
       })}
     </>

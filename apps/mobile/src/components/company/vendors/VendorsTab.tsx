@@ -1,146 +1,39 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View } from 'react-native';
+import { TextInput, View } from 'react-native';
 
-import {
-  filterVendorRows,
-  vendorDashboard,
-  type VendorFilter,
-  type VendorPeriod,
-  type VendorRow,
-} from '@waves/core';
+import { filterVendorRows, vendorDashboard, type VendorFilter, type VendorRow } from '@waves/core';
 import { Text, useTheme } from '@waves/ui';
 
+import { RowMenu, StatTiles } from '@/components/company/listParts';
 import { useVendorFormat } from '@/components/company/vendors/parts';
-import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { PersonAvatar } from '@/components/PersonAvatar';
-import { useGlass, StandardCard } from '@/components/standard';
-import { type MenuAnchor } from '@/components/SortMenu';
+import { ListRow, RowTile, StandardCard } from '@/components/standard';
 import { useCompanyVendors } from '@/data/companyVendors';
 import { todayIso } from '@/data/personal';
-import { fill, useStrings } from '@/i18n';
+import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 
-const PERIODS: readonly VendorPeriod[] = ['month', 'lastMonth', 'year', 'all'];
 const FILTERS: readonly VendorFilter[] = ['all', 'toPay', 'settled', 'toReview', 'overdue'];
-const ORANGE = '#A85F00';
-const PURPLE = '#4B35B8';
-const GREEN = '#17703C';
 
-/** One column of the overview card; a tap filters the list to it (tap again clears). */
-function Stat({
-  icon,
-  tone,
-  value,
-  label,
-  selected,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  tone: string;
-  value: number;
-  label: string;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      accessibilityLabel={`${value} ${label}`}
-      onPress={onPress}
-      style={{
-        flex: 1,
-        minWidth: 0,
-        alignItems: 'center',
-        paddingVertical: theme.spacing.xs,
-        borderRadius: theme.radius.md,
-        backgroundColor: selected ? theme.color.surfaceMuted : undefined,
-      }}
-    >
-      <Ionicons name={icon} size={20} color={tone} />
-      <Text tabular style={{ fontSize: 20, fontWeight: '800' }}>
-        {value}
-      </Text>
-      <Text variant="micro" numberOfLines={1} style={{ color: tone, fontWeight: '600' }}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-}
-
-/** A pill that opens an anchored menu of choices. */
-function Dropdown({
-  icon,
-  label,
-  items,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  items: readonly OverflowMenuItem[];
-}) {
-  const theme = useTheme();
-  const glass = useGlass();
-  const ref = useRef<View>(null);
-  const [anchor, setAnchor] = useState<MenuAnchor | null>(null);
-  const [open, setOpen] = useState(false);
-  const show = () =>
-    ref.current?.measureInWindow((x, y, width, height) => {
-      setAnchor(width > 0 ? { x, y, width, height } : null);
-      setOpen(true);
-    }) ?? setOpen(true);
-  return (
-    <View ref={ref} collapsable={false} style={{ flex: 1 }}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={label}
-        onPress={show}
-        style={{
-          height: 40,
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.md,
-          borderRadius: theme.radius.sm,
-          backgroundColor: glass,
-          borderWidth: 1,
-          borderColor: theme.color.border,
-        }}
-      >
-        <Ionicons name={icon} size={18} color={theme.color.text} />
-        <Text numberOfLines={1} style={{ flex: 1, fontWeight: '700' }}>
-          {label}
-        </Text>
-        <Ionicons name="chevron-down" size={16} color={theme.color.text} />
-      </Pressable>
-      <OverflowMenu visible={open} onClose={() => setOpen(false)} items={items} anchor={anchor} />
-    </View>
-  );
-}
-
-/** The Vendors dashboard body: overview card, two dropdowns, rows. `query` is the header's search text. */
-export function VendorsTab({ groupId, query }: { groupId: string; query: string }) {
+/** The Vendors dashboard body: four stat tiles, search + filter, one card of vendors. */
+export function VendorsTab({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t } = useStrings();
   const s = t.companyVendors;
+  const c = t.companyClients; // the shared Total / Active / Inactive words
   const raw = useCompanyVendors(groupId);
   const fmt = useVendorFormat(raw.currency).money;
   const [filter, setFilter] = useState<VendorFilter>('all');
-  const [period, setPeriod] = useState<VendorPeriod>('month');
+  const [query, setQuery] = useState('');
   const dash = useMemo(
-    () => vendorDashboard(raw.vendors, raw.lines, todayIso(), period),
-    [raw.vendors, raw.lines, period],
+    () => vendorDashboard(raw.vendors, raw.lines, todayIso(), 'all'),
+    [raw.vendors, raw.lines],
   );
+  // Pending: bills waiting to be confirmed. Inactive: nothing ever recorded. Else active.
+  const kind = (r: VendorRow) => (r.toReview > 0 ? 'pending' : r.latest ? 'active' : 'inactive');
+  const tally = (k: string) => dash.rows.filter((r) => kind(r) === k).length;
   const rows = filterVendorRows(dash.rows, filter, query);
   const open = (id: string) => router.push(`/group/${groupId}/company-vendor?vendorId=${id}`);
-  const toggle = (f: VendorFilter) => setFilter(filter === f ? 'all' : f);
-  const periodLabel: Record<VendorPeriod, string> = {
-    month: s.periodMonth,
-    lastMonth: s.periodLast,
-    year: s.periodYear,
-    all: s.periodAll,
-  };
   const filterLabel: Record<VendorFilter, string> = {
     all: s.allVendors,
     toPay: s.filterToPay,
@@ -153,62 +46,65 @@ export function VendorsTab({ groupId, query }: { groupId: string; query: string 
     on ? 'checkmark' : 'ellipse-outline';
   return (
     <View style={{ gap: theme.spacing.lg }}>
-      <StandardCard style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-        <View style={{ flex: 1.2, minWidth: 0 }}>
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {s.totalToPay}
-          </Text>
-          <Text
-            tabular
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            style={{ fontSize: 24, fontWeight: '800' }}
-          >
-            {fmt(dash.totalToPay)}
-          </Text>
+      <StatTiles
+        tiles={[
+          {
+            icon: 'storefront-outline',
+            value: dash.rows.length,
+            label: c.statTotal,
+            fg: theme.color.brand,
+            bg: theme.color.brandSoft,
+          },
+          {
+            icon: 'checkmark-circle-outline',
+            value: tally('active'),
+            label: c.statActive,
+            fg: theme.color.positive,
+            bg: theme.color.positiveSoft,
+          },
+          {
+            icon: 'time-outline',
+            value: tally('pending'),
+            label: s.pending,
+            fg: theme.color.warning,
+            bg: theme.color.warningSoft,
+          },
+          {
+            icon: 'information-circle-outline',
+            value: tally('inactive'),
+            label: c.statInactive,
+            fg: theme.color.textMuted,
+            bg: theme.color.surfaceMuted,
+          },
+        ]}
+      />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+        <View
+          style={{
+            flex: 1,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+            minHeight: 44,
+            paddingHorizontal: theme.spacing.md,
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.color.surface,
+          }}
+        >
+          <Ionicons name="search" size={18} color={theme.color.textMuted} />
+          <TextInput
+            accessibilityLabel={s.search}
+            placeholder={s.search}
+            placeholderTextColor={theme.color.textMuted}
+            value={query}
+            onChangeText={setQuery}
+            returnKeyType="search"
+            style={{ flex: 1, color: theme.color.text, fontSize: 16, padding: 0 }}
+          />
         </View>
-        <View style={{ flex: 2, flexDirection: 'row', alignItems: 'center' }}>
-          <Stat
-            icon="clipboard-outline"
-            tone={ORANGE}
-            value={dash.billsToReview}
-            label={s.pending}
-            selected={filter === 'toReview'}
-            onPress={() => toggle('toReview')}
-          />
-          <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
-          <Stat
-            icon="receipt-outline"
-            tone={PURPLE}
-            value={dash.receipts}
-            label={s.receipts}
-            selected={filter === 'receipts'}
-            onPress={() => toggle('receipts')}
-          />
-          <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
-          <Stat
-            icon="checkmark-circle-outline"
-            tone={GREEN}
-            value={dash.counts.settled}
-            label={s.settled}
-            selected={filter === 'settled'}
-            onPress={() => toggle('settled')}
-          />
-        </View>
-      </StandardCard>
-      <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-        <Dropdown
-          icon="calendar-outline"
-          label={periodLabel[period]}
-          items={PERIODS.map((p) => ({
-            icon: check(p === period),
-            label: periodLabel[p],
-            onPress: () => setPeriod(p),
-          }))}
-        />
-        <Dropdown
-          icon="filter-outline"
-          label={filterLabel[filter]}
+        <RowMenu
+          icon="filter"
+          label={`${c.filterTitle}: ${filterLabel[filter]}`}
           items={FILTERS.map((f) => ({
             icon: check(f === filter),
             label: filterLabel[f],
@@ -250,67 +146,53 @@ function VendorRowView({
   const { t } = useStrings();
   const s = t.companyVendors;
   const { vendor, balance } = row;
-  // Same row as the Home dashboard's group row: one name line, one muted line,
-  // the amount with its standing in small words under it.
-  const extras = [
-    row.toReview > 0 ? fill(s.pendingN, { n: String(row.toReview) }) : null,
-    row.receipts > 0
-      ? fill(row.receipts === 1 ? s.receiptOne : s.receiptMany, { n: String(row.receipts) })
-      : null,
-  ].filter(Boolean);
   const overdue = row.overdue > 0n;
+  const k = overdue ? 'overdue' : row.toReview > 0 ? 'pending' : row.latest ? 'active' : 'inactive';
+  const c = theme.color;
+  const w = t.companyClients;
+  const pill = {
+    active: [w.statActive, c.positive, c.positiveSoft],
+    pending: [s.pending, c.warning, c.warningSoft],
+    overdue: [s.statusOverdue, c.negative, c.negativeSoft],
+    inactive: [w.statInactive, c.textMuted, c.surfaceMuted],
+  }[k];
+  const standing = balance < 0n ? s.advance : balance === 0n ? s.settled : s.filterToPay;
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: theme.color.border,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <PersonAvatar name={vendor.name} size={44} />
-      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
-          <Text numberOfLines={1} style={{ flexShrink: 1, fontWeight: '600' }}>
-            {vendor.name}
-          </Text>
-          {overdue ? (
-            <View
-              style={{
-                paddingHorizontal: 6,
-                paddingVertical: 1,
-                borderRadius: 6,
-                backgroundColor: theme.color.negativeSoft,
-              }}
-            >
-              <Text variant="micro" tone="negative" style={{ fontWeight: '700' }}>
-                {s.statusOverdue}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {vendor.categories.join(' · ')}
-          {extras.length > 0 ? (
-            <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
-              {`${vendor.categories.length ? ' · ' : ''}${extras.join(' · ')}`}
+    <ListRow
+      divider={!last}
+      title={vendor.name}
+      subtitle={[
+        vendor.categories.join(', '),
+        balance === 0n ? standing : `${money(balance < 0n ? -balance : balance)} ${standing}`,
+      ]
+        .filter(Boolean)
+        .join(' · ')}
+      leading={
+        <RowTile tint={c.brandSoft}>
+          <Ionicons name="storefront-outline" size={20} color={c.brand} />
+        </RowTile>
+      }
+      trailing={
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+          <View
+            style={{
+              backgroundColor: pill[2],
+              borderRadius: theme.radius.sm,
+              paddingHorizontal: theme.spacing.sm,
+              paddingVertical: 2,
+            }}
+          >
+            <Text variant="micro" style={{ color: pill[1], fontWeight: '700' }}>
+              {pill[0]}
             </Text>
-          ) : null}
-        </Text>
-      </View>
-      <View style={{ alignItems: 'flex-end', gap: 2 }}>
-        <Text tabular numberOfLines={1} style={{ fontWeight: '700' }}>
-          {money(balance < 0n ? -balance : balance)}
-        </Text>
-        <Text variant="micro" tone="muted" numberOfLines={1}>
-          {balance < 0n ? s.advance : balance === 0n ? s.settled : s.filterToPay}
-        </Text>
-      </View>
-    </Pressable>
+          </View>
+          <RowMenu
+            label={`${s.more}: ${vendor.name}`}
+            items={[{ icon: 'open-outline', label: t.companyClients.open, onPress }]}
+          />
+        </View>
+      }
+      onPress={onPress}
+    />
   );
 }
