@@ -504,41 +504,99 @@ export function nextBatch(
   queue: readonly QueuedMutation[],
   options: BatchOptions,
 ): QueuedMutation[] {
+  return scanQueue(queue, options).batch;
+}
+
+/**
+ * What blocks what, for the diagnostics screen: each held-back mutation's id
+ * mapped to the mutation ahead of it that is holding it. Mutations that are
+ * themselves the blocker (refused, backing off, gave up) are not in the map.
+ */
+export function blockedBy(
+  queue: readonly QueuedMutation[],
+  options: { readonly now: number; readonly maxAttempts?: number },
+): Map<string, QueuedMutation> {
+  return scanQueue(queue, { ...options, limit: Infinity }).blockedBy;
+}
+
+/**
+ * The scope a stalled mutation holds shut. A task change is a plain "set to
+ * this" on one task, with no dependency on any other task, so it blocks only
+ * that task (order per task is kept: set then remove of one task stay in
+ * sequence). Everything else keeps the whole-group block, because a create can
+ * be followed by edits of other things that need it to exist.
+ */
+function blockKey(item: QueuedMutation): string {
+  if (item.kind === MutationKind.CompanyWorkSet || item.kind === MutationKind.CompanyWorkRemove) {
+    const taskId = stringPayloadField(item.payload, 'taskId');
+    if (taskId) return `${item.groupId}\u0000task\u0000${taskId}`;
+  }
+  return item.groupId;
+}
+
+function scanQueue(
+  queue: readonly QueuedMutation[],
+  options: BatchOptions,
+): { batch: QueuedMutation[]; blockedBy: Map<string, QueuedMutation> } {
   const { now, limit = 50, maxAttempts = MAX_ATTEMPTS } = options;
-  const blocked = new Set<string>();
+  const blocked = new Map<string, QueuedMutation>();
+  const heldBy = new Map<string, QueuedMutation>();
   const batch: QueuedMutation[] = [];
   const unwrittenExpenses = unwrittenExpenseIds(queue);
 
   for (const item of [...queue].sort((a, b) => a.seq - b.seq)) {
-    if (blocked.has(item.groupId)) continue;
+    const key = blockKey(item);
+    const blocker = blocked.get(item.groupId) ?? blocked.get(key);
+    if (blocker) {
+      heldBy.set(item.clientMutationId, blocker);
+      continue;
+    }
     // The cross-scope dependency above. It blocks its own scope for the reason
     // every other hold does: what a person queued after this expects it to have
     // happened.
     if (item.kind === MutationKind.CaptureAssign) {
       const expenseId = expenseIdOf(item);
       if (expenseId && unwrittenExpenses.has(expenseId)) {
-        blocked.add(item.groupId);
+        blocked.set(key, item);
         continue;
       }
     }
     // A refusal is the server's settled answer, so this is not a backoff to
-    // wait out — resending would fail identically, forever. It blocks its group
+    // wait out - resending would fail identically, forever. It blocks its scope
     // for the same reason a stalled mutation does: what is queued behind it
     // depends on it.
     if (item.rejection) {
-      blocked.add(item.groupId);
+      blocked.set(key, item);
       continue;
     }
     // A task change is a plain "set to this", safe to send again: it never gives up, it just keeps backing off (5 minutes at most).
     const gaveUp = item.attempts >= maxAttempts && !item.kind.startsWith('company_work.');
     if (gaveUp || item.nextAttemptAt > now) {
-      blocked.add(item.groupId);
+      blocked.set(key, item);
       continue;
     }
     batch.push(item);
     if (batch.length >= limit) break;
   }
-  return batch;
+  return { batch, blockedBy: heldBy };
+}
+
+/** A queued change older than this stops being laid over the server's copy; see `isStaleOverlay`. */
+export const STALE_OVERLAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Should this queued edit still be shown over a row the server already has?
+ * Not once it has failed MAX_ATTEMPTS times, and not once it is a day old: a
+ * change that has had a day to leave the phone and has not is stuck (blocked
+ * behind something, or never sent), and showing it for ever hides what the
+ * server says. It stays in the queue and keeps trying; the diagnostics screen
+ * lists it as stuck. Only meant for rows the server has - a never-synced create
+ * is the only copy there is and always shows.
+ */
+export function isStaleOverlay(mutation: QueuedMutation, now: number): boolean {
+  if (mutation.attempts >= MAX_ATTEMPTS) return true;
+  const created = Date.parse(mutation.clientCreatedAt);
+  return Number.isFinite(created) && now - created > STALE_OVERLAY_MS;
 }
 
 /** The refused mutations still sitting in the queue, oldest first. */

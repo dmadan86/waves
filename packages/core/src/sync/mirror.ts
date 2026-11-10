@@ -93,7 +93,7 @@ import type {
   TagDeletePayload,
   TagUpsertPayload,
 } from './protocol';
-import { MAX_ATTEMPTS, type QueuedMutation } from './queue';
+import { isStaleOverlay, type QueuedMutation } from './queue';
 import { byNewest, byOldest, compareStampsDesc } from '../time/iso';
 import { allowanceAmount, mileageAmount, normaliseEmployeeId } from '../company/index';
 import { firstOccurrenceOnOrAfter, nextOccurrenceAfter } from '../group/recurring';
@@ -2370,7 +2370,7 @@ export const isSelfMadeTask = (
 export function materialiseWorkTasks(
   state: MirrorState,
   queue: readonly QueuedMutation[],
-  options: { readonly groupId: string },
+  options: { readonly groupId: string; readonly now?: number },
 ): MirrorWorkTask[] {
   const byId = new Map<string, MirrorWorkTask>();
   for (const row of rowsFor(state, SyncTable.CompanyWorkTasks, options.groupId) as unknown as {
@@ -2410,12 +2410,13 @@ export function materialiseWorkTasks(
     });
   }
   const onServer = new Set(byId.keys());
+  const now = options.now ?? Date.now();
   for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
     if (mutation.groupId !== options.groupId || mutation.rejection) continue;
     if (mutation.kind === 'company_work.set') {
       const p = mutation.payload as unknown as CompanyWorkSetPayload;
-      // An edit that has failed MAX_ATTEMPTS times is no longer shown over the server's task (it keeps retrying in the background).
-      if (mutation.attempts >= MAX_ATTEMPTS && onServer.has(p.taskId)) continue;
+      // An edit that keeps failing, or has sat unsent for a day, is no longer shown over the server's task (it stays queued; see isStaleOverlay).
+      if (onServer.has(p.taskId) && isStaleOverlay(mutation, now)) continue;
       byId.set(p.taskId, {
         id: p.taskId,
         memberId: p.memberId,

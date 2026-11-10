@@ -1011,6 +1011,23 @@ export interface UiStrings {
     failed: string;
     unavailable: string;
   };
+  /** Settings > Pending changes: every queued change, with why it is waiting. */
+  pendingChanges: {
+    row: string;
+    intro: string;
+    empty: string;
+    created: string;
+    attempts: string;
+    lastError: string;
+    blockedBy: string;
+    stuck: string;
+    retry: string;
+    discard: string;
+    discardTitle: string;
+    discardBody: string;
+    copy: string;
+    copied: string;
+  };
   recent: {
     title: string;
     intro: string;
@@ -8884,6 +8901,22 @@ const en: UiStrings = {
     failed: 'Could not check for updates. Try again later.',
     unavailable: 'Updates are not available in this build.',
   },
+  pendingChanges: {
+    row: 'Pending changes',
+    intro: 'Changes saved on this phone that have not reached the server yet. Retry sends one again now; Discard removes it from this phone.',
+    empty: 'Nothing is waiting. Every change has reached the server.',
+    created: 'Made',
+    attempts: 'Attempts',
+    lastError: 'Last error',
+    blockedBy: 'Waiting behind',
+    stuck: 'Stuck: older than a day, not shown on screen',
+    retry: 'Retry now',
+    discard: 'Discard',
+    discardTitle: 'Discard this change?',
+    discardBody: 'It is removed from this phone and never sent. What the server has will show instead.',
+    copy: 'Copy report',
+    copied: 'Report copied',
+  },
   recent: {
     title: 'Recent on your watch',
     intro: 'How many recent expenses your paired watch shows at a glance.',
@@ -16233,6 +16266,22 @@ const ta: UiStrings = {
     restart: 'இப்போது மீண்டும் தொடங்கு',
     failed: 'புதுப்பிப்புகளைச் சரிபார்க்க முடியவில்லை. பிறகு முயற்சிக்கவும்.',
     unavailable: 'இந்த பதிப்பில் புதுப்பிப்புகள் கிடைக்காது.',
+  },
+  pendingChanges: {
+    row: 'நிலுவை மாற்றங்கள்',
+    intro: 'இந்த ஃபோனில் சேமிக்கப்பட்டு இன்னும் சர்வரை அடையாத மாற்றங்கள். மீண்டும் முயல் என்பது ஒன்றை இப்போதே அனுப்பும்; நீக்கு என்பது ஃபோனிலிருந்து அகற்றும்.',
+    empty: 'எதுவும் காத்திருக்கவில்லை. எல்லா மாற்றங்களும் சர்வரை அடைந்துவிட்டன.',
+    created: 'உருவாக்கியது',
+    attempts: 'முயற்சிகள்',
+    lastError: 'கடைசிப் பிழை',
+    blockedBy: 'இதன் பின்னால் காத்திருக்கிறது',
+    stuck: 'சிக்கியது: ஒரு நாளுக்கு மேல், திரையில் காட்டப்படவில்லை',
+    retry: 'இப்போதே மீண்டும் முயல்',
+    discard: 'நீக்கு',
+    discardTitle: 'இந்த மாற்றத்தை நீக்கவா?',
+    discardBody: 'இது ஃபோனிலிருந்து அகற்றப்படும், அனுப்பப்படாது. சர்வரில் உள்ளது காட்டப்படும்.',
+    copy: 'அறிக்கையை நகலெடு',
+    copied: 'அறிக்கை நகலெடுக்கப்பட்டது',
   },
   recent: {
     title: 'கடிகாரத்தில் சமீபத்தியவை',
@@ -23781,6 +23830,22 @@ const hi: UiStrings = {
     failed: 'अपडेट जाँचे नहीं जा सके। बाद में फिर कोशिश करें।',
     unavailable: 'इस बिल्ड में अपडेट उपलब्ध नहीं हैं।',
   },
+  pendingChanges: {
+    row: 'लंबित बदलाव',
+    intro: 'इस फ़ोन पर सहेजे गए बदलाव जो अभी सर्वर तक नहीं पहुँचे। अभी दोबारा भेजें से एक बदलाव फिर भेजा जाता है; हटाएँ से वह फ़ोन से हट जाता है।',
+    empty: 'कुछ भी लंबित नहीं है। हर बदलाव सर्वर तक पहुँच चुका है।',
+    created: 'बनाया गया',
+    attempts: 'कोशिशें',
+    lastError: 'आखिरी त्रुटि',
+    blockedBy: 'इसके पीछे रुका है',
+    stuck: 'अटका हुआ: एक दिन से पुराना, स्क्रीन पर नहीं दिखता',
+    retry: 'अभी दोबारा भेजें',
+    discard: 'हटाएँ',
+    discardTitle: 'यह बदलाव हटाएँ?',
+    discardBody: 'यह फ़ोन से हट जाएगा और कभी भेजा नहीं जाएगा। सर्वर पर जो है वही दिखेगा।',
+    copy: 'रिपोर्ट कॉपी करें',
+    copied: 'रिपोर्ट कॉपी हो गई',
+  },
   recent: {
     title: 'घड़ी पर हाल के खर्च',
     intro: 'आपकी जुड़ी हुई घड़ी एक नज़र में कितने हाल के खर्च दिखाए।',
@@ -31160,6 +31225,22 @@ const ar: UiStrings = {
     restart: 'إعادة التشغيل الآن',
     failed: 'تعذّر التحقق من التحديثات. حاول لاحقًا.',
     unavailable: 'التحديثات غير متاحة في هذا الإصدار.',
+  },
+  pendingChanges: {
+    row: 'التغييرات المعلّقة',
+    intro: 'تغييرات محفوظة على هذا الهاتف ولم تصل إلى الخادم بعد. إعادة المحاولة ترسل تغييرًا الآن؛ الحذف يزيله من هذا الهاتف.',
+    empty: 'لا شيء في الانتظار. كل التغييرات وصلت إلى الخادم.',
+    created: 'أُنشئ',
+    attempts: 'المحاولات',
+    lastError: 'آخر خطأ',
+    blockedBy: 'ينتظر خلف',
+    stuck: 'عالق: أقدم من يوم ولا يظهر على الشاشة',
+    retry: 'أعد المحاولة الآن',
+    discard: 'حذف',
+    discardTitle: 'حذف هذا التغيير؟',
+    discardBody: 'سيُزال من هذا الهاتف ولن يُرسل أبدًا. وسيظهر ما لدى الخادم بدلًا منه.',
+    copy: 'نسخ التقرير',
+    copied: 'تم نسخ التقرير',
   },
   recent: {
     title: 'الأحدث على ساعتك',

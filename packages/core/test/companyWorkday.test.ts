@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   allowanceAmount,
+  blockedBy,
   attendanceDaysText,
   emptyMirror,
   MAX_ATTEMPTS,
@@ -148,7 +149,10 @@ describe('mirror: attendance and work', () => {
     const att = materialiseAttendance(state, q, { groupId: 'g' });
     expect([...att.keys()]).toEqual(['a|2026-10-30']);
     expect(att.get('a|2026-10-30')?.status).toBe('present');
-    const tasks = materialiseWorkTasks(state, q, { groupId: 'g' });
+    const tasks = materialiseWorkTasks(state, q, {
+      groupId: 'g',
+      now: Date.parse('2026-10-30T01:00:00Z'),
+    });
     expect(tasks).toHaveLength(1);
     expect(tasks[0]).toMatchObject({
       id: 't1',
@@ -165,6 +169,8 @@ describe('mirror: attendance and work', () => {
     expect(Object.keys(none.tables[SyncTable.CompanyAttendance])).toEqual([]);
   });
 });
+
+const HOUR = Date.parse('2026-10-30T01:00:00Z');
 
 describe('a task change that keeps failing', () => {
   const doing = reconcile(emptyMirror(), [
@@ -202,14 +208,38 @@ describe('a task change that keeps failing', () => {
     }) as QueuedMutation;
   it('shows over the server task while retrying, then the server truth once it has failed too often', () => {
     const status = (q: QueuedMutation[]) =>
-      materialiseWorkTasks(doing, q, { groupId: 'g' })[0]?.status;
+      materialiseWorkTasks(doing, q, { groupId: 'g', now: HOUR })[0]?.status;
     expect(status([tick(MAX_ATTEMPTS - 1)])).toBe('done');
     expect(status([tick(MAX_ATTEMPTS)])).toBe('doing');
   });
   it('keeps a task only this phone knows about, however often sending failed', () => {
-    expect(materialiseWorkTasks(doing, [tick(MAX_ATTEMPTS, 'new')], { groupId: 'g' })).toHaveLength(
-      2,
+    expect(
+      materialiseWorkTasks(doing, [tick(MAX_ATTEMPTS, 'new')], { groupId: 'g', now: HOUR }),
+    ).toHaveLength(2);
+  });
+  it('stops overlaying a change that sat unsent for a day, but keeps a task only this phone has', () => {
+    const later = Date.parse('2026-10-30T00:00:00Z') + 25 * HOUR;
+    expect(materialiseWorkTasks(doing, [tick(0)], { groupId: 'g', now: later })[0]?.status).toBe(
+      'doing',
     );
+    expect(
+      materialiseWorkTasks(doing, [tick(0, 'new')], { groupId: 'g', now: later }),
+    ).toHaveLength(2);
+  });
+  it('a failing change on one task does not block another task, but keeps order within a task', () => {
+    const a = { ...tick(3), nextAttemptAt: 10_000_000 } as QueuedMutation;
+    const b = { ...tick(0, 'other'), clientMutationId: 'mb', seq: 2 } as QueuedMutation;
+    const a2 = { ...tick(0), clientMutationId: 'ma2', seq: 3 } as QueuedMutation;
+    expect(nextBatch([a, b, a2], { now: 1 }).map((m) => m.clientMutationId)).toEqual(['mb']);
+    expect(blockedBy([a, b, a2], { now: 1 }).get('ma2')?.clientMutationId).toBe('m1');
+  });
+  it('a stalled group-wide change still blocks the tasks behind it', () => {
+    const create = {
+      ...queued('expense.create', { expenseId: 'e1' }, 1),
+      attempts: 1,
+      nextAttemptAt: 10_000_000,
+    } as QueuedMutation;
+    expect(nextBatch([create, tick(0, 't1')], { now: 1 })).toEqual([]);
   });
   it('is sent again after the ceiling instead of staying stuck', () => {
     expect(nextBatch([tick(MAX_ATTEMPTS + 3)], { now: 1 })).toHaveLength(1);
