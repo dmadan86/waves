@@ -23,6 +23,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -255,8 +256,13 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
   // waits until this one is answered or put away.
   const showGate = usePromptSlot({ id: 'deviceLimit', priority: 200, active: wantsGate });
 
+  const value = useMemo(
+    () => ({ status, signOutOthers, refresh }),
+    [status, signOutOthers, refresh],
+  );
+
   return (
-    <DeviceSessionContext.Provider value={{ status, signOutOthers, refresh }}>
+    <DeviceSessionContext.Provider value={value}>
       {children}
       {showGate ? (
         <DeviceLimitGate
