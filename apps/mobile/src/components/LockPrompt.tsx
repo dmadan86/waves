@@ -10,7 +10,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSegments } from 'expo-router';
 import { Modal, Platform, Pressable, View } from 'react-native';
 
-import { Text, useTheme } from '@waves/ui';
+import { MODAL_ORIENTATIONS, Text, useTheme } from '@waves/ui';
 
 import { IconDisc } from '@/components/company/dashboard/overviewKit';
 import { useStrings } from '@/i18n';
@@ -74,7 +74,13 @@ export function LockPrompt() {
   ] as const;
 
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={() => reply(false)}>
+    <Modal
+      visible={open}
+      transparent
+      animationType="fade"
+      supportedOrientations={MODAL_ORIENTATIONS}
+      onRequestClose={() => reply(false)}
+    >
       <Pressable
         accessibilityLabel={t.entry.notifyNotNow}
         onPress={() => reply(false)}
