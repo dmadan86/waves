@@ -993,6 +993,24 @@ export interface UiStrings {
     scan: string;
     voice: string;
   };
+  /** Settings > App updates: is this build running an over-the-air update. */
+  otaUpdates: {
+    row: string;
+    intro: string;
+    running: string;
+    builtIn: string;
+    overTheAir: string;
+    channel: string;
+    runtime: string;
+    check: string;
+    checking: string;
+    downloading: string;
+    upToDate: string;
+    ready: string;
+    restart: string;
+    failed: string;
+    unavailable: string;
+  };
   recent: {
     title: string;
     intro: string;
@@ -8807,6 +8825,23 @@ const en: UiStrings = {
     scan: 'Scan a receipt',
     voice: 'Speak an expense',
   },
+  otaUpdates: {
+    row: 'App updates',
+    intro: 'Small fixes can reach your phone without waiting for a store update.',
+    running: 'Running',
+    builtIn: 'Built-in',
+    overTheAir: 'Over-the-air',
+    channel: 'Channel',
+    runtime: 'Runtime version',
+    check: 'Check for updates',
+    checking: 'Checking for updates…',
+    downloading: 'Downloading the update…',
+    upToDate: 'You have the latest version.',
+    ready: 'Update downloaded. Restart to use it.',
+    restart: 'Restart now',
+    failed: 'Could not check for updates. Try again later.',
+    unavailable: 'Updates are not available in this build.',
+  },
   recent: {
     title: 'Recent on your watch',
     intro: 'How many recent expenses your paired watch shows at a glance.',
@@ -16096,6 +16131,24 @@ const ta: UiStrings = {
     add: 'செலவைச் சேர்',
     scan: 'ரசீதை ஸ்கேன் செய்',
     voice: 'செலவைப் பேசு',
+  },
+  otaUpdates: {
+    row: 'செயலி புதுப்பிப்புகள்',
+    intro:
+      'ஸ்டோர் புதுப்பிப்புக்கு காத்திருக்காமல் சிறிய திருத்தங்கள் உங்கள் தொலைபேசியை வந்தடையும்.',
+    running: 'இயங்குவது',
+    builtIn: 'உள்ளமைந்தது',
+    overTheAir: 'இணையவழி',
+    channel: 'சேனல்',
+    runtime: 'ரன்டைம் பதிப்பு',
+    check: 'புதுப்பிப்புகளைச் சரிபார்',
+    checking: 'புதுப்பிப்புகளைச் சரிபார்க்கிறது…',
+    downloading: 'புதுப்பிப்பைப் பதிவிறக்குகிறது…',
+    upToDate: 'உங்களிடம் சமீபத்திய பதிப்பு உள்ளது.',
+    ready: 'புதுப்பிப்பு பதிவிறக்கப்பட்டது. பயன்படுத்த மீண்டும் தொடங்கவும்.',
+    restart: 'இப்போது மீண்டும் தொடங்கு',
+    failed: 'புதுப்பிப்புகளைச் சரிபார்க்க முடியவில்லை. பிறகு முயற்சிக்கவும்.',
+    unavailable: 'இந்த பதிப்பில் புதுப்பிப்புகள் கிடைக்காது.',
   },
   recent: {
     title: 'கடிகாரத்தில் சமீபத்தியவை',
@@ -23584,6 +23637,23 @@ const hi: UiStrings = {
     scan: 'रसीद स्कैन करें',
     voice: 'खर्च बोलें',
   },
+  otaUpdates: {
+    row: 'ऐप अपडेट',
+    intro: 'स्टोर अपडेट का इंतज़ार किए बिना छोटे सुधार आपके फ़ोन तक पहुँच सकते हैं।',
+    running: 'चल रहा है',
+    builtIn: 'इन-बिल्ट',
+    overTheAir: 'ओवर-द-एयर',
+    channel: 'चैनल',
+    runtime: 'रनटाइम संस्करण',
+    check: 'अपडेट जाँचें',
+    checking: 'अपडेट जाँचे जा रहे हैं…',
+    downloading: 'अपडेट डाउनलोड हो रहा है…',
+    upToDate: 'आपके पास नवीनतम संस्करण है।',
+    ready: 'अपडेट डाउनलोड हो गया। इस्तेमाल के लिए रीस्टार्ट करें।',
+    restart: 'अभी रीस्टार्ट करें',
+    failed: 'अपडेट जाँचे नहीं जा सके। बाद में फिर कोशिश करें।',
+    unavailable: 'इस बिल्ड में अपडेट उपलब्ध नहीं हैं।',
+  },
   recent: {
     title: 'घड़ी पर हाल के खर्च',
     intro: 'आपकी जुड़ी हुई घड़ी एक नज़र में कितने हाल के खर्च दिखाए।',
@@ -30904,6 +30974,23 @@ const ar: UiStrings = {
     add: 'أضف مصروفًا',
     scan: 'مسح إيصال',
     voice: 'انطق مصروفًا',
+  },
+  otaUpdates: {
+    row: 'تحديثات التطبيق',
+    intro: 'يمكن أن تصل الإصلاحات الصغيرة إلى هاتفك دون انتظار تحديث المتجر.',
+    running: 'قيد التشغيل',
+    builtIn: 'مدمج',
+    overTheAir: 'عبر الشبكة',
+    channel: 'القناة',
+    runtime: 'إصدار وقت التشغيل',
+    check: 'التحقق من التحديثات',
+    checking: 'جارٍ التحقق من التحديثات…',
+    downloading: 'جارٍ تنزيل التحديث…',
+    upToDate: 'لديك أحدث إصدار.',
+    ready: 'تم تنزيل التحديث. أعد التشغيل لاستخدامه.',
+    restart: 'إعادة التشغيل الآن',
+    failed: 'تعذّر التحقق من التحديثات. حاول لاحقًا.',
+    unavailable: 'التحديثات غير متاحة في هذا الإصدار.',
   },
   recent: {
     title: 'الأحدث على ساعتك',

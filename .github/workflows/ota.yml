@@ -1,0 +1,149 @@
+name: OTA update
+
+# Publishes a JavaScript-only update to the self-hosted OTA server (the `ota`
+# edge function reading R2). See docs/ota.md for setup, publishing and rollback.
+#
+# MANUAL ONLY. Nothing ships to phones unless somebody runs this by hand.
+#
+# Two jobs, so the write credentials never sit next to `pnpm install`:
+#   build    installs dependencies and exports the bundles. No R2 secrets.
+#   publish  downloads the export and runs scripts/ota-publish.mjs. Holds the
+#            R2 secrets, runs no third-party code beyond this repo's script.
+# Every `uses:` is pinned to a commit SHA.
+#
+# Secrets:
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY   Cloudflare R2 S3 credentials
+#   OTA_R2_BUCKET                                            bucket holding the updates
+#   OTA_ASSET_BASE_URL                                       public https URL of that bucket
+#   OTA_PRIVATE_KEY                                          PEM that signs manifests (publish job only)
+# The publish-job secrets belong on the `ota-production` / `ota-preview`
+# environments (Settings > Environments), with required reviewers on production.
+#   OTA_PUBLIC_ENV (optional)  dotenv text of the EXPO_PUBLIC_* values the store
+#                              build gets from the EAS environment (ad unit ids,
+#                              RevenueCat keys, ...). Written to apps/mobile/.env
+#                              in the build job so the bundle matches.
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to publish
+        type: choice
+        default: all
+        options:
+          - all
+          - android
+          - ios
+      channel:
+        description: Channel (production = store builds, preview = preview builds)
+        type: choice
+        default: production
+        options:
+          - production
+          - preview
+      message:
+        description: What changed (stored with the update)
+        type: string
+        default: ''
+  # Auto-publish on every merge. Left off on purpose: a merge to main would
+  # reach every phone on the matching runtime version within minutes.
+  # push:
+  #   branches: [main]
+  #   paths:
+  #     - 'apps/mobile/**'
+  #     - 'packages/**'
+
+# One publish at a time, and never cancel one halfway through its uploads.
+concurrency:
+  group: ota-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: export ${{ inputs.platform }} (${{ inputs.channel }})
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # pnpm 11 ignores .npmrc's node-linker; Metro needs the hoisted layout.
+      - name: Install dependencies
+        working-directory: .
+        run: pnpm install --frozen-lockfile --config.node-linker=hoisted
+
+      - name: Public build environment
+        env:
+          OTA_PUBLIC_ENV: ${{ secrets.OTA_PUBLIC_ENV }}
+        run: |
+          if [ -n "$OTA_PUBLIC_ENV" ]; then printf '%s\n' "$OTA_PUBLIC_ENV" > .env; fi
+
+      - name: Export bundles
+        env:
+          OTA_CHANNEL: ${{ inputs.channel }}
+          PLATFORM: ${{ inputs.platform }}
+          # Same public values as eas.json's `base` build env.
+          EXPO_PUBLIC_SUPABASE_URL: https://ywojpnfyxxltvihqmcni.supabase.co
+          EXPO_PUBLIC_CLARITY_PROJECT_ID: y0l49bcxl4
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_QmIIZxgp1tNw-OMxATbsfQ_aENGDmNz
+          EXPO_PUBLIC_R2_ENABLED: 'true'
+        run: |
+          if [ "$PLATFORM" = "all" ]; then platforms="--platform android --platform ios"; else platforms="--platform $PLATFORM"; fi
+          npx expo export $platforms --output-dir dist
+          # Config and runtime versions resolved here, where node_modules exists.
+          node scripts/ota-publish.mjs --prepare --platform "$PLATFORM" --channel "$OTA_CHANNEL"
+          rm -f .env
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ota-dist
+          path: apps/mobile/dist
+          retention-days: 1
+          if-no-files-found: error
+
+  publish:
+    name: publish ${{ inputs.platform }} to ${{ inputs.channel }}
+    needs: build
+    # Put the secrets below on these environments and add "required reviewers"
+    # to ota-production: every production publish then waits for approval.
+    environment: ${{ inputs.channel == 'production' && 'ota-production' || 'ota-preview' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/mobile
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ota-dist
+          path: apps/mobile/dist
+
+      # The runner's own Node; the script has no dependencies.
+      - name: Publish to R2
+        env:
+          OTA_CHANNEL: ${{ inputs.channel }}
+          PLATFORM: ${{ inputs.platform }}
+          OTA_MESSAGE: ${{ inputs.message }}
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          OTA_R2_BUCKET: ${{ secrets.OTA_R2_BUCKET }}
+          OTA_ASSET_BASE_URL: ${{ secrets.OTA_ASSET_BASE_URL }}
+          # Signs each manifest. Exists only in this job; the edge function has no key.
+          OTA_PRIVATE_KEY: ${{ secrets.OTA_PRIVATE_KEY }}
+        run: node scripts/ota-publish.mjs --platform "$PLATFORM" --channel "$OTA_CHANNEL" --message "$OTA_MESSAGE"

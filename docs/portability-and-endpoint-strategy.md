@@ -577,10 +577,13 @@ cutover day.
    Until they are in the repo, any rebuild is silently missing half the
    product's background behaviour.
 
-## OTA update signing (off)
+## OTA update signing
+
+**Superseded:** OTA is now self-hosted and signed by our own server; see
+`docs/ota.md`. The text below is the old EAS-hosted note, kept for history.
 
 EAS Update code signing needs a paid EAS plan (Production or Enterprise), so it
-is not enabled: `apps/mobile/app.json` has no `updates.codeSigningCertificate`.
+was not enabled: `apps/mobile/app.json` had no `updates.codeSigningCertificate`.
 The certificate stays at `apps/mobile/certs/certificate.pem` and the private key
 at `~/.waves-keys/updates/private-key.pem` (never in the repo) for when the plan
 is upgraded. To turn it on: add `"codeSigningCertificate": "./certs/certificate.pem"`

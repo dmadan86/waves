@@ -60,9 +60,8 @@ export function r2Configured(): boolean {
 
 let client: AwsClient | null = null;
 
-export function r2(): { client: AwsClient; endpoint: string; bucket: string } {
+function r2Account(): { client: AwsClient; endpoint: string } {
   const accountId = requiredEnv('R2_ACCOUNT_ID');
-  const bucket = requiredEnv('R2_BUCKET');
   if (!client) {
     client = new AwsClient({
       accessKeyId: requiredEnv('R2_ACCESS_KEY_ID'),
@@ -71,7 +70,17 @@ export function r2(): { client: AwsClient; endpoint: string; bucket: string } {
       region: 'auto',
     });
   }
-  return { client, endpoint: `https://${accountId}.r2.cloudflarestorage.com`, bucket };
+  return { client, endpoint: `https://${accountId}.r2.cloudflarestorage.com` };
+}
+
+export function r2(): { client: AwsClient; endpoint: string; bucket: string } {
+  return { ...r2Account(), bucket: requiredEnv('R2_BUCKET') };
+}
+
+/** The over-the-air update bucket: `OTA_R2_BUCKET`, else the photo bucket. */
+export function otaR2(): { client: AwsClient; endpoint: string; bucket: string } {
+  const bucket = Deno.env.get('OTA_R2_BUCKET') || requiredEnv('R2_BUCKET');
+  return { ...r2Account(), bucket };
 }
 
 /** The S3 URL for an object, each path segment percent-encoded. */
