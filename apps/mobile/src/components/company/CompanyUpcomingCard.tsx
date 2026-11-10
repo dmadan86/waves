@@ -25,10 +25,7 @@ const icons: Record<CalendarItem['subKind'], keyof typeof Ionicons.glyphMap> = {
 export function CompanyUpcomingCard({ groupId }: { groupId: string }) {
   const { t, locale } = useStrings();
   const theme = useTheme();
-  // Money dates only, so "See all" (the Upcoming screen) lists everything this card shows.
-  const items = useUpcomingItems(groupId, 400)
-    .filter((item) => item.kind === 'money')
-    .slice(0, 5);
+  const items = useUpcomingItems(groupId, 5);
   const company = useCompanyEntries(groupId);
   if (!items.length) return null;
   return (
