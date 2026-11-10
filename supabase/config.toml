@@ -437,6 +437,13 @@ verify_jwt = false
 [functions.email-events]
 verify_jwt = false
 
+# `ota` is the self-hosted expo-updates server. Phones ask it for a new JavaScript
+# bundle at launch, with no session. What it serves is public by design (the
+# bundle ships in the store build anyway) and, when OTA_PRIVATE_KEY is set, is
+# signed so a device only runs what we published. See docs/ota.md.
+[functions.ota]
+verify_jwt = false
+
 [functions.email-unsubscribe]
 verify_jwt = false
 

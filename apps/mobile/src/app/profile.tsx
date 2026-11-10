@@ -35,6 +35,7 @@ import { notificationsRowStatus } from '@/lib/notificationStatus';
 import { pushPermission, type PushPermission } from '@/lib/push';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { buildStamp } from '@/lib/buildIdentity';
+import { loadUpdates } from '@/lib/restart';
 import { router } from '@/lib/navigation';
 import { useReferralsLive } from '@/lib/useReferralsLive';
 import { r2Enabled } from '@/lib/storage';
@@ -68,6 +69,13 @@ import { THEME_HIDDEN, useThemePreference } from '@/lib/theme';
  * the same delete ended up a quiet list row on one screen and a red card on
  * this one.
  */
+/** "Built-in" or "Over-the-air" for the App updates row; nothing where updates are off. */
+function updateSource(s: { builtIn: string; overTheAir: string }): string | undefined {
+  const updates = loadUpdates();
+  if (!updates?.isEnabled) return undefined;
+  return updates.isEmbeddedLaunch === false ? s.overTheAir : s.builtIn;
+}
+
 export default function ProfileScreen() {
   const { profile, profileSettled, reloadProfile } = useAuth();
   const { t } = useStrings();
@@ -470,6 +478,12 @@ function ProfileForm() {
               icon: 'document-text-outline',
               label: t.privacy.licensesRow,
               route: '/settings/licenses',
+            },
+            {
+              icon: 'cloud-download-outline',
+              label: t.otaUpdates.row,
+              value: updateSource(t.otaUpdates),
+              route: '/settings/app-updates',
             },
           ]}
         />
