@@ -169,10 +169,21 @@ if (args.rollback) {
   for (const p of platforms) {
     console.log(`${dryRun ? '[dry-run] ' : ''}${pointerKey(p)} -> ${folder}`);
     if (dryRun) continue;
-    const found = await request('HEAD', `ota/${runtimes[p]}/${folder}/metadata.json`);
-    if (!found.ok)
-      fail(`no published update ${folder} for runtime ${runtimes[p]} (${found.status})`);
-    await putPointer(p, folder);
+  }
+  if (!dryRun) {
+    // Check every target platform before moving any pointer.
+    for (const p of platforms) {
+      const found = await request('GET', `ota/${runtimes[p]}/${folder}/metadata.json`);
+      if (!found.ok)
+        fail(`no published update ${folder} for runtime ${runtimes[p]} (${found.status})`);
+      const published = await found.json();
+      const files = published.fileMetadata?.[p];
+      const wanted = files ? [files.bundle, ...files.assets.map((a) => a.path)] : [];
+      if (!files?.bundle || !wanted.every((path) => published.hashes?.[path])) {
+        fail(`update ${folder} was not published for ${p}`);
+      }
+    }
+    for (const p of platforms) await putPointer(p, folder);
   }
   process.exit(0);
 }
@@ -187,14 +198,36 @@ const configRaw = Buffer.from(JSON.stringify(config));
 
 // The folder id is the content hash shaped as a UUID, so re-publishing the same
 // build reuses its files; the id a device sees is minted fresh in the pointer.
-const digest = createHash('sha256').update(metadataRaw).update(configRaw).digest();
+// The platform selection is part of it: a folder holds hashes for only the
+// platforms published into it.
+const digest = createHash('sha256')
+  .update(metadataRaw)
+  .update(configRaw)
+  .update(platforms.join())
+  .digest();
 digest[6] = (digest[6] & 0x0f) | 0x40;
 digest[8] = (digest[8] & 0x3f) | 0x80;
 const folder = [0, 4, 6, 8, 10]
   .map((start, i, a) => digest.subarray(start, a[i + 1] ?? 16).toString('hex'))
   .join('-');
 
-const CONTENT_TYPES = { json: 'application/json', js: 'application/javascript' };
+const CONTENT_TYPES = {
+  js: 'application/javascript',
+  json: 'application/json',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  svg: 'image/svg+xml',
+  ttf: 'font/ttf',
+  otf: 'font/otf',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  m4a: 'audio/mp4',
+  mp4: 'video/mp4',
+  pdf: 'application/pdf',
+};
 const uploads = new Map(); // key -> { body, contentType }
 const hashes = {}; // per runtime: path -> base64url sha256
 for (const platform of platforms) {
@@ -202,12 +235,16 @@ for (const platform of platforms) {
   if (!files?.bundle) fail(`${metadataPath} has no ${platform} bundle`);
   const root = `ota/${runtimes[platform]}/${folder}`;
   const bag = (hashes[runtimes[platform]] ??= {});
-  for (const path of [files.bundle, ...files.assets.map((a) => a.path)]) {
+  // Exported assets have extensionless paths; the declared `ext` names the type.
+  const typed = [
+    { path: files.bundle, ext: 'js' },
+    ...files.assets.map((a) => ({ path: a.path, ext: a.ext })),
+  ];
+  for (const { path, ext } of typed) {
     const file = join(args.dist, path);
     if (!existsSync(file)) fail(`missing exported file ${file}`);
     const body = readFileSync(file);
     bag[path] = createHash('sha256').update(body).digest('base64url');
-    const ext = path.split('.').pop();
     uploads.set(`${root}/${path}`, {
       body,
       contentType: CONTENT_TYPES[ext] ?? 'application/octet-stream',

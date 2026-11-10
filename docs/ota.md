@@ -27,6 +27,12 @@ dependency or a config plugin changes. **Channel** comes from the build:
 EAS profile `production` / `preview` (or `OTA_CHANNEL`); a preview build never
 sees a production update.
 
+**Known limit.** The server signs what it reads from the bucket. Someone who
+steals the R2 _write_ credentials could therefore get arbitrary code signed. The
+signing key is deliberately kept off CI and GitHub, so publishing cannot sign
+ahead of time. Keep the R2 token scoped to the OTA bucket only, and keep the
+publish job as the only place that holds it (it runs no third-party code).
+
 ## One-time setup
 
 1. **Bucket.** Create an R2 bucket (e.g. `waves-ota`). Optional but recommended:
