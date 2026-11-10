@@ -276,7 +276,7 @@ test.describe.serial('company as an employee, one browser per person', () => {
   test('owner sees A finished the task', async () => {
     const page = await ownerCtx.newPage();
     await page.goto(`/c/${groupId}/team?seg=work`);
-    await page.getByRole('button', { name: /^Done · \d+$/ }).click();
+    // Today's finished tasks stay in the day list; only earlier days fold into "Done · n".
     const row = page.getByRole('button', { name: new RegExp(TASK_A) });
     await expect(row).toBeVisible();
     await expect(row.locator('xpath=..')).toContainText('Done');
