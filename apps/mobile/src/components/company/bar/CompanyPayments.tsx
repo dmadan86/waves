@@ -79,8 +79,10 @@ export function CompanyPayments({ groupId }: { groupId: string }) {
       e.kind === 'reimbursement',
   );
   const expenses = mine.filter((e) => e.kind === 'expense');
+  // A reimbursement the employee paid back to the company is money in.
+  const back = (e: (typeof mine)[number]) => e.direction === 'employee_to_company';
   const sum = (list: typeof mine) => list.reduce((n, e) => n + e.amount, 0n);
-  const totalPaid = sum(payments.filter((e) => e.kind !== 'advance'));
+  const totalPaid = sum(payments.filter((e) => e.kind !== 'advance' && !back(e)));
   // Pending: claims still waiting for approval.
   const totalPending = sum(mine.filter((e) => e.status === 'submitted'));
   const sorted = [...payments].sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
@@ -159,7 +161,12 @@ export function CompanyPayments({ groupId }: { groupId: string }) {
           onChange={setTab}
         />
         {tab === 'exp' ? (
-          <RecentActivity groupId={groupId} view={view} entries={expenses} />
+          <RecentActivity
+            groupId={groupId}
+            view={view}
+            entries={expenses}
+            limit={expenses.length}
+          />
         ) : (
           <StandardCard style={{ paddingVertical: 0 }}>
             {rows.length === 0 ? (
@@ -186,14 +193,22 @@ export function CompanyPayments({ groupId }: { groupId: string }) {
                       ? t.company.paidOut
                       : t.company.salaryPayment;
                 const sub = `${showDate(e.occurredOn, locale)} · ${kindWord}`;
-                const amount = `−${fmt(e.amount)}`;
+                const incoming = back(e);
+                const amount = `${incoming ? '+' : '−'}${fmt(e.amount)}`;
                 return (
                   <ListRow
                     key={e.id}
                     divider={i < rows.length - 1}
-                    title={fill(advance ? t.company.advanceTo : t.company.paymentTo, { name })}
+                    title={fill(
+                      advance
+                        ? t.company.advanceTo
+                        : incoming
+                          ? t.company.paymentFrom
+                          : t.company.paymentTo,
+                      { name },
+                    )}
                     subtitle={sub}
-                    accessibilityLabel={`${fill(advance ? t.company.advanceTo : t.company.paymentTo, { name })}, ${sub}, ${amount}`}
+                    accessibilityLabel={`${fill(advance ? t.company.advanceTo : incoming ? t.company.paymentFrom : t.company.paymentTo, { name })}, ${sub}, ${amount}`}
                     leading={
                       <RowTile tint={theme.color.brandSoft}>
                         <Ionicons
@@ -204,7 +219,13 @@ export function CompanyPayments({ groupId }: { groupId: string }) {
                       </RowTile>
                     }
                     trailing={
-                      <Text tabular style={{ fontWeight: '700', color: theme.color.negative }}>
+                      <Text
+                        tabular
+                        style={{
+                          fontWeight: '700',
+                          color: incoming ? theme.color.positive : theme.color.negative,
+                        }}
+                      >
                         {amount}
                       </Text>
                     }

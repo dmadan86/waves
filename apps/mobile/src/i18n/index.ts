@@ -2042,6 +2042,7 @@ export interface UiStrings {
     recordBill: string;
     advanceTo: string;
     paymentTo: string;
+    paymentFrom: string;
     payWagesBody: string;
     gaveMoneyBody: string;
     recentPayments: string;
@@ -9850,6 +9851,7 @@ const en: UiStrings = {
     recordBill: 'Record bill',
     advanceTo: 'Advance to {name}',
     paymentTo: 'Payment to {name}',
+    paymentFrom: 'Payment from {name}',
     payWagesBody: 'Record salary for employees or managers',
     gaveMoneyBody: 'Record an advance or reimbursement',
     recentPayments: 'Recent payments',
@@ -17126,6 +17128,7 @@ const ta: UiStrings = {
     recordBill: 'பில் பதிவு',
     advanceTo: '{name}க்கு முன்பணம்',
     paymentTo: '{name}க்கு கட்டணம்',
+    paymentFrom: '{name}இடமிருந்து கட்டணம்',
     payWagesBody: 'ஊழியர்கள் அல்லது மேலாளர்களுக்கான சம்பளத்தைப் பதிவு செய்',
     gaveMoneyBody: 'முன்பணம் அல்லது திருப்பிக் கொடுத்ததைப் பதிவு செய்',
     recentPayments: 'சமீபத்திய கட்டணங்கள்',
@@ -24564,6 +24567,7 @@ const hi: UiStrings = {
     recordBill: 'बिल दर्ज करें',
     advanceTo: '{name} को अग्रिम',
     paymentTo: '{name} को भुगतान',
+    paymentFrom: '{name} से भुगतान',
     payWagesBody: 'कर्मचारियों या मैनेजरों का वेतन दर्ज करें',
     gaveMoneyBody: 'अग्रिम या प्रतिपूर्ति दर्ज करें',
     recentPayments: 'हाल के भुगतान',
@@ -31926,6 +31930,7 @@ const ar: UiStrings = {
     recordBill: 'سجّل فاتورة',
     advanceTo: 'سلفة إلى {name}',
     paymentTo: 'دفعة إلى {name}',
+    paymentFrom: 'دفعة من {name}',
     payWagesBody: 'سجّل راتب الموظفين أو المديرين',
     gaveMoneyBody: 'سجّل سلفة أو تعويضًا',
     recentPayments: 'أحدث الدفعات',
