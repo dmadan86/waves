@@ -372,7 +372,13 @@ export default function CompanyBillScreen() {
               ) : null}
               {closed ? (
                 <Who
-                  label={c[closed.kind]}
+                  label={
+                    closed.kind === 'paid'
+                      ? c.paid
+                      : closed.kind === 'accepted'
+                        ? c.acceptedBy
+                        : c.declinedBy
+                  }
                   name={nameOf(closed.by)}
                   member={memberOf(closed.by)}
                   at={stamp(closed.at)}
@@ -406,7 +412,7 @@ export default function CompanyBillScreen() {
                 alignItems: 'center',
               }}
             >
-              <Tile icon="cube-outline" size={40} soft />
+              <Tile icon="cube-outline" size={40} />
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '700' }}>{i.description}</Text>
                 <Text
@@ -463,89 +469,96 @@ export default function CompanyBillScreen() {
         ) : null}
         {estimateActions.length || canConvert || canPay || linked ? (
           <StandardCard>
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                marginBottom: theme.spacing.md,
-              }}
-            >
-              <Ionicons name="flash-outline" size={20} color={theme.color.brand} />
-              <Text variant="heading">{c.nextAction}</Text>
-            </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-              {estimateActions.map((s) => (
-                <ActionButton
-                  key={s}
-                  label={s === 'sent' ? c.markSent : c[s]}
-                  icon={
-                    s === 'declined' ? 'close' : s === 'sent' ? 'paper-plane-outline' : 'checkmark'
-                  }
-                  bg={
-                    s === 'declined'
-                      ? theme.color.negativeSoft
-                      : s === 'sent'
-                        ? theme.color.brandSoft
-                        : theme.color.positiveSoft
-                  }
-                  ink={
-                    s === 'declined'
-                      ? theme.color.negative
-                      : s === 'sent'
-                        ? theme.color.brand
-                        : theme.color.positive
-                  }
-                  disabled={busy}
-                  onPress={() =>
-                    void run(async () => {
-                      await status.mutateAsync({ docId: doc.id, status: s });
-                      // Sending an estimate to a client who is still an inquiry makes them Quoted.
-                      const client = clients.clients.find((x) => x.id === doc.clientId);
-                      if (s === 'sent' && client?.stage === 'inquiry' && clients.canManage)
-                        await setClient.mutateAsync(stageChange(client, 'quoted'));
-                    })
-                  }
-                />
-              ))}
-              {canConvert ? (
-                <ActionButton
-                  outlined
-                  label={c.convert}
-                  icon="document-text-outline"
-                  ink={theme.color.brand}
-                  disabled={busy}
-                  onPress={() =>
-                    void run(async () => {
-                      const billId = await convert.mutateAsync({ docId: doc.id });
-                      router.replace(`/group/${id}/company-bill?docId=${billId}`);
-                    })
-                  }
-                />
-              ) : null}
-              {canPay ? (
-                <ActionButton
-                  label={c.markReceived}
-                  icon="cash-outline"
-                  bg={theme.color.brand}
-                  ink={theme.color.onBrand}
-                  disabled={busy}
-                  onPress={() => {
-                    setPaymentError('');
-                    setAmount(due);
-                    setRecording(true);
-                  }}
-                />
-              ) : null}
-              {linked ? (
-                <ActionButton
-                  outlined
-                  label={doc.convertedTo ? c.linkedBill : c.linkedEstimate}
-                  icon="link-outline"
-                  ink={theme.color.brand}
-                  onPress={() => router.push(`/group/${id}/company-bill?docId=${linked}`)}
-                />
-              ) : null}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Ionicons name="flash-outline" size={20} color={theme.color.brand} />
+                <Text variant="heading">{c.nextAction}</Text>
+              </View>
+              <View
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  flexWrap: 'wrap',
+                  justifyContent: 'flex-end',
+                  gap: theme.spacing.sm,
+                }}
+              >
+                {estimateActions.map((s) => (
+                  <ActionButton
+                    key={s}
+                    label={s === 'sent' ? c.markSent : c[s]}
+                    icon={
+                      s === 'declined'
+                        ? 'close'
+                        : s === 'sent'
+                          ? 'paper-plane-outline'
+                          : 'checkmark'
+                    }
+                    bg={
+                      s === 'declined'
+                        ? theme.color.negativeSoft
+                        : s === 'sent'
+                          ? theme.color.brandSoft
+                          : theme.color.positiveSoft
+                    }
+                    ink={
+                      s === 'declined'
+                        ? theme.color.negative
+                        : s === 'sent'
+                          ? theme.color.brand
+                          : theme.color.positive
+                    }
+                    disabled={busy}
+                    onPress={() =>
+                      void run(async () => {
+                        await status.mutateAsync({ docId: doc.id, status: s });
+                        // Sending an estimate to a client who is still an inquiry makes them Quoted.
+                        const client = clients.clients.find((x) => x.id === doc.clientId);
+                        if (s === 'sent' && client?.stage === 'inquiry' && clients.canManage)
+                          await setClient.mutateAsync(stageChange(client, 'quoted'));
+                      })
+                    }
+                  />
+                ))}
+                {canConvert ? (
+                  <ActionButton
+                    label={c.convert}
+                    icon="document-text-outline"
+                    bg={theme.color.brand}
+                    ink={theme.color.onBrand}
+                    disabled={busy}
+                    onPress={() =>
+                      void run(async () => {
+                        const billId = await convert.mutateAsync({ docId: doc.id });
+                        router.replace(`/group/${id}/company-bill?docId=${billId}`);
+                      })
+                    }
+                  />
+                ) : null}
+                {canPay ? (
+                  <ActionButton
+                    label={c.markReceived}
+                    icon="cash-outline"
+                    bg={theme.color.brand}
+                    ink={theme.color.onBrand}
+                    disabled={busy}
+                    onPress={() => {
+                      setPaymentError('');
+                      setAmount(due);
+                      setRecording(true);
+                    }}
+                  />
+                ) : null}
+                {linked ? (
+                  <ActionButton
+                    outlined
+                    label={doc.convertedTo ? c.linkedBill : c.linkedEstimate}
+                    icon="link-outline"
+                    ink={theme.color.brand}
+                    onPress={() => router.push(`/group/${id}/company-bill?docId=${linked}`)}
+                  />
+                ) : null}
+              </View>
             </View>
           </StandardCard>
         ) : null}
@@ -570,7 +583,7 @@ export default function CompanyBillScreen() {
           </Pressable>
         ) : null}
         <StandardCard>
-          <View style={{ flexDirection: 'row' }}>
+          <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
             <QuickAction
               label={c.sharePdf}
               icon="share-social-outline"
@@ -629,19 +642,16 @@ export default function CompanyBillScreen() {
             </View>
             {shownEvents.map((ev, index) => {
               const who = nameOf(ev.by);
-              const done = ev.kind === 'accepted' || ev.kind === 'payment';
-              const dot =
-                ev.kind === 'declined'
-                  ? theme.color.negative
-                  : done
-                    ? theme.color.positive
-                    : theme.color.brand;
+              const dot = ev.kind === 'declined' ? theme.color.negative : theme.color.brand;
+              const filled = index === 0; // latest event gets the filled mark
               const title =
                 ev.kind === 'created'
                   ? `${c.createdBy} ${who}`.trim()
                   : ev.kind === 'payment'
                     ? `${c.paymentEvt} · ${fmt(ev.amountMinor ?? 0n)}`
-                    : [c[ev.kind], who].filter(Boolean).join(' · ');
+                    : ev.kind === 'accepted' || ev.kind === 'declined'
+                      ? `${ev.kind === 'accepted' ? c.acceptedBy : c.declinedBy} ${who}`.trim()
+                      : [c[ev.kind], who].filter(Boolean).join(' · ');
               return (
                 <View
                   key={`${ev.kind}${ev.at}${index}`}
@@ -653,14 +663,14 @@ export default function CompanyBillScreen() {
                         width: 22,
                         height: 22,
                         borderRadius: 11,
-                        backgroundColor: ev.kind === 'created' ? theme.color.surface : dot,
-                        borderWidth: ev.kind === 'created' ? 2 : 0,
+                        backgroundColor: filled ? dot : theme.color.surface,
+                        borderWidth: filled ? 0 : 2,
                         borderColor: dot,
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
-                      {ev.kind === 'created' ? null : (
+                      {!filled ? null : (
                         <Ionicons
                           name={
                             ev.kind === 'sent'
@@ -760,9 +770,7 @@ function Who({
       <PersonAvatar name={name || '?'} member={member} size={32} />
       <View style={{ flex: 1 }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-          {check ? (
-            <Ionicons name="checkmark-circle" size={14} color={theme.color.positive} />
-          ) : null}
+          {check ? <Ionicons name="checkmark-circle" size={14} color={theme.color.brand} /> : null}
           <Text variant="micro" tone="muted">
             {label}
           </Text>
@@ -917,22 +925,20 @@ function QuickAction({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={label}
       disabled={disabled}
       onPress={onPress}
-      style={{ flex: 1, alignItems: 'center', gap: 6, opacity: disabled ? 0.5 : 1 }}
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: theme.spacing.md,
+        borderRadius: theme.radius.md,
+        backgroundColor: theme.color.brandSoft,
+        opacity: disabled ? 0.5 : 1,
+      }}
     >
-      <View
-        style={{
-          width: 44,
-          height: 44,
-          borderRadius: 22,
-          backgroundColor: theme.color.brandSoft,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons name={icon} size={20} color={theme.color.brand} />
-      </View>
+      <Ionicons name={icon} size={22} color={theme.color.brand} />
       <Text variant="micro" numberOfLines={1}>
         {label}
       </Text>
