@@ -1,4 +1,4 @@
-import type { ClientSource, ClientStage } from '../sync/protocol';
+import type { ClientPriority, ClientSource, ClientStage } from '../sync/protocol';
 import { addDays } from '../trip/timeline';
 import { billDueMinor, type DocSummaryRow } from './documents';
 
