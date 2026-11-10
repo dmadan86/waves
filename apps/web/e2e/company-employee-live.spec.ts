@@ -138,7 +138,7 @@ async function saveEntry(page: Page, amount: string) {
 
 async function addTask(page: Page, title: string, assignee: Person, photo?: boolean) {
   await page.goto(`/c/${groupId}/team?seg=work`);
-  await page.getByRole('button', { name: 'Add task', exact: true }).click();
+  await page.getByRole('button', { name: 'Add task', exact: true }).first().click();
   await page.getByLabel('Task description').fill(title);
   await page.getByRole('group', { name: 'Assign to' }).getByLabel(assignee.name).check();
   if (photo) {
@@ -337,7 +337,7 @@ test.describe.serial('company as an employee, one browser per person', () => {
 
     const b = await bCtx.newPage();
     await b.goto(`/c/${groupId}/calendar`);
-    await expect(b.getByText('Nothing planned')).toBeVisible();
+    await expect(b.getByText(TASK_B).first()).toBeVisible();
     await expect(b.getByText(EVENT)).toHaveCount(0);
     await b.close();
 
