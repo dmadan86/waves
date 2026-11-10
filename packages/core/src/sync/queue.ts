@@ -529,7 +529,9 @@ export function nextBatch(
       blocked.add(item.groupId);
       continue;
     }
-    if (item.attempts >= maxAttempts || item.nextAttemptAt > now) {
+    // A task change is a plain "set to this", safe to send again: it never gives up, it just keeps backing off (5 minutes at most).
+    const gaveUp = item.attempts >= maxAttempts && !item.kind.startsWith('company_work.');
+    if (gaveUp || item.nextAttemptAt > now) {
       blocked.add(item.groupId);
       continue;
     }

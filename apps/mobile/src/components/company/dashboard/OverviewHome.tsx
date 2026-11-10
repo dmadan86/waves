@@ -36,7 +36,8 @@ function useHome(groupId: string) {
   const o = useOverview(groupId, todayIso());
   const now = new Date();
   const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  const ids = new Set(access.people.map((m) => m.id));
+  // Assignees, not people: managers can hold tasks too (owner sees employees + managers).
+  const ids = new Set(access.assignees.map((m) => m.id));
   const facts = taskFacts(
     tasks.filter((x) => ids.has(x.memberId)),
     todayIso(),

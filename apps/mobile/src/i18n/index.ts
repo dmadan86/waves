@@ -2614,6 +2614,33 @@ export interface UiStrings {
     extra: string;
     expectedValue: string;
     addressPh: string;
+    newInquirySub: string;
+    customerDetails: string;
+    inquiryDetails: string;
+    needLabel: string;
+    saveAnother: string;
+    existingCustomer: string;
+    viewHistory: string;
+    useCustomer: string;
+    notThisCustomer: string;
+    lastActivity: string;
+    historyCounts: string;
+    emailPh: string;
+    companyPh: string;
+    category: string;
+    selectCategory: string;
+    catPlumbing: string;
+    catElectrical: string;
+    catCivil: string;
+    catInteriors: string;
+    catMaintenance: string;
+    catOther: string;
+    priority: string;
+    prNormal: string;
+    prUrgent: string;
+    prHigh: string;
+    notesOpt: string;
+    notesPh: string;
     saveInquiry: string;
     save: string;
     followTitle: string;
@@ -2716,6 +2743,15 @@ export interface UiStrings {
     mine: string;
     everyone: string;
     fuEmpty: string;
+    fuSubtitle: string;
+    fuUpcoming: string;
+    fuEmptyTitle: string;
+    fuEmptyBody: string;
+    fuAdd: string;
+    fuFromClient: string;
+    fuFromClientSub: string;
+    fuFromInquiry: string;
+    fuFromInquirySub: string;
     hubMoneyIn: string;
     hubMoneyOut: string;
     hubTeam: string;
@@ -10531,6 +10567,33 @@ const en: UiStrings = {
     extra: 'Expected value, address',
     expectedValue: 'Expected value',
     addressPh: 'Address',
+    newInquirySub: 'Capture a new customer inquiry',
+    customerDetails: 'Customer details',
+    inquiryDetails: 'Inquiry details',
+    needLabel: 'What do they need?',
+    saveAnother: 'Save & Add Another',
+    existingCustomer: 'Existing customer',
+    viewHistory: 'View history',
+    useCustomer: 'Use this customer',
+    notThisCustomer: 'Not this customer',
+    lastActivity: 'Last: {item}',
+    historyCounts: '{inq} inquiries · {est} estimates · {bill} bills · {comp} complaints',
+    emailPh: 'Email (optional)',
+    companyPh: 'Company (optional)',
+    category: 'Category',
+    selectCategory: 'Select category',
+    catPlumbing: 'Plumbing',
+    catElectrical: 'Electrical',
+    catCivil: 'Civil',
+    catInteriors: 'Interiors',
+    catMaintenance: 'Maintenance',
+    catOther: 'Other',
+    priority: 'Priority',
+    prNormal: 'Normal',
+    prUrgent: 'Urgent',
+    prHigh: 'High',
+    notesOpt: 'Notes (optional)',
+    notesPh: 'Any additional information, notes or context...',
     saveInquiry: 'Save inquiry',
     save: 'Save',
     followTitle: 'Follow up with {name}',
@@ -10633,6 +10696,15 @@ const en: UiStrings = {
     mine: 'Mine',
     everyone: 'All',
     fuEmpty: 'No follow-ups due. Add one from a client.',
+    fuSubtitle: 'Keep track of client follow-ups',
+    fuUpcoming: 'Upcoming',
+    fuEmptyTitle: 'No follow-ups due',
+    fuEmptyBody: 'Add a follow-up from a client inquiry, meeting or conversation to stay on track.',
+    fuAdd: 'Add Follow-up',
+    fuFromClient: 'Add from client',
+    fuFromClientSub: 'Create a follow-up for an existing client',
+    fuFromInquiry: 'Add from inquiry',
+    fuFromInquirySub: 'Convert an inquiry into a follow-up',
     hubMoneyIn: 'Money in',
     hubMoneyOut: 'Money out',
     hubTeam: 'Team',
@@ -17916,6 +17988,33 @@ const ta: UiStrings = {
     extra: 'எதிர்பார்க்கும் மதிப்பு, முகவரி',
     expectedValue: 'எதிர்பார்க்கும் மதிப்பு',
     addressPh: 'முகவரி',
+    newInquirySub: 'புதிய வாடிக்கையாளர் விசாரணையைப் பதிவு செய்யுங்கள்',
+    customerDetails: 'வாடிக்கையாளர் விவரங்கள்',
+    inquiryDetails: 'விசாரணை விவரங்கள்',
+    needLabel: 'அவர்களுக்கு என்ன தேவை?',
+    saveAnother: 'சேமித்து மற்றொன்றைச் சேர்',
+    existingCustomer: 'ஏற்கனவே உள்ள வாடிக்கையாளர்',
+    viewHistory: 'வரலாற்றைப் பார்',
+    useCustomer: 'இந்த வாடிக்கையாளரைப் பயன்படுத்து',
+    notThisCustomer: 'இவர் அல்ல',
+    lastActivity: 'கடைசி: {item}',
+    historyCounts: '{inq} விசாரணைகள் · {est} மதிப்பீடுகள் · {bill} பில்கள் · {comp} புகார்கள்',
+    emailPh: 'மின்னஞ்சல் (விருப்பம்)',
+    companyPh: 'நிறுவனம் (விருப்பம்)',
+    category: 'வகை',
+    selectCategory: 'வகையைத் தேர்ந்தெடுக்கவும்',
+    catPlumbing: 'குழாய் வேலை',
+    catElectrical: 'மின்சாரம்',
+    catCivil: 'கட்டுமானம்',
+    catInteriors: 'உள்ளலங்காரம்',
+    catMaintenance: 'பராமரிப்பு',
+    catOther: 'மற்றவை',
+    priority: 'முன்னுரிமை',
+    prNormal: 'சாதாரணம்',
+    prUrgent: 'அவசரம்',
+    prHigh: 'உயர்',
+    notesOpt: 'குறிப்புகள் (விருப்பம்)',
+    notesPh: 'கூடுதல் தகவல், குறிப்புகள் அல்லது சூழல்...',
     saveInquiry: 'விசாரணையைச் சேமி',
     save: 'சேமி',
     followTitle: '{name} உடன் பின்தொடர்',
@@ -18018,6 +18117,16 @@ const ta: UiStrings = {
     mine: 'என்னுடையவை',
     everyone: 'அனைத்தும்',
     fuEmpty: 'பின்தொடர்தல் எதுவும் இல்லை. வாடிக்கையாளரிடமிருந்து சேர்க்கவும்.',
+    fuSubtitle: 'வாடிக்கையாளர் பின்தொடர்தல்களைக் கண்காணிக்கவும்',
+    fuUpcoming: 'வரவிருப்பவை',
+    fuEmptyTitle: 'நிலுவையில் பின்தொடர்தல் இல்லை',
+    fuEmptyBody:
+      'வாடிக்கையாளர் விசாரணை, சந்திப்பு அல்லது உரையாடலிலிருந்து பின்தொடர்தலைச் சேர்த்து தொடர்ந்து கண்காணிக்கவும்.',
+    fuAdd: 'பின்தொடர்தலைச் சேர்',
+    fuFromClient: 'வாடிக்கையாளரிடமிருந்து சேர்',
+    fuFromClientSub: 'இருக்கும் வாடிக்கையாளருக்கு பின்தொடர்தல் உருவாக்கவும்',
+    fuFromInquiry: 'விசாரணையிலிருந்து சேர்',
+    fuFromInquirySub: 'விசாரணையை பின்தொடர்தலாக மாற்றவும்',
     hubMoneyIn: 'வரவு',
     hubMoneyOut: 'செலவு',
     hubTeam: 'குழு',
@@ -25458,6 +25567,33 @@ const hi: UiStrings = {
     extra: 'अपेक्षित मूल्य, पता',
     expectedValue: 'अपेक्षित मूल्य',
     addressPh: 'पता',
+    newInquirySub: 'नई ग्राहक पूछताछ दर्ज करें',
+    customerDetails: 'ग्राहक का विवरण',
+    inquiryDetails: 'पूछताछ का विवरण',
+    needLabel: 'उन्हें क्या चाहिए?',
+    saveAnother: 'सहेजें और एक और जोड़ें',
+    existingCustomer: 'मौजूदा ग्राहक',
+    viewHistory: 'इतिहास देखें',
+    useCustomer: 'इस ग्राहक को चुनें',
+    notThisCustomer: 'यह ग्राहक नहीं',
+    lastActivity: 'पिछला: {item}',
+    historyCounts: '{inq} पूछताछ · {est} अनुमान · {bill} बिल · {comp} शिकायतें',
+    emailPh: 'ईमेल (वैकल्पिक)',
+    companyPh: 'कंपनी (वैकल्पिक)',
+    category: 'श्रेणी',
+    selectCategory: 'श्रेणी चुनें',
+    catPlumbing: 'प्लंबिंग',
+    catElectrical: 'बिजली',
+    catCivil: 'सिविल',
+    catInteriors: 'इंटीरियर',
+    catMaintenance: 'रखरखाव',
+    catOther: 'अन्य',
+    priority: 'प्राथमिकता',
+    prNormal: 'सामान्य',
+    prUrgent: 'अति आवश्यक',
+    prHigh: 'उच्च',
+    notesOpt: 'नोट्स (वैकल्पिक)',
+    notesPh: 'कोई अतिरिक्त जानकारी, नोट्स या संदर्भ...',
     saveInquiry: 'पूछताछ सहेजें',
     save: 'सहेजें',
     followTitle: '{name} से फॉलो-अप',
@@ -25560,6 +25696,15 @@ const hi: UiStrings = {
     mine: 'मेरे',
     everyone: 'सभी',
     fuEmpty: 'कोई फॉलो-अप बाकी नहीं। ग्राहक से जोड़ें।',
+    fuSubtitle: 'ग्राहक फ़ॉलो-अप पर नज़र रखें',
+    fuUpcoming: 'आगामी',
+    fuEmptyTitle: 'कोई फ़ॉलो-अप बाकी नहीं',
+    fuEmptyBody: 'ट्रैक पर रहने के लिए ग्राहक की पूछताछ, मीटिंग या बातचीत से फ़ॉलो-अप जोड़ें।',
+    fuAdd: 'फ़ॉलो-अप जोड़ें',
+    fuFromClient: 'ग्राहक से जोड़ें',
+    fuFromClientSub: 'मौजूदा ग्राहक के लिए फ़ॉलो-अप बनाएँ',
+    fuFromInquiry: 'पूछताछ से जोड़ें',
+    fuFromInquirySub: 'पूछताछ को फ़ॉलो-अप में बदलें',
     hubMoneyIn: 'आमदनी',
     hubMoneyOut: 'खर्च',
     hubTeam: 'टीम',
@@ -32949,6 +33094,33 @@ const ar: UiStrings = {
     extra: 'القيمة المتوقعة، العنوان',
     expectedValue: 'القيمة المتوقعة',
     addressPh: 'العنوان',
+    newInquirySub: 'سجّل استفسار عميل جديد',
+    customerDetails: 'بيانات العميل',
+    inquiryDetails: 'تفاصيل الاستفسار',
+    needLabel: 'ماذا يحتاج؟',
+    saveAnother: 'حفظ وإضافة آخر',
+    existingCustomer: 'عميل موجود',
+    viewHistory: 'عرض السجل',
+    useCustomer: 'استخدام هذا العميل',
+    notThisCustomer: 'ليس هذا العميل',
+    lastActivity: 'الأخير: {item}',
+    historyCounts: '{inq} استفسارات · {est} تقديرات · {bill} فواتير · {comp} شكاوى',
+    emailPh: 'البريد الإلكتروني (اختياري)',
+    companyPh: 'الشركة (اختياري)',
+    category: 'الفئة',
+    selectCategory: 'اختر الفئة',
+    catPlumbing: 'السباكة',
+    catElectrical: 'الكهرباء',
+    catCivil: 'الأعمال المدنية',
+    catInteriors: 'التصميم الداخلي',
+    catMaintenance: 'الصيانة',
+    catOther: 'أخرى',
+    priority: 'الأولوية',
+    prNormal: 'عادية',
+    prUrgent: 'عاجلة',
+    prHigh: 'عالية',
+    notesOpt: 'ملاحظات (اختياري)',
+    notesPh: 'أي معلومات أو ملاحظات أو سياق إضافي...',
     saveInquiry: 'حفظ الاستفسار',
     save: 'حفظ',
     followTitle: 'متابعة {name}',
@@ -33051,6 +33223,15 @@ const ar: UiStrings = {
     mine: 'خاصتي',
     everyone: 'الكل',
     fuEmpty: 'لا متابعات مستحقة. أضف واحدة من صفحة العميل.',
+    fuSubtitle: 'تابع متابعات العملاء',
+    fuUpcoming: 'القادمة',
+    fuEmptyTitle: 'لا متابعات مستحقة',
+    fuEmptyBody: 'أضف متابعة من استفسار عميل أو اجتماع أو محادثة لتبقى على المسار.',
+    fuAdd: 'إضافة متابعة',
+    fuFromClient: 'إضافة من عميل',
+    fuFromClientSub: 'أنشئ متابعة لعميل حالي',
+    fuFromInquiry: 'إضافة من استفسار',
+    fuFromInquirySub: 'حوّل استفساراً إلى متابعة',
     hubMoneyIn: 'الإيرادات',
     hubMoneyOut: 'المصروفات',
     hubTeam: 'الفريق',
