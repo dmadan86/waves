@@ -86,7 +86,9 @@ export function CompanyPayments({ groupId }: { groupId: string }) {
   let toVendors = 0n;
   if (view.isOwner) for (const v of vendors.balances.values()) if (v > 0n) toVendors += v;
   // Same inputs as the Overview's "Payments due" tile, so the two never disagree.
-  const ids = view.isOwner ? view.members.filter((m) => !m.left_at).map((m) => m.id) : [...teamIds];
+  const ids = view.members
+    .filter((m) => !m.left_at && (view.isOwner || teamIds.has(m.id)))
+    .map((m) => m.id);
   const { paid: totalPaid, pending: totalPending } = paymentsHero(
     view.entries,
     ids,
