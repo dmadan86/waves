@@ -41,6 +41,12 @@ CREATE TRIGGER company_file_folders_stamp BEFORE INSERT OR UPDATE ON public.comp
 CREATE TRIGGER company_files_stamp BEFORE INSERT OR UPDATE ON public.company_files FOR EACH ROW EXECUTE FUNCTION public.waves_stamp_seq();
 CREATE TRIGGER aa_company_block_guard BEFORE INSERT OR UPDATE OR DELETE ON public.company_file_folders FOR EACH ROW EXECUTE FUNCTION public.waves_company_block_guard();
 CREATE TRIGGER aa_company_block_guard BEFORE INSERT OR UPDATE OR DELETE ON public.company_files FOR EACH ROW EXECUTE FUNCTION public.waves_company_block_guard();
+CREATE TRIGGER aa_company_agent_guard BEFORE INSERT OR UPDATE OR DELETE ON public.company_file_folders FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_write_guard();
+CREATE TRIGGER zz_two_step_write_guard BEFORE INSERT OR UPDATE ON public.company_file_folders FOR EACH ROW EXECUTE FUNCTION public.waves_two_step_write_guard();
+CREATE TRIGGER aa_company_agent_guard BEFORE INSERT OR UPDATE OR DELETE ON public.company_files FOR EACH ROW EXECUTE FUNCTION public.waves_company_agent_write_guard();
+CREATE TRIGGER zz_two_step_write_guard BEFORE INSERT OR UPDATE ON public.company_files FOR EACH ROW EXECUTE FUNCTION public.waves_two_step_write_guard();
+CREATE POLICY company_agent_gate ON public.company_file_folders AS RESTRICTIVE FOR ALL TO authenticated USING (public.waves_agent_client_id() IS NULL OR public.waves_company_agent_allowed(group_id));
+CREATE POLICY company_agent_gate ON public.company_files AS RESTRICTIVE FOR ALL TO authenticated USING (public.waves_agent_client_id() IS NULL OR public.waves_company_agent_allowed(group_id));
 ALTER TABLE public.company_file_folders ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.company_files ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON public.company_file_folders, public.company_files FROM PUBLIC,anon,authenticated;
