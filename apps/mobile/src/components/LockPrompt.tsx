@@ -105,7 +105,7 @@ export function LockPrompt() {
             style={{
               position: 'absolute',
               top: 8,
-              right: 8,
+              end: 8,
               width: 44,
               height: 44,
               alignItems: 'center',
@@ -144,7 +144,7 @@ export function LockPrompt() {
             <View style={{ position: 'absolute' }}>
               <Ionicons name="finger-print" size={40} color={theme.color.onBrand} />
             </View>
-            <View style={{ position: 'absolute', right: 6, bottom: 6 }}>
+            <View style={{ position: 'absolute', end: 6, bottom: 6 }}>
               <Ionicons name="phone-portrait" size={44} color={theme.color.text} />
               <View
                 style={{ position: 'absolute', top: 12, left: 0, right: 0, alignItems: 'center' }}
