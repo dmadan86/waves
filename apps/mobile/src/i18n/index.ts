@@ -2570,6 +2570,9 @@ export interface UiStrings {
     btnFollowUp: string;
     btnEstimate: string;
     btnMoney: string;
+    btnInquiry: string;
+    scheduleFollowUp: string;
+    noFollowUpHint: string;
     call: string;
     whatsapp: string;
     overdueSince: string;
@@ -10371,6 +10374,9 @@ const en: UiStrings = {
     btnFollowUp: 'Follow-up',
     btnEstimate: 'Estimate',
     btnMoney: 'Money received',
+    btnInquiry: 'Add inquiry',
+    scheduleFollowUp: 'Schedule follow-up',
+    noFollowUpHint: 'Keep the client engaged with a follow-up.',
     call: 'Call',
     whatsapp: 'WhatsApp',
     overdueSince: 'Follow-up overdue · {when}',
@@ -17636,6 +17642,9 @@ const ta: UiStrings = {
     btnFollowUp: 'பின்தொடர்தல்',
     btnEstimate: 'மதிப்பீடு',
     btnMoney: 'பணம் பெறப்பட்டது',
+    btnInquiry: 'விசாரணை சேர்',
+    scheduleFollowUp: 'பின்தொடர்தலை திட்டமிடு',
+    noFollowUpHint: 'பின்தொடர்தல் மூலம் வாடிக்கையாளரை தொடர்பில் வைத்திருங்கள்.',
     call: 'அழை',
     whatsapp: 'வாட்ஸ்அப்',
     overdueSince: 'பின்தொடர்தல் தாமதம் · {when}',
@@ -25059,6 +25068,9 @@ const hi: UiStrings = {
     btnFollowUp: 'फॉलो-अप',
     btnEstimate: 'अनुमान',
     btnMoney: 'पैसे मिले',
+    btnInquiry: 'पूछताछ जोड़ें',
+    scheduleFollowUp: 'फॉलो-अप तय करें',
+    noFollowUpHint: 'फॉलो-अप से ग्राहक से जुड़े रहें।',
     call: 'कॉल',
     whatsapp: 'व्हाट्सऐप',
     overdueSince: 'फॉलो-अप में देर · {when}',
@@ -32432,6 +32444,9 @@ const ar: UiStrings = {
     btnFollowUp: 'متابعة',
     btnEstimate: 'عرض سعر',
     btnMoney: 'تم استلام مبلغ',
+    btnInquiry: 'إضافة استفسار',
+    scheduleFollowUp: 'جدولة متابعة',
+    noFollowUpHint: 'ابقَ على تواصل مع العميل بمتابعة.',
     call: 'اتصال',
     whatsapp: 'واتساب',
     overdueSince: 'متابعة متأخرة · {when}',
