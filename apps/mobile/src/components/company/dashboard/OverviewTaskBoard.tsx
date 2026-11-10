@@ -7,7 +7,7 @@
 
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, View, type GestureResponderEvent } from 'react-native';
+import { Pressable, ScrollView, View, type GestureResponderEvent } from 'react-native';
 
 import { directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
@@ -123,12 +123,6 @@ export function TaskBoard({ groupId }: { groupId: string }) {
       helperIds: x.helperIds ?? [],
     });
   };
-  const tiles = [
-    { ink: RED, icon: 'alert-circle-outline', n: counts.overdue, label: c.workOverdue },
-    { ink: BLUE, icon: 'today-outline', n: counts.today, label: t.calendar.today },
-    { ink: LAVENDER, icon: 'calendar-outline', n: counts.week, label: c.workThisWeek },
-    { ink: GREEN, icon: 'checkmark-circle-outline', n: buckets.done, label: c.tkCompleted },
-  ] as const;
   const pills: { key: Pill; label: string; n: number }[] = [
     { key: 'all', label: c.tkAll, n: counts.overdue + counts.today + upcoming },
     { key: 'overdue', label: c.workOverdue, n: counts.overdue },
@@ -176,33 +170,7 @@ export function TaskBoard({ groupId }: { groupId: string }) {
 
   return (
     <View style={{ gap: theme.spacing.md }}>
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        {tiles.map((x) => (
-          <Pressable
-            key={x.label}
-            accessibilityRole="button"
-            accessibilityLabel={`${x.label}: ${x.n}`}
-            onPress={go}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              gap: 4,
-              padding: 10,
-              borderRadius: 12,
-              backgroundColor: withAlpha(x.ink, 0.1),
-            }}
-          >
-            <Ionicons name={x.icon} size={iconSize.md} color={x.ink} />
-            <Text variant="title" style={{ fontSize: 22, fontWeight: '800', color: x.ink }}>
-              {x.n}
-            </Text>
-            <Text variant="micro" numberOfLines={1} style={{ color: x.ink, fontWeight: '600' }}>
-              {x.label}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 6 }}>
         {pills.map((p) => {
           const on = pill === p.key;
           return (
@@ -213,9 +181,11 @@ export function TaskBoard({ groupId }: { groupId: string }) {
               accessibilityLabel={`${p.label} ${p.n}`}
               onPress={() => setPill(p.key)}
               style={{
+                flexGrow: 1,
                 minHeight: 36,
-                paddingHorizontal: 12,
+                paddingHorizontal: 8,
                 borderRadius: 18,
+                alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: on ? theme.color.brand : theme.color.surface,
                 borderWidth: 1,
@@ -224,6 +194,7 @@ export function TaskBoard({ groupId }: { groupId: string }) {
             >
               <Text
                 variant="caption"
+                numberOfLines={1}
                 style={{ fontWeight: '700', color: on ? theme.color.onBrand : theme.color.text }}
               >
                 {`${p.label} (${p.n})`}
@@ -446,7 +417,7 @@ export function CompanyChips({ groupId }: { groupId: string }) {
   );
 }
 
-/** All owner shortcuts in one wrapping grid, 4 a row: each opens the screen that already does it. */
+/** All owner shortcuts in one scrolling row: each opens the screen that already does it. */
 export function QuickActions({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -499,14 +470,14 @@ export function QuickActions({ groupId }: { groupId: string }) {
       <Text variant="title" accessibilityRole="header" style={{ fontSize: 17, fontWeight: '700' }}>
         {t.company.tkQuick}
       </Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', rowGap: 8 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         {actions.map((a) => (
           <Pressable
             key={a.screen}
             accessibilityRole="button"
             accessibilityLabel={a.label}
             onPress={go(a.screen)}
-            style={{ width: '25%', alignItems: 'center', gap: 6, paddingVertical: 4 }}
+            style={{ width: 72, alignItems: 'center', gap: 6, paddingVertical: 4 }}
           >
             <IconDisc ink={a.ink} size={42}>
               <Ionicons name={a.icon} size={iconSize.md} color={a.ink} />
@@ -521,7 +492,7 @@ export function QuickActions({ groupId }: { groupId: string }) {
             </Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
     </StandardCard>
   );
 }
