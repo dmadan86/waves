@@ -98,7 +98,12 @@ export function DetailsForm({
     </View>
   );
   return (
-    <Sheet visible={visible} onClose={onClose} closeLabel={t.common.close}>
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      closeLabel={t.common.close}
+      style={{ maxHeight: '90%' }}
+    >
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ gap: theme.spacing.md, paddingBottom: theme.spacing.lg }}
