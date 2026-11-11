@@ -20,7 +20,7 @@ import { VoiceBand } from '@/components/voice-band';
 import { WearablesBand } from '@/components/wearables-band';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { absoluteUrl, localeAlternates, site } from '@/lib/site';
+import { absoluteUrl, localeAlternates, site, socialLinks } from '@/lib/site';
 
 /**
  * `/{locale}/index.md` is a twin of *this* page and no other, so this is the
@@ -71,6 +71,16 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         name: site.name,
         url: site.url,
         email: site.supportEmail,
+        logo: absoluteUrl('/brand/waves-mark.png'),
+        ...(socialLinks.length ? { sameAs: socialLinks.map((l) => l.href) } : {}),
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${site.url}#site`,
+        name: site.name,
+        url: site.url,
+        inLanguage: locale,
+        publisher: { '@id': `${site.url}#org` },
       },
       {
         '@type': 'MobileApplication',
@@ -82,6 +92,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         url: absoluteUrl(`/${locale}`),
         inLanguage: locale,
         publisher: { '@id': `${site.url}#org` },
+        ...(site.androidUrl ? { installUrl: site.androidUrl } : {}),
         offers: {
           '@type': 'Offer',
           price: '0',

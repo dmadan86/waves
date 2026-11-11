@@ -82,8 +82,14 @@ export async function generateMetadata({
       description: p.metaDescription,
       url,
       locale: htmlLang[locale],
+      images: [{ url: absoluteUrl(`/${locale}/opengraph-image`), width: 1200, height: 630 }],
     },
-    twitter: { card: 'summary_large_image', title: p.metaTitle, description: p.metaDescription },
+    twitter: {
+      card: 'summary_large_image',
+      title: p.metaTitle,
+      description: p.metaDescription,
+      images: [absoluteUrl(`/${locale}/opengraph-image`)],
+    },
   };
 }
 

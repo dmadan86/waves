@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 
 import { htmlLang, locales } from '@/i18n/config';
 import { competitors, compareSlug } from '@/content/competitors';
+import { useCases } from '@/content/use-cases';
 import { absoluteUrl } from '@/lib/site';
 
 // `/delete-account` is listed on purpose. Google Play requires the deletion URL
@@ -28,6 +29,8 @@ const comparePaths = [
   '/compare',
   ...competitors.map((c) => `/compare/${compareSlug(c)}`),
   '/alternatives/splitwise-alternative',
+  '/press',
+  ...useCases.map((u) => `/use-cases/${u.slug}`),
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

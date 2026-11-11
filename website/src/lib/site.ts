@@ -21,7 +21,20 @@ export const site = {
    */
   iosUrl: process.env.NEXT_PUBLIC_IOS_URL ?? '',
   androidUrl: process.env.NEXT_PUBLIC_ANDROID_URL ?? '',
+
+  /*
+   * Official social profiles. Empty hides the footer link and drops the entry
+   * from the Organization `sameAs`; set the env vars once the accounts exist.
+   */
+  instagramUrl: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? '',
+  xUrl: process.env.NEXT_PUBLIC_X_URL ?? '',
 } as const;
+
+/** Profiles that are actually configured, for the footer and structured data. */
+export const socialLinks = [
+  { name: 'Instagram', href: site.instagramUrl },
+  { name: 'X', href: site.xUrl },
+].filter((l) => l.href);
 
 /** Absolute URL for a locale-prefixed path, used by metadata and the sitemap. */
 export function absoluteUrl(path = ''): string {
