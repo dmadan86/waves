@@ -3220,6 +3220,18 @@ export interface UiStrings {
     saveFailed: string;
     bank: string;
     contact: string;
+    subtitle: string;
+    active: string;
+    companyInfo: string;
+    legalName: string;
+    addMore: string;
+    peopleAccess: string;
+    teamMembers: string;
+    businessSetup: string;
+    billing: string;
+    billingSub: string;
+    preferences: string;
+    preferencesSub: string;
   };
   groupRecurring: {
     title: string;
@@ -11225,6 +11237,18 @@ const en: UiStrings = {
     saveFailed: 'Could not save details',
     bank: 'Bank',
     contact: 'Contact',
+    subtitle: 'Manage your company information and settings.',
+    active: 'Active',
+    companyInfo: 'Company information',
+    legalName: 'Legal name',
+    addMore: 'Add more details',
+    peopleAccess: 'People & access',
+    teamMembers: 'Team members',
+    businessSetup: 'Business setup',
+    billing: 'Billing & payments',
+    billingSub: 'Payments, bills and statements',
+    preferences: 'Preferences',
+    preferencesSub: 'Notifications, currency and more',
   },
   groupRecurring: {
     title: 'Repeating',
@@ -18697,6 +18721,18 @@ const ta: UiStrings = {
     saveFailed: 'விவரங்களைச் சேமிக்க முடியவில்லை',
     bank: 'வங்கி',
     contact: 'தொடர்பு',
+    subtitle: 'உங்கள் நிறுவனத் தகவல் மற்றும் அமைப்புகளை நிர்வகிக்கவும்.',
+    active: 'செயலில்',
+    companyInfo: 'நிறுவனத் தகவல்',
+    legalName: 'சட்டப்பூர்வ பெயர்',
+    addMore: 'மேலும் விவரங்களைச் சேர்',
+    peopleAccess: 'மக்கள் & அணுகல்',
+    teamMembers: 'குழு உறுப்பினர்கள்',
+    businessSetup: 'வணிக அமைப்பு',
+    billing: 'பில்லிங் & கட்டணங்கள்',
+    billingSub: 'கட்டணங்கள், பில்கள், அறிக்கைகள்',
+    preferences: 'விருப்பங்கள்',
+    preferencesSub: 'அறிவிப்புகள், நாணயம் மற்றும் பல',
   },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
@@ -26315,6 +26351,18 @@ const hi: UiStrings = {
     saveFailed: 'विवरण सहेजे नहीं जा सके',
     bank: 'बैंक',
     contact: 'संपर्क',
+    subtitle: 'अपनी कंपनी की जानकारी और सेटिंग्स प्रबंधित करें।',
+    active: 'सक्रिय',
+    companyInfo: 'कंपनी की जानकारी',
+    legalName: 'कानूनी नाम',
+    addMore: 'और विवरण जोड़ें',
+    peopleAccess: 'लोग और एक्सेस',
+    teamMembers: 'टीम सदस्य',
+    businessSetup: 'व्यवसाय सेटअप',
+    billing: 'बिलिंग और भुगतान',
+    billingSub: 'भुगतान, बिल और स्टेटमेंट',
+    preferences: 'प्राथमिकताएँ',
+    preferencesSub: 'सूचनाएँ, मुद्रा और बहुत कुछ',
   },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
@@ -33883,6 +33931,18 @@ const ar: UiStrings = {
     saveFailed: 'تعذّر حفظ التفاصيل',
     bank: 'البنك',
     contact: 'التواصل',
+    subtitle: 'أدر معلومات شركتك وإعداداتها.',
+    active: 'نشطة',
+    companyInfo: 'معلومات الشركة',
+    legalName: 'الاسم القانوني',
+    addMore: 'أضف المزيد من التفاصيل',
+    peopleAccess: 'الأشخاص والوصول',
+    teamMembers: 'أعضاء الفريق',
+    businessSetup: 'إعداد الأعمال',
+    billing: 'الفواتير والمدفوعات',
+    billingSub: 'المدفوعات والفواتير والكشوف',
+    preferences: 'التفضيلات',
+    preferencesSub: 'الإشعارات والعملة والمزيد',
   },
   groupRecurring: {
     title: 'المتكررة',
