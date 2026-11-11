@@ -20,7 +20,9 @@ export const site = {
    * artwork, so `StoreBadges` renders a plain sentence until these are set.
    */
   iosUrl: process.env.NEXT_PUBLIC_IOS_URL ?? '',
-  androidUrl: process.env.NEXT_PUBLIC_ANDROID_URL ?? '',
+  androidUrl:
+    process.env.NEXT_PUBLIC_ANDROID_URL ??
+    'https://play.google.com/store/apps/details?id=app.waves.mobile',
 
   /*
    * Official social profiles. Empty hides the footer link and drops the entry
