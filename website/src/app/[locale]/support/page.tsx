@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { LegalPage, type LegalSection } from '@/components/legal-page';
 import { isLocale, locales } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { absoluteUrl, site } from '@/lib/site';
+import { pageMetadata, site } from '@/lib/site';
 
 const UPDATED = '20 October 2026';
 
@@ -20,10 +20,14 @@ export async function generateMetadata({
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const t = await getDictionary(locale);
-  return {
+  // TODO: translate this description with the page body; English until then.
+  return pageMetadata({
+    locale,
+    path: '/support',
     title: t.legal.supportTitle,
-    alternates: { canonical: absoluteUrl(`/${locale}/support`) },
-  };
+    description:
+      'Get help with Waves, shared expenses, account access and troubleshooting, or contact the support team.',
+  });
 }
 
 const sections: LegalSection[] = [

@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { defaultLocale, locales } from './i18n/config';
+import { isEnglishOnlyPath } from './lib/route-locales';
 
 /**
  * Every page lives under a locale segment, so a bare `/` has to become
@@ -127,9 +128,10 @@ export function proxy(request: NextRequest) {
     return response;
   }
 
-  // The compare pages are English only; a Tamil browser must not be sent to a 404.
-  const englishOnly = pathname.startsWith('/compare') || pathname.startsWith('/alternatives');
-  const locale = englishOnly ? defaultLocale : negotiate(request.headers.get('accept-language'));
+  // Compare, alternatives, press and use-case pages are English only; a Tamil browser must not be sent to a 404.
+  const locale = isEnglishOnlyPath(pathname)
+    ? defaultLocale
+    : negotiate(request.headers.get('accept-language'));
   const url = request.nextUrl.clone();
   url.pathname = `/${locale}${pathname === '/' ? '' : pathname}`;
 

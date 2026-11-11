@@ -2,7 +2,8 @@ import Link from 'next/link';
 
 import { languageNames, locales, type Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
-import { site } from '@/lib/site';
+import { site, socialLinks } from '@/lib/site';
+import { AttributedLink } from './attributed-link';
 import { CopyrightYears } from './copyright-years';
 import { Wordmark } from './logo';
 
@@ -51,6 +52,25 @@ export function SiteFooter({
         { label: legal.mcpTitle, href: `/${locale}/mcp`, kind: 'route' },
         // English only, so it always points at /en whatever the page locale.
         { label: 'Compare Waves', href: '/en/compare', kind: 'route', lang: 'en' },
+        {
+          label: 'Split bills with roommates',
+          href: '/en/use-cases/split-bills-with-roommates',
+          kind: 'route',
+          lang: 'en',
+        },
+        {
+          label: 'Trip expense splitter',
+          href: '/en/use-cases/trip-expense-splitter',
+          kind: 'route',
+          lang: 'en',
+        },
+        {
+          label: 'Split rent in India',
+          href: '/en/use-cases/split-rent-india',
+          kind: 'route',
+          lang: 'en',
+        },
+        { label: 'Press kit', href: '/en/press', kind: 'route', lang: 'en' },
         { label: t.links.markdown, href: `/${locale}/index.md`, kind: 'external' },
       ],
     },
@@ -80,6 +100,17 @@ export function SiteFooter({
             <p className="mt-3 max-w-[16rem] text-[0.82rem] leading-relaxed text-ink-2">
               {t.tagline}
             </p>
+            {socialLinks.length ? (
+              <ul className="mt-3 flex gap-3">
+                {socialLinks.map((l) => (
+                  <li key={l.name}>
+                    <a href={l.href} rel="me noopener" className={cls}>
+                      {l.name}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </div>
           <div className="grid grid-cols-2 gap-6 sm:grid-cols-3">
             {columns.map((column) => (
@@ -92,6 +123,15 @@ export function SiteFooter({
                         <Link href={link.href} className={cls} lang={link.lang}>
                           {link.label}
                         </Link>
+                      ) : link.href === appUrl ? (
+                        <AttributedLink
+                          href={link.href}
+                          kind="web"
+                          placement="footer"
+                          className={cls}
+                        >
+                          {link.label}
+                        </AttributedLink>
                       ) : (
                         <a href={link.href} className={cls}>
                           {link.label}

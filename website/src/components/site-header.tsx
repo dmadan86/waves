@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { languageNames, locales, type Locale } from '@/i18n/config';
 import { site } from '@/lib/site';
+import { AttributedLink } from './attributed-link';
 import { Check, Chevron, Close, Globe, Menu } from './icons';
 import { Wordmark } from './logo';
 import { ThemeToggle } from './theme-toggle';
@@ -215,12 +216,14 @@ export function SiteHeader({
               ) : null}
             </div>
 
-            <a
+            <AttributedLink
               href={appUrl}
+              kind="web"
+              placement="header"
               className="ms-1 hidden h-10 items-center rounded-lg px-3 text-sm font-medium whitespace-nowrap text-ink-2 transition-colors hover:bg-chip hover:text-ink sm:inline-flex"
             >
               {nav.signIn}
-            </a>
+            </AttributedLink>
 
             <a
               href="#download"
@@ -305,12 +308,14 @@ export function SiteHeader({
             >
               {nav.download}
             </a>
-            <a
+            <AttributedLink
               href={appUrl}
+              kind="web"
+              placement="header-menu"
               className="mt-2 flex h-12 items-center justify-center rounded-lg text-sm font-medium text-ink-2"
             >
               {nav.openApp}
-            </a>
+            </AttributedLink>
           </div>
         </div>
       </dialog>

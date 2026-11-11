@@ -22,6 +22,7 @@ import { WearablesBand } from '@/components/wearables-band';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, localeAlternates, site } from '@/lib/site';
+import { appNode, orgId, organizationNode } from '@/lib/structured-data';
 
 /**
  * `/{locale}/index.md` is a twin of *this* page and no other, so this is the
@@ -66,29 +67,21 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
+      organizationNode(),
       {
-        '@type': 'Organization',
-        '@id': `${site.url}#org`,
+        '@type': 'WebSite',
+        '@id': `${site.url}#site`,
         name: site.name,
         url: site.url,
-        email: site.supportEmail,
+        inLanguage: locale,
+        publisher: { '@id': orgId },
       },
-      {
-        '@type': 'MobileApplication',
-        name: site.name,
-        applicationCategory: 'FinanceApplication',
-        applicationSubCategory: 'Expense sharing',
-        operatingSystem: 'Android, iOS, Web',
+      appNode({
         description: t.meta.description,
         url: absoluteUrl(`/${locale}`),
+        priceCurrency: t.meta.priceCurrency,
         inLanguage: locale,
-        publisher: { '@id': `${site.url}#org` },
-        offers: {
-          '@type': 'Offer',
-          price: '0',
-          priceCurrency: t.meta.priceCurrency,
-        },
-      },
+      }),
       {
         '@type': 'FAQPage',
         mainEntity: t.faq.items.map((item) => ({

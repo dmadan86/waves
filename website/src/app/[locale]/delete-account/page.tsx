@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { LegalPage, type LegalSection } from '@/components/legal-page';
 import { isLocale, locales } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { absoluteUrl, site } from '@/lib/site';
+import { pageMetadata, site } from '@/lib/site';
 
 /**
  * How to delete a Waves account, on a page that can be read without one.
@@ -38,10 +38,14 @@ export async function generateMetadata({
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const t = await getDictionary(locale);
-  return {
+  // TODO: translate this description with the page body; English until then.
+  return pageMetadata({
+    locale,
+    path: '/delete-account',
     title: t.legal.deleteTitle,
-    alternates: { canonical: absoluteUrl(`/${locale}/delete-account`) },
-  };
+    description:
+      'Learn how to delete your Waves account and which shared group records remain after deletion.',
+  });
 }
 
 const sections: LegalSection[] = [
