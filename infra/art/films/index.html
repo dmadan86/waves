@@ -57,12 +57,15 @@ function seek(t) {
     : main;
 }
 window.seek = seek;
-// Only known film scripts load (the name comes from the URL).
-const FILMS = ['allowance', 'transactions'];
-const film = new URLSearchParams(location.search).get('film');
-if (FILMS.includes(film)) {
+// Only known film scripts load: the URL picks a key, the path is a constant.
+const FILMS = new Map([
+  ['allowance', 'allowance.js'],
+  ['transactions', 'transactions.js'],
+]);
+const src = FILMS.get(new URLSearchParams(location.search).get('film') ?? '');
+if (src) {
   const el = document.createElement('script');
-  el.src = `${film}.js`;
+  el.src = src;
   el.onload = () => document.fonts.ready.then(() => { seek(0); window.ready = true; });
   document.head.append(el);
 }
