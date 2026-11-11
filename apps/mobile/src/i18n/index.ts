@@ -9043,7 +9043,8 @@ const en: UiStrings = {
   },
   pendingChanges: {
     row: 'Pending changes',
-    intro: 'Changes saved on this phone that have not reached the server yet. Retry sends one again now; Discard removes it from this phone.',
+    intro:
+      'Changes saved on this phone that have not reached the server yet. Retry sends one again now; Discard removes it from this phone.',
     empty: 'Nothing is waiting. Every change has reached the server.',
     created: 'Made',
     attempts: 'Attempts',
@@ -9053,7 +9054,8 @@ const en: UiStrings = {
     retry: 'Retry now',
     discard: 'Discard',
     discardTitle: 'Discard this change?',
-    discardBody: 'It is removed from this phone and never sent. What the server has will show instead.',
+    discardBody:
+      'It is removed from this phone and never sent. What the server has will show instead.',
     copy: 'Copy report',
     copied: 'Report copied',
   },
@@ -16517,7 +16519,8 @@ const ta: UiStrings = {
   },
   pendingChanges: {
     row: 'நிலுவை மாற்றங்கள்',
-    intro: 'இந்த ஃபோனில் சேமிக்கப்பட்டு இன்னும் சர்வரை அடையாத மாற்றங்கள். மீண்டும் முயல் என்பது ஒன்றை இப்போதே அனுப்பும்; நீக்கு என்பது ஃபோனிலிருந்து அகற்றும்.',
+    intro:
+      'இந்த ஃபோனில் சேமிக்கப்பட்டு இன்னும் சர்வரை அடையாத மாற்றங்கள். மீண்டும் முயல் என்பது ஒன்றை இப்போதே அனுப்பும்; நீக்கு என்பது ஃபோனிலிருந்து அகற்றும்.',
     empty: 'எதுவும் காத்திருக்கவில்லை. எல்லா மாற்றங்களும் சர்வரை அடைந்துவிட்டன.',
     created: 'உருவாக்கியது',
     attempts: 'முயற்சிகள்',
@@ -24186,7 +24189,8 @@ const hi: UiStrings = {
   },
   pendingChanges: {
     row: 'लंबित बदलाव',
-    intro: 'इस फ़ोन पर सहेजे गए बदलाव जो अभी सर्वर तक नहीं पहुँचे। अभी दोबारा भेजें से एक बदलाव फिर भेजा जाता है; हटाएँ से वह फ़ोन से हट जाता है।',
+    intro:
+      'इस फ़ोन पर सहेजे गए बदलाव जो अभी सर्वर तक नहीं पहुँचे। अभी दोबारा भेजें से एक बदलाव फिर भेजा जाता है; हटाएँ से वह फ़ोन से हट जाता है।',
     empty: 'कुछ भी लंबित नहीं है। हर बदलाव सर्वर तक पहुँच चुका है।',
     created: 'बनाया गया',
     attempts: 'कोशिशें',
@@ -31688,7 +31692,8 @@ const ar: UiStrings = {
   },
   pendingChanges: {
     row: 'التغييرات المعلّقة',
-    intro: 'تغييرات محفوظة على هذا الهاتف ولم تصل إلى الخادم بعد. إعادة المحاولة ترسل تغييرًا الآن؛ الحذف يزيله من هذا الهاتف.',
+    intro:
+      'تغييرات محفوظة على هذا الهاتف ولم تصل إلى الخادم بعد. إعادة المحاولة ترسل تغييرًا الآن؛ الحذف يزيله من هذا الهاتف.',
     empty: 'لا شيء في الانتظار. كل التغييرات وصلت إلى الخادم.',
     created: 'أُنشئ',
     attempts: 'المحاولات',
