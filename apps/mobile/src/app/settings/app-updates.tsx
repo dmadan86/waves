@@ -152,6 +152,12 @@ export default function AppUpdatesScreen() {
             />
           )
         ) : null}
+
+        <Button
+          label={t.pendingChanges.row}
+          variant="secondary"
+          onPress={() => router.push('/settings/pending-changes')}
+        />
       </ScrollView>
     </Screen>
   );
