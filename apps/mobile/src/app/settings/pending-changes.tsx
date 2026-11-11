@@ -48,7 +48,8 @@ export default function PendingChangesScreen() {
   const { confirm } = useDialog();
   const [copied, setCopied] = useState(false);
 
-  const now = Date.now();
+  // Taken once when the screen opens; reopening refreshes "stuck" (render must stay pure).
+  const [now] = useState(() => Date.now());
   const ordered = [...queue].sort((a, b) => a.seq - b.seq);
   const blockers = blockedBy(queue, { now });
   const view = ordered.map((item) => ({
