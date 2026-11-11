@@ -1,9 +1,19 @@
+import Link from 'next/link';
+
 import type { Dictionary } from '@/i18n/dictionaries';
-import { Check } from './icons';
+import { ArrowRight, Check } from './icons';
 import { SplitStage } from './split-stage';
 import { StoreBadges } from './store-badges';
 
-export function Hero({ t, stores }: { t: Dictionary['hero']; stores: Dictionary['stores'] }) {
+export function Hero({
+  t,
+  stores,
+  locale,
+}: {
+  t: Dictionary['hero'];
+  stores: Dictionary['stores'];
+  locale: string;
+}) {
   return (
     <section className="relative isolate overflow-hidden">
       <div
@@ -20,6 +30,13 @@ export function Hero({ t, stores }: { t: Dictionary['hero']; stores: Dictionary[
           </h1>
           <p className="mt-6 max-w-[28rem] text-[1.05rem] leading-[1.6] text-ink-2">{t.subtitle}</p>
           <StoreBadges t={stores} className="mt-8" />
+          <Link
+            href={`/${locale}/companies`}
+            className="mt-4 inline-flex items-center gap-1.5 text-[0.9rem] font-semibold text-accent hover:underline"
+          >
+            {t.ctaBusiness}
+            <ArrowRight className="h-3.5 w-3.5 rtl:-scale-x-100" />
+          </Link>
           <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
             {t.trust.map((item) => (
               <li key={item} className="inline-flex items-center gap-1.5 text-[0.82rem] text-ink-2">

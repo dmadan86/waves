@@ -13,6 +13,8 @@ export const site = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wavs.co.in',
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.wavs.co.in',
   supportEmail: 'hello@wavs.co.in',
+  /** Sales WhatsApp number, digits with country code. Empty hides the WhatsApp button. */
+  salesWhatsapp: process.env.NEXT_PUBLIC_SALES_WHATSAPP ?? '',
 
   /*
    * Store listings, when they exist. Left empty on purpose: a badge that links
