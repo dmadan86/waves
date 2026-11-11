@@ -12,7 +12,7 @@ const expect = baseExpect.configure({ timeout: 30_000 });
  * whole file is skipped. Same pattern as company-money-live.spec.ts.
  *
  * Accounts (one browser context each, real sign-in form): owner, manager, employee (managed by the
- * manager), other (no manager). The web has no leave-policy screen yet (it is a mobile screen), so the
+ * manager), other (no manager). The web leave-policy screen (settings/leave) and balance card are not driven here yet, so the
  * owner sets the policy through the same RPC the app calls and the balances are read through the API;
  * the manager's approval goes through the real web Pending screen.
  */
@@ -291,6 +291,6 @@ test.describe.serial('company leave policies, one browser per person', () => {
     expect(res.error).not.toBeNull();
   });
 
-  test.fixme('owner edits the leave policy in the web UI (the web has no leave-policy screen yet)', async () => {});
-  test.fixme('employee sees their balances per type on the web home (the web has no balance card yet)', async () => {});
+  test.fixme('owner edits the leave policy in the web UI (the screen exists; this spec does not drive it yet)', async () => {});
+  test.fixme('employee sees their balances per type on the web home (the card exists; this spec does not drive it yet)', async () => {});
 });

@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { companyStatement, dashboardStats, MutationKind, poolBalance } from '@waves/core';
 
 import { ActivityRows } from '@/components/company/Activity';
+import { LeaveBalanceCard } from '@/components/company/LeaveBalances';
 import { EntryRow, ErrorLine, Page, toMinor, useAction, useMoney } from '@/components/company/Bits';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
@@ -246,6 +247,7 @@ function EmployeeHome({ groupId }: { groupId: string }) {
         <Tile label={h.spent} value={fmt(sums.spent)} />
         <Tile label={h.wagesThisMonth} value={fmt(sums.wages)} />
       </div>
+      <LeaveBalanceCard groupId={groupId} memberId={me?.id ?? null} />
       <section className="panel">
         <div className="page-head">
           <h2>{h.yourEntries}</h2>
