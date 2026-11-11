@@ -335,13 +335,13 @@ export function CompareBody({
           tabIndex={0}
           className="overflow-x-auto rounded-xl border border-line bg-paper p-2 lg:overflow-visible"
         >
-          <table className="w-full min-w-[640px] border-separate border-spacing-0 text-start text-[0.85rem] leading-[1.5] lg:min-w-0">
+          <table className="w-full min-w-[560px] border-separate border-spacing-0 text-start text-[0.85rem] leading-[1.5] lg:min-w-0">
             <caption className="sr-only">Waves compared with {c.name}</caption>
             <thead>
               <tr>
                 <th
                   scope="col"
-                  className="sticky left-0 z-20 w-[28%] lg:w-[34%] bg-paper px-4 py-4 text-start text-xs font-semibold tracking-[0.12em] text-ink-3 uppercase lg:top-0"
+                  className="sticky left-0 z-20 w-[7.5rem] sm:w-[28%] lg:w-[34%] bg-paper px-4 py-4 text-start text-xs font-semibold tracking-[0.12em] text-ink-3 uppercase lg:top-0"
                 >
                   Feature
                 </th>
@@ -374,7 +374,7 @@ export function CompareBody({
                   >
                     <th
                       scope="row"
-                      className={`sticky left-0 z-10 bg-paper px-4 py-4 text-start font-medium text-ink ${line}`}
+                      className={`sticky left-0 z-10 bg-paper px-3 py-4 sm:px-4 text-start font-medium text-ink ${line}`}
                     >
                       {row.feature}
                     </th>
