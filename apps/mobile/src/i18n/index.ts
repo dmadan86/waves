@@ -1063,6 +1063,13 @@ export interface UiStrings {
     discardBody: string;
     copy: string;
     copied: string;
+    headline: PluralForms;
+    allSynced: string;
+    notSynced: string;
+    waiting: string;
+    status: string;
+    stuckShort: string;
+    copyHint: string;
   };
   recent: {
     title: string;
@@ -9058,6 +9065,13 @@ const en: UiStrings = {
       'It is removed from this phone and never sent. What the server has will show instead.',
     copy: 'Copy report',
     copied: 'Report copied',
+    headline: { one: "{n} change couldn't be synced", other: "{n} changes couldn't be synced" },
+    allSynced: 'Everything is synced',
+    notSynced: 'Not synced',
+    waiting: 'Waiting',
+    status: 'Status',
+    stuckShort: 'Older than a day, not shown on screen',
+    copyHint: 'Copy details to share or troubleshoot',
   },
   recent: {
     title: 'Recent on your watch',
@@ -16533,6 +16547,16 @@ const ta: UiStrings = {
     discardBody: 'இது ஃபோனிலிருந்து அகற்றப்படும், அனுப்பப்படாது. சர்வரில் உள்ளது காட்டப்படும்.',
     copy: 'அறிக்கையை நகலெடு',
     copied: 'அறிக்கை நகலெடுக்கப்பட்டது',
+    headline: {
+      one: '{n} மாற்றம் ஒத்திசைக்கப்படவில்லை',
+      other: '{n} மாற்றங்கள் ஒத்திசைக்கப்படவில்லை',
+    },
+    allSynced: 'அனைத்தும் ஒத்திசைக்கப்பட்டது',
+    notSynced: 'ஒத்திசைக்கப்படவில்லை',
+    waiting: 'காத்திருக்கிறது',
+    status: 'நிலை',
+    stuckShort: 'ஒரு நாளுக்கு மேல் பழையது, திரையில் காட்டப்படவில்லை',
+    copyHint: 'பகிர அல்லது சரிசெய்ய விவரங்களை நகலெடு',
   },
   recent: {
     title: 'கடிகாரத்தில் சமீபத்தியவை',
@@ -24203,6 +24227,13 @@ const hi: UiStrings = {
     discardBody: 'यह फ़ोन से हट जाएगा और कभी भेजा नहीं जाएगा। सर्वर पर जो है वही दिखेगा।',
     copy: 'रिपोर्ट कॉपी करें',
     copied: 'रिपोर्ट कॉपी हो गई',
+    headline: { one: '{n} बदलाव सिंक नहीं हो सका', other: '{n} बदलाव सिंक नहीं हो सके' },
+    allSynced: 'सब कुछ सिंक है',
+    notSynced: 'सिंक नहीं हुआ',
+    waiting: 'इंतज़ार में',
+    status: 'स्थिति',
+    stuckShort: 'एक दिन से पुराना, स्क्रीन पर नहीं दिखता',
+    copyHint: 'शेयर या समस्या जाँचने के लिए विवरण कॉपी करें',
   },
   recent: {
     title: 'घड़ी पर हाल के खर्च',
@@ -31706,6 +31737,20 @@ const ar: UiStrings = {
     discardBody: 'سيُزال من هذا الهاتف ولن يُرسل أبدًا. وسيظهر ما لدى الخادم بدلًا منه.',
     copy: 'نسخ التقرير',
     copied: 'تم نسخ التقرير',
+    headline: {
+      zero: 'لا توجد تغييرات غير متزامنة',
+      one: 'تعذّرت مزامنة تغيير واحد',
+      two: 'تعذّرت مزامنة تغييرين',
+      few: 'تعذّرت مزامنة {n} تغييرات',
+      many: 'تعذّرت مزامنة {n} تغييرًا',
+      other: 'تعذّرت مزامنة {n} تغيير',
+    },
+    allSynced: 'تمت مزامنة كل شيء',
+    notSynced: 'غير متزامن',
+    waiting: 'في الانتظار',
+    status: 'الحالة',
+    stuckShort: 'أقدم من يوم، غير معروض على الشاشة',
+    copyHint: 'انسخ التفاصيل للمشاركة أو لحل المشكلة',
   },
   recent: {
     title: 'الأحدث على ساعتك',
