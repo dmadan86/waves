@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { CompareShell, comparePageUrl, TickList } from '@/components/compare-page';
+import { AttributedLink } from '@/components/attributed-link';
 import { ArrowRight } from '@/components/icons';
 import { WaveMark } from '@/components/logo';
 import { CHECKED_MONTH, competitors, compareSlug, disclaimer } from '@/content/competitors';
@@ -97,7 +98,7 @@ export default async function CompareIndex({ params }: { params: Promise<{ local
   };
 
   return (
-    <CompareShell t={t} jsonLd={jsonLd}>
+    <CompareShell t={t} jsonLd={jsonLd} current>
       <section className="relative grid items-center gap-6 overflow-hidden rounded-xl bg-[radial-gradient(ellipse_at_85%_40%,rgb(31_99_242_/_0.09),transparent_65%)] pt-6 lg:grid-cols-[1.05fr_1fr] lg:pt-10">
         <div className="relative z-10 pb-6 lg:pb-12">
           <p className="text-xs font-semibold tracking-[0.18em] text-blue uppercase">
@@ -142,8 +143,10 @@ export default async function CompareIndex({ params }: { params: Promise<{ local
             <span className="absolute -top-2.5 right-3 rounded-full bg-blue px-3 py-1 text-xs font-medium text-white shadow-sm">
               Recommended
             </span>
-            <a
+            <AttributedLink
               href={site.appUrl}
+              kind="web"
+              placement="compare-index-card"
               className="flex h-full min-h-28 items-center gap-4 rounded-xl border border-blue bg-blue/5 p-5 transition-colors hover:bg-blue/10"
             >
               <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue/10">
@@ -156,7 +159,7 @@ export default async function CompareIndex({ params }: { params: Promise<{ local
                 </span>
               </span>
               <ArrowRight className="h-5 w-5 shrink-0 text-blue" />
-            </a>
+            </AttributedLink>
           </li>
           {competitors.map((c) => (
             <li key={c.slug}>
@@ -236,12 +239,14 @@ export default async function CompareIndex({ params }: { params: Promise<{ local
         <p className="mt-3 text-sm text-slate-200">
           Keep your groups, expenses and balances together.
         </p>
-        <a
+        <AttributedLink
           href={site.appUrl}
+          kind="web"
+          placement="compare-index-cta"
           className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-sm bg-white px-6 text-sm font-semibold text-[#102442] transition-colors hover:bg-blue-100"
         >
           Try Waves free <ArrowRight className="h-4 w-4" />
-        </a>
+        </AttributedLink>
         <TickList items={ticks} dark />
       </section>
       <p className="mt-6 text-xs text-ink-3">Last checked {CHECKED_MONTH}</p>

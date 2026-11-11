@@ -662,6 +662,72 @@
     padding: 10px 12px;
     font-variant-numeric: tabular-nums;
   }
+  a.stat-cell {
+    color: inherit;
+    text-decoration: none;
+  }
+  a.stat-cell:hover {
+    background: var(--w-surface-muted);
+  }
+  .home-greet {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .home-greet .pill-badge {
+    margin-inline-start: 0;
+  }
+  .quick-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    overflow-x: auto;
+  }
+  .quick-row .chip {
+    flex: none;
+    text-decoration: none;
+  }
+  .home-chips {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .home-chips .chip {
+    flex: 1;
+    justify-content: center;
+    white-space: nowrap;
+  }
+  .home-task {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid var(--w-border);
+    padding: 8px 0;
+  }
+  .home-task input {
+    width: auto;
+    flex: none;
+  }
+  .home-task-end {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+  .home-task-end .pill-badge {
+    margin-inline-start: 0;
+  }
+  .home-two {
+    display: grid;
+    gap: 0 18px;
+  }
+  @media (min-width: 960px) {
+    .home-two {
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+  }
   .stat-cell + .stat-cell {
     border-inline-start: 1px solid var(--w-border);
   }

@@ -18,6 +18,7 @@ import {
   type CurrencyCode,
 } from '@waves/core';
 
+import { calendarStrings as cal } from '@/lib/company/calendarStrings';
 import { CompanyPage, useCompanyText } from '@/components/CompanyPage';
 import { fill } from '@/i18n';
 import {
@@ -443,6 +444,9 @@ export default function CompanySettingsPage() {
                     )
                   }
                 />
+                <Link className="btn soft" href={`/c/${groupId}/settings/leave`}>
+                  {cal.leavePolicy}
+                </Link>
               </Section>
 
               <Section title={s.moreSettings}>

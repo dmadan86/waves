@@ -1,6 +1,7 @@
 import type { Dictionary } from '@/i18n/dictionaries';
 import { site } from '@/lib/site';
 import { Apple, GooglePlay } from './icons';
+import { AttributedLink } from './attributed-link';
 
 /**
  * Black store badges. They link to the listings when `NEXT_PUBLIC_IOS_URL` /
@@ -46,13 +47,15 @@ export function StoreBadges({
         return (
           <li key={name}>
             {href ? (
-              <a
+              <AttributedLink
                 href={href}
+                kind="store"
+                placement="store-badge"
                 rel="noreferrer"
                 className={`${cls} transition-transform hover:-translate-y-0.5`}
               >
                 {inner}
-              </a>
+              </AttributedLink>
             ) : (
               <span className={`${cls} cursor-default opacity-60 saturate-50`} title={t.soon}>
                 {inner}

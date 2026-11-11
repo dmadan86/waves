@@ -2,6 +2,7 @@ import { useState } from 'react';
 
 import { emptyDetails } from '../../../../../../packages/core/src/company/details';
 
+import { CompanyDetailsSections } from '@/components/company/details/CompanyDetailsSections';
 import { DetailsCard } from '@/components/company/details/DetailsCard';
 import { DetailsForm } from '@/components/company/details/DetailsForm';
 import {
@@ -28,6 +29,14 @@ export function DetailsScreenBody({ groupId, vendorId }: { groupId: string; vend
   const title = vendor?.name ?? t.companyDetails.title;
   return (
     <>
+      {vendorId ? null : (
+        <CompanyDetailsSections
+          groupId={groupId}
+          card={view.card}
+          canEdit={view.canEdit}
+          onEdit={() => setEditing(true)}
+        />
+      )}
       <DetailsCard
         title={title}
         shareTitle={title}

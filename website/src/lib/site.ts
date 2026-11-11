@@ -13,6 +13,8 @@ export const site = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wavs.co.in',
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.wavs.co.in',
   supportEmail: 'hello@wavs.co.in',
+  /** Sales WhatsApp number, digits with country code. Empty hides the WhatsApp button. */
+  salesWhatsapp: process.env.NEXT_PUBLIC_SALES_WHATSAPP ?? '',
 
   /*
    * Store listings, when they exist. Left empty on purpose: a badge that links
@@ -20,8 +22,23 @@ export const site = {
    * artwork, so `StoreBadges` renders a plain sentence until these are set.
    */
   iosUrl: process.env.NEXT_PUBLIC_IOS_URL ?? '',
-  androidUrl: process.env.NEXT_PUBLIC_ANDROID_URL ?? '',
+  androidUrl:
+    process.env.NEXT_PUBLIC_ANDROID_URL ??
+    'https://play.google.com/store/apps/details?id=app.waves.mobile',
+
+  /*
+   * Official social profiles. Empty hides the footer link and drops the entry
+   * from the Organization `sameAs`; set the env vars once the accounts exist.
+   */
+  instagramUrl: process.env.NEXT_PUBLIC_INSTAGRAM_URL ?? '',
+  xUrl: process.env.NEXT_PUBLIC_X_URL ?? '',
 } as const;
+
+/** Profiles that are actually configured, for the footer and structured data. */
+export const socialLinks = [
+  { name: 'Instagram', href: site.instagramUrl },
+  { name: 'X', href: site.xUrl },
+].filter((l) => l.href);
 
 /** Absolute URL for a locale-prefixed path, used by metadata and the sitemap. */
 export function absoluteUrl(path = ''): string {
@@ -44,5 +61,51 @@ export function localeAlternates(locale: Locale): NonNullable<Metadata['alternat
       ...Object.fromEntries(locales.map((l) => [htmlLang[l], absoluteUrl(`/${l}`)])),
       'x-default': absoluteUrl('/en'),
     },
+  };
+}
+
+/**
+ * Metadata for a locale-prefixed page: self-canonical, hreflang for the locales
+ * it exists in, and page-specific OG/Twitter text and URL. The share image is
+ * named explicitly because a page that declares `openGraph` stops inheriting
+ * the file-convention image.
+ */
+export function pageMetadata({
+  locale,
+  path,
+  title,
+  description,
+  supportedLocales = locales,
+}: {
+  locale: Locale;
+  path: string;
+  title: string;
+  description: string;
+  supportedLocales?: readonly Locale[];
+}): Metadata {
+  const url = absoluteUrl(`/${locale}${path}`);
+  const image = absoluteUrl(`/${locale}/opengraph-image`);
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+      languages: {
+        ...Object.fromEntries(
+          supportedLocales.map((l) => [htmlLang[l], absoluteUrl(`/${l}${path}`)]),
+        ),
+        'x-default': absoluteUrl(`/en${path}`),
+      },
+    },
+    openGraph: {
+      type: 'website',
+      siteName: site.name,
+      title,
+      description,
+      url,
+      locale: htmlLang[locale],
+      images: [{ url: image, width: 1200, height: 630, alt: site.name }],
+    },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
   };
 }

@@ -24,7 +24,7 @@ export type CardId =
 
 /** Default order per role. The first card is the locked one: always first, never hidden. */
 export const DEFAULT_CARDS: Record<OverviewRole, readonly CardId[]> = {
-  owner: ['glance', 'needs', 'comingUp', 'moneyActions', 'activity'],
+  owner: ['glance', 'moneyActions', 'needs', 'comingUp', 'activity'],
   manager: [
     'attendance',
     'attention',

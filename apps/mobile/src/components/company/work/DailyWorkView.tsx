@@ -27,6 +27,7 @@ import {
   filterWork,
   canChangeTask,
   groupWorkTasks,
+  isLate,
   isOwnTask,
   maxTaskDay,
   taskDayTones,
@@ -37,6 +38,7 @@ import { AddTaskSheet } from './AddTaskSheet';
 import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
 import { WorkExportSheet } from './WorkExportSheet';
 import { WorkTaskSheets } from './WorkTaskSheets';
+import { TaskStatTiles } from './TaskStatTiles';
 import { WorkToolbar } from './WorkSummaryControls';
 
 type Payload = CompanyWorkSetPayload;
@@ -251,8 +253,16 @@ export default function DailyWorkView({
                 query={query}
                 onQueryChange={setQuery}
                 onMore={(a) => setMoreAnchor(a ?? 'open')}
-                title={embedded ? t.company.workMineTasks : undefined}
+                title={embedded ? t.company.teamTabTasks : undefined}
                 onAdd={access.assignees.length > 0 ? openAdd : undefined}
+              />
+              <TaskStatTiles
+                all={ownTasks.length}
+                overdue={ownTasks.filter((task) => isLate(task, today)).length}
+                dueToday={
+                  ownTasks.filter((task) => task.status !== 'done' && task.day === today).length
+                }
+                completed={ownTasks.filter((task) => task.status === 'done').length}
               />
               <CompanyCalendarGrid
                 year={cal.year}

@@ -12,6 +12,7 @@ import {
   WagesMock,
 } from '@/components/company-mocks';
 import { FilmTabs } from '@/components/film-tabs';
+import { CompanyContact, CompanyFaq, CompanySteps } from '@/components/company-sales';
 import { DownloadBanner } from '@/components/download-banner';
 import { LazyVideo } from '@/components/lazy-video';
 import { RoleSwitcher } from '@/components/role-switcher';
@@ -82,12 +83,24 @@ export async function generateMetadata({
       description: p.metaDescription,
       url,
       locale: htmlLang[locale],
+      images: [{ url: absoluteUrl(`/${locale}/opengraph-image`), width: 1200, height: 630 }],
     },
-    twitter: { card: 'summary_large_image', title: p.metaTitle, description: p.metaDescription },
+    twitter: {
+      card: 'summary_large_image',
+      title: p.metaTitle,
+      description: p.metaDescription,
+      images: [absoluteUrl(`/${locale}/opengraph-image`)],
+    },
   };
 }
 
 const card = 'rounded-2xl bg-surface shadow-[var(--w-shadow-card)]';
+
+/**
+ * Films cut but not yet uploaded to R2: their slot stays empty so the page never
+ * shows a broken video. TODO: empty this once infra/art/publish.sh has run.
+ */
+const NOT_UPLOADED = new Set(['companies-allowance']);
 
 export default async function CompaniesPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -96,14 +109,15 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
   const p = t.companiesPage;
   const m = t.companyMock;
 
-  const visuals: Record<string, { mock: React.ReactNode; video?: string }> = {
+  // wide: a 16:9 film (the films-tab cuts), shown at its own shape, not cropped square.
+  const visuals: Record<string, { mock: React.ReactNode; video?: string; wide?: boolean }> = {
     approvals: { mock: <ApproveMock m={m} />, video: 'companies-approvals' },
-    allowance: { mock: <AllowanceMock m={m} /> },
+    allowance: { mock: <AllowanceMock m={m} />, video: 'companies-allowance' },
     attendance: { mock: <AttendanceMock m={m} />, video: 'companies-attendance' },
     tasks: { mock: <TaskMock m={m} />, video: 'companies-tasks' },
     wages: { mock: <WagesMock m={m} />, video: 'companies-wages' },
     bills: { mock: <BillMock m={m} />, video: 'companies-bills' },
-    tickets: { mock: <TicketMock m={m} /> },
+    tickets: { mock: <TicketMock m={m} />, video: 'companies-complaints', wide: true },
   };
   const filmOf: Record<string, string> = {
     approvals: 'approvals',
@@ -116,6 +130,8 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
     'companies-attendance': p.videos.attendance,
     'companies-tasks': p.videos.tasks,
     'companies-bills': p.videos.bills,
+    'companies-allowance': p.videos.allowance,
+    'companies-complaints': p.films.tabs.find((f) => f.id === 'complaints')?.alt ?? '',
   };
 
   return (
@@ -138,7 +154,7 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
                   <Button href={`/${locale}#download`} size="lg">
                     {p.ctaPrimary}
                   </Button>
-                  <Button href="#features" size="lg" variant="secondary" arrow={false}>
+                  <Button href="#contact" size="lg" variant="secondary" arrow={false}>
                     {p.ctaSecondary}
                   </Button>
                 </div>
@@ -237,11 +253,11 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
                     ) : null}
                     <div className="mt-4 grid items-start gap-4 sm:grid-cols-2">
                       {v.mock}
-                      {v.video ? (
+                      {v.video && !NOT_UPLOADED.has(v.video) ? (
                         <LazyVideo
                           name={v.video}
                           label={videoLabel[v.video]}
-                          className="aspect-square"
+                          className={v.wide ? 'aspect-video' : 'aspect-square'}
                         />
                       ) : null}
                     </div>
@@ -267,6 +283,9 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
           </ul>
         </Container>
 
+        <CompanySteps t={p.steps} />
+        <CompanyFaq t={p.faq} />
+        <CompanyContact t={p.contact} />
         <DownloadBanner t={t.cta} stores={t.stores} />
       </main>
 

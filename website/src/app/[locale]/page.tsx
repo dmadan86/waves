@@ -16,11 +16,13 @@ import { Showcase } from '@/components/showcase';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { Steps } from '@/components/steps';
+import { WhoFor } from '@/components/who-for';
 import { VoiceBand } from '@/components/voice-band';
 import { WearablesBand } from '@/components/wearables-band';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, localeAlternates, site } from '@/lib/site';
+import { appNode, orgId, organizationNode } from '@/lib/structured-data';
 
 /**
  * `/{locale}/index.md` is a twin of *this* page and no other, so this is the
@@ -65,29 +67,21 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
+      organizationNode(),
       {
-        '@type': 'Organization',
-        '@id': `${site.url}#org`,
+        '@type': 'WebSite',
+        '@id': `${site.url}#site`,
         name: site.name,
         url: site.url,
-        email: site.supportEmail,
+        inLanguage: locale,
+        publisher: { '@id': orgId },
       },
-      {
-        '@type': 'MobileApplication',
-        name: site.name,
-        applicationCategory: 'FinanceApplication',
-        applicationSubCategory: 'Expense sharing',
-        operatingSystem: 'Android, iOS, Web',
+      appNode({
         description: t.meta.description,
         url: absoluteUrl(`/${locale}`),
+        priceCurrency: t.meta.priceCurrency,
         inLanguage: locale,
-        publisher: { '@id': `${site.url}#org` },
-        offers: {
-          '@type': 'Offer',
-          price: '0',
-          priceCurrency: t.meta.priceCurrency,
-        },
-      },
+      }),
       {
         '@type': 'FAQPage',
         mainEntity: t.faq.items.map((item) => ({
@@ -112,8 +106,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {/* The skip link targets this, so it has to be able to take focus —
           without the tabindex the jump lands on <body> and nothing changes. */}
       <main id="main" tabIndex={-1}>
-        <Hero t={t.hero} stores={t.stores} />
+        <Hero t={t.hero} stores={t.stores} locale={locale} />
         <FeatureStrip t={t.features} />
+        <WhoFor t={t.whoFor} locale={locale} />
         <Steps t={t.how} />
         <Showcase t={t.showcase} />
         <Moments t={t.moments} />

@@ -81,8 +81,14 @@ export async function generateMetadata({
       description: p.metaDescription,
       url,
       locale: htmlLang[locale],
+      images: [{ url: absoluteUrl(`/${locale}/opengraph-image`), width: 1200, height: 630 }],
     },
-    twitter: { card: 'summary_large_image', title: p.metaTitle, description: p.metaDescription },
+    twitter: {
+      card: 'summary_large_image',
+      title: p.metaTitle,
+      description: p.metaDescription,
+      images: [absoluteUrl(`/${locale}/opengraph-image`)],
+    },
   };
 }
 
@@ -92,6 +98,7 @@ const h2 = 'text-[1.35rem] font-bold tracking-[-0.025em] text-ink sm:text-[1.6re
 /**
  * Films published to R2 (infra/art/videos). A film not listed leaves its slot
  * out. A list, not a file check: Vercel builds from website/ alone.
+ * TODO: add 'transactions' once infra/art/publish.sh has uploaded personal-transactions.
  */
 const PUBLISHED = new Set(
   ['hero', 'spending', 'voice', 'receipt', 'sms', 'statement', 'budgets', 'recurring', 'loans'].map(

@@ -38,7 +38,7 @@ describe('overview layout', () => {
 
   it('puts a card added in a later version after its default predecessor', () => {
     const l = resolveLayout('owner', { order: ['glance', 'needs', 'comingUp', 'activity'] });
-    expect(l.order).toEqual(['glance', 'needs', 'comingUp', 'moneyActions', 'activity']);
+    expect(l.order).toEqual(['glance', 'moneyActions', 'needs', 'comingUp', 'activity']);
     expect(l.hidden).toEqual(['attendance', 'money', 'attention', 'upcoming']);
   });
 
@@ -50,10 +50,10 @@ describe('overview layout', () => {
 
   it('moves, hides and shows, never touching the locked card', () => {
     const d = defaultLayout('owner');
-    expect(moveCard('owner', d, 'needs', -1)).toBe(d);
+    expect(moveCard('owner', d, 'moneyActions', -1)).toBe(d);
     expect(moveCard('owner', d, 'glance', 1)).toBe(d);
     expect(moveCard('owner', d, 'activity', 1)).toBe(d);
-    expect(moveCard('owner', d, 'needs', 1).order.slice(1, 3)).toEqual(['comingUp', 'needs']);
+    expect(moveCard('owner', d, 'needs', 1).order.slice(2, 4)).toEqual(['comingUp', 'needs']);
     expect(hideCard('owner', d, 'glance')).toBe(d);
     const h = hideCard('owner', d, 'needs');
     expect(h.order).not.toContain('needs');

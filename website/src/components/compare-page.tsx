@@ -13,6 +13,8 @@ import {
 } from '@/content/competitors';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, site } from '@/lib/site';
+import { AttributedLink } from './attributed-link';
+import { appNode, organizationNode } from '@/lib/structured-data';
 import { DownloadBanner } from './download-banner';
 import { ArrowRight } from './icons';
 import { WaveMark, Wordmark } from './logo';
@@ -30,7 +32,7 @@ function Mark({ value }: { value: Cell }) {
       <span
         role="img"
         aria-label="Yes"
-        className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 font-semibold text-white"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-500 text-[0.8rem] font-bold text-white"
       >
         ✓
       </span>
@@ -40,9 +42,9 @@ function Mark({ value }: { value: Cell }) {
       <span
         role="img"
         aria-label="No"
-        className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-red-600 font-semibold text-white"
+        className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-chip text-[0.8rem] text-ink-3"
       >
-        −
+        ✕
       </span>
     );
   return <>{value}</>;
@@ -63,7 +65,7 @@ function Points({ items }: { items: { title: string; body: string }[] }) {
       {items.map((item) => (
         <li
           key={item.title}
-          className="rounded-xl bg-surface px-4 py-3 shadow-[var(--w-shadow-sm)]"
+          className="rounded-xl border border-line bg-paper px-5 py-4 transition-colors hover:border-brand-300"
         >
           <h3 className="text-[0.95rem] font-semibold text-ink">{item.title}</h3>
           <p className="mt-1 text-[0.9rem] leading-[1.6] text-ink-2">{item.body}</p>
@@ -84,16 +86,12 @@ export function compareJsonLd(opts: {
   return {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'MobileApplication',
-        name: site.name,
-        applicationCategory: 'FinanceApplication',
-        applicationSubCategory: 'Expense sharing',
-        operatingSystem: 'Android, iOS, Web',
+      organizationNode(),
+      appNode({
         description: opts.description,
         url: absoluteUrl(`/${LOCALE}`),
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      },
+        priceCurrency: 'USD',
+      }),
       {
         '@type': 'BreadcrumbList',
         itemListElement: opts.crumbs.map((crumb, i) => ({
@@ -120,10 +118,13 @@ export function CompareShell({
   t,
   children,
   jsonLd,
+  current,
 }: {
   t: Dictionary;
   children: React.ReactNode;
   jsonLd: object;
+  /** True only on the /compare family; press and use-case pages leave it off. */
+  current?: boolean;
 }) {
   return (
     <>
@@ -155,8 +156,12 @@ export function CompareShell({
             </Link>
             <Link
               href="/en/compare"
-              aria-current="page"
-              className="border-b-2 border-blue py-2 font-medium text-blue"
+              aria-current={current ? 'page' : undefined}
+              className={
+                current
+                  ? 'border-b-2 border-blue py-2 font-medium text-blue'
+                  : 'py-2 text-ink-2 hover:text-blue'
+              }
             >
               Compare
             </Link>
@@ -187,12 +192,14 @@ export function CompareShell({
                 ))}
               </ul>
             </details>
-            <a
+            <AttributedLink
               href={site.appUrl}
+              kind="web"
+              placement="compare-header"
               className="inline-flex min-h-10 items-center rounded-sm bg-[#1d5ddd] px-4 text-sm font-semibold text-white hover:bg-[#174bb5]"
             >
               Get started
-            </a>
+            </AttributedLink>
           </div>
         </Container>
       </header>
@@ -274,12 +281,14 @@ export function CompareBody({
             everyone in sync.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a
+            <AttributedLink
               href={site.appUrl}
+              kind="web"
+              placement="compare-hero"
               className={`${buttonClass} bg-[#1d5ddd] text-white shadow-lg shadow-blue/10 hover:bg-[#174bb5]`}
             >
               Try Waves free <ArrowRight className="h-4 w-4" />
-            </a>
+            </AttributedLink>
             <a
               href="#table"
               className={`${buttonClass} border border-line-strong text-ink hover:bg-chip`}
@@ -318,78 +327,82 @@ export function CompareBody({
       </section>
 
       <section id="table" aria-labelledby="comparison-heading" className="pt-10 sm:pt-14">
-        <div className="mb-6 grid items-end gap-6 sm:grid-cols-[1.3fr_1fr]">
-          <div>
-            <p className="text-xs font-semibold tracking-[0.18em] text-blue">COMPARISON</p>
-            <h2
-              id="comparison-heading"
-              className="mt-2 text-4xl font-bold tracking-[-0.04em] text-ink sm:text-5xl"
-            >
-              See the difference
-            </h2>
-            <p className="mt-3 max-w-lg leading-relaxed text-ink-2">
-              Compare the features, free plans and ways to settle.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 gap-4 text-center">
-            <div>
-              <WaveMark className="mx-auto mb-2 h-10 w-10" />
-              <p className="text-lg font-bold text-ink">Waves</p>
-              <p className="text-xs text-ink-2">Your shared expenses, together.</p>
-            </div>
-            <div className="flex flex-col justify-end">
-              <p className="text-lg font-bold text-ink">{c.name}</p>
-              <p className="mt-1 text-xs text-ink-2">Compared from public sources.</p>
-            </div>
-          </div>
+        <div className="mx-auto mb-8 max-w-2xl text-center">
+          <h2
+            id="comparison-heading"
+            className="text-4xl font-bold tracking-[-0.04em] text-ink sm:text-5xl"
+          >
+            Waves vs {c.name}
+          </h2>
+          <p className="mt-3 leading-relaxed text-ink-2">
+            Features, free plans and ways to settle, side by side.
+          </p>
         </div>
         <div
           role="region"
           aria-label={`Waves and ${c.name} feature comparison`}
           tabIndex={0}
-          className="overflow-x-auto rounded-md border border-line bg-surface"
+          className="overflow-x-auto rounded-xl border border-line bg-paper p-2 lg:overflow-visible"
         >
-          <table className="w-full min-w-[620px] table-fixed border-collapse text-start text-[0.8rem] leading-[1.5] sm:text-[0.86rem]">
+          <table className="w-full min-w-[560px] border-separate border-spacing-0 text-start text-[0.85rem] leading-[1.5] lg:min-w-0">
             <caption className="sr-only">Waves compared with {c.name}</caption>
             <thead>
-              <tr className="border-b border-line bg-chip text-start">
-                <th scope="col" className="w-[36%] px-5 py-4 text-start font-semibold text-ink">
+              <tr>
+                <th
+                  scope="col"
+                  className="sticky left-0 z-20 w-[7.5rem] sm:w-[28%] lg:w-[34%] bg-paper px-4 py-4 text-start text-xs font-semibold tracking-[0.12em] text-ink-3 uppercase lg:top-0"
+                >
                   Feature
                 </th>
                 <th
                   scope="col"
-                  className="w-[32%] bg-blue/10 px-5 py-4 text-start font-semibold text-ink"
+                  className="w-[36%] lg:w-[33%] rounded-t-xl bg-brand-50 px-4 py-4 text-start font-semibold text-ink lg:sticky lg:top-0 lg:z-10"
                 >
-                  Waves
+                  <span className="flex items-center gap-2">
+                    <WaveMark className="h-6 w-6" />
+                    Waves
+                  </span>
                 </th>
-                <th scope="col" className="w-[32%] px-5 py-4 text-start font-semibold text-ink">
+                <th
+                  scope="col"
+                  className="w-[36%] lg:w-[33%] bg-paper px-4 py-4 text-start font-semibold text-ink lg:sticky lg:top-0 lg:z-10"
+                >
                   {c.name}
                 </th>
               </tr>
             </thead>
             <tbody>
-              {c.rows.map((row) => (
-                <tr
-                  id={/UPI|Settling up/.test(row.feature) ? 'settle' : undefined}
-                  key={row.feature}
-                  className="border-b border-divider align-top last:border-0"
-                >
-                  <th scope="row" className="px-5 py-4 text-start font-medium text-ink">
-                    {row.feature}
-                  </th>
-                  <td className="bg-blue/10 px-5 py-4 break-words text-ink">
-                    <Mark value={row.waves} />
-                  </td>
-                  <td className="px-5 py-4 break-words text-ink-2">
-                    <Mark value={row.them} />
-                  </td>
-                </tr>
-              ))}
+              {c.rows.map((row, i) => {
+                const last = i === c.rows.length - 1;
+                const line = last ? '' : 'border-b border-divider';
+                return (
+                  <tr
+                    id={/UPI|Settling up/.test(row.feature) ? 'settle' : undefined}
+                    key={row.feature}
+                    className="align-top"
+                  >
+                    <th
+                      scope="row"
+                      className={`sticky left-0 z-10 bg-paper px-3 py-4 sm:px-4 text-start font-medium text-ink ${line}`}
+                    >
+                      {row.feature}
+                    </th>
+                    <td
+                      className={`bg-brand-50 px-4 py-4 break-words text-ink ${last ? 'rounded-b-xl' : 'border-b border-brand-100'}`}
+                    >
+                      <Mark value={row.waves} />
+                    </td>
+                    <td className={`px-4 py-4 break-words text-ink-2 ${line}`}>
+                      <Mark value={row.them} />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
-        <p className="mt-3 rounded-sm bg-blue/5 px-4 py-3 text-xs leading-relaxed text-ink-2">
+        <p className="mt-4 rounded-xl bg-chip px-4 py-3 text-xs leading-relaxed text-ink-2">
           {disclaimer}
         </p>
         <p className="mt-3 text-xs text-ink-3">
@@ -469,12 +482,14 @@ export function CompareBody({
             Keep your groups, expenses and balances together.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <a
+            <AttributedLink
               href={site.appUrl}
+              kind="web"
+              placement="compare-footer-cta"
               className={`${buttonClass} bg-white text-[#102442] hover:bg-blue-100`}
             >
               Try Waves free <ArrowRight className="h-4 w-4" />
-            </a>
+            </AttributedLink>
             <a
               href="#table"
               className={`${buttonClass} border border-slate-400 text-white hover:bg-white/10`}

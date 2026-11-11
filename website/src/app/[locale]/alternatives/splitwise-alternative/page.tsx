@@ -38,6 +38,7 @@ export default async function SplitwiseAlternative({
 
   return (
     <CompareShell
+      current
       t={t}
       jsonLd={compareJsonLd({ path, name: title, crumbs, faq: c.faq, description })}
     >

@@ -7,6 +7,7 @@ import type { MirrorEvent, MirrorHoliday, MirrorLeave } from '@/lib/company/cale
 import { useCalendar, useCalendarAccess, useCalendarActions } from '@/lib/company/calendar';
 import { calendarStrings as s } from '@/lib/company/calendarStrings';
 import { memberName, todayIso, useCompanyView } from '@/lib/company/view';
+import { daysText, useLeaveBalances, useLeaveCheck, useLeaveTypes } from '@/lib/company/leave';
 import { useProjects } from '@/lib/company/calendarProjects';
 
 const iso = (v: string) =>
@@ -290,7 +291,12 @@ export function LeaveForm({
   const [start, setStart] = useState(day ?? today);
   const [end, setEnd] = useState(day ?? today);
   const [half, setHalf] = useState(false);
-  const [kind, setKind] = useState<'casual' | 'sick' | 'other'>('casual');
+  const types = useLeaveTypes(groupId, true);
+  const [pickedType, setType] = useState<string | null | undefined>(undefined);
+  // First type by default; null = "Other (not counted)" for leave that fits no policy.
+  const typeId = pickedType === undefined ? (types[0]?.id ?? null) : pickedType;
+  const balances = useLeaveBalances(groupId, memberId || null);
+  const kind = types.find((x) => x.id === typeId)?.kind ?? 'other';
   const [reason, setReason] = useState('');
   const persons = view.members.filter(
     (p) =>
@@ -302,6 +308,15 @@ export function LeaveForm({
     (l) =>
       l.memberId === memberId && l.status !== 'rejected' && l.startDay <= end && l.endDay >= start,
   );
+  const check = useLeaveCheck(groupId, {
+    memberId,
+    typeId,
+    startDay: start,
+    endDay: end,
+    halfDay: half && start === end,
+  });
+  const count =
+    iso(start) && iso(end) && end >= start ? (half && start === end ? 0.5 : days(start, end)) : 0;
   const error =
     !iso(start) || !iso(end) || end < start || days(start, end) > 60
       ? s.errRange
@@ -311,7 +326,11 @@ export function LeaveForm({
           ? s.errWindow
           : overlap
             ? s.errOverlap
-            : null;
+            : check && !check.ok
+              ? s.leaveOverBalance
+                  .replace('{n}', daysText(Math.max(0, check.available)))
+                  .replace('{type}', check.type.name)
+              : null;
   return (
     <Panel
       title={mode === 'request' ? s.requestLeave : s.recordLeave}
@@ -327,6 +346,7 @@ export function LeaveForm({
           halfDay: half,
           kind,
           reason: reason.trim() || null,
+          leaveTypeId: typeId,
         })
       }
     >
@@ -353,11 +373,29 @@ export function LeaveForm({
           <input type="checkbox" checked={half} onChange={() => setHalf(!half)} /> {s.halfDay}
         </label>
       ) : null}
-      <select value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
-        <option value="casual">{s.leaveCasual}</option>
-        <option value="sick">{s.leaveSick}</option>
-        <option value="other">{s.leaveOther}</option>
-      </select>
+      <Field label={s.leaveType}>
+        <select value={typeId ?? ''} onChange={(e) => setType(e.target.value || null)}>
+          {types.map((x) => {
+            const left = balances.find((b) => b.type.id === x.id)?.balance.balance;
+            return (
+              <option key={x.id} value={x.id}>
+                {left === undefined
+                  ? x.name
+                  : `${x.name} · ${s.leaveLeft.replace('{n}', daysText(left))}`}
+              </option>
+            );
+          })}
+          <option value="">{s.leaveTypeNone}</option>
+        </select>
+      </Field>
+      {count > 0 ? (
+        <span className="faint">
+          {s.leaveDaysSelected.replace('{n}', daysText(count))}
+          {check && check.ok
+            ? ` · ${s.leaveAfter.replace('{n}', daysText(check.available - check.days))}`
+            : ''}
+        </span>
+      ) : null}
       <Field label={s.reason}>
         <input value={reason} onChange={(e) => setReason(e.target.value)} />
       </Field>

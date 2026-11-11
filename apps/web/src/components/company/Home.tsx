@@ -8,7 +8,9 @@ import Link from 'next/link';
 import { companyStatement, dashboardStats, MutationKind, poolBalance } from '@waves/core';
 
 import { ActivityRows } from '@/components/company/Activity';
+import { LeaveBalanceCard } from '@/components/company/LeaveBalances';
 import { EntryRow, ErrorLine, Page, toMinor, useAction, useMoney } from '@/components/company/Bits';
+import { ComingUp, HomeTop, QuickActions, TaskBoard } from '@/components/company/HomeBoard';
 import { fill } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { useCompanyActivity } from '@/lib/company/activityHook';
@@ -156,12 +158,9 @@ function AdminHome({ groupId, manager = false }: { groupId: string; manager?: bo
         </section>
       ) : null}
 
-      <div className="stat-strip">
-        <Tile label={h.owesYou} value={fmt(stats.owes)} />
-        <Tile label={h.pendingClaims} value={String(awaiting.length)} />
-        <Tile label={t.company.nav.payments} value={fmt(stats.paidThisMonth)} />
-        <Tile label={h.employeesCount} value={String(team.length)} />
-      </div>
+      <HomeTop groupId={groupId} owes={stats.owes} advances={stats.advancesOutstanding} />
+      <QuickActions groupId={groupId} />
+      <TaskBoard groupId={groupId} />
 
       {awaiting.length > 0 ? (
         <section className="panel">
@@ -191,7 +190,10 @@ function AdminHome({ groupId, manager = false }: { groupId: string; manager?: bo
         </section>
       ) : null}
 
-      <Recent groupId={groupId} />
+      <div className="home-two">
+        <ComingUp groupId={groupId} />
+        <Recent groupId={groupId} />
+      </div>
     </Page>
   );
 }
@@ -246,6 +248,7 @@ function EmployeeHome({ groupId }: { groupId: string }) {
         <Tile label={h.spent} value={fmt(sums.spent)} />
         <Tile label={h.wagesThisMonth} value={fmt(sums.wages)} />
       </div>
+      <LeaveBalanceCard groupId={groupId} memberId={me?.id ?? null} />
       <section className="panel">
         <div className="page-head">
           <h2>{h.yourEntries}</h2>

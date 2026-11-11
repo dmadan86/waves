@@ -2,6 +2,7 @@
 
 /** Team > Work: daily tasks grouped by day or person; add, edit, change status, repeat, remove, photos. */
 import { useMemo, useRef, useState } from 'react';
+import { Search } from 'lucide-react';
 import {
   isSelfMadeTask,
   materialiseCompanyProjects,
@@ -9,6 +10,7 @@ import {
   type TaskPriority,
 } from '@waves/core';
 
+import { EmptyTasksArt, HelpersField, StatTiles, TaskMonth } from '@/components/TaskParts';
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { memberName, todayIso, useCompanyView, type CompanyMember } from '@/lib/company/view';
 import { useCompanyPhotos } from '@/lib/company/entryActions';
@@ -18,7 +20,6 @@ import {
   priorityMark,
   emptyTasksState,
   isOwnTask,
-  MAX_TASK_HELPERS,
   filterWork,
   groupWorkTasks,
   MAX_TASK_PHOTOS,
@@ -126,6 +127,8 @@ export function TeamWork({ groupId }: { groupId: string }) {
   const [mode, setMode] = useState<WorkMode>('date');
   const [scope, setScope] = useState<'mine' | 'team'>(access.isEmployee ? 'mine' : 'team');
   const [query, setQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [pickedDay, setPickedDay] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -145,7 +148,8 @@ export function TeamWork({ groupId }: { groupId: string }) {
 
   const own = tasks.filter((t) => canChange(t) && (scope === 'team' || isOwnTask(t, view.me?.id)));
   const empty = emptyTasksState({ search: query, scope, teamTasks: tasks.filter(canChange) });
-  const grouped = groupWorkTasks(filterWork(own, query, personName, siteName), {
+  const dayTasks = pickedDay ? own.filter((t) => t.day === pickedDay) : own;
+  const grouped = groupWorkTasks(filterWork(dayTasks, query, personName, siteName), {
     mode: access.canManage ? mode : 'date',
     today,
     personName,
@@ -317,6 +321,37 @@ export function TeamWork({ groupId }: { groupId: string }) {
       ) : (
         <>
           <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <h2 style={{ margin: 0 }}>{s.title}</h2>
+              <small style={{ color: 'var(--w-text-muted)' }}>{s.subtitle}</small>
+            </div>
+            <button
+              type="button"
+              className="btn soft"
+              aria-label={s.search}
+              aria-pressed={searching}
+              onClick={() => setSearching((v) => !v)}
+            >
+              <Search size={16} aria-hidden />
+            </button>
+            {access.assignees.length > 0 ? (
+              <button
+                type="button"
+                className="btn brand"
+                disabled={busy}
+                onClick={() => setPanel({ kind: 'add' })}
+              >
+                {`+ ${s.add}`}
+              </button>
+            ) : null}
+          </div>
+          <StatTiles
+            all={own.length}
+            overdue={own.filter((t) => t.status !== 'done' && t.day < today).length}
+            dueToday={own.filter((t) => t.status !== 'done' && t.day === today).length}
+            completed={own.filter((t) => t.status === 'done').length}
+          />
+          <div className="row" style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             {access.canManage ? (
               <SegmentedTabs
                 label={s.viewLabel}
@@ -328,13 +363,15 @@ export function TeamWork({ groupId }: { groupId: string }) {
                 ]}
               />
             ) : null}
-            <input
-              type="search"
-              aria-label={s.search}
-              placeholder={s.search}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
+            {searching || query ? (
+              <input
+                type="search"
+                aria-label={s.search}
+                placeholder={s.search}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            ) : null}
             {access.canManage ? (
               <label>
                 <input
@@ -345,17 +382,13 @@ export function TeamWork({ groupId }: { groupId: string }) {
                 {s.mine}
               </label>
             ) : null}
-            {access.assignees.length > 0 ? (
-              <button
-                type="button"
-                className="btn brand"
-                disabled={busy}
-                onClick={() => setPanel({ kind: 'add' })}
-              >
-                {s.add}
-              </button>
-            ) : null}
           </div>
+          <TaskMonth
+            days={new Set(own.filter((t) => t.status !== 'done').map((t) => t.day))}
+            today={today}
+            selected={pickedDay}
+            onSelect={setPickedDay}
+          />
 
           {panel?.kind === 'add' ? (
             <AddTask
@@ -432,13 +465,13 @@ export function TeamWork({ groupId }: { groupId: string }) {
                   {s.showTeam}
                 </button>
               </p>
+            ) : pickedDay ? (
+              <p>{s.noTasksDay}</p>
             ) : (
-              <div>
-                <p>
-                  <strong>{s.noTasks}</strong>
-                  <br />
-                  {s.noTasksHint}
-                </p>
+              <div style={{ display: 'grid', justifyItems: 'center', gap: 8, textAlign: 'center' }}>
+                <EmptyTasksArt />
+                <strong>{s.noTasks}</strong>
+                <span>{s.noTasksHint}</span>
                 {access.assignees.length > 0 ? (
                   <button
                     type="button"
@@ -446,7 +479,7 @@ export function TeamWork({ groupId }: { groupId: string }) {
                     disabled={busy}
                     onClick={() => setPanel({ kind: 'add' })}
                   >
-                    {s.add}
+                    {`+ ${s.add}`}
                   </button>
                 ) : null}
               </div>
@@ -623,32 +656,12 @@ function EditTask({
           ))}
         </select>
       </label>
-      <fieldset className="field" disabled={busy}>
-        <legend className="field-label">{s.helpers}</legend>
-        {people
-          .filter((p) => p.role === 'member' && p.id !== draft.memberId)
-          .map((p) => {
-            const on = (draft.helperIds ?? []).includes(p.id);
-            return (
-              <label key={p.id}>
-                <input
-                  type="checkbox"
-                  checked={on}
-                  disabled={!on && (draft.helperIds ?? []).length >= MAX_TASK_HELPERS}
-                  onChange={() =>
-                    setDraft({
-                      ...draft,
-                      helperIds: on
-                        ? (draft.helperIds ?? []).filter((id) => id !== p.id)
-                        : [...(draft.helperIds ?? []), p.id],
-                    })
-                  }
-                />{' '}
-                {memberName(p, '')}
-              </label>
-            );
-          })}
-      </fieldset>
+      <HelpersField
+        people={people.filter((p) => p.role === 'member' && p.id !== draft.memberId)}
+        value={draft.helperIds ?? []}
+        onChange={(helperIds) => setDraft({ ...draft, helperIds })}
+        disabled={busy}
+      />
       {sites.length > 0 ? (
         <label className="field">
           <span className="field-label">{s.site}</span>
@@ -884,27 +897,12 @@ function AddTask({
           </label>
         ))}
       </fieldset>
-      <fieldset disabled={busy}>
-        <legend>{s.helpers}</legend>
-        {people
-          .filter((p) => p.role === 'member' && !(ids.length === 1 && ids[0] === p.id))
-          .map((p) => {
-            const on = helperIds.includes(p.id);
-            return (
-              <label key={p.id} style={{ display: 'block' }}>
-                <input
-                  type="checkbox"
-                  checked={on}
-                  disabled={!on && helperIds.length >= MAX_TASK_HELPERS}
-                  onChange={() =>
-                    setHelperIds((prev) => (on ? prev.filter((x) => x !== p.id) : [...prev, p.id]))
-                  }
-                />{' '}
-                {memberName(p, '')}
-              </label>
-            );
-          })}
-      </fieldset>
+      <HelpersField
+        people={people.filter((p) => p.role === 'member' && !(ids.length === 1 && ids[0] === p.id))}
+        value={helperIds}
+        onChange={setHelperIds}
+        disabled={busy}
+      />
       <label className="field">
         <span className="field-label">{s.due}</span>
         <input

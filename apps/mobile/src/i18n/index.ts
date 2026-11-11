@@ -1197,6 +1197,10 @@ export interface UiStrings {
     askTitle: string;
     askBody: string;
     askYes: string;
+    askFingerprint: string;
+    askFace: string;
+    askFaceAndroid: string;
+    askPasscode: string;
     unsupported: string;
     askAgainAfter: string;
     graceImmediate: string;
@@ -1762,6 +1766,8 @@ export interface UiStrings {
     workSubtitle: string;
     workSearch: string;
     workTotal: string;
+    workAllTasks: string;
+    workDueToday: string;
     workCompleted: string;
     workInProgress: string;
     workPending: string;
@@ -1855,6 +1861,8 @@ export interface UiStrings {
     taskHelpers: string;
     taskHelpersNone: string;
     taskHelpersMax: string;
+    taskAssignTitle: string;
+    taskAssignN: string;
     workAlsoOn: string;
     taskPeople: PluralForms;
     taskDeadline: string;
@@ -3229,6 +3237,18 @@ export interface UiStrings {
     saveFailed: string;
     bank: string;
     contact: string;
+    subtitle: string;
+    active: string;
+    companyInfo: string;
+    legalName: string;
+    addMore: string;
+    peopleAccess: string;
+    teamMembers: string;
+    businessSetup: string;
+    billing: string;
+    billingSub: string;
+    preferences: string;
+    preferencesSub: string;
   };
   groupRecurring: {
     title: string;
@@ -9183,10 +9203,14 @@ const en: UiStrings = {
     title: 'Security',
     requireBiometrics: 'Require biometrics or a passcode',
     appLock: 'App lock',
-    askTitle: 'Lock Waves with your fingerprint?',
+    askTitle: 'Lock Waves for privacy?',
     askBody:
-      'Ask for your fingerprint, face or phone passcode each time Waves opens, so someone holding your phone cannot see your money. You can change this in Settings.',
-    askYes: 'Turn on app lock',
+      'Use your fingerprint, face or phone passcode to keep your money and data private. You can change this anytime in Settings.',
+    askYes: 'Turn on App Lock',
+    askFingerprint: 'Fingerprint',
+    askFace: 'Face ID',
+    askFaceAndroid: 'Face unlock',
+    askPasscode: 'Phone passcode',
     unsupported: 'No Face ID, fingerprint or screen lock is set up on this device.',
     askAgainAfter: 'Ask again after',
     graceImmediate: 'Straight away',
@@ -9756,6 +9780,8 @@ const en: UiStrings = {
     workSubtitle: "Stay on top of your team's tasks and get things done.",
     workSearch: 'Search tasks, employees...',
     workTotal: 'Total tasks',
+    workAllTasks: 'All tasks',
+    workDueToday: 'Due today',
     workCompleted: 'Completed',
     workInProgress: 'In progress',
     workPending: 'Pending',
@@ -9849,6 +9875,8 @@ const en: UiStrings = {
     taskHelpers: 'Also working on it (optional)',
     taskHelpersNone: 'Nobody',
     taskHelpersMax: 'Up to 5 people',
+    taskAssignTitle: 'Assign to people',
+    taskAssignN: 'Assign ({n})',
     workAlsoOn: 'Also on it: {names}',
     taskPeople: { one: '{n} person', other: '{n} people' },
     taskDeadline: 'Deadline (optional)',
@@ -11242,6 +11270,18 @@ const en: UiStrings = {
     saveFailed: 'Could not save details',
     bank: 'Bank',
     contact: 'Contact',
+    subtitle: 'Manage your company information and settings.',
+    active: 'Active',
+    companyInfo: 'Company information',
+    legalName: 'Legal name',
+    addMore: 'Add more details',
+    peopleAccess: 'People & access',
+    teamMembers: 'Team members',
+    businessSetup: 'Business setup',
+    billing: 'Billing & payments',
+    billingSub: 'Payments, bills and statements',
+    preferences: 'Preferences',
+    preferencesSub: 'Notifications, currency and more',
   },
   groupRecurring: {
     title: 'Repeating',
@@ -16646,6 +16686,10 @@ const ta: UiStrings = {
     askBody:
       'Waves திறக்கும் ஒவ்வொரு முறையும் கைரேகை, முகம் அல்லது ஃபோன் கடவுக்குறியீடு கேட்கும், அதனால் உங்கள் ஃபோனை வைத்திருப்பவர் உங்கள் பணத்தைப் பார்க்க முடியாது. இதை அமைப்புகளில் மாற்றலாம்.',
     askYes: 'ஆப் பூட்டை இயக்கு',
+    askFingerprint: 'கைரேகை',
+    askFace: 'Face ID',
+    askFaceAndroid: 'முக அன்லாக்',
+    askPasscode: 'போன் பாஸ்கோடு',
     unsupported: 'இந்தச் சாதனத்தில் Face ID, கைரேகை அல்லது திரைப் பூட்டு அமைக்கப்படவில்லை.',
     askAgainAfter: 'மீண்டும் கேட்க',
     graceImmediate: 'உடனடியாக',
@@ -17226,6 +17270,8 @@ const ta: UiStrings = {
     workSubtitle: 'உங்கள் குழுவின் பணிகளைக் கண்காணித்து முடிக்கவும்.',
     workSearch: 'பணிகள், பணியாளர்களைத் தேடுங்கள்...',
     workTotal: 'மொத்தப் பணிகள்',
+    workAllTasks: 'அனைத்துப் பணிகள்',
+    workDueToday: 'இன்று முடிய வேண்டியவை',
     workCompleted: 'முடிந்தது',
     workInProgress: 'நடக்கிறது',
     workPending: 'நிலுவை',
@@ -17319,6 +17365,8 @@ const ta: UiStrings = {
     taskHelpers: 'இதிலும் வேலை செய்பவர்கள் (விருப்பம்)',
     taskHelpersNone: 'யாரும் இல்லை',
     taskHelpersMax: 'அதிகபட்சம் 5 பேர்',
+    taskAssignTitle: 'நபர்களுக்கு ஒதுக்கு',
+    taskAssignN: 'ஒதுக்கு ({n})',
     workAlsoOn: 'இதிலும்: {names}',
     taskPeople: { one: '{n} நபர்', other: '{n} நபர்கள்' },
     taskDeadline: 'கடைசி நாள் (விருப்பம்)',
@@ -18722,6 +18770,18 @@ const ta: UiStrings = {
     saveFailed: 'விவரங்களைச் சேமிக்க முடியவில்லை',
     bank: 'வங்கி',
     contact: 'தொடர்பு',
+    subtitle: 'உங்கள் நிறுவனத் தகவல் மற்றும் அமைப்புகளை நிர்வகிக்கவும்.',
+    active: 'செயலில்',
+    companyInfo: 'நிறுவனத் தகவல்',
+    legalName: 'சட்டப்பூர்வ பெயர்',
+    addMore: 'மேலும் விவரங்களைச் சேர்',
+    peopleAccess: 'மக்கள் & அணுகல்',
+    teamMembers: 'குழு உறுப்பினர்கள்',
+    businessSetup: 'வணிக அமைப்பு',
+    billing: 'பில்லிங் & கட்டணங்கள்',
+    billingSub: 'கட்டணங்கள், பில்கள், அறிக்கைகள்',
+    preferences: 'விருப்பங்கள்',
+    preferencesSub: 'அறிவிப்புகள், நாணயம் மற்றும் பல',
   },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
@@ -24290,6 +24350,10 @@ const hi: UiStrings = {
     askBody:
       'Waves खुलने पर हर बार फ़िंगरप्रिंट, चेहरा या फ़ोन पासकोड माँगा जाएगा, ताकि आपका फ़ोन पकड़ने वाला आपका पैसा न देख सके। इसे सेटिंग्स में बदल सकते हैं।',
     askYes: 'ऐप लॉक चालू करें',
+    askFingerprint: 'फ़िंगरप्रिंट',
+    askFace: 'Face ID',
+    askFaceAndroid: 'फ़ेस अनलॉक',
+    askPasscode: 'फ़ोन पासकोड',
     unsupported: 'इस डिवाइस पर Face ID, फ़िंगरप्रिंट या स्क्रीन लॉक सेट नहीं है।',
     askAgainAfter: 'दोबारा पूछें',
     graceImmediate: 'तुरंत',
@@ -24862,6 +24926,8 @@ const hi: UiStrings = {
     workSubtitle: 'अपनी टीम के कामों पर नज़र रखें और उन्हें पूरा करें।',
     workSearch: 'काम और कर्मचारियों को खोजें...',
     workTotal: 'कुल काम',
+    workAllTasks: 'सभी काम',
+    workDueToday: 'आज देय',
     workCompleted: 'पूरा हुआ',
     workInProgress: 'जारी है',
     workPending: 'लंबित',
@@ -24955,6 +25021,8 @@ const hi: UiStrings = {
     taskHelpers: 'इसमें और कौन काम कर रहा है (वैकल्पिक)',
     taskHelpersNone: 'कोई नहीं',
     taskHelpersMax: 'अधिकतम 5 लोग',
+    taskAssignTitle: 'लोगों को सौंपें',
+    taskAssignN: 'सौंपें ({n})',
     workAlsoOn: 'साथ में: {names}',
     taskPeople: { one: '{n} व्यक्ति', other: '{n} लोग' },
     taskDeadline: 'अंतिम तारीख (वैकल्पिक)',
@@ -26348,6 +26416,18 @@ const hi: UiStrings = {
     saveFailed: 'विवरण सहेजे नहीं जा सके',
     bank: 'बैंक',
     contact: 'संपर्क',
+    subtitle: 'अपनी कंपनी की जानकारी और सेटिंग्स प्रबंधित करें।',
+    active: 'सक्रिय',
+    companyInfo: 'कंपनी की जानकारी',
+    legalName: 'कानूनी नाम',
+    addMore: 'और विवरण जोड़ें',
+    peopleAccess: 'लोग और एक्सेस',
+    teamMembers: 'टीम सदस्य',
+    businessSetup: 'व्यवसाय सेटअप',
+    billing: 'बिलिंग और भुगतान',
+    billingSub: 'भुगतान, बिल और स्टेटमेंट',
+    preferences: 'प्राथमिकताएँ',
+    preferencesSub: 'सूचनाएँ, मुद्रा और बहुत कुछ',
   },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
@@ -31774,6 +31854,10 @@ const ar: UiStrings = {
     askBody:
       'سيطلب Waves بصمتك أو وجهك أو رمز مرور الهاتف في كل مرة يُفتح فيها، حتى لا يرى من يحمل هاتفك أموالك. يمكنك تغيير ذلك من الإعدادات.',
     askYes: 'تفعيل قفل التطبيق',
+    askFingerprint: 'البصمة',
+    askFace: 'Face ID',
+    askFaceAndroid: 'فتح بالوجه',
+    askPasscode: 'رمز مرور الهاتف',
     unsupported: 'لم يتم إعداد Face ID أو بصمة الإصبع أو قفل الشاشة على هذا الجهاز.',
     askAgainAfter: 'اسأل مرة أخرى بعد',
     graceImmediate: 'فورًا',
@@ -32407,6 +32491,8 @@ const ar: UiStrings = {
     workSubtitle: 'تابع مهام فريقك وأنجزها.',
     workSearch: 'ابحث عن المهام والموظفين...',
     workTotal: 'إجمالي المهام',
+    workAllTasks: 'كل المهام',
+    workDueToday: 'مستحقة اليوم',
     workCompleted: 'مكتمل',
     workInProgress: 'قيد التنفيذ',
     workPending: 'معلّق',
@@ -32500,6 +32586,8 @@ const ar: UiStrings = {
     taskHelpers: 'يعمل عليها أيضًا (اختياري)',
     taskHelpersNone: 'لا أحد',
     taskHelpersMax: 'حتى 5 أشخاص',
+    taskAssignTitle: 'إسناد إلى أشخاص',
+    taskAssignN: 'إسناد ({n})',
     workAlsoOn: 'معه أيضًا: {names}',
     taskPeople: {
       one: 'شخص واحد',
@@ -33924,6 +34012,18 @@ const ar: UiStrings = {
     saveFailed: 'تعذّر حفظ التفاصيل',
     bank: 'البنك',
     contact: 'التواصل',
+    subtitle: 'أدر معلومات شركتك وإعداداتها.',
+    active: 'نشطة',
+    companyInfo: 'معلومات الشركة',
+    legalName: 'الاسم القانوني',
+    addMore: 'أضف المزيد من التفاصيل',
+    peopleAccess: 'الأشخاص والوصول',
+    teamMembers: 'أعضاء الفريق',
+    businessSetup: 'إعداد الأعمال',
+    billing: 'الفواتير والمدفوعات',
+    billingSub: 'المدفوعات والفواتير والكشوف',
+    preferences: 'التفضيلات',
+    preferencesSub: 'الإشعارات والعملة والمزيد',
   },
   groupRecurring: {
     title: 'المتكررة',
