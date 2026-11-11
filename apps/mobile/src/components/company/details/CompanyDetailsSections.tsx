@@ -81,7 +81,9 @@ function SetupRow({
         <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
       </IconDisc>
       <View style={{ flex: 1 }}>
-        <Text variant="body" style={{ fontWeight: '700' }}>{title}</Text>
+        <Text variant="body" style={{ fontWeight: '700' }}>
+          {title}
+        </Text>
         <Text variant="caption" tone="muted">
           {subtitle}
         </Text>
@@ -183,7 +185,9 @@ export function CompanyDetailsSections({
         ) : null}
       </LinearGradient>
 
-      <Text variant="body" style={{ fontWeight: '700' }}>{s.companyInfo}</Text>
+      <Text variant="body" style={{ fontWeight: '700' }}>
+        {s.companyInfo}
+      </Text>
       <StandardCard style={{ gap: theme.spacing.sm }}>
         <Row icon="document-text-outline" title={s.legalName} value={name} />
         <Row
@@ -193,7 +197,13 @@ export function CompanyDetailsSections({
           onPress={edit}
         />
         <Row icon="receipt-outline" title={s.gstin} value={v?.gstin ?? undefined} onPress={edit} />
-        <Row icon="location-outline" title={s.address} value={v?.address ?? undefined} onPress={edit} last />
+        <Row
+          icon="location-outline"
+          title={s.address}
+          value={v?.address ?? undefined}
+          onPress={edit}
+          last
+        />
         {canEdit ? (
           <Pressable
             accessibilityRole="button"
@@ -214,7 +224,9 @@ export function CompanyDetailsSections({
         ) : null}
       </StandardCard>
 
-      <Text variant="body" style={{ fontWeight: '700' }}>{s.peopleAccess}</Text>
+      <Text variant="body" style={{ fontWeight: '700' }}>
+        {s.peopleAccess}
+      </Text>
       <StandardCard>
         <SetupRow
           icon="people-outline"
@@ -224,7 +236,9 @@ export function CompanyDetailsSections({
         />
       </StandardCard>
 
-      <Text variant="body" style={{ fontWeight: '700' }}>{s.businessSetup}</Text>
+      <Text variant="body" style={{ fontWeight: '700' }}>
+        {s.businessSetup}
+      </Text>
       <StandardCard style={{ gap: theme.spacing.sm }}>
         <SetupRow
           icon="wallet-outline"
