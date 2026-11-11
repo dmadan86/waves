@@ -51,8 +51,7 @@ export function useJoinedOn(groupId: string): (memberId: string) => string {
   const { members } = useCompanyView(groupId);
   return (memberId) =>
     cal.dates.get(memberId)?.joinedOn ??
-    (String(members.find((m) => m.id === memberId)?.created_at ?? '').slice(0, 10) ||
-      '1970-01-01');
+    (String(members.find((m) => m.id === memberId)?.created_at ?? '').slice(0, 10) || '1970-01-01');
 }
 
 export function useLeaveBalances(groupId: string, memberId: string | null): TypeBalance[] {
