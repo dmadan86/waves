@@ -22,6 +22,7 @@ import {
 } from '@/data/companyEntries';
 import { useCalendarSettings, useSetCalendarSettings } from '@/data/companyCalendar';
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 
 export function CompanyRules({
   groupId,
@@ -112,6 +113,21 @@ export function CompanyRules({
                   accessibilityLabel={t.calendar.paidLeave}
                 />
               }
+              divider
+            />
+            <ListRow
+              leading={lead('albums-outline')}
+              title={t.calendar.leavePolicy}
+              subtitle={t.calendar.leavePolicyRow}
+              subtitleLines={2}
+              trailing={
+                <Ionicons
+                  name={directionalIcon('chevron-forward')}
+                  size={iconSize.sm}
+                  color={theme.color.textFaint}
+                />
+              }
+              onPress={() => router.push(`/group/${groupId}/company-leave-policy`)}
             />
           </>
         ) : (

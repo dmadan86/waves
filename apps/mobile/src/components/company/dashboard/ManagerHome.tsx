@@ -18,6 +18,7 @@ import { LayoutEditor, OverviewCards } from '@/components/company/dashboard/Over
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { WorkdayTiles } from '@/components/company/WorkdayEntries';
 import { OverviewUpcoming } from '@/components/company/dashboard/OverviewUpcoming';
+import { UpcomingTimeOff } from '@/components/company/UpcomingTimeOff';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { ListRow, StandardCard } from '@/components/standard';
 import { useAskBudget, useCompanyEntries, usePoolBalance } from '@/data/companyEntries';
@@ -87,7 +88,12 @@ export function ManagerHome({ groupId }: { groupId: string }) {
                 cards={{
                   attendance: own.attendance,
                   attention: own.attention,
-                  upcoming: <OverviewUpcoming groupId={groupId} />,
+                  upcoming: (
+                    <View style={{ gap: 12 }}>
+                      <OverviewUpcoming groupId={groupId} />
+                      <UpcomingTimeOff groupId={groupId} company />
+                    </View>
+                  ),
                   budget: (
                     <StandardCard style={{ gap: theme.spacing.sm }}>
                       <Text variant="caption" tone="muted">

@@ -283,6 +283,7 @@ model Group {
   companyWorkTasks CompanyWorkTask[]
   companyHolidays CompanyHoliday[]
   companyLeave CompanyLeave[]
+  companyLeaveTypes CompanyLeaveType[]
   companyEvents CompanyEvent[]
   companyMemberDates CompanyMemberDates[]
   companyPaidHolidays Boolean @default(true) @map("company_paid_holidays")
@@ -439,6 +440,8 @@ model Group {
   @@index([startDate, endDate], map: "groups_reminder_window_idx")
   vendors CompanyVendor[]
   companyClients CompanyClient[]
+  companyFileFolders CompanyFileFolder[]
+  companyFiles CompanyFile[]
   companyInquiries CompanyInquiry[]
   companyTickets CompanyTicket[]
   companyDetails CompanyDetails?
@@ -571,6 +574,8 @@ model GroupMember {
   vendorOrdersCreated CompanyVendorOrder[] @relation("CompanyVendorOrderCreator")
   vendorLogin CompanyVendor[] @relation("CompanyVendorLogin")
   clientsOwned CompanyClient[] @relation("CompanyClientOwner")
+  fileFoldersCreated CompanyFileFolder[]
+  filesCreated CompanyFile[]
   clientsCreated CompanyClient[] @relation("CompanyClientCreator")
   clientNotes CompanyClientNote[]
   inquiriesCreated CompanyInquiry[] @relation("CompanyInquiryCreator")
@@ -3568,11 +3573,13 @@ model CompanyLeave {
   status String @default("pending")
   decidedBy String? @map("decided_by") @db.Uuid
   decisionNote String? @map("decision_note")
+  leaveTypeId String? @map("leave_type_id") @db.Uuid
   createdBy String @map("created_by") @db.Uuid
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
   deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
   updatedSeq BigInt @default(0) @map("updated_seq")
+  leaveType CompanyLeaveType? @relation(fields: [leaveTypeId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
   group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   member GroupMember @relation("CompanyLeaveMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   decider GroupMember? @relation("CompanyLeaveDecider", fields: [decidedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -3580,6 +3587,30 @@ model CompanyLeave {
   @@index([groupId,updatedSeq], map: "company_leave_sync_idx")
   @@index([groupId,memberId,startDay], map: "company_leave_member_idx")
   @@map("company_leave")
+  @@schema("public")
+}
+model CompanyLeaveType {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  kind String @default("other")
+  accrualDaysPerMonth Decimal @default(1) @map("accrual_days_per_month") @db.Decimal(4, 2)
+  carryForward Boolean @default(true) @map("carry_forward")
+  carryForwardCap Decimal? @map("carry_forward_cap") @db.Decimal(6, 2)
+  annualCap Decimal? @map("annual_cap") @db.Decimal(6, 2)
+  paid Boolean @default(false)
+  allowOverdraw Boolean @default(false) @map("allow_overdraw")
+  active Boolean @default(true)
+  startsOn DateTime @default(dbgenerated("((now() AT TIME ZONE 'UTC'::text))::date")) @map("starts_on") @db.Date
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  leave CompanyLeave[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_leave_types_sync_idx")
+  @@map("company_leave_types")
   @@schema("public")
 }
 model CompanyEvent {
@@ -3793,6 +3824,48 @@ model CompanyAgentLink {
   @@unique([profileId, clientId])
   @@index([groupId], map: "company_agent_links_group_idx")
   @@map("company_agent_links")
+  @@schema("public")
+}
+model CompanyFileFolder {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  visibility String @default("everyone")
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  files CompanyFile[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_file_folders_sync_idx")
+  @@map("company_file_folders")
+  @@schema("public")
+}
+model CompanyFile {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  folderId String? @map("folder_id") @db.Uuid
+  kind String
+  name String
+  url String?
+  r2Key String? @unique @map("r2_key")
+  sizeBytes BigInt? @map("size_bytes")
+  mime String?
+  visibility String @default("everyone")
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  folder CompanyFileFolder? @relation(fields: [folderId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_files_sync_idx")
+  @@index([folderId], map: "company_files_folder_idx")
+  @@map("company_files")
   @@schema("public")
 }
 model CompanyClient {

@@ -64,10 +64,14 @@ export function usePayRule(groupId: string): CalendarPayRule {
   const cal = useCalendar(groupId);
   const s = useCalendarSettings(groupId);
   const { paidHolidays, paidLeave } = s;
-  return useMemo(
-    () => ({ holidays: cal.holidays, leave: cal.leave, paidHolidays, paidLeave }),
-    [cal, paidHolidays, paidLeave],
-  );
+  return useMemo(() => {
+    // A leave type's own "paid" setting wins over the company-wide switch for requests that name it.
+    const paidOf = new Map(cal.leaveTypes.map((x) => [x.id, x.paid]));
+    const leave = cal.leave.map((l) =>
+      l.leaveTypeId && paidOf.has(l.leaveTypeId) ? { ...l, paid: paidOf.get(l.leaveTypeId) } : l,
+    );
+    return { holidays: cal.holidays, leave, paidHolidays, paidLeave };
+  }, [cal, paidHolidays, paidLeave]);
 }
 export { workedDaysText };
 

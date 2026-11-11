@@ -172,6 +172,7 @@ export function resolveFab(segments: readonly string[]): boolean {
       'company-entry',
       'company-wages',
       'company-calendar',
+      'company-leave-policy',
       'company-bills',
       'invite',
       'export',

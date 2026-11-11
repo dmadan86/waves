@@ -289,6 +289,42 @@ export interface UiStrings {
     paidHolidaysHint: string;
     paidLeave: string;
     paidLeaveHint: string;
+    leavePolicy: string;
+    leavePolicyHint: string;
+    leavePolicyRow: string;
+    leaveTypeAdd: string;
+    leaveTypeEdit: string;
+    leaveTypeName: string;
+    leaveAccrual: string;
+    leaveCarry: string;
+    leaveCarryHint: string;
+    leaveCarryCap: string;
+    leaveAnnualCap: string;
+    leaveNoLimit: string;
+    leavePaid: string;
+    leavePaidHint: string;
+    leaveOverdraw: string;
+    leaveOverdrawHint: string;
+    leaveActive: string;
+    leaveParked: string;
+    leavePerMonth: string;
+    leaveCarries: string;
+    leaveResets: string;
+    leaveErrName: string;
+    leaveErrAccrual: string;
+    leaveErrCap: string;
+    leaveTypeNone: string;
+    leaveLeft: string;
+    leaveAfter: string;
+    leaveDaysSelected: string;
+    leaveDaysAvailable: string;
+    leaveBalances: string;
+    leaveEarned: string;
+    leaveTaken: string;
+    leaveRequested: string;
+    upcomingTimeOff: string;
+    leaveOverBalance: string;
+    leaveCannotApprove: string;
     wageRuleNote: string;
     holidayOnDay: string;
     leaveOnDay: string;
@@ -3114,6 +3150,54 @@ export interface UiStrings {
     note: string;
     full: string;
     loading: string;
+  };
+  companyFiles: {
+    title: string;
+    search: string;
+    all: string;
+    documents: string;
+    images: string;
+    sheets: string;
+    others: string;
+    links: string;
+    upload: string;
+    addLink: string;
+    newFolder: string;
+    folderItems: string;
+    empty: string;
+    emptyBody: string;
+    emptyFolder: string;
+    noMatches: string;
+    open: string;
+    rename: string;
+    editLink: string;
+    whoSees: string;
+    openFailed: string;
+    uploadFailed: string;
+    tooBig: string;
+    badType: string;
+    storageFull: string;
+    saveFailed: string;
+    linkName: string;
+    linkUrl: string;
+    linkUrlBad: string;
+    folderName: string;
+    fileName: string;
+    visEveryone: string;
+    visManagers: string;
+    visOwners: string;
+    visEveryoneHint: string;
+    visManagersHint: string;
+    visOwnersHint: string;
+    deleteFolderTitle: string;
+    deleteFolderBody: string;
+    deleteFileTitle: string;
+    deleteFileBody: string;
+    uploading: string;
+    allFiles: string;
+    listView: string;
+    gridView: string;
+    more: string;
   };
   companyDetails: {
     title: string;
@@ -8319,6 +8403,42 @@ const en: UiStrings = {
     paidHolidaysHint: 'Holidays count as paid days in wage runs.',
     paidLeave: 'Paid sick/casual leave',
     paidLeaveHint: 'Approved sick and casual leave counts as paid days. Other leave is unpaid.',
+    leavePolicy: 'Leave policy',
+    leavePolicyHint: 'Casual, sick and other leave: how much each person earns every month.',
+    leavePolicyRow: 'Casual, sick and other leave each person earns',
+    leaveTypeAdd: 'Add leave type',
+    leaveTypeEdit: 'Edit leave type',
+    leaveTypeName: 'Name',
+    leaveAccrual: 'Days earned per month (0 to 5, halves ok)',
+    leaveCarry: 'Carry forward to next year',
+    leaveCarryHint: 'Unused days move into the next year. Off: they reset on 1 January.',
+    leaveCarryCap: 'Carry forward at most (days)',
+    leaveAnnualCap: 'Earn at most per year (days)',
+    leaveNoLimit: 'No limit',
+    leavePaid: 'Paid leave',
+    leavePaidHint: 'Counts as a paid day in wages',
+    leaveOverdraw: 'Allow going below zero',
+    leaveOverdrawHint: 'Off: a request beyond the balance cannot be approved.',
+    leaveActive: 'In use',
+    leaveParked: 'Not in use',
+    leavePerMonth: '{n} a month',
+    leaveCarries: 'carries forward',
+    leaveResets: 'resets every year',
+    leaveErrName: 'Give it a name.',
+    leaveErrAccrual: 'Days per month must be 0 to 5 in steps of 0.5.',
+    leaveErrCap: 'Limits must be a number of days, or empty for no limit.',
+    leaveTypeNone: 'Other (not counted)',
+    leaveLeft: '{n} left',
+    leaveAfter: '{n} left after this',
+    leaveDaysSelected: '{n} days selected',
+    leaveDaysAvailable: '{n} days available',
+    leaveBalances: 'Leave balance',
+    leaveEarned: 'Earned',
+    leaveTaken: 'Taken',
+    leaveRequested: 'Requested',
+    upcomingTimeOff: 'Upcoming time off',
+    leaveOverBalance: 'Only {n} days left in {type}. This request is longer.',
+    leaveCannotApprove: 'Cannot approve: only {n} days left in {type}.',
     wageRuleNote:
       'Wage days follow attendance. Holidays count as paid days when Paid holidays is on; approved leave counts as absent unless paid leave is on.',
     holidayOnDay: 'Holiday: {name}',
@@ -11041,6 +11161,56 @@ const en: UiStrings = {
     note: 'Photos on entries, bills and tasks count here. Nothing is ever deleted.',
     full: 'Company storage is full. The owner can add more in Settings.',
     loading: 'Could not load storage. Pull to retry.',
+  },
+  companyFiles: {
+    title: 'Files',
+    search: 'Search files…',
+    all: 'All',
+    documents: 'Documents',
+    images: 'Images',
+    sheets: 'Sheets',
+    others: 'Others',
+    links: 'Links',
+    upload: 'Upload',
+    addLink: 'Add link',
+    newFolder: 'New folder',
+    folderItems: '{n} items',
+    empty: 'No files yet',
+    emptyBody:
+      'Upload documents, photos and sheets, or add a link, and choose who can see each one.',
+    emptyFolder: 'This folder is empty',
+    noMatches: 'Nothing matches',
+    open: 'Open',
+    rename: 'Rename',
+    editLink: 'Edit link',
+    whoSees: 'Who can see',
+    openFailed: 'Could not open this file. Try again.',
+    uploadFailed: 'Could not upload this file. Try again.',
+    tooBig: 'This file is over 25 MB.',
+    badType:
+      'This kind of file cannot be uploaded. Use PDF, Word, Excel, PowerPoint, a photo, text or zip.',
+    storageFull: 'Company storage is full. The owner can add more in Settings.',
+    saveFailed: 'Could not save. Try again.',
+    linkName: 'Name',
+    linkUrl: 'Link (https://…)',
+    linkUrlBad: 'Enter a web address starting with http or https.',
+    folderName: 'Folder name',
+    fileName: 'Name',
+    visEveryone: 'Everyone',
+    visManagers: 'Managers and owners',
+    visOwners: 'Only owners',
+    visEveryoneHint: 'All members of the company',
+    visManagersHint: 'Hidden from employees',
+    visOwnersHint: 'Hidden from managers and employees',
+    deleteFolderTitle: 'Delete folder “{name}”?',
+    deleteFolderBody: 'Everything inside it is deleted too.',
+    deleteFileTitle: 'Delete “{name}”?',
+    deleteFileBody: 'It is removed for everyone.',
+    uploading: 'Uploading…',
+    allFiles: 'All files',
+    listView: 'List view',
+    gridView: 'Grid view',
+    more: 'More',
   },
   companyDetails: {
     title: 'Company details',
@@ -15676,6 +15846,44 @@ const ta: UiStrings = {
     paidLeave: 'ஊதியத்துடன் நோய்/சாதாரண விடுப்பு',
     paidLeaveHint:
       'ஒப்புதல் பெற்ற நோய் மற்றும் சாதாரண விடுப்புக்கு ஊதியம் உண்டு. மற்ற விடுப்பு ஊதியமற்றது.',
+    leavePolicy: 'விடுப்புக் கொள்கை',
+    leavePolicyHint: 'சாதாரண, நோய் மற்றும் பிற விடுப்பு: ஒவ்வொருவரும் மாதம் எவ்வளவு பெறுகிறார்கள்.',
+    leavePolicyRow: 'ஒவ்வொருவரும் பெறும் சாதாரண, நோய் மற்றும் பிற விடுப்பு',
+    leaveTypeAdd: 'விடுப்பு வகையைச் சேர்',
+    leaveTypeEdit: 'விடுப்பு வகையைத் திருத்து',
+    leaveTypeName: 'பெயர்',
+    leaveAccrual: 'மாதம் பெறும் நாட்கள் (0 முதல் 5, அரை நாள் சரி)',
+    leaveCarry: 'அடுத்த ஆண்டுக்கு எடுத்துச் செல்',
+    leaveCarryHint:
+      'பயன்படுத்தாத நாட்கள் அடுத்த ஆண்டுக்குச் செல்லும். அணைத்தால் ஜனவரி 1 அன்று மீட்டமையும்.',
+    leaveCarryCap: 'அதிகபட்சம் எடுத்துச் செல்லும் நாட்கள்',
+    leaveAnnualCap: 'ஆண்டுக்கு அதிகபட்சம் பெறும் நாட்கள்',
+    leaveNoLimit: 'வரம்பு இல்லை',
+    leavePaid: 'ஊதியத்துடன் கூடிய விடுப்பு',
+    leavePaidHint: 'சம்பளத்தில் ஊதிய நாளாகக் கணக்கிடப்படும்',
+    leaveOverdraw: 'பூஜ்யத்துக்குக் கீழ் செல்ல அனுமதி',
+    leaveOverdrawHint: 'அணைத்தால்: இருப்புக்கு மேல் கேட்கும் கோரிக்கையை ஏற்க முடியாது.',
+    leaveActive: 'பயன்பாட்டில்',
+    leaveParked: 'பயன்பாட்டில் இல்லை',
+    leavePerMonth: 'மாதம் {n}',
+    leaveCarries: 'எடுத்துச் செல்லும்',
+    leaveResets: 'ஆண்டுதோறும் மீட்டமையும்',
+    leaveErrName: 'பெயர் கொடுங்கள்.',
+    leaveErrAccrual: 'மாதத்துக்கு 0 முதல் 5 வரை, 0.5 படிகளில் இருக்க வேண்டும்.',
+    leaveErrCap:
+      'வரம்பு நாட்களின் எண்ணாக இருக்க வேண்டும், அல்லது வரம்பு இல்லையெனில் காலியாக விடுங்கள்.',
+    leaveTypeNone: 'பிற (கணக்கில் இல்லை)',
+    leaveLeft: '{n} மீதம்',
+    leaveAfter: 'இதற்குப் பின் {n} மீதம்',
+    leaveDaysSelected: '{n} நாட்கள் தேர்வு',
+    leaveDaysAvailable: '{n} நாட்கள் உள்ளன',
+    leaveBalances: 'விடுப்பு இருப்பு',
+    leaveEarned: 'பெற்றது',
+    leaveTaken: 'எடுத்தது',
+    leaveRequested: 'கோரியது',
+    upcomingTimeOff: 'வரவிருக்கும் விடுப்பு',
+    leaveOverBalance: '{type} இல் {n} நாட்கள் மட்டுமே உள்ளன. இந்தக் கோரிக்கை நீளமானது.',
+    leaveCannotApprove: 'ஏற்க முடியாது: {type} இல் {n} நாட்கள் மட்டுமே உள்ளன.',
     wageRuleNote:
       'ஊதிய நாட்கள் வருகையைப் பொறுத்தது. ஊதியத்துடன் விடுமுறை இயக்கப்பட்டால் விடுமுறை நாட்களுக்கு ஊதியம் உண்டு; ஊதிய விடுப்பு இயக்கப்படாவிட்டால் ஒப்புதல் பெற்ற விடுப்பு வராத நாளாகக் கணக்கிடப்படும்.',
     holidayOnDay: 'விடுமுறை: {name}',
@@ -18433,6 +18641,56 @@ const ta: UiStrings = {
     note: 'பதிவுகள், பில்கள், பணிகளின் புகைப்படங்கள் இங்கே கணக்கிடப்படும். எதுவும் நீக்கப்படாது.',
     full: 'நிறுவன சேமிப்பு நிரம்பிவிட்டது. உரிமையாளர் அமைப்புகளில் மேலும் சேர்க்கலாம்.',
     loading: 'சேமிப்பை ஏற்ற முடியவில்லை. மீண்டும் முயலவும்.',
+  },
+  companyFiles: {
+    title: 'கோப்புகள்',
+    search: 'கோப்புகளைத் தேடுங்கள்…',
+    all: 'அனைத்தும்',
+    documents: 'ஆவணங்கள்',
+    images: 'படங்கள்',
+    sheets: 'தாள்கள்',
+    others: 'மற்றவை',
+    links: 'இணைப்புகள்',
+    upload: 'பதிவேற்று',
+    addLink: 'இணைப்பைச் சேர்',
+    newFolder: 'புதிய கோப்புறை',
+    folderItems: '{n} உருப்படிகள்',
+    empty: 'இன்னும் கோப்புகள் இல்லை',
+    emptyBody:
+      'ஆவணங்கள், படங்கள், தாள்களைப் பதிவேற்றுங்கள் அல்லது இணைப்பைச் சேர்த்து, யார் பார்க்கலாம் என்று தேர்ந்தெடுங்கள்.',
+    emptyFolder: 'இந்தக் கோப்புறை காலியாக உள்ளது',
+    noMatches: 'பொருந்துவது எதுவும் இல்லை',
+    open: 'திற',
+    rename: 'பெயர் மாற்று',
+    editLink: 'இணைப்பைத் திருத்து',
+    whoSees: 'யார் பார்க்கலாம்',
+    openFailed: 'இந்தக் கோப்பைத் திறக்க முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    uploadFailed: 'இந்தக் கோப்பைப் பதிவேற்ற முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    tooBig: 'இந்தக் கோப்பு 25 MB-ஐ விட பெரியது.',
+    badType:
+      'இந்த வகைக் கோப்பைப் பதிவேற்ற முடியாது. PDF, Word, Excel, PowerPoint, படம், உரை அல்லது zip பயன்படுத்துங்கள்.',
+    storageFull: 'நிறுவன சேமிப்பிடம் நிரம்பியுள்ளது. உரிமையாளர் அமைப்புகளில் கூடுதல் சேர்க்கலாம்.',
+    saveFailed: 'சேமிக்க முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    linkName: 'பெயர்',
+    linkUrl: 'இணைப்பு (https://…)',
+    linkUrlBad: 'http அல்லது https என தொடங்கும் இணைய முகவரியை உள்ளிடுங்கள்.',
+    folderName: 'கோப்புறையின் பெயர்',
+    fileName: 'பெயர்',
+    visEveryone: 'அனைவரும்',
+    visManagers: 'மேலாளர்கள் மற்றும் உரிமையாளர்கள்',
+    visOwners: 'உரிமையாளர்கள் மட்டும்',
+    visEveryoneHint: 'நிறுவனத்தின் அனைத்து உறுப்பினர்களும்',
+    visManagersHint: 'ஊழியர்களுக்குத் தெரியாது',
+    visOwnersHint: 'மேலாளர்கள், ஊழியர்களுக்குத் தெரியாது',
+    deleteFolderTitle: '“{name}” கோப்புறையை நீக்கவா?',
+    deleteFolderBody: 'அதில் உள்ள அனைத்தும் நீக்கப்படும்.',
+    deleteFileTitle: '“{name}” நீக்கவா?',
+    deleteFileBody: 'அனைவருக்கும் நீக்கப்படும்.',
+    uploading: 'பதிவேற்றுகிறது…',
+    allFiles: 'அனைத்து கோப்புகள்',
+    listView: 'பட்டியல் காட்சி',
+    gridView: 'கட்டக் காட்சி',
+    more: 'மேலும்',
   },
   companyDetails: {
     title: 'நிறுவன விவரங்கள்',
@@ -23249,6 +23507,42 @@ const hi: UiStrings = {
     paidHolidaysHint: 'वेतन गणना में अवकाश के दिन सवेतन दिनों में गिने जाते हैं।',
     paidLeave: 'सवेतन बीमारी/आकस्मिक छुट्टी',
     paidLeaveHint: 'स्वीकृत बीमारी और आकस्मिक छुट्टी सवेतन हैं। अन्य छुट्टी अवैतनिक है।',
+    leavePolicy: 'छुट्टी नीति',
+    leavePolicyHint: 'आकस्मिक, बीमारी और अन्य छुट्टी: हर व्यक्ति हर महीने कितनी कमाता है।',
+    leavePolicyRow: 'हर व्यक्ति को मिलने वाली आकस्मिक, बीमारी और अन्य छुट्टी',
+    leaveTypeAdd: 'छुट्टी का प्रकार जोड़ें',
+    leaveTypeEdit: 'छुट्टी का प्रकार बदलें',
+    leaveTypeName: 'नाम',
+    leaveAccrual: 'प्रति माह दिन (0 से 5, आधा दिन ठीक)',
+    leaveCarry: 'अगले साल में ले जाएँ',
+    leaveCarryHint: 'बचे हुए दिन अगले साल में जाते हैं। बंद होने पर 1 जनवरी को शून्य हो जाते हैं।',
+    leaveCarryCap: 'अधिकतम आगे ले जाने वाले दिन',
+    leaveAnnualCap: 'साल में अधिकतम मिलने वाले दिन',
+    leaveNoLimit: 'कोई सीमा नहीं',
+    leavePaid: 'सवेतन छुट्टी',
+    leavePaidHint: 'वेतन में सवेतन दिन गिना जाएगा',
+    leaveOverdraw: 'शून्य से नीचे जाने दें',
+    leaveOverdrawHint: 'बंद: बैलेंस से ज़्यादा का अनुरोध मंज़ूर नहीं हो सकता।',
+    leaveActive: 'उपयोग में',
+    leaveParked: 'उपयोग में नहीं',
+    leavePerMonth: '{n} प्रति माह',
+    leaveCarries: 'आगे बढ़ती है',
+    leaveResets: 'हर साल शून्य होती है',
+    leaveErrName: 'नाम दीजिए।',
+    leaveErrAccrual: 'प्रति माह दिन 0 से 5 के बीच, 0.5 के चरणों में होने चाहिए।',
+    leaveErrCap: 'सीमा दिनों की संख्या हो, या बिना सीमा के लिए खाली छोड़ें।',
+    leaveTypeNone: 'अन्य (गिनी नहीं जाती)',
+    leaveLeft: '{n} बाकी',
+    leaveAfter: 'इसके बाद {n} बाकी',
+    leaveDaysSelected: '{n} दिन चुने',
+    leaveDaysAvailable: '{n} दिन उपलब्ध',
+    leaveBalances: 'छुट्टी बैलेंस',
+    leaveEarned: 'मिली',
+    leaveTaken: 'ली गई',
+    leaveRequested: 'माँगी गई',
+    upcomingTimeOff: 'आने वाली छुट्टी',
+    leaveOverBalance: '{type} में केवल {n} दिन बचे हैं। यह अनुरोध लंबा है।',
+    leaveCannotApprove: 'मंज़ूर नहीं हो सकता: {type} में केवल {n} दिन बचे हैं।',
     wageRuleNote:
       'वेतन के दिन उपस्थिति के अनुसार हैं। सवेतन अवकाश चालू होने पर अवकाश के दिन सवेतन हैं; सवेतन छुट्टी चालू न होने पर स्वीकृत छुट्टी अनुपस्थिति मानी जाती है।',
     holidayOnDay: 'अवकाश: {name}',
@@ -25973,6 +26267,56 @@ const hi: UiStrings = {
     note: 'एंट्री, बिल और कामों की फ़ोटो यहाँ गिनी जाती हैं। कुछ भी कभी नहीं हटाया जाता।',
     full: 'कंपनी का स्टोरेज भर गया है। मालिक सेटिंग्स में और जोड़ सकते हैं।',
     loading: 'स्टोरेज लोड नहीं हो सका। दोबारा कोशिश करें।',
+  },
+  companyFiles: {
+    title: 'फ़ाइलें',
+    search: 'फ़ाइलें खोजें…',
+    all: 'सभी',
+    documents: 'दस्तावेज़',
+    images: 'चित्र',
+    sheets: 'शीट',
+    others: 'अन्य',
+    links: 'लिंक',
+    upload: 'अपलोड',
+    addLink: 'लिंक जोड़ें',
+    newFolder: 'नया फ़ोल्डर',
+    folderItems: '{n} आइटम',
+    empty: 'अभी कोई फ़ाइल नहीं',
+    emptyBody:
+      'दस्तावेज़, फ़ोटो और शीट अपलोड करें या लिंक जोड़ें, और चुनें कि हर एक को कौन देख सकता है।',
+    emptyFolder: 'यह फ़ोल्डर खाली है',
+    noMatches: 'कुछ नहीं मिला',
+    open: 'खोलें',
+    rename: 'नाम बदलें',
+    editLink: 'लिंक बदलें',
+    whoSees: 'कौन देख सकता है',
+    openFailed: 'यह फ़ाइल नहीं खुल सकी। फिर कोशिश करें।',
+    uploadFailed: 'यह फ़ाइल अपलोड नहीं हो सकी। फिर कोशिश करें।',
+    tooBig: 'यह फ़ाइल 25 MB से बड़ी है।',
+    badType:
+      'इस तरह की फ़ाइल अपलोड नहीं हो सकती। PDF, Word, Excel, PowerPoint, फ़ोटो, टेक्स्ट या zip इस्तेमाल करें।',
+    storageFull: 'कंपनी का स्टोरेज भर गया है। मालिक सेटिंग में और जोड़ सकता है।',
+    saveFailed: 'सहेजा नहीं जा सका। फिर कोशिश करें।',
+    linkName: 'नाम',
+    linkUrl: 'लिंक (https://…)',
+    linkUrlBad: 'http या https से शुरू होने वाला वेब पता डालें।',
+    folderName: 'फ़ोल्डर का नाम',
+    fileName: 'नाम',
+    visEveryone: 'सभी',
+    visManagers: 'मैनेजर और मालिक',
+    visOwners: 'सिर्फ़ मालिक',
+    visEveryoneHint: 'कंपनी के सभी सदस्य',
+    visManagersHint: 'कर्मचारियों से छिपा',
+    visOwnersHint: 'मैनेजर और कर्मचारियों से छिपा',
+    deleteFolderTitle: 'फ़ोल्डर “{name}” हटाएँ?',
+    deleteFolderBody: 'इसके अंदर सब कुछ भी हट जाएगा।',
+    deleteFileTitle: '“{name}” हटाएँ?',
+    deleteFileBody: 'यह सबके लिए हट जाएगी।',
+    uploading: 'अपलोड हो रहा है…',
+    allFiles: 'सभी फ़ाइलें',
+    listView: 'सूची दृश्य',
+    gridView: 'ग्रिड दृश्य',
+    more: 'और',
   },
   companyDetails: {
     title: 'कंपनी का विवरण',
@@ -30619,6 +30963,42 @@ const ar: UiStrings = {
     paidHolidaysHint: 'تُحتسب العطلات أياماً مدفوعة في حساب الأجور.',
     paidLeave: 'إجازة مرضية/اعتيادية مدفوعة',
     paidLeaveHint: 'الإجازة المرضية والاعتيادية الموافق عليها مدفوعة. الإجازات الأخرى بلا أجر.',
+    leavePolicy: 'سياسة الإجازات',
+    leavePolicyHint: 'الإجازة الاعتيادية والمرضية وغيرها: كم يكسب كل شخص كل شهر.',
+    leavePolicyRow: 'الإجازة الاعتيادية والمرضية وغيرها التي يكسبها كل شخص',
+    leaveTypeAdd: 'إضافة نوع إجازة',
+    leaveTypeEdit: 'تعديل نوع الإجازة',
+    leaveTypeName: 'الاسم',
+    leaveAccrual: 'الأيام المكتسبة شهريًا (من 0 إلى 5، ونصف يوم مقبول)',
+    leaveCarry: 'ترحيل إلى العام التالي',
+    leaveCarryHint: 'الأيام غير المستخدمة تنتقل إلى العام التالي. عند الإيقاف تُصفَّر في 1 يناير.',
+    leaveCarryCap: 'الحد الأقصى للأيام المرحّلة',
+    leaveAnnualCap: 'الحد الأقصى للأيام المكتسبة سنويًا',
+    leaveNoLimit: 'بلا حد',
+    leavePaid: 'إجازة مدفوعة',
+    leavePaidHint: 'تُحتسب يومًا مدفوعًا في الأجور',
+    leaveOverdraw: 'السماح بالنزول تحت الصفر',
+    leaveOverdrawHint: 'متوقف: لا يمكن قبول طلب يتجاوز الرصيد.',
+    leaveActive: 'قيد الاستخدام',
+    leaveParked: 'غير مستخدم',
+    leavePerMonth: '{n} في الشهر',
+    leaveCarries: 'تُرحَّل',
+    leaveResets: 'تُصفَّر كل عام',
+    leaveErrName: 'أعطِه اسمًا.',
+    leaveErrAccrual: 'يجب أن تكون الأيام الشهرية من 0 إلى 5 بخطوات 0.5.',
+    leaveErrCap: 'يجب أن يكون الحد عددًا من الأيام، أو اتركه فارغًا لعدم وجود حد.',
+    leaveTypeNone: 'أخرى (غير محسوبة)',
+    leaveLeft: 'متبقّي {n}',
+    leaveAfter: 'يتبقى {n} بعد هذا',
+    leaveDaysSelected: '{n} أيام محددة',
+    leaveDaysAvailable: '{n} أيام متاحة',
+    leaveBalances: 'رصيد الإجازات',
+    leaveEarned: 'المكتسب',
+    leaveTaken: 'المأخوذ',
+    leaveRequested: 'المطلوب',
+    upcomingTimeOff: 'الإجازات القادمة',
+    leaveOverBalance: 'المتبقي {n} أيام فقط في {type}. هذا الطلب أطول.',
+    leaveCannotApprove: 'لا يمكن القبول: المتبقي {n} أيام فقط في {type}.',
     wageRuleNote:
       'تتبع أيام الأجر الحضور. تُحتسب العطلات أياماً مدفوعة عند تفعيل العطلات المدفوعة؛ وتُحسب الإجازة الموافق عليها غياباً ما لم تُفعّل الإجازة المدفوعة.',
     holidayOnDay: 'عطلة: {name}',
@@ -33464,6 +33844,55 @@ const ar: UiStrings = {
     note: 'صور القيود والفواتير والمهام تُحتسب هنا. لا يُحذف أي شيء أبدًا.',
     full: 'تخزين الشركة ممتلئ. يمكن للمالك إضافة المزيد من الإعدادات.',
     loading: 'تعذر تحميل التخزين. حاول مرة أخرى.',
+  },
+  companyFiles: {
+    title: 'الملفات',
+    search: 'ابحث في الملفات…',
+    all: 'الكل',
+    documents: 'المستندات',
+    images: 'الصور',
+    sheets: 'الجداول',
+    others: 'أخرى',
+    links: 'الروابط',
+    upload: 'رفع',
+    addLink: 'إضافة رابط',
+    newFolder: 'مجلد جديد',
+    folderItems: '{n} عنصر',
+    empty: 'لا توجد ملفات بعد',
+    emptyBody: 'ارفع مستندات وصورًا وجداول، أو أضف رابطًا، واختر من يمكنه رؤية كل منها.',
+    emptyFolder: 'هذا المجلد فارغ',
+    noMatches: 'لا توجد نتائج',
+    open: 'فتح',
+    rename: 'إعادة التسمية',
+    editLink: 'تعديل الرابط',
+    whoSees: 'من يمكنه الرؤية',
+    openFailed: 'تعذر فتح هذا الملف. حاول مرة أخرى.',
+    uploadFailed: 'تعذر رفع هذا الملف. حاول مرة أخرى.',
+    tooBig: 'هذا الملف أكبر من 25 ميغابايت.',
+    badType:
+      'لا يمكن رفع هذا النوع من الملفات. استخدم PDF أو Word أو Excel أو PowerPoint أو صورة أو نصًا أو zip.',
+    storageFull: 'مساحة الشركة ممتلئة. يمكن للمالك إضافة المزيد من الإعدادات.',
+    saveFailed: 'تعذر الحفظ. حاول مرة أخرى.',
+    linkName: 'الاسم',
+    linkUrl: 'الرابط (https://…)',
+    linkUrlBad: 'أدخل عنوان ويب يبدأ بـ http أو https.',
+    folderName: 'اسم المجلد',
+    fileName: 'الاسم',
+    visEveryone: 'الجميع',
+    visManagers: 'المديرون والمالكون',
+    visOwners: 'المالكون فقط',
+    visEveryoneHint: 'جميع أعضاء الشركة',
+    visManagersHint: 'مخفي عن الموظفين',
+    visOwnersHint: 'مخفي عن المديرين والموظفين',
+    deleteFolderTitle: 'حذف المجلد «{name}»؟',
+    deleteFolderBody: 'سيُحذف كل ما بداخله أيضًا.',
+    deleteFileTitle: 'حذف «{name}»؟',
+    deleteFileBody: 'سيُحذف للجميع.',
+    uploading: 'جارٍ الرفع…',
+    allFiles: 'كل الملفات',
+    listView: 'عرض القائمة',
+    gridView: 'عرض الشبكة',
+    more: 'المزيد',
   },
   companyDetails: {
     title: 'تفاصيل الشركة',
