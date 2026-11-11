@@ -20,7 +20,8 @@ import { VoiceBand } from '@/components/voice-band';
 import { WearablesBand } from '@/components/wearables-band';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { absoluteUrl, localeAlternates, site, socialLinks } from '@/lib/site';
+import { absoluteUrl, localeAlternates, site } from '@/lib/site';
+import { appNode, orgId, organizationNode } from '@/lib/structured-data';
 
 /**
  * `/{locale}/index.md` is a twin of *this* page and no other, so this is the
@@ -65,40 +66,21 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'Organization',
-        '@id': `${site.url}#org`,
-        name: site.name,
-        url: site.url,
-        email: site.supportEmail,
-        logo: absoluteUrl('/brand/waves-mark.png'),
-        ...(socialLinks.length ? { sameAs: socialLinks.map((l) => l.href) } : {}),
-      },
+      organizationNode(),
       {
         '@type': 'WebSite',
         '@id': `${site.url}#site`,
         name: site.name,
         url: site.url,
         inLanguage: locale,
-        publisher: { '@id': `${site.url}#org` },
+        publisher: { '@id': orgId },
       },
-      {
-        '@type': 'MobileApplication',
-        name: site.name,
-        applicationCategory: 'FinanceApplication',
-        applicationSubCategory: 'Expense sharing',
-        operatingSystem: 'Android, iOS, Web',
+      appNode({
         description: t.meta.description,
         url: absoluteUrl(`/${locale}`),
+        priceCurrency: t.meta.priceCurrency,
         inLanguage: locale,
-        publisher: { '@id': `${site.url}#org` },
-        ...(site.androidUrl ? { installUrl: site.androidUrl } : {}),
-        offers: {
-          '@type': 'Offer',
-          price: '0',
-          priceCurrency: t.meta.priceCurrency,
-        },
-      },
+      }),
       {
         '@type': 'FAQPage',
         mainEntity: t.faq.items.map((item) => ({

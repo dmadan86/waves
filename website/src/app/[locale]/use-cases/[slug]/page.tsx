@@ -10,6 +10,7 @@ import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { socialMetadata } from '@/lib/compare-seo';
 import { site } from '@/lib/site';
+import { appNode, organizationNode } from '@/lib/structured-data';
 
 export const dynamicParams = false;
 
@@ -46,15 +47,8 @@ export default async function UseCasePage({
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'MobileApplication',
-        name: site.name,
-        applicationCategory: 'FinanceApplication',
-        operatingSystem: 'Android, iOS, Web',
-        description: u.description,
-        url: comparePageUrl(path),
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
-      },
+      organizationNode(),
+      appNode({ description: u.description, url: comparePageUrl(path), priceCurrency: 'INR' }),
       {
         '@type': 'BreadcrumbList',
         itemListElement: [

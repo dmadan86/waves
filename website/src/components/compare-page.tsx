@@ -13,6 +13,8 @@ import {
 } from '@/content/competitors';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, site } from '@/lib/site';
+import { AttributedLink } from './attributed-link';
+import { appNode, organizationNode } from '@/lib/structured-data';
 import { DownloadBanner } from './download-banner';
 import { ArrowRight } from './icons';
 import { WaveMark, Wordmark } from './logo';
@@ -84,16 +86,12 @@ export function compareJsonLd(opts: {
   return {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'MobileApplication',
-        name: site.name,
-        applicationCategory: 'FinanceApplication',
-        applicationSubCategory: 'Expense sharing',
-        operatingSystem: 'Android, iOS, Web',
+      organizationNode(),
+      appNode({
         description: opts.description,
         url: absoluteUrl(`/${LOCALE}`),
-        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-      },
+        priceCurrency: 'USD',
+      }),
       {
         '@type': 'BreadcrumbList',
         itemListElement: opts.crumbs.map((crumb, i) => ({
@@ -120,10 +118,13 @@ export function CompareShell({
   t,
   children,
   jsonLd,
+  current,
 }: {
   t: Dictionary;
   children: React.ReactNode;
   jsonLd: object;
+  /** True only on the /compare family; press and use-case pages leave it off. */
+  current?: boolean;
 }) {
   return (
     <>
@@ -155,8 +156,12 @@ export function CompareShell({
             </Link>
             <Link
               href="/en/compare"
-              aria-current="page"
-              className="border-b-2 border-blue py-2 font-medium text-blue"
+              aria-current={current ? 'page' : undefined}
+              className={
+                current
+                  ? 'border-b-2 border-blue py-2 font-medium text-blue'
+                  : 'py-2 text-ink-2 hover:text-blue'
+              }
             >
               Compare
             </Link>
@@ -187,12 +192,14 @@ export function CompareShell({
                 ))}
               </ul>
             </details>
-            <a
+            <AttributedLink
               href={site.appUrl}
+              kind="web"
+              placement="compare-header"
               className="inline-flex min-h-10 items-center rounded-sm bg-[#1d5ddd] px-4 text-sm font-semibold text-white hover:bg-[#174bb5]"
             >
               Get started
-            </a>
+            </AttributedLink>
           </div>
         </Container>
       </header>
@@ -274,12 +281,14 @@ export function CompareBody({
             everyone in sync.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <a
+            <AttributedLink
               href={site.appUrl}
+              kind="web"
+              placement="compare-hero"
               className={`${buttonClass} bg-[#1d5ddd] text-white shadow-lg shadow-blue/10 hover:bg-[#174bb5]`}
             >
               Try Waves free <ArrowRight className="h-4 w-4" />
-            </a>
+            </AttributedLink>
             <a
               href="#table"
               className={`${buttonClass} border border-line-strong text-ink hover:bg-chip`}
@@ -469,12 +478,14 @@ export function CompareBody({
             Keep your groups, expenses and balances together.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <a
+            <AttributedLink
               href={site.appUrl}
+              kind="web"
+              placement="compare-footer-cta"
               className={`${buttonClass} bg-white text-[#102442] hover:bg-blue-100`}
             >
               Try Waves free <ArrowRight className="h-4 w-4" />
-            </a>
+            </AttributedLink>
             <a
               href="#table"
               className={`${buttonClass} border border-slate-400 text-white hover:bg-white/10`}

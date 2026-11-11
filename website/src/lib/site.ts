@@ -61,3 +61,49 @@ export function localeAlternates(locale: Locale): NonNullable<Metadata['alternat
     },
   };
 }
+
+/**
+ * Metadata for a locale-prefixed page: self-canonical, hreflang for the locales
+ * it exists in, and page-specific OG/Twitter text and URL. The share image is
+ * named explicitly because a page that declares `openGraph` stops inheriting
+ * the file-convention image.
+ */
+export function pageMetadata({
+  locale,
+  path,
+  title,
+  description,
+  supportedLocales = locales,
+}: {
+  locale: Locale;
+  path: string;
+  title: string;
+  description: string;
+  supportedLocales?: readonly Locale[];
+}): Metadata {
+  const url = absoluteUrl(`/${locale}${path}`);
+  const image = absoluteUrl(`/${locale}/opengraph-image`);
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: url,
+      languages: {
+        ...Object.fromEntries(
+          supportedLocales.map((l) => [htmlLang[l], absoluteUrl(`/${l}${path}`)]),
+        ),
+        'x-default': absoluteUrl(`/en${path}`),
+      },
+    },
+    openGraph: {
+      type: 'website',
+      siteName: site.name,
+      title,
+      description,
+      url,
+      locale: htmlLang[locale],
+      images: [{ url: image, width: 1200, height: 630, alt: site.name }],
+    },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
+  };
+}

@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { languageNames, locales, type Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { site, socialLinks } from '@/lib/site';
+import { AttributedLink } from './attributed-link';
 import { CopyrightYears } from './copyright-years';
 import { Wordmark } from './logo';
 
@@ -122,6 +123,15 @@ export function SiteFooter({
                         <Link href={link.href} className={cls} lang={link.lang}>
                           {link.label}
                         </Link>
+                      ) : link.href === appUrl ? (
+                        <AttributedLink
+                          href={link.href}
+                          kind="web"
+                          placement="footer"
+                          className={cls}
+                        >
+                          {link.label}
+                        </AttributedLink>
                       ) : (
                         <a href={link.href} className={cls}>
                           {link.label}
