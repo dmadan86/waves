@@ -66,7 +66,9 @@ export function CompanyCalendarGrid({
         >
           <Text variant="heading">‹</Text>
         </Pressable>
-        <Text variant="body">{monthTitle}</Text>
+        <Text variant="body" style={{ fontWeight: '700' }}>
+          {monthTitle} ▾
+        </Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.personal.nextMonth}
