@@ -3,6 +3,7 @@
 Positioning: Waves is WhatsApp for finance. People already coordinate money in chats; Waves makes the chat keep the books. Everything below is true of the shipped app. Prices are quoted from `packages/core/src/billing/plans.ts` and are not changed by this document.
 
 Facts to lean on:
+
 - Free: unlimited people, expenses, currencies, splits and settle-up; ad-supported; your first group is free. New accounts get 15 days of Pro, no card (`docs/pricing.md`).
 - Pro: no ads, 100 AI voice commands and 300 receipt scans a month, 3 devices. India: Rs 79/month or Rs 699/year. Other markets are priced per country in the table in `plans.ts` and by the stores.
 - Companies: first company free; each extra company is a monthly store subscription. Roles are Owner, Manager and Employee; employees see only their own entries. Android and web today, iPhone coming soon. Bills and estimates are simple documents, not GST tax invoices.
@@ -68,6 +69,7 @@ Facts to lean on:
 ## Social proof we do not have yet
 
 Never invent any. Collect real quotes and numbers from:
+
 - A trip organiser after settling a trip (quote, plus how many people, with permission).
 - A parent or sibling running a household group.
 - A contractor or shop owner after a 2-week pilot: hours saved per month, advances disputes avoided.
