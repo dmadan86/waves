@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 
 import { CompanyFrame } from '@/components/CompanyFrame';
@@ -13,6 +13,7 @@ import {
 } from '@/lib/company/details';
 import { useVendorsData } from '@/lib/company/useVendors';
 import { Page } from '../vendors/_components/parts';
+import { DetailsSections } from './_components/DetailsSections';
 import { DetailsCardView, useNoted } from './_components/DetailsCard';
 
 /** Company details, or one vendor's (`?vendorId=`; `&mine=1` for a vendor's own). */
@@ -37,11 +38,24 @@ function Inner({ groupId }: { groupId: string }) {
   const view = vendorId ? d.vendorCard(vendorId) : d.companyCard;
   const noted = useNoted(bankNotedKey(view));
   const isMine = params.get('mine') === '1' && !!vendor && vendor.memberId === d.vendors.myMemberId;
+  const [editing, setEditing] = useState(false);
   const heading = vendorId ? (isMine ? s.myDetails : s.vendorDetails) : s.title;
   const title = vendor?.name ?? s.title;
   return (
     <Page title={heading}>
+      {vendorId ? null : (
+        <DetailsSections
+          groupId={groupId}
+          name={d.company.name}
+          memberCount={d.company.members.filter((m) => !m.left_at).length}
+          card={view.card}
+          canEdit={view.canEdit}
+          onEdit={() => setEditing(true)}
+        />
+      )}
       <DetailsCardView
+        editing={editing}
+        setEditing={setEditing}
         title={title}
         card={view.card}
         canEdit={view.canEdit}
