@@ -57,7 +57,14 @@ function seek(t) {
     : main;
 }
 window.seek = seek;
-document.write(`<script src="${new URLSearchParams(location.search).get('film')}.js"><\/script>`);
+// Only known film scripts load (the name comes from the URL).
+const FILMS = ['allowance', 'transactions'];
+const film = new URLSearchParams(location.search).get('film');
+if (FILMS.includes(film)) {
+  const el = document.createElement('script');
+  el.src = `${film}.js`;
+  el.onload = () => document.fonts.ready.then(() => { seek(0); window.ready = true; });
+  document.head.append(el);
+}
 </script>
-<script>document.fonts.ready.then(() => { seek(0); window.ready = true; });</script>
 </body></html>
