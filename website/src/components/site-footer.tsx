@@ -51,9 +51,24 @@ export function SiteFooter({
         { label: legal.mcpTitle, href: `/${locale}/mcp`, kind: 'route' },
         // English only, so it always points at /en whatever the page locale.
         { label: 'Compare Waves', href: '/en/compare', kind: 'route', lang: 'en' },
-        { label: 'Split bills with roommates', href: '/en/use-cases/split-bills-with-roommates', kind: 'route', lang: 'en' },
-        { label: 'Trip expense splitter', href: '/en/use-cases/trip-expense-splitter', kind: 'route', lang: 'en' },
-        { label: 'Split rent in India', href: '/en/use-cases/split-rent-india', kind: 'route', lang: 'en' },
+        {
+          label: 'Split bills with roommates',
+          href: '/en/use-cases/split-bills-with-roommates',
+          kind: 'route',
+          lang: 'en',
+        },
+        {
+          label: 'Trip expense splitter',
+          href: '/en/use-cases/trip-expense-splitter',
+          kind: 'route',
+          lang: 'en',
+        },
+        {
+          label: 'Split rent in India',
+          href: '/en/use-cases/split-rent-india',
+          kind: 'route',
+          lang: 'en',
+        },
         { label: 'Press kit', href: '/en/press', kind: 'route', lang: 'en' },
         { label: t.links.markdown, href: `/${locale}/index.md`, kind: 'external' },
       ],

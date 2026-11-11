@@ -76,8 +76,8 @@ export default async function PressPage({ params }: { params: Promise<{ locale: 
           </h2>
           <p className={`${card} mt-3 text-[0.95rem] leading-[1.65] text-ink-2`}>
             Waves is a free app for splitting, tracking and settling shared expenses with friends,
-            family and roommates. It runs on iOS, Android and the web, works offline, and hands
-            the final payment to the payment app you already use, such as UPI. It also includes a
+            family and roommates. It runs on iOS, Android and the web, works offline, and hands the
+            final payment to the payment app you already use, such as UPI. It also includes a
             personal money tracker and a Companies mode for small businesses. Waves is not a bank
             and never holds your money. The app is available in English, Hindi, Tamil and Arabic.
           </p>
@@ -133,8 +133,8 @@ export default async function PressPage({ params }: { params: Promise<{ locale: 
             ))}
           </ul>
           <p className="mt-3 text-[0.85rem] text-ink-2">
-            Typefaces: Overused Grotesk for text and Departure Mono for the wordmark, both under
-            the SIL Open Font License.
+            Typefaces: Overused Grotesk for text and Departure Mono for the wordmark, both under the
+            SIL Open Font License.
           </p>
         </section>
 

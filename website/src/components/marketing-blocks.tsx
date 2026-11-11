@@ -22,10 +22,7 @@ const trust = [
     'No money held',
     'Waves works out who pays whom and hands it to your payment app. It is not a bank.',
   ],
-  [
-    'You can leave',
-    'Delete your account from inside the app or from the delete-account page.',
-  ],
+  ['You can leave', 'Delete your account from inside the app or from the delete-account page.'],
 ];
 
 export function TrustList() {
