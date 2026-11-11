@@ -1119,7 +1119,7 @@
       ]
     },
     "steps": {
-      "eyebrow": "Start in minutes",
+      "eyebrow": "Get started",
       "title": "Get your business on Waves in 3 steps",
       "items": [
         {
@@ -1141,7 +1141,7 @@
       "items": [
         {
           "q": "Is my data safe?",
-          "a": "Employees see only their own entries, managers see their team's, and the owner sees the company. Receipt photos are private and open through links that expire after a minute. The ledger on a phone is encrypted at rest. The shared ledger lives on our server so phones can agree; it is not end-to-end encrypted, and we never sell data."
+          "a": "Employees see only their own entries, managers see their team's, and the owner sees the company. Receipt photos are private and open through links that expire quickly. In the Android app the ledger saved on the phone is encrypted at rest; the browser copy is not. The shared ledger lives on our server so phones can agree; it is not end-to-end encrypted, and we never sell data."
         },
         {
           "q": "Do my staff need smartphones?",
@@ -1149,17 +1149,17 @@
         },
         {
           "q": "Does it work offline?",
-          "a": "Yes. Entries are saved on the phone first, so adding one never waits for the network. Changes sync in the background when signal returns."
+          "a": "You can record expenses offline and they sync when signal returns. Joining a company, AI features and payments need a connection."
         },
         {
           "q": "What does it cost?",
-          "a": "Your first company is free. Each extra company is a monthly subscription, priced by the app store in your country. Waves Pro, which removes ads, is optional: in India it is ₹79 a month or ₹699 a year."
+          "a": "Your first company is free. Extra companies are a separate monthly subscription in the app store, so check the price shown there before you add one. Waves Pro, which removes ads, is optional: in India it is ₹79 a month or ₹699 a year."
         }
       ]
     },
     "contact": {
       "title": "Get your business on Waves",
-      "body": "Tell us about your team and we will help you set up your company, import your staff and run your first week. We reply personally.",
+      "body": "Write to us and we will help you get started. We reply personally.",
       "whatsapp": "Chat on WhatsApp",
       "email": "Email us",
       "whatsappText": "Hi, I would like to set up my business on Waves.",
@@ -1625,7 +1625,7 @@
     "items": [
       {
         "title": "Friends, flatmates and trips",
-        "body": "Add the bill, split it any way you like and settle through UPI. Everyone joins from a link, even in a browser.",
+        "body": "Add the bill, split it any way you like and open your UPI app to pay. Invitees join from a link, in a browser or the app, after creating or signing into a free account.",
         "cta": "Split your first bill",
         "href": "#download"
       },
