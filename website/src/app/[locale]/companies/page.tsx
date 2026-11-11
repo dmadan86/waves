@@ -96,14 +96,15 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
   const p = t.companiesPage;
   const m = t.companyMock;
 
-  const visuals: Record<string, { mock: React.ReactNode; video?: string }> = {
+  // wide: a 16:9 film (the films-tab cuts), shown at its own shape, not cropped square.
+  const visuals: Record<string, { mock: React.ReactNode; video?: string; wide?: boolean }> = {
     approvals: { mock: <ApproveMock m={m} />, video: 'companies-approvals' },
     allowance: { mock: <AllowanceMock m={m} /> },
     attendance: { mock: <AttendanceMock m={m} />, video: 'companies-attendance' },
     tasks: { mock: <TaskMock m={m} />, video: 'companies-tasks' },
     wages: { mock: <WagesMock m={m} />, video: 'companies-wages' },
     bills: { mock: <BillMock m={m} />, video: 'companies-bills' },
-    tickets: { mock: <TicketMock m={m} /> },
+    tickets: { mock: <TicketMock m={m} />, video: 'companies-complaints', wide: true },
   };
   const filmOf: Record<string, string> = {
     approvals: 'approvals',
@@ -116,6 +117,7 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
     'companies-attendance': p.videos.attendance,
     'companies-tasks': p.videos.tasks,
     'companies-bills': p.videos.bills,
+    'companies-complaints': p.films.tabs.find((f) => f.id === 'complaints')?.alt ?? '',
   };
 
   return (
@@ -241,7 +243,7 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
                         <LazyVideo
                           name={v.video}
                           label={videoLabel[v.video]}
-                          className="aspect-square"
+                          className={v.wide ? 'aspect-video' : 'aspect-square'}
                         />
                       ) : null}
                     </div>
