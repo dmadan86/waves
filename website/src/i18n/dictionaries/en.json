@@ -1080,7 +1080,8 @@
       "wages": "A short film: attendance becomes a wage total",
       "bills": "A short film: a bill with a UPI QR",
       "attendance": "A short film: the month fills with attendance marks",
-      "tasks": "A short film: a task moves from To do to Done"
+      "tasks": "A short film: a task moves from To do to Done",
+      "allowance": "A short film: daily allowance by days and mileage by km add up, and the advance is taken off"
     },
     "films": {
       "title": "See it in action",
@@ -1612,7 +1613,7 @@
       "budgets": "A short film: a budget bar fills as spending is added",
       "loans": "A short film: a loan is lent, part paid and settled",
       "recurring": "A short film: a bill repeats every month",
-      "transactions": "",
+      "transactions": "A short film: every entry newest first, filtered to income, then searched",
       "sms": "A short film: a bank message becomes an expense draft",
       "statement": "A short film: statement rows are ticked and added",
       "voice": "A short film: a spoken sentence becomes an expense",

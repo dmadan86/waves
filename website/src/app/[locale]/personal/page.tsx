@@ -92,6 +92,7 @@ const h2 = 'text-[1.35rem] font-bold tracking-[-0.025em] text-ink sm:text-[1.6re
 /**
  * Films published to R2 (infra/art/videos). A film not listed leaves its slot
  * out. A list, not a file check: Vercel builds from website/ alone.
+ * TODO: add 'transactions' once infra/art/publish.sh has uploaded personal-transactions.
  */
 const PUBLISHED = new Set(
   ['hero', 'spending', 'voice', 'receipt', 'sms', 'statement', 'budgets', 'recurring', 'loans'].map(
