@@ -11,6 +11,7 @@ import {
 } from '@waves/core';
 
 import { CompanyEmployeePanel } from '@/components/CompanyEmployeePanel';
+import { LeaveBalanceCard } from '@/components/company/LeaveBalances';
 import { CompanyFrame } from '@/components/CompanyFrame';
 import { SegmentedTabs } from '@/components/SegmentedTabs';
 import { SkeletonRows } from '@/components/Skeleton';
@@ -175,6 +176,7 @@ export default function CompanyStatementPage() {
                 <h2>{fmt(abs)}</h2>
                 <p>{sideText}</p>
               </div>
+              <LeaveBalanceCard groupId={groupId} memberId={memberId} />
               <SegmentedTabs
                 label={s.statementTitle}
                 value={period}
