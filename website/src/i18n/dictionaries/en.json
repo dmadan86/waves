@@ -41,7 +41,7 @@
     "eyebrow": "Expenses made simple",
     "titleStart": "Split, track and settle",
     "titleAccent": "together",
-    "subtitle": "Waves helps you manage shared expenses with friends, family or anyone. Simple, beautiful and built for real life.",
+    "subtitle": "Split bills with friends, keep your own money in order and run your team's expenses. Free to start, with 15 days of Pro on us.",
     "trust": ["New accounts get 15 days of Pro free", "No credit card required", "Works offline"],
     "alt": "Friends sharing a meal at a table by a lake at sunset",
     "chips": [
@@ -74,7 +74,8 @@
       "upi": "Opens your UPI app",
       "replay": "Replay",
       "example": "Example"
-    }
+    },
+    "ctaBusiness": "Running a business? See Waves for companies"
   },
   "features": {
     "label": "What Waves does",
@@ -850,8 +851,8 @@
     "titleStart": "Your team's money,",
     "titleAccent": "as simple as a chat.",
     "subtitle": "Employees add expenses with a photo. You approve in a tap. Advances, daily allowance, wages, vendors and bills stay in order, without a spreadsheet.",
-    "ctaPrimary": "Get the app",
-    "ctaSecondary": "See what is inside",
+    "ctaPrimary": "Start your company free",
+    "ctaSecondary": "Get your business on Waves",
     "avail": {
       "title": "Where it works",
       "labels": {
@@ -1116,6 +1117,53 @@
           "video": "companies-complaints"
         }
       ]
+    },
+    "steps": {
+      "eyebrow": "Start in minutes",
+      "title": "Get your business on Waves in 3 steps",
+      "items": [
+        {
+          "title": "Create your company",
+          "body": "Choose Company when you make a new group. Your first company is free."
+        },
+        {
+          "title": "Invite your team",
+          "body": "Share the invite link. Staff join on Android or the web."
+        },
+        {
+          "title": "Approve and pay",
+          "body": "Review claims in a tap, mark attendance, and record advances and wages."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Questions owners ask first",
+      "items": [
+        {
+          "q": "Is my data safe?",
+          "a": "Employees see only their own entries, managers see their team's, and the owner sees the company. Receipt photos are private and open through links that expire after a minute. The ledger on a phone is encrypted at rest. The shared ledger lives on our server so phones can agree; it is not end-to-end encrypted, and we never sell data."
+        },
+        {
+          "q": "Do my staff need smartphones?",
+          "a": "Staff who add their own expenses or tasks need the Android app or a web browser; iPhone is coming soon. Owners and managers can mark attendance and record advances and wages for the team, so people who only need paying do not have to type anything."
+        },
+        {
+          "q": "Does it work offline?",
+          "a": "Yes. Entries are saved on the phone first, so adding one never waits for the network. Changes sync in the background when signal returns."
+        },
+        {
+          "q": "What does it cost?",
+          "a": "Your first company is free. Each extra company is a monthly subscription, priced by the app store in your country. Waves Pro, which removes ads, is optional: in India it is ₹79 a month or ₹699 a year."
+        }
+      ]
+    },
+    "contact": {
+      "title": "Get your business on Waves",
+      "body": "Tell us about your team and we will help you set up your company, import your staff and run your first week. We reply personally.",
+      "whatsapp": "Chat on WhatsApp",
+      "email": "Email us",
+      "whatsappText": "Hi, I would like to set up my business on Waves.",
+      "emailSubject": "Waves for my business"
     }
   },
   "personal": {
@@ -1324,7 +1372,7 @@
     "titleStart": "Everything you spend,",
     "titleAccent": "kept just for you.",
     "subtitle": "A private ledger beside your groups. Spending by category, budgets, loans and repeating bills, with bank messages and statements turned into entries you review.",
-    "ctaPrimary": "Get the app",
+    "ctaPrimary": "Start free",
     "ctaSecondary": "See what is inside",
     "avail": {
       "title": "Where it works",
@@ -1570,5 +1618,29 @@
       "voice": "A short film: a spoken sentence becomes an expense",
       "receipt": "A short film: a receipt photo is attached to an entry"
     }
+  },
+  "whoFor": {
+    "eyebrow": "Who it's for",
+    "title": "One app, three ways to use it",
+    "items": [
+      {
+        "title": "Friends, flatmates and trips",
+        "body": "Add the bill, split it any way you like and settle through UPI. Everyone joins from a link, even in a browser.",
+        "cta": "Split your first bill",
+        "href": "#download"
+      },
+      {
+        "title": "Families and your own money",
+        "body": "Run a household in a shared group, and keep your own spending, budgets and loans private beside it.",
+        "cta": "See Waves for your own money",
+        "href": "/personal"
+      },
+      {
+        "title": "Shops, contractors and site teams",
+        "body": "Staff add expenses with a photo and you approve in a tap. Attendance, tasks, wages, advances and bills in one place.",
+        "cta": "See Waves for companies",
+        "href": "/companies"
+      }
+    ]
   }
 }

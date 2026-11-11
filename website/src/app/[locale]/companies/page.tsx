@@ -12,6 +12,7 @@ import {
   WagesMock,
 } from '@/components/company-mocks';
 import { FilmTabs } from '@/components/film-tabs';
+import { CompanyContact, CompanyFaq, CompanySteps } from '@/components/company-sales';
 import { DownloadBanner } from '@/components/download-banner';
 import { LazyVideo } from '@/components/lazy-video';
 import { RoleSwitcher } from '@/components/role-switcher';
@@ -138,7 +139,7 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
                   <Button href={`/${locale}#download`} size="lg">
                     {p.ctaPrimary}
                   </Button>
-                  <Button href="#features" size="lg" variant="secondary" arrow={false}>
+                  <Button href="#contact" size="lg" variant="secondary" arrow={false}>
                     {p.ctaSecondary}
                   </Button>
                 </div>
@@ -267,6 +268,9 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
           </ul>
         </Container>
 
+        <CompanySteps t={p.steps} />
+        <CompanyFaq t={p.faq} />
+        <CompanyContact t={p.contact} />
         <DownloadBanner t={t.cta} stores={t.stores} />
       </main>
 

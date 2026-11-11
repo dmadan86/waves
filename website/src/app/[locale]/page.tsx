@@ -16,6 +16,7 @@ import { Showcase } from '@/components/showcase';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { Steps } from '@/components/steps';
+import { WhoFor } from '@/components/who-for';
 import { VoiceBand } from '@/components/voice-band';
 import { WearablesBand } from '@/components/wearables-band';
 import { isLocale } from '@/i18n/config';
@@ -112,8 +113,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {/* The skip link targets this, so it has to be able to take focus —
           without the tabindex the jump lands on <body> and nothing changes. */}
       <main id="main" tabIndex={-1}>
-        <Hero t={t.hero} stores={t.stores} />
+        <Hero t={t.hero} stores={t.stores} locale={locale} />
         <FeatureStrip t={t.features} />
+        <WhoFor t={t.whoFor} locale={locale} />
         <Steps t={t.how} />
         <Showcase t={t.showcase} />
         <Moments t={t.moments} />
