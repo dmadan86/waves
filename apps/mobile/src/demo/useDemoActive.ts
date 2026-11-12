@@ -14,7 +14,10 @@ import { demoStateSync, ensureDemoDecision, parse, subscribeDemoState } from './
 
 /** Save the demo decision on the account, so every phone it signs into agrees. */
 export function saveDemoStateToAccount(state: string): void {
-  void backend.auth.updateUser({ data: { demo_state: state } }).catch(() => undefined);
+  // Best effort, and never a throw: offline or a missing client just leaves the phone's copy.
+  void Promise.resolve()
+    .then(() => backend.auth.updateUser({ data: { demo_state: state } }))
+    .catch(() => undefined);
 }
 
 /**
