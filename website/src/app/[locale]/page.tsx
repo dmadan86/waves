@@ -9,6 +9,7 @@ import { Faq } from '@/components/faq';
 import { FeatureStrip } from '@/components/feature-strip';
 import { Hero } from '@/components/hero';
 import { Moments } from '@/components/moments';
+import { OpenSourceBand } from '@/components/open-source-band';
 import { OfflineBand } from '@/components/offline-band';
 import { Pricing } from '@/components/pricing';
 import { PrivacyBand } from '@/components/privacy-band';
@@ -120,6 +121,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <CompaniesBand t={t.companies} mock={t.companyMock} locale={locale} />
         <Pricing t={t.pricing} />
         <PrivacyBand t={t.privacy} locale={locale} />
+        <OpenSourceBand t={t.openSource} />
         <Faq t={t.faq} />
         <DownloadBanner t={t.cta} stores={t.stores} result={t.hero.split.result} />
       </main>

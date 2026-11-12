@@ -27,7 +27,8 @@
     "voice": "AI voice",
     "wearables": "Watch & widgets",
     "companies": "For companies",
-    "personal": "Your money"
+    "personal": "Your money",
+    "github": "Waves on GitHub"
   },
   "stores": {
     "downloadOn": "Download on the",
@@ -294,7 +295,8 @@
       "voice": "AI voice",
       "wearables": "Watch & widgets",
       "companies": "For companies",
-      "personal": "Your money"
+      "personal": "Your money",
+      "github": "GitHub"
     },
     "rights": "All rights reserved."
   },
@@ -1645,5 +1647,17 @@
         "href": "/companies"
       }
     ]
+  },
+  "openSource": {
+    "eyebrow": "Open source",
+    "title": "Open source, so you can check us.",
+    "body": "The whole Waves app is open source under the AGPL-3.0 licence. When an app holds your expenses, you should not have to take our word for how it works, so you can read it.",
+    "points": [
+      "Read how money, data and sync are handled, in the code itself.",
+      "Researchers and users can check what we say instead of trusting it.",
+      "Changes happen in the open, in public history anyone can follow.",
+      "Licensed AGPL-3.0: free to read, run and build on."
+    ],
+    "cta": "View the code on GitHub"
   }
 }

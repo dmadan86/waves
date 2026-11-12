@@ -11,7 +11,7 @@ export const organizationNode = () => ({
   url: site.url,
   email: site.supportEmail,
   logo: absoluteUrl('/brand/waves-mark.png'),
-  ...(socialLinks.length ? { sameAs: socialLinks.map((l) => l.href) } : {}),
+  sameAs: [site.githubUrl, ...socialLinks.map((l) => l.href)],
 });
 
 /** The Waves app, with whichever install URLs are configured. */

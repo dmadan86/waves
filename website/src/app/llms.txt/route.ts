@@ -33,6 +33,8 @@ export async function GET() {
     `- [Waves for your own money](${absoluteUrl('/en/personal')}): personal finance on your own phone: spending by category, monthly budgets, loans lent and borrowed, recurring bills, bank message capture (paste on any phone; reading the inbox is Android only and on-device), bank statement import (Pro), voice entry and receipt scans. The ledger is private to you.`,
     `- [MCP server](${mcpEndpoint(site.appUrl)}): remote MCP endpoint over streamable HTTP, OAuth sign-in.`,
     `- [Compare Waves](${absoluteUrl('/en/compare')}): sourced side-by-side comparisons with Splitwise, Tricount, Settle Up, Splid, Spliit, Kittysplit, Splitkaro, Google Pay, PhonePe, Venmo and spreadsheets, including where each is better.`,
+    `- [Source code on GitHub](${site.githubUrl}): the whole app is open source under AGPL-3.0, so how money, data and sync are handled can be read, not just claimed.`,
+    `- [Press kit](${absoluteUrl('/en/press')}), [Splitwise alternative](${absoluteUrl('/en/alternatives/splitwise-alternative')}) and [use cases](${absoluteUrl('/en/use-cases/split-bills-with-roommates')}).`,
     `- [Web app](${site.appUrl})`,
     '',
     '## Languages',
@@ -47,6 +49,7 @@ export async function GET() {
     '- Waves is not a bank and never holds, moves or touches money; settling hands off to the payment app the user already has.',
     '- Amounts are stored as integer minor units plus an ISO 4217 code, never as floating point.',
     '- The free tier is ad-supported (banner ads on some screens, never on settling up) and unlimited for people, expenses, currencies, splits, offline use and settling up. Your first group is free; extra groups, AI voice (1 credit), receipt scans after the first 20 a month (2) and exports (6) use credits, and watching a short ad earns 6 credits (hold up to 30).',
+    `- Open source: the code is public at ${site.githubUrl} under AGPL-3.0.`,
     '- There is no independent security audit yet, and the shared ledger is not end-to-end encrypted.',
     '',
   ].join('\n');

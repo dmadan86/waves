@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { languageNames, locales, type Locale } from '@/i18n/config';
 import { site } from '@/lib/site';
 import { AttributedLink } from './attributed-link';
-import { Check, Chevron, Close, Globe, Menu } from './icons';
+import { Check, Chevron, Close, Github, Globe, Menu } from './icons';
 import { Wordmark } from './logo';
 import { ThemeToggle } from './theme-toggle';
 
@@ -30,6 +30,7 @@ type Nav = {
   close: string;
   language: string;
   theme: string;
+  github: string;
   themeSystem: string;
   themeLight: string;
   themeDark: string;
@@ -161,6 +162,15 @@ export function SiteHeader({
               label={nav.theme}
               names={{ system: nav.themeSystem, light: nav.themeLight, dark: nav.themeDark }}
             />
+
+            <a
+              href={site.githubUrl}
+              rel="noopener"
+              aria-label={nav.github}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-ink-2 transition-colors hover:bg-chip hover:text-ink"
+            >
+              <Github className="h-[1.15rem] w-[1.15rem]" />
+            </a>
 
             <div className="relative hidden sm:block" ref={langRef}>
               <button
