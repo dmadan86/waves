@@ -117,3 +117,19 @@ describe('a storage read that fails', () => {
     expect(await ensureDemoDecision(ALICE, true)).toBe('active');
   });
 });
+
+describe('the decision saved on the account', () => {
+  it('wins on a new phone, so an old account is never re-offered the demo', async () => {
+    expect(await ensureDemoDecision(ALICE, true, 'removed')).toBe('removed');
+    expect(await AsyncStorage.getItem('waves.demo_state.user-alice')).toBe('removed');
+  });
+
+  it('wins over this phone’s own copy', async () => {
+    await AsyncStorage.setItem('waves.demo_state.user-bob', 'active');
+    expect(await ensureDemoDecision(BOB, true, 'skipped')).toBe('skipped');
+  });
+
+  it('is ignored when it is not a known state', async () => {
+    expect(await ensureDemoDecision(ALICE, true, 42)).toBe('active');
+  });
+});
