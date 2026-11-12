@@ -161,7 +161,7 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
               </div>
               <ApprovalDemo m={m} />
             </div>
-            <LazyVideo name="companies-hero" label={p.videos.hero} className="mt-8 aspect-video" />
+            <LazyVideo name="companies-team" label={p.videos.hero} className="mt-8 aspect-video" />
           </Container>
         </section>
 

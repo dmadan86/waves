@@ -18,11 +18,12 @@ const NAMES = {
   voice: 'home-offline-voice',
   wearables: 'home-wearables',
   agents: 'home-agents',
+  companies: 'companies-team',
 };
 // Wide films have their own page and size; the rest are 1080 squares in index.html.
-const WIDE = { wearables: { w: 1920, h: 1080, dur: 10 }, agents: { w: 1920, h: 1080, dur: 10 } }[
-  film
-];
+const WIDE = ['wearables', 'agents', 'companies'].includes(film)
+  ? { w: 1920, h: 1080, dur: 10 }
+  : null;
 const name = NAMES[film];
 if (!name) throw new Error(`unknown film: ${film}`);
 const FPS = 30,
@@ -36,6 +37,7 @@ const POSTER = {
   voice: 4.2,
   wearables: 2.9,
   agents: 2.8,
+  companies: 4.2,
 }[film];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });

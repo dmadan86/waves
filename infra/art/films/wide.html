@@ -182,6 +182,7 @@
       const FILMS = new Map([
         ['wearables', 'wearables.js'],
         ['agents', 'agents.js'],
+        ['companies', 'companies.js'],
       ]);
       const src = FILMS.get(new URLSearchParams(location.search).get('film') ?? '');
       if (src) {
