@@ -6293,6 +6293,8 @@ export interface UiStrings {
     updateWaves: string;
     alreadyUpdated: string;
     update: string;
+    updateNow: string;
+    newVersion: string;
     notNow: string;
     changeGroupPhoto: string;
     addGroupPhoto: string;
@@ -13855,6 +13857,8 @@ const en: UiStrings = {
     updateWaves: 'Update Waves',
     alreadyUpdated: 'I have already updated',
     update: 'Update',
+    updateNow: 'Update now',
+    newVersion: 'New version',
     notNow: 'Not now',
     changeGroupPhoto: 'Change group photo',
     addGroupPhoto: 'Add a group photo',
@@ -13913,7 +13917,7 @@ const en: UiStrings = {
     versionStoppedBody:
       'This version can no longer talk to Waves, so it has been stopped rather than left to show you numbers that might be wrong.',
     newWavesOut: 'A new Waves is out',
-    wavesVersionOut: 'Waves {latest} is out',
+    wavesVersionOut: 'Waves {latest} is available',
   },
   smsImport: {
     heroTitle: 'Quickly add payments',
@@ -15279,7 +15283,7 @@ const en: UiStrings = {
     needsUpdating: 'Waves needs updating',
     nothingIsLost:
       'Nothing is lost. Every group, expense and settlement is on the server and will be exactly where you left it.',
-    worthAMinute: 'Worth a minute when you have one.',
+    worthAMinute: 'Update to get the latest improvements and bug fixes.',
     theGroup: 'The group',
     noGroupsYet:
       'You have no groups yet. A person belongs to a group in Waves, because a debt is always about something — a trip, a flat, a dinner.',
@@ -21466,6 +21470,8 @@ const ta: UiStrings = {
     updateWaves: 'Waves-ஐப் புதுப்பி',
     alreadyUpdated: 'நான் ஏற்கனவே புதுப்பித்துவிட்டேன்',
     update: 'புதுப்பி',
+    updateNow: 'இப்போது புதுப்பி',
+    newVersion: 'புதிய பதிப்பு',
     notNow: 'இப்போது வேண்டாம்',
     changeGroupPhoto: 'குழுப் புகைப்படத்தை மாற்று',
     addGroupPhoto: 'குழுப் புகைப்படத்தைச் சேர்',
@@ -21526,7 +21532,7 @@ const ta: UiStrings = {
     versionStoppedBody:
       'இந்தப் பதிப்பால் இனி Waves-உடன் தொடர்பு கொள்ள முடியாது, எனவே தவறாக இருக்கக்கூடிய எண்களைக் காட்டுவதற்குப் பதிலாக அது நிறுத்தப்பட்டுள்ளது.',
     newWavesOut: 'புதிய Waves வெளியாகிவிட்டது',
-    wavesVersionOut: 'Waves {latest} வெளியாகிவிட்டது',
+    wavesVersionOut: 'Waves {latest} கிடைக்கிறது',
   },
   smsImport: {
     heroTitle: 'பணப்பரிமாற்றங்களை விரைவாகச் சேருங்கள்',
@@ -22974,7 +22980,7 @@ const ta: UiStrings = {
     needsUpdating: 'Waves-ஐப் புதுப்பிக்க வேண்டும்',
     nothingIsLost:
       'எதுவும் இழக்கப்படவில்லை. ஒவ்வொரு குழுவும், செலவும், தீர்வும் சேவையகத்தில் உள்ளன, நீங்கள் விட்ட இடத்திலேயே இருக்கும்.',
-    worthAMinute: 'நேரம் கிடைக்கும்போது ஒரு நிமிடம் மதிப்புள்ளது.',
+    worthAMinute: 'புதிய மேம்பாடுகளும் பிழைத் திருத்தங்களும் பெற புதுப்பிக்கவும்.',
     theGroup: 'குழு',
     noGroupsYet:
       'உங்களுக்கு இன்னும் குழுக்கள் இல்லை. Waves-இல் ஒரு நபர் ஒரு குழுவுக்கு உரியவர், ஏனெனில் ஒரு கடன் எப்போதும் எதையாவது பற்றியது — ஒரு பயணம், ஒரு வீடு, ஒரு இரவு உணவு.',
@@ -29030,6 +29036,8 @@ const hi: UiStrings = {
     updateWaves: 'Waves अपडेट करें',
     alreadyUpdated: 'मैंने पहले ही अपडेट कर लिया',
     update: 'अपडेट',
+    updateNow: 'अभी अपडेट करें',
+    newVersion: 'नया वर्ज़न',
     notNow: 'अभी नहीं',
     changeGroupPhoto: 'समूह की फ़ोटो बदलें',
     addGroupPhoto: 'समूह की फ़ोटो जोड़ें',
@@ -29088,7 +29096,7 @@ const hi: UiStrings = {
     versionStoppedBody:
       'यह संस्करण अब Waves से बात नहीं कर सकता, इसलिए ग़लत आँकड़े दिखाने के बजाय इसे रोक दिया गया है।',
     newWavesOut: 'नया Waves आ गया है',
-    wavesVersionOut: 'Waves {latest} आ गया है',
+    wavesVersionOut: 'Waves {latest} उपलब्ध है',
   },
   smsImport: {
     heroTitle: 'भुगतान झटपट जोड़ें',
@@ -30461,7 +30469,7 @@ const hi: UiStrings = {
     needsUpdating: 'Waves को अपडेट चाहिए',
     nothingIsLost:
       'कुछ नहीं खोया। हर समूह, खर्च और निपटान सर्वर पर है और ठीक वहीं मिलेगा जहाँ आपने छोड़ा था।',
-    worthAMinute: 'जब वक़्त मिले तो एक मिनट देने लायक।',
+    worthAMinute: 'नए सुधार और बग फ़िक्स पाने के लिए अपडेट करें।',
     theGroup: 'समूह',
     noGroupsYet:
       'आपके अभी कोई समूह नहीं हैं। Waves में हर व्यक्ति किसी समूह का होता है, क्योंकि उधार हमेशा किसी चीज़ का होता है — कोई यात्रा, कोई घर, कोई खाना।',
@@ -36860,6 +36868,8 @@ const ar: UiStrings = {
     updateWaves: 'حدّث Waves',
     alreadyUpdated: 'لقد حدّثت بالفعل',
     update: 'تحديث',
+    updateNow: 'حدّث الآن',
+    newVersion: 'إصدار جديد',
     notNow: 'ليس الآن',
     changeGroupPhoto: 'تغيير صورة المجموعة',
     addGroupPhoto: 'أضف صورة للمجموعة',
@@ -36918,7 +36928,7 @@ const ar: UiStrings = {
     versionStoppedBody:
       'لم يعد بإمكان هذه النسخة التواصل مع Waves، لذا أُوقفت بدلًا من أن تعرض عليك أرقامًا قد تكون خاطئة.',
     newWavesOut: 'صدر إصدار جديد من Waves',
-    wavesVersionOut: 'صدر Waves {latest}',
+    wavesVersionOut: 'Waves {latest} متاح',
   },
   smsImport: {
     heroTitle: 'أضف المدفوعات بسرعة',
@@ -38653,7 +38663,7 @@ const ar: UiStrings = {
     needsUpdating: 'يحتاج Waves إلى تحديث',
     nothingIsLost:
       'لم يضع شيء. كل مجموعة ومصروف وتسوية موجودة على الخادم وستجدها تمامًا حيث تركتها.',
-    worthAMinute: 'يستحق دقيقة حين تتوفر لديك.',
+    worthAMinute: 'حدّث للحصول على أحدث التحسينات وإصلاحات الأخطاء.',
     theGroup: 'المجموعة',
     noGroupsYet:
       'ليست لديك مجموعات بعد. في Waves ينتمي الشخص إلى مجموعة، لأن الدَّين يكون دائمًا عن شيء ما — رحلة أو سكن أو عشاء.',
