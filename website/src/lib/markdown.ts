@@ -129,6 +129,15 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line(`${t.privacy.cta}: ${absoluteUrl(`/${locale}/privacy`)}`);
   line();
 
+  line(`## ${t.openSource.title}`);
+  line();
+  line(t.openSource.body);
+  line();
+  line(`- ${t.openSource.points.join('\n- ')}`);
+  line();
+  line(`${t.openSource.cta}: ${site.githubUrl}`);
+  line();
+
   line(`## ${t.agents.title}`);
   line();
   line(t.agents.body);

@@ -71,6 +71,7 @@ export function SiteFooter({
           lang: 'en',
         },
         { label: 'Press kit', href: '/en/press', kind: 'route', lang: 'en' },
+        { label: t.links.github, href: site.githubUrl, kind: 'external' },
         { label: t.links.markdown, href: `/${locale}/index.md`, kind: 'external' },
       ],
     },
