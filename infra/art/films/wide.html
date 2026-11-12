@@ -1,0 +1,199 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <!-- Wide feature films (1920x1080). Each film is a pure function of time:
+     window.seek(t) paints frame t. A film script defines DUR, SCENES and its
+     scene functions; the whip-pan engine below cuts between them.
+     Render with `node render.mjs <film>`. -->
+    <style>
+      @font-face {
+        font-family: OG;
+        src: url(fonts/OverusedGrotesk-VF.woff2);
+        font-weight: 100 900;
+      }
+      @font-face {
+        font-family: PJS;
+        src: url(fonts/PlusJakartaSans-Medium.ttf);
+        font-weight: 500;
+      }
+      @font-face {
+        font-family: PJS;
+        src: url(fonts/PlusJakartaSans-Bold.ttf);
+        font-weight: 700;
+      }
+      @font-face {
+        font-family: PJS;
+        src: url(fonts/PlusJakartaSans-ExtraBold.ttf);
+        font-weight: 800;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        background: #0c0b14;
+        overflow: hidden;
+      }
+      #stage {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #0c0b14;
+        font-family: PJS, sans-serif;
+        color: #fff;
+      }
+      .abs {
+        position: absolute;
+      }
+      .scene {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+      .h {
+        font-family: OG, sans-serif;
+        font-weight: 800;
+        letter-spacing: -0.045em;
+        line-height: 0.95;
+      }
+      .line {
+        display: block;
+        overflow: hidden;
+        padding-bottom: 0.08em;
+      }
+      .line > span {
+        display: inline-block;
+      }
+      .num {
+        font-variant-numeric: tabular-nums;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-radius: 20px;
+        background: #1f1f24;
+        padding: 14px 18px;
+        font-size: 28px;
+        font-weight: 700;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script>
+      const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x)),
+        seg = (t, a, d) => clamp((t - a) / d);
+      const eo = (x) => 1 - Math.pow(1 - x, 3),
+        eio = (x) => (x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+      const back = (x) => {
+        const c = 1.9;
+        return x <= 0 ? 0 : 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2);
+      };
+      const inr = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
+      const ACC = '#7A5AF8',
+        BG = '#0C0B14';
+      const ic = (d, c, s = 24, w = 2.2) =>
+        `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${c}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"><path d="${d}"/></svg>`;
+      const MIC =
+          'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
+        PLUS = 'M12 5v14M5 12h14',
+        CLOCK = 'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+        CHECK = 'M5 12.5l4.5 4.5L19 7.5',
+        CAMERA = 'M4 8h3l1.5-2h7L17 8h3v11H4zM12 16.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
+        PEN = 'M4 20l4-1 11-11-3-3L5 16zM14 6l3 3',
+        FOOD = 'M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 3c-2 2-2.5 6 0 8v10',
+        CAR = 'M5 16V11l2-5h10l2 5v5M3 16h18M7.5 16.5v2M16.5 16.5v2',
+        BAG = 'M6 8h12l1 12H5zM9 8V6a3 3 0 0 1 6 0v2',
+        SCAN = 'M4 8V5h3M17 5h3v3M20 16v3h-3M7 19H4v-3M4 12h16';
+
+      // Kinetic headline: each word slams up out of its own mask, staggered.
+      function head(t, at, lines, x, y, size, hi = []) {
+        let i = 0;
+        return `<div class="abs h" style="left:${x}px;top:${y}px;font-size:${size}px">${lines
+          .map(
+            (l) =>
+              `<span class="line">${l
+                .split(' ')
+                .map((w) => {
+                  const k = back(seg(t, at + 0.06 * i++, 0.42));
+                  const on = hi.includes(w);
+                  return `<span style="transform:translateY(${(1 - Math.min(k, 1)) * 110}%) rotate(${(1 - Math.min(k, 1)) * 6}deg);color:${on ? ACC : '#fff'};margin-right:.22em">${w}</span>`;
+                })
+                .join('')}</span>`,
+          )
+          .join('')}</div>`;
+      }
+      const sub = (t, at, s, x, y) => {
+        const k = eo(seg(t, at, 0.4));
+        return `<div class="abs" style="left:${x}px;top:${y + (1 - k) * 20}px;opacity:${k};font-size:34px;font-weight:500;color:#B9B5D6;max-width:900px;line-height:1.35">${s}</div>`;
+      };
+      // A finger press: a ring that spreads from the point.
+      const press = (t, at, x, y) => {
+        const p = seg(t, at, 0.5);
+        if (p <= 0 || p >= 1) return '';
+        return `<div class="abs" style="left:${x}px;top:${y}px;width:${40 + p * 120}px;height:${40 + p * 120}px;transform:translate(-50%,-50%);border-radius:50%;border:5px solid ${ACC};opacity:${1 - p}"></div><div class="abs" style="left:${x}px;top:${y}px;width:56px;height:56px;transform:translate(-50%,-50%) scale(${1 - 0.2 * Math.sin(Math.PI * p)});border-radius:50%;background:rgba(255,255,255,.35);border:3px solid #fff;opacity:${1 - seg(t, at + 0.3, 0.2)}"></div>`;
+      };
+      // A circle of accent that floods out from a point and drains, behind the device.
+      const flood = (t, at, x, y) => {
+        const p = seg(t, at, 0.7);
+        if (p <= 0 || p >= 1) return '';
+        const r = eo(p) * 1500;
+        return `<div class="abs" style="left:${x - r}px;top:${y - r}px;width:${2 * r}px;height:${2 * r}px;border-radius:50%;background:${ACC};opacity:${0.9 * (1 - eio(p))}"></div>`;
+      };
+      // A tilted accent slab sweeping behind each scene.
+      const slab = (t, at, y, rot = -12) => {
+        const k = eio(seg(t, at, 0.7));
+        return `<div class="abs" style="left:${-400 + (1 - k) * 2600}px;top:${y}px;width:3000px;height:300px;background:${ACC};opacity:.16;transform:rotate(${rot}deg)"></div>`;
+      };
+
+      // Whip-pan between scenes: the old one smears off left, the new one in from the right.
+      const sceneAt = (t) => {
+        let s = SCENES[0];
+        for (const x of SCENES) if (t >= x[0]) s = x;
+        return s[1];
+      };
+      // Whip-pan between scenes: the old one smears off left, the new one in from the right.
+      const WHIP = 0.22;
+      function FILM(t) {
+        const cuts = [...SCENES.slice(1).map((s) => s[0]), DUR];
+        for (const c of cuts) {
+          if (t >= c - WHIP / 2 && t < c + WHIP / 2) {
+            const k = eio(seg(t, c - WHIP / 2, WHIP)),
+              blur = Math.sin(Math.PI * k) * 26;
+            const prev = sceneAt(c - 0.001)(c - WHIP / 2),
+              next = c === DUR ? SCENES[0][1](0) : sceneAt(c)(c + WHIP / 2);
+            return `<div class="scene" style="transform:translateX(${-k * 1920}px);filter:blur(${blur}px)">${prev}</div><div class="scene" style="transform:translateX(${(1 - k) * 1920}px);filter:blur(${blur}px)">${next}</div>`;
+          }
+        }
+        return `<div class="scene">${sceneAt(t)(t)}</div>`;
+      }
+      window.seek = (t) => {
+        document.getElementById('stage').innerHTML = FILM(t);
+      };
+      // Only known film scripts load: the URL picks a key, the path is a constant.
+      const FILMS = new Map([
+        ['wearables', 'wearables.js'],
+        ['agents', 'agents.js'],
+      ]);
+      const src = FILMS.get(new URLSearchParams(location.search).get('film') ?? '');
+      if (src) {
+        const el = document.createElement('script');
+        el.src = src;
+        el.onload = () =>
+          document.fonts.ready.then(() => {
+            window.seek(0);
+            window.ready = true;
+          });
+        document.head.append(el);
+      }
+    </script>
+  </body>
+</html>

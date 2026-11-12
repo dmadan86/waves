@@ -1,5 +1,6 @@
 import type { Dictionary } from '@/i18n/dictionaries';
 import { Check, Mic, Plus } from './icons';
+import { LazyVideo } from './lazy-video';
 import { Kicker } from './ui';
 
 type T = Dictionary['wearables'];
@@ -269,6 +270,10 @@ export function WearablesBand({ t }: { t: T }) {
               <Chip key={c.id} kind={c.id} label={c.label} status={c.status} t={t} />
             ))}
           </ul>
+        </div>
+
+        <div className="mt-5">
+          <LazyVideo name="home-wearables" label={t.videoLabel} />
         </div>
 
         <div className="mt-5 grid items-start gap-4 lg:grid-cols-[1.25fr_1fr] lg:gap-5">

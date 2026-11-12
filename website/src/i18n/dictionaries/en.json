@@ -399,7 +399,8 @@
         ],
         "link": ""
       }
-    ]
+    ],
+    "videoLabel": "Video: someone asks their AI assistant to add a ₹2,400 cab to Goa Trip split equally, asks who owes them, and asks to settle up with Arjun. Waves records each one; paying stays in their own UPI app."
   },
   "mcpPage": {
     "metaTitle": "Connect an AI agent to Waves (MCP)",
@@ -785,7 +786,8 @@
       "A voice add that needs a decision, like a split or someone else paying, is saved for review instead of guessed.",
       "The widgets are shortcuts. They do not show balances, and they work with the app’s own screens."
     ],
-    "soonNote": "Wear OS is on its way and not released yet."
+    "soonNote": "Wear OS is on its way and not released yet.",
+    "videoLabel": "Video: on Apple Watch someone says “Auto 120” and it is added, dials ₹450 with the Digital Crown, and checks the recent list. Then Waves widgets on a home screen: tapping Food opens quick add with Food chosen."
   },
   "companies": {
     "eyebrow": "Waves for companies",
