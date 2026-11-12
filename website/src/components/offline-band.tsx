@@ -66,14 +66,17 @@ export function OfflineBand({ t }: { t: Dictionary['offline'] }) {
                 ))}
               </ul>
             </div>
-            <div className="flex items-start gap-3 rounded-2xl bg-accent-wash p-4">
-              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink">
-                <Mic className="h-[1.1rem] w-[1.1rem]" />
-              </span>
-              <div>
-                <p className="text-[0.92rem] font-semibold text-ink">{t.voiceTitle}</p>
-                <p className="mt-1 text-[0.86rem] leading-[1.55] text-ink-2">{t.voiceBody}</p>
+            <div className="space-y-4">
+              <div className="flex items-start gap-3 rounded-2xl bg-accent-wash p-4">
+                <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink">
+                  <Mic className="h-[1.1rem] w-[1.1rem]" />
+                </span>
+                <div>
+                  <p className="text-[0.92rem] font-semibold text-ink">{t.voiceTitle}</p>
+                  <p className="mt-1 text-[0.86rem] leading-[1.55] text-ink-2">{t.voiceBody}</p>
+                </div>
               </div>
+              <LazyVideo name="home-offline-voice" label={t.voiceVideoLabel} />
             </div>
           </div>
         </div>
