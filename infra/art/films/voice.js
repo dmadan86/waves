@@ -14,8 +14,13 @@ const MIC = 'M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3zM5 11a7 7 0 0 0
   PHONE = 'M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1zM11 18h2';
 
 // Signal bars stay hollow the whole film: nothing here needs the network.
-const signal = `<div class="abs" style="left:283px;top:17px;display:flex;gap:2px;align-items:flex-end;z-index:31">${[5, 8, 11, 14]
-  .map((h) => `<i style="width:3px;height:${h}px;border-radius:1px;box-shadow:inset 0 0 0 1.2px #B9B7C8"></i>`)
+const signal = `<div class="abs" style="left:283px;top:17px;display:flex;gap:2px;align-items:flex-end;z-index:31">${[
+  5, 8, 11, 14,
+]
+  .map(
+    (h) =>
+      `<i style="width:3px;height:${h}px;border-radius:1px;box-shadow:inset 0 0 0 1.2px #B9B7C8"></i>`,
+  )
   .join('')}</div>`;
 
 function status(t) {

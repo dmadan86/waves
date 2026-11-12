@@ -22,7 +22,9 @@ const sentN = (t) => T.sent.filter((a) => t >= a).length;
 // Signal bars at the top of the screen: hollow while offline, filling back in.
 function signal(t) {
   const k = seg(t, T.online, 0.5);
-  return `<div class="abs" style="left:283px;top:17px;display:flex;gap:2px;align-items:flex-end;z-index:31">${[5, 8, 11, 14]
+  return `<div class="abs" style="left:283px;top:17px;display:flex;gap:2px;align-items:flex-end;z-index:31">${[
+    5, 8, 11, 14,
+  ]
     .map((h, i) => {
       const on = k > i / 4;
       return `<i style="width:3px;height:${h}px;border-radius:1px;background:${on ? INK : 'transparent'};box-shadow:inset 0 0 0 1.2px ${on ? INK : '#B9B7C8'}"></i>`;
@@ -52,11 +54,19 @@ function pill(t, r) {
 function others(t) {
   const k = eo(seg(t, T.synced + 1.1, 0.4));
   if (k <= 0) return '';
-  const who = [['Ravi', '#F59E0B'], ['Asha', '#10B981'], ['Dev', '#3B82F6']];
+  const who = [
+    ['Ravi', '#F59E0B'],
+    ['Asha', '#10B981'],
+    ['Dev', '#3B82F6'],
+  ];
   return `<div class="card" style="margin-top:12px;margin-right:62px;padding:12px 14px;opacity:${k};transform:translateY(${(1 - k) * 16}px)">
     <div style="font-size:12px;font-weight:700">Same on everyone's phone</div>
-    <div style="display:flex;gap:10px;margin-top:9px">${who.map(([n, c], i) => { const on = t >= T.synced + 1.5 + i * 0.35;
-      return `<span style="display:flex;align-items:center;gap:6px"><span style="position:relative;width:30px;height:30px;border-radius:15px;background:${c};color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center">${n[0]}<span style="position:absolute;right:-4px;bottom:-4px;width:15px;height:15px;border-radius:8px;background:${on ? POS : '#D9D6E8'};border:2px solid #fff;display:flex;align-items:center;justify-content:center">${on ? ic(CHECK, '#fff', 9, 3.5) : ''}</span></span></span>`; }).join('')}</div></div>`;
+    <div style="display:flex;gap:10px;margin-top:9px">${who
+      .map(([n, c], i) => {
+        const on = t >= T.synced + 1.5 + i * 0.35;
+        return `<span style="display:flex;align-items:center;gap:6px"><span style="position:relative;width:30px;height:30px;border-radius:15px;background:${c};color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center">${n[0]}<span style="position:absolute;right:-4px;bottom:-4px;width:15px;height:15px;border-radius:8px;background:${on ? POS : '#D9D6E8'};border:2px solid #fff;display:flex;align-items:center;justify-content:center">${on ? ic(CHECK, '#fff', 9, 3.5) : ''}</span></span></span>`;
+      })
+      .join('')}</div></div>`;
 }
 
 function screen(t) {
@@ -110,7 +120,14 @@ function FILM(t) {
       [T.add[0] + 0.3, T.online, (x) => `${added(x)} waiting`],
       [T.sent[0], T.synced, (x) => `${sentN(x)} of 3 sent`],
       [T.synced + 0.3, T.synced + 1.4, (x) => count(x, T.synced + 0.2, 0.8, 555)],
-      [T.synced + 1.5, 99, (x) => { const n = Math.max(1, T.sent.filter((_, i) => x >= T.synced + 1.5 + i * 0.35).length); return `${n} friend${n > 1 ? 's' : ''}`; }],
+      [
+        T.synced + 1.5,
+        99,
+        (x) => {
+          const n = Math.max(1, T.sent.filter((_, i) => x >= T.synced + 1.5 + i * 0.35).length);
+          return `${n} friend${n > 1 ? 's' : ''}`;
+        },
+      ],
     ]) +
     phone(scr)
   );
