@@ -124,7 +124,7 @@ describe('materialise clients and follow-up links', () => {
       clientMutationId: `m${n}`,
       kind,
       groupId: 'g',
-      clientCreatedAt: '2026-11-11T00:00:00Z',
+      clientCreatedAt: new Date().toISOString(), // fresh: a day-old edit is a stale overlay
       payload,
       seq: n,
       attempts: 0,

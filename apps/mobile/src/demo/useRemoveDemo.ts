@@ -9,6 +9,7 @@ import { useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 
 import { removeDemo } from './store';
+import { saveDemoStateToAccount } from './useDemoActive';
 import { runRemoveDemo } from './removeDemoPure';
 
 /** Returns whether the demo was actually removed — `false` on cancel, or
@@ -29,7 +30,10 @@ export function useRemoveDemo(onConfirmed?: () => void): () => Promise<boolean> 
           tone: 'danger',
         }),
       onConfirmed,
-      () => removeDemo(viewerId),
+      () => {
+        saveDemoStateToAccount('removed');
+        return removeDemo(viewerId);
+      },
     );
   };
 }

@@ -54,7 +54,7 @@ const emit = (): void => {
   for (const listener of listeners) listener();
 };
 
-function parse(raw: string | null): DemoState | null {
+export function parse(raw: string | null): DemoState | null {
   return raw === 'active' || raw === 'skipped' || raw === 'removed' ? raw : null;
 }
 
@@ -83,6 +83,9 @@ async function writeState(ownerId: string, state: DemoState): Promise<void> {
 export async function ensureDemoDecision(
   ownerId: string,
   isNewAccount: boolean,
+  /** The decision saved on the account (user metadata), if any. It wins over
+   *  this phone's copy, so a new phone never re-decides for an old account. */
+  accountState: unknown = null,
 ): Promise<DemoState> {
   const known = cache.get(ownerId);
   if (known) return known;
@@ -90,11 +93,10 @@ export async function ensureDemoDecision(
   let pending = resolving.get(ownerId);
   if (!pending) {
     pending = (async () => {
-      let state = await readState(ownerId);
-      if (state === null) {
-        state = isNewAccount ? 'active' : 'skipped';
-        await writeState(ownerId, state);
-      }
+      const local = await readState(ownerId);
+      let state = parse(typeof accountState === 'string' ? accountState : null) ?? local;
+      if (state === null) state = isNewAccount ? 'active' : 'skipped';
+      if (state !== local) await writeState(ownerId, state);
       cache.set(ownerId, state);
       resolving.delete(ownerId);
       emit();
