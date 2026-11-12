@@ -642,7 +642,9 @@
       "Choose to sync on Wi‑Fi only, mobile data, or both."
     ],
     "voiceTitle": "Voice works offline too",
-    "voiceBody": "Download a speech language once in Offline voice settings and the mic works with no connection. Basic voice runs on your phone; whether a language is available offline depends on your phone’s speech service."
+    "voiceBody": "Download a speech language once in Offline voice settings and the mic works with no connection. Basic voice runs on your phone; whether a language is available offline depends on your phone’s speech service.",
+    "videoLabel": "Video: with no signal, three expenses are saved on the phone and wait. When the signal returns they are sent in order and the balance updates on every friend’s phone.",
+    "voiceVideoLabel": "Video: with no signal, someone taps the mic and says “Dinner eighteen hundred, split with four”. The phone understands it on its own, and the expense is saved to sync later."
   },
   "voice": {
     "eyebrow": "AI voice",

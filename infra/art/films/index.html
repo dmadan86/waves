@@ -61,6 +61,8 @@ window.seek = seek;
 const FILMS = new Map([
   ['allowance', 'allowance.js'],
   ['transactions', 'transactions.js'],
+  ['sync', 'sync.js'],
+  ['voice', 'voice.js'],
 ]);
 const src = FILMS.get(new URLSearchParams(location.search).get('film') ?? '');
 if (src) {

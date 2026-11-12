@@ -11,10 +11,10 @@ import { fileURLToPath } from 'node:url';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
 const [film, flag] = process.argv.slice(2);
-const NAMES = { allowance: 'companies-allowance', transactions: 'personal-transactions' };
+const NAMES = { allowance: 'companies-allowance', transactions: 'personal-transactions', sync: 'home-offline-sync', voice: 'home-offline-voice' };
 const name = NAMES[film];
 if (!name) throw new Error(`unknown film: ${film}`);
-const FPS = 30, DUR = 8, POSTER = { allowance: 6.8, transactions: 1.6 }[film];
+const FPS = 30, DUR = 8, POSTER = { allowance: 6.8, transactions: 1.6, sync: 6.4, voice: 4.2 }[film];
 
 const browser = await chromium.launch({ executablePath: process.env.CHROME || undefined });
 const page = await browser.newPage({ viewport: { width: 1080, height: 1080 } });
