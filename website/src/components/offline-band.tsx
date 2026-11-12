@@ -1,5 +1,6 @@
 import type { Dictionary } from '@/i18n/dictionaries';
-import { ArrowRight, Check, Cloud, CloudOff, Cup, Mic, Mountain, Plane } from './icons';
+import { Check, Cup, Mic, Mountain, Plane } from './icons';
+import { LazyVideo } from './lazy-video';
 import { Kicker } from './ui';
 
 const scenarioIcons = [Plane, Mountain, Cup];
@@ -9,8 +10,8 @@ const scenarioIcons = [Plane, Mountain, Cup];
  * entry is written to the phone's queue and shown at once, the sync engine sends
  * the queue in order when the network is back, a refusal stays visible with
  * retry or discard, and receipt photos wait in their own upload queue. The
- * picture is CSS and text only, and static: the two chips are the app's two
- * states, not an animation.
+ * film (infra/art/films/sync.js) shows that story: saved while offline, sent in
+ * order when the signal returns, then the same balance on every phone.
  */
 export function OfflineBand({ t }: { t: Dictionary['offline'] }) {
   return (
@@ -50,70 +51,7 @@ export function OfflineBand({ t }: { t: Dictionary['offline'] }) {
               </ul>
             </div>
 
-            <div className="rounded-3xl bg-bg p-3 shadow-[var(--w-shadow-sm)] sm:p-4">
-              <p className="px-1 text-[0.8rem] font-semibold text-ink">{t.demoTitle}</p>
-
-              <div className="mt-2.5 rounded-2xl bg-surface p-3 shadow-[var(--w-shadow-sm)]">
-                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-                  <span className="inline-flex items-center gap-1.5 text-[0.76rem] text-ink-3">
-                    <CloudOff className="h-4 w-4" />
-                    {t.offlineCaption}
-                  </span>
-                  <span className="inline-flex h-7 items-center rounded-full bg-chip px-3 text-[0.76rem] font-semibold text-ink-2 ring-1 ring-line-strong ring-inset">
-                    <span className="me-1.5 h-1.5 w-1.5 rounded-full bg-ink-3" aria-hidden="true" />
-                    {t.chipOffline}
-                  </span>
-                </div>
-                <ul className="mt-2.5 divide-y divide-divider">
-                  {t.items.map((item) => (
-                    <li key={item.title} className="flex items-center gap-3 py-2">
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[0.88rem] font-medium text-ink">
-                          {item.title}
-                        </span>
-                        <span className="block truncate text-[0.74rem] text-ink-3">
-                          {item.meta}
-                        </span>
-                      </span>
-                      <bdi className="text-[0.88rem] font-semibold text-ink tabular-nums">
-                        {item.amount}
-                      </bdi>
-                      <span className="inline-flex h-6 shrink-0 items-center rounded-full border border-dashed border-line-strong px-2 text-[0.68rem] font-medium text-ink-3">
-                        {t.waiting}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="flex justify-center py-1.5 text-accent">
-                <ArrowRight className="h-5 w-5 rotate-90" />
-              </div>
-
-              <div className="rounded-2xl bg-surface p-3 shadow-[var(--w-shadow-sm)]">
-                <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-                  <span className="inline-flex items-center gap-1.5 text-[0.76rem] text-ink-3">
-                    <Cloud className="h-4 w-4" />
-                    {t.syncedCaption}
-                  </span>
-                  <span className="inline-flex h-7 items-center rounded-full bg-accent px-3 text-[0.76rem] font-semibold text-accent-ink">
-                    <Check className="me-1 h-3.5 w-3.5" />
-                    {t.chipSynced}
-                  </span>
-                </div>
-                <div className="mt-2.5 flex items-center justify-between gap-3 rounded-xl bg-accent-wash px-3 py-2.5">
-                  <span className="min-w-0">
-                    <span className="block text-[0.88rem] font-medium text-ink">
-                      {t.balanceLabel}
-                    </span>
-                    <span className="block text-[0.74rem] text-ink-2">{t.balanceNote}</span>
-                  </span>
-                  <bdi className="text-[1.1rem] font-bold text-accent tabular-nums">
-                    {t.balanceAmount}
-                  </bdi>
-                </div>
-              </div>
-            </div>
+            <LazyVideo name="home-offline-sync" label={t.videoLabel} />
           </div>
 
           <div className="mt-6 grid gap-5 border-t border-line/70 pt-4 lg:grid-cols-2 lg:gap-10">
