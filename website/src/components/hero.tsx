@@ -33,14 +33,14 @@ function Member({
       style={{ left: `${x}%`, top: `${y}%` }}
     >
       <span
-        className="grid h-7 w-7 place-items-center rounded-full text-[0.8rem] font-semibold text-white sm:h-8 sm:w-8"
+        className="grid h-7 w-7 place-items-center rounded-full text-[0.8rem] font-semibold text-[#1B1530] sm:h-8 sm:w-8"
         style={{ background: tone }}
       >
         {name.slice(0, 1)}
       </span>
       {name}
       <span
-        className={`hidden rounded-full px-2 py-0.5 font-mono sm:inline text-[0.68rem] ${chip[chipTone]}`}
+        className={`${chipTone === 'owes' ? 'inline' : 'hidden sm:inline'} rounded-full px-2 py-0.5 font-mono text-[0.68rem] ${chip[chipTone]}`}
       >
         {status}
       </span>
@@ -150,7 +150,7 @@ export function Hero({
             <p className="mt-2.5 text-[0.75rem] text-[#5B546F] sm:text-[0.82rem]">{o.meta}</p>
           </div>
 
-          <Member name={asha} tone="#7A5AF8" chipTone="settled" status={o.settled} x={50} y={8} />
+          <Member name={asha} tone="#C4B5FD" chipTone="settled" status={o.settled} x={50} y={8} />
           <Member name={o.you} tone="#FF7A59" chipTone="paid" status={o.paid} x={81} y={22} />
           <Member name={ravi} tone="#F5B544" chipTone="owes" status={o.owes} x={29} y={84} />
           <Member name={meera} tone="#10B981" chipTone="settled" status={o.settled} x={19} y={22} />
