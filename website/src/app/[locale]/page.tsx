@@ -102,7 +102,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <SiteHeader locale={locale} nav={t.nav} appUrl={site.appUrl} />
+      <SiteHeader locale={locale} nav={t.nav} appUrl={site.appUrl} onDark />
 
       {/* The skip link targets this, so it has to be able to take focus —
           without the tabindex the jump lands on <body> and nothing changes. */}
