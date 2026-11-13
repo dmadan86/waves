@@ -36,7 +36,7 @@ jobs:
         run: |
           echo "${{ steps.revalidate.outcome }}" > outcome.txt
           [ -f report.md ] || echo "_The script produced no report._" > report.md
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.2
         with:
           name: revalidation-report
           path: |
