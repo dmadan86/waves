@@ -259,7 +259,7 @@ export function WearablesBand({ t }: { t: T }) {
             <Kicker>{t.eyebrow}</Kicker>
             <h2
               id="wearables-title"
-              className="mt-1.5 text-balance text-[1.5rem] leading-[1.15] font-bold tracking-[-0.02em] text-ink sm:text-[1.9rem]"
+              className="display mt-1.5 text-balance text-[2rem] text-ink sm:text-[2.6rem]"
             >
               {t.title}
             </h2>

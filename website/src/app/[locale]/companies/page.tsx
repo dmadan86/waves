@@ -144,7 +144,7 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
             <div className="grid items-center gap-8 lg:grid-cols-[1.15fr_1fr]">
               <div className="min-w-0">
                 <Kicker>{p.eyebrow}</Kicker>
-                <h1 className="mt-2.5 text-balance text-[2rem] leading-[1.08] font-bold tracking-[-0.035em] text-ink sm:text-[2.8rem]">
+                <h1 className="display mt-2.5 text-balance text-[2rem] text-ink sm:text-[2.8rem]">
                   {p.titleStart} <span className="text-accent">{p.titleAccent}</span>
                 </h1>
                 <p className="mt-3 max-w-xl text-pretty text-[0.98rem] leading-[1.6] text-ink-2">

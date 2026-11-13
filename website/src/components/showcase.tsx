@@ -10,10 +10,7 @@ export function Showcase({ t }: { t: Dictionary['showcase'] }) {
       <div className="mx-auto grid w-full max-w-[73rem] items-center gap-6 px-5 sm:px-8 lg:grid-cols-[0.85fr_1.35fr]">
         <div>
           <Kicker>{t.eyebrow}</Kicker>
-          <h2
-            id="showcase-title"
-            className="mt-3 text-[2.6rem] leading-[1.06] font-bold tracking-[-0.035em] text-ink sm:text-[3.1rem]"
-          >
+          <h2 id="showcase-title" className="display mt-3 text-[2.8rem] text-ink sm:text-[3.4rem]">
             {t.title.map((line) => (
               <span key={line} className="block">
                 {line}

@@ -87,12 +87,9 @@ export function generateStaticParams() {
 }
 
 export const viewport: Viewport = {
-  /* The browser chrome follows the page, both ways round. */
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fafaf9' },
-    { media: '(prefers-color-scheme: dark)', color: '#0d0e10' },
-  ],
-  colorScheme: 'light dark',
+  /* Orbit is dark by default; the light theme is an opt-in from the header. */
+  themeColor: '#0e0b2a',
+  colorScheme: 'dark light',
 };
 
 export async function generateMetadata({

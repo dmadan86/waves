@@ -106,63 +106,34 @@
     --w-shadow-lg: 0 20px 50px rgb(25 18 50 / 0.13), 0 0 0 1px rgb(25 18 50 / 0.06);
   }
 
-  :root:not(.theme-light) {
-    @media (prefers-color-scheme: dark) {
-      color-scheme: dark;
-      --w-bg: #111016;
-      --w-paper: #121018;
-      --w-surface: #1c1924;
-      --w-chip: #1d1928;
-      --w-raise: #262130;
-      --w-line: #2d2738;
-      --w-line-strong: #463d55;
-      --w-divider: #241f2e;
-      --w-ink: #f4f0fa;
-      --w-ink-2: #b4adbf;
-      --w-ink-3: #8b8399;
-      --w-ink-inv: #0c0a11;
-      --w-accent: #a994ff;
-      --w-accent-ink: #171126;
-      --w-accent-wash: #251d42;
-      --w-blue: #a994ff;
-      --w-art-blend: normal;
-      --w-art-plate: #f6f3fb;
-      --w-shadow-card: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.05);
-      --w-up: #a994ff;
-      --w-down: #ff8aa0;
-      --w-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.06);
-      --w-shadow-md: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.06);
-      --w-shadow-lg: 0 28px 64px rgb(0 0 0 / 0.46), 0 0 0 1px rgb(255 255 255 / 0.07);
-    }
-  }
-
-  :root.theme-dark,
+  /* Orbit (website/design.md) is the default look; .theme-light opts back into the old one. */
+  :root:not(.theme-light),
   .on-dark {
     color-scheme: dark;
-    --w-bg: #111016;
-    --w-paper: #121018;
-    --w-surface: #1c1924;
-    --w-chip: #1d1928;
-    --w-raise: #262130;
-    --w-line: #2d2738;
-    --w-line-strong: #463d55;
-    --w-divider: #241f2e;
-    --w-ink: #f4f0fa;
-    --w-ink-2: #b4adbf;
-    --w-ink-3: #8b8399;
-    --w-ink-inv: #0c0a11;
-    --w-accent: #a994ff;
-    --w-accent-ink: #171126;
-    --w-accent-wash: #251d42;
-    --w-blue: #a994ff;
+    --w-bg: #0e0b2a;
+    --w-paper: #120e35;
+    --w-surface: #1a1446;
+    --w-chip: #221b52;
+    --w-raise: #2a2260;
+    --w-line: #2e2766;
+    --w-line-strong: #463d85;
+    --w-divider: #241d55;
+    --w-ink: #f6f4ff;
+    --w-ink-2: #c9c3e6;
+    --w-ink-3: #9c95c2;
+    --w-ink-inv: #1b1530;
+    --w-accent: #ff7a59;
+    --w-accent-ink: #1b1530;
+    --w-accent-wash: #2b2163;
+    --w-blue: #c4b5fd;
     --w-art-blend: normal;
-    --w-art-plate: #f6f3fb;
-    --w-shadow-card: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.05);
-    --w-up: #a994ff;
-    --w-down: #ff8aa0;
-    --w-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.06);
-    --w-shadow-md: 0 12px 30px rgb(0 0 0 / 0.35), 0 0 0 1px rgb(255 255 255 / 0.06);
-    --w-shadow-lg: 0 28px 64px rgb(0 0 0 / 0.46), 0 0 0 1px rgb(255 255 255 / 0.07);
+    --w-art-plate: #fbfaff;
+    --w-shadow-card: 0 14px 34px rgb(5 3 20 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.06);
+    --w-up: #6ee7b7;
+    --w-down: #ffb199;
+    --w-shadow-sm: 0 1px 2px rgb(5 3 20 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.07);
+    --w-shadow-md: 0 14px 34px rgb(5 3 20 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.07);
+    --w-shadow-lg: 0 30px 70px rgb(5 3 20 / 0.55), 0 0 0 1px rgb(255 255 255 / 0.08);
   }
 
   html {
@@ -174,7 +145,7 @@
 
   body {
     background:
-      radial-gradient(circle at 12% -6%, rgb(122 90 248 / 0.08), transparent 30rem), var(--w-bg);
+      radial-gradient(circle at 85% 0%, rgb(122 90 248 / 0.14), transparent 40rem), var(--w-bg);
     color: var(--w-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
@@ -443,9 +414,10 @@
 @layer components {
   /* Display headings: medium weight, tight tracking, violet emphasis. */
   .display {
-    font-weight: 600;
-    letter-spacing: -0.045em;
-    line-height: 1.02;
+    font-family: var(--font-display);
+    font-weight: 200;
+    letter-spacing: -0.03em;
+    line-height: 1.04;
   }
   [lang='ar'] .display,
   [lang='hi'] .display,

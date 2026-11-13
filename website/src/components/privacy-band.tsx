@@ -28,7 +28,7 @@ export function PrivacyBand({ t, locale }: { t: Dictionary['privacy']; locale: L
                 <Kicker>{t.eyebrow}</Kicker>
                 <h2
                   id="security-title"
-                  className="mt-1.5 text-[1.5rem] font-bold tracking-[-0.02em] text-ink sm:text-[1.7rem]"
+                  className="display mt-1.5 text-[2rem] text-ink sm:text-[2.4rem]"
                 >
                   {t.title}
                 </h2>
