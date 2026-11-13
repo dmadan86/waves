@@ -9,7 +9,7 @@
     "@formatjs/intl-getcanonicallocales": "^3.3.0",
     "@formatjs/intl-locale": "^5.4.2",
     "@formatjs/intl-pluralrules": "^6.3.16",
-    "@formatjs/intl-relativetimeformat": "^12.3.16",
+    "@formatjs/intl-relativetimeformat": "^13.0.3",
     "@microsoft/react-native-clarity": "^4.9.2",
     "@noble/ciphers": "^2.4.0",
     "@react-native-async-storage/async-storage": "3.1.1",
