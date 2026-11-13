@@ -3,6 +3,7 @@
 @theme {
   --font-sans: var(--font-grotesk), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: var(--font-plex), ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-display: var(--font-onest), var(--font-sans);
   --font-pixel: var(--font-departure), var(--font-plex), ui-monospace, monospace;
 
   --radius-xs: 6px;
@@ -27,7 +28,11 @@
   --color-brand-700: #5638c4;
   --color-brand-800: #4326a6;
   --color-brand-900: #2e1e6b;
+}
 
+/* Inline, so utilities read --w-* where they are used: an .on-dark subtree
+   (the Orbit hero, website/design.md) can then swap the tokens locally. */
+@theme inline {
   --color-bg: var(--w-bg);
   --color-paper: var(--w-paper);
   --color-surface: var(--w-surface);
@@ -131,7 +136,8 @@
     }
   }
 
-  :root.theme-dark {
+  :root.theme-dark,
+  .on-dark {
     color-scheme: dark;
     --w-bg: #111016;
     --w-paper: #121018;
@@ -176,15 +182,18 @@
   }
 
   [lang='ar'] body,
-  [lang='ar'] .font-sans {
+  [lang='ar'] .font-sans,
+  [lang='ar'] .font-display {
     font-family: var(--font-arabic), var(--font-sans);
   }
   [lang='hi'] body,
-  [lang='hi'] .font-sans {
+  [lang='hi'] .font-sans,
+  [lang='hi'] .font-display {
     font-family: var(--font-devanagari), var(--font-sans);
   }
   [lang='ta'] body,
-  [lang='ta'] .font-sans {
+  [lang='ta'] .font-sans,
+  [lang='ta'] .font-display {
     font-family: var(--font-tamil), var(--font-sans);
   }
 
@@ -445,10 +454,10 @@
     line-height: 1.22;
     font-weight: 700;
   }
-  .hero-glow {
-    background:
-      radial-gradient(closest-side, rgb(122 90 248 / 0.28), transparent 72%),
-      radial-gradient(closest-side at 70% 30%, rgb(249 115 22 / 0.12), transparent 70%);
+  @media (prefers-reduced-motion: reduce) {
+    .orbit-spark {
+      display: none;
+    }
   }
   .ledger-rule {
     background-image: linear-gradient(to right, var(--w-line) 50%, transparent 0);

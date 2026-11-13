@@ -5,6 +5,7 @@ import {
   Noto_Sans_Arabic,
   Noto_Sans_Devanagari,
   Noto_Sans_Tamil,
+  Onest,
 } from 'next/font/google';
 import localFont from 'next/font/local';
 
@@ -44,6 +45,14 @@ const plex = IBM_Plex_Mono({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
   variable: '--font-plex',
+  display: 'swap',
+});
+
+// Orbit display face: thin headlines on the dark hero (website/design.md).
+const onest = Onest({
+  subsets: ['latin'],
+  weight: ['200', '300'],
+  variable: '--font-onest',
   display: 'swap',
 });
 
@@ -144,7 +153,7 @@ export default async function LocaleLayout({
     <html
       lang={htmlLang[locale]}
       dir={dirFor(locale)}
-      className={`${grotesk.variable} ${departure.variable} ${plex.variable} ${scriptFont[locale]}`}
+      className={`${grotesk.variable} ${departure.variable} ${plex.variable} ${onest.variable} ${scriptFont[locale]}`}
       suppressHydrationWarning
     >
       <head>

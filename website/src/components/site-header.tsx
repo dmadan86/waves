@@ -42,12 +42,15 @@ export function SiteHeader({
   nav,
   appUrl,
   anchorBase = '',
+  onDark = false,
 }: {
   locale: Locale;
   nav: Nav;
   appUrl: string;
   /** Prefix for the in-page links, so a secondary page can point them at the home page. */
   anchorBase?: string;
+  /** The page opens on a dark hero: use the dark tokens until the bar detaches on scroll. */
+  onDark?: boolean;
 }) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -130,7 +133,7 @@ export function SiteHeader({
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-all duration-200 ${
           scrolled ? 'px-3 pt-3 sm:px-5 bg-transparent' : 'px-0 pt-0'
-        }`}
+        } ${onDark && !scrolled ? 'on-dark' : ''}`}
       >
         <div
           className={`mx-auto flex h-14 max-w-[73rem] items-center gap-3 px-5 transition-all sm:h-16 sm:px-8 ${

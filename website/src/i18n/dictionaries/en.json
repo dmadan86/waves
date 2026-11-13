@@ -40,8 +40,8 @@
   },
   "hero": {
     "eyebrow": "Expenses made simple",
-    "titleStart": "Split, track and settle",
-    "titleAccent": "together",
+    "titleStart": "Money between friends,",
+    "titleAccent": "without the awkward bit.",
     "subtitle": "Split bills with friends, keep your own money in order and run your team's expenses. Free to start, with 15 days of Pro on us.",
     "trust": ["New accounts get 15 days of Pro free", "No credit card required", "Works offline"],
     "alt": "Friends sharing a meal at a table by a lake at sunset",
@@ -76,7 +76,21 @@
       "replay": "Replay",
       "example": "Example"
     },
-    "ctaBusiness": "Running a business? See Waves for companies"
+    "ctaBusiness": "Running a business? See Waves for companies",
+    "orbit": {
+      "label": "Example group: Goa Trip, ₹12,480 shared by four people. Ravi owes you ₹555.",
+      "groupLabel": "Group",
+      "group": "Goa Trip",
+      "total": "₹12,480",
+      "meta": "4 people · 62% settled",
+      "you": "You",
+      "paid": "paid",
+      "owes": "owes ₹555",
+      "settled": "settled",
+      "invite": "+ invite by link",
+      "statementStart": "9 bills on a trip.",
+      "statementEnd": "2 transfers to settle."
+    }
   },
   "features": {
     "label": "What Waves does",
