@@ -273,7 +273,7 @@ export function WearablesBand({ t }: { t: T }) {
         </div>
 
         <div className="mt-5">
-          <LazyVideo name="home-wearables" label={t.videoLabel} />
+          <LazyVideo name="home-wearables" label={t.videoLabel} className="aspect-video" />
         </div>
 
         <div className="mt-5 grid items-start gap-4 lg:grid-cols-[1.25fr_1fr] lg:gap-5">

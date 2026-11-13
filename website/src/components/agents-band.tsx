@@ -49,7 +49,7 @@ export function AgentsBand({ t, locale }: { t: Dictionary['agents']; locale: Loc
           </div>
 
           <div className="mt-6">
-            <LazyVideo name="home-agents" label={t.videoLabel} />
+            <LazyVideo name="home-agents" label={t.videoLabel} className="aspect-video" />
           </div>
 
           <p className="mt-6 text-[0.75rem] font-semibold tracking-[0.1em] rtl:tracking-normal text-ink-3 uppercase">

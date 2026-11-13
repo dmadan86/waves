@@ -10,7 +10,7 @@ import {
 import localFont from 'next/font/local';
 
 import '../globals.css';
-import { dirFor, htmlLang, isLocale, locales, type Locale } from '@/i18n/config';
+import { dirFor, htmlLang, isLocale, locales, type Locale, ogLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, localeAlternates, site } from '@/lib/site';
 
@@ -116,7 +116,7 @@ export async function generateMetadata({
       title: t.meta.title,
       description: t.meta.description,
       url: absoluteUrl(`/${locale}`),
-      locale: htmlLang[locale],
+      locale: ogLocale[locale],
     },
     twitter: {
       card: 'summary_large_image',

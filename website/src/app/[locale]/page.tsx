@@ -113,13 +113,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <Steps t={t.how} />
         <Showcase t={t.showcase} />
         <Moments t={t.moments} />
+        <Pricing t={t.pricing} />
         <OfflineBand t={t.offline} />
         <VoiceBand t={t.voice} />
         <WearablesBand t={t.wearables} />
         <AgentsBand t={t.agents} locale={locale} />
         <PersonalBand t={t.personal} mock={t.personalMock} locale={locale} />
         <CompaniesBand t={t.companies} mock={t.companyMock} locale={locale} />
-        <Pricing t={t.pricing} />
         <PrivacyBand t={t.privacy} locale={locale} />
         <OpenSourceBand t={t.openSource} />
         <Faq t={t.faq} />

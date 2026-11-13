@@ -51,7 +51,7 @@ export function OfflineBand({ t }: { t: Dictionary['offline'] }) {
               </ul>
             </div>
 
-            <LazyVideo name="home-offline-sync" label={t.videoLabel} />
+            <LazyVideo name="home-offline-sync" label={t.videoLabel} className="aspect-square" />
           </div>
 
           <div className="mt-6 grid gap-5 border-t border-line/70 pt-4 lg:grid-cols-2 lg:gap-10">
@@ -76,7 +76,11 @@ export function OfflineBand({ t }: { t: Dictionary['offline'] }) {
                   <p className="mt-1 text-[0.86rem] leading-[1.55] text-ink-2">{t.voiceBody}</p>
                 </div>
               </div>
-              <LazyVideo name="home-offline-voice" label={t.voiceVideoLabel} />
+              <LazyVideo
+                name="home-offline-voice"
+                label={t.voiceVideoLabel}
+                className="aspect-square"
+              />
             </div>
           </div>
         </div>

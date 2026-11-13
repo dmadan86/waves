@@ -20,7 +20,7 @@ import {
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { Button, Container, Kicker } from '@/components/ui';
-import { htmlLang, isLocale, locales } from '@/i18n/config';
+import { htmlLang, isLocale, locales, ogLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, site } from '@/lib/site';
 
@@ -80,14 +80,16 @@ export async function generateMetadata({
       title: p.metaTitle,
       description: p.metaDescription,
       url,
-      locale: htmlLang[locale],
-      images: [{ url: absoluteUrl(`/${locale}/opengraph-image`), width: 1200, height: 630 }],
+      locale: ogLocale[locale],
+      images: [
+        { url: absoluteUrl(`/${locale}/personal/opengraph-image`), width: 1200, height: 630 },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
       title: p.metaTitle,
       description: p.metaDescription,
-      images: [absoluteUrl(`/${locale}/opengraph-image`)],
+      images: [absoluteUrl(`/${locale}/personal/opengraph-image`)],
     },
   };
 }
