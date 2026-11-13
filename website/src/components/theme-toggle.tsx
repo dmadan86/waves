@@ -54,7 +54,8 @@ const serverSnapshot = () => null;
 
 export function ThemeToggle({ label, names }: { label: string; names: Record<Choice, string> }) {
   const stored = useSyncExternalStore(subscribe, readStored, serverSnapshot);
-  const choice: Choice = stored ?? 'system';
+  // A stored 'dark' predates Orbit; it looks the same as the default, so treat it as that.
+  const choice: Choice = stored === 'light' ? 'light' : 'system';
 
   /*
    * A choice made in another tab arrives here as a `storage` event, which
