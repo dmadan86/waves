@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 
-import { htmlLang, locales, type Locale } from '@/i18n/config';
+import { htmlLang, locales, type Locale, ogLocale } from '@/i18n/config';
 
 /**
  * Everything about "where this site lives" in one place. The marketing site is
@@ -105,7 +105,7 @@ export function pageMetadata({
       title,
       description,
       url,
-      locale: htmlLang[locale],
+      locale: ogLocale[locale],
       images: [{ url: image, width: 1200, height: 630, alt: site.name }],
     },
     twitter: { card: 'summary_large_image', title, description, images: [image] },

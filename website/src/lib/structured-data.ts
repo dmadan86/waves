@@ -28,7 +28,8 @@ export const appNode = (opts: {
     name: site.name,
     applicationCategory: 'FinanceApplication',
     applicationSubCategory: 'Expense sharing',
-    operatingSystem: 'Android, iOS, Web',
+    // iOS is claimed only once the App Store listing exists (NEXT_PUBLIC_IOS_URL).
+    operatingSystem: site.iosUrl ? 'Android, iOS, Web' : 'Android, Web',
     description: opts.description,
     url: opts.url,
     ...(opts.inLanguage ? { inLanguage: opts.inLanguage } : {}),

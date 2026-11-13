@@ -58,7 +58,7 @@ export default async function PressPage({ params }: { params: Promise<{ locale: 
     <CompareShell t={t} jsonLd={jsonLd}>
       <article className="mx-auto max-w-3xl pt-4">
         <p className="text-xs font-semibold tracking-[0.18em] text-blue uppercase">Press kit</p>
-        <h1 className="mt-3 text-[clamp(2rem,4.5vw,3.25rem)] leading-[1.08] font-bold tracking-[-0.04em] text-ink">
+        <h1 className="display mt-3 text-[clamp(2rem,4.5vw,3.25rem)] text-ink">
           Writing about Waves?
         </h1>
         <p className="mt-4 text-base leading-relaxed text-ink-2">

@@ -271,7 +271,7 @@ export function CompareBody({
           <p className="text-xs font-semibold tracking-[0.18em] text-blue uppercase">
             Waves vs {c.name}
           </p>
-          <h1 className="mt-4 text-[clamp(2.5rem,5vw,4rem)] leading-[1.04] font-bold tracking-[-0.05em] text-ink">
+          <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
             <span className="sr-only">{h1}. </span>Split expenses. <br />
             <span className="text-blue">Not your freedom.</span>
           </h1>
@@ -355,7 +355,7 @@ export function CompareBody({
                 </th>
                 <th
                   scope="col"
-                  className="w-[36%] lg:w-[33%] rounded-t-xl bg-brand-50 px-4 py-4 text-start font-semibold text-ink lg:sticky lg:top-0 lg:z-10"
+                  className="w-[36%] lg:w-[33%] rounded-t-xl bg-accent-wash px-4 py-4 text-start font-semibold text-ink lg:sticky lg:top-0 lg:z-10"
                 >
                   <span className="flex items-center gap-2">
                     <WaveMark className="h-6 w-6" />
@@ -387,7 +387,7 @@ export function CompareBody({
                       {row.feature}
                     </th>
                     <td
-                      className={`bg-brand-50 px-4 py-4 break-words text-ink ${last ? 'rounded-b-xl' : 'border-b border-brand-100'}`}
+                      className={`bg-accent-wash px-4 py-4 break-words text-ink ${last ? 'rounded-b-xl' : 'border-b border-line'}`}
                     >
                       <Mark value={row.waves} />
                     </td>

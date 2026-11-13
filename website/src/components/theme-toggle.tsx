@@ -2,11 +2,12 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
 
-import { Moon, Sun, System } from './icons';
+import { Moon, Sun } from './icons';
 
 type Choice = 'light' | 'dark' | 'system';
 
-const order: Choice[] = ['system', 'light', 'dark'];
+// 'system' is the default Orbit look (dark by design, website/design.md), so the toggle is Orbit ↔ light.
+const order: Choice[] = ['system', 'light'];
 
 const KEY = 'waves-theme';
 
@@ -53,7 +54,8 @@ const serverSnapshot = () => null;
 
 export function ThemeToggle({ label, names }: { label: string; names: Record<Choice, string> }) {
   const stored = useSyncExternalStore(subscribe, readStored, serverSnapshot);
-  const choice: Choice = stored ?? 'system';
+  // A stored 'dark' predates Orbit; it looks the same as the default, so treat it as that.
+  const choice: Choice = stored === 'light' ? 'light' : 'system';
 
   /*
    * A choice made in another tab arrives here as a `storage` event, which
@@ -80,7 +82,8 @@ export function ThemeToggle({ label, names }: { label: string; names: Record<Cho
     for (const listener of listeners) listener();
   }, []);
 
-  const Icon = choice === 'light' ? Sun : choice === 'dark' ? Moon : System;
+  const Icon = choice === 'light' ? Sun : Moon;
+  const name = names[choice === 'light' ? 'light' : 'dark'];
   const next = order[(order.indexOf(choice) + 1) % order.length];
 
   return (
@@ -89,8 +92,8 @@ export function ThemeToggle({ label, names }: { label: string; names: Record<Cho
       onClick={() => apply(next)}
       // Until the stored choice is known the button announces the neutral
       // label rather than a state that may turn out to be wrong.
-      aria-label={stored ? `${label}: ${names[choice]}` : label}
-      title={stored ? `${label}: ${names[choice]}` : label}
+      aria-label={stored ? `${label}: ${name}` : label}
+      title={stored ? `${label}: ${name}` : label}
       className="inline-flex h-9 w-9 items-center justify-center rounded-md text-ink-2 transition-colors duration-150 hover:bg-chip hover:text-ink"
     >
       <Icon className="h-[1.05rem] w-[1.05rem]" />

@@ -10,7 +10,7 @@ import {
 import localFont from 'next/font/local';
 
 import '../globals.css';
-import { dirFor, htmlLang, isLocale, locales, type Locale } from '@/i18n/config';
+import { dirFor, htmlLang, isLocale, locales, type Locale, ogLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, localeAlternates, site } from '@/lib/site';
 
@@ -87,12 +87,9 @@ export function generateStaticParams() {
 }
 
 export const viewport: Viewport = {
-  /* The browser chrome follows the page, both ways round. */
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#fafaf9' },
-    { media: '(prefers-color-scheme: dark)', color: '#0d0e10' },
-  ],
-  colorScheme: 'light dark',
+  /* Orbit is dark by default; the light theme is an opt-in from the header. */
+  themeColor: '#0e0b2a',
+  colorScheme: 'dark light',
 };
 
 export async function generateMetadata({
@@ -119,7 +116,7 @@ export async function generateMetadata({
       title: t.meta.title,
       description: t.meta.description,
       url: absoluteUrl(`/${locale}`),
-      locale: htmlLang[locale],
+      locale: ogLocale[locale],
     },
     twitter: {
       card: 'summary_large_image',

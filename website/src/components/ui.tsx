@@ -70,7 +70,7 @@ export function Button({
   const sizing = size === 'lg' ? 'h-12 px-6 text-[0.9375rem]' : 'h-11 px-5 text-sm';
   const skin =
     variant === 'primary'
-      ? 'bg-accent text-accent-ink shadow-[0_8px_20px_rgb(122_90_248_/_0.22)] hover:bg-brand-600'
+      ? 'bg-accent text-accent-ink shadow-[0_8px_20px_rgb(122_90_248_/_0.22)] hover:brightness-110'
       : variant === 'secondary'
         ? 'bg-surface text-ink shadow-[var(--w-shadow-sm)] hover:bg-raise'
         : 'text-ink-2 hover:text-ink hover:bg-chip';

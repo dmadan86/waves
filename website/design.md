@@ -81,4 +81,5 @@ Mobile hero artboard (390×844) is done.
 
 ## Status
 
-- 13 Nov 2026: the Orbit hero is live on the home page (`website/src/components/hero.tsx`, `orbit-bg.tsx`). It replaced the animated split example in the hero. The rest of the page still uses the old light design.
+- 13 Nov 2026: the Orbit hero is live on the home page (`website/src/components/hero.tsx`, `orbit-bg.tsx`). It replaced the animated split example in the hero.
+- 13 Nov 2026: Orbit is the default theme on every page. The `--w-*` tokens carry the Orbit palette (indigo ground, coral accent, mint/peach for up/down), headings use Onest 200 via `.display`, and the header toggle switches between Orbit and the old light theme (`theme-light`). Not yet done: the bento, dashed-path steps and glass/white pricing cards from the C-Sections artboard; sections keep their existing layouts.

@@ -193,7 +193,7 @@
           "Unlimited people, expenses, currencies and splits",
           "Settle up is unlimited",
           "Watch a short ad for 6 credits; hold up to 30",
-          "AI voice 1 credit · receipt scan 2 · export 6 · extra group 6 (first group free)"
+          "AI voice: 10 a month, then 1 credit · receipt scan 2 · export 6 · extra group 6 (first group free)"
         ]
       },
       {
@@ -209,8 +209,10 @@
         ]
       }
     ],
-    "freeNote": "Free is ad-supported: banner ads show on some screens, and you can watch a short ad whenever you like for 6 credits (hold up to 30). AI voice costs 1 credit, a receipt scan 2 after the first 20 a month, an export 6 and an extra group 6; your first group is free. People, expenses, currencies, splits and settling up are unlimited, with no card at sign-up. Pro has no ads.",
-    "priceNote": "Prices shown are for India. In other countries the app store shows your local price. Subscribe from inside the app. New accounts get 15 days of Pro free, no card needed."
+    "freeNote": "Free is ad-supported: banner ads show on some screens, and you can watch a short ad whenever you like for 6 credits (hold up to 30). AI voice costs 1 credit after the first 10 a month, a receipt scan 2 after the first 20 a month, an export 6 and an extra group 6; your first group is free. People, expenses, currencies, splits and settling up are unlimited, with no card at sign-up. Pro has no ads.",
+    "priceNote": "Prices shown are for India. In other countries the app store shows your local price. Subscribe from inside the app. New accounts get 15 days of Pro free, no card needed.",
+    "ctaFree": "Start free",
+    "ctaPro": "Try Pro free for 15 days"
   },
   "privacy": {
     "eyebrow": "Your data, always yours",
@@ -254,7 +256,7 @@
       },
       {
         "q": "Can I add expenses by voice?",
-        "a": "Yes. On Free an AI voice command costs 1 credit. Pro has no ads and includes 100 AI voice commands a month."
+        "a": "Yes. Free includes 10 AI voice commands a month; after that each costs 1 credit. Pro has no ads and includes 100 AI voice commands a month."
       },
       {
         "q": "What happens when I have no signal?",
@@ -1406,7 +1408,7 @@
         {
           "name": "Spending, budgets, loans, bills",
           "status": "all",
-          "text": "In the Waves phone app. Entries, voice, pasted bank messages and statement import work on iPhone and Android."
+          "text": "In the Waves phone app. Entries, voice, pasted bank messages and statement import work on Android; the iPhone app is coming soon."
         },
         {
           "name": "Reading your inbox",

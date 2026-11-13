@@ -104,7 +104,7 @@ export default async function CompareIndex({ params }: { params: Promise<{ local
           <p className="text-xs font-semibold tracking-[0.18em] text-blue uppercase">
             Compare expense splitting apps
           </p>
-          <h1 className="mt-4 text-[clamp(2.5rem,5vw,4rem)] leading-[1.04] font-bold tracking-[-0.05em] text-ink">
+          <h1 className="display mt-4 text-[clamp(2.5rem,5vw,4rem)] text-ink">
             Find the right app
             <br />
             <span className="text-blue">for your group</span>

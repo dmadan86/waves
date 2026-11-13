@@ -30,7 +30,7 @@ export function NotFoundBody({ strings }: { strings: Strings }) {
         <p aria-hidden="true" className="mt-14 font-pixel text-[4.5rem] leading-none text-ink-3">
           404
         </p>
-        <h1 className="mt-5 text-balance text-[1.75rem] font-semibold tracking-[-0.03em] text-ink sm:text-[2.25rem]">
+        <h1 className="display mt-5 text-balance text-[1.75rem] text-ink sm:text-[2.25rem]">
           {t.title}
         </h1>
         <p className="mx-auto mt-4 max-w-md text-pretty text-[1.0625rem] leading-relaxed text-ink-2">
