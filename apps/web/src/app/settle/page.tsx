@@ -16,6 +16,7 @@
  */
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 import {
@@ -282,9 +283,9 @@ function GroupSettle({
       <span className="faint" style={{ marginInlineStart: 10 }}>
         {t.settle.noRateYet}
         {' · '}
-        <a href={bill ? `/g/${group.id}/expense/${bill.id}` : `/g/${group.id}`}>
+        <Link href={bill ? `/g/${group.id}/expense/${bill.id}` : `/g/${group.id}`}>
           {t.settle.openBill}
-        </a>
+        </Link>
       </span>
     );
   };

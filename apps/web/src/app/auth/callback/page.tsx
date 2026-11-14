@@ -40,6 +40,7 @@ import { useRouter } from 'next/navigation';
 
 import { leaveUntouchedGuestGroups, readOAuthCallback } from '@waves/core';
 
+import { appUrl } from '@/lib/basePath';
 import { supabase, waves } from '@/lib/waves';
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
@@ -195,7 +196,7 @@ export default function AuthCallback() {
         throw signOutError;
       }
       rememberProvider(provider);
-      const redirectTo = `${window.location.origin}/auth/callback`;
+      const redirectTo = appUrl('/auth/callback');
       // Nobody is signed in now, so this is a plain sign-in, not a link.
       await (provider === 'apple'
         ? waves.signInWithApple(redirectTo)

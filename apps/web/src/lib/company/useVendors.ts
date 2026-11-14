@@ -10,6 +10,7 @@ import { deriveOrders } from '@/lib/company/vendorOrders';
 import { deriveVendors } from '@/lib/company/vendors';
 import { useSync } from '@/lib/sync';
 import { putImage, StorageCapError } from '@/lib/upload';
+import { appUrl } from '@/lib/basePath';
 import { supabase } from '@/lib/waves';
 
 export function useVendorsData(groupId: string) {
@@ -85,7 +86,7 @@ export async function createVendorInviteLink(vendorId: string): Promise<string> 
     p_vendor_id: vendorId,
   });
   if (error) throw new Error(error.message);
-  return `${window.location.origin}/join#${data as string}`;
+  return `${appUrl('/join')}#${data as string}`;
 }
 
 /** Upload one picked photo and attach it to a vendor line already on the server. A failed attach frees the bytes. */
