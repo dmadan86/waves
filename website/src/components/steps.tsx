@@ -37,7 +37,9 @@ export function Steps({ t }: { t: Dictionary['how'] }) {
                     <p className="mt-1 text-[0.88rem] leading-snug text-ink-2">{step.body}</p>
                   </div>
                 </div>
-                <div className="relative mx-3 mb-3 aspect-square overflow-hidden rounded-2xl">
+                {/* The artwork crops each phone at the bottom edge, so that edge fades into the card
+                    instead of ending in a hard cut (same treatment as the showcase phones). */}
+                <div className="relative mx-3 mb-3 aspect-square overflow-hidden rounded-2xl [mask-image:linear-gradient(to_bottom,#000_86%,transparent)]">
                   <Image
                     src={art[i]!}
                     alt={step.alt}
