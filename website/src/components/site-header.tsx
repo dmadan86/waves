@@ -96,6 +96,10 @@ export function SiteHeader({
     };
   }, [langOpen]);
 
+  // The full menu needs ~1,100px; it only fits the bar from xl. Tamil's labels need ~1,500px,
+  // more than the bar ever has, so Tamil always uses the menu button.
+  const inlineNav = locale === 'ta' ? '' : 'xl:flex';
+  const menuOnly = locale === 'ta' ? '' : 'xl:hidden';
   const links = [
     { href: `${anchorBase}#features`, label: nav.features },
     { href: `${anchorBase}#how`, label: nav.how, mobileOnly: true },
@@ -146,14 +150,14 @@ export function SiteHeader({
             <Wordmark />
           </Link>
 
-          <nav className="ms-5 hidden items-center gap-1 lg:flex" aria-label="Primary">
+          <nav className={`ms-5 hidden items-center gap-0.5 ${inlineNav}`} aria-label="Primary">
             {links
               .filter((link) => !link.mobileOnly)
               .map((link) => (
                 <a
                   key={link.href}
                   href={link.href}
-                  className="inline-flex h-10 items-center rounded-lg px-2.5 text-[0.86rem] whitespace-nowrap text-ink-2 transition-colors hover:bg-chip hover:text-ink"
+                  className="inline-flex h-10 items-center rounded-lg px-2 text-[0.86rem] whitespace-nowrap text-ink-2 transition-colors hover:bg-chip hover:text-ink"
                 >
                   {link.label}
                 </a>
@@ -240,7 +244,7 @@ export function SiteHeader({
 
             <a
               href="#download"
-              className="ms-1 hidden h-10 items-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-ink shadow-[0_8px_20px_rgb(122_90_248_/_0.3)] transition-transform active:translate-y-px sm:inline-flex"
+              className="ms-1 hidden h-10 shrink-0 items-center justify-center rounded-full bg-accent px-5 text-sm font-semibold whitespace-nowrap text-accent-ink shadow-[0_8px_20px_rgb(255_122_89_/_0.28)] transition-[filter,transform] hover:brightness-110 active:translate-y-px sm:inline-flex"
             >
               {nav.download}
             </a>
@@ -252,7 +256,7 @@ export function SiteHeader({
               aria-expanded={menuOpen}
               aria-haspopup="dialog"
               aria-label={nav.menu}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-chip lg:hidden"
+              className={`inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink hover:bg-chip ${menuOnly}`}
             >
               <Menu />
             </button>
@@ -270,7 +274,7 @@ export function SiteHeader({
         onClick={(event) => {
           if (event.target === dialogRef.current) closeMenu();
         }}
-        className="m-0 max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-[#0a0712]/60 lg:hidden"
+        className={`m-0 max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-[#0a0712]/60 ${menuOnly}`}
       >
         <div className="min-h-dvh w-full bg-bg">
           <div className="mx-auto flex h-14 max-w-[73rem] items-center justify-between px-5 sm:h-16 sm:px-8">
