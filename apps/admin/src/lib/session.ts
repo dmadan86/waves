@@ -160,11 +160,12 @@ export async function csrfTokenFor(sessionValue: string): Promise<string> {
  * check (returns `true`) and the console still opens on a dev machine.
  */
 export async function hasTrustedOrigin(headerValue: string | null | undefined): Promise<boolean> {
-  // Explicit owner opt-out while Cloudflare Access is not set up (README, "The custom
-  // domain took that door away"): the password and login throttle are then the only gate.
-  if (process.env.ADMIN_ORIGIN_GATE === 'off') return true;
   const secret = process.env.ADMIN_ORIGIN_SECRET;
   if (!secret) {
+    // Explicit owner opt-out while Cloudflare Access is not set up (README, "The custom
+    // domain took that door away"). Ignored once a secret exists, so a leftover switch
+    // can never undo the gate.
+    if (process.env.ADMIN_ORIGIN_GATE === 'off') return true;
     // Secure default: closed in production, open only off it.
     return process.env.NODE_ENV !== 'production';
   }
