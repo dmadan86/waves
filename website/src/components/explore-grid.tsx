@@ -133,7 +133,7 @@ export function ExploreGrid({
   locale: string;
 }) {
   return (
-    <section aria-labelledby="explore-title" className="py-12 lg:py-16">
+    <section id="features" aria-labelledby="explore-title" className="scroll-mt-20 py-12 lg:py-16">
       <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
