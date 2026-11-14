@@ -17,7 +17,7 @@
  * here (see `withPassword`).
  */
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 
 import { IdentityError } from '@waves/core';
 
@@ -29,6 +29,7 @@ import { WaveMark } from '@/components/WaveMark';
 import { fill, type WebStrings } from '@/i18n';
 import { useStrings } from '@/i18n-context';
 import { friendlyError } from '@/lib/errors';
+import { readSignInIntent } from '@/lib/signInIntent';
 
 /**
  * Our own sentence, when the thing that failed was the form rather than the
@@ -238,6 +239,23 @@ export function SignIn({
       );
     }
   }
+
+  // The marketing site's sign-in page lands here with a hint (lib/signInIntent).
+  // Once only: StrictMode runs effects twice, and a provider redirect twice is
+  // two round trips. The query is dropped so a reload does not repeat it.
+  const intentHandled = useRef(false);
+  useEffect(() => {
+    if (intentHandled.current) return;
+    intentHandled.current = true;
+    const intent = readSignInIntent(window.location.search);
+    if (!intent) return;
+    window.history.replaceState(null, '', window.location.pathname);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- the URL is only readable in the browser, after hydration
+    if (intent.kind === 'email') setEmail(intent.email);
+    else if (intent.kind === 'google') void onGoogle();
+    else void onApple();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
+  }, []);
 
   // A local check only, to catch the obvious typo before the round trip; the
   // real validation is the server's.
