@@ -256,6 +256,11 @@ an unset secret skips the check so the console still opens.
 Until Access + the Transform Rule are live, treat `ADMIN_PASSWORD` as the only
 control on a public hostname, and size it accordingly.
 
+**Current state (14 Nov 2026): the gate is switched off** with `ADMIN_ORIGIN_GATE=off` in
+Vercel Production, at the owner's choice, so the login page opens on `admin.wavs.co.in`
+with only the password and the login throttle in front of it. Delete that variable and
+redeploy to close it again (fail-closed until `ADMIN_ORIGIN_SECRET` and Cloudflare are set).
+
 ### Login throttling
 
 `src/lib/loginThrottle.ts` caps failed password attempts per client address

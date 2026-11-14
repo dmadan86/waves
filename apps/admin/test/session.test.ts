@@ -43,6 +43,9 @@ describe('hasTrustedOrigin', () => {
     process.env.NODE_ENV = 'production';
     await expect(hasTrustedOrigin('anything')).resolves.toBe(false);
     await expect(hasTrustedOrigin(null)).resolves.toBe(false);
+    process.env.ADMIN_ORIGIN_GATE = 'off';
+    await expect(hasTrustedOrigin(null)).resolves.toBe(true);
+    delete process.env.ADMIN_ORIGIN_GATE;
   });
 
   it('opens off production when the secret is unset (localhost dev)', async () => {
