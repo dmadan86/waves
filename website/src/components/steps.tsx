@@ -4,7 +4,11 @@ import type { Dictionary } from '@/i18n/dictionaries';
 import { ArrowRight } from './icons';
 import { Kicker, SectionTitle } from './ui';
 
-const art = ['/home/how-add-photo.webp', '/home/how-split-photo.webp', '/home/how-track-photo.webp'];
+const art = [
+  '/home/how-add-photo.webp',
+  '/home/how-split-photo.webp',
+  '/home/how-track-photo.webp',
+];
 const badge = ['#6f8cf7', '#7f63f1', '#9461ee'];
 
 export function Steps({ t }: { t: Dictionary['how'] }) {
