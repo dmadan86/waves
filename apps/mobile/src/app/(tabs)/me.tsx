@@ -277,6 +277,14 @@ function MeLedger() {
       onPress: () => router.push('/personal/spending'),
     },
     {
+      key: 'ask',
+      tint: 'lilac',
+      icon: 'sparkles-outline',
+      title: t.spendingAsk.title,
+      subtitle: t.spendingAsk.tileSub,
+      onPress: () => router.push('/personal/ask'),
+    },
+    {
       key: 'statement',
       tint: 'sky',
       icon: 'document-text-outline',

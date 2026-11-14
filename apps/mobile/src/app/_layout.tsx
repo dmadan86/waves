@@ -956,6 +956,7 @@ function AuthGate() {
           <Stack.Screen name="country" options={slide} />
           <Stack.Screen name="scan" options={slide} />
           <Stack.Screen name="personal/spending" options={{ animation: 'none' }} />
+          <Stack.Screen name="personal/ask" options={slide} />
           <Stack.Screen name="personal/transactions" options={{ animation: 'none' }} />
           <Stack.Screen name="personal/entry" options={slide} />
           <Stack.Screen name="personal/recurring" options={{ animation: 'none' }} />
