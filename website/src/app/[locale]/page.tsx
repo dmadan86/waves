@@ -8,7 +8,6 @@ import { DownloadBanner } from '@/components/download-banner';
 import { Faq } from '@/components/faq';
 import { ExploreGrid } from '@/components/explore-grid';
 import { Hero } from '@/components/hero';
-import { Moments } from '@/components/moments';
 import { OpenSourceBand } from '@/components/open-source-band';
 import { OfflineBand } from '@/components/offline-band';
 import { Pricing } from '@/components/pricing';
@@ -112,7 +111,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <WhoFor t={t.whoFor} locale={locale} />
         <Steps t={t.how} />
         <Showcase t={t.showcase} />
-        <Moments t={t.moments} />
         <Pricing t={t.pricing} />
         <OfflineBand t={t.offline} />
         <VoiceBand t={t.voice} />
