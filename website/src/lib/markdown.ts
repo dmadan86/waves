@@ -183,7 +183,7 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line();
   line(`${t.footer.tagline} ${t.footer.notABank}`);
   line(
-    `${t.footer.links.webApp}: ${site.appUrl} · ${t.footer.links.contact}: ${site.supportEmail}`,
+    `${t.footer.links.webApp}: ${site.webAppUrl} · ${t.footer.links.contact}: ${site.supportEmail}`,
   );
   line();
 

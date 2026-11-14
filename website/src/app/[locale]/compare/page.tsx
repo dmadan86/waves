@@ -144,7 +144,7 @@ export default async function CompareIndex({ params }: { params: Promise<{ local
               Recommended
             </span>
             <AttributedLink
-              href={site.appUrl}
+              href={site.webAppUrl}
               kind="web"
               placement="compare-index-card"
               className="flex h-full min-h-28 items-center gap-4 rounded-xl border border-blue bg-blue/5 p-5 transition-colors hover:bg-blue/10"
@@ -240,7 +240,7 @@ export default async function CompareIndex({ params }: { params: Promise<{ local
           Keep your groups, expenses and balances together.
         </p>
         <AttributedLink
-          href={site.appUrl}
+          href={site.webAppUrl}
           kind="web"
           placement="compare-index-cta"
           className="mt-6 inline-flex min-h-12 items-center justify-center gap-2 rounded-sm bg-white px-6 text-sm font-semibold text-[#102442] transition-colors hover:bg-blue-100"
