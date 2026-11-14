@@ -228,8 +228,8 @@ importers:
         specifier: ^15.1.1
         version: 15.1.1(expo-font@57.0.4)(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
       '@formatjs/intl-displaynames':
-        specifier: ^7.3.15
-        version: 7.3.15
+        specifier: ^8.0.3
+        version: 8.0.3
       '@formatjs/intl-getcanonicallocales':
         specifier: ^3.3.1
         version: 3.3.1
@@ -2803,8 +2803,8 @@ packages:
   '@formatjs/fast-memoize@3.1.7':
     resolution: {integrity: sha512-zXfhLpvA6T7+efdt9JLbBwZ00tT7NsBMDVnDu8rpHeNNv8KfRZAMo2gkG0k9lK/Nzc//3kJ9pImsfuJxk3KhUA==}
 
-  '@formatjs/intl-displaynames@7.3.15':
-    resolution: {integrity: sha512-U26iRwxxnD4aZY+aDiSEV5Ym/7Db5S9OxKQ4c3T+WFFIj+DPKEQLh+tC++dMH1SuEa8CSWvPJkpaADa+WHn3qA==}
+  '@formatjs/intl-displaynames@8.0.3':
+    resolution: {integrity: sha512-UhKG1OwrbQzZNKIcmZu+/JR5SOxE25RWmUzxaNfQ04AJ4OwxNkTvAbVX0ojnkm0i8Qs4E8ElIoBdA6F8XTkJXw==}
 
   '@formatjs/intl-getcanonicallocales@3.3.1':
     resolution: {integrity: sha512-GkXdVwb/4Y9qJaZ19BguPv2i9Vr+z5MrlmFa/9HR7WK2tMcCWZathuGhn7W/V3sFqUdAVB3uvmGuOxXwc61DJQ==}
@@ -16396,9 +16396,9 @@ snapshots:
 
   '@formatjs/fast-memoize@3.1.7': {}
 
-  '@formatjs/intl-displaynames@7.3.15':
+  '@formatjs/intl-displaynames@8.0.3':
     dependencies:
-      '@formatjs/intl-localematcher': 0.9.0
+      '@formatjs/intl-localematcher': 0.10.1
 
   '@formatjs/intl-getcanonicallocales@3.3.1': {}
 
