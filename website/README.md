@@ -7,6 +7,7 @@ rebuilt and redeployed without touching the app.
 ```
 src/app/[locale]/          every page, one per language
 src/app/[locale]/privacy   Privacy policy
+src/app/[locale]/signin    Sign-in front door; the sign-in itself finishes on the app (NEXT_PUBLIC_APP_URL)
 src/app/[locale]/terms     Terms
 src/app/[locale]/index.md  the same page as Markdown, per language
 src/app/[locale]/[...rest] catch-all, so a miss gets our own 404 in-locale

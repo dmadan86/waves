@@ -1735,5 +1735,18 @@
       "Licensed AGPL-3.0: free to read, run and build on."
     ],
     "cta": "View the code on GitHub"
+  },
+  "signin": {
+    "title": "Sign in to Waves",
+    "lead": "Pick a way in. You will finish signing in on the Waves web app, which keeps your session.",
+    "google": "Continue with Google",
+    "apple": "Continue with Apple",
+    "or": "or",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "email": "Continue with email",
+    "handoff": "You will continue on {host} to finish signing in. Your password and session never travel between the two sites.",
+    "back": "Back to the home page",
+    "metaDescription": "Sign in to Waves with Google, Apple or your email."
   }
 }
