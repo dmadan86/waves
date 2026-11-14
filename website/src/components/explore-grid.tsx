@@ -178,11 +178,15 @@ export function ExploreGrid({
                       <h3 className="text-[1.3rem] leading-[1.05] font-semibold tracking-[-0.03em] break-words sm:text-[1.9rem]">
                         {c.title}
                       </h3>
-                      <p className="mt-1.5 text-[0.78rem] leading-snug opacity-80 sm:mt-2 sm:text-[0.9rem]">{c.body}</p>
+                      <p className="mt-1.5 text-[0.78rem] leading-snug opacity-80 sm:mt-2 sm:text-[0.9rem]">
+                        {c.body}
+                      </p>
                     </div>
                     <span
                       className={`hidden h-10 w-10 shrink-0 sm:grid place-items-center rounded-full transition-colors ${
-                        k.dark ? 'bg-white/20 group-hover:bg-white/30' : 'bg-black/10 group-hover:bg-black/15'
+                        k.dark
+                          ? 'bg-white/20 group-hover:bg-white/30'
+                          : 'bg-black/10 group-hover:bg-black/15'
                       }`}
                     >
                       <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
@@ -198,7 +202,9 @@ export function ExploreGrid({
           <p>
             {t.alsoLabel}:{' '}
             {wearables.chips
-              .map((ch) => (ch.status === 'soon' ? `${ch.label} (${wearables.soonLabel})` : ch.label))
+              .map((ch) =>
+                ch.status === 'soon' ? `${ch.label} (${wearables.soonLabel})` : ch.label,
+              )
               .join(' · ')}
           </p>
           <p>{t.facts.join(' · ')}</p>

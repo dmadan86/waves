@@ -98,11 +98,7 @@
     "titleAccent": "One ledger.",
     "lead": "Everything below works on the free plan, with no card at sign-up. Pick a door — the balances follow you everywhere.",
     "alsoLabel": "Also",
-    "facts": [
-      "₹0 forever",
-      "No card",
-      "Open source"
-    ],
+    "facts": ["₹0 forever", "No card", "Open source"],
     "cards": [
       {
         "id": "split",
