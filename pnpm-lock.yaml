@@ -453,8 +453,8 @@ importers:
         specifier: 1.27.2
         version: 1.27.2(react-native-web@0.21.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
       react-native-pager-view:
-        specifier: 8.0.5
-        version: 8.0.5(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
+        specifier: 10.0.0
+        version: 10.0.0(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
       react-native-purchases:
         specifier: ^10.15.1
         version: 10.15.1(react-native-web@0.21.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
@@ -10832,8 +10832,8 @@ packages:
       react-native-web:
         optional: true
 
-  react-native-pager-view@8.0.5:
-    resolution: {integrity: sha512-+TKvy/Nils9JnDHVqiE4/2Ohk37RYLz9GXIkMVNf5PVdokEc02OWF3iflA1sf+3uWxzNl8Yt5fKMGK1NbR4AuQ==}
+  react-native-pager-view@10.0.0:
+    resolution: {integrity: sha512-MVZI0BO/giG23pETmpxpiv6dP2tnoE/NFWFo+OH8MJR/yeoWQxca9ymgbGIkZVmUHnyjyzoSST0l+mdKLTs4dw==}
     peerDependencies:
       react: '*'
       react-native: '*'
@@ -25516,7 +25516,7 @@ snapshots:
     optionalDependencies:
       react-native-web: 0.21.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
 
-  react-native-pager-view@8.0.5(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1):
+  react-native-pager-view@10.0.0(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1):
     dependencies:
       react: 19.3.1
       react-native: 0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1)
