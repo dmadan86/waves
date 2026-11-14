@@ -7,7 +7,6 @@ import { AgentsBand } from '@/components/agents-band';
 import { DownloadBanner } from '@/components/download-banner';
 import { Faq } from '@/components/faq';
 import { ExploreGrid } from '@/components/explore-grid';
-import { FeatureStrip } from '@/components/feature-strip';
 import { Hero } from '@/components/hero';
 import { Moments } from '@/components/moments';
 import { OpenSourceBand } from '@/components/open-source-band';
@@ -110,7 +109,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <main id="main" tabIndex={-1}>
         <Hero t={t.hero} stores={t.stores} locale={locale} />
         <ExploreGrid t={t.explore} wearables={t.wearables} locale={locale} />
-        <FeatureStrip t={t.features} />
         <WhoFor t={t.whoFor} locale={locale} />
         <Steps t={t.how} />
         <Showcase t={t.showcase} />
