@@ -133,6 +133,14 @@ commits.
 
 Both have working defaults; set them only if a domain moves.
 
+The web app is served from this site's own origin at `/app` (so signing in
+here is the app session). `next.config.ts` proxies `/app/*` to the `apps/web`
+deployment named by `WEB_APP_ORIGIN` (build-time; no default, and `/app` is a
+404 without it). That origin must not be `app.wavs.co.in`, which redirects to
+`wavs.co.in/app` and would loop: give the `waves-web` project a second domain
+(for example `web-origin.wavs.co.in`). `NEXT_PUBLIC_APP_URL` now only locates
+the MCP endpoint, which stays on `app.wavs.co.in`.
+
 The apex question is settled: this site owns `wavs.co.in`, the product answers
 on `app.wavs.co.in` and the console on `admin.wavs.co.in`. The mobile app's
 invite links and the button in every email resolve against `app.wavs.co.in`,

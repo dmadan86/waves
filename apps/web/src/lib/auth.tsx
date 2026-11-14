@@ -24,6 +24,7 @@ import {
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
 
+import { appUrl } from '@/lib/basePath';
 import { waves } from '@/lib/waves';
 import { rememberProvider } from '@/lib/guestSwitch';
 
@@ -73,7 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithGoogle = useCallback(async () => {
     // Back to the callback route with the code in the URL; it finishes there.
     rememberProvider('google');
-    await waves.signInWithGoogle(`${window.location.origin}/auth/callback`);
+    await waves.signInWithGoogle(appUrl('/auth/callback'));
   }, []);
 
   const signInWithGoogleCredential = useCallback(async (idToken: string, nonce: string) => {
@@ -87,12 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // time the browser is handed back it looks exactly like Google's: the same
     // callback route, the same one-time code. Nothing here is Apple-shaped.
     rememberProvider('apple');
-    await waves.signInWithApple(`${window.location.origin}/auth/callback`);
+    await waves.signInWithApple(appUrl('/auth/callback'));
   }, []);
 
   const signInWithEmail = useCallback(async (email: string) => {
     // The mail carries a code, not a link; the redirect is only a fallback.
-    await waves.signInWithEmail(email, `${window.location.origin}/auth/callback`);
+    await waves.signInWithEmail(email, appUrl('/auth/callback'));
   }, []);
 
   const verifyEmailCode = useCallback(async (email: string, code: string) => {

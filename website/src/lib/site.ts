@@ -11,7 +11,10 @@ export const site = {
   name: 'Waves',
   domain: 'wavs.co.in',
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wavs.co.in',
+  /** The app's own host: the MCP endpoint and OAuth metadata stay there, at their registered URLs. */
   appUrl: process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.wavs.co.in',
+  /** The web app and its sign-in: served under this site's own origin (see next.config.ts). */
+  webAppUrl: `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wavs.co.in'}/app`,
   supportEmail: 'hello@wavs.co.in',
   /** The app is open source (AGPL-3.0); the repo is public. */
   githubUrl: 'https://github.com/dmadan86/waves',
