@@ -6,7 +6,7 @@ import { CompaniesBand } from '@/components/companies-band';
 import { AgentsBand } from '@/components/agents-band';
 import { DownloadBanner } from '@/components/download-banner';
 import { Faq } from '@/components/faq';
-import { FeatureStrip } from '@/components/feature-strip';
+import { ExploreGrid } from '@/components/explore-grid';
 import { Hero } from '@/components/hero';
 import { Moments } from '@/components/moments';
 import { OpenSourceBand } from '@/components/open-source-band';
@@ -108,7 +108,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           without the tabindex the jump lands on <body> and nothing changes. */}
       <main id="main" tabIndex={-1}>
         <Hero t={t.hero} stores={t.stores} locale={locale} />
-        <FeatureStrip t={t.features} />
+        <ExploreGrid t={t.explore} wearables={t.wearables} locale={locale} />
         <WhoFor t={t.whoFor} locale={locale} />
         <Steps t={t.how} />
         <Showcase t={t.showcase} />

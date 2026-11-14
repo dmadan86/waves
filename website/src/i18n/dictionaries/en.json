@@ -92,6 +92,64 @@
       "statementEnd": "2 transfers to settle."
     }
   },
+  "explore": {
+    "eyebrow": "Explore Waves",
+    "titleStart": "Eight ways in.",
+    "titleAccent": "One ledger.",
+    "lead": "Everything below works on the free plan, with no card at sign-up. Pick a door — the balances follow you everywhere.",
+    "alsoLabel": "Also",
+    "facts": ["₹0 forever", "No card", "Open source"],
+    "cards": [
+      {
+        "id": "split",
+        "label": "Friends & trips",
+        "title": "Split",
+        "body": "Any way you like"
+      },
+      {
+        "id": "scan",
+        "label": "Receipts",
+        "title": "Scan",
+        "body": "Add a bill in seconds"
+      },
+      {
+        "id": "voice",
+        "label": "AI voice · 4 languages",
+        "title": "Say it",
+        "body": "Hinglish works too"
+      },
+      {
+        "id": "settle",
+        "label": "Settle on UPI",
+        "title": "Settle",
+        "body": "One tap, your UPI app opens"
+      },
+      {
+        "id": "offline",
+        "label": "No signal",
+        "title": "Offline",
+        "body": "Saved first, synced later"
+      },
+      {
+        "id": "ask",
+        "label": "MCP · any assistant",
+        "title": "Ask",
+        "body": "Your AI keeps the books"
+      },
+      {
+        "id": "personal",
+        "label": "Personal",
+        "title": "Your money",
+        "body": "Budgets, loans, bills"
+      },
+      {
+        "id": "companies",
+        "label": "Teams & sites",
+        "title": "Companies",
+        "body": "Approve in a tap"
+      }
+    ]
+  },
   "features": {
     "label": "What Waves does",
     "items": [
