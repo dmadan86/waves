@@ -147,7 +147,7 @@ jobs:
           retention-days: 7
       - name: Reuse the APK from an earlier run
         if: ${{ inputs.apk_run != '' }}
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@v8.0.2
         with:
           name: app-release-apk
           run-id: ${{ inputs.apk_run }}
