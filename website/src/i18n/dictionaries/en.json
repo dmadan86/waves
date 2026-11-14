@@ -125,17 +125,17 @@
       {
         "title": "Add an expense",
         "body": "Type it, scan a receipt or just say it.",
-        "alt": "A phone with a receipt and a camera icon, between green leaves"
+        "alt": "A hand holding a phone that scans a café receipt"
       },
       {
         "title": "Split with people",
         "body": "Choose who paid and how to split.",
-        "alt": "Three friends' avatars with a plus button to add more"
+        "alt": "A phone splitting a dinner bill between friends"
       },
       {
         "title": "Track and settle",
         "body": "See balances and settle up anytime.",
-        "alt": "A phone showing a green tick, between green leaves"
+        "alt": "A phone showing “Settled!” above the group's balances"
       }
     ]
   },

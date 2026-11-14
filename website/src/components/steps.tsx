@@ -4,7 +4,7 @@ import type { Dictionary } from '@/i18n/dictionaries';
 import { ArrowRight } from './icons';
 import { Kicker, SectionTitle } from './ui';
 
-const art = ['/home/how-add.webp', '/home/how-split.webp', '/home/how-track.webp'];
+const art = ['/home/how-add-photo.webp', '/home/how-split-photo.webp', '/home/how-track-photo.webp'];
 const badge = ['#6f8cf7', '#7f63f1', '#9461ee'];
 
 export function Steps({ t }: { t: Dictionary['how'] }) {
@@ -33,13 +33,13 @@ export function Steps({ t }: { t: Dictionary['how'] }) {
                     <p className="mt-1 text-[0.88rem] leading-snug text-ink-2">{step.body}</p>
                   </div>
                 </div>
-                <div className="art-plate relative mx-3 mb-3 aspect-[7/4] overflow-hidden rounded-2xl">
+                <div className="relative mx-3 mb-3 aspect-square overflow-hidden rounded-2xl">
                   <Image
                     src={art[i]!}
                     alt={step.alt}
                     fill
                     sizes="(min-width: 768px) 22rem, 90vw"
-                    className="art-blend object-cover [mask-image:linear-gradient(to_right,transparent,#000_9%,#000_91%,transparent)]"
+                    className="object-cover"
                   />
                 </div>
               </div>
