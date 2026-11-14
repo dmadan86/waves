@@ -6486,6 +6486,38 @@ export interface UiStrings {
    * phone reads for itself — searched, narrowed by date, ticked in batches. The
    * two were one screen and should not have been.
    */
+  /** "Ask about my spending" (Me tab): a question, answered from a digest of your own ledger. */
+  spendingAsk: {
+    title: string;
+    tileSub: string;
+    sub: string;
+    ledgerNote: string;
+    period: string;
+    q1: string;
+    q2: string;
+    q3: string;
+    placeholder: string;
+    send: string;
+    asking: string;
+    counter: string;
+    facts: string;
+    subscriptions: string;
+    subscriptionsHint: string;
+    monthly: string;
+    weekly: string;
+    yearly: string;
+    lastCharge: string;
+    yourQuestion: string;
+    askAnother: string;
+    failed: string;
+    rate: string;
+    unavailable: string;
+    quota: string;
+    paywallTitle: string;
+    paywallBody: string;
+    unlock: string;
+    back: string;
+  };
   statementImport: {
     title: string;
     tileSub: string;
@@ -14031,6 +14063,37 @@ const en: UiStrings = {
       draftLabel: 'Waves draft',
       continue: 'Continue',
     },
+  },
+  spendingAsk: {
+    title: "Ask about my spending",
+    tileSub: "Ask in plain words",
+    sub: "Ask a question about your own money.",
+    ledgerNote: "Based on your personal ledger only. Amounts are worked out by the app, not guessed.",
+    period: "This month so far: {from} to {to}",
+    q1: "Where did my money go this month?",
+    q2: "Which subscriptions am I paying for?",
+    q3: "Am I spending more on food than last month?",
+    placeholder: "Ask about your spending",
+    send: "Ask",
+    asking: "Looking at your ledger",
+    counter: "{n} of {max}",
+    facts: "The numbers",
+    subscriptions: "Likely subscriptions",
+    subscriptionsHint: "Found from charges that repeat on a schedule.",
+    monthly: "Monthly",
+    weekly: "Weekly",
+    yearly: "Yearly",
+    lastCharge: "Last charged {date}",
+    yourQuestion: "Your question",
+    askAnother: "Ask another question",
+    failed: "That did not work. Your question is still here, try again.",
+    rate: "Too many questions at once. Wait a moment and try again.",
+    unavailable: "Asking is not available right now.",
+    quota: "You have used all {limit} questions this month.",
+    paywallTitle: "Ask about your spending",
+    paywallBody: "Waves Pro answers questions like where your money went and which subscriptions you pay for.",
+    unlock: "Unlock with Pro",
+    back: "Back",
   },
   statementImport: {
     title: 'Import a statement',
@@ -21657,6 +21720,37 @@ const ta: UiStrings = {
       continue: 'தொடரவும்',
     },
   },
+  spendingAsk: {
+    title: "என் செலவைப் பற்றிக் கேளுங்கள்",
+    tileSub: "எளிய வார்த்தைகளில் கேளுங்கள்",
+    sub: "உங்கள் பணத்தைப் பற்றிக் கேள்வி கேளுங்கள்.",
+    ledgerNote: "உங்கள் தனிப்பட்ட கணக்கை மட்டும் வைத்து. தொகைகளை ஆப் கணக்கிடுகிறது, ஊகிப்பதில்லை.",
+    period: "இந்த மாதம் இதுவரை: {from} முதல் {to} வரை",
+    q1: "இந்த மாதம் என் பணம் எங்கே போனது?",
+    q2: "நான் எந்தெந்த சந்தாக்களுக்குப் பணம் செலுத்துகிறேன்?",
+    q3: "கடந்த மாதத்தை விட உணவுக்கு அதிகம் செலவு செய்கிறேனா?",
+    placeholder: "உங்கள் செலவைப் பற்றிக் கேளுங்கள்",
+    send: "கேள்",
+    asking: "உங்கள் கணக்கைப் பார்க்கிறேன்",
+    counter: "{max}-இல் {n}",
+    facts: "எண்கள்",
+    subscriptions: "சந்தாக்களாக இருக்கலாம்",
+    subscriptionsHint: "அட்டவணைப்படி மீண்டும் வரும் கட்டணங்களிலிருந்து கண்டறியப்பட்டது.",
+    monthly: "மாதந்தோறும்",
+    weekly: "வாரந்தோறும்",
+    yearly: "ஆண்டுதோறும்",
+    lastCharge: "கடைசியாக {date} அன்று",
+    yourQuestion: "உங்கள் கேள்வி",
+    askAnother: "இன்னொரு கேள்வி கேள்",
+    failed: "அது வேலை செய்யவில்லை. உங்கள் கேள்வி இங்கேயே உள்ளது, மீண்டும் முயலுங்கள்.",
+    rate: "ஒரே நேரத்தில் அதிகக் கேள்விகள். சற்றுப் பொறுத்து மீண்டும் முயலுங்கள்.",
+    unavailable: "இப்போது கேட்க முடியாது.",
+    quota: "இந்த மாதத்தின் {limit} கேள்விகளையும் பயன்படுத்திவிட்டீர்கள்.",
+    paywallTitle: "உங்கள் செலவைப் பற்றிக் கேளுங்கள்",
+    paywallBody: "பணம் எங்கே போனது, எந்தச் சந்தாக்களுக்குச் செலுத்துகிறீர்கள் என்பது போன்ற கேள்விகளுக்கு Waves Pro பதிலளிக்கும்.",
+    unlock: "Pro மூலம் திறக்கவும்",
+    back: "பின்செல்",
+  },
   statementImport: {
     title: 'கணக்கு விவரத்தை இறக்குமதி செய்',
     tileSub: 'உங்கள் வங்கியிலிருந்து, கோப்பாக',
@@ -29208,6 +29302,37 @@ const hi: UiStrings = {
       draftLabel: 'Waves ड्राफ़्ट',
       continue: 'जारी रखें',
     },
+  },
+  spendingAsk: {
+    title: "मेरे खर्च के बारे में पूछें",
+    tileSub: "सरल शब्दों में पूछें",
+    sub: "अपने पैसे के बारे में सवाल पूछें।",
+    ledgerNote: "सिर्फ़ आपके निजी खाते के आधार पर। रकम ऐप गिनता है, अंदाज़ा नहीं लगाता।",
+    period: "इस महीने अब तक: {from} से {to}",
+    q1: "इस महीने मेरा पैसा कहाँ गया?",
+    q2: "मैं किन सब्सक्रिप्शन का भुगतान कर रहा हूँ?",
+    q3: "क्या मैं पिछले महीने से ज़्यादा खाने पर खर्च कर रहा हूँ?",
+    placeholder: "अपने खर्च के बारे में पूछें",
+    send: "पूछें",
+    asking: "आपका खाता देख रहे हैं",
+    counter: "{max} में से {n}",
+    facts: "आँकड़े",
+    subscriptions: "संभावित सब्सक्रिप्शन",
+    subscriptionsHint: "तय समय पर दोहराए जाने वाले भुगतानों से पहचाने गए।",
+    monthly: "मासिक",
+    weekly: "साप्ताहिक",
+    yearly: "वार्षिक",
+    lastCharge: "आख़िरी बार {date} को",
+    yourQuestion: "आपका सवाल",
+    askAnother: "एक और सवाल पूछें",
+    failed: "यह नहीं हो पाया। आपका सवाल यहीं है, फिर कोशिश करें।",
+    rate: "एक साथ बहुत सवाल। थोड़ा रुककर फिर कोशिश करें।",
+    unavailable: "अभी पूछना उपलब्ध नहीं है।",
+    quota: "आपने इस महीने के सभी {limit} सवाल इस्तेमाल कर लिए हैं।",
+    paywallTitle: "अपने खर्च के बारे में पूछें",
+    paywallBody: "Waves Pro बताता है कि पैसा कहाँ गया और आप किन सब्सक्रिप्शन का भुगतान करते हैं।",
+    unlock: "Pro से खोलें",
+    back: "वापस",
   },
   statementImport: {
     title: 'स्टेटमेंट इम्पोर्ट करें',
@@ -37095,6 +37220,37 @@ const ar: UiStrings = {
       draftLabel: 'مسودة Waves',
       continue: 'متابعة',
     },
+  },
+  spendingAsk: {
+    title: "اسأل عن مصروفاتي",
+    tileSub: "اسأل بكلمات بسيطة",
+    sub: "اطرح سؤالاً عن أموالك.",
+    ledgerNote: "بناءً على دفترك الشخصي فقط. التطبيق يحسب المبالغ ولا يخمّنها.",
+    period: "هذا الشهر حتى الآن: من {from} إلى {to}",
+    q1: "أين ذهبت أموالي هذا الشهر؟",
+    q2: "ما الاشتراكات التي أدفع ثمنها؟",
+    q3: "هل أنفق على الطعام أكثر من الشهر الماضي؟",
+    placeholder: "اسأل عن مصروفاتك",
+    send: "اسأل",
+    asking: "نراجع دفترك",
+    counter: "{n} من {max}",
+    facts: "الأرقام",
+    subscriptions: "اشتراكات محتملة",
+    subscriptionsHint: "تم اكتشافها من مدفوعات تتكرر بانتظام.",
+    monthly: "شهري",
+    weekly: "أسبوعي",
+    yearly: "سنوي",
+    lastCharge: "آخر دفعة في {date}",
+    yourQuestion: "سؤالك",
+    askAnother: "اسأل سؤالاً آخر",
+    failed: "لم ينجح ذلك. سؤالك ما زال هنا، حاول مرة أخرى.",
+    rate: "أسئلة كثيرة دفعة واحدة. انتظر قليلاً ثم حاول مرة أخرى.",
+    unavailable: "السؤال غير متاح الآن.",
+    quota: "استخدمت كل {limit} أسئلة هذا الشهر.",
+    paywallTitle: "اسأل عن مصروفاتك",
+    paywallBody: "يجيب Waves Pro عن أسئلة مثل أين ذهبت أموالك وما الاشتراكات التي تدفعها.",
+    unlock: "افتح مع Pro",
+    back: "رجوع",
   },
   statementImport: {
     title: 'استيراد كشف حساب',

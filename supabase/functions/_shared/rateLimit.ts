@@ -71,6 +71,12 @@ export const LIMITS = {
    * retry loop spending a month of reads in seconds.
    */
   'parse-statement': { limit: 20, windowSeconds: 60 },
+  /**
+   * Ask about my spending: one model call per question. The monthly quota
+   * (`waves_spending_ask_quota`) is the billing gate; this stops a stuck retry
+   * loop spending a month of questions in seconds.
+   */
+  'spending-ask': { limit: 10, windowSeconds: 60 },
   'voice-stream-token': { limit: 12, windowSeconds: 60 },
   /** One per mic press, like the token it replaces. */
   'voice-stream': { limit: 12, windowSeconds: 60 },
