@@ -808,6 +808,16 @@ export function flagsForEntry(
   });
 }
 
+/** The company's receipt rule wants a bill on this entry and it has none yet ("Bill due"). */
+export function billDue(
+  entry: CompanyEntry,
+  entries: readonly CompanyEntry[],
+  policies: CompanyPolicies,
+  receiptEntryIds: ReadonlySet<string>,
+): boolean {
+  return flagsForEntry(entry, entries, policies, receiptEntryIds).some((f) => f.code === 'RECEIPT');
+}
+
 /** A likely double entry: same employee, day, amount and category (or vendor + invoice). */
 export function findDuplicateEntry(
   subject: PolicySubject & { readonly vendor?: string | null; readonly invoiceNo?: string | null },

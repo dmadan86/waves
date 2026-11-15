@@ -2454,6 +2454,10 @@ export interface UiStrings {
     policyHintLimit: string;
     policyBlocked: string;
     policyFlagged: string;
+    /** Employee's entry: the receipt rule wants a bill, none attached yet. */
+    billDue: string;
+    /** Reviewer's list: the same entry. */
+    noBillYet: string;
     perDay: string;
     perMonth: string;
     select: string;
@@ -10520,6 +10524,8 @@ const en: UiStrings = {
     policyHintLimit: 'Makes {actual} for the {period}; limit is {limit}',
     policyBlocked: 'Over the limit of {limit}. Lower the amount.',
     policyFlagged: 'Over policy',
+    billDue: 'Bill due',
+    noBillYet: 'No bill yet',
     perDay: 'day',
     perMonth: 'month',
     select: 'Select',
@@ -18060,6 +18066,8 @@ const ta: UiStrings = {
     policyHintLimit: '{period}க்கு {actual} ஆகிறது; வரம்பு {limit}',
     policyBlocked: '{limit} வரம்பை மீறுகிறது. தொகையை குறைக்கவும்.',
     policyFlagged: 'கொள்கையை மீறியது',
+    billDue: 'பில் நிலுவையில்',
+    noBillYet: 'இன்னும் பில் இல்லை',
     perDay: 'நாள்',
     perMonth: 'மாதம்',
     select: 'தேர்வு',
@@ -25754,6 +25762,8 @@ const hi: UiStrings = {
     policyHintLimit: '{period} में {actual} हो जाएगा; सीमा {limit}',
     policyBlocked: '{limit} की सीमा से ऊपर। राशि घटाएँ।',
     policyFlagged: 'नीति से ऊपर',
+    billDue: 'बिल बाकी',
+    noBillYet: 'अभी बिल नहीं',
     perDay: 'दिन',
     perMonth: 'महीना',
     select: 'चुनें',
@@ -33401,6 +33411,8 @@ const ar: UiStrings = {
     policyHintLimit: 'يصبح {actual} لهذا {period}؛ الحد {limit}',
     policyBlocked: 'تجاوز الحد {limit}. خفّض المبلغ.',
     policyFlagged: 'خارج السياسة',
+    billDue: 'الفاتورة مطلوبة',
+    noBillYet: 'لا فاتورة بعد',
     perDay: 'يوم',
     perMonth: 'شهر',
     select: 'تحديد',

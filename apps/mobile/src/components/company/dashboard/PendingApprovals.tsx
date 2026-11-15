@@ -2,7 +2,7 @@
 
 import { View } from 'react-native';
 
-import { flagsForEntry } from '@waves/core';
+import { billDue, flagsForEntry } from '@waves/core';
 
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { TitleRow, useMoney } from '@/components/company/dashboard/parts';
@@ -49,9 +49,15 @@ export function PendingApprovals({
               title={`${who ? displayName(who, null, null, t.misc.someone) : t.misc.someone} · ${kindLabel(t, e, tagLabel)}`}
               subtitle={[
                 who?.employee_id,
-                flagsForEntry(e, view.entries, view.policies, view.receiptEntryIds).length > 0
-                  ? `${t.company.awaiting} · ! ${t.company.policyFlagged}`
-                  : t.company.awaiting,
+                t.company.awaiting,
+                billDue(e, view.entries, view.policies, view.receiptEntryIds)
+                  ? t.company.noBillYet
+                  : null,
+                flagsForEntry(e, view.entries, view.policies, view.receiptEntryIds).some(
+                  (f) => f.code !== 'RECEIPT',
+                )
+                  ? `! ${t.company.policyFlagged}`
+                  : null,
               ]
                 .filter(Boolean)
                 .join(' · ')}
