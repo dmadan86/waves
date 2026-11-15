@@ -46,6 +46,9 @@ CREATE POLICY pots_insert ON public.pots FOR INSERT TO authenticated WITH CHECK 
 CREATE POLICY pots_update ON public.pots FOR UPDATE TO authenticated
   USING (waves_can_manage_pot(id)) WITH CHECK (waves_can_manage_pot(id));
 GRANT SELECT, INSERT, UPDATE ON public.pots TO authenticated;
+-- Tables created after the two-step migration must opt in to its write guard.
+CREATE TRIGGER zz_two_step_write_guard BEFORE INSERT OR UPDATE ON public.pots
+  FOR EACH ROW EXECUTE FUNCTION public.waves_two_step_write_guard();
 GRANT ALL ON public.pots TO service_role;
 REVOKE ALL ON public.pots FROM anon;
 
