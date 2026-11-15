@@ -9,3 +9,5 @@ export * from './pdfText';
 export * from './plan';
 export * from './intl';
 export * from './ofx';
+export * from './run';
+export * from './tablePages';

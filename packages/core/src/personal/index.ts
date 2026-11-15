@@ -6,3 +6,4 @@ export * from './sources';
 export * from './budgetContext';
 export * from './syncedLoan';
 export * from './services/index';
+export * from './digest';

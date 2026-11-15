@@ -15,7 +15,7 @@ import { defineConfig, devices } from '@playwright/test';
  * make a network call, so no real project is touched.
  */
 
-const PORT = 4020;
+const PORT = Number(process.env.E2E_PORT ?? 4020);
 const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({

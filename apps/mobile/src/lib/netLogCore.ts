@@ -156,6 +156,7 @@ function functionPurpose(name: string): NetPurpose {
     // reader and nothing is kept), never "sync".
     case 'parse-statement':
     case 'import-screenshot':
+    case 'spending-ask':
       return 'server-task';
     default:
       return 'server-task';
