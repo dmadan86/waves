@@ -2217,6 +2217,8 @@ export interface UiStrings {
     switchCompanyBody: string;
     createCompanyNew: string;
     newTitle: string;
+    /** New group link to the company create screen, for people about to make a "Company 1" group. */
+    forWork: string;
     createCompany: string;
     nameLabel: string;
     namePlaceholder: string;
@@ -10280,6 +10282,7 @@ const en: UiStrings = {
     switchCompanyBody: 'Choose a company to manage',
     createCompanyNew: 'Create new',
     newTitle: 'New company',
+    forWork: 'For work expenses? Create a company',
     createCompany: 'Create company',
     nameLabel: 'Company name',
     namePlaceholder: 'e.g. Sri Murugan Traders',
@@ -17820,6 +17823,7 @@ const ta: UiStrings = {
     switchCompanyBody: 'நிர்வகிக்க ஒரு நிறுவனத்தைத் தேர்ந்தெடுக்கவும்',
     createCompanyNew: 'புதிதாக உருவாக்கு',
     newTitle: 'புதிய நிறுவனம்',
+    forWork: 'வேலைச் செலவுகளுக்கா? நிறுவனத்தை உருவாக்குங்கள்',
     createCompany: 'நிறுவனத்தை உருவாக்கு',
     nameLabel: 'நிறுவனத்தின் பெயர்',
     namePlaceholder: 'எ.கா. ஸ்ரீ முருகன் டிரேடர்ஸ்',
@@ -25514,6 +25518,7 @@ const hi: UiStrings = {
     switchCompanyBody: 'प्रबंधन के लिए कंपनी चुनें',
     createCompanyNew: 'नई बनाएँ',
     newTitle: 'नई कंपनी',
+    forWork: 'काम के खर्च के लिए? कंपनी बनाएं',
     createCompany: 'कंपनी बनाएँ',
     nameLabel: 'कंपनी का नाम',
     namePlaceholder: 'जैसे श्री मुरुगन ट्रेडर्स',
@@ -33158,6 +33163,7 @@ const ar: UiStrings = {
     switchCompanyBody: 'اختر شركة لإدارتها',
     createCompanyNew: 'إنشاء شركة جديدة',
     newTitle: 'شركة جديدة',
+    forWork: 'لمصاريف العمل؟ أنشئ شركة',
     createCompany: 'إنشاء شركة',
     nameLabel: 'اسم الشركة',
     namePlaceholder: 'مثال: شركة النور للتجارة',

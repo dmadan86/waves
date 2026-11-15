@@ -4,7 +4,7 @@
  * group form, but none of that form's group controls apply to a company.
  */
 
-import { Redirect } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { useState } from 'react';
 import { ScrollView, TextInput, View } from 'react-native';
@@ -44,7 +44,9 @@ function NewCompanyScreenBody() {
   const groups = useGroups().data ?? [];
   const viewerId = useViewerId();
   const [paywall, setPaywall] = useState(false);
-  const [name, setName] = useState('');
+  // New group's "For work?" link carries over the name already typed there.
+  const prefill = useLocalSearchParams<{ name?: string }>().name;
+  const [name, setName] = useState(prefill ?? '');
   const [currency, setCurrency] = useState<string | null>(null);
   const [pickingCur, setPickingCur] = useState(false);
   const [logo, setLogo] = useState<PickedImage | null>(null);

@@ -76,6 +76,7 @@ import { useKnownContacts } from '@/data/knownContacts';
 import { sameHuman, suggestPeople } from '@/lib/addFromAnotherGroup';
 import { membersToClone } from '@/lib/cloneMembers';
 import { NEW_GROUP_TILES, tileForType } from '@/lib/newGroupType';
+import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { useHomeHero } from '@/lib/useHomeHero';
@@ -1165,6 +1166,20 @@ function NewGroupScreen() {
               ))}
             </Row>
             <GroupTagField filled type={type} value={customTag} onChange={setCustomTag} />
+            {/* People make a "Company 1" split group for work spending; a company keeps each person's own entries instead. */}
+            {COMPANIES_ENABLED && !cloning && !assignCaptureId ? (
+              <Pressable
+                accessibilityRole="link"
+                onPress={() =>
+                  router.replace({ pathname: '/new-company', params: { name: name.trim() } })
+                }
+                hitSlop={8}
+              >
+                <Text style={{ fontSize: 13, color: SPEC_ACCENT, fontWeight: '600' }}>
+                  🏢 {t.company.forWork}
+                </Text>
+              </Pressable>
+            ) : null}
           </FormCard>
 
           {/* The group's settings. Dates and budget are trip-only, so a dinner
