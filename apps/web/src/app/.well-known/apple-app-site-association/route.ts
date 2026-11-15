@@ -25,13 +25,15 @@
 /** `<Apple Team ID>.<bundle id>` — `ios.appleTeamId` and `ios.bundleIdentifier`. */
 export const APP_ID = 'JBAY4E524Q.app.wavs.mobile';
 
-/** The invite and referral paths, and only those: the same five the Android intent filter claims. */
+/** The invite and referral paths (the same five the Android intent filter claims), plus the iOS scan control's `/capture`. */
 export const INVITE_COMPONENTS = [
   { '/': '/join', comment: 'Invite, token in the fragment or the query' },
   { '/': '/join/*', comment: 'Invite, the older path form' },
   { '/': '/g', comment: 'Short group invite' },
   { '/': '/g/*', comment: 'Short group invite with its code' },
   { '/': '/r/*', comment: "A friend's referral link (the app remembers the code)" },
+  // iOS only: the Scan a bill control's OpenURLIntent accepts universal links, not `waves://`.
+  { '/': '/capture', comment: 'Scan a bill control (lock screen / Control Center)' },
 ];
 
 export const runtime = 'nodejs';

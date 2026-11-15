@@ -593,9 +593,10 @@ describe('restricted family splits', () => {
 describe('how-to questions', () => {
   it('the cached prompt carries the app guide and routes how-to questions to answer_question', () => {
     const prompt = systemPrompt(context());
-    expect(prompt).toContain('APP GUIDE');
+    const heading = prompt.indexOf('\nAPP GUIDE (for how-to questions');
+    expect(heading).toBeGreaterThan(-1);
     expect(prompt).toMatch(/question about how to use Waves .* call answer_question/);
-    expect(prompt.indexOf('APP GUIDE')).toBeLessThan(prompt.indexOf('Context:'));
+    expect(heading).toBeLessThan(prompt.indexOf('Context:'));
   });
 
   it('a how-to answer saves nothing', () => {

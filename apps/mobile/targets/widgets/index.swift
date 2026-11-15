@@ -202,7 +202,8 @@ struct WavesSearchWidget: Widget {
 // MARK: - Scan control (iOS 18: lock screen, Control Center, Action button)
 
 // Opens the receipt scanner at the same `/capture?scan=<nonce>` the app-icon Scan
-// shortcut uses; from the lock screen iOS asks for Face ID first.
+// shortcut uses; from the lock screen iOS asks for Face ID first. OpenURLIntent only
+// takes a universal link (not `waves://`), so this is the https path the AASA claims.
 @available(iOS 18.0, *)
 struct OpenScanIntent: AppIntent {
     static let title: LocalizedStringResource = "Scan a bill"
@@ -210,7 +211,7 @@ struct OpenScanIntent: AppIntent {
 
     func perform() async throws -> some IntentResult & OpensIntent {
         let nonce = Int(Date().timeIntervalSince1970 * 1000)
-        return .result(opensIntent: OpenURLIntent(URL(string: "waves:///capture?scan=\(nonce)")!))
+        return .result(opensIntent: OpenURLIntent(URL(string: "https://app.wavs.co.in/capture?scan=\(nonce)")!))
     }
 }
 

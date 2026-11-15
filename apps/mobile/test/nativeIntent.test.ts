@@ -77,6 +77,8 @@ describe('the links that were already rewritten', () => {
   it('gives the scan widget a fresh nonce on every tap', () => {
     const first = go('waves://capture?scan=1');
     expect(first).toMatch(/^\/capture\?scan=\d+$/);
+    // The iOS Scan a bill control arrives as a universal link.
+    expect(go('https://app.wavs.co.in/capture?scan=5')).toMatch(/^\/capture\?scan=\d+$/);
   });
 
   it('gives the Photo tile a fresh gallery nonce on every tap', () => {
