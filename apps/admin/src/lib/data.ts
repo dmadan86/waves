@@ -6,6 +6,7 @@ import { PACK_STATUSES, parsePack, validatePlacements } from '@waves/core';
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
 
+import { adoption, type AdoptionRow } from './otaAdoption';
 import { isValidToken, SESSION_COOKIE } from './session';
 
 /**
@@ -1161,6 +1162,29 @@ export interface AppReleaseRow {
   store_url: string;
   message: string | null;
   updated_at: string;
+}
+
+/**
+ * Devices seen in the last `days`, by platform, store version and OTA update
+ * (`device_sessions`, not revoked). Paged: PostgREST returns at most 1000 rows a call.
+ */
+export async function otaAdoption(days = 30): Promise<AdoptionRow[]> {
+  await requireSession();
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const rows: { platform: string | null; app_version: string | null }[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await client()
+      .from('device_sessions')
+      .select('platform, app_version')
+      .is('revoked_at', null)
+      .gte('last_seen_at', since)
+      .order('id')
+      .range(from, from + 999);
+    if (error) throw new Error(`reading device_sessions failed: ${error.message}`);
+    rows.push(...(data ?? []));
+    if ((data ?? []).length < 1000) break;
+  }
+  return adoption(rows);
 }
 
 /** The version policy each store is under. One row per platform, by primary key. */

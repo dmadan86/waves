@@ -3,9 +3,9 @@ import { redirect } from 'next/navigation';
 
 import { CsrfField } from '@/components/CsrfField';
 import { Icon } from '@/components/icons';
-import { Badge, Card, Empty, Field, Lede, Outcome, PageHeader } from '@/components/ui';
+import { Badge, Card, Empty, Field, Lede, Outcome, PageHeader, TableScroll } from '@/components/ui';
 import { guardMutation } from '@/lib/csrf';
-import { appReleases, saveAppRelease, type AppReleaseRow } from '@/lib/data';
+import { appReleases, otaAdoption, saveAppRelease, type AppReleaseRow } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +33,7 @@ export default async function Releases({
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
   const { error, saved } = await searchParams;
-  const rows = await appReleases();
+  const [rows, devices] = await Promise.all([appReleases(), otaAdoption()]);
 
   async function save(formData: FormData) {
     'use server';
@@ -88,6 +88,48 @@ export default async function Releases({
           ))}
         </div>
       )}
+
+      <Card
+        bare
+        title="Devices by version and OTA update"
+        note="Signed-in devices seen in the last 30 days. Phones count under an OTA update only once their app has the code that reports it; until then they show as built-in."
+      >
+        {devices.length === 0 ? (
+          <Empty title="No devices seen">Nobody has opened the app in the last 30 days.</Empty>
+        ) : (
+          <TableScroll>
+            <table>
+              <caption className="sr-only">
+                Devices per platform, store version and OTA update
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Platform</th>
+                  <th scope="col">Version</th>
+                  <th scope="col">OTA update</th>
+                  <th scope="col" className="n">
+                    Devices
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {devices.map((d) => (
+                  <tr key={`${d.platform}|${d.version}|${d.update}`}>
+                    <th scope="row" style={{ fontWeight: 600 }}>
+                      {STORE[d.platform] ?? d.platform}
+                    </th>
+                    <td>{d.version}</td>
+                    <td>
+                      {d.update ? <code>{d.update}</code> : <span className="muted">built-in</span>}
+                    </td>
+                    <td className="n">{d.devices.toLocaleString('en-IN')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableScroll>
+        )}
+      </Card>
     </main>
   );
 }

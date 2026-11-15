@@ -20,6 +20,8 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 import { legacyKeysMigrated } from './legacyKeys';
+import { versionWithUpdate } from './otaStatus';
+import { loadUpdates } from './restart';
 
 const KEY = 'waves.device.id';
 
@@ -136,11 +138,27 @@ export function appVersion(): string | null {
   return Constants.expoConfig?.version ?? null;
 }
 
+/** The OTA update this launch runs, or null where expo-updates is not linked. */
+function runningUpdate() {
+  try {
+    const updates = loadUpdates();
+    return updates
+      ? {
+          embedded: updates.isEmbeddedLaunch !== false,
+          updateId: updates.updateId ?? null,
+          createdAt: null,
+        }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function deviceIdentity(): Promise<DeviceIdentity> {
   return {
     deviceId: await deviceId(),
     label: deviceLabel(),
     platform: devicePlatform(),
-    appVersion: appVersion(),
+    appVersion: versionWithUpdate(appVersion(), runningUpdate()),
   };
 }
