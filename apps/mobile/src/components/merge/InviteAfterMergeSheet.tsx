@@ -9,7 +9,6 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, View } from 'react-native';
 
 import { iconSize, Popup, Row, Text, useTheme } from '@waves/ui';
@@ -27,22 +26,26 @@ function Person({ size, colors }: { size: number; colors: [string, string] }) {
   const head = size * 0.5;
   return (
     <View style={{ width: size, height: size, alignItems: 'center' }}>
-      <LinearGradient
-        colors={colors}
-        style={{ width: head, height: head, borderRadius: head / 2 }}
+      <View
+        style={[
+          { backgroundColor: colors[0] },
+          { width: head, height: head, borderRadius: head / 2 },
+        ]}
       />
-      <LinearGradient
-        colors={colors}
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          width: size,
-          height: size * 0.5,
-          borderTopLeftRadius: size / 2,
-          borderTopRightRadius: size / 2,
-          borderBottomLeftRadius: size * 0.14,
-          borderBottomRightRadius: size * 0.14,
-        }}
+      <View
+        style={[
+          { backgroundColor: colors[0] },
+          {
+            position: 'absolute',
+            bottom: 0,
+            width: size,
+            height: size * 0.5,
+            borderTopLeftRadius: size / 2,
+            borderTopRightRadius: size / 2,
+            borderBottomLeftRadius: size * 0.14,
+            borderBottomRightRadius: size * 0.14,
+          },
+        ]}
       />
     </View>
   );
@@ -109,26 +112,6 @@ export function InviteAfterMergeSheet({
             justifyContent: 'center',
           }}
         >
-          <View
-            style={{
-              position: 'absolute',
-              bottom: 4,
-              width: 200,
-              height: 78,
-              borderRadius: 40,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          />
-          <View
-            style={{
-              position: 'absolute',
-              top: 6,
-              width: 130,
-              height: 70,
-              borderRadius: 40,
-              backgroundColor: theme.color.brandSoft,
-            }}
-          />
           <Row style={{ alignItems: 'flex-end', marginTop: 12 }}>
             <Person size={58} colors={PURPLE} />
             <View style={{ marginStart: -10 }}>
@@ -189,28 +172,28 @@ export function InviteAfterMergeSheet({
             alignSelf: 'stretch',
             marginTop: theme.spacing.lg,
             height: 48,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             overflow: 'hidden',
             opacity: pressed ? 0.9 : 1,
           })}
         >
-          <LinearGradient
-            colors={[theme.color.brand, theme.color.brandPressed]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: theme.spacing.sm,
-            }}
+          <View
+            style={[
+              { backgroundColor: theme.color.brand },
+              {
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: theme.spacing.sm,
+              },
+            ]}
           >
             <Ionicons name="paper-plane-outline" size={iconSize.md} color={theme.color.onBrand} />
             <Text variant="subheading" tone="onBrand" numberOfLines={1}>
               {inviteLabel}
             </Text>
-          </LinearGradient>
+          </View>
         </Pressable>
 
         <Pressable
@@ -221,7 +204,7 @@ export function InviteAfterMergeSheet({
             alignSelf: 'stretch',
             marginTop: theme.spacing.sm,
             height: 48,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: theme.color.brandSoft,

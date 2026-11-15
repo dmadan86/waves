@@ -190,6 +190,25 @@ export function withAliases(
  * name and confirmed aliases, without repeats, at most {@link MAX_VOICE_HINTS}.
  * Given the current group's members, or everybody across the person's groups.
  */
+/** Group names (most recent first) lead the recogniser's list, so "Goa Trip" is not heard as "Goa Express". */
+export function withGroupHints(
+  groupNames: readonly string[],
+  hints: readonly string[],
+  maxGroups = 12,
+  cap: number = MAX_VOICE_HINTS,
+): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const text of [...groupNames.slice(0, maxGroups), ...hints]) {
+    const word = text.trim().replace(/\s+/g, ' ');
+    const key = word.toLowerCase();
+    if (!word || seen.has(key) || out.length >= cap) continue;
+    seen.add(key);
+    out.push(word);
+  }
+  return out;
+}
+
 export function voiceNameHints(
   members: readonly Pick<VoiceNameCandidate, 'name' | 'aliases'>[],
   cap: number = MAX_VOICE_HINTS,

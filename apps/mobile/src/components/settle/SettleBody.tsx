@@ -15,7 +15,7 @@ import { usePots, usePotExpenseTags } from '@/data/pots';
  * other members, the payment history and the who-pays-whom view sit below.
  */
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, Linking, Pressable, View } from 'react-native';
 
@@ -75,7 +75,10 @@ import { pendingPairKey, splitSettlePlan, type PlanTransfer } from '@/lib/settle
 import { hasLeft, memberNameById } from '@/lib/memberName';
 import { OwedStatus, owedRowModel } from '@/lib/settleRow';
 import { useRemind } from '@/lib/useRemind';
+import { filterOtherTransfers, sortPeopleDebts } from '@/lib/groupBalanceList';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { OverflowMenu } from '@/components/OverflowMenu';
+import { type MenuAnchor } from '@/components/SortMenu';
 
 /**
  * Everything the settle flow knows and does for one group; the sections below only draw it.
@@ -317,11 +320,7 @@ export function useSettleFlow(
   // A member who has dropped out of the list (their debts settled) cannot
   // stay selected, or the list would be empty with no way to see why.
   const activeFilter = filterMember && otherMembers.includes(filterMember) ? filterMember : null;
-  const shownOthers = activeFilter
-    ? split.others.filter(
-        (transfer) => transfer.from === activeFilter || transfer.to === activeFilter,
-      )
-    : split.others;
+  const shownOthers = filterOtherTransfers(split.others, activeFilter);
 
   const personFor = (memberId: string): MemberRow | undefined => lookup.get(memberId);
   const ghostFor = (member: MemberRow | undefined): boolean =>
@@ -469,6 +468,61 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
     shownOthers,
     split,
   } = flow;
+  const [sort, setSort] = useState<'amount' | 'amountLow' | 'name'>('amount');
+  const [sortAnchor, setSortAnchor] = useState<MenuAnchor | null>(null);
+  const [sortOpen, setSortOpen] = useState(false);
+  const pillRef = useRef<View>(null);
+  const sortLabel = {
+    amount: t.misc.sortAmountHigh,
+    amountLow: t.misc.sortAmountLow,
+    name: t.sort.name,
+  };
+  const openSort = () => {
+    const pill = pillRef.current;
+    if (!pill) return setSortOpen(true);
+    pill.measureInWindow((x, y, width, height) => {
+      setSortAnchor(width > 0 ? { x, y, width, height } : null);
+      setSortOpen(true);
+    });
+  };
+  const sortControls = (title: string, subtitle?: string) => (
+    <>
+      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+        <View style={{ flex: 1 }}>
+          <CardHeader title={title} subtitle={subtitle} />
+        </View>
+        <View ref={pillRef} collapsable={false}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={fill(t.misc.sortPill, { label: sortLabel[sort] })}
+            accessibilityState={{ expanded: sortOpen }}
+            hitSlop={6}
+            onPress={openSort}
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 18,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Ionicons name="swap-vertical" size={18} color={theme.color.brand} />
+          </Pressable>
+        </View>
+      </Row>
+      <OverflowMenu
+        visible={sortOpen}
+        onClose={() => setSortOpen(false)}
+        anchor={sortAnchor}
+        items={(['amount', 'amountLow', 'name'] as const).map((value) => ({
+          icon: sort === value ? 'checkmark' : 'swap-vertical-outline',
+          label: sortLabel[value],
+          onPress: () => setSort(value),
+        }))}
+      />
+    </>
+  );
   const nothingToSettle =
     split.owesMe.length === 0 && split.iOwe.length === 0 && split.others.length === 0;
   return (
@@ -482,8 +536,8 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
 
       {split.owesMe.length > 0 ? (
         <Card>
-          <CardHeader title={t.misc.settleOweYouTitle} />
-          {owedPeople.map((debts) => {
+          {sortControls(t.group.paymentsToSettle)}
+          {sortPeopleDebts(owedPeople, sort, nameOf, locale).map((debts) => {
             const person = personFor(debts.memberId);
             // Who left says so on the status line, not as a "(left)" on the name.
             const name = nameOf(debts.memberId, true);
@@ -537,8 +591,8 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
 
       {split.iOwe.length > 0 ? (
         <Card>
-          <CardHeader title={t.misc.settleYouOweTitle} />
-          {owingPeople.map((debts) => {
+          {sortControls(t.misc.paymentsToMake, t.misc.settleYouOweTitle)}
+          {sortPeopleDebts(owingPeople, sort, nameOf, locale).map((debts) => {
             const person = personFor(debts.memberId);
             const name = nameOf(debts.memberId);
             const amountText = amountsText(debts.amounts);
@@ -644,6 +698,7 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
           {shownOthers.map((transfer) => (
             <OtherTile
               key={`${transfer.from}-${transfer.to}-${transfer.currency}-${transfer.amount}`}
+              onPress={() => router.push(`/group/${groupId}/simplify`)}
               fromName={nameOf(transfer.from)}
               toName={nameOf(transfer.to)}
               from={personFor(transfer.from)}
@@ -661,12 +716,11 @@ export function SettlePayments({ flow }: { flow: SettleFlow }) {
   );
 }
 
-/** Past payments, and the way out to the who-pays-whom view. */
+/** Past payments. (Who pays whom is the button beside Group totals.) */
 export function SettleHistory({ flow }: { flow: SettleFlow }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const {
-    groupId,
     ghostFor,
     history,
     historyExpandable,
@@ -676,82 +730,116 @@ export function SettleHistory({ flow }: { flow: SettleFlow }) {
     showAllHistory,
     shownHistory,
   } = flow;
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const hasHistory = history.length > 0;
+  const tile = (props: {
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    subtitle: string;
+    onPress?: () => void;
+    role: 'link' | 'button';
+    expanded?: boolean;
+  }) => (
+    <Pressable
+      accessibilityRole={props.role}
+      accessibilityLabel={`${props.title}. ${props.subtitle}`}
+      accessibilityState={props.expanded === undefined ? undefined : { expanded: props.expanded }}
+      disabled={!props.onPress}
+      onPress={props.onPress}
+      style={({ pressed }) => ({
+        flex: 1,
+        minHeight: 56,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        padding: theme.spacing.sm,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.surface,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 18,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <Ionicons name={props.icon} size={iconSize.base} color={theme.color.brand} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Text variant="subheading" numberOfLines={1}>
+          {props.title}
+        </Text>
+        <Text variant="caption" tone="muted" numberOfLines={1}>
+          {props.subtitle}
+        </Text>
+      </View>
+      {props.onPress ? (
+        <Ionicons
+          name={directionalIcon('chevron-forward')}
+          size={iconSize.md}
+          color={theme.color.textMuted}
+        />
+      ) : null}
+    </Pressable>
+  );
   return (
     <>
-      <Card>
-        {/* One line when empty (clock, title, muted "No payments yet"): the
-              old illustration and sentence spent 120pt on nothing. */}
-        <Row style={{ gap: theme.spacing.sm, alignItems: 'center', minHeight: 24 }}>
-          <Ionicons name="time-outline" size={iconSize.lg} color={theme.color.brand} />
-          <Text variant="subheading" accessibilityRole="header">
-            {t.misc.settleHistory}
-          </Text>
-          <Text variant="caption" tone="muted" numberOfLines={1} style={{ flex: 1 }}>
-            {history.length === 0
-              ? t.misc.settleNoHistory
-              : plural(locale, history.length, t.misc.settlePaymentsCount)}
-          </Text>
-        </Row>
-        {shownHistory.map((row) => (
-          <OtherTile
-            key={row.id}
-            fromName={nameOf(row.from_member_id)}
-            toName={nameOf(row.to_member_id)}
-            from={personFor(row.from_member_id)}
-            to={personFor(row.to_member_id)}
-            fromGhost={ghostFor(personFor(row.from_member_id))}
-            toGhost={ghostFor(personFor(row.to_member_id))}
-            amount={BigInt(row.amount)}
-            currency={row.currency}
-            locale={locale}
-            date={row.initiated_at}
-            past
-          />
-        ))}
-        {historyExpandable ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityState={{ expanded: showAllHistory }}
-            hitSlop={{ top: 8, bottom: 8 }}
-            onPress={() => setShowAllHistory((open) => !open)}
-            style={{ alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center' }}
-          >
-            <Text variant="caption" tone="brand">
-              {showAllHistory ? t.misc.settleHideAll : t.misc.settleSeeAll}
-            </Text>
-            <Ionicons
-              name={showAllHistory ? 'chevron-up' : directionalIcon('chevron-forward')}
-              size={iconSize.sm}
-              color={theme.color.brand}
-            />
-          </Pressable>
-        ) : null}
-      </Card>
-
-      {/* A slim text link, not a card: it is a way out, not content. */}
-      <Pressable
-        accessibilityRole="link"
-        accessibilityLabel={t.whoPaysWhom}
-        onPress={() => router.push(`/group/${groupId}/simplify`)}
-        style={({ pressed }) => ({
-          minHeight: 44,
-          paddingHorizontal: theme.spacing.xs,
-          justifyContent: 'center',
-          opacity: pressed ? 0.7 : 1,
+      <Row style={{ gap: theme.spacing.sm }}>
+        {tile({
+          icon: 'time-outline',
+          title: t.misc.settleHistory,
+          subtitle: hasHistory
+            ? plural(locale, history.length, t.misc.settlePaymentsCount)
+            : t.misc.settleNoHistory,
+          role: 'button',
+          // Nothing to open while there are no payments.
+          onPress: hasHistory ? () => setHistoryOpen((open) => !open) : undefined,
+          expanded: historyOpen,
         })}
-      >
-        <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-          <Ionicons name="stats-chart" size={iconSize.base} color={theme.color.brand} />
-          <Text variant="body" tone="brand" style={{ flex: 1 }}>
-            {t.whoPaysWhom}
-          </Text>
-          <Ionicons
-            name={directionalIcon('chevron-forward')}
-            size={iconSize.md}
-            color={theme.color.textMuted}
-          />
-        </Row>
-      </Pressable>
+      </Row>
+      {historyOpen && hasHistory ? (
+        <Card>
+          {shownHistory.map((row) => (
+            <OtherTile
+              key={row.id}
+              fromName={nameOf(row.from_member_id)}
+              toName={nameOf(row.to_member_id)}
+              from={personFor(row.from_member_id)}
+              to={personFor(row.to_member_id)}
+              fromGhost={ghostFor(personFor(row.from_member_id))}
+              toGhost={ghostFor(personFor(row.to_member_id))}
+              amount={BigInt(row.amount)}
+              currency={row.currency}
+              locale={locale}
+              date={row.initiated_at}
+              past
+            />
+          ))}
+          {historyExpandable ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showAllHistory }}
+              hitSlop={{ top: 8, bottom: 8 }}
+              onPress={() => setShowAllHistory((open) => !open)}
+              style={{ alignSelf: 'flex-end', flexDirection: 'row', alignItems: 'center' }}
+            >
+              <Text variant="caption" tone="brand">
+                {showAllHistory ? t.misc.settleHideAll : t.misc.settleSeeAll}
+              </Text>
+              <Ionicons
+                name={showAllHistory ? 'chevron-up' : directionalIcon('chevron-forward')}
+                size={iconSize.sm}
+                color={theme.color.brand}
+              />
+            </Pressable>
+          ) : null}
+        </Card>
+      ) : null}
     </>
   );
 }
@@ -809,22 +897,17 @@ export function SettleConfirm({ flow }: { flow: SettleFlow }) {
 
 const HISTORY_PREVIEW = 3;
 
-/** A white card: the one surface every block below the summary sits on. */
+/** A section of compact settlement rows. */
 function Card({ children }: { children: ReactNode }) {
   const theme = useTheme();
   return (
     <View
-      style={[
-        {
-          backgroundColor: theme.color.surface,
-          borderRadius: theme.radius.lg,
-          paddingHorizontal: theme.spacing.md,
-          paddingVertical: theme.spacing.md,
-          // Tiles sit 8pt apart, the compact rhythm the design uses.
-          gap: theme.spacing.sm,
-        },
-        theme.shadow.soft,
-      ]}
+      style={{
+        gap: theme.spacing.xs,
+        backgroundColor: theme.color.surface,
+        borderRadius: theme.radius.lg,
+        padding: theme.spacing.md,
+      }}
     >
       {children}
     </View>
@@ -835,7 +918,7 @@ function Card({ children }: { children: ReactNode }) {
 function CardHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <View>
-      <Text variant="subheading" accessibilityRole="header">
+      <Text variant="heading" accessibilityRole="header">
         {title}
       </Text>
       {subtitle ? (
@@ -857,11 +940,14 @@ function PayPill({
   accessibilityLabel,
   disabled,
   onPress,
+  tinted = false,
 }: {
   label: string;
   accessibilityLabel: string;
   disabled: boolean;
   onPress: () => void;
+  /** The soft Record look; the solid default is for Pay. */
+  tinted?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -873,34 +959,40 @@ function PayPill({
       onPress={onPress}
       style={({ pressed }) => ({
         height: 32,
-        paddingHorizontal: theme.spacing.lg,
+        paddingHorizontal: theme.spacing.md,
         borderRadius: theme.radius.pill,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: pressed ? theme.color.buttonPrimaryPressed : theme.color.buttonPrimary,
-        opacity: disabled ? 0.5 : 1,
+        backgroundColor: tinted
+          ? theme.color.brandSoft
+          : pressed
+            ? theme.color.buttonPrimaryPressed
+            : theme.color.buttonPrimary,
+        opacity: disabled ? 0.5 : pressed && tinted ? 0.7 : 1,
       })}
     >
-      <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ fontWeight: '700' }}>
+      <Text
+        variant="caption"
+        tone={tinted ? 'brand' : 'onBrand'}
+        numberOfLines={1}
+        style={{ fontWeight: '700' }}
+      >
         {label}
       </Text>
     </Pressable>
   );
 }
 
-/** The light rounded tile each person or payment sits on inside a card. */
+/** Standard rows, separated by a subtle rule. */
 function Tile({ children, dense = false }: { children: ReactNode; dense?: boolean }) {
   const theme = useTheme();
   return (
     <View
       style={{
-        backgroundColor: theme.color.surfaceMuted,
-        borderRadius: theme.radius.md,
-        paddingHorizontal: theme.spacing.md,
-        // Dense (payments, no action button) rows land at 48pt; people rows
-        // keep 56pt, the height of their 40pt avatar plus padding.
-        paddingVertical: dense ? theme.spacing.xs : theme.spacing.sm,
-        minHeight: dense ? 48 : 56,
+        borderBottomWidth: 1,
+        borderBottomColor: theme.color.border,
+        paddingVertical: theme.spacing.sm,
+        minHeight: dense ? 56 : 64,
         justifyContent: 'center',
       }}
     >
@@ -949,7 +1041,7 @@ function FilterPill({
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.spacing.xs,
-        maxWidth: 140,
+        maxWidth: 190,
         height: 34,
         paddingHorizontal: theme.spacing.md,
         borderRadius: theme.radius.pill,
@@ -998,17 +1090,7 @@ function FilterChip({
   );
 }
 
-/**
- * One person on a settle row, laid out the same for everyone: avatar, then the
- * name with what they owe on the right (one amount per currency, stacked), then
- * a one-line status with the row's one action (a Remind pill) at its end. The
- * action sits on the status line, not the name's, so it never squeezes the name
- * or the amount. The row keeps its old job (mark as received / paid), so the
- * action adds to it rather than replacing it.
- *
- * The status line may wrap when it is long, but it never truncates:
- * "Tap to mark recei…" said nothing.
- */
+/** The row action and reminder stay separate for screen readers. */
 function PersonTile({
   name,
   member,
@@ -1049,6 +1131,7 @@ function PersonTile({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={accessibilityLabel}
+            accessibilityState={{ disabled }}
             disabled={disabled}
             onPress={onPress}
             style={(state) => [
@@ -1059,21 +1142,6 @@ function PersonTile({
             <Text variant="subheading" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
               {name}
             </Text>
-            <View style={{ alignItems: 'flex-end' }}>
-              {amounts.map((amount) => (
-                <MoneyText
-                  key={amount.currency}
-                  amount={amount.minor}
-                  currency={amount.currency as CurrencyCode}
-                  locale={locale}
-                  mode="balance"
-                  direction={direction}
-                  // Money owed to me wears the brand colour, as the design has it;
-                  // money I owe keeps the red the rest of the app reads as "out".
-                  tone={direction === BalanceDirection.OwedToYou ? 'brand' : undefined}
-                />
-              ))}
-            </View>
           </Pressable>
           <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
             <Pressable
@@ -1082,13 +1150,32 @@ function PersonTile({
               onPress={onPress}
               style={(state) => [{ flex: 1, minWidth: 0 }, dim(state)]}
             >
-              <Text variant="caption" tone="muted">
+              <Text variant="caption" tone="muted" numberOfLines={1}>
                 {status ?? hint}
               </Text>
             </Pressable>
-            {action}
           </Row>
         </View>
+        <Pressable
+          accessible={false}
+          disabled={disabled}
+          onPress={onPress}
+          style={(state) => [{ alignItems: 'flex-end' }, dim(state)]}
+        >
+          {amounts.map((amount) => (
+            <MoneyText
+              key={amount.currency}
+              amount={amount.minor}
+              currency={amount.currency as CurrencyCode}
+              locale={locale}
+              mode="plain"
+              // Money owed to me wears the brand colour, as the design has it;
+              // money I owe keeps the red the rest of the app reads as "out".
+              tone={direction === BalanceDirection.OwedToYou ? 'brand' : 'negative'}
+            />
+          ))}
+        </Pressable>
+        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>{action}</Row>
       </Row>
     </Tile>
   );
@@ -1098,7 +1185,7 @@ function PersonTile({
  * Someone who owes me, and the one reminder they get however many currencies
  * they owe in.
  *
- * One Remind pill for everybody; it opens the channel sheet (`useRemind`):
+ * One reminder for everybody; it opens the channel sheet (`useRemind`):
  * Waves push for members on Waves, WhatsApp, SMS or Share otherwise. The push is
  * sent once: `waves_nudge_to_settle` takes a currency and its one-a-day limit is
  * per pair, not per currency, so it goes about the first amount (the group's
@@ -1190,6 +1277,7 @@ function OwedPersonRow({
       ) : null}
       <PayPill
         label={t.misc.settleRecord}
+        tinted
         accessibilityLabel={fill(t.misc.settleRecordA11y, { name, amount: amountText })}
         disabled={disabled}
         onPress={onPress}
@@ -1286,6 +1374,7 @@ function RatelessTile({
  * transfer is computed and has none).
  */
 function OtherTile({
+  onPress,
   fromName,
   toName,
   from,
@@ -1302,6 +1391,7 @@ function OtherTile({
   toName: string;
   from?: MemberRow;
   to?: MemberRow;
+  onPress?: () => void;
   fromGhost: boolean;
   toGhost: boolean;
   amount: bigint;
@@ -1324,60 +1414,76 @@ function OtherTile({
   });
   const amountText = format(money(amount, currency as CurrencyCode), { locale });
   return (
-    <Tile dense>
-      <Row
-        accessible
-        accessibilityLabel={`${who}. ${amountText}${dateText ? `. ${dateText}` : ''}`}
-        style={{ gap: theme.spacing.md, alignItems: 'center' }}
-      >
-        {/* The pair, overlapped, and the names stacked beside them: the payer
+    <Pressable
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessible={Boolean(onPress)}
+      accessibilityLabel={onPress ? `${who}. ${amountText}` : undefined}
+      onPress={onPress}
+      disabled={!onPress}
+    >
+      <Tile dense>
+        <Row
+          accessible={!onPress}
+          accessibilityLabel={`${who}. ${amountText}${dateText ? `. ${dateText}` : ''}`}
+          style={{ gap: theme.spacing.md, alignItems: 'center' }}
+        >
+          {/* The pair, overlapped, and the names stacked beside them: the payer
             on the first line, "→ receiver" on the second. Two names side by
             side squeezed each into a third of the row, and a long one
             ("Rvs R Deepak") was cut to nothing; stacked, each gets the full
             width of the text column. */}
-        <View style={{ flexDirection: 'row' }}>
-          <MemberAvatar name={fromName} member={from} ghost={fromGhost} size={30} />
-          <View
-            style={{
-              marginStart: -8,
-              borderRadius: 17,
-              borderWidth: 2,
-              borderColor: theme.color.surfaceMuted,
-            }}
-          >
-            <MemberAvatar name={toName} member={to} ghost={toGhost} size={30} />
+          <View style={{ flexDirection: 'row' }}>
+            <MemberAvatar name={fromName} member={from} ghost={fromGhost} size={30} />
+            <View
+              style={{
+                marginStart: -8,
+                borderRadius: 17,
+                borderWidth: 2,
+                borderColor: theme.color.surfaceMuted,
+              }}
+            >
+              <MemberAvatar name={toName} member={to} ghost={toGhost} size={30} />
+            </View>
           </View>
-        </View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-            {fromName}
-          </Text>
-          <Row style={{ gap: 4, alignItems: 'center' }}>
-            <Ionicons
-              name={directionalIcon('arrow-forward')}
-              size={iconSize.sm}
-              color={theme.color.brand}
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+              {fromName}
+            </Text>
+            <Row style={{ gap: 4, alignItems: 'center' }}>
+              <Ionicons
+                name={directionalIcon('arrow-forward')}
+                size={iconSize.sm}
+                color={theme.color.brand}
+              />
+              <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                {toName}
+              </Text>
+            </Row>
+          </View>
+          <View style={{ alignItems: 'flex-end' }}>
+            <MoneyText
+              amount={amount}
+              currency={currency as CurrencyCode}
+              locale={locale}
+              variant="body"
+              mode="plain"
+              tone={onPress ? 'brand' : undefined}
             />
-            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {toName}
-            </Text>
-          </Row>
-        </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <MoneyText
-            amount={amount}
-            currency={currency as CurrencyCode}
-            locale={locale}
-            variant="body"
-            mode="plain"
-          />
-          {dateText ? (
-            <Text variant="micro" tone="muted">
-              {dateText}
-            </Text>
+            {dateText ? (
+              <Text variant="micro" tone="muted">
+                {dateText}
+              </Text>
+            ) : null}
+          </View>
+          {onPress ? (
+            <Ionicons
+              name={directionalIcon('chevron-forward')}
+              size={iconSize.md}
+              color={theme.color.textMuted}
+            />
           ) : null}
-        </View>
-      </Row>
-    </Tile>
+        </Row>
+      </Tile>
+    </Pressable>
   );
 }

@@ -580,13 +580,10 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 20,
+          borderRadius: theme.radius.lg,
           padding: theme.spacing.md,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: 0.06,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
+          borderWidth: 1,
+          borderColor: theme.color.border,
         },
         style,
       ]}

@@ -28,7 +28,7 @@ import { foldSpokenAmountWords, majorToMinor, maskNonMoneyNumbers } from './amou
 import {
   isMeWord,
   nameKey,
-  resolveSpokenGroup,
+  createSpokenGroupResolver,
   resolveSpokenName,
   type GroupResolution,
   type LearnedName,
@@ -618,10 +618,14 @@ function prepare(raw: string): string {
     .replace(/\s*[.;!?]+(?=\s|$)/g, ' ')
     .replace(/\s*[|/]\s*/g, ' ');
   // "3 days ago" stays readable: the date words below turn it into a date.
-  return maskNonMoneyNumbers(text, (_span, after) => /^\s*days?\s+ago\b/.test(after));
+  return maskNonMoneyNumbers(
+    text,
+    (span, after) =>
+      /^\s*days?\s+ago\b/.test(after) || (span.detail === 'identifier' && /^\p{L}/u.test(after)),
+  );
 }
 
-const TOKEN_RE = /\d+(?:\.\d+)?|[\p{L}\p{M}]+|[,:%₹$€£&+]/gu;
+const TOKEN_RE = /\d+[\p{L}\p{M}][\p{L}\p{M}\p{N}]*|\d+(?:\.\d+)?|[\p{L}\p{M}]+|[,:%₹$€£&+]/gu;
 
 function tokenise(text: string): string[] {
   return text.match(TOKEN_RE) ?? [];
@@ -990,7 +994,10 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   /* ── group ── */
 
   let groupHint: VoiceGroupHint | undefined;
+  const resolveGroup = createSpokenGroupResolver(groups);
+  const groupWord = (t: string): boolean => /\p{L}/u.test(t);
 
+  // Span trials keep real description words outside the consumed group phrase.
   const hintFrom = (phrase: string, resolution: GroupResolution): VoiceGroupHint => {
     if (resolution.status === 'resolved')
       return { name: resolution.name || phrase, groupId: resolution.id, status: 'resolved' };
@@ -1082,7 +1089,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   const colon = tok.indexOf(':');
   if (colon > 0 && colon <= 5 && tok.slice(0, colon).every((t, i) => free(i) && isAlpha(t))) {
     const phrase = tok.slice(0, colon).join(' ');
-    const resolution = resolveSpokenGroup(phrase, groups);
+    const resolution = resolveGroup(phrase, false);
     if (groups.length === 0 || resolution.status !== 'unresolved') {
       groupHint = hintFrom(phrase, resolution);
       mark(0, colon + 1);
@@ -1120,7 +1127,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
       let chosen = right;
       if (groups.length > 0) {
         for (let r = right; r > g + 1; r -= 1) {
-          if (resolveSpokenGroup(tok.slice(g + 1, r).join(' '), groups).status !== 'unresolved') {
+          if (resolveGroup(tok.slice(g + 1, r).join(' '), false).status !== 'unresolved') {
             chosen = r;
             break;
           }
@@ -1132,7 +1139,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
     } else if (groups.length > 0) {
       // Longest suffix of the left words that names a group ("my goa trip" → "goa trip").
       for (let l = left; l < g; l += 1) {
-        if (resolveSpokenGroup(tok.slice(l, g).join(' '), groups).status !== 'unresolved') {
+        if (resolveGroup(tok.slice(l, g).join(' '), false).status !== 'unresolved') {
           left = l;
           break;
         }
@@ -1140,7 +1147,7 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
       from = left;
       phrase = tok.slice(left, g).join(' ');
     }
-    groupHint = hintFrom(phrase, resolveSpokenGroup(phrase, groups));
+    groupHint = hintFrom(phrase, resolveGroup(phrase, false));
     // The preposition and Hinglish "mein" around it go too.
     if (from > 0 && free(from - 1) && GROUP_PREPS.has(at(from - 1))) from -= 1;
     if (from > 0 && free(from - 1) && (at(from - 1) === 'ke' || at(from - 1) === 'wale')) from -= 1;
@@ -1159,15 +1166,32 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
         at(p) === 'under' ||
         at(p) === 'inside';
       let end = p + 1;
-      while (end < n && end - p <= 4 && free(end) && isAlpha(at(end)) && !RIGHT_STOP.has(at(end)))
+      while (end < n && end - p <= 4 && free(end) && groupWord(at(end)) && !RIGHT_STOP.has(at(end)))
         end += 1;
       for (let r = end; r > p + 1; r -= 1) {
         const phrase = tok.slice(p + 1, r).join(' ');
-        const resolution = resolveSpokenGroup(phrase, groups);
+        const resolution = resolveGroup(phrase, false);
         if (resolution.status === 'unresolved') continue;
-        // "for"/"on"/"at" also lead descriptions ("for dinner"); they must name the group in full.
-        if (!strong && !(resolution.status === 'resolved' && resolution.exact)) continue;
-        // A person is not a group: "in arjun" never reads as one when he is a member.
+        // A one-word expense category after 'for' is description even if a group shares it.
+        if (!strong && /^(dinner|rent|lunch|petrol|tea|coffee|snacks|groceries)$/.test(phrase))
+          continue;
+        // Weak prepositions also lead descriptions; a fuzzy group needs an anchor.
+        if (
+          !strong &&
+          !(resolution.status === 'resolved' && resolution.exact) &&
+          !resolution.distinctiveAnchor
+        )
+          continue;
+        // A weak routing phrase may also name a person. Ask instead of assigning.
+        if (knownName(phrase)) {
+          groupHint = hintFrom(
+            phrase,
+            resolution.status === 'resolved'
+              ? { status: 'ambiguous', candidates: groups.filter((g) => g.id === resolution.id) }
+              : resolution,
+          );
+          break;
+        }
         groupHint = hintFrom(phrase, resolution);
         let to = r;
         if ((at(to) === 'mein' || at(to) === 'me') && free(to) && at(to) !== 'me') to += 1;
@@ -2005,11 +2029,20 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
   if (groupHint && groupHint.status === 'unresolved' && groups.length === 0)
     note('group_unchecked');
 
-  const remainder = tok
-    .map((t, i) => (used[i] ? '' : t))
-    .filter(Boolean)
-    .join(' ')
-    .concat(remainderExtra)
+  // Identifiers stay literal through group extraction, then hide their digits
+  // before the expense parser can mistake them for additional amounts.
+  const remainder = maskNonMoneyNumbers(
+    tok
+      .map((t, i) => (used[i] ? '' : t))
+      .filter(Boolean)
+      .join(' ')
+      .concat(remainderExtra)
+      .trim(),
+    (span) => span.detail !== 'identifier',
+  )
+    // A masked identifier ("4b") leaves no debris for the note either.
+    .replace(/\S*[\uE000-\uE009]\S*/gu, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 
   let intent: VoiceIntent = {
@@ -2077,6 +2110,14 @@ function withAlternatives(intent: VoiceIntent, ctx: VoiceIntentContext): VoiceIn
   }
   if (others.length === 0) return intent;
 
+  const groupEvidence = [intent, ...others].flatMap((i) =>
+    i.groupHint?.status === 'resolved' && i.groupHint.groupId
+      ? (ctx.groups ?? []).filter((g) => g.id === i.groupHint?.groupId)
+      : [...(i.groupHint?.candidates ?? [])],
+  );
+  const groupCandidates = [...new Map(groupEvidence.map((g) => [g.id, g])).values()].slice(0, 3);
+  const askGroup =
+    groupCandidates.length > 1 || (groupCandidates.length > 0 && intent.groupSource !== 'named');
   let frame = intent;
   let pool = others;
   let alternativeOnly = false;
@@ -2121,6 +2162,17 @@ function withAlternatives(intent: VoiceIntent, ctx: VoiceIntentContext): VoiceIn
   });
   return {
     ...frame,
+    ...(askGroup
+      ? {
+          groupHint: {
+            name: intent.groupHint?.name ?? '',
+            status: 'ambiguous' as const,
+            candidates: groupCandidates,
+          },
+          groupSource: 'ambiguous' as const,
+          targetGroupId: undefined,
+        }
+      : {}),
     payer: frame.payer.explicit ? enrich(frame.payer, payerHeard) : frame.payer,
     ...(participants ? { participants } : {}),
   };

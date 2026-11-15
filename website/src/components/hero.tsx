@@ -1,77 +1,169 @@
-import Image from 'next/image';
+import Link from 'next/link';
 
 import type { Dictionary } from '@/i18n/dictionaries';
-import { Check } from './icons';
+import { ArrowRight } from './icons';
+import { OrbitBg } from './orbit-bg';
 import { StoreBadges } from './store-badges';
 
-const chipPos = [
-  'start-[4%] top-[2%] lg:start-[14%] lg:top-[16%]',
-  'end-[4%] top-[2%] lg:end-[5%] lg:top-[14%]',
-  'end-[1%] top-[30%] max-sm:hidden lg:end-[2%] lg:top-[34%]',
-];
+const chip = {
+  paid: 'bg-[#EDE9FE] text-[#5B3FD6]',
+  owes: 'bg-[#FFE4DB] text-[#C2410C]',
+  settled: 'bg-[#D1FAE5] text-[#047857]',
+};
 
-export function Hero({ t, stores }: { t: Dictionary['hero']; stores: Dictionary['stores'] }) {
+/** One person on the ring, positioned in % of the square orbit box. */
+function Member({
+  name,
+  tone,
+  chipTone,
+  status,
+  x,
+  y,
+}: {
+  name: string;
+  tone: string;
+  chipTone: keyof typeof chip;
+  status: string;
+  x: number;
+  y: number;
+}) {
   return (
-    <section className="relative isolate overflow-hidden">
-      <div className="mx-auto w-full max-w-[73rem] px-5 pt-24 pb-4 sm:px-8 lg:min-h-[34rem] lg:pt-32 lg:pb-28">
-        <div className="max-w-[28rem]">
-          <p className="text-[0.72rem] font-semibold tracking-[0.12em] text-accent uppercase">
+    <div
+      className="absolute flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-full bg-[#FBFAFF] py-1.5 ps-1.5 pe-3 text-[0.8rem] font-medium whitespace-nowrap text-[#1B1530] shadow-[0_14px_40px_rgb(0_0_0_/_0.35)] sm:text-[0.88rem]"
+      style={{ left: `${x}%`, top: `${y}%` }}
+    >
+      <span
+        className="grid h-7 w-7 place-items-center rounded-full text-[0.8rem] font-semibold text-[#1B1530] sm:h-8 sm:w-8"
+        style={{ background: tone }}
+      >
+        {name.slice(0, 1)}
+      </span>
+      {name}
+      <span
+        className={`${chipTone === 'owes' ? 'inline' : 'hidden sm:inline'} rounded-full px-2 py-0.5 font-mono text-[0.68rem] ${chip[chipTone]}`}
+      >
+        {status}
+      </span>
+    </div>
+  );
+}
+
+/** The Orbit hero (website/design.md): thin headline, a group as an orbit, moving currents. */
+export function Hero({
+  t,
+  stores,
+  locale,
+}: {
+  t: Dictionary['hero'];
+  stores: Dictionary['stores'];
+  locale: string;
+}) {
+  const o = t.orbit;
+  const [asha, ravi, meera] = t.split.people;
+
+  return (
+    <section className="on-dark relative isolate overflow-hidden bg-[linear-gradient(160deg,#0E0B2A_0%,#150F45_60%,#1B1150_100%)] text-white">
+      <OrbitBg />
+      {/* Scrim so the copy never sits on the brightest part of a ribbon. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgb(14_11_42_/_0.75),transparent_55%)] rtl:bg-[linear-gradient(to_left,rgb(14_11_42_/_0.75),transparent_55%)]"
+      />
+      <div className="mx-auto grid w-full max-w-[80rem] items-center gap-10 px-5 pt-28 pb-10 sm:px-8 lg:min-h-[46rem] lg:grid-cols-[minmax(0,0.54fr)_minmax(0,0.46fr)] lg:gap-6 lg:pt-32">
+        <div className="min-w-0">
+          <p className="font-mono text-[0.75rem] tracking-[0.14em] text-[#FFB199] uppercase rtl:tracking-normal">
             {t.eyebrow}
           </p>
-          <h1 className="mt-4 text-[2.6rem] leading-[1.04] font-bold tracking-[-0.035em] text-balance text-ink sm:text-[3.4rem]">
-            {t.titleStart} <span className="text-blue">{t.titleAccent}</span>
+          <h1 className="mt-5 font-display text-[3rem] leading-[1.02] font-extralight tracking-[-0.03em] text-balance sm:text-[4.4rem] lg:text-[4.5rem] rtl:tracking-normal rtl:sm:text-[3.6rem] rtl:lg:text-[4.2rem]">
+            {t.titleStart} <span className="font-light text-[#FF7A59]">{t.titleAccent}</span>
           </h1>
-          <p className="mt-5 max-w-[26rem] text-[1.02rem] leading-[1.6] text-ink-2">{t.subtitle}</p>
-          <StoreBadges t={stores} className="mt-7" />
-          <ul className="mt-6 flex flex-wrap gap-x-5 gap-y-2">
+          <p className="mt-6 max-w-[34rem] text-[1.1rem] leading-[1.55] font-light text-[#C9C3E6]">
+            {t.subtitle}
+          </p>
+          <StoreBadges t={stores} className="mt-8" />
+          <Link
+            href={`/${locale}/companies`}
+            className="mt-5 inline-flex items-center gap-1.5 text-[0.92rem] font-medium text-[#FFB199] hover:underline"
+          >
+            {t.ctaBusiness}
+            <ArrowRight className="h-3.5 w-3.5 rtl:-scale-x-100" />
+          </Link>
+          <ul className="mt-8 flex flex-wrap gap-2.5">
             {t.trust.map((item) => (
-              <li key={item} className="inline-flex items-center gap-1.5 text-[0.8rem] text-ink-2">
-                <span className="grid h-4 w-4 place-items-center rounded-full bg-[#22a06b] text-white">
-                  <Check className="h-2.5 w-2.5" />
-                </span>
+              <li
+                key={item}
+                className="rounded-full border border-white/12 bg-white/[0.07] px-3.5 py-1.5 font-mono text-[0.75rem] text-[#D9D4F5]"
+              >
                 {item}
               </li>
             ))}
           </ul>
         </div>
+
+        {/* Positions are physical (left/top %), so the ring keeps its geometry in RTL. */}
+        <div
+          role="img"
+          aria-label={o.label}
+          className="relative mx-auto aspect-square w-full max-w-[38rem] min-w-0"
+        >
+          <div className="absolute inset-[8%] rounded-full border border-dashed border-[#C4B5FD]/35" />
+          <div className="absolute inset-[23%] rounded-full border border-[#C4B5FD]/15" />
+          <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full overflow-visible">
+            <defs>
+              <linearGradient id="orbit-arc" x1="0" x2="1">
+                <stop offset="0" stopColor="#FF7A59" />
+                <stop offset="1" stopColor="#C4B5FD" />
+              </linearGradient>
+            </defs>
+            <path
+              id="orbit-path"
+              d="M 29 84 Q 80 78 81 22"
+              fill="none"
+              stroke="url(#orbit-arc)"
+              strokeWidth="2"
+              opacity="0.25"
+            />
+            <path
+              d="M 29 84 Q 80 78 81 22"
+              fill="none"
+              stroke="url(#orbit-arc)"
+              strokeWidth="0.45"
+            />
+            <circle r="0.9" fill="#fff" className="orbit-spark">
+              <animateMotion dur="3.2s" repeatCount="indefinite">
+                <mpath href="#orbit-path" />
+              </animateMotion>
+            </circle>
+          </svg>
+
+          <div className="absolute top-1/2 left-1/2 w-[44%] -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-[#FBFAFF] p-4 text-[#1B1530] shadow-[0_30px_80px_rgb(0_0_0_/_0.45)] sm:p-6">
+            <p className="font-mono text-[0.68rem] tracking-[0.1em] text-[#5B546F] uppercase">
+              {o.groupLabel}
+            </p>
+            <p className="mt-1 text-[1.05rem] font-medium sm:text-[1.35rem]">{o.group}</p>
+            <p className="mt-1 font-mono text-[1.5rem] font-medium text-[#C2410C] sm:text-[2rem]">
+              {o.total}
+            </p>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-[#EDE9FE]">
+              <div className="h-full w-[62%] bg-[#7A5AF8]" />
+            </div>
+            <p className="mt-2.5 text-[0.75rem] text-[#5B546F] sm:text-[0.82rem]">{o.meta}</p>
+          </div>
+
+          <Member name={asha} tone="#C4B5FD" chipTone="settled" status={o.settled} x={50} y={8} />
+          <Member name={o.you} tone="#FF7A59" chipTone="paid" status={o.paid} x={81} y={22} />
+          <Member name={ravi} tone="#F5B544" chipTone="owes" status={o.owes} x={29} y={84} />
+          <Member name={meera} tone="#10B981" chipTone="settled" status={o.settled} x={19} y={22} />
+          <p className="absolute top-[86%] left-[78%] -translate-x-1/2 rounded-full border border-dashed border-[#FFB199]/70 px-3 py-1.5 font-mono text-[0.7rem] whitespace-nowrap text-[#FFB199] sm:text-[0.8rem]">
+            {o.invite}
+          </p>
+        </div>
       </div>
 
-      {/* One image for every width: below `lg` it follows the copy, above it
-          sits behind it and fades into the page on its inner and lower edges.
-          The payment chips are real text, laid over the scene (not inside the
-          masked layer, which would fade them). */}
-      <div className="relative -z-10 mx-auto mt-2 aspect-[943/490] w-full max-w-xl lg:absolute lg:end-0 lg:top-0 lg:mt-0 lg:aspect-auto lg:h-full lg:w-[60%] lg:max-w-none">
-        <div className="hero-art absolute inset-0">
-          <Image
-            src="/home/hero.webp"
-            alt={t.alt}
-            fill
-            priority
-            sizes="(min-width: 1024px) 60vw, 100vw"
-            className="object-cover object-[30%_center]"
-          />
-        </div>
-        <ul className="pointer-events-none absolute inset-0">
-          {t.chips.map((chip, i) => (
-            <li
-              key={chip.item}
-              className={`absolute flex items-center gap-2 rounded-xl bg-surface/95 px-2.5 py-1.5 shadow-[var(--w-shadow-md)] sm:gap-2.5 sm:px-3.5 sm:py-2.5 ${chipPos[i]}`}
-            >
-              <span className="grid h-6 w-6 place-items-center rounded-full bg-accent/15 text-[0.62rem] font-bold text-accent sm:h-8 sm:w-8 sm:text-xs">
-                {chip.amount.slice(0, 1)}
-              </span>
-              <span className="leading-tight">
-                <span className="block text-[0.6rem] text-ink-3 sm:text-[0.7rem]">{chip.who}</span>
-                <span className="block text-[0.7rem] font-semibold text-ink sm:text-[0.82rem]">
-                  {chip.item}
-                </span>
-                <span className="block text-[0.66rem] text-ink-2 sm:text-[0.75rem]">
-                  {chip.amount}
-                </span>
-              </span>
-            </li>
-          ))}
-        </ul>
+      <div className="mx-auto flex max-w-[80rem] flex-wrap items-end justify-between gap-4 px-5 pb-10 sm:px-8 lg:pb-24">
+        <p className="w-full border-t border-white/10 pt-6 font-display text-[1.5rem] font-extralight text-[#C9C3E6] sm:text-[1.9rem]">
+          {o.statementStart} <span className="font-light text-white">{o.statementEnd}</span>
+        </p>
       </div>
     </section>
   );

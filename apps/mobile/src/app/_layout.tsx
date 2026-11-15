@@ -10,14 +10,15 @@ import '@/lib/netLogInstall';
 import { useEffect, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import Constants from 'expo-constants';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import * as SplashScreen from 'expo-splash-screen';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
-import * as Linking from 'expo-linking';
-import { Stack, useSegments } from 'expo-router';
+import { Stack, usePathname, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
   ActivityIndicator,
+  AppState,
   I18nManager,
   Platform,
   StyleSheet,
@@ -39,11 +40,14 @@ import {
 } from '@waves/ui';
 
 import { Onboarding } from '@/components/Onboarding';
+import { PermissionHost } from '@/components/PermissionHost';
+import { setOverlayBusy } from '@/lib/firstRun';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { AppTabBar } from '@/components/AppTabBar';
 import { LanguageRestartPrompt } from '@/components/LanguageRestartPrompt';
 import { TransferProgressBar } from '@/components/TransferProgressBar';
 import { CampaignPopup } from '@/components/CampaignPopup';
+import { LockPrompt } from '@/components/LockPrompt';
 import { NotificationPrompt } from '@/components/NotificationPrompt';
 import { PhoneLinkPrompt } from '@/components/PhoneLinkPrompt';
 import { TourOverlay } from '@/components/TourOverlay';
@@ -64,7 +68,8 @@ import { LanguageProvider, useLanguage } from '@/i18n/language';
 import { LocaleSync } from '@/i18n/localeSync';
 import { LockProvider, useLock } from '@/lib/lock';
 import { useRouter } from '@/lib/navigation';
-import { onboardingSeen, rememberOnboardingSeen } from '@/lib/onboardingSeen';
+import { knownInitialUrl, readInitialUrl } from '@/lib/initialUrl';
+import { knownOnboardingSeen, onboardingSeen, rememberOnboardingSeen } from '@/lib/onboardingSeen';
 import { decideAuthRedirect } from '@/lib/authRedirect';
 import { ReducedMotionProvider, useReducedMotion } from '@/lib/reducedMotion';
 import { RecentCountProvider } from '@/lib/recentCount';
@@ -73,7 +78,7 @@ import { QuickShortcutRouting, QuickShortcutsMenu } from '@/components/QuickShor
 import { DemoGateHost } from '@/components/demo/DemoGateHost';
 import { PendingInviteResume } from '@/lib/PendingInviteResume';
 import { PendingReferralClaim } from '@/lib/PendingReferralClaim';
-import { TourProvider, useTour } from '@/lib/tour';
+import { TourProvider } from '@/lib/tour';
 import { PromptQueueProvider } from '@/lib/promptQueue';
 import { SyncNetworkProvider } from '@/lib/syncNetwork';
 import { ThemePreferenceProvider, useThemePreference } from '@/lib/theme';
@@ -85,6 +90,15 @@ import { initClarity } from '@/lib/clarity';
 import { track, trackInstallOnce } from '@/lib/events';
 import { initObservability, withObservability } from '@/lib/observability';
 import { purchasesAvailable, useCustomerTier } from '@/lib/purchases';
+import { PLAN_CHANGE_QUERY_KEYS } from '@/lib/planChangeKeys';
+import {
+  createOnceGate,
+  openDeepLink,
+  queueDeepLink,
+  takeExternalLink,
+  takeQueuedDeepLink,
+} from '@/lib/deepLink';
+import { COMPANIES_ENABLED, isCompanyRoute } from '@/lib/companiesEnabled';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
 import { holdPhonesUpright } from '@/lib/phoneOrientation';
@@ -282,6 +296,7 @@ function RootLayout() {
                                       sheet; outside every gate because a signed-in screen
                                       can attempt a demo write at any point past them. */}
                                         <DemoGateHost />
+                                        <PermissionHost />
                                         {/* Renders nothing: it takes a person who opened an
                                       invite before they had an account back to it once
                                       they have one, and the join finishes there. */}
@@ -344,6 +359,8 @@ function RootLayout() {
                                         signed-in person whose permission is
                                         still undetermined. */}
                                               <NotificationPrompt />
+                                              {/* The one-time ask to turn the app lock on. */}
+                                              <LockPrompt />
                                               {/* The ask to add a phone number, so
                                         friends can find this account. */}
                                               <PhoneLinkPrompt />
@@ -419,8 +436,32 @@ function ThemedStatusBar() {
  * Inside the navigation tree rather than at module scope, because a deep link
  * fired before the router exists goes nowhere and takes the tap with it.
  */
+const firstTime = createOnceGate(AsyncStorage);
+
 function PushRouting() {
   const router = useRouter();
+  const { session } = useAuth();
+  const signedIn = useRef(false);
+  useEffect(() => {
+    signedIn.current = Boolean(session);
+  }, [session]);
+  const pathname = usePathname();
+
+  // A link the OS delivered arrives as a one-screen stack; give it its parents.
+  useEffect(() => {
+    const target = takeExternalLink(pathname);
+    if (!target) return;
+    if (signedIn.current) openDeepLink(router, target);
+    else void queueDeepLink(AsyncStorage, target);
+  }, [pathname, router]);
+
+  // A tap made while signed out waits here; open it once there is a session.
+  useEffect(() => {
+    if (!session) return;
+    void takeQueuedDeepLink(AsyncStorage).then((path) => {
+      if (path) openDeepLink(router, path);
+    });
+  }, [session, router]);
 
   useEffect(() => {
     // expo-notifications has no web implementation, and reaching into it there
@@ -430,18 +471,23 @@ function PushRouting() {
 
     void ensureAndroidChannel();
 
-    // A tap that launched the app from cold arrives as the "last response"
-    // rather than as an event, so both paths are needed.
+    // One gate for both paths: the cold-start "last response" survives root
+    // remounts, so without it the same tap re-navigated every time.
+    const handle = async (response: Notifications.NotificationResponse) => {
+      const target = routeForNotification(response);
+      const route = target && !COMPANIES_ENABLED && isCompanyRoute(target) ? '/' : target;
+      if (!route || !(await firstTime(response.notification.request.identifier))) return;
+      if (signedIn.current) openDeepLink(router, route);
+      else await queueDeepLink(AsyncStorage, route);
+      void Notifications.clearLastNotificationResponseAsync?.().catch(() => {});
+    };
+
     void Notifications.getLastNotificationResponseAsync()
-      .then((response) => {
-        const route = response ? routeForNotification(response) : null;
-        if (route) router.push(route as never);
-      })
+      .then((response) => response && handle(response))
       .catch(() => {});
 
     const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
-      const route = routeForNotification(response);
-      if (route) router.push(route as never);
+      void handle(response);
     });
     return () => subscription.remove();
   }, [router]);
@@ -458,10 +504,49 @@ function PushRouting() {
  * nothing has gone wrong" is for it to look like the app.
  */
 function LockGate({ children }: { children: React.ReactNode }) {
-  const { locked, unlock } = useLock();
+  const { enabled } = useLock();
+  const [appState, setAppState] = useState(AppState.currentState);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', setAppState);
+    return () => sub.remove();
+  }, []);
+  const theme = useTheme();
+  const { t } = useStrings();
+  return (
+    <>
+      <LockScreenGate>{children}</LockScreenGate>
+      {/* Opaque cover so the app switcher / recents never snapshots the ledger. */}
+      {enabled && appState !== 'active' ? (
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: theme.color.bg, alignItems: 'center', justifyContent: 'center' },
+          ]}
+        >
+          <Text style={{ fontSize: 56, lineHeight: 72, fontWeight: '700' }}>
+            {t.common.appName}
+          </Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
+function LockScreenGate({ children }: { children: React.ReactNode }) {
+  const { locked, ready, unlock } = useLock();
   const theme = useTheme();
   const { t } = useStrings();
   const { height: screenHeight } = useWindowDimensions();
+  const { session } = useAuth();
+  const lockedOwner = session?.user.id ?? null;
+
+  // Warm what the navigator reads on mount while the lock screen is up, so the
+  // first frame after unlock needs no spinner. Reads only; nothing is shown.
+  useEffect(() => {
+    void readInitialUrl();
+    if (locked && lockedOwner) void onboardingSeen(lockedOwner);
+  }, [locked, lockedOwner]);
 
   useEffect(() => {
     if (locked) void unlock();
@@ -472,6 +557,9 @@ function LockGate({ children }: { children: React.ReactNode }) {
     if (locked) markLaunchReady();
   }, [locked]);
 
+  // Not drawn until we know whether the app is locked: an unlocked frame of a
+  // signed-in cold start is exactly the leak the lock exists to prevent.
+  if (!ready) return null;
   if (!locked) return <>{children}</>;
 
   return (
@@ -540,10 +628,6 @@ function AuthGate() {
   const router = useRouter();
   const theme = useTheme();
   const reduceMotion = useReducedMotion();
-  // Finishing the 3-card intro also marks the coach tour seen, so a new person
-  // is not toured twice back-to-back (the intro, then the coach-marks). The
-  // coach tour stays available on demand from the Home overflow menu.
-  const tour = useTour();
   // The paywall sells Pro through RevenueCat. Its route exists only
   // where the `paywall` flag turns it on AND the build carries a RevenueCat
   // key — a build with no key has nothing to sell, so a deep link cannot reach
@@ -551,7 +635,7 @@ function AuthGate() {
   const paywallFlag = useFlagEnabled('paywall');
   const paywallEnabled = paywallFlag && purchasesAvailable();
 
-  // Cloud voice and the server's plan (scan limits, the plan badge) depend on
+  // Cloud voice, ads and the server's plan (scan limits, the plan badge) depend on
   // the subscription, and both answers are cached for minutes. When RevenueCat
   // reports a different plan (buy, restore, lapse), re-ask now and once more
   // shortly after: the server learns of the change through the webhook, which
@@ -563,9 +647,9 @@ function AuthGate() {
     if (lastTier.current === tier) return;
     lastTier.current = tier;
     const refresh = () => {
-      void queryClient.invalidateQueries({ queryKey: ['voiceAgentEnabled'] });
-      void queryClient.invalidateQueries({ queryKey: ['myPlan'] });
-      void queryClient.invalidateQueries({ queryKey: ['myProTrial'] });
+      for (const queryKey of PLAN_CHANGE_QUERY_KEYS) {
+        void queryClient.invalidateQueries({ queryKey });
+      }
     };
     refresh();
     const timer = setTimeout(refresh, 5000);
@@ -610,23 +694,19 @@ function AuthGate() {
   // The link that launched the app, read once. On a cold start the router has
   // no route until the navigator mounts (`segments` is `[]`), and without this
   // the guard sent a signed-out invite link to /welcome before it was applied.
-  const [initialUrl, setInitialUrl] = useState<string | null | undefined>(
-    Platform.OS === 'web' ? null : undefined,
-  );
+  // Memoised at module scope (`lib/initialUrl`): this component remounts after
+  // every unlock, and re-reading would put the spinner back.
+  const [initialUrl, setInitialUrl] = useState(knownInitialUrl);
   useEffect(() => {
-    if (Platform.OS === 'web') return;
+    if (initialUrl !== undefined) return;
     let cancelled = false;
-    Linking.getInitialURL()
-      .then((url) => {
-        if (!cancelled) setInitialUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setInitialUrl(null);
-      });
+    void readInitialUrl().then(() => {
+      if (!cancelled) setInitialUrl(knownInitialUrl());
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [initialUrl]);
 
   const decision = decideAuthRedirect({
     segments: segments as string[],
@@ -666,7 +746,10 @@ function AuthGate() {
   // account, which neither flashes the tour at a returning one nor holds a
   // first-timer at a blank screen.
   const ownerId = session?.user.id ?? null;
-  const [tourAnswer, setTourAnswer] = useState<{ owner: string; seen: boolean } | null>(null);
+  const [tourAnswer, setTourAnswer] = useState<{ owner: string; seen: boolean } | null>(() => {
+    const seen = ownerId ? knownOnboardingSeen(ownerId) : undefined;
+    return ownerId && seen !== undefined ? { owner: ownerId, seen } : null;
+  });
   useEffect(() => {
     if (!ownerId) return;
     let cancelled = false;
@@ -680,6 +763,12 @@ function AuthGate() {
     };
   }, [ownerId]);
   const tourSeen = tourAnswer && tourAnswer.owner === ownerId ? tourAnswer.seen : null;
+  const showIntro = Boolean(session && ownerId && tourSeen !== true);
+  // Home is mounted under the intro; the tour must not start behind (or over) it.
+  useEffect(() => {
+    setOverlayBusy('intro', showIntro);
+    return () => setOverlayBusy('intro', false);
+  }, [showIntro]);
 
   // Past the spinners below means a real screen — the intro or the app — is
   // what renders, so the launch splash may lift onto it. Until then it holds,
@@ -706,7 +795,6 @@ function AuthGate() {
 
   // Keep the navigator mounted beneath the intro: replacing it on dismissal
   // races Android Fabric's native view teardown with the new Stack's mount.
-  const showIntro = Boolean(session && ownerId && tourSeen !== true);
 
   return (
     <View style={{ flex: 1 }}>
@@ -781,7 +869,9 @@ function AuthGate() {
               opened from. */}
           <Stack.Screen name="profile" options={slide} />
           <Stack.Screen name="link-requests" options={slide} />
+          <Stack.Screen name="companies" options={slide} />
           <Stack.Screen name="new-group" options={slide} />
+          <Stack.Screen name="new-company" options={slide} />
           <Stack.Screen name="clone-group" options={slide} />
           {/* The paywall is an unwired placeholder, so it stays unreachable
                 until its flag is on — a nested guard rather than a conditional,
@@ -805,13 +895,24 @@ function AuthGate() {
               rather than cutting instantly the way a tab switch does. */}
           <Stack.Screen name="activity" options={slide} />
           <Stack.Screen name="groups" options={slide} />
-          <Stack.Screen name="group/[id]/index" options={slide} />
+          <Stack.Screen
+            name="group/[id]/index"
+            options={({ route }) => {
+              // `nav` is set by the company bar: a tab switch cuts, a Back-replace pops.
+              const nav = (route.params as { nav?: string } | undefined)?.nav;
+              // Bar switches cut, like every other tab: a fade here cross-faded Home against its siblings.
+              if (nav === 'launch' || nav === 'tab') return { animation: 'none' };
+              if (nav === 'back') return { animation: push, animationTypeForReplace: 'pop' };
+              return slide;
+            }}
+          />
           <Stack.Screen name="group/[id]/add-expense" options={slide} />
           <Stack.Screen name="group/[id]/settle" options={slide} />
           <Stack.Screen name="group/[id]/simplify" />
           <Stack.Screen name="group/[id]/settings" />
           <Stack.Screen name="group/[id]/members" />
           <Stack.Screen name="group/[id]/member/[memberId]" />
+          <Stack.Screen name="group/[id]/departed/[memberId]" />
           <Stack.Screen name="group/[id]/expense/[expenseId]" options={slide} />
           <Stack.Screen name="group/[id]/invite" options={slide} />
           <Stack.Screen name="group/[id]/itemize" options={slide} />
@@ -824,6 +925,26 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/plan" />
           <Stack.Screen name="group/[id]/recurring" />
           <Stack.Screen name="group/[id]/recurring-edit" />
+          <Stack.Screen name="group/[id]/company-entry" />
+          <Stack.Screen name="group/[id]/company-statement" />
+          <Stack.Screen name="group/[id]/company-wages" />
+          <Stack.Screen name="group/[id]/company-attendance" />
+          <Stack.Screen name="group/[id]/company-calendar" />
+          <Stack.Screen name="group/[id]/company-upcoming" />
+          <Stack.Screen name="group/[id]/company-work" />
+          <Stack.Screen name="group/[id]/company-team" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-people" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-pending" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-payments" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-vendors" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-more" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-clients" options={{ animation: 'none' }} />
+          <Stack.Screen name="group/[id]/company-client" />
+          <Stack.Screen name="group/[id]/company-client-add" />
+          <Stack.Screen name="group/[id]/company-inquiry" />
+          <Stack.Screen name="group/[id]/company-followups" />
+          <Stack.Screen name="group/[id]/company-budgets" />
+          <Stack.Screen name="group/[id]/company-entry-view" />
           <Stack.Screen name="group/[id]/recap" />
           <Stack.Screen name="receipt/[id]" options={slide} />
           <Stack.Screen name="friends/add-person" />
@@ -835,6 +956,7 @@ function AuthGate() {
           <Stack.Screen name="country" options={slide} />
           <Stack.Screen name="scan" options={slide} />
           <Stack.Screen name="personal/spending" options={{ animation: 'none' }} />
+          <Stack.Screen name="personal/ask" options={slide} />
           <Stack.Screen name="personal/transactions" options={{ animation: 'none' }} />
           <Stack.Screen name="personal/entry" options={slide} />
           <Stack.Screen name="personal/recurring" options={{ animation: 'none' }} />
@@ -854,15 +976,16 @@ function AuthGate() {
           <Stack.Screen name="settings/backup" />
           <Stack.Screen name="settings/archived" />
           <Stack.Screen name="settings/blocked" />
+          <Stack.Screen name="settings/scene" />
           <Stack.Screen name="settings/storage" />
           <Stack.Screen name="settings/theme" />
-          <Stack.Screen name="settings/scene" />
           <Stack.Screen name="settings/categories" />
           <Stack.Screen name="settings/language" />
           <Stack.Screen name="settings/packs" />
           <Stack.Screen name="settings/packs/[slug]" />
           <Stack.Screen name="settings/paying" />
           <Stack.Screen name="settings/upgrade" />
+          <Stack.Screen name="settings/purchases" />
           <Stack.Screen name="settings/redeem" />
           <Stack.Screen name="settings/invite" />
           <Stack.Screen name="settings/account" />
@@ -912,9 +1035,6 @@ function AuthGate() {
                 // that fails costs them one repeat, not a stuck screen.
                 void rememberOnboardingSeen(ownerId);
                 track('onboarding_completed');
-                // One onboarding, not two: mark the coach tour seen as well so it does
-                // not autostart on the Home screen the intro just handed them to.
-                tour.finish();
               }}
             />
           )}

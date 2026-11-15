@@ -25,6 +25,7 @@ import {
   type SupabaseClient,
 } from '../_shared/auth.ts';
 import { objectUrl, r2, r2Configured, type LogicalBucket } from '../_shared/r2.ts';
+import { safeEqual } from '../revenuecat-webhook/handler.ts';
 
 /** How many queued keys one invocation reclaims. Well inside an edge wall clock. */
 const SWEEP_BATCH = 200;
@@ -39,6 +40,14 @@ async function sweep(service: SupabaseClient): Promise<{ expired: number; delete
   // which the trigger has already queued as orphans for the pass below.
   const { data: expired, error: expireError } = await service.rpc('waves_storage_expire_pending');
   if (expireError) throw new HttpError(500, 'INTERNAL', expireError.message);
+
+  const { data: unattached, error: unattachedError } = await service.rpc(
+    'waves_company_expire_unattached',
+  );
+  if (unattachedError) throw new HttpError(500, 'INTERNAL', unattachedError.message);
+  // Uploaded company files that never got a file row.
+  const { error: filesError } = await service.rpc('waves_company_file_expire_unattached');
+  if (filesError) throw new HttpError(500, 'INTERNAL', filesError.message);
 
   const { data, error } = await service.rpc('waves_storage_orphans', { p_limit: SWEEP_BATCH });
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
@@ -62,7 +71,7 @@ async function sweep(service: SupabaseClient): Promise<{ expired: number; delete
     if (!clearError) deleted += 1;
   }
 
-  return { expired: Number(expired ?? 0), deleted };
+  return { expired: Number(expired ?? 0) + Number(unattached ?? 0), deleted };
 }
 
 serveWithCors(async (request) => {
@@ -72,7 +81,7 @@ serveWithCors(async (request) => {
     }
 
     const expected = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    if (!expected || request.headers.get('Authorization') !== `Bearer ${expected}`) {
+    if (!expected || !safeEqual(request.headers.get('Authorization') ?? '', `Bearer ${expected}`)) {
       throw new HttpError(401, 'NOT_AUTHORISED', 'This endpoint is not for clients');
     }
 

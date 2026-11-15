@@ -42,6 +42,7 @@ import { DismissibleCallout } from '@/components/DismissibleCallout';
 import { CurrencySheet } from '@/components/expense/CurrencySheet';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { GoogleMark } from '@/components/SocialTile';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { requestCountry } from '@/lib/countryPickerBridge';
@@ -165,21 +166,8 @@ function AccountForm() {
   // does not flip as the chips are toggled. Purely a label.
   const accountContact = session?.user.email ?? session?.user.phone ?? null;
 
-  // The portrait's photo. A Google/Apple sign-in carries a photo in the
-  // session's user metadata, but the profile row only holds one if a trigger
-  // copied it across — older accounts have a null `avatar_url` and so showed
-  // initials here. Fall back to the provider photo (an https URL that resolves
-  // straight through) so the header shows the real face whether or not the
-  // column was ever filled. `||`, not `??`: an empty-string avatar (a cleared
-  // column, or a provider that sends '') is "no photo", so it must fall through
-  // to the next source rather than be handed on as a blank URL. This mirrors the
-  // derivation on (tabs)/profile deliberately — kept local so this screen does
-  // not depend on that one (a separate change is in flight there).
-  const oauthAvatar =
-    (session?.user?.user_metadata?.avatar_url as string | undefined) ||
-    (session?.user?.user_metadata?.picture as string | undefined) ||
-    null;
-  const avatarUrl = profile?.avatar_url || oauthAvatar;
+  // Same face everyone else sees (profiles.avatar_url), provider photo only as fallback.
+  const { avatarUrl } = useViewerIdentity();
 
   // The name shown in the header portrait, never blank — the same "You"
   // fallback the save path already uses, so the header agrees with the row.
@@ -444,7 +432,7 @@ function AccountForm() {
     fontSize: 15,
     color: ink,
     backgroundColor: dark ? theme.color.surfaceMuted : '#F3F2F9',
-    borderRadius: 22,
+    borderRadius: 12,
     paddingHorizontal: theme.spacing.md,
     height: 44,
   };
@@ -862,7 +850,7 @@ function AccountForm() {
             gap: 10,
             paddingHorizontal: 12,
             paddingVertical: 10,
-            borderRadius: 14,
+            borderRadius: 12,
             backgroundColor: dark ? theme.color.surfaceMuted : '#EEECF7',
           }}
         >
@@ -919,14 +907,11 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          borderRadius: 12,
           padding: theme.spacing.md,
           gap: theme.spacing.md,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
         },
         style,
       ]}
@@ -1031,7 +1016,7 @@ function PillButton({
       style={({ pressed }) => ({
         height: 44,
         paddingHorizontal: theme.spacing.lg,
-        borderRadius: 22,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: accent,
@@ -1147,7 +1132,7 @@ function ProviderRow({
     height: 28,
     minWidth: 64,
     paddingHorizontal: 12,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
   };

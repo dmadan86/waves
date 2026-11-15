@@ -14,12 +14,15 @@ import { FlatList, Pressable, View } from 'react-native';
 
 import { directionalIcon, iconSize, Text, useTheme } from '@waves/ui';
 
+import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { SplitMoney } from '@/components/SplitMoney';
 import { relativeTime } from '@/data/activity';
 import { GroupType } from '@/data/types';
 import { plural, useStrings } from '@/i18n';
+import { useAuth } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
+import { useReferralsLive } from '@/lib/useReferralsLive';
 import { router } from '@/lib/navigation';
 import { settleHref } from '@/lib/groupTab';
 
@@ -40,20 +43,24 @@ export interface SettleCandidate {
 }
 
 /** The disc a group's picture sits in. */
-const DISC = 48;
-const ROW_HEIGHT = 74;
-
-function Separator() {
-  return <View style={{ height: 8 }} />;
-}
+const DISC = 44;
 
 const absBig = (n: bigint): bigint => (n < 0n ? -n : n);
 
-export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[] }) {
+export function SettleGroupList({
+  groups,
+  narrowed = false,
+}: {
+  groups: readonly SettleCandidate[];
+  /** A search or chip hid every group — say so instead of "square everywhere". */
+  narrowed?: boolean;
+}) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const clearance = useBottomClearance();
   const d = t.homeDash;
+  const referralsLive = useReferralsLive();
+  const { isGuest } = useAuth();
 
   // Biggest balance first — the order people want — with ties keeping the
   // given order (stable sort).
@@ -103,12 +110,11 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
           flexDirection: 'row',
           alignItems: 'center',
           gap: theme.spacing.md,
-          height: ROW_HEIGHT,
+          paddingVertical: theme.spacing.md,
           paddingHorizontal: theme.spacing.md,
           borderRadius: theme.radius.lg,
-          borderWidth: 1,
-          borderColor: theme.color.border,
           backgroundColor: theme.color.surface,
+          ...theme.shadow.soft,
           opacity: pressed ? 0.7 : 1,
         })}
       >
@@ -123,27 +129,35 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
             justifyContent: 'center',
           }}
         >
-          <GroupPhoto
-            photoPath={item.photoPath}
-            emoji={item.coverEmoji}
-            color={item.coverColor}
-            bare
-            size={DISC}
-            background="transparent"
-          />
+          {item.photoPath || item.coverEmoji ? (
+            <GroupPhoto
+              photoPath={item.photoPath}
+              emoji={item.coverEmoji}
+              color={item.coverColor}
+              bare
+              size={DISC}
+              background="transparent"
+            />
+          ) : (
+            <Ionicons
+              name={GROUP_TYPE_ICON[item.type] ?? 'people-outline'}
+              size={iconSize.lg}
+              color={tint.ink}
+            />
+          )}
         </View>
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, minWidth: 0 }}>
           <Text
             numberOfLines={1}
             style={{ fontSize: 16, fontWeight: '700', color: theme.color.text }}
           >
             {item.title}
           </Text>
-          <Text numberOfLines={1} variant="caption" tone="muted" style={{ marginTop: 2 }}>
+          <Text numberOfLines={2} variant="caption" tone="muted" style={{ marginTop: 2 }}>
             {meta}
           </Text>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
+        <View style={{ alignItems: 'flex-end', flexShrink: 0 }}>
           <SplitMoney
             amount={item.balance}
             currency={item.currency}
@@ -167,10 +181,96 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
     );
   };
 
-  const empty = (
+  const empty = narrowed ? (
     <Text variant="body" tone="muted" align="center" style={{ paddingVertical: theme.spacing.xl }}>
-      {d.settleEmpty}
+      {t.noGroupsMatch}
     </Text>
+  ) : (
+    <View style={{ alignItems: 'center', paddingVertical: theme.spacing.lg, gap: 2 }}>
+      <View
+        style={{
+          width: 88,
+          height: 88,
+          borderRadius: 44,
+          backgroundColor: theme.color.brandSoft,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: theme.spacing.sm,
+        }}
+      >
+        <Ionicons name="receipt-outline" size={44} color={theme.color.brand} />
+        <View
+          style={{
+            position: 'absolute',
+            right: 4,
+            bottom: 4,
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            backgroundColor: theme.color.positive,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="checkmark" size={iconSize.md} color={theme.color.onBrand} />
+        </View>
+      </View>
+      <Text variant="title" align="center">
+        {d.settleAllDone}
+      </Text>
+      <Text variant="body" tone="muted" align="center">
+        {d.settleAllDoneBody}
+      </Text>
+    </View>
+  );
+
+  // Where to go when there is nothing to settle (or in addition to what is).
+  // Invite is the referral screen, which exists only where plans are live.
+  const actions = [
+    { icon: 'person-add-outline' as const, label: d.settleCreate, go: () => '/new-group' },
+    { icon: 'scan-outline' as const, label: d.settleScan, go: () => `/capture?scan=${Date.now()}` },
+    ...(referralsLive && !isGuest
+      ? [
+          {
+            icon: 'paper-plane-outline' as const,
+            label: d.settleInvite,
+            go: () => '/settings/invite',
+          },
+        ]
+      : []),
+  ];
+  const footer = (
+    <View
+      style={{
+        flexDirection: 'row',
+        marginTop: theme.spacing.sm,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.surface,
+        ...theme.shadow.soft,
+      }}
+    >
+      {actions.map((a) => (
+        <Pressable
+          key={a.label}
+          accessibilityRole="button"
+          accessibilityLabel={a.label}
+          onPress={() => router.push(a.go() as never)}
+          style={({ pressed }) => ({
+            flex: 1,
+            alignItems: 'center',
+            gap: theme.spacing.xs,
+            paddingVertical: theme.spacing.md,
+            paddingHorizontal: theme.spacing.xs,
+            opacity: pressed ? 0.7 : 1,
+          })}
+        >
+          <Ionicons name={a.icon} size={iconSize.lg} color={theme.color.brand} />
+          <Text variant="caption" align="center" style={{ fontWeight: '600' }} numberOfLines={2}>
+            {a.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
   );
 
   return (
@@ -179,14 +279,15 @@ export function SettleGroupList({ groups }: { groups: readonly SettleCandidate[]
       keyExtractor={(item) => item.id}
       renderItem={renderRow}
       ListEmptyComponent={empty}
+      ListFooterComponent={footer}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
-      ItemSeparatorComponent={Separator}
       style={{ flex: 1 }}
       contentContainerStyle={{
-        paddingHorizontal: theme.spacing.xl,
-        paddingTop: theme.spacing.md,
+        paddingHorizontal: theme.spacing.lg,
+        paddingTop: theme.spacing.xs,
         paddingBottom: clearance,
+        gap: theme.spacing.sm,
       }}
     />
   );

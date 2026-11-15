@@ -181,7 +181,7 @@ const { CredentialKind, mintCredential } = await import('../src/server/credentia
 const { forgetSigningProbe } = await import('../src/server/signing');
 
 const app = createApp();
-const token = mintCredential('token-secret', CredentialKind.Personal, ME).token;
+const token = mintCredential('t'.repeat(40), CredentialKind.Personal, ME).token;
 
 function post(body: unknown, headers: Record<string, string> = {}): Promise<Response> {
   return app.fetch(
@@ -226,8 +226,8 @@ beforeEach(() => {
   forgetSigningProbe();
   vi.stubEnv('WAVES_API_SUPABASE_URL', 'https://backend.example.test');
   vi.stubEnv('WAVES_API_SUPABASE_ANON_KEY', 'anon-key');
-  vi.stubEnv('WAVES_API_JWT_SECRET', 'jwt-secret');
-  vi.stubEnv('WAVES_API_TOKEN_SECRET', 'token-secret');
+  vi.stubEnv('WAVES_API_JWT_SECRET', 'j'.repeat(40));
+  vi.stubEnv('WAVES_API_TOKEN_SECRET', 't'.repeat(40));
   vi.stubEnv('WAVES_API_WEB_URL', 'https://app.example.test');
   vi.stubEnv('WAVES_API_ALLOWED_ORIGINS', 'https://app.example.test');
   backend.scopes = ['expenses.write', 'groups.write'];

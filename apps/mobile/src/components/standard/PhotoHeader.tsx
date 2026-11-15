@@ -1,0 +1,246 @@
+/**
+ * The standard screen header: a short photo band (the sea, the horizon, the
+ * terrace) with a back chevron, a centred title and, optionally, a row of pills
+ * underneath. The first card of the screen rides up over its foot by
+ * `PHOTO_OVERLAP`.
+ *
+ * See docs/design-standard.md — every new or touched screen starts here.
+ *
+ * Put it first in the screen's scroll content (or a list's header), then start
+ * the body in a `PhotoBody` so the overlap and the side gutters are right.
+ */
+
+import type { ReactNode } from 'react';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image, Pressable, useWindowDimensions, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+
+import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
+
+const SCENE = require('../../../assets/images/voice-scene.webp') as number;
+/** The photograph is 849 × 1852. */
+const SCENE_W = 849;
+const SCENE_H = 1852;
+/** Where the sea's horizon is in the photograph, and where it lands on screen (dp). */
+const SCENE_HORIZON = 1140;
+const HORIZON_Y = 52;
+/** The first card's top edge sits a fifth of the way down the screen. */
+const CARD_TOP = 0.2;
+/** How far the photo carries on behind the first card. */
+export const PHOTO_OVERLAP = 36;
+
+export function PhotoHeader({
+  title,
+  onBack,
+  children,
+  trailing,
+  subtitle,
+  action,
+  titleAlign = 'center',
+  circleBack = false,
+  wash = false,
+  wide = false,
+  onTitlePress,
+  titleHint,
+  identity,
+}: {
+  title: string;
+  /** Defaults to going back one screen. */
+  onBack?: () => void;
+  /** The pills under the title, on the left. */
+  children?: ReactNode;
+  /** One pill at the right-hand end; on a narrow phone it drops to its own row. */
+  trailing?: ReactNode;
+  /** A line under the title. */
+  subtitle?: string;
+  /** One round control at the top-right, in the back button's place on the far side. */
+  action?: ReactNode;
+  /** 'start' sets the title against the back button, for a screen with an identity row under it. */
+  titleAlign?: 'center' | 'start';
+  /** A white circle behind the back chevron, so it reads over a busy photo. */
+  circleBack?: boolean;
+  /** A soft wash of the page colour behind the text, for a header carrying small text over the photo. */
+  wash?: boolean;
+  /** The children fill the row, so a control inside them can sit at the far end. */
+  wide?: boolean;
+  /** Makes the title a tap target with a chevron after it (a switcher); `titleHint` is its spoken label. */
+  onTitlePress?: () => void;
+  titleHint?: string;
+  /** Replaces the centred title with your own block (an icon tile, title and subtitle) beside the back button. */
+  identity?: ReactNode;
+}) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const dark = theme.scheme === 'dark';
+  useHeroStatusBar(dark ? 'light' : 'dark');
+
+  const photoH = Math.round(height * CARD_TOP) + PHOTO_OVERLAP;
+  const scale = width / SCENE_W;
+  const ink = theme.color.text;
+  const glassWhite = dark ? 'rgba(20,20,34,0.82)' : '#FFFFFF';
+  return (
+    <View style={{ minHeight: photoH, overflow: 'hidden' }}>
+      <Image
+        source={SCENE}
+        accessibilityIgnoresInvertColors
+        accessibilityElementsHidden
+        importantForAccessibility="no"
+        fadeDuration={0}
+        style={{
+          position: 'absolute',
+          width: SCENE_W * scale,
+          height: SCENE_H * scale,
+          left: (width - SCENE_W * scale) / 2,
+          top: HORIZON_Y - SCENE_HORIZON * scale,
+        }}
+      />
+      {dark ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.45)',
+          }}
+        />
+      ) : null}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(0,0,0,0)', theme.color.bg]}
+        style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 56 }}
+      />
+      {wash ? (
+        <LinearGradient
+          pointerEvents="none"
+          colors={
+            dark
+              ? ['rgba(14,14,26,0.78)', 'rgba(14,14,26,0.55)', 'rgba(14,14,26,0)']
+              : ['rgba(255,255,255,0.9)', 'rgba(255,255,255,0.66)', 'rgba(255,255,255,0)']
+          }
+          locations={[0, 0.55, 1]}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 20 }}
+        />
+      ) : null}
+      <View
+        style={{
+          paddingTop: insets.top + theme.spacing.sm,
+          paddingHorizontal: theme.spacing.lg,
+          // Room for the body that rides up over the foot, so it never lands on a control.
+          paddingBottom: PHOTO_OVERLAP + theme.spacing.sm,
+        }}
+      >
+        <Row style={{ alignItems: 'center' }}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.common.back}
+            onPress={onBack ?? (() => router.back())}
+            hitSlop={8}
+            style={{
+              width: 40,
+              height: 40,
+              justifyContent: 'center',
+              alignItems: circleBack ? 'center' : undefined,
+              borderRadius: 20,
+              backgroundColor: circleBack ? glassWhite : undefined,
+            }}
+          >
+            <Ionicons name={directionalIcon('chevron-back')} size={iconSize.xl} color={ink} />
+          </Pressable>
+          {identity ? (
+            <View style={{ flex: 1, marginStart: theme.spacing.sm }}>{identity}</View>
+          ) : (
+            <Pressable
+              disabled={!onTitlePress}
+              accessibilityRole={onTitlePress ? 'button' : undefined}
+              accessibilityLabel={onTitlePress ? titleHint : undefined}
+              onPress={onTitlePress}
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: titleAlign === 'start' ? 'flex-start' : 'center',
+                gap: 4,
+                marginStart: titleAlign === 'start' ? theme.spacing.md : 0,
+              }}
+            >
+              <Text
+                variant="heading"
+                accessibilityRole="header"
+                numberOfLines={1}
+                style={{ flexShrink: 1, fontSize: 22, fontWeight: '800' }}
+              >
+                {title}
+              </Text>
+              {onTitlePress ? (
+                <Ionicons name="chevron-down" size={iconSize.md} color={ink} />
+              ) : null}
+            </Pressable>
+          )}
+          {titleAlign === 'start' && !action ? null : (
+            <View style={{ minWidth: 40, alignItems: 'flex-end' }}>{action}</View>
+          )}
+        </Row>
+        {subtitle ? (
+          <Text
+            variant="caption"
+            tone="muted"
+            align={titleAlign === 'start' ? 'left' : 'center'}
+            style={{
+              marginTop: 2,
+              // Sits under the title, past the back button, when the title is set against it.
+              marginStart: titleAlign === 'start' ? 40 + theme.spacing.md : 0,
+              // Leaves the right-hand end of the photo free for any art there.
+              marginEnd: titleAlign === 'start' ? theme.spacing.xxl : 0,
+            }}
+          >
+            {subtitle}
+          </Text>
+        ) : null}
+        {children || trailing ? (
+          <Row
+            style={{
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              justifyContent: 'space-between',
+              columnGap: theme.spacing.sm,
+              rowGap: theme.spacing.sm,
+              marginTop: theme.spacing.lg,
+            }}
+          >
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexShrink: 1 }}>
+              {children}
+            </Row>
+            {trailing}
+          </Row>
+        ) : null}
+      </View>
+    </View>
+  );
+}
+
+/** The body under a `PhotoHeader`: rides up over the photo, with the standard gutters and gaps. */
+/** `flush`: no header above to ride over (the Team shell draws its own), so no overlap. */
+export function PhotoBody({ children, flush = false }: { children: ReactNode; flush?: boolean }) {
+  const theme = useTheme();
+  return (
+    <View
+      style={{
+        marginTop: flush ? theme.spacing.md : -PHOTO_OVERLAP,
+        paddingHorizontal: theme.spacing.lg,
+        gap: theme.spacing.xl,
+      }}
+    >
+      {children}
+    </View>
+  );
+}

@@ -4,6 +4,11 @@ import { View, type ViewStyle } from 'react-native';
 import { useTheme } from '../theme';
 
 export interface GradientProps {
+  /**
+   * Paint the real gradient. Defaults to on inside `ScenicTheme` (the personal
+   * social screens), off everywhere else: the calm screens draw a solid.
+   */
+  vivid?: boolean;
   children?: ReactNode;
   /** Corner radius; defaults to the card radius so it drops into a layout. */
   radius?: number;
@@ -40,7 +45,7 @@ export interface GradientProps {
  * Either way the balance stays legible, still white on purple, and nobody sees
  * a red box because a decoration was unavailable.
  */
-export function Gradient({ children, radius, colors, style }: GradientProps) {
+function VividGradient({ children, radius, colors, style }: GradientProps) {
   const theme = useTheme();
   const LinearGradient = loadLinearGradient();
   const borderRadius = radius ?? theme.radius.md;
@@ -114,4 +119,24 @@ function loadLinearGradient(): LinearGradientComponent | null {
     resolved = null;
   }
   return resolved;
+}
+
+/** A solid brand fill, or the real wash when `vivid` (default inside `ScenicTheme`). */
+export function Gradient(props: GradientProps) {
+  const theme = useTheme();
+  if (props.vivid ?? theme.scenic) return <VividGradient {...props} />;
+  const { children, radius, colors, style } = props;
+  return (
+    <View
+      style={[
+        {
+          backgroundColor: colors?.[0] ?? theme.color.brand,
+          borderRadius: radius === undefined || radius >= 20 ? theme.radius.md : radius,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }

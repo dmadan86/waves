@@ -1,6 +1,7 @@
 import { potVisibility } from '@/lib/potUi';
 import { usePots } from '@/data/pots';
 import { potExpensePayers } from '@/lib/pots';
+import { withScenicGroup } from '@/components/ScenicScope';
 import { withScanCredits } from '@/lib/scanCredits';
 import { quietAdsFor } from '@/lib/adSensitiveMoment';
 import { afterGroupExpense, startAdSession, prewarmExpenseAd } from '@/lib/adGates';
@@ -327,7 +328,7 @@ interface GroupRepeat {
 
 const NEW_GROUP_REPEAT: GroupRepeat = { frequency: Frequency.Monthly, interval: 2, secondDay: 15 };
 
-export default function AddExpenseScreen() {
+function AddExpenseScreen() {
   useEffect(() => {
     startAdSession();
   }, []);
@@ -441,6 +442,12 @@ export default function AddExpenseScreen() {
   const potParams = useLocalSearchParams<{ potId?: string }>();
   const pots = usePots(groupId);
   const [chosenPotId, setChosenPotId] = useState<string | null>(potParams.potId ?? null);
+  // A Company group has no splits: any way into this screen (a stale link, the
+  // quick-add picker) lands on the company entry form instead.
+  const isCompanyGroup = group.data?.type === 'company';
+  useEffect(() => {
+    if (isCompanyGroup) router.replace(`/group/${groupId}/company-entry`);
+  }, [isCompanyGroup, groupId]);
   const groupFxRates = useGroupFxRates(groupId);
   const setGroupFxRate = useSetGroupFxRate(groupId);
   const { mutate, status: syncStatus } = useSync();
@@ -2033,7 +2040,7 @@ export default function AddExpenseScreen() {
                   align="start"
                   // Opened by tapping the total on the expense screen: land in
                   // the amount field with the keyboard already up.
-                  autoFocus={focus === 'amount'}
+                  autoFocus={focus === 'amount' || (!expenseId && !focus)}
                 />
               </View>
               <Pressable
@@ -3102,3 +3109,5 @@ export default function AddExpenseScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(AddExpenseScreen);

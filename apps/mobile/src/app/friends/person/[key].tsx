@@ -42,6 +42,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenic } from '@/components/ScenicScope';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import { ViewerButton } from '@/components/ViewerButton';
@@ -71,7 +72,7 @@ import { settleHref } from '@/lib/groupTab';
 /** Group chips shown under the name before the rest collapse into "+N". */
 const MAX_CHIPS = 3;
 
-export default function PersonDetailScreen() {
+function PersonDetailScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
@@ -492,3 +493,5 @@ function InvitePrompt({
     </Row>
   );
 }
+
+export default withScenic(PersonDetailScreen);

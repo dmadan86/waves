@@ -33,6 +33,7 @@ import Link from 'next/link';
 import {
   Activity,
   ArrowLeftRight,
+  Building2,
   LayoutGrid,
   LogOut,
   Monitor,
@@ -41,6 +42,7 @@ import {
   Search,
   Settings as SettingsIcon,
   Sun,
+  Wallet,
   UserRound,
   UserRoundPlus,
   Users,
@@ -54,8 +56,10 @@ import { WaveMark } from '@/components/WaveMark';
 export enum Section {
   Overview = 'overview',
   Groups = 'groups',
+  Companies = 'companies',
   Activity = 'activity',
   Friends = 'friends',
+  Me = 'me',
   Settle = 'settle',
   /**
    * The developer console and the OAuth consent screens.
@@ -106,16 +110,19 @@ export function Shell({
   const nav: Destination[] = [
     { key: Section.Overview, label: t.dash.nav.overview, href: '/', Icon: LayoutGrid },
     { key: Section.Groups, label: t.groups.title, href: '/groups', Icon: Users },
+    { key: Section.Companies, label: t.company.list.title, href: '/companies', Icon: Building2 },
     { key: Section.Activity, label: t.dash.nav.activity, href: '/activity', Icon: Activity },
     { key: Section.Friends, label: t.dash.nav.friends, href: '/friends', Icon: UserRound },
+    { key: Section.Me, label: t.me.nav, href: '/me', Icon: Wallet },
     { key: Section.Settle, label: t.dash.nav.settle, href: '/settle', Icon: ArrowLeftRight },
     { key: Section.Settings, label: t.settings.title, href: '/settings', Icon: SettingsIcon },
   ];
 
-  // The five the bottom bar has room for. Settle is reached from the account
+  // The five the bottom bar has room for. Settle, Companies and Activity are reached from the account
   // menu at those widths, so nothing becomes unreachable.
-  const tabs = nav.filter((item) => item.key !== Section.Settle);
-  const spare = nav.filter((item) => item.key === Section.Settle);
+  const SPARE = [Section.Settle, Section.Companies, Section.Activity];
+  const tabs = nav.filter((item) => !SPARE.includes(item.key));
+  const spare = nav.filter((item) => SPARE.includes(item.key));
 
   return (
     <div className="app">

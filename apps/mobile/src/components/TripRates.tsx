@@ -1007,7 +1007,7 @@ function RateCard({
           gap: theme.spacing.xs,
           paddingHorizontal: theme.spacing.md,
           paddingVertical: theme.spacing.xs,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.sm,
           backgroundColor: onPickCurrency ? theme.color.surface : 'transparent',
           opacity: pressed ? 0.6 : 1,
         })}

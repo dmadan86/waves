@@ -1,6 +1,7 @@
 import type { Dictionary } from '@/i18n/dictionaries';
 import { site } from '@/lib/site';
 import { Apple, GooglePlay } from './icons';
+import { AttributedLink } from './attributed-link';
 
 /**
  * Black store badges. They link to the listings when `NEXT_PUBLIC_IOS_URL` /
@@ -36,7 +37,9 @@ export function StoreBadges({
           <>
             <Icon className={`${mark} shrink-0`} />
             <span className="flex flex-col text-start leading-none">
-              <span className="text-[0.55rem] tracking-wide uppercase opacity-85">{small}</span>
+              <span className="text-[0.55rem] tracking-wide uppercase opacity-85">
+                {href ? small : t.soon}
+              </span>
               <span className="mt-1 text-[1.02rem] font-semibold tracking-[-0.01em]">{name}</span>
             </span>
           </>
@@ -44,17 +47,18 @@ export function StoreBadges({
         return (
           <li key={name}>
             {href ? (
-              <a
+              <AttributedLink
                 href={href}
+                kind="store"
+                placement="store-badge"
                 rel="noreferrer"
                 className={`${cls} transition-transform hover:-translate-y-0.5`}
               >
                 {inner}
-              </a>
+              </AttributedLink>
             ) : (
-              <span className={`${cls} cursor-default opacity-90`} title={t.soon}>
+              <span className={`${cls} cursor-default opacity-60 saturate-50`} title={t.soon}>
                 {inner}
-                <span className="sr-only">({t.soon})</span>
               </span>
             )}
           </li>

@@ -27,9 +27,14 @@ export interface QuickAction {
   /** Wraps the button in a `TourTarget` with this id, for a coach-mark
    *  anchor — only Home's "add group" and "add expense" tiles use this. */
   tourId?: string;
-  /** A small red count badge on the disc's corner — only Friends' "Merge
-   *  people" tile uses this, and only once there is a count to show. */
+  /** A count badge on the disc’s corner, including zero. */
   badge?: number;
+  badgeColor?: string;
+  backgroundColor?: string;
+  /** Tile variant only: this tile's own fill and glyph colour (e.g. amber credits). */
+  tileColor?: string;
+  tileInk?: string;
+  accessibilityLabel?: string;
   /** Measured for a menu that has to drop from this tile — only Friends'
    *  "Add people" tile uses this. */
   ref?: RefObject<View | null>;
@@ -43,6 +48,7 @@ export function QuickActionsRow({
   discSize = DISC,
   labelSize,
   rowPadding,
+  tile = false,
 }: {
   actions: readonly QuickAction[];
   /** The card's corner radius, which the strip's bottom corners follow. */
@@ -59,6 +65,8 @@ export function QuickActionsRow({
   /** The strip's own vertical padding; `theme.spacing.sm` unless a caller
    *  asks tighter. */
   rowPadding?: number;
+  /** Home's look: equal rounded tiles with the glyph above the label, instead of discs. */
+  tile?: boolean;
 }) {
   const theme = useTheme();
 
@@ -69,10 +77,75 @@ export function QuickActionsRow({
         borderBottomLeftRadius: radius,
         borderBottomRightRadius: radius,
         paddingVertical: rowPadding ?? theme.spacing.sm,
-        paddingHorizontal: theme.spacing.xs,
+        paddingHorizontal: tile ? theme.spacing.sm : theme.spacing.xs,
+        gap: tile ? theme.spacing.sm : 0,
       }}
     >
       {actions.map((action) => {
+        if (tile) {
+          const ink = action.tileInk ?? iconColor;
+          const body = (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                action.accessibilityLabel ??
+                (action.badge != null ? `${action.label} (${action.badge})` : action.label)
+              }
+              onPress={action.onPress}
+              onLongPress={action.onLongPress}
+              style={({ pressed }) => ({
+                flex: 1,
+                minHeight: 68,
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 4,
+                paddingHorizontal: 2,
+                borderRadius: 16,
+                backgroundColor: action.tileColor ?? discColor,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              {action.glyph(ink)}
+              <Text
+                variant="micro"
+                align="center"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.8}
+                style={{ maxWidth: '100%', fontWeight: '600', color: ink }}
+              >
+                {action.label}
+              </Text>
+              {action.badge != null ? (
+                <View
+                  accessible={false}
+                  pointerEvents="none"
+                  style={{
+                    position: 'absolute',
+                    top: -6,
+                    end: -2,
+                    minWidth: 20,
+                    height: 20,
+                    paddingHorizontal: 4,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: action.badgeColor ?? theme.color.negative,
+                  }}
+                >
+                  <Text variant="micro" style={{ color: '#FFFFFF', fontWeight: '700' }}>
+                    {action.badge > 99 ? '99+' : String(action.badge)}
+                  </Text>
+                </View>
+              ) : null}
+            </Pressable>
+          );
+          return (
+            <View key={action.key} style={{ flex: 1 }} ref={action.ref} collapsable={false}>
+              {action.tourId ? <TourTarget id={action.tourId}>{body}</TourTarget> : body}
+            </View>
+          );
+        }
         const disc = (
           <View
             style={{
@@ -90,20 +163,40 @@ export function QuickActionsRow({
         const button = (
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel={action.badge ? `${action.label} (${action.badge})` : action.label}
+            accessibilityLabel={
+              action.accessibilityLabel ??
+              (action.badge != null ? `${action.label} (${action.badge})` : action.label)
+            }
             onPress={action.onPress}
             onLongPress={action.onLongPress}
             hitSlop={4}
             style={({ pressed }) => ({
               alignItems: 'center',
               gap: 4,
+              alignSelf: 'center',
+              maxWidth: '100%',
               paddingHorizontal: 2,
+              borderRadius: 16,
               opacity: pressed ? 0.6 : 1,
             })}
           >
+            {action.backgroundColor ? (
+              <View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  top: -4,
+                  bottom: -4,
+                  left: -4,
+                  right: -4,
+                  borderRadius: 16,
+                  backgroundColor: action.backgroundColor,
+                }}
+              />
+            ) : null}
             <View>
               {disc}
-              {action.badge ? (
+              {action.badge != null ? (
                 <View
                   accessible={false}
                   pointerEvents="none"
@@ -117,7 +210,7 @@ export function QuickActionsRow({
                     borderRadius: 9,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: theme.color.negative,
+                    backgroundColor: action.badgeColor ?? theme.color.negative,
                     borderWidth: 2,
                     borderColor: theme.color.surface,
                   }}
@@ -135,6 +228,7 @@ export function QuickActionsRow({
               adjustsFontSizeToFit
               minimumFontScale={0.8}
               style={{
+                maxWidth: '100%',
                 fontWeight: '600',
                 color: theme.color.text,
                 ...(labelSize ? { fontSize: labelSize, lineHeight: labelSize + 4 } : null),

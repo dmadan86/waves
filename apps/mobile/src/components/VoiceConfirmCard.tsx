@@ -30,7 +30,7 @@ import { DestinationPicker } from '@/components/DestinationPicker';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { ProfileAvatar } from '@/components/ProfileAvatar';
 import { VoiceMicOrb } from '@/components/VoiceMicOrb';
-import { useGroups } from '@/data/hooks';
+import { useExpenseGroups } from '@/data/hooks';
 import { fill, plural, useStrings } from '@/i18n';
 import { useReportFooter, type FooterSpec } from '@/components/voice/VoiceFooter';
 import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
@@ -95,7 +95,7 @@ export function VoiceConfirmCard({
 }: VoiceConfirmCardProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const groupRows = useGroups();
+  const groupRows = useExpenseGroups();
   const { visible: catalog } = useLabelledCategoryCatalog();
   const youLabel = t.voice.agentYou;
 
@@ -328,7 +328,7 @@ export function VoiceConfirmCard({
               gap: theme.spacing.xs,
               paddingHorizontal: theme.spacing.md,
               height: 40,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: brandSoft,
               opacity: pressed || busy ? 0.6 : 1,
             })}
@@ -485,7 +485,7 @@ export function VoiceConfirmCard({
                   maxWidth: '46%',
                   paddingHorizontal: theme.spacing.md,
                   height: 38,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.sm,
                   backgroundColor: brandSoft,
                   borderWidth: reason === 'group' ? 1.5 : 0,
                   borderColor: theme.color.negative,

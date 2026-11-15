@@ -371,7 +371,7 @@ export default function ScanInviteAsk({
           onPress={onPasteLink}
           style={({ pressed }) => ({
             height: 44,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             backgroundColor: theme.color.brandSoft,
             flexDirection: 'row',
             alignItems: 'center',
@@ -392,7 +392,7 @@ export default function ScanInviteAsk({
           onPress={onPickPhoto}
           style={({ pressed }) => ({
             height: 44,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.md,
             backgroundColor: theme.color.brandSoft,
             flexDirection: 'row',
             alignItems: 'center',

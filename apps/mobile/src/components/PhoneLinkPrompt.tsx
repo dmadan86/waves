@@ -244,7 +244,7 @@ export function PhoneLinkPrompt() {
         paddingTop: theme.spacing.sm,
         paddingHorizontal: theme.spacing.lg,
         paddingBottom: theme.spacing.lg,
-        borderRadius: 28,
+        borderRadius: 16,
       }}
     >
       <View

@@ -30,7 +30,8 @@ export type LogicalBucket =
   | 'avatars'
   | 'captures'
   | 'settlement-proofs'
-  | 'expense-attachments';
+  | 'expense-attachments'
+  | 'company-entry-images';
 
 /**
  * Buckets whose objects are party-only. Their read is by SUBJECT id (the server
@@ -40,6 +41,7 @@ export type LogicalBucket =
 const RESTRICTED_BUCKETS: ReadonlySet<LogicalBucket> = new Set([
   'settlement-proofs',
   'expense-attachments',
+  'company-entry-images',
 ]);
 
 /**
@@ -112,10 +114,12 @@ async function asStorageError(error: unknown): Promise<Error> {
   return error instanceof Error ? error : new Error('Storage request failed');
 }
 
-async function signCall(body: Record<string, unknown>): Promise<{ url?: string }> {
+async function signCall(
+  body: Record<string, unknown>,
+): Promise<{ url?: string; headers?: Record<string, string> }> {
   const { data, error } = await backend.functions.invoke('r2-sign', { body });
   if (error) throw await asStorageError(error);
-  return (data ?? {}) as { url?: string };
+  return (data ?? {}) as { url?: string; headers?: Record<string, string> };
 }
 
 export interface PutImageInput {
@@ -182,7 +186,7 @@ async function uploadImage(input: PutImageInput): Promise<string> {
     return input.path;
   }
 
-  const { url } = await signCall({
+  const { url, headers } = await signCall({
     action: 'put',
     bucket: input.bucket,
     path: input.path,
@@ -197,7 +201,8 @@ async function uploadImage(input: PutImageInput): Promise<string> {
   // SDK uploads today, PUT by hand.
   const put = await fetch(url, {
     method: 'PUT',
-    headers: { 'content-type': input.contentType },
+    // Exactly the headers the URL was signed with (company images are write-once).
+    headers: { 'content-type': input.contentType, ...headers },
     body: bytes,
   }).catch(async (cause) => {
     // The PUT never reached R2 (offline, DNS, aborted). `put` already reserved
@@ -237,6 +242,48 @@ async function uploadImage(input: PutImageInput): Promise<string> {
     subjectId: input.subjectId ?? null,
   });
   return input.path;
+}
+
+/**
+ * Upload one company file (any accepted type, up to 25 MB) at `cf/<groupId>/<fileId>`. The same three steps as an image
+ * (reserve + presigned PUT, then commit at the true size), but from raw bytes. Returns the key the file row keeps.
+ *
+ * @throws {StorageCapError} when the company is out of storage.
+ */
+export async function putCompanyFile(input: {
+  groupId: string;
+  fileId: string;
+  bytes: Uint8Array;
+  contentType: string;
+}): Promise<string> {
+  if (!r2Enabled()) throw new Error('Files need cloud storage enabled');
+  const path = `cf/${input.groupId}/${input.fileId}`;
+  const ids = { bucket: 'company-entry-images', path, subjectId: input.fileId };
+  const { url, headers } = await signCall({
+    action: 'put',
+    ...ids,
+    contentType: input.contentType,
+    contentLength: input.bytes.byteLength,
+    groupId: input.groupId,
+  });
+  if (!url) throw new Error('Could not start the upload');
+  const put = await fetch(url, {
+    method: 'PUT',
+    headers: { 'content-type': input.contentType, ...headers },
+    // A copy trimmed to exactly the file's bytes (the picker's buffer may be a larger view).
+    body: input.bytes.slice().buffer as ArrayBuffer,
+  }).catch(() => null);
+  if (!put?.ok) {
+    await signCall({ action: 'release', ...ids }).catch(() => {});
+    throw new Error(put ? `Upload failed (${put.status})` : 'Upload failed');
+  }
+  await signCall({
+    action: 'commit',
+    ...ids,
+    contentType: input.contentType,
+    groupId: input.groupId,
+  });
+  return path;
 }
 
 /**

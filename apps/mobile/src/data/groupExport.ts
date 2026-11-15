@@ -19,7 +19,7 @@
 import { format, minorUnitScale, toMajorString, type CurrencyCode } from '@waves/core';
 
 import type { ExpenseRow, SettlementRow } from './types';
-import { expenseTitle } from './expenseTitle';
+import { exportDescription } from '@waves/core';
 
 /**
  * Which sections the export keeps. The summary band and the member list always
@@ -40,15 +40,14 @@ export const INCLUDE_ALL: ExportInclude = { balances: true, expenses: true, sett
 /**
  * A member with its display name already resolved by the caller.
  *
- * Name resolution (`displayName` in `data/types`) depends on the viewer's
- * profile id and their device-local block list — state this pure module has no
+ * Name resolution depends on the caller's device-local block list — state this pure module has no
  * business reaching for — so the screen resolves each name first and hands us
  * the finished string. That keeps this function a pure function of its inputs
  * and lets a test pass three plain members with no mocks.
  */
 export interface ExportMemberInput {
   readonly id: string;
-  /** Already-resolved, viewer-aware display name ("You", "Priya", …). */
+  /** Already-resolved name for a shared document ("Madan", "Priya", …). */
   readonly name: string;
   readonly role: 'admin' | 'member';
   /** A ghost has not joined yet — surfaced so the sheet can note it. */
@@ -78,7 +77,7 @@ export interface ExportModelLabels {
   readonly categories: Readonly<Record<string, string>>;
   /** Settlement method id → localized name ("UPI", "Cash", …). */
   readonly methods: Readonly<Record<string, string>>;
-  /** What to call an expense nobody described. */
+  /** Legacy UI label; blank export descriptions always use a hyphen. */
   readonly untitled: string;
   /** The two membership roles. */
   readonly roleAdmin: string;
@@ -297,12 +296,7 @@ export function buildGroupExportModel(input: GroupExportInput): GroupExportModel
 
   const expenses: ExportExpenseRow[] = input.expenses.map((expense) => {
     const version = expense.currentVersion;
-    const description = expenseTitle(
-      version?.description,
-      version?.category,
-      { categories: labels.categories, expense: { untitled: labels.untitled } },
-      version?.category_meta,
-    );
+    const description = exportDescription(version?.description);
     // A custom tag names itself; a built-in resolves through the categories map;
     // an uncategorised expense shows a blank category cell rather than a word.
     const category =

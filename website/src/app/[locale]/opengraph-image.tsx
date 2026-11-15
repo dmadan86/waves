@@ -1,69 +1,15 @@
-import { ImageResponse } from 'next/og';
+import { getDictionary } from '@/i18n/dictionaries';
+import { ogCard, ogSize } from '@/lib/og-card';
 
-import { site } from '@/lib/site';
-
-export const size = { width: 1200, height: 630 };
+export const size = ogSize;
 export const contentType = 'image/png';
-export const alt = "Waves — split the flat's bills, skip the awkward asking";
+export const alt = 'Waves — money between friends, without the awkward bit';
 
-/**
- * The share card. The wordmark and tagline stay in English in every locale on
- * purpose: the renderer only has a Latin face loaded, and a card of tofu boxes
- * is worse than a card in the wrong language.
- */
-export default function OpengraphImage() {
-  return new ImageResponse(
-    <div
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-        padding: 80,
-        background: '#0d0e10',
-        color: 'white',
-        fontFamily: 'sans-serif',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-        <div
-          style={{
-            width: 68,
-            height: 68,
-            borderRadius: 10,
-            background: '#9880f9',
-          }}
-        />
-        <div style={{ fontSize: 46, fontWeight: 700, letterSpacing: -1.5 }}>Waves</div>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* Satori refuses to lay out a node with several children unless it is
-            told how, so every wrapper here declares its display explicitly. */}
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            fontSize: 72,
-            fontWeight: 700,
-            letterSpacing: -3,
-            lineHeight: 1.05,
-          }}
-        >
-          <span>Split the flat&apos;s bills.</span>
-          <span style={{ color: '#9880f9' }}>Skip the awkward asking.</span>
-        </div>
-        <div style={{ fontSize: 30, color: 'rgba(255,255,255,0.66)' }}>
-          Tracks every shared expense. Opens UPI with the exact amount. Waves never holds your
-          money.
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', fontSize: 26, color: 'rgba(255,255,255,0.5)' }}>
-        {site.domain}
-      </div>
-    </div>,
-    size,
-  );
+export default async function OpengraphImage() {
+  const t = await getDictionary('en');
+  return ogCard({
+    start: t.hero.titleStart,
+    accent: t.hero.titleAccent,
+    sub: 'Split, track and settle. Opens UPI with the exact amount. Waves never holds your money.',
+  });
 }

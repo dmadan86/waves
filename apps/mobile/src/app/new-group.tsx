@@ -1,3 +1,4 @@
+import { withScenic } from '@/components/ScenicScope';
 import { AdGateCancelledError } from '@/lib/adGateBridge';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -16,11 +17,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   currencySymbol,
   EVENT_TEMPLATES,
+  format,
   guessGroupEmoji,
   guessGroupType,
   minorUnitExponent,
   minorUnitScale,
+  money,
   MutationKind,
+  type CurrencyCode,
   type EventTemplateId,
   type FxRecord,
 } from '@waves/core';
@@ -38,6 +42,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { SectionLabel } from '@/components/standard';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DictateButton } from '@/components/DictateButton';
 import { GroupPhoto } from '@/components/GroupPhoto';
@@ -60,7 +65,10 @@ import { TripDates, type TripDatesValue } from '@/components/TripDates';
 import { CurrencyRate } from '@/components/CurrencyRate';
 import { RateAttribution } from '@/components/RateAttribution';
 import { CurrencySheet } from '@/components/expense/CurrencySheet';
-import { fetchFxRate } from '@/data/api';
+import { canUploadGroupPhoto, fetchFxRate, uploadGroupPhoto } from '@/data/api';
+import { CompanyLogoField } from '@/components/company/CompanyLogoField';
+import type { PickedImage } from '@/lib/image';
+import { uploadWhenAllowed } from '@/lib/logoUploadWhenReady';
 import { type TripRateRow, tripCurrencyValue, tripRateFor } from '@/lib/tripRates';
 import { requestContacts } from '@/lib/contactPickerBridge';
 import { useCaptures, useCreateGroup, useGroup, useGroups } from '@/data/hooks';
@@ -69,7 +77,7 @@ import { sameHuman, suggestPeople } from '@/lib/addFromAnotherGroup';
 import { membersToClone } from '@/lib/cloneMembers';
 import { NEW_GROUP_TILES, tileForType } from '@/lib/newGroupType';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { useHomeHero } from '@/lib/useHomeHero';
 import { shortPersonNames } from '@/lib/shortPersonName';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -107,6 +115,7 @@ const EMOJI_FOR_TYPE: Record<GroupType, string> = {
   [GroupType.Event]: '🎉',
   [GroupType.Friends]: '🧑‍🤝‍🧑',
   [GroupType.Other]: '👥',
+  [GroupType.Company]: '🏢',
 };
 
 const deviceZone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Kolkata';
@@ -122,7 +131,7 @@ const deviceZone = (): string => Intl.DateTimeFormat().resolvedOptions().timeZon
  * half-made group behind; everything picked here is applied in one ordered
  * burst once the group exists.
  */
-export default function NewGroupScreen() {
+function NewGroupScreen() {
   const theme = useTheme();
   // The few measures that step down on a narrow phone (320–359pt): the cover,
   // and where "Add contacts" sits. Everything else is flex and fits by itself.
@@ -152,7 +161,10 @@ export default function NewGroupScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
-  const currency = useDefaultCurrency();
+  const defaultCurrency = useDefaultCurrency();
+  // The group's own currency: the profile's unless Currency (More options) picks another.
+  const [pickedCur, setCompanyCur] = useState<string | null>(null);
+  const currency = pickedCur ?? defaultCurrency;
   const guard = useGuestGuard();
   const { mutate, status } = useSync();
   const toast = useToast();
@@ -167,11 +179,20 @@ export default function NewGroupScreen() {
   // picker with no group to place it in yet: make the group here, then drop that
   // capture straight into it (below), completing the "create one and add this to
   // it" the picker promised rather than stranding the capture back in the inbox.
-  const { from, assignCaptureId } = useLocalSearchParams<{
+  const {
+    from,
+    assignCaptureId,
+    type: initialType,
+  } = useLocalSearchParams<{
+    type?: string;
     from?: string;
     assignCaptureId?: string;
   }>();
   const cloning = Boolean(from);
+  // Company has its own create flow; an old `?type=company` link lands there.
+  useEffect(() => {
+    if (initialType === 'company') router.replace('/new-company');
+  }, [initialType]);
   const source = useGroup(from ?? '');
   const captures = useCaptures();
 
@@ -218,9 +239,9 @@ export default function NewGroupScreen() {
   // split, as a stack of named facts with their values, each one a tap from
   // being changed. Nothing here is required; the point is that the screen reads
   // as already filled in rather than as a form still to be completed.
-  const [openAttr, setOpenAttr] = useState<'kind' | 'dates' | 'budget' | 'eventTemplate' | null>(
-    null,
-  );
+  const [openAttr, setOpenAttr] = useState<
+    'kind' | 'dates' | 'budget' | 'eventTemplate' | 'rate' | 'logo' | null
+  >(null);
 
   /**
    * Bring an unfolded row back into view.
@@ -246,6 +267,7 @@ export default function NewGroupScreen() {
     return () => clearTimeout(id);
   }, [openAttr]);
   const [ghostName, setGhostName] = useState('');
+  const ghostInput = useRef<TextInput>(null);
   // The note on what an added name is (a placeholder until they join), under
   // the Add friends title when its ⓘ is tapped.
   const [showGhostNote, setShowGhostNote] = useState(false);
@@ -356,6 +378,12 @@ export default function NewGroupScreen() {
   // home currency means nothing to convert, so no rate is asked for.
   const [tripCur, setTripCur] = useState<string | null>(null);
   const [pickingTripCur, setPickingTripCur] = useState(false);
+  // Company only: the group currency and a default daily bata rate. Both optional;
+  // the rate is written behind the create as an ordinary settings change.
+  const [pickingCompanyCur, setPickingCompanyCur] = useState(false);
+  const [companyRate, setCompanyRate] = useState(0n);
+  // Optional logo, staged here and uploaded once the server knows the new company.
+  const [companyLogo, setCompanyLogo] = useState<PickedImage | null>(null);
   const [rateSheetOpen, setRateSheetOpen] = useState(false);
   // The record the sheet is editing; what is kept for the group is
   // `pendingRates`, written out after Create like any other pinned rate.
@@ -431,6 +459,11 @@ export default function NewGroupScreen() {
     // from the local mirror, and putting the writes in a callback keeps the
     // React Compiler's no-synchronous-setState-in-effect rule satisfied (the
     // same shape GroupPhoto's signed-URL fetch uses).
+    // A company is not cloned through the group form.
+    if (group.type === GroupType.Company) {
+      router.replace('/new-company');
+      return;
+    }
     void Promise.resolve().then(() => {
       setName(group.name ? fill(t.clone.copyOf, { name: group.name }) : '');
       // The description comes across as-is. It describes what the group is for,
@@ -469,6 +502,7 @@ export default function NewGroupScreen() {
   const emoji = pickedEmoji ?? guessGroupEmoji(name) ?? EMOJI_FOR_TYPE[type];
   // Trips and events benefit most from simplification; a two-person group does
   // not. Follows the type until somebody says otherwise.
+  const groupCurrency = currency;
   const effectiveSimplify = simplify ?? (type === GroupType.Trip || type === GroupType.Event);
 
   // The five tiles. Friends reads as Others (see `tileForType`).
@@ -528,7 +562,7 @@ export default function NewGroupScreen() {
         // Dubai defaulting to rupees is the small wrongness that makes an app
         // feel written for somewhere else.
         country,
-        currency,
+        currency: groupCurrency,
         emoji,
         // A group photo is not carried onto a clone: its storage object is
         // scoped to the source group's path, so a copied reference would only
@@ -537,6 +571,29 @@ export default function NewGroupScreen() {
         // where it is uploaded under this group's own path and paid-gated.
         simplify: effectiveSimplify,
       });
+
+      if (type === GroupType.Company && companyRate > 0n) {
+        await mutate(MutationKind.CompanySettingsSet, groupId, {
+          defaultDailyRateMinor: companyRate.toString(),
+          approvalsEnabled: false,
+        });
+      }
+
+      if (type === GroupType.Company && companyLogo) {
+        const logo = companyLogo;
+        void uploadWhenAllowed(
+          () => canUploadGroupPhoto(groupId),
+          () =>
+            uploadGroupPhoto({
+              groupId,
+              base64: logo.base64,
+              mimeType: logo.mimeType,
+              kind: 'logo',
+            }),
+        ).then((done) => {
+          if (!done) toast.show(t.company.logoLater, 'negative');
+        });
+      }
 
       // ADR-006: people who have not installed anything are still participants.
       // Queued behind the create in one ordered pipe, not sent as a direct RPC —
@@ -741,6 +798,8 @@ export default function NewGroupScreen() {
     router.push('/contact-picker');
   };
 
+  const rowTint = { bg: theme.color.brandSoft, ink: theme.color.brand };
+
   return (
     <Screen edges={['bottom']}>
       <ScrollView
@@ -800,7 +859,7 @@ export default function NewGroupScreen() {
                 emoji={emoji}
                 color={pickedColor}
                 bare
-                size={Math.round(cover * 0.56)}
+                size={Math.round(cover * 0.4)}
               />
               {/* The camera as a white disc inside the cover's corner, its glyph in
                   the accent, lifted by a soft shadow. */}
@@ -831,6 +890,7 @@ export default function NewGroupScreen() {
                 costing a row of its own; the accessibility label underneath
                 still names the field for a screen reader. */}
             <View style={{ flex: 1, minWidth: 0, justifyContent: 'center', gap: theme.spacing.xs }}>
+              <SectionLabel icon="create-outline">{t.group.groupName}</SectionLabel>
               <Row style={[fieldBox(theme), { paddingEnd: theme.spacing.sm }]}>
                 <TextInput
                   value={name}
@@ -924,30 +984,13 @@ export default function NewGroupScreen() {
               second way in. Nobody's address book is uploaded (ADR-006). */}
           <FormCard style={{ gap: theme.spacing.sm }}>
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-              <View
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
-                  backgroundColor: theme.color.brandSoft,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="people" size={18} color={accent(theme)} />
-              </View>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${t.extras.addPeopleByName}. ${t.extras.ghostNote}`}
                 onPress={() => setShowGhostNote((open) => !open)}
                 style={{ flex: 1, minWidth: 0 }}
               >
-                <Text
-                  numberOfLines={1}
-                  style={{ fontSize: 16, lineHeight: 20, fontWeight: '600', color: ink(theme) }}
-                >
-                  {t.extras.addPeopleByName}
-                </Text>
+                <SectionLabel icon="people">{t.extras.addPeopleByName}</SectionLabel>
               </Pressable>
               {contactsInline ? (
                 <AddContactsButton label={t.newGroupForm.addContacts} onPress={openContactPicker} />
@@ -980,6 +1023,7 @@ export default function NewGroupScreen() {
             >
               <Ionicons name="search" size={16} color={theme.color.textMuted} />
               <TextInput
+                ref={ghostInput}
                 value={ghostName}
                 onChangeText={setGhostName}
                 placeholder={t.newGroupForm.personPlaceholder}
@@ -1018,7 +1062,7 @@ export default function NewGroupScreen() {
                 already been added, as the same small inline faces — kept to
                 one dense strip rather than a tall block. Only placeholders are
                 offered as suggestions: a real account joins a group by invite. */}
-            {shownSuggestions.length > 0 || chipGhosts.length > 0 ? (
+            {
               <View style={{ gap: theme.spacing.xs }}>
                 {shownSuggestions.length > 0 ? (
                   <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1043,7 +1087,7 @@ export default function NewGroupScreen() {
                     own edges (the negative margin undoes the card's padding) so a
                     face is cut by the card, never by the padding, and the page
                     itself never scrolls sideways. */}
-                {shownSuggestions.length > 0 ? (
+                {
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -1077,7 +1121,7 @@ export default function NewGroupScreen() {
                       />
                     ))}
                   </ScrollView>
-                ) : null}
+                }
                 {chipGhosts.length > 0 ? (
                   <Row style={{ flexWrap: 'wrap', gap: theme.spacing.xs }}>
                     {chipGhosts.map((ghost, index) => (
@@ -1094,7 +1138,7 @@ export default function NewGroupScreen() {
                   </Row>
                 ) : null}
               </View>
-            ) : null}
+            }
           </FormCard>
 
           {/* What kind of group, as one row of compact pills — the same chip
@@ -1103,12 +1147,12 @@ export default function NewGroupScreen() {
               that reads as an event ("Birthday party") keeps its kind; Other
               is lit for it, the nearest of the six. */}
           <FormCard style={{ gap: theme.spacing.sm }}>
-            <FieldLabel icon="briefcase-outline">
+            <SectionLabel icon="briefcase-outline">
               {t.newGroupForm.groupType}
               <Text style={{ fontSize: 13, fontWeight: '400', color: muted(theme) }}>
                 {` ${t.newGroupForm.optional}`}
               </Text>
-            </FieldLabel>
+            </SectionLabel>
             <Row style={{ gap: theme.spacing.xs }}>
               {NEW_GROUP_TILES.map((value) => (
                 <TypeTile
@@ -1127,11 +1171,41 @@ export default function NewGroupScreen() {
               or a flat never sees them; the budget, left at zero, sets nothing.
               ADR-009: fewer repayments is presentation only — the pairwise
               ledger underneath is untouched. */}
-          <FormCard style={{ paddingVertical: 0 }}>
+          <FormCard style={{ paddingTop: theme.spacing.md - 2, paddingBottom: 0 }}>
+            <SectionLabel icon="settings-outline">
+              {t.newGroupForm.moreOptions}
+              <Text style={{ fontSize: 13, fontWeight: '400', color: muted(theme) }}>
+                {` ${t.newGroupForm.optional}`}
+              </Text>
+            </SectionLabel>
             <DetailRows>
+              <DetailRow
+                tint={rowTint}
+                dense
+                icon="cash-outline"
+                label={t.company.currencyRow}
+                value={groupCurrency}
+                onPress={() => setPickingCompanyCur(true)}
+              />
+              {pickingCompanyCur ? (
+                <CurrencySheet
+                  value={groupCurrency}
+                  onPick={(code) => {
+                    setCompanyCur(code);
+                    // The saved trip rate was for the old pair; drop it with the trip currency.
+                    tripCurRef.current = null;
+                    setTripCur(null);
+                    applyTripFx(null);
+                    setPickingCompanyCur(false);
+                  }}
+                  onClose={() => setPickingCompanyCur(false)}
+                />
+              ) : null}
               {type === GroupType.Trip || type === GroupType.Event ? (
                 <View>
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="calendar-outline"
                     label={
                       type === GroupType.Event
@@ -1160,6 +1234,8 @@ export default function NewGroupScreen() {
               {type === GroupType.Trip ? (
                 <View>
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="wallet-outline"
                     label={t.extras.tripBudget}
                     value={budget > 0n ? budgetSummary : t.add}
@@ -1177,11 +1253,67 @@ export default function NewGroupScreen() {
                 </View>
               ) : null}
 
+              {/* Company: default daily bata rate and logo, one row open at a time. */}
+              {type === GroupType.Company ? (
+                <View>
+                  <DetailRow
+                    tint={rowTint}
+                    dense
+                    icon="wallet-outline"
+                    label={t.company.defaultRateRow}
+                    value={
+                      companyRate > 0n
+                        ? format(money(companyRate, groupCurrency as CurrencyCode), { locale })
+                        : t.add
+                    }
+                    placeholder={companyRate <= 0n}
+                    expanded={openAttr === 'rate'}
+                    onPress={() => setOpenAttr((current) => (current === 'rate' ? null : 'rate'))}
+                  />
+                  {openAttr === 'rate' ? (
+                    <View style={{ paddingBottom: theme.spacing.md, gap: theme.spacing.sm }}>
+                      <Text variant="caption" tone="muted">
+                        {t.company.defaultRateHint}
+                      </Text>
+                      <AmountField
+                        currency={groupCurrency}
+                        value={companyRate}
+                        onChange={setCompanyRate}
+                      />
+                    </View>
+                  ) : null}
+                  <DetailRow
+                    tint={rowTint}
+                    dense
+                    icon="image-outline"
+                    label={t.company.logoRow}
+                    value={companyLogo ? '✓' : t.add}
+                    placeholder={!companyLogo}
+                    expanded={openAttr === 'logo'}
+                    onPress={() => setOpenAttr((current) => (current === 'logo' ? null : 'logo'))}
+                  />
+                  {openAttr === 'logo' ? (
+                    <View style={{ paddingBottom: theme.spacing.md }}>
+                      <CompanyLogoField
+                        stagedUri={companyLogo?.uri ?? null}
+                        onImage={(image) => {
+                          setCompanyLogo(image);
+                          return null;
+                        }}
+                        onRemove={() => setCompanyLogo(null)}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+              ) : null}
+
               {/* The currencies a trip will be paid in, each with its rate
                   against the group's own. Trips only, like dates and budget. */}
               {type === GroupType.Trip ? (
                 <View>
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="cash-outline"
                     label={t.newGroupForm.tripCurrency}
                     value={
@@ -1230,6 +1362,8 @@ export default function NewGroupScreen() {
               {type === GroupType.Event ? (
                 <View>
                   <DetailRow
+                    tint={rowTint}
+                    dense
                     icon="sparkles-outline"
                     label={t.eventOrganizer.templateLabel}
                     value={
@@ -1348,6 +1482,8 @@ export default function NewGroupScreen() {
               {/* The one row whose control says the value and changes it in the
                   same gesture, so it has no chevron. */}
               <DetailRow
+                tint={rowTint}
+                dense
                 icon="flash-outline"
                 label={t.group.simplifyDebts}
                 trailing={
@@ -1458,36 +1594,6 @@ function fieldBox(theme: Theme) {
   };
 }
 
-/** A field's label: 15pt, semibold. */
-function FieldLabel({
-  children,
-  icon,
-  style,
-}: {
-  children: ReactNode;
-  /** A small glyph before the label, saying what the field is at a glance. */
-  icon?: keyof typeof Ionicons.glyphMap;
-  style?: object;
-}) {
-  const theme = useTheme();
-  return (
-    <Row style={[{ alignItems: 'center', gap: theme.spacing.sm }, style]}>
-      {icon ? <Ionicons name={icon} size={20} color={muted(theme)} /> : null}
-      <Text
-        style={{
-          flexShrink: 1,
-          fontSize: 15,
-          lineHeight: 20,
-          fontWeight: '600',
-          color: muted(theme),
-        }}
-      >
-        {children}
-      </Text>
-    </Row>
-  );
-}
-
 /** A white card with the spec's 22pt corners, 16pt padding and a soft lift. */
 function FormCard({ children, style }: { children: ReactNode; style?: object }) {
   const theme = useTheme();
@@ -1548,7 +1654,7 @@ function NewGroupHeader({ title, ink: headerInk }: { title: string; ink: string 
           {title}
         </Text>
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
           style={{ fontSize: 13, lineHeight: 17, color: headerInk, opacity: 0.85 }}
         >
           {t.newGroupForm.tagline}
@@ -1752,7 +1858,7 @@ function SuggestedPersonButton({
         }}
       >
         {more ? (
-          <Ionicons name="ellipsis-horizontal" size={18} color={accent(theme)} />
+          <Ionicons name="add" size={22} color={accent(theme)} />
         ) : (
           <Text style={{ fontSize: 16, fontWeight: '700', color: tint.ink }}>
             {name.charAt(0).toUpperCase()}
@@ -1779,10 +1885,11 @@ function SuggestedPersonButton({
         )}
       </View>
       <Text
-        numberOfLines={1}
+        numberOfLines={more ? 2 : 1}
         ellipsizeMode="tail"
         style={{
           maxWidth: SUGGEST_WIDTH,
+          textAlign: 'center',
           fontSize: 12,
           lineHeight: 15,
           color: more ? accent(theme) : ink(theme),
@@ -1838,3 +1945,5 @@ function AddContactsButton({
     </Pressable>
   );
 }
+
+export default withScenic(NewGroupScreen);

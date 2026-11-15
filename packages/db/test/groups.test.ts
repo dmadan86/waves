@@ -234,6 +234,94 @@ describe('the group-photo paid gate', () => {
   });
 });
 
+describe('the company-logo gate', () => {
+  async function company() {
+    const admin = await createProfile('Company admin');
+    const employee = await createProfile('Employee');
+    const groupId = randomUUID();
+    await client.query(`INSERT INTO groups(id, type, created_by) VALUES ($1, 'company', $2)`, [
+      groupId,
+      admin,
+    ]);
+    for (const [profile, role] of [
+      [admin, 'admin'],
+      [employee, 'member'],
+    ]) {
+      await client.query(
+        `INSERT INTO group_members(group_id, profile_id, role) VALUES ($1, $2, $3)`,
+        [groupId, profile, role],
+      );
+    }
+    return { admin, employee, groupId };
+  }
+
+  it('lets an unpaid company admin set and clear the logo', async () => {
+    const { admin, groupId } = await company();
+    expect(await asUser(admin, () => canUpload(groupId))).toBe(true);
+    await asUser(admin, () =>
+      client.query(`UPDATE groups SET photo_path = $2 WHERE id = $1`, [
+        groupId,
+        `${groupId}/logo.png`,
+      ]),
+    );
+    expect((await readGroup(groupId)).photo_path).toBe(`${groupId}/logo.png`);
+    await asUser(admin, () =>
+      client.query(`UPDATE groups SET photo_path = NULL WHERE id = $1`, [groupId]),
+    );
+    expect((await readGroup(groupId)).photo_path).toBeNull();
+  });
+
+  it('refuses an employee upload, direct write and clearing', async () => {
+    const { admin, employee, groupId } = await company();
+    await asUser(admin, () =>
+      client.query(`UPDATE groups SET photo_path = $2 WHERE id = $1`, [
+        groupId,
+        `${groupId}/logo.png`,
+      ]),
+    );
+    expect(await asUser(employee, () => canUpload(groupId))).toBe(false);
+    const message = await asUser(employee, () =>
+      expectDenied(
+        client.query(`UPDATE groups SET photo_path = $2 WHERE id = $1`, [
+          groupId,
+          `${groupId}/other.png`,
+        ]),
+      ),
+    );
+    expect(message).toMatch(/PHOTO_GATE/);
+    expect((await readGroup(groupId)).photo_path).toBe(`${groupId}/logo.png`);
+    const cleared = await asUser(employee, () =>
+      expectDenied(client.query(`UPDATE groups SET photo_path = NULL WHERE id = $1`, [groupId])),
+    );
+    expect(cleared).toMatch(/NOT_AN_ADMIN/);
+    expect((await readGroup(groupId)).photo_path).toBe(`${groupId}/logo.png`);
+  });
+
+  it('still refuses an unpaid non-company group', async () => {
+    const admin = await createProfile('Unpaid trip admin');
+    const groupId = await createGroup(admin);
+    expect(await asUser(admin, () => canUpload(groupId))).toBe(false);
+    const message = await asUser(admin, () =>
+      expectDenied(
+        client.query(`UPDATE groups SET photo_path = $2 WHERE id = $1`, [
+          groupId,
+          `${groupId}/logo.png`,
+        ]),
+      ),
+    );
+    expect(message).toMatch(/PHOTO_GATE/);
+  });
+
+  it('still requires active membership for a company admin', async () => {
+    const { admin, groupId } = await company();
+    await client.query(
+      `UPDATE group_members SET left_at = now() WHERE group_id = $1 AND profile_id = $2`,
+      [groupId, admin],
+    );
+    expect(await asUser(admin, () => canUpload(groupId))).toBe(false);
+  });
+});
+
 async function canUpload(groupId: string | null): Promise<boolean> {
   const { rows } = await client.query(`SELECT waves_can_upload_group_photo($1) AS ok`, [groupId]);
   return rows[0]?.ok === true;

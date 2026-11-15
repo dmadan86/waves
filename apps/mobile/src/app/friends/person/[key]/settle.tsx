@@ -30,6 +30,7 @@ import {
 } from '@waves/ui';
 import type { CurrencyCode } from '@waves/core';
 
+import { withScenic } from '@/components/ScenicScope';
 import { PeopleSkeleton } from '@/components/Skeletons';
 import {
   Chevron,
@@ -49,7 +50,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { settleHref } from '@/lib/groupTab';
 
-export default function PairSettleScreen() {
+function PairSettleScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
@@ -415,3 +416,5 @@ function OrDivider({ label }: { label: string }) {
     </Row>
   );
 }
+
+export default withScenic(PairSettleScreen);

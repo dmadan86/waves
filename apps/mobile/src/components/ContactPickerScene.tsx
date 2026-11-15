@@ -19,7 +19,7 @@ import { useStrings } from '@/i18n';
 
 import { ContactPicker, type PickedContact } from '@/components/ContactPicker';
 import { type KnownIndex } from '@/lib/contactMatch';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { HeroScene } from '@/components/home/HeroScene';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { HERO_THEMES } from '@/lib/scene';
@@ -188,10 +188,40 @@ export function TranslucentBackButton({
   label,
   onPress,
 }: {
-  dark: boolean;
+  /** Ink for the scenic version; ignored by the calm one. */
+  dark?: boolean;
   label: string;
   onPress: () => void;
 }): React.JSX.Element {
+  const theme = useTheme();
+  // Outside the scenic screens (company, Personal money tab, settings) the calm hairline circle.
+  if (!theme.scenic) {
+    return (
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        onPress={onPress}
+        hitSlop={4}
+        style={({ pressed }) => ({
+          width: BACK_BUTTON,
+          height: BACK_BUTTON,
+          borderRadius: BACK_BUTTON / 2,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: theme.color.surface,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          opacity: pressed ? 0.6 : 1,
+        })}
+      >
+        <Ionicons
+          name={directionalIcon('chevron-back')}
+          size={iconSize.xl}
+          color={theme.color.text}
+        />
+      </Pressable>
+    );
+  }
   // The one back button every scenic header wears (new group, contacts, join,
   // event plan…): a frosted white disc with a bold chevron in the scene's ink —
   // near-black on a light scene, white on a dark one.

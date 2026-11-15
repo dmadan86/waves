@@ -66,6 +66,7 @@ export const GROUP_TYPE_ICON: Record<GroupType, React.ComponentProps<typeof Ioni
   [GroupType.Event]: 'sparkles',
   [GroupType.Friends]: 'people-circle',
   [GroupType.Other]: 'people-outline',
+  [GroupType.Company]: 'business-outline',
 };
 
 type PickerRow = {
@@ -337,7 +338,7 @@ export function DestinationPicker({
         // its own padding, and a second one reads as a gap.
         paddingStart: row.avatarUrl !== undefined ? theme.spacing.xs : theme.spacing.md,
         paddingEnd: theme.spacing.md,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.md,
         borderWidth: 1,
         borderColor: row.selected ? theme.color.brand : theme.color.border,
         backgroundColor: row.selected ? theme.color.brandSoft : 'transparent',

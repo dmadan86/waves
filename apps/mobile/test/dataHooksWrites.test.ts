@@ -44,6 +44,10 @@ vi.mock('@/lib/smsDraftStore', async () =>
 vi.mock('@/i18n', () => ({ deviceCountry: () => null }));
 
 const uuid = vi.hoisted(() => ({ n: 0 }));
+vi.mock('@/lib/companiesEnabled', async () => ({
+  COMPANIES_ENABLED: true,
+  ...(await import('../src/lib/companiesGate')),
+}));
 vi.mock('expo-crypto', () => ({ randomUUID: () => `uuid-${++uuid.n}` }));
 
 const auth = vi.hoisted(() => ({

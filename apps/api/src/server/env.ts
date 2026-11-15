@@ -25,6 +25,12 @@ function firstOf(...names: readonly string[]): string | undefined {
   return undefined;
 }
 
+// Treat weak signing secrets as unset so app.ts reports missing configuration.
+function signingSecret(...names: readonly string[]): string {
+  const value = firstOf(...names) ?? '';
+  return value.length >= 32 ? value : '';
+}
+
 function intOf(name: string, fallback: number, min: number, max: number): number {
   const raw = process.env[name];
   const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
@@ -79,8 +85,8 @@ export function readConfig(): ApiConfig {
         'SUPABASE_ANON_KEY',
         'NEXT_PUBLIC_SUPABASE_ANON_KEY',
       ) ?? '',
-    jwtSecret: firstOf('WAVES_API_JWT_SECRET', 'SUPABASE_JWT_SECRET') ?? '',
-    tokenSecret: firstOf('WAVES_API_TOKEN_SECRET') ?? '',
+    jwtSecret: signingSecret('WAVES_API_JWT_SECRET', 'SUPABASE_JWT_SECRET'),
+    tokenSecret: signingSecret('WAVES_API_TOKEN_SECRET'),
     webUrl: firstOf('WAVES_API_WEB_URL'),
     allowedOrigins: (process.env.WAVES_API_ALLOWED_ORIGINS ?? '')
       .split(',')

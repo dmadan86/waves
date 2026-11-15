@@ -24,6 +24,7 @@ export function useGroupTypeTagLabels(): GroupTypeTagLabels {
         couple: t.extras.typeCouple,
         event: t.extras.typeEvent,
         friends: t.extras.typeFriends,
+        company: t.extras.typeCompany,
       },
       events: t.eventOrganizer.tagNames,
     }),
@@ -89,7 +90,7 @@ export function GroupTypeTag({
         gap: 3,
         paddingHorizontal: 6,
         paddingVertical: 1,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.sm,
         backgroundColor: bg,
       }}
     >

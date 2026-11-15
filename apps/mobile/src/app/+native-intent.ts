@@ -1,8 +1,12 @@
 import { CategoryId } from '@waves/core';
 
+import { stripResumeParam } from '@/lib/resumeParam';
+import { noteExternalLink } from '@/lib/deepLink';
 import { tokenFromScan } from '@/lib/inviteLink';
 import { referralCodeFromUrl } from '@/lib/referral';
 import { isShareLaunchUrl } from '@/lib/sharedReceipt';
+
+export { stripResumeParam };
 
 /**
  * Rewrite incoming native deep links before expo-router tries to match them.
@@ -39,6 +43,11 @@ export function redirectSystemPath({
   initial: boolean;
 }): string | null {
   try {
+    // Strip any externally supplied `resume` param before any other handling.
+    // The only legitimate setter is in-app (PendingInviteResume.tsx via
+    // router.replace), which never goes through this function.
+    path = stripResumeParam(path);
+
     // Firebase's phone check coming back from its reCAPTCHA page
     // (`waves://firebaseauth/link?deep_link_id=…`). The Firebase SDK reads it
     // natively; it is not a screen, and handing it to the router drew
@@ -138,6 +147,7 @@ export function redirectSystemPath({
         ? `/capture?category=${id}`
         : '/capture';
     }
+    noteExternalLink(path);
     return path;
   } catch {
     return path;

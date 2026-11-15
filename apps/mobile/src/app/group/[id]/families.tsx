@@ -17,7 +17,13 @@ import { useLocalSearchParams } from 'expo-router';
 import { randomUUID } from 'expo-crypto';
 import { Pressable, ScrollView, Share, TextInput, View } from 'react-native';
 
-import { familyStatement, formatFamilyStatement, headOf, type GroupUnits } from '@waves/core';
+import {
+  exportMemberName,
+  familyStatement,
+  formatFamilyStatement,
+  headOf,
+  type GroupUnits,
+} from '@waves/core';
 import {
   Button,
   Callout,
@@ -31,6 +37,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import {
@@ -58,7 +65,7 @@ import {
   withFamily,
 } from '@/lib/families';
 
-export default function FamiliesScreen() {
+function FamiliesScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -133,7 +140,11 @@ export default function FamiliesScreen() {
         toSettlementSnapshots(settlements.data ?? []),
         (memberId) => {
           const member = people.find((person) => person.id === memberId);
-          return member ? nameOf(member) : t.misc.someone;
+          return member
+            ? member.profile_id && blockedIds.has(member.profile_id) && !isViewer(member, viewerId)
+              ? t.misc.someone
+              : exportMemberName(member, t.misc.someone)
+            : t.misc.someone;
         },
       );
       await Share.share({ message: formatFamilyStatement(statement) });
@@ -691,3 +702,5 @@ export default function FamiliesScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(FamiliesScreen);

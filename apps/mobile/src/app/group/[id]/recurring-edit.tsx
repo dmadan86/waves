@@ -42,6 +42,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { CategoryRow, CategorySheet } from '@/components/Category';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DescriptionField } from '@/components/expense/DescriptionField';
@@ -50,6 +51,7 @@ import { SplitKindChips, SplitParticipants } from '@/components/expense/SplitEdi
 import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
 import { useGroupRecurring, useUpdateGroupRecurring } from '@/data/groupRecurring';
 import { useGroup } from '@/data/hooks';
+import { useCompanyGroupGuard } from '@/lib/useCompanyGroupGuard';
 import { displayName, isGhost } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -71,9 +73,10 @@ import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
-export default function GroupRecurringEditScreen() {
+function GroupRecurringEditScreen() {
   const { id, ruleId } = useLocalSearchParams<{ id: string; ruleId?: string }>();
   const groupId = id ?? '';
+  useCompanyGroupGuard(groupId);
   const { rules, isLoading } = useGroupRecurring(groupId);
   const rule = rules.find((candidate) => candidate.id === ruleId);
   const theme = useTheme();
@@ -468,3 +471,5 @@ function EditForm({ groupId, ruleId }: { groupId: string; ruleId: string }) {
     </Screen>
   );
 }
+
+export default withScenicGroup(GroupRecurringEditScreen);

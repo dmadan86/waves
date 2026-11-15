@@ -33,6 +33,7 @@ import {
 } from '@waves/core';
 import { Button, Screen, useTheme } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { ColumnMapper, type PreviewRow } from '@/components/import/ColumnMapper';
 import { CommitPanel, ResultCard } from '@/components/import/CommitPanels';
 import { ImportFooter, ImportHeader } from '@/components/import/ImportChrome';
@@ -43,6 +44,7 @@ import { ExamplesSheet, UpsellSheet } from '@/components/import/ImportSheets';
 import { ImportHero, SourcePicker, type SourceChoice } from '@/components/import/SourcePicker';
 import { importIntoGroup, undoImport } from '@/data/api';
 import { useGroup } from '@/data/hooks';
+import { useCompanyGroupGuard } from '@/lib/useCompanyGroupGuard';
 import { displayName, groupLabel, isViewer } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -86,7 +88,7 @@ function leave(groupId: string): void {
   else router.replace(`/group/${groupId}`);
 }
 
-export default function GroupImportScreen() {
+function GroupImportScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -96,6 +98,7 @@ export default function GroupImportScreen() {
   const viewerId = useViewerId();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
+  useCompanyGroupGuard(groupId);
   const { group, members, expenses } = useGroup(groupId);
   const imp = useImportProgress();
 
@@ -599,3 +602,5 @@ export default function GroupImportScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(GroupImportScreen);

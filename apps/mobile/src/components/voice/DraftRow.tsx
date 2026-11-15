@@ -156,7 +156,7 @@ export function DraftRow({
             style={{
               paddingHorizontal: theme.spacing.sm,
               paddingVertical: 4,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: theme.color.surfaceMuted,
             }}
           >

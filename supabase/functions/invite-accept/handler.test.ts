@@ -31,6 +31,8 @@ const INVITE = {
 };
 
 interface Options {
+  company?: boolean;
+  vendorInvite?: boolean;
   anonymous?: boolean | null;
   noUser?: boolean;
   members?: { id: string; ghost_name: string | null; profile_id: string | null }[];
@@ -60,8 +62,14 @@ function harness(options: Options = {}) {
       maybeSingle: async () => ({
         data:
           state.name === 'invites'
-            ? INVITE
-            : { id: 'g-1', name: 'Goa', cover_emoji: null, default_currency: 'INR' },
+            ? { ...INVITE, company_vendor_id: options.vendorInvite ? 'v-1' : null }
+            : {
+                id: 'g-1',
+                name: 'Goa',
+                cover_emoji: null,
+                default_currency: 'INR',
+                type: options.company ? 'company' : 'trip',
+              },
         error: null,
       }),
       insert: async (row: unknown) => {
@@ -216,4 +224,36 @@ describe('invite-accept requires an account to join', () => {
     const response = await handleInviteAccept(post({ token: 't', mode: 'join' }), deps);
     expect(response.status).toBe(401);
   });
+});
+
+it('company preview reveals neither roster count nor claimable placeholders', async () => {
+  const { deps, rpc } = harness({
+    company: true,
+    noUser: true,
+    members: [{ id: 'private-ghost', ghost_name: 'Private colleague', profile_id: null }],
+  });
+  const response = await handleInviteAccept(post({ token: 't', mode: 'preview' }), deps);
+  expect(response.status).toBe(200);
+  const body = await response.json();
+  expect(body.group.type).toBe('company');
+  expect(body).not.toHaveProperty('memberCount');
+  expect(body).not.toHaveProperty('claimable');
+  expect(JSON.stringify(body)).not.toContain('Private colleague');
+  expect(rpc).not.toHaveBeenCalled();
+});
+
+it('a vendor invite joins through the same RPC and says so, so the app opens their ledger', async () => {
+  const { deps, rpc } = harness({ company: true, vendorInvite: true });
+  const response = await handleInviteAccept(post({ token: 't', mode: 'join' }), deps);
+  expect(response.status).toBe(200);
+  expect(rpc).toHaveBeenCalledWith('waves_join_via_invite', {
+    p_invite_id: 'inv-1',
+    p_profile_id: 'u-1',
+  });
+  expect((await response.json()).vendor).toBe(true);
+  const plain = await handleInviteAccept(
+    post({ token: 't', mode: 'join' }),
+    harness({ company: true }).deps,
+  );
+  expect((await plain.json()).vendor).toBeUndefined();
 });

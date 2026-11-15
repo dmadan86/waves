@@ -65,6 +65,11 @@ export function authorized(header: string | null, secret: string): boolean {
   return exact || bearer;
 }
 
+const RPC_FOR: Record<string, string> = {
+  company_storage: 'waves_company_storage_pack_apply',
+  company_slot: 'waves_company_slot_apply',
+};
+
 export async function handleRevenueCatWebhook(request: Request, deps: Deps): Promise<Response> {
   if (request.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use POST');
 
@@ -95,13 +100,16 @@ export async function handleRevenueCatWebhook(request: Request, deps: Deps): Pro
   // real Pro rows whenever the old opt-out variable was left unset.
   const mapped = mapEvent(event, { ignoreSandbox: !allowSandbox(deps.env) });
 
-  const { data, error } = await deps.service.rpc('waves_revenuecat_apply', {
-    p_event_id: mapped.eventId,
-    p_type: mapped.type || 'UNKNOWN',
-    p_app_user_id: mapped.appUserId,
-    p_event_at: mapped.eventAt,
-    p_action: mapped.action,
-  });
+  const { data, error } = await deps.service.rpc(
+    RPC_FOR[mapped.action.kind] ?? 'waves_revenuecat_apply',
+    {
+      p_event_id: mapped.eventId,
+      p_type: mapped.type || 'UNKNOWN',
+      p_app_user_id: mapped.appUserId,
+      p_event_at: mapped.eventAt,
+      p_action: mapped.action,
+    },
+  );
   if (error) throw new Error(`waves_revenuecat_apply failed: ${error.message}`);
 
   const outcome = typeof data === 'string' ? data : 'applied';

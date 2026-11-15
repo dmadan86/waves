@@ -30,6 +30,7 @@ export const TAB_BAR_HIDDEN_ROUTES: ReadonlySet<string> = new Set([
   'add-from-another-group',
   'scan',
   'new-group',
+  'new-company',
   'add-expense',
   'settle',
   'invite',
@@ -53,14 +54,14 @@ export type TabBarRoute = '/' | '/friends' | '/captures' | '/me';
 
 /**
  * The route a bottom-bar tap should navigate to, or null when the destination is
- * already current. The null is intentional: a repeated tap on the highlighted
- * tab should not schedule router work or rebuild the same scene.
+ * already at its root. Nested screens may highlight the same destination.
  */
 export function tabBarRouteForSelection(
   activeKey: string,
   selectedKey: string,
+  atRoot = true,
 ): TabBarRoute | null {
-  if (selectedKey === activeKey) return null;
+  if (selectedKey === activeKey && atRoot) return null;
 
   switch (selectedKey) {
     case 'friends':
@@ -133,8 +134,9 @@ export function personalActiveKey(segments: readonly string[]): string {
 export function personalRouteForSelection(
   activeKey: string,
   selectedKey: string,
+  atRoot = true,
 ): '/' | '/me' | '/personal/transactions' | '/personal/recurring' | '/personal/spending' | null {
-  if (selectedKey === activeKey) return null;
+  if (selectedKey === activeKey && atRoot) return null;
   switch (selectedKey) {
     case 'shared':
       return '/';
@@ -149,10 +151,34 @@ export function personalRouteForSelection(
   }
 }
 
+const screen2 = (segments: readonly string[]): string => segments[2] ?? '';
+
+/** Owner asked to hide the company round + for now; flip to true to bring it back. */
+export const COMPANY_FAB_ENABLED = false;
+
+/** The floating button the bar draws: the company one is off while COMPANY_FAB_ENABLED is false. */
+export function showFab(segments: readonly string[], company: boolean): boolean {
+  return resolveFab(segments) && (!company || COMPANY_FAB_ENABLED);
+}
+
 /** Forms keep the mic out of their input and footer space. */
 export function resolveFab(segments: readonly string[]): boolean {
   const [root, screen] = segments;
   if (resolveTabBar(segments).hidden) return false;
+  // Company mode: forms and the export/invite screens keep the add button out of their footers.
+  if (
+    root === 'group' &&
+    [
+      'company-entry',
+      'company-wages',
+      'company-calendar',
+      'company-leave-policy',
+      'company-bills',
+      'invite',
+      'export',
+    ].includes(screen2(segments))
+  )
+    return false;
   if (root === 'captures' && (screen === 'paste' || screen === 'statement')) return false;
   if (
     root === 'settings' &&
@@ -172,4 +198,12 @@ export function resolveFab(segments: readonly string[]): boolean {
   )
     return false;
   return true;
+}
+
+/** Highlighting an owner does not mean its root is on screen. */
+export function isTabRoot(segments: readonly string[], key: string): boolean {
+  if (segments[0] === '(tabs)') {
+    return (segments[1] ?? 'index') === key && segments.length <= 2;
+  }
+  return segments[0] === 'personal' && segments[1] === key && segments.length === 2;
 }

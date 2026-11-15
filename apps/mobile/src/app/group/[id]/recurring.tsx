@@ -34,8 +34,10 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { useGroupRecurring, useUpdateGroupRecurring } from '@/data/groupRecurring';
 import { useGroup } from '@/data/hooks';
+import { useCompanyGroupGuard } from '@/lib/useCompanyGroupGuard';
 import { groupLabel } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useBottomClearance } from '@/lib/clearance';
@@ -45,9 +47,10 @@ import { showDate } from '@/lib/expenseDay';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { router } from '@/lib/navigation';
 
-export default function GroupRecurringScreen() {
+function GroupRecurringScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
+  useCompanyGroupGuard(groupId);
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -224,3 +227,5 @@ function actionStyle(theme: ReturnType<typeof useTheme>) {
     backgroundColor: theme.color.surfaceMuted,
   };
 }
+
+export default withScenicGroup(GroupRecurringScreen);

@@ -20,6 +20,13 @@ import { computeShares } from '../split/computeShares';
 import { resolvePayee } from '../expense/payee';
 import type { MemberId, SplitParams, SplitType } from '../split/types';
 import type { CurrencyCode } from '../money/currency';
+import {
+  billStatus,
+  computeDocTotals,
+  type CompanyDocStatus,
+  type CompanyDocType,
+  type DocPayment,
+} from '../company/documents';
 import type { ExpenseSnapshot } from '../balances/types';
 
 import {
@@ -43,6 +50,37 @@ import type {
   ExpenseLocation,
   GroupMuteClearPayload,
   GroupMuteSetPayload,
+  CompanyEntryCreatePayload,
+  CompanyEntryUpdatePayload,
+  CompanyEntryVoidPayload,
+  CompanyEntryTransitionPayload,
+  CompanyReimbursePayload,
+  CompanyWagePayPayload,
+  CompanyPoolPostPayload,
+  CompanyProjectSetPayload,
+  CompanyMemberDepartmentSetPayload,
+  CompanyMemberEmployeeIdSetPayload,
+  CompanyDocSavePayload,
+  CompanyDocStatusPayload,
+  CompanyDocConvertPayload,
+  CompanyDocPaymentPayload,
+  CompanyDocVoidPayload,
+  CompanyAttendanceSetPayload,
+  CompanyWorkSetPayload,
+  TaskPriority,
+  CompanyWorkRemovePayload,
+  CompanyHolidaySetPayload,
+  CompanyHolidayRemovePayload,
+  CompanyLeaveSetPayload,
+  CompanyLeaveDecidePayload,
+  CompanyLeaveRemovePayload,
+  CompanyLeaveTypeSetPayload,
+  CompanyLeaveTypeRemovePayload,
+  CompanyEventSetPayload,
+  CompanyEventRemovePayload,
+  CompanyDatesSetPayload,
+  LeaveKind,
+  CompanyMemberProjectsSetPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
   MemberBudgetSetPayload,
@@ -57,8 +95,9 @@ import type {
   TagDeletePayload,
   TagUpsertPayload,
 } from './protocol';
-import type { QueuedMutation } from './queue';
+import { isStaleOverlay, type QueuedMutation } from './queue';
 import { byNewest, byOldest, compareStampsDesc } from '../time/iso';
+import { allowanceAmount, mileageAmount, normaliseEmployeeId } from '../company/index';
 import { firstOccurrenceOnOrAfter, nextOccurrenceAfter } from '../group/recurring';
 
 /** A row as the server sends it: snake_case, amounts as decimal strings. */
@@ -87,6 +126,38 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CategoryTags,
   SyncTable.TripPlanItems,
   SyncTable.GroupRecurringExpenses,
+  SyncTable.CompanyEntries,
+  SyncTable.CompanyEntryAttachments,
+  SyncTable.CompanyProjects,
+  SyncTable.CompanyProjectMembers,
+  SyncTable.CompanyProjectBudgets,
+  SyncTable.CompanyWageSplits,
+  SyncTable.CompanyVendors,
+  SyncTable.CompanyVendorEntries,
+  SyncTable.CompanyVendorEntryAttachments,
+  SyncTable.CompanyWorkTaskAttachments,
+  SyncTable.CompanyDetails,
+  SyncTable.CompanyDetailsSecure,
+  SyncTable.CompanyVendorDetails,
+  SyncTable.CompanyVendorOrders,
+  SyncTable.CompanyVendorOrderItems,
+  SyncTable.CompanyVendorOrderEvents,
+  SyncTable.CompanyDocuments,
+  SyncTable.CompanyClients,
+  SyncTable.CompanyClientNotes,
+  SyncTable.CompanyInquiries,
+  SyncTable.CompanyClientAssignees,
+  SyncTable.CompanyTickets,
+  SyncTable.CompanyTicketEvents,
+  SyncTable.CompanyAttendance,
+  SyncTable.CompanyWorkTasks,
+  SyncTable.CompanyFileFolders,
+  SyncTable.CompanyFiles,
+  SyncTable.CompanyHolidays,
+  SyncTable.CompanyLeave,
+  SyncTable.CompanyLeaveTypes,
+  SyncTable.CompanyEvents,
+  SyncTable.CompanyMemberDates,
   SyncTable.TripMemberBudgets,
   SyncTable.SettlementProofs,
   SyncTable.ExpenseAttachments,
@@ -539,6 +610,16 @@ export interface MirrorMember extends MirrorRow {
   readonly profile_id: string | null;
   readonly ghost_name: string | null;
   readonly left_at: string | null;
+  readonly employment_ended_on?: string | null;
+  readonly employment_note?: string | null;
+  /** Company: the manager this employee reports to (null = the owners). */
+  readonly manager_id?: string | null;
+  /** Company: the free-text employee ID (null/absent = none). */
+  readonly employee_id?: string | null;
+  /** Company: the department (an id in the group's company_departments), null/absent = none. */
+  readonly department_id?: string | null;
+  /** Company: full_time | part_time | contractor (null/absent = not set). */
+  readonly employment_type?: string | null;
   readonly pending?: boolean;
 }
 
@@ -591,6 +672,34 @@ export function materialiseMembers(
       continue;
     }
 
+    // A queued "reports to" change reads as made at once, over a row the server sent.
+    if (mutation.kind === 'company_member.assign') {
+      if (mutation.rejection) continue;
+      const assign = mutation.payload as { memberId: string; managerId: string | null };
+      const existing = byId.get(assign.memberId);
+      if (existing)
+        byId.set(assign.memberId, { ...existing, manager_id: assign.managerId ?? null });
+      continue;
+    }
+
+    // Likewise a queued employee-ID change.
+    if (mutation.kind === 'company_member.employee_id_set') {
+      if (mutation.rejection) continue;
+      const set = mutation.payload as unknown as CompanyMemberEmployeeIdSetPayload;
+      const existing = byId.get(set.memberId);
+      if (existing)
+        byId.set(set.memberId, { ...existing, employee_id: normaliseEmployeeId(set.employeeId) });
+      continue;
+    }
+
+    if (mutation.kind === 'company_member.department_set') {
+      if (mutation.rejection) continue;
+      const set = mutation.payload as unknown as CompanyMemberDepartmentSetPayload;
+      const existing = byId.get(set.memberId);
+      if (existing) byId.set(set.memberId, { ...existing, department_id: set.departmentId });
+      continue;
+    }
+
     if (mutation.kind !== 'member.add_ghost') continue;
     const payload = mutation.payload as {
       memberId?: string;
@@ -621,6 +730,9 @@ export function materialiseMembers(
 }
 
 export interface MirrorGroup extends MirrorRow {
+  readonly company_tags?: readonly import('../company/tags').CompanyTag[];
+  readonly company_departments?: readonly { readonly id: string; readonly name: string }[];
+  readonly company_industry?: import('../company/tags').CompanyIndustry | null;
   readonly id: string;
   readonly name: string | null;
   /** What the group is for, in the maker's own words — or NULL. Optional here
@@ -688,6 +800,50 @@ function buildGroups(state: MirrorState, queue: readonly QueuedMutation[]): Mirr
         pending: true,
       });
       continue;
+    }
+
+    if (mutation.kind === 'company_departments.set') {
+      const existing = byId.get(mutation.groupId);
+      if (existing) {
+        const payload =
+          mutation.payload as unknown as import('./protocol').CompanyDepartmentsSetPayload;
+        byId.set(mutation.groupId, {
+          ...existing,
+          company_departments: payload.departments.map((d) => ({ ...d })),
+          pending: true,
+        });
+      }
+    }
+
+    if (mutation.kind === 'company_tag.add' || mutation.kind === 'company_tags.set') {
+      const existing = byId.get(mutation.groupId);
+      if (existing) {
+        const stored = existing.company_tags ?? [];
+        if (mutation.kind === 'company_tags.set') {
+          const payload = mutation.payload as unknown as import('./protocol').CompanyTagsSetPayload;
+          byId.set(mutation.groupId, {
+            ...existing,
+            company_tags: payload.tags.map((tag) => ({ ...tag })),
+            company_industry: payload.industry,
+            pending: true,
+          });
+        } else {
+          const payload = mutation.payload as unknown as import('./protocol').CompanyTagAddPayload;
+          if (
+            stored.length < 50 &&
+            !stored.some(
+              (tag) =>
+                tag.key === payload.key || tag.label.toLowerCase() === payload.label.toLowerCase(),
+            )
+          ) {
+            byId.set(mutation.groupId, {
+              ...existing,
+              company_tags: [...stored, { ...payload }],
+              pending: true,
+            });
+          }
+        }
+      }
     }
 
     if (mutation.kind === 'group.update') {
@@ -1556,6 +1712,334 @@ export function materialiseGroupRecurring(
   });
 }
 
+// ───────────────────────────────────────────────────── company entries ──
+//
+// An entry typed in a dead zone must read as recorded straight away, so the
+// queue is replayed over the pulled rows. The server stays authoritative: it
+// recomputes bata and may refuse, in which case the queue item fails and the
+// overlay disappears with it.
+
+export interface MirrorCompanyEntry extends MirrorRow {
+  readonly id: string;
+  readonly group_id: string;
+  readonly member_id: string | null;
+  readonly paid_by_company?: boolean;
+  readonly entry_kind: string;
+  readonly category: string | null;
+  readonly amount: string;
+  readonly currency: string;
+  readonly calc_mode: string;
+  readonly days: string | null;
+  readonly rate_minor: string | null;
+  readonly occurred_on: string;
+  readonly direction: string | null;
+  readonly status: string;
+  readonly note: string | null;
+  readonly review_note?: string | null;
+  readonly vendor?: string | null;
+  readonly gstin?: string | null;
+  readonly invoice_no?: string | null;
+  readonly gst_rate_bps?: number | null;
+  readonly gst_amount_minor?: string | null;
+  readonly distance_km?: string | null;
+  readonly from_text?: string | null;
+  readonly to_text?: string | null;
+  readonly reimbursement_id?: string | null;
+  readonly reimbursement_details?: unknown;
+  readonly project_id?: string | null;
+  readonly funding_manager_id?: string | null;
+  readonly gross_minor?: string | null;
+  readonly claims_minor?: string | null;
+  readonly recovery_minor?: string | null;
+  readonly wage_run_id?: string | null;
+  readonly period_start?: string | null;
+  readonly period_end?: string | null;
+  readonly deleted_at: string | null;
+  readonly pending?: boolean;
+}
+
+/** A photo on a company entry, as the mirror holds it (read as the caller, so owner/admin only). */
+export interface MirrorCompanyEntryAttachment extends MirrorRow {
+  readonly id: string;
+  readonly entry_id: string;
+  readonly group_id: string;
+  readonly storage_path: string;
+  readonly uploader_member_id: string;
+  readonly preview?: string | null;
+  readonly created_at: string | null;
+  readonly deleted_at: string | null;
+}
+
+/** The live photos on one entry, vendor ledger line or work task (ids never collide), oldest first. */
+export function materialiseCompanyEntryAttachments(
+  state: MirrorState,
+  options: { readonly entryId: string },
+): MirrorCompanyEntryAttachment[] {
+  return (
+    [
+      ...rowsFor(state, SyncTable.CompanyEntryAttachments),
+      ...rowsFor(state, SyncTable.CompanyVendorEntryAttachments),
+      ...rowsFor(state, SyncTable.CompanyWorkTaskAttachments),
+    ] as MirrorCompanyEntryAttachment[]
+  )
+    .filter((row) => row.entry_id === options.entryId && row.deleted_at === null)
+    .sort(
+      (a, b) => (a.created_at ?? '').localeCompare(b.created_at ?? '') || a.id.localeCompare(b.id),
+    );
+}
+
+/** The entries of one group the viewer can read, with queued changes on top. */
+export function materialiseCompanyEntries(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: {
+    readonly groupId: string;
+    /** The group currency: a queued entry shows in it. */
+    readonly currency: string;
+    /** The viewer's member id: the author of a queued entry. */
+    readonly myMemberId?: string | null;
+    /** The viewer is a manager: their queued company-paid entries come out of their pool. */
+    readonly myIsManager?: boolean;
+    /** The company needs approval: a queued entry reads as submitted, not approved. */
+    readonly approvalsEnabled?: boolean;
+  },
+): MirrorCompanyEntry[] {
+  const byId = new Map<string, MirrorCompanyEntry>();
+  for (const row of rowsFor(
+    state,
+    SyncTable.CompanyEntries,
+    options.groupId,
+  ) as MirrorCompanyEntry[]) {
+    byId.set(row.id, row);
+  }
+
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    // A refused change stays queued for the retry / discard banner but must not
+    // keep changing what the ledger shows.
+    if (mutation.groupId !== options.groupId || mutation.rejection) continue;
+
+    if (mutation.kind === 'company_entry.create') {
+      const payload = mutation.payload as unknown as CompanyEntryCreatePayload;
+      if (byId.has(payload.entryId)) continue;
+      const data = payload.data;
+      const calc = data.calcMode ?? (payload.entryKind === 'allowance' ? 'days_rate' : 'typed');
+      const computed =
+        calc === 'days_rate' && data.days && data.rateMinor
+          ? allowanceAmount(data.days, BigInt(data.rateMinor))
+          : calc === 'distance_rate' && data.distanceKm && data.rateMinor
+            ? mileageAmount(data.distanceKm, BigInt(data.rateMinor))
+            : null;
+      byId.set(payload.entryId, {
+        id: payload.entryId,
+        group_id: mutation.groupId,
+        member_id: payload.memberId,
+        paid_by_company: data.paidByCompany === true,
+        entry_kind: payload.entryKind,
+        category: payload.entryKind === 'expense' ? (data.category ?? null) : null,
+        amount: computed !== null ? computed.toString() : (data.amount ?? '0'),
+        currency: options.currency,
+        calc_mode: calc,
+        days: data.days ?? null,
+        rate_minor: data.rateMinor ?? null,
+        vendor: data.vendor ?? null,
+        gstin: data.gstin ?? null,
+        invoice_no: data.invoiceNo ?? null,
+        gst_rate_bps: data.gstRateBps ?? null,
+        gst_amount_minor: data.gstAmountMinor ?? null,
+        distance_km: data.distanceKm ?? null,
+        from_text: data.fromText ?? null,
+        to_text: data.toText ?? null,
+        reimbursement_id: null,
+        project_id: data.projectId ?? null,
+        funding_manager_id:
+          data.paidByCompany === true
+            ? options.myIsManager
+              ? (options.myMemberId ?? null)
+              : null
+            : (data.fundingManagerId ?? null),
+        occurred_on: data.occurredOn ?? mutation.clientCreatedAt.slice(0, 10),
+        direction:
+          payload.entryKind === 'reimbursement' ? (data.direction ?? 'company_to_employee') : null,
+        status: options.approvalsEnabled && data.paidByCompany !== true ? 'submitted' : 'approved',
+        note: data.note ?? null,
+        deleted_at: null,
+        created_by: options.myMemberId ?? null,
+        created_at: mutation.clientCreatedAt,
+        pending: true,
+      });
+    } else if (mutation.kind === 'company_entry.update') {
+      const { entryId, patch } = mutation.payload as unknown as CompanyEntryUpdatePayload;
+      const existing = byId.get(entryId);
+      if (!existing || existing.deleted_at) continue;
+      const next: Record<string, unknown> = { ...existing, pending: true };
+      if (patch.amount !== undefined) next.amount = patch.amount;
+      if (patch.category !== undefined) next.category = patch.category;
+      if (patch.days !== undefined) next.days = patch.days;
+      if (patch.rateMinor !== undefined) next.rate_minor = patch.rateMinor;
+      if (patch.calcMode !== undefined) next.calc_mode = patch.calcMode;
+      if (patch.vendor !== undefined) next.vendor = patch.vendor;
+      if (patch.gstin !== undefined) next.gstin = patch.gstin;
+      if (patch.invoiceNo !== undefined) next.invoice_no = patch.invoiceNo;
+      if (patch.gstRateBps !== undefined) next.gst_rate_bps = patch.gstRateBps;
+      if (patch.gstAmountMinor !== undefined) next.gst_amount_minor = patch.gstAmountMinor;
+      if (patch.distanceKm !== undefined) next.distance_km = patch.distanceKm;
+      if (patch.fromText !== undefined) next.from_text = patch.fromText;
+      if (patch.toText !== undefined) next.to_text = patch.toText;
+      if (patch.occurredOn !== undefined) next.occurred_on = patch.occurredOn;
+      if (patch.note !== undefined) next.note = patch.note;
+      if (patch.direction !== undefined) next.direction = patch.direction;
+      if (options.approvalsEnabled && next.status !== 'submitted') {
+        next.status = 'submitted';
+        next.review_note = null;
+      }
+      if (next.calc_mode === 'days_rate' && next.days && next.rate_minor) {
+        const computed = allowanceAmount(String(next.days), BigInt(String(next.rate_minor)));
+        if (computed !== null) next.amount = computed.toString();
+      }
+      if (next.calc_mode === 'distance_rate' && next.distance_km && next.rate_minor) {
+        const computed = mileageAmount(String(next.distance_km), BigInt(String(next.rate_minor)));
+        if (computed !== null) next.amount = computed.toString();
+      }
+      byId.set(entryId, next as unknown as MirrorCompanyEntry);
+    } else if (mutation.kind === 'company_entry.void') {
+      const { entryId } = mutation.payload as unknown as CompanyEntryVoidPayload;
+      const existing = byId.get(entryId);
+      if (!existing) continue;
+      byId.set(entryId, { ...existing, deleted_at: mutation.clientCreatedAt, pending: true });
+    } else if (mutation.kind === 'company_entry.transition') {
+      const { entryId, to, note } = mutation.payload as unknown as CompanyEntryTransitionPayload;
+      const existing = byId.get(entryId);
+      if (!existing || existing.status !== 'submitted') continue;
+      byId.set(entryId, {
+        ...existing,
+        status: to,
+        review_note: note ?? null,
+        pending: true,
+      });
+    } else if (mutation.kind === 'company.reimburse') {
+      // One payment entry, and the claims it covers read as paid at once.
+      const p = mutation.payload as unknown as CompanyReimbursePayload;
+      if (byId.has(p.reimbursementId)) continue;
+      for (const { entryId } of p.claims) {
+        const covered = byId.get(entryId);
+        if (covered)
+          byId.set(entryId, {
+            ...covered,
+            status: 'reimbursed',
+            reimbursement_id: p.reimbursementId,
+            pending: true,
+          });
+      }
+      for (const { entryId } of p.adjustments) {
+        const covered = byId.get(entryId);
+        if (covered)
+          byId.set(entryId, {
+            ...covered,
+            reimbursement_id: p.reimbursementId,
+            pending: true,
+          });
+      }
+      byId.set(p.reimbursementId, {
+        id: p.reimbursementId,
+        group_id: mutation.groupId,
+        member_id: p.memberId,
+        entry_kind: 'reimbursement',
+        category: null,
+        amount: p.expectedAmountMinor,
+        currency: options.currency,
+        calc_mode: 'typed',
+        days: null,
+        rate_minor: null,
+        occurred_on: p.paidOn,
+        direction: 'company_to_employee',
+        status: 'approved',
+        note: p.note,
+        reimbursement_details: {},
+        deleted_at: null,
+        created_by: options.myMemberId ?? null,
+        created_at: mutation.clientCreatedAt,
+        pending: true,
+      });
+    } else if (mutation.kind === 'company_pool.post') {
+      const p = mutation.payload as unknown as CompanyPoolPostPayload;
+      if (byId.has(p.entryId)) continue;
+      byId.set(p.entryId, {
+        id: p.entryId,
+        group_id: mutation.groupId,
+        member_id: p.managerId,
+        entry_kind: p.kind,
+        category: null,
+        amount: p.amountMinor,
+        currency: options.currency,
+        calc_mode: 'typed',
+        days: null,
+        rate_minor: null,
+        occurred_on: p.occurredOn,
+        direction: null,
+        status: 'approved',
+        note: p.reason,
+        project_id: p.projectId,
+        funding_manager_id: p.managerId,
+        deleted_at: null,
+        created_by: options.myMemberId ?? null,
+        created_at: mutation.clientCreatedAt,
+        pending: true,
+      });
+    } else if (mutation.kind === 'company_wage.pay') {
+      // Each line is one payment entry; the claims it folds in read as paid at once.
+      const p = mutation.payload as unknown as CompanyWagePayPayload;
+      for (const line of p.lines) {
+        if (byId.has(line.paymentEntryId)) continue;
+        for (const { entryId } of line.claimIds) {
+          const covered = byId.get(entryId);
+          if (covered)
+            byId.set(entryId, {
+              ...covered,
+              status: 'reimbursed',
+              reimbursement_id: line.paymentEntryId,
+              pending: true,
+            });
+        }
+        byId.set(line.paymentEntryId, {
+          id: line.paymentEntryId,
+          group_id: mutation.groupId,
+          member_id: line.memberId,
+          entry_kind: 'wage_payment',
+          category: null,
+          amount: line.expectedNetMinor,
+          currency: options.currency,
+          calc_mode: line.calcMode,
+          days: line.days,
+          rate_minor: line.rateMinor,
+          occurred_on: p.paidOn,
+          direction: null,
+          status: 'approved',
+          note: line.note,
+          project_id: line.projectId,
+          funding_manager_id: line.fundingManagerId,
+          gross_minor: line.expectedGrossMinor,
+          recovery_minor: line.expectedRecoveryMinor,
+          claims_minor: line.claimIds
+            .reduce(
+              (sum, { entryId }) => sum + BigInt(String(byId.get(entryId)?.amount ?? '0')),
+              0n,
+            )
+            .toString(),
+          wage_run_id: p.runId,
+          period_start: p.periodStart,
+          period_end: p.periodEnd,
+          deleted_at: null,
+          created_by: options.myMemberId ?? null,
+          created_at: mutation.clientCreatedAt,
+          pending: true,
+        });
+      }
+    }
+  }
+
+  return [...byId.values()];
+}
+
 export interface MirrorMemberBudget extends MirrorRow {
   readonly id: string;
   readonly group_id: string;
@@ -1730,4 +2214,806 @@ export function mutedGroupIds(
   options: { readonly ownerId: string },
 ): Set<string> {
   return new Set(materialiseGroupMutes(state, queue, options).map((row) => row.group_id));
+}
+
+// ───────────────────────────────────────────────────── company projects ──
+
+export interface MirrorCompanyProject extends MirrorRow {
+  readonly id: string;
+  readonly group_id: string;
+  readonly name: string;
+  readonly archived_at: string | null;
+  readonly deleted_at: string | null;
+  /** Owners only (a separate owner-readable table); null when none or not visible. */
+  readonly budget_minor: string | null;
+  readonly pending?: boolean;
+}
+
+/** The sites of one company with the viewer's queued create/edit on top. Archived ones stay listed. */
+export function materialiseCompanyProjects(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): MirrorCompanyProject[] {
+  const budgets = new Map<string, string>();
+  for (const row of rowsFor(state, SyncTable.CompanyProjectBudgets, options.groupId) as unknown as {
+    project_id: string;
+    budget_minor: string | null;
+    deleted_at?: string | null;
+  }[]) {
+    if (row.budget_minor !== null && !row.deleted_at) budgets.set(row.project_id, row.budget_minor);
+  }
+  const byId = new Map<string, MirrorCompanyProject>();
+  for (const row of rowsFor(
+    state,
+    SyncTable.CompanyProjects,
+    options.groupId,
+  ) as unknown as MirrorCompanyProject[]) {
+    if (row.deleted_at) continue;
+    byId.set(row.id, { ...row, budget_minor: budgets.get(row.id) ?? null });
+  }
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (
+      mutation.groupId !== options.groupId ||
+      mutation.rejection ||
+      mutation.kind !== 'company_project.set'
+    )
+      continue;
+    const p = mutation.payload as unknown as CompanyProjectSetPayload;
+    const existing = byId.get(p.projectId);
+    byId.set(p.projectId, {
+      ...(existing ?? { group_id: options.groupId, deleted_at: null }),
+      id: p.projectId,
+      name: p.name,
+      budget_minor: p.budgetMinor,
+      archived_at: p.archived ? (existing?.archived_at ?? mutation.clientCreatedAt) : null,
+      pending: true,
+    } as MirrorCompanyProject);
+  }
+  return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Employee id -> site ids, with this phone's queued "which sites" changes laid over the pulled rows. */
+export function materialiseProjectMembers(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const row of rowsFor(state, SyncTable.CompanyProjectMembers, options.groupId) as unknown as {
+    member_id: string;
+    project_id: string;
+    deleted_at: string | null;
+  }[]) {
+    if (!row.deleted_at)
+      out.set(row.member_id, [...(out.get(row.member_id) ?? []), row.project_id]);
+  }
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (
+      mutation.groupId !== options.groupId ||
+      mutation.rejection ||
+      mutation.kind !== 'company_member.projects_set'
+    )
+      continue;
+    const p = mutation.payload as unknown as CompanyMemberProjectsSetPayload;
+    if (p.projectIds.length === 0) out.delete(p.memberId);
+    else out.set(p.memberId, [...new Set(p.projectIds)]);
+  }
+  return out;
+}
+
+export interface MirrorAttendance {
+  readonly memberId: string;
+  readonly day: string;
+  readonly status: 'present' | 'half' | 'absent';
+  readonly note: string | null;
+}
+
+/** Attendance marks of one company, keyed `${memberId}|${day}`, with this phone's queued marks on top. */
+export function materialiseAttendance(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): Map<string, MirrorAttendance> {
+  const out = new Map<string, MirrorAttendance>();
+  for (const row of rowsFor(state, SyncTable.CompanyAttendance, options.groupId) as unknown as {
+    member_id: string;
+    day: string;
+    status: MirrorAttendance['status'];
+    note: string | null;
+    deleted_at: string | null;
+  }[]) {
+    if (!row.deleted_at)
+      out.set(`${row.member_id}|${row.day}`, {
+        memberId: row.member_id,
+        day: row.day,
+        status: row.status,
+        note: row.note,
+      });
+  }
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (
+      mutation.groupId !== options.groupId ||
+      mutation.rejection ||
+      mutation.kind !== 'company_attendance.set'
+    )
+      continue;
+    const p = mutation.payload as unknown as CompanyAttendanceSetPayload;
+    const key = `${p.memberId}|${p.day}`;
+    if (p.status === null) out.delete(key);
+    else out.set(key, { memberId: p.memberId, day: p.day, status: p.status, note: p.note });
+  }
+  return out;
+}
+
+export interface MirrorWorkTask {
+  readonly id: string;
+  readonly memberId: string;
+  readonly day: string;
+  readonly title: string;
+  readonly projectId: string | null;
+  readonly status: CompanyWorkSetPayload['status'];
+  readonly blockedReason: string | null;
+  readonly note: string | null;
+  readonly dueTime: string | null;
+  /** The company's task number (#42), given by the server; null until the task has synced. */
+  readonly number: number | null;
+  /** The client a follow-up is about. */
+  readonly clientId?: string | null;
+  readonly priority?: TaskPriority;
+  /** The others on the task besides the responsible memberId. */
+  readonly helperIds?: readonly string[];
+  /** Who made the task (a member id); an employee edits only a task they made for themself. */
+  readonly createdBy?: string | null;
+  readonly pending?: boolean;
+}
+
+/** A task its assignee made for themself: theirs to edit and remove, not just to move along. */
+export const isSelfMadeTask = (
+  task: Pick<MirrorWorkTask, 'memberId' | 'createdBy'>,
+  meId: string | null | undefined,
+) => !!meId && task.memberId === meId && task.createdBy === meId;
+
+/** Daily tasks of one company (pulled rows plus this phone's queued adds, edits and removals), oldest first. */
+export function materialiseWorkTasks(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string; readonly now?: number },
+): MirrorWorkTask[] {
+  const byId = new Map<string, MirrorWorkTask>();
+  for (const row of rowsFor(state, SyncTable.CompanyWorkTasks, options.groupId) as unknown as {
+    id: string;
+    member_id: string;
+    day: string;
+    title: string;
+    project_id: string | null;
+    status: MirrorWorkTask['status'];
+    blocked_reason: string | null;
+    note: string | null;
+    due_time?: string | null;
+    seq?: number | null;
+    client_id?: string | null;
+    priority?: TaskPriority | null;
+    helper_ids?: string[] | null;
+    created_by?: string | null;
+    created_at: string;
+    deleted_at: string | null;
+  }[]) {
+    if (row.deleted_at) continue;
+    byId.set(row.id, {
+      createdBy: row.created_by ?? null,
+      priority: row.priority ?? 'normal',
+      helperIds: row.helper_ids ?? [],
+      id: row.id,
+      memberId: row.member_id,
+      day: row.day,
+      title: row.title,
+      projectId: row.project_id,
+      status: row.status,
+      blockedReason: row.blocked_reason,
+      note: row.note,
+      dueTime: row.due_time?.slice(0, 5) ?? null,
+      number: row.seq ?? null,
+      clientId: row.client_id ?? null,
+    });
+  }
+  const onServer = new Set(byId.keys());
+  const now = options.now ?? Date.now();
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== options.groupId || mutation.rejection) continue;
+    if (mutation.kind === 'company_work.set') {
+      const p = mutation.payload as unknown as CompanyWorkSetPayload;
+      // An edit that keeps failing, or has sat unsent for a day, is no longer shown over the server's task (it stays queued; see isStaleOverlay).
+      if (onServer.has(p.taskId) && isStaleOverlay(mutation, now)) continue;
+      byId.set(p.taskId, {
+        id: p.taskId,
+        memberId: p.memberId,
+        day: p.day,
+        title: p.title,
+        projectId: p.projectId,
+        status: p.status,
+        blockedReason: p.status === 'blocked' ? p.blockedReason : null,
+        note: p.note,
+        dueTime: p.dueTime === undefined ? (byId.get(p.taskId)?.dueTime ?? null) : p.dueTime,
+        number: byId.get(p.taskId)?.number ?? null,
+        clientId: p.clientId === undefined ? (byId.get(p.taskId)?.clientId ?? null) : p.clientId,
+        priority: p.priority ?? byId.get(p.taskId)?.priority ?? 'normal',
+        helperIds: p.helperIds ?? byId.get(p.taskId)?.helperIds ?? [],
+        // A queued new task was made by whoever it is for when they are alone on their phone; the pull gives the truth.
+        createdBy: byId.get(p.taskId)?.createdBy ?? p.memberId,
+        pending: true,
+      });
+    } else if (mutation.kind === 'company_work.remove') {
+      byId.delete((mutation.payload as unknown as CompanyWorkRemovePayload).taskId);
+    }
+  }
+  return [...byId.values()].sort((a, b) => a.day.localeCompare(b.day) || a.id.localeCompare(b.id));
+}
+
+export interface MirrorHoliday {
+  readonly id: string;
+  readonly startDay: string;
+  readonly endDay: string;
+  readonly name: string;
+}
+export interface MirrorLeave {
+  readonly id: string;
+  readonly memberId: string;
+  readonly startDay: string;
+  readonly endDay: string;
+  readonly halfDay: boolean;
+  readonly kind: LeaveKind;
+  readonly reason: string | null;
+  readonly status: 'pending' | 'approved' | 'rejected';
+  readonly decisionNote: string | null;
+  readonly leaveTypeId: string | null;
+  readonly pending?: boolean;
+}
+export interface MirrorLeaveType {
+  readonly id: string;
+  readonly name: string;
+  readonly kind: LeaveKind;
+  readonly accrualPerMonth: number;
+  readonly carryForward: boolean;
+  readonly carryForwardCap: number | null;
+  readonly annualCap: number | null;
+  readonly paid: boolean;
+  readonly allowOverdraw: boolean;
+  readonly active: boolean;
+  /** ISO date the type started earning. */
+  readonly startsOn: string;
+  readonly pending?: boolean;
+}
+export interface MirrorEvent {
+  readonly id: string;
+  readonly title: string;
+  readonly day: string;
+  readonly time: string | null;
+  readonly projectId: string | null;
+  readonly people: readonly string[];
+}
+export interface MirrorMemberDates {
+  readonly memberId: string;
+  readonly birthDay: number | null;
+  readonly birthMonth: number | null;
+  readonly joinedOn: string | null;
+  readonly showBirthday: boolean;
+}
+export interface MirrorCalendar {
+  readonly holidays: readonly MirrorHoliday[];
+  readonly leave: readonly MirrorLeave[];
+  readonly leaveTypes: readonly MirrorLeaveType[];
+  readonly events: readonly MirrorEvent[];
+  readonly dates: ReadonlyMap<string, MirrorMemberDates>;
+}
+
+/**
+ * Holidays, leave, events and birthday/joining dates of one company: pulled rows (already filtered by RLS)
+ * with this phone's queued changes on top. A queued request shows as pending until the server answers.
+ */
+export function materialiseCalendar(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  /** `meId`: leave queued for someone else is an owner/manager record, which the server approves at once. */
+  options: { readonly groupId: string; readonly meId?: string | null },
+): MirrorCalendar {
+  type Row = Record<string, unknown> & { deleted_at: string | null };
+  const live = (table: SyncTable): Row[] =>
+    (rowsFor(state, table, options.groupId) as unknown as Row[]).filter((r) => !r.deleted_at);
+  const holidays = new Map<string, MirrorHoliday>();
+  for (const r of live(SyncTable.CompanyHolidays))
+    holidays.set(r.id as string, {
+      id: r.id as string,
+      startDay: r.start_day as string,
+      endDay: r.end_day as string,
+      name: r.name as string,
+    });
+  const leave = new Map<string, MirrorLeave>();
+  for (const r of live(SyncTable.CompanyLeave))
+    leave.set(r.id as string, {
+      id: r.id as string,
+      memberId: r.member_id as string,
+      startDay: r.start_day as string,
+      endDay: r.end_day as string,
+      halfDay: r.half_day === true,
+      kind: r.kind as LeaveKind,
+      reason: (r.reason as string | null) ?? null,
+      status: r.status as MirrorLeave['status'],
+      decisionNote: (r.decision_note as string | null) ?? null,
+      leaveTypeId: (r.leave_type_id as string | null) ?? null,
+    });
+  const num = (v: unknown): number | null => (v === null || v === undefined ? null : Number(v));
+  const leaveTypes = new Map<string, MirrorLeaveType>();
+  for (const r of live(SyncTable.CompanyLeaveTypes))
+    leaveTypes.set(r.id as string, {
+      id: r.id as string,
+      name: r.name as string,
+      kind: r.kind as LeaveKind,
+      accrualPerMonth: Number(r.accrual_days_per_month),
+      carryForward: r.carry_forward === true,
+      carryForwardCap: num(r.carry_forward_cap),
+      annualCap: num(r.annual_cap),
+      paid: r.paid === true,
+      allowOverdraw: r.allow_overdraw === true,
+      active: r.active !== false,
+      startsOn: String(r.starts_on).slice(0, 10),
+    });
+  const events = new Map<string, MirrorEvent>();
+  for (const r of live(SyncTable.CompanyEvents))
+    events.set(r.id as string, {
+      id: r.id as string,
+      title: r.title as string,
+      day: r.day as string,
+      time: (r.at_time as string | null) ?? null,
+      projectId: (r.project_id as string | null) ?? null,
+      people: (r.people as string[] | null) ?? [],
+    });
+  const dates = new Map<string, MirrorMemberDates>();
+  for (const r of live(SyncTable.CompanyMemberDates))
+    dates.set(r.member_id as string, {
+      memberId: r.member_id as string,
+      birthDay: (r.birth_day as number | null) ?? null,
+      birthMonth: (r.birth_month as number | null) ?? null,
+      joinedOn: (r.joined_on as string | null) ?? null,
+      showBirthday: r.show_birthday === true,
+    });
+  for (const m of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (m.groupId !== options.groupId || m.rejection) continue;
+    const p = m.payload as unknown;
+    if (m.kind === 'company_holiday.set') {
+      const h = p as CompanyHolidaySetPayload;
+      holidays.set(h.id, { id: h.id, startDay: h.startDay, endDay: h.endDay, name: h.name });
+    } else if (m.kind === 'company_holiday.remove')
+      holidays.delete((p as CompanyHolidayRemovePayload).id);
+    else if (m.kind === 'company_leave.set') {
+      const l = p as CompanyLeaveSetPayload;
+      leave.set(l.id, {
+        ...l,
+        status: options.meId && l.memberId !== options.meId ? 'approved' : 'pending',
+        decisionNote: null,
+        leaveTypeId: l.leaveTypeId ?? null,
+        pending: true,
+      });
+    } else if (m.kind === 'company_leave.decide') {
+      const d = p as CompanyLeaveDecidePayload;
+      const l = leave.get(d.id);
+      if (l)
+        leave.set(d.id, {
+          ...l,
+          status: d.approve ? 'approved' : 'rejected',
+          decisionNote: d.note,
+        });
+    } else if (m.kind === 'company_leave.remove') leave.delete((p as CompanyLeaveRemovePayload).id);
+    else if (m.kind === 'company_leave_type.set') {
+      const t = p as CompanyLeaveTypeSetPayload;
+      const old = leaveTypes.get(t.id);
+      leaveTypes.set(t.id, {
+        id: t.id,
+        name: t.name.trim(),
+        kind: old?.kind ?? 'other',
+        accrualPerMonth: t.accrualPerMonth,
+        carryForward: t.carryForward,
+        carryForwardCap: t.carryForward ? t.carryForwardCap : null,
+        annualCap: t.annualCap,
+        paid: t.paid,
+        allowOverdraw: t.allowOverdraw,
+        active: t.active,
+        startsOn: old?.startsOn ?? m.clientCreatedAt.slice(0, 10),
+        pending: true,
+      });
+    } else if (m.kind === 'company_leave_type.remove')
+      leaveTypes.delete((p as CompanyLeaveTypeRemovePayload).id);
+    else if (m.kind === 'company_event.set') {
+      const e = p as CompanyEventSetPayload;
+      events.set(e.id, {
+        id: e.id,
+        title: e.title,
+        day: e.day,
+        time: e.time,
+        projectId: e.projectId,
+        people: e.people,
+      });
+    } else if (m.kind === 'company_event.remove')
+      events.delete((p as CompanyEventRemovePayload).id);
+    else if (m.kind === 'company_dates.set') {
+      const d = p as CompanyDatesSetPayload;
+      if (d.birthDay === null && d.joinedOn === null) dates.delete(d.memberId);
+      else dates.set(d.memberId, { ...d, showBirthday: d.showBirthday });
+    }
+  }
+  const byDay = <T extends { id: string }>(a: T, b: T, ka: string, kb: string): number =>
+    ka.localeCompare(kb) || a.id.localeCompare(b.id);
+  return {
+    holidays: [...holidays.values()].sort((a, b) => byDay(a, b, a.startDay, b.startDay)),
+    leave: [...leave.values()].sort((a, b) => byDay(a, b, a.startDay, b.startDay)),
+    leaveTypes: [...leaveTypes.values()].sort(
+      (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id),
+    ),
+    events: [...events.values()].sort((a, b) => byDay(a, b, a.day, b.day)),
+    dates,
+  };
+}
+
+export interface MirrorWageSplit {
+  readonly projectId: string;
+  readonly amountMinor: bigint;
+}
+
+/** Wage payment id -> how its base is divided across sites (pulled rows plus queued wage runs). */
+export function materialiseWageSplits(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string },
+): Map<string, MirrorWageSplit[]> {
+  const out = new Map<string, MirrorWageSplit[]>();
+  for (const row of rowsFor(state, SyncTable.CompanyWageSplits, options.groupId) as unknown as {
+    entry_id: string;
+    project_id: string;
+    amount_minor: string;
+    deleted_at: string | null;
+  }[]) {
+    if (row.deleted_at) continue;
+    out.set(row.entry_id, [
+      ...(out.get(row.entry_id) ?? []),
+      { projectId: row.project_id, amountMinor: BigInt(row.amount_minor) },
+    ]);
+  }
+  for (const mutation of queue) {
+    if (
+      mutation.groupId !== options.groupId ||
+      mutation.rejection ||
+      mutation.kind !== 'company_wage.pay'
+    )
+      continue;
+    for (const line of (mutation.payload as unknown as CompanyWagePayPayload).lines) {
+      if (!line.splits?.length || out.has(line.paymentEntryId)) continue;
+      out.set(
+        line.paymentEntryId,
+        line.splits.map((x) => ({ projectId: x.projectId, amountMinor: BigInt(x.amountMinor) })),
+      );
+    }
+  }
+  return out;
+}
+
+// ───────────────────────────────────────────── company estimates & bills ──
+
+export interface MirrorDocItem {
+  readonly description: string;
+  readonly qtyMilli: bigint;
+  readonly rateMinor: bigint;
+  readonly amountMinor: bigint;
+}
+export interface MirrorCompanyDoc {
+  readonly id: string;
+  readonly groupId: string;
+  readonly docType: CompanyDocType;
+  /** Null until the server numbers it (created offline). */
+  readonly number: number | null;
+  readonly customerName: string;
+  readonly customerPhone: string | null;
+  readonly docDate: string;
+  readonly items: readonly MirrorDocItem[];
+  readonly discountMinor: bigint;
+  readonly totalMinor: bigint;
+  readonly currency: string;
+  readonly notes: string | null;
+  readonly status: CompanyDocStatus;
+  readonly payments: readonly DocPayment[];
+  readonly paidMinor: bigint;
+  readonly convertedTo: string | null;
+  readonly convertedFrom: string | null;
+  readonly createdBy: string;
+  /** From the server row; absent on a document that has not synced yet. */
+  readonly createdAt?: string | null;
+  readonly updatedAt?: string | null;
+  readonly updatedBy?: string | null;
+  readonly clientId?: string | null;
+  /** The client's inquiry this estimate or bill belongs to. */
+  readonly inquiryId?: string | null;
+  readonly deleted: boolean;
+  readonly pending: boolean;
+}
+
+const big = (v: unknown): bigint => BigInt(String(v ?? 0));
+
+function docFromRow(r: Record<string, unknown>): MirrorCompanyDoc {
+  const items = ((r.items as Record<string, unknown>[] | null) ?? []).map((i) => ({
+    description: String(i.description ?? ''),
+    qtyMilli: big(i.qtyMilli),
+    rateMinor: big(i.rateMinor),
+    amountMinor: big(i.amountMinor),
+  }));
+  return {
+    id: r.id as string,
+    groupId: r.group_id as string,
+    docType: r.doc_type as CompanyDocType,
+    number: (r.number as number | null) ?? null,
+    customerName: String(r.customer_name ?? ''),
+    customerPhone: (r.customer_phone as string | null) ?? null,
+    docDate: String(r.doc_date ?? '').slice(0, 10),
+    items,
+    discountMinor: big(r.discount_minor),
+    totalMinor: big(r.total_minor),
+    currency: String(r.currency ?? ''),
+    notes: (r.notes as string | null) ?? null,
+    status: r.status as CompanyDocStatus,
+    payments: ((r.payments as Record<string, unknown>[] | null) ?? []).map((p) => ({
+      id: String(p.id),
+      amountMinor: big(p.amountMinor),
+      paidOn: String(p.paidOn).slice(0, 10),
+    })),
+    paidMinor: big(r.paid_minor),
+    convertedTo: (r.converted_to as string | null) ?? null,
+    convertedFrom: (r.converted_from as string | null) ?? null,
+    createdBy: r.created_by as string,
+    createdAt: (r.created_at as string | null) ?? null,
+    updatedAt: (r.updated_at as string | null) ?? null,
+    updatedBy: (r.updated_by as string | null) ?? null,
+    clientId: (r.client_id as string | null) ?? null,
+    inquiryId: (r.inquiry_id as string | null) ?? null,
+    deleted: !!r.deleted_at,
+    pending: false,
+  };
+}
+
+/**
+ * The estimates and bills this phone may see (the server already filters: owners all, a manager their own),
+ * with the viewer's queued writes on top. Removed ones are dropped. Newest first.
+ */
+export function materialiseCompanyDocs(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string; readonly currency: string; readonly viewerMemberId: string },
+): MirrorCompanyDoc[] {
+  const byId = new Map<string, MirrorCompanyDoc>();
+  for (const row of rowsFor(state, SyncTable.CompanyDocuments, options.groupId)) {
+    const d = docFromRow(row as unknown as Record<string, unknown>);
+    byId.set(d.id, d);
+  }
+  const rebill = (d: MirrorCompanyDoc, over: Partial<MirrorCompanyDoc>): MirrorCompanyDoc => {
+    const m = { ...d, ...over, pending: true };
+    return m.docType === 'bill' ? { ...m, status: billStatus(m.totalMinor, m.paidMinor) } : m;
+  };
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== options.groupId || mutation.rejection) continue;
+    const k = mutation.kind as string;
+    if (k === 'company_doc.save') {
+      const p = mutation.payload as unknown as CompanyDocSavePayload;
+      const items = p.data.items.map((i) => ({
+        description: i.description.trim(),
+        qtyMilli: BigInt(i.qtyMilli),
+        rateMinor: BigInt(i.rateMinor),
+      }));
+      const t = computeDocTotals(items, BigInt(p.data.discountMinor));
+      const full = items.map((i, n) => ({ ...i, amountMinor: t.lines[n]! }));
+      const ex = byId.get(p.docId);
+      const fields = {
+        customerName: p.data.customerName.trim(),
+        customerPhone: p.data.customerPhone,
+        docDate: p.data.docDate,
+        items: full,
+        discountMinor: BigInt(p.data.discountMinor),
+        totalMinor: t.totalMinor,
+        notes: p.data.notes,
+        ...(p.data.clientId === undefined ? {} : { clientId: p.data.clientId }),
+        ...(p.data.inquiryId === undefined ? {} : { inquiryId: p.data.inquiryId }),
+      };
+      byId.set(
+        p.docId,
+        ex
+          ? rebill(ex, fields)
+          : rebill(
+              {
+                ...fields,
+                id: p.docId,
+                groupId: options.groupId,
+                docType: p.data.docType,
+                number: null,
+                currency: options.currency,
+                status: p.data.docType === 'estimate' ? 'draft' : 'unpaid',
+                payments: [],
+                paidMinor: 0n,
+                convertedTo: null,
+                convertedFrom: null,
+                createdBy: options.viewerMemberId,
+                clientId: p.data.clientId ?? null,
+                inquiryId: p.data.inquiryId ?? null,
+                deleted: false,
+                pending: true,
+              },
+              {},
+            ),
+      );
+    } else if (k === 'company_doc.status') {
+      const p = mutation.payload as unknown as CompanyDocStatusPayload;
+      const ex = byId.get(p.docId);
+      if (ex) byId.set(p.docId, { ...ex, status: p.status, pending: true });
+    } else if (k === 'company_doc.convert') {
+      const p = mutation.payload as unknown as CompanyDocConvertPayload;
+      const ex = byId.get(p.docId);
+      if (ex && !byId.has(p.billId)) {
+        byId.set(p.docId, {
+          ...ex,
+          convertedTo: p.billId,
+          status: ex.status === 'draft' || ex.status === 'sent' ? 'accepted' : ex.status,
+          pending: true,
+        });
+        byId.set(p.billId, {
+          ...ex,
+          id: p.billId,
+          docType: 'bill',
+          docDate: mutation.clientCreatedAt.slice(0, 10),
+          number: null,
+          status: 'unpaid',
+          payments: [],
+          paidMinor: 0n,
+          convertedTo: null,
+          convertedFrom: ex.id,
+          createdBy: options.viewerMemberId,
+          pending: true,
+        });
+      }
+    } else if (k === 'company_doc.payment') {
+      const p = mutation.payload as unknown as CompanyDocPaymentPayload;
+      const ex = byId.get(p.docId);
+      if (ex && !ex.payments.some((x) => x.id === p.paymentId)) {
+        const amountMinor = BigInt(p.amountMinor);
+        byId.set(
+          p.docId,
+          rebill(ex, {
+            payments: [...ex.payments, { id: p.paymentId, amountMinor, paidOn: p.paidOn }],
+            paidMinor: ex.paidMinor + amountMinor,
+          }),
+        );
+      }
+    } else if (k === 'company_doc.void') {
+      const p = mutation.payload as unknown as CompanyDocVoidPayload;
+      const ex = byId.get(p.docId);
+      if (ex) byId.set(p.docId, { ...ex, deleted: true, pending: true });
+    }
+  }
+  return [...byId.values()]
+    .filter((d) => !d.deleted)
+    .sort((a, b) => b.docDate.localeCompare(a.docDate) || (b.number ?? 1e9) - (a.number ?? 1e9));
+}
+
+/**
+ * A non-owner's phone after an employee moved to another manager (or the viewer lost a role): the server lists the
+ * members this caller may still read, so anyone not on it loses their cached entries,
+ * photos, sites and split wages here. Never empties a company (an empty list is ignored).
+ */
+export function purgeCompanyInvisible(
+  state: MirrorState,
+  visible: Readonly<Record<string, readonly string[]>>,
+  /** Per company: the birthday-row and event ids the caller can read now. RLS hides a row without a tombstone
+   *  (a birthday switched off, someone removed from an event), so anything not listed is dropped here. */
+  calendar: Readonly<
+    Record<
+      string,
+      {
+        dates: readonly string[];
+        events: readonly string[];
+        clients?: readonly string[];
+        tickets?: readonly string[];
+        /** Folder and file ids the caller can read now (visibility can narrow without a tombstone). */
+        files?: readonly string[];
+      }
+    >
+  > = {},
+): { state: MirrorState; removed: { table: SyncTable; id: string }[] } {
+  const tables = { ...state.tables };
+  const removed: { table: SyncTable; id: string }[] = [];
+  const drop = (table: SyncTable, gone: (row: Record<string, unknown>) => boolean): Set<string> => {
+    const kept: Record<string, MirrorRow> = {};
+    const dropped = new Set<string>();
+    for (const [id, row] of Object.entries(tables[table] ?? {})) {
+      if (gone(row as Record<string, unknown>)) dropped.add(id);
+      else kept[id] = row;
+    }
+    if (dropped.size > 0) {
+      tables[table] = kept;
+      for (const id of dropped) removed.push({ table, id });
+    }
+    return dropped;
+  };
+  for (const [groupId, ids] of Object.entries(calendar)) {
+    // A client reassigned to someone else stops being readable here without a tombstone: drop it and its notes (a follow-up assigned to this phone's user stays: it is theirs by its own RLS).
+    if (ids.clients) {
+      const clients = new Set(ids.clients);
+      const gone = drop(
+        SyncTable.CompanyClients,
+        (row) => row.group_id === groupId && !clients.has(row.id as string),
+      );
+      const orphan = (row: Record<string, unknown>): boolean =>
+        row.group_id === groupId && gone.has(row.client_id as string);
+      drop(SyncTable.CompanyClientNotes, orphan);
+      drop(SyncTable.CompanyInquiries, orphan);
+      drop(SyncTable.CompanyClientAssignees, orphan);
+    }
+    // Same for a ticket reassigned or whose employee changed manager: drop it and its timeline.
+    if (ids.tickets) {
+      const tickets = new Set(ids.tickets);
+      const gone = drop(
+        SyncTable.CompanyTickets,
+        (row) => row.group_id === groupId && !tickets.has(row.id as string),
+      );
+      drop(
+        SyncTable.CompanyTicketEvents,
+        (row) => row.group_id === groupId && gone.has(row.ticket_id as string),
+      );
+    }
+    if (ids.files) {
+      const files = new Set(ids.files);
+      for (const table of [SyncTable.CompanyFiles, SyncTable.CompanyFileFolders])
+        drop(table, (row) => row.group_id === groupId && !files.has(row.id as string));
+    }
+    const dates = new Set(ids.dates);
+    const events = new Set(ids.events);
+    drop(
+      SyncTable.CompanyMemberDates,
+      (row) => row.group_id === groupId && !dates.has(row.id as string),
+    );
+    drop(
+      SyncTable.CompanyEvents,
+      (row) => row.group_id === groupId && !events.has(row.id as string),
+    );
+  }
+  for (const [groupId, ids] of Object.entries(visible)) {
+    if (ids.length === 0) continue;
+    const ok = new Set(ids);
+    const mine = (row: Record<string, unknown>): boolean => row.group_id === groupId;
+    drop(SyncTable.GroupMembers, (row) => mine(row) && !ok.has(row.id as string));
+    drop(SyncTable.CompanyProjectMembers, (row) => mine(row) && !ok.has(row.member_id as string));
+    // A company-paid entry has no employee: it stays while its recorder (always readable by its reader) does.
+    const entries = drop(
+      SyncTable.CompanyEntries,
+      (row) =>
+        mine(row) &&
+        !ok.has((row.paid_by_company === true ? row.created_by : row.member_id) as string),
+    );
+    const orphan = (row: Record<string, unknown>): boolean =>
+      mine(row) && entries.has(row.entry_id as string);
+    drop(SyncTable.CompanyEntryAttachments, orphan);
+    drop(SyncTable.CompanyWageSplits, orphan);
+    // Documents are private to their creator (and owners): a phone that lost that visibility drops them.
+    drop(SyncTable.CompanyDocuments, (row) => mine(row) && !ok.has(row.created_by as string));
+    drop(SyncTable.CompanyAttendance, (row) => mine(row) && !ok.has(row.member_id as string));
+    const tasks = drop(
+      SyncTable.CompanyWorkTasks,
+      (row) => mine(row) && !ok.has(row.member_id as string),
+    );
+    // A task's photo previews are as private as the task: they go with it.
+    drop(
+      SyncTable.CompanyWorkTaskAttachments,
+      (row) => mine(row) && tasks.has(row.entry_id as string),
+    );
+    drop(SyncTable.CompanyLeave, (row) => mine(row) && !ok.has(row.member_id as string));
+    // A colleague's birthday stays only while they allow it to be shown.
+    drop(
+      SyncTable.CompanyMemberDates,
+      (row) => mine(row) && !ok.has(row.member_id as string) && row.show_birthday !== true,
+    );
+  }
+  return removed.length === 0 ? { state, removed } : { state: { ...state, tables }, removed };
 }

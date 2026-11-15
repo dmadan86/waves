@@ -435,7 +435,9 @@ export const CenterButton = memo(function CenterButton({ action }: { action: Pil
         elevation: 8,
       })}
     >
+      {/* The mic keeps its original wash and glow on every screen, calm ones included. */}
       <Gradient
+        vivid
         colors={theme.gradient.brand}
         radius={CENTER_SIZE / 2}
         style={{
@@ -492,7 +494,7 @@ const TabItem = memo(function TabItem({
       accessibilityState={{ selected: focused }}
       accessibilityLabel={item.accessibilityLabel ?? item.label}
       onPress={() => {
-        if (!focused) onSelect(item.key);
+        onSelect(item.key);
       }}
       onPressIn={() => press(0.9)}
       onPressOut={() => press(1)}
@@ -520,7 +522,7 @@ const TabItem = memo(function TabItem({
               alignItems: 'center',
               justifyContent: 'center',
               overflow: 'hidden',
-              backgroundColor: focused ? theme.color.brandSoft : 'transparent',
+              backgroundColor: 'transparent',
             }}
           >
             {item.icon(ink, focused)}

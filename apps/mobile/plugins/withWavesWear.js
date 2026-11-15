@@ -156,7 +156,8 @@ const manifest = `<?xml version="1.0" encoding="utf-8"?>
         <!-- Inbound relay from the phone (recent / settings / ack). -->
         <service
             android:name=".PhoneListenerService"
-            android:exported="true">
+            android:exported="true"
+            android:permission="com.google.android.gms.permission.BIND_LISTENER">
             <intent-filter>
                 <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
                 <data android:scheme="wear" android:host="*" android:pathPrefix="/waves" />

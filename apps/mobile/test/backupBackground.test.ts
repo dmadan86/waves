@@ -47,6 +47,15 @@ describe('background lifecycle', () => {
     await finishBackground('owner', 'complete');
     expect(h.events.size).toBe(0);
   });
+  it('carries on when an older native build rejects start with ComponentName', async () => {
+    h.start.mockRejectedValueOnce(new Error('Unknown type: class android.content.ComponentName'));
+    const dispose = await beginBackground('owner', () => undefined, true);
+    dispose();
+    h.start.mockRejectedValueOnce(new Error('start service failed'));
+    await expect(beginBackground('owner', () => undefined, true)).rejects.toThrow(
+      'start service failed',
+    );
+  });
   it('delivers cancel and timeout and removes native subscriptions', async () => {
     const abort = vi.fn();
     const dispose = await beginBackground('owner', abort, true);

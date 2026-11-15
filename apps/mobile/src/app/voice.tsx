@@ -1,3 +1,5 @@
+import { AdSlot } from '@/components/AdSlot';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { OwedCard } from '@/components/OwedCard';
 /**
  * Speak an expense — one or several, in any language, with an optional new group.
@@ -43,6 +45,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   buildVoiceSplit,
+  COMPANY_EXPENSE_CATEGORIES,
   computeShares,
   decimalToMinor,
   encodeTxn,
@@ -86,7 +89,7 @@ import {
   useGroupLabeller,
   useGroupLedger,
   useGroupPeopleSignatures,
-  useGroups,
+  useExpenseGroups,
   useOneToOneGroupIds,
   usePeopleBalances,
   useRecordSettlement,
@@ -94,6 +97,7 @@ import {
   useWriteExpense,
 } from '@/data/hooks';
 import { nudgeToSettle } from '@/data/api';
+import { useAddCompanyEntry } from '@/data/companyEntries';
 import { useUpsertPersonalRecord } from '@/data/personal';
 import { displayName, GroupType, isViewer, type GroupRow, type MemberRow } from '@/data/types';
 import { fill, isRtl, plural, useStrings } from '@/i18n';
@@ -150,7 +154,7 @@ import { currentQuestion, partyQuestion, type ReviewOpen } from '@/lib/voiceRevi
 import { LocationField } from '@/components/LocationField';
 import { useLabelledCategoryCatalog } from '@/components/Category';
 import {
-  captureLocation,
+  captureLocationIfGranted,
   locationAvailable,
   locationUnchanged,
   reverseGeocode,
@@ -172,7 +176,7 @@ import {
   type VoiceParseResult,
 } from '@/lib/voiceExpense';
 import { logVoiceAttempt } from '@/lib/voiceLog';
-import { learnedForGroup, voiceNameHints, withAliases } from '@/lib/voiceNames';
+import { learnedForGroup, voiceNameHints, withAliases, withGroupHints } from '@/lib/voiceNames';
 import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
 import { DraftRow } from '@/components/voice/DraftRow';
 import {
@@ -442,7 +446,7 @@ export default function VoiceScreen() {
   const dc = useDefaultCurrency();
   // The reader's categories (custom tags included), for the preview's label.
   const { visible: categoryCatalog } = useLabelledCategoryCatalog();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   /** A debt in a currency its group does not settle in, in a group that settles
    *  in its own currency: a bill with no rate yet, not something to pay. An
    *  unknown group answers true — hold back rather than guess. */
@@ -628,6 +632,20 @@ export default function VoiceScreen() {
   const agentReady = agentStatusReady && voiceConsent.ready;
   const consentSheetOpen =
     agentServerOn && voiceConsent.ready && voiceConsent.state === 'needed' && !consentDeclined;
+  // The mic waits for the consent answer (and the status that decides whether
+  // consent is asked), so the consent sheet is never up with the system mic
+  // dialog over it.
+  // The status wait is capped so an offline open still falls back to the
+  // on-device mic.
+  const [statusWaitOver, setStatusWaitOver] = useState(false);
+  useEffect(() => {
+    const id = setTimeout(() => setStatusWaitOver(true), 1500);
+    return () => clearTimeout(id);
+  }, []);
+  const consentHold =
+    consentSheetOpen ||
+    (agentServerOn && !voiceConsent.ready) ||
+    (!agentStatusReady && agentLastKnown !== false && !statusWaitOver);
   // Which engine heard the capture — its pill shows only while listening.
   const [, setEngine] = useState<VoiceEngineInfo | null>(null);
   // The agent's open question and what prompted it, while the next clip is its
@@ -801,7 +819,7 @@ export default function VoiceScreen() {
   // name — the launch group's, else everybody across the reader's groups —
   // by display name, first name and confirmed alias (capped in voiceNameHints).
   const hints = useMemo(() => {
-    if (launchMembers) return voiceNameHints(launchMembers);
+    if (launchMembers) return withGroupHints(groupNames, voiceNameHints(launchMembers));
     const aliased = groupRows.flatMap((group) =>
       withAliases(
         toCandidates(
@@ -812,7 +830,8 @@ export default function VoiceScreen() {
         group.id,
       ),
     );
-    return voiceNameHints(aliased);
+    return withGroupHints(groupNames, voiceNameHints(aliased));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- groupNames derives from groupRows
   }, [launchMembers, groupRows, everyMember, viewerId, nameMemory]);
   // Only the group destinations carry a group id to write into; unassigned and
   // "just me" have none, so the write hook reads the empty id and stays inert.
@@ -821,6 +840,8 @@ export default function VoiceScreen() {
       ? dest.groupId
       : '';
   const writeExpense = useWriteExpense(writeGroupId);
+  // A company is not a split ledger: a spoken expense there is the speaker's own company entry.
+  const addCompanyEntry = useAddCompanyEntry(writeGroupId);
   // Bound to the new people's minted group id (a `people` batch) or the target
   // of a spoken "add Ravi to …"; inert (empty id) in every other case.
   const addGhost = useAddGhostMember(
@@ -1706,13 +1727,12 @@ export default function VoiceScreen() {
   ]);
 
   // On opening the review, read the current location once and pin the batch to
-  // it — so the place is saved by default, no tap needed. It asks permission
-  // just-in-time; a refusal or an unavailable fix leaves the field on its manual
-  // "Add location" / "Pick on map" buttons rather than failing loudly. Never
+  // it — but only if permission was already granted. It never asks; a first-time
+  // user adds a place with the field's own "Add location" button. Never
   // overrides a pin the reader has since set or cleared: the latch runs it
   // exactly once per parsed batch.
   //
-  // `captureLocation` only ever waits on a fast coordinate fix (lib/location's
+  // `captureLocationIfGranted` only ever waits on a fast coordinate fix (lib/location's
   // `FAST_FIX_TIMEOUT_MS`) — never on reverse-geocoding, which can hang far
   // longer offline. The read is silent — no busy state of its own competes with
   // Save — and Save is never held up by the map/place-name lookup. The human-readable name, when there is
@@ -1724,13 +1744,16 @@ export default function VoiceScreen() {
     if (!locationAvailable()) return;
     const gen = locationGen.current;
     void (async () => {
-      const result = await captureLocation();
-      if (!result.ok) return;
+      // Never asks: a first-time user sees no location prompt mid-voice and uses
+      // the explicit "Add location" button instead; people who already said yes
+      // keep the automatic pin.
+      const fix = await captureLocationIfGranted();
+      if (!fix) return;
       // Drop a fix that lost its race: the reader has since set or cleared the
       // pin by hand, or a fresh utterance moved on to a new batch.
       if (locationGen.current !== gen || locationTouched.current) return;
-      const { lat, lng } = result.location;
-      setLocation(result.location);
+      const { lat, lng } = fix;
+      setLocation(fix);
       // Best-effort, and never awaited: a name that lands after the pin was
       // touched, the batch moved on, or the expense was already saved is
       // simply dropped — coordinates alone are a saveable location.
@@ -2071,6 +2094,47 @@ export default function VoiceScreen() {
             ? { kind: 'expense', line, state: single, write: null }
             : { kind: 'line', line: plural(locale, drafts.length, t.voice.savedCount) },
         );
+        return;
+      }
+
+      // A company: a spoken expense is the speaker's own entry (never a split, never somebody
+      // else's). The speaker's member id comes from their own membership, not from the route.
+      if (dest.kind === 'existing' && target.group.data?.type === GroupType.Company) {
+        const me = (target.members.data ?? []).find((member) => isViewer(member, viewerId));
+        if (!me) throw new Error('not a member of this company');
+        const companyCurrency = target.group.data.default_currency ?? dc;
+        // A spoken currency that is not the company's is asked about, never silently converted.
+        if (drafts.some((draft) => draft.currency && draft.currency !== companyCurrency)) {
+          setError(fill(t.company.voiceCurrency, { currency: companyCurrency }));
+          return;
+        }
+        for (const draft of drafts) {
+          const amount = toMinor(draft.amount, companyCurrency);
+          if (amount === null || amount <= 0n) continue;
+          const category = (COMPANY_EXPENSE_CATEGORIES as readonly string[]).includes(
+            draft.category ?? '',
+          )
+            ? draft.category
+            : 'other';
+          // The draft's stable id is the entry id, so a retry adds no duplicate.
+          await addCompanyEntry.mutateAsync({
+            entryId: draft.key,
+            memberId: me.id,
+            entryKind: 'expense',
+            data: {
+              amount: amount.toString(),
+              category,
+              calcMode: 'typed',
+              occurredOn: date,
+              note: draft.note.trim() || fallback,
+            },
+          });
+        }
+        confirmSaved();
+        landSaved({
+          kind: 'line',
+          line: fill(t.voiceScreen.savedTo, { where: current.label }),
+        });
         return;
       }
 
@@ -2664,7 +2728,8 @@ export default function VoiceScreen() {
                   key: candidate.id,
                   label: candidate.name ?? '',
                 }))
-              : []
+              : // Nothing like it was found: still one tap away, the groups used most recently.
+                groupRows.slice(0, 3).map((group) => ({ key: group.id, label: group.name ?? '' }))
           }
           onSelect={chooseGroup}
           action={{ label: t.voice.chooseGroup, onPress: () => setPickerOpen(true) }}
@@ -2779,6 +2844,14 @@ export default function VoiceScreen() {
     phase === 'saved' ||
     phase === 'answer' ||
     (phase === 'agent' && agentStage !== 'working');
+  // Free users only (the planner checks the plan): one inline banner while the mic is on
+  // offer, anchored to the bottom of the scroll so opening the mic never moves it.
+  const voiceAds = useAdPlan('voice_idle', {
+    surfaceState: {
+      stage: phase === 'listening' && !typedMode && !hold.holding ? 'listening' : 'thinking',
+      sheetOpen: pickerOpen || consentSheetOpen || !!adOffer.sheet,
+    },
+  });
   // A short phone trims the stage's gaps instead of scrolling it.
   const { height: windowHeight } = useWindowDimensions();
   const compactTop = windowHeight < 720;
@@ -3202,7 +3275,7 @@ export default function VoiceScreen() {
                   heard={noAmount ? heardText : ''}
                   onSuggestion={pickSuggestion}
                   canPick={canPickSuggestion}
-                  autoStart={!noAmount}
+                  autoStart={!noAmount && !consentHold}
                   endSignal={hold.ended}
                   onEndConsumed={() => pushToTalk.take()}
                   onListen={() => {
@@ -3215,6 +3288,26 @@ export default function VoiceScreen() {
                   }}
                 />
               )}
+              {/* The way out for anyone the mic keeps missing: always in sight, and after
+                a miss it carries what was heard, so nothing said is lost. */}
+              {!typedMode && !hold.holding ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.assistant.composerTypeInstead}
+                  hitSlop={8}
+                  style={{ alignSelf: 'center', minHeight: 44, justifyContent: 'center' }}
+                  onPress={() => {
+                    hapticSelect();
+                    captureActive.current = false;
+                    if (noAmount && heardText) setTypedDraft(heardText);
+                    setTypedMode(true);
+                  }}
+                >
+                  <Text tone="brand" style={{ fontWeight: '600' }}>
+                    {t.assistant.composerTypeInstead}
+                  </Text>
+                </Pressable>
+              ) : null}
               {/* Only while a finger is actually on the bar's mic. It says the one
                 thing a held button has to say and the tapped one does not: there
                 is a way out that is not "finish the sentence". The chevron points
@@ -3234,6 +3327,13 @@ export default function VoiceScreen() {
               ) : null}
             </View>
           )}
+          {/* At least 32 dp clear of the mic, its status and the type-instead link above; the
+              auto margin pins it to the foot so the wave and transcript growing never move it. */}
+          {voiceAds.plan.inlineBanner ? (
+            <View style={{ marginTop: 'auto', paddingTop: 32 }}>
+              <AdSlot handle={voiceAds} format="inline_banner" slot={0} />
+            </View>
+          ) : null}
         </ScrollView>
         <VoiceFooter spec={footerSpec} inset={insets.bottom} />
       </KeyboardAvoidingView>

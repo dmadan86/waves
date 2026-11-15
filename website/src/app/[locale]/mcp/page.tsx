@@ -197,7 +197,7 @@ export default async function McpPage({ params }: { params: Promise<{ locale: st
                 <Plug className="h-3.5 w-3.5" />
                 {m.eyebrow}
               </Kicker>
-              <h1 className="mt-2.5 text-balance text-[2rem] leading-[1.08] font-bold tracking-[-0.035em] text-ink sm:text-[2.6rem]">
+              <h1 className="display mt-2.5 text-balance text-[2rem] text-ink sm:text-[2.6rem]">
                 {m.titleStart} <span className="text-accent">{m.titleAccent}</span>
               </h1>
               <p className="mt-3 max-w-xl text-pretty text-[0.95rem] leading-[1.6] text-ink-2">

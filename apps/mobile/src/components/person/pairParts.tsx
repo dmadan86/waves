@@ -16,7 +16,7 @@ import { directionalIcon, iconSize, MoneyText, Row, Sheet, Text, useTheme } from
 import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import type { CurrencyCode } from '@waves/core';
 import { fill, plural, useStrings } from '@/i18n';
 import { useHeroScene } from '@/lib/heroScenePreference';

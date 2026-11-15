@@ -53,17 +53,33 @@ import {
 import { useCaptures } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
-import { hapticLight } from '@/lib/assistantHaptics';
-import { useAuth } from '@/lib/auth';
+import { useAuth, useViewerId } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { captureInboxActionState } from '@/lib/dashboardActions';
+import {
+  companyActiveKey,
+  companyBackRoute,
+  companyBarActiveKey,
+  companyBarRoute,
+  isCompanyBarRoot,
+  isCompanyMode,
+  isCompanyTabRoot,
+  reviewSlotKey,
+} from '@/lib/companyTab';
+import { useCompanySuspended } from '@/data/companyEntries';
+import { usePendingCount } from '@/lib/companyPending';
+import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { router, switchTab } from '@/lib/navigation';
+import { useFabOverride } from '@/lib/fabOverride';
+import { companyTabTarget, readLastSpace } from '@/lib/spaces';
+import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
 import {
   isPersonalMode,
+  isTabRoot,
   personalActiveKey,
   personalRouteForSelection,
-  resolveFab,
+  showFab,
   resolveTabBar,
   tabBarRouteForSelection,
 } from '@/lib/tabBar';
@@ -145,6 +161,7 @@ export function AppTabBar() {
   // The bar carries the mic, so it is where the mic's slow answers are fetched
   // ahead of the tap: the voice screen then opens straight onto a live mic.
   useVoiceWarmup();
+  useFollowSpace();
   // `useSegments` is typed as a union of fixed-length route tuples, so indexing
   // past the first element trips the tuple bounds check under the CI tsconfig.
   // We only ever read positions generically, so widen to a plain string array.
@@ -162,24 +179,30 @@ export function AppTabBar() {
   // On the Personal tab and its screens the bar swaps to the private-money
   // destinations (same look, same mic); leaving them swaps it back. Route-derived.
   const personal = isPersonalMode(segments);
+  // Company mode: an owner or manager inside their own company gets the company bar
+  // (Home · Team · Payments · Vendors · Clients · More) with an add button, no mic.
+  const companyIds = useViewerCompanyIds();
+  const viewerId = useViewerId();
+  const role = useViewerRole(groupId);
+  const company = isCompanyMode(segments, groupId, companyIds, role);
+  const alt = personal || company;
   const theme = useTheme();
   const reduced = useReducedMotion();
-  const p = useSharedValue(personal ? 1 : 0);
-  const mic = useSharedValue(personal ? 1 : 0);
-  const previousPersonal = useRef(personal);
+  const p = useSharedValue(alt ? 1 : 0);
+  const mic = useSharedValue(alt ? 1 : 0);
+  const previousPersonal = useRef(alt);
   useEffect(() => {
     // Mount directly into the route's mode; only a real switch earns a tick.
-    if (previousPersonal.current === personal) return;
-    previousPersonal.current = personal;
-    hapticLight();
-    p.value = withTiming(personal ? 1 : 0, {
+    if (previousPersonal.current === alt) return;
+    previousPersonal.current = alt;
+    p.value = withTiming(alt ? 1 : 0, {
       duration: reduced ? 120 : 280,
       easing: Easing.linear,
     });
     mic.value = reduced
-      ? withTiming(personal ? 1 : 0, { duration: 120 })
-      : withSpring(personal ? 1 : 0, { duration: 300, dampingRatio: 0.8 });
-  }, [personal, reduced, p, mic]);
+      ? withTiming(alt ? 1 : 0, { duration: 120 })
+      : withSpring(alt ? 1 : 0, { duration: 300, dampingRatio: 0.8 });
+  }, [alt, reduced, p, mic]);
   const sharedStyle = useAnimatedStyle(() => ({ opacity: 1 - p.value }));
   const personalStyle = useAnimatedStyle(() => ({ opacity: p.value }));
   const tintStyle = useAnimatedStyle(() => ({ opacity: p.value * 0.35 }));
@@ -191,7 +214,13 @@ export function AppTabBar() {
     opacity: p.value,
     transform: reduced ? [] : [{ scale: 0.6 + mic.value * 0.4 }],
   }));
-  const activeKey = personal ? personalActiveKey(segments) : sharedKey;
+  // Company users get a Company tab where Review was (Review moves to Settings).
+  // Derived from the local mirror, so it flips the moment they create/join/leave.
+  const companySlot = reviewSlotKey(companyIds) === 'company';
+  const sharedActive =
+    companyActiveKey(segments, groupId, companyIds) === 'company' ? 'company' : sharedKey;
+  const altActive = company ? companyBarActiveKey(segments) : personalActiveKey(segments);
+  const activeKey = alt ? altActive : sharedActive;
   // A screen can also ask the bar to stand down while it is *on* that screen —
   // Review does it while drafts are ticked, so its action bar has the bottom of
   // the phone to itself rather than stacking on top of the navigation with the
@@ -260,6 +289,41 @@ export function AppTabBar() {
     [t.personal.nav],
   );
 
+  const pendingCount = usePendingCount(company ? groupId : null);
+  // A suspended company is read-only and a vendor login records nothing: no add button.
+  const noAdd =
+    useCompanySuspended(company ? (groupId ?? '') : '') || (company && role === 'vendor');
+  const companyItems = useMemo<PillTabItem[]>(() => {
+    const item = (
+      key: string,
+      label: string,
+      on: keyof typeof Ionicons.glyphMap,
+      off: keyof typeof Ionicons.glyphMap,
+      badge?: number,
+    ): PillTabItem => ({
+      key,
+      label,
+      badge: badge || undefined,
+      icon: (color, focused) => (
+        <Ionicons name={focused ? on : off} size={iconSize.lg} color={color} />
+      ),
+    });
+    return [
+      item('home', t.home, 'home', 'home-outline', pendingCount),
+      item('team', t.company.barTeam, 'people-circle', 'people-circle-outline'),
+      item('payments', t.company.tabPayments, 'cash', 'cash-outline'),
+      item('vendors', t.companyVendors.title, 'storefront', 'storefront-outline'),
+      item('clients', t.companyClients.title, 'briefcase', 'briefcase-outline'),
+      item(
+        'more',
+        t.company.barMore,
+        'ellipsis-horizontal-circle',
+        'ellipsis-horizontal-circle-outline',
+      ),
+    ];
+  }, [pendingCount, t.company, t.companyClients.title, t.companyVendors.title, t.home]);
+  const altItems = company ? companyItems : personalItems;
+
   const sharedItems = useMemo<PillTabItem[]>(
     () => [
       {
@@ -276,26 +340,38 @@ export function AppTabBar() {
           <Ionicons name={focused ? 'people' : 'people-outline'} size={iconSize.lg} color={color} />
         ),
       },
-      {
-        key: 'captures',
-        label: t.review,
-        // The visible pill has room for one short word; a screen reader gets
-        // the count too, in the same sentence the inbox's own empty/non-empty
-        // states already speak (`captures.unassignedBody`) — one wording for
-        // "how many are waiting", not a second one invented for the tab.
-        accessibilityLabel:
-          waitingCount > 0
-            ? `${t.review} — ${plural(locale, waitingCount, t.captures.unassignedBody)}`
-            : t.review,
-        icon: (color, focused) => (
-          <Ionicons
-            name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
-            size={iconSize.lg}
-            color={color}
-          />
-        ),
-        badge: captureBadge,
-      },
+      companySlot
+        ? {
+            key: 'company',
+            label: t.company.tab,
+            icon: (color, focused) => (
+              <Ionicons
+                name={focused ? 'business' : 'business-outline'}
+                size={iconSize.lg}
+                color={color}
+              />
+            ),
+          }
+        : {
+            key: 'captures',
+            label: t.review,
+            // The visible pill has room for one short word; a screen reader gets
+            // the count too, in the same sentence the inbox's own empty/non-empty
+            // states already speak (`captures.unassignedBody`) — one wording for
+            // "how many are waiting", not a second one invented for the tab.
+            accessibilityLabel:
+              waitingCount > 0
+                ? `${t.review} — ${plural(locale, waitingCount, t.captures.unassignedBody)}`
+                : t.review,
+            icon: (color, focused) => (
+              <Ionicons
+                name={focused ? 'file-tray-full' : 'file-tray-full-outline'}
+                size={iconSize.lg}
+                color={color}
+              />
+            ),
+            badge: captureBadge,
+          },
       {
         key: 'me',
         label: t.personal.tab,
@@ -306,6 +382,8 @@ export function AppTabBar() {
     ],
     [
       captureBadge,
+      companySlot,
+      t.company.tab,
       locale,
       t.captures.unassignedBody,
       t.friends,
@@ -317,22 +395,35 @@ export function AppTabBar() {
   );
 
   // All bar destinations are tabs now. `navigate` switches to the existing tab
-  // route instead of stacking a second copy; tapping the active tab is a no-op
-  // so repeated taps do not schedule redundant router work.
+  // route instead of stacking a second copy; only a tap at its root is a no-op.
   const go = useCallback(
     (key: string): void => {
+      if (company && groupId) {
+        if (key === activeKey && isCompanyBarRoot(segments)) return;
+        // Siblings replace each other, like Personal's, so tabs never stack.
+        router.replace(companyBarRoute(groupId, key) as never);
+        return;
+      }
       if (personal) {
-        const route = personalRouteForSelection(activeKey, key);
+        const route = personalRouteForSelection(activeKey, key, isTabRoot(segments, key));
         if (!route) return;
         // Siblings inside the personal section replace each other rather than stack.
         if (route.startsWith('/personal')) router.replace(route);
         else switchTab(route);
         return;
       }
-      const route = tabBarRouteForSelection(activeKey, key);
+      if (key === 'company') {
+        void readLastSpace(viewerId, true).then((last) => {
+          const target = companyTabTarget(companyIds, last);
+          if (target && !(activeKey === key && isCompanyTabRoot(segments, groupId, companyIds)))
+            switchTab(target as never);
+        });
+        return;
+      }
+      const route = tabBarRouteForSelection(activeKey, key, isTabRoot(segments, key));
       if (route) switchTab(route);
     },
-    [activeKey, personal],
+    [activeKey, company, companyIds, groupId, personal, segments, viewerId],
   );
 
   // Nested Personal screens (entry, source, budgets, loans) pop their own stack.
@@ -352,6 +443,19 @@ export function AppTabBar() {
     });
     return () => listener.remove();
   }, [nestedPersonal, personal, activeKey]);
+
+  // Company bar: Back on a sub-tab goes to Overview, on Overview to Home.
+  const companyBack = company && groupId ? companyBackRoute(segments, groupId) : null;
+  useEffect(() => {
+    if (companyBack === null) return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      // dismissTo pops to Home, so the Overview slides out to the right like a Back.
+      if (companyBack === '/') router.dismissTo('/');
+      else router.replace(companyBack as never);
+      return true;
+    });
+    return () => listener.remove();
+  }, [companyBack]);
 
   // A finger is down on the mic. Held in state for one reason beyond the render:
   // the bar hides itself on the `voice` route, and unmounting the button the
@@ -429,12 +533,26 @@ export function AppTabBar() {
     ],
   );
 
+  // Company mode's round add button, in the place Personal moves the mic to.
+  const fabOverride = useFabOverride();
+  const add = useMemo<PillTabAction>(
+    () => ({
+      accessibilityLabel: fabOverride?.label ?? t.company.addEntry,
+      onPress: () => {
+        if (fabOverride) fabOverride.run();
+        else if (groupId) router.push(`/group/${groupId}/company-entry`);
+      },
+      icon: (color: string) => <Ionicons name="add" size={iconSize.xl} color={color} />,
+    }),
+    [groupId, t.company.addEntry, fabOverride],
+  );
+
   // Hidden, unless a hold is running — see `holding` above. A hold wins over a
   // screen's request too: the mic is the thing under the finger at that moment,
   // and taking it away mid-sentence would cancel what somebody is saying.
   const showBar = !((hidden || suppressed) && !holding);
-  // Personal mode swaps the raised mic for a floating one, so lists leave room.
-  const fab = personal && showBar && resolveFab(segments);
+  // Personal and company modes swap the raised mic for a floating button, so lists leave room.
+  const fab = alt && showBar && showFab(segments, company);
   useEffect(() => {
     setTabBarFab(fab);
     return () => setTabBarFab(false);
@@ -450,9 +568,9 @@ export function AppTabBar() {
       {[false, true].map((mode) => (
         <Animated.View
           key={String(mode)}
-          pointerEvents={personal === mode ? 'box-none' : 'none'}
-          accessibilityElementsHidden={personal !== mode}
-          importantForAccessibility={personal === mode ? 'auto' : 'no-hide-descendants'}
+          pointerEvents={alt === mode ? 'box-none' : 'none'}
+          accessibilityElementsHidden={alt !== mode}
+          importantForAccessibility={alt === mode ? 'auto' : 'no-hide-descendants'}
           style={[
             {
               position: 'absolute',
@@ -465,8 +583,8 @@ export function AppTabBar() {
           ]}
         >
           <PillTabBar
-            items={mode ? personalItems : sharedItems}
-            activeKey={mode ? personalActiveKey(segments) : sharedKey}
+            items={mode ? altItems : sharedItems}
+            activeKey={mode ? altActive : sharedActive}
             onSelect={go}
             animated={!reduced}
             reserveCenterSpace
@@ -478,8 +596,7 @@ export function AppTabBar() {
                 personal={mode}
                 reduced={reduced}
                 focused={
-                  (mode ? personalItems : sharedItems)[index]?.key ===
-                  (mode ? personalActiveKey(segments) : sharedKey)
+                  (mode ? altItems : sharedItems)[index]?.key === (mode ? altActive : sharedActive)
                 }
               >
                 {content}
@@ -503,13 +620,13 @@ export function AppTabBar() {
           />
         </Animated.View>
       ))}
-      {resolveFab(segments) ? (
+      {showFab(segments, company) ? (
         // Same button and the same hold-to-talk as the raised mic, floated
         // bottom-right (bottom-left in RTL) above the Personal bar.
         <Animated.View
-          pointerEvents={personal ? 'auto' : 'none'}
-          accessibilityElementsHidden={!personal}
-          importantForAccessibility={personal ? 'auto' : 'no-hide-descendants'}
+          pointerEvents={alt ? 'auto' : 'none'}
+          accessibilityElementsHidden={!alt}
+          importantForAccessibility={alt ? 'auto' : 'no-hide-descendants'}
           style={[
             {
               position: 'absolute',
@@ -520,7 +637,7 @@ export function AppTabBar() {
             fabStyle,
           ]}
         >
-          <CenterButton action={voice} />
+          {company && noAdd ? null : <CenterButton action={company ? add : voice} />}
         </Animated.View>
       ) : null}
     </>

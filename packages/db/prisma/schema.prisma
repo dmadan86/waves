@@ -30,6 +30,7 @@ enum GroupType {
   event
   friends
   other
+  company
 
   @@schema("public")
 }
@@ -37,6 +38,8 @@ enum GroupType {
 enum MemberRole {
   admin
   member
+  manager
+  vendor
 
   @@schema("public")
 }
@@ -128,6 +131,11 @@ enum DeliveryStatus {
 /// row is created by a trigger on auth.users (see migration SQL).
 model Profile {
   id                  String   @id @db.Uuid
+  twoStepSecrets      TwoStepSecret[]
+  twoStepLockout      TwoStepLockout?
+  twoStepSessions     TwoStepSession[]
+  twoStepDeviceRequests TwoStepDeviceRequest[] @relation("TwoStepDeviceRequester")
+  twoStepDecisions    TwoStepDeviceRequest[] @relation("TwoStepDeviceDecider")
   displayName         String   @map("display_name")
   avatarUrl           String?  @map("avatar_url")
   /// Optional UPI ID used to build settlement intents (ADR-007). Superseded by
@@ -148,6 +156,8 @@ model Profile {
   defaultCurrency     String   @default("INR") @map("default_currency") @db.Char(3)
   locale              String   @default("en")
   notificationPrefs   Json     @default("{}") @map("notification_prefs")
+  /// Per-person UI preferences synced across devices, e.g. `overviewLayouts` (company id -> card order/hidden).
+  uiPrefs             Json     @default("{}") @map("ui_prefs")
   /// Can somebody who types this account's exact phone number find it
   /// (`waves_find_person`)? Search only — it does not affect being recognised
   /// by a person who is adding you to their group.
@@ -191,6 +201,7 @@ model Profile {
   groupPins                 GroupPin[]
   groupMutes                GroupMute[]
   agentWrites               AgentWrite[]
+  companyAgentLinks         CompanyAgentLink[]
   pushTokens                PushToken[]
   notifications             Notification[]
   emailEvents               EmailEvent[]
@@ -207,12 +218,14 @@ model Profile {
   appEvents                 AppEvent[]
   purchasedPasses           GroupPass[]
   syncMutations             SyncMutation[]
+  syncRefusals              SyncRefusal[]
   memberClaims              MemberClaim[]
   linkRequestsForMe         MemberLinkRequest[]        @relation("LinkRequestTarget")
   linkRequestsMade          MemberLinkRequest[]        @relation("LinkRequestRequester")
   deviceSessions            DeviceSession[]
   ghostMerges               GhostMerge[]
   storageObjects            StorageObject[]
+  ownedCompanyPlans         CompanyPlan[]
   voiceSttUsage             VoiceSttUsage[]
   voiceAgentUsage           VoiceAgentUsage[]
   voiceAgentFollowupTurns   VoiceAgentFollowupTurns[]
@@ -231,6 +244,7 @@ model Profile {
   apiApps                   ApiApp[]
   apiTokens                 ApiToken[]
   apiCodes                  ApiAuthorizationCode[]
+  companySlots              CompanySlot[]
 
   @@map("profiles")
   @@schema("public")
@@ -259,6 +273,35 @@ model Group {
   /// as a QR. Written only by waves_ensure/reset_group_join_token; a member-only
   /// bearer credential (the group row is RLS-scoped).
   joinToken              String?   @map("join_token")
+  companyDefaultDailyRateMinor BigInt? @map("company_default_daily_rate_minor")
+  companyTags Json @default("[]") @map("company_tags")
+  companyDepartments Json @default("[]") @map("company_departments")
+  companyIndustry String? @map("company_industry")
+  companyPolicies Json @default("{\"version\":1,\"rules\":[]}") @map("company_policies")
+  companyPolicyRevision Int @default(0) @map("company_policy_revision")
+  suspendedAt DateTime? @map("suspended_at") @db.Timestamptz(6)
+  slotLapsedAt DateTime? @map("slot_lapsed_at") @db.Timestamptz(6)
+  companyAttendance CompanyAttendance[]
+  companyWorkTasks CompanyWorkTask[]
+  companyHolidays CompanyHoliday[]
+  companyLeave CompanyLeave[]
+  companyLeaveTypes CompanyLeaveType[]
+  companyEvents CompanyEvent[]
+  companyMemberDates CompanyMemberDates[]
+  companyPaidHolidays Boolean @default(true) @map("company_paid_holidays")
+  companyPaidLeave Boolean @default(false) @map("company_paid_leave")
+  companyDefaultMileageRateMinor BigInt? @map("company_default_mileage_rate_minor")
+  companyApprovalsEnabled Boolean @default(false) @map("company_approvals_enabled")
+  companyAgentsEnabled Boolean @default(false) @map("company_agents_enabled")
+  companyAgentApproval Boolean @default(true) @map("company_agent_approval")
+  /// Company two-step login: every session must verify before it reads or writes this company.
+  requireTwoStep Boolean @default(false) @map("require_two_step")
+  companyAgentLinks CompanyAgentLink[]
+  companySecondApproval Boolean @default(false) @map("company_second_approval")
+  companySecondApprovalThresholdMinor BigInt? @map("company_second_approval_threshold_minor")
+  companyPlan CompanyPlan?
+  companyImageKeys CompanyImageKey[]
+  companyStorageObjects StorageObject[] @relation("CompanyStorage")
   type                   GroupType @default(other)
   /// ISO-3166 alpha-2 — where this group settles, which is not always where its
   /// members live. A Goa trip run from Dubai settles in rupees over UPI, and
@@ -365,6 +408,7 @@ model Group {
   settlements        Settlement[]
   activity           ActivityLog[]
   importBatches      ImportBatch[]
+  resplitBatches     ResplitBatch[]
   reminders          Reminder[]
   balances           GroupBalance[]
   pairwise           PairwiseBalance[]
@@ -373,6 +417,10 @@ model Group {
   passes             GroupPass[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
+  companyEntries     CompanyEntry[]
+  companyProjects CompanyProject[]
+  companyWageRuns CompanyWageRun[]
+  companyDocuments CompanyDocument[]
   tripPhotos         TripPhoto[]
   expenseComments    ExpenseComment[]
   settlementProofs   SettlementProof[]
@@ -392,6 +440,14 @@ model Group {
   /// The nudge job only ever looks at groups that have said when they are
   /// happening, which is a small minority of them.
   @@index([startDate, endDate], map: "groups_reminder_window_idx")
+  vendors CompanyVendor[]
+  companyClients CompanyClient[]
+  companyFileFolders CompanyFileFolder[]
+  companyFiles CompanyFile[]
+  companyInquiries CompanyInquiry[]
+  companyTickets CompanyTicket[]
+  companyDetails CompanyDetails?
+  companyDetailsSecure CompanyDetailsSecure?
   @@map("groups")
   @@schema("public")
 }
@@ -407,6 +463,8 @@ model GroupMember {
   profileId          String?    @map("profile_id") @db.Uuid
   ghostName          String?    @map("ghost_name")
   role               MemberRole @default(member)
+  /// Copy of groups.require_two_step (kept by trigger) so membership checks skip the gate cheaply.
+  companyTwoStep     Boolean    @default(false) @map("company_two_step")
   /// How they got here: 'creator' | 'invite_link' | 'ghost' | 'import'.
   joinedVia          String?    @map("joined_via")
   /// Where this person's invite should go. Lowercased. A hint for one invited
@@ -422,6 +480,13 @@ model GroupMember {
   /// is the same person.
   paymentRail        String?    @map("payment_rail")
   paymentHandle      String?    @map("payment_handle")
+  mileageRateMinor BigInt? @map("mileage_rate_minor")
+  dailyRateMinor     BigInt?    @map("daily_rate_minor")
+  employeeId         String?    @map("employee_id")
+  departmentId       String?    @map("department_id") @db.Uuid
+  employmentType     String?    @map("employment_type")
+  employmentEndedOn  DateTime?  @map("employment_ended_on") @db.Date
+  employmentNote     String?    @map("employment_note")
   /// The import that minted this ghost (`import_batches`); null for everyone else.
   importBatchId      String?    @map("import_batch_id") @db.Uuid
   leftAt             DateTime?  @map("left_at") @db.Timestamptz(6)
@@ -453,6 +518,27 @@ model GroupMember {
   itemClaims         ReceiptItemClaim[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
+  managerId String? @map("manager_id") @db.Uuid
+  companyAttendance CompanyAttendance[] @relation("CompanyAttendanceMember")
+  markedAttendance CompanyAttendance[] @relation("CompanyAttendanceMarker")
+  companyWorkTasks CompanyWorkTask[] @relation("CompanyWorkTaskMember")
+  createdWorkTasks CompanyWorkTask[] @relation("CompanyWorkTaskCreator")
+  createdHolidays CompanyHoliday[] @relation("CompanyHolidayCreator")
+  leaveRequests CompanyLeave[] @relation("CompanyLeaveMember")
+  decidedLeave CompanyLeave[] @relation("CompanyLeaveDecider")
+  createdLeave CompanyLeave[] @relation("CompanyLeaveCreator")
+  createdEvents CompanyEvent[] @relation("CompanyEventCreator")
+  memberDates CompanyMemberDates[] @relation("CompanyMemberDatesMember")
+  manager GroupMember? @relation("CompanyManager", fields: [managerId, groupId], references: [id, groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_member_manager_fk")
+  team GroupMember[] @relation("CompanyManager")
+  managedInvites Invite[] @relation("CompanyInviteManager")
+  fundedCompanyEntries CompanyEntry[] @relation("CompanyFundingManager")
+  companyProjects CompanyProjectMember[]
+  createdWageRuns CompanyWageRun[]
+  createdDocuments CompanyDocument[]
+  companyEntries     CompanyEntry[] @relation("CompanyEntryMember")
+  reviewedCompanyEntries CompanyEntry[] @relation("CompanyReviewer")
+  companyEntryAttachments CompanyEntryAttachment[]
   tripPhotos         TripPhoto[]
   settlementProofs   SettlementProof[]
   expenseAttachments ExpenseAttachment[]
@@ -477,6 +563,8 @@ model GroupMember {
   ghostMerges        GhostMerge[]
   importsRun         ImportBatch[]           @relation("BatchActor")
   importsUndone      ImportBatch[]           @relation("BatchUndoneBy")
+  resplitBatches     ResplitBatch[]           @relation("ResplitMember")
+  resplitsRun        ResplitBatch[]           @relation("ResplitActor")
 
   @@unique([groupId, profileId])
   @@index([groupId])
@@ -485,6 +573,27 @@ model GroupMember {
   @@index([importBatchId])
   @@index([profileId])
   @@index([removedBy])
+  @@index([groupId, managerId], map: "company_members_manager_idx")
+  @@unique([id, groupId], map: "company_members_id_group_unique")
+  vendorsAdded CompanyVendor[] @relation("CompanyVendorAddedBy")
+  vendorOrdersCreated CompanyVendorOrder[] @relation("CompanyVendorOrderCreator")
+  vendorLogin CompanyVendor[] @relation("CompanyVendorLogin")
+  clientsOwned CompanyClient[] @relation("CompanyClientOwner")
+  fileFoldersCreated CompanyFileFolder[]
+  filesCreated CompanyFile[]
+  clientsCreated CompanyClient[] @relation("CompanyClientCreator")
+  clientNotes CompanyClientNote[]
+  inquiriesCreated CompanyInquiry[] @relation("CompanyInquiryCreator")
+  inquiriesUpdated CompanyInquiry[] @relation("CompanyInquiryUpdater")
+  clientAssignments CompanyClientAssignee[]
+  ticketsAssigned CompanyTicket[] @relation("CompanyTicketAssignee")
+  ticketsCreated CompanyTicket[] @relation("CompanyTicketCreator")
+  ticketsUpdated CompanyTicket[] @relation("CompanyTicketUpdater")
+  ticketEvents CompanyTicketEvent[]
+  vendorLinesCreated CompanyVendorEntry[] @relation("CompanyVendorLineCreator")
+  vendorLinesFunded CompanyVendorEntry[] @relation("CompanyVendorLineFunder")
+  vendorPhotos CompanyVendorEntryAttachment[]
+  taskPhotos CompanyWorkTaskAttachment[]
   @@map("group_members")
   @@schema("public")
 }
@@ -585,6 +694,10 @@ model MemberLinkRequest {
 /// Signed, revocable, expiring invite tokens (ADR-006). Only the hash is
 /// stored; the token itself is verified inside an edge function.
 model Invite {
+  companyManagerId String? @map("company_manager_id") @db.Uuid
+  companyVendorId String? @map("company_vendor_id") @db.Uuid
+  companyVendor CompanyVendor? @relation(fields: [companyVendorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  companyManager GroupMember? @relation("CompanyInviteManager", fields: [companyManagerId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_invite_manager_fk")
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   groupId   String    @map("group_id") @db.Uuid
   tokenHash String    @unique @map("token_hash")
@@ -753,24 +866,28 @@ model ExpenseVersion {
   /// The import this version came in with (`import_batches`), set on version 1
   /// of an imported expense only; edits carry none. What Undo import acts on.
   importBatchId    String?       @map("import_batch_id") @db.Uuid
+  resplitBatchId   String?       @map("resplit_batch_id") @db.Uuid
   /// Idempotency key from the offline mutation queue (ADR-005).
   clientMutationId String?       @unique @map("client_mutation_id") @db.Uuid
   source           ExpenseSource @default(manual)
   createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  expense     Expense        @relation("ExpenseVersions", fields: [expenseId], references: [id], onDelete: Cascade)
-  currentOf   Expense?       @relation("CurrentVersion")
-  author      GroupMember?   @relation("VersionAuthor", fields: [authorMemberId], references: [id], onDelete: SetNull)
-  importBatch ImportBatch?   @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
-  receipt     Receipt?       @relation(fields: [receiptId], references: [id], onDelete: SetNull)
-  payers      ExpensePayer[]
-  shares      ExpenseShare[]
+  expense      Expense          @relation("ExpenseVersions", fields: [expenseId], references: [id], onDelete: Cascade)
+  currentOf    Expense?         @relation("CurrentVersion")
+  author       GroupMember?     @relation("VersionAuthor", fields: [authorMemberId], references: [id], onDelete: SetNull)
+  importBatch  ImportBatch?     @relation(fields: [importBatchId], references: [id], onDelete: SetNull)
+  resplitBatch ResplitBatch?    @relation(fields: [resplitBatchId], references: [id], onDelete: SetNull)
+  receipt      Receipt?         @relation(fields: [receiptId], references: [id], onDelete: SetNull)
+  payers       ExpensePayer[]
+  shares       ExpenseShare[]
 
   @@unique([expenseId, versionNo])
   @@index([expenseId])
   @@index([authorMemberId])
   @@index([importBatchId])
   @@index([receiptId])
+  // The partial expense_versions_resplit_batch_id_idx index (WHERE
+  // resplit_batch_id IS NOT NULL) lives in the migration SQL.
   @@map("expense_versions")
   @@schema("public")
   @@index([potId])
@@ -977,6 +1094,26 @@ model ImportBatch {
   @@index([actorMemberId])
   @@index([undoneBy])
   @@map("import_batches")
+  @@schema("public")
+}
+
+/// A departed member's re-split batch, written by RPCs and read by group members.
+model ResplitBatch {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId          String    @map("group_id") @db.Uuid
+  memberId         String    @map("member_id") @db.Uuid
+  actorMemberId    String?   @map("actor_member_id") @db.Uuid
+  clientMutationId String    @unique @map("client_mutation_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  undoneAt         DateTime? @map("undone_at") @db.Timestamptz(6)
+
+  group    Group            @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member   GroupMember      @relation("ResplitMember", fields: [memberId], references: [id], onDelete: NoAction)
+  actor    GroupMember?     @relation("ResplitActor", fields: [actorMemberId], references: [id], onDelete: SetNull)
+  versions ExpenseVersion[]
+
+  @@index([groupId, createdAt])
+  @@map("resplit_batches")
   @@schema("public")
 }
 
@@ -1354,6 +1491,26 @@ model GroupPin {
 /// broadcast it to every member), no foreign key to `groups`, a row id derived
 /// from (owner, group), soft deletes, and the one-live-mute rule in a partial
 /// unique index (`group_mutes_owner_group_idx`) Prisma cannot express.
+/// Why the server refused a queued change (code and kind only, never content).
+/// Written by the `sync` edge function; no policies, so only the service role
+/// reads it.
+model SyncRefusal {
+  id        BigInt   @id @default(autoincrement())
+  profileId String   @map("profile_id") @db.Uuid
+  groupId   String?  @map("group_id") @db.Uuid
+  kind      String
+  code      String
+  sqlstate  String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt(sort: Desc)], map: "sync_refusals_created_idx")
+  @@index([profileId, createdAt(sort: Desc)], map: "sync_refusals_profile_idx")
+  @@map("sync_refusals")
+  @@schema("public")
+}
+
 model GroupMute {
   id          String    @id @db.Uuid
   ownerUserId String    @map("owner_user_id") @db.Uuid
@@ -1584,6 +1741,9 @@ model Referral {
   qualifiedAt        DateTime? @map("qualified_at") @db.Timestamptz(6)
   referrerDays       Int       @default(0) @map("referrer_days")
   refereeDays        Int       @default(0) @map("referee_days")
+  /// Credits paid to each side (ledger refs `referral:<id>:referrer|referee`).
+  referrerCredits    Int       @default(0) @map("referrer_credits")
+  refereeCredits     Int       @default(0) @map("referee_credits")
   /// Salted identity hashes of the friend, stamped when evaluated.
   identityKeys       String[]  @default([]) @map("identity_keys")
   /// The referrer's identity hashes, stamped at the same time, so the lifetime
@@ -1653,6 +1813,7 @@ model AdRewardSettings {
   scansPerAd               Int     @default(2) @map("scans_per_ad")
   dailyCap                 Int     @default(3) @map("daily_cap")
   minAccountAgeDays        Int     @default(7) @map("min_account_age_days")
+  nativeDailyCap           Int?    @map("native_daily_cap")
   bannerMinAccountAgeDays  Int     @default(15) @map("banner_min_account_age_days")
   gapMin                   Int     @default(3) @map("gap_min")
   gapMax                   Int     @default(5) @map("gap_max")
@@ -1675,6 +1836,7 @@ model AdRewardSettings {
   voluntaryDailyCap        Int     @default(3) @map("voluntary_daily_cap")
   voluntaryWeeklyCap       Int     @default(10) @map("voluntary_weekly_cap")
   interstitialVideoEnabled Boolean @default(false) @map("interstitial_video_enabled")
+  placements               Json    @default("{}")
 
   @@map("ad_reward_settings")
   @@schema("public")
@@ -2022,6 +2184,7 @@ model DeviceSession {
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   lastSeenAt DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
   revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  eraseRequested Boolean @default(false) @map("erase_requested")
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
@@ -2390,6 +2553,7 @@ model AgentWrite {
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([profileId, createdAt(sort: Desc)], map: "agent_writes_profile_created_idx")
+  @@index([groupId, createdAt(sort: Desc)], map: "agent_writes_group_created_idx")
   @@map("agent_writes")
   @@schema("public")
 }
@@ -2784,7 +2948,9 @@ model VoiceAttempt {
 model StorageObject {
   logicalBucket  String   @map("logical_bucket")
   path           String
-  ownerProfileId String   @map("owner_profile_id") @db.Uuid
+  ownerProfileId String?  @map("owner_profile_id") @db.Uuid
+  companyGroupId String? @map("company_group_id") @db.Uuid
+  companyGroup Group? @relation("CompanyStorage", fields: [companyGroupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   groupId        String?  @map("group_id") @db.Uuid
   bytes          BigInt
   contentType    String   @default("image/webp") @map("content_type")
@@ -2793,12 +2959,13 @@ model StorageObject {
   createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  owner Profile @relation(fields: [ownerProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  owner Profile? @relation(fields: [ownerProfileId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   group Group?  @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@id([logicalBucket, path])
   @@index([ownerProfileId, counted], map: "storage_objects_owner_counted_idx")
   @@index([groupId])
+  @@index([companyGroupId], map: "storage_objects_company_idx")
   @@map("storage_objects")
   @@schema("public")
 }
@@ -2885,6 +3052,7 @@ model ApiToken {
   revokedAt   DateTime? @map("revoked_at") @db.Timestamptz(6)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  twoStepVerifiedAt DateTime? @map("two_step_verified_at") @db.Timestamptz(6)
   profile  Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   app      ApiApp?    @relation(fields: [appId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   parent   ApiToken?  @relation("ApiTokenLineage", fields: [parentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
@@ -2914,6 +3082,7 @@ model ApiAuthorizationCode {
   consumedAt    DateTime? @map("consumed_at") @db.Timestamptz(6)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
 
+  twoStepVerifiedAt DateTime? @map("two_step_verified_at") @db.Timestamptz(6)
   app     ApiApp  @relation(fields: [appId], references: [id], onDelete: Cascade, onUpdate: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
 
@@ -3046,5 +3215,952 @@ model Pot {
 
   @@index([groupId])
   @@map("pots")
+model CompanyEntry {
+  projectId String? @map("project_id") @db.Uuid
+  fundingManagerId String? @map("funding_manager_id") @db.Uuid
+  wageRunId String? @map("wage_run_id") @db.Uuid
+  grossMinor BigInt? @map("gross_minor")
+  claimsMinor BigInt? @map("claims_minor")
+  recoveryMinor BigInt? @map("recovery_minor")
+  periodStart DateTime? @map("period_start") @db.Date
+  periodEnd DateTime? @map("period_end") @db.Date
+  requestHash String? @map("request_hash")
+  project CompanyProject? @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_entry_project_fk")
+  fundingManager GroupMember? @relation("CompanyFundingManager", fields: [fundingManagerId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_entry_funding_fk")
+  wageRun CompanyWageRun? @relation(fields: [wageRunId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_entry_run_fk")
+  id           String       @id @db.Uuid
+  groupId      String       @map("group_id") @db.Uuid
+  memberId     String?      @map("member_id") @db.Uuid
+  paidByCompany Boolean     @default(false) @map("paid_by_company")
+  entryKind    String       @map("entry_kind")
+  category     String?
+  amount       BigInt
+  currency     String       @db.Char(3)
+  calcMode     String       @default("typed") @map("calc_mode")
+  days         Decimal?     @db.Decimal(8, 2)
+  rateMinor    BigInt?      @map("rate_minor")
+  vendor String?
+  gstin String? @db.VarChar(15)
+  invoiceNo String? @map("invoice_no")
+  gstRateBps Int? @map("gst_rate_bps")
+  gstAmountMinor BigInt? @map("gst_amount_minor")
+  distanceKm Decimal? @map("distance_km") @db.Decimal(8,2)
+  fromText String? @map("from_text")
+  toText String? @map("to_text")
+  reimbursementId String? @map("reimbursement_id") @db.Uuid
+  reimbursementDetails Json? @map("reimbursement_details")
+  reimbursement CompanyEntry? @relation("CompanyReimbursement", fields: [reimbursementId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  coveredEntries CompanyEntry[] @relation("CompanyReimbursement")
+  occurredOn   DateTime     @map("occurred_on") @db.Date
+  direction    String?
+  status       String       @default("approved")
+  reviewNote   String? @map("review_note")
+  reviewedBy   String? @map("reviewed_by") @db.Uuid
+  reviewedAt   DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewer GroupMember? @relation("CompanyReviewer", fields: [reviewedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  attachments CompanyEntryAttachment[]
+  wageSplits CompanyWageSplit[]
+  note         String?
+  voidReason   String?      @map("void_reason")
+  createdBy    String       @map("created_by") @db.Uuid
+  updatedBy    String       @map("updated_by") @db.Uuid
+  version      Int          @default(1)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime?    @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq   BigInt       @default(0) @map("updated_seq")
+  group        Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member       GroupMember? @relation("CompanyEntryMember", fields: [memberId], references: [id], onDelete: NoAction)
+  @@index([groupId, updatedSeq])
+  @@index([groupId, memberId, occurredOn, id])
+  @@index([memberId])
+  @@unique([id, groupId], map: "company_entries_id_group_unique")
+  @@index([groupId,fundingManagerId,updatedSeq], map: "company_entries_funding_idx")
+  @@index([groupId,projectId,occurredOn], map: "company_entries_project_idx")
+  @@index([wageRunId], map: "company_entries_wage_run_idx")
+  @@map("company_entries")
+  @@schema("public")
+}
+
+model CompanyEntryAttachment {
+ id String @id @db.Uuid
+ entryId String @map("entry_id") @db.Uuid
+ groupId String @map("group_id") @db.Uuid
+ uploaderMemberId String @map("uploader_member_id") @db.Uuid
+ storagePath String @unique @map("storage_path")
+ preview String?
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+ deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+ updatedSeq BigInt @default(0) @map("updated_seq")
+ entry CompanyEntry @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+ uploader GroupMember @relation(fields: [uploaderMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+ @@index([groupId,updatedSeq], map: "company_entry_attachments_group_seq_idx")
+ @@index([entryId,deletedAt], map: "company_entry_attachments_entry_deleted_idx")
+ @@map("company_entry_attachments")
+ @@schema("public")
+}
+model CompanyVendorEntryAttachment {
+  id String @id @db.Uuid
+  entryId String @map("entry_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  uploaderMemberId String @map("uploader_member_id") @db.Uuid
+  storagePath String @unique @map("storage_path")
+  preview String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  entry CompanyVendorEntry @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  uploader GroupMember @relation(fields: [uploaderMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_vendor_entry_attachmen_uploader_member_id_group_id_fkey")
+  @@index([groupId,updatedSeq], map: "company_vendor_entry_attachments_group_seq_idx")
+  @@index([entryId,deletedAt], map: "company_vendor_entry_attachments_entry_idx")
+  @@map("company_vendor_entry_attachments")
+  @@schema("public")
+}
+model CompanyWorkTaskAttachment {
+  id String @id @db.Uuid
+  entryId String @map("entry_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  uploaderMemberId String @map("uploader_member_id") @db.Uuid
+  storagePath String @unique @map("storage_path")
+  preview String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  entry CompanyWorkTask @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  uploader GroupMember @relation(fields: [uploaderMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_work_task_attachments_uploader_member_id_group_id_fkey")
+  @@index([groupId,updatedSeq], map: "company_work_task_attachments_group_seq_idx")
+  @@index([entryId,deletedAt], map: "company_work_task_attachments_entry_idx")
+  @@map("company_work_task_attachments")
+  @@schema("public")
+}
+model CompanyPlan {
+ groupId String @id @map("group_id") @db.Uuid
+ plan String @default("free")
+ ownerProfileId String? @map("owner_profile_id") @db.Uuid
+ storageQuotaBytes BigInt? @map("storage_quota_bytes")
+ packTxn String? @map("pack_txn")
+ packProfile String? @map("pack_profile") @db.Uuid
+ packEventAt DateTime? @map("pack_event_at") @db.Timestamptz(6)
+ createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+ updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+ group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+ owner Profile? @relation(fields: [ownerProfileId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+ @@map("company_plans")
+ @@schema("public")
+}
+model CompanyImageKey {
+ path String @id
+ groupId String? @map("group_id") @db.Uuid
+ group Group? @relation(fields: [groupId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+ @@map("company_image_keys")
+ @@schema("public")
+}
+
+/// Phase 4 names are caller-scoped; budgets live in a separate owner-only table.
+model CompanyProject {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  budgets CompanyProjectBudget[]
+  members CompanyProjectMember[]
+  entries CompanyEntry[]
+  wageSplits CompanyWageSplit[]
+  workTasks CompanyWorkTask[]
+  events CompanyEvent[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_projects_sync_idx")
+  @@map("company_projects")
+  @@schema("public")
+}
+model CompanyProjectBudget {
+  projectId String @id @map("project_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  budgetMinor BigInt? @map("budget_minor")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  project CompanyProject @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_project_budgets_sync_idx")
+  @@map("company_project_budgets")
+  @@schema("public")
+}
+model CompanyProjectMember {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  project CompanyProject @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation(fields: [memberId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([projectId,memberId])
+  @@index([groupId,updatedSeq], map: "company_project_members_sync_idx")
+  @@index([memberId,projectId], map: "company_project_members_member_idx")
+  @@map("company_project_members")
+  @@schema("public")
+}
+model CompanyVendor {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  phone String?
+  category String?
+  categories String[] @default([])
+  addedBy String @map("added_by") @db.Uuid
+  memberId String? @unique @map("member_id") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  adder GroupMember @relation("CompanyVendorAddedBy", fields: [addedBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  login GroupMember? @relation("CompanyVendorLogin", fields: [memberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  entries CompanyVendorEntry[]
+  invites Invite[]
+  details CompanyVendorDetails[]
+  orders CompanyVendorOrder[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_vendors_sync_idx")
+  @@map("company_vendors")
+  @@schema("public")
+}
+model CompanyVendorEntry {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  vendorId String @map("vendor_id") @db.Uuid
+  kind String
+  amount BigInt
+  occurredOn DateTime @map("occurred_on") @db.Date
+  note String?
+  status String @default("approved")
+  createdBy String @map("created_by") @db.Uuid
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  reviewedAt DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote String? @map("review_note")
+  fundingManagerId String? @map("funding_manager_id") @db.Uuid
+  receivedAt DateTime? @map("received_at") @db.Timestamptz(6)
+  voidReason String? @map("void_reason")
+  requestHash String? @map("request_hash")
+  dueOn DateTime? @map("due_on") @db.Date
+  method String?
+  reference String?
+  receiptNo Int? @map("receipt_no")
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  vendor CompanyVendor @relation(fields: [vendorId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyVendorLineCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  funder GroupMember? @relation("CompanyVendorLineFunder", fields: [fundingManagerId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  attachments CompanyVendorEntryAttachment[]
+  @@unique([id,groupId], map: "company_vendor_entries_id_group_key")
+  @@unique([groupId, receiptNo], map: "company_vendor_entries_group_receipt_key")
+  @@index([groupId,updatedSeq], map: "company_vendor_entries_sync_idx")
+  @@index([vendorId,occurredOn], map: "company_vendor_entries_vendor_idx")
+  @@map("company_vendor_entries")
+  @@schema("public")
+}
+model CompanyWageSplit {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  entryId String @map("entry_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  amountMinor BigInt @map("amount_minor")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  entry CompanyEntry @relation(fields: [entryId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  project CompanyProject @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([entryId,projectId])
+  @@index([groupId,updatedSeq], map: "company_wage_splits_sync_idx")
+  @@index([projectId], map: "company_wage_splits_project_idx")
+  @@map("company_wage_splits")
+  @@schema("public")
+}
+model CompanyWageRun {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  periodStart DateTime @map("period_start") @db.Date
+  periodEnd DateTime @map("period_end") @db.Date
+  paidOn DateTime @map("paid_on") @db.Date
+  createdBy String @map("created_by") @db.Uuid
+  requestHash String @map("request_hash")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  entries CompanyEntry[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_wage_runs_sync_idx")
+  @@map("company_wage_runs")
+  @@schema("public")
+}
+model CompanyDocument {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  docType String @map("doc_type")
+  number Int
+  customerName String @map("customer_name")
+  customerPhone String? @map("customer_phone")
+  docDate DateTime @map("doc_date") @db.Date
+  items Json
+  discountMinor BigInt @default(0) @map("discount_minor")
+  totalMinor BigInt @map("total_minor")
+  currency String @db.Char(3)
+  notes String?
+  status String
+  payments Json @default("[]")
+  paidMinor BigInt @default(0) @map("paid_minor")
+  convertedTo String? @map("converted_to") @db.Uuid
+  convertedFrom String? @map("converted_from") @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  updatedBy String @map("updated_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  creator GroupMember @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  clientId String? @map("client_id") @db.Uuid
+  client CompanyClient? @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  inquiryId String? @map("inquiry_id") @db.Uuid
+  inquiry CompanyInquiry? @relation(fields: [inquiryId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([groupId,docType,number])
+  @@index([groupId,updatedSeq], map: "company_documents_sync_idx")
+  @@index([groupId,createdBy], map: "company_documents_creator_idx")
+  @@map("company_documents")
+  @@schema("public")
+}
+model CompanyAttendance {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  day DateTime @db.Date
+  status String
+  note String?
+  markedBy String @map("marked_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation("CompanyAttendanceMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  marker GroupMember @relation("CompanyAttendanceMarker", fields: [markedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([groupId,memberId,day])
+  @@index([groupId,updatedSeq], map: "company_attendance_sync_idx")
+  @@map("company_attendance")
+  @@schema("public")
+}
+model CompanyWorkTask {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  day DateTime @db.Date
+  title String
+  projectId String? @map("project_id") @db.Uuid
+  status String @default("todo")
+  blockedReason String? @map("blocked_reason")
+  note String?
+  dueTime DateTime? @map("due_time") @db.Time(6)
+  seq Int?
+  priority String @default("normal")
+  helperIds String[] @default([]) @map("helper_ids") @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation("CompanyWorkTaskMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyWorkTaskCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project CompanyProject? @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  attachments CompanyWorkTaskAttachment[]
+  clientId String? @map("client_id") @db.Uuid
+  client CompanyClient? @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([id,groupId], map: "company_work_tasks_id_group_id_key")
+  @@unique([groupId,seq], map: "company_work_tasks_group_seq_key")
+  @@index([groupId,updatedSeq], map: "company_work_tasks_sync_idx")
+  @@index([groupId,day,memberId], map: "company_work_tasks_day_idx")
+  @@map("company_work_tasks")
+  @@schema("public")
+}
+model CompanyHoliday {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  startDay DateTime @map("start_day") @db.Date
+  endDay DateTime @map("end_day") @db.Date
+  name String
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyHolidayCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_holidays_sync_idx")
+  @@map("company_holidays")
+  @@schema("public")
+}
+model CompanyLeave {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  startDay DateTime @map("start_day") @db.Date
+  endDay DateTime @map("end_day") @db.Date
+  halfDay Boolean @default(false) @map("half_day")
+  kind String
+  reason String?
+  status String @default("pending")
+  decidedBy String? @map("decided_by") @db.Uuid
+  decisionNote String? @map("decision_note")
+  leaveTypeId String? @map("leave_type_id") @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  leaveType CompanyLeaveType? @relation(fields: [leaveTypeId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction, map: "company_leave_type_fk")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation("CompanyLeaveMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  decider GroupMember? @relation("CompanyLeaveDecider", fields: [decidedBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyLeaveCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_leave_sync_idx")
+  @@index([groupId,memberId,startDay], map: "company_leave_member_idx")
+  @@map("company_leave")
+  @@schema("public")
+}
+model CompanyLeaveType {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  kind String @default("other")
+  accrualDaysPerMonth Decimal @default(1) @map("accrual_days_per_month") @db.Decimal(4, 2)
+  carryForward Boolean @default(true) @map("carry_forward")
+  carryForwardCap Decimal? @map("carry_forward_cap") @db.Decimal(6, 2)
+  annualCap Decimal? @map("annual_cap") @db.Decimal(6, 2)
+  paid Boolean @default(false)
+  allowOverdraw Boolean @default(false) @map("allow_overdraw")
+  active Boolean @default(true)
+  startsOn DateTime @default(dbgenerated("((now() AT TIME ZONE 'UTC'::text))::date")) @map("starts_on") @db.Date
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  leave CompanyLeave[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_leave_types_sync_idx")
+  @@map("company_leave_types")
+  @@schema("public")
+}
+model CompanyEvent {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  title String
+  day DateTime @db.Date
+  atTime String? @map("at_time")
+  projectId String? @map("project_id") @db.Uuid
+  people String[] @default([]) @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyEventCreator", fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  project CompanyProject? @relation(fields: [projectId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_events_sync_idx")
+  @@map("company_events")
+  @@schema("public")
+}
+model CompanyMemberDates {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  birthDay Int? @map("birth_day") @db.SmallInt
+  birthMonth Int? @map("birth_month") @db.SmallInt
+  joinedOn DateTime? @map("joined_on") @db.Date
+  showBirthday Boolean @default(false) @map("show_birthday")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation("CompanyMemberDatesMember", fields: [memberId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@unique([groupId,memberId])
+  @@index([groupId,updatedSeq], map: "company_member_dates_sync_idx")
+  @@map("company_member_dates")
+  @@schema("public")
+}
+model CompanyComplaint {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  reporterProfileId String? @map("reporter_profile_id") @db.Uuid
+  reporterRole String @map("reporter_role")
+  category String
+  body String
+  status String @default("open")
+  adminNote String? @map("admin_note")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  @@index([groupId,createdAt(sort: Desc)], map: "company_complaints_group_idx")
+  @@map("company_complaints")
+  @@schema("public")
+}
+model CompanyModerationLog {
+  id BigInt @id @default(autoincrement())
+  groupId String @map("group_id") @db.Uuid
+  action String
+  actor String @default("admin console")
+  category String?
+  reason String?
+  meta Json @default("{}")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@index([groupId,createdAt(sort: Desc)], map: "company_moderation_log_group_idx")
+  @@map("company_moderation_log")
+  @@schema("public")
+}
+
+model CompanyDetails {
+  groupId String @id @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  address String?
+  phone String?
+  email String?
+  gstin String?
+  note String?
+  updatedBy String? @map("updated_by") @db.Uuid
+  updatedByName String? @map("updated_by_name")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_details_sync_idx")
+  @@map("company_details")
+  @@schema("public")
+}
+model CompanyDetailsSecure {
+  groupId String @id @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  bankName String? @map("bank_name")
+  bankAccount String? @map("bank_account")
+  ifsc String?
+  upi String?
+  pan String?
+  bankChangedAt DateTime? @map("bank_changed_at") @db.Timestamptz(6)
+  bankChangedBy String? @map("bank_changed_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_details_secure_sync_idx")
+  @@map("company_details_secure")
+  @@schema("public")
+}
+model CompanyVendorDetails {
+  vendorId String @id @map("vendor_id") @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  id String @default(dbgenerated()) @db.Uuid
+  bankName String? @map("bank_name")
+  bankAccount String? @map("bank_account")
+  ifsc String?
+  upi String?
+  pan String?
+  address String?
+  phone String?
+  email String?
+  gstin String?
+  note String?
+  bankChangedAt DateTime? @map("bank_changed_at") @db.Timestamptz(6)
+  bankChangedBy String? @map("bank_changed_by") @db.Uuid
+  updatedBy String? @map("updated_by") @db.Uuid
+  updatedByName String? @map("updated_by_name")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  vendor CompanyVendor @relation(fields: [vendorId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_vendor_details_sync_idx")
+  @@map("company_vendor_details")
+  @@schema("public")
+}
+
+model CompanyVendorOrder {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  vendorId String @map("vendor_id") @db.Uuid
+  orderNo Int @map("order_no")
+  status String @default("sent")
+  expectedOn DateTime? @map("expected_on") @db.Date
+  note String?
+  createdBy String @map("created_by") @db.Uuid
+  requestHash String? @map("request_hash")
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  vendor CompanyVendor @relation(fields: [vendorId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyVendorOrderCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  items CompanyVendorOrderItem[]
+  events CompanyVendorOrderEvent[]
+  @@unique([id, groupId])
+  @@unique([groupId, orderNo])
+  @@index([groupId, updatedSeq], map: "company_vendor_orders_sync_idx")
+  @@index([vendorId], map: "company_vendor_orders_vendor_idx")
+  @@map("company_vendor_orders")
+  @@schema("public")
+}
+model CompanyVendorOrderItem {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  orderId String @map("order_id") @db.Uuid
+  name String
+  qty Decimal @db.Decimal(12, 3)
+  unit String
+  unitPrice BigInt @map("unit_price")
+  position Int
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  order CompanyVendorOrder @relation(fields: [orderId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_vendor_order_items_sync_idx")
+  @@index([orderId], map: "company_vendor_order_items_order_idx")
+  @@map("company_vendor_order_items")
+  @@schema("public")
+}
+model CompanyVendorOrderEvent {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  orderId String @map("order_id") @db.Uuid
+  status String
+  actorId String @map("actor_id") @db.Uuid
+  at DateTime @default(now()) @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  order CompanyVendorOrder @relation(fields: [orderId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  @@index([groupId, updatedSeq], map: "company_vendor_order_events_sync_idx")
+  @@index([orderId], map: "company_vendor_order_events_order_idx")
+  @@map("company_vendor_order_events")
+  @@schema("public")
+}
+/// An AI assistant (OAuth client) bound to exactly one company by one person; written only by definer RPCs.
+model CompanyAgentLink {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  profileId String @map("profile_id") @db.Uuid
+  clientId String @map("client_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  twoStepVerifiedAt DateTime? @map("two_step_verified_at") @db.Timestamptz(6)
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  @@unique([profileId, clientId])
+  @@index([groupId], map: "company_agent_links_group_idx")
+  @@map("company_agent_links")
+  @@schema("public")
+}
+model CompanyFileFolder {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  visibility String @default("everyone")
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  files CompanyFile[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_file_folders_sync_idx")
+  @@map("company_file_folders")
+  @@schema("public")
+}
+model CompanyFile {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  folderId String? @map("folder_id") @db.Uuid
+  kind String
+  name String
+  url String?
+  r2Key String? @unique @map("r2_key")
+  sizeBytes BigInt? @map("size_bytes")
+  mime String?
+  visibility String @default("everyone")
+  createdBy String @map("created_by") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  folder CompanyFileFolder? @relation(fields: [folderId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_files_sync_idx")
+  @@index([folderId], map: "company_files_folder_idx")
+  @@map("company_files")
+  @@schema("public")
+}
+model CompanyClient {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  name String
+  phone String?
+  need String?
+  source String @default("other")
+  expectedValue BigInt? @map("expected_value")
+  address String?
+  email String?
+  companyName String? @map("company_name")
+  category String?
+  priority String @default("normal")
+  stage String @default("inquiry")
+  lostReason String? @map("lost_reason")
+  ownerMemberId String? @map("owner_member_id") @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  owner GroupMember? @relation("CompanyClientOwner", fields: [ownerMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyClientCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  notes CompanyClientNote[]
+  tickets CompanyTicket[]
+  tasks CompanyWorkTask[]
+  documents CompanyDocument[]
+  inquiries CompanyInquiry[]
+  assignees CompanyClientAssignee[]
+  @@unique([id,groupId])
+  @@index([groupId,updatedSeq], map: "company_clients_sync_idx")
+  @@index([groupId,ownerMemberId], map: "company_clients_owner_idx")
+  @@map("company_clients")
+  @@schema("public")
+}
+model CompanyClientNote {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  clientId String @map("client_id") @db.Uuid
+  body String
+  createdBy String @map("created_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  client CompanyClient @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_client_notes_sync_idx")
+  @@index([clientId,createdAt], map: "company_client_notes_client_idx")
+  @@map("company_client_notes")
+  @@schema("public")
+}
+model CompanyInquiry {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  clientId String @map("client_id") @db.Uuid
+  number Int
+  title String
+  details String?
+  expectedValueMinor BigInt? @map("expected_value_minor")
+  inquiryDate DateTime @default(dbgenerated("CURRENT_DATE")) @map("inquiry_date") @db.Date
+  rejectedAt DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectReason String? @map("reject_reason")
+  createdBy String @map("created_by") @db.Uuid
+  updatedBy String @map("updated_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  client CompanyClient @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyInquiryCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  updater GroupMember @relation("CompanyInquiryUpdater", fields: [updatedBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  documents CompanyDocument[]
+  @@unique([id,groupId])
+  @@unique([groupId,number])
+  @@index([groupId,updatedSeq], map: "company_inquiries_sync_idx")
+  @@index([clientId], map: "company_inquiries_client_idx")
+  @@map("company_inquiries")
+  @@schema("public")
+}
+model CompanyClientAssignee {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  clientId String @map("client_id") @db.Uuid
+  memberId String @map("member_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  client CompanyClient @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  member GroupMember @relation(fields: [memberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@unique([clientId,memberId])
+  @@index([groupId,updatedSeq], map: "company_client_assignees_sync_idx")
+  @@map("company_client_assignees")
+  @@schema("public")
+}
+
+model CompanyTicket {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  clientId String? @map("client_id") @db.Uuid
+  clientName String? @map("client_name")
+  clientPhone String? @map("client_phone")
+  number Int
+  title String
+  details String?
+  priority String @default("normal")
+  status String @default("open")
+  assigneeMemberId String @map("assignee_member_id") @db.Uuid
+  dueAt DateTime @map("due_at") @db.Timestamptz(6)
+  resolution String?
+  resolvedAt DateTime? @map("resolved_at") @db.Timestamptz(6)
+  createdBy String @map("created_by") @db.Uuid
+  updatedBy String @map("updated_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  client CompanyClient? @relation(fields: [clientId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  assignee GroupMember @relation("CompanyTicketAssignee", fields: [assigneeMemberId,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  creator GroupMember @relation("CompanyTicketCreator", fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  updater GroupMember @relation("CompanyTicketUpdater", fields: [updatedBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  events CompanyTicketEvent[]
+  @@unique([id,groupId])
+  @@unique([groupId,number])
+  @@index([groupId,updatedSeq], map: "company_tickets_sync_idx")
+  @@index([groupId,assigneeMemberId], map: "company_tickets_assignee_idx")
+  @@map("company_tickets")
+  @@schema("public")
+}
+model CompanyTicketEvent {
+  id String @id @db.Uuid
+  groupId String @map("group_id") @db.Uuid
+  ticketId String @map("ticket_id") @db.Uuid
+  kind String
+  body String?
+  toStatus String? @map("to_status")
+  memberId String? @map("member_id") @db.Uuid
+  createdBy String @map("created_by") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+  updatedSeq BigInt @default(0) @map("updated_seq")
+  ticket CompanyTicket @relation(fields: [ticketId,groupId], references: [id,groupId], onDelete: Cascade, onUpdate: NoAction)
+  creator GroupMember @relation(fields: [createdBy,groupId], references: [id,groupId], onDelete: NoAction, onUpdate: NoAction)
+  @@index([groupId,updatedSeq], map: "company_ticket_events_sync_idx")
+  @@index([ticketId,createdAt], map: "company_ticket_events_ticket_idx")
+  @@map("company_ticket_events")
+  @@schema("public")
+}
+
+/// One row per company-slot store subscription (waves_company_slot_monthly). `groupId` has no FK: the binding outlives a deleted company.
+model CompanySlot {
+  storeTxnId String    @id @map("store_txn_id")
+  profileId  String    @map("profile_id") @db.Uuid
+  active     Boolean
+  eventAt    DateTime? @map("event_at") @db.Timestamptz(6)
+  groupId    String?   @map("group_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  profile    Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([profileId], map: "company_slots_profile_idx")
+  @@index([groupId], map: "company_slots_group_idx")
+  @@map("company_slots")
+  @@schema("public")
+}
+
+/// Company two-step: code secrets, AES-256-GCM sealed by the edge functions. Service role only.
+model TwoStepSecret {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId   String    @map("profile_id") @db.Uuid
+  kind        String
+  deviceId    String?   @map("device_id")
+  secretEnc   String    @map("secret_enc")
+  active      Boolean   @default(false)
+  lastStep    BigInt    @default(0) @map("last_step")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  activatedAt DateTime? @map("activated_at") @db.Timestamptz(6)
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@index([profileId], map: "two_step_secrets_profile_idx")
+  @@map("two_step_secrets")
+  @@schema("public")
+}
+
+/// Company two-step: wrong-code counter, row-locked by every attempt.
+model TwoStepLockout {
+  profileId   String    @id @map("profile_id") @db.Uuid
+  failures    Int       @default(0)
+  lockedUntil DateTime? @map("locked_until") @db.Timestamptz(6)
+  profile     Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@map("two_step_lockouts")
+  @@schema("public")
+}
+
+/// Company two-step: a verified GoTrue session.
+model TwoStepSession {
+  sessionId  String   @map("session_id") @db.Uuid
+  profileId  String   @map("profile_id") @db.Uuid
+  kind       String
+  deviceId   String?  @map("device_id")
+  verifiedAt DateTime @default(now()) @map("verified_at") @db.Timestamptz(6)
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([sessionId, profileId])
+  @@index([profileId], map: "two_step_sessions_profile_idx")
+  @@map("two_step_sessions")
+  @@schema("public")
+}
+
+/// Company two-step: a new phone waiting for an owner's or manager's approval.
+model TwoStepDeviceRequest {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String    @map("profile_id") @db.Uuid
+  sessionId String    @map("session_id") @db.Uuid
+  deviceId  String    @map("device_id")
+  platform  String?
+  status    String    @default("pending")
+  decidedBy String?   @map("decided_by") @db.Uuid
+  decidedAt DateTime? @map("decided_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  profile   Profile   @relation("TwoStepDeviceRequester", fields: [profileId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  decider   Profile?  @relation("TwoStepDeviceDecider", fields: [decidedBy], references: [id], onUpdate: NoAction)
+
+  @@map("two_step_device_requests")
   @@schema("public")
 }

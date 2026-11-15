@@ -1,0 +1,227 @@
+import { describe, expect, it, vi } from 'vitest';
+import { handleExportData } from './index.ts';
+
+function query(data: unknown, error: unknown = null) {
+  const q: Record<string, unknown> = {};
+  let columns = '*';
+  const result = () => {
+    const project = (row: Record<string, unknown>) =>
+      columns === '*' || columns.includes('(')
+        ? row
+        : Object.fromEntries(
+            columns
+              .split(',')
+              .map((key) => key.trim())
+              .filter((key) => key in row)
+              .map((key) => [key, row[key]]),
+          );
+    return {
+      data: Array.isArray(data)
+        ? data.map(project)
+        : data
+          ? project(data as Record<string, unknown>)
+          : data,
+      error,
+    };
+  };
+  q.select = (value: string) => {
+    columns = value;
+    return q;
+  };
+  q.eq = () => q;
+  q.single = () => Promise.resolve(result());
+  q.then = (resolve: (value: unknown) => void) => Promise.resolve(result()).then(resolve);
+  return q;
+}
+function setup(
+  options: {
+    failEntries?: boolean;
+    member?: boolean;
+    twoStep?: boolean;
+    category?: string;
+    approved?: boolean;
+    paidByCompany?: boolean;
+  } = {},
+) {
+  const group = {
+    id: 'company',
+    type: 'company',
+    name: 'Office',
+    default_currency: 'INR',
+    company_tags: [{ key: 'cement-bags', label: 'Cement sacks' }],
+    company_industry: 'construction',
+  };
+  const ledger = {
+    id: 'entry-a',
+    group_id: 'company',
+    member_id: options.paidByCompany ? null : 'employee-a',
+    paid_by_company: options.paidByCompany === true,
+    entry_kind: 'expense',
+    category: options.category ?? 'fuel',
+    amount: '123',
+    currency: 'INR',
+    occurred_on: '2026-11-05',
+    status: options.approved ? 'approved' : 'submitted',
+    note: '=unsafe',
+    review_note: 'Check dates',
+    version: 1,
+    vendor: '=Private, Shop',
+    gstin: '27AAPFU0939F1ZV',
+    invoice_no: 'INV-7',
+    gst_rate_bps: 1800,
+    gst_amount_minor: '19',
+    distance_km: '1.25',
+    from_text: 'From A',
+    to_text: 'To B',
+    rate_minor: '3',
+    calc_mode: 'distance_rate',
+    reimbursement_id: 'covering-entry',
+    reimbursement_details: { requestHash: 'test-hash', payoutMinor: '123' },
+    storage_path: 'secret/key.jpg',
+    preview: 'secret-preview',
+  };
+  const caller = {
+    auth: { getUser: async () => ({ data: { user: { id: 'a' } }, error: null }) },
+    rpc: vi.fn((name: string) =>
+      name === 'waves_my_profile'
+        ? query({ id: 'a', display_name: 'Employee A' })
+        : name === 'waves_two_step_ok'
+          ? Promise.resolve({ data: options.twoStep !== false, error: null })
+          : Promise.resolve({ data: options.member === false ? null : 'employee-a', error: null }),
+    ),
+    from: vi.fn((table: string) =>
+      table === 'groups'
+        ? query(group)
+        : table === 'company_entries'
+          ? query([ledger], options.failEntries ? { message: 'database unavailable' } : null)
+          : table === 'company_vendors'
+            ? query([{ id: 'vendor-a', name: 'Ravi Traders' }])
+            : table === 'company_vendor_entries'
+              ? query([
+                  {
+                    id: 've-1',
+                    vendor_id: 'vendor-a',
+                    kind: 'bill',
+                    amount: '555',
+                    occurred_on: '2026-11-06',
+                    status: 'approved',
+                    version: 1,
+                    deleted_at: null,
+                  },
+                ])
+              : query([{ id: 'employee-a', profile: { display_name: 'Employee A' } }]),
+    ),
+  };
+  const service = { from: vi.fn(() => query([])) };
+  const deps = {
+    asCaller: () => caller,
+    asService: () => service,
+    enforceRateLimit: vi.fn(async () => {}),
+  } as never;
+  const request = (format: string) =>
+    new Request('https://example.test/export-data', {
+      method: 'POST',
+      body: JSON.stringify({ groupId: 'company', format }),
+    });
+  return { caller, service, deps, request };
+}
+describe('caller-visible company exports', () => {
+  it.each(['json', 'csv'])(
+    'exports only caller ledger fields without image metadata (%s)',
+    async (format) => {
+      const t = setup();
+      const response = await handleExportData(t.request(format), t.deps);
+      expect(response.status).toBe(200);
+      const { content } = await response.json();
+      expect(content).toContain('123');
+      expect(content).toContain('Check dates');
+      for (const value of [
+        '27AAPFU0939F1ZV',
+        'INV-7',
+        '1800',
+        '1.25',
+        'From A',
+        'To B',
+        'covering-entry',
+        'test-hash',
+      ])
+        expect(content).toContain(value);
+      if (format === 'json')
+        expect(JSON.parse(content).groups[0].companyEntries[0]).toMatchObject({
+          vendor: '=Private, Shop',
+          gst_amount_minor: '19',
+          rate_minor: '3',
+        });
+      else {
+        expect(content).toContain("'=Private, Shop");
+        expect(content.split('\n')[0]).toContain('reimbursement_details');
+      }
+      expect(content).not.toContain('secret/key');
+      expect(content).not.toContain('secret-preview');
+      expect(t.caller.from).toHaveBeenCalledWith('company_entries');
+      expect(t.service.from).not.toHaveBeenCalledWith('company_entries');
+      if (format === 'json') expect(JSON.parse(content).groups[0].companyEntries).toHaveLength(1);
+      else expect(content).toContain("'=unsafe");
+    },
+  );
+  it('fails the entire export on a ledger read failure', async () => {
+    const t = setup({ failEntries: true });
+    expect((await handleExportData(t.request('json'), t.deps)).status).toBe(500);
+  });
+  it('refuses a former member before reading ledger data', async () => {
+    const t = setup({ member: false });
+    expect((await handleExportData(t.request('json'), t.deps)).status).toBe(403);
+    expect(t.caller.from).not.toHaveBeenCalledWith('company_entries');
+  });
+  it('refuses a company that requires two-step before any service-role read', async () => {
+    const t = setup({ twoStep: false });
+    const response = await handleExportData(t.request('json'), t.deps);
+    expect(response.status).toBe(403);
+    expect(await response.json()).toMatchObject({ code: 'TWO_STEP_REQUIRED' });
+    expect(t.caller.from).not.toHaveBeenCalledWith('company_entries');
+  });
+});
+
+it.each(['json', 'csv', 'pdf'])('exports custom category keys and labels (%s)', async (format) => {
+  const t = setup({ category: 'cement-bags', approved: true });
+  const response = await handleExportData(t.request(format), t.deps);
+  expect(response.status).toBe(200);
+  const body = await response.json();
+  const content = format === 'pdf' ? atob(body.content) : body.content;
+  expect(content).toContain('cement-bags');
+  expect(content).toContain('Cement sacks');
+  if (format === 'json') expect(JSON.parse(content).groups[0].group.company_tags).toHaveLength(1);
+  if (format === 'pdf') {
+    expect(content).toContain('Expense total:');
+    expect(content).toContain('1.23');
+  }
+  expect(t.service.from).not.toHaveBeenCalledWith('company_entries');
+});
+it('exports a queued key without any stored tag label', async () => {
+  const t = setup({ category: 'offline-new-key' });
+  const response = await handleExportData(t.request('csv'), t.deps);
+  expect((await response.json()).content).toContain('offline-new-key');
+});
+it('marks a company-paid entry as paid by the Company with no employee', async () => {
+  const t = setup({ approved: true, paidByCompany: true });
+  const csv = (await (await handleExportData(t.request('csv'), t.deps)).json()).content as string;
+  const row = csv.split('\n').find((line) => line.includes('company_expense')) ?? '';
+  expect(row).toContain(',Company,');
+  expect(row).not.toContain('unknown');
+  const pdf = atob((await (await handleExportData(t.request('pdf'), t.deps)).json()).content);
+  expect(pdf).toContain('Paid by: Company');
+});
+it('exports the vendor ledger with a Vendor column, read as the caller', async () => {
+  const t = setup({ approved: true });
+  const csv = (await (await handleExportData(t.request('csv'), t.deps)).json()).content as string;
+  const row = csv.split('\n').find((line) => line.includes('company_vendor_bill')) ?? '';
+  expect(row).toContain('Ravi Traders');
+  expect(row).toContain('555');
+  const json = JSON.parse(
+    (await (await handleExportData(t.request('json'), t.deps)).json()).content,
+  );
+  expect(json.groups[0].companyVendorEntries).toHaveLength(1);
+  expect(t.service.from).not.toHaveBeenCalledWith('company_vendor_entries');
+  const pdf = atob((await (await handleExportData(t.request('pdf'), t.deps)).json()).content);
+  expect(pdf).toContain('Vendor: Ravi Traders');
+});

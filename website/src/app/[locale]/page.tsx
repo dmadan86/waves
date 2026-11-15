@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { PersonalBand } from '@/components/personal-band';
+import { CompaniesBand } from '@/components/companies-band';
 import { AgentsBand } from '@/components/agents-band';
 import { DownloadBanner } from '@/components/download-banner';
 import { Faq } from '@/components/faq';
-import { FeatureStrip } from '@/components/feature-strip';
+import { ExploreGrid } from '@/components/explore-grid';
 import { Hero } from '@/components/hero';
-import { Moments } from '@/components/moments';
+import { OpenSourceBand } from '@/components/open-source-band';
 import { OfflineBand } from '@/components/offline-band';
 import { Pricing } from '@/components/pricing';
 import { PrivacyBand } from '@/components/privacy-band';
@@ -14,11 +16,13 @@ import { Showcase } from '@/components/showcase';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { Steps } from '@/components/steps';
+import { WhoFor } from '@/components/who-for';
 import { VoiceBand } from '@/components/voice-band';
 import { WearablesBand } from '@/components/wearables-band';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, localeAlternates, site } from '@/lib/site';
+import { appNode, orgId, organizationNode } from '@/lib/structured-data';
 
 /**
  * `/{locale}/index.md` is a twin of *this* page and no other, so this is the
@@ -63,29 +67,21 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const jsonLd = {
     '@context': 'https://schema.org',
     '@graph': [
+      organizationNode(),
       {
-        '@type': 'Organization',
-        '@id': `${site.url}#org`,
+        '@type': 'WebSite',
+        '@id': `${site.url}#site`,
         name: site.name,
         url: site.url,
-        email: site.supportEmail,
+        inLanguage: locale,
+        publisher: { '@id': orgId },
       },
-      {
-        '@type': 'MobileApplication',
-        name: site.name,
-        applicationCategory: 'FinanceApplication',
-        applicationSubCategory: 'Expense sharing',
-        operatingSystem: 'Android, iOS, Web',
+      appNode({
         description: t.meta.description,
         url: absoluteUrl(`/${locale}`),
+        priceCurrency: t.meta.priceCurrency,
         inLanguage: locale,
-        publisher: { '@id': `${site.url}#org` },
-        offers: {
-          '@type': 'Offer',
-          price: '0',
-          priceCurrency: t.meta.priceCurrency,
-        },
-      },
+      }),
       {
         '@type': 'FAQPage',
         mainEntity: t.faq.items.map((item) => ({
@@ -105,24 +101,27 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <SiteHeader locale={locale} nav={t.nav} appUrl={site.appUrl} />
+      <SiteHeader locale={locale} nav={t.nav} appUrl={site.appUrl} onDark />
 
       {/* The skip link targets this, so it has to be able to take focus —
           without the tabindex the jump lands on <body> and nothing changes. */}
       <main id="main" tabIndex={-1}>
-        <Hero t={t.hero} stores={t.stores} />
-        <FeatureStrip t={t.features} />
+        <Hero t={t.hero} stores={t.stores} locale={locale} />
+        <ExploreGrid t={t.explore} wearables={t.wearables} locale={locale} />
+        <WhoFor t={t.whoFor} locale={locale} />
         <Steps t={t.how} />
         <Showcase t={t.showcase} />
-        <Moments t={t.moments} />
+        <Pricing t={t.pricing} />
         <OfflineBand t={t.offline} />
         <VoiceBand t={t.voice} />
         <WearablesBand t={t.wearables} />
         <AgentsBand t={t.agents} locale={locale} />
-        <Pricing t={t.pricing} />
+        <PersonalBand t={t.personal} mock={t.personalMock} locale={locale} />
+        <CompaniesBand t={t.companies} mock={t.companyMock} locale={locale} />
         <PrivacyBand t={t.privacy} locale={locale} />
+        <OpenSourceBand t={t.openSource} />
         <Faq t={t.faq} />
-        <DownloadBanner t={t.cta} stores={t.stores} />
+        <DownloadBanner t={t.cta} stores={t.stores} result={t.hero.split.result} />
       </main>
 
       <SiteFooter locale={locale} t={t.footer} legal={t.legal} appUrl={site.appUrl} />

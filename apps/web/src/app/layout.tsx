@@ -4,6 +4,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google';
 
 import { StringsProvider } from '@/i18n-context';
 import { AuthProvider } from '@/lib/auth';
+import { SyncProvider } from '@/lib/sync';
 import { ThemeProvider, THEME_BOOT_SCRIPT } from '@/lib/theme';
 import { isRtlLanguage, localeFor, stringsFor } from '@/i18n';
 import { chooseLanguage, rememberedLanguage } from '@/lib/language';
@@ -81,7 +82,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <ThemeProvider>
             <AuthProvider>
               <AfterSignIn />
-              {children}
+              <SyncProvider>{children}</SyncProvider>
             </AuthProvider>
           </ThemeProvider>
         </StringsProvider>

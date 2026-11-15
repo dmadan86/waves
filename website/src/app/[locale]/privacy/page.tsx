@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { LegalPage, type LegalSection } from '@/components/legal-page';
 import { isLocale, locales } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
-import { absoluteUrl, site } from '@/lib/site';
+import { pageMetadata, site } from '@/lib/site';
 
 const UPDATED = '22 October 2026';
 
@@ -20,10 +20,14 @@ export async function generateMetadata({
   const { locale } = await params;
   if (!isLocale(locale)) return {};
   const t = await getDictionary(locale);
-  return {
+  // TODO: translate this description with the page body; English until then.
+  return pageMetadata({
+    locale,
+    path: '/privacy',
     title: t.legal.privacyTitle,
-    alternates: { canonical: absoluteUrl(`/${locale}/privacy`) },
-  };
+    description:
+      'Learn what Waves collects, how shared expense data is stored, which providers process it, and how to export or delete your account.',
+  });
 }
 
 const sections: LegalSection[] = [
@@ -42,7 +46,7 @@ const sections: LegalSection[] = [
       'Location. Once you have allowed location access, a new expense is stamped with where you are — the coordinates and a place name — when you open the form, so you can remember where you spent. You can move or remove the pin on each expense before saving, and you can withdraw the permission in your phone’s settings at any time. Location is never read in the background.',
       'Contacts. When you tap to pick someone from your contacts, the app reads your address book on the phone to show and match names. Only the person you tap — their name and, if you choose one, their phone number or email — is sent to us and stored in the group. The rest of your contacts never leave the phone.',
       'Your subscription status, which we receive from Google Play or the App Store through RevenueCat. We never see your card or bank details.',
-      'Technical data we cannot avoid: the device model, operating system and app version, a random device ID for the list of your signed-in devices, a push notification token if you turn notifications on, crash reports, and a few app steps (an install, a sign-up started, onboarding finished, the plans screen opened). These steps are always on — they are not a setting — and are counted against a random install ID that is not your advertising ID and, once you have an account, against that account. The IP address on those steps is hashed and the hash is dropped within two days. If you arrived through a referral or campaign link, we also keep which link it was.',
+      'Technical data we cannot avoid: the device model, operating system and app version, a random device ID for the list of your signed-in devices, a push notification token if you turn notifications on, crash reports, and a few app steps (an install, a sign-up started, onboarding finished, the plans screen opened). These steps are always on — they are not a setting — and are counted against a random install ID that is not your advertising ID and, once you have an account, against that account. The IP address on those steps is hashed and the hash is dropped within two days. If you arrived through a referral or campaign link, we also keep which link it was. On this website, campaign tags in a link (such as utm_source) are kept in your browser session to measure which campaigns bring visitors, and are passed on to the app link you click; they are not shared with advertisers.',
     ],
   },
   {
@@ -56,7 +60,7 @@ const sections: LegalSection[] = [
   {
     heading: 'Advertising',
     body: [
-      'On the Free plan, when you reach the monthly limit for AI voice commands or receipt scans, you can choose to watch one short rewarded video ad in exchange for extra commands or scans. Ads only appear when you choose to watch one, and only on Free. Pro, and the 15-day Pro trial, see none. We never show ads on balances, groups, expenses or settling up.',
+      "On the Free plan, banner ads show on some screens, such as Home, Friends, Activity and a group's expense list, and you can choose to watch a short rewarded video ad in exchange for credits, which pay for AI voice commands, receipt scans, exports and extra groups. Ads are non-personalized and only on Free. Pro, and the 15-day Pro trial, see none. We never show ads on the settle-up screen.",
       'Ads are served by Google AdMob and are non-personalized only. The AdMob software in the app can read your device\u2019s advertising ID, which Google uses to serve the ad and prevent fraud. We do not use it to personalize ads, we do not ask to track you across other companies\u2019 apps and websites, and we never share your expenses, groups or balances with advertisers.',
       'To serve an ad and prevent fraud, AdMob receives device and IP-level information, as described in Google\u2019s policy. In the European Economic Area, the United Kingdom and Switzerland, Google\u2019s consent form is shown first, and you can change your choice later.',
       'When you finish an ad, Google confirms it to our server so the reward can be credited; the app never grants a reward by itself. To match the reward to you, we give Google an internal account ID with the ad request. It is not your name or email address.',

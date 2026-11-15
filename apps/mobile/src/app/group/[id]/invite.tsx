@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { withScenicGroup } from '@/components/ScenicScope';
+import { SuspendedGate } from '@/components/company/SuspendedBanner';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
@@ -83,7 +85,7 @@ const PILL_RESERVE = 112;
  * the token (an admin's lever against a link that has spread too far) is not
  * reachable from here.
  */
-export default function InviteScreen() {
+function InviteScreenInner() {
   const theme = useTheme();
   const illustrationWidth = useWindowDimensions().width - theme.spacing.xl * 2;
   const clearance = useScreenClearance();
@@ -626,3 +628,14 @@ export default function InviteScreen() {
     </Screen>
   );
 }
+
+function InviteScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return (
+    <SuspendedGate groupId={id ?? ''}>
+      <InviteScreenInner />
+    </SuspendedGate>
+  );
+}
+
+export default withScenicGroup(InviteScreen);

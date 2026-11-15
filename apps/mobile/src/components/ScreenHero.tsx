@@ -46,7 +46,7 @@ import Reanimated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { directionalIcon, Gradient, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { PressableScale } from '@/lib/anim';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -148,7 +148,7 @@ export function HeroActionCircle({
   ink?: string;
 }) {
   const theme = useTheme();
-  const glyphInk = solid ? (ink ?? theme.color.brand) : theme.color.onBrand;
+  const glyphInk = solid ? (ink ?? theme.color.onBrand) : theme.color.text;
   return (
     <Pressable
       accessibilityRole="button"
@@ -162,7 +162,7 @@ export function HeroActionCircle({
         borderRadius: 21,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: solid ? '#FFFFFF' : 'rgba(255, 255, 255, 0.18)',
+        backgroundColor: solid ? theme.color.brand : theme.color.surfaceMuted,
         opacity: disabled ? 0.5 : pressed ? 0.7 : 1,
       })}
     >
@@ -183,10 +183,10 @@ export function HeroActionCircle({
             borderRadius: 8,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: theme.color.onBrand,
+            backgroundColor: theme.color.brand,
           }}
         >
-          <Ionicons name="add" size={12} color={theme.color.brand} />
+          <Ionicons name="add" size={12} color={theme.color.onBrand} />
         </View>
       ) : null}
     </Pressable>
@@ -222,9 +222,9 @@ export function HeroFigureLine({
     <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
       <Text
         variant="body"
-        tone="onBrand"
+        tone="muted"
         numberOfLines={1}
-        style={{ flexShrink: 1, fontWeight: '600', opacity: 0.85 }}
+        style={{ flexShrink: 1, fontWeight: '600' }}
       >
         {colon ? `${label}:` : label}
       </Text>
@@ -247,7 +247,6 @@ export function HeroPillButton({
   spokenLabel,
   icon,
   trailingIcon,
-  gradient,
   onPress,
   onLongPress,
   disabled,
@@ -264,7 +263,8 @@ export function HeroPillButton({
   spokenLabel?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   trailingIcon?: keyof typeof Ionicons.glyphMap;
-  gradient: readonly string[];
+  /** Ignored: the hero is no longer a gradient. Kept so callers compile. */
+  gradient?: readonly string[];
   onPress: () => void;
   /**
    * A second, faster way into the same thing — the dashboard's add-expense
@@ -288,7 +288,7 @@ export function HeroPillButton({
   const solid = variant === 'solid';
   // Filled, the ink is the wash's own darkest stop on white; hollow, the pill
   // *is* the wash, so the ink is the white everything else on the panel uses.
-  const ink = solid ? (gradient[0] ?? theme.color.brand) : theme.color.onBrand;
+  const ink = solid ? theme.color.onBrand : theme.color.brand;
   return (
     <Pressable
       accessibilityRole="button"
@@ -305,10 +305,10 @@ export function HeroPillButton({
         gap: theme.spacing.xs,
         paddingVertical: theme.spacing.sm,
         paddingHorizontal: theme.spacing.lg,
-        borderRadius: theme.radius.pill,
-        backgroundColor: solid ? '#FFFFFF' : 'transparent',
+        borderRadius: theme.radius.md,
+        backgroundColor: solid ? theme.color.brand : 'transparent',
         borderWidth: solid ? 0 : 1,
-        borderColor: 'rgba(255, 255, 255, 0.5)',
+        borderColor: theme.color.border,
         opacity: disabled ? 0.6 : pressed ? 0.85 : 1,
         ...style,
       })}
@@ -346,7 +346,6 @@ export interface HeroAction {
 }
 
 export function ScreenHero({
-  gradient,
   art,
   icon,
   title,
@@ -356,7 +355,7 @@ export function ScreenHero({
   overlay,
   children,
 }: {
-  /** The wash. Defaults to the brand indigo where a screen has no verdict. */
+  /** Ignored: the hero is no longer a gradient. Kept so callers compile. */
   gradient?: readonly string[];
   /**
    * A watermark painted behind everything — Friends' faint people-and-rings,
@@ -391,11 +390,6 @@ export function ScreenHero({
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
-  const stops = gradient ?? theme.gradient.brand;
-  // The one solid shape on a busy row of glyphs draws its ink from the wash's
-  // own darkest stop — the same trick `HeroPillButton` uses — so it clears
-  // contrast against white on whichever gradient the caller hands in.
-  const primaryInk = stops[0] ?? theme.color.brand;
   const { restingStyle, overlayStyle } = useHeroCrossfade(overlay?.active ?? false);
 
   const titleRow = (
@@ -410,7 +404,7 @@ export function ScreenHero({
           <Ionicons
             name={directionalIcon('chevron-back')}
             size={iconSize.xxl}
-            color={theme.color.onBrand}
+            color={theme.color.text}
           />
         </Pressable>
       ) : null}
@@ -420,15 +414,15 @@ export function ScreenHero({
         <Reanimated.View
           entering={reduceMotion ? undefined : ZoomIn.springify().damping(14).mass(0.6)}
         >
-          <Ionicons name={icon} size={iconSize.xl} color={theme.color.onBrand} />
+          <Ionicons name={icon} size={iconSize.xl} color={theme.color.brand} />
         </Reanimated.View>
       ) : null}
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Text variant="title" tone="onBrand" numberOfLines={1}>
+        <Text variant="title" numberOfLines={1}>
           {title}
         </Text>
         {typeof subtitle === 'string' ? (
-          <Text variant="micro" tone="onBrand" style={{ opacity: 0.85 }} numberOfLines={1}>
+          <Text variant="micro" tone="muted" numberOfLines={1}>
             {subtitle}
           </Text>
         ) : (
@@ -453,10 +447,12 @@ export function ScreenHero({
               borderRadius: 19,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: theme.color.onBrand,
+              backgroundColor: theme.color.brand,
             }}
           >
-            {action.render ?? <Ionicons name={action.icon} size={iconSize.xl} color={primaryInk} />}
+            {action.render ?? (
+              <Ionicons name={action.icon} size={iconSize.xl} color={theme.color.onBrand} />
+            )}
           </PressableScale>
         ) : (
           <Pressable
@@ -467,7 +463,7 @@ export function ScreenHero({
             hitSlop={10}
           >
             {action.render ?? (
-              <Ionicons name={action.icon} size={iconSize.xl} color={theme.color.onBrand} />
+              <Ionicons name={action.icon} size={iconSize.xl} color={theme.color.text} />
             )}
           </Pressable>
         ),
@@ -476,16 +472,12 @@ export function ScreenHero({
   );
 
   return (
-    <Gradient
-      radius={0}
-      colors={stops}
+    <View
       style={{
-        paddingTop: insets.top + theme.spacing.md,
-        paddingHorizontal: theme.spacing.xl,
-        paddingBottom: theme.spacing.md,
-        borderBottomLeftRadius: theme.radius.xxl,
-        borderBottomRightRadius: theme.radius.xxl,
-        gap: theme.spacing.lg,
+        paddingTop: insets.top + theme.spacing.sm,
+        paddingHorizontal: theme.spacing.lg,
+        paddingBottom: theme.spacing.sm,
+        gap: theme.spacing.md,
         overflow: 'hidden',
       }}
     >
@@ -520,6 +512,6 @@ export function ScreenHero({
       )}
 
       {children}
-    </Gradient>
+    </View>
   );
 }

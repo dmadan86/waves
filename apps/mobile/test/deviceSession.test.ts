@@ -84,6 +84,10 @@ vi.mock('@/data/api', () => ({
 vi.mock('@/lib/device', () => ({ deviceIdentity: () => world.identity() }));
 vi.mock('@/lib/deviceLimitArt', () => ({ DEVICE_LIMIT_ART: 1, DEVICE_LIMIT_ART_RATIO: 2 }));
 vi.mock('@/lib/toast', () => ({ useToast: () => ({ show: world.alert }) }));
+vi.mock('@/lib/useTwoStep', () => {
+  const trust = async () => ({ status: 'unavailable' });
+  return { useTrustPhone: () => trust };
+});
 vi.mock('@/lib/auth', () => ({ useAuth: () => world.auth }));
 // The gate takes its turn in the prompt queue. Alone on the screen it is
 // always the winner, so the stand-in grants whatever is claimed.
@@ -314,8 +318,20 @@ describe('signing the other phones out', () => {
     await flush();
 
     expect(world.signOut).toHaveBeenCalledWith({ scope: 'others' });
-    expect(world.signOutOthersTable).toHaveBeenCalledWith('dev-1');
+    expect(world.signOutOthersTable).toHaveBeenCalledWith('dev-1', false);
     expect(app.gate).toBeUndefined();
+  });
+
+  it('erase flags the other phones without revoking their sessions, and rejects if the flag fails', async () => {
+    world.register.mockResolvedValue(OVER);
+    const app = await mount();
+
+    await expect(app.value.signOutOthers(true)).resolves.toBe(2);
+    expect(world.signOut).not.toHaveBeenCalledWith({ scope: 'others' });
+    expect(world.signOutOthersTable).toHaveBeenCalledWith('dev-1', true);
+
+    world.signOutOthersTable.mockRejectedValueOnce(new Error('flag failed'));
+    await expect(app.value.signOutOthers(true)).rejects.toThrow('flag failed');
   });
 
   it('reports an unconfirmed count, not a false zero, when only the list update fails', async () => {

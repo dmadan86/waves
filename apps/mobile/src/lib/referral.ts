@@ -3,7 +3,7 @@
  *
  * A person shares `https://app.wavs.co.in/r/<CODE>`. The friend signs up, the
  * code is claimed (`waves_claim_referral`), and once the friend has used Waves
- * for real the server grants both of them 7 days of Pro. Everything the server
+ * for real the server grants both of them 50 credits. Everything the server
  * decides stays on the server; this module only reads and writes the strings
  * around it, so it can be tested without a device and imported from
  * `+native-intent`, which runs before the app exists.
@@ -16,10 +16,6 @@ import { WEB_URL } from '@/lib/webUrl';
 /** Same alphabet as `referral_codes_shape`: no 0, O, 1, I or L. */
 export const REFERRAL_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export const REFERRAL_CODE_LENGTH = 8;
-
-/** The days one account can earn in total, and what one friend is worth. */
-export const REFERRAL_DAYS_CAP = 30;
-export const REFERRAL_DAYS_PER_FRIEND = 7;
 
 const CODE_SHAPE = new RegExp(`^[${REFERRAL_CODE_ALPHABET}]{${REFERRAL_CODE_LENGTH}}$`);
 
@@ -216,9 +212,10 @@ export interface MyReferral {
   /** Claimed, not yet rewarded: the friend has not recorded a shared expense yet. */
   pending: number;
   rewarded: number;
-  daysEarned: number;
-  daysCap: number;
-  daysRemaining: number;
+  /** Credits earned as referrer and as friend (the server's `waves_my_referral`). */
+  creditsEarned: number;
+  /** Friends a referrer is paid for. */
+  friendsCap: number;
 }
 
 function whole(value: unknown): number | null {
@@ -236,21 +233,19 @@ export function parseMyReferral(raw: unknown): MyReferral | null {
   const invited = whole(row.invited);
   const pending = whole(row.pending);
   const rewarded = whole(row.rewarded);
-  const daysEarned = whole(row.days_earned);
-  const daysCap = whole(row.days_cap);
-  const daysRemaining = whole(row.days_remaining);
+  const creditsEarned = whole(row.credits_earned);
+  const friendsCap = whole(row.friends_cap);
   if (
     code === null ||
     invited === null ||
     pending === null ||
     rewarded === null ||
-    daysEarned === null ||
-    daysCap === null ||
-    daysRemaining === null
+    creditsEarned === null ||
+    friendsCap === null
   ) {
     return null;
   }
-  return { code, invited, pending, rewarded, daysEarned, daysCap, daysRemaining };
+  return { code, invited, pending, rewarded, creditsEarned, friendsCap };
 }
 
 export type ReferralRefusal =
@@ -293,41 +288,15 @@ export function isDefinitiveRefusal(reason: ReferralRefusal | 'UNKNOWN'): boolea
 
 // ── what the card says ──────────────────────────────────────────────────────
 
-export interface DaysCopy {
-  /** "{earned} of {cap} days earned" */
-  progress: string;
-  /** "You have earned all {cap} days" */
-  capReached: string;
-}
-
-/** The progress line, or the cap-reached sentence once nothing more can be earned. */
-export function daysEarnedText(
-  state: Pick<MyReferral, 'daysEarned' | 'daysCap' | 'daysRemaining'>,
-  copy: DaysCopy,
+/** "N of 10 friends joined · X credits earned"; friends past the cap are not counted. */
+export function friendsJoinedText(
+  state: Pick<MyReferral, 'rewarded' | 'friendsCap' | 'creditsEarned'>,
+  template: string,
 ): string {
-  const template = state.daysRemaining <= 0 ? copy.capReached : copy.progress;
   return template
-    .replace('{earned}', String(state.daysEarned))
-    .replace('{cap}', String(state.daysCap));
-}
-
-/** Earned days as a 0-1 fraction of the cap, for the progress bar. */
-export function daysFraction(state: Pick<MyReferral, 'daysEarned' | 'daysCap'>): number {
-  if (state.daysCap <= 0) return 0;
-  return Math.min(1, Math.max(0, state.daysEarned / state.daysCap));
-}
-
-/** The days-earned marks along the progress path, in order. */
-export const REFERRAL_MILESTONES = [0, 10, 20, 30] as const;
-
-export interface ReferralMilestone {
-  value: number;
-  reached: boolean;
-}
-
-/** Which marks on the path are reached: a mark is reached once `daysEarned` is at least its value. */
-export function referralMilestones(daysEarned: number): ReferralMilestone[] {
-  return REFERRAL_MILESTONES.map((value) => ({ value, reached: daysEarned >= value }));
+    .replace('{n}', String(Math.min(state.rewarded, state.friendsCap)))
+    .replace('{cap}', String(state.friendsCap))
+    .replace('{credits}', String(state.creditsEarned));
 }
 
 // ── the code waiting for an account ─────────────────────────────────────────

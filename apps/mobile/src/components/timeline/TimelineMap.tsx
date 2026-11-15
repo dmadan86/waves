@@ -581,8 +581,10 @@ export function TimelineMap({
               accessibilityRole="button"
               accessibilityLabel={replaying ? t.timeline.stop : t.timeline.replay}
               style={({ pressed }) => ({
-                width: 54,
-                borderRadius: theme.radius.lg,
+                width: 48,
+                height: 48,
+                borderRadius: 24,
+                alignSelf: 'center',
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: theme.color.buttonPrimary,
@@ -591,8 +593,10 @@ export function TimelineMap({
             >
               <Ionicons
                 name={replaying ? 'stop' : 'play'}
-                size={iconSize.lg}
+                size={20}
                 color={theme.color.onButtonPrimary}
+                // The play triangle's weight sits left; nudge it to look centred in the circle.
+                style={replaying ? undefined : { marginLeft: 3 }}
               />
             </Pressable>
           ) : null}

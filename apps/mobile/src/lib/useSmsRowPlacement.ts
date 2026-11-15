@@ -25,7 +25,7 @@ import {
   useCaptures,
   useCreateGroup,
   useGroupPeopleSignatures,
-  useGroups,
+  useExpenseGroups,
   useHomeSummary,
   useOneToOneGroupIds,
   usePeopleBalances,
@@ -65,7 +65,7 @@ export function useSmsRowPlacement(ownerId: string, viewerId: string | null) {
   const { t, locale } = useStrings();
   const toast = useToast();
   const guard = useGuestGuard();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   const summary = useHomeSummary(viewerId);
   const people = usePeopleBalances(viewerId);
   const oneToOne = useOneToOneGroupIds();

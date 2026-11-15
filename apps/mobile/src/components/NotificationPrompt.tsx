@@ -157,9 +157,11 @@ export function NotificationPrompt() {
         // app's own page in Settings. Coming back is handled above.
         await Linking.openSettings();
       } else {
-        // Raises the real dialog and, on a yes, registers and stores the token.
+        // Close the card first so it is not up under the system dialog; then
+        // raise the real dialog and, on a yes, register and store the token.
+        setVisible(false);
         allowed =
-          (await enablePush()).ok || (await pushPermissionDetail()).permission === 'granted';
+          (await enablePush(true)).ok || (await pushPermissionDetail()).permission === 'granted';
       }
     } catch {
       // A failure to register is not worth surfacing on a soft ask — swallow it
@@ -191,7 +193,7 @@ export function NotificationPrompt() {
         style={{
           width: 56,
           height: 56,
-          borderRadius: 14,
+          borderRadius: 12,
           backgroundColor: theme.color.brand,
           alignItems: 'center',
           justifyContent: 'center',

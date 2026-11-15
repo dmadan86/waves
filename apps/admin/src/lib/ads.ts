@@ -162,3 +162,42 @@ export function bannerStats(
     return totals;
   });
 }
+
+export const PASSIVE_PLACEMENTS = [
+  'native_list',
+  'home_banner',
+  'review_banner',
+  'activity_banner',
+  'voice_banner',
+  'settings_banner',
+] as const;
+
+/** Last-7-days impressions, clicks, CTR and AdMob-reported revenue per passive placement. */
+export function passiveStats(
+  rows: readonly {
+    day: string;
+    placement: string;
+    shown: number | string;
+    failed: number | string;
+    clicked?: number | string;
+    paid_micros?: number | string;
+  }[],
+  todayUtc: string,
+) {
+  const firstDay = new Date(`${todayUtc}T00:00:00Z`);
+  firstDay.setUTCDate(firstDay.getUTCDate() - 6);
+  const since = firstDay.toISOString().slice(0, 10);
+  return PASSIVE_PLACEMENTS.map((placement) => {
+    const t = { placement, shown: 0, clicked: 0, failed: 0, ctr: 0, paid: 0 };
+    for (const row of rows) {
+      if (row.placement !== placement || row.day < since || row.day > todayUtc) continue;
+      t.shown += count(row.shown);
+      t.clicked += count(row.clicked ?? 0);
+      t.failed += count(row.failed);
+      // Micros of the reported currency (AdMob sends the ad's currency); summed as reported.
+      t.paid += count(row.paid_micros ?? 0) / 1e6;
+    }
+    t.ctr = t.shown ? t.clicked / t.shown : 0;
+    return t;
+  });
+}

@@ -64,13 +64,10 @@ const DISPLAY = 'PlusJakartaSans-ExtraBold';
 const BODY = 'PlusJakartaSans-Medium';
 const CARD = {
   backgroundColor: '#FFFFFF',
-  borderRadius: 18,
+  borderRadius: 12,
+  borderWidth: 1,
+  borderColor: FIELD_LINE,
   padding: 14,
-  shadowColor: '#2A1E6B',
-  shadowOpacity: 0.06,
-  shadowRadius: 16,
-  shadowOffset: { width: 0, height: 6 },
-  elevation: 3,
 } as const;
 const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
 const ART = require('../../assets/images/verify-phone.webp') as number;
@@ -212,9 +209,11 @@ export default function PhoneScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: PAGE }}>
       {/* A soft lavender page, swells of the brand along its foot. */}
-      <LinearGradient
-        colors={['#F7F5FE', '#F2EFFD', '#EEEAFC']}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      <View
+        style={[
+          { backgroundColor: PAGE },
+          { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+        ]}
       />
       <Svg
         pointerEvents="none"
@@ -392,7 +391,7 @@ export default function PhoneScreen() {
                       gap: 12,
                       minHeight: 46,
                       paddingHorizontal: 6,
-                      borderRadius: 14,
+                      borderRadius: 12,
                       borderWidth: 1,
                       borderColor: FIELD_LINE,
                     }}
@@ -572,7 +571,7 @@ function Pill({
   );
   const shape = {
     height: 46,
-    borderRadius: 23,
+    borderRadius: 12,
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
@@ -586,26 +585,14 @@ function Pill({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => ({
-        borderRadius: 23,
+        borderRadius: 12,
         opacity: pressed ? 0.9 : 1,
-        shadowColor: '#6A45E8',
-        shadowOpacity: disabled ? 0 : 0.25,
-        shadowRadius: 12,
-        shadowOffset: { width: 0, height: 6 },
-        elevation: disabled ? 0 : 4,
       })}
     >
       {disabled && !busy ? (
         <View style={[shape, { backgroundColor: '#CFC4F6' }]}>{inner}</View>
       ) : (
-        <LinearGradient
-          colors={['#6A45E8', '#8B6CF6']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={shape}
-        >
-          {inner}
-        </LinearGradient>
+        <View style={[{ backgroundColor: '#6A45E8' }, shape]}>{inner}</View>
       )}
     </Pressable>
   );

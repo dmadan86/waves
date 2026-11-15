@@ -17,6 +17,7 @@ import {
   HttpError,
   json,
   requireMembership,
+  requireTwoStep,
 } from '../_shared/auth.ts';
 import { enforceRateLimit } from '../_shared/rateLimit.ts';
 import {
@@ -41,14 +42,17 @@ interface ExportRequest {
   csvSeparator?: string;
 }
 
-serveWithCors(async (request) => {
+export async function handleExportData(
+  request: Request,
+  deps = { asCaller, asService, enforceRateLimit },
+): Promise<Response> {
   try {
     if (request.method !== 'POST') throw new HttpError(405, 'METHOD_NOT_ALLOWED', 'Use POST');
 
     const body = (await request.json()) as ExportRequest;
     const format = body.format ?? 'json';
-    const caller = asCaller(request);
-    const service = asService();
+    const caller = deps.asCaller(request);
+    const service = deps.asService();
 
     const { data: user, error: userError } = await caller.auth.getUser();
     if (userError || !user?.user) {
@@ -60,7 +64,7 @@ serveWithCors(async (request) => {
     // several seconds of database time, and worth doing ten times an hour at
     // the very most. ADR-012 says export must always be available; it does not
     // say it must be available in a loop.
-    await enforceRateLimit(service, request, 'export-data', user.user.id);
+    await deps.enforceRateLimit(service, request, 'export-data', user.user.id);
 
     let groupIds: string[];
     if (body.groupId) {
@@ -69,7 +73,10 @@ serveWithCors(async (request) => {
     } else {
       // RLS decides what "my groups" means; no manual filtering needed.
       const { data: groups, error } = await caller.from('groups').select('id');
-      if (error) throw new HttpError(500, 'INTERNAL', error.message);
+      if (error) {
+        console.error(JSON.stringify({ fn: 'export-data', detail: error.message }));
+        throw new HttpError(500, 'INTERNAL', 'Could not complete request');
+      }
       groupIds = (groups ?? []).map((group) => group.id);
     }
 
@@ -89,18 +96,36 @@ serveWithCors(async (request) => {
       .eq('id', user.user.id)
       .single();
     if (meError) {
-      throw new HttpError(
-        500,
-        'EXPORT_INCOMPLETE',
-        `Could not read your profile: ${meError.message}`,
-      );
+      console.error(JSON.stringify({ fn: 'export-data', detail: meError.message }));
+      throw new HttpError(500, 'EXPORT_INCOMPLETE', 'Could not complete request');
     }
 
     const exported = [];
     for (const groupId of groupIds) {
-      const [group, members, expenses, settlements, activity] = await Promise.all([
-        service.from('groups').select('*').eq('id', groupId).single(),
-        service
+      // Some reads below use the service role; two-step is checked before any of them.
+      await requireTwoStep(caller, groupId);
+      // Keep company membership/profile reads under caller RLS, including in
+      // account-wide exports. Company entries are always read as the caller.
+      const { data: scope, error: scopeError } = await caller
+        .from('groups')
+        .select('type')
+        .eq('id', groupId)
+        .single();
+      if (scopeError) throw new HttpError(500, 'EXPORT_INCOMPLETE', 'Could not complete request');
+      const memberReader = scope?.type === 'company' ? caller : service;
+      const [
+        group,
+        members,
+        expenses,
+        settlements,
+        activity,
+        companyEntries,
+        vendors,
+        vendorEntries,
+        calendar,
+      ] = await Promise.all([
+        caller.from('groups').select('*').eq('id', groupId).single(),
+        memberReader
           .from('group_members')
           // Hint the FK column: ghost_merges bridges group_members and profiles,
           // so an unqualified profiles embed is ambiguous.
@@ -121,7 +146,40 @@ serveWithCors(async (request) => {
           .from('settlements')
           .select('*, allocations:settlement_allocations ( expense_id, amount )')
           .eq('group_id', groupId),
-        service.from('activity_log').select('*').eq('group_id', groupId),
+        scope?.type === 'company'
+          ? Promise.resolve({ data: [], error: null })
+          : service.from('activity_log').select('*').eq('group_id', groupId),
+        scope?.type === 'company'
+          ? caller
+              .from('company_entries')
+              .select(
+                'id,group_id,member_id,paid_by_company,entry_kind,category,amount,currency,calc_mode,days,rate_minor,occurred_on,direction,status,note,review_note,reviewed_by,reviewed_at,version,created_at,updated_at,deleted_at,void_reason,vendor,gstin,invoice_no,gst_rate_bps,gst_amount_minor,distance_km,from_text,to_text,reimbursement_id,reimbursement_details',
+              )
+              .eq('group_id', groupId)
+          : Promise.resolve({ data: [], error: null }),
+        // Vendor ledger: read as the caller, so an owner gets all, a manager their own vendors, a vendor itself.
+        scope?.type === 'company'
+          ? caller.from('company_vendors').select('id,name').eq('group_id', groupId)
+          : Promise.resolve({ data: [], error: null }),
+        scope?.type === 'company'
+          ? caller
+              .from('company_vendor_entries')
+              .select(
+                'id,vendor_id,kind,amount,occurred_on,note,status,review_note,funding_manager_id,received_at,version,deleted_at',
+              )
+              .eq('group_id', groupId)
+          : Promise.resolve({ data: [], error: null }),
+        // Calendar (holidays, leave, events, dates): read as the caller, so each role exports only what it can see.
+        scope?.type === 'company'
+          ? Promise.all(
+              ['company_holidays', 'company_leave', 'company_events', 'company_member_dates'].map(
+                (table) => caller.from(table).select('*').eq('group_id', groupId),
+              ),
+            ).then((rs) => ({
+              data: rs.map((r) => (r.data ?? []).filter((row) => !row.deleted_at)),
+              error: rs.find((r) => r.error)?.error ?? null,
+            }))
+          : Promise.resolve({ data: [[], [], [], []], error: null }),
       ]);
 
       // An export that quietly omits half the ledger is worse than no export at
@@ -132,13 +190,14 @@ serveWithCors(async (request) => {
         expenses,
         settlements,
         activity,
+        companyEntries,
+        vendors,
+        vendorEntries,
+        calendar,
       })) {
         if (result.error) {
-          throw new HttpError(
-            500,
-            'EXPORT_INCOMPLETE',
-            `Could not read ${label}: ${result.error.message}`,
-          );
+          console.error(JSON.stringify({ fn: 'export-data', label, detail: result.error.message }));
+          throw new HttpError(500, 'EXPORT_INCOMPLETE', 'Could not complete request');
         }
       }
 
@@ -148,6 +207,13 @@ serveWithCors(async (request) => {
         expenses: expenses.data ?? [],
         settlements: settlements.data ?? [],
         activity: activity.data ?? [],
+        companyEntries: companyEntries.data ?? [],
+        companyVendors: vendors.data ?? [],
+        companyVendorEntries: vendorEntries.data ?? [],
+        companyHolidays: calendar.data[0] ?? [],
+        companyLeave: calendar.data[1] ?? [],
+        companyEvents: calendar.data[2] ?? [],
+        companyMemberDates: calendar.data[3] ?? [],
       });
     }
 
@@ -290,6 +356,45 @@ serveWithCors(async (request) => {
           }
         }
 
+        if (entry.companyEntries.length > 0) {
+          pdf.subheading('Company entries', 11);
+          const companyTotals = new Map<string, bigint>();
+          for (const row of entry.companyEntries) {
+            const key = row.category ?? '';
+            const label = companyExportTagLabel(key, group?.company_tags);
+            pdf.body(
+              `${row.occurred_on}  ${row.paid_by_company ? 'Paid by: Company' : nameOf(row.member_id)}  ${row.entry_kind}  ` +
+                `${label}${label !== key ? ` (${key})` : ''}  ` +
+                `${formatMinor(row.amount, row.currency)} ${row.currency}  (${row.deleted_at ? 'voided' : row.status})`,
+              9,
+            );
+            if (
+              !row.deleted_at &&
+              row.entry_kind === 'expense' &&
+              ['approved', 'reimbursed'].includes(row.status)
+            ) {
+              companyTotals.set(
+                row.currency,
+                (companyTotals.get(row.currency) ?? 0n) + BigInt(row.amount),
+              );
+            }
+          }
+          for (const [currency, amount] of companyTotals) {
+            pdf.body(`Expense total: ${formatMinor(amount, currency)} ${currency}`, 10);
+          }
+        }
+
+        if (entry.companyVendorEntries.length > 0) {
+          pdf.subheading('Vendor ledger', 11);
+          for (const row of entry.companyVendorEntries) {
+            pdf.body(
+              `${row.occurred_on}  Vendor: ${vendorName(entry, row.vendor_id)}  ${row.kind}  ` +
+                `${formatMinor(row.amount, entry.group?.default_currency ?? 'INR')} ${entry.group?.default_currency ?? 'INR'}  (${row.deleted_at ? 'voided' : row.status})`,
+              9,
+            );
+          }
+        }
+
         // Per-family block (only when the group has families): paid, share, net.
         const subtotals = familySubtotals(
           units,
@@ -367,6 +472,31 @@ serveWithCors(async (request) => {
         'Paid by',
         'Split method',
         'Split between',
+        'company_category',
+        'company_direction',
+        'review_note',
+        'vendor',
+        'gstin',
+        'invoice_no',
+        'gst_rate_bps',
+        'gst_amount_minor',
+        'distance_km',
+        'from_text',
+        'to_text',
+        'reimbursement_id',
+        'reimbursement_details',
+        'calc_mode',
+        'days',
+        'rate_minor',
+        'company_category_label',
+        'project_id',
+        'gross_minor',
+        'claims_minor',
+        'recovery_minor',
+        'funding_manager',
+        'Employee ID',
+        'Department',
+        'Employment type',
         ...(anyFamilies ? ['Family'] : []),
       ],
     ];
@@ -381,8 +511,93 @@ serveWithCors(async (request) => {
 
       const units = entry.group?.units as GroupUnits | null | undefined;
       const family = (cells: string[], memberId: string | null): string[] =>
-        anyFamilies ? [...cells, familyName(units, memberId)] : cells;
+        anyFamilies
+          ? [
+              ...cells,
+              ...Array(Math.max(0, 39 - cells.length)).fill(''),
+              familyName(units, memberId),
+            ]
+          : cells;
       const live: Parameters<typeof familySubtotals>[1] = [];
+      for (const row of entry.companyEntries) {
+        rows.push(
+          family(
+            [
+              entry.group?.name ?? '',
+              `company_${row.entry_kind}`,
+              row.occurred_on,
+              row.note ?? '',
+              row.currency,
+              String(row.amount),
+              row.paid_by_company ? 'Company' : '',
+              row.paid_by_company ? '' : nameOf(row.member_id),
+              '',
+              row.deleted_at ? 'voided' : row.status,
+              `v${row.version}`,
+              '',
+              '',
+              '',
+              row.category ?? '',
+              row.direction ?? '',
+              row.review_note ?? '',
+              String(row.vendor ?? ''),
+              String(row.gstin ?? ''),
+              String(row.invoice_no ?? ''),
+              String(row.gst_rate_bps ?? ''),
+              String(row.gst_amount_minor ?? ''),
+              String(row.distance_km ?? ''),
+              String(row.from_text ?? ''),
+              String(row.to_text ?? ''),
+              String(row.reimbursement_id ?? ''),
+              JSON.stringify(row.reimbursement_details ?? null),
+              String(row.calc_mode ?? ''),
+              String(row.days ?? ''),
+              String(row.rate_minor ?? ''),
+              companyExportTagLabel(row.category ?? '', entry.group?.company_tags),
+              String(row.project_id ?? ''),
+              String(row.gross_minor ?? ''),
+              String(row.claims_minor ?? ''),
+              String(row.recovery_minor ?? ''),
+              row.funding_manager_id ? nameOf(row.funding_manager_id as string) : '',
+              row.paid_by_company
+                ? ''
+                : String(
+                    entry.members.find((m: Record<string, unknown>) => m.id === row.member_id)
+                      ?.employee_id ?? '',
+                  ),
+              row.paid_by_company
+                ? ''
+                : companyExportDepartment(entry.group, entry.members, row.member_id),
+              row.paid_by_company
+                ? ''
+                : String(
+                    entry.members.find((m: Record<string, unknown>) => m.id === row.member_id)
+                      ?.employment_type ?? '',
+                  ),
+            ],
+            row.member_id,
+          ),
+        );
+      }
+
+      for (const row of entry.companyVendorEntries) {
+        const cells = Array(36).fill('');
+        const vals: Record<number, string> = {
+          0: entry.group?.name ?? '',
+          1: `company_vendor_${row.kind}`,
+          2: row.occurred_on,
+          3: row.note ?? '',
+          4: String(entry.group?.default_currency ?? 'INR'),
+          5: String(row.amount),
+          9: row.deleted_at ? 'voided' : row.status,
+          10: `v${row.version}`,
+          16: row.review_note ?? '',
+          17: vendorName(entry, row.vendor_id),
+          35: row.funding_manager_id ? nameOf(row.funding_manager_id as string) : '',
+        };
+        for (const [i, v] of Object.entries(vals)) cells[Number(i)] = v;
+        rows.push(family(cells, null));
+      }
 
       for (const expense of entry.expenses) {
         const current = expense.versions?.find(
@@ -479,9 +694,40 @@ serveWithCors(async (request) => {
     return json({
       filename: `waves-export-${new Date().toISOString().slice(0, 10)}.csv`,
       contentType: 'text/csv',
-      content: rows.map((row) => row.map(escape).join(separator)).join('\n'),
+      content: rows
+        .map((row) =>
+          [...row, ...Array(Math.max(0, rows[0].length - row.length)).fill('')]
+            .map(escape)
+            .join(separator),
+        )
+        .join('\n'),
     });
   } catch (error) {
     return errorResponse(error, { fn: 'export-data' });
   }
-});
+}
+
+serveWithCors(handleExportData);
+
+/** Keep unknown keys verbatim; shared labels are display metadata only. */
+function vendorName(entry: { companyVendors: Record<string, unknown>[] }, id: unknown): string {
+  return String(entry.companyVendors.find((v) => v.id === id)?.name ?? 'unknown');
+}
+
+export function companyExportDepartment(
+  group: Record<string, unknown> | null | undefined,
+  members: Record<string, unknown>[],
+  memberId: unknown,
+): string {
+  const id = members.find((m) => m.id === memberId)?.department_id;
+  const list = (group?.company_departments ?? []) as { id: string; name: string }[];
+  return list.find((d) => d.id === id)?.name ?? '';
+}
+
+function companyExportTagLabel(key: string, tags: unknown): string {
+  if (Array.isArray(tags)) {
+    const tag = tags.find((value) => value && value.key === key && typeof value.label === 'string');
+    if (tag) return tag.label;
+  }
+  return key;
+}

@@ -27,7 +27,7 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
-import { HeroPillButton } from '@/components/ScreenHero';
+import { HeroPillButton } from '@/components/ScenicScreenHero';
 import { HOME_HERO_PHOTOS } from '@/components/home/HomeHeroBackground';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { useHomeHero } from '@/lib/useHomeHero';

@@ -4,11 +4,8 @@
  * a row of tiles of their own: a small disc over a one-line word in each
  * column, so the actions cost the card a band instead of the screen a block.
  *
- * Add expense sits at the right-hand end, where a right thumb rests — it is
- * what Home is opened for most often — and keeps the long press that raises
- * the type / scan / speak sheet. All actions wear the same quiet disc: none is
- * lit up over the others. Add expense and New group keep their tour anchors,
- * so the coach-marks still spotlight them.
+ * Free users get a compact credits sheet. A low balance
+ * highlights that action while keeping every disc and label aligned.
  *
  * Draws itself with `QuickActionsRow`, the same disc-and-label strip
  * Friends' own quick actions use — brand-tinted here, lilac there.
@@ -17,7 +14,7 @@
 import { useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { View } from 'react-native';
+import { View } from 'react-native';
 
 import { useTheme } from '@waves/ui';
 
@@ -25,24 +22,31 @@ import { GroupAddIcon } from '@/components/GroupAddIcon';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
 import type { MenuAnchor } from '@/components/home/NewGroupMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
-import { useStrings } from '@/i18n';
-import { readCredits } from '@/lib/adCredits';
+import { fill, useStrings } from '@/i18n';
+import { queryCredits } from '@/lib/adCredits';
 import { useViewerId } from '@/lib/auth';
-import { homeCreditsLabel } from '@/lib/homeCreditsLabel';
+import { useCaptures } from '@/data/hooks';
+import { foldedCaptureCount } from '@/lib/captureBatch';
+import { homeSecondActionKey } from '@/lib/companyTab';
+import { captureInboxActionState } from '@/lib/dashboardActions';
+import { useViewerCompanyIds } from '@/lib/useCompanyTab';
+import { homeCreditsAction } from '@/lib/isHomeCreditsLow';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useRewardedAdOffer } from '@/lib/useRewardedAdOffer';
-import { useToast } from '@/lib/toast';
 
 export function HomeQuickActions({
   onAddExpense,
   onAddExpenseLong,
   onSettleUp,
+  onReview,
   onNewGroup,
   radius,
 }: {
   onAddExpense: () => void;
   onAddExpenseLong: () => void;
   onSettleUp: () => void;
+  /** Company users: opens Review, which has no tab of its own for them. */
+  onReview: () => void;
   /** Handed the tile's window position so the menu can drop from it. */
   onNewGroup: (anchor: MenuAnchor | null) => void;
   /** The card's corner radius, which the strip's bottom corners follow. */
@@ -53,42 +57,54 @@ export function HomeQuickActions({
   const groupRef = useRef<View>(null);
   const viewerId = useViewerId();
   const { isPaid } = useEntitlement();
-  const toast = useToast();
   const adOffer = useRewardedAdOffer();
   const credits = useQuery({
     queryKey: ['credits', viewerId],
-    queryFn: readCredits,
+    queryFn: queryCredits,
     enabled: !!viewerId,
   });
+
+  const isReview = homeSecondActionKey(useViewerCompanyIds()) === 'review';
+  // Same folded count as the Review tab's badge.
+  const reviewBadge = captureInboxActionState(foldedCaptureCount(useCaptures().data ?? [])).badge;
+
+  const balance = credits.data?.credits;
+  const creditAction = homeCreditsAction(balance, credits.data?.costs.voice);
 
   const actions: QuickAction[] = [
     {
       key: 'group',
       label: t.homeDash.newGroup,
-      glyph: (color) => <GroupAddIcon size={17} color={color} />,
+      glyph: (color) => <GroupAddIcon size={28} color={color} />,
       onPress: () => measureAnchor(groupRef, onNewGroup),
       ref: groupRef,
       tourId: 'addGroup',
     },
-    {
-      key: 'settle',
-      label: t.homeDash.settleUp,
-      glyph: (color) => <Ionicons name="cash-outline" size={20} color={color} />,
-      onPress: onSettleUp,
-    },
+    isReview
+      ? {
+          key: 'review',
+          label: t.review,
+          badge: reviewBadge,
+          badgeColor: theme.color.negative,
+          glyph: (color) => <Ionicons name="file-tray-full-outline" size={28} color={color} />,
+          onPress: onReview,
+        }
+      : {
+          key: 'settle',
+          label: t.homeDash.settleUp,
+          glyph: (color) => <Ionicons name="cash-outline" size={28} color={color} />,
+          onPress: onSettleUp,
+        },
     ...(viewerId && !isPaid
       ? [
           {
             key: 'credits',
-            label: homeCreditsLabel(credits.data?.credits, t.homeDash),
-            glyph: (color: string) => <Ionicons name="flash" size={19} color={color} />,
-            onPress: () => {
-              if (!adOffer.canOffer('voice', { userInitiated: true })) {
-                toast.show(t.homeDash.noAdAvailable);
-                return;
-              }
-              void adOffer.offer('voice', { userInitiated: true });
-            },
+            label: fill(t.homeDash[creditAction.labelKey], { n: balance ?? 0 }),
+            badge: creditAction.badge,
+            badgeColor: theme.color.brand,
+            accessibilityLabel: `${fill(t.credits.balance, { n: balance ?? 0 })}. ${t.homeDash.getCredits}`,
+            glyph: () => <Ionicons name="flash" size={28} color={theme.color.warning} />,
+            onPress: () => void adOffer.offer('voice', { userInitiated: true, homeCredits: true }),
           },
         ]
       : []),
@@ -96,7 +112,7 @@ export function HomeQuickActions({
     {
       key: 'expense',
       label: t.homeDash.addExpense,
-      glyph: (color) => <Ionicons name="add" size={24} color={color} />,
+      glyph: (color) => <Ionicons name="add-circle-outline" size={28} color={color} />,
       onPress: onAddExpense,
       onLongPress: onAddExpenseLong,
       tourId: 'addExpense',
@@ -108,9 +124,10 @@ export function HomeQuickActions({
       <QuickActionsRow
         actions={actions}
         radius={radius}
-        discColor={theme.color.brandSoft}
+        discColor="transparent"
         iconColor={theme.color.brand}
-        rowPadding={theme.spacing.xs}
+        discSize={32}
+        rowPadding={theme.spacing.sm}
       />
       {adOffer.sheet}
     </>

@@ -69,9 +69,14 @@ function GroupSettings({ profileId }: { profileId: string }) {
     // RLS answers "not yours" with no row rather than an error, so a stale or
     // borrowed URL lands here. Leaving `group` null is the signal for the
     // missing-group panel below — never an editable form over defaults.
+    // A company has its own settings screen.
+    if (row?.type === GroupType.Company) {
+      router.replace(`/c/${groupId}/settings`);
+      return true;
+    }
     setGroup(row);
     setPeople(members);
-    if (!row) return;
+    if (!row) return false;
     setName(row.name ?? '');
     setEmoji(row.cover_emoji);
     setCurrency(row.default_currency);
@@ -80,13 +85,15 @@ function GroupSettings({ profileId }: { profileId: string }) {
     setIAmAdmin(
       members.some((member) => member.profile_id === profileId && member.role === 'admin'),
     );
-  }, [groupId, profileId]);
+    return false;
+  }, [groupId, profileId, router]);
 
   useEffect(() => {
     let active = true;
+    let redirected = false;
     void (async () => {
       try {
-        await load();
+        redirected = await load();
       } catch (caught) {
         if (active)
           setError(
@@ -96,7 +103,7 @@ function GroupSettings({ profileId }: { profileId: string }) {
             }),
           );
       } finally {
-        if (active) setLoading(false);
+        if (active && !redirected) setLoading(false);
       }
     })();
     return () => {

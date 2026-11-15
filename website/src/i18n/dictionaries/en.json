@@ -3,7 +3,7 @@
     "title": "Waves — split, track and settle together",
     "description": "Waves helps you split, track and settle shared expenses with friends, family and roommates. Scan receipts, add expenses by voice and keep going offline. Free to get started, no credit card required.",
     "ogAlt": "Waves — split, track and settle together",
-    "priceCurrency": "USD"
+    "priceCurrency": "INR"
   },
   "nav": {
     "features": "Features",
@@ -13,6 +13,7 @@
     "faq": "FAQ",
     "download": "Download App",
     "openApp": "Open the web app",
+    "signIn": "Sign in",
     "menu": "Menu",
     "close": "Close",
     "language": "Language",
@@ -24,7 +25,10 @@
     "agents": "AI Assistant",
     "offline": "Offline",
     "voice": "AI voice",
-    "wearables": "Watch & widgets"
+    "wearables": "Watch & widgets",
+    "companies": "For companies",
+    "personal": "Your money",
+    "github": "Waves on GitHub"
   },
   "stores": {
     "downloadOn": "Download on the",
@@ -36,9 +40,9 @@
   },
   "hero": {
     "eyebrow": "Expenses made simple",
-    "titleStart": "Split, track and settle",
-    "titleAccent": "together",
-    "subtitle": "Waves helps you manage shared expenses with friends, family or anyone. Simple, beautiful and built for real life.",
+    "titleStart": "Money between friends,",
+    "titleAccent": "without the awkward bit.",
+    "subtitle": "Split bills with friends, keep your own money in order and run your team's expenses. Free to start, with 15 days of Pro on us.",
     "trust": ["New accounts get 15 days of Pro free", "No credit card required", "Works offline"],
     "alt": "Friends sharing a meal at a table by a lake at sunset",
     "chips": [
@@ -56,6 +60,93 @@
         "who": "Gayathri paid",
         "item": "Scooter",
         "amount": "₹450"
+      }
+    ],
+    "split": {
+      "label": "Animated example: a dinner bill of ₹1,665 split three ways; Ravi owes Asha ₹555",
+      "bill": "Dinner",
+      "total": "₹1,665",
+      "paidBy": "Asha paid",
+      "each": "₹555 each",
+      "people": ["Asha", "Ravi", "Meera"],
+      "result": "Ravi pays you ₹555",
+      "resultNote": "Who owes whom",
+      "settle": "Settle with UPI",
+      "upi": "Opens your UPI app",
+      "replay": "Replay",
+      "example": "Example"
+    },
+    "ctaBusiness": "Running a business? See Waves for companies",
+    "orbit": {
+      "label": "Example group: Goa Trip, ₹12,480 shared by four people. Ravi owes you ₹555.",
+      "groupLabel": "Group",
+      "group": "Goa Trip",
+      "total": "₹12,480",
+      "meta": "4 people · 62% settled",
+      "you": "You",
+      "paid": "paid",
+      "owes": "owes ₹555",
+      "settled": "settled",
+      "invite": "+ invite by link",
+      "statementStart": "9 bills on a trip.",
+      "statementEnd": "2 transfers to settle."
+    }
+  },
+  "explore": {
+    "eyebrow": "Explore Waves",
+    "titleStart": "Eight ways in.",
+    "titleAccent": "One ledger.",
+    "lead": "Everything below works on the free plan, with no card at sign-up. Pick a door — the balances follow you everywhere.",
+    "alsoLabel": "Also",
+    "facts": ["₹0 forever", "No card", "Open source"],
+    "cards": [
+      {
+        "id": "split",
+        "label": "Friends & trips",
+        "title": "Split",
+        "body": "Any way you like"
+      },
+      {
+        "id": "scan",
+        "label": "Receipts",
+        "title": "Scan",
+        "body": "Add a bill in seconds"
+      },
+      {
+        "id": "voice",
+        "label": "AI voice · 4 languages",
+        "title": "Say it",
+        "body": "Hinglish works too"
+      },
+      {
+        "id": "settle",
+        "label": "Settle on UPI",
+        "title": "Settle",
+        "body": "One tap, your UPI app opens"
+      },
+      {
+        "id": "offline",
+        "label": "No signal",
+        "title": "Offline",
+        "body": "Saved first, synced later"
+      },
+      {
+        "id": "ask",
+        "label": "MCP · any assistant",
+        "title": "Ask",
+        "body": "Your AI keeps the books"
+      },
+      {
+        "id": "personal",
+        "label": "Personal",
+        "title": "Your money",
+        "body": "Budgets, loans, bills"
+      },
+      {
+        "id": "companies",
+        "label": "Teams & sites",
+        "title": "Companies",
+        "body": "Approve in a tap"
       }
     ]
   },
@@ -92,17 +183,17 @@
       {
         "title": "Add an expense",
         "body": "Type it, scan a receipt or just say it.",
-        "alt": "A phone with a receipt and a camera icon, between green leaves"
+        "alt": "A hand holding a phone that scans a café receipt"
       },
       {
         "title": "Split with people",
         "body": "Choose who paid and how to split.",
-        "alt": "Three friends' avatars with a plus button to add more"
+        "alt": "A phone splitting a dinner bill between friends"
       },
       {
         "title": "Track and settle",
         "body": "See balances and settle up anytime.",
-        "alt": "A phone showing a green tick, between green leaves"
+        "alt": "A phone showing “Settled!” above the group's balances"
       }
     ]
   },
@@ -157,10 +248,10 @@
         "tagline": "Everything that matters, forever",
         "badge": "",
         "features": [
-          "Unlimited groups, expenses and splits",
-          "Settle up and export, no limits",
-          "20 receipt scans a month",
-          "AI voice: 10 commands a month"
+          "Unlimited people, expenses, currencies and splits",
+          "Settle up is unlimited",
+          "Watch a short ad for 6 credits; hold up to 30",
+          "AI voice: 10 a month, then 1 credit · receipt scan 2 · export 6 · extra group 6 (first group free)"
         ]
       },
       {
@@ -169,20 +260,22 @@
         "tagline": "Everything you need",
         "badge": "Recommended",
         "features": [
+          "No ads",
+          "100 AI voice commands a month",
           "300 receipt scans a month",
-          "Use on up to 3 devices",
-          "Bigger exports, imports and backups",
-          "Advanced AI voice: 100 commands a month"
+          "Use on up to 3 devices"
         ]
       }
     ],
-    "freeNote": "Free stays free: groups, expenses, splitting and settling up are unlimited, with no card at sign-up. AI voice: 10 commands a month. Free has optional reward ads for extra AI voice commands and scans; Pro has no ads.",
-    "priceNote": "Prices shown are for India. In other countries the app store shows your local price. Subscribe from inside the app. New accounts get 15 days of Pro free, no card needed."
+    "freeNote": "Free is ad-supported: banner ads show on some screens, and you can watch a short ad whenever you like for 6 credits (hold up to 30). AI voice costs 1 credit after the first 10 a month, a receipt scan 2 after the first 20 a month, an export 6 and an extra group 6; your first group is free. People, expenses, currencies, splits and settling up are unlimited, with no card at sign-up. Pro has no ads.",
+    "priceNote": "Prices shown are for India. In other countries the app store shows your local price. Subscribe from inside the app. New accounts get 15 days of Pro free, no card needed.",
+    "ctaFree": "Start free",
+    "ctaPro": "Try Pro free for 15 days"
   },
   "privacy": {
     "eyebrow": "Your data, always yours",
     "title": "Private, secure and never sold.",
-    "body": "Your data belongs to you. We never sell your data. Free has optional reward ads you choose to watch, never on your money screens. Pro has none.",
+    "body": "Your data belongs to you. We never sell your data. Free is ad-supported, with banner ads on some screens and short ads you can watch for credits, never on the settle-up screen. Pro has none.",
     "cta": "Learn more",
     "pills": ["Private by default", "Encrypted on your device", "You own your data"],
     "alt": "A blue shield with a tick, framed by green leaves"
@@ -197,31 +290,31 @@
     "items": [
       {
         "q": "Is Waves really free?",
-        "a": "Yes. Groups, people, expenses, currencies, offline use and settling up are unlimited on the free tier. Pro exists for the features with a running cost behind them — receipt scanning, photo storage and extra devices. The free plan never expires, and new accounts also get 15 days of Pro free, with no card needed."
+        "a": "Yes. People, expenses, currencies, splits, offline use and settling up are unlimited on the free plan, and your first group is free. A few things cost credits, which you earn by watching a short ad. The free plan never expires, and new accounts also get 15 days of Pro free, with no card needed."
       },
       {
         "q": "What does Pro add?",
-        "a": "Pro adds 300 receipt scans a month, use on up to 3 devices, bigger exports, imports and backups, and the advanced AI voice agent with 100 commands a month. In India Pro is ₹79 a month or ₹699 a year; other countries are priced in the app store."
+        "a": "Pro has no ads and adds 100 AI voice commands and 300 receipt scans a month, with use on up to 3 devices. In India Pro is ₹79 a month or ₹699 a year; other countries are priced in the app store."
       },
       {
         "q": "Does everyone need to install the app?",
-        "a": "No. Share a link or a QR code and people can join and see the group in a browser, with no account and no download. They can create an account later if they want the app, and the ledger follows them."
+        "a": "No. Share a link or a QR code and people can join and see the group in a browser, with no download. Joining needs a free account, made in a minute with Google, Apple or an email address. If they want the app later, the ledger follows them."
       },
       {
         "q": "What do you do with my data?",
-        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free has optional reward ads you choose to watch, never on your money screens; Pro has none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
+        "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free is ad-supported, with banner ads on some screens and short ads you can watch for credits; Pro has none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
       },
       {
         "q": "Does Waves show ads?",
-        "a": "Only if you choose to, and only on Free. When you reach the monthly limit for AI voice commands or receipt scans, you can watch one short ad to earn 2 more of them, up to 3 ads a day, or upgrade to Pro instead. Nothing is ever forced, and ads never appear on balances, groups, expenses or settling up. They are non-personalized and we do not track you across apps. Pro has no ads at all."
+        "a": "On Free, yes. Banner ads show on some screens, such as Home, Friends and a group's expense list, never on the settle-up screen. You can also watch a short ad for 6 credits (you can hold up to 30). Credits pay for AI voice (1 credit), receipt scans after the first 20 a month (2), exports (6) and extra groups (6; your first group is free). They are non-personalized and we do not track you across apps. Pro has no ads at all."
       },
       {
         "q": "Can I import or export my data?",
-        "a": "Yes. Exporting your ledger is part of the free plan, and your data is yours to take with you. Pro raises the limits for bigger exports, imports and backups."
+        "a": "Yes. You can export your ledger from the app; on Free an export costs 6 credits. Your data is yours to take with you."
       },
       {
         "q": "Can I add expenses by voice?",
-        "a": "Yes. Everyone gets a voice allowance. Pro adds the advanced AI voice agent with 100 commands a month."
+        "a": "Yes. Free includes 10 AI voice commands a month; after that each costs 1 credit. Pro has no ads and includes 100 AI voice commands a month."
       },
       {
         "q": "What happens when I have no signal?",
@@ -274,7 +367,10 @@
       "agents": "AI Assistant",
       "offline": "Offline",
       "voice": "AI voice",
-      "wearables": "Watch & widgets"
+      "wearables": "Watch & widgets",
+      "companies": "For companies",
+      "personal": "Your money",
+      "github": "GitHub"
     },
     "rights": "All rights reserved."
   },
@@ -377,7 +473,8 @@
         ],
         "link": ""
       }
-    ]
+    ],
+    "videoLabel": "Video: someone asks their AI assistant to add a ₹2,400 cab to Goa Trip split equally, asks who owes them, and asks to settle up with Arjun. Waves records each one; paying stays in their own UPI app."
   },
   "mcpPage": {
     "metaTitle": "Connect an AI agent to Waves (MCP)",
@@ -622,7 +719,9 @@
       "Choose to sync on Wi‑Fi only, mobile data, or both."
     ],
     "voiceTitle": "Voice works offline too",
-    "voiceBody": "Download a speech language once in Offline voice settings and the mic works with no connection. Basic voice runs on your phone; whether a language is available offline depends on your phone’s speech service."
+    "voiceBody": "Download a speech language once in Offline voice settings and the mic works with no connection. Basic voice runs on your phone; whether a language is available offline depends on your phone’s speech service.",
+    "videoLabel": "Video: with no signal, three expenses are saved on the phone and wait. When the signal returns they are sent in order and the balance updates on every friend’s phone.",
+    "voiceVideoLabel": "Video: with no signal, someone taps the mic and says “Dinner eighteen hundred, split with four”. The phone understands it on its own, and the expense is saved to sync later."
   },
   "voice": {
     "eyebrow": "AI voice",
@@ -761,6 +860,880 @@
       "A voice add that needs a decision, like a split or someone else paying, is saved for review instead of guessed.",
       "The widgets are shortcuts. They do not show balances, and they work with the app’s own screens."
     ],
-    "soonNote": "Wear OS is on its way and not released yet."
+    "soonNote": "Wear OS is on its way and not released yet.",
+    "videoLabel": "Video: on Apple Watch someone says “Auto 120” and it is added, dials ₹450 with the Digital Crown, and checks the recent list. Then Waves widgets on a home screen: tapping Food opens quick add with Food chosen."
+  },
+  "companies": {
+    "eyebrow": "Waves for companies",
+    "title": "Run your team's money like a chat.",
+    "body": "Employees add expenses with a photo. You approve in a tap. Advances, daily allowance, wages, vendors and bills all stay in order.",
+    "points": [
+      "Expenses and claims with photo proof",
+      "Daily allowance and wages at your rates",
+      "Vendors, clients and bills in one place",
+      "Attendance and daily tasks for the team"
+    ],
+    "cta": "See Waves for companies",
+    "availability": "On Android and the web. iPhone coming soon."
+  },
+  "companyMock": {
+    "title": "Approvals",
+    "who": "Ravi",
+    "item": "Diesel",
+    "item2": "Fuel",
+    "waiting": "Waiting",
+    "approved": "Approved",
+    "approve": "Approve",
+    "balance": "Owed to Ravi",
+    "allowance": {
+      "title": "Daily allowance",
+      "days": "6 days at the company rate",
+      "total": "Allowance"
+    },
+    "wages": {
+      "title": "This week",
+      "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      "total": "Wages",
+      "record": "Record payment"
+    },
+    "bills": {
+      "title": "Bill",
+      "line1": "Site visit",
+      "line2": "Materials",
+      "total": "Total due",
+      "scan": "UPI QR"
+    },
+    "tickets": {
+      "title": "Complaint",
+      "open": "Open",
+      "progress": "In progress",
+      "resolved": "Resolved",
+      "ticket": "Leaking tap"
+    },
+    "attendance": {
+      "title": "Attendance",
+      "today": "Present today",
+      "count": "9 of 12"
+    },
+    "tasks": {
+      "title": "Tasks",
+      "todo": "To do",
+      "doing": "Doing",
+      "done": "Done",
+      "task": "Fix the pump",
+      "site": "Site 2"
+    }
+  },
+  "companiesPage": {
+    "metaTitle": "Waves for companies — expenses, wages and bills for your team",
+    "metaDescription": "Employees add expenses with a photo and you approve in a tap. Advances, daily allowance, wages, attendance, tasks, vendors, clients and bills in one simple app. On Android and the web; iPhone coming soon.",
+    "eyebrow": "For companies",
+    "titleStart": "Your team's money,",
+    "titleAccent": "as simple as a chat.",
+    "subtitle": "Employees add expenses with a photo. You approve in a tap. Advances, daily allowance, wages, vendors and bills stay in order, without a spreadsheet.",
+    "ctaPrimary": "Start your company free",
+    "ctaSecondary": "Get your business on Waves",
+    "avail": {
+      "title": "Where it works",
+      "labels": {
+        "available": "Available",
+        "rolling": "Rolling out",
+        "soon": "Coming soon"
+      },
+      "items": [
+        {
+          "name": "Android",
+          "status": "available",
+          "text": "Create a company and invite your team today."
+        },
+        {
+          "name": "Web app",
+          "status": "available",
+          "text": "Create a company and work from a computer as well."
+        },
+        {
+          "name": "iPhone",
+          "status": "soon",
+          "text": "Coming soon. Until then, use the Android app."
+        }
+      ]
+    },
+    "rolesTitle": "Everyone sees only what they should",
+    "rolesLead": "Three roles, kept simple. Employees see only their own entries.",
+    "rolesLabel": "Role",
+    "roles": [
+      {
+        "name": "Owner",
+        "blurb": "You see the whole company and set the rules.",
+        "can": [
+          "Approve or reject claims",
+          "Set daily allowance and mileage rates",
+          "Record advances and wages, and export reports"
+        ],
+        "mockTitle": "Company",
+        "rows": [
+          {
+            "k": "Waiting for you",
+            "v": "3"
+          },
+          {
+            "k": "People",
+            "v": "12"
+          },
+          {
+            "k": "Spent this month",
+            "v": "₹48,200"
+          }
+        ]
+      },
+      {
+        "name": "Manager",
+        "blurb": "Looks after a team and keeps its claims moving.",
+        "can": [
+          "Review the team's claims",
+          "Mark the team's attendance and assign tasks",
+          "Record advances and wages for the team",
+          "Give money to the team and see what is left"
+        ],
+        "mockTitle": "My team",
+        "rows": [
+          {
+            "k": "Waiting for you",
+            "v": "2"
+          },
+          {
+            "k": "People",
+            "v": "5"
+          },
+          {
+            "k": "Money in hand",
+            "v": "₹6,500"
+          }
+        ]
+      },
+      {
+        "name": "Employee",
+        "blurb": "Adds what they spent. Sees only their own entries.",
+        "can": [
+          "Add an expense with a photo",
+          "Record daily allowance or mileage",
+          "See their own statement and what the company owes",
+          "See their own tasks and attendance"
+        ],
+        "mockTitle": "My account",
+        "rows": [
+          {
+            "k": "Waiting",
+            "v": "1"
+          },
+          {
+            "k": "Approved",
+            "v": "₹2,050"
+          },
+          {
+            "k": "Owed to me",
+            "v": "₹2,050"
+          }
+        ]
+      }
+    ],
+    "featuresTitle": "Everything a small team runs on",
+    "features": [
+      {
+        "id": "approvals",
+        "eyebrow": "Expenses",
+        "title": "Add with a photo. Approve in a tap.",
+        "body": "An employee snaps the receipt and adds the amount. The owner or manager sees it in a queue and approves or rejects it. Only approved entries count toward the balance.",
+        "points": [
+          "Photo proof on every claim",
+          "Submitted, approved or rejected, always clear",
+          "A running statement for each person"
+        ]
+      },
+      {
+        "id": "allowance",
+        "eyebrow": "Allowance and advances",
+        "title": "Allowance and mileage at your rates",
+        "body": "Set the rate once. Employees enter days or kilometres and the amount works itself out. Advances are tracked and taken off what you owe.",
+        "points": [
+          "Daily allowance by days",
+          "Mileage by distance",
+          "Advances taken off the balance"
+        ]
+      },
+      {
+        "id": "attendance",
+        "eyebrow": "Attendance",
+        "title": "Mark the team's day in a tap",
+        "body": "Tap a name to mark present, half day or absent. See the whole month at a glance and how many are in today. People on approved leave show as on leave. The marks feed straight into wages.",
+        "points": [
+          "Present, half day, absent or on leave",
+          "Day, week and month views",
+          "Mark everyone present in one go"
+        ]
+      },
+      {
+        "id": "wages",
+        "eyebrow": "Wages and attendance",
+        "title": "From attendance to wages, in one run",
+        "body": "When it is time to pay, the wage run adds up the days from attendance and any unpaid allowance. Record payment once it is paid.",
+        "points": [
+          "Days come straight from attendance",
+          "Calendar with leave and holidays",
+          "Record payment once it is paid"
+        ]
+      },
+      {
+        "id": "tasks",
+        "eyebrow": "Tasks",
+        "title": "Give the work. See it get done.",
+        "body": "Create a task, give it to a person, and add a deadline and a photo. Each task gets a number and moves from To do to Doing to Done, or Blocked with a reason.",
+        "points": [
+          "Assign to one or more people, with a deadline",
+          "Photos and notes on every task",
+          "Numbered, and shown with their site"
+        ]
+      },
+      {
+        "id": "bills",
+        "eyebrow": "Estimates and bills",
+        "title": "Send an estimate. Collect with UPI.",
+        "body": "Make an estimate, turn it into a bill, and show a UPI QR for the amount still due. You record each payment as it comes in.",
+        "points": [
+          "Line items with quantities and rates",
+          "UPI QR for what is still due",
+          "Unpaid, part paid or paid at a glance"
+        ]
+      },
+      {
+        "id": "tickets",
+        "eyebrow": "Complaints",
+        "title": "Complaints, tracked to done",
+        "body": "Log a complaint, give it to someone, and watch it move from open to resolved. Late ones are flagged and escalated.",
+        "points": [
+          "Assign it to a person",
+          "Open, in progress, resolved or closed",
+          "Priority and escalation when it runs late"
+        ]
+      }
+    ],
+    "billsNote": "Estimates and bills here are simple documents, not GST tax invoices.",
+    "moreTitle": "And the rest of the office",
+    "moreLead": "Small tools that sit beside the money.",
+    "more": [
+      {
+        "title": "Vendors",
+        "body": "A ledger for each vendor: orders, deliveries and payments you record."
+      },
+      {
+        "title": "Clients",
+        "body": "Keep clients, inquiries and follow-ups. Mark each inquiry open, quoted, won or rejected."
+      },
+      {
+        "title": "Budgets and sites",
+        "body": "Give each site a budget and see what was spent against it."
+      },
+      {
+        "title": "Import",
+        "body": "Bring in employees, clients or vendors from a file, your contacts or a Google Sheet."
+      },
+      {
+        "title": "Export",
+        "body": "Download statements and summaries as PDF or Excel."
+      },
+      {
+        "title": "Activity",
+        "body": "See who added, approved or changed what."
+      },
+      {
+        "title": "Photos and storage",
+        "body": "Receipts and photos are kept with each entry. Add a storage pack when you need more room."
+      },
+      {
+        "title": "AI assistant",
+        "body": "Owners can let an AI assistant read the books. One switch turns it off, and changes can need your approval."
+      }
+    ],
+    "videos": {
+      "hero": "A short film: Ravi snaps a fuel receipt and submits it, Suresh approves it in a tap, a week of attendance becomes wages, and Anita sees the company cash update.",
+      "approvals": "A short film: approving an expense",
+      "wages": "A short film: attendance becomes a wage total",
+      "bills": "A short film: a bill with a UPI QR",
+      "attendance": "A short film: the month fills with attendance marks",
+      "tasks": "A short film: a task moves from To do to Done",
+      "allowance": "A short film: daily allowance by days and mileage by km add up, and the advance is taken off"
+    },
+    "films": {
+      "title": "See it in action",
+      "lead": "Four short films, start to finish.",
+      "label": "Product films",
+      "watch": "Watch the film",
+      "tabs": [
+        {
+          "id": "inquiries",
+          "tab": "Inquiries",
+          "caption": "An inquiry comes in, gets assigned, followed up, quoted and won, then moves to Clients.",
+          "alt": "A short film: an inquiry is assigned, quoted and won, and the person lands in Clients",
+          "video": "companies-inquiry"
+        },
+        {
+          "id": "approvals",
+          "tab": "Approvals",
+          "caption": "An employee adds an expense with a photo. The manager and the owner approve, the owner records the payment, and everyone sees it settled.",
+          "alt": "A short film: an expense is approved by the manager and the owner, then paid",
+          "video": "companies-approval-flow"
+        },
+        {
+          "id": "bills",
+          "tab": "Bills",
+          "caption": "An estimate is sent and accepted, becomes a bill with a UPI QR, and is paid in parts until it shows Paid. Estimates and bills, not tax invoices.",
+          "alt": "A short film: an estimate becomes a bill, paid in two parts through UPI",
+          "video": "companies-invoice"
+        },
+        {
+          "id": "complaints",
+          "tab": "Complaints",
+          "caption": "A complaint is logged with a priority and an owner, moves to in progress, escalates if it runs late, and closes with a note.",
+          "alt": "A short film: a complaint is logged, escalated and resolved with a note",
+          "video": "companies-complaints"
+        }
+      ]
+    },
+    "steps": {
+      "eyebrow": "Get started",
+      "title": "Get your business on Waves in 3 steps",
+      "items": [
+        {
+          "title": "Create your company",
+          "body": "Choose Company when you make a new group. Your first company is free."
+        },
+        {
+          "title": "Invite your team",
+          "body": "Share the invite link. Staff join on Android or the web."
+        },
+        {
+          "title": "Approve and pay",
+          "body": "Review claims in a tap, mark attendance, and record advances and wages."
+        }
+      ]
+    },
+    "faq": {
+      "title": "Questions owners ask first",
+      "items": [
+        {
+          "q": "Is my data safe?",
+          "a": "Employees see only their own entries, managers see their team's, and the owner sees the company. Receipt photos are private and open through links that expire quickly. In the Android app the ledger saved on the phone is encrypted at rest; the browser copy is not. The shared ledger lives on our server so phones can agree; it is not end-to-end encrypted, and we never sell data."
+        },
+        {
+          "q": "Do my staff need smartphones?",
+          "a": "Staff who add their own expenses or tasks need the Android app or a web browser; iPhone is coming soon. Owners and managers can mark attendance and record advances and wages for the team, so people who only need paying do not have to type anything."
+        },
+        {
+          "q": "Does it work offline?",
+          "a": "You can record expenses offline and they sync when signal returns. Joining a company, AI features and payments need a connection."
+        },
+        {
+          "q": "What does it cost?",
+          "a": "Your first company is free. Extra companies are a separate monthly subscription in the app store, so check the price shown there before you add one. Waves Pro, which removes ads, is optional: in India it is ₹79 a month or ₹699 a year."
+        }
+      ]
+    },
+    "contact": {
+      "title": "Get your business on Waves",
+      "body": "Write to us and we will help you get started. We reply personally.",
+      "whatsapp": "Chat on WhatsApp",
+      "email": "Email us",
+      "whatsappText": "Hi, I would like to set up my business on Waves.",
+      "emailSubject": "Waves for my business"
+    }
+  },
+  "personal": {
+    "eyebrow": "Waves for your own money",
+    "title": "Your own money, kept just for you.",
+    "body": "Track spending, set budgets, remember who owes whom and see every bill that repeats. Add things by typing, speaking, pasting a bank message or importing a statement.",
+    "points": [
+      "Spending by category, month by month",
+      "Monthly budgets, overall or per category",
+      "Loans you lent or borrowed, and repeating bills",
+      "Bank messages and statements turned into entries"
+    ],
+    "cta": "See Waves for your own money",
+    "availability": "In the phone app. Private to you, not shared with groups."
+  },
+  "personalMock": {
+    "demo": {
+      "title": "This month",
+      "month": "November",
+      "bank": "Bank message",
+      "sms": "Rs.450.00 spent on card XX4821 at SWIGGY",
+      "item": "Swiggy",
+      "added": "Added to Food",
+      "budget": "Food budget",
+      "of": "of ₹6,000"
+    },
+    "spending": {
+      "title": "Spent this month",
+      "cats": [
+        {
+          "name": "Food & drink",
+          "amount": "₹9,800"
+        },
+        {
+          "name": "Shopping",
+          "amount": "₹6,400"
+        },
+        {
+          "name": "Travel",
+          "amount": "₹4,600"
+        },
+        {
+          "name": "Others",
+          "amount": "₹3,800"
+        }
+      ]
+    },
+    "budgets": {
+      "title": "Monthly budgets",
+      "items": [
+        {
+          "name": "Overall",
+          "of": "₹24,600 of ₹30,000",
+          "pct": 82,
+          "left": "₹5,400 left"
+        },
+        {
+          "name": "Food & drink",
+          "of": "₹9,800 of ₹8,000",
+          "pct": 100,
+          "left": "₹1,800 over"
+        },
+        {
+          "name": "Shopping",
+          "of": "₹6,400 of ₹10,000",
+          "pct": 64,
+          "left": "₹3,600 left"
+        }
+      ]
+    },
+    "loans": {
+      "title": "Loans",
+      "items": [
+        {
+          "name": "Ravi",
+          "amount": "₹5,000",
+          "dir": "You lent",
+          "note": "₹2,000 left",
+          "pct": 60
+        },
+        {
+          "name": "Priya",
+          "amount": "₹1,200",
+          "dir": "You borrowed",
+          "note": "₹900 left",
+          "pct": 25
+        }
+      ]
+    },
+    "recurring": {
+      "title": "Repeats",
+      "items": [
+        {
+          "icon": "🏠",
+          "name": "Rent",
+          "when": "Monthly",
+          "amount": "₹15,000"
+        },
+        {
+          "icon": "💪",
+          "name": "Gym",
+          "when": "Monthly",
+          "amount": "₹800"
+        },
+        {
+          "icon": "🛡️",
+          "name": "Insurance",
+          "when": "Yearly",
+          "amount": "₹12,000"
+        }
+      ]
+    },
+    "transactions": {
+      "title": "Transactions",
+      "tabs": ["All", "Expenses", "Income", "Transfers"],
+      "rows": [
+        {
+          "name": "Swiggy",
+          "amount": "₹450",
+          "income": false
+        },
+        {
+          "name": "Salary",
+          "amount": "+₹60,000",
+          "income": true
+        },
+        {
+          "name": "Groceries",
+          "amount": "₹1,230",
+          "income": false
+        },
+        {
+          "name": "Cab",
+          "amount": "₹210",
+          "income": false
+        }
+      ]
+    },
+    "sms": {
+      "bank": "Bank message",
+      "text": "Rs.450.00 spent on card XX4821 at SWIGGY on 03-11-26",
+      "fields": [
+        {
+          "k": "Amount",
+          "v": "₹450"
+        },
+        {
+          "k": "Where",
+          "v": "Swiggy"
+        },
+        {
+          "k": "When",
+          "v": "3 Nov"
+        }
+      ],
+      "save": "Add to Review"
+    },
+    "statement": {
+      "title": "Statement",
+      "count": "42 rows",
+      "rows": [
+        {
+          "name": "Swiggy",
+          "amount": "₹450",
+          "credit": false
+        },
+        {
+          "name": "Rent",
+          "amount": "₹15,000",
+          "credit": false
+        },
+        {
+          "name": "Salary",
+          "amount": "+₹60,000",
+          "credit": true
+        }
+      ],
+      "note": "Debits are ticked. You choose what to add."
+    },
+    "voice": {
+      "said": "Spent eighty on tea, just for me",
+      "item": "Tea",
+      "cat": "Food & drink · Just for me"
+    },
+    "receipt": {
+      "fields": [
+        {
+          "k": "Note",
+          "v": "Groceries"
+        },
+        {
+          "k": "Amount",
+          "v": "₹1,230"
+        },
+        {
+          "k": "Receipt",
+          "v": "Photo attached"
+        }
+      ]
+    }
+  },
+  "personalPage": {
+    "metaTitle": "Waves for your own money — spending, budgets, loans and bills",
+    "metaDescription": "Track your own spending by category, set monthly budgets, keep loans you lent or borrowed, and see repeating bills. Add by typing, voice, a pasted bank message or a statement import. Private to you.",
+    "eyebrow": "Your own money",
+    "titleStart": "Everything you spend,",
+    "titleAccent": "kept just for you.",
+    "subtitle": "A private ledger beside your groups. Spending by category, budgets, loans and repeating bills, with bank messages and statements turned into entries you review.",
+    "ctaPrimary": "Start free",
+    "ctaSecondary": "See what is inside",
+    "avail": {
+      "title": "Where it works",
+      "labels": {
+        "all": "Phone app",
+        "android": "Android only",
+        "account": "Account"
+      },
+      "items": [
+        {
+          "name": "Spending, budgets, loans, bills",
+          "status": "all",
+          "text": "In the Waves phone app. Entries, voice, pasted bank messages and statement import work on Android; the iPhone app is coming soon."
+        },
+        {
+          "name": "Reading your inbox",
+          "status": "android",
+          "text": "Reading bank messages on their own is Android only, opt-in, and switched on for some people first. Everywhere else, you paste the message."
+        },
+        {
+          "name": "Sign in",
+          "status": "account",
+          "text": "Your personal ledger needs a signed-in account. A guest session cannot be signed back into, so there is nowhere to keep it."
+        }
+      ]
+    },
+    "films": {
+      "title": "See it in action",
+      "lead": "Short loops, start to finish.",
+      "label": "Product films",
+      "tabs": [
+        {
+          "id": "sms",
+          "tab": "Bank message",
+          "caption": "A bank message is read on your phone, turned into an expense, and waits in Review until you confirm it.",
+          "alt": "A short film: a bank message becomes an expense draft",
+          "video": "personal-sms"
+        },
+        {
+          "id": "statement",
+          "tab": "Statement",
+          "caption": "Pick a statement, see what it holds, tick the rows to add, and they land in Review as drafts.",
+          "alt": "A short film: statement rows are ticked and added",
+          "video": "personal-statement"
+        },
+        {
+          "id": "voice",
+          "tab": "Voice",
+          "caption": "Say what you spent. You see the entry before anything is saved.",
+          "alt": "A short film: a spoken sentence becomes an expense",
+          "video": "personal-voice"
+        },
+        {
+          "id": "budgets",
+          "tab": "Budgets",
+          "caption": "A monthly cap, overall or per category, and a bar that shows what is left or how far over you are.",
+          "alt": "A short film: a budget bar fills as spending is added",
+          "video": "personal-budgets"
+        }
+      ]
+    },
+    "featuresTitle": "What is inside",
+    "features": [
+      {
+        "id": "spending",
+        "eyebrow": "Spending",
+        "title": "See where the month went",
+        "body": "Your own entries, taken apart so the number you can act on does not hide behind the rent.",
+        "points": [
+          "Top categories this month, with an Others bucket and a comparison to last month",
+          "Six months of earned against spent, and a month you can step through",
+          "Income, spending and what was left over, which is not the same as saved",
+          "One currency at a time: nothing is converted, and entries in other currencies are listed as left out"
+        ],
+        "note": ""
+      },
+      {
+        "id": "budgets",
+        "eyebrow": "Budgets",
+        "title": "A cap for the month",
+        "body": "Set a monthly limit for everything or for one category and watch it fill.",
+        "points": [
+          "A bar that says how much is left, or how much you are over",
+          "The last six months' spend shown while you choose the amount",
+          "Loan repayments never count against a budget",
+          "The Me tab names the category that is furthest over"
+        ],
+        "note": "Budgets show their state on screen. They do not send alerts."
+      },
+      {
+        "id": "loans",
+        "eyebrow": "Loans",
+        "title": "Who owes whom, with a running balance",
+        "body": "Record money you lent or borrowed, add payments as they happen, and see what is left.",
+        "points": [
+          "Pick the person from your contacts or from earlier loans",
+          "Record a payment against the loan; what is left is the amount less the payments",
+          "Close and reopen a loan when it is paid off",
+          "Share it with the other person: it becomes a balance between you two, so they can settle up"
+        ],
+        "note": ""
+      },
+      {
+        "id": "recurring",
+        "eyebrow": "Repeating",
+        "title": "Bills and income that come back",
+        "body": "Rent, subscriptions, salary: set it once and it comes back on schedule.",
+        "points": [
+          "Weekly, fortnightly, twice a month, monthly, quarterly, half-yearly, yearly or every N months, with an optional end date",
+          "Add automatically when the app opens, or just be shown what is due and add it with a tap",
+          "Missed months are caught up without duplicates, and a figure you changed by hand is never overwritten",
+          "A month-by-month view of each one: received, missed, expected or due"
+        ],
+        "note": "Due items are shown in the app. There is no push reminder for them."
+      },
+      {
+        "id": "transactions",
+        "eyebrow": "Transactions",
+        "title": "Every entry, easy to find",
+        "body": "Newest first, grouped by day, with the filters you would reach for.",
+        "points": [
+          "All, Expenses, Income and Transfers (loan payments)",
+          "Search by note, category or amount, and filter by category",
+          "Payment method on each entry: cash, UPI, card, bank transfer, wallet or other",
+          "Fifteen income sources from Salary to Refund, and a Reimbursable mark for work spend"
+        ],
+        "note": ""
+      },
+      {
+        "id": "sms",
+        "eyebrow": "Bank messages",
+        "title": "A bank message becomes an entry",
+        "body": "Paste a bank message and Waves reads the amount, the merchant and the date for you to check.",
+        "points": [
+          "Works on every phone: copy the message, paste it, tick what to add",
+          "Read on your phone, with no network. The message text is not sent anywhere",
+          "Ticked rows wait in Review as drafts; nothing is saved until you confirm",
+          "On Android, where it is switched on, Waves can read the inbox itself after a clear explanation and your permission"
+        ],
+        "note": "Reading the inbox is Android only and is not on for everyone yet."
+      },
+      {
+        "id": "statement",
+        "eyebrow": "Bank statements",
+        "title": "A whole statement in one go",
+        "body": "Bring a statement as a PDF, spreadsheet, CSV, OFX or a screenshot, and tick the rows you want.",
+        "points": [
+          "Debits are ticked, credits are not, and a row that looks like a repeat starts unticked",
+          "Rows whose balance does not add up are flagged",
+          "Ticked rows go to Review as drafts, and nothing is saved until you confirm",
+          "Account numbers are hidden before any AI reads a page, and a PDF password stays on your phone"
+        ],
+        "note": "Free: read on your phone and previewed twice a month. Pro: import up to 30 statements a month."
+      },
+      {
+        "id": "voice",
+        "eyebrow": "Voice",
+        "title": "Say it instead of typing",
+        "body": "Speak an expense, including several in one sentence, and check it before it is saved.",
+        "points": [
+          "Understands amounts, currencies and phrasing like “500 diya dinner ka”",
+          "Say “just for me” and it goes to your personal ledger",
+          "Speech recognition is English only",
+          "Audio is not stored"
+        ],
+        "note": "Advanced AI voice commands: 10 a month on Free, 100 on Pro."
+      },
+      {
+        "id": "receipt",
+        "eyebrow": "Receipts",
+        "title": "Keep the receipt with the entry",
+        "body": "Attach a photo to a personal entry from the camera or gallery, and open it full screen any time.",
+        "points": [
+          "Replace or remove the photo whenever you like",
+          "Stored privately: only you can read it",
+          "Deleting the entry deletes its photo"
+        ],
+        "note": "Photos on personal entries are a paid feature. Scanning a bill to read its items and total works when you split a bill in a group: 20 scans a month on Free, 300 on Pro."
+      }
+    ],
+    "plansTitle": "What is free and what is Pro",
+    "plansLead": "Writing entries yourself is free and unlimited. Pro adds the conveniences.",
+    "plans": [
+      {
+        "name": "Free",
+        "points": [
+          "Manual entries, budgets, loans and repeating items",
+          "Pasted bank messages",
+          "Statement preview: 2 a month, read on your phone",
+          "10 advanced voice commands a month",
+          "20 bill scans a month"
+        ]
+      },
+      {
+        "name": "Pro",
+        "points": [
+          "Statement import: 30 a month, including PDFs and screenshots",
+          "100 advanced voice commands a month",
+          "300 bill scans a month",
+          "Photos on personal entries"
+        ]
+      }
+    ],
+    "plansNote": "New accounts start with a free Pro trial. Prices are set by the app stores for each country, so none is shown here.",
+    "privacyTitle": "Private to you",
+    "privacyLead": "Your personal ledger sits apart from your groups. Here is what the app does, and no more.",
+    "privacy": [
+      {
+        "title": "Not shared with groups",
+        "body": "The Me tab says it plainly: private to you, not shared with groups. Only a loan you choose to share reaches another person."
+      },
+      {
+        "title": "Sealed on your phone",
+        "body": "The saved copy on your device is encrypted at rest with a key held in the phone's secure keystore, and signing out wipes it."
+      },
+      {
+        "title": "Tied to your account",
+        "body": "Entries sync to your account so they survive a lost phone. The server stores them without reading them. We do not claim end-to-end encryption."
+      },
+      {
+        "title": "Messages stay on the phone",
+        "body": "Bank messages are parsed on your device. The text of messages read from your inbox is not kept, synced or sent for analytics."
+      },
+      {
+        "title": "Statements are trimmed first",
+        "body": "Names, addresses and ids are left out and account numbers are masked before any AI reads a statement. A PDF password is used on your phone only, and nothing is kept."
+      },
+      {
+        "title": "Receipts are yours alone",
+        "body": "Receipt photos live in a private bucket where only you are given access, and are deleted with the entry."
+      }
+    ],
+    "privacyLink": "Read the full privacy page",
+    "videos": {
+      "hero": "A short film: a bank message becomes an expense and a budget bar fills",
+      "spending": "A short film: a month of spending split by category",
+      "budgets": "A short film: a budget bar fills as spending is added",
+      "loans": "A short film: a loan is lent, part paid and settled",
+      "recurring": "A short film: a bill repeats every month",
+      "transactions": "A short film: every entry newest first, filtered to income, then searched",
+      "sms": "A short film: a bank message becomes an expense draft",
+      "statement": "A short film: statement rows are ticked and added",
+      "voice": "A short film: a spoken sentence becomes an expense",
+      "receipt": "A short film: a receipt photo is attached to an entry"
+    }
+  },
+  "whoFor": {
+    "eyebrow": "Who it's for",
+    "title": "One app, three ways to use it",
+    "items": [
+      {
+        "title": "Friends, flatmates and trips",
+        "body": "Add the bill, split it any way you like and open your UPI app to pay. Invitees join from a link, in a browser or the app, after creating or signing into a free account.",
+        "cta": "Split your first bill",
+        "href": "#download"
+      },
+      {
+        "title": "Families and your own money",
+        "body": "Run a household in a shared group, and keep your own spending, budgets and loans private beside it.",
+        "cta": "See Waves for your own money",
+        "href": "/personal"
+      },
+      {
+        "title": "Shops, contractors and site teams",
+        "body": "Staff add expenses with a photo and you approve in a tap. Attendance, tasks, wages, advances and bills in one place.",
+        "cta": "See Waves for companies",
+        "href": "/companies"
+      }
+    ]
+  },
+  "openSource": {
+    "eyebrow": "Open source",
+    "title": "Open source, so you can check us.",
+    "body": "The whole Waves app is open source under the AGPL-3.0 licence. When an app holds your expenses, you should not have to take our word for how it works, so you can read it.",
+    "points": [
+      "Read how money, data and sync are handled, in the code itself.",
+      "Researchers and users can check what we say instead of trusting it.",
+      "Changes happen in the open, in public history anyone can follow.",
+      "Licensed AGPL-3.0: free to read, run and build on."
+    ],
+    "cta": "View the code on GitHub"
   }
 }

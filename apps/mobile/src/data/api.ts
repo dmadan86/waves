@@ -44,6 +44,7 @@ import { attachPhoneCode, sendPhoneCode } from '@/lib/phoneAuth';
 import { readFxReply, StaleFxRateError } from '@/lib/fxStale';
 import { imageUrl, putImage, removeImage } from '@/lib/storage';
 import { backend } from '@/lib/backend';
+import type { PastPersonRow } from '@/lib/companyPastPeople';
 import type { BalanceRow, GroupRow, GroupType, MemberRow, SettlementMethod } from './types';
 
 const GROUP_SELECT = `
@@ -56,7 +57,7 @@ const GROUP_SELECT = `
 // both group_members and profiles, so PostgREST sees two group_members↔profiles
 // relationships and an unqualified embed fails ("more than one relationship").
 const MEMBER_SELECT = `
-  id, group_id, profile_id, ghost_name, role, vpa, payment_rail, payment_handle, left_at,
+  id, group_id, profile_id, ghost_name, role, vpa, payment_rail, payment_handle, left_at, employment_ended_on, employment_note,
   profile:profiles!profile_id ( id, display_name, avatar_url, default_vpa, payment_rail, payment_handle )
 `;
 
@@ -205,9 +206,11 @@ export async function uploadGroupPhoto(input: {
   groupId: string;
   base64: string;
   mimeType?: string | null;
+  /** A company logo is stored as `logo.*` so it draws fitted on white (GroupPhoto). */
+  kind?: 'cover' | 'logo';
 }): Promise<string> {
   const mime = normaliseImageMime(input.mimeType);
-  const path = `${input.groupId}/cover.${imageExt(mime)}`;
+  const path = `${input.groupId}/${input.kind ?? 'cover'}.${imageExt(mime)}`;
 
   await putImage({
     bucket: PHOTO_BUCKET,
@@ -547,7 +550,7 @@ export async function removeAvatar(profileId: string, value: string | null): Pro
   if (value && !/^https?:\/\//.test(value)) {
     await removeImage(AVATAR_BUCKET, value);
   }
-  const { error } = await backend.from('profiles').update({ avatar_url: null }).eq('id', profileId);
+  const { error } = await backend.from('profiles').update({ avatar_url: '' }).eq('id', profileId);
   if (error) throw new Error(error.message);
 }
 
@@ -905,7 +908,10 @@ export async function updateMember(
  * safety live in the RPC — a role is never a column a client writes, so this
  * cannot go through `updateMember` (a trigger would reject it).
  */
-export async function setMemberRole(memberId: string, role: 'admin' | 'member'): Promise<void> {
+export async function setMemberRole(
+  memberId: string,
+  role: 'admin' | 'manager' | 'member',
+): Promise<void> {
   const { error } = await backend.rpc('waves_set_member_role', {
     p_member_id: memberId,
     p_role: role,
@@ -973,7 +979,13 @@ export async function deleteGroup(groupId: string): Promise<void> {
 export { INVITE_BASE, groupJoinLink } from '@/lib/webUrl';
 
 export interface InvitePreview {
-  group: { id: string; name: string; cover_emoji: string | null; default_currency: string } | null;
+  group: {
+    id: string;
+    name: string;
+    cover_emoji: string | null;
+    default_currency: string;
+    type?: string;
+  } | null;
   memberCount: number;
   claimable: { memberId: string; name: string | null }[];
 }
@@ -996,7 +1008,13 @@ export async function previewInvite(token: string): Promise<InvitePreview> {
  * history.
  */
 export type AcceptedInvite =
-  | { group: { id: string; name: string }; memberId: string; claimed?: boolean }
+  | {
+      group: { id: string; name: string; type?: string };
+      memberId: string;
+      claimed?: boolean;
+      /** The link was a vendor's own invite: they land on their ledger. */
+      vendor?: boolean;
+    }
   | {
       group: { id: string; name: string };
       pending: true;
@@ -1187,6 +1205,26 @@ export async function fetchMemberLinkCandidates(groupId: string): Promise<LinkCa
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as LinkCandidate[];
+}
+
+/** People from the viewer's other companies (admin only; the server enforces it). */
+export async function fetchCompanyPastPeople(groupId: string): Promise<PastPersonRow[]> {
+  const { data, error } = await backend.rpc('waves_company_past_people', {
+    p_target_group: groupId,
+  });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as PastPersonRow[];
+}
+
+export async function addCompanyPastPeople(
+  groupId: string,
+  sourceMemberIds: readonly string[],
+): Promise<void> {
+  const { error } = await backend.rpc('waves_company_add_past_people', {
+    p_target_group: groupId,
+    p_source_member_ids: sourceMemberIds,
+  });
+  if (error) throw new Error(error.message);
 }
 
 /**
@@ -2385,9 +2423,10 @@ export async function fetchDevices(): Promise<DeviceSession[]> {
  * `backend.auth.signOut({ scope: 'others' })`, which tears down the actual
  * sessions; doing both keeps the devices list honest about what just happened.
  */
-export async function signOutOtherDevices(currentDeviceId: string): Promise<number> {
+export async function signOutOtherDevices(currentDeviceId: string, erase = false): Promise<number> {
   const { data, error } = await backend.rpc('waves_sign_out_other_devices', {
     p_device_id: currentDeviceId,
+    p_erase: erase,
   });
   if (error) throw new Error(error.message);
   return (data ?? 0) as number;
@@ -2409,4 +2448,78 @@ export async function disabledCountries(): Promise<string[]> {
     .eq('enabled', false);
   if (error) return [];
   return (data ?? []).map((row) => (row as { code: string }).code);
+}
+
+export async function resplitDeparted(
+  groupId: string,
+  memberId: string,
+  items: ResplitItem[],
+  clientMutationId: string,
+): Promise<ResplitResult> {
+  return unwrap(
+    await backend.rpc('waves_resplit_departed', {
+      p_group_id: groupId,
+      p_member_id: memberId,
+      p_items: items,
+      p_client_mutation_id: clientMutationId,
+    }),
+  );
+}
+
+export async function undoResplit(batchId: string): Promise<UndoResplitResult> {
+  return unwrap(await backend.rpc('waves_undo_resplit', { p_batch_id: batchId }));
+}
+
+/** JSON-safe arguments for one version in a departed-member re-split. */
+export interface ResplitItem {
+  expense_id: string;
+  base_version_no: number;
+  split_type: 'equal' | 'exact';
+  split_params: Record<string, unknown>;
+  shares: { member_id: string; amount_minor: string }[];
+}
+export interface ResplitResult {
+  batchId: string;
+  count: number;
+  amount: string;
+  replayed: boolean;
+}
+export interface UndoResplitResult {
+  restored: number;
+  skipped: number;
+}
+
+export async function setCompanyEmploymentType(
+  groupId: string,
+  input: { memberId: string; employmentType: string | null },
+): Promise<void> {
+  const { error } = await backend.rpc('waves_company_employment_type_set', {
+    p_group_id: groupId,
+    p_member_id: input.memberId,
+    p_type: input.employmentType,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function setCompanyEmployment(
+  groupId: string,
+  input: {
+    memberId: string;
+    employed: boolean;
+    endedOn?: string | null;
+    note?: string | null;
+    clearEmployeeId?: boolean;
+    newEmployeeId?: string;
+  },
+): Promise<void> {
+  const { error } = await backend.rpc('waves_company_employment_set', {
+    p_group_id: groupId,
+    p_member_id: input.memberId,
+    p_employed: input.employed,
+    p_ended_on: input.endedOn ?? null,
+    p_note: input.note?.trim().slice(0, 200) || null,
+    p_clear_employee_id: input.clearEmployeeId ?? false,
+    p_new_employee_id: input.newEmployeeId?.trim() || null,
+  });
+  if (error) throw new Error(error.message);
 }

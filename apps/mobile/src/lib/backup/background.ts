@@ -39,7 +39,11 @@ export async function beginBackground(
       await AsyncStorage.setItem('waves.backup.notificationAsked', '1');
       await requestBackupNotification();
     }
-    await native.start(notificationLabels());
+    await native.start(notificationLabels()).catch((error: unknown) => {
+      // Builds before 19 return the service's ComponentName, which the bridge
+      // rejects after the service has already started: carry on.
+      if (!/ComponentName/.test(String((error as Error)?.message ?? error))) throw error;
+    });
   }
   const subscription = native?.addListener('cancel', () => abort());
   const timeout = native?.addListener('timeout', () => abort('timeout'));

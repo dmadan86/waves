@@ -37,6 +37,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
+import { ensurePermission } from '@/lib/permissionFlow';
 import { Contact, ContactField, getPermissionsAsync, requestPermissionsAsync } from 'expo-contacts';
 import {
   AppState,
@@ -192,20 +193,9 @@ const COMPACT_HEADING_HEIGHT = 22;
  */
 const RECENT_LIMIT = 8;
 
-/**
- * The compact screen's filter pills, above the list.
- *
- * `OnWaves` and `NotOnWaves` read off `known` — the same local "who Waves
- * already has" index the recent section and the subtitle already use — rather
- * than any server answer about who else has joined, which this app does not
- * ask for (ADR-006). A contact is "on Waves" here exactly when it is a ghost
- * in one of your own groups, which is the only thing on the device that could
- * honestly mean that.
- */
+/** The compact screen's filter pills, above the list. */
 enum ContactFilter {
   All = 'all',
-  OnWaves = 'onWaves',
-  NotOnWaves = 'notOnWaves',
   Selected = 'selected',
 }
 
@@ -267,12 +257,18 @@ export function ContactPicker({
   const load = useCallback(async (): Promise<void> => {
     let granted: boolean;
     try {
-      const current = await getPermissionsAsync();
-      const answered = current.granted
-        ? current
-        : current.canAskAgain
-          ? await requestPermissionsAsync()
-          : current;
+      let answered = await getPermissionsAsync();
+      // Blocked for good: the picker's own denied view carries the Settings
+      // button, so only ask (explainer, then system dialog) while we still can.
+      if (!answered.granted && answered.canAskAgain) {
+        await ensurePermission('contacts', {
+          check: async () => answered,
+          request: async () => {
+            answered = await requestPermissionsAsync();
+            return answered;
+          },
+        });
+      }
       granted = answered.granted;
       // Absent on Android and on older iOS, where the grant is all-or-nothing —
       // so the default is "not limited" rather than a guess.
@@ -369,8 +365,6 @@ export function ContactPicker({
   // The compact screen's second narrowing, on top of the search above. Every
   // other caller leaves `filter` at `All`, where this is just `matches` again.
   const filtered = useMemo(() => {
-    if (filter === ContactFilter.OnWaves) return matches.filter((row) => row.known !== null);
-    if (filter === ContactFilter.NotOnWaves) return matches.filter((row) => row.known === null);
     if (filter === ContactFilter.Selected) {
       return matches.filter((row) => picked.has(keyOf(row.contact)));
     }
@@ -531,7 +525,7 @@ export function ContactPicker({
           gap: theme.spacing.sm,
           height: 44,
           paddingHorizontal: theme.spacing.lg,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           // Compact rides up over the hero's scene (the caller's own negative
           // margin does the overlap) and needs to read as a card floating on
           // it, not the flat search field every other caller still gets.
@@ -956,10 +950,6 @@ function ContactRow({
             {subtitle}
           </Text>
         </View>
-        {/* The on-Waves pill — only the minority state earns one; see
-            `StatusPill`. Skipped once a row is already greyed, too —
-            "already in this group" has said enough. */}
-        {compact && !single && !already && known ? <StatusPill /> : null}
         {single ? (
           <Ionicons
             name={directionalIcon('chevron-forward')}
@@ -1070,36 +1060,9 @@ function PickedStrip({
  * the majority state is silence, the same way an unread badge is silent once
  * there is nothing unread.
  */
-function StatusPill(): React.JSX.Element {
-  const theme = useTheme();
-  const { t } = useStrings();
-  return (
-    <Row
-      style={{
-        alignItems: 'center',
-        gap: 3,
-        paddingHorizontal: 7,
-        height: 20,
-        borderRadius: theme.radius.pill,
-        backgroundColor: theme.color.positiveSoft,
-      }}
-    >
-      <Ionicons name="checkmark" size={iconSize.xs} color={theme.color.positive} />
-      <Text variant="micro" tone="positive" numberOfLines={1} style={{ fontWeight: '700' }}>
-        {t.pickers.filterOnWaves}
-      </Text>
-    </Row>
-  );
-}
-
 /**
- * The compact screen's filter row: four pills, one always on, that narrow the
+ * The compact screen's filter row: two pills, one always on, that narrow the
  * very list underneath rather than opening a sheet to choose among them.
- *
- * "On Waves" and "Not on Waves" carry no count in the reference — only `All`
- * and `Selected` do, because those two are the ones whose number changes the
- * story ("All" says how big the book is, "Selected" says how far along you
- * are); the other two are already named by the pill itself.
  */
 function FilterPills({
   filter,
@@ -1125,16 +1088,6 @@ function FilterPills({
       key: ContactFilter.All,
       label: `${t.pickers.filterAll} (${localeCount(locale, allCount)})`,
       icon: 'people-outline',
-    },
-    {
-      key: ContactFilter.OnWaves,
-      label: t.pickers.filterOnWaves,
-      icon: 'checkmark-circle-outline',
-    },
-    {
-      key: ContactFilter.NotOnWaves,
-      label: t.pickers.filterNotOnWaves,
-      icon: 'person-add-outline',
     },
     {
       key: ContactFilter.Selected,
@@ -1167,7 +1120,7 @@ function FilterPills({
               gap: 4,
               height: 32,
               paddingHorizontal: theme.spacing.md,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: active ? theme.color.brandSoft : theme.color.surfaceMuted,
             }}
           >

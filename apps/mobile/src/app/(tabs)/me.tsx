@@ -23,10 +23,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { BlurTargetView } from 'expo-blur';
-import { Animated, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
@@ -61,17 +59,15 @@ import {
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
-import { GlassSurface } from '@/components/home/GlassSurface';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
-import { HeroAvatar, HeroIconButton } from '@/components/home/HeroControls';
-import { PersonalHeroBackground } from '@/components/home/PersonalHeroBackground';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { PersonalLocked } from '@/components/PersonalGuard';
+import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { PersonalIntro } from '@/components/PersonalIntro';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useSourceLabel } from '@/components/IncomeSource';
-import { useHeroStatusBar } from '@/components/ScreenHero';
 import { SignInWall } from '@/components/SignInWall';
 import {
   postDueRecurring,
@@ -79,13 +75,11 @@ import {
   usePersonalLedger,
   useUpsertPersonalRecord,
 } from '@/data/personal';
+import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
-import { usePersonalGate } from '@/lib/lock';
 import { router } from '@/lib/navigation';
-import { useHeroScene } from '@/lib/heroScenePreference';
-import { HERO_THEMES } from '@/lib/scene';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings } from '@/i18n';
 
@@ -94,40 +88,6 @@ const SAVED_WASH = ['#1E5A8C', '#0C2E4A'] as const;
 
 // One faint watermark glyph, bled off the hero's corner.
 const HERO_GLYPH = 'wallet-outline' as const;
-
-/** The AsyncStorage key remembering whether the dashboard's figures are
- *  hidden behind the eye — its own key, so it is independent of Home's. */
-const AMOUNTS_HIDDEN_KEY = 'personal:amountsHidden';
-
-/**
- * The eye toggle's state, remembered across opens — the same shape as Home's
- * `useBalanceHidden`, kept local because this ledger's figures are a separate
- * concern from the shared dashboard's balance. Reads once on mount so a
- * hidden month stays hidden after a relaunch, and writes on every toggle.
- * Defaults to shown.
- */
-function usePersonalAmountsHidden(): { hidden: boolean; toggle: () => void } {
-  const [hidden, setHidden] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    AsyncStorage.getItem(AMOUNTS_HIDDEN_KEY)
-      .then((value) => {
-        if (alive && value === '1') setHidden(true);
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, []);
-  const toggle = useCallback(() => {
-    setHidden((was) => {
-      const next = !was;
-      void AsyncStorage.setItem(AMOUNTS_HIDDEN_KEY, next ? '1' : '0').catch(() => {});
-      return next;
-    });
-  }, []);
-  return { hidden, toggle };
-}
 
 /**
  * The account wall stands outside the ledger, not inside it: a guest session
@@ -144,28 +104,19 @@ export default function MeScreen() {
 
 function MeLedger() {
   const theme = useTheme();
-  const insets = useSafeAreaInsets();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const dc = useDefaultCurrency();
   const sourceLabel = useSourceLabel();
   const { hydrated } = useSync();
   const { profile } = useAuth();
-  const avatarUrl = useAvatarUrl(profile?.avatar_url);
+  const viewerFace = useViewerIdentity();
+  const avatarUrl = useAvatarUrl(viewerFace.avatarUrl);
   const ledger = usePersonalLedger();
   const upsert = useUpsertPersonalRecord();
   // The eye on the summary card: masks every figure on it (and the three
   // tiles beneath it), the same privacy the dashboard's own eye gives Home.
   const { hidden: amountsHidden, toggle: toggleAmountsHidden } = usePersonalAmountsHidden();
-
-  // The Me tab is the home of the private personal ledger — ask for biometrics
-  // on entry and keep the screen a shield until it succeeds (below), so the
-  // figures are never on show behind the prompt. One unlock covers the whole
-  // section: the rooms under `personal/` mount the same gate and read the same
-  // state, so walking into "add income" and back never asks again. Only time
-  // spent away — out of the section, or with the app in the background — past
-  // the "Ask again after" window brings it back.
-  const gate = usePersonalGate(t.lock.personalPrompt);
 
   // Read the clock once, off render (the React Compiler forbids it inline).
   const [today] = useState(() => todayIso());
@@ -183,21 +134,7 @@ function MeLedger() {
   const maxBack = Math.max(0, monthsBetween(earliestMonth, currentMonth));
   const month = monthsBack === 0 ? currentMonth : shiftMonth(currentMonth, -monthsBack);
 
-  // The hero wears the scene for the time of day, or the one picked on the
-  // Background screen.
-  const scene = useHeroScene();
-  // How far the page has scrolled, for the status bar's strip (below).
-  const scrollY = useState(() => new Animated.Value(0))[0];
   const [gearOpen, setGearOpen] = useState(false);
-
-  // The hero's geometry, measured: the scene runs from the top of the screen
-  // down to the lower part of the month tiles, its shade ending where they
-  // begin.
-  const sceneRef = useRef<View>(null);
-  const [heroHeight, setHeroHeight] = useState(insets.top + 120);
-  const [tilesHeight, setTilesHeight] = useState(260);
-  const tilesTop = heroHeight - HERO_OVERLAP;
-  const sceneHeight = tilesTop + tilesHeight * 0.72;
 
   // Post due auto-recurring entries once the mirror has hydrated from disk and
   // there are recurring rules to act on. Gating on `hydrated` (not the raw mount)
@@ -340,6 +277,14 @@ function MeLedger() {
       onPress: () => router.push('/personal/spending'),
     },
     {
+      key: 'ask',
+      tint: 'lilac',
+      icon: 'sparkles-outline',
+      title: t.spendingAsk.title,
+      subtitle: t.spendingAsk.tileSub,
+      onPress: () => router.push('/personal/ask'),
+    },
+    {
       key: 'statement',
       tint: 'sky',
       icon: 'document-text-outline',
@@ -357,11 +302,7 @@ function MeLedger() {
     },
   ];
 
-  // Private ledger: while the biometric gate is unresolved the whole screen is a
-  // shield — no hero, no figures — so nothing is on show behind the OS prompt.
-  // A refused check stays here with a way to try again, rather than sending the
-  // user backwards without a word.
-  // The tab's own intro, once per account, after the lock has let them in.
+  // The tab's own intro, once per account, once they are in.
   // Keyed on the session's user rather than the profile, which can arrive late
   // or not at all; and held as *which* account it is open for, so a switch to
   // another account never carries the first one's open intro across.
@@ -369,7 +310,7 @@ function MeLedger() {
   const [introFor, setIntroFor] = useState<string | null>(null);
   const introOpen = introFor !== null && introFor === ownerId;
   useEffect(() => {
-    if (!gate.unlocked || !ownerId) return;
+    if (!ownerId) return;
     let live = true;
     void personalIntroSeen(ownerId).then((seen) => {
       if (live && !seen) setIntroFor(ownerId);
@@ -377,13 +318,11 @@ function MeLedger() {
     return () => {
       live = false;
     };
-  }, [gate.unlocked, ownerId]);
+  }, [ownerId]);
   const closeIntro = useCallback(() => {
     setIntroFor(null);
     if (ownerId) void rememberPersonalIntroSeen(ownerId);
   }, [ownerId]);
-
-  if (!gate.unlocked) return <PersonalLocked gate={gate} />;
 
   // Nothing in the section at all — no entry, no recurring rule, no loan, no
   // budget — and the mirror has finished loading, so that is the truth of it
@@ -421,93 +360,59 @@ function MeLedger() {
       {/* The scene runs up under the status bar, so the clock goes white — but
           only here, where the scene is drawn: the lock shield and the first run
           are plain pages, and keep the theme's own dark icons. */}
-      <HeroStatusBar />
-      <Animated.ScrollView
+      <TabHeader
+        left={
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <PersonAvatar
+              name={profile?.display_name ?? t.account.you}
+              avatarUrl={avatarUrl}
+              size={36}
+              accessibilityLabel={t.profile}
+              onPress={() => router.navigate('/profile')}
+            />
+            <Text
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={{ flex: 1, fontSize: 20, lineHeight: 26, fontWeight: '700' }}
+            >
+              {t.personal.nav.overview}
+            </Text>
+          </Row>
+        }
+      >
+        <TabIconButton
+          icon="search-outline"
+          label={t.personal.transactions}
+          onPress={() => router.push('/personal/transactions')}
+        />
+        <TabIconButton
+          icon="add-circle-outline"
+          label={t.personal.addExpense}
+          onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
+        />
+        <TabIconButton
+          icon="settings-outline"
+          label={t.account.faceSettings}
+          onPress={() => setGearOpen(true)}
+        />
+      </TabHeader>
+      <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingBottom: clearance }}
         showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-          useNativeDriver: true,
-        })}
       >
-        {/* The scene, from under the status bar down to the lower part of the
-            month tiles, where it fades into the page. Wrapped as the glass
-            tiles' blur target (Android needs one). */}
-        <BlurTargetView
-          ref={sceneRef}
-          pointerEvents="none"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
-        >
-          <PersonalHeroBackground
-            scene={scene}
-            height={sceneHeight}
-            horizon={tilesTop}
-            pageColor={theme.color.bg}
-          />
-        </BlurTargetView>
-
-        <View
-          onLayout={(event) => setHeroHeight(event.nativeEvent.layout.height)}
-          style={{
-            paddingTop: insets.top + theme.spacing.sm,
-            paddingHorizontal: theme.spacing.lg,
-            paddingBottom: HERO_OVERLAP + theme.spacing.lg,
-            gap: theme.spacing.xl,
-          }}
-        >
-          {/* Face, the section's name and its line; then search, add, lock. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <HeroAvatar
-              name={profile?.display_name ?? t.account.you}
-              photoUrl={avatarUrl}
-              onPress={() => router.navigate('/profile')}
-              label={t.profile}
-            />
-            <View style={{ flex: 1, minWidth: 0, marginEnd: theme.spacing.xs }}>
-              <Text
-                tone="onBrand"
-                numberOfLines={1}
-                style={{ fontSize: 22, lineHeight: 27, fontWeight: '800' }}
-              >
-                {t.personal.nav.overview}
-              </Text>
-              <Text variant="caption" tone="onBrand" numberOfLines={1} style={{ opacity: 0.9 }}>
-                {t.personal.dash.tagline}
-              </Text>
-            </View>
-            <HeroIconButton
-              icon="search-outline"
-              label={t.personal.transactions}
-              onPress={() => router.push('/personal/transactions')}
-            />
-            <HeroIconButton
-              icon="add-circle-outline"
-              label={t.personal.addExpense}
-              onPress={() =>
-                router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })
-              }
-            />
-            <HeroIconButton
-              icon="settings-outline"
-              label={t.account.faceSettings}
-              onPress={() => setGearOpen(true)}
-            />
-          </Row>
-        </View>
-
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            marginTop: -HERO_OVERLAP,
+            paddingTop: theme.spacing.xs,
             gap: theme.spacing.lg,
           }}
         >
           {/* The month's whole headline — the spend, how it moved, a short
               history, and the three figures beneath it — blended into the
               scene's foot in one card, exactly like Home's balance card. */}
-          <View onLayout={(event) => setTilesHeight(event.nativeEvent.layout.height)}>
-            <GlassSurface blurTarget={sceneRef} style={{ padding: theme.spacing.lg }}>
+          <View>
+            <View>
               <View style={{ gap: theme.spacing.lg }}>
                 <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
                   <Row
@@ -613,7 +518,7 @@ function MeLedger() {
                   />
                 </Row>
               </View>
-            </GlassSurface>
+            </View>
           </View>
 
           <BudgetCard
@@ -832,26 +737,7 @@ function MeLedger() {
 
           <PrivacyFooterPill />
         </View>
-      </Animated.ScrollView>
-      {/* The status bar stays light over this tab (the scene is under it at
-          rest), so once the scene has scrolled away a strip of its own sky fades
-          in behind the clock — white icons never sit on the pale page. */}
-      <Animated.View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: insets.top,
-          backgroundColor: HERO_THEMES[scene].sky[0],
-          opacity: scrollY.interpolate({
-            inputRange: [0, Math.max(1, tilesTop - insets.top)],
-            outputRange: [0, 1],
-            extrapolate: 'clamp',
-          }),
-        }}
-      />
+      </ScrollView>
       <OverflowMenu
         visible={monthMenuOpen}
         onClose={() => setMonthMenuOpen(false)}
@@ -869,16 +755,6 @@ function MeLedger() {
     </Screen>
   );
 }
-
-/** The light status bar the scenic hero needs, as a component so it applies
- *  only while the dashboard (and so the scene) is the thing on screen. */
-function HeroStatusBar() {
-  useHeroStatusBar();
-  return null;
-}
-
-/** How far the month tiles ride up over the bottom of the hero. */
-const HERO_OVERLAP = 48;
 
 // ─────────────────────────────────────────────────────────────── month ──
 
@@ -916,7 +792,7 @@ function monthLabel(month: string, locale: string): string {
 
 /** The big headline figure's text style, shared between the live amount and
  *  its mask so neither drifts from the other's size. */
-const HEADLINE_STYLE = { fontSize: 32, lineHeight: 38, fontWeight: '800' } as const;
+const HEADLINE_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '700' } as const;
 
 /** How many months the faint bar chart behind the headline covers. */
 const SPEND_HISTORY_MONTHS = 7;
@@ -944,7 +820,7 @@ function ChangePill({ change }: { change: number }) {
         gap: 4,
         paddingHorizontal: theme.spacing.sm,
         paddingVertical: 3,
-        borderRadius: theme.radius.pill,
+        borderRadius: 6,
         backgroundColor: bg,
       }}
     >
@@ -1025,7 +901,9 @@ function MonthPill({
         gap: theme.spacing.xs,
         paddingHorizontal: theme.spacing.md,
         paddingVertical: theme.spacing.sm,
-        borderRadius: theme.radius.lg,
+        borderRadius: theme.radius.sm,
+        borderWidth: 1,
+        borderColor: theme.color.border,
         backgroundColor: theme.color.surface,
         maxWidth: 180,
         opacity: pressed ? 0.7 : 1,
@@ -1042,10 +920,8 @@ function MonthPill({
   );
 }
 
-/** One of the three month figures on the card: a tinted disc, what it is, the
- *  amount, and a chevron — tappable through to where it comes from. Income
- *  wears the blue tint, Spent the red-on-pink pair, Available the brand's own
- *  lilac — the reference's three tile colours. */
+/** One of the three month figures: a small colour dot, what it is and the
+ *  amount — tappable through to where it comes from. */
 function FlowTile({
   icon,
   tone,
@@ -1068,16 +944,11 @@ function FlowTile({
   const theme = useTheme();
   const ink =
     tone === 'income'
-      ? theme.tint.sky.ink
+      ? theme.color.positive
       : tone === 'negative'
         ? theme.color.negative
         : theme.color.brand;
-  const soft =
-    tone === 'income'
-      ? theme.tint.sky.bg
-      : tone === 'negative'
-        ? theme.color.negativeSoft
-        : theme.color.brandSoft;
+  void icon;
   return (
     <Pressable
       accessibilityRole="button"
@@ -1087,42 +958,25 @@ function FlowTile({
         flex: 1,
         minWidth: 0,
         gap: 2,
-        padding: theme.spacing.sm,
-        borderRadius: theme.radius.lg,
-        backgroundColor: soft,
+        paddingVertical: theme.spacing.xs,
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-        <View
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: ink,
-          }}
-        >
-          <Ionicons name={icon} size={iconSize.sm} color="#FFFFFF" />
-        </View>
-        <Ionicons
-          name={directionalIcon('chevron-forward')}
-          size={iconSize.sm}
-          color={theme.color.textMuted}
-        />
+      <Row style={{ alignItems: 'center', gap: 6 }}>
+        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: ink }} />
+        <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+          {label}
+        </Text>
       </Row>
-      <Text variant="caption" numberOfLines={1} style={{ color: ink, marginTop: theme.spacing.xs }}>
-        {label}
-      </Text>
       <Text
+        tabular
         numberOfLines={1}
         adjustsFontSizeToFit
         minimumFontScale={0.7}
         style={{
           fontSize: 16,
           lineHeight: 21,
-          fontWeight: '800',
+          fontWeight: '600',
           color: hidden ? theme.color.text : negative ? theme.color.negative : theme.color.text,
         }}
       >
@@ -1594,7 +1448,7 @@ function ExpenseRow({
         style={{
           paddingHorizontal: theme.spacing.sm,
           paddingVertical: 2,
-          borderRadius: theme.radius.pill,
+          borderRadius: 6,
           backgroundColor: tint.bg,
           maxWidth: 96,
         }}
@@ -1854,7 +1708,7 @@ function HeroPill({
         // finger needs. The dashboard's pill is built to the same measure.
         paddingVertical: theme.spacing.md,
         paddingHorizontal: theme.spacing.lg,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.md,
         backgroundColor: '#FFFFFF',
         opacity: pressed ? 0.85 : 1,
       })}
@@ -1907,7 +1761,7 @@ function PrivacyFooterPill() {
         gap: theme.spacing.sm,
         paddingHorizontal: theme.spacing.md,
         paddingVertical: theme.spacing.sm,
-        borderRadius: theme.radius.pill,
+        borderRadius: theme.radius.md,
         backgroundColor: tint.bg,
         opacity: pressed ? 0.7 : 1,
       })}

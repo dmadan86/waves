@@ -21,6 +21,7 @@ export const LOGICAL_BUCKETS = [
   'trip-photos',
   'settlement-proofs',
   'expense-attachments',
+  'company-entry-images',
 ] as const;
 export type LogicalBucket = (typeof LOGICAL_BUCKETS)[number];
 
@@ -35,6 +36,7 @@ export type LogicalBucket = (typeof LOGICAL_BUCKETS)[number];
 export const RESTRICTED_BUCKETS = new Set<LogicalBucket>([
   'settlement-proofs',
   'expense-attachments',
+  'company-entry-images',
 ]);
 
 /** 60 s, not the usual hour: the window an un-revocable restricted URL survives. */
@@ -58,9 +60,8 @@ export function r2Configured(): boolean {
 
 let client: AwsClient | null = null;
 
-export function r2(): { client: AwsClient; endpoint: string; bucket: string } {
+function r2Account(): { client: AwsClient; endpoint: string } {
   const accountId = requiredEnv('R2_ACCOUNT_ID');
-  const bucket = requiredEnv('R2_BUCKET');
   if (!client) {
     client = new AwsClient({
       accessKeyId: requiredEnv('R2_ACCESS_KEY_ID'),
@@ -69,7 +70,17 @@ export function r2(): { client: AwsClient; endpoint: string; bucket: string } {
       region: 'auto',
     });
   }
-  return { client, endpoint: `https://${accountId}.r2.cloudflarestorage.com`, bucket };
+  return { client, endpoint: `https://${accountId}.r2.cloudflarestorage.com` };
+}
+
+export function r2(): { client: AwsClient; endpoint: string; bucket: string } {
+  return { ...r2Account(), bucket: requiredEnv('R2_BUCKET') };
+}
+
+/** The over-the-air update bucket: `OTA_R2_BUCKET`, else the photo bucket. */
+export function otaR2(): { client: AwsClient; endpoint: string; bucket: string } {
+  const bucket = Deno.env.get('OTA_R2_BUCKET') || requiredEnv('R2_BUCKET');
+  return { ...r2Account(), bucket };
 }
 
 /** The S3 URL for an object, each path segment percent-encoded. */
@@ -101,6 +112,7 @@ export async function readObjectBytes(
       .select('path')
       .eq('logical_bucket', logicalBucket)
       .eq('path', path)
+      .eq('pending', false)
       .maybeSingle();
     // A lookup failure is not "the object is on the old backend" — falling through
     // on error would fetch the wrong place or 404 a live R2 object. Surface it.
@@ -112,6 +124,9 @@ export async function readObjectBytes(
     }
   }
 
+  if (RESTRICTED_BUCKETS.has(logicalBucket)) {
+    throw new HttpError(404, 'NOT_FOUND', 'Restricted object not found in R2');
+  }
   const { data, error } = await service.storage.from(logicalBucket).download(path);
   if (error || !data) throw new HttpError(404, 'NOT_FOUND', 'Object not found');
   return new Uint8Array(await data.arrayBuffer());

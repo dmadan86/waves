@@ -83,6 +83,20 @@ export async function handleInviteMint(request: Request, deps: InviteMintDeps): 
     const { profileId } = await deps.requireMembership(caller, groupId);
     const service = deps.asService();
 
+    const { data: scope, error: scopeError } = await service
+      .from('groups')
+      .select('type')
+      .eq('id', groupId)
+      .single();
+    if (scopeError || !scope) throw new HttpError(500, 'INTERNAL', 'Could not complete request');
+    if (scope.type === 'company') {
+      const { data: admin, error: adminError } = await caller.rpc('is_group_admin', {
+        p_group_id: groupId,
+      });
+      if (adminError || admin !== true)
+        throw new HttpError(403, 'ADMIN_ONLY', 'Only admins can invite company members');
+    }
+
     // The live-link cap below is per group, so somebody in many groups can mint
     // as fast as they like across all of them. This is per person.
     await deps.enforceRateLimit(service, request, 'invite-mint', profileId);
@@ -95,7 +109,10 @@ export async function handleInviteMint(request: Request, deps: InviteMintDeps): 
       .gt('expires_at', new Date().toISOString());
     // Fail closed: a failed count must not read as zero and wave the insert past
     // the cap. Refuse rather than mint an unbounded link.
-    if (countError) throw new HttpError(500, 'INTERNAL', countError.message);
+    if (countError) {
+      console.error(JSON.stringify({ fn: 'invite-mint', detail: countError.message }));
+      throw new HttpError(500, 'INTERNAL', 'Could not complete request');
+    }
     if ((count ?? 0) >= MAX_LIVE_INVITES) {
       throw new HttpError(
         429,
@@ -126,7 +143,10 @@ export async function handleInviteMint(request: Request, deps: InviteMintDeps): 
       })
       .select('id')
       .single();
-    if (error) throw new HttpError(500, 'INTERNAL', error.message);
+    if (error) {
+      console.error(JSON.stringify({ fn: 'invite-mint', detail: error.message }));
+      throw new HttpError(500, 'INTERNAL', 'Could not complete request');
+    }
 
     const { data: group } = await service.from('groups').select('name').eq('id', groupId).single();
 

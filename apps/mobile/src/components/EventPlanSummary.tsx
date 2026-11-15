@@ -14,7 +14,7 @@ import { Card, ChipRow, iconSize, MoneyText, Row, Text, useTheme } from '@waves/
 
 import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { HeroScene } from '@/components/home/HeroScene';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { fill, useStrings } from '@/i18n';
 import { useHeroScene } from '@/lib/heroScenePreference';
 import { planSummary } from '@/lib/planSummary';

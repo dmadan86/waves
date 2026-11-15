@@ -2,6 +2,7 @@ import { tagPotLedger } from '@/lib/potUi';
 import { usePots, usePotExpenseTags } from './pots';
 import { partitionPotLedger } from '@/lib/pots';
 import { owedByGroup, viewerEdge, type OwedDirection, type OwedGroupMeta } from '@/lib/owedByGroup';
+import { COMPANIES_ENABLED, visibleGroups } from '@/lib/companiesEnabled';
 import { requestActionAd, AdGateCancelledError } from '@/lib/adGateBridge';
 /**
  * React Query hooks + the realtime bridge.
@@ -33,6 +34,8 @@ import {
   materialiseExpenses,
   materialiseGroup,
   materialiseGroups,
+  type MirrorState,
+  type QueuedMutation,
   materialiseLedgerGroupIds,
   materialiseLedgerGroups,
   materialiseMemberBudgets,
@@ -112,6 +115,8 @@ import {
   cancelMemberLink,
   decideMemberLink,
   fetchGroupMemberLinks,
+  addCompanyPastPeople,
+  fetchCompanyPastPeople,
   fetchMemberLinkCandidates,
   fetchMyMemberLinks,
   mergeMemberInto,
@@ -123,6 +128,10 @@ import {
   recordSettlement,
   leaveGroup,
   removeMember,
+  setCompanyEmployment,
+  setCompanyEmploymentType,
+  resplitDeparted,
+  undoResplit,
   updateGroup,
   updateMember,
   setMemberRole,
@@ -143,7 +152,7 @@ import { putImage, removeRestrictedImage } from '@/lib/storage';
 import { pickAlbumPhoto, type PickedImage } from '@/lib/image';
 import { localDay } from '@/lib/paymentProof';
 import { parseAnnotations, type Annotations } from '@/lib/annotations';
-import { sanitizeCommentMarkdown } from '@waves/core';
+import { canAddSharedExpense, sanitizeCommentMarkdown } from '@waves/core';
 import type { VoiceAccess } from '@/lib/voiceAccess';
 import { rememberVoiceAgentStatus, useVoiceAgentLastKnown } from '@/lib/voiceAgentLastKnown';
 import { activityTime } from '@/lib/groupActivityOrder';
@@ -213,6 +222,14 @@ function useLocalRead<T>(data: T): LocalRead<T> {
   };
 }
 
+/** Mirror groups minus company groups when companies are off (iPhone). */
+function shownGroups(mirror: MirrorState, queue: readonly QueuedMutation[]): GroupRow[] {
+  return visibleGroups(
+    materialiseGroups(mirror, queue) as unknown as GroupRow[],
+    COMPANIES_ENABLED,
+  );
+}
+
 /**
  * ADR-005: the UI reads local-first, always.
  *
@@ -224,10 +241,7 @@ function useLocalRead<T>(data: T): LocalRead<T> {
 export function useGroups(): LocalRead<GroupRow[]> {
   const { mirror, queue } = useSync();
   const viewerId = useViewerId();
-  const realGroups = useMemo(
-    () => materialiseGroups(mirror, queue) as unknown as GroupRow[],
-    [mirror, queue],
-  );
+  const realGroups = useMemo(() => shownGroups(mirror, queue), [mirror, queue]);
   // The authoritative "is this account brand new" read: this is the hook
   // every list screen calls first, Home included, so it is the one place the
   // demo decision (`demo/store.ts`) can trust `realGroups.length === 0` as
@@ -241,6 +255,17 @@ export function useGroups(): LocalRead<GroupRow[]> {
 }
 
 /**
+ * The groups an ordinary expense, settlement, import or recurring rule may be
+ * written to. `useGroups` minus company groups (their money is company entries;
+ * the server refuses the rest). Every group picker that writes uses this.
+ */
+export function useExpenseGroups(): LocalRead<GroupRow[]> {
+  const groups = useGroups();
+  const data = useMemo(() => groups.data.filter(canAddSharedExpense), [groups.data]);
+  return { ...groups, data };
+}
+
+/**
  * Every open group's members, most recent group first — the people a spoken
  * sentence may name when the mic was not opened inside one group. Read from
  * the mirror only; the voice screen biases the recogniser towards these names.
@@ -249,7 +274,7 @@ export function useAllGroupMembers(): readonly MemberRow[] {
   const { mirror, queue } = useSync();
   return useMemo(() => {
     const members: MemberRow[] = [];
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[])
+    for (const group of shownGroups(mirror, queue))
       members.push(
         ...(materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]),
       );
@@ -305,7 +330,7 @@ export function useOneToOneGroupIds(): LocalRead<Set<string>> {
   const { mirror, queue } = useSync();
   const ids = useMemo(() => {
     const set = new Set<string>();
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of shownGroups(mirror, queue)) {
       const members = (
         materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]
       ).filter((member) => member.left_at === null);
@@ -330,7 +355,7 @@ export function useGroupPeopleSignatures(
   const sigs = useMemo(() => {
     if (!profileId) return [] as { groupId: string; names: string[] }[];
     const out: { groupId: string; names: string[] }[] = [];
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of shownGroups(mirror, queue)) {
       const members = (
         materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]
       ).filter((member) => member.left_at === null);
@@ -417,7 +442,7 @@ export function useGroupLabeller(): (group: Pick<GroupRow, 'id' | 'name'>) => st
   const viewerId = useViewerId();
   const membersOfUnnamed = useMemo(() => {
     const map = new Map<string, MemberRow[]>();
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of shownGroups(mirror, queue)) {
       if (group.name?.trim()) continue;
       map.set(
         group.id,
@@ -448,7 +473,7 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
   const { blockedIds } = useBlockedUsers();
   const rows = useMemo(() => {
     const out: TimelineEntry[] = [];
-    for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
+    for (const group of shownGroups(mirror, queue)) {
       const members = materialiseMembers(mirror, queue, {
         groupId: group.id,
       }) as unknown as MemberRow[];
@@ -515,10 +540,7 @@ export function useMyTimeline(): LocalRead<TimelineEntry[]> {
 export function useHomeSummary(profileId: string | null) {
   const { mirror, queue, hydrated, status, hasSynced, flush } = useSync();
   const monthPrefix = useLocalMonthPrefix();
-  const realGroupsForDemo = useMemo(
-    () => materialiseGroups(mirror, queue) as unknown as GroupRow[],
-    [mirror, queue],
-  );
+  const realGroupsForDemo = useMemo(() => shownGroups(mirror, queue), [mirror, queue]);
   const demoActive = useDemoActive(profileId, realGroupsForDemo.length === 0);
 
   const summary = useMemo(() => {
@@ -868,7 +890,6 @@ export function useMergeCandidates(someoneLabel: string): LocalRead<MergeCandida
  */
 export function useKnownPeopleCount(profileId: string | null): LocalRead<number> {
   const { mirror, queue } = useSync();
-  const demoActive = useDemoActive(profileId, false);
 
   const count = useMemo(() => {
     if (!profileId) return 0;
@@ -879,12 +900,8 @@ export function useKnownPeopleCount(profileId: string | null): LocalRead<number>
       }) as unknown as MemberRow[];
       total += countOthersInGroup(members, profileId);
     }
-    // The three demo friends count too — "no friends yet" has to stop
-    // showing the moment a brand-new account's demo trip has friends in it,
-    // same as it would for a real one.
-    if (demoActive) total += countOthersInGroup(demoMembers(profileId), profileId);
     return total;
-  }, [mirror, queue, profileId, demoActive]);
+  }, [mirror, queue, profileId]);
 
   return useLocalRead(count);
 }
@@ -1256,7 +1273,12 @@ export function useRecentActivity(
 ): RecentActivityRow[] {
   const { mirror } = useSync();
   return useMemo(
-    () => (enabled ? recentActivity(mirror, myProfileId) : NO_ACTIVITY),
+    () =>
+      enabled
+        ? recentActivity(mirror, myProfileId).filter(
+            (row) => COMPANIES_ENABLED || row.group?.type !== 'company',
+          )
+        : NO_ACTIVITY,
     [mirror, myProfileId, enabled],
   );
 }
@@ -1264,7 +1286,10 @@ export function useRecentActivity(
 /** When somebody else last did something in any group, in ms (0: never). */
 export function useNewestActivityFromOthers(myProfileId: string | null): number {
   const { mirror } = useSync();
-  return useMemo(() => newestActivityFromOthers(mirror, myProfileId), [mirror, myProfileId]);
+  return useMemo(
+    () => newestActivityFromOthers(mirror, myProfileId, !COMPANIES_ENABLED),
+    [mirror, myProfileId],
+  );
 }
 
 /** Per group, when somebody else last did something in it, in ms (absent: never). */
@@ -1272,7 +1297,10 @@ export function useNewestActivityFromOthersByGroup(
   myProfileId: string | null,
 ): Map<string, number> {
   const { mirror } = useSync();
-  return useMemo(() => newestActivityFromOthersByGroup(mirror, myProfileId), [mirror, myProfileId]);
+  return useMemo(
+    () => newestActivityFromOthersByGroup(mirror, myProfileId, !COMPANIES_ENABLED),
+    [mirror, myProfileId],
+  );
 }
 
 /** How much a destination (group, or a person's 1:1 group) has been used. */
@@ -1952,9 +1980,7 @@ export function useRecordSettlement(groupId: string) {
       // takes only that currency (the server refuses the rest with
       // UPDATE_APP_TO_SETTLE). A debt in another one is a bill with no rate yet;
       // the screens offer "Add rate" instead, and nothing reaches the queue.
-      const group = (materialiseGroups(mirror, queue) as unknown as GroupRow[]).find(
-        (row) => row.id === input.groupId,
-      );
+      const group = shownGroups(mirror, queue).find((row) => row.id === input.groupId);
       if (
         group &&
         isRatelessTransfer(
@@ -2320,7 +2346,8 @@ export function useAddGhostMember(groupId: string) {
   const { profile } = useAuth();
   return useMutation({
     mutationFn: async (
-      input: string | { name: string; email?: string | null; phone?: string | null },
+      input:
+        string | { name: string; email?: string | null; phone?: string | null; memberId?: string },
     ) => {
       const person = typeof input === 'string' ? { name: input } : input;
       // A bare local number ("9535621101") is read in the member's own region
@@ -2334,7 +2361,7 @@ export function useAddGhostMember(groupId: string) {
       // Chosen here so the expenses queued behind this member can already name
       // them. Adding somebody and immediately splitting a bill with them is one
       // action to a person, and offline it has to work like one.
-      const memberId = randomUUID();
+      const memberId = (typeof input === 'string' ? undefined : input.memberId) ?? randomUUID();
       await mutate(MutationKind.MemberAddGhost, groupId, {
         memberId,
         name: person.name,
@@ -2399,7 +2426,7 @@ export function useUpdateMember(groupId: string) {
 export function useSetMemberRole(groupId: string) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: ({ memberId, role }: { memberId: string; role: 'admin' | 'member' }) =>
+    mutationFn: ({ memberId, role }: { memberId: string; role: 'admin' | 'manager' | 'member' }) =>
       isDemoGroupId(groupId) ? rejectDemoWrite<void>() : setMemberRole(memberId, role),
     onSuccess: () => invalidateGroup(queryClient, groupId),
   });
@@ -3252,6 +3279,24 @@ export function useMemberLinkCandidates(groupId: string, enabled: boolean) {
   });
 }
 
+/** Previous-company people to offer in a company group (online only). */
+export function useCompanyPastPeople(groupId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['group', groupId, 'company-past-people'] as const,
+    queryFn: () => fetchCompanyPastPeople(groupId),
+    enabled: enabled && groupId !== '' && !isDemoGroupId(groupId),
+  });
+}
+
+export function useAddCompanyPastPeople(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (sourceMemberIds: readonly string[]) =>
+      addCompanyPastPeople(groupId, sourceMemberIds),
+    onSuccess: () => invalidateGroup(queryClient, groupId),
+  });
+}
+
 /**
  * Folding a placeholder into a member who is already here. Everything about
  * the group changes at once — members, bills, balances — so the whole group
@@ -3442,5 +3487,71 @@ export function useVoiceAccess() {
     },
     enabled: !!profile?.id,
     staleTime: 60_000,
+  });
+}
+
+function invalidateResplit(queryClient: QueryClient, groupId: string): void {
+  invalidateGroup(queryClient, groupId);
+  for (const queryKey of [
+    keys.expenses(groupId),
+    keys.balances(groupId),
+    keys.activity(groupId),
+    ['notifications'],
+  ]) {
+    void queryClient.invalidateQueries({ queryKey });
+  }
+}
+
+export function useResplitDeparted(groupId: string) {
+  const queryClient = useQueryClient();
+  // Keep the id on the input across React Query retries of the same mutation.
+  const ids = useRef(new WeakMap<object, string>());
+  return useMutation({
+    mutationFn: (input: { memberId: string; items: import('./api').ResplitItem[] }) => {
+      if (isDemoGroupId(groupId)) return rejectDemoWrite<import('./api').ResplitResult>();
+      let id = ids.current.get(input);
+      if (!id) {
+        id = randomUUID();
+        ids.current.set(input, id);
+      }
+      return resplitDeparted(groupId, input.memberId, input.items, id);
+    },
+    onSuccess: () => invalidateResplit(queryClient, groupId),
+  });
+}
+
+export function useUndoResplit(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ batchId }: { batchId: string }) =>
+      isDemoGroupId(groupId)
+        ? rejectDemoWrite<import('./api').UndoResplitResult>()
+        : undoResplit(batchId),
+    onSuccess: () => invalidateResplit(queryClient, groupId),
+  });
+}
+
+/** Owner, or the employee's manager: set (null clears) one employee's employment type. */
+export function useSetEmploymentType(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof setCompanyEmploymentType>[1]) =>
+      isDemoGroupId(groupId) ? rejectDemoWrite<void>() : setCompanyEmploymentType(groupId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['company-people', groupId] });
+      invalidateGroup(queryClient, groupId);
+    },
+  });
+}
+
+export function useSetCompanyEmployment(groupId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: Parameters<typeof setCompanyEmployment>[1]) =>
+      isDemoGroupId(groupId) ? rejectDemoWrite<void>() : setCompanyEmployment(groupId, input),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ['company-people', groupId] });
+      invalidateGroup(queryClient, groupId);
+    },
   });
 }

@@ -30,6 +30,7 @@
  */
 
 import { createContext, useContext } from 'react';
+import type { ActivityText } from '@/lib/companyActivity';
 import { getLocales } from 'expo-localization';
 
 import {
@@ -42,6 +43,7 @@ import {
   type EventTemplateId,
 } from '@waves/core';
 
+import { setDemoGroupName } from '@/demo/label';
 import type { HomeHero } from '@/lib/homeHeroPure';
 
 export enum Language {
@@ -207,6 +209,151 @@ export interface UiStrings {
     owes: string;
     none: string;
     closeHint: string;
+  calendar: {
+    title: string;
+    today: string;
+    upcoming: string;
+    comingUp: string;
+    seeAll: string;
+    agendaFor: string;
+    nothingPlanned: string;
+    filterAll: string;
+    filterLeave: string;
+    filterMoney: string;
+    filterWork: string;
+    filterBirthdays: string;
+    add: string;
+    addHoliday: string;
+    addEvent: string;
+    recordLeave: string;
+    requestLeave: string;
+    myDates: string;
+    kindHoliday: string;
+    kindLeave: string;
+    kindWage: string;
+    kindVendorBill: string;
+    kindCustomerBill: string;
+    kindAdvance: string;
+    kindTask: string;
+    kindEvent: string;
+    kindBirthday: string;
+    kindAnniversary: string;
+    birthdayOf: string;
+    anniversaryOf: string;
+    overdue: string;
+    overdueItems: PluralForms;
+    totalDue: string;
+    nothingDue: string;
+    nothingOverdue: string;
+    nothingUpcoming: string;
+    moreCount: string;
+    leaveCasual: string;
+    leaveSick: string;
+    leaveOther: string;
+    halfDay: string;
+    statusPending: string;
+    statusApproved: string;
+    statusRejected: string;
+    leaveLine: string;
+    dayCount: string;
+    oneDay: string;
+    holidayName: string;
+    holidayTitle: string;
+    holidayPlaceholder: string;
+    eventTitle: string;
+    eventTime: string;
+    eventPeople: string;
+    eventEveryone: string;
+    eventSite: string;
+    eventDate: string;
+    eventTimeLabel: string;
+    eventSiteLabel: string;
+    eventOptional: string;
+    eventTitlePlaceholder: string;
+    eventSearch: string;
+    eventSelected: string;
+    eventCreate: string;
+    eventSave: string;
+    person: string;
+    startDate: string;
+    endDate: string;
+    reason: string;
+    note: string;
+    leaveType: string;
+    save: string;
+    cancel: string;
+    approve: string;
+    reject: string;
+    withdraw: string;
+    remove: string;
+    decisionNote: string;
+    decisionTitle: string;
+    errName: string;
+    errTitle: string;
+    errRange: string;
+    errHalfDay: string;
+    errOverlap: string;
+    errWindow: string;
+    errPeople: string;
+    errTime: string;
+    errDate: string;
+    errBirthday: string;
+    birthday: string;
+    datesTitle: string;
+    datesSubtitle: string;
+    joinedLabel: string;
+    selectDate: string;
+    birthDay: string;
+    birthMonth: string;
+    joinedOn: string;
+    showBirthday: string;
+    showBirthdayHint: string;
+    clear: string;
+    paidHolidays: string;
+    paidHolidaysHint: string;
+    paidLeave: string;
+    paidLeaveHint: string;
+    leavePolicy: string;
+    leavePolicyHint: string;
+    leavePolicyRow: string;
+    leaveTypeAdd: string;
+    leaveTypeEdit: string;
+    leaveTypeName: string;
+    leaveAccrual: string;
+    leaveCarry: string;
+    leaveCarryHint: string;
+    leaveCarryCap: string;
+    leaveAnnualCap: string;
+    leaveNoLimit: string;
+    leavePaid: string;
+    leavePaidHint: string;
+    leaveOverdraw: string;
+    leaveOverdrawHint: string;
+    leaveActive: string;
+    leaveParked: string;
+    leavePerMonth: string;
+    leaveCarries: string;
+    leaveResets: string;
+    leaveErrName: string;
+    leaveErrAccrual: string;
+    leaveErrCap: string;
+    leaveTypeNone: string;
+    leaveLeft: string;
+    leaveAfter: string;
+    leaveDaysSelected: string;
+    leaveDaysAvailable: string;
+    leaveBalances: string;
+    leaveEarned: string;
+    leaveTaken: string;
+    leaveRequested: string;
+    upcomingTimeOff: string;
+    leaveOverBalance: string;
+    leaveCannotApprove: string;
+    wageRuleNote: string;
+    holidayOnDay: string;
+    leaveOnDay: string;
+    pendingLeaveTitle: string;
+    suspendedNote: string;
   };
   greeting: string;
   yourWaves: string;
@@ -797,6 +944,7 @@ export interface UiStrings {
    * account-wide data export under Settings.
    */
   groupExport: {
+    creditUsage: string;
     /** Overflow-menu row + screen title. */
     menu: string;
     title: string;
@@ -905,6 +1053,48 @@ export interface UiStrings {
     scan: string;
     voice: string;
   };
+  /** Settings > App updates: is this build running an over-the-air update. */
+  otaUpdates: {
+    row: string;
+    intro: string;
+    running: string;
+    builtIn: string;
+    overTheAir: string;
+    channel: string;
+    runtime: string;
+    check: string;
+    checking: string;
+    downloading: string;
+    upToDate: string;
+    ready: string;
+    restart: string;
+    failed: string;
+    unavailable: string;
+  };
+  /** Settings > Pending changes: every queued change, with why it is waiting. */
+  pendingChanges: {
+    row: string;
+    intro: string;
+    empty: string;
+    created: string;
+    attempts: string;
+    lastError: string;
+    blockedBy: string;
+    stuck: string;
+    retry: string;
+    discard: string;
+    discardTitle: string;
+    discardBody: string;
+    copy: string;
+    copied: string;
+    headline: PluralForms;
+    allSynced: string;
+    notSynced: string;
+    waiting: string;
+    status: string;
+    stuckShort: string;
+    copyHint: string;
+  };
   recent: {
     title: string;
     intro: string;
@@ -936,7 +1126,67 @@ export interface UiStrings {
     hints: Record<HomeHero, string>;
   };
   /** Which networks sync may use, and what the banner says while it waits. */
+  twoStep: {
+    row: string;
+    rowHint: string;
+    title: string;
+    bannerVerify: string;
+    bannerVerifyGeneric: string;
+    wrongCode: string;
+    locked: string;
+    updateWaves: string;
+    tryLater: string;
+    verified: string;
+    verifyFirst: string;
+    newPhoneTitle: string;
+    newPhoneBody: string;
+    codeLabel: string;
+    continue: string;
+    checkAgain: string;
+    yourCode: string;
+    newCodeIn: string;
+    codeHint: string;
+    authenticatorTitle: string;
+    authenticatorOn: string;
+    authenticatorSteps: string;
+    copyKey: string;
+    copied: string;
+    openAuthenticator: string;
+    confirm: string;
+    addAuthenticator: string;
+    replaceAuthenticator: string;
+    requireTitle: string;
+    requireHint: string;
+    requireConfirmTitle: string;
+    requireConfirmBody: string;
+    requireConfirmOld: string;
+    requireOn: string;
+    peopleTitle: string;
+    approve: string;
+    decline: string;
+    approveTitle: string;
+    declineTitle: string;
+    approveBody: string;
+    declineBody: string;
+    resetTitle: string;
+    resetBody: string;
+    reset: string;
+    newPhoneRow: string;
+    memberOn: string;
+  };
   sync: {
+    refusal: {
+      twoStep: string;
+      companyGroup: string;
+      adminOnly: string;
+      notMember: string;
+      archived: string;
+      notFound: string;
+      conflict: string;
+      guestExpired: string;
+      companySlot: string;
+      generic: string;
+    };
     title: string;
     wifi: string;
     wifiHint: string;
@@ -956,6 +1206,9 @@ export interface UiStrings {
      *  so it needs a person to retry it or let it go. */
     stuckCount: PluralForms;
     /** The line under that heading: still saved, just not sent. */
+    stuckShort: string;
+    discardTitle: string;
+    discardBody: string;
     stuckExplain: string;
     /** Screen-reader hint on the header's red sync mark, which opens the
      *  account-wide banner carrying retry and discard. */
@@ -972,6 +1225,13 @@ export interface UiStrings {
     title: string;
     requireBiometrics: string;
     appLock: string;
+    askTitle: string;
+    askBody: string;
+    askYes: string;
+    askFingerprint: string;
+    askFace: string;
+    askFaceAndroid: string;
+    askPasscode: string;
     unsupported: string;
     askAgainAfter: string;
     graceImmediate: string;
@@ -982,14 +1242,34 @@ export interface UiStrings {
     signOutGuestWarning: string;
     signOutReassure: string;
     staySignedIn: string;
-    /** Native biometric prompt shown on entering the private Me tab. */
-    personalPrompt: string;
-    /** Heading on the shield in front of the private ledger. */
-    personalLockedTitle: string;
-    /** How to open it — shown while the prompt is up or about to be. */
-    personalLockedBody: string;
-    /** Shown instead, once a check has been refused or cancelled. */
-    personalLockedRefused: string;
+    learnMore: string;
+    learnTitle: string;
+    learnTransit: string;
+    learnRest: string;
+    learnLimits: string;
+    accountTitle: string;
+    accountSub: string;
+    email: string;
+    phone: string;
+    verified: string;
+    addContact: string;
+    devicesSub: string;
+    activeNow: string;
+    seeAll: string;
+    dataTitle: string;
+    dataSub: string;
+    backupOn: string;
+    backupNever: string;
+    hideAmounts: string;
+    hideAmountsHint: string;
+    deleteRow: string;
+    deleteHint: string;
+  };
+  /** The page shown for a link the app has no screen for. */
+  lostPage: {
+    title: string;
+    body: string;
+    action: string;
   };
   /** The wall in front of the two things a guest account cannot hold: the
    *  private ledger and the bank-message reader. Both keep their data on this
@@ -1087,11 +1367,28 @@ export interface UiStrings {
     couldNotSignOut: string;
     signedOutElsewhere: string;
     title: string;
-    intro: string;
+    subtitle: string;
+    infoFree: string;
+    infoPaid: string;
+    infoBody: string;
+    learnMore: string;
+    learnTitle: string;
+    learnBody: string;
+    activeTitle: string;
+    otherTitle: string;
+    sortBy: string;
+    sortLast: string;
+    sortName: string;
+    addDevice: string;
+    addTitle: string;
+    addBody: string;
+    signOutAllTitle: string;
     thisDevice: string;
     signedOut: string;
     lastActive: string;
     signOutOthers: string;
+    eraseOthers: string;
+    eraseOthersHint: string;
     signOutOthersHint: string;
     signedOutOthers: PluralForms;
     onlyThisDevice: string;
@@ -1263,6 +1560,1726 @@ export interface UiStrings {
     completeSheetTitle: string;
     /** The 4th "Try saying…" example, in quotes like its siblings. */
     tryWhoOwes: string;
+  };
+  companyActivity: {
+    title: string;
+    you: string;
+    youObj: string;
+    all: string;
+    money: string;
+    attendance: string;
+    tasks: string;
+    people: string;
+    vendors: string;
+    today: string;
+    yesterday: string;
+    showOlder: string;
+    empty: string;
+    statusPresent: string;
+    statusHalf: string;
+    statusAbsent: string;
+    expense: string;
+    expenseFor: string;
+    allowance: string;
+    allowanceFor: string;
+    advance: string;
+    wages: string;
+    reimbursed: string;
+    cashReturned: string;
+    companyPaid: string;
+    approved: string;
+    rejected: string;
+    attendanceOne: string;
+    attendanceMany: string;
+    taskAssigned: string;
+    taskDone: string;
+    taskBlocked: string;
+    joined: string;
+    joinedManager: string;
+    added: string;
+    markedNotEmployed: string;
+    left: string;
+    vendorBill: string;
+    vendorBillPending: string;
+    vendorBillRejected: string;
+    vendorPayment: string;
+    vendorAdvance: string;
+    vendorReceived: string;
+    estimateCreated: string;
+    billCreated: string;
+    billPaid: string;
+    /** Short bold title per row; the sentence goes underneath. */
+    heads: Readonly<Record<ActivityText, string>>;
+    /** The pill beside each day: "3 activities". */
+    dayCount: PluralForms;
+  };
+  companyDocs: {
+    title: string;
+    estimate: string;
+    bill: string;
+    all: string;
+    estimates: string;
+    bills: string;
+    unpaid: string;
+    syncing: string;
+    draft: string;
+    sent: string;
+    accepted: string;
+    declined: string;
+    part_paid: string;
+    paid: string;
+    newEstimate: string;
+    newBill: string;
+    customer: string;
+    phone: string;
+    date: string;
+    description: string;
+    qty: string;
+    rate: string;
+    amount: string;
+    addItem: string;
+    removeItem: string;
+    discount: string;
+    notes: string;
+    subtotal: string;
+    total: string;
+    payments: string;
+    amountLeft: string;
+    markReceived: string;
+    upiTitle: string;
+    upiScan: string;
+    upiCopy: string;
+    upiShare: string;
+    upiAdd: string;
+    billTo: string;
+    estimateFor: string;
+    recordPayment: string;
+    sharePdf: string;
+    convert: string;
+    edit: string;
+    delete: string;
+    save: string;
+    empty: string;
+    notFound: string;
+    linkedBill: string;
+    linkedEstimate: string;
+    footer: string;
+    nameError: string;
+    itemsError: string;
+    itemError: string;
+    discountError: string;
+    totalError: string;
+    below_paidError: string;
+    amountError: string;
+    overError: string;
+    failed: string;
+    deleteTitle: string;
+    deleteBody: string;
+    unpaidTotal: string;
+    searchLabel: string;
+    searchPlaceholder: string;
+    addLabel: string;
+    docsCount: string;
+    billsCount: string;
+    noDocsTitle: string;
+    noDocsBody: string;
+    createBill: string;
+    createEstimate: string;
+    noMatch: string;
+    billSubtitle: string;
+    estimateSubtitle: string;
+    selectCustomer: string;
+    pickClient: string;
+    billDate: string;
+    currency: string;
+    itemsCount: string;
+    rateEach: string;
+    notesOptional: string;
+    paymentStatus: string;
+    saveShare: string;
+    createdBy: string;
+    acceptedBy: string;
+    declinedBy: string;
+    activity: string;
+    nextAction: string;
+    add: string;
+    duplicate: string;
+    print: string;
+    markSent: string;
+    paymentEvt: string;
+    viewAll: string;
+    showLess: string;
+    editEstimate: string;
+    editBill: string;
+    saveChanges: string;
+    preview: string;
+    estimateNo: string;
+    billNo: string;
+    status: string;
+    detailsTitle: string;
+  };
+  company: {
+    attendanceTitle: string;
+    attendanceMine: string;
+    attendanceEmpty: string;
+    attendancePresent: string;
+    attendanceHalf: string;
+    attendanceAbsent: string;
+    attendanceMarkAll: string;
+    attendanceTotal: string;
+    attendanceDaily: string;
+    attendanceWeekly: string;
+    attendanceMonthly: string;
+    attendanceSearch: string;
+    attendanceDepartment: string;
+    workToday: string;
+    attendanceNote: string;
+    attendanceNotePlaceholder: string;
+    attendanceHalfDay: string;
+    attendanceMark: string;
+    attendanceClear: string;
+    attendanceVsYesterday: string;
+    attendanceFilters: string;
+    attendanceStatus: string;
+    attendanceNotMarked: string;
+    attendancePickDate: string;
+    attendanceMore: string;
+    attendanceDailyView: string;
+    attendanceWeeklyView: string;
+    attendanceMonthlyView: string;
+    attendanceSetStatus: string;
+    attendanceMarkAllAbsent: string;
+    attendanceOnLeave: string;
+    attendanceLeaveApplied: string;
+    attendanceLeave: string;
+    attendanceSaving: string;
+    attendanceMember: string;
+    attendanceMarkHoliday: string;
+    attendanceHolidayEdit: string;
+    attendancePrevious: string;
+    attendanceNext: string;
+    attendanceSaved: string;
+    attendanceOverwriteTitle: string;
+    attendanceOverwriteBody: string;
+    attendanceTasks: PluralForms;
+    attendanceSubtitle: PluralForms;
+    attendanceSummary: PluralForms;
+    attendancePreviousMonth: string;
+    attendanceNextMonth: string;
+    tabDetails: string;
+    editEmployee: string;
+    changeEmploymentType: string;
+    deleteEmployee: string;
+    deleteEmployeeTitle: string;
+    deleteEmployeeBody: string;
+    deleteHasHistory: string;
+    statusActive: string;
+    attendanceMonthTitle: string;
+    daysPresent: string;
+    daysPresentIn: string;
+    viewReport: string;
+    viewFullAttendance: string;
+    birthdayJoining: string;
+    addBirthdayJoining: string;
+    joiningDate: string;
+    detailPhone: string;
+    detailEmail: string;
+    detailMileage: string;
+    workTitle: string;
+    departments: string;
+    department: string;
+    departmentNone: string;
+    departmentAdd: string;
+    departmentRename: string;
+    departmentRemove: string;
+    departmentActions: string;
+    departmentNameError: string;
+    workSubtitle: string;
+    workSearch: string;
+    workTotal: string;
+    workAllTasks: string;
+    workDueToday: string;
+    workCompleted: string;
+    workInProgress: string;
+    workPending: string;
+    workAll: string;
+    workMineTasks: string;
+    workTeam: string;
+    workFilter: string;
+    workTime: string;
+    workNoTime: string;
+    workMine: string;
+    workEmpty: string;
+    workByDate: string;
+    workByPerson: string;
+    workByStatus: string;
+    workOverdue: string;
+    workPriority: string;
+    workPrioNormal: string;
+    workPrioUrgent: string;
+    workPrioVeryUrgent: string;
+    workLateOn: string;
+    workOpenN: string;
+    workDoneN: string;
+    workSiteFilter: string;
+    workNoTasks: string;
+    workNoTasksHint: string;
+    workNoMatch: string;
+    workNoneForYou: string;
+    workShowTeam: string;
+    workBlockedInTeam: string;
+    workExport: string;
+    workExportRange: string;
+    workThisWeek: string;
+    workThisMonth: string;
+    workCustom: string;
+    workFrom: string;
+    workTo: string;
+    workReportType: string;
+    workRepList: string;
+    workRepPerson: string;
+    workRepSite: string;
+    workRepOverdue: string;
+    workExportSub: string;
+    exportPayments: string;
+    exportTasks: string;
+    workFileFormat: string;
+    workGenerate: string;
+    workRepListSub: string;
+    workRepPersonSub: string;
+    workRepSiteSub: string;
+    workRepOverdueSub: string;
+    workColNumber: string;
+    workColTitle: string;
+    workColDate: string;
+    workColStatus: string;
+    workColOpen: string;
+    workColTotal: string;
+    workCompletion: string;
+    workDaysLate: string;
+    workProBadge: string;
+    workAdd: string;
+    workEdit: string;
+    workTitleField: string;
+    workPerson: string;
+    workSite: string;
+    workNoSite: string;
+    workTodo: string;
+    workDoing: string;
+    workDone: string;
+    workHeaderSub: string;
+    workTasksN: string;
+    workBlocked: string;
+    workReason: string;
+    workNote: string;
+    workDue: string;
+    workNotesOptional: string;
+    workDueDate: string;
+    workDueTime: string;
+    workRepeat: string;
+    workRemove: string;
+    workStatus: string;
+    workUpdateStatus: string;
+    workAddNote: string;
+    workPreviousDay: string;
+    workNextDay: string;
+    workSeeAll: string;
+    workSaveError: string;
+    taskDescription: string;
+    taskDescriptionHint: string;
+    taskAssignTo: string;
+    taskResponsible: string;
+    taskHelpers: string;
+    taskHelpersNone: string;
+    taskHelpersMax: string;
+    taskAssignTitle: string;
+    taskAssignN: string;
+    workAlsoOn: string;
+    taskPeople: PluralForms;
+    taskDeadline: string;
+    taskPhotoLabel: string;
+    taskAddPhoto: string;
+    taskVoiceTitle: string;
+    taskVoiceBody: string;
+    taskSave: string;
+    taskNeedTitle: string;
+    taskNeedPeople: string;
+    taskBadDay: string;
+    taskPhotoFailed: string;
+
+    tab: string;
+    listTitle: string;
+    listSubtitle: string;
+    currentCompany: string;
+    myStatement: string;
+    summary: string;
+    employees: string;
+    invite: string;
+    addEntry: string;
+    periodMonth: string;
+    periodLast: string;
+    periodAll: string;
+    balance: string;
+    companyOwesYou: string;
+    youOweCompany: string;
+    settled: string;
+    companyOwesName: string;
+    nameOwesCompany: string;
+    companyOwesAll: string;
+    employeesOweAll: string;
+    owedTo: string;
+    owedBy: string;
+    addEmployee: string;
+    addEmployeeBody: string;
+    employeeId: string;
+    employeeIdOptional: string;
+    addEmployeeId: string;
+    employeeIdTaken: string;
+    fromPastCompany: string;
+    fromPastCompanyBody: string;
+    pastSearch: string;
+    pastEmpty: string;
+    pastAddSelected: string;
+    pastFrom: string;
+    pastLoadFailed: string;
+    welcomeEmployee: string;
+    welcomeAdmin: string;
+    brought: string;
+    expenses: string;
+    bata: string;
+    advances: string;
+    wages: string;
+    paidOut: string;
+    returned: string;
+    byCategory: string;
+    entries: string;
+    none: string;
+    noEmployees: string;
+    pending: string;
+    rejected: string;
+    kExpense: string;
+    kAllowance: string;
+    kAdvance: string;
+    kWages: string;
+    salaryPayment: string;
+    tabOverview: string;
+    overviewTasks: string;
+    tabManagers: string;
+    tabBudgets: string;
+    tabPayments: string;
+    tabMyTeam: string;
+    barPeople: string;
+    barPending: string;
+    barMore: string;
+    barTeam: string;
+    teamTabTasks: string;
+    moreBudgets: string;
+    moreStatements: string;
+    moreRules: string;
+    agentsTitle: string;
+    agentsAllow: string;
+    agentsAllowHint: string;
+    agentsApproval: string;
+    agentsApprovalHint: string;
+    agentsConnected: string;
+    agentsEmpty: string;
+    agentsActivity: string;
+    agentsActivityEmpty: string;
+    agentsRevoke: string;
+    agentsActions: string;
+    agentsLastUsed: string;
+    agentsNeverUsed: string;
+    companyRulesTitle: string;
+    moreSettings: string;
+    moreSettingsHint: string;
+    tileCurrency: string;
+    tileDetails: string;
+    tileBranding: string;
+    tileBrandingHint: string;
+    pendingNone: string;
+    pendingNoneBody: string;
+    pendingVendorBills: string;
+    pendingUnpaidBills: string;
+    pendingBlockedTasks: string;
+    pendingUnmarked: string;
+    countsLine: string;
+    teamLine: string;
+    pillOwner: string;
+    statOwes: string;
+    statPending: string;
+    statPaidMonth: string;
+    statVsLast: string;
+    statAdvances: string;
+    statEmployeesN: string;
+    qaInvite: string;
+    qaHierarchy: string;
+    qaBudgets: string;
+    qaRecord: string;
+    qaAddReminder: string;
+    overviewActiveToday: string;
+    overviewPresent: string;
+    overviewAbsent: string;
+    overviewUnmarked: string;
+    ovBell: string;
+    overviewOnLeave: string;
+    ovAttendance: string;
+    ovPickDate: string;
+    ovVsLast: string;
+    ovTaskDone: string;
+    ovEscAdvance: string;
+    ovEscExpense: string;
+    ovEscPool: string;
+    ovEscBill: string;
+    ovEscAbsent: string;
+    ovEscBlocked: string;
+    ovAgoNow: string;
+    ovAgoMin: string;
+    ovAgoHour: string;
+    ovAgoDay: string;
+    ovAllClearBody: string;
+    ovAttention: string;
+    ovTodayOverview: string;
+    ovPresentOf: string;
+    ovAllMarked: string;
+    ovMarkAttendance: string;
+    ovComingUp: string;
+    ovOverdue: string;
+    ovBlocked: string;
+    ovPendingPayments: string;
+    ovNothingToPay: string;
+    ovNoPaymentsYet: string;
+    ovNoAdvancesOut: string;
+    ovPayrollRun: string;
+    ovPaidMonth: string;
+    ovAdvances: string;
+    ovCrore: string;
+    ovAllClear: string;
+    ovPaymentsPendingN: PluralForms;
+    ovAttendanceToday: string;
+    ovSeeAll: string;
+    ovEmptyTitle: string;
+    ovEmptyBody: string;
+    ovEditLayout: string;
+    ovLayoutHint: string;
+    ovResetLayout: string;
+    ovHiddenCards: string;
+    ovHideCard: string;
+    ovAddCard: string;
+    ovMoveUp: string;
+    ovMoveDown: string;
+    ovReorderCard: string;
+    ovAlwaysFirst: string;
+    ovCardAttendance: string;
+    ovCardMoney: string;
+    ovCardAttention: string;
+    ovCardUpcoming: string;
+    ovCardActivity: string;
+    ovCardBudget: string;
+    ovCardStats: string;
+    ovCardQuick: string;
+    ovCardWorkday: string;
+    ovCardTeam: string;
+    greetMorning: string;
+    greetAfternoon: string;
+    greetEvening: string;
+    ovGlance: string;
+    ovTilePayments: string;
+    ovTileTasks: string;
+    ovTileAdvances: string;
+    ovNeedBlockedN: PluralForms;
+    ovNeedApproveN: PluralForms;
+    ovNeedTotal: string;
+    ovNeedOverdueN: PluralForms;
+    ovNeedDue: string;
+    ovCardGlance: string;
+    ovCardNeeds: string;
+    ovCardMoneyActions: string;
+    ovCardComingUp: string;
+    ovCdTasksN: PluralForms;
+    ovCdThisWeek: string;
+    ovCdApprovalsN: PluralForms;
+    ovCdWaiting: string;
+    ovAddBill: string;
+    ovCreateInvoice: string;
+    overviewNoOwes: string;
+    overviewNoPaid: string;
+    overviewNoAdvances: string;
+    qaAddTask: string;
+    tkAll: string;
+    tkLater: string;
+    tkCompleted: string;
+    tkScheduled: string;
+    tkNext: string;
+    tkQuick: string;
+    tkUpload: string;
+    tkAddClient: string;
+    tkAddVendor: string;
+    tkSites: PluralForms;
+    tkMore: string;
+    tkNone: string;
+    tkMenu: string;
+    tkViewAll: string;
+
+    tasksCount: PluralForms;
+    attHalfDay: string;
+    attNotMarked: string;
+    noBudgetSet: string;
+    employmentType: string;
+    empTypeFullTime: string;
+    empTypePartTime: string;
+    empTypeContractor: string;
+    empTypeNone: string;
+    qaAddEmployee: string;
+    searchEmployees: string;
+    filterEmployees: string;
+    peopleSortName: string;
+    peopleShowAdmins: string;
+    empFilterAll: string;
+    viewStatement: string;
+    notEmployed: string;
+    markNotEmployed: string;
+    markEmployed: string;
+    employmentHint: string;
+    employmentDate: string;
+    employmentNote: string;
+    employmentPool: string;
+    employmentIdTaken: string;
+    employmentBlocked: string;
+    employmentDenied: string;
+    employmentFailed: string;
+    employmentInvalidDate: string;
+    employeeIdInUseBy: string;
+    restoreWithoutId: string;
+    pickNewId: string;
+    newEmployeeId: string;
+    employeeOptions: string;
+    noEmployeesMatch: string;
+    qaAdvance: string;
+    qaAsk: string;
+    promoTitle: string;
+    promoBody: string;
+    hierTitle: string;
+    viewAll: string;
+    ownersControl: string;
+    nameYou: string;
+    needsOtherOwner: string;
+    secondOwnerTitle: string;
+    secondOwnerHint: string;
+    secondOwnerFrom: string;
+    secondOwnerFromHint: string;
+    voiceAdd: string;
+    voiceCurrency: string;
+    paymentSettings: string;
+    dailyRateHint: string;
+    mileageRateHint: string;
+    policiesHint: string;
+    recordPayment: string;
+    recordPaymentBody: string;
+    totalPaid: string;
+    totalPending: string;
+    addExpenseAction: string;
+    recordBill: string;
+    advanceTo: string;
+    paymentTo: string;
+    paymentFrom: string;
+    wagesTo: string;
+    cashReturnedBy: string;
+    expandNamed: string;
+    collapseNamed: string;
+    expandAll: string;
+    collapseAll: string;
+    payWagesBody: string;
+    gaveMoneyBody: string;
+    recentPayments: string;
+    paymentsNoneBody: string;
+    addSiteBody: string;
+    budgetsNone: string;
+    budgetsNoneBody: string;
+    setBudget: string;
+    setBudgetBody: string;
+    assignManager: string;
+    assignManagerBody: string;
+    trackSpending: string;
+    trackSpendingBody: string;
+    createBudget: string;
+    phoneOptional: string;
+    emailOptional: string;
+    fullNameRequired: string;
+    phoneHelper: string;
+    emailHelper: string;
+    roleEmployee: string;
+    nameAloneBody: string;
+    fromContacts: string;
+    fromContactsBody: string;
+    budgetPerMonth: string;
+    teamCount: string;
+    recentTitle: string;
+    recentNone: string;
+    yourBudget: string;
+    givenOut: string;
+    budgetLeft: string;
+    budgetAdjusted: string;
+    askTitle: string;
+    askSent: string;
+    budgetRequests: string;
+    managersNone: string;
+    paymentsNone: string;
+    yourManager: string;
+    yourOwners: string;
+    wagesThisMonth: string;
+    spentLabel: string;
+    advancesLabel: string;
+    myEntries: string;
+    statusPending: string;
+    statusOkTag: string;
+    statusPaid: string;
+    switchCompany: string;
+    employeeCount: PluralForms;
+    managerCount: PluralForms;
+    ownerCount: PluralForms;
+    overallControl: string;
+    switchCompanyBody: string;
+    createCompanyNew: string;
+    newTitle: string;
+    createCompany: string;
+    nameLabel: string;
+    namePlaceholder: string;
+    manageCompanies: string;
+    companySettings: string;
+    reportsToOwners: string;
+    allocateNow: string;
+    menuExport: string;
+    gaveMoney: string;
+    theySpent: string;
+    iSpent: string;
+    paidWagesVerb: string;
+    hasOfYours: string;
+    youOweName: string;
+    youHaveOfCompany: string;
+    shareWhatsApp: string;
+    threadEmpty: string;
+    addPerson: string;
+    moreOptions: string;
+    wageFormula: string;
+    canPayPeople: string;
+    canPayPeopleHint: string;
+    employeeDetails: string;
+    permissions: string;
+    setDailyRate: string;
+    kAllocation: string;
+    kPoolReturn: string;
+    kPoolAdjustment: string;
+    noSite: string;
+    cashLeft: string;
+    cashWithManagers: string;
+    giveCash: string;
+    takeBack: string;
+    correctCash: string;
+    reasonRequired: string;
+    poolReasonHint: string;
+    payWages: string;
+    wagesSheetTitle: string;
+    periodThisWeek: string;
+    periodLastWeek: string;
+    wagesToPay: string;
+    wagesAdvanceCut: string;
+    wagesAdvanceLeft: string;
+    wagesBataIn: string;
+    wagesDays: string;
+    wagesFixedAmount: string;
+    wagesNeedTerms: string;
+    wagesRecord: string;
+    wagesDone: string;
+    wagesNoTeam: string;
+    wagesSubtitle: string;
+    wagesTeam: string;
+    wagesWorkingDays: string;
+    wagesTotal: string;
+    wagesAll: string;
+    wagesPresent: string;
+    wagesLeave: string;
+    wagesAbsent: string;
+    wagesDailyTag: string;
+    wagesFixedTag: string;
+    wagesRateTimesDays: string;
+    wagesSelected: string;
+    wagesTotalPayout: string;
+    wagesPayAction: string;
+    wagesAddMember: string;
+    wagesManageRates: string;
+    wagesManageRatesSub: string;
+    wagesGross: string;
+    wagesPaidFromPool: string;
+    sites: string;
+    addSite: string;
+    suspendedBanner: string;
+    reportCompany: string;
+    reportTitle: string;
+    reportBody: string;
+    reportFraud: string;
+    reportIllegal: string;
+    reportHarassment: string;
+    reportWages: string;
+    reportOther: string;
+    reportPlaceholder: string;
+    reportSend: string;
+    reportSent: string;
+    reportLimit: string;
+    reportFailed: string;
+    suspendedReadOnly: string;
+    siteName: string;
+    siteBudget: string;
+    siteSpent: string;
+    siteSpentOnly: string;
+    siteLeft: string;
+    siteOver: string;
+    makeManager: string;
+    makeEmployee: string;
+    reportsTo: string;
+    owners: string;
+    manager: string;
+    historyMoves: string;
+    moveTeamFirst: string;
+    yourTeam: string;
+    sitesOf: string;
+    wageGrossLabel: string;
+    wageCutLabel: string;
+    wageNetLabel: string;
+    kReimbursement: string;
+    kCashReturned: string;
+    companyPayer: string;
+    companyPaidDirect: string;
+    companyPaidPoolHint: string;
+    companySpentMonth: string;
+    catMaterials: string;
+    catRepairs: string;
+    catRent: string;
+    catUtilities: string;
+    catEquipment: string;
+    catFuel: string;
+    catTransport: string;
+    catTravel: string;
+    catFood: string;
+    catOffice: string;
+    catOther: string;
+    amountToPay: string;
+    expensesPending: PluralForms;
+    pendingForPayment: string;
+    selectAllBtn: string;
+    receiptOne: string;
+    readyToSettle: string;
+    readyBody: string;
+    sendWhatsApp: string;
+    markPaid: string;
+    tileAddSub: string;
+    tileHistory: string;
+    tileHistorySub: string;
+    tileSummary: string;
+    tileSummarySub: string;
+    detailPrivacyTitle: string;
+    detailPrivacyBody: string;
+    callEmployee: string;
+    catStay: string;
+    kindGive: string;
+    kindSubGive: string;
+    kindSubSpent: string;
+    kindSubWages: string;
+    kindSubAllowance: string;
+    paidBy: string;
+    selectPerson: string;
+    notesLabel: string;
+    notePh: string;
+    addReceipt: string;
+    todayDate: string;
+    tagAll: string;
+    tagViewAll: string;
+    tagNew: string;
+    tagNamePh: string;
+    tagAdd: string;
+    tagsTitle: string;
+    tagsShared: string;
+    tagRename: string;
+    tagHide: string;
+    tagShow: string;
+    tagAddedBy: string;
+    tagsSearch: string;
+    industryTitle: string;
+    industryConstruction: string;
+    industryTransport: string;
+    industryFieldSales: string;
+    packAdd: string;
+    packAdded: string;
+    savedAnother: string;
+    addAnother: string;
+    doneBtn: string;
+    moreOpen: string;
+    qtyPh: string;
+    tagsCancel: string;
+    tagSave: string;
+    formKind: string;
+    formEmployee: string;
+    formAmount: string;
+    formDays: string;
+    formRate: string;
+    formTotal: string;
+    formDate: string;
+    today: string;
+    yesterday: string;
+    pickDate: string;
+    formNote: string;
+    formCategory: string;
+    payTo: string;
+    returnFrom: string;
+    wagesTyped: string;
+    wagesDaysRate: string;
+    wagesWeekly: string;
+    save: string;
+    needRate: string;
+    needAmount: string;
+    removeEntry: string;
+    removeTitle: string;
+    removeBody: string;
+    dailyRate: string;
+    rateNotSet: string;
+    rateTitle: string;
+    rateHint: string;
+    share: string;
+    couldNotSave: string;
+    privacyEmployee: string;
+    privacyAdmin: string;
+    daysAt: string;
+    forPerson: string;
+    kMileage: string;
+    formDistance: string;
+    formRatePerKm: string;
+    formFrom: string;
+    formTo: string;
+    mileageAt: string;
+    needDistance: string;
+    needMileageRate: string;
+    mileageRate: string;
+    gstSection: string;
+    vendor: string;
+    gstin: string;
+    gstinBad: string;
+    invoiceNo: string;
+    gstRate: string;
+    gstAmount: string;
+    gstBefore: string;
+    gstTotal: string;
+    policiesTitle: string;
+    policyReceipt: string;
+    policyLimit: string;
+    policyWarn: string;
+    policyBlock: string;
+    policyAddReceipt: string;
+    policyAddLimit: string;
+    policyHintReceipt: string;
+    policyHintLimit: string;
+    policyBlocked: string;
+    policyFlagged: string;
+    perDay: string;
+    perMonth: string;
+    select: string;
+    selectAllDue: string;
+    payCount: string;
+    payCredits: string;
+    payTotal: string;
+    payExternal: string;
+    reimbursedOn: string;
+    payAlreadyOne: string;
+    payAlreadyMany: string;
+    payNeedMore: string;
+    payUpTo: string;
+    payNone: string;
+    dupHint: string;
+    payTitle: string;
+    policyEditorHint: string;
+    policyNone: string;
+    policyRemove: string;
+    policyLimitLabel: string;
+    editEntry: string;
+    awaiting: string;
+    approve: string;
+    reject: string;
+    rejectTitle: string;
+    rejectHint: string;
+    statusApproved: string;
+    reviewNote: string;
+    approvalsTitle: string;
+    approvalsHint: string;
+    photos: string;
+    takePhoto: string;
+    choosePhoto: string;
+    removePhoto: string;
+    removePhotoTitle: string;
+    photoFailed: string;
+    photoPrivacy: string;
+    introPrivacy: string;
+    defaultRateRow: string;
+    defaultRateHint: string;
+    logoRow: string;
+    logoUpload: string;
+    logoLink: string;
+    logoLinkPlaceholder: string;
+    logoUse: string;
+    logoRemove: string;
+    logoSaved: string;
+    logoLater: string;
+    logoLocked: string;
+    logoErrEmpty: string;
+    logoErrInvalid: string;
+    logoErrNotHttps: string;
+    logoErrBlocked: string;
+    logoErrTimeout: string;
+    logoErrNetwork: string;
+    logoErrHttp: string;
+    logoErrNotImage: string;
+    logoErrSvg: string;
+    logoErrTooLarge: string;
+    logoErrRedirects: string;
+    logoErrDecode: string;
+    currencyRow: string;
+    pendingApprovals: string;
+    colType: string;
+    colReview: string;
+    notCounted: string;
+    exportAction: string;
+  };
+  companyTickets: {
+    title: string;
+    tOpen: string;
+    tEscalated: string;
+    tResolved: string;
+    newComplaint: string;
+    editComplaint: string;
+    emptyTitle: string;
+    emptyBody: string;
+    emptyTab: string;
+    seeAll: string;
+    noneForClient: string;
+    clientLabel: string;
+    noClient: string;
+    pickClient: string;
+    searchClients: string;
+    titlePh: string;
+    detailsPh: string;
+    priority: string;
+    pLow: string;
+    pNormal: string;
+    pHigh: string;
+    pUrgent: string;
+    assignedTo: string;
+    assignTo: string;
+    you: string;
+    someone: string;
+    owner: string;
+    save: string;
+    log: string;
+    dueIn: string;
+    overdue: string;
+    escalatedTo: string;
+    unitM: string;
+    unitH: string;
+    unitD: string;
+    call: string;
+    whatsapp: string;
+    reassign: string;
+    actStart: string;
+    actResolve: string;
+    actReopen: string;
+    actClose: string;
+    resolveTitle: string;
+    resolvePh: string;
+    solved: string;
+    stOpen: string;
+    stInProgress: string;
+    stResolved: string;
+    stClosed: string;
+    timeline: string;
+    evCreated: string;
+    evAssigned: string;
+    evStarted: string;
+    evReopened: string;
+    evEscalated: string;
+    evBy: string;
+    commentPh: string;
+    send: string;
+    edit: string;
+    remove: string;
+    removeConfirm: string;
+    more: string;
+    notFound: string;
+    hubOverdue: string;
+    hubOpen: string;
+    hubNone: string;
+  };
+  companyClients: {
+    title: string;
+    toReceive: string;
+    search: string;
+    statTotal: string;
+    statActive: string;
+    statFollowUp: string;
+    statInactive: string;
+    newInquiry: string;
+    subtitle: string;
+    fUnpaid: string;
+    quickActions: string;
+    createQuote: string;
+    createBill: string;
+    quotesN: string;
+    billsN: string;
+    open: string;
+    sortRecent: string;
+    sortName: string;
+    kClients: string;
+    kInquiries: string;
+    kQuotes: string;
+    kInvoices: string;
+    kOutstanding: string;
+    tAll: string;
+    tInquiries: string;
+    tQuotes: string;
+    tInvoices: string;
+    sortBy: string;
+    sortUpdated: string;
+    sortAmount: string;
+    filterTitle: string;
+    fStatus: string;
+    fDate: string;
+    rAll: string;
+    rMonth: string;
+    rQuarter: string;
+    stUnpaid: string;
+    stPartPaid: string;
+    stPaid: string;
+    fClear: string;
+    addClient: string;
+    createInvoice: string;
+    addLabel: string;
+    docInquiry: string;
+    docQuote: string;
+    docInvoice: string;
+    today: string;
+    daysAgo: string;
+    emptyTitle: string;
+    emptyBody: string;
+    noMatches: string;
+    itemsN: string;
+    itemN: string;
+    statusDue: string;
+    statusPaid: string;
+    sortLabel: string;
+    editClient: string;
+    bannerToday: string;
+    bannerOverdue: string;
+    bannerNone: string;
+    more: string;
+    fAll: string;
+    fInquiry: string;
+    fQuoted: string;
+    fClient: string;
+    fLost: string;
+    empty: string;
+    emptyFilter: string;
+    stInquiry: string;
+    stQuoted: string;
+    stClient: string;
+    stLost: string;
+    srcWalkIn: string;
+    srcCall: string;
+    srcWhatsapp: string;
+    srcReferral: string;
+    srcOther: string;
+    namePh: string;
+    phonePh: string;
+    needPh: string;
+    cameFrom: string;
+    followUp: string;
+    fuToday: string;
+    fuTomorrow: string;
+    fuThreeDays: string;
+    fuPick: string;
+    fuNone: string;
+    whoFollows: string;
+    extra: string;
+    expectedValue: string;
+    addressPh: string;
+    newInquirySub: string;
+    customerDetails: string;
+    inquiryDetails: string;
+    needLabel: string;
+    saveAnother: string;
+    existingCustomer: string;
+    viewHistory: string;
+    useCustomer: string;
+    notThisCustomer: string;
+    lastActivity: string;
+    historyCounts: string;
+    emailPh: string;
+    companyPh: string;
+    category: string;
+    selectCategory: string;
+    catPlumbing: string;
+    catElectrical: string;
+    catCivil: string;
+    catInteriors: string;
+    catMaintenance: string;
+    catOther: string;
+    priority: string;
+    prNormal: string;
+    prUrgent: string;
+    prHigh: string;
+    notesOpt: string;
+    notesPh: string;
+    saveInquiry: string;
+    save: string;
+    followTitle: string;
+    saveFailed: string;
+    viaSource: string;
+    follows: string;
+    markWon: string;
+    markLost: string;
+    reopen: string;
+    lostWhy: string;
+    lostPrice: string;
+    lostOther: string;
+    lostSilent: string;
+    lostSkip: string;
+    tabActivity: string;
+    tabBills: string;
+    tabDocs: string;
+    btnFollowUp: string;
+    btnEstimate: string;
+    btnMoney: string;
+    btnInquiry: string;
+    scheduleFollowUp: string;
+    noFollowUpHint: string;
+    call: string;
+    whatsapp: string;
+    overdueSince: string;
+    dueAt: string;
+    done: string;
+    noFollowUp: string;
+    addNote: string;
+    notePh: string;
+    noteSave: string;
+    evCreated: string;
+    evNote: string;
+    fuOverdueDays: string;
+    fuSubToday: string;
+    fuSubOverdue: string;
+    fuSubOn: string;
+    howWent: string;
+    outSpoke: string;
+    outNoAnswer: string;
+    outNotInterested: string;
+    noteSpoke: string;
+    noteNoAnswer: string;
+    noteNotInterested: string;
+    fuNotifTitle: string;
+    inqTitle: string;
+    inqNew: string;
+    statInquiries: string;
+    statWon: string;
+    statRejected: string;
+    statPayments: string;
+    assignedN: string;
+    assignTitle: string;
+    assignHint: string;
+    assignSave: string;
+    inqStOpen: string;
+    inqStQuoted: string;
+    inqStRejected: string;
+    inqStWon: string;
+    inqFormNew: string;
+    inqFormEdit: string;
+    inqFieldTitle: string;
+    inqFieldDetails: string;
+    inqFieldValue: string;
+    inqFieldDate: string;
+    inqSave: string;
+    inqNone: string;
+    inqDetails: string;
+    inqAmount: string;
+    inqDocs: string;
+    inqNoDocs: string;
+    inqCreateEstimate: string;
+    inqReject: string;
+    inqRejectWhy: string;
+    inqReopen: string;
+    inqEdit: string;
+    inqRemove: string;
+    inqRemoveConfirm: string;
+    inqRejectedFor: string;
+    inqNotFound: string;
+    evFollowUp: string;
+    evFollowUpDone: string;
+    evReceipt: string;
+    activityEmpty: string;
+    billsEmpty: string;
+    docsEmpty: string;
+    owes: string;
+    remove: string;
+    removeConfirm: string;
+    whenNext: string;
+    nextTomorrow: string;
+    nextWeek: string;
+    nextNone: string;
+    fuTitle: string;
+    gOverdue: string;
+    gToday: string;
+    gWeek: string;
+    gLater: string;
+    mine: string;
+    everyone: string;
+    fuEmpty: string;
+    fuSubtitle: string;
+    fuUpcoming: string;
+    fuEmptyTitle: string;
+    fuEmptyBody: string;
+    fuAdd: string;
+    fuFromClient: string;
+    fuFromClientSub: string;
+    fuFromInquiry: string;
+    fuFromInquirySub: string;
+    hubMoneyIn: string;
+    hubMoneyOut: string;
+    hubTeam: string;
+    hubBooks: string;
+    hubNew: string;
+    hubToReceive: string;
+    hubToday: string;
+    hubOpen: string;
+    hubToPay: string;
+    hubToApprove: string;
+    hubPeople: string;
+    hubNothing: string;
+    hubFiles: string;
+    hubSettings: string;
+    hubDue: string;
+    hubInSub: string;
+    hubOutSub: string;
+    hubTeamSub: string;
+    hubBooksSub: string;
+  };
+  companyImport: {
+    title: string;
+    menuRow: string;
+    menuRowSub: string;
+    whatTitle: string;
+    employees: string;
+    employeesSub: string;
+    clients: string;
+    clientsSub: string;
+    vendors: string;
+    vendorsSub: string;
+    sourceTitle: string;
+    srcFile: string;
+    srcFileSub: string;
+    srcContacts: string;
+    srcContactsSub: string;
+    srcSheet: string;
+    srcSheetSub: string;
+    template: string;
+    templateFailed: string;
+    sheetPlaceholder: string;
+    sheetGo: string;
+    sheetBad: string;
+    sheetPrivate: string;
+    sheetTooBig: string;
+    sheetNetwork: string;
+    fileTooLarge: string;
+    fileTooMany: string;
+    fileEmpty: string;
+    fileEncoding: string;
+    fileUnreadable: string;
+    noRows: string;
+    columnsTitle: string;
+    columnsHint: string;
+    none: string;
+    fName: string;
+    fPhone: string;
+    fEmployeeId: string;
+    fDepartment: string;
+    fManager: string;
+    fJoinedOn: string;
+    fDailyRate: string;
+    fNeed: string;
+    fSource: string;
+    fAddress: string;
+    fExpectedValue: string;
+    fStage: string;
+    fCategory: string;
+    fOpeningBalance: string;
+    previewTitle: string;
+    cNew: string;
+    cDup: string;
+    cErr: string;
+    importN: string;
+    next: string;
+    back: string;
+    progress: string;
+    resultTitle: string;
+    resultLine: string;
+    downloadErrors: string;
+    done: string;
+    pName: string;
+    pPhone: string;
+    pDate: string;
+    pAmount: string;
+    pNegative: string;
+    pDupFile: string;
+    pDupExisting: string;
+    pFailed: string;
+    wDept: string;
+    wManager: string;
+    wEmpId: string;
+    wStage: string;
+    warnLine: string;
+    noAccess: string;
+    errCsvRow: string;
+    errCsvProblem: string;
+    contactsAdded: string;
+  };
+  companyVendors: {
+    subtitle: string;
+    receipts: string;
+    pendingN: string;
+    receiptOne: string;
+    receiptMany: string;
+    periodMonth: string;
+    periodLast: string;
+    periodYear: string;
+    periodAll: string;
+    allVendors: string;
+    pendingReview: string;
+    photoPrivacy: string;
+    historyEmpty: string;
+    title: string;
+    addVendor: string;
+    name: string;
+    phone: string;
+    category: string;
+    empty: string;
+    youOwe: string;
+    hasAdvance: string;
+    settled: string;
+    oweName: string;
+    advanceName: string;
+    settledName: string;
+    companyOwes: string;
+    yourAdvance: string;
+    allSettled: string;
+    addBill: string;
+    recordPayment: string;
+    bill: string;
+    advance: string;
+    payment: string;
+    amount: string;
+    date: string;
+    note: string;
+    dateHint: string;
+    invalidDate: string;
+    billHint: string;
+    pending: string;
+    confirmed: string;
+    rejected: string;
+    received: string;
+    markReceived: string;
+    history: string;
+    pendingBills: string;
+    confirm: string;
+    reject: string;
+    more: string;
+    invite: string;
+    rename: string;
+    delete: string;
+    deleteConfirm: string;
+    removeEntry: string;
+    removeConfirm: string;
+    withdraw: string;
+    withdrawConfirm: string;
+    notFound: string;
+    inviteFailed: string;
+    save: string;
+    close: string;
+    addSubtitle: string;
+    scanQr: string;
+    fromLink: string;
+    wavesId: string;
+    useLink: string;
+    findId: string;
+    helpScan: string;
+    helpLink: string;
+    helpId: string;
+    linkPlaceholder: string;
+    idPlaceholder: string;
+    idHint: string;
+    lookupFailed: string;
+    allowCamera: string;
+    or: string;
+    enterManually: string;
+    phoneOptional: string;
+    categoryOptional: string;
+    editVendor: string;
+    vendorNameRequired: string;
+    categories: string;
+    addOrSelectCategory: string;
+    selectOrAddCategories: string;
+    addCategory: string;
+    showMore: string;
+    showLess: string;
+    removeCategory: string;
+    cancel: string;
+    catMaterials: string;
+    catCement: string;
+    catElectrical: string;
+    catPlumbing: string;
+    catPainting: string;
+    catHardware: string;
+    catLabour: string;
+    saveVendor: string;
+    catSupplier: string;
+    catContractor: string;
+    catLandlord: string;
+    catUtilities: string;
+    catTransport: string;
+    catOther: string;
+    totalToPay: string;
+    overdueCount: string;
+    paidThisMonth: string;
+    billsToReview: string;
+    filterAll: string;
+    filterToPay: string;
+    filterToReview: string;
+    search: string;
+    emptyList: string;
+    noMatch: string;
+    statusOverdue: string;
+    statusToReview: string;
+    statusToPay: string;
+    call: string;
+    whatsapp: string;
+    statement: string;
+    vendorTitle: string;
+    activityTab: string;
+    billsTab: string;
+    lastPaymentLabel: string;
+    waitingSync: string;
+    entryDetails: string;
+    documents: string;
+    transactions: string;
+    outstanding: string;
+    overdueLine: string;
+    lastPayment: string;
+    noPayments: string;
+    noDocs: string;
+    dueOn: string;
+    dueDate: string;
+    method: string;
+    mUpi: string;
+    mBank: string;
+    mCash: string;
+    mOther: string;
+    reference: string;
+    proofPhoto: string;
+    currentOutstanding: string;
+    remainingAfter: string;
+    keptAsAdvance: string;
+    recorded: string;
+    paymentRecorded: string;
+    receipt: string;
+    receiptTitle: string;
+    receiptFooter: string;
+    companyLabel: string;
+    vendorLabel: string;
+    balanceAfter: string;
+    statusLabel: string;
+    sharePdf: string;
+    viewTransaction: string;
+    pdfFailed: string;
+    statementTitle: string;
+    balance: string;
+    receiptsHeading: string;
+    billPhotos: string;
+    shareWhatsapp: string;
+    amountLabel: string;
+    dateLabel: string;
+    quickFull: string;
+    quickOverdue: string;
+    stillToPay: string;
+    paidBy: string;
+    recordsNote: string;
+    waitingVendor: string;
+    openInVendor: string;
+    downloadPdf: string;
+    advanceKind: string;
+    paidTo: string;
+    newOrder: string;
+    ordersTab: string;
+    orderTitle: string;
+    editOrder: string;
+    itemName: string;
+    itemQty: string;
+    itemUnit: string;
+    itemPrice: string;
+    addItem: string;
+    removeItem: string;
+    expectedDelivery: string;
+    orderTotalItems: string;
+    orderNotBill: string;
+    sendOrder: string;
+    orderSent: string;
+    noOrders: string;
+    createOrder: string;
+    ordSent: string;
+    ordAccepted: string;
+    ordRejected: string;
+    ordDelivered: string;
+    ordCancelled: string;
+    accept: string;
+    markDelivered: string;
+    cancelOrder: string;
+    cancelOrderConfirm: string;
+    orderTimeline: string;
+    unitBags: string;
+    unitPieces: string;
+    unitKg: string;
+    unitLitres: string;
+    unitMetres: string;
+    unitOther: string;
+    orderPdf: string;
+    purchaseOrder: string;
+    expectedOn: string;
+    orderItems: string;
+    orderTotal: string;
+    itemsCount: string;
+  };
+  companySlot: {
+    addRow: string;
+    addRowHint: string;
+    title: string;
+    body: string;
+    subscribe: string;
+    restore: string;
+    restored: string;
+    noneFound: string;
+    unavailable: string;
+    pending: string;
+    buyFailed: string;
+    setupSlow: string;
+    lapsedBanner: string;
+    lapsedReadOnly: string;
+    renew: string;
+  };
+  companyStorage: {
+    addMore: string;
+    packLine: string;
+    packNote: string;
+    packElsewhere: string;
+    bought: string;
+    pending: string;
+    buyFailed: string;
+    title: string;
+    usedOfQuota: string;
+    percentUsed: string;
+    banner: string;
+    note: string;
+    full: string;
+    loading: string;
+  };
+  companyFiles: {
+    title: string;
+    search: string;
+    all: string;
+    documents: string;
+    images: string;
+    sheets: string;
+    others: string;
+    links: string;
+    upload: string;
+    addLink: string;
+    newFolder: string;
+    folderItems: string;
+    empty: string;
+    emptyBody: string;
+    emptyFolder: string;
+    noMatches: string;
+    open: string;
+    rename: string;
+    editLink: string;
+    whoSees: string;
+    openFailed: string;
+    uploadFailed: string;
+    tooBig: string;
+    badType: string;
+    storageFull: string;
+    saveFailed: string;
+    linkName: string;
+    linkUrl: string;
+    linkUrlBad: string;
+    folderName: string;
+    fileName: string;
+    visEveryone: string;
+    visManagers: string;
+    visOwners: string;
+    visEveryoneHint: string;
+    visManagersHint: string;
+    visOwnersHint: string;
+    deleteFolderTitle: string;
+    deleteFolderBody: string;
+    deleteFileTitle: string;
+    deleteFileBody: string;
+    uploading: string;
+    allFiles: string;
+    listView: string;
+    gridView: string;
+    more: string;
+  };
+  companyDetails: {
+    title: string;
+    vendorDetails: string;
+    myDetails: string;
+    accountName: string;
+    accountNumber: string;
+    ifsc: string;
+    upi: string;
+    address: string;
+    phone: string;
+    email: string;
+    gstin: string;
+    pan: string;
+    note: string;
+    copied: string;
+    shareAsText: string;
+    edit: string;
+    addDetails: string;
+    empty: string;
+    reveal: string;
+    hide: string;
+    updatedAgo: string;
+    updated: string;
+    bankChanged: string;
+    noted: string;
+    save: string;
+    invalidField: string;
+    saveFailed: string;
+    bank: string;
+    contact: string;
+    subtitle: string;
+    active: string;
+    companyInfo: string;
+    legalName: string;
+    addMore: string;
+    peopleAccess: string;
+    teamMembers: string;
+    businessSetup: string;
+    billing: string;
+    billingSub: string;
+    preferences: string;
+    preferencesSub: string;
   };
   groupRecurring: {
     title: string;
@@ -1833,6 +3850,32 @@ export interface UiStrings {
   /** Consent to send voice to third-party AI, and its Settings row. */
   /** Rewarded ads for Free (docs/ads.md): the sheet at the voice and scan limits. {count} is filled in. */
   credits: {
+    sheetTitle: string;
+    sheetLeft: string;
+    sheetHelp: string;
+    sheetWatch: string;
+    sheetAdded: string;
+    sheetBalance: string;
+    sheetFull: string;
+    sheetFullBody: string;
+    sheetGap: string;
+    sheetUnavailable: string;
+    sheetRetry: string;
+    sheetPro: string;
+    sheetProSubtitle: string;
+    sheetVoice: string;
+    sheetPrice: string;
+    sheetLater: string;
+    sheetStatusEmpty: string;
+    sheetWatchSub: string;
+    sheetStatusHas: string;
+    sheetMiniScans: string;
+    sheetMiniScansSub: string;
+    sheetMiniAds: string;
+    sheetMiniAdsSub: string;
+    sheetMiniDevices: string;
+    sheetMiniDevicesSub: string;
+    sheetContinue: string;
     title: string;
     balance: string;
     usedOne: string;
@@ -1849,6 +3892,25 @@ export interface UiStrings {
     export: string;
     group: string;
     price: string;
+    yourCredits: string;
+    yourCreditsHint: string;
+    watchSub: string;
+    proSub: string;
+    getPro: string;
+    howUsed: string;
+    learnMore: string;
+    voiceSub: string;
+    scanSub: string;
+    exportSub: string;
+    groupSub: string;
+    buyTitle: string;
+    popular: string;
+    buy: string;
+    neverExpire: string;
+    neverExpireSub: string;
+    nextAt: string;
+    paidNote: string;
+    help: string;
   };
   adGates: {
     title: string;
@@ -1881,6 +3943,7 @@ export interface UiStrings {
     upgradeBody: string;
     dailyLimit: string;
     adLabel: string;
+    removeAds: string;
     voiceTitle: string;
     scanTitle: string;
     voiceBody: string;
@@ -1973,6 +4036,8 @@ export interface UiStrings {
     nudgesBody: string;
     digest: string;
     digestBody: string;
+    companyUpdates: string;
+    companyUpdatesBody: string;
     /** The weekly email is not a push notification, so it gets its own section. */
     emailSection: string;
     emailAll: string;
@@ -2291,6 +4356,20 @@ export interface UiStrings {
   };
   /** The dashboard hero carousel's action slides — the promo-style cards that
       sit in the swipe deck after the balance (scan a receipt, add a person). */
+  spaces: {
+    personal: string;
+    personalBody: string;
+    switchTitle: string;
+    switchBody: string;
+    switchedTo: string;
+    createTitle: string;
+    createBody: string;
+    owner: string;
+    manager: string;
+    employee: string;
+    vendor: string;
+    pillLabel: string;
+  };
   dashHero: {
     scanTitle: string;
     scanBody: string;
@@ -2355,15 +4434,50 @@ export interface UiStrings {
     settlesWith: string;
   };
   /** The Activity screen: its subtitle, filter chips and row menu. */
-  activityScreen: {
-    subtitle: string;
+  departedExpenses: {
     all: string;
-    expenses: string;
-    edits: string;
-    trip: string;
-    more: string;
-    viewDetails: string;
-    openGroup: string;
+    youLent: string;
+    youOwe: string;
+    selectAll: string;
+    dateNewest: string;
+    dateOldest: string;
+    amountSort: string;
+    equalShare: string;
+    customShare: string;
+    paidBy: string;
+    selectedShares: string;
+    splitOthers: string;
+    expenseCount: PluralForms;
+    isOwed: PluralForms;
+    title: string;
+    owed: PluralForms;
+    equal: PluralForms;
+    perEach: string;
+    splitAmong: PluralForms;
+    custom: PluralForms;
+    keep: string;
+    shareEqually: string;
+    paid: PluralForms;
+    settle: string;
+    confirm: PluralForms;
+    dialog: string;
+    onlyViewer: string;
+    onlyViewerDialog: string;
+    bannerTitle: string;
+    decideFor: string;
+    banner: PluralForms;
+    decide: string;
+    keepAsIs: string;
+    offline: string;
+    memberRow: string;
+    activity: PluralForms;
+    activityUndone: string;
+    undo: string;
+  };
+  activityScreen: {
+    /** Names an expense with no description and no category: "Added an expense". */
+    anExpense: string;
+    subtitle: string;
     noneForFilter: string;
     /** "Imported {n} expenses": the feed row for one import into a group. */
     importedHeadline: PluralForms;
@@ -2440,6 +4554,7 @@ export interface UiStrings {
     descriptionLabel: string;
     optional: string;
     seeAll: string;
+    moreOptions: string;
   };
   /** The Save an expense screen's row subtitles, header line and receipt / location tiles. */
   captureForm: {
@@ -2462,11 +4577,15 @@ export interface UiStrings {
   /** The dashboard: the balance card, the action tiles and the groups list. */
   homeDash: {
     creditsTitle: string;
-    creditsLabel: string;
-    noAdAvailable: string;
+    getCredits: string;
+    creditOne: string;
+    creditMany: string;
+    creditReward: string;
+    creditPro: string;
     totalOwed: string;
     totalOwe: string;
     totalSettled: string;
+    downloadingGroups: string;
     spentThisMonth: string;
     vsLastMonth: string;
     periodOverall: string;
@@ -2483,8 +4602,15 @@ export interface UiStrings {
     settleTitle: string;
     settleEmpty: string;
     settleSubtitle: string;
+    settleSquareBody: string;
+    settleAllDone: string;
+    settleAllDoneBody: string;
+    settleCreate: string;
+    settleScan: string;
+    settleInvite: string;
     /** "{members} · Last activity {when}" under a group's name. */
     settleMeta: string;
+    settleAllGroups: string;
     /** "Across 4 groups", under each side of the balance card. */
     acrossGroups: PluralForms;
   };
@@ -3595,6 +5721,12 @@ export interface UiStrings {
     emailSubject: string;
     hideContacts: string;
     browseContacts: string;
+    addSomeoneBody: string;
+    browseContactsBody: string;
+    shareInviteBody: string;
+    orAddManually: string;
+    contactOptional: string;
+    addToGroupButton: string;
     /** The line under "From your contacts", saying which book is read. */
     fromContactsHint: string;
     /** The way in for somebody who joins themselves: link or QR. */
@@ -4014,6 +6146,18 @@ export interface UiStrings {
     settleNoHistory: string;
     settlePaymentsCount: PluralForms;
     settleBetweenOthersSub: string;
+    paymentsToMake: string;
+    balanceSortAmount: string;
+    balanceSortName: string;
+    sortPill: string;
+    sortAmountHigh: string;
+    sortAmountLow: string;
+    settleInOneGo: string;
+    balanceSimplified: string;
+    balanceIsOwed: string;
+    balanceOwesYou: string;
+    balanceOwes: string;
+    balanceSettled: string;
     settleOweYouTitle: string;
     settleYouOweTitle: string;
     settleStatusPending: string;
@@ -4130,7 +6274,6 @@ export interface UiStrings {
      *  longer on this device (left or deleted). */
     archivedGroup: string;
     unavailableGroup: string;
-    serverRefused: string;
     offlineSaved: string;
     /** The mark on a row that is saved here but has not reached the server. */
     notSentYet: string;
@@ -4154,6 +6297,18 @@ export interface UiStrings {
     getTodaysRate: string;
     micPermission: string;
     micBlocked: string;
+    /** Our short explainer shown before any system permission dialog. */
+    permission: {
+      continue: string;
+      notNow: string;
+      openSettings: string;
+      /** Appended when the system will no longer ask. */
+      blocked: string;
+      kinds: Record<
+        'mic' | 'contacts' | 'notifications' | 'location' | 'camera' | 'photos',
+        { title: string; body: string }
+      >;
+    };
     dictationFailed: string;
     /** Every way dictation can end, in words — threaded into `dictationError`. */
     dictationErrors: DictationErrorStrings;
@@ -4162,6 +6317,8 @@ export interface UiStrings {
     updateWaves: string;
     alreadyUpdated: string;
     update: string;
+    updateNow: string;
+    newVersion: string;
     notNow: string;
     changeGroupPhoto: string;
     addGroupPhoto: string;
@@ -4353,6 +6510,38 @@ export interface UiStrings {
    * phone reads for itself — searched, narrowed by date, ticked in batches. The
    * two were one screen and should not have been.
    */
+  /** "Ask about my spending" (Me tab): a question, answered from a digest of your own ledger. */
+  spendingAsk: {
+    title: string;
+    tileSub: string;
+    sub: string;
+    ledgerNote: string;
+    period: string;
+    q1: string;
+    q2: string;
+    q3: string;
+    placeholder: string;
+    send: string;
+    asking: string;
+    counter: string;
+    facts: string;
+    subscriptions: string;
+    subscriptionsHint: string;
+    monthly: string;
+    weekly: string;
+    yearly: string;
+    lastCharge: string;
+    yourQuestion: string;
+    askAnother: string;
+    failed: string;
+    rate: string;
+    unavailable: string;
+    quota: string;
+    paywallTitle: string;
+    paywallBody: string;
+    unlock: string;
+    back: string;
+  };
   statementImport: {
     title: string;
     tileSub: string;
@@ -4949,10 +7138,6 @@ export interface UiStrings {
     fromYourContactsSubtitle: string;
     /** The compact picker's filter pills — "All (907)". */
     filterAll: string;
-    /** Shared by the "On Waves" filter pill and a row's own status pill. */
-    filterOnWaves: string;
-    /** Shared by the "Not on Waves" filter pill and a row's own status pill. */
-    filterNotOnWaves: string;
     filterSelected: string;
     /** The compact picker's bottom strip: "{n} people selected". */
     peopleSelectedCount: PluralForms;
@@ -5002,6 +7187,44 @@ export interface UiStrings {
     plansPromise: string;
     manageSubscription: string;
     whatCosts: string;
+  };
+  /** The Purchases settings screen (`/settings/purchases`). */
+  purchases: {
+    title: string;
+    row: string;
+    rowHint: string;
+    link: string;
+    proMonthly: string;
+    proYearly: string;
+    status: {
+      active: string;
+      trial: string;
+      renewsOff: string;
+      billingIssue: string;
+      expired: string;
+      refunded: string;
+      promo: string;
+    };
+    test: string;
+    renews: string;
+    ends: string;
+    ended: string;
+    promoUntil: string;
+    changePlan: string;
+    manageOnAndroid: string;
+    manageOnIphone: string;
+    receiptsNotePlay: string;
+    receiptsNoteApple: string;
+    help: string;
+    getReceipt: string;
+    orderId: string;
+    contactSupport: string;
+    copied: string;
+    emptyTitle: string;
+    emptyBody: string;
+    seePlans: string;
+    googlePlay: string;
+    appStore: string;
   };
   /**
    * The paywall (`/paywall`, behind the `paywall` route flag): the Pro
@@ -5138,18 +7361,10 @@ export interface UiStrings {
     title: string;
     headline: string;
     body: string;
-    youGetTitle: string;
-    youGetBody: string;
-    friendGetsTitle: string;
-    friendGetsBody: string;
-    /** Milestone label under a node on the progress path: "{n} days" */
-    milestoneDays: string;
     share: string;
     shareMessage: string;
-    /** "{earned} of {cap} days earned" */
-    progress: string;
-    /** "... all {cap} days ..." */
-    capReached: string;
+    /** "{n} of {cap} friends joined · {credits} credits earned" */
+    friendsJoined: string;
     pending: PluralForms;
     loadError: string;
     haveCode: string;
@@ -5568,6 +7783,7 @@ export interface UiStrings {
     typeEvent: string;
     typeFriends: string;
     typeOther: string;
+    typeCompany: string;
     /** "Tag (optional)": the member's own short label for the group. */
     tagLabel: string;
     tagPlaceholder: string;
@@ -6145,6 +8361,10 @@ export interface UiStrings {
   demo: {
     /** The small pill on the demo group's card and on each demo friend's row. */
     badge: string;
+    /** The demo group's display name, wherever a group name is shown. */
+    groupName: string;
+    /** One-line subtitle on the demo group's row. */
+    rowSubtitle: string;
     /** The banner across the top of the demo group's own screen. */
     bannerTitle: string;
     /** The destructive row — the group's ••• menu and Settings alike. */
@@ -6188,6 +8408,152 @@ const en: UiStrings = {
     owes: 'paid {paid} · used {used} · owes {back}',
     none: 'No payments needed',
     closeHint: 'Closing creates payments for the treasurer and members to confirm.',
+  calendar: {
+    title: 'Calendar',
+    today: 'Today',
+    upcoming: 'Upcoming',
+    comingUp: 'Coming up',
+    seeAll: 'See all',
+    agendaFor: 'Agenda · {date}',
+    nothingPlanned: 'Nothing planned',
+    filterAll: 'All',
+    filterLeave: 'Leave & holidays',
+    filterMoney: 'Money',
+    filterWork: 'Work & events',
+    filterBirthdays: 'Birthdays',
+    add: 'Add',
+    addHoliday: 'Holiday',
+    addEvent: 'Event',
+    recordLeave: 'Record leave',
+    requestLeave: 'Request leave',
+    myDates: 'My birthday & joining date',
+    kindHoliday: 'Holiday',
+    kindLeave: 'Leave',
+    kindWage: 'Wages due',
+    kindVendorBill: 'Vendor bill',
+    kindCustomerBill: 'Customer bill unpaid',
+    kindAdvance: 'Advance outstanding',
+    kindTask: 'Work',
+    kindEvent: 'Event',
+    kindBirthday: 'Birthday',
+    kindAnniversary: 'Work anniversary',
+    birthdayOf: "{name}'s birthday",
+    anniversaryOf: '{name} · {n} years',
+    overdue: 'Overdue',
+    overdueItems: { one: '{n} item overdue', other: '{n} items overdue' },
+    totalDue: 'Total due {amount}',
+    nothingDue: 'Nothing due',
+    nothingOverdue: 'Nothing overdue',
+    nothingUpcoming: 'Nothing upcoming',
+    moreCount: '+{n} more',
+    leaveCasual: 'Casual',
+    leaveSick: 'Sick',
+    leaveOther: 'Other',
+    halfDay: 'Half day',
+    statusPending: 'Pending',
+    statusApproved: 'Approved',
+    statusRejected: 'Rejected',
+    leaveLine: '{name} · {from} – {to}',
+    dayCount: '{n} days',
+    oneDay: '1 day',
+    holidayName: 'Holiday name',
+    holidayTitle: 'Add holiday',
+    holidayPlaceholder: 'e.g. Diwali, office holiday',
+    eventTitle: 'Event title',
+    eventTime: 'Time, optional',
+    eventPeople: 'People involved',
+    eventEveryone: 'Everyone',
+    eventSite: 'Site, optional',
+    eventDate: 'Date',
+    eventTimeLabel: 'Time',
+    eventSiteLabel: 'Site',
+    eventOptional: '(optional)',
+    eventTitlePlaceholder: 'e.g. Site visit, Team meeting',
+    eventSearch: 'Search people…',
+    eventSelected: 'Selected: {n}',
+    eventCreate: 'Create event',
+    eventSave: 'Save event',
+    person: 'Person',
+    startDate: 'From',
+    endDate: 'To',
+    reason: 'Reason, optional',
+    note: 'Note, optional',
+    leaveType: 'Type',
+    save: 'Save',
+    cancel: 'Cancel',
+    approve: 'Approve',
+    reject: 'Reject',
+    withdraw: 'Withdraw request',
+    remove: 'Remove',
+    decisionNote: 'Add a note, optional',
+    decisionTitle: 'Leave request',
+    errName: 'Enter a name',
+    errTitle: 'Enter a title',
+    errRange: 'End date must be on or after the start',
+    errHalfDay: 'Half day is for a single day',
+    errOverlap: 'This overlaps other leave for the person',
+    errWindow: 'Pick a date within the allowed range',
+    errPeople: 'Pick at least one person from your team',
+    errTime: 'Use a time like 14:30',
+    errDate: 'Enter a valid date',
+    errBirthday: 'Enter a real day and month',
+    birthday: 'Birthday',
+    datesTitle: 'Birthday & Joining Date',
+    datesSubtitle: 'Keep these dates to remember and celebrate',
+    joinedLabel: 'Joining date (optional)',
+    selectDate: 'Select date',
+    birthDay: 'Day',
+    birthMonth: 'Month',
+    joinedOn: 'Joining date, optional',
+    showBirthday: 'Show my birthday to colleagues',
+    showBirthdayHint: 'Off by default. Only the day and month are saved, never the year.',
+    clear: 'Clear',
+    paidHolidays: 'Paid holidays',
+    paidHolidaysHint: 'Holidays count as paid days in wage runs.',
+    paidLeave: 'Paid sick/casual leave',
+    paidLeaveHint: 'Approved sick and casual leave counts as paid days. Other leave is unpaid.',
+    leavePolicy: 'Leave policy',
+    leavePolicyHint: 'Casual, sick and other leave: how much each person earns every month.',
+    leavePolicyRow: 'Casual, sick and other leave each person earns',
+    leaveTypeAdd: 'Add leave type',
+    leaveTypeEdit: 'Edit leave type',
+    leaveTypeName: 'Name',
+    leaveAccrual: 'Days earned per month (0 to 5, halves ok)',
+    leaveCarry: 'Carry forward to next year',
+    leaveCarryHint: 'Unused days move into the next year. Off: they reset on 1 January.',
+    leaveCarryCap: 'Carry forward at most (days)',
+    leaveAnnualCap: 'Earn at most per year (days)',
+    leaveNoLimit: 'No limit',
+    leavePaid: 'Paid leave',
+    leavePaidHint: 'Counts as a paid day in wages',
+    leaveOverdraw: 'Allow going below zero',
+    leaveOverdrawHint: 'Off: a request beyond the balance cannot be approved.',
+    leaveActive: 'In use',
+    leaveParked: 'Not in use',
+    leavePerMonth: '{n} a month',
+    leaveCarries: 'carries forward',
+    leaveResets: 'resets every year',
+    leaveErrName: 'Give it a name.',
+    leaveErrAccrual: 'Days per month must be 0 to 5 in steps of 0.5.',
+    leaveErrCap: 'Limits must be a number of days, or empty for no limit.',
+    leaveTypeNone: 'Other (not counted)',
+    leaveLeft: '{n} left',
+    leaveAfter: '{n} left after this',
+    leaveDaysSelected: '{n} days selected',
+    leaveDaysAvailable: '{n} days available',
+    leaveBalances: 'Leave balance',
+    leaveEarned: 'Earned',
+    leaveTaken: 'Taken',
+    leaveRequested: 'Requested',
+    upcomingTimeOff: 'Upcoming time off',
+    leaveOverBalance: 'Only {n} days left in {type}. This request is longer.',
+    leaveCannotApprove: 'Cannot approve: only {n} days left in {type}.',
+    wageRuleNote:
+      'Wage days follow attendance. Holidays count as paid days when Paid holidays is on; approved leave counts as absent unless paid leave is on.',
+    holidayOnDay: 'Holiday: {name}',
+    leaveOnDay: 'On leave',
+    pendingLeaveTitle: '{n} leave request(s) to decide',
+    suspendedNote: 'This company is paused. The calendar is read-only.',
   },
   greeting: 'Hello',
   yourWaves: 'Your balance',
@@ -6651,6 +9017,7 @@ const en: UiStrings = {
     shareTitle: 'Your Waves export',
   },
   groupExport: {
+    creditUsage: '⚡ Uses {cost} credits · you have {balance}',
     menu: 'Export',
     title: 'Export this group',
     intro:
@@ -6746,6 +9113,48 @@ const en: UiStrings = {
     scan: 'Scan a receipt',
     voice: 'Speak an expense',
   },
+  otaUpdates: {
+    row: 'App updates',
+    intro: 'Small fixes can reach your phone without waiting for a store update.',
+    running: 'Running',
+    builtIn: 'Built-in',
+    overTheAir: 'Over-the-air',
+    channel: 'Channel',
+    runtime: 'Runtime version',
+    check: 'Check for updates',
+    checking: 'Checking for updates…',
+    downloading: 'Downloading the update…',
+    upToDate: 'You have the latest version.',
+    ready: 'Update downloaded. Restart to use it.',
+    restart: 'Restart now',
+    failed: 'Could not check for updates. Try again later.',
+    unavailable: 'Updates are not available in this build.',
+  },
+  pendingChanges: {
+    row: 'Pending changes',
+    intro:
+      'Changes saved on this phone that have not reached the server yet. Retry sends one again now; Discard removes it from this phone.',
+    empty: 'Nothing is waiting. Every change has reached the server.',
+    created: 'Made',
+    attempts: 'Attempts',
+    lastError: 'Last error',
+    blockedBy: 'Waiting behind',
+    stuck: 'Stuck: older than a day, not shown on screen',
+    retry: 'Retry now',
+    discard: 'Discard',
+    discardTitle: 'Discard this change?',
+    discardBody:
+      'It is removed from this phone and never sent. What the server has will show instead.',
+    copy: 'Copy report',
+    copied: 'Report copied',
+    headline: { one: "{n} change couldn't be synced", other: "{n} changes couldn't be synced" },
+    allSynced: 'Everything is synced',
+    notSynced: 'Not synced',
+    waiting: 'Waiting',
+    status: 'Status',
+    stuckShort: 'Older than a day, not shown on screen',
+    copyHint: 'Copy details to share or troubleshoot',
+  },
   recent: {
     title: 'Recent on your watch',
     intro: 'How many recent expenses your paired watch shows at a glance.',
@@ -6794,7 +9203,72 @@ const en: UiStrings = {
       spring: 'Blossom season',
     },
   },
+  twoStep: {
+    row: 'Two-step login',
+    rowHint: 'Codes for companies that ask for them',
+    title: 'Two-step login',
+    bannerVerify: 'Verify two-step to keep working in {company}',
+    bannerVerifyGeneric: 'Verify two-step to keep working',
+    wrongCode: 'That code is not right.',
+    locked: 'Too many tries. Please wait a while.',
+    updateWaves: 'Please update Waves to continue.',
+    tryLater: 'Could not do that. Try again in a moment.',
+    verified: 'Verified',
+    verifyFirst: 'Verify two-step on this phone first.',
+    newPhoneTitle: 'New phone',
+    newPhoneBody: 'Enter the code from your other device, or ask your owner to approve this phone.',
+    codeLabel: '6-digit code',
+    continue: 'Continue',
+    checkAgain: 'Check again',
+    yourCode: 'Your code',
+    newCodeIn: 'New code in {n}s',
+    codeHint: 'Your company may ask for this code when you sign in on a new phone.',
+    authenticatorTitle: 'Add an authenticator app',
+    authenticatorOn: 'An authenticator app is set up.',
+    authenticatorSteps:
+      'Copy the key into your authenticator app, then type the 6-digit code it shows.',
+    copyKey: 'Copy key',
+    copied: 'Copied',
+    openAuthenticator: 'Open in authenticator',
+    confirm: 'Confirm',
+    addAuthenticator: 'Add an authenticator app',
+    replaceAuthenticator: 'Replace authenticator app',
+    requireTitle: 'Require two-step login',
+    requireHint: 'Everyone must verify on their phone before seeing company data.',
+    requireConfirmTitle: 'Require two-step login?',
+    requireConfirmBody: 'Everyone will need to verify two-step to open this company.',
+    requireConfirmOld: 'They will need to update Waves: {names}.',
+    requireOn: 'Turn on',
+    peopleTitle: 'Two-step',
+    approve: 'Approve',
+    decline: 'Decline',
+    approveTitle: "Approve {name}'s new phone?",
+    declineTitle: "Decline {name}'s new phone?",
+    approveBody:
+      'They will be able to open the company on that phone. Their code moves to the new phone and the old phone stops working.',
+    declineBody: 'That phone will not be let in.',
+    resetTitle: 'Reset two-step for {name}?',
+    resetBody:
+      'Their codes and every verified session, including browsers, are removed in all companies that require two-step. They set up the authenticator again and verify again.',
+    reset: 'Reset two-step',
+    newPhoneRow: 'New phone {platform}',
+    memberOn: 'Two-step is on',
+  },
   sync: {
+    refusal: {
+      twoStep: 'Verify two-step on this phone, then this change will be saved.',
+      companyGroup:
+        "This is a company group, so this can't be added as a shared expense. Add it as a company entry instead.",
+      adminOnly: 'Only the group admin can make this change.',
+      notMember: "You're no longer in this group, so this change can't be saved.",
+      archived: "This group was closed or deleted, so this change can't be saved.",
+      notFound: "Something this change refers to was removed, so it can't be saved.",
+      conflict: 'Someone else changed this at the same time. Review it and try again.',
+      guestExpired: 'Your guest trial has ended. Sign up to keep saving.',
+      companySlot:
+        'An extra company needs its own subscription. Discard this one, then subscribe from Add company.',
+      generic: "This change couldn't be saved. Review it, or discard it.",
+    },
     title: 'Sync over',
     wifi: 'Wi‑Fi only',
     wifiHint: 'Sync only on Wi‑Fi. Never spends mobile data.',
@@ -6810,21 +9284,32 @@ const en: UiStrings = {
       one: '{n} change is stuck',
       other: '{n} changes are stuck',
     },
+    stuckShort: "Saved on this phone, but it's not sent yet.",
+    discardTitle: 'Discard this change?',
+    discardBody: 'It is only on this phone. Once discarded, it is gone.',
     stuckExplain:
       'Still saved on this phone — it just keeps failing to send. Try again, or let it go.',
     openDetail: 'Opens what needs your decision',
   },
   lock: {
-    subtitle: 'Keep your information private.',
-    requireShort: 'Require biometrics or passcode',
-    requireHint: 'Asks for fingerprint, face or passcode to open Waves.',
-    askAgainShort: 'How long Waves can stay unlocked in the background.',
+    subtitle: 'Keep your information private and your account safe.',
+    requireShort: 'App lock',
+    requireHint: 'Use Face ID, fingerprint or device PIN to open the app.',
+    askAgainShort: 'Ask again after you leave the app for this long.',
     reopenShort: 'Waves always asks after it has been fully closed.',
-    footnoteShort: 'Data that has synced is protected on our servers either way.',
+    footnoteShort: 'Your data is encrypted in transit and at rest on our servers.',
     title: 'Security',
     requireBiometrics: 'Require biometrics or a passcode',
     appLock: 'App lock',
-    unsupported: 'This device has no biometrics or passcode set up',
+    askTitle: 'Lock Waves for privacy?',
+    askBody:
+      'Use your fingerprint, face or phone passcode to keep your money and data private. You can change this anytime in Settings.',
+    askYes: 'Turn on App Lock',
+    askFingerprint: 'Fingerprint',
+    askFace: 'Face ID',
+    askFaceAndroid: 'Face unlock',
+    askPasscode: 'Phone passcode',
+    unsupported: 'No Face ID, fingerprint or screen lock is set up on this device.',
     askAgainAfter: 'Ask again after',
     graceImmediate: 'Straight away',
     graceSeconds: { one: 'After {n} second', other: 'After {n} seconds' },
@@ -6835,11 +9320,35 @@ const en: UiStrings = {
       'This is a guest account, so signing out leaves no way back into it. Add an email or phone number first if you want to keep it.',
     signOutReassure: 'You can sign back in whenever you like. Nothing is deleted.',
     staySignedIn: 'Stay signed in',
-    personalPrompt: 'Unlock your personal ledger',
-    personalLockedTitle: 'Your personal ledger is locked',
-    personalLockedBody:
-      'Your income, spending, budgets and loans. Unlock with the same face or fingerprint that opens this phone.',
-    personalLockedRefused: 'That did not unlock it. Try again, or go back.',
+    learnMore: 'Learn more',
+    learnTitle: 'How your data is protected',
+    learnTransit:
+      'Everything between the app and our servers travels over an encrypted (TLS) connection.',
+    learnRest: 'Data stored on our servers is encrypted at rest by our hosting providers.',
+    learnLimits:
+      'This is not end-to-end encryption: synced data can be processed by our servers to run the app. App lock protects this phone only.',
+    accountTitle: 'Account security',
+    accountSub: 'Manage how you sign in and keep your account secure.',
+    email: 'Email',
+    phone: 'Phone number',
+    verified: 'Verified',
+    addContact: 'Add an email or phone number',
+    devicesSub: 'Manage devices signed in to your account.',
+    activeNow: 'Active now',
+    seeAll: 'See all',
+    dataTitle: 'Data & privacy',
+    dataSub: 'Control your data and privacy settings.',
+    backupOn: 'Last backed up {date}',
+    backupNever: 'Not backed up yet',
+    hideAmounts: 'Hide sensitive amounts',
+    hideAmountsHint: 'Hides the figures on your Personal dashboard',
+    deleteRow: 'Delete account',
+    deleteHint: 'Permanently delete your account and data',
+  },
+  lostPage: {
+    title: "This page isn't available",
+    body: 'The link may be old or the page may have moved.',
+    action: 'Go home',
   },
   signInWall: {
     title: 'Add an account first',
@@ -6919,12 +9428,31 @@ const en: UiStrings = {
     signedOutElsewhere:
       'You were signed out because you logged out this device from another device.',
     title: 'Devices',
-    intro:
-      'The free plan covers two devices at a time. A device you have not opened in a while stops counting on its own.',
+    subtitle: 'Manage devices signed in to your account',
+    infoFree: 'Free plan allows {n} active devices at a time.',
+    infoPaid: 'Your plan allows {n} active devices at a time.',
+    infoBody: "A device you haven't used in a while stops counting automatically.",
+    learnMore: 'Learn more',
+    learnTitle: 'How device limits work',
+    learnBody:
+      'The free plan allows {free} active devices at a time and Pro allows {pro}. A device you have not used in {days} days stops counting on its own, and signing a device out frees its place straight away.',
+    activeTitle: 'Active devices ({active}/{limit})',
+    otherTitle: 'Other devices',
+    sortBy: 'Sort by',
+    sortLast: 'Last active',
+    sortName: 'Name',
+    addDevice: 'Add device',
+    addTitle: 'Add another device',
+    addBody:
+      'Install Waves on the other device and sign in with the same email. It shows up here once it is signed in.',
+    signOutAllTitle: 'Sign out of all other devices?',
     thisDevice: 'This device',
     signedOut: 'Signed out',
     lastActive: 'Last active {when}',
     signOutOthers: 'Log out all other devices',
+    eraseOthers: 'Sign out and erase other devices',
+    eraseOthersHint:
+      'For a lost phone: also wipes the other devices. Changes on them that have not synced yet will be lost for good.',
     signOutOthersHint: 'Signs out every device except this one. They ask for a login next time.',
     signedOutOthers: {
       one: 'Signed out {n} other device.',
@@ -6990,7 +9518,7 @@ const en: UiStrings = {
     sectionHelp: 'Help',
     sectionPreferences: 'Preferences',
     sectionSecurity: 'Security',
-    sectionData: 'Data & privacy',
+    sectionData: 'Privacy & security',
     aiKeysRow: 'Your AI keys',
     aiKeysHint: 'Bring your own OpenAI, Claude or Kimi key',
     planRow: 'Plan',
@@ -7014,9 +9542,9 @@ const en: UiStrings = {
       'The words have changed already. Turning the mirrored layout back the other way is something the phone decides when the app starts, so it takes effect next time you open it.',
     languageFooterNote:
       "Your phone's language is the default, and choosing one here only changes Waves. Amounts and dates still follow where you are — reading the app in Hindi in Dubai does not move you to India.",
-    lockNoBiometrics: 'This device has no biometrics set up',
-    lockOn: 'On · asks {when}',
-    lockOff: 'Off — anyone holding your phone can read the ledger',
+    lockNoBiometrics: 'No Face ID, fingerprint or screen lock is set up on this device.',
+    lockOn: 'App lock on · asks {when}',
+    lockOff: 'App lock off · anyone holding your phone can open Waves',
     signOutGuestHint: 'This guest account lives on this device only',
     signOutHint: 'Nothing is deleted; sign back in whenever',
   },
@@ -7083,6 +9611,1775 @@ const en: UiStrings = {
     completeRowHint: 'Add the place, how you paid or a receipt',
     completeSheetTitle: 'Complete this expense',
     tryWhoOwes: '“Who owes me?”',
+  },
+  companyActivity: {
+    title: 'Company activity',
+    you: 'You',
+    youObj: 'you',
+    all: 'All',
+    money: 'Money',
+    attendance: 'Attendance',
+    tasks: 'Tasks',
+    people: 'People',
+    vendors: 'Vendors & bills',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    showOlder: 'Show older',
+    empty: 'Nothing has happened yet',
+    statusPresent: 'present',
+    statusHalf: 'half day',
+    statusAbsent: 'absent',
+    expense: '{actor} added an expense',
+    expenseFor: '{actor} added an expense for {name}',
+    allowance: '{actor} added bata',
+    allowanceFor: '{actor} added bata for {name}',
+    advance: '{actor} gave {name} an advance',
+    wages: '{actor} paid wages to {name}',
+    reimbursed: '{actor} reimbursed {name}',
+    cashReturned: '{actor} recorded cash returned by {name}',
+    companyPaid: '{actor} recorded a company payment',
+    approved: '{actor} approved the claim of {name}',
+    rejected: '{actor} rejected the claim of {name}',
+    attendanceOne: '{actor} marked {name} {status}',
+    attendanceMany: '{actor} marked {count} people {status}',
+    taskAssigned: "Task '{title}' assigned to {name}",
+    taskDone: "Task '{title}' done by {name}",
+    taskBlocked: "Task '{title}' blocked for {name}",
+    joined: '{name} joined',
+    joinedManager: '{name} joined as a manager',
+    added: '{name} was added',
+    markedNotEmployed: '{actor} marked {name} not employed',
+    left: '{name} left',
+    vendorBill: '{actor} added a bill from {vendor}',
+    vendorBillPending: '{actor} added a bill from {vendor}, waiting for confirmation',
+    vendorBillRejected: 'Bill from {vendor} was rejected',
+    vendorPayment: '{actor} recorded a payment to {vendor}',
+    vendorAdvance: '{actor} gave {vendor} an advance',
+    vendorReceived: '{vendor} confirmed the payment',
+    estimateCreated: '{actor} created estimate {number} for {customer}',
+    billCreated: '{actor} created bill {number} for {customer}',
+    billPaid: 'Bill {number} for {customer} was paid',
+    heads: {
+      expense: 'Expense added',
+      expenseFor: 'Expense added',
+      allowance: 'Bata added',
+      allowanceFor: 'Bata added',
+      advance: 'Advance given',
+      wages: 'Wages paid',
+      reimbursed: 'Reimbursed',
+      cashReturned: 'Cash returned',
+      companyPaid: 'Company payment',
+      approved: 'Claim approved',
+      rejected: 'Claim rejected',
+      attendanceOne: 'Attendance updated',
+      attendanceMany: 'Attendance updated',
+      taskAssigned: 'Task assigned',
+      taskDone: 'Task done',
+      taskBlocked: 'Task blocked',
+      joined: 'Joined',
+      joinedManager: 'Manager joined',
+      added: 'Person added',
+      markedNotEmployed: 'Marked not employed',
+      left: 'Left',
+      vendorBill: 'Vendor bill',
+      vendorBillPending: 'Vendor bill pending',
+      vendorBillRejected: 'Vendor bill rejected',
+      vendorPayment: 'Vendor payment',
+      vendorAdvance: 'Vendor advance',
+      vendorReceived: 'Payment confirmed',
+      estimateCreated: 'Estimate created · {number}',
+      billCreated: 'Bill created · {number}',
+      billPaid: 'Bill paid · {number}',
+    },
+    dayCount: { one: '{n} activity', other: '{n} activities' },
+  },
+  companyDocs: {
+    title: 'Estimates & Bills',
+    estimate: 'Estimate',
+    bill: 'Bill',
+    all: 'All',
+    estimates: 'Estimates',
+    bills: 'Bills',
+    unpaid: 'Unpaid',
+    syncing: 'Syncing',
+    draft: 'Draft',
+    sent: 'Sent',
+    accepted: 'Accepted',
+    declined: 'Declined',
+    part_paid: 'Part paid',
+    paid: 'Paid',
+    newEstimate: 'New estimate',
+    newBill: 'New bill',
+    customer: 'Customer name',
+    phone: 'Phone (optional)',
+    date: 'Date',
+    description: 'Description',
+    qty: 'Qty',
+    rate: 'Rate',
+    amount: 'Amount',
+    addItem: 'Add item',
+    removeItem: 'Remove item',
+    discount: 'Discount (optional)',
+    notes: 'Notes (optional)',
+    subtotal: 'Subtotal',
+    total: 'Total',
+    payments: 'Payments received',
+    amountLeft: 'Balance due',
+    markReceived: 'Mark received',
+    upiTitle: 'Pay by UPI',
+    upiScan: 'Scan to pay {amount}',
+    upiCopy: 'Copy UPI ID',
+    upiShare: 'Share',
+    upiAdd: 'Add your UPI ID to show a payment QR',
+    billTo: 'Bill to',
+    estimateFor: 'Estimate for',
+    recordPayment: 'Record payment',
+    sharePdf: 'Share PDF',
+    convert: 'Convert to bill',
+    edit: 'Edit',
+    delete: 'Delete',
+    save: 'Save',
+    empty: 'No documents yet',
+    notFound: 'Document not found',
+    linkedBill: 'View bill',
+    linkedEstimate: 'View estimate',
+    footer: 'This is not a tax invoice.',
+    nameError: 'Enter a customer name (up to 120 characters).',
+    itemsError: 'Add 1–50 items.',
+    itemError: 'Enter a description, positive quantity and valid rate.',
+    discountError: 'Discount must be less than the subtotal.',
+    totalError: 'Enter a positive total within the allowed limit.',
+    below_paidError: 'Total cannot be less than payments received.',
+    amountError: 'Enter a positive payment amount.',
+    overError: 'Amount exceeds the balance due.',
+    failed: 'Could not save. Please try again.',
+    deleteTitle: 'Delete document?',
+    deleteBody: 'This document will be removed.',
+    unpaidTotal: '{amount} unpaid',
+    searchLabel: 'Search',
+    searchPlaceholder: 'Search by number, name or title',
+    addLabel: 'New',
+    docsCount: '{n} documents',
+    billsCount: '{n} bills',
+    noDocsTitle: 'No estimates or bills yet',
+    noDocsBody: 'Create estimates, add bills, and track payments in one place.',
+    createBill: 'Create Bill',
+    createEstimate: 'Create Estimate',
+    noMatch: 'Nothing matches',
+    billSubtitle: 'Make an itemised bill and share',
+    estimateSubtitle: 'Make an itemised estimate and share',
+    selectCustomer: 'Select or add customer',
+    pickClient: 'Pick a client',
+    billDate: 'Bill date',
+    currency: 'Currency',
+    itemsCount: 'Items ({n})',
+    rateEach: '{rate} each',
+    notesOptional: 'Notes (optional)',
+    paymentStatus: 'Payment status',
+    saveShare: 'Save & share',
+    createdBy: 'Created by',
+    acceptedBy: 'Accepted by',
+    declinedBy: 'Declined by',
+    activity: 'Activity',
+    nextAction: 'Next action',
+    add: 'Add',
+    duplicate: 'Duplicate',
+    print: 'Print',
+    markSent: 'Mark as sent',
+    paymentEvt: 'Payment received',
+    viewAll: 'View all',
+    showLess: 'Show less',
+    editEstimate: 'Edit estimate',
+    editBill: 'Edit bill',
+    saveChanges: 'Save changes',
+    preview: 'Preview',
+    estimateNo: 'Estimate no.',
+    billNo: 'Bill no.',
+    status: 'Status',
+    detailsTitle: '{type} details',
+  },
+  company: {
+    attendanceTitle: 'Attendance',
+    attendanceMine: 'My attendance',
+    attendanceEmpty: 'Add employees to get started.',
+    attendancePresent: 'Present',
+    attendanceHalf: 'Half',
+    attendanceAbsent: 'Absent',
+    attendanceMarkAll: 'Mark all present',
+    attendanceTotal: 'Total',
+    attendanceDaily: 'Daily',
+    attendanceWeekly: 'Weekly',
+    attendanceMonthly: 'Monthly',
+    attendanceSearch: 'Search employees...',
+    attendanceDepartment: 'Department',
+    workToday: 'Today',
+    attendanceNote: 'Add note',
+    attendanceNotePlaceholder: 'Add a note (optional)',
+    attendanceHalfDay: 'Half day',
+    attendanceMark: 'Mark',
+    attendanceClear: 'Clear',
+    attendanceVsYesterday: '{delta} vs yesterday',
+    attendanceFilters: 'Filters',
+    attendanceStatus: 'Status',
+    attendanceNotMarked: 'Not marked',
+    attendancePickDate: 'Pick a date',
+    attendanceMore: 'More options',
+    attendanceDailyView: 'Daily view',
+    attendanceWeeklyView: 'Weekly view',
+    attendanceMonthlyView: 'Monthly view',
+    attendanceSetStatus: 'Mark attendance',
+    attendanceMarkAllAbsent: 'Mark all absent',
+    attendanceOnLeave: 'On leave',
+    attendanceLeaveApplied: 'Leave applied',
+    attendanceLeave: 'Leave',
+    attendanceSaving: 'Saving',
+    attendanceMember: 'Member',
+    attendanceMarkHoliday: 'Mark as holiday',
+    attendanceHolidayEdit: 'Holiday: {name}',
+    attendancePrevious: 'Previous',
+    attendanceNext: 'Next',
+    attendanceSaved: 'Saved',
+    attendanceOverwriteTitle: 'Replace existing marks?',
+    attendanceOverwriteBody: '{n} people already have a different mark for this day. Replace them?',
+    attendanceTasks: { one: '{n} task', other: '{n} tasks' },
+    attendanceSubtitle: { one: '{company} · {n} employee', other: '{company} · {n} employees' },
+    attendanceSummary: { one: '{n} day present', other: '{n} days present' },
+    attendancePreviousMonth: 'Previous month',
+    attendanceNextMonth: 'Next month',
+    tabDetails: 'Details',
+    editEmployee: 'Edit employee',
+    changeEmploymentType: 'Change employment type',
+    deleteEmployee: 'Delete employee',
+    deleteEmployeeTitle: 'Delete {name}?',
+    deleteEmployeeBody:
+      'They are removed from your team. Nothing is lost: they have no entries or attendance.',
+    deleteHasHistory: 'Has history — mark as not employed instead',
+    statusActive: 'Active',
+    attendanceMonthTitle: 'Attendance ({month})',
+    daysPresent: 'days present',
+    daysPresentIn: 'Days present in {month}: {n}',
+    viewReport: 'View report',
+    viewFullAttendance: 'View full attendance',
+    birthdayJoining: 'Birthday & Joining',
+    addBirthdayJoining: 'Add birthday and joining date',
+    joiningDate: 'Joining date',
+    detailPhone: 'Phone',
+    detailEmail: 'Email',
+    detailMileage: 'Mileage rate',
+    workTitle: 'Daily work',
+    departments: 'Departments',
+    department: 'Department',
+    departmentNone: 'None',
+    departmentAdd: 'Add department',
+    departmentRename: 'Rename department',
+    departmentRemove: 'Remove department',
+    departmentActions: 'Department actions',
+    departmentNameError: 'Enter a different department name.',
+    workSubtitle: "Stay on top of your team's tasks and get things done.",
+    workSearch: 'Search tasks, employees...',
+    workTotal: 'Total tasks',
+    workAllTasks: 'All tasks',
+    workDueToday: 'Due today',
+    workCompleted: 'Completed',
+    workInProgress: 'In progress',
+    workPending: 'Pending',
+    workAll: 'All',
+    workMineTasks: 'My tasks',
+    workTeam: 'Team',
+    workFilter: 'Filter',
+    workTime: 'Time (HH:MM)',
+    workNoTime: 'No time',
+    workMine: 'My work today',
+    workEmpty: 'No tasks for this day.',
+    workByDate: 'By date',
+    workByPerson: 'By person',
+    workByStatus: 'By status',
+    workOverdue: 'Overdue',
+    workPriority: 'Priority',
+    workPrioNormal: 'Normal',
+    workPrioUrgent: 'Urgent',
+    workPrioVeryUrgent: 'Very urgent',
+    workLateOn: 'Late · {date}',
+    workOpenN: '{n} open',
+    workDoneN: 'Done · {n}',
+    workSiteFilter: 'Site filter',
+    workNoTasks: 'No tasks yet',
+    workNoTasksHint: 'Add a task to assign work, set a due date and keep track easily.',
+    workNoMatch: 'No tasks match "{q}"',
+    workNoneForYou: 'No tasks for you',
+    workShowTeam: 'Show team tasks',
+    workBlockedInTeam: '{n} blocked in the team',
+    workExport: 'Export report',
+    workExportRange: 'Time period',
+    workThisWeek: 'This week',
+    workThisMonth: 'This month',
+    workCustom: 'Custom',
+    workFrom: 'From',
+    workTo: 'To',
+    workReportType: 'Report type',
+    workRepList: 'Task list',
+    workRepPerson: 'Per person',
+    workRepSite: 'Per site',
+    workRepOverdue: 'Overdue & completion',
+    workExportSub: 'Get a report of your tasks in PDF or Excel.',
+    exportPayments: 'Payments',
+    exportTasks: 'Tasks',
+    workFileFormat: 'File format',
+    workGenerate: 'Generate report',
+    workRepListSub: 'All tasks with status',
+    workRepPersonSub: 'Tasks by assignee',
+    workRepSiteSub: 'Tasks by site/location',
+    workRepOverdueSub: 'Overdue, completed & pending',
+    workColNumber: '#',
+    workColTitle: 'Task',
+    workColDate: 'Date',
+    workColStatus: 'Status',
+    workColOpen: 'Open',
+    workColTotal: 'Total',
+    workCompletion: 'Completion rate',
+    workDaysLate: 'Days late',
+    workProBadge: 'Pro',
+    workAdd: 'Add task',
+    workEdit: 'Edit task',
+    workTitleField: 'Task title',
+    workPerson: 'Person',
+    workSite: 'Site',
+    workNoSite: 'No site',
+    workTodo: 'To do',
+    workDoing: 'In progress',
+    workDone: 'Done',
+    workHeaderSub: 'Site work, visits and follow-ups',
+    workTasksN: '{n} tasks',
+    workBlocked: 'Blocked',
+    workReason: 'Why is it blocked?',
+    workNote: 'Note',
+    workDue: 'Due date & time',
+    workNotesOptional: 'Notes (optional)',
+    workDueDate: 'Due date',
+    workDueTime: 'Due time',
+    workRepeat: 'Repeat tomorrow',
+    workRemove: 'Remove',
+    workStatus: 'Status',
+    workUpdateStatus: 'Update status',
+    workAddNote: 'Add a note (optional)',
+    workPreviousDay: 'Previous day',
+    workNextDay: 'Next day',
+    workSeeAll: 'See all',
+    workSaveError: 'Could not save. Try again.',
+    taskDescription: 'Task description',
+    taskDescriptionHint: 'What do you want to do?',
+    taskAssignTo: 'Assign to',
+    taskResponsible: 'Responsible',
+    taskHelpers: 'Also working on it (optional)',
+    taskHelpersNone: 'Nobody',
+    taskHelpersMax: 'Up to 5 people',
+    taskAssignTitle: 'Assign to people',
+    taskAssignN: 'Assign ({n})',
+    workAlsoOn: 'Also on it: {names}',
+    taskPeople: { one: '{n} person', other: '{n} people' },
+    taskDeadline: 'Deadline (optional)',
+    taskPhotoLabel: 'Attach photo (optional)',
+    taskAddPhoto: 'Add Photo',
+    taskVoiceTitle: 'Or just say it…',
+    taskVoiceBody: 'Tap the mic to add your task by voice',
+    taskSave: 'Save Task',
+    taskNeedTitle: 'Write what needs to be done.',
+    taskNeedPeople: 'Choose at least one person.',
+    taskBadDay: 'Pick a deadline from today to a week ahead.',
+    taskPhotoFailed: 'Tasks saved, but a photo did not upload. Tap Save Task to try it again.',
+
+    tab: 'Company',
+    listTitle: 'Your companies',
+    listSubtitle: 'Manage and switch between your companies',
+    currentCompany: 'Current company',
+    myStatement: 'My statement',
+    summary: 'Company summary',
+    employees: 'Employees',
+    invite: 'Invite employees',
+    addEntry: 'Add entry',
+    periodMonth: 'This month',
+    periodLast: 'Last month',
+    periodAll: 'All time',
+    balance: 'Balance',
+    companyOwesYou: 'Company owes you',
+    youOweCompany: 'You owe the company',
+    settled: 'All settled',
+    companyOwesName: 'Company owes {name}',
+    nameOwesCompany: '{name} owes the company',
+    companyOwesAll: 'Company owes employees',
+    employeesOweAll: 'Employees owe the company {amount}',
+    owedTo: 'Company owes',
+    owedBy: 'Owes company',
+    addEmployee: 'Add employee',
+    addEmployeeBody: 'Add people to your company. They can join now or later.',
+    employeeId: 'Employee ID',
+    employeeIdOptional: 'Employee ID (optional)',
+    addEmployeeId: 'Add employee ID',
+    employeeIdTaken: 'That employee ID is already used by someone else.',
+    fromPastCompany: 'From another company',
+    fromPastCompanyBody: 'Reuse people you manage elsewhere',
+    pastSearch: 'Search by name or company',
+    pastEmpty: 'No one to add from your other companies.',
+    pastAddSelected: 'Add {n} selected',
+    pastFrom: 'From {companies}',
+    pastLoadFailed: "Couldn't load your other companies.",
+    welcomeEmployee:
+      'Add your fuel, travel and bata here. Only you and the company admin can see your entries.',
+    welcomeAdmin:
+      'Invite your employees, then add entries and record advances and wages for them. Each employee sees only their own entries.',
+    brought: 'Brought forward',
+    expenses: 'Expenses',
+    bata: 'Bata',
+    advances: 'Advances',
+    wages: 'Wages paid',
+    paidOut: 'Paid to employee',
+    returned: 'Returned by employee',
+    byCategory: 'Expenses by category',
+    entries: 'Entries',
+    none: 'Nothing recorded in this period',
+    noEmployees: 'No employees yet. Invite them to start.',
+    pending: 'Waiting for approval',
+    rejected: 'Rejected',
+    kExpense: 'Expense',
+    kAllowance: 'Bata (daily allowance)',
+    kAdvance: 'Advance given',
+    kWages: 'Wages paid',
+    salaryPayment: 'Salary payment',
+    tabOverview: 'Overview',
+    overviewTasks: 'Tasks',
+    tabManagers: 'Managers',
+    tabBudgets: 'Budgets',
+    tabPayments: 'Payments',
+    tabMyTeam: 'My team',
+    barPeople: 'People',
+    barPending: 'Pending',
+    barMore: 'More',
+    barTeam: 'Team',
+    teamTabTasks: 'Tasks',
+    moreBudgets: 'Budgets & sites',
+    moreStatements: 'Statements & export',
+    moreRules: 'Rules',
+    agentsTitle: 'AI agents',
+    agentsAllow: 'Allow AI agents',
+    agentsAllowHint: 'People can connect Claude or ChatGPT to this company.',
+    agentsApproval: 'Agent changes need approval',
+    agentsApprovalHint: 'Expenses an agent adds wait for you to approve them.',
+    agentsConnected: 'Connected',
+    agentsEmpty: 'No agents connected. People connect from Claude/ChatGPT via Connect → Waves.',
+    agentsActivity: 'Agent activity',
+    agentsActivityEmpty: 'Nothing yet.',
+    agentsRevoke: 'Revoke',
+    agentsActions: 'Agent actions',
+    agentsLastUsed: 'Last used {when}',
+    agentsNeverUsed: 'Not used yet',
+    companyRulesTitle: 'Company rules',
+    moreSettings: 'More settings',
+    moreSettingsHint: 'Attendance, expenses, estimates, invoices and more',
+    tileCurrency: 'Currency',
+    tileDetails: 'Details',
+    tileBranding: 'Branding',
+    tileBrandingHint: 'Logo',
+    pendingNone: 'Nothing is waiting',
+    pendingNoneBody: 'Claims and budget requests that need you show up here.',
+    pendingVendorBills: '{n} vendor bills to confirm',
+    pendingUnpaidBills: '{n} unpaid bills',
+    pendingBlockedTasks: '{n} blocked tasks',
+    pendingUnmarked: '{n} not marked today',
+    countsLine: '{e} employees · {m} managers · {o} owners',
+    teamLine: 'Your team · {employees}',
+    pillOwner: 'Owner',
+    statOwes: 'Company owes employees',
+    statPending: '{n} pending payments',
+    statPaidMonth: 'Total paid this month',
+    statVsLast: '{pct}% vs last month',
+    statAdvances: 'Total advances outstanding',
+    statEmployeesN: '{n} employees',
+    qaInvite: 'Invite employees',
+    qaHierarchy: 'Manage hierarchy',
+    qaBudgets: 'Allocate budgets',
+    qaRecord: 'Record payment',
+    qaAddReminder: 'Add reminder',
+    overviewActiveToday: 'Active today',
+    overviewPresent: 'Present',
+    overviewAbsent: 'Absent',
+    overviewUnmarked: 'Pending',
+    ovBell: 'Notifications',
+    overviewOnLeave: 'On leave',
+    ovAttendance: 'Attendance',
+    ovPickDate: 'Pick a day',
+    ovVsLast: '{pct} vs last month',
+    ovTaskDone: 'Mark done: {title}',
+    ovEscAdvance: 'Advance request',
+    ovEscExpense: 'Expense approval pending',
+    ovEscPool: 'Fund request',
+    ovEscBill: 'Vendor bill to confirm',
+    ovEscAbsent: 'Attendance missed for {n} days',
+    ovEscBlocked: 'Task blocked: {title}',
+    ovAgoNow: 'Just now',
+    ovAgoMin: '{n}m ago',
+    ovAgoHour: '{n}h ago',
+    ovAgoDay: '{n}d ago',
+    ovAllClearBody: 'No pending tasks or urgent issues.',
+    ovAttention: 'Needs your attention',
+    ovTodayOverview: "Today's overview",
+    ovPresentOf: '{n} of {total} present',
+    ovAllMarked: 'All marked',
+    ovMarkAttendance: 'Mark attendance',
+    ovComingUp: 'Coming up',
+    ovOverdue: 'Late',
+    ovBlocked: 'Blocked',
+    ovPendingPayments: 'Pending payments',
+    ovNothingToPay: 'Nothing to pay',
+    ovNoPaymentsYet: 'No payments yet this month',
+    ovNoAdvancesOut: 'No advances out',
+    ovPayrollRun: 'Payroll run',
+    ovPaidMonth: 'Paid this month',
+    ovAdvances: 'Outstanding advances',
+    ovCrore: '{n} Cr',
+    ovAllClear: 'All clear',
+    ovPaymentsPendingN: { one: '{n} payment pending', other: '{n} payments pending' },
+    ovAttendanceToday: "Today's attendance",
+    ovSeeAll: 'See all',
+    ovEmptyTitle: 'Add your first employee',
+    ovEmptyBody: 'Invite people to see attendance, tasks and payments here.',
+    ovEditLayout: 'Edit layout',
+    ovLayoutHint: 'Hold ≡ and drag to reorder',
+    ovResetLayout: 'Reset to default',
+    ovHiddenCards: 'Hidden cards',
+    ovHideCard: 'Hide {name}',
+    ovAddCard: 'Add {name}',
+    ovMoveUp: 'Move up',
+    ovMoveDown: 'Move down',
+    ovReorderCard: 'Reorder {name}',
+    ovAlwaysFirst: 'Always first',
+    ovCardAttendance: 'Attendance',
+    ovCardMoney: 'Money',
+    ovCardAttention: 'Needs attention',
+    ovCardUpcoming: 'Coming up',
+    ovCardActivity: 'Recent activity',
+    ovCardBudget: 'Your budget',
+    ovCardStats: 'Team stats',
+    ovCardQuick: 'Quick actions',
+    ovCardWorkday: 'Workday',
+    ovCardTeam: 'My team',
+    greetMorning: 'Good morning!',
+    greetAfternoon: 'Good afternoon!',
+    greetEvening: 'Good evening!',
+    ovGlance: "Here's your company at a glance.",
+    ovTilePayments: 'Payments due',
+    ovTileTasks: 'Open tasks',
+    ovTileAdvances: 'Advances outstanding',
+    ovNeedBlockedN: { one: '{n} blocked task', other: '{n} blocked tasks' },
+    ovNeedApproveN: { one: '{n} payment to approve', other: '{n} payments to approve' },
+    ovNeedTotal: '{amount} total',
+    ovNeedOverdueN: { one: '{n} overdue task', other: '{n} overdue tasks' },
+    ovNeedDue: '{title} · Due {time}',
+    ovCardGlance: 'At a glance',
+    ovCardNeeds: 'Attention summary',
+    ovCardMoneyActions: 'Money actions',
+    ovCardComingUp: 'This week',
+    ovCdTasksN: { one: '{n} due task', other: '{n} due tasks' },
+    ovCdThisWeek: 'This week',
+    ovCdApprovalsN: { one: '{n} to approve', other: '{n} to approve' },
+    ovCdWaiting: 'Waiting for you',
+    ovAddBill: 'Add bill',
+    ovCreateInvoice: 'Create invoice',
+    overviewNoOwes: 'No amount owed',
+    overviewNoPaid: 'Nothing paid yet',
+    overviewNoAdvances: 'No advances',
+    qaAddTask: 'Add task',
+    tkAll: 'All',
+    tkLater: 'Later',
+    tkCompleted: 'Completed',
+    tkScheduled: 'Scheduled',
+    tkNext: "What's next",
+    tkQuick: 'Quick actions',
+    tkUpload: 'Upload file',
+    tkAddClient: 'Add client',
+    tkAddVendor: 'Add vendor',
+    tkSites: { one: '{n} site', other: '{n} sites' },
+    tkMore: '+{n}',
+    tkNone: 'Nothing here',
+    tkMenu: 'Task options',
+    tkViewAll: 'View all',
+
+    qaAddEmployee: 'Add employee',
+    tasksCount: { one: '{n} task', other: '{n} tasks' },
+    attHalfDay: 'Half day',
+    attNotMarked: 'Not marked',
+    noBudgetSet: 'No budget set',
+    employmentType: 'Employment type',
+    empTypeFullTime: 'Full-time',
+    empTypePartTime: 'Part-time',
+    empTypeContractor: 'Contractor',
+    empTypeNone: 'Not set',
+    searchEmployees: 'Search employees...',
+    filterEmployees: 'Show employees',
+    peopleSortName: 'Sort by name (A–Z)',
+    peopleShowAdmins: 'Show admins',
+    empFilterAll: 'All',
+    viewStatement: 'View statement',
+    notEmployed: 'Not employed',
+    markNotEmployed: 'Mark as not employed',
+    markEmployed: 'Mark as employed',
+    employmentHint: "They won't get any new company updates. Their past entries stay.",
+    employmentDate: 'Last working date (optional, YYYY-MM-DD)',
+    employmentNote: 'Short note (optional)',
+    employmentPool: 'Settle their float first',
+    employmentIdTaken: 'This employee ID is already in use',
+    employmentBlocked: 'This company is suspended',
+    employmentDenied: 'You cannot change this person’s employment status',
+    employmentFailed: 'Could not update employment. Try again.',
+    employmentInvalidDate: 'Enter a valid date (YYYY-MM-DD)',
+    employeeIdInUseBy: '{id} is now used by {name}',
+    restoreWithoutId: 'Restore without an ID',
+    pickNewId: 'Pick a new ID',
+    newEmployeeId: 'New employee ID',
+    employeeOptions: 'Employee options',
+    noEmployeesMatch: 'No employee matches',
+    qaAdvance: 'Give advance',
+    qaAsk: 'Ask owner for budget',
+    promoTitle: 'Invite your team',
+    promoBody:
+      'Add employees, assign managers, and record salaries, advances and payments — all in one place.',
+    hierTitle: 'Team hierarchy',
+    viewAll: 'View all',
+    ownersControl: '{n} owners · Overall control',
+    nameYou: '{name} (You)',
+    needsOtherOwner: 'Another owner must approve this.',
+    secondOwnerTitle: 'Second owner approves',
+    secondOwnerHint:
+      'Large claims, and claims an owner raised, need a different owner to approve them.',
+    secondOwnerFrom: 'Large from',
+    secondOwnerFromHint:
+      'Claims at or above this amount need a second owner. Leave empty for owner-raised claims only.',
+    voiceAdd: 'Speak an expense',
+    voiceCurrency: "Say the amount in {currency}, the company's currency.",
+    paymentSettings: 'Payment settings',
+    dailyRateHint: 'Use this for daily allowance calculations',
+    mileageRateHint: 'Use this for travel reimbursements',
+    policiesHint: 'Guidelines for your team',
+    recordPayment: 'Record a payment',
+    recordPaymentBody: 'Record salaries, advances or reimbursements.',
+    totalPaid: 'Total paid',
+    totalPending: 'Total pending',
+    addExpenseAction: 'Add expense',
+    recordBill: 'Record bill',
+    advanceTo: 'Advance to {name}',
+    paymentTo: 'Payment to {name}',
+    paymentFrom: 'Payment from {name}',
+    wagesTo: 'Wages to {name}',
+    cashReturnedBy: 'Cash returned by {name}',
+    expandNamed: 'Expand {name}',
+    collapseNamed: 'Collapse {name}',
+    expandAll: 'Expand all',
+    collapseAll: 'Collapse all',
+    payWagesBody: 'Record salary for employees or managers',
+    gaveMoneyBody: 'Record an advance or reimbursement',
+    recentPayments: 'Recent payments',
+    paymentsNoneBody: 'Record wages or money given to get started.',
+    addSiteBody: 'Add sites or locations to organise budgets by place or department.',
+    budgetsNone: 'No budgets yet',
+    budgetsNoneBody: 'Create budgets for your sites and managers to track spending.',
+    setBudget: 'Set budget',
+    setBudgetBody: 'Set an amount for each site',
+    assignManager: 'Assign to manager',
+    assignManagerBody: 'Give a manager cash to hand out',
+    trackSpending: 'Track spending',
+    trackSpendingBody: 'See spent and what is left',
+    createBudget: 'Create budget',
+    phoneOptional: 'Phone number (optional)',
+    emailOptional: 'Email (optional)',
+    fullNameRequired: 'Full name *',
+    phoneHelper: 'Share an invite link by WhatsApp or SMS',
+    emailHelper: 'Share an invite link by email',
+    roleEmployee: 'Employee',
+    nameAloneBody:
+      "A name alone is enough. They don't need the app or an email to be part of the company. When they join later, they can claim everything already recorded under their name.",
+    fromContacts: 'From phone contacts',
+    fromContactsBody: 'Find and add from your contacts',
+    budgetPerMonth: 'Budget: {amount} / month',
+    teamCount: '{n} employees',
+    recentTitle: 'Recent activity',
+    recentNone: 'Nothing yet',
+    yourBudget: 'Your budget',
+    givenOut: 'Given out',
+    budgetLeft: 'Left',
+    budgetAdjusted: 'Returned or adjusted {amount}',
+    askTitle: 'Ask owner for budget',
+    askSent: 'Request sent',
+    budgetRequests: 'Budget requests',
+    managersNone: 'No managers yet. Make an employee a manager.',
+    paymentsNone: 'No payments yet',
+    yourManager: 'Your manager: {name}',
+    yourOwners: 'Your company owner',
+    wagesThisMonth: 'Wages paid this month',
+    spentLabel: 'Spent',
+    advancesLabel: 'Advances',
+    myEntries: 'My entries',
+    statusPending: 'Pending',
+    statusOkTag: 'Approved',
+    statusPaid: 'Paid',
+    switchCompany: 'Switch company',
+    employeeCount: { one: '{n} employee', other: '{n} employees' },
+    managerCount: { one: '{n} manager', other: '{n} managers' },
+    ownerCount: { one: '{n} owner', other: '{n} owners' },
+    overallControl: 'Overall control',
+    switchCompanyBody: 'Choose a company to manage',
+    createCompanyNew: 'Create new',
+    newTitle: 'New company',
+    createCompany: 'Create company',
+    nameLabel: 'Company name',
+    namePlaceholder: 'e.g. Sri Murugan Traders',
+    manageCompanies: 'Manage companies',
+    companySettings: 'Company settings',
+    reportsToOwners: 'Reports to the owners',
+    allocateNow: 'Allocate budget',
+    menuExport: 'Export',
+    gaveMoney: 'Gave money',
+    theySpent: 'They spent',
+    iSpent: 'I spent',
+    paidWagesVerb: 'Paid wages',
+    hasOfYours: '{name} has {amount} of yours',
+    youOweName: 'You owe {name} {amount}',
+    youHaveOfCompany: 'You have {amount} of company money',
+    shareWhatsApp: 'Send on WhatsApp',
+    threadEmpty: 'Tap + to add the first one',
+    addPerson: 'Add a person',
+    moreOptions: 'More',
+    wageFormula: '{gross} - advance {cut} = {net}',
+    canPayPeople: 'Can record payments',
+    canPayPeopleHint: 'Lets this employee record payments to team members.',
+    employeeDetails: 'Employee Details',
+    permissions: 'Permissions',
+    setDailyRate: 'Set daily rate',
+    kAllocation: 'Cash given to manager',
+    kPoolReturn: 'Cash taken back',
+    kPoolAdjustment: 'Correction',
+    noSite: 'No site',
+    cashLeft: 'Cash left',
+    cashWithManagers: 'Cash with managers',
+    giveCash: 'Give cash',
+    takeBack: 'Take back',
+    correctCash: 'Correct',
+    reasonRequired: 'Reason (required)',
+    poolReasonHint: 'Write why. It is kept in the history.',
+    payWages: 'Pay wages',
+    wagesSheetTitle: 'Pay wages',
+    periodThisWeek: 'This week',
+    periodLastWeek: 'Last week',
+    wagesToPay: 'To pay',
+    wagesAdvanceCut: 'Advance cut {amount}',
+    wagesAdvanceLeft: 'Advance left {amount}',
+    wagesBataIn: 'Bata {amount} included',
+    wagesDays: 'Days',
+    wagesFixedAmount: 'Fixed amount',
+    wagesNeedTerms: 'Add days and a rate, or a fixed amount',
+    wagesRecord: 'Pay {n} · {amount}',
+    wagesDone: 'Wages recorded',
+    wagesNoTeam: 'Add people first.',
+    wagesSubtitle: 'Calculate and pay your team',
+    wagesTeam: 'Team',
+    wagesWorkingDays: 'Working days',
+    wagesTotal: 'Total wages',
+    wagesAll: 'All',
+    wagesPresent: 'Present',
+    wagesLeave: 'Leave',
+    wagesAbsent: 'Absent',
+    wagesDailyTag: 'Daily',
+    wagesFixedTag: 'Fixed',
+    wagesRateTimesDays: '{rate} × {n} days',
+    wagesSelected: '{n} selected',
+    wagesTotalPayout: 'Total payout',
+    wagesPayAction: 'Pay wages',
+    wagesAddMember: 'Add member',
+    wagesManageRates: 'Manage rates',
+    wagesManageRatesSub: 'Daily / Fixed',
+    wagesGross: 'Wages {amount}',
+    wagesPaidFromPool: 'Paid from your cash',
+    sites: 'Sites',
+    addSite: 'Add a site',
+    suspendedBanner:
+      'This company is suspended by Waves. It is read-only for now. Contact hello@wavs.co.in.',
+    reportCompany: 'Report this company',
+    reportTitle: 'Report this company',
+    reportBody:
+      'Tell us what is wrong. Waves reviews every report. The company is not told who reported it.',
+    reportFraud: 'Fraud',
+    reportIllegal: 'Illegal activity',
+    reportHarassment: 'Harassment',
+    reportWages: 'Unpaid wages',
+    reportOther: 'Something else',
+    reportPlaceholder: 'What happened? (short)',
+    reportSend: 'Send report',
+    reportSent: 'Thanks. Waves will look into it.',
+    reportLimit: 'You have sent several reports today. Try again tomorrow.',
+    reportFailed: 'Could not send the report. Check your connection and try again.',
+    suspendedReadOnly:
+      'This company is suspended. You can view and export, but not add or change anything.',
+    siteName: 'Site name',
+    siteBudget: 'Budget (optional)',
+    siteSpent: '{spent} of {budget}',
+    siteSpentOnly: '{spent} spent',
+    siteLeft: '{amount} left',
+    siteOver: '{amount} over',
+    makeManager: 'Make manager',
+    makeEmployee: 'Make employee',
+    reportsTo: 'Reports to',
+    owners: 'Owners',
+    manager: 'Manager',
+    historyMoves: 'The new manager sees all past entries. The old manager no longer does.',
+    moveTeamFirst: 'Move their team first',
+    yourTeam: 'Your team',
+    sitesOf: 'Sites',
+    wageGrossLabel: 'Wages',
+    wageCutLabel: 'Advance cut',
+    wageNetLabel: 'Paid',
+    kReimbursement: 'Reimbursement',
+    kCashReturned: 'Cash returned',
+    companyPayer: 'Company',
+    companyPaidDirect: 'Company (paid directly)',
+    companyPaidPoolHint: 'Paid from your cash pool',
+    companySpentMonth: 'Company spent this month',
+    catMaterials: 'Materials',
+    catRepairs: 'Repairs',
+    catRent: 'Rent',
+    catUtilities: 'Utilities',
+    catEquipment: 'Equipment',
+    catFuel: 'Fuel',
+    catTransport: 'Transport',
+    catTravel: 'Travel',
+    catFood: 'Food',
+    catOffice: 'Office',
+    catOther: 'Other',
+    amountToPay: 'Amount to pay',
+    expensesPending: { one: '{n} expense pending', other: '{n} expenses pending' },
+    pendingForPayment: 'Pending for payment',
+    selectAllBtn: 'Select all',
+    receiptOne: '1 receipt',
+    readyToSettle: 'Ready to settle',
+    readyBody: 'Pay them your usual way, then mark as paid.',
+    sendWhatsApp: 'Send on WhatsApp',
+    markPaid: 'Mark as paid',
+    tileAddSub: 'Record new expense',
+    tileHistory: 'View all expenses',
+    tileHistorySub: 'See full history',
+    tileSummary: 'Employee summary',
+    tileSummarySub: 'View this employee',
+    detailPrivacyTitle: 'Employees see only their own entries.',
+    detailPrivacyBody: 'They can add expenses and see their payment status.',
+    callEmployee: 'Call',
+    catStay: 'Stay',
+    kindGive: 'Give money',
+    kindSubGive: 'Advance / Reimburse',
+    kindSubSpent: 'Record expense',
+    kindSubWages: 'Salary / Payment',
+    kindSubAllowance: 'Daily allowance',
+    paidBy: 'Paid by',
+    selectPerson: 'Select person',
+    notesLabel: 'Notes (optional)',
+    notePh: 'Add a note...',
+    addReceipt: 'Add receipt or photo (optional)',
+    todayDate: 'Today, {date}',
+    tagAll: 'All tags',
+    tagViewAll: 'View all',
+    tagNew: 'New tag',
+    tagNamePh: 'Tag name',
+    tagAdd: 'Add',
+    tagsTitle: 'Expense tags',
+    tagsShared: 'Shared with everyone in the company',
+    tagRename: 'Rename',
+    tagHide: 'Hide',
+    tagShow: 'Show',
+    tagAddedBy: 'added by {name}',
+    tagsSearch: 'Search tags',
+    industryTitle: 'What kind of work?',
+    industryConstruction: 'Construction',
+    industryTransport: 'Transport & logistics',
+    industryFieldSales: 'Field sales',
+    packAdd: 'Add {n} tags',
+    packAdded: 'All of these are already added',
+    savedAnother: 'Saved',
+    addAnother: 'Add another',
+    doneBtn: 'Done',
+    moreOpen: 'More',
+    qtyPh: 'Quantity (optional)',
+    tagsCancel: 'Cancel',
+    tagSave: 'Save',
+    formKind: 'Type',
+    formEmployee: 'Employee',
+    formAmount: 'Amount',
+    formDays: 'Days',
+    formRate: 'Daily rate',
+    formTotal: 'Total',
+    formDate: 'Date',
+    today: 'Today',
+    yesterday: 'Yesterday',
+    pickDate: 'Pick date',
+    formNote: 'Note (optional)',
+    formCategory: 'Category',
+    payTo: 'Paid to employee',
+    returnFrom: 'Returned by employee',
+    wagesTyped: 'Amount',
+    wagesDaysRate: 'Days x rate',
+    wagesWeekly: 'Weekly wage',
+    save: 'Save entry',
+    needRate: 'Enter days and a daily rate',
+    needAmount: 'Enter an amount',
+    removeEntry: 'Remove entry',
+    removeTitle: 'Remove this entry?',
+    removeBody: 'It stays in the history but no longer counts.',
+    dailyRate: 'Daily bata rate',
+    rateNotSet: 'Not set',
+    rateTitle: 'Daily bata rate',
+    rateHint: 'Used when bata is added for {name}. It can be changed on each entry.',
+    share: 'Share statement',
+    couldNotSave: 'Could not save. Try again.',
+    privacyEmployee: 'Only you and the company admins can see these entries.',
+    privacyAdmin: 'Employees see only their own entries.',
+    daysAt: '{days} days x {rate}',
+    forPerson: 'for {name}',
+    kMileage: 'Mileage',
+    formDistance: 'Distance (km)',
+    formRatePerKm: 'Rate per km',
+    formFrom: 'From (optional)',
+    formTo: 'To (optional)',
+    mileageAt: '{km} km at {rate}/km',
+    needDistance: 'Enter the distance in km',
+    needMileageRate: 'Set a rate per km',
+    mileageRate: 'Mileage rate per km',
+    gstSection: 'GST and vendor (optional)',
+    vendor: 'Vendor',
+    gstin: 'GSTIN',
+    gstinBad: 'Enter a valid 15-character GSTIN',
+    invoiceNo: 'Invoice number',
+    gstRate: 'GST rate',
+    gstAmount: 'GST included',
+    gstBefore: 'Before GST',
+    gstTotal: 'GST total',
+    policiesTitle: 'Policy hints',
+    policyReceipt: 'Receipt above {amount}',
+    policyLimit: '{what} over {amount} a {period}',
+    policyWarn: 'Warn',
+    policyBlock: 'Block',
+    policyAddReceipt: 'Receipt rule',
+    policyAddLimit: 'Limit rule',
+    policyHintReceipt: 'Over {limit}: add a receipt photo',
+    policyHintLimit: 'Makes {actual} for the {period}; limit is {limit}',
+    policyBlocked: 'Over the limit of {limit}. Lower the amount.',
+    policyFlagged: 'Over policy',
+    perDay: 'day',
+    perMonth: 'month',
+    select: 'Select',
+    selectAllDue: 'All due',
+    payCount: '{count} selected',
+    payCredits: 'Less advances and earlier payments {amount}',
+    payTotal: 'Record payment of {amount}',
+    payExternal: 'Payment already made outside Waves',
+    reimbursedOn: 'Reimbursed on {date}',
+    payAlreadyOne: '1 entry was already paid by {name}',
+    payAlreadyMany: '{count} entries were already paid by {name}',
+    payNeedMore: 'Selected claims are less than advances already paid',
+    payUpTo: 'All due up to {date}',
+    payNone: 'Nothing due to pay',
+    dupHint: 'Looks like an entry you already added',
+    payTitle: 'Pay what is due',
+    policyEditorHint: 'Warn or block when an entry goes over',
+    policyNone: 'No rules yet',
+    policyRemove: 'Remove rule',
+    policyLimitLabel: 'Limit',
+    editEntry: 'Entry',
+    awaiting: 'Awaiting approval',
+    approve: 'Approve',
+    reject: 'Reject',
+    rejectTitle: 'Reject this entry',
+    rejectHint: 'Tell {name} why. They will see this note.',
+    statusApproved: 'Approved',
+    reviewNote: 'Note from admin',
+    approvalsTitle: 'Require approval',
+    approvalsHint:
+      'New entries wait for an admin to approve them. Only approved entries count towards what is owed.',
+    photos: 'Photos',
+    takePhoto: 'Take photo',
+    choosePhoto: 'Choose photo',
+    removePhoto: 'Remove photo',
+    removePhotoTitle: 'Remove this photo?',
+    photoFailed: 'Could not add the photo. The entry is saved.',
+    photoPrivacy: 'Only the employee and company admins can see these photos.',
+    introPrivacy: 'Only you and the company admin can see your entries and photos.',
+    defaultRateRow: 'Daily bata rate',
+    defaultRateHint: 'Optional. Used for every employee until you set theirs.',
+    logoRow: 'Company logo',
+    logoUpload: 'Upload',
+    logoLink: 'Paste a logo link',
+    logoLinkPlaceholder: 'https://example.com/logo.png',
+    logoUse: 'Use this link',
+    logoRemove: 'Remove logo',
+    logoSaved: 'Logo updated',
+    logoLater: 'Could not add the logo. Add it from company settings.',
+    logoLocked: 'Only an admin can change the logo.',
+    logoErrEmpty: 'Paste a link first.',
+    logoErrInvalid: 'That does not look like a link.',
+    logoErrNotHttps: 'The link must start with https://',
+    logoErrBlocked: 'That link cannot be used.',
+    logoErrTimeout: 'That link took too long to load.',
+    logoErrNetwork: 'Could not reach that link.',
+    logoErrHttp: 'That link did not open.',
+    logoErrNotImage: "That link isn't an image.",
+    logoErrSvg: 'SVG logos are not supported. Use a PNG, JPG or WebP link.',
+    logoErrTooLarge: 'Too large. Use an image under 2 MB.',
+    logoErrRedirects: 'That link redirects too many times.',
+    logoErrDecode: 'Could not read that image.',
+    currencyRow: 'Currency',
+    pendingApprovals: 'Waiting for approval',
+    colType: 'Type',
+    colReview: 'Review note',
+    notCounted: 'Not counted until approved',
+    exportAction: 'Export',
+  },
+  companyTickets: {
+    title: 'Complaints',
+    tOpen: 'Open · {n}',
+    tEscalated: 'Escalated · {n}',
+    tResolved: 'Resolved · {n}',
+    newComplaint: 'New complaint',
+    editComplaint: 'Edit complaint',
+    emptyTitle: 'No complaints yet',
+    emptyBody:
+      'Log a customer complaint and give it to someone. If it is not solved in time it moves up to their manager, then the owner.',
+    emptyTab: 'Nothing here',
+    seeAll: 'All',
+    noneForClient: 'No complaints for this client',
+    clientLabel: 'Client',
+    noClient: 'No client',
+    pickClient: 'Choose client',
+    searchClients: 'Search clients',
+    titlePh: 'What is the complaint?',
+    detailsPh: 'Details (optional)',
+    priority: 'Priority',
+    pLow: 'Low',
+    pNormal: 'Normal',
+    pHigh: 'High',
+    pUrgent: 'Urgent',
+    assignedTo: 'Assigned to',
+    assignTo: 'Assign to',
+    you: 'You',
+    someone: 'Someone',
+    owner: 'the owner',
+    save: 'Save',
+    log: 'Log complaint',
+    dueIn: 'Due in {t}',
+    overdue: 'Overdue {t}',
+    escalatedTo: 'Escalated to {name}',
+    unitM: '{n}m',
+    unitH: '{n}h',
+    unitD: '{n}d',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    reassign: 'Reassign',
+    actStart: 'Start',
+    actResolve: 'Resolve',
+    actReopen: 'Reopen',
+    actClose: 'Close',
+    resolveTitle: 'How was it solved?',
+    resolvePh: 'Short note for the record',
+    solved: 'Solved: {note}',
+    stOpen: 'Open',
+    stInProgress: 'In progress',
+    stResolved: 'Resolved',
+    stClosed: 'Closed',
+    timeline: 'Timeline',
+    evCreated: 'Logged · assigned to {name}',
+    evAssigned: 'Assigned to {name}',
+    evStarted: 'Started',
+    evReopened: 'Reopened',
+    evEscalated: 'Escalated to {name}',
+    evBy: 'by {name}',
+    commentPh: 'Add a comment',
+    send: 'Send',
+    edit: 'Edit',
+    remove: 'Delete',
+    removeConfirm: 'Delete this complaint?',
+    more: 'More',
+    notFound: 'This complaint is not available.',
+    hubOverdue: '{n} overdue',
+    hubOpen: '{n} open',
+    hubNone: 'All on time',
+  },
+  companyClients: {
+    title: 'Clients',
+    toReceive: 'To receive',
+    search: 'Search clients',
+    statTotal: 'Total',
+    statActive: 'Active',
+    statFollowUp: 'Follow-up',
+    statInactive: 'Inactive',
+    newInquiry: 'New inquiry',
+    subtitle: 'Track your clients, invoices & payments',
+    fUnpaid: 'Unpaid',
+    quickActions: 'Quick actions',
+    createQuote: 'Create quote',
+    createBill: 'Create bill',
+    quotesN: '{n} quotes',
+    billsN: '{n} bills',
+    open: 'Open',
+    sortRecent: 'Recent',
+    sortName: 'Name',
+    kClients: 'Clients',
+    kInquiries: 'Inquiries',
+    kQuotes: 'Quotes',
+    kInvoices: 'Invoices',
+    kOutstanding: 'Outstanding',
+    tAll: 'All ({n})',
+    tInquiries: 'Inquiries ({n})',
+    tQuotes: 'Quotes ({n})',
+    tInvoices: 'Invoices ({n})',
+    sortBy: 'Sort: {by}',
+    sortUpdated: 'Last updated',
+    sortAmount: 'Amount',
+    filterTitle: 'Filter',
+    fStatus: 'Status',
+    fDate: 'Date',
+    rAll: 'All time',
+    rMonth: 'This month',
+    rQuarter: 'Last 3 months',
+    stUnpaid: 'Unpaid',
+    stPartPaid: 'Part paid',
+    stPaid: 'Paid',
+    fClear: 'Clear',
+    addClient: 'Add client',
+    createInvoice: 'Create invoice',
+    addLabel: 'Add',
+    docInquiry: 'Inquiry',
+    docQuote: 'Quote',
+    docInvoice: 'Invoice',
+    today: 'Today',
+    daysAgo: '{n}d ago',
+    emptyTitle: 'No clients yet?',
+    emptyBody: 'Add a client or create an inquiry to get started.',
+    noMatches: 'No matches',
+    itemsN: '{n} items',
+    itemN: '{n} item',
+    statusDue: 'Due',
+    statusPaid: 'Paid',
+    sortLabel: 'Sort',
+    editClient: 'Edit client',
+    bannerToday: '{n} follow-ups today',
+    bannerOverdue: '{n} overdue',
+    bannerNone: 'No follow-ups due',
+    more: 'More options',
+    fAll: 'All',
+    fInquiry: 'Inquiries',
+    fQuoted: 'Quoted',
+    fClient: 'Clients',
+    fLost: 'Lost',
+    empty: 'No clients yet. Add the first inquiry.',
+    emptyFilter: 'Nothing here yet.',
+    stInquiry: 'Inquiry',
+    stQuoted: 'Quoted',
+    stClient: 'Client',
+    stLost: 'Lost',
+    srcWalkIn: 'Walk-in',
+    srcCall: 'Phone call',
+    srcWhatsapp: 'WhatsApp',
+    srcReferral: 'Referral',
+    srcOther: 'Other',
+    namePh: 'Name *',
+    phonePh: 'Phone',
+    needPh: 'What do they need?',
+    cameFrom: 'Came from',
+    followUp: 'Follow up',
+    fuToday: 'Today',
+    fuTomorrow: 'Tomorrow',
+    fuThreeDays: 'In 3 days',
+    fuPick: 'Pick',
+    fuNone: 'None',
+    whoFollows: 'Who follows up',
+    extra: 'Expected value, address',
+    expectedValue: 'Expected value',
+    addressPh: 'Address',
+    newInquirySub: 'Capture a new customer inquiry',
+    customerDetails: 'Customer details',
+    inquiryDetails: 'Inquiry details',
+    needLabel: 'What do they need?',
+    saveAnother: 'Save & Add Another',
+    existingCustomer: 'Existing customer',
+    viewHistory: 'View history',
+    useCustomer: 'Use this customer',
+    notThisCustomer: 'Not this customer',
+    lastActivity: 'Last: {item}',
+    historyCounts: '{inq} inquiries · {est} estimates · {bill} bills · {comp} complaints',
+    emailPh: 'Email (optional)',
+    companyPh: 'Company (optional)',
+    category: 'Category',
+    selectCategory: 'Select category',
+    catPlumbing: 'Plumbing',
+    catElectrical: 'Electrical',
+    catCivil: 'Civil',
+    catInteriors: 'Interiors',
+    catMaintenance: 'Maintenance',
+    catOther: 'Other',
+    priority: 'Priority',
+    prNormal: 'Normal',
+    prUrgent: 'Urgent',
+    prHigh: 'High',
+    notesOpt: 'Notes (optional)',
+    notesPh: 'Any additional information, notes or context...',
+    saveInquiry: 'Save inquiry',
+    save: 'Save',
+    followTitle: 'Follow up with {name}',
+    saveFailed: 'Could not save. Try again.',
+    viaSource: 'via {source}',
+    follows: '{name} follows',
+    markWon: 'Mark won',
+    markLost: 'Mark lost',
+    reopen: 'Reopen',
+    lostWhy: 'Why was it lost?',
+    lostPrice: 'Too costly',
+    lostOther: 'Chose someone else',
+    lostSilent: 'No response',
+    lostSkip: 'Other reason',
+    tabActivity: 'Activity',
+    tabBills: 'Estimates & bills',
+    tabDocs: 'Documents',
+    btnFollowUp: 'Follow-up',
+    btnEstimate: 'Estimate',
+    btnMoney: 'Money received',
+    btnInquiry: 'Add inquiry',
+    scheduleFollowUp: 'Schedule follow-up',
+    noFollowUpHint: 'Keep the client engaged with a follow-up.',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    overdueSince: 'Follow-up overdue · {when}',
+    dueAt: 'Follow-up · {when}',
+    done: 'Done',
+    noFollowUp: 'No follow-up planned',
+    addNote: 'Add a note',
+    notePh: 'Write a note',
+    noteSave: 'Save note',
+    evCreated: 'Inquiry added',
+    evNote: 'Note',
+    fuOverdueDays: '{n}d overdue',
+    fuSubToday: 'Follow up today',
+    fuSubOverdue: 'Overdue {n}d',
+    fuSubOn: 'Follow up {when}',
+    howWent: 'How did it go?',
+    outSpoke: 'Spoke',
+    outNoAnswer: 'No answer',
+    outNotInterested: 'Not interested',
+    noteSpoke: 'Follow-up: Spoke',
+    noteNoAnswer: 'Follow-up: No answer',
+    noteNotInterested: 'Follow-up: Not interested',
+    fuNotifTitle: 'Follow-up due today',
+    inqTitle: 'Inquiries',
+    inqNew: 'New Inquiry',
+    statInquiries: 'Inquiries',
+    statWon: 'Won',
+    statRejected: 'Rejected',
+    statPayments: 'Payments',
+    assignedN: 'Assigned ({n})',
+    assignTitle: 'Who handles this client?',
+    assignHint: 'The first person stays the main follow-up.',
+    assignSave: 'Save',
+    inqStOpen: 'Open',
+    inqStQuoted: 'Quoted',
+    inqStRejected: 'Rejected',
+    inqStWon: 'Won',
+    inqFormNew: 'New inquiry',
+    inqFormEdit: 'Edit inquiry',
+    inqFieldTitle: 'What do they need?',
+    inqFieldDetails: 'Details (optional)',
+    inqFieldValue: 'Expected value',
+    inqFieldDate: 'Date',
+    inqSave: 'Save',
+    inqNone: 'No inquiries yet. Add the first one.',
+    inqDetails: 'Details',
+    inqAmount: 'Amount',
+    inqDocs: 'Estimates and bills',
+    inqNoDocs: 'Nothing quoted yet.',
+    inqCreateEstimate: 'Create estimate',
+    inqReject: 'Mark rejected',
+    inqRejectWhy: 'Why was it rejected?',
+    inqReopen: 'Reopen',
+    inqEdit: 'Edit',
+    inqRemove: 'Remove inquiry',
+    inqRemoveConfirm: 'Remove this inquiry?',
+    inqRejectedFor: 'Rejected: {reason}',
+    inqNotFound: 'This inquiry is not available.',
+    evFollowUp: 'Follow-up',
+    evFollowUpDone: 'Follow-up done',
+    evReceipt: 'Money received',
+    activityEmpty: 'Nothing yet.',
+    billsEmpty: 'No estimates or bills yet.',
+    docsEmpty: 'Bill PDFs will appear here.',
+    owes: '{amount} to receive',
+    remove: 'Remove client',
+    removeConfirm: 'Remove this client?',
+    whenNext: 'When next?',
+    nextTomorrow: 'Tomorrow',
+    nextWeek: 'Next week',
+    nextNone: 'No more follow-up',
+    fuTitle: 'Follow-ups',
+    gOverdue: 'Overdue',
+    gToday: 'Today',
+    gWeek: 'This week',
+    gLater: 'Later',
+    mine: 'Mine',
+    everyone: 'All',
+    fuEmpty: 'No follow-ups due. Add one from a client.',
+    fuSubtitle: 'Keep track of client follow-ups',
+    fuUpcoming: 'Upcoming',
+    fuEmptyTitle: 'No follow-ups due',
+    fuEmptyBody: 'Add a follow-up from a client inquiry, meeting or conversation to stay on track.',
+    fuAdd: 'Add Follow-up',
+    fuFromClient: 'Add from client',
+    fuFromClientSub: 'Create a follow-up for an existing client',
+    fuFromInquiry: 'Add from inquiry',
+    fuFromInquirySub: 'Convert an inquiry into a follow-up',
+    hubMoneyIn: 'Money in',
+    hubMoneyOut: 'Money out',
+    hubTeam: 'Team',
+    hubBooks: 'Books & company',
+    hubNew: 'NEW',
+    hubToReceive: '{amount} to receive',
+    hubToday: '{n} today',
+    hubOpen: '{n} open',
+    hubToPay: '{amount} to pay',
+    hubToApprove: '{n} to approve',
+    hubPeople: '{n} people',
+    hubNothing: 'Nothing due',
+    hubFiles: 'PDF & Excel',
+    hubSettings: 'Company settings',
+    hubDue: '{n} due',
+    hubInSub: 'Track what you receive',
+    hubOutSub: 'Manage expenses and payments',
+    hubTeamSub: 'People, work and attendance',
+    hubBooksSub: 'Records, reports and setup',
+  },
+  companyImport: {
+    title: 'Import',
+    menuRow: 'Import',
+    menuRowSub: 'Employees, clients and vendors from a file, contacts or Google Sheets',
+    whatTitle: 'What do you want to import?',
+    employees: 'Employees',
+    employeesSub: 'Name, phone, ID, joining date',
+    clients: 'Clients & enquiries',
+    clientsSub: 'Name, phone, requirement, status',
+    vendors: 'Vendors',
+    vendorsSub: 'Name, phone, category, opening balance',
+    sourceTitle: 'Where is it?',
+    srcFile: 'Excel or CSV file',
+    srcFileSub: '.xlsx, .xls or .csv',
+    srcContacts: 'Phone contacts',
+    srcContactsSub: 'Pick people from your address book',
+    srcSheet: 'Google Sheet link',
+    srcSheetSub: 'Shared as Anyone with the link can view',
+    template: 'Download template',
+    templateFailed: 'Could not share the template.',
+    sheetPlaceholder: 'Paste the share link',
+    sheetGo: 'Read sheet',
+    sheetBad: 'That is not a Google Sheets link.',
+    sheetPrivate:
+      'Waves cannot open this sheet. Share it as Anyone with the link can view, then try again.',
+    sheetTooBig: 'That sheet is too large (5 MB at most).',
+    sheetNetwork: 'Could not reach Google Sheets. Check your connection.',
+    fileTooLarge: 'That file is too large (5 MB at most).',
+    fileTooMany: 'Too many rows (2,000 at most).',
+    fileEmpty: 'That file has nothing in it.',
+    fileEncoding: 'Save the file as CSV UTF-8 and try again.',
+    fileUnreadable: 'Could not read that file. Try saving it as CSV.',
+    noRows: 'No rows found below the header.',
+    columnsTitle: 'Match the columns',
+    columnsHint: 'The first row is read as headers. Change a match if it is wrong.',
+    none: 'Not in my file',
+    fName: 'Name',
+    fPhone: 'Phone',
+    fEmployeeId: 'Employee ID',
+    fDepartment: 'Department',
+    fManager: 'Manager',
+    fJoinedOn: 'Joining date',
+    fDailyRate: 'Daily rate',
+    fNeed: 'Requirement',
+    fSource: 'Source',
+    fAddress: 'Address',
+    fExpectedValue: 'Expected value',
+    fStage: 'Status',
+    fCategory: 'Category',
+    fOpeningBalance: 'Opening balance (to pay)',
+    previewTitle: 'Check before importing',
+    cNew: '{n} new',
+    cDup: '{n} duplicates, skipped',
+    cErr: '{n} with errors, skipped',
+    importN: 'Import {n}',
+    next: 'Continue',
+    back: 'Back',
+    progress: 'Adding {done} of {total}',
+    resultTitle: 'Import finished',
+    resultLine: '{added} added, {dups} skipped as duplicates, {errors} errors',
+    downloadErrors: 'Download error rows',
+    done: 'Done',
+    pName: 'Name is missing',
+    pPhone: 'Phone number is not valid',
+    pDate: 'Date is not valid',
+    pAmount: 'Amount is not valid',
+    pNegative: 'Amount cannot be negative',
+    pDupFile: 'Repeated in this file',
+    pDupExisting: 'Already in your list',
+    pFailed: 'Could not add this one. Try again.',
+    wDept: 'Department not found, left blank',
+    wManager: 'Manager not found, left blank',
+    wEmpId: 'Employee ID already used, left blank',
+    wStage: 'Status not recognised, added as client',
+    warnLine: '{n} rows were added without some details.',
+    noAccess: 'Only owners and managers can import.',
+    errCsvRow: 'Row',
+    errCsvProblem: 'Problem',
+    contactsAdded: '{n} contacts picked',
+  },
+  companyVendors: {
+    subtitle: 'Bills · Payments · Receipts',
+    receipts: 'Receipts',
+    pendingN: '{n} Pending',
+    receiptOne: '{n} Receipt',
+    receiptMany: '{n} Receipts',
+    periodMonth: 'This month',
+    periodLast: 'Last month',
+    periodYear: 'This year',
+    periodAll: 'All time',
+    allVendors: 'All vendors',
+    pendingReview: 'Pending review',
+    photoPrivacy: 'Only people who can see this ledger line can see these photos.',
+    historyEmpty: 'No entries yet',
+    title: 'Vendors',
+    addVendor: '+ Add vendor',
+    name: 'Name',
+    phone: 'Phone (optional)',
+    category: 'Category (optional)',
+    empty: 'No vendors yet',
+    youOwe: 'You owe {amount}',
+    hasAdvance: 'Has {amount} advance',
+    settled: 'Settled',
+    oweName: 'You owe {name} {amount}',
+    advanceName: '{name} has {amount} advance',
+    settledName: 'All settled with {name}',
+    companyOwes: 'The company owes you {amount}',
+    yourAdvance: 'You have {amount} advance with the company',
+    allSettled: 'All settled',
+    addBill: 'Add bill',
+    recordPayment: 'Record payment',
+    bill: 'Bill',
+    advance: 'Advance',
+    payment: 'Payment',
+    amount: 'Amount',
+    date: 'Date',
+    note: 'Note (optional)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'Enter a valid date',
+    billHint: 'This bill counts once the company confirms it.',
+    pending: 'Pending',
+    confirmed: 'Confirmed',
+    rejected: 'Rejected',
+    received: 'Received',
+    markReceived: 'Mark received',
+    history: 'History',
+    pendingBills: 'Bills awaiting confirmation',
+    confirm: 'Confirm',
+    reject: 'Reject',
+    more: 'More options',
+    invite: 'Invite vendor',
+    rename: 'Rename',
+    delete: 'Delete',
+    deleteConfirm: 'Delete this vendor and their ledger?',
+    removeEntry: 'Remove entry',
+    removeConfirm: 'Remove this entry from the ledger?',
+    withdraw: 'Withdraw',
+    withdrawConfirm: 'Withdraw this pending bill?',
+    notFound: 'Vendor unavailable',
+    inviteFailed: 'Could not create an invite. Connect to the internet and try again.',
+    save: 'Save',
+    close: 'Close',
+    addSubtitle: 'Add a vendor to manage payments and bills in Waves.',
+    scanQr: 'Scan QR',
+    fromLink: 'From Link',
+    wavesId: 'Waves ID',
+    useLink: 'Use link',
+    findId: 'Find',
+    helpScan: 'Scan a payment QR or a QR shared by the vendor',
+    helpLink: 'Paste a payment link or a phone number',
+    helpId: 'Enter their email or phone to find them on Waves',
+    linkPlaceholder: 'Paste link or phone number',
+    idPlaceholder: 'Email or phone number',
+    idHint: 'Enter a valid email or phone number',
+    lookupFailed: "Couldn't read that. Fill in the details below.",
+    allowCamera: 'Allow camera',
+    or: 'OR',
+    enterManually: 'Enter Manually',
+    phoneOptional: 'Phone number (optional)',
+    categoryOptional: 'Category (optional)',
+    editVendor: 'Edit vendor',
+    vendorNameRequired: 'Vendor name *',
+    categories: 'Categories',
+    addOrSelectCategory: 'Add or select category',
+    selectOrAddCategories: 'Select or add categories',
+    addCategory: 'Add category',
+    showMore: 'Show more',
+    showLess: 'Show less',
+    removeCategory: 'Remove {name}',
+    cancel: 'Cancel',
+    catMaterials: 'Materials',
+    catCement: 'Cement',
+    catElectrical: 'Electrical',
+    catPlumbing: 'Plumbing',
+    catPainting: 'Painting',
+    catHardware: 'Hardware',
+    catLabour: 'Labour',
+    saveVendor: 'Save Vendor',
+    catSupplier: 'Supplier',
+    catContractor: 'Contractor',
+    catLandlord: 'Landlord',
+    catUtilities: 'Utilities',
+    catTransport: 'Transport',
+    catOther: 'Other',
+    totalToPay: 'Total to pay',
+    overdueCount: '{n} overdue',
+    paidThisMonth: 'Paid this month',
+    billsToReview: 'Bills to review',
+    filterAll: 'All',
+    filterToPay: 'To pay',
+    filterToReview: 'To review',
+    search: 'Search vendors',
+    emptyList: 'Your vendors will appear here.',
+    noMatch: 'No vendors match.',
+    statusOverdue: 'Overdue',
+    statusToReview: 'To review',
+    statusToPay: 'To pay',
+    call: 'Call',
+    whatsapp: 'WhatsApp',
+    statement: 'Statement',
+    vendorTitle: 'Vendor',
+    activityTab: 'Activity',
+    billsTab: 'Bills',
+    lastPaymentLabel: 'Last payment',
+    waitingSync: 'Waiting to sync',
+    entryDetails: 'Entry details',
+    documents: 'Documents',
+    transactions: 'Transactions',
+    outstanding: 'Outstanding',
+    overdueLine: '{amount} overdue',
+    lastPayment: 'Last payment {amount} · {date}',
+    noPayments: 'No payments recorded yet.',
+    noDocs: 'No documents yet.',
+    dueOn: 'Due {date}',
+    dueDate: 'Due date (optional)',
+    method: 'Method',
+    mUpi: 'UPI',
+    mBank: 'Bank transfer',
+    mCash: 'Cash',
+    mOther: 'Other',
+    reference: 'Reference (optional)',
+    proofPhoto: 'Proof photo (optional)',
+    currentOutstanding: 'Current outstanding',
+    remainingAfter: 'Remaining after this: {amount}',
+    keptAsAdvance: '{amount} will be kept as advance.',
+    recorded: 'Recorded',
+    paymentRecorded: 'Payment recorded',
+    receipt: 'Receipt',
+    receiptTitle: 'Payment receipt',
+    receiptFooter: 'Payment recorded in Waves — not a bank confirmation or a tax invoice.',
+    companyLabel: 'Company',
+    vendorLabel: 'Vendor',
+    balanceAfter: 'Balance after',
+    statusLabel: 'Status',
+    sharePdf: 'Share PDF',
+    viewTransaction: 'View transaction',
+    pdfFailed: 'Could not make the PDF.',
+    statementTitle: 'Vendor statement',
+    balance: 'Balance',
+    receiptsHeading: 'Payment receipts',
+    billPhotos: 'Bill photos',
+    shareWhatsapp: 'Share on WhatsApp',
+    amountLabel: 'Amount',
+    dateLabel: 'Date',
+    quickFull: 'Full {amount}',
+    quickOverdue: 'Overdue {amount}',
+    stillToPay: 'Still to pay after this: {amount}',
+    paidBy: 'Paid by',
+    recordsNote: "This records the payment in Waves. It doesn't send money.",
+    waitingVendor: 'Recorded · waiting for vendor',
+    openInVendor: "Open in {name}'s transactions",
+    downloadPdf: 'Download PDF',
+    advanceKind: 'Advance',
+    paidTo: 'paid to {name}',
+    newOrder: 'New order',
+    ordersTab: 'Orders',
+    orderTitle: 'New material order',
+    editOrder: 'Edit order',
+    itemName: 'Item',
+    itemQty: 'Qty',
+    itemUnit: 'Unit',
+    itemPrice: 'Price / unit',
+    addItem: 'Add item',
+    removeItem: 'Remove item',
+    expectedDelivery: 'Expected delivery (optional)',
+    orderTotalItems: 'Total · {n} items',
+    orderNotBill: "An order doesn't add to what you owe. The vendor's bill does.",
+    sendOrder: 'Send order',
+    orderSent: 'Order sent',
+    noOrders: 'No orders yet.',
+    createOrder: 'Create order',
+    ordSent: 'Sent',
+    ordAccepted: 'Accepted',
+    ordRejected: 'Rejected',
+    ordDelivered: 'Delivered',
+    ordCancelled: 'Cancelled',
+    accept: 'Accept',
+    markDelivered: 'Mark delivered',
+    cancelOrder: 'Cancel order',
+    cancelOrderConfirm: 'Cancel this order?',
+    orderTimeline: 'Timeline',
+    unitBags: 'Bags',
+    unitPieces: 'Pieces',
+    unitKg: 'kg',
+    unitLitres: 'Litres',
+    unitMetres: 'Metres',
+    unitOther: 'Other',
+    orderPdf: 'Purchase order PDF',
+    purchaseOrder: 'Purchase order',
+    expectedOn: 'Expected {date}',
+    orderItems: 'Items',
+    orderTotal: 'Total',
+    itemsCount: '{n} items',
+  },
+  companySlot: {
+    addRow: 'Add company',
+    addRowHint: 'Your first company is free',
+    title: 'Add another company',
+    body: 'Your first company is free. Each extra company is {price}/month.',
+    subscribe: 'Subscribe',
+    restore: 'Restore',
+    restored: 'Subscription restored.',
+    noneFound: 'No active company subscription found.',
+    unavailable:
+      'Extra companies cannot be bought in this version of the app. Update from the store and try again.',
+    pending: 'Your purchase is waiting for approval. Add the company once it goes through.',
+    buyFailed: 'Could not complete the purchase. You have not been charged.',
+    setupSlow: 'Your subscription is still being confirmed. Try again in a minute.',
+    lapsedBanner:
+      "This company's subscription ended, so it is read-only. Nothing is deleted. Renew to edit again.",
+    lapsedReadOnly:
+      "This company's subscription ended. You can view and export, but not add or edit.",
+    renew: 'Renew subscription',
+  },
+  companyStorage: {
+    addMore: 'Add more storage',
+    packLine: '{size} · {price}/month',
+    packNote:
+      'One pack per company; switch any time. If it ends, your photos stay and only new uploads stop.',
+    packElsewhere:
+      'This store account already pays for storage for another company. Cancel it there first, or buy from a different account.',
+    bought: 'Thanks. Your space will update in a moment.',
+    pending: 'Purchase pending. Storage updates once it completes.',
+    buyFailed: 'Could not complete the purchase. Try again.',
+    title: 'Storage',
+    usedOfQuota: '{used} of {quota}',
+    percentUsed: '{percent}% used',
+    banner: 'Storage {percent}% full — add more',
+    note: 'Photos on entries, bills and tasks count here. Nothing is ever deleted.',
+    full: 'Company storage is full. The owner can add more in Settings.',
+    loading: 'Could not load storage. Pull to retry.',
+  },
+  companyFiles: {
+    title: 'Files',
+    search: 'Search files…',
+    all: 'All',
+    documents: 'Documents',
+    images: 'Images',
+    sheets: 'Sheets',
+    others: 'Others',
+    links: 'Links',
+    upload: 'Upload',
+    addLink: 'Add link',
+    newFolder: 'New folder',
+    folderItems: '{n} items',
+    empty: 'No files yet',
+    emptyBody:
+      'Upload documents, photos and sheets, or add a link, and choose who can see each one.',
+    emptyFolder: 'This folder is empty',
+    noMatches: 'Nothing matches',
+    open: 'Open',
+    rename: 'Rename',
+    editLink: 'Edit link',
+    whoSees: 'Who can see',
+    openFailed: 'Could not open this file. Try again.',
+    uploadFailed: 'Could not upload this file. Try again.',
+    tooBig: 'This file is over 25 MB.',
+    badType:
+      'This kind of file cannot be uploaded. Use PDF, Word, Excel, PowerPoint, a photo, text or zip.',
+    storageFull: 'Company storage is full. The owner can add more in Settings.',
+    saveFailed: 'Could not save. Try again.',
+    linkName: 'Name',
+    linkUrl: 'Link (https://…)',
+    linkUrlBad: 'Enter a web address starting with http or https.',
+    folderName: 'Folder name',
+    fileName: 'Name',
+    visEveryone: 'Everyone',
+    visManagers: 'Managers and owners',
+    visOwners: 'Only owners',
+    visEveryoneHint: 'All members of the company',
+    visManagersHint: 'Hidden from employees',
+    visOwnersHint: 'Hidden from managers and employees',
+    deleteFolderTitle: 'Delete folder “{name}”?',
+    deleteFolderBody: 'Everything inside it is deleted too.',
+    deleteFileTitle: 'Delete “{name}”?',
+    deleteFileBody: 'It is removed for everyone.',
+    uploading: 'Uploading…',
+    allFiles: 'All files',
+    listView: 'List view',
+    gridView: 'Grid view',
+    more: 'More',
+  },
+  companyDetails: {
+    title: 'Company details',
+    vendorDetails: 'Vendor details',
+    myDetails: 'My details',
+    accountName: 'Account name',
+    accountNumber: 'Account number',
+    ifsc: 'IFSC',
+    upi: 'UPI ID',
+    address: 'Address',
+    phone: 'Phone',
+    email: 'Email',
+    gstin: 'GSTIN',
+    pan: 'PAN',
+    note: 'Note',
+    copied: 'Copied',
+    shareAsText: 'Share as text',
+    edit: 'Edit',
+    addDetails: 'Add details',
+    empty: 'No details added yet',
+    reveal: 'Show full value',
+    hide: 'Hide value',
+    updatedAgo: 'Updated {when}{name}',
+    updated: 'Updated',
+    bankChanged: 'Bank details changed on {date} — confirm by phone before paying',
+    noted: 'Noted',
+    save: 'Save',
+    invalidField: 'Enter a valid {field}',
+    saveFailed: 'Could not save details',
+    bank: 'Bank',
+    contact: 'Contact',
+    subtitle: 'Manage your company information and settings.',
+    active: 'Active',
+    companyInfo: 'Company information',
+    legalName: 'Legal name',
+    addMore: 'Add more details',
+    peopleAccess: 'People & access',
+    teamMembers: 'Team members',
+    businessSetup: 'Business setup',
+    billing: 'Billing & payments',
+    billingSub: 'Payments, bills and statements',
+    preferences: 'Preferences',
+    preferencesSub: 'Notifications, currency and more',
   },
   groupRecurring: {
     title: 'Repeating',
@@ -7564,6 +11861,32 @@ const en: UiStrings = {
     traps: 'Read the sentence exactly as written.',
   },
   credits: {
+    sheetTitle: 'Voice credits',
+    sheetLeft: '{n} credits left',
+    sheetHelp: 'Use credits for AI voice commands like add, split, or settle expenses.',
+    sheetWatch: 'Watch ad · Get {n} credits',
+    sheetAdded: '+{n} credits added!',
+    sheetBalance: 'You now have {n} credits.',
+    sheetFull: 'Credits full',
+    sheetFullBody: 'You have {n} of {max} credits. Use some, then watch again.',
+    sheetGap: 'Next ad in a minute',
+    sheetUnavailable: 'Ads unavailable right now',
+    sheetRetry: 'Please try again later.',
+    sheetPro: 'No ads · {n} voice commands/month',
+    sheetProSubtitle: 'No ads and {n} voice commands a month',
+    sheetVoice: '{n} voice commands per month',
+    sheetPrice: 'Go Pro – {price}/month',
+    sheetLater: 'Maybe later',
+    sheetStatusEmpty: "You've used this month's free voice credits.",
+    sheetWatchSub: 'Watch a short ad to get more voice credits now.',
+    sheetStatusHas: 'Ready for your next voice command.',
+    sheetMiniScans: '{n} scans',
+    sheetMiniScansSub: 'every month',
+    sheetMiniAds: 'No ads',
+    sheetMiniAdsSub: 'on Pro',
+    sheetMiniDevices: '{n} devices',
+    sheetMiniDevicesSub: 'on one account',
+    sheetContinue: 'Continue',
     title: 'Credits',
     balance: 'You have {n} credits',
     usedOne: 'Used {n} credit',
@@ -7580,6 +11903,25 @@ const en: UiStrings = {
     export: 'Export',
     group: 'Additional group',
     price: '{n} credits',
+    yourCredits: 'Your Credits',
+    yourCreditsHint: 'Use credits for AI voice, receipt scan, exports and more.',
+    watchSub: 'Watch a short ad to get {n} credits',
+    proSub: 'No ads, more credits',
+    getPro: 'Get Pro',
+    howUsed: 'How credits are used',
+    learnMore: 'Learn more',
+    voiceSub: 'Add expenses using voice',
+    scanSub: 'Scan and extract details',
+    exportSub: 'Export to CSV or Excel',
+    groupSub: 'Create and manage extra groups',
+    buyTitle: 'Get more credits',
+    popular: 'Popular',
+    buy: 'Buy',
+    neverExpire: 'Credits never expire',
+    neverExpireSub: 'Use anytime. Monthly free uses are applied first.',
+    nextAt: 'You can watch the next ad after {time}.',
+    paidNote: 'You’re on Pro, so there are no ads. Your credits stay in your wallet.',
+    help: 'Help',
   },
   adGates: {
     title: 'Watch a short ad',
@@ -7609,6 +11951,7 @@ const en: UiStrings = {
     upgradeBody: 'Get unlimited voice commands, no ads and more.',
     dailyLimit: 'Daily ad limit reached — try tomorrow',
     adLabel: 'Ad',
+    removeAds: 'Remove ads',
     voiceTitle: 'Watch a short ad for {count} more AI voice commands',
     scanTitle: 'Watch a short ad for {count} more receipt scans',
     voiceBody:
@@ -7710,6 +12053,9 @@ const en: UiStrings = {
       'A friendly nudge about money owed. Limited to one per person per day, in the database.',
     digest: 'Daily group summary',
     digestBody: 'Everything else, batched into one notification a day instead of a stream.',
+    companyUpdates: 'Company updates',
+    companyUpdatesBody:
+      'Leave, expenses, payments, tasks, calendar and complaints in your company.',
     emailSection: 'By email',
     emailAll: 'Email me at all',
     emailAllBody:
@@ -7857,7 +12203,7 @@ const en: UiStrings = {
     badge: 'Tour',
     next: 'Next',
     done: 'Done',
-    replay: 'Take the tour again',
+    replay: 'Take a tour',
     introTitle: 'Welcome to Waves',
     introBody: 'A quick look at where things live — your balances, and the two ways to add.',
     balanceTitle: 'Your balances, up top',
@@ -7989,6 +12335,20 @@ const en: UiStrings = {
     notJoined: 'Not joined',
     group: 'Group',
   },
+  spaces: {
+    personal: 'Personal',
+    personalBody: 'Friends, groups & expenses',
+    switchTitle: 'Switch space',
+    switchBody: 'Choose where you want to work',
+    switchedTo: 'Switched to {name}',
+    createTitle: 'Create a new company',
+    createBody: 'Set up a company and invite people',
+    owner: 'Owner',
+    manager: 'Manager',
+    employee: 'Employee',
+    vendor: 'Vendor',
+    pillLabel: 'Switch space',
+  },
   dashHero: {
     scanTitle: 'Snap a receipt',
     scanBody: 'Scan a bill and the items fill themselves in — split it in seconds.',
@@ -8043,15 +12403,67 @@ const en: UiStrings = {
     change: 'Change',
     settlesWith: 'Settles with {rails}',
   },
-  activityScreen: {
-    subtitle: 'Your recent transactions and updates',
+  departedExpenses: {
     all: 'All',
-    expenses: 'Expenses',
-    edits: 'Edits',
-    trip: 'Trip',
-    more: 'More',
-    viewDetails: 'View details',
-    openGroup: 'Open group',
+    youLent: 'You lent to {name}',
+    youOwe: 'You owe {name}',
+    selectAll: 'Select all ({n})',
+    dateNewest: 'Date (newest)',
+    dateOldest: 'Date (oldest)',
+    amountSort: 'Amount',
+    equalShare: 'Split equally · their share {amount}',
+    customShare: 'Custom split · their share {amount}',
+    paidBy: 'Paid by {name}',
+    selectedShares: '{n} selected · {amount} of their shares',
+    splitOthers: 'Split among others',
+    expenseCount: { one: '{n} expense', other: '{n} expenses' },
+    isOwed: {
+      one: '{name} is owed {amount} across {n} expense',
+      other: '{name} is owed {amount} across {n} expenses',
+    },
+
+    title: "{name}'s expenses",
+    owed: {
+      one: '{name} owes {amount} across {n} expense',
+      other: '{name} owes {amount} across {n} expenses',
+    },
+    equal: { one: 'Split equally ({n}) · {amount}', other: 'Split equally ({n}) · {amount}' },
+    perEach: '+{amount} each',
+    splitAmong: { one: 'Split among the other {n}', other: 'Split among the other {n}' },
+    custom: { one: 'Custom splits ({n})', other: 'Custom splits ({n})' },
+    keep: 'Keep',
+    shareEqually: 'Share equally',
+    paid: {
+      one: '{name} paid ({n}) · still owed {amount}',
+      other: '{name} paid ({n}) · still owed {amount}',
+    },
+    settle: 'Settle up with {name}',
+    confirm: { one: 'Confirm {n} change', other: 'Confirm {n} changes' },
+    dialog:
+      "Move {name}'s {amount} to the other {n} members? Each owes about {perEach} more. {name}'s balance becomes {balance}. You can undo this for 7 days from Activity.",
+    onlyViewer: 'You’d take on {amount}',
+    onlyViewerDialog:
+      "You’d take on {amount}. {name}'s balance becomes {balance}. You can undo this for 7 days from Activity.",
+    bannerTitle: '{name} left the group',
+    decideFor: 'Decide for {name}',
+    banner: {
+      one: '{n} expense needs a decision',
+      other: '{n} expenses need a decision',
+    },
+    decide: 'Decide',
+    keepAsIs: 'Keep as is',
+    offline: 'Connect to the internet to move these expenses.',
+    memberRow: "{name}'s expenses",
+    activity: {
+      one: 'Split {n} expense after {name} left',
+      other: 'Split {n} expenses after {name} left',
+    },
+    activityUndone: 'Undid split after {name} left',
+    undo: 'Undo',
+  },
+  activityScreen: {
+    anExpense: 'an expense',
+    subtitle: 'Your recent transactions and updates',
     noneForFilter: 'Nothing here for this filter yet.',
     importedHeadline: { one: 'Imported {n} expense', other: 'Imported {n} expenses' },
     importedSentence: { one: '{who} imported {n} expense', other: '{who} imported {n} expenses' },
@@ -8097,15 +12509,15 @@ const en: UiStrings = {
     },
   },
   newGroupForm: {
-    title: 'Create a new group',
+    title: 'Create a group',
     headerSub: 'Start a group and share expenses together',
-    tagline: 'Plan together, split easily',
+    tagline: 'Split expenses with friends, family or colleagues — in just a few steps.',
     nameExample: 'e.g. Bali Trip',
     whatFor: 'What is this group for?',
     descriptionExample: 'e.g. Friends trip, Weekend getaway',
     addFriendsSub: 'Add people to start sharing expenses',
     addContacts: 'Add contacts',
-    personPlaceholder: 'Search name or phone number',
+    personPlaceholder: 'Add name',
     groupType: 'Group type',
     groupTypeSub: 'Choose a type to personalize your group',
     datesSub: 'Set your travel dates (optional)',
@@ -8118,6 +12530,7 @@ const en: UiStrings = {
     descriptionLabel: 'Description (optional)',
     optional: '(optional)',
     seeAll: 'See all',
+    moreOptions: 'More options',
   },
   captureForm: {
     headerSub: 'Record your spending in a few seconds',
@@ -8138,11 +12551,15 @@ const en: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'Credits',
-    creditsLabel: '{n} credits',
-    noAdAvailable: 'No ad is available right now.',
+    getCredits: 'Get credits',
+    creditOne: '{n} credit',
+    creditMany: '{n} credits',
+    creditReward: 'Get {n} credits',
+    creditPro: 'No ads, {n} voice/month',
     totalOwed: 'Total you are owed',
     totalOwe: 'Total you owe',
     totalSettled: 'You are all settled up',
+    downloadingGroups: 'Downloading your groups · {loaded} of {total}',
     spentThisMonth: 'You spent this month',
     vsLastMonth: 'vs last month',
     periodOverall: 'Overall',
@@ -8159,7 +12576,14 @@ const en: UiStrings = {
     settleTitle: 'Settle up in',
     settleEmpty: "You're square everywhere",
     settleSubtitle: 'Pick a group to view balances and settle up.',
+    settleSquareBody: 'No pending balances across your groups.',
+    settleAllDone: "You're all settled!",
+    settleAllDoneBody: 'No balances to settle right now.',
+    settleCreate: 'Create group',
+    settleScan: 'Scan & add bill',
+    settleInvite: 'Invite members',
     settleMeta: '{members} · Last activity {when}',
+    settleAllGroups: 'All groups',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
   },
   tips: {
@@ -8793,9 +13217,9 @@ const en: UiStrings = {
     more: 'More',
     confirmReceived: 'Confirm received',
     heroExpense: 'Expense',
-    rowOwed: 'owed',
-    rowYouOwe: 'you owe',
-    rowSettled: 'settled',
+    rowOwed: 'You are owed',
+    rowYouOwe: 'You owe',
+    rowSettled: 'Settled',
     saysTheyPaidYou: '{name} says they paid you',
     saysTheyPaidYouWindow: '{name} says they paid you ({window})',
     daysToConfirm: { one: '{n} day to confirm', other: '{n} days to confirm' },
@@ -8912,7 +13336,7 @@ const en: UiStrings = {
     rejectConfirm: 'Reject',
     cancelSettlement: 'Cancel payment',
     paymentsToSettle: 'Payments to settle',
-    everyonesBalance: 'Everyone’s balance',
+    everyonesBalance: 'Group totals',
     cancelTitle: 'Cancel this payment?',
     cancelBody:
       'Removes the payment you recorded. {name} won’t be asked to confirm it, and no balance changes.',
@@ -8991,6 +13415,12 @@ const en: UiStrings = {
     emailSubject: 'Join {group} on Waves',
     hideContacts: 'Hide contacts',
     browseContacts: 'Browse my contacts',
+    addSomeoneBody: 'Add friends to start splitting expenses together.',
+    browseContactsBody: 'Find and add from your phone contacts',
+    shareInviteBody: 'Send a link to anyone',
+    orAddManually: 'or add manually',
+    contactOptional: 'Phone number or email (optional)',
+    addToGroupButton: 'Add to group',
     fromContactsHint: 'Pick names out of this phone’s address book',
     shareJoinLink: 'Share a join link',
     shareJoinLinkHint: 'Send the link or show the QR — they join themselves',
@@ -9318,6 +13748,18 @@ const en: UiStrings = {
     settleNoHistory: 'No payments yet',
     settlePaymentsCount: { one: 'across {n} payment', other: 'across {n} payments' },
     settleBetweenOthersSub: 'Payments between group members (doesn’t affect your balance)',
+    paymentsToMake: 'Payments to make',
+    balanceSortAmount: 'Sort by amount',
+    balanceSortName: 'Sort by name',
+    sortPill: 'Sort: {label}',
+    sortAmountHigh: 'Amount high',
+    sortAmountLow: 'Amount low',
+    settleInOneGo: 'Settle in one go',
+    balanceSimplified: 'Simplified',
+    balanceIsOwed: 'is owed',
+    balanceOwesYou: 'owes you',
+    balanceOwes: 'owes',
+    balanceSettled: 'settled',
     settleOweYouTitle: 'People who owe you',
     settleYouOweTitle: 'People you owe',
     settleStatusPending: 'pending',
@@ -9427,7 +13869,6 @@ const en: UiStrings = {
     memberLeft: '(left)',
     archivedGroup: 'Archived',
     unavailableGroup: 'Unavailable',
-    serverRefused: 'The server refused this change.',
     notSentYet: 'Not sent yet',
     offlineWithCount: {
       one: 'Offline — {n} change saved on this phone',
@@ -9450,6 +13891,38 @@ const en: UiStrings = {
     getTodaysRate: 'Get today’s {from}→{to} rate',
     micPermission: 'Waves needs permission to use the microphone.',
     micBlocked: 'Microphone access is off for Waves. You can turn it on in Settings.',
+    permission: {
+      continue: 'Continue',
+      notNow: 'Not now',
+      openSettings: 'Open settings',
+      blocked: 'Turn it on in Settings.',
+      kinds: {
+        mic: {
+          title: 'Use your microphone',
+          body: 'Waves listens only while you speak an expense, to turn it into an entry.',
+        },
+        contacts: {
+          title: 'Find your friends',
+          body: 'Waves reads your contacts only to help you pick people to split with.',
+        },
+        notifications: {
+          title: 'Stay in the loop',
+          body: 'Get reminders and updates about your groups.',
+        },
+        location: {
+          title: 'Add where you spent',
+          body: 'Waves attaches a place to an expense only when you ask it to.',
+        },
+        camera: {
+          title: 'Use your camera',
+          body: 'Take a photo of a receipt or a profile picture.',
+        },
+        photos: {
+          title: 'Use your photos',
+          body: 'Pick a picture from your library for a receipt or profile.',
+        },
+      },
+    },
     dictationFailed: 'Dictation could not start. Type the note instead.',
     dictationErrors: {
       notAllowed: 'Waves needs permission to use the microphone. You can turn it on in Settings.',
@@ -9464,6 +13937,8 @@ const en: UiStrings = {
     updateWaves: 'Update Waves',
     alreadyUpdated: 'I have already updated',
     update: 'Update',
+    updateNow: 'Update now',
+    newVersion: 'New version',
     notNow: 'Not now',
     changeGroupPhoto: 'Change group photo',
     addGroupPhoto: 'Add a group photo',
@@ -9522,7 +13997,7 @@ const en: UiStrings = {
     versionStoppedBody:
       'This version can no longer talk to Waves, so it has been stopped rather than left to show you numbers that might be wrong.',
     newWavesOut: 'A new Waves is out',
-    wavesVersionOut: 'Waves {latest} is out',
+    wavesVersionOut: 'Waves {latest} is available',
   },
   smsImport: {
     heroTitle: 'Quickly add payments',
@@ -9636,6 +14111,39 @@ const en: UiStrings = {
       draftLabel: 'Waves draft',
       continue: 'Continue',
     },
+  },
+  spendingAsk: {
+    title: 'Ask about my spending',
+    tileSub: 'Ask in plain words',
+    sub: 'Ask a question about your own money.',
+    ledgerNote:
+      'Based on your personal ledger only. Amounts are worked out by the app, not guessed.',
+    period: 'This month so far: {from} to {to}',
+    q1: 'Where did my money go this month?',
+    q2: 'Which subscriptions am I paying for?',
+    q3: 'Am I spending more on food than last month?',
+    placeholder: 'Ask about your spending',
+    send: 'Ask',
+    asking: 'Looking at your ledger',
+    counter: '{n} of {max}',
+    facts: 'The numbers',
+    subscriptions: 'Likely subscriptions',
+    subscriptionsHint: 'Found from charges that repeat on a schedule.',
+    monthly: 'Monthly',
+    weekly: 'Weekly',
+    yearly: 'Yearly',
+    lastCharge: 'Last charged {date}',
+    yourQuestion: 'Your question',
+    askAnother: 'Ask another question',
+    failed: 'That did not work. Your question is still here, try again.',
+    rate: 'Too many questions at once. Wait a moment and try again.',
+    unavailable: 'Asking is not available right now.',
+    quota: 'You have used all {limit} questions this month.',
+    paywallTitle: 'Ask about your spending',
+    paywallBody:
+      'Waves Pro answers questions like where your money went and which subscriptions you pay for.',
+    unlock: 'Unlock with Pro',
+    back: 'Back',
   },
   statementImport: {
     title: 'Import a statement',
@@ -10222,8 +14730,6 @@ const en: UiStrings = {
     useMyTimezone: 'Use my timezone ({zone})',
     fromYourContactsSubtitle: 'Select people to add to Waves',
     filterAll: 'All',
-    filterOnWaves: 'On Waves',
-    filterNotOnWaves: 'Not on Waves',
     filterSelected: 'Selected',
     peopleSelectedCount: { one: '{n} person selected', other: '{n} people selected' },
     clearAllSelected: 'Clear all',
@@ -10266,6 +14772,43 @@ const en: UiStrings = {
     plansPromise: 'The ledger is never locked.',
     manageSubscription: 'Manage subscription',
     whatCosts: 'What the plans add',
+  },
+  purchases: {
+    title: 'Purchases',
+    row: 'Purchases',
+    rowHint: 'Plan, history, receipts',
+    link: 'Purchases and receipts',
+    proMonthly: 'Waves Pro · Monthly',
+    proYearly: 'Waves Pro · Yearly',
+    status: {
+      active: 'Active',
+      trial: 'Trial',
+      renewsOff: 'Renews off',
+      billingIssue: 'Payment issue',
+      expired: 'Expired',
+      refunded: 'Refunded',
+      promo: 'Promo',
+    },
+    test: 'TEST',
+    renews: 'Renews {date}',
+    ends: 'Ends {date}',
+    ended: 'Ended {date}',
+    promoUntil: 'Promo until {date}',
+    changePlan: 'Change plan',
+    manageOnAndroid: 'Manage on Android',
+    manageOnIphone: 'Manage on your iPhone',
+    receiptsNotePlay: 'Receipts and tax invoices are emailed by Google Play.',
+    receiptsNoteApple: 'Receipts and tax invoices are emailed by the App Store.',
+    help: 'Help',
+    getReceipt: 'Get receipt',
+    orderId: 'Order ID',
+    contactSupport: 'Contact support',
+    copied: 'Order ID copied',
+    emptyTitle: 'No purchases yet',
+    emptyBody: 'When you subscribe to Waves Pro, your plan and receipts show up here.',
+    seePlans: 'See plans',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
   },
   paywall: {
     title: 'Choose your plan',
@@ -10356,19 +14899,13 @@ const en: UiStrings = {
   },
   referral: {
     row: 'Invite your friends',
-    rowHint: 'Earn days of Pro together',
+    rowHint: 'Earn 50 credits together',
     title: 'Invite your friends',
-    headline: 'Money is easier together.',
+    headline: 'Invite a friend. You both get 50 credits.',
     body: 'Share a group with friends and unlock a little more from Waves.',
-    youGetTitle: 'You get 7 days of Pro',
-    youGetBody: 'After your friend starts using Waves.',
-    friendGetsTitle: 'Your friend gets 7 days too',
-    friendGetsBody: 'Try premium features together.',
-    milestoneDays: '{n} days',
     share: 'Share invite link',
     shareMessage: 'I use Waves to split expenses with friends. Join me:',
-    progress: '{earned} of {cap} days earned',
-    capReached: 'You have earned all {cap} days. Thank you!',
+    friendsJoined: '{n} of {cap} friends joined · {credits} credits earned',
     pending: {
       one: '{n} friend has joined. Waiting for their first shared expense.',
       other: '{n} friends have joined. Waiting for their first shared expense.',
@@ -10379,7 +14916,7 @@ const en: UiStrings = {
     yourCode: 'Your code',
     copyCode: 'Copy code',
     codeCopied: 'Copied',
-    applied: 'Done. When you record your first shared expense, you both get 7 days of Pro.',
+    applied: 'Done. When you record your first shared expense, you both get 50 credits.',
     unknownCode: 'That code does not match anyone.',
     ownCode: 'That is your own code.',
     alreadyUsed: 'You have already used an invite.',
@@ -10814,6 +15351,7 @@ const en: UiStrings = {
     typeEvent: 'Event',
     typeFriends: 'Friends',
     typeOther: 'Other',
+    typeCompany: 'Company',
     tagLabel: 'Tag (optional)',
     tagPlaceholder: 'e.g. Office offsite',
     tagSheetSubtitle: "Add a tag so it's easy to find later.",
@@ -10858,7 +15396,7 @@ const en: UiStrings = {
     needsUpdating: 'Waves needs updating',
     nothingIsLost:
       'Nothing is lost. Every group, expense and settlement is on the server and will be exactly where you left it.',
-    worthAMinute: 'Worth a minute when you have one.',
+    worthAMinute: 'Update to get the latest improvements and bug fixes.',
     theGroup: 'The group',
     noGroupsYet:
       'You have no groups yet. A person belongs to a group in Waves, because a debt is always about something — a trip, a flat, a dinner.',
@@ -11349,7 +15887,9 @@ const en: UiStrings = {
   },
   demo: {
     badge: 'Demo',
-    bannerTitle: 'This is a demo group — explore freely',
+    groupName: 'Demo group',
+    rowSubtitle: 'Sample data · remove anytime',
+    bannerTitle: 'This is a demo group with sample data.',
     removeAction: 'Remove demo',
     removeHint: "Takes the demo trip off your dashboard. This can't be undone.",
     removeConfirmTitle: 'Remove the demo group?',
@@ -11399,6 +15939,157 @@ const ta: UiStrings = {
     none: 'பணம் செலுத்தத் தேவையில்லை',
     closeHint:
       'முடித்ததும் பணம் வைத்திருப்பவரும் உறுப்பினர்களும் உறுதிப்படுத்த வேண்டிய பரிவர்த்தனைகள் உருவாகும்.',
+  calendar: {
+    title: 'நாட்காட்டி',
+    today: 'இன்று',
+    upcoming: 'வரவிருப்பவை',
+    comingUp: 'அடுத்து வருவது',
+    seeAll: 'அனைத்தையும் பார்',
+    agendaFor: '{date} நிகழ்ச்சி நிரல்',
+    nothingPlanned: 'எதுவும் திட்டமிடப்படவில்லை',
+    filterAll: 'அனைத்தும்',
+    filterLeave: 'விடுப்பு மற்றும் விடுமுறைகள்',
+    filterMoney: 'பணம்',
+    filterWork: 'வேலை மற்றும் நிகழ்வுகள்',
+    filterBirthdays: 'பிறந்தநாள்கள்',
+    add: 'சேர்',
+    addHoliday: 'விடுமுறை',
+    addEvent: 'நிகழ்வு',
+    recordLeave: 'விடுப்பைப் பதிவு செய்',
+    requestLeave: 'விடுப்பு கோரு',
+    myDates: 'என் பிறந்தநாள் மற்றும் பணியில் சேர்ந்த நாள்',
+    kindHoliday: 'விடுமுறை',
+    kindLeave: 'விடுப்பு',
+    kindWage: 'சம்பளம் வழங்க வேண்டிய நாள்',
+    kindVendorBill: 'விற்பனையாளர் பில்',
+    kindCustomerBill: 'வாடிக்கையாளர் செலுத்தாத பில்',
+    kindAdvance: 'நிலுவை முன்பணம்',
+    kindTask: 'வேலை',
+    kindEvent: 'நிகழ்வு',
+    kindBirthday: 'பிறந்தநாள்',
+    kindAnniversary: 'பணிவருட நிறைவு',
+    birthdayOf: '{name} பிறந்தநாள்',
+    anniversaryOf: '{name} · {n} ஆண்டுகள்',
+    overdue: 'காலம் கடந்தது',
+    overdueItems: { one: '{n} உருப்படி தாமதம்', other: '{n} உருப்படிகள் தாமதம்' },
+    totalDue: 'மொத்த நிலுவை {amount}',
+    nothingDue: 'நிலுவை எதுவும் இல்லை',
+    nothingOverdue: 'தாமதம் எதுவும் இல்லை',
+    nothingUpcoming: 'வரவிருப்பது எதுவும் இல்லை',
+    moreCount: 'மேலும் {n}',
+    leaveCasual: 'சாதாரண விடுப்பு',
+    leaveSick: 'நோய்விடுப்பு',
+    leaveOther: 'மற்றவை',
+    halfDay: 'அரை நாள்',
+    statusPending: 'நிலுவையில்',
+    statusApproved: 'ஒப்புதல் அளிக்கப்பட்டது',
+    statusRejected: 'நிராகரிக்கப்பட்டது',
+    leaveLine: '{name} · {from} – {to}',
+    dayCount: '{n} நாட்கள்',
+    oneDay: '1 நாள்',
+    holidayName: 'விடுமுறைப் பெயர்',
+    holidayTitle: 'விடுமுறை சேர்',
+    holidayPlaceholder: 'எ.கா. தீபாவளி, அலுவலக விடுமுறை',
+    eventTitle: 'நிகழ்வின் தலைப்பு',
+    eventTime: 'நேரம், விருப்பமானது',
+    eventPeople: 'பங்கேற்பவர்கள்',
+    eventEveryone: 'அனைவரும்',
+    eventSite: 'இடம், விருப்பமானது',
+    eventDate: 'தேதி',
+    eventTimeLabel: 'நேரம்',
+    eventSiteLabel: 'இடம்',
+    eventOptional: '(விருப்பமானது)',
+    eventTitlePlaceholder: 'எ.கா. தள ஆய்வு, குழுக் கூட்டம்',
+    eventSearch: 'நபர்களைத் தேடு…',
+    eventSelected: 'தேர்ந்தவை: {n}',
+    eventCreate: 'நிகழ்வை உருவாக்கு',
+    eventSave: 'நிகழ்வைச் சேமி',
+    person: 'நபர்',
+    startDate: 'தொடக்கம்',
+    endDate: 'முடிவு',
+    reason: 'காரணம், விருப்பமானது',
+    note: 'குறிப்பு, விருப்பமானது',
+    leaveType: 'வகை',
+    save: 'சேமி',
+    cancel: 'ரத்து செய்',
+    approve: 'ஒப்புதல்',
+    reject: 'நிராகரி',
+    withdraw: 'கோரிக்கையைத் திரும்பப் பெறு',
+    remove: 'நீக்கு',
+    decisionNote: 'குறிப்பு சேர்க்கவும், விருப்பமானது',
+    decisionTitle: 'விடுப்பு கோரிக்கை',
+    errName: 'பெயரை உள்ளிடவும்',
+    errTitle: 'தலைப்பை உள்ளிடவும்',
+    errRange: 'முடிவு நாள் தொடக்க நாளுக்கு முன் இருக்கக்கூடாது',
+    errHalfDay: 'அரை நாள் ஒரு நாளுக்கு மட்டுமே',
+    errOverlap: 'இந்த நபரின் மற்றொரு விடுப்புடன் இது ஒத்துப்போகிறது',
+    errWindow: 'அனுமதிக்கப்பட்ட காலத்திற்குள் தேதியைத் தேர்ந்தெடுக்கவும்',
+    errPeople: 'உங்கள் குழுவிலிருந்து ஒருவரையாவது தேர்ந்தெடுக்கவும்',
+    errTime: '14:30 போன்ற நேரத்தை உள்ளிடவும்',
+    errDate: 'சரியான தேதியை உள்ளிடவும்',
+    errBirthday: 'சரியான நாளையும் மாதத்தையும் உள்ளிடவும்',
+    birthday: 'பிறந்தநாள்',
+    datesTitle: 'பிறந்தநாள் மற்றும் சேர்ந்த தேதி',
+    datesSubtitle: 'இந்த தேதிகளை நினைவில் வைத்து கொண்டாட',
+    joinedLabel: 'சேர்ந்த தேதி (விருப்பம்)',
+    selectDate: 'தேதியைத் தேர்ந்தெடுக்கவும்',
+    birthDay: 'நாள்',
+    birthMonth: 'மாதம்',
+    joinedOn: 'பணியில் சேர்ந்த நாள், விருப்பமானது',
+    showBirthday: 'என் பிறந்தநாளை சக ஊழியர்களுக்குக் காட்டு',
+    showBirthdayHint:
+      'இயல்பாக முடக்கப்பட்டுள்ளது. நாள், மாதம் மட்டுமே சேமிக்கப்படும்; ஆண்டு சேமிக்கப்படாது.',
+    clear: 'அழி',
+    paidHolidays: 'ஊதியத்துடன் விடுமுறைகள்',
+    paidHolidaysHint: 'ஊதியக் கணக்கில் விடுமுறை நாட்களும் ஊதிய நாட்களாகக் கணக்கிடப்படும்.',
+    paidLeave: 'ஊதியத்துடன் நோய்/சாதாரண விடுப்பு',
+    paidLeaveHint:
+      'ஒப்புதல் பெற்ற நோய் மற்றும் சாதாரண விடுப்புக்கு ஊதியம் உண்டு. மற்ற விடுப்பு ஊதியமற்றது.',
+    leavePolicy: 'விடுப்புக் கொள்கை',
+    leavePolicyHint: 'சாதாரண, நோய் மற்றும் பிற விடுப்பு: ஒவ்வொருவரும் மாதம் எவ்வளவு பெறுகிறார்கள்.',
+    leavePolicyRow: 'ஒவ்வொருவரும் பெறும் சாதாரண, நோய் மற்றும் பிற விடுப்பு',
+    leaveTypeAdd: 'விடுப்பு வகையைச் சேர்',
+    leaveTypeEdit: 'விடுப்பு வகையைத் திருத்து',
+    leaveTypeName: 'பெயர்',
+    leaveAccrual: 'மாதம் பெறும் நாட்கள் (0 முதல் 5, அரை நாள் சரி)',
+    leaveCarry: 'அடுத்த ஆண்டுக்கு எடுத்துச் செல்',
+    leaveCarryHint:
+      'பயன்படுத்தாத நாட்கள் அடுத்த ஆண்டுக்குச் செல்லும். அணைத்தால் ஜனவரி 1 அன்று மீட்டமையும்.',
+    leaveCarryCap: 'அதிகபட்சம் எடுத்துச் செல்லும் நாட்கள்',
+    leaveAnnualCap: 'ஆண்டுக்கு அதிகபட்சம் பெறும் நாட்கள்',
+    leaveNoLimit: 'வரம்பு இல்லை',
+    leavePaid: 'ஊதியத்துடன் கூடிய விடுப்பு',
+    leavePaidHint: 'சம்பளத்தில் ஊதிய நாளாகக் கணக்கிடப்படும்',
+    leaveOverdraw: 'பூஜ்யத்துக்குக் கீழ் செல்ல அனுமதி',
+    leaveOverdrawHint: 'அணைத்தால்: இருப்புக்கு மேல் கேட்கும் கோரிக்கையை ஏற்க முடியாது.',
+    leaveActive: 'பயன்பாட்டில்',
+    leaveParked: 'பயன்பாட்டில் இல்லை',
+    leavePerMonth: 'மாதம் {n}',
+    leaveCarries: 'எடுத்துச் செல்லும்',
+    leaveResets: 'ஆண்டுதோறும் மீட்டமையும்',
+    leaveErrName: 'பெயர் கொடுங்கள்.',
+    leaveErrAccrual: 'மாதத்துக்கு 0 முதல் 5 வரை, 0.5 படிகளில் இருக்க வேண்டும்.',
+    leaveErrCap:
+      'வரம்பு நாட்களின் எண்ணாக இருக்க வேண்டும், அல்லது வரம்பு இல்லையெனில் காலியாக விடுங்கள்.',
+    leaveTypeNone: 'பிற (கணக்கில் இல்லை)',
+    leaveLeft: '{n} மீதம்',
+    leaveAfter: 'இதற்குப் பின் {n} மீதம்',
+    leaveDaysSelected: '{n} நாட்கள் தேர்வு',
+    leaveDaysAvailable: '{n} நாட்கள் உள்ளன',
+    leaveBalances: 'விடுப்பு இருப்பு',
+    leaveEarned: 'பெற்றது',
+    leaveTaken: 'எடுத்தது',
+    leaveRequested: 'கோரியது',
+    upcomingTimeOff: 'வரவிருக்கும் விடுப்பு',
+    leaveOverBalance: '{type} இல் {n} நாட்கள் மட்டுமே உள்ளன. இந்தக் கோரிக்கை நீளமானது.',
+    leaveCannotApprove: 'ஏற்க முடியாது: {type} இல் {n} நாட்கள் மட்டுமே உள்ளன.',
+    wageRuleNote:
+      'ஊதிய நாட்கள் வருகையைப் பொறுத்தது. ஊதியத்துடன் விடுமுறை இயக்கப்பட்டால் விடுமுறை நாட்களுக்கு ஊதியம் உண்டு; ஊதிய விடுப்பு இயக்கப்படாவிட்டால் ஒப்புதல் பெற்ற விடுப்பு வராத நாளாகக் கணக்கிடப்படும்.',
+    holidayOnDay: 'விடுமுறை: {name}',
+    leaveOnDay: 'விடுப்பில்',
+    pendingLeaveTitle: 'முடிவெடுக்க {n} விடுப்புக் கோரிக்கைகள்',
+    suspendedNote:
+      'இந்த நிறுவனம் தற்காலிகமாக நிறுத்தப்பட்டுள்ளது. நாட்காட்டியை மட்டும் பார்க்கலாம்.',
   },
   greeting: 'வணக்கம்',
   yourWaves: 'உங்கள் பாக்கி',
@@ -11868,6 +16559,7 @@ const ta: UiStrings = {
     shareTitle: 'உங்கள் Waves ஏற்றுமதி',
   },
   groupExport: {
+    creditUsage: '⚡ {cost} கிரெடிட்கள் தேவை · உங்களிடம் {balance}',
     menu: 'ஏற்றுமதி',
     title: 'இந்தக் குழுவை ஏற்றுமதி செய்',
     intro:
@@ -11964,6 +16656,51 @@ const ta: UiStrings = {
     scan: 'ரசீதை ஸ்கேன் செய்',
     voice: 'செலவைப் பேசு',
   },
+  otaUpdates: {
+    row: 'செயலி புதுப்பிப்புகள்',
+    intro:
+      'ஸ்டோர் புதுப்பிப்புக்கு காத்திருக்காமல் சிறிய திருத்தங்கள் உங்கள் தொலைபேசியை வந்தடையும்.',
+    running: 'இயங்குவது',
+    builtIn: 'உள்ளமைந்தது',
+    overTheAir: 'இணையவழி',
+    channel: 'சேனல்',
+    runtime: 'ரன்டைம் பதிப்பு',
+    check: 'புதுப்பிப்புகளைச் சரிபார்',
+    checking: 'புதுப்பிப்புகளைச் சரிபார்க்கிறது…',
+    downloading: 'புதுப்பிப்பைப் பதிவிறக்குகிறது…',
+    upToDate: 'உங்களிடம் சமீபத்திய பதிப்பு உள்ளது.',
+    ready: 'புதுப்பிப்பு பதிவிறக்கப்பட்டது. பயன்படுத்த மீண்டும் தொடங்கவும்.',
+    restart: 'இப்போது மீண்டும் தொடங்கு',
+    failed: 'புதுப்பிப்புகளைச் சரிபார்க்க முடியவில்லை. பிறகு முயற்சிக்கவும்.',
+    unavailable: 'இந்த பதிப்பில் புதுப்பிப்புகள் கிடைக்காது.',
+  },
+  pendingChanges: {
+    row: 'நிலுவை மாற்றங்கள்',
+    intro:
+      'இந்த ஃபோனில் சேமிக்கப்பட்டு இன்னும் சர்வரை அடையாத மாற்றங்கள். மீண்டும் முயல் என்பது ஒன்றை இப்போதே அனுப்பும்; நீக்கு என்பது ஃபோனிலிருந்து அகற்றும்.',
+    empty: 'எதுவும் காத்திருக்கவில்லை. எல்லா மாற்றங்களும் சர்வரை அடைந்துவிட்டன.',
+    created: 'உருவாக்கியது',
+    attempts: 'முயற்சிகள்',
+    lastError: 'கடைசிப் பிழை',
+    blockedBy: 'இதன் பின்னால் காத்திருக்கிறது',
+    stuck: 'சிக்கியது: ஒரு நாளுக்கு மேல், திரையில் காட்டப்படவில்லை',
+    retry: 'இப்போதே மீண்டும் முயல்',
+    discard: 'நீக்கு',
+    discardTitle: 'இந்த மாற்றத்தை நீக்கவா?',
+    discardBody: 'இது ஃபோனிலிருந்து அகற்றப்படும், அனுப்பப்படாது. சர்வரில் உள்ளது காட்டப்படும்.',
+    copy: 'அறிக்கையை நகலெடு',
+    copied: 'அறிக்கை நகலெடுக்கப்பட்டது',
+    headline: {
+      one: '{n} மாற்றம் ஒத்திசைக்கப்படவில்லை',
+      other: '{n} மாற்றங்கள் ஒத்திசைக்கப்படவில்லை',
+    },
+    allSynced: 'அனைத்தும் ஒத்திசைக்கப்பட்டது',
+    notSynced: 'ஒத்திசைக்கப்படவில்லை',
+    waiting: 'காத்திருக்கிறது',
+    status: 'நிலை',
+    stuckShort: 'ஒரு நாளுக்கு மேல் பழையது, திரையில் காட்டப்படவில்லை',
+    copyHint: 'பகிர அல்லது சரிசெய்ய விவரங்களை நகலெடு',
+  },
   recent: {
     title: 'கடிகாரத்தில் சமீபத்தியவை',
     intro: 'இணைந்த கடிகாரம் ஒரே பார்வையில் காட்டும் சமீபத்திய செலவுகளின் எண்ணிக்கை.',
@@ -12012,7 +16749,75 @@ const ta: UiStrings = {
       spring: 'பூக்கும் காலம்',
     },
   },
+  twoStep: {
+    row: 'இரண்டு படி உள்நுழைவு',
+    rowHint: 'கேட்கும் நிறுவனங்களுக்கான குறியீடுகள்',
+    title: 'இரண்டு படி உள்நுழைவு',
+    bannerVerify: '{company} இல் தொடர இரண்டு படியை சரிபார்க்கவும்',
+    bannerVerifyGeneric: 'தொடர இரண்டு படியை சரிபார்க்கவும்',
+    wrongCode: 'அந்தக் குறியீடு சரியில்லை.',
+    locked: 'பல முறை முயன்றுவிட்டீர்கள். சிறிது நேரம் காத்திருக்கவும்.',
+    updateWaves: 'தொடர Waves-ஐ புதுப்பிக்கவும்.',
+    tryLater: 'முடியவில்லை. சிறிது நேரத்தில் மீண்டும் முயலவும்.',
+    verified: 'சரிபார்க்கப்பட்டது',
+    verifyFirst: 'முதலில் இந்த ஃபோனில் இரண்டு படியை சரிபார்க்கவும்.',
+    newPhoneTitle: 'புதிய ஃபோன்',
+    newPhoneBody:
+      'உங்கள் மற்றொரு சாதனத்தின் குறியீட்டை உள்ளிடவும், அல்லது இந்த ஃபோனை அனுமதிக்க உரிமையாளரிடம் கேட்கவும்.',
+    codeLabel: '6 இலக்கக் குறியீடு',
+    continue: 'தொடர்க',
+    checkAgain: 'மீண்டும் சரிபார்',
+    yourCode: 'உங்கள் குறியீடு',
+    newCodeIn: 'புதிய குறியீடு {n} வினாடியில்',
+    codeHint: 'புதிய ஃபோனில் உள்நுழையும்போது உங்கள் நிறுவனம் இந்தக் குறியீட்டைக் கேட்கலாம்.',
+    authenticatorTitle: 'அங்கீகார செயலியைச் சேர்க்கவும்',
+    authenticatorOn: 'அங்கீகார செயலி அமைக்கப்பட்டுள்ளது.',
+    authenticatorSteps:
+      'விசையை உங்கள் அங்கீகார செயலியில் ஒட்டி, அது காட்டும் 6 இலக்கக் குறியீட்டை உள்ளிடவும்.',
+    copyKey: 'விசையை நகலெடு',
+    copied: 'நகலெடுக்கப்பட்டது',
+    openAuthenticator: 'அங்கீகார செயலியில் திற',
+    confirm: 'உறுதிசெய்',
+    addAuthenticator: 'அங்கீகார செயலியைச் சேர்க்கவும்',
+    replaceAuthenticator: 'அங்கீகார செயலியை மாற்று',
+    requireTitle: 'இரண்டு படி உள்நுழைவு தேவை',
+    requireHint: 'நிறுவனத் தரவைப் பார்க்கும் முன் அனைவரும் தங்கள் ஃபோனில் சரிபார்க்க வேண்டும்.',
+    requireConfirmTitle: 'இரண்டு படி உள்நுழைவு தேவையா?',
+    requireConfirmBody: 'இந்த நிறுவனத்தைத் திறக்க அனைவரும் இரண்டு படியை சரிபார்க்க வேண்டும்.',
+    requireConfirmOld: 'அவர்கள் Waves-ஐ புதுப்பிக்க வேண்டும்: {names}.',
+    requireOn: 'இயக்கு',
+    peopleTitle: 'இரண்டு படி',
+    approve: 'அனுமதி',
+    decline: 'நிராகரி',
+    approveTitle: '{name} இன் புதிய ஃபோனை அனுமதிக்கவா?',
+    declineTitle: '{name} இன் புதிய ஃபோனை நிராகரிக்கவா?',
+    approveBody:
+      'அந்த ஃபோனில் நிறுவனத்தைத் திறக்க முடியும். அவர்களின் குறியீடு புதிய ஃபோனுக்கு மாறும்; பழைய ஃபோன் செயல்படாது.',
+    declineBody: 'அந்த ஃபோன் உள்ளே விடப்படாது.',
+    resetTitle: '{name} க்கான இரண்டு படியை மீட்டமைக்கவா?',
+    resetBody:
+      'அவர்களின் குறியீடுகளும் உலாவிகள் உட்பட சரிபார்க்கப்பட்ட அனைத்து அமர்வுகளும், இரு-படி தேவைப்படும் எல்லா நிறுவனங்களிலும் நீக்கப்படும். அவர்கள் அங்கீகாரியை மீண்டும் அமைத்துச் சரிபார்க்க வேண்டும்.',
+    reset: 'இரண்டு படியை மீட்டமை',
+    newPhoneRow: 'புதிய ஃபோன் {platform}',
+    memberOn: 'இரண்டு படி இயக்கத்தில் உள்ளது',
+  },
   sync: {
+    refusal: {
+      twoStep: 'இந்த ஃபோனில் இரண்டு படியை சரிபார்க்கவும்; பின் இந்த மாற்றம் சேமிக்கப்படும்.',
+      companyGroup:
+        'இது நிறுவனக் குழு என்பதால், பகிர்ந்த செலவாகச் சேர்க்க முடியாது. நிறுவனப் பதிவாகச் சேர்க்கவும்.',
+      adminOnly: 'குழு நிர்வாகி மட்டுமே இந்த மாற்றத்தைச் செய்ய முடியும்.',
+      notMember: 'நீங்கள் இப்போது இந்தக் குழுவில் இல்லை. எனவே இந்த மாற்றத்தைச் சேமிக்க முடியாது.',
+      archived:
+        'இந்தக் குழு மூடப்பட்டது அல்லது நீக்கப்பட்டது. எனவே இந்த மாற்றத்தைச் சேமிக்க முடியாது.',
+      notFound: 'இந்த மாற்றத்துடன் தொடர்புடைய ஒன்று நீக்கப்பட்டது. எனவே இதைச் சேமிக்க முடியாது.',
+      conflict: 'அதே நேரத்தில் வேறொருவர் இதை மாற்றிவிட்டார். சரிபார்த்து மீண்டும் முயலவும்.',
+      guestExpired:
+        'உங்கள் விருந்தினர் சோதனைக் காலம் முடிந்தது. தொடர்ந்து சேமிக்கப் பதிவு செய்யவும்.',
+      companySlot:
+        'கூடுதல் நிறுவனத்துக்குத் தனி சந்தா தேவை. இதை நீக்கிவிட்டு, நிறுவனத்தைச் சேர் என்பதில் சந்தாதாரராகுங்கள்.',
+      generic: 'இந்த மாற்றத்தைச் சேமிக்க முடியவில்லை. சரிபார்க்கவும் அல்லது கைவிடவும்.',
+    },
     title: 'எதன் மூலம் ஒத்திசைவு',
     wifi: 'வைஃபை மட்டும்',
     wifiHint: 'வைஃபையில் மட்டும் ஒத்திசைக்கும். மொபைல் டேட்டா செலவாகாது.',
@@ -12029,21 +16834,33 @@ const ta: UiStrings = {
       one: '{n} மாற்றம் சிக்கிக்கொண்டது',
       other: '{n} மாற்றங்கள் சிக்கிக்கொண்டன',
     },
+    stuckShort: 'இந்த ஃபோனில் சேமிக்கப்பட்டது, ஆனால் இன்னும் அனுப்பப்படவில்லை.',
+    discardTitle: 'இந்த மாற்றத்தை நீக்கவா?',
+    discardBody: 'இது இந்த ஃபோனில் மட்டுமே உள்ளது. நீக்கினால் திரும்ப வராது.',
     stuckExplain:
       'இந்த ஃபோனில் இன்னும் சேமிக்கப்பட்டுள்ளது — அனுப்ப முடியவில்லை. மீண்டும் முயற்சிக்கவும், அல்லது நீக்கிவிடவும்.',
     openDetail: 'உங்கள் முடிவு தேவைப்படுவதைத் திறக்கும்',
   },
   lock: {
-    subtitle: 'உங்கள் தகவலைத் தனிப்பட்டதாக வைத்திருங்கள்.',
-    requireShort: 'கைரேகை அல்லது கடவுக்குறியீடு தேவை',
-    requireHint: 'Waves-ஐத் திறக்க கைரேகை, முகம் அல்லது கடவுக்குறியீட்டைக் கேட்கும்.',
-    askAgainShort: 'பின்னணியில் Waves எவ்வளவு நேரம் பூட்டப்படாமல் இருக்கலாம்.',
+    subtitle: 'உங்கள் தகவலைத் தனிப்பட்டதாகவும் கணக்கைப் பாதுகாப்பாகவும் வைத்திருங்கள்.',
+    requireShort: 'செயலி பூட்டு',
+    requireHint: 'செயலியைத் திறக்க Face ID, கைரேகை அல்லது சாதன PIN பயன்படுத்துங்கள்.',
+    askAgainShort: 'செயலியை விட்டு இவ்வளவு நேரம் விலகியிருந்தால் மீண்டும் கேட்கும்.',
     reopenShort: 'Waves-ஐ முழுவதுமாக மூடித் திறந்தால் எப்போதும் சரிபார்ப்பு கேட்கும்.',
-    footnoteShort: 'ஒத்திசைந்த தரவு எந்த நிலையிலும் எங்கள் சர்வர்களில் பாதுகாப்பாக உள்ளது.',
+    footnoteShort:
+      'உங்கள் தரவு எங்கள் சேவையகங்களில் அனுப்பும்போதும் சேமிக்கும்போதும் குறியாக்கம் செய்யப்படுகிறது.',
     title: 'பாதுகாப்பு',
     requireBiometrics: 'கைரேகை அல்லது கடவுக்குறியீடு கேட்கவும்',
     appLock: 'ஆப் பூட்டு',
-    unsupported: 'இந்தச் சாதனத்தில் கைரேகையோ கடவுக்குறியீடோ அமைக்கப்படவில்லை',
+    askTitle: 'கைரேகையால் Waves-ஐப் பூட்டவா?',
+    askBody:
+      'Waves திறக்கும் ஒவ்வொரு முறையும் கைரேகை, முகம் அல்லது ஃபோன் கடவுக்குறியீடு கேட்கும், அதனால் உங்கள் ஃபோனை வைத்திருப்பவர் உங்கள் பணத்தைப் பார்க்க முடியாது. இதை அமைப்புகளில் மாற்றலாம்.',
+    askYes: 'ஆப் பூட்டை இயக்கு',
+    askFingerprint: 'கைரேகை',
+    askFace: 'Face ID',
+    askFaceAndroid: 'முக அன்லாக்',
+    askPasscode: 'போன் பாஸ்கோடு',
+    unsupported: 'இந்தச் சாதனத்தில் Face ID, கைரேகை அல்லது திரைப் பூட்டு அமைக்கப்படவில்லை.',
     askAgainAfter: 'மீண்டும் கேட்க',
     graceImmediate: 'உடனடியாக',
     graceSeconds: { one: '{n} வினாடி கழித்து', other: '{n} வினாடிகள் கழித்து' },
@@ -12054,11 +16871,37 @@ const ta: UiStrings = {
       'இது விருந்தினர் கணக்கு, வெளியேறினால் திரும்ப வர வழி இல்லை. வைத்திருக்க விரும்பினால் முதலில் மின்னஞ்சல் அல்லது தொலைபேசி எண்ணைச் சேர்க்கவும்.',
     signOutReassure: 'எப்போது வேண்டுமானாலும் மீண்டும் உள்நுழையலாம். எதுவும் அழிக்கப்படவில்லை.',
     staySignedIn: 'உள்ளேயே இரு',
-    personalPrompt: 'உங்கள் தனிப்பட்ட கணக்கைத் திறக்கவும்',
-    personalLockedTitle: 'உங்கள் தனிப்பட்ட கணக்கு பூட்டப்பட்டுள்ளது',
-    personalLockedBody:
-      'உங்கள் வருமானம், செலவு, பட்ஜெட், கடன்கள். இந்த ஃபோனைத் திறக்கும் அதே முகம் அல்லது கைரேகையால் திறக்கவும்.',
-    personalLockedRefused: 'அது திறக்கவில்லை. மீண்டும் முயலுங்கள், அல்லது திரும்பிச் செல்லுங்கள்.',
+    learnMore: 'மேலும் அறிக',
+    learnTitle: 'உங்கள் தரவு எப்படிப் பாதுகாக்கப்படுகிறது',
+    learnTransit:
+      'செயலிக்கும் எங்கள் சேவையகங்களுக்கும் இடையிலான அனைத்தும் குறியாக்கப்பட்ட (TLS) இணைப்பில் செல்கிறது.',
+    learnRest:
+      'எங்கள் சேவையகங்களில் சேமிக்கப்படும் தரவு, எங்கள் ஹோஸ்டிங் வழங்குநர்களால் குறியாக்கம் செய்யப்படுகிறது.',
+    learnLimits:
+      'இது முழுமையான (end-to-end) குறியாக்கம் அல்ல: செயலியை இயக்க, ஒத்திசைந்த தரவை எங்கள் சேவையகங்கள் செயலாக்கலாம். செயலி பூட்டு இந்தத் தொலைபேசியை மட்டுமே பாதுகாக்கும்.',
+    accountTitle: 'கணக்குப் பாதுகாப்பு',
+    accountSub:
+      'நீங்கள் எப்படி உள்நுழைகிறீர்கள் என்பதை நிர்வகித்து கணக்கைப் பாதுகாப்பாக வைத்திருங்கள்.',
+    email: 'மின்னஞ்சல்',
+    phone: 'தொலைபேசி எண்',
+    verified: 'சரிபார்க்கப்பட்டது',
+    addContact: 'மின்னஞ்சல் அல்லது தொலைபேசி எண்ணைச் சேர்க்கவும்',
+    devicesSub: 'உங்கள் கணக்கில் உள்நுழைந்துள்ள சாதனங்களை நிர்வகிக்கவும்.',
+    activeNow: 'இப்போது செயலில்',
+    seeAll: 'அனைத்தையும் காண்க',
+    dataTitle: 'தரவு & தனியுரிமை',
+    dataSub: 'உங்கள் தரவு மற்றும் தனியுரிமை அமைப்புகளைக் கட்டுப்படுத்துங்கள்.',
+    backupOn: 'கடைசி காப்புப்பிரதி {date}',
+    backupNever: 'இன்னும் காப்புப்பிரதி எடுக்கப்படவில்லை',
+    hideAmounts: 'உணர்திறன் தொகைகளை மறை',
+    hideAmountsHint: 'உங்கள் தனிப்பட்ட டாஷ்போர்டில் உள்ள தொகைகளை மறைக்கும்',
+    deleteRow: 'கணக்கை நீக்கு',
+    deleteHint: 'உங்கள் கணக்கையும் தரவையும் நிரந்தரமாக நீக்கவும்',
+  },
+  lostPage: {
+    title: 'இந்தப் பக்கம் கிடைக்கவில்லை',
+    body: 'இணைப்பு பழையதாக இருக்கலாம் அல்லது பக்கம் நகர்த்தப்பட்டிருக்கலாம்.',
+    action: 'முகப்புக்குச் செல்',
   },
   signInWall: {
     title: 'முதலில் ஒரு கணக்கைச் சேருங்கள்',
@@ -12139,12 +16982,31 @@ const ta: UiStrings = {
     signedOutElsewhere:
       'மற்றொரு சாதனத்திலிருந்து இந்தச் சாதனத்தை வெளியேற்றியதால் நீங்கள் வெளியேற்றப்பட்டீர்கள்.',
     title: 'சாதனங்கள்',
-    intro:
-      'இலவசத் திட்டத்தில் ஒரே நேரத்தில் இரண்டு சாதனங்கள். சிறிது காலம் திறக்காத சாதனம் தானாகவே கணக்கில் இருந்து விலகும்.',
+    subtitle: 'உங்கள் கணக்கில் உள்நுழைந்த சாதனங்களை நிர்வகிக்கவும்',
+    infoFree: 'இலவசத் திட்டத்தில் ஒரே நேரத்தில் {n} செயலில் உள்ள சாதனங்கள் அனுமதிக்கப்படும்.',
+    infoPaid: 'உங்கள் திட்டத்தில் ஒரே நேரத்தில் {n} செயலில் உள்ள சாதனங்கள் அனுமதிக்கப்படும்.',
+    infoBody: 'சிறிது காலம் பயன்படுத்தாத சாதனம் தானாகவே கணக்கில் இருந்து விலகும்.',
+    learnMore: 'மேலும் அறிக',
+    learnTitle: 'சாதன வரம்பு எப்படி செயல்படுகிறது',
+    learnBody:
+      'இலவசத் திட்டத்தில் ஒரே நேரத்தில் {free} சாதனங்கள், Pro-வில் {pro} சாதனங்கள் அனுமதிக்கப்படும். {days} நாட்கள் பயன்படுத்தாத சாதனம் தானாகவே கணக்கில் இருந்து விலகும்; சாதனத்தை வெளியேற்றினால் அதன் இடம் உடனே விடுபடும்.',
+    activeTitle: 'செயலில் உள்ள சாதனங்கள் ({active}/{limit})',
+    otherTitle: 'மற்ற சாதனங்கள்',
+    sortBy: 'வரிசைப்படுத்து',
+    sortLast: 'கடைசியாகப் பயன்படுத்தியது',
+    sortName: 'பெயர்',
+    addDevice: 'சாதனத்தைச் சேர்',
+    addTitle: 'மற்றொரு சாதனத்தைச் சேர்',
+    addBody:
+      'மற்ற சாதனத்தில் Waves-ஐ நிறுவி, அதே மின்னஞ்சலுடன் உள்நுழையுங்கள். உள்நுழைந்ததும் இங்கே தோன்றும்.',
+    signOutAllTitle: 'மற்ற எல்லாச் சாதனங்களையும் வெளியேற்றவா?',
     thisDevice: 'இந்தச் சாதனம்',
     signedOut: 'வெளியேற்றப்பட்டது',
     lastActive: 'கடைசியாகச் செயலில் {when}',
     signOutOthers: 'மற்ற எல்லா சாதனங்களிலும் வெளியேறு',
+    eraseOthers: 'வெளியேறி மற்ற சாதனங்களை அழி',
+    eraseOthersHint:
+      'தொலைந்த போனுக்கு: மற்ற சாதனங்களில் உள்ள தரவையும் அழிக்கும். அவற்றில் ஒத்திசைக்கப்படாத மாற்றங்கள் நிரந்தரமாக இழக்கப்படும்.',
     signOutOthersHint:
       'இந்தச் சாதனம் தவிர மற்ற அனைத்திலும் வெளியேற்றும். அடுத்த முறை உள்நுழைவு கேட்கப்படும்.',
     signedOutOthers: {
@@ -12214,7 +17076,7 @@ const ta: UiStrings = {
     sectionHelp: 'உதவி',
     sectionPreferences: 'விருப்பங்கள்',
     sectionSecurity: 'பாதுகாப்பு',
-    sectionData: 'தரவு & தனியுரிமை',
+    sectionData: 'தனியுரிமை & பாதுகாப்பு',
     aiKeysRow: 'உங்கள் AI விசைகள்',
     aiKeysHint: 'உங்கள் சொந்த OpenAI, Claude அல்லது Kimi விசையைச் சேர்',
     planRow: 'திட்டம்',
@@ -12238,9 +17100,9 @@ const ta: UiStrings = {
       'சொற்கள் ஏற்கெனவே மாறிவிட்டன. பிரதிபலித்த தளவமைப்பை மீண்டும் மாற்றுவதும் செயலி தொடங்கும்போது ஃபோன் முடிவு செய்வது. எனவே அடுத்த முறை திறக்கும்போதுதான் அது நடக்கும்.',
     languageFooterNote:
       'உங்கள் ஃபோனின் மொழியே இயல்புநிலை; இங்கே தேர்ந்தெடுப்பது Waves-ஐ மட்டுமே மாற்றும். தொகைகளும் தேதிகளும் நீங்கள் இருக்கும் இடத்தையே பின்பற்றும் — துபாயில் இந்தியில் படிப்பது உங்களை இந்தியாவுக்கு நகர்த்தாது.',
-    lockNoBiometrics: 'இந்தச் சாதனத்தில் கைரேகை அமைக்கப்படவில்லை',
-    lockOn: 'இயக்கத்தில் · {when} கேட்கும்',
-    lockOff: 'நிறுத்தத்தில் — உங்கள் ஃபோனை வைத்திருப்பவர் யாரும் கணக்கைப் படிக்கலாம்',
+    lockNoBiometrics: 'இந்தச் சாதனத்தில் Face ID, கைரேகை அல்லது திரைப் பூட்டு அமைக்கப்படவில்லை.',
+    lockOn: 'செயலி பூட்டு இயக்கத்தில் · {when} கேட்கும்',
+    lockOff: 'செயலி பூட்டு நிறுத்தத்தில் · உங்கள் ஃபோனை வைத்திருப்பவர் யாரும் Waves-ஐத் திறக்கலாம்',
     signOutGuestHint: 'இந்த விருந்தினர் கணக்கு இந்தச் சாதனத்தில் மட்டுமே உள்ளது',
     signOutHint: 'எதுவும் அழிக்கப்படாது; எப்போது வேண்டுமானாலும் மீண்டும் உள்நுழையலாம்',
   },
@@ -12310,6 +17172,1786 @@ const ta: UiStrings = {
     completeRowHint: 'இடம், பணம் செலுத்திய முறை அல்லது ரசீதைச் சேர்க்கவும்',
     completeSheetTitle: 'இந்தச் செலவை முழுமையாக்குங்கள்',
     tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
+  },
+  companyActivity: {
+    title: 'நிறுவன செயல்பாடு',
+    you: 'நீங்கள்',
+    youObj: 'உங்களுக்கு',
+    all: 'அனைத்தும்',
+    money: 'பணம்',
+    attendance: 'வருகை',
+    tasks: 'பணிகள்',
+    people: 'நபர்கள்',
+    vendors: 'விற்பனையாளர்கள் & பில்கள்',
+    today: 'இன்று',
+    yesterday: 'நேற்று',
+    showOlder: 'பழையதைக் காட்டு',
+    empty: 'இன்னும் எதுவும் நடக்கவில்லை',
+    statusPresent: 'வந்துள்ளார்',
+    statusHalf: 'அரை நாள்',
+    statusAbsent: 'வரவில்லை',
+    expense: '{actor} ஒரு செலவைச் சேர்த்தார்',
+    expenseFor: '{actor} {name} க்கு ஒரு செலவைச் சேர்த்தார்',
+    allowance: '{actor} படியைச் சேர்த்தார்',
+    allowanceFor: '{actor} {name} க்கு படியைச் சேர்த்தார்',
+    advance: '{actor} {name} க்கு முன்பணம் கொடுத்தார்',
+    wages: '{actor} {name} க்கு சம்பளம் வழங்கினார்',
+    reimbursed: '{actor} {name} க்கு திருப்பிச் செலுத்தினார்',
+    cashReturned: '{name} திருப்பிக் கொடுத்த பணத்தை {actor} பதிவு செய்தார்',
+    companyPaid: '{actor} நிறுவனக் கட்டணத்தைப் பதிவு செய்தார்',
+    approved: '{name} கோரிக்கையை {actor} ஏற்றார்',
+    rejected: '{name} கோரிக்கையை {actor} நிராகரித்தார்',
+    attendanceOne: '{actor} {name} ஐ {status} எனக் குறித்தார்',
+    attendanceMany: '{actor} {count} பேரை {status} எனக் குறித்தார்',
+    taskAssigned: "'{title}' பணி {name} க்கு ஒதுக்கப்பட்டது",
+    taskDone: "'{title}' பணியை {name} முடித்தார்",
+    taskBlocked: "'{title}' பணி {name} க்கு தடைபட்டுள்ளது",
+    joined: '{name} சேர்ந்தார்',
+    joinedManager: '{name} மேலாளராகச் சேர்ந்தார்',
+    added: '{name} சேர்க்கப்பட்டார்',
+    markedNotEmployed: '{actor} {name} ஐ பணியில் இல்லை எனக் குறித்தார்',
+    left: '{name} விலகினார்',
+    vendorBill: '{actor} {vendor} இடமிருந்து பில் சேர்த்தார்',
+    vendorBillPending: '{actor} {vendor} இடமிருந்து பில் சேர்த்தார், உறுதிக்காகக் காத்திருக்கிறது',
+    vendorBillRejected: '{vendor} பில் நிராகரிக்கப்பட்டது',
+    vendorPayment: '{actor} {vendor} க்கு கட்டணத்தைப் பதிவு செய்தார்',
+    vendorAdvance: '{actor} {vendor} க்கு முன்பணம் கொடுத்தார்',
+    vendorReceived: '{vendor} கட்டணத்தை உறுதிசெய்தார்',
+    estimateCreated: '{actor} {customer} க்கு மதிப்பீடு {number} உருவாக்கினார்',
+    billCreated: '{actor} {customer} க்கு பில் {number} உருவாக்கினார்',
+    billPaid: '{customer} க்கான பில் {number} செலுத்தப்பட்டது',
+    heads: {
+      expense: 'செலவு சேர்க்கப்பட்டது',
+      expenseFor: 'செலவு சேர்க்கப்பட்டது',
+      allowance: 'பேட்டா சேர்க்கப்பட்டது',
+      allowanceFor: 'பேட்டா சேர்க்கப்பட்டது',
+      advance: 'முன்பணம் கொடுக்கப்பட்டது',
+      wages: 'சம்பளம் செலுத்தப்பட்டது',
+      reimbursed: 'திருப்பிச் செலுத்தப்பட்டது',
+      cashReturned: 'பணம் திருப்பித் தரப்பட்டது',
+      companyPaid: 'நிறுவனச் செலுத்தல்',
+      approved: 'கோரிக்கை ஏற்கப்பட்டது',
+      rejected: 'கோரிக்கை நிராகரிக்கப்பட்டது',
+      attendanceOne: 'வருகை புதுப்பிக்கப்பட்டது',
+      attendanceMany: 'வருகை புதுப்பிக்கப்பட்டது',
+      taskAssigned: 'பணி ஒதுக்கப்பட்டது',
+      taskDone: 'பணி முடிந்தது',
+      taskBlocked: 'பணி தடைபட்டது',
+      joined: 'இணைந்தார்',
+      joinedManager: 'மேலாளர் இணைந்தார்',
+      added: 'நபர் சேர்க்கப்பட்டார்',
+      markedNotEmployed: 'பணியில் இல்லை எனக் குறிக்கப்பட்டது',
+      left: 'விலகினார்',
+      vendorBill: 'விற்பனையாளர் பில்',
+      vendorBillPending: 'விற்பனையாளர் பில் நிலுவையில்',
+      vendorBillRejected: 'விற்பனையாளர் பில் நிராகரிக்கப்பட்டது',
+      vendorPayment: 'விற்பனையாளர் செலுத்தல்',
+      vendorAdvance: 'விற்பனையாளர் முன்பணம்',
+      vendorReceived: 'செலுத்தல் உறுதிசெய்யப்பட்டது',
+      estimateCreated: 'மதிப்பீடு உருவாக்கப்பட்டது · {number}',
+      billCreated: 'பில் உருவாக்கப்பட்டது · {number}',
+      billPaid: 'பில் செலுத்தப்பட்டது · {number}',
+    },
+    dayCount: { one: '{n} செயல்பாடு', other: '{n} செயல்பாடுகள்' },
+  },
+  companyDocs: {
+    title: 'மதிப்பீடுகள் & பில்கள்',
+    estimate: 'மதிப்பீடு',
+    bill: 'பில்',
+    all: 'அனைத்தும்',
+    estimates: 'மதிப்பீடுகள்',
+    bills: 'பில்கள்',
+    unpaid: 'நிலுவை',
+    syncing: 'ஒத்திசைகிறது',
+    draft: 'வரைவு',
+    sent: 'அனுப்பியது',
+    accepted: 'ஏற்றது',
+    declined: 'மறுத்தது',
+    part_paid: 'பகுதி செலுத்தியது',
+    paid: 'செலுத்தியது',
+    newEstimate: 'புதிய மதிப்பீடு',
+    newBill: 'புதிய பில்',
+    customer: 'வாடிக்கையாளர் பெயர்',
+    phone: 'தொலைபேசி (விருப்பம்)',
+    date: 'தேதி',
+    description: 'விவரம்',
+    qty: 'அளவு',
+    rate: 'விலை',
+    amount: 'தொகை',
+    addItem: 'உருப்படி சேர்',
+    removeItem: 'உருப்படி நீக்கு',
+    discount: 'தள்ளுபடி (விருப்பம்)',
+    notes: 'குறிப்புகள் (விருப்பம்)',
+    subtotal: 'கூட்டுத்தொகை',
+    total: 'மொத்தம்',
+    payments: 'பெற்ற தொகைகள்',
+    amountLeft: 'மீதித் தொகை',
+    markReceived: 'பெற்றதாகக் குறி',
+    upiTitle: 'UPI மூலம் செலுத்து',
+    upiScan: '{amount} செலுத்த ஸ்கேன் செய்யுங்கள்',
+    upiCopy: 'UPI ஐடியை நகலெடு',
+    upiShare: 'பகிர்',
+    upiAdd: 'கட்டண QR காட்ட உங்கள் UPI ஐடியைச் சேர்க்கவும்',
+    billTo: 'பில் பெறுநர்',
+    estimateFor: 'மதிப்பீடு பெறுநர்',
+    recordPayment: 'பெற்ற தொகையைப் பதிவு செய்',
+    sharePdf: 'PDF பகிர்',
+    convert: 'பில்லாக மாற்று',
+    edit: 'திருத்து',
+    delete: 'நீக்கு',
+    save: 'சேமி',
+    empty: 'ஆவணங்கள் இல்லை',
+    notFound: 'ஆவணம் இல்லை',
+    linkedBill: 'பில்லைப் பார்',
+    linkedEstimate: 'மதிப்பீட்டைப் பார்',
+    footer: 'இது வரி விலைப்பட்டியல் அல்ல.',
+    nameError: 'வாடிக்கையாளர் பெயரை உள்ளிடவும் (120 எழுத்துகள் வரை).',
+    itemsError: '1–50 உருப்படிகளைச் சேர்க்கவும்.',
+    itemError: 'விவரம், நேர்மறை அளவு, சரியான விலையை உள்ளிடவும்.',
+    discountError: 'தள்ளுபடி கூட்டுத்தொகையை விடக் குறைவாக இருக்க வேண்டும்.',
+    totalError: 'அனுமதிக்கப்பட்ட வரம்பில் நேர்மறை மொத்தத்தை உள்ளிடவும்.',
+    below_paidError: 'மொத்தம் பெற்ற தொகையை விடக் குறையக்கூடாது.',
+    amountError: 'நேர்மறைத் தொகையை உள்ளிடவும்.',
+    overError: 'தொகை நிலுவையை விட அதிகம்.',
+    failed: 'சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    deleteTitle: 'ஆவணத்தை நீக்கவா?',
+    deleteBody: 'இந்த ஆவணம் நீக்கப்படும்.',
+    unpaidTotal: '{amount} நிலுவை',
+    searchLabel: 'தேடு',
+    searchPlaceholder: 'எண், பெயர் அல்லது தலைப்பால் தேடுங்கள்',
+    addLabel: 'புதிது',
+    docsCount: '{n} ஆவணங்கள்',
+    billsCount: '{n} பில்கள்',
+    noDocsTitle: 'இன்னும் மதிப்பீடுகள் அல்லது பில்கள் இல்லை',
+    noDocsBody:
+      'மதிப்பீடுகளை உருவாக்கி, பில்களைச் சேர்த்து, கட்டணங்களை ஒரே இடத்தில் கண்காணிக்கவும்.',
+    createBill: 'பில் உருவாக்கு',
+    createEstimate: 'மதிப்பீடு உருவாக்கு',
+    noMatch: 'எதுவும் பொருந்தவில்லை',
+    billSubtitle: 'விவரப் பில் உருவாக்கிப் பகிருங்கள்',
+    estimateSubtitle: 'விவர மதிப்பீடு உருவாக்கிப் பகிருங்கள்',
+    selectCustomer: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும் அல்லது சேர்க்கவும்',
+    pickClient: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும்',
+    billDate: 'பில் தேதி',
+    currency: 'நாணயம்',
+    itemsCount: 'பொருட்கள் ({n})',
+    rateEach: 'ஒன்றுக்கு {rate}',
+    notesOptional: 'குறிப்புகள் (விருப்பம்)',
+    paymentStatus: 'கட்டண நிலை',
+    saveShare: 'சேமித்துப் பகிர்',
+    createdBy: 'உருவாக்கியவர்',
+    acceptedBy: 'ஏற்றவர்',
+    declinedBy: 'நிராகரித்தவர்',
+    activity: 'செயல்பாடு',
+    nextAction: 'அடுத்த செயல்',
+    add: 'சேர்',
+    duplicate: 'நகலெடு',
+    print: 'அச்சிடு',
+    markSent: 'அனுப்பியதாகக் குறி',
+    paymentEvt: 'பணம் பெறப்பட்டது',
+    viewAll: 'அனைத்தையும் காண்க',
+    showLess: 'குறைவாகக் காட்டு',
+    editEstimate: 'மதிப்பீட்டைத் திருத்து',
+    editBill: 'பில்லைத் திருத்து',
+    saveChanges: 'மாற்றங்களைச் சேமி',
+    preview: 'முன்னோட்டம்',
+    estimateNo: 'மதிப்பீட்டு எண்',
+    billNo: 'பில் எண்',
+    status: 'நிலை',
+    detailsTitle: '{type} விவரங்கள்',
+  },
+  company: {
+    attendanceTitle: 'வருகை',
+    attendanceMine: 'என் வருகை',
+    attendanceEmpty: 'தொடங்க ஊழியர்களைச் சேர்க்கவும்.',
+    attendancePresent: 'வருகை',
+    attendanceHalf: 'அரை நாள்',
+    attendanceAbsent: 'வரவில்லை',
+    attendanceMarkAll: 'அனைவருக்கும் வருகை',
+    attendanceTotal: 'மொத்தம்',
+    attendanceDaily: 'தினசரி',
+    attendanceWeekly: 'வாராந்திர',
+    attendanceMonthly: 'மாதாந்திர',
+    attendanceSearch: 'பணியாளர்களைத் தேடுங்கள்...',
+    attendanceDepartment: 'துறை',
+    workToday: 'இன்று',
+    attendanceNote: 'குறிப்பு சேர்க்க',
+    attendanceNotePlaceholder: 'குறிப்பு சேர்க்கவும் (விருப்பம்)',
+    attendanceHalfDay: 'அரை நாள்',
+    attendanceMark: 'குறி',
+    attendanceClear: 'நீக்கு',
+    attendanceVsYesterday: '{delta} நேற்றை விட',
+    attendanceFilters: 'வடிகட்டிகள்',
+    attendanceStatus: 'நிலை',
+    attendanceNotMarked: 'குறிக்கப்படவில்லை',
+    attendancePickDate: 'தேதியைத் தேர்ந்தெடுக்கவும்',
+    attendanceMore: 'மேலும் விருப்பங்கள்',
+    attendanceDailyView: 'தினசரி பார்வை',
+    attendanceWeeklyView: 'வாராந்திர பார்வை',
+    attendanceMonthlyView: 'மாதாந்திர பார்வை',
+    attendanceSetStatus: 'வருகையைக் குறிக்கவும்',
+    attendanceMarkAllAbsent: 'அனைவருக்கும் வரவில்லை',
+    attendanceOnLeave: 'விடுப்பில்',
+    attendanceLeaveApplied: 'விடுப்பு விண்ணப்பம்',
+    attendanceLeave: 'விடுப்பு',
+    attendanceSaving: 'சேமிக்கிறது',
+    attendanceMember: 'உறுப்பினர்',
+    attendanceMarkHoliday: 'விடுமுறையாகக் குறி',
+    attendanceHolidayEdit: 'விடுமுறை: {name}',
+    attendancePrevious: 'முந்தைய',
+    attendanceNext: 'அடுத்து',
+    attendanceSaved: 'சேமிக்கப்பட்டது',
+    attendanceOverwriteTitle: 'இருக்கும் குறிகளை மாற்றவா?',
+    attendanceOverwriteBody: '{n} பேருக்கு இந்த நாளில் வேறு குறி உள்ளது. மாற்றவா?',
+    attendanceTasks: { other: '{n} பணிகள்' },
+    attendanceSubtitle: { other: '{company} · {n} பணியாளர்கள்' },
+    attendanceSummary: { other: '{n} நாட்கள் வருகை' },
+    attendancePreviousMonth: 'முந்தைய மாதம்',
+    attendanceNextMonth: 'அடுத்த மாதம்',
+    tabDetails: 'விவரங்கள்',
+    editEmployee: 'ஊழியரைத் திருத்து',
+    changeEmploymentType: 'பணி வகையை மாற்று',
+    deleteEmployee: 'ஊழியரை நீக்கு',
+    deleteEmployeeTitle: '{name} ஐ நீக்கவா?',
+    deleteEmployeeBody:
+      'அவர் உங்கள் குழுவிலிருந்து நீக்கப்படுவார். எதுவும் இழக்கப்படாது: பதிவுகள் அல்லது வருகை இல்லை.',
+    deleteHasHistory: 'வரலாறு உள்ளது — பணியில் இல்லை எனக் குறிக்கவும்',
+    statusActive: 'செயலில்',
+    attendanceMonthTitle: 'வருகை ({month})',
+    daysPresent: 'நாட்கள் வருகை',
+    daysPresentIn: '{month} மாதத்தில் வருகை நாட்கள்: {n}',
+    viewReport: 'அறிக்கையைப் பார்',
+    viewFullAttendance: 'முழு வருகையைப் பார்',
+    birthdayJoining: 'பிறந்தநாள் & சேர்ந்த நாள்',
+    addBirthdayJoining: 'பிறந்தநாள், சேர்ந்த நாளைச் சேர்',
+    joiningDate: 'சேர்ந்த நாள்',
+    detailPhone: 'தொலைபேசி',
+    detailEmail: 'மின்னஞ்சல்',
+    detailMileage: 'கிலோமீட்டர் கட்டணம்',
+    workTitle: 'தினசரி வேலை',
+    departments: 'துறைகள்',
+    department: 'துறை',
+    departmentNone: 'எதுவுமில்லை',
+    departmentAdd: 'துறையைச் சேர்க்கவும்',
+    departmentRename: 'துறையின் பெயரை மாற்றவும்',
+    departmentRemove: 'துறையை நீக்கவும்',
+    departmentActions: 'துறை செயல்கள்',
+    departmentNameError: 'தனித்துவமான துறைப் பெயரை உள்ளிடவும்.',
+    workSubtitle: 'உங்கள் குழுவின் பணிகளைக் கண்காணித்து முடிக்கவும்.',
+    workSearch: 'பணிகள், பணியாளர்களைத் தேடுங்கள்...',
+    workTotal: 'மொத்தப் பணிகள்',
+    workAllTasks: 'அனைத்துப் பணிகள்',
+    workDueToday: 'இன்று முடிய வேண்டியவை',
+    workCompleted: 'முடிந்தது',
+    workInProgress: 'நடக்கிறது',
+    workPending: 'நிலுவை',
+    workAll: 'அனைத்தும்',
+    workMineTasks: 'என் பணிகள்',
+    workTeam: 'குழு',
+    workFilter: 'வடிகட்டி',
+    workTime: 'நேரம் (மணி:நிமிடம்)',
+    workNoTime: 'நேரம் இல்லை',
+    workMine: 'என் இன்றைய வேலை',
+    workEmpty: 'இந்த நாளில் வேலைகள் இல்லை.',
+    workByDate: 'தேதிப்படி',
+    workByPerson: 'நபர்படி',
+    workByStatus: 'நிலைப்படி',
+    workOverdue: 'தாமதம்',
+    workPriority: 'முன்னுரிமை',
+    workPrioNormal: 'சாதாரண',
+    workPrioUrgent: 'அவசரம்',
+    workPrioVeryUrgent: 'மிக அவசரம்',
+    workLateOn: 'தாமதம் · {date}',
+    workOpenN: '{n} திறந்தவை',
+    workDoneN: 'முடிந்தவை · {n}',
+    workSiteFilter: 'பணித்தள வடிகட்டி',
+    workNoTasks: 'இன்னும் பணிகள் இல்லை',
+    workNoTasksHint: 'வேலையை ஒதுக்க, தேதி வைக்க, எளிதாகக் கண்காணிக்க ஒரு பணியைச் சேர்க்கவும்.',
+    workNoMatch: '"{q}" உடன் பணிகள் இல்லை',
+    workNoneForYou: 'உங்களுக்கு பணிகள் இல்லை',
+    workShowTeam: 'குழு பணிகளைக் காட்டு',
+    workBlockedInTeam: 'குழுவில் {n} தடைபட்டுள்ளன',
+    workExport: 'அறிக்கை ஏற்றுமதி',
+    workExportRange: 'காலம்',
+    workThisWeek: 'இந்த வாரம்',
+    workThisMonth: 'இந்த மாதம்',
+    workCustom: 'தனிப்பயன்',
+    workFrom: 'இருந்து',
+    workTo: 'வரை',
+    workReportType: 'அறிக்கை வகை',
+    workRepList: 'பணிப் பட்டியல்',
+    workRepPerson: 'நபர்வாரி',
+    workRepSite: 'தளவாரி',
+    workRepOverdue: 'தாமதம் & நிறைவு',
+    workExportSub: 'உங்கள் பணிகளின் அறிக்கையை PDF அல்லது Excel-இல் பெறுங்கள்.',
+    exportPayments: 'கொடுப்பனவுகள்',
+    exportTasks: 'பணிகள்',
+    workFileFormat: 'கோப்பு வடிவம்',
+    workGenerate: 'அறிக்கை உருவாக்கு',
+    workRepListSub: 'நிலையுடன் அனைத்துப் பணிகளும்',
+    workRepPersonSub: 'பொறுப்பாளர் வாரியாக பணிகள்',
+    workRepSiteSub: 'தளம்/இடம் வாரியாக பணிகள்',
+    workRepOverdueSub: 'தாமதம், முடிந்தவை & நிலுவை',
+    workColNumber: '#',
+    workColTitle: 'பணி',
+    workColDate: 'தேதி',
+    workColStatus: 'நிலை',
+    workColOpen: 'திறந்தவை',
+    workColTotal: 'மொத்தம்',
+    workCompletion: 'நிறைவு விகிதம்',
+    workDaysLate: 'தாமத நாட்கள்',
+    workProBadge: 'Pro',
+    workAdd: 'வேலை சேர்க்க',
+    workEdit: 'வேலை திருத்த',
+    workTitleField: 'வேலைத் தலைப்பு',
+    workPerson: 'நபர்',
+    workSite: 'பணித்தளம்',
+    workNoSite: 'பணித்தளம் இல்லை',
+    workTodo: 'செய்ய வேண்டும்',
+    workDoing: 'செய்கிறார்',
+    workDone: 'முடிந்தது',
+    workHeaderSub: 'தளப் பணிகள், வருகைகள், பின்தொடர்தல்கள்',
+    workTasksN: '{n} பணிகள்',
+    workBlocked: 'தடை',
+    workReason: 'தடைக்கான காரணம்?',
+    workNote: 'குறிப்பு',
+    workDue: 'கடைசி தேதி மற்றும் நேரம்',
+    workNotesOptional: 'குறிப்புகள் (விருப்பம்)',
+    workDueDate: 'கடைசி தேதி',
+    workDueTime: 'கடைசி நேரம்',
+    workRepeat: 'நாளை மீண்டும்',
+    workRemove: 'நீக்கு',
+    workStatus: 'நிலை',
+    workUpdateStatus: 'நிலையை மாற்று',
+    workAddNote: 'குறிப்பு சேர் (விருப்பம்)',
+    workPreviousDay: 'முந்தைய நாள்',
+    workNextDay: 'அடுத்த நாள்',
+    workSeeAll: 'அனைத்தையும் காண்க',
+    workSaveError: 'சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    taskDescription: 'வேலை விவரம்',
+    taskDescriptionHint: 'என்ன செய்ய வேண்டும்?',
+    taskAssignTo: 'ஒதுக்கப்படுபவர்',
+    taskResponsible: 'பொறுப்பாளர்',
+    taskHelpers: 'இதிலும் வேலை செய்பவர்கள் (விருப்பம்)',
+    taskHelpersNone: 'யாரும் இல்லை',
+    taskHelpersMax: 'அதிகபட்சம் 5 பேர்',
+    taskAssignTitle: 'நபர்களுக்கு ஒதுக்கு',
+    taskAssignN: 'ஒதுக்கு ({n})',
+    workAlsoOn: 'இதிலும்: {names}',
+    taskPeople: { one: '{n} நபர்', other: '{n} நபர்கள்' },
+    taskDeadline: 'கடைசி நாள் (விருப்பம்)',
+    taskPhotoLabel: 'புகைப்படம் இணை (விருப்பம்)',
+    taskAddPhoto: 'புகைப்படம் சேர்',
+    taskVoiceTitle: 'அல்லது சொல்லுங்கள்…',
+    taskVoiceBody: 'மைக்கைத் தொட்டு குரலில் வேலையைச் சேர்க்கவும்',
+    taskSave: 'வேலையைச் சேமி',
+    taskNeedTitle: 'என்ன செய்ய வேண்டும் என்று எழுதவும்.',
+    taskNeedPeople: 'குறைந்தது ஒருவரைத் தேர்வுசெய்யவும்.',
+    taskBadDay: 'இன்று முதல் ஒரு வாரத்திற்குள் கடைசி நாளைத் தேர்வுசெய்யவும்.',
+    taskPhotoFailed:
+      'வேலைகள் சேமிக்கப்பட்டன, ஆனால் ஒரு புகைப்படம் ஏறவில்லை. மீண்டும் முயல வேலையைச் சேமி என்பதைத் தொடவும்.',
+
+    tab: 'நிறுவனம்',
+    listTitle: 'உங்கள் நிறுவனங்கள்',
+    listSubtitle: 'உங்கள் நிறுவனங்களை நிர்வகித்து மாற்றவும்',
+    currentCompany: 'தற்போதைய நிறுவனம்',
+    myStatement: 'என் அறிக்கை',
+    summary: 'நிறுவன சுருக்கம்',
+    employees: 'ஊழியர்கள்',
+    invite: 'ஊழியர்களை அழைக்க',
+    addEntry: 'பதிவு சேர்',
+    periodMonth: 'இந்த மாதம்',
+    periodLast: 'கடந்த மாதம்',
+    periodAll: 'எல்லா நேரமும்',
+    balance: 'நிலுவை',
+    companyOwesYou: 'நிறுவனம் உங்களுக்குத் தர வேண்டும்',
+    youOweCompany: 'நீங்கள் நிறுவனத்துக்குத் தர வேண்டும்',
+    settled: 'எல்லாம் தீர்ந்தது',
+    companyOwesName: 'நிறுவனம் {name}க்குத் தர வேண்டும்',
+    nameOwesCompany: '{name} நிறுவனத்துக்குத் தர வேண்டும்',
+    companyOwesAll: 'நிறுவனம் ஊழியர்களுக்குத் தர வேண்டும்',
+    employeesOweAll: 'ஊழியர்கள் நிறுவனத்துக்குத் தர வேண்டும் {amount}',
+    owedTo: 'நிறுவனம் தர வேண்டும்',
+    owedBy: 'நிறுவனத்துக்குத் தர வேண்டும்',
+    addEmployee: 'ஊழியரைச் சேர்',
+    addEmployeeBody:
+      'தொடர்புகளில் இருந்து தேர்ந்தெடுங்கள், பெயரை உள்ளிடுங்கள் அல்லது வேறு நிறுவனத்தில் இருந்து மீண்டும் பயன்படுத்துங்கள்.',
+    employeeId: 'ஊழியர் எண்',
+    employeeIdOptional: 'ஊழியர் எண் (விருப்பம்)',
+    addEmployeeId: 'ஊழியர் எண்ணைச் சேர்',
+    employeeIdTaken: 'இந்த ஊழியர் எண் வேறொருவரிடம் ஏற்கெனவே உள்ளது.',
+    fromPastCompany: 'முந்தைய நிறுவனம்',
+    fromPastCompanyBody: 'நீங்கள் வேறு இடத்தில் நிர்வகிப்பவர்கள்',
+    pastSearch: 'பெயர் அல்லது நிறுவனம் மூலம் தேடு',
+    pastEmpty: 'உங்கள் மற்ற நிறுவனங்களில் சேர்க்க யாரும் இல்லை.',
+    pastAddSelected: 'தேர்ந்தெடுத்த {n} பேரைச் சேர்',
+    pastFrom: '{companies} இலிருந்து',
+    pastLoadFailed: 'உங்கள் மற்ற நிறுவனங்களை ஏற்ற முடியவில்லை.',
+    welcomeEmployee:
+      'உங்கள் எரிபொருள், பயணம், படி செலவுகளை இங்கே சேர்க்கவும். உங்கள் பதிவுகளை நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே பார்க்க முடியும்.',
+    welcomeAdmin:
+      'ஊழியர்களை அழைத்து, அவர்களுக்கான பதிவுகள், முன்பணம், சம்பளத்தைப் பதிவு செய்யுங்கள். ஒவ்வொரு ஊழியரும் தங்கள் பதிவுகளை மட்டுமே பார்ப்பார்.',
+    brought: 'முன் நிலுவை',
+    expenses: 'செலவுகள்',
+    bata: 'படி',
+    advances: 'முன்பணம்',
+    wages: 'செலுத்திய சம்பளம்',
+    paidOut: 'ஊழியருக்குச் செலுத்தியது',
+    returned: 'ஊழியர் திருப்பியது',
+    byCategory: 'வகை வாரியாக செலவுகள்',
+    entries: 'பதிவுகள்',
+    none: 'இந்தக் காலத்தில் பதிவு இல்லை',
+    noEmployees: 'இன்னும் ஊழியர்கள் இல்லை. தொடங்க அவர்களை அழைக்கவும்.',
+    pending: 'ஒப்புதலுக்காகக் காத்திருக்கிறது',
+    rejected: 'நிராகரிக்கப்பட்டது',
+    kExpense: 'செலவு',
+    kAllowance: 'படி (தினசரி)',
+    kAdvance: 'கொடுத்த முன்பணம்',
+    kWages: 'செலுத்திய சம்பளம்',
+    salaryPayment: 'சம்பளம் கொடுப்பு',
+    tabOverview: 'கண்ணோட்டம்',
+    overviewTasks: 'பணிகள்',
+    tabManagers: 'மேலாளர்கள்',
+    tabBudgets: 'பட்ஜெட்',
+    tabPayments: 'கொடுப்பனவுகள்',
+    tabMyTeam: 'என் குழு',
+    barPeople: 'நபர்கள்',
+    barPending: 'நிலுவை',
+    barMore: 'மேலும்',
+    barTeam: 'குழு',
+    teamTabTasks: 'பணிகள்',
+    moreBudgets: 'பட்ஜெட் & இடங்கள்',
+    moreStatements: 'அறிக்கைகள் & ஏற்றுமதி',
+    moreRules: 'விதிகள்',
+    agentsTitle: 'AI முகவர்கள்',
+    agentsAllow: 'AI முகவர்களை அனுமதி',
+    agentsAllowHint: 'Claude அல்லது ChatGPT-ஐ இந்த நிறுவனத்துடன் மக்கள் இணைக்கலாம்.',
+    agentsApproval: 'முகவர் மாற்றங்களுக்கு ஒப்புதல் தேவை',
+    agentsApprovalHint: 'முகவர் சேர்க்கும் செலவுகள் உங்கள் ஒப்புதலுக்காகக் காத்திருக்கும்.',
+    agentsConnected: 'இணைந்தவை',
+    agentsEmpty:
+      'முகவர்கள் இணைக்கப்படவில்லை. மக்கள் Claude/ChatGPT-இல் Connect → Waves வழியாக இணைக்கலாம்.',
+    agentsActivity: 'முகவர் செயல்பாடு',
+    agentsActivityEmpty: 'இன்னும் எதுவுமில்லை.',
+    agentsRevoke: 'நீக்கு',
+    agentsActions: 'முகவர் செயல்கள்',
+    agentsLastUsed: 'கடைசியாக பயன்படுத்தியது {when}',
+    agentsNeverUsed: 'இன்னும் பயன்படுத்தவில்லை',
+    companyRulesTitle: 'நிறுவன விதிகள்',
+    moreSettings: 'மேலும் அமைப்புகள்',
+    moreSettingsHint: 'வருகை, செலவுகள், மதிப்பீடுகள், இன்வாய்ஸ்கள் மற்றும் பல',
+    tileCurrency: 'நாணயம்',
+    tileDetails: 'விவரங்கள்',
+    tileBranding: 'பிராண்டிங்',
+    tileBrandingHint: 'லோகோ',
+    pendingNone: 'எதுவும் காத்திருக்கவில்லை',
+    pendingNoneBody: 'உங்கள் கவனம் தேவைப்படும் கோரிக்கைகள் இங்கே தோன்றும்.',
+    pendingVendorBills: 'உறுதிசெய்ய {n} விற்பனையாளர் பில்கள்',
+    pendingUnpaidBills: '{n} செலுத்தப்படாத பில்கள்',
+    pendingBlockedTasks: '{n} தடைப்பட்ட பணிகள்',
+    pendingUnmarked: 'இன்று {n} பேருக்கு குறிக்கவில்லை',
+    countsLine: '{e} ஊழியர்கள் · {m} மேலாளர்கள் · {o} உரிமையாளர்கள்',
+    teamLine: 'உங்கள் குழு · {employees}',
+    pillOwner: 'உரிமையாளர்',
+    statOwes: 'நிறுவனம் ஊழியர்களுக்கு தர வேண்டியது',
+    statPending: '{n} நிலுவை கொடுப்பனவுகள்',
+    statPaidMonth: 'இந்த மாதம் செலுத்தியது',
+    statVsLast: 'கடந்த மாதத்தை விட {pct}%',
+    statAdvances: 'நிலுவை முன்பணம்',
+    statEmployeesN: '{n} ஊழியர்கள்',
+    qaInvite: 'ஊழியர்களை அழை',
+    qaHierarchy: 'படிநிலை',
+    qaBudgets: 'பட்ஜெட் ஒதுக்கு',
+    qaRecord: 'கொடுப்பனவை பதிவு செய்',
+    qaAddReminder: 'நினைவூட்டல் சேர்',
+    overviewActiveToday: 'இன்று செயலில்',
+    overviewPresent: 'வருகை',
+    overviewAbsent: 'வரவில்லை',
+    overviewUnmarked: 'நிலுவை',
+    ovBell: 'அறிவிப்புகள்',
+    overviewOnLeave: 'விடுப்பில்',
+    ovAttendance: 'வருகை',
+    ovPickDate: 'நாளைத் தேர்ந்தெடுக்கவும்',
+    ovVsLast: 'கடந்த மாதத்தை விட {pct}',
+    ovTaskDone: 'முடிந்தது எனக் குறி: {title}',
+    ovEscAdvance: 'முன்பணக் கோரிக்கை',
+    ovEscExpense: 'செலவு ஒப்புதல் நிலுவை',
+    ovEscPool: 'நிதிக் கோரிக்கை',
+    ovEscBill: 'உறுதிசெய்ய வேண்டிய விற்பனையாளர் பில்',
+    ovEscAbsent: '{n} நாட்களாக வருகை பதிவில்லை',
+    ovEscBlocked: 'பணி தடைபட்டது: {title}',
+    ovAgoNow: 'இப்போது',
+    ovAgoMin: '{n} நிமி முன்',
+    ovAgoHour: '{n} மணி முன்',
+    ovAgoDay: '{n} நாள் முன்',
+    ovAllClearBody: 'நிலுவை பணிகளோ அவசர விஷயங்களோ இல்லை.',
+    ovAttention: 'உங்கள் கவனம் தேவை',
+    ovTodayOverview: 'இன்றைய சுருக்கம்',
+    ovPresentOf: '{total} பேரில் {n} பேர் வந்துள்ளனர்',
+    ovAllMarked: 'அனைவரும் குறிக்கப்பட்டனர்',
+    ovMarkAttendance: 'வருகையைக் குறி',
+    ovComingUp: 'விரைவில்',
+    ovOverdue: 'தாமதம்',
+    ovBlocked: 'தடைபட்டது',
+    ovPendingPayments: 'நிலுவை பணம் செலுத்தல்கள்',
+    ovNothingToPay: 'செலுத்த எதுவுமில்லை',
+    ovNoPaymentsYet: 'இந்த மாதம் இன்னும் பணம் செலுத்தப்படவில்லை',
+    ovNoAdvancesOut: 'முன்பணம் எதுவும் இல்லை',
+    ovPayrollRun: 'சம்பளப் பட்டியல்',
+    ovPaidMonth: 'இம்மாதம் செலுத்தியது',
+    ovAdvances: 'நிலுவை முன்பணம்',
+    ovCrore: '{n} கோடி',
+    ovAllClear: 'அனைத்தும் சரி',
+    ovPaymentsPendingN: { one: '{n} கொடுப்பனவுகள் நிலுவை', other: '{n} கொடுப்பனவுகள் நிலுவை' },
+    ovAttendanceToday: 'இன்றைய வருகை',
+    ovSeeAll: 'அனைத்தும்',
+    ovEmptyTitle: 'உங்கள் முதல் ஊழியரைச் சேருங்கள்',
+    ovEmptyBody: 'வருகை, பணிகள், கொடுப்பனவுகளை இங்கே காண ஊழியர்களை அழைக்கவும்.',
+    ovEditLayout: 'அமைப்பைத் திருத்து',
+    ovLayoutHint: 'வரிசை மாற்ற ≡ ஐ அழுத்திப் பிடித்து இழுக்கவும்',
+    ovResetLayout: 'இயல்புநிலைக்கு மாற்று',
+    ovHiddenCards: 'மறைத்த அட்டைகள்',
+    ovHideCard: '{name} ஐ மறை',
+    ovAddCard: '{name} ஐச் சேர்',
+    ovMoveUp: 'மேலே நகர்த்து',
+    ovMoveDown: 'கீழே நகர்த்து',
+    ovReorderCard: '{name} வரிசையை மாற்று',
+    ovAlwaysFirst: 'எப்போதும் முதலில்',
+    ovCardAttendance: 'வருகை',
+    ovCardMoney: 'பணம்',
+    ovCardAttention: 'கவனம் தேவை',
+    ovCardUpcoming: 'வரவிருப்பவை',
+    ovCardActivity: 'சமீபத்திய செயல்பாடு',
+    ovCardBudget: 'உங்கள் பட்ஜெட்',
+    ovCardStats: 'குழு புள்ளிவிவரம்',
+    ovCardQuick: 'விரைவு செயல்கள்',
+    ovCardWorkday: 'வேலை நாள்',
+    ovCardTeam: 'என் குழு',
+    greetMorning: 'காலை வணக்கம்!',
+    greetAfternoon: 'மதிய வணக்கம்!',
+    greetEvening: 'மாலை வணக்கம்!',
+    ovGlance: 'உங்கள் நிறுவனத்தின் சுருக்கம் இதோ.',
+    ovTilePayments: 'செலுத்த வேண்டியவை',
+    ovTileTasks: 'திறந்த பணிகள்',
+    ovTileAdvances: 'நிலுவை முன்பணங்கள்',
+    ovNeedBlockedN: { one: '{n} தடைபட்ட பணி', other: '{n} தடைபட்ட பணிகள்' },
+    ovNeedApproveN: { one: '{n} கொடுப்பனவு அனுமதிக்க', other: '{n} கொடுப்பனவுகள் அனுமதிக்க' },
+    ovNeedTotal: 'மொத்தம் {amount}',
+    ovNeedOverdueN: { one: '{n} தாமதமான பணி', other: '{n} தாமதமான பணிகள்' },
+    ovNeedDue: '{title} · கெடு {time}',
+    ovCardGlance: 'ஒரு பார்வையில்',
+    ovCardNeeds: 'கவனிக்க வேண்டியவை சுருக்கம்',
+    ovCardMoneyActions: 'பணப் பணிகள்',
+    ovCardComingUp: 'இந்த வாரம்',
+    ovCdTasksN: { one: '{n} கெடு பணி', other: '{n} கெடு பணிகள்' },
+    ovCdThisWeek: 'இந்த வாரம்',
+    ovCdApprovalsN: { one: '{n} அனுமதிக்க', other: '{n} அனுமதிக்க' },
+    ovCdWaiting: 'உங்களுக்காக காத்திருக்கிறது',
+    ovAddBill: 'பில் சேர்',
+    ovCreateInvoice: 'விலைப்பட்டியல் உருவாக்கு',
+    overviewNoOwes: 'நிலுவைத் தொகை இல்லை',
+    overviewNoPaid: 'இன்னும் பணம் செலுத்தப்படவில்லை',
+    overviewNoAdvances: 'முன்பணம் இல்லை',
+    qaAddTask: 'பணியைச் சேர்',
+    tkAll: 'அனைத்தும்',
+    tkLater: 'பிறகு',
+    tkCompleted: 'முடிந்தவை',
+    tkScheduled: 'திட்டமிடப்பட்டது',
+    tkNext: 'அடுத்து என்ன',
+    tkQuick: 'விரைவு செயல்கள்',
+    tkUpload: 'கோப்பை பதிவேற்று',
+    tkAddClient: 'வாடிக்கையாளரைச் சேர்',
+    tkAddVendor: 'விற்பனையாளரைச் சேர்',
+    tkSites: { one: '{n} தளம்', other: '{n} தளங்கள்' },
+    tkMore: '+{n}',
+    tkNone: 'இங்கே எதுவும் இல்லை',
+    tkMenu: 'பணி விருப்பங்கள்',
+    tkViewAll: 'அனைத்தையும் பார்',
+
+    qaAddEmployee: 'ஊழியரைச் சேர்',
+    tasksCount: { one: '{n} பணி', other: '{n} பணிகள்' },
+    attHalfDay: 'அரை நாள்',
+    attNotMarked: 'குறிக்கப்படவில்லை',
+    noBudgetSet: 'பட்ஜெட் அமைக்கப்படவில்லை',
+    employmentType: 'பணி வகை',
+    empTypeFullTime: 'முழு நேரம்',
+    empTypePartTime: 'பகுதி நேரம்',
+    empTypeContractor: 'ஒப்பந்தம்',
+    empTypeNone: 'அமைக்கப்படவில்லை',
+    searchEmployees: 'ஊழியர்களைத் தேடு...',
+    filterEmployees: 'ஊழியர்களைக் காட்டு',
+    peopleSortName: 'பெயர் வரிசை (அ–ஃ)',
+    peopleShowAdmins: 'நிர்வாகிகளைக் காட்டு',
+    empFilterAll: 'அனைவரும்',
+    viewStatement: 'அறிக்கையைப் பார்',
+    notEmployed: 'பணியில் இல்லை',
+    markNotEmployed: 'பணியில் இல்லை எனக் குறிக்கவும்',
+    markEmployed: 'பணியில் உள்ளவர் எனக் குறிக்கவும்',
+    employmentHint: 'புதிய நிறுவனத் தகவல்கள் அவர்களுக்கு வராது. பழைய பதிவுகள் இருக்கும்.',
+    employmentDate: 'கடைசி வேலை நாள் (விருப்பம், YYYY-MM-DD)',
+    employmentNote: 'குறிப்பு (விருப்பம்)',
+    employmentPool: 'முதலில் அவர்களின் முன்பணத்தைத் தீர்க்கவும்',
+    employmentIdTaken: 'இந்த ஊழியர் எண் ஏற்கனவே பயன்பாட்டில் உள்ளது',
+    employmentBlocked: 'இந்த நிறுவனம் இடைநிறுத்தப்பட்டுள்ளது',
+    employmentDenied: 'இவரின் பணி நிலையை மாற்ற முடியாது',
+    employmentFailed: 'பணி நிலையை மாற்ற முடியவில்லை. மீண்டும் முயலவும்.',
+    employmentInvalidDate: 'சரியான தேதியை உள்ளிடவும் (YYYY-MM-DD)',
+    employeeIdInUseBy: '{id} இப்போது {name} பயன்படுத்துகிறார்',
+    restoreWithoutId: 'ஊழியர் எண் இல்லாமல் மீட்டமை',
+    pickNewId: 'புதிய ஊழியர் எண்ணைத் தேர்ந்தெடு',
+    newEmployeeId: 'புதிய ஊழியர் எண்',
+    employeeOptions: 'ஊழியர் விருப்பங்கள்',
+    noEmployeesMatch: 'பொருந்தும் ஊழியர் இல்லை',
+    qaAdvance: 'முன்பணம் கொடு',
+    qaAsk: 'பட்ஜெட் கேள்',
+    promoTitle: 'உங்கள் குழுவை அழையுங்கள்',
+    promoBody:
+      'ஊழியர்களைச் சேர்த்து, சம்பளம், முன்பணம், கொடுப்பனவுகளை ஒரே இடத்தில் பதிவு செய்யுங்கள்.',
+    hierTitle: 'குழு படிநிலை',
+    viewAll: 'அனைத்தும்',
+    ownersControl: '{n} உரிமையாளர்கள் · முழு கட்டுப்பாடு',
+    nameYou: '{name} (நீங்கள்)',
+    needsOtherOwner: 'இதை வேறொரு உரிமையாளர் அங்கீகரிக்க வேண்டும்.',
+    secondOwnerTitle: 'இரண்டாவது உரிமையாளர் அங்கீகரிப்பார்',
+    secondOwnerHint:
+      'பெரிய கோரிக்கைகளையும், உரிமையாளர் எழுப்பிய கோரிக்கைகளையும் வேறொரு உரிமையாளர் அங்கீகரிக்க வேண்டும்.',
+    secondOwnerFrom: 'பெரியது எனில், இதிலிருந்து',
+    secondOwnerFromHint:
+      'இந்தத் தொகை அல்லது அதற்கு மேற்பட்ட கோரிக்கைகளுக்கு இரண்டாவது உரிமையாளர் தேவை. உரிமையாளர் எழுப்பியவற்றுக்கு மட்டும் எனில் காலியாக விடுங்கள்.',
+    voiceAdd: 'செலவைச் சொல்லுங்கள்',
+    voiceCurrency: 'தொகையை {currency} என்ற நிறுவன நாணயத்தில் சொல்லுங்கள்.',
+    paymentSettings: 'கட்டண அமைப்புகள்',
+    dailyRateHint: 'தினசரி படி கணக்கீட்டுக்குப் பயன்படுத்தவும்',
+    mileageRateHint: 'பயணச் செலவு திருப்பிக் கொடுப்பதற்குப் பயன்படுத்தவும்',
+    policiesHint: 'உங்கள் குழுவுக்கான வழிகாட்டுதல்கள்',
+    recordPayment: 'கட்டணத்தைப் பதிவு செய்',
+    recordPaymentBody: 'சம்பளம், முன்பணம் அல்லது திருப்பிக் கொடுத்ததைப் பதிவு செய்யுங்கள்.',
+    totalPaid: 'மொத்தம் செலுத்தியது',
+    totalPending: 'மொத்தம் நிலுவை',
+    addExpenseAction: 'செலவு சேர்',
+    recordBill: 'பில் பதிவு',
+    advanceTo: '{name}க்கு முன்பணம்',
+    paymentTo: '{name}க்கு கட்டணம்',
+    paymentFrom: '{name}இடமிருந்து கட்டணம்',
+    wagesTo: '{name}க்கு சம்பளம்',
+    cashReturnedBy: '{name} திருப்பிய பணம்',
+    expandNamed: '{name} விரிவாக்கு',
+    collapseNamed: '{name} சுருக்கு',
+    expandAll: 'அனைத்தும் விரிவாக்கு',
+    collapseAll: 'அனைத்தும் சுருக்கு',
+    payWagesBody: 'ஊழியர்கள் அல்லது மேலாளர்களுக்கான சம்பளத்தைப் பதிவு செய்',
+    gaveMoneyBody: 'முன்பணம் அல்லது திருப்பிக் கொடுத்ததைப் பதிவு செய்',
+    recentPayments: 'சமீபத்திய கட்டணங்கள்',
+    paymentsNoneBody: 'தொடங்க சம்பளம் அல்லது கொடுத்த பணத்தைப் பதிவு செய்யுங்கள்.',
+    addSiteBody: 'இடம் அல்லது துறை வாரியாக பட்ஜெட்டுகளை ஒழுங்கமைக்க தளங்களைச் சேர்க்கவும்.',
+    budgetsNone: 'இன்னும் பட்ஜெட் இல்லை',
+    budgetsNoneBody:
+      'செலவைக் கண்காணிக்க உங்கள் தளங்கள் மற்றும் மேலாளர்களுக்கு பட்ஜெட் உருவாக்குங்கள்.',
+    setBudget: 'பட்ஜெட் அமை',
+    setBudgetBody: 'ஒவ்வொரு தளத்துக்கும் தொகையை அமைக்கவும்',
+    assignManager: 'மேலாளருக்கு ஒதுக்கு',
+    assignManagerBody: 'மேலாளருக்குக் கொடுக்க பணம் கொடுங்கள்',
+    trackSpending: 'செலவைக் கண்காணி',
+    trackSpendingBody: 'செலவானது மற்றும் மீதமுள்ளதைப் பாருங்கள்',
+    createBudget: 'பட்ஜெட் உருவாக்கு',
+    phoneOptional: 'தொலைபேசி எண் (விருப்பம்)',
+    emailOptional: 'மின்னஞ்சல் (விருப்பம்)',
+    fullNameRequired: 'முழுப் பெயர் *',
+    phoneHelper: 'WhatsApp அல்லது SMS மூலம் அழைப்பு இணைப்பைப் பகிருங்கள்',
+    emailHelper: 'மின்னஞ்சல் மூலம் அழைப்பு இணைப்பைப் பகிருங்கள்',
+    roleEmployee: 'ஊழியர்',
+    nameAloneBody:
+      'பெயர் மட்டும் போதும். நிறுவனத்தில் இருக்க அவர்களுக்கு செயலியோ மின்னஞ்சலோ தேவையில்லை. பின்னர் சேரும்போது, அவர்கள் பெயரில் ஏற்கனவே பதிவான அனைத்தையும் கோரலாம்.',
+    fromContacts: 'தொலைபேசி தொடர்புகளிலிருந்து',
+    fromContactsBody: 'உங்கள் தொடர்புகளிலிருந்து தேடிச் சேருங்கள்',
+    budgetPerMonth: 'பட்ஜெட்: {amount} / மாதம்',
+    teamCount: '{n} ஊழியர்கள்',
+    recentTitle: 'சமீபத்திய செயல்பாடு',
+    recentNone: 'இன்னும் இல்லை',
+    yourBudget: 'உங்கள் பட்ஜெட்',
+    givenOut: 'கொடுத்தது',
+    budgetLeft: 'மீதி',
+    budgetAdjusted: 'திருப்பிய / திருத்திய {amount}',
+    askTitle: 'பட்ஜெட் கேள்',
+    askSent: 'கோரிக்கை அனுப்பப்பட்டது',
+    budgetRequests: 'பட்ஜெட் கோரிக்கைகள்',
+    managersNone: 'மேலாளர் இல்லை. ஒரு ஊழியரை மேலாளர் ஆக்குங்கள்.',
+    paymentsNone: 'கொடுப்பனவுகள் இல்லை',
+    yourManager: 'உங்கள் மேலாளர்: {name}',
+    yourOwners: 'உங்கள் நிறுவன உரிமையாளர்',
+    wagesThisMonth: 'இந்த மாதம் சம்பளம்',
+    spentLabel: 'செலவு',
+    advancesLabel: 'முன்பணம்',
+    myEntries: 'என் பதிவுகள்',
+    statusPending: 'நிலுவை',
+    statusOkTag: 'ஒப்புதல்',
+    statusPaid: 'செலுத்தப்பட்டது',
+    switchCompany: 'நிறுவனத்தை மாற்று',
+    employeeCount: { one: '{n} ஊழியர்', other: '{n} ஊழியர்கள்' },
+    managerCount: { one: '{n} மேலாளர்', other: '{n} மேலாளர்கள்' },
+    ownerCount: { one: '{n} உரிமையாளர்', other: '{n} உரிமையாளர்கள்' },
+    overallControl: 'முழு கட்டுப்பாடு',
+    switchCompanyBody: 'நிர்வகிக்க ஒரு நிறுவனத்தைத் தேர்ந்தெடுக்கவும்',
+    createCompanyNew: 'புதிதாக உருவாக்கு',
+    newTitle: 'புதிய நிறுவனம்',
+    createCompany: 'நிறுவனத்தை உருவாக்கு',
+    nameLabel: 'நிறுவனத்தின் பெயர்',
+    namePlaceholder: 'எ.கா. ஸ்ரீ முருகன் டிரேடர்ஸ்',
+    manageCompanies: 'நிறுவனங்களை நிர்வகி',
+    companySettings: 'நிறுவன அமைப்புகள்',
+    reportsToOwners: 'உரிமையாளர்களிடம்',
+    allocateNow: 'பட்ஜெட் ஒதுக்கு',
+    menuExport: 'ஏற்றுமதி',
+    gaveMoney: 'பணம் கொடுத்தது',
+    theySpent: 'அவர்கள் செலவு',
+    iSpent: 'நான் செலவு செய்தேன்',
+    paidWagesVerb: 'சம்பளம் கொடுத்தது',
+    hasOfYours: '{name} இடம் உங்கள் {amount} உள்ளது',
+    youOweName: 'நீங்கள் {name} க்கு {amount} தர வேண்டும்',
+    youHaveOfCompany: 'உங்களிடம் நிறுவன பணம் {amount} உள்ளது',
+    shareWhatsApp: 'WhatsApp இல் அனுப்பு',
+    threadEmpty: 'முதலில் சேர்க்க + அழுத்துங்கள்',
+    addPerson: 'நபரைச் சேர்',
+    moreOptions: 'மேலும்',
+    wageFormula: '{gross} - முன்பணம் {cut} = {net}',
+    canPayPeople: 'பணம் கொடுத்ததைப் பதிவு செய்யலாம்',
+    canPayPeopleHint: 'இந்த ஊழியர் குழு உறுப்பினர்களுக்கான கட்டணங்களைப் பதிவு செய்ய அனுமதிக்கும்.',
+    employeeDetails: 'ஊழியர் விவரங்கள்',
+    permissions: 'அனுமதிகள்',
+    setDailyRate: 'தினசரி விகிதம் அமை',
+    kAllocation: 'மேலாளருக்கு பணம்',
+    kPoolReturn: 'திரும்பப் பெற்ற பணம்',
+    kPoolAdjustment: 'திருத்தம்',
+    noSite: 'தளம் இல்லை',
+    cashLeft: 'மீதமுள்ள பணம்',
+    cashWithManagers: 'மேலாளர்களிடம் உள்ள பணம்',
+    giveCash: 'பணம் கொடு',
+    takeBack: 'திரும்பப் பெறு',
+    correctCash: 'திருத்து',
+    reasonRequired: 'காரணம் (அவசியம்)',
+    poolReasonHint: 'ஏன் என்று எழுதுங்கள். வரலாற்றில் சேமிக்கப்படும்.',
+    payWages: 'சம்பளம் கொடு',
+    wagesSheetTitle: 'சம்பளம் கொடு',
+    periodThisWeek: 'இந்த வாரம்',
+    periodLastWeek: 'கடந்த வாரம்',
+    wagesToPay: 'செலுத்த',
+    wagesAdvanceCut: 'முன்பணம் கழிவு {amount}',
+    wagesAdvanceLeft: 'மீதி முன்பணம் {amount}',
+    wagesBataIn: 'பத்தா {amount} சேர்க்கப்பட்டது',
+    wagesDays: 'நாட்கள்',
+    wagesFixedAmount: 'நிலையான தொகை',
+    wagesNeedTerms: 'நாட்கள் மற்றும் விகிதம் அல்லது நிலையான தொகை சேர்க்கவும்',
+    wagesRecord: '{n} பேருக்கு · {amount}',
+    wagesDone: 'சம்பளம் பதிவானது',
+    wagesNoTeam: 'முதலில் ஆட்களைச் சேர்க்கவும்.',
+    wagesSubtitle: 'உங்கள் குழுவுக்கு கணக்கிட்டு சம்பளம் கொடுங்கள்',
+    wagesTeam: 'குழு',
+    wagesWorkingDays: 'வேலை நாட்கள்',
+    wagesTotal: 'மொத்த சம்பளம்',
+    wagesAll: 'அனைத்தும்',
+    wagesPresent: 'வந்தவர்',
+    wagesLeave: 'விடுப்பு',
+    wagesAbsent: 'வராதவர்',
+    wagesDailyTag: 'தினசரி',
+    wagesFixedTag: 'நிலையான',
+    wagesRateTimesDays: '{rate} × {n} நாட்கள்',
+    wagesSelected: '{n} தேர்வு',
+    wagesTotalPayout: 'மொத்த கொடுப்பனவு',
+    wagesPayAction: 'சம்பளம் கொடு',
+    wagesAddMember: 'உறுப்பினரைச் சேர்',
+    wagesManageRates: 'ஊதிய விகிதங்கள்',
+    wagesManageRatesSub: 'தினசரி / நிலையான',
+    wagesGross: 'சம்பளம் {amount}',
+    wagesPaidFromPool: 'உங்கள் பணத்தில் இருந்து',
+    sites: 'தளங்கள்',
+    addSite: 'தளம் சேர்',
+    suspendedBanner:
+      'இந்த நிறுவனத்தை Waves இடைநிறுத்தியுள்ளது. இப்போது பார்க்க மட்டுமே முடியும். hello@wavs.co.in ஐத் தொடர்பு கொள்ளவும்.',
+    reportCompany: 'இந்த நிறுவனத்தைப் புகாரளி',
+    reportTitle: 'இந்த நிறுவனத்தைப் புகாரளி',
+    reportBody:
+      'என்ன தவறு என்று சொல்லுங்கள். Waves ஒவ்வொரு புகாரையும் பரிசீலிக்கும். யார் புகாரளித்தார் என்பது நிறுவனத்துக்குத் தெரியாது.',
+    reportFraud: 'மோசடி',
+    reportIllegal: 'சட்டவிரோத செயல்',
+    reportHarassment: 'துன்புறுத்தல்',
+    reportWages: 'கொடுக்கப்படாத சம்பளம்',
+    reportOther: 'வேறு ஏதாவது',
+    reportPlaceholder: 'என்ன நடந்தது? (சுருக்கமாக)',
+    reportSend: 'புகாரை அனுப்பு',
+    reportSent: 'நன்றி. Waves இதைப் பார்க்கும்.',
+    reportLimit: 'இன்று பல புகார்கள் அனுப்பியுள்ளீர்கள். நாளை மீண்டும் முயலுங்கள்.',
+    reportFailed: 'புகாரை அனுப்ப முடியவில்லை. இணைப்பைச் சரிபார்த்து மீண்டும் முயலுங்கள்.',
+    suspendedReadOnly:
+      'இந்த நிறுவனம் இடைநிறுத்தப்பட்டுள்ளது. பார்க்கவும் ஏற்றுமதி செய்யவும் முடியும்; சேர்க்கவோ மாற்றவோ முடியாது.',
+    siteName: 'தளத்தின் பெயர்',
+    siteBudget: 'பட்ஜெட் (விருப்பம்)',
+    siteSpent: '{budget} இல் {spent}',
+    siteSpentOnly: '{spent} செலவு',
+    siteLeft: '{amount} மீதி',
+    siteOver: '{amount} அதிகம்',
+    makeManager: 'மேலாளர் ஆக்கு',
+    makeEmployee: 'ஊழியர் ஆக்கு',
+    reportsTo: 'யாரிடம் பணி',
+    owners: 'உரிமையாளர்கள்',
+    manager: 'மேலாளர்',
+    historyMoves: 'புதிய மேலாளர் முந்தைய பதிவுகளைப் பார்ப்பார். பழைய மேலாளர் பார்க்க முடியாது.',
+    moveTeamFirst: 'முதலில் அவர் குழுவை மாற்றுங்கள்',
+    yourTeam: 'உங்கள் குழு',
+    sitesOf: 'தளங்கள்',
+    wageGrossLabel: 'சம்பளம்',
+    wageCutLabel: 'முன்பணம் கழிவு',
+    wageNetLabel: 'செலுத்தியது',
+    kReimbursement: 'திரும்பச் செலுத்தல்',
+    kCashReturned: 'பணம் திருப்பியது',
+    companyPayer: 'நிறுவனம்',
+    companyPaidDirect: 'நிறுவனம் (நேரடியாகச் செலுத்தியது)',
+    companyPaidPoolHint: 'உங்கள் பணக் கையிருப்பிலிருந்து செலுத்தப்பட்டது',
+    companySpentMonth: 'இந்த மாத நிறுவனச் செலவு',
+    catMaterials: 'பொருட்கள்',
+    catRepairs: 'பழுதுபார்ப்பு',
+    catRent: 'வாடகை',
+    catUtilities: 'அத்தியாவசிய சேவைகள்',
+    catEquipment: 'உபகரணங்கள்',
+    catFuel: 'எரிபொருள்',
+    catTransport: 'போக்குவரத்து',
+    catTravel: 'பயணம்',
+    catFood: 'உணவு',
+    catOffice: 'அலுவலகம்',
+    catOther: 'மற்றவை',
+    amountToPay: 'செலுத்த வேண்டிய தொகை',
+    expensesPending: { one: '{n} செலவு நிலுவையில்', other: '{n} செலவுகள் நிலுவையில்' },
+    pendingForPayment: 'செலுத்த நிலுவையில்',
+    selectAllBtn: 'அனைத்தையும் தேர்வு செய்',
+    receiptOne: '1 ரசீது',
+    readyToSettle: 'தீர்க்கத் தயார்',
+    readyBody: 'உங்கள் வழக்கமான முறையில் செலுத்தி, பின் செலுத்தியதாகக் குறிக்கவும்.',
+    sendWhatsApp: 'WhatsApp-ல் அனுப்பு',
+    markPaid: 'செலுத்தியதாகக் குறி',
+    tileAddSub: 'புதிய செலவைப் பதிவு செய்',
+    tileHistory: 'அனைத்து செலவுகள்',
+    tileHistorySub: 'முழு வரலாறு',
+    tileSummary: 'ஊழியர் சுருக்கம்',
+    tileSummarySub: 'இந்த ஊழியரைப் பார்',
+    detailPrivacyTitle: 'ஊழியர்கள் தங்கள் பதிவுகளை மட்டுமே பார்ப்பர்.',
+    detailPrivacyBody: 'அவர்கள் செலவுகளைச் சேர்க்கவும் செலுத்தும் நிலையைப் பார்க்கவும் முடியும்.',
+    callEmployee: 'அழை',
+    catStay: 'தங்குமிடம்',
+    kindGive: 'பணம் கொடுக்க',
+    kindSubGive: 'முன்பணம் / திருப்பி',
+    kindSubSpent: 'செலவைப் பதிவு செய்',
+    kindSubWages: 'சம்பளம் / கொடுப்பனவு',
+    kindSubAllowance: 'தினசரி படி',
+    paidBy: 'செலுத்தியவர்',
+    selectPerson: 'நபரைத் தேர்வு செய்',
+    notesLabel: 'குறிப்புகள் (விருப்பம்)',
+    notePh: 'குறிப்பு சேர்...',
+    addReceipt: 'ரசீது அல்லது புகைப்படம் சேர் (விருப்பம்)',
+    todayDate: 'இன்று, {date}',
+    tagAll: 'எல்லா குறிச்சொற்கள்',
+    tagViewAll: 'அனைத்தும் பார்',
+    tagNew: 'புதிய குறிச்சொல்',
+    tagNamePh: 'குறிச்சொல் பெயர்',
+    tagAdd: 'சேர்',
+    tagsTitle: 'செலவு குறிச்சொற்கள்',
+    tagsShared: 'நிறுவனத்தில் அனைவருடனும் பகிரப்பட்டது',
+    tagRename: 'பெயர் மாற்று',
+    tagHide: 'மறை',
+    tagShow: 'காட்டு',
+    tagAddedBy: '{name} சேர்த்தது',
+    tagsSearch: 'குறிச்சொல் தேடு',
+    industryTitle: 'என்ன வகை வேலை?',
+    industryConstruction: 'கட்டுமானம்',
+    industryTransport: 'போக்குவரத்து & லாஜிஸ்டிக்ஸ்',
+    industryFieldSales: 'களவிற்பனை',
+    packAdd: '{n} குறிச்சொற்களைச் சேர்',
+    packAdded: 'இவை எல்லாம் ஏற்கனவே சேர்க்கப்பட்டுள்ளன',
+    savedAnother: 'சேமிக்கப்பட்டது',
+    addAnother: 'இன்னொன்றைச் சேர்',
+    doneBtn: 'முடிந்தது',
+    moreOpen: 'மேலும்',
+    qtyPh: 'அளவு (விருப்பம்)',
+    tagsCancel: 'ரத்து',
+    tagSave: 'சேமி',
+    formKind: 'வகை',
+    formEmployee: 'ஊழியர்',
+    formAmount: 'தொகை',
+    formDays: 'நாட்கள்',
+    formRate: 'தினசரி விகிதம்',
+    formTotal: 'மொத்தம்',
+    formDate: 'தேதி',
+    today: 'இன்று',
+    yesterday: 'நேற்று',
+    pickDate: 'தேதி தேர்வு',
+    formNote: 'குறிப்பு (விருப்பம்)',
+    formCategory: 'வகை',
+    payTo: 'ஊழியருக்குச் செலுத்தியது',
+    returnFrom: 'ஊழியர் திருப்பியது',
+    wagesTyped: 'தொகை',
+    wagesDaysRate: 'நாட்கள் x விகிதம்',
+    wagesWeekly: 'வாராந்திர சம்பளம்',
+    save: 'பதிவைச் சேமி',
+    needRate: 'நாட்களையும் தினசரி விகிதத்தையும் உள்ளிடவும்',
+    needAmount: 'தொகையை உள்ளிடவும்',
+    removeEntry: 'பதிவை நீக்கு',
+    removeTitle: 'இந்தப் பதிவை நீக்கவா?',
+    removeBody: 'வரலாற்றில் இருக்கும், ஆனால் கணக்கில் சேராது.',
+    dailyRate: 'தினசரி படி விகிதம்',
+    rateNotSet: 'அமைக்கப்படவில்லை',
+    rateTitle: 'தினசரி படி விகிதம்',
+    rateHint: '{name}க்குப் படி சேர்க்கும்போது பயன்படும். ஒவ்வொரு பதிவிலும் மாற்றலாம்.',
+    share: 'அறிக்கையைப் பகிர்',
+    couldNotSave: 'சேமிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    privacyEmployee: 'இந்தப் பதிவுகளை நீங்களும் நிறுவன நிர்வாகிகளும் மட்டுமே பார்க்க முடியும்.',
+    privacyAdmin: 'ஊழியர்கள் தங்கள் பதிவுகளை மட்டுமே பார்ப்பார்கள்.',
+    daysAt: '{days} நாட்கள் x {rate}',
+    forPerson: '{name}க்காக',
+    kMileage: 'மைலேஜ்',
+    formDistance: 'தூரம் (கி.மீ)',
+    formRatePerKm: 'கி.மீ.க்கு கட்டணம்',
+    formFrom: 'எங்கிருந்து (விருப்பம்)',
+    formTo: 'எங்கு (விருப்பம்)',
+    mileageAt: '{km} கி.மீ x {rate}/கி.மீ',
+    needDistance: 'தூரத்தை கி.மீ.யில் உள்ளிடவும்',
+    needMileageRate: 'கி.மீ. கட்டணத்தை அமைக்கவும்',
+    mileageRate: 'கி.மீ.க்கு மைலேஜ் கட்டணம்',
+    gstSection: 'ஜிஎஸ்டி மற்றும் விற்பனையாளர் (விருப்பம்)',
+    vendor: 'விற்பனையாளர்',
+    gstin: 'ஜிஎஸ்டிஐஎன்',
+    gstinBad: 'சரியான 15 எழுத்து GSTIN ஐ உள்ளிடவும்',
+    invoiceNo: 'விலைப்பட்டியல் எண்',
+    gstRate: 'ஜிஎஸ்டி விகிதம்',
+    gstAmount: 'உள்ளடங்கிய ஜிஎஸ்டி',
+    gstBefore: 'ஜிஎஸ்டிக்கு முன்',
+    gstTotal: 'மொத்த ஜிஎஸ்டி',
+    policiesTitle: 'கொள்கை குறிப்புகள்',
+    policyReceipt: '{amount}க்கு மேல் ரசீது',
+    policyLimit: '{what} {period}க்கு {amount}க்கு மேல்',
+    policyWarn: 'எச்சரி',
+    policyBlock: 'தடு',
+    policyAddReceipt: 'ரசீது விதி',
+    policyAddLimit: 'வரம்பு விதி',
+    policyHintReceipt: '{limit} க்கு மேல்: ரசீது படம் சேர்க்கவும்',
+    policyHintLimit: '{period}க்கு {actual} ஆகிறது; வரம்பு {limit}',
+    policyBlocked: '{limit} வரம்பை மீறுகிறது. தொகையை குறைக்கவும்.',
+    policyFlagged: 'கொள்கையை மீறியது',
+    perDay: 'நாள்',
+    perMonth: 'மாதம்',
+    select: 'தேர்வு',
+    selectAllDue: 'அனைத்தும்',
+    payCount: '{count} தேர்ந்தெடுக்கப்பட்டது',
+    payCredits: 'முன்பணம் மற்றும் முந்தைய கொடுப்பனவுகள் கழிவு {amount}',
+    payTotal: '{amount} கொடுப்பனவை பதிவு செய்',
+    payExternal: 'கொடுப்பனவு Waves க்கு வெளியே செய்யப்பட்டது',
+    reimbursedOn: '{date} அன்று திருப்பிச் செலுத்தப்பட்டது',
+    payAlreadyOne: '1 பதிவை ஏற்கனவே {name} செலுத்திவிட்டார்',
+    payAlreadyMany: '{count} பதிவுகளை ஏற்கனவே {name} செலுத்திவிட்டார்',
+    payNeedMore: 'தேர்ந்தெடுத்த கோரிக்கைகள் ஏற்கனவே கொடுத்த முன்பணத்தை விட குறைவு',
+    payUpTo: '{date} வரை அனைத்தும்',
+    payNone: 'செலுத்த எதுவும் இல்லை',
+    dupHint: 'இது ஏற்கனவே சேர்த்த பதிவு போல் உள்ளது',
+    payTitle: 'நிலுவையை செலுத்து',
+    policyEditorHint: 'ஒரு பதிவு மீறினால் எச்சரி அல்லது தடு',
+    policyNone: 'விதிகள் இல்லை',
+    policyRemove: 'விதியை நீக்கு',
+    policyLimitLabel: 'வரம்பு',
+    editEntry: 'பதிவு',
+    awaiting: 'ஒப்புதலுக்காகக் காத்திருக்கிறது',
+    approve: 'ஒப்புக்கொள்',
+    reject: 'நிராகரி',
+    rejectTitle: 'இந்தப் பதிவை நிராகரி',
+    rejectHint: '{name}-க்கு காரணத்தைச் சொல்லுங்கள். அவர்கள் இந்தக் குறிப்பைப் பார்ப்பார்கள்.',
+    statusApproved: 'ஒப்புக்கொள்ளப்பட்டது',
+    reviewNote: 'நிர்வாகியின் குறிப்பு',
+    approvalsTitle: 'ஒப்புதல் தேவை',
+    approvalsHint:
+      'புதிய பதிவுகள் நிர்வாகி ஒப்புக்கொள்ளும் வரை காத்திருக்கும். ஒப்புக்கொள்ளப்பட்டவை மட்டுமே தர வேண்டிய தொகையில் சேரும்.',
+    photos: 'புகைப்படங்கள்',
+    takePhoto: 'புகைப்படம் எடு',
+    choosePhoto: 'புகைப்படம் தேர்வுசெய்',
+    removePhoto: 'புகைப்படத்தை நீக்கு',
+    removePhotoTitle: 'இந்தப் புகைப்படத்தை நீக்கவா?',
+    photoFailed: 'புகைப்படத்தைச் சேர்க்க முடியவில்லை. பதிவு சேமிக்கப்பட்டது.',
+    photoPrivacy: 'ஊழியரும் நிறுவன நிர்வாகிகளும் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
+    introPrivacy:
+      'நீங்களும் நிறுவன நிர்வாகியும் மட்டுமே உங்கள் பதிவுகளையும் புகைப்படங்களையும் பார்க்கலாம்.',
+    defaultRateRow: 'தினசரி படி விகிதம்',
+    defaultRateHint: 'விருப்பம். நீங்கள் தனியாக அமைக்கும் வரை எல்லா ஊழியர்களுக்கும் பயன்படும்.',
+    logoRow: 'நிறுவன லோகோ',
+    logoUpload: 'பதிவேற்று',
+    logoLink: 'லோகோ இணைப்பை ஒட்டவும்',
+    logoLinkPlaceholder: 'https://example.com/logo.png',
+    logoUse: 'இந்த இணைப்பைப் பயன்படுத்து',
+    logoRemove: 'லோகோவை நீக்கு',
+    logoSaved: 'லோகோ புதுப்பிக்கப்பட்டது',
+    logoLater: 'லோகோவைச் சேர்க்க முடியவில்லை. நிறுவன அமைப்புகளில் சேர்க்கவும்.',
+    logoLocked: 'நிர்வாகி மட்டுமே லோகோவை மாற்ற முடியும்.',
+    logoErrEmpty: 'முதலில் இணைப்பை ஒட்டவும்.',
+    logoErrInvalid: 'இது இணைப்பாகத் தெரியவில்லை.',
+    logoErrNotHttps: 'இணைப்பு https:// உடன் தொடங்க வேண்டும்.',
+    logoErrBlocked: 'அந்த இணைப்பைப் பயன்படுத்த முடியாது.',
+    logoErrTimeout: 'அந்த இணைப்பு ஏற்ற அதிக நேரம் ஆனது.',
+    logoErrNetwork: 'அந்த இணைப்பை அடைய முடியவில்லை.',
+    logoErrHttp: 'அந்த இணைப்பு திறக்கவில்லை.',
+    logoErrNotImage: 'அந்த இணைப்பு படம் அல்ல.',
+    logoErrSvg: 'SVG லோகோக்கள் ஆதரிக்கப்படாது. PNG, JPG அல்லது WebP இணைப்பைப் பயன்படுத்தவும்.',
+    logoErrTooLarge: 'மிகப் பெரியது. 2 MB-க்குக் குறைவான படத்தைப் பயன்படுத்தவும்.',
+    logoErrRedirects: 'அந்த இணைப்பு பலமுறை திசைதிருப்புகிறது.',
+    logoErrDecode: 'அந்தப் படத்தைப் படிக்க முடியவில்லை.',
+    currencyRow: 'நாணயம்',
+    pendingApprovals: 'ஒப்புதலுக்காகக் காத்திருப்பவை',
+    colType: 'வகை',
+    colReview: 'மதிப்பாய்வு குறிப்பு',
+    notCounted: 'ஒப்புதல் வரை கணக்கில் சேராது',
+    exportAction: 'ஏற்றுமதி',
+  },
+  companyTickets: {
+    title: 'புகார்கள்',
+    tOpen: 'திறந்தவை · {n}',
+    tEscalated: 'உயர்த்தப்பட்டவை · {n}',
+    tResolved: 'தீர்க்கப்பட்டவை · {n}',
+    newComplaint: 'புதிய புகார்',
+    editComplaint: 'புகாரைத் திருத்து',
+    emptyTitle: 'இன்னும் புகார்கள் இல்லை',
+    emptyBody:
+      'வாடிக்கையாளர் புகாரைப் பதிவு செய்து ஒருவருக்கு ஒதுக்குங்கள். நேரத்தில் தீர்க்கப்படாவிட்டால் அது அவரது மேலாளருக்கும், பிறகு உரிமையாளருக்கும் செல்லும்.',
+    emptyTab: 'இங்கே எதுவும் இல்லை',
+    seeAll: 'அனைத்தும்',
+    noneForClient: 'இந்த வாடிக்கையாளருக்கு புகார்கள் இல்லை',
+    clientLabel: 'வாடிக்கையாளர்',
+    noClient: 'வாடிக்கையாளர் இல்லை',
+    pickClient: 'வாடிக்கையாளரைத் தேர்ந்தெடுக்கவும்',
+    searchClients: 'வாடிக்கையாளரைத் தேடு',
+    titlePh: 'புகார் என்ன?',
+    detailsPh: 'விவரங்கள் (விருப்பம்)',
+    priority: 'முன்னுரிமை',
+    pLow: 'குறைவு',
+    pNormal: 'சாதாரணம்',
+    pHigh: 'அதிகம்',
+    pUrgent: 'அவசரம்',
+    assignedTo: 'ஒதுக்கப்பட்டவர்',
+    assignTo: 'ஒதுக்கு',
+    you: 'நீங்கள்',
+    someone: 'ஒருவர்',
+    owner: 'உரிமையாளர்',
+    save: 'சேமி',
+    log: 'புகாரைப் பதிவு செய்',
+    dueIn: '{t}-இல் முடிக்க வேண்டும்',
+    overdue: '{t} தாமதம்',
+    escalatedTo: '{name}-க்கு உயர்த்தப்பட்டது',
+    unitM: '{n}நி',
+    unitH: '{n}ம',
+    unitD: '{n}நா',
+    call: 'அழை',
+    whatsapp: 'WhatsApp',
+    reassign: 'மாற்றி ஒதுக்கு',
+    actStart: 'தொடங்கு',
+    actResolve: 'தீர்',
+    actReopen: 'மீண்டும் திற',
+    actClose: 'மூடு',
+    resolveTitle: 'எப்படி தீர்க்கப்பட்டது?',
+    resolvePh: 'பதிவுக்கான சிறு குறிப்பு',
+    solved: 'தீர்வு: {note}',
+    stOpen: 'திறந்தது',
+    stInProgress: 'நடைபெறுகிறது',
+    stResolved: 'தீர்க்கப்பட்டது',
+    stClosed: 'மூடப்பட்டது',
+    timeline: 'நிகழ்வுகள்',
+    evCreated: 'பதிவு செய்யப்பட்டது · {name}-க்கு ஒதுக்கப்பட்டது',
+    evAssigned: '{name}-க்கு ஒதுக்கப்பட்டது',
+    evStarted: 'தொடங்கப்பட்டது',
+    evReopened: 'மீண்டும் திறக்கப்பட்டது',
+    evEscalated: '{name}-க்கு உயர்த்தப்பட்டது',
+    evBy: '{name} மூலம்',
+    commentPh: 'கருத்தைச் சேர்',
+    send: 'அனுப்பு',
+    edit: 'திருத்து',
+    remove: 'நீக்கு',
+    removeConfirm: 'இந்தப் புகாரை நீக்கவா?',
+    more: 'மேலும்',
+    notFound: 'இந்தப் புகார் கிடைக்கவில்லை.',
+    hubOverdue: '{n} தாமதம்',
+    hubOpen: '{n} திறந்தவை',
+    hubNone: 'எல்லாம் நேரத்தில்',
+  },
+  companyClients: {
+    title: 'வாடிக்கையாளர்கள்',
+    toReceive: 'பெற வேண்டியது',
+    search: 'வாடிக்கையாளர்களைத் தேடு',
+    statTotal: 'மொத்தம்',
+    statActive: 'செயலில்',
+    statFollowUp: 'பின்தொடர்தல்',
+    statInactive: 'செயலற்றது',
+    newInquiry: 'புதிய விசாரணை',
+    subtitle: 'உங்கள் வாடிக்கையாளர்கள், பில்கள், பணம் செலுத்தல்களைக் கண்காணிக்கவும்',
+    fUnpaid: 'நிலுவை',
+    quickActions: 'விரைவு செயல்கள்',
+    createQuote: 'மதிப்பீடு உருவாக்கு',
+    createBill: 'பில் உருவாக்கு',
+    quotesN: '{n} மதிப்பீடுகள்',
+    billsN: '{n} பில்கள்',
+    open: 'திற',
+    sortRecent: 'சமீபத்தியவை',
+    sortName: 'பெயர்',
+    kClients: 'வாடிக்கையாளர்கள்',
+    kInquiries: 'விசாரணைகள்',
+    kQuotes: 'மேற்கோள்கள்',
+    kInvoices: 'விலைப்பட்டியல்கள்',
+    kOutstanding: 'நிலுவை',
+    tAll: 'அனைத்தும் ({n})',
+    tInquiries: 'விசாரணைகள் ({n})',
+    tQuotes: 'மேற்கோள்கள் ({n})',
+    tInvoices: 'விலைப்பட்டியல்கள் ({n})',
+    sortBy: 'வரிசை: {by}',
+    sortUpdated: 'கடைசியாக புதுப்பித்தது',
+    sortAmount: 'தொகை',
+    filterTitle: 'வடிகட்டி',
+    fStatus: 'நிலை',
+    fDate: 'தேதி',
+    rAll: 'எல்லா நேரமும்',
+    rMonth: 'இந்த மாதம்',
+    rQuarter: 'கடந்த 3 மாதங்கள்',
+    stUnpaid: 'செலுத்தவில்லை',
+    stPartPaid: 'பகுதி செலுத்தியது',
+    stPaid: 'செலுத்தியது',
+    fClear: 'அழி',
+    addClient: 'வாடிக்கையாளரைச் சேர்',
+    createInvoice: 'விலைப்பட்டியல் உருவாக்கு',
+    addLabel: 'சேர்',
+    docInquiry: 'விசாரணை',
+    docQuote: 'மேற்கோள்',
+    docInvoice: 'விலைப்பட்டியல்',
+    today: 'இன்று',
+    daysAgo: '{n} நாள் முன்',
+    emptyTitle: 'இன்னும் வாடிக்கையாளர்கள் இல்லையா?',
+    emptyBody: 'தொடங்க வாடிக்கையாளரைச் சேர்க்கவும் அல்லது விசாரணையை உருவாக்கவும்.',
+    noMatches: 'பொருத்தம் இல்லை',
+    itemsN: '{n} உருப்படிகள்',
+    itemN: '{n} உருப்படி',
+    statusDue: 'நிலுவை',
+    statusPaid: 'செலுத்தப்பட்டது',
+    sortLabel: 'வரிசைப்படுத்து',
+    editClient: 'வாடிக்கையாளரை திருத்து',
+    bannerToday: 'இன்று {n} பின்தொடர்தல்',
+    bannerOverdue: '{n} தாமதம்',
+    bannerNone: 'பின்தொடர்தல் இல்லை',
+    more: 'மேலும் விருப்பங்கள்',
+    fAll: 'அனைத்தும்',
+    fInquiry: 'விசாரணைகள்',
+    fQuoted: 'மதிப்பீடு',
+    fClient: 'வாடிக்கையாளர்கள்',
+    fLost: 'இழந்தவை',
+    empty: 'இன்னும் வாடிக்கையாளர்கள் இல்லை. முதல் விசாரணையைச் சேர்க்கவும்.',
+    emptyFilter: 'இங்கே எதுவும் இல்லை.',
+    stInquiry: 'விசாரணை',
+    stQuoted: 'மதிப்பீடு',
+    stClient: 'வாடிக்கையாளர்',
+    stLost: 'இழந்தது',
+    srcWalkIn: 'நேரில் வந்தவர்',
+    srcCall: 'தொலைபேசி அழைப்பு',
+    srcWhatsapp: 'வாட்ஸ்அப்',
+    srcReferral: 'பரிந்துரை',
+    srcOther: 'மற்றவை',
+    namePh: 'பெயர் *',
+    phonePh: 'தொலைபேசி',
+    needPh: 'அவர்களுக்கு என்ன தேவை?',
+    cameFrom: 'எங்கிருந்து வந்தது',
+    followUp: 'பின்தொடர்',
+    fuToday: 'இன்று',
+    fuTomorrow: 'நாளை',
+    fuThreeDays: '3 நாட்களில்',
+    fuPick: 'தேர்வு',
+    fuNone: 'இல்லை',
+    whoFollows: 'யார் பின்தொடர்வது',
+    extra: 'எதிர்பார்க்கும் மதிப்பு, முகவரி',
+    expectedValue: 'எதிர்பார்க்கும் மதிப்பு',
+    addressPh: 'முகவரி',
+    newInquirySub: 'புதிய வாடிக்கையாளர் விசாரணையைப் பதிவு செய்யுங்கள்',
+    customerDetails: 'வாடிக்கையாளர் விவரங்கள்',
+    inquiryDetails: 'விசாரணை விவரங்கள்',
+    needLabel: 'அவர்களுக்கு என்ன தேவை?',
+    saveAnother: 'சேமித்து மற்றொன்றைச் சேர்',
+    existingCustomer: 'ஏற்கனவே உள்ள வாடிக்கையாளர்',
+    viewHistory: 'வரலாற்றைப் பார்',
+    useCustomer: 'இந்த வாடிக்கையாளரைப் பயன்படுத்து',
+    notThisCustomer: 'இவர் அல்ல',
+    lastActivity: 'கடைசி: {item}',
+    historyCounts: '{inq} விசாரணைகள் · {est} மதிப்பீடுகள் · {bill} பில்கள் · {comp} புகார்கள்',
+    emailPh: 'மின்னஞ்சல் (விருப்பம்)',
+    companyPh: 'நிறுவனம் (விருப்பம்)',
+    category: 'வகை',
+    selectCategory: 'வகையைத் தேர்ந்தெடுக்கவும்',
+    catPlumbing: 'குழாய் வேலை',
+    catElectrical: 'மின்சாரம்',
+    catCivil: 'கட்டுமானம்',
+    catInteriors: 'உள்ளலங்காரம்',
+    catMaintenance: 'பராமரிப்பு',
+    catOther: 'மற்றவை',
+    priority: 'முன்னுரிமை',
+    prNormal: 'சாதாரணம்',
+    prUrgent: 'அவசரம்',
+    prHigh: 'உயர்',
+    notesOpt: 'குறிப்புகள் (விருப்பம்)',
+    notesPh: 'கூடுதல் தகவல், குறிப்புகள் அல்லது சூழல்...',
+    saveInquiry: 'விசாரணையைச் சேமி',
+    save: 'சேமி',
+    followTitle: '{name} உடன் பின்தொடர்',
+    saveFailed: 'சேமிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    viaSource: '{source} மூலம்',
+    follows: '{name} பின்தொடர்கிறார்',
+    markWon: 'வெற்றி எனக் குறி',
+    markLost: 'இழந்தது எனக் குறி',
+    reopen: 'மீண்டும் திற',
+    lostWhy: 'ஏன் இழந்தது?',
+    lostPrice: 'விலை அதிகம்',
+    lostOther: 'வேறொருவரைத் தேர்ந்தார்',
+    lostSilent: 'பதில் இல்லை',
+    lostSkip: 'வேறு காரணம்',
+    tabActivity: 'செயல்பாடு',
+    tabBills: 'மதிப்பீடுகள் & பில்கள்',
+    tabDocs: 'ஆவணங்கள்',
+    btnFollowUp: 'பின்தொடர்தல்',
+    btnEstimate: 'மதிப்பீடு',
+    btnMoney: 'பணம் பெறப்பட்டது',
+    btnInquiry: 'விசாரணை சேர்',
+    scheduleFollowUp: 'பின்தொடர்தலை திட்டமிடு',
+    noFollowUpHint: 'பின்தொடர்தல் மூலம் வாடிக்கையாளரை தொடர்பில் வைத்திருங்கள்.',
+    call: 'அழை',
+    whatsapp: 'வாட்ஸ்அப்',
+    overdueSince: 'பின்தொடர்தல் தாமதம் · {when}',
+    dueAt: 'பின்தொடர்தல் · {when}',
+    done: 'முடிந்தது',
+    noFollowUp: 'பின்தொடர்தல் திட்டமிடப்படவில்லை',
+    addNote: 'குறிப்பைச் சேர்',
+    notePh: 'குறிப்பு எழுதவும்',
+    noteSave: 'குறிப்பைச் சேமி',
+    evCreated: 'விசாரணை சேர்க்கப்பட்டது',
+    evNote: 'குறிப்பு',
+    fuOverdueDays: '{n} நாள் தாமதம்',
+    fuSubToday: 'இன்று பின்தொடர்',
+    fuSubOverdue: '{n} நாள் தாமதம்',
+    fuSubOn: 'பின்தொடர் {when}',
+    howWent: 'எப்படி இருந்தது?',
+    outSpoke: 'பேசினேன்',
+    outNoAnswer: 'பதில் இல்லை',
+    outNotInterested: 'ஆர்வமில்லை',
+    noteSpoke: 'பின்தொடர்தல்: பேசினேன்',
+    noteNoAnswer: 'பின்தொடர்தல்: பதில் இல்லை',
+    noteNotInterested: 'பின்தொடர்தல்: ஆர்வமில்லை',
+    fuNotifTitle: 'இன்று பின்தொடர்தல்',
+    inqTitle: 'விசாரணைகள்',
+    inqNew: 'புதிய விசாரணை',
+    statInquiries: 'விசாரணைகள்',
+    statWon: 'வென்றவை',
+    statRejected: 'நிராகரிப்பு',
+    statPayments: 'பணம் பெறப்பட்டது',
+    assignedN: 'நியமிக்கப்பட்டவர் ({n})',
+    assignTitle: 'இந்த வாடிக்கையாளரை யார் பார்ப்பது?',
+    assignHint: 'முதலாவது நபர் முதன்மை பின்தொடர்பாளராக இருப்பார்.',
+    assignSave: 'சேமி',
+    inqStOpen: 'திறந்தது',
+    inqStQuoted: 'விலைப்புள்ளி',
+    inqStRejected: 'நிராகரிக்கப்பட்டது',
+    inqStWon: 'வென்றது',
+    inqFormNew: 'புதிய விசாரணை',
+    inqFormEdit: 'விசாரணையைத் திருத்து',
+    inqFieldTitle: 'அவர்களுக்கு என்ன தேவை?',
+    inqFieldDetails: 'விவரங்கள் (விருப்பம்)',
+    inqFieldValue: 'எதிர்பார்க்கும் மதிப்பு',
+    inqFieldDate: 'தேதி',
+    inqSave: 'சேமி',
+    inqNone: 'இன்னும் விசாரணை இல்லை. முதலாவதைச் சேர்க்கவும்.',
+    inqDetails: 'விவரங்கள்',
+    inqAmount: 'தொகை',
+    inqDocs: 'மதிப்பீடுகள் மற்றும் பில்கள்',
+    inqNoDocs: 'இன்னும் விலைப்புள்ளி இல்லை.',
+    inqCreateEstimate: 'மதிப்பீடு உருவாக்கு',
+    inqReject: 'நிராகரிக்கப்பட்டதாகக் குறி',
+    inqRejectWhy: 'ஏன் நிராகரிக்கப்பட்டது?',
+    inqReopen: 'மீண்டும் திற',
+    inqEdit: 'திருத்து',
+    inqRemove: 'விசாரணையை நீக்கு',
+    inqRemoveConfirm: 'இந்த விசாரணையை நீக்கவா?',
+    inqRejectedFor: 'நிராகரிப்பு: {reason}',
+    inqNotFound: 'இந்த விசாரணை கிடைக்கவில்லை.',
+    evFollowUp: 'பின்தொடர்தல்',
+    evFollowUpDone: 'பின்தொடர்தல் முடிந்தது',
+    evReceipt: 'பணம் பெறப்பட்டது',
+    activityEmpty: 'இன்னும் எதுவும் இல்லை.',
+    billsEmpty: 'மதிப்பீடுகள் அல்லது பில்கள் இல்லை.',
+    docsEmpty: 'பில் PDF இங்கே தோன்றும்.',
+    owes: '{amount} பெற வேண்டும்',
+    remove: 'வாடிக்கையாளரை நீக்கு',
+    removeConfirm: 'இந்த வாடிக்கையாளரை நீக்கவா?',
+    whenNext: 'அடுத்து எப்போது?',
+    nextTomorrow: 'நாளை',
+    nextWeek: 'அடுத்த வாரம்',
+    nextNone: 'இனி பின்தொடர்தல் வேண்டாம்',
+    fuTitle: 'பின்தொடர்தல்கள்',
+    gOverdue: 'தாமதம்',
+    gToday: 'இன்று',
+    gWeek: 'இந்த வாரம்',
+    gLater: 'பிறகு',
+    mine: 'என்னுடையவை',
+    everyone: 'அனைத்தும்',
+    fuEmpty: 'பின்தொடர்தல் எதுவும் இல்லை. வாடிக்கையாளரிடமிருந்து சேர்க்கவும்.',
+    fuSubtitle: 'வாடிக்கையாளர் பின்தொடர்தல்களைக் கண்காணிக்கவும்',
+    fuUpcoming: 'வரவிருப்பவை',
+    fuEmptyTitle: 'நிலுவையில் பின்தொடர்தல் இல்லை',
+    fuEmptyBody:
+      'வாடிக்கையாளர் விசாரணை, சந்திப்பு அல்லது உரையாடலிலிருந்து பின்தொடர்தலைச் சேர்த்து தொடர்ந்து கண்காணிக்கவும்.',
+    fuAdd: 'பின்தொடர்தலைச் சேர்',
+    fuFromClient: 'வாடிக்கையாளரிடமிருந்து சேர்',
+    fuFromClientSub: 'இருக்கும் வாடிக்கையாளருக்கு பின்தொடர்தல் உருவாக்கவும்',
+    fuFromInquiry: 'விசாரணையிலிருந்து சேர்',
+    fuFromInquirySub: 'விசாரணையை பின்தொடர்தலாக மாற்றவும்',
+    hubMoneyIn: 'வரவு',
+    hubMoneyOut: 'செலவு',
+    hubTeam: 'குழு',
+    hubBooks: 'கணக்குகள் & நிறுவனம்',
+    hubNew: 'புதியது',
+    hubToReceive: '{amount} பெற வேண்டும்',
+    hubToday: 'இன்று {n}',
+    hubOpen: '{n} திறந்தவை',
+    hubToPay: '{amount} செலுத்த வேண்டும்',
+    hubToApprove: '{n} அனுமதிக்க',
+    hubPeople: '{n} பேர்',
+    hubNothing: 'நிலுவை இல்லை',
+    hubFiles: 'PDF & Excel',
+    hubSettings: 'நிறுவன அமைப்புகள்',
+    hubDue: '{n} நிலுவை',
+    hubInSub: 'வரும் பணத்தைக் கண்காணிக்கவும்',
+    hubOutSub: 'செலவுகள், பணம் செலுத்துதலை நிர்வகிக்கவும்',
+    hubTeamSub: 'ஆட்கள், வேலை, வருகை',
+    hubBooksSub: 'பதிவுகள், அறிக்கைகள், அமைப்பு',
+  },
+  companyImport: {
+    title: 'இறக்குமதி',
+    menuRow: 'இறக்குமதி',
+    menuRowSub:
+      'கோப்பு, தொடர்புகள் அல்லது Google Sheets-இலிருந்து ஊழியர்கள், வாடிக்கையாளர்கள், விற்பனையாளர்கள்',
+    whatTitle: 'எதை இறக்குமதி செய்ய வேண்டும்?',
+    employees: 'ஊழியர்கள்',
+    employeesSub: 'பெயர், தொலைபேசி, ஐடி, சேர்ந்த தேதி',
+    clients: 'வாடிக்கையாளர்கள் & விசாரணைகள்',
+    clientsSub: 'பெயர், தொலைபேசி, தேவை, நிலை',
+    vendors: 'விற்பனையாளர்கள்',
+    vendorsSub: 'பெயர், தொலைபேசி, வகை, தொடக்க இருப்பு',
+    sourceTitle: 'எங்கே உள்ளது?',
+    srcFile: 'Excel அல்லது CSV கோப்பு',
+    srcFileSub: '.xlsx, .xls அல்லது .csv',
+    srcContacts: 'தொலைபேசி தொடர்புகள்',
+    srcContactsSub: 'முகவரி புத்தகத்திலிருந்து தேர்ந்தெடுக்கவும்',
+    srcSheet: 'Google Sheet இணைப்பு',
+    srcSheetSub: 'இணைப்பு உள்ள அனைவரும் பார்க்கலாம் என பகிரவும்',
+    template: 'மாதிரி கோப்பைப் பதிவிறக்கு',
+    templateFailed: 'மாதிரியைப் பகிர முடியவில்லை.',
+    sheetPlaceholder: 'பகிர்வு இணைப்பை ஒட்டவும்',
+    sheetGo: 'Sheet-ஐப் படி',
+    sheetBad: 'இது Google Sheets இணைப்பு அல்ல.',
+    sheetPrivate:
+      'Waves-ஆல் இந்த Sheet-ஐத் திறக்க முடியவில்லை. இணைப்பு உள்ள அனைவரும் பார்க்கலாம் என பகிர்ந்து மீண்டும் முயற்சிக்கவும்.',
+    sheetTooBig: 'அந்த Sheet மிகப் பெரியது (அதிகபட்சம் 5 MB).',
+    sheetNetwork: 'Google Sheets-ஐ அடைய முடியவில்லை. இணைப்பைச் சரிபார்க்கவும்.',
+    fileTooLarge: 'அந்தக் கோப்பு மிகப் பெரியது (அதிகபட்சம் 5 MB).',
+    fileTooMany: 'வரிசைகள் மிக அதிகம் (அதிகபட்சம் 2,000).',
+    fileEmpty: 'அந்தக் கோப்பில் எதுவும் இல்லை.',
+    fileEncoding: 'கோப்பை CSV UTF-8 ஆகச் சேமித்து மீண்டும் முயற்சிக்கவும்.',
+    fileUnreadable: 'அந்தக் கோப்பைப் படிக்க முடியவில்லை. CSV ஆகச் சேமித்துப் பார்க்கவும்.',
+    noRows: 'தலைப்பு வரிசைக்குக் கீழே வரிசைகள் இல்லை.',
+    columnsTitle: 'நெடுவரிசைகளைப் பொருத்தவும்',
+    columnsHint: 'முதல் வரிசை தலைப்புகளாகப் படிக்கப்படும். தவறாக இருந்தால் மாற்றவும்.',
+    none: 'என் கோப்பில் இல்லை',
+    fName: 'பெயர்',
+    fPhone: 'தொலைபேசி',
+    fEmployeeId: 'ஊழியர் ஐடி',
+    fDepartment: 'துறை',
+    fManager: 'மேலாளர்',
+    fJoinedOn: 'சேர்ந்த தேதி',
+    fDailyRate: 'தினசரி ஊதியம்',
+    fNeed: 'தேவை',
+    fSource: 'மூலம்',
+    fAddress: 'முகவரி',
+    fExpectedValue: 'எதிர்பார்க்கும் மதிப்பு',
+    fStage: 'நிலை',
+    fCategory: 'வகை',
+    fOpeningBalance: 'தொடக்க இருப்பு (தர வேண்டியது)',
+    previewTitle: 'இறக்குமதிக்கு முன் சரிபார்க்கவும்',
+    cNew: '{n} புதியவை',
+    cDup: '{n} நகல்கள், தவிர்க்கப்பட்டன',
+    cErr: '{n} பிழைகள், தவிர்க்கப்பட்டன',
+    importN: '{n} இறக்குமதி செய்',
+    next: 'தொடர்',
+    back: 'பின்',
+    progress: '{total}-இல் {done} சேர்க்கப்படுகிறது',
+    resultTitle: 'இறக்குமதி முடிந்தது',
+    resultLine: '{added} சேர்க்கப்பட்டன, {dups} நகல்களாகத் தவிர்க்கப்பட்டன, {errors} பிழைகள்',
+    downloadErrors: 'பிழை வரிசைகளைப் பதிவிறக்கு',
+    done: 'முடிந்தது',
+    pName: 'பெயர் இல்லை',
+    pPhone: 'தொலைபேசி எண் செல்லாது',
+    pDate: 'தேதி செல்லாது',
+    pAmount: 'தொகை செல்லாது',
+    pNegative: 'தொகை எதிர்மறையாக இருக்கக் கூடாது',
+    pDupFile: 'இந்தக் கோப்பில் மீண்டும் உள்ளது',
+    pDupExisting: 'ஏற்கனவே பட்டியலில் உள்ளது',
+    pFailed: 'இதைச் சேர்க்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+    wDept: 'துறை கிடைக்கவில்லை, காலியாக விடப்பட்டது',
+    wManager: 'மேலாளர் கிடைக்கவில்லை, காலியாக விடப்பட்டது',
+    wEmpId: 'ஊழியர் ஐடி ஏற்கனவே உள்ளது, காலியாக விடப்பட்டது',
+    wStage: 'நிலை அறியப்படவில்லை, வாடிக்கையாளராகச் சேர்க்கப்பட்டது',
+    warnLine: '{n} வரிசைகள் சில விவரங்கள் இல்லாமல் சேர்க்கப்பட்டன.',
+    noAccess: 'உரிமையாளர்களும் மேலாளர்களும் மட்டுமே இறக்குமதி செய்யலாம்.',
+    errCsvRow: 'வரிசை',
+    errCsvProblem: 'சிக்கல்',
+    contactsAdded: '{n} தொடர்புகள் தேர்ந்தெடுக்கப்பட்டன',
+  },
+  companyVendors: {
+    subtitle: 'பில்கள் · கட்டணங்கள் · ரசீதுகள்',
+    receipts: 'ரசீதுகள்',
+    pendingN: '{n} நிலுவை',
+    receiptOne: '{n} ரசீது',
+    receiptMany: '{n} ரசீதுகள்',
+    periodMonth: 'இந்த மாதம்',
+    periodLast: 'கடந்த மாதம்',
+    periodYear: 'இந்த ஆண்டு',
+    periodAll: 'எல்லா நேரமும்',
+    allVendors: 'அனைத்து விற்பனையாளர்கள்',
+    pendingReview: 'மதிப்பாய்வு நிலுவை',
+    photoPrivacy:
+      'இந்தக் கணக்குப் பதிவைப் பார்க்க அனுமதி உள்ளவர்கள் மட்டுமே இந்தப் புகைப்படங்களைப் பார்க்கலாம்.',
+    historyEmpty: 'இன்னும் பதிவுகள் இல்லை',
+    title: 'விற்பனையாளர்கள்',
+    addVendor: '+ விற்பனையாளரைச் சேர்',
+    name: 'பெயர்',
+    phone: 'தொலைபேசி (விருப்பம்)',
+    category: 'வகை (விருப்பம்)',
+    empty: 'இன்னும் விற்பனையாளர்கள் இல்லை',
+    youOwe: 'நீங்கள் தர வேண்டியது {amount}',
+    hasAdvance: '{amount} முன்பணம் உள்ளது',
+    settled: 'கணக்கு முடிந்தது',
+    oweName: '{name}க்கு நீங்கள் தர வேண்டியது {amount}',
+    advanceName: '{name} வசம் {amount} முன்பணம் உள்ளது',
+    settledName: '{name} உடன் கணக்கு முடிந்தது',
+    companyOwes: 'நிறுவனம் உங்களுக்குத் தர வேண்டியது {amount}',
+    yourAdvance: 'நிறுவனத்திடம் இருந்து {amount} முன்பணம் பெற்றுள்ளீர்கள்',
+    allSettled: 'கணக்கு முடிந்தது',
+    addBill: 'பில்லைச் சேர்',
+    recordPayment: 'பணம் கொடுத்ததைப் பதிவு செய்',
+    bill: 'பில்',
+    advance: 'முன்பணம்',
+    payment: 'பணம் கொடுத்தது',
+    amount: 'தொகை',
+    date: 'தேதி',
+    note: 'குறிப்பு (விருப்பம்)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'சரியான தேதியை உள்ளிடவும்',
+    billHint: 'நிறுவனம் உறுதிப்படுத்திய பிறகே இந்த பில் கணக்கில் சேரும்.',
+    pending: 'நிலுவையில்',
+    confirmed: 'உறுதிப்படுத்தப்பட்டது',
+    rejected: 'நிராகரிக்கப்பட்டது',
+    received: 'பெறப்பட்டது',
+    markReceived: 'பெற்றதாகக் குறி',
+    history: 'வரலாறு',
+    pendingBills: 'உறுதிப்படுத்தக் காத்திருக்கும் பில்கள்',
+    confirm: 'உறுதிப்படுத்து',
+    reject: 'நிராகரி',
+    more: 'மேலும் விருப்பங்கள்',
+    invite: 'விற்பனையாளரை அழை',
+    rename: 'பெயரை மாற்று',
+    delete: 'நீக்கு',
+    deleteConfirm: 'இந்த விற்பனையாளரையும் அவரது கணக்கையும் நீக்கவா?',
+    removeEntry: 'பதிவை நீக்கு',
+    removeConfirm: 'இந்தப் பதிவைக் கணக்கிலிருந்து நீக்கவா?',
+    withdraw: 'திரும்பப் பெறு',
+    withdrawConfirm: 'நிலுவையில் உள்ள இந்த பில்லைத் திரும்பப் பெறவா?',
+    notFound: 'விற்பனையாளர் கிடைக்கவில்லை',
+    inviteFailed: 'அழைப்பை உருவாக்க முடியவில்லை. இணையத்தில் இணைந்து மீண்டும் முயலவும்.',
+    save: 'சேமி',
+    close: 'மூடு',
+    addSubtitle: 'Waves-இல் பணம் மற்றும் பில்களை நிர்வகிக்க விற்பனையாளரைச் சேர்க்கவும்.',
+    scanQr: 'QR ஸ்கேன்',
+    fromLink: 'இணைப்பிலிருந்து',
+    wavesId: 'Waves ID',
+    useLink: 'இணைப்பைப் பயன்படுத்து',
+    findId: 'தேடு',
+    helpScan: 'பணம் செலுத்தும் QR அல்லது விற்பனையாளர் பகிர்ந்த QR-ஐ ஸ்கேன் செய்யவும்',
+    helpLink: 'பணம் செலுத்தும் இணைப்பு அல்லது தொலைபேசி எண்ணை ஒட்டவும்',
+    helpId: 'Waves-இல் கண்டறிய மின்னஞ்சல் அல்லது தொலைபேசி எண்ணை உள்ளிடவும்',
+    linkPlaceholder: 'இணைப்பு அல்லது தொலைபேசி எண்ணை ஒட்டவும்',
+    idPlaceholder: 'மின்னஞ்சல் அல்லது தொலைபேசி எண்',
+    idHint: 'சரியான மின்னஞ்சல் அல்லது தொலைபேசி எண்ணை உள்ளிடவும்',
+    lookupFailed: 'படிக்க முடியவில்லை. கீழே விவரங்களை நிரப்பவும்.',
+    allowCamera: 'கேமராவை அனுமதி',
+    or: 'அல்லது',
+    enterManually: 'கைமுறையாக உள்ளிடு',
+    phoneOptional: 'தொலைபேசி எண் (விருப்பம்)',
+    categoryOptional: 'வகை (விருப்பம்)',
+    editVendor: 'விற்பனையாளரைத் திருத்து',
+    vendorNameRequired: 'விற்பனையாளர் பெயர் *',
+    categories: 'வகைகள்',
+    addOrSelectCategory: 'வகையைச் சேர் அல்லது தேர்வு செய்',
+    selectOrAddCategories: 'வகைகளைத் தேர்வு செய் அல்லது சேர்',
+    addCategory: 'வகை சேர்',
+    showMore: 'மேலும் காட்டு',
+    showLess: 'குறைவாகக் காட்டு',
+    removeCategory: '{name} நீக்கு',
+    cancel: 'ரத்து',
+    catMaterials: 'பொருட்கள்',
+    catCement: 'சிமெண்ட்',
+    catElectrical: 'மின்சாரம்',
+    catPlumbing: 'குழாய் வேலை',
+    catPainting: 'வண்ணம் பூசுதல்',
+    catHardware: 'ஹார்டுவேர்',
+    catLabour: 'தொழிலாளர்',
+    saveVendor: 'விற்பனையாளரைச் சேமி',
+    catSupplier: 'சப்ளையர்',
+    catContractor: 'ஒப்பந்ததாரர்',
+    catLandlord: 'நில உரிமையாளர்',
+    catUtilities: 'பயன்பாட்டுச் சேவைகள்',
+    catTransport: 'போக்குவரத்து',
+    catOther: 'மற்றவை',
+    totalToPay: 'செலுத்த வேண்டிய மொத்தம்',
+    overdueCount: '{n} தாமதம்',
+    paidThisMonth: 'இந்த மாதம் செலுத்தியது',
+    billsToReview: 'சரிபார்க்க வேண்டிய பில்கள்',
+    filterAll: 'அனைத்தும்',
+    filterToPay: 'செலுத்த',
+    filterToReview: 'சரிபார்க்க',
+    search: 'விற்பனையாளரைத் தேடு',
+    emptyList: 'உங்கள் விற்பனையாளர்கள் இங்கே தோன்றுவர்.',
+    noMatch: 'பொருந்தும் விற்பனையாளர் இல்லை.',
+    statusOverdue: 'தாமதம்',
+    statusToReview: 'சரிபார்க்க',
+    statusToPay: 'செலுத்த',
+    call: 'அழை',
+    whatsapp: 'வாட்ஸ்அப்',
+    statement: 'அறிக்கை',
+    vendorTitle: 'விற்பனையாளர்',
+    activityTab: 'செயல்பாடு',
+    billsTab: 'பில்கள்',
+    lastPaymentLabel: 'கடைசி கட்டணம்',
+    waitingSync: 'ஒத்திசைவுக்காகக் காத்திருக்கிறது',
+    entryDetails: 'பதிவு விவரங்கள்',
+    documents: 'ஆவணங்கள்',
+    transactions: 'பரிவர்த்தனைகள்',
+    outstanding: 'நிலுவை',
+    overdueLine: '{amount} தாமதம்',
+    lastPayment: 'கடைசி கட்டணம் {amount} · {date}',
+    noPayments: 'இன்னும் கட்டணங்கள் பதிவாகவில்லை.',
+    noDocs: 'இன்னும் ஆவணங்கள் இல்லை.',
+    dueOn: 'கடைசி தேதி {date}',
+    dueDate: 'செலுத்த வேண்டிய தேதி (விருப்பம்)',
+    method: 'முறை',
+    mUpi: 'UPI',
+    mBank: 'வங்கி பரிமாற்றம்',
+    mCash: 'ரொக்கம்',
+    mOther: 'மற்றவை',
+    reference: 'குறிப்பு எண் (விருப்பம்)',
+    proofPhoto: 'ஆதாரப் புகைப்படம் (விருப்பம்)',
+    currentOutstanding: 'தற்போதைய நிலுவை',
+    remainingAfter: 'இதற்குப் பின் மீதம்: {amount}',
+    keptAsAdvance: '{amount} முன்பணமாக வைக்கப்படும்.',
+    recorded: 'பதிவானது',
+    paymentRecorded: 'கட்டணம் பதிவானது',
+    receipt: 'ரசீது',
+    receiptTitle: 'கட்டண ரசீது',
+    receiptFooter: 'கட்டணம் Waves-இல் பதிவானது — வங்கி உறுதிப்பாடோ வரி விலைப்பட்டியலோ அல்ல.',
+    companyLabel: 'நிறுவனம்',
+    vendorLabel: 'விற்பனையாளர்',
+    balanceAfter: 'பின் இருப்பு',
+    statusLabel: 'நிலை',
+    sharePdf: 'PDF பகிர்',
+    viewTransaction: 'பரிவர்த்தனையைக் காண்',
+    pdfFailed: 'PDF உருவாக்க முடியவில்லை.',
+    statementTitle: 'விற்பனையாளர் அறிக்கை',
+    balance: 'இருப்பு',
+    receiptsHeading: 'கட்டண ரசீதுகள்',
+    billPhotos: 'பில் புகைப்படங்கள்',
+    shareWhatsapp: 'வாட்ஸ்அப்பில் பகிர்',
+    amountLabel: 'தொகை',
+    dateLabel: 'தேதி',
+    quickFull: 'முழுவதும் {amount}',
+    quickOverdue: 'தாமதம் {amount}',
+    stillToPay: 'இதற்குப் பின் செலுத்த வேண்டியது: {amount}',
+    paidBy: 'செலுத்திய முறை',
+    recordsNote: 'இது Waves-இல் கட்டணத்தைப் பதிவு செய்கிறது. பணம் அனுப்பாது.',
+    waitingVendor: 'பதிவானது · விற்பனையாளருக்காகக் காத்திருக்கிறது',
+    openInVendor: '{name} பரிவர்த்தனைகளில் திற',
+    downloadPdf: 'PDF பதிவிறக்கு',
+    advanceKind: 'முன்பணம்',
+    paidTo: '{name}-க்கு செலுத்தியது',
+    newOrder: 'புதிய ஆர்டர்',
+    ordersTab: 'ஆர்டர்கள்',
+    orderTitle: 'புதிய பொருள் ஆர்டர்',
+    editOrder: 'ஆர்டரைத் திருத்து',
+    itemName: 'பொருள்',
+    itemQty: 'அளவு',
+    itemUnit: 'அலகு',
+    itemPrice: 'விலை / அலகு',
+    addItem: 'பொருள் சேர்',
+    removeItem: 'பொருளை நீக்கு',
+    expectedDelivery: 'எதிர்பார்க்கும் டெலிவரி (விருப்பம்)',
+    orderTotalItems: 'மொத்தம் · {n} பொருட்கள்',
+    orderNotBill: 'ஆர்டர் நீங்கள் தர வேண்டிய தொகையைக் கூட்டாது. விற்பனையாளரின் பில் கூட்டும்.',
+    sendOrder: 'ஆர்டர் அனுப்பு',
+    orderSent: 'ஆர்டர் அனுப்பப்பட்டது',
+    noOrders: 'இன்னும் ஆர்டர்கள் இல்லை.',
+    createOrder: 'ஆர்டர் உருவாக்கு',
+    ordSent: 'அனுப்பப்பட்டது',
+    ordAccepted: 'ஏற்கப்பட்டது',
+    ordRejected: 'நிராகரிக்கப்பட்டது',
+    ordDelivered: 'டெலிவரி ஆனது',
+    ordCancelled: 'ரத்து செய்யப்பட்டது',
+    accept: 'ஏற்கவும்',
+    markDelivered: 'டெலிவரி ஆனதாகக் குறி',
+    cancelOrder: 'ஆர்டரை ரத்து செய்',
+    cancelOrderConfirm: 'இந்த ஆர்டரை ரத்து செய்யவா?',
+    orderTimeline: 'காலவரிசை',
+    unitBags: 'பைகள்',
+    unitPieces: 'துண்டுகள்',
+    unitKg: 'கிலோ',
+    unitLitres: 'லிட்டர்',
+    unitMetres: 'மீட்டர்',
+    unitOther: 'மற்றவை',
+    orderPdf: 'கொள்முதல் ஆர்டர் PDF',
+    purchaseOrder: 'கொள்முதல் ஆர்டர்',
+    expectedOn: 'எதிர்பார்ப்பு {date}',
+    orderItems: 'பொருட்கள்',
+    orderTotal: 'மொத்தம்',
+    itemsCount: '{n} பொருட்கள்',
+  },
+  companySlot: {
+    addRow: 'நிறுவனத்தைச் சேர்',
+    addRowHint: 'உங்கள் முதல் நிறுவனம் இலவசம்',
+    title: 'மேலும் ஒரு நிறுவனத்தைச் சேர்',
+    body: 'உங்கள் முதல் நிறுவனம் இலவசம். கூடுதல் நிறுவனம் ஒவ்வொன்றும் மாதம் {price}.',
+    subscribe: 'சந்தாதாரராகு',
+    restore: 'மீட்டெடு',
+    restored: 'சந்தா மீட்டெடுக்கப்பட்டது.',
+    noneFound: 'செயலில் உள்ள நிறுவன சந்தா எதுவும் இல்லை.',
+    unavailable:
+      'இந்தப் பதிப்பில் கூடுதல் நிறுவனங்களை வாங்க முடியாது. ஸ்டோரிலிருந்து புதுப்பித்து மீண்டும் முயலுங்கள்.',
+    pending:
+      'உங்கள் வாங்குதல் ஒப்புதலுக்காகக் காத்திருக்கிறது. அது முடிந்ததும் நிறுவனத்தைச் சேர்க்கவும்.',
+    buyFailed: 'வாங்குதலை முடிக்க முடியவில்லை. உங்களிடம் கட்டணம் வசூலிக்கப்படவில்லை.',
+    setupSlow:
+      'உங்கள் சந்தா இன்னும் உறுதிசெய்யப்படுகிறது. ஒரு நிமிடம் கழித்து மீண்டும் முயலுங்கள்.',
+    lapsedBanner:
+      'இந்த நிறுவனத்தின் சந்தா முடிந்துவிட்டது, அதனால் இது பார்க்க மட்டுமே. எதுவும் நீக்கப்படவில்லை. மீண்டும் திருத்த சந்தாவைப் புதுப்பியுங்கள்.',
+    lapsedReadOnly:
+      'இந்த நிறுவனத்தின் சந்தா முடிந்துவிட்டது. பார்க்கவும் ஏற்றுமதி செய்யவும் முடியும், சேர்க்கவோ திருத்தவோ முடியாது.',
+    renew: 'சந்தாவைப் புதுப்பி',
+  },
+  companyStorage: {
+    addMore: 'மேலும் சேமிப்பைச் சேர்க்கவும்',
+    packLine: '{size} · மாதம் {price}',
+    packNote:
+      'ஒரு நிறுவனத்திற்கு ஒரு பேக்; எப்போது வேண்டுமானாலும் மாற்றலாம். முடிந்தால் புகைப்படங்கள் இருக்கும், புதிய பதிவேற்றங்கள் மட்டும் நிற்கும்.',
+    packElsewhere:
+      'இந்த ஸ்டோர் கணக்கு ஏற்கனவே மற்றொரு நிறுவனத்திற்கான சேமிப்பிற்கு பணம் செலுத்துகிறது. முதலில் அங்கே ரத்து செய்யுங்கள், அல்லது வேறு கணக்கில் வாங்குங்கள்.',
+    bought: 'நன்றி. உங்கள் இடம் சற்று நேரத்தில் புதுப்பிக்கப்படும்.',
+    pending: 'கொள்முதல் நிலுவையில் உள்ளது. முடிந்ததும் சேமிப்பு புதுப்பிக்கப்படும்.',
+    buyFailed: 'கொள்முதலை முடிக்க முடியவில்லை. மீண்டும் முயலவும்.',
+    title: 'சேமிப்பு',
+    usedOfQuota: '{quota}-இல் {used}',
+    percentUsed: '{percent}% பயன்பாடு',
+    banner: 'சேமிப்பு {percent}% நிரம்பியுள்ளது. மேலும் சேர்க்கவும்',
+    note: 'பதிவுகள், பில்கள், பணிகளின் புகைப்படங்கள் இங்கே கணக்கிடப்படும். எதுவும் நீக்கப்படாது.',
+    full: 'நிறுவன சேமிப்பு நிரம்பிவிட்டது. உரிமையாளர் அமைப்புகளில் மேலும் சேர்க்கலாம்.',
+    loading: 'சேமிப்பை ஏற்ற முடியவில்லை. மீண்டும் முயலவும்.',
+  },
+  companyFiles: {
+    title: 'கோப்புகள்',
+    search: 'கோப்புகளைத் தேடுங்கள்…',
+    all: 'அனைத்தும்',
+    documents: 'ஆவணங்கள்',
+    images: 'படங்கள்',
+    sheets: 'தாள்கள்',
+    others: 'மற்றவை',
+    links: 'இணைப்புகள்',
+    upload: 'பதிவேற்று',
+    addLink: 'இணைப்பைச் சேர்',
+    newFolder: 'புதிய கோப்புறை',
+    folderItems: '{n} உருப்படிகள்',
+    empty: 'இன்னும் கோப்புகள் இல்லை',
+    emptyBody:
+      'ஆவணங்கள், படங்கள், தாள்களைப் பதிவேற்றுங்கள் அல்லது இணைப்பைச் சேர்த்து, யார் பார்க்கலாம் என்று தேர்ந்தெடுங்கள்.',
+    emptyFolder: 'இந்தக் கோப்புறை காலியாக உள்ளது',
+    noMatches: 'பொருந்துவது எதுவும் இல்லை',
+    open: 'திற',
+    rename: 'பெயர் மாற்று',
+    editLink: 'இணைப்பைத் திருத்து',
+    whoSees: 'யார் பார்க்கலாம்',
+    openFailed: 'இந்தக் கோப்பைத் திறக்க முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    uploadFailed: 'இந்தக் கோப்பைப் பதிவேற்ற முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    tooBig: 'இந்தக் கோப்பு 25 MB-ஐ விட பெரியது.',
+    badType:
+      'இந்த வகைக் கோப்பைப் பதிவேற்ற முடியாது. PDF, Word, Excel, PowerPoint, படம், உரை அல்லது zip பயன்படுத்துங்கள்.',
+    storageFull: 'நிறுவன சேமிப்பிடம் நிரம்பியுள்ளது. உரிமையாளர் அமைப்புகளில் கூடுதல் சேர்க்கலாம்.',
+    saveFailed: 'சேமிக்க முடியவில்லை. மீண்டும் முயலுங்கள்.',
+    linkName: 'பெயர்',
+    linkUrl: 'இணைப்பு (https://…)',
+    linkUrlBad: 'http அல்லது https என தொடங்கும் இணைய முகவரியை உள்ளிடுங்கள்.',
+    folderName: 'கோப்புறையின் பெயர்',
+    fileName: 'பெயர்',
+    visEveryone: 'அனைவரும்',
+    visManagers: 'மேலாளர்கள் மற்றும் உரிமையாளர்கள்',
+    visOwners: 'உரிமையாளர்கள் மட்டும்',
+    visEveryoneHint: 'நிறுவனத்தின் அனைத்து உறுப்பினர்களும்',
+    visManagersHint: 'ஊழியர்களுக்குத் தெரியாது',
+    visOwnersHint: 'மேலாளர்கள், ஊழியர்களுக்குத் தெரியாது',
+    deleteFolderTitle: '“{name}” கோப்புறையை நீக்கவா?',
+    deleteFolderBody: 'அதில் உள்ள அனைத்தும் நீக்கப்படும்.',
+    deleteFileTitle: '“{name}” நீக்கவா?',
+    deleteFileBody: 'அனைவருக்கும் நீக்கப்படும்.',
+    uploading: 'பதிவேற்றுகிறது…',
+    allFiles: 'அனைத்து கோப்புகள்',
+    listView: 'பட்டியல் காட்சி',
+    gridView: 'கட்டக் காட்சி',
+    more: 'மேலும்',
+  },
+  companyDetails: {
+    title: 'நிறுவன விவரங்கள்',
+    vendorDetails: 'விற்பனையாளர் விவரங்கள்',
+    myDetails: 'என் விவரங்கள்',
+    accountName: 'கணக்கு பெயர்',
+    accountNumber: 'கணக்கு எண்',
+    ifsc: 'IFSC',
+    upi: 'UPI ID',
+    address: 'முகவரி',
+    phone: 'தொலைபேசி',
+    email: 'மின்னஞ்சல்',
+    gstin: 'GSTIN',
+    pan: 'PAN',
+    note: 'குறிப்பு',
+    copied: 'நகலெடுக்கப்பட்டது',
+    shareAsText: 'உரையாகப் பகிர்',
+    edit: 'திருத்து',
+    addDetails: 'விவரங்களைச் சேர்',
+    empty: 'விவரங்கள் இன்னும் சேர்க்கப்படவில்லை',
+    reveal: 'முழு மதிப்பைக் காட்டு',
+    hide: 'மதிப்பை மறை',
+    updatedAgo: '{when} அன்று {name} புதுப்பித்தார்',
+    updated: 'புதுப்பிக்கப்பட்டது',
+    bankChanged: 'வங்கி விவரங்கள் {date} அன்று மாறின — செலுத்தும் முன் தொலைபேசியில் உறுதிசெய்யவும்',
+    noted: 'கவனித்தேன்',
+    save: 'சேமி',
+    invalidField: 'சரியான {field} உள்ளிடவும்',
+    saveFailed: 'விவரங்களைச் சேமிக்க முடியவில்லை',
+    bank: 'வங்கி',
+    contact: 'தொடர்பு',
+    subtitle: 'உங்கள் நிறுவனத் தகவல் மற்றும் அமைப்புகளை நிர்வகிக்கவும்.',
+    active: 'செயலில்',
+    companyInfo: 'நிறுவனத் தகவல்',
+    legalName: 'சட்டப்பூர்வ பெயர்',
+    addMore: 'மேலும் விவரங்களைச் சேர்',
+    peopleAccess: 'மக்கள் & அணுகல்',
+    teamMembers: 'குழு உறுப்பினர்கள்',
+    businessSetup: 'வணிக அமைப்பு',
+    billing: 'பில்லிங் & கட்டணங்கள்',
+    billingSub: 'கட்டணங்கள், பில்கள், அறிக்கைகள்',
+    preferences: 'விருப்பங்கள்',
+    preferencesSub: 'அறிவிப்புகள், நாணயம் மற்றும் பல',
   },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
@@ -12797,6 +19439,34 @@ const ta: UiStrings = {
     traps: 'வாக்கியத்தை அப்படியே படிக்கவும்.',
   },
   credits: {
+    sheetTitle: 'குரல் கிரெடிட்கள்',
+    sheetLeft: '{n} கிரெடிட்கள் மீதம்',
+    sheetHelp:
+      'செலவுகளைச் சேர்க்க, பிரிக்க அல்லது தீர்க்க AI குரல் கட்டளைகளுக்கு கிரெடிட்களைப் பயன்படுத்தவும்.',
+    sheetWatch: 'விளம்பரம் பார் · {n} கிரெடிட்களைப் பெறு',
+    sheetAdded: '+{n} கிரெடிட்கள் சேர்க்கப்பட்டன!',
+    sheetBalance: 'இப்போது உங்களிடம் {n} கிரெடிட்கள் உள்ளன.',
+    sheetFull: 'கிரெடிட்கள் நிரம்பிவிட்டன',
+    sheetFullBody:
+      'உங்களிடம் {max} கிரெடிட்களில் {n} உள்ளன. சிலவற்றைப் பயன்படுத்திவிட்டு, மீண்டும் விளம்பரம் பாருங்கள்.',
+    sheetGap: 'அடுத்த விளம்பரம் ஒரு நிமிடத்தில்',
+    sheetUnavailable: 'இப்போது விளம்பரங்கள் கிடைக்கவில்லை',
+    sheetRetry: 'பிறகு மீண்டும் முயற்சிக்கவும்.',
+    sheetPro: 'விளம்பரமில்லை · மாதம் {n} குரல் கட்டளைகள்',
+    sheetProSubtitle: 'விளம்பரமில்லை, மாதம் {n} குரல் கட்டளைகள்',
+    sheetVoice: 'மாதத்திற்கு {n} குரல் கட்டளைகள்',
+    sheetPrice: 'Pro பெறுங்கள் – {price}/மாதம்',
+    sheetLater: 'பிறகு பார்க்கலாம்',
+    sheetStatusEmpty: 'இந்த மாதத்தின் இலவச குரல் கிரெடிட்களைப் பயன்படுத்திவிட்டீர்கள்.',
+    sheetWatchSub: 'சில விநாடி விளம்பரம் பார்த்து இப்போதே கூடுதல் குரல் கிரெடிட்களைப் பெறுங்கள்.',
+    sheetStatusHas: 'அடுத்த குரல் கட்டளைக்கு தயார்.',
+    sheetMiniScans: '{n} ஸ்கேன்கள்',
+    sheetMiniScansSub: 'ஒவ்வொரு மாதமும்',
+    sheetMiniAds: 'விளம்பரமில்லை',
+    sheetMiniAdsSub: 'Pro-வில்',
+    sheetMiniDevices: '{n} சாதனங்கள்',
+    sheetMiniDevicesSub: 'ஒரே கணக்கில்',
+    sheetContinue: 'தொடரவும்',
     title: 'கிரெடிட்கள்',
     balance: 'உங்களிடம் {n} கிரெடிட்கள் உள்ளன',
     usedOne: '{n} கிரெடிட் பயன்படுத்தப்பட்டது',
@@ -12813,6 +19483,28 @@ const ta: UiStrings = {
     export: 'ஏற்றுமதி',
     group: 'கூடுதல் குழு',
     price: '{n} கிரெடிட்கள்',
+    yourCredits: 'உங்கள் கிரெடிட்கள்',
+    yourCreditsHint:
+      'AI குரல், ரசீது ஸ்கேன், ஏற்றுமதி மற்றும் பலவற்றிற்கு கிரெடிட்களைப் பயன்படுத்துங்கள்.',
+    watchSub: '{n} கிரெடிட்கள் பெற ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
+    proSub: 'விளம்பரம் இல்லை, அதிக கிரெடிட்கள்',
+    getPro: 'Pro பெறுங்கள்',
+    howUsed: 'கிரெடிட்கள் எப்படி பயன்படுத்தப்படுகின்றன',
+    learnMore: 'மேலும் அறிக',
+    voiceSub: 'குரல் மூலம் செலவுகளைச் சேர்க்கவும்',
+    scanSub: 'ஸ்கேன் செய்து விவரங்களை எடுக்கவும்',
+    exportSub: 'CSV அல்லது Excel-க்கு ஏற்றுமதி',
+    groupSub: 'கூடுதல் குழுக்களை உருவாக்கி நிர்வகிக்கவும்',
+    buyTitle: 'மேலும் கிரெடிட்கள் பெறுங்கள்',
+    popular: 'பிரபலம்',
+    buy: 'வாங்கு',
+    neverExpire: 'கிரெடிட்கள் காலாவதியாகாது',
+    neverExpireSub:
+      'எப்போது வேண்டுமானாலும் பயன்படுத்துங்கள். மாத இலவசப் பயன்பாடுகள் முதலில் பயன்படுத்தப்படும்.',
+    nextAt: 'அடுத்த விளம்பரத்தை {time} க்குப் பிறகு பார்க்கலாம்.',
+    paidNote:
+      'நீங்கள் Pro-வில் உள்ளீர்கள், விளம்பரங்கள் இல்லை. உங்கள் கிரெடிட்கள் வாலெட்டில் இருக்கும்.',
+    help: 'உதவி',
   },
   adGates: {
     title: 'ஒரு சிறு விளம்பரம் பாருங்கள்',
@@ -12843,6 +19535,7 @@ const ta: UiStrings = {
       'வரம்பற்ற குரல் கட்டளைகள், விளம்பரங்கள் இல்லாத அனுபவம் மற்றும் பலவற்றைப் பெறுங்கள்.',
     dailyLimit: 'இன்றைய விளம்பர வரம்பை அடைந்துவிட்டீர்கள் — நாளை முயலுங்கள்',
     adLabel: 'விளம்பரம்',
+    removeAds: 'விளம்பரங்களை நீக்கு',
     voiceTitle: 'இன்னும் {count} AI குரல் கட்டளைகளுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     scanTitle: 'இன்னும் {count} ரசீது ஸ்கேன்களுக்கு ஒரு சிறிய விளம்பரத்தைப் பாருங்கள்',
     voiceBody:
@@ -12946,6 +19639,9 @@ const ta: UiStrings = {
       'தர வேண்டிய பணம் குறித்த மென்மையான நினைவூட்டல். ஒரு நாளைக்கு ஒருவருக்கு ஒன்று மட்டுமே, தரவுத்தளத்திலேயே வரையறுக்கப்பட்டது.',
     digest: 'நாள்தோறும் குழுச் சுருக்கம்',
     digestBody: 'மற்ற அனைத்தும், தொடர்ச்சியாக அல்லாமல் நாளுக்கு ஒரு அறிவிப்பாகத் தொகுத்து.',
+    companyUpdates: 'நிறுவன அறிவிப்புகள்',
+    companyUpdatesBody:
+      'உங்கள் நிறுவனத்தின் விடுப்பு, செலவு, கட்டணம், பணிகள், நாட்காட்டி, புகார்கள்.',
     emailSection: 'மின்னஞ்சல் வழியாக',
     emailAll: 'மின்னஞ்சல் அனுப்பவும்',
     emailAllBody:
@@ -13237,6 +19933,20 @@ const ta: UiStrings = {
     notJoined: 'சேரவில்லை',
     group: 'குழு',
   },
+  spaces: {
+    personal: 'தனிப்பட்டது',
+    personalBody: 'நண்பர்கள், குழுக்கள் & செலவுகள்',
+    switchTitle: 'இடத்தை மாற்று',
+    switchBody: 'நீங்கள் எங்கு வேலை செய்ய விரும்புகிறீர்கள் என்பதைத் தேர்ந்தெடுக்கவும்',
+    switchedTo: '{name} க்கு மாற்றப்பட்டது',
+    createTitle: 'புதிய நிறுவனத்தை உருவாக்கு',
+    createBody: 'நிறுவனத்தை அமைத்து ஆட்களை அழைக்கவும்',
+    owner: 'உரிமையாளர்',
+    manager: 'மேலாளர்',
+    employee: 'ஊழியர்',
+    vendor: 'விற்பனையாளர்',
+    pillLabel: 'இடத்தை மாற்று',
+  },
   dashHero: {
     scanTitle: 'ரசீதைப் படம் எடுங்கள்',
     scanBody: 'பில்லை ஸ்கேன் செய்தால் பொருட்கள் தானாக நிரம்பும் — நொடிகளில் பங்கிடுங்கள்.',
@@ -13291,15 +20001,67 @@ const ta: UiStrings = {
     change: 'மாற்று',
     settlesWith: '{rails} மூலம் தீர்க்கப்படும்',
   },
-  activityScreen: {
-    subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
+  departedExpenses: {
     all: 'அனைத்தும்',
-    expenses: 'செலவுகள்',
-    edits: 'திருத்தங்கள்',
-    trip: 'பயணம்',
-    more: 'மேலும்',
-    viewDetails: 'விவரங்களைப் பார்',
-    openGroup: 'குழுவைத் திற',
+    youLent: 'நீங்கள் {name}க்கு கொடுத்தது',
+    youOwe: 'நீங்கள் {name}க்கு கொடுக்க வேண்டியது',
+    selectAll: 'அனைத்தையும் தேர்ந்தெடு ({n})',
+    dateNewest: 'தேதி (புதியவை)',
+    dateOldest: 'தேதி (பழையவை)',
+    amountSort: 'தொகை',
+    equalShare: 'சமப் பங்கீடு · அவரின் பங்கு {amount}',
+    customShare: 'தனிப்பயன் பங்கீடு · அவரின் பங்கு {amount}',
+    paidBy: '{name} செலுத்தியது',
+    selectedShares: '{n} தேர்வு · அவரின் பங்குகள் {amount}',
+    splitOthers: 'மற்றவர்களிடையே பிரி',
+    expenseCount: { one: '{n} செலவு', other: '{n} செலவுகள்' },
+    isOwed: {
+      one: '{n} செலவில் {name}க்கு வர வேண்டியது {amount}',
+      other: '{n} செலவுகளில் {name}க்கு வர வேண்டியது {amount}',
+    },
+
+    title: '{name} செலவுகள்',
+    owed: {
+      one: '{n} செலவுகளில் {name} செலுத்த வேண்டியது {amount}',
+      other: '{n} செலவுகளில் {name} செலுத்த வேண்டியது {amount}',
+    },
+    equal: { one: 'சமமாகப் பிரி ({n}) · {amount}', other: 'சமமாகப் பிரி ({n}) · {amount}' },
+    perEach: 'ஒவ்வொருவருக்கும் +{amount}',
+    splitAmong: { one: 'மற்ற {n} பேரிடையே பிரி', other: 'மற்ற {n} பேரிடையே பிரி' },
+    custom: { one: 'தனிப்பயன் பிரிவுகள் ({n})', other: 'தனிப்பயன் பிரிவுகள் ({n})' },
+    keep: 'வைத்திரு',
+    shareEqually: 'சமமாகப் பகிர்',
+    paid: {
+      one: '{name} செலுத்தியது ({n}) · இன்னும் வரவேண்டியது {amount}',
+      other: '{name} செலுத்தியது ({n}) · இன்னும் வரவேண்டியது {amount}',
+    },
+    settle: '{name} உடன் கணக்கை முடி',
+    confirm: { one: '{n} மாற்றங்களை உறுதிசெய்', other: '{n} மாற்றங்களை உறுதிசெய்' },
+    dialog:
+      '{name} செலுத்த வேண்டிய {amount} தொகையை மற்ற {n} பேருக்கு மாற்றவா? ஒவ்வொருவருக்கும் சுமார் {perEach} கூடும். {name} இருப்பு {balance} ஆகும். செயல்பாட்டிலிருந்து 7 நாட்களுக்குள் இதைச் செயல்தவிர்க்கலாம்.',
+    onlyViewer: 'நீங்கள் {amount} ஏற்றுக்கொள்வீர்கள்',
+    onlyViewerDialog:
+      'நீங்கள் {amount} ஏற்றுக்கொள்வீர்கள். {name} இருப்பு {balance} ஆகும். செயல்பாட்டிலிருந்து 7 நாட்களுக்குள் இதைச் செயல்தவிர்க்கலாம்.',
+    bannerTitle: '{name} குழுவிலிருந்து வெளியேறினார்',
+    decideFor: '{name}க்காக முடிவுசெய்',
+    banner: {
+      one: '{n} செலவுக்கு முடிவு தேவை',
+      other: '{n} செலவுகளுக்கு முடிவு தேவை',
+    },
+    decide: 'முடிவுசெய்',
+    keepAsIs: 'அப்படியே வைத்திரு',
+    offline: 'இந்தச் செலவுகளை மாற்ற இணையத்துடன் இணையுங்கள்.',
+    memberRow: '{name} செலவுகள்',
+    activity: {
+      one: '{name} வெளியேறிய பின் {n} செலவு பிரிக்கப்பட்டது',
+      other: '{name} வெளியேறிய பின் {n} செலவுகள் பிரிக்கப்பட்டன',
+    },
+    activityUndone: '{name} வெளியேறிய பின் செய்த பிரிப்பு செயல்தவிர்க்கப்பட்டது',
+    undo: 'செயல்தவிர்',
+  },
+  activityScreen: {
+    anExpense: 'ஒரு செலவு',
+    subtitle: 'உங்கள் சமீபத்திய பரிவர்த்தனைகளும் புதுப்பிப்புகளும்',
     noneForFilter: 'இந்த வடிகட்டிக்கு இன்னும் எதுவும் இல்லை.',
     importedHeadline: {
       one: '{n} செலவு இறக்குமதி செய்யப்பட்டது',
@@ -13353,13 +20115,13 @@ const ta: UiStrings = {
   newGroupForm: {
     title: 'புதிய குழுவை உருவாக்கு',
     headerSub: 'ஒரு குழுவைத் தொடங்கி செலவுகளை ஒன்றாகப் பகிருங்கள்',
-    tagline: 'ஒன்றாகத் திட்டமிடுங்கள், எளிதாகப் பிரியுங்கள்',
+    tagline: 'நண்பர்கள், குடும்பம் அல்லது சக ஊழியர்களுடன் செலவுகளைப் பிரியுங்கள் — சில படிகளில்.',
     nameExample: 'எ.கா. கோவா பயணம்',
     whatFor: 'இந்தக் குழு எதற்காக?',
     descriptionExample: 'எ.கா. நண்பர்கள் பயணம், வார இறுதி சுற்றுலா',
     addFriendsSub: 'செலவுகளைப் பகிர நபர்களைச் சேர்க்கவும்',
     addContacts: 'தொடர்புகள்',
-    personPlaceholder: 'பெயர் அல்லது தொலைபேசி எண்ணைத் தேடுங்கள்',
+    personPlaceholder: 'பெயரைச் சேர்',
     groupType: 'குழு வகை',
     groupTypeSub: 'உங்கள் குழுவுக்கு ஏற்ற வகையைத் தேர்வுசெய்யுங்கள்',
     datesSub: 'பயணத் தேதிகள் (விருப்பம்)',
@@ -13372,6 +20134,7 @@ const ta: UiStrings = {
     descriptionLabel: 'விளக்கம் (விருப்பத்தேர்வு)',
     optional: '(விருப்பத்தேர்வு)',
     seeAll: 'அனைத்தும்',
+    moreOptions: 'மேலும் விருப்பங்கள்',
   },
   captureForm: {
     headerSub: 'சில நொடிகளில் உங்கள் செலவைப் பதிவு செய்யுங்கள்',
@@ -13392,11 +20155,15 @@ const ta: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'கிரெடிட்கள்',
-    creditsLabel: '{n} கிரெடிட்கள்',
-    noAdAvailable: 'இப்போது விளம்பரம் எதுவும் கிடைக்கவில்லை.',
+    getCredits: 'கிரெடிட்களைப் பெறு',
+    creditOne: '{n} கிரெடிட்',
+    creditMany: '{n} கிரெடிட்கள்',
+    creditReward: '{n} கிரெடிட்களைப் பெறு',
+    creditPro: 'விளம்பரமில்லை, மாதம் {n} குரல்',
     totalOwed: 'உங்களுக்கு வர வேண்டிய மொத்தம்',
     totalOwe: 'நீங்கள் தர வேண்டிய மொத்தம்',
     totalSettled: 'எல்லாம் தீர்க்கப்பட்டது',
+    downloadingGroups: 'உங்கள் குழுக்களைப் பதிவிறக்குகிறது · {loaded} / {total}',
     spentThisMonth: 'இந்த மாதம் நீங்கள் செலவிட்டது',
     vsLastMonth: 'கடந்த மாதத்துடன் ஒப்பிட',
     periodOverall: 'மொத்தம்',
@@ -13413,7 +20180,14 @@ const ta: UiStrings = {
     settleTitle: 'எந்தக் குழுவில் தீர்க்க வேண்டும்?',
     settleEmpty: 'எல்லா குழுக்களிலும் கணக்கு சரியாக உள்ளது.',
     settleSubtitle: 'ஒரு குழுவைத் தேர்ந்தெடுத்து இருப்புகளைப் பார்த்து தீர்க்கவும்.',
+    settleSquareBody: 'உங்கள் குழுக்களில் நிலுவை இருப்புகள் இல்லை.',
+    settleAllDone: 'எல்லாம் தீர்ந்துவிட்டது!',
+    settleAllDoneBody: 'தீர்க்க வேண்டிய இருப்பு இப்போது இல்லை.',
+    settleCreate: 'குழுவை உருவாக்கு',
+    settleScan: 'பில் ஸ்கேன் செய்து சேர்',
+    settleInvite: 'உறுப்பினர்களை அழை',
     settleMeta: '{members} · கடைசி செயல்பாடு {when}',
+    settleAllGroups: 'எல்லா குழுக்களும்',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
   },
   tips: {
@@ -14078,9 +20852,9 @@ const ta: UiStrings = {
     more: 'மேலும்',
     confirmReceived: 'கிடைத்தது என்று உறுதிப்படுத்து',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
-    rowOwed: 'owed', // English placeholder — English-first phase, translation owed
-    rowYouOwe: 'you owe', // English placeholder
-    rowSettled: 'settled', // English placeholder
+    rowOwed: 'உங்களுக்கு வர வேண்டியது',
+    rowYouOwe: 'நீங்கள் தர வேண்டியது',
+    rowSettled: 'சரி',
     saysTheyPaidYou: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார்',
     saysTheyPaidYouWindow: '{name} உங்களுக்குப் பணம் கொடுத்ததாகச் சொல்கிறார் ({window})',
     daysToConfirm: { one: 'உறுதிக்கு {n} நாள்', other: 'உறுதிக்கு {n} நாட்கள்' },
@@ -14199,7 +20973,7 @@ const ta: UiStrings = {
     rejectConfirm: 'நிராகரி',
     cancelSettlement: 'பணத்தை ரத்து செய்',
     paymentsToSettle: 'தீர்க்க வேண்டிய கொடுப்பனவுகள்',
-    everyonesBalance: 'அனைவரின் இருப்பு',
+    everyonesBalance: 'குழு மொத்தம்',
     cancelTitle: 'இந்தப் பணத்தை ரத்து செய்யவா?',
     cancelBody:
       'நீங்கள் பதிவு செய்த பணத்தை நீக்கும். {name} உறுதிப்படுத்தக் கேட்கப்பட மாட்டார், எந்த இருப்பும் மாறாது.',
@@ -14286,6 +21060,12 @@ const ta: UiStrings = {
     emailSubject: 'Waves-ல் {group} குழுவில் சேரவும்',
     hideContacts: 'தொடர்புகளை மறை',
     browseContacts: 'என் தொடர்புகளைப் பார்',
+    addSomeoneBody: 'செலவுகளைப் பகிர்ந்துகொள்ள நண்பர்களைச் சேர்.',
+    browseContactsBody: 'உன் போன் தொடர்புகளிலிருந்து தேடிச் சேர்',
+    shareInviteBody: 'யாருக்கும் இணைப்பை அனுப்பு',
+    orAddManually: 'அல்லது கைமுறையாகச் சேர்',
+    contactOptional: 'தொலைபேசி எண் அல்லது மின்னஞ்சல் (விருப்பம்)',
+    addToGroupButton: 'குழுவில் சேர்',
     fromContactsHint: 'இந்த போனின் தொடர்புப் பட்டியலிலிருந்து பெயர்களைத் தேர்ந்தெடு',
     shareJoinLink: 'சேரும் இணைப்பைப் பகிர்',
     shareJoinLinkHint: 'இணைப்பை அனுப்பு அல்லது QR-ஐக் காட்டு — அவர்களே சேர்ந்துகொள்வார்கள்',
@@ -14628,6 +21408,18 @@ const ta: UiStrings = {
     settlePaymentsCount: { one: '{n} கட்டணத்தில்', other: '{n} கட்டணங்களில்' },
     settleBetweenOthersSub:
       'குழு உறுப்பினர்களுக்கிடையேயான கட்டணங்கள் (உங்கள் இருப்பைப் பாதிக்காது)',
+    paymentsToMake: 'செலுத்த வேண்டியவை',
+    balanceSortAmount: 'தொகைப்படி வரிசை',
+    balanceSortName: 'பெயர்ப்படி வரிசை',
+    sortPill: 'வரிசை: {label}',
+    sortAmountHigh: 'அதிக தொகை',
+    sortAmountLow: 'குறைந்த தொகை',
+    settleInOneGo: 'ஒரே முறையில் தீர்க்கவும்',
+    balanceSimplified: 'எளிமைப்படுத்தியது',
+    balanceIsOwed: 'பெற வேண்டும்',
+    balanceOwesYou: 'உங்களுக்குத் தர வேண்டும்',
+    balanceOwes: 'தர வேண்டும்',
+    balanceSettled: 'தீர்க்கப்பட்டது',
     settleOweYouTitle: 'உங்களுக்குக் கடன் தர வேண்டியவர்கள்',
     settleYouOweTitle: 'நீங்கள் கடன் தர வேண்டியவர்கள்',
     settleStatusPending: 'நிலுவையில்',
@@ -14744,7 +21536,6 @@ const ta: UiStrings = {
     memberLeft: '(வெளியேறினார்)',
     archivedGroup: 'காப்பகம்',
     unavailableGroup: 'கிடைக்கவில்லை',
-    serverRefused: 'இந்த மாற்றத்தை சர்வர் ஏற்கவில்லை.',
     notSentYet: 'இன்னும் அனுப்பப்படவில்லை',
     offlineWithCount: {
       one: 'இணைப்பு இல்லை — {n} மாற்றம் இந்த ஃபோனில் சேமிக்கப்பட்டுள்ளது',
@@ -14770,6 +21561,38 @@ const ta: UiStrings = {
     getTodaysRate: 'இன்றைய {from}→{to} விகிதத்தைப் பெறு',
     micPermission: 'ஒலிவாங்கியைப் பயன்படுத்த Waves-க்கு அனுமதி தேவை.',
     micBlocked: 'Waves-க்கு ஒலிவாங்கி அணுகல் நிறுத்தப்பட்டுள்ளது. அமைப்புகளில் இயக்கலாம்.',
+    permission: {
+      continue: 'தொடரவும்',
+      notNow: 'இப்போது வேண்டாம்',
+      openSettings: 'அமைப்புகளைத் திற',
+      blocked: 'அமைப்புகளில் இயக்கவும்.',
+      kinds: {
+        mic: {
+          title: 'ஒலிவாங்கியைப் பயன்படுத்து',
+          body: 'செலவைச் சொல்லும்போது மட்டும் Waves கேட்டு அதை பதிவாக மாற்றும்.',
+        },
+        contacts: {
+          title: 'நண்பர்களைக் கண்டறி',
+          body: 'பிரிக்க நபர்களைத் தேர்ந்தெடுக்க மட்டுமே Waves தொடர்புகளைப் படிக்கும்.',
+        },
+        notifications: {
+          title: 'தகவலில் இருங்கள்',
+          body: 'உங்கள் குழுக்கள் பற்றிய நினைவூட்டல்களையும் புதுப்பிப்புகளையும் பெறுங்கள்.',
+        },
+        location: {
+          title: 'செலவு செய்த இடத்தைச் சேர்',
+          body: 'நீங்கள் கேட்கும்போது மட்டுமே Waves செலவுடன் இடத்தை இணைக்கும்.',
+        },
+        camera: {
+          title: 'கேமராவைப் பயன்படுத்து',
+          body: 'ரசீது அல்லது சுயவிவரப் படத்தை எடுக்கவும்.',
+        },
+        photos: {
+          title: 'புகைப்படங்களைப் பயன்படுத்து',
+          body: 'ரசீது அல்லது சுயவிவரத்திற்கு படத்தைத் தேர்ந்தெடுக்கவும்.',
+        },
+      },
+    },
     dictationFailed: 'சொல்வதைப் பதிவு செய்ய முடியவில்லை. குறிப்பைத் தட்டச்சு செய்யுங்கள்.',
     dictationErrors: {
       notAllowed: 'மைக்ரோஃபோனைப் பயன்படுத்த Waves-க்கு அனுமதி தேவை. அமைப்புகளில் அதை இயக்கலாம்.',
@@ -14786,6 +21609,8 @@ const ta: UiStrings = {
     updateWaves: 'Waves-ஐப் புதுப்பி',
     alreadyUpdated: 'நான் ஏற்கனவே புதுப்பித்துவிட்டேன்',
     update: 'புதுப்பி',
+    updateNow: 'இப்போது புதுப்பி',
+    newVersion: 'புதிய பதிப்பு',
     notNow: 'இப்போது வேண்டாம்',
     changeGroupPhoto: 'குழுப் புகைப்படத்தை மாற்று',
     addGroupPhoto: 'குழுப் புகைப்படத்தைச் சேர்',
@@ -14846,7 +21671,7 @@ const ta: UiStrings = {
     versionStoppedBody:
       'இந்தப் பதிப்பால் இனி Waves-உடன் தொடர்பு கொள்ள முடியாது, எனவே தவறாக இருக்கக்கூடிய எண்களைக் காட்டுவதற்குப் பதிலாக அது நிறுத்தப்பட்டுள்ளது.',
     newWavesOut: 'புதிய Waves வெளியாகிவிட்டது',
-    wavesVersionOut: 'Waves {latest} வெளியாகிவிட்டது',
+    wavesVersionOut: 'Waves {latest} கிடைக்கிறது',
   },
   smsImport: {
     heroTitle: 'பணப்பரிமாற்றங்களை விரைவாகச் சேருங்கள்',
@@ -14970,6 +21795,38 @@ const ta: UiStrings = {
       draftLabel: 'Waves வரைவு',
       continue: 'தொடரவும்',
     },
+  },
+  spendingAsk: {
+    title: 'என் செலவைப் பற்றிக் கேளுங்கள்',
+    tileSub: 'எளிய வார்த்தைகளில் கேளுங்கள்',
+    sub: 'உங்கள் பணத்தைப் பற்றிக் கேள்வி கேளுங்கள்.',
+    ledgerNote: 'உங்கள் தனிப்பட்ட கணக்கை மட்டும் வைத்து. தொகைகளை ஆப் கணக்கிடுகிறது, ஊகிப்பதில்லை.',
+    period: 'இந்த மாதம் இதுவரை: {from} முதல் {to} வரை',
+    q1: 'இந்த மாதம் என் பணம் எங்கே போனது?',
+    q2: 'நான் எந்தெந்த சந்தாக்களுக்குப் பணம் செலுத்துகிறேன்?',
+    q3: 'கடந்த மாதத்தை விட உணவுக்கு அதிகம் செலவு செய்கிறேனா?',
+    placeholder: 'உங்கள் செலவைப் பற்றிக் கேளுங்கள்',
+    send: 'கேள்',
+    asking: 'உங்கள் கணக்கைப் பார்க்கிறேன்',
+    counter: '{max}-இல் {n}',
+    facts: 'எண்கள்',
+    subscriptions: 'சந்தாக்களாக இருக்கலாம்',
+    subscriptionsHint: 'அட்டவணைப்படி மீண்டும் வரும் கட்டணங்களிலிருந்து கண்டறியப்பட்டது.',
+    monthly: 'மாதந்தோறும்',
+    weekly: 'வாரந்தோறும்',
+    yearly: 'ஆண்டுதோறும்',
+    lastCharge: 'கடைசியாக {date} அன்று',
+    yourQuestion: 'உங்கள் கேள்வி',
+    askAnother: 'இன்னொரு கேள்வி கேள்',
+    failed: 'அது வேலை செய்யவில்லை. உங்கள் கேள்வி இங்கேயே உள்ளது, மீண்டும் முயலுங்கள்.',
+    rate: 'ஒரே நேரத்தில் அதிகக் கேள்விகள். சற்றுப் பொறுத்து மீண்டும் முயலுங்கள்.',
+    unavailable: 'இப்போது கேட்க முடியாது.',
+    quota: 'இந்த மாதத்தின் {limit} கேள்விகளையும் பயன்படுத்திவிட்டீர்கள்.',
+    paywallTitle: 'உங்கள் செலவைப் பற்றிக் கேளுங்கள்',
+    paywallBody:
+      'பணம் எங்கே போனது, எந்தச் சந்தாக்களுக்குச் செலுத்துகிறீர்கள் என்பது போன்ற கேள்விகளுக்கு Waves Pro பதிலளிக்கும்.',
+    unlock: 'Pro மூலம் திறக்கவும்',
+    back: 'பின்செல்',
   },
   statementImport: {
     title: 'கணக்கு விவரத்தை இறக்குமதி செய்',
@@ -15596,8 +22453,6 @@ const ta: UiStrings = {
     useMyTimezone: 'என் நேர மண்டலத்தைப் பயன்படுத்து ({zone})',
     fromYourContactsSubtitle: 'Waves-இல் சேர்க்க நபர்களைத் தேர்ந்தெடுக்கவும்',
     filterAll: 'அனைத்தும்',
-    filterOnWaves: 'Waves-இல் உள்ளனர்',
-    filterNotOnWaves: 'Waves-இல் இல்லை',
     filterSelected: 'தேர்ந்தெடுக்கப்பட்டவை',
     peopleSelectedCount: {
       one: '{n} நபர் தேர்ந்தெடுக்கப்பட்டார்',
@@ -15647,6 +22502,43 @@ const ta: UiStrings = {
     plansPromise: 'கணக்கேடு ஒருபோதும் பூட்டப்படாது.',
     manageSubscription: 'சந்தாவை நிர்வகி',
     whatCosts: 'திட்டங்கள் சேர்ப்பவை',
+  },
+  purchases: {
+    title: 'வாங்குதல்கள்',
+    row: 'வாங்குதல்கள்',
+    rowHint: 'திட்டம், வரலாறு, ரசீதுகள்',
+    link: 'வாங்குதல்கள் மற்றும் ரசீதுகள்',
+    proMonthly: 'Waves Pro · மாதம்',
+    proYearly: 'Waves Pro · ஆண்டு',
+    status: {
+      active: 'செயலில்',
+      trial: 'சோதனை',
+      renewsOff: 'புதுப்பிப்பு நிறுத்தம்',
+      billingIssue: 'பணம் செலுத்தலில் சிக்கல்',
+      expired: 'காலாவதி',
+      refunded: 'பணம் திரும்பப்பெற்றது',
+      promo: 'விளம்பரச் சலுகை',
+    },
+    test: 'சோதனை',
+    renews: '{date} அன்று புதுப்பிக்கப்படும்',
+    ends: '{date} அன்று முடிகிறது',
+    ended: '{date} அன்று முடிந்தது',
+    promoUntil: '{date} வரை சலுகை',
+    changePlan: 'திட்டத்தை மாற்று',
+    manageOnAndroid: 'Android-இல் நிர்வகிக்கவும்',
+    manageOnIphone: 'உங்கள் iPhone-இல் நிர்வகிக்கவும்',
+    receiptsNotePlay: 'ரசீதுகளையும் வரி விலைப்பட்டியல்களையும் Google Play மின்னஞ்சலில் அனுப்பும்.',
+    receiptsNoteApple: 'ரசீதுகளையும் வரி விலைப்பட்டியல்களையும் App Store மின்னஞ்சலில் அனுப்பும்.',
+    help: 'உதவி',
+    getReceipt: 'ரசீது பெறு',
+    orderId: 'ஆர்டர் ஐடி',
+    contactSupport: 'ஆதரவைத் தொடர்புகொள்',
+    copied: 'ஆர்டர் ஐடி நகலெடுக்கப்பட்டது',
+    emptyTitle: 'வாங்குதல்கள் இல்லை',
+    emptyBody: 'Waves Pro-வுக்கு சந்தா செலுத்தினால், உங்கள் திட்டமும் ரசீதுகளும் இங்கே தெரியும்.',
+    seePlans: 'திட்டங்களைப் பார்',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
   },
   paywall: {
     title: 'உங்கள் திட்டத்தைத் தேர்ந்தெடுக்கவும்',
@@ -15741,20 +22633,14 @@ const ta: UiStrings = {
   },
   referral: {
     row: 'நண்பர்களை அழையுங்கள்',
-    rowHint: 'சேர்ந்து Pro நாட்களைப் பெறுங்கள்',
+    rowHint: 'சேர்ந்து 50 கிரெடிட்கள் பெறுங்கள்',
     title: 'நண்பர்களை அழையுங்கள்',
-    headline: 'பணம் சேர்ந்து கையாளும்போது எளிதாகிறது.',
+    headline: 'ஒரு நண்பரை அழையுங்கள். இருவருக்கும் 50 கிரெடிட்கள்.',
     body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
-    youGetTitle: 'உங்களுக்கு 7 நாட்கள் Pro கிடைக்கும்',
-    youGetBody: 'உங்கள் நண்பர் Waves-ஐப் பயன்படுத்தத் தொடங்கிய பிறகு.',
-    friendGetsTitle: 'உங்கள் நண்பருக்கும் 7 நாட்கள் கிடைக்கும்',
-    friendGetsBody: 'பிரீமியம் வசதிகளை சேர்ந்து முயன்று பாருங்கள்.',
-    milestoneDays: '{n} நாட்கள்',
     share: 'அழைப்புச் சுட்டியைப் பகிர்',
     shareMessage:
       'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
-    progress: '{cap} நாட்களில் {earned} நாட்கள் கிடைத்துள்ளன',
-    capReached: 'நீங்கள் முழு {cap} நாட்களையும் பெற்றுவிட்டீர்கள். நன்றி!',
+    friendsJoined: '{cap} நண்பர்களில் {n} பேர் சேர்ந்தனர் · {credits} கிரெடிட்கள் கிடைத்தன',
     pending: {
       one: '{n} நண்பர் சேர்ந்துள்ளார். அவரது முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
       other:
@@ -15767,7 +22653,7 @@ const ta: UiStrings = {
     copyCode: 'குறியீட்டை நகலெடு',
     codeCopied: 'நகலெடுக்கப்பட்டது',
     applied:
-      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 7 நாட்கள் Pro கிடைக்கும்.',
+      'முடிந்தது. உங்கள் முதல் பகிர்ந்த செலவைப் பதிவு செய்தவுடன், இருவருக்கும் 50 கிரெடிட்கள் கிடைக்கும்.',
     unknownCode: 'இந்தக் குறியீடு யாருடையதுடனும் பொருந்தவில்லை.',
     ownCode: 'இது உங்கள் சொந்தக் குறியீடு.',
     alreadyUsed: 'நீங்கள் ஏற்கெனவே ஒரு அழைப்பைப் பயன்படுத்திவிட்டீர்கள்.',
@@ -16218,6 +23104,7 @@ const ta: UiStrings = {
     typeEvent: 'நிகழ்வு',
     typeFriends: 'நண்பர்கள்',
     typeOther: 'மற்றவை',
+    typeCompany: 'நிறுவனம்',
     tagLabel: 'குறிச்சொல் (விருப்பம்)',
     tagPlaceholder: 'எ.கா. அலுவலக சுற்றுலா',
     tagSheetSubtitle: 'பின்னர் எளிதாகக் கண்டறிய ஒரு குறிச்சொல்லைச் சேர்க்கவும்.',
@@ -16264,7 +23151,7 @@ const ta: UiStrings = {
     needsUpdating: 'Waves-ஐப் புதுப்பிக்க வேண்டும்',
     nothingIsLost:
       'எதுவும் இழக்கப்படவில்லை. ஒவ்வொரு குழுவும், செலவும், தீர்வும் சேவையகத்தில் உள்ளன, நீங்கள் விட்ட இடத்திலேயே இருக்கும்.',
-    worthAMinute: 'நேரம் கிடைக்கும்போது ஒரு நிமிடம் மதிப்புள்ளது.',
+    worthAMinute: 'புதிய மேம்பாடுகளும் பிழைத் திருத்தங்களும் பெற புதுப்பிக்கவும்.',
     theGroup: 'குழு',
     noGroupsYet:
       'உங்களுக்கு இன்னும் குழுக்கள் இல்லை. Waves-இல் ஒரு நபர் ஒரு குழுவுக்கு உரியவர், ஏனெனில் ஒரு கடன் எப்போதும் எதையாவது பற்றியது — ஒரு பயணம், ஒரு வீடு, ஒரு இரவு உணவு.',
@@ -16762,7 +23649,9 @@ const ta: UiStrings = {
   },
   demo: {
     badge: 'டெமோ',
-    bannerTitle: 'இது ஒரு டெமோ குழு — தாராளமாக ஆராயுங்கள்',
+    groupName: 'டெமோ குழு',
+    rowSubtitle: 'மாதிரி தரவு · எப்போது வேண்டுமானாலும் அகற்றலாம்',
+    bannerTitle: 'இது மாதிரி தரவுடன் கூடிய டெமோ குழு.',
     removeAction: 'டெமோவை அகற்று',
     removeHint: 'டெமோ பயணத்தை உங்கள் டாஷ்போர்டிலிருந்து அகற்றும். இதை மாற்ற முடியாது.',
     removeConfirmTitle: 'டெமோ குழுவை அகற்றவா?',
@@ -16802,6 +23691,152 @@ const hi: UiStrings = {
     owes: 'जमा {paid} · खर्च {used} · बाकी {back}',
     none: 'कोई भुगतान बाकी नहीं',
     closeHint: 'बंद करने पर पैसे रखने वाले और सदस्यों की पुष्टि के लिए भुगतान बनेंगे।',
+  calendar: {
+    title: 'कैलेंडर',
+    today: 'आज',
+    upcoming: 'आने वाले',
+    comingUp: 'आगे',
+    seeAll: 'सभी देखें',
+    agendaFor: '{date} की कार्यसूची',
+    nothingPlanned: 'कुछ भी तय नहीं है',
+    filterAll: 'सभी',
+    filterLeave: 'छुट्टी और अवकाश',
+    filterMoney: 'पैसा',
+    filterWork: 'काम और कार्यक्रम',
+    filterBirthdays: 'जन्मदिन',
+    add: 'जोड़ें',
+    addHoliday: 'अवकाश',
+    addEvent: 'कार्यक्रम',
+    recordLeave: 'छुट्टी दर्ज करें',
+    requestLeave: 'छुट्टी माँगें',
+    myDates: 'मेरा जन्मदिन और काम शुरू करने की तारीख',
+    kindHoliday: 'अवकाश',
+    kindLeave: 'छुट्टी',
+    kindWage: 'वेतन देय',
+    kindVendorBill: 'विक्रेता का बिल',
+    kindCustomerBill: 'ग्राहक का बकाया बिल',
+    kindAdvance: 'बकाया अग्रिम',
+    kindTask: 'काम',
+    kindEvent: 'कार्यक्रम',
+    kindBirthday: 'जन्मदिन',
+    kindAnniversary: 'काम की सालगिरह',
+    birthdayOf: '{name} का जन्मदिन',
+    anniversaryOf: '{name} · {n} वर्ष',
+    overdue: 'समय सीमा बीत गई',
+    overdueItems: { one: '{n} मद की समय सीमा बीत गई', other: '{n} मदों की समय सीमा बीत गई' },
+    totalDue: 'कुल बकाया {amount}',
+    nothingDue: 'कुछ बकाया नहीं',
+    nothingOverdue: 'कुछ समय सीमा पार नहीं',
+    nothingUpcoming: 'कुछ आने वाला नहीं',
+    moreCount: 'और {n}',
+    leaveCasual: 'आकस्मिक',
+    leaveSick: 'बीमारी',
+    leaveOther: 'अन्य',
+    halfDay: 'आधा दिन',
+    statusPending: 'लंबित',
+    statusApproved: 'स्वीकृत',
+    statusRejected: 'अस्वीकृत',
+    leaveLine: '{name} · {from} – {to}',
+    dayCount: '{n} दिन',
+    oneDay: '1 दिन',
+    holidayName: 'अवकाश का नाम',
+    holidayTitle: 'अवकाश जोड़ें',
+    holidayPlaceholder: 'जैसे दिवाली, ऑफ़िस अवकाश',
+    eventTitle: 'कार्यक्रम का शीर्षक',
+    eventTime: 'समय, वैकल्पिक',
+    eventPeople: 'शामिल लोग',
+    eventEveryone: 'सभी',
+    eventSite: 'स्थान, वैकल्पिक',
+    eventDate: 'तारीख',
+    eventTimeLabel: 'समय',
+    eventSiteLabel: 'स्थान',
+    eventOptional: '(वैकल्पिक)',
+    eventTitlePlaceholder: 'जैसे साइट विज़िट, टीम मीटिंग',
+    eventSearch: 'लोगों को खोजें…',
+    eventSelected: 'चुने गए: {n}',
+    eventCreate: 'कार्यक्रम बनाएँ',
+    eventSave: 'कार्यक्रम सहेजें',
+    person: 'व्यक्ति',
+    startDate: 'से',
+    endDate: 'तक',
+    reason: 'कारण, वैकल्पिक',
+    note: 'नोट, वैकल्पिक',
+    leaveType: 'प्रकार',
+    save: 'सहेजें',
+    cancel: 'रद्द करें',
+    approve: 'स्वीकृत करें',
+    reject: 'अस्वीकार करें',
+    withdraw: 'अनुरोध वापस लें',
+    remove: 'हटाएँ',
+    decisionNote: 'नोट जोड़ें, वैकल्पिक',
+    decisionTitle: 'छुट्टी का अनुरोध',
+    errName: 'नाम दर्ज करें',
+    errTitle: 'शीर्षक दर्ज करें',
+    errRange: 'समाप्ति तारीख शुरुआत की तारीख के बाद होनी चाहिए',
+    errHalfDay: 'आधा दिन केवल एक दिन के लिए है',
+    errOverlap: 'यह व्यक्ति की दूसरी छुट्टी से टकराता है',
+    errWindow: 'अनुमत अवधि के भीतर की तारीख चुनें',
+    errPeople: 'अपनी टीम से कम से कम एक व्यक्ति चुनें',
+    errTime: '14:30 जैसा समय लिखें',
+    errDate: 'मान्य तारीख दर्ज करें',
+    errBirthday: 'सही दिन और महीना दर्ज करें',
+    birthday: 'जन्मदिन',
+    datesTitle: 'जन्मदिन और जॉइनिंग तारीख',
+    datesSubtitle: 'इन तारीखों को याद रखें और मनाएँ',
+    joinedLabel: 'जॉइनिंग तारीख (वैकल्पिक)',
+    selectDate: 'तारीख चुनें',
+    birthDay: 'दिन',
+    birthMonth: 'महीना',
+    joinedOn: 'काम शुरू करने की तारीख, वैकल्पिक',
+    showBirthday: 'अपना जन्मदिन सहकर्मियों को दिखाएँ',
+    showBirthdayHint: 'डिफ़ॉल्ट रूप से बंद। केवल दिन और महीना सहेजे जाते हैं, साल नहीं।',
+    clear: 'हटाएँ',
+    paidHolidays: 'सवेतन अवकाश',
+    paidHolidaysHint: 'वेतन गणना में अवकाश के दिन सवेतन दिनों में गिने जाते हैं।',
+    paidLeave: 'सवेतन बीमारी/आकस्मिक छुट्टी',
+    paidLeaveHint: 'स्वीकृत बीमारी और आकस्मिक छुट्टी सवेतन हैं। अन्य छुट्टी अवैतनिक है।',
+    leavePolicy: 'छुट्टी नीति',
+    leavePolicyHint: 'आकस्मिक, बीमारी और अन्य छुट्टी: हर व्यक्ति हर महीने कितनी कमाता है।',
+    leavePolicyRow: 'हर व्यक्ति को मिलने वाली आकस्मिक, बीमारी और अन्य छुट्टी',
+    leaveTypeAdd: 'छुट्टी का प्रकार जोड़ें',
+    leaveTypeEdit: 'छुट्टी का प्रकार बदलें',
+    leaveTypeName: 'नाम',
+    leaveAccrual: 'प्रति माह दिन (0 से 5, आधा दिन ठीक)',
+    leaveCarry: 'अगले साल में ले जाएँ',
+    leaveCarryHint: 'बचे हुए दिन अगले साल में जाते हैं। बंद होने पर 1 जनवरी को शून्य हो जाते हैं।',
+    leaveCarryCap: 'अधिकतम आगे ले जाने वाले दिन',
+    leaveAnnualCap: 'साल में अधिकतम मिलने वाले दिन',
+    leaveNoLimit: 'कोई सीमा नहीं',
+    leavePaid: 'सवेतन छुट्टी',
+    leavePaidHint: 'वेतन में सवेतन दिन गिना जाएगा',
+    leaveOverdraw: 'शून्य से नीचे जाने दें',
+    leaveOverdrawHint: 'बंद: बैलेंस से ज़्यादा का अनुरोध मंज़ूर नहीं हो सकता।',
+    leaveActive: 'उपयोग में',
+    leaveParked: 'उपयोग में नहीं',
+    leavePerMonth: '{n} प्रति माह',
+    leaveCarries: 'आगे बढ़ती है',
+    leaveResets: 'हर साल शून्य होती है',
+    leaveErrName: 'नाम दीजिए।',
+    leaveErrAccrual: 'प्रति माह दिन 0 से 5 के बीच, 0.5 के चरणों में होने चाहिए।',
+    leaveErrCap: 'सीमा दिनों की संख्या हो, या बिना सीमा के लिए खाली छोड़ें।',
+    leaveTypeNone: 'अन्य (गिनी नहीं जाती)',
+    leaveLeft: '{n} बाकी',
+    leaveAfter: 'इसके बाद {n} बाकी',
+    leaveDaysSelected: '{n} दिन चुने',
+    leaveDaysAvailable: '{n} दिन उपलब्ध',
+    leaveBalances: 'छुट्टी बैलेंस',
+    leaveEarned: 'मिली',
+    leaveTaken: 'ली गई',
+    leaveRequested: 'माँगी गई',
+    upcomingTimeOff: 'आने वाली छुट्टी',
+    leaveOverBalance: '{type} में केवल {n} दिन बचे हैं। यह अनुरोध लंबा है।',
+    leaveCannotApprove: 'मंज़ूर नहीं हो सकता: {type} में केवल {n} दिन बचे हैं।',
+    wageRuleNote:
+      'वेतन के दिन उपस्थिति के अनुसार हैं। सवेतन अवकाश चालू होने पर अवकाश के दिन सवेतन हैं; सवेतन छुट्टी चालू न होने पर स्वीकृत छुट्टी अनुपस्थिति मानी जाती है।',
+    holidayOnDay: 'अवकाश: {name}',
+    leaveOnDay: 'छुट्टी पर',
+    pendingLeaveTitle: 'निर्णय के लिए {n} छुट्टी अनुरोध',
+    suspendedNote: 'यह कंपनी रुकी हुई है। कैलेंडर केवल पढ़ने के लिए है।',
   },
   greeting: 'नमस्ते',
   yourWaves: 'आपकी बाकी',
@@ -17264,6 +24299,7 @@ const hi: UiStrings = {
     shareTitle: 'आपका Waves निर्यात',
   },
   groupExport: {
+    creditUsage: '⚡ {cost} क्रेडिट लगेंगे · आपके पास {balance} हैं',
     menu: 'निर्यात',
     title: 'यह समूह निर्यात करें',
     intro:
@@ -17359,6 +24395,47 @@ const hi: UiStrings = {
     scan: 'रसीद स्कैन करें',
     voice: 'खर्च बोलें',
   },
+  otaUpdates: {
+    row: 'ऐप अपडेट',
+    intro: 'स्टोर अपडेट का इंतज़ार किए बिना छोटे सुधार आपके फ़ोन तक पहुँच सकते हैं।',
+    running: 'चल रहा है',
+    builtIn: 'इन-बिल्ट',
+    overTheAir: 'ओवर-द-एयर',
+    channel: 'चैनल',
+    runtime: 'रनटाइम संस्करण',
+    check: 'अपडेट जाँचें',
+    checking: 'अपडेट जाँचे जा रहे हैं…',
+    downloading: 'अपडेट डाउनलोड हो रहा है…',
+    upToDate: 'आपके पास नवीनतम संस्करण है।',
+    ready: 'अपडेट डाउनलोड हो गया। इस्तेमाल के लिए रीस्टार्ट करें।',
+    restart: 'अभी रीस्टार्ट करें',
+    failed: 'अपडेट जाँचे नहीं जा सके। बाद में फिर कोशिश करें।',
+    unavailable: 'इस बिल्ड में अपडेट उपलब्ध नहीं हैं।',
+  },
+  pendingChanges: {
+    row: 'लंबित बदलाव',
+    intro:
+      'इस फ़ोन पर सहेजे गए बदलाव जो अभी सर्वर तक नहीं पहुँचे। अभी दोबारा भेजें से एक बदलाव फिर भेजा जाता है; हटाएँ से वह फ़ोन से हट जाता है।',
+    empty: 'कुछ भी लंबित नहीं है। हर बदलाव सर्वर तक पहुँच चुका है।',
+    created: 'बनाया गया',
+    attempts: 'कोशिशें',
+    lastError: 'आखिरी त्रुटि',
+    blockedBy: 'इसके पीछे रुका है',
+    stuck: 'अटका हुआ: एक दिन से पुराना, स्क्रीन पर नहीं दिखता',
+    retry: 'अभी दोबारा भेजें',
+    discard: 'हटाएँ',
+    discardTitle: 'यह बदलाव हटाएँ?',
+    discardBody: 'यह फ़ोन से हट जाएगा और कभी भेजा नहीं जाएगा। सर्वर पर जो है वही दिखेगा।',
+    copy: 'रिपोर्ट कॉपी करें',
+    copied: 'रिपोर्ट कॉपी हो गई',
+    headline: { one: '{n} बदलाव सिंक नहीं हो सका', other: '{n} बदलाव सिंक नहीं हो सके' },
+    allSynced: 'सब कुछ सिंक है',
+    notSynced: 'सिंक नहीं हुआ',
+    waiting: 'इंतज़ार में',
+    status: 'स्थिति',
+    stuckShort: 'एक दिन से पुराना, स्क्रीन पर नहीं दिखता',
+    copyHint: 'शेयर या समस्या जाँचने के लिए विवरण कॉपी करें',
+  },
   recent: {
     title: 'घड़ी पर हाल के खर्च',
     intro: 'आपकी जुड़ी हुई घड़ी एक नज़र में कितने हाल के खर्च दिखाए।',
@@ -17407,7 +24484,71 @@ const hi: UiStrings = {
       spring: 'खिलने का मौसम',
     },
   },
+  twoStep: {
+    row: 'दो-चरण लॉगिन',
+    rowHint: 'जो कंपनियाँ माँगती हैं उनके लिए कोड',
+    title: 'दो-चरण लॉगिन',
+    bannerVerify: '{company} में काम जारी रखने के लिए दो-चरण सत्यापित करें',
+    bannerVerifyGeneric: 'काम जारी रखने के लिए दो-चरण सत्यापित करें',
+    wrongCode: 'यह कोड सही नहीं है।',
+    locked: 'बहुत ज़्यादा कोशिशें हो गईं। कुछ देर रुकें।',
+    updateWaves: 'जारी रखने के लिए Waves अपडेट करें।',
+    tryLater: 'यह नहीं हो सका। थोड़ी देर में फिर कोशिश करें।',
+    verified: 'सत्यापित',
+    verifyFirst: 'पहले इस फ़ोन पर दो-चरण सत्यापित करें।',
+    newPhoneTitle: 'नया फ़ोन',
+    newPhoneBody: 'अपने दूसरे डिवाइस का कोड डालें, या मालिक से इस फ़ोन को मंज़ूर करने को कहें।',
+    codeLabel: '6 अंकों का कोड',
+    continue: 'जारी रखें',
+    checkAgain: 'फिर जाँचें',
+    yourCode: 'आपका कोड',
+    newCodeIn: 'नया कोड {n} सेकंड में',
+    codeHint: 'नए फ़ोन पर साइन इन करते समय आपकी कंपनी यह कोड माँग सकती है।',
+    authenticatorTitle: 'ऑथेंटिकेटर ऐप जोड़ें',
+    authenticatorOn: 'ऑथेंटिकेटर ऐप सेट है।',
+    authenticatorSteps: 'की को अपने ऑथेंटिकेटर ऐप में डालें, फिर उसमें दिखा 6 अंकों का कोड लिखें।',
+    copyKey: 'की कॉपी करें',
+    copied: 'कॉपी हो गया',
+    openAuthenticator: 'ऑथेंटिकेटर में खोलें',
+    confirm: 'पक्का करें',
+    addAuthenticator: 'ऑथेंटिकेटर ऐप जोड़ें',
+    replaceAuthenticator: 'ऑथेंटिकेटर ऐप बदलें',
+    requireTitle: 'दो-चरण लॉगिन ज़रूरी करें',
+    requireHint: 'कंपनी का डेटा देखने से पहले सबको अपने फ़ोन पर सत्यापित करना होगा।',
+    requireConfirmTitle: 'दो-चरण लॉगिन ज़रूरी करें?',
+    requireConfirmBody: 'इस कंपनी को खोलने के लिए सबको दो-चरण सत्यापित करना होगा।',
+    requireConfirmOld: 'उन्हें Waves अपडेट करना होगा: {names}।',
+    requireOn: 'चालू करें',
+    peopleTitle: 'दो-चरण',
+    approve: 'मंज़ूर करें',
+    decline: 'अस्वीकार करें',
+    approveTitle: '{name} का नया फ़ोन मंज़ूर करें?',
+    declineTitle: '{name} का नया फ़ोन अस्वीकार करें?',
+    approveBody:
+      'वे उस फ़ोन पर कंपनी खोल सकेंगे। उनका कोड नए फ़ोन पर चला जाएगा और पुराना फ़ोन काम नहीं करेगा।',
+    declineBody: 'उस फ़ोन को अंदर नहीं आने दिया जाएगा।',
+    resetTitle: '{name} का दो-चरण रीसेट करें?',
+    resetBody:
+      'उनके कोड और ब्राउज़र सहित सभी सत्यापित सत्र, दो-चरण वाली सभी कंपनियों में हटा दिए जाएँगे। उन्हें ऑथेंटिकेटर फिर से सेट करके दोबारा सत्यापित करना होगा।',
+    reset: 'दो-चरण रीसेट करें',
+    newPhoneRow: 'नया फ़ोन {platform}',
+    memberOn: 'दो-चरण चालू है',
+  },
   sync: {
+    refusal: {
+      twoStep: 'इस फ़ोन पर दो-चरण सत्यापित करें, फिर यह बदलाव सेव हो जाएगा।',
+      companyGroup:
+        'यह कंपनी का समूह है, इसलिए इसे साझा खर्च के रूप में नहीं जोड़ सकते। इसे कंपनी की एंट्री के रूप में जोड़ें।',
+      adminOnly: 'यह बदलाव केवल समूह का एडमिन कर सकता है।',
+      notMember: 'अब आप इस समूह में नहीं हैं, इसलिए यह बदलाव सहेजा नहीं जा सकता।',
+      archived: 'यह समूह बंद या हटा दिया गया है, इसलिए यह बदलाव सहेजा नहीं जा सकता।',
+      notFound: 'इस बदलाव से जुड़ी कोई चीज़ हटा दी गई है, इसलिए इसे सहेजा नहीं जा सकता।',
+      conflict: 'उसी समय किसी और ने इसे बदल दिया। जाँचें और फिर कोशिश करें।',
+      guestExpired: 'आपकी अतिथि ट्रायल अवधि खत्म हो गई है। सहेजते रहने के लिए साइन अप करें।',
+      companySlot:
+        'अतिरिक्त कंपनी के लिए अलग सब्सक्रिप्शन चाहिए। इसे हटाएँ, फिर कंपनी जोड़ें से सब्सक्राइब करें।',
+      generic: 'यह बदलाव सहेजा नहीं जा सका। जाँचें या हटा दें।',
+    },
     title: 'किस पर सिंक करें',
     wifi: 'केवल वाई‑फ़ाई',
     wifiHint: 'केवल वाई‑फ़ाई पर सिंक करें। मोबाइल डेटा कभी खर्च नहीं होगा।',
@@ -17424,21 +24565,32 @@ const hi: UiStrings = {
       one: '{n} बदलाव अटका है',
       other: '{n} बदलाव अटके हैं',
     },
+    stuckShort: 'इस फ़ोन पर सेव है, पर अभी भेजा नहीं गया।',
+    discardTitle: 'यह बदलाव छोड़ दें?',
+    discardBody: 'यह सिर्फ़ इस फ़ोन पर है। छोड़ने पर वापस नहीं आएगा।',
     stuckExplain:
       'इस फ़ोन पर अब भी सहेजा है — बस भेजा नहीं जा पा रहा। दोबारा कोशिश करें, या हटा दें।',
     openDetail: 'आपके निर्णय की ज़रूरत वाली चीज़ खोलता है',
   },
   lock: {
-    subtitle: 'अपनी जानकारी निजी रखें।',
-    requireShort: 'बायोमेट्रिक या पासकोड ज़रूरी करें',
-    requireHint: 'Waves खोलने के लिए फ़िंगरप्रिंट, चेहरा या पासकोड माँगा जाएगा।',
-    askAgainShort: 'बैकग्राउंड में Waves कितनी देर तक अनलॉक रह सकता है।',
+    subtitle: 'अपनी जानकारी निजी और अपना खाता सुरक्षित रखें।',
+    requireShort: 'ऐप लॉक',
+    requireHint: 'ऐप खोलने के लिए Face ID, फ़िंगरप्रिंट या डिवाइस PIN इस्तेमाल करें।',
+    askAgainShort: 'ऐप से इतनी देर बाहर रहने पर फिर से पुष्टि माँगी जाएगी।',
     reopenShort: 'पूरी तरह बंद करने के बाद Waves खोलने पर हमेशा पुष्टि माँगी जाती है।',
-    footnoteShort: 'दोनों ही स्थितियों में सिंक हो चुका डेटा हमारे सर्वर पर सुरक्षित है।',
+    footnoteShort: 'आपका डेटा हमारे सर्वर पर भेजते समय और संग्रहित होने पर एन्क्रिप्टेड रहता है।',
     title: 'सुरक्षा',
     requireBiometrics: 'बायोमेट्रिक या पासकोड माँगें',
     appLock: 'ऐप लॉक',
-    unsupported: 'इस डिवाइस पर बायोमेट्रिक या पासकोड सेट नहीं है',
+    askTitle: 'Waves को फ़िंगरप्रिंट से लॉक करें?',
+    askBody:
+      'Waves खुलने पर हर बार फ़िंगरप्रिंट, चेहरा या फ़ोन पासकोड माँगा जाएगा, ताकि आपका फ़ोन पकड़ने वाला आपका पैसा न देख सके। इसे सेटिंग्स में बदल सकते हैं।',
+    askYes: 'ऐप लॉक चालू करें',
+    askFingerprint: 'फ़िंगरप्रिंट',
+    askFace: 'Face ID',
+    askFaceAndroid: 'फ़ेस अनलॉक',
+    askPasscode: 'फ़ोन पासकोड',
+    unsupported: 'इस डिवाइस पर Face ID, फ़िंगरप्रिंट या स्क्रीन लॉक सेट नहीं है।',
     askAgainAfter: 'दोबारा पूछें',
     graceImmediate: 'तुरंत',
     graceSeconds: { one: '{n} सेकंड बाद', other: '{n} सेकंड बाद' },
@@ -17449,11 +24601,35 @@ const hi: UiStrings = {
       'यह मेहमान खाता है, साइन आउट करने पर वापस आने का कोई रास्ता नहीं बचेगा। इसे रखना है तो पहले ईमेल या फ़ोन नंबर जोड़ें।',
     signOutReassure: 'आप जब चाहें दोबारा साइन इन कर सकते हैं। कुछ भी मिटता नहीं।',
     staySignedIn: 'साइन इन रहें',
-    personalPrompt: 'अपना निजी हिसाब अनलॉक करें',
-    personalLockedTitle: 'आपका निजी हिसाब लॉक है',
-    personalLockedBody:
-      'आपकी आमदनी, ख़र्च, बजट और उधार। उसी चेहरे या फ़िंगरप्रिंट से खोलें जिससे यह फ़ोन खुलता है।',
-    personalLockedRefused: 'इससे लॉक नहीं खुला। फिर से कोशिश करें, या वापस जाएँ।',
+    learnMore: 'और जानें',
+    learnTitle: 'आपका डेटा कैसे सुरक्षित रहता है',
+    learnTransit: 'ऐप और हमारे सर्वर के बीच सब कुछ एन्क्रिप्टेड (TLS) कनेक्शन से जाता है।',
+    learnRest:
+      'हमारे सर्वर पर संग्रहित डेटा हमारे होस्टिंग प्रदाताओं द्वारा एन्क्रिप्ट किया जाता है।',
+    learnLimits:
+      'यह एंड-टू-एंड एन्क्रिप्शन नहीं है: ऐप चलाने के लिए सिंक हुआ डेटा हमारे सर्वर प्रोसेस कर सकते हैं। ऐप लॉक सिर्फ़ इस फ़ोन की रक्षा करता है।',
+    accountTitle: 'खाता सुरक्षा',
+    accountSub: 'संभालें कि आप कैसे साइन इन करते हैं और खाता सुरक्षित रखें।',
+    email: 'ईमेल',
+    phone: 'फ़ोन नंबर',
+    verified: 'सत्यापित',
+    addContact: 'ईमेल या फ़ोन नंबर जोड़ें',
+    devicesSub: 'आपके खाते में साइन इन डिवाइस संभालें।',
+    activeNow: 'अभी सक्रिय',
+    seeAll: 'सभी देखें',
+    dataTitle: 'डेटा और गोपनीयता',
+    dataSub: 'अपना डेटा और गोपनीयता सेटिंग नियंत्रित करें।',
+    backupOn: 'आख़िरी बैकअप {date}',
+    backupNever: 'अभी तक बैकअप नहीं हुआ',
+    hideAmounts: 'संवेदनशील राशियाँ छिपाएँ',
+    hideAmountsHint: 'आपके पर्सनल डैशबोर्ड की राशियाँ छिपाता है',
+    deleteRow: 'खाता मिटाएँ',
+    deleteHint: 'अपना खाता और डेटा हमेशा के लिए मिटाएँ',
+  },
+  lostPage: {
+    title: 'यह पेज उपलब्ध नहीं है',
+    body: 'हो सकता है लिंक पुराना हो या पेज हटा दिया गया हो।',
+    action: 'होम पर जाएँ',
   },
   signInWall: {
     title: 'पहले एक खाता जोड़ें',
@@ -17534,12 +24710,31 @@ const hi: UiStrings = {
     signedOutElsewhere:
       'आपने किसी दूसरे डिवाइस से इस डिवाइस को लॉग आउट किया था, इसलिए आप साइन आउट हो गए।',
     title: 'डिवाइस',
-    intro:
-      'मुफ़्त प्लान में एक साथ दो डिवाइस चलते हैं। जो डिवाइस कुछ समय से नहीं खुला, वह अपने आप गिनती से हट जाता है।',
+    subtitle: 'आपके खाते में साइन इन किए गए डिवाइस प्रबंधित करें',
+    infoFree: 'मुफ़्त प्लान में एक समय में {n} सक्रिय डिवाइस की अनुमति है।',
+    infoPaid: 'आपके प्लान में एक समय में {n} सक्रिय डिवाइस की अनुमति है।',
+    infoBody: 'जो डिवाइस कुछ समय से इस्तेमाल नहीं हुआ, वह अपने आप गिनती से हट जाता है।',
+    learnMore: 'और जानें',
+    learnTitle: 'डिवाइस सीमा कैसे काम करती है',
+    learnBody:
+      'मुफ़्त प्लान में एक समय में {free} सक्रिय डिवाइस और Pro में {pro} की अनुमति है। जो डिवाइस {days} दिन से इस्तेमाल नहीं हुआ, वह अपने आप गिनती से हट जाता है, और किसी डिवाइस को साइन आउट करते ही उसकी जगह खाली हो जाती है।',
+    activeTitle: 'सक्रिय डिवाइस ({active}/{limit})',
+    otherTitle: 'अन्य डिवाइस',
+    sortBy: 'इस क्रम में',
+    sortLast: 'आख़िरी सक्रियता',
+    sortName: 'नाम',
+    addDevice: 'डिवाइस जोड़ें',
+    addTitle: 'दूसरा डिवाइस जोड़ें',
+    addBody:
+      'दूसरे डिवाइस पर Waves इंस्टॉल करें और उसी ईमेल से साइन इन करें। साइन इन होते ही वह यहाँ दिखेगा।',
+    signOutAllTitle: 'सभी अन्य डिवाइस साइन आउट करें?',
     thisDevice: 'यह डिवाइस',
     signedOut: 'साइन आउट',
     lastActive: 'आख़िरी बार सक्रिय {when}',
     signOutOthers: 'बाकी सभी डिवाइस से साइन आउट करें',
+    eraseOthers: 'साइन आउट करें और बाकी डिवाइस मिटाएँ',
+    eraseOthersHint:
+      'खोए फ़ोन के लिए: बाकी डिवाइस का डेटा भी मिटा देता है। उन पर जो बदलाव अभी सिंक नहीं हुए, वे हमेशा के लिए खो जाएँगे।',
     signOutOthersHint:
       'इस डिवाइस को छोड़कर हर डिवाइस से साइन आउट कर देता है। अगली बार उन पर लॉगिन माँगा जाएगा।',
     signedOutOthers: {
@@ -17607,7 +24802,7 @@ const hi: UiStrings = {
     sectionHelp: 'सहायता',
     sectionPreferences: 'प्राथमिकताएँ',
     sectionSecurity: 'सुरक्षा',
-    sectionData: 'डेटा और गोपनीयता',
+    sectionData: 'गोपनीयता और सुरक्षा',
     aiKeysRow: 'आपकी AI कुंजियाँ',
     aiKeysHint: 'अपनी OpenAI, Claude या Kimi कुंजी जोड़ें',
     planRow: 'प्लान',
@@ -17631,9 +24826,9 @@ const hi: UiStrings = {
       'शब्द तो पहले ही बदल गए हैं। पलटे हुए लेआउट को वापस सीधा करना भी फ़ोन ऐप शुरू होते समय तय करता है, इसलिए यह अगली बार खोलने पर लागू होगा।',
     languageFooterNote:
       'आपके फ़ोन की भाषा ही डिफ़ॉल्ट है, और यहाँ चुनने से सिर्फ़ Waves बदलता है। रकम और तारीखें वहीं के हिसाब से चलती रहेंगी जहाँ आप हैं — दुबई में हिंदी में पढ़ने से आप भारत नहीं पहुँच जाते।',
-    lockNoBiometrics: 'इस डिवाइस पर बायोमेट्रिक सेट नहीं है',
-    lockOn: 'चालू · {when} पूछता है',
-    lockOff: 'बंद — आपका फ़ोन पकड़े कोई भी हिसाब पढ़ सकता है',
+    lockNoBiometrics: 'इस डिवाइस पर Face ID, फ़िंगरप्रिंट या स्क्रीन लॉक सेट नहीं है।',
+    lockOn: 'ऐप लॉक चालू · {when} पूछता है',
+    lockOff: 'ऐप लॉक बंद · आपका फ़ोन पकड़े कोई भी Waves खोल सकता है',
     signOutGuestHint: 'यह मेहमान खाता सिर्फ़ इसी डिवाइस पर है',
     signOutHint: 'कुछ मिटता नहीं; जब चाहें दोबारा साइन इन करें',
   },
@@ -17700,6 +24895,1775 @@ const hi: UiStrings = {
     completeRowHint: 'जगह, भुगतान का तरीका या रसीद जोड़ें',
     completeSheetTitle: 'यह खर्च पूरा करें',
     tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
+  },
+  companyActivity: {
+    title: 'कंपनी गतिविधि',
+    you: 'आप',
+    youObj: 'आपके',
+    all: 'सभी',
+    money: 'पैसा',
+    attendance: 'उपस्थिति',
+    tasks: 'कार्य',
+    people: 'लोग',
+    vendors: 'विक्रेता और बिल',
+    today: 'आज',
+    yesterday: 'कल',
+    showOlder: 'पुराना दिखाएँ',
+    empty: 'अभी तक कुछ नहीं हुआ',
+    statusPresent: 'उपस्थित',
+    statusHalf: 'आधा दिन',
+    statusAbsent: 'अनुपस्थित',
+    expense: '{actor} ने खर्च जोड़ा',
+    expenseFor: '{actor} ने {name} के लिए खर्च जोड़ा',
+    allowance: '{actor} ने भत्ता जोड़ा',
+    allowanceFor: '{actor} ने {name} के लिए भत्ता जोड़ा',
+    advance: '{actor} ने {name} को अग्रिम दिया',
+    wages: '{actor} ने {name} को वेतन दिया',
+    reimbursed: '{actor} ने {name} को भुगतान लौटाया',
+    cashReturned: '{actor} ने {name} द्वारा लौटाई नकदी दर्ज की',
+    companyPaid: '{actor} ने कंपनी का भुगतान दर्ज किया',
+    approved: '{actor} ने {name} का दावा मंज़ूर किया',
+    rejected: '{actor} ने {name} का दावा अस्वीकार किया',
+    attendanceOne: '{actor} ने {name} को {status} चिह्नित किया',
+    attendanceMany: '{actor} ने {count} लोगों को {status} चिह्नित किया',
+    taskAssigned: "कार्य '{title}' {name} को सौंपा गया",
+    taskDone: "कार्य '{title}' {name} ने पूरा किया",
+    taskBlocked: "कार्य '{title}' {name} के लिए रुका है",
+    joined: '{name} जुड़े',
+    joinedManager: '{name} मैनेजर के रूप में जुड़े',
+    added: '{name} को जोड़ा गया',
+    markedNotEmployed: '{actor} ने {name} को कार्यरत नहीं चिह्नित किया',
+    left: '{name} ने छोड़ा',
+    vendorBill: '{actor} ने {vendor} का बिल जोड़ा',
+    vendorBillPending: '{actor} ने {vendor} का बिल जोड़ा, पुष्टि की प्रतीक्षा में',
+    vendorBillRejected: '{vendor} का बिल अस्वीकार किया गया',
+    vendorPayment: '{actor} ने {vendor} को भुगतान दर्ज किया',
+    vendorAdvance: '{actor} ने {vendor} को अग्रिम दिया',
+    vendorReceived: '{vendor} ने भुगतान की पुष्टि की',
+    estimateCreated: '{actor} ने {customer} के लिए अनुमान {number} बनाया',
+    billCreated: '{actor} ने {customer} के लिए बिल {number} बनाया',
+    billPaid: '{customer} का बिल {number} चुका दिया गया',
+    heads: {
+      expense: 'खर्च जोड़ा गया',
+      expenseFor: 'खर्च जोड़ा गया',
+      allowance: 'भत्ता जोड़ा गया',
+      allowanceFor: 'भत्ता जोड़ा गया',
+      advance: 'एडवांस दिया गया',
+      wages: 'वेतन दिया गया',
+      reimbursed: 'भुगतान लौटाया गया',
+      cashReturned: 'नकद लौटाया गया',
+      companyPaid: 'कंपनी भुगतान',
+      approved: 'दावा स्वीकृत',
+      rejected: 'दावा अस्वीकृत',
+      attendanceOne: 'हाज़िरी अपडेट हुई',
+      attendanceMany: 'हाज़िरी अपडेट हुई',
+      taskAssigned: 'काम सौंपा गया',
+      taskDone: 'काम पूरा',
+      taskBlocked: 'काम रुका',
+      joined: 'जुड़े',
+      joinedManager: 'मैनेजर जुड़े',
+      added: 'व्यक्ति जोड़ा गया',
+      markedNotEmployed: 'कार्यरत नहीं चिह्नित',
+      left: 'छोड़ दिया',
+      vendorBill: 'विक्रेता बिल',
+      vendorBillPending: 'विक्रेता बिल लंबित',
+      vendorBillRejected: 'विक्रेता बिल अस्वीकृत',
+      vendorPayment: 'विक्रेता भुगतान',
+      vendorAdvance: 'विक्रेता एडवांस',
+      vendorReceived: 'भुगतान की पुष्टि हुई',
+      estimateCreated: 'अनुमान बनाया गया · {number}',
+      billCreated: 'बिल बनाया गया · {number}',
+      billPaid: 'बिल चुकाया गया · {number}',
+    },
+    dayCount: { one: '{n} गतिविधि', other: '{n} गतिविधियाँ' },
+  },
+  companyDocs: {
+    title: 'अनुमान और बिल',
+    estimate: 'अनुमान',
+    bill: 'बिल',
+    all: 'सभी',
+    estimates: 'अनुमान',
+    bills: 'बिल',
+    unpaid: 'बकाया',
+    syncing: 'सिंक हो रहा है',
+    draft: 'ड्राफ़्ट',
+    sent: 'भेजा गया',
+    accepted: 'स्वीकृत',
+    declined: 'अस्वीकृत',
+    part_paid: 'आंशिक भुगतान',
+    paid: 'भुगतान पूरा',
+    newEstimate: 'नया अनुमान',
+    newBill: 'नया बिल',
+    customer: 'ग्राहक का नाम',
+    phone: 'फ़ोन (वैकल्पिक)',
+    date: 'तारीख',
+    description: 'विवरण',
+    qty: 'मात्रा',
+    rate: 'दर',
+    amount: 'राशि',
+    addItem: 'आइटम जोड़ें',
+    removeItem: 'आइटम हटाएँ',
+    discount: 'छूट (वैकल्पिक)',
+    notes: 'नोट्स (वैकल्पिक)',
+    subtotal: 'उप-योग',
+    total: 'कुल',
+    payments: 'प्राप्त भुगतान',
+    amountLeft: 'बकाया राशि',
+    markReceived: 'प्राप्त हुआ चिह्नित करें',
+    upiTitle: 'UPI से भुगतान',
+    upiScan: '{amount} चुकाने के लिए स्कैन करें',
+    upiCopy: 'UPI ID कॉपी करें',
+    upiShare: 'साझा करें',
+    upiAdd: 'भुगतान QR दिखाने के लिए अपनी UPI ID जोड़ें',
+    billTo: 'बिल प्राप्तकर्ता',
+    estimateFor: 'अनुमान प्राप्तकर्ता',
+    recordPayment: 'भुगतान दर्ज करें',
+    sharePdf: 'PDF साझा करें',
+    convert: 'बिल में बदलें',
+    edit: 'बदलें',
+    delete: 'हटाएँ',
+    save: 'सहेजें',
+    empty: 'अभी कोई दस्तावेज़ नहीं',
+    notFound: 'दस्तावेज़ नहीं मिला',
+    linkedBill: 'बिल देखें',
+    linkedEstimate: 'अनुमान देखें',
+    footer: 'यह कर चालान नहीं है।',
+    nameError: 'ग्राहक का नाम लिखें (अधिकतम 120 अक्षर)।',
+    itemsError: '1–50 आइटम जोड़ें।',
+    itemError: 'विवरण, धनात्मक मात्रा और सही दर लिखें।',
+    discountError: 'छूट उप-योग से कम होनी चाहिए।',
+    totalError: 'अनुमत सीमा में धनात्मक कुल लिखें।',
+    below_paidError: 'कुल प्राप्त भुगतान से कम नहीं हो सकता।',
+    amountError: 'धनात्मक भुगतान राशि लिखें।',
+    overError: 'राशि बकाया से अधिक है।',
+    failed: 'सहेज नहीं सके। फिर कोशिश करें।',
+    deleteTitle: 'दस्तावेज़ हटाएँ?',
+    deleteBody: 'यह दस्तावेज़ हटा दिया जाएगा।',
+    unpaidTotal: '{amount} बकाया',
+    searchLabel: 'खोजें',
+    searchPlaceholder: 'नंबर, नाम या शीर्षक से खोजें',
+    addLabel: 'नया',
+    docsCount: '{n} दस्तावेज़',
+    billsCount: '{n} बिल',
+    noDocsTitle: 'अभी कोई एस्टिमेट या बिल नहीं',
+    noDocsBody: 'एस्टिमेट बनाएँ, बिल जोड़ें और भुगतान एक ही जगह ट्रैक करें।',
+    createBill: 'बिल बनाएँ',
+    createEstimate: 'एस्टिमेट बनाएँ',
+    noMatch: 'कुछ नहीं मिला',
+    billSubtitle: 'विवरण वाला बिल बनाएँ और भेजें',
+    estimateSubtitle: 'विवरण वाला अनुमान बनाएँ और भेजें',
+    selectCustomer: 'ग्राहक चुनें या जोड़ें',
+    pickClient: 'क्लाइंट चुनें',
+    billDate: 'बिल की तारीख',
+    currency: 'मुद्रा',
+    itemsCount: 'आइटम ({n})',
+    rateEach: '{rate} प्रति',
+    notesOptional: 'नोट्स (वैकल्पिक)',
+    paymentStatus: 'भुगतान स्थिति',
+    saveShare: 'सेव करें और भेजें',
+    createdBy: 'बनाने वाले',
+    acceptedBy: 'स्वीकार करने वाले',
+    declinedBy: 'अस्वीकार करने वाले',
+    activity: 'गतिविधि',
+    nextAction: 'अगला कदम',
+    add: 'जोड़ें',
+    duplicate: 'डुप्लिकेट',
+    print: 'प्रिंट',
+    markSent: 'भेजा हुआ चिह्नित करें',
+    paymentEvt: 'भुगतान मिला',
+    viewAll: 'सभी देखें',
+    showLess: 'कम दिखाएँ',
+    editEstimate: 'अनुमान संपादित करें',
+    editBill: 'बिल संपादित करें',
+    saveChanges: 'बदलाव सेव करें',
+    preview: 'पूर्वावलोकन',
+    estimateNo: 'अनुमान नं.',
+    billNo: 'बिल नं.',
+    status: 'स्थिति',
+    detailsTitle: '{type} का विवरण',
+  },
+  company: {
+    attendanceTitle: 'हाज़िरी',
+    attendanceMine: 'मेरी हाज़िरी',
+    attendanceEmpty: 'शुरू करने के लिए कर्मचारी जोड़ें।',
+    attendancePresent: 'हाज़िर',
+    attendanceHalf: 'आधा दिन',
+    attendanceAbsent: 'गैरहाज़िर',
+    attendanceMarkAll: 'सबकी हाज़िरी लगाएँ',
+    attendanceTotal: 'कुल',
+    attendanceDaily: 'दैनिक',
+    attendanceWeekly: 'साप्ताहिक',
+    attendanceMonthly: 'मासिक',
+    attendanceSearch: 'कर्मचारियों को खोजें...',
+    attendanceDepartment: 'विभाग',
+    workToday: 'आज',
+    attendanceNote: 'नोट जोड़ें',
+    attendanceNotePlaceholder: 'नोट जोड़ें (वैकल्पिक)',
+    attendanceHalfDay: 'आधा दिन',
+    attendanceMark: 'चिह्नित करें',
+    attendanceClear: 'हटाएँ',
+    attendanceVsYesterday: '{delta} कल के मुकाबले',
+    attendanceFilters: 'फ़िल्टर',
+    attendanceStatus: 'स्थिति',
+    attendanceNotMarked: 'चिह्नित नहीं',
+    attendancePickDate: 'तारीख़ चुनें',
+    attendanceMore: 'और विकल्प',
+    attendanceDailyView: 'दैनिक दृश्य',
+    attendanceWeeklyView: 'साप्ताहिक दृश्य',
+    attendanceMonthlyView: 'मासिक दृश्य',
+    attendanceSetStatus: 'हाज़िरी लगाएँ',
+    attendanceMarkAllAbsent: 'सबको गैरहाज़िर करें',
+    attendanceOnLeave: 'छुट्टी पर',
+    attendanceLeaveApplied: 'छुट्टी का आवेदन',
+    attendanceLeave: 'छुट्टी',
+    attendanceSaving: 'सेव हो रहा है',
+    attendanceMember: 'सदस्य',
+    attendanceMarkHoliday: 'छुट्टी के रूप में चिह्नित करें',
+    attendanceHolidayEdit: 'छुट्टी: {name}',
+    attendancePrevious: 'पिछला',
+    attendanceNext: 'अगला',
+    attendanceSaved: 'सेव हो गया',
+    attendanceOverwriteTitle: 'मौजूदा निशान बदलें?',
+    attendanceOverwriteBody: '{n} लोगों का इस दिन पहले से अलग निशान है। बदलें?',
+    attendanceTasks: { other: '{n} कार्य' },
+    attendanceSubtitle: { other: '{company} · {n} कर्मचारी' },
+    attendanceSummary: { other: '{n} दिन हाज़िर' },
+    attendancePreviousMonth: 'पिछला महीना',
+    attendanceNextMonth: 'अगला महीना',
+    tabDetails: 'विवरण',
+    editEmployee: 'कर्मचारी संपादित करें',
+    changeEmploymentType: 'रोज़गार प्रकार बदलें',
+    deleteEmployee: 'कर्मचारी हटाएँ',
+    deleteEmployeeTitle: '{name} को हटाएँ?',
+    deleteEmployeeBody:
+      'उन्हें आपकी टीम से हटा दिया जाएगा। कुछ नहीं खोएगा: उनकी कोई एंट्री या हाज़िरी नहीं है।',
+    deleteHasHistory: 'इतिहास है — इसके बजाय कार्यरत नहीं चिह्नित करें',
+    statusActive: 'सक्रिय',
+    attendanceMonthTitle: 'हाज़िरी ({month})',
+    daysPresent: 'दिन हाज़िर',
+    daysPresentIn: '{month} में हाज़िर दिन: {n}',
+    viewReport: 'रिपोर्ट देखें',
+    viewFullAttendance: 'पूरी हाज़िरी देखें',
+    birthdayJoining: 'जन्मदिन और जॉइनिंग',
+    addBirthdayJoining: 'जन्मदिन और जॉइनिंग की तारीख़ जोड़ें',
+    joiningDate: 'जॉइनिंग की तारीख़',
+    detailPhone: 'फ़ोन',
+    detailEmail: 'ईमेल',
+    detailMileage: 'माइलेज दर',
+    workTitle: 'रोज़ का काम',
+    departments: 'विभाग',
+    department: 'विभाग',
+    departmentNone: 'कोई नहीं',
+    departmentAdd: 'विभाग जोड़ें',
+    departmentRename: 'विभाग का नाम बदलें',
+    departmentRemove: 'विभाग हटाएँ',
+    departmentActions: 'विभाग के विकल्प',
+    departmentNameError: 'एक अलग विभाग का नाम दर्ज करें।',
+    workSubtitle: 'अपनी टीम के कामों पर नज़र रखें और उन्हें पूरा करें।',
+    workSearch: 'काम और कर्मचारियों को खोजें...',
+    workTotal: 'कुल काम',
+    workAllTasks: 'सभी काम',
+    workDueToday: 'आज देय',
+    workCompleted: 'पूरा हुआ',
+    workInProgress: 'जारी है',
+    workPending: 'लंबित',
+    workAll: 'सभी',
+    workMineTasks: 'मेरे काम',
+    workTeam: 'टीम',
+    workFilter: 'फ़िल्टर',
+    workTime: 'समय (HH:MM)',
+    workNoTime: 'समय नहीं',
+    workMine: 'आज मेरा काम',
+    workEmpty: 'इस दिन कोई काम नहीं।',
+    workByDate: 'तारीख के अनुसार',
+    workByPerson: 'व्यक्ति के अनुसार',
+    workByStatus: 'स्थिति के अनुसार',
+    workOverdue: 'देरी',
+    workPriority: 'प्राथमिकता',
+    workPrioNormal: 'सामान्य',
+    workPrioUrgent: 'ज़रूरी',
+    workPrioVeryUrgent: 'बहुत ज़रूरी',
+    workLateOn: 'देरी · {date}',
+    workOpenN: '{n} खुले',
+    workDoneN: 'पूरे · {n}',
+    workSiteFilter: 'साइट फ़िल्टर',
+    workNoTasks: 'अभी कोई काम नहीं',
+    workNoTasksHint: 'काम सौंपने, तारीख तय करने और आसानी से ट्रैक करने के लिए एक काम जोड़ें।',
+    workNoMatch: '"{q}" से मेल खाता कोई काम नहीं',
+    workNoneForYou: 'आपके लिए कोई काम नहीं',
+    workShowTeam: 'टीम के काम दिखाएँ',
+    workBlockedInTeam: 'टीम में {n} अटके हैं',
+    workExport: 'रिपोर्ट एक्सपोर्ट',
+    workExportRange: 'समय अवधि',
+    workThisWeek: 'इस सप्ताह',
+    workThisMonth: 'इस महीने',
+    workCustom: 'कस्टम',
+    workFrom: 'से',
+    workTo: 'तक',
+    workReportType: 'रिपोर्ट का प्रकार',
+    workRepList: 'काम की सूची',
+    workRepPerson: 'व्यक्ति के अनुसार',
+    workRepSite: 'साइट के अनुसार',
+    workRepOverdue: 'देरी और पूर्णता',
+    workExportSub: 'अपने कामों की रिपोर्ट PDF या Excel में पाएँ।',
+    exportPayments: 'भुगतान',
+    exportTasks: 'काम',
+    workFileFormat: 'फ़ाइल फ़ॉर्मैट',
+    workGenerate: 'रिपोर्ट बनाएँ',
+    workRepListSub: 'स्थिति के साथ सभी काम',
+    workRepPersonSub: 'ज़िम्मेदार के अनुसार काम',
+    workRepSiteSub: 'साइट/जगह के अनुसार काम',
+    workRepOverdueSub: 'देरी, पूरे और बाकी',
+    workColNumber: '#',
+    workColTitle: 'काम',
+    workColDate: 'तारीख',
+    workColStatus: 'स्थिति',
+    workColOpen: 'खुले',
+    workColTotal: 'कुल',
+    workCompletion: 'पूर्णता दर',
+    workDaysLate: 'देरी के दिन',
+    workProBadge: 'Pro',
+    workAdd: 'काम जोड़ें',
+    workEdit: 'काम बदलें',
+    workTitleField: 'काम का नाम',
+    workPerson: 'व्यक्ति',
+    workSite: 'साइट',
+    workNoSite: 'कोई साइट नहीं',
+    workTodo: 'करना है',
+    workDoing: 'जारी है',
+    workDone: 'पूरा',
+    workHeaderSub: 'साइट का काम, विज़िट और फ़ॉलो-अप',
+    workTasksN: '{n} काम',
+    workBlocked: 'रुका हुआ',
+    workReason: 'काम क्यों रुका है?',
+    workNote: 'नोट',
+    workDue: 'नियत तारीख और समय',
+    workNotesOptional: 'नोट्स (वैकल्पिक)',
+    workDueDate: 'नियत तारीख',
+    workDueTime: 'नियत समय',
+    workRepeat: 'कल दोहराएँ',
+    workRemove: 'हटाएँ',
+    workStatus: 'स्थिति',
+    workUpdateStatus: 'स्थिति बदलें',
+    workAddNote: 'नोट जोड़ें (वैकल्पिक)',
+    workPreviousDay: 'पिछला दिन',
+    workNextDay: 'अगला दिन',
+    workSeeAll: 'सभी देखें',
+    workSaveError: 'सेव नहीं हुआ। फिर कोशिश करें।',
+    taskDescription: 'काम का विवरण',
+    taskDescriptionHint: 'आप क्या करवाना चाहते हैं?',
+    taskAssignTo: 'किसे सौंपें',
+    taskResponsible: 'जिम्मेदार',
+    taskHelpers: 'इसमें और कौन काम कर रहा है (वैकल्पिक)',
+    taskHelpersNone: 'कोई नहीं',
+    taskHelpersMax: 'अधिकतम 5 लोग',
+    taskAssignTitle: 'लोगों को सौंपें',
+    taskAssignN: 'सौंपें ({n})',
+    workAlsoOn: 'साथ में: {names}',
+    taskPeople: { one: '{n} व्यक्ति', other: '{n} लोग' },
+    taskDeadline: 'अंतिम तारीख (वैकल्पिक)',
+    taskPhotoLabel: 'फ़ोटो जोड़ें (वैकल्पिक)',
+    taskAddPhoto: 'फ़ोटो जोड़ें',
+    taskVoiceTitle: 'या बस बोल दें…',
+    taskVoiceBody: 'माइक दबाकर आवाज़ से काम जोड़ें',
+    taskSave: 'काम सेव करें',
+    taskNeedTitle: 'लिखें कि क्या करना है।',
+    taskNeedPeople: 'कम से कम एक व्यक्ति चुनें।',
+    taskBadDay: 'आज से एक हफ़्ते के भीतर की अंतिम तारीख चुनें।',
+    taskPhotoFailed:
+      'काम सेव हो गए, पर एक फ़ोटो अपलोड नहीं हुई। फिर कोशिश के लिए काम सेव करें दबाएँ।',
+
+    tab: 'कंपनी',
+    listTitle: 'आपकी कंपनियाँ',
+    listSubtitle: 'अपनी कंपनियाँ प्रबंधित करें और बदलें',
+    currentCompany: 'मौजूदा कंपनी',
+    myStatement: 'मेरा स्टेटमेंट',
+    summary: 'कंपनी सारांश',
+    employees: 'कर्मचारी',
+    invite: 'कर्मचारियों को बुलाएँ',
+    addEntry: 'एंट्री जोड़ें',
+    periodMonth: 'इस महीने',
+    periodLast: 'पिछले महीने',
+    periodAll: 'पूरा समय',
+    balance: 'बकाया',
+    companyOwesYou: 'कंपनी आपको देगी',
+    youOweCompany: 'आप कंपनी को देंगे',
+    settled: 'सब चुकता',
+    companyOwesName: 'कंपनी {name} को देगी',
+    nameOwesCompany: '{name} कंपनी को देंगे',
+    companyOwesAll: 'कंपनी कर्मचारियों को देगी',
+    employeesOweAll: 'कर्मचारी कंपनी को देंगे {amount}',
+    owedTo: 'कंपनी देगी',
+    owedBy: 'कंपनी को देंगे',
+    addEmployee: 'कर्मचारी जोड़ें',
+    addEmployeeBody: 'संपर्कों से चुनें, नाम लिखें या किसी दूसरी कंपनी के लोगों को दोबारा जोड़ें।',
+    employeeId: 'कर्मचारी आईडी',
+    employeeIdOptional: 'कर्मचारी आईडी (वैकल्पिक)',
+    addEmployeeId: 'कर्मचारी आईडी जोड़ें',
+    employeeIdTaken: 'यह कर्मचारी आईडी पहले से किसी और के पास है।',
+    fromPastCompany: 'पिछली कंपनी',
+    fromPastCompanyBody: 'जिन्हें आप कहीं और संभालते हैं',
+    pastSearch: 'नाम या कंपनी से खोजें',
+    pastEmpty: 'आपकी दूसरी कंपनियों में जोड़ने के लिए कोई नहीं है।',
+    pastAddSelected: 'चुने हुए {n} जोड़ें',
+    pastFrom: '{companies} से',
+    pastLoadFailed: 'आपकी दूसरी कंपनियाँ लोड नहीं हो सकीं।',
+    welcomeEmployee:
+      'अपना ईंधन, यात्रा और भत्ते का खर्च यहाँ जोड़ें। आपकी एंट्रियाँ सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
+    welcomeAdmin:
+      'कर्मचारियों को बुलाएँ, फिर उनके लिए एंट्री, अग्रिम और वेतन दर्ज करें। हर कर्मचारी सिर्फ़ अपनी एंट्रियाँ देखता है।',
+    brought: 'पिछला बकाया',
+    expenses: 'खर्च',
+    bata: 'भत्ता',
+    advances: 'अग्रिम',
+    wages: 'दिया गया वेतन',
+    paidOut: 'कर्मचारी को भुगतान',
+    returned: 'कर्मचारी ने लौटाया',
+    byCategory: 'श्रेणी के अनुसार खर्च',
+    entries: 'एंट्रियाँ',
+    none: 'इस अवधि में कुछ दर्ज नहीं',
+    noEmployees: 'अभी कोई कर्मचारी नहीं। शुरू करने के लिए उन्हें बुलाएँ।',
+    pending: 'मंज़ूरी का इंतज़ार',
+    rejected: 'अस्वीकृत',
+    kExpense: 'खर्च',
+    kAllowance: 'भत्ता (दैनिक)',
+    kAdvance: 'दिया गया अग्रिम',
+    kWages: 'दिया गया वेतन',
+    salaryPayment: 'वेतन भुगतान',
+    tabOverview: 'अवलोकन',
+    overviewTasks: 'कार्य',
+    tabManagers: 'मैनेजर',
+    tabBudgets: 'बजट',
+    tabPayments: 'भुगतान',
+    tabMyTeam: 'मेरी टीम',
+    barPeople: 'लोग',
+    barPending: 'लंबित',
+    barMore: 'और',
+    barTeam: 'टीम',
+    teamTabTasks: 'काम',
+    moreBudgets: 'बजट और साइट',
+    moreStatements: 'स्टेटमेंट और निर्यात',
+    moreRules: 'नियम',
+    agentsTitle: 'AI एजेंट',
+    agentsAllow: 'AI एजेंट की अनुमति दें',
+    agentsAllowHint: 'लोग Claude या ChatGPT को इस कंपनी से जोड़ सकते हैं।',
+    agentsApproval: 'एजेंट के बदलावों पर मंज़ूरी चाहिए',
+    agentsApprovalHint: 'एजेंट जो खर्च जोड़ता है वह आपकी मंज़ूरी का इंतज़ार करता है।',
+    agentsConnected: 'जुड़े हुए',
+    agentsEmpty: 'कोई एजेंट नहीं जुड़ा। लोग Claude/ChatGPT में Connect → Waves से जोड़ते हैं।',
+    agentsActivity: 'एजेंट गतिविधि',
+    agentsActivityEmpty: 'अभी कुछ नहीं।',
+    agentsRevoke: 'हटाएँ',
+    agentsActions: 'एजेंट की कार्रवाइयाँ',
+    agentsLastUsed: 'आख़िरी बार {when}',
+    agentsNeverUsed: 'अभी इस्तेमाल नहीं हुआ',
+    companyRulesTitle: 'कंपनी के नियम',
+    moreSettings: 'और सेटिंग्स',
+    moreSettingsHint: 'हाज़िरी, ख़र्च, अनुमान, इनवॉइस और बहुत कुछ',
+    tileCurrency: 'मुद्रा',
+    tileDetails: 'विवरण',
+    tileBranding: 'ब्रांडिंग',
+    tileBrandingHint: 'लोगो',
+    pendingNone: 'कुछ भी प्रतीक्षा में नहीं',
+    pendingNoneBody: 'आपके ध्यान की ज़रूरत वाले दावे और बजट अनुरोध यहाँ दिखेंगे।',
+    pendingVendorBills: 'पुष्टि के लिए {n} वेंडर बिल',
+    pendingUnpaidBills: '{n} बिना भुगतान वाले बिल',
+    pendingBlockedTasks: '{n} अटके हुए काम',
+    pendingUnmarked: 'आज {n} की हाज़िरी नहीं लगी',
+    countsLine: '{e} कर्मचारी · {m} मैनेजर · {o} मालिक',
+    teamLine: 'आपकी टीम · {employees}',
+    pillOwner: 'मालिक',
+    statOwes: 'कंपनी पर कर्मचारियों का बकाया',
+    statPending: '{n} लंबित भुगतान',
+    statPaidMonth: 'इस महीने कुल भुगतान',
+    statVsLast: 'पिछले महीने से {pct}%',
+    statAdvances: 'बकाया एडवांस',
+    statEmployeesN: '{n} कर्मचारी',
+    qaInvite: 'कर्मचारियों को बुलाएँ',
+    qaHierarchy: 'हाइरार्की संभालें',
+    qaBudgets: 'बजट दें',
+    qaRecord: 'भुगतान दर्ज करें',
+    qaAddReminder: 'रिमाइंडर जोड़ें',
+    overviewActiveToday: 'आज सक्रिय',
+    overviewPresent: 'उपस्थित',
+    overviewAbsent: 'अनुपस्थित',
+    overviewUnmarked: 'लंबित',
+    ovBell: 'सूचनाएँ',
+    overviewOnLeave: 'छुट्टी पर',
+    ovAttendance: 'उपस्थिति',
+    ovPickDate: 'दिन चुनें',
+    ovVsLast: 'पिछले महीने से {pct}',
+    ovTaskDone: 'पूरा चिह्नित करें: {title}',
+    ovEscAdvance: 'अग्रिम का अनुरोध',
+    ovEscExpense: 'खर्च की मंज़ूरी बाकी',
+    ovEscPool: 'फंड का अनुरोध',
+    ovEscBill: 'पुष्टि के लिए वेंडर बिल',
+    ovEscAbsent: '{n} दिन से उपस्थिति दर्ज नहीं',
+    ovEscBlocked: 'कार्य रुका हुआ: {title}',
+    ovAgoNow: 'अभी',
+    ovAgoMin: '{n} मिनट पहले',
+    ovAgoHour: '{n} घंटे पहले',
+    ovAgoDay: '{n} दिन पहले',
+    ovAllClearBody: 'कोई लंबित कार्य या ज़रूरी मामला नहीं।',
+    ovAttention: 'आपके ध्यान की ज़रूरत',
+    ovTodayOverview: 'आज का सार',
+    ovPresentOf: '{total} में से {n} उपस्थित',
+    ovAllMarked: 'सभी चिह्नित',
+    ovMarkAttendance: 'उपस्थिति लगाएँ',
+    ovComingUp: 'आगे आने वाला',
+    ovOverdue: 'देर हो चुकी',
+    ovBlocked: 'रुका हुआ',
+    ovPendingPayments: 'लंबित भुगतान',
+    ovNothingToPay: 'देने को कुछ नहीं',
+    ovNoPaymentsYet: 'इस महीने अभी कोई भुगतान नहीं',
+    ovNoAdvancesOut: 'कोई अग्रिम बाकी नहीं',
+    ovPayrollRun: 'वेतन भुगतान',
+    ovPaidMonth: 'इस महीने भुगतान',
+    ovAdvances: 'बकाया अग्रिम',
+    ovCrore: '{n} करोड़',
+    ovAllClear: 'सब ठीक है',
+    ovPaymentsPendingN: { one: '{n} भुगतान लंबित', other: '{n} भुगतान लंबित' },
+    ovAttendanceToday: 'आज की उपस्थिति',
+    ovSeeAll: 'सभी देखें',
+    ovEmptyTitle: 'अपना पहला कर्मचारी जोड़ें',
+    ovEmptyBody: 'उपस्थिति, कार्य और भुगतान यहाँ देखने के लिए लोगों को आमंत्रित करें।',
+    ovEditLayout: 'लेआउट बदलें',
+    ovLayoutHint: 'क्रम बदलने के लिए ≡ को दबाकर खींचें',
+    ovResetLayout: 'डिफ़ॉल्ट पर लौटें',
+    ovHiddenCards: 'छिपे कार्ड',
+    ovHideCard: '{name} छिपाएँ',
+    ovAddCard: '{name} जोड़ें',
+    ovMoveUp: 'ऊपर ले जाएँ',
+    ovMoveDown: 'नीचे ले जाएँ',
+    ovReorderCard: '{name} का क्रम बदलें',
+    ovAlwaysFirst: 'हमेशा सबसे ऊपर',
+    ovCardAttendance: 'उपस्थिति',
+    ovCardMoney: 'पैसा',
+    ovCardAttention: 'ध्यान चाहिए',
+    ovCardUpcoming: 'आने वाले',
+    ovCardActivity: 'हाल की गतिविधि',
+    ovCardBudget: 'आपका बजट',
+    ovCardStats: 'टीम के आँकड़े',
+    ovCardQuick: 'त्वरित कार्य',
+    ovCardWorkday: 'कार्यदिवस',
+    ovCardTeam: 'मेरी टीम',
+    greetMorning: 'सुप्रभात!',
+    greetAfternoon: 'नमस्ते!',
+    greetEvening: 'शुभ संध्या!',
+    ovGlance: 'आपकी कंपनी एक नज़र में।',
+    ovTilePayments: 'देय भुगतान',
+    ovTileTasks: 'खुले कार्य',
+    ovTileAdvances: 'बकाया अग्रिम',
+    ovNeedBlockedN: { one: '{n} रुका हुआ कार्य', other: '{n} रुके हुए कार्य' },
+    ovNeedApproveN: { one: '{n} भुगतान मंज़ूर करना है', other: '{n} भुगतान मंज़ूर करने हैं' },
+    ovNeedTotal: 'कुल {amount}',
+    ovNeedOverdueN: { one: '{n} विलंबित कार्य', other: '{n} विलंबित कार्य' },
+    ovNeedDue: '{title} · देय {time}',
+    ovCardGlance: 'एक नज़र में',
+    ovCardNeeds: 'ध्यान देने योग्य सारांश',
+    ovCardMoneyActions: 'पैसे की कार्रवाइयाँ',
+    ovCardComingUp: 'इस सप्ताह',
+    ovCdTasksN: { one: '{n} देय कार्य', other: '{n} देय कार्य' },
+    ovCdThisWeek: 'इस सप्ताह',
+    ovCdApprovalsN: { one: '{n} मंज़ूर करना है', other: '{n} मंज़ूर करने हैं' },
+    ovCdWaiting: 'आपकी प्रतीक्षा में',
+    ovAddBill: 'बिल जोड़ें',
+    ovCreateInvoice: 'इनवॉइस बनाएँ',
+    overviewNoOwes: 'कोई बकाया नहीं',
+    overviewNoPaid: 'अभी तक भुगतान नहीं',
+    overviewNoAdvances: 'कोई अग्रिम नहीं',
+    qaAddTask: 'कार्य जोड़ें',
+    tkAll: 'सभी',
+    tkLater: 'बाद में',
+    tkCompleted: 'पूर्ण',
+    tkScheduled: 'निर्धारित',
+    tkNext: 'आगे क्या',
+    tkQuick: 'त्वरित कार्य',
+    tkUpload: 'फ़ाइल अपलोड करें',
+    tkAddClient: 'ग्राहक जोड़ें',
+    tkAddVendor: 'वेंडर जोड़ें',
+    tkSites: { one: '{n} साइट', other: '{n} साइट' },
+    tkMore: '+{n}',
+    tkNone: 'यहाँ कुछ नहीं',
+    tkMenu: 'कार्य विकल्प',
+    tkViewAll: 'सभी देखें',
+
+    qaAddEmployee: 'कर्मचारी जोड़ें',
+    tasksCount: { one: '{n} कार्य', other: '{n} कार्य' },
+    attHalfDay: 'आधा दिन',
+    attNotMarked: 'चिह्नित नहीं',
+    noBudgetSet: 'बजट तय नहीं',
+    employmentType: 'रोज़गार का प्रकार',
+    empTypeFullTime: 'पूर्णकालिक',
+    empTypePartTime: 'अंशकालिक',
+    empTypeContractor: 'ठेकेदार',
+    empTypeNone: 'तय नहीं',
+    searchEmployees: 'कर्मचारी खोजें...',
+    filterEmployees: 'कर्मचारी दिखाएँ',
+    peopleSortName: 'नाम के अनुसार क्रम (अ–ह)',
+    peopleShowAdmins: 'एडमिन दिखाएँ',
+    empFilterAll: 'सभी',
+    viewStatement: 'स्टेटमेंट देखें',
+    notEmployed: 'कार्यरत नहीं',
+    markNotEmployed: 'कार्यरत नहीं चिह्नित करें',
+    markEmployed: 'कार्यरत चिह्नित करें',
+    employmentHint: 'उन्हें कंपनी के नए अपडेट नहीं मिलेंगे। उनकी पुरानी प्रविष्टियाँ रहेंगी।',
+    employmentDate: 'अंतिम कार्य दिवस (वैकल्पिक, YYYY-MM-DD)',
+    employmentNote: 'छोटा नोट (वैकल्पिक)',
+    employmentPool: 'पहले उनका अग्रिम निपटाएँ',
+    employmentIdTaken: 'यह कर्मचारी आईडी पहले से उपयोग में है',
+    employmentBlocked: 'यह कंपनी निलंबित है',
+    employmentDenied: 'आप इस व्यक्ति की रोजगार स्थिति नहीं बदल सकते',
+    employmentFailed: 'रोजगार स्थिति अपडेट नहीं हुई। फिर कोशिश करें।',
+    employmentInvalidDate: 'सही तारीख डालें (YYYY-MM-DD)',
+    employeeIdInUseBy: '{id} अब {name} इस्तेमाल कर रहे हैं',
+    restoreWithoutId: 'आईडी के बिना बहाल करें',
+    pickNewId: 'नई आईडी चुनें',
+    newEmployeeId: 'नई कर्मचारी आईडी',
+    employeeOptions: 'कर्मचारी विकल्प',
+    noEmployeesMatch: 'कोई कर्मचारी नहीं मिला',
+    qaAdvance: 'एडवांस दें',
+    qaAsk: 'मालिक से बजट माँगें',
+    promoTitle: 'अपनी टीम को बुलाएँ',
+    promoBody: 'कर्मचारी जोड़ें, मैनेजर तय करें और वेतन, एडवांस व भुगतान एक जगह दर्ज करें।',
+    hierTitle: 'टीम हाइरार्की',
+    viewAll: 'सभी देखें',
+    ownersControl: '{n} मालिक · पूरा नियंत्रण',
+    nameYou: '{name} (आप)',
+    needsOtherOwner: 'इसे किसी दूसरे मालिक को मंज़ूर करना होगा।',
+    secondOwnerTitle: 'दूसरा मालिक मंज़ूर करे',
+    secondOwnerHint:
+      'बड़े दावे, और जो दावे किसी मालिक ने खुद डाले हों, उन्हें कोई दूसरा मालिक मंज़ूर करे।',
+    secondOwnerFrom: 'बड़ा मानें, इस रकम से',
+    secondOwnerFromHint:
+      'इस रकम या इससे ज़्यादा के दावों के लिए दूसरा मालिक चाहिए। सिर्फ़ मालिक के डाले दावों के लिए खाली छोड़ें।',
+    voiceAdd: 'खर्च बोलकर जोड़ें',
+    voiceCurrency: 'रकम कंपनी की मुद्रा {currency} में बोलें।',
+    paymentSettings: 'भुगतान सेटिंग्स',
+    dailyRateHint: 'दैनिक भत्ते की गणना के लिए इसका उपयोग करें',
+    mileageRateHint: 'यात्रा प्रतिपूर्ति के लिए इसका उपयोग करें',
+    policiesHint: 'आपकी टीम के लिए दिशानिर्देश',
+    recordPayment: 'भुगतान दर्ज करें',
+    recordPaymentBody: 'वेतन, अग्रिम या प्रतिपूर्ति दर्ज करें।',
+    totalPaid: 'कुल भुगतान',
+    totalPending: 'कुल बकाया',
+    addExpenseAction: 'खर्च जोड़ें',
+    recordBill: 'बिल दर्ज करें',
+    advanceTo: '{name} को अग्रिम',
+    paymentTo: '{name} को भुगतान',
+    paymentFrom: '{name} से भुगतान',
+    wagesTo: '{name} को वेतन',
+    cashReturnedBy: '{name} ने नकद लौटाया',
+    expandNamed: '{name} खोलें',
+    collapseNamed: '{name} समेटें',
+    expandAll: 'सब खोलें',
+    collapseAll: 'सब समेटें',
+    payWagesBody: 'कर्मचारियों या मैनेजरों का वेतन दर्ज करें',
+    gaveMoneyBody: 'अग्रिम या प्रतिपूर्ति दर्ज करें',
+    recentPayments: 'हाल के भुगतान',
+    paymentsNoneBody: 'शुरू करने के लिए वेतन या दिया गया पैसा दर्ज करें।',
+    addSiteBody: 'जगह या विभाग के हिसाब से बजट बनाने के लिए साइटें जोड़ें।',
+    budgetsNone: 'अभी कोई बजट नहीं',
+    budgetsNoneBody: 'खर्च पर नज़र रखने के लिए अपनी साइटों और मैनेजरों के बजट बनाएँ।',
+    setBudget: 'बजट तय करें',
+    setBudgetBody: 'हर साइट के लिए रकम तय करें',
+    assignManager: 'मैनेजर को सौंपें',
+    assignManagerBody: 'मैनेजर को बाँटने के लिए नकद दें',
+    trackSpending: 'खर्च देखें',
+    trackSpendingBody: 'खर्च और बची रकम देखें',
+    createBudget: 'बजट बनाएँ',
+    phoneOptional: 'फ़ोन नंबर (वैकल्पिक)',
+    emailOptional: 'ईमेल (वैकल्पिक)',
+    fullNameRequired: 'पूरा नाम *',
+    phoneHelper: 'WhatsApp या SMS से आमंत्रण लिंक भेजें',
+    emailHelper: 'ईमेल से आमंत्रण लिंक भेजें',
+    roleEmployee: 'कर्मचारी',
+    nameAloneBody:
+      'सिर्फ़ नाम काफ़ी है। कंपनी का हिस्सा बनने के लिए उन्हें ऐप या ईमेल की ज़रूरत नहीं। बाद में जुड़ने पर वे अपने नाम पर पहले से दर्ज सब कुछ अपना सकते हैं।',
+    fromContacts: 'फ़ोन संपर्कों से',
+    fromContactsBody: 'अपने संपर्कों से खोजें और जोड़ें',
+    budgetPerMonth: 'बजट: {amount} / माह',
+    teamCount: '{n} कर्मचारी',
+    recentTitle: 'हाल की गतिविधि',
+    recentNone: 'अभी कुछ नहीं',
+    yourBudget: 'आपका बजट',
+    givenOut: 'दिया गया',
+    budgetLeft: 'बचा',
+    budgetAdjusted: 'लौटाया / सुधारा {amount}',
+    askTitle: 'मालिक से बजट माँगें',
+    askSent: 'अनुरोध भेजा गया',
+    budgetRequests: 'बजट अनुरोध',
+    managersNone: 'अभी कोई मैनेजर नहीं। किसी कर्मचारी को मैनेजर बनाएँ।',
+    paymentsNone: 'अभी कोई भुगतान नहीं',
+    yourManager: 'आपके मैनेजर: {name}',
+    yourOwners: 'आपकी कंपनी के मालिक',
+    wagesThisMonth: 'इस महीने का वेतन',
+    spentLabel: 'खर्च',
+    advancesLabel: 'एडवांस',
+    myEntries: 'मेरी प्रविष्टियाँ',
+    statusPending: 'लंबित',
+    statusOkTag: 'स्वीकृत',
+    statusPaid: 'चुकाया',
+    switchCompany: 'कंपनी बदलें',
+    employeeCount: { one: '{n} कर्मचारी', other: '{n} कर्मचारी' },
+    managerCount: { one: '{n} मैनेजर', other: '{n} मैनेजर' },
+    ownerCount: { one: '{n} मालिक', other: '{n} मालिक' },
+    overallControl: 'पूरा नियंत्रण',
+    switchCompanyBody: 'प्रबंधन के लिए कंपनी चुनें',
+    createCompanyNew: 'नई बनाएँ',
+    newTitle: 'नई कंपनी',
+    createCompany: 'कंपनी बनाएँ',
+    nameLabel: 'कंपनी का नाम',
+    namePlaceholder: 'जैसे श्री मुरुगन ट्रेडर्स',
+    manageCompanies: 'कंपनियाँ प्रबंधित करें',
+    companySettings: 'कंपनी सेटिंग्स',
+    reportsToOwners: 'मालिकों को रिपोर्ट',
+    allocateNow: 'बजट आवंटित करें',
+    menuExport: 'एक्सपोर्ट',
+    gaveMoney: 'पैसे दिए',
+    theySpent: 'उन्होंने खर्च किया',
+    iSpent: 'मैंने खर्च किया',
+    paidWagesVerb: 'वेतन दिया',
+    hasOfYours: '{name} के पास आपके {amount} हैं',
+    youOweName: 'आप पर {name} के {amount} बाकी',
+    youHaveOfCompany: 'आपके पास कंपनी के {amount} हैं',
+    shareWhatsApp: 'WhatsApp पर भेजें',
+    threadEmpty: 'पहली प्रविष्टि के लिए + दबाएँ',
+    addPerson: 'व्यक्ति जोड़ें',
+    moreOptions: 'और',
+    wageFormula: '{gross} - एडवांस {cut} = {net}',
+    canPayPeople: 'भुगतान दर्ज कर सकते हैं',
+    canPayPeopleHint: 'यह कर्मचारी टीम के सदस्यों को किए भुगतान दर्ज कर सकेगा।',
+    employeeDetails: 'कर्मचारी विवरण',
+    permissions: 'अनुमतियाँ',
+    setDailyRate: 'दैनिक दर तय करें',
+    kAllocation: 'मैनेजर को नकद',
+    kPoolReturn: 'वापस लिया नकद',
+    kPoolAdjustment: 'सुधार',
+    noSite: 'कोई साइट नहीं',
+    cashLeft: 'बचा नकद',
+    cashWithManagers: 'मैनेजरों के पास नकद',
+    giveCash: 'नकद दें',
+    takeBack: 'वापस लें',
+    correctCash: 'सुधारें',
+    reasonRequired: 'कारण (ज़रूरी)',
+    poolReasonHint: 'कारण लिखें। यह इतिहास में रहेगा।',
+    payWages: 'वेतन दें',
+    wagesSheetTitle: 'वेतन दें',
+    periodThisWeek: 'इस सप्ताह',
+    periodLastWeek: 'पिछला सप्ताह',
+    wagesToPay: 'देना है',
+    wagesAdvanceCut: 'एडवांस कटा {amount}',
+    wagesAdvanceLeft: 'बचा एडवांस {amount}',
+    wagesBataIn: 'बत्ता {amount} शामिल',
+    wagesDays: 'दिन',
+    wagesFixedAmount: 'तय राशि',
+    wagesNeedTerms: 'दिन और दर, या तय राशि जोड़ें',
+    wagesRecord: '{n} को दें · {amount}',
+    wagesDone: 'वेतन दर्ज हुआ',
+    wagesNoTeam: 'पहले लोगों को जोड़ें।',
+    wagesSubtitle: 'अपनी टीम का हिसाब करें और वेतन दें',
+    wagesTeam: 'टीम',
+    wagesWorkingDays: 'कार्य दिवस',
+    wagesTotal: 'कुल वेतन',
+    wagesAll: 'सभी',
+    wagesPresent: 'उपस्थित',
+    wagesLeave: 'छुट्टी',
+    wagesAbsent: 'अनुपस्थित',
+    wagesDailyTag: 'दैनिक',
+    wagesFixedTag: 'तय',
+    wagesRateTimesDays: '{rate} × {n} दिन',
+    wagesSelected: '{n} चुने गए',
+    wagesTotalPayout: 'कुल भुगतान',
+    wagesPayAction: 'वेतन दें',
+    wagesAddMember: 'सदस्य जोड़ें',
+    wagesManageRates: 'दरें प्रबंधित करें',
+    wagesManageRatesSub: 'दैनिक / तय',
+    wagesGross: 'वेतन {amount}',
+    wagesPaidFromPool: 'आपके नकद से',
+    sites: 'साइटें',
+    addSite: 'साइट जोड़ें',
+    suspendedBanner:
+      'इस कंपनी को Waves ने निलंबित किया है। अभी यह केवल देखने के लिए है। hello@wavs.co.in पर संपर्क करें।',
+    reportCompany: 'इस कंपनी की शिकायत करें',
+    reportTitle: 'इस कंपनी की शिकायत करें',
+    reportBody:
+      'बताइए क्या गलत है। Waves हर शिकायत देखता है। कंपनी को नहीं बताया जाता कि किसने शिकायत की।',
+    reportFraud: 'धोखाधड़ी',
+    reportIllegal: 'अवैध गतिविधि',
+    reportHarassment: 'उत्पीड़न',
+    reportWages: 'बकाया वेतन',
+    reportOther: 'कुछ और',
+    reportPlaceholder: 'क्या हुआ? (संक्षेप में)',
+    reportSend: 'शिकायत भेजें',
+    reportSent: 'धन्यवाद। Waves इसकी जाँच करेगा।',
+    reportLimit: 'आज आपने कई शिकायतें भेज दी हैं। कल फिर कोशिश करें।',
+    reportFailed: 'शिकायत नहीं भेजी जा सकी। कनेक्शन जाँचकर फिर कोशिश करें।',
+    suspendedReadOnly:
+      'यह कंपनी निलंबित है। आप देख और निर्यात कर सकते हैं, पर कुछ जोड़ या बदल नहीं सकते।',
+    siteName: 'साइट का नाम',
+    siteBudget: 'बजट (वैकल्पिक)',
+    siteSpent: '{budget} में से {spent}',
+    siteSpentOnly: '{spent} खर्च',
+    siteLeft: '{amount} बचा',
+    siteOver: '{amount} ज़्यादा',
+    makeManager: 'मैनेजर बनाएँ',
+    makeEmployee: 'कर्मचारी बनाएँ',
+    reportsTo: 'किसे रिपोर्ट',
+    owners: 'मालिक',
+    manager: 'मैनेजर',
+    historyMoves: 'नया मैनेजर सभी पुरानी प्रविष्टियाँ देखेगा। पुराना मैनेजर नहीं देखेगा।',
+    moveTeamFirst: 'पहले उनकी टीम बदलें',
+    yourTeam: 'आपकी टीम',
+    sitesOf: 'साइटें',
+    wageGrossLabel: 'वेतन',
+    wageCutLabel: 'एडवांस कटौती',
+    wageNetLabel: 'दिया',
+    kReimbursement: 'भरपाई',
+    kCashReturned: 'नकद लौटाया',
+    companyPayer: 'कंपनी',
+    companyPaidDirect: 'कंपनी (सीधा भुगतान)',
+    companyPaidPoolHint: 'आपकी नकद राशि से भुगतान',
+    companySpentMonth: 'इस महीने कंपनी का खर्च',
+    catMaterials: 'सामग्री',
+    catRepairs: 'मरम्मत',
+    catRent: 'किराया',
+    catUtilities: 'उपयोगिता सेवाएँ',
+    catEquipment: 'उपकरण',
+    catFuel: 'ईंधन',
+    catTransport: 'परिवहन',
+    catTravel: 'यात्रा',
+    catFood: 'खाना',
+    catOffice: 'दफ़्तर',
+    catOther: 'अन्य',
+    amountToPay: 'चुकाने की राशि',
+    expensesPending: { one: '{n} खर्च बाकी', other: '{n} खर्च बाकी' },
+    pendingForPayment: 'भुगतान के लिए बाकी',
+    selectAllBtn: 'सभी चुनें',
+    receiptOne: '1 रसीद',
+    readyToSettle: 'निपटाने के लिए तैयार',
+    readyBody: 'अपने सामान्य तरीके से भुगतान करें, फिर चुकाया हुआ चिह्नित करें।',
+    sendWhatsApp: 'WhatsApp पर भेजें',
+    markPaid: 'चुकाया हुआ चिह्नित करें',
+    tileAddSub: 'नया खर्च दर्ज करें',
+    tileHistory: 'सभी खर्च देखें',
+    tileHistorySub: 'पूरा इतिहास',
+    tileSummary: 'कर्मचारी सारांश',
+    tileSummarySub: 'इस कर्मचारी को देखें',
+    detailPrivacyTitle: 'कर्मचारी केवल अपनी एंट्री देखते हैं।',
+    detailPrivacyBody: 'वे खर्च जोड़ सकते हैं और अपने भुगतान की स्थिति देख सकते हैं।',
+    callEmployee: 'कॉल करें',
+    catStay: 'ठहरना',
+    kindGive: 'पैसे दें',
+    kindSubGive: 'अग्रिम / प्रतिपूर्ति',
+    kindSubSpent: 'खर्च दर्ज करें',
+    kindSubWages: 'वेतन / भुगतान',
+    kindSubAllowance: 'दैनिक भत्ता',
+    paidBy: 'भुगतान किसने किया',
+    selectPerson: 'व्यक्ति चुनें',
+    notesLabel: 'नोट्स (वैकल्पिक)',
+    notePh: 'नोट जोड़ें...',
+    addReceipt: 'रसीद या फ़ोटो जोड़ें (वैकल्पिक)',
+    todayDate: 'आज, {date}',
+    tagAll: 'सभी टैग',
+    tagViewAll: 'सभी देखें',
+    tagNew: 'नया टैग',
+    tagNamePh: 'टैग का नाम',
+    tagAdd: 'जोड़ें',
+    tagsTitle: 'खर्च टैग',
+    tagsShared: 'कंपनी में सबके साथ साझा',
+    tagRename: 'नाम बदलें',
+    tagHide: 'छिपाएँ',
+    tagShow: 'दिखाएँ',
+    tagAddedBy: '{name} ने जोड़ा',
+    tagsSearch: 'टैग खोजें',
+    industryTitle: 'किस तरह का काम?',
+    industryConstruction: 'निर्माण',
+    industryTransport: 'परिवहन और लॉजिस्टिक्स',
+    industryFieldSales: 'फ़ील्ड सेल्स',
+    packAdd: '{n} टैग जोड़ें',
+    packAdded: 'ये सब पहले से जुड़े हैं',
+    savedAnother: 'सेव हो गया',
+    addAnother: 'एक और जोड़ें',
+    doneBtn: 'हो गया',
+    moreOpen: 'और',
+    qtyPh: 'मात्रा (वैकल्पिक)',
+    tagsCancel: 'रद्द करें',
+    tagSave: 'सेव करें',
+    formKind: 'प्रकार',
+    formEmployee: 'कर्मचारी',
+    formAmount: 'रकम',
+    formDays: 'दिन',
+    formRate: 'दैनिक दर',
+    formTotal: 'कुल',
+    formDate: 'तारीख़',
+    today: 'आज',
+    yesterday: 'कल',
+    pickDate: 'तारीख़ चुनें',
+    formNote: 'नोट (वैकल्पिक)',
+    formCategory: 'श्रेणी',
+    payTo: 'कर्मचारी को भुगतान',
+    returnFrom: 'कर्मचारी ने लौटाया',
+    wagesTyped: 'रकम',
+    wagesDaysRate: 'दिन x दर',
+    wagesWeekly: 'साप्ताहिक वेतन',
+    save: 'एंट्री सहेजें',
+    needRate: 'दिन और दैनिक दर भरें',
+    needAmount: 'रकम भरें',
+    removeEntry: 'एंट्री हटाएँ',
+    removeTitle: 'यह एंट्री हटाएँ?',
+    removeBody: 'यह इतिहास में रहेगी, पर हिसाब में नहीं गिनी जाएगी।',
+    dailyRate: 'दैनिक भत्ता दर',
+    rateNotSet: 'तय नहीं',
+    rateTitle: 'दैनिक भत्ता दर',
+    rateHint: '{name} के लिए भत्ता जोड़ते समय इस्तेमाल होगी। हर एंट्री पर बदली जा सकती है।',
+    share: 'स्टेटमेंट शेयर करें',
+    couldNotSave: 'सहेज नहीं पाए। फिर कोशिश करें।',
+    privacyEmployee: 'ये एंट्रियाँ सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
+    privacyAdmin: 'कर्मचारी सिर्फ़ अपनी एंट्रियाँ देखते हैं।',
+    daysAt: '{days} दिन x {rate}',
+    forPerson: '{name} के लिए',
+    kMileage: 'माइलेज',
+    formDistance: 'दूरी (किमी)',
+    formRatePerKm: 'प्रति किमी दर',
+    formFrom: 'कहाँ से (वैकल्पिक)',
+    formTo: 'कहाँ तक (वैकल्पिक)',
+    mileageAt: '{km} किमी x {rate}/किमी',
+    needDistance: 'दूरी किमी में डालें',
+    needMileageRate: 'प्रति किमी दर तय करें',
+    mileageRate: 'प्रति किमी माइलेज दर',
+    gstSection: 'जीएसटी और विक्रेता (वैकल्पिक)',
+    vendor: 'विक्रेता',
+    gstin: 'GSTIN',
+    gstinBad: '15 अक्षरों का सही GSTIN डालें',
+    invoiceNo: 'इनवॉइस नंबर',
+    gstRate: 'जीएसटी दर',
+    gstAmount: 'शामिल जीएसटी',
+    gstBefore: 'जीएसटी से पहले',
+    gstTotal: 'कुल जीएसटी',
+    policiesTitle: 'नीति संकेत',
+    policyReceipt: '{amount} से ऊपर रसीद',
+    policyLimit: '{what} {period} में {amount} से ऊपर',
+    policyWarn: 'चेतावनी',
+    policyBlock: 'रोकें',
+    policyAddReceipt: 'रसीद नियम',
+    policyAddLimit: 'सीमा नियम',
+    policyHintReceipt: '{limit} से ऊपर: रसीद की फोटो जोड़ें',
+    policyHintLimit: '{period} में {actual} हो जाएगा; सीमा {limit}',
+    policyBlocked: '{limit} की सीमा से ऊपर। राशि घटाएँ।',
+    policyFlagged: 'नीति से ऊपर',
+    perDay: 'दिन',
+    perMonth: 'महीना',
+    select: 'चुनें',
+    selectAllDue: 'सब बकाया',
+    payCount: '{count} चुने गए',
+    payCredits: 'घटाएँ: अग्रिम और पिछले भुगतान {amount}',
+    payTotal: '{amount} का भुगतान दर्ज करें',
+    payExternal: 'भुगतान Waves के बाहर किया जा चुका है',
+    reimbursedOn: '{date} को चुकाया गया',
+    payAlreadyOne: '1 एंट्री का भुगतान {name} पहले ही कर चुके हैं',
+    payAlreadyMany: '{count} एंट्री का भुगतान {name} पहले ही कर चुके हैं',
+    payNeedMore: 'चुने गए दावे पहले दिए अग्रिम से कम हैं',
+    payUpTo: '{date} तक सब बकाया',
+    payNone: 'चुकाने को कुछ नहीं',
+    dupHint: 'यह पहले जोड़ी गई प्रविष्टि जैसी लगती है',
+    payTitle: 'बकाया चुकाएँ',
+    policyEditorHint: 'प्रविष्टि सीमा पार करे तो चेतावनी या रोक',
+    policyNone: 'अभी कोई नियम नहीं',
+    policyRemove: 'नियम हटाएँ',
+    policyLimitLabel: 'सीमा',
+    editEntry: 'एंट्री',
+    awaiting: 'अनुमोदन की प्रतीक्षा में',
+    approve: 'मंज़ूर करें',
+    reject: 'अस्वीकार करें',
+    rejectTitle: 'इस एंट्री को अस्वीकार करें',
+    rejectHint: '{name} को कारण बताएँ। उन्हें यह नोट दिखेगा।',
+    statusApproved: 'मंज़ूर',
+    reviewNote: 'एडमिन का नोट',
+    approvalsTitle: 'अनुमोदन ज़रूरी',
+    approvalsHint:
+      'नई एंट्री एडमिन के मंज़ूर करने तक रुकी रहेंगी। बकाया में सिर्फ़ मंज़ूर एंट्री गिनी जाएँगी।',
+    photos: 'फ़ोटो',
+    takePhoto: 'फ़ोटो लें',
+    choosePhoto: 'फ़ोटो चुनें',
+    removePhoto: 'फ़ोटो हटाएँ',
+    removePhotoTitle: 'यह फ़ोटो हटाएँ?',
+    photoFailed: 'फ़ोटो नहीं जुड़ सकी। एंट्री सहेज ली गई है।',
+    photoPrivacy: 'ये फ़ोटो सिर्फ़ कर्मचारी और कंपनी के एडमिन देख सकते हैं।',
+    introPrivacy: 'आपकी एंट्री और फ़ोटो सिर्फ़ आप और कंपनी के एडमिन देख सकते हैं।',
+    defaultRateRow: 'दैनिक बत्ता दर',
+    defaultRateHint: 'वैकल्पिक। जब तक आप किसी की दर तय नहीं करते, यही सब पर लागू होगी।',
+    logoRow: 'कंपनी का लोगो',
+    logoUpload: 'अपलोड करें',
+    logoLink: 'लोगो का लिंक पेस्ट करें',
+    logoLinkPlaceholder: 'https://example.com/logo.png',
+    logoUse: 'यह लिंक इस्तेमाल करें',
+    logoRemove: 'लोगो हटाएँ',
+    logoSaved: 'लोगो अपडेट हो गया',
+    logoLater: 'लोगो नहीं जुड़ सका। कंपनी सेटिंग्स से जोड़ें।',
+    logoLocked: 'लोगो सिर्फ़ एडमिन बदल सकता है।',
+    logoErrEmpty: 'पहले लिंक पेस्ट करें।',
+    logoErrInvalid: 'यह लिंक जैसा नहीं दिखता।',
+    logoErrNotHttps: 'लिंक https:// से शुरू होना चाहिए।',
+    logoErrBlocked: 'यह लिंक इस्तेमाल नहीं हो सकता।',
+    logoErrTimeout: 'यह लिंक खुलने में बहुत देर लगी।',
+    logoErrNetwork: 'यह लिंक नहीं खुल सका।',
+    logoErrHttp: 'यह लिंक नहीं खुला।',
+    logoErrNotImage: 'यह लिंक किसी तस्वीर का नहीं है।',
+    logoErrSvg: 'SVG लोगो समर्थित नहीं हैं। PNG, JPG या WebP लिंक इस्तेमाल करें।',
+    logoErrTooLarge: 'बहुत बड़ा है। 2 MB से छोटी तस्वीर इस्तेमाल करें।',
+    logoErrRedirects: 'यह लिंक बहुत बार आगे भेजता है।',
+    logoErrDecode: 'वह तस्वीर पढ़ी नहीं जा सकी।',
+    currencyRow: 'मुद्रा',
+    pendingApprovals: 'अनुमोदन की प्रतीक्षा',
+    colType: 'प्रकार',
+    colReview: 'समीक्षा नोट',
+    notCounted: 'मंज़ूरी तक गिनी नहीं जाएगी',
+    exportAction: 'निर्यात',
+  },
+  companyTickets: {
+    title: 'शिकायतें',
+    tOpen: 'खुली · {n}',
+    tEscalated: 'बढ़ाई गई · {n}',
+    tResolved: 'सुलझी · {n}',
+    newComplaint: 'नई शिकायत',
+    editComplaint: 'शिकायत संपादित करें',
+    emptyTitle: 'अभी कोई शिकायत नहीं',
+    emptyBody:
+      'ग्राहक की शिकायत दर्ज करें और किसी को सौंपें। समय पर न सुलझे तो वह उसके मैनेजर और फिर मालिक तक पहुँचती है।',
+    emptyTab: 'यहाँ कुछ नहीं',
+    seeAll: 'सभी',
+    noneForClient: 'इस ग्राहक की कोई शिकायत नहीं',
+    clientLabel: 'ग्राहक',
+    noClient: 'कोई ग्राहक नहीं',
+    pickClient: 'ग्राहक चुनें',
+    searchClients: 'ग्राहक खोजें',
+    titlePh: 'शिकायत क्या है?',
+    detailsPh: 'विवरण (वैकल्पिक)',
+    priority: 'प्राथमिकता',
+    pLow: 'कम',
+    pNormal: 'सामान्य',
+    pHigh: 'उच्च',
+    pUrgent: 'तत्काल',
+    assignedTo: 'सौंपा गया',
+    assignTo: 'सौंपें',
+    you: 'आप',
+    someone: 'कोई',
+    owner: 'मालिक',
+    save: 'सहेजें',
+    log: 'शिकायत दर्ज करें',
+    dueIn: '{t} में देय',
+    overdue: '{t} की देरी',
+    escalatedTo: '{name} को बढ़ाई गई',
+    unitM: '{n}मि',
+    unitH: '{n}घं',
+    unitD: '{n}दिन',
+    call: 'कॉल करें',
+    whatsapp: 'WhatsApp',
+    reassign: 'दोबारा सौंपें',
+    actStart: 'शुरू करें',
+    actResolve: 'सुलझाएँ',
+    actReopen: 'फिर खोलें',
+    actClose: 'बंद करें',
+    resolveTitle: 'यह कैसे सुलझी?',
+    resolvePh: 'रिकॉर्ड के लिए छोटा नोट',
+    solved: 'समाधान: {note}',
+    stOpen: 'खुली',
+    stInProgress: 'जारी है',
+    stResolved: 'सुलझी',
+    stClosed: 'बंद',
+    timeline: 'टाइमलाइन',
+    evCreated: 'दर्ज की गई · {name} को सौंपी',
+    evAssigned: '{name} को सौंपी गई',
+    evStarted: 'शुरू की गई',
+    evReopened: 'फिर खोली गई',
+    evEscalated: '{name} को बढ़ाई गई',
+    evBy: '{name} द्वारा',
+    commentPh: 'टिप्पणी जोड़ें',
+    send: 'भेजें',
+    edit: 'संपादित करें',
+    remove: 'हटाएँ',
+    removeConfirm: 'यह शिकायत हटाएँ?',
+    more: 'और',
+    notFound: 'यह शिकायत उपलब्ध नहीं है।',
+    hubOverdue: '{n} विलंबित',
+    hubOpen: '{n} खुली',
+    hubNone: 'सब समय पर',
+  },
+  companyClients: {
+    title: 'ग्राहक',
+    toReceive: 'पाना बाकी',
+    search: 'ग्राहक खोजें',
+    statTotal: 'कुल',
+    statActive: 'सक्रिय',
+    statFollowUp: 'फ़ॉलो-अप',
+    statInactive: 'निष्क्रिय',
+    newInquiry: 'नई पूछताछ',
+    subtitle: 'अपने ग्राहक, बिल और भुगतान ट्रैक करें',
+    fUnpaid: 'बकाया',
+    quickActions: 'त्वरित कार्य',
+    createQuote: 'कोटेशन बनाएं',
+    createBill: 'बिल बनाएं',
+    quotesN: '{n} कोटेशन',
+    billsN: '{n} बिल',
+    open: 'खोलें',
+    sortRecent: 'हाल के',
+    sortName: 'नाम',
+    kClients: 'ग्राहक',
+    kInquiries: 'पूछताछ',
+    kQuotes: 'कोटेशन',
+    kInvoices: 'इनवॉइस',
+    kOutstanding: 'बकाया',
+    tAll: 'सभी ({n})',
+    tInquiries: 'पूछताछ ({n})',
+    tQuotes: 'कोटेशन ({n})',
+    tInvoices: 'इनवॉइस ({n})',
+    sortBy: 'क्रम: {by}',
+    sortUpdated: 'हाल का अपडेट',
+    sortAmount: 'राशि',
+    filterTitle: 'फ़िल्टर',
+    fStatus: 'स्थिति',
+    fDate: 'तारीख़',
+    rAll: 'सभी समय',
+    rMonth: 'इस महीने',
+    rQuarter: 'पिछले 3 महीने',
+    stUnpaid: 'अवैतनिक',
+    stPartPaid: 'आंशिक भुगतान',
+    stPaid: 'भुगतान हो गया',
+    fClear: 'साफ़ करें',
+    addClient: 'ग्राहक जोड़ें',
+    createInvoice: 'इनवॉइस बनाएँ',
+    addLabel: 'जोड़ें',
+    docInquiry: 'पूछताछ',
+    docQuote: 'कोटेशन',
+    docInvoice: 'इनवॉइस',
+    today: 'आज',
+    daysAgo: '{n} दिन पहले',
+    emptyTitle: 'अभी कोई ग्राहक नहीं?',
+    emptyBody: 'शुरू करने के लिए ग्राहक जोड़ें या पूछताछ बनाएँ।',
+    noMatches: 'कोई मिलान नहीं',
+    itemsN: '{n} आइटम',
+    itemN: '{n} आइटम',
+    statusDue: 'बकाया',
+    statusPaid: 'चुकाया',
+    sortLabel: 'क्रम',
+    editClient: 'ग्राहक बदलें',
+    bannerToday: 'आज {n} फॉलो-अप',
+    bannerOverdue: '{n} देर',
+    bannerNone: 'कोई फॉलो-अप बाकी नहीं',
+    more: 'और विकल्प',
+    fAll: 'सभी',
+    fInquiry: 'पूछताछ',
+    fQuoted: 'कोटेशन',
+    fClient: 'ग्राहक',
+    fLost: 'खोए',
+    empty: 'अभी कोई ग्राहक नहीं। पहली पूछताछ जोड़ें।',
+    emptyFilter: 'यहाँ अभी कुछ नहीं।',
+    stInquiry: 'पूछताछ',
+    stQuoted: 'कोटेशन',
+    stClient: 'ग्राहक',
+    stLost: 'खोया',
+    srcWalkIn: 'सीधे आए',
+    srcCall: 'फ़ोन कॉल',
+    srcWhatsapp: 'व्हाट्सऐप',
+    srcReferral: 'रेफ़रल',
+    srcOther: 'अन्य',
+    namePh: 'नाम *',
+    phonePh: 'फ़ोन',
+    needPh: 'उन्हें क्या चाहिए?',
+    cameFrom: 'कहाँ से आए',
+    followUp: 'फॉलो-अप',
+    fuToday: 'आज',
+    fuTomorrow: 'कल',
+    fuThreeDays: '3 दिन में',
+    fuPick: 'चुनें',
+    fuNone: 'नहीं',
+    whoFollows: 'फॉलो-अप कौन करेगा',
+    extra: 'अपेक्षित मूल्य, पता',
+    expectedValue: 'अपेक्षित मूल्य',
+    addressPh: 'पता',
+    newInquirySub: 'नई ग्राहक पूछताछ दर्ज करें',
+    customerDetails: 'ग्राहक का विवरण',
+    inquiryDetails: 'पूछताछ का विवरण',
+    needLabel: 'उन्हें क्या चाहिए?',
+    saveAnother: 'सहेजें और एक और जोड़ें',
+    existingCustomer: 'मौजूदा ग्राहक',
+    viewHistory: 'इतिहास देखें',
+    useCustomer: 'इस ग्राहक को चुनें',
+    notThisCustomer: 'यह ग्राहक नहीं',
+    lastActivity: 'पिछला: {item}',
+    historyCounts: '{inq} पूछताछ · {est} अनुमान · {bill} बिल · {comp} शिकायतें',
+    emailPh: 'ईमेल (वैकल्पिक)',
+    companyPh: 'कंपनी (वैकल्पिक)',
+    category: 'श्रेणी',
+    selectCategory: 'श्रेणी चुनें',
+    catPlumbing: 'प्लंबिंग',
+    catElectrical: 'बिजली',
+    catCivil: 'सिविल',
+    catInteriors: 'इंटीरियर',
+    catMaintenance: 'रखरखाव',
+    catOther: 'अन्य',
+    priority: 'प्राथमिकता',
+    prNormal: 'सामान्य',
+    prUrgent: 'अति आवश्यक',
+    prHigh: 'उच्च',
+    notesOpt: 'नोट्स (वैकल्पिक)',
+    notesPh: 'कोई अतिरिक्त जानकारी, नोट्स या संदर्भ...',
+    saveInquiry: 'पूछताछ सहेजें',
+    save: 'सहेजें',
+    followTitle: '{name} से फॉलो-अप',
+    saveFailed: 'सहेजा नहीं जा सका। फिर कोशिश करें।',
+    viaSource: '{source} से',
+    follows: '{name} फॉलो-अप करते हैं',
+    markWon: 'जीता चिह्नित करें',
+    markLost: 'खोया चिह्नित करें',
+    reopen: 'फिर खोलें',
+    lostWhy: 'क्यों खोया?',
+    lostPrice: 'बहुत महँगा',
+    lostOther: 'किसी और को चुना',
+    lostSilent: 'कोई जवाब नहीं',
+    lostSkip: 'अन्य कारण',
+    tabActivity: 'गतिविधि',
+    tabBills: 'अनुमान और बिल',
+    tabDocs: 'दस्तावेज़',
+    btnFollowUp: 'फॉलो-अप',
+    btnEstimate: 'अनुमान',
+    btnMoney: 'पैसे मिले',
+    btnInquiry: 'पूछताछ जोड़ें',
+    scheduleFollowUp: 'फॉलो-अप तय करें',
+    noFollowUpHint: 'फॉलो-अप से ग्राहक से जुड़े रहें।',
+    call: 'कॉल',
+    whatsapp: 'व्हाट्सऐप',
+    overdueSince: 'फॉलो-अप में देर · {when}',
+    dueAt: 'फॉलो-अप · {when}',
+    done: 'हो गया',
+    noFollowUp: 'कोई फॉलो-अप तय नहीं',
+    addNote: 'नोट जोड़ें',
+    notePh: 'नोट लिखें',
+    noteSave: 'नोट सहेजें',
+    evCreated: 'पूछताछ जोड़ी गई',
+    evNote: 'नोट',
+    fuOverdueDays: '{n} दिन अतिदेय',
+    fuSubToday: 'आज फ़ॉलो-अप',
+    fuSubOverdue: '{n} दिन अतिदेय',
+    fuSubOn: 'फ़ॉलो-अप {when}',
+    howWent: 'कैसा रहा?',
+    outSpoke: 'बात हुई',
+    outNoAnswer: 'जवाब नहीं',
+    outNotInterested: 'रुचि नहीं',
+    noteSpoke: 'फ़ॉलो-अप: बात हुई',
+    noteNoAnswer: 'फ़ॉलो-अप: जवाब नहीं',
+    noteNotInterested: 'फ़ॉलो-अप: रुचि नहीं',
+    fuNotifTitle: 'आज फ़ॉलो-अप है',
+    inqTitle: 'पूछताछ',
+    inqNew: 'नई पूछताछ',
+    statInquiries: 'पूछताछ',
+    statWon: 'जीती',
+    statRejected: 'अस्वीकृत',
+    statPayments: 'भुगतान',
+    assignedN: 'असाइन ({n})',
+    assignTitle: 'इस क्लाइंट को कौन संभालेगा?',
+    assignHint: 'पहला व्यक्ति मुख्य फ़ॉलो-अप बना रहता है।',
+    assignSave: 'सेव करें',
+    inqStOpen: 'खुली',
+    inqStQuoted: 'कोटेशन दिया',
+    inqStRejected: 'अस्वीकृत',
+    inqStWon: 'जीती',
+    inqFormNew: 'नई पूछताछ',
+    inqFormEdit: 'पूछताछ बदलें',
+    inqFieldTitle: 'उन्हें क्या चाहिए?',
+    inqFieldDetails: 'विवरण (वैकल्पिक)',
+    inqFieldValue: 'अपेक्षित राशि',
+    inqFieldDate: 'तारीख',
+    inqSave: 'सेव करें',
+    inqNone: 'अभी कोई पूछताछ नहीं। पहली जोड़ें।',
+    inqDetails: 'विवरण',
+    inqAmount: 'राशि',
+    inqDocs: 'एस्टीमेट और बिल',
+    inqNoDocs: 'अभी कुछ कोट नहीं हुआ।',
+    inqCreateEstimate: 'एस्टीमेट बनाएँ',
+    inqReject: 'अस्वीकृत करें',
+    inqRejectWhy: 'क्यों अस्वीकृत हुई?',
+    inqReopen: 'फिर से खोलें',
+    inqEdit: 'बदलें',
+    inqRemove: 'पूछताछ हटाएँ',
+    inqRemoveConfirm: 'यह पूछताछ हटाएँ?',
+    inqRejectedFor: 'अस्वीकृत: {reason}',
+    inqNotFound: 'यह पूछताछ उपलब्ध नहीं है।',
+    evFollowUp: 'फॉलो-अप',
+    evFollowUpDone: 'फॉलो-अप हो गया',
+    evReceipt: 'पैसे मिले',
+    activityEmpty: 'अभी कुछ नहीं।',
+    billsEmpty: 'अभी कोई अनुमान या बिल नहीं।',
+    docsEmpty: 'बिल PDF यहाँ दिखेंगे।',
+    owes: '{amount} पाना बाकी',
+    remove: 'ग्राहक हटाएँ',
+    removeConfirm: 'इस ग्राहक को हटाएँ?',
+    whenNext: 'अगला कब?',
+    nextTomorrow: 'कल',
+    nextWeek: 'अगले हफ़्ते',
+    nextNone: 'अब फॉलो-अप नहीं',
+    fuTitle: 'फॉलो-अप',
+    gOverdue: 'देर से',
+    gToday: 'आज',
+    gWeek: 'इस हफ़्ते',
+    gLater: 'बाद में',
+    mine: 'मेरे',
+    everyone: 'सभी',
+    fuEmpty: 'कोई फॉलो-अप बाकी नहीं। ग्राहक से जोड़ें।',
+    fuSubtitle: 'ग्राहक फ़ॉलो-अप पर नज़र रखें',
+    fuUpcoming: 'आगामी',
+    fuEmptyTitle: 'कोई फ़ॉलो-अप बाकी नहीं',
+    fuEmptyBody: 'ट्रैक पर रहने के लिए ग्राहक की पूछताछ, मीटिंग या बातचीत से फ़ॉलो-अप जोड़ें।',
+    fuAdd: 'फ़ॉलो-अप जोड़ें',
+    fuFromClient: 'ग्राहक से जोड़ें',
+    fuFromClientSub: 'मौजूदा ग्राहक के लिए फ़ॉलो-अप बनाएँ',
+    fuFromInquiry: 'पूछताछ से जोड़ें',
+    fuFromInquirySub: 'पूछताछ को फ़ॉलो-अप में बदलें',
+    hubMoneyIn: 'आमदनी',
+    hubMoneyOut: 'खर्च',
+    hubTeam: 'टीम',
+    hubBooks: 'खाते और कंपनी',
+    hubNew: 'नया',
+    hubToReceive: '{amount} पाना बाकी',
+    hubToday: 'आज {n}',
+    hubOpen: '{n} खुले',
+    hubToPay: '{amount} देना बाकी',
+    hubToApprove: '{n} मंज़ूर करने हैं',
+    hubPeople: '{n} लोग',
+    hubNothing: 'कुछ बाकी नहीं',
+    hubFiles: 'PDF और Excel',
+    hubSettings: 'कंपनी सेटिंग',
+    hubDue: '{n} बाकी',
+    hubInSub: 'जो पैसा आता है उसे देखें',
+    hubOutSub: 'खर्च और भुगतान संभालें',
+    hubTeamSub: 'लोग, काम और हाज़िरी',
+    hubBooksSub: 'रिकॉर्ड, रिपोर्ट और सेटअप',
+  },
+  companyImport: {
+    title: 'इम्पोर्ट',
+    menuRow: 'इम्पोर्ट',
+    menuRowSub: 'फ़ाइल, कॉन्टैक्ट या Google Sheets से कर्मचारी, ग्राहक और विक्रेता',
+    whatTitle: 'क्या इम्पोर्ट करना है?',
+    employees: 'कर्मचारी',
+    employeesSub: 'नाम, फ़ोन, आईडी, जॉइनिंग तिथि',
+    clients: 'ग्राहक और पूछताछ',
+    clientsSub: 'नाम, फ़ोन, ज़रूरत, स्थिति',
+    vendors: 'विक्रेता',
+    vendorsSub: 'नाम, फ़ोन, श्रेणी, ओपनिंग बैलेंस',
+    sourceTitle: 'कहाँ से?',
+    srcFile: 'Excel या CSV फ़ाइल',
+    srcFileSub: '.xlsx, .xls या .csv',
+    srcContacts: 'फ़ोन कॉन्टैक्ट',
+    srcContactsSub: 'अपनी एड्रेस बुक से लोग चुनें',
+    srcSheet: 'Google Sheet लिंक',
+    srcSheetSub: 'लिंक वाला कोई भी देख सके, ऐसे शेयर करें',
+    template: 'टेम्पलेट डाउनलोड करें',
+    templateFailed: 'टेम्पलेट शेयर नहीं हो सका।',
+    sheetPlaceholder: 'शेयर लिंक पेस्ट करें',
+    sheetGo: 'शीट पढ़ें',
+    sheetBad: 'यह Google Sheets का लिंक नहीं है।',
+    sheetPrivate:
+      'Waves यह शीट नहीं खोल पा रहा। इसे लिंक वाला कोई भी देख सके, ऐसे शेयर करें, फिर दोबारा कोशिश करें।',
+    sheetTooBig: 'यह शीट बहुत बड़ी है (अधिकतम 5 MB)।',
+    sheetNetwork: 'Google Sheets तक नहीं पहुँच सके। कनेक्शन जाँचें।',
+    fileTooLarge: 'यह फ़ाइल बहुत बड़ी है (अधिकतम 5 MB)।',
+    fileTooMany: 'बहुत ज़्यादा पंक्तियाँ (अधिकतम 2,000)।',
+    fileEmpty: 'इस फ़ाइल में कुछ नहीं है।',
+    fileEncoding: 'फ़ाइल को CSV UTF-8 में सेव करके दोबारा कोशिश करें।',
+    fileUnreadable: 'फ़ाइल पढ़ी नहीं जा सकी। उसे CSV में सेव करके देखें।',
+    noRows: 'हेडर के नीचे कोई पंक्ति नहीं मिली।',
+    columnsTitle: 'कॉलम मिलाएँ',
+    columnsHint: 'पहली पंक्ति हेडर मानी जाती है। गलत हो तो बदलें।',
+    none: 'मेरी फ़ाइल में नहीं है',
+    fName: 'नाम',
+    fPhone: 'फ़ोन',
+    fEmployeeId: 'कर्मचारी आईडी',
+    fDepartment: 'विभाग',
+    fManager: 'मैनेजर',
+    fJoinedOn: 'जॉइनिंग तिथि',
+    fDailyRate: 'दैनिक दर',
+    fNeed: 'ज़रूरत',
+    fSource: 'स्रोत',
+    fAddress: 'पता',
+    fExpectedValue: 'अपेक्षित मूल्य',
+    fStage: 'स्थिति',
+    fCategory: 'श्रेणी',
+    fOpeningBalance: 'ओपनिंग बैलेंस (देना है)',
+    previewTitle: 'इम्पोर्ट से पहले जाँचें',
+    cNew: '{n} नए',
+    cDup: '{n} डुप्लिकेट, छोड़े गए',
+    cErr: '{n} में गलती, छोड़े गए',
+    importN: '{n} इम्पोर्ट करें',
+    next: 'आगे',
+    back: 'पीछे',
+    progress: '{total} में से {done} जोड़े जा रहे हैं',
+    resultTitle: 'इम्पोर्ट पूरा हुआ',
+    resultLine: '{added} जोड़े गए, {dups} डुप्लिकेट होने से छोड़े गए, {errors} गलतियाँ',
+    downloadErrors: 'गलत पंक्तियाँ डाउनलोड करें',
+    done: 'पूरा हुआ',
+    pName: 'नाम नहीं है',
+    pPhone: 'फ़ोन नंबर सही नहीं है',
+    pDate: 'तिथि सही नहीं है',
+    pAmount: 'राशि सही नहीं है',
+    pNegative: 'राशि ऋणात्मक नहीं हो सकती',
+    pDupFile: 'इस फ़ाइल में दोहराया गया',
+    pDupExisting: 'पहले से सूची में है',
+    pFailed: 'यह जोड़ा नहीं जा सका। दोबारा कोशिश करें।',
+    wDept: 'विभाग नहीं मिला, खाली छोड़ा',
+    wManager: 'मैनेजर नहीं मिला, खाली छोड़ा',
+    wEmpId: 'कर्मचारी आईडी पहले से इस्तेमाल में है, खाली छोड़ी',
+    wStage: 'स्थिति पहचानी नहीं गई, ग्राहक के रूप में जोड़ा',
+    warnLine: '{n} पंक्तियाँ कुछ जानकारी के बिना जोड़ी गईं।',
+    noAccess: 'सिर्फ़ मालिक और मैनेजर इम्पोर्ट कर सकते हैं।',
+    errCsvRow: 'पंक्ति',
+    errCsvProblem: 'समस्या',
+    contactsAdded: '{n} कॉन्टैक्ट चुने गए',
+  },
+  companyVendors: {
+    subtitle: 'बिल · भुगतान · रसीदें',
+    receipts: 'रसीदें',
+    pendingN: '{n} लंबित',
+    receiptOne: '{n} रसीद',
+    receiptMany: '{n} रसीदें',
+    periodMonth: 'इस महीने',
+    periodLast: 'पिछले महीने',
+    periodYear: 'इस साल',
+    periodAll: 'सभी समय',
+    allVendors: 'सभी विक्रेता',
+    pendingReview: 'समीक्षा लंबित',
+    photoPrivacy: 'ये फ़ोटो सिर्फ़ वे लोग देख सकते हैं जो इस खाते की प्रविष्टि को देख सकते हैं।',
+    historyEmpty: 'अभी कोई प्रविष्टि नहीं',
+    title: 'विक्रेता',
+    addVendor: '+ विक्रेता जोड़ें',
+    name: 'नाम',
+    phone: 'फ़ोन (वैकल्पिक)',
+    category: 'श्रेणी (वैकल्पिक)',
+    empty: 'अभी कोई विक्रेता नहीं',
+    youOwe: 'आपको {amount} देना है',
+    hasAdvance: '{amount} अग्रिम है',
+    settled: 'हिसाब बराबर',
+    oweName: 'आपको {name} को {amount} देना है',
+    advanceName: '{name} के पास {amount} अग्रिम है',
+    settledName: '{name} के साथ हिसाब बराबर',
+    companyOwes: 'कंपनी को आपको {amount} देना है',
+    yourAdvance: 'आपके पास कंपनी से {amount} अग्रिम है',
+    allSettled: 'हिसाब बराबर',
+    addBill: 'बिल जोड़ें',
+    recordPayment: 'भुगतान दर्ज करें',
+    bill: 'बिल',
+    advance: 'अग्रिम',
+    payment: 'भुगतान',
+    amount: 'राशि',
+    date: 'तारीख',
+    note: 'टिप्पणी (वैकल्पिक)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'मान्य तारीख दर्ज करें',
+    billHint: 'कंपनी की पुष्टि के बाद यह बिल हिसाब में जुड़ेगा।',
+    pending: 'लंबित',
+    confirmed: 'पुष्टि हुई',
+    rejected: 'अस्वीकृत',
+    received: 'प्राप्त',
+    markReceived: 'प्राप्त चिह्नित करें',
+    history: 'इतिहास',
+    pendingBills: 'पुष्टि की प्रतीक्षा में बिल',
+    confirm: 'पुष्टि करें',
+    reject: 'अस्वीकार करें',
+    more: 'और विकल्प',
+    invite: 'विक्रेता को आमंत्रित करें',
+    rename: 'नाम बदलें',
+    delete: 'हटाएँ',
+    deleteConfirm: 'इस विक्रेता और उसके खाते को हटाएँ?',
+    removeEntry: 'प्रविष्टि हटाएँ',
+    removeConfirm: 'इस प्रविष्टि को खाते से हटाएँ?',
+    withdraw: 'वापस लें',
+    withdrawConfirm: 'यह लंबित बिल वापस लें?',
+    notFound: 'विक्रेता उपलब्ध नहीं',
+    inviteFailed: 'आमंत्रण नहीं बन सका। इंटरनेट से जुड़कर फिर कोशिश करें।',
+    save: 'सहेजें',
+    close: 'बंद करें',
+    addSubtitle: 'Waves में भुगतान और बिल संभालने के लिए विक्रेता जोड़ें।',
+    scanQr: 'QR स्कैन',
+    fromLink: 'लिंक से',
+    wavesId: 'Waves ID',
+    useLink: 'लिंक उपयोग करें',
+    findId: 'खोजें',
+    helpScan: 'भुगतान QR या विक्रेता का भेजा QR स्कैन करें',
+    helpLink: 'भुगतान लिंक या फ़ोन नंबर चिपकाएँ',
+    helpId: 'Waves पर ढूँढने के लिए ईमेल या फ़ोन दर्ज करें',
+    linkPlaceholder: 'लिंक या फ़ोन नंबर चिपकाएँ',
+    idPlaceholder: 'ईमेल या फ़ोन नंबर',
+    idHint: 'सही ईमेल या फ़ोन नंबर दर्ज करें',
+    lookupFailed: 'पढ़ नहीं सका। नीचे विवरण भरें।',
+    allowCamera: 'कैमरा अनुमति दें',
+    or: 'या',
+    enterManually: 'हाथ से भरें',
+    phoneOptional: 'फ़ोन नंबर (वैकल्पिक)',
+    categoryOptional: 'श्रेणी (वैकल्पिक)',
+    editVendor: 'विक्रेता संपादित करें',
+    vendorNameRequired: 'विक्रेता का नाम *',
+    categories: 'श्रेणियाँ',
+    addOrSelectCategory: 'श्रेणी जोड़ें या चुनें',
+    selectOrAddCategories: 'श्रेणियाँ चुनें या जोड़ें',
+    addCategory: 'श्रेणी जोड़ें',
+    showMore: 'और दिखाएँ',
+    showLess: 'कम दिखाएँ',
+    removeCategory: '{name} हटाएँ',
+    cancel: 'रद्द करें',
+    catMaterials: 'सामग्री',
+    catCement: 'सीमेंट',
+    catElectrical: 'इलेक्ट्रिकल',
+    catPlumbing: 'प्लंबिंग',
+    catPainting: 'पेंटिंग',
+    catHardware: 'हार्डवेयर',
+    catLabour: 'मज़दूरी',
+    saveVendor: 'विक्रेता सहेजें',
+    catSupplier: 'सप्लायर',
+    catContractor: 'ठेकेदार',
+    catLandlord: 'मकान मालिक',
+    catUtilities: 'बिजली-पानी आदि',
+    catTransport: 'परिवहन',
+    catOther: 'अन्य',
+    totalToPay: 'कुल देय राशि',
+    overdueCount: '{n} अतिदेय',
+    paidThisMonth: 'इस महीने चुकाया',
+    billsToReview: 'जांचने के बिल',
+    filterAll: 'सभी',
+    filterToPay: 'चुकाना है',
+    filterToReview: 'जांचना है',
+    search: 'विक्रेता खोजें',
+    emptyList: 'आपके विक्रेता यहाँ दिखेंगे।',
+    noMatch: 'कोई विक्रेता नहीं मिला।',
+    statusOverdue: 'अतिदेय',
+    statusToReview: 'जांचना है',
+    statusToPay: 'चुकाना है',
+    call: 'कॉल',
+    whatsapp: 'व्हाट्सऐप',
+    statement: 'विवरण',
+    vendorTitle: 'विक्रेता',
+    activityTab: 'गतिविधि',
+    billsTab: 'बिल',
+    lastPaymentLabel: 'आखिरी भुगतान',
+    waitingSync: 'सिंक का इंतज़ार',
+    entryDetails: 'प्रविष्टि का विवरण',
+    documents: 'दस्तावेज़',
+    transactions: 'लेन-देन',
+    outstanding: 'बकाया',
+    overdueLine: '{amount} अतिदेय',
+    lastPayment: 'पिछला भुगतान {amount} · {date}',
+    noPayments: 'अभी तक कोई भुगतान दर्ज नहीं।',
+    noDocs: 'अभी कोई दस्तावेज़ नहीं।',
+    dueOn: 'देय तिथि {date}',
+    dueDate: 'देय तिथि (वैकल्पिक)',
+    method: 'तरीका',
+    mUpi: 'UPI',
+    mBank: 'बैंक ट्रांसफर',
+    mCash: 'नकद',
+    mOther: 'अन्य',
+    reference: 'संदर्भ (वैकल्पिक)',
+    proofPhoto: 'सबूत की फोटो (वैकल्पिक)',
+    currentOutstanding: 'वर्तमान बकाया',
+    remainingAfter: 'इसके बाद शेष: {amount}',
+    keptAsAdvance: '{amount} अग्रिम के रूप में रखा जाएगा।',
+    recorded: 'दर्ज',
+    paymentRecorded: 'भुगतान दर्ज हुआ',
+    receipt: 'रसीद',
+    receiptTitle: 'भुगतान रसीद',
+    receiptFooter: 'भुगतान Waves में दर्ज हुआ — यह बैंक पुष्टि या टैक्स इनवॉइस नहीं है।',
+    companyLabel: 'कंपनी',
+    vendorLabel: 'विक्रेता',
+    balanceAfter: 'बाद का शेष',
+    statusLabel: 'स्थिति',
+    sharePdf: 'PDF साझा करें',
+    viewTransaction: 'लेन-देन देखें',
+    pdfFailed: 'PDF नहीं बन सका।',
+    statementTitle: 'विक्रेता विवरण',
+    balance: 'शेष',
+    receiptsHeading: 'भुगतान रसीदें',
+    billPhotos: 'बिल की फोटो',
+    shareWhatsapp: 'व्हाट्सऐप पर भेजें',
+    amountLabel: 'राशि',
+    dateLabel: 'तारीख',
+    quickFull: 'पूरा {amount}',
+    quickOverdue: 'अतिदेय {amount}',
+    stillToPay: 'इसके बाद चुकाना बाकी: {amount}',
+    paidBy: 'भुगतान का तरीका',
+    recordsNote: 'यह Waves में भुगतान दर्ज करता है। पैसे नहीं भेजता।',
+    waitingVendor: 'दर्ज · विक्रेता की प्रतीक्षा',
+    openInVendor: '{name} के लेन-देन में खोलें',
+    downloadPdf: 'PDF डाउनलोड करें',
+    advanceKind: 'अग्रिम',
+    paidTo: '{name} को भुगतान',
+    newOrder: 'नया ऑर्डर',
+    ordersTab: 'ऑर्डर',
+    orderTitle: 'नया सामग्री ऑर्डर',
+    editOrder: 'ऑर्डर बदलें',
+    itemName: 'सामान',
+    itemQty: 'मात्रा',
+    itemUnit: 'इकाई',
+    itemPrice: 'कीमत / इकाई',
+    addItem: 'सामान जोड़ें',
+    removeItem: 'सामान हटाएँ',
+    expectedDelivery: 'अपेक्षित डिलीवरी (वैकल्पिक)',
+    orderTotalItems: 'कुल · {n} सामान',
+    orderNotBill: 'ऑर्डर से आपका देय नहीं बढ़ता। विक्रेता का बिल बढ़ाता है।',
+    sendOrder: 'ऑर्डर भेजें',
+    orderSent: 'ऑर्डर भेजा गया',
+    noOrders: 'अभी कोई ऑर्डर नहीं।',
+    createOrder: 'ऑर्डर बनाएँ',
+    ordSent: 'भेजा गया',
+    ordAccepted: 'स्वीकृत',
+    ordRejected: 'अस्वीकृत',
+    ordDelivered: 'डिलीवर हुआ',
+    ordCancelled: 'रद्द',
+    accept: 'स्वीकार करें',
+    markDelivered: 'डिलीवर हुआ चिह्नित करें',
+    cancelOrder: 'ऑर्डर रद्द करें',
+    cancelOrderConfirm: 'यह ऑर्डर रद्द करें?',
+    orderTimeline: 'समयरेखा',
+    unitBags: 'बोरे',
+    unitPieces: 'नग',
+    unitKg: 'किग्रा',
+    unitLitres: 'लीटर',
+    unitMetres: 'मीटर',
+    unitOther: 'अन्य',
+    orderPdf: 'परचेज़ ऑर्डर PDF',
+    purchaseOrder: 'परचेज़ ऑर्डर',
+    expectedOn: 'अपेक्षित {date}',
+    orderItems: 'सामान',
+    orderTotal: 'कुल',
+    itemsCount: '{n} सामान',
+  },
+  companySlot: {
+    addRow: 'कंपनी जोड़ें',
+    addRowHint: 'आपकी पहली कंपनी मुफ़्त है',
+    title: 'एक और कंपनी जोड़ें',
+    body: 'आपकी पहली कंपनी मुफ़्त है। हर अतिरिक्त कंपनी {price}/माह है।',
+    subscribe: 'सब्सक्राइब करें',
+    restore: 'बहाल करें',
+    restored: 'सब्सक्रिप्शन बहाल हो गया।',
+    noneFound: 'कोई सक्रिय कंपनी सब्सक्रिप्शन नहीं मिला।',
+    unavailable:
+      'इस संस्करण में अतिरिक्त कंपनियाँ नहीं खरीदी जा सकतीं। स्टोर से अपडेट करके फिर कोशिश करें।',
+    pending: 'आपकी खरीद की मंज़ूरी का इंतज़ार है। पूरी होने पर कंपनी जोड़ें।',
+    buyFailed: 'खरीद पूरी नहीं हो सकी। आपसे कोई शुल्क नहीं लिया गया।',
+    setupSlow: 'आपका सब्सक्रिप्शन अभी पुष्ट हो रहा है। एक मिनट बाद फिर कोशिश करें।',
+    lapsedBanner:
+      'इस कंपनी का सब्सक्रिप्शन समाप्त हो गया है, इसलिए यह सिर्फ़ देखने के लिए है। कुछ भी हटाया नहीं गया। दोबारा बदलाव के लिए नवीनीकरण करें।',
+    lapsedReadOnly:
+      'इस कंपनी का सब्सक्रिप्शन समाप्त हो गया है। आप देख और एक्सपोर्ट कर सकते हैं, जोड़ या बदल नहीं सकते।',
+    renew: 'सब्सक्रिप्शन नवीनीकृत करें',
+  },
+  companyStorage: {
+    addMore: 'और स्टोरेज जोड़ें',
+    packLine: '{size} · {price}/माह',
+    packNote:
+      'हर कंपनी के लिए एक पैक; कभी भी बदलें। खत्म होने पर फ़ोटो रहेंगी, सिर्फ़ नई अपलोड रुकेंगी।',
+    packElsewhere:
+      'यह स्टोर खाता पहले से किसी दूसरी कंपनी के स्टोरेज के लिए भुगतान कर रहा है। पहले वहाँ रद्द करें, या किसी दूसरे खाते से खरीदें।',
+    bought: 'धन्यवाद। आपकी जगह कुछ ही पल में अपडेट हो जाएगी।',
+    pending: 'खरीद लंबित है। पूरी होने पर स्टोरेज अपडेट होगा।',
+    buyFailed: 'खरीद पूरी नहीं हो सकी। फिर कोशिश करें।',
+    title: 'स्टोरेज',
+    usedOfQuota: '{quota} में से {used}',
+    percentUsed: '{percent}% उपयोग',
+    banner: 'स्टोरेज {percent}% भर गया। और जोड़ें',
+    note: 'एंट्री, बिल और कामों की फ़ोटो यहाँ गिनी जाती हैं। कुछ भी कभी नहीं हटाया जाता।',
+    full: 'कंपनी का स्टोरेज भर गया है। मालिक सेटिंग्स में और जोड़ सकते हैं।',
+    loading: 'स्टोरेज लोड नहीं हो सका। दोबारा कोशिश करें।',
+  },
+  companyFiles: {
+    title: 'फ़ाइलें',
+    search: 'फ़ाइलें खोजें…',
+    all: 'सभी',
+    documents: 'दस्तावेज़',
+    images: 'चित्र',
+    sheets: 'शीट',
+    others: 'अन्य',
+    links: 'लिंक',
+    upload: 'अपलोड',
+    addLink: 'लिंक जोड़ें',
+    newFolder: 'नया फ़ोल्डर',
+    folderItems: '{n} आइटम',
+    empty: 'अभी कोई फ़ाइल नहीं',
+    emptyBody:
+      'दस्तावेज़, फ़ोटो और शीट अपलोड करें या लिंक जोड़ें, और चुनें कि हर एक को कौन देख सकता है।',
+    emptyFolder: 'यह फ़ोल्डर खाली है',
+    noMatches: 'कुछ नहीं मिला',
+    open: 'खोलें',
+    rename: 'नाम बदलें',
+    editLink: 'लिंक बदलें',
+    whoSees: 'कौन देख सकता है',
+    openFailed: 'यह फ़ाइल नहीं खुल सकी। फिर कोशिश करें।',
+    uploadFailed: 'यह फ़ाइल अपलोड नहीं हो सकी। फिर कोशिश करें।',
+    tooBig: 'यह फ़ाइल 25 MB से बड़ी है।',
+    badType:
+      'इस तरह की फ़ाइल अपलोड नहीं हो सकती। PDF, Word, Excel, PowerPoint, फ़ोटो, टेक्स्ट या zip इस्तेमाल करें।',
+    storageFull: 'कंपनी का स्टोरेज भर गया है। मालिक सेटिंग में और जोड़ सकता है।',
+    saveFailed: 'सहेजा नहीं जा सका। फिर कोशिश करें।',
+    linkName: 'नाम',
+    linkUrl: 'लिंक (https://…)',
+    linkUrlBad: 'http या https से शुरू होने वाला वेब पता डालें।',
+    folderName: 'फ़ोल्डर का नाम',
+    fileName: 'नाम',
+    visEveryone: 'सभी',
+    visManagers: 'मैनेजर और मालिक',
+    visOwners: 'सिर्फ़ मालिक',
+    visEveryoneHint: 'कंपनी के सभी सदस्य',
+    visManagersHint: 'कर्मचारियों से छिपा',
+    visOwnersHint: 'मैनेजर और कर्मचारियों से छिपा',
+    deleteFolderTitle: 'फ़ोल्डर “{name}” हटाएँ?',
+    deleteFolderBody: 'इसके अंदर सब कुछ भी हट जाएगा।',
+    deleteFileTitle: '“{name}” हटाएँ?',
+    deleteFileBody: 'यह सबके लिए हट जाएगी।',
+    uploading: 'अपलोड हो रहा है…',
+    allFiles: 'सभी फ़ाइलें',
+    listView: 'सूची दृश्य',
+    gridView: 'ग्रिड दृश्य',
+    more: 'और',
+  },
+  companyDetails: {
+    title: 'कंपनी का विवरण',
+    vendorDetails: 'विक्रेता का विवरण',
+    myDetails: 'मेरा विवरण',
+    accountName: 'खाते का नाम',
+    accountNumber: 'खाता संख्या',
+    ifsc: 'IFSC',
+    upi: 'UPI ID',
+    address: 'पता',
+    phone: 'फ़ोन',
+    email: 'ईमेल',
+    gstin: 'GSTIN',
+    pan: 'PAN',
+    note: 'टिप्पणी',
+    copied: 'कॉपी किया गया',
+    shareAsText: 'टेक्स्ट के रूप में साझा करें',
+    edit: 'बदलें',
+    addDetails: 'विवरण जोड़ें',
+    empty: 'अभी कोई विवरण नहीं जोड़ा गया',
+    reveal: 'पूरा मान दिखाएँ',
+    hide: 'मान छिपाएँ',
+    updatedAgo: '{when} {name} ने अपडेट किया',
+    updated: 'अपडेट किया गया',
+    bankChanged: 'बैंक विवरण {date} को बदले — भुगतान से पहले फ़ोन पर पुष्टि करें',
+    noted: 'ध्यान दिया',
+    save: 'सहेजें',
+    invalidField: 'मान्य {field} दर्ज करें',
+    saveFailed: 'विवरण सहेजे नहीं जा सके',
+    bank: 'बैंक',
+    contact: 'संपर्क',
+    subtitle: 'अपनी कंपनी की जानकारी और सेटिंग्स प्रबंधित करें।',
+    active: 'सक्रिय',
+    companyInfo: 'कंपनी की जानकारी',
+    legalName: 'कानूनी नाम',
+    addMore: 'और विवरण जोड़ें',
+    peopleAccess: 'लोग और एक्सेस',
+    teamMembers: 'टीम सदस्य',
+    businessSetup: 'व्यवसाय सेटअप',
+    billing: 'बिलिंग और भुगतान',
+    billingSub: 'भुगतान, बिल और स्टेटमेंट',
+    preferences: 'प्राथमिकताएँ',
+    preferencesSub: 'सूचनाएँ, मुद्रा और बहुत कुछ',
   },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
@@ -18180,6 +27144,32 @@ const hi: UiStrings = {
     traps: 'वाक्य को ठीक वैसे ही पढ़ें जैसा लिखा है।',
   },
   credits: {
+    sheetTitle: 'वॉइस क्रेडिट',
+    sheetLeft: '{n} क्रेडिट बाकी',
+    sheetHelp: 'खर्च जोड़ने, बाँटने या चुकाने जैसे AI वॉइस कमांड के लिए क्रेडिट इस्तेमाल करें।',
+    sheetWatch: 'विज्ञापन देखें · {n} क्रेडिट पाएं',
+    sheetAdded: '+{n} क्रेडिट जुड़ गए!',
+    sheetBalance: 'अब आपके पास {n} क्रेडिट हैं।',
+    sheetFull: 'क्रेडिट पूरे हैं',
+    sheetFullBody: 'आपके पास {max} में से {n} क्रेडिट हैं। कुछ इस्तेमाल करें, फिर विज्ञापन देखें।',
+    sheetGap: 'अगला विज्ञापन एक मिनट में',
+    sheetUnavailable: 'अभी विज्ञापन उपलब्ध नहीं हैं',
+    sheetRetry: 'कृपया बाद में फिर कोशिश करें।',
+    sheetPro: 'कोई विज्ञापन नहीं · {n} वॉइस कमांड/माह',
+    sheetProSubtitle: 'कोई विज्ञापन नहीं और हर महीने {n} वॉइस कमांड',
+    sheetVoice: 'हर महीने {n} वॉइस कमांड',
+    sheetPrice: 'Pro लें – {price}/माह',
+    sheetLater: 'शायद बाद में',
+    sheetStatusEmpty: 'आप इस महीने के मुफ़्त वॉइस क्रेडिट इस्तेमाल कर चुके हैं।',
+    sheetWatchSub: 'एक छोटा विज्ञापन देखें और अभी और वॉइस क्रेडिट पाएं।',
+    sheetStatusHas: 'अगले वॉइस कमांड के लिए तैयार।',
+    sheetMiniScans: '{n} स्कैन',
+    sheetMiniScansSub: 'हर महीने',
+    sheetMiniAds: 'कोई विज्ञापन नहीं',
+    sheetMiniAdsSub: 'Pro में',
+    sheetMiniDevices: '{n} डिवाइस',
+    sheetMiniDevicesSub: 'एक ही खाते पर',
+    sheetContinue: 'जारी रखें',
     title: 'क्रेडिट',
     balance: 'आपके पास {n} क्रेडिट हैं',
     usedOne: '{n} क्रेडिट इस्तेमाल हुआ',
@@ -18196,6 +27186,25 @@ const hi: UiStrings = {
     export: 'एक्सपोर्ट',
     group: 'अतिरिक्त समूह',
     price: '{n} क्रेडिट',
+    yourCredits: 'आपके क्रेडिट',
+    yourCreditsHint: 'AI वॉइस, रसीद स्कैन, एक्सपोर्ट और बहुत कुछ के लिए क्रेडिट इस्तेमाल करें।',
+    watchSub: '{n} क्रेडिट पाने के लिए एक छोटा विज्ञापन देखें',
+    proSub: 'कोई विज्ञापन नहीं, ज़्यादा क्रेडिट',
+    getPro: 'Pro लें',
+    howUsed: 'क्रेडिट कैसे खर्च होते हैं',
+    learnMore: 'और जानें',
+    voiceSub: 'आवाज़ से खर्च जोड़ें',
+    scanSub: 'स्कैन करें और जानकारी निकालें',
+    exportSub: 'CSV या Excel में एक्सपोर्ट',
+    groupSub: 'अतिरिक्त ग्रुप बनाएँ और संभालें',
+    buyTitle: 'और क्रेडिट पाएँ',
+    popular: 'लोकप्रिय',
+    buy: 'खरीदें',
+    neverExpire: 'क्रेडिट कभी समाप्त नहीं होते',
+    neverExpireSub: 'कभी भी इस्तेमाल करें। पहले महीने के मुफ़्त उपयोग खर्च होते हैं।',
+    nextAt: 'अगला विज्ञापन {time} के बाद देख सकते हैं।',
+    paidNote: 'आप Pro पर हैं, इसलिए कोई विज्ञापन नहीं। आपके क्रेडिट वॉलेट में रहते हैं।',
+    help: 'मदद',
   },
   adGates: {
     title: 'एक छोटा विज्ञापन देखें',
@@ -18225,6 +27234,7 @@ const hi: UiStrings = {
     upgradeBody: 'अनलिमिटेड वॉइस कमांड पाएँ, बिना विज्ञापनों के और भी बहुत कुछ।',
     dailyLimit: 'आज की विज्ञापन सीमा पूरी हो गई — कल फिर कोशिश करें',
     adLabel: 'विज्ञापन',
+    removeAds: 'विज्ञापन हटाएँ',
     voiceTitle: '{count} और AI वॉइस कमांड के लिए एक छोटा विज्ञापन देखें',
     scanTitle: '{count} और रसीद स्कैन के लिए एक छोटा विज्ञापन देखें',
     voiceBody:
@@ -18326,6 +27336,8 @@ const hi: UiStrings = {
     nudgesBody: 'बाकी पैसे की एक विनम्र याद। डेटाबेस में ही सीमित — एक व्यक्ति को दिन में एक बार।',
     digest: 'दैनिक समूह सारांश',
     digestBody: 'बाकी सब कुछ, लगातार की जगह दिन में एक सूचना में इकट्ठा।',
+    companyUpdates: 'कंपनी अपडेट',
+    companyUpdatesBody: 'आपकी कंपनी में छुट्टी, खर्च, भुगतान, काम, कैलेंडर और शिकायतें।',
     emailSection: 'ईमेल से',
     emailAll: 'मुझे ईमेल भेजें',
     emailAllBody:
@@ -18604,6 +27616,20 @@ const hi: UiStrings = {
     notJoined: 'शामिल नहीं',
     group: 'समूह',
   },
+  spaces: {
+    personal: 'व्यक्तिगत',
+    personalBody: 'दोस्त, ग्रुप और खर्च',
+    switchTitle: 'स्पेस बदलें',
+    switchBody: 'चुनें कि आप कहाँ काम करना चाहते हैं',
+    switchedTo: '{name} पर स्विच किया गया',
+    createTitle: 'नई कंपनी बनाएँ',
+    createBody: 'कंपनी सेट करें और लोगों को जोड़ें',
+    owner: 'मालिक',
+    manager: 'मैनेजर',
+    employee: 'कर्मचारी',
+    vendor: 'विक्रेता',
+    pillLabel: 'स्पेस बदलें',
+  },
   dashHero: {
     scanTitle: 'रसीद स्कैन करें',
     scanBody: 'बिल स्कैन करें और आइटम अपने आप भर जाते हैं — कुछ ही पलों में बाँटें.',
@@ -18658,15 +27684,67 @@ const hi: UiStrings = {
     change: 'बदलें',
     settlesWith: '{rails} से हिसाब होता है',
   },
-  activityScreen: {
-    subtitle: 'आपके हाल के लेन-देन और अपडेट',
+  departedExpenses: {
     all: 'सभी',
-    expenses: 'खर्च',
-    edits: 'बदलाव',
-    trip: 'ट्रिप',
-    more: 'और',
-    viewDetails: 'विवरण देखें',
-    openGroup: 'समूह खोलें',
+    youLent: 'आपने {name} को दिए',
+    youOwe: 'आपको {name} को देने हैं',
+    selectAll: 'सभी चुनें ({n})',
+    dateNewest: 'तारीख (नई पहले)',
+    dateOldest: 'तारीख (पुरानी पहले)',
+    amountSort: 'राशि',
+    equalShare: 'बराबर बँटवारा · उनका हिस्सा {amount}',
+    customShare: 'कस्टम बँटवारा · उनका हिस्सा {amount}',
+    paidBy: '{name} ने चुकाया',
+    selectedShares: '{n} चुने · उनके हिस्सों के {amount}',
+    splitOthers: 'बाकी लोगों में बाँटें',
+    expenseCount: { one: '{n} खर्च', other: '{n} खर्च' },
+    isOwed: {
+      one: '{n} खर्च में {name} को {amount} मिलने हैं',
+      other: '{n} खर्चों में {name} को {amount} मिलने हैं',
+    },
+
+    title: '{name} के खर्च',
+    owed: {
+      one: '{n} खर्चों में {name} को {amount} देना है',
+      other: '{n} खर्चों में {name} को {amount} देना है',
+    },
+    equal: { one: 'बराबर बाँटें ({n}) · {amount}', other: 'बराबर बाँटें ({n}) · {amount}' },
+    perEach: 'हर व्यक्ति को +{amount}',
+    splitAmong: { one: 'बाकी {n} में बाँटें', other: 'बाकी {n} में बाँटें' },
+    custom: { one: 'कस्टम बँटवारे ({n})', other: 'कस्टम बँटवारे ({n})' },
+    keep: 'रखें',
+    shareEqually: 'बराबर बाँटें',
+    paid: {
+      one: '{name} ने चुकाए ({n}) · अभी {amount} मिलने हैं',
+      other: '{name} ने चुकाए ({n}) · अभी {amount} मिलने हैं',
+    },
+    settle: '{name} से हिसाब चुकाएँ',
+    confirm: { one: '{n} बदलाव पक्के करें', other: '{n} बदलाव पक्के करें' },
+    dialog:
+      '{name} के {amount} बाकी {n} सदस्यों में बाँटें? हर व्यक्ति को लगभग {perEach} ज़्यादा देना होगा। {name} का बैलेंस {balance} होगा। गतिविधि से 7 दिनों तक इसे वापस कर सकते हैं।',
+    onlyViewer: 'आपको {amount} और देने होंगे',
+    onlyViewerDialog:
+      'आपको {amount} और देने होंगे। {name} का बैलेंस {balance} होगा। गतिविधि से 7 दिनों तक इसे वापस कर सकते हैं।',
+    bannerTitle: '{name} समूह छोड़ चुके हैं',
+    decideFor: '{name} के लिए तय करें',
+    banner: {
+      one: '{n} खर्च पर फ़ैसला चाहिए',
+      other: '{n} खर्चों पर फ़ैसला चाहिए',
+    },
+    decide: 'तय करें',
+    keepAsIs: 'ऐसे ही रखें',
+    offline: 'इन खर्चों को बदलने के लिए इंटरनेट से जुड़ें।',
+    memberRow: '{name} के खर्च',
+    activity: {
+      one: '{name} के जाने के बाद {n} खर्च बाँटा गया',
+      other: '{name} के जाने के बाद {n} खर्च बाँटे गए',
+    },
+    activityUndone: '{name} के जाने के बाद का बँटवारा वापस लिया',
+    undo: 'वापस लें',
+  },
+  activityScreen: {
+    anExpense: 'एक ख़र्च',
+    subtitle: 'आपके हाल के लेन-देन और अपडेट',
     noneForFilter: 'इस फ़िल्टर में अभी कुछ नहीं है।',
     importedHeadline: { one: '{n} ख़र्च इम्पोर्ट हुआ', other: '{n} ख़र्च इम्पोर्ट हुए' },
     importedSentence: {
@@ -18717,13 +27795,13 @@ const hi: UiStrings = {
   newGroupForm: {
     title: 'नया समूह बनाएँ',
     headerSub: 'ग्रुप बनाएँ और खर्च साथ मिलकर बाँटें',
-    tagline: 'साथ मिलकर प्लान करें, आसानी से बाँटें',
+    tagline: 'दोस्तों, परिवार या सहकर्मियों के साथ खर्च बाँटें — बस कुछ ही चरणों में।',
     nameExample: 'जैसे गोवा ट्रिप',
     whatFor: 'यह समूह किसलिए है?',
     descriptionExample: 'जैसे दोस्तों की ट्रिप, वीकेंड घूमना',
     addFriendsSub: 'खर्च बाँटने के लिए लोगों को जोड़ें',
     addContacts: 'संपर्क जोड़ें',
-    personPlaceholder: 'नाम या फ़ोन नंबर खोजें',
+    personPlaceholder: 'नाम जोड़ें',
     groupType: 'समूह का प्रकार',
     groupTypeSub: 'अपने ग्रुप के लिए एक प्रकार चुनें',
     datesSub: 'यात्रा की तारीखें (वैकल्पिक)',
@@ -18736,6 +27814,7 @@ const hi: UiStrings = {
     descriptionLabel: 'विवरण (वैकल्पिक)',
     optional: '(वैकल्पिक)',
     seeAll: 'सभी देखें',
+    moreOptions: 'और विकल्प',
   },
   captureForm: {
     headerSub: 'कुछ ही सेकंड में अपना खर्च दर्ज करें',
@@ -18756,11 +27835,15 @@ const hi: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'क्रेडिट',
-    creditsLabel: '{n} क्रेडिट',
-    noAdAvailable: 'अभी कोई विज्ञापन उपलब्ध नहीं है।',
+    getCredits: 'क्रेडिट पाएं',
+    creditOne: '{n} क्रेडिट',
+    creditMany: '{n} क्रेडिट',
+    creditReward: '{n} क्रेडिट पाएं',
+    creditPro: 'विज्ञापन नहीं, {n} वॉइस/माह',
     totalOwed: 'आपको कुल मिलने हैं',
     totalOwe: 'आपको कुल देने हैं',
     totalSettled: 'सब हिसाब बराबर है',
+    downloadingGroups: 'आपके ग्रुप डाउनलोड हो रहे हैं · {loaded} / {total}',
     spentThisMonth: 'इस महीने आपने खर्च किए',
     vsLastMonth: 'पिछले महीने की तुलना में',
     periodOverall: 'कुल',
@@ -18777,7 +27860,14 @@ const hi: UiStrings = {
     settleTitle: 'किस समूह में हिसाब चुकाएँ?',
     settleEmpty: 'हर समूह में हिसाब बराबर है।',
     settleSubtitle: 'बैलेंस देखने और हिसाब चुकाने के लिए समूह चुनें।',
+    settleSquareBody: 'आपके समूहों में कोई बकाया बैलेंस नहीं है।',
+    settleAllDone: 'सब हिसाब बराबर है!',
+    settleAllDoneBody: 'अभी चुकाने के लिए कोई बैलेंस नहीं है।',
+    settleCreate: 'समूह बनाएँ',
+    settleScan: 'बिल स्कैन करके जोड़ें',
+    settleInvite: 'सदस्यों को आमंत्रित करें',
     settleMeta: '{members} · आखिरी गतिविधि {when}',
+    settleAllGroups: 'सभी समूह',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
   },
   tips: {
@@ -19416,9 +28506,9 @@ const hi: UiStrings = {
     more: 'और',
     confirmReceived: 'मिलने की पुष्टि करें',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
-    rowOwed: 'owed', // English placeholder — English-first phase, translation owed
-    rowYouOwe: 'you owe', // English placeholder
-    rowSettled: 'settled', // English placeholder
+    rowOwed: 'आपको मिलने हैं',
+    rowYouOwe: 'आपको देने हैं',
+    rowSettled: 'चुकता',
     saysTheyPaidYou: '{name} कहते हैं कि उन्होंने आपको भुगतान किया',
     saysTheyPaidYouWindow: '{name} कहते हैं कि उन्होंने आपको भुगतान किया ({window})',
     daysToConfirm: { one: 'पुष्टि के लिए {n} दिन', other: 'पुष्टि के लिए {n} दिन' },
@@ -19535,7 +28625,7 @@ const hi: UiStrings = {
     rejectConfirm: 'अस्वीकारें',
     cancelSettlement: 'भुगतान रद्द करें',
     paymentsToSettle: 'चुकाने वाले भुगतान',
-    everyonesBalance: 'सबका बैलेंस',
+    everyonesBalance: 'ग्रुप टोटल',
     cancelTitle: 'यह भुगतान रद्द करें?',
     cancelBody:
       'आपके द्वारा दर्ज भुगतान हट जाएगा। {name} से पुष्टि नहीं मांगी जाएगी और कोई बैलेंस नहीं बदलेगा।',
@@ -19619,6 +28709,12 @@ const hi: UiStrings = {
     emailSubject: 'Waves पर {group} में शामिल हों',
     hideContacts: 'संपर्क छिपाएँ',
     browseContacts: 'मेरे संपर्क देखें',
+    addSomeoneBody: 'खर्च साथ बाँटना शुरू करने के लिए दोस्तों को जोड़ें।',
+    browseContactsBody: 'अपने फ़ोन के संपर्कों से खोजें और जोड़ें',
+    shareInviteBody: 'किसी को भी लिंक भेजें',
+    orAddManually: 'या मैन्युअल रूप से जोड़ें',
+    contactOptional: 'फ़ोन नंबर या ईमेल (वैकल्पिक)',
+    addToGroupButton: 'समूह में जोड़ें',
     fromContactsHint: 'इस फ़ोन की संपर्क सूची से नाम चुनें',
     shareJoinLink: 'जुड़ने का लिंक साझा करें',
     shareJoinLinkHint: 'लिंक भेजें या QR दिखाएँ — वे खुद जुड़ जाएँगे',
@@ -19950,6 +29046,18 @@ const hi: UiStrings = {
     settleNoHistory: 'अभी कोई भुगतान नहीं',
     settlePaymentsCount: { one: '{n} भुगतान में', other: '{n} भुगतानों में' },
     settleBetweenOthersSub: 'समूह के सदस्यों के बीच भुगतान (आपके बैलेंस पर असर नहीं)',
+    paymentsToMake: 'करने वाले भुगतान',
+    balanceSortAmount: 'राशि के अनुसार',
+    balanceSortName: 'नाम के अनुसार',
+    sortPill: 'क्रम: {label}',
+    sortAmountHigh: 'ज़्यादा राशि',
+    sortAmountLow: 'कम राशि',
+    settleInOneGo: 'एक साथ निपटाएँ',
+    balanceSimplified: 'सरलीकृत',
+    balanceIsOwed: 'लेना है',
+    balanceOwesYou: 'आपको देना है',
+    balanceOwes: 'देना है',
+    balanceSettled: 'निपट गया',
     settleOweYouTitle: 'जिनसे आपको लेना है',
     settleYouOweTitle: 'जिन्हें आपको चुकाना है',
     settleStatusPending: 'लंबित',
@@ -20061,7 +29169,6 @@ const hi: UiStrings = {
     memberLeft: '(छोड़ चुके)',
     archivedGroup: 'संग्रहीत',
     unavailableGroup: 'अनुपलब्ध',
-    serverRefused: 'सर्वर ने यह बदलाव नहीं माना।',
     notSentYet: 'अभी भेजा नहीं गया',
     offlineWithCount: {
       one: 'ऑफ़लाइन — {n} बदलाव इसी फ़ोन पर सेव है',
@@ -20084,6 +29191,32 @@ const hi: UiStrings = {
     getTodaysRate: 'आज की {from}→{to} दर लाएँ',
     micPermission: 'माइक्रोफ़ोन इस्तेमाल करने के लिए Waves को अनुमति चाहिए।',
     micBlocked: 'Waves के लिए माइक्रोफ़ोन बंद है। आप इसे सेटिंग्स में चालू कर सकते हैं।',
+    permission: {
+      continue: 'जारी रखें',
+      notNow: 'अभी नहीं',
+      openSettings: 'सेटिंग्स खोलें',
+      blocked: 'इसे सेटिंग्स में चालू करें।',
+      kinds: {
+        mic: {
+          title: 'माइक्रोफ़ोन का उपयोग',
+          body: 'खर्च बोलते समय ही Waves सुनता है, ताकि उसे प्रविष्टि बना सके।',
+        },
+        contacts: {
+          title: 'अपने दोस्त खोजें',
+          body: 'Waves आपके संपर्क केवल बाँटने के लिए लोगों को चुनने में मदद हेतु पढ़ता है।',
+        },
+        notifications: { title: 'जुड़े रहें', body: 'अपने समूहों के रिमाइंडर और अपडेट पाएँ।' },
+        location: {
+          title: 'खर्च की जगह जोड़ें',
+          body: 'Waves खर्च के साथ जगह तभी जोड़ता है जब आप कहें।',
+        },
+        camera: { title: 'कैमरे का उपयोग', body: 'रसीद या प्रोफ़ाइल की फ़ोटो लें।' },
+        photos: {
+          title: 'फ़ोटो का उपयोग',
+          body: 'रसीद या प्रोफ़ाइल के लिए अपनी लाइब्रेरी से फ़ोटो चुनें।',
+        },
+      },
+    },
     dictationFailed: 'बोलकर लिखना शुरू नहीं हो सका। नोट टाइप कर लें।',
     dictationErrors: {
       notAllowed: 'माइक्रोफ़ोन के लिए Waves को अनुमति चाहिए। इसे सेटिंग्स में चालू कर सकते हैं।',
@@ -20098,6 +29231,8 @@ const hi: UiStrings = {
     updateWaves: 'Waves अपडेट करें',
     alreadyUpdated: 'मैंने पहले ही अपडेट कर लिया',
     update: 'अपडेट',
+    updateNow: 'अभी अपडेट करें',
+    newVersion: 'नया वर्ज़न',
     notNow: 'अभी नहीं',
     changeGroupPhoto: 'समूह की फ़ोटो बदलें',
     addGroupPhoto: 'समूह की फ़ोटो जोड़ें',
@@ -20156,7 +29291,7 @@ const hi: UiStrings = {
     versionStoppedBody:
       'यह संस्करण अब Waves से बात नहीं कर सकता, इसलिए ग़लत आँकड़े दिखाने के बजाय इसे रोक दिया गया है।',
     newWavesOut: 'नया Waves आ गया है',
-    wavesVersionOut: 'Waves {latest} आ गया है',
+    wavesVersionOut: 'Waves {latest} उपलब्ध है',
   },
   smsImport: {
     heroTitle: 'भुगतान झटपट जोड़ें',
@@ -20268,6 +29403,37 @@ const hi: UiStrings = {
       draftLabel: 'Waves ड्राफ़्ट',
       continue: 'जारी रखें',
     },
+  },
+  spendingAsk: {
+    title: 'मेरे खर्च के बारे में पूछें',
+    tileSub: 'सरल शब्दों में पूछें',
+    sub: 'अपने पैसे के बारे में सवाल पूछें।',
+    ledgerNote: 'सिर्फ़ आपके निजी खाते के आधार पर। रकम ऐप गिनता है, अंदाज़ा नहीं लगाता।',
+    period: 'इस महीने अब तक: {from} से {to}',
+    q1: 'इस महीने मेरा पैसा कहाँ गया?',
+    q2: 'मैं किन सब्सक्रिप्शन का भुगतान कर रहा हूँ?',
+    q3: 'क्या मैं पिछले महीने से ज़्यादा खाने पर खर्च कर रहा हूँ?',
+    placeholder: 'अपने खर्च के बारे में पूछें',
+    send: 'पूछें',
+    asking: 'आपका खाता देख रहे हैं',
+    counter: '{max} में से {n}',
+    facts: 'आँकड़े',
+    subscriptions: 'संभावित सब्सक्रिप्शन',
+    subscriptionsHint: 'तय समय पर दोहराए जाने वाले भुगतानों से पहचाने गए।',
+    monthly: 'मासिक',
+    weekly: 'साप्ताहिक',
+    yearly: 'वार्षिक',
+    lastCharge: 'आख़िरी बार {date} को',
+    yourQuestion: 'आपका सवाल',
+    askAnother: 'एक और सवाल पूछें',
+    failed: 'यह नहीं हो पाया। आपका सवाल यहीं है, फिर कोशिश करें।',
+    rate: 'एक साथ बहुत सवाल। थोड़ा रुककर फिर कोशिश करें।',
+    unavailable: 'अभी पूछना उपलब्ध नहीं है।',
+    quota: 'आपने इस महीने के सभी {limit} सवाल इस्तेमाल कर लिए हैं।',
+    paywallTitle: 'अपने खर्च के बारे में पूछें',
+    paywallBody: 'Waves Pro बताता है कि पैसा कहाँ गया और आप किन सब्सक्रिप्शन का भुगतान करते हैं।',
+    unlock: 'Pro से खोलें',
+    back: 'वापस',
   },
   statementImport: {
     title: 'स्टेटमेंट इम्पोर्ट करें',
@@ -20862,8 +30028,6 @@ const hi: UiStrings = {
     useMyTimezone: 'मेरा टाइमज़ोन इस्तेमाल करें ({zone})',
     fromYourContactsSubtitle: 'Waves में जोड़ने के लिए लोगों को चुनें',
     filterAll: 'सभी',
-    filterOnWaves: 'Waves पर हैं',
-    filterNotOnWaves: 'Waves पर नहीं हैं',
     filterSelected: 'चुने गए',
     peopleSelectedCount: { one: '{n} व्यक्ति चुना गया', other: '{n} लोग चुने गए' },
     clearAllSelected: 'सभी हटाएं',
@@ -20906,6 +30070,43 @@ const hi: UiStrings = {
     plansPromise: 'लेजर कभी लॉक नहीं होता।',
     manageSubscription: 'सदस्यता प्रबंधित करें',
     whatCosts: 'प्लान में क्या जुड़ता है',
+  },
+  purchases: {
+    title: 'खरीदारियाँ',
+    row: 'खरीदारियाँ',
+    rowHint: 'प्लान, इतिहास, रसीदें',
+    link: 'खरीदारियाँ और रसीदें',
+    proMonthly: 'Waves Pro · मासिक',
+    proYearly: 'Waves Pro · वार्षिक',
+    status: {
+      active: 'सक्रिय',
+      trial: 'ट्रायल',
+      renewsOff: 'नवीनीकरण बंद',
+      billingIssue: 'भुगतान में समस्या',
+      expired: 'समाप्त',
+      refunded: 'रिफ़ंड हुआ',
+      promo: 'प्रोमो',
+    },
+    test: 'टेस्ट',
+    renews: '{date} को नवीनीकरण',
+    ends: '{date} को समाप्त',
+    ended: '{date} को समाप्त हुआ',
+    promoUntil: '{date} तक प्रोमो',
+    changePlan: 'प्लान बदलें',
+    manageOnAndroid: 'Android पर प्रबंधित करें',
+    manageOnIphone: 'अपने iPhone पर प्रबंधित करें',
+    receiptsNotePlay: 'रसीदें और टैक्स इनवॉइस Google Play ईमेल करता है।',
+    receiptsNoteApple: 'रसीदें और टैक्स इनवॉइस App Store ईमेल करता है।',
+    help: 'मदद',
+    getReceipt: 'रसीद पाएँ',
+    orderId: 'ऑर्डर आईडी',
+    contactSupport: 'सहायता से संपर्क करें',
+    copied: 'ऑर्डर आईडी कॉपी हुई',
+    emptyTitle: 'अभी कोई खरीदारी नहीं',
+    emptyBody: 'Waves Pro की सदस्यता लेने पर आपका प्लान और रसीदें यहाँ दिखेंगी।',
+    seePlans: 'प्लान देखें',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
   },
   paywall: {
     title: 'अपना प्लान चुनें',
@@ -20996,19 +30197,13 @@ const hi: UiStrings = {
   },
   referral: {
     row: 'दोस्तों को आमंत्रित करें',
-    rowHint: 'साथ में Pro के दिन पाएँ',
+    rowHint: 'साथ में 50 क्रेडिट पाएँ',
     title: 'दोस्तों को आमंत्रित करें',
-    headline: 'पैसों की बात साथ मिलकर आसान होती है।',
+    headline: 'एक दोस्त को बुलाएँ। आप दोनों को 50 क्रेडिट मिलेंगे।',
     body: 'दोस्तों के साथ कोई ग्रुप शेयर करें और Waves से थोड़ा और पाएँ।',
-    youGetTitle: 'आपको 7 दिन का Pro मिलेगा',
-    youGetBody: 'आपके दोस्त के Waves इस्तेमाल करना शुरू करने के बाद।',
-    friendGetsTitle: 'आपके दोस्त को भी 7 दिन मिलेंगे',
-    friendGetsBody: 'प्रीमियम फ़ीचर साथ में आज़माएँ।',
-    milestoneDays: '{n} दिन',
     share: 'आमंत्रण लिंक शेयर करें',
     shareMessage: 'Waves से दोस्तों के साथ खर्च बाँटना आसान है। मेरे साथ जुड़ें:',
-    progress: '{cap} में से {earned} दिन मिल चुके हैं',
-    capReached: 'आपने पूरे {cap} दिन पा लिए हैं। धन्यवाद!',
+    friendsJoined: '{cap} में से {n} दोस्त जुड़े · {credits} क्रेडिट मिले',
     pending: {
       one: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
       other: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
@@ -21019,7 +30214,7 @@ const hi: UiStrings = {
     yourCode: 'आपका कोड',
     copyCode: 'कोड कॉपी करें',
     codeCopied: 'कॉपी हो गया',
-    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 7 दिन का Pro मिलेगा।',
+    applied: 'हो गया। जब आप अपना पहला साझा खर्च दर्ज करेंगे, तो आप दोनों को 50 क्रेडिट मिलेंगे।',
     unknownCode: 'यह कोड किसी से मेल नहीं खाता।',
     ownCode: 'यह आपका अपना कोड है।',
     alreadyUsed: 'आप पहले ही एक आमंत्रण इस्तेमाल कर चुके हैं।',
@@ -21455,6 +30650,7 @@ const hi: UiStrings = {
     typeEvent: 'आयोजन',
     typeFriends: 'दोस्त',
     typeOther: 'अन्य',
+    typeCompany: 'कंपनी',
     tagLabel: 'टैग (वैकल्पिक)',
     tagPlaceholder: 'जैसे ऑफ़िस ऑफ़साइट',
     tagSheetSubtitle: 'टैग जोड़ें ताकि बाद में ढूँढना आसान हो।',
@@ -21499,7 +30695,7 @@ const hi: UiStrings = {
     needsUpdating: 'Waves को अपडेट चाहिए',
     nothingIsLost:
       'कुछ नहीं खोया। हर समूह, खर्च और निपटान सर्वर पर है और ठीक वहीं मिलेगा जहाँ आपने छोड़ा था।',
-    worthAMinute: 'जब वक़्त मिले तो एक मिनट देने लायक।',
+    worthAMinute: 'नए सुधार और बग फ़िक्स पाने के लिए अपडेट करें।',
     theGroup: 'समूह',
     noGroupsYet:
       'आपके अभी कोई समूह नहीं हैं। Waves में हर व्यक्ति किसी समूह का होता है, क्योंकि उधार हमेशा किसी चीज़ का होता है — कोई यात्रा, कोई घर, कोई खाना।',
@@ -21983,7 +31179,9 @@ const hi: UiStrings = {
   },
   demo: {
     badge: 'डेमो',
-    bannerTitle: 'यह एक डेमो ग्रुप है — बेझिझक इसे एक्सप्लोर करें',
+    groupName: 'डेमो ग्रुप',
+    rowSubtitle: 'नमूना डेटा · कभी भी हटाएं',
+    bannerTitle: 'यह नमूना डेटा वाला डेमो ग्रुप है।',
     removeAction: 'डेमो हटाएं',
     removeHint: 'डेमो ट्रिप को आपके डैशबोर्ड से हटा देता है। इसे पूर्ववत नहीं किया जा सकता।',
     removeConfirmTitle: 'डेमो ग्रुप हटाएं?',
@@ -22027,6 +31225,159 @@ const ar: UiStrings = {
     owes: 'دفع {paid} · استُخدم {used} · عليه {back}',
     none: 'لا توجد دفعات مطلوبة',
     closeHint: 'يؤدي الإغلاق إلى إنشاء دفعات يؤكدها أمين الصندوق والأعضاء.',
+  calendar: {
+    title: 'التقويم',
+    today: 'اليوم',
+    upcoming: 'القادمة',
+    comingUp: 'قريباً',
+    seeAll: 'عرض الكل',
+    agendaFor: 'جدول أعمال {date}',
+    nothingPlanned: 'لا توجد خطط',
+    filterAll: 'الكل',
+    filterLeave: 'الإجازات والعطلات',
+    filterMoney: 'المال',
+    filterWork: 'العمل والفعاليات',
+    filterBirthdays: 'أعياد الميلاد',
+    add: 'إضافة',
+    addHoliday: 'عطلة',
+    addEvent: 'فعالية',
+    recordLeave: 'تسجيل إجازة',
+    requestLeave: 'طلب إجازة',
+    myDates: 'عيد ميلادي وتاريخ بدء العمل',
+    kindHoliday: 'عطلة',
+    kindLeave: 'إجازة',
+    kindWage: 'موعد الأجور',
+    kindVendorBill: 'فاتورة مورد',
+    kindCustomerBill: 'فاتورة عميل غير مدفوعة',
+    kindAdvance: 'سلفة مستحقة',
+    kindTask: 'عمل',
+    kindEvent: 'فعالية',
+    kindBirthday: 'عيد ميلاد',
+    kindAnniversary: 'ذكرى بدء العمل',
+    birthdayOf: 'عيد ميلاد {name}',
+    anniversaryOf: '{name} · {n} سنوات',
+    overdue: 'متأخر',
+    overdueItems: {
+      zero: '{n} بند متأخر',
+      one: 'بند متأخر',
+      two: 'بندان متأخران',
+      few: '{n} بنود متأخرة',
+      many: '{n} بندًا متأخرًا',
+      other: '{n} بند متأخر',
+    },
+    totalDue: 'إجمالي المستحق {amount}',
+    nothingDue: 'لا شيء مستحق',
+    nothingOverdue: 'لا شيء متأخر',
+    nothingUpcoming: 'لا شيء قادم',
+    moreCount: 'و{n} أخرى',
+    leaveCasual: 'اعتيادية',
+    leaveSick: 'مرضية',
+    leaveOther: 'أخرى',
+    halfDay: 'نصف يوم',
+    statusPending: 'قيد الانتظار',
+    statusApproved: 'موافق عليها',
+    statusRejected: 'مرفوضة',
+    leaveLine: '{name} · {from} – {to}',
+    dayCount: '{n} أيام',
+    oneDay: 'يوم واحد',
+    holidayName: 'اسم العطلة',
+    holidayTitle: 'إضافة عطلة',
+    holidayPlaceholder: 'مثلاً: عيد الفطر، عطلة المكتب',
+    eventTitle: 'عنوان الفعالية',
+    eventTime: 'الوقت، اختياري',
+    eventPeople: 'الأشخاص المعنيون',
+    eventEveryone: 'الجميع',
+    eventSite: 'الموقع، اختياري',
+    eventDate: 'التاريخ',
+    eventTimeLabel: 'الوقت',
+    eventSiteLabel: 'الموقع',
+    eventOptional: '(اختياري)',
+    eventTitlePlaceholder: 'مثلاً: زيارة موقع، اجتماع الفريق',
+    eventSearch: 'ابحث عن الأشخاص…',
+    eventSelected: 'المحدد: {n}',
+    eventCreate: 'إنشاء فعالية',
+    eventSave: 'حفظ الفعالية',
+    person: 'الشخص',
+    startDate: 'من',
+    endDate: 'إلى',
+    reason: 'السبب، اختياري',
+    note: 'ملاحظة، اختيارية',
+    leaveType: 'النوع',
+    save: 'حفظ',
+    cancel: 'إلغاء',
+    approve: 'موافقة',
+    reject: 'رفض',
+    withdraw: 'سحب الطلب',
+    remove: 'إزالة',
+    decisionNote: 'أضف ملاحظة، اختيارية',
+    decisionTitle: 'طلب إجازة',
+    errName: 'أدخل اسماً',
+    errTitle: 'أدخل عنواناً',
+    errRange: 'يجب أن يكون تاريخ النهاية في يوم البداية أو بعده',
+    errHalfDay: 'نصف اليوم مخصص ليوم واحد',
+    errOverlap: 'يتداخل هذا مع إجازة أخرى للشخص',
+    errWindow: 'اختر تاريخاً ضمن الفترة المسموح بها',
+    errPeople: 'اختر شخصاً واحداً على الأقل من فريقك',
+    errTime: 'استخدم وقتاً مثل 14:30',
+    errDate: 'أدخل تاريخاً صحيحاً',
+    errBirthday: 'أدخل يوماً وشهراً صحيحين',
+    birthday: 'عيد الميلاد',
+    datesTitle: 'عيد الميلاد وتاريخ الانضمام',
+    datesSubtitle: 'احتفظ بهذه التواريخ لتتذكرها وتحتفل بها',
+    joinedLabel: 'تاريخ الانضمام (اختياري)',
+    selectDate: 'اختر التاريخ',
+    birthDay: 'اليوم',
+    birthMonth: 'الشهر',
+    joinedOn: 'تاريخ بدء العمل، اختياري',
+    showBirthday: 'أظهر عيد ميلادي للزملاء',
+    showBirthdayHint: 'مغلق افتراضياً. يُحفظ اليوم والشهر فقط، ولا تُحفظ السنة.',
+    clear: 'مسح',
+    paidHolidays: 'عطلات مدفوعة',
+    paidHolidaysHint: 'تُحتسب العطلات أياماً مدفوعة في حساب الأجور.',
+    paidLeave: 'إجازة مرضية/اعتيادية مدفوعة',
+    paidLeaveHint: 'الإجازة المرضية والاعتيادية الموافق عليها مدفوعة. الإجازات الأخرى بلا أجر.',
+    leavePolicy: 'سياسة الإجازات',
+    leavePolicyHint: 'الإجازة الاعتيادية والمرضية وغيرها: كم يكسب كل شخص كل شهر.',
+    leavePolicyRow: 'الإجازة الاعتيادية والمرضية وغيرها التي يكسبها كل شخص',
+    leaveTypeAdd: 'إضافة نوع إجازة',
+    leaveTypeEdit: 'تعديل نوع الإجازة',
+    leaveTypeName: 'الاسم',
+    leaveAccrual: 'الأيام المكتسبة شهريًا (من 0 إلى 5، ونصف يوم مقبول)',
+    leaveCarry: 'ترحيل إلى العام التالي',
+    leaveCarryHint: 'الأيام غير المستخدمة تنتقل إلى العام التالي. عند الإيقاف تُصفَّر في 1 يناير.',
+    leaveCarryCap: 'الحد الأقصى للأيام المرحّلة',
+    leaveAnnualCap: 'الحد الأقصى للأيام المكتسبة سنويًا',
+    leaveNoLimit: 'بلا حد',
+    leavePaid: 'إجازة مدفوعة',
+    leavePaidHint: 'تُحتسب يومًا مدفوعًا في الأجور',
+    leaveOverdraw: 'السماح بالنزول تحت الصفر',
+    leaveOverdrawHint: 'متوقف: لا يمكن قبول طلب يتجاوز الرصيد.',
+    leaveActive: 'قيد الاستخدام',
+    leaveParked: 'غير مستخدم',
+    leavePerMonth: '{n} في الشهر',
+    leaveCarries: 'تُرحَّل',
+    leaveResets: 'تُصفَّر كل عام',
+    leaveErrName: 'أعطِه اسمًا.',
+    leaveErrAccrual: 'يجب أن تكون الأيام الشهرية من 0 إلى 5 بخطوات 0.5.',
+    leaveErrCap: 'يجب أن يكون الحد عددًا من الأيام، أو اتركه فارغًا لعدم وجود حد.',
+    leaveTypeNone: 'أخرى (غير محسوبة)',
+    leaveLeft: 'متبقّي {n}',
+    leaveAfter: 'يتبقى {n} بعد هذا',
+    leaveDaysSelected: '{n} أيام محددة',
+    leaveDaysAvailable: '{n} أيام متاحة',
+    leaveBalances: 'رصيد الإجازات',
+    leaveEarned: 'المكتسب',
+    leaveTaken: 'المأخوذ',
+    leaveRequested: 'المطلوب',
+    upcomingTimeOff: 'الإجازات القادمة',
+    leaveOverBalance: 'المتبقي {n} أيام فقط في {type}. هذا الطلب أطول.',
+    leaveCannotApprove: 'لا يمكن القبول: المتبقي {n} أيام فقط في {type}.',
+    wageRuleNote:
+      'تتبع أيام الأجر الحضور. تُحتسب العطلات أياماً مدفوعة عند تفعيل العطلات المدفوعة؛ وتُحسب الإجازة الموافق عليها غياباً ما لم تُفعّل الإجازة المدفوعة.',
+    holidayOnDay: 'عطلة: {name}',
+    leaveOnDay: 'في إجازة',
+    pendingLeaveTitle: '{n} طلب إجازة بانتظار القرار',
+    suspendedNote: 'هذه الشركة متوقفة مؤقتاً. التقويم للقراءة فقط.',
   },
   greeting: 'أهلاً',
   yourWaves: 'باقيك',
@@ -22341,7 +31692,7 @@ const ar: UiStrings = {
     reminded: 'تم التذكير {ago}',
     agoMinutes: 'منذ {n} د',
     agoHours: 'منذ {n} س',
-    agoDays: 'منذ {n} ي',
+    agoDays: 'منذ {n} يوم',
     remindFailed: 'تعذّر إرسال التذكير. حاول مرة أخرى.',
     remindMessage:
       'مرحباً {name}، دفعت لك {amount} في {group} بتاريخ {date}. يرجى تأكيد ذلك في Waves.',
@@ -22515,6 +31866,7 @@ const ar: UiStrings = {
     shareTitle: 'تصدير Waves الخاص بك',
   },
   groupExport: {
+    creditUsage: '⚡ يستخدم {cost} رصيدًا · لديك {balance}',
     menu: 'تصدير',
     title: 'تصدير هذه المجموعة',
     intro:
@@ -22610,6 +31962,54 @@ const ar: UiStrings = {
     scan: 'مسح إيصال',
     voice: 'انطق مصروفًا',
   },
+  otaUpdates: {
+    row: 'تحديثات التطبيق',
+    intro: 'يمكن أن تصل الإصلاحات الصغيرة إلى هاتفك دون انتظار تحديث المتجر.',
+    running: 'قيد التشغيل',
+    builtIn: 'مدمج',
+    overTheAir: 'عبر الشبكة',
+    channel: 'القناة',
+    runtime: 'إصدار وقت التشغيل',
+    check: 'التحقق من التحديثات',
+    checking: 'جارٍ التحقق من التحديثات…',
+    downloading: 'جارٍ تنزيل التحديث…',
+    upToDate: 'لديك أحدث إصدار.',
+    ready: 'تم تنزيل التحديث. أعد التشغيل لاستخدامه.',
+    restart: 'إعادة التشغيل الآن',
+    failed: 'تعذّر التحقق من التحديثات. حاول لاحقًا.',
+    unavailable: 'التحديثات غير متاحة في هذا الإصدار.',
+  },
+  pendingChanges: {
+    row: 'التغييرات المعلّقة',
+    intro:
+      'تغييرات محفوظة على هذا الهاتف ولم تصل إلى الخادم بعد. إعادة المحاولة ترسل تغييرًا الآن؛ الحذف يزيله من هذا الهاتف.',
+    empty: 'لا شيء في الانتظار. كل التغييرات وصلت إلى الخادم.',
+    created: 'أُنشئ',
+    attempts: 'المحاولات',
+    lastError: 'آخر خطأ',
+    blockedBy: 'ينتظر خلف',
+    stuck: 'عالق: أقدم من يوم ولا يظهر على الشاشة',
+    retry: 'أعد المحاولة الآن',
+    discard: 'حذف',
+    discardTitle: 'حذف هذا التغيير؟',
+    discardBody: 'سيُزال من هذا الهاتف ولن يُرسل أبدًا. وسيظهر ما لدى الخادم بدلًا منه.',
+    copy: 'نسخ التقرير',
+    copied: 'تم نسخ التقرير',
+    headline: {
+      zero: 'لا توجد تغييرات غير متزامنة',
+      one: 'تعذّرت مزامنة تغيير واحد',
+      two: 'تعذّرت مزامنة تغييرين',
+      few: 'تعذّرت مزامنة {n} تغييرات',
+      many: 'تعذّرت مزامنة {n} تغييرًا',
+      other: 'تعذّرت مزامنة {n} تغيير',
+    },
+    allSynced: 'تمت مزامنة كل شيء',
+    notSynced: 'غير متزامن',
+    waiting: 'في الانتظار',
+    status: 'الحالة',
+    stuckShort: 'أقدم من يوم، غير معروض على الشاشة',
+    copyHint: 'انسخ التفاصيل للمشاركة أو لحل المشكلة',
+  },
   recent: {
     title: 'الأحدث على ساعتك',
     intro: 'عدد المصروفات الأخيرة التي تعرضها ساعتك المقترنة بنظرة واحدة.',
@@ -22658,7 +32058,71 @@ const ar: UiStrings = {
       spring: 'موسم الأزهار',
     },
   },
+  twoStep: {
+    row: 'تسجيل الدخول بخطوتين',
+    rowHint: 'رموز للشركات التي تطلبها',
+    title: 'تسجيل الدخول بخطوتين',
+    bannerVerify: 'تحقق من الخطوتين لتواصل العمل في {company}',
+    bannerVerifyGeneric: 'تحقق من الخطوتين لتواصل العمل',
+    wrongCode: 'هذا الرمز غير صحيح.',
+    locked: 'محاولات كثيرة. انتظر قليلاً.',
+    updateWaves: 'حدّث Waves للمتابعة.',
+    tryLater: 'تعذّر ذلك. حاول بعد قليل.',
+    verified: 'تم التحقق',
+    verifyFirst: 'تحقق من الخطوتين على هذا الهاتف أولاً.',
+    newPhoneTitle: 'هاتف جديد',
+    newPhoneBody: 'أدخل الرمز من جهازك الآخر، أو اطلب من المالك الموافقة على هذا الهاتف.',
+    codeLabel: 'رمز من 6 أرقام',
+    continue: 'متابعة',
+    checkAgain: 'تحقق مجدداً',
+    yourCode: 'رمزك',
+    newCodeIn: 'رمز جديد خلال {n} ث',
+    codeHint: 'قد تطلب شركتك هذا الرمز عند تسجيل الدخول على هاتف جديد.',
+    authenticatorTitle: 'إضافة تطبيق مصادقة',
+    authenticatorOn: 'تطبيق المصادقة مُعدّ.',
+    authenticatorSteps:
+      'انسخ المفتاح إلى تطبيق المصادقة ثم اكتب الرمز المكوّن من 6 أرقام الذي يعرضه.',
+    copyKey: 'نسخ المفتاح',
+    copied: 'تم النسخ',
+    openAuthenticator: 'فتح في تطبيق المصادقة',
+    confirm: 'تأكيد',
+    addAuthenticator: 'إضافة تطبيق مصادقة',
+    replaceAuthenticator: 'استبدال تطبيق المصادقة',
+    requireTitle: 'اشتراط تسجيل الدخول بخطوتين',
+    requireHint: 'على الجميع التحقق على هواتفهم قبل رؤية بيانات الشركة.',
+    requireConfirmTitle: 'اشتراط الخطوتين؟',
+    requireConfirmBody: 'سيحتاج الجميع إلى التحقق من الخطوتين لفتح هذه الشركة.',
+    requireConfirmOld: 'سيحتاجون إلى تحديث Waves: {names}.',
+    requireOn: 'تشغيل',
+    peopleTitle: 'الخطوتان',
+    approve: 'موافقة',
+    decline: 'رفض',
+    approveTitle: 'الموافقة على هاتف {name} الجديد؟',
+    declineTitle: 'رفض هاتف {name} الجديد؟',
+    approveBody:
+      'سيتمكن من فتح الشركة على ذلك الهاتف. ينتقل رمزه إلى الهاتف الجديد ويتوقف الهاتف القديم.',
+    declineBody: 'لن يُسمح لذلك الهاتف بالدخول.',
+    resetTitle: 'إعادة ضبط الخطوتين لـ {name}؟',
+    resetBody:
+      'ستُحذف رموزه وكل الجلسات الموثّقة، بما فيها المتصفحات، في كل الشركات التي تشترط الخطوتين. عليه إعداد المصادقة من جديد والتوثّق مجددًا.',
+    reset: 'إعادة ضبط الخطوتين',
+    newPhoneRow: 'هاتف جديد {platform}',
+    memberOn: 'الخطوتان مفعّلتان',
+  },
   sync: {
+    refusal: {
+      twoStep: 'تحقق من الخطوتين على هذا الهاتف ثم يُحفظ هذا التغيير.',
+      companyGroup:
+        'هذه مجموعة شركة، لذا لا يمكن إضافة هذا كمصروف مشترك. أضفه كقيد للشركة بدلاً من ذلك.',
+      adminOnly: 'يمكن لمسؤول المجموعة فقط إجراء هذا التغيير.',
+      notMember: 'لم تعد عضواً في هذه المجموعة، لذا لا يمكن حفظ هذا التغيير.',
+      archived: 'أُغلقت هذه المجموعة أو حُذفت، لذا لا يمكن حفظ هذا التغيير.',
+      notFound: 'حُذف شيء مرتبط بهذا التغيير، لذا لا يمكن حفظه.',
+      conflict: 'عدّل شخص آخر هذا في الوقت نفسه. راجعه وحاول مجدداً.',
+      guestExpired: 'انتهت فترتك التجريبية كضيف. أنشئ حساباً لمواصلة الحفظ.',
+      companySlot: 'الشركة الإضافية تحتاج اشتراكاً خاصاً بها. تخلَّ عن هذه ثم اشترك من إضافة شركة.',
+      generic: 'تعذّر حفظ هذا التغيير. راجعه أو تجاهله.',
+    },
     title: 'المزامنة عبر',
     wifi: 'واي‑فاي فقط',
     wifiHint: 'المزامنة عبر واي‑فاي فقط. لا تستهلك بيانات الجوال أبدًا.',
@@ -22678,20 +32142,31 @@ const ar: UiStrings = {
       many: '{n} تغييرًا عالقًا',
       other: '{n} تغيير عالق',
     },
+    stuckShort: 'محفوظ على هذا الهاتف، لكنه لم يُرسَل بعد.',
+    discardTitle: 'تجاهل هذا التغيير؟',
+    discardBody: 'إنه على هذا الهاتف فقط. بعد تجاهله لن يعود.',
     stuckExplain: 'ما زال محفوظًا على هذا الهاتف — لكنه لا يُرسَل. أعد المحاولة، أو تجاهله.',
     openDetail: 'يفتح ما يحتاج إلى قرارك',
   },
   lock: {
-    subtitle: 'حافظ على خصوصية معلوماتك.',
-    requireShort: 'طلب البصمة أو رمز المرور',
-    requireHint: 'يطلب بصمة الإصبع أو الوجه أو رمز المرور لفتح Waves.',
-    askAgainShort: 'المدة التي يمكن أن يبقى فيها Waves مفتوحًا في الخلفية.',
+    subtitle: 'حافظ على خصوصية معلوماتك وأمان حسابك.',
+    requireShort: 'قفل التطبيق',
+    requireHint: 'استخدم Face ID أو بصمة الإصبع أو رمز PIN للجهاز لفتح التطبيق.',
+    askAgainShort: 'يطلب التحقق مجددًا بعد مغادرة التطبيق لهذه المدة.',
     reopenShort: 'يطلب Waves التحقق دائمًا بعد إغلاقه بالكامل.',
-    footnoteShort: 'البيانات التي تمت مزامنتها محمية على خوادمنا في كلتا الحالتين.',
+    footnoteShort: 'بياناتك مشفّرة أثناء النقل وعند التخزين على خوادمنا.',
     title: 'الأمان',
     requireBiometrics: 'اطلب البصمة أو رمز المرور',
     appLock: 'قفل التطبيق',
-    unsupported: 'لا توجد بصمة أو رمز مرور مضبوط على هذا الجهاز',
+    askTitle: 'هل تريد قفل Waves ببصمتك؟',
+    askBody:
+      'سيطلب Waves بصمتك أو وجهك أو رمز مرور الهاتف في كل مرة يُفتح فيها، حتى لا يرى من يحمل هاتفك أموالك. يمكنك تغيير ذلك من الإعدادات.',
+    askYes: 'تفعيل قفل التطبيق',
+    askFingerprint: 'البصمة',
+    askFace: 'Face ID',
+    askFaceAndroid: 'فتح بالوجه',
+    askPasscode: 'رمز مرور الهاتف',
+    unsupported: 'لم يتم إعداد Face ID أو بصمة الإصبع أو قفل الشاشة على هذا الجهاز.',
     askAgainAfter: 'اسأل مرة أخرى بعد',
     graceImmediate: 'فورًا',
     graceSeconds: {
@@ -22716,11 +32191,34 @@ const ar: UiStrings = {
       'هذا حساب ضيف، وتسجيل الخروج لا يترك طريقًا للعودة إليه. أضف بريدًا إلكترونيًا أو رقم هاتف أولًا إن أردت الاحتفاظ به.',
     signOutReassure: 'يمكنك تسجيل الدخول متى شئت. لا يُحذف شيء.',
     staySignedIn: 'ابقَ مسجّل الدخول',
-    personalPrompt: 'افتح قفل دفترك الشخصي',
-    personalLockedTitle: 'دفترك الشخصي مقفل',
-    personalLockedBody:
-      'دخلك وإنفاقك وميزانياتك وقروضك. افتحه بالوجه أو البصمة نفسها التي تفتح هذا الهاتف.',
-    personalLockedRefused: 'لم يُفتح القفل. حاول مرة أخرى، أو ارجع.',
+    learnMore: 'اعرف المزيد',
+    learnTitle: 'كيف نحمي بياناتك',
+    learnTransit: 'كل ما بين التطبيق وخوادمنا ينتقل عبر اتصال مشفّر (TLS).',
+    learnRest: 'البيانات المخزّنة على خوادمنا مشفّرة أثناء التخزين لدى مزوّدي الاستضافة لدينا.',
+    learnLimits:
+      'هذا ليس تشفيرًا من طرف إلى طرف: يمكن لخوادمنا معالجة البيانات المتزامنة لتشغيل التطبيق. قفل التطبيق يحمي هذا الهاتف فقط.',
+    accountTitle: 'أمان الحساب',
+    accountSub: 'أدر طريقة تسجيل دخولك وحافظ على أمان حسابك.',
+    email: 'البريد الإلكتروني',
+    phone: 'رقم الهاتف',
+    verified: 'موثّق',
+    addContact: 'أضف بريدًا إلكترونيًا أو رقم هاتف',
+    devicesSub: 'أدر الأجهزة المسجّلة الدخول إلى حسابك.',
+    activeNow: 'نشط الآن',
+    seeAll: 'عرض الكل',
+    dataTitle: 'البيانات والخصوصية',
+    dataSub: 'تحكّم في بياناتك وإعدادات الخصوصية.',
+    backupOn: 'آخر نسخة احتياطية {date}',
+    backupNever: 'لم تؤخذ نسخة احتياطية بعد',
+    hideAmounts: 'إخفاء المبالغ الحساسة',
+    hideAmountsHint: 'يخفي الأرقام في لوحة حسابك الشخصي',
+    deleteRow: 'حذف الحساب',
+    deleteHint: 'احذف حسابك وبياناتك نهائيًا',
+  },
+  lostPage: {
+    title: 'هذه الصفحة غير متاحة',
+    body: 'قد يكون الرابط قديمًا أو انتقلت الصفحة.',
+    action: 'العودة إلى الرئيسية',
   },
   signInWall: {
     title: 'أضف حسابًا أولًا',
@@ -22823,12 +32321,31 @@ const ar: UiStrings = {
     couldNotSignOut: 'تعذّر تسجيل خروج الأجهزة الأخرى. حاول مرة أخرى.',
     signedOutElsewhere: 'تم تسجيل خروجك لأنك سجّلت الخروج من هذا الجهاز من جهاز آخر.',
     title: 'الأجهزة',
-    intro:
-      'الخطة المجانية تشمل جهازين في وقت واحد. الجهاز الذي لم تفتحه منذ فترة يتوقف عن العدّ من تلقاء نفسه.',
+    subtitle: 'إدارة الأجهزة المسجّل دخولها إلى حسابك',
+    infoFree: 'الحد الأقصى في الخطة المجانية للأجهزة النشطة في وقت واحد: {n}.',
+    infoPaid: 'الحد الأقصى في خطتك للأجهزة النشطة في وقت واحد: {n}.',
+    infoBody: 'الجهاز الذي لم تستخدمه منذ فترة يتوقف عن العدّ من تلقاء نفسه.',
+    learnMore: 'اعرف المزيد',
+    learnTitle: 'كيف تعمل حدود الأجهزة',
+    learnBody:
+      'الحد الأقصى للأجهزة النشطة في وقت واحد: {free} في الخطة المجانية و{pro} في Pro. الجهاز الذي لم تستخدمه منذ {days} يومًا يتوقف عن العدّ من تلقاء نفسه، وتسجيل الخروج من جهاز يُفرغ مكانه فورًا.',
+    activeTitle: 'الأجهزة النشطة ({active}/{limit})',
+    otherTitle: 'أجهزة أخرى',
+    sortBy: 'ترتيب حسب',
+    sortLast: 'آخر نشاط',
+    sortName: 'الاسم',
+    addDevice: 'إضافة جهاز',
+    addTitle: 'إضافة جهاز آخر',
+    addBody:
+      'ثبّت Waves على الجهاز الآخر وسجّل الدخول بالبريد الإلكتروني نفسه. سيظهر هنا بمجرد تسجيل الدخول.',
+    signOutAllTitle: 'تسجيل الخروج من كل الأجهزة الأخرى؟',
     thisDevice: 'هذا الجهاز',
     signedOut: 'تم تسجيل الخروج',
     lastActive: 'آخر نشاط {when}',
     signOutOthers: 'تسجيل الخروج من كل الأجهزة الأخرى',
+    eraseOthers: 'تسجيل الخروج ومسح الأجهزة الأخرى',
+    eraseOthersHint:
+      'للهاتف المفقود: يمسح أيضًا بيانات الأجهزة الأخرى. ستُفقد نهائيًا التغييرات التي لم تتم مزامنتها عليها.',
     signOutOthersHint:
       'يُسجّل الخروج من كل جهاز عدا هذا الجهاز. ستُطلب منها تسجيل الدخول في المرة القادمة.',
     signedOutOthers: {
@@ -22898,7 +32415,7 @@ const ar: UiStrings = {
     sectionHelp: 'المساعدة',
     sectionPreferences: 'التفضيلات',
     sectionSecurity: 'الأمان',
-    sectionData: 'البيانات والخصوصية',
+    sectionData: 'الخصوصية والأمان',
     aiKeysRow: 'مفاتيح الذكاء الاصطناعي',
     aiKeysHint: 'أضف مفتاح OpenAI أو Claude أو Kimi الخاص بك',
     planRow: 'الخطة',
@@ -22922,9 +32439,9 @@ const ar: UiStrings = {
       'تغيّرت الكلمات بالفعل. أما إعادة الواجهة المعكوسة إلى اتجاهها فيقرره الهاتف عند بدء التطبيق، لذا يسري في المرة القادمة التي تفتحه فيها.',
     languageFooterNote:
       'لغة هاتفك هي الافتراضية، والاختيار هنا يغيّر Waves وحده. تبقى المبالغ والتواريخ تابعة لمكانك — قراءة التطبيق بالهندية في دبي لا تنقلك إلى الهند.',
-    lockNoBiometrics: 'لا توجد بصمة مضبوطة على هذا الجهاز',
-    lockOn: 'مفعّل · يسأل {when}',
-    lockOff: 'متوقف — أي شخص يمسك هاتفك يمكنه قراءة الدفتر',
+    lockNoBiometrics: 'لم يتم إعداد Face ID أو بصمة الإصبع أو قفل الشاشة على هذا الجهاز.',
+    lockOn: 'قفل التطبيق مفعّل · يطلب التحقق {when}',
+    lockOff: 'قفل التطبيق متوقف · يمكن لأي شخص يمسك هاتفك فتح Waves',
     signOutGuestHint: 'حساب الضيف هذا موجود على هذا الجهاز فقط',
     signOutHint: 'لا يُحذف شيء؛ سجّل الدخول متى شئت',
   },
@@ -22990,6 +32507,1831 @@ const ar: UiStrings = {
     completeRowHint: 'أضف المكان أو طريقة الدفع أو إيصالاً',
     completeSheetTitle: 'أكمل هذا المصروف',
     tryWhoOwes: '«من يدين لي؟»',
+  },
+  companyActivity: {
+    title: 'نشاط الشركة',
+    you: 'أنت',
+    youObj: 'لك',
+    all: 'الكل',
+    money: 'المال',
+    attendance: 'الحضور',
+    tasks: 'المهام',
+    people: 'الأشخاص',
+    vendors: 'الموردون والفواتير',
+    today: 'اليوم',
+    yesterday: 'أمس',
+    showOlder: 'عرض الأقدم',
+    empty: 'لم يحدث شيء بعد',
+    statusPresent: 'حاضر',
+    statusHalf: 'نصف يوم',
+    statusAbsent: 'غائب',
+    expense: 'أضاف {actor} مصروفًا',
+    expenseFor: 'أضاف {actor} مصروفًا لـ {name}',
+    allowance: 'أضاف {actor} بدلًا',
+    allowanceFor: 'أضاف {actor} بدلًا لـ {name}',
+    advance: 'أعطى {actor} سلفة لـ {name}',
+    wages: 'دفع {actor} راتبًا لـ {name}',
+    reimbursed: 'سدّد {actor} مبلغًا لـ {name}',
+    cashReturned: 'سجّل {actor} نقدًا أعاده {name}',
+    companyPaid: 'سجّل {actor} دفعة من الشركة',
+    approved: 'وافق {actor} على طلب {name}',
+    rejected: 'رفض {actor} طلب {name}',
+    attendanceOne: 'سجّل {actor} {name} كـ {status}',
+    attendanceMany: 'سجّل {actor} {count} أشخاص كـ {status}',
+    taskAssigned: "أُسندت المهمة '{title}' إلى {name}",
+    taskDone: "أنجز {name} المهمة '{title}'",
+    taskBlocked: "المهمة '{title}' متعثرة لدى {name}",
+    joined: 'انضم {name}',
+    joinedManager: 'انضم {name} كمدير',
+    added: 'تمت إضافة {name}',
+    markedNotEmployed: 'سجّل {actor} أن {name} لم يعد موظفًا',
+    left: 'غادر {name}',
+    vendorBill: 'أضاف {actor} فاتورة من {vendor}',
+    vendorBillPending: 'أضاف {actor} فاتورة من {vendor} بانتظار التأكيد',
+    vendorBillRejected: 'رُفضت فاتورة {vendor}',
+    vendorPayment: 'سجّل {actor} دفعة إلى {vendor}',
+    vendorAdvance: 'أعطى {actor} سلفة لـ {vendor}',
+    vendorReceived: 'أكّد {vendor} الدفعة',
+    estimateCreated: 'أنشأ {actor} عرض سعر {number} لـ {customer}',
+    billCreated: 'أنشأ {actor} فاتورة {number} لـ {customer}',
+    billPaid: 'تم دفع الفاتورة {number} الخاصة بـ {customer}',
+    heads: {
+      expense: 'أُضيف مصروف',
+      expenseFor: 'أُضيف مصروف',
+      allowance: 'أُضيف بدل',
+      allowanceFor: 'أُضيف بدل',
+      advance: 'سُلفة مدفوعة',
+      wages: 'أجور مدفوعة',
+      reimbursed: 'تم التعويض',
+      cashReturned: 'نقد مُعاد',
+      companyPaid: 'دفعة الشركة',
+      approved: 'طلب مقبول',
+      rejected: 'طلب مرفوض',
+      attendanceOne: 'تحديث الحضور',
+      attendanceMany: 'تحديث الحضور',
+      taskAssigned: 'مهمة مُسندة',
+      taskDone: 'مهمة منجزة',
+      taskBlocked: 'مهمة متوقفة',
+      joined: 'انضم',
+      joinedManager: 'انضم مدير',
+      added: 'أُضيف شخص',
+      markedNotEmployed: 'غير موظف',
+      left: 'غادر',
+      vendorBill: 'فاتورة مورّد',
+      vendorBillPending: 'فاتورة مورّد معلّقة',
+      vendorBillRejected: 'فاتورة مورّد مرفوضة',
+      vendorPayment: 'دفعة لمورّد',
+      vendorAdvance: 'سُلفة لمورّد',
+      vendorReceived: 'تأكيد الدفع',
+      estimateCreated: 'إنشاء عرض سعر · {number}',
+      billCreated: 'إنشاء فاتورة · {number}',
+      billPaid: 'دفع فاتورة · {number}',
+    },
+    dayCount: {
+      zero: '{n} نشاط',
+      one: 'نشاط واحد',
+      two: 'نشاطان',
+      few: '{n} أنشطة',
+      many: '{n} نشاطًا',
+      other: '{n} نشاط',
+    },
+  },
+  companyDocs: {
+    title: 'التقديرات والفواتير',
+    estimate: 'تقدير',
+    bill: 'فاتورة',
+    all: 'الكل',
+    estimates: 'التقديرات',
+    bills: 'الفواتير',
+    unpaid: 'غير مدفوع',
+    syncing: 'جارٍ المزامنة',
+    draft: 'مسودة',
+    sent: 'تم الإرسال',
+    accepted: 'مقبول',
+    declined: 'مرفوض',
+    part_paid: 'مدفوع جزئياً',
+    paid: 'مدفوع',
+    newEstimate: 'تقدير جديد',
+    newBill: 'فاتورة جديدة',
+    customer: 'اسم العميل',
+    phone: 'الهاتف (اختياري)',
+    date: 'التاريخ',
+    description: 'الوصف',
+    qty: 'الكمية',
+    rate: 'السعر',
+    amount: 'المبلغ',
+    addItem: 'إضافة بند',
+    removeItem: 'حذف البند',
+    discount: 'خصم (اختياري)',
+    notes: 'ملاحظات (اختياري)',
+    subtotal: 'المجموع الفرعي',
+    total: 'الإجمالي',
+    payments: 'الدفعات المستلمة',
+    amountLeft: 'الرصيد المستحق',
+    markReceived: 'تحديد كمستلم',
+    upiTitle: 'الدفع عبر UPI',
+    upiScan: 'امسح للدفع {amount}',
+    upiCopy: 'نسخ معرّف UPI',
+    upiShare: 'مشاركة',
+    upiAdd: 'أضف معرّف UPI لعرض رمز الدفع',
+    billTo: 'فاتورة إلى',
+    estimateFor: 'تقدير إلى',
+    recordPayment: 'تسجيل دفعة',
+    sharePdf: 'مشاركة PDF',
+    convert: 'تحويل إلى فاتورة',
+    edit: 'تعديل',
+    delete: 'حذف',
+    save: 'حفظ',
+    empty: 'لا توجد مستندات بعد',
+    notFound: 'المستند غير موجود',
+    linkedBill: 'عرض الفاتورة',
+    linkedEstimate: 'عرض التقدير',
+    footer: 'هذه ليست فاتورة ضريبية.',
+    nameError: 'أدخل اسم العميل (حتى 120 حرفاً).',
+    itemsError: 'أضف من 1 إلى 50 بنداً.',
+    itemError: 'أدخل وصفاً وكمية موجبة وسعراً صالحاً.',
+    discountError: 'يجب أن يكون الخصم أقل من المجموع الفرعي.',
+    totalError: 'أدخل إجمالياً موجباً ضمن الحد المسموح.',
+    below_paidError: 'لا يمكن أن يقل الإجمالي عن الدفعات المستلمة.',
+    amountError: 'أدخل مبلغ دفعة موجباً.',
+    overError: 'المبلغ يتجاوز الرصيد المستحق.',
+    failed: 'تعذر الحفظ. حاول مجدداً.',
+    deleteTitle: 'حذف المستند؟',
+    deleteBody: 'سيتم حذف هذا المستند.',
+    unpaidTotal: '{amount} غير مدفوع',
+    searchLabel: 'بحث',
+    searchPlaceholder: 'ابحث بالرقم أو الاسم أو العنوان',
+    addLabel: 'جديد',
+    docsCount: '{n} مستندات',
+    billsCount: '{n} فواتير',
+    noDocsTitle: 'لا توجد عروض أسعار أو فواتير بعد',
+    noDocsBody: 'أنشئ عروض الأسعار وأضف الفواتير وتابع الدفعات في مكان واحد.',
+    createBill: 'إنشاء فاتورة',
+    createEstimate: 'إنشاء عرض سعر',
+    noMatch: 'لا نتائج',
+    billSubtitle: 'أنشئ فاتورة مفصّلة وشاركها',
+    estimateSubtitle: 'أنشئ تقديرًا مفصّلًا وشاركه',
+    selectCustomer: 'اختر العميل أو أضفه',
+    pickClient: 'اختر عميلًا',
+    billDate: 'تاريخ الفاتورة',
+    currency: 'العملة',
+    itemsCount: 'العناصر ({n})',
+    rateEach: '{rate} للوحدة',
+    notesOptional: 'ملاحظات (اختياري)',
+    paymentStatus: 'حالة الدفع',
+    saveShare: 'احفظ وشارك',
+    createdBy: 'أنشأه',
+    acceptedBy: 'قبله',
+    declinedBy: 'رفضه',
+    activity: 'النشاط',
+    nextAction: 'الإجراء التالي',
+    add: 'إضافة',
+    duplicate: 'تكرار',
+    print: 'طباعة',
+    markSent: 'تحديد كمرسل',
+    paymentEvt: 'تم استلام دفعة',
+    viewAll: 'عرض الكل',
+    showLess: 'عرض أقل',
+    editEstimate: 'تعديل عرض السعر',
+    editBill: 'تعديل الفاتورة',
+    saveChanges: 'حفظ التغييرات',
+    preview: 'معاينة',
+    estimateNo: 'رقم عرض السعر',
+    billNo: 'رقم الفاتورة',
+    status: 'الحالة',
+    detailsTitle: 'تفاصيل {type}',
+  },
+  company: {
+    attendanceTitle: 'الحضور',
+    attendanceMine: 'حضوري',
+    attendanceEmpty: 'أضف موظفين للبدء.',
+    attendancePresent: 'حاضر',
+    attendanceHalf: 'نصف يوم',
+    attendanceAbsent: 'غائب',
+    attendanceMarkAll: 'تسجيل حضور الجميع',
+    attendanceTotal: 'الإجمالي',
+    attendanceDaily: 'يومي',
+    attendanceWeekly: 'أسبوعي',
+    attendanceMonthly: 'شهري',
+    attendanceSearch: 'ابحث عن الموظفين...',
+    attendanceDepartment: 'القسم',
+    workToday: 'اليوم',
+    attendanceNote: 'إضافة ملاحظة',
+    attendanceNotePlaceholder: 'إضافة ملاحظة (اختياري)',
+    attendanceHalfDay: 'نصف يوم',
+    attendanceMark: 'تسجيل',
+    attendanceClear: 'مسح',
+    attendanceVsYesterday: '{delta} مقارنة بالأمس',
+    attendanceFilters: 'عوامل التصفية',
+    attendanceStatus: 'الحالة',
+    attendanceNotMarked: 'غير مسجل',
+    attendancePickDate: 'اختيار التاريخ',
+    attendanceMore: 'خيارات أخرى',
+    attendanceDailyView: 'عرض يومي',
+    attendanceWeeklyView: 'عرض أسبوعي',
+    attendanceMonthlyView: 'عرض شهري',
+    attendanceSetStatus: 'تسجيل الحضور',
+    attendanceMarkAllAbsent: 'تسجيل غياب الجميع',
+    attendanceOnLeave: 'في إجازة',
+    attendanceLeaveApplied: 'تم طلب إجازة',
+    attendanceLeave: 'إجازة',
+    attendanceSaving: 'جارٍ الحفظ',
+    attendanceMember: 'العضو',
+    attendanceMarkHoliday: 'تحديد كعطلة',
+    attendanceHolidayEdit: 'عطلة: {name}',
+    attendancePrevious: 'السابق',
+    attendanceNext: 'التالي',
+    attendanceSaved: 'تم الحفظ',
+    attendanceOverwriteTitle: 'استبدال العلامات الحالية؟',
+    attendanceOverwriteBody: 'لدى {n} أشخاص علامة مختلفة لهذا اليوم. هل تريد استبدالها؟',
+    attendanceTasks: {
+      zero: '{n} مهمة',
+      one: 'مهمة واحدة',
+      two: 'مهمتان',
+      few: '{n} مهام',
+      many: '{n} مهمة',
+      other: '{n} مهمة',
+    },
+    attendanceSubtitle: {
+      zero: '{company} · لا موظفين',
+      one: '{company} · موظف واحد',
+      two: '{company} · موظفان',
+      few: '{company} · {n} موظفين',
+      many: '{company} · {n} موظفًا',
+      other: '{company} · {n} موظف',
+    },
+    attendanceSummary: {
+      one: 'يوم حضور واحد',
+      two: 'يوما حضور',
+      few: '{n} أيام حضور',
+      other: '{n} يوم حضور',
+    },
+    attendancePreviousMonth: 'الشهر السابق',
+    attendanceNextMonth: 'الشهر التالي',
+    tabDetails: 'التفاصيل',
+    editEmployee: 'تعديل الموظف',
+    changeEmploymentType: 'تغيير نوع التوظيف',
+    deleteEmployee: 'حذف الموظف',
+    deleteEmployeeTitle: 'حذف {name}؟',
+    deleteEmployeeBody: 'ستتم إزالته من فريقك. لن يضيع شيء: ليس لديه أي إدخالات أو حضور.',
+    deleteHasHistory: 'لديه سجل — عيّنه كغير موظف بدلاً من ذلك',
+    statusActive: 'نشط',
+    attendanceMonthTitle: 'الحضور ({month})',
+    daysPresent: 'أيام حضور',
+    daysPresentIn: 'أيام الحضور في {month}: {n}',
+    viewReport: 'عرض التقرير',
+    viewFullAttendance: 'عرض الحضور الكامل',
+    birthdayJoining: 'تاريخ الميلاد والانضمام',
+    addBirthdayJoining: 'أضف تاريخ الميلاد والانضمام',
+    joiningDate: 'تاريخ الانضمام',
+    detailPhone: 'الهاتف',
+    detailEmail: 'البريد الإلكتروني',
+    detailMileage: 'سعر الكيلومتر',
+    workTitle: 'العمل اليومي',
+    departments: 'الأقسام',
+    department: 'القسم',
+    departmentNone: 'لا شيء',
+    departmentAdd: 'إضافة قسم',
+    departmentRename: 'إعادة تسمية القسم',
+    departmentRemove: 'إزالة القسم',
+    departmentActions: 'إجراءات القسم',
+    departmentNameError: 'أدخل اسمًا فريدًا للقسم.',
+    workSubtitle: 'تابع مهام فريقك وأنجزها.',
+    workSearch: 'ابحث عن المهام والموظفين...',
+    workTotal: 'إجمالي المهام',
+    workAllTasks: 'كل المهام',
+    workDueToday: 'مستحقة اليوم',
+    workCompleted: 'مكتمل',
+    workInProgress: 'قيد التنفيذ',
+    workPending: 'معلّق',
+    workAll: 'الكل',
+    workMineTasks: 'مهامي',
+    workTeam: 'الفريق',
+    workFilter: 'تصفية',
+    workTime: 'الوقت (HH:MM)',
+    workNoTime: 'بلا وقت',
+    workMine: 'عملي اليوم',
+    workEmpty: 'لا مهام لهذا اليوم.',
+    workByDate: 'حسب التاريخ',
+    workByPerson: 'حسب الشخص',
+    workByStatus: 'حسب الحالة',
+    workOverdue: 'متأخرة',
+    workPriority: 'الأولوية',
+    workPrioNormal: 'عادية',
+    workPrioUrgent: 'عاجلة',
+    workPrioVeryUrgent: 'عاجلة جداً',
+    workLateOn: 'متأخرة · {date}',
+    workOpenN: '{n} مفتوحة',
+    workDoneN: 'منجزة · {n}',
+    workSiteFilter: 'تصفية الموقع',
+    workNoTasks: 'لا مهام بعد',
+    workNoTasksHint: 'أضف مهمة لإسناد العمل وتحديد موعد ومتابعته بسهولة.',
+    workNoMatch: 'لا توجد مهام تطابق "{q}"',
+    workNoneForYou: 'لا مهام لك',
+    workShowTeam: 'عرض مهام الفريق',
+    workBlockedInTeam: '{n} متعثرة في الفريق',
+    workExport: 'تصدير تقرير',
+    workExportRange: 'الفترة الزمنية',
+    workThisWeek: 'هذا الأسبوع',
+    workThisMonth: 'هذا الشهر',
+    workCustom: 'مخصص',
+    workFrom: 'من',
+    workTo: 'إلى',
+    workReportType: 'نوع التقرير',
+    workRepList: 'قائمة المهام',
+    workRepPerson: 'حسب الشخص',
+    workRepSite: 'حسب الموقع',
+    workRepOverdue: 'المتأخرة ونسبة الإنجاز',
+    workExportSub: 'احصل على تقرير بمهامك بصيغة PDF أو Excel.',
+    exportPayments: 'المدفوعات',
+    exportTasks: 'المهام',
+    workFileFormat: 'صيغة الملف',
+    workGenerate: 'إنشاء التقرير',
+    workRepListSub: 'كل المهام مع الحالة',
+    workRepPersonSub: 'المهام حسب المكلّف',
+    workRepSiteSub: 'المهام حسب الموقع',
+    workRepOverdueSub: 'المتأخرة والمكتملة والمعلّقة',
+    workColNumber: '#',
+    workColTitle: 'المهمة',
+    workColDate: 'التاريخ',
+    workColStatus: 'الحالة',
+    workColOpen: 'مفتوحة',
+    workColTotal: 'الإجمالي',
+    workCompletion: 'نسبة الإنجاز',
+    workDaysLate: 'أيام التأخير',
+    workProBadge: 'Pro',
+    workAdd: 'إضافة مهمة',
+    workEdit: 'تعديل المهمة',
+    workTitleField: 'عنوان المهمة',
+    workPerson: 'الشخص',
+    workSite: 'الموقع',
+    workNoSite: 'بلا موقع',
+    workTodo: 'للقيام بها',
+    workDoing: 'قيد العمل',
+    workDone: 'مكتملة',
+    workHeaderSub: 'أعمال الموقع والزيارات والمتابعات',
+    workTasksN: '{n} مهام',
+    workBlocked: 'متوقفة',
+    workReason: 'لماذا توقفت؟',
+    workNote: 'ملاحظة',
+    workDue: 'تاريخ ووقت الاستحقاق',
+    workNotesOptional: 'ملاحظات (اختياري)',
+    workDueDate: 'تاريخ الاستحقاق',
+    workDueTime: 'وقت الاستحقاق',
+    workRepeat: 'تكرار غدًا',
+    workRemove: 'إزالة',
+    workStatus: 'الحالة',
+    workUpdateStatus: 'تحديث الحالة',
+    workAddNote: 'أضف ملاحظة (اختياري)',
+    workPreviousDay: 'اليوم السابق',
+    workNextDay: 'اليوم التالي',
+    workSeeAll: 'عرض الكل',
+    workSaveError: 'تعذر الحفظ. حاول مجددًا.',
+    taskDescription: 'وصف المهمة',
+    taskDescriptionHint: 'ماذا تريد أن يُنجز؟',
+    taskAssignTo: 'إسناد إلى',
+    taskResponsible: 'المسؤول',
+    taskHelpers: 'يعمل عليها أيضًا (اختياري)',
+    taskHelpersNone: 'لا أحد',
+    taskHelpersMax: 'حتى 5 أشخاص',
+    taskAssignTitle: 'إسناد إلى أشخاص',
+    taskAssignN: 'إسناد ({n})',
+    workAlsoOn: 'معه أيضًا: {names}',
+    taskPeople: {
+      one: 'شخص واحد',
+      two: 'شخصان',
+      few: '{n} أشخاص',
+      many: '{n} شخصًا',
+      other: '{n} شخص',
+    },
+    taskDeadline: 'الموعد النهائي (اختياري)',
+    taskPhotoLabel: 'إرفاق صورة (اختياري)',
+    taskAddPhoto: 'إضافة صورة',
+    taskVoiceTitle: 'أو قُلها فقط…',
+    taskVoiceBody: 'اضغط على الميكروفون لإضافة مهمتك بالصوت',
+    taskSave: 'حفظ المهمة',
+    taskNeedTitle: 'اكتب ما يجب إنجازه.',
+    taskNeedPeople: 'اختر شخصًا واحدًا على الأقل.',
+    taskBadDay: 'اختر موعدًا نهائيًا من اليوم حتى أسبوع قادم.',
+    taskPhotoFailed: 'تم حفظ المهام، لكن تعذر رفع صورة. اضغط حفظ المهمة للمحاولة مجددًا.',
+
+    tab: 'الشركة',
+    listTitle: 'شركاتك',
+    listSubtitle: 'أدر شركاتك وبدّل بينها',
+    currentCompany: 'الشركة الحالية',
+    myStatement: 'كشف حسابي',
+    summary: 'ملخص الشركة',
+    employees: 'الموظفون',
+    invite: 'دعوة الموظفين',
+    addEntry: 'إضافة قيد',
+    periodMonth: 'هذا الشهر',
+    periodLast: 'الشهر الماضي',
+    periodAll: 'كل الفترات',
+    balance: 'الرصيد',
+    companyOwesYou: 'الشركة مدينة لك',
+    youOweCompany: 'أنت مدين للشركة',
+    settled: 'كل شيء مسوّى',
+    companyOwesName: 'الشركة مدينة لـ {name}',
+    nameOwesCompany: '{name} مدين للشركة',
+    companyOwesAll: 'الشركة مدينة للموظفين',
+    employeesOweAll: 'الموظفون مدينون للشركة {amount}',
+    owedTo: 'الشركة مدينة',
+    owedBy: 'مدين للشركة',
+    addEmployee: 'إضافة موظف',
+    addEmployeeBody: 'اختر من جهات الاتصال أو اكتب اسمًا أو أعد استخدام أشخاص من شركة أخرى.',
+    employeeId: 'رقم الموظف',
+    employeeIdOptional: 'رقم الموظف (اختياري)',
+    addEmployeeId: 'إضافة رقم الموظف',
+    employeeIdTaken: 'رقم الموظف هذا مستخدم لدى شخص آخر.',
+    fromPastCompany: 'شركة سابقة',
+    fromPastCompanyBody: 'أشخاص تديرهم في مكان آخر',
+    pastSearch: 'ابحث بالاسم أو الشركة',
+    pastEmpty: 'لا يوجد من يمكن إضافته من شركاتك الأخرى.',
+    pastAddSelected: 'إضافة {n} محدد',
+    pastFrom: 'من {companies}',
+    pastLoadFailed: 'تعذر تحميل شركاتك الأخرى.',
+    welcomeEmployee:
+      'أضف مصروفات الوقود والسفر والبدل هنا. أنت ومشرف الشركة فقط يمكنكما رؤية قيودك.',
+    welcomeAdmin: 'ادعُ موظفيك ثم أضف القيود والسلف والأجور لهم. يرى كل موظف قيوده فقط.',
+    brought: 'الرصيد المنقول',
+    expenses: 'المصروفات',
+    bata: 'البدل',
+    advances: 'السلف',
+    wages: 'الأجور المدفوعة',
+    paidOut: 'مدفوع للموظف',
+    returned: 'أعاده الموظف',
+    byCategory: 'المصروفات حسب الفئة',
+    entries: 'القيود',
+    none: 'لا شيء مسجّل في هذه الفترة',
+    noEmployees: 'لا يوجد موظفون بعد. ادعُهم للبدء.',
+    pending: 'بانتظار الموافقة',
+    rejected: 'مرفوض',
+    kExpense: 'مصروف',
+    kAllowance: 'بدل (يومي)',
+    kAdvance: 'سلفة مُعطاة',
+    kWages: 'أجور مدفوعة',
+    salaryPayment: 'دفعة راتب',
+    tabOverview: 'نظرة عامة',
+    overviewTasks: 'المهام',
+    tabManagers: 'المديرون',
+    tabBudgets: 'الميزانيات',
+    tabPayments: 'المدفوعات',
+    tabMyTeam: 'فريقي',
+    barPeople: 'الأشخاص',
+    barPending: 'المعلّقة',
+    barMore: 'المزيد',
+    barTeam: 'الفريق',
+    teamTabTasks: 'المهام',
+    moreBudgets: 'الميزانيات والمواقع',
+    moreStatements: 'الكشوف والتصدير',
+    moreRules: 'القواعد',
+    agentsTitle: 'وكلاء الذكاء الاصطناعي',
+    agentsAllow: 'السماح لوكلاء الذكاء الاصطناعي',
+    agentsAllowHint: 'يمكن للأشخاص ربط Claude أو ChatGPT بهذه الشركة.',
+    agentsApproval: 'تغييرات الوكيل تحتاج موافقة',
+    agentsApprovalHint: 'المصروفات التي يضيفها الوكيل تنتظر موافقتك.',
+    agentsConnected: 'المتصلون',
+    agentsEmpty: 'لا يوجد وكلاء متصلون. يتصل الأشخاص من Claude/ChatGPT عبر Connect ← Waves.',
+    agentsActivity: 'نشاط الوكيل',
+    agentsActivityEmpty: 'لا شيء بعد.',
+    agentsRevoke: 'إلغاء الاتصال',
+    agentsActions: 'إجراءات الوكيل',
+    agentsLastUsed: 'آخر استخدام {when}',
+    agentsNeverUsed: 'لم يُستخدم بعد',
+    companyRulesTitle: 'قواعد الشركة',
+    moreSettings: 'المزيد من الإعدادات',
+    moreSettingsHint: 'الحضور والمصروفات والتقديرات والفواتير وغيرها',
+    tileCurrency: 'العملة',
+    tileDetails: 'التفاصيل',
+    tileBranding: 'الهوية',
+    tileBrandingHint: 'الشعار',
+    pendingNone: 'لا شيء بانتظارك',
+    pendingNoneBody: 'ستظهر هنا المطالبات وطلبات الميزانية التي تحتاج إليك.',
+    pendingVendorBills: '{n} فواتير موردين بانتظار التأكيد',
+    pendingUnpaidBills: '{n} فواتير غير مدفوعة',
+    pendingBlockedTasks: '{n} مهام متعثرة',
+    pendingUnmarked: '{n} لم يُسجَّل حضورهم اليوم',
+    countsLine: '{e} موظفين · {m} مديرين · {o} مالكين',
+    teamLine: 'فريقك · {employees}',
+    pillOwner: 'مالك',
+    statOwes: 'المستحق للموظفين',
+    statPending: '{n} مدفوعات معلقة',
+    statPaidMonth: 'إجمالي المدفوع هذا الشهر',
+    statVsLast: '{pct}% مقارنة بالشهر الماضي',
+    statAdvances: 'السلف المستحقة',
+    statEmployeesN: '{n} موظفين',
+    qaInvite: 'ادعُ الموظفين',
+    qaHierarchy: 'إدارة الهيكل',
+    qaBudgets: 'وزّع الميزانيات',
+    qaRecord: 'سجّل دفعة',
+    qaAddReminder: 'أضف تذكيراً',
+    overviewActiveToday: 'نشط اليوم',
+    overviewPresent: 'حاضر',
+    overviewAbsent: 'غائب',
+    overviewUnmarked: 'قيد الانتظار',
+    ovBell: 'الإشعارات',
+    overviewOnLeave: 'في إجازة',
+    ovAttendance: 'الحضور',
+    ovPickDate: 'اختر اليوم',
+    ovVsLast: '{pct} مقارنة بالشهر الماضي',
+    ovTaskDone: 'وضع علامة مكتمل: {title}',
+    ovEscAdvance: 'طلب سلفة',
+    ovEscExpense: 'موافقة مصروف معلّقة',
+    ovEscPool: 'طلب تمويل',
+    ovEscBill: 'فاتورة مورّد بانتظار التأكيد',
+    ovEscAbsent: 'لم يُسجَّل حضوره منذ {n} أيام',
+    ovEscBlocked: 'مهمة متوقفة: {title}',
+    ovAgoNow: 'الآن',
+    ovAgoMin: 'منذ {n} د',
+    ovAgoHour: 'منذ {n} س',
+    ovAgoDay: 'منذ {n} يوم',
+    ovAllClearBody: 'لا مهام معلقة ولا أمور عاجلة.',
+    ovAttention: 'يحتاج إلى انتباهك',
+    ovTodayOverview: 'نظرة على اليوم',
+    ovPresentOf: '{n} من {total} حاضر',
+    ovAllMarked: 'تم تسجيل الجميع',
+    ovMarkAttendance: 'تسجيل الحضور',
+    ovComingUp: 'قريباً',
+    ovOverdue: 'متأخر',
+    ovBlocked: 'متوقف',
+    ovPendingPayments: 'مدفوعات معلقة',
+    ovNothingToPay: 'لا شيء للدفع',
+    ovNoPaymentsYet: 'لا مدفوعات هذا الشهر بعد',
+    ovNoAdvancesOut: 'لا توجد سلف',
+    ovPayrollRun: 'صرف الرواتب',
+    ovPaidMonth: 'المدفوع هذا الشهر',
+    ovAdvances: 'السلف المستحقة',
+    ovCrore: '{n} كرور',
+    ovAllClear: 'كل شيء على ما يرام',
+    ovPaymentsPendingN: { one: '{n} دفعة معلقة', other: '{n} مدفوعات معلقة' },
+    ovAttendanceToday: 'حضور اليوم',
+    ovSeeAll: 'عرض الكل',
+    ovEmptyTitle: 'أضف أول موظف لديك',
+    ovEmptyBody: 'ادعُ الأشخاص لترى الحضور والمهام والمدفوعات هنا.',
+    ovEditLayout: 'تعديل التخطيط',
+    ovLayoutHint: 'اضغط مطولاً على ≡ واسحب لإعادة الترتيب',
+    ovResetLayout: 'إعادة الضبط الافتراضي',
+    ovHiddenCards: 'البطاقات المخفية',
+    ovHideCard: 'إخفاء {name}',
+    ovAddCard: 'إضافة {name}',
+    ovMoveUp: 'نقل لأعلى',
+    ovMoveDown: 'نقل لأسفل',
+    ovReorderCard: 'إعادة ترتيب {name}',
+    ovAlwaysFirst: 'دائماً في الأعلى',
+    ovCardAttendance: 'الحضور',
+    ovCardMoney: 'المال',
+    ovCardAttention: 'يحتاج انتباهك',
+    ovCardUpcoming: 'القادم',
+    ovCardActivity: 'النشاط الأخير',
+    ovCardBudget: 'ميزانيتك',
+    ovCardStats: 'إحصاءات الفريق',
+    ovCardQuick: 'إجراءات سريعة',
+    ovCardWorkday: 'يوم العمل',
+    ovCardTeam: 'فريقي',
+    greetMorning: 'صباح الخير!',
+    greetAfternoon: 'مساء الخير!',
+    greetEvening: 'مساء الخير!',
+    ovGlance: 'إليك نظرة سريعة على شركتك.',
+    ovTilePayments: 'مدفوعات مستحقة',
+    ovTileTasks: 'مهام مفتوحة',
+    ovTileAdvances: 'سلف مستحقة',
+    ovNeedBlockedN: { one: '{n} مهمة متوقفة', other: '{n} مهام متوقفة' },
+    ovNeedApproveN: { one: '{n} دفعة بانتظار الموافقة', other: '{n} مدفوعات بانتظار الموافقة' },
+    ovNeedTotal: 'الإجمالي {amount}',
+    ovNeedOverdueN: { one: '{n} مهمة متأخرة', other: '{n} مهام متأخرة' },
+    ovNeedDue: '{title} · الاستحقاق {time}',
+    ovCardGlance: 'نظرة سريعة',
+    ovCardNeeds: 'ملخص الانتباه',
+    ovCardMoneyActions: 'إجراءات مالية',
+    ovCardComingUp: 'هذا الأسبوع',
+    ovCdTasksN: { one: '{n} مهمة مستحقة', other: '{n} مهام مستحقة' },
+    ovCdThisWeek: 'هذا الأسبوع',
+    ovCdApprovalsN: { one: '{n} بانتظار الموافقة', other: '{n} بانتظار الموافقة' },
+    ovCdWaiting: 'بانتظارك',
+    ovAddBill: 'إضافة فاتورة',
+    ovCreateInvoice: 'إنشاء فاتورة مبيعات',
+    overviewNoOwes: 'لا توجد مستحقات',
+    overviewNoPaid: 'لم يتم الدفع بعد',
+    overviewNoAdvances: 'لا توجد سلف',
+    qaAddTask: 'أضف مهمة',
+    tkAll: 'الكل',
+    tkLater: 'لاحقًا',
+    tkCompleted: 'المكتملة',
+    tkScheduled: 'مجدولة',
+    tkNext: 'التالي',
+    tkQuick: 'إجراءات سريعة',
+    tkUpload: 'رفع ملف',
+    tkAddClient: 'إضافة عميل',
+    tkAddVendor: 'إضافة مورّد',
+    tkSites: { one: '{n} موقع', other: '{n} مواقع' },
+    tkMore: '+{n}',
+    tkNone: 'لا شيء هنا',
+    tkMenu: 'خيارات المهمة',
+    tkViewAll: 'عرض الكل',
+
+    qaAddEmployee: 'أضف موظفاً',
+    tasksCount: {
+      zero: '{n} مهام',
+      one: '{n} مهمة',
+      two: 'مهمتان',
+      few: '{n} مهام',
+      many: '{n} مهمة',
+      other: '{n} مهمة',
+    },
+    attHalfDay: 'نصف يوم',
+    attNotMarked: 'غير مسجّل',
+    noBudgetSet: 'لم تُحدَّد ميزانية',
+    employmentType: 'نوع التوظيف',
+    empTypeFullTime: 'دوام كامل',
+    empTypePartTime: 'دوام جزئي',
+    empTypeContractor: 'متعاقد',
+    empTypeNone: 'غير محدد',
+    searchEmployees: 'ابحث عن موظف...',
+    filterEmployees: 'عرض الموظفين',
+    peopleSortName: 'الترتيب حسب الاسم (أ–ي)',
+    peopleShowAdmins: 'عرض المسؤولين',
+    empFilterAll: 'الكل',
+    viewStatement: 'عرض الكشف',
+    notEmployed: 'غير موظف',
+    markNotEmployed: 'تعيين كغير موظف',
+    markEmployed: 'تعيين كموظف',
+    employmentHint: 'لن تصله تحديثات جديدة للشركة. ستبقى سجلاته السابقة.',
+    employmentDate: 'آخر يوم عمل (اختياري، YYYY-MM-DD)',
+    employmentNote: 'ملاحظة قصيرة (اختياري)',
+    employmentPool: 'سوِّ عهدته أولاً',
+    employmentIdTaken: 'معرّف الموظف مستخدم بالفعل',
+    employmentBlocked: 'هذه الشركة معلّقة',
+    employmentDenied: 'لا يمكنك تغيير حالة توظيف هذا الشخص',
+    employmentFailed: 'تعذر تحديث التوظيف. حاول مجدداً.',
+    employmentInvalidDate: 'أدخل تاريخاً صالحاً (YYYY-MM-DD)',
+    employeeIdInUseBy: 'أصبح {id} مستخدماً لدى {name}',
+    restoreWithoutId: 'استعد دون رقم موظف',
+    pickNewId: 'اختر رقماً جديداً',
+    newEmployeeId: 'رقم الموظف الجديد',
+    employeeOptions: 'خيارات الموظف',
+    noEmployeesMatch: 'لا يوجد موظف مطابق',
+    qaAdvance: 'أعطِ سلفة',
+    qaAsk: 'اطلب ميزانية',
+    promoTitle: 'ادعُ فريقك',
+    promoBody: 'أضف الموظفين وعيّن المديرين وسجّل الرواتب والسلف والمدفوعات في مكان واحد.',
+    hierTitle: 'هيكل الفريق',
+    viewAll: 'عرض الكل',
+    ownersControl: '{n} مالكين · تحكم كامل',
+    nameYou: '{name} (أنت)',
+    needsOtherOwner: 'يجب أن يوافق مالك آخر على هذا.',
+    secondOwnerTitle: 'موافقة مالك ثانٍ',
+    secondOwnerHint: 'المطالبات الكبيرة والمطالبات التي رفعها مالك يوافق عليها مالك آخر.',
+    secondOwnerFrom: 'تُعدّ كبيرة من',
+    secondOwnerFromHint:
+      'المطالبات بهذا المبلغ أو أكثر تحتاج إلى مالك ثانٍ. اتركه فارغًا للمطالبات التي رفعها المالك فقط.',
+    voiceAdd: 'انطق المصروف',
+    voiceCurrency: 'قل المبلغ بعملة الشركة {currency}.',
+    paymentSettings: 'إعدادات الدفع',
+    dailyRateHint: 'استخدمه لحساب البدل اليومي',
+    mileageRateHint: 'استخدمه لتعويضات السفر',
+    policiesHint: 'إرشادات لفريقك',
+    recordPayment: 'سجّل دفعة',
+    recordPaymentBody: 'سجّل الرواتب أو السلف أو التعويضات.',
+    totalPaid: 'إجمالي المدفوع',
+    totalPending: 'إجمالي المعلّق',
+    addExpenseAction: 'أضف مصروفًا',
+    recordBill: 'سجّل فاتورة',
+    advanceTo: 'سلفة إلى {name}',
+    paymentTo: 'دفعة إلى {name}',
+    paymentFrom: 'دفعة من {name}',
+    wagesTo: 'راتب إلى {name}',
+    cashReturnedBy: 'نقد أعاده {name}',
+    expandNamed: 'توسيع {name}',
+    collapseNamed: 'طي {name}',
+    expandAll: 'توسيع الكل',
+    collapseAll: 'طي الكل',
+    payWagesBody: 'سجّل راتب الموظفين أو المديرين',
+    gaveMoneyBody: 'سجّل سلفة أو تعويضًا',
+    recentPayments: 'أحدث الدفعات',
+    paymentsNoneBody: 'سجّل الرواتب أو الأموال المعطاة للبدء.',
+    addSiteBody: 'أضف مواقع لتنظيم الميزانيات حسب المكان أو القسم.',
+    budgetsNone: 'لا توجد ميزانيات بعد',
+    budgetsNoneBody: 'أنشئ ميزانيات لمواقعك ومديريك لتتبع الإنفاق.',
+    setBudget: 'حدد الميزانية',
+    setBudgetBody: 'حدد مبلغًا لكل موقع',
+    assignManager: 'عيّن لمدير',
+    assignManagerBody: 'أعط المدير نقدًا ليوزعه',
+    trackSpending: 'تتبع الإنفاق',
+    trackSpendingBody: 'شاهد المنفق والمتبقي',
+    createBudget: 'إنشاء ميزانية',
+    phoneOptional: 'رقم الهاتف (اختياري)',
+    emailOptional: 'البريد الإلكتروني (اختياري)',
+    fullNameRequired: 'الاسم الكامل *',
+    phoneHelper: 'شارك رابط دعوة عبر واتساب أو رسالة نصية',
+    emailHelper: 'شارك رابط دعوة عبر البريد الإلكتروني',
+    roleEmployee: 'موظف',
+    nameAloneBody:
+      'يكفي الاسم وحده. لا يحتاجون إلى التطبيق أو بريد إلكتروني ليكونوا جزءًا من الشركة. عندما ينضمون لاحقًا، يمكنهم المطالبة بكل ما سُجّل باسمهم.',
+    fromContacts: 'من جهات اتصال الهاتف',
+    fromContactsBody: 'ابحث وأضف من جهات اتصالك',
+    budgetPerMonth: 'الميزانية: {amount} / شهر',
+    teamCount: '{n} موظفين',
+    recentTitle: 'النشاط الأخير',
+    recentNone: 'لا شيء بعد',
+    yourBudget: 'ميزانيتك',
+    givenOut: 'المُعطى',
+    budgetLeft: 'المتبقي',
+    budgetAdjusted: 'مُسترجع أو مُعدّل {amount}',
+    askTitle: 'اطلب ميزانية من المالك',
+    askSent: 'تم إرسال الطلب',
+    budgetRequests: 'طلبات الميزانية',
+    managersNone: 'لا مديرين بعد. اجعل موظفاً مديراً.',
+    paymentsNone: 'لا مدفوعات بعد',
+    yourManager: 'مديرك: {name}',
+    yourOwners: 'مالك الشركة',
+    wagesThisMonth: 'أجور هذا الشهر',
+    spentLabel: 'المُنفق',
+    advancesLabel: 'السلف',
+    myEntries: 'سجلاتي',
+    statusPending: 'معلق',
+    statusOkTag: 'موافق عليه',
+    statusPaid: 'مدفوع',
+    switchCompany: 'تبديل الشركة',
+    employeeCount: {
+      one: '{n} موظف',
+      other: '{n} موظفين',
+      zero: '{n} موظفين',
+      two: '{n} موظفان',
+      few: '{n} موظفين',
+      many: '{n} موظفاً',
+    },
+    managerCount: {
+      one: '{n} مدير',
+      other: '{n} مديرين',
+      zero: '{n} مديرين',
+      two: '{n} مديران',
+      few: '{n} مديرين',
+      many: '{n} مديراً',
+    },
+    ownerCount: {
+      one: '{n} مالك',
+      other: '{n} مالكين',
+      zero: '{n} مالكين',
+      two: '{n} مالكان',
+      few: '{n} مالكين',
+      many: '{n} مالكاً',
+    },
+    overallControl: 'تحكم كامل',
+    switchCompanyBody: 'اختر شركة لإدارتها',
+    createCompanyNew: 'إنشاء شركة جديدة',
+    newTitle: 'شركة جديدة',
+    createCompany: 'إنشاء شركة',
+    nameLabel: 'اسم الشركة',
+    namePlaceholder: 'مثال: شركة النور للتجارة',
+    manageCompanies: 'إدارة الشركات',
+    companySettings: 'إعدادات الشركة',
+    reportsToOwners: 'يتبع المالكين',
+    allocateNow: 'خصّص ميزانية',
+    menuExport: 'تصدير',
+    gaveMoney: 'أعطيت مالاً',
+    theySpent: 'أنفقوا',
+    iSpent: 'أنفقت',
+    paidWagesVerb: 'دفعت الأجور',
+    hasOfYours: 'لدى {name} مبلغ {amount} منك',
+    youOweName: 'عليك لـ {name} مبلغ {amount}',
+    youHaveOfCompany: 'لديك {amount} من مال الشركة',
+    shareWhatsApp: 'أرسل عبر واتساب',
+    threadEmpty: 'اضغط + لإضافة الأول',
+    addPerson: 'أضف شخصاً',
+    moreOptions: 'المزيد',
+    wageFormula: '{gross} - سلفة {cut} = {net}',
+    canPayPeople: 'يمكنه تسجيل المدفوعات',
+    canPayPeopleHint: 'يتيح لهذا الموظف تسجيل المدفوعات لأعضاء الفريق.',
+    employeeDetails: 'بيانات الموظف',
+    permissions: 'الصلاحيات',
+    setDailyRate: 'حدد الأجر اليومي',
+    kAllocation: 'نقد للمدير',
+    kPoolReturn: 'نقد مسترجع',
+    kPoolAdjustment: 'تصحيح',
+    noSite: 'بدون موقع',
+    cashLeft: 'النقد المتبقي',
+    cashWithManagers: 'النقد لدى المديرين',
+    giveCash: 'أعطِ نقداً',
+    takeBack: 'استرجع',
+    correctCash: 'صحّح',
+    reasonRequired: 'السبب (مطلوب)',
+    poolReasonHint: 'اكتب السبب. سيبقى في السجل.',
+    payWages: 'ادفع الأجور',
+    wagesSheetTitle: 'ادفع الأجور',
+    periodThisWeek: 'هذا الأسبوع',
+    periodLastWeek: 'الأسبوع الماضي',
+    wagesToPay: 'المستحق',
+    wagesAdvanceCut: 'خصم السلفة {amount}',
+    wagesAdvanceLeft: 'المتبقي من السلفة {amount}',
+    wagesBataIn: 'البدل {amount} مشمول',
+    wagesDays: 'الأيام',
+    wagesFixedAmount: 'مبلغ ثابت',
+    wagesNeedTerms: 'أضف الأيام والسعر أو مبلغاً ثابتاً',
+    wagesRecord: 'ادفع لـ {n} · {amount}',
+    wagesDone: 'تم تسجيل الأجور',
+    wagesNoTeam: 'أضف أشخاصاً أولاً.',
+    wagesSubtitle: 'احسب وادفع لفريقك',
+    wagesTeam: 'الفريق',
+    wagesWorkingDays: 'أيام العمل',
+    wagesTotal: 'إجمالي الأجور',
+    wagesAll: 'الكل',
+    wagesPresent: 'حاضر',
+    wagesLeave: 'إجازة',
+    wagesAbsent: 'غائب',
+    wagesDailyTag: 'يومي',
+    wagesFixedTag: 'ثابت',
+    wagesRateTimesDays: '{rate} × {n} أيام',
+    wagesSelected: '{n} محدد',
+    wagesTotalPayout: 'إجمالي الدفع',
+    wagesPayAction: 'ادفع الأجور',
+    wagesAddMember: 'إضافة عضو',
+    wagesManageRates: 'إدارة الأجور',
+    wagesManageRatesSub: 'يومي / ثابت',
+    wagesGross: 'الأجر {amount}',
+    wagesPaidFromPool: 'من نقدك',
+    sites: 'المواقع',
+    addSite: 'أضف موقعاً',
+    suspendedBanner: 'علّقت Waves هذه الشركة. هي للعرض فقط حالياً. تواصل عبر hello@wavs.co.in.',
+    reportCompany: 'الإبلاغ عن هذه الشركة',
+    reportTitle: 'الإبلاغ عن هذه الشركة',
+    reportBody: 'أخبرنا بما هو خاطئ. تراجع Waves كل بلاغ. لا تُخبَر الشركة بهوية المُبلِّغ.',
+    reportFraud: 'احتيال',
+    reportIllegal: 'نشاط غير قانوني',
+    reportHarassment: 'مضايقة',
+    reportWages: 'أجور غير مدفوعة',
+    reportOther: 'شيء آخر',
+    reportPlaceholder: 'ماذا حدث؟ (باختصار)',
+    reportSend: 'إرسال البلاغ',
+    reportSent: 'شكراً. ستراجع Waves الأمر.',
+    reportLimit: 'أرسلت عدة بلاغات اليوم. حاول غداً.',
+    reportFailed: 'تعذّر إرسال البلاغ. تحقق من الاتصال وحاول مجدداً.',
+    suspendedReadOnly: 'هذه الشركة معلّقة. يمكنك العرض والتصدير لكن لا الإضافة أو التعديل.',
+    siteName: 'اسم الموقع',
+    siteBudget: 'الميزانية (اختياري)',
+    siteSpent: '{spent} من {budget}',
+    siteSpentOnly: 'أُنفق {spent}',
+    siteLeft: 'المتبقي {amount}',
+    siteOver: 'تجاوز بـ {amount}',
+    makeManager: 'اجعله مديراً',
+    makeEmployee: 'اجعله موظفاً',
+    reportsTo: 'يتبع',
+    owners: 'المالكون',
+    manager: 'مدير',
+    historyMoves: 'سيرى المدير الجديد كل السجل السابق ولن يراه المدير القديم.',
+    moveTeamFirst: 'انقل فريقه أولاً',
+    yourTeam: 'فريقك',
+    sitesOf: 'المواقع',
+    wageGrossLabel: 'الأجور',
+    wageCutLabel: 'خصم السلفة',
+    wageNetLabel: 'المدفوع',
+    kReimbursement: 'سداد',
+    kCashReturned: 'نقد معاد',
+    companyPayer: 'الشركة',
+    companyPaidDirect: 'الشركة (دفع مباشر)',
+    companyPaidPoolHint: 'مدفوع من رصيدك النقدي',
+    companySpentMonth: 'إنفاق الشركة هذا الشهر',
+    catMaterials: 'مواد',
+    catRepairs: 'إصلاحات',
+    catRent: 'إيجار',
+    catUtilities: 'خدمات',
+    catEquipment: 'معدات',
+    catFuel: 'وقود',
+    catTransport: 'نقل',
+    catTravel: 'سفر',
+    catFood: 'طعام',
+    catOffice: 'مكتب',
+    catOther: 'أخرى',
+    amountToPay: 'المبلغ المستحق',
+    expensesPending: {
+      one: 'مصروف واحد معلّق',
+      two: 'مصروفان معلّقان',
+      few: '{n} مصاريف معلّقة',
+      many: '{n} مصروفاً معلّقاً',
+      other: '{n} مصروف معلّق',
+    },
+    pendingForPayment: 'بانتظار الدفع',
+    selectAllBtn: 'تحديد الكل',
+    receiptOne: 'إيصال واحد',
+    readyToSettle: 'جاهز للتسوية',
+    readyBody: 'ادفع له بطريقتك المعتادة ثم علّمه كمدفوع.',
+    sendWhatsApp: 'إرسال عبر واتساب',
+    markPaid: 'تعليم كمدفوع',
+    tileAddSub: 'سجّل مصروفاً جديداً',
+    tileHistory: 'عرض كل المصاريف',
+    tileHistorySub: 'السجل الكامل',
+    tileSummary: 'ملخص الموظف',
+    tileSummarySub: 'عرض هذا الموظف',
+    detailPrivacyTitle: 'يرى الموظفون قيودهم فقط.',
+    detailPrivacyBody: 'يمكنهم إضافة مصاريف ومعرفة حالة الدفع.',
+    callEmployee: 'اتصال',
+    catStay: 'إقامة',
+    kindGive: 'إعطاء مال',
+    kindSubGive: 'سلفة / تعويض',
+    kindSubSpent: 'تسجيل مصروف',
+    kindSubWages: 'راتب / دفعة',
+    kindSubAllowance: 'بدل يومي',
+    paidBy: 'دفعه',
+    selectPerson: 'اختر شخصاً',
+    notesLabel: 'ملاحظات (اختياري)',
+    notePh: 'أضف ملاحظة...',
+    addReceipt: 'أضف إيصالاً أو صورة (اختياري)',
+    todayDate: 'اليوم، {date}',
+    tagAll: 'كل الوسوم',
+    tagViewAll: 'عرض الكل',
+    tagNew: 'وسم جديد',
+    tagNamePh: 'اسم الوسم',
+    tagAdd: 'إضافة',
+    tagsTitle: 'وسوم المصروفات',
+    tagsShared: 'مشتركة مع الجميع في الشركة',
+    tagRename: 'إعادة تسمية',
+    tagHide: 'إخفاء',
+    tagShow: 'إظهار',
+    tagAddedBy: 'أضافه {name}',
+    tagsSearch: 'ابحث في الوسوم',
+    industryTitle: 'ما نوع العمل؟',
+    industryConstruction: 'البناء',
+    industryTransport: 'النقل والخدمات اللوجستية',
+    industryFieldSales: 'المبيعات الميدانية',
+    packAdd: 'أضف {n} وسوماً',
+    packAdded: 'كلها مضافة بالفعل',
+    savedAnother: 'تم الحفظ',
+    addAnother: 'أضف آخر',
+    doneBtn: 'تم',
+    moreOpen: 'المزيد',
+    qtyPh: 'الكمية (اختياري)',
+    tagsCancel: 'إلغاء',
+    tagSave: 'حفظ',
+    formKind: 'النوع',
+    formEmployee: 'الموظف',
+    formAmount: 'المبلغ',
+    formDays: 'الأيام',
+    formRate: 'المعدل اليومي',
+    formTotal: 'الإجمالي',
+    formDate: 'التاريخ',
+    today: 'اليوم',
+    yesterday: 'أمس',
+    pickDate: 'اختر تاريخًا',
+    formNote: 'ملاحظة (اختياري)',
+    formCategory: 'الفئة',
+    payTo: 'مدفوع للموظف',
+    returnFrom: 'أعاده الموظف',
+    wagesTyped: 'المبلغ',
+    wagesDaysRate: 'الأيام x المعدل',
+    wagesWeekly: 'أجر أسبوعي',
+    save: 'حفظ القيد',
+    needRate: 'أدخل الأيام والمعدل اليومي',
+    needAmount: 'أدخل مبلغًا',
+    removeEntry: 'حذف القيد',
+    removeTitle: 'حذف هذا القيد؟',
+    removeBody: 'يبقى في السجل لكنه لا يُحتسب.',
+    dailyRate: 'معدل البدل اليومي',
+    rateNotSet: 'غير محدد',
+    rateTitle: 'معدل البدل اليومي',
+    rateHint: 'يُستخدم عند إضافة بدل لـ {name}. يمكن تغييره في كل قيد.',
+    share: 'مشاركة الكشف',
+    couldNotSave: 'تعذّر الحفظ. حاول مرة أخرى.',
+    privacyEmployee: 'أنت ومشرفو الشركة فقط يمكنهم رؤية هذه القيود.',
+    privacyAdmin: 'يرى الموظفون قيودهم فقط.',
+    daysAt: '{days} أيام x {rate}',
+    forPerson: 'لـ {name}',
+    kMileage: 'المسافة',
+    formDistance: 'المسافة (كم)',
+    formRatePerKm: 'السعر لكل كم',
+    formFrom: 'من (اختياري)',
+    formTo: 'إلى (اختياري)',
+    mileageAt: '{km} كم x {rate}/كم',
+    needDistance: 'أدخل المسافة بالكيلومتر',
+    needMileageRate: 'حدد السعر لكل كم',
+    mileageRate: 'سعر المسافة لكل كم',
+    gstSection: 'ضريبة السلع والخدمات والمورد (اختياري)',
+    vendor: 'المورد',
+    gstin: 'الرقم الضريبي GSTIN',
+    gstinBad: 'أدخل رقم GSTIN صحيحاً من 15 خانة',
+    invoiceNo: 'رقم الفاتورة',
+    gstRate: 'نسبة الضريبة',
+    gstAmount: 'الضريبة المضمنة',
+    gstBefore: 'قبل الضريبة',
+    gstTotal: 'إجمالي الضريبة',
+    policiesTitle: 'تنبيهات السياسة',
+    policyReceipt: 'إيصال فوق {amount}',
+    policyLimit: '{what} فوق {amount} لكل {period}',
+    policyWarn: 'تحذير',
+    policyBlock: 'منع',
+    policyAddReceipt: 'قاعدة الإيصال',
+    policyAddLimit: 'قاعدة الحد',
+    policyHintReceipt: 'فوق {limit}: أضف صورة الإيصال',
+    policyHintLimit: 'يصبح {actual} لهذا {period}؛ الحد {limit}',
+    policyBlocked: 'تجاوز الحد {limit}. خفّض المبلغ.',
+    policyFlagged: 'خارج السياسة',
+    perDay: 'يوم',
+    perMonth: 'شهر',
+    select: 'تحديد',
+    selectAllDue: 'كل المستحق',
+    payCount: 'تم تحديد {count}',
+    payCredits: 'ناقص السلف والدفعات السابقة {amount}',
+    payTotal: 'تسجيل دفعة {amount}',
+    payExternal: 'تم الدفع خارج Waves',
+    reimbursedOn: 'تم السداد في {date}',
+    payAlreadyOne: 'تم سداد إدخال واحد بالفعل بواسطة {name}',
+    payAlreadyMany: 'تم سداد {count} إدخالات بالفعل بواسطة {name}',
+    payNeedMore: 'المطالبات المحددة أقل من السلف المدفوعة',
+    payUpTo: 'كل المستحق حتى {date}',
+    payNone: 'لا شيء مستحق',
+    dupHint: 'يبدو أنه إدخال مضاف سابقاً',
+    payTitle: 'سداد المستحق',
+    policyEditorHint: 'تحذير أو منع عند تجاوز الإدخال',
+    policyNone: 'لا قواعد بعد',
+    policyRemove: 'إزالة القاعدة',
+    policyLimitLabel: 'الحد',
+    editEntry: 'قيد',
+    awaiting: 'بانتظار الموافقة',
+    approve: 'موافقة',
+    reject: 'رفض',
+    rejectTitle: 'رفض هذا القيد',
+    rejectHint: 'أخبر {name} بالسبب. سيرى هذه الملاحظة.',
+    statusApproved: 'تمت الموافقة',
+    reviewNote: 'ملاحظة المشرف',
+    approvalsTitle: 'اشتراط الموافقة',
+    approvalsHint:
+      'تنتظر القيود الجديدة موافقة المشرف. تُحتسب القيود الموافق عليها فقط ضمن المستحق.',
+    photos: 'الصور',
+    takePhoto: 'التقاط صورة',
+    choosePhoto: 'اختيار صورة',
+    removePhoto: 'حذف الصورة',
+    removePhotoTitle: 'حذف هذه الصورة؟',
+    photoFailed: 'تعذرت إضافة الصورة. تم حفظ القيد.',
+    photoPrivacy: 'لا يرى هذه الصور سوى الموظف ومشرفي الشركة.',
+    introPrivacy: 'لا يرى قيودك وصورك سواك ومشرف الشركة.',
+    defaultRateRow: 'معدل البدل اليومي',
+    defaultRateHint: 'اختياري. يُستخدم لكل الموظفين حتى تحدد معدل أحدهم.',
+    logoRow: 'شعار الشركة',
+    logoUpload: 'رفع',
+    logoLink: 'الصق رابط الشعار',
+    logoLinkPlaceholder: 'https://example.com/logo.png',
+    logoUse: 'استخدم هذا الرابط',
+    logoRemove: 'إزالة الشعار',
+    logoSaved: 'تم تحديث الشعار',
+    logoLater: 'تعذّرت إضافة الشعار. أضفه من إعدادات الشركة.',
+    logoLocked: 'المشرف فقط يستطيع تغيير الشعار.',
+    logoErrEmpty: 'الصق رابطًا أولًا.',
+    logoErrInvalid: 'لا يبدو هذا رابطًا.',
+    logoErrNotHttps: 'يجب أن يبدأ الرابط بـ https://',
+    logoErrBlocked: 'لا يمكن استخدام هذا الرابط.',
+    logoErrTimeout: 'استغرق تحميل الرابط وقتًا طويلًا.',
+    logoErrNetwork: 'تعذّر الوصول إلى هذا الرابط.',
+    logoErrHttp: 'لم يُفتح هذا الرابط.',
+    logoErrNotImage: 'هذا الرابط ليس صورة.',
+    logoErrSvg: 'شعارات SVG غير مدعومة. استخدم رابط PNG أو JPG أو WebP.',
+    logoErrTooLarge: 'الملف كبير جدًا. استخدم صورة أقل من 2 ميغابايت.',
+    logoErrRedirects: 'يعيد هذا الرابط التوجيه مرات كثيرة.',
+    logoErrDecode: 'تعذّرت قراءة هذه الصورة.',
+    currencyRow: 'العملة',
+    pendingApprovals: 'بانتظار الموافقة',
+    colType: 'النوع',
+    colReview: 'ملاحظة المراجعة',
+    notCounted: 'لا يُحتسب حتى الموافقة',
+    exportAction: 'تصدير',
+  },
+  companyTickets: {
+    title: 'الشكاوى',
+    tOpen: 'مفتوحة · {n}',
+    tEscalated: 'مصعّدة · {n}',
+    tResolved: 'تمت معالجتها · {n}',
+    newComplaint: 'شكوى جديدة',
+    editComplaint: 'تعديل الشكوى',
+    emptyTitle: 'لا توجد شكاوى بعد',
+    emptyBody:
+      'سجّل شكوى العميل وأسندها لشخص ما. إن لم تُحل في الوقت المناسب فتصل إلى مديره ثم إلى المالك.',
+    emptyTab: 'لا شيء هنا',
+    seeAll: 'الكل',
+    noneForClient: 'لا شكاوى لهذا العميل',
+    clientLabel: 'العميل',
+    noClient: 'بدون عميل',
+    pickClient: 'اختر العميل',
+    searchClients: 'ابحث في العملاء',
+    titlePh: 'ما هي الشكوى؟',
+    detailsPh: 'التفاصيل (اختياري)',
+    priority: 'الأولوية',
+    pLow: 'منخفضة',
+    pNormal: 'عادية',
+    pHigh: 'عالية',
+    pUrgent: 'عاجلة',
+    assignedTo: 'مُسندة إلى',
+    assignTo: 'إسناد إلى',
+    you: 'أنت',
+    someone: 'شخص ما',
+    owner: 'المالك',
+    save: 'حفظ',
+    log: 'تسجيل الشكوى',
+    dueIn: 'يستحق خلال {t}',
+    overdue: 'متأخرة {t}',
+    escalatedTo: 'صُعّدت إلى {name}',
+    unitM: '{n}د',
+    unitH: '{n}س',
+    unitD: '{n}ي',
+    call: 'اتصال',
+    whatsapp: 'واتساب',
+    reassign: 'إعادة الإسناد',
+    actStart: 'ابدأ',
+    actResolve: 'حلّ',
+    actReopen: 'إعادة فتح',
+    actClose: 'إغلاق',
+    resolveTitle: 'كيف تم حلها؟',
+    resolvePh: 'ملاحظة قصيرة للسجل',
+    solved: 'الحل: {note}',
+    stOpen: 'مفتوحة',
+    stInProgress: 'قيد المعالجة',
+    stResolved: 'تمت المعالجة',
+    stClosed: 'مغلقة',
+    timeline: 'السجل الزمني',
+    evCreated: 'سُجّلت · أُسندت إلى {name}',
+    evAssigned: 'أُسندت إلى {name}',
+    evStarted: 'بدأت المعالجة',
+    evReopened: 'أُعيد فتحها',
+    evEscalated: 'صُعّدت إلى {name}',
+    evBy: 'بواسطة {name}',
+    commentPh: 'أضف تعليقًا',
+    send: 'إرسال',
+    edit: 'تعديل',
+    remove: 'حذف',
+    removeConfirm: 'حذف هذه الشكوى؟',
+    more: 'المزيد',
+    notFound: 'هذه الشكوى غير متاحة.',
+    hubOverdue: '{n} متأخرة',
+    hubOpen: '{n} مفتوحة',
+    hubNone: 'الكل في موعده',
+  },
+  companyClients: {
+    title: 'العملاء',
+    toReceive: 'مستحق القبض',
+    search: 'ابحث في العملاء',
+    statTotal: 'الإجمالي',
+    statActive: 'نشط',
+    statFollowUp: 'متابعة',
+    statInactive: 'غير نشط',
+    newInquiry: 'استفسار جديد',
+    subtitle: 'تابع عملاءك وفواتيرك ومدفوعاتك',
+    fUnpaid: 'غير مدفوع',
+    quickActions: 'إجراءات سريعة',
+    createQuote: 'إنشاء عرض سعر',
+    createBill: 'إنشاء فاتورة',
+    quotesN: '{n} عروض أسعار',
+    billsN: '{n} فواتير',
+    open: 'فتح',
+    sortRecent: 'الأحدث',
+    sortName: 'الاسم',
+    kClients: 'العملاء',
+    kInquiries: 'الاستفسارات',
+    kQuotes: 'عروض الأسعار',
+    kInvoices: 'الفواتير',
+    kOutstanding: 'المستحق',
+    tAll: 'الكل ({n})',
+    tInquiries: 'الاستفسارات ({n})',
+    tQuotes: 'عروض الأسعار ({n})',
+    tInvoices: 'الفواتير ({n})',
+    sortBy: 'الترتيب: {by}',
+    sortUpdated: 'آخر تحديث',
+    sortAmount: 'المبلغ',
+    filterTitle: 'تصفية',
+    fStatus: 'الحالة',
+    fDate: 'التاريخ',
+    rAll: 'كل الأوقات',
+    rMonth: 'هذا الشهر',
+    rQuarter: 'آخر 3 أشهر',
+    stUnpaid: 'غير مدفوعة',
+    stPartPaid: 'مدفوعة جزئيًا',
+    stPaid: 'مدفوعة',
+    fClear: 'مسح',
+    addClient: 'إضافة عميل',
+    createInvoice: 'إنشاء فاتورة',
+    addLabel: 'إضافة',
+    docInquiry: 'استفسار',
+    docQuote: 'عرض سعر',
+    docInvoice: 'فاتورة',
+    today: 'اليوم',
+    daysAgo: 'منذ {n} يوم',
+    emptyTitle: 'لا عملاء بعد؟',
+    emptyBody: 'أضف عميلًا أو أنشئ استفسارًا للبدء.',
+    noMatches: 'لا نتائج',
+    itemsN: '{n} عناصر',
+    itemN: '{n} عنصر',
+    statusDue: 'مستحق',
+    statusPaid: 'مدفوع',
+    sortLabel: 'ترتيب',
+    editClient: 'تعديل العميل',
+    bannerToday: '{n} متابعات اليوم',
+    bannerOverdue: '{n} متأخرة',
+    bannerNone: 'لا متابعات مستحقة',
+    more: 'خيارات أخرى',
+    fAll: 'الكل',
+    fInquiry: 'استفسارات',
+    fQuoted: 'عروض أسعار',
+    fClient: 'عملاء',
+    fLost: 'مفقودة',
+    empty: 'لا عملاء بعد. أضف أول استفسار.',
+    emptyFilter: 'لا شيء هنا بعد.',
+    stInquiry: 'استفسار',
+    stQuoted: 'عرض سعر',
+    stClient: 'عميل',
+    stLost: 'مفقود',
+    srcWalkIn: 'زيارة مباشرة',
+    srcCall: 'مكالمة هاتفية',
+    srcWhatsapp: 'واتساب',
+    srcReferral: 'ترشيح',
+    srcOther: 'أخرى',
+    namePh: 'الاسم *',
+    phonePh: 'الهاتف',
+    needPh: 'ماذا يحتاجون؟',
+    cameFrom: 'مصدر الاستفسار',
+    followUp: 'المتابعة',
+    fuToday: 'اليوم',
+    fuTomorrow: 'غدًا',
+    fuThreeDays: 'بعد 3 أيام',
+    fuPick: 'اختر',
+    fuNone: 'لا شيء',
+    whoFollows: 'من يتابع',
+    extra: 'القيمة المتوقعة، العنوان',
+    expectedValue: 'القيمة المتوقعة',
+    addressPh: 'العنوان',
+    newInquirySub: 'سجّل استفسار عميل جديد',
+    customerDetails: 'بيانات العميل',
+    inquiryDetails: 'تفاصيل الاستفسار',
+    needLabel: 'ماذا يحتاج؟',
+    saveAnother: 'حفظ وإضافة آخر',
+    existingCustomer: 'عميل موجود',
+    viewHistory: 'عرض السجل',
+    useCustomer: 'استخدام هذا العميل',
+    notThisCustomer: 'ليس هذا العميل',
+    lastActivity: 'الأخير: {item}',
+    historyCounts: '{inq} استفسارات · {est} تقديرات · {bill} فواتير · {comp} شكاوى',
+    emailPh: 'البريد الإلكتروني (اختياري)',
+    companyPh: 'الشركة (اختياري)',
+    category: 'الفئة',
+    selectCategory: 'اختر الفئة',
+    catPlumbing: 'السباكة',
+    catElectrical: 'الكهرباء',
+    catCivil: 'الأعمال المدنية',
+    catInteriors: 'التصميم الداخلي',
+    catMaintenance: 'الصيانة',
+    catOther: 'أخرى',
+    priority: 'الأولوية',
+    prNormal: 'عادية',
+    prUrgent: 'عاجلة',
+    prHigh: 'عالية',
+    notesOpt: 'ملاحظات (اختياري)',
+    notesPh: 'أي معلومات أو ملاحظات أو سياق إضافي...',
+    saveInquiry: 'حفظ الاستفسار',
+    save: 'حفظ',
+    followTitle: 'متابعة {name}',
+    saveFailed: 'تعذّر الحفظ. حاول مرة أخرى.',
+    viaSource: 'عبر {source}',
+    follows: '{name} يتابع',
+    markWon: 'تم الفوز',
+    markLost: 'تم الفقد',
+    reopen: 'إعادة فتح',
+    lostWhy: 'لماذا فُقد؟',
+    lostPrice: 'السعر مرتفع',
+    lostOther: 'اختار غيرنا',
+    lostSilent: 'لا رد',
+    lostSkip: 'سبب آخر',
+    tabActivity: 'النشاط',
+    tabBills: 'عروض الأسعار والفواتير',
+    tabDocs: 'المستندات',
+    btnFollowUp: 'متابعة',
+    btnEstimate: 'عرض سعر',
+    btnMoney: 'تم استلام مبلغ',
+    btnInquiry: 'إضافة استفسار',
+    scheduleFollowUp: 'جدولة متابعة',
+    noFollowUpHint: 'ابقَ على تواصل مع العميل بمتابعة.',
+    call: 'اتصال',
+    whatsapp: 'واتساب',
+    overdueSince: 'متابعة متأخرة · {when}',
+    dueAt: 'متابعة · {when}',
+    done: 'تم',
+    noFollowUp: 'لا متابعة مخططة',
+    addNote: 'أضف ملاحظة',
+    notePh: 'اكتب ملاحظة',
+    noteSave: 'حفظ الملاحظة',
+    evCreated: 'تمت إضافة الاستفسار',
+    evNote: 'ملاحظة',
+    fuOverdueDays: 'متأخر {n} يوم',
+    fuSubToday: 'متابعة اليوم',
+    fuSubOverdue: 'متأخر {n} يوم',
+    fuSubOn: 'متابعة {when}',
+    howWent: 'كيف سارت؟',
+    outSpoke: 'تم الحديث',
+    outNoAnswer: 'لا رد',
+    outNotInterested: 'غير مهتم',
+    noteSpoke: 'متابعة: تم الحديث',
+    noteNoAnswer: 'متابعة: لا رد',
+    noteNotInterested: 'متابعة: غير مهتم',
+    fuNotifTitle: 'متابعة مستحقة اليوم',
+    inqTitle: 'الاستفسارات',
+    inqNew: 'استفسار جديد',
+    statInquiries: 'الاستفسارات',
+    statWon: 'مكسوبة',
+    statRejected: 'مرفوضة',
+    statPayments: 'المدفوعات',
+    assignedN: 'المكلّفون ({n})',
+    assignTitle: 'من يتولى هذا العميل؟',
+    assignHint: 'يبقى الشخص الأول المسؤول الأساسي عن المتابعة.',
+    assignSave: 'حفظ',
+    inqStOpen: 'مفتوح',
+    inqStQuoted: 'تم التسعير',
+    inqStRejected: 'مرفوض',
+    inqStWon: 'مكسوب',
+    inqFormNew: 'استفسار جديد',
+    inqFormEdit: 'تعديل الاستفسار',
+    inqFieldTitle: 'ماذا يحتاجون؟',
+    inqFieldDetails: 'التفاصيل (اختياري)',
+    inqFieldValue: 'القيمة المتوقعة',
+    inqFieldDate: 'التاريخ',
+    inqSave: 'حفظ',
+    inqNone: 'لا استفسارات بعد. أضف الأول.',
+    inqDetails: 'التفاصيل',
+    inqAmount: 'المبلغ',
+    inqDocs: 'العروض والفواتير',
+    inqNoDocs: 'لم يتم تسعير شيء بعد.',
+    inqCreateEstimate: 'إنشاء عرض سعر',
+    inqReject: 'تحديد كمرفوض',
+    inqRejectWhy: 'لماذا رُفض؟',
+    inqReopen: 'إعادة الفتح',
+    inqEdit: 'تعديل',
+    inqRemove: 'حذف الاستفسار',
+    inqRemoveConfirm: 'حذف هذا الاستفسار؟',
+    inqRejectedFor: 'مرفوض: {reason}',
+    inqNotFound: 'هذا الاستفسار غير متاح.',
+    evFollowUp: 'متابعة',
+    evFollowUpDone: 'تمت المتابعة',
+    evReceipt: 'تم استلام مبلغ',
+    activityEmpty: 'لا شيء بعد.',
+    billsEmpty: 'لا عروض أسعار أو فواتير بعد.',
+    docsEmpty: 'ستظهر ملفات PDF للفواتير هنا.',
+    owes: '{amount} مستحق القبض',
+    remove: 'حذف العميل',
+    removeConfirm: 'حذف هذا العميل؟',
+    whenNext: 'متى التالية؟',
+    nextTomorrow: 'غدًا',
+    nextWeek: 'الأسبوع القادم',
+    nextNone: 'لا مزيد من المتابعة',
+    fuTitle: 'المتابعات',
+    gOverdue: 'متأخرة',
+    gToday: 'اليوم',
+    gWeek: 'هذا الأسبوع',
+    gLater: 'لاحقًا',
+    mine: 'خاصتي',
+    everyone: 'الكل',
+    fuEmpty: 'لا متابعات مستحقة. أضف واحدة من صفحة العميل.',
+    fuSubtitle: 'تابع متابعات العملاء',
+    fuUpcoming: 'القادمة',
+    fuEmptyTitle: 'لا متابعات مستحقة',
+    fuEmptyBody: 'أضف متابعة من استفسار عميل أو اجتماع أو محادثة لتبقى على المسار.',
+    fuAdd: 'إضافة متابعة',
+    fuFromClient: 'إضافة من عميل',
+    fuFromClientSub: 'أنشئ متابعة لعميل حالي',
+    fuFromInquiry: 'إضافة من استفسار',
+    fuFromInquirySub: 'حوّل استفساراً إلى متابعة',
+    hubMoneyIn: 'الإيرادات',
+    hubMoneyOut: 'المصروفات',
+    hubTeam: 'الفريق',
+    hubBooks: 'الدفاتر والشركة',
+    hubNew: 'جديد',
+    hubToReceive: '{amount} مستحق القبض',
+    hubToday: '{n} اليوم',
+    hubOpen: '{n} مفتوحة',
+    hubToPay: '{amount} مستحق الدفع',
+    hubToApprove: '{n} بانتظار الموافقة',
+    hubPeople: '{n} أشخاص',
+    hubNothing: 'لا شيء مستحق',
+    hubFiles: 'PDF وExcel',
+    hubSettings: 'إعدادات الشركة',
+    hubDue: '{n} مستحقة',
+    hubInSub: 'تابع ما تستلمه',
+    hubOutSub: 'إدارة المصروفات والمدفوعات',
+    hubTeamSub: 'الأشخاص والعمل والحضور',
+    hubBooksSub: 'السجلات والتقارير والإعداد',
+  },
+  companyImport: {
+    title: 'استيراد',
+    menuRow: 'استيراد',
+    menuRowSub: 'موظفون وعملاء وموردون من ملف أو جهات الاتصال أو Google Sheets',
+    whatTitle: 'ماذا تريد أن تستورد؟',
+    employees: 'الموظفون',
+    employeesSub: 'الاسم، الهاتف، المعرّف، تاريخ الانضمام',
+    clients: 'العملاء والاستفسارات',
+    clientsSub: 'الاسم، الهاتف، الطلب، الحالة',
+    vendors: 'الموردون',
+    vendorsSub: 'الاسم، الهاتف، الفئة، الرصيد الافتتاحي',
+    sourceTitle: 'من أين؟',
+    srcFile: 'ملف Excel أو CSV',
+    srcFileSub: '.xlsx أو .xls أو .csv',
+    srcContacts: 'جهات اتصال الهاتف',
+    srcContactsSub: 'اختر أشخاصاً من دفتر العناوين',
+    srcSheet: 'رابط Google Sheet',
+    srcSheetSub: 'شاركه ليتمكن أي شخص لديه الرابط من العرض',
+    template: 'تنزيل القالب',
+    templateFailed: 'تعذّرت مشاركة القالب.',
+    sheetPlaceholder: 'الصق رابط المشاركة',
+    sheetGo: 'قراءة الجدول',
+    sheetBad: 'هذا ليس رابط Google Sheets.',
+    sheetPrivate:
+      'لا يستطيع Waves فتح هذا الجدول. شاركه ليتمكن أي شخص لديه الرابط من العرض ثم حاول مجدداً.',
+    sheetTooBig: 'الجدول كبير جداً (5 ميغابايت كحد أقصى).',
+    sheetNetwork: 'تعذّر الوصول إلى Google Sheets. تحقق من اتصالك.',
+    fileTooLarge: 'الملف كبير جداً (5 ميغابايت كحد أقصى).',
+    fileTooMany: 'عدد الصفوف كبير جداً (2,000 كحد أقصى).',
+    fileEmpty: 'الملف فارغ.',
+    fileEncoding: 'احفظ الملف بصيغة CSV UTF-8 وحاول مجدداً.',
+    fileUnreadable: 'تعذّرت قراءة الملف. جرّب حفظه بصيغة CSV.',
+    noRows: 'لا توجد صفوف تحت صف العناوين.',
+    columnsTitle: 'مطابقة الأعمدة',
+    columnsHint: 'يُقرأ الصف الأول كعناوين. غيّر المطابقة إذا كانت خاطئة.',
+    none: 'غير موجود في ملفي',
+    fName: 'الاسم',
+    fPhone: 'الهاتف',
+    fEmployeeId: 'معرّف الموظف',
+    fDepartment: 'القسم',
+    fManager: 'المدير',
+    fJoinedOn: 'تاريخ الانضمام',
+    fDailyRate: 'الأجر اليومي',
+    fNeed: 'الطلب',
+    fSource: 'المصدر',
+    fAddress: 'العنوان',
+    fExpectedValue: 'القيمة المتوقعة',
+    fStage: 'الحالة',
+    fCategory: 'الفئة',
+    fOpeningBalance: 'الرصيد الافتتاحي (المستحق)',
+    previewTitle: 'تحقق قبل الاستيراد',
+    cNew: '{n} جديد',
+    cDup: '{n} مكرر، تم تخطيه',
+    cErr: '{n} بأخطاء، تم تخطيه',
+    importN: 'استيراد {n}',
+    next: 'متابعة',
+    back: 'رجوع',
+    progress: 'جارٍ إضافة {done} من {total}',
+    resultTitle: 'اكتمل الاستيراد',
+    resultLine: 'تمت إضافة {added}، وتخطي {dups} كمكرر، و{errors} أخطاء',
+    downloadErrors: 'تنزيل الصفوف الخاطئة',
+    done: 'تم',
+    pName: 'الاسم مفقود',
+    pPhone: 'رقم الهاتف غير صالح',
+    pDate: 'التاريخ غير صالح',
+    pAmount: 'المبلغ غير صالح',
+    pNegative: 'لا يمكن أن يكون المبلغ سالباً',
+    pDupFile: 'مكرر في هذا الملف',
+    pDupExisting: 'موجود بالفعل في قائمتك',
+    pFailed: 'تعذّرت إضافة هذا. حاول مجدداً.',
+    wDept: 'القسم غير موجود، تُرك فارغاً',
+    wManager: 'المدير غير موجود، تُرك فارغاً',
+    wEmpId: 'معرّف الموظف مستخدم بالفعل، تُرك فارغاً',
+    wStage: 'الحالة غير معروفة، أُضيف كعميل',
+    warnLine: 'أُضيفت {n} صفوف دون بعض التفاصيل.',
+    noAccess: 'يمكن للمالكين والمديرين فقط الاستيراد.',
+    errCsvRow: 'الصف',
+    errCsvProblem: 'المشكلة',
+    contactsAdded: 'تم اختيار {n} من جهات الاتصال',
+  },
+  companyVendors: {
+    subtitle: 'الفواتير · المدفوعات · الإيصالات',
+    receipts: 'الإيصالات',
+    pendingN: '{n} معلّق',
+    receiptOne: '{n} إيصال',
+    receiptMany: '{n} إيصالات',
+    periodMonth: 'هذا الشهر',
+    periodLast: 'الشهر الماضي',
+    periodYear: 'هذه السنة',
+    periodAll: 'كل الوقت',
+    allVendors: 'كل الموردين',
+    pendingReview: 'بانتظار المراجعة',
+    photoPrivacy: 'لا يرى هذه الصور إلا من يمكنه رؤية هذا القيد في السجل.',
+    historyEmpty: 'لا توجد قيود بعد',
+    title: 'الموردون',
+    addVendor: '+ إضافة مورد',
+    name: 'الاسم',
+    phone: 'الهاتف (اختياري)',
+    category: 'الفئة (اختياري)',
+    empty: 'لا يوجد موردون بعد',
+    youOwe: 'عليك دفع {amount}',
+    hasAdvance: 'لديه سلفة بقيمة {amount}',
+    settled: 'الحساب مسوّى',
+    oweName: 'عليك دفع {amount} إلى {name}',
+    advanceName: 'لدى {name} سلفة بقيمة {amount}',
+    settledName: 'الحساب مسوّى مع {name}',
+    companyOwes: 'تدين لك الشركة بمبلغ {amount}',
+    yourAdvance: 'لديك سلفة من الشركة بقيمة {amount}',
+    allSettled: 'الحساب مسوّى',
+    addBill: 'إضافة فاتورة',
+    recordPayment: 'تسجيل دفعة',
+    bill: 'فاتورة',
+    advance: 'سلفة',
+    payment: 'دفعة',
+    amount: 'المبلغ',
+    date: 'التاريخ',
+    note: 'ملاحظة (اختياري)',
+    dateHint: 'YYYY-MM-DD',
+    invalidDate: 'أدخل تاريخًا صحيحًا',
+    billHint: 'تُحتسب هذه الفاتورة بعد تأكيد الشركة.',
+    pending: 'قيد الانتظار',
+    confirmed: 'مؤكد',
+    rejected: 'مرفوض',
+    received: 'تم الاستلام',
+    markReceived: 'تأكيد الاستلام',
+    history: 'السجل',
+    pendingBills: 'فواتير بانتظار التأكيد',
+    confirm: 'تأكيد',
+    reject: 'رفض',
+    more: 'المزيد من الخيارات',
+    invite: 'دعوة المورد',
+    rename: 'تغيير الاسم',
+    delete: 'حذف',
+    deleteConfirm: 'هل تريد حذف هذا المورد وسجله؟',
+    removeEntry: 'إزالة القيد',
+    removeConfirm: 'هل تريد إزالة هذا القيد من السجل؟',
+    withdraw: 'سحب',
+    withdrawConfirm: 'هل تريد سحب هذه الفاتورة المعلقة؟',
+    notFound: 'المورد غير متاح',
+    inviteFailed: 'تعذر إنشاء دعوة. اتصل بالإنترنت وحاول مجددًا.',
+    save: 'حفظ',
+    close: 'إغلاق',
+    addSubtitle: 'أضف مورّدًا لإدارة المدفوعات والفواتير في Waves.',
+    scanQr: 'مسح QR',
+    fromLink: 'من رابط',
+    wavesId: 'معرّف Waves',
+    useLink: 'استخدم الرابط',
+    findId: 'بحث',
+    helpScan: 'امسح رمز QR للدفع أو رمزًا شاركه المورّد',
+    helpLink: 'الصق رابط الدفع أو رقم الهاتف',
+    helpId: 'أدخل البريد أو الهاتف للعثور عليه في Waves',
+    linkPlaceholder: 'الصق الرابط أو رقم الهاتف',
+    idPlaceholder: 'البريد الإلكتروني أو رقم الهاتف',
+    idHint: 'أدخل بريدًا أو رقم هاتف صالحًا',
+    lookupFailed: 'تعذّرت القراءة. املأ التفاصيل أدناه.',
+    allowCamera: 'السماح بالكاميرا',
+    or: 'أو',
+    enterManually: 'إدخال يدوي',
+    phoneOptional: 'رقم الهاتف (اختياري)',
+    categoryOptional: 'الفئة (اختياري)',
+    editVendor: 'تعديل المورّد',
+    vendorNameRequired: 'اسم المورّد *',
+    categories: 'الفئات',
+    addOrSelectCategory: 'أضف فئة أو اختر',
+    selectOrAddCategories: 'اختر الفئات أو أضفها',
+    addCategory: 'إضافة فئة',
+    showMore: 'عرض المزيد',
+    showLess: 'عرض أقل',
+    removeCategory: 'إزالة {name}',
+    cancel: 'إلغاء',
+    catMaterials: 'مواد',
+    catCement: 'أسمنت',
+    catElectrical: 'كهرباء',
+    catPlumbing: 'سباكة',
+    catPainting: 'دهان',
+    catHardware: 'أدوات معدنية',
+    catLabour: 'عمالة',
+    saveVendor: 'حفظ المورّد',
+    catSupplier: 'مورّد',
+    catContractor: 'مقاول',
+    catLandlord: 'مالك العقار',
+    catUtilities: 'المرافق',
+    catTransport: 'النقل',
+    catOther: 'أخرى',
+    totalToPay: 'إجمالي المستحق',
+    overdueCount: '{n} متأخر',
+    paidThisMonth: 'المدفوع هذا الشهر',
+    billsToReview: 'فواتير للمراجعة',
+    filterAll: 'الكل',
+    filterToPay: 'للدفع',
+    filterToReview: 'للمراجعة',
+    search: 'ابحث عن مورد',
+    emptyList: 'سيظهر مورّدوك هنا.',
+    noMatch: 'لا يوجد مورّد مطابق.',
+    statusOverdue: 'متأخر',
+    statusToReview: 'للمراجعة',
+    statusToPay: 'للدفع',
+    call: 'اتصال',
+    whatsapp: 'واتساب',
+    statement: 'كشف الحساب',
+    vendorTitle: 'المورّد',
+    activityTab: 'النشاط',
+    billsTab: 'الفواتير',
+    lastPaymentLabel: 'آخر دفعة',
+    waitingSync: 'بانتظار المزامنة',
+    entryDetails: 'تفاصيل القيد',
+    documents: 'المستندات',
+    transactions: 'المعاملات',
+    outstanding: 'المستحق',
+    overdueLine: '{amount} متأخر',
+    lastPayment: 'آخر دفعة {amount} · {date}',
+    noPayments: 'لم تُسجَّل دفعات بعد.',
+    noDocs: 'لا توجد مستندات بعد.',
+    dueOn: 'الاستحقاق {date}',
+    dueDate: 'تاريخ الاستحقاق (اختياري)',
+    method: 'الطريقة',
+    mUpi: 'UPI',
+    mBank: 'تحويل بنكي',
+    mCash: 'نقدًا',
+    mOther: 'أخرى',
+    reference: 'المرجع (اختياري)',
+    proofPhoto: 'صورة إثبات (اختياري)',
+    currentOutstanding: 'المستحق الحالي',
+    remainingAfter: 'المتبقي بعد هذا: {amount}',
+    keptAsAdvance: 'سيُحتفظ بـ {amount} كدفعة مقدّمة.',
+    recorded: 'مسجّل',
+    paymentRecorded: 'تم تسجيل الدفعة',
+    receipt: 'إيصال',
+    receiptTitle: 'إيصال دفع',
+    receiptFooter: 'تم تسجيل الدفعة في Waves — وليست تأكيدًا من البنك ولا فاتورة ضريبية.',
+    companyLabel: 'الشركة',
+    vendorLabel: 'المورّد',
+    balanceAfter: 'الرصيد بعد',
+    statusLabel: 'الحالة',
+    sharePdf: 'مشاركة PDF',
+    viewTransaction: 'عرض المعاملة',
+    pdfFailed: 'تعذّر إنشاء PDF.',
+    statementTitle: 'كشف حساب المورّد',
+    balance: 'الرصيد',
+    receiptsHeading: 'إيصالات الدفع',
+    billPhotos: 'صور الفواتير',
+    shareWhatsapp: 'مشاركة عبر واتساب',
+    amountLabel: 'المبلغ',
+    dateLabel: 'التاريخ',
+    quickFull: 'الكل {amount}',
+    quickOverdue: 'المتأخر {amount}',
+    stillToPay: 'المتبقي للدفع بعد هذا: {amount}',
+    paidBy: 'طريقة الدفع',
+    recordsNote: 'يسجّل هذا الدفعة في Waves. ولا يرسل المال.',
+    waitingVendor: 'مسجّل · بانتظار المورّد',
+    openInVendor: 'افتح في معاملات {name}',
+    downloadPdf: 'تنزيل PDF',
+    advanceKind: 'دفعة مقدّمة',
+    paidTo: 'مدفوع إلى {name}',
+    newOrder: 'طلب جديد',
+    ordersTab: 'الطلبات',
+    orderTitle: 'طلب مواد جديد',
+    editOrder: 'تعديل الطلب',
+    itemName: 'الصنف',
+    itemQty: 'الكمية',
+    itemUnit: 'الوحدة',
+    itemPrice: 'السعر / الوحدة',
+    addItem: 'إضافة صنف',
+    removeItem: 'إزالة الصنف',
+    expectedDelivery: 'التسليم المتوقع (اختياري)',
+    orderTotalItems: 'الإجمالي · {n} أصناف',
+    orderNotBill: 'الطلب لا يزيد ما عليك. فاتورة المورّد هي التي تفعل.',
+    sendOrder: 'إرسال الطلب',
+    orderSent: 'تم إرسال الطلب',
+    noOrders: 'لا توجد طلبات بعد.',
+    createOrder: 'إنشاء طلب',
+    ordSent: 'مُرسل',
+    ordAccepted: 'مقبول',
+    ordRejected: 'مرفوض',
+    ordDelivered: 'تم التسليم',
+    ordCancelled: 'ملغى',
+    accept: 'قبول',
+    markDelivered: 'تحديد كمُسلَّم',
+    cancelOrder: 'إلغاء الطلب',
+    cancelOrderConfirm: 'إلغاء هذا الطلب؟',
+    orderTimeline: 'الجدول الزمني',
+    unitBags: 'أكياس',
+    unitPieces: 'قطع',
+    unitKg: 'كغ',
+    unitLitres: 'لترات',
+    unitMetres: 'أمتار',
+    unitOther: 'أخرى',
+    orderPdf: 'ملف PDF لأمر الشراء',
+    purchaseOrder: 'أمر شراء',
+    expectedOn: 'المتوقع {date}',
+    orderItems: 'الأصناف',
+    orderTotal: 'الإجمالي',
+    itemsCount: '{n} أصناف',
+  },
+  companySlot: {
+    addRow: 'إضافة شركة',
+    addRowHint: 'شركتك الأولى مجانية',
+    title: 'إضافة شركة أخرى',
+    body: 'شركتك الأولى مجانية. كل شركة إضافية بسعر {price} شهرياً.',
+    subscribe: 'اشترك',
+    restore: 'استعادة',
+    restored: 'تمت استعادة الاشتراك.',
+    noneFound: 'لا يوجد اشتراك شركة نشط.',
+    unavailable: 'لا يمكن شراء شركات إضافية في هذا الإصدار. حدّث التطبيق من المتجر وحاول مجدداً.',
+    pending: 'عملية الشراء بانتظار الموافقة. أضف الشركة بعد اكتمالها.',
+    buyFailed: 'تعذّر إكمال الشراء. لم يتم خصم أي مبلغ.',
+    setupSlow: 'ما زال اشتراكك قيد التأكيد. حاول مجدداً بعد دقيقة.',
+    lapsedBanner:
+      'انتهى اشتراك هذه الشركة فهي للعرض فقط. لم يُحذف أي شيء. جدّد الاشتراك لتعديلها من جديد.',
+    lapsedReadOnly: 'انتهى اشتراك هذه الشركة. يمكنك العرض والتصدير لكن لا الإضافة أو التعديل.',
+    renew: 'تجديد الاشتراك',
+  },
+  companyStorage: {
+    addMore: 'أضف المزيد من التخزين',
+    packLine: '{size} · {price}/شهريًا',
+    packNote:
+      'حزمة واحدة لكل شركة، ويمكن تبديلها في أي وقت. إذا انتهت تبقى الصور ويتوقف الرفع الجديد فقط.',
+    packElsewhere:
+      'هذا الحساب في المتجر يدفع بالفعل مقابل التخزين لشركة أخرى. ألغِه هناك أولاً، أو اشترِ من حساب مختلف.',
+    bought: 'شكرًا. ستتحدث المساحة بعد لحظات.',
+    pending: 'الشراء قيد الانتظار. يتحدث التخزين عند اكتماله.',
+    buyFailed: 'تعذر إكمال الشراء. حاول مرة أخرى.',
+    title: 'التخزين',
+    usedOfQuota: '{used} من {quota}',
+    percentUsed: 'مستخدم {percent}%',
+    banner: 'التخزين ممتلئ بنسبة {percent}%. أضف المزيد',
+    note: 'صور القيود والفواتير والمهام تُحتسب هنا. لا يُحذف أي شيء أبدًا.',
+    full: 'تخزين الشركة ممتلئ. يمكن للمالك إضافة المزيد من الإعدادات.',
+    loading: 'تعذر تحميل التخزين. حاول مرة أخرى.',
+  },
+  companyFiles: {
+    title: 'الملفات',
+    search: 'ابحث في الملفات…',
+    all: 'الكل',
+    documents: 'المستندات',
+    images: 'الصور',
+    sheets: 'الجداول',
+    others: 'أخرى',
+    links: 'الروابط',
+    upload: 'رفع',
+    addLink: 'إضافة رابط',
+    newFolder: 'مجلد جديد',
+    folderItems: '{n} عنصر',
+    empty: 'لا توجد ملفات بعد',
+    emptyBody: 'ارفع مستندات وصورًا وجداول، أو أضف رابطًا، واختر من يمكنه رؤية كل منها.',
+    emptyFolder: 'هذا المجلد فارغ',
+    noMatches: 'لا توجد نتائج',
+    open: 'فتح',
+    rename: 'إعادة التسمية',
+    editLink: 'تعديل الرابط',
+    whoSees: 'من يمكنه الرؤية',
+    openFailed: 'تعذر فتح هذا الملف. حاول مرة أخرى.',
+    uploadFailed: 'تعذر رفع هذا الملف. حاول مرة أخرى.',
+    tooBig: 'هذا الملف أكبر من 25 ميغابايت.',
+    badType:
+      'لا يمكن رفع هذا النوع من الملفات. استخدم PDF أو Word أو Excel أو PowerPoint أو صورة أو نصًا أو zip.',
+    storageFull: 'مساحة الشركة ممتلئة. يمكن للمالك إضافة المزيد من الإعدادات.',
+    saveFailed: 'تعذر الحفظ. حاول مرة أخرى.',
+    linkName: 'الاسم',
+    linkUrl: 'الرابط (https://…)',
+    linkUrlBad: 'أدخل عنوان ويب يبدأ بـ http أو https.',
+    folderName: 'اسم المجلد',
+    fileName: 'الاسم',
+    visEveryone: 'الجميع',
+    visManagers: 'المديرون والمالكون',
+    visOwners: 'المالكون فقط',
+    visEveryoneHint: 'جميع أعضاء الشركة',
+    visManagersHint: 'مخفي عن الموظفين',
+    visOwnersHint: 'مخفي عن المديرين والموظفين',
+    deleteFolderTitle: 'حذف المجلد «{name}»؟',
+    deleteFolderBody: 'سيُحذف كل ما بداخله أيضًا.',
+    deleteFileTitle: 'حذف «{name}»؟',
+    deleteFileBody: 'سيُحذف للجميع.',
+    uploading: 'جارٍ الرفع…',
+    allFiles: 'كل الملفات',
+    listView: 'عرض القائمة',
+    gridView: 'عرض الشبكة',
+    more: 'المزيد',
+  },
+  companyDetails: {
+    title: 'تفاصيل الشركة',
+    vendorDetails: 'تفاصيل المورّد',
+    myDetails: 'تفاصيلي',
+    accountName: 'اسم الحساب',
+    accountNumber: 'رقم الحساب',
+    ifsc: 'IFSC',
+    upi: 'معرّف UPI',
+    address: 'العنوان',
+    phone: 'الهاتف',
+    email: 'البريد الإلكتروني',
+    gstin: 'GSTIN',
+    pan: 'PAN',
+    note: 'ملاحظة',
+    copied: 'تم النسخ',
+    shareAsText: 'مشاركة كنص',
+    edit: 'تعديل',
+    addDetails: 'إضافة تفاصيل',
+    empty: 'لم تُضف أي تفاصيل بعد',
+    reveal: 'إظهار القيمة كاملة',
+    hide: 'إخفاء القيمة',
+    updatedAgo: 'حدّث {name} قبل {when}',
+    updated: 'تم التحديث',
+    bankChanged: 'تغيّرت التفاصيل المصرفية في {date} — أكّد عبر الهاتف قبل الدفع',
+    noted: 'تمت الملاحظة',
+    save: 'حفظ',
+    invalidField: 'أدخل {field} صالحًا',
+    saveFailed: 'تعذّر حفظ التفاصيل',
+    bank: 'البنك',
+    contact: 'التواصل',
+    subtitle: 'أدر معلومات شركتك وإعداداتها.',
+    active: 'نشطة',
+    companyInfo: 'معلومات الشركة',
+    legalName: 'الاسم القانوني',
+    addMore: 'أضف المزيد من التفاصيل',
+    peopleAccess: 'الأشخاص والوصول',
+    teamMembers: 'أعضاء الفريق',
+    businessSetup: 'إعداد الأعمال',
+    billing: 'الفواتير والمدفوعات',
+    billingSub: 'المدفوعات والفواتير والكشوف',
+    preferences: 'التفضيلات',
+    preferencesSub: 'الإشعارات والعملة والمزيد',
   },
   groupRecurring: {
     title: 'المتكررة',
@@ -23477,6 +34819,33 @@ const ar: UiStrings = {
     traps: 'اقرأ الجملة كما هي مكتوبة.',
   },
   credits: {
+    sheetTitle: 'أرصدة الصوت',
+    sheetLeft: '{n} أرصدة متبقية',
+    sheetHelp:
+      'استخدم الأرصدة لأوامر الصوت بالذكاء الاصطناعي مثل إضافة النفقات أو تقسيمها أو تسويتها.',
+    sheetWatch: 'شاهد إعلانًا · احصل على {n} أرصدة',
+    sheetAdded: 'تمت إضافة +{n} أرصدة!',
+    sheetBalance: 'لديك الآن {n} أرصدة.',
+    sheetFull: 'الأرصدة مكتملة',
+    sheetFullBody: 'لديك {n} من أصل {max} رصيدًا. استخدم بعضها، ثم شاهد إعلانًا آخر.',
+    sheetGap: 'الإعلان التالي خلال دقيقة',
+    sheetUnavailable: 'الإعلانات غير متاحة الآن',
+    sheetRetry: 'يرجى المحاولة لاحقًا.',
+    sheetPro: 'بلا إعلانات · {n} أمر صوتي/شهر',
+    sheetProSubtitle: 'بلا إعلانات و{n} أمر صوتي شهريًا',
+    sheetVoice: '{n} أمر صوتي شهريًا',
+    sheetPrice: 'احصل على Pro – {price}/شهر',
+    sheetLater: 'ربما لاحقًا',
+    sheetStatusEmpty: 'لقد استخدمت أرصدة الصوت المجانية لهذا الشهر.',
+    sheetWatchSub: 'شاهد إعلانًا قصيرًا للحصول على المزيد من أرصدة الصوت الآن.',
+    sheetStatusHas: 'جاهز لأمرك الصوتي التالي.',
+    sheetMiniScans: '{n} مسحًا',
+    sheetMiniScansSub: 'كل شهر',
+    sheetMiniAds: 'بلا إعلانات',
+    sheetMiniAdsSub: 'على Pro',
+    sheetMiniDevices: '{n} أجهزة',
+    sheetMiniDevicesSub: 'على حساب واحد',
+    sheetContinue: 'متابعة',
     title: 'الرصيد',
     balance: 'لديك {n} من الرصيد',
     usedOne: 'تم استخدام {n} من الرصيد',
@@ -23493,6 +34862,25 @@ const ar: UiStrings = {
     export: 'تصدير',
     group: 'مجموعة إضافية',
     price: '{n} من الرصيد',
+    yourCredits: 'رصيدك',
+    yourCreditsHint: 'استخدم الرصيد للصوت بالذكاء الاصطناعي ومسح الإيصالات والتصدير وغيرها.',
+    watchSub: 'شاهد إعلانًا قصيرًا لتحصل على {n} رصيد',
+    proSub: 'بدون إعلانات، رصيد أكثر',
+    getPro: 'احصل على Pro',
+    howUsed: 'كيف يُستخدم الرصيد',
+    learnMore: 'اعرف المزيد',
+    voiceSub: 'أضف المصروفات بالصوت',
+    scanSub: 'امسح واستخرج التفاصيل',
+    exportSub: 'تصدير إلى CSV أو Excel',
+    groupSub: 'أنشئ وأدر مجموعات إضافية',
+    buyTitle: 'احصل على رصيد أكثر',
+    popular: 'الأكثر شعبية',
+    buy: 'شراء',
+    neverExpire: 'الرصيد لا ينتهي',
+    neverExpireSub: 'استخدمه في أي وقت. تُستخدم الحصة الشهرية المجانية أولًا.',
+    nextAt: 'يمكنك مشاهدة الإعلان التالي بعد {time}.',
+    paidNote: 'أنت على Pro، لذلك لا إعلانات. تبقى أرصدتك في محفظتك.',
+    help: 'مساعدة',
   },
   adGates: {
     title: 'شاهد إعلانًا قصيرًا',
@@ -23522,6 +34910,7 @@ const ar: UiStrings = {
     upgradeBody: 'احصل على أوامر صوتية بلا حدود، وبدون إعلانات، والمزيد.',
     dailyLimit: 'بلغت الحد اليومي للإعلانات — حاول غدًا',
     adLabel: 'إعلان',
+    removeAds: 'إزالة الإعلانات',
     voiceTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} أوامر صوتية إضافية بالذكاء الاصطناعي',
     scanTitle: 'شاهد إعلانًا قصيرًا لتحصل على {count} عمليات مسح إيصال إضافية',
     voiceBody:
@@ -23620,6 +35009,8 @@ const ar: UiStrings = {
     nudgesBody: 'تذكير لطيف بالمال المستحق. مرة واحدة لكل شخص يوميًا، بحدٍّ في قاعدة البيانات.',
     digest: 'ملخص المجموعة اليومي',
     digestBody: 'كل ما تبقّى، مجمّعًا في إشعار واحد يوميًا بدل تدفق مستمر.',
+    companyUpdates: 'تحديثات الشركة',
+    companyUpdatesBody: 'الإجازات والمصروفات والدفعات والمهام والتقويم والشكاوى في شركتك.',
     emailSection: 'عبر البريد',
     emailAll: 'راسلني بالبريد',
     emailAllBody:
@@ -23910,6 +35301,20 @@ const ar: UiStrings = {
     notJoined: 'لم ينضم',
     group: 'مجموعة',
   },
+  spaces: {
+    personal: 'شخصي',
+    personalBody: 'الأصدقاء والمجموعات والمصروفات',
+    switchTitle: 'تبديل المساحة',
+    switchBody: 'اختر المكان الذي تريد العمل فيه',
+    switchedTo: 'تم التبديل إلى {name}',
+    createTitle: 'إنشاء شركة جديدة',
+    createBody: 'أنشئ شركة وادعُ الأشخاص',
+    owner: 'المالك',
+    manager: 'المدير',
+    employee: 'موظف',
+    vendor: 'المورد',
+    pillLabel: 'تبديل المساحة',
+  },
   dashHero: {
     scanTitle: 'صوّر الإيصال',
     scanBody: 'امسح الفاتورة وتُملأ البنود تلقائيًا — قسّمها في ثوانٍ.',
@@ -23970,15 +35375,70 @@ const ar: UiStrings = {
     change: 'تغيير',
     settlesWith: 'التسوية عبر {rails}',
   },
-  activityScreen: {
-    subtitle: 'معاملاتك وتحديثاتك الأخيرة',
+  departedExpenses: {
     all: 'الكل',
-    expenses: 'المصروفات',
-    edits: 'التعديلات',
-    trip: 'الرحلة',
-    more: 'المزيد',
-    viewDetails: 'عرض التفاصيل',
-    openGroup: 'فتح المجموعة',
+    youLent: 'أقرضت {name}',
+    youOwe: 'عليك دفعه إلى {name}',
+    selectAll: 'تحديد الكل ({n})',
+    dateNewest: 'التاريخ (الأحدث)',
+    dateOldest: 'التاريخ (الأقدم)',
+    amountSort: 'المبلغ',
+    equalShare: 'تقسيم بالتساوي · حصته {amount}',
+    customShare: 'تقسيم مخصص · حصته {amount}',
+    paidBy: 'دفعه {name}',
+    selectedShares: 'تم تحديد {n} · حصصه {amount}',
+    splitOthers: 'تقسيم بين الآخرين',
+    expenseCount: { one: 'مصروف واحد ({n})', other: '{n} مصروفات' },
+    isOwed: {
+      one: 'يستحق {name} مبلغ {amount} عبر مصروف واحد ({n})',
+      other: 'يستحق {name} مبلغ {amount} عبر {n} مصروفات',
+    },
+
+    title: 'مصاريف {name}',
+    owed: {
+      one: 'على {name} مبلغ {amount} عبر {n} مصاريف',
+      other: 'على {name} مبلغ {amount} عبر {n} مصاريف',
+    },
+    equal: { one: 'تقسيم بالتساوي ({n}) · {amount}', other: 'تقسيم بالتساوي ({n}) · {amount}' },
+    perEach: '+{amount} لكل شخص',
+    splitAmong: {
+      one: 'تقسيم على الأعضاء الآخرين وعددهم {n}',
+      other: 'تقسيم على الأعضاء الآخرين وعددهم {n}',
+    },
+    custom: { one: 'تقسيمات مخصصة ({n})', other: 'تقسيمات مخصصة ({n})' },
+    keep: 'إبقاء',
+    shareEqually: 'مشاركة بالتساوي',
+    paid: {
+      one: 'دفع {name} ({n}) · لا يزال له {amount}',
+      other: 'دفع {name} ({n}) · لا يزال له {amount}',
+    },
+    settle: 'تسوية مع {name}',
+    confirm: { one: 'تأكيد {n} تغييرات', other: 'تأكيد {n} تغييرات' },
+    dialog:
+      'نقل مبلغ {amount} المستحق على {name} إلى الأعضاء الآخرين وعددهم {n}؟ سيدين كل شخص بحوالي {perEach} إضافية. يصبح رصيد {name} ‏{balance}. يمكنك التراجع خلال 7 أيام من النشاط.',
+    onlyViewer: 'ستتحمل {amount}',
+    onlyViewerDialog:
+      'ستتحمل {amount}. يصبح رصيد {name} ‏{balance}. يمكنك التراجع خلال 7 أيام من النشاط.',
+    bannerTitle: 'غادر {name} المجموعة',
+    decideFor: 'اتخاذ قرار بشأن {name}',
+    banner: {
+      one: 'مصروف واحد ({n}) يحتاج إلى قرار',
+      other: '{n} مصاريف تحتاج إلى قرار',
+    },
+    decide: 'تقرير',
+    keepAsIs: 'إبقاء كما هو',
+    offline: 'اتصل بالإنترنت لنقل هذه المصاريف.',
+    memberRow: 'مصاريف {name}',
+    activity: {
+      one: 'قُسم مصروف واحد بعد مغادرة {name}',
+      other: 'قُسمت {n} مصاريف بعد مغادرة {name}',
+    },
+    activityUndone: 'تم التراجع عن التقسيم بعد مغادرة {name}',
+    undo: 'تراجع',
+  },
+  activityScreen: {
+    anExpense: 'مصروف',
+    subtitle: 'معاملاتك وتحديثاتك الأخيرة',
     noneForFilter: 'لا شيء هنا لهذا الفلتر بعد.',
     importedHeadline: {
       zero: 'استيراد {n} مصروف',
@@ -24040,13 +35500,13 @@ const ar: UiStrings = {
   newGroupForm: {
     title: 'إنشاء مجموعة جديدة',
     headerSub: 'ابدأ مجموعة وتقاسموا المصروفات معاً',
-    tagline: 'خططوا معًا، وقسّموا بسهولة',
+    tagline: 'قسّم المصاريف مع الأصدقاء أو العائلة أو الزملاء — في خطوات قليلة.',
     nameExample: 'مثال: رحلة بالي',
     whatFor: 'ما الغرض من هذه المجموعة؟',
     descriptionExample: 'مثال: رحلة أصدقاء، عطلة نهاية الأسبوع',
     addFriendsSub: 'أضف أشخاصًا لبدء تقاسم المصروفات',
     addContacts: 'إضافة جهات اتصال',
-    personPlaceholder: 'ابحث بالاسم أو رقم الهاتف',
+    personPlaceholder: 'أضف اسمًا',
     groupType: 'نوع المجموعة',
     groupTypeSub: 'اختر نوعاً يناسب مجموعتك',
     datesSub: 'حدّد تواريخ السفر (اختياري)',
@@ -24059,6 +35519,7 @@ const ar: UiStrings = {
     descriptionLabel: 'الوصف (اختياري)',
     optional: '(اختياري)',
     seeAll: 'عرض الكل',
+    moreOptions: 'خيارات إضافية',
   },
   captureForm: {
     headerSub: 'سجّل مصروفك في ثوانٍ',
@@ -24079,11 +35540,15 @@ const ar: UiStrings = {
   },
   homeDash: {
     creditsTitle: 'أرصدة',
-    creditsLabel: '{n} رصيد',
-    noAdAvailable: 'لا يتوفر إعلان حاليًا.',
+    getCredits: 'احصل على أرصدة',
+    creditOne: '{n} رصيد',
+    creditMany: '{n} أرصدة',
+    creditReward: 'احصل على {n} أرصدة',
+    creditPro: 'بلا إعلانات، {n} صوت/شهر',
     totalOwed: 'إجمالي المستحق لك',
     totalOwe: 'إجمالي المستحق عليك',
     totalSettled: 'كل الحسابات مسوّاة',
+    downloadingGroups: 'جارٍ تنزيل مجموعاتك · {loaded} من {total}',
     spentThisMonth: 'أنفقت هذا الشهر',
     vsLastMonth: 'مقارنة بالشهر الماضي',
     periodOverall: 'الإجمالي',
@@ -24100,7 +35565,14 @@ const ar: UiStrings = {
     settleTitle: 'التسوية في أي مجموعة؟',
     settleEmpty: 'حساباتك مسوّاة في كل المجموعات.',
     settleSubtitle: 'اختر مجموعة لعرض الأرصدة والتسوية.',
+    settleSquareBody: 'لا أرصدة معلّقة في مجموعاتك.',
+    settleAllDone: 'كل شيء مسوّى!',
+    settleAllDoneBody: 'لا أرصدة للتسوية الآن.',
+    settleCreate: 'إنشاء مجموعة',
+    settleScan: 'امسح فاتورة وأضفها',
+    settleInvite: 'دعوة أعضاء',
     settleMeta: '{members} · آخر نشاط {when}',
+    settleAllGroups: 'كل المجموعات',
     acrossGroups: {
       zero: 'في {n} مجموعة',
       one: 'في مجموعة واحدة',
@@ -24828,9 +36300,9 @@ const ar: UiStrings = {
     more: 'المزيد',
     confirmReceived: 'أكّد الاستلام',
     heroExpense: 'Expense', // English placeholder — English-first phase, translation owed
-    rowOwed: 'owed', // English placeholder — English-first phase, translation owed
-    rowYouOwe: 'you owe', // English placeholder
-    rowSettled: 'settled', // English placeholder
+    rowOwed: 'لك',
+    rowYouOwe: 'عليك',
+    rowSettled: 'مسدّد',
     saysTheyPaidYou: 'يقول {name} إنه دفع لك',
     saysTheyPaidYouWindow: 'يقول {name} إنه دفع لك ({window})',
     daysToConfirm: {
@@ -24969,7 +36441,7 @@ const ar: UiStrings = {
     rejectConfirm: 'رفض',
     cancelSettlement: 'إلغاء الدفعة',
     paymentsToSettle: 'دفعات للتسوية',
-    everyonesBalance: 'رصيد الجميع',
+    everyonesBalance: 'إجماليات المجموعة',
     cancelTitle: 'إلغاء هذه الدفعة؟',
     cancelBody:
       'سيؤدي هذا إلى إزالة الدفعة التي سجّلتها. لن يُطلب من {name} تأكيدها، ولا يتغيّر أي رصيد.',
@@ -25067,6 +36539,12 @@ const ar: UiStrings = {
     emailSubject: 'انضم إلى {group} على Waves',
     hideContacts: 'إخفاء جهات الاتصال',
     browseContacts: 'تصفّح جهات اتصالي',
+    addSomeoneBody: 'أضف أصدقاءك لبدء تقاسم المصاريف معًا.',
+    browseContactsBody: 'ابحث وأضف من جهات اتصال هاتفك',
+    shareInviteBody: 'أرسل رابطًا لأي شخص',
+    orAddManually: 'أو أضف يدويًا',
+    contactOptional: 'رقم الهاتف أو البريد الإلكتروني (اختياري)',
+    addToGroupButton: 'أضف إلى المجموعة',
     fromContactsHint: 'اختر أسماءً من دفتر عناوين هذا الهاتف',
     shareJoinLink: 'شارك رابط الانضمام',
     shareJoinLinkHint: 'أرسل الرابط أو اعرض رمز QR — وسينضمّون بأنفسهم',
@@ -25437,6 +36915,18 @@ const ar: UiStrings = {
       other: 'عبر {n} دفعة',
     },
     settleBetweenOthersSub: 'مدفوعات بين أعضاء المجموعة (لا تؤثر على رصيدك)',
+    paymentsToMake: 'دفعات مستحقة',
+    balanceSortAmount: 'ترتيب حسب المبلغ',
+    balanceSortName: 'ترتيب حسب الاسم',
+    sortPill: 'ترتيب: {label}',
+    sortAmountHigh: 'الأعلى مبلغًا',
+    sortAmountLow: 'الأقل مبلغًا',
+    settleInOneGo: 'سوّ الحسابات دفعة واحدة',
+    balanceSimplified: 'مبسّط',
+    balanceIsOwed: 'له مستحقات',
+    balanceOwesYou: 'مدين لك',
+    balanceOwes: 'مدين',
+    balanceSettled: 'تمت التسوية',
     settleOweYouTitle: 'من يدينون لك',
     settleYouOweTitle: 'من تدين لهم',
     settleStatusPending: 'قيد الانتظار',
@@ -25553,7 +37043,6 @@ const ar: UiStrings = {
     memberLeft: '(غادر)',
     archivedGroup: 'مؤرشَف',
     unavailableGroup: 'غير متاح',
-    serverRefused: 'رفض الخادم هذا التغيير.',
     notSentYet: 'لم يُرسل بعد',
     offlineWithCount: {
       zero: 'دون اتصال — لا تغييرات',
@@ -25591,6 +37080,29 @@ const ar: UiStrings = {
     getTodaysRate: 'اجلب سعر {from}→{to} اليوم',
     micPermission: 'يحتاج Waves إلى إذن لاستخدام الميكروفون.',
     micBlocked: 'الوصول إلى الميكروفون معطّل لـ Waves. يمكنك تفعيله من الإعدادات.',
+    permission: {
+      continue: 'متابعة',
+      notNow: 'ليس الآن',
+      openSettings: 'فتح الإعدادات',
+      blocked: 'فعّله من الإعدادات.',
+      kinds: {
+        mic: {
+          title: 'استخدام الميكروفون',
+          body: 'يستمع Waves فقط أثناء نطقك للمصروف ليحوّله إلى قيد.',
+        },
+        contacts: {
+          title: 'ابحث عن أصدقائك',
+          body: 'يقرأ Waves جهات الاتصال فقط ليساعدك على اختيار من تقسم معهم.',
+        },
+        notifications: { title: 'ابقَ على اطلاع', body: 'احصل على تذكيرات وتحديثات عن مجموعاتك.' },
+        location: {
+          title: 'أضف مكان الإنفاق',
+          body: 'يرفق Waves مكانًا بالمصروف فقط عندما تطلب ذلك.',
+        },
+        camera: { title: 'استخدام الكاميرا', body: 'التقط صورة لإيصال أو صورة للملف الشخصي.' },
+        photos: { title: 'استخدام الصور', body: 'اختر صورة من مكتبتك لإيصال أو للملف الشخصي.' },
+      },
+    },
     dictationFailed: 'تعذّر بدء الإملاء. اكتب الملاحظة بدلًا من ذلك.',
     dictationErrors: {
       notAllowed: 'يحتاج Waves إلى إذن لاستخدام الميكروفون. يمكنك تفعيله من الإعدادات.',
@@ -25606,6 +37118,8 @@ const ar: UiStrings = {
     updateWaves: 'حدّث Waves',
     alreadyUpdated: 'لقد حدّثت بالفعل',
     update: 'تحديث',
+    updateNow: 'حدّث الآن',
+    newVersion: 'إصدار جديد',
     notNow: 'ليس الآن',
     changeGroupPhoto: 'تغيير صورة المجموعة',
     addGroupPhoto: 'أضف صورة للمجموعة',
@@ -25664,7 +37178,7 @@ const ar: UiStrings = {
     versionStoppedBody:
       'لم يعد بإمكان هذه النسخة التواصل مع Waves، لذا أُوقفت بدلًا من أن تعرض عليك أرقامًا قد تكون خاطئة.',
     newWavesOut: 'صدر إصدار جديد من Waves',
-    wavesVersionOut: 'صدر Waves {latest}',
+    wavesVersionOut: 'Waves {latest} متاح',
   },
   smsImport: {
     heroTitle: 'أضف المدفوعات بسرعة',
@@ -25831,6 +37345,37 @@ const ar: UiStrings = {
       draftLabel: 'مسودة Waves',
       continue: 'متابعة',
     },
+  },
+  spendingAsk: {
+    title: 'اسأل عن مصروفاتي',
+    tileSub: 'اسأل بكلمات بسيطة',
+    sub: 'اطرح سؤالاً عن أموالك.',
+    ledgerNote: 'بناءً على دفترك الشخصي فقط. التطبيق يحسب المبالغ ولا يخمّنها.',
+    period: 'هذا الشهر حتى الآن: من {from} إلى {to}',
+    q1: 'أين ذهبت أموالي هذا الشهر؟',
+    q2: 'ما الاشتراكات التي أدفع ثمنها؟',
+    q3: 'هل أنفق على الطعام أكثر من الشهر الماضي؟',
+    placeholder: 'اسأل عن مصروفاتك',
+    send: 'اسأل',
+    asking: 'نراجع دفترك',
+    counter: '{n} من {max}',
+    facts: 'الأرقام',
+    subscriptions: 'اشتراكات محتملة',
+    subscriptionsHint: 'تم اكتشافها من مدفوعات تتكرر بانتظام.',
+    monthly: 'شهري',
+    weekly: 'أسبوعي',
+    yearly: 'سنوي',
+    lastCharge: 'آخر دفعة في {date}',
+    yourQuestion: 'سؤالك',
+    askAnother: 'اسأل سؤالاً آخر',
+    failed: 'لم ينجح ذلك. سؤالك ما زال هنا، حاول مرة أخرى.',
+    rate: 'أسئلة كثيرة دفعة واحدة. انتظر قليلاً ثم حاول مرة أخرى.',
+    unavailable: 'السؤال غير متاح الآن.',
+    quota: 'استخدمت كل {limit} أسئلة هذا الشهر.',
+    paywallTitle: 'اسأل عن مصروفاتك',
+    paywallBody: 'يجيب Waves Pro عن أسئلة مثل أين ذهبت أموالك وما الاشتراكات التي تدفعها.',
+    unlock: 'افتح مع Pro',
+    back: 'رجوع',
   },
   statementImport: {
     title: 'استيراد كشف حساب',
@@ -26651,8 +38196,6 @@ const ar: UiStrings = {
     useMyTimezone: 'استخدم منطقتي الزمنية ({zone})',
     fromYourContactsSubtitle: 'اختر الأشخاص لإضافتهم إلى Waves',
     filterAll: 'الكل',
-    filterOnWaves: 'على Waves',
-    filterNotOnWaves: 'ليس على Waves',
     filterSelected: 'المحدد',
     peopleSelectedCount: {
       zero: 'لم يتم اختيار أي شخص',
@@ -26708,6 +38251,43 @@ const ar: UiStrings = {
     plansPromise: 'السجل لا يُقفل أبدًا.',
     manageSubscription: 'إدارة الاشتراك',
     whatCosts: 'ما تضيفه الخطط',
+  },
+  purchases: {
+    title: 'المشتريات',
+    row: 'المشتريات',
+    rowHint: 'الخطة والسجل والإيصالات',
+    link: 'المشتريات والإيصالات',
+    proMonthly: 'Waves Pro · شهري',
+    proYearly: 'Waves Pro · سنوي',
+    status: {
+      active: 'نشط',
+      trial: 'تجريبي',
+      renewsOff: 'التجديد متوقف',
+      billingIssue: 'مشكلة في الدفع',
+      expired: 'منتهٍ',
+      refunded: 'تم الاسترداد',
+      promo: 'ترويجي',
+    },
+    test: 'اختبار',
+    renews: 'يتجدد في {date}',
+    ends: 'ينتهي في {date}',
+    ended: 'انتهى في {date}',
+    promoUntil: 'ترويجي حتى {date}',
+    changePlan: 'تغيير الخطة',
+    manageOnAndroid: 'أدِر الاشتراك على Android',
+    manageOnIphone: 'أدِر الاشتراك على iPhone',
+    receiptsNotePlay: 'يرسل Google Play الإيصالات والفواتير الضريبية بالبريد الإلكتروني.',
+    receiptsNoteApple: 'يرسل App Store الإيصالات والفواتير الضريبية بالبريد الإلكتروني.',
+    help: 'مساعدة',
+    getReceipt: 'احصل على الإيصال',
+    orderId: 'رقم الطلب',
+    contactSupport: 'تواصل مع الدعم',
+    copied: 'تم نسخ رقم الطلب',
+    emptyTitle: 'لا توجد مشتريات بعد',
+    emptyBody: 'عند الاشتراك في Waves Pro ستظهر خطتك وإيصالاتك هنا.',
+    seePlans: 'عرض الخطط',
+    googlePlay: 'Google Play',
+    appStore: 'App Store',
   },
   paywall: {
     title: 'اختر خطتك',
@@ -26804,19 +38384,13 @@ const ar: UiStrings = {
   },
   referral: {
     row: 'ادعُ أصدقاءك',
-    rowHint: 'اكسبوا أيام Pro معًا',
+    rowHint: 'اكسبوا 50 رصيدًا معًا',
     title: 'ادعُ أصدقاءك',
-    headline: 'المال أسهل حين نتشاركه.',
+    headline: 'ادعُ صديقًا. تحصلان معًا على 50 رصيدًا.',
     body: 'شارك مجموعة مع أصدقائك واحصل على المزيد من Waves.',
-    youGetTitle: 'تحصل على 7 أيام من Pro',
-    youGetBody: 'بعد أن يبدأ صديقك باستخدام Waves.',
-    friendGetsTitle: 'ويحصل صديقك على 7 أيام أيضًا',
-    friendGetsBody: 'جرّبا الميزات المميزة معًا.',
-    milestoneDays: '{n} أيام',
     share: 'شارك رابط الدعوة',
     shareMessage: 'أستخدم Waves لتقسيم المصاريف مع الأصدقاء. انضم إليّ:',
-    progress: 'تم كسب {earned} من {cap} يومًا',
-    capReached: 'لقد كسبت الأيام الـ {cap} كاملة. شكرًا لك!',
+    friendsJoined: 'انضم {n} من {cap} أصدقاء · كسبت {credits} رصيدًا',
     pending: {
       zero: 'لا أصدقاء بانتظار أول مصروف مشترك.',
       one: 'انضم صديق واحد. ننتظر أول مصروف مشترك له.',
@@ -26831,7 +38405,7 @@ const ar: UiStrings = {
     yourCode: 'رمزك',
     copyCode: 'نسخ الرمز',
     codeCopied: 'تم النسخ',
-    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 7 أيام من Pro.',
+    applied: 'تم. عندما تسجّل أول مصروف مشترك، تحصلان معًا على 50 رصيدًا.',
     unknownCode: 'هذا الرمز لا يطابق أي شخص.',
     ownCode: 'هذا رمزك الخاص.',
     alreadyUsed: 'لقد استخدمت دعوة من قبل.',
@@ -27325,6 +38899,7 @@ const ar: UiStrings = {
     typeEvent: 'مناسبة',
     typeFriends: 'الأصدقاء',
     typeOther: 'أخرى',
+    typeCompany: 'شركة',
     tagLabel: 'وسم (اختياري)',
     tagPlaceholder: 'مثال: رحلة الشركة',
     tagSheetSubtitle: 'أضف وسمًا ليسهل العثور عليها لاحقًا.',
@@ -27369,7 +38944,7 @@ const ar: UiStrings = {
     needsUpdating: 'يحتاج Waves إلى تحديث',
     nothingIsLost:
       'لم يضع شيء. كل مجموعة ومصروف وتسوية موجودة على الخادم وستجدها تمامًا حيث تركتها.',
-    worthAMinute: 'يستحق دقيقة حين تتوفر لديك.',
+    worthAMinute: 'حدّث للحصول على أحدث التحسينات وإصلاحات الأخطاء.',
     theGroup: 'المجموعة',
     noGroupsYet:
       'ليست لديك مجموعات بعد. في Waves ينتمي الشخص إلى مجموعة، لأن الدَّين يكون دائمًا عن شيء ما — رحلة أو سكن أو عشاء.',
@@ -27868,7 +39443,9 @@ const ar: UiStrings = {
   },
   demo: {
     badge: 'تجربة',
-    bannerTitle: 'هذي مجموعة تجريبية — تصفّح بحرية',
+    groupName: 'مجموعة تجريبية',
+    rowSubtitle: 'بيانات تجريبية · احذفها متى شئت',
+    bannerTitle: 'هذي مجموعة تجريبية ببيانات تجريبية.',
     removeAction: 'إزالة التجربة',
     removeHint: 'يشيل رحلة التجربة من لوحتك. ما يمكن التراجع عن هذا.',
     removeConfirmTitle: 'إزالة المجموعة التجريبية؟',
@@ -27925,6 +39502,7 @@ let chosenLanguage: Language | null = null;
 
 export function setActiveLanguage(language: Language): void {
   chosenLanguage = language;
+  setDemoGroupName(STRINGS[language].demo.groupName);
 }
 
 export function activeStrings(): UiStrings {

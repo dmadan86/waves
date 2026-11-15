@@ -58,6 +58,79 @@ export enum MutationKind {
   // cannot double-post when two phones come back at once.
   GroupRecurringCreate = 'group_recurring.create',
   GroupRecurringUpdate = 'group_recurring.update',
+  // Company expenses (Phase 1). Group-scoped like the plan; the server decides
+  // who may write what (an employee only their own expense / bata, an admin any
+  // entry) and RLS decides who may read it (an employee only their own rows).
+  CompanyEntryCreate = 'company_entry.create',
+  CompanyEntryUpdate = 'company_entry.update',
+  CompanyEntryVoid = 'company_entry.void',
+  CompanyEntryTransition = 'company_entry.transition',
+  CompanyMemberRateSet = 'company_member.rate_set',
+  CompanySettingsSet = 'company.settings_set',
+  CompanyTagAdd = 'company_tag.add',
+  CompanyTagsSet = 'company_tags.set',
+  CompanyPoliciesSet = 'company.policies_set',
+  CompanyMileageRateSet = 'company.mileage_rate_set',
+  CompanyReimburse = 'company.reimburse',
+  // Phase 4: team, projects, manager pools and the wage run. The server decides
+  // who may do what (owner / the employee's own manager); the client hides the rest.
+  CompanyMemberAdd = 'company_member.add',
+  CompanyMemberAssign = 'company_member.assign',
+  CompanyMemberProjectsSet = 'company_member.projects_set',
+  CompanyMemberEmployeeIdSet = 'company_member.employee_id_set',
+  CompanyDepartmentsSet = 'company_departments.set',
+  CompanyMemberDepartmentSet = 'company_member.department_set',
+  CompanyAttendanceSet = 'company_attendance.set',
+  CompanyWorkSet = 'company_work.set',
+  CompanyWorkRemove = 'company_work.remove',
+  CompanyCalendarSettingsSet = 'company_calendar.settings_set',
+  CompanyHolidaySet = 'company_holiday.set',
+  CompanyHolidayRemove = 'company_holiday.remove',
+  CompanyLeaveSet = 'company_leave.set',
+  CompanyLeaveDecide = 'company_leave.decide',
+  CompanyLeaveRemove = 'company_leave.remove',
+  CompanyLeaveTypeSet = 'company_leave_type.set',
+  CompanyLeaveTypeRemove = 'company_leave_type.remove',
+  CompanyEventSet = 'company_event.set',
+  CompanyEventRemove = 'company_event.remove',
+  CompanyDatesSet = 'company_dates.set',
+  CompanyProjectSet = 'company_project.set',
+  CompanyPoolPost = 'company_pool.post',
+  CompanyWagePay = 'company_wage.pay',
+  CompanySecondApprovalSet = 'company.second_approval_set',
+  // Vendors: a named payee with a ledger (bill / advance / payment) against the company.
+  CompanyVendorSet = 'company_vendor.set',
+  CompanyVendorRemove = 'company_vendor.remove',
+  CompanyVendorEntryCreate = 'company_vendor_entry.create',
+  CompanyVendorEntryReview = 'company_vendor_entry.review',
+  CompanyVendorEntryVoid = 'company_vendor_entry.void',
+  CompanyVendorEntryReceived = 'company_vendor_entry.received',
+  // Clients and inquiries (one record with a stage); notes are append-only text.
+  CompanyClientSet = 'company_client.set',
+  CompanyClientRemove = 'company_client.remove',
+  CompanyClientNoteAdd = 'company_client_note.add',
+  // A client has many inquiries (INQ-001...) and several assigned people.
+  CompanyInquirySet = 'company_inquiry.set',
+  CompanyInquiryReject = 'company_inquiry.reject',
+  CompanyInquiryRemove = 'company_inquiry.remove',
+  CompanyClientAssign = 'company_client.assign',
+  // Complaints: a ticket for a client, assigned to an employee; escalation is derived from its due time.
+  CompanyTicketSet = 'company_ticket.set',
+  CompanyTicketStatus = 'company_ticket.status',
+  CompanyTicketCommentAdd = 'company_ticket_comment.add',
+  CompanyTicketRemove = 'company_ticket.remove',
+  // Details card (contact + bank), one per side. Owner sets the company's; owner, owning manager or the vendor set a vendor's.
+  CompanyDetailsSet = 'company_details.set',
+  CompanyVendorDetailsSet = 'company_vendor_details.set',
+  // Material orders: the company creates/edits/cancels; the vendor accepts, rejects or marks delivered.
+  CompanyVendorOrderSet = 'company_vendor_order.set',
+  CompanyVendorOrderStatus = 'company_vendor_order.status',
+  // Estimates and bills (owners; managers for their own). The server numbers them and recomputes totals.
+  CompanyDocSave = 'company_doc.save',
+  CompanyDocStatus = 'company_doc.status',
+  CompanyDocConvert = 'company_doc.convert',
+  CompanyDocPayment = 'company_doc.payment',
+  CompanyDocVoid = 'company_doc.void',
   MemberBudgetSet = 'member_budget.set',
   MemberBudgetClear = 'member_budget.clear',
   GroupBudgetSet = 'group_budget.set',
@@ -401,6 +474,414 @@ export interface GroupRecurringUpdatePayload {
   readonly patch: GroupRecurringPatch;
 }
 
+/** The fields of a company entry the client may set (the server recomputes bata). */
+export interface CompanyEntryData {
+  /** Minor units as a decimal string. Ignored by the server for `days_rate`. */
+  readonly amount?: string;
+  readonly category?: string | null;
+  readonly days?: string | null;
+  readonly rateMinor?: string | null;
+  readonly calcMode?: 'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly' | 'distance_rate';
+  /** Phase 4: the site, and the manager whose pool pays (an advance / reimbursement). */
+  readonly projectId?: string | null;
+  readonly fundingManagerId?: string | null;
+  /** Create only: the company paid directly (memberId null; owners and managers only). */
+  readonly paidByCompany?: boolean;
+  /** Optional GST / vendor details (India, INR expenses). Money as decimal strings. */
+  readonly vendor?: string | null;
+  readonly gstin?: string | null;
+  readonly invoiceNo?: string | null;
+  readonly gstRateBps?: number | null;
+  readonly gstAmountMinor?: string | null;
+  /** Mileage: kilometres (decimal string, two places); the rate is `rateMinor` per km. */
+  readonly distanceKm?: string | null;
+  readonly fromText?: string | null;
+  readonly toText?: string | null;
+  readonly occurredOn?: string;
+  readonly note?: string | null;
+  readonly direction?: 'company_to_employee' | 'employee_to_company' | null;
+}
+
+/** `entryId` is client-chosen and the idempotency key. */
+export interface CompanyEntryCreatePayload {
+  readonly entryId: string;
+  /** null only for a company-paid entry (`data.paidByCompany`). */
+  readonly memberId: string | null;
+  readonly entryKind: 'expense' | 'advance' | 'allowance' | 'wages' | 'reimbursement';
+  readonly data: CompanyEntryData;
+}
+
+export interface CompanyEntryUpdatePayload {
+  readonly entryId: string;
+  readonly patch: CompanyEntryData;
+}
+
+export interface CompanyEntryVoidPayload {
+  readonly entryId: string;
+  readonly reason?: string | null;
+}
+
+export interface CompanyEntryTransitionPayload {
+  readonly entryId: string;
+  readonly to: 'approved' | 'rejected';
+  readonly note?: string | null;
+  readonly expectedVersion: number;
+}
+
+export interface CompanySettingsSetPayload {
+  readonly defaultDailyRateMinor: string | null;
+  readonly approvalsEnabled: boolean;
+}
+
+/** A null rate clears the employee's default daily rate. Admin only. */
+export interface CompanyMemberRateSetPayload {
+  readonly memberId: string;
+  readonly dailyRateMinor: string | null;
+}
+
+/** Admin: the company's policy rules (`CompanyPolicies`); names the revision it edited. */
+export interface CompanyPoliciesSetPayload {
+  readonly policies: unknown;
+  readonly expectedRevision: number;
+}
+
+/** Admin: the per-km rate. `memberId` null is the company default; a null rate clears. */
+export interface CompanyMileageRateSetPayload {
+  readonly memberId: string | null;
+  readonly rateMinor: string | null;
+}
+
+/** Admin: pay one employee's frozen list of claims (and the credits netted in) with one entry. */
+export interface CompanyReimbursePayload {
+  readonly reimbursementId: string;
+  readonly memberId: string;
+  readonly claims: readonly { readonly entryId: string; readonly expectedVersion: number }[];
+  readonly adjustments: readonly { readonly entryId: string; readonly expectedVersion: number }[];
+  readonly cutoff: string;
+  readonly paidOn: string;
+  readonly expectedAmountMinor: string;
+  readonly note: string | null;
+}
+
+/** Owner or manager: add an employee. A manager's hire is always on their own team. */
+export interface CompanyMemberAddPayload {
+  readonly memberId: string;
+  readonly name: string;
+  readonly managerId?: string | null;
+  readonly projectIds?: readonly string[];
+}
+
+/** Owner: move an employee to a manager (null = report to the owners); promote via the role mutation. */
+export interface CompanyMemberAssignPayload {
+  readonly memberId: string;
+  readonly managerId: string | null;
+  readonly reason: string;
+}
+
+/** Owner or the employee's manager: set (or clear with null/blank) the free-text employee ID. */
+export interface CompanyMemberEmployeeIdSetPayload {
+  readonly memberId: string;
+  readonly employeeId: string | null;
+}
+
+/** Owner: replace the company's department list (anyone on a removed one is cleared). */
+export interface CompanyDepartmentsSetPayload {
+  readonly departments: readonly { readonly id: string; readonly name: string }[];
+}
+
+/** Owner or the employee's manager: set (null clears) the employee's department. */
+export interface CompanyMemberDepartmentSetPayload {
+  readonly memberId: string;
+  readonly departmentId: string | null;
+}
+
+/** Owner or the person's manager: mark one day (status null clears the mark). */
+export interface CompanyAttendanceSetPayload {
+  readonly memberId: string;
+  readonly day: string;
+  readonly status: 'present' | 'half' | 'absent' | null;
+  readonly note: string | null;
+}
+
+/** Create/edit a task (owner, manager); the employee it is for may only change status, reason and note. */
+export interface CompanyWorkSetPayload {
+  readonly taskId: string;
+  readonly memberId: string;
+  readonly day: string;
+  readonly title: string;
+  readonly projectId: string | null;
+  readonly status: 'todo' | 'doing' | 'done' | 'blocked';
+  readonly blockedReason: string | null;
+  readonly note: string | null;
+  /** Optional time of day, 'HH:MM'. */
+  readonly dueTime?: string | null;
+  /** The client this task follows up. Absent keeps the saved link; null clears it. */
+  readonly clientId?: string | null;
+  /** Absent keeps the saved priority (an older client never sends it). */
+  readonly priority?: TaskPriority;
+  /** The others working on it (max 5, never the responsible memberId). Absent keeps the saved list. */
+  readonly helperIds?: readonly string[];
+}
+
+export type TaskPriority = 'normal' | 'urgent' | 'very_urgent';
+export const TASK_PRIORITIES: readonly TaskPriority[] = ['normal', 'urgent', 'very_urgent'];
+
+export interface CompanyWorkRemovePayload {
+  readonly taskId: string;
+}
+
+/** Owner: whether holidays and approved sick/casual leave count as paid days in the wage-days prefill. */
+export interface CompanyCalendarSettingsSetPayload {
+  readonly paidHolidays: boolean;
+  readonly paidLeave: boolean;
+}
+/** Owner: add or edit a holiday (a day or a range). */
+export interface CompanyHolidaySetPayload {
+  readonly id: string;
+  readonly startDay: string;
+  readonly endDay: string;
+  readonly name: string;
+}
+export interface CompanyHolidayRemovePayload {
+  readonly id: string;
+}
+export type LeaveKind = 'casual' | 'sick' | 'other';
+/** A person asks for their own leave (pending); the owner or their manager records it (approved). */
+export interface CompanyLeaveSetPayload {
+  readonly id: string;
+  readonly memberId: string;
+  readonly startDay: string;
+  readonly endDay: string;
+  readonly halfDay: boolean;
+  readonly kind: LeaveKind;
+  readonly reason: string | null;
+  /** The leave type (policy) this request draws from; null/absent = unspecified, never deducted. */
+  readonly leaveTypeId?: string | null;
+}
+export interface CompanyLeaveDecidePayload {
+  readonly id: string;
+  readonly approve: boolean;
+  readonly note: string | null;
+}
+export interface CompanyLeaveRemovePayload {
+  readonly id: string;
+}
+/** Owner: create or edit a leave type (policy). Days are in quarters at the finest (0, 0.5, 1 ... 5). */
+export interface CompanyLeaveTypeSetPayload {
+  readonly id: string;
+  readonly name: string;
+  readonly accrualPerMonth: number;
+  readonly carryForward: boolean;
+  /** Max days carried into the next year; null = no cap. Ignored when carry forward is off. */
+  readonly carryForwardCap: number | null;
+  /** Max days earned per calendar year; null = no cap. */
+  readonly annualCap: number | null;
+  /** A paid type counts as a paid day in the wage-days prefill. */
+  readonly paid: boolean;
+  /** Allow approving beyond the balance (default off). */
+  readonly allowOverdraw: boolean;
+  readonly active: boolean;
+}
+export interface CompanyLeaveTypeRemovePayload {
+  readonly id: string;
+}
+/** Owner/manager: a simple dated event. `people` empty = the whole company (owner only). */
+export interface CompanyEventSetPayload {
+  readonly id: string;
+  readonly title: string;
+  readonly day: string;
+  readonly time: string | null;
+  readonly projectId: string | null;
+  readonly people: readonly string[];
+}
+export interface CompanyEventRemovePayload {
+  readonly id: string;
+}
+/** Birthday (day + month only) and joining date; `showBirthday` is honoured only from the person themself. */
+export interface CompanyDatesSetPayload {
+  readonly memberId: string;
+  readonly birthDay: number | null;
+  readonly birthMonth: number | null;
+  readonly joinedOn: string | null;
+  readonly showBirthday: boolean;
+}
+
+export interface CompanyMemberProjectsSetPayload {
+  readonly memberId: string;
+  readonly projectIds: readonly string[];
+}
+
+/** Owner: create or edit a project (site). `budgetMinor` null = no budget. */
+export interface CompanyProjectSetPayload {
+  readonly projectId: string;
+  readonly name: string;
+  readonly budgetMinor: string | null;
+  readonly archived: boolean;
+}
+
+/** Owner: allocate to / take back from / adjust a manager's pool. Return and adjustment need a reason. */
+export interface CompanyPoolPostPayload {
+  readonly entryId: string;
+  readonly managerId: string;
+  readonly kind: 'allocation' | 'pool_return' | 'pool_adjustment' | 'pool_request';
+  readonly amountMinor: string;
+  readonly projectId: string | null;
+  readonly occurredOn: string;
+  readonly reason: string | null;
+}
+
+/** Create or edit an estimate / bill. Bigints travel as decimal strings; the server recomputes every amount. */
+export interface CompanyDocSavePayload {
+  readonly docId: string;
+  readonly data: {
+    readonly docType: 'estimate' | 'bill';
+    readonly customerName: string;
+    readonly customerPhone: string | null;
+    readonly docDate: string;
+    readonly items: readonly {
+      readonly description: string;
+      readonly qtyMilli: string;
+      readonly rateMinor: string;
+    }[];
+    readonly discountMinor: string;
+    readonly notes: string | null;
+    /** The client this document is for. Absent keeps the saved link; null clears it. */
+    readonly clientId?: string | null;
+    /** The inquiry (of that client) this document answers. Absent keeps the saved link; null clears it. */
+    readonly inquiryId?: string | null;
+  };
+}
+export type ClientStage = 'inquiry' | 'quoted' | 'client' | 'lost';
+export type ClientPriority = 'normal' | 'urgent' | 'high';
+export type ClientSource = 'walk_in' | 'call' | 'whatsapp' | 'referral' | 'other';
+/** Create or edit a client. The whole record travels each time; money as a decimal string. */
+export interface CompanyClientSetPayload {
+  readonly clientId: string;
+  readonly name: string;
+  readonly phone: string | null;
+  readonly need: string | null;
+  readonly source: ClientSource;
+  readonly expectedValueMinor: string | null;
+  readonly address: string | null;
+  /** The next four are optional: left out, the server keeps what the client already has. */
+  readonly email?: string | null;
+  readonly company?: string | null;
+  readonly category?: string | null;
+  readonly priority?: ClientPriority;
+  readonly stage: ClientStage;
+  readonly lostReason: string | null;
+  readonly ownerMemberId: string | null;
+}
+export interface CompanyClientRemovePayload {
+  readonly clientId: string;
+}
+export interface CompanyClientNoteAddPayload {
+  readonly noteId: string;
+  readonly clientId: string;
+  readonly body: string;
+}
+/** Create or edit an inquiry of a client. Money as a decimal string; the number is assigned by the server. */
+export interface CompanyInquirySetPayload {
+  readonly inquiryId: string;
+  readonly clientId: string;
+  readonly title: string;
+  readonly details: string | null;
+  readonly expectedValueMinor: string | null;
+  /** ISO day. */
+  readonly inquiryDate: string;
+}
+/** Reject (with a reason) or reopen. */
+export interface CompanyInquiryRejectPayload {
+  readonly inquiryId: string;
+  readonly rejected: boolean;
+  readonly reason: string | null;
+}
+export interface CompanyInquiryRemovePayload {
+  readonly inquiryId: string;
+}
+/** Replace the people assigned to a client; the primary owner stays when still listed, else the first becomes it. */
+export interface CompanyClientAssignPayload {
+  readonly clientId: string;
+  readonly memberIds: readonly string[];
+}
+export type TicketPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed';
+/** Create or edit a ticket (reassigning is an edit). `dueAt` is an ISO instant the phone set from the priority. */
+export interface CompanyTicketSetPayload {
+  readonly ticketId: string;
+  readonly clientId: string | null;
+  readonly title: string;
+  readonly details: string | null;
+  readonly priority: TicketPriority;
+  readonly assigneeMemberId: string;
+  readonly dueAt: string;
+}
+/** `note` is required to resolve. */
+export interface CompanyTicketStatusPayload {
+  readonly ticketId: string;
+  readonly status: TicketStatus;
+  readonly note: string | null;
+}
+export interface CompanyTicketCommentAddPayload {
+  readonly eventId: string;
+  readonly ticketId: string;
+  readonly body: string;
+}
+export interface CompanyTicketRemovePayload {
+  readonly ticketId: string;
+}
+export interface CompanyDocStatusPayload {
+  readonly docId: string;
+  readonly status: 'draft' | 'sent' | 'accepted' | 'declined';
+}
+export interface CompanyDocConvertPayload {
+  readonly docId: string;
+  readonly billId: string;
+}
+export interface CompanyDocPaymentPayload {
+  readonly docId: string;
+  readonly paymentId: string;
+  readonly amountMinor: string;
+  readonly paidOn: string;
+}
+export interface CompanyDocVoidPayload {
+  readonly docId: string;
+}
+
+export interface CompanyWageLinePayload {
+  readonly paymentEntryId: string;
+  readonly memberId: string;
+  readonly projectId: string | null;
+  readonly fundingManagerId: string | null;
+  readonly calcMode: 'typed' | 'days_rate' | 'fixed_weekly' | 'fixed_monthly';
+  readonly days: string | null;
+  readonly rateMinor: string | null;
+  readonly fixedMinor: string | null;
+  readonly claimIds: readonly { readonly entryId: string; readonly expectedVersion: number }[];
+  /** Divides the wage base (gross less folded claims) across sites; then `projectId` is null. */
+  readonly splits?: readonly { readonly projectId: string; readonly amountMinor: string }[];
+  readonly expectedGrossMinor: string;
+  readonly expectedRecoveryMinor: string;
+  readonly expectedNetMinor: string;
+  readonly note: string | null;
+}
+
+/** One wage run: bulk, idempotent on `runId` (the same payload replays, a changed one is refused). */
+export interface CompanyWagePayPayload {
+  readonly runId: string;
+  readonly periodStart: string;
+  readonly periodEnd: string;
+  readonly paidOn: string;
+  readonly lines: readonly CompanyWageLinePayload[];
+}
+
+/** Owner: a second owner must approve large or owner-raised claims. Needs two owners and approvals on. */
+export interface CompanySecondApprovalSetPayload {
+  readonly enabled: boolean;
+  /** Claims at or above this need the second owner; null = only owner-raised claims. */
+  readonly thresholdMinor: string | null;
+}
+
 /** Clearing carries nothing — the scope (group) and the caller identify the row. */
 export type MemberBudgetClearPayload = Record<string, never>;
 
@@ -540,6 +1021,10 @@ export enum SyncRejectionCode {
   ValidationFailed = 'VALIDATION_FAILED',
   ConflictSuperseded = 'CONFLICT_SUPERSEDED',
   RateLimited = 'RATE_LIMITED',
+  /** Waves suspended the company; its queued writes are dropped, never listed as refused. */
+  CompanyBlocked = 'COMPANY_BLOCKED',
+  /** The owner already has a company; another needs its own company subscription. The app shows the paywall. */
+  CompanySlotRequired = 'COMPANY_SLOT_REQUIRED',
   /** Two admins edited the families at the same time; the sender's baseUnits differ from the current DB value. */
   UnitsConflict = 'UNITS_CONFLICT',
 }
@@ -585,6 +1070,56 @@ export enum SyncTable {
   /** Group-scoped, read+write. A repeating group expense; the expenses it
    * produces arrive as ordinary `expenses` rows. */
   GroupRecurringExpenses = 'group_recurring_expenses',
+  /** Group-scoped, read+write, PRIVATE per employee by RLS: an employee is only
+   * ever pulled their own rows, an admin all of them. */
+  CompanyEntries = 'company_entries',
+  CompanyEntryAttachments = 'company_entry_attachments',
+  /** Group-scoped, pull-only (names for everyone; budgets only for owners). */
+  CompanyProjects = 'company_projects',
+  CompanyProjectMembers = 'company_project_members',
+  CompanyProjectBudgets = 'company_project_budgets',
+  /** Group-scoped, pull-only: a wage payment divided across sites; as private as the payment. */
+  CompanyWageSplits = 'company_wage_splits',
+  /** Group-scoped, pull-only. Owner: all; manager: the vendors they added; a vendor login: only itself (RLS). */
+  CompanyVendors = 'company_vendors',
+  CompanyVendorEntries = 'company_vendor_entries',
+  /** Group-scoped, pull-only. Photos on a vendor ledger line; readable exactly where the line is (RLS). */
+  CompanyVendorEntryAttachments = 'company_vendor_entry_attachments',
+  /** Group-scoped, pull-only. Photos on a daily-work task; readable exactly where the task is (RLS). */
+  CompanyWorkTaskAttachments = 'company_work_task_attachments',
+  /** Group-scoped, pull-only. The company card: public part to every live member; secure part (bank, PAN) never to an employee (RLS). */
+  CompanyDetails = 'company_details',
+  CompanyDetailsSecure = 'company_details_secure',
+  /** Group-scoped, pull-only. A vendor's card, readable exactly where the vendor is (RLS). */
+  CompanyVendorDetails = 'company_vendor_details',
+  /** Group-scoped, pull-only. Orders, their items and status history; readable exactly where the vendor is (RLS). */
+  CompanyVendorOrders = 'company_vendor_orders',
+  CompanyVendorOrderItems = 'company_vendor_order_items',
+  CompanyVendorOrderEvents = 'company_vendor_order_events',
+  /** Group-scoped, pull-only: estimates and bills; owners see all, a manager only their own (RLS). */
+  CompanyDocuments = 'company_documents',
+  /** Group-scoped, pull-only: clients and their notes; owner and manager all, an employee only theirs (RLS). */
+  CompanyClients = 'company_clients',
+  CompanyClientNotes = 'company_client_notes',
+  /** Group-scoped, pull-only: a client's inquiries and assigned people; readable exactly where the client is (RLS). */
+  CompanyInquiries = 'company_inquiries',
+  CompanyClientAssignees = 'company_client_assignees',
+  /** Group-scoped, pull-only: complaints and their timeline; owner all, a manager their team's, an employee their own (RLS). */
+  CompanyTickets = 'company_tickets',
+  CompanyTicketEvents = 'company_ticket_events',
+  /** Group-scoped, pull-only: per-day attendance and daily tasks; an employee is pulled only their own (RLS). */
+  CompanyAttendance = 'company_attendance',
+  CompanyWorkTasks = 'company_work_tasks',
+  /** Group-scoped, pull-only: company folders, files and links; each row shows to the roles its visibility names (RLS), never to a vendor. */
+  CompanyFileFolders = 'company_file_folders',
+  CompanyFiles = 'company_files',
+  /** Group-scoped, pull-only: holidays (every member), leave and birthdays/joining dates (RLS: own, team, owner; opted-in birthdays), events (those involved). */
+  CompanyHolidays = 'company_holidays',
+  CompanyLeave = 'company_leave',
+  /** Group-scoped, pull-only: leave types (policies); every live member reads them. */
+  CompanyLeaveTypes = 'company_leave_types',
+  CompanyEvents = 'company_events',
+  CompanyMemberDates = 'company_member_dates',
   /** Group-scoped, read+write. A member's personal spend ceiling for a trip;
    * a `private` one is only ever pulled to its owner (RLS). */
   TripMemberBudgets = 'trip_member_budgets',
@@ -743,3 +1278,13 @@ export const SETTLEMENT_ALLOCATION_WIRE = {
     return { expenseId: wire.expenseId, amount: parseAmount(wire.amount) };
   },
 };
+
+export interface CompanyTagAddPayload {
+  readonly key: string;
+  readonly label: string;
+  readonly unit?: string;
+}
+export interface CompanyTagsSetPayload {
+  readonly tags: readonly import('../company/tags').CompanyTag[];
+  readonly industry: import('../company/tags').CompanyIndustry | null;
+}

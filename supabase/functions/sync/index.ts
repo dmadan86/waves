@@ -47,6 +47,8 @@ import {
   serveWithCors,
   errorResponse,
   HttpError,
+  assertSessionLive,
+  validReceiptShareUrl,
   json,
   parseMinor,
 } from '../_shared/auth.ts';
@@ -83,8 +85,69 @@ type MutationKind =
   | 'plan_item.create'
   | 'plan_item.update'
   | 'plan_item.delete'
-  // A repeating group expense — group-scoped, authorised by membership inside the
-  // RPC. The expenses it produces are posted by the server generator, not here.
+  // Private company entries; RPCs enforce employee/admin permissions.
+  | 'company_entry.create'
+  | 'company_entry.update'
+  | 'company_entry.void'
+  | 'company_entry.transition'
+  | 'company_member.rate_set'
+  | 'company.settings_set'
+  | 'company_tag.add'
+  | 'company_tags.set'
+  | 'company.policies_set'
+  | 'company.mileage_rate_set'
+  | 'company.reimburse'
+  | 'company_member.add'
+  | 'company_member.assign'
+  | 'company_member.projects_set'
+  | 'company_member.employee_id_set'
+  | 'company_departments.set'
+  | 'company_member.department_set'
+  | 'company_attendance.set'
+  | 'company_work.set'
+  | 'company_work.remove'
+  | 'company_calendar.settings_set'
+  | 'company_holiday.set'
+  | 'company_holiday.remove'
+  | 'company_leave.set'
+  | 'company_leave.decide'
+  | 'company_leave.remove'
+  | 'company_leave_type.set'
+  | 'company_leave_type.remove'
+  | 'company_event.set'
+  | 'company_event.remove'
+  | 'company_dates.set'
+  | 'company_project.set'
+  | 'company_pool.post'
+  | 'company_wage.pay'
+  | 'company.second_approval_set'
+  | 'company_vendor.set'
+  | 'company_vendor.remove'
+  | 'company_vendor_entry.create'
+  | 'company_vendor_entry.review'
+  | 'company_vendor_entry.void'
+  | 'company_vendor_entry.received'
+  | 'company_client.set'
+  | 'company_client.remove'
+  | 'company_client_note.add'
+  | 'company_inquiry.set'
+  | 'company_inquiry.reject'
+  | 'company_inquiry.remove'
+  | 'company_client.assign'
+  | 'company_ticket.set'
+  | 'company_ticket.status'
+  | 'company_ticket_comment.add'
+  | 'company_ticket.remove'
+  | 'company_details.set'
+  | 'company_vendor_details.set'
+  | 'company_vendor_order.set'
+  | 'company_vendor_order.status'
+  | 'company_doc.save'
+  | 'company_doc.status'
+  | 'company_doc.convert'
+  | 'company_doc.payment'
+  | 'company_doc.void'
+  // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
   | 'member_budget.set'
@@ -260,6 +323,13 @@ const SETTLEMENT_SELECT = `
 const GROUP_CONCURRENCY = 4;
 
 /**
+ * How many never-synced groups one pull will take on. A fresh phone in 29 groups
+ * would otherwise download everything in one response and show nothing until it
+ * lands; the rest are picked up by the client's hasMore re-sync, newest first.
+ */
+const FRESH_GROUPS_PER_PULL = 2 * GROUP_CONCURRENCY;
+
+/**
  * How many times a personal-record write will re-read and re-merge before it
  * gives up and writes the blob whole.
  *
@@ -300,6 +370,55 @@ const GROUP_TABLES = [
   ['trip_member_budgets', '*'],
   // Repeating group expenses. Flat rows; RLS limits them to the group's members.
   ['group_recurring_expenses', '*'],
+  // Company employees receive only their own entries, including tombstones.
+  // Phase 3 fields travel through these wildcard projections under caller RLS:
+  // groups: company_tags, company_industry, company_policies, company_policy_revision, company_default_mileage_rate_minor;
+  // group_members: mileage_rate_minor; company_entries: vendor, gstin, invoice_no,
+  // gst_rate_bps, gst_amount_minor, distance_km, from_text, to_text,
+  // reimbursement_id, reimbursement_details (plus existing rate_minor/calc_mode).
+  ['company_entries', '*'],
+  ['company_entry_attachments', '*'],
+  // Phase 4: sites. Names reach every member who may see the site; the budget lives in an
+  // owner-only table so a manager or employee is never sent it.
+  ['company_projects', '*'],
+  ['company_project_members', '*'],
+  ['company_project_budgets', '*'],
+  // A wage payment divided across sites; readable exactly where the payment is.
+  ['company_wage_splits', '*'],
+  // Vendors: owner all, manager the ones they added, a vendor login only itself (RLS, read as the caller).
+  ['company_vendors', '*'],
+  ['company_vendor_entries', '*'],
+  ['company_vendor_entry_attachments', '*'],
+  ['company_work_task_attachments', '*'],
+  // Details cards. The company's bank + PAN live in their own table whose RLS excludes employees, so an employee's pull never carries them.
+  ['company_details', '*'],
+  ['company_details_secure', '*'],
+  ['company_vendor_details', '*'],
+  ['company_vendor_orders', '*'],
+  ['company_vendor_order_items', '*'],
+  ['company_vendor_order_events', '*'],
+  // Estimates and bills: RLS gives an owner all, a manager only the ones they created, others none.
+  ['company_documents', '*'],
+  // Clients and notes: owner and manager all, an employee only the ones assigned to them (RLS).
+  ['company_clients', '*'],
+  ['company_client_notes', '*'],
+  ['company_inquiries', '*'],
+  ['company_client_assignees', '*'],
+  // Complaints and their timeline: owner all, a manager their team's, an employee their own (RLS).
+  ['company_tickets', '*'],
+  ['company_ticket_events', '*'],
+  // Attendance marks and daily tasks; RLS gives an employee only their own, a manager their team.
+  ['company_attendance', '*'],
+  ['company_work_tasks', '*'],
+  // Files and links: each row shows to the roles its visibility names (RLS, read as the caller); a vendor login sees none.
+  ['company_file_folders', '*'],
+  ['company_files', '*'],
+  // Calendar: holidays (every member), leave, events and birthdays; RLS filters each to what the caller may see.
+  ['company_holidays', '*'],
+  ['company_leave', '*'],
+  ['company_leave_types', '*'],
+  ['company_events', '*'],
+  ['company_member_dates', '*'],
   // Trip album (shared photos). Flat rows, no embeds; a removal arrives as a
   // deleted_at tombstone the client mirror filters out.
   // Private attachments (party-only). Read AS THE CALLER, so the party RLS
@@ -343,6 +462,7 @@ serveWithCors(async (request) => {
       throw new HttpError(401, 'NOT_AUTHENTICATED', 'Sign in first');
     }
     const profileId = user.user.id;
+    await assertSessionLive(service, request);
 
     // A guest's writes stop after the trial (ADR-006 addendum); the pull below
     // still runs, so everything they made stays visible — read-only, not gone.
@@ -357,7 +477,7 @@ serveWithCors(async (request) => {
     // one abuser.
     await enforceRateLimit(service, request, 'sync', profileId);
 
-    const session = new SyncSession(caller, service, profileId);
+    const session = new SyncSession(caller, service, profileId, await twoStepBlocked(caller));
     const outcomes: Outcome[] = [];
 
     for (const mutation of mutations) {
@@ -385,19 +505,26 @@ serveWithCors(async (request) => {
     // could never get its first row, and being invited would do nothing until
     // you happened to open the group by link. The membership read runs as the
     // caller, so it can only ever return groups their own RLS already allows.
-    const mine = await caller.from('group_members').select('group_id').is('left_at', null);
-    if (mine.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${mine.error.message}`);
+    const { mine, memberOf } = await memberships(caller, service, profileId);
 
     const groupIds = new Set<string>([
       ...Object.keys(cursors),
       ...session.touchedGroups,
-      ...(mine.data ?? []).map((row) => row.group_id as string),
+      ...mine.map((row) => row.group_id),
     ]);
     const {
       changes,
       cursors: nextCursors,
       hasMore,
-    } = await pull(caller, groupIds, cursors, profileId);
+    } = await pull(caller, groupIds, cursors, profileId, session.touchedGroups);
+    // Any phone that is not an owner's may still hold detail it can no longer read (an employee
+    // moved to another manager, a manager demoted); owners see everyone, so they never purge.
+    const managerGroupIds = mine.filter((row) => row.role !== 'admin').map((row) => row.group_id);
+    const companyVisible = await companyVisibleMembers(caller, managerGroupIds);
+    const calendarVisible = await companyCalendarVisible(
+      caller,
+      mine.map((row) => row.group_id),
+    );
 
     return json({
       outcomes,
@@ -407,13 +534,59 @@ serveWithCors(async (request) => {
       // The groups this person is still in. Leaving or being removed hides a
       // group from the pull (RLS), so the pull alone can never say "it is gone";
       // this list lets a device drop a group an admin removed them from.
-      memberOf: (mine.data ?? []).map((row) => row.group_id as string),
+      // Read with the service client for this profile only, so a company hidden by two-step is still listed and the
+      // phone keeps its cached copy instead of treating the gate as a removal.
+      memberOf,
+      // Companies this session must verify two-step for before it can read or write them.
+      twoStepRequired: [...session.twoStepBlocked.keys()],
+      // Company groups only: who this caller may still see. A phone drops cached
+      // detail for anyone else (an employee who moved to another manager).
+      companyVisible,
+      calendarVisible,
       serverTime: new Date().toISOString(),
     });
   } catch (error) {
     return errorResponse(error, { fn: 'sync' });
   }
 });
+
+/**
+ * Which groups this person is in. `mine` is what the caller can read (RLS, so a two-step company this session has not
+ * verified is absent) and drives the pull and visibility lists; `memberOf` comes from the service client, filtered to
+ * this profile, so it still names gated companies and the phone does not drop them.
+ */
+export async function memberships(
+  caller: SupabaseClient,
+  service: SupabaseClient,
+  profileId: string,
+): Promise<{ mine: { group_id: string; role: string }[]; memberOf: string[] }> {
+  const [mine, all] = await Promise.all([
+    caller.from('group_members').select('group_id, role').is('left_at', null),
+    service
+      .from('group_members')
+      .select('group_id')
+      .eq('profile_id', profileId)
+      .is('left_at', null),
+  ]);
+  if (mine.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${mine.error.message}`);
+  if (all.error) throw new HttpError(500, 'PULL_FAILED', `memberships: ${all.error.message}`);
+  return {
+    mine: (mine.data ?? []) as { group_id: string; role: string }[],
+    memberOf: [...new Set(((all.data ?? []) as { group_id: string }[]).map((row) => row.group_id))],
+  };
+}
+
+/** Two-step companies (id → name) this session has not verified. RLS is the real gate; this names the refusal. */
+export async function twoStepBlocked(caller: SupabaseClient): Promise<Map<string, string>> {
+  const { data, error } = await caller.rpc('waves_two_step_status');
+  if (error || !data) return new Map();
+  const status = data as {
+    sessionVerified?: boolean;
+    requiring?: { groupId: string; name: string }[];
+  };
+  if (status.sessionVerified) return new Map();
+  return new Map((status.requiring ?? []).map((row) => [row.groupId, row.name]));
+}
 
 /**
  * Applies one batch, remembering per-group membership so a hundred mutations in
@@ -427,6 +600,7 @@ export class SyncSession {
     private readonly caller: SupabaseClient,
     private readonly service: SupabaseClient,
     private readonly profileId: string,
+    readonly twoStepBlocked: ReadonlyMap<string, string> = new Map(),
   ) {}
 
   async apply(mutation: MutationEnvelope): Promise<Outcome> {
@@ -445,12 +619,33 @@ export class SyncSession {
     // Replay: return exactly what the first attempt produced.
     const { data: seen } = await this.service
       .from('sync_mutations')
-      .select('result')
+      .select('result, profile_id')
       .eq('client_mutation_id', clientMutationId)
       .maybeSingle();
+    // Another profile's id: refuse without echoing their stored result.
+    if (seen && seen.profile_id !== this.profileId) {
+      return {
+        clientMutationId,
+        status: 'rejected',
+        code: 'MUTATION_ID_CONFLICT',
+        message: 'That clientMutationId is already in use',
+      };
+    }
     if (seen) {
       if (!personal) this.touchedGroups.add(mutation.groupId);
       return { clientMutationId, status: 'duplicate', result: seen.result };
+    }
+
+    const blockedName = personal ? undefined : this.twoStepBlocked.get(mutation.groupId);
+    if (blockedName !== undefined) {
+      // Kept in the phone's queue (a transient refusal) and replayed once this device verifies.
+      await this.recordRefusal(mutation, 'TWO_STEP_REQUIRED', null);
+      return {
+        clientMutationId,
+        status: 'rejected',
+        code: 'TWO_STEP_REQUIRED',
+        message: `Verify two-step to keep working in ${blockedName}. If you do not see it, update Waves.`,
+      };
     }
 
     try {
@@ -477,14 +672,40 @@ export class SyncSession {
         if (error.status >= 500) throw error;
       } else {
         const db = error as { code?: string; message?: string } | null;
-        const raised = /^[A-Z_]+:/.test(db?.message ?? '');
+        const raised = RAISED_CODE.test(db?.message ?? '');
         // An overlapping replay can hit a unique key before its first request
         // records the result. Fail the request so the next replay can find it.
         if (!raised && db?.code !== '42501' && !(db?.code?.startsWith('23') && db.code !== '23505'))
           throw error;
       }
       const { code, message } = classify(error);
+      await this.recordRefusal(mutation, code, error);
       return { clientMutationId, status: 'rejected', code, message };
+    }
+  }
+
+  /**
+   * sync_mutations only remembers successes, so a refusal used to leave no trace.
+   * Kind, code and SQLSTATE only: never the payload or the database's message,
+   * which can quote a name or an amount. Best-effort; it must never turn a
+   * refusal into a failure.
+   */
+  private async recordRefusal(
+    mutation: MutationEnvelope,
+    code: string,
+    error: unknown,
+  ): Promise<void> {
+    const sqlstate = (error as { code?: unknown } | null)?.code;
+    try {
+      await this.service.from('sync_refusals').insert({
+        profile_id: this.profileId,
+        group_id: isPersonalKind(mutation.kind) ? null : mutation.groupId,
+        kind: mutation.kind,
+        code,
+        sqlstate: typeof sqlstate === 'string' && /^[0-9A-Z]{5}$/.test(sqlstate) ? sqlstate : null,
+      });
+    } catch {
+      /* diagnostics only */
     }
   }
 
@@ -661,6 +882,13 @@ export class SyncSession {
           // offered (ADR-012). Dropped here, a group created offline came back
           // with no rails and no way to settle on one.
           p_country: (mutation.payload.country as string | undefined) ?? null,
+          p_company_default_daily_rate_minor:
+            mutation.payload.companyDefaultDailyRateMinor == null
+              ? null
+              : requireString(
+                  mutation.payload.companyDefaultDailyRateMinor,
+                  'companyDefaultDailyRateMinor',
+                ),
         });
       case 'group.update': {
         await this.requireMemberId(mutation.groupId);
@@ -794,6 +1022,639 @@ export class SyncSession {
       case 'plan_item.delete':
         return await this.rpcAsCaller('waves_remove_plan_item', {
           p_item_id: requireString(mutation.payload.itemId, 'itemId'),
+        });
+      case 'company_entry.create':
+        return await this.rpcAsCaller('waves_company_entry_create', {
+          p_group_id: mutation.groupId,
+          p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
+          // A company-paid entry has no employee: memberId is null exactly when data.paidByCompany is true.
+          p_member_id: companyPaidMemberId(mutation.payload),
+          p_entry_kind: requireString(mutation.payload.entryKind, 'entryKind'),
+          p_data: companyData(mutation.payload.data),
+        });
+      case 'company_entry.update':
+        return await this.rpcAsCaller('waves_company_entry_update', {
+          p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
+          p_patch: companyData(mutation.payload.patch),
+        });
+      case 'company_entry.void':
+        return await this.rpcAsCaller('waves_company_entry_void', {
+          p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
+          p_reason: optionalText(mutation.payload.reason, 'reason'),
+        });
+      case 'company_entry.transition':
+        return await this.rpcAsCaller('waves_company_entry_transition', {
+          p_entry_id: requireString(mutation.payload.entryId, 'entryId'),
+          p_to: requireString(mutation.payload.to, 'to'),
+          p_note: optionalText(mutation.payload.note, 'note'),
+          p_expected_version: requireInteger(mutation.payload.expectedVersion, 'expectedVersion'),
+        });
+      case 'company.settings_set':
+        if (typeof mutation.payload.approvalsEnabled !== 'boolean') {
+          throw new HttpError(400, 'VALIDATION_FAILED', 'approvalsEnabled must be boolean');
+        }
+        return await this.rpcAsCaller('waves_company_settings_set', {
+          p_group_id: mutation.groupId,
+          p_default_daily_rate_minor: nullableString(
+            mutation.payload.defaultDailyRateMinor,
+            'defaultDailyRateMinor',
+          ),
+          p_approvals_enabled: mutation.payload.approvalsEnabled,
+        });
+      case 'company_tag.add': {
+        const tag = companyTag(mutation.payload, false);
+        return await this.rpcAsCaller('waves_company_tag_add', {
+          p_group_id: mutation.groupId,
+          p_key: tag.key,
+          p_label: tag.label,
+          p_unit: tag.unit ?? null,
+        });
+      }
+      case 'company_tags.set': {
+        const tags = mutation.payload.tags;
+        const industry = mutation.payload.industry;
+        if (
+          !Array.isArray(tags) ||
+          tags.length > 50 ||
+          (industry !== null &&
+            !['construction', 'transport', 'field_sales'].includes(industry as string))
+        )
+          companyInvalid('tags');
+        const validated = (tags as unknown[]).map((tag) => companyTag(tag, true));
+        if (new Set(validated.map((tag) => tag.key)).size !== validated.length)
+          companyInvalid('tags');
+        return await this.rpcAsCaller('waves_company_tags_set', {
+          p_group_id: mutation.groupId,
+          p_tags: validated,
+          p_industry: industry,
+        });
+      }
+      case 'company.policies_set':
+        return await this.rpcAsCaller('waves_company_policies_set', {
+          p_group_id: mutation.groupId,
+          p_policies: companyPolicies(mutation.payload.policies),
+          p_expected_revision: companyNonnegativeInteger(
+            mutation.payload.expectedRevision,
+            'expectedRevision',
+          ),
+        });
+      case 'company.mileage_rate_set':
+        return await this.rpcAsCaller('waves_company_mileage_rate_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId', true),
+          p_rate_minor: companyDecimal(mutation.payload.rateMinor, 'rateMinor', true),
+        });
+      case 'company.reimburse':
+        return await this.rpcAsCaller('waves_company_reimburse', {
+          p_group_id: mutation.groupId,
+          p_reimbursement_id: companyUuid(mutation.payload.reimbursementId, 'reimbursementId'),
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_claims: companySelection(mutation.payload.claims, 'claims', true),
+          p_adjustments: companySelection(mutation.payload.adjustments, 'adjustments', false),
+          p_cutoff: companyDate(mutation.payload.cutoff, 'cutoff'),
+          p_paid_on: companyDate(mutation.payload.paidOn, 'paidOn'),
+          p_expected_amount_minor: companyDecimal(
+            mutation.payload.expectedAmountMinor,
+            'expectedAmountMinor',
+          ),
+          p_note: optionalText(mutation.payload.note, 'note'),
+        });
+      case 'company_member.add':
+        return await this.rpcAsCaller('waves_company_member_add', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_data: companyMemberData(mutation.payload),
+        });
+      case 'company_member.assign':
+        return await this.rpcAsCaller('waves_company_member_assign', {
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_manager_id: companyUuid(mutation.payload.managerId, 'managerId', true),
+          p_reason: companyReason(mutation.payload.reason, 'reason', false),
+        });
+      case 'company_member.employee_id_set':
+        return await this.rpcAsCaller('waves_company_employee_id_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_employee_id: optionalText(mutation.payload.employeeId, 'employeeId'),
+        });
+      case 'company_departments.set': {
+        const list = mutation.payload.departments;
+        if (!Array.isArray(list) || list.length > 30) companyInvalid('departments');
+        const departments = (list as unknown[]).map((d) => {
+          const r = d as { id?: unknown; name?: unknown };
+          return {
+            id: companyUuid(r?.id, 'departments'),
+            name: companyReason(r?.name, 'departments', true),
+          };
+        });
+        return await this.rpcAsCaller('waves_company_departments_set', {
+          p_group_id: mutation.groupId,
+          p_departments: departments,
+        });
+      }
+      case 'company_member.department_set':
+        return await this.rpcAsCaller('waves_company_department_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_department_id: companyUuid(mutation.payload.departmentId ?? null, 'departmentId', true),
+        });
+      case 'company_attendance.set': {
+        const status = mutation.payload.status;
+        if (status !== null && status !== 'present' && status !== 'half' && status !== 'absent')
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_attendance_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_day: companyDate(mutation.payload.day, 'day'),
+          p_status: status,
+          p_note: companyReason(mutation.payload.note, 'note', false),
+        });
+      }
+      case 'company_work.set': {
+        const status = mutation.payload.status;
+        if (status !== 'todo' && status !== 'doing' && status !== 'done' && status !== 'blocked')
+          companyInvalid('status');
+        // priority is its own call (the writer's overloads can't take another optional); absent (an older client) keeps the saved one.
+        const priority = mutation.payload.priority;
+        if (
+          priority !== undefined &&
+          priority !== 'normal' &&
+          priority !== 'urgent' &&
+          priority !== 'very_urgent'
+        )
+          companyInvalid('priority');
+        // helpers are their own call too; absent (an older client) keeps the saved list. Validated here before any write.
+        const helpers =
+          mutation.payload.helperIds === undefined
+            ? undefined
+            : companyUuidList(mutation.payload.helperIds, 'helperIds');
+        if (helpers && (helpers.length > 5 || new Set(helpers).size !== helpers.length))
+          companyInvalid('helperIds');
+        const written = await this.rpcAsCaller('waves_company_work_set', {
+          p_group_id: mutation.groupId,
+          p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_day: companyDate(mutation.payload.day, 'day'),
+          p_title: companyReason(mutation.payload.title, 'title', true),
+          p_project_id: companyUuid(mutation.payload.projectId ?? null, 'projectId', true),
+          p_status: status,
+          p_blocked_reason: companyReason(mutation.payload.blockedReason, 'blockedReason', false),
+          p_note: companyReason(mutation.payload.note, 'note', false),
+          // An older client omits dueTime: leave it out so the 9-argument wrapper keeps the saved time.
+          // clientId names the 11-argument form, which has no default for the time: keep the sent one.
+          ...(mutation.payload.clientId === undefined
+            ? mutation.payload.dueTime === undefined
+              ? {}
+              : { p_due_time: companyTime(mutation.payload.dueTime) }
+            : {
+                p_due_time: companyTime(mutation.payload.dueTime ?? null),
+                p_client_id: companyUuid(mutation.payload.clientId, 'clientId', true),
+              }),
+        });
+        if (priority !== undefined)
+          await this.rpcAsCaller('waves_company_work_priority_set', {
+            p_group_id: mutation.groupId,
+            p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+            p_priority: priority,
+          });
+        if (helpers)
+          await this.rpcAsCaller('waves_company_work_helpers_set', {
+            p_group_id: mutation.groupId,
+            p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+            p_helper_ids: helpers,
+          });
+        return written;
+      }
+      case 'company_work.remove':
+        return await this.rpcAsCaller('waves_company_work_remove', {
+          p_group_id: mutation.groupId,
+          p_task_id: companyUuid(mutation.payload.taskId, 'taskId'),
+        });
+      case 'company_calendar.settings_set': {
+        const { paidHolidays, paidLeave } = mutation.payload;
+        if (typeof paidHolidays !== 'boolean' || typeof paidLeave !== 'boolean')
+          companyInvalid('settings');
+        return await this.rpcAsCaller('waves_company_calendar_settings_set', {
+          p_group_id: mutation.groupId,
+          p_paid_holidays: paidHolidays,
+          p_paid_leave: paidLeave,
+        });
+      }
+      case 'company_holiday.set':
+        return await this.rpcAsCaller('waves_company_holiday_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_start: companyDate(mutation.payload.startDay, 'startDay'),
+          p_end: companyDate(mutation.payload.endDay, 'endDay'),
+          p_name: companyReason(mutation.payload.name, 'name', true),
+        });
+      case 'company_holiday.remove':
+        return await this.rpcAsCaller('waves_company_holiday_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_leave.set': {
+        const kind = mutation.payload.kind;
+        if (kind !== 'casual' && kind !== 'sick' && kind !== 'other') companyInvalid('kind');
+        return await this.rpcAsCaller('waves_company_leave_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_start: companyDate(mutation.payload.startDay, 'startDay'),
+          p_end: companyDate(mutation.payload.endDay, 'endDay'),
+          p_half: mutation.payload.halfDay === true,
+          p_kind: kind,
+          p_reason: companyReason(mutation.payload.reason, 'reason', false),
+          p_leave_type_id: companyUuid(mutation.payload.leaveTypeId ?? null, 'leaveTypeId', true),
+        });
+      }
+      case 'company_leave_type.set': {
+        const p = mutation.payload;
+        const days = (v: unknown, field: string, nullable: boolean): number | null => {
+          if (nullable && (v === null || v === undefined)) return null;
+          if (typeof v !== 'number' || !Number.isFinite(v) || v < 0 || v > 366)
+            companyInvalid(field);
+          return v as number;
+        };
+        for (const f of ['carryForward', 'paid', 'allowOverdraw', 'active'] as const)
+          if (typeof p[f] !== 'boolean') companyInvalid(f);
+        return await this.rpcAsCaller('waves_company_leave_type_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(p.id, 'id'),
+          p_name: companyReason(p.name, 'name', true),
+          p_accrual: days(p.accrualPerMonth, 'accrualPerMonth', false),
+          p_carry: p.carryForward,
+          p_carry_cap: days(p.carryForwardCap, 'carryForwardCap', true),
+          p_annual_cap: days(p.annualCap, 'annualCap', true),
+          p_paid: p.paid,
+          p_allow_overdraw: p.allowOverdraw,
+          p_active: p.active,
+        });
+      }
+      case 'company_leave_type.remove':
+        return await this.rpcAsCaller('waves_company_leave_type_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_leave.decide':
+        if (typeof mutation.payload.approve !== 'boolean') companyInvalid('approve');
+        return await this.rpcAsCaller('waves_company_leave_decide', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_approve: mutation.payload.approve,
+          p_note: companyReason(mutation.payload.note, 'note', false),
+        });
+      case 'company_leave.remove':
+        return await this.rpcAsCaller('waves_company_leave_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_event.set':
+        return await this.rpcAsCaller('waves_company_event_set', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+          p_title: companyReason(mutation.payload.title, 'title', true),
+          p_day: companyDate(mutation.payload.day, 'day'),
+          p_time: companyReason(mutation.payload.time, 'time', false),
+          p_project_id: companyUuid(mutation.payload.projectId ?? null, 'projectId', true),
+          p_people: companyUuidList(mutation.payload.people, 'people'),
+        });
+      case 'company_event.remove':
+        return await this.rpcAsCaller('waves_company_event_remove', {
+          p_group_id: mutation.groupId,
+          p_id: companyUuid(mutation.payload.id, 'id'),
+        });
+      case 'company_dates.set': {
+        const { birthDay, birthMonth } = mutation.payload;
+        const joined = mutation.payload.joinedOn;
+        if (birthDay !== null) companyNonnegativeInteger(birthDay, 'birthDay');
+        if (birthMonth !== null) companyNonnegativeInteger(birthMonth, 'birthMonth');
+        return await this.rpcAsCaller('waves_company_dates_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_birth_day: birthDay,
+          p_birth_month: birthMonth,
+          p_joined_on: joined === null ? null : companyDate(joined, 'joinedOn'),
+          p_show: mutation.payload.showBirthday === true,
+        });
+      }
+      case 'company_member.projects_set':
+        return await this.rpcAsCaller('waves_company_member_projects_set', {
+          p_member_id: companyUuid(mutation.payload.memberId, 'memberId'),
+          p_project_ids: companyUuidList(mutation.payload.projectIds, 'projectIds'),
+        });
+      case 'company_doc.save':
+        return await this.rpcAsCaller('waves_company_doc_save', {
+          p_group_id: mutation.groupId,
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_data: companyDocData(mutation.payload.data),
+        });
+      case 'company_doc.status': {
+        const status = mutation.payload.status;
+        if (!['draft', 'sent', 'accepted', 'declined'].includes(status as string))
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_doc_status', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_status: status,
+        });
+      }
+      case 'company_doc.convert':
+        return await this.rpcAsCaller('waves_company_doc_convert', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_bill_id: companyUuid(mutation.payload.billId, 'billId'),
+        });
+      case 'company_doc.payment':
+        return await this.rpcAsCaller('waves_company_doc_payment', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+          p_payment_id: companyUuid(mutation.payload.paymentId, 'paymentId'),
+          p_amount: companyDecimal(mutation.payload.amountMinor, 'amountMinor'),
+          p_paid_on: companyDate(mutation.payload.paidOn, 'paidOn'),
+        });
+      case 'company_doc.void':
+        return await this.rpcAsCaller('waves_company_doc_void', {
+          p_doc_id: companyUuid(mutation.payload.docId, 'docId'),
+        });
+      case 'company_project.set':
+        return await this.rpcAsCaller('waves_company_project_set', {
+          p_group_id: mutation.groupId,
+          p_project_id: companyUuid(mutation.payload.projectId, 'projectId'),
+          p_data: {
+            name: companyReason(mutation.payload.name, 'name', true),
+            budgetMinor: companyDecimal(mutation.payload.budgetMinor, 'budgetMinor', true),
+            archived: mutation.payload.archived === true,
+          },
+        });
+      case 'company_pool.post': {
+        const kind = mutation.payload.kind;
+        if (
+          kind !== 'allocation' &&
+          kind !== 'pool_return' &&
+          kind !== 'pool_adjustment' &&
+          kind !== 'pool_request'
+        )
+          companyInvalid('kind');
+        return await this.rpcAsCaller('waves_company_pool_post', {
+          p_group_id: mutation.groupId,
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_manager_id: companyUuid(mutation.payload.managerId, 'managerId'),
+          p_kind: kind,
+          // An adjustment may be negative, so it carries an optional leading minus.
+          p_amount_minor: companySignedDecimal(mutation.payload.amountMinor, 'amountMinor'),
+          p_project_id: companyUuid(mutation.payload.projectId, 'projectId', true),
+          p_occurred_on: companyDate(mutation.payload.occurredOn, 'occurredOn'),
+          p_reason: companyReason(
+            mutation.payload.reason,
+            'reason',
+            kind === 'pool_return' || kind === 'pool_adjustment',
+          ),
+        });
+      }
+      case 'company_wage.pay':
+        return await this.rpcAsCaller('waves_company_wage_pay', {
+          p_group_id: mutation.groupId,
+          p_run_id: companyUuid(mutation.payload.runId, 'runId'),
+          p_period_start: companyDate(mutation.payload.periodStart, 'periodStart'),
+          p_period_end: companyDate(mutation.payload.periodEnd, 'periodEnd'),
+          p_paid_on: companyDate(mutation.payload.paidOn, 'paidOn'),
+          p_lines: companyWageLines(mutation.payload.lines),
+        });
+      case 'company.second_approval_set':
+        if (typeof mutation.payload.enabled !== 'boolean') companyInvalid('enabled');
+        return await this.rpcAsCaller('waves_company_second_approval_set', {
+          p_group_id: mutation.groupId,
+          p_enabled: mutation.payload.enabled,
+          p_threshold_minor: companyDecimal(
+            mutation.payload.thresholdMinor ?? null,
+            'thresholdMinor',
+            true,
+          ),
+        });
+      case 'company_vendor.set':
+        return await this.rpcAsCaller('waves_company_vendor_set', {
+          p_group_id: mutation.groupId,
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_data: {
+            name: companyReason(mutation.payload.name, 'name', true),
+            phone: companyReason(mutation.payload.phone ?? null, 'phone', false),
+            category: companyReason(mutation.payload.category ?? null, 'category', false),
+            // Older apps send no list: the database then only replaces the first category.
+            ...(mutation.payload.categories === undefined
+              ? {}
+              : { categories: companyVendorCategories(mutation.payload.categories) }),
+          },
+        });
+      case 'company_vendor.remove':
+        return await this.rpcAsCaller('waves_company_vendor_remove', {
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+        });
+      case 'company_vendor_entry.create':
+        return await this.rpcAsCaller('waves_company_vendor_entry_create', {
+          p_group_id: mutation.groupId,
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_kind: requireString(mutation.payload.kind, 'kind'),
+          p_data: {
+            amount: companyDecimal(mutation.payload.amountMinor, 'amountMinor'),
+            occurredOn: companyDate(mutation.payload.occurredOn, 'occurredOn'),
+            note: companyReason(mutation.payload.note ?? null, 'note', false),
+            // Only sent when set, so an older client's request hash is unchanged.
+            ...(mutation.payload.dueOn
+              ? { dueOn: companyDate(mutation.payload.dueOn, 'dueOn') }
+              : {}),
+            ...(mutation.payload.method
+              ? { method: requireString(mutation.payload.method, 'method') }
+              : {}),
+            ...(mutation.payload.reference
+              ? { reference: companyReason(mutation.payload.reference, 'reference', false) }
+              : {}),
+          },
+        });
+      case 'company_vendor_entry.review':
+        return await this.rpcAsCaller('waves_company_vendor_entry_review', {
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_to: requireString(mutation.payload.to, 'to'),
+          p_note: companyReason(mutation.payload.note ?? null, 'note', false),
+          p_version: companyNonnegativeInteger(mutation.payload.expectedVersion, 'expectedVersion'),
+        });
+      case 'company_vendor_entry.void':
+        return await this.rpcAsCaller('waves_company_vendor_entry_void', {
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_reason: companyReason(mutation.payload.reason ?? null, 'reason', false),
+        });
+      case 'company_vendor_entry.received':
+        if (typeof mutation.payload.received !== 'boolean') companyInvalid('received');
+        return await this.rpcAsCaller('waves_company_vendor_entry_received', {
+          p_entry_id: companyUuid(mutation.payload.entryId, 'entryId'),
+          p_received: mutation.payload.received,
+        });
+      case 'company_client.set': {
+        const source = mutation.payload.source;
+        const stage = mutation.payload.stage;
+        if (!['walk_in', 'call', 'whatsapp', 'referral', 'other'].includes(source as string))
+          companyInvalid('source');
+        if (!['inquiry', 'quoted', 'client', 'lost'].includes(stage as string))
+          companyInvalid('stage');
+        return await this.rpcAsCaller('waves_company_client_set', {
+          p_group_id: mutation.groupId,
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+          p_data: {
+            name: companyReason(mutation.payload.name, 'name', true),
+            phone: companyReason(mutation.payload.phone ?? null, 'phone', false),
+            need: companyReason(mutation.payload.need ?? null, 'need', false),
+            source,
+            expectedValue: companyDecimal(
+              mutation.payload.expectedValueMinor ?? null,
+              'expectedValueMinor',
+              true,
+            ),
+            address: companyReason(mutation.payload.address ?? null, 'address', false),
+            // Only what the app sent: an absent key keeps the stored value.
+            ...(mutation.payload.email !== undefined && {
+              email: companyReason(mutation.payload.email ?? null, 'email', false),
+            }),
+            ...(mutation.payload.company !== undefined && {
+              company: companyReason(mutation.payload.company ?? null, 'company', false),
+            }),
+            ...(mutation.payload.category !== undefined && {
+              category: companyReason(mutation.payload.category ?? null, 'category', false),
+            }),
+            ...(mutation.payload.priority !== undefined && {
+              priority: mutation.payload.priority,
+            }),
+            stage,
+            lostReason: companyReason(mutation.payload.lostReason ?? null, 'lostReason', false),
+            ownerMemberId: companyUuid(
+              mutation.payload.ownerMemberId ?? null,
+              'ownerMemberId',
+              true,
+            ),
+          },
+        });
+      }
+      case 'company_client.remove':
+        return await this.rpcAsCaller('waves_company_client_remove', {
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+        });
+      case 'company_client_note.add': {
+        const body = mutation.payload.body;
+        if (typeof body !== 'string' || !body.trim() || body.trim().length > 1000)
+          companyInvalid('body');
+        return await this.rpcAsCaller('waves_company_client_note_add', {
+          p_group_id: mutation.groupId,
+          p_note_id: companyUuid(mutation.payload.noteId, 'noteId'),
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+          p_body: body.trim(),
+        });
+      }
+      case 'company_inquiry.set':
+        return await this.rpcAsCaller('waves_company_inquiry_set', {
+          p_group_id: mutation.groupId,
+          p_inquiry_id: companyUuid(mutation.payload.inquiryId, 'inquiryId'),
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+          p_data: {
+            title: companyReason(mutation.payload.title, 'title', true),
+            details: companyReason(mutation.payload.details ?? null, 'details', false),
+            expectedValue: companyDecimal(
+              mutation.payload.expectedValueMinor ?? null,
+              'expectedValueMinor',
+              true,
+            ),
+            inquiryDate: companyDate(mutation.payload.inquiryDate, 'inquiryDate'),
+          },
+        });
+      case 'company_inquiry.reject': {
+        if (typeof mutation.payload.rejected !== 'boolean') companyInvalid('rejected');
+        return await this.rpcAsCaller('waves_company_inquiry_reject', {
+          p_inquiry_id: companyUuid(mutation.payload.inquiryId, 'inquiryId'),
+          p_rejected: mutation.payload.rejected,
+          p_reason: companyReason(mutation.payload.reason ?? null, 'reason', false),
+        });
+      }
+      case 'company_inquiry.remove':
+        return await this.rpcAsCaller('waves_company_inquiry_remove', {
+          p_inquiry_id: companyUuid(mutation.payload.inquiryId, 'inquiryId'),
+        });
+      case 'company_client.assign':
+        return await this.rpcAsCaller('waves_company_client_assign', {
+          p_group_id: mutation.groupId,
+          p_client_id: companyUuid(mutation.payload.clientId, 'clientId'),
+          p_member_ids: companyUuidList(mutation.payload.memberIds, 'memberIds'),
+        });
+      case 'company_ticket.set': {
+        const priority = mutation.payload.priority;
+        if (!['low', 'normal', 'high', 'urgent'].includes(priority as string))
+          companyInvalid('priority');
+        const dueAt = mutation.payload.dueAt;
+        const details = mutation.payload.details;
+        if (details != null && (typeof details !== 'string' || details.trim().length > 1000))
+          companyInvalid('details');
+        if (typeof dueAt !== 'string' || Number.isNaN(Date.parse(dueAt))) companyInvalid('dueAt');
+        return await this.rpcAsCaller('waves_company_ticket_set', {
+          p_group_id: mutation.groupId,
+          p_ticket_id: companyUuid(mutation.payload.ticketId, 'ticketId'),
+          p_data: {
+            clientId: companyUuid(mutation.payload.clientId ?? null, 'clientId', true),
+            title: companyReason(mutation.payload.title, 'title', true),
+            details: typeof details === 'string' ? details.trim() || null : null,
+            priority,
+            assigneeMemberId: companyUuid(mutation.payload.assigneeMemberId, 'assigneeMemberId'),
+            dueAt: new Date(dueAt as string).toISOString(),
+          },
+        });
+      }
+      case 'company_ticket.status': {
+        const status = mutation.payload.status;
+        if (!['open', 'in_progress', 'resolved', 'closed'].includes(status as string))
+          companyInvalid('status');
+        return await this.rpcAsCaller('waves_company_ticket_status', {
+          p_ticket_id: companyUuid(mutation.payload.ticketId, 'ticketId'),
+          p_status: status,
+          p_note: companyReason(mutation.payload.note ?? null, 'note', false),
+        });
+      }
+      case 'company_ticket_comment.add': {
+        const body = mutation.payload.body;
+        if (typeof body !== 'string' || !body.trim() || body.trim().length > 1000)
+          companyInvalid('body');
+        return await this.rpcAsCaller('waves_company_ticket_comment_add', {
+          p_group_id: mutation.groupId,
+          p_event_id: companyUuid(mutation.payload.eventId, 'eventId'),
+          p_ticket_id: companyUuid(mutation.payload.ticketId, 'ticketId'),
+          p_body: body.trim(),
+        });
+      }
+      case 'company_ticket.remove':
+        return await this.rpcAsCaller('waves_company_ticket_remove', {
+          p_ticket_id: companyUuid(mutation.payload.ticketId, 'ticketId'),
+        });
+      case 'company_details.set':
+        return await this.rpcAsCaller('waves_company_details_set', {
+          p_group_id: mutation.groupId,
+          p_data: companyCardData(mutation.payload.data),
+        });
+      case 'company_vendor_details.set':
+        return await this.rpcAsCaller('waves_company_vendor_details_set', {
+          p_group_id: mutation.groupId,
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_data: companyCardData(mutation.payload.data),
+        });
+      case 'company_vendor_order.set':
+        return await this.rpcAsCaller('waves_company_vendor_order_set', {
+          p_group_id: mutation.groupId,
+          p_order_id: companyUuid(mutation.payload.orderId, 'orderId'),
+          p_vendor_id: companyUuid(mutation.payload.vendorId, 'vendorId'),
+          p_data: companyOrderData(mutation.payload),
+        });
+      case 'company_vendor_order.status':
+        return await this.rpcAsCaller('waves_company_vendor_order_status', {
+          p_order_id: companyUuid(mutation.payload.orderId, 'orderId'),
+          p_to: requireString(mutation.payload.to, 'to'),
+        });
+      case 'company_member.rate_set':
+        return await this.rpcAsCaller('waves_company_member_rate_set', {
+          p_group_id: mutation.groupId,
+          p_member_id: requireString(mutation.payload.memberId, 'memberId'),
+          p_daily_rate_minor: nullableString(mutation.payload.dailyRateMinor, 'dailyRateMinor'),
         });
       case 'group_recurring.create':
         return await this.rpcAsCaller('waves_create_group_recurring_expense', {
@@ -1001,7 +1862,7 @@ export class SyncSession {
         baseVersionNo: payload.baseVersionNo ?? null,
         fx: payload.fx ?? null,
         paymentMethod: payload.paymentMethod ?? null,
-        receiptShareUrl: payload.receiptShareUrl ?? null,
+        receiptShareUrl: validReceiptShareUrl(payload.receiptShareUrl),
         categoryMeta: payload.categoryMeta,
         location: payload.location,
         subEventId: payload.subEventId ?? null,
@@ -1683,11 +2544,12 @@ export class SyncSession {
  * holds a row lock until commit — so within a group, sequence order and commit
  * order are the same and no lower-numbered row can appear after a higher one.
  */
-async function pull(
+export async function pull(
   caller: SupabaseClient,
   groupIds: Set<string>,
   cursors: Record<string, number>,
   profileId: string,
+  mustInclude: ReadonlySet<string> = new Set(),
 ): Promise<{ changes: SyncChange[]; cursors: Record<string, number>; hasMore: boolean }> {
   const changes: SyncChange[] = [];
   const nextCursors: Record<string, number> = {};
@@ -1747,7 +2609,7 @@ async function pull(
   // the '22P02 invalid input syntax for type uuid: "<id>:ghost_merges"' that
   // floods the logs every poll. Keep only bare ids so no scoped key can reach a
   // uuid column, whatever account minted it.
-  const groupList = [...groupIds].filter((id) => !id.includes(':'));
+  let groupList = [...groupIds].filter((id) => !id.includes(':'));
   const groupRows = new Map<string, Record<string, unknown>>();
   if (groupList.length > 0) {
     const { data, error } = await caller.from('groups').select('*').in('id', groupList);
@@ -1756,6 +2618,23 @@ async function pull(
       const record = row as Record<string, unknown>;
       groupRows.set(String(record.id), record);
     }
+  }
+
+  // Fresh = no cursor yet. Take the most recently active few per pull (groups made
+  // offline always ride along); left-out ones get no cursor, so they stay fresh.
+  const isFresh = (id: string) => !cursors[id];
+  const fresh = groupList
+    .filter((id) => isFresh(id) && !mustInclude.has(id) && groupRows.has(id))
+    // updated_seq is a per-group counter, so only updated_at compares across groups.
+    .sort(
+      (a, b) =>
+        Date.parse(String(groupRows.get(b)?.updated_at ?? 0)) -
+        Date.parse(String(groupRows.get(a)?.updated_at ?? 0)),
+    );
+  const leftOut = new Set(fresh.slice(FRESH_GROUPS_PER_PULL));
+  if (leftOut.size > 0) {
+    hasMore = true;
+    groupList = groupList.filter((id) => !leftOut.has(id));
   }
 
   /**
@@ -2021,6 +2900,9 @@ function normalisePaymentMethod(value: unknown): string | null {
 const TAG_TINTS = new Set(['lilac', 'pink', 'mint', 'peach', 'sky', 'coral']);
 
 /** Turn a thrown error into the vocabulary the client's queue understands. */
+// The database raises 'CODE: detail' or a bare 'CODE' (ADMIN_ONLY, GROUP_DELETED).
+const RAISED_CODE = /^([A-Z][A-Z_]+)(?::|$)/;
+
 function classify(error: unknown): { code: string; message: string } {
   if (error instanceof HttpError) return { code: error.code, message: error.message };
 
@@ -2040,11 +2922,468 @@ function classify(error: unknown): { code: string; message: string } {
         : String(error);
   // The database raises 'UNKNOWN_MEMBER: ...', 'NOT_A_MEMBER: ...' and friends;
   // keep its own word for what went wrong rather than flattening to INTERNAL.
-  const raised = /^([A-Z_]+):/.exec(message)?.[1];
+  const raised = RAISED_CODE.exec(message)?.[1];
   if (raised) return { code: raised, message };
 
   const wrapped = (error as { code?: string })?.code;
   if (wrapped === '42501') return { code: 'NOT_A_MEMBER', message };
 
   return { code: 'VALIDATION_FAILED', message };
+}
+
+/** `memberId` for a company entry create: null only for a company-paid entry (the RPC enforces who may). */
+function companyPaidMemberId(payload: Record<string, unknown>): string | null {
+  const data = payload.data as Record<string, unknown> | null | undefined;
+  if (data?.paidByCompany === true) {
+    if (payload.memberId !== null && payload.memberId !== undefined) {
+      throw new HttpError(400, 'VALIDATION_FAILED', 'A company-paid entry has no memberId');
+    }
+    return null;
+  }
+  return requireString(payload.memberId, 'memberId');
+}
+
+function companyData(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new HttpError(400, 'VALIDATION_FAILED', 'company data must be an object');
+  }
+  const data = value as Record<string, unknown>;
+  const keys = [
+    'amount',
+    'category',
+    'days',
+    'rateMinor',
+    'calcMode',
+    'occurredOn',
+    'note',
+    'direction',
+    'vendor',
+    'gstin',
+    'invoiceNo',
+    'gstRateBps',
+    'gstAmountMinor',
+    'distanceKm',
+    'fromText',
+    'toText',
+    'projectId',
+    'fundingManagerId',
+    'paidByCompany',
+  ];
+  for (const [key, field] of Object.entries(data)) {
+    if (
+      !keys.includes(key) ||
+      (field !== null &&
+        (key === 'gstRateBps'
+          ? typeof field !== 'number' || !Number.isInteger(field) || field < 0 || field > 10000
+          : key === 'paidByCompany'
+            ? typeof field !== 'boolean'
+            : typeof field !== 'string'))
+    ) {
+      throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${key}`);
+    }
+  }
+  for (const key of ['projectId', 'fundingManagerId']) {
+    if (data[key] !== undefined && data[key] !== null) companyUuid(data[key], key);
+  }
+  for (const key of ['amount', 'rateMinor', 'gstAmountMinor']) {
+    if (data[key] !== undefined && data[key] !== null) companyDecimal(data[key], key);
+  }
+  for (const key of ['days', 'distanceKm']) {
+    if (data[key] !== undefined && data[key] !== null) companyDecimal(data[key], key, false, true);
+  }
+  return data;
+}
+
+function requireInteger(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    throw new HttpError(400, 'VALIDATION_FAILED', `${field} must be a positive integer`);
+  }
+  return value;
+}
+
+function companyUuidList(value: unknown, field: string): string[] {
+  if (!Array.isArray(value) || value.length > 200) companyInvalid(field);
+  return value.map((v) => companyUuid(v, field)!);
+}
+function companySignedDecimal(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !/^-?\d{1,19}$/.test(value)) companyInvalid(field);
+  if (BigInt(value) > 9223372036854775807n || BigInt(value) < -9223372036854775807n)
+    companyInvalid(field);
+  return value as string;
+}
+/** Trimmed text of 1-500 characters (a reason or a name); optional ones may be null. */
+function companyReason(value: unknown, field: string, required: boolean): string | null {
+  if (value === null || value === undefined || (typeof value === 'string' && !value.trim())) {
+    if (required) companyInvalid(field);
+    return null;
+  }
+  if (typeof value !== 'string' || value.trim().length > 500) companyInvalid(field);
+  return (value as string).trim();
+}
+/** Up to 10 trimmed, non-empty names (the database also rejects duplicates and over-long ones). */
+function companyVendorCategories(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > 10) companyInvalid('categories');
+  return (value as unknown[]).map((c) => {
+    if (typeof c !== 'string' || !c.trim() || c.trim().length > 40) companyInvalid('categories');
+    return (c as string).trim();
+  });
+}
+/** Order body: the database checks every item; this only keeps the shape and size sane. */
+function companyOrderData(payload: Record<string, unknown>): Record<string, unknown> {
+  const items = payload.items;
+  if (!Array.isArray(items) || items.length < 1 || items.length > 50) companyInvalid('items');
+  return {
+    expectedOn: payload.expectedOn ? companyDate(payload.expectedOn, 'expectedOn') : null,
+    note: companyReason(payload.note ?? null, 'note', false),
+    items: (items as Record<string, unknown>[]).map((i) => ({
+      name: requireString(i?.name, 'name'),
+      qty: requireString(i?.qty, 'qty'),
+      unit: requireString(i?.unit, 'unit'),
+      unitPrice: companyDecimal(i?.unitPrice, 'unitPrice'),
+    })),
+  };
+}
+/** Details card body: known keys, strings or null; the database checks each format. */
+const CARD_KEYS = [
+  'bankName',
+  'bankAccount',
+  'ifsc',
+  'upi',
+  'pan',
+  'address',
+  'phone',
+  'email',
+  'gstin',
+  'note',
+];
+function companyCardData(value: unknown): Record<string, string | null> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('data');
+  const d = value as Record<string, unknown>;
+  for (const k of Object.keys(d)) if (!CARD_KEYS.includes(k)) companyInvalid(k);
+  const out: Record<string, string | null> = {};
+  for (const k of CARD_KEYS) {
+    const v = d[k];
+    if (v !== null && v !== undefined && (typeof v !== 'string' || v.length > 500))
+      companyInvalid(k);
+    out[k] = typeof v === 'string' ? v : null;
+  }
+  return out;
+}
+/** Estimate / bill body: shape-checked here, amounts recomputed by the database. */
+function companyDocData(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('data');
+  const d = value as Record<string, unknown>;
+  const items = d.items;
+  if (!Array.isArray(items) || items.length < 1 || items.length > 50) companyInvalid('items');
+  if (d.docType !== 'estimate' && d.docType !== 'bill') companyInvalid('docType');
+  return {
+    docType: d.docType,
+    customerName: companyReason(d.customerName, 'customerName', true),
+    customerPhone: companyReason(d.customerPhone ?? null, 'customerPhone', false),
+    docDate: companyDate(d.docDate, 'docDate'),
+    discountMinor: companyDecimal(d.discountMinor ?? '0', 'discountMinor'),
+    // Absent keeps the saved link; null clears it.
+    ...(d.clientId === undefined ? {} : { clientId: companyUuid(d.clientId, 'clientId', true) }),
+    ...(d.inquiryId === undefined
+      ? {}
+      : { inquiryId: companyUuid(d.inquiryId, 'inquiryId', true) }),
+    notes:
+      d.notes === null || d.notes === undefined || d.notes === ''
+        ? null
+        : typeof d.notes === 'string' && d.notes.trim().length <= 1000
+          ? d.notes.trim() || null
+          : companyInvalid('notes'),
+    items: (items as unknown[]).map((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) companyInvalid('items');
+      const i = raw as Record<string, unknown>;
+      return {
+        description: companyReason(i.description, 'description', true),
+        qtyMilli: companyDecimal(i.qtyMilli, 'qtyMilli'),
+        rateMinor: companyDecimal(i.rateMinor, 'rateMinor'),
+      };
+    }),
+  };
+}
+function companyMemberData(p: Record<string, unknown>): Record<string, unknown> {
+  return {
+    name: companyReason(p.name, 'name', true),
+    managerId: companyUuid(p.managerId ?? null, 'managerId', true),
+    projectIds: companyUuidList(p.projectIds ?? [], 'projectIds'),
+  };
+}
+function companyWageLines(value: unknown): unknown[] {
+  if (!Array.isArray(value) || value.length === 0 || value.length > 500) companyInvalid('lines');
+  const modes = ['typed', 'days_rate', 'fixed_weekly', 'fixed_monthly'];
+  const seen = new Set<string>();
+  return value.map((raw) => {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) companyInvalid('lines');
+    const l = raw as Record<string, unknown>;
+    if (!modes.includes(l.calcMode as string)) companyInvalid('calcMode');
+    const id = companyUuid(l.paymentEntryId, 'paymentEntryId')!;
+    if (seen.has(id.toLowerCase())) companyInvalid('lines');
+    seen.add(id.toLowerCase());
+    return {
+      paymentEntryId: id,
+      memberId: companyUuid(l.memberId, 'memberId'),
+      projectId: companyUuid(l.projectId ?? null, 'projectId', true),
+      fundingManagerId: companyUuid(l.fundingManagerId ?? null, 'fundingManagerId', true),
+      calcMode: l.calcMode,
+      days: l.days == null ? null : companyDecimal(l.days, 'days', false, true),
+      rateMinor: l.rateMinor == null ? null : companyDecimal(l.rateMinor, 'rateMinor'),
+      fixedMinor: l.fixedMinor == null ? null : companyDecimal(l.fixedMinor, 'fixedMinor'),
+      claimIds: companySelection(l.claimIds, 'claimIds', false),
+      ...companySplits(l.splits),
+      expectedGrossMinor: companyDecimal(l.expectedGrossMinor, 'expectedGrossMinor'),
+      expectedRecoveryMinor: companyDecimal(l.expectedRecoveryMinor, 'expectedRecoveryMinor'),
+      expectedNetMinor: companyDecimal(l.expectedNetMinor, 'expectedNetMinor'),
+      note: companyReason(l.note ?? null, 'note', false),
+    };
+  });
+}
+/** Wage base divided across sites; emitted only when present so older payloads keep their request hash. */
+function companySplits(value: unknown): { splits?: unknown[] } {
+  if (value == null || (Array.isArray(value) && value.length === 0)) return {};
+  if (!Array.isArray(value) || value.length > 20) companyInvalid('splits');
+  return {
+    splits: value.map((raw) => {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) companyInvalid('splits');
+      const x = raw as Record<string, unknown>;
+      return {
+        projectId: companyUuid(x.projectId, 'projectId'),
+        amountMinor: companyDecimal(x.amountMinor, 'amountMinor'),
+      };
+    }),
+  };
+}
+function companyInvalid(field: string): never {
+  throw new HttpError(400, 'VALIDATION_FAILED', `Invalid company field: ${field}`);
+}
+function companyNonnegativeInteger(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0 || value > 2147483647)
+    companyInvalid(field);
+  return value;
+}
+function companyDecimal(
+  value: unknown,
+  field: string,
+  nullable = false,
+  fractional = false,
+): string | null {
+  if (nullable && value === null) return null;
+  if (
+    typeof value !== 'string' ||
+    !(fractional ? /^\d{1,6}(?:\.\d{1,2})?$/ : /^\d{1,19}$/).test(value)
+  )
+    companyInvalid(field);
+  if (!fractional && BigInt(value) > 9223372036854775807n) companyInvalid(field);
+  return value;
+}
+function companyUuid(value: unknown, field: string, nullable = false): string | null {
+  if (nullable && value === null) return null;
+  if (
+    typeof value !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  )
+    companyInvalid(field);
+  return value;
+}
+/** Optional 'HH:MM' time of day; null clears it. */
+function companyTime(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value))
+    companyInvalid('dueTime');
+  return value;
+}
+
+function companyDate(value: unknown, field: string): string {
+  if (
+    typeof value !== 'string' ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(value) ||
+    !Number.isFinite(Date.parse(value)) ||
+    new Date(value).toISOString().slice(0, 10) !== value
+  )
+    companyInvalid(field);
+  return value;
+}
+function companySelection(value: unknown, field: string, nonempty: boolean): unknown[] {
+  if (!Array.isArray(value) || (nonempty && value.length === 0)) companyInvalid(field);
+  const ids = new Set<string>();
+  for (const item of value) {
+    if (
+      !item ||
+      typeof item !== 'object' ||
+      Array.isArray(item) ||
+      Object.keys(item).some((k) => !['entryId', 'expectedVersion'].includes(k))
+    )
+      companyInvalid(field);
+    const id = companyUuid(item.entryId, field)!;
+    requireInteger(item.expectedVersion, field);
+    if (item.expectedVersion > 2147483647 || ids.has(id.toLowerCase())) companyInvalid(field);
+    ids.add(id.toLowerCase());
+  }
+  return value;
+}
+function companyPolicies(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('policies');
+  const p = value as Record<string, unknown>;
+  if (
+    p.version !== 1 ||
+    !Array.isArray(p.rules) ||
+    p.rules.length > 100 ||
+    Object.keys(p).some((k) => !['version', 'rules'].includes(k))
+  )
+    companyInvalid('policies');
+  const ids = new Set<string>();
+  for (const rule of p.rules) {
+    if (
+      !rule ||
+      typeof rule !== 'object' ||
+      Array.isArray(rule) ||
+      typeof rule.id !== 'string' ||
+      !rule.id.length ||
+      rule.id.length > 120 ||
+      ids.has(rule.id)
+    )
+      companyInvalid('policies');
+    ids.add(rule.id);
+    companyDecimal(rule.limitMinor, 'limitMinor');
+    if (!['warn', 'block'].includes(rule.effect)) companyInvalid('policies');
+    if (rule.type === 'receipt_above') {
+      if (
+        rule.effect !== 'warn' ||
+        Object.keys(rule).some((k) => !['id', 'type', 'limitMinor', 'effect'].includes(k))
+      )
+        companyInvalid('policies');
+    } else if (rule.type === 'period_limit') {
+      if (
+        typeof rule.target !== 'string' ||
+        !COMPANY_TAG_KEY_RE.test(rule.target) ||
+        !['day', 'month'].includes(rule.period) ||
+        Object.keys(rule).some(
+          (k) => !['id', 'type', 'target', 'period', 'limitMinor', 'effect'].includes(k),
+        )
+      )
+        companyInvalid('policies');
+    } else companyInvalid('policies');
+  }
+  return value;
+}
+
+const COMPANY_TAG_KEY_RE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+function companyTag(
+  value: unknown,
+  stored: boolean,
+): Record<string, unknown> & { key: string; label: string; unit?: string } {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) companyInvalid('tags');
+  const t = value as Record<string, unknown>;
+  const allowed = stored ? ['key', 'label', 'unit', 'hidden', 'addedBy'] : ['key', 'label', 'unit'];
+  if (
+    Object.keys(t).some((key) => !allowed.includes(key)) ||
+    typeof t.key !== 'string' ||
+    !COMPANY_TAG_KEY_RE.test(t.key) ||
+    typeof t.label !== 'string' ||
+    !t.label.trim().length ||
+    [...t.label].length > 40 ||
+    (t.unit !== undefined &&
+      (typeof t.unit !== 'string' || !t.unit.length || [...t.unit].length > 16)) ||
+    (t.hidden !== undefined && typeof t.hidden !== 'boolean') ||
+    (t.addedBy !== undefined &&
+      (typeof t.addedBy !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(t.addedBy)))
+  )
+    companyInvalid('tags');
+  return t as Record<string, unknown> & { key: string; label: string; unit?: string };
+}
+
+/**
+ * For each company group a non-owner belongs to, the member ids this caller can read (RLS decides, so it is
+ * exactly the people whose entries they may hold). A group is left out when the list
+ * could not be read in full, so a failure can never make a phone discard data.
+ */
+/**
+ * Company groups only: the birthday rows, events and clients the caller can read right now. RLS hides a row the
+ * moment access is revoked (a birthday switched off, removal from an event) without sending a tombstone,
+ * so the phone drops whatever is not on this list. A group whose list could not be read completely is left out.
+ */
+async function companyCalendarVisible(
+  caller: SupabaseClient,
+  groupIds: readonly string[],
+): Promise<
+  Record<
+    string,
+    { dates: string[]; events: string[]; clients: string[]; tickets: string[]; files?: string[] }
+  >
+> {
+  const out: Record<
+    string,
+    { dates: string[]; events: string[]; clients: string[]; tickets: string[]; files?: string[] }
+  > = {};
+  if (groupIds.length === 0) return out;
+  const groups = await caller.from('groups').select('id').eq('type', 'company').in('id', groupIds);
+  if (groups.error) return out;
+  const PAGE = 1000;
+  const ids = async (table: string, groupId: string): Promise<string[] | null> => {
+    const all: string[] = [];
+    for (let from = 0; from < PAGE * 5; from += PAGE) {
+      const page = await caller
+        .from(table)
+        .select('id')
+        .eq('group_id', groupId)
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (page.error) return null;
+      all.push(...(page.data ?? []).map((row) => row.id as string));
+      if ((page.data ?? []).length < PAGE) return all;
+    }
+    return null;
+  };
+  for (const { id } of groups.data ?? []) {
+    const dates = await ids('company_member_dates', id as string);
+    const events = await ids('company_events', id as string);
+    const clients = await ids('company_clients', id as string);
+    const tickets = await ids('company_tickets', id as string);
+    const folders = await ids('company_file_folders', id as string);
+    const files = await ids('company_files', id as string);
+    if (dates && events && clients && tickets)
+      out[id as string] = {
+        dates,
+        events,
+        clients,
+        tickets,
+        // Left out when unreadable, so a failure never makes a phone drop its files.
+        ...(folders && files ? { files: [...folders, ...files] } : {}),
+      };
+  }
+  return out;
+}
+
+async function companyVisibleMembers(
+  caller: SupabaseClient,
+  groupIds: readonly string[],
+): Promise<Record<string, string[]>> {
+  const out: Record<string, string[]> = {};
+  if (groupIds.length === 0) return out;
+  const groups = await caller.from('groups').select('id').eq('type', 'company').in('id', groupIds);
+  if (groups.error) return out;
+  const PAGE = 1000;
+  for (const { id } of groups.data ?? []) {
+    const ids: string[] = [];
+    let complete = false;
+    for (let from = 0; from < PAGE * 5; from += PAGE) {
+      const page = await caller
+        .from('group_members')
+        .select('id')
+        .eq('group_id', id)
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (page.error) break;
+      ids.push(...(page.data ?? []).map((row) => row.id as string));
+      if ((page.data ?? []).length < PAGE) {
+        complete = true;
+        break;
+      }
+    }
+    if (complete) out[id as string] = ids;
+  }
+  return out;
 }

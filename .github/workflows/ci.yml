@@ -203,7 +203,7 @@ jobs:
       # Supabase env — the unauthenticated surface it drives makes no network call.
       - name: Playwright
         run: pnpm --filter @waves/web e2e
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7.0.2
         if: ${{ !cancelled() }}
         with:
           name: playwright-report

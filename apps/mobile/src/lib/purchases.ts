@@ -19,15 +19,18 @@
 import { useSyncExternalStore } from 'react';
 import { AppState, Linking, Platform } from 'react-native';
 import Purchases, {
+  PRODUCT_CATEGORY,
   PRORATION_MODE,
   PURCHASES_ERROR_CODE,
   type CustomerInfo,
   type PurchasesOffering,
   type PurchasesPackage,
+  type PurchasesStoreProduct,
 } from 'react-native-purchases';
 
 import { PlanTier } from '@waves/core';
 
+import { COMPANY_SLOT_PRODUCT_IDS } from './companySlots';
 import { reportHandled } from './observability';
 import { activeProductId, revenueCatApiKey, selectOffering, tierFromCustomerInfo } from './pricing';
 
@@ -183,6 +186,133 @@ export async function purchase(pkg: PurchasesPackage): Promise<PurchaseOutcome> 
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg, null, change);
     accept(customerInfo);
+    return 'purchased';
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return 'cancelled';
+    if (code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) return 'pending';
+    throw error;
+  }
+}
+
+/** Store ids of the paid credit packs; the number is the credits they hold. */
+export const CREDIT_PACK_IDS = ['credits_50', 'credits_200', 'credits_500'] as const;
+
+/** The credit packs the store actually sells; empty when none are set up (the section stays hidden). */
+export async function loadCreditPacks(): Promise<PurchasesStoreProduct[]> {
+  if (!configured) return [];
+  try {
+    const found = await Purchases.getProducts(
+      [...CREDIT_PACK_IDS],
+      PRODUCT_CATEGORY.NON_SUBSCRIPTION,
+    );
+    return CREDIT_PACK_IDS.flatMap((id) => found.filter((p) => p.identifier.split(':')[0] === id));
+  } catch (error) {
+    reportHandled(error, 'purchases.creditPacks');
+    return [];
+  }
+}
+
+// shortcut: granting needs the revenuecat-webhook to credit the balance (credit_ledger) for these
+// products; until that exists the store would charge without crediting, so the packs only show
+// when the store returns them (no store products, no section).
+export async function buyCreditPack(product: PurchasesStoreProduct): Promise<PurchaseOutcome> {
+  try {
+    await Purchases.purchaseStoreProduct(product);
+    return 'purchased';
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return 'cancelled';
+    if (code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) return 'pending';
+    throw error;
+  }
+}
+
+/** Store ids of the company storage packs (monthly subscriptions): 1 GB and 5 GB. */
+export const COMPANY_STORAGE_PACK_IDS = [
+  'waves_company_storage_1gb',
+  'waves_company_storage_5gb',
+] as const;
+
+/** The packs the store actually sells; empty until the products exist (the Buy button stays hidden). */
+export async function loadCompanyStoragePacks(): Promise<PurchasesStoreProduct[]> {
+  if (!configured) return [];
+  try {
+    const found = await Purchases.getProducts(
+      [...COMPANY_STORAGE_PACK_IDS],
+      PRODUCT_CATEGORY.SUBSCRIPTION,
+    );
+    return COMPANY_STORAGE_PACK_IDS.flatMap((id) =>
+      found.filter((p) => p.identifier.split(':')[0] === id),
+    );
+  } catch (error) {
+    reportHandled(error, 'purchases.companyStoragePacks');
+    return [];
+  }
+}
+
+/** True while this store account has a pack subscription running (for some company). */
+export function hasActiveCompanyStoragePack(): boolean {
+  return (snapshot.info?.activeSubscriptions ?? []).some((id) =>
+    (COMPANY_STORAGE_PACK_IDS as readonly string[]).includes(id.split(':')[0]!),
+  );
+}
+
+/**
+ * Buy a pack for one company. The company id travels as a subscriber attribute, which
+ * revenuecat-webhook reads to set that company's quota. One pack per company: on Android a
+ * different pack already held is replaced in place; iOS does that with the subscription group.
+ */
+export async function buyCompanyStoragePack(
+  product: PurchasesStoreProduct,
+  groupId: string,
+): Promise<PurchaseOutcome> {
+  try {
+    await Purchases.setAttributes({ company_group_id: groupId });
+    const target = product.identifier.split(':')[0];
+    const current = (snapshot.info?.activeSubscriptions ?? [])
+      .map((id) => id.split(':')[0])
+      .find((id) => id !== target && (COMPANY_STORAGE_PACK_IDS as readonly string[]).includes(id!));
+    await Purchases.purchaseStoreProduct(
+      product,
+      Platform.OS === 'android' && current
+        ? {
+            oldProductIdentifier: current,
+            prorationMode: PRORATION_MODE.IMMEDIATE_WITH_TIME_PRORATION,
+          }
+        : null,
+    );
+    return 'purchased';
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    if (code === PURCHASES_ERROR_CODE.PURCHASE_CANCELLED_ERROR) return 'cancelled';
+    if (code === PURCHASES_ERROR_CODE.PAYMENT_PENDING_ERROR) return 'pending';
+    throw error;
+  }
+}
+
+/**
+ * The company-slot product to sell next: the first configured one this store account does not
+ * already hold (a store allows one subscription per product). Null until the products exist.
+ */
+export async function loadCompanySlotProduct(): Promise<PurchasesStoreProduct | null> {
+  if (!configured) return null;
+  try {
+    const held = new Set((snapshot.info?.activeSubscriptions ?? []).map((id) => id.split(':')[0]));
+    const ids = COMPANY_SLOT_PRODUCT_IDS.filter((id) => !held.has(id));
+    if (ids.length === 0) return null;
+    const found = await Purchases.getProducts(ids, PRODUCT_CATEGORY.SUBSCRIPTION);
+    return ids.flatMap((id) => found.filter((p) => p.identifier.split(':')[0] === id))[0] ?? null;
+  } catch (error) {
+    reportHandled(error, 'purchases.companySlot');
+    return null;
+  }
+}
+
+/** Buy one company slot. The server binds it to a company when that company is created or renewed. */
+export async function buyCompanySlot(product: PurchasesStoreProduct): Promise<PurchaseOutcome> {
+  try {
+    await Purchases.purchaseStoreProduct(product);
     return 'purchased';
   } catch (error) {
     const code = (error as { code?: string }).code;

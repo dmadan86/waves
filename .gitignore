@@ -81,3 +81,7 @@ apps/web/playwright/.cache/
 !.env.example
 
 .vercel
+
+# OTA code-signing private key: lives in ~/.waves-keys/updates, never in the repo
+private-key.pem
+*private-key*.pem

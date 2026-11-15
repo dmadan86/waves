@@ -56,6 +56,11 @@ function fake(answers: Record<string, Answer>) {
       for (const m of ['select', 'eq', 'is', 'in', 'order', 'limit']) {
         query[m] = (...args: unknown[]) => {
           filters.push([m, ...args]);
+          // The personal-group guard's own probe (select 'type') is not what these tests are about.
+          if (m === 'select' && args[0] === 'type') {
+            const at = queries.findIndex((q) => q.filters === filters);
+            if (at >= 0) queries.splice(at, 1);
+          }
           return query;
         };
       }

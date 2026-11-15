@@ -118,3 +118,18 @@ export function splitMemberName(params: unknown, memberId: string | null, name: 
   const split = params as { kind?: unknown; memberWeights?: Record<string, unknown> };
   return split.kind === 'units' && split.memberWeights?.[memberId] === 0.5 ? `${name} ½` : name;
 }
+
+/** Exported documents use names that make sense to every reader. */
+export function exportMemberName(
+  member: {
+    readonly profile?: { readonly display_name?: string | null } | null;
+    readonly ghost_name?: string | null;
+  },
+  someone = 'Someone',
+): string {
+  return member.profile?.display_name ?? member.ghost_name ?? someone;
+}
+
+export function exportDescription(description: string | null | undefined): string {
+  return description?.trim() || '-';
+}

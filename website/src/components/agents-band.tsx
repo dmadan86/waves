@@ -1,6 +1,7 @@
 import type { Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { Check, Spark } from './icons';
+import { LazyVideo } from './lazy-video';
 import { Button, Kicker } from './ui';
 
 /**
@@ -20,7 +21,7 @@ export function AgentsBand({ t, locale }: { t: Dictionary['agents']; locale: Loc
               <Kicker>{t.eyebrow}</Kicker>
               <h2
                 id="agents-title"
-                className="mt-1.5 text-balance text-[1.5rem] leading-[1.15] font-bold tracking-[-0.02em] text-ink sm:text-[1.9rem]"
+                className="display mt-1.5 text-balance text-[2rem] text-ink sm:text-[2.6rem]"
               >
                 {t.title}
               </h2>
@@ -45,6 +46,10 @@ export function AgentsBand({ t, locale }: { t: Dictionary['agents']; locale: Loc
                 {t.cta}
               </Button>
             </div>
+          </div>
+
+          <div className="mt-6">
+            <LazyVideo name="home-agents" label={t.videoLabel} className="aspect-video" />
           </div>
 
           <p className="mt-6 text-[0.75rem] font-semibold tracking-[0.1em] rtl:tracking-normal text-ink-3 uppercase">

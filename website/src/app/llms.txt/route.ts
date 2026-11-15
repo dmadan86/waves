@@ -1,6 +1,7 @@
 import { locales } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { mcpEndpoint } from '@/lib/mcp-tools';
+import { plans, proTrialDays, voiceCommands } from '@/lib/plans';
 import { absoluteUrl, site } from '@/lib/site';
 
 export const dynamic = 'force-static';
@@ -24,14 +25,30 @@ export async function GET() {
     '## Pages',
     '',
     `- [Home, as Markdown](${absoluteUrl('/en/index.md')}): the full landing page in prose.`,
+    `- [Everything in one file](${absoluteUrl('/llms-full.txt')}): the landing page plus every MCP tool.`,
     `- [Privacy](${absoluteUrl('/en/privacy')}): what is held, what is not, and what this does not protect against.`,
     `- [Terms](${absoluteUrl('/en/terms')})`,
     `- [Support](${absoluteUrl('/en/support')}): how to reach a person, and help with accounts, balances and subscriptions.`,
     `- [Cancellation & Refund Policy](${absoluteUrl('/en/refund')}): how to cancel Pro and how app-store refunds work.`,
     `- [Connect an AI agent](${absoluteUrl('/en/mcp')}): Waves speaks MCP — setup for Claude, ChatGPT, Cursor and VS Code, every tool, what an agent may do with your ledger, and what it can never do.`,
+    `- [Waves for companies](${absoluteUrl('/en/companies')}): expenses with photo proof and approvals, daily allowance and mileage, wages and attendance, vendors, clients, complaints, estimates and bills with UPI QR. attendance and tasks. On Android and the web; iPhone is coming soon.`,
+    `- [Waves for your own money](${absoluteUrl('/en/personal')}): personal finance on your own phone: spending by category, monthly budgets, loans lent and borrowed, recurring bills, bank message capture (paste on any phone; reading the inbox is Android only and on-device), bank statement import (Pro), voice entry and receipt scans. The ledger is private to you.`,
     `- [MCP server](${mcpEndpoint(site.appUrl)}): remote MCP endpoint over streamable HTTP, OAuth sign-in.`,
     `- [Compare Waves](${absoluteUrl('/en/compare')}): sourced side-by-side comparisons with Splitwise, Tricount, Settle Up, Splid, Spliit, Kittysplit, Splitkaro, Google Pay, PhonePe, Venmo and spreadsheets, including where each is better.`,
+    `- [Source code on GitHub](${site.githubUrl}): the whole app is open source under AGPL-3.0, so how money, data and sync are handled can be read, not just claimed.`,
+    `- [Press kit](${absoluteUrl('/en/press')}), [Splitwise alternative](${absoluteUrl('/en/alternatives/splitwise-alternative')}) and [use cases](${absoluteUrl('/en/use-cases/split-bills-with-roommates')}).`,
     `- [Web app](${site.appUrl})`,
+    '',
+    '## Facts',
+    '',
+    `- Platforms: Android app${site.iosUrl ? ', iPhone app' : ' (iPhone app coming soon)'}, web app at ${site.appUrl}, Android home-screen widgets.`,
+    `- Free: ₹0. Ad-supported. ${voiceCommands.free} AI voice commands a month, then 1 credit each.`,
+    `- Pro (India prices): ₹${plans.pro.monthly} a month or ₹${plans.pro.yearly} a year. No ads, ${voiceCommands.pro} AI voice commands a month. Bought inside the app; other countries see their local store price.`,
+    ...t.pricing.plans
+      .filter((p) => p.id === 'pro')
+      .map((p) => `- Pro includes: ${p.features.join('; ')}.`),
+    `- New accounts get ${proTrialDays} days of Pro free, no card needed.`,
+    '- Languages: English, Tamil, Hindi and Arabic (voice also understands Hinglish).',
     '',
     '## Languages',
     '',
@@ -44,7 +61,8 @@ export async function GET() {
     '',
     '- Waves is not a bank and never holds, moves or touches money; settling hands off to the payment app the user already has.',
     '- Amounts are stored as integer minor units plus an ISO 4217 code, never as floating point.',
-    '- The free tier is unlimited for groups, people, expenses, currencies, offline use and settling up.',
+    '- The free tier is ad-supported (banner ads on some screens, never on settling up) and unlimited for people, expenses, currencies, splits, offline use and settling up. Your first group is free; extra groups, AI voice after the first 10 a month (1 credit), receipt scans after the first 20 a month (2) and exports (6) use credits, and watching a short ad earns 6 credits (hold up to 30).',
+    `- Open source: the code is public at ${site.githubUrl} under AGPL-3.0.`,
     '- There is no independent security audit yet, and the shared ledger is not end-to-end encrypted.',
     '',
   ].join('\n');

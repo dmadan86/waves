@@ -31,7 +31,6 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, TextInput, useWindowDimensions, View } from 'react-native';
 
 import { GROUP_COVER_COLORS } from '@waves/core';
@@ -65,7 +64,7 @@ function CoverPreview({ value, color }: { value: string | null; color: string | 
         style={{
           width: 76,
           height: 76,
-          borderRadius: 26,
+          borderRadius: 16,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: tile.backgroundColor,
@@ -183,7 +182,7 @@ function IconGrid({ value, onPick }: { value: string | null; onPick: (emoji: str
           height: 44,
           marginHorizontal: theme.spacing.xl,
           paddingHorizontal: theme.spacing.lg,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           backgroundColor: theme.color.surfaceMuted,
         }}
       >
@@ -402,7 +401,7 @@ export function CoverEmojiPicker({
             gap: 6,
             height: 32,
             paddingHorizontal: theme.spacing.md,
-            borderRadius: theme.radius.pill,
+            borderRadius: theme.radius.sm,
             backgroundColor: pill.backgroundColor,
             opacity: pressed ? 0.7 : 1,
           })}
@@ -495,7 +494,7 @@ function QuickIconGrid({
               style={{
                 width: 58,
                 height: 58,
-                borderRadius: 18,
+                borderRadius: 12,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: quickTileBackground(quick.color, dark),
@@ -592,62 +591,14 @@ function CloudPreview({
   const theme = useTheme();
   const tile = useCoverTile(color, theme.color.brandSoft);
   const dark = theme.scheme === 'dark';
-  const cloud = dark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)';
-  const blob = dark ? 'rgba(124,111,240,0.16)' : 'rgba(124,111,240,0.12)';
   return (
-    <View style={{ borderRadius: 22, overflow: 'hidden' }}>
-      <LinearGradient
-        colors={dark ? ['#25233F', '#1B1A2E'] : ['#E9E5FF', '#F7F5FF']}
-        style={{ alignItems: 'center', paddingTop: 20, paddingBottom: 14, gap: 8 }}
+    <View style={{ borderRadius: 12, overflow: 'hidden' }}>
+      <View
+        style={[
+          { backgroundColor: dark ? '#25233F' : '#E9E5FF' },
+          { alignItems: 'center', paddingTop: 20, paddingBottom: 14, gap: 8 },
+        ]}
       >
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: -30,
-            top: -30,
-            width: 110,
-            height: 110,
-            borderRadius: 55,
-            backgroundColor: blob,
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            right: 44,
-            top: 34,
-            width: 26,
-            height: 26,
-            borderRadius: 13,
-            backgroundColor: blob,
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            left: -20,
-            bottom: -34,
-            width: 130,
-            height: 70,
-            borderRadius: 35,
-            backgroundColor: cloud,
-          }}
-        />
-        <View
-          pointerEvents="none"
-          style={{
-            position: 'absolute',
-            right: -24,
-            bottom: -30,
-            width: 150,
-            height: 80,
-            borderRadius: 40,
-            backgroundColor: cloud,
-          }}
-        />
         <View
           style={{
             width: 86,
@@ -667,7 +618,7 @@ function CloudPreview({
         >
           {name}
         </Text>
-      </LinearGradient>
+      </View>
     </View>
   );
 }
@@ -827,7 +778,7 @@ export function GroupCoverSheet({
             accessibilityRole="tablist"
             style={{
               padding: 4,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: theme.color.surfaceMuted,
             }}
           >
@@ -846,7 +797,7 @@ export function GroupCoverSheet({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: theme.spacing.sm,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.sm,
                     backgroundColor: selected ? theme.color.brandSoft : 'transparent',
                   }}
                 >

@@ -93,6 +93,7 @@ import { forgetMessage, settleMessages, unsettleMessage } from '@/lib/smsMessage
 import { SmsSettlement } from '@/lib/smsMessageTypes';
 import { useSmsInboxReader } from '@/lib/smsFeature';
 import { bankFromSender, bankFromText, merchantName } from '@/lib/smsPlain';
+import { usePreventCapture } from '@/lib/secretScreen';
 import { useToast } from '@/lib/toast';
 import { type CategoryChoice, useSmsRowPlacement } from '@/lib/useSmsRowPlacement';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -101,6 +102,7 @@ export default function SmsMessageScreen(): React.JSX.Element | null {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const clearance = useBottomClearance();
+  usePreventCapture('sms-detail');
   const { session, isGuest } = useAuth();
   const ownerId = session?.user?.id ?? '';
   const viewerId = session?.user?.id ?? null;
@@ -267,7 +269,13 @@ export default function SmsMessageScreen(): React.JSX.Element | null {
       : [];
 
   const copyBody = async (): Promise<void> => {
-    await Clipboard.setStringAsync(row.body);
+    // Only what the screen already shows as facts: the body can carry a balance
+    // or an OTP, and the clipboard is readable by other apps.
+    await Clipboard.setStringAsync(
+      [name, formatMoney({ minor: amount, currency: row.currency }, { locale }), fullDate].join(
+        ' · ',
+      ),
+    );
     toast.show(t.smsInbox.copiedToClipboard);
   };
 

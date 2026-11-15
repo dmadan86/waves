@@ -156,3 +156,50 @@ describe('an older app reading a newer server', () => {
     }
   });
 });
+
+describe('company notifications', () => {
+  const FACTS = {
+    counterparty: 'Asha',
+    name: 'Ravi',
+    group: 'Acme',
+    description: 'Fix the gate',
+    amount: '50000',
+    currency: 'INR',
+  };
+  const KINDS = [
+    'company_leave_requested',
+    'company_leave_approved',
+    'company_leave_rejected',
+    'company_claim_submitted',
+    'company_claim_approved',
+    'company_claim_rejected',
+    'company_claim_reimbursed',
+    'company_payment',
+    'company_task_assigned',
+    'company_task_done',
+    'company_task_blocked',
+    'company_event',
+    'company_estimate_accepted',
+    'company_estimate_declined',
+    'company_bill_paid',
+    'company_ticket_assigned',
+    'company_ticket_resolved',
+    'company_vendor_payment',
+    'company_vendor_order',
+  ];
+
+  it.each(KINDS)('%s reads cleanly in every language', (kind) => {
+    const en = renderNotification(kind, FACTS, 'en');
+    for (const locale of SPOKEN) {
+      const { title, body } = renderNotification(kind, FACTS, locale);
+      expect(title.length).toBeGreaterThan(0);
+      expect(`${title} ${body}`).not.toMatch(/[{}]|undefined/);
+      if (locale !== 'en') expect(title).not.toBe(en.title);
+    }
+  });
+
+  it('names the employee and the task', () => {
+    expect(renderNotification('company_leave_requested', FACTS, 'en').title).toContain('Ravi');
+    expect(renderNotification('company_task_assigned', FACTS, 'en').body).toBe('Fix the gate');
+  });
+});

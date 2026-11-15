@@ -295,6 +295,20 @@ class SqliteStore implements LocalStore {
     });
   }
 
+  deleteRows(keys: readonly { table: SyncTable; id: string }[]): Promise<void> {
+    if (keys.length === 0) return Promise.resolve();
+    return this.serial.run(async () => {
+      const database = await this.db();
+      await database.withTransactionAsync(async () => {
+        for (const key of keys)
+          await database.runAsync(`DELETE FROM mirror_rows WHERE table_name = ? AND id = ?`, [
+            key.table,
+            key.id,
+          ]);
+      });
+    });
+  }
+
   readRows(): Promise<StoredRow[]> {
     return this.serial.run(async () => {
       const database = await this.db();

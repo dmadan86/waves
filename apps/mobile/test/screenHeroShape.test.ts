@@ -32,7 +32,7 @@ const source = (relativePath: string): string => readFileSync(join(SRC, relative
 describe('every hero is a deliberate shape, not a drift from the shared one', () => {
   it('the group hero uses the shared controls rather than its own copies', () => {
     const hero = source('components/GroupHero.tsx');
-    const shared = hero.match(/import \{([^}]*)\} from '@\/components\/ScreenHero';/);
+    const shared = hero.match(/import \{([^}]*)\} from '@\/components\/ScenicScreenHero';/);
     expect(shared?.[1]).toMatch(/\bHeroPillButton\b/);
     // The white pill and the dim disc were defined here and are now shared. A
     // local `function HeroActionCircle` reappearing means somebody has forked
@@ -96,7 +96,7 @@ describe('every hero is a deliberate shape, not a drift from the shared one', ()
     // shell itself.
     const screen = source('app/(tabs)/captures.tsx');
     expect(screen).toMatch(
-      /import \{ useHeroCrossfade, useHeroStatusBar \} from '@\/components\/ScreenHero';/,
+      /import \{ useHeroCrossfade, useHeroStatusBar \} from '@\/components\/ScenicScreenHero';/,
     );
     expect(screen).toMatch(/useHeroStatusBar\(\);/);
     expect(screen).not.toMatch(/from 'expo-status-bar'/);
@@ -276,5 +276,31 @@ describe('review can answer "not an expense" about a whole pile', () => {
     );
     expect(body![0]).toMatch(/firstError === undefined\) firstError = caught/);
     expect(body![0]).toMatch(/friendlyError\(firstError,/);
+  });
+});
+
+describe('scenic on the personal social screens, calm everywhere else', () => {
+  const wrapped = (path: string, wrapper: string) =>
+    expect(source(path)).toContain(`export default ${wrapper}(`);
+
+  it('Home, Friends and the person pages opt into the scenic theme', () => {
+    wrapped('app/(tabs)/index.tsx', 'withScenic');
+    wrapped('app/(tabs)/friends.tsx', 'withScenic');
+    wrapped('app/friends/person/[key].tsx', 'withScenic');
+    expect(source('app/(tabs)/index.tsx')).toMatch(/HomeHeroBackground/);
+  });
+
+  it('group screens are scenic for personal groups and calm for a company', () => {
+    wrapped('app/group/[id]/index.tsx', 'withScenicGroup');
+    wrapped('app/group/[id]/add-expense.tsx', 'withScenicGroup');
+    expect(source('components/ScenicScope.tsx')).toMatch(/GroupType\.Company\) return <Screen/);
+  });
+
+  it('company screens, the Personal money tab and the shared header stay calm', () => {
+    for (const path of ['app/(tabs)/me.tsx', 'components/company/CompanyHome.tsx']) {
+      expect(source(path)).not.toMatch(/withScenic|HomeHeroBackground|PhotoHeader/);
+    }
+    // The plain bar is what ScenicHeader draws unless the scenic theme is on.
+    expect(source('components/standard/ScenicHeader.tsx')).toMatch(/theme\.scenic \? <PhotoHeader/);
   });
 });

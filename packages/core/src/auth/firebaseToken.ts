@@ -173,15 +173,23 @@ function isPositiveInteger(value: unknown): value is number {
  */
 const MAX_TOKEN_BYTES = 8 * 1024;
 
-export async function verifyFirebaseIdToken(
-  check: FirebaseTokenCheck,
-): Promise<FirebaseTokenResult> {
-  const reject = (reason: FirebaseTokenRejection): FirebaseTokenResult => ({ ok: false, reason });
+export type Rs256Rejection = 'malformed' | 'algorithm' | 'unknown-key' | 'signature';
 
-  if (typeof check.token !== 'string' || check.token.length > MAX_TOKEN_BYTES) {
-    return reject('malformed');
-  }
-  const parts = check.token.split('.');
+/**
+ * The signature half of any Google RS256 JWT (Firebase ID tokens, App Check
+ * tokens): pinned algorithm, key by `kid`, signature checked before a single
+ * claim is parsed. Claims come back only when the signature holds.
+ */
+export async function verifyRs256Jwt(
+  token: unknown,
+  keys: readonly FirebaseJwk[],
+): Promise<
+  | { readonly ok: true; readonly claims: Record<string, unknown> }
+  | { readonly ok: false; readonly reason: Rs256Rejection }
+> {
+  const reject = (reason: Rs256Rejection) => ({ ok: false as const, reason });
+  if (typeof token !== 'string' || token.length > MAX_TOKEN_BYTES) return reject('malformed');
+  const parts = token.split('.');
   if (parts.length !== 3) return reject('malformed');
   const [encodedHeader, encodedClaims, encodedSignature] = parts as [string, string, string];
 
@@ -192,7 +200,7 @@ export async function verifyFirebaseIdToken(
   if (header.alg !== 'RS256') return reject('algorithm');
   if (typeof header.kid !== 'string' || header.kid === '') return reject('unknown-key');
 
-  const jwk = check.keys.find((key) => key.kid === header.kid);
+  const jwk = keys.find((key) => key.kid === header.kid);
   if (!jwk || jwk.kty !== 'RSA') return reject('unknown-key');
 
   const signature = base64UrlToBytes(encodedSignature);
@@ -221,8 +229,18 @@ export async function verifyFirebaseIdToken(
   if (!verified) return reject('signature');
 
   // Only now is any of this worth reading.
-  const claims = decodeJson<JwtClaims>(encodedClaims);
-  if (!claims) return reject('malformed');
+  const claims = decodeJson<Record<string, unknown>>(encodedClaims);
+  if (!claims || typeof claims !== 'object') return reject('malformed');
+  return { ok: true as const, claims };
+}
+
+export async function verifyFirebaseIdToken(
+  check: FirebaseTokenCheck,
+): Promise<FirebaseTokenResult> {
+  const reject = (reason: FirebaseTokenRejection): FirebaseTokenResult => ({ ok: false, reason });
+  const signed = await verifyRs256Jwt(check.token, check.keys);
+  if (!signed.ok) return reject(signed.reason);
+  const claims = signed.claims as JwtClaims;
 
   const now = check.now ?? Math.floor(Date.now() / 1000);
   const skew = check.clockSkewSeconds ?? FIREBASE_CLOCK_SKEW_SECONDS;
@@ -258,4 +276,46 @@ export async function verifyFirebaseIdToken(
     ok: true,
     identity: { uid: claims.sub, phone: claims.phone_number, signedInAt: claims.auth_time },
   };
+}
+
+/** Where Firebase publishes the keys that sign App Check tokens. */
+export const APP_CHECK_JWKS_URL = 'https://firebaseappcheck.googleapis.com/v1/jwks';
+
+export type AppCheckRejection =
+  Rs256Rejection | 'type' | 'issuer' | 'audience' | 'app' | 'expired' | 'not-yet-valid';
+
+/**
+ * An App Check token: the app binary on a real device vouched for by Play
+ * Integrity / App Attest. Checks iss, aud, sub (one of our app ids) and exp.
+ * Replay of a limited-use token is stopped separately, by consuming it.
+ */
+export async function verifyAppCheckToken(check: {
+  readonly token: string;
+  readonly keys: readonly FirebaseJwk[];
+  readonly projectNumber: string;
+  readonly appIds: readonly string[];
+  readonly now?: number;
+}): Promise<{ ok: true; appId: string } | { ok: false; reason: AppCheckRejection }> {
+  const signed = await verifyRs256Jwt(check.token, check.keys);
+  if (!signed.ok) return signed;
+  const header = decodeJson<{ typ?: unknown }>(check.token.split('.')[0] ?? '');
+  if (header?.typ !== 'JWT') return { ok: false, reason: 'type' };
+  const claims = signed.claims;
+  const now = check.now ?? Math.floor(Date.now() / 1000);
+  if (!/^\d+$/.test(check.projectNumber)) return { ok: false, reason: 'issuer' };
+  if (claims.iss !== `https://firebaseappcheck.googleapis.com/${check.projectNumber}`) {
+    return { ok: false, reason: 'issuer' };
+  }
+  const aud = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+  if (!aud.includes(`projects/${check.projectNumber}`)) return { ok: false, reason: 'audience' };
+  if (typeof claims.sub !== 'string' || !check.appIds.includes(claims.sub)) {
+    return { ok: false, reason: 'app' };
+  }
+  if (!isPositiveInteger(claims.exp) || claims.exp + FIREBASE_CLOCK_SKEW_SECONDS <= now) {
+    return { ok: false, reason: 'expired' };
+  }
+  if (isPositiveInteger(claims.iat) && claims.iat - FIREBASE_CLOCK_SKEW_SECONDS > now) {
+    return { ok: false, reason: 'not-yet-valid' };
+  }
+  return { ok: true, appId: claims.sub };
 }

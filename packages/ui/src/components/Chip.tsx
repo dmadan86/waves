@@ -51,8 +51,8 @@ export function Chip({
         alignItems: 'center',
         gap: theme.spacing.xs,
         paddingHorizontal: theme.spacing.lg,
-        height: 36,
-        borderRadius: theme.radius.pill,
+        height: theme.scenic ? 36 : 32,
+        borderRadius: theme.scenic ? theme.radius.pill : theme.radius.sm,
         backgroundColor: selected
           ? selectedFill
           : onCard
@@ -134,9 +134,12 @@ export function ChipRow<T extends string>({
 export function Badge({
   label,
   tone = 'neutral',
+  icon,
 }: {
   label: string;
   tone?: 'neutral' | 'positive' | 'negative' | 'brand';
+  /** A small glyph before the label; receives the tone colour. */
+  icon?: (color: string) => ReactNode;
 }) {
   const theme = useTheme();
   const background =
@@ -159,12 +162,16 @@ export function Badge({
   return (
     <View
       style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
         paddingHorizontal: theme.spacing.md,
-        paddingVertical: 4,
-        borderRadius: theme.radius.pill,
+        paddingVertical: theme.scenic ? 4 : 2,
+        borderRadius: theme.scenic ? theme.radius.pill : 6,
         backgroundColor: background,
       }}
     >
+      {icon?.(color)}
       <Text variant="micro" style={{ color }}>
         {label}
       </Text>

@@ -22,13 +22,14 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenic } from '@/components/ScenicScope';
 import { HOME_HERO_PHOTOS } from '@/components/home/HomeHeroBackground';
 import { useStrings } from '@/i18n';
 import { useHeroScenePreference } from '@/lib/heroScenePreference';
 import { router } from '@/lib/navigation';
 import { HOME_HEROES, type HomeHero } from '@/lib/homeHeroPure';
 
-export default function SceneSettingsScreen() {
+function SceneSettingsScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t } = useStrings();
@@ -138,3 +139,5 @@ export default function SceneSettingsScreen() {
     </Screen>
   );
 }
+
+export default withScenic(SceneSettingsScreen);

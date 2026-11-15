@@ -272,7 +272,7 @@ export function ReceiptAnnotator({
               gap: theme.spacing.md,
               paddingHorizontal: theme.spacing.lg,
               paddingVertical: theme.spacing.sm,
-              borderRadius: theme.radius.pill,
+              borderRadius: theme.radius.sm,
               backgroundColor: 'rgba(20, 20, 30, 0.7)',
             }}
           >

@@ -83,12 +83,13 @@ function shadows(scheme) {
   const ink = scheme === 'dark' ? '0 0 0' : channels('#1E1450');
   const lift = scheme === 'dark' ? 2.4 : 1;
   return [
-    ['--w-shadow-soft', `0 8px 24px rgb(${ink} / ${(0.08 * lift).toFixed(3)})`],
+    // Surfaces are flat and held by a border; only floating things cast a shadow.
+    ['--w-shadow-soft', 'none'],
     ['--w-shadow-lifted', `0 12px 28px rgb(${ink} / ${(0.16 * lift).toFixed(3)})`],
     // Not on the phone: the web has a hairline card at rest that the phone
     // draws with a border alone. One tight shadow keeps a white card off a
     // white-ish canvas without the 24px bloom the phone's `soft` carries.
-    ['--w-shadow-hairline', `0 1px 2px rgb(${ink} / ${(0.06 * lift).toFixed(3)})`],
+    ['--w-shadow-hairline', 'none'],
     ['--w-shadow-menu', `0 10px 30px rgb(${ink} / ${(0.18 * lift).toFixed(3)})`],
   ];
 }

@@ -1,7 +1,7 @@
 import 'server-only';
 import { validateCreditSettings, type CreditSettings, type CreditStat } from './ads';
 
-import { PACK_STATUSES, parsePack } from '@waves/core';
+import { PACK_STATUSES, parsePack, validatePlacements } from '@waves/core';
 
 import { cookies } from 'next/headers';
 import { createClient } from '@supabase/supabase-js';
@@ -381,6 +381,8 @@ export interface ReferralRow {
   qualified_at: string | null;
   referrer_days: number;
   referee_days: number;
+  referrer_credits: number;
+  referee_credits: number;
 }
 
 export const referrals = () => call<ReferralRow>('waves_admin_referrals', { p_limit: 100 });
@@ -806,6 +808,8 @@ export interface AdminUserListRow {
   device_count: number;
   app_version: string | null;
   platform: string | null;
+  /** Live companies this person created (groups of type company, not deleted). */
+  companies_created: number;
 }
 
 export interface AdminUserList {
@@ -841,7 +845,27 @@ export async function listUsers(params: {
     throw new Error(`waves_admin_users failed: ${error.message}`);
   }
   const payload = (data ?? {}) as { total?: number | string; rows?: AdminUserListRow[] };
-  return { total: Number(payload.total ?? 0), rows: payload.rows ?? [] };
+  const rows = payload.rows ?? [];
+  // Companies created per person on this page: one round trip, counted here.
+  const created = new Map<string, number>();
+  if (rows.length > 0) {
+    const { data: groups, error: groupsError } = await client()
+      .from('groups')
+      .select('created_by')
+      .eq('type', 'company')
+      .is('deleted_at', null)
+      .in(
+        'created_by',
+        rows.map((r) => r.id),
+      );
+    if (groupsError) throw new Error(`counting companies failed: ${groupsError.message}`);
+    for (const g of groups ?? []) {
+      const by = g.created_by as string;
+      created.set(by, (created.get(by) ?? 0) + 1);
+    }
+  }
+  for (const row of rows) row.companies_created = created.get(row.id) ?? 0;
+  return { total: Number(payload.total ?? 0), rows };
 }
 
 /** Mark an address confirmed by hand — the OTP a person never received. */
@@ -1535,6 +1559,10 @@ export interface AdEventDay {
   credit_used: number | string;
   credit_earned: number | string;
   offline_capped: number | string;
+  /** Absent until the ad-intelligence migration is deployed. */
+  clicked?: number | string;
+  paid?: number | string;
+  paid_micros?: number | string;
 }
 export interface AdGateSettings extends CreditSettings {
   voice_per_ad?: number;
@@ -1544,11 +1572,14 @@ export interface AdGateSettings extends CreditSettings {
   cooldown_seconds: number;
   interstitial_daily_cap: number;
   banner_min_account_age_days: number;
+  native_daily_cap: number | null;
   grace_days: number;
   grace_expenses: number;
   rewarded_quiet_seconds: number;
   session_grace_seconds: number;
   session_cap: number;
+  /** Absent until the ad-intelligence migration is deployed. */
+  placements?: unknown;
 }
 /** Credit reporting is optional until the credits migration is deployed. */
 export async function adCreditStats(days = 30): Promise<CreditStat[] | null> {
@@ -1563,12 +1594,24 @@ export async function adCreditStats(days = 30): Promise<CreditStat[] | null> {
 export const adEventDays = () => call<AdEventDay>('waves_admin_ad_events', { p_days: 30 });
 export const adGateSettings = async () =>
   (await call<AdGateSettings>('waves_admin_ad_settings'))[0] ?? null;
+export async function saveAdPlacements(placements: unknown): Promise<void> {
+  const problem = validatePlacements(placements);
+  if (problem) throw new Error(problem);
+  await requireSession();
+  const { error } = await client().rpc('waves_admin_save_ad_settings', {
+    p_settings: { placements },
+  });
+  if (error) throw new Error(error.message);
+}
 export async function saveAdGateSettings(settings: AdGateSettings): Promise<void> {
   validateCreditSettings(settings);
   if (settings.banner_min_account_age_days > 365)
     throw new Error('Banner minimum account age must not exceed 365 days.');
+  if (settings.native_daily_cap != null && settings.native_daily_cap > 100)
+    throw new Error('Native ads per day must not exceed 100.');
   for (const [key, value] of Object.entries(settings)) {
-    if (key === 'interstitial_video_enabled') continue;
+    if (key === 'interstitial_video_enabled' || (key === 'native_daily_cap' && value === null))
+      continue;
     if (!Number.isSafeInteger(value) || value < 0)
       throw new Error('Use non-negative whole numbers.');
   }
@@ -1576,4 +1619,198 @@ export async function saveAdGateSettings(settings: AdGateSettings): Promise<void
   await requireSession();
   const { error } = await client().rpc('waves_admin_save_ad_settings', { p_settings: settings });
   if (error) throw new Error(error.message);
+}
+
+// Company monitoring is metadata only. Content has a separate, logged access gate.
+export interface CompanyFacts {
+  id: string;
+  name: string;
+  created_at: string;
+  suspended_at: string | null;
+  currency: string;
+  owner_name: string | null;
+  owner_email: string | null;
+  owner_phone: string | null;
+  owners: number;
+  managers: number;
+  employees: number;
+  vendors: number;
+  last_activity: string | null;
+  entries_30d: number;
+  total_30d: number | string;
+  open_complaints: number;
+}
+export type CompanyFilter = 'blocked' | 'complaints' | null;
+export type CompanyComplaintStatus = 'open' | 'reviewing' | 'closed';
+export type CompanyBlockCategory = 'complaint' | 'fraud' | 'spam' | 'other';
+export interface CompanyComplaint {
+  id: string;
+  reporter_role: string;
+  category: string;
+  body: string;
+  status: CompanyComplaintStatus;
+  admin_note: string | null;
+  created_at: string;
+  updated_at: string;
+}
+export interface CompanyDetail {
+  facts: CompanyFacts;
+  members: { name: string; role: string }[];
+  weeks: { week: string; entries: number }[];
+  complaints: CompanyComplaint[];
+  log: {
+    id: number | string;
+    actor: string;
+    created_at: string;
+    action: string;
+    category: string | null;
+    reason: string | null;
+  }[];
+}
+export interface CompanyVendorEntry {
+  id: string;
+  vendor: string | null;
+  kind: string;
+  amount: number | string;
+  occurred_on: string;
+  status: string;
+  note: string | null;
+  deleted: boolean;
+}
+export interface CompanyEntry extends CompanyVendorEntry {
+  category: string;
+  currency: string;
+  invoice_no: string | null;
+  paid_by_company: boolean;
+  person: string | null;
+  photos: number;
+}
+export interface CompanyRecords {
+  entries: CompanyEntry[];
+  vendor_entries: CompanyVendorEntry[];
+}
+export interface CompanyModerationFile {
+  generated_at: string;
+  company: CompanyFacts;
+  members: CompanyDetail['members'];
+  complaints: CompanyComplaint[];
+  moderation_log: CompanyDetail['log'];
+  records_included: boolean;
+  entries?: CompanyEntry[];
+  vendor_entries?: CompanyVendorEntry[];
+}
+
+export function isCompanyId(id: string): boolean {
+  return UUID.test(id);
+}
+function companyId(id: string): string {
+  if (!isCompanyId(id)) throw new Error('That is not a company id.');
+  return id;
+}
+
+// jsonb RPCs return an object, rather than the rows described by call<T>().
+// Keep them on the same session-checked service-role client as listUsers.
+async function companyJson<T>(fn: string, args: Record<string, unknown>): Promise<T | null> {
+  await requireSession();
+  const { data, error } = await client().rpc(fn, args);
+  if (error) throw new Error(`${fn} failed: ${error.message}`);
+  return data as T | null;
+}
+export async function listCompanies(params: {
+  search: string;
+  filter: CompanyFilter;
+  limit: number;
+  offset: number;
+}): Promise<{ total: number; rows: CompanyFacts[] }> {
+  const payload = await companyJson<{ total: number | string; rows: CompanyFacts[] }>(
+    'waves_admin_companies',
+    {
+      p_search: params.search.trim() || null,
+      p_filter: params.filter,
+      p_limit: params.limit,
+      p_offset: params.offset,
+    },
+  );
+  return { total: Number(payload?.total ?? 0), rows: payload?.rows ?? [] };
+}
+export async function companyDetail(id: string): Promise<CompanyDetail | null> {
+  return companyJson<CompanyDetail>('waves_admin_company_detail', { p_group_id: companyId(id) });
+}
+export interface CompanyStorage {
+  used_bytes: number;
+  quota_bytes: number;
+  /** The company's own figure (admin edit or pack); null means the free default applies. */
+  override_bytes: number | null;
+}
+export async function companyStorage(id: string): Promise<CompanyStorage> {
+  const row = await companyJson<CompanyStorage>('waves_admin_company_storage', {
+    p_group_id: companyId(id),
+  });
+  if (!row) throw new Error('Company storage was not returned.');
+  return row;
+}
+/** `megabytes` null resets the company to the free default. */
+export async function setCompanyStorage(id: string, megabytes: number | null): Promise<void> {
+  if (
+    megabytes !== null &&
+    (!Number.isInteger(megabytes) || megabytes < 0 || megabytes > 1_000_000)
+  )
+    throw new Error('Storage is a whole number of MB, zero or more.');
+  await companyJson<null>('waves_admin_company_storage_set', {
+    p_group_id: companyId(id),
+    p_bytes: megabytes === null ? null : megabytes * 1024 * 1024,
+  });
+}
+function companyReason(reason: string, minimum = 1): string {
+  const value = reason.trim();
+  if (value.length < minimum || value.length > 2000)
+    throw new Error(`Write a reason of ${minimum}–2000 characters.`);
+  return value;
+}
+export async function blockCompany(id: string, category: string, reason: string): Promise<void> {
+  if (!['complaint', 'fraud', 'spam', 'other'].includes(category))
+    throw new Error('Choose a block category.');
+  await companyJson<null>('waves_admin_company_block', {
+    p_group_id: companyId(id),
+    p_category: category,
+    p_reason: companyReason(reason),
+  });
+}
+export async function unblockCompany(id: string, reason: string): Promise<void> {
+  await companyJson<null>('waves_admin_company_unblock', {
+    p_group_id: companyId(id),
+    p_reason: companyReason(reason),
+  });
+}
+export async function setCompanyComplaint(id: string, status: string, note: string): Promise<void> {
+  if (!UUID.test(id)) throw new Error('That is not a complaint id.');
+  if (!['open', 'reviewing', 'closed'].includes(status))
+    throw new Error('Choose a complaint status.');
+  if (note.length > 2000) throw new Error('Keep the admin note within 2000 characters.');
+  await companyJson<null>('waves_admin_company_complaint_set', {
+    p_id: id,
+    p_status: status,
+    p_note: note.trim(),
+  });
+}
+export async function openCompanyRecords(id: string, reason: string): Promise<void> {
+  await companyJson<null>('waves_admin_company_open_records', {
+    p_group_id: companyId(id),
+    p_reason: companyReason(reason, 5),
+  });
+}
+export async function companyRecords(id: string): Promise<CompanyRecords> {
+  const records = await companyJson<CompanyRecords>('waves_admin_company_records', {
+    p_group_id: companyId(id),
+  });
+  if (!records) throw new Error('Company records were not returned.');
+  return records;
+}
+export async function exportCompany(id: string): Promise<CompanyModerationFile> {
+  await requireSession();
+  const file = await companyJson<CompanyModerationFile>('waves_admin_company_export', {
+    p_group_id: companyId(id),
+  });
+  if (!file) throw new Error('Company moderation file was not returned.');
+  return file;
 }

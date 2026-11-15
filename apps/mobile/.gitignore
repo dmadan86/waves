@@ -56,3 +56,4 @@ example
 /android
 
 .env.local
+!certs/certificate.pem

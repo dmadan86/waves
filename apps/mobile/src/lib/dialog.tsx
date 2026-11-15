@@ -82,6 +82,7 @@ import {
 
 import { AppDialog } from '@/components/AppDialog';
 import { useStrings } from '@/i18n';
+import { setOverlayBusy } from '@/lib/firstRun';
 import {
   createDialogHub,
   DIALOG_CANCEL,
@@ -111,6 +112,7 @@ const HANDOFF_MS = 190;
 
 /** A two-door decision. The affirmative label always names what it will do. */
 export interface ConfirmOptions {
+  readonly onConfirm?: () => Promise<boolean>;
   readonly title: string;
   readonly body?: string;
   /** Consequences worth showing as a list — see {@link DialogRow}. */
@@ -207,6 +209,13 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
   const ask = useCallback((request: DialogRequest) => hub.ask(request), [hub]);
 
+  // A dialog on screen is an overlay the first-run tour must wait out.
+  const dialogUp = queue.current !== null;
+  useEffect(() => {
+    setOverlayBusy('dialog', dialogUp);
+    return () => setOverlayBusy('dialog', false);
+  }, [dialogUp]);
+
   /**
    * The one way a dialog ends.
    *
@@ -219,7 +228,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
   const respond = useCallback(
     (id: number, choice: DialogChoice): void => {
       hub.respond(id, choice);
-      if (hub.queue().current === null) return;
+      if (hub.queue().current === null || hub.queue().current?.id === id) return;
       // Something was promoted. Blank the surface for a beat so the answered
       // dialog leaves and the next one arrives, instead of the words changing
       // under a finger that is already down.
@@ -237,6 +246,7 @@ export function DialogProvider({ children }: { children: ReactNode }) {
     const confirm = async (options: ConfirmOptions): Promise<boolean> =>
       isConfirmed(
         await ask({
+          onConfirm: options.onConfirm,
           title: options.title,
           body: options.body,
           rows: options.rows,

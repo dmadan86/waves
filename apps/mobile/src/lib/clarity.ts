@@ -26,6 +26,7 @@
  * takes the whole app down at launch, on a build nothing local can reproduce.
  */
 
+// shortcut: SDK 4.9.2 exports no mask component/API, so masking stays a dashboard setting; wrap money screens when a Clarity release adds one.
 const PROJECT_ID = process.env.EXPO_PUBLIC_CLARITY_PROJECT_ID ?? '';
 
 /** Configured at all. Nothing below does anything when this is false. */

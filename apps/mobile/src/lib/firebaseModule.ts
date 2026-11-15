@@ -100,6 +100,8 @@ export interface FirebaseAppCheck {
       isTokenAutoRefreshEnabled: boolean;
     },
   ) => Promise<unknown>;
+  /** A single-use token for server calls that must not be replayed. */
+  getLimitedUseToken?: (appCheck: unknown) => Promise<{ token: string }>;
 }
 
 /**
@@ -118,11 +120,16 @@ export function loadFirebaseAppCheck(): FirebaseAppCheck | null {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const check = require('@react-native-firebase/app-check') as {
       initializeAppCheck?: FirebaseAppCheck['initializeAppCheck'];
+      getLimitedUseToken?: FirebaseAppCheck['getLimitedUseToken'];
     };
     if (typeof app.getApp !== 'function' || typeof check.initializeAppCheck !== 'function') {
       return null;
     }
-    return { getApp: app.getApp, initializeAppCheck: check.initializeAppCheck };
+    return {
+      getApp: app.getApp,
+      initializeAppCheck: check.initializeAppCheck,
+      getLimitedUseToken: check.getLimitedUseToken,
+    };
   } catch {
     return null;
   }

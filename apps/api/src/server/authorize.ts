@@ -104,7 +104,7 @@ export function requireScope(scope: Scope): MiddlewareHandler<ApiEnv> {
       });
     }
 
-    const accessToken = signUserJwt(config, credential.profileId, []);
+    const accessToken = signUserJwt(config, credential.profileId, [], credential.id);
     const supabase = clientFor(config, accessToken);
 
     const { data, error } = await supabase.rpc('waves_api_authorize_call', {

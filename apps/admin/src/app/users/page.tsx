@@ -185,6 +185,9 @@ export default async function Users({
                     <th scope="col" className="n">
                       Devices
                     </th>
+                    <th scope="col" className="n">
+                      Companies
+                    </th>
                     <th scope="col">App</th>
                     <th scope="col">Joined</th>
                     <th scope="col">Last seen</th>
@@ -211,6 +214,13 @@ export default async function Users({
                         <td>{u.country_code ?? <span className="muted">—</span>}</td>
                         <td className="n">
                           {u.device_count > 0 ? u.device_count : <span className="muted">0</span>}
+                        </td>
+                        <td className="n">
+                          {u.companies_created > 0 ? (
+                            u.companies_created
+                          ) : (
+                            <span className="muted">0</span>
+                          )}
                         </td>
                         <td>
                           {u.app_version ? (

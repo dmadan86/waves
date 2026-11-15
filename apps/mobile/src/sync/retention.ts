@@ -129,6 +129,15 @@ export function destroyedBy(reason: SessionEnd): LocalDataScope {
   }
 }
 
+/**
+ * How a phone the server revoked should end. Plain revoke is a `Lost` session
+ * (unsent work kept for the window); the owner's "erase" choice escalates it to
+ * a full wipe, because that phone may be in somebody else's hands.
+ */
+export function endingForRevocation(erase: boolean | undefined): SessionEnd {
+  return erase === true ? SessionEnd.SignedOut : SessionEnd.Lost;
+}
+
 /** Unsent work held for an account that is no longer signed in. */
 export interface RetainedWork {
   /** Whose it is. The queue may only ever be drained back into this account. */

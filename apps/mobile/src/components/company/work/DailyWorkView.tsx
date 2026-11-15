@@ -1,0 +1,413 @@
+import { ReadOnlyWhenSuspended } from '@/components/company/SuspendedBanner';
+import { useCallback, useState, type ReactNode } from 'react';
+import { randomUUID } from 'expo-crypto';
+import { ScrollView } from 'react-native';
+import { useFocusEffect } from 'expo-router';
+import { isSelfMadeTask, type CompanyWorkSetPayload } from '@waves/core';
+import { Button, Text, useTheme } from '@waves/ui';
+import { CompanyCalendarGrid } from '@/components/company/CompanyCalendarGrid';
+import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { ScenicBody } from '@/components/standard';
+import type { MenuAnchor } from '@/components/SortMenu';
+import { useClaimFab } from '@/lib/fabOverride';
+import { useCompanyEntries, useCompanyProjects } from '@/data/companyEntries';
+import {
+  useRemoveWorkTask,
+  useSetWorkTask,
+  useWorkdayAccess,
+  useWorkTasks,
+  type MirrorWorkTask,
+} from '@/data/companyWorkday';
+import { todayIso } from '@/data/personal';
+import { displayName } from '@/data/types';
+import { useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
+import {
+  emptyTasksState,
+  filterWork,
+  canChangeTask,
+  groupWorkTasks,
+  isLate,
+  isOwnTask,
+  maxTaskDay,
+  taskDayTones,
+  type WorkMode,
+} from '@/lib/companyWork';
+import { WorkTaskSections } from './WorkTaskSections';
+import { AddTaskSheet } from './AddTaskSheet';
+import { WorkFiltersAndDraftSheet } from './WorkFiltersAndDraftSheet';
+import { WorkExportSheet } from './WorkExportSheet';
+import { WorkTaskSheets } from './WorkTaskSheets';
+import { TaskStatTiles } from './TaskStatTiles';
+import { WorkToolbar } from './WorkSummaryControls';
+
+type Payload = CompanyWorkSetPayload;
+function shift(iso: string, n: number) {
+  const date = new Date(`${iso}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + n);
+  return date.toISOString().slice(0, 10);
+}
+function payload(task: MirrorWorkTask): Payload {
+  return {
+    taskId: task.id,
+    memberId: task.memberId,
+    day: task.day,
+    title: task.title,
+    projectId: task.projectId,
+    status: task.status,
+    blockedReason: task.blockedReason,
+    note: task.note,
+    dueTime: task.dueTime ?? null,
+    priority: task.priority ?? 'normal',
+    helperIds: task.helperIds ?? [],
+  };
+}
+
+export default function DailyWorkView({
+  groupId: id,
+  header,
+  embedded = false,
+  memberId,
+}: {
+  groupId: string;
+  /** A header for the standalone (non-manager) view; the Team shell draws its own. */
+  header?: ReactNode;
+  /** Inside the Team shell: no header of its own. */
+  embedded?: boolean;
+  /** One person's tasks (responsible or helping), drawn inside the employee screen's own scroll. */
+  memberId?: string;
+}) {
+  const access = useWorkdayAccess(id);
+  const tasks = useWorkTasks(id);
+  const projects = useCompanyProjects(id);
+  const company = useCompanyEntries(id);
+  const sites = projects.filter((p) => !p.archived_at);
+  const save = useSetWorkTask(id);
+  const remove = useRemoveWorkTask(id);
+  const { t, locale } = useStrings();
+  const theme = useTheme();
+  const clearance = useBottomClearance();
+  const today = todayIso();
+  const [draft, setDraft] = useState<Payload | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [addKey, setAddKey] = useState(0);
+  const [menu, setMenu] = useState<{ id: string; anchor: MenuAnchor | null } | null>(null);
+  const [moreAnchor, setMoreAnchor] = useState<MenuAnchor | 'open' | null>(null);
+  const [mode, setMode] = useState<WorkMode>('date');
+  const [statusId, setStatusId] = useState<string | null>(null);
+  const [reasonAfterClose, setReasonAfterClose] = useState<string | null>(null);
+  const [field, setField] = useState<{ taskId: string; kind: 'note' | 'blockedReason' } | null>(
+    null,
+  );
+  const [error, setError] = useState(false);
+  const [scope, setScope] = useState<'mine' | 'team'>(access.isEmployee ? 'mine' : 'team');
+  const [query, setQuery] = useState('');
+  const [dayFilter, setDayFilter] = useState<string | null>(null);
+  const [cal, setCal] = useState(() => ({
+    year: Number(todayIso().slice(0, 4)),
+    month: Number(todayIso().slice(5, 7)),
+  }));
+  const [exportOpen, setExportOpen] = useState(false);
+  const busy = save.isPending || remove.isPending;
+  // Others the viewer assigns to (never themself: their own tasks are theirs to edit only when they made them).
+  const allowedPerson = (memberId: string) =>
+    access.canManage && memberId !== access.meId && access.assignees.some((p) => p.id === memberId);
+  const canEdit = (task: Pick<MirrorWorkTask, 'memberId' | 'createdBy'>) =>
+    allowedPerson(task.memberId) || isSelfMadeTask(task, access.meId);
+  const who = { isEmployee: !!access.meId, meId: access.meId, allowedPerson };
+  const canChange = (task: MirrorWorkTask) =>
+    canChangeTask(task, { ...who, enabled: access.enabled });
+  const personName = (memberId: string) => {
+    const p = access.assignees.find((person) => person.id === memberId) ?? access.me;
+    return p ? displayName(p) : '';
+  };
+  const ownTasks = tasks.filter(
+    (task) =>
+      canChangeTask(task, { ...who, enabled: true }) &&
+      (scope === 'team' || isOwnTask(task, company.me?.id)) &&
+      (!memberId || task.memberId === memberId || !!task.helperIds?.includes(memberId)),
+  );
+  const visibleTasks = filterWork(ownTasks, {
+    search: query,
+    personName,
+    siteName: (projectId) => projects.find((project) => project.id === projectId)?.name ?? '',
+  });
+  const grouped = groupWorkTasks(
+    dayFilter ? visibleTasks.filter((task) => task.day === dayFilter) : visibleTasks,
+    {
+      mode: access.canManage ? mode : 'date',
+      today,
+      personName,
+    },
+  );
+  const tones = taskDayTones(visibleTasks, today);
+  const toneColor = {
+    done: theme.color.positive,
+    late: theme.color.warning,
+    open: theme.color.brand,
+  };
+  const people = access.isEmployee && access.me ? [access.me] : access.assignees;
+  const write = (next: Payload, onSuccess?: () => void) => {
+    const current = tasks.find((task) => task.id === next.taskId);
+    if (
+      !access.enabled ||
+      busy ||
+      next.day > maxTaskDay(today) ||
+      !next.title.trim() ||
+      next.title.length > 200 ||
+      (next.note?.length ?? 0) > 200 ||
+      (next.blockedReason?.length ?? 0) > 120 ||
+      (next.status === 'blocked' && !next.blockedReason?.trim())
+    )
+      return;
+    const mayEdit = current
+      ? canEdit(current) && (next.memberId === current.memberId || allowedPerson(next.memberId))
+      : allowedPerson(next.memberId) || next.memberId === access.meId;
+    if (!mayEdit) {
+      if (
+        !current ||
+        !isOwnTask(current, access.meId) ||
+        next.memberId !== current.memberId ||
+        next.day !== current.day ||
+        next.title !== current.title ||
+        next.projectId !== current.projectId
+      )
+        return;
+    }
+    setError(false);
+    save.mutate(next, { onSuccess, onError: () => setError(true) });
+  };
+  const menuTask = tasks.find((task) => task.id === menu?.id);
+  const items: OverflowMenuItem[] =
+    menuTask && canEdit(menuTask) && canChange(menuTask) && !busy
+      ? [
+          {
+            icon: 'create-outline',
+            label: t.company.workEdit,
+            onPress: () => setDraft(payload(menuTask)),
+          },
+          {
+            icon: 'swap-horizontal-outline',
+            label: t.company.workStatus,
+            onPress: () => setStatusId(menuTask.id),
+          },
+          ...(menuTask.status !== 'done' && shift(menuTask.day, 1) <= maxTaskDay(today)
+            ? [
+                {
+                  icon: 'copy-outline' as const,
+                  label: t.company.workRepeat,
+                  onPress: () =>
+                    write({
+                      ...payload(menuTask),
+                      taskId: randomUUID(),
+                      day: shift(menuTask.day, 1),
+                      status: 'todo',
+                      blockedReason: null,
+                    }),
+                },
+              ]
+            : []),
+          {
+            icon: 'trash-outline',
+            label: t.company.workRemove,
+            tone: 'danger',
+            onPress: () => {
+              if (!canEdit(menuTask) || busy) return;
+              setError(false);
+              remove.mutate({ taskId: menuTask.id }, { onError: () => setError(true) });
+            },
+          },
+        ]
+      : [];
+  const openAdd = () => {
+    if (busy || access.assignees.length === 0) return;
+    setAddKey((key) => key + 1);
+    setAddOpen(true);
+  };
+  // Embedded in Team, the company bar's round + adds a task here instead of a ledger entry.
+  const [focused, setFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  useClaimFab(embedded && focused && access.canManage, t.company.workAdd, openAdd);
+  const fieldTask = tasks.find((task) => task.id === field?.taskId);
+  const statusTask = tasks.find((task) => task.id === statusId);
+  const body = (
+    <>
+      {header}
+      <ScenicBody flush={embedded || !!memberId}>
+        <ReadOnlyWhenSuspended groupId={id}>
+          {!access.enabled ? (
+            <Text tone="muted">{t.company.attendanceEmpty}</Text>
+          ) : (
+            <>
+              {memberId && access.canManage && access.assignees.some((p) => p.id === memberId) ? (
+                <Button label={t.company.workAdd} onPress={openAdd} disabled={busy} />
+              ) : null}
+              <WorkToolbar
+                mode={access.canManage ? mode : null}
+                onMode={setMode}
+                query={query}
+                onQueryChange={setQuery}
+                onMore={(a) => setMoreAnchor(a ?? 'open')}
+                title={embedded ? t.company.teamTabTasks : undefined}
+                onAdd={access.assignees.length > 0 ? openAdd : undefined}
+              />
+              <TaskStatTiles
+                all={ownTasks.length}
+                overdue={ownTasks.filter((task) => isLate(task, today)).length}
+                dueToday={
+                  ownTasks.filter((task) => task.status !== 'done' && task.day === today).length
+                }
+                completed={ownTasks.filter((task) => task.status === 'done').length}
+              />
+              <CompanyCalendarGrid
+                year={cal.year}
+                month={cal.month}
+                items={[]}
+                selectedDay={dayFilter ?? today}
+                onSelect={(day) => setDayFilter(day === dayFilter ? null : day)}
+                onMonthChange={(year, month) => {
+                  setCal({ year, month });
+                  setDayFilter(null);
+                }}
+                dots={Object.fromEntries(Object.entries(tones).map(([d, k]) => [d, toneColor[k]]))}
+              />
+              <WorkTaskSections
+                groupId={id}
+                sections={grouped.sections}
+                done={grouped.done}
+                mode={access.canManage ? mode : 'date'}
+                today={today}
+                people={people}
+                locale={locale}
+                canManage={canEdit}
+                busy={busy}
+                canChange={canChange}
+                onOpen={(task) =>
+                  canEdit(task) && canChange(task) ? setDraft(payload(task)) : setStatusId(task.id)
+                }
+                onMenu={(task, anchor) => setMenu({ id: task.id, anchor })}
+                siteName={(projectId) =>
+                  projects.find((project) => project.id === projectId)?.name ?? ''
+                }
+                empty={emptyTasksState({
+                  search: query,
+                  scope,
+                  teamTasks: tasks.filter((task) => canChangeTask(task, { ...who, enabled: true })),
+                })}
+                query={query}
+                onShowTeam={() => setScope('team')}
+                onAdd={access.assignees.length > 0 ? openAdd : undefined}
+              />
+            </>
+          )}
+          {error ? <Text tone="negative">{t.company.workSaveError}</Text> : null}
+        </ReadOnlyWhenSuspended>
+      </ScenicBody>
+    </>
+  );
+  return (
+    <>
+      {memberId ? (
+        body
+      ) : (
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: clearance + 80 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {body}
+        </ScrollView>
+      )}
+      <OverflowMenu
+        visible={menu !== null}
+        onClose={() => setMenu(null)}
+        anchor={menu?.anchor ?? null}
+        items={items}
+      />
+      <OverflowMenu
+        visible={moreAnchor !== null}
+        onClose={() => setMoreAnchor(null)}
+        anchor={moreAnchor === 'open' ? null : moreAnchor}
+        items={[
+          ...(access.canManage
+            ? [
+                {
+                  icon: 'person-outline' as const,
+                  label: t.company.workMineTasks,
+                  toggle: {
+                    value: scope === 'mine',
+                    onChange: (on: boolean) => setScope(on ? 'mine' : 'team'),
+                  },
+                },
+              ]
+            : []),
+          {
+            icon: 'download-outline',
+            label: t.company.workExport,
+            onPress: () => setExportOpen(true),
+          },
+        ]}
+      />
+      <WorkExportSheet
+        visible={exportOpen}
+        onClose={() => setExportOpen(false)}
+        tasks={ownTasks}
+        today={today}
+        company={company.name}
+        personName={personName}
+        siteName={(projectId) => projects.find((project) => project.id === projectId)?.name ?? ''}
+      />
+      <AddTaskSheet
+        key={addKey}
+        groupId={id}
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        people={access.assignees}
+        defaultMemberIds={
+          memberId
+            ? [memberId]
+            : access.assignees.length === 1
+              ? access.assignees.map((p) => p.id)
+              : []
+        }
+        today={today}
+      />
+      <WorkFiltersAndDraftSheet
+        groupId={id}
+        sites={sites}
+        canManage={access.canManage}
+        meId={access.meId}
+        people={access.assignees}
+        draft={draft}
+        setDraft={setDraft}
+        busy={busy}
+        error={error}
+        allowedPerson={(id) => allowedPerson(id) || id === access.meId}
+        write={write}
+        today={today}
+      />
+      <WorkTaskSheets
+        groupId={id}
+        statusId={statusId}
+        setStatusId={setStatusId}
+        statusTask={statusTask}
+        reasonAfterClose={reasonAfterClose}
+        setReasonAfterClose={setReasonAfterClose}
+        setField={setField}
+        field={field}
+        fieldTask={fieldTask}
+        busy={busy}
+        error={error}
+        canChange={canChange}
+        write={write}
+        canManage={access.canManage}
+        meId={access.meId}
+      />
+    </>
+  );
+}

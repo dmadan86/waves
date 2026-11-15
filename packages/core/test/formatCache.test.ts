@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { currencySymbol, format, formatParts } from '../src/money/format.js';
+import { currencySymbol, format, formatParts, rupeeLocale } from '../src/money/format.js';
 import { money } from '../src/money/money.js';
 
 /**
@@ -29,7 +29,7 @@ afterEach(() => {
 
 function uncached(minor: bigint, currency: string, locale: string, signDisplay: 'auto' | 'always') {
   const digits = currency === 'JPY' ? 0 : currency === 'KWD' ? 3 : 2;
-  return new RealNumberFormat(locale, {
+  return new RealNumberFormat(rupeeLocale(locale, currency as 'INR'), {
     style: 'currency',
     currency,
     minimumFractionDigits: digits,

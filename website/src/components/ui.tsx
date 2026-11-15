@@ -41,7 +41,7 @@ export function SectionTitle({
   return (
     <h2
       id={id}
-      className={`text-balance text-[1.85rem] leading-[1.1] font-bold tracking-[-0.03em] text-ink sm:text-[2.25rem] ${className}`}
+      className={`display text-balance text-[2.1rem] text-ink sm:text-[3rem] ${className}`}
     >
       {children}
     </h2>
@@ -70,7 +70,7 @@ export function Button({
   const sizing = size === 'lg' ? 'h-12 px-6 text-[0.9375rem]' : 'h-11 px-5 text-sm';
   const skin =
     variant === 'primary'
-      ? 'bg-accent text-accent-ink shadow-[0_8px_20px_rgb(122_90_248_/_0.22)] hover:bg-brand-600'
+      ? 'bg-accent text-accent-ink shadow-[0_8px_20px_rgb(122_90_248_/_0.22)] hover:brightness-110'
       : variant === 'secondary'
         ? 'bg-surface text-ink shadow-[var(--w-shadow-sm)] hover:bg-raise'
         : 'text-ink-2 hover:text-ink hover:bg-chip';

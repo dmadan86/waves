@@ -10,6 +10,7 @@ import {
   parseNameMemory,
   recordNamePick,
   voiceNameHints,
+  withGroupHints,
   withAliases,
   type VoiceNameMemory,
 } from '../src/lib/voiceNames';
@@ -149,5 +150,16 @@ describe('the recogniser’s other hypotheses', () => {
       alternatives: [],
     });
     expect(withNone.intent?.payer).toEqual(plain.intent?.payer);
+  });
+});
+
+describe('withGroupHints', () => {
+  it('leads with the groups, dedupes, and respects the cap', () => {
+    expect(withGroupHints(['Goa Trip', 'goa trip', 'Flat'], ['Ravi', 'Goa Trip'])).toEqual([
+      'Goa Trip',
+      'Flat',
+      'Ravi',
+    ]);
+    expect(withGroupHints(['A', 'B'], ['C'], 12, 2)).toEqual(['A', 'B']);
   });
 });

@@ -18,10 +18,19 @@ function contribution(over: Partial<PersonContribution> = {}): PersonContributio
     net: over.net ?? 0n,
     lastActivityAt: over.lastActivityAt ?? null,
     mergePersonId: over.mergePersonId ?? null,
+    isDemo: over.isDemo,
   };
 }
 
 describe('aggregatePeopleBalances', () => {
+  it('leaves sample-trip people out, keeps real ones', () => {
+    const rows = aggregatePeopleBalances([
+      contribution({ memberId: 'demo1', displayName: 'Priya', net: 50n, isDemo: true }),
+      contribution({ memberId: 'real1', displayName: 'Ravi', net: 20n }),
+    ]);
+    expect(rows.map((r) => r.display_name)).toEqual(['Ravi']);
+  });
+
   it('orders the largest balance first, then by name when two are equal in size', () => {
     // Given two people with the same absolute balance and one with a larger one
     const rows = aggregatePeopleBalances([

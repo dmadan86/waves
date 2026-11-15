@@ -1,0 +1,126 @@
+/**
+ * The frame every company-bar screen shares: company header (name switcher, gear for
+ * owners), a scrolling body that clears the bar and the add button. Back on a sub-tab goes
+ * to Overview, on Overview to Home, so a deep link still lands on a sane stack.
+ */
+
+import { useState, type ReactNode } from 'react';
+import { Redirect } from 'expo-router';
+import { ScrollView, View } from 'react-native';
+import { NestableScrollContainer } from 'react-native-draggable-flatlist';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { Screen, useTheme } from '@waves/ui';
+
+import { DashBody, DashHeader, useCompanyCounts } from '@/components/company/dashboard/parts';
+import type { OverflowMenuItem } from '@/components/OverflowMenu';
+import type { CompanyView } from '@/data/companyEntries';
+import { fill, plural, useStrings } from '@/i18n';
+import { useBottomClearance } from '@/lib/clearance';
+import { companyOverviewRoute } from '@/lib/companyTab';
+import { router } from '@/lib/navigation';
+
+export function SectionShell({
+  groupId,
+  view,
+  overview = false,
+  ownerOnly = false,
+  editing = false,
+  subtitle,
+  segment,
+  menuItems,
+  tab = false,
+  children,
+}: {
+  groupId: string;
+  view: CompanyView;
+  /** True on the Overview tab, whose Back is Home. */
+  overview?: boolean;
+  /** Budgets & sites: a manager who lands here is sent back to Overview. */
+  ownerOnly?: boolean;
+  /** Overview edit mode: the body is a scroll container the drag list can auto-scroll. */
+  editing?: boolean;
+  /** Replaces the default owner line (employee, manager and owner counts). */
+  subtitle?: string;
+  /** Team: a fixed segment under the header; children then scroll themselves. `null`: no segment, same fixed body (Tasks). */
+  segment?: ReactNode;
+  /** Team: the round ••• menu in the header (also drops the back arrow and subtitle). */
+  menuItems?: readonly OverflowMenuItem[];
+  /** A bar tab root (Payments, More): the Team header, no back arrow. */
+  tab?: boolean;
+  children: ReactNode;
+}) {
+  const clearance = useBottomClearance();
+  const insets = useSafeAreaInsets();
+  const theme = useTheme();
+  // The header photo runs under the status bar; once it scrolls away, back the clock with the page colour.
+  const [scrolled, setScrolled] = useState(false);
+  const { t, locale } = useStrings();
+  const counts = useCompanyCounts();
+  const live = view.members.filter((m) => !m.left_at);
+  const manager = !view.isOwner && view.isManager;
+  const team = live.filter((m) => m.role === 'member' && m.id !== view.me?.id);
+  // An employee (or a stale deep link) has no company bar: send them to their own home.
+  if (view.ready && (ownerOnly ? !view.isOwner : !view.isAdmin))
+    return <Redirect href={`/group/${groupId}`} />;
+  const header = (
+    <DashHeader
+      groupId={groupId}
+      view={view}
+      showGear={view.isOwner}
+      menuItems={segment || overview ? menuItems : undefined}
+      overview={overview}
+      tab={tab || !!segment}
+      subtitle={
+        overview
+          ? t.company.ovGlance
+          : manager
+            ? fill(t.company.teamLine, {
+                employees: plural(locale, team.length, t.company.employeeCount),
+              })
+            : (subtitle ?? counts(live))
+      }
+      pill={manager ? t.company.manager : undefined}
+      onBack={() =>
+        overview
+          ? router.dismissTo('/')
+          : router.replace(companyOverviewRoute(groupId, 'back') as never)
+      }
+    />
+  );
+  if (segment !== undefined)
+    return (
+      <Screen edges={[]}>
+        {header}
+        <View style={{ paddingHorizontal: theme.spacing.lg }}>{segment}</View>
+        <View style={{ flex: 1 }}>{children}</View>
+      </Screen>
+    );
+  const Scroller = editing ? NestableScrollContainer : ScrollView;
+  return (
+    <Screen edges={[]}>
+      <Scroller
+        contentContainerStyle={{ paddingBottom: clearance + 24 }}
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={32}
+        onScroll={(e) => setScrolled(e.nativeEvent.contentOffset.y > insets.top)}
+      >
+        {header}
+        <DashBody>{children}</DashBody>
+      </Scroller>
+      {scrolled ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: insets.top,
+            backgroundColor: theme.color.bg,
+          }}
+        />
+      ) : null}
+    </Screen>
+  );
+}

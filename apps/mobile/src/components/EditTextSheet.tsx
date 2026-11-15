@@ -16,7 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform, TextInput, View } from 'react-native';
 
-import { Button, Row, Sheet, Text, useTheme } from '@waves/ui';
+import { Button, Callout, Row, Sheet, Text, useTheme } from '@waves/ui';
 
 import { useStrings } from '@/i18n';
 
@@ -24,9 +24,12 @@ export function EditTextSheet({
   visible,
   title,
   hint,
+  error,
+  maxLength,
   value,
   placeholder,
   multiline = false,
+  required = false,
   autoCapitalize = 'words',
   saving = false,
   onSave,
@@ -36,9 +39,13 @@ export function EditTextSheet({
   title: string;
   /** One line under the title: what this is for, when that is not obvious. */
   hint?: string;
+  error?: string | null;
+  maxLength?: number;
   value: string;
   placeholder?: string;
   multiline?: boolean;
+  /** Require a non-empty value, for fields such as a blocked-work reason. */
+  required?: boolean;
   autoCapitalize?: 'none' | 'words' | 'sentences';
   /** A write is in flight — the field and both doors hold still until it lands. */
   saving?: boolean;
@@ -81,6 +88,7 @@ export function EditTextSheet({
 
   const trimmed = draft.trim();
   const changed = trimmed !== value.trim();
+  const canSave = changed && (!required || trimmed.length > 0) && !saving;
 
   return (
     <Sheet visible={visible} onClose={onClose} closeLabel={t.common.close}>
@@ -100,6 +108,7 @@ export function EditTextSheet({
           onChangeText={setDraft}
           editable={!saving}
           multiline={multiline}
+          maxLength={maxLength}
           autoCapitalize={autoCapitalize}
           autoCorrect={false}
           accessibilityLabel={title}
@@ -109,7 +118,7 @@ export function EditTextSheet({
           // everywhere else. A multiline field keeps Enter as a newline.
           returnKeyType={multiline ? 'default' : 'done'}
           onSubmitEditing={() => {
-            if (!multiline && changed && !saving) onSave(trimmed);
+            if (!multiline && canSave) onSave(trimmed);
           }}
           style={{
             borderWidth: 1,
@@ -124,6 +133,8 @@ export function EditTextSheet({
           }}
         />
 
+        {error ? <Callout tone="negative">{error}</Callout> : null}
+
         <Row style={{ gap: theme.spacing.sm }}>
           <View style={{ flex: 1 }}>
             <Button label={t.common.cancel} variant="secondary" fullWidth onPress={onClose} />
@@ -135,7 +146,7 @@ export function EditTextSheet({
             <Button
               label={saving ? t.common.loading : t.common.save}
               fullWidth
-              disabled={!changed || saving}
+              disabled={!canSave}
               onPress={() => onSave(trimmed)}
             />
           </View>

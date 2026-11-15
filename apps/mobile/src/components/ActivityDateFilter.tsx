@@ -151,7 +151,7 @@ export function ActivityDateFilter({
                   style={({ pressed }) => ({
                     paddingVertical: theme.spacing.sm,
                     paddingHorizontal: theme.spacing.md,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.sm,
                     borderWidth: 1,
                     borderColor: active ? theme.color.brand : theme.color.border,
                     backgroundColor: active ? theme.color.brandSoft : theme.color.surface,

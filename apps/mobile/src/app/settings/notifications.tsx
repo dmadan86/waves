@@ -61,6 +61,13 @@ function pushRows(t: UiStrings): PrefRow[] {
       tint: 'lilac',
     },
     {
+      key: 'companyUpdates',
+      title: t.notifications.companyUpdates,
+      body: t.notifications.companyUpdatesBody,
+      icon: 'briefcase-outline',
+      tint: 'sky',
+    },
+    {
       key: 'settlementRequests',
       title: t.notifications.settlementRequests,
       body: t.notifications.settlementRequestsBody,
@@ -347,7 +354,7 @@ export default function NotificationSettingsScreen() {
           style={{
             gap: 12,
             padding: theme.spacing.md,
-            borderRadius: 20,
+            borderRadius: 12,
             overflow: 'hidden',
             backgroundColor: dark ? theme.color.surfaceMuted : '#EEEBFC',
           }}
@@ -413,7 +420,7 @@ export default function NotificationSettingsScreen() {
               }
               style={({ pressed }) => ({
                 height: 44,
-                borderRadius: 14,
+                borderRadius: 12,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: accent,
@@ -471,7 +478,7 @@ export default function NotificationSettingsScreen() {
             gap: 10,
             paddingHorizontal: 12,
             paddingVertical: 10,
-            borderRadius: 14,
+            borderRadius: 12,
             backgroundColor: dark ? theme.color.surfaceMuted : '#EEECF7',
           }}
         >
@@ -493,14 +500,11 @@ function SoftCard({ children, style }: { children: ReactNode; style?: object }) 
       style={[
         {
           backgroundColor: theme.color.surface,
-          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          borderRadius: 12,
           padding: theme.spacing.md,
           gap: theme.spacing.md,
-          shadowColor: '#2A1E6B',
-          shadowOpacity: theme.scheme === 'dark' ? 0 : 0.06,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 4 },
-          elevation: 2,
         },
         style,
       ]}

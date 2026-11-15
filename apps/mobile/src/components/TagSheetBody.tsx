@@ -170,7 +170,7 @@ export function TagSheetBody({
                   gap: theme.spacing.sm,
                   paddingHorizontal: theme.spacing.lg,
                   height: 44,
-                  borderRadius: theme.radius.pill,
+                  borderRadius: theme.radius.md,
                   backgroundColor: theme.color.brandSoft,
                   borderWidth: 1.5,
                   borderColor: selected ? theme.color.brand : 'transparent',
@@ -193,7 +193,7 @@ export function TagSheetBody({
         onPress={save}
         style={({ pressed }) => ({
           height: 52,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           backgroundColor: theme.color.brand,
           alignItems: 'center',
           justifyContent: 'center',

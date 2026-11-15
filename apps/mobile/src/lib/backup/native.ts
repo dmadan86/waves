@@ -2,6 +2,7 @@ import { requireOptionalNativeModule } from 'expo';
 import { PermissionsAndroid, Platform } from 'react-native';
 
 import { activeStrings } from '@/i18n';
+import { ensurePermission } from '@/lib/permissionFlow';
 
 interface NativeBackup {
   start(labels: Record<string, string>): Promise<void>;
@@ -13,8 +14,20 @@ export const native =
   Platform.OS === 'android' ? requireOptionalNativeModule<NativeBackup>('WavesBackup') : null;
 
 export async function requestBackupNotification() {
-  if (Number(Platform.Version) >= 33)
-    await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+  if (Number(Platform.Version) >= 33) {
+    const perm = PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS;
+    const state = async () => ({
+      granted: await PermissionsAndroid.check(perm),
+      canAskAgain: true,
+    });
+    await ensurePermission('notifications', {
+      check: state,
+      request: async () => {
+        await PermissionsAndroid.request(perm);
+        return state();
+      },
+    });
+  }
 }
 
 export function notificationLabels(): Record<string, string> {

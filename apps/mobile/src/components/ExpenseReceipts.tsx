@@ -1067,7 +1067,7 @@ export const ExpenseReceipts = forwardRef<ExpenseReceiptsHandle, ExpenseReceipts
                     alignItems: 'center',
                     paddingHorizontal: theme.spacing.md,
                     paddingVertical: 6,
-                    borderRadius: theme.radius.pill,
+                    borderRadius: theme.radius.sm,
                     backgroundColor: 'rgba(20, 20, 30, 0.55)',
                   }}
                 >

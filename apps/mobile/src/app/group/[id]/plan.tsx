@@ -63,6 +63,7 @@ import {
   useSetMyTripBudget,
   useSetPlanItemDone,
 } from '@/data/hooks';
+import { withScenicGroup } from '@/components/ScenicScope';
 import { displayName, isViewer } from '@/data/types';
 import { friendlyError } from '@/lib/errors';
 import { useViewerId } from '@/lib/auth';
@@ -98,7 +99,7 @@ function dayLabel(day: string, locale: string): string {
   }).format(moment);
 }
 
-export default function PlanScreen() {
+function PlanScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
@@ -1110,3 +1111,5 @@ function BudgetBar({
     </View>
   );
 }
+
+export default withScenicGroup(PlanScreen);

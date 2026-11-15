@@ -1,81 +1,211 @@
-/**
- * Settle up, as a screen: which group to settle in, the groups where you owe or
- * are owed. Home's and Friends' Settle up buttons open it. It used to be a
- * bottom sheet; a screen gives a long list the full height and a real back
- * gesture. The header is compact: back, title, a one-line prompt, and a soft
- * scene behind the far corner.
- */
+/** Choose a group to settle in. */
 
+import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { I18nManager, Image, StyleSheet, View } from 'react-native';
+import { TextInput, View } from 'react-native';
 
-import { directionalIcon, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
+import { ChipRow, directionalIcon, IconButton, iconSize, Screen, Text, useTheme } from '@waves/ui';
 
+import { SplitMoney } from '@/components/SplitMoney';
 import { SettleGroupList } from '@/components/home/SettleGroupList';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
+import {
+  filterSettleByBalance,
+  filterSettleCandidates,
+  type SettleFilter,
+} from '@/lib/settlePicker';
 import { useSettleCandidates } from '@/lib/useSettleCandidates';
-
-// An existing scene, reused rather than new art: the lake and mountains.
-const SCENE = require('../../assets/images/scenes/afternoon.webp');
-const HEADER_HEIGHT = 104;
 
 export default function SettleUpScreen() {
   const theme = useTheme();
-  const { t } = useStrings();
+  const { t, locale } = useStrings();
   const groups = useSettleCandidates();
-  const rtl = I18nManager.isRTL;
-  const clear = `${theme.color.bg}00`;
+  const [filter, setFilter] = useState<SettleFilter>('all');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const shown = useMemo(
+    () => filterSettleCandidates(filterSettleByBalance(groups, filter), query),
+    [groups, filter, query],
+  );
+
+  // Totals only when one currency; mixed currencies are never added together.
+  const sameCurrency = groups.length > 0 && groups.every((g) => g.currency === groups[0]!.currency);
+  const owedTotal = groups.reduce((n, g) => (g.balance > 0n ? n + g.balance : n), 0n);
+  const oweTotal = groups.reduce((n, g) => (g.balance < 0n ? n - g.balance : n), 0n);
+  const square = groups.length === 0;
+
+  const options = [
+    {
+      value: 'all' as const,
+      label: t.homeDash.settleAllGroups,
+      icon: (c: string) => <Ionicons name="people" size={iconSize.base} color={c} />,
+    },
+    {
+      value: 'owed' as const,
+      label: t.youAreOwed,
+      icon: () => <Ionicons name="arrow-up" size={iconSize.base} color={theme.color.positive} />,
+    },
+    {
+      value: 'owe' as const,
+      label: t.youOwe,
+      icon: () => <Ionicons name="arrow-down" size={iconSize.base} color={theme.color.negative} />,
+    },
+  ];
 
   return (
     <Screen>
-      <View style={{ height: HEADER_HEIGHT, justifyContent: 'center' }}>
-        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
-          <Image
-            source={SCENE}
-            resizeMode="cover"
-            style={{
-              position: 'absolute',
-              top: 0,
-              end: 0,
-              width: '62%',
-              height: '100%',
-              opacity: 0.4,
-            }}
-          />
-          <LinearGradient
-            colors={[theme.color.bg, clear]}
-            start={{ x: rtl ? 1 : 0, y: 0 }}
-            end={{ x: rtl ? 0 : 1, y: 0 }}
-            style={{ position: 'absolute', top: 0, bottom: 0, end: 0, width: '62%' }}
-          />
-          <LinearGradient
-            colors={[clear, theme.color.bg]}
-            style={{ position: 'absolute', start: 0, end: 0, bottom: 0, height: 36 }}
-          />
-        </View>
-        <View style={{ paddingHorizontal: theme.spacing.xl }}>
-          <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-            <Text variant="title" align="center">
-              {t.homeDash.settleTitle}
-            </Text>
-            <Text variant="caption" tone="muted" align="center" style={{ marginTop: 2 }}>
+      <View style={{ paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.sm }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
+          <IconButton label={t.common.back} onPress={() => router.back()}>
+            <Ionicons
+              name={directionalIcon('chevron-back')}
+              size={iconSize.lg}
+              color={theme.color.text}
+            />
+          </IconButton>
+          <View style={{ flex: 1 }}>
+            <Text variant="title">{t.homeDash.settleTitle}</Text>
+            <Text variant="caption" tone="muted" numberOfLines={2}>
               {t.homeDash.settleSubtitle}
             </Text>
           </View>
-          <View style={{ position: 'absolute', start: theme.spacing.xl, top: 0 }}>
-            <IconButton label={t.common.back} onPress={() => router.back()}>
+          <IconButton
+            label={searchOpen ? t.common.close : t.searchGroups}
+            repeatable
+            onPress={() => {
+              // A hidden filter still narrowing the list would read as groups gone.
+              if (searchOpen) setQuery('');
+              setSearchOpen(!searchOpen);
+            }}
+          >
+            <View
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
               <Ionicons
-                name={directionalIcon('chevron-back')}
+                name={searchOpen ? 'close' : 'search'}
                 size={iconSize.lg}
-                color={theme.color.text}
+                color={theme.color.brand}
               />
-            </IconButton>
-          </View>
+            </View>
+          </IconButton>
         </View>
       </View>
-      <SettleGroupList groups={groups} />
+
+      {searchOpen ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: theme.spacing.sm,
+            marginHorizontal: theme.spacing.lg,
+            marginBottom: theme.spacing.sm,
+            paddingHorizontal: theme.spacing.md,
+            height: 40,
+            borderRadius: theme.radius.md,
+            backgroundColor: theme.color.surfaceMuted,
+          }}
+        >
+          <Ionicons name="search" size={iconSize.base} color={theme.color.textFaint} />
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            accessibilityLabel={t.searchGroups}
+            placeholder={t.searchGroups}
+            placeholderTextColor={theme.color.textFaint}
+            autoFocus
+            style={{
+              flex: 1,
+              fontSize: theme.typography.body.fontSize,
+              color: theme.color.text,
+              padding: 0,
+              textAlign: 'auto',
+            }}
+          />
+        </View>
+      ) : null}
+
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: theme.spacing.md,
+          marginHorizontal: theme.spacing.lg,
+          marginBottom: theme.spacing.sm,
+          padding: theme.spacing.md,
+          borderRadius: theme.radius.lg,
+          backgroundColor: theme.color.brandSoft,
+        }}
+      >
+        <View
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 20,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: square ? theme.color.positive : theme.color.surface,
+          }}
+        >
+          <Ionicons
+            name={square ? 'checkmark' : 'swap-vertical'}
+            size={iconSize.lg}
+            color={square ? theme.color.onBrand : theme.color.brand}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          {square ? (
+            <>
+              <Text style={{ fontWeight: '700' }}>{t.homeDash.settleEmpty}</Text>
+              <Text variant="caption" tone="muted">
+                {t.homeDash.settleSquareBody}
+              </Text>
+            </>
+          ) : sameCurrency ? (
+            <>
+              {[
+                { label: t.youAreOwed, amount: owedTotal, color: theme.color.positive },
+                { label: t.youOwe, amount: oweTotal, color: theme.color.negative },
+              ]
+                .filter((x) => x.amount > 0n)
+                .map((x) => (
+                  <View
+                    key={x.label}
+                    style={{ flexDirection: 'row', justifyContent: 'space-between' }}
+                  >
+                    <Text variant="caption" tone="muted">
+                      {x.label}
+                    </Text>
+                    <SplitMoney
+                      amount={x.amount}
+                      currency={groups[0]!.currency}
+                      locale={locale}
+                      color={x.color}
+                      fontSize={16}
+                    />
+                  </View>
+                ))}
+            </>
+          ) : (
+            <Text style={{ fontWeight: '700' }}>
+              {t.homeDash.acrossGroups.other.replace('{n}', String(groups.length))}
+            </Text>
+          )}
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
+        <ChipRow options={options} value={filter} onChange={setFilter} variant="brand" onCard />
+      </View>
+      <SettleGroupList groups={shown} narrowed={groups.length > 0 && shown.length === 0} />
     </Screen>
   );
 }

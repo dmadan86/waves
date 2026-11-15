@@ -87,7 +87,7 @@ export function AssistantAnswerCard({
                 height: 36,
                 justifyContent: 'center',
                 paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 borderWidth: 1,
                 borderColor: chip.selected ? theme.color.brand : theme.color.border,
                 backgroundColor: chip.selected ? theme.color.brandSoft : theme.color.bg,

@@ -1,35 +1,12 @@
 /**
- * The whole-app lock and the personal-ledger gate, driven through their hooks.
- *
- * What is pinned here: a cold start with the lock on is always locked; the
- * grace window re-locks only after the app has been away for at least that
- * long; turning the lock on demands proof first; and the personal gate opens
- * only for a successful check made by a screen that is still on show.
+ * The one app lock, driven through its provider: off until the user says yes, locked on a cold start of a signed-in app, never right after a
+ * sign-in, and re-locked only after being away at least the grace window.
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  describeGrace,
-  DEFAULT_GRACE_SECONDS,
-  LockProvider,
-  useLock,
-  usePersonalGate,
-} from '../src/lib/lock';
-import {
-  getPersonalLockState,
-  markPersonalUnlocked,
-  resetPersonalLockForTests,
-  setPersonalPresence,
-} from '../src/lib/personalLock';
-import {
-  findAll,
-  firstProvider,
-  flush,
-  renderHook,
-  type FakeContext,
-  type FakeElement,
-} from './support/fakeReact';
+import { describeGrace, DEFAULT_GRACE_SECONDS, LockProvider, useLock } from '../src/lib/lock';
+import { firstProvider, flush, renderHook } from './support/fakeReact';
 
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
@@ -38,7 +15,9 @@ const env = vi.hoisted(() => ({
   os: 'ios' as string,
   secure: new Map<string, string>(),
   appStateListeners: new Set<(state: string) => void>(),
-  segments: [] as string[],
+  userId: 'u1' as string | null,
+  authLoading: false,
+  level: 1,
   hasHardware: true,
   enrolled: true,
   authResults: [] as boolean[],
@@ -71,6 +50,8 @@ vi.mock('expo-secure-store', () => ({
 vi.mock('expo-local-authentication', () => ({
   hasHardwareAsync: async () => env.hasHardware,
   isEnrolledAsync: async () => env.enrolled,
+  getEnrolledLevelAsync: async () => env.level,
+  SecurityLevel: { NONE: 0 },
   authenticateAsync: (options: unknown) => {
     env.authCalls.push(options);
     if (env.holdAuth) {
@@ -82,14 +63,12 @@ vi.mock('expo-local-authentication', () => ({
   },
 }));
 
-vi.mock('expo-router', async () => {
-  const react = await import('./support/fakeReact');
-  return {
-    useSegments: () => env.segments,
-    // Focused for as long as it is mounted; unmount is the blur.
-    useFocusEffect: (effect: () => (() => void) | void) => react.useEffect(effect, [effect]),
-  };
-});
+vi.mock('@/lib/auth', () => ({
+  useAuth: () => ({
+    loading: env.authLoading,
+    session: env.userId ? { user: { id: env.userId } } : null,
+  }),
+}));
 
 vi.mock('@/lib/legacyKeys', () => ({ legacyKeysMigrated: Promise.resolve() }));
 
@@ -107,35 +86,94 @@ async function mountLock() {
   const view = renderHook(() => LockProvider({ children: null }));
   await flush();
   const value = () => firstProvider(view.result.current)!.value as Lock;
-  const ctx = () => firstProvider(view.result.current)!.ctx;
-  return { view, value, ctx };
+  return { view, value };
 }
 
 beforeEach(() => {
   env.os = 'ios';
   env.secure.clear();
   env.appStateListeners.clear();
-  env.segments = [];
+  env.userId = 'u1';
+  env.authLoading = false;
+  env.level = 1;
   env.hasHardware = true;
   env.enrolled = true;
   env.authResults = [];
   env.authCalls = [];
   env.pendingAuth = null;
   env.holdAuth = false;
-  resetPersonalLockForTests();
   vi.useRealTimers();
 });
 
 describe('the app lock', () => {
-  it('is off, unlocked and ready once storage and hardware have answered', async () => {
+  it('is off until asked, and asks a signed-in cold start once', async () => {
     const { value } = await mountLock();
     expect(value()).toMatchObject({
       enabled: false,
       locked: false,
+      shouldAsk: true,
       supported: true,
       ready: true,
       graceSeconds: DEFAULT_GRACE_SECONDS,
     });
+
+    // "Not now": stored as a no, with no fingerprint check for a lock that is already off.
+    await value().setEnabled(false);
+    expect(env.authCalls).toHaveLength(0);
+    expect(env.secure.get('waves.app_lock_enabled')).toBe('false');
+    expect(value().shouldAsk).toBe(false);
+  });
+
+  it('does not ask on the launch somebody signs in on', async () => {
+    env.userId = null;
+    const { view, value } = await mountLock();
+    env.userId = 'u2';
+    view.rerender();
+    await flush();
+    expect(value().shouldAsk).toBe(false);
+  });
+
+  it('respects an explicit off, and stays off with nothing to unlock with', async () => {
+    env.secure.set('waves.app_lock_enabled', 'false');
+    expect((await mountLock()).value()).toMatchObject({ enabled: false, locked: false });
+
+    env.secure.clear();
+    env.hasHardware = false;
+    expect((await mountLock()).value()).toMatchObject({ enabled: false, supported: false });
+
+    env.hasHardware = true;
+    env.enrolled = false;
+    env.level = 0;
+    expect((await mountLock()).value()).toMatchObject({ enabled: false, supported: false });
+
+    env.level = 1; // a device passcode alone is enough
+    env.secure.set('waves.app_lock_enabled', 'true');
+    expect((await mountLock()).value()).toMatchObject({ enabled: true, supported: true });
+  });
+
+  it('never locks a signed-out user, nor one who signs in afterwards', async () => {
+    env.userId = null;
+    const { view, value } = await mountLock();
+    expect(value().locked).toBe(false);
+
+    env.userId = 'u2';
+    view.rerender();
+    await flush();
+    expect(value().locked).toBe(false);
+  });
+
+  it('does not carry a cold-start lock across sign-out and back in', async () => {
+    env.secure.set('waves.app_lock_enabled', 'true');
+    const { view, value } = await mountLock();
+    expect(value().locked).toBe(true);
+
+    env.userId = null;
+    view.rerender();
+    await flush();
+    env.userId = 'u1';
+    view.rerender();
+    await flush();
+    expect(value().locked).toBe(false);
   });
 
   it('comes up locked on a cold start when it was turned on, with the stored grace', async () => {
@@ -167,18 +205,24 @@ describe('the app lock', () => {
   });
 
   it('will not turn on without a successful check, and turns on after one', async () => {
+    env.secure.set('waves.app_lock_enabled', 'false');
     const { value } = await mountLock();
 
     env.authResults = [false];
     await value().setEnabled(true);
     expect(value().enabled).toBe(false);
-    expect(env.secure.has('waves.app_lock_enabled')).toBe(false);
+    expect(env.secure.get('waves.app_lock_enabled')).toBe('false');
 
     env.authResults = [true];
     await value().setEnabled(true);
     expect(value()).toMatchObject({ enabled: true, locked: false });
     expect(env.secure.get('waves.app_lock_enabled')).toBe('true');
 
+    // Turning it off needs the owner too: a refused check leaves it on.
+    env.authResults = [false];
+    await value().setEnabled(false);
+    expect(value().enabled).toBe(true);
+    env.authResults = [true];
     await value().setEnabled(false);
     expect(value().enabled).toBe(false);
     expect(env.secure.get('waves.app_lock_enabled')).toBe('false');
@@ -250,118 +294,32 @@ describe('the app lock', () => {
     expect(value().locked).toBe(false);
   });
 
+  it('does not count its own biometric sheet as leaving, even with a zero window', async () => {
+    env.secure.set('waves.app_lock_enabled', 'true');
+    env.secure.set('waves.app_lock_grace_seconds', '0');
+    env.holdAuth = true;
+    const { value } = await mountLock();
+    expect(value().locked).toBe(true);
+    const asking = value().unlock();
+    emit('inactive');
+    emit('active');
+    env.pendingAuth!(true);
+    await asking;
+    emit('active');
+    expect(value().locked).toBe(false);
+  });
+
   it('stops listening once it is turned off', async () => {
     env.secure.set('waves.app_lock_enabled', 'true');
     const { value } = await mountLock();
     const withLock = env.appStateListeners.size;
+    env.authResults = [true];
     await value().setEnabled(false);
     expect(env.appStateListeners.size).toBe(withLock - 1);
   });
 
   it('refuses to be read outside its provider', () => {
     expect(() => renderHook(() => useLock())).toThrow(/inside LockProvider/);
-  });
-});
-
-describe('personal presence and the personal idle clock', () => {
-  it('follows the router in and out of the private section', async () => {
-    const { view } = await mountLock();
-    const [presence] = findAll(
-      view.result.current,
-      (n: FakeElement) => typeof n.type === 'function' && 'graceSeconds' in n.props,
-    );
-    const render = presence!.type as (props: unknown) => unknown;
-
-    env.segments = ['(tabs)', 'personal'];
-    const inside = renderHook(() => render(presence!.props));
-    markPersonalUnlocked(5_000);
-    expect(getPersonalLockState().awaySince).toBeNull();
-
-    env.segments = ['(tabs)', 'groups'];
-    inside.rerender();
-    expect(getPersonalLockState().awaySince).not.toBeNull();
-  });
-
-  it('marks the ledger away when the app leaves, and re-locks it when it comes back too late', async () => {
-    vi.useFakeTimers({ now: 10_000, toFake: ['Date'] });
-    await mountLock();
-    setPersonalPresence(true, 30);
-    markPersonalUnlocked();
-
-    emit('background');
-    expect(getPersonalLockState().awaySince).toBe(10_000);
-
-    vi.setSystemTime(10_000 + 31_000);
-    emit('active');
-    expect(getPersonalLockState().unlockedAt).toBeNull();
-  });
-});
-
-describe('the personal gate', () => {
-  async function gate(prompt = 'Open your ledger') {
-    const lock = await mountLock();
-    const ctx = lock.ctx() as FakeContext<unknown>;
-    const view = renderHook(() => usePersonalGate(prompt), {
-      contexts: [[ctx, lock.value()]],
-    });
-    return { ...lock, gate: view };
-  }
-
-  it('asks once it is ready and focused, and opens on success', async () => {
-    env.authResults = [true];
-    const { gate: view } = await gate('Open your ledger');
-    await flush();
-    expect(env.authCalls).toEqual([
-      { promptMessage: 'Open your ledger', fallbackLabel: 'Use passcode' },
-    ]);
-    expect(view.result.current).toMatchObject({ unlocked: true, checking: false, failed: false });
-  });
-
-  it('stays shut after a refusal, and asks again on retry', async () => {
-    env.authResults = [false];
-    const { gate: view } = await gate();
-    await flush();
-    expect(view.result.current).toMatchObject({ unlocked: false, failed: true });
-    expect(env.authCalls).toHaveLength(1);
-
-    env.authResults = [true];
-    view.result.current.retry();
-    await flush();
-    expect(env.authCalls).toHaveLength(2);
-    expect(view.result.current).toMatchObject({ unlocked: true, failed: false });
-  });
-
-  it('opens without asking when nothing is enrolled', async () => {
-    env.enrolled = false;
-    const { gate: view } = await gate();
-    await flush();
-    expect(env.authCalls).toHaveLength(0);
-    expect(view.result.current.unlocked).toBe(true);
-  });
-
-  it('does not open for an answer that lands after the screen has gone', async () => {
-    env.holdAuth = true;
-    const { gate: view } = await gate();
-    await flush();
-    expect(view.result.current.checking).toBe(true);
-
-    view.unmount();
-    env.pendingAuth!(true);
-    await flush();
-    expect(getPersonalLockState().unlockedAt).toBeNull();
-  });
-
-  it('waits for the lock to be ready before deciding anything', () => {
-    const view = renderHook(() => usePersonalGate('x'), {
-      contexts: [
-        [
-          firstProvider(renderHook(() => LockProvider({ children: null })).result.current)!.ctx,
-          { graceSeconds: 30, supported: false, ready: false },
-        ],
-      ],
-    });
-    expect(env.authCalls).toHaveLength(0);
-    expect(view.result.current.unlocked).toBe(false);
   });
 });
 

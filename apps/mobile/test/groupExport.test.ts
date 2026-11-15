@@ -215,6 +215,24 @@ describe('buildGroupExportModel', () => {
     expect(model.totals[0].count).toBe(1);
   });
 
+  it('uses a hyphen for blank descriptions even when a category is present', () => {
+    const input = makeInput();
+    const model = buildGroupExportModel({
+      ...input,
+      expenses: [
+        expense('blank', {
+          description: ' ',
+          category: 'food',
+          amount: '100',
+          payer: 'a',
+          shares: ['a'],
+        }),
+      ],
+    });
+    expect(model.expenses[0].description).toBe('-');
+    expect(model.expenses[0].category).toBe('Food & drink');
+  });
+
   it('resolves names, categories, split participants and formats money', () => {
     const model = buildGroupExportModel(makeInput());
     const dinner = model.expenses.find((row) => row.id === 'e-1')!;

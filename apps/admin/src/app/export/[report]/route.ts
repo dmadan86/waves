@@ -1,3 +1,4 @@
+import { cell } from '@/lib/csv';
 import { aiCost, daily, geo, money } from '@/lib/data';
 
 /**
@@ -46,14 +47,4 @@ function rows<T extends object>(data: readonly T[]): string {
     lines.push(columns.map((column) => cell(fields[column])).join(','));
   }
   return lines.join('\r\n') + '\r\n';
-}
-
-/**
- * RFC 4180 quoting. Every field is quoted rather than only the ones that need
- * it — a country code is two letters today and the day one of these fields
- * carries a comma is not the day to find out this function was optimistic.
- */
-function cell(value: unknown): string {
-  if (value === null || value === undefined) return '""';
-  return `"${String(value).replace(/"/g, '""')}"`;
 }

@@ -16,11 +16,20 @@
  * drops the scale.
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { type Href } from 'expo-router';
-import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
+import {
+  I18nManager,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import Animated, {
+  cancelAnimation,
   Easing,
   runOnJS,
   useAnimatedStyle,
@@ -29,8 +38,16 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { iconSize, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
+import {
+  iconSize,
+  Text,
+  Toggle,
+  useTheme,
+  MODAL_ORIENTATIONS,
+  createOverlayCloseGuard,
+} from '@waves/ui';
 
+import { type MenuAnchor } from '@/components/SortMenu';
 import { useStrings } from '@/i18n';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
@@ -61,20 +78,38 @@ export interface OverflowMenuItem {
   // A destructive row (Delete) paints its icon and label in the negative colour,
   // the WhatsApp/Vipps convention that a delete reads red before it is tapped.
   tone?: 'default' | 'danger';
+  /** Greyed and inert; `hint` says why, under the label. */
+  disabled?: boolean;
+  hint?: string;
+  /** A switch row: a tap flips it and the menu stays open (no route / onPress). */
+  toggle?: { value: boolean; onChange: (next: boolean) => void };
+}
+
+/** An optional block above the rows: who you are (avatar + name), tappable to `route`. */
+export interface OverflowMenuHeader {
+  name: string;
+  avatar: ReactNode;
+  route?: Href;
 }
 
 export function OverflowMenu({
   visible,
   onClose,
   items,
+  header,
+  anchor = null,
 }: {
   visible: boolean;
   onClose: () => void;
   items: readonly OverflowMenuItem[];
+  header?: OverflowMenuHeader;
+  /** The ⋮ it opened from (window coordinates). Set: the card drops below it, or
+      opens above when there is no room; null keeps the header's top-right corner. */
+  anchor?: MenuAnchor | null;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const { t } = useStrings();
   const reduceMotion = useReducedMotion();
 
@@ -90,7 +125,17 @@ export function OverflowMenu({
   // it never calls setState synchronously in its body).
   if (visible && !mounted) setMounted(true);
 
+  const [closeGuard] = useState(createOverlayCloseGuard);
+  useLayoutEffect(() => {
+    closeGuard.request(visible);
+    return () => closeGuard.cancel();
+  }, [closeGuard, visible]);
   useEffect(() => {
+    const current = closeGuard.begin();
+    const finish = () => {
+      if (closeGuard.canClose(current)) setMounted(false);
+    };
+    const timer = !visible && mounted ? setTimeout(finish, CLOSE_MS + 300) : undefined;
     if (visible) {
       // `progress` drives the scrim and card opacity, so it always fades at full
       // duration — a fade is the accessible way to appear, not the motion reduced
@@ -102,12 +147,42 @@ export function OverflowMenu({
       // exit be seen before the tree unmounts.
       progress.set(
         withTiming(0, { duration: CLOSE_MS, easing: Easing.in(Easing.cubic) }, (finished) => {
-          if (finished) runOnJS(setMounted)(false);
+          if (finished) runOnJS(finish)();
         }),
       );
     }
-  }, [visible, mounted, progress]);
+    return () => {
+      closeGuard.cancel();
+      clearTimeout(timer);
+      cancelAnimation(progress);
+    };
+  }, [visible, mounted, progress, closeGuard]);
 
+  const gap = theme.spacing.xs;
+  const rtl = I18nManager.isRTL;
+  const below = anchor ? anchor.y + anchor.height + gap : insets.top + 56;
+  const estimate = items.length * 44 + 2 * theme.spacing.xs;
+  // Flip above only when it will not fit below and there is more room above.
+  const above =
+    anchor !== null &&
+    windowHeight - insets.bottom - below < estimate &&
+    anchor.y - insets.top > windowHeight - insets.bottom - below;
+  const place = anchor
+    ? {
+        ...(above ? { bottom: windowHeight - anchor.y + gap } : { top: below }),
+        end: Math.max(
+          theme.spacing.md,
+          Math.min(
+            rtl ? anchor.x : windowWidth - (anchor.x + anchor.width),
+            windowWidth - 220 - theme.spacing.md,
+          ),
+        ),
+      }
+    : { top: below, right: theme.spacing.xl };
+  const room =
+    above && anchor
+      ? anchor.y - gap - insets.top - MENU_FOOT
+      : windowHeight - below - insets.bottom - MENU_FOOT;
   const scrimStyle = useAnimatedStyle(() => ({ opacity: progress.get() }));
   const cardStyle = useAnimatedStyle(() => ({
     opacity: progress.get(),
@@ -170,11 +245,11 @@ export function OverflowMenu({
           style={[
             {
               position: 'absolute',
-              top: insets.top + 56,
-              right: theme.spacing.xl,
+              ...place,
               minWidth: 220,
+              maxWidth: windowWidth - 2 * theme.spacing.md,
               borderRadius: theme.radius.lg,
-              transformOrigin: 'top right',
+              transformOrigin: `${above ? 'bottom' : 'top'} ${rtl ? 'left' : 'right'}`,
               ...theme.shadow.lifted,
             },
             cardStyle,
@@ -193,10 +268,36 @@ export function OverflowMenu({
             {/* A long menu (every month of a ledger) scrolls inside the card,
                 capped to the room below it; a short one never scrolls. */}
             <ScrollView
-              style={{ maxHeight: windowHeight - (insets.top + 56) - insets.bottom - MENU_FOOT }}
+              style={{ maxHeight: room }}
               bounces={false}
               showsVerticalScrollIndicator={false}
             >
+              {header && (
+                <Pressable
+                  disabled={!header.route}
+                  onPress={() =>
+                    activate({ icon: 'person', label: header.name, route: header.route })
+                  }
+                  accessibilityRole={header.route ? 'button' : undefined}
+                  accessibilityLabel={header.name}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: theme.spacing.md,
+                    paddingHorizontal: theme.spacing.lg,
+                    paddingVertical: theme.spacing.md,
+                  }}
+                >
+                  {header.avatar}
+                  <Text
+                    variant="body"
+                    numberOfLines={2}
+                    style={{ flexShrink: 1, fontWeight: '700' }}
+                  >
+                    {header.name}
+                  </Text>
+                </Pressable>
+              )}
               {items.map((item, index) => {
                 // A divider sits at a section boundary only: both this row and the
                 // one above it name a section, and the two differ. That rules out
@@ -220,9 +321,16 @@ export function OverflowMenu({
                       />
                     )}
                     <Pressable
-                      onPress={() => activate(item)}
-                      accessibilityRole="button"
-                      accessibilityLabel={item.label}
+                      onPress={() =>
+                        item.toggle ? item.toggle.onChange(!item.toggle.value) : activate(item)
+                      }
+                      disabled={item.disabled}
+                      accessibilityRole={item.toggle ? 'switch' : 'button'}
+                      accessibilityState={{
+                        disabled: !!item.disabled,
+                        checked: item.toggle?.value,
+                      }}
+                      accessibilityLabel={item.hint ? `${item.label}, ${item.hint}` : item.label}
                       style={({ pressed }) => ({
                         flexDirection: 'row',
                         alignItems: 'center',
@@ -233,6 +341,7 @@ export function OverflowMenu({
                         paddingHorizontal: theme.spacing.lg,
                         paddingVertical: theme.spacing.md,
                         backgroundColor: pressed ? theme.color.surfaceMuted : 'transparent',
+                        opacity: item.disabled ? 0.45 : 1,
                       })}
                     >
                       <Ionicons
@@ -242,9 +351,26 @@ export function OverflowMenu({
                           item.tone === 'danger' ? theme.color.negative : theme.color.textMuted
                         }
                       />
-                      <Text variant="body" tone={item.tone === 'danger' ? 'negative' : undefined}>
-                        {item.label}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text variant="body" tone={item.tone === 'danger' ? 'negative' : undefined}>
+                          {item.label}
+                        </Text>
+                        {item.hint ? (
+                          <Text variant="micro" tone="muted">
+                            {item.hint}
+                          </Text>
+                        ) : null}
+                      </View>
+                      {item.toggle ? (
+                        // The row owns the tap; the switch only shows the state.
+                        <View pointerEvents="none">
+                          <Toggle
+                            value={item.toggle.value}
+                            onValueChange={item.toggle.onChange}
+                            accessibilityLabel={item.label}
+                          />
+                        </View>
+                      ) : null}
                     </Pressable>
                   </View>
                 );

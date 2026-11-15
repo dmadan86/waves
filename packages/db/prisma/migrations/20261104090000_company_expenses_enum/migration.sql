@@ -1,0 +1,1 @@
+ALTER TYPE "GroupType" ADD VALUE IF NOT EXISTS 'company';

@@ -101,6 +101,14 @@ export const PRO_MONTHLY_SCREENSHOT_IMPORTS = 100;
 export const PRO_MONTHLY_STATEMENT_IMPORTS = 30;
 
 /**
+ * "Ask about my spending" questions a month (the `spending-ask` function; one
+ * question is one model call over a digest, never raw rows). Paid only. The
+ * database enforces it through `waves_spending_ask_quota`, and the function
+ * passes it in.
+ */
+export const PRO_MONTHLY_SPENDING_ASKS = 60;
+
+/**
  * Free people get a teaser, not an import: a statement is read on the phone
  * (no model, no cost to us) and shown as "N transactions, ₹X spent" with its
  * first three rows, this many times a month. The counter is on the device; a

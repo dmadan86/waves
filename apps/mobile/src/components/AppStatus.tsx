@@ -38,10 +38,10 @@
 
 import { useEffect } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { AccessibilityInfo, View } from 'react-native';
+import { AccessibilityInfo, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Button, Card, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Button, Card, iconSize, Row, Text, useTabBarClearance, useTheme } from '@waves/ui';
 import { AppGate, NoticeKind, NoticePhase, type Banner, type OperatorText } from '@waves/core';
 
 import { fill, Language, LANGUAGE_NAMES, useStrings, type UiStrings } from '@/i18n';
@@ -307,6 +307,16 @@ export function StatusBanner(): React.JSX.Element | null {
   if (banner.channel === 'update' && storeUpdate.phase.kind !== 'none') return null;
 
   const wording = wordingFor(banner, t, now, when);
+  if (banner.channel === 'update') {
+    return (
+      <UpdateCard
+        title={wording.title}
+        body={wording.body}
+        onUpdate={openStore}
+        onDismiss={dismissUpdate}
+      />
+    );
+  }
   const tint = wording.urgent ? theme.color.warning : theme.color.brand;
 
   return (
@@ -352,32 +362,120 @@ export function StatusBanner(): React.JSX.Element | null {
           </View>
         </Row>
         <Row style={{ gap: theme.spacing.sm }}>
-          {banner.channel === 'update' ? (
-            <>
-              <View style={{ flex: 1 }}>
-                <Button label={t.misc.update} size="sm" fullWidth onPress={openStore} />
+          <View style={{ flex: 1 }}>
+            <Button
+              label={t.status.dismiss}
+              size="sm"
+              variant="ghost"
+              fullWidth
+              onPress={() => dismissNotice(banner.id)}
+            />
+          </View>
+        </Row>
+      </Card>
+    </View>
+  );
+}
+
+/** "A newer Waves is out": a card at the foot of the screen, above the tab bar. */
+function UpdateCard({
+  title,
+  body,
+  onUpdate,
+  onDismiss,
+}: {
+  title: string;
+  body: string;
+  onUpdate: () => void;
+  onDismiss: () => void;
+}): React.JSX.Element {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const clearance = useTabBarClearance();
+  const brand = theme.color.brand;
+  const button = (label: string, solid: boolean, onPress: () => void) => (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flex: solid ? 1.4 : 1,
+        minHeight: 48,
+        borderRadius: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: theme.spacing.sm,
+        backgroundColor: solid ? brand : theme.color.brandSoft,
+        opacity: pressed ? 0.85 : 1,
+      })}
+    >
+      {solid ? (
+        <Ionicons name="download-outline" size={iconSize.base} color={theme.color.onBrand} />
+      ) : null}
+      <Text
+        variant="body"
+        style={{ fontWeight: '700', color: solid ? theme.color.onBrand : brand }}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+  return (
+    <View
+      pointerEvents="box-none"
+      style={{
+        position: 'absolute',
+        bottom: clearance,
+        left: theme.spacing.lg,
+        right: theme.spacing.lg,
+        zIndex: 10,
+      }}
+    >
+      <Card
+        accessibilityLiveRegion="polite"
+        accessibilityRole="alert"
+        style={{ gap: theme.spacing.md, borderRadius: 20, ...theme.shadow.lifted }}
+      >
+        <Row style={{ gap: theme.spacing.md, alignItems: 'flex-start' }}>
+          <View
+            style={{
+              width: 52,
+              height: 52,
+              borderRadius: 14,
+              backgroundColor: theme.color.brandSoft,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name="cloud-download-outline" size={iconSize.xl} color={brand} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            <Row style={{ gap: theme.spacing.sm, alignItems: 'flex-start' }}>
+              <Text variant="body" style={{ flex: 1, fontWeight: '800' }}>
+                {title}
+              </Text>
+              <View
+                style={{
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 10,
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Text variant="micro" style={{ fontWeight: '700', color: brand }}>
+                  {t.misc.newVersion}
+                </Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Button
-                  label={t.misc.notNow}
-                  size="sm"
-                  variant="ghost"
-                  fullWidth
-                  onPress={dismissUpdate}
-                />
-              </View>
-            </>
-          ) : (
-            <View style={{ flex: 1 }}>
-              <Button
-                label={t.status.dismiss}
-                size="sm"
-                variant="ghost"
-                fullWidth
-                onPress={() => dismissNotice(banner.id)}
-              />
-            </View>
-          )}
+            </Row>
+            <Text variant="caption" tone="muted">
+              {body}
+            </Text>
+          </View>
+        </Row>
+        <Row style={{ gap: theme.spacing.sm }}>
+          {button(t.misc.updateNow, true, onUpdate)}
+          {button(t.misc.notNow, false, onDismiss)}
         </Row>
       </Card>
     </View>

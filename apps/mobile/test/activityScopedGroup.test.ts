@@ -19,10 +19,6 @@ describe('activity screen scoped to one group', () => {
     expect(src).toContain('shownGroup ? t.activity : t.activityScreen.subtitle');
   });
 
-  it('drops the group-kind chip when scoped', () => {
-    expect(src).toMatch(/\.\.\.\(onlyGroup\s*\?\s*\[\]/);
-  });
-
   it('tags rows with the description or category instead of the group kind when scoped', () => {
     expect(src).toContain('scoped: !!onlyGroup');
     expect(src).toMatch(/tag: ctx\.scoped\s*\?\s*scopedTag\(description, category\)/);
@@ -31,4 +27,8 @@ describe('activity screen scoped to one group', () => {
   it('has no start-a-group call to action in a scoped empty state', () => {
     expect(src).toContain('onlyGroup ? undefined : hasGroups');
   });
+});
+
+it('keeps the group name in every row meta line', () => {
+  expect(src).toContain('groupName: g?.name?.trim() || null');
 });

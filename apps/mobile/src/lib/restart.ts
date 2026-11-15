@@ -34,11 +34,20 @@
 import { requireOptionalNativeModule } from 'expo';
 import { Platform } from 'react-native';
 
-interface UpdatesModule {
+export interface UpdatesModule {
   reloadAsync: () => Promise<void>;
+  isEnabled?: boolean;
+  isEmbeddedLaunch?: boolean;
+  updateId?: string | null;
+  createdAt?: Date | null;
+  channel?: string | null;
+  runtimeVersion?: string | null;
+  checkForUpdateAsync?: () => Promise<{ isAvailable: boolean }>;
+  fetchUpdateAsync?: () => Promise<{ isNew: boolean }>;
 }
 
-function loadUpdates(): UpdatesModule | null {
+/** The `expo-updates` module, or null where it is not linked (web, old binaries). */
+export function loadUpdates(): UpdatesModule | null {
   if (Platform.OS !== 'ios' && Platform.OS !== 'android') return null;
   if (requireOptionalNativeModule('ExpoUpdates') == null) return null;
   try {

@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 
 import type { SettleCandidate } from '@/components/home/SettleGroupList';
 import { useGroups, useHomeSummary } from '@/data/hooks';
-import { groupLabel, isViewer } from '@/data/types';
+import { GroupType, groupLabel, isViewer } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 
 export function useSettleCandidates(): SettleCandidate[] {
@@ -17,31 +17,34 @@ export function useSettleCandidates(): SettleCandidate[] {
   const summary = useHomeSummary(profile?.id ?? null);
   return useMemo(() => {
     const me = profile?.id ?? null;
-    return groups.data
-      .map((group) => {
-        const members = summary.membersFor(group.id);
-        return {
-          id: group.id,
-          title: groupLabel(group, members, me),
-          coverEmoji: group.cover_emoji,
-          coverColor: group.cover_color,
-          photoPath: group.photo_path,
-          balance: summary.balanceFor(group.id),
-          currency: group.default_currency,
-          memberCount: summary.memberCountFor(group.id),
-          lastActivityAt: summary.lastActivityFor(group.id),
-          type: group.type,
-          // Groups carry no creator column, so "yours" is the admin role.
-          isAdmin: me
-            ? members.some((m) => isViewer(m, me) && m.role === 'admin' && !m.left_at)
-            : false,
-        };
-      })
-      .filter((group) => group.balance !== 0n)
-      .sort((a, b) => {
-        const size = (x: bigint) => (x < 0n ? -x : x);
-        const d = size(b.balance) - size(a.balance);
-        return d > 0n ? 1 : d < 0n ? -1 : 0;
-      });
+    return (
+      groups.data
+        .map((group) => {
+          const members = summary.membersFor(group.id);
+          return {
+            id: group.id,
+            title: groupLabel(group, members, me),
+            coverEmoji: group.cover_emoji,
+            coverColor: group.cover_color,
+            photoPath: group.photo_path,
+            balance: summary.balanceFor(group.id),
+            currency: group.default_currency,
+            memberCount: summary.memberCountFor(group.id),
+            lastActivityAt: summary.lastActivityFor(group.id),
+            type: group.type,
+            // Groups carry no creator column, so "yours" is the admin role.
+            isAdmin: me
+              ? members.some((m) => isViewer(m, me) && m.role === 'admin' && !m.left_at)
+              : false,
+          };
+        })
+        // Company groups have no shared-ledger settle up.
+        .filter((group) => group.balance !== 0n && group.type !== GroupType.Company)
+        .sort((a, b) => {
+          const size = (x: bigint) => (x < 0n ? -x : x);
+          const d = size(b.balance) - size(a.balance);
+          return d > 0n ? 1 : d < 0n ? -1 : 0;
+        })
+    );
   }, [groups.data, summary, profile?.id]);
 }

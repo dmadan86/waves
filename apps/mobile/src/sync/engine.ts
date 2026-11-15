@@ -15,16 +15,19 @@
 import * as Network from 'expo-network';
 import {
   applyOutcomes,
+  companyEntryFromRefusedExpense,
   dialingCodeForCountry,
   discard as discardMutation,
   emptyMirror,
   enqueue as enqueueMutation,
+  isTransientRefusal,
   markFailed,
   MutationKind,
   nextBatch,
   normalisePhoneInRegion,
   reconcile,
   rejectedMutations,
+  purgeCompanyInvisible,
   retryNow,
   SyncTable,
   type MirrorRow,
@@ -41,6 +44,9 @@ import { loadSyncNetworkPreference, networkAllows, SyncNetworkPreference } from 
 
 import type { RetainedWork } from './retention';
 import { createLocalStore, type LocalStore, type StoredRow } from './store';
+
+/** How long attendance taps wait to be sent together. */
+export const ATTENDANCE_FLUSH_DELAY_MS = 800;
 
 export enum SyncStatus {
   Idle = 'idle',
@@ -68,6 +74,32 @@ export interface SyncState {
   rejected: RejectedMutation[];
   lastSyncedAt: string | null;
   lastError: string | null;
+  /** Company groups this session cannot read or write until two-step is verified. */
+  twoStepRequired: string[];
+  /** First-sync progress: set only while the server is still handing over groups. */
+  catchUp: CatchUp | null;
+}
+
+export interface CatchUp {
+  total: number;
+  loaded: number;
+}
+
+/**
+ * How far a first sync has got. Non-null only while the server says more is
+ * coming and some of the groups this person is in are not in the mirror yet.
+ */
+export function catchUpProgress(
+  mirror: MirrorState,
+  memberOf: readonly string[] | undefined,
+  hasMore: boolean | undefined,
+): CatchUp | null {
+  // One entry per visible member row, so a group appears once per co-member.
+  const groups = [...new Set(memberOf)];
+  if (!hasMore || !groups.length) return null;
+  const have = mirror.tables[SyncTable.Groups] ?? {};
+  const loaded = groups.filter((id) => id in have).length;
+  return loaded < groups.length ? { total: groups.length, loaded } : null;
 }
 
 interface SyncResponseBody {
@@ -86,6 +118,16 @@ interface SyncResponseBody {
   /** The groups the caller is still an active member of. Absent on older
    *  servers, which means nothing can be concluded from it. */
   memberOf?: string[];
+  /** Company groups gated until this session verifies two-step. Kept, never dropped or purged. */
+  twoStepRequired?: string[];
+  /** Company groups where the caller is a manager: the members they may still read. A
+   *  phone drops cached detail for anyone else. Absent on older servers (nothing is dropped). */
+  companyVisible?: Record<string, string[]>;
+  /** Company groups: birthday-row, event and client ids the caller can still read (RLS hides revoked rows silently). */
+  calendarVisible?: Record<
+    string,
+    { dates: string[]; events: string[]; clients?: string[]; tickets?: string[]; files?: string[] }
+  >;
 }
 
 /** While the app is open and online, catch anything Realtime missed. */
@@ -167,6 +209,9 @@ function describeRejections(queue: readonly QueuedMutation[]): RejectedMutation[
   }));
 }
 
+/** How long a quietly retried refusal (a rate limit) waits before the next send. */
+const QUIET_RETRY_MS = 30_000;
+
 export class SyncEngine {
   private store: LocalStore = createLocalStore();
   private state: SyncState = {
@@ -177,10 +222,15 @@ export class SyncEngine {
     rejected: [],
     lastSyncedAt: null,
     lastError: null,
+    twoStepRequired: [],
+    catchUp: null,
   };
 
   private listeners = new Set<(state: SyncState) => void>();
   private flushing: Promise<void> | null = null;
+  // A flush asked for while one is in flight: one follow-up, run once it settles, shared by every such ask.
+  private followUp: Promise<void> | null = null;
+  private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
   /** `start()` was called and `stop()` has not been since: a session wants the poll. */
   private polling = false;
@@ -255,6 +305,8 @@ export class SyncEngine {
   stop(): void {
     this.polling = false;
     this.disarm();
+    if (this.flushTimer) clearTimeout(this.flushTimer);
+    this.flushTimer = null;
   }
 
   /**
@@ -352,6 +404,8 @@ export class SyncEngine {
       status: SyncStatus.Idle,
       lastError: null,
       lastSyncedAt: null,
+      twoStepRequired: [],
+      catchUp: null,
     });
   }
 
@@ -411,10 +465,28 @@ export class SyncEngine {
    * before this resolves, so a force-kill on the next line still syncs it.
    */
   async enqueue(envelope: MutationEnvelope): Promise<void> {
+    // A suspended company is read-only: the screens hide their add/edit actions, and this is the net under
+    // them so a write that the server would refuse is never sent (nor queued to show as a phantom row).
+    if (envelope.kind.startsWith('company')) {
+      const groups = this.state.mirror.tables[SyncTable.Groups] as
+        Record<string, MirrorRow> | undefined;
+      if ((groups?.[envelope.groupId] as { suspended_at?: unknown } | undefined)?.suspended_at)
+        return;
+    }
     const queue = enqueueMutation(this.state.queue, envelope);
     this.set({ queue });
     await this.writeQueue(queue);
-    void this.flush();
+    if (envelope.kind === MutationKind.CompanyAttendanceSet) this.flushSoon();
+    else void this.flush();
+  }
+
+  /** Attendance is marked in quick runs of taps: send the run as one request, not one per tap. */
+  private flushSoon(): void {
+    if (this.flushTimer) clearTimeout(this.flushTimer);
+    this.flushTimer = setTimeout(() => {
+      this.flushTimer = null;
+      void this.flush();
+    }, ATTENDANCE_FLUSH_DELAY_MS);
   }
 
   async retry(clientMutationId: string): Promise<void> {
@@ -462,7 +534,13 @@ export class SyncEngine {
     // One in flight at a time: two concurrent flushes would send the same batch
     // twice. Harmless thanks to idempotency, but it wastes a round trip and
     // makes the outcome bookkeeping race.
-    this.flushing ??= this.runFlush(options)
+    // Without the follow-up, what was queued mid-flight would wait out the 30s poll.
+    if (this.flushing)
+      return (this.followUp ??= this.flushing.then(() => {
+        this.followUp = null;
+        return this.flush(options);
+      }));
+    this.flushing = this.runFlush(options)
       .catch((error: unknown) => {
         // Hydration and disk failures arrive here. Flush is fired and forgotten
         // from four places — a timer, foreground, reconnect and every enqueue —
@@ -546,6 +624,7 @@ export class SyncEngine {
       if (error) throw new Error(await describeFunctionError(error));
 
       const response = data as SyncResponseBody;
+      const gated = response.twoStepRequired ?? [];
       const outcomes = response.outcomes ?? [];
 
       // The queue this flush folds its answer into. `enqueue` does not wait for
@@ -575,7 +654,28 @@ export class SyncEngine {
       // to be taken out of it explicitly — otherwise the fixed copy would be
       // queued *behind* the marked original, which blocks its own group forever.
       const healedIds = new Set<string>();
+      // Refusals nobody should ever see: a transient one (rate limit, a lost
+      // race) is retried after a backoff, and an expense a company group
+      // refuses becomes its author's company expense. Both keep the data.
+      const retryQuietly = new Set<string>();
+      const converted: MutationEnvelope[] = [];
       for (const entry of folded.rejected) {
+        if (isTransientRefusal(entry.code)) {
+          retryQuietly.add(entry.mutation.clientMutationId);
+          continue;
+        }
+        const company =
+          (entry.code as string) === 'COMPANY_GROUP'
+            ? companyEntryFromRefusedExpense(
+                entry.mutation,
+                this.groupCurrency(entry.mutation.groupId),
+              )
+            : null;
+        if (company) {
+          converted.push(company);
+          healedIds.add(entry.mutation.clientMutationId);
+          continue;
+        }
         const healed = this.healRejectedGhostPhone(entry);
         if (healed) {
           requeue.push(healed);
@@ -610,10 +710,26 @@ export class SyncEngine {
         !mirrorChanged && !cursorsChanged
           ? this.state.mirror
           : { cursors: nextCursors, tables: merged.state.tables };
-      const foldedQueue =
+      // Dropping a healed original goes through `discard`, so anything that only
+      // waited on it (a capture's assign) does not outlive it.
+      let foldedQueue =
         healedIds.size === 0
           ? folded.queue
-          : folded.queue.filter((item) => !healedIds.has(item.clientMutationId));
+          : [...healedIds].reduce((q, id) => discardMutation(q, id), folded.queue);
+      // The converted entry joins the same queue that drops its original, so one
+      // disk write holds both and a crash cannot lose the expense in between.
+      for (const envelope of converted) foldedQueue = enqueueMutation(foldedQueue, envelope);
+      if (retryQuietly.size > 0) {
+        foldedQueue = foldedQueue.map((item) =>
+          retryQuietly.has(item.clientMutationId)
+            ? {
+                ...item,
+                rejection: null,
+                nextAttemptAt: now + QUIET_RETRY_MS,
+              }
+            : item,
+        );
+      }
       let queue = sameQueue(base, foldedQueue) ? base : foldedQueue;
       // Derived from the queue rather than accumulated alongside it, so the list
       // the UI shows and the mutations actually held can never drift apart. When
@@ -649,7 +765,35 @@ export class SyncEngine {
         rejected,
         lastSyncedAt: response.serverTime ?? new Date().toISOString(),
         lastError: null,
+        twoStepRequired: sameIds(this.state.twoStepRequired, gated)
+          ? this.state.twoStepRequired
+          : gated,
+        catchUp: catchUpProgress(mirror, response.memberOf, response.hasMore),
       });
+
+      // An employee moved to another manager: the server already stopped sending their
+      // rows, so this phone drops what it downloaded (entries, photos, split wages, sites)
+      // from memory and from disk. Fail safe: a missing list drops nothing.
+      if (response.companyVisible || response.calendarVisible) {
+        // A gated company reads as empty to RLS: its cached data must stay.
+        const purged = purgeCompanyInvisible(
+          this.state.mirror,
+          withoutGroups(response.companyVisible ?? {}, gated),
+          response.calendarVisible && withoutGroups(response.calendarVisible, gated),
+        );
+        if (purged.removed.length > 0) {
+          // Disk first: if it fails the rows stay in memory too, so the next sync finds them again
+          // instead of leaving a copy on disk that a restart would bring back.
+          const wiped = await this.store
+            .deleteRows(purged.removed)
+            .then(() => true)
+            .catch((purgeError: unknown) => {
+              reportHandled(purgeError, 'sync.purgeCompany');
+              return false;
+            });
+          if (wiped) this.set({ mirror: purged.state });
+        }
+      }
 
       // Removed by an admin: the server no longer lists the group as one of
       // ours, and RLS means no pull will ever say so. Drop it here the way
@@ -658,7 +802,12 @@ export class SyncEngine {
       // The list is a snapshot, so the awaited drops cannot change it; the live
       // queue is re-read before each one, so a mutation enqueued meanwhile
       // keeps its group.
-      const dropped = groupsNoLongerMine(this.state.mirror, this.state.queue, response.memberOf);
+      const dropped = groupsNoLongerMine(
+        this.state.mirror,
+        this.state.queue,
+        response.memberOf,
+        gated,
+      );
       for (const groupId of dropped) {
         if (this.state.queue.some((mutation) => mutation.groupId === groupId)) continue;
         await this.dropGroup(groupId);
@@ -678,6 +827,7 @@ export class SyncEngine {
       // force-kill still keeps the correction) and its own flush is deduped
       // behind this in-flight one; a fresh flush once this settles pushes the
       // corrected member now rather than waiting out the 30s poll.
+      if (converted.length > 0) setTimeout(() => void this.flush(), 0);
       if (requeue.length > 0) {
         for (const envelope of requeue) await this.enqueue(envelope);
         setTimeout(() => void this.flush(), 0);
@@ -709,6 +859,15 @@ export class SyncEngine {
   // the pure vitest suite that imports this engine). The device/account fallback
   // stays where it belongs — the entry-point normalisers in the RN components,
   // which import react-native legitimately — so nothing here drags it in.
+
+  /** The currency the group keeps its books in, or null if the group is unknown. */
+  private groupCurrency(groupId: string): string | null {
+    const groups = this.state.mirror.tables[SyncTable.Groups] as
+      Record<string, MirrorRow> | undefined;
+    const currency = (groups?.[groupId] as { default_currency?: unknown } | undefined)
+      ?.default_currency;
+    return typeof currency === 'string' ? currency : null;
+  }
 
   /** The dialing code to read this group's bare numbers in, or null. */
   private regionDialCodeForGroup(groupId: string): string | null {
@@ -885,6 +1044,15 @@ async function describeFunctionError(error: unknown): Promise<string> {
   return error instanceof Error ? error.message : String(error);
 }
 
+function sameIds(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((id, i) => id === b[i]);
+}
+
+function withoutGroups<T>(map: Record<string, T>, groups: readonly string[]): Record<string, T> {
+  if (groups.length === 0) return map;
+  return Object.fromEntries(Object.entries(map).filter(([id]) => !groups.includes(id)));
+}
+
 export const syncEngine = new SyncEngine();
 
 /**
@@ -896,9 +1064,10 @@ export function groupsNoLongerMine(
   mirror: MirrorState,
   queue: readonly QueuedMutation[],
   memberOf: readonly string[] | undefined,
+  twoStepRequired: readonly string[] = [],
 ): string[] {
   if (!memberOf) return [];
-  const mine = new Set(memberOf);
+  const mine = new Set([...memberOf, ...twoStepRequired]);
   const queued = new Set(queue.map((mutation) => mutation.groupId));
   return Object.keys(mirror.tables[SyncTable.Groups] ?? {}).filter(
     (groupId) => !mine.has(groupId) && !queued.has(groupId),

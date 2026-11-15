@@ -28,7 +28,10 @@ export const NAV: NavSection[] = [
   },
   {
     heading: 'People',
-    items: [{ href: '/users', label: 'Users', icon: Icon.users }],
+    items: [
+      { href: '/users', label: 'Users', icon: Icon.users },
+      { href: '/companies', label: 'Companies', icon: Icon.cube },
+    ],
   },
   {
     heading: 'Growth',

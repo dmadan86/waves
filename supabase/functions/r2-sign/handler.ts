@@ -33,6 +33,7 @@ import {
   requireMembership,
   type SupabaseClient,
 } from '../_shared/auth.ts';
+import { handleCompanyFile } from './companyFile.ts';
 import {
   LOGICAL_BUCKETS,
   type LogicalBucket,
@@ -172,6 +173,7 @@ export function locate(
       return { groupId: null, ownerSegment: first ?? null };
     case 'settlement-proofs':
     case 'expense-attachments':
+    case 'company-entry-images':
       // Restricted buckets are never authorised by path — the caller names a
       // subject id and the server resolves the key from the party-gated row.
       // These cases exist only so the switch stays exhaustive.
@@ -185,13 +187,36 @@ async function groupOfSubject(
   bucket: LogicalBucket,
   subjectId: string,
 ): Promise<string> {
-  const table = bucket === 'settlement-proofs' ? 'settlements' : 'expenses';
+  const table =
+    bucket === 'company-entry-images'
+      ? 'company_entries'
+      : bucket === 'settlement-proofs'
+        ? 'settlements'
+        : 'expenses';
   const { data, error } = await service
     .from(table)
     .select('group_id')
     .eq('id', subjectId)
     .maybeSingle();
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
+  if (!data && bucket === 'company-entry-images') {
+    // A vendor ledger line keeps its photos in the same bucket.
+    const { data: line, error: lineError } = await service
+      .from('company_vendor_entries')
+      .select('group_id')
+      .eq('id', subjectId)
+      .maybeSingle();
+    if (lineError) throw new HttpError(500, 'INTERNAL', lineError.message);
+    if (line) return (line as { group_id: string }).group_id;
+    // ...and so does a daily-work task.
+    const { data: work, error: workError } = await service
+      .from('company_work_tasks')
+      .select('group_id')
+      .eq('id', subjectId)
+      .maybeSingle();
+    if (workError) throw new HttpError(500, 'INTERNAL', workError.message);
+    if (work) return (work as { group_id: string }).group_id;
+  }
   if (!data) throw new HttpError(404, 'NOT_FOUND', 'No such subject');
   return (data as { group_id: string }).group_id;
 }
@@ -204,12 +229,52 @@ async function requireRestrictedParty(
   subjectId: string,
 ): Promise<void> {
   const rpc =
-    bucket === 'settlement-proofs' ? 'waves_is_settlement_party' : 'waves_is_expense_party';
+    bucket === 'company-entry-images'
+      ? 'waves_can_read_company_entry'
+      : bucket === 'settlement-proofs'
+        ? 'waves_is_settlement_party'
+        : 'waves_is_expense_party';
   const arg =
-    bucket === 'settlement-proofs' ? { p_settlement_id: subjectId } : { p_expense_id: subjectId };
+    bucket === 'company-entry-images'
+      ? { p_entry_id: subjectId }
+      : bucket === 'settlement-proofs'
+        ? { p_settlement_id: subjectId }
+        : { p_expense_id: subjectId };
   const { data, error } = await caller.rpc(rpc, arg);
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
-  if (data !== true) throw new HttpError(403, 'NOT_A_PARTY', 'Not a party to this');
+  if (data === true) return;
+  if (bucket === 'company-entry-images') {
+    // Not a company entry the caller can read: maybe a vendor line they can.
+    const { data: line, error: lineError } = await caller.rpc(
+      'waves_can_read_company_vendor_entry',
+      {
+        p_entry_id: subjectId,
+      },
+    );
+    if (lineError) throw new HttpError(500, 'INTERNAL', lineError.message);
+    if (line === true) return;
+    const { data: work, error: workError } = await caller.rpc('waves_can_read_company_work_task', {
+      p_task_id: subjectId,
+    });
+    if (workError) throw new HttpError(500, 'INTERNAL', workError.message);
+    if (work === true) return;
+  }
+  throw new HttpError(403, 'NOT_A_PARTY', 'Not a party to this');
+}
+
+/** True when the caller can see this entry as live: a company entry, a vendor ledger line or a work task. */
+async function companyEntryIsLive(caller: SupabaseClient, entryId: string): Promise<boolean> {
+  for (const table of ['company_entries', 'company_vendor_entries', 'company_work_tasks']) {
+    const { data, error } = await caller
+      .from(table)
+      .select('id')
+      .eq('id', entryId)
+      .is('deleted_at', null)
+      .maybeSingle();
+    if (error) throw new HttpError(500, 'INTERNAL', error.message);
+    if (data) return true;
+  }
+  return false;
 }
 
 /**
@@ -226,23 +291,41 @@ async function assertRestrictedPath(
   path: string,
   deletingWith: SupabaseClient | null = null,
 ): Promise<void> {
-  const table = bucket === 'settlement-proofs' ? 'settlement_proofs' : 'expense_attachments';
-  const subjectCol = bucket === 'settlement-proofs' ? 'settlement_id' : 'expense_id';
-  let query = caller.from(table).select('id').eq(subjectCol, subjectId).eq('storage_path', path);
+  const table =
+    bucket === 'company-entry-images'
+      ? 'company_entry_attachments'
+      : bucket === 'settlement-proofs'
+        ? 'settlement_proofs'
+        : 'expense_attachments';
+  const subjectCol =
+    bucket === 'company-entry-images'
+      ? 'entry_id'
+      : bucket === 'settlement-proofs'
+        ? 'settlement_id'
+        : 'expense_id';
+  let memberId: unknown = null;
   if (deletingWith) {
     // The subject may itself be deleted by now (a removed bill), which the
     // caller can no longer see; authorizeWrite already proved the caller a party.
-    const { data: memberId, error } = await caller.rpc('waves_my_member_id', {
+    const { data, error } = await caller.rpc('waves_my_member_id', {
       p_group_id: await groupOfSubject(deletingWith, bucket, subjectId),
     });
     if (error) throw new HttpError(500, 'INTERNAL', error.message);
-    query = query.eq('uploader_member_id', memberId);
-  } else {
-    query = query.is('deleted_at', null);
+    memberId = data;
   }
-  const { data, error } = await query.maybeSingle();
-  if (error) throw new HttpError(500, 'INTERNAL', error.message);
-  if (!data) throw new HttpError(403, 'NOT_VISIBLE', 'Not visible to you');
+  // A company image belongs to an entry or to a vendor ledger line; only one table matches.
+  const tables =
+    bucket === 'company-entry-images'
+      ? [table, 'company_vendor_entry_attachments', 'company_work_task_attachments']
+      : [table];
+  for (const name of tables) {
+    let query = caller.from(name).select('id').eq(subjectCol, subjectId).eq('storage_path', path);
+    query = deletingWith ? query.eq('uploader_member_id', memberId) : query.is('deleted_at', null);
+    const { data, error } = await query.maybeSingle();
+    if (error) throw new HttpError(500, 'INTERNAL', error.message);
+    if (data) return;
+  }
+  throw new HttpError(403, 'NOT_VISIBLE', 'Not visible to you');
 }
 
 function readSubject(value: unknown): string {
@@ -259,11 +342,15 @@ async function callerUserId(caller: SupabaseClient): Promise<string> {
 }
 
 /** True when the two profiles share at least one live group. */
-async function sharesGroup(service: SupabaseClient, a: string, b: string): Promise<boolean> {
+/**
+ * Read as the caller: `profiles_select` shows a profile to the people who share a group with it, and skips a two-step
+ * company this session has not verified, so an avatar is signed exactly when its profile is visible.
+ */
+async function sharesGroup(caller: SupabaseClient, a: string, b: string): Promise<boolean> {
   if (a === b) return true;
-  const { data, error } = await service.rpc('waves_profiles_share_group', { p_a: a, p_b: b });
+  const { data, error } = await caller.from('profiles').select('id').eq('id', b).maybeSingle();
   if (error) throw new HttpError(500, 'INTERNAL', error.message);
-  return data === true;
+  return Boolean(data);
 }
 
 /** The mutating actions `authorizeWrite` guards. */
@@ -392,6 +479,40 @@ async function authorizeWrite(
     const groupId = await groupOfSubject(service, bucket, subjectId);
     await requireMembership(caller, groupId);
     await requireRestrictedParty(caller, bucket, subjectId);
+    if (bucket === 'company-entry-images') {
+      const segments = path.split('/');
+      if (
+        !UUID.test(subjectId) ||
+        segments.length !== 3 ||
+        !UUID.test(segments[1] ?? '') ||
+        !UUID.test((segments[2] ?? '').replace(/\.jpg$/, '')) ||
+        !path.endsWith('.jpg')
+      ) {
+        throw new HttpError(400, 'BAD_PATH', 'A company image needs a canonical key');
+      }
+      if (!(await companyEntryIsLive(caller, subjectId)))
+        throw new HttpError(403, 'NOT_VISIBLE', 'Entry is not live');
+      const { memberId } = await requireMembership(caller, groupId);
+      await requireUploaderOrAdmin(caller, service, uid, memberId, bucket, path, groupId, action);
+      // Evidence changes go through the RPC, which increments the entry version.
+      let attached = false;
+      for (const table of [
+        'company_entry_attachments',
+        'company_vendor_entry_attachments',
+        'company_work_task_attachments',
+      ]) {
+        const { data, error: attachmentError } = await service
+          .from(table)
+          .select('id')
+          .eq('entry_id', subjectId)
+          .eq('storage_path', path)
+          .maybeSingle();
+        if (attachmentError) throw new HttpError(500, 'INTERNAL', attachmentError.message);
+        if (data) attached = true;
+      }
+      if (attached && action !== 'commit')
+        throw new HttpError(409, 'IMMUTABLE_OBJECT', 'Use the attachment removal RPC');
+    }
     return { groupId };
   }
 
@@ -417,6 +538,13 @@ async function authorizeWrite(
     // who joined through the reusable group link could swap or erase the bill
     // behind somebody else's (possibly disputed) expense.
     const { memberId } = await requireMembership(caller, groupId);
+    if (bucket === 'receipts' || bucket === 'trip-photos') {
+      const { data: company, error } = await caller.rpc('waves_is_company', {
+        p_group_id: groupId,
+      });
+      if (error) throw new HttpError(500, 'INTERNAL', error.message);
+      if (company === true) throw new HttpError(403, 'COMPANY_GROUP', 'Use company entry images');
+    }
     await requireUploaderOrAdmin(caller, service, uid, memberId, bucket, path, groupId, action);
     return { groupId };
   }
@@ -456,7 +584,7 @@ async function authorizeRead(
     return;
   }
   if (bucket === 'avatars') {
-    if (!ownerSegment || !(await sharesGroup(service, uid, ownerSegment))) {
+    if (!ownerSegment || !(await sharesGroup(caller, uid, ownerSegment))) {
       throw new HttpError(403, 'NOT_VISIBLE', 'That avatar is not visible to you');
     }
     return;
@@ -477,10 +605,11 @@ async function removeThumbnail(
   const thumb = thumbPathFor(path);
   try {
     await deps.r2().client.fetch(deps.objectUrl(bucket, thumb), { method: 'DELETE' });
-    await service.storage
-      .from(bucket)
-      .remove([thumb])
-      .catch(() => {});
+    if (!RESTRICTED_BUCKETS.has(bucket))
+      await service.storage
+        .from(bucket)
+        .remove([thumb])
+        .catch(() => {});
     await service.rpc('waves_storage_release', { p_logical_bucket: bucket, p_path: thumb });
   } catch {
     // Best-effort — see the caller.
@@ -505,6 +634,11 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
     const { path, authPath, isThumb } = readObjectKey(body.path);
     const maxBytes = isThumb ? MAX_THUMB_BYTES : MAX_OBJECT_BYTES;
 
+    // Company Files (`cf/<groupId>/<fileId>`) have their own rules: any allow-listed type, 25 MB, owner/manager writes.
+    if (bucket === 'company-entry-images' && path.startsWith('cf/')) {
+      return await handleCompanyFile(deps, caller, service, uid, body, path);
+    }
+
     // A restricted read is authorised by (SUBJECT, path): the server confirms a
     // party-visible row references that path before signing it, so a non-party
     // (who sees no row) is refused and a crafted path matches nothing (threat
@@ -524,6 +658,19 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       // second round trip could only ever agree.
       await requireRestrictedParty(caller, bucket, subjectId as string);
       await assertRestrictedPath(caller, bucket, subjectId as string, authPath);
+      if (bucket === 'company-entry-images') {
+        if (!(await companyEntryIsLive(caller, subjectId as string)))
+          throw new HttpError(403, 'NOT_VISIBLE', 'Entry is not live');
+        const { data: object, error: objectError } = await service
+          .from('storage_objects')
+          .select('path')
+          .eq('logical_bucket', bucket)
+          .eq('path', path)
+          .eq('pending', false)
+          .maybeSingle();
+        if (objectError) throw new HttpError(500, 'INTERNAL', objectError.message);
+        if (!object) throw new HttpError(404, 'NOT_FOUND', 'No committed object');
+      }
       // A thumbnail is optional — anything uploaded before thumbnails existed has
       // none — so say so plainly instead of signing a URL that would 404. The
       // client then falls back to shrinking the original itself.
@@ -600,12 +747,19 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       }
 
       const putUrl = new URL(objectUrl(bucket, path));
-      putUrl.searchParams.set('X-Amz-Expires', String(URL_TTL_SECONDS));
-      const signed = await deps.r2().client.sign(new Request(putUrl, { method: 'PUT' }), {
-        aws: { signQuery: true, allHeaders: true },
-        headers: { 'content-type': contentType },
-      });
-      return json({ url: signed.url, method: 'PUT', headers: { 'content-type': contentType } });
+      putUrl.searchParams.set(
+        'X-Amz-Expires',
+        String(restricted ? RESTRICTED_URL_TTL_SECONDS : URL_TTL_SECONDS),
+      );
+      const uploadHeaders: Record<string, string> = { 'content-type': contentType };
+      if (bucket === 'company-entry-images') uploadHeaders['if-none-match'] = '*';
+      const signed = await deps
+        .r2()
+        .client.sign(new Request(putUrl, { method: 'PUT', headers: uploadHeaders }), {
+          aws: { signQuery: true, allHeaders: true },
+          headers: uploadHeaders,
+        });
+      return json({ url: signed.url, method: 'PUT', headers: uploadHeaders });
     }
 
     // ── record the object once the PUT has landed ─────────────────────────
@@ -620,7 +774,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
         'commit',
       );
       const contentType = typeof body.contentType === 'string' ? body.contentType : 'image/webp';
-      if (!ALLOWED_CONTENT_TYPES.has(contentType)) {
+      if (!ALLOWED_CONTENT_TYPES.has(contentType) || (isThumb && contentType !== 'image/jpeg')) {
         throw new HttpError(415, 'BAD_CONTENT_TYPE', 'Only image uploads are allowed');
       }
 
@@ -655,9 +809,29 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       const head = await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'HEAD' });
       if (!head.ok) throw new HttpError(404, 'NOT_UPLOADED', 'Object was not uploaded');
       const size = Number(head.headers.get('content-length') ?? '0');
-      if (size > maxBytes) {
-        await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'DELETE' });
-        throw new HttpError(413, 'TOO_LARGE', 'That image is too large');
+      const headType = head.headers.get('content-type')?.split(';')[0]?.trim() ?? '';
+      const badCompanyType =
+        bucket === 'company-entry-images' &&
+        (!ALLOWED_CONTENT_TYPES.has(headType) || (isThumb && headType !== 'image/jpeg'));
+      if (!Number.isSafeInteger(size) || size <= 0 || size > maxBytes || badCompanyType) {
+        let removeBytes = true;
+        if (bucket === 'company-entry-images') {
+          const { data, error } = await service.rpc('waves_company_cancel_upload', {
+            p_entry_id: subjectId,
+            p_path: path,
+            p_profile_id: uid,
+            p_pending_only: true,
+          });
+          if (error) throw new HttpError(409, 'CANCEL_REFUSED', error.message);
+          removeBytes = data === true;
+        }
+        if (removeBytes)
+          await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'DELETE' });
+        throw new HttpError(
+          badCompanyType ? 415 : 413,
+          badCompanyType ? 'BAD_CONTENT_TYPE' : 'TOO_LARGE',
+          'Invalid uploaded image',
+        );
       }
 
       const { error } = await service.rpc('waves_storage_record', {
@@ -666,7 +840,7 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
         p_logical_bucket: bucket,
         p_path: path,
         p_bytes: size,
-        p_content_type: contentType,
+        p_content_type: bucket === 'company-entry-images' ? headType : contentType,
       });
       if (error) {
         // The cap boundary — the reservation trusted a declared size, the object
@@ -730,6 +904,25 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       return json({ url: data.signedUrl });
     }
 
+    if (bucket === 'company-entry-images' && (action === 'delete' || action === 'release')) {
+      await authorizeWrite(caller, service, uid, bucket, authPath, subjectId, action);
+      const { data: removed, error } = await service.rpc('waves_company_cancel_upload', {
+        p_entry_id: subjectId,
+        p_path: path,
+        p_profile_id: uid,
+        p_pending_only: action === 'release',
+      });
+      if (error) throw new HttpError(409, 'CANCEL_REFUSED', error.message);
+      if (removed === true) {
+        // Ledger deletion queued a durable retry beyond the lifetime of late PUTs.
+        await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'DELETE' });
+        if (!isThumb && action === 'delete') {
+          await deps.r2().client.fetch(objectUrl(bucket, thumbPathFor(path)), { method: 'DELETE' });
+        }
+      }
+      return json({ ok: true });
+    }
+
     // ── release a failed upload's reservation ─────────────────────────────
     // The client calls this when its PUT to R2 did not land. It is the safe
     // counterpart to `delete`: it removes the row only while it is still a
@@ -754,16 +947,17 @@ export async function handleR2Sign(request: Request, deps: R2SignDeps): Promise<
       await authorizeWrite(caller, service, uid, bucket, authPath, subjectId, 'delete');
       // The uploader may remove bytes after the RPC soft-deletes their row.
       // Keep the uploader check so another party cannot erase their files.
-      if (restricted) {
+      if (restricted && bucket !== 'company-entry-images') {
         await assertRestrictedPath(caller, bucket, subjectId as string, authPath, service);
       }
       await deps.r2().client.fetch(objectUrl(bucket, path), { method: 'DELETE' });
       // A legacy object may still live on Supabase Storage (dual-read); remove it
       // there too, or the fallback read would keep serving a deleted image.
-      await service.storage
-        .from(bucket)
-        .remove([path])
-        .catch(() => {});
+      if (!restricted)
+        await service.storage
+          .from(bucket)
+          .remove([path])
+          .catch(() => {});
       const { error } = await service.rpc('waves_storage_release', {
         p_logical_bucket: bucket,
         p_path: path,

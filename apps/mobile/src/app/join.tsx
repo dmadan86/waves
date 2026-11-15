@@ -36,12 +36,14 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 
+import { COMPANIES_ENABLED, COMPANIES_SOON_MESSAGE } from '@/lib/companiesEnabled';
 import { acceptInvite, previewInvite, type InvitePreview } from '@/data/api';
 import { keys } from '@/data/hooks';
 import { useAuth } from '@/lib/auth';
 import { joinActions, routeForJoinAction, type JoinAction } from '@/lib/joinActions';
 import { pendingInvite } from '@/lib/pendingInvite';
 import { expectGroup } from '@/lib/groupArrival';
+import { useRememberSpace } from '@/lib/useSpaces';
 import { requestJoinPushPrompt } from '@/lib/pushPromptStore';
 import { router, useGoBack } from '@/lib/navigation';
 import { useSync } from '@/sync';
@@ -58,6 +60,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 export default function JoinScreen() {
   const theme = useTheme();
   const { t, locale } = useStrings();
+  const remember = useRememberSpace();
   // `from` says how the link was opened. The scanner sends `scan`, because a
   // link that turns out to be dead has a different next step there: point the
   // camera at another code, rather than being shown the door to the app.
@@ -134,6 +137,7 @@ export default function JoinScreen() {
     // this is the same rule for any other caller, and the server enforces it
     // regardless (`ACCOUNT_REQUIRED`).
     if (gate !== JoinGate.Ready) return;
+    if (!COMPANIES_ENABLED && preview?.group?.type === 'company') return;
     setJoining(true);
     setError(null);
     try {
@@ -155,6 +159,7 @@ export default function JoinScreen() {
       // Twice on purpose: a flush already in flight is joined rather than
       // restarted, and that one never asked for this group. The second runs
       // fresh with the id. Bounded, so a hung request cannot hold the button.
+      if (result.group.type === 'company') remember(result.group.id);
       expectGroup(result.group.id);
       const pull = async (): Promise<void> => {
         await flush([result.group.id]).catch(() => undefined);
@@ -169,6 +174,12 @@ export default function JoinScreen() {
         router.push(`/group/${result.group.id}`);
       } else {
         router.replace(`/group/${result.group.id}`);
+      }
+      // An employee joining a company lands straight in Add entry, with the
+      // one-line privacy explainer; Back goes to the company home. A vendor
+      // stays on the company home, which is their own ledger.
+      if (result.group.type === 'company' && !result.vendor) {
+        router.push(`/group/${result.group.id}/company-entry?intro=1`);
       }
       // A good moment to offer notifications, if the phone is not yet set up.
       requestJoinPushPrompt(result.group.name);
@@ -245,6 +256,19 @@ export default function JoinScreen() {
               <Button label={t.misc.goToWaves} onPress={() => router.replace('/')} />
             )
           }
+        />
+      </Screen>
+    );
+  }
+
+  if (!COMPANIES_ENABLED && preview.group.type === 'company') {
+    return (
+      <Screen>
+        <BackRow onPress={goBack} label={t.common.back} />
+        <EmptyState
+          title={preview.group.name}
+          body={COMPANIES_SOON_MESSAGE}
+          action={<Button label={t.misc.goToWaves} onPress={() => router.replace('/')} />}
         />
       </Screen>
     );
@@ -470,7 +494,7 @@ export default function JoinScreen() {
               onPress={() => void join()}
               style={({ pressed }) => ({
                 minHeight: 54,
-                borderRadius: 27,
+                borderRadius: 12,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -554,7 +578,7 @@ function BackRow({ onPress, label }: { onPress: () => void; label: string }) {
   const theme = useTheme();
   return (
     <View style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.xs }}>
-      <TranslucentBackButton dark label={label} onPress={onPress} />
+      <TranslucentBackButton label={label} onPress={onPress} />
     </View>
   );
 }

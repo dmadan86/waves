@@ -86,6 +86,9 @@ vi.mock('../src/sync/store', () => ({
       if (h.faults.readRows) throw h.faults.readRows;
       return [...h.disk.rows.values()];
     },
+    deleteRows: async (keys: { table: string; id: string }[]) => {
+      for (const key of keys) h.disk.rows.delete(`${key.table}:${key.id}`);
+    },
     readCursors: async () => ({ ...h.disk.cursors }),
     writeCursors: async (cursors: Record<string, number>) => {
       h.disk.cursors = { ...cursors };
@@ -177,6 +180,76 @@ beforeEach(() => {
   h.faults.writeQueue = null;
   h.faults.readRows = null;
   h.duringPutRows = null;
+});
+
+describe('an employee who moved to another manager', () => {
+  const seed = (id: string, table: string, extra: Record<string, unknown>, seq: number) => ({
+    table,
+    groupId: 'g-co',
+    seq,
+    row: { id, group_id: 'g-co', deleted_at: null, ...extra },
+  });
+
+  it('is dropped from memory and from disk on the next sync, and nobody else is', async () => {
+    online();
+    h.invoke.mockResolvedValueOnce({
+      data: {
+        outcomes: [],
+        changes: [
+          seed('mine', 'group_members', { role: 'member' }, 1),
+          seed('moved', 'group_members', { role: 'member' }, 2),
+          seed('e1', 'company_entries', { member_id: 'mine' }, 3),
+          seed('e2', 'company_entries', { member_id: 'moved' }, 4),
+          seed('a2', 'company_entry_attachments', { entry_id: 'e2' }, 5),
+        ],
+        cursors: { 'g-co': 5 },
+        serverTime: '2026-08-09T09:27:00.000Z',
+      },
+      error: null,
+    });
+    const engine = new SyncEngine();
+    await engine.flush();
+    expect(Object.keys(engine.getState().mirror.tables.company_entries)).toEqual(['e1', 'e2']);
+
+    // Second sync: the server no longer lists "moved" as someone this manager may read.
+    h.invoke.mockResolvedValueOnce({
+      data: {
+        outcomes: [],
+        changes: [],
+        cursors: { 'g-co': 5 },
+        serverTime: '2026-08-09T09:28:00.000Z',
+        companyVisible: { 'g-co': ['mine'] },
+      },
+      error: null,
+    });
+    await engine.flush();
+    const { tables } = engine.getState().mirror;
+    expect(Object.keys(tables.company_entries)).toEqual(['e1']);
+    expect(Object.keys(tables.company_entry_attachments)).toEqual([]);
+    expect(Object.keys(tables.group_members)).toEqual(['mine']);
+    expect([...h.disk.rows.keys()].sort()).toEqual(['company_entries:e1', 'group_members:mine']);
+
+    // A relaunch must not bring them back from disk.
+    const relaunched = new SyncEngine();
+    await relaunched.hydrate();
+    expect(Object.keys(relaunched.getState().mirror.tables.company_entries)).toEqual(['e1']);
+  });
+
+  it('keeps everything when the server sends no list (older server, or a failed read)', async () => {
+    online();
+    h.invoke.mockResolvedValueOnce({
+      data: {
+        outcomes: [],
+        changes: [seed('e2', 'company_entries', { member_id: 'moved' }, 1)],
+        cursors: { 'g-co': 1 },
+        serverTime: '2026-08-09T09:27:00.000Z',
+      },
+      error: null,
+    });
+    const engine = new SyncEngine();
+    await engine.flush();
+    expect(Object.keys(engine.getState().mirror.tables.company_entries)).toEqual(['e2']);
+  });
 });
 
 describe('runFlush on a fresh install', () => {
@@ -427,6 +500,61 @@ describe('removed by an admin', () => {
     await engine.flush();
     await engine.flush();
     expect(groupIds(engine.getState().mirror)).toEqual(['g-goa']);
+  });
+});
+
+describe('two-step gated company', () => {
+  it('keeps the group and its refused write, and reports the gate', async () => {
+    online();
+    h.invoke.mockResolvedValueOnce({
+      data: { ...discoveryResponse(), memberOf: ['g-goa'] },
+      error: null,
+    });
+    const engine = new SyncEngine();
+    await engine.flush();
+
+    await engine.enqueue({
+      clientMutationId: 'gated-edit',
+      kind: 'expense.create' as never,
+      groupId: 'g-goa',
+      clientCreatedAt: '2026-10-28T00:00:00.000Z',
+      payload: {},
+    });
+    h.invoke.mockResolvedValueOnce({
+      data: {
+        outcomes: [
+          {
+            clientMutationId: 'gated-edit',
+            status: 'rejected',
+            code: 'TWO_STEP_REQUIRED',
+            message: 'Verify two-step to keep working in Goa Trip',
+          },
+        ],
+        changes: [],
+        cursors: {},
+        // Gated and (defensively) absent from memberOf: still not dropped.
+        memberOf: [],
+        twoStepRequired: ['g-goa'],
+        serverTime: '2026-08-10T00:00:00.000Z',
+      },
+      error: null,
+    });
+    await engine.flush();
+
+    const state = engine.getState();
+    expect(state.twoStepRequired).toEqual(['g-goa']);
+    expect(groupIds(state.mirror, state.queue)).toEqual(['g-goa']);
+    expect(state.queue.map((item) => item.clientMutationId)).toEqual(['gated-edit']);
+    // Quiet retry, not a red refusal.
+    expect(state.rejected).toEqual([]);
+  });
+
+  it('never names a gated group as gone', () => {
+    const mirror = {
+      cursors: {},
+      tables: { groups: { 'g-a': { id: 'g-a' }, 'g-b': { id: 'g-b' } } },
+    } as unknown as MirrorState;
+    expect(groupsNoLongerMine(mirror, [], ['g-a'], ['g-b'])).toEqual([]);
   });
 });
 
@@ -1340,5 +1468,136 @@ describe('a mutation queued while a sync is writing to disk', () => {
     // …then it survives the flush setting its own queue afterwards.
     expect(engine.getState().queue.map((m) => m.clientMutationId)).toContain('late-1');
     expect(h.disk.queue.map((m) => m.clientMutationId)).toContain('late-1');
+  });
+});
+
+describe('refusals nobody should see', () => {
+  const groupRows = (type: string) => ({
+    outcomes: [],
+    changes: [
+      {
+        table: 'groups',
+        groupId: 'g-co',
+        seq: 1,
+        row: { id: 'g-co', name: 'Waves', type, default_currency: 'INR', archived_at: null },
+      },
+    ],
+    cursors: { 'g-co': 1 },
+    serverTime: 't0',
+  });
+  const refusal = (clientMutationId: string, code: string) => ({
+    outcomes: [{ clientMutationId, status: 'rejected', code, message: `${code}: x` }],
+    changes: [],
+    cursors: {},
+    serverTime: 't1',
+  });
+
+  it("turns an expense a company group refuses into its author's company expense", async () => {
+    online();
+    const engine = new SyncEngine();
+    h.invoke.mockResolvedValueOnce({ data: groupRows('company'), error: null });
+    await engine.flush();
+
+    h.invoke.mockResolvedValue({ data: refusal('exp-1', 'COMPANY_GROUP'), error: null });
+    await engine.enqueue({
+      clientMutationId: 'exp-1',
+      kind: 'expense.create' as never,
+      groupId: 'g-co',
+      clientCreatedAt: '2026-10-28T00:00:00.000Z',
+      payload: {
+        expenseId: 'e-1',
+        description: 'Diesel',
+        expenseDate: '2026-10-28',
+        currency: 'INR',
+        amount: '50000',
+        payers: { 'm-me': '50000' },
+        participants: ['m-me'],
+      },
+    });
+    await engine.flush();
+
+    expect(engine.getState().rejected).toEqual([]);
+    const kinds = engine.getState().queue.map((item) => [item.clientMutationId, item.kind]);
+    expect(kinds).toEqual([['exp-1:company', 'company_entry.create']]);
+  });
+
+  it('retries a rate limit later without ever surfacing it', async () => {
+    online();
+    h.invoke.mockResolvedValue({ data: refusal('m-1', 'RATE_LIMITED'), error: null });
+    const engine = new SyncEngine();
+    await engine.enqueue({
+      clientMutationId: 'm-1',
+      kind: 'group.update' as never,
+      groupId: 'g-goa',
+      clientCreatedAt: '2026-10-28T00:00:00.000Z',
+      payload: { name: 'x' },
+    });
+    await engine.flush();
+
+    expect(engine.getState().rejected).toEqual([]);
+    const held = engine.getState().queue[0];
+    expect(held?.rejection).toBeNull();
+    expect(held?.attempts).toBe(0);
+    expect(held?.nextAttemptAt).toBeGreaterThan(Date.now());
+  });
+});
+
+describe('attendance taps', () => {
+  it('go to the server as one request after a short pause, not one per tap', async () => {
+    online();
+    h.invoke.mockResolvedValue({ data: discoveryResponse(), error: null });
+    vi.useFakeTimers();
+    try {
+      const engine = new SyncEngine();
+      await engine.hydrate();
+      for (const memberId of ['m1', 'm2', 'm3'])
+        await engine.enqueue({
+          clientMutationId: `mark-${memberId}`,
+          kind: 'company_attendance.set' as never,
+          groupId: 'g-goa',
+          clientCreatedAt: '2026-08-09T00:00:00.000Z',
+          payload: { memberId, day: '2026-08-09', status: 'present', note: null },
+        });
+      await vi.advanceTimersByTimeAsync(1000);
+    } finally {
+      vi.useRealTimers();
+    }
+    // Other tests' engines share this mock, so count only the requests that carried marks.
+    const calls = h.invoke.mock.calls as [
+      string,
+      { body: { mutations: { clientMutationId: string }[] } },
+    ][];
+    const sent = calls
+      .map(([, options]) => options.body.mutations.map((m) => m.clientMutationId))
+      .filter((ids) => ids.some((id) => id.startsWith('mark-')));
+    expect(sent).toEqual([['mark-m1', 'mark-m2', 'mark-m3']]);
+  });
+});
+
+describe('catchUpProgress', () => {
+  const mirror = (ids: string[]) =>
+    ({ cursors: {}, tables: { groups: Object.fromEntries(ids.map((i) => [i, {}])) } }) as never;
+
+  it('counts loaded groups while more is coming', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a', 'b']), ['a', 'b', 'c'], true)).toEqual({
+      total: 3,
+      loaded: 2,
+    });
+  });
+
+  it('counts a group once however many member rows it has', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a']), ['a', 'a', 'b', 'b'], true)).toEqual({
+      total: 2,
+      loaded: 1,
+    });
+  });
+
+  it('is null when done, complete, or the server said nothing', async () => {
+    const { catchUpProgress } = await import('../src/sync/engine');
+    expect(catchUpProgress(mirror(['a']), ['a', 'b'], false)).toBeNull();
+    expect(catchUpProgress(mirror(['a', 'b']), ['a', 'b'], true)).toBeNull();
+    expect(catchUpProgress(mirror([]), undefined, true)).toBeNull();
   });
 });

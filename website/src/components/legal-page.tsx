@@ -60,9 +60,7 @@ export function LegalPage({
           <p className="font-mono text-[0.6875rem] tracking-[0.12em] text-ink-3 uppercase">
             {t.lastUpdated} · {updated}
           </p>
-          <h1 className="mt-4 text-[2.25rem] font-semibold tracking-[-0.035em] text-ink sm:text-[3rem]">
-            {title}
-          </h1>
+          <h1 className="display mt-4 text-[2.25rem] text-ink sm:text-[3rem]">{title}</h1>
           <p className="mt-3 font-mono text-[0.75rem] text-ink-3">{note ?? t.englishOnly}</p>
 
           <div lang="en" dir="ltr" className="mt-12 space-y-10">

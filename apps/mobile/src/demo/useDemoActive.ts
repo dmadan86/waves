@@ -6,9 +6,19 @@
 
 import { useEffect, useState } from 'react';
 
+import { useAuth } from '@/lib/auth';
+import { backend } from '@/lib/backend';
 import { useSync } from '@/sync';
 
-import { demoStateSync, ensureDemoDecision, subscribeDemoState } from './store';
+import { demoStateSync, ensureDemoDecision, parse, subscribeDemoState } from './store';
+
+/** Save the demo decision on the account, so every phone it signs into agrees. */
+export function saveDemoStateToAccount(state: string): void {
+  // Best effort, and never a throw: offline or a missing client just leaves the phone's copy.
+  void Promise.resolve()
+    .then(() => backend.auth.updateUser({ data: { demo_state: state } }))
+    .catch(() => undefined);
+}
 
 /**
  * Is the demo group active for this account, right now?
@@ -21,20 +31,27 @@ import { demoStateSync, ensureDemoDecision, subscribeDemoState } from './store';
  * loaded off disk, must never be mistaken for a brand-new one.
  */
 export function useDemoActive(ownerId: string | null, isNewAccount: boolean): boolean {
-  const { hydrated } = useSync();
+  const { hydrated, hasSynced } = useSync();
+  const accountState = useAuth().session?.user?.user_metadata?.demo_state as unknown;
   const [, forceRender] = useState(0);
 
   useEffect(() => subscribeDemoState(() => forceRender((n) => n + 1)), []);
 
   useEffect(() => {
-    if (!ownerId || !hydrated) return;
-    void ensureDemoDecision(ownerId, isNewAccount);
+    // A fresh install hydrates an empty mirror; wait for the first pull so a
+    // returning account's groups are in before "zero groups" is believed.
+    if (!ownerId || !hydrated || !hasSynced) return;
+    void ensureDemoDecision(ownerId, isNewAccount, accountState).then((state) => {
+      if (parse(typeof accountState === 'string' ? accountState : null) !== state) {
+        saveDemoStateToAccount(state);
+      }
+    });
     // `isNewAccount` deliberately excluded: re-running this effect every time
     // the real group count changes would re-ask a question that is only ever
     // answered once. The cache (and the early return above) makes repeat
     // calls free regardless.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ownerId, hydrated]);
+  }, [ownerId, hydrated, hasSynced]);
 
   if (!ownerId) return false;
   return demoStateSync(ownerId) === 'active';

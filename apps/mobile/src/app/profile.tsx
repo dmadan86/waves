@@ -1,5 +1,7 @@
+import { AdSlot } from '@/components/AdSlot';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { useQuery } from '@tanstack/react-query';
-import { readCredits } from '@/lib/adCredits';
+import { queryCredits } from '@/lib/adCredits';
 import { showCreditsRow } from '@/lib/adCreditsPure';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { useEffect, useState } from 'react';
@@ -21,20 +23,19 @@ import {
 } from '@waves/ui';
 
 import { ProfileAvatar } from '@/components/ProfileAvatar';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { SettingsSection } from '@/components/SettingsSection';
 import { SignOutSheet } from '@/components/SignOutSheet';
 import { SkeletonList } from '@/components/Skeletons';
-import { useDemoActive } from '@/demo/useDemoActive';
-import { useRemoveDemo } from '@/demo/useRemoveDemo';
-import { isRtlLanguage, LANGUAGE_NAMES, plural, useStrings } from '@/i18n';
+import { isRtlLanguage, LANGUAGE_NAMES, useStrings } from '@/i18n';
 import { useLanguage } from '@/i18n/language';
 import { useAuth } from '@/lib/auth';
-import { connectedAppsRowHint } from '@/lib/connectedApps';
+import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { notificationsRowStatus } from '@/lib/notificationStatus';
 import { pushPermission, type PushPermission } from '@/lib/push';
-import { useConnectedApps } from '@/lib/useConnectedApps';
 import { useAvatarEditor } from '@/lib/avatarEditor';
 import { buildStamp } from '@/lib/buildIdentity';
+import { loadUpdates } from '@/lib/restart';
 import { router } from '@/lib/navigation';
 import { useReferralsLive } from '@/lib/useReferralsLive';
 import { r2Enabled } from '@/lib/storage';
@@ -68,6 +69,13 @@ import { THEME_HIDDEN, useThemePreference } from '@/lib/theme';
  * the same delete ended up a quiet list row on one screen and a red card on
  * this one.
  */
+/** "Built-in" or "Over-the-air" for the App updates row; nothing where updates are off. */
+function updateSource(s: { builtIn: string; overTheAir: string }): string | undefined {
+  const updates = loadUpdates();
+  if (!updates?.isEnabled) return undefined;
+  return updates.isEmbeddedLaunch === false ? s.overTheAir : s.builtIn;
+}
+
 export default function ProfileScreen() {
   const { profile, profileSettled, reloadProfile } = useAuth();
   const { t } = useStrings();
@@ -105,29 +113,20 @@ export default function ProfileScreen() {
 
 function ProfileForm() {
   const theme = useTheme();
+  const settingsAds = useAdPlan('settings');
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const referralsLive = useReferralsLive();
-  const { session, profile, isGuest, signOut } = useAuth();
+  const { profile, isGuest, signOut } = useAuth();
   const { isPaid } = useEntitlement();
   const credits = useQuery({
     queryKey: ['credits', profile?.id],
-    queryFn: readCredits,
+    queryFn: queryCredits,
     enabled: !!profile?.id,
   });
   const showVoiceRecorder = __DEV__;
-  // A Google/Apple sign-in carries a photo in the session's user metadata, but
-  // the profile row only holds one if a trigger copied it across — older
-  // accounts have a null `avatar_url` and so showed initials here. Fall back to
-  // the provider photo (an https URL that resolves straight through) so the
-  // account page shows your face whether or not the column was ever filled.
-  // `||`, not `??`: an empty-string avatar (a cleared column, or a provider that
-  // sends '') is "no photo", so it must fall through to the next source rather
-  // than be handed on as a blank URL.
-  const oauthAvatar =
-    (session?.user?.user_metadata?.avatar_url as string | undefined) ||
-    (session?.user?.user_metadata?.picture as string | undefined) ||
-    null;
+  // Same face everyone else sees (profiles.avatar_url), provider photo only as fallback.
+  const { avatarUrl: shownAvatar } = useViewerIdentity();
 
   const {
     enabled: lockEnabled,
@@ -138,7 +137,6 @@ function ProfileForm() {
   const { preference: syncNetwork } = useSyncNetwork();
   const { preference: themePreference, overridden: themeOverridden } = useThemePreference();
   const { language, stored: languageChosen, restartNeeded } = useLanguage();
-  const connectedApps = useConnectedApps();
   // The phone's own permission is local and cheap; the per-kind switches live
   // on the server, so the row reports only what the phone allows.
   const [osPush, setOsPush] = useState<PushPermission | null>(null);
@@ -156,8 +154,6 @@ function ProfileForm() {
       sub.remove();
     };
   }, []);
-  const demoActive = useDemoActive(profile?.id ?? null, false);
-  const removeDemo = useRemoveDemo();
 
   // The portrait, its sheet and its spinner are one behaviour shared with the
   // account screen — see `lib/avatarEditor`.
@@ -241,7 +237,7 @@ function ProfileForm() {
           paddingHorizontal: theme.spacing.xl,
           paddingTop: theme.spacing.lg,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.lg,
         }}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -251,8 +247,8 @@ function ProfileForm() {
         <View style={{ alignItems: 'center', gap: theme.spacing.md }}>
           <ProfileAvatar
             name={profile?.display_name ?? t.account.you}
-            avatarUrl={profile?.avatar_url || oauthAvatar}
-            size={92}
+            avatarUrl={shownAvatar}
+            size={72}
             onPress={profile ? photo.open : undefined}
             busy={photo.busy}
           />
@@ -298,6 +294,28 @@ function ProfileForm() {
               hint: t.account.upgradeHint,
               route: '/settings/upgrade',
             },
+            // The first company is free; the create flow shows the paywall for an extra one.
+            ...(COMPANIES_ENABLED && profile?.id && !isGuest
+              ? [
+                  {
+                    icon: 'business-outline' as const,
+                    label: t.companySlot.addRow,
+                    hint: t.companySlot.addRowHint,
+                    route: '/new-company' as const,
+                  },
+                ]
+              : []),
+            // Receipts and restore live here; a guest has no profile id to hold a purchase.
+            ...(profile?.id && !isGuest
+              ? [
+                  {
+                    icon: 'receipt-outline' as const,
+                    label: t.purchases.row,
+                    hint: t.purchases.rowHint,
+                    route: '/settings/purchases' as const,
+                  },
+                ]
+              : []),
             // Invite-and-earn only where Pro can be bought (the upgrade
             // screen's `plansLive`): the reward is days of a plan.
             ...(referralsLive && !isGuest
@@ -322,6 +340,14 @@ function ProfileForm() {
                 ]
               : []),
           ]}
+        />
+
+        {/* One inline banner after the first group, clear of the Plan and Credits rows. */}
+        <AdSlot
+          handle={settingsAds}
+          format="inline_banner"
+          slot={0}
+          style={{ marginVertical: theme.spacing.lg }}
         />
 
         {/* Preferences: how the app looks and speaks to you. Language leads — it
@@ -395,6 +421,12 @@ function ProfileForm() {
           title={t.account.sectionData}
           rows={[
             {
+              icon: 'finger-print-outline',
+              label: t.lock.title,
+              hint: lockSummary,
+              route: '/settings/lock',
+            },
+            {
               icon: 'pricetags-outline',
               label: t.tags.settingsRow,
               route: '/settings/categories',
@@ -418,56 +450,14 @@ function ProfileForm() {
               route: '/settings/backup',
             },
             {
+              icon: 'archive-outline',
+              label: t.group.archivedTitle,
+              route: '/settings/archived',
+            },
+            {
               icon: 'shield-checkmark-outline',
               label: t.privacy.row,
               route: '/settings/privacy',
-            },
-            // Only while the demo trip is actually there to remove — once it
-            // is gone, this row would be an action with nothing left to act on.
-            ...(demoActive
-              ? [
-                  {
-                    icon: 'flask-outline' as const,
-                    label: t.demo.removeAction,
-                    hint: t.demo.removeHint,
-                    destructive: true,
-                    onPress: () => void removeDemo(),
-                  },
-                ]
-              : []),
-          ]}
-        />
-
-        {/* Security: the one group somebody comes to Settings looking *for*,
-            and now the only place App lock is offered — it had a second row on
-            the Privacy screen, which meant two copies of the "on, after two
-            minutes" summary that had to be kept saying the same thing.
-            Sign out and Delete used to live here too — but ending a session and
-            ending an account are not security settings, and burying an
-            irreversible act in a list is how it gets tapped by accident. They
-            are pulled out below. */}
-        <SettingsSection
-          title={t.account.sectionSecurity}
-          rows={[
-            {
-              icon: 'finger-print-outline',
-              label: t.lock.appLock,
-              hint: lockSummary,
-              route: '/settings/lock',
-            },
-            {
-              icon: 'phone-portrait-outline',
-              label: t.devices.row,
-              route: '/settings/devices',
-            },
-            {
-              icon: 'sparkles-outline',
-              label: t.connectedApps.row,
-              hint:
-                connectedAppsRowHint(connectedApps.data?.length, t.connectedApps.rowNone, (n) =>
-                  plural(locale, n, t.connectedApps.rowCount),
-                ) ?? t.connectedApps.rowHint,
-              route: '/settings/connected-apps',
             },
           ]}
         />
@@ -488,6 +478,12 @@ function ProfileForm() {
               icon: 'document-text-outline',
               label: t.privacy.licensesRow,
               route: '/settings/licenses',
+            },
+            {
+              icon: 'cloud-download-outline',
+              label: t.otaUpdates.row,
+              value: updateSource(t.otaUpdates),
+              route: '/settings/app-updates',
             },
           ]}
         />
@@ -511,10 +507,6 @@ function ProfileForm() {
               onPress: () => setSigningOut(true),
               destructive: true,
             },
-          ]}
-        />
-        <SettingsSection
-          rows={[
             {
               icon: 'trash-outline',
               label: t.privacy.deleteRow,

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScrollView as RNScrollView } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { withScenicGroup } from '@/components/ScenicScope';
 import { familyOf } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
@@ -152,7 +153,7 @@ function MemberAvatar({
   return <PersonAvatar name={name} avatarUrl={photo} ghost={ghost} size={size} />;
 }
 
-export default function ExpenseDetailScreen() {
+function ExpenseDetailScreen() {
   const theme = useTheme();
   const goBack = useGoBack();
   const { isPro } = useEntitlement();
@@ -1440,3 +1441,5 @@ function PaidAndShare({
     </>
   );
 }
+
+export default withScenicGroup(ExpenseDetailScreen);

@@ -1,7 +1,8 @@
 import { GroupType } from '@/data/types';
 
 /**
- * The kinds the new-group screen offers as tiles, in order. Friends is a real
+ * The kinds the new-group screen offers as tiles, in order. Company has its own
+ * create flow (`/new-company`), so no tile. Friends is a real
  * type (a name can read as one) but has no tile of its own: Others stands in
  * for it, with the Friends tag chip one tap away.
  */

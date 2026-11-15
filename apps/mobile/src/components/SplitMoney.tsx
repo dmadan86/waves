@@ -19,6 +19,7 @@ export function SplitMoney({
   fontSize = 17,
   weight = '700',
   strike = false,
+  wholeUnits = false,
 }: {
   amount: bigint;
   currency: string;
@@ -28,8 +29,13 @@ export function SplitMoney({
   weight?: '600' | '700' | '800';
   /** Struck through, for a figure that no longer stands (a deleted bill). */
   strike?: boolean;
+  /** Whole units only, for a headline total. */
+  wholeUnits?: boolean;
 }) {
-  const text = format(money(amount < 0n ? -amount : amount, currency as never), { locale });
+  const text = format(money(amount < 0n ? -amount : amount, currency as never), {
+    locale,
+    whole: wholeUnits,
+  });
   let decimal = '.';
   try {
     decimal =

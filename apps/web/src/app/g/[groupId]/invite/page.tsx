@@ -157,7 +157,7 @@ function Invite() {
                   display: 'inline-block',
                   background: '#ffffff',
                   padding: 16,
-                  borderRadius: 16,
+                  borderRadius: 12,
                   marginBlock: 16,
                 }}
               >

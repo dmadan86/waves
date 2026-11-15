@@ -576,3 +576,18 @@ cutover day.
 8. **Who owns the six cron jobs?** They exist only as live SQL on one project.
    Until they are in the repo, any rebuild is silently missing half the
    product's background behaviour.
+
+## OTA update signing
+
+**Superseded:** OTA is now self-hosted and signed by our own server; see
+`docs/ota.md`. The text below is the old EAS-hosted note, kept for history.
+
+EAS Update code signing needs a paid EAS plan (Production or Enterprise), so it
+was not enabled: `apps/mobile/app.json` had no `updates.codeSigningCertificate`.
+The certificate stays at `apps/mobile/certs/certificate.pem` and the private key
+at `~/.waves-keys/updates/private-key.pem` (never in the repo) for when the plan
+is upgraded. To turn it on: add `"codeSigningCertificate": "./certs/certificate.pem"`
+and `"codeSigningMetadata": { "keyid": "main", "alg": "rsa-v1_5-sha256" }` to
+`updates`, ship a store build, and publish every update with
+`eas update --private-key-path ~/.waves-keys/updates/private-key.pem`. Until then
+the defence is the Expo account itself: 2FA on, and no long-lived access tokens.

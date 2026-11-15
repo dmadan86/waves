@@ -55,6 +55,7 @@ export default async function ComparePage({
 
   return (
     <CompareShell
+      current
       t={t}
       jsonLd={compareJsonLd({
         path,

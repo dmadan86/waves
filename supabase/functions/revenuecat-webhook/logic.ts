@@ -72,6 +72,7 @@ export interface RcEvent {
   cancel_reason?: string | null;
   transferred_from?: string[] | null;
   transferred_to?: string[] | null;
+  subscriber_attributes?: Record<string, { value?: string | null } | undefined> | null;
 }
 
 export type SubscriptionStatus = 'active' | 'grace' | 'expired' | 'cancelled' | 'refunded';
@@ -95,12 +96,31 @@ export interface TransferAction {
   to: string;
 }
 
+/** A company storage pack (waves_company_storage_1gb / _5gb): sets that company's quota, not a Pro row. */
+export interface CompanyStorageAction {
+  kind: 'company_storage';
+  /** From the `company_group_id` subscriber attribute; null when the event carries none. */
+  group_id: string | null;
+  /** 0 when the pack ended (expired, refunded); the server then reverts to the free default. */
+  pack_bytes: number;
+  store_txn_id: string;
+}
+
+/** A company slot (waves_company_slot_monthly): one extra owned company, bound server-side on creation. */
+export interface CompanySlotAction {
+  kind: 'company_slot';
+  /** False once the subscription ended (expired, refunded); the bound company then turns read-only. */
+  active: boolean;
+  store_txn_id: string;
+}
+
 export interface IgnoreAction {
   kind: 'ignore';
   reason: string;
 }
 
-export type Action = UpsertAction | TransferAction | IgnoreAction;
+export type Action =
+  UpsertAction | TransferAction | CompanyStorageAction | CompanySlotAction | IgnoreAction;
 
 export interface Mapped {
   eventId: string;
@@ -143,6 +163,33 @@ const HANDLED_TYPES = new Set([
   'EXPIRATION',
   'REFUND',
 ]);
+
+const GIB = 1024 ** 3;
+/** Company storage pack products (monthly subscriptions) and the bytes each adds. */
+export const COMPANY_PACKS: Readonly<Record<string, number>> = {
+  waves_company_storage_1gb: GIB,
+  waves_company_storage_5gb: 5 * GIB,
+};
+export function companyPackBytes(productId: string | null | undefined): number | null {
+  if (!productId) return null;
+  return COMPANY_PACKS[baseProductId(productId)] ?? COMPANY_PACKS[productId] ?? null;
+}
+
+/**
+ * The company slot subscription, one constant to edit once the owner creates the products
+ * (the app mirrors it in apps/mobile/src/lib/companySlots.ts). Same id on Android and iOS.
+ */
+export const COMPANY_SLOT_PRODUCT_IDS: readonly string[] = ['waves_company_slot_monthly'];
+export const COMPANY_SLOT_ENTITLEMENT = 'company_slot';
+export function isCompanySlot(event: RcEvent): boolean {
+  const ids = event.entitlement_ids ?? (event.entitlement_id ? [event.entitlement_id] : []);
+  const product = event.product_id ?? '';
+  return (
+    ids.includes(COMPANY_SLOT_ENTITLEMENT) ||
+    COMPANY_SLOT_PRODUCT_IDS.includes(baseProductId(product)) ||
+    COMPANY_SLOT_PRODUCT_IDS.includes(product)
+  );
+}
 
 function iso(ms: number | null | undefined): string | null {
   return typeof ms === 'number' && Number.isFinite(ms) && ms > 0
@@ -232,6 +279,46 @@ export function mapEvent(event: RcEvent, options: { ignoreSandbox?: boolean } = 
     event.transaction_id ||
     (type === 'TEMPORARY_ENTITLEMENT_GRANT' && eventId ? `temp:${eventId}` : null);
   if (!txn) return ignore('no transaction id');
+
+  // A company slot never grants Pro or a quota: it only lets its buyer own one more company.
+  if (isCompanySlot(event)) {
+    // RevenueCat's stand-in while a store is down: it has no real transaction to bind or expire, so
+    // it could never be taken back. The real purchase that follows opens the slot.
+    if (type === 'TEMPORARY_ENTITLEMENT_GRANT')
+      return ignore('temporary grant does not open a slot');
+    const status = statusFor(event);
+    return {
+      ...base,
+      action: {
+        kind: 'company_slot',
+        active: status === 'active' || status === 'grace',
+        store_txn_id: txn,
+      },
+    };
+  }
+
+  // A company storage pack changes one company's quota; it is never a Pro subscription.
+  // A change to a bigger pack applies now; a downgrade keeps the current pack until its renewal
+  // arrives as a RENEWAL of the new product (the stores apply downgrades at the period end).
+  const upgrade =
+    type === 'PRODUCT_CHANGE' &&
+    (companyPackBytes(event.new_product_id) ?? 0) > (companyPackBytes(event.product_id) ?? 0);
+  const packProduct = upgrade ? event.new_product_id : event.product_id;
+  const pack = companyPackBytes(packProduct);
+  if (pack !== null) {
+    const status = statusFor(event);
+    const live = status === 'active' || status === 'grace';
+    const group = event.subscriber_attributes?.company_group_id?.value;
+    return {
+      ...base,
+      action: {
+        kind: 'company_storage',
+        group_id: typeof group === 'string' && group.trim() ? group.trim() : null,
+        pack_bytes: live ? pack : 0,
+        store_txn_id: txn,
+      },
+    };
+  }
 
   let tier = tierOf(event);
   let productId = event.product_id ?? null;

@@ -492,3 +492,63 @@ describe('ordering and delivery', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 });
+
+describe('company storage packs', () => {
+  it('goes to the pack RPC, not the subscriptions one', async () => {
+    const { deps, rpc } = makeDeps();
+    const response = await handleRevenueCatWebhook(
+      request(
+        rcEvent('INITIAL_PURCHASE', {
+          product_id: 'waves_company_storage_5gb',
+          entitlement_ids: null,
+          subscriber_attributes: { company_group_id: { value: 'g-1' } },
+        }),
+      ),
+      deps,
+    );
+    expect(response.status).toBe(200);
+    const [name, args] = rpc.mock.calls[0]!;
+    expect(name).toBe('waves_company_storage_pack_apply');
+    expect(args).toMatchObject({
+      p_action: { kind: 'company_storage', group_id: 'g-1', pack_bytes: 5 * 1024 ** 3 },
+    });
+  });
+
+  it('passes a product change with the new company attribute; the database keeps the bound company', async () => {
+    const { deps, rpc } = makeDeps();
+    await handleRevenueCatWebhook(
+      request(
+        rcEvent('PRODUCT_CHANGE', {
+          product_id: 'waves_company_storage_1gb',
+          new_product_id: 'waves_company_storage_5gb',
+          entitlement_ids: null,
+          subscriber_attributes: { company_group_id: { value: 'g-B' } },
+        }),
+      ),
+      deps,
+    );
+    const [name, args] = rpc.mock.calls[0]!;
+    expect(name).toBe('waves_company_storage_pack_apply');
+    expect(args).toMatchObject({
+      p_action: { group_id: 'g-B', pack_bytes: 5 * 1024 ** 3, store_txn_id: expect.any(String) },
+    });
+  });
+});
+
+describe('company slots', () => {
+  it('goes to the slot RPC', async () => {
+    const { deps, rpc } = makeDeps();
+    await handleRevenueCatWebhook(
+      request(
+        rcEvent('INITIAL_PURCHASE', {
+          product_id: 'waves_company_slot_monthly',
+          entitlement_ids: ['company_slot'],
+        }),
+      ),
+      deps,
+    );
+    const [name, args] = rpc.mock.calls[0]!;
+    expect(name).toBe('waves_company_slot_apply');
+    expect(args).toMatchObject({ p_action: { kind: 'company_slot', active: true } });
+  });
+});

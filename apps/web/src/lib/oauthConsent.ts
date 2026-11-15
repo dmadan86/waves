@@ -16,6 +16,8 @@ import { httpUrl } from './safeUrl';
 /** A request that still needs a human decision. */
 export interface PendingConsent {
   authorizationId: string;
+  /** The OAuth client's id: what a company connection is bound to. */
+  clientId: string;
   clientName: string;
   /** The client's own site, or null when it is not safe to render as a link. */
   clientUri: string | null;
@@ -49,7 +51,7 @@ export function readAuthorizationId(params: URLSearchParams): string | null {
 interface DetailsShape {
   authorization_id: string;
   redirect_uri: string;
-  client: { name: string; uri?: string | null };
+  client: { id: string; name: string; uri?: string | null };
   user: { email: string };
 }
 interface RedirectShape {
@@ -78,6 +80,7 @@ export function nextStep(data: DetailsShape | RedirectShape): ConsentStep {
     kind: 'consent',
     pending: {
       authorizationId: data.authorization_id,
+      clientId: data.client.id,
       clientName: data.client.name,
       clientUri: httpUrl(data.client.uri),
       redirectUri: data.redirect_uri,

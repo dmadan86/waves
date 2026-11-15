@@ -49,6 +49,19 @@ const roster = new Map(
 );
 
 describe('memberNameById', () => {
+  it('exports the viewer by profile name while keeping You in the UI', () => {
+    const lookup = new Map([
+      [
+        'self',
+        member({
+          profile_id: 'me',
+          profile: { display_name: 'Madan' } as MemberRow['profile'],
+        }),
+      ],
+    ]);
+    expect(memberNameById(lookup, 'self', options)).toBe('You');
+    expect(memberNameById(lookup, 'self', { ...options, forExport: true })).toBe('Madan');
+  });
   it('names an active member plainly', () => {
     expect(memberNameById(roster, 'active', options)).toBe('Asha');
   });

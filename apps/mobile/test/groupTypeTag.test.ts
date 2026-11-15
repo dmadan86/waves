@@ -9,7 +9,14 @@ import {
 } from '../src/lib/groupTypeTag';
 
 const labels: GroupTypeTagLabels = {
-  types: { trip: 'Trip', home: 'Home', couple: 'Couple', event: 'Event', friends: 'Friends' },
+  types: {
+    trip: 'Trip',
+    home: 'Home',
+    couple: 'Couple',
+    event: 'Event',
+    friends: 'Friends',
+    company: 'Company',
+  },
   events: { wedding_in: 'Wedding', wedding_west: 'Wedding', birthday: 'Birthday', other: 'Event' },
 };
 
@@ -81,5 +88,20 @@ describe('custom tag', () => {
     const long = normaliseGroupTag('x'.repeat(40));
     expect(long).toHaveLength(GROUP_TAG_MAX);
     expect(normaliseGroupTag('a'.repeat(23) + ' b')).toBe('a'.repeat(23));
+  });
+});
+
+describe('groupTypeTag in the activity feed', () => {
+  it('labels a company group Company', () => {
+    expect(groupTypeTag('company', null, labels)).toEqual({
+      type: GroupType.Company,
+      label: 'Company',
+      custom: false,
+    });
+  });
+
+  it('lets the custom tag win over the type', () => {
+    expect(groupTypeTag('company', null, labels, 'Payroll')?.label).toBe('Payroll');
+    expect(groupTypeTag('trip', null, labels, ' Goa ')?.label).toBe('Goa');
   });
 });

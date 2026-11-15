@@ -35,6 +35,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenicGroup } from '@/components/ScenicScope';
 import { useGroup } from '@/data/hooks';
 import { coordLabel, mapsUrl } from '@/lib/location';
 import { InsightsSkeleton } from '@/components/Skeletons';
@@ -50,7 +51,7 @@ interface Place {
   readonly currency: string;
 }
 
-export default function PlacesScreen() {
+function PlacesScreen() {
   const theme = useTheme();
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
@@ -160,3 +161,5 @@ export default function PlacesScreen() {
     </Screen>
   );
 }
+
+export default withScenicGroup(PlacesScreen);

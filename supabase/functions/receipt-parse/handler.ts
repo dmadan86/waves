@@ -26,6 +26,7 @@
 
 import { checkReceipt, type ParsedReceipt } from '../_shared/core.js';
 import { HttpError, json, requireMembership, type SupabaseClient } from '../_shared/auth.ts';
+import { readPath } from '../r2-sign/handler.ts';
 
 /** The media type the model is told, keyed off the stored object's extension. */
 function mediaTypeForPath(path: string): 'image/png' | 'image/webp' | 'image/jpeg' {
@@ -259,6 +260,22 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
     }
 
     const body = (await request.json()) as ParseRequest;
+    const selectors = body as ParseRequest & {
+      bucket?: unknown;
+      companyEntryId?: unknown;
+      attachmentId?: unknown;
+    };
+    if (
+      selectors.bucket === 'company-entry-images' ||
+      selectors.companyEntryId != null ||
+      selectors.attachmentId != null
+    ) {
+      throw new HttpError(
+        400,
+        'BAD_INPUT',
+        'Company images cannot be parsed through the receipt ledger',
+      );
+    }
     if (!body.storagePath && !body.rawText) {
       throw new HttpError(400, 'NOTHING_TO_PARSE', 'Send a photo or some text');
     }
@@ -365,6 +382,7 @@ export async function handleReceiptParse(request: Request, deps: Deps): Promise<
       // bucket RLS. `groupId` was checked by requireMembership above; the client
       // uploads to `${groupId}/${receiptId}.ext`, so require that prefix or a
       // caller could read another group's receipt by passing its object path.
+      readPath(body.storagePath);
       if (!body.storagePath.startsWith(`${body.groupId}/`)) {
         throw new HttpError(403, 'FORBIDDEN', 'That image does not belong to this group');
       }

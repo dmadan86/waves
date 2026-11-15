@@ -36,9 +36,18 @@ export function friendlyError(
   const message =
     typeof error.message === 'string' ? error.message : typeof caught === 'string' ? caught : '';
 
+  // A dropped connection is the phone's state, not a bug: don't report it.
+  // Only transport failures that never reached a server (no HTTP status);
+  // a 5xx or a database error mentioning "timeout" is still reported.
+  const transport =
+    error.status === undefined &&
+    /network request failed|fetch failed|failed to fetch|failed to send a request/i.test(message);
+  const network =
+    transport ||
+    /network request failed|fetch failed|timeout|offline|tls|secure connection/i.test(message);
   // Reported, then replaced. A build that reaches a project without the
   // migration is a deployment mistake somebody has to hear about.
-  reportHandled(caught, where);
+  if (!transport) reportHandled(caught, where);
 
   // No such function or table: the server is older than this build.
   if (error.code === 'PGRST202' || error.code === 'PGRST205' || /schema cache/i.test(message)) {
@@ -76,7 +85,6 @@ export function friendlyError(
   // fallback), never the raw string. The original still goes to the crash
   // report via reportHandled above. Everything else is a sentence about the
   // schema, so it stays in the crash report only.
-  if (/network request failed|fetch failed|timeout|offline|tls|secure connection/i.test(message))
-    return offline ?? fallback;
+  if (network) return offline ?? fallback;
   return fallback;
 }

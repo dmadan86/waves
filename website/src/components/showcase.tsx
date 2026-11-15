@@ -10,10 +10,7 @@ export function Showcase({ t }: { t: Dictionary['showcase'] }) {
       <div className="mx-auto grid w-full max-w-[73rem] items-center gap-6 px-5 sm:px-8 lg:grid-cols-[0.85fr_1.35fr]">
         <div>
           <Kicker>{t.eyebrow}</Kicker>
-          <h2
-            id="showcase-title"
-            className="mt-3 text-[2.6rem] leading-[1.06] font-bold tracking-[-0.035em] text-ink sm:text-[3.1rem]"
-          >
+          <h2 id="showcase-title" className="display mt-3 text-[2.8rem] text-ink sm:text-[3.4rem]">
             {t.title.map((line) => (
               <span key={line} className="block">
                 {line}
@@ -29,13 +26,15 @@ export function Showcase({ t }: { t: Dictionary['showcase'] }) {
             <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
           </a>
         </div>
-        <div className="art-plate relative aspect-[508/510] w-full max-w-[34rem] justify-self-center">
+        {/* The artwork is cropped through the left phone, so that edge fades into the card
+            instead of a hard clip (iPhone users read the clip as a broken image). */}
+        <div className="relative aspect-[525/510] w-full max-w-[34rem] justify-self-center overflow-hidden rounded-[1.6rem] bg-[#fbfaff]">
           <Image
             src="/home/app-screens.webp"
             alt={t.alt}
             fill
             sizes="(min-width: 1024px) 34rem, 100vw"
-            className="art-blend object-contain [clip-path:polygon(7.5%_0,100%_0,100%_100%,0_100%,0_80%,1.5%_60%,3.5%_40%,5%_20%)]"
+            className="object-contain [mask-image:linear-gradient(to_right,transparent,#000_12%)]"
           />
         </div>
       </div>

@@ -72,6 +72,12 @@ export const LIMITS = {
    * retry loop spending a month of reads in seconds.
    */
   'parse-statement': { limit: 20, windowSeconds: 60 },
+  /**
+   * Ask about my spending: one model call per question. The monthly quota
+   * (`waves_spending_ask_quota`) is the billing gate; this stops a stuck retry
+   * loop spending a month of questions in seconds.
+   */
+  'spending-ask': { limit: 10, windowSeconds: 60 },
   'voice-stream-token': { limit: 12, windowSeconds: 60 },
   /** One per mic press, like the token it replaces. */
   'voice-stream': { limit: 12, windowSeconds: 60 },
@@ -99,7 +105,15 @@ export const LIMITS = {
    * `app_config`; this is the value that ships.
    */
   'otp-send': { limit: 3, windowSeconds: 86400 },
+  /**
+   * Two-step codes (trust, verify, authenticator). Fails closed. With the 10-wrong-codes lock in
+   * `waves_two_step_attempt`, guessing a 6-digit code is hopeless; this also caps a phone's launch-time trust calls.
+   */
+  'two-step': { limit: 10, windowSeconds: 600 },
 } as const;
+
+/** Buckets where a broken limiter must not block the person (saving their own data). */
+const FAIL_OPEN: ReadonlySet<string> = new Set(['sync']);
 
 export type Bucket = keyof typeof LIMITS;
 
@@ -109,17 +123,16 @@ export type Bucket = keyof typeof LIMITS;
  * A profile when there is one. Otherwise the client address, prefixed so it can
  * never be mistaken for — or collide with — a profile id.
  *
- * `x-forwarded-for` is a list, and the first entry is the client as seen by the
- * first proxy. It is spoofable in general; behind Supabase's gateway the last
- * hop is rewritten, and in any case the fallback matters only for the one
- * unauthenticated path. Somebody willing to forge headers per request gets a
- * slower oracle rather than an open one, which is the point.
+ * `x-forwarded-for` is a list; the client controls everything but the last
+ * entry, which Supabase's gateway appends. Using the last one means forging
+ * the header cannot mint a fresh allowance per request.
  */
 export function subjectFor(request: Request, profileId?: string | null): string {
   if (profileId) return profileId;
+  // The LAST x-forwarded-for entry is the one Supabase's gateway appended; earlier ones are client-supplied and forgeable.
   const forwarded = request.headers.get('x-forwarded-for') ?? '';
-  const first = forwarded.split(',')[0]?.trim();
-  return `ip:${first || 'unknown'}`;
+  const last = forwarded.split(',').pop()?.trim();
+  return `ip:${last || 'unknown'}`;
 }
 
 interface Decision {
@@ -136,11 +149,12 @@ interface Decision {
  * `service_role` alone. It takes the subject as an argument, so a client able
  * to call it could spend somebody else's allowance for them.
  *
- * Fails open. If the count cannot be taken the request proceeds, because the
+ * Fails open for `sync` only. If the count cannot be taken the request proceeds, because the
  * only way that happens is the database being unreachable — and every one of
  * these functions is about to talk to that same database anyway. A limiter that
  * turns a database blip into a total outage has done more damage than the abuse
- * it was watching for.
+ * it was watching for. Every other bucket fronts a paid model or a heavy job,
+ * so there a failed count is a 503 (retryable) rather than free unmetered use.
  */
 export async function enforceRateLimit(
   service: SupabaseClient,
@@ -159,8 +173,14 @@ export async function enforceRateLimit(
   });
 
   if (error) {
-    console.error(`rate limit check failed for ${bucket}, allowing:`, error.message);
-    return;
+    if (FAIL_OPEN.has(bucket)) {
+      console.error(`rate limit check failed for ${bucket}, allowing:`, error.message);
+      return;
+    }
+    console.error(`rate limit check failed for ${bucket}, refusing:`, error.message);
+    throw new HttpError(503, 'RATE_LIMIT_UNAVAILABLE', 'Please try again in a moment.', {
+      'Retry-After': '5',
+    });
   }
 
   const decision = data as Decision | null;

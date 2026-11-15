@@ -423,7 +423,7 @@ function readGroup(
   const name = m?.[1]?.trim();
   if (!m || !name) return null;
   if (PERSONAL_RE.test(name)) return target.kind === 'group' ? { groupId: null } : null;
-  const resolved = resolveSpokenGroup(name, ctx.groups ?? []);
+  const resolved = resolveSpokenGroup(name, ctx.groups ?? [], false);
   if (resolved.status !== 'resolved') return 'unresolved';
   if (resolved.id === target.groupId) return null;
   return { groupId: resolved.id };

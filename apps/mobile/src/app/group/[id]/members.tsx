@@ -1,13 +1,16 @@
-import { useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import {
   Badge,
   Button,
   Callout,
   Card,
+  Chip,
+  ChipRow,
   directionalIcon,
   IconButton,
   iconSize,
@@ -19,44 +22,90 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { EMPLOYEE_ID_MAX } from '@waves/core';
+
+import { withScenicGroup } from '@/components/ScenicScope';
 import { familyOf } from '@/lib/families';
 import { useFlagEnabled } from '@/lib/flags';
 import { type PickedContact } from '@/components/ContactPicker';
 import {
+  useAddCompanyPastPeople,
   useAddGhostMember,
+  useCompanyPastPeople,
   useDecideMemberClaim,
   useGroup,
   useGroupLedger,
   useMemberClaims,
 } from '@/data/hooks';
 import { useBlockedUsers } from '@/data/blocked';
-import { displayName, groupLabel, isBlockedMember, isGhost, payableAt } from '@/data/types';
+import {
+  useAssignCompanyMember,
+  useEmployeeIdTaken,
+  useSetEmployeeId,
+  useCompanyProjects,
+  useSetMemberProjects,
+} from '@/data/companyEntries';
+import {
+  displayName,
+  groupLabel,
+  GroupType,
+  isBlockedMember,
+  isGhost,
+  isViewer,
+  payableAt,
+} from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { requestContacts } from '@/lib/contactPickerBridge';
+import { foldPastPeople, searchPastPeople } from '@/lib/companyPastPeople';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import { isPhoneCountryError } from '@/lib/phone';
 import { useBottomClearance } from '@/lib/clearance';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
-export default function MembersScreen() {
+const TEAM = require('../../../../assets/images/company/team.webp') as number;
+
+function MembersScreen() {
   const theme = useTheme();
+  const inputStyle = {
+    flex: 1,
+    fontSize: 15,
+    color: theme.color.text,
+    paddingVertical: 0,
+  } as const;
   const clearance = useBottomClearance();
   const { t, locale } = useStrings();
   const { id } = useLocalSearchParams<{ id: string }>();
   const groupId = id ?? '';
-  const { profile } = useAuth();
+  const { profile, session } = useAuth();
 
   const { group, members } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, profile?.id ?? null);
   const { blockedIds } = useBlockedUsers();
+  const setEmployeeId = useSetEmployeeId(groupId);
+  const isTaken = useEmployeeIdTaken(groupId, members.data ?? []);
+  const [employeeId, setEmployeeIdDraft] = useState('');
+  const [employeeIdError, setEmployeeIdError] = useState<string | null>(null);
+  const [checkingId, setCheckingId] = useState(false);
   const addGhost = useAddGhostMember(groupId);
   const claims = useMemberClaims(groupId);
   const decide = useDecideMemberClaim(groupId);
 
+  const addPast = useAddCompanyPastPeople(groupId);
+  const assign = useAssignCompanyMember(groupId);
+  const setSites = useSetMemberProjects(groupId);
+  const sites = useCompanyProjects(groupId).filter((p) => !p.archived_at);
+  // Where the new person reports ('' = the owners) and which sites they are on.
+  const [reportsTo, setReportsTo] = useState('');
+  const [siteIds, setSiteIds] = useState<string[]>([]);
+
+  const [pastOpen, setPastOpen] = useState(false);
+  const [pastQuery, setPastQuery] = useState('');
+  const [pastPicked, setPastPicked] = useState<ReadonlySet<string>>(new Set());
   const [ghostName, setGhostName] = useState('');
   const [ghostContact, setGhostContact] = useState('');
+  const [ghostEmail, setGhostEmail] = useState('');
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
@@ -64,6 +113,39 @@ export default function MembersScreen() {
   const currency = group.data?.default_currency ?? 'INR';
   const familiesOn = useFlagEnabled('group_units');
   const ghosts = (members.data ?? []).filter(isGhost);
+
+  // A company's roster is private: only its admins add people (the server
+  // refuses anybody else). Normal groups are unchanged — any member adds.
+  const isCompany = group.data?.type === GroupType.Company;
+  const iAmAdmin = (members.data ?? []).some(
+    (member) => isViewer(member, profile?.id) && member.role === 'admin' && !member.left_at,
+  );
+  // A manager adds employees to their own team (the server forces the team); only owners pick from past companies.
+  const iAmManager = (members.data ?? []).some(
+    (member) => isViewer(member, profile?.id) && member.role === 'manager' && !member.left_at,
+  );
+  const canAdd = !isCompany || iAmAdmin || iAmManager;
+  const companyManagers = (members.data ?? []).filter(
+    (member) => member.role === 'manager' && !member.left_at,
+  );
+  const past = useCompanyPastPeople(groupId, isCompany && iAmAdmin && pastOpen);
+  const pastPeople = useMemo(() => foldPastPeople(past.data ?? []), [past.data]);
+  const pastShown = useMemo(() => searchPastPeople(pastPeople, pastQuery), [pastPeople, pastQuery]);
+  const addPastPicked = (): void => {
+    setError(null);
+    // Keyed by a stable source id, so a refetch can never shift a tick onto someone else.
+    const ids = pastPeople
+      .filter((person) => pastPicked.has(person.sourceMemberIds[0]!))
+      .flatMap((person) => person.sourceMemberIds);
+    addPast.mutate(ids, {
+      onSuccess: () => {
+        setPastPicked(new Set());
+        setPastOpen(false);
+      },
+      onError: (caught) =>
+        setError(friendlyError(caught, t.misc.couldNotAddGeneric, 'members.addPastPeople')),
+    });
+  };
 
   /**
    * Answering a claim (ADR-006).
@@ -109,17 +191,46 @@ export default function MembersScreen() {
     return trimmed.includes('@') ? { email: trimmed } : { phone: trimmed };
   };
 
-  const add = (): void => {
+  // Queued behind the add with the id chosen here, so offline it lands in order. A manager's hire
+  // is on their own team already (the server forces it); only an owner picks the reporting line.
+  const placeNewPerson = (memberId: string): void => {
+    if (!isCompany) return;
+    if (iAmAdmin && reportsTo) assign.mutate({ memberId, managerId: reportsTo, reason: '' });
+    if (siteIds.length > 0) setSites.mutate({ memberId, projectIds: siteIds });
+  };
+
+  const add = async (): Promise<void> => {
+    if (checkingId || addGhost.isPending) return;
     const name = ghostName.trim();
-    const contact = contactOf(ghostContact);
-    if (!name && !contact.email && !contact.phone) return;
+    // A company asks phone and email in their own fields; other groups keep the one address field.
+    const contact = isCompany
+      ? { phone: ghostContact.trim() || undefined, email: ghostEmail.trim() || undefined }
+      : contactOf(ghostContact);
+    if (isCompany ? !name : !name && !contact.email && !contact.phone) return;
     setError(null);
+    const trimmedId = isCompany ? employeeId.trim() : '';
+    setEmployeeIdError(null);
+    if (trimmedId) {
+      setCheckingId(true);
+      const taken = await isTaken(trimmedId);
+      setCheckingId(false);
+      if (taken) {
+        setEmployeeIdError(t.company.employeeIdTaken);
+        return;
+      }
+    }
     addGhost.mutate(
       { name, ...contact },
       {
-        onSuccess: () => {
+        onSuccess: (memberId) => {
+          placeNewPerson(memberId);
+          if (trimmedId) setEmployeeId.mutate({ memberId, employeeId: trimmedId });
+          setEmployeeIdDraft('');
+          setReportsTo('');
+          setSiteIds([]);
           setGhostName('');
           setGhostContact('');
+          setGhostEmail('');
         },
         onError: (caught) =>
           setError(
@@ -150,11 +261,13 @@ export default function MembersScreen() {
     let reason: string | null = null;
     for (const person of people) {
       try {
-        await addGhost.mutateAsync({
-          name: person.name,
-          email: person.email,
-          phone: person.phone,
-        });
+        placeNewPerson(
+          await addGhost.mutateAsync({
+            name: person.name,
+            email: person.email,
+            phone: person.phone,
+          }),
+        );
       } catch (caught) {
         failed.push(person.name);
         // Report every refusal (friendlyError's side effect sends each to
@@ -194,7 +307,7 @@ export default function MembersScreen() {
 
   return (
     <Screen>
-      <Row style={{ paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md }}>
+      <Row style={{ paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.sm }}>
         <IconButton label={t.common.back} onPress={() => router.back()}>
           <Ionicons
             name={directionalIcon('chevron-back')}
@@ -202,24 +315,42 @@ export default function MembersScreen() {
             color={theme.color.text}
           />
         </IconButton>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text variant="heading">{t.members}</Text>
-          <Text variant="micro" tone="muted">
+        <View style={{ flex: 1 }}>
+          <Text variant="subheading">{t.members}</Text>
+          <Text variant="caption" tone="muted" numberOfLines={1}>
             {groupLabel(group.data, members.data ?? [])}
           </Text>
         </View>
-        <IconButton label={t.people.invite} onPress={() => router.push(`/group/${groupId}/invite`)}>
-          <Ionicons name="share-outline" size={iconSize.md} color={theme.color.brand} />
-        </IconButton>
+        {canAdd ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.people.invite}
+            onPress={() => router.push(`/group/${groupId}/invite`)}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              height: 32,
+              paddingHorizontal: 12,
+              borderRadius: theme.radius.pill,
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Ionicons name="share-outline" size={iconSize.md} color={theme.color.brand} />
+            <Text variant="caption" style={{ color: theme.color.brand, fontWeight: '600' }}>
+              {t.people.invite}
+            </Text>
+          </Pressable>
+        ) : null}
       </Row>
 
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
-          paddingHorizontal: theme.spacing.xl,
-          paddingTop: theme.spacing.lg,
+          paddingHorizontal: theme.spacing.lg,
+          paddingTop: theme.spacing.md,
           paddingBottom: clearance,
-          gap: theme.spacing.xl,
+          gap: theme.spacing.md,
         }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -262,23 +393,34 @@ export default function MembersScreen() {
           </Card>
         ) : null}
 
-        <Card padded={false} style={{ paddingHorizontal: theme.spacing.lg }}>
+        <Card padded={false} style={{ paddingHorizontal: theme.spacing.md }}>
           {(members.data ?? []).map((member, index) => (
             <View key={member.id}>
               <ListRow
                 title={displayName(member, profile?.id, blockedIds, t.misc.someone)}
                 subtitle={
-                  isGhost(member)
-                    ? t.notJoinedYet
-                    : isBlockedMember(member, blockedIds)
-                      ? // A payment handle carries a name, an address or a
-                        // phone number — masked for a blocked person.
-                        t.misc.noUpiYet
-                      : // `payableAt`, not the legacy column alone: the rail
-                        // pair is where a handle lives now, and reading only
-                        // `vpa`/`default_vpa` told everybody on Pix, PayID or
-                        // Venmo that they had given nothing.
-                        (payableAt(member)?.handle ?? t.misc.noUpiYet)
+                  [
+                    isCompany ? member.employee_id : null,
+                    isCompany && isViewer(member, profile?.id)
+                      ? // A company roster shows the address, not a payment handle.
+                        (session?.user?.email ?? undefined)
+                      : isCompany && !isBlockedMember(member, blockedIds)
+                        ? (member.invite_email ?? member.invite_phone ?? undefined) ||
+                          (isGhost(member) ? t.notJoinedYet : undefined)
+                        : isGhost(member)
+                          ? t.notJoinedYet
+                          : isBlockedMember(member, blockedIds)
+                            ? // A payment handle carries a name, an address or a
+                              // phone number — masked for a blocked person.
+                              t.misc.noUpiYet
+                            : // `payableAt`, not the legacy column alone: the rail
+                              // pair is where a handle lives now, and reading only
+                              // `vpa`/`default_vpa` told everybody on Pix, PayID or
+                              // Venmo that they had given nothing.
+                              (payableAt(member)?.handle ?? t.misc.noUpiYet),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || undefined
                 }
                 leading={
                   <PersonAvatar
@@ -293,8 +435,17 @@ export default function MembersScreen() {
                     {familiesOn && familyOf(group.data?.units, member.id) ? (
                       <Badge label={familyOf(group.data?.units, member.id)?.name ?? ''} />
                     ) : null}
+                    {member.role === 'manager' ? (
+                      <Badge label={t.company.manager} tone="brand" />
+                    ) : null}
                     {member.role === 'admin' && !isGhost(member) ? (
-                      <Badge label={t.people.admin} tone="brand" />
+                      <Badge
+                        label={t.people.admin}
+                        tone="brand"
+                        icon={(color) => (
+                          <MaterialCommunityIcons name="crown" size={12} color={color} />
+                        )}
+                      />
                     ) : null}
                     <MoneyText
                       amount={ledger.balances.get(member.id) ?? 0n}
@@ -302,6 +453,23 @@ export default function MembersScreen() {
                       locale={locale}
                       mode="balance"
                     />
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel={displayName(
+                        member,
+                        profile?.id,
+                        blockedIds,
+                        t.misc.someone,
+                      )}
+                      hitSlop={12}
+                      onPress={() => router.push(`/group/${groupId}/member/${member.id}`)}
+                    >
+                      <Ionicons
+                        name="ellipsis-vertical"
+                        size={iconSize.md}
+                        color={theme.color.textMuted}
+                      />
+                    </Pressable>
                   </Row>
                 }
               />
@@ -332,98 +500,304 @@ export default function MembersScreen() {
             link and our QR are the same screen. A third tile pointing at the
             same place would be the second door that this app keeps deciding not
             to build. */}
-        <Card style={{ gap: theme.spacing.lg }}>
-          <Text variant="caption" tone="muted">
-            {t.people.addSomeone}
-          </Text>
-
-          <Row style={{ gap: theme.spacing.sm }}>
-            <AddTile
-              icon="people-outline"
-              label={t.people.browseContacts}
-              onPress={openContactPicker}
-            />
-            <AddTile
-              icon="link-outline"
-              label={t.people.shareInvite}
-              onPress={() => router.push(`/group/${groupId}/invite`)}
-            />
-          </Row>
-
-          {/* A rule with the alternative written into it, so the fields below
-              read as the other way rather than as the only way. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
-            <Text variant="micro" tone="faint">
-              {t.people.orByName}
-            </Text>
-            <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
-          </Row>
-
-          <View style={{ gap: theme.spacing.sm }}>
-            <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-              <TextInput
-                value={ghostName}
-                onChangeText={setGhostName}
-                placeholder={t.people.namePlaceholder}
-                placeholderTextColor={theme.color.textFaint}
-                accessibilityLabel={t.common.name}
-                onSubmitEditing={add}
-                returnKeyType="done"
-                style={{
-                  flex: 1,
-                  fontSize: 17,
-                  fontWeight: '600',
-                  color: theme.color.text,
-                  borderWidth: 1,
-                  borderColor: theme.color.border,
-                  borderRadius: theme.radius.lg,
-                  paddingHorizontal: theme.spacing.md,
-                  paddingVertical: theme.spacing.sm,
-                }}
-              />
-              <Button
-                label={t.add}
-                size="sm"
-                disabled={(!ghostName.trim() && !ghostContact.trim()) || addGhost.isPending}
-                onPress={add}
-              />
+        {canAdd ? (
+          <Card style={{ gap: theme.spacing.md, padding: 14 }}>
+            <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                <Text variant="subheading">
+                  {isCompany ? t.company.addEmployee : t.people.addSomeone}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {isCompany ? t.company.addEmployeeBody : t.people.addSomeoneBody}
+                </Text>
+              </View>
+              {isCompany ? (
+                <Image
+                  source={TEAM}
+                  accessibilityIgnoresInvertColors
+                  fadeDuration={0}
+                  style={{ width: 100, height: 62, borderRadius: 10 }}
+                />
+              ) : null}
             </Row>
 
-            {/* The contact is optional and looked compulsory: a second field of
-                the same weight directly under the first reads as the rest of the
-                form. It is a quieter, smaller row now, and says so in its own
-                placeholder. */}
-            <TextInput
-              value={ghostContact}
-              onChangeText={setGhostContact}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              placeholder={t.people.contactPlaceholder}
-              placeholderTextColor={theme.color.textFaint}
-              accessibilityLabel={t.common.emailOrPhone}
-              onSubmitEditing={add}
-              returnKeyType="done"
-              style={{
-                fontSize: 15,
-                color: theme.color.text,
-                borderWidth: 1,
-                borderColor: theme.color.border,
-                borderRadius: theme.radius.lg,
-                paddingHorizontal: theme.spacing.md,
-                paddingVertical: theme.spacing.sm,
-              }}
-            />
-            <Text variant="micro" tone="muted">
-              {t.misc.nameAloneBody}
-            </Text>
-          </View>
+            <Row style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
+              <AddTile
+                icon="people-outline"
+                label={isCompany ? t.company.fromContacts : t.people.browseContacts}
+                body={isCompany ? t.company.fromContactsBody : t.people.browseContactsBody}
+                onPress={openContactPicker}
+                tone="violet"
+              />
+              {isCompany ? (
+                <AddTile
+                  icon="business-outline"
+                  label={t.company.fromPastCompany}
+                  body={t.company.fromPastCompanyBody}
+                  onPress={() => setPastOpen((open) => !open)}
+                  tone="blue"
+                />
+              ) : (
+                <AddTile
+                  icon="link-outline"
+                  label={t.people.shareInvite}
+                  body={t.people.shareInviteBody}
+                  onPress={() => router.push(`/group/${groupId}/invite`)}
+                  tone="violet"
+                />
+              )}
+            </Row>
 
-          {addGhost.isPending || adding ? <ActivityIndicator color={theme.color.brand} /> : null}
-          {error ? <Callout tone="negative">{error}</Callout> : null}
-        </Card>
+            {isCompany && pastOpen ? (
+              <View style={{ gap: theme.spacing.sm }}>
+                <Field icon="search-outline">
+                  <TextInput
+                    value={pastQuery}
+                    onChangeText={setPastQuery}
+                    placeholder={t.company.pastSearch}
+                    placeholderTextColor={theme.color.textFaint}
+                    accessibilityLabel={t.company.pastSearch}
+                    style={{
+                      flex: 1,
+                      fontSize: 16,
+                      color: theme.color.text,
+                      paddingVertical: theme.spacing.sm,
+                    }}
+                  />
+                </Field>
+                {past.isLoading ? <ActivityIndicator color={theme.color.brand} /> : null}
+                {past.isError ? (
+                  <Callout tone="negative">{t.company.pastLoadFailed}</Callout>
+                ) : null}
+                {past.data && pastShown.length === 0 ? (
+                  <Text variant="caption" tone="muted">
+                    {t.company.pastEmpty}
+                  </Text>
+                ) : null}
+                {pastShown.map((person) => {
+                  const key = person.sourceMemberIds[0]!;
+                  const on = pastPicked.has(key);
+                  return (
+                    <Pressable
+                      key={person.sourceMemberIds[0]}
+                      accessibilityRole="checkbox"
+                      accessibilityState={{ checked: on }}
+                      onPress={() =>
+                        setPastPicked((prev) => {
+                          const next = new Set(prev);
+                          if (on) next.delete(key);
+                          else next.add(key);
+                          return next;
+                        })
+                      }
+                    >
+                      <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+                        <PersonAvatar name={person.name} ghost />
+                        <View style={{ flex: 1 }}>
+                          <Text variant="body" numberOfLines={1}>
+                            {person.name}
+                          </Text>
+                          <Text variant="micro" tone="muted" numberOfLines={1}>
+                            {fill(t.company.pastFrom, { companies: person.companies.join(', ') })}
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={on ? 'checkbox' : 'square-outline'}
+                          size={iconSize.lg}
+                          color={on ? theme.color.brand : theme.color.textMuted}
+                        />
+                      </Row>
+                    </Pressable>
+                  );
+                })}
+                <Button
+                  label={fill(t.company.pastAddSelected, { n: String(pastPicked.size) })}
+                  disabled={pastPicked.size === 0 || addPast.isPending}
+                  onPress={addPastPicked}
+                />
+              </View>
+            ) : null}
 
-        {ghosts.length > 0 ? (
+            {/* A rule with the alternative written into it, so the fields below
+              read as the other way rather than as the only way. */}
+            <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+              <Text variant="micro" tone="faint">
+                {t.people.orAddManually}
+              </Text>
+              <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
+            </Row>
+
+            <View style={{ gap: theme.spacing.sm }}>
+              <Field icon="person-outline">
+                <TextInput
+                  value={ghostName}
+                  onChangeText={setGhostName}
+                  placeholder={isCompany ? t.company.fullNameRequired : t.people.namePlaceholder}
+                  placeholderTextColor={theme.color.textFaint}
+                  accessibilityLabel={t.common.name}
+                  onSubmitEditing={add}
+                  returnKeyType="done"
+                  style={inputStyle}
+                />
+              </Field>
+              {isCompany ? <Helper>{t.people.namePlaceholder}</Helper> : null}
+              {isCompany ? (
+                <>
+                  <Field icon="id-card-outline">
+                    <TextInput
+                      value={employeeId}
+                      onChangeText={(next) => {
+                        setEmployeeIdDraft(next);
+                        setEmployeeIdError(null);
+                      }}
+                      maxLength={EMPLOYEE_ID_MAX}
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      placeholder={t.company.employeeIdOptional}
+                      accessibilityLabel={t.company.employeeIdOptional}
+                      placeholderTextColor={theme.color.textFaint}
+                      style={inputStyle}
+                    />
+                  </Field>
+                  {employeeIdError ? <Callout tone="negative">{employeeIdError}</Callout> : null}
+                </>
+              ) : null}
+              {isCompany ? (
+                <>
+                  <Field icon="call-outline">
+                    <TextInput
+                      value={ghostContact}
+                      onChangeText={setGhostContact}
+                      keyboardType="phone-pad"
+                      placeholder={t.company.phoneOptional}
+                      placeholderTextColor={theme.color.textFaint}
+                      accessibilityLabel={t.company.phoneOptional}
+                      returnKeyType="next"
+                      style={inputStyle}
+                    />
+                  </Field>
+                  <Helper>{t.company.phoneHelper}</Helper>
+                  <Field icon="mail-outline">
+                    <TextInput
+                      value={ghostEmail}
+                      onChangeText={setGhostEmail}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      placeholder={t.company.emailOptional}
+                      placeholderTextColor={theme.color.textFaint}
+                      accessibilityLabel={t.company.emailOptional}
+                      onSubmitEditing={add}
+                      returnKeyType="done"
+                      style={inputStyle}
+                    />
+                  </Field>
+                  <Helper>{t.company.emailHelper}</Helper>
+                  {iAmAdmin && companyManagers.length > 0 ? (
+                    <View style={{ gap: theme.spacing.xs }}>
+                      <Text variant="caption" tone="muted">
+                        {t.company.reportsTo}
+                      </Text>
+                      <ChipRow
+                        wrap
+                        options={[
+                          { value: '', label: t.company.owners },
+                          ...companyManagers.map((m) => ({
+                            value: m.id as string,
+                            label: displayName(m, null, null, t.misc.someone),
+                          })),
+                        ]}
+                        value={reportsTo}
+                        onChange={setReportsTo}
+                      />
+                    </View>
+                  ) : null}
+                  {sites.length > 0 ? (
+                    <View style={{ gap: theme.spacing.xs }}>
+                      <Text variant="caption" tone="muted">
+                        {t.company.sites}
+                      </Text>
+                      <View
+                        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}
+                      >
+                        {sites.map((site) => {
+                          const on = siteIds.includes(site.id);
+                          return (
+                            <Chip
+                              key={site.id}
+                              label={site.name}
+                              selected={on}
+                              repeatable
+                              onPress={() =>
+                                setSiteIds((cur) =>
+                                  on ? cur.filter((id) => id !== site.id) : [...cur, site.id],
+                                )
+                              }
+                            />
+                          );
+                        })}
+                      </View>
+                    </View>
+                  ) : null}
+                </>
+              ) : (
+                <Field icon="at-outline">
+                  <TextInput
+                    value={ghostContact}
+                    onChangeText={setGhostContact}
+                    autoCapitalize="none"
+                    keyboardType="email-address"
+                    placeholder={t.people.contactOptional}
+                    placeholderTextColor={theme.color.textFaint}
+                    accessibilityLabel={t.common.emailOrPhone}
+                    onSubmitEditing={add}
+                    returnKeyType="done"
+                    style={inputStyle}
+                  />
+                </Field>
+              )}
+              <Row
+                style={{
+                  alignItems: 'flex-start',
+                  gap: theme.spacing.sm,
+                  padding: theme.spacing.sm,
+                  borderRadius: theme.radius.lg,
+                  backgroundColor: theme.color.brandSoft,
+                }}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={iconSize.md}
+                  color={theme.color.brand}
+                />
+                <Text
+                  variant="caption"
+                  tone="muted"
+                  style={{ flex: 1, fontSize: 12, lineHeight: 16 }}
+                >
+                  {isCompany ? t.company.nameAloneBody : t.misc.nameAloneBody}
+                </Text>
+              </Row>
+              <Button
+                label={isCompany ? t.company.qaAddEmployee : t.people.addToGroupButton}
+                fullWidth
+                disabled={
+                  (isCompany ? !ghostName.trim() : !ghostName.trim() && !ghostContact.trim()) ||
+                  addGhost.isPending ||
+                  checkingId
+                }
+                onPress={add}
+              />
+            </View>
+
+            {addGhost.isPending || adding || addPast.isPending ? (
+              <ActivityIndicator color={theme.color.brand} />
+            ) : null}
+            {error ? <Callout tone="negative">{error}</Callout> : null}
+          </Card>
+        ) : null}
+
+        {canAdd && ghosts.length > 0 ? (
           <Row style={{ justifyContent: 'space-between' }}>
             <Badge label={plural(locale, ghosts.length, t.people.yetToJoin)} />
             <Text
@@ -451,33 +825,100 @@ export default function MembersScreen() {
 function AddTile({
   icon,
   label,
+  body,
   onPress,
+  tone,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
+  body: string;
   onPress: () => void;
+  tone: 'violet' | 'blue';
 }) {
   const theme = useTheme();
+  const blue = tone === 'blue' && theme.scheme !== 'dark';
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={`${label}, ${body}`}
       onPress={onPress}
       style={({ pressed }) => ({
         flex: 1,
-        alignItems: 'center',
-        gap: theme.spacing.xs,
-        paddingVertical: theme.spacing.md,
-        paddingHorizontal: theme.spacing.sm,
+        gap: 2,
+        padding: 10,
         borderRadius: theme.radius.lg,
-        backgroundColor: theme.color.brandSoft,
+        backgroundColor: blue ? '#E4EEFF' : theme.color.brandSoft,
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.brand} />
-      <Text variant="caption" tone="brand" numberOfLines={1} style={{ fontWeight: '700' }}>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <View
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: blue ? '#CFE0FF' : theme.color.surface,
+          }}
+        >
+          <Ionicons name={icon} size={iconSize.md} color={blue ? '#2F6FE0' : theme.color.brand} />
+        </View>
+        <View
+          style={{
+            width: 20,
+            height: 20,
+            borderRadius: 10,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: theme.color.surface,
+          }}
+        >
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={12}
+            color={blue ? '#2F6FE0' : theme.color.brand}
+          />
+        </View>
+      </Row>
+      <Text variant="body" style={{ fontWeight: '700', fontSize: 14 }}>
         {label}
+      </Text>
+      <Text variant="micro" tone="muted" numberOfLines={2} style={{ fontSize: 12, lineHeight: 15 }}>
+        {body}
       </Text>
     </Pressable>
   );
 }
+
+/** A bordered input row with a leading glyph. */
+function Field({ icon, children }: { icon: keyof typeof Ionicons.glyphMap; children: ReactNode }) {
+  const theme = useTheme();
+  return (
+    <Row
+      style={{
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        height: 44,
+        borderWidth: 1,
+        borderColor: theme.color.border,
+        borderRadius: theme.radius.lg,
+        paddingHorizontal: theme.spacing.md,
+      }}
+    >
+      <Ionicons name={icon} size={iconSize.md} color={theme.color.textMuted} />
+      {children}
+    </Row>
+  );
+}
+
+/** A muted helper line under a field, inset to line up with the text. */
+function Helper({ children }: { children: ReactNode }) {
+  return (
+    <Text variant="micro" tone="muted" style={{ marginTop: -4, marginStart: 36, fontSize: 12 }}>
+      {children}
+    </Text>
+  );
+}
+
+export default withScenicGroup(MembersScreen);

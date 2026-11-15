@@ -50,6 +50,8 @@ interface GroupPhotoProps {
   bare?: boolean;
   /** A circle rather than the rounded square. */
   round?: boolean;
+  /** Draw as a company logo even before it has a `logo.*` path (a staged pick). */
+  logo?: boolean;
 }
 
 export function GroupPhoto({
@@ -64,6 +66,7 @@ export function GroupPhoto({
   background,
   bare = false,
   round = false,
+  logo = false,
 }: GroupPhotoProps) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -73,6 +76,8 @@ export function GroupPhoto({
   // drawn offline, and under the full image while it loads online.
   const thumb = localThumbUri('group-photos', photoPath);
   const source = localUri ?? url ?? thumb;
+  // A company logo (`<group>/logo.*`) is fitted with padding on a white tile, never cropped.
+  const isLogo = logo || Boolean(photoPath && /\/logo\.[a-z0-9]+$/i.test(photoPath));
 
   const body = (
     <View
@@ -83,7 +88,8 @@ export function GroupPhoto({
         overflow: 'hidden',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: bare ? 'transparent' : tile.backgroundColor,
+        backgroundColor: isLogo && source ? '#FFFFFF' : bare ? 'transparent' : tile.backgroundColor,
+        padding: isLogo && source ? size * 0.08 : 0,
       }}
     >
       {busy ? (
@@ -99,9 +105,9 @@ export function GroupPhoto({
           // (`signedUrlCache`) is what keeps the cache warm between mounts.
           recyclingKey={photoPath ?? localUri ?? undefined}
           placeholder={thumb && source !== thumb ? { uri: thumb } : undefined}
-          placeholderContentFit="cover"
+          placeholderContentFit={isLogo ? 'contain' : 'cover'}
           style={{ width: '100%', height: '100%' }}
-          contentFit="cover"
+          contentFit={isLogo ? 'contain' : 'cover'}
           transition={150}
         />
       ) : (

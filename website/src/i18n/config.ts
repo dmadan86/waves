@@ -45,3 +45,11 @@ export const htmlLang: Record<Locale, string> = {
   hi: 'hi',
   ar: 'ar',
 };
+
+/** Open Graph wants language_TERRITORY, not a bare BCP-47 tag. */
+export const ogLocale: Record<Locale, string> = {
+  en: 'en_IN',
+  ta: 'ta_IN',
+  hi: 'hi_IN',
+  ar: 'ar_AE',
+};

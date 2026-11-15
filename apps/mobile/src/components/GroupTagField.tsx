@@ -4,6 +4,7 @@ import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
 import { iconSize, Text, useTheme } from '@waves/ui';
 
+import { SectionLabel } from '@/components/standard';
 import { useStrings } from '@/i18n';
 import { GROUP_TAG_MAX } from '@/lib/groupTypeTag';
 
@@ -122,7 +123,7 @@ export function GroupTagField({
                       paddingHorizontal: theme.spacing.lg,
                       height: 36,
                       justifyContent: 'center',
-                      borderRadius: theme.radius.pill,
+                      borderRadius: theme.radius.sm,
                       backgroundColor: theme.color.brandSoft,
                       borderWidth: selected ? 1.5 : 0,
                       borderColor: theme.color.brand,
@@ -145,12 +146,7 @@ export function GroupTagField({
   return (
     <View style={{ gap: theme.spacing.xs }}>
       {filled ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm }}>
-          <Ionicons name="pricetag-outline" size={20} color={theme.color.textMuted} />
-          <Text style={{ fontSize: 15, lineHeight: 20, fontWeight: '600' }} tone="muted">
-            {t.extras.tagLabel}
-          </Text>
-        </View>
+        <SectionLabel icon="pricetag-outline">{t.extras.tagLabel}</SectionLabel>
       ) : (
         <Text variant="caption" tone="muted">
           {t.extras.tagLabel}
@@ -178,7 +174,7 @@ export function GroupTagField({
                 height: 44,
                 paddingVertical: 0,
                 paddingHorizontal: theme.spacing.md,
-                borderRadius: 22,
+                borderRadius: 12,
                 borderWidth: 1.5,
                 borderColor: focused ? theme.color.brand : 'transparent',
                 backgroundColor: theme.color.surfaceMuted,
@@ -209,7 +205,7 @@ export function GroupTagField({
               style={({ pressed }) => ({
                 paddingHorizontal: theme.spacing.sm,
                 paddingVertical: filled ? 6 : 3,
-                borderRadius: theme.radius.pill,
+                borderRadius: theme.radius.sm,
                 backgroundColor: selected ? theme.color.brandSoft : theme.color.surfaceMuted,
                 opacity: pressed ? 0.6 : 1,
               })}

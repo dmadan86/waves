@@ -27,6 +27,14 @@ export interface TintPair {
   readonly inkMuted: string;
 }
 
+interface ShadowSpec {
+  readonly shadowColor: string;
+  readonly shadowOpacity: number;
+  readonly shadowRadius: number;
+  readonly shadowOffset: { readonly width: number; readonly height: number };
+  readonly elevation: number;
+}
+
 export interface Theme {
   readonly scheme: 'light' | 'dark';
   readonly color: {
@@ -70,10 +78,21 @@ export interface Theme {
     readonly negative: readonly string[];
   };
   readonly tint: Readonly<Record<TintName, TintPair>>;
-  readonly radius: typeof radius;
+  readonly radius: Readonly<Record<keyof typeof radius, number>>;
   readonly spacing: typeof spacing;
-  readonly typography: typeof typography;
-  readonly shadow: typeof shadow;
+  readonly typography: Readonly<
+    Record<
+      keyof typeof typography,
+      {
+        readonly fontSize: number;
+        readonly lineHeight: number;
+        readonly fontWeight: '400' | '500' | '600' | '700';
+      }
+    >
+  >;
+  readonly shadow: Readonly<Record<keyof typeof shadow, ShadowSpec>>;
+  /** True inside `ScenicTheme`: the pre-redesign look of the personal social screens. */
+  readonly scenic?: boolean;
 }
 
 const lightTints: Record<TintName, TintPair> = {

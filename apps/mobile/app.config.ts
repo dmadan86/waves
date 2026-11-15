@@ -202,7 +202,23 @@ export default ({ config: fromAppJson }: ConfigContext): ExpoConfig => {
   // one", and importing `./app.json` directly — which worked, and produced
   // identical output — failed that check and read as a project with two
   // configs disagreeing.
-  const config = withAdMobAppIds(fromAppJson as ExpoConfig);
+  const base = withAdMobAppIds(fromAppJson as ExpoConfig);
+
+  // Which OTA channel this binary asks for (`ota/<runtime>/<channel>/...` in the
+  // update bucket). EAS cloud builds name their profile, so a preview build and
+  // a store build get different updates; a local build keeps app.json's value.
+  const channel =
+    process.env.OTA_CHANNEL ||
+    process.env.EAS_BUILD_PROFILE ||
+    base.updates?.requestHeaders?.['expo-channel-name'] ||
+    'production';
+  const config: ExpoConfig = {
+    ...base,
+    updates: {
+      ...base.updates,
+      requestHeaders: { ...base.updates?.requestHeaders, 'expo-channel-name': channel },
+    },
+  };
 
   const services = googleServicesFile();
   const androidBase = services

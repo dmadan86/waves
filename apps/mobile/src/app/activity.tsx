@@ -1,19 +1,14 @@
-import { NativeAdCard } from '@/components/NativeAdCard';
-import { ReviewBanner } from '@/components/ReviewBanner';
-import { nativePositions } from '@/lib/nativeAdsPure';
+import { withScenic } from '@/components/ScenicScope';
+import { activityLabels, resplitActivityLabel } from '@/data/activityLabels';
+import { AdSlot } from '@/components/AdSlot';
+import { placeSlots } from '@/lib/adPlanPure';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useCallback, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { type Href, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import {
-  Image,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import { Image, Pressable, RefreshControl, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FlashList } from '@shopify/flash-list';
 
@@ -41,17 +36,14 @@ import {
   describeActivity,
   filterByDayRange,
   groupByDay,
-  isGroupChange,
   parseMoney,
 } from '@/data/activity';
-import { activityLabels } from '@/data/activityLabels';
-import { actorName, GroupType } from '@/data/types';
-import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { resplitBatchId } from '@/data/recentActivity';
+import { actorName } from '@/data/types';
 import { GroupMark } from '@/components/GroupMark';
 import { SplitMoney } from '@/components/SplitMoney';
-import { GROUP_TYPE_ICON } from '@/components/DestinationPicker';
-import { useGroupTypeTagLabels } from '@/components/GroupTypeTag';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { GroupTypeTag, useGroupTypeTagLabels } from '@/components/GroupTypeTag';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { HERO_TEXT_SHADOW } from '@/components/person/pairParts';
 import {
   scrimColorsFor,
@@ -70,10 +62,14 @@ import {
   type AmountTone,
   type GlyphFamily,
 } from '@/lib/activityRowPure';
-import { groupTypeTag, type GroupTypeTagLabels } from '@/lib/groupTypeTag';
+import {
+  groupTypeTag,
+  type GroupTypeTag as GroupTypeTagValue,
+  type GroupTypeTagLabels,
+} from '@/lib/groupTypeTag';
 import { useHomeHero } from '@/lib/useHomeHero';
 import { useMarkGroupSeen } from '@/lib/useGroupUnread';
-import { useGroups, useRecentActivity, type RecentActivityRow } from '@/data/hooks';
+import { useGroups, useRecentActivity, useUndoResplit, type RecentActivityRow } from '@/data/hooks';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { router } from '@/lib/navigation';
@@ -93,6 +89,7 @@ import { SyncStatus, useSync } from '@/sync';
 // has to be near-free — recomputing all of that per mount is what let a hard
 // fling outrun the recycler into a blank screen.
 type RowView = {
+  undoBatchId: string | null;
   href: Href;
   /** The whole event as one sentence — the spoken (screen-reader) label. */
   label: string;
@@ -100,9 +97,10 @@ type RowView = {
   headline: string;
   who: string | null;
   groupId: string | null;
-  /** The group's name, for the cross-group feed's subtitle. Null in a scoped
-   *  (single-group) feed where it would be redundant. */
+  /** The group's name, shown consistently across activity kinds. */
   groupName: string | null;
+  /** The group's tag pill, same as Home's: its own tag, else its type. */
+  groupTag: GroupTypeTagValue | null;
   timestamp: string;
   tintKey: TintName;
   glyph: { family: GlyphFamily; name: string };
@@ -119,9 +117,9 @@ type RowView = {
 };
 
 type FeedRow =
-  | { kind: 'ad'; key: string }
+  | { kind: 'ad'; key: string; slot: number }
   | { kind: 'header'; key: string; date: string }
-  | { kind: 'row'; key: string; firstOfDay: boolean; view: RowView };
+  | { kind: 'row'; key: string; firstOfDay: boolean; lastOfDay: boolean; view: RowView };
 
 type RowContext = {
   locale: string;
@@ -173,19 +171,34 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
   // The group's own cover is a mark the app draws (`GroupMark`), not text: set
   // as a raw emoji it printed the plate (🍽️), which the system font lacks, as a
   // broken box. So the meta names the category, or else the kind of group.
-  const kind = g ? groupTypeTag(g.type, null, ctx.groupTagLabels) : null;
+  const groupTag =
+    g && !ctx.scoped
+      ? groupTypeTag(g.type, g.event_template, ctx.groupTagLabels, g.custom_tag)
+      : null;
   const amount = activityAmountStyle(entry.verb);
+  const resplit = resplitActivityLabel(
+    entry,
+    ctx.locale,
+    ctx.t.departedExpenses,
+    ctx.t.misc.someone,
+  );
   return {
+    undoBatchId: resplitBatchId(entry),
     href: activityTarget(entry) as Href,
-    label: describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone, ctx.labels),
-    headline: activityHeadline(entry, ctx.labels),
+    label:
+      resplit ??
+      describeActivity(entry, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone, ctx.labels),
+    headline:
+      resplit ??
+      activityHeadline(entry, ctx.labels, category?.label ?? ctx.t.activityScreen.anExpense),
     // Nobody did an auto-event, so it carries no actor — omit it rather than say
     // "Someone". A blocked or since-left actor still resolves through actorName.
     who: entry.actor
       ? actorName(entry.actor, ctx.myProfileId, ctx.blockedIds, ctx.t.misc.someone)
       : null,
     groupId: g?.id ?? null,
-    groupName: ctx.scoped ? null : g?.name?.trim() || null,
+    groupName: g?.name?.trim() || null,
+    groupTag,
     timestamp: activityTimestamp(ctx.locale, entry.created_at, undefined, ctx.rtf),
     tintKey: glyph.tint,
     glyph,
@@ -193,14 +206,7 @@ function toRowView(entry: RecentActivityRow, ctx: RowContext): RowView {
       ? scopedTag(description, category)
       : category
         ? { ...category.glyph, label: category.label }
-        : kind
-          ? {
-              family: 'ion',
-              name: kind.custom ? 'pricetag' : GROUP_TYPE_ICON[kind.type],
-              label: kind.label,
-              tint: null,
-            }
-          : null,
+        : null,
     money: parseMoney(entry.payload),
     stake: entry.stake,
     amountTone: amount.tone,
@@ -241,21 +247,24 @@ function GlyphIcon({
  */
 const ActivityFeedRow = memo(function ActivityFeedRow({
   view,
+  first,
+  last,
   locale,
   t,
   theme,
-  onMenu,
 }: {
   view: RowView;
+  first: boolean;
+  last: boolean;
   locale: string;
   t: ReturnType<typeof useStrings>['t'];
   theme: ReturnType<typeof useTheme>;
-  onMenu: (view: RowView) => void;
 }) {
   // Each event is its own card: the glyph in a soft tile tinted by what the
   // bill was for (or by the verb, when it is not a bill), the event as a title,
   // who · what · when beneath it, and the money on the right — blue, or red and
-  // struck through once deleted — with a ⋮ for where the event leads.
+  // struck through once deleted — and the row opens the event.
+  const undo = useUndoResplit(view.groupId ?? '');
   const tint = theme.tint[view.tintKey];
   const amount = view.stake ?? view.money;
   const ink = view.amountTone === 'negative' ? theme.color.negative : theme.color.positive;
@@ -265,58 +274,67 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
       accessibilityRole="button"
       accessibilityLabel={view.label}
       onPress={() => router.push(view.href)}
+      // One card per day, rows divided by hairlines — Home's GroupRow sizes.
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        gap: theme.spacing.sm,
+        gap: theme.spacing.md,
         paddingVertical: theme.spacing.sm,
-        paddingStart: theme.spacing.sm,
-        paddingEnd: 2,
-        marginBottom: theme.spacing.sm,
-        borderRadius: 14,
-        borderWidth: 1,
-        borderColor: theme.color.border,
+        paddingHorizontal: theme.spacing.sm,
         backgroundColor: theme.color.surface,
-        opacity: pressed ? 0.7 : 1,
+        borderColor: theme.color.border,
+        borderStartWidth: 1,
+        borderEndWidth: 1,
+        borderTopWidth: 1,
+        borderBottomWidth: last ? 1 : 0,
+        borderTopStartRadius: first ? theme.radius.lg : 0,
+        borderTopEndRadius: first ? theme.radius.lg : 0,
+        borderBottomStartRadius: last ? theme.radius.lg : 0,
+        borderBottomEndRadius: last ? theme.radius.lg : 0,
+        opacity: pressed ? 0.6 : 1,
       })}
     >
       <View
         style={{
-          width: 38,
-          height: 38,
-          borderRadius: 11,
+          width: 44,
+          height: 44,
+          borderRadius: 22,
           alignItems: 'center',
           justifyContent: 'center',
           backgroundColor: tint.bg,
         }}
       >
-        <GlyphIcon
-          family={view.glyph.family}
-          name={view.glyph.name}
-          size={iconSize.md}
-          color={tint.ink}
-        />
+        <GlyphIcon family={view.glyph.family} name={view.glyph.name} size={22} color={tint.ink} />
       </View>
-      <View style={{ flex: 1, gap: 1 }}>
-        <Text
-          numberOfLines={1}
-          style={{ fontSize: 15, lineHeight: 20, fontWeight: '600', color: theme.color.text }}
-        >
+      <View style={{ flex: 1, gap: 2 }}>
+        <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
           {view.headline}
         </Text>
         {/* Who · what · when. What is the expense's category, else the kind of
             group, each with its small icon. An archived group, or one no longer
             on this device, gets a badge. */}
-        <Row style={{ gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-          {view.who ? <MetaText>{`${view.who} ·`}</MetaText> : null}
-          {view.groupName ? <MetaText>{`${view.groupName} ·`}</MetaText> : null}
+        <Row style={{ gap: 4, alignItems: 'center', overflow: 'hidden' }}>
+          {view.who ? <MetaText shrink={0}>{`${view.who} ·`}</MetaText> : null}
+          {view.groupName ? (
+            // Name ellipsizes first; a long custom tag is capped. One line at 360dp.
+            <Row style={{ gap: 4, alignItems: 'center', flexShrink: 1, maxWidth: '100%' }}>
+              <View style={{ flexShrink: 3 }}>
+                <MetaText>{view.groupName}</MetaText>
+              </View>
+              {view.groupTag ? (
+                <View style={{ flexShrink: 1, maxWidth: '60%' }}>
+                  <GroupTypeTag tag={view.groupTag} />
+                </View>
+              ) : null}
+              <MetaText>·</MetaText>
+            </Row>
+          ) : null}
           {view.tag ? (
             <>
               <GlyphIcon family={view.tag.family} name={view.tag.name} size={13} color={tagInk} />
-              <MetaText>{`${view.tag.label} ·`}</MetaText>
+              <MetaText shrink={0}>{`${view.tag.label} ·`}</MetaText>
             </>
           ) : null}
-          <MetaText>{view.timestamp}</MetaText>
           {view.archived ? (
             <Badge label={t.misc.archivedGroup} tone="neutral" />
           ) : view.unavailable ? (
@@ -324,70 +342,49 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
           ) : null}
         </Row>
       </View>
+      {view.undoBatchId && view.groupId ? (
+        <Button
+          label={t.departedExpenses.undo}
+          variant="secondary"
+          disabled={undo.isPending}
+          onPress={() => undo.mutate({ batchId: view.undoBatchId! })}
+        />
+      ) : null}
+      {undo.error ? <MetaText>{undo.error.message}</MetaText> : null}
       {/* An expense the reader is on shows THEIR side of it; anything else the
           total. `payload` is untyped JSON, so a bad amount renders as no
           amount, not a crashed tab. */}
-      {amount ? (
-        <SplitMoney
-          amount={amount.amount}
-          currency={amount.currency}
-          locale={locale}
-          color={ink}
-          fontSize={15}
-          strike={view.amountStrike}
-        />
-      ) : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.activityScreen.more}
-        onPress={() => onMenu(view)}
-        hitSlop={8}
-        style={({ pressed }) => ({ padding: 4, opacity: pressed ? 0.5 : 1 })}
-      >
-        <Ionicons name="ellipsis-vertical" size={iconSize.sm} color={theme.color.textFaint} />
-      </Pressable>
+      {/* The time sits on the title line's right, never wrapping, above the money. */}
+      <View style={{ alignItems: 'flex-end', gap: 2 }}>
+        <Text variant="micro" tone="muted" numberOfLines={1}>
+          {view.timestamp}
+        </Text>
+        {amount ? (
+          <SplitMoney
+            amount={amount.amount}
+            currency={amount.currency}
+            locale={locale}
+            color={ink}
+            fontSize={15}
+            strike={view.amountStrike}
+          />
+        ) : null}
+      </View>
     </Pressable>
   );
 });
 
 /** One small word of a row's meta line. */
-function MetaText({ children }: { children: string }) {
+function MetaText({ children, shrink = 1 }: { children: string; shrink?: number }) {
   const theme = useTheme();
   return (
-    <Text numberOfLines={1} style={{ fontSize: 12, lineHeight: 16, color: theme.color.textMuted }}>
+    <Text
+      numberOfLines={1}
+      style={{ fontSize: 12, lineHeight: 16, color: theme.color.textMuted, flexShrink: shrink }}
+    >
       {children}
     </Text>
   );
-}
-
-/** The feed's filter chips: everything, bills, edits, or one kind of group. */
-enum FeedKind {
-  All = 'all',
-  Expenses = 'expenses',
-  Edits = 'edits',
-  Trip = 'trip',
-}
-
-const EDIT_VERBS = new Set(['edited', 'superseded']);
-
-/** An edit to a bill, or to the group itself: its settings and its people. */
-function isEdit(verb: string): boolean {
-  return EDIT_VERBS.has(verb) || isGroupChange(verb);
-}
-
-/** Whether an entry belongs under a filter chip. */
-function inKind(entry: RecentActivityRow, kind: FeedKind): boolean {
-  switch (kind) {
-    case FeedKind.Expenses:
-      return entry.object_type === 'expense' && !isEdit(entry.verb);
-    case FeedKind.Edits:
-      return isEdit(entry.verb);
-    case FeedKind.Trip:
-      return entry.group?.type === GroupType.Trip;
-    case FeedKind.All:
-    default:
-      return true;
-  }
 }
 
 /** Home's photographs share one 2.25:1 frame. */
@@ -397,7 +394,7 @@ const PHOTO_H = 640;
 const HERO_BODY = 112;
 const SHEET_OVERLAP = 20;
 
-export default function ActivityScreen() {
+function ActivityScreen() {
   const [adVisible, setAdVisible] = useState(false);
   const theme = useTheme();
   const pull = usePullRefresh();
@@ -455,12 +452,6 @@ export default function ActivityScreen() {
   // (null = the full feed); `filterOpen` toggles the range-picker sheet.
   const [range, setRange] = useState<DateRange | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  // Which kind of event the chips have narrowed the feed to.
-  const [kind, setKind] = useState<FeedKind>(FeedKind.All);
-  // The row whose ⋮ is open. A stable callback, so the memoised rows keep it.
-  const [menuFor, setMenuFor] = useState<RowView | null>(null);
-  const openMenu = useCallback((view: RowView) => setMenuFor(view), []);
-
   // The feed's own start and end, in the phone's timezone. Clamps the picker so
   // a day outside the activity's span cannot be chosen. Null when the feed is
   // empty — there is then nothing to filter and no button to offer.
@@ -468,10 +459,8 @@ export default function ActivityScreen() {
 
   // The rows actually shown: the whole feed, or the slice inside the range.
   const visibleEntries = useMemo(() => {
-    const kinded =
-      kind === FeedKind.All ? allEntries : allEntries.filter((entry) => inKind(entry, kind));
-    return range ? filterByDayRange(kinded, range.start, range.end) : kinded;
-  }, [allEntries, range, kind]);
+    return range ? filterByDayRange(allEntries, range.start, range.end) : allEntries;
+  }, [allEntries, range]);
 
   // One relative-time formatter for the whole feed, rebuilt only when the locale
   // changes — handed to `toRowView` so no `Intl.RelativeTimeFormat` is ever built
@@ -495,6 +484,13 @@ export default function ActivityScreen() {
   // mounts with no work. This whole pass only reruns when the data, filter or
   // locale changes — never on scroll — so the up-front cost is paid off-fling.
   const groupTagLabels = useGroupTypeTagLabels();
+  const adHandle = useAdPlan('activity', {
+    rowCount: visibleEntries.length,
+    listKey: onlyGroup ? String(onlyGroup) : '',
+    surfaceState: { sheetOpen: filterOpen },
+  });
+  const adPlan = adHandle.plan;
+  const adSlotsKey = adPlan.slots.join(',');
   const listData = useMemo(() => {
     const ctx: RowContext = {
       locale,
@@ -526,17 +522,24 @@ export default function ActivityScreen() {
           kind: 'row',
           key: entry.id,
           firstOfDay: index === 0,
+          lastOfDay: index === section.entries.length - 1,
           view: toRowView(entry, ctx),
         });
       });
     }
-    for (const n of nativePositions(visibleEntries.length, 'activity').reverse()) {
-      let count = 0;
-      const slot = rows.findIndex((row) => row.kind === 'row' && ++count === n);
-      rows.splice(slot + 1, 0, { kind: 'ad', key: `native-ad-${n}` });
-    }
-    return rows;
-  }, [visibleEntries, locale, t, myProfileId, blockedIds, rtf, groupTagLabels, onlyGroup]);
+    return placeSlots(rows, adPlan.slots, undefined, undefined, adHandle.minGap) as FeedRow[];
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- adPlan.slots is the only part of the plan used
+  }, [
+    visibleEntries,
+    locale,
+    t,
+    myProfileId,
+    blockedIds,
+    rtf,
+    groupTagLabels,
+    onlyGroup,
+    adSlotsKey,
+  ]);
 
   // The active range worded for the chip: one date when start and end share a
   // day, "start – end" otherwise. Formatted in the current locale.
@@ -551,22 +554,6 @@ export default function ActivityScreen() {
       ? showDay(range.start)
       : `${showDay(range.start)} – ${showDay(range.end)}`
     : '';
-
-  const kinds: { value: FeedKind; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-    { value: FeedKind.All, label: t.activityScreen.all, icon: 'list' },
-    { value: FeedKind.Expenses, label: t.activityScreen.expenses, icon: 'wallet-outline' },
-    { value: FeedKind.Edits, label: t.activityScreen.edits, icon: 'create-outline' },
-    // One group's own feed has no use for a group-kind chip.
-    ...(onlyGroup
-      ? []
-      : [
-          {
-            value: FeedKind.Trip,
-            label: t.activityScreen.trip,
-            icon: 'airplane-outline' as const,
-          },
-        ]),
-  ];
 
   // Home's scene, with white ink over the same top scrim at every hour.
   const hero = useHomeHero();
@@ -707,46 +694,6 @@ export default function ActivityScreen() {
 
   const header = (
     <View style={{ gap: theme.spacing.sm, paddingTop: theme.spacing.lg }}>
-      {/* What kind of event: everything, bills, edits, or a trip's. */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: theme.spacing.sm }}
-      >
-        {kinds.map((option) => {
-          const active = option.value === kind;
-          const ink = active ? theme.color.onBrand : theme.color.text;
-          return (
-            <Pressable
-              key={option.value}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: active }}
-              accessibilityLabel={option.label}
-              onPress={() => setKind(option.value)}
-              style={({ pressed }) => ({
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                height: 36,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.pill,
-                backgroundColor: active
-                  ? theme.color.brand
-                  : theme.scheme === 'dark'
-                    ? theme.color.surfaceMuted
-                    : '#ECEAF6',
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Ionicons name={option.icon} size={iconSize.sm} color={ink} />
-              <Text style={{ fontSize: 14, color: ink, fontWeight: active ? '700' : '500' }}>
-                {option.label}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
-
       {/* The active range as a clearable pill: tap the body to adjust it, the ✕
           to drop back to the full feed. Visible state so a narrowed feed never
           looks like a short one. */}
@@ -794,25 +741,6 @@ export default function ActivityScreen() {
     </View>
   );
 
-  // The ⋮ on a row: the event's own screen, and its group.
-  const menuItems: OverflowMenuItem[] = menuFor
-    ? [
-        { icon: 'open-outline', label: t.activityScreen.viewDetails, route: menuFor.href },
-        ...(menuFor.groupId
-          ? [
-              {
-                icon: 'people-outline' as const,
-                label: t.activityScreen.openGroup,
-                route: `/group/${menuFor.groupId}` as Href,
-              },
-            ]
-          : []),
-      ]
-    : [];
-  const menu = (
-    <OverflowMenu visible={menuFor !== null} onClose={() => setMenuFor(null)} items={menuItems} />
-  );
-
   // The states the feed can be in when there are no rows to show — mounted as
   // the list's empty component so the header, pull-to-refresh and centred layout
   // all still apply exactly as with a feed present.
@@ -841,22 +769,6 @@ export default function ActivityScreen() {
         // An empty feed after it lands is "nothing yet", not "failed".
         <FeedSkeleton />
       )
-    ) : kind !== FeedKind.All ? (
-      // A chip is narrowing the feed and nothing is of that kind — the way out
-      // is back to everything.
-      <View style={{ flex: 1, justifyContent: 'center' }}>
-        <EmptyState
-          title={t.activityScreen.noneForFilter}
-          icon={<Ionicons name="funnel-outline" size={iconSize.xxl} color={theme.color.brand} />}
-          action={
-            <Button
-              label={t.activityScreen.all}
-              variant="secondary"
-              onPress={() => setKind(FeedKind.All)}
-            />
-          }
-        />
-      </View>
     ) : range ? (
       // A range is in force and nothing fell in it — distinct from "nothing yet",
       // and the way out is to widen or clear the filter, not to start a group.
@@ -926,7 +838,6 @@ export default function ActivityScreen() {
           {empty}
         </View>
         {picker}
-        {menu}
       </Screen>
     );
   }
@@ -944,7 +855,17 @@ export default function ActivityScreen() {
         <View style={{ paddingHorizontal: theme.spacing.lg }}>{header}</View>
         <FlashList
           data={listData}
-          ListFooterComponent={ReviewBanner}
+          // Too short for a native slot: one inline banner at the foot instead.
+          ListFooterComponent={
+            adPlan.footerBanner ? (
+              <AdSlot
+                handle={adHandle}
+                format="inline_banner"
+                slot={0}
+                style={{ marginVertical: theme.spacing.lg }}
+              />
+            ) : null
+          }
           onViewableItemsChanged={({ viewableItems }) =>
             setAdVisible(
               (seen) =>
@@ -980,7 +901,10 @@ export default function ActivityScreen() {
           }
           renderItem={({ item, index }) =>
             item.kind === 'ad' ? (
-              <NativeAdCard
+              <AdSlot
+                handle={adHandle}
+                format="native"
+                slot={item.slot}
                 visible={adVisible}
                 rowGap={theme.spacing.sm}
                 precedingGap={theme.spacing.sm}
@@ -1005,17 +929,19 @@ export default function ActivityScreen() {
               // Each event is its own card; the card carries its own spacing.
               <ActivityFeedRow
                 view={item.view}
+                first={item.firstOfDay}
+                last={item.lastOfDay}
                 locale={locale}
                 t={t}
                 theme={theme}
-                onMenu={openMenu}
               />
             )
           }
         />
       </View>
       {picker}
-      {menu}
     </Screen>
   );
 }
+
+export default withScenic(ActivityScreen);

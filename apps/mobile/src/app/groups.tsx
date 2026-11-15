@@ -1,3 +1,7 @@
+import { withScenic } from '@/components/ScenicScope';
+import { AdSlot } from '@/components/AdSlot';
+import { placeSlots } from '@/lib/adPlanPure';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, TextInput, useWindowDimensions, View } from 'react-native';
@@ -18,6 +22,7 @@ import {
 } from '@waves/ui';
 
 import { useGroups, useHomeSummary } from '@/data/hooks';
+import { groupsOutsideCompanies } from '@/lib/spaces';
 import { groupLabel } from '@/data/types';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
@@ -38,7 +43,7 @@ import { UnreadDot } from '@/components/UnreadDot';
 import { useGroupUnread } from '@/lib/useGroupUnread';
 import { SkeletonList } from '@/components/Skeletons';
 import { HeroScene } from '@/components/home/HeroScene';
-import { useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { router } from '@/lib/navigation';
 
 /** The round buttons in the header, back button included, so the row is one height. */
@@ -70,14 +75,14 @@ const SCENE_INTO_CARD = 34;
  * the scene's foot. Rows are deliberately tight: this is the screen you come to
  * when the roster is long, so how many fit on screen is part of its job.
  */
-export default function AllGroupsScreen() {
+function AllGroupsScreen() {
   const theme = useTheme();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { profile } = useAuth();
   const summary = useHomeSummary(profile?.id ?? null);
   const groups = useGroups();
-  const list = useMemo(() => groups.data ?? [], [groups.data]);
+  const list = useMemo(() => groupsOutsideCompanies(groups.data ?? []), [groups.data]);
   const loading = groups.isLoading || summary.isLoading;
   // Groups someone else has touched since the reader last opened them.
   const groupIds = useMemo(() => list.map((group) => group.id), [list]);
@@ -133,6 +138,25 @@ export default function AllGroupsScreen() {
     }
     return out;
   }, [list, summary, profile?.id, trimmed, filter, sort, sortDesc, locale, t.settledHeader]);
+
+  // Native ads between group rows (never while a search is typed or a menu is open).
+  const adHandle = useAdPlan('groups_all', {
+    rowCount: rows.filter((row) => row.kind === 'group').length,
+    surfaceState: { selectMode: narrowed, sheetOpen: sortOpen },
+  });
+  const adSlotsKey = adHandle.plan.slots.join(',');
+  const data = useMemo(
+    () =>
+      placeSlots(
+        rows,
+        adHandle.plan.slots,
+        new Set(),
+        { row: 'group', header: 'header' },
+        adHandle.minGap,
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
+    [rows, adSlotsKey],
+  );
 
   // What a rendered row reads from outside its own data: the locale (money and
   // member-count formatting) and the theme (its colours). Both hold identity
@@ -224,8 +248,10 @@ export default function AllGroupsScreen() {
           </View>
         ) : (
           <FlashList
-            data={rows}
-            keyExtractor={(row) => (row.kind === 'header' ? 'settled-header' : row.item.id)}
+            data={data}
+            keyExtractor={(row) =>
+              row.kind === 'header' ? 'settled-header' : row.kind === 'ad' ? row.key : row.item.id
+            }
             getItemType={(row) => row.kind}
             // Render well ahead of the viewport so a fast fling doesn't flash
             // blank rows. The row items already carry their own balance/pending/
@@ -249,6 +275,15 @@ export default function AllGroupsScreen() {
             keyboardShouldPersistTaps="handled"
             renderItem={({ item: row }) => {
               if (row.kind === 'header') return <SectionLabel label={row.label} />;
+              if (row.kind === 'ad')
+                return (
+                  <AdSlot
+                    handle={adHandle}
+                    format="native"
+                    slot={row.slot}
+                    rowGap={theme.spacing.sm}
+                  />
+                );
 
               const { group, balance, pending, count } = row.item;
               const statusLabel =
@@ -722,17 +757,17 @@ const GroupListRow = memo(function GroupListRow({
                     paddingHorizontal: 6,
                     paddingVertical: 1,
                     borderRadius: 6,
-                    backgroundColor: theme.color.surfaceMuted,
+                    backgroundColor: theme.color.warningSoft,
                   }}
                 >
-                  <Text variant="micro" tone="muted" style={{ fontWeight: '700' }}>
+                  <Text variant="micro" style={{ color: theme.color.warning, fontWeight: '700' }}>
                     {t.demo.badge}
                   </Text>
                 </View>
               ) : null}
             </Row>
             <Text variant="micro" tone="muted" numberOfLines={1}>
-              {subtitle}
+              {isDemo ? t.demo.rowSubtitle : subtitle}
             </Text>
           </View>
           <View style={{ alignItems: 'flex-end' }}>
@@ -762,3 +797,5 @@ const GroupListRow = memo(function GroupListRow({
     </View>
   );
 });
+
+export default withScenic(AllGroupsScreen);

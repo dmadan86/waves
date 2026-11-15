@@ -59,6 +59,8 @@ export default {
 async function normalize(record: R2EventRecord, env: Env): Promise<void> {
   const key = record.object?.key;
   if (!key || record.action === 'DeleteObject') return;
+  // Company evidence is immutable, including its derived JPEG thumbnails.
+  if (key.startsWith('company-entry-images/')) return;
   if (!env.IMAGES) return; // No transcoder configured — nothing to do.
 
   const object = await env.BUCKET.get(key);

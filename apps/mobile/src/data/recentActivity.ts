@@ -70,6 +70,8 @@ export function recentActivity(
       archived_at: string | null;
       deleted_at: string | null;
       type?: string | null;
+      event_template?: string | null;
+      custom_tag?: string | null;
     };
     if (g.deleted_at) {
       deleted.add(g.id);
@@ -81,6 +83,8 @@ export function recentActivity(
       cover_emoji: g.cover_emoji,
       archived_at: g.archived_at ?? null,
       type: g.type ?? null,
+      event_template: g.event_template ?? null,
+      custom_tag: g.custom_tag ?? null,
     });
   }
 
@@ -135,8 +139,25 @@ export function recentActivity(
     // dropped, because there we know the destination is gone.
     .filter((row) => !deleted.has(row.group_id))
     .sort(byNewest((row) => String(row.created_at)));
+  // Undo payloads only carry the batch id; the original event records the name.
+  const batchNames = new Map<string, unknown>();
+  for (const row of sorted) {
+    const batchId = resplitBatchId(row);
+    if (batchId) batchNames.set(`${row.group_id}:${batchId}`, row.payload.name);
+  }
   return (limit === undefined ? sorted : sorted.slice(0, limit)).map((row) => ({
     ...row,
+    payload:
+      row.verb === 'resplit_undone'
+        ? {
+            ...row.payload,
+            name:
+              row.payload.name ??
+              batchNames.get(
+                `${row.group_id}:${row.payload.batchId ?? row.payload.batch_id ?? row.object_id}`,
+              ),
+          }
+        : row.payload,
     group: groups.get(row.group_id) ?? null,
     actor: row.actor_member_id ? (actors.get(row.actor_member_id) ?? null) : null,
     stake: stakeFor(row, expenseById, myMemberByGroup),
@@ -162,11 +183,15 @@ function categoryFor(
  * it is cheap enough to run on the dashboard as the mirror moves. Rows from a
  * deleted group are skipped, the same as the feed skips them.
  */
-export function newestActivityFromOthers(mirror: MirrorState, myProfileId: string | null): number {
+export function newestActivityFromOthers(
+  mirror: MirrorState,
+  myProfileId: string | null,
+  hideCompanies = false,
+): number {
   const deleted = new Set<string>();
   for (const row of rowsFor(mirror, SyncTable.Groups)) {
-    const g = row as unknown as { id: string; deleted_at: string | null };
-    if (g.deleted_at) deleted.add(g.id);
+    const g = row as unknown as { id: string; deleted_at: string | null; type?: string | null };
+    if (g.deleted_at || (hideCompanies && g.type === 'company')) deleted.add(g.id);
   }
   const mine = new Set<string>();
   if (myProfileId) {
@@ -195,11 +220,12 @@ export function newestActivityFromOthers(mirror: MirrorState, myProfileId: strin
 export function newestActivityFromOthersByGroup(
   mirror: MirrorState,
   myProfileId: string | null,
+  hideCompanies = false,
 ): Map<string, number> {
   const deleted = new Set<string>();
   for (const row of rowsFor(mirror, SyncTable.Groups)) {
-    const g = row as unknown as { id: string; deleted_at: string | null };
-    if (g.deleted_at) deleted.add(g.id);
+    const g = row as unknown as { id: string; deleted_at: string | null; type?: string | null };
+    if (g.deleted_at || (hideCompanies && g.type === 'company')) deleted.add(g.id);
   }
   // Every member id that is the reader, across all groups: their own rows are
   // never news to them, whichever group they were written in.
@@ -244,4 +270,11 @@ function stakeFor(
   // it reads as the neutral total rather than a grey zero.
   if (stake === null || stake === 0n) return null;
   return { amount: stake, currency: version.currency };
+}
+
+/** Batch events have no individual expense target. Keep their Undo metadata on the row. */
+export function resplitBatchId(row: ActivityRow): string | null {
+  if (row.verb !== 'resplit') return null;
+  const id = row.payload.batchId ?? row.payload.batch_id ?? row.object_id;
+  return typeof id === 'string' && id.length > 0 ? id : null;
 }

@@ -129,6 +129,15 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line(`${t.privacy.cta}: ${absoluteUrl(`/${locale}/privacy`)}`);
   line();
 
+  line(`## ${t.openSource.title}`);
+  line();
+  line(t.openSource.body);
+  line();
+  line(`- ${t.openSource.points.join('\n- ')}`);
+  line();
+  line(`${t.openSource.cta}: ${site.githubUrl}`);
+  line();
+
   line(`## ${t.agents.title}`);
   line();
   line(t.agents.body);
@@ -139,6 +148,26 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line();
   line(`MCP: ${mcpEndpoint(site.appUrl)}`);
   line(`${t.agents.cta}: ${absoluteUrl(`/${locale}/mcp`)}`);
+  line();
+
+  line(`## ${t.personal.title}`);
+  line();
+  line(t.personal.body);
+  line();
+  line(`- ${t.personal.points.join('\n- ')}`);
+  line();
+  line(t.personal.availability);
+  line(`${t.personal.cta}: ${absoluteUrl(`/${locale}/personal`)}`);
+  line();
+
+  line(`## ${t.companies.title}`);
+  line();
+  line(t.companies.body);
+  line();
+  line(`- ${t.companies.points.join('\n- ')}`);
+  line();
+  line(t.companies.availability);
+  line(`${t.companies.cta}: ${absoluteUrl(`/${locale}/companies`)}`);
   line();
 
   line(`## ${t.faq.title}`);

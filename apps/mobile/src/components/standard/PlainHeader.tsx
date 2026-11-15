@@ -16,10 +16,13 @@ import { router } from '@/lib/navigation';
 
 export function PlainHeader({
   title,
+  subtitle,
   onBack,
   trailing,
 }: {
   title: string;
+  /** A muted line under the title (a document's number and status). */
+  subtitle?: string;
   /** Defaults to going back one screen. */
   onBack?: () => void;
   trailing?: ReactNode;
@@ -50,9 +53,16 @@ export function PlainHeader({
           color={theme.color.text}
         />
       </Pressable>
-      <Text variant="heading" numberOfLines={1} style={{ flex: 1, fontWeight: '800' }}>
-        {title}
-      </Text>
+      <View style={{ flex: 1 }}>
+        <Text variant="heading" numberOfLines={1} style={{ fontWeight: '800' }}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text variant="caption" tone="muted" numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
       {trailing ? <View>{trailing}</View> : null}
     </Row>
   );

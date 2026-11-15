@@ -113,6 +113,8 @@ export interface DeviceLimitStatus {
    * the field, which reads as "not revoked".
    */
   readonly revoked?: boolean;
+  /** With `revoked`: the owner asked for this phone to be erased, not just signed out. */
+  readonly erase?: boolean;
 }
 
 /** Whether a registration answer means this phone must sign itself out. */

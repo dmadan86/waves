@@ -13,6 +13,7 @@ import {
   outcomeFromAgent,
   outcomeFromTranscript,
   parseWatchClip,
+  placeForCapture,
   processClip,
   type ClipContext,
   type ClipDeps,
@@ -226,5 +227,17 @@ describe('processClip', () => {
   it('fails when recognition cannot run at all', async () => {
     const out = await processClip(clip, deps({ transcribe: vi.fn(async () => null) }));
     expect(out.result).toMatchObject({ status: 'error', error: 'failed' });
+  });
+});
+
+describe('placeForCapture', () => {
+  const fix = { lat: 1, lng: 2, name: null };
+  it('returns the place when granted and quick', async () => {
+    expect(await placeForCapture(async () => fix)).toEqual(fix);
+  });
+  it('is null when not granted, on error, and on timeout', async () => {
+    expect(await placeForCapture(async () => null)).toBeNull();
+    expect(await placeForCapture(async () => Promise.reject(new Error('x')))).toBeNull();
+    expect(await placeForCapture(() => new Promise<typeof fix>(() => {}), 20)).toBeNull();
   });
 });

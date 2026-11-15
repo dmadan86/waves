@@ -1,4 +1,6 @@
 import { payableFor } from '@waves/core';
+
+import { getDemoGroupName } from '@/demo/label';
 import type {
   CategoryMeta,
   ExpenseLocation,
@@ -16,6 +18,8 @@ export enum GroupType {
   Event = 'event',
   Friends = 'friends',
   Other = 'other',
+  /** Employee expenses: no splitting, each person sees only their own entries. */
+  Company = 'company',
 }
 export enum SettlementMethod {
   Upi = 'upi',
@@ -115,6 +119,33 @@ export interface GroupRow {
    * the families screen to guard against concurrent admin overwrites.
    */
   updated_seq?: number | null;
+  /** Company groups: the company-wide default daily bata rate, minor units (decimal string). */
+  company_default_daily_rate_minor?: string | null;
+  /** Company groups: new entries wait for an admin's approval. Off by default. */
+  company_approvals_enabled?: boolean;
+  /** Company groups: holidays count as paid days in the wage prefill (default on). */
+  company_paid_holidays?: boolean;
+  /** Company groups: approved casual/sick leave counts as paid days (default off). */
+  company_paid_leave?: boolean;
+  /** Company groups: large or owner-raised claims need an owner other than their creator. */
+  /** Set while Waves has suspended this company: it is read-only for everyone. */
+  suspended_at?: string | null;
+  /** Set while this extra company's slot subscription has lapsed: read-only until renewed (nothing is deleted). */
+  slot_lapsed_at?: string | null;
+  /** Who created the company; the owner who pays for its slot. Absent on a pending (queue-only) row. */
+  created_by?: string | null;
+  company_second_approval?: boolean;
+  company_second_approval_threshold_minor?: string | null;
+  /** Company groups: default mileage rate per km, minor units (decimal string). */
+  company_default_mileage_rate_minor?: string | null;
+  /** Company groups: the admin's policy rules (see `CompanyPolicies` in @waves/core). */
+  company_policies?: unknown;
+  company_policy_revision?: number;
+  /** Company groups: the shared expense tags (see `CompanyTag` in @waves/core). */
+  company_tags?: unknown;
+  /** Company groups: the department list, [{ id, name }]. */
+  company_departments?: unknown;
+  company_industry?: string | null;
 }
 
 export interface MemberRow {
@@ -126,13 +157,30 @@ export interface MemberRow {
   group_id: string;
   profile_id: string | null;
   ghost_name: string | null;
-  role: 'admin' | 'member';
+  /** Company groups also have 'manager' (a team lead); everywhere else only admin / member. */
+  role: 'admin' | 'manager' | 'member' | 'vendor';
+  /** Company groups: the manager this employee reports to (null = the owners). */
+  manager_id?: string | null;
+  /** Company groups: the free-text employee ID, e.g. EMP-014 (owner/manager/self can read it). */
+  employee_id?: string | null;
+  /** Company groups: the employee's department (an id in the group's company_departments). */
+  department_id?: string | null;
+  /** Company groups: 'full_time' | 'part_time' | 'contractor', null/absent = not set. */
+  employment_type?: string | null;
   /** The UPI-shaped fields. Superseded by the rail pair; still read as a fallback. */
   vpa: string | null;
   /** Which rail this person is paid on here — a `RailId` from `@waves/core`. */
   payment_rail?: string | null;
   payment_handle?: string | null;
   left_at: string | null;
+  /** When they were added (ISO instant); a company's leave balance starts counting from here. */
+  created_at?: string | null;
+  employment_ended_on?: string | null;
+  employment_note?: string | null;
+  /** Company groups: this employee's default daily bata rate, minor units (decimal string). */
+  daily_rate_minor?: string | null;
+  /** Company groups: this employee's mileage rate per km, minor units (decimal string). */
+  mileage_rate_minor?: string | null;
   profile?: {
     id: string;
     display_name: string;
@@ -320,6 +368,9 @@ export interface ActivityGroup {
   /** The kind of group ('trip', 'home', …), for the feed's Trip filter. Absent
    *  on rows built before it was carried. */
   type?: string | null;
+  /** For the feed's tag pill: the event kind, and the member's own tag. */
+  event_template?: string | null;
+  custom_tag?: string | null;
 }
 
 export interface ActivityRow {
@@ -380,7 +431,11 @@ export function displayName(
 ): string {
   if (member.profile_id && member.profile_id === myProfileId) return 'You';
   if (member.profile_id && blocked?.has(member.profile_id)) return someoneLabel;
-  return member.profile?.display_name ?? member.ghost_name ?? someoneLabel;
+  const name = (member.profile?.display_name ?? member.ghost_name ?? '')
+    // Private-use glyphs (e.g. U+F8FF from iOS contacts) render as junk on Android.
+    .replace(/[\uE000-\uF8FF]/g, '')
+    .trim();
+  return name || someoneLabel;
 }
 
 /**
@@ -435,10 +490,13 @@ export function isViewer(
  * filename — you recognise it without reading it.
  */
 export function groupLabel(
-  group: Pick<GroupRow, 'name'> | null | undefined,
+  group: Pick<GroupRow, 'name' | 'isDemo'> | null | undefined,
   members: readonly MemberRow[] = [],
   myProfileId?: string | null,
 ): string {
+  // The fixture group always reads "Demo group" (localized), never a realistic
+  // name or the friends' names — so it cannot pass for the user's own money.
+  if (group?.isDemo) return getDemoGroupName();
   const named = group?.name?.trim();
   if (named) return named;
 

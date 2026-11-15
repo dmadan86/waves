@@ -78,9 +78,17 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** A positive integer minor-unit amount as a string — no sign, at least one
- *  non-zero digit (so "0", "00" and "" are all rejected). */
+ *  non-zero digit (so "0", "00" and "" are all rejected), and at most 12 digits
+ *  (≈ 1 trillion minor units; rejects oversized inputs before BigInt conversion). */
 function isPositiveMinor(value: unknown): value is string {
-  return typeof value === 'string' && /^\d+$/.test(value) && /[1-9]/.test(value);
+  return (
+    typeof value === 'string' && value.length <= 12 && /^\d+$/.test(value) && /[1-9]/.test(value)
+  );
+}
+
+/** ISO 4217-style currency: exactly 3 ASCII letters. */
+function isValidCurrency(value: unknown): value is string {
+  return typeof value === 'string' && /^[A-Za-z]{3}$/.test(value);
 }
 
 /**
@@ -89,6 +97,15 @@ function isPositiveMinor(value: unknown): value is string {
  * The native channels (WatchConnectivity, the Wearable Data Layer) hand across
  * loosely-typed dictionaries, so every field is checked before the bridge acts
  * on it — a bad `quickAdd` must never reach the mutation queue.
+ *
+ * Field length limits:
+ *   id            ≤ 64 chars  (all message types)
+ *   amountMinor   ≤ 12 digits (quickAdd)
+ *   currency      exactly 3 ASCII letters, e.g. "INR" (quickAdd)
+ *   note          ≤ 500 chars (quickAdd)
+ *   transcript    ≤ 2000 chars (voiceAdd)
+ *   actionId      ≤ 128 chars (notifAction)
+ *   objectId      ≤ 128 chars (notifAction)
  */
 export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
   if (!isRecord(raw)) return null;
@@ -96,14 +113,14 @@ export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
   // v1 watch and is accepted. Guards against an old intent being read with new
   // semantics after a breaking relay change.
   if (raw.version !== undefined && raw.version !== WATCH_RELAY_VERSION) return null;
-  const id = typeof raw.id === 'string' && raw.id.length > 0 ? raw.id : null;
+  const id = typeof raw.id === 'string' && raw.id.length > 0 && raw.id.length <= 64 ? raw.id : null;
   switch (raw.t) {
     case 'quickAdd':
       return id &&
         isPositiveMinor(raw.amountMinor) &&
-        typeof raw.currency === 'string' &&
-        raw.currency.length > 0 &&
-        typeof raw.note === 'string'
+        isValidCurrency(raw.currency) &&
+        typeof raw.note === 'string' &&
+        raw.note.length <= 500
         ? {
             t: 'quickAdd',
             id,
@@ -113,7 +130,10 @@ export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
           }
         : null;
     case 'voiceAdd':
-      return id && typeof raw.transcript === 'string' && raw.transcript.trim().length > 0
+      return id &&
+        typeof raw.transcript === 'string' &&
+        raw.transcript.trim().length > 0 &&
+        raw.transcript.length <= 2000
         ? { t: 'voiceAdd', id, transcript: raw.transcript }
         : null;
     case 'voiceClip': {
@@ -129,8 +149,10 @@ export function parseWatchToPhone(raw: unknown): WatchToPhone | null {
     case 'notifAction':
       return typeof raw.actionId === 'string' &&
         raw.actionId.length > 0 &&
+        raw.actionId.length <= 128 &&
         typeof raw.objectId === 'string' &&
-        raw.objectId.length > 0
+        raw.objectId.length > 0 &&
+        raw.objectId.length <= 128
         ? { t: 'notifAction', actionId: raw.actionId, objectId: raw.objectId }
         : null;
     default:

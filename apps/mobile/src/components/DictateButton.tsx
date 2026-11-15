@@ -46,3 +46,6 @@ export function DictateButton(props: DictateProps) {
   if (!Voice) return null;
   return <Voice {...props} />;
 }
+
+/** Whether this build has a mic to show; a card that only talks about the mic hides when it is false. */
+export const dictationAvailable = Voice !== null;

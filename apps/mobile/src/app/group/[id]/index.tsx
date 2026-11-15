@@ -1,9 +1,11 @@
 import { PotCard } from '@/components/PotCard';
-import { NativeAdCard } from '@/components/NativeAdCard';
-import { nativePositions } from '@/lib/nativeAdsPure';
+import { withScenicGroup } from '@/components/ScenicScope';
+import { AdSlot } from '@/components/AdSlot';
+import { placeSlots } from '@/lib/adPlanPure';
+import { useAdPlan } from '@/lib/useAdPlan';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { StatusBar } from 'expo-status-bar';
@@ -36,6 +38,7 @@ import { myStake } from '@/data/activity';
 import { expenseCaption } from '@/lib/expenseCaption';
 import { StakePill, stakeColorFor } from '@/components/standard/StakePill';
 import { PillButton, SectionHeader } from '@/components/standard';
+import { CompanyHome } from '@/components/company/CompanyHome';
 import { useDialog } from '@/lib/dialog';
 import {
   familyBalanceItems,
@@ -73,6 +76,7 @@ import { GROUP_REPEAT_HIDDEN } from '@/lib/groupRepeat';
 import {
   displayName,
   groupLabel,
+  GroupType,
   isBlockedMember,
   isGhost,
   isViewer,
@@ -85,6 +89,7 @@ import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
 import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
+import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { useGroupBaseline, useMarkGroupSeen } from '@/lib/useGroupUnread';
 import { newMarksSince, type NewKind } from '@/lib/groupNew';
 import { NewDot, NewPill, newTint } from '@/components/NewMark';
@@ -113,6 +118,7 @@ import {
 import { groupTabFromParam } from '@/lib/groupTab';
 import { showEmptyAddCta } from '@/lib/emptyAddCta';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
+import { DepartedExpensesBanner } from '@/components/DepartedExpensesBanner';
 import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { useImportProgress } from '@/lib/importProgress';
 import { useGuestGuard } from '@/lib/guestGuard';
@@ -122,6 +128,7 @@ import { TimelineBody } from '@/components/timeline/TimelineBody';
 import { draftsForGroup } from '@/lib/groupDrafts';
 import { amountMatches } from '@/lib/expenseSearch';
 import { memberNameById, memberNameFor } from '@/lib/memberName';
+import { memberBalanceStatus } from '@/lib/groupBalanceList';
 import { PersonAvatar } from '@/components/PersonAvatar';
 
 enum Tab {
@@ -258,21 +265,26 @@ interface ExpenseSection<T> {
 }
 
 /**
- * Cluster the feed into month sections without reordering within a month. The
- * list arrives newest-added first; we bucket by the month of each expense's
- * date so all of November sits together under one heading, in first-seen order,
- * rather than repeating the heading every time the created-order interleaves two
- * months. Undated rows (no current version) fall into their own leading bucket.
+ * Cluster the feed into month sections, newest expense date first. The list
+ * arrives newest-added first; a stable sort on the date puts a back-dated bill
+ * in its place (an Oct 13 lunch added today sits under Oct 13, not on top) and
+ * keeps newest-added first among same-day rows. Undated rows (no current
+ * version) trail, in their own bucket.
  */
 function groupExpensesByMonth<T extends { currentVersion: ExpenseVersionRow | null }>(
   items: readonly T[],
 ): ExpenseSection<T>[] {
   const order: string[] = [];
   const buckets = new Map<string, T[]>();
-  for (const item of items) {
+  // ISO dates, so a string compare is a date compare; "" puts undated rows last,
+  // as the web feed (lib/ledgerFeed.ts) does.
+  const dateOf = (item: T) => item.currentVersion?.expense_date ?? '';
+  const byDate = [...items].sort((a, b) =>
+    dateOf(a) < dateOf(b) ? 1 : dateOf(a) > dateOf(b) ? -1 : 0,
+  );
+  for (const item of byDate) {
     const date = item.currentVersion?.expense_date ?? null;
-    // "YYYY-MM" groups a calendar month; "~" is the sortless bucket for the rare
-    // undated row, kept out of the way at its natural position.
+    // "YYYY-MM" groups a calendar month; "~" is the bucket for the rare undated row.
     const key = date ? date.slice(0, 7) : '~';
     let bucket = buckets.get(key);
     if (!bucket) {
@@ -324,7 +336,7 @@ function monthDate(key: string): Date {
  * item is the section heading, an `expense` item is one bill.
  */
 type FeedItem =
-  | { readonly kind: 'ad'; readonly key: string }
+  | { readonly kind: 'ad'; readonly key: string; readonly slot: number }
   | { readonly kind: 'month'; readonly key: string; readonly date: string }
   | {
       readonly kind: 'expense';
@@ -650,24 +662,29 @@ const ROW_PAD = 10;
  * throughout, the top edge and corners on the first, the bottom on the last, a
  * hairline between neighbours.
  */
-/**
- * One member's balance as its own white card — separate cards a small gap
- * apart, as the Balances design has them, rather than the hairline-divided
- * block the expense rows share.
- */
+/** Joined card edges keep member rows virtualized within one balance section. */
 function BalanceCard({
   theme,
+  isFirst = true,
+  isLast = true,
   children,
 }: {
   theme: ReturnType<typeof useTheme>;
+  isFirst?: boolean;
+  isLast?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <View
       style={{
         backgroundColor: theme.color.surface,
-        borderRadius: theme.radius.lg,
-        marginBottom: theme.spacing.sm,
+        borderTopLeftRadius: isFirst ? theme.radius.lg : 0,
+        borderTopRightRadius: isFirst ? theme.radius.lg : 0,
+        borderBottomLeftRadius: isLast ? theme.radius.lg : 0,
+        borderBottomRightRadius: isLast ? theme.radius.lg : 0,
+        borderWidth: 1,
+        borderColor: theme.color.border,
+        borderTopWidth: isFirst ? 1 : 0,
         overflow: 'hidden',
       }}
     >
@@ -730,7 +747,7 @@ function CardRow({
 /** The month menu's key for "every month". */
 const ALL_MONTHS = 'all-months';
 
-export default function GroupScreen() {
+function LedgerGroupScreen() {
   const theme = useTheme();
   // The root bar is over this screen, so the room starts from the bar's own
   // clearance rather than the bare system inset. The extra 36 has no cause
@@ -796,7 +813,7 @@ export default function GroupScreen() {
   // The refused-change state still needs somewhere to act (retry / discard), so
   // the header glyph is paired with the one banner that carries buttons; the
   // ambient offline / syncing states are the header glyph's job now (below).
-  const { queue, rejected } = useSync();
+  const { queue, rejected, twoStepRequired } = useSync();
 
   const { group, members, everyone, expenses, settlements, activity } = useGroup(groupId);
   const [a11yRemindId, setA11yRemindId] = useState<string | null>(null);
@@ -837,7 +854,7 @@ export default function GroupScreen() {
     familyLens ? (memberId, name) => familyLabel(units, memberId, name) : undefined,
     familyLens ? (memberId) => unitOf(units, memberId) ?? memberId : undefined,
   );
-  const removeDemo = useRemoveDemo();
+  const removeDemo = useRemoveDemo(() => router.dismissTo('/'));
   const openReceipts = useOpenReceipts(groupId);
   const importProgress = useImportProgress();
   const guestGuard = useGuestGuard();
@@ -977,6 +994,13 @@ export default function GroupScreen() {
     );
     return newMarksSince(activity.data ?? [], (id) => mine.has(id), lastSeenAt);
   }, [activity.data, everyone.data, viewerId, lastSeenAt]);
+  const adHandle = useAdPlan('group_expenses', {
+    rowCount: filteredExpenses.length,
+    listKey: groupId,
+    // No ads while a search is typed into the list.
+    surfaceState: { selectMode: query.trim().length > 0 },
+  });
+  const adSlotsKey = adHandle.plan.slots.join(',');
   const feedItems: FeedItem[] = useMemo(() => {
     const items: FeedItem[] = [];
     for (const section of expenseSections) {
@@ -994,20 +1018,20 @@ export default function GroupScreen() {
         }),
       );
     }
-    const positions = new Set(
-      nativePositions(
-        expenseSections.reduce((n, section) => n + section.rows.length, 0),
-        `group:${groupId}`,
-      ),
-    );
-    let count = 0;
-    return items.flatMap((item): FeedItem[] => {
-      if (item.kind === 'expense' && positions.has(++count)) {
-        return [item, { kind: 'ad', key: `ad-${count}` }];
-      }
-      return [item];
-    });
-  }, [expenseSections, newMarks, groupId]);
+    // A row with a "new/edited" mark is never the one an ad follows.
+    const blocked = new Set<number>();
+    let n = 0;
+    for (const item of items)
+      if (item.kind === 'expense' && ++n && item.mark !== null) blocked.add(n);
+    return placeSlots(
+      items,
+      adHandle.plan.slots,
+      blocked,
+      { row: 'expense', header: 'month' },
+      adHandle.minGap,
+    ) as FeedItem[];
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
+  }, [expenseSections, newMarks, groupId, adSlotsKey]);
   // The "N new" pill: how many marked rows the feed holds, where the first
   // one is, and which rows are on screen — so it shows only while that first
   // one is out of sight, and tapping it scrolls there.
@@ -1044,6 +1068,7 @@ export default function GroupScreen() {
     const shown = (everyone.data ?? []).filter(
       (member) => !member.left_at || (ledger.balances.get(member.id) ?? 0n) !== 0n,
     );
+    shown.sort((a, b) => Number(b.id === ledger.myMemberId) - Number(a.id === ledger.myMemberId));
     const row = (member: MemberRow, index: number, count: number): FeedItem => ({
       kind: 'balance',
       key: `balance-${member.id}`,
@@ -1072,7 +1097,7 @@ export default function GroupScreen() {
       });
     }
     return items;
-  }, [everyone.data, ledger.balances, familyLens, units, openFamilies]);
+  }, [everyone.data, ledger.balances, ledger.myMemberId, familyLens, units, openFamilies]);
   // The rows the list shows for the current tab. One source for `data`, so the
   // three tabs are the same list with different contents rather than a list plus
   // two hand-rolled footers.
@@ -1164,6 +1189,7 @@ export default function GroupScreen() {
   // change that has stopped retrying (which also blocks everything queued
   // behind it in this group — see `deadLettered` / `nextBatch` in @waves/core).
   const stalledHere =
+    twoStepRequired.includes(groupId) ||
     rejected.some((item) => item.groupId === groupId) ||
     deadLettered(queue.filter((item) => item.groupId === groupId)).length > 0;
   const pendingForMe = (settlements.data ?? []).filter(
@@ -1249,10 +1275,7 @@ export default function GroupScreen() {
           {
             icon: 'flask-outline',
             label: t.demo.removeAction,
-            onPress: () =>
-              void removeDemo().then((removed) => {
-                if (removed) router.replace('/');
-              }),
+            onPress: () => void removeDemo(),
             tone: 'danger',
           } as OverflowMenuItem,
         ]
@@ -1277,7 +1300,10 @@ export default function GroupScreen() {
   // only stable props, so a recycled cell that lands on the same expense does no
   // work — the allocation and re-render both moved out of the hot fling path.
   const renderFeedItem = ({ item, index }: { item: FeedItem; index: number }) => {
-    if (item.kind === 'ad') return <NativeAdCard visible rowGap={theme.spacing.sm} />;
+    if (item.kind === 'ad')
+      return (
+        <AdSlot handle={adHandle} format="native" slot={item.slot} rowGap={theme.spacing.sm} />
+      );
     if (item.kind === 'month') {
       return (
         <Text
@@ -1352,8 +1378,12 @@ export default function GroupScreen() {
           style={{
             gap: theme.spacing.md,
             alignItems: 'center',
-            paddingVertical: ROW_PAD,
+            paddingVertical: theme.spacing.sm,
             paddingHorizontal: theme.spacing.md,
+            backgroundColor:
+              member.id === ledger.myMemberId ? theme.color.brandSoft : theme.color.surface,
+            borderRadius: theme.radius.md,
+            marginHorizontal: theme.spacing.sm,
           }}
         >
           <PersonAvatar
@@ -1368,7 +1398,7 @@ export default function GroupScreen() {
               Members-screen fact, not a balance; Remind sits under the amount. */}
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <Text variant="subheading" numberOfLines={1}>
-              {shownName}
+              {member.id === ledger.myMemberId ? t.comments.you : shownName}
             </Text>
             <Row style={{ gap: theme.spacing.xs, alignItems: 'center' }}>
               <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
@@ -1383,6 +1413,7 @@ export default function GroupScreen() {
                       // the old column showed a dash to everybody whose handle is
                       // a Pix key, a PayID or a Venmo name. With none, words
                       // rather than a bare dash that read as missing data.
+                      // Joined but no handle yet: not "Not on Waves yet".
                       (payableAt(member)?.handle ?? t.misc.noUpiYet)}
               </Text>
             </Row>
@@ -1393,22 +1424,36 @@ export default function GroupScreen() {
                 {/* Owed to you reads in the brand colour, what you owe in the
                     negative one; the paise fade is MoneyText's default. */}
                 <MoneyText
-                  amount={balance}
+                  amount={balance < 0n ? -balance : balance}
                   currency={currency}
                   locale={locale}
-                  mode="balance"
+                  mode="plain"
                   tone={
                     balanceDirection(balance) === BalanceDirection.OwedToYou ? 'brand' : undefined
                   }
                 />
                 {member.pending ? <PendingMark /> : null}
               </Row>
+              <Text variant="caption" tone="muted">
+                {
+                  t.misc[
+                    memberBalanceStatus(
+                      balance,
+                      member.id === ledger.myMemberId,
+                      settleFlow.split.owesMe.some((transfer) => transfer.from === member.id),
+                    )
+                  ]
+                }
+              </Text>
               {/* Somebody who owes the group money can be nudged from the row
                   that says so, the way Friends already does. Ghosts have nowhere
                   to send it. Touch keeps the visible chip; screen readers get the
                   same affordance as a custom action on the row below, because a
                   nested accessible button can be hidden by an accessible parent. */}
-              {canRemind ? (
+              {/* The bell on the payments card above already reminds anyone in
+                  "owes you"; the chip stays only where that card has no row. */}
+              {canRemind &&
+              !settleFlow.split.owesMe.some((transfer) => transfer.from === member.id) ? (
                 <RemindChip
                   groupId={groupId}
                   member={member}
@@ -1471,6 +1516,45 @@ export default function GroupScreen() {
         </>
       );
     };
+    const balanceHeading = (
+      <>
+        {item.key === balanceItems[0]?.key ? (
+          <View style={{ padding: theme.spacing.md, gap: theme.spacing.sm }}>
+            <SectionHeader
+              title={t.group.everyonesBalance}
+              trailing={
+                <Row style={{ gap: theme.spacing.xs }}>
+                  {familiesOn ? (
+                    <PillButton
+                      label={lens === 'families' ? t.families.byFamily : t.families.byPerson}
+                      onPress={() => void pickLens()}
+                    />
+                  ) : null}
+                  <Pressable
+                    accessibilityRole="button"
+                    onPress={() => router.push(`/group/${groupId}/simplify`)}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6,
+                      minHeight: 36,
+                      paddingHorizontal: theme.spacing.md,
+                      borderRadius: theme.radius.pill,
+                      backgroundColor: theme.color.brand,
+                    }}
+                  >
+                    <Ionicons name="swap-horizontal" size={16} color={theme.color.onBrand} />
+                    <Text variant="caption" tone="onBrand" style={{ fontWeight: '700' }}>
+                      {t.whoPaysWhom}
+                    </Text>
+                  </Pressable>
+                </Row>
+              }
+            />
+          </View>
+        ) : null}
+      </>
+    );
     if (item.kind === 'family') {
       const toggle = () =>
         setOpenFamilies((current) => {
@@ -1481,6 +1565,7 @@ export default function GroupScreen() {
         });
       return (
         <BalanceCard theme={theme}>
+          {balanceHeading}
           <Row
             style={{
               gap: theme.spacing.md,
@@ -1574,7 +1659,12 @@ export default function GroupScreen() {
       );
     }
     if (item.kind === 'balance') {
-      return <BalanceCard theme={theme}>{balanceBody(item.member, item.balance)}</BalanceCard>;
+      return (
+        <BalanceCard theme={theme} isFirst={item.isFirst} isLast={item.isLast}>
+          {balanceHeading}
+          {balanceBody(item.member, item.balance)}
+        </BalanceCard>
+      );
     }
     return null;
   };
@@ -1821,17 +1911,13 @@ export default function GroupScreen() {
               ListHeaderComponent={
                 // Alerts, shared receipts and pending settlements — everything that
                 // is about the group rather than about one tab. It scrolls under the
-                // pinned tab bar. The stack used to open on 20pt of top margin plus a
-                // 20pt gap plus each card's own padding, which pushed the first
-                // expense most of a thumb below the tabs on a screen where nothing
-                // was wrong. Now it follows the screen standard: the first card sits
-                // `lg` under the tabs, cards are separate sections `xl` apart, and
-                // the list starts `xl` below the last one. With no cards the header
-                // takes no room at all and the rows start `lg` under the tabs.
+                // pinned tab bar. Sections use the same `xl` gap above and below;
+                // departed rows own their bottom gap so dismissed rows leave no space.
                 <View
                   style={{
                     // The balances heading is a header item too, but sits close
                     // above its rows rather than a whole section away.
+                    paddingTop: theme.spacing.xl,
                     marginBottom: hasHeaderCards
                       ? theme.spacing.xl
                       : tab === Tab.Balances
@@ -1839,7 +1925,8 @@ export default function GroupScreen() {
                         : 0,
                   }}
                 >
-                  <View style={{ gap: theme.spacing.xl, marginTop: theme.spacing.lg }}>
+                  <DepartedExpensesBanner groupId={groupId} />
+                  <View style={{ gap: theme.spacing.xl }}>
                     <PotCard
                       groupId={groupId}
                       myMemberId={ledger.myMemberId}
@@ -1850,30 +1937,30 @@ export default function GroupScreen() {
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}
                     {groupData.isDemo ? (
-                      <Card
-                        style={{ backgroundColor: theme.color.surfaceMuted, gap: theme.spacing.sm }}
+                      <Row
+                        style={{
+                          gap: theme.spacing.sm,
+                          alignItems: 'center',
+                          backgroundColor: theme.color.warningSoft,
+                          borderRadius: theme.radius.md,
+                          paddingHorizontal: theme.spacing.md,
+                          minHeight: 44,
+                        }}
                       >
-                        <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
-                          <Ionicons
-                            name="flask-outline"
-                            size={iconSize.md}
-                            color={theme.color.textMuted}
-                          />
-                          <Text variant="subheading" style={{ flex: 1 }}>
-                            {t.demo.bannerTitle}
-                          </Text>
-                        </Row>
+                        <Ionicons
+                          name="flask-outline"
+                          size={iconSize.md}
+                          color={theme.color.warning}
+                        />
+                        <Text variant="caption" style={{ flex: 1 }}>
+                          {t.demo.bannerTitle}
+                        </Text>
                         <Pressable
                           accessibilityRole="button"
                           accessibilityLabel={t.demo.removeAction}
                           hitSlop={8}
-                          onPress={() =>
-                            void removeDemo().then((removed) => {
-                              if (removed) router.replace('/');
-                            })
-                          }
+                          onPress={() => void removeDemo()}
                           style={({ pressed }) => ({
-                            alignSelf: 'flex-start',
                             minHeight: 44,
                             justifyContent: 'center',
                             opacity: pressed ? 0.6 : 1,
@@ -1883,7 +1970,7 @@ export default function GroupScreen() {
                             {t.demo.removeAction}
                           </Text>
                         </Pressable>
-                      </Card>
+                      </Row>
                     ) : null}
 
                     {/* Only the banners that need a decision survive inline — they
@@ -2008,21 +2095,7 @@ export default function GroupScreen() {
                         make or receive come first, then everyone's balance. */}
                     {tab === Tab.Balances ? (
                       <View style={{ gap: theme.spacing.sm }}>
-                        <SectionHeader title={t.group.paymentsToSettle} />
                         {settleFlow.loading ? null : <SettlePayments flow={settleFlow} />}
-                        <SectionHeader
-                          title={t.group.everyonesBalance}
-                          trailing={
-                            familiesOn ? (
-                              <PillButton
-                                label={
-                                  lens === 'families' ? t.families.byFamily : t.families.byPerson
-                                }
-                                onPress={() => void pickLens()}
-                              />
-                            ) : undefined
-                          }
-                        />
                       </View>
                     ) : null}
                   </View>
@@ -2102,3 +2175,18 @@ export default function GroupScreen() {
     </Screen>
   );
 }
+
+/**
+ * A Company group has no splits, balances or settle-up: its screen is the
+ * company's own (a statement for an employee, a summary for an admin). Every
+ * other group opens the ledger screen above, untouched.
+ */
+function GroupScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { group } = useGroup(id ?? '');
+  if (!COMPANIES_ENABLED && group.data?.type === GroupType.Company) return <Redirect href="/" />;
+  if (group.data?.type === GroupType.Company) return <CompanyHome groupId={id ?? ''} />;
+  return <LedgerGroupScreen />;
+}
+
+export default withScenicGroup(GroupScreen);

@@ -193,7 +193,7 @@ export function CurrencyChoices({
           paddingVertical: 8,
           paddingStart: theme.spacing.sm,
           paddingEnd: theme.spacing.md,
-          borderRadius: 14,
+          borderRadius: theme.radius.md,
           borderWidth: selected ? 1.5 : 1,
           borderColor: selected ? theme.color.brand : theme.color.border,
           backgroundColor: selected ? theme.color.brandSoft : theme.color.surface,
@@ -231,7 +231,7 @@ export function CurrencyChoices({
           gap: theme.spacing.md,
           height: 44,
           paddingHorizontal: theme.spacing.lg,
-          borderRadius: theme.radius.pill,
+          borderRadius: theme.radius.md,
           backgroundColor: track,
         }}
       >

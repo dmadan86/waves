@@ -8,7 +8,7 @@ import { flush, renderHook } from './support/fakeReact';
 
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 
-const { isLaunchReady, markLaunchReady, resetLaunchReadyForTest, useLaunchReady } =
+const { holdLaunch, isLaunchReady, markLaunchReady, resetLaunchReadyForTest, useLaunchReady } =
   await import('../src/lib/launchReady');
 
 beforeEach(() => resetLaunchReadyForTest());
@@ -34,5 +34,15 @@ describe('launch ready', () => {
     const view = renderHook(() => useLaunchReady());
     await flush();
     expect(view.result.current).toBe(true);
+  });
+
+  it('waits for a hold to release before lifting', () => {
+    holdLaunch(true);
+    markLaunchReady();
+    expect(isLaunchReady()).toBe(false);
+    holdLaunch(false);
+    expect(isLaunchReady()).toBe(true);
+    holdLaunch(true);
+    expect(isLaunchReady()).toBe(true);
   });
 });

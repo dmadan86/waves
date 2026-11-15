@@ -250,7 +250,7 @@ export function VendorsBody({
                       style={{
                         height: 30,
                         paddingHorizontal: theme.spacing.md,
-                        borderRadius: theme.radius.pill,
+                        borderRadius: theme.radius.sm,
                         justifyContent: 'center',
                         backgroundColor: selected ? theme.color.selectedFill : theme.color.surface,
                       }}

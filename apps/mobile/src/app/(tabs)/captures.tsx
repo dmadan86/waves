@@ -105,6 +105,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
+import { withScenic } from '@/components/ScenicScope';
 import { CategoryBadge } from '@/components/Category';
 import {
   DestinationPicker,
@@ -114,7 +115,7 @@ import {
 import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { PendingMark } from '@/components/PendingMark';
 import { ReviewHeroBackground } from '@/components/ReviewHeroBackground';
-import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScreenHero';
+import { useHeroCrossfade, useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { InboxSkeleton } from '@/components/Skeletons';
 import { WatchingLine } from '@/components/WatchingLine';
 import { dayHeading } from '@/data/activity';
@@ -126,7 +127,7 @@ import {
   useCreateGroup,
   useDeleteCapture,
   useGroupPeopleSignatures,
-  useGroups,
+  useExpenseGroups,
   useHomeSummary,
   useOneToOneGroupIds,
   usePeopleBalances,
@@ -1036,7 +1037,7 @@ function HeroRoundButton({
 }
 
 /** The Review tab: what was found, in two piles, one gesture each. */
-export default function CapturesScreen() {
+function CapturesScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   // The photo runs dark enough under the status bar (every one of the four
@@ -1081,7 +1082,7 @@ export default function CapturesScreen() {
   // is stopped by the same guard inside add-expense; a swipe or batch write never
   // reaches that screen, so it asks here.
   const guard = useGuestGuard();
-  const groups = useGroups();
+  const groups = useExpenseGroups();
   const summary = useHomeSummary(viewerId);
   // The people the picker can point a draft at, and the raw material for
   // deciding whether a chosen set of them already share a group. All read from
@@ -3048,3 +3049,5 @@ export default function CapturesScreen() {
     </Screen>
   );
 }
+
+export default withScenic(CapturesScreen);

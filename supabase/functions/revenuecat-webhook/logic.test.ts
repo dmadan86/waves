@@ -477,3 +477,87 @@ describe('sandbox and the Test Store', () => {
     ).toMatchObject({ reason: 'sandbox' });
   });
 });
+
+describe('company storage packs', () => {
+  const GROUP = '0b1c2d3e-4f50-4a6b-8c7d-9e0f1a2b3c4d';
+  const pack = (over: Partial<RcEvent> = {}) =>
+    mapEvent(
+      event({
+        product_id: 'waves_company_storage_1gb',
+        entitlement_ids: null,
+        subscriber_attributes: { company_group_id: { value: GROUP } },
+        ...over,
+      }),
+    ).action;
+
+  it('a purchase sets the pack size for the company in the attribute', () => {
+    expect(pack()).toMatchObject({
+      kind: 'company_storage',
+      group_id: GROUP,
+      pack_bytes: 1024 ** 3,
+      store_txn_id: 'GPA.1234-5678',
+    });
+    expect(pack({ product_id: 'waves_company_storage_5gb:monthly' })).toMatchObject({
+      pack_bytes: 5 * 1024 ** 3,
+    });
+  });
+  it('a product change switches to the new pack', () => {
+    expect(
+      pack({
+        type: 'PRODUCT_CHANGE',
+        product_id: 'waves_company_storage_1gb',
+        new_product_id: 'waves_company_storage_5gb',
+      }),
+    ).toMatchObject({ pack_bytes: 5 * 1024 ** 3 });
+  });
+  it('a downgrade keeps the current pack until the renewal', () => {
+    expect(
+      pack({
+        type: 'PRODUCT_CHANGE',
+        product_id: 'waves_company_storage_5gb',
+        new_product_id: 'waves_company_storage_1gb',
+      }),
+    ).toMatchObject({ pack_bytes: 5 * 1024 ** 3 });
+  });
+  it('expiry and refund end the pack, even with no attribute', () => {
+    expect(pack({ type: 'EXPIRATION', subscriber_attributes: null })).toMatchObject({
+      kind: 'company_storage',
+      group_id: null,
+      pack_bytes: 0,
+    });
+    expect(pack({ type: 'REFUND' })).toMatchObject({ pack_bytes: 0 });
+  });
+  it('a cancellation keeps the pack until it expires', () => {
+    expect(pack({ type: 'CANCELLATION', cancel_reason: 'UNSUBSCRIBE' })).toMatchObject({
+      pack_bytes: 1024 ** 3,
+    });
+  });
+});
+
+describe('company slots', () => {
+  const slot = (over: Partial<RcEvent> = {}) =>
+    mapEvent(
+      event({
+        product_id: 'waves_company_slot_monthly',
+        entitlement_ids: ['company_slot'],
+        ...over,
+      }),
+    ).action;
+
+  it('a purchase or renewal is an active slot, never a Pro row', () => {
+    expect(slot()).toEqual({ kind: 'company_slot', active: true, store_txn_id: 'GPA.1234-5678' });
+    expect(slot({ type: 'RENEWAL' })).toMatchObject({ active: true });
+    expect(slot({ type: 'BILLING_ISSUE' })).toMatchObject({ active: true });
+  });
+  it('a cancellation keeps the slot until it expires; expiry and refund end it', () => {
+    expect(slot({ type: 'CANCELLATION' })).toMatchObject({ active: true });
+    expect(slot({ type: 'EXPIRATION' })).toMatchObject({ active: false });
+    expect(slot({ type: 'REFUND' })).toMatchObject({ active: false });
+  });
+  it('a temporary entitlement grant never opens a slot', () => {
+    expect(slot({ type: 'TEMPORARY_ENTITLEMENT_GRANT' })).toMatchObject({ kind: 'ignore' });
+  });
+  it('is recognised by the entitlement alone', () => {
+    expect(slot({ product_id: 'something_else' })).toMatchObject({ kind: 'company_slot' });
+  });
+});

@@ -49,6 +49,20 @@ import { loadFirebaseAppCheck } from '@/lib/firebaseModule';
  * promise costs a line.
  */
 let attempt: Promise<boolean> | null = null;
+/** The initialised instance, which `getLimitedUseToken` needs. */
+let instance: unknown = null;
+
+/** A one-use App Check token, or null when this build cannot attest. Never throws. */
+export async function limitedUseAppCheckToken(): Promise<string | null> {
+  try {
+    if (!(await ensureAppCheck())) return null;
+    const firebase = loadFirebaseAppCheck?.();
+    if (!firebase?.getLimitedUseToken) return null;
+    return (await firebase.getLimitedUseToken(instance)).token || null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Turn App Check on, once, and say whether it is on.
@@ -78,7 +92,7 @@ async function start(): Promise<boolean> {
     // precisely the ones that must not be disturbed.
     if (!firebase) return false;
 
-    await firebase.initializeAppCheck(firebase.getApp(), {
+    instance = await firebase.initializeAppCheck(firebase.getApp(), {
       provider: {
         providerOptions: {
           android: { provider: __DEV__ ? 'debug' : 'playIntegrity' },
@@ -103,4 +117,5 @@ async function start(): Promise<boolean> {
 /** Test seam: a cold start is the default, and tests need it back. */
 export function forgetAppCheck(): void {
   attempt = null;
+  instance = null;
 }
