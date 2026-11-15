@@ -124,6 +124,8 @@ export function useSettleFlow(
   const [settleAsk, setSettleAsk] = useState<{
     kind: 'received' | 'paid';
     transfer: PlanTransfer;
+    /** The rail the payment app was opened for, kept for the confirmation. */
+    rail?: string;
   } | null>(null);
   const [settleAskOpen, setSettleAskOpen] = useState(false);
 
@@ -184,7 +186,8 @@ export function useSettleFlow(
     // A settlement is a write; an expired guest is read-only (ADR-006 addendum).
     if (guard.blockWrite()) return;
     if (transfer.amount <= 0n) return;
-    if (!optionalPotUtr(utr).valid) {
+    const utrCheck = optionalPotUtr(utr);
+    if (!utrCheck.valid) {
       setError(t.pots.invalidUtr);
       return;
     }
@@ -206,6 +209,8 @@ export function useSettleFlow(
         rail,
         currency: transfer.currency,
         allocations: allocation.allocations,
+        // Ordinary settlements have no reference column; the note keeps it findable.
+        ...(utrCheck.reference ? { note: `UTR ${utrCheck.reference}` } : {}),
       });
       onRecorded();
     } catch (caught) {
@@ -226,9 +231,9 @@ export function useSettleFlow(
   };
 
   /** I already paid, outside the app. */
-  const markPaid = (transfer: PlanTransfer): void => {
+  const markPaid = (transfer: PlanTransfer, rail?: string): void => {
     setUtr('');
-    setSettleAsk({ kind: 'paid', transfer });
+    setSettleAsk({ kind: 'paid', transfer, rail });
     setSettleAskOpen(true);
   };
 
@@ -268,7 +273,7 @@ export function useSettleFlow(
           payable.rail === 'upi'
             ? await launchUpi(uri.uri)
             : (await Linking.openURL(uri.uri), null);
-        markPaid(transfer);
+        markPaid(transfer, payable.rail);
         setUtr(upiReference(result));
       } catch {
         setError(t.couldNotSave);
@@ -870,7 +875,7 @@ export function SettleConfirm({ flow }: { flow: SettleFlow }) {
           onClose={() => setSettleAskOpen(false)}
           onConfirm={() => {
             setSettleAskOpen(false);
-            void record(settleAsk.transfer, defaultRailForCurrency(currency));
+            void record(settleAsk.transfer, settleAsk.rail ?? defaultRailForCurrency(currency));
           }}
           title={settleAskTitle}
           body={settleAskReceived ? t.misc.settleConfirmReceivedBody : t.misc.settleConfirmPaidBody}

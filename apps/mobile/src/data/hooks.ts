@@ -1619,8 +1619,8 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
       members.isLoading ||
       expenses.isLoading ||
       settlements.isLoading ||
+      // A failed pots read (offline, first launch) must not block ordinary groups.
       pots.isLoading ||
-      pots.isError ||
       (hasOpenPots && !potTags.data);
 
     const currency = group.data?.default_currency ?? 'INR';
@@ -1716,7 +1716,7 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
     return {
       balances: computed,
       net,
-      transfers: pots.isError || (hasOpenPots && !potTags.data) ? [] : transfers,
+      transfers: hasOpenPots && !potTags.data ? [] : transfers,
       myMemberId,
       myBalance,
       groupSettled,
@@ -1740,7 +1740,6 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
     myProfileId,
     pots.data,
     pots.isLoading,
-    pots.isError,
     hasOpenPots,
     potTags.data,
   ]);
