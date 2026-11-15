@@ -258,7 +258,7 @@
   .app-shell {
     display: grid;
     min-height: 100vh;
-    grid-template-columns: 248px 1fr;
+    grid-template-columns: 256px 1fr;
   }
 
   .brand {
@@ -305,21 +305,27 @@
     height: 100vh;
     flex-direction: column;
     gap: 2px;
-    padding: 16px 12px;
-    background: var(--w-rail);
+    padding: 0 0 16px;
+    /* The admin console's light rail: the surface colour, a hairline on the
+       inline-end edge, no dark ground. */
+    background: var(--w-surface);
+    border-inline-end: 1px solid var(--w-border);
+    overflow-y: auto;
   }
 
   .side-brand {
     display: flex;
     align-items: center;
     gap: 9px;
-    margin-bottom: 14px;
-    padding-inline: 8px;
+    height: 64px;
+    flex: none;
+    margin-bottom: 8px;
+    padding-inline: 20px;
     white-space: nowrap;
     font-size: var(--w-font-heading);
     font-weight: 700;
     letter-spacing: -0.02em;
-    color: #fff;
+    color: var(--w-text);
   }
 
   .side-nav {
@@ -330,24 +336,41 @@
   }
 
   .side-link {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 11px;
-    border-radius: 10px;
-    padding: 9px 12px;
+    gap: 12px;
+    min-height: 44px;
+    padding: 0 20px;
     font-size: var(--w-font-caption);
-    font-weight: 600;
+    font-weight: 500;
     text-decoration: none;
-    color: var(--w-rail-ink);
-    transition: background var(--w-duration-fast) ease;
+    color: var(--w-text-muted);
+    transition: color var(--w-duration-fast) ease;
+  }
+  /* The admin rail's whole idea of "you are here": a 4px bar on the inline
+     start edge (mirrors in RTL), plus brand colour and weight as a second cue
+     so the state is not carried by the bar alone. */
+  .side-link::before {
+    content: '';
+    position: absolute;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: 4px;
+    background: var(--w-brand-solid);
+    display: none;
   }
   .side-link:hover {
-    background: var(--w-rail-raised);
-    color: #fff;
+    color: var(--w-brand);
+    background: var(--w-surface-muted);
   }
-  .side-link[aria-current='true'] {
-    background: var(--w-brand);
-    color: #fff;
+  .side-link:hover::before,
+  .side-link[aria-current]::before {
+    display: block;
+  }
+  .side-link[aria-current] {
+    color: var(--w-brand);
+    font-weight: 700;
   }
 
   /* An icon inherits the row's colour and sits on the icon scale, so the rail
@@ -496,9 +519,10 @@
     align-items: center;
     gap: 14px;
     border-bottom: 1px solid var(--w-border);
-    padding: 12px 28px;
-    background: color-mix(in srgb, var(--w-bg) 82%, transparent);
-    backdrop-filter: saturate(1.4) blur(10px);
+    min-height: 64px;
+    padding: 10px 28px;
+    /* Opaque, like the admin bar: the page does not show through it. */
+    background: var(--w-surface);
   }
 
   .topbar-title {
@@ -541,10 +565,10 @@
     flex: 1 1 280px;
     align-items: center;
     gap: 8px;
-    border-radius: var(--w-radius-sm);
-    border: 1px solid var(--w-border-strong);
-    background: var(--w-surface);
-    padding: 0 12px;
+    border-radius: var(--w-radius-pill);
+    border: 1px solid var(--w-border);
+    background: var(--w-bg);
+    padding: 0 16px;
     color: var(--w-text-muted);
     transition: border-color var(--w-duration-fast) ease;
   }
@@ -571,6 +595,17 @@
   }
   .search input:focus {
     outline: none;
+  }
+
+  /* Figures line up in a column; the admin console sets this on every cell. */
+  th,
+  td {
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    font-size: var(--w-font-caption);
+    font-weight: 600;
+    color: var(--w-text-muted);
   }
 
   /* A round avatar, because a person is round on the phone and a person who
@@ -3446,8 +3481,7 @@
     justify-content: space-around;
     gap: 2px;
     border-top: 1px solid var(--w-border);
-    background: color-mix(in srgb, var(--w-surface) 92%, transparent);
-    backdrop-filter: saturate(1.4) blur(12px);
+    background: var(--w-surface);
     padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px));
   }
   .tab-link {
@@ -3472,8 +3506,9 @@
     white-space: nowrap;
     max-width: 100%;
   }
-  .tab-link[aria-current='true'] {
+  .tab-link[aria-current] {
     color: var(--w-brand);
+    font-weight: 700;
   }
 }
 
