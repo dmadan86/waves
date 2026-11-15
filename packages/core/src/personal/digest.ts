@@ -109,7 +109,9 @@ export function digestMerchant(note: string | null | undefined): string | null {
   if (!base) return null;
   const cleaned = base
     .toLowerCase()
-    .replace(/\S+@\S+/g, ' ')
+    .split(/\s+/)
+    .filter((w) => !w.includes('@'))
+    .join(' ')
     .replace(/\b\d{3,}\b/g, ' ')
     .replace(/[^\p{L}\p{N} .&'+-]/gu, ' ')
     .replace(/\.(com|in|co|net|org)\b/g, ' ')
