@@ -30,7 +30,8 @@ const { WIDGETS, SEARCH, VOICE, RETIRED, STRINGS, tapsOf } = _internals as {
   STRINGS: Record<string, string>;
   tapsOf: (w: Widget) => Tap[];
 };
-const { addReceivers, addVoiceActivity, writeNativeSources } = _internals as {
+const { addReceivers, addVoiceActivity, addScanTile, writeNativeSources } = _internals as {
+  addScanTile: (m: unknown) => { manifest: { application: { service?: unknown[] }[] } };
   addReceivers: (m: unknown) => { manifest: { application: { receiver?: unknown[] }[] } };
   addVoiceActivity: (m: unknown) => { manifest: { application: { activity?: unknown[] }[] } };
   writeNativeSources: (projectRoot: string, pkg: string) => void;
@@ -135,6 +136,17 @@ describe('withWavesWidgets — manifest', () => {
     expect(activities).toHaveLength(1);
     expect(activities[0].$['android:name']).toBe('.widget.VoiceCaptureActivity');
     expect(activities[0].$['android:exported']).toBe('false');
+  });
+
+  it('registers the scan tile once, bindable only by the system', () => {
+    const manifest = emptyManifest();
+    addScanTile(manifest);
+    const services = addScanTile(manifest).manifest.application[0].service as {
+      $: Record<string, string>;
+    }[];
+    expect(services).toHaveLength(1);
+    expect(services[0].$['android:name']).toBe('.widget.ScanTileService');
+    expect(services[0].$['android:permission']).toBe('android.permission.BIND_QUICK_SETTINGS_TILE');
   });
 });
 
@@ -249,5 +261,11 @@ describe('withWavesWidgets — emitted native sources', () => {
     expect(kotlin).toContain('EXTRA_PREFER_OFFLINE');
     expect(kotlin).toContain('waves:///voice');
     expect(kotlin).toContain('appendQueryParameter("heard"');
+  });
+
+  it('the scan tile unlocks first on the lock screen, then opens the scanner', () => {
+    const kotlin = readFileSync(join(kotlinDir, 'ScanTileService.kt'), 'utf8');
+    expect(kotlin).toContain('unlockAndRun');
+    expect(kotlin).toContain('waves:///capture?scan=${System.currentTimeMillis()}');
   });
 });

@@ -10,6 +10,7 @@
 // +native-intent.ts, so there is no timeline, no shared data, no App Group. The
 // entry never changes and the timeline never reloads.
 
+import AppIntents
 import WidgetKit
 import SwiftUI
 
@@ -198,9 +199,41 @@ struct WavesSearchWidget: Widget {
     }
 }
 
+// MARK: - Scan control (iOS 18: lock screen, Control Center, Action button)
+
+// Opens the receipt scanner at the same `/capture?scan=<nonce>` the app-icon Scan
+// shortcut uses; from the lock screen iOS asks for Face ID first. OpenURLIntent only
+// takes a universal link (not `waves://`), so this is the https path the AASA claims.
+@available(iOS 18.0, *)
+struct OpenScanIntent: AppIntent {
+    static let title: LocalizedStringResource = "Scan a bill"
+    static let isDiscoverable = false
+
+    func perform() async throws -> some IntentResult & OpensIntent {
+        let nonce = Int(Date().timeIntervalSince1970 * 1000)
+        return .result(opensIntent: OpenURLIntent(URL(string: "https://app.wavs.co.in/capture?scan=\(nonce)")!))
+    }
+}
+
+@available(iOS 18.0, *)
+struct WavesScanControl: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: "WavesScan") {
+            ControlWidgetButton(action: OpenScanIntent()) {
+                Label("Scan a bill", systemImage: "doc.text.viewfinder")
+            }
+        }
+        .displayName("Scan a bill")
+        .description("Open the Waves receipt scanner.")
+    }
+}
+
 @main
 struct WavesWidgets: WidgetBundle {
     var body: some Widget {
         WavesSearchWidget()
+        if #available(iOS 18.0, *) {
+            WavesScanControl()
+        }
     }
 }

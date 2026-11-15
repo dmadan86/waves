@@ -589,3 +589,25 @@ describe('restricted family splits', () => {
     },
   );
 });
+
+describe('how-to questions', () => {
+  it('the cached prompt carries the app guide and routes how-to questions to answer_question', () => {
+    const prompt = systemPrompt(context());
+    const heading = prompt.indexOf('\nAPP GUIDE (for how-to questions');
+    expect(heading).toBeGreaterThan(-1);
+    expect(prompt).toMatch(/question about how to use Waves .* call answer_question/);
+    expect(heading).toBeLessThan(prompt.indexOf('Context:'));
+  });
+
+  it('a how-to answer saves nothing', () => {
+    const r = parseToolCalls(
+      [{ name: 'answer_question', input: { text: 'Open the group and tap Add someone.' } }],
+      context(),
+    );
+    expect(r).toMatchObject({
+      ok: true,
+      actions: [],
+      answer: 'Open the group and tap Add someone.',
+    });
+  });
+});

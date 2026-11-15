@@ -44,6 +44,7 @@ describe('apple-app-site-association', () => {
       '/g',
       '/g/*',
       '/r/*',
+      '/capture',
     ]);
   });
 
