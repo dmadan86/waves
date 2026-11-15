@@ -7,6 +7,14 @@
  */
 export const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
 
+/** Set when mounted under the site: invites use the old app host, which the phone app opens. */
+const INVITE_ORIGIN = process.env.NEXT_PUBLIC_INVITE_ORIGIN ?? '';
+
+/** The join link for a group invite token. */
+export function inviteUrl(token: string): string {
+  return INVITE_ORIGIN ? `${INVITE_ORIGIN}/join#${token}` : `${appUrl('/join')}#${token}`;
+}
+
 /** This origin plus the mount point plus `path` (which starts with `/`). */
 export function appUrl(path: string): string {
   return `${window.location.origin}${BASE_PATH}${path}`;

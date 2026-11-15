@@ -62,7 +62,11 @@ const SITE_ORIGIN = process.env.SITE_ORIGIN ?? 'https://wavs.co.in';
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   basePath: BASE_PATH,
-  env: { NEXT_PUBLIC_BASE_PATH: BASE_PATH },
+  // Invites stay on the old host: the phone app claims its /join links, and a browser is redirected here.
+  env: {
+    NEXT_PUBLIC_BASE_PATH: BASE_PATH,
+    NEXT_PUBLIC_INVITE_ORIGIN: BASE_PATH ? LEGACY_ORIGIN : '',
+  },
   headers: async () => [{ source: '/:path*', headers: SECURITY_HEADERS }],
   // Everything below exists only because the old host is still in the wild:
   // invite links, emails, store listings and registered MCP clients.

@@ -26,7 +26,7 @@ import type { GroupRow, Member } from '@waves/api-client';
 
 import { AppFrame } from '@/components/AppFrame';
 import { Section } from '@/components/Shell';
-import { appUrl } from '@/lib/basePath';
+import { inviteUrl } from '@/lib/basePath';
 import { waves } from '@/lib/waves';
 import { fill, plural } from '@/i18n';
 import { useStrings } from '@/i18n-context';
@@ -48,7 +48,7 @@ function Invite() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const link = token ? `${appUrl('/join')}#${token}` : null;
+  const link = token ? inviteUrl(token) : null;
 
   const load = useCallback(async () => {
     const [row, people, joinToken] = await Promise.all([
