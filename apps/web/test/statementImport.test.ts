@@ -9,6 +9,7 @@ import {
   previewsLeft,
   previewsUsed,
   readStatementFile,
+  tableFromWorkbook,
   reviewItems,
   statementFileKind,
   statementNote,
@@ -186,6 +187,18 @@ describe('spreadsheets on the web', () => {
     if (!read.ok) throw new Error(read.failure);
     expect(read.bank).toBe('HDFC Bank');
     expect(read.rows).toHaveLength(3);
+  });
+
+  it('reads dates from a 1904-system workbook', async () => {
+    const XLSX = await import('xlsx');
+    const sheet = XLSX.utils.aoa_to_sheet([['Date'], [44834]]);
+    sheet.A2 = { t: 'n', v: 44834, z: 'dd/mm/yyyy' };
+    const book = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(book, sheet, 'Statement');
+    book.Workbook = { ...book.Workbook, WBProps: { date1904: true } };
+    const out = XLSX.write(book, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+    const table = await tableFromWorkbook(new Uint8Array(out));
+    expect(table.rows[1]?.[0]).toBe('2026-10-01');
   });
 
   it('says so for a spreadsheet that is not one', async () => {

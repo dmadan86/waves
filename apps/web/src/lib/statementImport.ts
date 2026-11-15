@@ -116,6 +116,8 @@ function readParsedTable(table: TableRead, today: string): StatementRead {
 export async function tableFromWorkbook(bytes: Uint8Array): Promise<TableRead> {
   const XLSX = await import('xlsx');
   const workbook = XLSX.read(bytes, { type: 'array', cellNF: true, cellDates: false });
+  // 1904-system workbooks (old Mac Excel) count days from 1904-01-01: 1462 days later.
+  const serialShift = workbook.Workbook?.WBProps?.date1904 ? 1462 : 0;
   for (const name of workbook.SheetNames) {
     const sheet = workbook.Sheets[name];
     if (!sheet?.['!ref']) continue;
@@ -129,7 +131,7 @@ export async function tableFromWorkbook(bytes: Uint8Array): Promise<TableRead> {
       for (let c = range.s.c; c <= range.e.c; c += 1) {
         const cell = sheet[XLSX.utils.encode_cell({ r, c })] as
           { t?: string; v?: unknown; z?: string | number } | undefined;
-        row.push(cellText(cell, XLSX.SSF.is_date));
+        row.push(cellText(cell, XLSX.SSF.is_date, serialShift));
       }
       if (row.every((cell) => cell.trim() === '')) continue;
       rows.push(row.map((cell) => cell.trim()));
@@ -143,12 +145,13 @@ export async function tableFromWorkbook(bytes: Uint8Array): Promise<TableRead> {
 function cellText(
   cell: { t?: string; v?: unknown; z?: string | number } | undefined,
   isDate: (format: string) => boolean,
+  serialShift: number,
 ): string {
   if (!cell || cell.v === undefined || cell.v === null || cell.t === 'e') return '';
   if (cell.t === 'n' && typeof cell.v === 'number') {
     // A date is a number with a date format: read the day it is, not SheetJS's month-first display.
     if (typeof cell.z === 'string' && isDate(cell.z)) {
-      const iso = excelSerialToIso(Math.floor(cell.v));
+      const iso = excelSerialToIso(Math.floor(cell.v) + serialShift);
       if (iso) return iso;
     }
     return String(Number(cell.v.toPrecision(15)));

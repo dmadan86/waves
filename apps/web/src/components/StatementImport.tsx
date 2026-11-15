@@ -202,7 +202,7 @@ export function StatementImport({ profileId }: { profileId: string }) {
         const data = statementEntry(item, edits[item.key] ?? {}, currency, today);
         if (!data) throw new Error('amount');
         await mutate(MutationKind.PersonalUpsert, personalScope(profileId), {
-          recordId: await recordIdFor(profileId, item.key),
+          recordId: await recordIdFor(profileId, `${currency}:${item.key}`),
           recordKind: 'txn',
           data,
         });
