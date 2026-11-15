@@ -209,6 +209,7 @@ export interface UiStrings {
     owes: string;
     none: string;
     closeHint: string;
+  };
   calendar: {
     title: string;
     today: string;
@@ -8408,6 +8409,7 @@ const en: UiStrings = {
     owes: 'paid {paid} · used {used} · owes {back}',
     none: 'No payments needed',
     closeHint: 'Closing creates payments for the treasurer and members to confirm.',
+  },
   calendar: {
     title: 'Calendar',
     today: 'Today',
@@ -15939,6 +15941,7 @@ const ta: UiStrings = {
     none: 'பணம் செலுத்தத் தேவையில்லை',
     closeHint:
       'முடித்ததும் பணம் வைத்திருப்பவரும் உறுப்பினர்களும் உறுதிப்படுத்த வேண்டிய பரிவர்த்தனைகள் உருவாகும்.',
+  },
   calendar: {
     title: 'நாட்காட்டி',
     today: 'இன்று',
@@ -23691,6 +23694,7 @@ const hi: UiStrings = {
     owes: 'जमा {paid} · खर्च {used} · बाकी {back}',
     none: 'कोई भुगतान बाकी नहीं',
     closeHint: 'बंद करने पर पैसे रखने वाले और सदस्यों की पुष्टि के लिए भुगतान बनेंगे।',
+  },
   calendar: {
     title: 'कैलेंडर',
     today: 'आज',
@@ -31225,6 +31229,7 @@ const ar: UiStrings = {
     owes: 'دفع {paid} · استُخدم {used} · عليه {back}',
     none: 'لا توجد دفعات مطلوبة',
     closeHint: 'يؤدي الإغلاق إلى إنشاء دفعات يؤكدها أمين الصندوق والأعضاء.',
+  },
   calendar: {
     title: 'التقويم',
     today: 'اليوم',
