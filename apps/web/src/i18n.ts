@@ -121,9 +121,11 @@ export type ScopeWords = {
 };
 
 import { companyEn, type CompanyStrings } from './i18n-company';
+import { meEn, type MeStrings } from './i18n-me';
 
 export interface WebStrings {
   company: CompanyStrings;
+  me: MeStrings;
   /** The page somebody reaches by typing the domain in. */
   home: {
     title: string;
@@ -1444,6 +1446,7 @@ export interface WebStrings {
 
 const en: WebStrings = {
   company: companyEn,
+  me: meEn,
   home: {
     title: 'Waves',
     description:
@@ -2548,6 +2551,7 @@ const en: WebStrings = {
 
 const ta: WebStrings = {
   company: companyEn,
+  me: meEn,
   home: {
     title: 'Waves',
     description:
@@ -3697,6 +3701,7 @@ const ta: WebStrings = {
 
 const hi: WebStrings = {
   company: companyEn,
+  me: meEn,
   home: {
     title: 'Waves',
     description:
@@ -4804,6 +4809,7 @@ const hi: WebStrings = {
 
 const ar: WebStrings = {
   company: companyEn,
+  me: meEn,
   home: {
     title: 'Waves',
     description:
