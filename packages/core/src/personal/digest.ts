@@ -110,14 +110,15 @@ export function digestMerchant(note: string | null | undefined): string | null {
   const cleaned = base
     .toLowerCase()
     .split(/\s+/)
-    .filter((w) => !w.includes('@'))
+    .filter((w) => !w.includes('@') && !/\d{3}/.test(w))
     .join(' ')
-    .replace(/\b\d{3,}\b/g, ' ')
     .replace(/[^\p{L}\p{N} .&'+-]/gu, ' ')
     .replace(/\.(com|in|co|net|org)\b/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   if (cleaned.length < 2 || !/\p{L}/u.test(cleaned)) return null;
+  // A free-text note is the user's own words ("Therapy with Dr Smith"): keep only one-word names.
+  if (narrated.kind === 'other' && cleaned.includes(' ')) return null;
   return cleaned.slice(0, 40);
 }
 
@@ -415,7 +416,8 @@ export function answerAmountsAreGrounded(answer: string, digest: SpendingDigest)
     }
     const minor = toMinor(written, exp);
     if (minor !== null && allowed.has(minor.toString())) continue;
-    const bare = /^\d+$/.test(written);
+    const before = text.slice(Math.max(0, (match.index ?? 0) - 4), match.index ?? 0);
+    const bare = /^\d+$/.test(written) && !/(₹|rs\.?|inr|[$€£])\s*$/i.test(before);
     if (bare && Number(written) <= 31) continue;
     if (bare && /^(19|20)\d{2}$/.test(written)) continue;
     return false;

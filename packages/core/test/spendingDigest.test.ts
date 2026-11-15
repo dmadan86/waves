@@ -35,6 +35,8 @@ describe('digestMerchant', () => {
   });
   it('never keeps an email or long reference', () => {
     expect(digestMerchant('ravi.kumar@okaxis')).not.toContain('@');
+    expect(digestMerchant('Account AB123456789')).toBe('account');
+    expect(digestMerchant('Therapy with Dr Smith')).toBeNull();
   });
 });
 
@@ -125,11 +127,11 @@ describe('recurring detection', () => {
   });
   it('detects weekly, and yearly with just 2', () => {
     const weekly = ['2026-10-04', '2026-10-11', '2026-10-18', '2026-10-25'].map((date) =>
-      txn({ amount: 9_900n, note: 'Milk subscription', date }),
+      txn({ amount: 9_900n, note: 'Milkbasket', date }),
     );
     expect(find(weekly)[0]).toMatchObject({ cadence: 'weekly', occurrences: 4 });
     const yearly = ['2025-10-20', '2026-10-20'].map((date) =>
-      txn({ amount: 99_900n, note: 'Domain renewal', date }),
+      txn({ amount: 99_900n, note: 'GoDaddy', date }),
     );
     expect(find(yearly)[0]).toMatchObject({ cadence: 'yearly', occurrences: 2 });
   });
@@ -173,6 +175,9 @@ describe('facts and grounding', () => {
     expect(answerAmountsAreGrounded('You spent ₹1,300.00.', d)).toBe(false);
     expect(answerAmountsAreGrounded('That is up 90% on last month.', d)).toBe(false);
     expect(answerAmountsAreGrounded('About 2,000 rupees.', d)).toBe(false);
+    expect(answerAmountsAreGrounded('You spent INR 25.', d)).toBe(false);
+    expect(answerAmountsAreGrounded('You spent ₹2026.', d)).toBe(false);
+    expect(answerAmountsAreGrounded('Rs. 12 on tea.', d)).toBe(false);
   });
   it('the fallback answer is itself grounded', () => {
     const text = fallbackAnswer(d);
