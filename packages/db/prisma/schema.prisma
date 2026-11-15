@@ -3215,6 +3215,9 @@ model Pot {
 
   @@index([groupId])
   @@map("pots")
+  @@schema("public")
+}
+
 model CompanyEntry {
   projectId String? @map("project_id") @db.Uuid
   fundingManagerId String? @map("funding_manager_id") @db.Uuid
