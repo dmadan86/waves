@@ -1226,8 +1226,10 @@ export default function VoiceScreen() {
     const add = detectAddMember(transcript);
     if (!add) return false;
     const parsed = parseVoiceExpenses(transcript, groupRefs);
-    if (parsed.group?.kind !== 'existing') return false;
-    const groupId = parsed.group.groupId;
+    // "add employee Ravi" names no group: it goes to the space the mic was opened from.
+    const groupId =
+      parsed.group?.kind === 'existing' ? parsed.group.groupId : add.noGroup ? launchGroupId : null;
+    if (!groupId) return false;
     const groupName = groupRows.find((group) => group.id === groupId)?.name?.trim();
     if (!groupName) return false;
     setRequested(null);

@@ -1289,20 +1289,32 @@ export function detectMoneyIntent(transcript: string): VoiceMoneyIntent | null {
  * resolved here — the caller does that and falls back to the expense parse when
  * nothing resolves.
  */
-export function detectAddMember(transcript: string): { names: string[] } | null {
+export function detectAddMember(transcript: string): { names: string[]; noGroup?: true } | null {
   const norm = normalizeTranscript(transcript);
   if (extractAmount(norm) !== null) return null;
 
   const match = norm.match(/\b(?:add|include|put|invite)\s+(.+?)\s+(?:to|into|in)\b\s+(.+)$/iu);
-  if (!match || NON_MEMBER_DESTINATION.test(match[2])) return null;
+  if (match && NON_MEMBER_DESTINATION.test(match[2])) return null;
+  // "add employee Ravi", "new staff Priya", "add Ravi as an employee": no group
+  // named, so the caller adds to the space the mic was opened from.
+  const bare = match
+    ? null
+    : (norm.match(new RegExp(`^\\s*(?:add|new)\\s+(?:an?\\s+|new\\s+)?${STAFF}\\s+(.+)$`, 'iu')) ??
+      norm.match(new RegExp(`^\\s*add\\s+(.+?)\\s+as\\s+(?:an?\\s+|my\\s+)?${STAFF}\\s*$`, 'iu')));
+  const who = match?.[1] ?? bare?.[1];
+  if (!who) return null;
 
-  const names = match[1]
+  const names = who
     .replace(/^\s*(?:the|a|an|my)\s+/iu, '')
+    .replace(new RegExp(`^(?:new\\s+)?${STAFF}\\s+`, 'iu'), '')
     .split(/\s*,\s*|\s+and\s+|\s*&\s*/iu)
     .map(cleanInviteName)
     .filter((name) => name && !isGenericPersonTarget(name));
-  return names.length > 0 ? { names } : null;
+  if (names.length === 0) return null;
+  return bare ? { names, noGroup: true } : { names };
 }
+
+const STAFF = '(?:employee|staff|worker|member)s?';
 
 /**
  * A spoken read-only question about balances — "how much does Ravi owe me",

@@ -24,7 +24,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
-import { BackHandler, Platform, Vibration } from 'react-native';
+import { BackHandler, Platform, Vibration, View } from 'react-native';
 import Animated, {
   Easing,
   Extrapolation,
@@ -180,7 +180,7 @@ export function AppTabBar() {
   // destinations (same look, same mic); leaving them swaps it back. Route-derived.
   const personal = isPersonalMode(segments);
   // Company mode: an owner or manager inside their own company gets the company bar
-  // (Home · Team · Payments · Vendors · Clients · More) with an add button, no mic.
+  // (Home · Team · Payments · Vendors · Clients · More) with a floating mic and add button.
   const companyIds = useViewerCompanyIds();
   const viewerId = useViewerId();
   const role = useViewerRole(groupId);
@@ -637,7 +637,17 @@ export function AppTabBar() {
             fabStyle,
           ]}
         >
-          {company && noAdd ? null : <CenterButton action={company ? add : voice} />}
+          {company ? (
+            noAdd ? null : (
+              // Company: speak an expense or "add employee Ravi" beside the add button.
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <CenterButton action={voice} />
+                <CenterButton action={add} />
+              </View>
+            )
+          ) : (
+            <CenterButton action={voice} />
+          )}
         </Animated.View>
       ) : null}
     </>
