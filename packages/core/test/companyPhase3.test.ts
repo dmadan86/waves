@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  billDue,
   buildReimbursementPreview,
   companyEntryFromRow,
   companyGstTotal,
@@ -363,5 +364,23 @@ describe('reimbursement outcome after a concurrent payment', () => {
   it('stays quiet while our payment is still queued offline', () => {
     const entries = [mk('mine', { entry_kind: 'reimbursement', pending: true }), mk('a')];
     expect(reimbursementOutcome(entries, mine)).toBeNull();
+  });
+});
+
+describe('bill due', () => {
+  const policies: CompanyPolicies = {
+    version: 1,
+    rules: [{ id: 'r', type: 'receipt_above', limitMinor: '100', effect: 'warn' }],
+  };
+  it('is due for a voice-style expense over the receipt rule with no photo, and not once one is added', () => {
+    const spoken = entry({ entry_kind: 'expense', amount: '500000', status: 'submitted' });
+    expect(billDue(spoken, [spoken], policies, new Set())).toBe(true);
+    expect(billDue(spoken, [spoken], policies, new Set([spoken.id]))).toBe(false);
+  });
+  it('is never due without a receipt rule, or for an advance', () => {
+    const spoken = entry({ entry_kind: 'expense', amount: '500000' });
+    expect(billDue(spoken, [spoken], { version: 1, rules: [] }, new Set())).toBe(false);
+    const advance = entry({ entry_kind: 'advance', amount: '500000' });
+    expect(billDue(advance, [advance], policies, new Set())).toBe(false);
   });
 });

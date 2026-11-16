@@ -12,6 +12,7 @@ import { randomUUID } from 'expo-crypto';
 import { Platform, Pressable, Share, View } from 'react-native';
 
 import {
+  billDue,
   buildReimbursementPreview,
   companyStatement,
   reimbursementOutcome,
@@ -264,6 +265,7 @@ export function CompanyStatementView({
             fmt={fmt}
             locale={locale}
             hasPhoto={view.receiptEntryIds.has(entry.id)}
+            billDue={billDue(entry, view.entries, view.policies, view.receiptEntryIds)}
             running={running}
             onPress={() => open(entry)}
           />
@@ -577,6 +579,7 @@ export function CompanyStatementView({
               fmt={fmt}
               locale={locale}
               hasPhoto={view.receiptEntryIds.has(entry.id)}
+              billDue={billDue(entry, view.entries, view.policies, view.receiptEntryIds)}
               running={running}
               onPress={() => open(entry)}
             />
@@ -603,6 +606,7 @@ function Bubble({
   fmt,
   locale,
   hasPhoto,
+  billDue: needsBill,
   running,
   onPress,
 }: {
@@ -611,6 +615,8 @@ function Bubble({
   fmt: (minor: bigint) => string;
   locale: string;
   hasPhoto: boolean;
+  /** The receipt rule wants a bill and none is attached yet. */
+  billDue: boolean;
   /** Balance after this entry; null on a claim still waiting. */
   running: bigint | null;
   onPress: () => void;
@@ -667,6 +673,7 @@ function Bubble({
         {[
           showDate(entry.occurredOn, locale),
           waiting ? (entry.status === 'rejected' ? t.company.rejected : t.company.awaiting) : null,
+          needsBill ? t.company.billDue : null,
           entry.pending ? '\u23F2' : null,
           running === null ? null : `${t.company.balance}: ${fmt(running)}`,
         ]
