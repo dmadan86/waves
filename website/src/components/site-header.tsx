@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { languageNames, locales, type Locale } from '@/i18n/config';
 import { site } from '@/lib/site';
@@ -25,6 +25,7 @@ type Nav = {
   faq: string;
   openApp: string;
   signIn: string;
+  dashboard: string;
   download: string;
   menu: string;
   close: string;
@@ -36,6 +37,8 @@ type Nav = {
   themeDark: string;
   skip: string;
 };
+
+const noSubscribe = () => () => {};
 
 export function SiteHeader({
   locale,
@@ -95,6 +98,13 @@ export function SiteHeader({
       document.removeEventListener('pointerdown', onDown);
     };
   }, [langOpen]);
+
+  // The web app leaves a token-free marker on wavs.co.in when someone is signed in there.
+  const signedIn = useSyncExternalStore(
+    noSubscribe,
+    () => /(?:^|;\s*)waves_signed_in=1(?:;|$)/.test(document.cookie),
+    () => false,
+  );
 
   // The full menu needs ~1,100px; it only fits the bar from xl. Tamil's labels need ~1,500px,
   // more than the bar ever has, so Tamil always uses the menu button.
@@ -239,7 +249,7 @@ export function SiteHeader({
               placement="header"
               className="ms-1 hidden h-10 items-center rounded-lg px-3 text-sm font-medium whitespace-nowrap text-ink-2 transition-colors hover:bg-chip hover:text-ink sm:inline-flex"
             >
-              {nav.signIn}
+              {signedIn ? nav.dashboard : nav.signIn}
             </AttributedLink>
 
             <a

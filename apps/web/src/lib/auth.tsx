@@ -26,6 +26,7 @@ import type { Session } from '@supabase/supabase-js';
 
 import { waves } from '@/lib/waves';
 import { rememberProvider } from '@/lib/guestSwitch';
+import { markSignedIn } from '@/lib/signedInHint';
 
 interface AuthValue {
   session: Session | null;
@@ -69,6 +70,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    if (!loading) markSignedIn(session !== null);
+  }, [loading, session]);
 
   const signInWithGoogle = useCallback(async () => {
     // Back to the callback route with the code in the URL; it finishes there.
