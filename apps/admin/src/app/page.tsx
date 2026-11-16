@@ -1,4 +1,4 @@
-import { format, money, type CurrencyCode } from '@waves/core';
+import { COUNTRIES, countryFlag, format, money, type CurrencyCode } from '@waves/core';
 
 import { Bars } from '@/components/Bars';
 import { AreaTrend } from '@/components/charts/AreaTrend';
@@ -183,7 +183,15 @@ export default async function Dashboard() {
                 {countries.map((row) => (
                   <tr key={row.country_code ?? 'unknown'}>
                     <th scope="row" style={{ fontWeight: 600 }}>
-                      {row.country_code ?? <span className="muted">Not set</span>}
+                      {row.country_code ? (
+                        <>
+                          <span aria-hidden>{countryFlag(row.country_code)}</span>{' '}
+                          {COUNTRIES.find((c) => c.code === row.country_code)?.name ??
+                            row.country_code}
+                        </>
+                      ) : (
+                        <span className="muted">Not set</span>
+                      )}
                     </th>
                     <td className="n">{num(row.profile_count)}</td>
                     <td className="n">{num(row.group_count)}</td>
@@ -228,6 +236,8 @@ export default async function Dashboard() {
                 {currencies.map((row) => (
                   <tr key={row.currency}>
                     <th scope="row" style={{ fontWeight: 600 }}>
+                      {/* ISO 4217 starts with the issuing country (INR → IN, EUR → EU). */}
+                      <span aria-hidden>{countryFlag(row.currency.slice(0, 2))}</span>{' '}
                       {row.currency}
                     </th>
                     <td className="n">{num(row.expense_count)}</td>
