@@ -11,7 +11,7 @@ import { Pressable } from 'react-native';
 import { Text, iconSize, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
-import { useVoiceAdded, useVoiceNewCount } from '@/lib/voiceSpaceStore';
+import { markVoiceSeen, useVoiceAdded, useVoiceNewCount } from '@/lib/voiceSpaceStore';
 
 export function VoiceAddedStrip({
   groupId,
@@ -23,15 +23,15 @@ export function VoiceAddedStrip({
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
-  const { newIds, markSeenNow } = useVoiceAdded();
+  const { newIds } = useVoiceAdded();
   const newCount = useVoiceNewCount();
-  useFocusEffect(() => () => markSeenNow(groupId));
+  useFocusEffect(() => () => markVoiceSeen(groupId));
   const count = live ? newIds(groupId, live).length : newCount(groupId);
   if (count === 0) return null;
   return (
     <Pressable
       accessibilityRole="button"
-      onPress={() => markSeenNow(groupId)}
+      onPress={() => markVoiceSeen(groupId)}
       style={{
         flexDirection: 'row',
         alignItems: 'center',

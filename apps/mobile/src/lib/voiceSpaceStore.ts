@@ -68,7 +68,7 @@ function profileStore<T>(prefix: string, empty: T) {
     );
     return [current, set];
   };
-  return { use, get: () => value };
+  return { use, get: () => value, set };
 }
 
 // ───────────────────────────────────────────────────────── default space ──
@@ -120,6 +120,15 @@ export function useVoiceDefaultSpace(): {
 // ───────────────────────────────────────────────────── voice-added marks ──
 
 const addedStore = profileStore<VoiceAddedState>('waves.voice_added', EMPTY_VOICE_ADDED);
+
+/**
+ * Mark a space's voice entries seen. Module-level so its identity never changes: a focus
+ * effect that calls it does not re-run on each render (calling the hook's per-render
+ * `markSeenNow` from a blur cleanup looped forever: mark → emit → render → new callback → cleanup → mark).
+ */
+export function markVoiceSeen(groupId: string): void {
+  addedStore.set(markSeen(addedStore.get(), groupId, Date.now()));
+}
 
 export function useVoiceAdded(): {
   state: VoiceAddedState;
