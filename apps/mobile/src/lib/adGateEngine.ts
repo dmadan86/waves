@@ -1,3 +1,4 @@
+import { FREE_GROUPS } from './adPacingPure';
 export type Placement = 'group_create_rewarded' | 'export_rewarded';
 export type AdLedger = {
   credits: 0 | 1;
@@ -70,7 +71,7 @@ export function decideGate(i: {
   if (i.paid) return 'allow';
   if (i.online)
     return i.required !== true ? 'allow' : i.credits >= (i.cost ?? 6) ? 'use_credit' : 'ask';
-  if (i.placement === 'group_create_rewarded' && i.localGroups === 0) return 'allow';
+  if (i.placement === 'group_create_rewarded' && i.localGroups < FREE_GROUPS) return 'allow';
   return i.passesUsed < PASS_CAP ? 'offline_pass' : 'offline_capped';
 }
 export function declineOffer(l: AdLedger, now: number): AdLedger {

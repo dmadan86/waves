@@ -107,6 +107,9 @@ export function gateAllows(result: GateResult): boolean {
   return result === 'completed';
 }
 
+/** A person's first groups are created with no ad; the ask starts after these. */
+export const FREE_GROUPS = 2;
+
 export function gateRequired(input: {
   enabled: boolean;
   paid: boolean;
@@ -116,7 +119,7 @@ export function gateRequired(input: {
   return (
     input.enabled &&
     !input.paid &&
-    (input.placement === 'export_rewarded' || input.createdGroups > 0)
+    (input.placement === 'export_rewarded' || input.createdGroups >= FREE_GROUPS)
   );
 }
 

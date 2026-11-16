@@ -20,7 +20,7 @@ const input = {
   online: false,
   required: null,
   placement,
-  localGroups: 1,
+  localGroups: 2,
   credits: 0,
   passesUsed: 0,
 };
@@ -50,6 +50,7 @@ it('accepts the documented offline forward-jump residual', () => {
 it.each([
   [{ localGroups: 0 }, 'allow'],
   [{ localGroups: 0, passesUsed: 2 }, 'allow'],
+  [{ localGroups: 1, passesUsed: 2 }, 'allow'],
   [{ placement: 'export_rewarded' as const, localGroups: 0 }, 'offline_pass'],
   [{ online: true, required: null }, 'allow'],
   [{ online: true, required: false }, 'allow'],
