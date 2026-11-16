@@ -42,7 +42,9 @@ describe('one screen, start to saved', () => {
     // leaveVoice: back, or Home on a widget cold open with nothing behind it.
     const backs = files.voice.match(/router\.back\(\)/g) ?? [];
     expect(backs.length).toBe(1);
-    expect(files.voice).toContain("if (router.canGoBack()) router.back();\n    else router.dismissTo('/');");
+    expect(files.voice).toContain(
+      "if (router.canGoBack()) router.back();\n    else router.dismissTo('/');",
+    );
     expect(files.voice.match(/leaveVoice\(\);/g)?.length).toBe(3);
     expect(files.voice).toContain('const finishVoice = (): void => {\n    leaveVoice();');
   });

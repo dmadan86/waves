@@ -69,7 +69,9 @@ interface QueueState {
 export function PromptQueueProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<QueueState>({ claims: {}, holder: null, spent: false });
   const pathname = usePathname();
-  const quiet = QUIET_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+  const quiet = QUIET_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
 
   const claim = useCallback((id: string, priority: number, essential = false) => {
     setState((prev) => {
