@@ -1,8 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useEffect, useState } from 'react';
-import { ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
-import { Button, iconSize, Row, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Row, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { ListRow, PlainHeader, RowTile, SectionHeader, StandardCard } from '@/components/standard';
 import { useStrings } from '@/i18n';
@@ -142,16 +143,7 @@ export default function AppUpdatesScreen() {
                 </Row>
               ) : null}
             </View>
-            {/* shortcut: an icon stands in for the mockup's illustration; swap for art when there is some. */}
-            <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-              <Ionicons name="phone-portrait-outline" size={72} color={theme.color.brand} />
-              <Ionicons
-                name={phase === 'failed' ? 'alert-circle' : 'checkmark-circle'}
-                size={28}
-                color={phase === 'failed' ? theme.color.negative : theme.color.brand}
-                style={{ position: 'absolute', top: 22, left: 22 }}
-              />
-            </View>
+            <UpdateArt failed={phase === 'failed'} />
           </Row>
         </StandardCard>
 
@@ -184,33 +176,118 @@ export default function AppUpdatesScreen() {
         <StandardCard style={{ gap: theme.spacing.sm }}>
           {canCheck ? (
             phase === 'ready' ? (
-              <Button
+              <ActionRow
+                filled
+                icon="reload"
                 label={t.otaUpdates.restart}
-                variant="brand"
-                fullWidth
-                icon={<Ionicons name="reload" size={iconSize.md} color={theme.color.onBrand} />}
                 onPress={() => void updates?.reloadAsync()}
               />
             ) : (
-              <Button
+              <ActionRow
+                filled
+                icon="sync"
                 label={t.otaUpdates.check}
-                variant="brand"
-                fullWidth
                 disabled={busy}
-                icon={<Ionicons name="sync" size={iconSize.md} color={theme.color.onBrand} />}
                 onPress={check}
               />
             )
           ) : null}
-          <Button
+          <ActionRow
+            icon="time-outline"
             label={t.pendingChanges.row}
-            variant="secondary"
-            fullWidth
-            icon={<Ionicons name="time-outline" size={iconSize.md} color={theme.color.brand} />}
             onPress={() => router.push('/settings/pending-changes')}
           />
         </StandardCard>
       </ScrollView>
+    </View>
+  );
+}
+
+/** A full-width row button: icon and label at the start, a chevron at the end. */
+function ActionRow({
+  icon,
+  label,
+  onPress,
+  filled = false,
+  disabled = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+  filled?: boolean;
+  disabled?: boolean;
+}) {
+  const theme = useTheme();
+  const color = filled ? theme.color.onBrand : theme.color.brand;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        minHeight: 52,
+        paddingHorizontal: theme.spacing.lg,
+        borderRadius: theme.radius.lg,
+        backgroundColor: filled ? theme.color.brand : theme.color.brandSoft,
+        opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={iconSize.lg} color={color} />
+      <Text variant="subheading" numberOfLines={1} style={{ flex: 1, color }}>
+        {label}
+      </Text>
+      <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.md} color={color} />
+    </Pressable>
+  );
+}
+
+/** The hero art: a tilted phone with a check (or alert) on a soft cloud. */
+function UpdateArt({ failed }: { failed: boolean }) {
+  const theme = useTheme();
+  const brand = theme.color.brand;
+  const mark = failed ? theme.color.negative : brand;
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <Svg width={112} height={96} viewBox="0 0 112 96">
+        <Path
+          d="M8 92 C8 80 18 74 28 76 C32 66 44 62 52 68 C60 58 80 58 86 70 C98 68 108 78 106 92 Z"
+          fill={brand}
+          opacity={0.14}
+        />
+        <G rotation={8} origin="62, 48">
+          <Rect
+            x={42}
+            y={6}
+            width={40}
+            height={78}
+            rx={8}
+            fill={theme.color.surface}
+            stroke={brand}
+            strokeWidth={3}
+          />
+          <Rect x={56} y={12} width={12} height={2.5} rx={1.25} fill={brand} />
+          <Circle cx={62} cy={45} r={11} fill={mark} opacity={0.85} />
+          <Path
+            d={failed ? 'M62 39 L62 46 M62 50 L62 50.5' : 'M57 45 L61 49 L67.5 41.5'}
+            stroke={theme.color.onBrand}
+            strokeWidth={3}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+          />
+        </G>
+        <Path
+          d="M30 22 L35 28 M26 34 L33 35.5"
+          stroke={brand}
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        />
+      </Svg>
     </View>
   );
 }
