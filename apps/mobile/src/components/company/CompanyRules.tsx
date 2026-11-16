@@ -194,7 +194,7 @@ export function CompanyRules({
               leading={lead('document-text-outline')}
               title={t.company.policiesTitle}
               subtitle={t.company.policiesHint}
-              amount={`${view.policies.rules.length}`}
+              amount={`${view.policies.rules.filter((r) => r.type !== 'capital').length}`}
               trailing={
                 <Ionicons
                   name={policies ? 'chevron-up' : directionalIcon('chevron-forward')}

@@ -22,6 +22,7 @@ import {
   QuickActions,
   TaskBoard,
 } from '@/components/company/dashboard/OverviewTaskBoard';
+import { WorkingCapitalCard } from '@/components/company/dashboard/WorkingCapital';
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { OverviewUpcoming } from '@/components/company/dashboard/OverviewUpcoming';
 import { UpcomingTimeOff } from '@/components/company/UpcomingTimeOff';
@@ -81,7 +82,12 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
                   comingUp: <ComingUpRow groupId={groupId} />,
                   attendance: own.attendance,
                   attention: own.attention,
-                  money: <MoneyCards groupId={groupId} />,
+                  money: (
+                    <View style={{ gap: 12 }}>
+                      <WorkingCapitalCard groupId={groupId} />
+                      <MoneyCards groupId={groupId} />
+                    </View>
+                  ),
                   upcoming: (
                     <View style={{ gap: 12 }}>
                       <OverviewUpcoming groupId={groupId} />

@@ -3227,7 +3227,7 @@ function companyPolicies(value: unknown): unknown {
   if (
     p.version !== 1 ||
     !Array.isArray(p.rules) ||
-    p.rules.length > 100 ||
+    p.rules.length > 500 ||
     Object.keys(p).some((k) => !['version', 'rules'].includes(k))
   )
     companyInvalid('policies');
@@ -3259,6 +3259,31 @@ function companyPolicies(value: unknown): unknown {
         !['day', 'month'].includes(rule.period) ||
         Object.keys(rule).some(
           (k) => !['id', 'type', 'target', 'period', 'limitMinor', 'effect'].includes(k),
+        )
+      )
+        companyInvalid('policies');
+    } else if (rule.type === 'capital') {
+      if (
+        rule.effect !== 'warn' ||
+        !['in', 'out'].includes(rule.direction) ||
+        typeof rule.at !== 'string' ||
+        rule.at.length > 40 ||
+        (rule.by !== undefined && rule.by !== null && typeof rule.by !== 'string') ||
+        Object.keys(rule).some(
+          (k) => !['id', 'type', 'limitMinor', 'effect', 'direction', 'by', 'at'].includes(k),
+        )
+      )
+        companyInvalid('policies');
+    } else if (rule.type === 'company_cap') {
+      const days = rule.days;
+      if (
+        rule.effect !== 'warn' ||
+        !['days', 'week', 'month', 'year'].includes(rule.period) ||
+        (rule.period === 'days'
+          ? !Number.isInteger(days) || days < 1 || days > 9999
+          : days !== undefined) ||
+        Object.keys(rule).some(
+          (k) => !['id', 'type', 'limitMinor', 'effect', 'period', 'days'].includes(k),
         )
       )
         companyInvalid('policies');

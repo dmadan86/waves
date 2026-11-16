@@ -1,4 +1,5 @@
 export * from './tags';
+export * from './capital';
 export * from './phase4';
 export * from './vendors';
 export * from './clients';
@@ -9,6 +10,7 @@ export * from './vendorOrders';
 export * from './details';
 export * from './workday';
 export * from './moneyDates';
+import { capWindow, spentIn, type CapPeriod, type SpendItem } from './capital';
 import { companyTagLabel, type CompanyTag } from './tags';
 /**
  * Company expenses (Phase 1): an employer records what each employee spent,
@@ -685,6 +687,27 @@ export type CompanyPolicyRule =
       readonly period: 'day' | 'month';
       readonly limitMinor: string;
       readonly effect: CompanyPolicyEffect;
+    }
+  /** Working capital: one auditable top-up (`in`) or take-out (`out`). Never a flag. */
+  | {
+      readonly id: string;
+      readonly type: 'capital';
+      readonly limitMinor: string;
+      readonly direction: 'in' | 'out';
+      readonly effect: 'warn';
+      /** The member who recorded it, and when (ISO timestamp). */
+      readonly by: string | null;
+      readonly at: string;
+    }
+  /** A company-wide spending cap per period. Warn only: an entry over it still saves. */
+  | {
+      readonly id: string;
+      readonly type: 'company_cap';
+      readonly limitMinor: string;
+      readonly period: CapPeriod;
+      /** `days` only: the rolling window length, 1 or more. */
+      readonly days?: number;
+      readonly effect: 'warn';
     };
 
 export interface CompanyPolicies {
@@ -708,13 +731,15 @@ export function parseCompanyPolicies(raw: unknown): CompanyPolicies {
 
 export interface PolicyFlag {
   readonly ruleId: string;
-  readonly code: 'RECEIPT' | 'PERIOD_LIMIT';
+  readonly code: 'RECEIPT' | 'PERIOD_LIMIT' | 'COMPANY_CAP';
   readonly effect: CompanyPolicyEffect;
   readonly limitMinor: bigint;
   /** The total the rule saw (period limits) or the entry amount (receipts). */
   readonly actualMinor: bigint;
   readonly target?: string;
   readonly period?: 'day' | 'month';
+  /** COMPANY_CAP: which cap period tripped. */
+  readonly cap?: { readonly period: CapPeriod; readonly days: number };
 }
 
 export interface PolicySubject {
@@ -746,12 +771,35 @@ export function evaluateCompanyPolicies(
   subject: PolicySubject,
   entries: readonly CompanyEntry[],
   policies: CompanyPolicies,
-  options: { readonly hasReceipt: boolean },
+  options: {
+    readonly hasReceipt: boolean;
+    /** Company-wide spending (see `companySpendItems`); caps are only checked when given. */
+    readonly spend?: readonly SpendItem[];
+  },
 ): PolicyFlag[] {
   const flags: PolicyFlag[] = [];
   const target = policyTarget(subject);
   for (const rule of policies.rules) {
-    if (rule.type === 'receipt_above') {
+    if (rule.type === 'capital') continue;
+    if (rule.type === 'company_cap') {
+      if (!options.spend) continue;
+      const window = capWindow(rule.period, rule.days ?? 1, subject.occurredOn);
+      const limit = BigInt(rule.limitMinor);
+      const actual = spentIn(
+        options.spend.filter((i) => i.id !== subject.id),
+        window,
+        subject.amount,
+      );
+      if (actual > limit)
+        flags.push({
+          ruleId: rule.id,
+          code: 'COMPANY_CAP',
+          effect: 'warn',
+          limitMinor: limit,
+          actualMinor: actual,
+          cap: { period: rule.period, days: rule.days ?? 1 },
+        });
+    } else if (rule.type === 'receipt_above') {
       const limit = BigInt(rule.limitMinor);
       if (subject.kind === 'expense' && subject.amount > limit && !options.hasReceipt)
         flags.push({
@@ -796,15 +844,17 @@ export function flagsForEntry(
   entries: readonly CompanyEntry[],
   policies: CompanyPolicies,
   receiptEntryIds: ReadonlySet<string>,
+  spend?: readonly SpendItem[],
 ): PolicyFlag[] {
   if (
     entry.deleted ||
     entry.status === 'rejected' ||
-    (entry.kind !== 'expense' && entry.kind !== 'allowance')
+    (entry.kind !== 'expense' && entry.kind !== 'allowance' && entry.kind !== 'advance')
   )
     return [];
   return evaluateCompanyPolicies(entry, entries, policies, {
     hasReceipt: receiptEntryIds.has(entry.id),
+    spend,
   });
 }
 

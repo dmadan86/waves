@@ -20,6 +20,8 @@ import {
 } from '@waves/core';
 import { Text, iconSize, useTheme } from '@waves/ui';
 
+import { capPeriodWord } from '@/components/company/capLabels';
+import { CapSheet } from '@/components/company/dashboard/WorkingCapital';
 import { EditTextSheet } from '@/components/EditTextSheet';
 import { ListRow } from '@/components/standard';
 import { useSetCompanyPolicies, type CompanyView } from '@/data/companyEntries';
@@ -37,6 +39,7 @@ export function CompanyPolicyEditor({ groupId, view }: { groupId: string; view: 
   const save = useSetCompanyPolicies(groupId);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [capOpen, setCapOpen] = useState(false);
   const currency = view.currency as CurrencyCode;
   const fmt = (minor: bigint): string => format(money(minor, currency), { locale });
   const tags = useCompanyTags(groupId, view);
@@ -78,48 +81,55 @@ export function CompanyPolicyEditor({ groupId, view }: { groupId: string; view: 
       {view.policies.rules.length === 0 ? (
         <ListRow title={t.company.policiesTitle} subtitle={t.company.policyNone} divider />
       ) : (
-        view.policies.rules.map((rule) => (
-          <ListRow
-            key={rule.id}
-            title={
-              rule.type === 'receipt_above'
-                ? fill(t.company.policyReceipt, { amount: fmt(BigInt(rule.limitMinor)) })
-                : fill(t.company.policyLimit, {
-                    what: targetLabel(rule.target),
-                    amount: fmt(BigInt(rule.limitMinor)),
-                    period: rule.period === 'day' ? t.company.perDay : t.company.perMonth,
-                  })
-            }
-            subtitle={rule.effect === 'block' ? t.company.policyBlock : t.company.policyWarn}
-            onPress={
-              rule.type === 'period_limit'
-                ? () =>
-                    commit(
-                      view.policies.rules.map((r) =>
-                        r.id === rule.id && r.type === 'period_limit'
-                          ? { ...r, effect: r.effect === 'warn' ? 'block' : 'warn' }
-                          : r,
-                      ),
-                    )
-                : undefined
-            }
-            trailing={
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.company.policyRemove}
-                hitSlop={10}
-                onPress={() => commit(view.policies.rules.filter((r) => r.id !== rule.id))}
-              >
-                <Ionicons
-                  name="close-circle-outline"
-                  size={iconSize.md}
-                  color={theme.color.textMuted}
-                />
-              </Pressable>
-            }
-            divider
-          />
-        ))
+        view.policies.rules.map((rule) =>
+          rule.type === 'capital' ? null : (
+            <ListRow
+              key={rule.id}
+              title={
+                rule.type === 'receipt_above'
+                  ? fill(t.company.policyReceipt, { amount: fmt(BigInt(rule.limitMinor)) })
+                  : rule.type === 'company_cap'
+                    ? fill(t.company.capRule, {
+                        amount: fmt(BigInt(rule.limitMinor)),
+                        period: capPeriodWord(t, rule.period, rule.days ?? 1, 'rule'),
+                      })
+                    : fill(t.company.policyLimit, {
+                        what: targetLabel(rule.target),
+                        amount: fmt(BigInt(rule.limitMinor)),
+                        period: rule.period === 'day' ? t.company.perDay : t.company.perMonth,
+                      })
+              }
+              subtitle={rule.effect === 'block' ? t.company.policyBlock : t.company.policyWarn}
+              onPress={
+                rule.type === 'period_limit'
+                  ? () =>
+                      commit(
+                        view.policies.rules.map((r) =>
+                          r.id === rule.id && r.type === 'period_limit'
+                            ? { ...r, effect: r.effect === 'warn' ? 'block' : 'warn' }
+                            : r,
+                        ),
+                      )
+                  : undefined
+              }
+              trailing={
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t.company.policyRemove}
+                  hitSlop={10}
+                  onPress={() => commit(view.policies.rules.filter((r) => r.id !== rule.id))}
+                >
+                  <Ionicons
+                    name="close-circle-outline"
+                    size={iconSize.md}
+                    color={theme.color.textMuted}
+                  />
+                </Pressable>
+              }
+              divider
+            />
+          ),
+        )
       )}
       <ListRow
         title={t.company.policyAddReceipt}
@@ -127,6 +137,15 @@ export function CompanyPolicyEditor({ groupId, view }: { groupId: string; view: 
           <Ionicons name="add-circle-outline" size={iconSize.md} color={theme.color.brand} />
         }
         onPress={() => setDraft({ kind: 'receipt' })}
+        divider
+      />
+      <ListRow
+        title={t.company.capAdd}
+        subtitle={t.company.capAddHint}
+        leading={
+          <Ionicons name="add-circle-outline" size={iconSize.md} color={theme.color.brand} />
+        }
+        onPress={() => setCapOpen(true)}
         divider
       />
       <ListRow
@@ -143,6 +162,15 @@ export function CompanyPolicyEditor({ groupId, view }: { groupId: string; view: 
           {error}
         </Text>
       ) : null}
+      <CapSheet
+        visible={capOpen}
+        onClose={() => setCapOpen(false)}
+        currency={currency}
+        onAdd={(rule) => {
+          setCapOpen(false);
+          commit([...view.policies.rules, rule]);
+        }}
+      />
       <EditTextSheet
         visible={draft !== null}
         title={t.company.policyLimitLabel}

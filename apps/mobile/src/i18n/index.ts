@@ -2468,6 +2468,36 @@ export interface UiStrings {
     noBillYet: string;
     perDay: string;
     perMonth: string;
+    capitalTitle: string;
+    capitalLeft: string;
+    capitalSet: string;
+    capitalAdd: string;
+    capitalTakeOut: string;
+    capitalHint: string;
+    capAdd: string;
+    capAddHint: string;
+    capRule: string;
+    capDay: string;
+    cap3Days: string;
+    capWeek: string;
+    capMonth: string;
+    capYear: string;
+    capEveryN: string;
+    capDaysLabel: string;
+    capPerDay: string;
+    capPerDays: string;
+    capPerWeek: string;
+    capPerMonth: string;
+    capPerYear: string;
+    capUseToday: string;
+    capUseWeek: string;
+    capUseMonth: string;
+    capUseYear: string;
+    capUseDays: string;
+    capUsage: string;
+    capOver: string;
+    capHintFlag: string;
+    capSetUp: string;
     select: string;
     selectAllDue: string;
     payCount: string;
@@ -10555,6 +10585,36 @@ const en: UiStrings = {
     noBillYet: 'No bill yet',
     perDay: 'day',
     perMonth: 'month',
+    capitalTitle: 'Working capital',
+    capitalLeft: '{left} left of {total}',
+    capitalSet: 'Set working capital',
+    capitalAdd: 'Add money',
+    capitalTakeOut: 'Take out',
+    capitalHint: 'The money the company has in hand. Spending reduces it.',
+    capAdd: 'Spending cap',
+    capAddHint: 'Warns when company spending passes an amount',
+    capRule: 'Company spending over {amount} {period}',
+    capDay: 'Day',
+    cap3Days: '3 days',
+    capWeek: 'Week',
+    capMonth: 'Month',
+    capYear: 'Year',
+    capEveryN: 'Every N days',
+    capDaysLabel: 'Number of days',
+    capPerDay: 'a day',
+    capPerDays: 'every {n} days',
+    capPerWeek: 'a week',
+    capPerMonth: 'a month',
+    capPerYear: 'a year',
+    capUseToday: 'today',
+    capUseWeek: 'this week',
+    capUseMonth: 'this month',
+    capUseYear: 'this year',
+    capUseDays: 'in the last {n} days',
+    capUsage: '{used} of {limit} {period}',
+    capOver: 'Over cap',
+    capHintFlag: 'Company spending makes {actual} {period}; cap is {limit}',
+    capSetUp: 'Set a spending cap',
     select: 'Select',
     selectAllDue: 'All due',
     payCount: '{count} selected',
@@ -18115,6 +18175,36 @@ const ta: UiStrings = {
     noBillYet: 'இன்னும் பில் இல்லை',
     perDay: 'நாள்',
     perMonth: 'மாதம்',
+    capitalTitle: 'செயல்பாட்டு மூலதனம்',
+    capitalLeft: '{total}-இல் {left} மீதம்',
+    capitalSet: 'மூலதனத்தை அமைக்கவும்',
+    capitalAdd: 'பணம் சேர்',
+    capitalTakeOut: 'எடு',
+    capitalHint: 'நிறுவனத்திடம் உள்ள பணம். செலவு இதைக் குறைக்கும்.',
+    capAdd: 'செலவு வரம்பு',
+    capAddHint: 'நிறுவன செலவு ஒரு தொகையைத் தாண்டினால் எச்சரிக்கும்',
+    capRule: 'நிறுவன செலவு {amount} மேல் {period}',
+    capDay: 'நாள்',
+    cap3Days: '3 நாட்கள்',
+    capWeek: 'வாரம்',
+    capMonth: 'மாதம்',
+    capYear: 'ஆண்டு',
+    capEveryN: 'ஒவ்வொரு N நாட்கள்',
+    capDaysLabel: 'நாட்களின் எண்ணிக்கை',
+    capPerDay: 'ஒரு நாளுக்கு',
+    capPerDays: 'ஒவ்வொரு {n} நாட்களுக்கும்',
+    capPerWeek: 'ஒரு வாரத்துக்கு',
+    capPerMonth: 'ஒரு மாதத்துக்கு',
+    capPerYear: 'ஒரு ஆண்டுக்கு',
+    capUseToday: 'இன்று',
+    capUseWeek: 'இந்த வாரம்',
+    capUseMonth: 'இந்த மாதம்',
+    capUseYear: 'இந்த ஆண்டு',
+    capUseDays: 'கடந்த {n} நாட்களில்',
+    capUsage: '{limit}-இல் {used} {period}',
+    capOver: 'வரம்பு மீறல்',
+    capHintFlag: 'நிறுவன செலவு {period} {actual}; வரம்பு {limit}',
+    capSetUp: 'செலவு வரம்பை அமைக்கவும்',
     select: 'தேர்வு',
     selectAllDue: 'அனைத்தும்',
     payCount: '{count} தேர்ந்தெடுக்கப்பட்டது',
@@ -25832,6 +25922,36 @@ const hi: UiStrings = {
     noBillYet: 'अभी बिल नहीं',
     perDay: 'दिन',
     perMonth: 'महीना',
+    capitalTitle: 'कार्यशील पूंजी',
+    capitalLeft: '{total} में से {left} बचे',
+    capitalSet: 'कार्यशील पूंजी तय करें',
+    capitalAdd: 'पैसे जोड़ें',
+    capitalTakeOut: 'निकालें',
+    capitalHint: 'कंपनी के पास हाथ में पैसा। खर्च इसे घटाता है।',
+    capAdd: 'खर्च सीमा',
+    capAddHint: 'कंपनी का खर्च किसी रकम से ऊपर जाने पर चेतावनी',
+    capRule: 'कंपनी खर्च {amount} से ऊपर {period}',
+    capDay: 'दिन',
+    cap3Days: '3 दिन',
+    capWeek: 'सप्ताह',
+    capMonth: 'महीना',
+    capYear: 'साल',
+    capEveryN: 'हर N दिन',
+    capDaysLabel: 'दिनों की संख्या',
+    capPerDay: 'प्रति दिन',
+    capPerDays: 'हर {n} दिन',
+    capPerWeek: 'प्रति सप्ताह',
+    capPerMonth: 'प्रति माह',
+    capPerYear: 'प्रति वर्ष',
+    capUseToday: 'आज',
+    capUseWeek: 'इस सप्ताह',
+    capUseMonth: 'इस महीने',
+    capUseYear: 'इस साल',
+    capUseDays: 'पिछले {n} दिनों में',
+    capUsage: '{limit} में से {used} {period}',
+    capOver: 'सीमा से ऊपर',
+    capHintFlag: 'कंपनी का खर्च {period} {actual} है; सीमा {limit}',
+    capSetUp: 'खर्च सीमा तय करें',
     select: 'चुनें',
     selectAllDue: 'सब बकाया',
     payCount: '{count} चुने गए',
@@ -33499,6 +33619,36 @@ const ar: UiStrings = {
     noBillYet: 'لا فاتورة بعد',
     perDay: 'يوم',
     perMonth: 'شهر',
+    capitalTitle: 'رأس المال العامل',
+    capitalLeft: 'المتبقي {left} من {total}',
+    capitalSet: 'حدد رأس المال العامل',
+    capitalAdd: 'إضافة مال',
+    capitalTakeOut: 'سحب',
+    capitalHint: 'المال المتوفر لدى الشركة. الإنفاق يقلله.',
+    capAdd: 'حد الإنفاق',
+    capAddHint: 'ينبه عندما يتجاوز إنفاق الشركة مبلغًا',
+    capRule: 'إنفاق الشركة فوق {amount} {period}',
+    capDay: 'يوم',
+    cap3Days: '3 أيام',
+    capWeek: 'أسبوع',
+    capMonth: 'شهر',
+    capYear: 'سنة',
+    capEveryN: 'كل N أيام',
+    capDaysLabel: 'عدد الأيام',
+    capPerDay: 'في اليوم',
+    capPerDays: 'كل {n} أيام',
+    capPerWeek: 'في الأسبوع',
+    capPerMonth: 'في الشهر',
+    capPerYear: 'في السنة',
+    capUseToday: 'اليوم',
+    capUseWeek: 'هذا الأسبوع',
+    capUseMonth: 'هذا الشهر',
+    capUseYear: 'هذه السنة',
+    capUseDays: 'في آخر {n} أيام',
+    capUsage: '{used} من {limit} {period}',
+    capOver: 'فوق الحد',
+    capHintFlag: 'إنفاق الشركة {actual} {period}؛ الحد {limit}',
+    capSetUp: 'حدد حد إنفاق',
     select: 'تحديد',
     selectAllDue: 'كل المستحق',
     payCount: 'تم تحديد {count}',
