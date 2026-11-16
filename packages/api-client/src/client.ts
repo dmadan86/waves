@@ -1,3 +1,4 @@
+import { createPotApi } from './pots';
 /**
  * One client for anything that is not the phone.
  *
@@ -117,7 +118,7 @@ const SIGNED_URL_TTL_SECONDS = 60 * 60;
 const EXPENSE_COLUMNS = `
   id, group_id, deleted_at, created_at,
   currentVersion:expense_versions!expenses_current_version_id_fkey (
-    id, version_no, description, category, category_meta, expense_date, currency, amount,
+    id, version_no, description, category, category_meta, expense_date, currency, amount, pot_id,
     split_type, split_params, location, receipt_id, receipt_share_url, fx, reimbursable,
     payers:expense_payers ( member_id, amount ),
     shares:expense_shares ( member_id, amount )
@@ -256,6 +257,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
   }
 
   return {
+    ...createPotApi(supabase, rpc, callFunction),
     resplitDeparted(
       groupId: string,
       memberId: string,
@@ -931,7 +933,7 @@ export function createWavesClient({ supabase, r2Enabled = false }: WavesClientOp
           .from('settlements')
           .select(
             `id, group_id, from_member_id, to_member_id, currency, amount, status,
-             initiated_at, confirmed_at,
+             initiated_at, confirmed_at, pot_id, reference, reference_source,
              allocations:settlement_allocations ( expense_id, amount )`,
           )
           .eq('group_id', groupId)

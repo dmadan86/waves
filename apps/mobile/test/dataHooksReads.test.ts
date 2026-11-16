@@ -39,6 +39,11 @@ vi.mock(
   async () => (await import('./support/hookHarness')).fakeReactQuery,
 );
 vi.mock('@/sync', async () => (await import('./support/hookHarness')).fakeSync);
+// Pot queries have a separate cache entry from the server balance cross-check.
+vi.mock('@/data/pots', () => ({
+  usePots: () => ({ data: [], isLoading: false, isError: false }),
+  usePotExpenseTags: () => ({ data: {} }),
+}));
 // The data hooks read this device's local SMS drafts; the real store opens
 // SQLite and the keystore, so it is the real cache over memory here.
 vi.mock('@/lib/smsDraftStore', async () =>

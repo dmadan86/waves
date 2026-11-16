@@ -4,6 +4,7 @@ import type { MemberId } from '../split/types';
 
 /** The current version of an expense, flattened to what balances need. */
 export interface ExpenseSnapshot {
+  readonly potId?: string | null;
   readonly id: string;
   readonly currency: CurrencyCode;
   /** Total, minor units. Equals Σ payers and Σ shares (enforced in SQL too). */

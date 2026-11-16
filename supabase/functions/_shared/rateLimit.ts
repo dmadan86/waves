@@ -29,6 +29,7 @@ import { HttpError, type SupabaseClient } from './auth.ts';
  * the tight one because each call reads a whole group and builds a file.
  */
 export const LIMITS = {
+  'pot-pay': { limit: 30, windowSeconds: 3600 },
   /** The sync engine, which talks on every mutation and every foreground. */
   sync: { limit: 120, windowSeconds: 60 },
   /** Writing an expense. Far above any human, well below a script. */

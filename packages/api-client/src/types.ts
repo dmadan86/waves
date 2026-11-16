@@ -42,6 +42,7 @@ export interface Member {
 }
 
 export interface ExpenseVersion {
+  pot_id?: string | null;
   id: string;
   version_no: number;
   description: string;
@@ -89,6 +90,9 @@ export interface Expense {
 }
 
 export interface Settlement {
+  pot_id?: string | null;
+  reference?: string | null;
+  reference_source?: import('./pots').PotReferenceSource | null;
   id: string;
   group_id: string;
   from_member_id: MemberId;

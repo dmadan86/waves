@@ -53,6 +53,7 @@ const APPLY_EXPENSE_KEYS = [
   'p_occurred_at',
   'p_payee',
   'p_reimbursable',
+  'p_pot_id',
 ].sort();
 
 /** A representative custom-tag snapshot reused across the cases. */
@@ -89,6 +90,10 @@ function baseArgs(overrides: Partial<ApplyExpenseArgsInput> = {}): ApplyExpenseA
 }
 
 describe('buildApplyExpenseArgs — the edge → RPC contract', () => {
+  it('carries the pot identity to the RPC and defaults old clients to null', () => {
+    expect(buildApplyExpenseArgs(baseArgs({ potId: 'pot-1' })).p_pot_id).toBe('pot-1');
+    expect(buildApplyExpenseArgs(baseArgs()).p_pot_id).toBeNull();
+  });
   it('emits exactly the RPC parameter set, including p_category_meta and p_base_version_no', () => {
     const args = buildApplyExpenseArgs(baseArgs());
     expect(Object.keys(args).sort()).toEqual(APPLY_EXPENSE_KEYS);

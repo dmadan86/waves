@@ -1,3 +1,6 @@
+import { launchUpi } from '@/lib/upiLaunch';
+import { optionalPotUtr, upiReference } from '@/lib/potUi';
+import { usePots, usePotExpenseTags } from '@/data/pots';
 /**
  * Settling up in a group, as plainly as it can be said: who owes me (remind
  * them), whom I owe (pay them), and nothing else until asked.
@@ -102,6 +105,17 @@ export function useSettleFlow(
   const guard = useGuestGuard();
 
   const [error, setError] = useState<string | null>(null);
+  const [utr, setUtr] = useState('');
+  const pots = usePots(groupId);
+  const openPotIds = new Set(
+    (pots.data ?? []).filter((pot) => pot.status === 'open').map((pot) => pot.id),
+  );
+  const potTags = usePotExpenseTags(groupId, openPotIds.size > 0);
+  const hiddenSettlements = new Set(
+    (pots.data ?? [])
+      .filter((pot) => pot.status === 'open')
+      .flatMap((pot) => pot.contributions.map((row) => row.id)),
+  );
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterMember, setFilterMember] = useState<string | null>(null);
@@ -110,6 +124,8 @@ export function useSettleFlow(
   const [settleAsk, setSettleAsk] = useState<{
     kind: 'received' | 'paid';
     transfer: PlanTransfer;
+    /** The rail the payment app was opened for, kept for the confirmation. */
+    rail?: string;
   } | null>(null);
   const [settleAskOpen, setSettleAskOpen] = useState(false);
 
@@ -151,7 +167,12 @@ export function useSettleFlow(
    */
   const receivablesFor = (fromId: string, toId: string, code: string): Receivable[] =>
     toLedgerSnapshots(expenses.rows, group.data)
-      .filter((snapshot) => !snapshot.deletedAt && snapshot.currency === code)
+      .filter(
+        (snapshot) =>
+          !snapshot.deletedAt &&
+          snapshot.currency === code &&
+          !openPotIds.has(potTags.data?.[snapshot.id] ?? snapshot.potId ?? ''),
+      )
       .map((snapshot) => {
         const owes = BigInt(snapshot.shares[fromId] ?? 0n);
         const paidByOther = BigInt(snapshot.payers[toId] ?? 0n);
@@ -165,6 +186,11 @@ export function useSettleFlow(
     // A settlement is a write; an expired guest is read-only (ADR-006 addendum).
     if (guard.blockWrite()) return;
     if (transfer.amount <= 0n) return;
+    const utrCheck = optionalPotUtr(utr);
+    if (!utrCheck.valid) {
+      setError(t.pots.invalidUtr);
+      return;
+    }
     // Never record a rate-less debt: the server refuses anything but the group
     // currency in a converting group. The rows never offer it; this is the floor.
     if (rateless(transfer)) return;
@@ -183,6 +209,8 @@ export function useSettleFlow(
         rail,
         currency: transfer.currency,
         allocations: allocation.allocations,
+        // Ordinary settlements have no reference column; the note keeps it findable.
+        ...(utrCheck.reference ? { note: `UTR ${utrCheck.reference}` } : {}),
       });
       onRecorded();
     } catch (caught) {
@@ -192,6 +220,7 @@ export function useSettleFlow(
 
   /** Somebody paid me: ask before writing, it is easy to mis-tap a row. */
   const markReceived = (transfer: PlanTransfer): void => {
+    setUtr('');
     setSettleAsk({ kind: 'received', transfer });
     setSettleAskOpen(true);
   };
@@ -202,8 +231,9 @@ export function useSettleFlow(
   };
 
   /** I already paid, outside the app. */
-  const markPaid = (transfer: PlanTransfer): void => {
-    setSettleAsk({ kind: 'paid', transfer });
+  const markPaid = (transfer: PlanTransfer, rail?: string): void => {
+    setUtr('');
+    setSettleAsk({ kind: 'paid', transfer, rail });
     setSettleAskOpen(true);
   };
 
@@ -238,14 +268,16 @@ export function useSettleFlow(
       ? uri.kind === 'web' || (await Linking.canOpenURL(uri.uri).catch(() => false))
       : false;
     if (uri && canOpen) {
-      await Linking.openURL(uri.uri);
-      const paid = await confirm({
-        title: t.extras.paymentWentThrough,
-        body: t.extras.onlyIfCompleted,
-        confirmLabel: t.misc.recordYes,
-        cancelLabel: t.misc.recordNo,
-      });
-      if (paid) void record(transfer, payable.rail);
+      try {
+        const result =
+          payable.rail === 'upi'
+            ? await launchUpi(uri.uri)
+            : (await Linking.openURL(uri.uri), null);
+        markPaid(transfer, payable.rail);
+        setUtr(upiReference(result));
+      } catch {
+        setError(t.couldNotSave);
+      }
       return;
     }
     const recordIt = await confirm({
@@ -258,10 +290,15 @@ export function useSettleFlow(
     if (recordIt) void record(transfer, payable.rail);
   };
 
-  const loading = group.isLoading || members.isLoading;
+  const loading = group.isLoading || members.isLoading || ledger.loading || pots.isLoading;
 
   const history = (settlements.data ?? [])
-    .filter((row) => row.status !== SettlementStatus.Cancelled)
+    .filter(
+      (row) =>
+        row.status !== SettlementStatus.Cancelled &&
+        (!row.pot_id || !openPotIds.has(row.pot_id)) &&
+        !hiddenSettlements.has(row.id),
+    )
     .slice()
     .sort((a, b) => b.initiated_at.localeCompare(a.initiated_at));
   const shownHistory = showAllHistory ? history : history.slice(0, HISTORY_PREVIEW);
@@ -270,7 +307,12 @@ export function useSettleFlow(
   // A payment someone has marked but the other side has not confirmed yet.
   const pendingPairs = new Set(
     (settlements.data ?? [])
-      .filter((row) => row.status === SettlementStatus.Initiated)
+      .filter(
+        (row) =>
+          row.status === SettlementStatus.Initiated &&
+          (!row.pot_id || !openPotIds.has(row.pot_id)) &&
+          !hiddenSettlements.has(row.id),
+      )
       .map((row) => pendingPairKey(row.from_member_id, row.to_member_id, row.currency, partyOf)),
   );
   const isPending = (transfer: PlanTransfer): boolean =>
@@ -378,6 +420,8 @@ export function useSettleFlow(
     setFilterOpen,
     setSettleAskOpen,
     setShowAllHistory,
+    utr,
+    setUtr,
     settleAsk,
     settleAskMember,
     settleAskName,
@@ -812,6 +856,8 @@ export function SettleConfirm({ flow }: { flow: SettleFlow }) {
     currency,
     record,
     setSettleAskOpen,
+    utr,
+    setUtr,
     settleAsk,
     settleAskMember,
     settleAskName,
@@ -824,10 +870,12 @@ export function SettleConfirm({ flow }: { flow: SettleFlow }) {
       {settleAsk ? (
         <SettleConfirmSheet
           visible={settleAskOpen}
+          reference={settleAskReceived ? undefined : utr}
+          onReferenceChange={setUtr}
           onClose={() => setSettleAskOpen(false)}
           onConfirm={() => {
             setSettleAskOpen(false);
-            void record(settleAsk.transfer, defaultRailForCurrency(currency));
+            void record(settleAsk.transfer, settleAsk.rail ?? defaultRailForCurrency(currency));
           }}
           title={settleAskTitle}
           body={settleAskReceived ? t.misc.settleConfirmReceivedBody : t.misc.settleConfirmPaidBody}

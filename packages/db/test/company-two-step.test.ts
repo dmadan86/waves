@@ -382,6 +382,7 @@ describe('writes: every company table and the RPCs', () => {
     // Each reviewed: they write only (the write guard refuses an unverified caller in a two-step company), or they
     // return nothing from a company beyond the caller's own requests and counts.
     const reviewed: Record<string, string> = {
+      waves_carry_pot: 'writes pots (zz_two_step_write_guard trigger)',
       waves_can_add_receipt: 'boolean only; the receipt write itself is guarded',
       waves_cancel_member_link: 'writes member_link_requests (guarded)',
       waves_claim_member_as_me: 'writes group_members (guarded)',

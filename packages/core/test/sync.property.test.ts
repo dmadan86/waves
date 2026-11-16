@@ -1172,6 +1172,7 @@ describe('the pending overlay', () => {
       {
         expenseId: 'e1',
         description: 'Chai',
+        potId: 'pot-1',
         expenseDate: '2026-03-01',
         currency: INR,
         amount: '1000', // ₹10 across three people: 334 / 333 / 333
@@ -1185,6 +1186,8 @@ describe('the pending overlay', () => {
 
     const [expense] = materialiseExpenses(device.mirror, device.queue, { groupId: GROUP });
     expect(expense?.pending).toBe(true);
+    expect(expense?.currentVersion?.pot_id).toBe('pot-1');
+    expect(toExpenseSnapshot(expense!)?.potId).toBe('pot-1');
 
     const shares = expense?.currentVersion?.shares ?? [];
     const total = shares.reduce((sum, share) => sum + BigInt(share.amount), 0n);

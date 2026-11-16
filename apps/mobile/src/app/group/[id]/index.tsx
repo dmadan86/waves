@@ -1,3 +1,4 @@
+import { PotCard } from '@/components/PotCard';
 import { withScenicGroup } from '@/components/ScenicScope';
 import { AdSlot } from '@/components/AdSlot';
 import { placeSlots } from '@/lib/adPlanPure';
@@ -1926,6 +1927,11 @@ function LedgerGroupScreen() {
                 >
                   <DepartedExpensesBanner groupId={groupId} />
                   <View style={{ gap: theme.spacing.xl }}>
+                    <PotCard
+                      groupId={groupId}
+                      myMemberId={ledger.myMemberId}
+                      balances={tab === Tab.Balances}
+                    />
                     <ImportProgressBanner groupId={groupId} />
                     {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,

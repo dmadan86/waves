@@ -1,3 +1,6 @@
+import { potVisibility } from '@/lib/potUi';
+import { usePots } from '@/data/pots';
+import { potExpensePayers } from '@/lib/pots';
 import { withScenicGroup } from '@/components/ScenicScope';
 import { withScanCredits } from '@/lib/scanCredits';
 import { quietAdsFor } from '@/lib/adSensitiveMoment';
@@ -436,6 +439,9 @@ function AddExpenseScreen() {
   }, [viewerId, movePersonal]);
 
   const { group, members, expenses } = useGroup(groupId);
+  const potParams = useLocalSearchParams<{ potId?: string }>();
+  const pots = usePots(groupId);
+  const [chosenPotId, setChosenPotId] = useState<string | null>(potParams.potId ?? null);
   // A Company group has no splits: any way into this screen (a stale link, the
   // quick-add picker) lands on the company entry form instead.
   const isCompanyGroup = group.data?.type === 'company';
@@ -1028,7 +1034,11 @@ function AddExpenseScreen() {
   const groupCurrency = group.data?.default_currency ?? 'INR';
   // The expense keeps the currency it was paid in; the group's is only the
   // default and what a converted total would be shown in (ADR-003).
-  const currency = expenseCurrency ?? groupCurrency;
+  const existingPotId = editing?.currentVersion?.pot_id;
+  const showPots = potVisibility(group.data, pots.data).show;
+  const effectivePotId = existingPotId ?? (showPots ? chosenPotId : null);
+  const selectedPot = pots.data?.find((pot) => pot.id === effectivePotId);
+  const currency = String(selectedPot?.currency ?? expenseCurrency ?? groupCurrency);
   // The rate the trip has pinned for whatever this bill is in, if it has pinned
   // one (`components/TripRates`). It is a default for the rate field below and
   // nothing more — the bill can still carry its own, and whichever rate is on
@@ -1514,7 +1524,7 @@ function AddExpenseScreen() {
     // The same check the server makes. Catching it here means a bill that does
     // not add up is a sentence under the button rather than a PAYER_MISMATCH
     // that comes back minutes later off a queue.
-    if (payerProblem) {
+    if (!selectedPot && payerProblem) {
       setError(payerMessage);
       return;
     }
@@ -1554,7 +1564,9 @@ function AddExpenseScreen() {
           weights,
           percents,
           exacts,
-          payers,
+          payers: selectedPot
+            ? new Map(Object.entries(potExpensePayers({ ...selectedPot }, amount, currency).payers))
+            : payers,
           paymentMethod,
           location,
           payee,
@@ -1566,11 +1578,14 @@ function AddExpenseScreen() {
         },
         editing: editing?.currentVersion,
       });
+      if (effectivePotId && (!selectedPot || selectedPot.status !== 'open'))
+        throw new Error('POT_NOT_OPEN');
+      const potWritePayload = { ...writePayload, potId: effectivePotId ?? null };
       const writeExpense = (): Promise<unknown> =>
         mutate(
           expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
           groupId,
-          writePayload,
+          potWritePayload,
         );
       const movedFrom = !expenseId && movePersonal ? movePersonal : null;
       if (movedFrom) {
@@ -1594,7 +1609,7 @@ function AddExpenseScreen() {
       // The rule goes in only after the expense is safely queued. Its id comes
       // from the expense's, so saving again after a failure later in this
       // function finds the same rule instead of making a second.
-      if (repeat && !expenseId) {
+      if (repeat && !expenseId && !effectivePotId) {
         try {
           await createRecurring.mutateAsync({
             ruleId: deterministicId(`recurring:${targetExpenseId}`),
@@ -1930,7 +1945,7 @@ function AddExpenseScreen() {
     participants.length > 0 &&
     preview !== null &&
     splitIssue === null &&
-    payerProblem === null;
+    (selectedPot ? amount > 0n : payerProblem === null);
 
   // The bottom-bar sub-line. When an equal split lands the same amount on every
   // head, say it in money — "3 people owe ₹200 each" — which is the number
@@ -2031,7 +2046,9 @@ function AddExpenseScreen() {
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`${t.captures.currencyLabel}: ${currency}`}
-                onPress={() => setPickingCurrency(true)}
+                onPress={() => {
+                  if (!effectivePotId) setPickingCurrency(true);
+                }}
                 hitSlop={10}
                 style={({ pressed }) => ({
                   flexDirection: 'row',
@@ -2274,6 +2291,18 @@ function AddExpenseScreen() {
                 stacked
               />
 
+              {(showPots ? (pots.data ?? []) : [])
+                .filter((pot) => pot.status === 'open' && (!expenseId || existingPotId === pot.id))
+                .map((pot) => (
+                  <Button
+                    key={pot.id}
+                    size="sm"
+                    variant={effectivePotId === pot.id ? 'brand' : 'secondary'}
+                    label={t.pots.fromPot}
+                    disabled={Boolean(existingPotId)}
+                    onPress={() => setChosenPotId(effectivePotId === pot.id ? null : pot.id)}
+                  />
+                ))}
               {/* Who paid — on an edit as much as on a new expense, and now as
               many people as actually put money in. Collapsed, the row says
               who in a word ("You", "You +2"); tapping it unfolds the same
@@ -2301,11 +2330,25 @@ function AddExpenseScreen() {
                   dense
                   stacked
                   label={t.paidBy}
-                  value={payerSummary}
-                  expanded={showPayerSection}
-                  onPress={() => setPayerSectionChoice(!showPayerSection)}
+                  value={
+                    selectedPot
+                      ? (members.data ?? []).find(
+                          (member) => member.id === selectedPot.treasurer_member_id,
+                        )
+                        ? displayName(
+                            (members.data ?? []).find(
+                              (member) => member.id === selectedPot.treasurer_member_id,
+                            )!,
+                          )
+                        : t.misc.someone
+                      : payerSummary
+                  }
+                  expanded={!effectivePotId && showPayerSection}
+                  onPress={() => {
+                    if (!effectivePotId) setPayerSectionChoice(!showPayerSection);
+                  }}
                 />
-                {showPayerSection ? (
+                {!effectivePotId && showPayerSection ? (
                   <View style={{ gap: theme.spacing.sm, paddingBottom: theme.spacing.sm }}>
                     <Row style={{ justifyContent: 'flex-end' }}>
                       <Row style={{ gap: theme.spacing.lg, alignItems: 'center', flexShrink: 0 }}>
@@ -2865,7 +2908,9 @@ function AddExpenseScreen() {
                 dense
                 label={t.captures.currencyLabel}
                 value={`${currencySymbol(currency)} ${currency}`}
-                onPress={() => setPickingCurrency(true)}
+                onPress={() => {
+                  if (!effectivePotId) setPickingCurrency(true);
+                }}
               />
 
               {/* Where it happened (A43) — optional, opt-in, never a background

@@ -51,6 +51,7 @@ export function serialiseExpense(
     payee: input.payee,
     // Same: undefined keeps the stored flag, true/false replaces it.
     reimbursable: input.reimbursable,
+    potId: input.potId ?? null,
     paymentMethod: input.paymentMethod ?? null,
     categoryMeta: input.categoryMeta ?? null,
     location: input.location ?? null,
