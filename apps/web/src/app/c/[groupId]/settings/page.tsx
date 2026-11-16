@@ -515,45 +515,48 @@ export default function CompanySettingsPage() {
               <Section title={s.policiesTitle}>
                 <p className="faint">{s.policiesHint}</p>
                 {policies.rules.length === 0 ? <p className="muted">{s.policyNone}</p> : null}
-                {policies.rules.map((rule) => (
-                  <div key={rule.id} className="row">
-                    <span>
-                      {rule.type === 'receipt_above'
-                        ? fill(s.policyReceipt, { amount: fmt(BigInt(rule.limitMinor)) })
-                        : fill(s.policyLimit, {
-                            what: tagLabel(rule.target),
-                            amount: fmt(BigInt(rule.limitMinor)),
-                            period: rule.period === 'day' ? s.perDay : s.perMonth,
-                          })}
-                      <br />
-                      <span className="faint">
-                        {rule.effect === 'block' ? s.policyBlock : s.policyWarn}
+                {/* Working capital and company caps are edited in the mobile app. */}
+                {policies.rules.map((rule) =>
+                  rule.type === 'capital' || rule.type === 'company_cap' ? null : (
+                    <div key={rule.id} className="row">
+                      <span>
+                        {rule.type === 'receipt_above'
+                          ? fill(s.policyReceipt, { amount: fmt(BigInt(rule.limitMinor)) })
+                          : fill(s.policyLimit, {
+                              what: tagLabel(rule.target),
+                              amount: fmt(BigInt(rule.limitMinor)),
+                              period: rule.period === 'day' ? s.perDay : s.perMonth,
+                            })}
+                        <br />
+                        <span className="faint">
+                          {rule.effect === 'block' ? s.policyBlock : s.policyWarn}
+                        </span>
                       </span>
-                    </span>
-                    <span>
-                      {rule.type === 'period_limit' ? (
+                      <span>
+                        {rule.type === 'period_limit' ? (
+                          <button
+                            type="button"
+                            className="btn soft"
+                            disabled={busy || readOnly}
+                            onClick={() => void commitRules(flipEffect(policies.rules, rule.id))}
+                          >
+                            {rule.effect === 'warn' ? s.policyBlock : s.policyWarn}
+                          </button>
+                        ) : null}{' '}
                         <button
                           type="button"
                           className="btn soft"
                           disabled={busy || readOnly}
-                          onClick={() => void commitRules(flipEffect(policies.rules, rule.id))}
+                          onClick={() =>
+                            void commitRules(policies.rules.filter((r) => r.id !== rule.id))
+                          }
                         >
-                          {rule.effect === 'warn' ? s.policyBlock : s.policyWarn}
+                          {s.policyRemove}
                         </button>
-                      ) : null}{' '}
-                      <button
-                        type="button"
-                        className="btn soft"
-                        disabled={busy || readOnly}
-                        onClick={() =>
-                          void commitRules(policies.rules.filter((r) => r.id !== rule.id))
-                        }
-                      >
-                        {s.policyRemove}
-                      </button>
-                    </span>
-                  </div>
-                ))}
+                      </span>
+                    </div>
+                  ),
+                )}
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                   <input
                     value={receiptDraft}

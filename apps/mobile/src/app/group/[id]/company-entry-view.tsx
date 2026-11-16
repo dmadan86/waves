@@ -22,6 +22,8 @@ import {
 } from '@waves/core';
 import { Button, iconSize, Text, useTheme } from '@waves/ui';
 
+import { capPeriodWord } from '@/components/company/capLabels';
+import { useCompanySpend } from '@/data/companyCapital';
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { EditTextSheet } from '@/components/EditTextSheet';
@@ -54,6 +56,7 @@ export default function CompanyEntryViewScreen() {
   const { t, locale } = useStrings();
   const { confirm } = useDialog();
   const view = useCompanyEntries(groupId);
+  const spend = useCompanySpend(groupId);
   const projects = useCompanyProjects(groupId);
   const tagLabel = useCompanyTags(groupId, view).label;
   const review = useReviewCompanyEntry(groupId);
@@ -84,7 +87,7 @@ export default function CompanyEntryViewScreen() {
     !!entry && !frozen && (view.isAdmin || (mine && ownKind && entry.createdBy === view.me?.id));
   const paidOn = entry ? reimbursedOn(entry, view.entries) : null;
   const flags = entry
-    ? flagsForEntry(entry, view.entries, view.policies, view.receiptEntryIds)
+    ? flagsForEntry(entry, view.entries, view.policies, view.receiptEntryIds, spend)
     : [];
   const status =
     entry?.status === 'submitted'
@@ -229,16 +232,26 @@ export default function CompanyEntryViewScreen() {
                 ) : null}
                 {view.isAdmin && flags.length > 0 ? (
                   <ListRow
-                    title={`! ${t.company.policyFlagged}`}
+                    title={`! ${
+                      flags.every((f) => f.code === 'COMPANY_CAP')
+                        ? t.company.capOver
+                        : t.company.policyFlagged
+                    }`}
                     subtitle={flags
                       .map((f) =>
                         f.code === 'RECEIPT'
                           ? fill(t.company.policyHintReceipt, { limit: fmt(f.limitMinor) })
-                          : fill(t.company.policyHintLimit, {
-                              actual: fmt(f.actualMinor),
-                              period: f.period === 'day' ? t.company.perDay : t.company.perMonth,
-                              limit: fmt(f.limitMinor),
-                            }),
+                          : f.code === 'COMPANY_CAP' && f.cap
+                            ? fill(t.company.capHintFlag, {
+                                actual: fmt(f.actualMinor),
+                                period: capPeriodWord(t, f.cap.period, f.cap.days, 'usage'),
+                                limit: fmt(f.limitMinor),
+                              })
+                            : fill(t.company.policyHintLimit, {
+                                actual: fmt(f.actualMinor),
+                                period: f.period === 'day' ? t.company.perDay : t.company.perMonth,
+                                limit: fmt(f.limitMinor),
+                              }),
                       )
                       .join('\n')}
                     subtitleLines={4}

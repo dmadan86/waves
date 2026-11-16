@@ -7,6 +7,7 @@ import { billDue, flagsForEntry } from '@waves/core';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { TitleRow, useMoney } from '@/components/company/dashboard/parts';
 import { ListRow, StandardCard } from '@/components/standard';
+import { useCompanySpend } from '@/data/companyCapital';
 import { useCompanyTags } from '@/data/companyTags';
 import type { CompanyView } from '@/data/companyEntries';
 import { displayName } from '@/data/types';
@@ -27,6 +28,7 @@ export function PendingApprovals({
   const { t } = useStrings();
   const fmt = useMoney(view.currency);
   const tagLabel = useCompanyTags(groupId, view).label;
+  const spend = useCompanySpend(groupId);
   const all = awaitingApprovals(view);
   const awaiting = teaser ? all.slice(0, 3) : all;
   if (awaiting.length === 0) return null;
@@ -53,10 +55,15 @@ export function PendingApprovals({
                 billDue(e, view.entries, view.policies, view.receiptEntryIds)
                   ? t.company.noBillYet
                   : null,
-                flagsForEntry(e, view.entries, view.policies, view.receiptEntryIds).some(
-                  (f) => f.code !== 'RECEIPT',
+                flagsForEntry(e, view.entries, view.policies, view.receiptEntryIds, spend).some(
+                  (f) => f.code !== 'RECEIPT' && f.code !== 'COMPANY_CAP',
                 )
                   ? `! ${t.company.policyFlagged}`
+                  : null,
+                flagsForEntry(e, view.entries, view.policies, view.receiptEntryIds, spend).some(
+                  (f) => f.code === 'COMPANY_CAP',
+                )
+                  ? `! ${t.company.capOver}`
                   : null,
               ]
                 .filter(Boolean)
