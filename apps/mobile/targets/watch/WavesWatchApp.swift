@@ -100,6 +100,11 @@ final class WatchRelay: NSObject, ObservableObject, WCSessionDelegate {
       url,
       metadata: ["t": "voiceClip", "id": id, "durationMs": durationMs, "version": relayVersion]
     )
+    // transferFile alone waits until Waves next runs on the phone. A live message
+    // wakes the iOS app in the background, which then takes the queued file now.
+    if session.isReachable {
+      session.sendMessage(["t": "voiceClip", "id": id, "version": relayVersion], replyHandler: nil)
+    }
     // Not reachable: say so rather than spin on "Sending…" for minutes. The
     // transfer stays queued and the answer still lands when it arrives.
     queuedTimer?.invalidate()
