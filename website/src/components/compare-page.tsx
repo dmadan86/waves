@@ -193,7 +193,7 @@ export function CompareShell({
               </ul>
             </details>
             <AttributedLink
-              href={site.appUrl}
+              href={site.webAppUrl}
               kind="web"
               placement="compare-header"
               className="inline-flex min-h-10 items-center rounded-sm bg-[#1d5ddd] px-4 text-sm font-semibold text-white hover:bg-[#174bb5]"
@@ -211,7 +211,7 @@ export function CompareShell({
         locale={LOCALE}
         t={t.footer}
         legal={t.legal}
-        appUrl={site.appUrl}
+        appUrl={site.webAppUrl}
         anchorBase={`/${LOCALE}`}
       />
     </>
@@ -281,7 +281,7 @@ export function CompareBody({
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <AttributedLink
-              href={site.appUrl}
+              href={site.webAppUrl}
               kind="web"
               placement="compare-hero"
               className={`${buttonClass} bg-[#1d5ddd] text-white shadow-lg shadow-blue/10 hover:bg-[#174bb5]`}
@@ -482,7 +482,7 @@ export function CompareBody({
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <AttributedLink
-              href={site.appUrl}
+              href={site.webAppUrl}
               kind="web"
               placement="compare-footer-cta"
               className={`${buttonClass} bg-white text-[#102442] hover:bg-blue-100`}

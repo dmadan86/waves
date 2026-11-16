@@ -76,6 +76,9 @@ additional_redirect_urls = [
   "waves://auth",
   "https://app.wavs.co.in",
   "https://app.wavs.co.in/auth/callback",
+  # The web app is served under the marketing site's origin, at /app.
+  "https://wavs.co.in/app",
+  "https://wavs.co.in/app/auth/callback",
   "http://localhost:3000",
   "http://localhost:3000/auth/callback",
 ]

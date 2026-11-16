@@ -121,7 +121,7 @@ export function Pricing({ t }: { t: Dictionary['pricing'] }) {
                   ))}
                 </ul>
                 <Button
-                  href={site.appUrl}
+                  href={site.webAppUrl}
                   external
                   variant={on ? 'primary' : 'secondary'}
                   className="mt-6 self-start"

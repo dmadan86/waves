@@ -133,7 +133,7 @@ export default async function PersonalPage({ params }: { params: Promise<{ local
 
   return (
     <>
-      <SiteHeader locale={locale} nav={t.nav} appUrl={site.appUrl} anchorBase={`/${locale}`} />
+      <SiteHeader locale={locale} nav={t.nav} appUrl={site.webAppUrl} anchorBase={`/${locale}`} />
 
       <main id="main" tabIndex={-1}>
         <section className="agents-card border-b border-line/60 pt-24 pb-8 sm:pt-28 sm:pb-10">
@@ -287,7 +287,7 @@ export default async function PersonalPage({ params }: { params: Promise<{ local
         locale={locale}
         t={t.footer}
         legal={t.legal}
-        appUrl={site.appUrl}
+        appUrl={site.webAppUrl}
         anchorBase={`/${locale}`}
       />
     </>
