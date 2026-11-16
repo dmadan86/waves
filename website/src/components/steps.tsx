@@ -44,6 +44,8 @@ export function Steps({ t }: { t: Dictionary['how'] }) {
                     src={art[i]!}
                     alt={step.alt}
                     fill
+                    // Already small 1000px WebP: serve the file itself, so a cold image optimizer can't leave the card blank.
+                    unoptimized
                     sizes="(min-width: 768px) 22rem, 90vw"
                     className="object-cover"
                   />
