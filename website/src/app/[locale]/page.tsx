@@ -109,7 +109,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <Hero t={t.hero} stores={t.stores} locale={locale} />
         <ExploreGrid t={t.explore} wearables={t.wearables} locale={locale} />
         <WhoFor t={t.whoFor} locale={locale} />
-        <Steps t={t.how} />
+        <Steps t={t.how} appUrl={site.appUrl} />
         <Showcase t={t.showcase} />
         <Pricing t={t.pricing} />
         <OfflineBand t={t.offline} />
