@@ -1594,6 +1594,13 @@ export default function VoiceScreen() {
   // batch — backing out of it returns to the review with the batch intact,
   // rather than leaving the screen. Otherwise it leaves as before (the
   // leave-guard below still files an unassigned batch as a draft on the way).
+  // A cold open from the home-screen widget has no screen behind it, so back
+  // would do nothing (the ✕ and Done felt dead): go Home instead.
+  const leaveVoice = (): void => {
+    if (router.canGoBack()) router.back();
+    else router.dismissTo('/');
+  };
+
   const dismiss = (): void => {
     // Abandon any live capture: the mic's abort-on-unmount will fire a final
     // `onDone`, and this flag makes handleTranscript drop it.
@@ -1610,7 +1617,7 @@ export default function VoiceScreen() {
       return;
     }
     if (phase === 'review') reportCommand('discarded', dest.kind === 'me' ? 'personal' : 'group');
-    router.back();
+    leaveVoice();
   };
 
   // Push-to-talk. The raised mic in the bottom bar can be held rather than
@@ -1640,7 +1647,7 @@ export default function VoiceScreen() {
   useEffect(() => {
     if (cancelledHold === 0) return;
     captureActive.current = false;
-    router.back();
+    leaveVoice();
     pushToTalk.take({ seq: cancelledHold, mode: 'cancel' });
   }, [cancelledHold]);
 
@@ -2564,7 +2571,7 @@ export default function VoiceScreen() {
   // Ask another question: clear the answer and reopen the mic.
   // Done: back to wherever the reader came from. Never into a group.
   const finishVoice = (): void => {
-    router.back();
+    leaveVoice();
   };
 
   // Add another: the same screen, fresh, listening again.

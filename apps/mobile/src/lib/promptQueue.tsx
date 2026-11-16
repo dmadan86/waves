@@ -35,6 +35,10 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { usePathname } from 'expo-router';
+
+/** Focused capture screens: nothing but an essential ask may pop up over them (a widget cold launch lands here). */
+const QUIET_ROUTES = ['/voice'];
 
 interface PromptQueueValue {
   /** Register or update a claim; higher priority wins the screen. */
@@ -64,6 +68,10 @@ interface QueueState {
 
 export function PromptQueueProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<QueueState>({ claims: {}, holder: null, spent: false });
+  const pathname = usePathname();
+  const quiet = QUIET_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
 
   const claim = useCallback((id: string, priority: number, essential = false) => {
     setState((prev) => {
@@ -102,14 +110,14 @@ export function PromptQueueProvider({ children }: { children: ReactNode }) {
     let best: string | null = null;
     let bestPriority = -Infinity;
     for (const [id, { priority, essential }] of Object.entries(claims)) {
-      if (spent && !essential) continue;
+      if ((spent || quiet) && !essential) continue;
       if (priority > bestPriority) {
         bestPriority = priority;
         best = id;
       }
     }
     return best;
-  }, [state]);
+  }, [state, quiet]);
 
   const value = useMemo<PromptQueueValue>(
     () => ({ claim, release, hold, winnerId }),
