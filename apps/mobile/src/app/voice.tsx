@@ -105,6 +105,8 @@ import { useViewerId } from '@/lib/auth';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useDefaultCurrency } from '@/lib/currency';
 import { voiceNewGroupCurrency, voiceSaveCurrency } from '@/lib/voiceCurrency';
+import { resolveVoiceSpace } from '@/lib/voiceSpace';
+import { useOpenSpaces, useVoiceAdded, useVoiceDefaultSpace } from '@/lib/voiceSpaceStore';
 import {
   voiceAmountQuestion,
   voiceCurrencyQuestion,
@@ -472,8 +474,19 @@ export default function VoiceScreen() {
     /** How the screen was reached, for the opened event (`typed` opens the composer). */
     source?: string;
   }>();
-  const launchGroupId = typeof params.group === 'string' ? params.group : null;
-  const launchPersonal = params.scope === 'personal' && !launchGroupId;
+  const explicitLaunchGroupId = typeof params.group === 'string' ? params.group : null;
+  const launchPersonal = params.scope === 'personal' && !explicitLaunchGroupId;
+  // Every open space the reader is in (companies too, which the expense groups leave out).
+  const { rows: spaceRows, ids: spaceIds } = useOpenSpaces();
+  // No group named and none launched from: the reader's default space, if they are
+  // still in it. A spoken name or "just me" is decided later and still wins.
+  const { defaultId: voiceDefaultId } = useVoiceDefaultSpace();
+  const voiceAdded = useVoiceAdded();
+  const launchGroupId = resolveVoiceSpace({
+    launchId: explicitLaunchGroupId,
+    defaultId: launchPersonal ? null : voiceDefaultId,
+    memberIds: spaceIds,
+  });
   // A transcript captured by the home-screen voice widget's own recogniser and
   // handed in on the deep link — the mic already ran outside the app, so this
   // screen skips listening and goes straight to interpreting it (see the effect
@@ -1011,7 +1024,9 @@ export default function VoiceScreen() {
       setDest({ kind: 'me' });
     } else if (
       launchGroupId &&
-      (groups.data == null || groupRows.some((group) => group.id === launchGroupId))
+      (groups.data == null ||
+        groupRows.some((group) => group.id === launchGroupId) ||
+        spaceIds.has(launchGroupId))
     ) {
       // No group named in the sentence, but the mic was opened from a group —
       // default to it. The id came from a real group route, so it is trusted
@@ -2102,7 +2117,11 @@ export default function VoiceScreen() {
       // A company: a spoken expense is the speaker's own entry (never a split, never somebody
       // else's). The speaker's member id comes from their own membership, not from the route.
       if (dest.kind === 'existing' && target.group.data?.type === GroupType.Company) {
-        const me = (target.members.data ?? []).find((member) => isViewer(member, viewerId));
+        // Their own member row, as the manual add reads it: the entry is theirs, so it
+        // shows in their own list and statement.
+        const me = (target.members.data ?? []).find(
+          (member) => isViewer(member, viewerId) && !member.left_at,
+        );
         if (!me) throw new Error('not a member of this company');
         const companyCurrency = target.group.data.default_currency ?? dc;
         // A spoken currency that is not the company's is asked about, never silently converted.
@@ -2131,6 +2150,7 @@ export default function VoiceScreen() {
               note: draft.note.trim() || fallback,
             },
           });
+          voiceAdded.mark(dest.groupId, [draft.key]);
         }
         confirmSaved();
         landSaved({
@@ -2251,6 +2271,7 @@ export default function VoiceScreen() {
           expectedShares: Object.fromEntries(shares),
         };
         await writeExpense.mutateAsync({ ...write, location });
+        voiceAdded.mark(dest.groupId, [expenseId]);
         if (drafts.length === 1)
           single = {
             write,
@@ -2353,7 +2374,7 @@ export default function VoiceScreen() {
             dc,
           ));
 
-  const current = describeDest(dest, groupRows, t, viewer.name, labelOf);
+  const current = describeDest(dest, spaceRows, t, viewer.name, labelOf);
 
   // The destination as the picker reads it. The picker only needs to know which
   // row carries the check, so the kinds it has no row for — a spoken settle-up,

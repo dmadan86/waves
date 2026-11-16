@@ -49,13 +49,16 @@ import { MapPreview } from '@/components/MapPreview';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { ExpenseComments } from '@/components/ExpenseComments';
 import { ExpenseHistory } from '@/components/ExpenseHistory';
+import { MoveToSheet } from '@/components/MoveToSheet';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { useVoiceAdded } from '@/lib/voiceSpaceStore';
 import { splitIcon } from '@/components/expense/splitIcon';
 import { ExpenseFieldSheet, type ExpenseField } from '@/components/expense/ExpenseFieldSheet';
 import {
   memberLookup,
   useDeleteExpense,
   useExpenseImageEvents,
+  useExpenseAttachments,
   useExpenseVersions,
   useGroup,
   useRestoreExpense,
@@ -189,6 +192,10 @@ function ExpenseDetailScreen() {
   // The fact being changed in a pop-up, if one is open (ExpenseFieldSheet).
   const [editingField, setEditingField] = useState<ExpenseField | null>(null);
   const deleteExpense = useDeleteExpense(groupId);
+  // "Move to…" is for what was spoken in: a voice-added bill with no other attachments.
+  const [moveOpen, setMoveOpen] = useState(false);
+  const voiceAdded = useVoiceAdded();
+  const attachments = useExpenseAttachments(expenseId ?? '');
   const restoreExpense = useRestoreExpense(groupId);
 
   const expense = expenses.rows.find((row) => row.id === expenseId);
@@ -547,6 +554,15 @@ function ExpenseDetailScreen() {
         },
       ]
     : [
+        ...(voiceAdded.isVoice(expense.id) && (attachments.data ?? []).length === 0
+          ? [
+              {
+                icon: 'swap-horizontal-outline',
+                label: t.spaces.moveTo,
+                onPress: () => setMoveOpen(true),
+              } as OverflowMenuItem,
+            ]
+          : []),
         {
           icon: 'trash-outline',
           label: t.expense.deleteAction,
@@ -1371,6 +1387,23 @@ function ExpenseDetailScreen() {
       </ScrollView>
 
       <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
+      <MoveToSheet
+        visible={moveOpen}
+        onClose={() => setMoveOpen(false)}
+        onMoved={() => router.back()}
+        move={{
+          from: { kind: 'group', groupId, id: expense.id },
+          amount: BigInt(version.amount),
+          currency: version.currency,
+          date: version.expense_date,
+          note: (version.description ?? '').trim(),
+          category: version.category,
+          receiptUrls: async () => {
+            const url = await expenseReceiptUrl(groupId, expense.id);
+            return url ? [url] : [];
+          },
+        }}
+      />
 
       {/* One fact, changed in place. Keyed by field so each opening seeds
           afresh from the version on screen. */}

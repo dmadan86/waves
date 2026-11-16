@@ -25,9 +25,11 @@ import { Button, iconSize, Text, useTheme } from '@waves/ui';
 import { CompanyEntryPhotos } from '@/components/company/CompanyEntryPhotos';
 import { kindLabel } from '@/components/company/CompanyStatementView';
 import { EditTextSheet } from '@/components/EditTextSheet';
+import { MoveToSheet } from '@/components/MoveToSheet';
 import { ListRow, ScenicBody, ScenicHeader, StandardCard } from '@/components/standard';
 import {
   useCompanyEntries,
+  useCompanyPhotos,
   useCompanyProjects,
   useReviewCompanyEntry,
   useVoidCompanyEntry,
@@ -40,6 +42,8 @@ import { useCompanyTags } from '@/data/companyTags';
 import { friendlyError } from '@/lib/errors';
 import { showDate } from '@/lib/expenseDay';
 import { router } from '@/lib/navigation';
+import { restrictedImageUrl } from '@/lib/storage';
+import { useVoiceAdded } from '@/lib/voiceSpaceStore';
 
 export default function CompanyEntryViewScreen() {
   const { id, entry: entryParam } = useLocalSearchParams<{ id: string; entry?: string }>();
@@ -53,6 +57,9 @@ export default function CompanyEntryViewScreen() {
   const tagLabel = useCompanyTags(groupId, view).label;
   const review = useReviewCompanyEntry(groupId);
   const voidEntry = useVoidCompanyEntry(groupId);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const voiceAdded = useVoiceAdded();
+  const photos = useCompanyPhotos(entryParam ?? '');
   const [rejecting, setRejecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -331,6 +338,14 @@ export default function CompanyEntryViewScreen() {
                   />
                 </View>
               ) : null}
+              {canWithdraw && mine && entry.kind === 'expense' && voiceAdded.isVoice(entry.id) ? (
+                <Button
+                  label={t.spaces.moveTo}
+                  variant="secondary"
+                  fullWidth
+                  onPress={() => setMoveOpen(true)}
+                />
+              ) : null}
               {canWithdraw ? (
                 <Pressable
                   accessibilityRole="button"
@@ -389,6 +404,29 @@ export default function CompanyEntryViewScreen() {
           ) : null}
         </ScenicBody>
       </ScrollView>
+      {entry ? (
+        <MoveToSheet
+          visible={moveOpen}
+          onClose={() => setMoveOpen(false)}
+          onMoved={() => router.back()}
+          move={{
+            from: { kind: 'company', groupId, id: entry.id },
+            amount: entry.amount,
+            currency: entry.currency,
+            date: entry.occurredOn,
+            note: entry.note ?? '',
+            category: entry.category,
+            receiptUrls: async () => {
+              const urls = await Promise.all(
+                photos.map((photo) =>
+                  restrictedImageUrl('company-entry-images', entry.id, photo.storagePath),
+                ),
+              );
+              return urls.filter((url): url is string => url !== null);
+            },
+          }}
+        />
+      ) : null}
       <EditTextSheet
         visible={rejecting}
         title={t.company.rejectTitle}

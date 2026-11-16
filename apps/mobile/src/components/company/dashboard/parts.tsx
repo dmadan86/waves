@@ -23,6 +23,7 @@ import { Text, directionalIcon, iconSize, useTheme, type TintName } from '@waves
 import { CompanyStorageBanner } from '@/components/company/CompanyStorageBanner';
 import { ReportCompanySheet, SuspendedBanner } from '@/components/company/SuspendedBanner';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { useVoiceDefaultSpace } from '@/lib/voiceSpaceStore';
 import { type MenuAnchor } from '@/components/SortMenu';
 import { measureAnchor } from '@/lib/measureAnchor';
 import { SpacePill } from '@/components/SpaceSwitcher';
@@ -294,6 +295,7 @@ export function DashHeader({
 }) {
   const theme = useTheme();
   const { t } = useStrings();
+  const { defaultId: voiceDefaultId, setDefault: setVoiceDefault } = useVoiceDefaultSpace();
   const insets = useSafeAreaInsets();
   const bare = (!!menuItems || tab) && !overview;
   // Every bar tab root (Home included) shares one header: round buttons, bell, gear, then ⋮.
@@ -429,6 +431,11 @@ export function DashHeader({
               ]
             : []),
           { icon: 'settings-outline', label: t.account.faceSettings, route: '/profile' },
+          {
+            icon: voiceDefaultId === groupId ? 'mic-off-outline' : 'mic-outline',
+            label: voiceDefaultId === groupId ? t.spaces.removeDefault : t.spaces.makeDefault,
+            onPress: () => setVoiceDefault(voiceDefaultId === groupId ? null : groupId),
+          },
           ...(menuItems ?? [
             {
               icon: 'download-outline',
