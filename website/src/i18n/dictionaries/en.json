@@ -178,23 +178,23 @@
   },
   "how": {
     "eyebrow": "How it works",
-    "title": "Three simple steps",
-    "subtitle": "From an expense to a settled balance, in less than a minute.",
+    "title": "Expense, split and settle together",
+    "subtitle": "Add expenses, share with people and keep balances clear — all in one app.",
+    "cta": "Get started",
+    "simple": "It's simple",
+    "artAlt": "A phone showing “Settled!” above the group's balances",
     "steps": [
       {
         "title": "Add an expense",
-        "body": "Type it, scan a receipt or just say it.",
-        "alt": "A hand holding a phone that scans a café receipt"
+        "body": "Type it, scan a receipt or just say it."
       },
       {
         "title": "Split with people",
-        "body": "Choose who paid and how to split.",
-        "alt": "A phone splitting a dinner bill between friends"
+        "body": "Choose who paid and how to split."
       },
       {
         "title": "Track and settle",
-        "body": "See balances and settle up anytime.",
-        "alt": "A phone showing “Settled!” above the group's balances"
+        "body": "See balances and settle up anytime."
       }
     ]
   },
