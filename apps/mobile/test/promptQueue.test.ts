@@ -11,6 +11,8 @@ import { firstProvider, renderHook, type FakeContext } from './support/fakeReact
 
 vi.mock('react', async () => (await import('./support/fakeReact')).reactModule());
 vi.mock('react/jsx-runtime', async () => (await import('./support/fakeReact')).jsxModule());
+let pathname = '/';
+vi.mock('expo-router', () => ({ usePathname: () => pathname }));
 
 type Queue = {
   claim: (id: string, p: number, essential?: boolean) => void;
@@ -36,7 +38,10 @@ function mountQueue() {
   return { value, ctx, consumerValue };
 }
 
-beforeEach(() => vi.useFakeTimers());
+beforeEach(() => {
+  pathname = '/';
+  vi.useFakeTimers();
+});
 afterEach(() => vi.useRealTimers());
 
 describe('the queue', () => {
@@ -182,5 +187,16 @@ describe('usePromptSlot', () => {
     expect(() => renderHook(() => usePromptSlot({ id: 'x', priority: 1, active: true }))).toThrow(
       /within a PromptQueueProvider/,
     );
+  });
+});
+
+describe('quiet routes', () => {
+  it('grants only essential claims while the voice screen is showing', () => {
+    pathname = '/voice';
+    const { value } = mountQueue();
+    value().claim('deviceLimit', 200);
+    expect(value().winnerId).toBeNull();
+    value().claim('phone', 100, true);
+    expect(value().winnerId).toBe('phone');
   });
 });
