@@ -25,6 +25,21 @@ const box = {
 } as const;
 
 export const Icon = {
+  /** The Waves app mark (same as apps/web icon.svg). Explicit fills and strokes, so the rail's line-icon CSS doesn't restyle it. */
+  brand: (
+    <svg viewBox="0 0 1024 1024" aria-hidden focusable={false}>
+      <rect width="1024" height="1024" rx="224" fill="#6C4EE3" stroke="none" />
+      <path
+        d="M262 420C285 640 385 700 450 590C505 495 565 480 600 580C640 695 715 650 772 400"
+        fill="none"
+        stroke="#fff"
+        strokeWidth={88}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="790" cy="290" r="46" fill="#fff" stroke="none" />
+    </svg>
+  ),
   /** Brand mark — the reference's cube, and the app's own "layers" idea. */
   cube: (
     <svg {...box}>

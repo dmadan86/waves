@@ -60,7 +60,7 @@ export default async function Login({
   return (
     <main className="login-page">
       <div className="login-card">
-        <span className="login-mark">{Icon.cube}</span>
+        <span className="login-mark">{Icon.brand}</span>
         <h1>Waves admin</h1>
         <p className="muted small">Private console. Contains personal data.</p>
 

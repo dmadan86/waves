@@ -96,7 +96,7 @@ export function Sidebar() {
   return (
     <nav className="rail" id="console-rail" aria-label="Console sections">
       <Link href="/" className="rail-logo">
-        {Icon.cube}
+        {Icon.brand}
         <span>Waves</span>
       </Link>
 
