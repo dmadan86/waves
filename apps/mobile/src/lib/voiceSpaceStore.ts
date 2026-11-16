@@ -11,7 +11,12 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { useGroups } from '@/data/hooks';
+import { rowsFor, SyncTable } from '@waves/core';
+
+import { useAllGroupMembers, useGroups } from '@/data/hooks';
+import { isViewer } from '@/data/types';
+import { useSync } from '@/sync';
+import { canAddInto } from '@/lib/voiceSpace';
 import { useViewerId } from '@/lib/auth';
 import { patchUiPrefs, readUiPrefs } from '@/lib/uiPrefsStore';
 import {
@@ -136,11 +141,48 @@ export function useVoiceAdded(): {
   };
 }
 
-/** Every open space the viewer is in, companies included (the expense-group hooks leave those out). */
+/**
+ * Every open space the viewer is in, companies included (the expense-group hooks
+ * leave those out). `ids` are the ones they may add to now: an active, non-vendor
+ * member, the company not suspended or lapsed, not the demo.
+ */
 export function useOpenSpaces() {
   const groups = useGroups().data;
+  const members = useAllGroupMembers();
+  const viewerId = useViewerId();
   return useMemo(() => {
     const rows = groups.filter((row) => !row.archived_at);
-    return { rows, ids: new Set(rows.map((row) => row.id)) };
-  }, [groups]);
+    const ids = new Set(
+      rows
+        .filter((row) =>
+          canAddInto(
+            row,
+            members.find((m) => m.group_id === row.id && isViewer(m, viewerId) && !m.left_at)
+              ?.role ?? null,
+          ),
+        )
+        .map((row) => row.id),
+    );
+    return { rows, ids };
+  }, [groups, members, viewerId]);
+}
+
+/** Unseen voice-added entries in a space that still exist (queued or synced, not deleted). */
+export function useVoiceNewCount(): (groupId: string) => number {
+  const { newIds } = useVoiceAdded();
+  const { mirror, queue } = useSync();
+  return (groupId) => {
+    if (newIds(groupId).length === 0) return 0;
+    const live = new Set<string>();
+    for (const table of [SyncTable.Expenses, SyncTable.CompanyEntries])
+      for (const row of rowsFor(mirror, table, groupId))
+        if (!row.deleted_at) live.add(row.id as string);
+    for (const m of queue)
+      if (m.groupId === groupId) {
+        const payload = m.payload as { expenseId?: string; entryId?: string };
+        const id = payload.expenseId ?? payload.entryId;
+        if (id) live.add(id);
+      }
+    return newIds(groupId, live).length;
+  };
 }

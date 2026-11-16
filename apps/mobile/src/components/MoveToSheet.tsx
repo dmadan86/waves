@@ -18,7 +18,7 @@ import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useToast } from '@/lib/toast';
 import { useVoiceAdded } from '@/lib/voiceSpaceStore';
-import { canMoveInto, moveTargets } from '@/lib/voiceSpace';
+import { canMoveInto, moveTargets, planMove, type MoveParties } from '@/lib/voiceSpace';
 
 export function MoveToSheet({
   visible,
@@ -30,7 +30,7 @@ export function MoveToSheet({
   onClose: () => void;
   onMoved: () => void;
   /** What is being moved; the target is filled in by the tap. */
-  move: Omit<MoveArgs, 'to' | 'newId'>;
+  move: Omit<MoveArgs, 'to' | 'newId' | 'plan'> & { parties: MoveParties };
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -46,12 +46,15 @@ export function MoveToSheet({
   // One new id per target for the life of the sheet, so a retry never duplicates.
   const ids = useRef(new Map<string, string>());
 
-  const targets = moveTargets(groups, move.from.groupId).filter((group) => {
-    const role = everyMember.find(
-      (m) => m.group_id === group.id && isViewer(m, viewerId) && !m.left_at,
-    )?.role;
-    return canMoveInto(group, role ?? null, move.currency);
+  // Only spaces where the viewer may add, the money stays right, and the people all exist.
+  const offered = moveTargets(groups, move.from.groupId).flatMap((group) => {
+    const there = everyMember.filter((m) => m.group_id === group.id);
+    const role = there.find((m) => isViewer(m, viewerId) && !m.left_at)?.role;
+    if (!canMoveInto(group, role ?? null, move.currency)) return [];
+    const plan = planMove(move.parties, group, there, viewerId);
+    return plan ? [{ group, plan }] : [];
   });
+  const targets = offered.map((o) => o.group);
 
   const go = async (target: GroupRow): Promise<void> => {
     if (busyId) return;
@@ -60,7 +63,9 @@ export function MoveToSheet({
     let newId = ids.current.get(target.id);
     if (!newId) ids.current.set(target.id, (newId = randomUUID()));
     try {
-      await run({ ...move, to: target, newId });
+      const plan = offered.find((o) => o.group.id === target.id)?.plan;
+      if (!plan) throw new Error('not offered');
+      await run({ ...move, to: target, newId, plan });
       forget(move.from.id);
       toast.show(fill(t.spaces.movedTo, { name: labelOf(target) }));
       onClose();

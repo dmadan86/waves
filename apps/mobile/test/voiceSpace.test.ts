@@ -7,7 +7,16 @@ import {
   markSeen,
   newVoiceIds,
 } from '../src/lib/voiceAdded';
-import { canMoveInto, mapMove, moveTargets, resolveVoiceSpace } from '../src/lib/voiceSpace';
+import {
+  canAddInto,
+  canMoveInto,
+  copyStep,
+  mapMove,
+  mayRemoveOriginal,
+  moveTargets,
+  planMove,
+  resolveVoiceSpace,
+} from '../src/lib/voiceSpace';
 
 describe('resolveVoiceSpace', () => {
   const members = new Set(['a', 'b']);
@@ -73,5 +82,58 @@ describe('new voice count', () => {
     s = addVoice(s, 'g1', ['e4'], 130);
     expect(newVoiceIds(s, 'g1')).toEqual(['e4']);
     expect(newVoiceIds(dropVoice(s, 'e4'), 'g1')).toEqual([]);
+  });
+});
+
+describe('blocker rules', () => {
+  const members = [
+    { id: 'm1', profile_id: 'p1' },
+    { id: 'm2', profile_id: 'p2' },
+    { id: 'm3', profile_id: null },
+  ];
+  const base = {
+    splitKind: 'equal',
+    payerProfileIds: ['p1'],
+    participantProfileIds: ['p1', 'p2'],
+    photoCount: 0,
+  };
+  it('1 and 4: removes the original only when the copy landed; a retry resumes', () => {
+    expect(mayRemoveOriginal(false)).toBe(false);
+    expect(mayRemoveOriginal(true)).toBe(true);
+    expect(copyStep({ landed: true, queuedId: null })).toBe('resume');
+    expect(copyStep({ landed: false, queuedId: 'q' })).toBe('wait');
+    expect(copyStep({ landed: false, queuedId: null })).toBe('create');
+  });
+  it('2: a split expense keeps one bill, a company entry keeps them all', () => {
+    expect(planMove({ ...base, photoCount: 2 }, { type: 'trip' }, members, 'p1')).toBeNull();
+    const solo = { ...base, participantProfileIds: ['p1'], photoCount: 3 };
+    expect(planMove(solo, { type: 'company' }, members, 'p1')).toEqual({
+      payerId: 'm1',
+      participantIds: ['m1'],
+    });
+  });
+  it('3: carries the same people when all exist there, else offers nothing', () => {
+    expect(planMove(base, { type: 'trip' }, members, 'p1')).toEqual({
+      payerId: 'm1',
+      participantIds: ['m1', 'm2'],
+    });
+    expect(planMove(base, { type: 'trip' }, members.slice(0, 1), 'p1')).toBeNull();
+    expect(planMove({ ...base, splitKind: 'exact' }, { type: 'trip' }, members, 'p1')).toBeNull();
+    expect(
+      planMove({ ...base, participantProfileIds: ['p1', null] }, { type: 'trip' }, members, 'p1'),
+    ).toBeNull();
+    expect(planMove(base, { type: 'company' }, members, 'p1')).toBeNull();
+  });
+  it('5: a default must pass the can-add check', () => {
+    const company = { id: 'c', type: 'company' };
+    expect(canAddInto(company, 'member')).toBe(true);
+    expect(canAddInto(company, 'vendor')).toBe(false);
+    expect(canAddInto({ ...company, slot_lapsed_at: 'x' }, 'admin')).toBe(false);
+    expect(canAddInto({ ...company, isDemo: true }, 'admin')).toBe(false);
+    expect(canAddInto(company, null)).toBe(false);
+    // a default that fails is not in the addable set, so the launch/none path stands
+    expect(
+      resolveVoiceSpace({ launchId: null, defaultId: 'c', memberIds: new Set(['g']) }),
+    ).toBeNull();
   });
 });

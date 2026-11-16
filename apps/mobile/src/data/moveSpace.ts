@@ -15,6 +15,8 @@ import {
   COMPANY_EXPENSE_CATEGORIES,
   computeShares,
   MutationKind,
+  rowsFor,
+  SyncTable,
   type SplitParams,
 } from '@waves/core';
 
@@ -25,7 +27,7 @@ import { serialiseExpense } from '@/data/serialiseExpense';
 import { isViewer, type GroupRow } from '@/data/types';
 import { useViewerId } from '@/lib/auth';
 import type { PickedImage } from '@/lib/image';
-import { mapMove } from '@/lib/voiceSpace';
+import { mapMove, mayRemoveOriginal } from '@/lib/voiceSpace';
 import { syncEngine, useSync } from '@/sync';
 
 const EQUAL: SplitParams = { kind: 'equal' };
@@ -42,6 +44,8 @@ export interface MoveArgs {
   category: string | null;
   /** Resolves the bill photos' signed URLs, only called when the move starts. */
   receiptUrls: () => Promise<readonly string[]>;
+  /** Who pays and shares in the target (see `planMove`). */
+  plan: { payerId: string; participantIds: string[] };
   /** The id the new row takes; keep it across retries so nothing is duplicated. */
   newId: string;
 }
@@ -74,6 +78,23 @@ async function created(clientMutationId: string, groupId: string): Promise<boole
   return false;
 }
 
+/** Is the new row already on the server, or already queued? A retry then resumes instead of re-creating. */
+function alreadyThere(args: MoveArgs): { landed: boolean; queuedId: string | null } {
+  const { mirror, queue } = syncEngine.getState();
+  const table = args.to.type === 'company' ? SyncTable.CompanyEntries : SyncTable.Expenses;
+  if (rowsFor(mirror, table, args.to.id).some((row) => row.id === args.newId))
+    return { landed: true, queuedId: null };
+  const queued = queue.find((m) => {
+    const payload = m.payload as { expenseId?: string; entryId?: string };
+    return (
+      m.groupId === args.to.id &&
+      !m.rejection &&
+      (payload.expenseId === args.newId || payload.entryId === args.newId)
+    );
+  });
+  return { landed: false, queuedId: queued?.clientMutationId ?? null };
+}
+
 export function useMoveToSpace(): (args: MoveArgs) => Promise<void> {
   const { mutate } = useSync();
   const viewerId = useViewerId();
@@ -92,66 +113,69 @@ export function useMoveToSpace(): (args: MoveArgs) => Promise<void> {
       },
       args.to,
     );
-    let cid: string;
-    if (carried.kind === 'company') {
-      const category = (COMPANY_EXPENSE_CATEGORIES as readonly string[]).includes(
-        carried.category ?? '',
-      )
-        ? carried.category
-        : 'other';
-      cid = await mutate(MutationKind.CompanyEntryCreate, args.to.id, {
-        entryId: args.newId,
-        memberId: me.id,
-        entryKind: 'expense',
-        data: {
-          amount: carried.amount.toString(),
-          category,
-          calcMode: 'typed',
-          occurredOn: carried.date,
-          note: carried.note,
-        },
-      });
-    } else {
-      const participants = members.map((m) => m.id);
-      const shares = computeShares({
-        amount: carried.amount,
-        currency: carried.currency,
-        params: EQUAL,
-        participants,
-        seed: args.newId,
-      });
-      cid = await mutate(MutationKind.ExpenseCreate, args.to.id, {
-        ...serialiseExpense({
-          description: carried.note,
-          category: carried.category,
-          expenseDate: carried.date,
-          currency: carried.currency,
+    // A retry after a partial failure resumes: the copy may already be there.
+    const there = alreadyThere(args);
+    let landed = there.landed;
+    if (!landed) {
+      let cid = there.queuedId;
+      if (!cid && carried.kind === 'company') {
+        const category = (COMPANY_EXPENSE_CATEGORIES as readonly string[]).includes(
+          carried.category ?? '',
+        )
+          ? carried.category
+          : 'other';
+        cid = await mutate(MutationKind.CompanyEntryCreate, args.to.id, {
+          entryId: args.newId,
+          memberId: me.id,
+          entryKind: 'expense',
+          data: {
+            amount: carried.amount.toString(),
+            category,
+            calcMode: 'typed',
+            occurredOn: carried.date,
+            note: carried.note,
+          },
+        });
+      } else if (!cid) {
+        const shares = computeShares({
           amount: carried.amount,
-          splitParams: EQUAL,
-          participants,
-          payers: { [me.id]: carried.amount },
-          expectedShares: Object.fromEntries(shares),
-        }),
-        expenseId: args.newId,
-      });
-    }
-    const landed = await created(cid, args.to.id);
-
-    // The bill goes next, to a row the server already has; the original stays until it is across.
-    const urls = await args.receiptUrls();
-    if (urls.length > 0) {
-      if (!landed) throw new Error('target not synced yet');
-      for (const [index, url] of urls.entries()) {
-        const picked = await pickedFromUrl(url);
-        if (carried.kind === 'company') await attachCompanyPhoto(args.to.id, args.newId, picked);
-        else if (index === 0)
-          await uploadExpenseReceipt({
-            groupId: args.to.id,
-            expenseId: args.newId,
-            base64: picked.base64,
-            mimeType: picked.mimeType,
-          });
+          currency: carried.currency,
+          params: EQUAL,
+          participants: args.plan.participantIds,
+          seed: args.newId,
+        });
+        cid = await mutate(MutationKind.ExpenseCreate, args.to.id, {
+          ...serialiseExpense({
+            description: carried.note,
+            category: carried.category,
+            expenseDate: carried.date,
+            currency: carried.currency,
+            amount: carried.amount,
+            splitParams: EQUAL,
+            participants: args.plan.participantIds,
+            payers: { [args.plan.payerId]: carried.amount },
+            expectedShares: Object.fromEntries(shares),
+          }),
+          expenseId: args.newId,
+        });
       }
+      landed = await created(cid, args.to.id);
+    }
+    // The original goes only once the copy is confirmed on the server.
+    if (!mayRemoveOriginal(landed)) throw new Error('copy not confirmed yet');
+
+    // The bill goes next, to a row the server already has.
+    const urls = await args.receiptUrls();
+    for (const [index, url] of urls.entries()) {
+      const picked = await pickedFromUrl(url);
+      if (carried.kind === 'company') await attachCompanyPhoto(args.to.id, args.newId, picked);
+      else if (index === 0)
+        await uploadExpenseReceipt({
+          groupId: args.to.id,
+          expenseId: args.newId,
+          base64: picked.base64,
+          mimeType: picked.mimeType,
+        });
     }
 
     if (args.from.kind === 'company')

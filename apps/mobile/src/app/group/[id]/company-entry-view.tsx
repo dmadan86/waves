@@ -41,6 +41,7 @@ import { useDialog } from '@/lib/dialog';
 import { useCompanyTags } from '@/data/companyTags';
 import { friendlyError } from '@/lib/errors';
 import { showDate } from '@/lib/expenseDay';
+import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { restrictedImageUrl } from '@/lib/storage';
 import { useVoiceAdded } from '@/lib/voiceSpaceStore';
@@ -59,6 +60,7 @@ export default function CompanyEntryViewScreen() {
   const voidEntry = useVoidCompanyEntry(groupId);
   const [moveOpen, setMoveOpen] = useState(false);
   const voiceAdded = useVoiceAdded();
+  const viewerId = useViewerId();
   const photos = useCompanyPhotos(entryParam ?? '');
   const [rejecting, setRejecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -416,6 +418,12 @@ export default function CompanyEntryViewScreen() {
             date: entry.occurredOn,
             note: entry.note ?? '',
             category: entry.category,
+            parties: {
+              splitKind: 'equal',
+              payerProfileIds: [viewerId],
+              participantProfileIds: [viewerId],
+              photoCount: photos.length,
+            },
             receiptUrls: async () => {
               const urls = await Promise.all(
                 photos.map((photo) =>

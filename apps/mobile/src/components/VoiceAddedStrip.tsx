@@ -11,7 +11,7 @@ import { Pressable } from 'react-native';
 import { Text, iconSize, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
-import { useVoiceAdded } from '@/lib/voiceSpaceStore';
+import { useVoiceAdded, useVoiceNewCount } from '@/lib/voiceSpaceStore';
 
 export function VoiceAddedStrip({
   groupId,
@@ -24,8 +24,9 @@ export function VoiceAddedStrip({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const { newIds, markSeenNow } = useVoiceAdded();
+  const newCount = useVoiceNewCount();
   useFocusEffect(() => () => markSeenNow(groupId));
-  const count = newIds(groupId, live).length;
+  const count = live ? newIds(groupId, live).length : newCount(groupId);
   if (count === 0) return null;
   return (
     <Pressable

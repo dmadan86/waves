@@ -1398,6 +1398,16 @@ function ExpenseDetailScreen() {
           date: version.expense_date,
           note: (version.description ?? '').trim(),
           category: version.category,
+          parties: {
+            splitKind: version.split_type,
+            payerProfileIds: version.payers.map(
+              (p) => (everyone.data ?? []).find((m) => m.id === p.member_id)?.profile_id ?? null,
+            ),
+            participantProfileIds: version.shares.map(
+              (s) => (everyone.data ?? []).find((m) => m.id === s.member_id)?.profile_id ?? null,
+            ),
+            photoCount: receiptUri ? 1 : 0,
+          },
           receiptUrls: async () => {
             const url = await expenseReceiptUrl(groupId, expense.id);
             return url ? [url] : [];

@@ -3,6 +3,8 @@
  * in when the sentence names none, and where a voice-added expense may move.
  */
 
+import { isViewer } from '@/data/types';
+
 export interface SpaceRef {
   id: string;
   type?: string | null;
@@ -44,11 +46,64 @@ export interface MoveTarget extends SpaceRef {
  * so a move the server would turn down is never started.
  */
 export function canMoveInto(target: MoveTarget, role: string | null, currency: string): boolean {
-  if (!role || role === 'vendor' || target.archived_at || target.isDemo) return false;
-  if (target.type === 'company')
-    return !target.suspended_at && !target.slot_lapsed_at && target.default_currency === currency;
+  if (!canAddInto(target, role)) return false;
+  if (target.type === 'company') return target.default_currency === currency;
   // A group that converts everything to its own currency needs a rate for any other one.
   return target.default_currency === currency || target.convert_to_group_currency !== true;
+}
+
+/** The currency-free part of the same test: also what a voice default must pass. */
+export function canAddInto(target: MoveTarget, role: string | null): boolean {
+  if (!role || role === 'vendor' || target.archived_at || target.isDemo) return false;
+  return target.type !== 'company' || (!target.suspended_at && !target.slot_lapsed_at);
+}
+
+/** What a (re)try does about the copy: already there, already queued, or not sent yet. */
+export function copyStep(there: {
+  landed: boolean;
+  queuedId: string | null;
+}): 'resume' | 'wait' | 'create' {
+  return there.landed ? 'resume' : there.queuedId ? 'wait' : 'create';
+}
+
+/** The original is removed only once the copy is confirmed; never behind an unconfirmed create. */
+export const mayRemoveOriginal = (landed: boolean): boolean => landed;
+
+export interface MoveParties {
+  /** Only an equal split can be carried; anything else is not offered. */
+  splitKind: string;
+  /** People (profile ids) who paid and who share it; null for a ghost, who cannot be matched. */
+  payerProfileIds: readonly (string | null)[];
+  participantProfileIds: readonly (string | null)[];
+  /** The bills attached: a split expense keeps one. */
+  photoCount: number;
+}
+
+/**
+ * Who pays and who shares in the target, or null when the move is not safe to offer.
+ * A company entry is one person's spend, so it takes only a "just me" original; a
+ * group copy keeps the original's people and equal split, matched by person, and
+ * needs every one of them to be in the target.
+ */
+export function planMove(
+  parties: MoveParties,
+  target: { type?: string | null },
+  targetMembers: readonly { id: string; profile_id: string | null; left_at?: string | null }[],
+  viewerId: string | null,
+): { payerId: string; participantIds: string[] } | null {
+  const { payerProfileIds: payers, participantProfileIds: sharing } = parties;
+  if (parties.splitKind !== 'equal' || payers.length !== 1 || sharing.length === 0) return null;
+  if ([...payers, ...sharing].some((id) => id === null)) return null;
+  const company = target.type === 'company';
+  if (!company && parties.photoCount > 1) return null;
+  if (company && !(sharing.length === 1 && sharing[0] === viewerId && payers[0] === viewerId))
+    return null;
+  const live = targetMembers.filter((m) => !m.left_at && m.profile_id);
+  const find = (profileId: string | null) => live.find((m) => isViewer(m, profileId))?.id;
+  const payerId = find(payers[0]!);
+  const participantIds = [...new Set(sharing)].map((id) => find(id));
+  if (!payerId || participantIds.some((id) => !id)) return null;
+  return { payerId, participantIds: participantIds as string[] };
 }
 
 export interface MoveSource {

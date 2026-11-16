@@ -19,7 +19,7 @@ import { useToast } from '@/lib/toast';
 import type { Space } from '@/lib/spaces';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { useRememberSpace } from '@/lib/useSpaces';
-import { useVoiceAdded, useVoiceDefaultSpace } from '@/lib/voiceSpaceStore';
+import { useVoiceDefaultSpace, useVoiceNewCount } from '@/lib/voiceSpaceStore';
 
 const ROLE_KEY = {
   admin: 'owner',
@@ -128,12 +128,12 @@ function CompanyRow({
   const logo = useGroupPhotoUrl(group.photo_path);
   const roleKey = ROLE_KEY[role as keyof typeof ROLE_KEY] ?? 'employee';
   const { defaultId } = useVoiceDefaultSpace();
-  const { newIds } = useVoiceAdded();
+  const newCount = useVoiceNewCount();
   return (
     <Row
       title={group.name || t.extras.typeCompany}
       tag={defaultId === group.id ? t.spaces.defaultTag : undefined}
-      dot={newIds(group.id).length > 0}
+      dot={newCount(group.id) > 0}
       body={t.spaces[roleKey]}
       current={current}
       onPress={onPress}
