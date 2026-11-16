@@ -4,12 +4,14 @@ import { Redirect } from 'expo-router';
 import { Screen } from '@waves/ui';
 import { CompanyPeople } from '@/components/company/bar/CompanyPeople';
 import { SectionShell } from '@/components/company/bar/SectionShell';
+import { IconButton } from '@/components/company/dashboard/parts';
 import { DepartmentSheet } from '@/components/company/DepartmentSheet';
 import type { OverflowMenuItem } from '@/components/OverflowMenu';
 import { ScenicHeader } from '@/components/standard';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useWorkdayAccess } from '@/data/companyWorkday';
 import { useStrings } from '@/i18n';
+import { router } from '@/lib/navigation';
 import AttendanceView from './AttendanceView';
 import DailyWorkView from './DailyWorkView';
 import { TeamSegment, type TeamTab } from './TeamSegment';
@@ -73,16 +75,6 @@ export default function TeamScreen({
     );
   }
   const menuItems: OverflowMenuItem[] = [
-    // The add button that used to float on People lives here now.
-    ...(view.suspended
-      ? []
-      : [
-          {
-            icon: 'person-add-outline',
-            label: t.company.qaAddEmployee,
-            route: `/group/${groupId}/members`,
-          } as OverflowMenuItem,
-        ]),
     {
       icon: 'person-remove-outline',
       label: t.company.notEmployed,
@@ -121,6 +113,16 @@ export default function TeamScreen({
       groupId={groupId}
       view={view}
       menuItems={menuItems}
+      actions={
+        view.suspended ? null : (
+          <IconButton
+            round
+            icon="add"
+            label={t.company.qaAddEmployee}
+            onPress={() => router.push(`/group/${groupId}/members`)}
+          />
+        )
+      }
       segment={<TeamSegment value={tab} onChange={choose} />}
     >
       {tab === 'people' ? (

@@ -29,6 +29,7 @@ export function SectionShell({
   subtitle,
   segment,
   menuItems,
+  actions,
   tab = false,
   children,
 }: {
@@ -46,6 +47,8 @@ export function SectionShell({
   segment?: ReactNode;
   /** Team: the round ••• menu in the header (also drops the back arrow and subtitle). */
   menuItems?: readonly OverflowMenuItem[];
+  /** Round buttons before the bell (Team's + add employee). */
+  actions?: ReactNode;
   /** A bar tab root (Payments, More): the Team header, no back arrow. */
   tab?: boolean;
   children: ReactNode;
@@ -69,6 +72,7 @@ export function SectionShell({
       view={view}
       showGear={view.isOwner}
       menuItems={segment || overview ? menuItems : undefined}
+      actions={actions}
       overview={overview}
       tab={tab || !!segment}
       subtitle={
