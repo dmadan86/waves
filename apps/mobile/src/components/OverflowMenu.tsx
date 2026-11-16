@@ -73,7 +73,7 @@ export interface OverflowMenuItem {
   onPress?: () => void;
   // Optional grouping key. A divider is drawn between two consecutive items
   // whose `section` differs; items with no `section` never draw one, so a menu
-  // that omits it (the group header) stays a flat, undivided list.
+  // that omits it stays a flat, undivided list.
   section?: string;
   // A destructive row (Delete) paints its icon and label in the negative colour,
   // the WhatsApp/Vipps convention that a delete reads red before it is tapped.
@@ -302,7 +302,7 @@ export function OverflowMenu({
                 // A divider sits at a section boundary only: both this row and the
                 // one above it name a section, and the two differ. That rules out
                 // a divider before the first row (no row above) and any menu that
-                // leaves `section` unset (the group header), which stays flat.
+                // leaves `section` unset, which stays flat.
                 const previous = items[index - 1];
                 const dividerAbove =
                   previous !== undefined &&

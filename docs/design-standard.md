@@ -14,6 +14,7 @@ Waves should read like a mature finance app, not a generated dashboard.
 - In the calm system: no gradients, no soft shadows on cards, no capsule-shaped buttons, no decorative illustrations or photo headers. Shadows only on things that float (menus, sheets, toasts).
 - Not everything is a white card. Use the page itself, typography, spacing and dividers; a card groups rows that belong together.
 - Familiar patterns (back chevron, segmented control, list rows, ⋮ menu) so a first-time user needs no instructions.
+- ⋮ menu order: people (invite, members) · views of the money (spending, recurring, plan) · voice · data in/out (import, export) · settings · destructive (red) last. Set `section` on every item so `OverflowMenu` draws a divider between groups.
 - Mobile first, down to small Androids (360dp wide): no fixed photo bands, nothing that only fits a large phone.
 - Identity comes from the violet accent, the money colours, tabular figures and consistent rhythm, not from effects.
 

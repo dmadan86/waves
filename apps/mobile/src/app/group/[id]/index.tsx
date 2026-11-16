@@ -1241,16 +1241,29 @@ function LedgerGroupScreen() {
     (openReceipts.data?.length ?? 0) > 0 ||
     pendingByMe.length > 0;
 
+  // Sections, top to bottom: people · money views · voice · data in/out · settings ·
+  // destructive. `section` draws a divider between them (docs/design-standard.md).
   const menuItems: OverflowMenuItem[] = [
     // The hero's QR used to open this; the hero's corner is Activity now.
-    { icon: 'qr-code-outline', label: t.people.inviteTitle, route: `/group/${groupId}/invite` },
-    { icon: 'pie-chart-outline', label: t.spending, route: `/group/${groupId}/insights` },
+    {
+      icon: 'qr-code-outline',
+      label: t.people.inviteTitle,
+      route: `/group/${groupId}/invite`,
+      section: 'people',
+    },
+    {
+      icon: 'pie-chart-outline',
+      label: t.spending,
+      route: `/group/${groupId}/insights`,
+      section: 'money',
+    },
     ...(!GROUP_REPEAT_HIDDEN || repeatingRules.length > 0
       ? [
           {
             icon: 'repeat-outline',
             label: t.groupRecurring.rowNone,
             route: `/group/${groupId}/recurring`,
+            section: 'money',
           } as OverflowMenuItem,
         ]
       : []),
@@ -1260,25 +1273,38 @@ function LedgerGroupScreen() {
             icon: 'map-outline',
             label: t.plan,
             route: `/group/${groupId}/plan`,
+            section: 'money',
           } as OverflowMenuItem,
         ]
       : []),
+    {
+      icon: voiceDefaultId === groupId ? 'mic-off-outline' : 'mic-outline',
+      label: voiceDefaultId === groupId ? t.spaces.removeDefault : t.spaces.makeDefault,
+      onPress: () => setVoiceDefault(voiceDefaultId === groupId ? null : groupId),
+      section: 'voice',
+    },
     ...(canImport
       ? [
           {
             icon: 'cloud-upload-outline',
             label: t.groupImport.menu,
             route: `/group/${groupId}/import`,
+            section: 'data',
           } as OverflowMenuItem,
         ]
       : []),
-    { icon: 'download-outline', label: t.groupExport.menu, route: `/group/${groupId}/export` },
     {
-      icon: voiceDefaultId === groupId ? 'mic-off-outline' : 'mic-outline',
-      label: voiceDefaultId === groupId ? t.spaces.removeDefault : t.spaces.makeDefault,
-      onPress: () => setVoiceDefault(voiceDefaultId === groupId ? null : groupId),
+      icon: 'download-outline',
+      label: t.groupExport.menu,
+      route: `/group/${groupId}/export`,
+      section: 'data',
     },
-    { icon: 'settings-outline', label: t.group.settings, route: `/group/${groupId}/settings` },
+    {
+      icon: 'settings-outline',
+      label: t.group.settings,
+      route: `/group/${groupId}/settings`,
+      section: 'settings',
+    },
     // The demo's own way out, reachable from the same menu as everything
     // else about the group — not only from the banner, which a person may
     // have already scrolled past.
@@ -1289,6 +1315,7 @@ function LedgerGroupScreen() {
             label: t.demo.removeAction,
             onPress: () => void removeDemo(),
             tone: 'danger',
+            section: 'danger',
           } as OverflowMenuItem,
         ]
       : []),
