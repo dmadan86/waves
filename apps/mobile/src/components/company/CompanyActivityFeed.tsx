@@ -153,6 +153,13 @@ export function ActivityCards({
     minute: '2-digit',
   });
   const startOfToday = new Date().setHours(0, 0, 0, 0);
+  const startOfYesterday = startOfToday - 24 * 60 * 60 * 1000;
+  const when = (at: number): string =>
+    at >= startOfToday
+      ? time.format(at)
+      : at >= startOfYesterday
+        ? `${t.companyActivity.yesterday} ${time.format(at)}`
+        : dayTime.format(at);
   return (
     <View style={{ gap: theme.spacing.sm }}>
       <View
@@ -206,7 +213,7 @@ export function ActivityCards({
                     {title}
                   </Text>
                   <Text variant="micro" tone="muted">
-                    {(e.at >= startOfToday ? time : dayTime).format(e.at)}
+                    {when(e.at)}
                   </Text>
                 </View>
                 <Text variant="caption" tone="muted" numberOfLines={2}>

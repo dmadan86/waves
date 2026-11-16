@@ -8,6 +8,7 @@ import { Button, Sheet, Text, useTheme } from '@waves/ui';
 
 import { ActivityCards, useActivityText } from '@/components/company/CompanyActivityFeed';
 import { SectionShell } from '@/components/company/bar/SectionShell';
+import { PlainHeader } from '@/components/standard';
 import { IconButton } from '@/components/company/dashboard/parts';
 import { useCompanyActivity } from '@/data/companyActivity';
 import { useCompanyEntries } from '@/data/companyEntries';
@@ -66,30 +67,30 @@ export function CompanyActivityScreen({ groupId }: { groupId: string }) {
     <SectionShell
       groupId={groupId}
       view={view}
-      actions={
-        <>
-          <IconButton
-            round
-            icon="search-outline"
-            label={a.searchActivity}
-            onPress={() => setSearching((s) => !s)}
-          />
-          <IconButton
-            round
-            icon="options-outline"
-            label={a.filter}
-            onPress={() => setFiltering(true)}
-          />
-        </>
+      header={
+        <PlainHeader
+          title={t.company.recentTitle}
+          subtitle={a.subtitle}
+          trailing={
+            <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
+              <IconButton
+                round
+                icon="search-outline"
+                label={a.searchActivity}
+                onPress={() => setSearching((s) => !s)}
+              />
+              <IconButton
+                round
+                icon="options-outline"
+                label={a.filter}
+                onPress={() => setFiltering(true)}
+              />
+            </View>
+          }
+        />
       }
     >
       <>
-        <View style={{ gap: 2 }}>
-          <Text variant="title">{t.company.recentTitle}</Text>
-          <Text variant="caption" tone="muted">
-            {a.subtitle}
-          </Text>
-        </View>
         {searching ? (
           <TextInput
             value={query}

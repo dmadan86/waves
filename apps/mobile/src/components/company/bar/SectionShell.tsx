@@ -27,6 +27,7 @@ export function SectionShell({
   ownerOnly = false,
   editing = false,
   subtitle,
+  header: ownHeader,
   segment,
   menuItems,
   actions,
@@ -43,6 +44,8 @@ export function SectionShell({
   editing?: boolean;
   /** Replaces the default owner line (employee, manager and owner counts). */
   subtitle?: string;
+  /** A sub-screen's own header (a plain back + title), instead of the company header. */
+  header?: ReactNode;
   /** Team: a fixed segment under the header; children then scroll themselves. `null`: no segment, same fixed body (Tasks). */
   segment?: ReactNode;
   /** Team: the round ••• menu in the header (also drops the back arrow and subtitle). */
@@ -66,7 +69,7 @@ export function SectionShell({
   // An employee (or a stale deep link) has no company bar: send them to their own home.
   if (view.ready && (ownerOnly ? !view.isOwner : !view.isAdmin))
     return <Redirect href={`/group/${groupId}`} />;
-  const header = (
+  const header = ownHeader ?? (
     <DashHeader
       groupId={groupId}
       view={view}
