@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { describeUpdate, formatUpdateDate, shortUpdateId } from '@/lib/otaStatus';
+import {
+  describeUpdate,
+  formatUpdateDate,
+  shortUpdateId,
+  versionWithUpdate,
+} from '@/lib/otaStatus';
 
 const labels = { builtIn: 'Built-in', overTheAir: 'Over-the-air' };
 
@@ -30,5 +35,15 @@ describe('the app-updates line', () => {
     );
     expect(shortUpdateId(undefined)).toBe('');
     expect(formatUpdateDate(new Date('nope'))).toBe('');
+  });
+});
+
+describe('the version a device reports', () => {
+  it('carries the OTA update id, and only for an OTA launch', () => {
+    const ota = { embedded: false, updateId: '1a2b3c4d-5e6f-7a8b', createdAt: null };
+    expect(versionWithUpdate('1.3.2', ota)).toBe('1.3.2+1a2b3c4d');
+    expect(versionWithUpdate('1.3.2', { ...ota, embedded: true })).toBe('1.3.2');
+    expect(versionWithUpdate('1.3.2', null)).toBe('1.3.2');
+    expect(versionWithUpdate(null, ota)).toBeNull();
   });
 });

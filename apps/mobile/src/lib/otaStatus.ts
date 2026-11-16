@@ -36,3 +36,15 @@ export function describeUpdate(
     .filter(Boolean)
     .join(' · ');
 }
+
+/**
+ * The version a device reports, with the OTA update it runs: `1.3.2+1a2b3c4d`.
+ * Plain `1.3.2` for the built-in bundle. Admin counts devices per update from this.
+ */
+export function versionWithUpdate(
+  version: string | null,
+  identity: UpdateIdentity | null,
+): string | null {
+  const id = identity && !identity.embedded ? shortUpdateId(identity.updateId) : '';
+  return version && id ? `${version}+${id}` : version;
+}

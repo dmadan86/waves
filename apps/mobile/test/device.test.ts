@@ -66,6 +66,7 @@ vi.mock('expo-secure-store', () => ({
   },
 }));
 vi.mock('@/lib/legacyKeys', () => ({ legacyKeysMigrated: Promise.resolve() }));
+vi.mock('@/lib/restart', () => ({ loadUpdates: () => null }));
 
 type DeviceModule = typeof import('../src/lib/device');
 let device: DeviceModule;
