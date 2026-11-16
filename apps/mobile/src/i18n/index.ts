@@ -1042,6 +1042,9 @@ export interface UiStrings {
     checking: string;
     downloading: string;
     upToDate: string;
+    upToDateTitle: string;
+    current: string;
+    latest: string;
     ready: string;
     restart: string;
     failed: string;
@@ -9083,6 +9086,9 @@ const en: UiStrings = {
     checking: 'Checking for updates…',
     downloading: 'Downloading the update…',
     upToDate: 'You have the latest version.',
+    upToDateTitle: "You're up to date",
+    latest: 'Latest version',
+    current: 'Current version',
     ready: 'Update downloaded. Restart to use it.',
     restart: 'Restart now',
     failed: 'Could not check for updates. Try again later.',
@@ -16604,6 +16610,9 @@ const ta: UiStrings = {
     checking: 'புதுப்பிப்புகளைச் சரிபார்க்கிறது…',
     downloading: 'புதுப்பிப்பைப் பதிவிறக்குகிறது…',
     upToDate: 'உங்களிடம் சமீபத்திய பதிப்பு உள்ளது.',
+    upToDateTitle: 'நீங்கள் புதுப்பித்த நிலையில் உள்ளீர்கள்',
+    latest: 'சமீபத்திய பதிப்பு',
+    current: 'தற்போதைய பதிப்பு',
     ready: 'புதுப்பிப்பு பதிவிறக்கப்பட்டது. பயன்படுத்த மீண்டும் தொடங்கவும்.',
     restart: 'இப்போது மீண்டும் தொடங்கு',
     failed: 'புதுப்பிப்புகளைச் சரிபார்க்க முடியவில்லை. பிறகு முயற்சிக்கவும்.',
@@ -24321,6 +24330,9 @@ const hi: UiStrings = {
     checking: 'अपडेट जाँचे जा रहे हैं…',
     downloading: 'अपडेट डाउनलोड हो रहा है…',
     upToDate: 'आपके पास नवीनतम संस्करण है।',
+    upToDateTitle: 'आप अप टू डेट हैं',
+    latest: 'नवीनतम संस्करण',
+    current: 'वर्तमान संस्करण',
     ready: 'अपडेट डाउनलोड हो गया। इस्तेमाल के लिए रीस्टार्ट करें।',
     restart: 'अभी रीस्टार्ट करें',
     failed: 'अपडेट जाँचे नहीं जा सके। बाद में फिर कोशिश करें।',
@@ -31867,6 +31879,9 @@ const ar: UiStrings = {
     checking: 'جارٍ التحقق من التحديثات…',
     downloading: 'جارٍ تنزيل التحديث…',
     upToDate: 'لديك أحدث إصدار.',
+    upToDateTitle: 'أنت على آخر إصدار',
+    latest: 'أحدث إصدار',
+    current: 'الإصدار الحالي',
     ready: 'تم تنزيل التحديث. أعد التشغيل لاستخدامه.',
     restart: 'إعادة التشغيل الآن',
     failed: 'تعذّر التحقق من التحديثات. حاول لاحقًا.',
