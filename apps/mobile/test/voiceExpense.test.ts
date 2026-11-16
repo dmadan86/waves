@@ -1423,6 +1423,18 @@ describe('detectMoneyIntent', () => {
 });
 
 describe('detectAddMember', () => {
+  it('reads a staff add with no group, for the space the mic opened in', () => {
+    expect(detectAddMember('add employee Ravi')).toEqual({ names: ['Ravi'], noGroup: true });
+    expect(detectAddMember('new staff Priya and Sam')).toEqual({
+      names: ['Priya', 'Sam'],
+      noGroup: true,
+    });
+    expect(detectAddMember('add Ravi as an employee')).toEqual({ names: ['Ravi'], noGroup: true });
+    expect(detectAddMember('add employee Ravi to Acme')).toEqual({ names: ['Ravi'] });
+    expect(detectAddMember('add Ravi')).toBeNull();
+    expect(detectAddMember('add employee 500')).toBeNull();
+  });
+
   it('reads a person and a group from an add command', () => {
     expect(detectAddMember('add Ravi to the latest group')).toEqual({ names: ['Ravi'] });
     expect(detectAddMember('include Priya in Goa')).toEqual({ names: ['Priya'] });
