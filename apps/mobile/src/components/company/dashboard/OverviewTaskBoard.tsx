@@ -369,24 +369,15 @@ export function TaskBoard({ groupId }: { groupId: string }) {
   );
 }
 
-/** The "12 members" and "2 sites" chips under the company header. */
+/** The "2 sites" chip under the company header (no member count: it fought the "at a glance" line). */
 export function CompanyChips({ groupId }: { groupId: string }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const view = useCompanyEntries(groupId);
   const sites = useCompanyProjects(groupId);
-  if (!view.ready) return null;
-  const members = view.members.filter((m) => !m.left_at).length;
+  if (!view.ready || sites.length === 0) return null;
   const chips: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
-    { icon: 'people-outline', text: plural(locale, members, t.memberCount) },
-    ...(sites.length > 0
-      ? [
-          {
-            icon: 'business-outline' as const,
-            text: plural(locale, sites.length, t.company.tkSites),
-          },
-        ]
-      : []),
+    { icon: 'business-outline', text: plural(locale, sites.length, t.company.tkSites) },
   ];
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
