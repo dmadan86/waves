@@ -1553,6 +1553,9 @@ export interface UiStrings {
     today: string;
     yesterday: string;
     showOlder: string;
+    subtitle: string;
+    searchActivity: string;
+    filter: string;
     empty: string;
     statusPresent: string;
     statusHalf: string;
@@ -9601,6 +9604,9 @@ const en: UiStrings = {
     today: 'Today',
     yesterday: 'Yesterday',
     showOlder: 'Show older',
+    subtitle: 'Payments, bills, advances and more',
+    searchActivity: 'Search activity',
+    filter: 'Filter',
     empty: 'Nothing has happened yet',
     statusPresent: 'present',
     statusHalf: 'half day',
@@ -17153,6 +17159,9 @@ const ta: UiStrings = {
     today: 'இன்று',
     yesterday: 'நேற்று',
     showOlder: 'பழையதைக் காட்டு',
+    subtitle: 'பணம், பில், முன்பணம் மற்றும் பல',
+    searchActivity: 'செயல்பாட்டைத் தேடு',
+    filter: 'வடிகட்டு',
     empty: 'இன்னும் எதுவும் நடக்கவில்லை',
     statusPresent: 'வந்துள்ளார்',
     statusHalf: 'அரை நாள்',
@@ -24872,6 +24881,9 @@ const hi: UiStrings = {
     today: 'आज',
     yesterday: 'कल',
     showOlder: 'पुराना दिखाएँ',
+    subtitle: 'भुगतान, बिल, अग्रिम और बहुत कुछ',
+    searchActivity: 'गतिविधि खोजें',
+    filter: 'फ़िल्टर',
     empty: 'अभी तक कुछ नहीं हुआ',
     statusPresent: 'उपस्थित',
     statusHalf: 'आधा दिन',
@@ -32477,6 +32489,9 @@ const ar: UiStrings = {
     today: 'اليوم',
     yesterday: 'أمس',
     showOlder: 'عرض الأقدم',
+    subtitle: 'المدفوعات والفواتير والسلف والمزيد',
+    searchActivity: 'ابحث في النشاط',
+    filter: 'تصفية',
     empty: 'لم يحدث شيء بعد',
     statusPresent: 'حاضر',
     statusHalf: 'نصف يوم',
