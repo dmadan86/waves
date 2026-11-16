@@ -19,6 +19,7 @@ import { useToast } from '@/lib/toast';
 import type { Space } from '@/lib/spaces';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { useRememberSpace } from '@/lib/useSpaces';
+import { useVoiceDefaultSpace, useVoiceNewCount } from '@/lib/voiceSpaceStore';
 
 const ROLE_KEY = {
   admin: 'owner',
@@ -32,9 +33,15 @@ function Row({
   current,
   leading,
   dashed,
+  tag,
+  dot,
   onPress,
 }: {
   title: string;
+  /** A small pill beside the title ("Default"). */
+  tag?: string;
+  /** A "new by voice" dot. */
+  dot?: boolean;
   body: string;
   current?: boolean;
   leading: React.ReactNode;
@@ -42,6 +49,7 @@ function Row({
   onPress: () => void;
 }) {
   const theme = useTheme();
+  const { t } = useStrings();
   return (
     <Pressable
       accessibilityRole="button"
@@ -61,9 +69,38 @@ function Row({
     >
       {leading}
       <View style={{ flex: 1 }}>
-        <Text style={{ fontWeight: '700', color: current ? theme.color.brand : undefined }}>
-          {title}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text
+            numberOfLines={1}
+            style={{
+              fontWeight: '700',
+              flexShrink: 1,
+              color: current ? theme.color.brand : undefined,
+            }}
+          >
+            {title}
+          </Text>
+          {tag ? (
+            <View
+              style={{
+                paddingHorizontal: 6,
+                paddingVertical: 1,
+                borderRadius: 6,
+                backgroundColor: theme.color.brandSoft,
+              }}
+            >
+              <Text variant="micro" style={{ color: theme.color.brand, fontWeight: '700' }}>
+                {tag}
+              </Text>
+            </View>
+          ) : null}
+          {dot ? (
+            <View
+              accessibilityLabel={t.spaces.newByVoice}
+              style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: theme.color.brand }}
+            />
+          ) : null}
+        </View>
         <Text variant="caption" tone="muted">
           {body}
         </Text>
@@ -90,9 +127,13 @@ function CompanyRow({
   const role = useViewerRole(group.id);
   const logo = useGroupPhotoUrl(group.photo_path);
   const roleKey = ROLE_KEY[role as keyof typeof ROLE_KEY] ?? 'employee';
+  const { defaultId } = useVoiceDefaultSpace();
+  const newCount = useVoiceNewCount();
   return (
     <Row
       title={group.name || t.extras.typeCompany}
+      tag={defaultId === group.id ? t.spaces.defaultTag : undefined}
+      dot={newCount(group.id) > 0}
       body={t.spaces[roleKey]}
       current={current}
       onPress={onPress}

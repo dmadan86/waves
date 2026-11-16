@@ -81,6 +81,7 @@ import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { useVoiceDefaultSpace, useVoiceNewCount } from '@/lib/voiceSpaceStore';
 import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { groupLabel, GroupType } from '@/data/types';
@@ -455,6 +456,8 @@ function HomeScreen() {
   // preview, so "All groups" can say when the news is in a row cut off below.
   const groupIds = useMemo(() => list.map((group) => group.id), [list]);
   const unreadGroups = useGroupUnread(groupIds);
+  const voiceNewCount = useVoiceNewCount();
+  const { defaultId: voiceDefaultId } = useVoiceDefaultSpace();
   const unreadBeyondPreview = list
     .slice(GROUPS_PREVIEW)
     .some((group) => unreadGroups.has(group.id));
@@ -740,9 +743,11 @@ function HomeScreen() {
                       ? t.demo.badge
                       : onTrip
                         ? t.tagOnTrip
-                        : isNew
-                          ? t.tagNew
-                          : null;
+                        : group.id === voiceDefaultId
+                          ? t.spaces.defaultTag
+                          : isNew
+                            ? t.tagNew
+                            : null;
                     return (
                       <Fragment key={group.id}>
                         <GroupRow
@@ -797,7 +802,7 @@ function HomeScreen() {
                           // a confident wrong ₹0 that then jumps to the real figure.
                           pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
                           onPress={() => router.push(`/group/${group.id}`)}
-                          unread={unreadGroups.has(group.id)}
+                          unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
                         />
                         {/* One native card inside the list (>= 10 groups), never on the row that is sliding in. */}
                         {homeAdSlot === index + 1 && justAddedId == null ? (

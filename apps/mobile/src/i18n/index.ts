@@ -4354,6 +4354,18 @@ export interface UiStrings {
     employee: string;
     vendor: string;
     pillLabel: string;
+    makeDefault: string;
+    removeDefault: string;
+    defaultTag: string;
+    newByVoice: string;
+    moveTo: string;
+    moveTitle: string;
+    moveBody: string;
+    moveEmpty: string;
+    movedTo: string;
+    moveRetry: string;
+    /** "{n} added by voice — review", the strip over a space's list. */
+    addedByVoice: PluralForms;
   };
   dashHero: {
     scanTitle: string;
@@ -12315,6 +12327,17 @@ const en: UiStrings = {
     employee: 'Employee',
     vendor: 'Vendor',
     pillLabel: 'Switch space',
+    makeDefault: 'Make default for voice',
+    removeDefault: 'Remove default',
+    defaultTag: 'Default',
+    newByVoice: 'New by voice',
+    moveTo: 'Move to…',
+    moveTitle: 'Move to another space',
+    moveBody: 'Pick where this belongs. Amount, date, note and bill come along.',
+    moveEmpty: 'There is no other space to move to.',
+    movedTo: 'Moved to {name}',
+    moveRetry: 'Could not move it yet. Nothing changed. Try again.',
+    addedByVoice: { one: '{n} added by voice — review', other: '{n} added by voice — review' },
   },
   dashHero: {
     scanTitle: 'Snap a receipt',
@@ -19893,6 +19916,20 @@ const ta: UiStrings = {
     employee: 'ஊழியர்',
     vendor: 'விற்பனையாளர்',
     pillLabel: 'இடத்தை மாற்று',
+    makeDefault: 'குரலுக்கு இயல்பாக்கு',
+    removeDefault: 'இயல்பை நீக்கு',
+    defaultTag: 'இயல்பு',
+    newByVoice: 'குரலால் புதியது',
+    moveTo: 'இங்கு நகர்த்து…',
+    moveTitle: 'வேறு இடத்திற்கு நகர்த்து',
+    moveBody: 'இது எங்கு சேரும் என்பதைத் தேர்ந்தெடுங்கள். தொகை, தேதி, குறிப்பு, பில் உடன் வரும்.',
+    moveEmpty: 'நகர்த்த வேறு இடம் இல்லை.',
+    movedTo: '{name} க்கு நகர்த்தப்பட்டது',
+    moveRetry: 'இன்னும் நகர்த்த முடியவில்லை. எதுவும் மாறவில்லை. மீண்டும் முயலுங்கள்.',
+    addedByVoice: {
+      one: 'குரலால் {n} சேர்க்கப்பட்டது — பார்க்க',
+      other: 'குரலால் {n} சேர்க்கப்பட்டன — பார்க்க',
+    },
   },
   dashHero: {
     scanTitle: 'ரசீதைப் படம் எடுங்கள்',
@@ -27558,6 +27595,17 @@ const hi: UiStrings = {
     employee: 'कर्मचारी',
     vendor: 'विक्रेता',
     pillLabel: 'स्पेस बदलें',
+    makeDefault: 'आवाज़ के लिए डिफ़ॉल्ट बनाएँ',
+    removeDefault: 'डिफ़ॉल्ट हटाएँ',
+    defaultTag: 'डिफ़ॉल्ट',
+    newByVoice: 'आवाज़ से नया',
+    moveTo: 'यहाँ ले जाएँ…',
+    moveTitle: 'दूसरे स्पेस में ले जाएँ',
+    moveBody: 'चुनें कि यह कहाँ का है। रकम, तारीख, नोट और बिल साथ जाएँगे।',
+    moveEmpty: 'ले जाने के लिए कोई और स्पेस नहीं है।',
+    movedTo: '{name} में ले जाया गया',
+    moveRetry: 'अभी ले जा नहीं सके। कुछ नहीं बदला। फिर कोशिश करें।',
+    addedByVoice: { one: 'आवाज़ से {n} जुड़ा — देखें', other: 'आवाज़ से {n} जुड़े — देखें' },
   },
   dashHero: {
     scanTitle: 'रसीद स्कैन करें',
@@ -35225,6 +35273,24 @@ const ar: UiStrings = {
     employee: 'موظف',
     vendor: 'المورد',
     pillLabel: 'تبديل المساحة',
+    makeDefault: 'اجعله الافتراضي للصوت',
+    removeDefault: 'إزالة الافتراضي',
+    defaultTag: 'افتراضي',
+    newByVoice: 'جديد بالصوت',
+    moveTo: 'نقل إلى…',
+    moveTitle: 'نقل إلى مساحة أخرى',
+    moveBody: 'اختر المكان المناسب. يُنقل المبلغ والتاريخ والملاحظة والفاتورة معه.',
+    moveEmpty: 'لا توجد مساحة أخرى للنقل إليها.',
+    movedTo: 'تم النقل إلى {name}',
+    moveRetry: 'تعذّر النقل الآن. لم يتغيّر شيء. حاول مرة أخرى.',
+    addedByVoice: {
+      zero: '{n} أُضيفت بالصوت — راجع',
+      one: 'أُضيف واحد بالصوت — راجع',
+      two: 'أُضيف اثنان بالصوت — راجع',
+      few: 'أُضيفت {n} بالصوت — راجع',
+      many: 'أُضيفت {n} بالصوت — راجع',
+      other: 'أُضيفت {n} بالصوت — راجع',
+    },
   },
   dashHero: {
     scanTitle: 'صوّر الإيصال',

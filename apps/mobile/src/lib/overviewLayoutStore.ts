@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { backend } from '@/lib/backend';
+import { patchUiPrefs, readUiPrefs } from '@/lib/uiPrefsStore';
 import { useAuth } from '@/lib/auth';
 import {
   defaultLayout,
@@ -20,8 +20,6 @@ interface Saved extends OverviewLayout {
   at: number;
 }
 
-let chain: Promise<void> = Promise.resolve();
-
 const key = (profileId: string, groupId: string): string =>
   `waves.overview_layout:${profileId}:${groupId}`;
 
@@ -31,31 +29,17 @@ const parse = (raw: unknown): Saved | null => {
 };
 
 async function readRemote(profileId: string): Promise<Record<string, unknown>> {
-  const { data, error } = await backend
-    .rpc('waves_my_profile')
-    .select('ui_prefs')
-    .eq('id', profileId)
-    .maybeSingle();
-  if (error) throw new Error(error.message);
-  const prefs = (data as { ui_prefs?: { overviewLayouts?: Record<string, unknown> } } | null)
-    ?.ui_prefs;
-  return prefs?.overviewLayouts ?? {};
+  return ((await readUiPrefs(profileId)).overviewLayouts ?? {}) as Record<string, unknown>;
 }
 
-/** One write at a time, so a slow earlier save cannot land after a newer one. */
 function pushRemote(profileId: string, groupId: string, saved: Saved): void {
-  chain = chain.then(async () => {
-    try {
-      const all = await readRemote(profileId);
-      const { error } = await backend
-        .from('profiles')
-        .update({ ui_prefs: { overviewLayouts: { ...all, [groupId]: saved } } } as never)
-        .eq('id', profileId);
-      if (error) throw new Error(error.message);
-    } catch {
-      // Stays on this phone; it is sent again the next time the Overview opens.
-    }
-  });
+  patchUiPrefs(profileId, (prefs) => ({
+    ...prefs,
+    overviewLayouts: {
+      ...((prefs.overviewLayouts ?? {}) as Record<string, unknown>),
+      [groupId]: saved,
+    },
+  }));
 }
 
 export function useOverviewLayout(

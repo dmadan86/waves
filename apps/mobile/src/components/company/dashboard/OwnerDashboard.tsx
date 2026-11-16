@@ -25,6 +25,7 @@ import {
 import { OverviewTop } from '@/components/company/dashboard/OverviewTop';
 import { OverviewUpcoming } from '@/components/company/dashboard/OverviewUpcoming';
 import { UpcomingTimeOff } from '@/components/company/UpcomingTimeOff';
+import { VoiceAddedStrip } from '@/components/VoiceAddedStrip';
 import { useCompanyEntries } from '@/data/companyEntries';
 import { useStrings } from '@/i18n';
 import { useOverviewLayout } from '@/lib/overviewLayoutStore';
@@ -44,6 +45,9 @@ export function OwnerDashboard({ groupId }: { groupId: string }) {
         { icon: 'grid-outline', label: t.company.ovEditLayout, onPress: () => setEditing(true) },
       ]}
     >
+      <View style={{ paddingHorizontal: 16 }}>
+        <VoiceAddedStrip groupId={groupId} />
+      </View>
       {editing ? (
         <LayoutEditor
           role="owner"

@@ -99,6 +99,8 @@ import { router } from '@/lib/navigation';
 
 import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
+import { VoiceAddedStrip } from '@/components/VoiceAddedStrip';
+import { useVoiceDefaultSpace, useVoiceAdded } from '@/lib/voiceSpaceStore';
 import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { ExpenseFilterBar, type ExpenseScope } from '@/components/ExpenseFilterBar';
 import { GroupDrafts } from '@/components/GroupDrafts';
@@ -940,6 +942,11 @@ function LedgerGroupScreen() {
     () => expenses.rows.filter((expense) => !expense.deleted_at),
     [expenses.rows],
   );
+  // Entries added by voice that the reader has not opened this list for yet. Leaving
+  // the list (or tapping the strip) counts as seen, so the Home dot clears too.
+  const liveIds = useMemo(() => new Set(visibleExpenses.map((e) => e.id)), [visibleExpenses]);
+  const voiceNew = useVoiceAdded().newIds(groupId, liveIds).length;
+  const { defaultId: voiceDefaultId, setDefault: setVoiceDefault } = useVoiceDefaultSpace();
   // The months the ledger spans, newest first — what the month pill offers.
   const monthKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -1225,6 +1232,7 @@ function LedgerGroupScreen() {
   // Whether the list header has any card in it — it keeps its section gap
   // below only when it does, so an empty header adds nothing under the tabs.
   const hasHeaderCards =
+    voiceNew > 0 ||
     importHere ||
     groupData.isDemo === true ||
     stalledHere ||
@@ -1265,6 +1273,11 @@ function LedgerGroupScreen() {
         ]
       : []),
     { icon: 'download-outline', label: t.groupExport.menu, route: `/group/${groupId}/export` },
+    {
+      icon: voiceDefaultId === groupId ? 'mic-off-outline' : 'mic-outline',
+      label: voiceDefaultId === groupId ? t.spaces.removeDefault : t.spaces.makeDefault,
+      onPress: () => setVoiceDefault(voiceDefaultId === groupId ? null : groupId),
+    },
     { icon: 'settings-outline', label: t.group.settings, route: `/group/${groupId}/settings` },
     // The demo's own way out, reachable from the same menu as everything
     // else about the group — not only from the banner, which a person may
@@ -1966,6 +1979,8 @@ function LedgerGroupScreen() {
                         </Pressable>
                       </Row>
                     ) : null}
+
+                    <VoiceAddedStrip groupId={groupId} live={liveIds} />
 
                     {/* Only the banners that need a decision survive inline — they
               carry the retry / discard buttons the header glyph cannot. Offline,
