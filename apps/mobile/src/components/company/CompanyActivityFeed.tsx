@@ -130,3 +130,98 @@ export function RecentCompanyActivity({ groupId }: { groupId: string }) {
     </SectionCard>
   );
 }
+
+/** The full screen's timeline: a line with a dot per card, each card a soft-brand icon tile, title, sentence and amount. */
+export function ActivityCards({
+  groupId,
+  events,
+  currency,
+}: {
+  groupId: string;
+  events: readonly CompanyActivityEvent[];
+  currency: string;
+}) {
+  const theme = useTheme();
+  const { t, locale } = useStrings();
+  const text = useActivityText();
+  const fmt = useMoney(currency);
+  const time = dateTimeFormat(locale, { hour: 'numeric', minute: '2-digit' });
+  const dayTime = dateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+  const startOfToday = new Date().setHours(0, 0, 0, 0);
+  return (
+    <View style={{ gap: theme.spacing.sm }}>
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          start: 4,
+          top: 20,
+          bottom: 20,
+          width: 2,
+          backgroundColor: theme.color.brandSoft,
+        }}
+      />
+      {events.map((e) => {
+        const title = fill(t.companyActivity.heads[e.text], e.vars);
+        const amount = e.amount ? fmt(e.amount.minor) : undefined;
+        const icon = e.text === 'companyPaid' ? 'paper-plane-outline' : e.icon;
+        return (
+          <View key={e.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+            <View
+              style={{
+                width: 10,
+                height: 10,
+                borderRadius: 5,
+                backgroundColor: theme.color.brand,
+              }}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={[title, text(e), amount].filter(Boolean).join(', ')}
+              onPress={() => router.push(`/group/${groupId}/${e.href}`)}
+              style={({ pressed }) => ({
+                flex: 1,
+                minWidth: 0,
+                flexDirection: 'row',
+                gap: theme.spacing.md,
+                padding: theme.spacing.md,
+                borderRadius: theme.radius.lg,
+                backgroundColor: theme.color.surface,
+                borderWidth: 1,
+                borderColor: theme.color.border,
+                opacity: pressed ? 0.6 : 1,
+              })}
+            >
+              <IconDisc ink={theme.color.brand} size={44}>
+                <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+              </IconDisc>
+              <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+                  <Text numberOfLines={1} style={{ fontWeight: '700', flex: 1 }}>
+                    {title}
+                  </Text>
+                  <Text variant="micro" tone="muted">
+                    {(e.at >= startOfToday ? time : dayTime).format(e.at)}
+                  </Text>
+                </View>
+                <Text variant="caption" tone="muted" numberOfLines={2}>
+                  {text(e)}
+                </Text>
+                {amount ? (
+                  <Text tabular style={{ fontWeight: '700', fontSize: 18 }}>
+                    {amount}
+                  </Text>
+                ) : null}
+              </View>
+            </Pressable>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
