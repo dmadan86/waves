@@ -1598,7 +1598,7 @@ export default function VoiceScreen() {
   // would do nothing (the ✕ and Done felt dead): go Home instead.
   const leaveVoice = (): void => {
     if (router.canGoBack()) router.back();
-    else router.replace('/');
+    else router.dismissTo('/');
   };
 
   const dismiss = (): void => {
