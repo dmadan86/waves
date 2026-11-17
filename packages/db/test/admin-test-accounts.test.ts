@@ -13,10 +13,17 @@ beforeAll(async () => {
   client = await connect();
   // Bare Postgres has no `auth` schema; shim the columns waves_admin_users reads.
   await client.query(`CREATE SCHEMA IF NOT EXISTS auth`);
-  await client.query(`CREATE TABLE IF NOT EXISTS auth.users (
-    id uuid PRIMARY KEY, email text, phone text, email_confirmed_at timestamptz,
-    is_anonymous boolean DEFAULT false, created_at timestamptz DEFAULT now(),
-    last_sign_in_at timestamptz)`);
+  await client.query(`CREATE TABLE IF NOT EXISTS auth.users (id uuid PRIMARY KEY, email text)`);
+  // Other suites may have created a narrower shim first; add what we read.
+  for (const col of [
+    'phone text',
+    'email_confirmed_at timestamptz',
+    'is_anonymous boolean DEFAULT false',
+    'created_at timestamptz DEFAULT now()',
+    'last_sign_in_at timestamptz',
+  ]) {
+    await client.query(`ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS ${col}`);
+  }
 });
 
 afterAll(async () => {
