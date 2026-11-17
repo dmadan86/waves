@@ -6,7 +6,7 @@ import { Button, Kicker } from './ui';
 
 /**
  * "Do it by talking to your assistant" — the home page's pointer to /mcp: six
- * things worth asking, what comes back, which MCP tools do it, and the safety
+ * things worth asking, what comes back, and the safety
  * facts that decide whether somebody clicks through. Every claim here is one
  * /mcp states in full and is checked against apps/agent-mcp (consent screen,
  * RLS, `record_settlement` only records, `payment_link` only builds a link).
@@ -211,18 +211,6 @@ export function AgentsBand({ t, locale }: { t: Dictionary['agents']; locale: Loc
                     </div>
                   )}
                 </div>
-
-                <p dir="ltr" className="mt-auto flex flex-wrap items-center gap-1.5 text-start">
-                  <span className="text-[0.8rem] font-medium text-ink-2">{t.toolsLabel}:</span>
-                  {ex.tools.map((tool) => (
-                    <code
-                      key={tool}
-                      className="rounded-full bg-accent-wash px-2.5 py-1 font-mono text-[0.72rem] text-ink-2"
-                    >
-                      {tool}
-                    </code>
-                  ))}
-                </p>
               </li>
             );
           })}
