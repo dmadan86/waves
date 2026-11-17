@@ -3,7 +3,7 @@ import { ogCard, ogSize } from '@/lib/og-card';
 
 export const size = ogSize;
 export const contentType = 'image/png';
-export const alt = 'Waves — money between friends, without the awkward bit';
+export const alt = 'Waves — split bills with friends, settle up in seconds';
 
 export default async function OpengraphImage() {
   const t = await getDictionary('en');
