@@ -12,10 +12,13 @@ export function InView({
   children,
   className = '',
   loop = false,
+  replay = false,
 }: {
   children: React.ReactNode;
   className?: string;
   loop?: boolean;
+  /** Restart the animations when the pointer or keyboard focus enters. */
+  replay?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -34,8 +37,22 @@ export function InView({
       { threshold: 0.35 },
     );
     io.observe(el);
-    return () => io.disconnect();
-  }, [loop]);
+    const again = () => {
+      if (!('play' in el.dataset)) return;
+      delete el.dataset.play;
+      void el.offsetWidth; // flush so the animations restart
+      el.dataset.play = '';
+    };
+    if (replay) {
+      el.addEventListener('pointerenter', again);
+      el.addEventListener('focusin', again);
+    }
+    return () => {
+      io.disconnect();
+      el.removeEventListener('pointerenter', again);
+      el.removeEventListener('focusin', again);
+    };
+  }, [loop, replay]);
 
   return (
     <div ref={ref} className={`cm-iv ${className}`}>

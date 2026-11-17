@@ -91,6 +91,44 @@
       "invite": "+ invite by link",
       "statementStart": "9 bills on a trip.",
       "statementEnd": "2 transfers to settle."
+    },
+    "scenes": {
+      "nav": "Waves in action",
+      "pause": "Pause animation",
+      "play": "Play animation",
+      "voice": {
+        "tab": "Voice",
+        "label": "Animated example: you say \"Auto 300, split with Ravi\" and Waves adds a ₹300 expense, ₹150 each.",
+        "say": "Auto 300, split with Ravi",
+        "added": "Expense added",
+        "item": "Auto",
+        "amount": "₹300",
+        "split": "Split with Ravi · ₹150 each"
+      },
+      "split": {
+        "tab": "Split"
+      },
+      "watch": {
+        "tab": "Watch",
+        "label": "Animated example: you say \"Chai 40\" to your watch and it adds a ₹40 expense.",
+        "say": "Chai 40",
+        "added": "Added",
+        "item": "Chai ₹40"
+      },
+      "widget": {
+        "tab": "Widget",
+        "label": "Animated example: you tap Food on the home-screen widget, enter ₹40 and it is saved.",
+        "today": "Spent today",
+        "before": "₹1,240",
+        "after": "₹1,280",
+        "food": "Food",
+        "travel": "Travel",
+        "bills": "Bills",
+        "shop": "Shop",
+        "entry": "₹40",
+        "saved": "Saved",
+        "savedItem": "Food ₹40"
+      }
     }
   },
   "explore": {

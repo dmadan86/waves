@@ -1,0 +1,107 @@
+/*
+ * "Eight ways in" icon motion. The un-animated SVG is the finished drawing, so
+ * reduced motion and no-JS see it as is. InView sets data-play when a card is on
+ * screen and re-sets it on hover/focus to replay.
+ */
+.xi-pop,
+.xi-pulse,
+.xi-twinkle {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .cm-iv[data-play] .xi-fade {
+    animation: xi-fade 0.45s var(--d, 0s) both ease-out;
+  }
+  .cm-iv[data-play] .xi-pop {
+    animation: xi-pop 0.5s var(--d, 0s) both cubic-bezier(0.3, 1.5, 0.5, 1);
+  }
+  .cm-iv[data-play] .xi-drop {
+    animation: xi-drop 0.5s var(--d, 0s) both ease-out;
+  }
+  .cm-iv[data-play] .xi-draw {
+    stroke-dasharray: 1;
+    animation: xi-draw 0.5s var(--d, 0s) both ease-out;
+  }
+  .cm-iv[data-play] .xi-sweep {
+    animation: xi-sweep 2.2s 0.1s both ease-in-out;
+  }
+  .cm-iv[data-play] .xi-pulse {
+    animation: xi-pulse 0.7s 0.1s 2 both ease-in-out;
+  }
+  .cm-iv[data-play] .xi-flow {
+    animation: xi-flow 0.9s 0.1s 3 both linear;
+  }
+  .cm-iv[data-play] .xi-blink {
+    animation: xi-blink 1.3s var(--d, 0s) both steps(1, end);
+  }
+  .cm-iv[data-play] .xi-twinkle {
+    animation: xi-twinkle 1.2s 0.2s both ease-in-out;
+  }
+}
+
+@keyframes xi-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes xi-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+@keyframes xi-drop {
+  from {
+    opacity: 0;
+    translate: 0 -8px;
+  }
+}
+@keyframes xi-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+}
+@keyframes xi-sweep {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  35% {
+    translate: 0 -10px;
+  }
+  75% {
+    translate: 0 22px;
+  }
+}
+@keyframes xi-pulse {
+  50% {
+    transform: scale(1.12);
+  }
+}
+@keyframes xi-flow {
+  from {
+    stroke-dashoffset: 6;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes xi-blink {
+  0%,
+  25%,
+  55% {
+    opacity: 0.1;
+  }
+  40%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes xi-twinkle {
+  50% {
+    transform: scale(1.5) rotate(30deg);
+  }
+}
