@@ -113,7 +113,7 @@ export default async function Kpis() {
         People who signed up in the last 30 days. Activated means a registered account created an
         expense, a settlement or a personal record within 7 days of signing up. Retention counts a
         day only once it has fully passed, so a young cohort is left out rather than counted as
-        lost. Guest accounts are not registrations.
+        lost. Guest accounts are not registrations. Test accounts are excluded.
       </Lede>
 
       <h2 className="section">Targets</h2>

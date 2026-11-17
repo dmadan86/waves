@@ -4,7 +4,7 @@ import { Bars } from '@/components/Bars';
 import { AreaTrend } from '@/components/charts/AreaTrend';
 import { DonutChart } from '@/components/charts/DonutChart';
 import { Icon } from '@/components/icons';
-import { Card, Empty, PageHeader, Stat, TableScroll } from '@/components/ui';
+import { Card, Empty, Lede, PageHeader, Stat, TableScroll } from '@/components/ui';
 import { aiCost, daily, geo, logins, money as moneyRows, overview } from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
@@ -82,6 +82,7 @@ export default async function Dashboard() {
           </>
         }
       />
+      <Lede>Test accounts are excluded from every number here.</Lede>
 
       <section aria-labelledby="figures-head">
         <h2 className="section" id="figures-head">
