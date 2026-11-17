@@ -7,18 +7,19 @@ import { useSyncExternalStore } from 'react';
  * time, so the copyright silently goes stale the moment the year turns and
  * nothing forces a redeploy.
  *
- * The start year is a constant and renders on the server. The end year is read
- * from the reader's own clock — the only clock that is actually right — through
- * `useSyncExternalStore`, whose server snapshot is `null`, so the markup the
- * server sends and the markup the client hydrates never disagree.
+ * The server renders the range up to the build year, so crawlers and no-JS
+ * readers never see a stale lone start year. The reader's own clock then takes
+ * over through `useSyncExternalStore` (hydration uses the server snapshot, then
+ * re-renders), so a page built last year still shows this year.
  */
 const subscribe = () => () => {};
 const getYear = () => new Date().getFullYear();
-const getServerYear = () => null;
+const BUILD_YEAR = new Date().getFullYear();
+const getServerYear = () => BUILD_YEAR;
 
 export function CopyrightYears({ from }: { from: number }) {
   const now = useSyncExternalStore(subscribe, getYear, getServerYear);
 
-  if (now === null || now <= from) return <>{from}</>;
+  if (now <= from) return <>{from}</>;
   return <>{`${from}–${now}`}</>;
 }
