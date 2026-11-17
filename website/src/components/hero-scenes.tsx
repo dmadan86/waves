@@ -65,7 +65,9 @@ function Voice({ v }: { v: Scenes['voice'] }) {
         <Wave />
       </div>
       <p className="hs-bubble hs-light hs-in" style={d(0.4)}>
-        “{v.say}”
+        <span className="hs-typed" style={{ '--n': v.say.length + 2 } as React.CSSProperties}>
+          “{v.say}”
+        </span>
       </p>
       <div className="hs-card hs-light hs-in" style={d(2.4)}>
         <div className="flex items-center justify-between gap-2">
@@ -79,6 +81,87 @@ function Voice({ v }: { v: Scenes['voice'] }) {
           <span className="hs-amt">{v.amount}</span>
         </div>
         <p className="hs-sub mt-[1cqw]">{v.split}</p>
+      </div>
+    </div>
+  );
+}
+
+function Scan({ s }: { s: Scenes['scan'] }) {
+  const rows = [
+    ['58%', '420'],
+    ['44%', '380'],
+    ['66%', '540'],
+    ['50%', '325'],
+  ];
+  return (
+    <div className="hs-phone">
+      <div className="hs-stack">
+        <div className="hs-view hs-sh" style={win(0, 2.7)}>
+          <i className="hs-corner tl" />
+          <i className="hs-corner tr" />
+          <i className="hs-corner bl" />
+          <i className="hs-corner br" />
+          <div className="hs-paper">
+            <b className="hs-bar" style={{ width: '40%', background: '#1b1530' }} />
+            {rows.map(([w, p]) => (
+              <div key={p} className="hs-prow">
+                <b className="hs-bar" style={{ width: w }} />
+                <span>{p}</span>
+              </div>
+            ))}
+            <div className="hs-prow hs-ptot">
+              <b className="hs-bar" style={{ width: '22%', background: '#1b1530' }} />
+              <span>1,665</span>
+            </div>
+          </div>
+          <span className="hs-scanline" />
+        </div>
+        <div className="hs-card hs-light hs-in self-center" style={d(2.9)}>
+          <div className="flex items-center justify-between gap-2">
+            <p className="hs-cap">{s.added}</p>
+            <span className="hs-ok">
+              <Check draw d="3.3s" />
+            </span>
+          </div>
+          <div className="mt-[1cqw] flex items-baseline justify-between gap-2">
+            <span className="text-[4.2cqw] font-medium">{s.item}</span>
+            <span className="hs-amt">{s.amount}</span>
+          </div>
+          <p className="hs-sub mt-[1cqw]">{s.split}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Settle({ s }: { s: Scenes['settle'] }) {
+  return (
+    <div className="hs-phone hs-clip">
+      <div className="hs-stack">
+        <div className="hs-card hs-light hs-sh" style={win(0, 4.4)}>
+          <p className="hs-cap">{s.owe}</p>
+          <p className="hs-amt mt-[1cqw] text-[8cqw]">{s.amount}</p>
+          <span className="hs-btn mt-[3cqw]">
+            {s.button}
+            <span className="hs-ripple" />
+          </span>
+        </div>
+        <div className="hs-card hs-green hs-in" style={d(4.6)}>
+          <span className="hs-bigok">
+            <Check draw d="5.0s" />
+          </span>
+          <p className="text-[5cqw] font-medium">{s.done}</p>
+          <p className="hs-sub">{s.doneNote}</p>
+        </div>
+      </div>
+      <div className="hs-sheet" aria-hidden="true">
+        <p className="text-[3.6cqw] font-medium">{s.sheet}</p>
+        <div className="hs-upis">
+          {['#7A5AF8', '#10B981', '#F5B544', '#FF7A59'].map((c) => (
+            <i key={c} style={{ '--c': c } as React.CSSProperties} />
+          ))}
+        </div>
+        <p className="hs-sub">{s.sheetNote}</p>
       </div>
     </div>
   );
@@ -188,7 +271,7 @@ function Widget({ g }: { g: Scenes['widget'] }) {
 }
 
 /**
- * The hero's right side: four short scenes that crossfade and loop. The progress
+ * The hero's right side: six short scenes that crossfade and loop. The progress
  * bar's animationend advances the story, so pausing (hover, focus, button) and
  * reduced motion both stop it for free. Scene 2 (the orbit) is server markup.
  */
@@ -211,12 +294,20 @@ export function HeroScenes({
     () => false,
   );
 
-  const scenes: { id: string; tab: string; label: string; node: ReactNode }[] = [
-    { id: 'voice', tab: t.voice.tab, label: t.voice.label, node: <Voice v={t.voice} /> },
-    { id: 'split', tab: t.split.tab, label: orbitLabel, node: split },
+  const scenes = [
+    { id: 'voice', tab: t.voice.tab, label: t.voice.label, node: <Voice v={t.voice} />, dur: 4.8 },
+    { id: 'split', tab: t.split.tab, label: orbitLabel, node: split, dur: 4.8 },
+    { id: 'scan', tab: t.scan.tab, label: t.scan.label, node: <Scan s={t.scan} />, dur: 5.4 },
+    {
+      id: 'settle',
+      tab: t.settle.tab,
+      label: t.settle.label,
+      node: <Settle s={t.settle} />,
+      dur: 6.6,
+    },
     { id: 'watch', tab: t.watch.tab, label: t.watch.label, node: <Watch w={t.watch} /> },
     { id: 'widget', tab: t.widget.tab, label: t.widget.label, node: <Widget g={t.widget} /> },
-  ];
+  ].map((s) => ({ ...s, cap: t[s.id as keyof typeof t] as { title: string; line: string } }));
   const held = !playing || hover || focus;
 
   return (
@@ -231,12 +322,20 @@ export function HeroScenes({
           <div
             key={s.id}
             role="img"
-            aria-label={s.label}
+            aria-label={`${s.label} ${s.cap.title}. ${s.cap.line}`}
             aria-hidden={i !== active}
             data-on={i === active ? '' : undefined}
             className="hs-scene"
           >
             {s.node}
+          </div>
+        ))}
+      </div>
+      <div className="hs-caps" aria-hidden="true">
+        {scenes.map((s, i) => (
+          <div key={s.id} className="hs-capi" data-on={i === active ? '' : undefined}>
+            <p className="hs-ct">{s.cap.title}</p>
+            <p className="hs-cl">{s.cap.line}</p>
           </div>
         ))}
       </div>
@@ -257,6 +356,7 @@ export function HeroScenes({
               <span
                 key={active}
                 className="hs-prog"
+                style={{ '--hs-dur': `${s.dur}s` } as React.CSSProperties}
                 onAnimationEnd={() => setActive((a) => (a + 1) % scenes.length)}
               />
             )}
