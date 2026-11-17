@@ -128,7 +128,7 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line();
   line(t.openSource.body);
   line();
-  line(`- ${t.openSource.points.join('\n- ')}`);
+  line(`- ${t.openSource.points.map((p) => `${p.title}: ${p.body}`).join('\n- ')}`);
   line();
   line(`${t.openSource.cta}: ${site.githubUrl}`);
   line();
