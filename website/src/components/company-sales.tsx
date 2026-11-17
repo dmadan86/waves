@@ -1,33 +1,55 @@
+import { Fragment } from 'react';
+
 import type { Dictionary } from '@/i18n/dictionaries';
 import { site } from '@/lib/site';
+import { ArrowRight } from './icons';
+import { IconBadge, type IconName } from './line-icon';
 import { Button, Container, Kicker } from './ui';
 
 const h2 = 'text-[1.35rem] font-bold tracking-[-0.025em] text-ink sm:text-[1.6rem]';
 
 type T = Dictionary['companiesPage'];
 
-/** "Get started in 3 steps" strip for the companies page. */
+const STEP_ICONS: IconName[] = ['building', 'personPlus', 'checkCircle'];
+
+/** "Get started in 3 steps" band for the companies page. */
 export function CompanySteps({ t }: { t: T['steps'] }) {
   return (
     <Container className="pb-10">
-      <Kicker>{t.eyebrow}</Kicker>
-      <h2 className={`${h2} mt-1.5`}>{t.title}</h2>
-      <ol className="mt-4 grid gap-3 sm:grid-cols-3">
-        {t.items.map((s, i) => (
-          <li
-            key={s.title}
-            className="flex gap-3 rounded-2xl bg-surface p-4 shadow-[var(--w-shadow-card)]"
-          >
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-sm font-semibold text-accent-ink">
-              {i + 1}
-            </span>
-            <div>
-              <h3 className="text-[0.95rem] font-semibold text-ink">{s.title}</h3>
-              <p className="mt-1 text-[0.86rem] leading-[1.5] text-ink-2">{s.body}</p>
-            </div>
-          </li>
-        ))}
-      </ol>
+      <div className="grid items-center gap-5 rounded-[2rem] bg-accent-wash p-5 sm:p-7 lg:grid-cols-[0.85fr_2fr] lg:gap-7">
+        <div>
+          <Kicker>{t.eyebrow}</Kicker>
+          <h3 className="mt-1.5 text-balance text-[1.4rem] leading-[1.2] font-bold tracking-[-0.02em] text-ink sm:text-[1.7rem]">
+            {t.title}
+          </h3>
+          <p className="mt-2 text-[0.92rem] leading-[1.6] text-ink-2">{t.lead}</p>
+        </div>
+        <ol className="grid items-stretch gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr]">
+          {t.items.map((s, i) => (
+            <Fragment key={s.title}>
+              {i > 0 ? (
+                <li
+                  aria-hidden="true"
+                  className="hidden items-center text-accent lg:flex"
+                  role="presentation"
+                >
+                  <ArrowRight className="h-5 w-5 rtl:-scale-x-100" />
+                </li>
+              ) : null}
+              <li className="rounded-3xl bg-surface p-4 shadow-[var(--w-shadow-card)]">
+                <div className="flex items-center justify-between">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-accent text-[0.75rem] font-bold text-accent-ink">
+                    {i + 1}
+                  </span>
+                  <IconBadge name={STEP_ICONS[i] ?? 'check'} />
+                </div>
+                <h4 className="mt-3 text-[0.98rem] font-bold text-ink">{s.title}</h4>
+                <p className="mt-1 text-[0.84rem] leading-[1.5] text-ink-2">{s.body}</p>
+              </li>
+            </Fragment>
+          ))}
+        </ol>
+      </div>
     </Container>
   );
 }

@@ -76,7 +76,7 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
 
   line(`## ${t.wearables.title}`);
   line();
-  line(t.wearables.body);
+  line(t.wearables.lead);
   line();
   line(
     t.wearables.chips
@@ -89,7 +89,7 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line();
   for (const ex of t.wearables.examples) line(`- **${ex.title}** (${ex.where}) — ${ex.body}`);
   line();
-  line(`- ${t.wearables.points.join('\n- ')}`);
+  line(t.wearables.points.map((p) => `- **${p.title}**: ${p.body}`).join('\n'));
   line();
   line(t.wearables.soonNote);
   line();
