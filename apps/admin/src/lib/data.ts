@@ -811,10 +811,14 @@ export interface AdminUserListRow {
   platform: string | null;
   /** Live companies this person created (groups of type company, not deleted). */
   companies_created: number;
+  /** Marked as one of the owner's own test accounts. */
+  is_test: boolean;
 }
 
 export interface AdminUserList {
   total: number;
+  /** Test accounts marked in all (not just this page or filter). */
+  testTotal: number;
   rows: AdminUserListRow[];
 }
 
@@ -833,6 +837,8 @@ export async function listUsers(params: {
   offset: number;
   namePrefix?: string;
   country?: string;
+  /** 'only' = test accounts, 'hide' = real customers; omit for everybody. */
+  test?: 'only' | 'hide';
 }): Promise<AdminUserList> {
   await requireSession();
   const { data, error } = await client().rpc('waves_admin_users', {
@@ -840,12 +846,17 @@ export async function listUsers(params: {
     p_offset: params.offset,
     p_name_prefix: params.namePrefix?.trim() || null,
     p_country: params.country?.trim() || null,
+    p_test: params.test ?? null,
   });
   if (error) {
-    if (error.code === FUNCTION_MISSING) return { total: 0, rows: [] };
+    if (error.code === FUNCTION_MISSING) return { total: 0, testTotal: 0, rows: [] };
     throw new Error(`waves_admin_users failed: ${error.message}`);
   }
-  const payload = (data ?? {}) as { total?: number | string; rows?: AdminUserListRow[] };
+  const payload = (data ?? {}) as {
+    total?: number | string;
+    test_total?: number | string;
+    rows?: AdminUserListRow[];
+  };
   const rows = payload.rows ?? [];
   // Companies created per person on this page: one round trip, counted here.
   const created = new Map<string, number>();
@@ -866,7 +877,29 @@ export async function listUsers(params: {
     }
   }
   for (const row of rows) row.companies_created = created.get(row.id) ?? 0;
-  return { total: Number(payload.total ?? 0), rows };
+  return { total: Number(payload.total ?? 0), testTotal: Number(payload.test_total ?? 0), rows };
+}
+
+/** Mark or unmark one account as a test account. */
+export async function setUserTest(userId: string, test: boolean): Promise<void> {
+  await requireSession();
+  if (!UUID.test(userId.trim())) throw new Error('That is not a user id.');
+  const { error } = await client().rpc('waves_admin_set_test', {
+    p_user: userId.trim(),
+    p_test: test,
+    p_note: null,
+  });
+  if (error) throw new Error(`marking failed: ${error.message}`);
+}
+
+/** Mark every account whose email matches an ILIKE pattern; returns the count. */
+export async function markTestByEmail(pattern: string): Promise<number> {
+  await requireSession();
+  const { data, error } = await client().rpc('waves_admin_mark_test_by_email', {
+    p_pattern: pattern.trim(),
+  });
+  if (error) throw new Error(`marking failed: ${error.message}`);
+  return Number(data ?? 0);
 }
 
 /** Mark an address confirmed by hand — the OTP a person never received. */
