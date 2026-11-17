@@ -46,11 +46,6 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   t.how.steps.forEach((step, i) => line(`${i + 1}. **${step.title}** — ${step.body}`));
   line();
 
-  line(`## ${t.showcase.title.join(' ')}`);
-  line();
-  line(t.showcase.body);
-  line();
-
   line(`## ${t.moments.title}`);
   line();
   for (const item of t.moments.items) line(`- **${item.title}** — ${item.body}`);
