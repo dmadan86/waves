@@ -103,17 +103,46 @@
         "added": "Expense added",
         "item": "Auto",
         "amount": "₹300",
-        "split": "Split with Ravi · ₹150 each"
+        "split": "Split with Ravi · ₹150 each",
+        "title": "Just say it",
+        "line": "Waves adds it and splits it for you."
       },
       "split": {
-        "tab": "Split"
+        "tab": "Split",
+        "title": "Everyone sees who owes what",
+        "line": "Live, in one shared group."
+      },
+      "scan": {
+        "tab": "Scan",
+        "label": "Animated example: you point the camera at a dinner receipt and Waves turns it into a ₹1,665 expense with 4 items.",
+        "title": "Snap the receipt",
+        "line": "Waves reads the items and totals. No typing.",
+        "added": "Read from receipt",
+        "item": "Dinner",
+        "amount": "₹1,665",
+        "split": "4 items"
+      },
+      "settle": {
+        "tab": "Settle",
+        "label": "Animated example: you tap Settle up on a ₹555 debt to Asha, pay in your UPI app, and Waves marks it settled.",
+        "title": "Settle in a tap",
+        "line": "You pay in your UPI app. Waves never moves your money.",
+        "owe": "You owe Asha",
+        "amount": "₹555",
+        "button": "Settle up",
+        "sheet": "Pay with your UPI app",
+        "sheetNote": "Payment happens in your UPI app",
+        "done": "Settled",
+        "doneNote": "Paid to Asha in your UPI app"
       },
       "watch": {
         "tab": "Watch",
         "label": "Animated example: you say \"Chai 40\" to your watch and it adds a ₹40 expense.",
         "say": "Chai 40",
         "added": "Added",
-        "item": "Chai ₹40"
+        "item": "Chai ₹40",
+        "title": "Add from your wrist",
+        "line": "Two words and it is done."
       },
       "widget": {
         "tab": "Widget",
@@ -127,7 +156,9 @@
         "shop": "Shop",
         "entry": "₹40",
         "saved": "Saved",
-        "savedItem": "Food ₹40"
+        "savedItem": "Food ₹40",
+        "title": "One tap from your home screen",
+        "line": "Log a spend without opening the app."
       }
     }
   },
