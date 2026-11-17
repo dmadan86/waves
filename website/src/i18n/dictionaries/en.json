@@ -457,17 +457,15 @@
     "eyebrow": "Ask, and watch it happen",
     "title": "Do it by talking to your assistant",
     "lead": "Just say what you want, and Waves gets it done.",
-    "body": "Waves speaks MCP, the open standard that lets AI assistants work with the apps you use. Connect one, and talk to your shared ledger in plain language.",
+    "body": "Ask who owes you, add an expense or settle up, without opening the app. Connect the AI assistant you already use; the technical set-up lives on its own page.",
     "clientsLabel": "Works with",
-    "clients": ["Claude", "ChatGPT", "Cursor", "VS Code", "Any MCP client"],
+    "clients": ["Claude", "ChatGPT", "and more"],
     "cta": "Set it up",
-    "toolsLabel": "Uses",
     "examples": [
       {
         "title": "Check balances",
         "sub": "Ask who owes you in a group.",
         "ask": "Who owes me in Goa Trip?",
-        "tools": ["get_balances"],
         "reply": "",
         "replySub": "",
         "rows": [
@@ -485,7 +483,6 @@
         "title": "Add and split expenses",
         "sub": "Add an expense and split it equally.",
         "ask": "Add ₹2,400 cab to Goa Trip, split equally.",
-        "tools": ["list_members", "add_expense"],
         "reply": "Cab added to Goa Trip",
         "replySub": "4 people · ₹600 each",
         "rows": []
@@ -494,7 +491,6 @@
         "title": "Settle payments",
         "sub": "Record a payment and settle up.",
         "ask": "Settle up with Arjun.",
-        "tools": ["settlement_plan", "record_settlement", "payment_link"],
         "reply": "You owe Arjun ₹1,350",
         "replySub": "Recorded as pending. You pay in your UPI app.",
         "rows": []
@@ -503,7 +499,6 @@
         "title": "Create a group",
         "sub": "Make a group and add people.",
         "ask": "Make a group called Manali with Ravi, Priya and Meera, and give me the invite link.",
-        "tools": ["create_group", "add_people", "invite_link"],
         "reply": "Group “Manali” created",
         "replySub": "4 members · Invite link ready",
         "rows": []
@@ -512,7 +507,6 @@
         "title": "Edit an expense",
         "sub": "Update or correct an expense.",
         "ask": "The cab was ₹2,600, not ₹2,400.",
-        "tools": ["list_expenses", "edit_expense"],
         "reply": "Updated to ₹2,600",
         "replySub": "Each share is now ₹650.",
         "rows": []
@@ -521,7 +515,6 @@
         "title": "See recent changes",
         "sub": "Know what changed today.",
         "ask": "What did you change in my groups today?",
-        "tools": ["list_agent_writes"],
         "reply": "",
         "replySub": "",
         "rows": [
