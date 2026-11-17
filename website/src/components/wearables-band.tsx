@@ -1,4 +1,8 @@
+import type { CSSProperties } from 'react';
+
 import type { Dictionary } from '@/i18n/dictionaries';
+import './wear-watch.css';
+import { InView } from './in-view';
 import { LineIcon, type IconName } from './line-icon';
 import { Kicker } from './ui';
 
@@ -26,9 +30,16 @@ function WatchFace({ i }: { i: number }) {
           strokeWidth="2.4"
           strokeLinecap="round"
         >
-          <path d="M3 12v0M8 8v8M13 4v16M18 7v10M23 9.5v5M28 12v0" />
+          {['M3 12v0', 'M8 8v8', 'M13 4v16', 'M18 7v10', 'M23 9.5v5', 'M28 12v0'].map((d, n) => (
+            <path
+              key={d}
+              d={d}
+              className="ww-bar"
+              style={{ '--d': `${n * 0.09}s` } as CSSProperties}
+            />
+          ))}
         </svg>
-        <p className="flex items-center gap-1 text-[0.76rem] font-semibold whitespace-nowrap">
+        <p className="ww-said flex items-center gap-1 text-[0.76rem] font-semibold whitespace-nowrap">
           Auto ₹120
           <LineIcon name="check" className="h-3.5 w-3.5 text-[#3ddc84]" strokeWidth={3} />
         </p>
@@ -38,9 +49,15 @@ function WatchFace({ i }: { i: number }) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3">
         <p className="text-[0.78rem] font-semibold whitespace-nowrap">Add expense</p>
+        {/* Three amounts stacked; the loop steps through them as + is pressed. */}
+        <p className="relative -my-1 h-5 w-14 text-center text-[0.95rem] font-bold tabular-nums">
+          <span className="ww-amt ww-amt-1 absolute inset-0">₹100</span>
+          <span className="ww-amt ww-amt-2 absolute inset-0">₹110</span>
+          <span className="ww-amt ww-amt-3 absolute inset-0">₹120</span>
+        </p>
         <div className="flex gap-2">
           <span className={`h-8 w-8 text-lg ${DARK_BTN}`}>−</span>
-          <span className={`h-8 w-8 text-lg ${DARK_BTN}`}>+</span>
+          <span className={`ww-press h-8 w-8 text-lg ${DARK_BTN}`}>+</span>
         </div>
       </div>
     );
@@ -53,10 +70,11 @@ function WatchFace({ i }: { i: number }) {
             ['car', '₹320', '2m'],
             ['food', '₹140', '10m'],
           ] as const
-        ).map(([icon, amt, when]) => (
+        ).map(([icon, amt, when], n) => (
           <div
             key={icon}
-            className="flex items-center gap-1 rounded-full bg-[#2c2b33] px-2 py-1 text-[0.66rem]"
+            style={{ '--d': `${n * 0.25}s` } as CSSProperties}
+            className="ww-row flex items-center gap-1 rounded-full bg-[#2c2b33] px-2 py-1 text-[0.66rem]"
           >
             <LineIcon name={icon} className="h-3 w-3 shrink-0 text-[#9b82ff]" />
             <span className="font-bold tabular-nums">{amt}</span>
@@ -70,7 +88,7 @@ function WatchFace({ i }: { i: number }) {
       {(['home', 'food', 'camera', 'mic'] as const).map((icon) => (
         <span
           key={icon}
-          className={`h-9 w-9 justify-self-center ${icon === 'food' ? 'bg-[#7a5af8] text-white' : DARK_BTN} grid place-items-center rounded-full`}
+          className={`h-9 w-9 justify-self-center ${icon === 'food' ? 'ww-tap bg-[#7a5af8] text-white' : DARK_BTN} grid place-items-center rounded-full`}
         >
           <LineIcon name={icon} className="h-4 w-4" />
         </span>
@@ -95,7 +113,9 @@ function Watch({ i }: { i: number }) {
           <div className="h-[8.2rem] w-[7rem] rounded-[2rem] bg-[#8d8a9c] p-[3px] shadow-[var(--w-shadow-md)]">
             <div className="h-full w-full rounded-[1.8rem] bg-[#16151c] p-1 text-white">
               <div className="h-full overflow-hidden rounded-[1.55rem] bg-black px-2 py-2">
-                <WatchFace i={i} />
+                <InView loop className="h-full">
+                  <WatchFace i={i} />
+                </InView>
               </div>
             </div>
           </div>
