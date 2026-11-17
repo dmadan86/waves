@@ -92,7 +92,11 @@ const SAFETY_ICONS = [Shield, Padlock, Users, Link];
 
 export function AgentsBand({ t, locale }: { t: Dictionary['agents']; locale: Locale }) {
   return (
-    <section id="agents" aria-labelledby="agents-title" className="scroll-mt-20 py-6 lg:py-8">
+    <section
+      id="agents"
+      aria-labelledby="agents-title"
+      className="on-light scroll-mt-20 py-6 lg:py-8"
+    >
       <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
         <div className="grid items-end gap-4 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
           <div>

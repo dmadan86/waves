@@ -66,7 +66,7 @@ function Art({ kind }: { kind: number }) {
 /** Three audiences, each with the one page that sells to them. */
 export function WhoFor({ t, locale }: { t: Dictionary['whoFor']; locale: string }) {
   return (
-    <section id="who" aria-labelledby="who-title" className="scroll-mt-20 py-10 lg:py-12">
+    <section id="who" aria-labelledby="who-title" className="on-light scroll-mt-20 py-10 lg:py-12">
       <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
         <Kicker>{t.eyebrow}</Kicker>
         <SectionTitle id="who-title" className="mt-2">

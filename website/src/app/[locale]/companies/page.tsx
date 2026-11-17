@@ -282,27 +282,30 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
           </div>
         </Container>
 
-        <Container className="pb-10">
-          <Kicker>{p.moreEyebrow}</Kicker>
-          <h2 className="mt-1.5 text-[1.6rem] font-bold tracking-[-0.025em] text-ink sm:text-[2.1rem]">
-            {p.moreTitle}
-          </h2>
-          <p className="mt-1.5 max-w-3xl text-[0.95rem] leading-[1.6] text-ink-2">{p.moreLead}</p>
-          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {p.more.map((item, i) => (
-              <li
-                key={item.title}
-                className="rounded-3xl bg-surface p-5 shadow-[var(--w-shadow-card)]"
-              >
-                <IconBadge name={MORE_ICONS[i] ?? 'list'} />
-                <h3 className="mt-3 text-[1rem] font-bold text-ink">{item.title}</h3>
-                <p className="mt-1.5 text-[0.88rem] leading-[1.55] text-ink-2">{item.body}</p>
-              </li>
-            ))}
-          </ul>
-        </Container>
+        {/* Light, like the owner's mockup, inside the Orbit page. */}
+        <div className="on-light pt-10">
+          <Container className="pb-10">
+            <Kicker>{p.moreEyebrow}</Kicker>
+            <h2 className="mt-1.5 text-[1.6rem] font-bold tracking-[-0.025em] text-ink sm:text-[2.1rem]">
+              {p.moreTitle}
+            </h2>
+            <p className="mt-1.5 max-w-3xl text-[0.95rem] leading-[1.6] text-ink-2">{p.moreLead}</p>
+            <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              {p.more.map((item, i) => (
+                <li
+                  key={item.title}
+                  className="rounded-3xl bg-surface p-5 shadow-[var(--w-shadow-card)]"
+                >
+                  <IconBadge name={MORE_ICONS[i] ?? 'list'} />
+                  <h3 className="mt-3 text-[1rem] font-bold text-ink">{item.title}</h3>
+                  <p className="mt-1.5 text-[0.88rem] leading-[1.55] text-ink-2">{item.body}</p>
+                </li>
+              ))}
+            </ul>
+          </Container>
 
-        <CompanySteps t={p.steps} />
+          <CompanySteps t={p.steps} />
+        </div>
         <CompanyFaq t={p.faq} />
         <CompanyContact t={p.contact} />
         <DownloadBanner t={t.cta} stores={t.stores} />

@@ -78,7 +78,9 @@
 @custom-variant rtl (&:where([dir='rtl'], [dir='rtl'] *));
 
 @layer base {
-  :root {
+  /* .on-light: a light island inside the Orbit page (the mockup-led sections). */
+  :root,
+  .on-light {
     color-scheme: light;
     --w-bg: #faf9f6;
     --w-paper: #ffffff;
@@ -134,6 +136,12 @@
     --w-shadow-sm: 0 1px 2px rgb(5 3 20 / 0.5), 0 0 0 1px rgb(255 255 255 / 0.07);
     --w-shadow-md: 0 14px 34px rgb(5 3 20 / 0.45), 0 0 0 1px rgb(255 255 255 / 0.07);
     --w-shadow-lg: 0 30px 70px rgb(5 3 20 / 0.55), 0 0 0 1px rgb(255 255 255 / 0.08);
+  }
+
+  .on-light {
+    --w-bg: #f7f6ff;
+    background-color: var(--w-bg);
+    color: var(--w-ink);
   }
 
   html {
@@ -418,6 +426,11 @@
     font-weight: 200;
     letter-spacing: -0.03em;
     line-height: 1.04;
+  }
+  /* The light, mockup-led sections set their headings bold (Onest ships only 200/300). */
+  .on-light .display {
+    font-family: var(--font-sans);
+    font-weight: 700;
   }
   [lang='ar'] .display,
   [lang='hi'] .display,

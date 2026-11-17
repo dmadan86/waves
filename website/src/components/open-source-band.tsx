@@ -97,7 +97,7 @@ export function OpenSourceBand({ t }: { t: Dictionary['openSource'] }) {
     <section
       id="open-source"
       aria-labelledby="open-source-title"
-      className="scroll-mt-20 py-6 lg:py-8"
+      className="on-light scroll-mt-20 py-6 lg:py-8"
     >
       <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
         <div className="grid items-center gap-6 overflow-hidden rounded-[1.75rem] bg-surface p-5 shadow-[var(--w-shadow-card)] sm:p-7 lg:grid-cols-[1.1fr_1fr] lg:gap-8 xl:grid-cols-[1.1fr_auto_1fr_auto]">
