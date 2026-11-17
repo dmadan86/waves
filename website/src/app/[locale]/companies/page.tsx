@@ -12,6 +12,7 @@ import {
   WagesMock,
 } from '@/components/company-mocks';
 import { FilmTabs } from '@/components/film-tabs';
+import { IconBadge, type IconName } from '@/components/line-icon';
 import { CompanyContact, CompanyFaq, CompanySteps } from '@/components/company-sales';
 import { DownloadBanner } from '@/components/download-banner';
 import { LazyVideo } from '@/components/lazy-video';
@@ -102,6 +103,17 @@ const card = 'rounded-2xl bg-surface shadow-[var(--w-shadow-card)]';
  * Films cut but not yet uploaded to R2: their slot stays empty so the page never
  * shows a broken video. TODO: empty this once infra/art/publish.sh has run.
  */
+const MORE_ICONS: IconName[] = [
+  'vendor',
+  'clients',
+  'wallet',
+  'upload',
+  'export',
+  'history',
+  'image',
+  'sparkles',
+];
+
 const NOT_UPLOADED = new Set(['companies-allowance']);
 
 export default async function CompaniesPage({ params }: { params: Promise<{ locale: string }> }) {
@@ -271,15 +283,20 @@ export default async function CompaniesPage({ params }: { params: Promise<{ loca
         </Container>
 
         <Container className="pb-10">
-          <h2 className="text-[1.35rem] font-bold tracking-[-0.025em] text-ink sm:text-[1.6rem]">
+          <Kicker>{p.moreEyebrow}</Kicker>
+          <h2 className="mt-1.5 text-[1.6rem] font-bold tracking-[-0.025em] text-ink sm:text-[2.1rem]">
             {p.moreTitle}
           </h2>
-          <p className="mt-1.5 max-w-3xl text-[0.9rem] leading-[1.6] text-ink-2">{p.moreLead}</p>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {p.more.map((item) => (
-              <li key={item.title} className={`${card} p-4`}>
-                <h3 className="text-[0.95rem] font-semibold text-ink">{item.title}</h3>
-                <p className="mt-1.5 text-[0.86rem] leading-[1.5] text-ink-2">{item.body}</p>
+          <p className="mt-1.5 max-w-3xl text-[0.95rem] leading-[1.6] text-ink-2">{p.moreLead}</p>
+          <ul className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {p.more.map((item, i) => (
+              <li
+                key={item.title}
+                className="rounded-3xl bg-surface p-5 shadow-[var(--w-shadow-card)]"
+              >
+                <IconBadge name={MORE_ICONS[i] ?? 'list'} />
+                <h3 className="mt-3 text-[1rem] font-bold text-ink">{item.title}</h3>
+                <p className="mt-1.5 text-[0.88rem] leading-[1.55] text-ink-2">{item.body}</p>
               </li>
             ))}
           </ul>

@@ -831,9 +831,8 @@
     ]
   },
   "wearables": {
-    "eyebrow": "Watch and widgets",
-    "title": "On your wrist and your home screen",
-    "body": "Add an expense without taking your phone out. Speak or dial it on your watch, or tap a Waves widget on your home screen to jump straight into adding one. The watch hands everything to your phone, so your ledger stays in one place.",
+    "eyebrow": "What you can do",
+    "title": "Do more, with your watch",
     "availableLabel": "Available",
     "soonLabel": "Coming soon",
     "chips": [
@@ -858,42 +857,44 @@
         "status": "soon"
       }
     ],
-    "watchTitle": "The watch app",
-    "widgetsTitle": "The widgets",
-    "watchCaption": "Home, a voice add and the recent list on Apple Watch.",
-    "widgetCaption": "Three widgets: Add expense, What did you spend on? and the action grid.",
-    "mockNote": "Screens are drawn from the app and are shown in English.",
-    "examplesTitle": "What you can do",
     "examples": [
       {
         "where": "Watch",
         "title": "Say it to your wrist",
-        "body": "Open Speak and say “Auto 120”. The watch sends the clip to your phone and shows “Added ₹120 · Auto”. It lands in your captures, ready to put in a group."
+        "body": "Open Speak and say “Auto 120”. The watch captures it, shows “Added ₹120 · Auto”, and sends it to your phone."
       },
       {
         "where": "Watch",
         "title": "Dial it in",
-        "body": "No time to talk? Turn the Digital Crown to the amount and tap Add. On Wear OS you use plus and minus buttons."
+        "body": "No time to talk? Turn the Digital Crown to set the amount and tap Add. Use plus and minus buttons on Wear OS."
       },
       {
         "where": "Watch",
         "title": "See what you just added",
-        "body": "Recent lists your latest expenses with the amount and when, right on the watch."
+        "body": "View your latest expenses with the amount and when, right on the watch."
       },
       {
         "where": "Widgets",
         "title": "Start from the home screen",
-        "body": "Tap Food on the “What did you spend on?” widget and quick add opens with Food already chosen. The mic and photo buttons jump straight to voice and receipt photos."
+        "body": "Tap Food on the “What did you spend on?” widget and quick add opens. The mic and photo buttons jump straight to voice and receipt photos."
       }
     ],
     "points": [
-      "The watch only sends and shows. Every expense is written by your phone, through the same offline queue as the app.",
-      "Out of reach of your phone? The watch says “Queued” and adds it when your phone is near.",
-      "A voice add that needs a decision, like a split or someone else paying, is saved for review instead of guessed.",
-      "The widgets are shortcuts. They do not show balances, and they work with the app’s own screens."
+      {
+        "title": "Always in sync",
+        "body": "The watch only shows and sends. Every expense is written by your phone through the same offline queue."
+      },
+      {
+        "title": "Smarter input",
+        "body": "A voice add that needs a decision, like a split or someone else paying, is saved for review."
+      },
+      {
+        "title": "Quick & focused",
+        "body": "The widgets are shortcuts. They don't show balances, and they work with the app's own screens."
+      }
     ],
     "soonNote": "Wear OS is on its way and not released yet.",
-    "videoLabel": "Video: on Apple Watch someone says “Auto 120” and it is added, dials ₹450 with the Digital Crown, and checks the recent list. Then Waves widgets on a home screen: tapping Food opens quick add with Food chosen."
+    "lead": "Quick actions, updates and expenses, right on your wrist."
   },
   "companies": {
     "eyebrow": "Waves for companies",
@@ -1150,20 +1151,20 @@
       }
     ],
     "billsNote": "Estimates and bills here are simple documents, not GST tax invoices.",
-    "moreTitle": "And the rest of the office",
-    "moreLead": "Small tools that sit beside the money.",
+    "moreTitle": "Everything you need, in one app",
+    "moreLead": "Small tools that make a big difference, for you and your team.",
     "more": [
       {
         "title": "Vendors",
-        "body": "A ledger for each vendor: orders, deliveries and payments you record."
+        "body": "Add your preferred vendors, track orders and keep a record of the payments you make."
       },
       {
         "title": "Clients",
-        "body": "Keep clients, inquiries and follow-ups. Mark each inquiry open, quoted, won or rejected."
+        "body": "Keep client details and follow-ups in one place. Never miss an opportunity."
       },
       {
         "title": "Budgets and sites",
-        "body": "Give each site a budget and see what was spent against it."
+        "body": "Give each site a budget, manage spend and see what was spent against it."
       },
       {
         "title": "Import",
@@ -1183,7 +1184,7 @@
       },
       {
         "title": "AI assistant",
-        "body": "Owners can let an AI assistant read the books. One switch turns it off, and changes can need your approval."
+        "body": "Owners can let an AI assistant find entries and answer questions about the books in plain language. One switch turns it off, and changes can need your approval."
       }
     ],
     "videos": {
@@ -1233,7 +1234,7 @@
     },
     "steps": {
       "eyebrow": "Get started",
-      "title": "Get your business on Waves in 3 steps",
+      "title": "Get your business on Waves in 3 simple steps",
       "items": [
         {
           "title": "Create your company",
@@ -1245,9 +1246,10 @@
         },
         {
           "title": "Approve and pay",
-          "body": "Review claims in a tap, mark attendance, and record advances and wages."
+          "body": "Review claims in a tap, then track attendance, advances, wages and expenses."
         }
-      ]
+      ],
+      "lead": "Set up your company, invite your team, and start managing expenses today."
     },
     "faq": {
       "title": "Questions owners ask first",
@@ -1277,7 +1279,8 @@
       "email": "Email us",
       "whatsappText": "Hi, I would like to set up my business on Waves.",
       "emailSubject": "Waves for my business"
-    }
+    },
+    "moreEyebrow": "And the rest of the office"
   },
   "personal": {
     "eyebrow": "Waves for your own money",
@@ -1738,19 +1741,19 @@
     "items": [
       {
         "title": "Friends, flatmates and trips",
-        "body": "Add the bill, split it any way you like and open your UPI app to pay. Invitees join from a link, in a browser or the app, after creating or signing into a free account.",
+        "body": "Add the bill, split it any way you like and open your UPI app to pay. Invite via link, QR or in the app.",
         "cta": "Split your first bill",
         "href": "#download"
       },
       {
         "title": "Families and your own money",
-        "body": "Run a household in a shared group, and keep your own spending, budgets and loans private beside it.",
+        "body": "Run a household in a shared group, and keep spending, budgets and loans private beside it.",
         "cta": "See Waves for your own money",
         "href": "/personal"
       },
       {
         "title": "Shops, contractors and site teams",
-        "body": "Staff add expenses with a photo and you approve in a tap. Attendance, tasks, wages, advances and bills in one place.",
+        "body": "Staff add expenses with a photo and you approve in a tap. Manage attendance, tasks, wages, advances and bills in one place.",
         "cta": "See Waves for companies",
         "href": "/companies"
       }
