@@ -23,6 +23,13 @@ const world = vi.hoisted(() => ({
   signOut: vi.fn(),
   identity: vi.fn(),
   alert: vi.fn(),
+  storage: new Map<string, string>(),
+}));
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: async (k: string) => world.storage.get(k) ?? null,
+    setItem: async (k: string, v: string) => void world.storage.set(k, v),
+  },
 }));
 
 vi.mock('react-native', () => ({
@@ -115,6 +122,7 @@ beforeEach(() => {
   world.signOutOthersTable = vi.fn(async () => 2);
   world.signOut = vi.fn(async () => ({ error: null }));
   world.alert = vi.fn();
+  world.storage.clear();
   world.identity = vi.fn(async () => ({ deviceId: 'dev-1', label: 'Pixel' }));
 });
 
@@ -259,6 +267,20 @@ describe('the gate', () => {
     );
     (notNow!.props.onPress as () => void)();
     expect(app.gate).toBeUndefined();
+  });
+
+  it('remembers "Not now" across relaunches for a week', async () => {
+    world.register.mockResolvedValue(OVER);
+    const first = await mount();
+    (first.gate!.props.onDismiss as () => void)();
+    await flush();
+
+    const relaunch = await mount();
+    expect(relaunch.gate).toBeUndefined();
+
+    vi.setSystemTime(new Date('2026-09-08T10:00:01Z'));
+    const weekLater = await mount();
+    expect(weekLater.gate).toBeDefined();
   });
 
   it('states no count it does not have', async () => {

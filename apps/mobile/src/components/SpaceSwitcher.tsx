@@ -11,6 +11,7 @@ import { Sheet, Text, directionalIcon, iconSize, useTheme } from '@waves/ui';
 
 import { BUILDING_ART } from '@/components/company/dashboard/art';
 import { useGroupPhotoUrl } from '@/components/GroupPhoto';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { useGroups } from '@/data/hooks';
 import type { GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -19,6 +20,7 @@ import { useToast } from '@/lib/toast';
 import type { Space } from '@/lib/spaces';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
 import { useRememberSpace } from '@/lib/useSpaces';
+import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { useVoiceDefaultSpace, useVoiceNewCount } from '@/lib/voiceSpaceStore';
 
 const ROLE_KEY = {
@@ -165,6 +167,7 @@ export function SpaceSwitchSheet({
   const groups = useGroups().data ?? [];
   const companies = companyIds.flatMap((id) => groups.filter((g) => g.id === id));
   const personal = current === 'personal';
+  const viewer = useViewerIdentity();
 
   const go = (space: Space) => {
     onClose();
@@ -197,7 +200,7 @@ export function SpaceSwitchSheet({
           body={t.spaces.personalBody}
           current={personal}
           onPress={() => go('personal')}
-          leading={<Ionicons name="person-circle" size={44} color={theme.color.brand} />}
+          leading={<PersonAvatar name={viewer.name} avatarUrl={viewer.avatarUrl} size={44} />}
         />
         {companies.map((g) => (
           <CompanyRow key={g.id} group={g} current={g.id === current} onPress={() => go(g.id)} />
