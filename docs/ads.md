@@ -1,19 +1,19 @@
 # Ads for Free users
 
 Optional rewarded video ads on the Free plan, so a Free user can earn a little more instead of stopping. Off by default (flag
-`ads_rewarded`, 0% rollout). Nothing is ever forced.
+`ads_rewarded`, 0% rollout). Free ads are on in production; exports and extra groups (after the first two) require a rewarded ad. See docs/disclosures-audit.md.
 
 ## Rules
 
 | Topic          | Rule                                                                                                                                                                                                                                                                                                                           |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Format         | Optional rewarded video plus one labelled native card in long Activity and Friends lists. No banners, interstitials or app-open ads.                                                                                                                                                                                           |
+| Format         | Labelled native cards and banners on list screens, a paced full-screen interstitial after a saved group expense, and rewarded video (optional for credits, required for exports and extra groups). No app-open ads. Never on settle-up. See docs/disclosures-audit.md.                                                         |
 | Reward         | 1 completed ad = 2 AI voice commands or 2 receipt scans. The voice limit screen offers voice, the scan limit screen offers scans.                                                                                                                                                                                              |
 | Daily cap      | 3 rewarded ads per day.                                                                                                                                                                                                                                                                                                        |
 | Validity       | Valid for the calendar month (UTC) in which they are earned. Used after the monthly Free allowance (10 voice commands, 20 receipt scans).                                                                                                                                                                                      |
 | Eligibility    | Free plan only. Not Pro (including legacy Plus), not the 15-day Pro trial, not guests, account at least 7 days old, and flag `ads_rewarded` on for the user.                                                                                                                                                                   |
 | Placement      | Visible links on Voice, receipt scan entry and Settings, plus quota fallback: a small sheet with "Watch a short ad for 2 more AI voice commands", "Upgrade to Pro" and "Not now".                                                                                                                                              |
-| Never shown on | Balances, groups, settle-up, the paywall, widgets, the watch or notifications. Native cards appear only in Activity and Friends after the eighth row, with at least nine rows.                                                                                                                                                 |
+| Never shown on | Settle-up, the expense entry form, the paywall, widgets, the watch or notifications. Native cards and banners do sit in list screens (Home, groups, Activity, Timeline, Friends).                                                                                                                                              |
 | Privacy        | Google AdMob, non-personalized ads only (`requestNonPersonalizedAdsOnly`, `npa=1`). No advertising-ID tracking, no ATT prompt on iOS. Google UMP consent is used where legally required (EEA, UK, Switzerland). AdMob receives the device and IP-level information needed to serve ads and prevent fraud, per Google's policy. |
 
 ## Architecture
