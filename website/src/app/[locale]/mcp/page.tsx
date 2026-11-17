@@ -96,7 +96,7 @@ const lead = 'mt-1.5 max-w-3xl text-[0.9rem] leading-[1.6] text-ink-2';
 const card = 'rounded-2xl bg-surface shadow-[var(--w-shadow-card)]';
 
 const navLinks = [
-  ['features', '#features'],
+  ['features', '/features'],
   ['how', '#how'],
   ['agents', ''],
   ['pricing', '#pricing'],

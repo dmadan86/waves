@@ -133,9 +133,7 @@ export function Pricing({ t }: { t: Dictionary['pricing'] }) {
           })}
         </ul>
 
-        <p className="mt-4 max-w-3xl text-[0.82rem] leading-relaxed text-ink-3">
-          {t.freeNote} {t.priceNote}
-        </p>
+        <p className="mt-4 max-w-3xl text-[0.82rem] leading-relaxed text-ink-3">{t.priceNote}</p>
       </div>
     </section>
   );

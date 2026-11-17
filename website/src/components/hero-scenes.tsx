@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 
 import type { Dictionary } from '@/i18n/dictionaries';
 import './hero-scenes.css';
 
-type Scenes = Dictionary['hero']['scenes'];
+type Scenes = Dictionary['how']['scenes'];
 
 const REDUCED = '(prefers-reduced-motion: reduce)';
 const subscribeReduced = (cb: () => void) => {
@@ -167,123 +167,53 @@ function Settle({ s }: { s: Scenes['settle'] }) {
   );
 }
 
-function Watch({ w }: { w: Scenes['watch'] }) {
+function Ledger({ g }: { g: Scenes['ledger'] }) {
   return (
-    <>
-      <div className="hs-glow" />
-      <div className="hs-watch">
-        <span className="hs-band up" />
-        <span className="hs-band dn" />
-        <span className="hs-crown" />
-        <div className="hs-case">
-          <span className="hs-time">9:41</span>
-          <div className="hs-stack mt-[5cqw]">
-            <div className="hs-face hs-sh" style={win(0.3, 2.3)}>
-              <div className="hs-mic" style={{ width: '9cqw', height: '9cqw' }}>
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  aria-hidden="true"
-                >
-                  <rect x="9" y="3" width="6" height="12" rx="3" />
-                  <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
-                </svg>
-              </div>
-              <Wave />
-            </div>
-            <div className="hs-face hs-sh" style={win(1.1, 1.6)}>
-              <span className="hs-say">“{w.say}”</span>
-            </div>
-            <div className="hs-face hs-in" style={d(2.7)}>
-              <span className="hs-bigok">
-                <Check draw d="3.0s" />
+    <div className="hs-phone">
+      <div className="hs-card hs-light hs-in" style={d(0.1)}>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[4.2cqw] font-semibold">{g.group}</p>
+          <p className="hs-cap">{g.members}</p>
+        </div>
+        <div className="mt-[2.2cqw] flex items-center justify-between gap-2 rounded-[2.2cqw] bg-[#F1EEFF] px-[2.4cqw] py-[1.8cqw]">
+          <div>
+            <p className="text-[3.6cqw] font-medium">{g.expense}</p>
+            <p className="hs-sub">{g.expenseNote}</p>
+          </div>
+          <span className="hs-amt text-[4.4cqw]">{g.expenseAmount}</span>
+        </div>
+      </div>
+      <div className="hs-card hs-light hs-in" style={d(0.7)}>
+        <p className="hs-cap">{g.balances}</p>
+        {g.people.map((name) => (
+          <div key={name} className="mt-[2cqw] flex items-center justify-between gap-2">
+            <span className="flex items-center gap-[2cqw] text-[3.6cqw] font-medium">
+              <span className="grid h-[6cqw] w-[6cqw] place-items-center rounded-full bg-[#C4B5FD] text-[3cqw]">
+                {name.slice(0, 1)}
               </span>
-              <span className="text-[4.2cqw] font-medium text-[#6EE7B7]">{w.added}</span>
-              <span className="hs-mono text-[3.8cqw] text-white">{w.item}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  );
-}
-
-const tiles = ['food', 'travel', 'bills', 'shop'] as const;
-const tint = { food: '#FF7A59', travel: '#7A5AF8', bills: '#F5B544', shop: '#10B981' };
-
-function Widget({ g }: { g: Scenes['widget'] }) {
-  return (
-    <div className="hs-phone" style={{ justifyContent: 'flex-start', paddingTop: '10cqw' }}>
-      <div className="hs-widget">
-        <div className="flex items-start justify-between gap-2">
-          <p className="hs-cap">{g.today}</p>
-          <div className="hs-bal">
-            <span className="hs-sh" style={win(0, 3.4)} aria-hidden="true">
-              {g.before}
+              <span>
+                {name} <span className="hs-sub">{g.owesYou}</span>
+              </span>
             </span>
-            <span className="hs-in" style={d(3.3)}>
-              {g.after}
-            </span>
+            <span className="hs-amt text-[4.2cqw]">{g.each}</span>
           </div>
-        </div>
-        <div className="hs-body hs-stack">
-          <div className="hs-tiles hs-sh" style={win(0, 1.9)}>
-            {tiles.map((k) => (
-              <div key={k} className={`hs-tile ${k === 'food' ? 'hot' : ''}`}>
-                <b style={{ '--c': tint[k] } as React.CSSProperties} />
-                {g[k]}
-                {k === 'food' && <span className="hs-ripple" />}
-              </div>
-            ))}
-          </div>
-          <div className="hs-entry hs-sh" style={win(1.5, 1.6)}>
-            <p className="hs-cap">{g.food}</p>
-            <span className="hs-type">{g.entry}</span>
-          </div>
-          <div className="hs-savedrow hs-in" style={d(3.2)}>
-            <span className="hs-ok" style={{ width: '9cqw', height: '9cqw' }}>
-              <Check draw d="3.4s" />
-            </span>
-            <span>{g.saved}</span>
-            <span className="hs-sub">{g.savedItem}</span>
-          </div>
-        </div>
-      </div>
-      <div className="hs-apps" aria-hidden="true">
-        {[
-          '#7A5AF8',
-          '#F5B544',
-          '#10B981',
-          '#FF7A59',
-          '#C4B5FD',
-          '#7A5AF8',
-          '#F4C3B1',
-          '#A4CBEA',
-        ].map((c, i) => (
-          <i key={i} style={{ '--c': c } as React.CSSProperties} />
         ))}
+      </div>
+      <div className="hs-card hs-green hs-in" style={d(1.4)}>
+        <p className="hs-sub">{g.resultNote}</p>
+        <p className="text-[4.6cqw] font-medium">{g.result}</p>
+        <p className="hs-sub">{g.settle}</p>
       </div>
     </div>
   );
 }
 
 /**
- * The hero's right side: six short scenes that crossfade and loop. The progress
+ * The "See it work" screens: four short scenes that crossfade and loop. The progress
  * bar's animationend advances the story, so pausing (hover, focus, button) and
- * reduced motion both stop it for free. Scene 2 (the orbit) is server markup.
+ * reduced motion both stop it for free.
  */
-export function HeroScenes({
-  t,
-  orbitLabel,
-  split,
-}: {
-  t: Scenes;
-  orbitLabel: string;
-  split: ReactNode;
-}) {
+export function HeroScenes({ t }: { t: Scenes }) {
   const [active, setActive] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [hover, setHover] = useState(false);
@@ -296,8 +226,14 @@ export function HeroScenes({
 
   const scenes = [
     { id: 'voice', tab: t.voice.tab, label: t.voice.label, node: <Voice v={t.voice} />, dur: 4.8 },
-    { id: 'split', tab: t.split.tab, label: orbitLabel, node: split, dur: 4.8 },
     { id: 'scan', tab: t.scan.tab, label: t.scan.label, node: <Scan s={t.scan} />, dur: 5.4 },
+    {
+      id: 'ledger',
+      tab: t.ledger.tab,
+      label: t.ledger.label,
+      node: <Ledger g={t.ledger} />,
+      dur: 4.8,
+    },
     {
       id: 'settle',
       tab: t.settle.tab,
@@ -305,8 +241,6 @@ export function HeroScenes({
       node: <Settle s={t.settle} />,
       dur: 6.6,
     },
-    { id: 'watch', tab: t.watch.tab, label: t.watch.label, node: <Watch w={t.watch} /> },
-    { id: 'widget', tab: t.widget.tab, label: t.widget.label, node: <Widget g={t.widget} /> },
   ].map((s) => ({ ...s, cap: t[s.id as keyof typeof t] as { title: string; line: string } }));
   const held = !playing || hover || focus;
 

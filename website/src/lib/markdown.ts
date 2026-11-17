@@ -1,7 +1,6 @@
 import type { Locale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { bestYearlySaving, plans, type PlanId } from './plans';
-import { mcpEndpoint } from './mcp-tools';
 import { absoluteUrl, site } from './site';
 
 /**
@@ -34,11 +33,6 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line(`- ${t.hero.trust.join('\n- ')}`);
   line();
 
-  line(`## ${t.features.label}`);
-  line();
-  for (const item of t.features.items) line(`- **${item.title}** — ${item.body}`);
-  line();
-
   line(`## ${t.how.title}`);
   line();
   line(t.how.subtitle);
@@ -46,52 +40,9 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   t.how.steps.forEach((step, i) => line(`${i + 1}. **${step.title}** — ${step.body}`));
   line();
 
-  line(`## ${t.moments.title}`);
+  line(`## ${t.benefits.title}`);
   line();
-  for (const item of t.moments.items) line(`- **${item.title}** — ${item.body}`);
-  line();
-
-  line(`## ${t.offline.title}`);
-  line();
-  line(t.offline.body);
-  line();
-  for (const item of t.offline.scenarios) line(`- **${item.title}** — ${item.body}`);
-  line();
-  line(`- ${t.offline.points.join('\n- ')}`);
-  line();
-  line(`${t.offline.voiceTitle}. ${t.offline.voiceBody}`);
-  line();
-
-  line(`## ${t.voice.title}`);
-  line();
-  line(t.voice.body);
-  line();
-  for (const ex of t.voice.examples)
-    line(`- “${ex.say}” → ${ex.title} ${ex.amount}, ${ex.lines.join(', ')}`);
-  line();
-  line(`- ${t.voice.points.join('\n- ')}`);
-  line();
-  line(t.voice.planLine);
-  line();
-
-  line(`## ${t.wearables.title}`);
-  line();
-  line(t.wearables.lead);
-  line();
-  line(
-    t.wearables.chips
-      .map(
-        (c) =>
-          `${c.label} (${c.status === 'soon' ? t.wearables.soonLabel : t.wearables.availableLabel})`,
-      )
-      .join(' · '),
-  );
-  line();
-  for (const ex of t.wearables.examples) line(`- **${ex.title}** (${ex.where}) — ${ex.body}`);
-  line();
-  line(t.wearables.points.map((p) => `- **${p.title}**: ${p.body}`).join('\n'));
-  line();
-  line(t.wearables.soonNote);
+  for (const item of t.benefits.items) line(`- **${item.title}** — ${item.body}`);
   line();
 
   line(`## ${t.pricing.title}`);
@@ -112,7 +63,7 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   }
   line(t.pricing.saveUpTo.replace('{pct}', String(bestYearlySaving)));
   line();
-  line(`${t.pricing.freeNote} ${t.pricing.priceNote}`);
+  line(t.pricing.priceNote);
   line();
 
   line(`## ${t.privacy.title}`);
@@ -124,45 +75,20 @@ export async function pageAsMarkdown(locale: Locale): Promise<string> {
   line(`${t.privacy.cta}: ${absoluteUrl(`/${locale}/privacy`)}`);
   line();
 
-  line(`## ${t.openSource.title}`);
+  const more = {
+    wearables: `/${locale}/features#wearables`,
+    agents: `/${locale}/features#agents`,
+    openSource: `/${locale}/features#open-source`,
+    personal: `/${locale}/personal`,
+    companies: `/${locale}/companies`,
+  } as Record<string, string>;
+  line(`## ${t.more.title}`);
   line();
-  line(t.openSource.body);
-  line();
-  line(`- ${t.openSource.points.map((p) => `${p.title}: ${p.body}`).join('\n- ')}`);
-  line();
-  line(`${t.openSource.cta}: ${site.githubUrl}`);
-  line();
-
-  line(`## ${t.agents.title}`);
-  line();
-  line(t.agents.body);
-  line();
-  for (const ex of t.agents.examples) line(`- “${ex.ask}” → ${ex.reply}`);
-  line();
-  line(`- ${t.agents.safety.join('\n- ')}`);
-  line();
-  line(`MCP: ${mcpEndpoint(site.appUrl)}`);
-  line(`${t.agents.cta}: ${absoluteUrl(`/${locale}/mcp`)}`);
-  line();
-
-  line(`## ${t.personal.title}`);
-  line();
-  line(t.personal.body);
-  line();
-  line(`- ${t.personal.points.join('\n- ')}`);
-  line();
-  line(t.personal.availability);
-  line(`${t.personal.cta}: ${absoluteUrl(`/${locale}/personal`)}`);
-  line();
-
-  line(`## ${t.companies.title}`);
-  line();
-  line(t.companies.body);
-  line();
-  line(`- ${t.companies.points.join('\n- ')}`);
-  line();
-  line(t.companies.availability);
-  line(`${t.companies.cta}: ${absoluteUrl(`/${locale}/companies`)}`);
+  for (const item of t.more.items)
+    line(`- [${item.title}](${absoluteUrl(more[item.id]!)}) — ${item.body}`);
+  line(
+    `- [${t.featuresPage.title}](${absoluteUrl(`/${locale}/features`)}) — ${t.featuresPage.lead}`,
+  );
   line();
 
   line(`## ${t.faq.title}`);
