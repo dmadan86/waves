@@ -28,6 +28,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import {
   ActivityIndicator,
@@ -63,6 +64,10 @@ import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
  * app keeps working on it, so without this check the phone looks signed in.
  */
 const REVOKE_CHECK_MS = 2 * 60 * 1000;
+
+/** "Not now" on the gate holds for a week, across relaunches, per account. */
+const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+const SNOOZE_KEY = 'deviceLimit:snoozedUntil:';
 
 interface DeviceSessionValue {
   /** Null until the first registration answers, or for guests. */
@@ -249,7 +254,33 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     await register();
   }, [register]);
 
-  const wantsGate = eligible && status?.overLimit === true && !dismissed;
+  // The saved "Not now" is read before the gate may show, so it never flashes on launch.
+  const [snoozeReadFor, setSnoozeReadFor] = useState<string | null>(null);
+  useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    void AsyncStorage.getItem(SNOOZE_KEY + userId)
+      .then((until) => {
+        if (active && Number(until) > Date.now()) setDismissed(true);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setSnoozeReadFor(userId);
+      });
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  const snooze = useCallback(() => {
+    setDismissed(true);
+    if (userId) {
+      AsyncStorage.setItem(SNOOZE_KEY + userId, String(Date.now() + SNOOZE_MS)).catch(() => {});
+    }
+  }, [userId]);
+
+  const wantsGate =
+    eligible && status?.overLimit === true && !dismissed && snoozeReadFor === userId;
   // In the prompt queue, at the top. It used to open on its own, so the daily
   // tip sheet (or any other ask) could slide up over it and the screen showed
   // two popups at once. Claiming the highest priority means everything else
@@ -265,11 +296,7 @@ export function DeviceSessionProvider({ children }: { children: ReactNode }) {
     <DeviceSessionContext.Provider value={value}>
       {children}
       {showGate ? (
-        <DeviceLimitGate
-          status={status}
-          onDismiss={() => setDismissed(true)}
-          onSignOutOthers={signOutOthers}
-        />
+        <DeviceLimitGate status={status} onDismiss={snooze} onSignOutOthers={signOutOthers} />
       ) : null}
     </DeviceSessionContext.Provider>
   );
