@@ -4105,3 +4105,14 @@ model TwoStepDeviceRequest {
   @@map("two_step_device_requests")
   @@schema("public")
 }
+
+/// Admin-only: accounts the owner marked as their own test accounts. No FK —
+/// Supabase owns auth.users. Service role / waves_admin_* functions only.
+model TestAccount {
+  userId   String   @id @map("user_id") @db.Uuid
+  markedAt DateTime @default(now()) @map("marked_at") @db.Timestamptz(6)
+  note     String?
+
+  @@map("test_accounts")
+  @@schema("public")
+}

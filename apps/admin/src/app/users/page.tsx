@@ -15,7 +15,14 @@ import {
   type Tone,
 } from '@/components/ui';
 import { assertSameOrigin, guardMutation } from '@/lib/csrf';
-import { confirmUserEmail, listUsers, upgradeUser, type AdminUserListRow } from '@/lib/data';
+import {
+  confirmUserEmail,
+  listUsers,
+  markTestByEmail,
+  setUserTest,
+  upgradeUser,
+  type AdminUserListRow,
+} from '@/lib/data';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,10 +44,11 @@ function kind(u: AdminUserListRow): { label: string; tone: Tone } {
 }
 
 /** Carry the current filter + page through an action's redirect. */
-function backTo(name: string, country: string, offset: number): string {
+function backTo(name: string, country: string, test: string, offset: number): string {
   const p = new URLSearchParams();
   if (name) p.set('name', name);
   if (country) p.set('country', country);
+  if (test) p.set('test', test);
   if (offset) p.set('offset', String(offset));
   const qs = p.toString();
   return qs ? `/users?${qs}` : '/users';
@@ -52,6 +60,7 @@ export default async function Users({
   searchParams: Promise<{
     name?: string;
     country?: string;
+    test?: string;
     offset?: string;
     error?: string;
     done?: string;
@@ -60,12 +69,19 @@ export default async function Users({
   const sp = await searchParams;
   const name = (sp.name ?? '').trim();
   const country = (sp.country ?? '').trim();
+  const test = sp.test === 'only' || sp.test === 'hide' ? sp.test : '';
   const rawOffset = Number(sp.offset ?? 0);
   const offset = Number.isSafeInteger(rawOffset) && rawOffset > 0 ? rawOffset : 0;
 
-  const { total, rows } = await listUsers({ limit: PAGE, offset, namePrefix: name, country });
-  const back = backTo(name, country, offset);
-  const filtered = Boolean(name || country);
+  const { total, testTotal, rows } = await listUsers({
+    limit: PAGE,
+    offset,
+    namePrefix: name,
+    country,
+    test: test || undefined,
+  });
+  const back = backTo(name, country, test, offset);
+  const filtered = Boolean(name || country || test);
 
   async function filter(formData: FormData) {
     'use server';
@@ -78,6 +94,8 @@ export default async function Users({
       .toUpperCase();
     if (n) p.set('name', n);
     if (c) p.set('country', c);
+    const t = String(formData.get('test') ?? '');
+    if (t === 'only' || t === 'hide') p.set('test', t);
     const qs = p.toString();
     redirect(qs ? `/users?${qs}` : '/users');
   }
@@ -97,6 +115,43 @@ export default async function Users({
     if (failure) redirect(`${to}${sep}error=${encodeURIComponent(failure)}`);
     revalidatePath('/users');
     redirect(`${to}${sep}done=${encodeURIComponent('Email confirmed.')}`);
+  }
+
+  async function toggleTest(formData: FormData) {
+    'use server';
+    const id = String(formData.get('id') ?? '');
+    const mark = formData.get('mark') === '1';
+    const to = String(formData.get('back') ?? '/users');
+    let failure: string | null = null;
+    try {
+      await guardMutation(formData);
+      await setUserTest(id, mark);
+    } catch (caught) {
+      failure = caught instanceof Error ? caught.message : String(caught);
+    }
+    const sep = to.includes('?') ? '&' : '?';
+    if (failure) redirect(`${to}${sep}error=${encodeURIComponent(failure)}`);
+    revalidatePath('/users');
+    redirect(`${to}${sep}done=${encodeURIComponent(mark ? 'Marked as test.' : 'Unmarked.')}`);
+  }
+
+  async function markByEmail(formData: FormData) {
+    'use server';
+    const pattern = String(formData.get('pattern') ?? '');
+    const to = String(formData.get('back') ?? '/users');
+    let message: string | null = null;
+    let failure: string | null = null;
+    try {
+      await guardMutation(formData);
+      const n = await markTestByEmail(pattern);
+      message = `Marked ${n} account${n === 1 ? '' : 's'} as test.`;
+    } catch (caught) {
+      failure = caught instanceof Error ? caught.message : String(caught);
+    }
+    const sep = to.includes('?') ? '&' : '?';
+    if (failure) redirect(`${to}${sep}error=${encodeURIComponent(failure)}`);
+    revalidatePath('/users');
+    redirect(`${to}${sep}done=${encodeURIComponent(message ?? 'Done.')}`);
   }
 
   async function upgrade(formData: FormData) {
@@ -126,7 +181,11 @@ export default async function Users({
       <PageHeader
         eyebrow="People"
         title="Users"
-        actions={<span className="small muted">{total.toLocaleString('en-IN')} signups</span>}
+        actions={
+          <span className="small muted">
+            {total.toLocaleString('en-IN')} signups · {testTotal.toLocaleString('en-IN')} test
+          </span>
+        }
       />
       <Outcome error={sp.error} done={sp.done} />
 
@@ -151,6 +210,13 @@ export default async function Users({
               size={4}
             />
           </Field>
+          <Field label="Accounts">
+            <select name="test" defaultValue={test}>
+              <option value="">All</option>
+              <option value="hide">Real customers only</option>
+              <option value="only">Test only</option>
+            </select>
+          </Field>
           <button type="submit" className="btn">
             {Icon.search}
             <span>Filter</span>
@@ -160,6 +226,22 @@ export default async function Users({
               Clear
             </a>
           ) : null}
+        </form>
+      </Card>
+
+      <Card bare>
+        <form action={markByEmail} className="form card-body">
+          <CsrfField />
+          <input type="hidden" name="back" value={back} />
+          <Field
+            label="Mark test accounts by email"
+            hint="% is a wildcard; needs @ and 3 letters first"
+          >
+            <input type="text" name="pattern" placeholder="you+%@gmail.com" required />
+          </Field>
+          <button type="submit" className="btn btn-outline">
+            Mark test
+          </button>
         </form>
       </Card>
 
@@ -210,6 +292,7 @@ export default async function Users({
                         </th>
                         <td>
                           <Badge tone={k.tone}>{k.label}</Badge>
+                          {u.is_test ? <Badge tone="warn">Test</Badge> : null}
                         </td>
                         <td>{u.country_code ?? <span className="muted">—</span>}</td>
                         <td className="n">
@@ -250,6 +333,15 @@ export default async function Users({
                                 </button>
                               </form>
                             )}
+                            <form action={toggleTest}>
+                              <CsrfField />
+                              <input type="hidden" name="id" value={u.id} />
+                              <input type="hidden" name="back" value={back} />
+                              <input type="hidden" name="mark" value={u.is_test ? '0' : '1'} />
+                              <button type="submit" className="btn btn-quiet btn-sm">
+                                {u.is_test ? 'Unmark' : 'Mark test'}
+                              </button>
+                            </form>
                             <form action={upgrade} className="row" style={{ gap: '0.25rem' }}>
                               <CsrfField />
                               <input type="hidden" name="id" value={u.id} />
@@ -293,7 +385,7 @@ export default async function Users({
           {offset > 0 ? (
             <a
               className="btn btn-quiet btn-sm"
-              href={backTo(name, country, Math.max(0, offset - PAGE))}
+              href={backTo(name, country, test, Math.max(0, offset - PAGE))}
             >
               {Icon.arrowLeft}
               <span>Previous</span>
@@ -305,7 +397,7 @@ export default async function Users({
             </span>
           )}
           {offset + PAGE < total ? (
-            <a className="btn btn-quiet btn-sm" href={backTo(name, country, offset + PAGE)}>
+            <a className="btn btn-quiet btn-sm" href={backTo(name, country, test, offset + PAGE)}>
               <span>Next</span>
               {Icon.arrowRight}
             </a>
