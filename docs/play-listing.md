@@ -25,7 +25,7 @@ search actually matches.
 ### Short description (80 characters max)
 
 ```
-Split any bill, track who owes what, and settle up. Works with no network.
+Split bills, see who owes what, settle up. Works offline. Free is ad-supported.
 ```
 
 73 characters. Offline is the differentiator against Splitwise, so it earns the
@@ -68,8 +68,8 @@ same way — so the total at the end matches the total you really paid.
 • A shared album for the trip's receipts and photos
 
 SCAN IT, OR JUST SAY IT
-Point the camera at a receipt and Waves pulls the line items out on the device
-itself. Or hold the microphone and say it — "twelve fifty for coffee, split with
+Point the camera at a receipt and Waves reads the line items for you: the photo is
+uploaded and read by an AI service, then shown for you to check. Or hold the microphone and say it — "twelve fifty for coffee, split with
 Nadia" — and the expense arrives filled in, ready to check before it is saved.
 
 • Receipt scanning that itemises the bill
@@ -86,11 +86,12 @@ IN YOUR LANGUAGE
 English, Tamil, Hindi and Arabic, with full right-to-left layout.
 
 PRIVATE BY DEFAULT
-No ads on your money screens. Free has optional reward ads you choose to watch
-(never personalized); Pro has none. No data sold, ever. No tracking pixels. Receipt
-photos can stay on your device or go to your own Google Drive, Dropbox or
-OneDrive instead of our servers — you choose, per photo. You can export
-everything, and delete your account, from inside the app.
+Waves Free is supported by ads: small ads marked "Ad" on some screens, an occasional
+full-screen ad after you save a group expense, and short video ads you can watch for
+credits. Ads are never personalized and never on the settle-up screen. Pro has no
+ads. We never sell your data and never share your expenses, groups or balances with
+advertisers. Your private ledger can be backed up, encrypted, to your own Google
+Drive. You can export everything, and delete your account, from inside the app.
 
 Privacy policy: https://wavs.co.in/en/privacy
 Delete your account: https://wavs.co.in/en/delete-account
@@ -129,43 +130,64 @@ contradiction is a takedown rather than a warning.
 
 ### Data types collected
 
-"Shared" below means shared with a third party for _their_ purposes. Sending
-data to a processor acting on our instructions is not sharing, and Play says so
-explicitly — which is why every row is "not shared" even though the ledger
-plainly reaches a database.
+Truth source: `docs/disclosures-audit.md` section 4.3 (production ad flags are on for Free).
 
-| Data type                         | Collected | Shared | Optional?    | Purpose                                        |
-| --------------------------------- | --------- | ------ | ------------ | ---------------------------------------------- |
-| Name                              | Yes       | No     | Required     | App functionality (who owes whom)              |
-| Email address                     | Yes       | No     | Required     | Account management, App functionality          |
-| User IDs                          | Yes       | No     | Required     | Account management                             |
-| Phone number                      | Yes       | No     | **Optional** | App functionality (finding people you know)    |
-| Payment info (UPI handle etc.)    | Yes       | No     | **Optional** | App functionality (settling up)                |
-| Purchase history                  | Yes       | No     | Required     | App functionality (subscription state)         |
-| Other financial info (the ledger) | Yes       | No     | Required     | App functionality                              |
-| Approximate location              | Yes       | No     | **Optional** | App functionality (a place on an expense)      |
-| Precise location                  | Yes       | No     | **Optional** | App functionality (a place on an expense)      |
-| Contacts                          | Yes       | No     | **Optional** | App functionality (picking who was there)      |
-| Photos                            | Yes       | No     | **Optional** | App functionality (receipts, proofs, albums)   |
-| Voice or sound recordings         | **No**    | —      | —            | See below                                      |
-| App interactions                  | Yes       | No     | **Optional** | Analytics — opt-in, off by default             |
-| Crash logs                        | Yes       | No     | Required     | Diagnostics                                    |
-| Diagnostics                       | Yes       | No     | Required     | Diagnostics                                    |
-| Device or other IDs               | Yes       | No     | Required     | App functionality (push delivery, device list) |
+**Overview**
 
-### The three answers worth getting right
+| Question                                                            | Answer                                                                                  |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| Does your app collect or share any of the required user data types? | Yes                                                                                     |
+| Is all of the user data collected by your app encrypted in transit? | Yes                                                                                     |
+| Account creation methods                                            | Username and other authentication (email or phone one-time code); OAuth (Google, Apple) |
+| Delete account URL                                                  | `https://wavs.co.in/en/delete-account`                                                  |
 
-**Voice: not collected.** Speech is transcribed on the device and the recording
-is discarded; no audio leaves the phone and none is stored. Declaring it
-collected would be false in the direction that costs users trust for nothing.
+"Shared" follows Play's definition: not a processor acting on our instructions, not
+user-initiated, not legal. Google AdMob is not such a processor, so its rows are Shared.
+Anything not listed below is **No**: Health and fitness, Emails, Videos, Music files,
+Calendar, Installed apps, In-app search history, Other actions, Web browsing, Credit
+score, Race, Political or religious beliefs, Sexual orientation, Other info, and SMS or MMS.
 
-**Location and contacts: optional.** Both are behind an explicit tap — location
-when somebody attaches a place, contacts when somebody picks a person. Neither
-is read in the background. Play distinguishes optional from required, and
-marking these required would misdescribe the app.
+| Category -> type                             | Collected                                      | Shared                                                     | Ephemeral | Required / Optional | Purposes (collected)                                                                              | Purposes (shared)                                                   |
+| -------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------- | --------- | ------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Location -> Approximate location             | Yes                                            | **Yes** (AdMob, from IP)                                   | No        | Required            | App functionality; Advertising or marketing; Fraud prevention, security and compliance            | Advertising or marketing; Fraud prevention, security and compliance |
+| Location -> Precise location                 | Yes                                            | No                                                         | No        | Optional            | App functionality                                                                                 | n/a                                                                 |
+| Personal info -> Name                        | Yes                                            | No                                                         | No        | Required            | App functionality; Account management                                                             | n/a                                                                 |
+| Personal info -> Email address               | Yes                                            | No                                                         | No        | Required            | App functionality; Account management; Developer communications                                   | n/a                                                                 |
+| Personal info -> User IDs                    | Yes                                            | **Yes** (account ID sent to AdMob for reward verification) | No        | Required            | App functionality; Account management; Analytics; Fraud prevention, security and compliance       | Advertising or marketing; Fraud prevention, security and compliance |
+| Personal info -> Address                     | Yes                                            | No                                                         | No        | Optional            | App functionality                                                                                 | n/a                                                                 |
+| Personal info -> Phone number                | Yes                                            | No                                                         | No        | Optional            | App functionality; Account management                                                             | n/a                                                                 |
+| Financial info -> User payment info          | Yes (UPI ID, bank account or IBAN as a handle) | No                                                         | No        | Optional            | App functionality                                                                                 | n/a                                                                 |
+| Financial info -> Purchase history           | Yes                                            | No                                                         | No        | Required            | App functionality; Account management                                                             | n/a                                                                 |
+| Financial info -> Other financial info       | Yes (the ledger)                               | No                                                         | No        | Required            | App functionality                                                                                 | n/a                                                                 |
+| Messages -> SMS or MMS                       | **No**                                         | n/a                                                        | n/a       | n/a                 | n/a                                                                                               | n/a                                                                 |
+| Messages -> Other in-app messages            | Yes (expense comments)                         | No                                                         | No        | Optional            | App functionality                                                                                 | n/a                                                                 |
+| Photos and videos -> Photos                  | Yes                                            | No                                                         | No        | Optional            | App functionality                                                                                 | n/a                                                                 |
+| Audio files -> Voice or sound recordings     | **Yes**                                        | No                                                         | **Yes**   | Optional            | App functionality                                                                                 | n/a                                                                 |
+| Files and docs -> Files and docs             | Yes (bank statement import, Pro)               | No                                                         | **Yes**   | Optional            | App functionality                                                                                 | n/a                                                                 |
+| Contacts -> Contacts                         | Yes                                            | No                                                         | No        | Optional            | App functionality                                                                                 | n/a                                                                 |
+| App activity -> App interactions             | Yes                                            | **Yes** (AdMob ad interactions)                            | No        | Required            | Analytics; Advertising or marketing                                                               | Advertising or marketing; Fraud prevention, security and compliance |
+| App activity -> Other user-generated content | Yes (notes, descriptions, group names)         | No                                                         | No        | Optional            | App functionality                                                                                 | n/a                                                                 |
+| App info and performance -> Crash logs       | Yes                                            | No                                                         | No        | Required            | Analytics                                                                                         | n/a                                                                 |
+| App info and performance -> Diagnostics      | Yes                                            | **Yes** (AdMob SDK diagnostics)                            | No        | Required            | Analytics                                                                                         | Advertising or marketing; Fraud prevention, security and compliance |
+| Device or other IDs -> Device or other IDs   | Yes                                            | **Yes** (AdMob)                                            | No        | Required            | App functionality; Analytics; Advertising or marketing; Fraud prevention, security and compliance | Advertising or marketing; Fraud prevention, security and compliance |
 
-**Analytics: optional.** The product-analytics toggle is off until a person
-turns it on, in Settings.
+The four AdMob rows (Approximate location, App interactions, Diagnostics, Device or
+other IDs) follow Google's published Data safety guidance for the Mobile Ads SDK. User
+IDs "Shared" is the cautious reading of the reward-verification account id. Microsoft
+Clarity session replay is opt-in; if Clarity is not a pure processor, App interactions
+is also shared for it (audit open question 4).
+
+### The answers worth getting right
+
+**Voice: collected, processed ephemerally, optional.** With advanced voice on (Pro and
+trial), audio is streamed to our server and Deepgram and not stored.
+
+**Location: optional.** Once permission is granted, coordinates and a place name are
+stamped on a new expense (foreground only, never in the background) and can be removed
+before saving. Contacts are read only when somebody taps to pick a person.
+
+**Analytics: required.** A few app steps are always counted in our own database.
+Session replay (Microsoft Clarity) is separate and opt-in.
 
 ### Financial info — the extra questions
 
@@ -191,12 +213,10 @@ somebody was invited to, never publicly. Answer yes and describe it that way.
 
 ## Target audience
 
-18 and over. Not designed for children; matches the privacy policy's Children
-section, which says Waves is not directed at under-13s.
+18 and over. Not designed for children; matches the privacy policy's Children section.
 
 ## Ads
 
-**Optional reward ads on Free only** (docs/ads.md). Google AdMob, non-personalized ads only, shown
-only when the person taps to watch one at the AI voice or receipt-scan limit; never on balances,
-groups, expenses or settle-up. Pro has none. Update the Data safety form and the
-App Store privacy labels before the flag is turned on (checklist in docs/ads.md).
+**Contains ads: Yes.** Free only, Google AdMob, non-personalized: native cards and banners on list screens, a paced full-screen ad after a saved group expense, and rewarded video (optional for credits, required for exports and for groups after the first two when credits run out). Never on settle-up. Pro and trial have none. Facts: docs/disclosures-audit.md.
+
+Advertising ID: Yes (Advertising or marketing; Fraud prevention, security and compliance).
