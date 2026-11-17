@@ -423,27 +423,22 @@
     "back": "Back to home"
   },
   "agents": {
-    "eyebrow": "Works with your AI assistant",
-    "title": "Ask your assistant. Waves keeps the books.",
+    "eyebrow": "Ask, and watch it happen",
+    "title": "Do it by talking to your assistant",
+    "lead": "Just say what you want, and Waves gets it done.",
     "body": "Waves speaks MCP, the open standard that lets AI assistants work with the apps you use. Connect one, and talk to your shared ledger in plain language.",
     "clientsLabel": "Works with",
     "clients": ["Claude", "ChatGPT", "Cursor", "VS Code", "Any MCP client"],
-    "safetyTitle": "You stay in control",
-    "safety": [
-      "You approve each connection with a Waves sign-in.",
-      "It sees only your own groups, as the app does.",
-      "It can never move money. Paying stays in your bank app.",
-      "Disconnect from your assistant whenever you like."
-    ],
     "cta": "Set it up",
-    "examplesLabel": "Ask, and watch it happen",
-    "askLabel": "You ask",
     "toolsLabel": "Uses",
     "examples": [
       {
+        "title": "Check balances",
+        "sub": "Ask who owes you in a group.",
         "ask": "Who owes me in Goa Trip?",
         "tools": ["get_balances"],
-        "reply": "You are owed ₹2,000 in Goa Trip.",
+        "reply": "",
+        "replySub": "",
         "rows": [
           {
             "k": "Ravi",
@@ -453,46 +448,51 @@
             "k": "Priya",
             "v": "₹800"
           }
-        ],
-        "link": ""
+        ]
       },
       {
-        "ask": "Add ₹2,400 cab to Goa Trip, split equally",
+        "title": "Add and split expenses",
+        "sub": "Add an expense and split it equally.",
+        "ask": "Add ₹2,400 cab to Goa Trip, split equally.",
         "tools": ["list_members", "add_expense"],
-        "reply": "Added Cab · ₹2,400 to Goa Trip, paid by you.",
-        "rows": [
-          {
-            "k": "4 people",
-            "v": "₹600 each"
-          }
-        ],
-        "link": ""
+        "reply": "Cab added to Goa Trip",
+        "replySub": "4 people · ₹600 each",
+        "rows": []
       },
       {
-        "ask": "Settle up with Arjun",
+        "title": "Settle payments",
+        "sub": "Record a payment and settle up.",
+        "ask": "Settle up with Arjun.",
         "tools": ["settlement_plan", "record_settlement", "payment_link"],
-        "reply": "You owe Arjun ₹1,350. Recorded, and pending until Arjun confirms. Open the link to pay in your own UPI app.",
-        "rows": [],
-        "link": "upi://pay?pa=arjun@okaxis&pn=Arjun&am=1350.00&cu=INR"
+        "reply": "You owe Arjun ₹1,350",
+        "replySub": "Recorded as pending. You pay in your UPI app.",
+        "rows": []
       },
       {
-        "ask": "Make a group called Manali with Ravi, Priya and Meera, and give me the invite link",
+        "title": "Create a group",
+        "sub": "Make a group and add people.",
+        "ask": "Make a group called Manali with Ravi, Priya and Meera, and give me the invite link.",
         "tools": ["create_group", "add_people", "invite_link"],
-        "reply": "Created Manali with you and 3 others. The invite link is ready to share.",
-        "rows": [],
-        "link": ""
+        "reply": "Group “Manali” created",
+        "replySub": "4 members · Invite link ready",
+        "rows": []
       },
       {
-        "ask": "The cab was ₹2,600, not ₹2,400",
+        "title": "Edit an expense",
+        "sub": "Update or correct an expense.",
+        "ask": "The cab was ₹2,600, not ₹2,400.",
         "tools": ["list_expenses", "edit_expense"],
-        "reply": "Updated Cab to ₹2,600. Each share is now ₹650, and the old version stays in the history.",
-        "rows": [],
-        "link": ""
+        "reply": "Updated to ₹2,600",
+        "replySub": "Each share is now ₹650.",
+        "rows": []
       },
       {
+        "title": "See recent changes",
+        "sub": "Know what changed today.",
         "ask": "What did you change in my groups today?",
         "tools": ["list_agent_writes"],
-        "reply": "Two things today, both by your assistant.",
+        "reply": "",
+        "replySub": "",
         "rows": [
           {
             "k": "Added",
@@ -502,11 +502,16 @@
             "k": "Created",
             "v": "Manali"
           }
-        ],
-        "link": ""
+        ]
       }
     ],
-    "videoLabel": "Video: someone asks their AI assistant to add a ₹2,400 cab to Goa Trip split equally, asks who owes them, and asks to settle up with Arjun. Waves records each one; paying stays in their own UPI app."
+    "safetyTitle": "You stay in control",
+    "safety": [
+      "Approve each connection with a Waves sign-in.",
+      "It can never move money on its own.",
+      "It sees only your own groups.",
+      "Disconnect from the assistant anytime."
+    ]
   },
   "mcpPage": {
     "metaTitle": "Connect an AI agent to Waves (MCP)",
