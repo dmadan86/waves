@@ -41,9 +41,9 @@
   },
   "hero": {
     "eyebrow": "Expenses made simple",
-    "titleStart": "Money between friends,",
-    "titleAccent": "without the awkward bit.",
-    "subtitle": "Split bills with friends, keep your own money in order and run your team's expenses. Free to start, with 15 days of Pro on us.",
+    "titleStart": "Split bills with friends.",
+    "titleAccent": "Settle up in seconds.",
+    "subtitle": "See who owes what, keep your own money in order and run your team's expenses. Free to start, with 15 days of Pro on us.",
     "trust": ["New accounts get 15 days of Pro free", "No credit card required", "Works offline"],
     "alt": "Friends sharing a meal at a table by a lake at sunset",
     "chips": [
