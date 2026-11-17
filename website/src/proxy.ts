@@ -13,7 +13,7 @@ import { isEnglishOnlyPath } from './lib/route-locales';
  */
 
 const PUBLIC_FILE = /\.[^/]+$/;
-const HOME_ANCHORS = new Set(['pricing', 'features', 'faq']);
+const HOME_ANCHORS = new Set(['pricing', 'faq']);
 
 /**
  * The quality value of one `Accept` or `Accept-Language` entry.
@@ -90,7 +90,7 @@ export function proxy(request: NextRequest) {
   if (hasLocale) {
     const locale = pathname.split('/')[1];
 
-    // People guess /en/pricing, /en/features and /en/faq; those are sections of
+    // People guess /en/pricing and /en/faq; those are sections of
     // the home page, so send them to the anchor instead of a 404.
     const anchor = pathname.slice(locale.length + 2).replace(/\/$/, '');
     if (HOME_ANCHORS.has(anchor)) {

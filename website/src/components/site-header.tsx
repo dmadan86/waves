@@ -111,16 +111,11 @@ export function SiteHeader({
   const inlineNav = locale === 'ta' ? '' : 'xl:flex';
   const menuOnly = locale === 'ta' ? '' : 'xl:hidden';
   const links = [
-    { href: `${anchorBase}#features`, label: nav.features },
-    { href: `${anchorBase}#how`, label: nav.how, mobileOnly: true },
-    { href: `${anchorBase}#offline`, label: nav.offline },
-    { href: `${anchorBase}#voice`, label: nav.voice },
-    { href: `${anchorBase}#wearables`, label: nav.wearables, mobileOnly: true },
-    { href: `${anchorBase}#agents`, label: nav.agents },
+    { href: `${anchorBase}#how`, label: nav.how },
+    { href: `${anchorBase}#pricing`, label: nav.pricing },
+    { href: `/${locale}/features`, label: nav.features },
     { href: `/${locale}/personal`, label: nav.personal },
     { href: `/${locale}/companies`, label: nav.companies },
-    { href: `${anchorBase}#pricing`, label: nav.pricing },
-    { href: `${anchorBase}#security`, label: nav.security, mobileOnly: true },
     { href: `${anchorBase}#faq`, label: nav.faq },
   ];
 
@@ -161,17 +156,15 @@ export function SiteHeader({
           </Link>
 
           <nav className={`ms-5 hidden items-center gap-0.5 ${inlineNav}`} aria-label="Primary">
-            {links
-              .filter((link) => !link.mobileOnly)
-              .map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  className="inline-flex h-10 items-center rounded-lg px-2 text-[0.86rem] whitespace-nowrap text-ink-2 transition-colors hover:bg-chip hover:text-ink"
-                >
-                  {link.label}
-                </a>
-              ))}
+            {links.map((link) => (
+              <a
+                key={link.href}
+                href={link.href}
+                className="inline-flex h-10 items-center rounded-lg px-2 text-[0.86rem] whitespace-nowrap text-ink-2 transition-colors hover:bg-chip hover:text-ink"
+              >
+                {link.label}
+              </a>
+            ))}
           </nav>
 
           <div className="ms-auto flex items-center gap-1">

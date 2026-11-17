@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { ArrowRight, Eye, Lock, Users } from './icons';
+import { site } from '@/lib/site';
 import { Kicker } from './ui';
 
 const pillIcons = [Lock, Eye, Users];
@@ -42,6 +43,16 @@ export function PrivacyBand({ t, locale }: { t: Dictionary['privacy']; locale: L
               </Link>
             </div>
             <p className="mt-1.5 text-[0.92rem] text-ink-2">{t.body}</p>
+            <p className="mt-2 text-[0.92rem] text-ink-2">
+              {t.openLine}{' '}
+              <a
+                href={site.githubUrl}
+                rel="noopener"
+                className="font-semibold text-accent hover:underline"
+              >
+                {t.openCta}
+              </a>
+            </p>
             <ul className="mt-4 flex flex-wrap gap-2.5">
               {t.pills.map((pill, i) => {
                 const Icon = pillIcons[i]!;
