@@ -12,7 +12,6 @@ import { OpenSourceBand } from '@/components/open-source-band';
 import { OfflineBand } from '@/components/offline-band';
 import { Pricing } from '@/components/pricing';
 import { PrivacyBand } from '@/components/privacy-band';
-import { Showcase } from '@/components/showcase';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { Steps } from '@/components/steps';
@@ -110,7 +109,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <ExploreGrid t={t.explore} wearables={t.wearables} locale={locale} />
         <WhoFor t={t.whoFor} locale={locale} />
         <Steps t={t.how} appUrl={site.appUrl} />
-        <Showcase t={t.showcase} />
         <Pricing t={t.pricing} />
         <OfflineBand t={t.offline} />
         <VoiceBand t={t.voice} />
