@@ -40,58 +40,126 @@
     "label": "Get the app"
   },
   "hero": {
-    "eyebrow": "Bill splitting for friends",
-    "titleStart": "Split expenses with friends.",
-    "titleAccent": "Without the maths.",
-    "subtitle": "Say it, scan a receipt or add a bill. Waves keeps track of who paid and who owes what, so everyone can settle up easily.",
-    "trust": ["Free to start", "Works offline", "Multiple currencies"],
-    "ctaPrimary": "Start splitting",
-    "ctaSecondary": "See how it works",
-    "demo": {
-      "label": "Interactive example: pick a phrase and see the expense Waves builds from it",
-      "pick": "Try a phrase",
-      "youSay": "You say",
-      "eachOwes": "Each person owes",
-      "noSplit": "No split needed",
-      "ready": "Ready to add to Goa Trip",
-      "phrases": [
-        {
-          "chip": "Dinner for four",
-          "say": "Dinner 1200, Ravi paid, split between four.",
-          "item": "Dinner",
-          "paid": "Paid by Ravi",
-          "who": "4 people",
-          "total": 1200,
-          "people": 4
-        },
-        {
-          "chip": "Auto with Ravi",
-          "say": "Auto 300, split with Ravi",
-          "item": "Auto",
-          "paid": "Paid by you",
-          "who": "2 people",
-          "total": 300,
-          "people": 2
-        },
-        {
-          "chip": "Just chai",
-          "say": "Chai 40",
-          "item": "Chai",
-          "paid": "Paid by you",
-          "who": "Just you",
-          "total": 40,
-          "people": 1
-        },
-        {
-          "chip": "Hinglish",
-          "say": "Pizza 800, Priya ne diya, 4 log",
-          "item": "Pizza",
-          "paid": "Paid by Priya",
-          "who": "4 people",
-          "total": 800,
-          "people": 4
-        }
-      ]
+    "eyebrow": "Expenses made simple",
+    "titleStart": "Money between friends,",
+    "titleAccent": "without the awkward bit.",
+    "subtitle": "Split bills with friends, keep your own money in order and run your team's expenses. Free to start, with 15 days of Pro on us.",
+    "trust": ["New accounts get 15 days of Pro free", "No credit card required", "Works offline"],
+    "alt": "Friends sharing a meal at a table by a lake at sunset",
+    "chips": [
+      {
+        "who": "Renny paid",
+        "item": "Dinner",
+        "amount": "₹1,200"
+      },
+      {
+        "who": "You paid",
+        "item": "Villa stay",
+        "amount": "₹8,400"
+      },
+      {
+        "who": "Gayathri paid",
+        "item": "Scooter",
+        "amount": "₹450"
+      }
+    ],
+    "split": {
+      "label": "Animated example: a dinner bill of ₹1,665 split three ways; Ravi owes Asha ₹555",
+      "bill": "Dinner",
+      "total": "₹1,665",
+      "paidBy": "Asha paid",
+      "each": "₹555 each",
+      "people": ["Asha", "Ravi", "Meera"],
+      "result": "Ravi pays you ₹555",
+      "resultNote": "Who owes whom",
+      "settle": "Settle with UPI",
+      "upi": "Opens your UPI app",
+      "replay": "Replay",
+      "example": "Example"
+    },
+    "ctaBusiness": "Running a business? See Waves for companies",
+    "orbit": {
+      "label": "Example group: Goa Trip, ₹12,480 shared by four people. Ravi owes you ₹555.",
+      "groupLabel": "Group",
+      "group": "Goa Trip",
+      "total": "₹12,480",
+      "meta": "4 people · 62% settled",
+      "you": "You",
+      "paid": "paid",
+      "owes": "owes ₹555",
+      "settled": "settled",
+      "invite": "+ invite by link",
+      "statementStart": "9 bills on a trip.",
+      "statementEnd": "2 transfers to settle."
+    },
+    "scenes": {
+      "nav": "Waves in action",
+      "pause": "Pause animation",
+      "play": "Play animation",
+      "voice": {
+        "tab": "Voice",
+        "label": "Animated example: you say \"Auto 300, split with Ravi\" and Waves adds a ₹300 expense, ₹150 each.",
+        "say": "Auto 300, split with Ravi",
+        "added": "Expense added",
+        "item": "Auto",
+        "amount": "₹300",
+        "split": "Split with Ravi · ₹150 each",
+        "title": "Just say it",
+        "line": "Waves adds it and splits it for you."
+      },
+      "split": {
+        "tab": "Split",
+        "title": "Everyone sees who owes what",
+        "line": "Live, in one shared group."
+      },
+      "scan": {
+        "tab": "Scan",
+        "label": "Animated example: you point the camera at a dinner receipt and Waves turns it into a ₹1,665 expense with 4 items.",
+        "title": "Snap the receipt",
+        "line": "Waves reads the items and totals. No typing.",
+        "added": "Read from receipt",
+        "item": "Dinner",
+        "amount": "₹1,665",
+        "split": "4 items"
+      },
+      "settle": {
+        "tab": "Settle",
+        "label": "Animated example: you tap Settle up on a ₹555 debt to Asha, pay in your UPI app, and Waves marks it settled.",
+        "title": "Settle in a tap",
+        "line": "You pay in your UPI app. Waves never moves your money.",
+        "owe": "You owe Asha",
+        "amount": "₹555",
+        "button": "Settle up",
+        "sheet": "Pay with your UPI app",
+        "sheetNote": "Payment happens in your UPI app",
+        "done": "Settled",
+        "doneNote": "Paid to Asha in your UPI app"
+      },
+      "watch": {
+        "tab": "Watch",
+        "label": "Animated example: you say \"Chai 40\" to your watch and it adds a ₹40 expense.",
+        "say": "Chai 40",
+        "added": "Added",
+        "item": "Chai ₹40",
+        "title": "Add from your wrist",
+        "line": "Two words and it is done."
+      },
+      "widget": {
+        "tab": "Widget",
+        "label": "Animated example: you tap Food on the home-screen widget, enter ₹40 and it is saved.",
+        "today": "Spent today",
+        "before": "₹1,240",
+        "after": "₹1,280",
+        "food": "Food",
+        "travel": "Travel",
+        "bills": "Bills",
+        "shop": "Shop",
+        "entry": "₹40",
+        "saved": "Saved",
+        "savedItem": "Food ₹40",
+        "title": "One tap from your home screen",
+        "line": "Log a spend without opening the app."
+      }
     }
   },
   "explore": {
@@ -152,110 +220,82 @@
       }
     ]
   },
-  "how": {
-    "eyebrow": "See it work",
-    "title": "Add it. Split it. Settle it.",
-    "subtitle": "One bill, from the table to paid back.",
-    "steps": [
-      {
-        "title": "Add",
-        "body": "Say it, scan the receipt or type it in."
-      },
-      {
-        "title": "Split",
-        "body": "Choose who paid and who shares. Waves does the sums."
-      },
-      {
-        "title": "Settle",
-        "body": "See who pays whom, then pay in your own UPI app. Waves never moves your money."
-      }
-    ],
-    "scenes": {
-      "nav": "Waves in action",
-      "pause": "Pause animation",
-      "play": "Play animation",
-      "voice": {
-        "tab": "Voice",
-        "label": "Animated example: you say \"Auto 300, split with Ravi\" and Waves adds a ₹300 expense, ₹150 each.",
-        "say": "Auto 300, split with Ravi",
-        "added": "Expense added",
-        "item": "Auto",
-        "amount": "₹300",
-        "split": "Split with Ravi · ₹150 each",
-        "title": "Just say it",
-        "line": "Waves adds it and splits it for you."
-      },
-      "scan": {
-        "tab": "Scan",
-        "label": "Animated example: you point the camera at a dinner receipt and Waves turns it into a ₹1,665 expense with 4 items.",
-        "title": "Snap the receipt",
-        "line": "Waves reads the items and totals. No typing.",
-        "added": "Read from receipt",
-        "item": "Dinner",
-        "amount": "₹1,665",
-        "split": "4 items"
-      },
-      "ledger": {
-        "tab": "Split",
-        "label": "Example group ledger: Goa Trip, a ₹1,665 dinner split three ways. Ravi pays you ₹555.",
-        "title": "Everyone sees who owes what",
-        "line": "Live, in one shared group.",
-        "group": "Goa Trip",
-        "members": "3 people",
-        "expense": "Dinner",
-        "expenseNote": "You paid · split 3 ways",
-        "expenseAmount": "₹1,665",
-        "balances": "Balances",
-        "owesYou": "owes you",
-        "people": ["Ravi", "Meera"],
-        "each": "₹555",
-        "result": "Ravi pays you ₹555",
-        "resultNote": "Who owes whom",
-        "settle": "Settle with UPI"
-      },
-      "settle": {
-        "tab": "Settle",
-        "label": "Animated example: you tap Settle up on a ₹555 debt to Asha, pay in your UPI app, and Waves marks it settled.",
-        "title": "Settle in a tap",
-        "line": "You pay in your UPI app. Waves never moves your money.",
-        "owe": "You owe Asha",
-        "amount": "₹555",
-        "button": "Settle up",
-        "sheet": "Pay with your UPI app",
-        "sheetNote": "Payment happens in your UPI app",
-        "done": "Settled",
-        "doneNote": "Paid to Asha in your UPI app"
-      }
-    }
-  },
-  "benefits": {
-    "eyebrow": "Why Waves",
-    "title": "Quick to add. Easy to trust.",
+  "features": {
+    "label": "What Waves does",
     "items": [
       {
-        "title": "Say it in your language",
-        "body": "Speak in English, Hindi, Tamil, Arabic or a mix. Waves writes the expense and the split."
+        "title": "Scan bills",
+        "body": "Add expenses in seconds"
       },
       {
-        "title": "Scan the receipt, skip the typing",
-        "body": "Point your camera at the bill. Waves reads the items and the total."
+        "title": "Split with anyone",
+        "body": "Friends, family or roommates"
       },
       {
-        "title": "Works with no signal",
-        "body": "Add and split on a train or a trek. It saves on your phone and syncs when you are back online."
+        "title": "Track spending",
+        "body": "See where your money goes"
+      },
+      {
+        "title": "Manage groups",
+        "body": "Trips, home, dining and more"
+      },
+      {
+        "title": "Your data stays yours",
+        "body": "Private, secure and never sold"
       }
-    ],
-    "visual": {
-      "receipt": "Receipt",
-      "scanned": "4 items read",
-      "offline": "No signal",
-      "saved": "Dinner ₹1,200 · saved on your phone",
-      "synced": "Back online · synced"
-    }
+    ]
+  },
+  "how": {
+    "eyebrow": "How it works",
+    "title": "Expense, split and settle together",
+    "subtitle": "Add expenses, share with people and keep balances clear — all in one app.",
+    "cta": "Get started",
+    "simple": "It's simple",
+    "artAlt": "A phone showing “Settled!” above the group's balances",
+    "steps": [
+      {
+        "title": "Add an expense",
+        "body": "Type it, scan a receipt or just say it."
+      },
+      {
+        "title": "Split with people",
+        "body": "Choose who paid and how to split."
+      },
+      {
+        "title": "Track and settle",
+        "body": "See balances and settle up anytime."
+      }
+    ]
+  },
+  "moments": {
+    "eyebrow": "Built for real life",
+    "title": "Works for all your moments",
+    "items": [
+      {
+        "title": "Trips & vacations",
+        "body": "Keep everyone's travel expenses in one place.",
+        "alt": "A van parked on a sunny beach"
+      },
+      {
+        "title": "Dining out",
+        "body": "Split bills with friends easily.",
+        "alt": "Friends having dinner by the water at sunset"
+      },
+      {
+        "title": "Home & roommates",
+        "body": "Track shared household expenses.",
+        "alt": "A bright living room with sofas and plants"
+      },
+      {
+        "title": "Personal finance",
+        "body": "Keep your own spending in view too.",
+        "alt": "A desk with a plant, a notebook and a cup of coffee"
+      }
+    ]
   },
   "pricing": {
     "eyebrow": "Choose your plan",
-    "title": "Free to use. Pro if you want more.",
+    "title": "Simple pricing for real people",
     "monthly": "Monthly",
     "yearly": "Yearly",
     "saveUpTo": "Save up to {pct}%",
@@ -268,27 +308,29 @@
       {
         "id": "free",
         "name": "Free",
-        "tagline": "The full split, track and settle ledger",
+        "tagline": "Everything that matters, forever",
         "badge": "",
         "features": [
           "Unlimited people, expenses, currencies and splits",
-          "Unlimited settling up",
-          "Free forever, with ads"
+          "Settle up is unlimited",
+          "Watch a short ad for 6 credits; hold up to 30",
+          "AI voice: 10 a month, then 1 credit · receipt scan 2 · export 6 · extra group 6 (first group free)"
         ]
       },
       {
         "id": "pro",
         "name": "Pro",
-        "tagline": "No ads, plus more AI voice and imports",
+        "tagline": "Everything you need",
         "badge": "Recommended",
         "features": [
           "No ads",
-          "100 AI voice commands and 300 receipt scans a month",
-          "30 bank statement imports a month",
+          "100 AI voice commands a month",
+          "300 receipt scans a month",
           "Use on up to 3 devices"
         ]
       }
     ],
+    "freeNote": "Free is ad-supported: banner ads show on some screens, and you can watch a short ad whenever you like for 6 credits (hold up to 30). AI voice costs 1 credit after the first 10 a month, a receipt scan 2 after the first 20 a month, an export 6 and an extra group 6; your first group is free. People, expenses, currencies, splits and settling up are unlimited, with no card at sign-up. Pro has no ads.",
     "priceNote": "Prices shown are for India. In other countries the app store shows your local price. Subscribe from inside the app. New accounts get 15 days of Pro free, no card needed.",
     "ctaFree": "Start free",
     "ctaPro": "Try Pro free for 15 days"
@@ -296,12 +338,10 @@
   "privacy": {
     "eyebrow": "Your data, always yours",
     "title": "Private, secure and never sold.",
-    "body": "Your data belongs to you, and we never sell it. Free is ad-supported: small ads on some screens and sometimes a full-screen ad after you save a group expense, never on settle-up or while you enter an expense. Pro has none.",
+    "body": "Your data belongs to you. We never sell your data. Free is ad-supported, with banner ads on some screens and short ads you can watch for credits, never on the settle-up screen. Pro has none.",
     "cta": "Learn more",
     "pills": ["Private by default", "Encrypted on your device", "You own your data"],
-    "alt": "A blue shield with a tick, framed by green leaves",
-    "openLine": "The whole app is open source, so you can check these claims yourself.",
-    "openCta": "View the code on GitHub"
+    "alt": "A blue shield with a tick, framed by green leaves"
   },
   "faq": {
     "eyebrow": "Common questions",
@@ -313,15 +353,11 @@
     "items": [
       {
         "q": "Is Waves really free?",
-        "a": "Yes. People, expenses, currencies, splits, offline use and settling up are unlimited on the free plan, and your first two groups are free. A few extras cost credits, which you earn by watching a short ad. The free plan never expires, and new accounts also get 15 days of Pro free, with no card needed."
+        "a": "Yes. People, expenses, currencies, splits, offline use and settling up are unlimited on the free plan, and your first group is free. A few things cost credits, which you earn by watching a short ad. The free plan never expires, and new accounts also get 15 days of Pro free, with no card needed."
       },
       {
         "q": "What does Pro add?",
         "a": "Pro has no ads and adds 100 AI voice commands and 300 receipt scans a month, with use on up to 3 devices. In India Pro is ₹79 a month or ₹699 a year; other countries are priced in the app store."
-      },
-      {
-        "q": "What are credits?",
-        "a": "Credits pay for a few extras on Free: AI voice after the first 10 commands a month (1 credit each), exports (6) and your third and later groups (6 each; the first two are free). You earn 6 credits by watching a short video ad, and can hold up to 30. If you are short of credits, you watch an ad before an export or before creating a third or later group. People, expenses, currencies, splits and settling up never cost credits."
       },
       {
         "q": "Does everyone need to install the app?",
@@ -332,8 +368,8 @@
         "a": "As little as we can. The ledger on your device is encrypted at rest, receipt photos can stay on your device or in your own cloud storage, and we never sell data. Free is ad-supported, with banner ads on some screens and short ads you can watch for credits; Pro has none. The shared ledger is on our server because that is what lets several phones agree — it is not end-to-end encrypted, and we would rather say so plainly."
       },
       {
-        "q": "Are there ads?",
-        "a": "On Free, yes; Pro and the Pro trial have none. Small ads marked “Ad” can appear on Home, your groups, a group’s expense list, Activity, Timeline, Friends, Voice and Settings. A full-screen ad can sometimes appear after you save a group expense: at most 3 a day, and none in your first 3 days. Ads never appear on settle-up, while you enter an expense, or on widgets, the watch and notifications. All ads come from Google AdMob and are non-personalized. AdMob gets device identifiers and network details, never your expenses or balances."
+        "q": "Does Waves show ads?",
+        "a": "On Free, yes. Banner ads show on some screens, such as Home, Friends and a group's expense list, never on the settle-up screen. You can also watch a short ad for 6 credits (you can hold up to 30). Credits pay for AI voice (1 credit), receipt scans after the first 20 a month (2), exports (6) and extra groups (6; your first group is free). They are non-personalized and we do not track you across apps. Pro has no ads at all."
       },
       {
         "q": "Can I import or export my data?",
@@ -366,8 +402,8 @@
     ]
   },
   "cta": {
-    "title": "Split your next dinner with Waves.",
-    "subtitle": "Free to start. No card needed.",
+    "title": "Ready to make money simpler?",
+    "subtitle": "Start free today. No credit card required.",
     "alt": "A beach at sunset with a travel bag, sunglasses and a sun hat"
   },
   "footer": {
@@ -1776,42 +1812,5 @@
     ],
     "cta": "View the code on GitHub",
     "license": "Read the license"
-  },
-  "more": {
-    "title": "More in Waves",
-    "items": [
-      {
-        "id": "wearables",
-        "title": "Watch & widgets",
-        "body": "Add an expense from your wrist or home screen."
-      },
-      {
-        "id": "agents",
-        "title": "AI assistant",
-        "body": "Let your own AI assistant add and check expenses."
-      },
-      {
-        "id": "openSource",
-        "title": "Open source",
-        "body": "Read the code behind the app."
-      },
-      {
-        "id": "personal",
-        "title": "Your money",
-        "body": "Budgets, loans and bills, kept private."
-      },
-      {
-        "id": "companies",
-        "title": "For companies",
-        "body": "Employee expenses, advances and wages."
-      }
-    ]
-  },
-  "featuresPage": {
-    "metaTitle": "Features: everything Waves does",
-    "metaDescription": "Everything Waves does beyond the basics: voice and receipt entry, offline use, watch and home-screen widgets, an AI assistant connection and open source code.",
-    "eyebrow": "Features",
-    "title": "Everything Waves does",
-    "lead": "The details behind the three-step split: voice, offline, your wrist, your AI assistant and the open code."
   }
 }

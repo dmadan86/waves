@@ -13,9 +13,9 @@ import { InView } from './in-view';
 const look: Record<string, { bg: string; dark?: boolean; href: (l: string) => string }> = {
   split: { bg: '#F4C3B1', href: (l) => `/${l}#how` },
   scan: { bg: '#F3D282', href: (l) => `/${l}/personal#f-receipt` },
-  voice: { bg: '#FBFAFF', href: (l) => `/${l}/features#voice` },
+  voice: { bg: '#FBFAFF', href: (l) => `/${l}#voice` },
   settle: { bg: '#5B3DF5', dark: true, href: (l) => `/${l}#how` },
-  offline: { bg: '#A8E3C8', href: (l) => `/${l}/features#offline` },
+  offline: { bg: '#A8E3C8', href: (l) => `/${l}#offline` },
   ask: { bg: '#CDB9F5', href: (l) => `/${l}/mcp` },
   personal: { bg: '#A4CBEA', href: (l) => `/${l}/personal` },
   companies: { bg: '#F1E0A3', href: (l) => `/${l}/companies` },

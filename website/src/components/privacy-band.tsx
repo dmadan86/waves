@@ -1,9 +1,9 @@
+import Image from 'next/image';
 import Link from 'next/link';
 
 import type { Locale } from '@/i18n/config';
 import type { Dictionary } from '@/i18n/dictionaries';
 import { ArrowRight, Eye, Lock, Users } from './icons';
-import { site } from '@/lib/site';
 import { Kicker } from './ui';
 
 const pillIcons = [Lock, Eye, Users];
@@ -12,13 +12,16 @@ export function PrivacyBand({ t, locale }: { t: Dictionary['privacy']; locale: L
   return (
     <section id="security" aria-labelledby="security-title" className="scroll-mt-20 py-6 lg:py-8">
       <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
-        <div className="privacy-card relative grid items-center gap-5 overflow-hidden rounded-[1.75rem] p-5 shadow-[var(--w-shadow-card)] sm:grid-cols-[auto_1fr] sm:items-start sm:gap-7 sm:p-6">
-          <span
-            aria-hidden="true"
-            className="grid h-16 w-16 place-items-center rounded-2xl bg-accent-wash text-accent sm:h-20 sm:w-20"
-          >
-            <Lock className="h-8 w-8 sm:h-10 sm:w-10" />
-          </span>
+        <div className="privacy-card relative grid items-center gap-5 overflow-hidden rounded-[1.75rem] p-5 shadow-[var(--w-shadow-card)] sm:grid-cols-[auto_1fr] sm:gap-7 sm:p-6">
+          <div className="art-plate relative h-[6.25rem] w-40 justify-self-start sm:h-[7.5rem] sm:w-48">
+            <Image
+              src="/home/feature-shield.webp"
+              alt={t.alt}
+              fill
+              sizes="10rem"
+              className="art-blend object-contain"
+            />
+          </div>
           <div>
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
@@ -39,16 +42,6 @@ export function PrivacyBand({ t, locale }: { t: Dictionary['privacy']; locale: L
               </Link>
             </div>
             <p className="mt-1.5 text-[0.92rem] text-ink-2">{t.body}</p>
-            <p className="mt-2 text-[0.92rem] text-ink-2">
-              {t.openLine}{' '}
-              <a
-                href={site.githubUrl}
-                rel="noopener"
-                className="font-semibold text-accent hover:underline"
-              >
-                {t.openCta}
-              </a>
-            </p>
             <ul className="mt-4 flex flex-wrap gap-2.5">
               {t.pills.map((pill, i) => {
                 const Icon = pillIcons[i]!;
