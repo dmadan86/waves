@@ -148,7 +148,7 @@ export function CompareShell({
             aria-label="Primary"
             className="order-3 flex w-full items-center justify-between gap-4 text-sm sm:order-none sm:w-auto sm:justify-start sm:gap-7"
           >
-            <Link href="/en/features" className="py-2 text-ink-2 hover:text-blue">
+            <Link href="/en#features" className="py-2 text-ink-2 hover:text-blue">
               Features
             </Link>
             <Link href="/en#how" className="py-2 text-ink-2 hover:text-blue">

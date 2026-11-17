@@ -32,12 +32,12 @@ export function SiteFooter({
     {
       heading: t.product,
       links: [
+        { label: t.links.features, href: `${anchorBase}#features`, kind: 'anchor' },
         { label: t.links.how, href: `${anchorBase}#how`, kind: 'anchor' },
-        { label: t.links.features, href: `/${locale}/features`, kind: 'route' },
-        { label: t.links.offline, href: `/${locale}/features#offline`, kind: 'route' },
-        { label: t.links.voice, href: `/${locale}/features#voice`, kind: 'route' },
-        { label: t.links.wearables, href: `/${locale}/features#wearables`, kind: 'route' },
-        { label: t.links.agents, href: `/${locale}/features#agents`, kind: 'route' },
+        { label: t.links.offline, href: `${anchorBase}#offline`, kind: 'anchor' },
+        { label: t.links.voice, href: `${anchorBase}#voice`, kind: 'anchor' },
+        { label: t.links.wearables, href: `${anchorBase}#wearables`, kind: 'anchor' },
+        { label: t.links.agents, href: `${anchorBase}#agents`, kind: 'anchor' },
         { label: t.links.personal, href: `/${locale}/personal`, kind: 'route' },
         { label: t.links.companies, href: `/${locale}/companies`, kind: 'route' },
         { label: t.links.pricing, href: `${anchorBase}#pricing`, kind: 'anchor' },

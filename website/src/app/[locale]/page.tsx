@@ -1,16 +1,23 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
-import { Benefits } from '@/components/benefits';
+import { PersonalBand } from '@/components/personal-band';
+import { CompaniesBand } from '@/components/companies-band';
+import { AgentsBand } from '@/components/agents-band';
 import { DownloadBanner } from '@/components/download-banner';
 import { Faq } from '@/components/faq';
+import { ExploreGrid } from '@/components/explore-grid';
 import { Hero } from '@/components/hero';
-import { MoreBand } from '@/components/more-band';
+import { OpenSourceBand } from '@/components/open-source-band';
+import { OfflineBand } from '@/components/offline-band';
 import { Pricing } from '@/components/pricing';
 import { PrivacyBand } from '@/components/privacy-band';
 import { SiteFooter } from '@/components/site-footer';
 import { SiteHeader } from '@/components/site-header';
 import { Steps } from '@/components/steps';
+import { WhoFor } from '@/components/who-for';
+import { VoiceBand } from '@/components/voice-band';
+import { WearablesBand } from '@/components/wearables-band';
 import { isLocale } from '@/i18n/config';
 import { getDictionary } from '@/i18n/dictionaries';
 import { absoluteUrl, localeAlternates, site } from '@/lib/site';
@@ -98,18 +105,21 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       {/* The skip link targets this, so it has to be able to take focus —
           without the tabindex the jump lands on <body> and nothing changes. */}
       <main id="main" tabIndex={-1}>
-        <Hero t={t.hero} stores={t.stores} />
-        <Steps t={t.how} />
-        <Benefits
-          t={t.benefits}
-          say={t.hero.demo.phrases[3]!.say}
-          total={t.how.scenes.scan.amount}
-        />
+        <Hero t={t.hero} stores={t.stores} locale={locale} />
+        <ExploreGrid t={t.explore} wearables={t.wearables} locale={locale} />
+        <WhoFor t={t.whoFor} locale={locale} />
+        <Steps t={t.how} appUrl={site.appUrl} />
         <Pricing t={t.pricing} />
+        <OfflineBand t={t.offline} />
+        <VoiceBand t={t.voice} />
+        <WearablesBand t={t.wearables} />
+        <AgentsBand t={t.agents} locale={locale} />
+        <PersonalBand t={t.personal} mock={t.personalMock} locale={locale} />
+        <CompaniesBand t={t.companies} mock={t.companyMock} locale={locale} />
         <PrivacyBand t={t.privacy} locale={locale} />
+        <OpenSourceBand t={t.openSource} />
         <Faq t={t.faq} />
-        <MoreBand t={t.more} locale={locale} />
-        <DownloadBanner t={t.cta} stores={t.stores} result={t.how.scenes.ledger.result} />
+        <DownloadBanner t={t.cta} stores={t.stores} result={t.hero.split.result} />
       </main>
 
       <SiteFooter locale={locale} t={t.footer} legal={t.legal} appUrl={site.appUrl} />
