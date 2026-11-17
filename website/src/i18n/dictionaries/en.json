@@ -255,7 +255,7 @@
   },
   "pricing": {
     "eyebrow": "Choose your plan",
-    "title": "Simple pricing for real people",
+    "title": "Free to use. Pro if you want more.",
     "monthly": "Monthly",
     "yearly": "Yearly",
     "saveUpTo": "Save up to {pct}%",
@@ -296,7 +296,7 @@
   "privacy": {
     "eyebrow": "Your data, always yours",
     "title": "Private, secure and never sold.",
-    "body": "Your data belongs to you. We never sell your data. Free is ad-supported, with banner ads on some screens and short ads you can watch for credits, never on the settle-up screen. Pro has none.",
+    "body": "Your data belongs to you, and we never sell it. Free is ad-supported: small ads on some screens and sometimes a full-screen ad after you save a group expense, never on settle-up or while you enter an expense. Pro has none.",
     "cta": "Learn more",
     "pills": ["Private by default", "Encrypted on your device", "You own your data"],
     "alt": "A blue shield with a tick, framed by green leaves",
@@ -366,8 +366,8 @@
     ]
   },
   "cta": {
-    "title": "Ready to make money simpler?",
-    "subtitle": "Start free today. No credit card required.",
+    "title": "Split your next dinner with Waves.",
+    "subtitle": "Free to start. No card needed.",
     "alt": "A beach at sunset with a travel bag, sunglasses and a sun hat"
   },
   "footer": {

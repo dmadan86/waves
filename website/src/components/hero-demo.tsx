@@ -38,6 +38,8 @@ function graphemes(text: string): string[] {
  */
 export function HeroDemo({ t }: { t: Dictionary['hero']['demo'] }) {
   const [idx, setIdx] = useState(0);
+  // The phrase whose card is on screen while the next one types: the card never shows a blank or a zero.
+  const [prevIdx, setPrevIdx] = useState(0);
   // Infinity is the finished frame: what server render, no-JS and reduced motion all show.
   const [elapsed, setElapsed] = useState(Infinity);
   const [touched, setTouched] = useState(false);
@@ -70,6 +72,7 @@ export function HeroDemo({ t }: { t: Dictionary['hero']['demo'] }) {
   useEffect(() => {
     if (reduced || touched || held || !done) return;
     const id = window.setTimeout(() => {
+      setPrevIdx(idx);
       setIdx((i) => (i + 1) % t.phrases.length);
       setElapsed(0);
     }, REST_MS);
@@ -78,6 +81,7 @@ export function HeroDemo({ t }: { t: Dictionary['hero']['demo'] }) {
 
   const choose = (i: number) => {
     setTouched(true);
+    setPrevIdx(idx);
     setIdx(i);
     setElapsed(reduced ? Infinity : 0);
   };
@@ -86,11 +90,15 @@ export function HeroDemo({ t }: { t: Dictionary['hero']['demo'] }) {
   const shown = typing ? chars.slice(0, Math.floor(elapsed / TYPE_MS)).join('') : ph.say;
   const p = Math.min(1, Math.max(0, (elapsed - typedEnd - GAP_MS) / COUNT_MS));
   const eased = 1 - (1 - p) ** 3;
-  const each = ph.total / ph.people;
-  const total = p >= 1 ? ph.total : Math.round(ph.total * eased);
-  const eachShown = p >= 1 ? each : Math.round(each * eased);
   const cardOn = elapsed >= typedEnd + GAP_MS;
-  const split = ph.people > 1;
+  // Until the new phrase has finished typing, the card keeps the previous result, then counts to the new one.
+  const from = t.phrases[prevIdx]!;
+  const card = cardOn ? ph : from;
+  const each = ph.total / ph.people;
+  const fromEach = from.total / from.people;
+  const total = p >= 1 ? ph.total : Math.round(from.total + (ph.total - from.total) * eased);
+  const eachShown = p >= 1 ? each : Math.round(fromEach + (each - fromEach) * eased);
+  const split = card.people > 1;
 
   return (
     <div
@@ -128,16 +136,16 @@ export function HeroDemo({ t }: { t: Dictionary['hero']['demo'] }) {
         <div
           aria-hidden="true"
           data-on={cardOn ? '' : undefined}
-          className="mt-3 rounded-[1.4rem] bg-[#FBFAFF] p-4 text-[#1B1530] opacity-30 transition-opacity duration-300 data-[on]:opacity-100 sm:p-5"
+          className="mt-3 rounded-[1.4rem] bg-[#FBFAFF] p-4 text-[#1B1530] opacity-60 transition-opacity duration-300 data-[on]:opacity-100 sm:p-5"
         >
           <div className="flex items-baseline justify-between gap-3">
-            <p className="text-[1.25rem] font-semibold tracking-[-0.01em]">{ph.item}</p>
+            <p className="text-[1.25rem] font-semibold tracking-[-0.01em]">{card.item}</p>
             <p className="font-mono text-[1.7rem] font-medium text-[#C2410C] tabular-nums">
               {inr(total)}
             </p>
           </div>
           <p className="mt-1 text-[0.92rem] text-[#5B546F]">
-            {ph.paid} · {ph.who}
+            {card.paid} · {card.who}
           </p>
           <div className="mt-3 flex min-h-[2.75rem] items-center justify-between gap-3 rounded-xl bg-[#EDE9FE] px-3.5 py-2.5">
             {split ? (
