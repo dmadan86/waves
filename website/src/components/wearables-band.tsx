@@ -132,7 +132,7 @@ export function WearablesBand({ t }: { t: T }) {
     <section
       id="wearables"
       aria-labelledby="wearables-title"
-      className="scroll-mt-20 py-8 lg:py-10"
+      className="on-light scroll-mt-20 py-8 lg:py-10"
     >
       <div className="mx-auto w-full max-w-[73rem] px-5 sm:px-8">
         <Kicker>{t.eyebrow}</Kicker>
