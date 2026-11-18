@@ -329,7 +329,7 @@ function FamiliesScreen() {
                   backgroundColor: theme.color.buttonPrimary,
                 }}
               >
-                <Ionicons name="add" size={iconSize.lg} color="#FFFFFF" />
+                <Ionicons name="add" size={iconSize.lg} color={theme.color.onBrand} />
               </Pressable>
             ) : undefined
           }

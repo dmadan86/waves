@@ -286,7 +286,7 @@ export default function ScanInviteAsk({
               ...theme.shadow.soft,
             }}
           >
-            <Ionicons name="scan-outline" size={iconSize.xxl} color="#FFFFFF" />
+            <Ionicons name="scan-outline" size={iconSize.xxl} color={theme.color.onBrand} />
           </View>
           <AccentTitle text={t.misc.scanAskTitle} />
           <Text

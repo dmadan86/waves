@@ -16,7 +16,7 @@ Waves should read like a mature finance app, not a generated dashboard.
 - Familiar patterns (back chevron, segmented control, list rows, ⋮ menu) so a first-time user needs no instructions.
 - ⋮ menu order: people (invite, members) · views of the money (spending, recurring, plan) · voice · data in/out (import, export) · settings · destructive (red) last. Set `section` on every item so `OverflowMenu` draws a divider between groups.
 - Mobile first, down to small Androids (360dp wide): no fixed photo bands, nothing that only fits a large phone.
-- Identity comes from the violet accent, the money colours, tabular figures and consistent rhythm, not from effects.
+- Identity comes from the electric indigo accent, the money colours, tabular figures and consistent rhythm, not from effects.
 
 Before building or changing a screen, answer: what must the user understand at a glance; what is the one main action; what can be removed or merged; can it take fewer taps; would a first-time user get it unaided?
 
@@ -38,7 +38,7 @@ Before building or changing a screen, answer: what must the user understand at a
 - Spacing: `theme.spacing` (4px scale); gutters 16, sections 16, rows 12.
 - Radius: 8 for controls and chips, 10 for buttons, 12 for cards, 16 for sheets. `pill` only for circles (avatars, round icon buttons).
 - Type: screen titles 20sp/700, section titles 17sp/700, body 15sp regular, amounts semibold and tabular, hints `caption`/`micro` muted.
-- Colour: theme tokens only. Canvas is a near-neutral grey, surfaces white, one violet accent (`brand`) for actions and links; the money colours mean money only.
+- Colour: theme tokens only. Canvas is a near-neutral grey, surfaces white, one electric indigo accent (`brand`) for actions and links; the money colours mean money only.
 - Shadow: none on cards and buttons; `shadow.lifted` only for floating layers.
 - Money: never convert between currencies and never re-divide an expense; use the `@waves/core` helpers.
 
@@ -57,7 +57,7 @@ Before building or changing a screen, answer: what must the user understand at a
 - Dark mode comes from the theme.
 - New or changed screens use these components. If one is missing a variant, extend the component, not the screen.
 - People always render through PersonAvatar (photo, else initials). The bare `Avatar` from `@waves/ui` is for non-people (a group mark); `apps/mobile/test/personAvatarGuard.test.ts` enforces it.
-- All action buttons use the brand violet; no black buttons.
+- All action buttons use the brand indigo; no black buttons.
 - Every ⋮ (more) button opens `OverflowMenu`, the pop-up card anchored at the top corner, as on Home, the group screen and an expense. Never a bottom `Sheet` for a ⋮ menu. A bottom sheet is for a picker or form (switch company, add someone).
 - Company mode: owner/manager inside a company get the company bar (Home (company overview) · Team · Payments · Vendors · More (Vendors is its own tab, not a More row); the bar is full at five, so Clients, Follow-ups and Complaints live in More, which is a menu of tiles in four groups: Money in, Money out, Team, Books; leave the company via the space switcher) with an add FAB, no mic; Team opens one screen with the company header (SpacePill) and a white People | Attendance | Tasks segment under it (remembers the last per company; red dot on Tasks while a task is blocked); People lists employees by name, with a sort pop-up of two switches (Sort by name, Show admins) and Not employed in the header menu, and the old people / attendance / work routes open Team on that segment (none of the three views draws its own header); Pending is a card at the top of Overview ("View all" opens company-pending) and Home carries the pending-count badge; employees keep the shared bar.
 - Bottom-bar tab roots (Personal and Company) use the one tab header (company: `DashHeader` with `tab`, i.e. the Team header: SpacePill, round gear / ⋯ / action buttons, no subtitle); never a back button. Sub-screens use the back header (`ScenicHeader`).

@@ -32,7 +32,7 @@ import { TOUR_STEPS, useTour } from '@/lib/tour';
 
 /** The reference's tour accent — a violet, held apart from the app's green so
     the tour reads as a layer over the app, not part of it. */
-const TOUR_ACCENT = '#7A5AF8';
+const TOUR_ACCENT = '#7A73FF';
 /** Breathing room between the lit target and the dim around it. */
 const HOLE_PAD = 8;
 const CARD_MARGIN = 20;

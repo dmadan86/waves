@@ -226,9 +226,9 @@ export default function RedeemScreen() {
                 ]}
               >
                 {busy ? (
-                  <ActivityIndicator color="#FFFFFF" />
+                  <ActivityIndicator color={theme.color.onBrand} />
                 ) : (
-                  <Text style={{ fontSize: 17, fontWeight: '700', color: '#FFFFFF' }}>
+                  <Text style={{ fontSize: 17, fontWeight: '700', color: theme.color.onBrand }}>
                     {t.promo.redeem}
                   </Text>
                 )}

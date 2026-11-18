@@ -228,12 +228,12 @@ export default function AddVendorScreen() {
             }}
           >
             {busy ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.color.onBrand} />
             ) : (
               <Ionicons
                 name={mode === 'scan' ? 'scan-outline' : 'search-outline'}
                 size={22}
-                color="#fff"
+                color={theme.color.onBrand}
               />
             )}
             <Text style={{ color: '#fff', fontWeight: '700', fontSize: 17 }}>{modeLabel}</Text>
