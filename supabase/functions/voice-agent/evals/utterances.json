@@ -79,9 +79,27 @@
     "text": "500 for Renny",
     "context": "default",
     "expect": {
-      "tool": "ask_clarification",
+      "tool": "add_expense",
       "args": {
-        "question": "Who is Renny?"
+        "groupId": "g-goa",
+        "description": "Renny",
+        "amountMinor": "50000",
+        "currency": "INR",
+        "paidByMemberId": "m-me",
+        "split": {
+          "mode": "equal",
+          "shares": [
+            {
+              "memberId": "m-me"
+            },
+            {
+              "memberId": "m-anu"
+            },
+            {
+              "memberId": "m-ravi"
+            }
+          ]
+        }
       }
     }
   },
@@ -466,27 +484,27 @@
     "text": "add 8000 to",
     "context": "default",
     "expect": {
-      "tool": "ask_clarification",
+      "tool": "add_expense",
       "args": {
-        "question": "To which group, or just you?",
-        "options": [
-          {
-            "label": "Goa trip",
-            "answer": "Goa trip"
-          },
-          {
-            "label": "Flat 4B",
-            "answer": "Flat 4B"
-          },
-          {
-            "label": "London",
-            "answer": "London"
-          },
-          {
-            "label": "Just me",
-            "answer": "Just me"
-          }
-        ]
+        "groupId": "g-goa",
+        "description": "expense",
+        "amountMinor": "800000",
+        "currency": "INR",
+        "paidByMemberId": "m-me",
+        "split": {
+          "mode": "equal",
+          "shares": [
+            {
+              "memberId": "m-me"
+            },
+            {
+              "memberId": "m-anu"
+            },
+            {
+              "memberId": "m-ravi"
+            }
+          ]
+        }
       }
     }
   },
@@ -508,19 +526,24 @@
     "text": "dinner 1200 with Sam and Anu",
     "context": "default",
     "expect": {
-      "tool": "ask_clarification",
+      "tool": "add_expense",
       "args": {
-        "question": "Which group was dinner in?",
-        "options": [
-          {
-            "label": "Goa trip",
-            "answer": "Goa trip"
-          },
-          {
-            "label": "Flat 4B",
-            "answer": "Flat 4B"
-          }
-        ]
+        "groupId": "g-goa",
+        "description": "dinner",
+        "amountMinor": "120000",
+        "currency": "INR",
+        "paidByMemberId": "m-me",
+        "split": {
+          "mode": "equal",
+          "shares": [
+            {
+              "memberId": "m-me"
+            },
+            {
+              "memberId": "m-anu"
+            }
+          ]
+        }
       }
     }
   },
