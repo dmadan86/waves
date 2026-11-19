@@ -1290,10 +1290,22 @@ describe('voiceAutoAction', () => {
     expect(voiceAutoAction(result)).toBeNull();
   });
 
-  it('holds for review for a "just for me" spend', () => {
+  it('adds a "just for me" spend at once, to the speaker alone', () => {
     const result = parseVoiceExpenses('add 500 rupees for coffee just for me', groups);
     expect(result.personal).toBe(true);
-    expect(voiceAutoAction(result)).toBeNull();
+    expect(voiceAutoAction(result)).toEqual({ kind: 'commit-expense', groupId: null });
+  });
+
+  it('adds to the group the mic was opened in when the sentence names none', () => {
+    const result = parseVoiceExpenses('add 500 rupees for dinner', groups);
+    expect(voiceAutoAction(result, { launchGroupId: 'g-flat' })).toEqual({
+      kind: 'commit-expense',
+      groupId: 'g-flat',
+    });
+    expect(voiceAutoAction(result, { launchPersonal: true })).toEqual({
+      kind: 'commit-expense',
+      groupId: null,
+    });
   });
 
   it('holds for review when a split count would otherwise be silently ignored', () => {
@@ -1315,17 +1327,21 @@ describe('voiceAutoAction', () => {
     expect(voiceAutoAction(result)).toBeNull();
   });
 
-  it('holds for review when a date or category changes the default expense fields', () => {
+  it('still adds at once when a date or category was spoken (the save carries them)', () => {
     const dated = parseVoiceExpenses('add 500 rupees dinner yesterday to the latest group', groups);
     expect(dated.expenseDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(voiceAutoAction(dated)).toBeNull();
+    expect(voiceAutoAction(dated)).toEqual({ kind: 'commit-expense', groupId: 'g-goa' });
 
     const categorised = parseVoiceExpenses(
       'add 300 rupees cab category travel to the latest group',
       groups,
     );
     expect(categorised.items[0].category).toBe('travel');
-    expect(voiceAutoAction(categorised)).toBeNull();
+    expect(voiceAutoAction(categorised)).toEqual({ kind: 'commit-expense', groupId: 'g-goa' });
+  });
+
+  it('holds for review when there is no amount to add', () => {
+    expect(voiceAutoAction(parseVoiceExpenses('dinner at the Goa trip', groups))).toBeNull();
   });
 });
 

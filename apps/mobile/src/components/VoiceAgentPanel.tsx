@@ -84,6 +84,11 @@ export interface VoiceAgentPanelProps {
   today: string;
   /** The agent could not help; run the basic on-device path instead. */
   onFallback: (reason: AgentFallbackReason) => void;
+  /**
+   * The agent wants to ask something instead of acting. Never asked first: the
+   * screen keeps the sentence as a draft and shows one optional question.
+   */
+  onUnclear?: () => void;
   /** Open the mic again. After a clarifying question, `followUp` carries what
    *  was said and asked, so the next clip is read as the answer. */
   onRetry: (followUp?: { transcript: string; question: string }) => void;
@@ -173,6 +178,7 @@ export function VoiceAgentPanel({
   personal,
   today,
   onFallback,
+  onUnclear,
   onRetry,
   onAnswer,
   followUp,
@@ -230,6 +236,15 @@ export function VoiceAgentPanel({
     () => (response?.kind === 'ok' ? planVoiceAgentActions(response.response, local, text) : null),
     [response, local, text],
   );
+
+  const unclearRef = useRef(onUnclear);
+  useEffect(() => {
+    unclearRef.current = onUnclear;
+  });
+  const clarifies = Boolean(plan?.clarify);
+  useEffect(() => {
+    if (clarifies) unclearRef.current?.();
+  }, [clarifies]);
 
   const [status, setStatus] = useState<Record<string, CardStatus>>({});
   const statusOf = (key: string): CardStatus => status[key] ?? 'pending';
@@ -340,6 +355,7 @@ export function VoiceAgentPanel({
           today={today}
           onClose={onClose}
           onUndoable={setHandoff}
+          addNow
           renderSavedBar={(bar) => (
             <AssistantSavedBar
               context={bar}
@@ -357,6 +373,7 @@ export function VoiceAgentPanel({
     return (
       <ConfirmExpense
         action={solo}
+        auto={!first.problem}
         transcript={plan.transcript || transcript}
         local={local}
         today={today}
@@ -467,6 +484,7 @@ function confirmable(action: VoiceAgentAction): action is ConfirmableAction {
 /** Writes the confirmed expense, the same way the list's Add does. */
 function ConfirmExpense({
   action,
+  auto,
   transcript,
   local,
   today,
@@ -474,6 +492,8 @@ function ConfirmExpense({
   onFooter,
 }: {
   action: ConfirmableAction;
+  /** Nothing flagged: add it now, with Undo after, instead of waiting for a tap. */
+  auto: boolean;
   transcript: string;
   local: AgentLocalData;
   today: string;
@@ -508,6 +528,16 @@ function ConfirmExpense({
       setBusy(false);
     }
   };
+
+  // Once: a failed add falls back to the card and its Add button, never loops.
+  const autoTried = useRef(false);
+  useEffect(() => {
+    if (!auto || autoTried.current) return;
+    autoTried.current = true;
+    void add(action);
+    // `add` is a fresh closure each render; this runs once for the proposal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <VoiceConfirmCard

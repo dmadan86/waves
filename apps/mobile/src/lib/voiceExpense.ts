@@ -1143,26 +1143,35 @@ export function amountIsUnambiguous(result: VoiceParseResult): boolean {
 }
 
 /**
- * When a spoken sentence is unambiguous enough to act on without a review, the
- * action to take — otherwise null and the screen shows the editable review.
+ * When a spoken sentence is clear enough to act on at once — add now, undo
+ * after — the action to take; otherwise null and the screen shows the review.
  *
- * Two cases are safe to act on directly:
- *  - `create-group`: a bare "make a group called Goa" with no expense in it. No
- *    amount to mishear, nothing to split — just the group.
- *  - `commit-expense`: exactly one *plain* expense aimed at a group that already
- *    exists. The group's own currency and an equal split are the documented
- *    defaults the review would have applied anyway, so there is nothing a tap
- *    would decide.
+ * Two cases act directly:
+ *  - `create-group`: a bare "make a group called Goa" with no expense in it.
+ *  - `commit-expense`: exactly one expense with a clear amount and a resolved
+ *    destination: a group that exists (named, or the one the mic was opened in),
+ *    or just the speaker (`groupId: null`). The group's currency and an equal
+ *    split are the defaults the review would have applied anyway. A spoken date
+ *    or category is carried by the save, so it does not hold the add back.
  *
  * Everything else — several expenses in a breath, a group to *create* alongside
- * an expense, a "just for me" spend, an unresolved or unnamed destination, or a
- * command carrying split/date/category details — returns null so the reader
- * confirms on the review screen first.
+ * an expense, an unresolved or unnamed destination, or a sentence naming a
+ * payer, people or a split (they must be matched to members first) — returns
+ * null so the reader sees the review.
  */
 export type VoiceAutoAction =
-  { kind: 'create-group'; name: string } | { kind: 'commit-expense'; groupId: string };
+  { kind: 'create-group'; name: string } | { kind: 'commit-expense'; groupId: string | null };
 
-export function voiceAutoAction(result: VoiceParseResult): VoiceAutoAction | null {
+/** Where the mic was opened from: the destination a sentence naming none falls to. */
+export interface VoiceAutoContext {
+  launchGroupId?: string | null;
+  launchPersonal?: boolean;
+}
+
+export function voiceAutoAction(
+  result: VoiceParseResult,
+  context: VoiceAutoContext = {},
+): VoiceAutoAction | null {
   if (
     result.group?.kind === 'create' &&
     result.items.length === 0 &&
@@ -1177,23 +1186,26 @@ export function voiceAutoAction(result: VoiceParseResult): VoiceAutoAction | nul
     splitParticipantClause(result.peopleText) !== null ||
     // A named payer, people, split rule or group is a decision someone should see.
     result.intent?.hasSocialDetail === true;
-  const hasNonDefaultExpenseFields = result.expenseDate !== null || item?.category !== null;
-
   if (
-    result.group?.kind === 'existing' &&
-    !result.personal &&
-    result.items.length === 1 &&
+    result.items.length !== 1 ||
     // A number that could be read two ways is a question, never a write.
-    amountIsUnambiguous(result) &&
-    !hasSplitInstructions &&
-    !hasNonDefaultExpenseFields &&
-    item &&
-    Number.isFinite(item.amountMajor) &&
-    item.amountMajor > 0
+    !amountIsUnambiguous(result) ||
+    hasSplitInstructions ||
+    !item ||
+    !Number.isFinite(item.amountMajor) ||
+    item.amountMajor <= 0
   ) {
-    return { kind: 'commit-expense', groupId: result.group.groupId };
+    return null;
   }
 
+  if (result.group?.kind === 'existing' && !result.personal) {
+    return { kind: 'commit-expense', groupId: result.group.groupId };
+  }
+  if (result.group) return null;
+  const source = result.intent?.groupSource;
+  if (source === 'ambiguous' || source === 'unresolved') return null;
+  if (result.personal || context.launchPersonal) return { kind: 'commit-expense', groupId: null };
+  if (context.launchGroupId) return { kind: 'commit-expense', groupId: context.launchGroupId };
   return null;
 }
 
