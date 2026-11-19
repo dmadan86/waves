@@ -56,7 +56,12 @@ export function HoldRecorder({ finish, hints, onWords, onDone }: HoldRecorderPro
   useEffect(() => {
     live.current = true;
     void (async () => {
-      if (!(await speechMic.acquire(session))) return;
+      if (!(await speechMic.acquire(session))) {
+        // The previous recogniser is still stopping: end this hold cleanly
+        // rather than leave the pill up with nothing listening.
+        if (live.current) done.current('', []);
+        return;
+      }
       if (!live.current) {
         speechMic.release(session);
         return;

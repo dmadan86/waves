@@ -407,14 +407,15 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
   };
 
   const undo = async (saved: SavedState): Promise<void> => {
-    show(null);
     try {
       if (saved.kind === 'personal') await deletePersonal.mutateAsync(saved.id);
       else if (saved.groupId)
         await mutate(MutationKind.ExpenseDelete, saved.groupId, { expenseId: saved.id });
       voiceAdded.forget(saved.id);
+      show(null);
     } catch {
-      // Queued offline or retried by sync; nothing to tell the person.
+      // Still added: keep the toast, and Undo, for another try. No error copy.
+      show(toast);
     }
   };
 

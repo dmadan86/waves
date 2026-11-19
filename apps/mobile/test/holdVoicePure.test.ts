@@ -108,3 +108,10 @@ describe('agentAddsAtOnce', () => {
     ).toBe(false);
   });
 });
+
+describe('an empty hold', () => {
+  it('files nothing, so a hold that never got the mic ends quietly', async () => {
+    const { worthFiling } = await import('@/lib/voiceDraftPure');
+    expect(worthFiling('')).toBe(false);
+  });
+});
