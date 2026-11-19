@@ -118,7 +118,7 @@ export interface VoiceAgentPanelProps {
   onFooter?: (spec: FooterSpec | null) => void;
 }
 
-function agentText(t: UiStrings): VoiceAgentText {
+export function agentText(t: UiStrings): VoiceAgentText {
   const v = t.voice;
   return {
     add: v.agentAdd,

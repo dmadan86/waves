@@ -3549,6 +3549,10 @@ export interface UiStrings {
     micHint: string;
     /** Shown under the mic while a finger is held on the bar's button. */
     slideToCancel: string;
+    /** Hold-to-talk toast while the heard sentence is being read. */
+    holdReading: string;
+    /** Hold-to-talk toast after an add: {amount} to {where}. */
+    holdAdded: string;
     title: string;
     prompt: string;
     example: string;
@@ -11685,6 +11689,8 @@ const en: UiStrings = {
     speakExpense: 'Speak an expense',
     micHint: 'Tap to open, or hold and talk',
     slideToCancel: 'Slide to cancel',
+    holdReading: 'Reading…',
+    holdAdded: 'Added {amount} to {where}',
     title: 'Speak an expense',
     prompt: 'Say what you spent',
     example: 'e.g. “add 500 to Goa trip”',
@@ -19297,6 +19303,8 @@ const ta: UiStrings = {
     speakExpense: 'செலவைப் பேசு',
     micHint: 'திறக்க தட்டு, அல்லது அழுத்திப் பிடித்துப் பேசு',
     slideToCancel: 'ரத்து செய்ய நகர்த்து',
+    holdReading: 'படிக்கிறேன்…',
+    holdAdded: '{where} இல் {amount} சேர்க்கப்பட்டது',
     title: 'செலவைப் பேசு',
     prompt: 'நீங்கள் என்ன செலவழித்தீர்கள் என்று சொல்',
     example: 'உ.தா. “கோவா டிரிப்பில் 500 சேர்”',
@@ -27048,6 +27056,8 @@ const hi: UiStrings = {
     speakExpense: 'खर्च बोलें',
     micHint: 'खोलने के लिए टैप करें, या दबाकर बोलें',
     slideToCancel: 'रद्द करने के लिए सरकाएँ',
+    holdReading: 'पढ़ रहा हूँ…',
+    holdAdded: '{where} में {amount} जोड़ दिया',
     title: 'खर्च बोलें',
     prompt: 'बताएँ आपने क्या खर्च किया',
     example: 'जैसे “गोवा ट्रिप में 500 जोड़ें”',
@@ -34763,6 +34773,8 @@ const ar: UiStrings = {
     speakExpense: 'انطق مصروفًا',
     micHint: 'انقر للفتح، أو اضغط مطوّلًا وتحدّث',
     slideToCancel: 'اسحب للإلغاء',
+    holdReading: 'أقرأ…',
+    holdAdded: 'أُضيف {amount} إلى {where}',
     title: 'انطق مصروفًا',
     prompt: 'قل ماذا أنفقت',
     example: 'مثل: «أضف 500 إلى رحلة جوا»',
