@@ -101,6 +101,33 @@ describe('buildContext / contextText / keyterms', () => {
     expect(systemPrompt(context())).toContain(text);
   });
 
+  it('tags the last-used group [RECENT] when it is not the current one', () => {
+    const base = context();
+    const raw = {
+      groups: base.groups.map((g) => ({
+        id: g.id,
+        name: g.name,
+        type: g.type,
+        default_currency: g.currency,
+      })),
+      members: [],
+      balances: [],
+      meProfileId: ME,
+      today: '2026-10-07',
+    };
+    const fromHome = buildContext({ ...raw, recentGroupId: 'g-home' });
+    expect(fromHome.recentGroupId).toBe('g-home');
+    expect(contextText(fromHome)).toContain(
+      'GROUP g-home "Flat 4B" INR (minor unit = 10^-2) home [RECENT]',
+    );
+    // Current wins; a group the caller is not in is ignored.
+    expect(
+      buildContext({ ...raw, currentGroupId: 'g-home', recentGroupId: 'g-home' }).recentGroupId,
+    ).toBeNull();
+    expect(buildContext({ ...raw, recentGroupId: 'g-other' }).recentGroupId).toBeNull();
+    expect(systemPrompt(fromHome)).toContain('Never ask which group just because none was said');
+  });
+
   it('defaults Personal-ledger expenses to add_personal while named groups win', () => {
     const line =
       'The caller opened the assistant from their private Personal ledger, so default to add_personal for an expense unless the speaker explicitly names a group (named group wins).';

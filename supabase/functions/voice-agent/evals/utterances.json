@@ -157,14 +157,41 @@
     "text": "rent 15000 on the 5th",
     "context": "default",
     "expect": {
-      "tool": "add_personal",
+      "tool": "add_expense",
       "args": {
+        "groupId": "g-goa",
         "description": "rent",
         "amountMinor": "1500000",
         "currency": "INR",
+        "paidByMemberId": "m-me",
+        "split": {
+          "mode": "equal",
+          "shares": [
+            {
+              "memberId": "m-me"
+            },
+            {
+              "memberId": "m-anu"
+            },
+            {
+              "memberId": "m-ravi"
+            }
+          ]
+        },
         "date": "2026-10-05"
       }
-    }
+    },
+    "alt": [
+      {
+        "tool": "add_personal",
+        "args": {
+          "description": "rent",
+          "amountMinor": "1500000",
+          "currency": "INR",
+          "date": "2026-10-05"
+        }
+      }
+    ]
   },
   {
     "id": "EV-09",
@@ -595,36 +622,36 @@
     "text": "ad 800 for lucnh",
     "context": "default",
     "expect": {
-      "tool": "add_personal",
+      "tool": "add_expense",
       "args": {
+        "groupId": "g-goa",
         "description": "lunch",
         "amountMinor": "80000",
-        "currency": "INR"
+        "currency": "INR",
+        "paidByMemberId": "m-me",
+        "split": {
+          "mode": "equal",
+          "shares": [
+            {
+              "memberId": "m-me"
+            },
+            {
+              "memberId": "m-anu"
+            },
+            {
+              "memberId": "m-ravi"
+            }
+          ]
+        }
       }
     },
     "alt": [
       {
-        "tool": "add_expense",
+        "tool": "add_personal",
         "args": {
-          "groupId": "g-goa",
           "description": "lunch",
           "amountMinor": "80000",
-          "currency": "INR",
-          "paidByMemberId": "m-me",
-          "split": {
-            "mode": "equal",
-            "shares": [
-              {
-                "memberId": "m-me"
-              },
-              {
-                "memberId": "m-anu"
-              },
-              {
-                "memberId": "m-ravi"
-              }
-            ]
-          }
+          "currency": "INR"
         }
       }
     ]
@@ -1562,6 +1589,37 @@
     "followUp": {
       "transcript": "500 for Renny",
       "question": "Who is Renny?"
+    },
+    "loose": ["description"]
+  },
+  {
+    "id": "EV-71",
+    "lang": "en",
+    "text": "add 3000 rupees for dinner in Koramangala",
+    "context": "default",
+    "expect": {
+      "tool": "add_expense",
+      "args": {
+        "groupId": "g-goa",
+        "description": "dinner in Koramangala",
+        "amountMinor": "300000",
+        "currency": "INR",
+        "paidByMemberId": "m-me",
+        "split": {
+          "mode": "equal",
+          "shares": [
+            {
+              "memberId": "m-me"
+            },
+            {
+              "memberId": "m-anu"
+            },
+            {
+              "memberId": "m-ravi"
+            }
+          ]
+        }
+      }
     },
     "loose": ["description"]
   }
