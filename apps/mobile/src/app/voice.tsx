@@ -511,6 +511,8 @@ export default function VoiceScreen() {
   // Never lost: it stays until an add promotes it (see `dropHeardDraft`).
   const heardId = useRef<string | null>(null);
   const heardSentence = useRef<string | null>(null);
+  // The in-flight draft write, so a delete never overtakes the create it undoes.
+  const heardWrite = useRef<Promise<void>>(Promise.resolve());
   // File what was heard as an amount-less draft carrying the sentence. A later
   // sentence on the same screen (a fix, an answer) rewrites that one draft.
   const fileHeard = (transcript: string): void => {
@@ -524,6 +526,10 @@ export default function VoiceScreen() {
     const write = existing
       ? updateCapture.mutateAsync({ captureId, ...fields })
       : createCapture.mutateAsync({ captureId, ...fields });
+    heardWrite.current = write.then(
+      () => undefined,
+      () => undefined,
+    );
     write.catch(() => {
       if (!existing) heardId.current = null;
       heardSentence.current = null;
@@ -534,7 +540,8 @@ export default function VoiceScreen() {
     const id = heardId.current;
     heardId.current = null;
     heardSentence.current = null;
-    if (id) deleteCapture.mutateAsync(id).catch(() => undefined);
+    if (id)
+      void heardWrite.current.then(() => deleteCapture.mutateAsync(id)).catch(() => undefined);
   };
   const createGroup = useCreateGroup();
   const upsertPersonal = useUpsertPersonalRecord();
