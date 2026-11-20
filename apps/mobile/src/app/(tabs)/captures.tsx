@@ -1301,13 +1301,9 @@ function CapturesScreen() {
       : smsReader
         ? t.captures.tabSms
         : t.captures.tabBankMessages;
-  // Ticking belongs to the SMS tab only. That pile is a stream the app fills on
-  // its own — a hundred and forty rows, most of them a card bill or a transfer
-  // to yourself — and it is answered in handfuls. The drafts somebody added
-  // themselves are a handful to begin with, each one a spend they remember
-  // making and each wanting its own destination, so a tick box there would be
-  // furniture on every row for a gesture that half of them never fits.
-  const ticking = activeTab === 'found';
+  // Both tabs tick: a pile of voice and typed drafts often belongs to one trip,
+  // and filing them one by one is data entry, not answering.
+  const ticking = true;
   const feedItems = useMemo(() => buildReviewFeed(tabRows, sortOrder), [tabRows, sortOrder]);
   // The pill's own label — "Sort by: Newest" — and the sheet it opens.
   const sortOptionLabel = useCallback(
