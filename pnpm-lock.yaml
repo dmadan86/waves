@@ -456,8 +456,8 @@ importers:
         specifier: 8.0.5
         version: 8.0.5(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
       react-native-purchases:
-        specifier: ^10.15.1
-        version: 10.15.1(react-native-web@0.21.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
+        specifier: ^11.0.3
+        version: 11.0.3(react-native-web@0.21.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
       react-native-qrcode-styled:
         specifier: ^0.4.0
         version: 0.4.0(react-native-svg@15.15.4(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1))(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1)
@@ -4235,14 +4235,14 @@ packages:
       react-redux:
         optional: true
 
-  '@revenuecat/purchases-js-hybrid-mappings@19.14.1':
-    resolution: {integrity: sha512-Sj/sqXuQu0D3GKQQIhL8KQtAqpMUBGJjeXACrgzbvZBGbDu4AKPrnix0kwTOlGDoS4Cw5NZHJEnNU9D8jOxBmQ==}
+  '@revenuecat/purchases-js-hybrid-mappings@20.7.0':
+    resolution: {integrity: sha512-XXHPoNz3R3T/6iAQ/KQ8AtxNWBcBORQrKFlFnMINlC1J0+/7sUtyFiQT93TAe7oQbgNhPysOGCtutZucGKmFyg==}
 
-  '@revenuecat/purchases-js@1.71.0':
-    resolution: {integrity: sha512-FC118I8NvBh1gvFCw/JtL6oRoZwXws4TnfGtUY7YFPZIA39+kTpmWkGxQwSwn9XXqXPtBVD1b3Hvs7d+OgBpHQ==}
+  '@revenuecat/purchases-js@1.74.0':
+    resolution: {integrity: sha512-knhHEjVqnPEijdEtEFiIx1gkKHUfnpX+sPgPbPMF+/Vct+Vgya6pJaVg8UqRgdj42zRZygbjGb6ICoT7d/gD/A==}
 
-  '@revenuecat/purchases-typescript-internal@19.14.1':
-    resolution: {integrity: sha512-knMoRyyLvIG4+yvPXprjddxLB/Y05Ca7pjrAONNL1/7gaq6ezlVC+/YksK8dr/3LHP6kCbJ1tMF+YD6LW4O63Q==}
+  '@revenuecat/purchases-typescript-internal@20.7.0':
+    resolution: {integrity: sha512-cO/yYnRFXRMAyALFuun2it6IDiy7rqFib88kAMBaNEsFfi3w5YS+VAvS96axlXFVDkmnJuflzyJW+Lg/hDAPog==}
 
   '@rollup/plugin-commonjs@28.0.1':
     resolution: {integrity: sha512-+tNWdlWKbpB3WgBN7ijjYkq9X5uhjmcvyjEght4NmH5fAU++zfQzAJ6wumLS+dNcvwEZhKx2Z+skY8m7v0wGSA==}
@@ -10838,11 +10838,11 @@ packages:
       react: '*'
       react-native: '*'
 
-  react-native-purchases@10.15.1:
-    resolution: {integrity: sha512-ooyXWMdC1/BJnokE+Pro+6yWInxzkQbFN4lR3EOvkSPhYh3H/j0Esk/LRnQApCqzkIbWEpfUhPnQdq/CMGofHA==}
+  react-native-purchases@11.0.3:
+    resolution: {integrity: sha512-Khsli6Q51+UWzGXfm578q3BxMSSNOWGoUT1YV3GpY7kWvyrhxEZ0SsIMLCUGoejVmjHzQTGJJsF4iJ68J6Hnaw==}
     peerDependencies:
       react: '>= 16.6.3'
-      react-native: '>= 0.73.0'
+      react-native: '>= 0.80.0'
       react-native-web: '*'
     peerDependenciesMeta:
       react-native-web:
@@ -17769,13 +17769,13 @@ snapshots:
       react: 19.3.1
       react-redux: 9.3.0(@types/react@19.3.0)(react@19.3.1)(redux@5.0.1)
 
-  '@revenuecat/purchases-js-hybrid-mappings@19.14.1':
+  '@revenuecat/purchases-js-hybrid-mappings@20.7.0':
     dependencies:
-      '@revenuecat/purchases-js': 1.71.0
+      '@revenuecat/purchases-js': 1.74.0
 
-  '@revenuecat/purchases-js@1.71.0': {}
+  '@revenuecat/purchases-js@1.74.0': {}
 
-  '@revenuecat/purchases-typescript-internal@19.14.1': {}
+  '@revenuecat/purchases-typescript-internal@20.7.0': {}
 
   '@rollup/plugin-commonjs@28.0.1(rollup@4.68.2)':
     dependencies:
@@ -25517,10 +25517,10 @@ snapshots:
       react: 19.3.1
       react-native: 0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1)
 
-  react-native-purchases@10.15.1(react-native-web@0.21.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1):
+  react-native-purchases@11.0.3(react-native-web@0.21.4(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(react-native@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1))(react@19.3.1):
     dependencies:
-      '@revenuecat/purchases-js-hybrid-mappings': 19.14.1
-      '@revenuecat/purchases-typescript-internal': 19.14.1
+      '@revenuecat/purchases-js-hybrid-mappings': 20.7.0
+      '@revenuecat/purchases-typescript-internal': 20.7.0
       react: 19.3.1
       react-native: 0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.86.3(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.1)(supports-color@8.1.1)
     optionalDependencies:
