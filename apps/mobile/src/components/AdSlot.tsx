@@ -397,7 +397,7 @@ function NativeSlot({
                     style={{
                       flexShrink: 1,
                       maxWidth: '30%',
-                      color: '#FFFFFF',
+                      color: theme.color.onBrand,
                       backgroundColor: theme.color.brand,
                       borderRadius: theme.radius.sm,
                       paddingHorizontal: theme.spacing.sm,

@@ -1465,7 +1465,7 @@ function GroupSettingsScreen() {
                             >
                               <Text
                                 variant="caption"
-                                style={{ color: '#FFFFFF', fontWeight: '700' }}
+                                style={{ color: theme.color.onBrand, fontWeight: '700' }}
                               >
                                 {t.group.adminTitle}
                               </Text>

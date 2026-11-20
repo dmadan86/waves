@@ -17,7 +17,7 @@ module.exports = {
   // their own literals of the theme colours (index.swift's Palette), since
   // Color("$…") can't read them.
   colors: {
-    $accent: '#6C4EE3',
+    $accent: '#635BFF',
     $widgetBackground: '#FFFFFF',
   },
 };

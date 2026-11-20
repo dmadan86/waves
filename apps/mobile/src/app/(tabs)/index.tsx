@@ -653,12 +653,12 @@ function HomeScreen() {
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 8,
-                    backgroundColor: theme.scheme === 'dark' ? theme.color.brand : '#3E2A9E',
+                    backgroundColor: theme.color.brand,
                     opacity: pressed ? 0.88 : 1,
                   })}
                 >
-                  <Ionicons name="people-outline" size={18} color="#FFFFFF" />
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: '#FFFFFF' }}>
+                  <Ionicons name="people-outline" size={18} color={theme.color.onBrand} />
+                  <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.onBrand }}>
                     {t.newGroup}
                   </Text>
                 </Pressable>

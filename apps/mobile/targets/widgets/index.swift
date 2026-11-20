@@ -75,7 +75,7 @@ struct Palette {
 }
 
 /// The logo tile's purple is the brand in both schemes, like the app icon.
-private let logoPurple = hex(0x6C4EE3)
+private let logoPurple = hex(0x635BFF)
 
 private extension View {
     // containerBackground is required on iOS 17+ for the widget to render on the
