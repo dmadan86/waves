@@ -28,13 +28,16 @@ import {
   checkOnline,
   getStreamSession,
   attachStream,
+  batchTranscription,
+  micIsLive,
   startCapture,
   streamingAvailable,
   type LiveTranscription,
   type MicCapture,
 } from '@/lib/voiceStream';
-import { remainingFrom } from '@/lib/voiceStreamPure';
+import { batchAfterAttachFailure, remainingFrom } from '@/lib/voiceStreamPure';
 import { pushToTalk } from '@/lib/pushToTalk';
+import { formatVoiceDiag, VOICE_DIAG_ENABLED, type VoiceDiag } from '@/lib/voiceDiagPure';
 
 import {
   CLOUD,
@@ -205,6 +208,12 @@ export interface VoiceCaptureProps {
    */
   streamLive?: boolean;
   /**
+   * When the stream will not attach, keep recording and have the server
+   * transcribe the whole clip on stop (Pro: it goes through the agent function)
+   * instead of switching to the phone recogniser and losing the first seconds.
+   */
+  batchFallback?: boolean;
+  /**
    * Whether `streamLive` is settled. While the entitlement is still loading the
    * mic waits briefly for it rather than starting on the on-device engine.
    */
@@ -345,6 +354,7 @@ export function VoiceCapture({
   endSignal = null,
   onEndConsumed,
   streamLive = false,
+  batchFallback = false,
   agentReady = true,
   agentLastKnown = null,
   cloudConsent = 'granted',
@@ -373,12 +383,17 @@ export function VoiceCapture({
   // mount captured whatever the first render held, which is how a tap could open
   // on the on-device engine before the flag had loaded.
   const streamLiveRef = useRef(streamLive);
+  const batchFallbackRef = useRef(batchFallback);
+  // Preview/dev only: how this capture's engine got going.
+  const [diag, setDiag] = useState<VoiceDiag | null>(null);
+  const usedBatch = useRef(false);
   const agentReadyRef = useRef(agentReady);
   const agentLastKnownRef = useRef(agentLastKnown);
   const cloudConsentRef = useRef(cloudConsent);
   const onEngineRef = useRef(onEngine);
   useEffect(() => {
     streamLiveRef.current = streamLive;
+    batchFallbackRef.current = batchFallback;
     agentReadyRef.current = agentReady;
     agentLastKnownRef.current = agentLastKnown;
     cloudConsentRef.current = cloudConsent;
@@ -602,6 +617,7 @@ export function VoiceCapture({
     level.set(withTiming(0, { duration: 150 }));
     const said = latest.current.trim();
     if (said) {
+      setDiag((d) => (d ? { ...d, chars: said.length } : d));
       dispatch({ type: 'final', text: said });
       onDone(said, { streamed: false, alternatives: latestAlternatives.current });
     }
@@ -647,6 +663,7 @@ export function VoiceCapture({
     speechMic.release(session);
     if (said) {
       latest.current = said;
+      setDiag((d) => (d ? { ...d, chars: said.length } : d));
       dispatch({ type: 'final', text: said });
       onDone(said, { streamed: true, alternatives: live.alternatives() });
     } else dispatch({ type: 'noSpeech' });
@@ -663,14 +680,58 @@ export function VoiceCapture({
    */
   const beginStream = useCallback(
     async (mic: MicCapture): Promise<'streaming' | 'quota' | 'failed'> => {
-      const got = await getStreamSession({ groupId, locale });
-      if (!mounted.current) return 'failed';
-      if (got.kind !== 'ok') return got.kind === 'quota' ? 'quota' : 'failed';
-      // An ending that came while the session was being read is applied here.
-      if (pendingEnd.current === 'cancel') return 'failed';
+      // Adopt a live (or batch) transcription as this capture's engine.
+      let adoptNow: (live: LiveTranscription, words: boolean) => void = () => {};
+      // The stream will not attach: keep recording and transcribe the clip on
+      // stop rather than lose the audio (Pro only; the phone recogniser otherwise).
+      const batch = (failure: 'quota' | 'error'): 'streaming' | null => {
+        if (
+          !batchFallbackRef.current ||
+          !mounted.current ||
+          pendingEnd.current === 'cancel' ||
+          !batchAfterAttachFailure(failure, micIsLive(mic))
+        ) {
+          return null;
+        }
+        usedBatch.current = true;
+        adoptNow(
+          batchTranscription(mic, {
+            groupId,
+            locale,
+            today: new Date().toISOString().slice(0, 10),
+          }),
+          false,
+        );
+        return 'streaming';
+      };
       const armSilence = (ms: number): void => {
         if (streamSilence.current) clearTimeout(streamSilence.current);
         streamSilence.current = setTimeout(() => void finishStreamRef.current(), ms);
+      };
+      adoptNow = (live, words) => {
+        // The stream owns the recorder now.
+        if (capture.current === mic) capture.current = null;
+        stream.current = live;
+        dispatch({ type: 'opened' });
+        // `starting` stays set while the stream is live: a second start (an
+        // auto-start racing the tap) must not open a second recording.
+        // The timers count from when the recorder started, not from the attach.
+        const now = Date.now();
+        // A batch has no words to time a pause by: it ends on stop or the cap.
+        if (words && endRules.current.firstWordMs !== null) {
+          armSilence(
+            remainingFrom(mic.startedAt, now, endRules.current.firstWordMs, ATTACH_FLOOR_MS),
+          );
+        }
+        streamMax.current = setTimeout(
+          () => void finishStreamRef.current(),
+          remainingFrom(mic.startedAt, now, STREAM_MAX_SESSION_MS, ATTACH_FLOOR_MS),
+        );
+        // The finger lifted while the stream was opening.
+        if (pendingEnd.current !== null) {
+          pendingEnd.current = null;
+          void finishStream();
+        }
       };
       const hear = (text: string): void => {
         // Deepgram keeps sending the finished sentence while the room is quiet;
@@ -684,6 +745,11 @@ export function VoiceCapture({
           armSilence(pauseAllowanceMs(text, silenceMs));
         }
       };
+      const got = await getStreamSession({ groupId, locale });
+      if (!mounted.current) return 'failed';
+      if (got.kind !== 'ok') return batch(got.kind) ?? (got.kind === 'quota' ? 'quota' : 'failed');
+      // An ending that came while the session was being read is applied here.
+      if (pendingEnd.current === 'cancel') return 'failed';
       const attached = await attachStream(mic, got.session, {
         onInterim: hear,
         onFinal: hear,
@@ -702,34 +768,15 @@ export function VoiceCapture({
           } else dispatch({ type: 'error', message: t.misc.dictationFailed });
         },
       });
-      if (attached.kind !== 'ok') return attached.kind === 'quota' ? 'quota' : 'failed';
+      if (attached.kind !== 'ok') {
+        return batch(attached.kind) ?? (attached.kind === 'quota' ? 'quota' : 'failed');
+      }
       const live = attached.live;
       if (!mounted.current) {
         live.cancel();
         return 'failed';
       }
-      // The stream owns the recorder now.
-      if (capture.current === mic) capture.current = null;
-      stream.current = live;
-      dispatch({ type: 'opened' });
-      // `starting` stays set while the stream is live: a second start (an
-      // auto-start racing the tap) must not open a second recording.
-      // The timers count from when the recorder started, not from the attach.
-      const now = Date.now();
-      if (endRules.current.firstWordMs !== null) {
-        armSilence(
-          remainingFrom(mic.startedAt, now, endRules.current.firstWordMs, ATTACH_FLOOR_MS),
-        );
-      }
-      streamMax.current = setTimeout(
-        () => void finishStreamRef.current(),
-        remainingFrom(mic.startedAt, now, STREAM_MAX_SESSION_MS, ATTACH_FLOOR_MS),
-      );
-      // The finger lifted while the stream was opening.
-      if (pendingEnd.current !== null) {
-        pendingEnd.current = null;
-        void finishStream();
-      }
+      adoptNow(live, true);
       return 'streaming';
     },
     [clearStreamTimers, finishStream, groupId, level, locale, onDone, session, t],
@@ -741,6 +788,8 @@ export function VoiceCapture({
     if (starting.current || stream.current) return;
     starting.current = true;
     const mark = startTimer();
+    const pressedAt = Date.now();
+    usedBatch.current = false;
     // A fresh user-initiated start re-arms the one-time network fallback; a
     // fallback re-entry keeps it spent. Either way, drop the old attempt's
     // watchdogs before opening the next.
@@ -860,9 +909,24 @@ export function VoiceCapture({
       streamAvailable: streamingAvailable(),
     });
     endRules.current = plan;
+    const mic0 = capture.current;
+    const firstFrame = (): number | null => {
+      const at = mic0?.firstFrameAt() ?? null;
+      return at === null ? null : at - pressedAt;
+    };
     if (plan.stream) {
       const opened = capture.current ? await beginStream(capture.current) : 'failed';
       mark(`stream ${opened}`);
+      if (VOICE_DIAG_ENABLED) {
+        setDiag({
+          engine:
+            opened !== 'streaming' ? 'phone' : usedBatch.current ? 'cloud-batch' : 'cloud-stream',
+          firstFrameMs: firstFrame(),
+          attachMs: opened === 'streaming' && !usedBatch.current ? Date.now() - pressedAt : null,
+          attachFailed: opened === 'streaming' && !usedBatch.current ? null : opened === 'streaming' ? 'no connection' : opened,
+          chars: null,
+        });
+      }
       if (opened === 'streaming') {
         reportEngine(CLOUD);
         return;
@@ -878,7 +942,12 @@ export function VoiceCapture({
           streamAvailable: streamingAvailable(),
         }),
       );
-    } else if (plan.fallback) reportEngine(plan.fallback);
+    } else {
+      if (VOICE_DIAG_ENABLED) {
+        setDiag({ engine: 'phone', firstFrameMs: null, attachMs: null, attachFailed: null, chars: null });
+      }
+      if (plan.fallback) reportEngine(plan.fallback);
+    }
     // On-device from here: the early recording is dropped (and the mic freed
     // for the recogniser), and "Listening" waits for the recogniser itself.
     if (capture.current) {
@@ -1178,6 +1247,12 @@ export function VoiceCapture({
           onRetry={() => void start()}
           onOpenSettings={() => void Linking.openSettings()}
         />
+      ) : null}
+
+      {VOICE_DIAG_ENABLED && diag ? (
+        <Text variant="micro" tone="muted" style={{ textAlign: 'center' }}>
+          {formatVoiceDiag(diag)}
+        </Text>
       ) : null}
 
       {showSuggestions(flow, shownTranscript) ? (

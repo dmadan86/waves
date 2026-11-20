@@ -4,14 +4,31 @@
  * a save, a close — either promotes that draft or leaves it be.
  */
 
-/** The draft a heard sentence is filed as, before anything has been understood. */
+import { minorUnitScale } from '@waves/core';
+
+import { parseVoiceExpenses } from '@/lib/voiceExpense';
+
+/**
+ * The draft a heard sentence is filed as. When the on-device parser finds one
+ * clear expense in it, the draft carries that amount, its currency and what it
+ * was for; otherwise the amount is 0 (shown as "Amount?") and the sentence is
+ * the description.
+ */
 export function heardCaptureInput(transcript: string, date: string, currency: string) {
   const sentence = transcript.trim();
+  let read: ReturnType<typeof parseVoiceExpenses>['items'] = [];
+  try {
+    read = parseVoiceExpenses(sentence, []).items;
+  } catch {
+    // A parser miss must never stop the sentence being filed.
+  }
+  const only = read.length === 1 && read[0].amountMajor > 0 ? read[0] : null;
+  const filedCurrency = only?.currency ?? currency;
   return {
-    description: sentence,
+    description: only?.note.trim() || sentence,
     expenseDate: date,
-    currency,
-    amount: 0n,
+    currency: filedCurrency,
+    amount: only ? BigInt(Math.round(only.amountMajor * Number(minorUnitScale(filedCurrency)))) : 0n,
     rawText: sentence,
     parsed: { voiceTranscript: sentence },
   };

@@ -5006,6 +5006,7 @@ export interface UiStrings {
      *  bank messages are in it, so it is named for them. */
     tabBankMessages: string;
     tabAdded: string;
+    amountUnknown: string;
     /** The hero's line over the count of drafts still waiting to be filed. */
     heroWaiting: string;
     /** The hero's figure when nothing is waiting. */
@@ -12888,6 +12889,7 @@ const en: UiStrings = {
     tabSms: 'SMS',
     tabBankMessages: 'Bank SMS',
     tabAdded: 'Added by you',
+    amountUnknown: 'Amount?',
     heroWaiting: 'Waiting on you',
     heroCaughtUp: 'All caught up',
     dismissManyConfirm: {
@@ -20542,6 +20544,7 @@ const ta: UiStrings = {
     tabSms: 'எஸ்எம்எஸ்',
     tabBankMessages: 'வங்கி SMS',
     tabAdded: 'நீங்கள் சேர்த்தவை',
+    amountUnknown: 'தொகை?',
     heroWaiting: 'உங்கள் கவனத்திற்கு',
     heroCaughtUp: 'எல்லாம் முடிந்தது',
     dismissManyConfirm: {
@@ -28264,6 +28267,7 @@ const hi: UiStrings = {
     tabSms: 'एसएमएस',
     tabBankMessages: 'बैंक SMS',
     tabAdded: 'आपने जोड़े',
+    amountUnknown: 'राशि?',
     heroWaiting: 'आपके इंतज़ार में',
     heroCaughtUp: 'सब हो गया',
     dismissManyConfirm: {
@@ -36055,6 +36059,7 @@ const ar: UiStrings = {
     tabSms: 'الرسائل',
     tabBankMessages: 'رسائل البنك',
     tabAdded: 'أضفتها أنت',
+    amountUnknown: 'المبلغ؟',
     heroWaiting: 'بانتظارك',
     heroCaughtUp: 'لا شيء متبقٍّ',
     dismissManyConfirm: {

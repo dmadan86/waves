@@ -1437,11 +1437,14 @@ export default function VoiceScreen() {
   const handleTranscript = (
     transcript: string,
     {
-      streamed = false,
+      streamed: heardInCloud = false,
       alternatives = [],
       typed = false,
     }: Partial<VoiceDoneInfo> & { typed?: boolean } = {},
   ): void => {
+    // Free is streamed for the words only: its sentence is read like a
+    // phone-heard one (and is not counted as an agent command).
+    const streamed = heardInCloud && streamsToCloud;
     // Ignore a callback from a capture the reader has already dismissed: the
     // mic's abort-on-unmount emits a final `end` → `onDone`, and without this a
     // stale transcript would land after the dismiss. Consuming one live capture
@@ -3387,7 +3390,10 @@ export default function VoiceScreen() {
                 <VoiceMicPanel
                   key={attempt}
                   onDone={handleTranscript}
-                  streamLive={agentOn && streamsToCloud}
+                  // Cloud speech-to-text for everyone; only the agent (and the
+                  // whole-clip fallback, which runs through it) is Pro.
+                  streamLive={agentOn}
+                  batchFallback={agentOn && streamsToCloud}
                   agentReady={agentReady}
                   // Once the server has answered, that answer stands (a "not Pro"
                   // needs no consent read); before it, the phone's last answer.

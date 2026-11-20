@@ -32,6 +32,9 @@
       "environment": "preview",
       "distribution": "internal",
       "channel": "preview",
+      "env": {
+        "EXPO_PUBLIC_VOICE_DIAG": "true"
+      },
       "android": {
         "buildType": "apk"
       },

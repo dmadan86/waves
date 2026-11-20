@@ -15,21 +15,28 @@
  * The mic starts on the press ({@link startCapture}) and buffers; the socket is
  * attached once the entitlement is in ({@link attachStream}), and the buffered
  * start of the sentence goes first — so the first words are not lost to the
- * round trips. A fallback to on-device discards the capture.
+ * round trips. If the socket will not attach, the capture goes on recording and
+ * {@link batchTranscription} sends the whole clip once the hold ends; only
+ * "offline" (decided before the press) uses the phone's recogniser.
  *
  * Every failure here is a typed "no" the caller answers with the on-device
  * recogniser — this module never throws into the UI.
  */
 
-import type { VoiceStreamTokenRequest } from '@waves/core';
+import { VOICE_AGENT_SCHEMA_VERSION, type VoiceStreamTokenRequest } from '@waves/core';
 
 import * as Network from 'expo-network';
 
 import { backend, functionsUrl } from '@/lib/backend';
+import { callVoiceAgent } from '@/lib/voiceAgent';
+import { pcmToWav } from '@/lib/voiceRecorderAudio';
 import { isOnline, STREAM_MAX_SESSION_MS } from '@/lib/voiceEnginePure';
 import {
   applyMessage,
   base64ToBytes,
+  BATCH_MIN_BYTES,
+  bytesToBase64,
+  joinChunks,
   EMPTY_TRANSCRIPT,
   fullText,
   isRelayReady,
@@ -177,6 +184,8 @@ export interface CaptureHandlers {
 export interface MicCapture {
   /** When the recorder reported started (ms since epoch). */
   readonly startedAt: number;
+  /** When the first audio frame arrived (ms since epoch), or null before it. */
+  readonly firstFrameAt: () => number | null;
   /** Stop the recorder and drop everything held. Resolves once the mic is free. */
   discard: () => Promise<void>;
 }
@@ -207,6 +216,7 @@ export async function startCapture(handlers: CaptureHandlers = {}): Promise<MicC
   let subscription: { remove: () => void } | null = null;
   let recording = false;
   let stopping: Promise<void> | null = null;
+  let firstFrameAt: number | null = null;
 
   const stopRecorder = (): Promise<void> => {
     if (stopping) return stopping;
@@ -226,6 +236,7 @@ export async function startCapture(handlers: CaptureHandlers = {}): Promise<MicC
       if (!event.encoded || event.deltaSize === 0) return;
       const bytes = base64ToBytes(event.encoded);
       if (bytes.length === 0) return;
+      firstFrameAt ??= Date.now();
       handlers.onLevel?.(pcmLevel(bytes));
       buffer.push(
         bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
@@ -248,6 +259,7 @@ export async function startCapture(handlers: CaptureHandlers = {}): Promise<MicC
 
   const capture: CaptureInternals = {
     startedAt: Date.now(),
+    firstFrameAt: () => firstFrameAt,
     buffer,
     stopRecorder,
     isLive: () => recording,
@@ -420,4 +432,51 @@ export async function attachStream(
   };
   active = handle;
   return { kind: 'ok', live: handle };
+}
+
+/** What the batch call needs to read the clip like the live path would. */
+export interface BatchRequest {
+  groupId: string | null;
+  personal?: boolean;
+  locale: string;
+  today: string;
+}
+
+/**
+ * The stream would not attach, but the recorder is still running and holds the
+ * whole sentence: stop() ends the recording and has the server transcribe the
+ * clip in one go (words appear at the end, not live). Returns '' when the
+ * clip is too short or the call fails — the caller reads that as "nothing heard".
+ */
+export function batchTranscription(mic: MicCapture, request: BatchRequest): LiveTranscription {
+  const capture = mic as CaptureInternals;
+  const handle: LiveTranscription = {
+    stop: async () => {
+      if (active === handle) active = null;
+      await capture.stopRecorder();
+      const pcm = joinChunks(capture.buffer.chunks());
+      capture.buffer.discard();
+      if (pcm.length < BATCH_MIN_BYTES) return '';
+      const result = await callVoiceAgent({
+        schemaVersion: VOICE_AGENT_SCHEMA_VERSION,
+        audioBase64: bytesToBase64(pcmToWav(pcm)),
+        mimeType: 'audio/wav',
+        durationMs: Math.round((pcm.length / PCM_BYTES_PER_SECOND) * 1000),
+        ...request,
+      });
+      return result.kind === 'ok' ? (result.response.transcript ?? '').trim() : '';
+    },
+    alternatives: () => [],
+    cancel: () => {
+      if (active === handle) active = null;
+      void capture.discard();
+    },
+  };
+  active = handle;
+  return handle;
+}
+
+/** Whether a capture's recorder is still running. */
+export function micIsLive(mic: MicCapture): boolean {
+  return (mic as CaptureInternals).isLive();
 }

@@ -76,6 +76,8 @@ import { useOpenSpaces, useVoiceAdded, useVoiceDefaultSpace } from '@/lib/voiceS
 import { useSync } from '@/sync';
 import { UNDO_RING_MS } from '@/lib/assistantUndo';
 
+import { formatVoiceDiag, VOICE_DIAG_ENABLED, type VoiceDiag } from '@/lib/voiceDiagPure';
+
 import type { HoldRecorderProps } from './HoldRecorder';
 
 type RecorderType = ComponentType<HoldRecorderProps>;
@@ -166,6 +168,8 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
   // The words and the clock while the finger is down.
   const [words, setWords] = useState('');
   const [elapsed, setElapsed] = useState(0);
+  const [level, setLevel] = useState(0);
+  const [diag, setDiag] = useState<VoiceDiag | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recording = mode !== 'off';
@@ -177,6 +181,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
     return () => {
       clearInterval(id);
       setWords('');
+      setLevel(0);
       setElapsed(0);
     };
   }, [recording]);
@@ -438,8 +443,20 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
         <RecorderView
           finish={mode === 'send'}
           hints={hints}
-          cloud={agentOn && streamsToCloud ? { groupId: launchGroupId } : null}
+          // Cloud speech-to-text for everyone the server allows; only the agent is Pro.
+          cloud={
+            agentOn
+              ? {
+                  groupId: launchGroupId,
+                  personal: launchPersonal,
+                  today: today(),
+                  batch: streamsToCloud,
+                }
+              : null
+          }
           onWords={setWords}
+          onLevel={setLevel}
+          onDiag={setDiag}
           onDone={(heard, alternatives) => {
             onFinished();
             void run(heard, alternatives);
@@ -470,6 +487,11 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
             paddingHorizontal: theme.spacing.xl,
           }}
         >
+          {VOICE_DIAG_ENABLED && diag ? (
+            <Text variant="micro" tone="muted" numberOfLines={1} style={{ textAlign: 'center' }}>
+              {formatVoiceDiag(diag)}
+            </Text>
+          ) : null}
           <View
             accessibilityLiveRegion="polite"
             style={{
@@ -496,6 +518,8 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
                     borderRadius: 5,
                     backgroundColor: theme.color.negative,
                     opacity: reduceMotion ? 1 : elapsed % 1000 < 500 ? 1 : 0.4,
+                    // Swells with the voice: proof the mic is hearing, before any word.
+                    transform: [{ scale: 1 + level * 1.2 }],
                   }}
                 />
                 <Text variant="micro" style={{ fontWeight: '700' }}>
