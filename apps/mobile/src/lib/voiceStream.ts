@@ -154,9 +154,12 @@ function loadAudioModule(): AudioModule | null {
   }
 }
 
-/** Whether this build can stream the mic at all. */
+/** The relay said 402 (clip budget spent): the phone recogniser takes the rest of the session. */
+let overBudget = false;
+
+/** Whether this build can stream the mic at all (and the budget is not spent). */
 export function streamingAvailable(): boolean {
-  return loadAudioModule() !== null;
+  return !overBudget && loadAudioModule() !== null;
 }
 
 /** The single owner of the recorder: a buffering capture or a live stream. */
@@ -392,6 +395,7 @@ export async function attachStream(
     clearInterval(keepAlive);
     isOpen = false;
     closeSocket();
+    if (outcome === 'quota') overBudget = true;
     return { kind: outcome === 'ready' ? 'error' : outcome };
   }
   ready = true;

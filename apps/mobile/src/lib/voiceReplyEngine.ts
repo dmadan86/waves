@@ -15,6 +15,7 @@ import { Platform } from 'react-native';
 
 import { ensureMicPermission } from '@/lib/micPermission';
 import { englishSpeechLocale, isPermissionError } from '@/lib/dictation';
+import { androidSpeechService } from '@/lib/speechService';
 import {
   attachStream,
   getStreamSession,
@@ -146,6 +147,7 @@ export const deviceReplyEngine: ReplyEngine = {
       );
       try {
         speech.start({
+          androidRecognitionServicePackage: androidSpeechService(),
           lang: englishSpeechLocale(context.locale),
           interimResults: true,
           continuous: false,

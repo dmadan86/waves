@@ -85,7 +85,7 @@ function makeDeps(
     authFails?: boolean;
     used?: number;
     mints?: number;
-    /** The database refuses Free (outside the trial): reason 'free_tier'. */
+    /** The database answers reason 'free_tier' (no longer given to Free; kept to test the relay's mapping). */
     freeTier?: boolean;
     env?: Record<string, string>;
     /** On voice_agent_allowlist (chaos applies). */
@@ -320,7 +320,7 @@ describe('runRelay: the gate', () => {
     expect(connectUpstream).not.toHaveBeenCalled();
   });
 
-  it('refuses Free with 4403 VOICE_STREAM_FREE_TIER: no Deepgram socket is opened', async () => {
+  it('relays a database `free_tier` refusal as 4403 (legacy path; Free now streams): no Deepgram socket is opened', async () => {
     const { client, connectUpstream } = await started({ freeTier: true });
     expect(client.texts).toContainEqual(
       expect.objectContaining({ status: 403, code: 'VOICE_STREAM_FREE_TIER' }),

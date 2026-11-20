@@ -217,6 +217,7 @@ import { SavedSummary } from '@/components/voice/SavedSummary';
 import { transcriptRoute } from '@/lib/assistantComposerPure';
 import { hapticLight, hapticSelect, hapticSuccess } from '@/lib/assistantHaptics';
 import { trackAssistant, type AssistantScope } from '@/lib/assistantTelemetry';
+import { trackVoiceFix } from '@/lib/voiceTelemetry';
 import { useEntitlement } from '@/lib/useEntitlement';
 import { answerFollowUps, type AnswerFollowUp } from '@/lib/voiceAnswerFollowUps';
 import type { SavedState } from '@/lib/followUpApply';
@@ -683,10 +684,9 @@ export default function VoiceScreen() {
         ? 'revoked'
         : 'pending';
   const agentOn = agentServerOn && cloudConsent === 'granted';
-  // Pro and the Pro trial stream the mic live to Deepgram. Free — including
-  // commands earned with a reward ad — listens on the phone and sends the text to
-  // the agent: the same cloud model at about a seventh of the cost per command.
-  // The server refuses a Free stream too, so this is only what the app asks for.
+  // Everyone's speech goes to Deepgram first (the phone's recogniser is only the
+  // fallback); `streamsToCloud` marks Pro and the Pro trial, who also get the
+  // whole-clip batch fallback and the agent on audio. Free's text goes to the agent.
   const streamsToCloud = useVoiceStreamsToCloud();
   const phoneToAgent = agentOn && !streamsToCloud;
   // At the monthly limit a Free person may choose to watch one reward ad (the
@@ -3068,6 +3068,7 @@ export default function VoiceScreen() {
               renderAfterSave={isPro ? undefined : renderFreeAfterSave}
               onSavedBarEvent={(event) => {
                 if (event.name === 'assistant_correction') {
+                  if (event.field === 'amount') trackVoiceFix('amount');
                   trackAssistant('assistant_correction', {
                     field: event.field,
                     path: event.path,
@@ -3277,12 +3278,13 @@ export default function VoiceScreen() {
                       today={today()}
                       externalEntry={savedHandoff}
                       onEvent={(event) => {
-                        if (event.name === 'assistant_correction')
+                        if (event.name === 'assistant_correction') {
+                          if (event.field === 'amount') trackVoiceFix('amount');
                           trackAssistant('assistant_correction', {
                             field: event.field,
                             path: event.path,
                           });
-                        else trackAssistant('assistant_undo', { what: event.what });
+                        } else trackAssistant('assistant_undo', { what: event.what });
                       }}
                     />
                   )}

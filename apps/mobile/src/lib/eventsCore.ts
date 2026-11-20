@@ -30,6 +30,10 @@ export const EVENT_NAMES = [
   'assistant_undo',
   'assistant_question_answered',
   'assistant_teaser_viewed',
+  // One per voice clip (which engine heard it) and one per name/amount the person
+  // fixed afterwards. Words and numbers about the engine, never the transcript.
+  'voice_clip',
+  'voice_fix',
 ] as const;
 
 export type EventName = (typeof EVENT_NAMES)[number];
@@ -52,6 +56,14 @@ export const PROP_KEYS = [
   'how',
   'field',
   'what',
+  // Voice clip facts: engine, Android speech service, OS major, device make,
+  // error code, and milliseconds to the first word.
+  'engine',
+  'service',
+  'os',
+  'make',
+  'error',
+  'ms',
 ] as const;
 
 export type EventProps = Partial<Record<(typeof PROP_KEYS)[number], string>>;

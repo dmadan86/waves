@@ -5,11 +5,15 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 
 import { useStrings } from '@/i18n';
 import { speechLocale } from '@/lib/dictation';
 import { speechMic } from '@/lib/speechMic';
+import { androidSpeechService } from '@/lib/speechService';
+import { shouldRetryWithDefault } from '@/lib/speechServicePure';
+import { VoiceClip } from '@/lib/voiceTelemetry';
 import { STREAM_MAX_SESSION_MS } from '@/lib/voiceEnginePure';
 import { VOICE_DIAG_ENABLED, type VoiceDiag } from '@/lib/voiceDiagPure';
 import {
@@ -71,13 +75,24 @@ export function HoldRecorder({ finish, hints, cloud, onLevel, onDiag, onWords, o
     attachFailed: null,
     chars: null,
   });
+  const [clip] = useState(() => new VoiceClip());
+  // Phone recogniser state: the service in use, whether the one default-service
+  // retry is spent, a retry waiting on the failed session's `end`, restarts after a
+  // pause while the finger is down, and the words from sessions before this one.
+  const usedPkg = useRef<string | undefined>(undefined);
+  const serviceRetried = useRef(false);
+  const retryPending = useRef(false);
+  const restarts = useRef(0);
+  const prefix = useRef('');
   const report = (patch: Partial<VoiceDiag>): void => {
+    if (patch.engine) clip.setEngine(patch.engine, usedPkg.current);
     if (!VOICE_DIAG_ENABLED) return;
     diag.current = { ...diag.current, ...patch };
     diagRef.current?.(diag.current);
   };
   const end = (words: string, alts: readonly string[]): void => {
     report({ chars: words.length });
+    clip.send();
     done.current(words, alts);
   };
   const finishRef = useRef(finish);
@@ -134,10 +149,12 @@ export function HoldRecorder({ finish, hints, cloud, onLevel, onDiag, onWords, o
         ? await attachStream(mic, got.session, {
             onInterim: (text) => {
               heard.current = text;
+              clip.words(text);
               onWords(text);
             },
             onFinal: (text) => {
               heard.current = text;
+              clip.words(text);
               onWords(text);
             },
             // Died mid-sentence: keep the words so far.
@@ -186,17 +203,75 @@ export function HoldRecorder({ finish, hints, cloud, onLevel, onDiag, onWords, o
     }
   };
 
+  /**
+   * Open the phone recogniser (the first time, a default-service retry, or a
+   * restart after a pause). Android is not `continuous`: continuous makes the
+   * library record and pipe the audio itself on Android 13+, which hurts quality;
+   * a pause that ends the session while the finger is still down restarts it once.
+   */
+  const beginPhone = async (pkg: string | undefined): Promise<void> => {
+    try {
+      if (opened.current && !(await speechMic.acquire(session))) {
+        end(heard.current, alternatives.current);
+        return;
+      }
+      if (!live.current) {
+        speechMic.release(session);
+        return;
+      }
+      ExpoSpeechRecognitionModule.start({
+        lang: speechLocale(language, locale),
+        interimResults: true,
+        maxAlternatives: 5,
+        continuous: Platform.OS !== 'android',
+        contextualStrings: hints && hints.length > 0 ? [...hints] : undefined,
+        iosTaskHint: 'dictation',
+        androidRecognitionServicePackage: pkg,
+      });
+      speechMic.opened(session);
+      opened.current = true;
+      // Lifted while the recogniser was still opening: finish it now.
+      if (finishRef.current) speechMic.stop(session);
+    } catch {
+      speechMic.release(session);
+      end('', []);
+    }
+  };
+
   useSpeechRecognitionEvent('result', (event) => {
     if (!speechMic.owns(session)) return;
-    heard.current = event.results[0]?.transcript ?? heard.current;
+    const said = event.results[0]?.transcript;
+    heard.current = said ? (prefix.current ? `${prefix.current} ${said}` : said) : heard.current;
     alternatives.current = event.results.map((r) => r.transcript);
+    clip.words(heard.current);
     onWords(heard.current);
   });
-  useSpeechRecognitionEvent('error', () => {
-    if (speechMic.owns(session)) speechMic.errored(session);
+  useSpeechRecognitionEvent('error', (event) => {
+    if (!speechMic.owns(session)) return;
+    clip.fail(event.error);
+    // The chosen service would not take the session: once, on the phone's default.
+    if (!heard.current && shouldRetryWithDefault(event.error, usedPkg.current, serviceRetried.current)) {
+      serviceRetried.current = true;
+      retryPending.current = true;
+      usedPkg.current = undefined;
+    }
+    speechMic.errored(session);
   });
   useSpeechRecognitionEvent('end', () => {
     if (!speechMic.ended(session)) return;
+    if (live.current && retryPending.current) {
+      retryPending.current = false;
+      clip.setEngine('phone', undefined);
+      void beginPhone(undefined);
+      return;
+    }
+    // A pause ended the (non-continuous) Android session with the finger still down.
+    if (live.current && Platform.OS === 'android' && !finishRef.current && restarts.current < 1 && heard.current) {
+      restarts.current += 1;
+      prefix.current = heard.current;
+      void beginPhone(usedPkg.current);
+      return;
+    }
     if (live.current) end(heard.current, alternatives.current);
   });
 
@@ -218,24 +293,9 @@ export function HoldRecorder({ finish, hints, cloud, onLevel, onDiag, onWords, o
         speechMic.release(session);
         return;
       }
-      report({ engine: 'phone', firstFrameMs: Date.now() - pressed });
-      try {
-        ExpoSpeechRecognitionModule.start({
-          lang: speechLocale(language, locale),
-          interimResults: true,
-          maxAlternatives: 5,
-          continuous: true,
-          contextualStrings: hints && hints.length > 0 ? [...hints] : undefined,
-          iosTaskHint: 'dictation',
-        });
-        speechMic.opened(session);
-        opened.current = true;
-        // Lifted while the recogniser was still opening: finish it now.
-        if (finishRef.current) speechMic.stop(session);
-      } catch {
-        speechMic.release(session);
-        end('', []);
-      }
+      usedPkg.current = androidSpeechService();
+      report({ engine: 'phone', firstFrameMs: Date.now() - pressed, service: usedPkg.current });
+      await beginPhone(usedPkg.current);
     })();
     return () => {
       live.current = false;

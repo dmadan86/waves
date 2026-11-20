@@ -36,6 +36,7 @@ import { ensureMicPermission } from '@/lib/micPermission';
 import { dictationError, mergeTranscript, speechLocale } from '@/lib/dictation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { speechMic } from '@/lib/speechMic';
+import { androidSpeechService } from '@/lib/speechService';
 
 /**
  * A soft halo that breathes behind a listening mic button — the same low-cost
@@ -241,6 +242,7 @@ export function DictateVoice({ value, onChange, hints, compact = false }: Dictat
 
     try {
       ExpoSpeechRecognitionModule.start({
+        androidRecognitionServicePackage: androidSpeechService(),
         lang,
         interimResults: true,
         maxAlternatives: 1,

@@ -24,6 +24,9 @@ import { useStrings } from '@/i18n';
 import { ensureMicPermission } from '@/lib/micPermission';
 import { dictationError, englishSpeechLocale, isPermissionError } from '@/lib/dictation';
 import { speechMic } from '@/lib/speechMic';
+import { androidSpeechService } from '@/lib/speechService';
+import { shouldRetryWithDefault } from '@/lib/speechServicePure';
+import { VoiceClip } from '@/lib/voiceTelemetry';
 import {
   checkOnline,
   getStreamSession,
@@ -345,7 +348,7 @@ export function coolVoiceCapture(): void {
 }
 
 export function VoiceCapture({
-  onDone,
+  onDone: onDoneProp,
   hints,
   groupNames = [],
   missed,
@@ -399,6 +402,17 @@ export function VoiceCapture({
     cloudConsentRef.current = cloudConsent;
     onEngineRef.current = onEngine;
   });
+  // One telemetry clip per user-started capture, sent when its sentence is handed on.
+  const clip = useRef<VoiceClip | null>(null);
+  const usedPkg = useRef<string | undefined>(undefined);
+  const serviceRetried = useRef(false);
+  const onDone = useCallback(
+    (said: string, info: VoiceDoneInfo): void => {
+      clip.current?.send();
+      onDoneProp(said, info);
+    },
+    [onDoneProp],
+  );
   const reportEngine = useCallback((info: VoiceEngineInfo): void => {
     onEngineRef.current?.(info);
   }, []);
@@ -528,6 +542,7 @@ export function VoiceCapture({
       .slice(1, MAX_ALTERNATIVES)
       .map((result) => result.transcript.trim())
       .filter((text) => text && text !== transcript.trim());
+    clip.current?.words(transcript);
     dispatch({ type: 'partial', text: transcript });
   });
 
@@ -559,7 +574,16 @@ export function VoiceCapture({
     clearStall();
     clearMaxListen();
     clearProgress();
+    clip.current?.fail(event.error);
+    // The chosen Android service would not take the session: one retry on the default.
+    const serviceRetry =
+      !gotResult.current && shouldRetryWithDefault(event.error, usedPkg.current, serviceRetried.current);
+    if (serviceRetry) {
+      serviceRetried.current = true;
+      usedPkg.current = undefined;
+    }
     const early =
+      serviceRetry ||
       (event.error === 'no-speech' || event.error === 'speech-timeout') &&
       !gotResult.current &&
       !latest.current.trim() &&
@@ -624,7 +648,10 @@ export function VoiceCapture({
     // Heard nothing usable — surface the same calm recovery a parsed miss shows,
     // rather than silently dropping back to the opening prompt as if nothing had
     // been tried, and record why so a silent-mic device can be diagnosed.
-    else dispatch({ type: 'noSpeech' });
+    else {
+      clip.current?.send();
+      dispatch({ type: 'noSpeech' });
+    }
   });
 
   // ── Live streaming (advanced voice) ───────────────────────────────────────
@@ -739,6 +766,7 @@ export function VoiceCapture({
         // every take lasts until the 20 s cap.
         const changed = text.trim() !== latest.current.trim();
         latest.current = text;
+        clip.current?.words(text);
         dispatch({ type: 'partial', text });
         const { silenceMs } = endRules.current;
         if (changed && text.trim() && silenceMs !== null) {
@@ -795,7 +823,11 @@ export function VoiceCapture({
     // watchdogs before opening the next.
     // A tap is a fresh capture with its own one early-miss retry; the silent
     // retry itself must not re-arm it, or a dead mic would loop.
-    if (!autoRetrying.current) earlyRetryUsed.current = false;
+    if (!autoRetrying.current) {
+      earlyRetryUsed.current = false;
+      serviceRetried.current = false;
+      clip.current = new VoiceClip();
+    }
     autoRetrying.current = false;
     earlyRetryPending.current = false;
     clearStall();
@@ -925,9 +957,11 @@ export function VoiceCapture({
           attachMs: opened === 'streaming' && !usedBatch.current ? Date.now() - pressedAt : null,
           attachFailed: opened === 'streaming' && !usedBatch.current ? null : opened === 'streaming' ? 'no connection' : opened,
           chars: null,
+          service: androidSpeechService(),
         });
       }
       if (opened === 'streaming') {
+        clip.current?.setEngine(usedBatch.current ? 'cloud-batch' : 'cloud-stream');
         reportEngine(CLOUD);
         return;
       }
@@ -944,7 +978,7 @@ export function VoiceCapture({
       );
     } else {
       if (VOICE_DIAG_ENABLED) {
-        setDiag({ engine: 'phone', firstFrameMs: null, attachMs: null, attachFailed: null, chars: null });
+        setDiag({ engine: 'phone', firstFrameMs: null, attachMs: null, attachFailed: null, chars: null, service: androidSpeechService() });
       }
       if (plan.fallback) reportEngine(plan.fallback);
     }
@@ -966,7 +1000,10 @@ export function VoiceCapture({
     }
 
     try {
+      usedPkg.current = serviceRetried.current ? undefined : androidSpeechService();
+      clip.current?.setEngine('phone', usedPkg.current);
       ExpoSpeechRecognitionModule.start({
+        androidRecognitionServicePackage: usedPkg.current,
         // Recognition is English-only — the surface each speaker reads is still
         // localised, but the mic listens in English (device region where it can,
         // else en-IN), so there is one locale to get right and no chip to miss.

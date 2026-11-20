@@ -29,11 +29,11 @@ import {
 export const STREAM_SECONDS_PER_MINT = 20;
 
 /**
- * Speech-to-text clips a month for Free (about 100 a day): cloud transcription
+ * Speech-to-text clips a month for Free (about 10 a day): cloud transcription
  * is for everyone signed in; only the agent step is Pro. Spent, the app listens
  * on the phone.
  */
-export const FREE_STT_CLIPS_MONTHLY = 3000;
+export const FREE_STT_CLIPS_MONTHLY = 300;
 
 export interface StreamGateDeps {
   readonly env: (name: string) => string | undefined;
@@ -58,7 +58,7 @@ export interface Admitted {
 
 interface StreamMint {
   readonly allowed: boolean;
-  /** 'free_tier': Free is never streamed (Deepgram is for Pro and the trial). */
+  /** 'free_tier': legacy refusal; Free now streams within its own clip budget. */
   readonly reason?: string;
   readonly mints: number;
   readonly budget: number;
@@ -111,9 +111,7 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
     }),
   );
   if (!mint.allowed && mint.reason === 'free_tier') {
-    // Free's commands use the phone's own speech recogniser and reach voice-agent
-    // as text (about a seventh of the cost). The app asks for a stream only when
-    // it thinks the person is not Free; this is the server's own answer.
+    // Legacy answer from the database; Free streams speech-to-text now.
     throw new HttpError(
       403,
       VoiceAgentError.StreamFreeTier,

@@ -15,6 +15,8 @@ export interface VoiceDiag {
   attachFailed: string | null;
   /** Characters in the final transcript, or null while still listening. */
   chars: number | null;
+  /** The Android speech service package the phone recogniser used (engine=phone). */
+  service?: string;
 }
 
 /** On for `__DEV__` and for builds made with `EXPO_PUBLIC_VOICE_DIAG=true` (the preview profile). */
@@ -29,5 +31,6 @@ export function formatVoiceDiag(d: VoiceDiag): string {
     : d.engine === 'phone'
       ? 'attach n/a'
       : `attach ${ms(d.attachMs)}`;
-  return [d.engine, `1st frame ${ms(d.firstFrameMs)}`, attach, `${d.chars ?? '…'} chars`].join(' · ');
+  const service = d.engine === 'phone' && d.service ? `svc ${d.service.replace(/^com\.(google\.)?(android\.)?/, '')}` : null;
+  return [d.engine, ...(service ? [service] : []), `1st frame ${ms(d.firstFrameMs)}`, attach, `${d.chars ?? '…'} chars`].join(' · ');
 }
