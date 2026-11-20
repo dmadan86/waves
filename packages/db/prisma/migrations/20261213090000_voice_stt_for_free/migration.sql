@@ -88,3 +88,7 @@ BEGIN
   );
 END
 $$;
+
+-- Edge-only (the voice-stream relay calls it with the service key), as before.
+REVOKE ALL ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, integer, integer, integer, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.waves_voice_stream_mint(uuid, integer, integer, integer, integer, integer, integer) TO service_role;
