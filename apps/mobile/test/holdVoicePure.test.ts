@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { agentAddsAtOnce, formatHoldTime, holdLanding, holdPlan } from '@/lib/holdVoicePure';
+import {
+  agentAddsAtOnce,
+  formatHoldTime,
+  holdLanding,
+  holdPlan,
+  holdSummary,
+} from '@/lib/holdVoicePure';
 import { parseVoiceExpenses } from '@/lib/voiceExpense';
 
 const ready = {
@@ -113,5 +119,21 @@ describe('an empty hold', () => {
   it('files nothing, so a hold that never got the mic ends quietly', async () => {
     const { worthFiling } = await import('@/lib/voiceDraftPure');
     expect(worthFiling('')).toBe(false);
+  });
+});
+
+describe('holdSummary', () => {
+  it('keeps a single result as its own toast', () => {
+    expect(holdSummary(1, 0)).toEqual({ kind: 'one-added' });
+    expect(holdSummary(0, 1)).toEqual({ kind: 'one-later' });
+  });
+
+  it('sums a queued run into one line', () => {
+    expect(holdSummary(2, 0)).toEqual({ kind: 'many', added: 2, later: 0 });
+    expect(holdSummary(1, 1)).toEqual({ kind: 'many', added: 1, later: 1 });
+  });
+
+  it('says nothing when nothing was filed', () => {
+    expect(holdSummary(0, 0)).toEqual({ kind: 'none' });
   });
 });

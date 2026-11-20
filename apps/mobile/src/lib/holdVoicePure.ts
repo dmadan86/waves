@@ -69,3 +69,21 @@ export function agentAddsAtOnce(plan: {
     (only.action.type === 'add_expense' || only.action.type === 'add_personal')
   );
 }
+
+/**
+ * What the pill says once every queued sentence has been read: one result keeps
+ * its own toast; several become one summary, so a quick run of holds never
+ * buries an earlier "Added" under a later "Reading…".
+ */
+export type HoldSummary =
+  | { kind: 'none' }
+  | { kind: 'one-added' }
+  | { kind: 'one-later' }
+  | { kind: 'many'; added: number; later: number };
+
+export function holdSummary(added: number, later: number): HoldSummary {
+  if (added + later === 0) return { kind: 'none' };
+  if (added === 1 && later === 0) return { kind: 'one-added' };
+  if (added === 0 && later === 1) return { kind: 'one-later' };
+  return { kind: 'many', added, later };
+}

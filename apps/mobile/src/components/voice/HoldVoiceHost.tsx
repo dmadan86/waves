@@ -37,11 +37,11 @@ import {
 import { useDeletePersonalRecord, useUpsertPersonalRecord } from '@/data/personal';
 import { serialiseExpense } from '@/data/serialiseExpense';
 import { displayName, GroupType, isViewer } from '@/data/types';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
-import { agentAddsAtOnce, formatHoldTime, holdLanding } from '@/lib/holdVoicePure';
+import { agentAddsAtOnce, formatHoldTime, holdLanding, holdSummary } from '@/lib/holdVoicePure';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useAssistantAnswerer } from '@/lib/useAssistantAnswerer';
@@ -102,9 +102,13 @@ function toMinor(amount: number, currency: string): bigint | null {
 }
 
 type Toast =
-  | { kind: 'reading' }
-  | { kind: 'added'; line: string; saved: SavedState }
+  | { kind: 'reading'; waiting: number }
+  | { kind: 'added'; line: string; saved: SavedState[]; toReview?: boolean }
   | { kind: 'later'; draftId: string };
+
+/** One read sentence, held until the queue drains. */
+type HoldResult =
+  { kind: 'added'; line: string; saved: SavedState } | { kind: 'later'; draftId: string };
 
 export interface HoldVoiceHostProps {
   /** `down`: finger on the mic. `send`: lifted. `off`: nothing running. */
@@ -357,9 +361,12 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
     return basic();
   };
 
-  const run = async (heard: string, alternatives: readonly string[]): Promise<void> => {
+  const readOne = async (
+    heard: string,
+    alternatives: readonly string[],
+  ): Promise<HoldResult | null> => {
     const transcript = heard.trim();
-    if (!worthFiling(transcript)) return;
+    if (!worthFiling(transcript)) return null;
     // Not an expense: the voice screen handles settle, remind and questions.
     if (
       detectMoneyIntent(transcript) ||
@@ -372,9 +379,8 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
         pathname: '/voice',
         params: { ...launchParams, heard: transcript, hn: randomUUID() },
       });
-      return;
+      return null;
     }
-    show({ kind: 'reading' });
     // Never lost: the sentence is a draft before anything is understood.
     const draftId = randomUUID();
     const filing = createCapture
@@ -389,10 +395,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
     } catch {
       saved = null;
     }
-    if (!saved) {
-      show({ kind: 'later', draftId });
-      return;
-    }
+    if (!saved) return { kind: 'later', draftId };
     // The add stands in for the draft; delete it only once its create has landed.
     void filing
       .then((ok) => (ok ? deleteCapture.mutateAsync(draftId) : undefined))
@@ -401,22 +404,68 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
       saved.kind === 'personal'
         ? t.voiceScreen.justYou
         : (local.groups.find((g) => g.id === saved?.groupId)?.name ?? '');
-    show({
+    return {
       kind: 'added',
       saved,
       line: fill(t.voice.holdAdded, {
         amount: format(money(saved.amount, saved.currency), { locale }),
         where,
       }),
+    };
+  };
+
+  // Holds queue: the mic is never blocked while a sentence is read. Each one is
+  // read in turn, and the pill sums the run once the last is done.
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const waiting = useRef(0);
+  const batch = useRef<HoldResult[]>([]);
+  const run = (heard: string, alternatives: readonly string[]): void => {
+    waiting.current += 1;
+    show({ kind: 'reading', waiting: waiting.current });
+    queue.current = queue.current.then(async () => {
+      try {
+        const result = await readOne(heard, alternatives);
+        if (result) batch.current.push(result);
+      } catch {
+        // readOne files a draft first; a throw here leaves nothing to report.
+      }
+      waiting.current -= 1;
+      if (waiting.current > 0) {
+        show({ kind: 'reading', waiting: waiting.current });
+        return;
+      }
+      const results = batch.current;
+      batch.current = [];
+      const added = results.flatMap((r) => (r.kind === 'added' ? [r] : []));
+      const later = results.length - added.length;
+      const summary = holdSummary(added.length, later);
+      if (summary.kind === 'none') show(null);
+      else if (summary.kind === 'one-added' && added[0])
+        show({ kind: 'added', line: added[0].line, saved: [added[0].saved] });
+      else if (summary.kind === 'one-later' && results[0]?.kind === 'later')
+        show({ kind: 'later', draftId: results[0].draftId });
+      else if (summary.kind === 'many') {
+        const parts = [];
+        if (summary.added > 0) parts.push(plural(locale, summary.added, t.voice.holdAddedMany));
+        if (summary.later > 0) parts.push(plural(locale, summary.later, t.voice.holdInReview));
+        show({
+          kind: 'added',
+          line: parts.join(' · '),
+          saved: added.map((r) => r.saved),
+          toReview: summary.later > 0,
+        });
+      }
     });
   };
 
-  const undo = async (saved: SavedState): Promise<void> => {
+  const undo = async (all: readonly SavedState[]): Promise<void> => {
     try {
-      if (saved.kind === 'personal') await deletePersonal.mutateAsync(saved.id);
-      else if (saved.groupId)
-        await mutate(MutationKind.ExpenseDelete, saved.groupId, { expenseId: saved.id });
-      voiceAdded.forget(saved.id);
+      for (const saved of all) {
+        if (saved.kind === 'personal') await deletePersonal.mutateAsync(saved.id);
+        else if (saved.groupId)
+          await mutate(MutationKind.ExpenseDelete, saved.groupId, { expenseId: saved.id });
+        voiceAdded.forget(saved.id);
+      }
       show(null);
     } catch {
       // Still added: keep the toast, and Undo, for another try. No error copy.
@@ -428,8 +477,10 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
     show(null);
     if (current.kind === 'later')
       router.push({ pathname: '/capture', params: { editId: current.draftId } });
-    else if (current.kind === 'added') {
-      const s = current.saved;
+    else if (current.kind === 'added' && (current.toReview || current.saved.length !== 1))
+      router.push('/captures' as never);
+    else if (current.kind === 'added' && current.saved[0]) {
+      const s = current.saved[0];
       if (s.kind === 'personal') router.push({ pathname: '/personal/entry', params: { id: s.id } });
       else if (s.groupId) router.push(`/group/${s.groupId}/expense/${s.id}` as never);
     }
@@ -459,7 +510,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
           onDiag={setDiag}
           onDone={(heard, alternatives) => {
             onFinished();
-            void run(heard, alternatives);
+            run(heard, alternatives);
           }}
         />
       ) : null}
@@ -534,7 +585,9 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
               </>
             ) : toast?.kind === 'reading' ? (
               <Text variant="micro" tone="muted" style={{ flex: 1 }}>
-                {t.voice.holdReading}
+                {toast.waiting > 1
+                  ? fill(t.voice.holdReadingMany, { count: String(toast.waiting) })
+                  : t.voice.holdReading}
               </Text>
             ) : toast ? (
               <>
@@ -547,7 +600,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
                     {toast.kind === 'added' ? toast.line : t.voiceScreen.unclearTitle}
                   </Text>
                 </Pressable>
-                {toast.kind === 'added' ? (
+                {toast.kind === 'added' && toast.saved.length > 0 ? (
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t.voice.autoUndo}
