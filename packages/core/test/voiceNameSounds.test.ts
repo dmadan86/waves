@@ -40,6 +40,32 @@ describe('names the way recognisers really write them', () => {
   ];
   const resolve = (heard: string) => resolveSpokenName(heard, group);
 
+  it('resolves "raining" to Renny among the group', () => {
+    const result = resolveSpokenName('raining', [
+      { id: 'r', name: 'Renny Benita' },
+      { id: 'v', name: 'Ravi' },
+      { id: 'a', name: 'Anu' },
+    ]);
+    expect(result).toMatchObject({ status: 'resolved', id: 'r', fuzzy: true });
+  });
+});
+
+describe('names the way recognisers really write them', () => {
+  const group = [
+    { id: 'sunil', name: 'Sunil Kumar' },
+    { id: 'shreya', name: 'Shreya' },
+    { id: 'harry', name: 'Harry' },
+    { id: 'hari', name: 'Hari' },
+    { id: 'matthew', name: 'Matthew' },
+    { id: 'jack', name: 'Jack' },
+    { id: 'john', name: 'John' },
+    { id: 'murugan', name: 'Murugan' },
+    { id: 'renny', name: 'Renny' },
+    { id: 'dileep', name: 'Dileep' },
+    { id: 'me', name: 'Madan', isMe: true },
+  ];
+  const resolve = (heard: string) => resolveSpokenName(heard, group);
+
   it('reads a name written in Hindi script', () => {
     expect(romanise('श्रेया')).toBe('shreya');
     expect(resolve('श्रेया')).toMatchObject({ status: 'resolved', id: 'shreya' });

@@ -952,6 +952,8 @@ function heardForms(token: string): string[] {
   const forms = [token];
   const bare = token.replace(GLUED_HONORIFIC, '');
   if (bare !== token && bare.length >= 3) forms.push(bare);
+  // Recognisers turn a name ending in an "ee" sound into an -ing word: "raining" for Renny.
+  if (/^[a-z]{3,}ing$/.test(token)) forms.push(`${token.slice(0, -3)}y`);
   return forms;
 }
 
