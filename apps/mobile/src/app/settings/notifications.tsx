@@ -1,4 +1,5 @@
 import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
+import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { ActivityIndicator, AppState, Linking, Pressable, ScrollView, View } from 'react-native';
 
@@ -60,13 +61,17 @@ function pushRows(t: UiStrings): PrefRow[] {
       icon: 'people-outline',
       tint: 'lilac',
     },
-    {
-      key: 'companyUpdates',
-      title: t.notifications.companyUpdates,
-      body: t.notifications.companyUpdatesBody,
-      icon: 'briefcase-outline',
-      tint: 'sky',
-    },
+    ...(COMPANIES_ENABLED
+      ? [
+          {
+            key: 'companyUpdates',
+            title: t.notifications.companyUpdates,
+            body: t.notifications.companyUpdatesBody,
+            icon: 'briefcase-outline',
+            tint: 'sky',
+          } as const,
+        ]
+      : []),
     {
       key: 'settlementRequests',
       title: t.notifications.settlementRequests,

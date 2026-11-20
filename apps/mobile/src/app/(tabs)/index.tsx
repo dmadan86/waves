@@ -73,6 +73,7 @@ import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
 import { HeroIconButton } from '@/components/home/HeroControls';
 import { SpaceSwitchSheet } from '@/components/SpaceSwitcher';
+import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
@@ -322,12 +323,17 @@ function HomeScreen() {
   const menuItems: OverflowMenuItem[] = useMemo(
     () => [
       // Opens the Switch space sheet; OverflowMenu closes first, then runs this.
-      {
-        icon: 'swap-horizontal-outline',
-        label: t.spaces.pillLabel,
-        onPress: () => setSwitchOpen(true),
-        section: 'space',
-      },
+      // Only companies make a second space, so no row while they are off.
+      ...(COMPANIES_ENABLED
+        ? [
+            {
+              icon: 'swap-horizontal-outline',
+              label: t.spaces.pillLabel,
+              onPress: () => setSwitchOpen(true),
+              section: 'space',
+            } as OverflowMenuItem,
+          ]
+        : []),
       // The `section` keys are internal grouping only (not user-visible): they
       // cluster the rows into account / data / app / settings, and
       // OverflowMenu draws a divider wherever two adjacent rows fall in
