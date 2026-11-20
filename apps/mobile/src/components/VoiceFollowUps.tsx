@@ -1230,10 +1230,11 @@ export function VoiceFollowUps({
                 const before = saved;
                 if (!(await persist(next))) return false;
                 // Lazy: analytics stays out of this screen's import graph.
-                // eslint-disable-next-line @typescript-eslint/no-require-imports
-                (
-                  require('@/lib/voiceTelemetry') as typeof import('@/lib/voiceTelemetry')
-                ).trackVoiceFix('name');
+                /* eslint-disable @typescript-eslint/no-require-imports */
+                const telemetry =
+                  require('@/lib/voiceTelemetry') as typeof import('@/lib/voiceTelemetry');
+                /* eslint-enable @typescript-eslint/no-require-imports */
+                telemetry.trackVoiceFix('name');
                 onUndoable?.({ kind: 'edit', previous: before, what: 'answer' });
                 return true;
               }}
