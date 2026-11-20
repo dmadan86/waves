@@ -446,7 +446,7 @@ describe('Deepgram streaming is not for Free', () => {
        VALUES ($1, 'granted', now(), now() + interval '15 days')`,
       [trial],
     );
-    expect(await mint(free)).toMatchObject({ allowed: false, reason: 'free_tier', tier: 'free' });
+    expect(await mint(free)).toMatchObject({ allowed: true, tier: 'free' });
     expect(await mint(plus)).toMatchObject({ allowed: true, tier: 'pro' });
     expect(await mint(trial)).toMatchObject({ allowed: true, tier: 'pro', trial: true });
   });

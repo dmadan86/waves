@@ -294,13 +294,8 @@ describe('stream mint budget', () => {
     return rows[0].m as Record<string, unknown>;
   }
 
-  it('refuses Free outright: Deepgram streaming is for Pro and the trial', async () => {
-    expect(await mint(a)).toMatchObject({ allowed: false, tier: 'free', reason: 'free_tier' });
-    const { rows } = await client.query(
-      `SELECT stream_mints FROM voice_agent_usage WHERE profile_id = $1`,
-      [a],
-    );
-    expect(rows).toHaveLength(0);
+  it('lets Free stream on its own budget: speech-to-text is for everyone', async () => {
+    expect(await mint(a)).toMatchObject({ allowed: true, tier: 'free', mints: 1 });
   });
 
   it('counts mints up to the budget, then refuses without counting', async () => {

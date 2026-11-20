@@ -312,7 +312,7 @@ describe('runRelay: the gate', () => {
   });
 
   it('refuses a spent stream budget with 4402 VOICE_STREAM_BUDGET', async () => {
-    const { client, connectUpstream } = await started({ mints: 30 });
+    const { client, connectUpstream } = await started({ mints: 3000 });
     expect(client.texts).toContainEqual(
       expect.objectContaining({ status: 402, code: 'VOICE_STREAM_BUDGET' }),
     );
@@ -329,11 +329,10 @@ describe('runRelay: the gate', () => {
     expect(connectUpstream).not.toHaveBeenCalled();
   });
 
-  it('refuses a spent command allowance with 4402 VOICE_AGENT_QUOTA, before minting', async () => {
+  it('streams for Free even when the command allowance is spent (speech-to-text only)', async () => {
     const { client, rpcCalls } = await started({ used: 10 });
-    expect(client.texts).toContainEqual(expect.objectContaining({ code: 'VOICE_AGENT_QUOTA' }));
-    expect(client.closed?.code).toBe(4402);
-    expect(rpcCalls.map((c) => c.name)).not.toContain('waves_voice_stream_mint');
+    expect(client.texts).toContainEqual(expect.objectContaining({ type: 'Ready' }));
+    expect(rpcCalls.map((c) => c.name)).toContain('waves_voice_stream_mint');
   });
 
   it('sends a refusal that lands before the client socket opened once it opens', async () => {
