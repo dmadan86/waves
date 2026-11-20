@@ -29,6 +29,8 @@ describe('event names', () => {
       'assistant_undo',
       'assistant_question_answered',
       'assistant_teaser_viewed',
+      'voice_clip',
+      'voice_fix',
     ]);
   });
 

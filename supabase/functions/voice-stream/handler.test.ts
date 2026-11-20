@@ -85,7 +85,7 @@ function makeDeps(
     authFails?: boolean;
     used?: number;
     mints?: number;
-    /** The database refuses Free (outside the trial): reason 'free_tier'. */
+    /** The database answers reason 'free_tier' (no longer given to Free; kept to test the relay's mapping). */
     freeTier?: boolean;
     env?: Record<string, string>;
     /** On voice_agent_allowlist (chaos applies). */
@@ -312,7 +312,7 @@ describe('runRelay: the gate', () => {
   });
 
   it('refuses a spent stream budget with 4402 VOICE_STREAM_BUDGET', async () => {
-    const { client, connectUpstream } = await started({ mints: 30 });
+    const { client, connectUpstream } = await started({ mints: 3000 });
     expect(client.texts).toContainEqual(
       expect.objectContaining({ status: 402, code: 'VOICE_STREAM_BUDGET' }),
     );
@@ -320,7 +320,7 @@ describe('runRelay: the gate', () => {
     expect(connectUpstream).not.toHaveBeenCalled();
   });
 
-  it('refuses Free with 4403 VOICE_STREAM_FREE_TIER: no Deepgram socket is opened', async () => {
+  it('relays a database `free_tier` refusal as 4403 (legacy path; Free now streams): no Deepgram socket is opened', async () => {
     const { client, connectUpstream } = await started({ freeTier: true });
     expect(client.texts).toContainEqual(
       expect.objectContaining({ status: 403, code: 'VOICE_STREAM_FREE_TIER' }),
@@ -329,11 +329,10 @@ describe('runRelay: the gate', () => {
     expect(connectUpstream).not.toHaveBeenCalled();
   });
 
-  it('refuses a spent command allowance with 4402 VOICE_AGENT_QUOTA, before minting', async () => {
+  it('streams for Free even when the command allowance is spent (speech-to-text only)', async () => {
     const { client, rpcCalls } = await started({ used: 10 });
-    expect(client.texts).toContainEqual(expect.objectContaining({ code: 'VOICE_AGENT_QUOTA' }));
-    expect(client.closed?.code).toBe(4402);
-    expect(rpcCalls.map((c) => c.name)).not.toContain('waves_voice_stream_mint');
+    expect(client.texts).toContainEqual(expect.objectContaining({ type: 'Ready' }));
+    expect(rpcCalls.map((c) => c.name)).toContain('waves_voice_stream_mint');
   });
 
   it('sends a refusal that lands before the client socket opened once it opens', async () => {

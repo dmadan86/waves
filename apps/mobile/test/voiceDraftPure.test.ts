@@ -47,3 +47,15 @@ describe('unclearAmount', () => {
     expect(unclearAmount('')).toBeNull();
   });
 });
+
+describe('heardCaptureInput amount fill', () => {
+  it('carries the amount and what it was for when one expense is heard', () => {
+    const draft = heardCaptureInput('500 for carpooling', '2026-11-19', 'INR');
+    expect(draft.amount).toBe(50000n);
+    expect(draft.description).toContain('carpooling');
+    expect(draft.rawText).toBe('500 for carpooling');
+  });
+  it('stays at 0 when nothing numeric was heard', () => {
+    expect(heardCaptureInput('for current editing football', '2026-11-19', 'INR').amount).toBe(0n);
+  });
+});

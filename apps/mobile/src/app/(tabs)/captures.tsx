@@ -535,12 +535,19 @@ function CaptureListRow({
         {/* The amount and the ⋯ never shrink (RN's flexShrink is 0 by default),
             so every row's amount ends at the same point. */}
         <View style={{ alignItems: 'flex-end' }}>
-          <MoneyText
-            amount={BigInt(capture.amount)}
-            currency={capture.currency}
-            locale={locale}
-            variant="subheading"
-          />
+          {BigInt(capture.amount) === 0n ? (
+            // A heard sentence not yet read: no amount to show, so say so.
+            <Text style={{ fontSize: 14, fontWeight: '500', color: theme.color.textMuted }}>
+              {t.captures.amountUnknown}
+            </Text>
+          ) : (
+            <MoneyText
+              amount={BigInt(capture.amount)}
+              currency={capture.currency}
+              locale={locale}
+              variant="subheading"
+            />
+          )}
         </View>
         {/* One quiet ⋯: everything that is not the card's own tap lives behind
             it. Its own hitbox for a sighted tap, but hidden from the a11y tree —

@@ -235,16 +235,24 @@ export interface PcmBuffer<T extends { byteLength: number }> {
   discard: () => void;
   /** Bytes held and not yet sent. */
   heldBytes: () => number;
+  /** Every chunk kept since the press (up to the cap), sent or not — for the batch fallback. */
+  chunks: () => T[];
 }
 
 export function createPcmBuffer<T extends { byteLength: number }>(maxBytes: number): PcmBuffer<T> {
   let held: T[] = [];
+  const kept: T[] = [];
+  let keptBytes = 0;
   let bytes = 0;
   let sink: ((chunk: T) => void) | null = null;
   let dropped = false;
   return {
     push: (chunk) => {
       if (dropped) return;
+      if (keptBytes + chunk.byteLength <= maxBytes) {
+        kept.push(chunk);
+        keptBytes += chunk.byteLength;
+      }
       if (sink) {
         sink(chunk);
         return;
@@ -264,10 +272,13 @@ export function createPcmBuffer<T extends { byteLength: number }>(maxBytes: numb
     discard: () => {
       dropped = true;
       held = [];
+      kept.length = 0;
+      keptBytes = 0;
       bytes = 0;
       sink = null;
     },
     heldBytes: () => bytes,
+    chunks: () => [...kept],
   };
 }
 
@@ -283,4 +294,40 @@ export function remainingFrom(
   floorMs: number,
 ): number {
   return Math.max(floorMs, totalMs - Math.max(0, now - startedAt));
+}
+
+/** Standard base64 of raw bytes (the inverse of {@link base64ToBytes}). */
+export function bytesToBase64(bytes: Uint8Array): string {
+  let out = '';
+  for (let i = 0; i < bytes.length; i += 3) {
+    const n = ((bytes[i] ?? 0) << 16) | ((bytes[i + 1] ?? 0) << 8) | (bytes[i + 2] ?? 0);
+    out += B64[(n >> 18) & 63] + B64[(n >> 12) & 63];
+    out += i + 1 < bytes.length ? B64[(n >> 6) & 63] : '=';
+    out += i + 2 < bytes.length ? B64[n & 63] : '=';
+  }
+  return out;
+}
+
+/** Chunks of audio as one array. */
+export function joinChunks(chunks: readonly ArrayBuffer[]): Uint8Array {
+  const out = new Uint8Array(chunks.reduce((sum, c) => sum + c.byteLength, 0));
+  let at = 0;
+  for (const chunk of chunks) {
+    out.set(new Uint8Array(chunk), at);
+    at += chunk.byteLength;
+  }
+  return out;
+}
+
+/** Less than this much audio (0.3 s) is a click, not a sentence: not worth a batch call. */
+export const BATCH_MIN_BYTES = Math.round(PCM_BYTES_PER_SECOND * 0.3);
+
+/**
+ * The live stream would not attach: keep the recorder running and transcribe the
+ * whole clip when the hold ends, instead of dropping the audio for the phone's
+ * recogniser. Not for the monthly allowance (the batch call is refused too) and
+ * not once the mic has gone.
+ */
+export function batchAfterAttachFailure(failure: StreamTokenFailure, micLive: boolean): boolean {
+  return failure === 'error' && micLive;
 }

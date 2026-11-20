@@ -118,6 +118,7 @@ import { checkOnline } from '@/lib/voiceStream';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
 import { FOLLOW_UP_TURN_CAP, matchChip } from '@/lib/voiceReplyPure';
 import { findSplittableReceipt } from '@/lib/splitByItem';
+import { HeardLine } from '@/components/voice/HeardLine';
 import { PickChip } from '@/components/assistant/inline/PickChip';
 import { useSync } from '@/sync';
 
@@ -146,6 +147,8 @@ export interface VoiceFollowUpsProps {
    * the questions would have, and nothing closes the panel by itself.
    */
   addNow?: boolean;
+  /** The sentence that was heard: shown on the Added card with its names tappable. */
+  heard?: string;
 }
 
 /** What a saved bar may do to the expense being followed. */
@@ -286,6 +289,7 @@ export function VoiceFollowUps({
   renderSavedBar,
   onUndoable,
   addNow = false,
+  heard,
 }: VoiceFollowUpsProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -1216,6 +1220,26 @@ export function VoiceFollowUps({
 
       {addNow ? (
         <View style={{ gap: theme.spacing.sm }}>
+          {heard ? (
+            <HeardLine
+              transcript={heard}
+              saved={saved}
+              local={local}
+              busy={busy}
+              onFix={async (next) => {
+                const before = saved;
+                if (!(await persist(next))) return false;
+                // Lazy: analytics stays out of this screen's import graph.
+                /* eslint-disable @typescript-eslint/no-require-imports */
+                const telemetry =
+                  require('@/lib/voiceTelemetry') as typeof import('@/lib/voiceTelemetry');
+                /* eslint-enable @typescript-eslint/no-require-imports */
+                telemetry.trackVoiceFix('name');
+                onUndoable?.({ kind: 'edit', previous: before, what: 'answer' });
+                return true;
+              }}
+            />
+          ) : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
             {local.groups.length > 0 ? (
               <>

@@ -162,7 +162,10 @@
         {
           "microphonePermission": "Waves uses the microphone only while you hold the mic button, to write down what you say. With advanced voice on, the sound is sent to our transcription service and not stored.",
           "speechRecognitionPermission": "Waves turns what you say into the note on an expense, so you can add one without typing at the table.",
-          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
+          "androidSpeechServicePackages": [
+            "com.google.android.googlequicksearchbox",
+            "com.google.android.tts"
+          ]
         }
       ],
       [

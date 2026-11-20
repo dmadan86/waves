@@ -3549,6 +3549,14 @@ export interface UiStrings {
     micHint: string;
     /** Shown under the mic while a finger is held on the bar's button. */
     slideToCancel: string;
+    /** Hold-to-talk toast while the heard sentence is being read. */
+    holdReading: string;
+    /** Hold-to-talk toast after an add: {amount} to {where}. */
+    holdAdded: string;
+    /** Name span in the heard line: {word} as said, {name} as matched. */
+    heardSpan: string;
+    /** Sheet title for fixing a heard name: {word} as said. */
+    heardPick: string;
     title: string;
     prompt: string;
     example: string;
@@ -4998,6 +5006,7 @@ export interface UiStrings {
      *  bank messages are in it, so it is named for them. */
     tabBankMessages: string;
     tabAdded: string;
+    amountUnknown: string;
     /** The hero's line over the count of drafts still waiting to be filed. */
     heroWaiting: string;
     /** The hero's figure when nothing is waiting. */
@@ -11695,6 +11704,10 @@ const en: UiStrings = {
     speakExpense: 'Speak an expense',
     micHint: 'Tap to open, or hold and talk',
     slideToCancel: 'Slide to cancel',
+    holdReading: 'Reading…',
+    holdAdded: 'Added {amount} to {where}',
+    heardSpan: 'Heard {word}, matched {name}. Tap to change',
+    heardPick: 'Who is “{word}”?',
     title: 'Speak an expense',
     prompt: 'Say what you spent',
     example: 'e.g. “add 500 to Goa trip”',
@@ -12886,6 +12899,7 @@ const en: UiStrings = {
     tabSms: 'SMS',
     tabBankMessages: 'Bank SMS',
     tabAdded: 'Added by you',
+    amountUnknown: 'Amount?',
     heroWaiting: 'Waiting on you',
     heroCaughtUp: 'All caught up',
     dismissManyConfirm: {
@@ -19317,6 +19331,10 @@ const ta: UiStrings = {
     speakExpense: 'செலவைப் பேசு',
     micHint: 'திறக்க தட்டு, அல்லது அழுத்திப் பிடித்துப் பேசு',
     slideToCancel: 'ரத்து செய்ய நகர்த்து',
+    holdReading: 'படிக்கிறேன்…',
+    holdAdded: '{where} இல் {amount} சேர்க்கப்பட்டது',
+    heardSpan: '{word} என்று கேட்டது, {name} என்று பொருத்தப்பட்டது. மாற்ற தட்டவும்',
+    heardPick: '“{word}” யார்?',
     title: 'செலவைப் பேசு',
     prompt: 'நீங்கள் என்ன செலவழித்தீர்கள் என்று சொல்',
     example: 'உ.தா. “கோவா டிரிப்பில் 500 சேர்”',
@@ -20546,6 +20564,7 @@ const ta: UiStrings = {
     tabSms: 'எஸ்எம்எஸ்',
     tabBankMessages: 'வங்கி SMS',
     tabAdded: 'நீங்கள் சேர்த்தவை',
+    amountUnknown: 'தொகை?',
     heroWaiting: 'உங்கள் கவனத்திற்கு',
     heroCaughtUp: 'எல்லாம் முடிந்தது',
     dismissManyConfirm: {
@@ -27078,6 +27097,10 @@ const hi: UiStrings = {
     speakExpense: 'खर्च बोलें',
     micHint: 'खोलने के लिए टैप करें, या दबाकर बोलें',
     slideToCancel: 'रद्द करने के लिए सरकाएँ',
+    holdReading: 'पढ़ रहा हूँ…',
+    holdAdded: '{where} में {amount} जोड़ दिया',
+    heardSpan: '{word} सुना, {name} से मिलाया। बदलने के लिए टैप करें',
+    heardPick: '“{word}” कौन है?',
     title: 'खर्च बोलें',
     prompt: 'बताएँ आपने क्या खर्च किया',
     example: 'जैसे “गोवा ट्रिप में 500 जोड़ें”',
@@ -28274,6 +28297,7 @@ const hi: UiStrings = {
     tabSms: 'एसएमएस',
     tabBankMessages: 'बैंक SMS',
     tabAdded: 'आपने जोड़े',
+    amountUnknown: 'राशि?',
     heroWaiting: 'आपके इंतज़ार में',
     heroCaughtUp: 'सब हो गया',
     dismissManyConfirm: {
@@ -34803,6 +34827,10 @@ const ar: UiStrings = {
     speakExpense: 'انطق مصروفًا',
     micHint: 'انقر للفتح، أو اضغط مطوّلًا وتحدّث',
     slideToCancel: 'اسحب للإلغاء',
+    holdReading: 'أقرأ…',
+    holdAdded: 'أُضيف {amount} إلى {where}',
+    heardSpan: 'سُمع {word}، طابق مع {name}. اضغط للتغيير',
+    heardPick: 'من هو «{word}»؟',
     title: 'انطق مصروفًا',
     prompt: 'قل ماذا أنفقت',
     example: 'مثل: «أضف 500 إلى رحلة جوا»',
@@ -36071,6 +36099,7 @@ const ar: UiStrings = {
     tabSms: 'الرسائل',
     tabBankMessages: 'رسائل البنك',
     tabAdded: 'أضفتها أنت',
+    amountUnknown: 'المبلغ؟',
     heroWaiting: 'بانتظارك',
     heroCaughtUp: 'لا شيء متبقٍّ',
     dismissManyConfirm: {

@@ -2,9 +2,9 @@
  * The gate in front of every live Deepgram stream, shared by `voice-stream` (the
  * relay the app uses) and `voice-stream-token` (the token mint older builds
  * still call). In order: signed in, flag/allowlist, the key is configured, the
- * rate limit, a peek at this month's command allowance, then one stream mint
- * taken from the monthly stream budget (`waves_voice_stream_mint`), which also
- * refuses Free (outside the Pro trial) with a 403. Every
+ * rate limit, then one stream mint taken from the monthly stream budget
+ * (`waves_voice_stream_mint`; Free has a generous budget of its own, and the
+ * command allowance is not involved: this is speech-to-text only). Every
  * refusal is an HttpError the caller turns into its own wire format.
  */
 
@@ -14,7 +14,6 @@ import {
   VOICE_AGENT_PRO_MONTHLY,
   PRO_TRIAL_VOICE_DAYS,
   VOICE_AGENT_TRIAL_COMMANDS,
-  VOICE_STREAM_FREE_MONTHLY,
   VOICE_STREAM_PRO_MONTHLY,
   VOICE_STREAM_TRIAL_MONTHLY,
   VoiceAgentError,
@@ -28,6 +27,13 @@ import {
  * streams do.
  */
 export const STREAM_SECONDS_PER_MINT = 20;
+
+/**
+ * Speech-to-text clips a month for Free (about 10 a day): cloud transcription
+ * is for everyone signed in; only the agent step is Pro. Spent, the app listens
+ * on the phone.
+ */
+export const FREE_STT_CLIPS_MONTHLY = 300;
 
 export interface StreamGateDeps {
   readonly env: (name: string) => string | undefined;
@@ -52,7 +58,7 @@ export interface Admitted {
 
 interface StreamMint {
   readonly allowed: boolean;
-  /** 'free_tier': Free is never streamed (Deepgram is for Pro and the trial). */
+  /** 'free_tier': legacy refusal; Free now streams within its own clip budget. */
   readonly reason?: string;
   readonly mints: number;
   readonly budget: number;
@@ -76,22 +82,12 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
   if (!key) throw unavailable('Advanced voice is not configured');
   await deps.rateLimit(profileId);
 
-  // No live stream once this month's allowance is spent: the stream is a cost
-  // too (Deepgram bills the minutes), not only the model call. The app hears a
-  // 402 and listens on the phone instead. A peek, not a reservation — the
-  // command is counted when the words are used (voice-agent, or its meter call
-  // for the instant on-phone path).
-  const remaining = await remainingCommands(deps.service, profileId, new Date());
-  if (remaining <= 0) {
-    throw new HttpError(402, VoiceAgentError.QuotaReached, 'Advanced voice allowance used up');
-  }
-
   // The stream budget: a reservation, taken before the stream so a mic opened
   // and abandoned over and over runs out too. Fails closed — this is a spend
   // gate, and the app falls back to on-device listening on any refusal.
   const { data: mintData, error: mintError } = await deps.service.rpc('waves_voice_stream_mint', {
     p_profile: profileId,
-    p_free_budget: VOICE_STREAM_FREE_MONTHLY,
+    p_free_budget: FREE_STT_CLIPS_MONTHLY,
     p_pro_budget: VOICE_STREAM_PRO_MONTHLY,
     p_trial_budget: VOICE_STREAM_TRIAL_MONTHLY,
     p_seconds_budget: VOICE_STREAM_PRO_MONTHLY * STREAM_SECONDS_PER_MINT,
@@ -115,9 +111,7 @@ export async function admitStream(deps: StreamGateDeps, fn: string): Promise<Adm
     }),
   );
   if (!mint.allowed && mint.reason === 'free_tier') {
-    // Free's commands use the phone's own speech recogniser and reach voice-agent
-    // as text (about a seventh of the cost). The app asks for a stream only when
-    // it thinks the person is not Free; this is the server's own answer.
+    // Legacy answer from the database; Free streams speech-to-text now.
     throw new HttpError(
       403,
       VoiceAgentError.StreamFreeTier,

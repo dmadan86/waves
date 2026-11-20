@@ -2,12 +2,11 @@
  * Who streams to Deepgram and who listens on the phone — pure, so it is tested
  * apart from the screen.
  *
- * Pro and the Pro trial stream the mic live to Deepgram (the cloud engine).
- * Free — including the commands earned by watching a reward ad — uses the
- * phone's own speech recogniser and sends the transcript as text to the
- * `voice-agent` function, which is about a seventh of the cost per command. The
- * server enforces the same split (`waves_voice_stream_mint` refuses Free), so
- * this only decides what the app asks for first.
+ * Everyone signed in streams speech-to-text to Deepgram (Nova-3, via the relay)
+ * for their own monthly clip budget; the phone's recogniser is only the fallback
+ * (offline, over budget, stream refused). Only the Claude agent step is Pro:
+ * `streamsToCloud` says who gets the whole-clip batch fallback and the agent
+ * path that takes audio, which is Pro and the Pro trial.
  */
 
 import { PlanTier } from '@waves/core';
@@ -15,7 +14,7 @@ import { PlanTier } from '@waves/core';
 import { tierFromServerPlan } from '@/lib/planTier';
 
 /**
- * Whether the mic should stream live. `waves_my_plan`'s answer, the store's own
+ * Whether this person gets Pro's cloud path (whole-clip batch, agent on audio). `waves_my_plan`'s answer, the store's own
  * view of the tier and the time decide: a paid plan, the Pro trial, or the
  * trial's 30-day voice pool streams; everyone else is Free.
  */

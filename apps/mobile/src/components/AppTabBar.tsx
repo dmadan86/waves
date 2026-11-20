@@ -24,7 +24,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
-import { BackHandler, Platform, Vibration, View } from 'react-native';
+import { AppState, BackHandler, Platform, Vibration, View } from 'react-native';
 import Animated, {
   Easing,
   Extrapolation,
@@ -50,7 +50,7 @@ import {
   type PillTabItem,
 } from '@waves/ui';
 
-import { useCaptures } from '@/data/hooks';
+import { useCaptures, useVoiceAgentStatus } from '@/data/hooks';
 import { UpdateBar } from '@/components/UpdateBar';
 import { isRtl, plural, useStrings } from '@/i18n';
 import { useAuth, useViewerId } from '@/lib/auth';
@@ -74,6 +74,10 @@ import { useFabOverride } from '@/lib/fabOverride';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { useFollowSpace } from '@/lib/useSpaces';
 import { pushToTalk } from '@/lib/pushToTalk';
+import { HoldVoiceHost } from '@/components/voice/HoldVoiceHost';
+import { holdMicState, refreshHoldMic } from '@/lib/holdMic';
+import { holdPlan } from '@/lib/holdVoicePure';
+import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import {
   isPersonalMode,
   isTabRoot,
@@ -476,22 +480,63 @@ export function AppTabBar() {
   // The finger has landed: open the voice screen *now*. The mic on that screen
   // starts itself as it mounts, so this is the earliest the recogniser can
   // possibly be live — earlier than today's tap, which waits for the lift.
+  // Hold on the spot (a pill over this screen) when the mic is ready to listen
+  // and nothing has to be asked first; otherwise open the voice screen, where
+  // the consent and permission flows live.
+  const { enabled: agentServerOn, ready: statusReady } = useVoiceAgentStatus();
+  const voiceConsent = useVoiceConsent(viewerId);
+  useEffect(() => {
+    void refreshHoldMic();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void refreshHoldMic();
+    });
+    return () => sub.remove();
+  }, []);
+  // `down`: finger on the mic over this screen; `send`: lifted, being finished.
+  const [holdMode, setHoldMode] = useState<'off' | 'down' | 'send'>('off');
+  // This hold is the in-place pill, not the voice screen.
+  const inPlace = useRef(false);
+
   const holdStart = useCallback((): void => {
     cancelled.current = false;
-    pushToTalk.begin();
-    setHolding(true);
     buzz(15);
+    const { recognition, micGranted } = holdMicState();
+    inPlace.current =
+      holdPlan({
+        recognition,
+        micGranted,
+        statusReady,
+        consentReady: voiceConsent.ready,
+        agentServerOn,
+        consent: voiceConsent.state,
+      }) === 'overlay';
+    pushToTalk.begin();
+    if (inPlace.current) {
+      setHoldMode('down');
+      return;
+    }
+    setHolding(true);
     openVoice();
-  }, [openVoice]);
+  }, [agentServerOn, openVoice, statusReady, voiceConsent.ready, voiceConsent.state]);
 
-  // The finger has lifted. A press too brief to have carried any speech is
-  // reported as a plain tap and changes nothing — the screen is open and still
-  // listening, which is exactly what a tap has always done.
+  // The finger has lifted. A press too brief to have carried any speech is a
+  // plain tap and opens the voice screen, as it always has.
   const holdEnd = useCallback((): void => {
     setHolding(false);
     if (cancelled.current) return;
-    if (pushToTalk.release() === 'send') buzz(15);
-  }, []);
+    const result = pushToTalk.release();
+    if (inPlace.current) {
+      if (result === 'send') {
+        buzz(15);
+        setHoldMode('send');
+      } else {
+        setHoldMode('off');
+        openVoice();
+      }
+      return;
+    }
+    if (result === 'send') buzz(15);
+  }, [openVoice]);
 
   // Sliding off the button abandons the whole thing, the way it does on a voice
   // note. Which way is "off" follows the writing direction: the gesture reads as
@@ -502,6 +547,7 @@ export function AppTabBar() {
     if (away < CANCEL_DISTANCE) return;
     cancelled.current = true;
     setHolding(false);
+    setHoldMode('off');
     pushToTalk.cancel();
     // Two beats, so calling it off never feels like sending it.
     buzz(30);
@@ -564,6 +610,12 @@ export function AppTabBar() {
       {/* The in-app update bar rides on the navigation: there wherever the bar
           is, gone wherever it is not. */}
       <UpdateBar />
+      <HoldVoiceHost
+        mode={holdMode}
+        groupId={groupId}
+        personal={personal}
+        onFinished={() => setHoldMode('off')}
+      />
       {/* Both frames stay put: fading destinations never moves screen content. */}
       {[false, true].map((mode) => (
         <Animated.View

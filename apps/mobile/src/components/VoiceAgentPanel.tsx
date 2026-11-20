@@ -30,6 +30,9 @@ import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import { VoiceConfirmCard } from '@/components/VoiceConfirmCard';
 import { AssistantSavedBar, type SavedBarEvent } from '@/components/AssistantSavedBar';
 import { VoiceFollowUps } from '@/components/VoiceFollowUps';
+import { findHeardNames, swappedName } from '@/lib/voiceHeardPure';
+import { learnedForGroup, withAliases } from '@/lib/voiceNames';
+import { rememberNamePick, useVoiceNameMemory } from '@/lib/voiceNameStore';
 
 import { nudgeToSettle } from '@/data/api';
 import {
@@ -118,7 +121,7 @@ export interface VoiceAgentPanelProps {
   onFooter?: (spec: FooterSpec | null) => void;
 }
 
-function agentText(t: UiStrings): VoiceAgentText {
+export function agentText(t: UiStrings): VoiceAgentText {
   const v = t.voice;
   return {
     add: v.agentAdd,
@@ -356,6 +359,7 @@ export function VoiceAgentPanel({
           onClose={onClose}
           onUndoable={setHandoff}
           addNow
+          heard={plan.transcript || transcript}
           renderSavedBar={(bar) => (
             <AssistantSavedBar
               context={bar}
@@ -507,6 +511,40 @@ function ConfirmExpense({
   const upsertPersonal = useUpsertPersonalRecord();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const viewerId = useViewerId();
+  const nameMemory = useVoiceNameMemory(viewerId);
+
+  // Who was swapped for whom on the card before Add answers the heard names.
+  const learnFromEdit = (resolved: ConfirmableAction): void => {
+    if (action.type !== 'add_expense' || resolved.type !== 'add_expense') return;
+    if (resolved.groupId !== action.groupId) return;
+    const people = (a: typeof action): string[] => [
+      ...new Set([a.paidByMemberId, ...a.split.shares.map((share) => share.memberId)]),
+    ];
+    const members = withAliases(
+      (local.groups.find((g) => g.id === action.groupId)?.members ?? []).map((m) => ({
+        id: m.id,
+        name: m.name,
+        isMe: m.isViewer,
+      })),
+      nameMemory,
+      action.groupId,
+    );
+    const names = findHeardNames(
+      transcript,
+      members,
+      people(action),
+      learnedForGroup(nameMemory, action.groupId),
+    );
+    const swap = swappedName(names, people(action), people(resolved));
+    if (swap)
+      void rememberNamePick(viewerId, {
+        heard: swap.heard,
+        memberId: swap.to,
+        groupId: action.groupId,
+        members,
+      });
+  };
 
   const add = async (resolved: ConfirmableAction): Promise<void> => {
     setBusy(true);
@@ -522,6 +560,7 @@ function ConfirmExpense({
         await writeExpense.mutateAsync(write);
         groupWrite = write;
       }
+      learnFromEdit(resolved);
       onAdded({ state: savedStateFrom(resolved, groupWrite, expenseId, today), write: groupWrite });
     } catch {
       setFailed(true);

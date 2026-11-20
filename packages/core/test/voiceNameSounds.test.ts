@@ -22,6 +22,15 @@ describe('names a phone recogniser mishears as words', () => {
     ]);
     expect(result).toMatchObject({ status: 'resolved', id: 'r', fuzzy: true });
   });
+
+  it('resolves "raining" to Renny among the group', () => {
+    const result = resolveSpokenName('raining', [
+      { id: 'r', name: 'Renny Benita' },
+      { id: 'v', name: 'Ravi' },
+      { id: 'a', name: 'Anu' },
+    ]);
+    expect(result).toMatchObject({ status: 'resolved', id: 'r', fuzzy: true });
+  });
 });
 
 describe('names the way recognisers really write them', () => {
