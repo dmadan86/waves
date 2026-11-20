@@ -3517,6 +3517,20 @@ export interface UiStrings {
     savedTitle: string;
     savedTo: string;
     savedForLater: string;
+    stripSpeak: string;
+    stripAdded: string;
+    stripSaved: string;
+    added: string;
+    splitEqually: string;
+    youPaid: string;
+    chipGroup: string;
+    chipSplit: string;
+    chipReceipt: string;
+    chipNote: string;
+    unclearTitle: string;
+    unclearQuestion: string;
+    unclearPlaceholder: string;
+    unclearDrafts: string;
     savedSettled: string;
     savedReminded: string;
     savedMembers: string;
@@ -11612,7 +11626,7 @@ const en: UiStrings = {
     subline: 'I’ll understand and organize it for you.',
     statusReady: 'Tap and speak',
     statusStarting: 'Getting the mic ready…',
-    statusListening: 'Listening…',
+    statusListening: "Stop talking and it's added",
     statusProcessing: 'Understanding your expense…',
     statusNoSpeech: 'Couldn’t hear that',
     statusNoAmount: 'Heard you, but no amount',
@@ -11642,6 +11656,20 @@ const en: UiStrings = {
     savedTitle: 'Added',
     savedTo: 'Added to {where}',
     savedForLater: 'Saved for later in Unassigned',
+    stripSpeak: 'Speak',
+    stripAdded: 'Added',
+    stripSaved: 'Saved',
+    added: 'Added',
+    splitEqually: 'split equally',
+    youPaid: 'you paid',
+    chipGroup: 'Group',
+    chipSplit: 'Split',
+    chipReceipt: '+ Receipt',
+    chipNote: '+ Note',
+    unclearTitle: 'Saved to finish later',
+    unclearQuestion: 'How much was it? (optional)',
+    unclearPlaceholder: 'Amount',
+    unclearDrafts: "It's in your drafts on Home",
     savedSettled: 'Settled up with {name}',
     savedReminded: 'Reminder sent to {name}',
     savedMembers: 'Added {name} to {group}',
@@ -19209,7 +19237,7 @@ const ta: UiStrings = {
     subline: 'நான் புரிந்துகொண்டு உங்கள் செலவை ஒழுங்குபடுத்துகிறேன்.',
     statusReady: 'தட்டிப் பேசுங்கள்',
     statusStarting: 'மைக் தயாராகிறது…',
-    statusListening: 'கேட்கிறேன்…',
+    statusListening: 'பேசி முடித்தால் தானாகச் சேரும்',
     statusProcessing: 'உங்கள் செலவைப் புரிந்துகொள்கிறேன்…',
     statusNoSpeech: 'கேட்கவில்லை',
     statusNoAmount: 'கேட்டேன், ஆனால் தொகை இல்லை',
@@ -19240,6 +19268,20 @@ const ta: UiStrings = {
     savedTitle: 'சேர்த்தாகிவிட்டது',
     savedTo: '{where} இல் சேர்க்கப்பட்டது',
     savedForLater: 'பின்னர் பார்க்க ஒதுக்கப்படாதவற்றில் சேமிக்கப்பட்டது',
+    stripSpeak: 'பேசுங்கள்',
+    stripAdded: 'சேர்த்தது',
+    stripSaved: 'சேமித்தது',
+    added: 'சேர்க்கப்பட்டது',
+    splitEqually: 'சமமாகப் பிரிப்பு',
+    youPaid: 'நீங்கள் செலுத்தினீர்கள்',
+    chipGroup: 'குழு',
+    chipSplit: 'பிரி',
+    chipReceipt: '+ ரசீது',
+    chipNote: '+ குறிப்பு',
+    unclearTitle: 'பின்னர் முடிக்க சேமிக்கப்பட்டது',
+    unclearQuestion: 'எவ்வளவு? (விருப்பம்)',
+    unclearPlaceholder: 'தொகை',
+    unclearDrafts: 'இது முகப்பில் உங்கள் வரைவுகளில் உள்ளது',
     savedSettled: '{name} உடன் கணக்கு தீர்க்கப்பட்டது',
     savedReminded: '{name} க்கு நினைவூட்டல் அனுப்பப்பட்டது',
     savedMembers: '{name} ஐ {group} இல் சேர்த்தோம்',
@@ -26947,7 +26989,7 @@ const hi: UiStrings = {
     subline: 'मैं समझकर आपका खर्च व्यवस्थित कर दूँगा।',
     statusReady: 'टैप करें और बोलें',
     statusStarting: 'माइक तैयार हो रहा है…',
-    statusListening: 'सुन रहा हूँ…',
+    statusListening: 'बोलना बंद करें, खर्च जुड़ जाएगा',
     statusProcessing: 'आपका खर्च समझ रहा हूँ…',
     statusNoSpeech: 'सुनाई नहीं दिया',
     statusNoAmount: 'सुना, पर कोई रकम नहीं मिली',
@@ -26977,6 +27019,20 @@ const hi: UiStrings = {
     savedTitle: 'जोड़ दिया',
     savedTo: '{where} में जोड़ दिया',
     savedForLater: 'बाद के लिए ‘अनअसाइन्ड’ में सहेजा',
+    stripSpeak: 'बोलें',
+    stripAdded: 'जुड़ा',
+    stripSaved: 'सहेजा',
+    added: 'जोड़ा गया',
+    splitEqually: 'बराबर बाँटा',
+    youPaid: 'आपने चुकाया',
+    chipGroup: 'ग्रुप',
+    chipSplit: 'बाँटें',
+    chipReceipt: '+ रसीद',
+    chipNote: '+ नोट',
+    unclearTitle: 'बाद में पूरा करने के लिए सहेजा',
+    unclearQuestion: 'कितना था? (वैकल्पिक)',
+    unclearPlaceholder: 'राशि',
+    unclearDrafts: 'यह होम में आपके ड्राफ़्ट में है',
     savedSettled: '{name} के साथ हिसाब बराबर किया',
     savedReminded: '{name} को याद दिलाया गया',
     savedMembers: '{name} को {group} में जोड़ा',
@@ -34648,7 +34704,7 @@ const ar: UiStrings = {
     subline: 'سأفهم مصروفك وأنظّمه.',
     statusReady: 'اضغط وتحدّث',
     statusStarting: 'جارٍ تجهيز الميكروفون…',
-    statusListening: 'أستمع…',
+    statusListening: 'توقّف عن الكلام وسيُضاف',
     statusProcessing: 'أفهم مصروفك…',
     statusNoSpeech: 'لم أسمع ذلك',
     statusNoAmount: 'سمعتك، لكن بلا مبلغ',
@@ -34678,6 +34734,20 @@ const ar: UiStrings = {
     savedTitle: 'تمت الإضافة',
     savedTo: 'أُضيف إلى {where}',
     savedForLater: 'حُفظ لوقت لاحق في غير المصنّف',
+    stripSpeak: 'تحدّث',
+    stripAdded: 'أُضيف',
+    stripSaved: 'حُفظ',
+    added: 'أُضيف',
+    splitEqually: 'قُسّم بالتساوي',
+    youPaid: 'أنت دفعت',
+    chipGroup: 'المجموعة',
+    chipSplit: 'تقسيم',
+    chipReceipt: '+ إيصال',
+    chipNote: '+ ملاحظة',
+    unclearTitle: 'حُفظ لإكماله لاحقًا',
+    unclearQuestion: 'كم كان المبلغ؟ (اختياري)',
+    unclearPlaceholder: 'المبلغ',
+    unclearDrafts: 'موجود في مسوداتك في الرئيسية',
     savedSettled: 'تمت التسوية مع {name}',
     savedReminded: 'أُرسل تذكير إلى {name}',
     savedMembers: 'أُضيف {name} إلى {group}',

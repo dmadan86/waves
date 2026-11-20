@@ -11,12 +11,15 @@ import { Pressable, View } from 'react-native';
 import { iconSize, Text, useTheme } from '@waves/ui';
 
 export function SavedSummary({
+  lead,
   amount,
   detail,
   editLabel,
   onEdit,
   children,
 }: {
+  /** A small word above the amount ("Added"). */
+  lead?: string;
   amount: string;
   detail: string;
   /** Screen-reader label for the pencil; omitted with `onEdit` when there is no pencil. */
@@ -48,6 +51,11 @@ export function SavedSummary({
       >
         <Ionicons name="checkmark" size={iconSize.xl} color={theme.color.onBrand} />
       </View>
+      {lead ? (
+        <Text tone="muted" style={{ fontWeight: '700' }}>
+          {lead}
+        </Text>
+      ) : null}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs }}>
         <Text style={{ fontSize: 34, lineHeight: 42, fontWeight: '800' }}>{amount}</Text>
         {onEdit ? (

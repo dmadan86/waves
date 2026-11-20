@@ -38,6 +38,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native';
@@ -85,6 +86,8 @@ import {
   useAllGroupMembers,
   useCreateCapture,
   useCreateGroup,
+  useDeleteCapture,
+  useUpdateCapture,
   useGroup,
   useGroupLabeller,
   useGroupLedger,
@@ -147,6 +150,13 @@ import {
 } from '@/components/VoiceAgentPanel';
 import { AssistantSavedBar } from '@/components/AssistantSavedBar';
 import { VoiceFollowUps } from '@/components/VoiceFollowUps';
+import { StageStrip } from '@/components/voice/StageStrip';
+import {
+  heardCaptureInput,
+  leaveUpdatesDraft,
+  unclearAmount,
+  worthFiling,
+} from '@/lib/voiceDraftPure';
 import { VoiceDetailRows } from '@/components/voice/VoiceDetailRows';
 import { VoiceSplitSheet } from '@/components/voice/VoiceSplitSheet';
 import type { UndoEntry } from '@/lib/assistantUndo';
@@ -495,6 +505,44 @@ export default function VoiceScreen() {
   const widgetHeard = typeof params.heard === 'string' ? params.heard.trim() : '';
 
   const createCapture = useCreateCapture();
+  const updateCapture = useUpdateCapture();
+  const deleteCapture = useDeleteCapture();
+  // The capture-inbox draft the heard sentence was filed as, the moment it arrived.
+  // Never lost: it stays until an add promotes it (see `dropHeardDraft`).
+  const heardId = useRef<string | null>(null);
+  const heardSentence = useRef<string | null>(null);
+  // The in-flight draft write, so a delete never overtakes the create it undoes.
+  const heardWrite = useRef<Promise<void>>(Promise.resolve());
+  // File what was heard as an amount-less draft carrying the sentence. A later
+  // sentence on the same screen (a fix, an answer) rewrites that one draft.
+  const fileHeard = (transcript: string): void => {
+    if (!worthFiling(transcript) || heardSentence.current === transcript) return;
+    heardSentence.current = transcript;
+    const fields = heardCaptureInput(transcript, today(), dc);
+    const existing = heardId.current;
+    const captureId = existing ?? randomUUID();
+    heardId.current = captureId;
+    // Silent: the sentence is on screen too, and leaving writes the draft again.
+    const write = existing
+      ? updateCapture.mutateAsync({ captureId, ...fields })
+      : createCapture.mutateAsync({ captureId, ...fields });
+    heardWrite.current = write.then(
+      () => undefined,
+      () => undefined,
+    );
+    write.catch(() => {
+      if (!existing) heardId.current = null;
+      heardSentence.current = null;
+    });
+  };
+  // An expense was written: the draft that held the sentence has done its job.
+  const dropHeardDraft = (): void => {
+    const id = heardId.current;
+    heardId.current = null;
+    heardSentence.current = null;
+    if (id)
+      void heardWrite.current.then(() => deleteCapture.mutateAsync(id)).catch(() => undefined);
+  };
   const createGroup = useCreateGroup();
   const upsertPersonal = useUpsertPersonalRecord();
   // "Who is in this" for every group I am in — used to tell whether a set of
@@ -576,6 +624,8 @@ export default function VoiceScreen() {
   const [savedResult, setSavedResult] = useState<
     | { kind: 'expense'; line: string; state: SavedState; write: AgentExpenseWrite | null }
     | { kind: 'line'; line: string }
+    // Heard, but no amount: kept as a draft, with one optional question.
+    | { kind: 'unclear' }
     | null
   >(null);
   const [savedHandoff, setSavedHandoff] = useState<UndoEntry | null>(null);
@@ -694,6 +744,8 @@ export default function VoiceScreen() {
   const [autoBanner, setAutoBanner] = useState<{
     label: string;
     fallback: 'review' | 'listening';
+    /** An expense added at once: no Undo card, the Added state carries Undo. */
+    instant?: boolean;
     /** Held for an explicit Confirm instead of a timer: the words came in on a
         link, not from this person's own mic. */
     needsConfirm?: boolean;
@@ -871,10 +923,16 @@ export default function VoiceScreen() {
 
   // A confident command writes itself after this many ms, unless Undo is tapped.
   const AUTO_COMMIT_MS = 4000;
+  // An expense is added at once; the beat only lets this render's state settle.
+  const ADD_NOW_MS = 150;
 
   // Arm the auto-act window: show the banner, hold in 'committing', and fire the
   // current `save` when it elapses. A fresh parse, Undo, or unmount cancels it.
-  const beginAutoCommit = (banner: { label: string; fallback: 'review' | 'listening' }): void => {
+  const beginAutoCommit = (banner: {
+    label: string;
+    fallback: 'review' | 'listening';
+    instant?: boolean;
+  }): void => {
     if (autoTimer.current) clearTimeout(autoTimer.current);
     setNoAmount(false);
     setPhase('committing');
@@ -885,10 +943,13 @@ export default function VoiceScreen() {
       return;
     }
     setAutoBanner(banner);
-    autoTimer.current = setTimeout(() => {
-      autoTimer.current = null;
-      runAutoCommit(banner.fallback);
-    }, AUTO_COMMIT_MS);
+    autoTimer.current = setTimeout(
+      () => {
+        autoTimer.current = null;
+        runAutoCommit(banner.fallback);
+      },
+      banner.instant ? ADD_NOW_MS : AUTO_COMMIT_MS,
+    );
   };
 
   // Write the armed command — when the Undo window elapses, or on Confirm for
@@ -962,8 +1023,17 @@ export default function VoiceScreen() {
     setLocation(null);
   };
 
+  // Heard, but nothing to add (no amount): kept as the draft already filed, with
+  // one optional question instead of a stop.
+  const landUnclear = (): void => {
+    setNoAmount(false);
+    setAgentSession(null);
+    setSavedResult({ kind: 'unclear' });
+    setPhase('saved');
+  };
+
   const applyResult = (result: VoiceParseResult): void => {
-    const auto = voiceAutoAction(result);
+    const auto = voiceAutoAction(result, { launchGroupId, launchPersonal });
 
     // A bare "make a group called X" carries no amount, so it would trip the
     // no-amount guard below. Handle it first: mint the group and auto-create it
@@ -987,9 +1057,7 @@ export default function VoiceScreen() {
     }
 
     if (result.items.length === 0) {
-      setNoAmount(true);
-      setAttempt((current) => current + 1);
-      setPhase('listening');
+      landUnclear();
       return;
     }
     setDrafts(toDrafts(result));
@@ -1002,6 +1070,7 @@ export default function VoiceScreen() {
     resetForNewParse();
     // Default the destination to what was heard: a new group to make, an
     // existing group named, else the capture inbox.
+    let landed = false;
     if (result.group?.kind === 'create') {
       const created = { groupId: randomUUID(), memberId: randomUUID(), name: result.group.name };
       setRequested(created);
@@ -1009,6 +1078,7 @@ export default function VoiceScreen() {
     } else if (result.group?.kind === 'existing') {
       setRequested(null);
       setDest({ kind: 'existing', groupId: result.group.groupId });
+      landed = true;
     } else if (
       result.intent &&
       (result.intent.groupSource === 'ambiguous' || result.intent.groupSource === 'unresolved')
@@ -1022,6 +1092,7 @@ export default function VoiceScreen() {
       // launch-group context below: an explicit solo marker is a clear choice.
       setRequested(null);
       setDest({ kind: 'me' });
+      landed = true;
     } else if (
       launchGroupId &&
       (groups.data == null ||
@@ -1037,30 +1108,18 @@ export default function VoiceScreen() {
       // falls through to the inbox below.
       setRequested(null);
       setDest({ kind: 'existing', groupId: launchGroupId });
+      landed = true;
     } else {
       setRequested(null);
       setDest({ kind: 'unassigned' });
     }
     setNoAmount(false);
 
-    // Confident single expense to an existing, named group — write it after a
-    // short Undo window rather than asking for a tap that would only confirm the
-    // group's own currency and an equal split (the defaults the review applies).
-    // Only when the group has a name to show, so the banner can say where it
-    // lands; an unnamed 1:1 falls to the review instead.
-    if (auto?.kind === 'commit-expense') {
-      const groupName = groupRows.find((group) => group.id === auto.groupId)?.name?.trim();
-      if (groupName) {
-        const item = result.items[0];
-        const currency = item.currency ?? dc;
-        beginAutoCommit({
-          label: t.voice.autoAdding
-            .replace('{amount}', `${item.amountMajor} ${currency}`)
-            .replace('{group}', groupName),
-          fallback: 'review',
-        });
-        return;
-      }
+    // One clear expense with a destination that resolved: add it now. Undo is on
+    // the Added state that follows. Anything the review must decide goes there.
+    if (auto?.kind === 'commit-expense' && landed) {
+      beginAutoCommit({ label: '', fallback: 'review', instant: true });
+      return;
     }
 
     setPhase('review');
@@ -1444,6 +1503,7 @@ export default function VoiceScreen() {
     if (route === 'agent') {
       if (__DEV__) console.log('[voice] path: agent');
       commandPath.current = 'agent';
+      fileHeard(transcript);
       if (typed) setEngine(CLOUD);
       setAgentSession({ transcript, alternatives });
       setPhase('agent');
@@ -1501,6 +1561,7 @@ export default function VoiceScreen() {
       offerIfNeeded(false);
       return;
     }
+    if (mode !== 'append') fileHeard(transcript);
     setPhase('thinking');
     const token = (interpretToken.current += 1);
     void (async () => {
@@ -1664,7 +1725,7 @@ export default function VoiceScreen() {
     // and the inbox folds them into one collapsible total. A lone capture gets
     // none — there is nothing to group.
     const batchId = drafts.length > 1 ? randomUUID() : null;
-    for (const draft of drafts) {
+    for (const [index, draft] of drafts.entries()) {
       const currency = draft.currency ?? dc;
       const amount = toMinor(draft.amount, currency);
       if (amount === null) continue;
@@ -1672,18 +1733,39 @@ export default function VoiceScreen() {
       // typed capture and add-expense forms do — so a voiced expense lands with a
       // sensible bucket rather than uncategorised. Null (unrecognised text) is fine.
       const description = draft.note.trim() || fallback;
-      await createCapture.mutateAsync({
-        captureId: draft.key,
+      const fields = {
         description,
         category: draft.category ?? guessCategory(description),
         expenseDate: date,
         currency,
         amount,
         location,
-        parsed: batchId ? { voiceBatchId: batchId } : undefined,
-      });
+        rawText: heardText || null,
+        targetGroupId: dest.kind === 'existing' ? dest.groupId : null,
+        parsed: {
+          ...(heardText ? { voiceTranscript: heardText } : null),
+          ...(batchId ? { voiceBatchId: batchId } : null),
+        },
+      };
+      // The first row is the draft the sentence was filed as on arrival: written
+      // over, not duplicated.
+      if (index === 0 && heardId.current) {
+        await updateCapture.mutateAsync({ captureId: heardId.current, ...fields });
+      } else {
+        await createCapture.mutateAsync({ captureId: draft.key, ...fields });
+      }
     }
-  }, [drafts, dc, location, voiceExpenseDate, t.voice.anExpense, createCapture]);
+  }, [
+    drafts,
+    dc,
+    dest,
+    heardText,
+    location,
+    voiceExpenseDate,
+    t.voice.anExpense,
+    createCapture,
+    updateCapture,
+  ]);
 
   // Leaving the review with a draft batch and no group chosen must not throw the
   // expenses away — an unassigned batch is a draft, and a draft survives a close
@@ -1707,23 +1789,13 @@ export default function VoiceScreen() {
         setPhase('review');
         return;
       }
-      if (phase !== 'review' || dest.kind !== 'unassigned') return;
-      if (drafts.length === 0) return;
-      // A draft is only kept if the whole batch is savable. Persisting only the
-      // valid rows would silently drop the rest; leaving with an all-invalid
-      // batch would lose it entirely. So if any row lacks a real amount, hold
-      // the reader on the review with the batch intact and say why — they fix
-      // the amount or remove the row (dropping to an empty batch, which leaves
-      // freely). This mirrors the Save button, which is disabled on the same
-      // condition.
+      // The sentence was filed as a draft when it arrived, so a close never loses
+      // it. Only a review whose every row is savable is written over that draft
+      // (with its amounts and group); anything else just leaves.
       const allSavable = drafts.every(
         (draft) => toMinor(draft.amount, draft.currency ?? dc) !== null,
       );
-      if (!allSavable) {
-        event.preventDefault();
-        setError(t.voice.draftNeedsAmounts);
-        return;
-      }
+      if (!leaveUpdatesDraft(phase, drafts.length, allSavable)) return;
       event.preventDefault();
       committed.current = true;
       void (async () => {
@@ -1739,16 +1811,7 @@ export default function VoiceScreen() {
       })();
     });
     return unsub;
-  }, [
-    navigation,
-    phase,
-    dest,
-    drafts,
-    dc,
-    persistDraftsToInbox,
-    t.couldNotSave,
-    t.voice.draftNeedsAmounts,
-  ]);
+  }, [navigation, phase, dest, drafts, dc, persistDraftsToInbox, t.couldNotSave]);
 
   // On opening the review, read the current location once and pin the batch to
   // it — but only if permission was already granted. It never asks; a first-time
@@ -1971,6 +2034,8 @@ export default function VoiceScreen() {
       | { kind: 'line'; line: string },
   ): void => {
     committed.current = true;
+    // An expense was written (or a command done): the draft that held the sentence is promoted.
+    if (dest.kind !== 'unassigned') dropHeardDraft();
     setEditingDraft(false);
     setSavedHandoff(null);
     setSavedResult(result);
@@ -2574,8 +2639,22 @@ export default function VoiceScreen() {
     leaveVoice();
   };
 
+  // The answer to "How much was it?": the sentence read again with the number
+  // on the end, so it takes the same road a spoken amount would (an add, or the review).
+  const answerUnclear = async (text: string): Promise<boolean> => {
+    const amount = unclearAmount(text);
+    if (!amount) return false;
+    const parsed = await interpret(`${heardText} ${amount}`);
+    if (parsed.items.length === 0) return false;
+    setSavedResult(null);
+    applyResult(parsed);
+    return true;
+  };
+
   // Add another: the same screen, fresh, listening again.
   const addAnother = (): void => {
+    heardId.current = null;
+    heardSentence.current = null;
     committed.current = false;
     autoSaved.current = false;
     heardFromLink.current = false;
@@ -2932,6 +3011,10 @@ export default function VoiceScreen() {
               <Ionicons name="close" size={iconSize.xl} color={theme.color.text} />
             </IconButton>
           </VoiceHeader>
+          <StageStrip
+            step={phase === 'saved' ? 1 : 0}
+            kept={phase === 'saved' && savedResult?.kind === 'unclear'}
+          />
           {!stageSettled ? (
             <VoiceTop
               status={topStatus}
@@ -2977,6 +3060,7 @@ export default function VoiceScreen() {
               personal={launchPersonal}
               today={today()}
               onFallback={agentFellBack}
+              onUnclear={landUnclear}
               followUp={agentFollowUp}
               renderAfterSave={isPro ? undefined : renderFreeAfterSave}
               onSavedBarEvent={(event) => {
@@ -2991,7 +3075,10 @@ export default function VoiceScreen() {
               }}
               onResolved={(outcome, scope) => {
                 reportCommand(outcome, scope, 'agent');
-                if (outcome === 'confirmed') hapticSuccess();
+                if (outcome === 'confirmed') {
+                  hapticSuccess();
+                  dropHeardDraft();
+                }
               }}
               onAnswer={(followUp, answer) => {
                 // A tapped option is the spoken answer, with no clip in between.
@@ -3158,10 +3245,19 @@ export default function VoiceScreen() {
             // expense — the follow-up questions, answered in place. Add another
             // and Done sit in the footer.
             <View style={{ gap: theme.spacing.md }}>
-              {savedResult.kind === 'expense' && !isPro ? (
-                renderFreeAfterSave(savedResult.state)
+              {savedResult.kind === 'unclear' ? (
+                <UnclearCard
+                  theme={theme}
+                  onAnswer={answerUnclear}
+                  title={t.voiceScreen.unclearTitle}
+                  question={t.voiceScreen.unclearQuestion}
+                  placeholder={t.voiceScreen.unclearPlaceholder}
+                  invalid={t.voice.noAmount}
+                  drafts={t.voiceScreen.unclearDrafts}
+                />
               ) : savedResult.kind === 'expense' ? (
                 <VoiceFollowUps
+                  addNow
                   initial={savedResult.state}
                   groupWrite={savedResult.write}
                   local={agentLocal}
@@ -3212,7 +3308,7 @@ export default function VoiceScreen() {
                 {/* Gone once the write has started (Confirm pressed, or the timer
                   fired): an Undo then would reset the screen while the save still
                   lands. */}
-                {autoBanner ? (
+                {autoBanner && !autoBanner.instant ? (
                   <Button
                     label={t.voice.autoUndo}
                     variant="secondary"
@@ -3505,6 +3601,77 @@ type Strings = ReturnType<typeof useStrings>['t'];
 type ThemeT = ReturnType<typeof useTheme>;
 
 /** The success state's line for anything without follow-ups. */
+/** Heard but no amount: kept as a draft; one optional question, never a stop. */
+function UnclearCard({
+  theme,
+  title,
+  question,
+  placeholder,
+  invalid,
+  drafts,
+  onAnswer,
+}: {
+  theme: ThemeT;
+  title: string;
+  question: string;
+  placeholder: string;
+  invalid: string;
+  drafts: string;
+  onAnswer: (text: string) => Promise<boolean>;
+}) {
+  const [text, setText] = useState('');
+  const [bad, setBad] = useState(false);
+  const submit = (): void => {
+    if (!text.trim()) return;
+    void onAnswer(text).then((ok) => setBad(!ok));
+  };
+  return (
+    <View
+      style={{
+        gap: theme.spacing.sm,
+        padding: theme.spacing.md,
+        borderRadius: theme.radius.lg,
+        backgroundColor: theme.color.surface,
+        borderWidth: 1,
+        borderColor: theme.color.warning,
+      }}
+    >
+      <Text style={{ fontWeight: '800' }}>{title}</Text>
+      <Text tone="muted">{question}</Text>
+      <TextInput
+        value={text}
+        onChangeText={(next) => {
+          setText(next);
+          setBad(false);
+        }}
+        keyboardType="decimal-pad"
+        placeholder={placeholder}
+        placeholderTextColor={theme.color.textFaint}
+        accessibilityLabel={question}
+        returnKeyType="done"
+        onSubmitEditing={submit}
+        style={{
+          height: 48,
+          paddingHorizontal: theme.spacing.md,
+          borderRadius: theme.radius.md,
+          borderWidth: 1,
+          borderColor: theme.color.border,
+          color: theme.color.text,
+          fontSize: 16,
+        }}
+      />
+      {bad ? (
+        <Text variant="caption" tone="muted">
+          {invalid}
+        </Text>
+      ) : null}
+      <Text variant="caption" tone="muted">
+        {drafts}
+      </Text>
+    </View>
+  );
+}
+
 function SavedLine({ line, theme }: { line: string; theme: ThemeT }) {
   return (
     <View

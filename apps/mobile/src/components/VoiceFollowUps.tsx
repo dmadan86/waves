@@ -118,6 +118,7 @@ import { checkOnline } from '@/lib/voiceStream';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
 import { FOLLOW_UP_TURN_CAP, matchChip } from '@/lib/voiceReplyPure';
 import { findSplittableReceipt } from '@/lib/splitByItem';
+import { PickChip } from '@/components/assistant/inline/PickChip';
 import { useSync } from '@/sync';
 
 export interface VoiceFollowUpsProps {
@@ -139,6 +140,12 @@ export interface VoiceFollowUpsProps {
   renderSavedBar?: (context: SavedBarContext) => ReactNode;
   /** A hand-off that moved the expense elsewhere (a lend, a duplicate removed), so it can be undone. */
   onUndoable?: (entry: UndoEntry) => void;
+  /**
+   * Add now, undo after: no questions at all. The saved bar stays with a row of
+   * optional chips (Group, Split, + Receipt, + Note) that open the same sheets
+   * the questions would have, and nothing closes the panel by itself.
+   */
+  addNow?: boolean;
 }
 
 /** What a saved bar may do to the expense being followed. */
@@ -278,6 +285,7 @@ export function VoiceFollowUps({
   onSavedStateChange,
   renderSavedBar,
   onUndoable,
+  addNow = false,
 }: VoiceFollowUpsProps) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -322,6 +330,8 @@ export function VoiceFollowUps({
   const [sharing, setSharing] = useState<PersonalLoan | null>(null);
   const [settleGroupId, setSettleGroupId] = useState<string | null>(null);
   const [doneNote, setDoneNote] = useState<string | null>(null);
+  // The "+ Note" chip's one-line field.
+  const [noting, setNoting] = useState(false);
   const sheetLock = useRef(false);
   // One id per (expense, destination) until the move completes, so a retry after a
   // half-done move resumes the entry already written instead of making a second.
@@ -390,7 +400,7 @@ export function VoiceFollowUps({
   const payerMemberId = saved.payers ? (Object.keys(saved.payers)[0] ?? null) : null;
 
   const question: FollowUpQuestion | null = useMemo(() => {
-    if (!env || !prefsHandle.ready || handedOff) return null;
+    if (addNow || !env || !prefsHandle.ready || handedOff) return null;
     return nextFollowUp({
       expense: factsFor(
         saved,
@@ -413,6 +423,7 @@ export function VoiceFollowUps({
       env,
     });
   }, [
+    addNow,
     env,
     prefsHandle.ready,
     handedOff,
@@ -468,7 +479,7 @@ export function VoiceFollowUps({
 
   // Nothing worth asking: a visible "Saved ✓" beat, then close as before.
   const emptyBeat =
-    finished && session.asked.length === 0 && filled.length === 0 && !handedOff && !held;
+    !addNow && finished && session.asked.length === 0 && filled.length === 0 && !handedOff && !held;
   useEffect(() => {
     if (!emptyBeat) return undefined;
     // With an undo bar the beat is the undo window: closing sooner would take Undo away.
@@ -662,7 +673,7 @@ export function VoiceFollowUps({
       .filter((m) => !m.isViewer && memberIds.includes(m.id))
       .map((m) => m.name);
     const note =
-      request.kind === 'trip' || names.length === 0
+      request.kind === 'trip' || request.kind === 'group' || names.length === 0
         ? fill(t.inline.movedDone, { group: groupName(groupId) })
         : fill(t.inline.splitDone, { names: names.join(', ') });
     void submitSheet(request, () => runSheetMove(plan), note);
@@ -1200,6 +1211,65 @@ export function VoiceFollowUps({
           <View style={{ alignSelf: 'flex-start' }}>
             <TextAction label={f.skip} muted onPress={() => respond(question.kind, 'skipped')} />
           </View>
+        </View>
+      ) : null}
+
+      {addNow ? (
+        <View style={{ gap: theme.spacing.sm }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs }}>
+            {local.groups.length > 0 ? (
+              <>
+                <PickChip
+                  label={`${t.voiceScreen.chipGroup} ▾`}
+                  selected={false}
+                  disabled={busy}
+                  onPress={() =>
+                    setSheet({
+                      kind: 'group',
+                      groupId: saved.groupId ?? local.groups[0]?.id ?? '',
+                      from: null,
+                    })
+                  }
+                />
+                <PickChip
+                  label={`${t.voiceScreen.chipSplit} ▾`}
+                  selected={false}
+                  disabled={busy}
+                  onPress={() =>
+                    setSheet({
+                      kind: 'split',
+                      groupId: saved.groupId ?? local.groups[0]?.id ?? '',
+                      memberIds: [],
+                      from: null,
+                    })
+                  }
+                />
+              </>
+            ) : null}
+            {saved.kind === 'group' && !saved.hasReceipt ? (
+              <PickChip
+                label={t.voiceScreen.chipReceipt}
+                selected={false}
+                disabled={busy}
+                onPress={() => receipt.scan()}
+              />
+            ) : null}
+            <PickChip
+              label={t.voiceScreen.chipNote}
+              selected={noting}
+              disabled={busy}
+              onPress={() => setNoting((open) => !open)}
+            />
+          </View>
+          {noting ? (
+            <VoiceTypedAnswer
+              onSubmit={(text) => {
+                void persist(applyAnswer(saved, { kind: 'note', text })).then((ok) => {
+                  if (ok) setNoting(false);
+                });
+              }}
+            />
+          ) : null}
         </View>
       ) : null}
 

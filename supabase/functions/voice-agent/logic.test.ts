@@ -371,7 +371,9 @@ describe('misheard amounts and tappable clarification', () => {
     expect(prompt).toContain('ONE expense in that group');
     expect(prompt).toContain('transcription artifact');
     expect(prompt).toContain('head-counts');
-    expect(prompt).toContain('Ask only when it is genuinely ambiguous');
+    expect(prompt).toContain('Ask only when there is no amount');
+    expect(prompt).toContain('Prefer a sensible guess to a question');
+    expect(prompt).toContain('Who paid: the speaker');
     // The static block stays free of anything per-person.
     expect(prompt).toContain('GROUP g-goa "Goa trip"');
     expect(heard).toContain('$3,030.30');

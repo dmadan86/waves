@@ -25,6 +25,8 @@ export type InlineSheetRequest =
       readonly from: FollowUpKind | null;
     }
   | { readonly kind: 'trip'; readonly groupId: string; readonly from: FollowUpKind | null }
+  /** The "Group" chip after an add: move it to any group (the trip sheet, with the group free). */
+  | { readonly kind: 'group'; readonly groupId: string; readonly from: FollowUpKind | null }
   | { readonly kind: 'attendance'; readonly from: FollowUpKind | null }
   | {
       readonly kind: 'itemize';
@@ -105,7 +107,7 @@ export function InlineSheetHost({
       />
     );
   }
-  const trip = request.kind === 'trip';
+  const trip = request.kind === 'trip' || request.kind === 'group';
   return (
     <InlinePeopleSheet
       key={`${request.kind}-${request.groupId}`}
@@ -113,7 +115,7 @@ export function InlineSheetHost({
       title={trip ? s.tripTitle : fill(s.splitTitle, { amount: amountLabel })}
       confirmLabel={trip ? s.tripConfirm : s.splitConfirm}
       groups={groupChoices(local, saved.groupId)}
-      lockGroup={trip}
+      lockGroup={request.kind === 'trip'}
       initialGroupId={request.groupId}
       peopleOf={peopleOf}
       initialSelected={trip ? 'all' : request.kind === 'split' ? request.memberIds : []}

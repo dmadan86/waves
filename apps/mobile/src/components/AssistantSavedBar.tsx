@@ -20,6 +20,7 @@ import { Text, useTheme } from '@waves/ui';
 import { SavedSummary, TextAction } from '@/components/voice/SavedSummary';
 
 import type { SavedBarControls } from '@/components/VoiceFollowUps';
+import { UndoRing } from '@/components/voice/UndoRing';
 import { VoiceTypedAnswer } from '@/components/VoiceTypedAnswer';
 import { useSyncedLoanNets } from '@/data/hooks';
 import { useViewerId } from '@/lib/auth';
@@ -55,6 +56,7 @@ import { forgetMove, lastRememberedMove } from '@/lib/personalHandoff';
 import { sendVoiceTranscript } from '@/lib/voiceAgent';
 import type { AgentExpenseWrite, AgentLocalData } from '@/lib/voiceAgentPlan';
 import { checkOnline } from '@/lib/voiceStream';
+import { useReducedMotion } from '@/lib/reducedMotion';
 import { useSync } from '@/sync';
 
 export interface AssistantBarContext {
@@ -134,6 +136,7 @@ export function AssistantSavedBar({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const c = t.corrections;
+  const reduceMotion = useReducedMotion();
   const { mutate } = useSync();
   const upsert = useUpsertPersonalRecord();
   const removePersonal = useDeletePersonalRecord();
@@ -574,14 +577,28 @@ export function AssistantSavedBar({
     );
   }
 
-  const category = state.category
-    ? ((t.categories as Record<string, string>)[state.category] ?? '')
-    : '';
+  // "Lunch · Goa trip · split equally · you paid": what it was, where, and how it was shared.
+  const group = local.groups.find((g) => g.id === state.groupId);
+  const me = group?.members.find((m) => m.isViewer)?.id;
+  const equal = !groupWrite || groupWrite.splitParams.kind === 'equal';
+  const detail = [
+    state.description,
+    context.where,
+    state.kind === 'group' && state.participants.length > 1 && equal
+      ? t.voiceScreen.splitEqually
+      : '',
+    state.kind === 'group' && me && state.payers && Object.keys(state.payers).join() === me
+      ? t.voiceScreen.youPaid
+      : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <View style={{ gap: theme.spacing.sm }}>
       <SavedSummary
+        lead={t.voiceScreen.added}
         amount={amountOf(state)}
-        detail={[category, context.where].filter(Boolean).join(' · ')}
+        detail={detail}
         editLabel={c.change}
         onEdit={
           typing
@@ -592,15 +609,18 @@ export function AssistantSavedBar({
               }
         }
       >
-        <TextAction
-          label={c.undo}
-          disabled={busy}
-          accessibilityLabel={fill(c.undoA11y, {
-            amount: amountOf(state),
-            description: state.description,
-          })}
-          onPress={() => void doUndo()}
-        />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <UndoRing animated={!reduceMotion} />
+          <TextAction
+            label={c.undo}
+            disabled={busy}
+            accessibilityLabel={fill(c.undoA11y, {
+              amount: amountOf(state),
+              description: state.description,
+            })}
+            onPress={() => void doUndo()}
+          />
+        </View>
       </SavedSummary>
 
       {line ? (
