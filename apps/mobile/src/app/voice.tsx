@@ -3258,6 +3258,7 @@ export default function VoiceScreen() {
               ) : savedResult.kind === 'expense' ? (
                 <VoiceFollowUps
                   addNow
+                  heard={heardText}
                   initial={savedResult.state}
                   groupWrite={savedResult.write}
                   local={agentLocal}

@@ -3553,6 +3553,10 @@ export interface UiStrings {
     holdReading: string;
     /** Hold-to-talk toast after an add: {amount} to {where}. */
     holdAdded: string;
+    /** Name span in the heard line: {word} as said, {name} as matched. */
+    heardSpan: string;
+    /** Sheet title for fixing a heard name: {word} as said. */
+    heardPick: string;
     title: string;
     prompt: string;
     example: string;
@@ -11691,6 +11695,8 @@ const en: UiStrings = {
     slideToCancel: 'Slide to cancel',
     holdReading: 'Reading…',
     holdAdded: 'Added {amount} to {where}',
+    heardSpan: 'Heard {word}, matched {name}. Tap to change',
+    heardPick: 'Who is “{word}”?',
     title: 'Speak an expense',
     prompt: 'Say what you spent',
     example: 'e.g. “add 500 to Goa trip”',
@@ -19305,6 +19311,8 @@ const ta: UiStrings = {
     slideToCancel: 'ரத்து செய்ய நகர்த்து',
     holdReading: 'படிக்கிறேன்…',
     holdAdded: '{where} இல் {amount} சேர்க்கப்பட்டது',
+    heardSpan: '{word} என்று கேட்டது, {name} என்று பொருத்தப்பட்டது. மாற்ற தட்டவும்',
+    heardPick: '“{word}” யார்?',
     title: 'செலவைப் பேசு',
     prompt: 'நீங்கள் என்ன செலவழித்தீர்கள் என்று சொல்',
     example: 'உ.தா. “கோவா டிரிப்பில் 500 சேர்”',
@@ -27058,6 +27066,8 @@ const hi: UiStrings = {
     slideToCancel: 'रद्द करने के लिए सरकाएँ',
     holdReading: 'पढ़ रहा हूँ…',
     holdAdded: '{where} में {amount} जोड़ दिया',
+    heardSpan: '{word} सुना, {name} से मिलाया। बदलने के लिए टैप करें',
+    heardPick: '“{word}” कौन है?',
     title: 'खर्च बोलें',
     prompt: 'बताएँ आपने क्या खर्च किया',
     example: 'जैसे “गोवा ट्रिप में 500 जोड़ें”',
@@ -34775,6 +34785,8 @@ const ar: UiStrings = {
     slideToCancel: 'اسحب للإلغاء',
     holdReading: 'أقرأ…',
     holdAdded: 'أُضيف {amount} إلى {where}',
+    heardSpan: 'سُمع {word}، طابق مع {name}. اضغط للتغيير',
+    heardPick: 'من هو «{word}»؟',
     title: 'انطق مصروفًا',
     prompt: 'قل ماذا أنفقت',
     example: 'مثل: «أضف 500 إلى رحلة جوا»',
