@@ -36,3 +36,17 @@ export function groupExpensesByPayer<T extends { currentVersion: ExpenseVersionR
     .map(([memberId, s]) => ({ memberId, ...s }))
     .sort((a, b) => (a.total === b.total ? 0 : a.total < b.total ? 1 : -1));
 }
+
+/** A payer's key in the expanded set; bills with no payer share '~'. */
+export const payerKey = (memberId: string | null): string => memberId ?? '~';
+
+/** The rows each payer section shows: all of them when open, none when collapsed. */
+export function openPayerRows<T>(
+  sections: readonly PayerSection<T>[],
+  expanded: ReadonlySet<string>,
+): { key: string; section: PayerSection<T>; rows: readonly T[] }[] {
+  return sections.map((section) => {
+    const key = payerKey(section.memberId);
+    return { key, section, rows: expanded.has(key) ? section.rows : [] };
+  });
+}

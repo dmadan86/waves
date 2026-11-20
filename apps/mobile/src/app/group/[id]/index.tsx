@@ -86,7 +86,7 @@ import {
 } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
-import { groupExpensesByPayer } from '@/lib/expensesByPayer';
+import { groupExpensesByPayer, openPayerRows, payerKey } from '@/lib/expensesByPayer';
 import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
 import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
@@ -102,8 +102,9 @@ import { CategoryBadge } from '@/components/Category';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { VoiceAddedStrip } from '@/components/VoiceAddedStrip';
 import { useVoiceDefaultSpace, useVoiceAdded } from '@/lib/voiceSpaceStore';
-import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { ExpenseFilterBar, type ExpenseScope } from '@/components/ExpenseFilterBar';
+import { ExpenseFilterSheet } from '@/components/ExpenseFilterSheet';
+import { filterPillText } from '@/lib/expenseFilterSummary';
 import { GroupDrafts } from '@/components/GroupDrafts';
 import { GroupHero } from '@/components/GroupHero';
 import { PendingMark } from '@/components/PendingMark';
@@ -345,6 +346,8 @@ type FeedItem =
       readonly key: string;
       readonly memberId: string | null;
       readonly total: bigint;
+      readonly count: number;
+      readonly expanded: boolean;
     }
   | {
       readonly kind: 'expense';
@@ -753,7 +756,6 @@ function CardRow({
 }
 
 /** The month menu's key for "every month". */
-const ALL_MONTHS = 'all-months';
 
 function LedgerGroupScreen() {
   const theme = useTheme();
@@ -810,14 +812,11 @@ function LedgerGroupScreen() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState('');
   // The expense whose ⋮ menu is open, if any.
-  const [monthMenuOpen, setMonthMenuOpen] = useState(false);
-  const [scopeMenuOpen, setScopeMenuOpen] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   // Session-only: group the Expenses tab by date (months) or by who paid.
   const [byPerson, setByPerson] = useState(false);
-  const [viewMenuOpen, setViewMenuOpen] = useState(false);
-  const [viewAnchor, setViewAnchor] = useState<MenuAnchor | null>(null);
-  const [scopeAnchor, setScopeAnchor] = useState<MenuAnchor | null>(null);
-  const [monthAnchor, setMonthAnchor] = useState<MenuAnchor | null>(null);
+  // By person, each payer is a heading that opens to its bills; all start shut.
+  const [openPayers, setOpenPayers] = useState<ReadonlySet<string>>(new Set());
   const [tripNudgeDismissed, setTripNudgeDismissed] = useState(false);
 
   // Live updates from the other devices in this group (TDR §1).
@@ -1035,16 +1034,17 @@ function LedgerGroupScreen() {
         isLast: index === count - 1,
       });
     if (byPerson) {
-      for (const section of payerSections) {
-        const pk = section.memberId ?? '~';
+      for (const { key: pk, section, rows } of openPayerRows(payerSections, openPayers)) {
         items.push({
           kind: 'person',
           key: `person-${pk}`,
           memberId: section.memberId,
           total: section.total,
+          count: section.rows.length,
+          expanded: rows.length > 0,
         });
         // A bill with several payers repeats, so its key carries the payer.
-        section.rows.forEach((e, i) => pushRow(e, `${pk}-${e.id}`, i, section.rows.length));
+        rows.forEach((e, i) => pushRow(e, `${pk}-${e.id}`, i, rows.length));
       }
     } else {
       for (const section of expenseSections) {
@@ -1067,7 +1067,7 @@ function LedgerGroupScreen() {
       adHandle.minGap,
     ) as FeedItem[];
     // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
-  }, [expenseSections, payerSections, byPerson, newMarks, groupId, adSlotsKey]);
+  }, [expenseSections, payerSections, openPayers, byPerson, newMarks, groupId, adSlotsKey]);
   // The "N new" pill: how many marked rows the feed holds, where the first
   // one is, and which rows are on screen — so it shows only while that first
   // one is out of sight, and tapping it scrolls there.
@@ -1351,17 +1351,18 @@ function LedgerGroupScreen() {
       : []),
   ];
 
-  // The month pill's choices: every month the ledger spans, or all of them.
-  // The month menu's rows: every month with an expense, newest first, behind
-  // "All months". `ALL_MONTHS` stands in for "no month" as the menu's key.
-  const monthOptions = [
-    { key: ALL_MONTHS, label: t.group.allMonths, icon: 'calendar-outline' as const },
-    ...monthKeys.map((key) => ({
-      key,
-      label: monthFmtWithYear.format(monthDate(key)),
-      icon: 'calendar-outline' as const,
-    })),
-  ];
+  const monthChoices = monthKeys.map((key) => ({
+    key,
+    label: monthFmtWithYear.format(monthDate(key)),
+  }));
+  const pill = filterPillText(
+    [
+      scope === 'mine' ? t.group.filterMine : scope === 'others' ? t.group.filterOthers : null,
+      activeMonth ? monthFmtShort.format(monthDate(activeMonth)) : null,
+      byPerson ? t.group.viewByPerson : null,
+    ],
+    t.group.filterTitle,
+  );
 
   // A month heading or an expense row. Headings carry the between-section gap the
   // ScrollView used to give for free; the first item needs none, its space comes
@@ -1391,37 +1392,43 @@ function LedgerGroupScreen() {
       );
     }
     if (item.kind === 'person') {
+      const key = payerKey(item.memberId);
       return (
-        <Row
+        <Pressable
+          accessibilityRole="button"
+          accessibilityState={{ expanded: item.expanded }}
+          onPress={() =>
+            setOpenPayers((prev) => {
+              const next = new Set(prev);
+              if (!next.delete(key)) next.add(key);
+              return next;
+            })
+          }
           style={{
-            marginTop: index === 0 ? 0 : theme.spacing.lg,
+            marginTop: index === 0 ? 0 : theme.spacing.sm,
             marginBottom: theme.spacing.xs,
-            alignItems: 'baseline',
-            justifyContent: 'space-between',
+            minHeight: 44,
+            flexDirection: 'row',
+            alignItems: 'center',
             gap: theme.spacing.sm,
           }}
         >
-          <Text
-            variant="micro"
-            tone="muted"
-            numberOfLines={1}
-            style={{
-              flexShrink: 1,
-              textTransform: 'uppercase',
-              letterSpacing: 0.6,
-              fontWeight: '600',
-            }}
-          >
+          <Ionicons
+            name="chevron-forward"
+            size={iconSize.sm}
+            color={theme.color.textMuted}
+            style={{ transform: [{ rotate: item.expanded ? '90deg' : '0deg' }] }}
+          />
+          <Text numberOfLines={1} style={{ flexShrink: 1, fontWeight: '600' }}>
             {nameOf(item.memberId)}
           </Text>
-          <Text
-            variant="micro"
-            tone="muted"
-            style={{ fontWeight: '600', fontVariant: ['tabular-nums'] }}
-          >
+          <Text variant="caption" tone="muted" style={{ flex: 1 }}>
+            {plural(locale, item.count, t.group.billCount)}
+          </Text>
+          <Text style={{ fontWeight: '600', fontVariant: ['tabular-nums'] }}>
             {formatParts({ minor: item.total, currency }, { locale }).text}
           </Text>
-        </Row>
+        </Pressable>
       );
     }
     if (item.kind === 'expense') {
@@ -1866,33 +1873,12 @@ function LedgerGroupScreen() {
           </View>
           {activeTab === Tab.Expenses && visibleExpenses.length > 0 ? (
             <ExpenseFilterBar
-              scope={scope}
-              onScope={setScope}
-              labels={{
-                all: t.group.filterAll,
-                mine: t.group.filterMine,
-                others: t.group.filterOthers,
-                search: t.group.searchExpenses,
-                clearSearch: t.group.clearExpenseSearch,
-              }}
-              monthText={
-                activeMonth ? monthFmtShort.format(monthDate(activeMonth)) : t.group.allMonths
-              }
-              monthActive={activeMonth !== null}
-              onOpenMonth={(anchor) => {
-                setMonthAnchor(anchor);
-                setMonthMenuOpen(true);
-              }}
-              onOpenScope={(anchor) => {
-                setScopeAnchor(anchor);
-                setScopeMenuOpen(true);
-              }}
-              viewText={byPerson ? t.group.viewByPerson : t.group.viewByDate}
-              viewIcon={byPerson ? 'people-outline' : 'calendar-outline'}
-              onOpenView={(anchor) => {
-                setViewAnchor(anchor);
-                setViewMenuOpen(true);
-              }}
+              pillText={pill.text}
+              pillActive={pill.active}
+              pillLabel={pill.active ? `${t.group.filterTitle}: ${pill.text}` : t.group.filterTitle}
+              onOpenFilter={() => setFilterOpen(true)}
+              searchLabel={t.group.searchExpenses}
+              clearSearchLabel={t.group.clearExpenseSearch}
               searchOpen={searchOpen}
               onToggleSearch={() => {
                 if (searchOpen) setQuery('');
@@ -1915,62 +1901,21 @@ function LedgerGroupScreen() {
             not in the list header, so they open from every tab. */}
         {settleFlow.loading ? null : <SettleConfirm flow={settleFlow} />}
         <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
-        {/* Both drop from the button that opened them, as Friends' sort does. */}
-        <SortMenu
-          open={scopeMenuOpen}
-          anchor={scopeAnchor}
-          onClose={() => setScopeMenuOpen(false)}
-          title={t.group.filterAll}
-          closeLabel={t.common.close}
-          options={[
-            { key: 'all' as const, label: t.group.filterAll, icon: 'people-outline' as const },
-            { key: 'mine' as const, label: t.group.filterMine, icon: 'person-outline' as const },
-            {
-              key: 'others' as const,
-              label: t.group.filterOthers,
-              icon: 'people-circle-outline' as const,
-            },
-          ]}
-          activeKey={scope}
-          activeIndicator="checkmark"
-          onPick={(key) => {
-            setScope(key);
-            setScopeMenuOpen(false);
-          }}
-        />
-        <SortMenu
-          open={viewMenuOpen}
-          anchor={viewAnchor}
-          onClose={() => setViewMenuOpen(false)}
-          title={t.group.viewByDate}
-          closeLabel={t.common.close}
-          options={[
-            { key: 'date' as const, label: t.group.viewByDate, icon: 'calendar-outline' as const },
-            {
-              key: 'person' as const,
-              label: t.group.viewByPerson,
-              icon: 'people-outline' as const,
-            },
-          ]}
-          activeKey={byPerson ? 'person' : 'date'}
-          activeIndicator="checkmark"
-          onPick={(key) => {
-            setByPerson(key === 'person');
-            setViewMenuOpen(false);
-          }}
-        />
-        <SortMenu
-          open={monthMenuOpen}
-          anchor={monthAnchor}
-          onClose={() => setMonthMenuOpen(false)}
-          title={t.group.allMonths}
-          closeLabel={t.common.close}
-          options={monthOptions}
-          activeKey={activeMonth ?? ALL_MONTHS}
-          activeIndicator="checkmark"
-          onPick={(key) => {
-            setMonthKey(key === ALL_MONTHS ? null : key);
-            setMonthMenuOpen(false);
+        <ExpenseFilterSheet
+          visible={filterOpen}
+          onClose={() => setFilterOpen(false)}
+          scope={scope}
+          onScope={setScope}
+          months={monthChoices}
+          month={activeMonth}
+          onMonth={setMonthKey}
+          byPerson={byPerson}
+          onByPerson={setByPerson}
+          dirty={pill.active}
+          onReset={() => {
+            setScope('all');
+            setMonthKey(null);
+            setByPerson(false);
           }}
         />
 

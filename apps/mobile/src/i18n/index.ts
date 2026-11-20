@@ -5470,6 +5470,12 @@ export interface UiStrings {
     allMonths: string;
     viewByDate: string;
     viewByPerson: string;
+    filterTitle: string;
+    filterReset: string;
+    filterShow: string;
+    filterMonth: string;
+    filterGroupBy: string;
+    billCount: PluralForms;
     searchExpenses: string;
     noExpenseMatches: string;
     clearExpenseSearch: string;
@@ -13261,6 +13267,12 @@ const en: UiStrings = {
     allMonths: 'All months',
     viewByDate: 'By date',
     viewByPerson: 'By person',
+    filterTitle: 'Filter',
+    filterReset: 'Reset',
+    filterShow: 'Show',
+    filterMonth: 'Month',
+    filterGroupBy: 'Group by',
+    billCount: { one: '{n} bill', other: '{n} bills' },
     searchExpenses: 'Search expenses',
     noExpenseMatches: 'No expenses match',
     clearExpenseSearch: 'Clear search',
@@ -20924,6 +20936,12 @@ const ta: UiStrings = {
     allMonths: 'எல்லா மாதங்களும்',
     viewByDate: 'தேதிப்படி',
     viewByPerson: 'நபர்படி',
+    filterTitle: 'வடிகட்டு',
+    filterReset: 'மீட்டமை',
+    filterShow: 'காட்டு',
+    filterMonth: 'மாதம்',
+    filterGroupBy: 'குழுவாக்கு',
+    billCount: { one: '{n} பில்', other: '{n} பில்கள்' },
     searchExpenses: 'செலவுகளைத் தேடு',
     noExpenseMatches: 'பொருந்தும் செலவுகள் இல்லை',
     clearExpenseSearch: 'தேடலை அழி',
@@ -28607,6 +28625,12 @@ const hi: UiStrings = {
     allMonths: 'सभी महीने',
     viewByDate: 'तारीख के अनुसार',
     viewByPerson: 'व्यक्ति के अनुसार',
+    filterTitle: 'फ़िल्टर',
+    filterReset: 'रीसेट',
+    filterShow: 'दिखाएँ',
+    filterMonth: 'महीना',
+    filterGroupBy: 'समूह',
+    billCount: { one: '{n} बिल', other: '{n} बिल' },
     searchExpenses: 'खर्च खोजें',
     noExpenseMatches: 'कोई खर्च नहीं मिला',
     clearExpenseSearch: 'खोज साफ़ करें',
@@ -36435,6 +36459,12 @@ const ar: UiStrings = {
     allMonths: 'كل الأشهر',
     viewByDate: 'حسب التاريخ',
     viewByPerson: 'حسب الشخص',
+    filterTitle: 'تصفية',
+    filterReset: 'إعادة ضبط',
+    filterShow: 'عرض',
+    filterMonth: 'الشهر',
+    filterGroupBy: 'تجميع حسب',
+    billCount: { one: 'فاتورة واحدة', other: '{n} فواتير' },
     searchExpenses: 'ابحث في المصروفات',
     noExpenseMatches: 'لا توجد مصروفات مطابقة',
     clearExpenseSearch: 'مسح البحث',
