@@ -577,18 +577,19 @@ export function VoiceCapture({
     clip.current?.fail(event.error);
     // The chosen Android service would not take the session: one retry on the default.
     const serviceRetry =
-      !gotResult.current && shouldRetryWithDefault(event.error, usedPkg.current, serviceRetried.current);
+      !gotResult.current &&
+      shouldRetryWithDefault(event.error, usedPkg.current, serviceRetried.current);
     if (serviceRetry) {
       serviceRetried.current = true;
       usedPkg.current = undefined;
     }
     const early =
       serviceRetry ||
-      (event.error === 'no-speech' || event.error === 'speech-timeout') &&
-      !gotResult.current &&
-      !latest.current.trim() &&
-      !earlyRetryUsed.current &&
-      Date.now() - openedAt.current < EARLY_MISS_MS;
+      ((event.error === 'no-speech' || event.error === 'speech-timeout') &&
+        !gotResult.current &&
+        !latest.current.trim() &&
+        !earlyRetryUsed.current &&
+        Date.now() - openedAt.current < EARLY_MISS_MS);
     if (early) {
       earlyRetryUsed.current = true;
       earlyRetryPending.current = true;
@@ -955,7 +956,12 @@ export function VoiceCapture({
             opened !== 'streaming' ? 'phone' : usedBatch.current ? 'cloud-batch' : 'cloud-stream',
           firstFrameMs: firstFrame(),
           attachMs: opened === 'streaming' && !usedBatch.current ? Date.now() - pressedAt : null,
-          attachFailed: opened === 'streaming' && !usedBatch.current ? null : opened === 'streaming' ? 'no connection' : opened,
+          attachFailed:
+            opened === 'streaming' && !usedBatch.current
+              ? null
+              : opened === 'streaming'
+                ? 'no connection'
+                : opened,
           chars: null,
           service: androidSpeechService(),
         });
@@ -978,7 +984,14 @@ export function VoiceCapture({
       );
     } else {
       if (VOICE_DIAG_ENABLED) {
-        setDiag({ engine: 'phone', firstFrameMs: null, attachMs: null, attachFailed: null, chars: null, service: androidSpeechService() });
+        setDiag({
+          engine: 'phone',
+          firstFrameMs: null,
+          attachMs: null,
+          attachFailed: null,
+          chars: null,
+          service: androidSpeechService(),
+        });
       }
       if (plan.fallback) reportEngine(plan.fallback);
     }

@@ -11,11 +11,16 @@ import {
 describe('pickRecognitionService', () => {
   it('prefers the Google app when listed', () => {
     expect(
-      pickRecognitionService(['com.google.android.as', 'com.google.android.googlequicksearchbox'], 'com.x'),
+      pickRecognitionService(
+        ['com.google.android.as', 'com.google.android.googlequicksearchbox'],
+        'com.x',
+      ),
     ).toBe('com.google.android.googlequicksearchbox');
   });
   it('else the default service', () => {
-    expect(pickRecognitionService(['com.samsung.bixby'], 'com.samsung.bixby')).toBe('com.samsung.bixby');
+    expect(pickRecognitionService(['com.samsung.bixby'], 'com.samsung.bixby')).toBe(
+      'com.samsung.bixby',
+    );
   });
   it('never picks com.google.android.as by name', () => {
     expect(pickRecognitionService(['com.google.android.as'], 'com.google.android.as')).toBe(
@@ -47,9 +52,15 @@ describe('service start errors', () => {
 describe('diag strip', () => {
   it('shows the Android service only for the phone engine', () => {
     const base = { firstFrameMs: 10, attachMs: null, attachFailed: null, chars: 4 };
-    expect(formatVoiceDiag({ ...base, engine: 'phone', service: 'com.google.android.googlequicksearchbox' })).toContain(
-      'svc googlequicksearchbox',
+    expect(
+      formatVoiceDiag({
+        ...base,
+        engine: 'phone',
+        service: 'com.google.android.googlequicksearchbox',
+      }),
+    ).toContain('svc googlequicksearchbox');
+    expect(formatVoiceDiag({ ...base, engine: 'cloud-stream', service: 'com.x' })).not.toContain(
+      'svc',
     );
-    expect(formatVoiceDiag({ ...base, engine: 'cloud-stream', service: 'com.x' })).not.toContain('svc');
   });
 });

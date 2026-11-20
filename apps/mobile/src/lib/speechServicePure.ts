@@ -32,7 +32,11 @@ export function isServiceStartError(code: string): boolean {
 }
 
 /** Retry once, and only when a named service was in use. */
-export function shouldRetryWithDefault(code: string, usedPackage: string | undefined, retried: boolean): boolean {
+export function shouldRetryWithDefault(
+  code: string,
+  usedPackage: string | undefined,
+  retried: boolean,
+): boolean {
   return !retried && !!usedPackage && isServiceStartError(code);
 }
 

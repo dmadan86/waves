@@ -12,7 +12,11 @@ export type ClipEngine = 'cloud-stream' | 'cloud-batch' | 'phone';
 /** Lowercase, anything outside [a-z0-9_-] becomes `_`, at most 32 characters; '' when empty. */
 export function word(value: unknown): string {
   if (typeof value !== 'string') return '';
-  return value.toLowerCase().trim().replace(/[^a-z0-9_-]+/g, '_').slice(0, 32);
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9_-]+/g, '_')
+    .slice(0, 32);
 }
 
 export interface ClipFacts {
@@ -32,7 +36,8 @@ export function clipProps(f: ClipFacts): EventProps {
     if (value) props[key] = value;
   };
   set('engine', word(f.engine ?? 'none'));
-  if (f.engine === 'phone' && f.platform === 'android') set('service', serviceWord(f.servicePackage));
+  if (f.engine === 'phone' && f.platform === 'android')
+    set('service', serviceWord(f.servicePackage));
   set('os', word(f.osVersion?.split('.')[0]));
   set('make', word(f.make));
   set('error', word(f.error));

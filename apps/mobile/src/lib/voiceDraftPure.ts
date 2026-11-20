@@ -28,7 +28,9 @@ export function heardCaptureInput(transcript: string, date: string, currency: st
     description: only?.note.trim() || sentence,
     expenseDate: date,
     currency: filedCurrency,
-    amount: only ? BigInt(Math.round(only.amountMajor * Number(minorUnitScale(filedCurrency)))) : 0n,
+    amount: only
+      ? BigInt(Math.round(only.amountMajor * Number(minorUnitScale(filedCurrency))))
+      : 0n,
     rawText: sentence,
     parsed: { voiceTranscript: sentence },
   };

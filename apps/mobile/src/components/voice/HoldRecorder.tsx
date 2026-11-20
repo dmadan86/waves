@@ -54,7 +54,15 @@ export interface HoldRecorderProps {
   onDone: (words: string, alternatives: readonly string[]) => void;
 }
 
-export function HoldRecorder({ finish, hints, cloud, onLevel, onDiag, onWords, onDone }: HoldRecorderProps) {
+export function HoldRecorder({
+  finish,
+  hints,
+  cloud,
+  onLevel,
+  onDiag,
+  onWords,
+  onDone,
+}: HoldRecorderProps) {
   const { language, locale } = useStrings();
   const [session] = useState(() => Symbol('hold'));
   const heard = useRef('');
@@ -145,26 +153,27 @@ export function HoldRecorder({ finish, hints, cloud, onLevel, onDiag, onWords, o
       const got = live.current
         ? await getStreamSession({ groupId: request.groupId, locale })
         : null;
-      const attached = got?.kind === 'ok' && live.current
-        ? await attachStream(mic, got.session, {
-            onInterim: (text) => {
-              heard.current = text;
-              clip.words(text);
-              onWords(text);
-            },
-            onFinal: (text) => {
-              heard.current = text;
-              clip.words(text);
-              onWords(text);
-            },
-            // Died mid-sentence: keep the words so far.
-            onError: () => {
-              stream.current = null;
-              speechMic.release(session);
-              if (live.current) end(heard.current, []);
-            },
-          })
-        : null;
+      const attached =
+        got?.kind === 'ok' && live.current
+          ? await attachStream(mic, got.session, {
+              onInterim: (text) => {
+                heard.current = text;
+                clip.words(text);
+                onWords(text);
+              },
+              onFinal: (text) => {
+                heard.current = text;
+                clip.words(text);
+                onWords(text);
+              },
+              // Died mid-sentence: keep the words so far.
+              onError: () => {
+                stream.current = null;
+                speechMic.release(session);
+                if (live.current) end(heard.current, []);
+              },
+            })
+          : null;
       if (attached?.kind !== 'ok') {
         if (!live.current) {
           await mic.discard();
@@ -172,7 +181,10 @@ export function HoldRecorder({ finish, hints, cloud, onLevel, onDiag, onWords, o
         }
         const failure = attached?.kind ?? got?.kind ?? 'error';
         report({ attachFailed: failure === 'quota' ? 'allowance used' : 'no connection' });
-        if (request.batch && batchAfterAttachFailure(failure === 'quota' ? 'quota' : 'error', micIsLive(mic))) {
+        if (
+          request.batch &&
+          batchAfterAttachFailure(failure === 'quota' ? 'quota' : 'error', micIsLive(mic))
+        ) {
           // Never lose the audio: keep recording, transcribe the clip on lift.
           report({ engine: 'cloud-batch' });
           stream.current = batchTranscription(mic, {
@@ -250,7 +262,10 @@ export function HoldRecorder({ finish, hints, cloud, onLevel, onDiag, onWords, o
     if (!speechMic.owns(session)) return;
     clip.fail(event.error);
     // The chosen service would not take the session: once, on the phone's default.
-    if (!heard.current && shouldRetryWithDefault(event.error, usedPkg.current, serviceRetried.current)) {
+    if (
+      !heard.current &&
+      shouldRetryWithDefault(event.error, usedPkg.current, serviceRetried.current)
+    ) {
       serviceRetried.current = true;
       retryPending.current = true;
       usedPkg.current = undefined;
@@ -266,7 +281,13 @@ export function HoldRecorder({ finish, hints, cloud, onLevel, onDiag, onWords, o
       return;
     }
     // A pause ended the (non-continuous) Android session with the finger still down.
-    if (live.current && Platform.OS === 'android' && !finishRef.current && restarts.current < 1 && heard.current) {
+    if (
+      live.current &&
+      Platform.OS === 'android' &&
+      !finishRef.current &&
+      restarts.current < 1 &&
+      heard.current
+    ) {
       restarts.current += 1;
       prefix.current = heard.current;
       void beginPhone(usedPkg.current);

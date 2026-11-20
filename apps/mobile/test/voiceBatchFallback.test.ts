@@ -50,15 +50,33 @@ describe('bytesToBase64', () => {
 describe('formatVoiceDiag', () => {
   it('names the engine, timings and length', () => {
     expect(
-      formatVoiceDiag({ engine: 'cloud-stream', firstFrameMs: 120.4, attachMs: 850, attachFailed: null, chars: 24 }),
+      formatVoiceDiag({
+        engine: 'cloud-stream',
+        firstFrameMs: 120.4,
+        attachMs: 850,
+        attachFailed: null,
+        chars: 24,
+      }),
     ).toBe('cloud-stream · 1st frame 120ms · attach 850ms · 24 chars');
   });
   it('shows the failure and a pending length', () => {
     expect(
-      formatVoiceDiag({ engine: 'cloud-batch', firstFrameMs: null, attachMs: null, attachFailed: 'no connection', chars: null }),
+      formatVoiceDiag({
+        engine: 'cloud-batch',
+        firstFrameMs: null,
+        attachMs: null,
+        attachFailed: 'no connection',
+        chars: null,
+      }),
     ).toBe('cloud-batch · 1st frame - · attach failed: no connection · … chars');
     expect(
-      formatVoiceDiag({ engine: 'phone', firstFrameMs: 40, attachMs: null, attachFailed: null, chars: 5 }),
+      formatVoiceDiag({
+        engine: 'phone',
+        firstFrameMs: 40,
+        attachMs: null,
+        attachFailed: null,
+        chars: 5,
+      }),
     ).toContain('attach n/a');
   });
 });

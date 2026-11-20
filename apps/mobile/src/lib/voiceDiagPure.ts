@@ -31,6 +31,15 @@ export function formatVoiceDiag(d: VoiceDiag): string {
     : d.engine === 'phone'
       ? 'attach n/a'
       : `attach ${ms(d.attachMs)}`;
-  const service = d.engine === 'phone' && d.service ? `svc ${d.service.replace(/^com\.(google\.)?(android\.)?/, '')}` : null;
-  return [d.engine, ...(service ? [service] : []), `1st frame ${ms(d.firstFrameMs)}`, attach, `${d.chars ?? '…'} chars`].join(' · ');
+  const service =
+    d.engine === 'phone' && d.service
+      ? `svc ${d.service.replace(/^com\.(google\.)?(android\.)?/, '')}`
+      : null;
+  return [
+    d.engine,
+    ...(service ? [service] : []),
+    `1st frame ${ms(d.firstFrameMs)}`,
+    attach,
+    `${d.chars ?? '…'} chars`,
+  ].join(' · ');
 }

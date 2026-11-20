@@ -37,15 +37,18 @@ export class VoiceClip {
       // Lazy: the native module must not load with every screen that only reports a fix.
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const Device = require('expo-device') as typeof import('expo-device');
-      track('voice_clip', clipProps({
-        engine: this.engine,
-        servicePackage: this.service,
-        platform: Platform.OS,
-        osVersion: Device.osVersion,
-        make: Device.manufacturer,
-        error: this.error,
-        firstWordMs: this.firstWordMs,
-      }));
+      track(
+        'voice_clip',
+        clipProps({
+          engine: this.engine,
+          servicePackage: this.service,
+          platform: Platform.OS,
+          osVersion: Device.osVersion,
+          make: Device.manufacturer,
+          error: this.error,
+          firstWordMs: this.firstWordMs,
+        }),
+      );
     } catch {
       // Analytics never reaches the caller.
     }
