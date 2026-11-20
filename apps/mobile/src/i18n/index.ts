@@ -13271,7 +13271,7 @@ const en: UiStrings = {
     viewByPerson: 'By person',
     filterTitle: 'Filter',
     filterSheetTitle: 'Filter expenses',
-    filterApply: 'Apply filter',
+    filterApply: 'Apply Filter',
     filterReset: 'Reset',
     filterShow: 'Show',
     filterMonth: 'Month',

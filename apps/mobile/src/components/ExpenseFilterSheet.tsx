@@ -269,6 +269,9 @@ function Body({ onClose, scope, months, month, byPerson, onApply }: BodyProps) {
 
       <Button
         label={g.filterApply}
+        variant="brand"
+        size="lg"
+        fullWidth
         onPress={() => {
           onApply(draft);
           onClose();
