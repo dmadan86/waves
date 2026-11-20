@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import { measureAnchor } from '@/lib/measureAnchor';
 import { OverflowMenu } from '@/components/OverflowMenu';
 import { type MenuAnchor } from '@/components/SortMenu';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -215,21 +216,13 @@ function RecurringScreenBody() {
                     </View>
                   </Row>
                 </Pressable>
-                <IconButton
+                <MenuButton
                   label={`${t.personal.recurringMenuLabel}: ${ruleName(rule)}`}
-                  repeatable
-                  onPress={(event) => {
-                    const { pageX, pageY } = event.nativeEvent;
-                    setMenuAnchor({ x: pageX - 22, y: pageY - 22, width: 44, height: 44 });
+                  onOpen={(anchor) => {
+                    setMenuAnchor(anchor);
                     setMenuRule(rule);
                   }}
-                >
-                  <Ionicons
-                    name="ellipsis-vertical"
-                    size={iconSize.md}
-                    color={theme.color.textMuted}
-                  />
-                </IconButton>
+                />
               </Row>
               {due && !rule.autoPost && rule.active ? (
                 <>
@@ -320,5 +313,24 @@ export default function RecurringScreen() {
     <PersonalGuard>
       <RecurringScreenBody />
     </PersonalGuard>
+  );
+}
+
+/** A row's ⋮, measured so its menu drops from it. */
+function MenuButton({
+  label,
+  onOpen,
+}: {
+  label: string;
+  onOpen: (anchor: MenuAnchor | null) => void;
+}) {
+  const theme = useTheme();
+  const ref = useRef<View>(null);
+  return (
+    <View ref={ref} collapsable={false}>
+      <IconButton label={label} repeatable onPress={() => measureAnchor(ref, onOpen)}>
+        <Ionicons name="ellipsis-vertical" size={iconSize.md} color={theme.color.textMuted} />
+      </IconButton>
+    </View>
   );
 }
