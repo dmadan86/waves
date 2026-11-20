@@ -226,7 +226,7 @@ describe('follow-up handler integration', () => {
     expect(
       (await run(deps, { savedExpense: { ...saved, id: 'exp-second' } })).update.expenseId,
     ).toBe('exp-second');
-    expect(from).toHaveBeenCalledTimes(3);
+    expect(from).toHaveBeenCalledTimes(4);
     expect(payloads(fetchMock)[1].messages[0].content).not.toContain(`expenseId ${saved.id}`);
   });
   it('EH-04 provider timeout escalates to a valid update and records one failure', async () => {
@@ -414,6 +414,7 @@ describe('follow-up handler integration', () => {
         'groups',
         'group_members',
         'group_balances',
+        'expenses',
       ]);
       expect(serviceFrom).not.toHaveBeenCalled();
       expect(rpc.mock.calls.every(([n]) => n.startsWith('waves_voice_agent_'))).toBe(true);

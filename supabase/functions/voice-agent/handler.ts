@@ -751,7 +751,7 @@ async function loadContextFresh(
     });
   }
 
-  const [members, balances] = await Promise.all([
+  const [members, balances, recent] = await Promise.all([
     caller
       .from('group_members')
       .select('id, group_id, profile_id, ghost_name, profile:profiles!profile_id ( display_name )')
@@ -762,6 +762,14 @@ async function loadContextFresh(
       .from('group_balances')
       .select('group_id, member_id, currency, balance')
       .in('group_id', ids),
+    // The group the caller used last: the guess when a command names no group.
+    caller
+      .from('expenses')
+      .select('group_id')
+      .in('group_id', ids)
+      .is('deleted_at', null)
+      .order('created_at', { ascending: false })
+      .limit(1),
   ]);
   if (members.error) throw new HttpError(500, 'INTERNAL', members.error.message);
   // Balances are a nicety: a failure there must not lose the command.
@@ -771,6 +779,8 @@ async function loadContextFresh(
     balances: (balances.error ? [] : (balances.data ?? [])) as RawBalance[],
     meProfileId: profileId,
     currentGroupId: body.groupId,
+    // A nicety too: without it the model falls back to the first group listed.
+    recentGroupId: recent.error ? null : (recent.data?.[0]?.group_id ?? null),
     personal: body.personal,
     today: body.today,
   });

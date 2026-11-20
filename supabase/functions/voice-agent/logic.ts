@@ -79,6 +79,8 @@ export interface VoiceContext {
   /** Current group first. */
   readonly groups: readonly ContextGroup[];
   readonly currentGroupId: string | null;
+  /** The group the caller last added an expense to, when it is not the current one. */
+  readonly recentGroupId?: string | null;
   readonly personal?: boolean;
   readonly today: string;
   /** Set for a follow-up turn: the expense the person just saved. */
@@ -145,6 +147,7 @@ export function buildContext(input: {
   balances: readonly RawBalance[];
   meProfileId: string;
   currentGroupId?: string | null;
+  recentGroupId?: string | null;
   personal?: boolean;
   today: string;
 }): VoiceContext {
@@ -186,7 +189,19 @@ export function buildContext(input: {
     input.currentGroupId && groups.some((g) => g.id === input.currentGroupId)
       ? input.currentGroupId
       : null;
-  return { groups, currentGroupId: current, personal: input.personal, today: input.today };
+  const recent =
+    input.recentGroupId &&
+    input.recentGroupId !== current &&
+    groups.some((g) => g.id === input.recentGroupId)
+      ? input.recentGroupId
+      : null;
+  return {
+    groups,
+    currentGroupId: current,
+    recentGroupId: recent,
+    personal: input.personal,
+    today: input.today,
+  };
 }
 
 const FILLER_KEYTERMS = ['rupees', 'split'] as const;
@@ -243,7 +258,12 @@ export function contextText(context: VoiceContext): string {
   }
   for (const g of context.groups) {
     const exp = safeExponent(g.currency);
-    const tag = g.id === context.currentGroupId ? ' [CURRENT]' : '';
+    const tag =
+      g.id === context.currentGroupId
+        ? ' [CURRENT]'
+        : g.id === context.recentGroupId
+          ? ' [RECENT]'
+          : '';
     lines.push(`GROUP ${g.id} "${g.name}" ${g.currency} (minor unit = 10^-${exp}) ${g.type}${tag}`);
     lines.push(
       `  members: ${g.members.map((m) => `${m.id} ${m.name}${m.me ? ' (me)' : ''}`).join('; ')}`,
@@ -278,7 +298,7 @@ function safeExponent(currency: string): number {
 export const STATIC_SYSTEM_PROMPT = `You turn one spoken command about shared expenses into tool calls for the Waves app. A person confirms every action before anything is saved.
 
 Rules:
-- Call one tool per action, in the order spoken. If the command is a question, call answer_question. If it is ambiguous or missing something you cannot safely guess (who paid, how much, which group), call ask_clarification with one short question and no action tools.
+- Call one tool per action, in the order spoken. If the command is a question, call answer_question. If it is ambiguous or missing something you cannot safely guess (who paid, how much), call ask_clarification with one short question and no action tools.
 - A question about how to use Waves ("how do I add someone", "where is settings") is a question: call answer_question with the steps from the APP GUIDE below, in at most two short sentences. Never call an action tool for it. If the guide does not cover it, say you are not sure; never invent a button or screen.
 - Resolve spoken names to member ids from the context below. Names may be transcribed approximately or in mixed Hindi/Tamil/English; match by closest sound. Never invent an id: use only ids that appear in the context. "me", "I", "my" mean the member marked (me). If a name matches nobody, ask.
 - Use the CURRENT group unless a different group is named or the people spoken of only share another group.
@@ -289,7 +309,8 @@ Rules:
 - Keep descriptions short, in the speaker's words.
 - Pick the group yourself whenever you can: if everyone named is in exactly one group, use it; if several, prefer the one-to-one group with that person, else the CURRENT group. Ask which group only when the people named are in several groups and nothing else decides it.
 - "<amount> for <person>" (e.g. "8000 for Renny") means the speaker paid and that person owes all of it: split.shares lists only that person.
-- Use add_personal when no other person or group is named and nothing says it is shared (no "split", "with", "between", "each"), or the speaker says it is just for them, or they have no groups at all. Do not fall back to the CURRENT group for a bare "<thing> <amount>" command.
+- When no group and no person is named (a bare "<thing> <amount>" such as "add 3000 for dinner in Koramangala"), guess the group: the CURRENT group, else the [RECENT] group (the one they last added to), else the first group listed. Never ask which group just because none was said: the person sees the group on the confirm card and can change it with one tap. A place name that is not a group name ("in Koramangala") is part of the description, not a group.
+- Use add_personal only when the speaker says it is just for them or personal ("just me", "my personal", "sirf mere liye"), or they have no groups at all.
 - "<amount> for <thing> in/and/at <group name>" (e.g. "500 rupees for breakfast in Goa trip") is ONE expense in that group: the amount belongs to the thing, the group name only says where. Never read a group name as a second item or a second amount.
 - The transcript comes from speech recognition and can be wrong. A number right after "split" or similar filler, or a figure in a currency the speaker never named that does not fit the group's currency (e.g. "$3,030.30" after "Split,"), is most likely a transcription artifact of something like "split three ways" or "split equally". Prefer the amount spoken with a currency word that matches the group ("500 rupees" in a rupee group) and ignore the artifact. "split N ways", "split between N" and "split, 3" are head-counts: hints about who shares it, never amounts.
 - Ask only when it is genuinely ambiguous after the rules above. When you do ask which of several concrete values, groups or people was meant, also pass options (2-4): label is the value itself, detail says what it is, answer is the words to send back so the choice is complete on its own (e.g. "500 rupees for Breakfast"). Leave options out for open questions.

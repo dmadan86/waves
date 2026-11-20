@@ -74,11 +74,11 @@ describe('eval fixture validation', () => {
     );
   }
 
-  it('EV-01..EV-70 exactly 70 unique sequential IDs and required language counts', () => {
-    expect(utterances).toHaveLength(70);
-    expect(new Set(utterances.map(({ id }) => id)).size).toBe(70);
+  it('EV-01..EV-71 exactly 71 unique sequential IDs and required language counts', () => {
+    expect(utterances).toHaveLength(71);
+    expect(new Set(utterances.map(({ id }) => id)).size).toBe(71);
     expect(utterances.map(({ id }) => id)).toEqual(
-      Array.from({ length: 70 }, (_, i) => `EV-${String(i + 1).padStart(2, '0')}`),
+      Array.from({ length: 71 }, (_, i) => `EV-${String(i + 1).padStart(2, '0')}`),
     );
     expect(
       Object.fromEntries(
@@ -87,7 +87,7 @@ describe('eval fixture validation', () => {
           utterances.filter((entry) => entry.lang === lang).length,
         ]),
       ),
-    ).toEqual({ en: 36, hinglish: 10, 'tamil-english': 6, correction: 14, clarify: 4 });
+    ).toEqual({ en: 37, hinglish: 10, 'tamil-english': 6, correction: 14, clarify: 4 });
     expect(utterances.filter(({ followUp }) => followUp).map(({ id }) => id)).toEqual([
       'EV-67',
       'EV-68',
