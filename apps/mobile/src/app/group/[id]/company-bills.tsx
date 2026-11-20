@@ -121,7 +121,7 @@ export default function CompanyBillsScreen() {
                 }
                 style={{ ...iconBtn, borderRadius: 20, backgroundColor: theme.color.brand }}
               >
-                <Ionicons name="add" size={iconSize.xxl} color="#FFFFFF" />
+                <Ionicons name="add" size={iconSize.xxl} color={theme.color.onBrand} />
               </Pressable>
             )}
           </Row>
@@ -273,7 +273,7 @@ export default function CompanyBillsScreen() {
                     <Text
                       style={{
                         fontWeight: '700',
-                        color: type === 'bill' ? '#FFFFFF' : theme.color.brand,
+                        color: type === 'bill' ? theme.color.onBrand : theme.color.brand,
                       }}
                     >
                       {type === 'bill' ? c.createBill : c.createEstimate}

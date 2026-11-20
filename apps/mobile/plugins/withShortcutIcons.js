@@ -40,7 +40,7 @@ const path = require('path');
 const { withDangerousMod } = require('expo/config-plugins');
 
 /** Brand purple — the same value as `android.adaptiveIcon.backgroundColor` in app.json. */
-const BADGE_COLOR = '#6C4EE3';
+const BADGE_COLOR = '#635BFF';
 
 /** A 48dp canvas, rounded-square badge filling it, radius chosen to read as a squircle. */
 const BADGE_BACKGROUND_PATH =

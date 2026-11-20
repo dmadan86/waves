@@ -131,13 +131,11 @@ describe("Review's list cells reserve their own spacing", () => {
 describe('Review is ticked, not swiped', () => {
   const captures = source('app/(tabs)/captures.tsx');
 
-  it('ticks by tab, with no mode to switch on first', () => {
-    // The SMS pile runs a hundred deep on a phone whose messages the app reads,
-    // and is answered in handfuls; the drafts somebody added themselves are a
-    // handful to begin with and each wants its own destination. So the tick
-    // boxes belong to one tab, derived from which tab is open — never a mode
-    // somebody has to find, and never a mode they can get stuck in.
-    expect(captures).toMatch(/const ticking = activeTab === 'found';/);
+  it('ticks on both tabs, with no mode to switch on first', () => {
+    // Both piles are answered in handfuls: the SMS pile runs a hundred deep, and a
+    // run of voice drafts often belongs to one trip. So both tabs tick, always —
+    // never a mode somebody has to find, and never a mode they can get stuck in.
+    expect(captures).toMatch(/const ticking = true;/);
     expect(captures).not.toMatch(/setSelecting\(/);
   });
 

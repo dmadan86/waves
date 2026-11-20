@@ -5491,6 +5491,16 @@ export interface UiStrings {
     filterMine: string;
     filterOthers: string;
     allMonths: string;
+    viewByDate: string;
+    viewByPerson: string;
+    filterTitle: string;
+    filterSheetTitle: string;
+    filterApply: string;
+    filterReset: string;
+    filterShow: string;
+    filterMonth: string;
+    filterGroupBy: string;
+    billCount: PluralForms;
     searchExpenses: string;
     noExpenseMatches: string;
     clearExpenseSearch: string;
@@ -13299,6 +13309,16 @@ const en: UiStrings = {
     filterMine: 'Mine',
     filterOthers: 'Others',
     allMonths: 'All months',
+    viewByDate: 'By date',
+    viewByPerson: 'By person',
+    filterTitle: 'Filter',
+    filterSheetTitle: 'Filter expenses',
+    filterApply: 'Apply Filter',
+    filterReset: 'Reset',
+    filterShow: 'Show',
+    filterMonth: 'Month',
+    filterGroupBy: 'Group by',
+    billCount: { one: '{n} bill', other: '{n} bills' },
     searchExpenses: 'Search expenses',
     noExpenseMatches: 'No expenses match',
     clearExpenseSearch: 'Clear search',
@@ -20979,6 +20999,16 @@ const ta: UiStrings = {
     filterMine: 'என்னுடையவை',
     filterOthers: 'மற்றவை',
     allMonths: 'எல்லா மாதங்களும்',
+    viewByDate: 'தேதிப்படி',
+    viewByPerson: 'நபர்படி',
+    filterTitle: 'வடிகட்டு',
+    filterSheetTitle: 'செலவுகளை வடிகட்டு',
+    filterApply: 'வடிகட்டியைப் பயன்படுத்து',
+    filterReset: 'மீட்டமை',
+    filterShow: 'காட்டு',
+    filterMonth: 'மாதம்',
+    filterGroupBy: 'குழுவாக்கு',
+    billCount: { one: '{n} பில்', other: '{n} பில்கள்' },
     searchExpenses: 'செலவுகளைத் தேடு',
     noExpenseMatches: 'பொருந்தும் செலவுகள் இல்லை',
     clearExpenseSearch: 'தேடலை அழி',
@@ -28679,6 +28709,16 @@ const hi: UiStrings = {
     filterMine: 'मेरे',
     filterOthers: 'अन्य',
     allMonths: 'सभी महीने',
+    viewByDate: 'तारीख के अनुसार',
+    viewByPerson: 'व्यक्ति के अनुसार',
+    filterTitle: 'फ़िल्टर',
+    filterSheetTitle: 'खर्च फ़िल्टर करें',
+    filterApply: 'फ़िल्टर लगाएँ',
+    filterReset: 'रीसेट',
+    filterShow: 'दिखाएँ',
+    filterMonth: 'महीना',
+    filterGroupBy: 'समूह',
+    billCount: { one: '{n} बिल', other: '{n} बिल' },
     searchExpenses: 'खर्च खोजें',
     noExpenseMatches: 'कोई खर्च नहीं मिला',
     clearExpenseSearch: 'खोज साफ़ करें',
@@ -36524,6 +36564,16 @@ const ar: UiStrings = {
     filterMine: 'الخاصة بي',
     filterOthers: 'الآخرون',
     allMonths: 'كل الأشهر',
+    viewByDate: 'حسب التاريخ',
+    viewByPerson: 'حسب الشخص',
+    filterTitle: 'تصفية',
+    filterSheetTitle: 'تصفية المصروفات',
+    filterApply: 'تطبيق التصفية',
+    filterReset: 'إعادة ضبط',
+    filterShow: 'عرض',
+    filterMonth: 'الشهر',
+    filterGroupBy: 'تجميع حسب',
+    billCount: { one: 'فاتورة واحدة', other: '{n} فواتير' },
     searchExpenses: 'ابحث في المصروفات',
     noExpenseMatches: 'لا توجد مصروفات مطابقة',
     clearExpenseSearch: 'مسح البحث',

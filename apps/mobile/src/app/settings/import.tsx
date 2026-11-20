@@ -1171,9 +1171,9 @@ function PillButton({
   variant?: 'solid' | 'soft';
 }) {
   const theme = useTheme();
-  const { dark, accent, lavender } = useImportInks();
+  const { accent, lavender } = useImportInks();
   const solid = variant === 'solid';
-  const fg = solid ? '#FFFFFF' : accent;
+  const fg = solid ? theme.color.onBrand : accent;
   return (
     <Pressable
       accessibilityRole="button"
@@ -1189,7 +1189,7 @@ function PillButton({
         justifyContent: 'center',
         gap: 10,
         paddingHorizontal: 20,
-        backgroundColor: solid ? (dark ? theme.color.brand : '#3E2A9E') : lavender,
+        backgroundColor: solid ? theme.color.brand : lavender,
         opacity: disabled ? 0.5 : pressed ? 0.88 : 1,
       })}
     >

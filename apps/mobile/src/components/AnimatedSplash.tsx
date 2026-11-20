@@ -66,7 +66,7 @@ import { MARK_DRAWN, WaveMark } from '@/components/WaveMark';
     itself never uses again — the header you land on, every brand surface
     behind it, and the icon in the launcher are all this purple. A launch
     screen that is the app's own colour is the one the app can keep. */
-const SPLASH_BG = '#6C4EE3';
+const SPLASH_BG = '#635BFF';
 
 /** The mark's drawn width. The native half no longer draws a mark, so this is
     the only place it is sized. */
@@ -139,7 +139,7 @@ const WASH_DRIFT = 0.12;
  * because a launch screen that visibly changes colour is a launch screen
  * somebody will remember for the wrong reason.
  */
-const WASH_COLOURS = ['#7A5AF8', SPLASH_BG, '#5638C4'] as const;
+const WASH_COLOURS = ['#7A73FF', SPLASH_BG, '#4B42E8'] as const;
 
 export function AnimatedSplash() {
   const [done, setDone] = useState(false);

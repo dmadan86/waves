@@ -242,7 +242,7 @@ describe('withWavesWidgets — emitted native sources', () => {
   it('every @drawable and @color it names is emitted, in light and dark', () => {
     const light = read(join('res', 'values', 'waves_widget_colors.xml'));
     const dark = read(join('res', 'values-night', 'waves_widget_colors.xml'));
-    expect(light).toContain('#6C4EE3');
+    expect(light).toContain('#635BFF');
     for (const widget of WIDGETS) {
       const layout = read(join('res', 'layout', `widget_${widget.key}.xml`));
       for (const [, name] of layout.matchAll(/@drawable\/(\w+)/g)) {
