@@ -438,6 +438,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
         <RecorderView
           finish={mode === 'send'}
           hints={hints}
+          cloud={agentOn && streamsToCloud ? { groupId: launchGroupId } : null}
           onWords={setWords}
           onDone={(heard, alternatives) => {
             onFinished();
