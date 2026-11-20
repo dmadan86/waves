@@ -17,6 +17,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Button, IconButton, iconSize, Text, useTheme, MODAL_ORIENTATIONS } from '@waves/ui';
 
 import { DetailRow } from '@/components/DetailRows';
+import { RowPill } from '@/components/RowPill';
 import { ZoomableGallery } from '@/components/ZoomableGallery';
 import { useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
@@ -130,12 +131,17 @@ export function PersonalReceiptRow({
         icon={value ? 'receipt' : 'receipt-outline'}
         iconColor={value ? theme.color.brand : undefined}
         label={t.personalReceipt.title}
-        value={
-          busy
-            ? t.personalReceipt.saving
-            : value
-              ? t.personalReceipt.attached
-              : t.personalReceipt.add
+        trailing={
+          <RowPill
+            icon={value ? 'checkmark-circle-outline' : 'attach-outline'}
+            label={
+              busy
+                ? t.personalReceipt.saving
+                : value
+                  ? t.personalReceipt.attached
+                  : t.personalReceipt.add
+            }
+          />
         }
         onPress={() => (value ? setViewing(true) : void add())}
       />

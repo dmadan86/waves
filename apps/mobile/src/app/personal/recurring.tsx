@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { OverflowMenu } from '@/components/OverflowMenu';
+import { type MenuAnchor } from '@/components/SortMenu';
 import Ionicons from '@expo/vector-icons/Ionicons';
 // Native confirmation Alert explicitly required for recurring deletion.
 // eslint-disable-next-line no-restricted-imports
@@ -24,7 +26,6 @@ import {
   iconSize,
   Row,
   Screen,
-  Sheet,
   Text,
   useTheme,
 } from '@waves/ui';
@@ -55,6 +56,8 @@ function RecurringScreenBody() {
 
   const deletion = useDeletePersonalRecord();
   const [menuRule, setMenuRule] = useState<PersonalRecurring | null>(null);
+  // Where the ⋮ was tapped: the menu drops from it, like every other ⋮ in the app.
+  const [menuAnchor, setMenuAnchor] = useState<MenuAnchor | null>(null);
   const [filter, setFilter] = useState<RecurringFilter>('all');
   const [today] = useState(() => todayIso());
 
@@ -215,7 +218,11 @@ function RecurringScreenBody() {
                 <IconButton
                   label={`${t.personal.recurringMenuLabel}: ${ruleName(rule)}`}
                   repeatable
-                  onPress={() => setMenuRule(rule)}
+                  onPress={(event) => {
+                    const { pageX, pageY } = event.nativeEvent;
+                    setMenuAnchor({ x: pageX - 22, y: pageY - 22, width: 44, height: 44 });
+                    setMenuRule(rule);
+                  }}
                 >
                   <Ionicons
                     name="ellipsis-vertical"
@@ -251,50 +258,55 @@ function RecurringScreenBody() {
           onAdd={() => router.push({ pathname: '/personal/entry', params: { repeats: '1' } })}
         />
       </ScrollView>
-      <Sheet visible={menuRule !== null} onClose={() => setMenuRule(null)}>
-        {menuRule ? (
-          <View style={{ gap: theme.spacing.sm }}>
-            <Text variant="heading">{ruleName(menuRule)}</Text>
-            <Button
-              label={t.personal.editRecurring}
-              onPress={() => {
-                setMenuRule(null);
-                router.push({ pathname: '/personal/entry', params: { recurringId: menuRule.id } });
-              }}
-            />
-            <Button
-              label={menuRule.active ? t.personal.pauseRecurring : t.personal.resumeRecurring}
-              disabled={upsert.isPending}
-              onPress={() => {
-                upsert.mutate({
-                  recordId: menuRule.id,
-                  recordKind: 'recurring',
-                  data: encodeRecurring({ ...menuRule, active: !menuRule.active }),
-                });
-                setMenuRule(null);
-              }}
-            />
-            <Button
-              label={t.common.delete}
-              disabled={deletion.isPending}
-              onPress={() => {
-                const id = menuRule.id;
-                setMenuRule(null);
-                // eslint-disable-next-line no-restricted-syntax -- Native delete confirmation requested for this screen.
-                Alert.alert(t.personal.deleteRecurringTitle, t.personal.deleteRecurringBody, [
-                  { text: t.common.cancel, style: 'cancel' },
-                  {
-                    text: t.common.delete,
-                    style: 'destructive',
-                    onPress: () => deletion.mutate(id),
+      <OverflowMenu
+        visible={menuRule !== null}
+        onClose={() => setMenuRule(null)}
+        anchor={menuAnchor}
+        items={
+          menuRule
+            ? [
+                {
+                  icon: 'create-outline',
+                  label: t.personal.editRecurring,
+                  route: {
+                    pathname: '/personal/entry',
+                    params: { recurringId: menuRule.id },
                   },
-                ]);
-              }}
-            />
-            <Button label={t.common.cancel} onPress={() => setMenuRule(null)} />
-          </View>
-        ) : null}
-      </Sheet>
+                },
+                {
+                  icon: menuRule.active ? 'pause-circle-outline' : 'play-circle-outline',
+                  label: menuRule.active ? t.personal.pauseRecurring : t.personal.resumeRecurring,
+                  disabled: upsert.isPending,
+                  onPress: () =>
+                    upsert.mutate({
+                      recordId: menuRule.id,
+                      recordKind: 'recurring',
+                      data: encodeRecurring({ ...menuRule, active: !menuRule.active }),
+                    }),
+                },
+                {
+                  icon: 'trash-outline',
+                  label: t.common.delete,
+                  tone: 'danger',
+                  section: 'danger',
+                  disabled: deletion.isPending,
+                  onPress: () => {
+                    const id = menuRule.id;
+                    // eslint-disable-next-line no-restricted-syntax -- Native delete confirmation requested for this screen.
+                    Alert.alert(t.personal.deleteRecurringTitle, t.personal.deleteRecurringBody, [
+                      { text: t.common.cancel, style: 'cancel' },
+                      {
+                        text: t.common.delete,
+                        style: 'destructive',
+                        onPress: () => deletion.mutate(id),
+                      },
+                    ]);
+                  },
+                },
+              ]
+            : []
+        }
+      />
     </Screen>
   );
 }

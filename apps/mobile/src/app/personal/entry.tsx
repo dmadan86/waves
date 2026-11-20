@@ -77,6 +77,7 @@ import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
 import { PersonalNoteField } from '@/components/PersonalNoteField';
 import { PersonalReceiptRow } from '@/components/PersonalReceiptRow';
+import { RowPill } from '@/components/RowPill';
 import { SourceSheet, useSourceLabel } from '@/components/IncomeSource';
 import {
   localIsoDate,
@@ -407,9 +408,19 @@ function EntryForm({
                 <DetailRow
                   icon="wallet-outline"
                   label={t.personal.entryScreen.paymentMethod}
-                  value={
-                    paymentMethod ? methodLabel(t, paymentMethod) : t.personal.entryScreen.notSet
+                  value={paymentMethod ? undefined : t.personal.entryScreen.notSet}
+                  placeholder={!paymentMethod}
+                  trailing={
+                    paymentMethod ? (
+                      <RowPill
+                        icon={METHOD_ICONS[paymentMethod] ?? 'card-outline'}
+                        label={methodLabel(t, paymentMethod)}
+                      />
+                    ) : undefined
                   }
+                  accessibilityLabel={`${t.personal.entryScreen.paymentMethod}: ${
+                    paymentMethod ? methodLabel(t, paymentMethod) : t.personal.entryScreen.notSet
+                  }`}
                   onPress={() => setPicking('method')}
                 />
               )}
@@ -419,8 +430,13 @@ function EntryForm({
                 <DetailRow
                   icon="briefcase-outline"
                   label={t.followUps.reimbursableRow}
-                  value={reimbursable ? t.followUps.yes : t.followUps.no}
-                  onPress={() => setReimbursable((on) => !on)}
+                  trailing={
+                    <Toggle
+                      value={reimbursable}
+                      onValueChange={setReimbursable}
+                      accessibilityLabel={t.followUps.reimbursableRow}
+                    />
+                  }
                 />
               )}
 
@@ -1116,6 +1132,13 @@ function methodLabel(t: ReturnType<typeof useStrings>['t'], id: string): string 
   const known = t.personal.entryScreen.methods as Record<string, string>;
   return known[id] ?? t.personal.entryScreen.methods.other;
 }
+
+/** Each payment method's glyph in its row pill. */
+const METHOD_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  upi: 'phone-portrait-outline',
+  cash: 'cash-outline',
+  bank: 'business-outline',
+};
 
 /** The everyday answers the quick row offers, before "More". */
 const QUICK_CATEGORIES: readonly string[] = ['food', 'shopping', 'travel', 'home', 'health'];
