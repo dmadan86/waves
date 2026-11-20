@@ -86,6 +86,7 @@ import {
 } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { convertedTotal } from '@/lib/expenseConversion';
+import { groupExpensesByPayer } from '@/lib/expensesByPayer';
 import { showsVendorTools } from '@/lib/eventOrganizer';
 import { useViewerId } from '@/lib/auth';
 import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
@@ -339,6 +340,12 @@ function monthDate(key: string): Date {
 type FeedItem =
   | { readonly kind: 'ad'; readonly key: string; readonly slot: number }
   | { readonly kind: 'month'; readonly key: string; readonly date: string }
+  | {
+      readonly kind: 'person';
+      readonly key: string;
+      readonly memberId: string | null;
+      readonly total: bigint;
+    }
   | {
       readonly kind: 'expense';
       readonly key: string;
@@ -805,6 +812,10 @@ function LedgerGroupScreen() {
   // The expense whose ⋮ menu is open, if any.
   const [monthMenuOpen, setMonthMenuOpen] = useState(false);
   const [scopeMenuOpen, setScopeMenuOpen] = useState(false);
+  // Session-only: group the Expenses tab by date (months) or by who paid.
+  const [byPerson, setByPerson] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const [viewAnchor, setViewAnchor] = useState<MenuAnchor | null>(null);
   const [scopeAnchor, setScopeAnchor] = useState<MenuAnchor | null>(null);
   const [monthAnchor, setMonthAnchor] = useState<MenuAnchor | null>(null);
   const [tripNudgeDismissed, setTripNudgeDismissed] = useState(false);
@@ -989,6 +1000,11 @@ function LedgerGroupScreen() {
     });
   }, [visibleExpenses, scope, activeMonth, query, myId, t]);
   const expenseSections = useMemo(() => groupExpensesByMonth(filteredExpenses), [filteredExpenses]);
+  const payerSections = useMemo(
+    () =>
+      byPerson ? groupExpensesByPayer(filteredExpenses, group.data?.default_currency ?? '') : [],
+    [byPerson, filteredExpenses, group.data?.default_currency],
+  );
   // The month sections flattened into one recyclable list: a heading item per
   // month, then its expense rows. FlashList mounts only what is on screen, so a
   // group with a thousand bills opens as fast as one with ten.
@@ -1009,20 +1025,34 @@ function LedgerGroupScreen() {
   const adSlotsKey = adHandle.plan.slots.join(',');
   const feedItems: FeedItem[] = useMemo(() => {
     const items: FeedItem[] = [];
-    for (const section of expenseSections) {
-      if (section.date) {
-        items.push({ kind: 'month', key: `month-${section.key}`, date: section.date });
-      }
-      section.rows.forEach((expense, index) =>
+    const pushRow = (expense: ExpenseRow, key: string, index: number, count: number) =>
+      items.push({
+        kind: 'expense',
+        key,
+        expense,
+        mark: newMarks.get(expense.id)?.kind ?? null,
+        isFirst: index === 0,
+        isLast: index === count - 1,
+      });
+    if (byPerson) {
+      for (const section of payerSections) {
+        const pk = section.memberId ?? '~';
         items.push({
-          kind: 'expense',
-          key: expense.id,
-          expense,
-          mark: newMarks.get(expense.id)?.kind ?? null,
-          isFirst: index === 0,
-          isLast: index === section.rows.length - 1,
-        }),
-      );
+          kind: 'person',
+          key: `person-${pk}`,
+          memberId: section.memberId,
+          total: section.total,
+        });
+        // A bill with several payers repeats, so its key carries the payer.
+        section.rows.forEach((e, i) => pushRow(e, `${pk}-${e.id}`, i, section.rows.length));
+      }
+    } else {
+      for (const section of expenseSections) {
+        if (section.date) {
+          items.push({ kind: 'month', key: `month-${section.key}`, date: section.date });
+        }
+        section.rows.forEach((e, i) => pushRow(e, e.id, i, section.rows.length));
+      }
     }
     // A row with a "new/edited" mark is never the one an ad follows.
     const blocked = new Set<number>();
@@ -1033,11 +1063,11 @@ function LedgerGroupScreen() {
       items,
       adHandle.plan.slots,
       blocked,
-      { row: 'expense', header: 'month' },
+      { row: 'expense', header: byPerson ? 'person' : 'month' },
       adHandle.minGap,
     ) as FeedItem[];
     // eslint-disable-next-line react-hooks/exhaustive-deps -- adHandle.plan.slots is the only part of the plan used
-  }, [expenseSections, newMarks, groupId, adSlotsKey]);
+  }, [expenseSections, payerSections, byPerson, newMarks, groupId, adSlotsKey]);
   // The "N new" pill: how many marked rows the feed holds, where the first
   // one is, and which rows are on screen — so it shows only while that first
   // one is out of sight, and tapping it scrolls there.
@@ -1358,6 +1388,40 @@ function LedgerGroupScreen() {
         >
           {monthLabel(monthFmtWithYear, monthFmtWithYear, item.date)}
         </Text>
+      );
+    }
+    if (item.kind === 'person') {
+      return (
+        <Row
+          style={{
+            marginTop: index === 0 ? 0 : theme.spacing.lg,
+            marginBottom: theme.spacing.xs,
+            alignItems: 'baseline',
+            justifyContent: 'space-between',
+            gap: theme.spacing.sm,
+          }}
+        >
+          <Text
+            variant="micro"
+            tone="muted"
+            numberOfLines={1}
+            style={{
+              flexShrink: 1,
+              textTransform: 'uppercase',
+              letterSpacing: 0.6,
+              fontWeight: '600',
+            }}
+          >
+            {nameOf(item.memberId)}
+          </Text>
+          <Text
+            variant="micro"
+            tone="muted"
+            style={{ fontWeight: '600', fontVariant: ['tabular-nums'] }}
+          >
+            {formatParts({ minor: item.total, currency }, { locale }).text}
+          </Text>
+        </Row>
       );
     }
     if (item.kind === 'expense') {
@@ -1823,6 +1887,12 @@ function LedgerGroupScreen() {
                 setScopeAnchor(anchor);
                 setScopeMenuOpen(true);
               }}
+              viewText={byPerson ? t.group.viewByPerson : t.group.viewByDate}
+              viewIcon={byPerson ? 'people-outline' : 'calendar-outline'}
+              onOpenView={(anchor) => {
+                setViewAnchor(anchor);
+                setViewMenuOpen(true);
+              }}
               searchOpen={searchOpen}
               onToggleSearch={() => {
                 if (searchOpen) setQuery('');
@@ -1866,6 +1936,27 @@ function LedgerGroupScreen() {
           onPick={(key) => {
             setScope(key);
             setScopeMenuOpen(false);
+          }}
+        />
+        <SortMenu
+          open={viewMenuOpen}
+          anchor={viewAnchor}
+          onClose={() => setViewMenuOpen(false)}
+          title={t.group.viewByDate}
+          closeLabel={t.common.close}
+          options={[
+            { key: 'date' as const, label: t.group.viewByDate, icon: 'calendar-outline' as const },
+            {
+              key: 'person' as const,
+              label: t.group.viewByPerson,
+              icon: 'people-outline' as const,
+            },
+          ]}
+          activeKey={byPerson ? 'person' : 'date'}
+          activeIndicator="checkmark"
+          onPick={(key) => {
+            setByPerson(key === 'person');
+            setViewMenuOpen(false);
           }}
         />
         <SortMenu

@@ -24,6 +24,9 @@ export function ExpenseFilterBar({
   monthActive,
   onOpenMonth,
   onOpenScope,
+  viewText,
+  viewIcon,
+  onOpenView,
   searchOpen,
   onToggleSearch,
   query,
@@ -45,6 +48,10 @@ export function ExpenseFilterBar({
   onOpenMonth: (anchor: MenuAnchor | null) => void;
   /** Opens the All / Mine / Others menu, dropping from its button. */
   onOpenScope: (anchor: MenuAnchor | null) => void;
+  /** The By date / By person pill: what it says, its icon, and its menu. */
+  viewText: string;
+  viewIcon: 'calendar-outline' | 'people-outline';
+  onOpenView: (anchor: MenuAnchor | null) => void;
   searchOpen: boolean;
   onToggleSearch: () => void;
   query: string;
@@ -53,6 +60,7 @@ export function ExpenseFilterBar({
   const theme = useTheme();
   const scopeRef = useRef<View>(null);
   const monthRef = useRef<View>(null);
+  const viewRef = useRef<View>(null);
   const openFrom = (ref: React.RefObject<View | null>, open: (a: MenuAnchor | null) => void) => {
     const node = ref.current;
     if (!node) return open(null);
@@ -112,6 +120,24 @@ export function ExpenseFilterBar({
               {monthText}
             </Text>
             <Ionicons name="chevron-down" size={12} color={inkFor(monthActive)} />
+          </Pressable>
+        </View>
+        <View ref={viewRef} collapsable={false}>
+          <Pressable
+            onPress={() => openFrom(viewRef, onOpenView)}
+            accessibilityRole="button"
+            accessibilityLabel={viewText}
+            style={quiet(false)}
+          >
+            <Ionicons name={viewIcon} size={iconSize.sm} color={inkFor(false)} />
+            <Text
+              variant="caption"
+              numberOfLines={1}
+              style={{ fontSize: 13, fontWeight: '600', color: inkFor(false) }}
+            >
+              {viewText}
+            </Text>
+            <Ionicons name="chevron-down" size={12} color={inkFor(false)} />
           </Pressable>
         </View>
         <Pressable

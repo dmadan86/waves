@@ -5468,6 +5468,8 @@ export interface UiStrings {
     filterMine: string;
     filterOthers: string;
     allMonths: string;
+    viewByDate: string;
+    viewByPerson: string;
     searchExpenses: string;
     noExpenseMatches: string;
     clearExpenseSearch: string;
@@ -13257,6 +13259,8 @@ const en: UiStrings = {
     filterMine: 'Mine',
     filterOthers: 'Others',
     allMonths: 'All months',
+    viewByDate: 'By date',
+    viewByPerson: 'By person',
     searchExpenses: 'Search expenses',
     noExpenseMatches: 'No expenses match',
     clearExpenseSearch: 'Clear search',
@@ -20918,6 +20922,8 @@ const ta: UiStrings = {
     filterMine: 'என்னுடையவை',
     filterOthers: 'மற்றவை',
     allMonths: 'எல்லா மாதங்களும்',
+    viewByDate: 'தேதிப்படி',
+    viewByPerson: 'நபர்படி',
     searchExpenses: 'செலவுகளைத் தேடு',
     noExpenseMatches: 'பொருந்தும் செலவுகள் இல்லை',
     clearExpenseSearch: 'தேடலை அழி',
@@ -28599,6 +28605,8 @@ const hi: UiStrings = {
     filterMine: 'मेरे',
     filterOthers: 'अन्य',
     allMonths: 'सभी महीने',
+    viewByDate: 'तारीख के अनुसार',
+    viewByPerson: 'व्यक्ति के अनुसार',
     searchExpenses: 'खर्च खोजें',
     noExpenseMatches: 'कोई खर्च नहीं मिला',
     clearExpenseSearch: 'खोज साफ़ करें',
@@ -36425,6 +36433,8 @@ const ar: UiStrings = {
     filterMine: 'الخاصة بي',
     filterOthers: 'الآخرون',
     allMonths: 'كل الأشهر',
+    viewByDate: 'حسب التاريخ',
+    viewByPerson: 'حسب الشخص',
     searchExpenses: 'ابحث في المصروفات',
     noExpenseMatches: 'لا توجد مصروفات مطابقة',
     clearExpenseSearch: 'مسح البحث',
