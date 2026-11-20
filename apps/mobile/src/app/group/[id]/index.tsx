@@ -1905,17 +1905,13 @@ function LedgerGroupScreen() {
           visible={filterOpen}
           onClose={() => setFilterOpen(false)}
           scope={scope}
-          onScope={setScope}
           months={monthChoices}
           month={activeMonth}
-          onMonth={setMonthKey}
           byPerson={byPerson}
-          onByPerson={setByPerson}
-          dirty={pill.active}
-          onReset={() => {
-            setScope('all');
-            setMonthKey(null);
-            setByPerson(false);
+          onApply={(next) => {
+            setScope(next.scope);
+            setMonthKey(next.month);
+            setByPerson(next.byPerson);
           }}
         />
 

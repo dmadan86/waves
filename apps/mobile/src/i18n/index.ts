@@ -5471,6 +5471,8 @@ export interface UiStrings {
     viewByDate: string;
     viewByPerson: string;
     filterTitle: string;
+    filterSheetTitle: string;
+    filterApply: string;
     filterReset: string;
     filterShow: string;
     filterMonth: string;
@@ -13268,6 +13270,8 @@ const en: UiStrings = {
     viewByDate: 'By date',
     viewByPerson: 'By person',
     filterTitle: 'Filter',
+    filterSheetTitle: 'Filter expenses',
+    filterApply: 'Apply filter',
     filterReset: 'Reset',
     filterShow: 'Show',
     filterMonth: 'Month',
@@ -20937,6 +20941,8 @@ const ta: UiStrings = {
     viewByDate: 'தேதிப்படி',
     viewByPerson: 'நபர்படி',
     filterTitle: 'வடிகட்டு',
+    filterSheetTitle: 'செலவுகளை வடிகட்டு',
+    filterApply: 'வடிகட்டியைப் பயன்படுத்து',
     filterReset: 'மீட்டமை',
     filterShow: 'காட்டு',
     filterMonth: 'மாதம்',
@@ -28626,6 +28632,8 @@ const hi: UiStrings = {
     viewByDate: 'तारीख के अनुसार',
     viewByPerson: 'व्यक्ति के अनुसार',
     filterTitle: 'फ़िल्टर',
+    filterSheetTitle: 'खर्च फ़िल्टर करें',
+    filterApply: 'फ़िल्टर लगाएँ',
     filterReset: 'रीसेट',
     filterShow: 'दिखाएँ',
     filterMonth: 'महीना',
@@ -36460,6 +36468,8 @@ const ar: UiStrings = {
     viewByDate: 'حسب التاريخ',
     viewByPerson: 'حسب الشخص',
     filterTitle: 'تصفية',
+    filterSheetTitle: 'تصفية المصروفات',
+    filterApply: 'تطبيق التصفية',
     filterReset: 'إعادة ضبط',
     filterShow: 'عرض',
     filterMonth: 'الشهر',
