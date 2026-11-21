@@ -96,7 +96,8 @@ export function dayPlan(input: PlanInput): DayPlan | null {
   } else {
     const cap = budgets.find((b) => b.category === null && b.currency === currency);
     if (!cap) return null;
-    pool = personalBudgetProgress(cap, txns, month).remaining - outlook.expectedExpense;
+    // The cap is for everyday spending; bills are not taken out of it twice.
+    pool = personalBudgetProgress(cap, txns, month).remaining;
   }
 
   const daysLeft = dayDelta(today, range.to) + 1;
