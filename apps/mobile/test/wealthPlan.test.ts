@@ -20,6 +20,7 @@ import {
   propertyView,
   rentRaiseDates,
   rulesToCloseOnLeave,
+  raisePrompt,
   rentAnchor,
   rentStrip,
   typeHint,
@@ -237,5 +238,39 @@ describe('rentals', () => {
     });
     expect(rows.map((r) => r.key)).toEqual(['rent:t1:2026-11-05', 'lease:t1']);
     expect(rows[0]).toMatchObject({ overdue: true, income: true, amount: 1800n });
+  });
+});
+
+describe('yearly rent increase prompt', () => {
+  const tn = decodeTenancy('t1', {
+    propertyId: 'p1',
+    tenantName: 'Ravi',
+    status: 'active',
+    startDate: '2025-12-05',
+    escalationPct: 5,
+  });
+  const rule = (id: string, anchor: string, amount: string) =>
+    decodeRecurring(id, {
+      txnKind: 'income',
+      amount,
+      currency: 'USD',
+      anchorDate: anchor,
+      nextDate: anchor,
+      cadence: 'monthly',
+      tenancyId: 't1',
+      category: 'inc.rent',
+    });
+  it('asks within 7 days of the anniversary, starting on the rent day', () => {
+    const r = rule('r1', '2025-12-05', '180000');
+    expect(raisePrompt(tn, [r], '2026-11-27')).toBeNull();
+    const p = raisePrompt(tn, [r], '2026-11-28')!;
+    expect(p.anniversary).toBe('2026-12-05');
+    expect(p.from).toBe('2026-12-05');
+    expect(p.newAmount).toBe(189000n);
+    expect(p.key).toBe('t1:2026-12-05');
+  });
+  it('stays quiet once a newer rule starts', () => {
+    const rules = [rule('r1', '2025-12-05', '180000'), rule('r2', '2026-12-05', '189000')];
+    expect(raisePrompt(tn, rules, '2026-12-20')).toBeNull();
   });
 });

@@ -136,6 +136,10 @@ export interface WealthStrings {
   vacantNote: string;
   today: string;
   raiseRent: string;
+  /** {pct} {date} {old} {new} */
+  raisePrompt: string;
+  raiseApply: string;
+  raiseNotNow: string;
   // reminders and upcoming
   /** {name} {amount} */
   sipTomorrow: string;
@@ -299,6 +303,9 @@ export const wealthEn: WealthStrings = {
   vacantNote: 'No tenant right now.',
   today: 'Today',
   raiseRent: 'Change rent',
+  raisePrompt: 'Rent goes up {pct}% on {date}: {old} → {new}. Apply?',
+  raiseApply: 'Apply',
+  raiseNotNow: 'Not now',
   sipTomorrow: '{name}: {amount} goes in tomorrow.',
   sipToday: 'Time to add {amount} to {name}.',
   rentDueToday: '{name}: rent of {amount} is due today.',
@@ -459,6 +466,9 @@ export const wealthTa: WealthStrings = {
   vacantNote: 'இப்போது குத்தகைதாரர் இல்லை.',
   today: 'இன்று',
   raiseRent: 'வாடகை மாற்று',
+  raisePrompt: '{date} அன்று வாடகை {pct}% உயர்ந்து {old} இலிருந்து {new} ஆகும். மாற்றவா?',
+  raiseApply: 'மாற்று',
+  raiseNotNow: 'இப்போது வேண்டாம்',
   sipTomorrow: '{name}: நாளை {amount} செல்லும்.',
   sipToday: '{name}-க்கு {amount} சேர்க்க நேரம்.',
   rentDueToday: '{name}: இன்று {amount} வாடகை வரவேண்டும்.',
@@ -617,6 +627,9 @@ export const wealthHi: WealthStrings = {
   vacantNote: 'अभी कोई किरायेदार नहीं।',
   today: 'आज',
   raiseRent: 'किराया बदलें',
+  raisePrompt: '{date} से किराया {pct}% बढ़कर {old} से {new} होगा। लागू करें?',
+  raiseApply: 'लागू करें',
+  raiseNotNow: 'अभी नहीं',
   sipTomorrow: '{name}: कल {amount} जाएगा।',
   sipToday: '{name} में {amount} जोड़ने का समय।',
   rentDueToday: '{name}: आज {amount} किराया देना है।',
@@ -775,6 +788,9 @@ export const wealthAr: WealthStrings = {
   vacantNote: 'لا يوجد مستأجر حاليًا.',
   today: 'اليوم',
   raiseRent: 'تعديل الإيجار',
+  raisePrompt: 'سيزيد الإيجار بنسبة {pct}% من {old} إلى {new} في {date}. هل تطبّق التغيير؟',
+  raiseApply: 'طبّق التغيير',
+  raiseNotNow: 'ليس الآن',
   sipTomorrow: '{name}: سيُضاف {amount} غدًا.',
   sipToday: 'حان وقت إضافة {amount} إلى {name}.',
   rentDueToday: '{name}: إيجار {amount} مستحق اليوم.',

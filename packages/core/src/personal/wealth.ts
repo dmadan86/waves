@@ -2,7 +2,10 @@
  * Pure maths for Investments and Rentals. No clock, no locale, no formatting.
  */
 
+import type { CurrencyCode } from '../money/currency';
+import { minorUnitScale } from '../money/currency';
 import { dayDelta, monthKey, stepOccurrence } from './compute';
+import { addPlanDays } from './plan';
 import { isInvestmentCategory } from './sources';
 import type { PersonalInvestment, PersonalRecurring, PersonalTxn } from './types';
 
@@ -132,4 +135,54 @@ export function leaseEndsIn(endDate: string | null, today: string, within = 60):
 export function settleDeposit(held: bigint, returned: bigint): { returned: bigint; kept: bigint } {
   const r = returned < 0n ? 0n : returned > held ? held : returned;
   return { returned: r, kept: held - r };
+}
+
+/**
+ * Rent after a yearly increase of `pct` percent, in bigint minor units, rounded
+ * to the nearest whole major unit (halves round up). `pct` may carry up to two
+ * decimals. A bad or non-positive pct leaves the rent unchanged.
+ */
+export function raisedRent(amount: bigint, pct: number, currency: CurrencyCode): bigint {
+  const bp = BigInt(Math.round(pct * 100));
+  if (bp <= 0n) return amount;
+  const raised = amount + (amount * bp) / 10_000n;
+  const unit = minorUnitScale(currency);
+  return ((raised + unit / 2n) / unit) * unit;
+}
+
+/** `start` plus `years`; 29 February in a common year becomes 28 February. */
+export function addYears(start: string, years: number): string {
+  const y = Number(start.slice(0, 4)) + years;
+  const md = start.slice(5);
+  if (md === '02-29' && !(y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0))) return `${y}-02-28`;
+  return `${String(y).padStart(4, '0')}-${md}`;
+}
+
+/**
+ * The anniversary a yearly rent increase is waiting on: the latest one (start +
+ * N years, N >= 1) that is within `within` days or already passed, unless a
+ * rent rule starting around it (anchor on/after `within` days before it) exists,
+ * or the lease ends before it. Null when nothing is due.
+ */
+export function pendingEscalation(input: {
+  startDate: string;
+  endDate: string | null;
+  escalationPct: number | null;
+  ruleAnchors: readonly string[];
+  today: string;
+  within?: number;
+}): string | null {
+  const { startDate, endDate, escalationPct, today } = input;
+  const within = input.within ?? 7;
+  if (!escalationPct || escalationPct <= 0) return null;
+  const horizon = addPlanDays(today, within);
+  let latest: string | null = null;
+  for (let n = 1; n < 100; n += 1) {
+    const d = addYears(startDate, n);
+    if (d > horizon) break;
+    latest = d;
+  }
+  if (!latest || (endDate !== null && latest > endDate)) return null;
+  const floor = addPlanDays(latest, -within);
+  return input.ruleAnchors.some((a) => a >= floor) ? null : latest;
 }

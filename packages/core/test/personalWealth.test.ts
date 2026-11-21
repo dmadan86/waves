@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { addYears, pendingEscalation, raisedRent } from '../src/personal/wealth';
+
 import {
   decodeInvestment,
   decodeProperty,
@@ -189,5 +191,40 @@ describe('wealth maths', () => {
   it('settles the advance into returned and kept', () => {
     expect(settleDeposit(18000n, 15000n)).toEqual({ returned: 15000n, kept: 3000n });
     expect(settleDeposit(100n, 500n)).toEqual({ returned: 100n, kept: 0n });
+  });
+});
+
+describe('yearly rent increase', () => {
+  it('raises in minor units and rounds to whole major units', () => {
+    expect(raisedRent(2_500_000n, 5, 'INR')).toBe(2_625_000n);
+    expect(raisedRent(123_456n, 5, 'USD')).toBe(129_600n);
+  });
+  it('leaves the rent alone for no pct, and keeps zero-decimal currencies whole', () => {
+    expect(raisedRent(100_000n, 0, 'USD')).toBe(100_000n);
+    expect(raisedRent(1_001n, 5, 'JPY')).toBe(1_051n);
+  });
+  it('waits for the anniversary window and stops once a newer rule exists', () => {
+    const base = {
+      startDate: '2025-03-10',
+      endDate: null,
+      escalationPct: 5,
+      ruleAnchors: ['2025-03-10'],
+    };
+    expect(pendingEscalation({ ...base, today: '2026-03-02' })).toBeNull();
+    expect(pendingEscalation({ ...base, today: '2026-03-03' })).toBe('2026-03-10');
+    expect(pendingEscalation({ ...base, today: '2026-06-01' })).toBe('2026-03-10');
+    expect(
+      pendingEscalation({
+        ...base,
+        ruleAnchors: ['2025-03-10', '2026-03-10'],
+        today: '2026-06-01',
+      }),
+    ).toBeNull();
+    expect(pendingEscalation({ ...base, escalationPct: null, today: '2026-06-01' })).toBeNull();
+    expect(pendingEscalation({ ...base, endDate: '2026-03-01', today: '2026-06-01' })).toBeNull();
+  });
+  it('clamps a leap-day start', () => {
+    expect(addYears('2024-02-29', 1)).toBe('2025-02-28');
+    expect(addYears('2024-02-29', 4)).toBe('2028-02-29');
   });
 });

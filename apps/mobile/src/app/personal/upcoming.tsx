@@ -25,6 +25,7 @@ import { useSetupLeft } from '@/components/PersonalSetupCard';
 import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
 import { ICON_FOR, useWealthRows } from '@/components/personal/PersonalHomeParts';
 import { PlainHeader, StandardCard } from '@/components/standard';
+import { RaiseCard } from '@/components/wealth/RaiseCard';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePostRecurring } from '@/data/postRecurring';
@@ -129,6 +130,7 @@ export default function PersonalUpcomingScreen() {
             };
 
   const renderRow = (row: UpcomingRow, i: number, rows: readonly UpcomingRow[], todo = false) => {
+    if (row.raise) return <RaiseCard key={row.key} prompt={row.raise} />;
     const last = i === rows.length - 1;
     const item = row.item;
     const rule = ruleOf(row);

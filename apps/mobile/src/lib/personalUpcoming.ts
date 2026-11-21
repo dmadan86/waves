@@ -24,6 +24,7 @@ import {
   nextDueOnOrAfter,
   paymentsOfTenancy,
   rulesOfTenancy,
+  type RaisePrompt,
 } from '@/lib/wealthPlan';
 
 export type RowTone = 'brand' | 'positive' | 'negative' | 'warning';
@@ -49,6 +50,8 @@ export interface UpcomingRow {
   readonly overdue?: boolean;
   /** Recurring tab only: the rule brings money in. */
   readonly income?: boolean;
+  /** A yearly rent increase waiting for Apply or Not now. */
+  readonly raise?: RaisePrompt;
 }
 
 /** Rent still to collect, lease ends and maturities, as rows next to the bills. */
@@ -60,6 +63,7 @@ export function wealthRows(input: {
   txns: readonly PersonalTxn[];
   today: string;
   horizonDays: number;
+  raises?: readonly RaisePrompt[];
   titles: {
     rent: (name: string) => string;
     lease: (name: string) => string;
@@ -121,6 +125,17 @@ export function wealthRows(input: {
         href,
       });
     }
+  }
+  for (const raise of input.raises ?? []) {
+    out.push({
+      key: `raise:${raise.key}`,
+      kind: 'bill',
+      tone: 'warning',
+      inDays: daysBetween(today, raise.anniversary),
+      date: raise.anniversary,
+      raise,
+      href: `/rentals/${raise.propertyId}`,
+    });
   }
   for (const inv of input.investments) {
     if (inv.status !== 'active' || !inv.maturityDate) continue;
