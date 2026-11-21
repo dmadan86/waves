@@ -38,10 +38,12 @@
  */
 
 import type { CurrencyCode } from '../money/currency';
-import { fallbackCurrency } from '../money/region';
 import { parseAmount, serialiseAmount, type PersonalRecordKind } from '../sync/protocol';
 
 export type { PersonalRecordKind };
+
+// Stored records without currency were written when the app defaulted to INR.
+const LEGACY_CURRENCY = 'INR';
 
 /** An expense leaves the wallet; income comes into it. */
 export type TxnKind = 'expense' | 'income';
@@ -285,7 +287,7 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     id,
     kind: oneOf(data.kind, ['expense', 'income'] as const, 'expense'),
     amount: money(data.amount),
-    currency: str(data.currency) ?? fallbackCurrency(),
+    currency: str(data.currency) ?? LEGACY_CURRENCY,
     category: str(data.category),
     note: str(data.note),
     date: str(data.date) ?? '',
@@ -307,7 +309,7 @@ export function decodeRecurring(id: string, data: Record<string, unknown>): Pers
     id,
     txnKind: oneOf(data.txnKind, ['expense', 'income'] as const, 'expense'),
     amount: money(data.amount),
-    currency: str(data.currency) ?? fallbackCurrency(),
+    currency: str(data.currency) ?? LEGACY_CURRENCY,
     category: str(data.category),
     note: str(data.note),
     cadence: oneOf(
@@ -359,7 +361,7 @@ export function decodeLoan(id: string, data: Record<string, unknown>): PersonalL
     direction: oneOf(data.direction, ['borrowed', 'lent'] as const, 'borrowed'),
     counterpart: str(data.counterpart) ?? '',
     principal: money(data.principal),
-    currency: str(data.currency) ?? fallbackCurrency(),
+    currency: str(data.currency) ?? LEGACY_CURRENCY,
     note: str(data.note),
     startDate: str(data.startDate) ?? '',
     status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
@@ -376,7 +378,7 @@ export function decodeBudget(id: string, data: Record<string, unknown>): Persona
     id,
     category: str(data.category),
     limit: money(data.limit),
-    currency: str(data.currency) ?? fallbackCurrency(),
+    currency: str(data.currency) ?? LEGACY_CURRENCY,
     carried: carry(data, KNOWN_BUDGET),
   };
 }
