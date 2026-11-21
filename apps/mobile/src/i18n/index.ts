@@ -3422,23 +3422,34 @@ export interface UiStrings {
     pickNeed: string;
     presets: {
       rent: string;
-      emi: string;
+      home_loan: string;
       electricity: string;
       water: string;
       gas: string;
-      wifi: string;
+      internet: string;
       mobile: string;
-      ott: string;
-      maintenance: string;
-      maid: string;
-      cook: string;
-      driver: string;
+      streaming: string;
+      building_fees: string;
+      household_help: string;
+      childcare_school: string;
       groceries: string;
-      petrol: string;
-      school: string;
+      fuel: string;
       insurance: string;
+      investment_contribution: string;
       milk: string;
-      sip: string;
+      emi: string;
+      maid_cook_driver: string;
+      ott: string;
+      petrol: string;
+      society_maintenance: string;
+      hoa: string;
+      fuel_gas: string;
+      council_tax: string;
+      service_charge: string;
+      strata: string;
+      rates: string;
+      dewa: string;
+      chiller: string;
     };
   };
   household: {
@@ -12083,23 +12094,34 @@ const en: UiStrings = {
     pickNeed: 'Add an amount for each one.',
     presets: {
       rent: 'Rent',
-      emi: 'Home loan EMI',
+      home_loan: 'Home loan payment',
       electricity: 'Electricity',
       water: 'Water',
-      gas: 'Gas / LPG',
-      wifi: 'Wi-Fi',
+      gas: 'Gas',
+      internet: 'Internet',
       mobile: 'Mobile',
-      ott: 'Netflix / OTT / DTH',
-      maintenance: 'Maintenance',
-      maid: 'Maid',
-      cook: 'Cook',
-      driver: 'Driver',
+      streaming: 'Streaming',
+      building_fees: 'Building fees',
+      household_help: 'Household help',
+      childcare_school: 'Childcare / school',
       groceries: 'Groceries',
-      petrol: 'Petrol',
-      school: 'School fees',
+      fuel: 'Fuel',
       insurance: 'Insurance',
-      milk: 'Milk / newspaper',
-      sip: 'SIP',
+      investment_contribution: 'Investment contribution',
+      milk: 'Milk',
+      emi: 'EMI',
+      maid_cook_driver: 'Maid / cook / driver',
+      ott: 'OTT',
+      petrol: 'Petrol',
+      society_maintenance: 'Society maintenance',
+      hoa: 'HOA',
+      fuel_gas: 'Gas',
+      council_tax: 'Council tax',
+      service_charge: 'Service charge',
+      strata: 'Strata',
+      rates: 'Rates',
+      dewa: 'DEWA',
+      chiller: 'Chiller',
     },
   },
   household: {
@@ -20203,23 +20225,34 @@ const ta: UiStrings = {
     pickNeed: 'ஒவ்வொன்றுக்கும் தொகையைச் சேர்க்கவும்.',
     presets: {
       rent: 'வாடகை',
-      emi: 'வீட்டுக் கடன் EMI',
+      home_loan: 'வீட்டுக் கடன் கட்டணம்',
       electricity: 'மின்சாரம்',
       water: 'தண்ணீர்',
-      gas: 'கேஸ் / LPG',
-      wifi: 'வைஃபை',
+      gas: 'எரிவாயு',
+      internet: 'இணையம்',
       mobile: 'மொபைல்',
-      ott: 'நெட்ஃபிளிக்ஸ் / OTT / DTH',
-      maintenance: 'பராமரிப்பு',
-      maid: 'வீட்டுப் பணியாளர்',
-      cook: 'சமையல்காரர்',
-      driver: 'ஓட்டுநர்',
+      streaming: 'ஸ்ட்ரீமிங்',
+      building_fees: 'கட்டிடக் கட்டணம்',
+      household_help: 'வீட்டு உதவி',
+      childcare_school: 'குழந்தை பராமரிப்பு / பள்ளி',
       groceries: 'மளிகை',
-      petrol: 'பெட்ரோல்',
-      school: 'பள்ளிக் கட்டணம்',
+      fuel: 'எரிபொருள்',
       insurance: 'காப்பீடு',
-      milk: 'பால் / செய்தித்தாள்',
-      sip: 'SIP',
+      investment_contribution: 'முதலீட்டு பங்களிப்பு',
+      milk: 'பால்',
+      emi: 'EMI',
+      maid_cook_driver: 'வீட்டு வேலை / சமையல் / ஓட்டுநர்',
+      ott: 'OTT',
+      petrol: 'பெட்ரோல்',
+      society_maintenance: 'சொசைட்டி பராமரிப்பு',
+      hoa: 'HOA',
+      fuel_gas: 'காஸ்',
+      council_tax: 'கவுன்சில் வரி',
+      service_charge: 'சேவை கட்டணம்',
+      strata: 'ஸ்ட்ராட்டா',
+      rates: 'விகிதக் கட்டணம்',
+      dewa: 'DEWA',
+      chiller: 'சில்லர்',
     },
   },
   household: {
@@ -28470,23 +28503,34 @@ const hi: UiStrings = {
     pickNeed: 'हर एक के लिए रकम डालें।',
     presets: {
       rent: 'किराया',
-      emi: 'होम लोन EMI',
+      home_loan: 'होम लोन भुगतान',
       electricity: 'बिजली',
       water: 'पानी',
-      gas: 'गैस / LPG',
-      wifi: 'वाई-फाई',
+      gas: 'गैस',
+      internet: 'इंटरनेट',
       mobile: 'मोबाइल',
-      ott: 'नेटफ़्लिक्स / OTT / DTH',
-      maintenance: 'मेंटेनेंस',
-      maid: 'बाई',
-      cook: 'रसोइया',
-      driver: 'ड्राइवर',
+      streaming: 'स्ट्रीमिंग',
+      building_fees: 'इमारत शुल्क',
+      household_help: 'घरेलू मदद',
+      childcare_school: 'बच्चों की देखभाल / स्कूल',
       groceries: 'किराना',
-      petrol: 'पेट्रोल',
-      school: 'स्कूल फीस',
+      fuel: 'ईंधन',
       insurance: 'बीमा',
-      milk: 'दूध / अख़बार',
-      sip: 'SIP',
+      investment_contribution: 'निवेश योगदान',
+      milk: 'दूध',
+      emi: 'EMI',
+      maid_cook_driver: 'मेड / कुक / ड्राइवर',
+      ott: 'OTT',
+      petrol: 'पेट्रोल',
+      society_maintenance: 'सोसायटी रखरखाव',
+      hoa: 'HOA',
+      fuel_gas: 'गैस',
+      council_tax: 'काउंसिल टैक्स',
+      service_charge: 'सर्विस चार्ज',
+      strata: 'स्ट्राटा',
+      rates: 'रेट्स',
+      dewa: 'DEWA',
+      chiller: 'चिलर',
     },
   },
   household: {
@@ -36740,23 +36784,34 @@ const ar: UiStrings = {
     pickNeed: 'أضف مبلغًا لكل واحدة.',
     presets: {
       rent: 'الإيجار',
-      emi: 'قسط قرض المنزل',
+      home_loan: 'دفعة قرض المنزل',
       electricity: 'الكهرباء',
       water: 'المياه',
       gas: 'الغاز',
-      wifi: 'الإنترنت',
-      mobile: 'الجوال',
-      ott: 'نتفليكس / بث / قنوات',
-      maintenance: 'الصيانة',
-      maid: 'العاملة المنزلية',
-      cook: 'الطباخ',
-      driver: 'السائق',
+      internet: 'الإنترنت',
+      mobile: 'الهاتف',
+      streaming: 'البث',
+      building_fees: 'رسوم المبنى',
+      household_help: 'مساعدة منزلية',
+      childcare_school: 'رعاية الأطفال / المدرسة',
       groceries: 'البقالة',
-      petrol: 'البنزين',
-      school: 'الرسوم الدراسية',
+      fuel: 'الوقود',
       insurance: 'التأمين',
-      milk: 'الحليب / الجريدة',
-      sip: 'استثمار شهري',
+      investment_contribution: 'مساهمة استثمارية',
+      milk: 'الحليب',
+      emi: 'قسط EMI',
+      maid_cook_driver: 'عاملة منزلية / طاهٍ / سائق',
+      ott: 'OTT',
+      petrol: 'بنزين',
+      society_maintenance: 'صيانة المجمع',
+      hoa: 'رسوم HOA',
+      fuel_gas: 'الغاز',
+      council_tax: 'ضريبة البلدية',
+      service_charge: 'رسوم الخدمة',
+      strata: 'ستراتا',
+      rates: 'الرسوم البلدية',
+      dewa: 'ديوا',
+      chiller: 'التبريد',
     },
   },
   household: {
