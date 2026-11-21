@@ -131,6 +131,26 @@ export function endDayBefore(date: string): string {
   return addPlanDays(date, -1);
 }
 
+export function rentRaiseDates(
+  rule: PersonalRecurring,
+  effective: string,
+): { due: string; oldEnd: string } {
+  let due = rule.nextDate || rule.anchorDate;
+  for (let i = 0; due < effective && i < 800; i += 1) {
+    const next = stepOccurrence(rule, due);
+    if (next <= due) break;
+    due = next;
+  }
+  return { due, oldEnd: endDayBefore(due) };
+}
+
+export function rulesToCloseOnLeave(
+  rules: readonly PersonalRecurring[],
+  leave: string,
+): PersonalRecurring[] {
+  return rules.filter((r) => r.active && (r.endDate === null || r.endDate > leave));
+}
+
 /** The rule currently collecting rent for a tenancy: the newest active one. */
 export function currentRentRule(
   rules: readonly PersonalRecurring[],
@@ -166,6 +186,7 @@ export interface WealthReminder {
   readonly kind: 'sipTomorrow' | 'sipToday' | 'rentDue' | 'rentLate' | 'leaseEnd' | 'maturity';
   readonly name: string;
   readonly amount: bigint;
+  readonly currency: string;
   readonly days: number;
   readonly url: string;
 }
@@ -214,6 +235,7 @@ export function planWealthReminders(input: {
         kind: rule.autoPost ? 'sipTomorrow' : 'sipToday',
         name: inv.name,
         amount: rule.amount,
+        currency: rule.currency,
         days: 0,
         url: `waves://investments/${inv.id}`,
       });
@@ -226,6 +248,7 @@ export function planWealthReminders(input: {
           kind: 'maturity',
           name: inv.name,
           amount: 0n,
+          currency: inv.currency,
           days: n,
           url: `waves://investments/${inv.id}`,
         });
@@ -241,15 +264,18 @@ export function planWealthReminders(input: {
     const url = `waves://rentals/${tn.propertyId}`;
     const bal = rentBalance(rentDues(rules, today), paymentsOfTenancy(txns, rules), today);
     // Dues already past and still unpaid: nudge 3 days after they fell due.
+    const futureRules = currentRentRule(rules, tn.id);
     for (const line of bal.lines) {
       if (line.status === 'paid') continue;
+      const remaining = line.amount - line.paid;
       if (line.date >= today) {
         push({
           id: `rent:${tn.id}:${line.date}`,
           fireAt: at10(line.date),
           kind: 'rentDue',
           name,
-          amount: line.amount - line.paid,
+          amount: remaining,
+          currency: rules.find((r) => r.id === line.ruleId)?.currency ?? prop?.currency ?? 'USD',
           days: 0,
           url,
         });
@@ -259,32 +285,38 @@ export function planWealthReminders(input: {
         fireAt: at10(addPlanDays(line.date, 3)),
         kind: 'rentLate',
         name,
-        amount: line.amount - line.paid,
+        amount: remaining,
+        currency: rules.find((r) => r.id === line.ruleId)?.currency ?? prop?.currency ?? 'USD',
         days: 3,
         url,
       });
     }
-    const rule = currentRentRule(rules, tn.id);
+    const rule = futureRules;
     const due = rule ? nextDueOnOrAfter(rule, today) : null;
     if (rule && due && !bal.lines.some((l) => l.date === due)) {
-      push({
-        id: `rent:${tn.id}:${due}`,
-        fireAt: at10(due),
-        kind: 'rentDue',
-        name,
-        amount: rule.amount,
-        days: 0,
-        url,
-      });
-      push({
-        id: `rentlate:${tn.id}:${due}`,
-        fireAt: at10(addPlanDays(due, 3)),
-        kind: 'rentLate',
-        name,
-        amount: rule.amount,
-        days: 3,
-        url,
-      });
+      const remaining = rule.amount > bal.ahead ? rule.amount - bal.ahead : 0n;
+      if (remaining > 0n)
+        push({
+          id: `rent:${tn.id}:${due}`,
+          fireAt: at10(due),
+          kind: 'rentDue',
+          name,
+          amount: remaining,
+          currency: rule.currency,
+          days: 0,
+          url,
+        });
+      if (remaining > 0n)
+        push({
+          id: `rentlate:${tn.id}:${due}`,
+          fireAt: at10(addPlanDays(due, 3)),
+          kind: 'rentLate',
+          name,
+          amount: remaining,
+          currency: rule.currency,
+          days: 3,
+          url,
+        });
     }
     if (tn.endDate) {
       for (const n of [60, 30]) {
@@ -294,6 +326,7 @@ export function planWealthReminders(input: {
           kind: 'leaseEnd',
           name,
           amount: 0n,
+          currency: prop?.currency ?? 'USD',
           days: n,
           url,
         });

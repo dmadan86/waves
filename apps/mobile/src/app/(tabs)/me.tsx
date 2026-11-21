@@ -231,7 +231,7 @@ function MeLedger() {
   );
   const [switchOpen, setSwitchOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
-  useWealthReminders(dc);
+  useWealthReminders();
   const firstName = (profile?.display_name ?? t.account.you).trim().split(/\s+/)[0];
 
   const moreItems: OverflowMenuItem[] = [

@@ -11,10 +11,16 @@ import { PersonalGuard } from '@/components/PersonalGuard';
 import { DayStepper } from '@/components/RepeatPicker';
 import { DateAnswer, FlowShell, Pick, TextAnswer } from '@/components/wealth/parts';
 import { todayIso } from '@/data/personal';
-import { useWealthWrites, type RentalDraft } from '@/data/personalWealth';
+import {
+  FREE_CAP_ERROR,
+  usePersonalWealth,
+  useWealthWrites,
+  type RentalDraft,
+} from '@/data/personalWealth';
 import { fill, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
+import { useEntitlement } from '@/lib/useEntitlement';
 import { router } from '@/lib/navigation';
 import { depositTerm, regionOf } from '@/lib/wealthPlan';
 
@@ -32,6 +38,8 @@ function AddBody() {
   const termKey = depositTerm(region);
   const currency = useDefaultCurrency();
   const writes = useWealthWrites();
+  const wealth = usePersonalWealth();
+  const { isPro } = useEntitlement();
   const [today] = useState(() => todayIso());
 
   const [type, setType] = useState<PropertyType>('house');
@@ -60,6 +68,10 @@ function AddBody() {
   const weekly = frequency === 'weekly' || frequency === 'fortnightly';
 
   const save = async (withTenant: boolean, pctNow: number | null = pct): Promise<void> => {
+    if (!isPro && wealth.properties.filter((p) => p.status === 'active').length >= 1) {
+      router.push('/paywall');
+      return;
+    }
     const draft: RentalDraft = {
       type,
       name: name.trim() || w.propertyTypes[type],
@@ -82,7 +94,11 @@ function AddBody() {
     };
     try {
       await writes.createRental(draft);
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === FREE_CAP_ERROR) {
+        router.push('/paywall');
+        return;
+      }
       // Local-first: the queue retries; nothing is shown as a refusal.
     }
     router.back();

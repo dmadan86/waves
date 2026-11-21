@@ -18,6 +18,8 @@ import {
   monthRent,
   planWealthReminders,
   propertyView,
+  rentRaiseDates,
+  rulesToCloseOnLeave,
   rentAnchor,
   rentStrip,
   typeHint,
@@ -122,6 +124,45 @@ describe('planWealthReminders', () => {
     });
     expect(out.map((r) => r.kind)).toEqual(['rentDue', 'rentLate']);
   });
+  it('applies ahead payments to future rent reminders', () => {
+    const tn = decodeTenancy('t1', { propertyId: 'p1', tenantName: 'Ravi', status: 'active' });
+    const rule = decodeRecurring('r1', {
+      txnKind: 'income',
+      amount: '1000',
+      currency: 'USD',
+      anchorDate: '2026-11-01',
+      nextDate: '2026-12-01',
+      cadence: 'monthly',
+      tenancyId: 't1',
+    });
+    const payment: PersonalTxn = {
+      id: 'p1',
+      kind: 'income',
+      amount: 1000n,
+      currency: 'USD',
+      category: 'inc.rent',
+      note: null,
+      date: '2026-11-15',
+      loanId: null,
+      recurringId: 'r1',
+    };
+    const localProp = decodeProperty('p1', { type: 'shop', name: 'Shop 2', currency: 'USD' });
+    const plan = (amount: bigint) =>
+      planWealthReminders({
+        ...base,
+        investments: [],
+        properties: [localProp],
+        tenancies: [tn],
+        recurrings: [rule],
+        txns: [{ ...payment, amount }],
+      });
+    expect(
+      plan(1500n)
+        .filter((r) => r.kind === 'rentDue' || r.kind === 'rentLate')
+        .map((r) => r.amount),
+    ).toEqual([500n, 500n]);
+    expect(plan(2000n).filter((r) => r.kind === 'rentDue' || r.kind === 'rentLate')).toEqual([]);
+  });
 });
 
 describe('rentals', () => {
@@ -157,6 +198,24 @@ describe('rentals', () => {
     expect(rentAnchor('2024-01-01', 5, '2026-11-21', 'monthly')).toBe('2026-11-05');
     expect(rentAnchor('2027-01-01', 5, '2026-11-21', 'monthly')).toBe('2027-01-05');
     expect(rentAnchor('2024-01-01', 5, '2026-11-21', 'fortnightly')).toBe('2026-11-21');
+  });
+  it('starts raised rent on the next due date and preserves earlier departure end dates', () => {
+    const old = decodeRecurring('raise', {
+      txnKind: 'income',
+      amount: '1800',
+      anchorDate: '2026-11-01',
+      nextDate: '2026-12-01',
+      cadence: 'monthly',
+    });
+    expect(rentRaiseDates(old, '2026-11-15')).toEqual({ due: '2026-12-01', oldEnd: '2026-11-30' });
+    const ended = decodeRecurring('ended', {
+      txnKind: 'income',
+      anchorDate: '2026-01-01',
+      nextDate: '2026-02-01',
+      endDate: '2026-10-31',
+      active: true,
+    });
+    expect(rulesToCloseOnLeave([old, ended], '2026-11-15').map((r) => r.id)).toEqual(['raise']);
   });
   it('shows a part payment as part paid with the balance still due', () => {
     const v = propertyView(prop, [tn], [rent], [pay(1000n)], '2026-11-21');

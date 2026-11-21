@@ -13,10 +13,16 @@ import { PersonalGuard } from '@/components/PersonalGuard';
 import { DayStepper } from '@/components/RepeatPicker';
 import { DateAnswer, FlowShell, Pick, TextAnswer } from '@/components/wealth/parts';
 import { todayIso } from '@/data/personal';
-import { useWealthWrites, type InvestmentDraft } from '@/data/personalWealth';
+import {
+  FREE_CAP_ERROR,
+  usePersonalWealth,
+  useWealthWrites,
+  type InvestmentDraft,
+} from '@/data/personalWealth';
 import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
+import { useEntitlement } from '@/lib/useEntitlement';
 import { router } from '@/lib/navigation';
 import { regionOf, typeHint } from '@/lib/wealthPlan';
 import { INVESTMENT_TYPES } from '@waves/core';
@@ -39,6 +45,8 @@ function AddBody() {
   const region = regionOf(profile?.country_code);
   const currency = useDefaultCurrency();
   const writes = useWealthWrites();
+  const wealth = usePersonalWealth();
+  const { isPro } = useEntitlement();
   const [today] = useState(() => todayIso());
 
   const [type, setType] = useState<InvestmentType | null>(null);
@@ -86,10 +94,18 @@ function AddBody() {
   });
 
   const finish = async (autoPost: boolean, plain: boolean): Promise<void> => {
+    if (!plain && !isPro && wealth.investments.filter((i) => i.status === 'active').length >= 3) {
+      router.push('/paywall');
+      return;
+    }
     try {
       if (plain) await writes.createPlainBill(draft(autoPost));
       else await writes.createInvestment(draft(autoPost));
-    } catch {
+    } catch (error) {
+      if (error instanceof Error && error.message === FREE_CAP_ERROR) {
+        router.push('/paywall');
+        return;
+      }
       // Local-first: the queue retries; nothing is shown as a refusal.
     }
     router.back();

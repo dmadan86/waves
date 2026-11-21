@@ -13,6 +13,8 @@ import { ensureAndroidChannel, localNotificationsAllowed, pushSupported } from '
 import { planWealthReminders, type WealthReminder } from '@/lib/wealthPlan';
 
 const KEY = 'waves.wealth.reminder';
+let replacement = Promise.resolve();
+let generation = 0;
 
 export function reminderBody(r: WealthReminder, w: WealthStrings, amount: string): string {
   switch (r.kind) {
@@ -31,18 +33,25 @@ export function reminderBody(r: WealthReminder, w: WealthStrings, amount: string
   }
 }
 
-async function replaceAll(items: { r: WealthReminder; title: string; body: string }[]): Promise<void> {
+async function replaceAll(
+  items: { r: WealthReminder; title: string; body: string }[],
+  version: number,
+): Promise<void> {
   if (!pushSupported) return;
   try {
+    if (version !== generation) return;
     const held = await Notifications.getAllScheduledNotificationsAsync();
+    if (version !== generation) return;
     for (const n of held) {
       if ((n.content.data as { key?: unknown } | undefined)?.key === KEY) {
         await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
       }
     }
-    if (items.length === 0 || !(await localNotificationsAllowed())) return;
+    if (items.length === 0 || !(await localNotificationsAllowed()) || version !== generation)
+      return;
     await ensureAndroidChannel();
     for (const { r, title, body } of items) {
+      if (version !== generation) return;
       await Notifications.scheduleNotificationAsync({
         content: { title, body, data: { key: KEY, url: r.url } },
         trigger: {
@@ -58,7 +67,7 @@ async function replaceAll(items: { r: WealthReminder; title: string; body: strin
 }
 
 /** Re-plans the reminders whenever the records change. Mount once on the Personal home. */
-export function useWealthReminders(currency: string): void {
+export function useWealthReminders(): void {
   const { t } = useStrings();
   const ledger = usePersonalLedger();
   const wealth = usePersonalWealth();
@@ -74,12 +83,19 @@ export function useWealthReminders(currency: string): void {
       now: Date.now(),
     });
     const w = t.wealth;
-    void replaceAll(
-      plan.map((r) => ({
-        r,
-        title: r.kind === 'sipTomorrow' || r.kind === 'sipToday' || r.kind === 'maturity' ? w.investments : w.rentals,
-        body: reminderBody(r, w, format(money(r.amount, currency))),
-      })),
+    const version = ++generation;
+    const items = plan.map((r) => ({
+      r,
+      title:
+        r.kind === 'sipTomorrow' || r.kind === 'sipToday' || r.kind === 'maturity'
+          ? w.investments
+          : w.rentals,
+      body: reminderBody(r, w, format(money(r.amount, r.currency))),
+    }));
+    const work = replacement.then(() => replaceAll(items, version));
+    replacement = replacement.then(
+      () => work,
+      () => work,
     );
-  }, [wealth, ledger.recurrings, ledger.txns, t, currency]);
+  }, [wealth, ledger.recurrings, ledger.txns, t]);
 }

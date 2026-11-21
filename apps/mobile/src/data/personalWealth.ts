@@ -26,14 +26,21 @@ import {
   useDeletePersonalRecord,
   usePersonalRecords,
   useUpsertPersonalRecord,
+  todayIso,
 } from '@/data/personal';
 import {
   cadenceFor,
-  endDayBefore,
   firstDue,
   rentAnchor,
   investmentCategory,
+  rentRaiseDates,
+  rulesToCloseOnLeave,
 } from '@/lib/wealthPlan';
+import { useEntitlement } from '@/lib/useEntitlement';
+
+let pendingInvestments = 0;
+let pendingProperties = 0;
+export const FREE_CAP_ERROR = 'FREE_WEALTH_CAP';
 
 export interface PersonalWealth {
   readonly investments: readonly PersonalInvestment[];
@@ -97,6 +104,8 @@ export interface RentalDraft {
 export function useWealthWrites() {
   const upsert = useUpsertPersonalRecord();
   const del = useDeletePersonalRecord();
+  const records = usePersonalRecords();
+  const { isPro } = useEntitlement();
   const put = (
     recordKind: Parameters<typeof upsert.mutateAsync>[0]['recordKind'],
     recordId: string,
@@ -137,47 +146,56 @@ export function useWealthWrites() {
     isPending: upsert.isPending,
 
     async createInvestment(d: InvestmentDraft): Promise<string> {
-      const id = randomUUID();
-      await put(
-        'investment',
-        id,
-        encodeInvestment({
-          type: d.type,
-          name: d.name,
-          currency: d.currency,
-          openingInvested: d.openingInvested,
-          openingAsOf: d.openingInvested > 0n ? d.today : null,
-          currentValue: d.currentValue,
-          valueAsOf: d.currentValue !== null ? d.today : null,
-          maturityDate: d.maturityDate,
-          taxWrapper: d.taxWrapper,
-          status: 'active',
-          note: null,
-        }),
-      );
-      if (d.amount > 0n) {
-        const anchor = d.startDate ?? firstDue(d.today, d.day);
+      const count = records.filter(
+        (r) => r.record_kind === 'investment' && decodeInvestment(r.id, r.data).status === 'active',
+      ).length;
+      if (!isPro && count + pendingInvestments >= 3) throw new Error(FREE_CAP_ERROR);
+      pendingInvestments += 1;
+      try {
+        const id = randomUUID();
         await put(
-          'recurring',
-          randomUUID(),
-          encodeRecurring({
-            txnKind: 'expense',
-            amount: d.amount,
+          'investment',
+          id,
+          encodeInvestment({
+            type: d.type,
+            name: d.name,
             currency: d.currency,
-            category: investmentCategory(d.type),
-            note: d.name,
-            ...cadenceFor(d.frequency),
-            secondDay: null,
-            anchorDate: anchor,
-            nextDate: anchor,
-            endDate: null,
-            autoPost: d.autoPost,
-            active: true,
-            investmentId: id,
+            openingInvested: d.openingInvested,
+            openingAsOf: d.openingInvested > 0n ? d.today : null,
+            currentValue: d.currentValue,
+            valueAsOf: d.currentValue !== null ? d.today : null,
+            maturityDate: d.maturityDate,
+            taxWrapper: d.taxWrapper,
+            status: 'active',
+            note: null,
           }),
         );
+        if (d.amount > 0n) {
+          const anchor = d.startDate ?? firstDue(d.today, d.day);
+          await put(
+            'recurring',
+            randomUUID(),
+            encodeRecurring({
+              txnKind: 'expense',
+              amount: d.amount,
+              currency: d.currency,
+              category: investmentCategory(d.type),
+              note: d.name,
+              ...cadenceFor(d.frequency),
+              secondDay: null,
+              anchorDate: anchor,
+              nextDate: anchor,
+              endDate: null,
+              autoPost: d.autoPost,
+              active: true,
+              investmentId: id,
+            }),
+          );
+        }
+        return id;
+      } finally {
+        pendingInvestments -= 1;
       }
-      return id;
     },
 
     /** Insurance with no payout stays an ordinary bill: a plain recurring expense. */
@@ -239,53 +257,62 @@ export function useWealthWrites() {
     },
 
     async createRental(d: RentalDraft): Promise<string> {
-      const propertyId = randomUUID();
-      await put(
-        'property',
-        propertyId,
-        encodeProperty({
-          type: d.type,
-          name: d.name,
-          locality: null,
-          currency: d.currency,
-          status: 'active',
-          note: null,
-        }),
-      );
-      if (d.tenant) {
-        const t = d.tenant;
-        const tenancyId = randomUUID();
+      const count = records.filter(
+        (r) => r.record_kind === 'property' && decodeProperty(r.id, r.data).status === 'active',
+      ).length;
+      if (!isPro && count + pendingProperties >= 1) throw new Error(FREE_CAP_ERROR);
+      pendingProperties += 1;
+      try {
+        const propertyId = randomUUID();
         await put(
-          'tenancy',
-          tenancyId,
-          encodeTenancy({
-            propertyId,
-            unit: null,
-            tenantName: t.name,
-            tenantPhone: t.phone.trim() || null,
-            depositHeld: t.deposit,
-            rentFrequency: t.frequency,
-            startDate: t.startDate,
-            endDate: t.endDate,
-            escalationPct: t.escalationPct,
+          'property',
+          propertyId,
+          encodeProperty({
+            type: d.type,
+            name: d.name,
+            locality: null,
+            currency: d.currency,
             status: 'active',
-            endedOn: null,
-            depositReturned: null,
-            depositKept: null,
             note: null,
           }),
         );
-        const [rid, data] = rentRule(randomUUID(), {
-          tenancyId,
-          amount: t.rent,
-          currency: d.currency,
-          frequency: t.frequency,
-          anchor: rentAnchor(t.startDate, t.day, d.today, t.frequency),
-          note: `Rent · ${d.name}`,
-        });
-        await put('recurring', rid, data);
+        if (d.tenant) {
+          const t = d.tenant;
+          const tenancyId = randomUUID();
+          await put(
+            'tenancy',
+            tenancyId,
+            encodeTenancy({
+              propertyId,
+              unit: null,
+              tenantName: t.name,
+              tenantPhone: t.phone.trim() || null,
+              depositHeld: t.deposit,
+              rentFrequency: t.frequency,
+              startDate: t.startDate,
+              endDate: t.endDate,
+              escalationPct: t.escalationPct,
+              status: 'active',
+              endedOn: null,
+              depositReturned: null,
+              depositKept: null,
+              note: null,
+            }),
+          );
+          const [rid, data] = rentRule(randomUUID(), {
+            tenancyId,
+            amount: t.rent,
+            currency: d.currency,
+            frequency: t.frequency,
+            anchor: rentAnchor(t.startDate, t.day, d.today, t.frequency),
+            note: `Rent · ${d.name}`,
+          });
+          await put('recurring', rid, data);
+        }
+        return propertyId;
+      } finally {
+        pendingProperties -= 1;
       }
-      return propertyId;
     },
 
     /** Each payment is its own entry with a fresh id, so part payments never overwrite one another. */
@@ -338,8 +365,17 @@ export function useWealthWrites() {
 
     /** A rent raise: end the old rule the day before, start a new one on the same tenancy. */
     async changeRent(old: PersonalRecurring, newAmount: bigint, from: string): Promise<void> {
+      const { due, oldEnd } = rentRaiseDates(old, from);
       const { id, ...rest } = old;
-      await put('recurring', id, encodeRecurring({ ...rest, endDate: endDayBefore(from) }));
+      await put(
+        'recurring',
+        id,
+        encodeRecurring({
+          ...rest,
+          active: oldEnd >= todayIso() ? rest.active : false,
+          endDate: oldEnd,
+        }),
+      );
       await put(
         'recurring',
         randomUUID(),
@@ -347,8 +383,8 @@ export function useWealthWrites() {
           ...rest,
           carried: undefined,
           amount: newAmount,
-          anchorDate: from,
-          nextDate: from,
+          anchorDate: due,
+          nextDate: due,
           endDate: null,
         }),
       );
@@ -375,8 +411,7 @@ export function useWealthWrites() {
           depositKept: kept,
         }),
       );
-      for (const r of rules) {
-        if (!r.active) continue;
+      for (const r of rulesToCloseOnLeave(rules, endedOn)) {
         const { id: rid, ...rr } = r;
         await put('recurring', rid, encodeRecurring({ ...rr, active: false, endDate: endedOn }));
       }
