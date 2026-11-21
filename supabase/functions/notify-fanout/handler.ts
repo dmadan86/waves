@@ -25,6 +25,7 @@ import {
   buildPushBatch,
   chunk,
   EXPO_RECEIPT_CHUNK,
+  isPrivateSpaceType,
   isPushMisconfigured,
   readPushReceipts,
   readPushTickets,
@@ -92,6 +93,30 @@ export interface NotifyFanoutDeps {
   dispatchEmail(service: SupabaseClient): Promise<EmailSummary>;
 }
 
+const groupIdOf = (link: string | null): string =>
+  /^waves:\/\/group\/([0-9a-f-]{36})/i.exec(link ?? '')?.[1] ?? '';
+
+/**
+ * Groups among these rows that are couple or family spaces, whose lock-screen
+ * text must carry no amounts. If the lookup fails, every group in the batch
+ * counts as private: a vaguer push is better than a leaked amount.
+ */
+async function privateGroupIds(service: SupabaseClient, rows: ClaimedRow[]): Promise<Set<string>> {
+  const ids = [...new Set(rows.map((row) => groupIdOf(row.deep_link)).filter(Boolean))];
+  if (ids.length === 0) return new Set();
+  try {
+    const { data, error } = await service.from('groups').select('id, type').in('id', ids);
+    if (error) throw error;
+    return new Set(
+      ((data ?? []) as { id: string; type: string }[])
+        .filter((group) => isPrivateSpaceType(group.type))
+        .map((group) => group.id),
+    );
+  } catch {
+    return new Set(ids);
+  }
+}
+
 export async function handlePushFanout(
   request: Request,
   deps: NotifyFanoutDeps,
@@ -122,8 +147,10 @@ export async function handlePushFanout(
       });
     }
 
+    const privateGroups = await privateGroupIds(service, rows);
     const batch = buildPushBatch(
       rows.map((row) => ({
+        private: privateGroups.has(groupIdOf(row.deep_link)),
         id: row.id,
         kind: row.kind,
         title: row.title,

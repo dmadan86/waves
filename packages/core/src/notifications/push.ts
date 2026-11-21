@@ -19,6 +19,7 @@
  * Expo takes at most 100 messages per request, so the chunking lives here too.
  */
 
+import { renderPrivateNotification } from './privacy';
 import { renderNotification, type NotificationFacts } from './render';
 
 /** Expo's cap. Sending more in one request is rejected outright. */
@@ -33,6 +34,8 @@ export interface PushableNotification {
   readonly facts?: NotificationFacts;
   /** The recipient's locale — theirs, not the sender's and not the server's. */
   readonly locale?: string | null;
+  /** A couple or family space: the lock screen gets no amounts or descriptions. */
+  readonly private?: boolean;
   /** Every live device this person has. */
   readonly tokens: readonly string[];
 }
@@ -64,7 +67,8 @@ export function buildPushBatch(rows: readonly PushableNotification[]): PushBatch
   const targets: PushTarget[] = [];
 
   for (const row of rows) {
-    const { title, body } = renderNotification(row.kind, row.facts ?? {}, row.locale ?? 'en', {
+    const render = row.private ? renderPrivateNotification : renderNotification;
+    const { title, body } = render(row.kind, row.facts ?? {}, row.locale ?? 'en', {
       title: row.title,
       body: row.body,
     });
