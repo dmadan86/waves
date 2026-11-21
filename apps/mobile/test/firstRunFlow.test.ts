@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   decideFirstRun,
+  isInviteRoute,
   nameForField,
   routeForIntents,
   summariseHeard,
@@ -68,5 +69,14 @@ describe('summariseHeard', () => {
   });
   it('gives null without an amount', () => {
     expect(summariseHeard('hello there')).toBeNull();
+  });
+});
+
+describe('isInviteRoute', () => {
+  it('keeps the join screen and short links', () => {
+    expect(isInviteRoute('/join')).toBe(true);
+    expect(isInviteRoute('/r/ABC123')).toBe(true);
+    expect(isInviteRoute('/')).toBe(false);
+    expect(isInviteRoute('/joined')).toBe(false);
   });
 });

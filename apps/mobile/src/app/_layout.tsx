@@ -44,6 +44,7 @@ import { PermissionHost } from '@/components/PermissionHost';
 import { setOverlayBusy } from '@/lib/firstRun';
 import {
   decideFirstRun,
+  isInviteRoute,
   firstRunSeen,
   rememberFirstRunSeen,
   useFirstRunSeen,
@@ -111,7 +112,7 @@ import { COMPANIES_ENABLED, isCompanyRoute } from '@/lib/companiesEnabled';
 import { ensureAndroidChannel, pushSupported, routeForNotification } from '@/lib/push';
 import { applyStoredSessionReplayConsent } from '@/lib/sessionReplay';
 import { holdPhonesUpright } from '@/lib/phoneOrientation';
-import { SyncProvider } from '@/sync';
+import { SyncProvider, useSync } from '@/sync';
 
 // Before the first screen draws, so a phone never shows a sideways frame.
 holdPhonesUpright();
@@ -777,13 +778,17 @@ function AuthGate() {
   // cards; everyone else keeps the cards and is marked as not needing it.
   const flowSeen = useFirstRunSeen(ownerId);
   const groups = useGroups();
+  // A new phone holds no groups until the first sync lands; an existing account
+  // must not be read as brand new in that window.
+  const { hasSynced } = useSync();
+  const here = usePathname();
   useEffect(() => {
     if (ownerId) void firstRunSeen(ownerId);
   }, [ownerId]);
   const flow = decideFirstRun({
     seen: flowSeen,
     introSeen: tourSeen,
-    groupsReady: !groups.isLoading,
+    groupsReady: !groups.isLoading && hasSynced,
     groupCount: groups.data.filter((g) => !isDemoGroupId(g.id)).length,
   });
   useEffect(() => {
@@ -791,9 +796,11 @@ function AuthGate() {
     if (flow === 'mark-existing') void rememberFirstRunSeen(ownerId);
     // Once per account: `start` marks the account seen when it ends.
     // Somebody who arrived through an invite goes to that group, not the questions.
-    if (flow === 'show')
+    // Somebody arriving through an invite (link waiting, or already on the join
+    // screen) goes to that group; joining it marks them existing.
+    if (flow === 'show' && !isInviteRoute(here))
       void pendingInvite.has().then((invited) => !invited && router.replace('/start'));
-  }, [flow, ownerId, router]);
+  }, [flow, here, ownerId, router]);
   const showIntro = Boolean(session && ownerId && tourSeen !== true && flow !== 'show');
   // Home is mounted under the intro; the tour must not start behind (or over) it.
   useEffect(() => {

@@ -34,6 +34,10 @@ export function decideFirstRun(input: {
   return input.groupCount > 0 || input.introSeen ? 'mark-existing' : 'show';
 }
 
+/** The join screen and short invite links: the first run must not pull someone off them. */
+export const isInviteRoute = (path: string): boolean =>
+  path === '/join' || path.startsWith('/join?') || path.startsWith('/r/');
+
 /** Suggested group names, already in the person's language. */
 export interface IntentNames {
   trip: string;
