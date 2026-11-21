@@ -8130,6 +8130,41 @@ export interface UiStrings {
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
   /** Personal home: the daily ring, save tip and weekly / monthly recaps. */
+  personalHome: {
+    hi: string;
+    space: string;
+    sharedSpace: string;
+    switchSpace: string;
+    search: string;
+    reminders: string;
+    settings: string;
+    loan: string;
+    reminder: string;
+    spentAmount: string;
+    budgetLine: string;
+    leftChip: string;
+    overChip: string;
+    aDay: string;
+    upcomingTitle: string;
+    dueOn: string;
+    today: string;
+    overdue: string;
+    todo: string;
+    upcomingEmpty: string;
+    recentTitle: string;
+    toolLoans: string;
+    toolTodo: string;
+    toolReminders: string;
+    toolMore: string;
+    moreVoice: string;
+    navHome: string;
+    navPlanning: string;
+    navReports: string;
+    navMe: string;
+    addDateRow: string;
+    inDays: PluralForms;
+    itemsLeft: PluralForms;
+  };
   personalPlan: {
     leftToday: string;
     leftTodayShort: string;
@@ -15949,6 +15984,41 @@ const en: UiStrings = {
     appliesNote: 'Changing a rate never moves a bill already saved.',
   },
 
+  personalHome: {
+    hi: 'Hi, {name} 👋',
+    space: 'Personal Finance',
+    sharedSpace: 'Shared',
+    switchSpace: 'Switch space',
+    search: 'Search',
+    reminders: 'Upcoming and reminders',
+    settings: 'Settings',
+    loan: 'Loan',
+    reminder: 'Reminder',
+    spentAmount: '{amount} spent',
+    budgetLine: 'Budget: {amount}',
+    leftChip: '{amount} left for this month',
+    overChip: '{amount} over for this month',
+    aDay: 'about {amount} a day',
+    upcomingTitle: 'Upcoming & Reminders',
+    dueOn: 'Due on {date}',
+    today: 'Today',
+    overdue: 'Overdue',
+    todo: 'To-Do: Finish setting up',
+    upcomingEmpty: 'Nothing coming up. Add a bill or a date.',
+    recentTitle: 'Recent Transactions',
+    toolLoans: 'Loans & EMIs',
+    toolTodo: 'To-Do & Tasks',
+    toolReminders: 'Reminders',
+    toolMore: 'More',
+    moreVoice: 'Add by voice',
+    navHome: 'Home',
+    navPlanning: 'Planning',
+    navReports: 'Reports',
+    navMe: 'Me',
+    addDateRow: 'Add a date',
+    inDays: { one: 'In {n} day', other: 'In {n} days' },
+    itemsLeft: { one: '{n} item left', other: '{n} items left' },
+  },
   personalPlan: {
     leftToday: '{amount} left today',
     leftTodayShort: 'left today',
@@ -23985,6 +24055,41 @@ const ta: UiStrings = {
     appliesNote: 'விகிதத்தை மாற்றினாலும் ஏற்கெனவே சேமித்த பில் மாறாது.',
   },
 
+  personalHome: {
+    hi: 'வணக்கம், {name} 👋',
+    space: 'தனிநபர் நிதி',
+    sharedSpace: 'பகிரப்பட்டவை',
+    switchSpace: 'இடத்தை மாற்று',
+    search: 'தேடு',
+    reminders: 'வரவிருப்பவை மற்றும் நினைவூட்டல்கள்',
+    settings: 'அமைப்புகள்',
+    loan: 'கடன்',
+    reminder: 'நினைவூட்டல்',
+    spentAmount: '{amount} செலவு',
+    budgetLine: 'பட்ஜெட்: {amount}',
+    leftChip: 'இந்த மாதம் {amount} மீதம்',
+    overChip: 'இந்த மாதம் {amount} அதிகம்',
+    aDay: 'நாளுக்கு சுமார் {amount}',
+    upcomingTitle: 'வரவிருப்பவை & நினைவூட்டல்கள்',
+    dueOn: '{date} அன்று செலுத்த வேண்டும்',
+    today: 'இன்று',
+    overdue: 'தாமதம்',
+    todo: 'செய்ய வேண்டியது: அமைப்பை முடிக்கவும்',
+    upcomingEmpty: 'வரவிருப்பது எதுவும் இல்லை. ஒரு பில் அல்லது தேதியைச் சேர்க்கவும்.',
+    recentTitle: 'சமீபத்திய பரிவர்த்தனைகள்',
+    toolLoans: 'கடன்கள் & EMI',
+    toolTodo: 'செய்ய வேண்டியவை',
+    toolReminders: 'நினைவூட்டல்கள்',
+    toolMore: 'மேலும்',
+    moreVoice: 'குரலால் சேர்',
+    navHome: 'முகப்பு',
+    navPlanning: 'திட்டமிடல்',
+    navReports: 'அறிக்கைகள்',
+    navMe: 'நான்',
+    addDateRow: 'தேதியைச் சேர்',
+    inDays: { one: '{n} நாளில்', other: '{n} நாட்களில்' },
+    itemsLeft: { one: '{n} உருப்படி மீதம்', other: '{n} உருப்படிகள் மீதம்' },
+  },
   personalPlan: {
     leftToday: 'இன்று {amount} மீதம்',
     leftTodayShort: 'இன்று மீதம்',
@@ -31800,6 +31905,41 @@ const hi: UiStrings = {
     appliesNote: 'दर बदलने से पहले सहेजा गया बिल कभी नहीं बदलता।',
   },
 
+  personalHome: {
+    hi: 'नमस्ते, {name} 👋',
+    space: 'व्यक्तिगत वित्त',
+    sharedSpace: 'साझा',
+    switchSpace: 'स्पेस बदलें',
+    search: 'खोजें',
+    reminders: 'आने वाले और रिमाइंडर',
+    settings: 'सेटिंग',
+    loan: 'लोन',
+    reminder: 'रिमाइंडर',
+    spentAmount: '{amount} खर्च',
+    budgetLine: 'बजट: {amount}',
+    leftChip: 'इस महीने {amount} बाकी',
+    overChip: 'इस महीने {amount} ज़्यादा',
+    aDay: 'लगभग {amount} प्रतिदिन',
+    upcomingTitle: 'आने वाले और रिमाइंडर',
+    dueOn: '{date} को देय',
+    today: 'आज',
+    overdue: 'देर हो चुकी',
+    todo: 'करने के काम: सेटअप पूरा करें',
+    upcomingEmpty: 'कुछ आने वाला नहीं है। कोई बिल या तारीख जोड़ें।',
+    recentTitle: 'हाल के लेन-देन',
+    toolLoans: 'लोन और EMI',
+    toolTodo: 'काम और कार्य',
+    toolReminders: 'रिमाइंडर',
+    toolMore: 'और',
+    moreVoice: 'आवाज़ से जोड़ें',
+    navHome: 'होम',
+    navPlanning: 'योजना',
+    navReports: 'रिपोर्ट',
+    navMe: 'मैं',
+    addDateRow: 'तारीख जोड़ें',
+    inDays: { one: '{n} दिन में', other: '{n} दिन में' },
+    itemsLeft: { one: '{n} आइटम बाकी', other: '{n} आइटम बाकी' },
+  },
   personalPlan: {
     leftToday: 'आज {amount} बचे हैं',
     leftTodayShort: 'आज के लिए बचा',
@@ -40370,6 +40510,41 @@ const ar: UiStrings = {
     appliesNote: 'تغيير السعر لا يحرّك فاتورة محفوظة أبداً.',
   },
 
+  personalHome: {
+    hi: 'مرحبًا، {name} 👋',
+    space: 'المالية الشخصية',
+    sharedSpace: 'المشتركة',
+    switchSpace: 'تبديل المساحة',
+    search: 'بحث',
+    reminders: 'القادم والتذكيرات',
+    settings: 'الإعدادات',
+    loan: 'قرض',
+    reminder: 'تذكير',
+    spentAmount: 'أُنفق {amount}',
+    budgetLine: 'الميزانية: {amount}',
+    leftChip: 'متبقٍ {amount} لهذا الشهر',
+    overChip: 'تجاوز بمقدار {amount} هذا الشهر',
+    aDay: 'نحو {amount} يوميًا',
+    upcomingTitle: 'القادم والتذكيرات',
+    dueOn: 'مستحق في {date}',
+    today: 'اليوم',
+    overdue: 'متأخر',
+    todo: 'المهام: أكمل الإعداد',
+    upcomingEmpty: 'لا شيء قادم. أضف فاتورة أو تاريخًا.',
+    recentTitle: 'أحدث المعاملات',
+    toolLoans: 'القروض والأقساط',
+    toolTodo: 'المهام',
+    toolReminders: 'التذكيرات',
+    toolMore: 'المزيد',
+    moreVoice: 'أضف بالصوت',
+    navHome: 'الرئيسية',
+    navPlanning: 'التخطيط',
+    navReports: 'التقارير',
+    navMe: 'أنا',
+    addDateRow: 'أضف تاريخًا',
+    inDays: { one: 'خلال {n} يوم', other: 'خلال {n} يومًا' },
+    itemsLeft: { one: '{n} عنصر متبقٍ', other: '{n} عناصر متبقية' },
+  },
   personalPlan: {
     leftToday: 'تبقّى {amount} اليوم',
     leftTodayShort: 'متبقٍ اليوم',

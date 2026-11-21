@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { isTabRoot, tabBarRouteForSelection, personalRouteForSelection } from '../src/lib/tabBar';
+import {
+  isPersonalRoot,
+  isTabRoot,
+  tabBarRouteForSelection,
+  personalRouteForSelection,
+} from '../src/lib/tabBar';
 
 describe('tab root selection', () => {
   it.each([['group', '[id]'], ['activity']])('returns Home from %j', (...segments) => {
@@ -21,9 +26,13 @@ describe('tab root selection', () => {
         isTabRoot(['personal', 'entry', '[id]'], 'transactions'),
       ),
     ).toBe('/personal/transactions');
-    expect(personalRouteForSelection('me', 'me', isTabRoot(['personal', 'budgets'], 'me'))).toBe(
-      '/me',
-    );
+    expect(
+      personalRouteForSelection(
+        'planning',
+        'planning',
+        isPersonalRoot(['personal', 'budgets'], 'planning'),
+      ),
+    ).toBe('/personal/recurring');
     expect(
       personalRouteForSelection(
         'transactions',

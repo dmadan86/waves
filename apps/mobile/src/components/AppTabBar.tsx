@@ -80,6 +80,7 @@ import { holdPlan } from '@/lib/holdVoicePure';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import {
   isPersonalMode,
+  isPersonalRoot,
   isTabRoot,
   personalActiveKey,
   personalRouteForSelection,
@@ -251,46 +252,48 @@ export function AppTabBar() {
   const personalItems = useMemo<PillTabItem[]>(
     () => [
       {
-        key: 'shared',
-        label: t.personal.nav.shared,
+        key: 'home',
+        label: t.personalHome.navHome,
         icon: (color, focused) => (
           <Ionicons name={focused ? 'home' : 'home-outline'} size={iconSize.lg} color={color} />
         ),
       },
       {
-        key: 'me',
-        label: t.personal.nav.overview,
-        icon: (color, focused) => (
-          <Ionicons name={focused ? 'grid' : 'grid-outline'} size={iconSize.lg} color={color} />
-        ),
-      },
-      {
         key: 'transactions',
         label: t.personal.nav.transactions,
-        icon: (color, focused) => (
-          <Ionicons name={focused ? 'list' : 'list-outline'} size={iconSize.lg} color={color} />
-        ),
+        icon: (color) => <Ionicons name="swap-horizontal" size={iconSize.lg} color={color} />,
       },
       {
-        key: 'recurring',
-        label: t.personal.nav.recurring,
-        icon: (color, focused) => (
-          <Ionicons name={focused ? 'repeat' : 'repeat-outline'} size={iconSize.lg} color={color} />
-        ),
-      },
-      {
-        key: 'spending',
-        label: t.personal.nav.spending,
+        key: 'planning',
+        label: t.personalHome.navPlanning,
         icon: (color, focused) => (
           <Ionicons
-            name={focused ? 'pie-chart' : 'pie-chart-outline'}
+            name={focused ? 'calendar' : 'calendar-outline'}
             size={iconSize.lg}
             color={color}
           />
         ),
       },
+      {
+        key: 'reports',
+        label: t.personalHome.navReports,
+        icon: (color, focused) => (
+          <Ionicons
+            name={focused ? 'bar-chart' : 'bar-chart-outline'}
+            size={iconSize.lg}
+            color={color}
+          />
+        ),
+      },
+      {
+        key: 'me',
+        label: t.personalHome.navMe,
+        icon: (color, focused) => (
+          <Ionicons name={focused ? 'person' : 'person-outline'} size={iconSize.lg} color={color} />
+        ),
+      },
     ],
-    [t.personal.nav],
+    [t.personal.nav.transactions, t.personalHome],
   );
 
   const pendingCount = usePendingCount(company ? groupId : null);
@@ -409,10 +412,11 @@ export function AppTabBar() {
         return;
       }
       if (personal) {
-        const route = personalRouteForSelection(activeKey, key, isTabRoot(segments, key));
+        const route = personalRouteForSelection(activeKey, key, isPersonalRoot(segments, key));
         if (!route) return;
         // Siblings inside the personal section replace each other rather than stack.
         if (route.startsWith('/personal')) router.replace(route);
+        else if (route === '/profile') router.navigate(route);
         else switchTab(route);
         return;
       }
@@ -432,13 +436,13 @@ export function AppTabBar() {
 
   // Nested Personal screens (entry, source, budgets, loans) pop their own stack.
   const nestedPersonal =
-    personal && ['entry', 'source', 'budgets', 'loans'].includes(segments[1] ?? '');
+    personal && ['entry', 'source', 'budgets', 'loans', 'upcoming'].includes(segments[1] ?? '');
 
   useEffect(() => {
     if (
       nestedPersonal ||
       !personal ||
-      !['me', 'transactions', 'recurring', 'spending'].includes(activeKey)
+      !['home', 'transactions', 'planning', 'reports'].includes(activeKey)
     )
       return;
     const listener = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -593,6 +597,16 @@ export function AppTabBar() {
     [groupId, t.company.addEntry, fabOverride],
   );
 
+  // Personal's floating button adds an expense; speaking one lives under Money tools > More.
+  const addPersonal = useMemo<PillTabAction>(
+    () => ({
+      accessibilityLabel: t.personal.addExpense,
+      onPress: () => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } }),
+      icon: (color: string) => <Ionicons name="add" size={iconSize.xl} color={color} />,
+    }),
+    [t.personal.addExpense],
+  );
+
   // Hidden, unless a hold is running — see `holding` above. A hold wins over a
   // screen's request too: the mic is the thing under the finger at that moment,
   // and taking it away mid-sentence would cancel what somebody is saying.
@@ -698,7 +712,7 @@ export function AppTabBar() {
               </View>
             )
           ) : (
-            <CenterButton action={voice} />
+            <CenterButton action={personal ? addPersonal : voice} />
           )}
         </Animated.View>
       ) : null}
