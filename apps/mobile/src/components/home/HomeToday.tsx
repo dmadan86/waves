@@ -209,7 +209,13 @@ function NeedRow({
   let sub = '';
   let label = '';
   let onPress: () => void = () => {};
+  // Tapping the row itself opens where the item lives; the pill does the action.
+  let open: () => void = () => {};
   if (bill) {
+    open =
+      bill.source === 'group' && bill.groupId
+        ? () => router.push(`/group/${bill.groupId}`)
+        : () => router.push('/personal/upcoming');
     const amount = money(bill.amount, bill.currency);
     title = bill.title;
     sub =
@@ -230,6 +236,10 @@ function NeedRow({
     }
   } else if (person) {
     const amount = money(person.amount, person.currency);
+    open = () =>
+      router.push(
+        `/friends/person/${encodeURIComponent(person.personKey)}?name=${encodeURIComponent(person.name)}` as never,
+      );
     icon = 'person-outline';
     if (need.kind === 'owed') {
       title = fill(h.owesYou, { name: person.name, amount });
@@ -254,6 +264,7 @@ function NeedRow({
     tint = theme.tint.peach;
     label = h.review;
     onPress = () => router.navigate('/captures');
+    open = onPress;
   }
 
   return (
@@ -267,28 +278,42 @@ function NeedRow({
         borderTopColor: theme.color.border,
       }}
     >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: theme.radius.md,
-          backgroundColor: tint.bg,
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={title}
+        onPress={open}
+        style={({ pressed }) => ({
+          flex: 1,
+          minWidth: 0,
+          flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'center',
-        }}
+          gap: theme.spacing.md,
+          opacity: pressed ? 0.7 : 1,
+        })}
       >
-        <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-          {title}
-        </Text>
-        {sub ? (
-          <Text variant="caption" tone="muted" numberOfLines={1}>
-            {sub}
+        <View
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: theme.radius.md,
+            backgroundColor: tint.bg,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ fontWeight: '700' }}>
+            {title}
           </Text>
-        ) : null}
-      </View>
+          {sub ? (
+            <Text variant="caption" tone="muted" numberOfLines={1}>
+              {sub}
+            </Text>
+          ) : null}
+        </View>
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}, ${title}`}
