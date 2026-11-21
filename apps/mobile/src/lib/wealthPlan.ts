@@ -22,12 +22,10 @@ import {
   type PersonalTenancy,
   type PersonalTxn,
   type RentFrequency,
-} from '@waves/core';
-import {
   pendingEscalation,
   raiseForOf,
   raisedRent,
-} from '../../../../packages/core/src/personal/wealth';
+} from '@waves/core';
 
 export const FREE_INVESTMENTS = 3;
 export const FREE_PROPERTIES = 1;
