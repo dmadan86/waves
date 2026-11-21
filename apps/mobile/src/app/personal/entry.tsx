@@ -75,6 +75,7 @@ import { CategoryBadge, CategorySheet } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
+import { MoveToFamily } from '@/components/MoveToFamily';
 import { PersonalNoteField } from '@/components/PersonalNoteField';
 import { PersonalReceiptRow } from '@/components/PersonalReceiptRow';
 import { SourceSheet, useSourceLabel } from '@/components/IncomeSource';
@@ -374,6 +375,22 @@ function EntryForm({
           )}
 
           <NoteCard value={note} onChange={setNote} t={t} />
+
+          {/* Move a saved expense into a Share-it household. A bill photo stays
+              with the personal entry, so an entry with one is not offered. */}
+          {editingTxn && kind === 'expense' && !loanId && !savedReceipt ? (
+            <MoveToFamily
+              entry={{
+                id: editingTxn.id,
+                amount: editingTxn.amount,
+                currency,
+                date: editingTxn.date,
+                note: editingTxn.note ?? null,
+                category: editingTxn.category ?? null,
+              }}
+              onMoved={() => router.back()}
+            />
+          ) : null}
 
           {/* The entry's facts, as one card of divided rows. */}
           <FormCard style={{ paddingVertical: 0, paddingHorizontal: theme.spacing.lg }}>

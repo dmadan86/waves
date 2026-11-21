@@ -3299,6 +3299,50 @@ export interface UiStrings {
     preferences: string;
     preferencesSub: string;
   };
+  household: {
+    askTitle: string;
+    askTitleNoName: string;
+    askSub: string;
+    splitTitle: string;
+    splitBody: string;
+    shareTitle: string;
+    shareBody: string;
+    continue: string;
+    settingsTitle: string;
+    openBalancesNote: string;
+    adminOnly: string;
+    ourMonth: string;
+    ofBudget: string;
+    noBudget: string;
+    leftOnTrack: string;
+    overBy: string;
+    whoPaid: string;
+    whoPaidA11y: string;
+    billPays: string;
+    everyWeek: string;
+    everyTwoWeeks: string;
+    twiceMonth: string;
+    everyMonths: string;
+    everyYear: string;
+    billsTitle: string;
+    budgetTitle: string;
+    budgetMonthly: string;
+    budgetHint: string;
+    budgetSave: string;
+    budgetClear: string;
+    budgetMenu: string;
+    splitThisOne: string;
+    splitThisOneHint: string;
+    reminderAhead: string;
+    reminderToday: string;
+    reminderBody: string;
+    moveKeep: string;
+    moveTo: string;
+    movePrivacy: string;
+    moved: string;
+    moveFailed: string;
+    switched: string;
+  };
   groupRecurring: {
     title: string;
     sub: string;
@@ -11459,6 +11503,51 @@ const en: UiStrings = {
     preferences: 'Preferences',
     preferencesSub: 'Notifications, currency and more',
   },
+  household: {
+    askTitle: 'How do you handle money in “{name}”?',
+    askTitleNoName: 'How do you handle money here?',
+    askSub: 'You can change this later in settings.',
+    splitTitle: 'Split it',
+    splitBody: 'Track who paid and who owes. Best for flatmates and trips.',
+    shareTitle: 'Share it',
+    shareBody:
+      'One pot for the home. Nobody owes anybody. Add bills, a budget and goals you save for together.',
+    continue: 'Continue',
+    settingsTitle: 'How you handle money',
+    openBalancesNote: 'Open balances stay until settled.',
+    adminOnly: 'Only an admin can change this.',
+    ourMonth: 'Our {month}',
+    ofBudget: 'of {amount} budget',
+    noBudget: 'Set a monthly budget',
+    leftOnTrack: '{amount} left · on track',
+    overBy: '{amount} over',
+    whoPaid: 'Who paid',
+    whoPaidA11y: 'See who paid',
+    billPays: '{name} pays · {when}',
+    everyWeek: 'every week',
+    everyTwoWeeks: 'every 2 weeks',
+    twiceMonth: 'twice a month',
+    everyMonths: 'every {n} months',
+    everyYear: 'every year',
+    billsTitle: 'Shared bills',
+    budgetTitle: 'Household budget',
+    budgetMonthly: 'Monthly budget',
+    budgetHint: 'What the household plans to spend each month.',
+    budgetSave: 'Save',
+    budgetClear: 'Remove budget',
+    budgetMenu: 'Budget',
+    splitThisOne: 'Split this one',
+    splitThisOneHint: 'Paid from the shared pot. Nobody owes anybody.',
+    reminderAhead: '{bill} is due in 3 days',
+    reminderToday: '{bill} is due today',
+    reminderBody: '{amount} · {group}',
+    moveKeep: 'Keep private',
+    moveTo: 'Move to {group}',
+    movePrivacy: 'Your Personal stays private. Your partner can’t see it.',
+    moved: 'Moved to {group}',
+    moveFailed: 'Could not move this. Nothing was changed.',
+    switched: 'Now sharing one pot',
+  },
   groupRecurring: {
     title: 'Repeating',
     sub: 'Rent, bills and anything else that comes round on a schedule. Each one is added on its date, for everyone.',
@@ -19082,6 +19171,53 @@ const ta: UiStrings = {
     billingSub: 'கட்டணங்கள், பில்கள், அறிக்கைகள்',
     preferences: 'விருப்பங்கள்',
     preferencesSub: 'அறிவிப்புகள், நாணயம் மற்றும் பல',
+  },
+  household: {
+    askTitle: '“{name}” குழுவில் பணத்தை எப்படி கையாள்கிறீர்கள்?',
+    askTitleNoName: 'இங்கே பணத்தை எப்படி கையாள்கிறீர்கள்?',
+    askSub: 'இதை பின்னர் அமைப்புகளில் மாற்றலாம்.',
+    splitTitle: 'பிரித்துக்கொள்ளுங்கள்',
+    splitBody:
+      'யார் கொடுத்தார், யார் தர வேண்டும் எனக் கண்காணிக்கவும். அறைத்தோழர்கள், பயணங்களுக்கு ஏற்றது.',
+    shareTitle: 'பகிர்ந்துகொள்ளுங்கள்',
+    shareBody:
+      'வீட்டுக்கு ஒரே பணப்பை. யாரும் யாருக்கும் கடன் இல்லை. பில்கள், பட்ஜெட், சேர்ந்து சேமிக்கும் இலக்குகளைச் சேர்க்கலாம்.',
+    continue: 'தொடரவும்',
+    settingsTitle: 'பணத்தை எப்படி கையாள்வது',
+    openBalancesNote: 'நிலுவைத் தொகைகள் தீர்க்கப்படும் வரை அப்படியே இருக்கும்.',
+    adminOnly: 'நிர்வாகி மட்டுமே இதை மாற்ற முடியும்.',
+    ourMonth: 'நமது {month}',
+    ofBudget: '{amount} பட்ஜெட்டில்',
+    noBudget: 'மாதாந்திர பட்ஜெட்டை அமைக்கவும்',
+    leftOnTrack: '{amount} மீதம் · சரியான பாதையில்',
+    overBy: '{amount} அதிகம்',
+    whoPaid: 'யார் கொடுத்தார்',
+    whoPaidA11y: 'யார் கொடுத்தார் என்பதைப் பார்க்கவும்',
+    billPays: '{name} செலுத்துவார் · {when}',
+    everyWeek: 'ஒவ்வொரு வாரமும்',
+    everyTwoWeeks: '2 வாரங்களுக்கு ஒருமுறை',
+    twiceMonth: 'மாதம் இருமுறை',
+    everyMonths: '{n} மாதங்களுக்கு ஒருமுறை',
+    everyYear: 'ஆண்டுக்கு ஒருமுறை',
+    billsTitle: 'பகிரப்பட்ட பில்கள்',
+    budgetTitle: 'குடும்ப பட்ஜெட்',
+    budgetMonthly: 'மாதாந்திர பட்ஜெட்',
+    budgetHint: 'குடும்பம் ஒவ்வொரு மாதமும் செலவிடத் திட்டமிடும் தொகை.',
+    budgetSave: 'சேமி',
+    budgetClear: 'பட்ஜெட்டை நீக்கு',
+    budgetMenu: 'பட்ஜெட்',
+    splitThisOne: 'இதை பிரிக்கவும்',
+    splitThisOneHint: 'பகிரப்பட்ட பணப்பையிலிருந்து செலுத்தப்பட்டது. யாரும் யாருக்கும் கடன் இல்லை.',
+    reminderAhead: '{bill} 3 நாட்களில் செலுத்த வேண்டும்',
+    reminderToday: '{bill} இன்று செலுத்த வேண்டும்',
+    reminderBody: '{amount} · {group}',
+    moveKeep: 'தனிப்பட்டதாக வைத்திருங்கள்',
+    moveTo: '{group} குழுவுக்கு மாற்று',
+    movePrivacy:
+      'உங்கள் தனிப்பட்ட பகுதி தனிப்பட்டதாகவே இருக்கும். உங்கள் துணையால் இதைப் பார்க்க முடியாது.',
+    moved: '{group} குழுவுக்கு மாற்றப்பட்டது',
+    moveFailed: 'இதை மாற்ற முடியவில்லை. எதுவும் மாறவில்லை.',
+    switched: 'இப்போது ஒரே பணப்பை பகிரப்படுகிறது',
   },
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
@@ -26853,6 +26989,51 @@ const hi: UiStrings = {
     preferences: 'प्राथमिकताएँ',
     preferencesSub: 'सूचनाएँ, मुद्रा और बहुत कुछ',
   },
+  household: {
+    askTitle: '“{name}” में पैसे कैसे संभालते हैं?',
+    askTitleNoName: 'यहाँ पैसे कैसे संभालते हैं?',
+    askSub: 'इसे बाद में सेटिंग्स में बदल सकते हैं।',
+    splitTitle: 'बाँटें',
+    splitBody: 'देखें किसने दिया और किसे देना है। रूममेट्स और ट्रिप के लिए बढ़िया।',
+    shareTitle: 'साझा करें',
+    shareBody:
+      'घर के लिए एक साझा पॉट। किसी का किसी पर बकाया नहीं। बिल, बजट और साथ में बचत के लक्ष्य जोड़ें।',
+    continue: 'आगे बढ़ें',
+    settingsTitle: 'पैसे कैसे संभालें',
+    openBalancesNote: 'बकाया हिसाब चुकता होने तक बने रहते हैं।',
+    adminOnly: 'इसे सिर्फ़ एडमिन बदल सकता है।',
+    ourMonth: 'हमारा {month}',
+    ofBudget: '{amount} के बजट में से',
+    noBudget: 'मासिक बजट तय करें',
+    leftOnTrack: '{amount} बचे · सही रास्ते पर',
+    overBy: '{amount} ज़्यादा',
+    whoPaid: 'किसने दिया',
+    whoPaidA11y: 'देखें किसने दिया',
+    billPays: '{name} देंगे · {when}',
+    everyWeek: 'हर हफ़्ते',
+    everyTwoWeeks: 'हर 2 हफ़्ते',
+    twiceMonth: 'महीने में दो बार',
+    everyMonths: 'हर {n} महीने',
+    everyYear: 'हर साल',
+    billsTitle: 'साझा बिल',
+    budgetTitle: 'घर का बजट',
+    budgetMonthly: 'मासिक बजट',
+    budgetHint: 'घर हर महीने जितना खर्च करने की योजना बनाता है।',
+    budgetSave: 'सहेजें',
+    budgetClear: 'बजट हटाएँ',
+    budgetMenu: 'बजट',
+    splitThisOne: 'इसे बाँटें',
+    splitThisOneHint: 'साझा पॉट से चुकाया गया। किसी का किसी पर बकाया नहीं।',
+    reminderAhead: '{bill} 3 दिन में देय है',
+    reminderToday: '{bill} आज देय है',
+    reminderBody: '{amount} · {group}',
+    moveKeep: 'निजी रखें',
+    moveTo: '{group} में ले जाएँ',
+    movePrivacy: 'आपका पर्सनल निजी रहता है। आपका साथी इसे नहीं देख सकता।',
+    moved: '{group} में ले जाया गया',
+    moveFailed: 'इसे नहीं ले जा सके। कुछ नहीं बदला।',
+    switched: 'अब एक साझा पॉट है',
+  },
   groupRecurring: {
     title: 'दोहराए जाने वाले',
     sub: 'किराया, बिल और जो कुछ तय तारीख पर आता है। हर एक अपनी तारीख पर सबके लिए जुड़ जाता है।',
@@ -34575,6 +34756,51 @@ const ar: UiStrings = {
     billingSub: 'المدفوعات والفواتير والكشوف',
     preferences: 'التفضيلات',
     preferencesSub: 'الإشعارات والعملة والمزيد',
+  },
+  household: {
+    askTitle: 'كيف تتعاملون مع المال في «{name}»؟',
+    askTitleNoName: 'كيف تتعاملون مع المال هنا؟',
+    askSub: 'يمكنك تغيير هذا لاحقًا من الإعدادات.',
+    splitTitle: 'قسّموه',
+    splitBody: 'تابعوا من دفع ومن عليه. الأنسب لزملاء السكن والرحلات.',
+    shareTitle: 'شاركوه',
+    shareBody:
+      'صندوق واحد للبيت. لا أحد مدين لأحد. أضيفوا الفواتير والميزانية وأهدافًا تدّخرون لها معًا.',
+    continue: 'متابعة',
+    settingsTitle: 'كيف تتعاملون مع المال',
+    openBalancesNote: 'تبقى الأرصدة المفتوحة حتى تتم تسويتها.',
+    adminOnly: 'المشرف فقط يمكنه تغيير هذا.',
+    ourMonth: '{month} لدينا',
+    ofBudget: 'من ميزانية {amount}',
+    noBudget: 'حدّد ميزانية شهرية',
+    leftOnTrack: 'متبقٍ {amount} · على المسار',
+    overBy: 'تجاوز بمقدار {amount}',
+    whoPaid: 'من دفع',
+    whoPaidA11y: 'اعرض من دفع',
+    billPays: 'يدفع {name} · {when}',
+    everyWeek: 'كل أسبوع',
+    everyTwoWeeks: 'كل أسبوعين',
+    twiceMonth: 'مرتين في الشهر',
+    everyMonths: 'كل {n} أشهر',
+    everyYear: 'كل سنة',
+    billsTitle: 'الفواتير المشتركة',
+    budgetTitle: 'ميزانية البيت',
+    budgetMonthly: 'الميزانية الشهرية',
+    budgetHint: 'ما يخطط البيت لإنفاقه كل شهر.',
+    budgetSave: 'حفظ',
+    budgetClear: 'إزالة الميزانية',
+    budgetMenu: 'الميزانية',
+    splitThisOne: 'قسّم هذا',
+    splitThisOneHint: 'مدفوع من الصندوق المشترك. لا أحد مدين لأحد.',
+    reminderAhead: 'يستحق {bill} بعد 3 أيام',
+    reminderToday: 'يستحق {bill} اليوم',
+    reminderBody: '{amount} · {group}',
+    moveKeep: 'أبقِه خاصًا',
+    moveTo: 'انقل إلى {group}',
+    movePrivacy: 'حسابك الشخصي يبقى خاصًا. شريكك لا يستطيع رؤيته.',
+    moved: 'تم النقل إلى {group}',
+    moveFailed: 'تعذّر النقل. لم يتغير شيء.',
+    switched: 'أصبحتم الآن تشاركون صندوقًا واحدًا',
   },
   groupRecurring: {
     title: 'المتكررة',
