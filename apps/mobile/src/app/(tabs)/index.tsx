@@ -10,7 +10,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
-import { InteractionManager, Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import {
+  Animated,
+  InteractionManager,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  View,
+} from 'react-native';
 
 import { type GuestGate } from '@waves/core';
 import { Button, Card, Popup, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
@@ -401,7 +408,28 @@ function HomeScreen() {
   // clock, battery and greeting are white on every scene.
   const darkInk = false;
   const heroInk = darkInk ? SPEC_INK : '#FFFFFF';
-  useHeroStatusBar(darkInk ? 'dark' : 'light');
+  const [scrollY] = useState(() => new Animated.Value(0));
+  const [headerOpaque, setHeaderOpaque] = useState(false);
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 24],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  const heroInkOpacity = scrollY.interpolate({
+    inputRange: [0, 24],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const solidInkOpacity = scrollY.interpolate({
+    inputRange: [0, 24],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  useEffect(() => {
+    const listener = scrollY.addListener(({ value }) => setHeaderOpaque(value >= 24));
+    return () => scrollY.removeListener(listener);
+  }, [scrollY]);
+  useHeroStatusBar(headerOpaque && theme.scheme !== 'dark' ? 'dark' : 'light');
 
   // The bell's red dot: somebody else has done something since Activity was
   // last opened. Your own expenses are not news.
@@ -474,6 +502,10 @@ function HomeScreen() {
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: clearance }}
           showsVerticalScrollIndicator={false}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+            useNativeDriver: true,
+          })}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={pull.refreshing}
@@ -593,11 +625,26 @@ function HomeScreen() {
             left: 0,
             right: 0,
             zIndex: 1,
+            elevation: 4,
             paddingTop: insets.top + theme.spacing.xs,
             paddingHorizontal: theme.spacing.lg,
             paddingBottom: HERO_OVERLAP + theme.spacing.xs,
           }}
         >
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: -insets.top,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: theme.color.bg,
+              opacity: headerOpacity,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.color.border,
+            }}
+          />
           <Row
             onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
             style={{ alignItems: 'center', gap: theme.spacing.md }}
@@ -609,34 +656,93 @@ function HomeScreen() {
               hitSlop={8}
               style={{ flex: 1, minWidth: 0 }}
             >
-              <Text
-                numberOfLines={1}
+              <Animated.View style={{ opacity: heroInkOpacity }}>
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: heroInk,
+                    fontSize: 20,
+                    lineHeight: 26,
+                    fontWeight: '700',
+                    textShadowColor: 'rgba(0,0,0,0.35)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 4,
+                  }}
+                >
+                  {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
+                </Text>
+              </Animated.View>
+              <Animated.View
+                pointerEvents="none"
+                style={{ position: 'absolute', left: 0, right: 0, opacity: solidInkOpacity }}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: theme.color.text,
+                    fontSize: 20,
+                    lineHeight: 26,
+                    fontWeight: '700',
+                  }}
+                >
+                  {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
+                </Text>
+              </Animated.View>
+            </Pressable>
+            <View>
+              <Animated.View style={{ opacity: heroInkOpacity }}>
+                <HeroIconButton
+                  icon="notifications-outline"
+                  label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
+                  onPress={() => router.navigate('/activity')}
+                  dot={unseenActivity}
+                  ink={heroInk}
+                />
+              </Animated.View>
+              <Animated.View
+                pointerEvents="none"
                 style={{
-                  color: heroInk,
-                  fontSize: 20,
-                  lineHeight: 26,
-                  fontWeight: '700',
-                  textShadowColor: 'rgba(0,0,0,0.35)',
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 4,
+                  position: 'absolute',
+                  padding: theme.spacing.xs,
+                  opacity: solidInkOpacity,
                 }}
               >
-                {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
-              </Text>
-            </Pressable>
-            <HeroIconButton
-              icon="notifications-outline"
-              label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
-              onPress={() => router.navigate('/activity')}
-              dot={unseenActivity}
-              ink={heroInk}
-            />
-            <HeroIconButton
-              icon="ellipsis-vertical"
-              label={t.account.faceSettings}
-              onPress={() => setMenuOpen(true)}
-              ink={heroInk}
-            />
+                <Ionicons name="notifications-outline" size={24} color={theme.color.text} />
+                {unseenActivity ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: theme.spacing.xs,
+                      end: theme.spacing.xs,
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: '#FF3B5C',
+                    }}
+                  />
+                ) : null}
+              </Animated.View>
+            </View>
+            <View>
+              <Animated.View style={{ opacity: heroInkOpacity }}>
+                <HeroIconButton
+                  icon="ellipsis-vertical"
+                  label={t.account.faceSettings}
+                  onPress={() => setMenuOpen(true)}
+                  ink={heroInk}
+                />
+              </Animated.View>
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  padding: theme.spacing.xs,
+                  opacity: solidInkOpacity,
+                }}
+              >
+                <Ionicons name="ellipsis-vertical" size={24} color={theme.color.text} />
+              </Animated.View>
+            </View>
           </Row>
         </View>
       </View>
