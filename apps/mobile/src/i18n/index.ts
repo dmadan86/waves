@@ -3351,6 +3351,7 @@ export interface UiStrings {
     preferencesSub: string;
   };
   hhome: {
+    sharedNote: string;
     tabOverview: string;
     tabBills: string;
     tabUpcoming: string;
@@ -12009,6 +12010,7 @@ const en: UiStrings = {
     preferencesSub: 'Notifications, currency and more',
   },
   hhome: {
+    sharedNote: 'Only people in this group can see this',
     tabOverview: 'Overview',
     tabBills: 'Bills',
     tabUpcoming: 'Upcoming',
@@ -20128,6 +20130,7 @@ const ta: UiStrings = {
     preferencesSub: 'அறிவிப்புகள், நாணயம் மற்றும் பல',
   },
   hhome: {
+    sharedNote: 'இந்தக் குழுவில் உள்ளவர்கள் மட்டுமே இதைப் பார்க்க முடியும்',
     tabOverview: 'மேலோட்டம்',
     tabBills: 'பில்கள்',
     tabUpcoming: 'வரவிருப்பவை',
@@ -28394,6 +28397,7 @@ const hi: UiStrings = {
     preferencesSub: 'सूचनाएँ, मुद्रा और बहुत कुछ',
   },
   hhome: {
+    sharedNote: 'इसे सिर्फ़ इस समूह के लोग देख सकते हैं',
     tabOverview: 'सारांश',
     tabBills: 'बिल',
     tabUpcoming: 'आने वाले',
@@ -36650,6 +36654,7 @@ const ar: UiStrings = {
     preferencesSub: 'الإشعارات والعملة والمزيد',
   },
   hhome: {
+    sharedNote: 'فقط أعضاء هذه المجموعة يمكنهم رؤية هذا',
     tabOverview: 'نظرة عامة',
     tabBills: 'الفواتير',
     tabUpcoming: 'القادم',

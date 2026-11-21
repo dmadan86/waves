@@ -23,7 +23,7 @@ import { AddFamilyMember } from '@/components/household/HouseholdParts';
 import { BudgetSummary } from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { CardTitle } from '@/components/personal/PersonalHomeParts';
+import { CardTitle, MoneyToolsRow, PrivacyPill } from '@/components/personal/PersonalHomeParts';
 import { useUpdateGroupRecurring } from '@/data/groupRecurring';
 import type { GroupGoalView } from '@/data/groupGoals';
 import type { IncomePlan } from '@/data/groupIncome';
@@ -53,7 +53,8 @@ export interface HouseholdData {
   readonly limit: bigint | null;
   readonly recent: readonly ExpenseRow[];
   readonly onAddGoal: () => void;
-  readonly onTab: (tab: 'goals' | 'upcoming') => void;
+  readonly onTab: (tab: 'bills' | 'income' | 'goals' | 'upcoming') => void;
+  readonly onMore: () => void;
   readonly onLedger: (tab?: 'balances') => void;
 }
 
@@ -215,11 +216,9 @@ function UpcomingList({ rows, data }: { rows: readonly HouseholdUpcoming[]; data
 
 export function OverviewTab({ data }: { data: HouseholdData }) {
   const theme = useTheme();
-  const { t, locale } = useStrings();
+  const { t } = useStrings();
   const h = t.hhome;
   const today = todayIso();
-  const activeGoals = data.goals.filter((view) => view.goal.status === 'active');
-  const put = activeGoals.reduce((sum, view) => sum + view.total, 0n);
   const limit = data.limit;
   return (
     <View style={{ gap: theme.spacing[gap] }}>
@@ -264,30 +263,6 @@ export function OverviewTab({ data }: { data: HouseholdData }) {
         <UpcomingList rows={data.upcoming.slice(0, 3)} data={data} />
       </Card>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={h.goalsTitle}
-        onPress={() => data.onTab('goals')}
-      >
-        <Card style={{ padding: theme.spacing.lg }}>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <Ionicons name="flag-outline" size={iconSize.lg} color={theme.color.brand} />
-            <Text style={{ flex: 1, fontWeight: '600' }} numberOfLines={2}>
-              {activeGoals.length > 0
-                ? fill(plural(locale, activeGoals.length, h.goalsLine), {
-                    put: data.fmt(put),
-                  })
-                : h.goalsNone}
-            </Text>
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.sm}
-              color={theme.color.textMuted}
-            />
-          </Row>
-        </Card>
-      </Pressable>
-
       <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
         <CardTitle
           title={h.recentTitle}
@@ -305,23 +280,53 @@ export function OverviewTab({ data }: { data: HouseholdData }) {
         )}
       </Card>
 
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={t.household.whoPaidA11y}
-        onPress={() => data.onLedger('balances')}
-        style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}
-      >
-        <Row style={{ alignItems: 'center', gap: 2 }}>
-          <Text tone="brand" style={{ fontWeight: '700' }}>
-            {t.household.whoPaid}
-          </Text>
-          <Ionicons
-            name={directionalIcon('chevron-forward')}
-            size={iconSize.base}
-            color={theme.color.brand}
-          />
-        </Row>
-      </Pressable>
+      <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
+        <CardTitle title={t.personal.dash.moneyTools} />
+        <MoneyToolsRow
+          tiles={[
+            {
+              key: 'bills',
+              tint: 'lilac',
+              icon: 'repeat',
+              label: h.tabBills,
+              onPress: () => data.onTab('bills'),
+            },
+            {
+              key: 'income',
+              tint: 'mint',
+              icon: 'arrow-down',
+              label: h.tabIncome,
+              onPress: () => data.onTab('income'),
+            },
+            {
+              key: 'goals',
+              tint: 'sky',
+              icon: 'flag-outline',
+              label: h.tabGoals,
+              onPress: () => data.onTab('goals'),
+            },
+            {
+              key: 'expenses',
+              tint: 'peach',
+              icon: 'receipt-outline',
+              label: t.expenses,
+              onPress: () => data.onLedger(),
+            },
+            {
+              key: 'more',
+              tint: 'lilac',
+              icon: 'ellipsis-horizontal',
+              label: t.personalHome.toolMore,
+              onPress: data.onMore,
+            },
+          ]}
+        />
+      </Card>
+
+      <PrivacyPill
+        label={h.sharedNote}
+        onPress={() => router.push(`/group/${data.groupId}/settings`)}
+      />
     </View>
   );
 }

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { billPayer, billWhen, monthProgress, monthSpend } from '../src/lib/householdHome';
+import {
+  billPayer,
+  billWhen,
+  compactAmount,
+  monthProgress,
+  monthSpend,
+} from '../src/lib/householdHome';
 import {
   addDays,
   groupBillsForPayer,
@@ -124,5 +130,16 @@ describe('planBillReminders', () => {
   });
   it('addDays crosses months', () => {
     expect(addDays('2026-12-01', -3)).toBe('2026-11-28');
+  });
+});
+
+describe('compactAmount', () => {
+  it('drops a bare .00 but keeps real paise', () => {
+    expect(compactAmount({ text: '₹1,200.00', lead: '₹1,200', trail: '', fraction: '00' })).toBe(
+      '₹1,200',
+    );
+    expect(compactAmount({ text: '₹1,200.50', lead: '₹1,200', trail: '', fraction: '50' })).toBe(
+      '₹1,200.50',
+    );
   });
 });

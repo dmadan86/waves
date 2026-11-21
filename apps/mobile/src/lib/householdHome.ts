@@ -80,3 +80,13 @@ export function billPayer(payers: Readonly<Record<string, bigint>>): string | nu
     }
   return best;
 }
+
+/** An amount's text with a bare ".00" dropped (whole amounts); real minor units still show. */
+export function compactAmount(parts: {
+  text: string;
+  lead: string;
+  trail: string;
+  fraction: string;
+}): string {
+  return /[1-9]/.test(parts.fraction) ? parts.text : parts.lead + parts.trail;
+}

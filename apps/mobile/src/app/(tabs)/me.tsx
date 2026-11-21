@@ -72,6 +72,7 @@ import {
   CardTitle,
   MoneyToolsRow,
   PersonalUpcomingCard,
+  PrivacyPill,
   QuickActions,
   usePersonalUpcoming,
 } from '@/components/personal/PersonalHomeParts';
@@ -1050,35 +1051,9 @@ function PrivateNote() {
  * `PrivateNote` is still the right weight.
  */
 function PrivacyFooterPill() {
-  const theme = useTheme();
   const { t } = useStrings();
-  const tint = theme.tint.lilac;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t.personal.privateNote}
-      onPress={() => router.push('/settings/backup')}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderRadius: theme.radius.md,
-        backgroundColor: tint.bg,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Ionicons name="lock-closed" size={iconSize.sm} color={tint.ink} />
-      <Text
-        variant="caption"
-        numberOfLines={1}
-        style={{ flex: 1, minWidth: 0, color: tint.ink, fontWeight: '600' }}
-      >
-        {t.personal.privateNote}
-      </Text>
-      <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={tint.ink} />
-    </Pressable>
+    <PrivacyPill label={t.personal.privateNote} onPress={() => router.push('/settings/backup')} />
   );
 }
 
