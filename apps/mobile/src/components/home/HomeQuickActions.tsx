@@ -1,14 +1,13 @@
 /**
  * The actions you start from Home — scan a bill, remind, settle up, earn
- * credits, add an expense — as a strip along the foot of the balance card rather than
- * a row of tiles of their own: a small disc over a one-line word in each
- * column, so the actions cost the card a band instead of the screen a block.
+ * credits, add an expense — in their own surface card: a tinted disc over a
+ * one-line word in each evenly spaced column.
  *
  * Free users get a compact credits sheet. A low balance
  * highlights that action while keeping every disc and label aligned.
  *
- * Draws itself with `QuickActionsRow`, the same disc-and-label strip
- * Friends' own quick actions use — brand-tinted here, lilac there.
+ * Draws itself with `QuickActionsRow`, the same disc-and-label row Friends'
+ * quick actions use — brand-tinted here, lilac there.
  */
 
 import { useQuery } from '@tanstack/react-query';
@@ -124,10 +123,10 @@ export function HomeQuickActions({
       <QuickActionsRow
         actions={actions}
         radius={radius}
-        discColor="transparent"
+        discColor={theme.color.brandSoft}
         iconColor={theme.color.brand}
-        discSize={32}
-        rowPadding={theme.spacing.sm}
+        discSize={40}
+        rowPadding={theme.spacing.md}
       />
       {adOffer.sheet}
     </>
