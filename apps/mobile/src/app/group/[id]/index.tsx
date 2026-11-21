@@ -1313,22 +1313,6 @@ function LedgerGroupScreen() {
       onPress: () => setVoiceDefault(voiceDefaultId === groupId ? null : groupId),
       section: 'voice',
     },
-    ...(canImport
-      ? [
-          {
-            icon: 'cloud-upload-outline',
-            label: t.groupImport.menu,
-            route: `/group/${groupId}/import`,
-            section: 'data',
-          } as OverflowMenuItem,
-        ]
-      : []),
-    {
-      icon: 'download-outline',
-      label: t.groupExport.menu,
-      route: `/group/${groupId}/export`,
-      section: 'data',
-    },
     {
       icon: 'settings-outline',
       label: t.group.settings,
