@@ -8057,6 +8057,47 @@ export interface UiStrings {
   };
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
+  /** Personal home: the daily ring, save tip and weekly / monthly recaps. */
+  personalPlan: {
+    leftToday: string;
+    leftTodayShort: string;
+    overToday: string;
+    leftWeek: string;
+    saveTitle: string;
+    setLimit: string;
+    review: string;
+    notNow: string;
+    tip: {
+      overMedian: string;
+      subscriptions: PluralForms;
+      overBudget: string;
+    };
+    recap: {
+      weekReady: string;
+      monthReady: string;
+      seeIt: string;
+      weekTitle: string;
+      monthTitle: string;
+      youSpent: string;
+      vsLess: string;
+      vsMore: string;
+      vsSame: string;
+      vsNone: string;
+      biggest: string;
+      noSpend: string;
+      nextBill: string;
+      noBill: string;
+      leftOver: string;
+      overIncome: string;
+      best: PluralForms;
+      worst: PluralForms;
+      trend: string;
+      next: string;
+      done: string;
+      close: string;
+      page: string;
+    };
+  };
   personalReceipt: {
     title: string;
     add: string;
@@ -15649,6 +15690,49 @@ const en: UiStrings = {
     appliesNote: 'Changing a rate never moves a bill already saved.',
   },
 
+  personalPlan: {
+    leftToday: '{amount} left today',
+    leftTodayShort: 'left today',
+    overToday: 'Over for today',
+    leftWeek: '{amount} left this week',
+    saveTitle: 'Where you can save',
+    setLimit: 'Set a limit',
+    review: 'Review',
+    notNow: 'Not now',
+    tip: {
+      overMedian: '{category} is {amount} above your usual this month.',
+      subscriptions: {
+        one: 'Your subscription costs {amount} a year.',
+        other: 'Your {n} subscriptions cost {amount} a year.',
+      },
+      overBudget: '{category} is {amount} over its limit.',
+    },
+    recap: {
+      weekReady: 'Your week is ready',
+      monthReady: 'Your {month} is ready',
+      seeIt: 'See it',
+      weekTitle: 'Your week',
+      monthTitle: 'Your month',
+      youSpent: 'You spent',
+      vsLess: '{amount} less than a usual week',
+      vsMore: '{amount} more than a usual week',
+      vsSame: 'About a usual week',
+      vsNone: 'Not enough earlier weeks to compare yet',
+      biggest: 'Biggest category',
+      noSpend: 'Nothing spent',
+      nextBill: 'Next bill',
+      noBill: 'No bills coming up',
+      leftOver: '{month}: {amount} left over',
+      overIncome: '{month}: {amount} over your income',
+      best: { one: 'Your best month so far', other: 'Your best month in {n} months' },
+      worst: { one: 'A tough month', other: 'Your toughest month in {n} months' },
+      trend: 'Last 6 months',
+      next: 'Next',
+      done: 'Done',
+      close: 'Close',
+      page: 'Page {n} of {total}',
+    },
+  },
   personalReceipt: {
     title: 'Receipt',
     add: 'Add',
@@ -23463,6 +23547,49 @@ const ta: UiStrings = {
     appliesNote: 'விகிதத்தை மாற்றினாலும் ஏற்கெனவே சேமித்த பில் மாறாது.',
   },
 
+  personalPlan: {
+    leftToday: 'இன்று {amount} மீதம்',
+    leftTodayShort: 'இன்று மீதம்',
+    overToday: 'இன்றைக்கு அதிகம்',
+    leftWeek: 'இந்த வாரம் {amount} மீதம்',
+    saveTitle: 'எங்கே சேமிக்கலாம்',
+    setLimit: 'வரம்பு வை',
+    review: 'பார்',
+    notNow: 'இப்போது வேண்டாம்',
+    tip: {
+      overMedian: 'இந்த மாதம் {category} வழக்கத்தை விட {amount} அதிகம்.',
+      subscriptions: {
+        one: 'உங்கள் சந்தா ஆண்டுக்கு {amount} ஆகிறது.',
+        other: 'உங்கள் {n} சந்தாக்கள் ஆண்டுக்கு {amount} ஆகின்றன.',
+      },
+      overBudget: '{category} வரம்பை {amount} மீறியுள்ளது.',
+    },
+    recap: {
+      weekReady: 'உங்கள் வாரம் தயார்',
+      monthReady: 'உங்கள் {month} தயார்',
+      seeIt: 'பார்',
+      weekTitle: 'உங்கள் வாரம்',
+      monthTitle: 'உங்கள் மாதம்',
+      youSpent: 'நீங்கள் செலவழித்தது',
+      vsLess: 'வழக்கமான வாரத்தை விட {amount} குறைவு',
+      vsMore: 'வழக்கமான வாரத்தை விட {amount} அதிகம்',
+      vsSame: 'வழக்கமான வாரம் போலவே',
+      vsNone: 'ஒப்பிட போதுமான முந்தைய வாரங்கள் இல்லை',
+      biggest: 'பெரிய வகை',
+      noSpend: 'செலவு இல்லை',
+      nextBill: 'அடுத்த பில்',
+      noBill: 'வரும் பில்கள் இல்லை',
+      leftOver: '{month}: {amount} மீதம்',
+      overIncome: '{month}: வருமானத்தை விட {amount} அதிகம்',
+      best: { one: 'இதுவரை உங்கள் சிறந்த மாதம்', other: '{n} மாதங்களில் உங்கள் சிறந்த மாதம்' },
+      worst: { one: 'கடினமான மாதம்', other: '{n} மாதங்களில் உங்கள் கடினமான மாதம்' },
+      trend: 'கடைசி 6 மாதங்கள்',
+      next: 'அடுத்து',
+      done: 'முடிந்தது',
+      close: 'மூடு',
+      page: 'பக்கம் {n} / {total}',
+    },
+  },
   personalReceipt: {
     title: 'ரசீது',
     add: 'சேர்',
@@ -31057,6 +31184,49 @@ const hi: UiStrings = {
     appliesNote: 'दर बदलने से पहले सहेजा गया बिल कभी नहीं बदलता।',
   },
 
+  personalPlan: {
+    leftToday: 'आज {amount} बचे हैं',
+    leftTodayShort: 'आज के लिए बचा',
+    overToday: 'आज ज़्यादा खर्च हुआ',
+    leftWeek: 'इस हफ़्ते {amount} बचे हैं',
+    saveTitle: 'कहाँ बचा सकते हैं',
+    setLimit: 'सीमा तय करें',
+    review: 'देखें',
+    notNow: 'अभी नहीं',
+    tip: {
+      overMedian: 'इस महीने {category} आपके सामान्य से {amount} ज़्यादा है।',
+      subscriptions: {
+        one: 'आपकी सब्सक्रिप्शन का खर्च साल में {amount} है।',
+        other: 'आपकी {n} सब्सक्रिप्शन का खर्च साल में {amount} है।',
+      },
+      overBudget: '{category} अपनी सीमा से {amount} ऊपर है।',
+    },
+    recap: {
+      weekReady: 'आपका हफ़्ता तैयार है',
+      monthReady: 'आपका {month} तैयार है',
+      seeIt: 'देखें',
+      weekTitle: 'आपका हफ़्ता',
+      monthTitle: 'आपका महीना',
+      youSpent: 'आपने खर्च किया',
+      vsLess: 'सामान्य हफ़्ते से {amount} कम',
+      vsMore: 'सामान्य हफ़्ते से {amount} ज़्यादा',
+      vsSame: 'लगभग सामान्य हफ़्ते जितना',
+      vsNone: 'तुलना के लिए पिछले हफ़्ते काफ़ी नहीं हैं',
+      biggest: 'सबसे बड़ी श्रेणी',
+      noSpend: 'कोई खर्च नहीं',
+      nextBill: 'अगला बिल',
+      noBill: 'कोई बिल आने वाला नहीं',
+      leftOver: '{month}: {amount} बचे',
+      overIncome: '{month}: आय से {amount} ज़्यादा',
+      best: { one: 'अब तक का आपका सबसे अच्छा महीना', other: '{n} महीनों में आपका सबसे अच्छा महीना' },
+      worst: { one: 'मुश्किल महीना', other: '{n} महीनों में आपका सबसे मुश्किल महीना' },
+      trend: 'पिछले 6 महीने',
+      next: 'आगे',
+      done: 'हो गया',
+      close: 'बंद करें',
+      page: 'पेज {n} / {total}',
+    },
+  },
   personalReceipt: {
     title: 'रसीद',
     add: 'जोड़ें',
@@ -39370,6 +39540,65 @@ const ar: UiStrings = {
     appliesNote: 'تغيير السعر لا يحرّك فاتورة محفوظة أبداً.',
   },
 
+  personalPlan: {
+    leftToday: 'تبقّى {amount} اليوم',
+    leftTodayShort: 'متبقٍ اليوم',
+    overToday: 'تجاوزت اليوم',
+    leftWeek: 'تبقّى {amount} هذا الأسبوع',
+    saveTitle: 'أين يمكنك التوفير',
+    setLimit: 'حدّد سقفًا',
+    review: 'راجع',
+    notNow: 'ليس الآن',
+    tip: {
+      overMedian: '{category} أعلى من المعتاد بمقدار {amount} هذا الشهر.',
+      subscriptions: {
+        zero: 'لا اشتراكات.',
+        one: 'اشتراكك يكلّف {amount} في السنة.',
+        two: 'اشتراكاك يكلّفان {amount} في السنة.',
+        few: 'اشتراكاتك الـ{n} تكلّف {amount} في السنة.',
+        many: 'اشتراكاتك الـ{n} تكلّف {amount} في السنة.',
+        other: 'اشتراكاتك الـ{n} تكلّف {amount} في السنة.',
+      },
+      overBudget: '{category} تجاوزت سقفها بمقدار {amount}.',
+    },
+    recap: {
+      weekReady: 'أسبوعك جاهز',
+      monthReady: '{month} جاهز',
+      seeIt: 'اعرضه',
+      weekTitle: 'أسبوعك',
+      monthTitle: 'شهرك',
+      youSpent: 'أنفقت',
+      vsLess: 'أقل بمقدار {amount} من الأسبوع المعتاد',
+      vsMore: 'أكثر بمقدار {amount} من الأسبوع المعتاد',
+      vsSame: 'قريب من الأسبوع المعتاد',
+      vsNone: 'لا توجد أسابيع سابقة كافية للمقارنة',
+      biggest: 'أكبر فئة',
+      noSpend: 'لا إنفاق',
+      nextBill: 'الفاتورة القادمة',
+      noBill: 'لا فواتير قادمة',
+      leftOver: '{month}: تبقّى {amount}',
+      overIncome: '{month}: {amount} فوق دخلك',
+      best: {
+        one: 'أفضل شهر لك حتى الآن',
+        two: 'أفضل شهر لك في شهرين',
+        few: 'أفضل شهر لك في {n} أشهر',
+        many: 'أفضل شهر لك في {n} شهرًا',
+        other: 'أفضل شهر لك في {n} شهر',
+      },
+      worst: {
+        one: 'شهر صعب',
+        two: 'أصعب شهر لك في شهرين',
+        few: 'أصعب شهر لك في {n} أشهر',
+        many: 'أصعب شهر لك في {n} شهرًا',
+        other: 'أصعب شهر لك في {n} شهر',
+      },
+      trend: 'آخر 6 أشهر',
+      next: 'التالي',
+      done: 'تم',
+      close: 'إغلاق',
+      page: 'صفحة {n} من {total}',
+    },
+  },
   personalReceipt: {
     title: 'الإيصال',
     add: 'إضافة',
