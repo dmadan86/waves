@@ -58,3 +58,30 @@ export function unclearAmount(text: string): string | null {
   const cleaned = text.replace(/[,\s]/g, '');
   return /^\d+(\.\d{1,2})?$/.test(cleaned) && Number(cleaned) > 0 ? cleaned : null;
 }
+
+/**
+ * The draft for what a hold could not add when it added the rest: just those
+ * items, so Review never offers the ones already in a group a second time.
+ */
+export function leftoverCaptureInput(
+  transcript: string,
+  items: readonly { amountMajor: number; note: string; currency: string | null }[],
+  date: string,
+  currency: string,
+) {
+  const sentence = transcript.trim();
+  const filedCurrency = items[0]?.currency ?? currency;
+  const scale = Number(minorUnitScale(filedCurrency));
+  const sameCurrency = items.every((item) => (item.currency ?? currency) === filedCurrency);
+  const notes = items.map((item) => item.note.trim()).filter(Boolean);
+  return {
+    description: notes.length > 0 ? notes.join(', ') : sentence,
+    expenseDate: date,
+    currency: filedCurrency,
+    amount: sameCurrency
+      ? items.reduce((sum, item) => sum + BigInt(Math.round(item.amountMajor * scale)), 0n)
+      : 0n,
+    rawText: sentence,
+    parsed: { voiceTranscript: sentence },
+  };
+}

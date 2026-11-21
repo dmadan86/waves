@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   heardCaptureInput,
+  leftoverCaptureInput,
   leaveUpdatesDraft,
   unclearAmount,
   worthFiling,
@@ -67,5 +68,19 @@ describe('heardCaptureInput amount fill', () => {
   });
   it('stays at 0 when nothing numeric was heard', () => {
     expect(heardCaptureInput('for current editing football', '2026-11-19', 'INR').amount).toBe(0n);
+  });
+});
+
+describe('leftoverCaptureInput', () => {
+  it('holds only what was not added, with its total', () => {
+    const input = leftoverCaptureInput(
+      'tea 10 and 40',
+      [{ amountMajor: 40, note: '', currency: null }],
+      '2026-11-21',
+      'INR',
+    );
+    expect(input.amount).toBe(4000n);
+    expect(input.description).toBe('tea 10 and 40');
+    expect(input.rawText).toBe('tea 10 and 40');
   });
 });

@@ -67,7 +67,7 @@ import {
 import { agentFailureOf } from '@/lib/voiceAgentPure';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import { voiceSaveCurrency } from '@/lib/voiceCurrency';
-import { heardCaptureInput, worthFiling } from '@/lib/voiceDraftPure';
+import { heardCaptureInput, leftoverCaptureInput, worthFiling } from '@/lib/voiceDraftPure';
 import {
   detectAddMember,
   detectBalanceQuery,
@@ -114,6 +114,14 @@ type Toast =
   | { kind: 'reading'; waiting: number }
   | { kind: 'added'; line: string; saved: SavedState[]; toReview?: boolean }
   | { kind: 'later'; draftId: string };
+
+/** What the reader added from one sentence; `leftover` lists the items it did
+ *  not, when it knows them (the phone's read does; the agent's keeps the sentence). */
+type HoldRead = {
+  saved: SavedState[];
+  missed: boolean;
+  leftover?: VoiceParseResult['items'][number][];
+};
 
 /** One read sentence, held until the queue drains. */
 type HoldResult =
@@ -253,11 +261,11 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
   const readAndAdd = async (
     transcript: string,
     alternatives: readonly string[],
-  ): Promise<{ saved: SavedState[]; missed: boolean }> => {
+  ): Promise<HoldRead> => {
     const date = today();
 
     // Every expense the phone read from the sentence, each with its own id.
-    const basic = async (): Promise<{ saved: SavedState[]; missed: boolean }> => {
+    const basic = async (): Promise<HoldRead> => {
       const parsed: VoiceParseResult = parseVoiceExpenses(transcript, groupRefs, {
         members: launchMembers,
         currentGroupId: launchGroupId,
@@ -267,15 +275,19 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
       const landing = holdLanding(parsed, { launchGroupId, launchPersonal }, spaceIds);
       if (landing.kind === 'later') return { saved: [], missed: true };
       const saved: SavedState[] = [];
+      const leftover: VoiceParseResult['items'][number][] = [];
       for (const item of parsed.items) {
         // In a run of several, an amount with no name ("… 1000 40 rupees") is
         // more likely a misheard number than an expense: it stays in Review.
-        if (parsed.items.length > 1 && !item.note.trim()) continue;
         // One that fails to write must not hide the ones that did.
-        const one = await addItem(landing, item).catch(() => null);
+        const one =
+          parsed.items.length > 1 && !item.note.trim()
+            ? null
+            : await addItem(landing, item).catch(() => null);
         if (one) saved.push(one);
+        else leftover.push(item);
       }
-      return { saved, missed: saved.length < parsed.items.length };
+      return { saved, missed: leftover.length > 0, leftover };
     };
 
     const addItem = async (
@@ -388,8 +400,14 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
           return basic();
         }
         const plan = planVoiceAgentActions(result.response, local, agentText(t));
-        if (!agentAddsAtOnce(plan)) return { saved: [], missed: true };
+        // A question or an answer is not a list of expenses: Review keeps it all.
+        if (plan.answer || plan.clarify || plan.cards.length === 0)
+          return { saved: [], missed: true };
         const saved: SavedState[] = [];
+        const leftover: VoiceParseResult['items'][number][] = [];
+        // Only an add the agent left unsure can be carried to Review on its
+        // own; anything else unsure keeps the whole sentence there.
+        let leftoverKnown = true;
         const addCard = async (action: (typeof plan.cards)[number]['action']) => {
           const id = randomUUID();
           if (action.type === 'add_personal') {
@@ -408,11 +426,26 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
           return savedStateFrom(action, write, id, date);
         };
         for (const card of plan.cards) {
-          // One that fails to write must not hide the ones that did.
-          const one = await addCard(card.action).catch(() => null);
-          if (one) saved.push(one);
+          // The clear ones go in; one that fails or is unsure must not hold back
+          // the ones that are fine.
+          const clean = agentAddsAtOnce({ cards: [card], answer: null, clarify: null });
+          const one = clean ? await addCard(card.action).catch(() => null) : null;
+          if (one) {
+            saved.push(one);
+            continue;
+          }
+          const action = card.action;
+          if (action.type === 'add_expense' || action.type === 'add_personal') {
+            const currency = action.currency ?? dc;
+            leftover.push({
+              amountMajor: Number(action.amountMinor) / Number(minorUnitScale(currency)),
+              note: action.description ?? '',
+              currency,
+            } as VoiceParseResult['items'][number]);
+          } else leftoverKnown = false;
         }
-        return { saved, missed: saved.length < plan.cards.length };
+        const missed = saved.length < plan.cards.length;
+        return { saved, missed, leftover: leftoverKnown ? leftover : undefined };
       }
     }
     return basic();
@@ -443,7 +476,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
         () => true,
         () => false,
       );
-    let read: { saved: SavedState[]; missed: boolean } = { saved: [], missed: true };
+    let read: HoldRead = { saved: [], missed: true };
     try {
       read = await readAndAdd(transcript, alternatives);
     } catch {
@@ -460,7 +493,22 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
             : (local.groups.find((g) => g.id === saved.groupId)?.name ?? ''),
       }),
     }));
-    // Anything not added keeps the whole sentence as a draft, so nothing is lost.
+    // Anything not added stays a draft, so nothing is lost. When some went in,
+    // the draft is swapped for one holding only the rest.
+    if (read.missed && added.length > 0 && read.leftover && read.leftover.length > 0) {
+      const restId = randomUUID();
+      const rest = leftoverCaptureInput(transcript, read.leftover, today(), dc);
+      const swapped = await createCapture.mutateAsync({ captureId: restId, ...rest }).then(
+        () => true,
+        () => false,
+      );
+      if (swapped) {
+        void filing
+          .then((ok) => (ok ? deleteCapture.mutateAsync(draftId) : undefined))
+          .catch(() => undefined);
+        return [...added, { kind: 'later', draftId: restId }];
+      }
+    }
     if (read.missed) return [...added, { kind: 'later', draftId }];
     // The adds stand in for the draft; delete it only once its create has landed.
     void filing
