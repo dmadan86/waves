@@ -253,10 +253,19 @@ export function answersToRecords(a: SetupAnswers, ctx: SetupContext): SetupRecor
   return out;
 }
 
-/** A rule's cost per month: quarterly ÷ 3, yearly ÷ 12. */
+/** A rule's cost per month: quarterly ÷ 3, yearly ÷ 12, weekly × 52 ÷ 12, twice a month × 2. */
 export function monthlyEquivalent(r: PersonalRecurring): bigint {
-  const months = BigInt(Math.max(1, r.interval)) * (r.cadence === 'yearly' ? 12n : 1n);
-  return r.cadence === 'monthly' || r.cadence === 'yearly' ? r.amount / months : r.amount;
+  const every = BigInt(Math.max(1, r.interval));
+  switch (r.cadence) {
+    case 'semimonthly':
+      return r.amount * 2n;
+    case 'weekly':
+      return (r.amount * 52n) / (12n * every);
+    case 'yearly':
+      return r.amount / (12n * every);
+    default:
+      return r.amount / every;
+  }
 }
 
 export interface SetupSummary {

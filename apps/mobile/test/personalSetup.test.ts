@@ -6,6 +6,7 @@ import { decodeBudget, decodeRecurring, type CurrencyCode } from '@waves/core';
 import {
   answersToRecords,
   eatOutMonthly,
+  monthlyEquivalent,
   nextDayOfMonth,
   personalSetupAnswers,
   rememberSetup,
@@ -137,5 +138,17 @@ describe('setup progress', () => {
       savings: '3to6',
     });
     expect((await personalSetupAnswers('u2')).done).toEqual([]);
+  });
+});
+
+describe('monthlyEquivalent', () => {
+  const rule = (cadence: string, interval = 1) =>
+    ({ amount: 1200n, cadence, interval }) as unknown as Parameters<typeof monthlyEquivalent>[0];
+  it('converts every cadence to a month', () => {
+    expect(monthlyEquivalent(rule('monthly'))).toBe(1200n);
+    expect(monthlyEquivalent(rule('monthly', 3))).toBe(400n);
+    expect(monthlyEquivalent(rule('yearly'))).toBe(100n);
+    expect(monthlyEquivalent(rule('weekly'))).toBe(5200n);
+    expect(monthlyEquivalent(rule('semimonthly'))).toBe(2400n);
   });
 });
