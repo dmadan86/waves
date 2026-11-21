@@ -3356,7 +3356,6 @@ export interface UiStrings {
     tabBills: string;
     tabUpcoming: string;
     tabIncome: string;
-    tabGoals: string;
     thisMonth: string;
     spent: string;
     income: string;
@@ -3365,13 +3364,8 @@ export interface UiStrings {
     addExpense: string;
     addBill: string;
     addIncome: string;
-    addGoal: string;
-    putAside: string;
     upcomingTitle: string;
     upcomingEmpty: string;
-    goalsTitle: string;
-    goalsLine: PluralForms;
-    goalsNone: string;
     recentTitle: string;
     noExpenses: string;
     allExpenses: string;
@@ -3496,71 +3490,7 @@ export interface UiStrings {
     moveFailed: string;
     switched: string;
   };
-  groupGoals: {
-    menu: string;
-    title: string;
-    add: string;
-    statusOnTrack: string;
-    statusBehind: string;
-    statusDone: string;
-    statusPastDue: string;
-    rowAmount: string;
-    by: string;
-    noDate: string;
-    forWho: string;
-    ringOf: string;
-    perMonth: string;
-    monthMet: string;
-    short: string;
-    needNudge: string;
-    noReturns: string;
-    reached: string;
-    putAside: string;
-    takeOut: string;
-    history: string;
-    historyEmpty: string;
-    entryAside: string;
-    entryOut: string;
-    removeEntry: string;
-    removeTitle: string;
-    removeBody: string;
-    removeRefused: string;
-    asideTitle: string;
-    takeTitle: string;
-    amountLabel: string;
-    whoLabel: string;
-    dateLabel: string;
-    save: string;
-    tooMuch: string;
-    newTitle: string;
-    editTitle: string;
-    stepOf: string;
-    next: string;
-    skip: string;
-    create: string;
-    saveChanges: string;
-    nameQ: string;
-    namePlaceholder: string;
-    emojiLabel: string;
-    amountQ: string;
-    dateQ: string;
-    forQ: string;
-    forAll: string;
-    planQ: string;
-    planHint: string;
-    edit: string;
-    markDone: string;
-    archive: string;
-    reopen: string;
-    archiveTitle: string;
-    archiveBody: string;
-    limit: string;
-    couldNotSave: string;
-    ringA11y: string;
-    notFound: string;
-    everyone: string;
-    monthsLeft: PluralForms;
-  };
+
   groupRecurring: {
     title: string;
     sub: string;
@@ -4085,9 +4015,6 @@ export interface UiStrings {
     agentWithPeople: string;
     agentAddMember: string;
     agentUnknownGroup: string;
-    agentPutAside: string;
-    agentTakeOut: string;
-    agentUnknownGoal: string;
     agentUnknownPerson: string;
   };
   voiceRecorder: {
@@ -12026,7 +11953,6 @@ const en: UiStrings = {
     tabBills: 'Bills',
     tabUpcoming: 'Upcoming',
     tabIncome: 'Income',
-    tabGoals: 'Goals',
     thisMonth: 'This month',
     spent: 'Spent',
     income: 'Income',
@@ -12035,13 +11961,8 @@ const en: UiStrings = {
     addExpense: 'Add expense',
     addBill: 'Add bill',
     addIncome: 'Add income',
-    addGoal: 'Add goal',
-    putAside: 'Put aside',
     upcomingTitle: 'Upcoming',
     upcomingEmpty: 'Nothing due in the next 30 days.',
-    goalsTitle: 'Goals',
-    goalsLine: { one: '{n} goal · {put} put aside', other: '{n} goals · {put} put aside' },
-    goalsNone: 'Save for something together.',
     recentTitle: 'Recent expenses',
     noExpenses: 'No expenses yet this month.',
     allExpenses: 'All expenses',
@@ -12131,8 +12052,7 @@ const en: UiStrings = {
     splitTitle: 'Split it',
     splitBody: 'Track who paid and who owes. Best for flatmates and trips.',
     shareTitle: 'Share it',
-    shareBody:
-      'One pot for the home. Nobody owes anybody. Add bills, a budget and goals you save for together.',
+    shareBody: 'One pot for the home. Nobody owes anybody. Add bills and a budget together.',
     continue: 'Continue',
     settingsTitle: 'How you handle money',
     openBalancesNote: 'Open balances stay until settled.',
@@ -12169,71 +12089,7 @@ const en: UiStrings = {
     moveFailed: 'Could not move this. Nothing was changed.',
     switched: 'Now sharing one pot',
   },
-  groupGoals: {
-    menu: 'More options',
-    title: 'Goals',
-    add: 'Add a goal',
-    statusOnTrack: 'On track',
-    statusBehind: 'Running behind',
-    statusDone: 'Reached',
-    statusPastDue: 'Past its date',
-    rowAmount: '{put} of {target}',
-    by: 'By {date}',
-    noDate: 'No date set',
-    forWho: 'For {name}',
-    ringOf: 'of {target}',
-    perMonth: '{name} · {amount} a month',
-    monthMet: '{month}',
-    short: '{amount} short',
-    needNudge: 'Put aside {amount} a month together to get there.',
-    noReturns: 'Estimate only, no returns counted.',
-    reached: 'The full amount is put aside.',
-    putAside: 'Put money aside',
-    takeOut: 'Take out',
-    history: 'History',
-    historyEmpty: 'Nothing put aside yet.',
-    entryAside: '{name} put aside {amount}',
-    entryOut: '{name} took out {amount}',
-    removeEntry: 'Remove this entry',
-    removeTitle: 'Remove this entry?',
-    removeBody: 'The total goes back as if it never happened.',
-    removeRefused: 'A later withdrawal depends on this entry, so it cannot be removed.',
-    asideTitle: 'Put money aside',
-    takeTitle: 'Take money out',
-    amountLabel: 'Amount',
-    whoLabel: 'Who',
-    dateLabel: 'Date',
-    save: 'Save',
-    tooMuch: 'You can only take out what is put aside.',
-    newTitle: 'New goal',
-    editTitle: 'Edit goal',
-    stepOf: '{n} of {total}',
-    next: 'Next',
-    skip: 'Skip',
-    create: 'Create goal',
-    saveChanges: 'Save changes',
-    nameQ: 'What are you putting money aside for?',
-    namePlaceholder: 'A home, school fees, a trip',
-    emojiLabel: 'Pick a picture',
-    amountQ: 'How much is the goal?',
-    dateQ: 'By when?',
-    forQ: 'Is it for someone?',
-    forAll: 'All of us',
-    planQ: 'How much will each person put aside a month?',
-    planHint: 'Optional. You will see who is on track each month.',
-    edit: 'Edit goal',
-    markDone: 'Mark as done',
-    archive: 'Archive goal',
-    reopen: 'Bring it back',
-    archiveTitle: 'Archive this goal?',
-    archiveBody: 'It leaves the list. You can bring it back later.',
-    limit: 'Two goals are free. Pro lets you add more.',
-    couldNotSave: 'Could not save that. Try again.',
-    ringA11y: '{name}: {put} of {target}, {pct} percent',
-    notFound: 'This goal is not here any more.',
-    everyone: 'Everyone',
-    monthsLeft: { one: '{n} month left', other: '{n} months left' },
-  },
+
   groupRecurring: {
     title: 'Repeating',
     sub: 'Rent, bills and anything else that comes round on a schedule. Each one is added on its date, for everyone.',
@@ -12673,9 +12529,6 @@ const en: UiStrings = {
     agentWithPeople: 'with {names}',
     agentAddMember: 'Add {name} to {group}',
     agentUnknownGroup: 'Unknown group',
-    agentPutAside: 'Put aside {amount} for {goal}',
-    agentTakeOut: 'Take {amount} out of {goal}',
-    agentUnknownGoal: 'Unknown goal',
     agentUnknownPerson: 'Unknown person',
   },
   voiceRecorder: {
@@ -20157,7 +20010,6 @@ const ta: UiStrings = {
     tabBills: 'பில்கள்',
     tabUpcoming: 'வரவிருப்பவை',
     tabIncome: 'வருமானம்',
-    tabGoals: 'இலக்குகள்',
     thisMonth: 'இந்த மாதம்',
     spent: 'செலவு',
     income: 'வருமானம்',
@@ -20166,13 +20018,8 @@ const ta: UiStrings = {
     addExpense: 'செலவு சேர்',
     addBill: 'பில் சேர்',
     addIncome: 'வருமானம் சேர்',
-    addGoal: 'இலக்கு சேர்',
-    putAside: 'ஒதுக்கு',
     upcomingTitle: 'வரவிருப்பவை',
     upcomingEmpty: 'அடுத்த 30 நாட்களில் செலுத்த எதுவும் இல்லை.',
-    goalsTitle: 'இலக்குகள்',
-    goalsLine: { one: '{n} இலக்கு · {put} ஒதுக்கியது', other: '{n} இலக்குகள் · {put} ஒதுக்கியது' },
-    goalsNone: 'சேர்ந்து எதையாவது சேமியுங்கள்.',
     recentTitle: 'சமீபத்திய செலவுகள்',
     noExpenses: 'இந்த மாதம் இன்னும் செலவுகள் இல்லை.',
     allExpenses: 'அனைத்து செலவுகள்',
@@ -20302,71 +20149,7 @@ const ta: UiStrings = {
     moveFailed: 'இதை மாற்ற முடியவில்லை. எதுவும் மாறவில்லை.',
     switched: 'இப்போது ஒரே பணப்பை பகிரப்படுகிறது',
   },
-  groupGoals: {
-    menu: 'மேலும் விருப்பங்கள்',
-    title: 'இலக்குகள்',
-    add: 'இலக்கைச் சேர்',
-    statusOnTrack: 'சரியான பாதையில்',
-    statusBehind: 'பின்தங்கியுள்ளது',
-    statusDone: 'எட்டியது',
-    statusPastDue: 'தேதி கடந்தது',
-    rowAmount: '{target} இல் {put}',
-    by: '{date} க்குள்',
-    noDate: 'தேதி இல்லை',
-    forWho: '{name} க்காக',
-    ringOf: '{target} இல்',
-    perMonth: '{name} · மாதம் {amount}',
-    monthMet: '{month}',
-    short: '{amount} குறைவு',
-    needNudge: 'இதை அடைய ஒன்றாக மாதம் {amount} ஒதுக்குங்கள்.',
-    noReturns: 'மதிப்பீடு மட்டுமே, வருமானம் கணக்கிடப்படவில்லை.',
-    reached: 'முழுத் தொகையும் ஒதுக்கப்பட்டுவிட்டது.',
-    putAside: 'பணம் ஒதுக்கு',
-    takeOut: 'எடு',
-    history: 'வரலாறு',
-    historyEmpty: 'இன்னும் எதுவும் ஒதுக்கப்படவில்லை.',
-    entryAside: '{name} {amount} ஒதுக்கினார்',
-    entryOut: '{name} {amount} எடுத்தார்',
-    removeEntry: 'இந்தப் பதிவை நீக்கு',
-    removeTitle: 'இந்தப் பதிவை நீக்கவா?',
-    removeBody: 'மொத்தம் இது நடக்காதது போல் திரும்பும்.',
-    removeRefused: 'பின்னர் எடுத்த தொகை இந்தப் பதிவைச் சார்ந்துள்ளதால் நீக்க முடியாது.',
-    asideTitle: 'பணம் ஒதுக்கு',
-    takeTitle: 'பணத்தை எடு',
-    amountLabel: 'தொகை',
-    whoLabel: 'யார்',
-    dateLabel: 'தேதி',
-    save: 'சேமி',
-    tooMuch: 'ஒதுக்கிய தொகையை மட்டுமே எடுக்க முடியும்.',
-    newTitle: 'புதிய இலக்கு',
-    editTitle: 'இலக்கைத் திருத்து',
-    stepOf: '{total} இல் {n}',
-    next: 'அடுத்து',
-    skip: 'தவிர்',
-    create: 'இலக்கை உருவாக்கு',
-    saveChanges: 'மாற்றங்களைச் சேமி',
-    nameQ: 'எதற்காகப் பணம் ஒதுக்குகிறீர்கள்?',
-    namePlaceholder: 'வீடு, பள்ளிக் கட்டணம், பயணம்',
-    emojiLabel: 'ஒரு படத்தைத் தேர்ந்தெடுங்கள்',
-    amountQ: 'இலக்கு எவ்வளவு?',
-    dateQ: 'எப்போதுக்குள்?',
-    forQ: 'இது யாருக்காவது உரியதா?',
-    forAll: 'நம் அனைவருக்கும்',
-    planQ: 'ஒவ்வொருவரும் மாதம் எவ்வளவு ஒதுக்குவார்கள்?',
-    planHint: 'விருப்பத்திற்குரியது. ஒவ்வொரு மாதமும் யார் சரியாக உள்ளார் என்று பார்க்கலாம்.',
-    edit: 'இலக்கைத் திருத்து',
-    markDone: 'முடிந்தது எனக் குறி',
-    archive: 'இலக்கைக் காப்பகப்படுத்து',
-    reopen: 'மீண்டும் கொண்டு வா',
-    archiveTitle: 'இந்த இலக்கைக் காப்பகப்படுத்தவா?',
-    archiveBody: 'பட்டியலிலிருந்து நீங்கும். பின்னர் மீண்டும் கொண்டுவரலாம்.',
-    limit: 'இரண்டு இலக்குகள் இலவசம். மேலும் சேர்க்க Pro தேவை.',
-    couldNotSave: 'சேமிக்க முடியவில்லை. மீண்டும் முயலுங்கள்.',
-    ringA11y: '{name}: {target} இல் {put}, {pct} சதவீதம்',
-    notFound: 'இந்த இலக்கு இப்போது இல்லை.',
-    everyone: 'அனைவரும்',
-    monthsLeft: { one: '{n} மாதம் மீதம்', other: '{n} மாதங்கள் மீதம்' },
-  },
+
   groupRecurring: {
     title: 'மீண்டும் வரும் செலவுகள்',
     sub: 'வாடகை, கட்டணங்கள் மற்றும் அட்டவணைப்படி வரும் செலவுகள். ஒவ்வொன்றும் அதன் தேதியில் அனைவருக்கும் சேர்க்கப்படும்.',
@@ -20812,9 +20595,6 @@ const ta: UiStrings = {
     agentWithPeople: '{names} உடன்',
     agentAddMember: '{name}-ஐ {group}-ல் சேர்',
     agentUnknownGroup: 'தெரியாத குழு',
-    agentPutAside: '{goal}-க்கு {amount} ஒதுக்கு',
-    agentTakeOut: '{goal}-இலிருந்து {amount} எடு',
-    agentUnknownGoal: 'தெரியாத இலக்கு',
     agentUnknownPerson: 'தெரியாத நபர்',
   },
   voiceRecorder: {
@@ -28435,7 +28215,6 @@ const hi: UiStrings = {
     tabBills: 'बिल',
     tabUpcoming: 'आने वाले',
     tabIncome: 'आमदनी',
-    tabGoals: 'लक्ष्य',
     thisMonth: 'इस महीने',
     spent: 'खर्च',
     income: 'आमदनी',
@@ -28444,13 +28223,8 @@ const hi: UiStrings = {
     addExpense: 'खर्च जोड़ें',
     addBill: 'बिल जोड़ें',
     addIncome: 'आमदनी जोड़ें',
-    addGoal: 'लक्ष्य जोड़ें',
-    putAside: 'अलग रखें',
     upcomingTitle: 'आने वाले',
     upcomingEmpty: 'अगले 30 दिनों में कुछ देय नहीं है।',
-    goalsTitle: 'लक्ष्य',
-    goalsLine: { one: '{n} लक्ष्य · {put} अलग रखे', other: '{n} लक्ष्य · {put} अलग रखे' },
-    goalsNone: 'साथ मिलकर किसी चीज़ के लिए बचाएँ।',
     recentTitle: 'हाल के खर्च',
     noExpenses: 'इस महीने अभी कोई खर्च नहीं।',
     allExpenses: 'सभी खर्च',
@@ -28578,71 +28352,7 @@ const hi: UiStrings = {
     moveFailed: 'इसे नहीं ले जा सके। कुछ नहीं बदला।',
     switched: 'अब एक साझा पॉट है',
   },
-  groupGoals: {
-    menu: 'और विकल्प',
-    title: 'लक्ष्य',
-    add: 'लक्ष्य जोड़ें',
-    statusOnTrack: 'सही राह पर',
-    statusBehind: 'पीछे चल रहा है',
-    statusDone: 'पूरा हुआ',
-    statusPastDue: 'तारीख़ निकल गई',
-    rowAmount: '{target} में से {put}',
-    by: '{date} तक',
-    noDate: 'कोई तारीख़ नहीं',
-    forWho: '{name} के लिए',
-    ringOf: '{target} में से',
-    perMonth: '{name} · {amount} हर महीने',
-    monthMet: '{month}',
-    short: '{amount} कम',
-    needNudge: 'वहाँ पहुँचने के लिए साथ मिलकर हर महीने {amount} अलग रखें।',
-    noReturns: 'सिर्फ़ अनुमान है, कोई रिटर्न नहीं जोड़ा गया।',
-    reached: 'पूरी रकम अलग रखी जा चुकी है।',
-    putAside: 'पैसे अलग रखें',
-    takeOut: 'निकालें',
-    history: 'इतिहास',
-    historyEmpty: 'अभी तक कुछ अलग नहीं रखा गया।',
-    entryAside: '{name} ने {amount} अलग रखे',
-    entryOut: '{name} ने {amount} निकाले',
-    removeEntry: 'यह एंट्री हटाएँ',
-    removeTitle: 'यह एंट्री हटाएँ?',
-    removeBody: 'कुल रकम ऐसे लौट जाएगी जैसे यह हुआ ही नहीं।',
-    removeRefused: 'बाद में निकाली गई रकम इस एंट्री पर टिकी है, इसलिए इसे हटाया नहीं जा सकता।',
-    asideTitle: 'पैसे अलग रखें',
-    takeTitle: 'पैसे निकालें',
-    amountLabel: 'रकम',
-    whoLabel: 'कौन',
-    dateLabel: 'तारीख़',
-    save: 'सहेजें',
-    tooMuch: 'जितना अलग रखा है, उतना ही निकाल सकते हैं।',
-    newTitle: 'नया लक्ष्य',
-    editTitle: 'लक्ष्य बदलें',
-    stepOf: '{total} में से {n}',
-    next: 'आगे',
-    skip: 'छोड़ें',
-    create: 'लक्ष्य बनाएँ',
-    saveChanges: 'बदलाव सहेजें',
-    nameQ: 'आप किसके लिए पैसे अलग रख रहे हैं?',
-    namePlaceholder: 'घर, स्कूल की फ़ीस, यात्रा',
-    emojiLabel: 'एक तस्वीर चुनें',
-    amountQ: 'लक्ष्य कितने का है?',
-    dateQ: 'कब तक?',
-    forQ: 'क्या यह किसी के लिए है?',
-    forAll: 'हम सबके लिए',
-    planQ: 'हर व्यक्ति हर महीने कितना अलग रखेगा?',
-    planHint: 'वैकल्पिक। आप हर महीने देख पाएँगे कि कौन सही चल रहा है।',
-    edit: 'लक्ष्य बदलें',
-    markDone: 'पूरा हुआ चिह्नित करें',
-    archive: 'लक्ष्य संग्रहित करें',
-    reopen: 'वापस लाएँ',
-    archiveTitle: 'यह लक्ष्य संग्रहित करें?',
-    archiveBody: 'यह सूची से हट जाएगा। बाद में वापस ला सकते हैं।',
-    limit: 'दो लक्ष्य मुफ़्त हैं। और जोड़ने के लिए Pro लें।',
-    couldNotSave: 'सहेजा नहीं जा सका। फिर कोशिश करें।',
-    ringA11y: '{name}: {target} में से {put}, {pct} प्रतिशत',
-    notFound: 'यह लक्ष्य अब यहाँ नहीं है।',
-    everyone: 'सब',
-    monthsLeft: { one: '{n} महीना बचा', other: '{n} महीने बचे' },
-  },
+
   groupRecurring: {
     title: 'दोहराए जाने वाले',
     sub: 'किराया, बिल और जो कुछ तय तारीख पर आता है। हर एक अपनी तारीख पर सबके लिए जुड़ जाता है।',
@@ -29081,9 +28791,6 @@ const hi: UiStrings = {
     agentWithPeople: '{names} के साथ',
     agentAddMember: '{name} को {group} में जोड़ें',
     agentUnknownGroup: 'अज्ञात ग्रुप',
-    agentPutAside: '{goal} के लिए {amount} अलग रखें',
-    agentTakeOut: '{goal} से {amount} निकालें',
-    agentUnknownGoal: 'अज्ञात लक्ष्य',
     agentUnknownPerson: 'अज्ञात व्यक्ति',
   },
   voiceRecorder: {
@@ -36703,7 +36410,6 @@ const ar: UiStrings = {
     tabBills: 'الفواتير',
     tabUpcoming: 'القادم',
     tabIncome: 'الدخل',
-    tabGoals: 'الأهداف',
     thisMonth: 'هذا الشهر',
     spent: 'المصروف',
     income: 'الدخل',
@@ -36712,20 +36418,8 @@ const ar: UiStrings = {
     addExpense: 'إضافة مصروف',
     addBill: 'إضافة فاتورة',
     addIncome: 'إضافة دخل',
-    addGoal: 'إضافة هدف',
-    putAside: 'ادّخار',
     upcomingTitle: 'القادم',
     upcomingEmpty: 'لا شيء مستحق خلال 30 يومًا.',
-    goalsTitle: 'الأهداف',
-    goalsLine: {
-      zero: 'لا أهداف · {put} مدّخر',
-      one: 'هدف واحد · {put} مدّخر',
-      two: 'هدفان · {put} مدّخر',
-      few: '{n} أهداف · {put} مدّخر',
-      many: '{n} هدفًا · {put} مدّخر',
-      other: '{n} هدف · {put} مدّخر',
-    },
-    goalsNone: 'ادّخروا معًا لشيء ما.',
     recentTitle: 'أحدث المصروفات',
     noExpenses: 'لا مصروفات هذا الشهر بعد.',
     allExpenses: 'كل المصروفات',
@@ -36859,78 +36553,7 @@ const ar: UiStrings = {
     moveFailed: 'تعذّر النقل. لم يتغير شيء.',
     switched: 'أصبحتم الآن تشاركون صندوقًا واحدًا',
   },
-  groupGoals: {
-    menu: 'المزيد من الخيارات',
-    title: 'الأهداف',
-    add: 'أضف هدفًا',
-    statusOnTrack: 'على المسار',
-    statusBehind: 'متأخر',
-    statusDone: 'تحقق',
-    statusPastDue: 'تجاوز موعده',
-    rowAmount: '{put} من {target}',
-    by: 'بحلول {date}',
-    noDate: 'بلا موعد',
-    forWho: 'لأجل {name}',
-    ringOf: 'من {target}',
-    perMonth: '{name} · {amount} شهريًا',
-    monthMet: '{month}',
-    short: 'ينقص {amount}',
-    needNudge: 'خصّصوا {amount} شهريًا معًا للوصول إلى الهدف.',
-    noReturns: 'تقدير فقط، دون احتساب أي عوائد.',
-    reached: 'تم تخصيص المبلغ كاملًا.',
-    putAside: 'خصّص مبلغًا',
-    takeOut: 'اسحب',
-    history: 'السجل',
-    historyEmpty: 'لم يُخصَّص أي مبلغ بعد.',
-    entryAside: 'خصّص {name} مبلغ {amount}',
-    entryOut: 'سحب {name} مبلغ {amount}',
-    removeEntry: 'احذف هذا السجل',
-    removeTitle: 'حذف هذا السجل؟',
-    removeBody: 'سيعود الإجمالي كأن شيئًا لم يحدث.',
-    removeRefused: 'هناك سحب لاحق يعتمد على هذا السجل، لذا لا يمكن حذفه.',
-    asideTitle: 'خصّص مبلغًا',
-    takeTitle: 'اسحب مبلغًا',
-    amountLabel: 'المبلغ',
-    whoLabel: 'من',
-    dateLabel: 'التاريخ',
-    save: 'حفظ',
-    tooMuch: 'يمكنك سحب ما تم تخصيصه فقط.',
-    newTitle: 'هدف جديد',
-    editTitle: 'تعديل الهدف',
-    stepOf: '{n} من {total}',
-    next: 'التالي',
-    skip: 'تخطَّ',
-    create: 'أنشئ الهدف',
-    saveChanges: 'احفظ التغييرات',
-    nameQ: 'لأي شيء تخصّصون المال؟',
-    namePlaceholder: 'منزل، رسوم دراسية، رحلة',
-    emojiLabel: 'اختر صورة',
-    amountQ: 'كم قيمة الهدف؟',
-    dateQ: 'بحلول متى؟',
-    forQ: 'هل هو لشخص معيّن؟',
-    forAll: 'لنا جميعًا',
-    planQ: 'كم سيخصّص كل شخص شهريًا؟',
-    planHint: 'اختياري. سترى من على المسار كل شهر.',
-    edit: 'تعديل الهدف',
-    markDone: 'وضع علامة منجز',
-    archive: 'أرشفة الهدف',
-    reopen: 'أعده',
-    archiveTitle: 'أرشفة هذا الهدف؟',
-    archiveBody: 'سيختفي من القائمة. يمكنك إعادته لاحقًا.',
-    limit: 'هدفان مجانيان. يتيح لك Pro إضافة المزيد.',
-    couldNotSave: 'تعذّر الحفظ. حاول مرة أخرى.',
-    ringA11y: '{name}: {put} من {target}، {pct} بالمئة',
-    notFound: 'هذا الهدف لم يعد موجودًا.',
-    everyone: 'الجميع',
-    monthsLeft: {
-      zero: 'لا أشهر متبقية',
-      one: 'شهر واحد متبقٍ',
-      two: 'شهران متبقيان',
-      few: '{n} أشهر متبقية',
-      many: '{n} شهرًا متبقية',
-      other: '{n} شهر متبقٍ',
-    },
-  },
+
   groupRecurring: {
     title: 'المتكررة',
     sub: 'الإيجار والفواتير وكل ما يتكرر في موعد محدد. يُضاف كل واحد في تاريخه للجميع.',
@@ -37376,9 +36999,6 @@ const ar: UiStrings = {
     agentWithPeople: 'مع {names}',
     agentAddMember: 'أضف {name} إلى {group}',
     agentUnknownGroup: 'مجموعة غير معروفة',
-    agentPutAside: 'خصّص {amount} لهدف {goal}',
-    agentTakeOut: 'اسحب {amount} من هدف {goal}',
-    agentUnknownGoal: 'هدف غير معروف',
     agentUnknownPerson: 'شخص غير معروف',
   },
   voiceRecorder: {

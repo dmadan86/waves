@@ -399,7 +399,7 @@ export function perDayLeft(left: bigint, today: string): bigint {
 
 export interface HouseholdUpcoming {
   readonly key: string;
-  readonly kind: 'bill' | 'goal';
+  readonly kind: 'bill';
   readonly title: string;
   readonly date: string;
   /** Days from today; negative once overdue. */
@@ -407,7 +407,6 @@ export interface HouseholdUpcoming {
   readonly amount: bigint;
   readonly currency: string;
   readonly ruleId?: string;
-  readonly goalId?: string;
   /** Who pays a bill (member id), when known. */
   readonly payerId?: string | null;
 }
@@ -453,44 +452,6 @@ export function billUpcoming(
         payerId,
       };
     });
-}
-
-/**
- * Goals with a monthly plan: the plan's total is due on the 1st. Shown only
- * when the 1st (this month's if today is the 1st, else next month's) is inside
- * the horizon. Finished and archived goals are not asked for more.
- */
-export function goalUpcoming(
-  goals: readonly {
-    id: string;
-    name: string;
-    currency: string;
-    status: string;
-    monthlyPlan: Readonly<Record<string, bigint>>;
-  }[],
-  today: string,
-  horizonDays: number,
-): HouseholdUpcoming[] {
-  const first = nextDayOfMonth(today, 1);
-  const inDays = daysFromTo(today, first);
-  if (inDays > horizonDays) return [];
-  const out: HouseholdUpcoming[] = [];
-  for (const g of goals) {
-    if (g.status !== 'active') continue;
-    const amount = Object.values(g.monthlyPlan).reduce((a, b) => a + b, 0n);
-    if (amount <= 0n) continue;
-    out.push({
-      key: `goal:${g.id}:${first}`,
-      kind: 'goal',
-      title: g.name,
-      date: first,
-      inDays,
-      amount,
-      currency: g.currency,
-      goalId: g.id,
-    });
-  }
-  return out;
 }
 
 /** Merge by date (overdue first), then title; `limit` 0 keeps everything. */

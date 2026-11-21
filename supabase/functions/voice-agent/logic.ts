@@ -46,7 +46,6 @@ const SPLIT_MODES: readonly (VoiceSplitMode | 'units')[] = [
   'shares',
   'units',
 ];
-const MAX_GOALS_PER_GROUP = 5;
 const PAYMENT_METHODS = ['cash', 'upi', 'card', 'credit', 'debit', 'bank', 'wallet'] as const;
 
 // ── context ────────────────────────────────────────────────────────────────
@@ -74,8 +73,6 @@ export interface ContextGroup {
   readonly balances: Readonly<Record<string, string>>;
   /** Families defined in this group: unitId -> family. Absent when none. */
   readonly families?: Readonly<Record<string, ContextFamily>>;
-  /** Active joint goals the group puts money aside for. Absent when none. */
-  readonly goals?: readonly { readonly id: string; readonly name: string }[];
 }
 
 export interface VoiceContext {
@@ -107,11 +104,6 @@ export interface RawMember {
   profile_id: string | null;
   ghost_name: string | null;
   profile: { display_name?: string | null } | { display_name?: string | null }[] | null;
-}
-export interface RawGoal {
-  id: string;
-  group_id: string;
-  name: string;
 }
 
 export interface RawBalance {
@@ -154,8 +146,6 @@ export function buildContext(input: {
   groups: readonly RawGroup[];
   members: readonly RawMember[];
   balances: readonly RawBalance[];
-  /** Active joint goals; a nicety, so optional. */
-  goals?: readonly RawGoal[];
   meProfileId: string;
   currentGroupId?: string | null;
   recentGroupId?: string | null;
@@ -186,10 +176,6 @@ export function buildContext(input: {
     }
     const memberIds = new Set(members.map((m) => m.id));
     const families = parseFamilies(g.units, memberIds);
-    const goals = (input.goals ?? [])
-      .filter((goal) => goal.group_id === g.id && goal.name.trim())
-      .slice(0, MAX_GOALS_PER_GROUP)
-      .map((goal) => ({ id: goal.id, name: goal.name.trim().slice(0, 60) }));
     return {
       id: g.id,
       name: (g.name ?? '').trim() || 'Untitled group',
@@ -198,7 +184,6 @@ export function buildContext(input: {
       members,
       balances,
       ...(families ? { families } : {}),
-      ...(goals.length > 0 ? { goals } : {}),
     };
   });
   const current =
@@ -294,11 +279,6 @@ export function contextText(context: VoiceContext): string {
         .join('; ');
       lines.push(`  families (unitId "name" [memberIds]): ${fams}`);
     }
-    if (g.goals) {
-      lines.push(
-        `  goals (id "name"): ${g.goals.map((goal) => `${goal.id} "${goal.name}"`).join('; ')}`,
-      );
-    }
   }
   if (context.groups.length === 0) lines.push('The caller is in no groups yet.');
   return lines.join('\n');
@@ -328,7 +308,6 @@ Rules:
 - Relative dates ("yesterday", "last Friday") resolve against today, as YYYY-MM-DD. Omit date when it is today.
 - nudge reminds a member who owes the caller. record_settlement is a payment between two members of one group and one party must be the caller (me).
 - Keep descriptions short, in the speaker's words.
-- "put 5000 aside for the house", "add 2000 to our trip goal" (a GROUP line's "goals") is add_goal_contribution: match the spoken goal name to a goal id in the context, never invent one, amount in the group's currency, direction in. "take 1000 out of the house goal" is direction out. The speaker is the member unless another is named. If no goal in the context fits, call answer_question and say the group has no such goal. Never use add_expense for money put aside.
 - Pick the group yourself whenever you can: if everyone named is in exactly one group, use it; if several, prefer the one-to-one group with that person, else the CURRENT group. If several groups fit and nothing else decides it, take the CURRENT group; never ask which.
 - "<amount> for <person>" (e.g. "8000 for Renny") means the speaker paid and that person owes all of it: split.shares lists only that person.
 - When no group and no person is named (a bare "<thing> <amount>" such as "add 3000 for dinner in Koramangala"), guess the group: the CURRENT group, else the [RECENT] group (the one they last added to), else the first group listed. Never ask which group just because none was said: the person sees the group on the confirm card and can change it with one tap. A place name that is not a group name ("in Koramangala") is part of the description, not a group.
@@ -468,23 +447,7 @@ export const TOOLS = [
       required: ['groupId', 'toMemberId', 'currency'],
     },
   },
-  {
-    name: 'add_goal_contribution',
-    description:
-      'Put money aside for (or take money out of) one of the group joint goals listed in the context. Never an expense.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        groupId: str('Group id'),
-        goalId: str("Goal id from that group's goals line, exactly"),
-        amountMinor: str('Minor units, digits only'),
-        direction: { type: 'string', enum: ['in', 'out'], description: 'in = put aside (default)' },
-        memberId: str('Who puts it aside; omit for the caller (me)'),
-        date: str('YYYY-MM-DD, omit for today'),
-      },
-      required: ['groupId', 'goalId', 'amountMinor'],
-    },
-  },
+
   {
     name: 'create_group',
     description: 'Create a new group.',
@@ -1069,26 +1032,6 @@ function validateAction(
         groupId: group.id,
         toMemberId: to.id,
         currency: currencyOf(input.currency),
-      };
-    }
-    case 'add_goal_contribution': {
-      const group = groupOf(context, input.groupId);
-      const goal =
-        group.goals?.find((candidate) => candidate.id === input.goalId) ?? bad('unknown goal id');
-      const who =
-        input.memberId === undefined || input.memberId === null || input.memberId === ''
-          ? (group.members.find((m) => m.me) ?? bad('caller is not in the group'))
-          : memberOf(group, input.memberId);
-      const direction = input.direction === 'out' ? 'out' : 'in';
-      const date = dateOf(input.date);
-      return {
-        type: 'add_goal_contribution',
-        groupId: group.id,
-        goalId: goal.id,
-        memberId: who.id,
-        amountMinor: amount(input.amountMinor, 'amountMinor').toString(),
-        direction,
-        ...(date ? { date } : {}),
       };
     }
     case 'create_group': {
