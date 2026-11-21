@@ -122,12 +122,13 @@ export function isPersonalMode(segments: readonly string[]): boolean {
 
 /** Highlight the owning Personal destination, leaving standalone features unselected. */
 export function personalActiveKey(segments: readonly string[]): string {
-  if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'me' : '';
+  if (segments[0] === '(tabs)') return segments[1] === 'me' ? 'home' : '';
   if (segments[0] !== 'personal') return '';
   const leaf = segments[1] ?? '';
-  if (leaf === 'budgets' || leaf === 'loans') return 'me';
-  if (leaf === 'entry' || leaf === 'source') return 'transactions';
-  return leaf === 'transactions' || leaf === 'spending' || leaf === 'recurring' ? leaf : '';
+  if (leaf === 'upcoming') return 'home';
+  if (leaf === 'entry' || leaf === 'source' || leaf === 'transactions') return 'transactions';
+  if (leaf === 'recurring' || leaf === 'budgets' || leaf === 'loans') return 'planning';
+  return leaf === 'spending' ? 'reports' : '';
 }
 
 /** Where a Personal-mode bar tap goes, or null when it is already current. */
@@ -135,20 +136,40 @@ export function personalRouteForSelection(
   activeKey: string,
   selectedKey: string,
   atRoot = true,
-): '/' | '/me' | '/personal/transactions' | '/personal/recurring' | '/personal/spending' | null {
+):
+  | '/me'
+  | '/profile'
+  | '/personal/transactions'
+  | '/personal/recurring'
+  | '/personal/spending'
+  | null {
   if (selectedKey === activeKey && atRoot) return null;
   switch (selectedKey) {
-    case 'shared':
-      return '/';
     case 'transactions':
       return '/personal/transactions';
-    case 'recurring':
+    case 'planning':
       return '/personal/recurring';
-    case 'spending':
+    case 'reports':
       return '/personal/spending';
+    case 'me':
+      return '/profile';
     default:
       return '/me';
   }
+}
+
+/** The screen a Personal destination opens on; Planning opens on Recurring. */
+const PERSONAL_ROOTS: Readonly<Record<string, string>> = {
+  transactions: 'transactions',
+  planning: 'recurring',
+  reports: 'spending',
+};
+
+/** True when the Personal destination's own root is the screen on show. */
+export function isPersonalRoot(segments: readonly string[], key: string): boolean {
+  if (key === 'home')
+    return segments[0] === '(tabs)' && segments[1] === 'me' && segments.length <= 2;
+  return segments[0] === 'personal' && segments.length === 2 && segments[1] === PERSONAL_ROOTS[key];
 }
 
 const screen2 = (segments: readonly string[]): string => segments[2] ?? '';

@@ -6,13 +6,10 @@ import { Alert, Image, Pressable, ScrollView, View } from 'react-native';
 
 import {
   encodeRecurring,
-  encodeTxn,
   format,
   frequencyOf,
   isRecurringDue,
   money,
-  recurringOccurrenceId,
-  stepOccurrence,
   type PersonalRecurring,
 } from '@waves/core';
 import {
@@ -33,6 +30,7 @@ import { CategoryBadge } from '@/components/Category';
 import { SourceGlyph, useSourceLabel } from '@/components/IncomeSource';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
 import { filterRecurrings, nextDateLabel, type RecurringFilter } from '@/lib/recurringList';
+import { usePostRecurring } from '@/data/postRecurring';
 import {
   todayIso,
   useDeletePersonalRecord,
@@ -52,6 +50,7 @@ function RecurringScreenBody() {
   const { recurrings } = usePersonalLedger();
   const sourceLabel = useSourceLabel();
   const upsert = useUpsertPersonalRecord();
+  const { post, isPending: posting } = usePostRecurring();
 
   const deletion = useDeletePersonalRecord();
   const [menuRule, setMenuRule] = useState<PersonalRecurring | null>(null);
@@ -60,34 +59,6 @@ function RecurringScreenBody() {
 
   const cadenceLabel = (rule: PersonalRecurring): string =>
     frequencyLabel(t, frequencyOf(rule), rule.interval);
-
-  // Post one occurrence of a manual rule now, and advance its next date. The
-  // occurrence id is deterministic per (rule, date), so this posting the same
-  // date the auto catch-up also posts collapses to one row rather than two.
-  const postOnce = async (rule: PersonalRecurring): Promise<void> => {
-    await upsert.mutateAsync({
-      recordId: recurringOccurrenceId(rule.id, rule.nextDate),
-      recordKind: 'txn',
-      data: encodeTxn({
-        kind: rule.txnKind,
-        amount: rule.amount,
-        currency: rule.currency,
-        category: rule.category,
-        note: rule.note,
-        date: rule.nextDate,
-        loanId: null,
-        recurringId: rule.id,
-      }),
-    });
-    await upsert.mutateAsync({
-      recordId: rule.id,
-      recordKind: 'recurring',
-      data: encodeRecurring({
-        ...rule,
-        nextDate: stepOccurrence(rule, rule.nextDate),
-      }),
-    });
-  };
 
   const ruleName = (rule: PersonalRecurring) =>
     rule.note?.trim() ||
@@ -234,8 +205,8 @@ function RecurringScreenBody() {
                     <Button
                       label={t.personal.postNow}
                       size="sm"
-                      onPress={() => void postOnce(rule)}
-                      disabled={upsert.isPending}
+                      onPress={() => void post(rule)}
+                      disabled={upsert.isPending || posting}
                     />
                   </Row>
                 </>
