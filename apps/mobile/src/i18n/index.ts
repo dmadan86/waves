@@ -3495,6 +3495,9 @@ export interface UiStrings {
     movePrivacy: string;
     moved: string;
     moveFailed: string;
+    moveReceiptFailed: string;
+    moveReceiptRetry: string;
+    moveWithoutReceipt: string;
     switched: string;
   };
   groupGoals: {
@@ -12169,6 +12172,9 @@ const en: UiStrings = {
     movePrivacy: 'Your Personal stays private. Your partner can’t see it.',
     moved: 'Moved to {group}',
     moveFailed: 'Could not move this. Nothing was changed.',
+    moveReceiptFailed: 'Couldn’t move the receipt. Your entry is still here.',
+    moveReceiptRetry: 'Try again',
+    moveWithoutReceipt: 'Move without receipt',
     switched: 'Now sharing one pot',
   },
   groupGoals: {
@@ -20303,6 +20309,9 @@ const ta: UiStrings = {
       'உங்கள் தனிப்பட்ட பகுதி தனிப்பட்டதாகவே இருக்கும். உங்கள் துணையால் இதைப் பார்க்க முடியாது.',
     moved: '{group} குழுவுக்கு மாற்றப்பட்டது',
     moveFailed: 'இதை மாற்ற முடியவில்லை. எதுவும் மாறவில்லை.',
+    moveReceiptFailed: 'ரசீதை மாற்ற முடியவில்லை. உங்கள் பதிவு இங்கேயே உள்ளது.',
+    moveReceiptRetry: 'மீண்டும் முயற்சிக்கவும்',
+    moveWithoutReceipt: 'ரசீது இல்லாமல் மாற்று',
     switched: 'இப்போது ஒரே பணப்பை பகிரப்படுகிறது',
   },
   groupGoals: {
@@ -28580,6 +28589,9 @@ const hi: UiStrings = {
     movePrivacy: 'आपका पर्सनल निजी रहता है। आपका साथी इसे नहीं देख सकता।',
     moved: '{group} में ले जाया गया',
     moveFailed: 'इसे नहीं ले जा सके। कुछ नहीं बदला।',
+    moveReceiptFailed: 'रसीद नहीं ले जा सके। आपकी प्रविष्टि यहीं है।',
+    moveReceiptRetry: 'फिर कोशिश करें',
+    moveWithoutReceipt: 'रसीद के बिना ले जाएँ',
     switched: 'अब एक साझा पॉट है',
   },
   groupGoals: {
@@ -36862,6 +36874,9 @@ const ar: UiStrings = {
     movePrivacy: 'حسابك الشخصي يبقى خاصًا. شريكك لا يستطيع رؤيته.',
     moved: 'تم النقل إلى {group}',
     moveFailed: 'تعذّر النقل. لم يتغير شيء.',
+    moveReceiptFailed: 'تعذّر نقل الإيصال. إدخالك ما زال هنا.',
+    moveReceiptRetry: 'حاول مرة أخرى',
+    moveWithoutReceipt: 'انقل بدون إيصال',
     switched: 'أصبحتم الآن تشاركون صندوقًا واحدًا',
   },
   groupGoals: {

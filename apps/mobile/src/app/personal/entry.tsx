@@ -75,7 +75,7 @@ import { CategoryBadge, CategorySheet } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
-import { MoveToFamily } from '@/components/MoveToFamily';
+import { MoveReceiptNotice, MoveToFamily } from '@/components/MoveToFamily';
 import { PersonalNoteField } from '@/components/PersonalNoteField';
 import { PersonalReceiptRow } from '@/components/PersonalReceiptRow';
 import { SourceSheet, useSourceLabel } from '@/components/IncomeSource';
@@ -378,6 +378,7 @@ function EntryForm({
 
           {/* Move a saved expense into a Share-it household. Its bill photo is
               copied to the group expense before the private entry goes. */}
+          {editingTxn ? <MoveReceiptNotice personalId={editingTxn.id} /> : null}
           {editingTxn && kind === 'expense' && !loanId ? (
             <MoveToFamily
               entry={{

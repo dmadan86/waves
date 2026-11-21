@@ -198,17 +198,48 @@ export function compactMoney(amount: Money, options: FormatOptions = {}): string
   const { locale = DEFAULT_LOCALE } = options;
   const major = Number(toMajorString(amount));
   if (Math.abs(major) < 1000) return format(amount, options);
+  const loc = rupeeLocale(locale, amount.currency);
+  const signed = options.signDisplay === 'never' ? Math.abs(major) : major;
+  const sign = options.signDisplay ?? 'auto';
   try {
-    return new Intl.NumberFormat(rupeeLocale(locale, amount.currency), {
+    const compact = new Intl.NumberFormat(loc, {
       style: 'currency',
       currency: amount.currency,
       notation: 'compact',
       maximumFractionDigits: 1,
-      signDisplay: options.signDisplay ?? 'auto',
-    }).format(options.signDisplay === 'never' ? Math.abs(major) : major);
+      signDisplay: sign,
+    });
+    // Some engines (Hermes) accept the option and silently ignore it.
+    if (compact.resolvedOptions().notation === 'compact') return compact.format(signed);
   } catch {
-    return format(amount, { ...options, whole: true });
+    // fall through to the explicit scale below
   }
+  const indian = amount.currency === 'INR';
+  const scale: readonly (readonly [number, string])[] = indian
+    ? [
+        [1e7, 'Cr'],
+        [1e5, 'L'],
+        [1e3, 'K'],
+      ]
+    : [
+        [1e9, 'B'],
+        [1e6, 'M'],
+        [1e3, 'K'],
+      ];
+  const [unit, suffix] = scale.find(([size]) => Math.abs(signed) >= size) ?? [1, ''];
+  const scaled = new Intl.NumberFormat(loc, {
+    style: 'currency',
+    currency: amount.currency,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+    signDisplay: sign,
+  });
+  return scaled.formatToParts
+    ? scaled
+        .formatToParts(signed / unit)
+        .map((p) => p.value)
+        .join('') + suffix
+    : scaled.format(signed / unit) + suffix;
 }
 
 /** Just the currency symbol for the locale ("₹", "$"). */

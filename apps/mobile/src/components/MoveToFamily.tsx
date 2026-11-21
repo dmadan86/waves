@@ -5,16 +5,15 @@
  * write is queued, so a failure never loses the entry.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { AppState, Pressable, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
-import { isPoolGroup, MutationKind } from '@waves/core';
+import { isPoolGroup, MutationKind, personalScope } from '@waves/core';
 import { Card, iconSize, Text, useTheme } from '@waves/ui';
 
 import { useAllGroupMembers, useGroups } from '@/data/hooks';
 import { uploadExpenseReceipt } from '@/data/api';
 import { pickedFromUrl } from '@/data/moveSpace';
-import { useDeletePersonalRecord } from '@/data/personal';
 import { serialiseExpense } from '@/data/serialiseExpense';
 import { groupLabel, isViewer, type GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
@@ -24,9 +23,9 @@ import { personalReceiptUrl, removePersonalReceipt } from '@/lib/personalReceipt
 import {
   addPendingMove,
   afterCarryFailure,
-  moveOutcome,
+  moveStep,
+  patchPendingMove,
   readPendingMoves,
-  writePendingMoves,
   type PendingMove,
 } from '@/lib/pendingMoves';
 import { useSync } from '@/sync';
@@ -147,68 +146,119 @@ export function MoveToFamily({ entry, onMoved }: { entry: MoveEntry; onMoved: ()
 }
 
 /**
- * Finishes "Move to family": deletes each moved private entry once its group
- * expense has left the sync queue, and forgets the move (keeping the entry)
- * when the server refused it. Mounted once under the tabs.
+ * Finishes "Move to family". Per move: wait for the group expense to be accepted,
+ * copy the bill photo onto it (retried with backoff, then parked as failed with
+ * the entry and photo kept), queue the Personal delete, and drop the source photo
+ * only once the server has acknowledged that delete. A refused write keeps the
+ * entry. Every list change is a read-modify-write on a fresh read. Mounted once
+ * under the tabs; re-checked on queue changes, on a timer and on foreground.
  */
 export function PendingMoveCleanup(): null {
-  const { queue } = useSync();
+  const { queue, mutate } = useSync();
   const viewerId = useViewerId();
-  const remove = useDeletePersonalRecord();
   const running = useRef(false);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTick((n) => n + 1), 30_000);
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') setTick((n) => n + 1);
+    });
+    return () => {
+      clearInterval(timer);
+      sub.remove();
+    };
+  }, []);
+
   useEffect(() => {
     if (running.current) return;
     running.current = true;
     void (async () => {
       try {
-        const moves = await readPendingMoves();
-        if (moves.length === 0) return;
-        const left: PendingMove[] = [];
-        for (const move of moves) {
-          const outcome = moveOutcome(move, queue);
-          if (outcome === 'wait') left.push(move);
-          else if (outcome === 'delete') {
-            // The bill photo goes to the group expense first (the expense is on
-            // the server by now). If that fails the entry stays and it is tried
-            // again, a few times, so a move never costs the person their photo.
-            let carried = true;
-            if (move.receiptKey && move.groupId && move.expenseId) {
-              try {
-                const url = await personalReceiptUrl(move.receiptKey);
-                if (!url) throw new Error('no photo url');
-                const picked = await pickedFromUrl(url);
-                await uploadExpenseReceipt({
-                  groupId: move.groupId,
-                  expenseId: move.expenseId,
-                  base64: picked.base64,
-                  mimeType: picked.mimeType,
-                });
-              } catch {
-                const retry = afterCarryFailure(move);
-                if (retry) {
-                  left.push(retry);
-                  continue;
-                }
-                carried = false; // gave up: the bytes stay for the storage sweep
-              }
-            }
-            // A failed delete is tried again next time the queue changes.
-            const gone = await remove
-              .mutateAsync(move.personalId)
-              .then(() => true)
-              .catch(() => {
-                left.push(move);
-                return false;
+        const q = queue;
+        const owner = viewerId;
+        for (const move of await readPendingMoves()) {
+          const step = moveStep(move, q, Date.now());
+          if (step === 'idle') continue;
+          if (step === 'drop') await patchPendingMove(move.cmid, null);
+          else if (step === 'finish') {
+            if (move.receiptKey && move.carried) void removePersonalReceipt(owner, move.receiptKey);
+            await patchPendingMove(move.cmid, null);
+          } else if (step === 'carry') {
+            try {
+              const url = await personalReceiptUrl(move.receiptKey);
+              if (!url || !move.groupId || !move.expenseId) throw new Error('no photo url');
+              const picked = await pickedFromUrl(url);
+              await uploadExpenseReceipt({
+                groupId: move.groupId,
+                expenseId: move.expenseId,
+                base64: picked.base64,
+                mimeType: picked.mimeType,
               });
-            if (gone && carried && move.receiptKey)
-              void removePersonalReceipt(viewerId, move.receiptKey);
+              await patchPendingMove(move.cmid, { ...move, carried: true });
+            } catch {
+              await patchPendingMove(move.cmid, afterCarryFailure(move));
+            }
+          } else if (owner) {
+            // Queue the Personal delete; the move keeps its id until it is acknowledged.
+            try {
+              const deleteCmid = await mutate(MutationKind.PersonalDelete, personalScope(owner), {
+                recordId: move.personalId,
+              });
+              await patchPendingMove(move.cmid, { ...move, deleteCmid });
+            } catch {
+              // Tried again on the next pass.
+            }
           }
         }
-        if (left.length !== moves.length) await writePendingMoves(left);
       } finally {
         running.current = false;
       }
     })();
-  }, [queue, remove, viewerId]);
+  }, [queue, viewerId, tick, mutate]);
   return null;
+}
+
+/**
+ * On a Personal entry whose move could not carry its bill photo: say so, and
+ * offer to try again or to move without the photo. The entry is untouched.
+ */
+export function MoveReceiptNotice({ personalId }: { personalId: string }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const [move, setMove] = useState<PendingMove | null>(null);
+  useEffect(() => {
+    void readPendingMoves().then((moves) =>
+      setMove(moves.find((m) => m.personalId === personalId && m.failed) ?? null),
+    );
+  }, [personalId]);
+  if (!move) return null;
+  const act = (next: PendingMove): void => {
+    setMove(null);
+    void patchPendingMove(move.cmid, next);
+  };
+  const link = { minHeight: 44, justifyContent: 'center' as const };
+  return (
+    <Card style={{ gap: theme.spacing.xs }}>
+      <Text style={{ fontWeight: '700' }}>{t.household.moveReceiptFailed}</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => act({ ...move, failed: false, tries: 0, nextAt: 0 })}
+        style={link}
+      >
+        <Text tone="brand" style={{ fontWeight: '700' }}>
+          {t.household.moveReceiptRetry}
+        </Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => act({ ...move, failed: false, carried: true })}
+        style={link}
+      >
+        <Text tone="brand" style={{ fontWeight: '700' }}>
+          {t.household.moveWithoutReceipt}
+        </Text>
+      </Pressable>
+    </Card>
+  );
 }

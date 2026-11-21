@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { compactMoney, money, type CurrencyCode } from '../src/money';
 
@@ -23,5 +23,23 @@ describe('compactMoney', () => {
   it('keeps the sign and leaves small amounts alone', () => {
     expect(c(-32_000_000n, 'INR', 'en-IN')).toBe('-₹3.2L');
     expect(c(95_050n, 'USD', 'en-US')).toBe('$950.50');
+  });
+});
+
+describe('compactMoney on an engine that ignores notation: compact', () => {
+  const Real = Intl.NumberFormat;
+  afterEach(() => vi.unstubAllGlobals());
+  it('divides explicitly: lakh and crore for rupees, K and M elsewhere', () => {
+    class NoCompact extends Real {
+      constructor(l?: string | string[], o?: Intl.NumberFormatOptions) {
+        super(l, { ...o, notation: 'standard' });
+      }
+    }
+    vi.stubGlobal('Intl', { ...Intl, NumberFormat: NoCompact });
+    expect(c(32_000_000n, 'INR', 'en-IN')).toBe('₹3.2L');
+    expect(c(1_500_000_000n, 'INR', 'en-IN')).toBe('₹1.5Cr');
+    expect(c(320_000n, 'USD', 'en-US')).toBe('$3.2K');
+    expect(c(150_000_000n, 'USD', 'en-US')).toBe('$1.5M');
+    expect(c(-32_000_000n, 'INR', 'en-IN')).toBe('-₹3.2L');
   });
 });
