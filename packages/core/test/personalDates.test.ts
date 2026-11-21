@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   allOccurrences,
   defaultFestivals,
+  FESTIVAL_DATES,
   nextOccurrence,
+  nextFestival,
   upcomingDates,
 } from '../src/personal/dates';
 import { dayDelta } from '../src/personal/compute';
@@ -55,6 +57,32 @@ describe('festivals and upcoming', () => {
     expect(defaultFestivals('US')).toContain('thanksgiving');
     expect(defaultFestivals('GB')).not.toContain('thanksgiving');
     expect(defaultFestivals(null)).toContain('christmas');
+    expect(defaultFestivals(null)).toEqual(['christmas', 'mothers_day', 'fathers_day']);
+    expect(defaultFestivals('AE')).toEqual([
+      'eid_al_fitr',
+      'eid_al_adha',
+      'ramadan_start',
+      'national_day',
+      'diwali',
+      'christmas',
+    ]);
+    expect(defaultFestivals('UK')).toContain('mothers_day');
+    expect(defaultFestivals('AU')).toContain('lunar_new_year');
+    expect(defaultFestivals('US')).toContain('hanukkah');
+  });
+  it('keeps at least twelve months of moving festival dates from fixed now and stays capped at 2030', () => {
+    const now = '2026-11-21';
+    const tabulated = Object.values(FESTIVAL_DATES).flat();
+    expect(Math.max(...tabulated.map((date) => Number(date.slice(0, 4))))).toBe(2030);
+    expect((tabulated.sort().at(-1) ?? '') >= '2027-11-21').toBe(true);
+    expect(FESTIVAL_DATES.lunar_new_year).toContain('2030-02-03');
+  });
+  it('computes the country-specific Mother and Father days', () => {
+    expect(nextFestival('easter', '2026-01-01')?.date).toBe('2026-04-05');
+    expect(nextFestival('mothers_day', '2026-01-01', 'US')?.date).toBe('2026-05-10');
+    expect(nextFestival('mothers_day', '2026-01-01', 'GB')?.date).toBe('2026-03-15');
+    expect(nextFestival('fathers_day', '2026-01-01', 'AU')?.date).toBe('2026-09-06');
+    expect(nextFestival('fathers_day', '2026-01-01', 'US')?.date).toBe('2026-06-21');
   });
   it('limits to 3, 30 days (festivals 21) and honours switched-off festivals', () => {
     const dates = [
