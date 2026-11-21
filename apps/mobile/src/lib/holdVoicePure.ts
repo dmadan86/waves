@@ -45,7 +45,7 @@ export function holdLanding(
   context: { launchGroupId: string | null; launchPersonal: boolean },
   openGroupIds: ReadonlySet<string>,
 ): HoldLanding {
-  const auto = voiceAutoAction(result, context);
+  const auto = voiceAutoAction(result, { ...context, allowMany: true });
   if (auto?.kind !== 'commit-expense') return { kind: 'later' };
   if (auto.groupId === null) return { kind: 'personal' };
   return openGroupIds.has(auto.groupId)
@@ -53,20 +53,22 @@ export function holdLanding(
     : { kind: 'later' };
 }
 
-/** The agent's answer is added with no review only when it is one clean expense. */
+/** The agent's answer is added with no review only when every card is a clean
+ *  expense ("lunch 200, taxi 300" is two), and it asked and answered nothing. */
 export function agentAddsAtOnce(plan: {
   cards: readonly { problem: boolean; action: { type: string } }[];
   answer: string | null;
   clarify: string | null;
 }): boolean {
-  const [only] = plan.cards;
   return (
-    plan.cards.length === 1 &&
-    !!only &&
-    !only.problem &&
+    plan.cards.length > 0 &&
     !plan.answer &&
     !plan.clarify &&
-    (only.action.type === 'add_expense' || only.action.type === 'add_personal')
+    plan.cards.every(
+      (card) =>
+        !card.problem &&
+        (card.action.type === 'add_expense' || card.action.type === 'add_personal'),
+    )
   );
 }
 

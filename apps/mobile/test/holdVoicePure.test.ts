@@ -83,6 +83,16 @@ describe('holdLanding', () => {
       holdLanding(parse('coffee 120'), { launchGroupId: null, launchPersonal: true }, new Set()),
     ).toEqual({ kind: 'personal' });
   });
+  it('adds several expenses said in one go', () => {
+    expect(
+      holdLanding(
+        parse('lunch 200, taxi 300 and petrol 500'),
+        { launchGroupId: 'g1', launchPersonal: false },
+        new Set(['g1']),
+      ),
+    ).toEqual({ kind: 'group', groupId: 'g1' });
+    expect(parse('lunch 200, taxi 300 and petrol 500').items).toHaveLength(3);
+  });
   it('keeps no amount as a draft', () => {
     expect(
       holdLanding(
@@ -104,7 +114,10 @@ describe('agentAddsAtOnce', () => {
       agentAddsAtOnce({ cards: [{ ...one, problem: true }], answer: null, clarify: null }),
     ).toBe(false);
     expect(agentAddsAtOnce({ cards: [one], answer: null, clarify: 'Which?' })).toBe(false);
-    expect(agentAddsAtOnce({ cards: [one, one], answer: null, clarify: null })).toBe(false);
+    expect(agentAddsAtOnce({ cards: [one, one], answer: null, clarify: null })).toBe(true);
+    expect(
+      agentAddsAtOnce({ cards: [one, { ...one, problem: true }], answer: null, clarify: null }),
+    ).toBe(false);
     expect(
       agentAddsAtOnce({
         cards: [{ problem: false, action: { type: 'settle' } }],

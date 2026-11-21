@@ -42,7 +42,13 @@ import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
-import { agentAddsAtOnce, formatHoldTime, holdLanding, holdSummary } from '@/lib/holdVoicePure';
+import {
+  agentAddsAtOnce,
+  formatHoldTime,
+  holdLanding,
+  holdSummary,
+  type HoldLanding,
+} from '@/lib/holdVoicePure';
 import { router } from '@/lib/navigation';
 import { useReducedMotion } from '@/lib/reducedMotion';
 import { useAssistantAnswerer } from '@/lib/useAssistantAnswerer';
@@ -227,11 +233,11 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
   const readAndAdd = async (
     transcript: string,
     alternatives: readonly string[],
-  ): Promise<SavedState | null> => {
+  ): Promise<{ saved: SavedState[]; missed: boolean }> => {
     const date = today();
-    const id = randomUUID();
 
-    const basic = async (): Promise<SavedState | null> => {
+    // Every expense the phone read from the sentence, each with its own id.
+    const basic = async (): Promise<{ saved: SavedState[]; missed: boolean }> => {
       const parsed: VoiceParseResult = parseVoiceExpenses(transcript, groupRefs, {
         members: launchMembers,
         currentGroupId: launchGroupId,
@@ -239,8 +245,21 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
         learned: learnedForGroup(nameMemory, launchGroupId),
       });
       const landing = holdLanding(parsed, { launchGroupId, launchPersonal }, spaceIds);
-      const item = parsed.items[0];
-      if (landing.kind === 'later' || !item) return null;
+      if (landing.kind === 'later') return { saved: [], missed: true };
+      const saved: SavedState[] = [];
+      for (const item of parsed.items) {
+        // One that fails to write must not hide the ones that did.
+        const one = await addItem(landing, item).catch(() => null);
+        if (one) saved.push(one);
+      }
+      return { saved, missed: saved.length < parsed.items.length };
+    };
+
+    const addItem = async (
+      landing: Exclude<HoldLanding, { kind: 'later' }>,
+      item: VoiceParseResult['items'][number],
+    ): Promise<SavedState | null> => {
+      const id = randomUUID();
       const note = item.note.trim() || t.voice.anExpense;
       if (landing.kind === 'personal') {
         const currency = item.currency ?? dc;
@@ -346,34 +365,39 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
           return basic();
         }
         const plan = planVoiceAgentActions(result.response, local, agentText(t));
-        const card = plan.cards[0];
-        if (!card || !agentAddsAtOnce(plan)) return null;
-        const action = card.action;
-        if (action.type === 'add_personal') {
-          await upsertPersonal.mutateAsync(personalWriteFromAction(action, id, date));
-          return savedStateFrom(action, null, id, date);
+        if (!agentAddsAtOnce(plan)) return { saved: [], missed: true };
+        const saved: SavedState[] = [];
+        const addCard = async (action: (typeof plan.cards)[number]['action']) => {
+          const id = randomUUID();
+          if (action.type === 'add_personal') {
+            await upsertPersonal.mutateAsync(personalWriteFromAction(action, id, date));
+            return savedStateFrom(action, null, id, date);
+          }
+          if (action.type !== 'add_expense' || isCompany(action.groupId)) return null;
+          const write = expenseWriteFromAction(
+            action,
+            local.groups.find((g) => g.id === action.groupId),
+            id,
+            date,
+          );
+          if (!write) return null;
+          await addGroup(action.groupId, write);
+          return savedStateFrom(action, write, id, date);
+        };
+        for (const card of plan.cards) {
+          // One that fails to write must not hide the ones that did.
+          const one = await addCard(card.action).catch(() => null);
+          if (one) saved.push(one);
         }
-        if (action.type !== 'add_expense' || isCompany(action.groupId)) return null;
-        const write = expenseWriteFromAction(
-          action,
-          local.groups.find((g) => g.id === action.groupId),
-          id,
-          date,
-        );
-        if (!write) return null;
-        await addGroup(action.groupId, write);
-        return savedStateFrom(action, write, id, date);
+        return { saved, missed: saved.length < plan.cards.length };
       }
     }
     return basic();
   };
 
-  const readOne = async (
-    heard: string,
-    alternatives: readonly string[],
-  ): Promise<HoldResult | null> => {
+  const readOne = async (heard: string, alternatives: readonly string[]): Promise<HoldResult[]> => {
     const transcript = heard.trim();
-    if (!worthFiling(transcript)) return null;
+    if (!worthFiling(transcript)) return [];
     // Not an expense: the voice screen handles settle, remind and questions.
     if (
       detectMoneyIntent(transcript) ||
@@ -386,7 +410,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
         pathname: '/voice',
         params: { ...launchParams, heard: transcript, hn: randomUUID() },
       });
-      return null;
+      return [];
     }
     // Never lost: the sentence is a draft before anything is understood.
     const draftId = randomUUID();
@@ -396,29 +420,30 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
         () => true,
         () => false,
       );
-    let saved: SavedState | null = null;
+    let read: { saved: SavedState[]; missed: boolean } = { saved: [], missed: true };
     try {
-      saved = await readAndAdd(transcript, alternatives);
+      read = await readAndAdd(transcript, alternatives);
     } catch {
-      saved = null;
+      // Whatever landed before the throw is in `read`; the draft stays for the rest.
     }
-    if (!saved) return { kind: 'later', draftId };
-    // The add stands in for the draft; delete it only once its create has landed.
-    void filing
-      .then((ok) => (ok ? deleteCapture.mutateAsync(draftId) : undefined))
-      .catch(() => undefined);
-    const where =
-      saved.kind === 'personal'
-        ? t.voiceScreen.justYou
-        : (local.groups.find((g) => g.id === saved?.groupId)?.name ?? '');
-    return {
+    const added: HoldResult[] = read.saved.map((saved) => ({
       kind: 'added',
       saved,
       line: fill(t.voice.holdAdded, {
         amount: format(money(saved.amount, saved.currency), { locale }),
-        where,
+        where:
+          saved.kind === 'personal'
+            ? t.voiceScreen.justYou
+            : (local.groups.find((g) => g.id === saved.groupId)?.name ?? ''),
       }),
-    };
+    }));
+    // Anything not added keeps the whole sentence as a draft, so nothing is lost.
+    if (read.missed) return [...added, { kind: 'later', draftId }];
+    // The adds stand in for the draft; delete it only once its create has landed.
+    void filing
+      .then((ok) => (ok ? deleteCapture.mutateAsync(draftId) : undefined))
+      .catch(() => undefined);
+    return added;
   };
 
   // Holds queue: the mic is never blocked while a sentence is read. Each one is
@@ -431,8 +456,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
     show({ kind: 'reading', waiting: waiting.current });
     queue.current = queue.current.then(async () => {
       try {
-        const result = await readOne(heard, alternatives);
-        if (result) batch.current.push(result);
+        batch.current.push(...(await readOne(heard, alternatives)));
       } catch {
         // readOne files a draft first; a throw here leaves nothing to report.
       }
