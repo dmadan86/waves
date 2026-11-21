@@ -687,7 +687,9 @@ export function spendDelta(
   const current = monthlySummary(txns, month, currency);
   const prior = monthlySummary(txns, prev, currency);
   if (prior.income <= 0n && prior.expense <= 0n) return null; // month never used
-  return { prevExpense: prior.expense, delta: current.expense - prior.expense };
+  // Spent, not invested: putting money aside is not a spending change.
+  const prevSpent = prior.expense - prior.invested;
+  return { prevExpense: prevSpent, delta: current.expense - current.invested - prevSpent };
 }
 
 // ─────────────────────────────────────────────────────────────── loans ──
