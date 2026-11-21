@@ -7,7 +7,7 @@
 import { minorUnitExponent, type CurrencyCode } from './currency';
 import { toMajorString, type Money } from './money';
 
-export type Locale = 'en-IN' | 'ta-IN' | 'hi-IN' | (string & {});
+export type Locale = 'en-US' | 'en-IN' | 'ta-IN' | 'hi-IN' | (string & {});
 
 export interface FormatOptions {
   locale?: Locale;
@@ -17,7 +17,17 @@ export interface FormatOptions {
   whole?: boolean;
 }
 
-const DEFAULT_LOCALE: Locale = 'en-IN';
+// Neutral until the app injects the device locale once at startup; never India.
+let defaultLocale: Locale | (() => Locale) = 'en-US';
+
+/** A function is read on every use, so it follows the phone and loads lazily. */
+export function setDefaultLocale(locale: Locale | (() => Locale)): void {
+  defaultLocale = locale;
+}
+
+export function getDefaultLocale(): Locale {
+  return typeof defaultLocale === 'function' ? defaultLocale() : defaultLocale;
+}
 
 export function format(amount: Money, options: FormatOptions = {}): string {
   return parts(amount, options)
@@ -65,7 +75,7 @@ export function formatParts(amount: Money, options: FormatOptions = {}): MoneyPa
 }
 
 function parts(amount: Money, options: FormatOptions): Intl.NumberFormatPart[] {
-  const { locale = DEFAULT_LOCALE, signDisplay = 'auto', whole = false } = options;
+  const { locale = getDefaultLocale(), signDisplay = 'auto', whole = false } = options;
   // Always the currency's own number of minor digits, whole amount or not.
   // There used to be an option to drop `.00`, and in a list it misreads: a
   // column of ₹24,182.42 and ₹80,100 invites the eye to line up 80,100 with
@@ -188,7 +198,10 @@ function numberParts(
 }
 
 /** Just the currency symbol for the locale ("₹", "$"). */
-export function currencySymbol(currency: CurrencyCode, locale: Locale = DEFAULT_LOCALE): string {
+export function currencySymbol(
+  currency: CurrencyCode,
+  locale: Locale = getDefaultLocale(),
+): string {
   const formatter = currencyFormatter(locale, currency, 0, 'auto');
   if (typeof formatter.formatToParts === 'function') {
     const parts = formatter.formatToParts(0);
