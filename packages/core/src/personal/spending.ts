@@ -50,6 +50,7 @@
 
 import type { CurrencyCode } from '../money/currency';
 import { monthKey, type CategorySpend } from './compute';
+import { isInvestmentCategory } from './sources';
 import type { PersonalTxn } from './types';
 
 /**
@@ -79,7 +80,9 @@ export interface PersonalMonthSplit {
   readonly bills: bigint;
   /** Every other expense — what was actually decided this month. */
   readonly spending: bigint;
-  /** income − bills − spending. Negative when the month ran past its income. */
+  /** Put into investments, less withdrawals. Not spending, but not left over either. */
+  readonly invested: bigint;
+  /** income − bills − spending − invested. Negative when the month ran past its income. */
   readonly leftOver: bigint;
 }
 
@@ -110,16 +113,26 @@ export function computePersonalSpending(
   let income = 0n;
   let bills = 0n;
   let spending = 0n;
+  let invested = 0n;
 
   for (const txn of txns) {
     if (txn.currency !== currency) continue;
     if (monthKey(txn.date) !== month) continue;
-    if (txn.kind === 'income') income += txn.amount;
+    if (isInvestmentCategory(txn.category))
+      invested += txn.kind === 'income' ? -txn.amount : txn.amount;
+    else if (txn.kind === 'income') income += txn.amount;
     else if (isBill(txn, options)) bills += txn.amount;
     else spending += txn.amount;
   }
 
-  return { month, income, bills, spending, leftOver: income - bills - spending };
+  return {
+    month,
+    income,
+    bills,
+    spending,
+    invested,
+    leftOver: income - bills - spending - invested,
+  };
 }
 
 /**
@@ -189,6 +202,7 @@ export function personalCategoryTotals(
 
   for (const txn of txns) {
     if (txn.kind !== 'expense') continue;
+    if (isInvestmentCategory(txn.category)) continue;
     if (txn.currency !== currency) continue;
     if (!window.has(monthKey(txn.date))) continue;
     if (!includeBills && isBill(txn, options)) continue;

@@ -204,9 +204,8 @@ export interface PersonalDate {
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
-/** Neutral categories. Region examples (SIP, 401k, ISA, Super) are hints in the
- *  UI chosen by country, never part of the stored value. `chit` is an India-only
- *  hint, shown only there. */
+/** Neutral categories. Region examples (SIP, 401(k), ISA, Super, chit fund) are
+ *  display hints chosen by country, never part of the stored value. */
 export type InvestmentType =
   | 'fund'
   | 'stocks'
@@ -214,9 +213,10 @@ export type InvestmentType =
   | 'retirement'
   | 'metals'
   | 'bonds'
-  | 'insurance'
+  | 'insurance_linked'
   | 'crypto'
-  | 'chit'
+  | 'savings_group'
+  | 'property'
   | 'other';
 export const INVESTMENT_TYPES: readonly InvestmentType[] = [
   'fund',
@@ -225,9 +225,10 @@ export const INVESTMENT_TYPES: readonly InvestmentType[] = [
   'retirement',
   'metals',
   'bonds',
-  'insurance',
+  'insurance_linked',
   'crypto',
-  'chit',
+  'savings_group',
+  'property',
   'other',
 ];
 export type WealthStatus = 'active' | 'closed';
@@ -245,20 +246,35 @@ export interface PersonalInvestment {
   readonly currentValue: bigint | null;
   readonly valueAsOf: string | null;
   readonly maturityDate: string | null;
+  /** Held in a tax-advantaged account. A label only; nothing is computed from it. */
+  readonly taxWrapper?: boolean;
   readonly status: WealthStatus;
   readonly note: string | null;
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
-export type PropertyType = 'house' | 'flat' | 'shop' | 'commercial' | 'pg' | 'land' | 'other';
+/** "Flat" and "PG" are display hints for `apartment` and `room`. */
+export type PropertyType =
+  'house' | 'apartment' | 'room' | 'shop' | 'commercial' | 'land' | 'other';
 export const PROPERTY_TYPES: readonly PropertyType[] = [
   'house',
-  'flat',
+  'apartment',
+  'room',
   'shop',
   'commercial',
-  'pg',
   'land',
   'other',
+];
+
+export type RentFrequency =
+  'weekly' | 'fortnightly' | 'monthly' | 'quarterly' | 'yearly' | 'custom';
+export const RENT_FREQUENCIES: readonly RentFrequency[] = [
+  'weekly',
+  'fortnightly',
+  'monthly',
+  'quarterly',
+  'yearly',
+  'custom',
 ];
 
 export interface PersonalProperty {
@@ -280,8 +296,11 @@ export interface PersonalTenancy {
   readonly unit: string | null;
   readonly tenantName: string;
   readonly tenantPhone: string | null;
+  /** The deposit held ("Advance", "Bond", "Security deposit" are display hints). */
   readonly depositHeld: bigint;
+  readonly rentFrequency: RentFrequency;
   readonly startDate: string;
+  /** Null is open-ended. */
   readonly endDate: string | null;
   readonly escalationPct: number | null;
   readonly status: WealthStatus;
@@ -371,6 +390,7 @@ const KNOWN_INVESTMENT = [
   'currentValue',
   'valueAsOf',
   'maturityDate',
+  'taxWrapper',
   'status',
   'note',
 ];
@@ -381,6 +401,7 @@ const KNOWN_TENANCY = [
   'tenantName',
   'tenantPhone',
   'depositHeld',
+  'rentFrequency',
   'startDate',
   'endDate',
   'escalationPct',
@@ -570,12 +591,14 @@ export function decodeInvestment(id: string, data: Record<string, unknown>): Per
     id,
     type: oneOf(data.type, INVESTMENT_TYPES, 'other'),
     name: str(data.name) ?? '',
-    currency: str(data.currency) ?? 'INR',
+    // No country default: the screen falls back to the profile currency.
+    currency: str(data.currency) ?? '',
     openingInvested: money(data.openingInvested),
     openingAsOf: str(data.openingAsOf),
     currentValue: moneyOrNull(data.currentValue),
     valueAsOf: str(data.valueAsOf),
     maturityDate: str(data.maturityDate),
+    ...(data.taxWrapper === true ? { taxWrapper: true } : {}),
     status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
     note: str(data.note),
     carried: carry(data, KNOWN_INVESTMENT),
@@ -588,7 +611,7 @@ export function decodeProperty(id: string, data: Record<string, unknown>): Perso
     type: oneOf(data.type, PROPERTY_TYPES, 'other'),
     name: str(data.name) ?? '',
     locality: str(data.locality),
-    currency: str(data.currency) ?? 'INR',
+    currency: str(data.currency) ?? '',
     status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
     note: str(data.note),
     carried: carry(data, KNOWN_PROPERTY),
@@ -604,6 +627,7 @@ export function decodeTenancy(id: string, data: Record<string, unknown>): Person
     tenantName: str(data.tenantName) ?? '',
     tenantPhone: str(data.tenantPhone),
     depositHeld: money(data.depositHeld),
+    rentFrequency: oneOf(data.rentFrequency, RENT_FREQUENCIES, 'monthly'),
     startDate: str(data.startDate) ?? '',
     endDate: str(data.endDate),
     escalationPct: typeof pct === 'number' && Number.isFinite(pct) && pct > 0 ? pct : null,
@@ -717,6 +741,7 @@ export function encodeInvestment(i: Omit<PersonalInvestment, 'id'>): Record<stri
       currentValue: serialiseOrNull(i.currentValue),
       valueAsOf: i.valueAsOf,
       maturityDate: i.maturityDate,
+      ...(i.taxWrapper ? { taxWrapper: true } : {}),
       status: i.status,
       note: i.note,
     },
@@ -746,6 +771,7 @@ export function encodeTenancy(t: Omit<PersonalTenancy, 'id'>): Record<string, un
       tenantName: t.tenantName,
       tenantPhone: t.tenantPhone,
       depositHeld: serialiseAmount(t.depositHeld),
+      rentFrequency: t.rentFrequency,
       startDate: t.startDate,
       endDate: t.endDate,
       escalationPct: t.escalationPct,

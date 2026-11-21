@@ -59,6 +59,7 @@ describe('wealth codecs', () => {
       tenantName: 'Ravi',
       tenantPhone: null,
       depositHeld: '18000000',
+      rentFrequency: 'monthly',
       startDate: '2026-04-01',
       endDate: null,
       escalationPct: 5,
@@ -86,5 +87,107 @@ describe('wealth codecs', () => {
     const rule = decodeRecurring('r', { tenancyId: 't', investmentId: 'i' });
     expect(rule.carried).toBeUndefined();
     expect(encodeRecurring(rule)).toMatchObject({ tenancyId: 't', investmentId: 'i' });
+  });
+});
+
+import { monthlySummary, personalBudgetProgress, categoryBreakdown } from '../src/personal/compute';
+import type { PersonalTxn } from '../src/personal/types';
+import { computePersonalSpending } from '../src/personal/spending';
+
+const tx = (over: Partial<PersonalTxn>): PersonalTxn => ({
+  id: Math.random().toString(),
+  kind: 'expense',
+  amount: 100n,
+  currency: 'INR',
+  category: null,
+  note: null,
+  date: '2026-11-05',
+  loanId: null,
+  recurringId: null,
+  ...over,
+});
+
+describe('invested money in month figures', () => {
+  const txns = [
+    tx({ kind: 'income', amount: 1000n, category: 'inc.salary' }),
+    tx({ amount: 200n, category: 'food' }),
+    tx({ amount: 300n, category: 'inv.fund' }),
+    tx({ kind: 'income', amount: 50n, category: 'inv.fund' }),
+  ];
+  it('keeps invested out of Spent and Income but lowers net', () => {
+    const s = monthlySummary(txns, '2026-11', 'INR');
+    expect(s.invested).toBe(250n);
+    expect(s.income).toBe(1000n);
+    expect(s.expense - s.invested).toBe(200n);
+    expect(s.net).toBe(550n);
+  });
+  it('splits it out of spending and leftOver', () => {
+    const s = computePersonalSpending(txns, '2026-11', 'INR');
+    expect(s).toMatchObject({ spending: 200n, invested: 250n, leftOver: 550n });
+  });
+  it('is not in budgets or the category breakdown', () => {
+    const b = { id: 'b', category: null, limit: 1000n, currency: 'INR' };
+    expect(personalBudgetProgress(b, txns, '2026-11').spent).toBe(200n);
+    expect(categoryBreakdown(txns, '2026-11', 'INR').map((r) => r.category)).toEqual(['food']);
+  });
+});
+
+import {
+  investedSoFar,
+  rentBalance,
+  rentDues,
+  settleDeposit,
+  goingInPerMonth,
+} from '../src/personal/wealth';
+import { decodeRecurring, decodeInvestment } from '../src/personal/types';
+
+describe('wealth maths', () => {
+  const rule = (id: string, anchor: string, amount: string, endDate: string | null) =>
+    decodeRecurring(id, {
+      txnKind: 'income',
+      amount,
+      anchorDate: anchor,
+      endDate,
+      cadence: 'monthly',
+      category: 'inc.rent',
+    });
+  it('invested so far adds opening and entries, less withdrawals', () => {
+    const inv = decodeInvestment('i', { openingInvested: '1000', currency: 'INR' });
+    const txns = [
+      tx({ amount: 500n, category: 'inv.fund', investmentId: 'i' }),
+      tx({ kind: 'income', amount: 200n, category: 'inv.fund', investmentId: 'i' }),
+      tx({ amount: 999n, category: 'inv.fund', investmentId: 'other' }),
+    ];
+    expect(investedSoFar(inv, txns)).toBe(1300n);
+  });
+  it('going in per month scales weekly', () => {
+    const r = decodeRecurring('r', {
+      txnKind: 'expense',
+      amount: '1200',
+      cadence: 'monthly',
+      investmentId: 'i',
+    });
+    expect(goingInPerMonth([r], 'INR')).toBe(1200n);
+  });
+  it('a raise uses two rules; each due at its own price', () => {
+    const dues = rentDues(
+      [rule('a', '2026-09-05', '1000', '2026-10-31'), rule('b', '2026-11-05', '1200', null)],
+      '2026-11-21',
+    );
+    expect(dues.map((d) => d.amount)).toEqual([1000n, 1000n, 1200n]);
+  });
+  it('part payments clear the oldest due first', () => {
+    const dues = rentDues([rule('a', '2026-09-05', '1000', null)], '2026-11-21');
+    const b = rentBalance(dues, [{ amount: 1000n }, { amount: 400n }], '2026-11-21');
+    expect(b.lines.map((l) => l.status)).toEqual(['paid', 'part', 'due']);
+    expect(b.balance).toBe(1600n);
+    expect(b.ahead).toBe(0n);
+    const c = rentBalance(dues, [{ amount: 3500n }], '2026-11-21');
+    expect(c.balance).toBe(0n);
+    expect(c.ahead).toBe(500n);
+  });
+  it('settles the advance into returned and kept', () => {
+    expect(settleDeposit(18000n, 15000n)).toEqual({ returned: 15000n, kept: 3000n });
+    expect(settleDeposit(100n, 500n)).toEqual({ returned: 100n, kept: 0n });
   });
 });

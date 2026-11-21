@@ -120,6 +120,7 @@ describe('computePersonalSpending', () => {
       income: 0n,
       bills: 0n,
       spending: 0n,
+      invested: 0n,
       leftOver: 0n,
     });
   });

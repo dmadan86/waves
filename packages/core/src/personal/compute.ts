@@ -7,6 +7,7 @@
 
 import { deterministicId } from '../ids';
 import type { CurrencyCode } from '../money/currency';
+import { isInvestmentCategory } from './sources';
 import type {
   Cadence,
   PersonalBudget,
@@ -548,8 +549,13 @@ export function nextRecurring(
 // ─────────────────────────────────────────────────────────── summaries ──
 
 export interface MonthlySummary {
+  /** Money in, not counting investment withdrawals. */
   readonly income: bigint;
+  /** Money out, including what was invested (net of withdrawals): the figure
+   *  that lowers Available. Spent is `expense − invested`. */
   readonly expense: bigint;
+  /** Put into investments this month, less what was taken out. */
+  readonly invested: bigint;
   /** income − expense; negative means you spent more than you took in. */
   readonly net: bigint;
 }
@@ -562,13 +568,16 @@ export function monthlySummary(
 ): MonthlySummary {
   let income = 0n;
   let expense = 0n;
+  let invested = 0n;
   for (const txn of txns) {
     if (txn.currency !== currency) continue;
     if (monthKey(txn.date) !== month) continue;
-    if (txn.kind === 'income') income += txn.amount;
+    if (isInvestmentCategory(txn.category)) {
+      invested += txn.kind === 'income' ? -txn.amount : txn.amount;
+    } else if (txn.kind === 'income') income += txn.amount;
     else expense += txn.amount;
   }
-  return { income, expense, net: income - expense };
+  return { income, expense: expense + invested, invested, net: income - expense - invested };
 }
 
 /**
@@ -608,6 +617,7 @@ export function categoryBreakdown(
   let total = 0n;
   for (const txn of txns) {
     if (txn.kind !== 'expense') continue;
+    if (isInvestmentCategory(txn.category)) continue;
     if (txn.currency !== currency) continue;
     if (monthKey(txn.date) !== month) continue;
     totals.set(txn.category, (totals.get(txn.category) ?? 0n) + txn.amount);
@@ -722,6 +732,7 @@ export function personalBudgetProgress(
   let spent = 0n;
   for (const txn of txns) {
     if (txn.kind !== 'expense') continue;
+    if (isInvestmentCategory(txn.category)) continue;
     if (txn.loanId !== null) continue;
     if (txn.currency !== budget.currency) continue;
     if (monthKey(txn.date) !== month) continue;
