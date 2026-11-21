@@ -454,193 +454,190 @@ function HomeScreen() {
 
   return (
     <Screen edges={[]}>
-      {/* Static: the scene, the greeting and the balance card stay put; only
-          the groups list below scrolls. */}
+      {/* The scene, greeting, balance card and home feed scroll together. */}
       <View style={{ flex: 1 }}>
-        {/* The scenic photo (`HomeHeroBackground`): from under the status bar down
-            to the lower part of the balance card, where it fades into the
-            page — the groups below sit on the plain page, not on scenery. It
-            is wrapped as the glass card's blur target (Android needs one). */}
-        <BlurTargetView
-          ref={sceneRef}
-          pointerEvents="none"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: clearance }}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={pull.refreshing}
+              onRefresh={pull.onRefresh}
+              tintColor={theme.color.brand}
+            />
+          }
         >
-          <HomeHeroBackground
-            hero={hero}
-            height={sceneHeight}
-            photoHeight={Math.min(220, Math.max(180, headerHeight + 20))}
-            scrimHeight={insets.top + theme.spacing.sm + greetingHeight}
-            pageColor={theme.color.bg}
-          />
-        </BlurTargetView>
-
-        {/* The greeting, over the scene. The balance card rides up over its
-            foot. */}
-        <View
-          onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
-          style={{
-            paddingTop: insets.top + theme.spacing.xs,
-            paddingHorizontal: theme.spacing.lg,
-            paddingBottom: HERO_OVERLAP + theme.spacing.xs,
-          }}
-        >
-          {/* The greeting at the start, the bell and the menu at the end, on one row. */}
-          <Row
-            onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
-            style={{ alignItems: 'center', gap: theme.spacing.md }}
+          {/* The scenic photo is anchored to the top of this scroll content,
+              so it moves away with the greeting and card. It remains the
+              glass card's blur target (Android needs one). */}
+          <BlurTargetView
+            ref={sceneRef}
+            pointerEvents="none"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
           >
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={t.profile}
-              onPress={() => router.navigate('/profile')}
-              hitSlop={8}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: heroInk,
-                  fontSize: 20,
-                  lineHeight: 26,
-                  fontWeight: '700',
-                  // White on a photograph: a soft shadow keeps it legible on bright skies.
-                  textShadowColor: 'rgba(0,0,0,0.35)',
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 4,
-                }}
-              >
-                {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
-              </Text>
-            </Pressable>
-            <HeroIconButton
-              icon="notifications-outline"
-              label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
-              onPress={() => router.navigate('/activity')}
-              dot={unseenActivity}
-              ink={heroInk}
+            <HomeHeroBackground
+              hero={hero}
+              height={sceneHeight}
+              photoHeight={Math.min(220, Math.max(180, headerHeight + 20))}
+              scrimHeight={insets.top + theme.spacing.sm + greetingHeight}
+              pageColor={theme.color.bg}
             />
-            <HeroIconButton
-              icon="ellipsis-vertical"
-              label={t.account.faceSettings}
-              onPress={() => setMenuOpen(true)}
-              ink={heroInk}
-            />
-          </Row>
-        </View>
+          </BlurTargetView>
 
-        {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
-            phone margin iOS and Android both default to. */}
-        <View
-          style={{
-            paddingHorizontal: theme.spacing.lg,
-            marginTop: -HERO_OVERLAP,
-            gap: theme.spacing.xs,
-            flex: 1,
-          }}
-        >
-          {/* The tour's "hero" anchor is the balance card, so the first
-              coach-mark still spotlights the balance. */}
-          <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
-            <TourTarget id="hero">
-              <HomeBalanceCard
-                net={headline.net}
-                owed={headline.owed}
-                owing={headline.owing}
-                owedGroups={owedGroups}
-                owingGroups={owingGroups}
-                currency={headline.currency}
-                locale={locale}
-                hidden={balanceHidden || !balanceReady}
-                onToggleHide={toggleBalance}
-                settling={settling}
-                catchUp={catchUp}
-                loading={showSkeleton || !balanceReady}
-                blurTarget={sceneRef}
-                footer={
-                  <HomeQuickActions
-                    // The quick sheet, not the capture screen: most spends know
-                    // where they belong and need an amount and a place. The long
-                    // press raises type / scan / speak, unchanged.
-                    onAddExpense={() => setQuickExpenseOpen(true)}
-                    onAddExpenseLong={() => setQuickAddOpen(true)}
-                    onSettleUp={() => router.push('/settle-up')}
-                    onReview={() => router.navigate('/captures')}
-                    onScan={() => router.push(`/capture?scan=${Date.now()}`)}
-                    onRemind={() => switchTab('/(tabs)/friends')}
-                    radius={theme.radius.xl}
-                  />
-                }
+          {/* The greeting, over the scene. The balance card rides up over its
+              foot. */}
+          <View
+            onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
+            style={{
+              paddingTop: insets.top + theme.spacing.xs,
+              paddingHorizontal: theme.spacing.lg,
+              paddingBottom: HERO_OVERLAP + theme.spacing.xs,
+            }}
+          >
+            {/* The greeting at the start, the bell and the menu at the end, on one row. */}
+            <Row
+              onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
+              style={{ alignItems: 'center', gap: theme.spacing.md }}
+            >
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.profile}
+                onPress={() => router.navigate('/profile')}
+                hitSlop={8}
+                style={{ flex: 1, minWidth: 0 }}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: heroInk,
+                    fontSize: 20,
+                    lineHeight: 26,
+                    fontWeight: '700',
+                    // White on a photograph: a soft shadow keeps it legible on bright skies.
+                    textShadowColor: 'rgba(0,0,0,0.35)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 4,
+                  }}
+                >
+                  {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
+                </Text>
+              </Pressable>
+              <HeroIconButton
+                icon="notifications-outline"
+                label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
+                onPress={() => router.navigate('/activity')}
+                dot={unseenActivity}
+                ink={heroInk}
               />
-            </TourTarget>
+              <HeroIconButton
+                icon="ellipsis-vertical"
+                label={t.account.faceSettings}
+                onPress={() => setMenuOpen(true)}
+                ink={heroInk}
+              />
+            </Row>
           </View>
 
-          {/* A background import's progress lands here, just above the groups —
-              the person tapped Import, came home, and watches it fill. */}
-          <ImportProgressBanner />
+          {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
+            phone margin iOS and Android both default to. */}
+          <View
+            style={{
+              paddingHorizontal: theme.spacing.lg,
+              marginTop: -HERO_OVERLAP,
+              gap: theme.spacing.xs,
+            }}
+          >
+            {/* The tour's "hero" anchor is the balance card, so the first
+              coach-mark still spotlights the balance. */}
+            <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
+              <TourTarget id="hero">
+                <HomeBalanceCard
+                  net={headline.net}
+                  owed={headline.owed}
+                  owing={headline.owing}
+                  owedGroups={owedGroups}
+                  owingGroups={owingGroups}
+                  currency={headline.currency}
+                  locale={locale}
+                  hidden={balanceHidden || !balanceReady}
+                  onToggleHide={toggleBalance}
+                  settling={settling}
+                  catchUp={catchUp}
+                  loading={showSkeleton || !balanceReady}
+                  blurTarget={sceneRef}
+                  footer={
+                    <HomeQuickActions
+                      // The quick sheet, not the capture screen: most spends know
+                      // where they belong and need an amount and a place. The long
+                      // press raises type / scan / speak, unchanged.
+                      onAddExpense={() => setQuickExpenseOpen(true)}
+                      onAddExpenseLong={() => setQuickAddOpen(true)}
+                      onSettleUp={() => router.push('/settle-up')}
+                      onReview={() => router.navigate('/captures')}
+                      onScan={() => router.push(`/capture?scan=${Date.now()}`)}
+                      onRemind={() => switchTab('/(tabs)/friends')}
+                      radius={theme.radius.xl}
+                    />
+                  }
+                />
+              </TourTarget>
+            </View>
 
-          {/* "Madan says you are Renny in Goa trip": somebody has named this
+            {/* A background import's progress lands here, just above the groups —
+              the person tapped Import, came home, and watches it fill. */}
+            <ImportProgressBanner />
+
+            {/* "Madan says you are Renny in Goa trip": somebody has named this
               person as a placeholder in their group, and only they can say
               yes. Drawn only while something is waiting. */}
-          <LinkRequestsCard enabled={session !== null && !isGuest} />
+            <LinkRequestsCard enabled={session !== null && !isGuest} />
 
-          {/* A friendly "From Waves" reminder for a date coming up: inline,
+            {/* A friendly "From Waves" reminder for a date coming up: inline,
               one at a time, never a pop-up. Drawn only while one is due. */}
-          <DateReminderCard />
+            <DateReminderCard />
 
-          {showSkeleton ? (
-            <SkeletonList rows={3} />
-          ) : (
-            <ScrollView
-              style={{ flex: 1 }}
-              contentContainerStyle={{
-                paddingTop: theme.spacing.sm,
-                paddingBottom: clearance,
-                gap: theme.spacing.lg,
-              }}
-              showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={pull.refreshing}
-                  onRefresh={pull.onRefresh}
-                  tintColor={theme.color.brand}
-                />
-              }
-            >
-              {/* A new person has nothing to act on yet: the three starter tiles
+            {showSkeleton ? (
+              <View style={{ paddingTop: theme.spacing.sm }}>
+                <SkeletonList rows={3} />
+              </View>
+            ) : (
+              <View style={{ paddingTop: theme.spacing.sm, gap: theme.spacing.lg }}>
+                {/* A new person has nothing to act on yet: the three starter tiles
                   below stand in for the whole feed. */}
-              {newUser ? null : (
-                <NeedsYouCard ledger={todayLedger} viewerId={viewerId} hidden={amountsHidden} />
-              )}
-              {newUser ? null : <ComingUpChips ledger={todayLedger} hidden={amountsHidden} />}
-              <SpacesGrid
-                groups={list}
-                summary={summary}
-                viewerId={viewerId}
-                pool={figures.pool}
-                ledger={todayLedger}
-                hidden={amountsHidden}
-                personalHidden={personalHidden}
-                locale={locale}
-                newUser={newUser}
-                unreadGroups={unreadSet}
-                onNewSpace={openNewGroupMenu}
-                onNewGroup={openNewGroup}
-              />
-              {/* One native card after the grid for a long roster (>= 10 groups),
-                  never while a fresh import is sliding in. */}
-              {homeAdSlot !== undefined && justAddedId == null ? (
-                <AdSlot
-                  handle={homeAds}
-                  format="native"
-                  slot={homeAdSlot}
-                  rowGap={theme.spacing.sm}
+                {newUser ? null : (
+                  <NeedsYouCard ledger={todayLedger} viewerId={viewerId} hidden={amountsHidden} />
+                )}
+                {newUser ? null : <ComingUpChips ledger={todayLedger} hidden={amountsHidden} />}
+                <SpacesGrid
+                  groups={list}
+                  summary={summary}
+                  viewerId={viewerId}
+                  pool={figures.pool}
+                  ledger={todayLedger}
+                  hidden={amountsHidden}
+                  personalHidden={personalHidden}
+                  locale={locale}
+                  newUser={newUser}
+                  unreadGroups={unreadSet}
+                  onNewSpace={openNewGroupMenu}
+                  onNewGroup={openNewGroup}
                 />
-              ) : null}
-              {newUser ? null : <PeopleStrip viewerId={viewerId} hidden={amountsHidden} />}
-            </ScrollView>
-          )}
-        </View>
+                {/* One native card after the grid for a long roster (>= 10 groups),
+                  never while a fresh import is sliding in. */}
+                {homeAdSlot !== undefined && justAddedId == null ? (
+                  <AdSlot
+                    handle={homeAds}
+                    format="native"
+                    slot={homeAdSlot}
+                    rowGap={theme.spacing.sm}
+                  />
+                ) : null}
+                {newUser ? null : <PeopleStrip viewerId={viewerId} hidden={amountsHidden} />}
+              </View>
+            )}
+          </View>
+        </ScrollView>
       </View>
 
       <OverflowMenu
