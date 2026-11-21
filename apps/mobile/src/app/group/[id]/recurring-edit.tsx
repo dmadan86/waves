@@ -22,6 +22,7 @@ import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import {
   editFromRule,
   Frequency,
+  isPoolGroup,
   recurringEditProblem,
   recurringFullPatch,
   type CurrencyCode,
@@ -112,7 +113,8 @@ function EditForm({ groupId, ruleId }: { groupId: string; ruleId: string }) {
   const { t, locale } = useStrings();
   const r = t.groupRecurring;
   const viewerId = useViewerId();
-  const { members } = useGroup(groupId);
+  const { group, members } = useGroup(groupId);
+  const pool = isPoolGroup(group.data);
   const { rules } = useGroupRecurring(groupId);
   const update = useUpdateGroupRecurring(groupId);
   // The rule as it was when the form opened; the diff is against this.
@@ -128,7 +130,8 @@ function EditForm({ groupId, ruleId }: { groupId: string; ruleId: string }) {
   const live = people.filter(
     (member) => member.left_at === null || state.participants.includes(member.id),
   );
-  const editableSplit = splitIsEditable(rule);
+  // Share it: the bill stays pooled, so there is no split to edit here.
+  const editableSplit = !pool && splitIsEditable(rule);
 
   // Everyone in a weighted split needs a number to start from (as the form does).
   if (state.splitKind === SplitKind.Shares) {
@@ -139,7 +142,10 @@ function EditForm({ groupId, ruleId }: { groupId: string; ruleId: string }) {
     if (filled) setState((current) => ({ ...current, percents: filled }));
   }
 
-  const template = useMemo(() => templateFromState(state, rule, notes), [state, rule, notes]);
+  const template = useMemo(
+    () => templateFromState(state, rule, notes, pool),
+    [state, rule, notes, pool],
+  );
   const problem = recurringEditProblem({ template, when });
   const patch = recurringFullPatch(rule, { template, when });
   // A by-family rule keeps its own split (no controls here), so its typed entries must not be checked.
@@ -341,7 +347,7 @@ function EditForm({ groupId, ruleId }: { groupId: string; ruleId: string }) {
           </Card>
         ) : (
           <Text variant="micro" tone="muted">
-            {r.splitKept}
+            {pool ? t.household.splitThisOneHint : r.splitKept}
           </Text>
         )}
 
