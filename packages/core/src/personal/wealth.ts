@@ -161,14 +161,15 @@ export function addYears(start: string, years: number): string {
 /**
  * The anniversary a yearly rent increase is waiting on: the latest one (start +
  * N years, N >= 1) that is within `within` days or already passed, unless a
- * rent rule starting around it (anchor on/after `within` days before it) exists,
- * or the lease ends before it. Null when nothing is due.
+ * rent rule created for that very anniversary exists (`raisedFor`), or the lease
+ * ends before it. Null when nothing is due.
  */
 export function pendingEscalation(input: {
   startDate: string;
   endDate: string | null;
   escalationPct: number | null;
-  ruleAnchors: readonly string[];
+  /** Anniversaries that rent rules created by a raise are for (`raiseForOf`). */
+  raisedFor: readonly string[];
   today: string;
   within?: number;
 }): string | null {
@@ -183,6 +184,11 @@ export function pendingEscalation(input: {
     latest = d;
   }
   if (!latest || (endDate !== null && latest > endDate)) return null;
-  const floor = addPlanDays(latest, -within);
-  return input.ruleAnchors.some((a) => a >= floor) ? null : latest;
+  return input.raisedFor.includes(latest) ? null : latest;
+}
+
+/** The anniversary a rent rule was created for by a yearly raise; null for any other rule. */
+export function raiseForOf(rule: Pick<PersonalRecurring, 'carried'>): string | null {
+  const v = rule.carried?.raiseFor;
+  return typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
 }

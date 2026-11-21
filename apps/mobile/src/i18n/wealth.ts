@@ -140,6 +140,9 @@ export interface WealthStrings {
   raisePrompt: string;
   raiseApply: string;
   raiseNotNow: string;
+  raiseFailed: string;
+  /** {amount} {date} */
+  raiseFuture: string;
   // reminders and upcoming
   /** {name} {amount} */
   sipTomorrow: string;
@@ -306,6 +309,8 @@ export const wealthEn: WealthStrings = {
   raisePrompt: 'Rent goes up {pct}% on {date}: {old} → {new}. Apply?',
   raiseApply: 'Apply',
   raiseNotNow: 'Not now',
+  raiseFailed: 'Could not apply the new rent. Try again.',
+  raiseFuture: 'Goes up to {amount} on {date}',
   sipTomorrow: '{name}: {amount} goes in tomorrow.',
   sipToday: 'Time to add {amount} to {name}.',
   rentDueToday: '{name}: rent of {amount} is due today.',
@@ -469,6 +474,8 @@ export const wealthTa: WealthStrings = {
   raisePrompt: '{date} அன்று வாடகை {pct}% உயர்ந்து {old} இலிருந்து {new} ஆகும். மாற்றவா?',
   raiseApply: 'மாற்று',
   raiseNotNow: 'இப்போது வேண்டாம்',
+  raiseFailed: 'புதிய வாடகையை மாற்ற முடியவில்லை. மீண்டும் முயற்சிக்கவும்.',
+  raiseFuture: '{date} அன்று {amount} ஆக உயரும்',
   sipTomorrow: '{name}: நாளை {amount} செல்லும்.',
   sipToday: '{name}-க்கு {amount} சேர்க்க நேரம்.',
   rentDueToday: '{name}: இன்று {amount} வாடகை வரவேண்டும்.',
@@ -630,6 +637,8 @@ export const wealthHi: WealthStrings = {
   raisePrompt: '{date} से किराया {pct}% बढ़कर {old} से {new} होगा। लागू करें?',
   raiseApply: 'लागू करें',
   raiseNotNow: 'अभी नहीं',
+  raiseFailed: 'नया किराया लागू नहीं हो सका। फिर कोशिश करें।',
+  raiseFuture: '{date} को बढ़कर {amount} होगा',
   sipTomorrow: '{name}: कल {amount} जाएगा।',
   sipToday: '{name} में {amount} जोड़ने का समय।',
   rentDueToday: '{name}: आज {amount} किराया देना है।',
@@ -791,6 +800,8 @@ export const wealthAr: WealthStrings = {
   raisePrompt: 'سيزيد الإيجار بنسبة {pct}% من {old} إلى {new} في {date}. هل تطبّق التغيير؟',
   raiseApply: 'طبّق التغيير',
   raiseNotNow: 'ليس الآن',
+  raiseFailed: 'تعذّر تطبيق الإيجار الجديد. حاول مرة أخرى.',
+  raiseFuture: 'سيصبح {amount} في {date}',
   sipTomorrow: '{name}: سيُضاف {amount} غدًا.',
   sipToday: 'حان وقت إضافة {amount} إلى {name}.',
   rentDueToday: '{name}: إيجار {amount} مستحق اليوم.',

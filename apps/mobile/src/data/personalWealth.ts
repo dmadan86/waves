@@ -33,6 +33,7 @@ import {
   firstDue,
   rentAnchor,
   investmentCategory,
+  raiseRuleId,
   rentRaiseDates,
   rulesToCloseOnLeave,
 } from '@/lib/wealthPlan';
@@ -375,10 +376,32 @@ export function useWealthWrites() {
         }),
       ),
 
-    /** A rent raise: end the old rule the day before, start a new one on the same tenancy. */
-    async changeRent(old: PersonalRecurring, newAmount: bigint, from: string): Promise<void> {
+    /**
+     * A rent raise: start the new rule, then end the old one the day before, so a
+     * failure between the two never leaves the tenant with no rule. The new rule's
+     * id comes from tenancy + start date, so repeating the call upserts the same
+     * rule. `raiseFor` marks it as the answer to a yearly-increase anniversary.
+     */
+    async changeRent(
+      old: PersonalRecurring,
+      newAmount: bigint,
+      from: string,
+      raiseFor?: string,
+    ): Promise<void> {
       const { due, oldEnd } = rentRaiseDates(old, from);
       const { id, ...rest } = old;
+      await put(
+        'recurring',
+        raiseRuleId(old.tenancyId ?? null, due) ?? randomUUID(),
+        encodeRecurring({
+          ...rest,
+          carried: raiseFor ? { raiseFor } : undefined,
+          amount: newAmount,
+          anchorDate: due,
+          nextDate: due,
+          endDate: null,
+        }),
+      );
       await put(
         'recurring',
         id,
@@ -386,18 +409,6 @@ export function useWealthWrites() {
           ...rest,
           active: oldEnd >= todayIso() ? rest.active : false,
           endDate: oldEnd,
-        }),
-      );
-      await put(
-        'recurring',
-        randomUUID(),
-        encodeRecurring({
-          ...rest,
-          carried: undefined,
-          amount: newAmount,
-          anchorDate: due,
-          nextDate: due,
-          endDate: null,
         }),
       );
     },

@@ -81,7 +81,7 @@ export function wealthRows(input: {
     const rules = rulesOfTenancy(input.recurrings, tn.id);
     const bal = rentBalance(rentDues(rules, today), paymentsOfTenancy(input.txns, rules), today);
     const open = bal.lines.find((l) => l.status !== 'paid');
-    const rule = currentRentRule(rules, tn.id);
+    const rule = currentRentRule(rules, tn.id, today);
     const currency = rule?.currency ?? prop?.currency ?? '';
     if (open) {
       out.push({

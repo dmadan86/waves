@@ -23,7 +23,11 @@ import {
   type PersonalTxn,
   type RentFrequency,
 } from '@waves/core';
-import { pendingEscalation, raisedRent } from '../../../../packages/core/src/personal/wealth';
+import {
+  pendingEscalation,
+  raiseForOf,
+  raisedRent,
+} from '../../../../packages/core/src/personal/wealth';
 
 export const FREE_INVESTMENTS = 3;
 export const FREE_PROPERTIES = 1;
@@ -152,15 +156,61 @@ export function rulesToCloseOnLeave(
   return rules.filter((r) => r.active && (r.endDate === null || r.endDate > leave));
 }
 
-/** The rule currently collecting rent for a tenancy: the newest active one. */
+/**
+ * The rule collecting rent for a tenancy on `on`: start <= on and no end or
+ * end >= on, newest start first. A tenancy that has not started yet falls back
+ * to its earliest upcoming rule.
+ */
 export function currentRentRule(
   rules: readonly PersonalRecurring[],
   tenancyId: string,
+  on: string,
+): PersonalRecurring | null {
+  const mine = rules.filter((r) => r.tenancyId === tenancyId && r.active);
+  return (
+    mine
+      .filter((r) => r.anchorDate <= on && (r.endDate === null || r.endDate >= on))
+      .sort((a, b) => (a.anchorDate < b.anchorDate ? 1 : -1))[0] ??
+    nextRentRule(rules, tenancyId, on)
+  );
+}
+
+/** The earliest rule that starts after `on`: a rent raise already booked. */
+export function nextRentRule(
+  rules: readonly PersonalRecurring[],
+  tenancyId: string,
+  on: string,
 ): PersonalRecurring | null {
   return (
     rules
-      .filter((r) => r.tenancyId === tenancyId && r.active)
-      .sort((a, b) => (a.anchorDate < b.anchorDate ? 1 : -1))[0] ?? null
+      .filter((r) => r.tenancyId === tenancyId && r.active && r.anchorDate > on)
+      .sort((a, b) => (a.anchorDate < b.anchorDate ? -1 : 1))[0] ?? null
+  );
+}
+
+/** Same id for the same tenancy and start date, so a repeated raise upserts one rule. */
+export function raiseRuleId(tenancyId: string | null, from: string): string | null {
+  if (!tenancyId) return null;
+  let h = 0x811c9dc5;
+  for (const c of `${tenancyId}|${from}`) h = Math.imul(h ^ c.charCodeAt(0), 0x01000193) >>> 0;
+  return `${h.toString(16).padStart(8, '0')}${tenancyId.slice(8)}`;
+}
+
+/**
+ * Drops raise rules whose predecessor was never ended (the second write of a
+ * raise failed), so the raise reads as still pending and Apply can finish it.
+ */
+export function liveRules(rules: readonly PersonalRecurring[]): PersonalRecurring[] {
+  return rules.filter(
+    (r) =>
+      raiseForOf(r) === null ||
+      !rules.some(
+        (o) =>
+          o.id !== r.id &&
+          o.tenancyId === r.tenancyId &&
+          o.anchorDate < r.anchorDate &&
+          (o.endDate === null || o.endDate >= r.anchorDate),
+      ),
   );
 }
 
@@ -265,7 +315,6 @@ export function planWealthReminders(input: {
     const url = `waves://rentals/${tn.propertyId}`;
     const bal = rentBalance(rentDues(rules, today), paymentsOfTenancy(txns, rules), today);
     // Dues already past and still unpaid: nudge 3 days after they fell due.
-    const futureRules = currentRentRule(rules, tn.id);
     for (const line of bal.lines) {
       if (line.status === 'paid') continue;
       const remaining = line.amount - line.paid;
@@ -292,7 +341,7 @@ export function planWealthReminders(input: {
         url,
       });
     }
-    const rule = futureRules;
+    const rule = currentRentRule(rules, tn.id, today);
     const due = rule ? nextDueOnOrAfter(rule, today) : null;
     if (rule && due && !bal.lines.some((l) => l.date === due)) {
       const remaining = rule.amount > bal.ahead ? rule.amount - bal.ahead : 0n;
@@ -344,6 +393,8 @@ export interface PropertyView {
   readonly tenancy: PersonalTenancy | null;
   readonly rules: PersonalRecurring[];
   readonly rule: PersonalRecurring | null;
+  /** A raise already booked for a later date. */
+  readonly next: PersonalRecurring | null;
   readonly balance: RentBalance;
   readonly status: RentStatus | 'vacant';
 }
@@ -362,7 +413,8 @@ export function propertyView(
   return {
     tenancy,
     rules,
-    rule: tenancy ? currentRentRule(recurrings, tenancy.id) : null,
+    rule: tenancy ? currentRentRule(recurrings, tenancy.id, today) : null,
+    next: tenancy ? nextRentRule(recurrings, tenancy.id, today) : null,
     balance,
     status: tenancy ? rentCardStatus(balance, today) : 'vacant',
   };
@@ -428,13 +480,14 @@ export function raisePrompt(
   rules: readonly PersonalRecurring[],
   today: string,
 ): RaisePrompt | null {
-  const rule = currentRentRule(rules, tn.id);
+  const mine = liveRules(rulesOfTenancy(rules, tn.id));
+  const rule = currentRentRule(mine, tn.id, today);
   if (tn.status !== 'active' || !rule || !tn.escalationPct) return null;
   const anniversary = pendingEscalation({
     startDate: tn.startDate,
     endDate: tn.endDate,
     escalationPct: tn.escalationPct,
-    ruleAnchors: rulesOfTenancy(rules, tn.id).map((r) => r.anchorDate),
+    raisedFor: mine.flatMap((r) => raiseForOf(r) ?? []),
     today,
   });
   if (!anniversary) return null;

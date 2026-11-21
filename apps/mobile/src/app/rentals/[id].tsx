@@ -228,6 +228,14 @@ function DetailBody() {
                     {fill(w.rentOwed, { amount: fmt(v.balance.balance, cur) })}
                   </Text>
                 ) : null}
+                {v.next ? (
+                  <Text variant="caption" tone="muted">
+                    {fill(w.raiseFuture, {
+                      amount: fmt(v.next.amount, cur),
+                      date: day(v.next.anchorDate),
+                    })}
+                  </Text>
+                ) : null}
                 {tn.depositHeld > 0n ? (
                   <Text variant="caption" tone="muted">
                     {fill(w.depositLine, { amount: fmt(tn.depositHeld, cur), term: noun })}

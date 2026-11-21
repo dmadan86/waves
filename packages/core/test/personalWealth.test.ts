@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { addYears, pendingEscalation, raisedRent } from '../src/personal/wealth';
+import { addYears, pendingEscalation, raiseForOf, raisedRent } from '../src/personal/wealth';
 
 import {
   decodeInvestment,
@@ -208,7 +208,7 @@ describe('yearly rent increase', () => {
       startDate: '2025-03-10',
       endDate: null,
       escalationPct: 5,
-      ruleAnchors: ['2025-03-10'],
+      raisedFor: [],
     };
     expect(pendingEscalation({ ...base, today: '2026-03-02' })).toBeNull();
     expect(pendingEscalation({ ...base, today: '2026-03-03' })).toBe('2026-03-10');
@@ -216,12 +216,24 @@ describe('yearly rent increase', () => {
     expect(
       pendingEscalation({
         ...base,
-        ruleAnchors: ['2025-03-10', '2026-03-10'],
+        raisedFor: ['2026-03-10'],
         today: '2026-06-01',
       }),
     ).toBeNull();
     expect(pendingEscalation({ ...base, escalationPct: null, today: '2026-06-01' })).toBeNull();
     expect(pendingEscalation({ ...base, endDate: '2026-03-01', today: '2026-06-01' })).toBeNull();
+  });
+  it('is not suppressed by a rule that merely starts near the anniversary', () => {
+    const base = { startDate: '2025-03-10', endDate: null, escalationPct: 5, raisedFor: [] };
+    expect(pendingEscalation({ ...base, today: '2026-03-05' })).toBe('2026-03-10');
+    expect(pendingEscalation({ ...base, raisedFor: ['2025-03-10'], today: '2026-03-05' })).toBe(
+      '2026-03-10',
+    );
+  });
+  it('reads which anniversary a rule was raised for', () => {
+    expect(raiseForOf({ carried: { raiseFor: '2026-03-10' } })).toBe('2026-03-10');
+    expect(raiseForOf({ carried: { raiseFor: 5 } })).toBeNull();
+    expect(raiseForOf({})).toBeNull();
   });
   it('clamps a leap-day start', () => {
     expect(addYears('2024-02-29', 1)).toBe('2025-02-28');

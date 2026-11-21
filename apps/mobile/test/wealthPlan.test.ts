@@ -17,7 +17,11 @@ import {
   depositTerm,
   monthRent,
   planWealthReminders,
+  currentRentRule,
+  liveRules,
+  nextRentRule,
   propertyView,
+  raiseRuleId,
   rentRaiseDates,
   rulesToCloseOnLeave,
   raisePrompt,
@@ -249,8 +253,9 @@ describe('yearly rent increase prompt', () => {
     startDate: '2025-12-05',
     escalationPct: 5,
   });
-  const rule = (id: string, anchor: string, amount: string) =>
+  const rule = (id: string, anchor: string, amount: string, extra: Record<string, unknown> = {}) =>
     decodeRecurring(id, {
+      ...extra,
       txnKind: 'income',
       amount,
       currency: 'USD',
@@ -269,8 +274,34 @@ describe('yearly rent increase prompt', () => {
     expect(p.newAmount).toBe(189000n);
     expect(p.key).toBe('t1:2026-12-05');
   });
-  it('stays quiet once a newer rule starts', () => {
-    const rules = [rule('r1', '2025-12-05', '180000'), rule('r2', '2026-12-05', '189000')];
+  const ended = { endDate: '2026-12-04' };
+  const raised = { raiseFor: '2026-12-05' };
+  it('stays quiet once the raise rule exists and the old one is ended', () => {
+    const rules = [
+      rule('r1', '2025-12-05', '180000', ended),
+      rule('r2', '2026-12-05', '189000', raised),
+    ];
     expect(raisePrompt(tn, rules, '2026-12-20')).toBeNull();
+    // booked but not yet effective: still quiet, and the future rent is shown apart
+    expect(raisePrompt(tn, rules, '2026-11-30')).toBeNull();
+    expect(currentRentRule(rules, 't1', '2026-11-30')?.id).toBe('r1');
+    expect(nextRentRule(rules, 't1', '2026-11-30')?.id).toBe('r2');
+    expect(currentRentRule(rules, 't1', '2026-12-05')?.id).toBe('r2');
+  });
+  it('asks again when the raise rule was written but the old one never ended', () => {
+    const rules = [rule('r1', '2025-12-05', '180000'), rule('r2', '2026-12-05', '189000', raised)];
+    expect(liveRules(rules).map((r) => r.id)).toEqual(['r1']);
+    const p = raisePrompt(tn, rules, '2026-12-20')!;
+    expect(p.oldAmount).toBe(180000n);
+  });
+  it('is not hidden by an ordinary rule that starts near the anniversary', () => {
+    const rules = [rule('r1', '2025-12-05', '180000', ended), rule('r2', '2026-12-03', '185000')];
+    expect(raisePrompt(tn, rules, '2026-12-04')?.anniversary).toBe('2026-12-05');
+  });
+  it('gives a repeated raise the same rule id', () => {
+    const a = raiseRuleId('7f3a9c1e-1111-4222-8333-444455556666', '2026-12-05');
+    expect(a).toBe(raiseRuleId('7f3a9c1e-1111-4222-8333-444455556666', '2026-12-05'));
+    expect(a).not.toBe(raiseRuleId('7f3a9c1e-1111-4222-8333-444455556666', '2026-12-06'));
+    expect(a).toHaveLength(36);
   });
 });
