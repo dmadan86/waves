@@ -454,8 +454,22 @@ function HomeScreen() {
 
   return (
     <Screen edges={[]}>
-      {/* The scene, greeting, balance card and home feed scroll together. */}
+      {/* Keep the scene fixed behind the greeting and as the balance card's
+          blur target. The feed scrolls beneath the fixed greeting row. */}
       <View style={{ flex: 1 }}>
+        <BlurTargetView
+          ref={sceneRef}
+          pointerEvents="none"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
+        >
+          <HomeHeroBackground
+            hero={hero}
+            height={sceneHeight}
+            photoHeight={Math.min(220, Math.max(180, headerHeight + 20))}
+            scrimHeight={insets.top + theme.spacing.sm + greetingHeight}
+            pageColor={theme.color.bg}
+          />
+        </BlurTargetView>
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: clearance }}
@@ -468,83 +482,15 @@ function HomeScreen() {
             />
           }
         >
-          {/* The scenic photo is anchored to the top of this scroll content,
-              so it moves away with the greeting and card. It remains the
-              glass card's blur target (Android needs one). */}
-          <BlurTargetView
-            ref={sceneRef}
-            pointerEvents="none"
-            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
-          >
-            <HomeHeroBackground
-              hero={hero}
-              height={sceneHeight}
-              photoHeight={Math.min(220, Math.max(180, headerHeight + 20))}
-              scrimHeight={insets.top + theme.spacing.sm + greetingHeight}
-              pageColor={theme.color.bg}
-            />
-          </BlurTargetView>
-
-          {/* The greeting, over the scene. The balance card rides up over its
-              foot. */}
-          <View
-            onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
-            style={{
-              paddingTop: insets.top + theme.spacing.xs,
-              paddingHorizontal: theme.spacing.lg,
-              paddingBottom: HERO_OVERLAP + theme.spacing.xs,
-            }}
-          >
-            {/* The greeting at the start, the bell and the menu at the end, on one row. */}
-            <Row
-              onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
-              style={{ alignItems: 'center', gap: theme.spacing.md }}
-            >
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={t.profile}
-                onPress={() => router.navigate('/profile')}
-                hitSlop={8}
-                style={{ flex: 1, minWidth: 0 }}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    color: heroInk,
-                    fontSize: 20,
-                    lineHeight: 26,
-                    fontWeight: '700',
-                    // White on a photograph: a soft shadow keeps it legible on bright skies.
-                    textShadowColor: 'rgba(0,0,0,0.35)',
-                    textShadowOffset: { width: 0, height: 1 },
-                    textShadowRadius: 4,
-                  }}
-                >
-                  {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
-                </Text>
-              </Pressable>
-              <HeroIconButton
-                icon="notifications-outline"
-                label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
-                onPress={() => router.navigate('/activity')}
-                dot={unseenActivity}
-                ink={heroInk}
-              />
-              <HeroIconButton
-                icon="ellipsis-vertical"
-                label={t.account.faceSettings}
-                onPress={() => setMenuOpen(true)}
-                ink={heroInk}
-              />
-            </Row>
-          </View>
+          {/* This measured spacer preserves the original card position and
+              -HERO_OVERLAP while the fixed row overlays the scrolling feed. */}
+          <View style={{ height: headerHeight - HERO_OVERLAP }} />
 
           {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
             phone margin iOS and Android both default to. */}
           <View
             style={{
               paddingHorizontal: theme.spacing.lg,
-              marginTop: -HERO_OVERLAP,
               gap: theme.spacing.xs,
             }}
           >
@@ -639,6 +585,60 @@ function HomeScreen() {
             )}
           </View>
         </ScrollView>
+        <View
+          onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1,
+            paddingTop: insets.top + theme.spacing.xs,
+            paddingHorizontal: theme.spacing.lg,
+            paddingBottom: HERO_OVERLAP + theme.spacing.xs,
+          }}
+        >
+          <Row
+            onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
+            style={{ alignItems: 'center', gap: theme.spacing.md }}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t.profile}
+              onPress={() => router.navigate('/profile')}
+              hitSlop={8}
+              style={{ flex: 1, minWidth: 0 }}
+            >
+              <Text
+                numberOfLines={1}
+                style={{
+                  color: heroInk,
+                  fontSize: 20,
+                  lineHeight: 26,
+                  fontWeight: '700',
+                  textShadowColor: 'rgba(0,0,0,0.35)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 4,
+                }}
+              >
+                {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
+              </Text>
+            </Pressable>
+            <HeroIconButton
+              icon="notifications-outline"
+              label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
+              onPress={() => router.navigate('/activity')}
+              dot={unseenActivity}
+              ink={heroInk}
+            />
+            <HeroIconButton
+              icon="ellipsis-vertical"
+              label={t.account.faceSettings}
+              onPress={() => setMenuOpen(true)}
+              ink={heroInk}
+            />
+          </Row>
+        </View>
       </View>
 
       <OverflowMenu
