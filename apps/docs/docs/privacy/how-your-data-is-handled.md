@@ -29,6 +29,11 @@ you say **Not now**, nothing is sent.
 - **Only me** on an expense saves it to your private Personal records instead of
   the group. Your partner is not told and balances do not change.
 
+## Deleted groups
+
+When a group is deleted it disappears for everyone straight away. Deleted groups
+are permanently erased after 30 days.
+
 ## Signing out
 
 Signing out on the web clears the copy kept in that browser. On the phone, signing
