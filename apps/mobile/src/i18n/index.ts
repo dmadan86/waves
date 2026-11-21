@@ -8366,6 +8366,29 @@ export interface UiStrings {
     addDateRow: string;
     inDays: PluralForms;
     itemsLeft: PluralForms;
+    filterAll: string;
+    filterBills: string;
+    filterTodo: string;
+    filterRecurring: string;
+    filterLabel: string;
+    dueThisMonth: string;
+    billsCount: PluralForms;
+    itemsCount: PluralForms;
+    thisMonth: string;
+    nextSection: string;
+    dueOverdue: string;
+    addReminder: string;
+    markPaid: string;
+    editBill: string;
+    pickMonth: string;
+    reminderTitle: string;
+    reminderAmount: string;
+    reminderDate: string;
+    repeat: string;
+    repeatNone: string;
+    repeatMonthly: string;
+    repeatYearly: string;
+    nothingHere: string;
   };
   personalPlan: {
     leftToday: string;
@@ -8657,6 +8680,16 @@ export interface UiStrings {
     noRecurring: string;
     loans: string;
     loansSub: string;
+    loansTotal: string;
+    youOwe: string;
+    youAreOwed: string;
+    repaidOf: string;
+    addReminderShort: string;
+    editDetails: string;
+    loanShareOwe: string;
+    loanShareLent: string;
+    loanReminderOwe: string;
+    loanReminderLent: string;
     addLoan: string;
     editLoan: string;
     borrowed: string;
@@ -16425,6 +16458,29 @@ const en: UiStrings = {
     addDateRow: 'Add a date',
     inDays: { one: 'In {n} day', other: 'In {n} days' },
     itemsLeft: { one: '{n} item left', other: '{n} items left' },
+    filterAll: 'All',
+    filterBills: 'Bills',
+    filterTodo: 'To-Do',
+    filterRecurring: 'Recurring',
+    filterLabel: 'Show',
+    dueThisMonth: 'Due this month',
+    billsCount: { one: '{n} bill', other: '{n} bills' },
+    itemsCount: { one: '{n} item', other: '{n} items' },
+    thisMonth: 'This Month',
+    nextSection: 'Next',
+    dueOverdue: 'Due on {date} (Overdue)',
+    addReminder: 'Add Reminder',
+    markPaid: 'Mark as paid',
+    editBill: 'Edit',
+    pickMonth: 'Choose a month',
+    reminderTitle: 'What is it for?',
+    reminderAmount: 'Amount (optional)',
+    reminderDate: 'Date',
+    repeat: 'Repeat',
+    repeatNone: 'Does not repeat',
+    repeatMonthly: 'Every month',
+    repeatYearly: 'Every year',
+    nothingHere: 'Nothing here yet.',
   },
   personalPlan: {
     leftToday: '{amount} left today',
@@ -16738,6 +16794,16 @@ const en: UiStrings = {
     noRecurring: 'No recurring items yet.',
     loans: 'Loans',
     loansSub: 'Money you owe or are owed.',
+    loansTotal: 'Total Outstanding',
+    youOwe: 'You owe',
+    youAreOwed: 'You are owed',
+    repaidOf: 'Repaid: {paid} of {total}',
+    addReminderShort: 'Add Reminder',
+    editDetails: 'Edit Details',
+    loanShareOwe: '{name} — I owe {amount}, repaid {repaid}',
+    loanShareLent: '{name} owes me {amount}, repaid {repaid}',
+    loanReminderOwe: 'Repay {name}',
+    loanReminderLent: 'Collect from {name}',
     addLoan: 'Add loan',
     editLoan: 'Edit loan',
     borrowed: 'I borrowed',
@@ -24703,6 +24769,29 @@ const ta: UiStrings = {
     addDateRow: 'தேதியைச் சேர்',
     inDays: { one: '{n} நாளில்', other: '{n} நாட்களில்' },
     itemsLeft: { one: '{n} உருப்படி மீதம்', other: '{n} உருப்படிகள் மீதம்' },
+    filterAll: 'அனைத்தும்',
+    filterBills: 'பில்கள்',
+    filterTodo: 'செய்ய வேண்டியவை',
+    filterRecurring: 'தொடர்ச்சியானவை',
+    filterLabel: 'காட்டு',
+    dueThisMonth: 'இந்த மாதம் செலுத்த வேண்டியவை',
+    billsCount: { one: '{n} பில்', other: '{n} பில்கள்' },
+    itemsCount: { one: '{n} உருப்படி', other: '{n} உருப்படிகள்' },
+    thisMonth: 'இந்த மாதம்',
+    nextSection: 'அடுத்து',
+    dueOverdue: '{date} அன்று செலுத்த வேண்டும் (தாமதம்)',
+    addReminder: 'நினைவூட்டலைச் சேர்',
+    markPaid: 'செலுத்தியதாகக் குறி',
+    editBill: 'திருத்து',
+    pickMonth: 'மாதத்தைத் தேர்ந்தெடுக்கவும்',
+    reminderTitle: 'எதற்காக?',
+    reminderAmount: 'தொகை (விருப்பம்)',
+    reminderDate: 'தேதி',
+    repeat: 'மீண்டும்',
+    repeatNone: 'மீண்டும் வராது',
+    repeatMonthly: 'ஒவ்வொரு மாதமும்',
+    repeatYearly: 'ஒவ்வொரு ஆண்டும்',
+    nothingHere: 'இங்கே இன்னும் எதுவும் இல்லை.',
   },
   personalPlan: {
     leftToday: 'இன்று {amount} மீதம்',
@@ -25018,6 +25107,16 @@ const ta: UiStrings = {
     noRecurring: 'மீண்டும் வரும் பதிவுகள் இல்லை.',
     loans: 'கடன்கள்',
     loansSub: 'நீங்கள் தர வேண்டியது அல்லது வர வேண்டியது.',
+    loansTotal: 'மொத்த நிலுவை',
+    youOwe: 'நீங்கள் தர வேண்டியது',
+    youAreOwed: 'உங்களுக்கு வர வேண்டியது',
+    repaidOf: 'திருப்பிச் செலுத்தியது: {paid} / {total}',
+    addReminderShort: 'நினைவூட்டலைச் சேர்',
+    editDetails: 'விவரங்களைத் திருத்து',
+    loanShareOwe: '{name} — நான் {amount} தர வேண்டும், செலுத்தியது {repaid}',
+    loanShareLent: '{name} எனக்கு {amount} தர வேண்டும், செலுத்தியது {repaid}',
+    loanReminderOwe: '{name}க்குத் திருப்பிச் செலுத்து',
+    loanReminderLent: '{name}இடம் வசூலி',
     addLoan: 'கடனைச் சேர்',
     editLoan: 'கடனைத் திருத்து',
     borrowed: 'நான் வாங்கினேன்',
@@ -32758,6 +32857,29 @@ const hi: UiStrings = {
     addDateRow: 'तारीख जोड़ें',
     inDays: { one: '{n} दिन में', other: '{n} दिन में' },
     itemsLeft: { one: '{n} आइटम बाकी', other: '{n} आइटम बाकी' },
+    filterAll: 'सभी',
+    filterBills: 'बिल',
+    filterTodo: 'टू-डू',
+    filterRecurring: 'आवर्ती',
+    filterLabel: 'दिखाएँ',
+    dueThisMonth: 'इस महीने देय',
+    billsCount: { one: '{n} बिल', other: '{n} बिल' },
+    itemsCount: { one: '{n} आइटम', other: '{n} आइटम' },
+    thisMonth: 'इस महीने',
+    nextSection: 'आगे',
+    dueOverdue: '{date} को देय (अतिदेय)',
+    addReminder: 'रिमाइंडर जोड़ें',
+    markPaid: 'चुकाया हुआ चिह्नित करें',
+    editBill: 'संपादित करें',
+    pickMonth: 'महीना चुनें',
+    reminderTitle: 'यह किसलिए है?',
+    reminderAmount: 'राशि (वैकल्पिक)',
+    reminderDate: 'तारीख',
+    repeat: 'दोहराएँ',
+    repeatNone: 'दोहराएगा नहीं',
+    repeatMonthly: 'हर महीने',
+    repeatYearly: 'हर साल',
+    nothingHere: 'यहाँ अभी कुछ नहीं है।',
   },
   personalPlan: {
     leftToday: 'आज {amount} बचे हैं',
@@ -33070,6 +33192,16 @@ const hi: UiStrings = {
     noRecurring: 'अभी कोई आवर्ती मद नहीं।',
     loans: 'ऋण',
     loansSub: 'जो आप देते हैं या आपको मिलना है।',
+    loansTotal: 'कुल बकाया',
+    youOwe: 'आपको देना है',
+    youAreOwed: 'आपको मिलना है',
+    repaidOf: 'चुकाया: {paid} / {total}',
+    addReminderShort: 'रिमाइंडर जोड़ें',
+    editDetails: 'विवरण संपादित करें',
+    loanShareOwe: '{name} — मुझे {amount} देना है, चुकाया {repaid}',
+    loanShareLent: '{name} को मुझे {amount} देना है, चुकाया {repaid}',
+    loanReminderOwe: '{name} को चुकाएँ',
+    loanReminderLent: '{name} से वसूलें',
     addLoan: 'ऋण जोड़ें',
     editLoan: 'ऋण संपादित करें',
     borrowed: 'मैंने उधार लिया',
@@ -41591,6 +41723,29 @@ const ar: UiStrings = {
     addDateRow: 'أضف تاريخًا',
     inDays: { one: 'خلال {n} يوم', other: 'خلال {n} يومًا' },
     itemsLeft: { one: '{n} عنصر متبقٍ', other: '{n} عناصر متبقية' },
+    filterAll: 'الكل',
+    filterBills: 'الفواتير',
+    filterTodo: 'المهام',
+    filterRecurring: 'المتكررة',
+    filterLabel: 'عرض',
+    dueThisMonth: 'مستحق هذا الشهر',
+    billsCount: { one: '{n} فاتورة', other: '{n} فواتير' },
+    itemsCount: { one: '{n} عنصر', other: '{n} عناصر' },
+    thisMonth: 'هذا الشهر',
+    nextSection: 'التالي',
+    dueOverdue: 'مستحق في {date} (متأخر)',
+    addReminder: 'أضف تذكيرًا',
+    markPaid: 'تحديد كمدفوع',
+    editBill: 'تعديل',
+    pickMonth: 'اختر شهرًا',
+    reminderTitle: 'لأي غرض؟',
+    reminderAmount: 'المبلغ (اختياري)',
+    reminderDate: 'التاريخ',
+    repeat: 'التكرار',
+    repeatNone: 'لا يتكرر',
+    repeatMonthly: 'كل شهر',
+    repeatYearly: 'كل سنة',
+    nothingHere: 'لا شيء هنا بعد.',
   },
   personalPlan: {
     leftToday: 'تبقّى {amount} اليوم',
@@ -41943,6 +42098,16 @@ const ar: UiStrings = {
     noRecurring: 'لا عناصر متكررة بعد.',
     loans: 'القروض',
     loansSub: 'أموال تدين بها أو مستحقة لك.',
+    loansTotal: 'إجمالي المستحق',
+    youOwe: 'عليك',
+    youAreOwed: 'لك',
+    repaidOf: 'المسدّد: {paid} من {total}',
+    addReminderShort: 'أضف تذكيرًا',
+    editDetails: 'تعديل التفاصيل',
+    loanShareOwe: '{name} — أدين بـ {amount}، سدّدت {repaid}',
+    loanShareLent: '{name} يدين لي بـ {amount}، سُدّد {repaid}',
+    loanReminderOwe: 'سدّد لـ {name}',
+    loanReminderLent: 'حصّل من {name}',
     addLoan: 'إضافة قرض',
     editLoan: 'تعديل القرض',
     borrowed: 'اقترضت',
