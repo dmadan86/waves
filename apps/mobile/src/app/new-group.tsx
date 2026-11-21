@@ -184,10 +184,15 @@ function NewGroupScreen() {
     from,
     assignCaptureId,
     type: initialType,
+    name: initialName,
+    template: initialTemplate,
   } = useLocalSearchParams<{
     type?: string;
     from?: string;
     assignCaptureId?: string;
+    /** Prefill (the dates reminders open "<Name>'s birthday gift" as a birthday event). */
+    name?: string;
+    template?: string;
   }>();
   const cloning = Boolean(from);
   // Company has its own create flow; an old `?type=company` link lands there.
@@ -197,7 +202,7 @@ function NewGroupScreen() {
   const source = useGroup(from ?? '');
   const captures = useCaptures();
 
-  const [name, setName] = useState('');
+  const [name, setName] = useState(initialName ?? '');
   // A sentence about the group, under its name and in the same card, because it
   // is part of naming the thing rather than a setting about it. Optional, and
   // capped — see `groupDescription.ts` for why at that number.
@@ -210,12 +215,16 @@ function NewGroupScreen() {
   // same bargain the icon strikes. So the screen never opens assuming a trip: a
   // group called "Goa" still becomes one, "Dinner" does not, and an untyped
   // name falls back to Other rather than dragging trip fields in behind it.
-  const [pickedType, setPickedType] = useState<GroupType | null>(null);
+  const [pickedType, setPickedType] = useState<GroupType | null>(
+    initialType === 'event' ? GroupType.Event : null,
+  );
   // Event organizer (docs/event-organizer.md): which fixed sub-event list an
   // Event group starts with. Null until somebody picks one — a group is
   // allowed to stay a plain Event with no template, same as it is allowed to
   // stay untyped.
-  const [eventTemplate, setEventTemplate] = useState<EventTemplateId | null>(null);
+  const [eventTemplate, setEventTemplate] = useState<EventTemplateId | null>(
+    initialTemplate === 'birthday' ? 'birthday' : null,
+  );
   // "Other" with the person's own name for it ("Housewarming"). Saved on the
   // group as its custom_tag; remembered on this device per account.
   const [customTemplate, setCustomTemplate] = useState('');
