@@ -32,6 +32,7 @@ import {
   cashflowTrend,
   dayPlan,
   format,
+  formatParts,
   money,
   monthOutlook,
   personalBudgetProgress,
@@ -168,7 +169,11 @@ function MeLedger() {
   // received would be the one lie a ledger cannot tell — and is listed below as
   // what the month is still waiting for.
   const summary = monthOutlook(ledger.txns, ledger.recurrings, month, dc, today);
-  const fmt = (amount: bigint): string => format(money(amount, dc), { locale });
+  // Whole-rupee totals drop a bare ".00"; real paise still show.
+  const fmt = (amount: bigint): string => {
+    const p = formatParts(money(amount, dc), { locale });
+    return /[1-9]/.test(p.fraction) ? p.text : p.lead + p.trail;
+  };
   const catLabel = labelForCategory(t);
 
   // Spend against the month before, as a percentage — null when there is no
@@ -228,8 +233,6 @@ function MeLedger() {
   const firstName = (profile?.display_name ?? t.account.you).trim().split(/\s+/)[0];
 
   const moreItems: OverflowMenuItem[] = [
-    { icon: 'pie-chart-outline', label: t.personal.nav.spending, route: '/personal/spending' },
-    { icon: 'sparkles-outline', label: t.spendingAsk.title, route: '/personal/ask' },
     {
       icon: 'document-text-outline',
       label: t.statementImport.title,
@@ -592,6 +595,7 @@ function MeLedger() {
           </Card>
 
           <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
+            {/* Only tools the quick actions above don't already offer. */}
             <CardTitle title={t.personal.dash.moneyTools} />
             <MoneyToolsRow
               tiles={[
@@ -603,18 +607,18 @@ function MeLedger() {
                   onPress: () => router.push('/personal/budgets'),
                 },
                 {
-                  key: 'recurring',
+                  key: 'spending',
                   tint: 'sky',
-                  icon: 'repeat',
-                  label: t.personal.recurring,
-                  onPress: () => router.push('/personal/recurring'),
+                  icon: 'pie-chart-outline',
+                  label: t.personal.nav.spending,
+                  onPress: () => router.push('/personal/spending'),
                 },
                 {
-                  key: 'loans',
+                  key: 'ask',
                   tint: 'mint',
-                  icon: 'layers-outline',
-                  label: h.toolLoans,
-                  onPress: () => router.push('/personal/loans'),
+                  icon: 'sparkles-outline',
+                  label: t.spendingAsk.title,
+                  onPress: () => router.push('/personal/ask'),
                 },
                 {
                   key: 'todo',
@@ -622,13 +626,6 @@ function MeLedger() {
                   icon: 'checkbox-outline',
                   label: h.toolTodo,
                   onPress: () => router.push('/personal/setup'),
-                },
-                {
-                  key: 'reminders',
-                  tint: 'coral',
-                  icon: 'notifications-outline',
-                  label: h.toolReminders,
-                  onPress: () => router.push('/dates'),
                 },
                 {
                   key: 'more',
