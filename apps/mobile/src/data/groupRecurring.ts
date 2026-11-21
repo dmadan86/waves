@@ -11,6 +11,7 @@
 
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
+import { AppState } from 'react-native';
 import { useMutation } from '@tanstack/react-query';
 
 import {
@@ -40,13 +41,14 @@ import { fill, useStrings } from '@/i18n';
 import { serialiseExpense } from '@/data/serialiseExpense';
 import {
   groupBillsForPayer,
+  createReplanner,
   hexToUuid,
   occurrenceSeed,
   type PayerBill,
 } from '@/lib/householdBills';
 import { syncBillReminders } from '@/lib/householdBillReminders';
 import { reportHandled } from '@/lib/observability';
-import { useSync } from '@/sync';
+import { syncEngine, useSync } from '@/sync';
 
 /** The group's repeating rules, newest first, with queued changes shown. */
 export function useGroupRecurring(groupId: string): {
@@ -87,6 +89,7 @@ export function useCreateGroupRecurring(groupId: string) {
       });
       return ruleId;
     },
+    onSuccess: () => replanBillReminders(),
   });
 }
 
@@ -99,6 +102,7 @@ export function useUpdateGroupRecurring(groupId: string) {
         ruleId: input.ruleId,
         patch: { ...input.patch },
       }),
+    onSuccess: () => replanBillReminders(),
   });
 }
 
@@ -130,53 +134,87 @@ export function useRecurringCatchUp(): void {
   }, [userId, hydrated, flush]);
 }
 
+type BillCollect = { bills: PayerBill[]; names: Map<string, string> };
+
+/** Every shared bill this person pays, across their pooled groups, from the given local state. */
+function collectBills(
+  mirror: Parameters<typeof materialiseGroups>[0],
+  queue: Parameters<typeof materialiseGroups>[1],
+  profileId: string | undefined,
+): BillCollect {
+  const bills: PayerBill[] = [];
+  const names = new Map<string, string>();
+  for (const group of materialiseGroups(mirror, queue)) {
+    if (!isPoolGroup(group as never)) continue;
+    const me = (
+      materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]
+    ).find((member) => isViewer(member, profileId) && member.left_at === null);
+    if (!me) continue;
+    names.set(group.id, (group as { name?: string | null }).name ?? '');
+    const rules = materialiseGroupRecurring(mirror, queue, {
+      groupId: group.id,
+      myMemberId: me.id,
+      today: todayIso(),
+    }).map((row) => groupRecurringFromRow(row as never));
+    bills.push(...groupBillsForPayer(rules, me.id));
+  }
+  return { bills, names };
+}
+
+// What the last mounted hook knew (language, who is signed in): the re-plan reads
+// the live local state itself, so it works after a bill change anywhere in the app.
+let replanContext: {
+  profileId: string | undefined;
+  locale: string;
+  t: ReturnType<typeof useStrings>['t'];
+} | null = null;
+
+const replanBillReminders = createReplanner(async () => {
+  const ctx = replanContext;
+  const state = syncEngine.getState();
+  if (!ctx || !state.hydrated) return;
+  const { bills, names } = collectBills(state.mirror, state.queue, ctx.profileId);
+  await syncBillReminders(bills, {
+    title: (b, kind) =>
+      fill(kind === 'today' ? ctx.t.household.reminderToday : ctx.t.household.reminderAhead, {
+        bill: b.description,
+      }),
+    body: (b) =>
+      fill(ctx.t.household.reminderBody, {
+        amount: format(money(b.amount, b.currency as CurrencyCode), { locale: ctx.locale }),
+        group: names.get(b.groupId) ?? '',
+      }),
+  });
+}, 1500);
+
 /**
  * Share-it households: local reminders (3 days before and on the day, 10:00) for
- * the shared bills this person pays, across every pooled group. Re-planned when
- * the bills change; never asks for permission.
+ * the shared bills this person pays, across every pooled group. Re-planned (debounced,
+ * one at a time) when the bills change, after a bill is added, edited or removed,
+ * and when the app comes to the foreground; never asks for permission.
  */
 export function useHouseholdBillReminders(): void {
   const { mirror, queue, hydrated } = useSync();
   const { profile } = useAuth();
   const { t, locale } = useStrings();
-  const { bills, names } = useMemo(() => {
-    const all: PayerBill[] = [];
-    const nameByGroup = new Map<string, string>();
-    for (const group of materialiseGroups(mirror, queue)) {
-      if (!isPoolGroup(group as never)) continue;
-      const me = (
-        materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]
-      ).find((member) => isViewer(member, profile?.id) && member.left_at === null);
-      if (!me) continue;
-      nameByGroup.set(group.id, (group as { name?: string | null }).name ?? '');
-      const rules = materialiseGroupRecurring(mirror, queue, {
-        groupId: group.id,
-        myMemberId: me.id,
-        today: todayIso(),
-      }).map((row) => groupRecurringFromRow(row as never));
-      all.push(...groupBillsForPayer(rules, me.id));
-    }
-    return { bills: all, names: nameByGroup };
-  }, [mirror, queue, profile?.id]);
-  const signature = bills.map((b) => `${b.ruleId}:${b.date}:${b.amount}`).join('|');
+  const profileId = profile?.id;
+  const signature = useMemo(
+    () =>
+      collectBills(mirror, queue, profileId)
+        .bills.map((b) => `${b.ruleId}:${b.date}:${b.amount}`)
+        .join('|'),
+    [mirror, queue, profileId],
+  );
   useEffect(() => {
-    if (!hydrated) return;
-    const amountText = (b: PayerBill): string =>
-      format(money(b.amount, b.currency as CurrencyCode), { locale });
-    void syncBillReminders(bills, {
-      title: (b, kind) =>
-        fill(kind === 'today' ? t.household.reminderToday : t.household.reminderAhead, {
-          bill: b.description,
-        }),
-      body: (b) =>
-        fill(t.household.reminderBody, {
-          amount: amountText(b),
-          group: names.get(b.groupId) ?? '',
-        }),
+    replanContext = { profileId, locale, t };
+    if (hydrated) replanBillReminders();
+  }, [hydrated, signature, locale, profileId, t]);
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') replanBillReminders();
     });
-    // `signature` stands for `bills`: re-plan only when a bill actually changed.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, signature, locale]);
+    return () => sub.remove();
+  }, []);
 }
 
 /** The ids the server's generator gives one occurrence, so a paid bill and the generated one are the same expense. */
