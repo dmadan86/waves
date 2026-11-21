@@ -85,6 +85,9 @@ import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { TranslucentBackButton } from '@/components/ContactPickerScene';
 import { assignCaptureHref } from '@/lib/captureAssign';
 import { useAuth, useViewerId } from '@/lib/auth';
+import { useDialog } from '@/lib/dialog';
+import { offerLockOnce } from '@/lib/lockOffer';
+import { useLock } from '@/lib/lock';
 import { useDefaultCurrency } from '@/lib/currency';
 import { useGuestGuard } from '@/lib/guestGuard';
 import { isQueuedOffline, saveToastText } from '@/lib/saveToast';
@@ -155,6 +158,8 @@ function NewGroupScreen() {
   const cover = narrow ? COVER_NARROW : COVER;
   const { t, locale } = useStrings();
   const createGroup = useCreateGroup();
+  const lock = useLock();
+  const { confirm } = useDialog();
   const { profile } = useAuth();
   // Identity for "which member am I", from the session rather than the profile:
   // the session is on the device at launch, the profile is a fetch that lands
@@ -722,6 +727,16 @@ function NewGroupScreen() {
         saveToastText(t, { kind: 'group', name, offline: isQueuedOffline(status) }),
         'positive',
       );
+
+      void offerLockOnce({
+        userId: viewerId,
+        groupType: type,
+        lockEnabled: lock.enabled,
+        lockSupported: lock.supported,
+        setEnabled: lock.setEnabled,
+        confirm,
+        t,
+      });
 
       // Made to hold a waiting capture: hand that capture to this group's
       // add-expense form instead of opening the group, so the person lands where
