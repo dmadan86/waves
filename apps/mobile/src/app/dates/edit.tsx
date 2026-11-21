@@ -4,7 +4,7 @@
  * Private to this person; sharing with groups is a later phase.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, TextInput, View } from 'react-native';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -47,11 +47,24 @@ export default function EditDateScreen() {
   const [when, setWhen] = useState({ day: existing?.day ?? 1, month: existing?.month ?? 1 });
   const [year, setYear] = useState(existing?.year ? String(existing.year) : '');
   const [picking, setPicking] = useState(false);
+  // The saved date can arrive after the first render (the ledger is still
+  // loading): fill the form once when it does, so Save never writes defaults over it.
+  const filled = useRef(Boolean(existing));
+  useEffect(() => {
+    if (!existing || filled.current) return;
+    filled.current = true;
+    setLabel(existing.label);
+    setName(existing.name ?? '');
+    setWhen({ day: existing.day, month: existing.month });
+    setYear(existing.year ? String(existing.year) : '');
+  }, [existing]);
 
   const needsName = NEEDS_NAME.includes(label);
   const yearNum = Number(year);
   const yearOk = year === '' || (Number.isInteger(yearNum) && yearNum >= 1950 && yearNum <= 2100);
-  const canSave = (!needsName || name.trim() !== '') && yearOk && !isPending;
+  // Editing waits for the saved date, so Save cannot write the blank form over it.
+  const canSave =
+    (!id || existing !== undefined) && (!needsName || name.trim() !== '') && yearOk && !isPending;
 
   const pick = (): void => {
     const value = birthdayToDate(when);
@@ -68,7 +81,8 @@ export default function EditDateScreen() {
     if (!canSave) return;
     save(
       {
-        id: existing?.id,
+        // Editing keeps the route's id even if the record has not loaded yet.
+        id: existing?.id ?? id,
         carried: existing?.carried,
         label,
         name: needsName ? name.trim() : '',
