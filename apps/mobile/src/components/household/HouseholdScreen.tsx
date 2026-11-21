@@ -79,7 +79,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
   const { hidden, toggle } = usePersonalAmountsHidden();
   useGroupRealtime(groupId);
 
-  const { group, members, everyone, expenses } = useGroup(groupId);
+  const { group, everyone, expenses } = useGroup(groupId);
   const { rules } = useGroupRecurring(groupId);
   const { plans } = useGroupIncome(groupId);
   const { goals } = useGroupGoals(groupId);

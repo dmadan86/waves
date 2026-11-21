@@ -43,7 +43,6 @@ import {
 import {
   Button,
   Card,
-  directionalIcon,
   Divider,
   EmptyState,
   Gradient,

@@ -15,7 +15,7 @@ import {
   type GroupRecurringRule,
   type HouseholdUpcoming,
 } from '@waves/core';
-import { Card, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Card, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
 import { GroupGoalsCard } from '@/components/GroupGoalsCard';
