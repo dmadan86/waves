@@ -79,6 +79,8 @@ import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
 import { greetingLine } from '@/lib/greetingLine';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
+import { DateReminderCard } from '@/components/dates/DateReminderCard';
+import { UpcomingDatesCard } from '@/components/dates/UpcomingDatesCard';
 import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -613,6 +615,10 @@ function HomeScreen() {
               yes. Drawn only while something is waiting. */}
           <LinkRequestsCard enabled={session !== null && !isGuest} />
 
+          {/* A friendly "From Waves" reminder for a date coming up: inline,
+              one at a time, never a pop-up. Drawn only while one is due. */}
+          <DateReminderCard />
+
           {showSkeleton ? (
             <SkeletonList rows={3} />
           ) : list.length === 0 ? (
@@ -727,6 +733,9 @@ function HomeScreen() {
                   />
                 }
               >
+                <View style={{ marginBottom: theme.spacing.lg }}>
+                  <UpcomingDatesCard />
+                </View>
                 <View
                   style={{
                     backgroundColor: theme.color.surface,

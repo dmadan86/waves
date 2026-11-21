@@ -41,6 +41,7 @@ import {
   type CategoryId,
   type CurrencyCode,
   type EventTemplateId,
+  type FestivalId,
 } from '@waves/core';
 
 import { setDemoGroupName } from '@/demo/label';
@@ -1073,6 +1074,56 @@ export interface UiStrings {
     status: string;
     stuckShort: string;
     copyHint: string;
+  };
+  dates: {
+    title: string;
+    upcoming: string;
+    addDate: string;
+    empty: string;
+    inDays: PluralForms;
+    today: string;
+    yearsAtWork: PluralForms;
+    kinds: Record<
+      'my_birthday' | 'anniversary' | 'work_anniversary' | 'family_birthday' | 'other',
+      string
+    >;
+    titles: {
+      myBirthday: string;
+      anniversary: string;
+      workAnniversary: string;
+      birthdayOf: string;
+      other: string;
+    };
+    actions: { giftCollection: string; setBudget: string; updatePay: string; planBudget: string };
+    giftGroupName: string;
+    festivals: Record<FestivalId, string>;
+    editNew: string;
+    editExisting: string;
+    name: string;
+    namePlaceholder: string;
+    day: string;
+    month: string;
+    sinceYear: string;
+    privacyMine: string;
+    privacyFamily: string;
+    shareLabel: string;
+    shareComing: string;
+    save: string;
+    notNow: string;
+    remove: string;
+    festivalsTitle: string;
+    festivalsHint: string;
+    notifTitle: string;
+    reminder: {
+      from: string;
+      notThisTime: string;
+      birthday: PluralForms;
+      anniversary: PluralForms;
+      work: PluralForms;
+      named: PluralForms;
+      today: { birthday: string; anniversary: string; work: string; named: string };
+      ask: { birthday: string; anniversary: string; work: string; named: string };
+    };
   };
   recent: {
     title: string;
@@ -4214,6 +4265,27 @@ export interface UiStrings {
     localSection: string;
     savedForLater: string;
     savedForLaterBody: string;
+    planBills: string;
+    planBillsBody: string;
+    planRecap: string;
+    planRecapBody: string;
+    planDaily: string;
+    planDailyBody: string;
+    plan: {
+      title: string;
+      bill: string;
+      billCovered: string;
+      billHidden: string;
+      weekLess: string;
+      weekMore: string;
+      weekPlain: string;
+      weekHidden: string;
+      monthLeft: string;
+      monthOver: string;
+      monthHidden: string;
+      daily: string;
+      dailyHidden: string;
+    };
   };
   /** Attaching an email or phone to the account you already have (ADR-006). */
   /** The ask to add a phone number, shown after sign-in until one is linked. */
@@ -8168,6 +8240,82 @@ export interface UiStrings {
   };
   /** The private personal-finance ledger (A48): the "Me" tab and its screens —
    *  solo expenses/income, recurring rules, loans and monthly budgets. */
+  /** Personal home: the daily ring, save tip and weekly / monthly recaps. */
+  personalHome: {
+    hi: string;
+    space: string;
+    sharedSpace: string;
+    switchSpace: string;
+    search: string;
+    reminders: string;
+    settings: string;
+    loan: string;
+    reminder: string;
+    spentAmount: string;
+    budgetLine: string;
+    leftChip: string;
+    overChip: string;
+    aDay: string;
+    upcomingTitle: string;
+    dueOn: string;
+    today: string;
+    overdue: string;
+    todo: string;
+    upcomingEmpty: string;
+    recentTitle: string;
+    toolLoans: string;
+    toolTodo: string;
+    toolReminders: string;
+    toolMore: string;
+    moreVoice: string;
+    navHome: string;
+    navPlanning: string;
+    navReports: string;
+    navMe: string;
+    addDateRow: string;
+    inDays: PluralForms;
+    itemsLeft: PluralForms;
+  };
+  personalPlan: {
+    leftToday: string;
+    leftTodayShort: string;
+    overToday: string;
+    leftWeek: string;
+    saveTitle: string;
+    setLimit: string;
+    review: string;
+    notNow: string;
+    tip: {
+      overMedian: string;
+      subscriptions: PluralForms;
+      overBudget: string;
+    };
+    recap: {
+      weekReady: string;
+      monthReady: string;
+      seeIt: string;
+      weekTitle: string;
+      monthTitle: string;
+      youSpent: string;
+      vsLess: string;
+      vsMore: string;
+      vsSame: string;
+      vsNone: string;
+      biggest: string;
+      noSpend: string;
+      nextBill: string;
+      noBill: string;
+      leftOver: string;
+      overIncome: string;
+      best: PluralForms;
+      worst: PluralForms;
+      trend: string;
+      next: string;
+      done: string;
+      close: string;
+      page: string;
+    };
+  };
   personalReceipt: {
     title: string;
     add: string;
@@ -8186,6 +8334,83 @@ export interface UiStrings {
     storageFull: string;
     waitingWifi: string;
     couldNotAdd: string;
+  };
+  personalSetup: {
+    title: string;
+    privateLine: string;
+    skip: string;
+    cont: string;
+    stepOf: string;
+    nameIncome: string;
+    nameHome: string;
+    nameBills: string;
+    nameEmi: string;
+    nameEat: string;
+    nameSavings: string;
+    nameCap: string;
+    incomeQ: string;
+    incomeSalary: string;
+    incomeBusiness: string;
+    incomeFreelance: string;
+    incomePension: string;
+    incomeNone: string;
+    incomeDetailsQ: string;
+    homeQ: string;
+    homeRent: string;
+    homeEmi: string;
+    homeNone: string;
+    homeDetailsQ: string;
+    billsQ: string;
+    billElectricity: string;
+    billMobile: string;
+    billWifi: string;
+    billGas: string;
+    billHelp: string;
+    billSchool: string;
+    billSociety: string;
+    billInsurance: string;
+    billSip: string;
+    billsDetailsQ: string;
+    loanQ: string;
+    yes: string;
+    no: string;
+    loanTypeQ: string;
+    loanCar: string;
+    loanPersonal: string;
+    loanGold: string;
+    loanEducation: string;
+    loanCard: string;
+    loanDetailsQ: string;
+    emiLabel: string;
+    monthsLeft: string;
+    eatQ: string;
+    eatRarely: string;
+    eat12: string;
+    eat34: string;
+    eatMost: string;
+    eatEachQ: string;
+    eatMonthly: string;
+    savingsQ: string;
+    saveNone: string;
+    saveUnder1: string;
+    save1to3: string;
+    save3to6: string;
+    save6plus: string;
+    capQ: string;
+    capHint: string;
+    amountLabel: string;
+    dayLabel: string;
+    revealTitle: string;
+    comingIn: string;
+    fixedBills: string;
+    freeToSpend: string;
+    perDay: string;
+    nextBillToday: string;
+    doneBtn: string;
+    finishCard: string;
+    finishRow: string;
+    fixedBillsCount: PluralForms;
+    nextBillIn: PluralForms;
   };
   personal: {
     /** The Personal tab's first-visit intro cards, and their skip. */
@@ -9307,6 +9532,95 @@ const en: UiStrings = {
     status: 'Status',
     stuckShort: 'Older than a day, not shown on screen',
     copyHint: 'Copy details to share or troubleshoot',
+  },
+  dates: {
+    title: 'Your dates',
+    upcoming: 'Upcoming',
+    addDate: 'Add a date',
+    empty: "Add a birthday or anniversary and we'll remind you in time to plan.",
+    inDays: { one: 'tomorrow', other: 'in {n} days' },
+    today: 'today',
+    yearsAtWork: { one: '{n} year at work', other: '{n} years at work' },
+    kinds: {
+      my_birthday: 'My birthday',
+      anniversary: 'Anniversary',
+      work_anniversary: 'Work anniversary',
+      family_birthday: 'Family or friend',
+      other: 'Other',
+    },
+    titles: {
+      myBirthday: 'Your birthday',
+      anniversary: 'Your anniversary',
+      workAnniversary: 'Work anniversary',
+      birthdayOf: "{name}'s birthday",
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'Gift collection',
+      setBudget: 'Set budget',
+      updatePay: 'Update pay',
+      planBudget: 'Plan a budget',
+    },
+    giftGroupName: "{name}'s birthday gift",
+    festivals: {
+      diwali: 'Diwali',
+      holi: 'Holi',
+      eid_al_fitr: 'Eid al-Fitr',
+      eid_al_adha: 'Eid al-Adha',
+      christmas: 'Christmas',
+      pongal: 'Pongal',
+      onam: 'Onam',
+      raksha_bandhan: 'Raksha Bandhan',
+      navratri: 'Navratri',
+      thanksgiving: 'Thanksgiving',
+      easter: 'Easter',
+    },
+    editNew: 'Add a date',
+    editExisting: 'Edit date',
+    name: 'Name',
+    namePlaceholder: 'Asha',
+    day: 'Day',
+    month: 'Month',
+    sinceYear: 'Started in (optional)',
+    privacyMine: 'Only you see this. We use it to remind you.',
+    privacyFamily: 'These are your private notes. We never contact the people you add.',
+    shareLabel: 'Show to people in my groups',
+    shareComing: 'Coming soon',
+    save: 'Save',
+    notNow: 'Not now',
+    remove: 'Delete this date',
+    festivalsTitle: 'Festivals',
+    festivalsHint: 'We remind you a few weeks ahead. Switch off any you do not want.',
+    notifTitle: 'A reminder from Waves',
+    reminder: {
+      from: 'From Waves',
+      notThisTime: 'Not this time',
+      birthday: {
+        one: "{name}'s birthday is tomorrow.",
+        other: "{name}'s birthday is in {n} days.",
+      },
+      anniversary: {
+        one: 'Your anniversary is tomorrow.',
+        other: 'Your anniversary is in {n} days.',
+      },
+      work: {
+        one: 'Your work anniversary is tomorrow.',
+        other: 'Your work anniversary is in {n} days.',
+      },
+      named: { one: '{name} is tomorrow.', other: '{name} is in {n} days.' },
+      today: {
+        birthday: "{name}'s birthday is today.",
+        anniversary: 'Your anniversary is today.',
+        work: 'Your work anniversary is today.',
+        named: '{name} is today.',
+      },
+      ask: {
+        birthday: 'Start a gift collection?',
+        anniversary: 'Set aside a budget for dinner or a gift?',
+        work: 'Time to update your pay?',
+        named: 'Set aside a budget?',
+      },
+    },
   },
   recent: {
     title: 'Recent on your watch',
@@ -12396,6 +12710,27 @@ const en: UiStrings = {
     savedForLater: 'Expenses saved for later',
     savedForLaterBody:
       'If one is still waiting for a group a day later, this phone reminds you in the evening. On a day you have not opened Waves at all, it asks instead whether anything needs splitting. Once a day at most, and only ever one of the two.',
+    planBills: 'Bill reminders',
+    planBillsBody: 'The evening before a bill of yours goes out.',
+    planRecap: 'Weekly and monthly recap',
+    planRecapBody: 'Sunday evening, and on the 1st of each month.',
+    planDaily: 'Daily amount left',
+    planDailyBody: 'A morning note with what is left for today.',
+    plan: {
+      title: 'Your plan',
+      bill: '{name} of {amount} goes out tomorrow.',
+      billCovered: "You're covered.",
+      billHidden: 'A bill goes out tomorrow.',
+      weekLess: 'Your week: {spent} spent, {delta} less than usual. Tap to see.',
+      weekMore: 'Your week: {spent} spent, {delta} more than usual. Tap to see.',
+      weekPlain: 'Your week: {spent} spent. Tap to see.',
+      weekHidden: 'Your week is ready. Tap to see.',
+      monthLeft: '{month} closed with {amount} left over.',
+      monthOver: '{month} closed {amount} over your income.',
+      monthHidden: 'Your month is ready. Tap to see.',
+      daily: "{amount} left for today. You're on plan.",
+      dailyHidden: 'Your plan for today is ready.',
+    },
   },
   phonePrompt: {
     title: 'Add your phone number',
@@ -15872,6 +16207,84 @@ const en: UiStrings = {
     appliesNote: 'Changing a rate never moves a bill already saved.',
   },
 
+  personalHome: {
+    hi: 'Hi, {name} 👋',
+    space: 'Personal Finance',
+    sharedSpace: 'Shared',
+    switchSpace: 'Switch space',
+    search: 'Search',
+    reminders: 'Upcoming and reminders',
+    settings: 'Settings',
+    loan: 'Loan',
+    reminder: 'Reminder',
+    spentAmount: '{amount} spent',
+    budgetLine: 'Budget: {amount}',
+    leftChip: '{amount} left for this month',
+    overChip: '{amount} over for this month',
+    aDay: 'about {amount} a day',
+    upcomingTitle: 'Upcoming & Reminders',
+    dueOn: 'Due on {date}',
+    today: 'Today',
+    overdue: 'Overdue',
+    todo: 'To-Do: Finish setting up',
+    upcomingEmpty: 'Nothing coming up. Add a bill or a date.',
+    recentTitle: 'Recent Transactions',
+    toolLoans: 'Loans & EMIs',
+    toolTodo: 'To-Do & Tasks',
+    toolReminders: 'Reminders',
+    toolMore: 'More',
+    moreVoice: 'Add by voice',
+    navHome: 'Home',
+    navPlanning: 'Planning',
+    navReports: 'Reports',
+    navMe: 'Me',
+    addDateRow: 'Add a date',
+    inDays: { one: 'In {n} day', other: 'In {n} days' },
+    itemsLeft: { one: '{n} item left', other: '{n} items left' },
+  },
+  personalPlan: {
+    leftToday: '{amount} left today',
+    leftTodayShort: 'left today',
+    overToday: 'Over for today',
+    leftWeek: '{amount} left this week',
+    saveTitle: 'Where you can save',
+    setLimit: 'Set a limit',
+    review: 'Review',
+    notNow: 'Not now',
+    tip: {
+      overMedian: '{category} is {amount} above your usual this month.',
+      subscriptions: {
+        one: 'Your subscription costs {amount} a year.',
+        other: 'Your {n} subscriptions cost {amount} a year.',
+      },
+      overBudget: '{category} is {amount} over its limit.',
+    },
+    recap: {
+      weekReady: 'Your week is ready',
+      monthReady: 'Your {month} is ready',
+      seeIt: 'See it',
+      weekTitle: 'Your week',
+      monthTitle: 'Your month',
+      youSpent: 'You spent',
+      vsLess: '{amount} less than a usual week',
+      vsMore: '{amount} more than a usual week',
+      vsSame: 'About a usual week',
+      vsNone: 'Not enough earlier weeks to compare yet',
+      biggest: 'Biggest category',
+      noSpend: 'Nothing spent',
+      nextBill: 'Next bill',
+      noBill: 'No bills coming up',
+      leftOver: '{month}: {amount} left over',
+      overIncome: '{month}: {amount} over your income',
+      best: { one: 'Your best month so far', other: 'Your best month in {n} months' },
+      worst: { one: 'A tough month', other: 'Your toughest month in {n} months' },
+      trend: 'Last 6 months',
+      next: 'Next',
+      done: 'Done',
+      close: 'Close',
+      page: 'Page {n} of {total}',
+    },
+  },
   personalReceipt: {
     title: 'Receipt',
     add: 'Add',
@@ -15890,6 +16303,83 @@ const en: UiStrings = {
     storageFull: 'You have reached your storage limit.',
     waitingWifi: 'Waiting for Wi‑Fi. Add the photo when you are on Wi‑Fi.',
     couldNotAdd: 'Could not add the receipt. Try again.',
+  },
+  personalSetup: {
+    title: 'Set up Personal',
+    privateLine: 'Private to you — only you see this',
+    skip: 'Skip',
+    cont: 'Continue',
+    stepOf: 'Step {n} of {total}',
+    nameIncome: 'Income',
+    nameHome: 'Rent or home loan',
+    nameBills: 'Bills',
+    nameEmi: 'Loan EMIs',
+    nameEat: 'Eating out',
+    nameSavings: 'Savings',
+    nameCap: 'Spending cap',
+    incomeQ: 'Do you get paid regularly?',
+    incomeSalary: 'Salary',
+    incomeBusiness: 'Business',
+    incomeFreelance: 'Freelance',
+    incomePension: 'Pension',
+    incomeNone: 'Not regular',
+    incomeDetailsQ: 'How much, and on which day?',
+    homeQ: 'Rent or home loan?',
+    homeRent: 'Rent',
+    homeEmi: 'Home loan EMI',
+    homeNone: 'Neither',
+    homeDetailsQ: 'How much, and on which day?',
+    billsQ: 'Which bills do you pay?',
+    billElectricity: 'Electricity',
+    billMobile: 'Mobile',
+    billWifi: 'Wi-Fi',
+    billGas: 'Gas',
+    billHelp: 'Maid / cook / driver',
+    billSchool: 'School fees (quarterly)',
+    billSociety: 'Society maintenance',
+    billInsurance: 'Insurance (yearly)',
+    billSip: 'SIP / chit fund',
+    billsDetailsQ: 'How much, and on which day?',
+    loanQ: 'Paying any loan EMIs?',
+    yes: 'Yes',
+    no: 'No',
+    loanTypeQ: 'Which loan?',
+    loanCar: 'Car',
+    loanPersonal: 'Personal',
+    loanGold: 'Gold',
+    loanEducation: 'Education',
+    loanCard: 'Credit card',
+    loanDetailsQ: 'EMI, day and months left',
+    emiLabel: 'EMI',
+    monthsLeft: 'Months left',
+    eatQ: 'How often do you eat out or order in?',
+    eatRarely: 'Rarely',
+    eat12: '1–2 a week',
+    eat34: '3–4 a week',
+    eatMost: 'Most days',
+    eatEachQ: 'About how much each time?',
+    eatMonthly: 'About {amount} a month',
+    savingsQ: 'Any savings set aside?',
+    saveNone: 'None',
+    saveUnder1: 'Under 1 month of pay',
+    save1to3: '1–3 months',
+    save3to6: '3–6 months',
+    save6plus: '6+ months',
+    capQ: 'Cap everyday spending?',
+    capHint: 'Your income minus fixed bills',
+    amountLabel: 'Amount',
+    dayLabel: 'Day of the month',
+    revealTitle: 'Your {month}',
+    comingIn: 'Coming in',
+    fixedBills: 'Fixed bills',
+    freeToSpend: 'Free to spend',
+    perDay: 'about {amount} a day',
+    nextBillToday: '{name} is due today',
+    doneBtn: 'Done',
+    finishCard: 'Finish setting up · {n} left',
+    finishRow: '{name}',
+    fixedBillsCount: { one: '{n} bill', other: '{n} bills' },
+    nextBillIn: { one: '{name} tomorrow', other: '{name} in {n} days' },
   },
   personal: {
     introCards: [
@@ -17017,6 +17507,87 @@ const ta: UiStrings = {
     status: 'நிலை',
     stuckShort: 'ஒரு நாளுக்கு மேல் பழையது, திரையில் காட்டப்படவில்லை',
     copyHint: 'பகிர அல்லது சரிசெய்ய விவரங்களை நகலெடு',
+  },
+  dates: {
+    title: 'உங்கள் தேதிகள்',
+    upcoming: 'வரவிருப்பவை',
+    addDate: 'தேதியைச் சேர்',
+    empty: 'பிறந்தநாள் அல்லது திருமண நாளைச் சேருங்கள்; திட்டமிட நேரத்தில் நினைவூட்டுவோம்.',
+    inDays: { one: 'நாளை', other: '{n} நாட்களில்' },
+    today: 'இன்று',
+    yearsAtWork: { one: 'வேலையில் {n} ஆண்டு', other: 'வேலையில் {n} ஆண்டுகள்' },
+    kinds: {
+      my_birthday: 'என் பிறந்தநாள்',
+      anniversary: 'திருமண நாள்',
+      work_anniversary: 'பணி ஆண்டுவிழா',
+      family_birthday: 'குடும்பம் அல்லது நண்பர்',
+      other: 'மற்றவை',
+    },
+    titles: {
+      myBirthday: 'உங்கள் பிறந்தநாள்',
+      anniversary: 'உங்கள் திருமண நாள்',
+      workAnniversary: 'பணி ஆண்டுவிழா',
+      birthdayOf: '{name} பிறந்தநாள்',
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'பரிசு வசூல்',
+      setBudget: 'பட்ஜெட் அமை',
+      updatePay: 'சம்பளத்தைப் புதுப்பி',
+      planBudget: 'பட்ஜெட் திட்டமிடு',
+    },
+    giftGroupName: '{name} பிறந்தநாள் பரிசு',
+    festivals: {
+      diwali: 'தீபாவளி',
+      holi: 'ஹோலி',
+      eid_al_fitr: 'ஈதுல் பித்ர்',
+      eid_al_adha: 'ஈதுல் அள்ஹா',
+      christmas: 'கிறிஸ்துமஸ்',
+      pongal: 'பொங்கல்',
+      onam: 'ஓணம்',
+      raksha_bandhan: 'ரக்ஷா பந்தன்',
+      navratri: 'நவராத்திரி',
+      thanksgiving: 'நன்றி தெரிவிக்கும் நாள்',
+      easter: 'ஈஸ்டர்',
+    },
+    editNew: 'தேதியைச் சேர்',
+    editExisting: 'தேதியை மாற்று',
+    name: 'பெயர்',
+    namePlaceholder: 'ஆஷா',
+    day: 'நாள்',
+    month: 'மாதம்',
+    sinceYear: 'தொடங்கிய ஆண்டு (விருப்பம்)',
+    privacyMine: 'இதை நீங்கள் மட்டுமே பார்ப்பீர்கள். நினைவூட்ட மட்டும் பயன்படுத்துவோம்.',
+    privacyFamily:
+      'இவை உங்கள் தனிப்பட்ட குறிப்புகள். நீங்கள் சேர்ப்பவர்களை நாங்கள் ஒருபோதும் தொடர்புகொள்ள மாட்டோம்.',
+    shareLabel: 'என் குழுக்களில் உள்ளவர்களுக்குக் காட்டு',
+    shareComing: 'விரைவில்',
+    save: 'சேமி',
+    notNow: 'இப்போது வேண்டாம்',
+    remove: 'இந்தத் தேதியை நீக்கு',
+    festivalsTitle: 'பண்டிகைகள்',
+    festivalsHint: 'சில வாரங்களுக்கு முன்பே நினைவூட்டுவோம். வேண்டாதவற்றை அணைத்துவிடுங்கள்.',
+    notifTitle: 'Waves நினைவூட்டல்',
+    reminder: {
+      from: 'Waves-இடமிருந்து',
+      notThisTime: 'இந்த முறை வேண்டாம்',
+      birthday: { one: '{name} பிறந்தநாள் நாளை.', other: '{name} பிறந்தநாள் {n} நாட்களில்.' },
+      anniversary: { one: 'உங்கள் திருமண நாள் நாளை.', other: 'உங்கள் திருமண நாள் {n} நாட்களில்.' },
+      work: { one: 'உங்கள் பணி ஆண்டுவிழா நாளை.', other: 'உங்கள் பணி ஆண்டுவிழா {n} நாட்களில்.' },
+      named: { one: '{name} நாளை.', other: '{name} {n} நாட்களில்.' },
+      today: {
+        birthday: '{name} பிறந்தநாள் இன்று.',
+        anniversary: 'உங்கள் திருமண நாள் இன்று.',
+        work: 'உங்கள் பணி ஆண்டுவிழா இன்று.',
+        named: '{name} இன்று.',
+      },
+      ask: {
+        birthday: 'பரிசு வசூலைத் தொடங்கவா?',
+        anniversary: 'இரவு உணவு அல்லது பரிசுக்கு பட்ஜெட் ஒதுக்கவா?',
+        work: 'சம்பளத்தைப் புதுப்பிக்க நேரமா?',
+        named: 'பட்ஜெட் ஒதுக்கவா?',
+      },
+    },
   },
   recent: {
     title: 'கடிகாரத்தில் சமீபத்தியவை',
@@ -20150,6 +20721,27 @@ const ta: UiStrings = {
     savedForLater: 'பிறகு சேமித்த செலவுகள்',
     savedForLaterBody:
       'ஒரு நாள் கழித்தும் ஒரு செலவு குழுவுக்காகக் காத்திருந்தால், இந்த ஃபோன் மாலையில் நினைவூட்டும். நீங்கள் Waves-ஐத் திறக்காத நாளில், பிரிக்க ஏதேனும் உள்ளதா என்று கேட்கும். நாளொன்றுக்கு ஒரு முறை மட்டுமே; இரண்டில் ஒன்று மட்டுமே.',
+    planBills: 'பில் நினைவூட்டல்கள்',
+    planBillsBody: 'உங்கள் பில் செலுத்தப்படுவதற்கு முந்தைய மாலை.',
+    planRecap: 'வாராந்திர மற்றும் மாதாந்திர சுருக்கம்',
+    planRecapBody: 'ஞாயிறு மாலை, மற்றும் ஒவ்வொரு மாதம் 1-ஆம் தேதி.',
+    planDaily: 'தினமும் மீதமுள்ள தொகை',
+    planDailyBody: 'இன்றைக்கு மீதமுள்ள தொகையுடன் காலை குறிப்பு.',
+    plan: {
+      title: 'உங்கள் திட்டம்',
+      bill: '{name} {amount} நாளை செலவாகும்.',
+      billCovered: 'உங்களிடம் போதுமான பணம் உள்ளது.',
+      billHidden: 'நாளை ஒரு பில் செலுத்தப்படும்.',
+      weekLess: 'உங்கள் வாரம்: {spent} செலவு, வழக்கத்தை விட {delta} குறைவு. பார்க்கத் தட்டவும்.',
+      weekMore: 'உங்கள் வாரம்: {spent} செலவு, வழக்கத்தை விட {delta} அதிகம். பார்க்கத் தட்டவும்.',
+      weekPlain: 'உங்கள் வாரம்: {spent} செலவு. பார்க்கத் தட்டவும்.',
+      weekHidden: 'உங்கள் வாரச் சுருக்கம் தயார். பார்க்கத் தட்டவும்.',
+      monthLeft: '{month} முடிவில் {amount} மீதம்.',
+      monthOver: '{month}: வருமானத்தை விட {amount} அதிகம்.',
+      monthHidden: 'உங்கள் மாதச் சுருக்கம் தயார். பார்க்கத் தட்டவும்.',
+      daily: 'இன்று {amount} மீதம். திட்டப்படி உள்ளீர்கள்.',
+      dailyHidden: 'இன்றைய திட்டம் தயார்.',
+    },
   },
   phonePrompt: {
     title: 'உங்கள் தொலைபேசி எண்ணைச் சேர்க்கவும்',
@@ -23800,6 +24392,84 @@ const ta: UiStrings = {
     appliesNote: 'விகிதத்தை மாற்றினாலும் ஏற்கெனவே சேமித்த பில் மாறாது.',
   },
 
+  personalHome: {
+    hi: 'வணக்கம், {name} 👋',
+    space: 'தனிநபர் நிதி',
+    sharedSpace: 'பகிரப்பட்டவை',
+    switchSpace: 'இடத்தை மாற்று',
+    search: 'தேடு',
+    reminders: 'வரவிருப்பவை மற்றும் நினைவூட்டல்கள்',
+    settings: 'அமைப்புகள்',
+    loan: 'கடன்',
+    reminder: 'நினைவூட்டல்',
+    spentAmount: '{amount} செலவு',
+    budgetLine: 'பட்ஜெட்: {amount}',
+    leftChip: 'இந்த மாதம் {amount} மீதம்',
+    overChip: 'இந்த மாதம் {amount} அதிகம்',
+    aDay: 'நாளுக்கு சுமார் {amount}',
+    upcomingTitle: 'வரவிருப்பவை & நினைவூட்டல்கள்',
+    dueOn: '{date} அன்று செலுத்த வேண்டும்',
+    today: 'இன்று',
+    overdue: 'தாமதம்',
+    todo: 'செய்ய வேண்டியது: அமைப்பை முடிக்கவும்',
+    upcomingEmpty: 'வரவிருப்பது எதுவும் இல்லை. ஒரு பில் அல்லது தேதியைச் சேர்க்கவும்.',
+    recentTitle: 'சமீபத்திய பரிவர்த்தனைகள்',
+    toolLoans: 'கடன்கள் & EMI',
+    toolTodo: 'செய்ய வேண்டியவை',
+    toolReminders: 'நினைவூட்டல்கள்',
+    toolMore: 'மேலும்',
+    moreVoice: 'குரலால் சேர்',
+    navHome: 'முகப்பு',
+    navPlanning: 'திட்டமிடல்',
+    navReports: 'அறிக்கைகள்',
+    navMe: 'நான்',
+    addDateRow: 'தேதியைச் சேர்',
+    inDays: { one: '{n} நாளில்', other: '{n} நாட்களில்' },
+    itemsLeft: { one: '{n} உருப்படி மீதம்', other: '{n} உருப்படிகள் மீதம்' },
+  },
+  personalPlan: {
+    leftToday: 'இன்று {amount} மீதம்',
+    leftTodayShort: 'இன்று மீதம்',
+    overToday: 'இன்றைக்கு அதிகம்',
+    leftWeek: 'இந்த வாரம் {amount} மீதம்',
+    saveTitle: 'எங்கே சேமிக்கலாம்',
+    setLimit: 'வரம்பு வை',
+    review: 'பார்',
+    notNow: 'இப்போது வேண்டாம்',
+    tip: {
+      overMedian: 'இந்த மாதம் {category} வழக்கத்தை விட {amount} அதிகம்.',
+      subscriptions: {
+        one: 'உங்கள் சந்தா ஆண்டுக்கு {amount} ஆகிறது.',
+        other: 'உங்கள் {n} சந்தாக்கள் ஆண்டுக்கு {amount} ஆகின்றன.',
+      },
+      overBudget: '{category} வரம்பை {amount} மீறியுள்ளது.',
+    },
+    recap: {
+      weekReady: 'உங்கள் வாரம் தயார்',
+      monthReady: 'உங்கள் {month} தயார்',
+      seeIt: 'பார்',
+      weekTitle: 'உங்கள் வாரம்',
+      monthTitle: 'உங்கள் மாதம்',
+      youSpent: 'நீங்கள் செலவழித்தது',
+      vsLess: 'வழக்கமான வாரத்தை விட {amount} குறைவு',
+      vsMore: 'வழக்கமான வாரத்தை விட {amount} அதிகம்',
+      vsSame: 'வழக்கமான வாரம் போலவே',
+      vsNone: 'ஒப்பிட போதுமான முந்தைய வாரங்கள் இல்லை',
+      biggest: 'பெரிய வகை',
+      noSpend: 'செலவு இல்லை',
+      nextBill: 'அடுத்த பில்',
+      noBill: 'வரும் பில்கள் இல்லை',
+      leftOver: '{month}: {amount} மீதம்',
+      overIncome: '{month}: வருமானத்தை விட {amount} அதிகம்',
+      best: { one: 'இதுவரை உங்கள் சிறந்த மாதம்', other: '{n} மாதங்களில் உங்கள் சிறந்த மாதம்' },
+      worst: { one: 'கடினமான மாதம்', other: '{n} மாதங்களில் உங்கள் கடினமான மாதம்' },
+      trend: 'கடைசி 6 மாதங்கள்',
+      next: 'அடுத்து',
+      done: 'முடிந்தது',
+      close: 'மூடு',
+      page: 'பக்கம் {n} / {total}',
+    },
+  },
   personalReceipt: {
     title: 'ரசீது',
     add: 'சேர்',
@@ -23818,6 +24488,83 @@ const ta: UiStrings = {
     storageFull: 'உங்கள் சேமிப்பு வரம்பை அடைந்துவிட்டீர்கள்.',
     waitingWifi: 'Wi‑Fi-க்காகக் காத்திருக்கிறது. Wi‑Fi-இல் இருக்கும்போது படத்தைச் சேர்க்கவும்.',
     couldNotAdd: 'ரசீதைச் சேர்க்க முடியவில்லை. மீண்டும் முயலவும்.',
+  },
+  personalSetup: {
+    title: 'தனிப்பட்டதை அமைக்கவும்',
+    privateLine: 'உங்களுக்கு மட்டும் — நீங்கள் மட்டுமே பார்க்கலாம்',
+    skip: 'தவிர்',
+    cont: 'தொடரவும்',
+    stepOf: 'படி {n} / {total}',
+    nameIncome: 'வருமானம்',
+    nameHome: 'வாடகை அல்லது வீட்டுக் கடன்',
+    nameBills: 'கட்டணங்கள்',
+    nameEmi: 'கடன் EMI',
+    nameEat: 'வெளியே சாப்பிடுதல்',
+    nameSavings: 'சேமிப்பு',
+    nameCap: 'செலவு வரம்பு',
+    incomeQ: 'நிரந்தரமாக வருமானம் வருகிறதா?',
+    incomeSalary: 'சம்பளம்',
+    incomeBusiness: 'தொழில்',
+    incomeFreelance: 'ஃப்ரீலான்ஸ்',
+    incomePension: 'ஓய்வூதியம்',
+    incomeNone: 'நிரந்தரமில்லை',
+    incomeDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
+    homeQ: 'வாடகை அல்லது வீட்டுக் கடன்?',
+    homeRent: 'வாடகை',
+    homeEmi: 'வீட்டுக் கடன் EMI',
+    homeNone: 'இரண்டும் இல்லை',
+    homeDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
+    billsQ: 'எந்தக் கட்டணங்களைச் செலுத்துகிறீர்கள்?',
+    billElectricity: 'மின்சாரம்',
+    billMobile: 'மொபைல்',
+    billWifi: 'வைஃபை',
+    billGas: 'எரிவாயு',
+    billHelp: 'வேலைக்காரர் / சமையல் / ஓட்டுநர்',
+    billSchool: 'பள்ளிக் கட்டணம் (காலாண்டு)',
+    billSociety: 'சங்கப் பராமரிப்பு',
+    billInsurance: 'காப்பீடு (ஆண்டு)',
+    billSip: 'SIP / சீட்டு',
+    billsDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
+    loanQ: 'ஏதேனும் கடன் EMI செலுத்துகிறீர்களா?',
+    yes: 'ஆம்',
+    no: 'இல்லை',
+    loanTypeQ: 'எந்தக் கடன்?',
+    loanCar: 'கார்',
+    loanPersonal: 'தனிநபர்',
+    loanGold: 'தங்கம்',
+    loanEducation: 'கல்வி',
+    loanCard: 'கிரெடிட் கார்டு',
+    loanDetailsQ: 'EMI, நாள், மீதமுள்ள மாதங்கள்',
+    emiLabel: 'EMI',
+    monthsLeft: 'மீதமுள்ள மாதங்கள்',
+    eatQ: 'எவ்வளவு அடிக்கடி வெளியே சாப்பிடுவீர்கள் அல்லது ஆர்டர் செய்வீர்கள்?',
+    eatRarely: 'அரிதாக',
+    eat12: 'வாரம் 1–2',
+    eat34: 'வாரம் 3–4',
+    eatMost: 'பெரும்பாலான நாட்கள்',
+    eatEachQ: 'ஒரு முறைக்கு சுமார் எவ்வளவு?',
+    eatMonthly: 'மாதம் சுமார் {amount}',
+    savingsQ: 'ஒதுக்கி வைத்த சேமிப்பு உண்டா?',
+    saveNone: 'இல்லை',
+    saveUnder1: '1 மாத சம்பளத்துக்குக் குறைவு',
+    save1to3: '1–3 மாதங்கள்',
+    save3to6: '3–6 மாதங்கள்',
+    save6plus: '6+ மாதங்கள்',
+    capQ: 'அன்றாடச் செலவுக்கு வரம்பு?',
+    capHint: 'உங்கள் வருமானம் கழித்தல் நிலையான கட்டணங்கள்',
+    amountLabel: 'தொகை',
+    dayLabel: 'மாதத்தின் நாள்',
+    revealTitle: 'உங்கள் {month}',
+    comingIn: 'வரவு',
+    fixedBills: 'நிலையான கட்டணங்கள்',
+    freeToSpend: 'செலவழிக்கக் கிடைப்பது',
+    perDay: 'நாளுக்கு சுமார் {amount}',
+    nextBillToday: '{name} இன்று செலுத்த வேண்டும்',
+    doneBtn: 'முடிந்தது',
+    finishCard: 'அமைப்பை முடிக்கவும் · {n} மீதம்',
+    finishRow: '{name}',
+    fixedBillsCount: { one: '{n} கட்டணம்', other: '{n} கட்டணங்கள்' },
+    nextBillIn: { one: '{name} நாளை', other: '{name} {n} நாட்களில்' },
   },
   personal: {
     introCards: [
@@ -24924,6 +25671,86 @@ const hi: UiStrings = {
     status: 'स्थिति',
     stuckShort: 'एक दिन से पुराना, स्क्रीन पर नहीं दिखता',
     copyHint: 'शेयर या समस्या जाँचने के लिए विवरण कॉपी करें',
+  },
+  dates: {
+    title: 'आपकी तारीखें',
+    upcoming: 'आने वाली',
+    addDate: 'तारीख जोड़ें',
+    empty: 'जन्मदिन या सालगिरह जोड़ें, हम समय रहते याद दिला देंगे।',
+    inDays: { one: 'कल', other: '{n} दिन में' },
+    today: 'आज',
+    yearsAtWork: { one: 'काम में {n} साल', other: 'काम में {n} साल' },
+    kinds: {
+      my_birthday: 'मेरा जन्मदिन',
+      anniversary: 'सालगिरह',
+      work_anniversary: 'काम की सालगिरह',
+      family_birthday: 'परिवार या दोस्त',
+      other: 'अन्य',
+    },
+    titles: {
+      myBirthday: 'आपका जन्मदिन',
+      anniversary: 'आपकी सालगिरह',
+      workAnniversary: 'काम की सालगिरह',
+      birthdayOf: '{name} का जन्मदिन',
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'गिफ़्ट कलेक्शन',
+      setBudget: 'बजट बनाएँ',
+      updatePay: 'वेतन अपडेट करें',
+      planBudget: 'बजट बनाएँ',
+    },
+    giftGroupName: '{name} के जन्मदिन का गिफ़्ट',
+    festivals: {
+      diwali: 'दिवाली',
+      holi: 'होली',
+      eid_al_fitr: 'ईद-उल-फ़ित्र',
+      eid_al_adha: 'ईद-उल-अज़हा',
+      christmas: 'क्रिसमस',
+      pongal: 'पोंगल',
+      onam: 'ओणम',
+      raksha_bandhan: 'रक्षा बंधन',
+      navratri: 'नवरात्रि',
+      thanksgiving: 'थैंक्सगिविंग',
+      easter: 'ईस्टर',
+    },
+    editNew: 'तारीख जोड़ें',
+    editExisting: 'तारीख बदलें',
+    name: 'नाम',
+    namePlaceholder: 'आशा',
+    day: 'दिन',
+    month: 'महीना',
+    sinceYear: 'किस साल शुरू किया (वैकल्पिक)',
+    privacyMine: 'इसे सिर्फ़ आप देखते हैं। हम इसे आपको याद दिलाने के लिए इस्तेमाल करते हैं।',
+    privacyFamily: 'ये आपके निजी नोट हैं। आप जिन्हें जोड़ते हैं, हम उनसे कभी संपर्क नहीं करते।',
+    shareLabel: 'मेरे ग्रुप के लोगों को दिखाएँ',
+    shareComing: 'जल्द आ रहा है',
+    save: 'सेव करें',
+    notNow: 'अभी नहीं',
+    remove: 'यह तारीख़ हटाएँ',
+    festivalsTitle: 'त्योहार',
+    festivalsHint: 'हम कुछ हफ़्ते पहले याद दिलाते हैं। जो न चाहिए उसे बंद कर दें।',
+    notifTitle: 'Waves की ओर से याद दिलाना',
+    reminder: {
+      from: 'Waves की ओर से',
+      notThisTime: 'इस बार नहीं',
+      birthday: { one: '{name} का जन्मदिन कल है।', other: '{name} का जन्मदिन {n} दिन में है।' },
+      anniversary: { one: 'आपकी सालगिरह कल है।', other: 'आपकी सालगिरह {n} दिन में है।' },
+      work: { one: 'आपकी काम की सालगिरह कल है।', other: 'आपकी काम की सालगिरह {n} दिन में है।' },
+      named: { one: '{name} कल है।', other: '{name} {n} दिन में है।' },
+      today: {
+        birthday: '{name} का जन्मदिन आज है।',
+        anniversary: 'आपकी सालगिरह आज है।',
+        work: 'आपकी काम की सालगिरह आज है।',
+        named: '{name} आज है।',
+      },
+      ask: {
+        birthday: 'गिफ़्ट कलेक्शन शुरू करें?',
+        anniversary: 'डिनर या गिफ़्ट के लिए बजट रखें?',
+        work: 'वेतन अपडेट करने का समय?',
+        named: 'बजट रखें?',
+      },
+    },
   },
   recent: {
     title: 'घड़ी पर हाल के खर्च',
@@ -28014,6 +28841,27 @@ const hi: UiStrings = {
     savedForLater: 'बाद के लिए सहेजे गए खर्च',
     savedForLaterBody:
       'अगर कोई खर्च एक दिन बाद भी किसी समूह का इंतज़ार कर रहा हो, तो यह फ़ोन शाम को याद दिलाता है। जिस दिन आपने Waves खोला ही न हो, उस दिन यह पूछता है कि बाँटने के लिए कुछ है क्या। दिन में ज़्यादा से ज़्यादा एक बार, और दोनों में से सिर्फ़ एक।',
+    planBills: 'बिल रिमाइंडर',
+    planBillsBody: 'आपका बिल जाने से एक शाम पहले।',
+    planRecap: 'साप्ताहिक और मासिक सार',
+    planRecapBody: 'रविवार शाम, और हर महीने की 1 तारीख़ को।',
+    planDaily: 'रोज़ बची रकम',
+    planDailyBody: 'आज के लिए कितना बचा है, इसका सुबह का नोट।',
+    plan: {
+      title: 'आपका प्लान',
+      bill: '{name} के {amount} कल जाएँगे।',
+      billCovered: 'आपके पास पूरे हैं।',
+      billHidden: 'कल एक बिल जाएगा।',
+      weekLess: 'आपका हफ़्ता: {spent} खर्च, आम तौर से {delta} कम। देखने के लिए टैप करें।',
+      weekMore: 'आपका हफ़्ता: {spent} खर्च, आम तौर से {delta} ज़्यादा। देखने के लिए टैप करें।',
+      weekPlain: 'आपका हफ़्ता: {spent} खर्च। देखने के लिए टैप करें।',
+      weekHidden: 'आपका हफ़्ता तैयार है। देखने के लिए टैप करें।',
+      monthLeft: '{month} में {amount} बचे।',
+      monthOver: '{month}: आमदनी से {amount} ज़्यादा खर्च।',
+      monthHidden: 'आपका महीना तैयार है। देखने के लिए टैप करें।',
+      daily: 'आज के लिए {amount} बचे हैं। आप प्लान पर हैं।',
+      dailyHidden: 'आज का प्लान तैयार है।',
+    },
   },
   phonePrompt: {
     title: 'अपना फ़ोन नंबर जोड़ें',
@@ -31506,6 +32354,84 @@ const hi: UiStrings = {
     appliesNote: 'दर बदलने से पहले सहेजा गया बिल कभी नहीं बदलता।',
   },
 
+  personalHome: {
+    hi: 'नमस्ते, {name} 👋',
+    space: 'व्यक्तिगत वित्त',
+    sharedSpace: 'साझा',
+    switchSpace: 'स्पेस बदलें',
+    search: 'खोजें',
+    reminders: 'आने वाले और रिमाइंडर',
+    settings: 'सेटिंग',
+    loan: 'लोन',
+    reminder: 'रिमाइंडर',
+    spentAmount: '{amount} खर्च',
+    budgetLine: 'बजट: {amount}',
+    leftChip: 'इस महीने {amount} बाकी',
+    overChip: 'इस महीने {amount} ज़्यादा',
+    aDay: 'लगभग {amount} प्रतिदिन',
+    upcomingTitle: 'आने वाले और रिमाइंडर',
+    dueOn: '{date} को देय',
+    today: 'आज',
+    overdue: 'देर हो चुकी',
+    todo: 'करने के काम: सेटअप पूरा करें',
+    upcomingEmpty: 'कुछ आने वाला नहीं है। कोई बिल या तारीख जोड़ें।',
+    recentTitle: 'हाल के लेन-देन',
+    toolLoans: 'लोन और EMI',
+    toolTodo: 'काम और कार्य',
+    toolReminders: 'रिमाइंडर',
+    toolMore: 'और',
+    moreVoice: 'आवाज़ से जोड़ें',
+    navHome: 'होम',
+    navPlanning: 'योजना',
+    navReports: 'रिपोर्ट',
+    navMe: 'मैं',
+    addDateRow: 'तारीख जोड़ें',
+    inDays: { one: '{n} दिन में', other: '{n} दिन में' },
+    itemsLeft: { one: '{n} आइटम बाकी', other: '{n} आइटम बाकी' },
+  },
+  personalPlan: {
+    leftToday: 'आज {amount} बचे हैं',
+    leftTodayShort: 'आज के लिए बचा',
+    overToday: 'आज ज़्यादा खर्च हुआ',
+    leftWeek: 'इस हफ़्ते {amount} बचे हैं',
+    saveTitle: 'कहाँ बचा सकते हैं',
+    setLimit: 'सीमा तय करें',
+    review: 'देखें',
+    notNow: 'अभी नहीं',
+    tip: {
+      overMedian: 'इस महीने {category} आपके सामान्य से {amount} ज़्यादा है।',
+      subscriptions: {
+        one: 'आपकी सब्सक्रिप्शन का खर्च साल में {amount} है।',
+        other: 'आपकी {n} सब्सक्रिप्शन का खर्च साल में {amount} है।',
+      },
+      overBudget: '{category} अपनी सीमा से {amount} ऊपर है।',
+    },
+    recap: {
+      weekReady: 'आपका हफ़्ता तैयार है',
+      monthReady: 'आपका {month} तैयार है',
+      seeIt: 'देखें',
+      weekTitle: 'आपका हफ़्ता',
+      monthTitle: 'आपका महीना',
+      youSpent: 'आपने खर्च किया',
+      vsLess: 'सामान्य हफ़्ते से {amount} कम',
+      vsMore: 'सामान्य हफ़्ते से {amount} ज़्यादा',
+      vsSame: 'लगभग सामान्य हफ़्ते जितना',
+      vsNone: 'तुलना के लिए पिछले हफ़्ते काफ़ी नहीं हैं',
+      biggest: 'सबसे बड़ी श्रेणी',
+      noSpend: 'कोई खर्च नहीं',
+      nextBill: 'अगला बिल',
+      noBill: 'कोई बिल आने वाला नहीं',
+      leftOver: '{month}: {amount} बचे',
+      overIncome: '{month}: आय से {amount} ज़्यादा',
+      best: { one: 'अब तक का आपका सबसे अच्छा महीना', other: '{n} महीनों में आपका सबसे अच्छा महीना' },
+      worst: { one: 'मुश्किल महीना', other: '{n} महीनों में आपका सबसे मुश्किल महीना' },
+      trend: 'पिछले 6 महीने',
+      next: 'आगे',
+      done: 'हो गया',
+      close: 'बंद करें',
+      page: 'पेज {n} / {total}',
+    },
+  },
   personalReceipt: {
     title: 'रसीद',
     add: 'जोड़ें',
@@ -31524,6 +32450,83 @@ const hi: UiStrings = {
     storageFull: 'आपकी स्टोरेज सीमा पूरी हो गई है।',
     waitingWifi: 'Wi‑Fi का इंतज़ार है। Wi‑Fi पर होने पर फ़ोटो जोड़ें।',
     couldNotAdd: 'रसीद जोड़ी नहीं जा सकी। दोबारा कोशिश करें।',
+  },
+  personalSetup: {
+    title: 'पर्सनल सेट करें',
+    privateLine: 'सिर्फ़ आपके लिए — इसे केवल आप देखते हैं',
+    skip: 'छोड़ें',
+    cont: 'आगे',
+    stepOf: 'चरण {n} / {total}',
+    nameIncome: 'आमदनी',
+    nameHome: 'किराया या होम लोन',
+    nameBills: 'बिल',
+    nameEmi: 'लोन EMI',
+    nameEat: 'बाहर खाना',
+    nameSavings: 'बचत',
+    nameCap: 'खर्च की सीमा',
+    incomeQ: 'क्या आपको नियमित वेतन/आमदनी मिलती है?',
+    incomeSalary: 'वेतन',
+    incomeBusiness: 'बिज़नेस',
+    incomeFreelance: 'फ़्रीलांस',
+    incomePension: 'पेंशन',
+    incomeNone: 'नियमित नहीं',
+    incomeDetailsQ: 'कितना, और किस तारीख़ को?',
+    homeQ: 'किराया या होम लोन?',
+    homeRent: 'किराया',
+    homeEmi: 'होम लोन EMI',
+    homeNone: 'दोनों नहीं',
+    homeDetailsQ: 'कितना, और किस तारीख़ को?',
+    billsQ: 'आप कौन-से बिल भरते हैं?',
+    billElectricity: 'बिजली',
+    billMobile: 'मोबाइल',
+    billWifi: 'वाई-फ़ाई',
+    billGas: 'गैस',
+    billHelp: 'मेड / कुक / ड्राइवर',
+    billSchool: 'स्कूल फ़ीस (तिमाही)',
+    billSociety: 'सोसाइटी मेंटेनेंस',
+    billInsurance: 'बीमा (सालाना)',
+    billSip: 'SIP / चिट फ़ंड',
+    billsDetailsQ: 'कितना, और किस तारीख़ को?',
+    loanQ: 'कोई लोन EMI भर रहे हैं?',
+    yes: 'हाँ',
+    no: 'नहीं',
+    loanTypeQ: 'कौन-सा लोन?',
+    loanCar: 'कार',
+    loanPersonal: 'पर्सनल',
+    loanGold: 'गोल्ड',
+    loanEducation: 'एजुकेशन',
+    loanCard: 'क्रेडिट कार्ड',
+    loanDetailsQ: 'EMI, तारीख़ और बचे महीने',
+    emiLabel: 'EMI',
+    monthsLeft: 'बचे महीने',
+    eatQ: 'आप कितनी बार बाहर खाते या ऑर्डर करते हैं?',
+    eatRarely: 'कभी-कभार',
+    eat12: 'हफ़्ते में 1–2',
+    eat34: 'हफ़्ते में 3–4',
+    eatMost: 'लगभग रोज़',
+    eatEachQ: 'एक बार में लगभग कितना?',
+    eatMonthly: 'महीने में लगभग {amount}',
+    savingsQ: 'कुछ बचत रखी है?',
+    saveNone: 'नहीं',
+    saveUnder1: '1 महीने के वेतन से कम',
+    save1to3: '1–3 महीने',
+    save3to6: '3–6 महीने',
+    save6plus: '6+ महीने',
+    capQ: 'रोज़ के खर्च की सीमा तय करें?',
+    capHint: 'आपकी आमदनी में से तय बिल घटाकर',
+    amountLabel: 'रकम',
+    dayLabel: 'महीने की तारीख़',
+    revealTitle: 'आपका {month}',
+    comingIn: 'आमदनी',
+    fixedBills: 'तय बिल',
+    freeToSpend: 'खर्च के लिए बचा',
+    perDay: 'लगभग {amount} रोज़',
+    nextBillToday: '{name} आज देय है',
+    doneBtn: 'हो गया',
+    finishCard: 'सेटअप पूरा करें · {n} बाकी',
+    finishRow: '{name}',
+    fixedBillsCount: { one: '{n} बिल', other: '{n} बिल' },
+    nextBillIn: { one: '{name} कल', other: '{name} {n} दिन में' },
   },
   personal: {
     introCards: [
@@ -32665,6 +33668,122 @@ const ar: UiStrings = {
     status: 'الحالة',
     stuckShort: 'أقدم من يوم، غير معروض على الشاشة',
     copyHint: 'انسخ التفاصيل للمشاركة أو لحل المشكلة',
+  },
+  dates: {
+    title: 'تواريخك',
+    upcoming: 'القادم',
+    addDate: 'أضف تاريخًا',
+    empty: 'أضف عيد ميلاد أو ذكرى سنوية وسنذكّرك في الوقت المناسب للتخطيط.',
+    inDays: {
+      one: 'غدًا',
+      two: 'بعد يومين',
+      few: 'بعد {n} أيام',
+      many: 'بعد {n} يومًا',
+      other: 'بعد {n} يوم',
+    },
+    today: 'اليوم',
+    yearsAtWork: {
+      one: 'سنة واحدة في العمل',
+      two: 'سنتان في العمل',
+      few: '{n} سنوات في العمل',
+      many: '{n} سنة في العمل',
+      other: '{n} سنة في العمل',
+    },
+    kinds: {
+      my_birthday: 'عيد ميلادي',
+      anniversary: 'ذكرى سنوية',
+      work_anniversary: 'ذكرى العمل',
+      family_birthday: 'العائلة أو الأصدقاء',
+      other: 'أخرى',
+    },
+    titles: {
+      myBirthday: 'عيد ميلادك',
+      anniversary: 'ذكراك السنوية',
+      workAnniversary: 'ذكرى العمل',
+      birthdayOf: 'عيد ميلاد {name}',
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'جمع هدية',
+      setBudget: 'حدّد ميزانية',
+      updatePay: 'حدّث الراتب',
+      planBudget: 'خطّط لميزانية',
+    },
+    giftGroupName: 'هدية عيد ميلاد {name}',
+    festivals: {
+      diwali: 'ديوالي',
+      holi: 'هولي',
+      eid_al_fitr: 'عيد الفطر',
+      eid_al_adha: 'عيد الأضحى',
+      christmas: 'عيد الميلاد المجيد',
+      pongal: 'بونغال',
+      onam: 'أونام',
+      raksha_bandhan: 'راكشا باندهان',
+      navratri: 'نافراتري',
+      thanksgiving: 'عيد الشكر',
+      easter: 'عيد الفصح',
+    },
+    editNew: 'أضف تاريخًا',
+    editExisting: 'عدّل التاريخ',
+    name: 'الاسم',
+    namePlaceholder: 'آشا',
+    day: 'اليوم',
+    month: 'الشهر',
+    sinceYear: 'سنة البدء (اختياري)',
+    privacyMine: 'أنت وحدك ترى هذا. نستخدمه لتذكيرك فقط.',
+    privacyFamily: 'هذه ملاحظاتك الخاصة. لن نتواصل أبدًا مع من تضيفهم.',
+    shareLabel: 'أظهر للأشخاص في مجموعاتي',
+    shareComing: 'قريبًا',
+    save: 'حفظ',
+    notNow: 'ليس الآن',
+    remove: 'احذف هذا التاريخ',
+    festivalsTitle: 'الأعياد',
+    festivalsHint: 'نذكّرك قبلها بأسابيع. أوقف ما لا تريده.',
+    notifTitle: 'تذكير من Waves',
+    reminder: {
+      from: 'من Waves',
+      notThisTime: 'ليس هذه المرة',
+      birthday: {
+        one: 'عيد ميلاد {name} غدًا.',
+        two: 'عيد ميلاد {name} بعد يومين.',
+        few: 'عيد ميلاد {name} بعد {n} أيام.',
+        many: 'عيد ميلاد {name} بعد {n} يومًا.',
+        other: 'عيد ميلاد {name} بعد {n} يوم.',
+      },
+      anniversary: {
+        one: 'ذكراك السنوية غدًا.',
+        two: 'ذكراك السنوية بعد يومين.',
+        few: 'ذكراك السنوية بعد {n} أيام.',
+        many: 'ذكراك السنوية بعد {n} يومًا.',
+        other: 'ذكراك السنوية بعد {n} يوم.',
+      },
+      work: {
+        one: 'ذكرى عملك غدًا.',
+        two: 'ذكرى عملك بعد يومين.',
+        few: 'ذكرى عملك بعد {n} أيام.',
+        many: 'ذكرى عملك بعد {n} يومًا.',
+        other: 'ذكرى عملك بعد {n} يوم.',
+      },
+      named: {
+        one: '{name} غدًا.',
+        two: '{name} بعد يومين.',
+        few: '{name} بعد {n} أيام.',
+        many: '{name} بعد {n} يومًا.',
+        other: '{name} بعد {n} يوم.',
+      },
+      today: {
+        birthday: 'عيد ميلاد {name} اليوم.',
+        anniversary: 'ذكراك السنوية اليوم.',
+        work: 'ذكرى عملك اليوم.',
+        named: '{name} اليوم.',
+      },
+      ask: {
+        birthday: 'هل نبدأ جمع هدية؟',
+        anniversary: 'هل نخصص ميزانية للعشاء أو الهدية؟',
+        work: 'حان وقت تحديث راتبك؟',
+        named: 'هل نخصص ميزانية؟',
+      },
+    },
   },
   recent: {
     title: 'الأحدث على ساعتك',
@@ -35860,6 +36979,27 @@ const ar: UiStrings = {
     savedForLater: 'مصاريف محفوظة لوقت لاحق',
     savedForLaterBody:
       'إذا بقي مصروف ينتظر مجموعة بعد يوم كامل، يذكّرك هذا الهاتف مساءً. وفي يوم لم تفتح فيه Waves إطلاقًا، يسألك بدلًا من ذلك إن كان هناك ما تريد تقسيمه. مرة واحدة في اليوم على الأكثر، وواحد من الاثنين فقط.',
+    planBills: 'تذكيرات الفواتير',
+    planBillsBody: 'مساء اليوم السابق لسداد فاتورتك.',
+    planRecap: 'ملخص أسبوعي وشهري',
+    planRecapBody: 'مساء الأحد، وفي أول كل شهر.',
+    planDaily: 'المبلغ المتبقي يوميًا',
+    planDailyBody: 'ملاحظة صباحية بما تبقّى لهذا اليوم.',
+    plan: {
+      title: 'خطتك',
+      bill: 'سيُدفع {name} بقيمة {amount} غدًا.',
+      billCovered: 'أنت مغطّى.',
+      billHidden: 'هناك فاتورة تُدفع غدًا.',
+      weekLess: 'أسبوعك: أنفقت {spent}، أقل من المعتاد بمقدار {delta}. اضغط للعرض.',
+      weekMore: 'أسبوعك: أنفقت {spent}، أكثر من المعتاد بمقدار {delta}. اضغط للعرض.',
+      weekPlain: 'أسبوعك: أنفقت {spent}. اضغط للعرض.',
+      weekHidden: 'أسبوعك جاهز. اضغط للعرض.',
+      monthLeft: 'انتهى {month} وبقي {amount}.',
+      monthOver: '{month}: أنفقت {amount} فوق دخلك.',
+      monthHidden: 'شهرك جاهز. اضغط للعرض.',
+      daily: 'بقي {amount} لهذا اليوم. أنت على الخطة.',
+      dailyHidden: 'خطة اليوم جاهزة.',
+    },
   },
   phonePrompt: {
     title: 'أضف رقم هاتفك',
@@ -39938,6 +41078,100 @@ const ar: UiStrings = {
     appliesNote: 'تغيير السعر لا يحرّك فاتورة محفوظة أبداً.',
   },
 
+  personalHome: {
+    hi: 'مرحبًا، {name} 👋',
+    space: 'المالية الشخصية',
+    sharedSpace: 'المشتركة',
+    switchSpace: 'تبديل المساحة',
+    search: 'بحث',
+    reminders: 'القادم والتذكيرات',
+    settings: 'الإعدادات',
+    loan: 'قرض',
+    reminder: 'تذكير',
+    spentAmount: 'أُنفق {amount}',
+    budgetLine: 'الميزانية: {amount}',
+    leftChip: 'متبقٍ {amount} لهذا الشهر',
+    overChip: 'تجاوز بمقدار {amount} هذا الشهر',
+    aDay: 'نحو {amount} يوميًا',
+    upcomingTitle: 'القادم والتذكيرات',
+    dueOn: 'مستحق في {date}',
+    today: 'اليوم',
+    overdue: 'متأخر',
+    todo: 'المهام: أكمل الإعداد',
+    upcomingEmpty: 'لا شيء قادم. أضف فاتورة أو تاريخًا.',
+    recentTitle: 'أحدث المعاملات',
+    toolLoans: 'القروض والأقساط',
+    toolTodo: 'المهام',
+    toolReminders: 'التذكيرات',
+    toolMore: 'المزيد',
+    moreVoice: 'أضف بالصوت',
+    navHome: 'الرئيسية',
+    navPlanning: 'التخطيط',
+    navReports: 'التقارير',
+    navMe: 'أنا',
+    addDateRow: 'أضف تاريخًا',
+    inDays: { one: 'خلال {n} يوم', other: 'خلال {n} يومًا' },
+    itemsLeft: { one: '{n} عنصر متبقٍ', other: '{n} عناصر متبقية' },
+  },
+  personalPlan: {
+    leftToday: 'تبقّى {amount} اليوم',
+    leftTodayShort: 'متبقٍ اليوم',
+    overToday: 'تجاوزت اليوم',
+    leftWeek: 'تبقّى {amount} هذا الأسبوع',
+    saveTitle: 'أين يمكنك التوفير',
+    setLimit: 'حدّد سقفًا',
+    review: 'راجع',
+    notNow: 'ليس الآن',
+    tip: {
+      overMedian: '{category} أعلى من المعتاد بمقدار {amount} هذا الشهر.',
+      subscriptions: {
+        zero: 'لا اشتراكات.',
+        one: 'اشتراكك يكلّف {amount} في السنة.',
+        two: 'اشتراكاك يكلّفان {amount} في السنة.',
+        few: 'اشتراكاتك الـ{n} تكلّف {amount} في السنة.',
+        many: 'اشتراكاتك الـ{n} تكلّف {amount} في السنة.',
+        other: 'اشتراكاتك الـ{n} تكلّف {amount} في السنة.',
+      },
+      overBudget: '{category} تجاوزت سقفها بمقدار {amount}.',
+    },
+    recap: {
+      weekReady: 'أسبوعك جاهز',
+      monthReady: '{month} جاهز',
+      seeIt: 'اعرضه',
+      weekTitle: 'أسبوعك',
+      monthTitle: 'شهرك',
+      youSpent: 'أنفقت',
+      vsLess: 'أقل بمقدار {amount} من الأسبوع المعتاد',
+      vsMore: 'أكثر بمقدار {amount} من الأسبوع المعتاد',
+      vsSame: 'قريب من الأسبوع المعتاد',
+      vsNone: 'لا توجد أسابيع سابقة كافية للمقارنة',
+      biggest: 'أكبر فئة',
+      noSpend: 'لا إنفاق',
+      nextBill: 'الفاتورة القادمة',
+      noBill: 'لا فواتير قادمة',
+      leftOver: '{month}: تبقّى {amount}',
+      overIncome: '{month}: {amount} فوق دخلك',
+      best: {
+        one: 'أفضل شهر لك حتى الآن',
+        two: 'أفضل شهر لك في شهرين',
+        few: 'أفضل شهر لك في {n} أشهر',
+        many: 'أفضل شهر لك في {n} شهرًا',
+        other: 'أفضل شهر لك في {n} شهر',
+      },
+      worst: {
+        one: 'شهر صعب',
+        two: 'أصعب شهر لك في شهرين',
+        few: 'أصعب شهر لك في {n} أشهر',
+        many: 'أصعب شهر لك في {n} شهرًا',
+        other: 'أصعب شهر لك في {n} شهر',
+      },
+      trend: 'آخر 6 أشهر',
+      next: 'التالي',
+      done: 'تم',
+      close: 'إغلاق',
+      page: 'صفحة {n} من {total}',
+    },
+  },
   personalReceipt: {
     title: 'الإيصال',
     add: 'إضافة',
@@ -39956,6 +41190,96 @@ const ar: UiStrings = {
     storageFull: 'لقد بلغت حد التخزين.',
     waitingWifi: 'في انتظار Wi‑Fi. أضف الصورة عندما تكون على Wi‑Fi.',
     couldNotAdd: 'تعذّرت إضافة الإيصال. حاول مرة أخرى.',
+  },
+  personalSetup: {
+    title: 'إعداد الشخصي',
+    privateLine: 'خاص بك — أنت وحدك من يراه',
+    skip: 'تخطي',
+    cont: 'متابعة',
+    stepOf: 'الخطوة {n} من {total}',
+    nameIncome: 'الدخل',
+    nameHome: 'الإيجار أو قرض المنزل',
+    nameBills: 'الفواتير',
+    nameEmi: 'أقساط القروض',
+    nameEat: 'الأكل خارج المنزل',
+    nameSavings: 'المدخرات',
+    nameCap: 'سقف الإنفاق',
+    incomeQ: 'هل يصلك دخل منتظم؟',
+    incomeSalary: 'راتب',
+    incomeBusiness: 'عمل تجاري',
+    incomeFreelance: 'عمل حر',
+    incomePension: 'معاش',
+    incomeNone: 'غير منتظم',
+    incomeDetailsQ: 'كم المبلغ، وفي أي يوم؟',
+    homeQ: 'إيجار أم قرض منزل؟',
+    homeRent: 'إيجار',
+    homeEmi: 'قسط قرض المنزل',
+    homeNone: 'لا هذا ولا ذاك',
+    homeDetailsQ: 'كم المبلغ، وفي أي يوم؟',
+    billsQ: 'ما الفواتير التي تدفعها؟',
+    billElectricity: 'الكهرباء',
+    billMobile: 'الجوال',
+    billWifi: 'الواي فاي',
+    billGas: 'الغاز',
+    billHelp: 'خادمة / طباخ / سائق',
+    billSchool: 'رسوم المدرسة (ربع سنوية)',
+    billSociety: 'صيانة المجمّع',
+    billInsurance: 'التأمين (سنوي)',
+    billSip: 'استثمار شهري / جمعية',
+    billsDetailsQ: 'كم المبلغ، وفي أي يوم؟',
+    loanQ: 'هل تسدّد أقساط قروض؟',
+    yes: 'نعم',
+    no: 'لا',
+    loanTypeQ: 'أي قرض؟',
+    loanCar: 'سيارة',
+    loanPersonal: 'شخصي',
+    loanGold: 'ذهب',
+    loanEducation: 'تعليم',
+    loanCard: 'بطاقة ائتمان',
+    loanDetailsQ: 'القسط واليوم والأشهر المتبقية',
+    emiLabel: 'القسط',
+    monthsLeft: 'الأشهر المتبقية',
+    eatQ: 'كم مرة تأكل خارج المنزل أو تطلب أكلاً؟',
+    eatRarely: 'نادراً',
+    eat12: '1–2 في الأسبوع',
+    eat34: '3–4 في الأسبوع',
+    eatMost: 'معظم الأيام',
+    eatEachQ: 'كم تدفع تقريباً في المرة؟',
+    eatMonthly: 'حوالي {amount} شهرياً',
+    savingsQ: 'هل لديك مدخرات؟',
+    saveNone: 'لا شيء',
+    saveUnder1: 'أقل من راتب شهر',
+    save1to3: '1–3 أشهر',
+    save3to6: '3–6 أشهر',
+    save6plus: '6 أشهر فأكثر',
+    capQ: 'تحديد سقف للإنفاق اليومي؟',
+    capHint: 'دخلك ناقص الفواتير الثابتة',
+    amountLabel: 'المبلغ',
+    dayLabel: 'يوم الشهر',
+    revealTitle: '{month} الخاص بك',
+    comingIn: 'الداخل',
+    fixedBills: 'الفواتير الثابتة',
+    freeToSpend: 'المتاح للإنفاق',
+    perDay: 'حوالي {amount} يومياً',
+    nextBillToday: '{name} مستحق اليوم',
+    doneBtn: 'تم',
+    finishCard: 'أكمل الإعداد · متبقٍ {n}',
+    finishRow: '{name}',
+    fixedBillsCount: {
+      zero: 'لا فواتير',
+      one: 'فاتورة واحدة',
+      two: 'فاتورتان',
+      few: '{n} فواتير',
+      many: '{n} فاتورة',
+      other: '{n} فاتورة',
+    },
+    nextBillIn: {
+      one: '{name} غداً',
+      two: '{name} بعد يومين',
+      few: '{name} بعد {n} أيام',
+      many: '{name} بعد {n} يوماً',
+      other: '{name} بعد {n} يوم',
+    },
   },
   personal: {
     introCards: [
