@@ -4,7 +4,7 @@
  * sync layer: nobody owes anybody) and the personal entry goes only after that
  * write is queued, so a failure never loses the entry.
  */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { randomUUID } from 'expo-crypto';
@@ -18,7 +18,13 @@ import { groupLabel, isViewer, type GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
-import { moveAfterSave } from '@/lib/personalHandoff';
+import {
+  addPendingMove,
+  moveOutcome,
+  readPendingMoves,
+  writePendingMoves,
+  type PendingMove,
+} from '@/lib/pendingMoves';
 import { useSync } from '@/sync';
 
 export interface MoveEntry {
@@ -33,11 +39,10 @@ export interface MoveEntry {
 export function MoveToFamily({ entry, onMoved }: { entry: MoveEntry; onMoved: () => void }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const { mutate } = useSync();
+  const { mutate, flush } = useSync();
   const viewerId = useViewerId();
   const groups = useGroups();
   const everyone = useAllGroupMembers();
-  const remove = useDeletePersonalRecord();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,23 +63,23 @@ export function MoveToFamily({ entry, onMoved }: { entry: MoveEntry; onMoved: ()
     setBusy(group.id);
     setError(null);
     try {
-      await moveAfterSave(
-        () =>
-          mutate(MutationKind.ExpenseCreate, group.id, {
-            ...serialiseExpense({
-              description: entry.note ?? '',
-              category: entry.category,
-              expenseDate: entry.date,
-              currency: entry.currency,
-              amount: entry.amount,
-              splitParams: { kind: 'equal' },
-              participants: [me.id],
-              payers: { [me.id]: entry.amount },
-            }),
-            expenseId: randomUUID(),
-          }),
-        () => remove.mutateAsync(entry.id),
-      );
+      const cmid = await mutate(MutationKind.ExpenseCreate, group.id, {
+        ...serialiseExpense({
+          description: entry.note ?? '',
+          category: entry.category,
+          expenseDate: entry.date,
+          currency: entry.currency,
+          amount: entry.amount,
+          splitParams: { kind: 'equal' },
+          participants: [me.id],
+          payers: { [me.id]: entry.amount },
+        }),
+        expenseId: randomUUID(),
+      });
+      // The private copy goes only once the server has accepted the group
+      // expense (PendingMoveCleanup); a refused write keeps the entry.
+      await addPendingMove({ cmid, personalId: entry.id });
+      void flush([group.id]);
       onMoved();
     } catch (caught) {
       setError(friendlyError(caught, t.household.moveFailed, 'household.move'));
@@ -128,4 +133,38 @@ export function MoveToFamily({ entry, onMoved }: { entry: MoveEntry; onMoved: ()
       ) : null}
     </View>
   );
+}
+
+/**
+ * Finishes "Move to family": deletes each moved private entry once its group
+ * expense has left the sync queue, and forgets the move (keeping the entry)
+ * when the server refused it. Mounted once under the tabs.
+ */
+export function PendingMoveCleanup(): null {
+  const { queue } = useSync();
+  const remove = useDeletePersonalRecord();
+  const running = useRef(false);
+  useEffect(() => {
+    if (running.current) return;
+    running.current = true;
+    void (async () => {
+      try {
+        const moves = await readPendingMoves();
+        if (moves.length === 0) return;
+        const left: PendingMove[] = [];
+        for (const move of moves) {
+          const outcome = moveOutcome(move, queue);
+          if (outcome === 'wait') left.push(move);
+          else if (outcome === 'delete') {
+            // A failed delete is tried again next time the queue changes.
+            await remove.mutateAsync(move.personalId).catch(() => left.push(move));
+          }
+        }
+        if (left.length !== moves.length) await writePendingMoves(left);
+      } finally {
+        running.current = false;
+      }
+    })();
+  }, [queue, remove]);
+  return null;
 }
