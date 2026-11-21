@@ -8164,6 +8164,29 @@ export interface UiStrings {
     addDateRow: string;
     inDays: PluralForms;
     itemsLeft: PluralForms;
+    filterAll: string;
+    filterBills: string;
+    filterTodo: string;
+    filterRecurring: string;
+    filterLabel: string;
+    dueThisMonth: string;
+    billsCount: PluralForms;
+    itemsCount: PluralForms;
+    thisMonth: string;
+    nextSection: string;
+    dueOverdue: string;
+    addReminder: string;
+    markPaid: string;
+    editBill: string;
+    pickMonth: string;
+    reminderTitle: string;
+    reminderAmount: string;
+    reminderDate: string;
+    repeat: string;
+    repeatNone: string;
+    repeatMonthly: string;
+    repeatYearly: string;
+    nothingHere: string;
   };
   personalPlan: {
     leftToday: string;
@@ -16018,6 +16041,29 @@ const en: UiStrings = {
     addDateRow: 'Add a date',
     inDays: { one: 'In {n} day', other: 'In {n} days' },
     itemsLeft: { one: '{n} item left', other: '{n} items left' },
+    filterAll: 'All',
+    filterBills: 'Bills',
+    filterTodo: 'To-Do',
+    filterRecurring: 'Recurring',
+    filterLabel: 'Show',
+    dueThisMonth: 'Due this month',
+    billsCount: { one: '{n} bill', other: '{n} bills' },
+    itemsCount: { one: '{n} item', other: '{n} items' },
+    thisMonth: 'This Month',
+    nextSection: 'Next',
+    dueOverdue: 'Due on {date} (Overdue)',
+    addReminder: 'Add Reminder',
+    markPaid: 'Mark as paid',
+    editBill: 'Edit',
+    pickMonth: 'Choose a month',
+    reminderTitle: 'What is it for?',
+    reminderAmount: 'Amount (optional)',
+    reminderDate: 'Date',
+    repeat: 'Repeat',
+    repeatNone: 'Does not repeat',
+    repeatMonthly: 'Every month',
+    repeatYearly: 'Every year',
+    nothingHere: 'Nothing here yet.',
   },
   personalPlan: {
     leftToday: '{amount} left today',
@@ -24089,6 +24135,29 @@ const ta: UiStrings = {
     addDateRow: 'தேதியைச் சேர்',
     inDays: { one: '{n} நாளில்', other: '{n} நாட்களில்' },
     itemsLeft: { one: '{n} உருப்படி மீதம்', other: '{n} உருப்படிகள் மீதம்' },
+    filterAll: 'அனைத்தும்',
+    filterBills: 'பில்கள்',
+    filterTodo: 'செய்ய வேண்டியவை',
+    filterRecurring: 'தொடர்ச்சியானவை',
+    filterLabel: 'காட்டு',
+    dueThisMonth: 'இந்த மாதம் செலுத்த வேண்டியவை',
+    billsCount: { one: '{n} பில்', other: '{n} பில்கள்' },
+    itemsCount: { one: '{n} உருப்படி', other: '{n} உருப்படிகள்' },
+    thisMonth: 'இந்த மாதம்',
+    nextSection: 'அடுத்து',
+    dueOverdue: '{date} அன்று செலுத்த வேண்டும் (தாமதம்)',
+    addReminder: 'நினைவூட்டலைச் சேர்',
+    markPaid: 'செலுத்தியதாகக் குறி',
+    editBill: 'திருத்து',
+    pickMonth: 'மாதத்தைத் தேர்ந்தெடுக்கவும்',
+    reminderTitle: 'எதற்காக?',
+    reminderAmount: 'தொகை (விருப்பம்)',
+    reminderDate: 'தேதி',
+    repeat: 'மீண்டும்',
+    repeatNone: 'மீண்டும் வராது',
+    repeatMonthly: 'ஒவ்வொரு மாதமும்',
+    repeatYearly: 'ஒவ்வொரு ஆண்டும்',
+    nothingHere: 'இங்கே இன்னும் எதுவும் இல்லை.',
   },
   personalPlan: {
     leftToday: 'இன்று {amount} மீதம்',
@@ -31939,6 +32008,29 @@ const hi: UiStrings = {
     addDateRow: 'तारीख जोड़ें',
     inDays: { one: '{n} दिन में', other: '{n} दिन में' },
     itemsLeft: { one: '{n} आइटम बाकी', other: '{n} आइटम बाकी' },
+    filterAll: 'सभी',
+    filterBills: 'बिल',
+    filterTodo: 'टू-डू',
+    filterRecurring: 'आवर्ती',
+    filterLabel: 'दिखाएँ',
+    dueThisMonth: 'इस महीने देय',
+    billsCount: { one: '{n} बिल', other: '{n} बिल' },
+    itemsCount: { one: '{n} आइटम', other: '{n} आइटम' },
+    thisMonth: 'इस महीने',
+    nextSection: 'आगे',
+    dueOverdue: '{date} को देय (अतिदेय)',
+    addReminder: 'रिमाइंडर जोड़ें',
+    markPaid: 'चुकाया हुआ चिह्नित करें',
+    editBill: 'संपादित करें',
+    pickMonth: 'महीना चुनें',
+    reminderTitle: 'यह किसलिए है?',
+    reminderAmount: 'राशि (वैकल्पिक)',
+    reminderDate: 'तारीख',
+    repeat: 'दोहराएँ',
+    repeatNone: 'दोहराएगा नहीं',
+    repeatMonthly: 'हर महीने',
+    repeatYearly: 'हर साल',
+    nothingHere: 'यहाँ अभी कुछ नहीं है।',
   },
   personalPlan: {
     leftToday: 'आज {amount} बचे हैं',
@@ -31974,7 +32066,10 @@ const hi: UiStrings = {
       noBill: 'कोई बिल आने वाला नहीं',
       leftOver: '{month}: {amount} बचे',
       overIncome: '{month}: आय से {amount} ज़्यादा',
-      best: { one: 'अब तक का आपका सबसे अच्छा महीना', other: '{n} महीनों में आपका सबसे अच्छा महीना' },
+      best: {
+        one: 'अब तक का आपका सबसे अच्छा महीना',
+        other: '{n} महीनों में आपका सबसे अच्छा महीना',
+      },
       worst: { one: 'मुश्किल महीना', other: '{n} महीनों में आपका सबसे मुश्किल महीना' },
       trend: 'पिछले 6 महीने',
       next: 'आगे',
@@ -40544,6 +40639,29 @@ const ar: UiStrings = {
     addDateRow: 'أضف تاريخًا',
     inDays: { one: 'خلال {n} يوم', other: 'خلال {n} يومًا' },
     itemsLeft: { one: '{n} عنصر متبقٍ', other: '{n} عناصر متبقية' },
+    filterAll: 'الكل',
+    filterBills: 'الفواتير',
+    filterTodo: 'المهام',
+    filterRecurring: 'المتكررة',
+    filterLabel: 'عرض',
+    dueThisMonth: 'مستحق هذا الشهر',
+    billsCount: { one: '{n} فاتورة', other: '{n} فواتير' },
+    itemsCount: { one: '{n} عنصر', other: '{n} عناصر' },
+    thisMonth: 'هذا الشهر',
+    nextSection: 'التالي',
+    dueOverdue: 'مستحق في {date} (متأخر)',
+    addReminder: 'أضف تذكيرًا',
+    markPaid: 'تحديد كمدفوع',
+    editBill: 'تعديل',
+    pickMonth: 'اختر شهرًا',
+    reminderTitle: 'لأي غرض؟',
+    reminderAmount: 'المبلغ (اختياري)',
+    reminderDate: 'التاريخ',
+    repeat: 'التكرار',
+    repeatNone: 'لا يتكرر',
+    repeatMonthly: 'كل شهر',
+    repeatYearly: 'كل سنة',
+    nothingHere: 'لا شيء هنا بعد.',
   },
   personalPlan: {
     leftToday: 'تبقّى {amount} اليوم',

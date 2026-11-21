@@ -50,7 +50,7 @@ export function usePersonalUpcoming(
   return mergeUpcoming([...bills, ...dateRows(dates)], left.length, limit);
 }
 
-const ICON_FOR: Record<string, keyof typeof Ionicons.glyphMap> = {
+export const ICON_FOR: Record<string, keyof typeof Ionicons.glyphMap> = {
   festival: 'sparkles-outline',
   family_birthday: 'gift-outline',
   my_birthday: 'gift-outline',
