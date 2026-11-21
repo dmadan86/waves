@@ -179,7 +179,7 @@ describe('wealth maths', () => {
   it('part payments clear the oldest due first', () => {
     const dues = rentDues([rule('a', '2026-09-05', '1000', null)], '2026-11-21');
     const b = rentBalance(dues, [{ amount: 1000n }, { amount: 400n }], '2026-11-21');
-    expect(b.lines.map((l) => l.status)).toEqual(['paid', 'part', 'due']);
+    expect(b.lines.map((l) => l.status)).toEqual(['paid', 'part', 'overdue']);
     expect(b.balance).toBe(1600n);
     expect(b.ahead).toBe(0n);
     const c = rentBalance(dues, [{ amount: 3500n }], '2026-11-21');

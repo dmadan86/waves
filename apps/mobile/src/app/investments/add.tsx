@@ -11,12 +11,7 @@ import type { InvestmentType, RentFrequency } from '@waves/core';
 
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { DayStepper } from '@/components/RepeatPicker';
-import {
-  DateAnswer,
-  FlowShell,
-  Pick,
-  TextAnswer,
-} from '@/components/wealth/parts';
+import { DateAnswer, FlowShell, Pick, TextAnswer } from '@/components/wealth/parts';
 import { todayIso } from '@/data/personal';
 import { useWealthWrites, type InvestmentDraft } from '@/data/personalWealth';
 import { useStrings } from '@/i18n';
@@ -28,6 +23,12 @@ import { INVESTMENT_TYPES } from '@waves/core';
 
 type Step = 'type' | 'payout' | 'name' | 'howMuch' | 'day' | 'auto' | 'opening' | 'value';
 const FREQS: readonly RentFrequency[] = ['weekly', 'fortnightly', 'monthly', 'quarterly', 'yearly'];
+const MATURES: readonly InvestmentType[] = [
+  'deposit',
+  'bonds',
+  'insurance_linked',
+  'savings_group',
+];
 const WITH_WRAPPER: readonly InvestmentType[] = ['retirement', 'deposit', 'fund', 'bonds'];
 
 function AddBody() {
@@ -51,6 +52,7 @@ function AddBody() {
   const [opening, setOpening] = useState(0n);
   const [value, setValue] = useState(0n);
   const [wrapper, setWrapper] = useState(false);
+  const [maturityDate, setMaturityDate] = useState<string | null>(null);
   const [at, setAt] = useState(0);
 
   const plainBill = type === 'insurance_linked' && payout === false;
@@ -78,6 +80,7 @@ function AddBody() {
     openingInvested: opening,
     currentValue: value > 0n ? value : null,
     taxWrapper: wrapper,
+    maturityDate,
     startDate: weekly ? startDate : null,
     today,
   });
@@ -133,14 +136,26 @@ function AddBody() {
   if (step === 'name') {
     return (
       <FlowShell title={w.invNameQ} {...base} onSkip={next}>
-        <TextAnswer value={name} onChange={setName} placeholder={w.invNamePlaceholder} label={w.invNameQ} />
+        <TextAnswer
+          value={name}
+          onChange={setName}
+          placeholder={w.invNamePlaceholder}
+          label={w.invNameQ}
+        />
         <Button label={t.personalSetup.cont} disabled={!name.trim()} onPress={next} />
       </FlowShell>
     );
   }
   if (step === 'howMuch') {
     return (
-      <FlowShell title={w.invHowMuchQ} {...base} onSkip={() => { setAmount(0n); next(); }}>
+      <FlowShell
+        title={w.invHowMuchQ}
+        {...base}
+        onSkip={() => {
+          setAmount(0n);
+          next();
+        }}
+      >
         <Card style={{ gap: theme.spacing.md }}>
           <AmountField currency={currency} value={amount} onChange={setAmount} />
           <Pick<RentFrequency>
@@ -160,7 +175,13 @@ function AddBody() {
           {weekly ? (
             <DateAnswer label={w.invStartQ} value={startDate} onChange={setStartDate} />
           ) : (
-            <DayStepper label={t.personalSetup.dayLabel} value={day} min={1} max={31} onChange={setDay} />
+            <DayStepper
+              label={t.personalSetup.dayLabel}
+              value={day}
+              min={1}
+              max={31}
+              onChange={setDay}
+            />
           )}
         </Card>
         <Button label={t.personalSetup.cont} onPress={next} />
@@ -185,15 +206,32 @@ function AddBody() {
   }
   if (step === 'opening') {
     return (
-      <FlowShell title={w.invOpeningQ} {...base} onSkip={() => { setOpening(0n); next(); }}>
+      <FlowShell
+        title={w.invOpeningQ}
+        {...base}
+        onSkip={() => {
+          setOpening(0n);
+          next();
+        }}
+      >
         <Card style={{ gap: theme.spacing.md }}>
           <AmountField currency={currency} value={opening} onChange={setOpening} />
           {type && WITH_WRAPPER.includes(type) ? (
-            <Row style={{ alignItems: 'center', justifyContent: 'space-between', gap: theme.spacing.md }}>
+            <Row
+              style={{
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: theme.spacing.md,
+              }}
+            >
               <Text variant="caption" style={{ flex: 1 }}>
                 {w.taxWrapper}
               </Text>
-              <Toggle value={wrapper} onValueChange={setWrapper} accessibilityLabel={w.taxWrapper} />
+              <Toggle
+                value={wrapper}
+                onValueChange={setWrapper}
+                accessibilityLabel={w.taxWrapper}
+              />
             </Row>
           ) : null}
         </Card>
@@ -202,9 +240,25 @@ function AddBody() {
     );
   }
   return (
-    <FlowShell title={w.invValueQ} {...base} note={w.valueNote} onSkip={() => { setValue(0n); void finish(auto ?? false, false); }}>
-      <Card>
+    <FlowShell
+      title={w.invValueQ}
+      {...base}
+      note={w.valueNote}
+      onSkip={() => {
+        setValue(0n);
+        void finish(auto ?? false, false);
+      }}
+    >
+      <Card style={{ gap: theme.spacing.md }}>
         <AmountField currency={currency} value={value} onChange={setValue} />
+        {type && MATURES.includes(type) ? (
+          <DateAnswer
+            label={w.maturityQ}
+            value={maturityDate}
+            onChange={setMaturityDate}
+            clearLabel={w.noEndDate}
+          />
+        ) : null}
       </Card>
       <View>
         <Button label={w.save} onPress={() => void finish(auto ?? false, false)} />

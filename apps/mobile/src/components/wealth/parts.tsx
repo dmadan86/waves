@@ -270,6 +270,7 @@ export function AmountSheet({
   currency,
   initial = 0n,
   withDate = false,
+  notePlaceholder,
   saveLabel,
   onSave,
   onClose,
@@ -279,14 +280,17 @@ export function AmountSheet({
   currency: CurrencyCode;
   initial?: bigint;
   withDate?: boolean;
+  /** Show a one-line note field with this placeholder. */
+  notePlaceholder?: string;
   saveLabel: string;
-  onSave: (amount: bigint, date: string) => void;
+  onSave: (amount: bigint, date: string, note: string) => void;
   onClose: () => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const [amount, setAmount] = useState(initial);
   const [date, setDate] = useState<string | null>(null);
+  const [note, setNote] = useState('');
   return (
     <Sheet visible={visible} onClose={onClose} title={title} closeLabel={t.common.close}>
       <View style={{ gap: theme.spacing.lg }}>
@@ -298,13 +302,22 @@ export function AmountSheet({
             onChange={(d) => setDate(d)}
           />
         ) : null}
+        {notePlaceholder ? (
+          <TextAnswer
+            value={note}
+            onChange={setNote}
+            placeholder={notePlaceholder}
+            label={notePlaceholder}
+          />
+        ) : null}
         <Button
           label={saveLabel}
           disabled={amount <= 0n}
           onPress={() => {
-            onSave(amount, date ?? localIsoDate(new Date()));
+            onSave(amount, date ?? localIsoDate(new Date()), note);
             setAmount(0n);
             setDate(null);
+            setNote('');
           }}
         />
       </View>

@@ -6,12 +6,25 @@
 
 import {
   addPlanDays,
+  leaseEndsIn,
   occurrences,
+  rentBalance,
+  rentDues,
   monthRange,
+  type PersonalInvestment,
+  type PersonalProperty,
   type PersonalRecurring,
+  type PersonalTenancy,
   type PersonalTxn,
   type UpcomingItem,
 } from '@waves/core';
+
+import {
+  currentRentRule,
+  nextDueOnOrAfter,
+  paymentsOfTenancy,
+  rulesOfTenancy,
+} from '@/lib/wealthPlan';
 
 export type RowTone = 'brand' | 'positive' | 'negative' | 'warning';
 
@@ -23,6 +36,8 @@ export interface UpcomingRow {
   readonly inDays: number;
   readonly date: string | null;
   readonly ruleId?: string;
+  /** Where tapping the row goes, when it is not a rule's own page. */
+  readonly href?: string;
   readonly title?: string;
   readonly category?: string | null;
   readonly amount?: bigint;
@@ -34,6 +49,94 @@ export interface UpcomingRow {
   readonly overdue?: boolean;
   /** Recurring tab only: the rule brings money in. */
   readonly income?: boolean;
+}
+
+/** Rent still to collect, lease ends and maturities, as rows next to the bills. */
+export function wealthRows(input: {
+  investments: readonly PersonalInvestment[];
+  properties: readonly PersonalProperty[];
+  tenancies: readonly PersonalTenancy[];
+  recurrings: readonly PersonalRecurring[];
+  txns: readonly PersonalTxn[];
+  today: string;
+  horizonDays: number;
+  titles: {
+    rent: (name: string) => string;
+    lease: (name: string) => string;
+    maturity: (name: string) => string;
+  };
+}): UpcomingRow[] {
+  const { today, horizonDays, titles } = input;
+  const out: UpcomingRow[] = [];
+  const limit = addPlanDays(today, horizonDays);
+  for (const tn of input.tenancies) {
+    if (tn.status !== 'active') continue;
+    const prop = input.properties.find((p) => p.id === tn.propertyId);
+    const name = tn.unit ?? prop?.name ?? '';
+    const href = `/rentals/${tn.propertyId}`;
+    const rules = rulesOfTenancy(input.recurrings, tn.id);
+    const bal = rentBalance(rentDues(rules, today), paymentsOfTenancy(input.txns, rules), today);
+    const open = bal.lines.find((l) => l.status !== 'paid');
+    const rule = currentRentRule(rules, tn.id);
+    const currency = rule?.currency ?? prop?.currency ?? '';
+    if (open) {
+      out.push({
+        key: `rent:${tn.id}:${open.date}`,
+        kind: 'bill',
+        tone: open.status === 'overdue' ? 'negative' : 'positive',
+        inDays: daysBetween(today, open.date),
+        date: open.date,
+        title: titles.rent(name),
+        amount: open.amount - open.paid,
+        currency,
+        income: true,
+        overdue: open.status === 'overdue',
+        href,
+      });
+    } else if (rule) {
+      const due = nextDueOnOrAfter(rule, today);
+      if (due && due <= limit) {
+        out.push({
+          key: `rent:${tn.id}:${due}`,
+          kind: 'bill',
+          tone: 'positive',
+          inDays: daysBetween(today, due),
+          date: due,
+          title: titles.rent(name),
+          amount: rule.amount,
+          currency,
+          income: true,
+          href,
+        });
+      }
+    }
+    if (tn.endDate && leaseEndsIn(tn.endDate, today, 60) !== null) {
+      out.push({
+        key: `lease:${tn.id}`,
+        kind: 'bill',
+        tone: 'warning',
+        inDays: daysBetween(today, tn.endDate),
+        date: tn.endDate,
+        title: titles.lease(name),
+        href,
+      });
+    }
+  }
+  for (const inv of input.investments) {
+    if (inv.status !== 'active' || !inv.maturityDate) continue;
+    const inDays = daysBetween(today, inv.maturityDate);
+    if (inDays < 0 || inv.maturityDate > addPlanDays(today, Math.max(horizonDays, 60))) continue;
+    out.push({
+      key: `mat:${inv.id}`,
+      kind: 'bill',
+      tone: 'brand',
+      inDays,
+      date: inv.maturityDate,
+      title: titles.maturity(inv.name),
+      href: `/investments/${inv.id}`,
+    });
+  }
+  return out;
 }
 
 /** Whole days from `from` to `to` (both YYYY-MM-DD). */

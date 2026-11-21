@@ -55,7 +55,10 @@ function InvestmentsBody() {
     let d = rule.nextDate;
     for (let i = 0; d < today && i < 800; i += 1) d = stepOccurrence(rule, d);
     return fill(w.nextOn, {
-      date: new Date(`${d}T12:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short' }),
+      date: new Date(`${d}T12:00:00`).toLocaleDateString(locale, {
+        day: 'numeric',
+        month: 'short',
+      }),
     });
   };
 
@@ -115,9 +118,14 @@ function InvestmentsBody() {
                     key={inv.id}
                     title={inv.name}
                     subtitle={inv.status === 'closed' ? w.closed : nextLabel(inv)}
-                    amount={fmt(investedSoFar({ ...inv, currency: cur(inv) }, ledger.txns), cur(inv))}
+                    amount={fmt(
+                      investedSoFar({ ...inv, currency: cur(inv) }, ledger.txns),
+                      cur(inv),
+                    )}
                     trailing={
-                      inv.status === 'closed' ? <StatusPill label={w.closed} tone="neutral" /> : undefined
+                      inv.status === 'closed' ? (
+                        <StatusPill label={w.closed} tone="neutral" />
+                      ) : undefined
                     }
                     onPress={() =>
                       router.push({ pathname: '/investments/[id]', params: { id: inv.id } })

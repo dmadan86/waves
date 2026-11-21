@@ -54,7 +54,8 @@ function DetailBody() {
   const day = (iso: string): string =>
     new Date(`${iso}T12:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
   const closed = inv.status === 'closed';
-  const saveInv = (patch: Partial<typeof inv>): void => void writes.saveInvestment({ ...inv, currency: cur, ...patch });
+  const saveInv = (patch: Partial<typeof inv>): void =>
+    void writes.saveInvestment({ ...inv, currency: cur, ...patch });
 
   return (
     <Screen edges={[]}>

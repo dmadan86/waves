@@ -6,7 +6,12 @@
 
 import {
   addPlanDays,
+  monthKey,
+  recentMonths,
   rentBalance,
+  rentCardStatus,
+  type RentBalance,
+  type RentStatus,
   rentDues,
   stepOccurrence,
   type Cadence,
@@ -79,7 +84,9 @@ export function cadenceFor(freq: RentFrequency): { cadence: Cadence; interval: n
 }
 
 /** Reverse of `cadenceFor`, for showing a rule's rhythm. */
-export function frequencyOfRule(rule: Pick<PersonalRecurring, 'cadence' | 'interval'>): RentFrequency {
+export function frequencyOfRule(
+  rule: Pick<PersonalRecurring, 'cadence' | 'interval'>,
+): RentFrequency {
   if (rule.cadence === 'weekly') return rule.interval === 2 ? 'fortnightly' : 'weekly';
   if (rule.cadence === 'yearly') return 'yearly';
   return rule.interval === 3 ? 'quarterly' : 'monthly';
@@ -101,6 +108,17 @@ export function firstDue(today: string, day: number): string {
   const [y, m] = today.slice(0, 7).split('-').map(Number) as [number, number];
   const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, '0')}`;
   return dateInMonth(next, day);
+}
+
+/**
+ * The first rent due to track. An existing tenancy that began long ago starts
+ * from this month, so years of history do not appear as overdue; one that has
+ * not begun yet starts at its first due day after the start.
+ */
+export function rentAnchor(start: string, day: number, today: string, freq: RentFrequency): string {
+  const early = start <= today;
+  if (freq === 'weekly' || freq === 'fortnightly') return early ? today : start;
+  return early ? dateInMonth(today.slice(0, 7), day) : firstDue(start, day);
 }
 
 export const atInvestmentLimit = (activeCount: number, isPro: boolean): boolean =>
@@ -135,7 +153,9 @@ export const paymentsOfTenancy = (
   rules: readonly PersonalRecurring[],
 ): PersonalTxn[] => {
   const ids = new Set(rules.map((r) => r.id));
-  return txns.filter((t) => t.kind === 'income' && t.recurringId !== null && ids.has(t.recurringId));
+  return txns.filter(
+    (t) => t.kind === 'income' && t.recurringId !== null && ids.has(t.recurringId),
+  );
 };
 
 // ───────────────────────────────────────────────────────────── reminders ──
@@ -155,7 +175,7 @@ const at10 = (date: string): number => {
   return new Date(y, m - 1, d, REMIND_HOUR, 0, 0, 0).getTime();
 };
 
-const nextDueOnOrAfter = (rule: PersonalRecurring, today: string): string | null => {
+export const nextDueOnOrAfter = (rule: PersonalRecurring, today: string): string | null => {
   let d = rule.nextDate || rule.anchorDate;
   for (let i = 0; d < today && i < 800; i += 1) {
     const n = stepOccurrence(rule, d);
@@ -219,11 +239,7 @@ export function planWealthReminders(input: {
     const name = tn.unit ?? prop?.name ?? tn.tenantName;
     const rules = rulesOfTenancy(recurrings, tn.id);
     const url = `waves://rentals/${tn.propertyId}`;
-    const bal = rentBalance(
-      rentDues(rules, today),
-      paymentsOfTenancy(txns, rules),
-      today,
-    );
+    const bal = rentBalance(rentDues(rules, today), paymentsOfTenancy(txns, rules), today);
     // Dues already past and still unpaid: nudge 3 days after they fell due.
     for (const line of bal.lines) {
       if (line.status === 'paid') continue;
@@ -251,7 +267,15 @@ export function planWealthReminders(input: {
     const rule = currentRentRule(rules, tn.id);
     const due = rule ? nextDueOnOrAfter(rule, today) : null;
     if (rule && due && !bal.lines.some((l) => l.date === due)) {
-      push({ id: `rent:${tn.id}:${due}`, fireAt: at10(due), kind: 'rentDue', name, amount: rule.amount, days: 0, url });
+      push({
+        id: `rent:${tn.id}:${due}`,
+        fireAt: at10(due),
+        kind: 'rentDue',
+        name,
+        amount: rule.amount,
+        days: 0,
+        url,
+      });
       push({
         id: `rentlate:${tn.id}:${due}`,
         fireAt: at10(addPlanDays(due, 3)),
@@ -278,4 +302,72 @@ export function planWealthReminders(input: {
   }
 
   return out.sort((a, b) => a.fireAt - b.fireAt).slice(0, input.limit ?? 40);
+}
+
+// ───────────────────────────────────────────────────────────── rentals ──
+
+export interface PropertyView {
+  readonly tenancy: PersonalTenancy | null;
+  readonly rules: PersonalRecurring[];
+  readonly rule: PersonalRecurring | null;
+  readonly balance: RentBalance;
+  readonly status: RentStatus | 'vacant';
+}
+
+export function propertyView(
+  property: PersonalProperty,
+  tenancies: readonly PersonalTenancy[],
+  recurrings: readonly PersonalRecurring[],
+  txns: readonly PersonalTxn[],
+  today: string,
+): PropertyView {
+  const tenancy =
+    tenancies.find((t) => t.propertyId === property.id && t.status === 'active') ?? null;
+  const rules = tenancy ? rulesOfTenancy(recurrings, tenancy.id) : [];
+  const balance = rentBalance(rentDues(rules, today), paymentsOfTenancy(txns, rules), today);
+  return {
+    tenancy,
+    rules,
+    rule: tenancy ? currentRentRule(recurrings, tenancy.id) : null,
+    balance,
+    status: tenancy ? rentCardStatus(balance, today) : 'vacant',
+  };
+}
+
+/** What came in this month against what fell due this month, across all tenancies. */
+export function monthRent(
+  views: readonly PropertyView[],
+  txns: readonly PersonalTxn[],
+  month: string,
+): { received: bigint; expected: bigint } {
+  let received = 0n;
+  let expected = 0n;
+  const end = dateInMonth(month, 31);
+  for (const v of views) {
+    if (!v.tenancy) continue;
+    for (const d of rentDues(v.rules, end)) if (monthKey(d.date) === month) expected += d.amount;
+    for (const p of paymentsOfTenancy(txns, v.rules)) {
+      if (monthKey(p.date) === month) received += p.amount;
+    }
+  }
+  return { received, expected };
+}
+
+/** One state per month for the last 12 months, from the tenancy's running balance. */
+export function rentStrip(
+  balance: RentBalance,
+  today: string,
+): { month: string; state: RentStatus | 'none' }[] {
+  return recentMonths(monthKey(today), 12).map((month) => {
+    const lines = balance.lines.filter((l) => monthKey(l.date) === month);
+    if (lines.length === 0) return { month, state: 'none' as const };
+    const state: RentStatus = lines.every((l) => l.status === 'paid')
+      ? 'paid'
+      : lines.some((l) => l.status === 'overdue')
+        ? 'overdue'
+        : lines.some((l) => l.paid > 0n)
+          ? 'part'
+          : 'due';
+    return { month, state };
+  });
 }

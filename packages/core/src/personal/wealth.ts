@@ -81,8 +81,7 @@ export interface RentBalance {
 /**
  * One running balance per tenancy: payments clear the oldest dues first.
  * Each payment is its own entry, so part payments simply add up.
- * `today` decides whether an unpaid line is merely due (inside its own period,
- * i.e. same month as today) or overdue.
+ * `today` decides whether an unpaid line is still due or already overdue.
  */
 export function rentBalance(
   dues: readonly RentDue[],
@@ -96,16 +95,9 @@ export function rentBalance(
     totalDue += d.amount;
     const paid = pool >= d.amount ? d.amount : pool;
     pool -= paid;
+    // Unpaid once its day has passed is overdue; a part payment stays "part".
     const status: RentStatus =
-      paid >= d.amount
-        ? 'paid'
-        : monthKey(d.date) >= monthKey(today)
-          ? paid > 0n
-            ? 'part'
-            : 'due'
-          : paid > 0n
-            ? 'part'
-            : 'overdue';
+      paid >= d.amount ? 'paid' : paid > 0n ? 'part' : d.date < today ? 'overdue' : 'due';
     return { ...d, paid, status };
   });
   const balance = totalDue > totalPaid ? totalDue - totalPaid : 0n;

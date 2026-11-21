@@ -1,13 +1,25 @@
 import { describe, expect, it } from 'vitest';
 
-import { decodeInvestment, decodeRecurring, decodeTenancy } from '@waves/core';
+import {
+  decodeInvestment,
+  decodeProperty,
+  decodeRecurring,
+  decodeTenancy,
+  type PersonalTxn,
+} from '@waves/core';
+
+import { wealthRows } from '../src/lib/personalUpcoming';
 
 import {
   atInvestmentLimit,
   atPropertyLimit,
   cadenceFor,
   depositTerm,
+  monthRent,
   planWealthReminders,
+  propertyView,
+  rentAnchor,
+  rentStrip,
   typeHint,
 } from '../src/lib/wealthPlan';
 
@@ -109,5 +121,62 @@ describe('planWealthReminders', () => {
       recurrings: [rent],
     });
     expect(out.map((r) => r.kind)).toEqual(['rentDue', 'rentLate']);
+  });
+});
+
+describe('rentals', () => {
+  const prop = decodeProperty('p1', { type: 'shop', name: 'Shop 2', currency: 'USD' });
+  const tn = decodeTenancy('t1', {
+    propertyId: 'p1',
+    tenantName: 'Ravi',
+    status: 'active',
+    endDate: '2026-12-15',
+  });
+  const rent = decodeRecurring('r1', {
+    txnKind: 'income',
+    amount: '1800',
+    currency: 'USD',
+    anchorDate: '2026-11-05',
+    nextDate: '2026-11-05',
+    cadence: 'monthly',
+    tenancyId: 't1',
+    category: 'inc.rent',
+  });
+  const pay = (amount: bigint): PersonalTxn => ({
+    id: String(amount),
+    kind: 'income',
+    amount,
+    currency: 'USD',
+    category: 'inc.rent',
+    note: null,
+    date: '2026-11-10',
+    loanId: null,
+    recurringId: 'r1',
+  });
+  it('starts an existing tenancy this month, not years back', () => {
+    expect(rentAnchor('2024-01-01', 5, '2026-11-21', 'monthly')).toBe('2026-11-05');
+    expect(rentAnchor('2027-01-01', 5, '2026-11-21', 'monthly')).toBe('2027-01-05');
+    expect(rentAnchor('2024-01-01', 5, '2026-11-21', 'fortnightly')).toBe('2026-11-21');
+  });
+  it('shows a part payment as part paid with the balance still due', () => {
+    const v = propertyView(prop, [tn], [rent], [pay(1000n)], '2026-11-21');
+    expect(v.status).toBe('part');
+    expect(v.balance.balance).toBe(800n);
+    expect(monthRent([v], [pay(1000n)], '2026-11')).toEqual({ received: 1000n, expected: 1800n });
+    expect(rentStrip(v.balance, '2026-11-21').at(-1)).toEqual({ month: '2026-11', state: 'part' });
+  });
+  it('lists rent and lease-end rows for Upcoming', () => {
+    const rows = wealthRows({
+      investments: [],
+      properties: [prop],
+      tenancies: [tn],
+      recurrings: [rent],
+      txns: [],
+      today: '2026-11-21',
+      horizonDays: 30,
+      titles: { rent: (n) => `R ${n}`, lease: (n) => `L ${n}`, maturity: (n) => `M ${n}` },
+    });
+    expect(rows.map((r) => r.key)).toEqual(['rent:t1:2026-11-05', 'lease:t1']);
+    expect(rows[0]).toMatchObject({ overdue: true, income: true, amount: 1800n });
   });
 });

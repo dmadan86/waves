@@ -35,6 +35,8 @@ export interface WealthStrings {
   invAutoNo: string;
   invStartQ: string;
   taxWrapper: string;
+  maturityQ: string;
+  noEndDate: string;
   invOpeningQ: string;
   invValueQ: string;
   insuranceQ: string;
@@ -69,6 +71,11 @@ export interface WealthStrings {
   rentQ: string;
   rentFrequencyQ: string;
   depositQ: string;
+  /** The lower-case noun used inside a sentence. */
+  depositNouns: Record<
+    'depositAdvance' | 'depositBond' | 'depositSecurity' | 'depositHeld',
+    string
+  >;
   depositHeld: string;
   depositAdvance: string;
   depositBond: string;
@@ -122,6 +129,10 @@ export interface WealthStrings {
   proOnly: string;
   addTenant: string;
   shareFailed: string;
+  /** {amount} {date} {unit} {name} */
+  receiptLine: string;
+  expenseTitle: string;
+  newRentQ: string;
   vacantNote: string;
   today: string;
   raiseRent: string;
@@ -195,6 +206,8 @@ export const wealthEn: WealthStrings = {
   invAutoNo: 'No, I add it myself',
   invStartQ: 'Which day does it start?',
   taxWrapper: 'Held in a tax-advantaged account',
+  maturityQ: 'When does it end? You can skip this.',
+  noEndDate: 'No end date',
   invOpeningQ: 'How much have you invested so far?',
   invValueQ: 'What is it worth today? You can skip this.',
   insuranceQ: 'Do you get money back at the end?',
@@ -202,7 +215,8 @@ export const wealthEn: WealthStrings = {
   yes: 'Yes',
   no: 'No',
   save: 'Save',
-  emptyInvestments: 'Add an investment to see what goes in each month and what you have put in so far.',
+  emptyInvestments:
+    'Add an investment to see what goes in each month and what you have put in so far.',
   nextOn: 'Next {date}',
   noSchedule: 'No schedule',
   entries: 'Entries',
@@ -228,6 +242,12 @@ export const wealthEn: WealthStrings = {
   rentQ: 'How much rent?',
   rentFrequencyQ: 'How often is it paid?',
   depositQ: 'How much {term} do you hold?',
+  depositNouns: {
+    depositAdvance: 'advance',
+    depositBond: 'bond',
+    depositSecurity: 'security deposit',
+    depositHeld: 'deposit',
+  },
   depositHeld: 'Deposit held',
   depositAdvance: 'Advance',
   depositBond: 'Bond',
@@ -272,6 +292,9 @@ export const wealthEn: WealthStrings = {
   receiptFooter: 'Payment recorded in Waves — not a bank confirmation or a tax invoice',
   proOnly: 'Rent receipts are part of Pro.',
   addTenant: 'Add a tenant',
+  receiptLine: 'Received {amount} from {name} on {date} for {unit}.',
+  expenseTitle: 'How much did it cost?',
+  newRentQ: 'What is the new rent?',
   shareFailed: 'Could not open the share sheet.',
   vacantNote: 'No tenant right now.',
   today: 'Today',

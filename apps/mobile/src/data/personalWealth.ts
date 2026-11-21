@@ -31,6 +31,7 @@ import {
   cadenceFor,
   endDayBefore,
   firstDue,
+  rentAnchor,
   investmentCategory,
 } from '@/lib/wealthPlan';
 
@@ -69,6 +70,7 @@ export interface InvestmentDraft {
   openingInvested: bigint;
   currentValue: bigint | null;
   taxWrapper: boolean;
+  maturityDate: string | null;
   /** Weekly and fortnightly schedules start on a date rather than a day of the month. */
   startDate: string | null;
   today: string;
@@ -78,6 +80,7 @@ export interface RentalDraft {
   type: PropertyType;
   name: string;
   currency: CurrencyCode;
+  today: string;
   tenant: null | {
     name: string;
     phone: string;
@@ -94,12 +97,22 @@ export interface RentalDraft {
 export function useWealthWrites() {
   const upsert = useUpsertPersonalRecord();
   const del = useDeletePersonalRecord();
-  const put = (recordKind: Parameters<typeof upsert.mutateAsync>[0]['recordKind'], recordId: string, data: Record<string, unknown>) =>
-    upsert.mutateAsync({ recordId, recordKind, data });
+  const put = (
+    recordKind: Parameters<typeof upsert.mutateAsync>[0]['recordKind'],
+    recordId: string,
+    data: Record<string, unknown>,
+  ) => upsert.mutateAsync({ recordId, recordKind, data });
 
   const rentRule = (
     id: string,
-    t: { tenancyId: string; amount: bigint; currency: CurrencyCode; frequency: RentFrequency; anchor: string; note: string },
+    t: {
+      tenancyId: string;
+      amount: bigint;
+      currency: CurrencyCode;
+      frequency: RentFrequency;
+      anchor: string;
+      note: string;
+    },
   ): [string, Record<string, unknown>] => [
     id,
     encodeRecurring({
@@ -136,7 +149,7 @@ export function useWealthWrites() {
           openingAsOf: d.openingInvested > 0n ? d.today : null,
           currentValue: d.currentValue,
           valueAsOf: d.currentValue !== null ? d.today : null,
-          maturityDate: null,
+          maturityDate: d.maturityDate,
           taxWrapper: d.taxWrapper,
           status: 'active',
           note: null,
@@ -197,7 +210,13 @@ export function useWealthWrites() {
     },
 
     /** Money in (an expense entry) or out (an income entry) of one investment. */
-    addEntry: (inv: PersonalInvestment, amount: bigint, direction: 'in' | 'out', date: string, note: string) =>
+    addEntry: (
+      inv: PersonalInvestment,
+      amount: bigint,
+      direction: 'in' | 'out',
+      date: string,
+      note: string,
+    ) =>
       put(
         'txn',
         randomUUID(),
@@ -261,7 +280,7 @@ export function useWealthWrites() {
           amount: t.rent,
           currency: d.currency,
           frequency: t.frequency,
-          anchor: firstDue(t.startDate, t.day),
+          anchor: rentAnchor(t.startDate, t.day, d.today, t.frequency),
           note: `Rent · ${d.name}`,
         });
         await put('recurring', rid, data);
@@ -294,7 +313,13 @@ export function useWealthWrites() {
         }),
       ),
 
-    addExpense: (property: PersonalProperty, amount: bigint, date: string, note: string, category: string | null) =>
+    addExpense: (
+      property: PersonalProperty,
+      amount: bigint,
+      date: string,
+      note: string,
+      category: string | null,
+    ) =>
       put(
         'txn',
         randomUUID(),
@@ -312,11 +337,7 @@ export function useWealthWrites() {
       ),
 
     /** A rent raise: end the old rule the day before, start a new one on the same tenancy. */
-    async changeRent(
-      old: PersonalRecurring,
-      newAmount: bigint,
-      from: string,
-    ): Promise<void> {
+    async changeRent(old: PersonalRecurring, newAmount: bigint, from: string): Promise<void> {
       const { id, ...rest } = old;
       await put('recurring', id, encodeRecurring({ ...rest, endDate: endDayBefore(from) }));
       await put(
