@@ -66,6 +66,7 @@ import { PersonAvatar } from '@/components/PersonAvatar';
 import { PersonalIntro } from '@/components/PersonalIntro';
 import { PersonalPlanCards } from '@/components/PersonalPlanCards';
 import { PersonalSetupCard } from '@/components/PersonalSetupCard';
+import { UpcomingDatesCard } from '@/components/dates/UpcomingDatesCard';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
@@ -537,6 +538,7 @@ function MeLedger() {
             />
           ) : null}
           <PersonalSetupCard />
+          <UpcomingDatesCard />
 
           <BudgetCard
             progress={budgetProgress}

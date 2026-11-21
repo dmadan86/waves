@@ -8,3 +8,4 @@ export * from './syncedLoan';
 export * from './services/index';
 export * from './digest';
 export * from './plan';
+export * from './dates';

@@ -41,6 +41,7 @@ import {
   type CategoryId,
   type CurrencyCode,
   type EventTemplateId,
+  type FestivalId,
 } from '@waves/core';
 
 import { setDemoGroupName } from '@/demo/label';
@@ -1073,6 +1074,56 @@ export interface UiStrings {
     status: string;
     stuckShort: string;
     copyHint: string;
+  };
+  dates: {
+    title: string;
+    upcoming: string;
+    addDate: string;
+    empty: string;
+    inDays: PluralForms;
+    today: string;
+    yearsAtWork: PluralForms;
+    kinds: Record<
+      'my_birthday' | 'anniversary' | 'work_anniversary' | 'family_birthday' | 'other',
+      string
+    >;
+    titles: {
+      myBirthday: string;
+      anniversary: string;
+      workAnniversary: string;
+      birthdayOf: string;
+      other: string;
+    };
+    actions: { giftCollection: string; setBudget: string; updatePay: string; planBudget: string };
+    giftGroupName: string;
+    festivals: Record<FestivalId, string>;
+    editNew: string;
+    editExisting: string;
+    name: string;
+    namePlaceholder: string;
+    day: string;
+    month: string;
+    sinceYear: string;
+    privacyMine: string;
+    privacyFamily: string;
+    shareLabel: string;
+    shareComing: string;
+    save: string;
+    notNow: string;
+    remove: string;
+    festivalsTitle: string;
+    festivalsHint: string;
+    notifTitle: string;
+    reminder: {
+      from: string;
+      notThisTime: string;
+      birthday: PluralForms;
+      anniversary: PluralForms;
+      work: PluralForms;
+      named: PluralForms;
+      today: { birthday: string; anniversary: string; work: string; named: string };
+      ask: { birthday: string; anniversary: string; work: string; named: string };
+    };
   };
   recent: {
     title: string;
@@ -9336,6 +9387,95 @@ const en: UiStrings = {
     stuckShort: 'Older than a day, not shown on screen',
     copyHint: 'Copy details to share or troubleshoot',
   },
+  dates: {
+    title: 'Your dates',
+    upcoming: 'Upcoming',
+    addDate: 'Add a date',
+    empty: "Add a birthday or anniversary and we'll remind you in time to plan.",
+    inDays: { one: 'tomorrow', other: 'in {n} days' },
+    today: 'today',
+    yearsAtWork: { one: '{n} year at work', other: '{n} years at work' },
+    kinds: {
+      my_birthday: 'My birthday',
+      anniversary: 'Anniversary',
+      work_anniversary: 'Work anniversary',
+      family_birthday: 'Family or friend',
+      other: 'Other',
+    },
+    titles: {
+      myBirthday: 'Your birthday',
+      anniversary: 'Your anniversary',
+      workAnniversary: 'Work anniversary',
+      birthdayOf: "{name}'s birthday",
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'Gift collection',
+      setBudget: 'Set budget',
+      updatePay: 'Update pay',
+      planBudget: 'Plan a budget',
+    },
+    giftGroupName: "{name}'s birthday gift",
+    festivals: {
+      diwali: 'Diwali',
+      holi: 'Holi',
+      eid_al_fitr: 'Eid al-Fitr',
+      eid_al_adha: 'Eid al-Adha',
+      christmas: 'Christmas',
+      pongal: 'Pongal',
+      onam: 'Onam',
+      raksha_bandhan: 'Raksha Bandhan',
+      navratri: 'Navratri',
+      thanksgiving: 'Thanksgiving',
+      easter: 'Easter',
+    },
+    editNew: 'Add a date',
+    editExisting: 'Edit date',
+    name: 'Name',
+    namePlaceholder: 'Asha',
+    day: 'Day',
+    month: 'Month',
+    sinceYear: 'Started in (optional)',
+    privacyMine: 'Only you see this. We use it to remind you.',
+    privacyFamily: 'These are your private notes. We never contact the people you add.',
+    shareLabel: 'Show to people in my groups',
+    shareComing: 'Coming soon',
+    save: 'Save',
+    notNow: 'Not now',
+    remove: 'Delete this date',
+    festivalsTitle: 'Festivals',
+    festivalsHint: 'We remind you a few weeks ahead. Switch off any you do not want.',
+    notifTitle: 'A reminder from Waves',
+    reminder: {
+      from: 'From Waves',
+      notThisTime: 'Not this time',
+      birthday: {
+        one: "{name}'s birthday is tomorrow.",
+        other: "{name}'s birthday is in {n} days.",
+      },
+      anniversary: {
+        one: 'Your anniversary is tomorrow.',
+        other: 'Your anniversary is in {n} days.',
+      },
+      work: {
+        one: 'Your work anniversary is tomorrow.',
+        other: 'Your work anniversary is in {n} days.',
+      },
+      named: { one: '{name} is tomorrow.', other: '{name} is in {n} days.' },
+      today: {
+        birthday: "{name}'s birthday is today.",
+        anniversary: 'Your anniversary is today.',
+        work: 'Your work anniversary is today.',
+        named: '{name} is today.',
+      },
+      ask: {
+        birthday: 'Start a gift collection?',
+        anniversary: 'Set aside a budget for dinner or a gift?',
+        work: 'Time to update your pay?',
+        named: 'Set aside a budget?',
+      },
+    },
+  },
   recent: {
     title: 'Recent on your watch',
     intro: 'How many recent expenses your paired watch shows at a glance.',
@@ -17074,6 +17214,87 @@ const ta: UiStrings = {
     status: 'நிலை',
     stuckShort: 'ஒரு நாளுக்கு மேல் பழையது, திரையில் காட்டப்படவில்லை',
     copyHint: 'பகிர அல்லது சரிசெய்ய விவரங்களை நகலெடு',
+  },
+  dates: {
+    title: 'உங்கள் தேதிகள்',
+    upcoming: 'வரவிருப்பவை',
+    addDate: 'தேதியைச் சேர்',
+    empty: 'பிறந்தநாள் அல்லது திருமண நாளைச் சேருங்கள்; திட்டமிட நேரத்தில் நினைவூட்டுவோம்.',
+    inDays: { one: 'நாளை', other: '{n} நாட்களில்' },
+    today: 'இன்று',
+    yearsAtWork: { one: 'வேலையில் {n} ஆண்டு', other: 'வேலையில் {n} ஆண்டுகள்' },
+    kinds: {
+      my_birthday: 'என் பிறந்தநாள்',
+      anniversary: 'திருமண நாள்',
+      work_anniversary: 'பணி ஆண்டுவிழா',
+      family_birthday: 'குடும்பம் அல்லது நண்பர்',
+      other: 'மற்றவை',
+    },
+    titles: {
+      myBirthday: 'உங்கள் பிறந்தநாள்',
+      anniversary: 'உங்கள் திருமண நாள்',
+      workAnniversary: 'பணி ஆண்டுவிழா',
+      birthdayOf: '{name} பிறந்தநாள்',
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'பரிசு வசூல்',
+      setBudget: 'பட்ஜெட் அமை',
+      updatePay: 'சம்பளத்தைப் புதுப்பி',
+      planBudget: 'பட்ஜெட் திட்டமிடு',
+    },
+    giftGroupName: '{name} பிறந்தநாள் பரிசு',
+    festivals: {
+      diwali: 'தீபாவளி',
+      holi: 'ஹோலி',
+      eid_al_fitr: 'ஈதுல் பித்ர்',
+      eid_al_adha: 'ஈதுல் அள்ஹா',
+      christmas: 'கிறிஸ்துமஸ்',
+      pongal: 'பொங்கல்',
+      onam: 'ஓணம்',
+      raksha_bandhan: 'ரக்ஷா பந்தன்',
+      navratri: 'நவராத்திரி',
+      thanksgiving: 'நன்றி தெரிவிக்கும் நாள்',
+      easter: 'ஈஸ்டர்',
+    },
+    editNew: 'தேதியைச் சேர்',
+    editExisting: 'தேதியை மாற்று',
+    name: 'பெயர்',
+    namePlaceholder: 'ஆஷா',
+    day: 'நாள்',
+    month: 'மாதம்',
+    sinceYear: 'தொடங்கிய ஆண்டு (விருப்பம்)',
+    privacyMine: 'இதை நீங்கள் மட்டுமே பார்ப்பீர்கள். நினைவூட்ட மட்டும் பயன்படுத்துவோம்.',
+    privacyFamily:
+      'இவை உங்கள் தனிப்பட்ட குறிப்புகள். நீங்கள் சேர்ப்பவர்களை நாங்கள் ஒருபோதும் தொடர்புகொள்ள மாட்டோம்.',
+    shareLabel: 'என் குழுக்களில் உள்ளவர்களுக்குக் காட்டு',
+    shareComing: 'விரைவில்',
+    save: 'சேமி',
+    notNow: 'இப்போது வேண்டாம்',
+    remove: 'இந்தத் தேதியை நீக்கு',
+    festivalsTitle: 'பண்டிகைகள்',
+    festivalsHint: 'சில வாரங்களுக்கு முன்பே நினைவூட்டுவோம். வேண்டாதவற்றை அணைத்துவிடுங்கள்.',
+    notifTitle: 'Waves நினைவூட்டல்',
+    reminder: {
+      from: 'Waves-இடமிருந்து',
+      notThisTime: 'இந்த முறை வேண்டாம்',
+      birthday: { one: '{name} பிறந்தநாள் நாளை.', other: '{name} பிறந்தநாள் {n} நாட்களில்.' },
+      anniversary: { one: 'உங்கள் திருமண நாள் நாளை.', other: 'உங்கள் திருமண நாள் {n} நாட்களில்.' },
+      work: { one: 'உங்கள் பணி ஆண்டுவிழா நாளை.', other: 'உங்கள் பணி ஆண்டுவிழா {n} நாட்களில்.' },
+      named: { one: '{name} நாளை.', other: '{name} {n} நாட்களில்.' },
+      today: {
+        birthday: '{name} பிறந்தநாள் இன்று.',
+        anniversary: 'உங்கள் திருமண நாள் இன்று.',
+        work: 'உங்கள் பணி ஆண்டுவிழா இன்று.',
+        named: '{name} இன்று.',
+      },
+      ask: {
+        birthday: 'பரிசு வசூலைத் தொடங்கவா?',
+        anniversary: 'இரவு உணவு அல்லது பரிசுக்கு பட்ஜெட் ஒதுக்கவா?',
+        work: 'சம்பளத்தைப் புதுப்பிக்க நேரமா?',
+        named: 'பட்ஜெட் ஒதுக்கவா?',
+      },
+    },
   },
   recent: {
     title: 'கடிகாரத்தில் சமீபத்தியவை',
@@ -25009,6 +25230,86 @@ const hi: UiStrings = {
     stuckShort: 'एक दिन से पुराना, स्क्रीन पर नहीं दिखता',
     copyHint: 'शेयर या समस्या जाँचने के लिए विवरण कॉपी करें',
   },
+  dates: {
+    title: 'आपकी तारीखें',
+    upcoming: 'आने वाली',
+    addDate: 'तारीख जोड़ें',
+    empty: 'जन्मदिन या सालगिरह जोड़ें, हम समय रहते याद दिला देंगे।',
+    inDays: { one: 'कल', other: '{n} दिन में' },
+    today: 'आज',
+    yearsAtWork: { one: 'काम में {n} साल', other: 'काम में {n} साल' },
+    kinds: {
+      my_birthday: 'मेरा जन्मदिन',
+      anniversary: 'सालगिरह',
+      work_anniversary: 'काम की सालगिरह',
+      family_birthday: 'परिवार या दोस्त',
+      other: 'अन्य',
+    },
+    titles: {
+      myBirthday: 'आपका जन्मदिन',
+      anniversary: 'आपकी सालगिरह',
+      workAnniversary: 'काम की सालगिरह',
+      birthdayOf: '{name} का जन्मदिन',
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'गिफ़्ट कलेक्शन',
+      setBudget: 'बजट बनाएँ',
+      updatePay: 'वेतन अपडेट करें',
+      planBudget: 'बजट बनाएँ',
+    },
+    giftGroupName: '{name} के जन्मदिन का गिफ़्ट',
+    festivals: {
+      diwali: 'दिवाली',
+      holi: 'होली',
+      eid_al_fitr: 'ईद-उल-फ़ित्र',
+      eid_al_adha: 'ईद-उल-अज़हा',
+      christmas: 'क्रिसमस',
+      pongal: 'पोंगल',
+      onam: 'ओणम',
+      raksha_bandhan: 'रक्षा बंधन',
+      navratri: 'नवरात्रि',
+      thanksgiving: 'थैंक्सगिविंग',
+      easter: 'ईस्टर',
+    },
+    editNew: 'तारीख जोड़ें',
+    editExisting: 'तारीख बदलें',
+    name: 'नाम',
+    namePlaceholder: 'आशा',
+    day: 'दिन',
+    month: 'महीना',
+    sinceYear: 'किस साल शुरू किया (वैकल्पिक)',
+    privacyMine: 'इसे सिर्फ़ आप देखते हैं। हम इसे आपको याद दिलाने के लिए इस्तेमाल करते हैं।',
+    privacyFamily: 'ये आपके निजी नोट हैं। आप जिन्हें जोड़ते हैं, हम उनसे कभी संपर्क नहीं करते।',
+    shareLabel: 'मेरे ग्रुप के लोगों को दिखाएँ',
+    shareComing: 'जल्द आ रहा है',
+    save: 'सेव करें',
+    notNow: 'अभी नहीं',
+    remove: 'यह तारीख़ हटाएँ',
+    festivalsTitle: 'त्योहार',
+    festivalsHint: 'हम कुछ हफ़्ते पहले याद दिलाते हैं। जो न चाहिए उसे बंद कर दें।',
+    notifTitle: 'Waves की ओर से याद दिलाना',
+    reminder: {
+      from: 'Waves की ओर से',
+      notThisTime: 'इस बार नहीं',
+      birthday: { one: '{name} का जन्मदिन कल है।', other: '{name} का जन्मदिन {n} दिन में है।' },
+      anniversary: { one: 'आपकी सालगिरह कल है।', other: 'आपकी सालगिरह {n} दिन में है।' },
+      work: { one: 'आपकी काम की सालगिरह कल है।', other: 'आपकी काम की सालगिरह {n} दिन में है।' },
+      named: { one: '{name} कल है।', other: '{name} {n} दिन में है।' },
+      today: {
+        birthday: '{name} का जन्मदिन आज है।',
+        anniversary: 'आपकी सालगिरह आज है।',
+        work: 'आपकी काम की सालगिरह आज है।',
+        named: '{name} आज है।',
+      },
+      ask: {
+        birthday: 'गिफ़्ट कलेक्शन शुरू करें?',
+        anniversary: 'डिनर या गिफ़्ट के लिए बजट रखें?',
+        work: 'वेतन अपडेट करने का समय?',
+        named: 'बजट रखें?',
+      },
+    },
+  },
   recent: {
     title: 'घड़ी पर हाल के खर्च',
     intro: 'आपकी जुड़ी हुई घड़ी एक नज़र में कितने हाल के खर्च दिखाए।',
@@ -32778,6 +33079,122 @@ const ar: UiStrings = {
     status: 'الحالة',
     stuckShort: 'أقدم من يوم، غير معروض على الشاشة',
     copyHint: 'انسخ التفاصيل للمشاركة أو لحل المشكلة',
+  },
+  dates: {
+    title: 'تواريخك',
+    upcoming: 'القادم',
+    addDate: 'أضف تاريخًا',
+    empty: 'أضف عيد ميلاد أو ذكرى سنوية وسنذكّرك في الوقت المناسب للتخطيط.',
+    inDays: {
+      one: 'غدًا',
+      two: 'بعد يومين',
+      few: 'بعد {n} أيام',
+      many: 'بعد {n} يومًا',
+      other: 'بعد {n} يوم',
+    },
+    today: 'اليوم',
+    yearsAtWork: {
+      one: 'سنة واحدة في العمل',
+      two: 'سنتان في العمل',
+      few: '{n} سنوات في العمل',
+      many: '{n} سنة في العمل',
+      other: '{n} سنة في العمل',
+    },
+    kinds: {
+      my_birthday: 'عيد ميلادي',
+      anniversary: 'ذكرى سنوية',
+      work_anniversary: 'ذكرى العمل',
+      family_birthday: 'العائلة أو الأصدقاء',
+      other: 'أخرى',
+    },
+    titles: {
+      myBirthday: 'عيد ميلادك',
+      anniversary: 'ذكراك السنوية',
+      workAnniversary: 'ذكرى العمل',
+      birthdayOf: 'عيد ميلاد {name}',
+      other: '{name}',
+    },
+    actions: {
+      giftCollection: 'جمع هدية',
+      setBudget: 'حدّد ميزانية',
+      updatePay: 'حدّث الراتب',
+      planBudget: 'خطّط لميزانية',
+    },
+    giftGroupName: 'هدية عيد ميلاد {name}',
+    festivals: {
+      diwali: 'ديوالي',
+      holi: 'هولي',
+      eid_al_fitr: 'عيد الفطر',
+      eid_al_adha: 'عيد الأضحى',
+      christmas: 'عيد الميلاد المجيد',
+      pongal: 'بونغال',
+      onam: 'أونام',
+      raksha_bandhan: 'راكشا باندهان',
+      navratri: 'نافراتري',
+      thanksgiving: 'عيد الشكر',
+      easter: 'عيد الفصح',
+    },
+    editNew: 'أضف تاريخًا',
+    editExisting: 'عدّل التاريخ',
+    name: 'الاسم',
+    namePlaceholder: 'آشا',
+    day: 'اليوم',
+    month: 'الشهر',
+    sinceYear: 'سنة البدء (اختياري)',
+    privacyMine: 'أنت وحدك ترى هذا. نستخدمه لتذكيرك فقط.',
+    privacyFamily: 'هذه ملاحظاتك الخاصة. لن نتواصل أبدًا مع من تضيفهم.',
+    shareLabel: 'أظهر للأشخاص في مجموعاتي',
+    shareComing: 'قريبًا',
+    save: 'حفظ',
+    notNow: 'ليس الآن',
+    remove: 'احذف هذا التاريخ',
+    festivalsTitle: 'الأعياد',
+    festivalsHint: 'نذكّرك قبلها بأسابيع. أوقف ما لا تريده.',
+    notifTitle: 'تذكير من Waves',
+    reminder: {
+      from: 'من Waves',
+      notThisTime: 'ليس هذه المرة',
+      birthday: {
+        one: 'عيد ميلاد {name} غدًا.',
+        two: 'عيد ميلاد {name} بعد يومين.',
+        few: 'عيد ميلاد {name} بعد {n} أيام.',
+        many: 'عيد ميلاد {name} بعد {n} يومًا.',
+        other: 'عيد ميلاد {name} بعد {n} يوم.',
+      },
+      anniversary: {
+        one: 'ذكراك السنوية غدًا.',
+        two: 'ذكراك السنوية بعد يومين.',
+        few: 'ذكراك السنوية بعد {n} أيام.',
+        many: 'ذكراك السنوية بعد {n} يومًا.',
+        other: 'ذكراك السنوية بعد {n} يوم.',
+      },
+      work: {
+        one: 'ذكرى عملك غدًا.',
+        two: 'ذكرى عملك بعد يومين.',
+        few: 'ذكرى عملك بعد {n} أيام.',
+        many: 'ذكرى عملك بعد {n} يومًا.',
+        other: 'ذكرى عملك بعد {n} يوم.',
+      },
+      named: {
+        one: '{name} غدًا.',
+        two: '{name} بعد يومين.',
+        few: '{name} بعد {n} أيام.',
+        many: '{name} بعد {n} يومًا.',
+        other: '{name} بعد {n} يوم.',
+      },
+      today: {
+        birthday: 'عيد ميلاد {name} اليوم.',
+        anniversary: 'ذكراك السنوية اليوم.',
+        work: 'ذكرى عملك اليوم.',
+        named: '{name} اليوم.',
+      },
+      ask: {
+        birthday: 'هل نبدأ جمع هدية؟',
+        anniversary: 'هل نخصص ميزانية للعشاء أو الهدية؟',
+        work: 'حان وقت تحديث راتبك؟',
+        named: 'هل نخصص ميزانية؟',
+      },
+    },
   },
   recent: {
     title: 'الأحدث على ساعتك',
