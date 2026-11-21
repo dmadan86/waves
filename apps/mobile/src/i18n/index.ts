@@ -8099,6 +8099,7 @@ export interface UiStrings {
     homeQ: string;
     homeRent: string;
     homeEmi: string;
+    hintEmi: string;
     homeNone: string;
     homeDetailsQ: string;
     billsQ: string;
@@ -8109,8 +8110,18 @@ export interface UiStrings {
     billHelp: string;
     billSchool: string;
     billSociety: string;
+    hintSociety: string;
+    hintHoa: string;
+    hintServiceCharge: string;
+    hintCouncilTax: string;
+    hintStrata: string;
+    hintRates: string;
+    hintDewa: string;
+    hintChiller: string;
     billInsurance: string;
     billSip: string;
+    hintMaidCookDriver: string;
+    hintSipChitFund: string;
     billsDetailsQ: string;
     loanQ: string;
     yes: string;
@@ -8119,6 +8130,7 @@ export interface UiStrings {
     loanCar: string;
     loanPersonal: string;
     loanGold: string;
+    hintGoldLoan: string;
     loanEducation: string;
     loanCard: string;
     loanDetailsQ: string;
@@ -15767,7 +15779,7 @@ const en: UiStrings = {
     incomeDetailsQ: 'How much, and on which day?',
     homeQ: 'Rent or home loan?',
     homeRent: 'Rent',
-    homeEmi: 'Home loan EMI',
+    homeEmi: 'Home loan payment',
     homeNone: 'Neither',
     homeDetailsQ: 'How much, and on which day?',
     billsQ: 'Which bills do you pay?',
@@ -15775,19 +15787,19 @@ const en: UiStrings = {
     billMobile: 'Mobile',
     billWifi: 'Wi-Fi',
     billGas: 'Gas',
-    billHelp: 'Maid / cook / driver',
+    billHelp: 'Household help',
     billSchool: 'School fees (quarterly)',
-    billSociety: 'Society maintenance',
+    billSociety: 'Building fees',
     billInsurance: 'Insurance (yearly)',
-    billSip: 'SIP / chit fund',
+    billSip: 'Investment contribution',
     billsDetailsQ: 'How much, and on which day?',
-    loanQ: 'Paying any loan EMIs?',
+    loanQ: 'Paying off any loans?',
     yes: 'Yes',
     no: 'No',
     loanTypeQ: 'Which loan?',
     loanCar: 'Car',
     loanPersonal: 'Personal',
-    loanGold: 'Gold',
+    loanGold: 'Other secured loan',
     loanEducation: 'Education',
     loanCard: 'Credit card',
     loanDetailsQ: 'EMI, day and months left',
@@ -15821,6 +15833,19 @@ const en: UiStrings = {
     finishRow: '{name}',
     fixedBillsCount: { one: '{n} bill', other: '{n} bills' },
     nextBillIn: { one: '{name} tomorrow', other: '{name} in {n} days' },
+
+    hintEmi: 'EMI',
+    hintSociety: 'Society maintenance',
+    hintHoa: 'HOA',
+    hintServiceCharge: 'Service charge',
+    hintCouncilTax: 'Council tax',
+    hintStrata: 'Strata',
+    hintRates: 'Rates',
+    hintDewa: 'DEWA',
+    hintChiller: 'Chiller',
+    hintMaidCookDriver: 'Maid / cook / driver',
+    hintSipChitFund: 'SIP / chit fund',
+    hintGoldLoan: 'Gold loan',
   },
   personal: {
     introCards: [
@@ -23658,7 +23683,7 @@ const ta: UiStrings = {
     incomeDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
     homeQ: 'வாடகை அல்லது வீட்டுக் கடன்?',
     homeRent: 'வாடகை',
-    homeEmi: 'வீட்டுக் கடன் EMI',
+    homeEmi: 'வீட்டுக் கடன் கட்டணம்',
     homeNone: 'இரண்டும் இல்லை',
     homeDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
     billsQ: 'எந்தக் கட்டணங்களைச் செலுத்துகிறீர்கள்?',
@@ -23666,19 +23691,19 @@ const ta: UiStrings = {
     billMobile: 'மொபைல்',
     billWifi: 'வைஃபை',
     billGas: 'எரிவாயு',
-    billHelp: 'வேலைக்காரர் / சமையல் / ஓட்டுநர்',
+    billHelp: 'வீட்டு உதவி',
     billSchool: 'பள்ளிக் கட்டணம் (காலாண்டு)',
-    billSociety: 'சங்கப் பராமரிப்பு',
+    billSociety: 'கட்டிடக் கட்டணங்கள்',
     billInsurance: 'காப்பீடு (ஆண்டு)',
-    billSip: 'SIP / சீட்டு',
+    billSip: 'முதலீட்டுப் பங்களிப்பு',
     billsDetailsQ: 'எவ்வளவு, எந்த நாளில்?',
-    loanQ: 'ஏதேனும் கடன் EMI செலுத்துகிறீர்களா?',
+    loanQ: 'ஏதேனும் கடனைத் திருப்பிச் செலுத்துகிறீர்களா?',
     yes: 'ஆம்',
     no: 'இல்லை',
     loanTypeQ: 'எந்தக் கடன்?',
     loanCar: 'கார்',
     loanPersonal: 'தனிநபர்',
-    loanGold: 'தங்கம்',
+    loanGold: 'பிற அடமானக் கடன்',
     loanEducation: 'கல்வி',
     loanCard: 'கிரெடிட் கார்டு',
     loanDetailsQ: 'EMI, நாள், மீதமுள்ள மாதங்கள்',
@@ -23712,6 +23737,19 @@ const ta: UiStrings = {
     finishRow: '{name}',
     fixedBillsCount: { one: '{n} கட்டணம்', other: '{n} கட்டணங்கள்' },
     nextBillIn: { one: '{name} நாளை', other: '{name} {n} நாட்களில்' },
+
+    hintEmi: 'EMI',
+    hintSociety: 'சங்கப் பராமரிப்பு',
+    hintHoa: 'HOA',
+    hintServiceCharge: 'சேவை கட்டணம்',
+    hintCouncilTax: 'கவுன்சில் வரி',
+    hintStrata: 'ஸ்ட்ராட்டா',
+    hintRates: 'விகிதக் கட்டணங்கள்',
+    hintDewa: 'DEWA',
+    hintChiller: 'சில்லர்',
+    hintMaidCookDriver: 'வேலைக்காரர் / சமையல் / ஓட்டுநர்',
+    hintSipChitFund: 'SIP / சீட்டு',
+    hintGoldLoan: 'தங்கக் கடன்',
   },
   personal: {
     introCards: [
@@ -31329,7 +31367,7 @@ const hi: UiStrings = {
     incomeDetailsQ: 'कितना, और किस तारीख़ को?',
     homeQ: 'किराया या होम लोन?',
     homeRent: 'किराया',
-    homeEmi: 'होम लोन EMI',
+    homeEmi: 'होम लोन भुगतान',
     homeNone: 'दोनों नहीं',
     homeDetailsQ: 'कितना, और किस तारीख़ को?',
     billsQ: 'आप कौन-से बिल भरते हैं?',
@@ -31337,19 +31375,19 @@ const hi: UiStrings = {
     billMobile: 'मोबाइल',
     billWifi: 'वाई-फ़ाई',
     billGas: 'गैस',
-    billHelp: 'मेड / कुक / ड्राइवर',
+    billHelp: 'घरेलू सहायता',
     billSchool: 'स्कूल फ़ीस (तिमाही)',
-    billSociety: 'सोसाइटी मेंटेनेंस',
+    billSociety: 'बिल्डिंग शुल्क',
     billInsurance: 'बीमा (सालाना)',
-    billSip: 'SIP / चिट फ़ंड',
+    billSip: 'निवेश योगदान',
     billsDetailsQ: 'कितना, और किस तारीख़ को?',
-    loanQ: 'कोई लोन EMI भर रहे हैं?',
+    loanQ: 'क्या आप कोई कर्ज़ चुका रहे हैं?',
     yes: 'हाँ',
     no: 'नहीं',
     loanTypeQ: 'कौन-सा लोन?',
     loanCar: 'कार',
     loanPersonal: 'पर्सनल',
-    loanGold: 'गोल्ड',
+    loanGold: 'अन्य सुरक्षित ऋण',
     loanEducation: 'एजुकेशन',
     loanCard: 'क्रेडिट कार्ड',
     loanDetailsQ: 'EMI, तारीख़ और बचे महीने',
@@ -31383,6 +31421,19 @@ const hi: UiStrings = {
     finishRow: '{name}',
     fixedBillsCount: { one: '{n} बिल', other: '{n} बिल' },
     nextBillIn: { one: '{name} कल', other: '{name} {n} दिन में' },
+
+    hintEmi: 'EMI',
+    hintSociety: 'सोसाइटी मेंटेनेंस',
+    hintHoa: 'HOA',
+    hintServiceCharge: 'सर्विस चार्ज',
+    hintCouncilTax: 'काउंसिल टैक्स',
+    hintStrata: 'स्ट्राटा',
+    hintRates: 'रेट्स',
+    hintDewa: 'DEWA',
+    hintChiller: 'चिलर',
+    hintMaidCookDriver: 'मेड / कुक / ड्राइवर',
+    hintSipChitFund: 'SIP / चिट फ़ंड',
+    hintGoldLoan: 'गोल्ड लोन',
   },
   personal: {
     introCards: [
@@ -39719,7 +39770,7 @@ const ar: UiStrings = {
     incomeDetailsQ: 'كم المبلغ، وفي أي يوم؟',
     homeQ: 'إيجار أم قرض منزل؟',
     homeRent: 'إيجار',
-    homeEmi: 'قسط قرض المنزل',
+    homeEmi: 'دفعة قرض المنزل',
     homeNone: 'لا هذا ولا ذاك',
     homeDetailsQ: 'كم المبلغ، وفي أي يوم؟',
     billsQ: 'ما الفواتير التي تدفعها؟',
@@ -39727,19 +39778,19 @@ const ar: UiStrings = {
     billMobile: 'الجوال',
     billWifi: 'الواي فاي',
     billGas: 'الغاز',
-    billHelp: 'خادمة / طباخ / سائق',
+    billHelp: 'مساعدة منزلية',
     billSchool: 'رسوم المدرسة (ربع سنوية)',
-    billSociety: 'صيانة المجمّع',
+    billSociety: 'رسوم المبنى',
     billInsurance: 'التأمين (سنوي)',
-    billSip: 'استثمار شهري / جمعية',
+    billSip: 'مساهمة استثمارية',
     billsDetailsQ: 'كم المبلغ، وفي أي يوم؟',
-    loanQ: 'هل تسدّد أقساط قروض؟',
+    loanQ: 'هل تسدّد أي قروض؟',
     yes: 'نعم',
     no: 'لا',
     loanTypeQ: 'أي قرض؟',
     loanCar: 'سيارة',
     loanPersonal: 'شخصي',
-    loanGold: 'ذهب',
+    loanGold: 'قرض مضمون آخر',
     loanEducation: 'تعليم',
     loanCard: 'بطاقة ائتمان',
     loanDetailsQ: 'القسط واليوم والأشهر المتبقية',
@@ -39786,6 +39837,19 @@ const ar: UiStrings = {
       many: '{name} بعد {n} يوماً',
       other: '{name} بعد {n} يوم',
     },
+
+    hintEmi: 'قسط قرض المنزل',
+    hintSociety: 'صيانة المجمّع',
+    hintHoa: 'رسوم اتحاد الملاك',
+    hintServiceCharge: 'رسوم الخدمة',
+    hintCouncilTax: 'ضريبة المجلس المحلي',
+    hintStrata: 'ستراتا',
+    hintRates: 'الرسوم البلدية',
+    hintDewa: 'DEWA',
+    hintChiller: 'تبريد',
+    hintMaidCookDriver: 'خادمة / طباخ / سائق',
+    hintSipChitFund: 'استثمار شهري / جمعية',
+    hintGoldLoan: 'قرض ذهب',
   },
   personal: {
     introCards: [

@@ -6,9 +6,11 @@ import { decodeBudget, decodeRecurring, type CurrencyCode } from '@waves/core';
 import {
   answersToRecords,
   eatOutMonthly,
+  eatOutPresets,
   monthlyEquivalent,
   nextDayOfMonth,
   personalSetupAnswers,
+  regionHint,
   rememberSetup,
   setupSummary,
   type SetupContext,
@@ -83,6 +85,40 @@ describe('answersToRecords', () => {
     ).toEqual([]);
   });
 
+  it('continues to accept legacy answer ids and writes the neutral ids', () => {
+    const legacy = {
+      home: { kind: 'emi', amount: rupees(10000), day: 4 },
+      bills: [
+        { id: 'society', amount: rupees(1000), day: 5 },
+        { id: 'help', amount: rupees(2000), day: 6 },
+        { id: 'sip', amount: rupees(3000), day: 7 },
+      ],
+      emi: { kind: 'gold', emi: rupees(4000), day: 8, monthsLeft: 12 },
+    } as const;
+    const recs = answersToRecords(legacy, ctx);
+    const notes = recs.map((r) => decodeRecurring(r.recordId, r.data).note);
+    expect(notes).toEqual([
+      'home:home_loan',
+      'bill:building_fees',
+      'bill:household_help',
+      'bill:investment_contribution',
+      'loan:secured_other',
+    ]);
+    const canonical = answersToRecords(
+      {
+        home: { kind: 'home_loan', amount: rupees(10000), day: 4 },
+        bills: [
+          { id: 'building_fees', amount: rupees(1000), day: 5 },
+          { id: 'household_help', amount: rupees(2000), day: 6 },
+          { id: 'investment_contribution', amount: rupees(3000), day: 7 },
+        ],
+        emi: { kind: 'secured_other', emi: rupees(4000), day: 8, monthsLeft: 12 },
+      },
+      ctx,
+    );
+    expect(recs.map((r) => r.recordId)).toEqual(canonical.map((r) => r.recordId));
+  });
+
   it('writes the food and overall budgets with a null category for overall', () => {
     const budgets = answersToRecords({ eatOut: answers.eatOut, cap: answers.cap }, ctx)
       .filter((r) => r.recordKind === 'budget')
@@ -92,6 +128,22 @@ describe('answersToRecords', () => {
 });
 
 describe('helpers', () => {
+  it('chooses display hints by region and keeps unknown regions neutral', () => {
+    expect(regionHint('homeLoan', 'IN')).toEqual(['hintEmi']);
+    expect(regionHint('buildingFees', 'US')).toEqual(['hintHoa']);
+    expect(regionHint('buildingFees', 'GB')).toEqual(['hintServiceCharge', 'hintCouncilTax']);
+    expect(regionHint('buildingFees', 'AU')).toEqual(['hintStrata', 'hintRates']);
+    expect(regionHint('buildingFees', 'AE')).toEqual(['hintDewa', 'hintChiller']);
+    expect(regionHint('securedOther', 'AE')).toEqual(['hintGoldLoan']);
+    expect(regionHint('householdHelp', 'US')).toEqual([]);
+  });
+
+  it('uses currency-specific eat-out ladders including zero-decimal JPY', () => {
+    expect(eatOutPresets('INR' as CurrencyCode)[0]).toBe(rupees(100));
+    expect(eatOutPresets('JPY' as CurrencyCode)).toEqual([1000n, 2000n, 3000n, 5000n, 10000n]);
+    expect(eatOutPresets('KWD' as CurrencyCode)[0]).toBe(10000n);
+  });
+
   it('picks the next day of the month, clamped', () => {
     expect(nextDayOfMonth('2026-11-21', 25)).toBe('2026-11-25');
     expect(nextDayOfMonth('2026-11-21', 5)).toBe('2026-12-05');
