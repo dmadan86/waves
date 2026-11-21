@@ -87,6 +87,10 @@ export interface PersonalTxn {
    *  blob, not a column, so it needs no migration and the server never sees
    *  which entries have one. */
   readonly receiptKey?: string | null;
+  /** The investment this entry puts money into (or takes out of). */
+  readonly investmentId?: string | null;
+  /** The rental property this repair, tax or rent entry belongs to. */
+  readonly propertyId?: string | null;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -117,6 +121,10 @@ export interface PersonalRecurring {
   /** True → mint the txn automatically when due; false → only remind. */
   readonly autoPost: boolean;
   readonly active: boolean;
+  /** The investment this rule feeds (an SIP), if any. */
+  readonly investmentId?: string | null;
+  /** The tenancy this rent rule belongs to, if any. */
+  readonly tenancyId?: string | null;
   /** Fields from the stored blob this version of the app did not recognise,
    *  kept so that editing a record here never deletes something a newer
    *  version wrote. Re-emitted by the encoder; see the note at the top. */
@@ -196,6 +204,95 @@ export interface PersonalDate {
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
+/** Neutral categories. Region examples (SIP, 401k, ISA, Super) are hints in the
+ *  UI chosen by country, never part of the stored value. `chit` is an India-only
+ *  hint, shown only there. */
+export type InvestmentType =
+  | 'fund'
+  | 'stocks'
+  | 'deposit'
+  | 'retirement'
+  | 'metals'
+  | 'bonds'
+  | 'insurance'
+  | 'crypto'
+  | 'chit'
+  | 'other';
+export const INVESTMENT_TYPES: readonly InvestmentType[] = [
+  'fund',
+  'stocks',
+  'deposit',
+  'retirement',
+  'metals',
+  'bonds',
+  'insurance',
+  'crypto',
+  'chit',
+  'other',
+];
+export type WealthStatus = 'active' | 'closed';
+
+/** A holding the person tracks. `currentValue` is their own entered figure,
+ *  never a computed or advised one. */
+export interface PersonalInvestment {
+  readonly id: string;
+  readonly type: InvestmentType;
+  readonly name: string;
+  readonly currency: CurrencyCode;
+  /** What was already invested before this app tracked it. */
+  readonly openingInvested: bigint;
+  readonly openingAsOf: string | null;
+  readonly currentValue: bigint | null;
+  readonly valueAsOf: string | null;
+  readonly maturityDate: string | null;
+  readonly status: WealthStatus;
+  readonly note: string | null;
+  readonly carried?: Readonly<Record<string, unknown>>;
+}
+
+export type PropertyType = 'house' | 'flat' | 'shop' | 'commercial' | 'pg' | 'land' | 'other';
+export const PROPERTY_TYPES: readonly PropertyType[] = [
+  'house',
+  'flat',
+  'shop',
+  'commercial',
+  'pg',
+  'land',
+  'other',
+];
+
+export interface PersonalProperty {
+  readonly id: string;
+  readonly type: PropertyType;
+  readonly name: string;
+  readonly locality: string | null;
+  readonly currency: CurrencyCode;
+  readonly status: WealthStatus;
+  readonly note: string | null;
+  readonly carried?: Readonly<Record<string, unknown>>;
+}
+
+/** Who rents a property. Only a name and a phone are kept: no ID numbers. The
+ *  advance is a field here, never a txn: it is held money, not income. */
+export interface PersonalTenancy {
+  readonly id: string;
+  readonly propertyId: string;
+  readonly unit: string | null;
+  readonly tenantName: string;
+  readonly tenantPhone: string | null;
+  readonly depositHeld: bigint;
+  readonly startDate: string;
+  readonly endDate: string | null;
+  readonly escalationPct: number | null;
+  readonly status: WealthStatus;
+  readonly endedOn: string | null;
+  readonly depositReturned: bigint | null;
+  /** The part of the advance the landlord kept; counts as income. */
+  readonly depositKept: bigint | null;
+  readonly note: string | null;
+  readonly carried?: Readonly<Record<string, unknown>>;
+}
+
 // ───────────────────────────────────────────────── defensive readers ──
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.length > 0 ? v : null);
@@ -232,6 +329,8 @@ const KNOWN_TXN = [
   'place',
   'reimbursable',
   'receiptKey',
+  'investmentId',
+  'propertyId',
 ];
 const KNOWN_RECURRING = [
   'txnKind',
@@ -247,6 +346,8 @@ const KNOWN_RECURRING = [
   'endDate',
   'autoPost',
   'active',
+  'investmentId',
+  'tenancyId',
 ];
 const KNOWN_LOAN = [
   'direction',
@@ -261,6 +362,34 @@ const KNOWN_LOAN = [
 ];
 const KNOWN_BUDGET = ['category', 'limit', 'currency'];
 const KNOWN_DATE = ['label', 'name', 'day', 'month', 'year'];
+const KNOWN_INVESTMENT = [
+  'type',
+  'name',
+  'currency',
+  'openingInvested',
+  'openingAsOf',
+  'currentValue',
+  'valueAsOf',
+  'maturityDate',
+  'status',
+  'note',
+];
+const KNOWN_PROPERTY = ['type', 'name', 'locality', 'currency', 'status', 'note'];
+const KNOWN_TENANCY = [
+  'propertyId',
+  'unit',
+  'tenantName',
+  'tenantPhone',
+  'depositHeld',
+  'startDate',
+  'endDate',
+  'escalationPct',
+  'status',
+  'endedOn',
+  'depositReturned',
+  'depositKept',
+  'note',
+];
 
 /**
  * Whatever the blob holds that this version has no field for.
@@ -307,6 +436,8 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
   const place = str(data.place);
   const reimbursable = data.reimbursable === true;
   const receiptKey = str(data.receiptKey);
+  const investmentId = str(data.investmentId);
+  const propertyId = str(data.propertyId);
   return {
     id,
     kind: oneOf(data.kind, ['expense', 'income'] as const, 'expense'),
@@ -323,6 +454,8 @@ export function decodeTxn(id: string, data: Record<string, unknown>): PersonalTx
     ...(place !== null ? { place } : {}),
     ...(reimbursable ? { reimbursable } : {}),
     ...(receiptKey !== null ? { receiptKey } : {}),
+    ...(investmentId !== null ? { investmentId } : {}),
+    ...(propertyId !== null ? { propertyId } : {}),
     carried: carry(data, KNOWN_TXN),
   };
 }
@@ -351,6 +484,8 @@ export function decodeRecurring(id: string, data: Record<string, unknown>): Pers
     endDate: str(data.endDate),
     autoPost: bool(data.autoPost),
     active: data.active === undefined ? true : bool(data.active),
+    ...(str(data.investmentId) !== null ? { investmentId: str(data.investmentId) } : {}),
+    ...(str(data.tenancyId) !== null ? { tenancyId: str(data.tenancyId) } : {}),
     carried: carry(data, KNOWN_RECURRING),
   };
 }
@@ -428,6 +563,59 @@ export function decodeDate(id: string, data: Record<string, unknown>): PersonalD
   };
 }
 
+const moneyOrNull = (v: unknown): bigint | null => (v == null || v === '' ? null : money(v));
+
+export function decodeInvestment(id: string, data: Record<string, unknown>): PersonalInvestment {
+  return {
+    id,
+    type: oneOf(data.type, INVESTMENT_TYPES, 'other'),
+    name: str(data.name) ?? '',
+    currency: str(data.currency) ?? 'INR',
+    openingInvested: money(data.openingInvested),
+    openingAsOf: str(data.openingAsOf),
+    currentValue: moneyOrNull(data.currentValue),
+    valueAsOf: str(data.valueAsOf),
+    maturityDate: str(data.maturityDate),
+    status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
+    note: str(data.note),
+    carried: carry(data, KNOWN_INVESTMENT),
+  };
+}
+
+export function decodeProperty(id: string, data: Record<string, unknown>): PersonalProperty {
+  return {
+    id,
+    type: oneOf(data.type, PROPERTY_TYPES, 'other'),
+    name: str(data.name) ?? '',
+    locality: str(data.locality),
+    currency: str(data.currency) ?? 'INR',
+    status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
+    note: str(data.note),
+    carried: carry(data, KNOWN_PROPERTY),
+  };
+}
+
+export function decodeTenancy(id: string, data: Record<string, unknown>): PersonalTenancy {
+  const pct = data.escalationPct;
+  return {
+    id,
+    propertyId: str(data.propertyId) ?? '',
+    unit: str(data.unit),
+    tenantName: str(data.tenantName) ?? '',
+    tenantPhone: str(data.tenantPhone),
+    depositHeld: money(data.depositHeld),
+    startDate: str(data.startDate) ?? '',
+    endDate: str(data.endDate),
+    escalationPct: typeof pct === 'number' && Number.isFinite(pct) && pct > 0 ? pct : null,
+    status: oneOf(data.status, ['active', 'closed'] as const, 'active'),
+    endedOn: str(data.endedOn),
+    depositReturned: moneyOrNull(data.depositReturned),
+    depositKept: moneyOrNull(data.depositKept),
+    note: str(data.note),
+    carried: carry(data, KNOWN_TENANCY),
+  };
+}
+
 // ─────────────────────────────────────────────────────────── encoders ──
 // The `data` blob for an upsert payload. Money is serialised to a decimal
 // string; nulls are kept explicit so an edit that clears a field really clears
@@ -450,6 +638,8 @@ export function encodeTxn(txn: Omit<PersonalTxn, 'id'>): Record<string, unknown>
       place: txn.place ?? null,
       reimbursable: !!txn.reimbursable,
       receiptKey: txn.receiptKey ?? null,
+      ...(txn.investmentId ? { investmentId: txn.investmentId } : {}),
+      ...(txn.propertyId ? { propertyId: txn.propertyId } : {}),
     },
     txn.carried,
   );
@@ -471,6 +661,8 @@ export function encodeRecurring(rule: Omit<PersonalRecurring, 'id'>): Record<str
       endDate: rule.endDate,
       autoPost: rule.autoPost,
       active: rule.active,
+      ...(rule.investmentId ? { investmentId: rule.investmentId } : {}),
+      ...(rule.tenancyId ? { tenancyId: rule.tenancyId } : {}),
     },
     rule.carried,
   );
@@ -508,5 +700,61 @@ export function encodeDate(d: Omit<PersonalDate, 'id'>): Record<string, unknown>
   return withCarried(
     { label: d.label, name: d.name, day: d.day, month: d.month, year: d.year },
     d.carried,
+  );
+}
+
+const serialiseOrNull = (v: bigint | null): string | null =>
+  v === null ? null : serialiseAmount(v);
+
+export function encodeInvestment(i: Omit<PersonalInvestment, 'id'>): Record<string, unknown> {
+  return withCarried(
+    {
+      type: i.type,
+      name: i.name,
+      currency: i.currency,
+      openingInvested: serialiseAmount(i.openingInvested),
+      openingAsOf: i.openingAsOf,
+      currentValue: serialiseOrNull(i.currentValue),
+      valueAsOf: i.valueAsOf,
+      maturityDate: i.maturityDate,
+      status: i.status,
+      note: i.note,
+    },
+    i.carried,
+  );
+}
+
+export function encodeProperty(p: Omit<PersonalProperty, 'id'>): Record<string, unknown> {
+  return withCarried(
+    {
+      type: p.type,
+      name: p.name,
+      locality: p.locality,
+      currency: p.currency,
+      status: p.status,
+      note: p.note,
+    },
+    p.carried,
+  );
+}
+
+export function encodeTenancy(t: Omit<PersonalTenancy, 'id'>): Record<string, unknown> {
+  return withCarried(
+    {
+      propertyId: t.propertyId,
+      unit: t.unit,
+      tenantName: t.tenantName,
+      tenantPhone: t.tenantPhone,
+      depositHeld: serialiseAmount(t.depositHeld),
+      startDate: t.startDate,
+      endDate: t.endDate,
+      escalationPct: t.escalationPct,
+      status: t.status,
+      endedOn: t.endedOn,
+      depositReturned: serialiseOrNull(t.depositReturned),
+      depositKept: serialiseOrNull(t.depositKept),
+      note: t.note,
+    },
+    t.carried,
   );
 }

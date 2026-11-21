@@ -942,7 +942,15 @@ export interface PackUninstallPayload {
 
 /** The kinds of row the personal ledger holds (A48). `date` is a private date
  *  (birthday, anniversary) — not money, but owner-only like the rest. */
-export type PersonalRecordKind = 'txn' | 'recurring' | 'loan' | 'budget' | 'date';
+export type PersonalRecordKind =
+  | 'txn'
+  | 'recurring'
+  | 'loan'
+  | 'budget'
+  | 'date'
+  | 'investment'
+  | 'property'
+  | 'tenancy';
 
 /**
  * An upsert of one personal-finance record (A48). `recordId` is client-chosen
