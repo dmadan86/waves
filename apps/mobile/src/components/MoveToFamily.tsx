@@ -12,14 +12,18 @@ import { isPoolGroup, MutationKind } from '@waves/core';
 import { Card, iconSize, Text, useTheme } from '@waves/ui';
 
 import { useAllGroupMembers, useGroups } from '@/data/hooks';
+import { uploadExpenseReceipt } from '@/data/api';
+import { pickedFromUrl } from '@/data/moveSpace';
 import { useDeletePersonalRecord } from '@/data/personal';
 import { serialiseExpense } from '@/data/serialiseExpense';
 import { groupLabel, isViewer, type GroupRow } from '@/data/types';
 import { fill, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { personalReceiptUrl, removePersonalReceipt } from '@/lib/personalReceipt';
 import {
   addPendingMove,
+  afterCarryFailure,
   moveOutcome,
   readPendingMoves,
   writePendingMoves,
@@ -34,6 +38,8 @@ export interface MoveEntry {
   readonly date: string;
   readonly note: string | null;
   readonly category: string | null;
+  /** The Personal bill photo's key, carried to the group expense. */
+  readonly receiptKey?: string | null;
 }
 
 export function MoveToFamily({ entry, onMoved }: { entry: MoveEntry; onMoved: () => void }) {
@@ -63,6 +69,7 @@ export function MoveToFamily({ entry, onMoved }: { entry: MoveEntry; onMoved: ()
     setBusy(group.id);
     setError(null);
     try {
+      const expenseId = randomUUID();
       const cmid = await mutate(MutationKind.ExpenseCreate, group.id, {
         ...serialiseExpense({
           description: entry.note ?? '',
@@ -74,11 +81,15 @@ export function MoveToFamily({ entry, onMoved }: { entry: MoveEntry; onMoved: ()
           participants: [me.id],
           payers: { [me.id]: entry.amount },
         }),
-        expenseId: randomUUID(),
+        expenseId,
       });
       // The private copy goes only once the server has accepted the group
       // expense (PendingMoveCleanup); a refused write keeps the entry.
-      await addPendingMove({ cmid, personalId: entry.id });
+      await addPendingMove({
+        cmid,
+        personalId: entry.id,
+        ...(entry.receiptKey ? { receiptKey: entry.receiptKey, groupId: group.id, expenseId } : {}),
+      });
       void flush([group.id]);
       onMoved();
     } catch (caught) {
@@ -142,6 +153,7 @@ export function MoveToFamily({ entry, onMoved }: { entry: MoveEntry; onMoved: ()
  */
 export function PendingMoveCleanup(): null {
   const { queue } = useSync();
+  const viewerId = useViewerId();
   const remove = useDeletePersonalRecord();
   const running = useRef(false);
   useEffect(() => {
@@ -156,8 +168,40 @@ export function PendingMoveCleanup(): null {
           const outcome = moveOutcome(move, queue);
           if (outcome === 'wait') left.push(move);
           else if (outcome === 'delete') {
+            // The bill photo goes to the group expense first (the expense is on
+            // the server by now). If that fails the entry stays and it is tried
+            // again, a few times, so a move never costs the person their photo.
+            let carried = true;
+            if (move.receiptKey && move.groupId && move.expenseId) {
+              try {
+                const url = await personalReceiptUrl(move.receiptKey);
+                if (!url) throw new Error('no photo url');
+                const picked = await pickedFromUrl(url);
+                await uploadExpenseReceipt({
+                  groupId: move.groupId,
+                  expenseId: move.expenseId,
+                  base64: picked.base64,
+                  mimeType: picked.mimeType,
+                });
+              } catch {
+                const retry = afterCarryFailure(move);
+                if (retry) {
+                  left.push(retry);
+                  continue;
+                }
+                carried = false; // gave up: the bytes stay for the storage sweep
+              }
+            }
             // A failed delete is tried again next time the queue changes.
-            await remove.mutateAsync(move.personalId).catch(() => left.push(move));
+            const gone = await remove
+              .mutateAsync(move.personalId)
+              .then(() => true)
+              .catch(() => {
+                left.push(move);
+                return false;
+              });
+            if (gone && carried && move.receiptKey)
+              void removePersonalReceipt(viewerId, move.receiptKey);
           }
         }
         if (left.length !== moves.length) await writePendingMoves(left);
@@ -165,6 +209,6 @@ export function PendingMoveCleanup(): null {
         running.current = false;
       }
     })();
-  }, [queue, remove]);
+  }, [queue, remove, viewerId]);
   return null;
 }

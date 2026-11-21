@@ -11,6 +11,24 @@ export interface PendingMove {
   readonly cmid: string;
   /** The personal record to delete once it lands. */
   readonly personalId: string;
+  /** The entry's bill photo (a Personal receipt key), carried to the group expense before the entry goes. */
+  readonly receiptKey?: string;
+  /** The group expense the photo attaches to. */
+  readonly groupId?: string;
+  readonly expenseId?: string;
+  /** Failed carries so far. */
+  readonly tries?: number;
+}
+
+export const MAX_CARRY_TRIES = 5;
+
+/**
+ * A failed carry of the bill photo: try again next time (the entry stays), or,
+ * after `MAX_CARRY_TRIES`, `null`: stop trying and let the move finish without it.
+ */
+export function afterCarryFailure(move: PendingMove): PendingMove | null {
+  const tries = (move.tries ?? 0) + 1;
+  return tries >= MAX_CARRY_TRIES ? null : { ...move, tries };
 }
 
 const KEY = 'household.pendingMoves';

@@ -376,9 +376,9 @@ function EntryForm({
 
           <NoteCard value={note} onChange={setNote} t={t} />
 
-          {/* Move a saved expense into a Share-it household. A bill photo stays
-              with the personal entry, so an entry with one is not offered. */}
-          {editingTxn && kind === 'expense' && !loanId && !savedReceipt ? (
+          {/* Move a saved expense into a Share-it household. Its bill photo is
+              copied to the group expense before the private entry goes. */}
+          {editingTxn && kind === 'expense' && !loanId ? (
             <MoveToFamily
               entry={{
                 id: editingTxn.id,
@@ -387,6 +387,7 @@ function EntryForm({
                 date: editingTxn.date,
                 note: editingTxn.note ?? null,
                 category: editingTxn.category ?? null,
+                receiptKey: savedReceipt,
               }}
               onMoved={() => router.back()}
             />
