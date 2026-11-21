@@ -214,6 +214,16 @@ export type VoiceAgentAction =
       readonly type: 'add_member';
       readonly groupId: string;
       readonly name: string;
+    }
+  | {
+      /** Money put aside for (or taken out of) a joint goal; never an expense. */
+      readonly type: 'add_goal_contribution';
+      readonly groupId: string;
+      readonly goalId: string;
+      readonly memberId: string;
+      readonly amountMinor: string;
+      readonly direction: 'in' | 'out';
+      readonly date?: string;
     };
 
 /** One tappable answer to a clarifying question ("₹500 · Breakfast"). */
