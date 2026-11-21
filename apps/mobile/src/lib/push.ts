@@ -63,7 +63,7 @@ export async function ensureAndroidChannel(): Promise<void> {
     name: 'Waves',
     importance: AndroidImportance.DEFAULT,
     vibrationPattern: [0, 200, 100, 200],
-    lightColor: '#7A73FF',
+    lightColor: '#378FE9',
   });
 }
 
