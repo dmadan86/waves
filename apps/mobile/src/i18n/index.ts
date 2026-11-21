@@ -342,6 +342,44 @@ export interface UiStrings {
   allSettled: string;
   yourGroups: string;
   allGroups: string;
+  homeToday: {
+    needsYou: string;
+    nothingNeeds: string;
+    pay: string;
+    remind: string;
+    review: string;
+    markPaid: string;
+    reminded: string;
+    overdueSub: string;
+    dueSub: string;
+    owesYou: string;
+    youOweName: string;
+    reviewTitle: string;
+    comingUp: string;
+    addReminder: string;
+    spaces: string;
+    addSpace: string;
+    personal: string;
+    justMe: string;
+    leftMonth: string;
+    spentMonth: string;
+    leftPool: string;
+    spentPool: string;
+    billDue: string;
+    newSpace: string;
+    newSpaceHint: string;
+    seeAll: string;
+    startMine: string;
+    startMineSub: string;
+    startSplit: string;
+    startSplitSub: string;
+    startHome: string;
+    startHomeSub: string;
+    people: string;
+    friendsLink: string;
+    all: string;
+    privateDate: string;
+  };
   /** Friends screen section header, over the friends list. */
   yourFriends: string;
   /** Friends screen's link across to the groups list. */
@@ -9063,6 +9101,44 @@ const en: UiStrings = {
   allSettled: 'All settled',
   yourGroups: 'Your groups',
   allGroups: 'All groups',
+  homeToday: {
+    needsYou: 'Needs you',
+    nothingNeeds: 'Nothing needs you today',
+    pay: 'Pay',
+    remind: 'Remind',
+    review: 'Review',
+    markPaid: 'Mark paid',
+    reminded: 'Reminded',
+    overdueSub: 'Overdue · {amount}',
+    dueSub: 'Due {date} · {amount}',
+    owesYou: '{name} owes you {amount}',
+    youOweName: 'You owe {name} {amount}',
+    reviewTitle: 'Items to review: {n}',
+    comingUp: 'Coming up',
+    addReminder: 'Add a reminder',
+    spaces: 'Spaces',
+    addSpace: 'Add a space',
+    personal: 'Personal',
+    justMe: 'Just me',
+    leftMonth: 'left this month',
+    spentMonth: 'spent this month',
+    leftPool: 'left in pool',
+    spentPool: 'spent this month',
+    billDue: 'bill due {date}',
+    newSpace: 'New space',
+    newSpaceHint: 'Trip · Home · Couple · Family',
+    seeAll: 'See all',
+    startMine: 'My money',
+    startMineSub: 'Track your own spending',
+    startSplit: 'Split with friends',
+    startSplitSub: 'Trips, flats and dinners',
+    startHome: 'Run the home',
+    startHomeSub: 'Shared bills and budget',
+    people: 'People',
+    friendsLink: 'Friends',
+    all: 'All',
+    privateDate: 'Private date',
+  },
   yourFriends: 'Your friends',
   viewGroups: 'View groups',
   groupsTitle: 'Groups',
@@ -17157,6 +17233,44 @@ const ta: UiStrings = {
   yourFriends: 'உங்கள் நண்பர்கள்',
   viewGroups: 'குழுக்களைப் பார்க்க',
   allGroups: 'அனைத்து குழுக்கள்',
+  homeToday: {
+    needsYou: 'உங்கள் கவனம் தேவை',
+    nothingNeeds: 'இன்று எதுவும் தேவையில்லை',
+    pay: 'செலுத்து',
+    remind: 'நினைவூட்டு',
+    review: 'பார்',
+    markPaid: 'செலுத்தியது',
+    reminded: 'நினைவூட்டப்பட்டது',
+    overdueSub: 'தாமதம் · {amount}',
+    dueSub: '{date} அன்று · {amount}',
+    owesYou: '{name} உங்களுக்கு {amount} தர வேண்டும்',
+    youOweName: 'நீங்கள் {name}க்கு {amount} தர வேண்டும்',
+    reviewTitle: 'பார்க்க வேண்டியவை: {n}',
+    comingUp: 'விரைவில்',
+    addReminder: 'நினைவூட்டல் சேர்',
+    spaces: 'இடங்கள்',
+    addSpace: 'இடம் சேர்',
+    personal: 'தனிப்பட்டது',
+    justMe: 'நான் மட்டும்',
+    leftMonth: 'இந்த மாதம் மீதம்',
+    spentMonth: 'இந்த மாதம் செலவு',
+    leftPool: 'பொது நிதியில் மீதம்',
+    spentPool: 'இந்த மாதம் செலவு',
+    billDue: '{date} அன்று கட்டணம்',
+    newSpace: 'புதிய இடம்',
+    newSpaceHint: 'பயணம் · வீடு · ஜோடி · குடும்பம்',
+    seeAll: 'அனைத்தும்',
+    startMine: 'என் பணம்',
+    startMineSub: 'உங்கள் செலவை கண்காணிக்கவும்',
+    startSplit: 'நண்பர்களுடன் பிரி',
+    startSplitSub: 'பயணம், வீடு, விருந்து',
+    startHome: 'வீட்டை நடத்து',
+    startHomeSub: 'பகிர்ந்த கட்டணங்கள், பட்ஜெட்',
+    people: 'நபர்கள்',
+    friendsLink: 'நண்பர்கள்',
+    all: 'அனைத்தும்',
+    privateDate: 'தனிப்பட்ட தேதி',
+  },
   groupsTitle: 'குழுக்கள்',
   searchGroups: 'குழுக்களைத் தேடு',
   noGroupsMatch: 'உங்கள் தேடலுக்கு எந்தக் குழுவும் இல்லை',
@@ -25458,6 +25572,44 @@ const hi: UiStrings = {
   allSettled: 'सब बराबर',
   yourGroups: 'आपके समूह',
   allGroups: 'सभी समूह',
+  homeToday: {
+    needsYou: 'आपकी ज़रूरत',
+    nothingNeeds: 'आज कुछ ज़रूरी नहीं',
+    pay: 'चुकाएँ',
+    remind: 'याद दिलाएँ',
+    review: 'देखें',
+    markPaid: 'चुकाया',
+    reminded: 'याद दिलाया',
+    overdueSub: 'देर हो गई · {amount}',
+    dueSub: '{date} को · {amount}',
+    owesYou: '{name} को आपको {amount} देना है',
+    youOweName: 'आपको {name} को {amount} देना है',
+    reviewTitle: 'देखने वाली चीज़ें: {n}',
+    comingUp: 'आने वाला',
+    addReminder: 'रिमाइंडर जोड़ें',
+    spaces: 'स्पेस',
+    addSpace: 'स्पेस जोड़ें',
+    personal: 'निजी',
+    justMe: 'सिर्फ़ मैं',
+    leftMonth: 'इस महीने बचा',
+    spentMonth: 'इस महीने खर्च',
+    leftPool: 'पूल में बचा',
+    spentPool: 'इस महीने खर्च',
+    billDue: '{date} को बिल',
+    newSpace: 'नया स्पेस',
+    newSpaceHint: 'ट्रिप · घर · कपल · परिवार',
+    seeAll: 'सभी देखें',
+    startMine: 'मेरा पैसा',
+    startMineSub: 'अपना खर्च ट्रैक करें',
+    startSplit: 'दोस्तों के साथ बाँटें',
+    startSplitSub: 'ट्रिप, फ़्लैट और डिनर',
+    startHome: 'घर चलाएँ',
+    startHomeSub: 'साझा बिल और बजट',
+    people: 'लोग',
+    friendsLink: 'दोस्त',
+    all: 'सभी',
+    privateDate: 'निजी तारीख़',
+  },
   yourFriends: 'आपके मित्र',
   viewGroups: 'समूह देखें',
   groupsTitle: 'समूह',
@@ -33559,6 +33711,44 @@ const ar: UiStrings = {
   allSettled: 'تمت التسوية',
   yourGroups: 'مجموعاتك',
   allGroups: 'كل المجموعات',
+  homeToday: {
+    needsYou: 'يحتاجك',
+    nothingNeeds: 'لا شيء يحتاجك اليوم',
+    pay: 'ادفع',
+    remind: 'ذكّر',
+    review: 'راجع',
+    markPaid: 'تم الدفع',
+    reminded: 'تم التذكير',
+    overdueSub: 'متأخر · {amount}',
+    dueSub: 'يستحق {date} · {amount}',
+    owesYou: '{name} يدين لك بـ {amount}',
+    youOweName: 'تدين لـ {name} بـ {amount}',
+    reviewTitle: 'عناصر للمراجعة: {n}',
+    comingUp: 'قريبًا',
+    addReminder: 'أضف تذكيرًا',
+    spaces: 'المساحات',
+    addSpace: 'أضف مساحة',
+    personal: 'شخصي',
+    justMe: 'أنا فقط',
+    leftMonth: 'متبقٍّ هذا الشهر',
+    spentMonth: 'أُنفق هذا الشهر',
+    leftPool: 'متبقٍّ في الصندوق',
+    spentPool: 'أُنفق هذا الشهر',
+    billDue: 'فاتورة تستحق {date}',
+    newSpace: 'مساحة جديدة',
+    newSpaceHint: 'رحلة · منزل · زوجان · عائلة',
+    seeAll: 'عرض الكل',
+    startMine: 'أموالي',
+    startMineSub: 'تتبّع إنفاقك',
+    startSplit: 'قسّم مع الأصدقاء',
+    startSplitSub: 'رحلات وشقق وعشاء',
+    startHome: 'أدِر المنزل',
+    startHomeSub: 'فواتير مشتركة وميزانية',
+    people: 'الأشخاص',
+    friendsLink: 'الأصدقاء',
+    all: 'الكل',
+    privateDate: 'تاريخ خاص',
+  },
   yourFriends: 'أصدقاؤك',
   viewGroups: 'عرض المجموعات',
   groupsTitle: 'المجموعات',
