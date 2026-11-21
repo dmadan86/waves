@@ -99,6 +99,7 @@ import { leftWithBalance } from '@/lib/settleRow';
 import { router } from '@/lib/navigation';
 
 import { CategoryBadge } from '@/components/Category';
+import { GroupGoalsCard } from '@/components/GroupGoalsCard';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { VoiceAddedStrip } from '@/components/VoiceAddedStrip';
 import { useVoiceDefaultSpace, useVoiceAdded } from '@/lib/voiceSpaceStore';
@@ -1261,7 +1262,10 @@ function LedgerGroupScreen() {
 
   // Whether the list header has any card in it — it keeps its section gap
   // below only when it does, so an empty header adds nothing under the tabs.
+  // Joint goals (own block; the pooled-mode branch can move it into its "Our month" card).
+  const showGoals = tab === Tab.Expenses && !groupData.isDemo;
   const hasHeaderCards =
+    showGoals ||
     voiceNew > 0 ||
     importHere ||
     groupData.isDemo === true ||
@@ -1999,6 +2003,9 @@ function LedgerGroupScreen() {
                   <DepartedExpensesBanner groupId={groupId} />
                   <View style={{ gap: theme.spacing.xl }}>
                     <ImportProgressBanner groupId={groupId} />
+                    {/* GROUP_GOALS_CARD_START: joint goals, renders on every group */}
+                    {showGoals ? <GroupGoalsCard groupId={groupId} /> : null}
+                    {/* GROUP_GOALS_CARD_END */}
                     {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}
