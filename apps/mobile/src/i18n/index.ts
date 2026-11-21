@@ -522,6 +522,33 @@ export interface UiStrings {
    * UPI apps. The first screen is the worst place to be somewhere else.
    */
   onboarding: readonly { title: string; body: string }[];
+  /** The first-run flow (`app/start.tsx`). */
+  firstRun: {
+    stepOf: string;
+    skip: string;
+    nameTitle: string;
+    nameHint: string;
+    namePlaceholder: string;
+    addPhoto: string;
+    continue: string;
+    hi: string;
+    intentTitle: string;
+    intentHint: string;
+    intents: { trip: string; flat: string; family: string; couple: string; own: string };
+    suggested: { trip: string; flat: string; family: string; couple: string };
+    voiceTitle: string;
+    voiceHint: string;
+    sample: string;
+    holdToSpeak: string;
+    listening: string;
+    notHeard: string;
+    micOff: string;
+    heardTitle: string;
+    people: string;
+    notSaved: string;
+    done: string;
+    typeInstead: string;
+  };
   plan: string;
   /** Trip places: a list of located expenses that hands off to the OS maps app. */
   tripMap: {
@@ -9020,6 +9047,38 @@ const en: UiStrings = {
     tooFastMoment: 'That was a lot at once. Wait a moment and try again.',
     tooFastLater: 'That was a lot at once. Try again in a little while.',
   },
+  firstRun: {
+    stepOf: 'Step {n} of 3',
+    skip: 'Skip',
+    nameTitle: 'What should friends call you?',
+    nameHint: 'Shown on every bill you share.',
+    namePlaceholder: 'Your name',
+    addPhoto: 'Add a photo',
+    continue: 'Continue',
+    hi: 'Hi {name}',
+    intentTitle: 'What brings you to Waves?',
+    intentHint: 'Pick all that fit.',
+    intents: {
+      trip: 'A trip',
+      flat: 'Flat or home',
+      family: 'Family',
+      couple: 'Couple',
+      own: 'Just my own money',
+    },
+    suggested: { trip: 'Our trip', flat: 'Our flat', family: 'Family', couple: 'Us two' },
+    voiceTitle: 'Say it.\nWe\u2019ll write it.',
+    voiceHint: 'Hold the button and read this:',
+    sample: '\u201cDinner 1,200 with Ravi and Asha\u201d',
+    holdToSpeak: 'Hold to speak',
+    listening: 'Listening\u2026',
+    notHeard: 'Did not catch that. Hold and try again.',
+    micOff: 'The microphone is off. You can type instead.',
+    heardTitle: 'We heard',
+    people: '{n} people',
+    notSaved: 'Nothing was saved. This was just a try.',
+    done: 'Done',
+    typeInstead: 'I\u2019ll type',
+  },
   onboarding: [
     {
       title: 'Split any expense',
@@ -16614,6 +16673,43 @@ const ta: UiStrings = {
     ok: 'சரி',
     tooFastMoment: 'ஒரே நேரத்தில் அதிகம். சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.',
     tooFastLater: 'ஒரே நேரத்தில் அதிகம். சிறிது நேரம் கழித்து மீண்டும் முயலவும்.',
+  },
+  firstRun: {
+    stepOf: 'படி {n} / 3',
+    skip: 'தவிர்',
+    nameTitle: 'நண்பர்கள் உங்களை எப்படி அழைக்க வேண்டும்?',
+    nameHint: 'நீங்கள் பகிரும் ஒவ்வொரு பில்லிலும் காட்டப்படும்.',
+    namePlaceholder: 'உங்கள் பெயர்',
+    addPhoto: 'புகைப்படம் சேர்',
+    continue: 'தொடர்',
+    hi: 'வணக்கம் {name}',
+    intentTitle: 'Waves-ஐ ஏன் பயன்படுத்துகிறீர்கள்?',
+    intentHint: 'பொருந்துவதை எல்லாம் தேர்ந்தெடுங்கள்.',
+    intents: {
+      trip: 'ஒரு பயணம்',
+      flat: 'வீடு',
+      family: 'குடும்பம்',
+      couple: 'தம்பதி',
+      own: 'என் சொந்தப் பணம் மட்டும்',
+    },
+    suggested: {
+      trip: 'நம் பயணம்',
+      flat: 'நம் வீடு',
+      family: 'குடும்பம்',
+      couple: 'நாங்கள் இருவர்',
+    },
+    voiceTitle: 'சொல்லுங்கள்.\nநாங்கள் எழுதுகிறோம்.',
+    voiceHint: 'பொத்தானை அழுத்திப் பிடித்து இதைச் சொல்லுங்கள்:',
+    sample: '\u201cரவி, ஆஷாவுடன் இரவு உணவு 1,200\u201d',
+    holdToSpeak: 'அழுத்திப் பிடித்துப் பேசுங்கள்',
+    listening: 'கேட்கிறது\u2026',
+    notHeard: 'புரியவில்லை. அழுத்திப் பிடித்து மீண்டும் முயலுங்கள்.',
+    micOff: 'மைக் அணைந்துள்ளது. தட்டச்சு செய்யலாம்.',
+    heardTitle: 'நாங்கள் கேட்டது',
+    people: '{n} பேர்',
+    notSaved: 'எதுவும் சேமிக்கப்படவில்லை. இது ஒரு சோதனை மட்டுமே.',
+    done: 'முடிந்தது',
+    typeInstead: 'நான் தட்டச்சு செய்கிறேன்',
   },
   onboarding: [
     {
@@ -24413,6 +24509,38 @@ const hi: UiStrings = {
     tooFastMoment: 'एक साथ बहुत ज़्यादा। थोड़ा रुककर फिर कोशिश करें।',
     tooFastLater: 'एक साथ बहुत ज़्यादा। कुछ देर बाद फिर कोशिश करें।',
   },
+  firstRun: {
+    stepOf: 'चरण {n} / 3',
+    skip: 'छोड़ें',
+    nameTitle: 'दोस्त आपको क्या कहकर बुलाएँ?',
+    nameHint: 'आपके हर साझा बिल पर दिखेगा।',
+    namePlaceholder: 'आपका नाम',
+    addPhoto: 'फ़ोटो जोड़ें',
+    continue: 'आगे बढ़ें',
+    hi: 'नमस्ते {name}',
+    intentTitle: 'आप Waves क्यों आए हैं?',
+    intentHint: 'जो भी लागू हो, चुनें।',
+    intents: {
+      trip: 'एक यात्रा',
+      flat: 'फ़्लैट या घर',
+      family: 'परिवार',
+      couple: 'जोड़ा',
+      own: 'सिर्फ़ मेरा अपना पैसा',
+    },
+    suggested: { trip: 'हमारी यात्रा', flat: 'हमारा फ़्लैट', family: 'परिवार', couple: 'हम दोनों' },
+    voiceTitle: 'बोलिए।\nहम लिख देंगे।',
+    voiceHint: 'बटन दबाए रखें और यह पढ़ें:',
+    sample: '\u201cरवि और आशा के साथ डिनर 1,200\u201d',
+    holdToSpeak: 'दबाकर बोलें',
+    listening: 'सुन रहा है\u2026',
+    notHeard: 'सुनाई नहीं दिया। दबाए रखकर फिर कोशिश करें।',
+    micOff: 'माइक बंद है। आप टाइप कर सकते हैं।',
+    heardTitle: 'हमने सुना',
+    people: '{n} लोग',
+    notSaved: 'कुछ भी सेव नहीं हुआ। यह बस एक कोशिश थी।',
+    done: 'हो गया',
+    typeInstead: 'मैं टाइप करूँगा',
+  },
   onboarding: [
     {
       title: 'कोई भी खर्च बाँटें',
@@ -32035,6 +32163,38 @@ const ar: UiStrings = {
     ok: 'حسنًا',
     tooFastMoment: 'محاولات كثيرة دفعة واحدة. انتظر قليلًا ثم أعد المحاولة.',
     tooFastLater: 'محاولات كثيرة دفعة واحدة. أعد المحاولة بعد قليل.',
+  },
+  firstRun: {
+    stepOf: 'الخطوة {n} من 3',
+    skip: 'تخطّي',
+    nameTitle: 'بماذا يناديك أصدقاؤك؟',
+    nameHint: 'يظهر على كل فاتورة تشاركها.',
+    namePlaceholder: 'اسمك',
+    addPhoto: 'أضف صورة',
+    continue: 'متابعة',
+    hi: 'مرحبًا {name}',
+    intentTitle: 'ما الذي أتى بك إلى Waves؟',
+    intentHint: 'اختر كل ما ينطبق.',
+    intents: {
+      trip: 'رحلة',
+      flat: 'شقة أو منزل',
+      family: 'العائلة',
+      couple: 'زوجان',
+      own: 'أموالي الخاصة فقط',
+    },
+    suggested: { trip: 'رحلتنا', flat: 'شقتنا', family: 'العائلة', couple: 'نحن الاثنان' },
+    voiceTitle: 'قلها.\nونحن نكتبها.',
+    voiceHint: 'اضغط مطولًا على الزر واقرأ هذا:',
+    sample: '\u201cعشاء 1,200 مع رامي وآشا\u201d',
+    holdToSpeak: 'اضغط مطولًا للتحدث',
+    listening: 'جارٍ الاستماع\u2026',
+    notHeard: 'لم نسمع جيدًا. اضغط مطولًا وحاول مجددًا.',
+    micOff: 'الميكروفون متوقف. يمكنك الكتابة بدلًا من ذلك.',
+    heardTitle: 'سمعنا',
+    people: '{n} أشخاص',
+    notSaved: 'لم يُحفظ شيء. كانت هذه مجرد تجربة.',
+    done: 'تم',
+    typeInstead: 'سأكتب',
   },
   onboarding: [
     {
