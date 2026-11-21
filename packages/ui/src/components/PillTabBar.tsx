@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../theme';
 import { spacing } from '../tokens';
 import { useSingleAction } from '../useSingleAction';
-import { Gradient } from './Gradient';
 import { Text } from './Text';
 
 export interface PillTabItem {
@@ -423,35 +422,17 @@ export const CenterButton = memo(function CenterButton({ action }: { action: Pil
         borderRadius: CENTER_SIZE / 2,
         alignItems: 'center',
         justifyContent: 'center',
-        // The brand's own violet, washed like the dashboard's primary tile, with
-        // a violet glow under it rather than a grey drop shadow. The white rim
-        // is the cradle behind it (see the bar), so it shows only above the bar.
-        backgroundColor: theme.color.brand,
-        opacity: pressed ? 0.9 : 1,
-        shadowColor: theme.color.brand,
-        shadowOpacity: 0.4,
+        // One flat brand blue (the primary button colour, the same in light and
+        // dark) with a soft blue glow under it; no gradient.
+        backgroundColor: pressed ? theme.color.buttonPrimaryPressed : theme.color.buttonPrimary,
+        shadowColor: theme.color.buttonPrimary,
+        shadowOpacity: 0.35,
         shadowRadius: 10,
         shadowOffset: { width: 0, height: 6 },
         elevation: 8,
       })}
     >
-      {/* The mic keeps its original wash and glow on every screen, calm ones included. */}
-      <Gradient
-        vivid
-        colors={theme.gradient.brand}
-        radius={CENTER_SIZE / 2}
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        {action.icon(theme.color.onBrand)}
-      </Gradient>
+      {action.icon(theme.color.onButtonPrimary)}
     </Pressable>
   );
 });
