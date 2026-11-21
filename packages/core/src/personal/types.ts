@@ -170,6 +170,32 @@ export interface PersonalBudget {
   readonly carried?: Readonly<Record<string, unknown>>;
 }
 
+/** What a private date is about. */
+export type DateLabelKind =
+  'my_birthday' | 'anniversary' | 'work_anniversary' | 'family_birthday' | 'other';
+
+export const DATE_LABEL_KINDS: readonly DateLabelKind[] = [
+  'my_birthday',
+  'anniversary',
+  'work_anniversary',
+  'family_birthday',
+  'other',
+];
+
+/** A private date: day + month, never a year — except `year` on a work
+ *  anniversary, the year the job started, so "N years" can be said. Only the
+ *  owner's own devices ever see it. */
+export interface PersonalDate {
+  readonly id: string;
+  readonly label: DateLabelKind;
+  /** Whose / what it is; empty for my_birthday and anniversary. */
+  readonly name: string;
+  readonly day: number;
+  readonly month: number;
+  readonly year: number | null;
+  readonly carried?: Readonly<Record<string, unknown>>;
+}
+
 // ───────────────────────────────────────────────── defensive readers ──
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v.length > 0 ? v : null);
@@ -234,6 +260,7 @@ const KNOWN_LOAN = [
   'shareSeq',
 ];
 const KNOWN_BUDGET = ['category', 'limit', 'currency'];
+const KNOWN_DATE = ['label', 'name', 'day', 'month', 'year'];
 
 /**
  * Whatever the blob holds that this version has no field for.
@@ -380,6 +407,27 @@ export function decodeBudget(id: string, data: Record<string, unknown>): Persona
   };
 }
 
+/** Total like the rest: an impossible day/month reads as 1 Jan rather than throwing. */
+export function decodeDate(id: string, data: Record<string, unknown>): PersonalDate {
+  const month =
+    typeof data.month === 'number' && data.month >= 1 && data.month <= 12
+      ? Math.floor(data.month)
+      : 1;
+  const day = dayOfMonth(data.day) ?? 1;
+  return {
+    id,
+    label: oneOf(data.label, DATE_LABEL_KINDS, 'other'),
+    name: str(data.name) ?? '',
+    day,
+    month,
+    year:
+      typeof data.year === 'number' && Number.isInteger(data.year) && data.year > 1900
+        ? data.year
+        : null,
+    carried: carry(data, KNOWN_DATE),
+  };
+}
+
 // ─────────────────────────────────────────────────────────── encoders ──
 // The `data` blob for an upsert payload. Money is serialised to a decimal
 // string; nulls are kept explicit so an edit that clears a field really clears
@@ -453,5 +501,12 @@ export function encodeBudget(budget: Omit<PersonalBudget, 'id'>): Record<string,
       currency: budget.currency,
     },
     budget.carried,
+  );
+}
+
+export function encodeDate(d: Omit<PersonalDate, 'id'>): Record<string, unknown> {
+  return withCarried(
+    { label: d.label, name: d.name, day: d.day, month: d.month, year: d.year },
+    d.carried,
   );
 }
