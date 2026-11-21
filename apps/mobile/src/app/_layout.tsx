@@ -42,6 +42,15 @@ import {
 import { Onboarding } from '@/components/Onboarding';
 import { PermissionHost } from '@/components/PermissionHost';
 import { setOverlayBusy } from '@/lib/firstRun';
+import {
+  decideFirstRun,
+  firstRunSeen,
+  rememberFirstRunSeen,
+  useFirstRunSeen,
+} from '@/lib/firstRunFlow';
+import { useGroups } from '@/data/hooks';
+import { isDemoGroupId } from '@/demo/ids';
+import { pendingInvite } from '@/lib/pendingInvite';
 import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { AppTabBar } from '@/components/AppTabBar';
 import { LanguageRestartPrompt } from '@/components/LanguageRestartPrompt';
@@ -763,7 +772,29 @@ function AuthGate() {
     };
   }, [ownerId]);
   const tourSeen = tourAnswer && tourAnswer.owner === ownerId ? tourAnswer.seen : null;
-  const showIntro = Boolean(session && ownerId && tourSeen !== true);
+
+  // A brand-new account meets the first-run flow (`/start`) instead of the three
+  // cards; everyone else keeps the cards and is marked as not needing it.
+  const flowSeen = useFirstRunSeen(ownerId);
+  const groups = useGroups();
+  useEffect(() => {
+    if (ownerId) void firstRunSeen(ownerId);
+  }, [ownerId]);
+  const flow = decideFirstRun({
+    seen: flowSeen,
+    introSeen: tourSeen,
+    groupsReady: !groups.isLoading,
+    groupCount: groups.data.filter((g) => !isDemoGroupId(g.id)).length,
+  });
+  useEffect(() => {
+    if (!ownerId) return;
+    if (flow === 'mark-existing') void rememberFirstRunSeen(ownerId);
+    // Once per account: `start` marks the account seen when it ends.
+    // Somebody who arrived through an invite goes to that group, not the questions.
+    if (flow === 'show')
+      void pendingInvite.has().then((invited) => !invited && router.replace('/start'));
+  }, [flow, ownerId, router]);
+  const showIntro = Boolean(session && ownerId && tourSeen !== true && flow !== 'show');
   // Home is mounted under the intro; the tour must not start behind (or over) it.
   useEffect(() => {
     setOverlayBusy('intro', showIntro);
@@ -773,7 +804,8 @@ function AuthGate() {
   // Past the spinners below means a real screen — the intro or the app — is
   // what renders, so the launch splash may lift onto it. Until then it holds,
   // which is what keeps that spinner off a cold start.
-  const showingScreen = !loading && !needsRedirect && !(session && ownerId && tourSeen === null);
+  const showingScreen =
+    !loading && !needsRedirect && !(session && ownerId && (tourSeen === null || flow === 'wait'));
   useEffect(() => {
     if (showingScreen) markLaunchReady();
   }, [showingScreen]);
@@ -871,6 +903,7 @@ function AuthGate() {
           <Stack.Screen name="link-requests" options={slide} />
           <Stack.Screen name="companies" options={slide} />
           <Stack.Screen name="new-group" options={slide} />
+          <Stack.Screen name="start" options={{ animation: 'none', gestureEnabled: false }} />
           <Stack.Screen name="new-company" options={slide} />
           <Stack.Screen name="clone-group" options={slide} />
           {/* The paywall is an unwired placeholder, so it stays unreachable
@@ -1023,9 +1056,9 @@ function AuthGate() {
           screen — behind the `upload_progress` flag, so it renders nothing until
           the flag is on. */}
       <TransferProgressBar />
-      {showIntro && ownerId && (
+      {((showIntro && ownerId) || (flow === 'show' && segments[0] !== 'start')) && (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: theme.color.bg }]}>
-          {tourSeen === null ? (
+          {tourSeen === null || flow === 'wait' || flow === 'show' || !ownerId ? (
             <ActivityIndicator style={{ flex: 1 }} color={theme.color.brand} />
           ) : (
             <Onboarding
