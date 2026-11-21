@@ -3393,6 +3393,7 @@ export interface UiStrings {
     moved: string;
     moveFailed: string;
     switched: string;
+  };
   groupGoals: {
     menu: string;
     title: string;
@@ -11928,6 +11929,7 @@ const en: UiStrings = {
     moved: 'Moved to {group}',
     moveFailed: 'Could not move this. Nothing was changed.',
     switched: 'Now sharing one pot',
+  },
   groupGoals: {
     menu: 'More options',
     title: 'Goals',
@@ -19923,6 +19925,7 @@ const ta: UiStrings = {
     moved: '{group} குழுவுக்கு மாற்றப்பட்டது',
     moveFailed: 'இதை மாற்ற முடியவில்லை. எதுவும் மாறவில்லை.',
     switched: 'இப்போது ஒரே பணப்பை பகிரப்படுகிறது',
+  },
   groupGoals: {
     menu: 'மேலும் விருப்பங்கள்',
     title: 'இலக்குகள்',
@@ -28061,6 +28064,7 @@ const hi: UiStrings = {
     moved: '{group} में ले जाया गया',
     moveFailed: 'इसे नहीं ले जा सके। कुछ नहीं बदला।',
     switched: 'अब एक साझा पॉट है',
+  },
   groupGoals: {
     menu: 'और विकल्प',
     title: 'लक्ष्य',
@@ -36188,6 +36192,7 @@ const ar: UiStrings = {
     moved: 'تم النقل إلى {group}',
     moveFailed: 'تعذّر النقل. لم يتغير شيء.',
     switched: 'أصبحتم الآن تشاركون صندوقًا واحدًا',
+  },
   groupGoals: {
     menu: 'المزيد من الخيارات',
     title: 'الأهداف',
