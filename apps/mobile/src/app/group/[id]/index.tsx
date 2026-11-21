@@ -28,6 +28,7 @@ import {
   memberLookup,
   useGhostMergePersonIds,
   useGroup,
+  useGroupBudget,
   useGroupLedger,
   useGroupRealtime,
   useOpenReceipts,
@@ -68,6 +69,7 @@ import {
   paidBy,
   type MemberId,
   unitOf,
+  isPoolGroup,
 } from '@waves/core';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupRecurring } from '@/data/groupRecurring';
@@ -107,6 +109,9 @@ import { ExpenseFilterSheet } from '@/components/ExpenseFilterSheet';
 import { filterPillText } from '@/lib/expenseFilterSummary';
 import { GroupDrafts } from '@/components/GroupDrafts';
 import { GroupHero } from '@/components/GroupHero';
+import { HouseholdHome } from '@/components/HouseholdHome';
+import { monthSpend } from '@/lib/householdHome';
+import { todayIso } from '@/data/personal';
 import { PendingMark } from '@/components/PendingMark';
 import { PendingPaymentCard } from '@/components/PendingPaymentCard';
 import { SyncBanner } from '@/components/SyncBanner';
@@ -872,6 +877,26 @@ function LedgerGroupScreen() {
 
   const { blockedIds } = useBlockedUsers();
   const { rules: repeatingRules } = useGroupRecurring(groupId);
+  // Share it: this month's spend against the household's monthly budget.
+  const isPool = isPoolGroup(group.data);
+  const householdBudget = useGroupBudget(groupId);
+  const householdSpent = useMemo(
+    () =>
+      isPool
+        ? monthSpend(
+            expenses.rows
+              .filter((row) => row.currentVersion && !row.deleted_at)
+              .map((row) => ({
+                date: row.currentVersion!.expense_date,
+                amount: BigInt(row.currentVersion!.amount),
+                currency: row.currentVersion!.currency,
+              })),
+            todayIso().slice(0, 7),
+            group.data?.default_currency ?? 'INR',
+          )
+        : 0n,
+    [isPool, expenses.rows, group.data?.default_currency],
+  );
   const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
   const nameOf = useCallback(
     (memberId: string | null): string => {
@@ -1268,6 +1293,7 @@ function LedgerGroupScreen() {
     stalledHere ||
     groupDrafts.length > 0 ||
     showTripNudge ||
+    (isPool && tab === Tab.Expenses) ||
     (openReceipts.data?.length ?? 0) > 0 ||
     pendingByMe.length > 0;
 
@@ -1287,7 +1313,17 @@ function LedgerGroupScreen() {
       route: `/group/${groupId}/insights`,
       section: 'money',
     },
-    ...(!GROUP_REPEAT_HIDDEN || repeatingRules.length > 0
+    ...(isPool
+      ? [
+          {
+            icon: 'wallet-outline',
+            label: t.household.budgetMenu,
+            route: `/group/${groupId}/budget`,
+            section: 'money',
+          } as OverflowMenuItem,
+        ]
+      : []),
+    ...(!GROUP_REPEAT_HIDDEN || isPool || repeatingRules.length > 0
       ? [
           {
             icon: 'repeat-outline',
@@ -1799,6 +1835,7 @@ function LedgerGroupScreen() {
           heroGradient={heroGradient}
           nameOf={nameOf}
           leftOwing={leftWithBalance(everyone.data ?? [], ledger.balances)}
+          pool={isPool}
           onOpenMenu={() => setMenuOpen(true)}
         />
         {/* The faces of the page, pinned between the hero and the list.
@@ -2037,6 +2074,22 @@ function LedgerGroupScreen() {
                           </Text>
                         </Pressable>
                       </Row>
+                    ) : null}
+
+                    {/* Share it: the household's month, its shared bills, then goals. */}
+                    {isPool && tab === Tab.Expenses ? (
+                      <View style={{ gap: theme.spacing.sm }}>
+                        <HouseholdHome
+                          groupId={groupId}
+                          currency={currency}
+                          spent={householdSpent}
+                          budget={householdBudget.data?.amountMinor ?? null}
+                          rules={repeatingRules}
+                          nameOf={nameOf}
+                          onWhoPaid={() => setTab(Tab.Balances)}
+                        />
+                        {/* GROUP_GOALS_CARD_SLOT */}
+                      </View>
                     ) : null}
 
                     <VoiceAddedStrip groupId={groupId} live={liveIds} />

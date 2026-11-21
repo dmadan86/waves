@@ -38,7 +38,7 @@ import {
 
 import { useCaptures, useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
 import { useSync } from '@/sync';
-import { useRecurringCatchUp } from '@/data/groupRecurring';
+import { useHouseholdBillReminders, useRecurringCatchUp } from '@/data/groupRecurring';
 import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
 import { useGroupUnread } from '@/lib/useGroupUnread';
 import { UnreadDot } from '@/components/UnreadDot';
@@ -250,6 +250,7 @@ function HomeScreen() {
   // It remembers itself when finished; "Take the tour again" in the menu replays.
   // Repeating group expenses that came due while the app was closed.
   useRecurringCatchUp();
+  useHouseholdBillReminders();
 
   // The tour holds the top of the prompt queue for the whole of a first run —
   // from the moment we know it is owed (ready, not seen), through the wait for

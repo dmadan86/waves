@@ -259,6 +259,9 @@ const GROUP_UPDATABLE_FIELDS = [
   // shape-checked below, paired with `waves_guard_group_columns` in
   // 20261025100000_group_units.
   'units',
+  // 'split' | 'pool' (household Share it); admin-only in the SQL guard, paired
+  // with `waves_guard_group_columns` in 20261216090000_group_ledger_mode.
+  'ledger_mode',
 ] as const;
 
 function pick(source: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
@@ -928,6 +931,10 @@ export class SyncSession {
           const key = optionalString(patch.cover_color, 'cover_color');
           patch.cover_color = key === null ? null : key.toLowerCase();
         }
+        // Split / Share: a known value only; the column CHECK repeats it and the
+        // SQL guard makes it admin-only.
+        if ('ledger_mode' in patch && patch.ledger_mode !== 'split' && patch.ledger_mode !== 'pool')
+          throw new HttpError(400, 'VALIDATION_FAILED', 'ledger_mode must be split or pool');
         // The families: only an admin arranges them, and the map must name
         // only this group's members (one family each), with a head who is in
         // it. The SQL guard repeats the admin gate for direct PostgREST

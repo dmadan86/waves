@@ -368,6 +368,10 @@ model Group {
   /// composition in `split_params` (`units` split kind).
   units Json?
 
+  /// 'split' (who paid, who owes) or 'pool' (one household pot, nobody owes).
+  /// Admin-only change via `waves_guard_group_columns`.
+  ledgerMode String @default("split") @map("ledger_mode")
+
   /// Unused, reserved. Added by 20261023100000_group_trip_stops (already
   /// applied in production, so the column and its `waves_set_trip_stops` RPC
   /// stay) for a per-country itinerary the app no longer has: a group just

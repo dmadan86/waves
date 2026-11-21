@@ -20,8 +20,14 @@ import { AppState } from 'react-native';
 import * as Network from 'expo-network';
 import { randomUUID } from 'expo-crypto';
 
-import { pendingMutations } from '@waves/core';
-import type { MutationEnvelope, MutationKind } from '@waves/core';
+import {
+  isPoolGroup,
+  materialiseGroup,
+  MutationKind,
+  pendingMutations,
+  poolExpensePayload,
+} from '@waves/core';
+import type { MutationEnvelope } from '@waves/core';
 
 import { DemoWriteBlockedError, touchesDemo } from '@/demo/guard';
 import { requestDemoGate } from '@/demo/gateStore';
@@ -351,6 +357,19 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         requestDemoGate();
         throw new DemoWriteBlockedError();
       }
+      // Share-it households: every new group expense (add form, voice, quick
+      // add, SMS) pools unless the writer set `splitThisOne`. The one place.
+      let body = payload;
+      if (kind === MutationKind.ExpenseCreate) {
+        const { mirror, queue } = syncEngine.getState();
+        const group = materialiseGroup(mirror, queue, groupId) as
+          { ledger_mode?: string } | undefined;
+        if (isPoolGroup(group)) body = poolExpensePayload(payload);
+        else if ('splitThisOne' in payload) {
+          body = { ...payload };
+          delete body.splitThisOne;
+        }
+      }
       const envelope: MutationEnvelope = {
         clientMutationId: clientMutationId ?? randomUUID(),
         kind,
@@ -358,7 +377,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         clientCreatedAt: new Date().toISOString(),
         // JSON has no bigint: exact split amounts arrive as bigint and go out as decimal strings.
         payload: JSON.parse(
-          JSON.stringify(payload, (_key, value: unknown) =>
+          JSON.stringify(body, (_key, value: unknown) =>
             typeof value === 'bigint' ? value.toString() : value,
           ),
         ) as Record<string, unknown>,
