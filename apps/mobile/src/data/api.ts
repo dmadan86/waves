@@ -875,6 +875,8 @@ export async function updateGroup(
     cover_color: string | null;
     /** The families, or null for none. Admin-only: /sync and the column guard refuse anyone else. */
     units: GroupUnits | null;
+    /** 'split' | 'pool'. Admin-only: /sync and the column guard refuse anyone else. */
+    ledger_mode: 'split' | 'pool';
     /**
      * Content-guard token: the units map the edit was made FROM (the screen's
      * current mirror/optimistic value). Sent alongside `units` so /sync can

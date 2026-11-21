@@ -150,6 +150,13 @@ type MutationKind =
   // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
+  // Joint goals a group puts money aside for, and the lines put aside / taken out.
+  | 'group_goal.set'
+  | 'group_goal.archive'
+  | 'group_goal_contribution.add'
+  | 'group_goal_contribution.void'
+  | 'group_income.set'
+  | 'group_income.delete'
   | 'member_budget.set'
   | 'member_budget.clear'
   | 'group_budget.set'
@@ -259,6 +266,9 @@ const GROUP_UPDATABLE_FIELDS = [
   // shape-checked below, paired with `waves_guard_group_columns` in
   // 20261025100000_group_units.
   'units',
+  // 'split' | 'pool' (household Share it); admin-only in the SQL guard, paired
+  // with `waves_guard_group_columns` in 20261216090000_group_ledger_mode.
+  'ledger_mode',
 ] as const;
 
 function pick(source: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
@@ -370,6 +380,11 @@ const GROUP_TABLES = [
   ['trip_member_budgets', '*'],
   // Repeating group expenses. Flat rows; RLS limits them to the group's members.
   ['group_recurring_expenses', '*'],
+  // Joint goals and their lines (RLS: members only). Voided lines arrive with deleted_at set.
+  ['group_goals', '*'],
+  ['group_goal_contributions', '*'],
+  // Household income plans (RLS: members only). Deleted plans arrive with deleted_at set.
+  ['group_income_plans', '*'],
   // Company employees receive only their own entries, including tombstones.
   // Phase 3 fields travel through these wildcard projections under caller RLS:
   // groups: company_tags, company_industry, company_policies, company_policy_revision, company_default_mileage_rate_minor;
@@ -928,6 +943,10 @@ export class SyncSession {
           const key = optionalString(patch.cover_color, 'cover_color');
           patch.cover_color = key === null ? null : key.toLowerCase();
         }
+        // Split / Share: a known value only; the column CHECK repeats it and the
+        // SQL guard makes it admin-only.
+        if ('ledger_mode' in patch && patch.ledger_mode !== 'split' && patch.ledger_mode !== 'pool')
+          throw new HttpError(400, 'VALIDATION_FAILED', 'ledger_mode must be split or pool');
         // The families: only an admin arranges them, and the map must name
         // only this group's members (one family each), with a head who is in
         // it. The SQL guard repeats the admin gate for direct PostgREST
@@ -1690,6 +1709,57 @@ export class SyncSession {
           p_patch: patch,
         });
       }
+      case 'group_goal.set': {
+        const plan = mutation.payload.monthlyPlan ?? {};
+        if (plan === null || typeof plan !== 'object' || Array.isArray(plan)) {
+          throw new HttpError(400, 'VALIDATION_FAILED', 'monthlyPlan must be an object');
+        }
+        return await this.rpcAsCaller('waves_set_group_goal', {
+          p_group_id: mutation.groupId,
+          p_id: requireString(mutation.payload.goalId, 'goalId'),
+          p_name: requireString(mutation.payload.name, 'name'),
+          p_emoji: optionalText(mutation.payload.emoji, 'emoji'),
+          p_target_minor: requireString(mutation.payload.targetMinor, 'targetMinor'),
+          p_currency: requireString(mutation.payload.currency, 'currency'),
+          p_target_date: optionalText(mutation.payload.targetDate, 'targetDate'),
+          p_for_member_id: optionalText(mutation.payload.forMemberId, 'forMemberId'),
+          p_monthly_plan: plan,
+        });
+      }
+      case 'group_goal.archive':
+        return await this.rpcAsCaller('waves_archive_group_goal', {
+          p_id: requireString(mutation.payload.goalId, 'goalId'),
+          p_status: requireString(mutation.payload.status, 'status'),
+        });
+      case 'group_goal_contribution.add':
+        return await this.rpcAsCaller('waves_add_goal_contribution', {
+          p_goal_id: requireString(mutation.payload.goalId, 'goalId'),
+          p_id: requireString(mutation.payload.contributionId, 'contributionId'),
+          p_member_id: requireString(mutation.payload.memberId, 'memberId'),
+          p_amount_minor: requireString(mutation.payload.amountMinor, 'amountMinor'),
+          p_date: requireString(mutation.payload.date, 'date'),
+          p_note: optionalText(mutation.payload.note, 'note'),
+        });
+      case 'group_goal_contribution.void':
+        return await this.rpcAsCaller('waves_void_goal_contribution', {
+          p_id: requireString(mutation.payload.contributionId, 'contributionId'),
+        });
+      case 'group_income.set':
+        return await this.rpcAsCaller('waves_set_group_income', {
+          p_group_id: mutation.groupId,
+          p_id: requireString(mutation.payload.planId, 'planId'),
+          p_member_id: requireString(mutation.payload.memberId, 'memberId'),
+          p_label: requireString(mutation.payload.label, 'label'),
+          p_kind: requireString(mutation.payload.kind, 'kind'),
+          p_amount_minor: requireString(mutation.payload.amountMinor, 'amountMinor'),
+          p_currency: requireString(mutation.payload.currency, 'currency'),
+          p_day_of_month: Number(mutation.payload.dayOfMonth),
+          p_active: mutation.payload.active !== false,
+        });
+      case 'group_income.delete':
+        return await this.rpcAsCaller('waves_delete_group_income', {
+          p_id: requireString(mutation.payload.planId, 'planId'),
+        });
       case 'member_budget.set':
         return await this.rpcAsCaller('waves_set_my_trip_budget', {
           p_group_id: mutation.groupId,
@@ -2430,7 +2500,7 @@ export class SyncSession {
     };
     const recordId = requireString(payload.recordId, 'recordId');
     const recordKind = requireString(payload.recordKind, 'recordKind');
-    if (!['txn', 'recurring', 'loan', 'budget'].includes(recordKind)) {
+    if (!['txn', 'recurring', 'loan', 'budget', 'date'].includes(recordKind)) {
       throw new HttpError(400, 'VALIDATION_FAILED', `Unknown personal record kind: ${recordKind}`);
     }
     const data =

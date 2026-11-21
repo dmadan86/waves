@@ -25,6 +25,9 @@ const text: VoiceAgentText = {
   createGroup: 'Create group {name}',
   withPeople: 'with {names}',
   addMember: 'Add {name} to {group}',
+  putAside: 'Put aside {amount} for {goal}',
+  takeOut: 'Take {amount} out of {goal}',
+  unknownGoal: 'Unknown goal',
   unknownGroup: 'Unknown group',
   unknownPerson: 'Unknown person',
   noRateYet: 'No rate yet',
@@ -288,5 +291,46 @@ describe('voice agent error mapping', () => {
     expect(resultFromError('VOICE_AGENT_CLIP_TOO_LONG', null)).toEqual({ kind: 'too-long' });
     expect(resultFromError(null, 422)).toEqual({ kind: 'nothing-heard' });
     expect(resultFromError(null, 500)).toEqual({ kind: 'error' });
+  });
+});
+
+describe('add_goal_contribution cards', () => {
+  const goalLocal: AgentLocalData = {
+    groups: [
+      {
+        ...(local.groups[0] as AgentLocalData['groups'][number]),
+        goals: [{ id: 'goal1', name: 'House', totalMinor: 100000n }],
+      },
+    ],
+  };
+  const act = (extra: Record<string, unknown> = {}) =>
+    response([
+      {
+        type: 'add_goal_contribution',
+        groupId: 'g1',
+        goalId: 'goal1',
+        memberId: 'm1',
+        amountMinor: '50000',
+        direction: 'in',
+        ...extra,
+      } as never,
+    ]);
+
+  it('words a put-aside and a take-out, and runs both', () => {
+    const [aside] = planVoiceAgentActions(act(), goalLocal, text).cards;
+    expect(aside?.problem).toBe(false);
+    expect(aside?.segments[0]).toContain('Put aside');
+    expect(aside?.segments[0]).toContain('House');
+    const [out] = planVoiceAgentActions(act({ direction: 'out' }), goalLocal, text).cards;
+    expect(out?.problem).toBe(false);
+    expect(out?.segments[0]).toContain('out of House');
+  });
+
+  it('is a problem when the goal is unknown here or a withdrawal exceeds what is put aside', () => {
+    expect(planVoiceAgentActions(act(), local, text).cards[0]?.problem).toBe(true);
+    expect(
+      planVoiceAgentActions(act({ direction: 'out', amountMinor: '100001' }), goalLocal, text)
+        .cards[0]?.problem,
+    ).toBe(true);
   });
 });

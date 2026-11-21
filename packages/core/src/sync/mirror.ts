@@ -81,6 +81,12 @@ import type {
   CompanyDatesSetPayload,
   LeaveKind,
   CompanyMemberProjectsSetPayload,
+  GroupGoalArchivePayload,
+  GroupGoalContributionAddPayload,
+  GroupGoalContributionVoidPayload,
+  GroupGoalSetPayload,
+  GroupIncomeDeletePayload,
+  GroupIncomeSetPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
   MemberBudgetSetPayload,
@@ -126,6 +132,9 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CategoryTags,
   SyncTable.TripPlanItems,
   SyncTable.GroupRecurringExpenses,
+  SyncTable.GroupGoals,
+  SyncTable.GroupGoalContributions,
+  SyncTable.GroupIncomePlans,
   SyncTable.CompanyEntries,
   SyncTable.CompanyEntryAttachments,
   SyncTable.CompanyProjects,
@@ -1707,6 +1716,200 @@ export function materialiseGroupRecurring(
     const right = String(b.created_at ?? '');
     return left === right ? String(a.id).localeCompare(String(b.id)) : right.localeCompare(left);
   });
+}
+
+// ───────────────────────────────────────────────────── joint goals ──
+//
+// A goal made, or money put aside, in a dead zone must read as done straight
+// away, so the queue is replayed over the pulled rows. The server stays
+// authoritative (it may refuse a withdrawal below zero; the queue item then
+// fails and the overlay goes with it).
+
+export interface MirrorGroupGoal extends MirrorRow {
+  readonly id: string;
+  readonly group_id: string;
+  readonly name: string;
+  readonly emoji: string | null;
+  readonly target_minor: string | number;
+  readonly currency: string;
+  readonly target_date: string | null;
+  readonly for_member_id: string | null;
+  readonly monthly_plan: Readonly<Record<string, number>> | null;
+  readonly status: 'active' | 'done' | 'archived';
+  readonly created_by: string;
+  readonly created_at: string;
+  readonly deleted_at: string | null;
+  readonly pending?: boolean;
+}
+
+export interface MirrorGroupGoalContribution extends MirrorRow {
+  readonly id: string;
+  readonly goal_id: string;
+  readonly group_id: string;
+  readonly member_id: string;
+  readonly amount_minor: string | number;
+  readonly date: string;
+  readonly note: string | null;
+  readonly created_by: string;
+  readonly created_at: string;
+  readonly deleted_at: string | null;
+  readonly pending?: boolean;
+}
+
+/** One group's goals (newest first) and their un-voided lines (newest first). */
+export function materialiseGroupGoals(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string; readonly myMemberId?: string | null },
+): { goals: MirrorGroupGoal[]; contributions: MirrorGroupGoalContribution[] } {
+  const goals = new Map<string, MirrorGroupGoal>();
+  const lines = new Map<string, MirrorGroupGoalContribution>();
+  for (const row of rowsFor(state, SyncTable.GroupGoals, options.groupId) as MirrorGroupGoal[]) {
+    goals.set(row.id, row);
+  }
+  for (const row of rowsFor(
+    state,
+    SyncTable.GroupGoalContributions,
+    options.groupId,
+  ) as MirrorGroupGoalContribution[]) {
+    lines.set(row.id, row);
+  }
+
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== options.groupId) continue;
+    if (mutation.kind === 'group_goal.set') {
+      const p = mutation.payload as unknown as GroupGoalSetPayload;
+      const existing = goals.get(p.goalId);
+      goals.set(p.goalId, {
+        id: p.goalId,
+        group_id: mutation.groupId,
+        status: 'active',
+        created_by: options.myMemberId ?? '',
+        created_at: mutation.clientCreatedAt,
+        deleted_at: null,
+        ...existing,
+        name: p.name.trim(),
+        emoji: p.emoji ?? null,
+        target_minor: p.targetMinor,
+        // The server keeps the first currency.
+        currency: existing?.currency ?? p.currency,
+        target_date: p.targetDate ?? null,
+        for_member_id: p.forMemberId ?? null,
+        monthly_plan: p.monthlyPlan ?? {},
+        pending: true,
+      });
+    } else if (mutation.kind === 'group_goal.archive') {
+      const p = mutation.payload as unknown as GroupGoalArchivePayload;
+      const existing = goals.get(p.goalId);
+      if (existing) goals.set(p.goalId, { ...existing, status: p.status, pending: true });
+    } else if (mutation.kind === 'group_goal_contribution.add') {
+      const p = mutation.payload as unknown as GroupGoalContributionAddPayload;
+      if (lines.has(p.contributionId)) continue;
+      lines.set(p.contributionId, {
+        id: p.contributionId,
+        goal_id: p.goalId,
+        group_id: mutation.groupId,
+        member_id: p.memberId,
+        amount_minor: p.amountMinor,
+        date: p.date,
+        note: p.note ?? null,
+        created_by: options.myMemberId ?? '',
+        created_at: mutation.clientCreatedAt,
+        deleted_at: null,
+        pending: true,
+      });
+    } else if (mutation.kind === 'group_goal_contribution.void') {
+      const p = mutation.payload as unknown as GroupGoalContributionVoidPayload;
+      const existing = lines.get(p.contributionId);
+      if (existing) {
+        lines.set(p.contributionId, {
+          ...existing,
+          deleted_at: mutation.clientCreatedAt,
+          pending: true,
+        });
+      }
+    }
+  }
+
+  const newest = <T extends { id: string; created_at: string }>(a: T, b: T) =>
+    a.created_at === b.created_at
+      ? a.id.localeCompare(b.id)
+      : b.created_at.localeCompare(a.created_at);
+  return {
+    goals: [...goals.values()].filter((g) => g.deleted_at === null).sort(newest),
+    contributions: [...lines.values()].filter((c) => c.deleted_at === null).sort(newest),
+  };
+}
+
+// ─────────────────────────────────────────────── household income plans ──
+
+export interface MirrorGroupIncomePlan extends MirrorRow {
+  readonly id: string;
+  readonly group_id: string;
+  readonly member_id: string;
+  readonly label: string;
+  readonly kind: GroupIncomeSetPayload['kind'];
+  readonly amount_minor: string | number;
+  readonly currency: string;
+  readonly day_of_month: number;
+  readonly active: boolean;
+  readonly created_by: string;
+  readonly created_at: string;
+  readonly deleted_at: string | null;
+  readonly pending?: boolean;
+}
+
+/** One group's income plans (oldest first), queued changes shown as done. */
+export function materialiseGroupIncome(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string; readonly myMemberId?: string | null },
+): MirrorGroupIncomePlan[] {
+  const plans = new Map<string, MirrorGroupIncomePlan>();
+  for (const row of rowsFor(
+    state,
+    SyncTable.GroupIncomePlans,
+    options.groupId,
+  ) as MirrorGroupIncomePlan[]) {
+    plans.set(row.id, row);
+  }
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== options.groupId) continue;
+    if (mutation.kind === 'group_income.set') {
+      const p = mutation.payload as unknown as GroupIncomeSetPayload;
+      const existing = plans.get(p.planId);
+      plans.set(p.planId, {
+        id: p.planId,
+        group_id: mutation.groupId,
+        created_by: options.myMemberId ?? '',
+        created_at: mutation.clientCreatedAt,
+        deleted_at: null,
+        ...existing,
+        member_id: p.memberId,
+        label: p.label.trim(),
+        kind: p.kind,
+        amount_minor: p.amountMinor,
+        // The server keeps the first currency.
+        currency: existing?.currency ?? p.currency,
+        day_of_month: p.dayOfMonth,
+        active: p.active,
+        pending: true,
+      });
+    } else if (mutation.kind === 'group_income.delete') {
+      const p = mutation.payload as unknown as GroupIncomeDeletePayload;
+      const existing = plans.get(p.planId);
+      if (existing) {
+        plans.set(p.planId, { ...existing, deleted_at: mutation.clientCreatedAt, pending: true });
+      }
+    }
+  }
+  return [...plans.values()]
+    .filter((plan) => plan.deleted_at === null)
+    .sort((a, b) =>
+      a.created_at === b.created_at
+        ? a.id.localeCompare(b.id)
+        : a.created_at.localeCompare(b.created_at),
+    );
 }
 
 // ───────────────────────────────────────────────────── company entries ──

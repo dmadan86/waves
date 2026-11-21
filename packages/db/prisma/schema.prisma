@@ -368,6 +368,10 @@ model Group {
   /// composition in `split_params` (`units` split kind).
   units Json?
 
+  /// 'split' (who paid, who owes) or 'pool' (one household pot, nobody owes).
+  /// Admin-only change via `waves_guard_group_columns`.
+  ledgerMode String @default("split") @map("ledger_mode")
+
   /// Unused, reserved. Added by 20261023100000_group_trip_stops (already
   /// applied in production, so the column and its `waves_set_trip_stops` RPC
   /// stay) for a per-country itinerary the app no longer has: a group just
@@ -415,6 +419,9 @@ model Group {
   passes             GroupPass[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
+  goals              GroupGoal[]
+  goalContributions  GroupGoalContribution[]
+  incomePlans        GroupIncomePlan[]
   companyEntries     CompanyEntry[]
   companyProjects CompanyProject[]
   companyWageRuns CompanyWageRun[]
@@ -513,6 +520,12 @@ model GroupMember {
   itemClaims         ReceiptItemClaim[]
   planItems          TripPlanItem[]
   recurringExpenses  GroupRecurringExpense[]
+  incomePlans        GroupIncomePlan[]      @relation("IncomePlanMember")
+  incomePlansCreated GroupIncomePlan[]      @relation("IncomePlanCreator")
+  goalsCreated       GroupGoal[]            @relation("GroupGoalCreator")
+  goalsFor           GroupGoal[]            @relation("GroupGoalFor")
+  goalLines          GroupGoalContribution[] @relation("GoalLineMember")
+  goalLinesCreated   GroupGoalContribution[] @relation("GoalLineCreator")
   managerId String? @map("manager_id") @db.Uuid
   companyAttendance CompanyAttendance[] @relation("CompanyAttendanceMember")
   markedAttendance CompanyAttendance[] @relation("CompanyAttendanceMarker")
@@ -1415,7 +1428,7 @@ model CategoryTag {
 model PersonalRecord {
   id          String    @id @db.Uuid
   ownerUserId String    @map("owner_user_id") @db.Uuid
-  /// 'txn' | 'recurring' | 'loan' | 'budget'.
+  /// 'txn' | 'recurring' | 'loan' | 'budget' | 'date'.
   recordKind  String    @map("record_kind")
   /// The record's fields, shaped by `recordKind`. Opaque to the server.
   data        Json      @default("{}")
@@ -3141,6 +3154,99 @@ model GroupRecurringExpense {
   @@index([nextDate], map: "group_recurring_expenses_due_idx")
   @@index([createdBy])
   @@map("group_recurring_expenses")
+  @@schema("public")
+}
+
+/// A goal a group puts money aside for together — see the
+/// `20261217090000_group_goals` migration. Written only through
+/// `waves_set_group_goal` / `waves_archive_group_goal`.
+model GroupGoal {
+  id          String    @id @db.Uuid
+  groupId     String    @map("group_id") @db.Uuid
+  name        String
+  emoji       String?
+  targetMinor BigInt    @map("target_minor")
+  currency    String    @db.Char(3)
+  targetDate  DateTime? @map("target_date") @db.Date
+  forMemberId String?   @map("for_member_id") @db.Uuid
+  /// { memberId: minor-units number }
+  monthlyPlan Json      @default("{}") @map("monthly_plan")
+  /// active | done | archived
+  status      String    @default("active")
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedSeq  BigInt    @default(0) @map("updated_seq")
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  group         Group                   @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  creator       GroupMember             @relation("GroupGoalCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+  forMember     GroupMember?            @relation("GroupGoalFor", fields: [forMemberId], references: [id], onDelete: SetNull)
+  contributions GroupGoalContribution[]
+
+  @@index([groupId, updatedSeq])
+  @@index([createdBy])
+  @@index([forMemberId])
+  @@map("group_goals")
+  @@schema("public")
+}
+
+/// Money put aside toward a goal; negative = taken out; voided = `deletedAt`.
+/// Written only through `waves_add_goal_contribution` / `waves_void_goal_contribution`.
+model GroupGoalContribution {
+  id          String    @id @db.Uuid
+  goalId      String    @map("goal_id") @db.Uuid
+  groupId     String    @map("group_id") @db.Uuid
+  memberId    String    @map("member_id") @db.Uuid
+  amountMinor BigInt    @map("amount_minor")
+  date        DateTime  @db.Date
+  note        String?
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedSeq  BigInt    @default(0) @map("updated_seq")
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  goal    GroupGoal   @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  group   Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member  GroupMember @relation("GoalLineMember", fields: [memberId], references: [id], onDelete: Cascade)
+  creator GroupMember @relation("GoalLineCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([groupId, updatedSeq])
+  @@index([goalId])
+  @@index([memberId])
+  @@index([createdBy])
+  @@map("group_goal_contributions")
+  @@schema("public")
+}
+
+/// What a household member plans to bring in each month — a plan, never an
+/// expense. See `20261218090000_group_income_plans`. Written only through
+/// `waves_set_group_income` / `waves_delete_group_income`.
+model GroupIncomePlan {
+  id          String    @id @db.Uuid
+  groupId     String    @map("group_id") @db.Uuid
+  memberId    String    @map("member_id") @db.Uuid
+  label       String
+  /// salary | pension | business | rent | other
+  kind        String    @default("salary")
+  amountMinor BigInt    @map("amount_minor")
+  currency    String    @db.Char(3)
+  dayOfMonth  Int       @default(1) @map("day_of_month")
+  active      Boolean   @default(true)
+  createdBy   String    @map("created_by") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedSeq  BigInt    @default(0) @map("updated_seq")
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  group   Group       @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  member  GroupMember @relation("IncomePlanMember", fields: [memberId], references: [id], onDelete: Cascade)
+  creator GroupMember @relation("IncomePlanCreator", fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@index([groupId, updatedSeq])
+  @@index([memberId])
+  @@index([createdBy])
+  @@map("group_income_plans")
   @@schema("public")
 }
 

@@ -99,6 +99,7 @@ export function GroupHero({
   heroGradient,
   nameOf,
   leftOwing = 0,
+  pool = false,
   onOpenMenu,
 }: {
   groupId: string;
@@ -117,6 +118,8 @@ export function GroupHero({
   nameOf: (memberId: string | null) => string;
   /** Members who left but still have a balance: "2 members · 1 left". */
   leftOwing?: number;
+  /** Share it household: nobody owes anybody, so the balance verdict is not drawn. */
+  pool?: boolean;
   onOpenMenu: () => void;
 }) {
   const theme = useTheme();
@@ -365,44 +368,46 @@ export function GroupHero({
         >
           {/* Slide 0 — the verdict and its figure, then who is in and the one action. */}
           <View style={{ width: slideW, gap: theme.spacing.sm }}>
-            <View>
-              <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                <Text
+            {pool ? null : (
+              <View>
+                <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                  <Text
+                    numberOfLines={1}
+                    style={{
+                      color: ink,
+                      fontSize: 14,
+                      lineHeight: 18,
+                      fontWeight: '600',
+                      opacity: 0.9,
+                      flexShrink: 1,
+                    }}
+                  >
+                    {myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
+                  </Text>
+                  {pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : null}
+                </Row>
+                <MoneyText
+                  amount={myBalance}
+                  currency={currency}
+                  locale={locale}
+                  mode="balance"
+                  variant="title"
+                  tone="default"
                   numberOfLines={1}
-                  style={{
-                    color: ink,
-                    fontSize: 14,
-                    lineHeight: 18,
-                    fontWeight: '600',
-                    opacity: 0.9,
-                    flexShrink: 1,
-                  }}
-                >
-                  {myBalance === 0n ? t.allSettled : myBalance > 0n ? t.youAreOwed : t.youOwe}
-                </Text>
-                {pending !== 0n ? <Badge label={t.pendingConfirmation} tone="brand" /> : null}
-              </Row>
-              <MoneyText
-                amount={myBalance}
-                currency={currency}
-                locale={locale}
-                mode="balance"
-                variant="title"
-                tone="default"
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-                style={{ color: ink, fontSize: 26, lineHeight: 30, fontWeight: '800' }}
-              />
-              {myBalance !== 0n && convertedNote ? (
-                <Text
-                  numberOfLines={1}
-                  style={{ color: ink, fontSize: 12, lineHeight: 16, opacity: 0.75 }}
-                >
-                  {convertedNote}
-                </Text>
-              ) : null}
-            </View>
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+                  style={{ color: ink, fontSize: 26, lineHeight: 30, fontWeight: '800' }}
+                />
+                {myBalance !== 0n && convertedNote ? (
+                  <Text
+                    numberOfLines={1}
+                    style={{ color: ink, fontSize: 12, lineHeight: 16, opacity: 0.75 }}
+                  >
+                    {convertedNote}
+                  </Text>
+                ) : null}
+              </View>
+            )}
 
             <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
               <Pressable

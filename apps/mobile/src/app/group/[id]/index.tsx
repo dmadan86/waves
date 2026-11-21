@@ -28,6 +28,7 @@ import {
   memberLookup,
   useGhostMergePersonIds,
   useGroup,
+  useGroupBudget,
   useGroupLedger,
   useGroupRealtime,
   useOpenReceipts,
@@ -68,6 +69,8 @@ import {
   paidBy,
   type MemberId,
   unitOf,
+  hasHouseholdHome,
+  isPoolGroup,
 } from '@waves/core';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupRecurring } from '@/data/groupRecurring';
@@ -99,6 +102,7 @@ import { leftWithBalance } from '@/lib/settleRow';
 import { router } from '@/lib/navigation';
 
 import { CategoryBadge } from '@/components/Category';
+import { GroupGoalsCard } from '@/components/GroupGoalsCard';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { VoiceAddedStrip } from '@/components/VoiceAddedStrip';
 import { useVoiceDefaultSpace, useVoiceAdded } from '@/lib/voiceSpaceStore';
@@ -107,6 +111,10 @@ import { ExpenseFilterSheet } from '@/components/ExpenseFilterSheet';
 import { filterPillText } from '@/lib/expenseFilterSummary';
 import { GroupDrafts } from '@/components/GroupDrafts';
 import { GroupHero } from '@/components/GroupHero';
+import { HouseholdHome } from '@/components/HouseholdHome';
+import { HouseholdScreen } from '@/components/household/HouseholdScreen';
+import { monthSpend } from '@/lib/householdHome';
+import { todayIso } from '@/data/personal';
 import { PendingMark } from '@/components/PendingMark';
 import { PendingPaymentCard } from '@/components/PendingPaymentCard';
 import { SyncBanner } from '@/components/SyncBanner';
@@ -872,6 +880,26 @@ function LedgerGroupScreen() {
 
   const { blockedIds } = useBlockedUsers();
   const { rules: repeatingRules } = useGroupRecurring(groupId);
+  // Share it: this month's spend against the household's monthly budget.
+  const isPool = isPoolGroup(group.data);
+  const householdBudget = useGroupBudget(groupId);
+  const householdSpent = useMemo(
+    () =>
+      isPool
+        ? monthSpend(
+            expenses.rows
+              .filter((row) => row.currentVersion && !row.deleted_at)
+              .map((row) => ({
+                date: row.currentVersion!.expense_date,
+                amount: BigInt(row.currentVersion!.amount),
+                currency: row.currentVersion!.currency,
+              })),
+            todayIso().slice(0, 7),
+            group.data?.default_currency ?? 'INR',
+          )
+        : 0n,
+    [isPool, expenses.rows, group.data?.default_currency],
+  );
   const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
   const nameOf = useCallback(
     (memberId: string | null): string => {
@@ -1261,13 +1289,17 @@ function LedgerGroupScreen() {
 
   // Whether the list header has any card in it — it keeps its section gap
   // below only when it does, so an empty header adds nothing under the tabs.
+  // Joint goals (own block; the pooled-mode branch can move it into its "Our month" card).
+  const showGoals = tab === Tab.Expenses && !groupData.isDemo;
   const hasHeaderCards =
+    showGoals ||
     voiceNew > 0 ||
     importHere ||
     groupData.isDemo === true ||
     stalledHere ||
     groupDrafts.length > 0 ||
     showTripNudge ||
+    (isPool && tab === Tab.Expenses) ||
     (openReceipts.data?.length ?? 0) > 0 ||
     pendingByMe.length > 0;
 
@@ -1287,7 +1319,17 @@ function LedgerGroupScreen() {
       route: `/group/${groupId}/insights`,
       section: 'money',
     },
-    ...(!GROUP_REPEAT_HIDDEN || repeatingRules.length > 0
+    ...(isPool
+      ? [
+          {
+            icon: 'wallet-outline',
+            label: t.household.budgetMenu,
+            route: `/group/${groupId}/budget`,
+            section: 'money',
+          } as OverflowMenuItem,
+        ]
+      : []),
+    ...(!GROUP_REPEAT_HIDDEN || isPool || repeatingRules.length > 0
       ? [
           {
             icon: 'repeat-outline',
@@ -1799,6 +1841,7 @@ function LedgerGroupScreen() {
           heroGradient={heroGradient}
           nameOf={nameOf}
           leftOwing={leftWithBalance(everyone.data ?? [], ledger.balances)}
+          pool={isPool}
           onOpenMenu={() => setMenuOpen(true)}
         />
         {/* The faces of the page, pinned between the hero and the list.
@@ -1852,18 +1895,25 @@ function LedgerGroupScreen() {
                     <Ionicons name="swap-horizontal-outline" size={iconSize.md} color={color} />
                   ),
                 },
-                {
-                  value: Tab.Timeline,
-                  label: t.timeline.viewTimeline,
-                  icon: (color) => (
-                    <Ionicons name="time-outline" size={iconSize.md} color={color} />
-                  ),
-                },
-                {
-                  value: Tab.Map,
-                  label: t.timeline.viewMap,
-                  icon: (color) => <Ionicons name="map-outline" size={iconSize.md} color={color} />,
-                },
+                // A couple's or family's home has no balance timeline or map.
+                ...(hasHouseholdHome(groupData)
+                  ? []
+                  : [
+                      {
+                        value: Tab.Timeline,
+                        label: t.timeline.viewTimeline,
+                        icon: (color: string) => (
+                          <Ionicons name="time-outline" size={iconSize.md} color={color} />
+                        ),
+                      },
+                      {
+                        value: Tab.Map,
+                        label: t.timeline.viewMap,
+                        icon: (color: string) => (
+                          <Ionicons name="map-outline" size={iconSize.md} color={color} />
+                        ),
+                      },
+                    ]),
               ]}
               // Five faces do not share a phone's width evenly with their words
               // on one line, so the row scrolls rather than stacking each glyph
@@ -1999,6 +2049,9 @@ function LedgerGroupScreen() {
                   <DepartedExpensesBanner groupId={groupId} />
                   <View style={{ gap: theme.spacing.xl }}>
                     <ImportProgressBanner groupId={groupId} />
+                    {/* GROUP_GOALS_CARD_START: joint goals, renders on every group */}
+                    {showGoals ? <GroupGoalsCard groupId={groupId} /> : null}
+                    {/* GROUP_GOALS_CARD_END */}
                     {/* The demo trip says what it is before anything else on the
               screen does — a banner, not a badge easy to miss on the way in,
               with the one action that ends it right there beside the words. */}
@@ -2037,6 +2090,22 @@ function LedgerGroupScreen() {
                           </Text>
                         </Pressable>
                       </Row>
+                    ) : null}
+
+                    {/* Share it: the household's month, its shared bills, then goals. */}
+                    {isPool && tab === Tab.Expenses ? (
+                      <View style={{ gap: theme.spacing.sm }}>
+                        <HouseholdHome
+                          groupId={groupId}
+                          currency={currency}
+                          spent={householdSpent}
+                          budget={householdBudget.data?.amountMinor ?? null}
+                          rules={repeatingRules}
+                          nameOf={nameOf}
+                          onWhoPaid={() => setTab(Tab.Balances)}
+                        />
+                        {/* GROUP_GOALS_CARD_SLOT */}
+                      </View>
                     ) : null}
 
                     <VoiceAddedStrip groupId={groupId} live={liveIds} />
@@ -2250,10 +2319,14 @@ function LedgerGroupScreen() {
  * other group opens the ledger screen above, untouched.
  */
 function GroupScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, view, tab } = useLocalSearchParams<{ id: string; view?: string; tab?: string }>();
   const { group } = useGroup(id ?? '');
   if (!COMPANIES_ENABLED && group.data?.type === GroupType.Company) return <Redirect href="/" />;
   if (group.data?.type === GroupType.Company) return <CompanyHome groupId={id ?? ''} />;
+  // Couples, homes and pooled families open on the household home; the expense
+  // list is `?view=ledger` (any `?tab=` link also lands there).
+  if (hasHouseholdHome(group.data) && view !== 'ledger' && !tab)
+    return <HouseholdScreen groupId={id ?? ''} />;
   return <LedgerGroupScreen />;
 }
 

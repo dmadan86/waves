@@ -38,7 +38,7 @@ import {
 
 import { useCaptures, useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
 import { useSync } from '@/sync';
-import { useRecurringCatchUp } from '@/data/groupRecurring';
+import { useHouseholdBillReminders, useRecurringCatchUp } from '@/data/groupRecurring';
 import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
 import { useGroupUnread } from '@/lib/useGroupUnread';
 import { UnreadDot } from '@/components/UnreadDot';
@@ -79,6 +79,8 @@ import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
 import { greetingLine } from '@/lib/greetingLine';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
+import { DateReminderCard } from '@/components/dates/DateReminderCard';
+import { UpcomingDatesCard } from '@/components/dates/UpcomingDatesCard';
 import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
@@ -250,6 +252,7 @@ function HomeScreen() {
   // It remembers itself when finished; "Take the tour again" in the menu replays.
   // Repeating group expenses that came due while the app was closed.
   useRecurringCatchUp();
+  useHouseholdBillReminders();
 
   // The tour holds the top of the prompt queue for the whole of a first run —
   // from the moment we know it is owed (ready, not seen), through the wait for
@@ -612,6 +615,10 @@ function HomeScreen() {
               yes. Drawn only while something is waiting. */}
           <LinkRequestsCard enabled={session !== null && !isGuest} />
 
+          {/* A friendly "From Waves" reminder for a date coming up: inline,
+              one at a time, never a pop-up. Drawn only while one is due. */}
+          <DateReminderCard />
+
           {showSkeleton ? (
             <SkeletonList rows={3} />
           ) : list.length === 0 ? (
@@ -726,6 +733,9 @@ function HomeScreen() {
                   />
                 }
               >
+                <View style={{ marginBottom: theme.spacing.lg }}>
+                  <UpcomingDatesCard />
+                </View>
                 <View
                   style={{
                     backgroundColor: theme.color.surface,
