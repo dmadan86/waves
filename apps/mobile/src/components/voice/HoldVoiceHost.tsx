@@ -11,6 +11,7 @@
  * remind, balance questions) are handed to the voice screen unchanged.
  */
 
+import { setVoiceBusy } from '@/lib/voiceBusy';
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { Platform, Pressable, View } from 'react-native';
@@ -177,6 +178,12 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
   const [toast, setToast] = useState<Toast | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const recording = mode !== 'off';
+  // Pop-ups wait while somebody is talking or their sentence is being read.
+  const busy = recording || toast?.kind === 'reading';
+  useEffect(() => {
+    setVoiceBusy(busy);
+  }, [busy]);
+  useEffect(() => () => setVoiceBusy(false), []);
 
   useEffect(() => {
     if (!recording) return undefined;
