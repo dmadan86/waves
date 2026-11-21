@@ -12,7 +12,7 @@
  */
 
 import { setVoiceBusy } from '@/lib/voiceBusy';
-import { useEffect, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { Platform, Pressable, View } from 'react-native';
 
@@ -33,6 +33,7 @@ import {
   useCreateCapture,
   useExpenseGroups,
   useGroup,
+  useRecentActivity,
   useVoiceAgentStatus,
 } from '@/data/hooks';
 import { useDeletePersonalRecord, useUpsertPersonalRecord } from '@/data/personal';
@@ -47,6 +48,7 @@ import {
   formatHoldTime,
   holdLanding,
   holdSummary,
+  lastAddedGroupId,
   type HoldLanding,
 } from '@/lib/holdVoicePure';
 import { router } from '@/lib/navigation';
@@ -151,11 +153,29 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
 
   // The same launch rules as the voice screen: the screen's group, else the default space.
   const launchPersonal = personal && !groupId;
-  const launchGroupId = resolveVoiceSpace({
-    launchId: groupId,
-    defaultId: launchPersonal ? null : defaultId,
-    memberIds: spaceIds,
-  });
+  // Outside any group (Home, Friends): the group you last added to, the same
+  // guess the agent makes, rather than leaving the sentence for Review.
+  const activity = useRecentActivity(viewerId);
+  const lastGroupId = useMemo(() => {
+    if (launchPersonal || groupId) return null;
+    const mine = new Set(
+      local.groups.flatMap((g) => g.members.filter((m) => m.isViewer).map((m) => m.id)),
+    );
+    const company = new Set(
+      (groups.data ?? []).filter((g) => g.type === GroupType.Company).map((g) => g.id),
+    );
+    return lastAddedGroupId(
+      activity,
+      mine,
+      (id) => !company.has(id) && (spaceIds?.has(id) ?? false),
+    );
+  }, [activity, groupId, groups.data, launchPersonal, local.groups, spaceIds]);
+  const launchGroupId =
+    resolveVoiceSpace({
+      launchId: groupId,
+      defaultId: launchPersonal ? null : defaultId,
+      memberIds: spaceIds,
+    }) ?? lastGroupId;
   const launchGroup = useGroup(launchGroupId ?? '');
   const launchMembers = launchGroupId
     ? withAliases(
@@ -248,6 +268,9 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
       if (landing.kind === 'later') return { saved: [], missed: true };
       const saved: SavedState[] = [];
       for (const item of parsed.items) {
+        // In a run of several, an amount with no name ("… 1000 40 rupees") is
+        // more likely a misheard number than an expense: it stays in Review.
+        if (parsed.items.length > 1 && !item.note.trim()) continue;
         // One that fails to write must not hide the ones that did.
         const one = await addItem(landing, item).catch(() => null);
         if (one) saved.push(one);

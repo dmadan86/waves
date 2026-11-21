@@ -8,6 +8,16 @@ import {
 } from '@/lib/voiceDraftPure';
 
 describe('heardCaptureInput', () => {
+  it('files several expenses with their total', () => {
+    const input = heardCaptureInput(
+      '80 rupees for food, 10 for petrol and 1 for tea',
+      '2026-11-21',
+      'INR',
+    );
+    expect(input.amount).toBe(9100n);
+    expect(input.description).toBe('80 rupees for food, 10 for petrol and 1 for tea');
+  });
+
   it('files the sentence with no amount, kept as the words too', () => {
     expect(heardCaptureInput('  lunch with Ravi ', '2026-11-19', 'INR')).toEqual({
       description: 'lunch with Ravi',

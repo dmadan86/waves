@@ -24,13 +24,18 @@ export function heardCaptureInput(transcript: string, date: string, currency: st
   }
   const only = read.length === 1 && read[0].amountMajor > 0 ? read[0] : null;
   const filedCurrency = only?.currency ?? currency;
+  // Several expenses in one sentence: the draft shows their total, not ₹0, as
+  // long as they share one currency and every amount was read.
+  const several =
+    read.length > 1 &&
+    read.every((item) => item.amountMajor > 0 && (item.currency ?? currency) === filedCurrency);
+  const majors = only ? [only.amountMajor] : several ? read.map((item) => item.amountMajor) : [];
+  const scale = Number(minorUnitScale(filedCurrency));
   return {
     description: only?.note.trim() || sentence,
     expenseDate: date,
     currency: filedCurrency,
-    amount: only
-      ? BigInt(Math.round(only.amountMajor * Number(minorUnitScale(filedCurrency))))
-      : 0n,
+    amount: majors.reduce((sum, major) => sum + BigInt(Math.round(major * scale)), 0n),
     rawText: sentence,
     parsed: { voiceTranscript: sentence },
   };

@@ -6,6 +6,7 @@ import {
   holdLanding,
   holdPlan,
   holdSummary,
+  lastAddedGroupId,
 } from '@/lib/holdVoicePure';
 import { parseVoiceExpenses } from '@/lib/voiceExpense';
 
@@ -148,5 +149,30 @@ describe('holdSummary', () => {
 
   it('says nothing when nothing was filed', () => {
     expect(holdSummary(0, 0)).toEqual({ kind: 'none' });
+  });
+});
+
+describe('lastAddedGroupId', () => {
+  const row = (group_id: string, actor: string, verb = 'added', object_type = 'expense') => ({
+    group_id,
+    actor_member_id: actor,
+    verb,
+    object_type,
+  });
+  it('picks the newest group I added an expense to', () => {
+    const rows = [
+      row('g3', 'them'),
+      row('g2', 'me2', 'edited'),
+      row('g1', 'me1'),
+      row('g2', 'me2'),
+    ];
+    expect(lastAddedGroupId(rows, new Set(['me1', 'me2']), () => true)).toBe('g1');
+  });
+  it('skips groups that cannot take it', () => {
+    const rows = [row('gone', 'me1'), row('g2', 'me2')];
+    expect(lastAddedGroupId(rows, new Set(['me1', 'me2']), (id) => id !== 'gone')).toBe('g2');
+  });
+  it('is null with nothing of mine', () => {
+    expect(lastAddedGroupId([row('g1', 'them')], new Set(['me1']), () => true)).toBeNull();
   });
 });

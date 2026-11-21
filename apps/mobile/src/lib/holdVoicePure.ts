@@ -89,3 +89,26 @@ export function holdSummary(added: number, later: number): HoldSummary {
   if (added === 0 && later === 1) return { kind: 'one-later' };
   return { kind: 'many', added, later };
 }
+
+/**
+ * The group you last added an expense to, from the activity feed (newest
+ * first): where a hold made outside any group lands, the same guess the agent
+ * makes with its [RECENT] tag. Null when you have added nothing anywhere usable.
+ */
+export function lastAddedGroupId(
+  rows: readonly {
+    group_id: string;
+    actor_member_id: string | null;
+    object_type: string;
+    verb: string;
+  }[],
+  mine: ReadonlySet<string>,
+  usable: (groupId: string) => boolean,
+): string | null {
+  for (const row of rows) {
+    if (row.object_type !== 'expense' || row.verb !== 'added') continue;
+    if (!row.actor_member_id || !mine.has(row.actor_member_id)) continue;
+    if (usable(row.group_id)) return row.group_id;
+  }
+  return null;
+}
