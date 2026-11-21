@@ -84,7 +84,7 @@ It just has nothing that points a person at it at the right moment.
   `packs` / `pack_installs`). `CategoryBadge` + `resolveCategory(key, meta)`
   render them.
 
-### 1.3 The personal store: one opaque table, server as pure relay
+### 1.3 The personal store: one opaque table the server stores without interpreting (Waves can still read it; see TDR A56)
 
 - `personal_records` — `packages/db/prisma/schema.prisma:1013-1039`. Columns:
   `id`, `owner_user_id`, `record_kind` (`'txn' | 'recurring' | 'loan' | 'budget'`),
