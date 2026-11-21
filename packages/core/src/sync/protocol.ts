@@ -58,6 +58,13 @@ export enum MutationKind {
   // cannot double-post when two phones come back at once.
   GroupRecurringCreate = 'group_recurring.create',
   GroupRecurringUpdate = 'group_recurring.update',
+  // A joint goal a group puts money aside for, and the lines put aside / taken
+  // out. Group-scoped and authorised by membership; ids are client-chosen so a
+  // replayed mutation finds the same row. Voiding soft-deletes a line.
+  GroupGoalSet = 'group_goal.set',
+  GroupGoalArchive = 'group_goal.archive',
+  GroupGoalContributionAdd = 'group_goal_contribution.add',
+  GroupGoalContributionVoid = 'group_goal_contribution.void',
   // Company expenses (Phase 1). Group-scoped like the plan; the server decides
   // who may write what (an employee only their own expense / bata, an admin any
   // entry) and RLS decides who may read it (an employee only their own rows).
@@ -471,6 +478,39 @@ export interface GroupRecurringPatch {
 export interface GroupRecurringUpdatePayload {
   readonly ruleId: string;
   readonly patch: GroupRecurringPatch;
+}
+
+/** Make or edit a goal (an upsert by `goalId`; the currency is fixed on first save). */
+export interface GroupGoalSetPayload {
+  readonly goalId: string;
+  readonly name: string;
+  readonly emoji?: string | null;
+  /** Minor units as a decimal string. */
+  readonly targetMinor: string;
+  readonly currency: CurrencyCode;
+  readonly targetDate?: string | null;
+  readonly forMemberId?: string | null;
+  /** Each member's monthly amount, minor units as a number. */
+  readonly monthlyPlan?: Readonly<Record<string, number>>;
+}
+
+export interface GroupGoalArchivePayload {
+  readonly goalId: string;
+  readonly status: 'active' | 'done' | 'archived';
+}
+
+/** Put aside (positive) or take out (negative) — minor units as a decimal string. */
+export interface GroupGoalContributionAddPayload {
+  readonly contributionId: string;
+  readonly goalId: string;
+  readonly memberId: string;
+  readonly amountMinor: string;
+  readonly date: string;
+  readonly note?: string | null;
+}
+
+export interface GroupGoalContributionVoidPayload {
+  readonly contributionId: string;
 }
 
 /** The fields of a company entry the client may set (the server recomputes bata). */
@@ -1069,6 +1109,9 @@ export enum SyncTable {
   /** Group-scoped, read+write. A repeating group expense; the expenses it
    * produces arrive as ordinary `expenses` rows. */
   GroupRecurringExpenses = 'group_recurring_expenses',
+  /** Group-scoped, read+write. Joint goals and the money put aside for them. */
+  GroupGoals = 'group_goals',
+  GroupGoalContributions = 'group_goal_contributions',
   /** Group-scoped, read+write, PRIVATE per employee by RLS: an employee is only
    * ever pulled their own rows, an admin all of them. */
   CompanyEntries = 'company_entries',

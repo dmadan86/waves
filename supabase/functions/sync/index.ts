@@ -150,6 +150,11 @@ type MutationKind =
   // Repeating group expenses are posted by the server generator.
   | 'group_recurring.create'
   | 'group_recurring.update'
+  // Joint goals a group puts money aside for, and the lines put aside / taken out.
+  | 'group_goal.set'
+  | 'group_goal.archive'
+  | 'group_goal_contribution.add'
+  | 'group_goal_contribution.void'
   | 'member_budget.set'
   | 'member_budget.clear'
   | 'group_budget.set'
@@ -370,6 +375,9 @@ const GROUP_TABLES = [
   ['trip_member_budgets', '*'],
   // Repeating group expenses. Flat rows; RLS limits them to the group's members.
   ['group_recurring_expenses', '*'],
+  // Joint goals and their lines (RLS: members only). Voided lines arrive with deleted_at set.
+  ['group_goals', '*'],
+  ['group_goal_contributions', '*'],
   // Company employees receive only their own entries, including tombstones.
   // Phase 3 fields travel through these wildcard projections under caller RLS:
   // groups: company_tags, company_industry, company_policies, company_policy_revision, company_default_mileage_rate_minor;
@@ -1690,6 +1698,41 @@ export class SyncSession {
           p_patch: patch,
         });
       }
+      case 'group_goal.set': {
+        const plan = mutation.payload.monthlyPlan ?? {};
+        if (plan === null || typeof plan !== 'object' || Array.isArray(plan)) {
+          throw new HttpError(400, 'VALIDATION_FAILED', 'monthlyPlan must be an object');
+        }
+        return await this.rpcAsCaller('waves_set_group_goal', {
+          p_group_id: mutation.groupId,
+          p_id: requireString(mutation.payload.goalId, 'goalId'),
+          p_name: requireString(mutation.payload.name, 'name'),
+          p_emoji: optionalText(mutation.payload.emoji, 'emoji'),
+          p_target_minor: requireString(mutation.payload.targetMinor, 'targetMinor'),
+          p_currency: requireString(mutation.payload.currency, 'currency'),
+          p_target_date: optionalText(mutation.payload.targetDate, 'targetDate'),
+          p_for_member_id: optionalText(mutation.payload.forMemberId, 'forMemberId'),
+          p_monthly_plan: plan,
+        });
+      }
+      case 'group_goal.archive':
+        return await this.rpcAsCaller('waves_archive_group_goal', {
+          p_id: requireString(mutation.payload.goalId, 'goalId'),
+          p_status: requireString(mutation.payload.status, 'status'),
+        });
+      case 'group_goal_contribution.add':
+        return await this.rpcAsCaller('waves_add_goal_contribution', {
+          p_goal_id: requireString(mutation.payload.goalId, 'goalId'),
+          p_id: requireString(mutation.payload.contributionId, 'contributionId'),
+          p_member_id: requireString(mutation.payload.memberId, 'memberId'),
+          p_amount_minor: requireString(mutation.payload.amountMinor, 'amountMinor'),
+          p_date: requireString(mutation.payload.date, 'date'),
+          p_note: optionalText(mutation.payload.note, 'note'),
+        });
+      case 'group_goal_contribution.void':
+        return await this.rpcAsCaller('waves_void_goal_contribution', {
+          p_id: requireString(mutation.payload.contributionId, 'contributionId'),
+        });
       case 'member_budget.set':
         return await this.rpcAsCaller('waves_set_my_trip_budget', {
           p_group_id: mutation.groupId,
