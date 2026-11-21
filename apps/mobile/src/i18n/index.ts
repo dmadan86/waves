@@ -8478,6 +8478,16 @@ export interface UiStrings {
     noRecurring: string;
     loans: string;
     loansSub: string;
+    loansTotal: string;
+    youOwe: string;
+    youAreOwed: string;
+    repaidOf: string;
+    addReminderShort: string;
+    editDetails: string;
+    loanShareOwe: string;
+    loanShareLent: string;
+    loanReminderOwe: string;
+    loanReminderLent: string;
     addLoan: string;
     editLoan: string;
     borrowed: string;
@@ -16377,6 +16387,16 @@ const en: UiStrings = {
     noRecurring: 'No recurring items yet.',
     loans: 'Loans',
     loansSub: 'Money you owe or are owed.',
+    loansTotal: 'Total Outstanding',
+    youOwe: 'You owe',
+    youAreOwed: 'You are owed',
+    repaidOf: 'Repaid: {paid} of {total}',
+    addReminderShort: 'Add Reminder',
+    editDetails: 'Edit Details',
+    loanShareOwe: '{name} — I owe {amount}, repaid {repaid}',
+    loanShareLent: '{name} owes me {amount}, repaid {repaid}',
+    loanReminderOwe: 'Repay {name}',
+    loanReminderLent: 'Collect from {name}',
     addLoan: 'Add loan',
     editLoan: 'Edit loan',
     borrowed: 'I borrowed',
@@ -24473,6 +24493,16 @@ const ta: UiStrings = {
     noRecurring: 'மீண்டும் வரும் பதிவுகள் இல்லை.',
     loans: 'கடன்கள்',
     loansSub: 'நீங்கள் தர வேண்டியது அல்லது வர வேண்டியது.',
+    loansTotal: 'மொத்த நிலுவை',
+    youOwe: 'நீங்கள் தர வேண்டியது',
+    youAreOwed: 'உங்களுக்கு வர வேண்டியது',
+    repaidOf: 'திருப்பிச் செலுத்தியது: {paid} / {total}',
+    addReminderShort: 'நினைவூட்டலைச் சேர்',
+    editDetails: 'விவரங்களைத் திருத்து',
+    loanShareOwe: '{name} — நான் {amount} தர வேண்டும், செலுத்தியது {repaid}',
+    loanShareLent: '{name} எனக்கு {amount} தர வேண்டும், செலுத்தியது {repaid}',
+    loanReminderOwe: '{name}க்குத் திருப்பிச் செலுத்து',
+    loanReminderLent: '{name}இடம் வசூலி',
     addLoan: 'கடனைச் சேர்',
     editLoan: 'கடனைத் திருத்து',
     borrowed: 'நான் வாங்கினேன்',
@@ -32343,6 +32373,16 @@ const hi: UiStrings = {
     noRecurring: 'अभी कोई आवर्ती मद नहीं।',
     loans: 'ऋण',
     loansSub: 'जो आप देते हैं या आपको मिलना है।',
+    loansTotal: 'कुल बकाया',
+    youOwe: 'आपको देना है',
+    youAreOwed: 'आपको मिलना है',
+    repaidOf: 'चुकाया: {paid} / {total}',
+    addReminderShort: 'रिमाइंडर जोड़ें',
+    editDetails: 'विवरण संपादित करें',
+    loanShareOwe: '{name} — मुझे {amount} देना है, चुकाया {repaid}',
+    loanShareLent: '{name} को मुझे {amount} देना है, चुकाया {repaid}',
+    loanReminderOwe: '{name} को चुकाएँ',
+    loanReminderLent: '{name} से वसूलें',
     addLoan: 'ऋण जोड़ें',
     editLoan: 'ऋण संपादित करें',
     borrowed: 'मैंने उधार लिया',
@@ -41014,6 +41054,16 @@ const ar: UiStrings = {
     noRecurring: 'لا عناصر متكررة بعد.',
     loans: 'القروض',
     loansSub: 'أموال تدين بها أو مستحقة لك.',
+    loansTotal: 'إجمالي المستحق',
+    youOwe: 'عليك',
+    youAreOwed: 'لك',
+    repaidOf: 'المسدّد: {paid} من {total}',
+    addReminderShort: 'أضف تذكيرًا',
+    editDetails: 'تعديل التفاصيل',
+    loanShareOwe: '{name} — أدين بـ {amount}، سدّدت {repaid}',
+    loanShareLent: '{name} يدين لي بـ {amount}، سُدّد {repaid}',
+    loanReminderOwe: 'سدّد لـ {name}',
+    loanReminderLent: 'حصّل من {name}',
     addLoan: 'إضافة قرض',
     editLoan: 'تعديل القرض',
     borrowed: 'اقترضت',

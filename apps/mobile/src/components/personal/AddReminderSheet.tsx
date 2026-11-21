@@ -28,11 +28,16 @@ export function AddReminderSheet({
   visible,
   currency,
   today,
+  initialTitle = '',
+  initialAmount = '',
   onClose,
 }: {
   visible: boolean;
   currency: string;
   today: string;
+  /** Pre-filled by a caller that knows what it is for (a loan's next repayment). */
+  initialTitle?: string;
+  initialAmount?: string;
   onClose: () => void;
 }) {
   const theme = useTheme();
@@ -40,8 +45,8 @@ export function AddReminderSheet({
   const h = t.personalHome;
   const upsert = useUpsertPersonalRecord();
   const saveDate = useSaveDate();
-  const [title, setTitle] = useState('');
-  const [amountText, setAmountText] = useState('');
+  const [title, setTitle] = useState(initialTitle);
+  const [amountText, setAmountText] = useState(initialAmount);
   const [date, setDate] = useState(today);
   const [repeat, setRepeat] = useState<Repeat>('none');
   const [picking, setPicking] = useState(false);
@@ -51,8 +56,8 @@ export function AddReminderSheet({
   const canSave = title.trim().length > 0 && !busy;
 
   const done = () => {
-    setTitle('');
-    setAmountText('');
+    setTitle(initialTitle);
+    setAmountText(initialAmount);
     setRepeat('none');
     setDate(today);
     onClose();
