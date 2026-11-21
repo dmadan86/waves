@@ -187,6 +187,30 @@ function numberParts(
   return [{ type: 'integer', value: text }];
 }
 
+/**
+ * A short headline figure for tight tiles: ₹3.2L and ₹1.5Cr for rupees (always
+ * read in an Indian locale, see `rupeeLocale`), $3.2K and $1.5M elsewhere, from
+ * CLDR compact notation. Under a thousand major units it is the plain amount, and
+ * where the engine has no compact notation it falls back to `format`. Never for
+ * lists or entry rows: it drops digits.
+ */
+export function compactMoney(amount: Money, options: FormatOptions = {}): string {
+  const { locale = DEFAULT_LOCALE } = options;
+  const major = Number(toMajorString(amount));
+  if (Math.abs(major) < 1000) return format(amount, options);
+  try {
+    return new Intl.NumberFormat(rupeeLocale(locale, amount.currency), {
+      style: 'currency',
+      currency: amount.currency,
+      notation: 'compact',
+      maximumFractionDigits: 1,
+      signDisplay: options.signDisplay ?? 'auto',
+    }).format(options.signDisplay === 'never' ? Math.abs(major) : major);
+  } catch {
+    return format(amount, { ...options, whole: true });
+  }
+}
+
 /** Just the currency symbol for the locale ("₹", "$"). */
 export function currencySymbol(currency: CurrencyCode, locale: Locale = DEFAULT_LOCALE): string {
   const formatter = currencyFormatter(locale, currency, 0, 'auto');

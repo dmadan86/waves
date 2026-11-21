@@ -18,6 +18,7 @@ import {
   incomeTotal,
   mergeHouseholdUpcoming,
   monthlySpend,
+  compactMoney,
   formatParts,
   money,
   type CurrencyCode,
@@ -104,6 +105,10 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
     hidden
       ? BALANCE_MASK
       : compactAmount(formatParts(money(minor, currency as CurrencyCode), { locale }));
+
+  // The three headline tiles are tight on a phone: short figures there, full ones everywhere else.
+  const tileFmt = (minor: bigint): string =>
+    hidden ? BALANCE_MASK : compactMoney(money(minor, currency as CurrencyCode), { locale });
 
   const live = useMemo(
     () => expenses.rows.filter((row) => row.currentVersion && !row.deleted_at),
@@ -386,7 +391,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     icon="wallet-outline"
                     tone="income"
                     label={h.income}
-                    value={fmt(income)}
+                    value={tileFmt(income)}
                     hidden={hidden}
                     onPress={() => setTab('income')}
                   />
@@ -394,7 +399,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     icon="arrow-up"
                     tone="negative"
                     label={h.spent}
-                    value={fmt(spent)}
+                    value={tileFmt(spent)}
                     hidden={hidden}
                     onPress={() => toLedger()}
                   />
@@ -402,7 +407,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     icon="wallet"
                     tone="brand"
                     label={h.left}
-                    value={`${summary.left < 0n ? '−' : ''}${fmt(summary.left < 0n ? -summary.left : summary.left)}`}
+                    value={`${summary.left < 0n ? '−' : ''}${tileFmt(summary.left < 0n ? -summary.left : summary.left)}`}
                     negative={summary.left < 0n}
                     hidden={hidden}
                     onPress={() => setTab('overview')}
