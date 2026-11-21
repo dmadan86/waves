@@ -46,6 +46,7 @@ const sidebars: SidebarsConfig = {
       label: 'Privacy and your data',
       collapsed: false,
       items: [
+        'privacy/how-your-data-is-handled',
         'privacy/discovery-settings',
         'privacy/export-your-data',
         'privacy/delete-your-account',

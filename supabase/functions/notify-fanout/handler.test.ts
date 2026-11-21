@@ -24,8 +24,17 @@ const SERVICE_KEY = 'service-role-key';
 type RpcResult = { data?: unknown; error?: { message: string } | null };
 
 /** A service-client mock whose `rpc(name)` is dispatched from a table of results. */
-function serviceMock(rpc: Record<string, RpcResult> = {}) {
+function serviceMock(rpc: Record<string, RpcResult> = {}, groupTypes: Record<string, string> = {}) {
   return {
+    from: vi.fn(() => ({
+      select: () => ({
+        in: (_column: string, ids: string[]) =>
+          Promise.resolve({
+            data: ids.filter((id) => id in groupTypes).map((id) => ({ id, type: groupTypes[id] })),
+            error: null,
+          }),
+      }),
+    })),
     rpc: vi.fn((name: string) => Promise.resolve(rpc[name] ?? { data: null, error: null })),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any;
@@ -33,13 +42,14 @@ function serviceMock(rpc: Record<string, RpcResult> = {}) {
 
 interface HarnessOptions {
   rpc?: Record<string, RpcResult>;
+  groupTypes?: Record<string, string>;
   fetchImpl?: ReturnType<typeof vi.fn>;
   email?: NotifyFanoutDeps['dispatchEmail'];
   serviceKey?: string | undefined;
 }
 
 function harness(options: HarnessOptions = {}) {
-  const service = serviceMock(options.rpc);
+  const service = serviceMock(options.rpc, options.groupTypes);
   const dispatchEmail =
     options.email ?? vi.fn().mockResolvedValue({ claimed: 0, sent: 0, failed: 0, retry: 0 });
   const fetchImpl =
@@ -214,6 +224,40 @@ describe('claim → send → finish', () => {
       const headers = (fetchImpl.mock.calls[0][1] as RequestInit).headers as Record<string, string>;
       expect(headers.authorization).toBe(token ? `Bearer ${token}` : undefined);
     }
+  });
+
+  it('keeps amounts and descriptions off the lock screen of a couple group', async () => {
+    const couple = '11111111-1111-1111-1111-111111111111';
+    const trip = '22222222-2222-2222-2222-222222222222';
+    const row = (id: string, group: string) => ({
+      ...claimRow(id, ['ExponentPushToken[a]']),
+      kind: 'expense_added',
+      deep_link: `waves://group/${group}`,
+      payload: {
+        amount: '42000',
+        currency: 'INR',
+        counterparty: 'Priya',
+        group: 'Home',
+        description: 'Dinner at Taj',
+      },
+    });
+    const fetchImpl = vi.fn().mockResolvedValue(
+      expoResponse([
+        { status: 'ok', id: 'r-1' },
+        { status: 'ok', id: 'r-2' },
+      ]),
+    );
+    const { deps } = harness({
+      serviceKey: SERVICE_KEY,
+      groupTypes: { [couple]: 'couple', [trip]: 'trip' },
+      rpc: { waves_claim_push_notifications: { data: [row('n-1', couple), row('n-2', trip)] } },
+      fetchImpl,
+    });
+    await handlePushFanout(authorizedRequest(), deps);
+    const sent = JSON.parse((fetchImpl.mock.calls[0][1] as RequestInit).body as string);
+    expect(sent[0].title).toBe('Priya added an expense in Home');
+    expect(JSON.stringify(sent[0])).not.toMatch(/Taj|420/);
+    expect(sent[1].body).toContain('Taj');
   });
 
   it('marks a notification delivered when a device accepts it', async () => {

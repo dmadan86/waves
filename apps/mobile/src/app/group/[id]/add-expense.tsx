@@ -59,6 +59,7 @@ import {
   Row,
   Screen,
   Text,
+  Toggle,
   useScreenClearance,
   useTheme,
 } from '@waves/ui';
@@ -97,7 +98,12 @@ import { useEntitlement } from '@/lib/useEntitlement';
 import { tripRateFor } from '@/lib/tripRates';
 import { activeMemberId, canRewrite, shouldPinOnSave } from '@/lib/fxAutoRate';
 import { NotUploaderError, StorageCapError } from '@/lib/storage';
-import { useDeletePersonalRecord, usePersonalRecords } from '@/data/personal';
+import {
+  useDeletePersonalRecord,
+  usePersonalRecords,
+  useUpsertPersonalRecord,
+} from '@/data/personal';
+import { canOfferOnlyMe, onlyMeRecord } from '@/lib/onlyMePure';
 import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
 import { useCreateGroupRecurring } from '@/data/groupRecurring';
 import { frequencyLabel } from '@/lib/frequencyLabel';
@@ -448,10 +454,17 @@ function AddExpenseScreen() {
   const toast = useToast();
   const personalRecords = usePersonalRecords();
   const removePersonal = useDeletePersonalRecord();
+  const upsertPersonal = useUpsertPersonalRecord();
+  const [onlyMe, setOnlyMe] = useState(false);
   const assignCapture = useAssignCapture();
   const guard = useGuestGuard();
 
   const editing = expenses.rows.find((expense) => expense.id === expenseId);
+  // Not for an edit, a capture or a move from Personal: those already belong somewhere.
+  const onlyMeOffered =
+    canOfferOnlyMe({ groupType: group.data?.type, editing: Boolean(expenseId) }) &&
+    !captureId &&
+    !movePersonal;
 
   // The id is chosen here, not by the server. It seeds the remainder rotation
   // (ADR-009), so previewing with one id and writing with another would put the
@@ -1507,6 +1520,31 @@ function AddExpenseScreen() {
     // history stay visible, but a new or edited expense sends them to sign up.
     if (guard.blockWrite()) return;
     setError(null);
+    if (onlyMeOffered && onlyMe) {
+      setSaving(true);
+      setDraftsPaused(true);
+      try {
+        await upsertPersonal.mutateAsync(
+          onlyMeRecord({
+            amount,
+            currency,
+            category,
+            description,
+            date: expenseDate,
+            paymentMethod,
+          }),
+        );
+        await clearDraft(draftKey);
+        toast.show(t.spacePrivacy.savedToPersonal, 'positive');
+        router.back();
+      } catch (caught) {
+        setDraftsPaused(false);
+        setError(friendlyError(caught, t.couldNotSave, 'expense.save'));
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (effectiveIsDeposit && !description.trim() && !namePrompted) {
       setNamePrompted(true);
       return;
@@ -2852,6 +2890,29 @@ function AddExpenseScreen() {
                 placeholder={!reimbursable}
                 onPress={() => setReimbursable((on) => !on)}
               />
+
+              {onlyMeOffered ? (
+                <Row
+                  style={{
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingHorizontal: theme.spacing.md,
+                    paddingVertical: theme.spacing.sm,
+                  }}
+                >
+                  <View style={{ flex: 1, paddingRight: theme.spacing.md }}>
+                    <Text variant="body">{t.spacePrivacy.onlyMeTitle}</Text>
+                    <Text variant="micro" tone="muted">
+                      {t.spacePrivacy.onlyMeHint}
+                    </Text>
+                  </View>
+                  <Toggle
+                    value={onlyMe}
+                    onValueChange={setOnlyMe}
+                    accessibilityLabel={t.spacePrivacy.onlyMeTitle}
+                  />
+                </Row>
+              ) : null}
 
               {/* What it was paid in, as a named row rather than only as the
                 pill in the header. The pill is still there and still works —

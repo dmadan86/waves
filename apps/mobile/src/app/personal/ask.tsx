@@ -23,6 +23,9 @@ import { Button, Callout, Card, iconSize, Row, Screen, Text, useTheme } from '@w
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { todayIso } from '@/data/personal';
 import { fill, useStrings } from '@/i18n';
+import { ensureAiConsent } from '@/lib/aiConsent';
+import { useViewerId } from '@/lib/auth';
+import { useDialog } from '@/lib/dialog';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDefaultCurrency } from '@/lib/currency';
 import { callSpendingAsk, type AskAnswer } from '@/lib/spendingAsk/client';
@@ -44,6 +47,8 @@ function AskScreenBody() {
   const { t, locale } = useStrings();
   const s = t.spendingAsk;
   const { isPaid } = useEntitlement();
+  const viewerId = useViewerId();
+  const { confirm } = useDialog();
   const dc = useDefaultCurrency();
   const [text, setText] = useState('');
   const [state, setState] = useState<State>({ name: 'idle' });
@@ -59,6 +64,11 @@ function AskScreenBody() {
   const ask = async (): Promise<void> => {
     const question = text.trim();
     if (!question || state.name === 'asking') return;
+    // No consent, no call: nothing leaves the phone until the person allows it.
+    if (!(await ensureAiConsent(viewerId, confirm, t))) {
+      setState({ name: 'error', message: t.spacePrivacy.aiDeclined });
+      return;
+    }
     setState({ name: 'asking', question });
     const result = await callSpendingAsk({ question, from, to: today, currency: dc });
     if (result.kind === 'ok') {
