@@ -15,7 +15,6 @@ import {
   InteractionManager,
   Pressable,
   RefreshControl,
-  ScrollView,
   View,
 } from 'react-native';
 
@@ -498,7 +497,7 @@ function HomeScreen() {
             pageColor={theme.color.bg}
           />
         </BlurTargetView>
-        <ScrollView
+        <Animated.ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ paddingBottom: clearance }}
           showsVerticalScrollIndicator={false}
@@ -616,7 +615,7 @@ function HomeScreen() {
               </View>
             )}
           </View>
-        </ScrollView>
+        </Animated.ScrollView>
         <View
           onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
           style={{
