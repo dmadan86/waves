@@ -65,6 +65,9 @@ export enum MutationKind {
   GroupGoalArchive = 'group_goal.archive',
   GroupGoalContributionAdd = 'group_goal_contribution.add',
   GroupGoalContributionVoid = 'group_goal_contribution.void',
+  // What each household member plans to bring in each month. A plan, never an expense.
+  GroupIncomeSet = 'group_income.set',
+  GroupIncomeDelete = 'group_income.delete',
   // Company expenses (Phase 1). Group-scoped like the plan; the server decides
   // who may write what (an employee only their own expense / bata, an admin any
   // entry) and RLS decides who may read it (an employee only their own rows).
@@ -511,6 +514,23 @@ export interface GroupGoalContributionAddPayload {
 
 export interface GroupGoalContributionVoidPayload {
   readonly contributionId: string;
+}
+
+/** Make or edit an income plan (an upsert by `planId`; the currency is fixed on first save). */
+export interface GroupIncomeSetPayload {
+  readonly planId: string;
+  readonly memberId: string;
+  readonly label: string;
+  readonly kind: 'salary' | 'pension' | 'business' | 'rent' | 'other';
+  /** Minor units as a decimal string. */
+  readonly amountMinor: string;
+  readonly currency: CurrencyCode;
+  readonly dayOfMonth: number;
+  readonly active: boolean;
+}
+
+export interface GroupIncomeDeletePayload {
+  readonly planId: string;
 }
 
 /** The fields of a company entry the client may set (the server recomputes bata). */
@@ -1113,6 +1133,8 @@ export enum SyncTable {
   /** Group-scoped, read+write. Joint goals and the money put aside for them. */
   GroupGoals = 'group_goals',
   GroupGoalContributions = 'group_goal_contributions',
+  /** Group-scoped, read+write. What each household member plans to bring in monthly. */
+  GroupIncomePlans = 'group_income_plans',
   /** Group-scoped, read+write, PRIVATE per employee by RLS: an employee is only
    * ever pulled their own rows, an admin all of them. */
   CompanyEntries = 'company_entries',

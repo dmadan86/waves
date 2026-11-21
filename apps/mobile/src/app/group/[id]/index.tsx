@@ -69,6 +69,7 @@ import {
   paidBy,
   type MemberId,
   unitOf,
+  hasHouseholdHome,
   isPoolGroup,
 } from '@waves/core';
 import { useBlockedUsers } from '@/data/blocked';
@@ -111,6 +112,7 @@ import { filterPillText } from '@/lib/expenseFilterSummary';
 import { GroupDrafts } from '@/components/GroupDrafts';
 import { GroupHero } from '@/components/GroupHero';
 import { HouseholdHome } from '@/components/HouseholdHome';
+import { HouseholdScreen } from '@/components/household/HouseholdScreen';
 import { monthSpend } from '@/lib/householdHome';
 import { todayIso } from '@/data/personal';
 import { PendingMark } from '@/components/PendingMark';
@@ -1893,18 +1895,25 @@ function LedgerGroupScreen() {
                     <Ionicons name="swap-horizontal-outline" size={iconSize.md} color={color} />
                   ),
                 },
-                {
-                  value: Tab.Timeline,
-                  label: t.timeline.viewTimeline,
-                  icon: (color) => (
-                    <Ionicons name="time-outline" size={iconSize.md} color={color} />
-                  ),
-                },
-                {
-                  value: Tab.Map,
-                  label: t.timeline.viewMap,
-                  icon: (color) => <Ionicons name="map-outline" size={iconSize.md} color={color} />,
-                },
+                // A couple's or family's home has no balance timeline or map.
+                ...(hasHouseholdHome(groupData)
+                  ? []
+                  : [
+                      {
+                        value: Tab.Timeline,
+                        label: t.timeline.viewTimeline,
+                        icon: (color: string) => (
+                          <Ionicons name="time-outline" size={iconSize.md} color={color} />
+                        ),
+                      },
+                      {
+                        value: Tab.Map,
+                        label: t.timeline.viewMap,
+                        icon: (color: string) => (
+                          <Ionicons name="map-outline" size={iconSize.md} color={color} />
+                        ),
+                      },
+                    ]),
               ]}
               // Five faces do not share a phone's width evenly with their words
               // on one line, so the row scrolls rather than stacking each glyph
@@ -2310,10 +2319,14 @@ function LedgerGroupScreen() {
  * other group opens the ledger screen above, untouched.
  */
 function GroupScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, view, tab } = useLocalSearchParams<{ id: string; view?: string; tab?: string }>();
   const { group } = useGroup(id ?? '');
   if (!COMPANIES_ENABLED && group.data?.type === GroupType.Company) return <Redirect href="/" />;
   if (group.data?.type === GroupType.Company) return <CompanyHome groupId={id ?? ''} />;
+  // Couples, homes and pooled families open on the household home; the expense
+  // list is `?view=ledger` (any `?tab=` link also lands there).
+  if (hasHouseholdHome(group.data) && view !== 'ledger' && !tab)
+    return <HouseholdScreen groupId={id ?? ''} />;
   return <LedgerGroupScreen />;
 }
 

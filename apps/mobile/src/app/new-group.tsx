@@ -1631,9 +1631,13 @@ function NewGroupScreen() {
         <CreateButton
           label={t.misc.createGroup}
           disabled={createGroup.isPending}
-          onPress={() =>
-            POOLABLE_GROUP_TYPES.includes(type) && !cloning ? setAskingMode(true) : void submit()
-          }
+          onPress={() => {
+            if (POOLABLE_GROUP_TYPES.includes(type) && !cloning) {
+              // A couple's group starts on Share it (still asked, one tap to change).
+              if (type === GroupType.Couple) setLedgerMode('pool');
+              setAskingMode(true);
+            } else void submit();
+          }}
         />
       </View>
     </Screen>

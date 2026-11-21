@@ -155,6 +155,8 @@ type MutationKind =
   | 'group_goal.archive'
   | 'group_goal_contribution.add'
   | 'group_goal_contribution.void'
+  | 'group_income.set'
+  | 'group_income.delete'
   | 'member_budget.set'
   | 'member_budget.clear'
   | 'group_budget.set'
@@ -381,6 +383,8 @@ const GROUP_TABLES = [
   // Joint goals and their lines (RLS: members only). Voided lines arrive with deleted_at set.
   ['group_goals', '*'],
   ['group_goal_contributions', '*'],
+  // Household income plans (RLS: members only). Deleted plans arrive with deleted_at set.
+  ['group_income_plans', '*'],
   // Company employees receive only their own entries, including tombstones.
   // Phase 3 fields travel through these wildcard projections under caller RLS:
   // groups: company_tags, company_industry, company_policies, company_policy_revision, company_default_mileage_rate_minor;
@@ -1739,6 +1743,22 @@ export class SyncSession {
       case 'group_goal_contribution.void':
         return await this.rpcAsCaller('waves_void_goal_contribution', {
           p_id: requireString(mutation.payload.contributionId, 'contributionId'),
+        });
+      case 'group_income.set':
+        return await this.rpcAsCaller('waves_set_group_income', {
+          p_group_id: mutation.groupId,
+          p_id: requireString(mutation.payload.planId, 'planId'),
+          p_member_id: requireString(mutation.payload.memberId, 'memberId'),
+          p_label: requireString(mutation.payload.label, 'label'),
+          p_kind: requireString(mutation.payload.kind, 'kind'),
+          p_amount_minor: requireString(mutation.payload.amountMinor, 'amountMinor'),
+          p_currency: requireString(mutation.payload.currency, 'currency'),
+          p_day_of_month: Number(mutation.payload.dayOfMonth),
+          p_active: mutation.payload.active !== false,
+        });
+      case 'group_income.delete':
+        return await this.rpcAsCaller('waves_delete_group_income', {
+          p_id: requireString(mutation.payload.planId, 'planId'),
         });
       case 'member_budget.set':
         return await this.rpcAsCaller('waves_set_my_trip_budget', {
