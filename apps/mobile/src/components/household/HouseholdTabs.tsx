@@ -53,6 +53,8 @@ export interface HouseholdData {
   readonly limit: bigint | null;
   readonly recent: readonly ExpenseRow[];
   readonly onAddGoal: () => void;
+  /** Post one bill occurrence as a group expense; the row goes once it is paid. */
+  readonly onMarkPaid: (row: HouseholdUpcoming) => Promise<void>;
   readonly onTab: (tab: 'bills' | 'income' | 'goals' | 'upcoming') => void;
   readonly onMore: () => void;
   readonly onLedger: (tab?: 'balances') => void;
@@ -125,6 +127,7 @@ function UpcomingRowView({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const whenText = useWhenText();
+  const [busy, setBusy] = useState(false);
   const tone = row.inDays < 0 ? 'negative' : row.kind === 'goal' ? 'positive' : 'brand';
   const ink = theme.color[tone];
   const soft = theme.color[`${tone}Soft` as 'brandSoft'];
@@ -186,6 +189,24 @@ function UpcomingRowView({
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {subtitle}
         </Text>
+        {row.kind === 'bill' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t.hhome.markPaid}, ${row.title}`}
+            accessibilityState={{ busy }}
+            disabled={busy}
+            hitSlop={8}
+            onPress={() => {
+              setBusy(true);
+              data.onMarkPaid(row).catch(() => setBusy(false));
+            }}
+            style={{ alignSelf: 'flex-start', paddingVertical: 4, opacity: busy ? 0.5 : 1 }}
+          >
+            <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+              {t.hhome.markPaid}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
       <Text numberOfLines={1} style={{ fontWeight: '700' }}>
         {data.fmt(row.amount)}

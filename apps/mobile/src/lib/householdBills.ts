@@ -105,3 +105,13 @@ export function planBillReminders(
   }
   return { add: [...want.values()].filter((c) => !kept.has(c.key)), cancel };
 }
+
+/** The server's `md5(...)::uuid`: 32 hex digits regrouped 8-4-4-4-12. */
+export function hexToUuid(hex: string): string {
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+/** The text the server's generator hashes for one occurrence (`waves_recurring_derived_id`). */
+export function occurrenceSeed(kind: 'expense' | 'mutation', ruleId: string, date: string): string {
+  return `waves.recurring.${kind}:${ruleId}:${date}`;
+}

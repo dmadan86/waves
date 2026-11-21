@@ -9,7 +9,8 @@
  * app opens, so nothing waits on the schedule.
  */
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { CryptoDigestAlgorithm, digestStringAsync } from 'expo-crypto';
 import { useMutation } from '@tanstack/react-query';
 
 import {
@@ -36,7 +37,13 @@ import { isViewer, type MemberRow } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
 import { fill, useStrings } from '@/i18n';
-import { groupBillsForPayer, type PayerBill } from '@/lib/householdBills';
+import { serialiseExpense } from '@/data/serialiseExpense';
+import {
+  groupBillsForPayer,
+  hexToUuid,
+  occurrenceSeed,
+  type PayerBill,
+} from '@/lib/householdBills';
 import { syncBillReminders } from '@/lib/householdBillReminders';
 import { reportHandled } from '@/lib/observability';
 import { useSync } from '@/sync';
@@ -170,4 +177,51 @@ export function useHouseholdBillReminders(): void {
     // `signature` stands for `bills`: re-plan only when a bill actually changed.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, signature, locale]);
+}
+
+/** The ids the server's generator gives one occurrence, so a paid bill and the generated one are the same expense. */
+export async function occurrenceIds(
+  ruleId: string,
+  date: string,
+): Promise<{ expenseId: string; mutationId: string }> {
+  const id = async (kind: 'expense' | 'mutation'): Promise<string> =>
+    hexToUuid(
+      await digestStringAsync(CryptoDigestAlgorithm.MD5, occurrenceSeed(kind, ruleId, date)),
+    );
+  return { expenseId: await id('expense'), mutationId: await id('mutation') };
+}
+
+/**
+ * Mark one bill occurrence paid: post it as a group expense now. It takes the
+ * generator's own ids for (rule, date), so tapping twice, or the server posting
+ * it later on the day, replays the same expense instead of adding another.
+ */
+export function useMarkBillPaid(groupId: string) {
+  const { mutate, flush } = useSync();
+  return useCallback(
+    async (rule: GroupRecurringRule, date: string): Promise<void> => {
+      const { expenseId, mutationId } = await occurrenceIds(rule.id, date);
+      await mutate(
+        MutationKind.ExpenseCreate,
+        groupId,
+        {
+          ...serialiseExpense({
+            description: rule.description,
+            category: rule.category,
+            expenseDate: date,
+            currency: rule.currency,
+            amount: rule.amount,
+            splitParams: rule.splitParams,
+            participants: [...rule.participants],
+            payers: { ...rule.payers },
+            notes: rule.notes,
+          }),
+          expenseId,
+        },
+        mutationId,
+      );
+      void flush([groupId]);
+    },
+    [mutate, flush, groupId],
+  );
 }

@@ -7,7 +7,7 @@
  * full expense list, balances and settle-up sit on the ledger screen
  * (`?view=ledger`), one tap away in the ⋮ menu.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -21,6 +21,7 @@ import {
   formatParts,
   money,
   type CurrencyCode,
+  type HouseholdUpcoming,
 } from '@waves/core';
 import {
   Card,
@@ -51,7 +52,7 @@ import { QuickActions } from '@/components/personal/PersonalHomeParts';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupGoals } from '@/data/groupGoals';
 import { useGroupIncome } from '@/data/groupIncome';
-import { useGroupRecurring } from '@/data/groupRecurring';
+import { occurrenceIds, useGroupRecurring, useMarkBillPaid } from '@/data/groupRecurring';
 import { memberLookup, useGroup, useGroupBudget, useGroupRealtime } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
 import { isGhost } from '@/data/types';
@@ -84,6 +85,8 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
   const { plans } = useGroupIncome(groupId);
   const { goals } = useGroupGoals(groupId);
   const budget = useGroupBudget(groupId);
+  const markBillPaid = useMarkBillPaid(groupId);
+  const [paidKeys, setPaidKeys] = useState<ReadonlySet<string>>(new Set());
   const [tab, setTab] = useState<HTab>('overview');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -148,6 +151,32 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
       ).filter((row) => row.currency === currency),
     [rules, goals, today, currency],
   );
+  // A bill whose occurrence is already a live expense (this phone, another
+  // phone or the server's generator) is paid: its row goes.
+  const liveIds = useMemo(() => new Set(live.map((row) => row.id)), [live]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const paid = new Set<string>();
+      for (const row of upcoming)
+        if (row.kind === 'bill' && row.ruleId)
+          if (liveIds.has((await occurrenceIds(row.ruleId, row.date)).expenseId)) paid.add(row.key);
+      if (!cancelled) setPaidKeys(paid);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [upcoming, liveIds]);
+  const openUpcoming = useMemo(
+    () => upcoming.filter((row) => !paidKeys.has(row.key)),
+    [upcoming, paidKeys],
+  );
+  const onMarkPaid = async (row: HouseholdUpcoming): Promise<void> => {
+    const rule = rules.find((r) => r.id === row.ruleId);
+    if (!rule) return;
+    await markBillPaid(rule, row.date);
+    setPaidKeys((prev) => new Set(prev).add(row.key));
+  };
   const recent = [...live]
     .sort((a, b) =>
       a.currentVersion!.expense_date === b.currentVersion!.expense_date
@@ -176,7 +205,8 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
     rules,
     plans,
     goals,
-    upcoming,
+    upcoming: openUpcoming,
+    onMarkPaid,
     spent,
     income,
     limit,

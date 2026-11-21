@@ -3369,6 +3369,7 @@ export interface UiStrings {
     putAside: string;
     upcomingTitle: string;
     upcomingEmpty: string;
+    markPaid: string;
     goalsTitle: string;
     goalsLine: PluralForms;
     goalsNone: string;
@@ -12039,6 +12040,7 @@ const en: UiStrings = {
     putAside: 'Put aside',
     upcomingTitle: 'Upcoming',
     upcomingEmpty: 'Nothing due in the next 30 days.',
+    markPaid: 'Mark paid',
     goalsTitle: 'Goals',
     goalsLine: { one: '{n} goal · {put} put aside', other: '{n} goals · {put} put aside' },
     goalsNone: 'Save for something together.',
@@ -20170,6 +20172,7 @@ const ta: UiStrings = {
     putAside: 'ஒதுக்கு',
     upcomingTitle: 'வரவிருப்பவை',
     upcomingEmpty: 'அடுத்த 30 நாட்களில் செலுத்த எதுவும் இல்லை.',
+    markPaid: 'செலுத்தியது',
     goalsTitle: 'இலக்குகள்',
     goalsLine: { one: '{n} இலக்கு · {put} ஒதுக்கியது', other: '{n} இலக்குகள் · {put} ஒதுக்கியது' },
     goalsNone: 'சேர்ந்து எதையாவது சேமியுங்கள்.',
@@ -28448,6 +28451,7 @@ const hi: UiStrings = {
     putAside: 'अलग रखें',
     upcomingTitle: 'आने वाले',
     upcomingEmpty: 'अगले 30 दिनों में कुछ देय नहीं है।',
+    markPaid: 'चुका दिया',
     goalsTitle: 'लक्ष्य',
     goalsLine: { one: '{n} लक्ष्य · {put} अलग रखे', other: '{n} लक्ष्य · {put} अलग रखे' },
     goalsNone: 'साथ मिलकर किसी चीज़ के लिए बचाएँ।',
@@ -36716,6 +36720,7 @@ const ar: UiStrings = {
     putAside: 'ادّخار',
     upcomingTitle: 'القادم',
     upcomingEmpty: 'لا شيء مستحق خلال 30 يومًا.',
+    markPaid: 'تم الدفع',
     goalsTitle: 'الأهداف',
     goalsLine: {
       zero: 'لا أهداف · {put} مدّخر',
