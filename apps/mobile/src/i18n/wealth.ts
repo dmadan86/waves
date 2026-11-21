@@ -136,6 +136,10 @@ export interface WealthStrings {
   vacantNote: string;
   today: string;
   raiseRent: string;
+  /** {pct} {date} {old} {new} */
+  raisePrompt: string;
+  raiseApply: string;
+  raiseNotNow: string;
   // reminders and upcoming
   /** {name} {amount} */
   sipTomorrow: string;
@@ -299,6 +303,9 @@ export const wealthEn: WealthStrings = {
   vacantNote: 'No tenant right now.',
   today: 'Today',
   raiseRent: 'Change rent',
+  raisePrompt: 'Rent goes up {pct}% on {date}: {old} → {new}. Apply?',
+  raiseApply: 'Apply',
+  raiseNotNow: 'Not now',
   sipTomorrow: '{name}: {amount} goes in tomorrow.',
   sipToday: 'Time to add {amount} to {name}.',
   rentDueToday: '{name}: rent of {amount} is due today.',
@@ -312,6 +319,9 @@ export const wealthEn: WealthStrings = {
 
 export const wealthTa: WealthStrings = {
   ...wealthEn,
+  raisePrompt: 'வாடகை {date} அன்று {pct}% உயர்கிறது: {old} → {new}. பயன்படுத்தவா?',
+  raiseApply: 'பயன்படுத்து',
+  raiseNotNow: 'இப்போது வேண்டாம்',
   investments: 'முதலீடுகள்',
   rentals: 'வாடகை',
   invested: 'முதலீடு',
@@ -328,6 +338,9 @@ export const wealthTa: WealthStrings = {
 
 export const wealthHi: WealthStrings = {
   ...wealthEn,
+  raisePrompt: 'किराया {date} को {pct}% बढ़ेगा: {old} → {new}। लागू करें?',
+  raiseApply: 'लागू करें',
+  raiseNotNow: 'अभी नहीं',
   investments: 'निवेश',
   rentals: 'किराया',
   invested: 'निवेश किया',
@@ -344,6 +357,9 @@ export const wealthHi: WealthStrings = {
 
 export const wealthAr: WealthStrings = {
   ...wealthEn,
+  raisePrompt: 'يرتفع الإيجار بنسبة {pct}% في {date}: {old} ← {new}. هل تريد التطبيق؟',
+  raiseApply: 'تطبيق',
+  raiseNotNow: 'ليس الآن',
   investments: 'الاستثمارات',
   rentals: 'الإيجارات',
   invested: 'مستثمر',

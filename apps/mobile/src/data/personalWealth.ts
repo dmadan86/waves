@@ -133,6 +133,46 @@ export function useWealthWrites() {
     }),
   ];
 
+  /** The tenancy and its rent rule, exactly as the add flow writes them. */
+  const putTenancy = async (
+    propertyId: string,
+    propertyName: string,
+    currency: CurrencyCode,
+    t: NonNullable<RentalDraft['tenant']>,
+    today: string,
+  ): Promise<void> => {
+    const tenancyId = randomUUID();
+    await put(
+      'tenancy',
+      tenancyId,
+      encodeTenancy({
+        propertyId,
+        unit: null,
+        tenantName: t.name,
+        tenantPhone: t.phone.trim() || null,
+        depositHeld: t.deposit,
+        rentFrequency: t.frequency,
+        startDate: t.startDate,
+        endDate: t.endDate,
+        escalationPct: t.escalationPct,
+        status: 'active',
+        endedOn: null,
+        depositReturned: null,
+        depositKept: null,
+        note: null,
+      }),
+    );
+    const [rid, data] = rentRule(randomUUID(), {
+      tenancyId,
+      amount: t.rent,
+      currency,
+      frequency: t.frequency,
+      anchor: rentAnchor(t.startDate, t.day, today, t.frequency),
+      note: `Rent · ${propertyName}`,
+    });
+    await put('recurring', rid, data);
+  };
+
   return {
     isPending: upsert.isPending,
 
@@ -238,6 +278,10 @@ export function useWealthWrites() {
       return put('recurring', id, encodeRecurring({ ...rest, active }));
     },
 
+    /** A new tenant on a vacant property. */
+    addTenant: (property: PersonalProperty, t: NonNullable<RentalDraft['tenant']>, today: string) =>
+      putTenancy(property.id, property.name, property.currency, t, today),
+
     async createRental(d: RentalDraft): Promise<string> {
       const propertyId = randomUUID();
       await put(
@@ -252,39 +296,7 @@ export function useWealthWrites() {
           note: null,
         }),
       );
-      if (d.tenant) {
-        const t = d.tenant;
-        const tenancyId = randomUUID();
-        await put(
-          'tenancy',
-          tenancyId,
-          encodeTenancy({
-            propertyId,
-            unit: null,
-            tenantName: t.name,
-            tenantPhone: t.phone.trim() || null,
-            depositHeld: t.deposit,
-            rentFrequency: t.frequency,
-            startDate: t.startDate,
-            endDate: t.endDate,
-            escalationPct: t.escalationPct,
-            status: 'active',
-            endedOn: null,
-            depositReturned: null,
-            depositKept: null,
-            note: null,
-          }),
-        );
-        const [rid, data] = rentRule(randomUUID(), {
-          tenancyId,
-          amount: t.rent,
-          currency: d.currency,
-          frequency: t.frequency,
-          anchor: rentAnchor(t.startDate, t.day, d.today, t.frequency),
-          note: `Rent · ${d.name}`,
-        });
-        await put('recurring', rid, data);
-      }
+      if (d.tenant) await putTenancy(propertyId, d.name, d.currency, d.tenant, d.today);
       return propertyId;
     },
 

@@ -12,6 +12,7 @@ import { Card, directionalIcon, iconSize, Row, Text, useTheme, type TintName } f
 
 import { useSourceLabel } from '@/components/IncomeSource';
 import { useSetupLeft } from '@/components/PersonalSetupCard';
+import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePersonalWealth } from '@/data/personalWealth';
 import { fill, plural, useStrings } from '@/i18n';
@@ -39,6 +40,7 @@ export function useWealthRows(
   horizonDays: number,
 ): UpcomingRow[] {
   const wealth = usePersonalWealth();
+  const raises = useRaisePrompts(ledger.today);
   const { t } = useStrings();
   return wealthRows({
     ...wealth,
@@ -46,6 +48,7 @@ export function useWealthRows(
     recurrings: ledger.recurrings,
     today: ledger.today,
     horizonDays,
+    raises,
     titles: {
       rent: (name) => fill(t.wealth.rentRowTitle, { name }),
       lease: (name) => fill(t.wealth.leaseRowTitle, { name }),
@@ -104,6 +107,8 @@ export function UpcomingRowView({
   const left = useSetupLeft();
   const ink = theme.color[row.tone];
   const soft = theme.color[`${row.tone}Soft` as 'brandSoft'];
+
+  if (row.raise) return <RaiseCard prompt={row.raise} />;
 
   const item = row.item;
   const action = item ? actionFor(item) : null;

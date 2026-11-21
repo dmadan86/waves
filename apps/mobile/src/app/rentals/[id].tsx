@@ -22,6 +22,7 @@ import {
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { PlainHeader, SectionHeader, StandardCard } from '@/components/standard';
+import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { AmountSheet, StatusPill, useWealthMoney, type PillTone } from '@/components/wealth/parts';
 import { todayIso, useDeletePersonalRecord, usePersonalLedger } from '@/data/personal';
 import { usePersonalWealth, useWealthWrites } from '@/data/personalWealth';
@@ -68,6 +69,7 @@ function DetailBody() {
   const [asked, setAsked] = useState(true);
   const [returned, setReturned] = useState<bigint | null>(null);
   const [today] = useState(() => todayIso());
+  const raise = useRaisePrompts(today).find((p) => p.propertyId === id) ?? null;
 
   const prop = properties.find((p) => p.id === id);
   if (!prop) {
@@ -239,12 +241,22 @@ function DetailBody() {
                 ) : null}
               </>
             ) : (
-              <Text variant="caption" tone="muted">
-                {w.vacantNote}
-              </Text>
+              <>
+                <Text variant="caption" tone="muted">
+                  {w.vacantNote}
+                </Text>
+                <Button
+                  label={w.addTenant}
+                  onPress={() =>
+                    router.push({ pathname: '/rentals/tenant', params: { id: prop.id } })
+                  }
+                />
+              </>
             )}
           </StandardCard>
         </View>
+
+        {raise ? <RaiseCard prompt={raise} /> : null}
 
         {tn && unpaid && asked ? (
           <StandardCard style={{ gap: theme.spacing.md }}>

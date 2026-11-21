@@ -7,6 +7,8 @@
 import {
   addPlanDays,
   monthKey,
+  pendingEscalation,
+  raisedRent,
   recentMonths,
   rentBalance,
   rentCardStatus,
@@ -370,4 +372,57 @@ export function rentStrip(
           : 'due';
     return { month, state };
   });
+}
+
+// ───────────────────────────────────────────────── yearly rent increase ──
+
+export interface RaisePrompt {
+  /** tenancy + anniversary: what "Not now" is remembered against. */
+  readonly key: string;
+  readonly tenancyId: string;
+  readonly propertyId: string;
+  readonly pct: number;
+  readonly anniversary: string;
+  /** The first rent day on or after the anniversary: where the new rule starts. */
+  readonly from: string;
+  readonly rule: PersonalRecurring;
+  readonly oldAmount: bigint;
+  readonly newAmount: bigint;
+}
+
+/** The yearly increase waiting on a tenancy, or null. Apply goes through `changeRent(rule, newAmount, from)`. */
+export function raisePrompt(
+  tn: PersonalTenancy,
+  rules: readonly PersonalRecurring[],
+  today: string,
+): RaisePrompt | null {
+  const rule = currentRentRule(rules, tn.id);
+  if (tn.status !== 'active' || !rule || !tn.escalationPct) return null;
+  const anniversary = pendingEscalation({
+    startDate: tn.startDate,
+    endDate: tn.endDate,
+    escalationPct: tn.escalationPct,
+    ruleAnchors: rulesOfTenancy(rules, tn.id).map((r) => r.anchorDate),
+    today,
+  });
+  if (!anniversary) return null;
+  // Walk from the anchor (nextDate may already be past it) to keep the rent day.
+  let from = rule.anchorDate;
+  for (let i = 0; from < anniversary && i < 800; i += 1) {
+    const n = stepOccurrence(rule, from);
+    if (n <= from) break;
+    from = n;
+  }
+  if (from < anniversary || (rule.endDate !== null && from > rule.endDate)) return null;
+  return {
+    key: `${tn.id}:${anniversary}`,
+    tenancyId: tn.id,
+    propertyId: tn.propertyId,
+    pct: tn.escalationPct,
+    anniversary,
+    from,
+    rule,
+    oldAmount: rule.amount,
+    newAmount: raisedRent(rule.amount, tn.escalationPct, rule.currency),
+  };
 }
