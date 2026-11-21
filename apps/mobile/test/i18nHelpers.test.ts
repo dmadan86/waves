@@ -120,10 +120,10 @@ describe('the device language and locale', () => {
     expect(isRtl()).toBe(false);
   });
 
-  it('falls back to en-IN when the phone gives no locale tag', () => {
+  it('falls back to en-US when the phone gives no locale tag', () => {
     expect(deviceLocale()).toBe('en-IN');
     h.locales = [];
-    expect(deviceLocale()).toBe('en-IN');
+    expect(deviceLocale()).toBe('en-US');
     h.locales = [{ languageTag: 'ta-LK' }];
     expect(deviceLocale()).toBe('ta-LK');
   });
@@ -161,17 +161,17 @@ describe('the device country', () => {
 });
 
 describe('what the device country decides', () => {
-  it('starts groups in the local currency, INR when unknown', () => {
+  it('starts groups in the local currency, USD when unknown', () => {
     h.locales = [{ regionCode: 'AE' }];
     expect(deviceDefaultCurrency()).toBe('AED');
     h.locales = [];
-    expect(deviceDefaultCurrency()).toBe('INR');
+    expect(deviceDefaultCurrency()).toBe('USD');
   });
 
-  it('offers UPI in India and where the region is unknown, not elsewhere', () => {
+  it('offers UPI in India only, not where the region is unknown or elsewhere', () => {
     expect(deviceSupportsUpi()).toBe(true);
     h.locales = [];
-    expect(deviceSupportsUpi()).toBe(true);
+    expect(deviceSupportsUpi()).toBe(false);
     h.locales = [{ regionCode: 'US' }];
     expect(deviceSupportsUpi()).toBe(false);
   });

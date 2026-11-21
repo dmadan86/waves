@@ -21,7 +21,7 @@ import {
   View,
 } from 'react-native';
 
-import { dayNumber, type GuestGate } from '@waves/core';
+import { dayNumber, type GuestGate, fallbackCurrency } from '@waves/core';
 import {
   Button,
   directionalIcon,
@@ -474,7 +474,7 @@ function HomeScreen() {
   const inHeadline = list.filter(
     // The same fallback the totals key a group by, so a group with no
     // currency set is counted where its balance was summed.
-    (group) => (group.default_currency ?? 'INR') === headline.currency,
+    (group) => (group.default_currency ?? fallbackCurrency()) === headline.currency,
   );
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;

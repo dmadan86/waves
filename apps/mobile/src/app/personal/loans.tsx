@@ -23,6 +23,7 @@ import {
   money,
   type LoanDirection,
   type PersonalLoan,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   AmountField,
@@ -941,7 +942,9 @@ function WalletArt() {
           borderColor: '#E39C18',
         }}
       >
-        <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF6DC' }}>₹</Text>
+        <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF6DC' }}>
+          {currencySymbol(fallbackCurrency())}
+        </Text>
       </View>
     </View>
   );

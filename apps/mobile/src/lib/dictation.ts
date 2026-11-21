@@ -17,13 +17,13 @@ import type { DictationErrorStrings, Language } from '@/i18n';
  * The device's own tag wins when it agrees with the language the app is showing
  * — somebody on `en-GB` should be recognised as `en-GB`, not corrected to
  * Indian English. When it disagrees, or carries no region, the fallback is the
- * app language's nearest supported default: India for en/ta/hi, and Saudi Arabia
+ * app language's nearest supported default: India for ta/hi, the US for English (never India by assumption), and Saudi Arabia
  * for Arabic. `ar-IN` is not a real speech locale on Android, so using India for
  * every language made Arabic voice fail before the user
  * could do anything useful.
  */
 const SPEECH_FALLBACK_REGION: Readonly<Record<Language, string>> = {
-  en: 'IN',
+  en: 'US',
   ta: 'IN',
   hi: 'IN',
   ar: 'SA',
@@ -47,14 +47,14 @@ export function speechLocale(language: Language, deviceLocale: string): string {
  * the region must be taken from the device independently of the shown language:
  * a phone on `ar-AE` should hear `en-AE`, not be corrected to Indian English the
  * way {@link speechLocale} would (it keeps a region only when the tag already
- * matches the language). India is the fallback only when the device carries no
+ * matches the language). The US is the fallback only when the device carries no
  * region at all.
  */
 export function englishSpeechLocale(deviceLocale: string): string {
   const parts = deviceLocale.trim().split(/[-_]/);
   // A two-letter region or a three-digit UN M.49 code — never a script subtag.
   const region = parts.slice(1).find((part) => /^([A-Za-z]{2}|\d{3})$/.test(part));
-  return region ? `en-${region.toUpperCase()}` : 'en-IN';
+  return region ? `en-${region.toUpperCase()}` : 'en-US';
 }
 
 /**

@@ -69,6 +69,7 @@ import {
   byNewest,
   toLedgerSnapshots as ledgerSnapshotsOf,
   type CurrencyCode,
+  fallbackCurrency,
 } from '@waves/core';
 
 import { isCrossCheckComparable } from '@/data/crossCheck';
@@ -577,7 +578,7 @@ export function useHomeSummary(profileId: string | null) {
     const myBuckets: (readonly [string, bigint])[] = [];
 
     for (const group of realGroupsForDemo) {
-      const currency = group.default_currency ?? 'INR';
+      const currency = group.default_currency ?? fallbackCurrency();
       membersByGroup.set(
         group.id,
         materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[],
@@ -1599,7 +1600,7 @@ export function useGroupLedger(groupId: string, myProfileId: string | null): Gro
     const loading =
       group.isLoading || members.isLoading || expenses.isLoading || settlements.isLoading;
 
-    const currency = group.data?.default_currency ?? 'INR';
+    const currency = group.data?.default_currency ?? fallbackCurrency();
     const convertsToGroupCurrency = group.data?.convert_to_group_currency === true;
     const snapshots = toLedgerSnapshots(expenses.rows, group.data);
     const settlementSnapshots = toSettlementSnapshots(settlements.data ?? []);

@@ -573,8 +573,8 @@ describe('parseMoney', () => {
   it('falls back to the caller’s currency when the payload has none, or a malformed one', () => {
     expect(parseMoney({ amount: '1500' }, 'AED')).toEqual({ amount: 1500n, currency: 'AED' });
     expect(parseMoney({ amount: '1500', currency: 'inr' }, 'AED')?.currency).toBe('AED');
-    expect(parseMoney({ amount: '1500', currency: 'Rupees' })?.currency).toBe('INR');
-    expect(parseMoney({ amount: '1500', currency: 42 })?.currency).toBe('INR');
+    expect(parseMoney({ amount: '1500', currency: 'Rupees' })?.currency).toBe('USD');
+    expect(parseMoney({ amount: '1500', currency: 42 })?.currency).toBe('USD');
   });
 
   it('keeps any well-formed three-letter code, known or not', () => {
@@ -902,7 +902,7 @@ describe('group settings in the feed', () => {
         from: { start: null, end: null },
         to: { start: '2026-10-21', end: '2026-10-23' },
       },
-      'Set the dates to 21–23 Oct',
+      'Set the dates to Oct 21–23',
     ],
     [
       {

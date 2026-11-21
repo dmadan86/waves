@@ -15,7 +15,12 @@
 
 import type Ionicons from '@expo/vector-icons/Ionicons';
 
-import { format as formatMoney, isCurrencyCode } from '@waves/core';
+import {
+  fallbackCurrency as deviceFallbackCurrency,
+  format as formatMoney,
+  getDefaultLocale,
+  isCurrencyCode,
+} from '@waves/core';
 
 import { formatShortDateRange } from '@/lib/tripDateRange';
 import { familiesHeadline, type FamiliesStrings } from '@/lib/familyChanges';
@@ -25,12 +30,12 @@ import { actorName, type ActivityRow } from './types';
 /**
  * An activity `payload` is an untyped JSON blob, so a bad amount must render as
  * no amount, not as a crashed feed. Shared by both feed screens so they parse
- * it the same way. `fallbackCurrency` is the caller's default — 'INR' on the
+ * it the same way. `fallbackCurrency` is the caller's default — the device currency on the
  * cross-group tab, the group's own currency on a group.
  */
 export function parseMoney(
   payload: unknown,
-  fallbackCurrency = 'INR',
+  fallbackCurrency: string = deviceFallbackCurrency(),
 ): { amount: bigint; currency: string } | null {
   if (typeof payload !== 'object' || payload === null) return null;
   const record = payload as Record<string, unknown>;
@@ -317,7 +322,10 @@ const ENGLISH_LABELS: ActivityLabels = {
     `${who} imported ${count} ${count === 1 ? 'expense' : 'expenses'}`,
   importUndoneHeadline: 'Import undone',
   importUndoneSentence: (who) => `${who} undid an import`,
-  group: groupChangeLabels('en-IN', ENGLISH_GROUP_STRINGS),
+  // Read lazily: the device locale is injected after this module loads.
+  get group() {
+    return groupChangeLabels(getDefaultLocale(), ENGLISH_GROUP_STRINGS);
+  },
 };
 
 /** The verbs the two triggers of 20261024100000 write, plus the two older
