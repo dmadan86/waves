@@ -506,13 +506,11 @@ function HomeScreen() {
               label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
               onPress={() => router.navigate('/activity')}
               dot={unseenActivity}
-              ink={solid ? theme.color.text : ink}
             />
             <TabIconButton
               icon="ellipsis-vertical"
               label={t.account.faceSettings}
               onPress={() => setMenuOpen(true)}
-              ink={solid ? theme.color.text : ink}
             />
           </Row>
         )}

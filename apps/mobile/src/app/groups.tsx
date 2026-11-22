@@ -5,10 +5,9 @@ import { useAdPlan } from '@/lib/useAdPlan';
 import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
-import { Pressable, RefreshControl, TextInput, View } from 'react-native';
+import { Pressable, RefreshControl, View } from 'react-native';
 
 import {
-  directionalIcon,
   Button,
   EmptyState,
   iconSize,
@@ -25,17 +24,14 @@ import { groupLabel } from '@/data/types';
 import { useStrings, type UiStrings } from '@/i18n';
 import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
 import { useAuth } from '@/lib/auth';
-import {
-  DEFAULT_GROUPS_SORT,
-  filterGroups,
-  sortGroups,
-  type GroupsFilter,
-  type GroupsSort,
-} from '@/lib/groupsList';
+import { DEFAULT_GROUPS_SORT, sortGroups, type GroupsSort } from '@/lib/groupsList';
 import { SkeletonList } from '@/components/Skeletons';
 import { ScenicScreen } from '@/components/hero/ScenicScreen';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
-import { HeroIconButton } from '@/components/home/HeroControls';
+import { TabIconButton } from '@/components/home/TabHeader';
+import { HomeQuickActions } from '@/components/home/HomeQuickActions';
+import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
+import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
 import { GroupSpaceRow, useGroupRowEnv } from '@/components/home/HomeSpaces';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
@@ -44,7 +40,7 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { useHomeHero } from '@/lib/useHomeHero';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { useGroupUnread } from '@/lib/useGroupUnread';
-import { router } from '@/lib/navigation';
+import { router, switchTab } from '@/lib/navigation';
 
 /**
  * The full, browsable list of every group — the "All groups" door off the
@@ -53,12 +49,10 @@ import { router } from '@/lib/navigation';
  * Groups open latest-activity first, like the dashboard. The money-first order
  * (groups that owe or are owed, or wait on a confirmation, on top, biggest
  * balances first, the settled ones below a quiet "Settled" label) is one pick
- * away in the sort menu. The chips under the search field
- * narrow the roster to what you are owed or what you owe, and the round button
- * at their end re-sorts it by recent activity or name.
+ * away in the sort menu.
  *
  * It wears the scenic header Home and Personal wear — the way back, the title,
- * the doors to join and to a new group — with the search field riding up over
+ * the doors to join and to a new group — with the card riding up over
  * the scene's foot. Rows are deliberately tight: this is the screen you come to
  * when the roster is long, so how many fit on screen is part of its job.
  */
@@ -81,6 +75,9 @@ function AllGroupsScreen() {
   const defaultCurrency = useDefaultCurrency();
   const { pool } = useHomeSpaceFigures();
   const { draftsByGroup, voiceNewCount, env } = useGroupRowEnv();
+  const [quickExpenseOpen, setQuickExpenseOpen] = useState(false);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const quickAddActions = useQuickAddActions();
   // The same headline Home carries: one currency, the rest counted not added.
   const headline = summary.totals[0] ?? {
     currency: defaultCurrency,
@@ -94,15 +91,10 @@ function AllGroupsScreen() {
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
 
-  const [query, setQuery] = useState('');
-  const [filter] = useState<GroupsFilter>('all');
   const [sort, setSort] = useState<GroupsSort>(DEFAULT_GROUPS_SORT);
   const [sortDesc, setSortDesc] = useState(true);
   const [sortOpen, setSortOpen] = useState(false);
   const [sortAnchor, setSortAnchor] = useState<MenuAnchor | null>(null);
-  const searchRef = useRef<TextInput>(null);
-  const trimmed = query.trim().toLowerCase();
-  const narrowed = trimmed !== '' || filter !== 'all';
 
   // Decorate every group with the facts a row shows — balance, whether a
   // settlement is pending, the member count — then filter, sort (favorites in
@@ -126,7 +118,7 @@ function AllGroupsScreen() {
       };
     });
 
-    const sorted = sortGroups(filterGroups(decorated, filter, trimmed), sort, locale);
+    const sorted = sortGroups(decorated, sort, locale);
     // The same toggle Friends has: picking the active sort again flips it.
     const ordered = sortDesc ? sorted : [...sorted].reverse();
 
@@ -143,12 +135,12 @@ function AllGroupsScreen() {
       out.push({ kind: 'group', item });
     }
     return out;
-  }, [list, summary, profile?.id, trimmed, filter, sort, sortDesc, locale, t.settledHeader]);
+  }, [list, summary, profile?.id, sort, sortDesc, locale, t.settledHeader]);
 
-  // Native ads between group rows (never while a search is typed or a menu is open).
+  // Native ads between group rows (never while a menu is open).
   const adHandle = useAdPlan('groups_all', {
     rowCount: rows.filter((row) => row.kind === 'group').length,
-    surfaceState: { selectMode: narrowed, sheetOpen: sortOpen },
+    surfaceState: { selectMode: false, sheetOpen: sortOpen },
   });
   const adSlotsKey = adHandle.plan.slots.join(',');
   const data = useMemo(
@@ -166,14 +158,6 @@ function AllGroupsScreen() {
 
   const empty = loading ? (
     <SkeletonList rows={5} />
-  ) : narrowed ? (
-    // A search or chip that matched nothing — the reason the list is empty is
-    // the narrowing, so the mark and words say "nothing matched", not "you have
-    // no groups".
-    <EmptyState
-      icon={<Ionicons name="search-outline" size={iconSize.xxl} color={theme.color.brand} />}
-      title={t.noGroupsMatch}
-    />
   ) : (
     // The true first-run empty: reassure, explain lightly what a "group" is for,
     // and hand over the one action that moves you off this screen.
@@ -211,14 +195,9 @@ function AllGroupsScreen() {
             tintColor={theme.color.brand}
           />
         }
-        header={(ink, solid) => (
+        header={(ink) => (
           <>
-            <HeroIconButton
-              icon={directionalIcon('arrow-back')}
-              label={t.common.back}
-              onPress={() => router.back()}
-              ink={ink}
-            />
+            <TabIconButton icon="arrow-back" label={t.common.back} onPress={() => router.back()} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Text
                 numberOfLines={1}
@@ -227,51 +206,59 @@ function AllGroupsScreen() {
                   fontSize: 20,
                   lineHeight: 26,
                   fontWeight: '700',
-                  ...inkShadow(solid),
                 }}
               >
                 {t.groupsTitle}
               </Text>
-              <Text
-                variant="caption"
-                numberOfLines={1}
-                style={{ color: ink, opacity: 0.92, ...inkShadow(solid) }}
-              >
+              <Text variant="caption" numberOfLines={1} style={{ color: ink, opacity: 0.92 }}>
                 {t.misc.groupsSubtitle}
               </Text>
             </View>
             {/* The join door, beside the new-group one: somebody handed a QR or a
                 link has nowhere else obvious to look. */}
-            <HeroIconButton
+            <TabIconButton
               icon="qr-code-outline"
               label={t.misc.joinWithCode}
               onPress={() => router.push('/scan' as never)}
-              ink={ink}
             />
-            <HeroIconButton
+            <TabIconButton
               icon="add"
               label={t.newGroup}
               onPress={() => router.push('/new-group')}
-              ink={ink}
             />
           </>
         )}
         card={(sceneRef) =>
           list.length === 0 && !loading ? null : (
-            <HomeBalanceCard
-              net={headline.net}
-              owed={headline.owed}
-              owing={headline.owing}
-              owedGroups={owedGroups}
-              owingGroups={owingGroups}
-              currency={headline.currency}
-              locale={locale}
-              hidden={amountsHidden}
-              onToggleHide={toggleBalance}
-              settling={false}
-              loading={loading || !balanceReady}
-              blurTarget={sceneRef}
-            />
+            <View
+              style={{ marginHorizontal: -theme.spacing.md, paddingHorizontal: theme.spacing.lg }}
+            >
+              <HomeBalanceCard
+                net={headline.net}
+                owed={headline.owed}
+                owing={headline.owing}
+                owedGroups={owedGroups}
+                owingGroups={owingGroups}
+                currency={headline.currency}
+                locale={locale}
+                hidden={amountsHidden}
+                onToggleHide={toggleBalance}
+                settling={false}
+                loading={loading || !balanceReady}
+                blurTarget={sceneRef}
+                footer={
+                  <HomeQuickActions
+                    onAddExpense={() => setQuickExpenseOpen(true)}
+                    onAddExpenseLong={() => setQuickAddOpen(true)}
+                    onSettleUp={() => router.push('/settle-up')}
+                    onReview={() => router.navigate('/captures')}
+                    onScan={() => router.push(`/capture?scan=${Date.now()}`)}
+                    onRemind={() => switchTab('/(tabs)/friends')}
+                    radius={theme.radius.xl}
+                  />
+                }
+              />
+            </View>
           )
         }
         list={({ onScroll, top, keyboardShouldPersistTaps }) => (
@@ -294,13 +281,6 @@ function AllGroupsScreen() {
             ListHeaderComponent={
               <View style={{ gap: theme.spacing.xs }}>
                 {top}
-                <SearchField
-                  label={t.searchGroups}
-                  clearLabel={t.pickers.clearSearch}
-                  query={query}
-                  onQuery={setQuery}
-                  searchRef={searchRef}
-                />
                 {list.length > 0 ? (
                   <FilterBar
                     sortLabel={sortLabelFor(sort, t)}
@@ -361,6 +341,13 @@ function AllGroupsScreen() {
         )}
       />
 
+      <QuickAddSheet
+        visible={quickAddOpen}
+        onClose={() => setQuickAddOpen(false)}
+        actions={quickAddActions}
+      />
+      <QuickExpenseSheet visible={quickExpenseOpen} onClose={() => setQuickExpenseOpen(false)} />
+
       <SortMenu
         open={sortOpen}
         anchor={sortAnchor}
@@ -385,76 +372,6 @@ function AllGroupsScreen() {
       />
     </Screen>
   );
-}
-
-/** The search field, the first thing in the scrolling body under the card. */
-function SearchField({
-  label,
-  clearLabel,
-  query,
-  onQuery,
-  searchRef,
-}: {
-  label: string;
-  clearLabel: string;
-  query: string;
-  onQuery: (next: string) => void;
-  searchRef: React.RefObject<TextInput | null>;
-}): React.JSX.Element {
-  const theme = useTheme();
-  return (
-    <Pressable
-      onPress={() => searchRef.current?.focus()}
-      accessible={false}
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        height: 40,
-        marginTop: theme.spacing.xs,
-        paddingHorizontal: theme.spacing.md,
-        borderRadius: theme.radius.pill,
-        backgroundColor: theme.color.surface,
-        borderWidth: 1,
-        borderColor: theme.color.border,
-      }}
-    >
-      <Ionicons name="search" size={iconSize.md} color={theme.color.textMuted} />
-      <TextInput
-        ref={searchRef}
-        value={query}
-        onChangeText={onQuery}
-        autoCapitalize="none"
-        accessibilityRole="search"
-        accessibilityLabel={label}
-        placeholder={label}
-        placeholderTextColor={theme.color.textMuted}
-        selectionColor={theme.color.brand}
-        style={{ flex: 1, fontSize: 15, color: theme.color.text, paddingVertical: 0 }}
-      />
-      {query ? (
-        <Pressable
-          onPress={() => onQuery('')}
-          accessibilityRole="button"
-          accessibilityLabel={clearLabel}
-          hitSlop={8}
-        >
-          <Ionicons name="close-circle" size={iconSize.md} color={theme.color.textMuted} />
-        </Pressable>
-      ) : null}
-    </Pressable>
-  );
-}
-
-/** Light text over a bright patch of sky still reads with a soft shadow; not once solid. */
-function inkShadow(solid: boolean) {
-  return solid
-    ? {}
-    : {
-        textShadowColor: 'rgba(0,0,0,0.25)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
-      };
 }
 
 const SORT_KEYS: readonly GroupsSort[] = ['amount', 'recent', 'name'];
