@@ -10,13 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
-import {
-  Animated,
-  InteractionManager,
-  Pressable,
-  RefreshControl,
-  View,
-} from 'react-native';
+import { Animated, InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 
 import { type GuestGate } from '@waves/core';
 import { Button, Card, Popup, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
@@ -60,7 +54,7 @@ import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
 import { greetingLine } from '@/lib/greetingLine';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
-import { ComingUpChips, NeedsYouCard, PeopleStrip } from '@/components/home/HomeToday';
+import { ComingUpChips, NeedsYouCard } from '@/components/home/HomeToday';
 import { SpacesGrid } from '@/components/home/HomeSpaces';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
 import { todayIso, usePersonalLedger } from '@/data/personal';
@@ -398,10 +392,11 @@ function HomeScreen() {
   // down to the lower part of the balance card, and needs to know where the
   // greeting row ends and where the card begins to place its layers.
   const sceneRef = useRef<View>(null);
-  const [headerHeight, setHeaderHeight] = useState(insets.top + 120);
+  const [headerHeight, setHeaderHeight] = useState(insets.top + 56);
   const [greetingHeight, setGreetingHeight] = useState(46);
   const [cardHeight, setCardHeight] = useState(280);
-  const cardTop = headerHeight - HERO_OVERLAP;
+  // The fixed header is just the greeting row; the card starts right under it.
+  const cardTop = headerHeight;
   const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
   // The photograph runs up under the status bar behind a dark scrim, so the
   // clock, battery and greeting are white on every scene.
@@ -513,9 +508,8 @@ function HomeScreen() {
             />
           }
         >
-          {/* This measured spacer preserves the original card position and
-              -HERO_OVERLAP while the fixed row overlays the scrolling feed. */}
-          <View style={{ height: headerHeight - HERO_OVERLAP }} />
+          {/* Room for the fixed greeting row; the card sits right under it. */}
+          <View style={{ height: headerHeight }} />
 
           {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
             phone margin iOS and Android both default to. */}
@@ -611,7 +605,6 @@ function HomeScreen() {
                     rowGap={theme.spacing.sm}
                   />
                 ) : null}
-                {newUser ? null : <PeopleStrip viewerId={viewerId} hidden={amountsHidden} />}
               </View>
             )}
           </View>
@@ -627,7 +620,7 @@ function HomeScreen() {
             elevation: 4,
             paddingTop: insets.top + theme.spacing.xs,
             paddingHorizontal: theme.spacing.lg,
-            paddingBottom: HERO_OVERLAP + theme.spacing.xs,
+            paddingBottom: theme.spacing.xs,
           }}
         >
           <Animated.View
@@ -934,9 +927,6 @@ function GuestPopup({
     </Popup>
   );
 }
-
-/** How far the balance card rides up over the bottom of the hero. */
-const HERO_OVERLAP = 56;
 
 /** How far down the balance card the scene reaches before it has faded into
  *  the page — its lower part, never on behind the groups. */

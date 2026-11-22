@@ -16,10 +16,8 @@ import {
 } from '@waves/core';
 
 import { useSourceLabel } from '@/components/IncomeSource';
-import { PersonAvatar } from '@/components/PersonAvatar';
 import { CardTitle, ICON_FOR } from '@/components/personal/PersonalHomeParts';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
-import { useBlockedUsers } from '@/data/blocked';
 import { useCaptures, usePeopleBalances } from '@/data/hooks';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
 import { useDateOccurrences } from '@/data/personalDates';
@@ -37,9 +35,8 @@ import {
   type Need,
   type PersonNeed,
 } from '@/lib/homeToday';
-import { router, switchTab } from '@/lib/navigation';
+import { router } from '@/lib/navigation';
 import { useNudge } from '@/lib/nudge';
-import { useAvatarUrl } from '@/components/ProfileAvatar';
 
 interface Ledger {
   readonly txns: readonly PersonalTxn[];
@@ -467,107 +464,5 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
         </Text>
       )}
     </View>
-  );
-}
-
-// ──────────────────────────────────────────────────────────────── People ──
-
-export function PeopleStrip({ viewerId, hidden }: { viewerId: string | null; hidden: boolean }) {
-  const theme = useTheme();
-  const { t, locale } = useStrings();
-  const { isBlocked } = useBlockedUsers();
-  const rows = usePeopleBalances(viewerId).data;
-  const top = useMemo(
-    () =>
-      rows
-        .filter((r) => !r.is_demo && BigInt(r.net) !== 0n)
-        .sort((a, b) => {
-          const x = BigInt(a.net);
-          const y = BigInt(b.net);
-          return (y < 0n ? -y : y) > (x < 0n ? -x : x) ? 1 : -1;
-        })
-        .slice(0, 5),
-    [rows],
-  );
-  if (top.length === 0) return null;
-  return (
-    <View style={{ gap: theme.spacing.sm }}>
-      <CardTitle
-        title={t.homeToday.people}
-        action={t.homeToday.friendsLink}
-        onAction={() => switchTab('/(tabs)/friends')}
-      />
-      <Card style={{ padding: theme.spacing.md }}>
-        <Row style={{ justifyContent: 'space-between' }}>
-          {top.map((row) => {
-            const net = BigInt(row.net);
-            const blocked = isBlocked(row.profile_id);
-            const name = blocked ? t.misc.someone : row.display_name;
-            const amount = hidden
-              ? BALANCE_MASK
-              : `${net > 0n ? '+' : '−'}${plainAmount(net < 0n ? -net : net, row.currency, locale)}`;
-            return (
-              <PersonCell
-                key={`${row.person_key}:${row.currency}`}
-                name={name}
-                avatarUrl={blocked ? null : row.avatar_url}
-                ghost={row.is_ghost || blocked}
-                amount={amount}
-                positive={net > 0n}
-                onPress={() =>
-                  router.push(
-                    `/friends/person/${encodeURIComponent(row.person_key)}?name=${encodeURIComponent(name)}` as never,
-                  )
-                }
-              />
-            );
-          })}
-        </Row>
-      </Card>
-    </View>
-  );
-}
-
-function PersonCell({
-  name,
-  avatarUrl,
-  ghost,
-  amount,
-  positive,
-  onPress,
-}: {
-  name: string;
-  avatarUrl: string | null;
-  ghost: boolean;
-  amount: string;
-  positive: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const photo = useAvatarUrl(avatarUrl);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${name}, ${amount}`}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        alignItems: 'center',
-        gap: 2,
-        width: 58,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <PersonAvatar name={name} size={40} ghost={ghost} avatarUrl={photo} />
-      <Text variant="micro" numberOfLines={1} style={{ fontWeight: '700' }}>
-        {name.trim().split(/\s+/)[0]}
-      </Text>
-      <Text
-        variant="micro"
-        numberOfLines={1}
-        style={{ fontWeight: '700', color: positive ? theme.color.positive : theme.color.negative }}
-      >
-        {amount}
-      </Text>
-    </Pressable>
   );
 }
