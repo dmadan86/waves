@@ -46,7 +46,7 @@ function RecapBody() {
 
   const kind = params.kind === 'month' ? 'month' : 'week';
   const fmt = (amount: bigint): string =>
-    hidden ? BALANCE_MASK : format(money(amount, dc), { locale });
+    hidden ? BALANCE_MASK : format(money(amount, dc), { locale, trimZeros: true });
   const abs = (n: bigint): bigint => (n < 0n ? -n : n);
   const categoryName = (key: string | null): string =>
     t.categories[(resolveCategory(key, null).builtinId ?? 'other') as keyof typeof t.categories] ??

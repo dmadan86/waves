@@ -177,7 +177,7 @@ function MeLedger() {
   const summary = monthOutlook(ledger.txns, ledger.recurrings, month, dc, today);
   // Whole-rupee totals drop a bare ".00"; real paise still show.
   const fmt = (amount: bigint): string => {
-    const p = formatParts(money(amount, dc), { locale });
+    const p = formatParts(money(amount, dc), { locale, trimZeros: true });
     return /[1-9]/.test(p.fraction) ? p.text : p.lead + p.trail;
   };
   const catLabel = labelForCategory(t);
@@ -571,7 +571,9 @@ function MeLedger() {
           <PersonalUpcomingCard
             rows={upcomingRows}
             fmt={(amount, currency) =>
-              amountsHidden ? BALANCE_MASK : format(money(amount, currency), { locale })
+              amountsHidden
+                ? BALANCE_MASK
+                : format(money(amount, currency), { locale, trimZeros: true })
             }
           />
 
@@ -791,7 +793,7 @@ function ExpenseRow({
   const expense = txn.kind === 'expense';
   const amount = hidden
     ? BALANCE_MASK
-    : `${expense ? '−' : '+'}${format(money(txn.amount, txn.currency), { locale })}`;
+    : `${expense ? '−' : '+'}${format(money(txn.amount, txn.currency), { locale, trimZeros: true })}`;
   return (
     <Pressable
       accessibilityRole="button"

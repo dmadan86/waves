@@ -1,3 +1,4 @@
+import { otherCurrencyChips } from '@/data/totals';
 import { withScenic } from '@/components/ScenicScope';
 import { AdSlot } from '@/components/AdSlot';
 import { placeSlots } from '@/lib/adPlanPure';
@@ -82,6 +83,7 @@ function AllGroupsScreen() {
     owed: 0n,
     owing: 0n,
   };
+  const chips = otherCurrencyChips(summary.totals, headline.currency);
   const inHeadline = list.filter(
     (group) => (group.default_currency ?? 'INR') === headline.currency,
   );
@@ -233,6 +235,8 @@ function AllGroupsScreen() {
                 owing={headline.owing}
                 owedGroups={owedGroups}
                 owingGroups={owingGroups}
+                owedChips={chips.owed}
+                owingChips={chips.owing}
                 currency={headline.currency}
                 locale={locale}
                 hidden={amountsHidden}

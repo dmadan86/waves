@@ -80,7 +80,9 @@ export function HomeBalanceCard({
           minimumFontScale={0.7}
           style={{ color: hidden ? theme.color.textMuted : color, fontWeight: '600', fontSize: 16 }}
         >
-          {hidden ? BALANCE_MASK : format(money(amount, currency as never), { locale })}
+          {hidden
+            ? BALANCE_MASK
+            : format(money(amount, currency as never), { locale, trimZeros: true })}
         </Text>
       )}
     </View>

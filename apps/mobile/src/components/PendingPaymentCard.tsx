@@ -279,6 +279,7 @@ export function PendingPaymentCard({
           </Text>
           <Row style={{ alignItems: 'center', gap: 6 }}>
             <MoneyText
+              exact
               amount={BigInt(settlement.amount)}
               currency={settlement.currency as CurrencyCode}
               locale={locale}

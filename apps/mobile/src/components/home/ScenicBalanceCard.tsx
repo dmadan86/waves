@@ -23,7 +23,7 @@ import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
 import { SplitMoney } from '@/components/SplitMoney';
-import { BalanceSide } from '@/components/home/BalanceSide';
+import { BalanceSide, type CurrencyChip } from '@/components/home/BalanceSide';
 import { GlassSurface } from '@/components/home/GlassSurface';
 
 /** What stands in for a figure while the eye is shut — shared with the rows. */
@@ -49,6 +49,8 @@ export function HomeBalanceCard({
   labelAccessory,
   sides,
   extra,
+  owedChips,
+  owingChips,
 }: {
   net: bigint;
   /** Everything owed to you, and everything you owe, before the net. */
@@ -82,6 +84,9 @@ export function HomeBalanceCard({
   sides?: ReactNode;
   /** Extra block between the figures and the footer. */
   extra?: ReactNode;
+  /** The other currencies each side holds, drawn as "+ $24.64" chips as Friends does. */
+  owedChips?: readonly CurrencyChip[];
+  owingChips?: readonly CurrencyChip[];
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -187,6 +192,7 @@ export function HomeBalanceCard({
               amount={owed}
               label={t.homeDash.youLent}
               detail={plural(locale, owedGroups, t.homeDash.acrossGroups)}
+              chips={owedChips}
               currency={currency}
               locale={locale}
               hidden={hidden}
@@ -201,6 +207,7 @@ export function HomeBalanceCard({
               amount={owing}
               label={t.homeDash.youOwe}
               detail={plural(locale, owingGroups, t.homeDash.acrossGroups)}
+              chips={owingChips}
               currency={currency}
               locale={locale}
               hidden={hidden}
