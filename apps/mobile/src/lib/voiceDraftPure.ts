@@ -36,6 +36,21 @@ export function heardCaptureInput(transcript: string, date: string, currency: st
   };
 }
 
+/** Recover an amount for Review's display from an older voice draft only. */
+export function recoveredVoiceDraftAmount(capture: {
+  amount: string;
+  currency: string;
+  expense_date: string;
+  raw_text: string | null;
+  description: string;
+  parsed: Record<string, unknown> | null;
+}): { amount: bigint; currency: string } | null {
+  if (capture.amount !== '0' || typeof capture.parsed?.voiceTranscript !== 'string') return null;
+  const transcript = capture.raw_text || capture.parsed.voiceTranscript;
+  const recovered = heardCaptureInput(transcript, capture.expense_date, capture.currency);
+  return recovered.amount > 0n ? { amount: recovered.amount, currency: recovered.currency } : null;
+}
+
 /** Is a sentence worth filing? Two characters is a cough, not a command. */
 export const worthFiling = (transcript: string): boolean => transcript.trim().length >= 2;
 
