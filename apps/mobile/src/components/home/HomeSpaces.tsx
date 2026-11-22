@@ -5,7 +5,7 @@
  * A new person with nothing yet sees three starter tiles instead.
  */
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
@@ -17,6 +17,7 @@ import { CardTitle } from '@/components/personal/PersonalHomeParts';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 import type { PoolFigure } from '@/data/homeSpaces';
 import { useCaptures, type useHomeSummary } from '@/data/hooks';
+import type { SnapRow } from '@/lib/homeSnapshot';
 import { groupLabel, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { capSpaces, plainAmount } from '@/lib/homeToday';
@@ -40,6 +41,7 @@ export function SpacesGrid({
   unreadGroups,
   onNewSpace,
   onNewGroup,
+  onSnapshot,
 }: {
   groups: readonly GroupRow[];
   summary: ReturnType<typeof useHomeSummary>;
@@ -62,6 +64,8 @@ export function SpacesGrid({
   onNewSpace: (anchor: MenuAnchor | null) => void;
   /** Straight into the new-group form, optionally for one group type. */
   onNewGroup: (type?: string) => void;
+  /** Reports the rows as drawn (unmasked), for Home's stored snapshot. */
+  onSnapshot?: (personal: SnapRow, groups: SnapRow[]) => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
@@ -84,8 +88,48 @@ export function SpacesGrid({
     hidden || personalHidden
       ? BALANCE_MASK
       : plainAmount(amount < 0n ? -amount : amount, ledger.currency, locale);
+  const personalFigure = progress ? progress.remaining : spent;
+  const personalRaw = plainAmount(
+    personalFigure < 0n ? -personalFigure : personalFigure,
+    ledger.currency,
+    locale,
+  );
   const personalNumber = progress ? personalShow(progress.remaining) : personalShow(spent);
   const personalLabel = progress ? h.leftMonth : h.spentMonth;
+
+  const rowsJson = onSnapshot
+    ? JSON.stringify([
+        {
+          key: 'personal',
+          title: h.personal,
+          memberLabel: h.justMe,
+          icon: 'wallet-outline',
+          amountText: personalRaw,
+          directionLabel: personalLabel,
+          tone: progress && progress.remaining < 0n ? 'negative' : undefined,
+          href: '/(tabs)/me',
+        } satisfies SnapRow,
+        shown.map((group) => {
+          const { tagTone, ...row } = buildGroupRow({
+            group,
+            summary,
+            viewerId,
+            figure: pool.get(group.id),
+            drafts: draftsByGroup.get(group.id) ?? 0,
+            locale,
+            t,
+            env,
+          });
+          return row;
+        }),
+      ])
+    : null;
+  useEffect(() => {
+    if (!rowsJson || newUser) return;
+    const [personal, rows] = JSON.parse(rowsJson) as [SnapRow, SnapRow[]];
+    onSnapshot?.(personal, rows);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the rows' content
+  }, [rowsJson, newUser]);
 
   const starter = (
     tint: 'lilac' | 'sky' | 'peach',
@@ -218,17 +262,15 @@ export function useGroupRowEnv(): {
 }
 
 /** One group as Home's Groups list draws it — shared with the All groups screen. */
-export function GroupSpaceRow({
+export function buildGroupRow({
   group,
   summary,
   viewerId,
   figure,
   drafts,
   locale,
-  hidden,
-  divider,
-  unread,
-  env: { nowMs, voiceDefaultId, justAddedId },
+  t,
+  env: { nowMs, voiceDefaultId },
 }: {
   group: GroupRow;
   summary: ReturnType<typeof useHomeSummary>;
@@ -236,12 +278,9 @@ export function GroupSpaceRow({
   figure: PoolFigure | undefined;
   drafts: number;
   locale: string;
-  hidden: boolean;
-  divider: boolean;
-  unread: boolean;
+  t: ReturnType<typeof useStrings>['t'];
   env: GroupRowEnv;
-}) {
-  const { t } = useStrings();
+}): SnapRow & { tagTone: 'warning' | 'brand' } {
   const h = t.homeToday;
   {
     const balance = summary.balanceFor(group.id);
@@ -288,34 +327,127 @@ export function GroupSpaceRow({
         : isNew
           ? t.tagNew
           : null;
-    return (
-      <SpaceRow
-        title={groupLabel(group, summary.membersFor(group.id), viewerId)}
-        memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
-        draftLabel={drafts ? plural(locale, drafts, t.draftCount) : null}
-        coverEmoji={group.cover_emoji}
-        coverColor={group.cover_color}
-        groupType={group.type}
-        eventTemplate={group.event_template}
-        customTag={group.custom_tag}
-        balance={balance}
-        currency={group.default_currency ?? 'INR'}
-        locale={locale}
-        statusLabel={balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe}
-        directionLabel={directionLabel}
-        amountText={amountText}
-        tone={figure ? 'ink' : balance > 0n ? 'positive' : balance < 0n ? 'negative' : 'muted'}
-        pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
-        tag={tag}
-        tagTone={group.isDemo ? 'warning' : 'brand'}
-        isDemo={group.isDemo === true}
-        divider={divider}
-        hidden={hidden}
-        pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
-        enter={group.id === justAddedId}
-        unread={unread}
-        onPress={() => router.push(`/group/${group.id}`)}
-      />
-    );
+    return {
+      key: group.id,
+      title: groupLabel(group, summary.membersFor(group.id), viewerId),
+      memberLabel: plural(locale, summary.memberCountFor(group.id), t.memberCount),
+      draftLabel: drafts ? plural(locale, drafts, t.draftCount) : null,
+      coverEmoji: group.cover_emoji,
+      coverColor: group.cover_color,
+      groupType: group.type,
+      eventTemplate: group.event_template,
+      customTag: group.custom_tag,
+      balance: balance.toString(),
+      currency: group.default_currency ?? 'INR',
+      statusLabel: balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe,
+      directionLabel,
+      amountText,
+      tone: figure ? 'ink' : balance > 0n ? 'positive' : balance < 0n ? 'negative' : 'muted',
+      pendingLabel: summary.hasPending(group.id) ? t.pendingConfirmation : null,
+      tag,
+      tagTone: group.isDemo ? 'warning' : 'brand',
+      isDemo: group.isDemo === true,
+    };
   }
+}
+
+/** One group row from its view model: live (`GroupSpaceRow`) or from the snapshot. */
+export function GroupRowView({
+  row,
+  locale,
+  hidden,
+  divider,
+  unread = false,
+  tagTone = 'brand',
+  enter = false,
+  pendingBalance = false,
+}: {
+  row: SnapRow;
+  locale: string;
+  hidden: boolean;
+  divider: boolean;
+  unread?: boolean;
+  tagTone?: 'warning' | 'brand';
+  enter?: boolean;
+  pendingBalance?: boolean;
+}) {
+  return (
+    <SpaceRow
+      title={row.title}
+      memberLabel={row.memberLabel}
+      draftLabel={row.draftLabel}
+      coverEmoji={row.coverEmoji}
+      coverColor={row.coverColor}
+      groupType={row.groupType}
+      eventTemplate={row.eventTemplate}
+      customTag={row.customTag}
+      balance={row.balance === undefined ? undefined : BigInt(row.balance)}
+      currency={row.currency}
+      locale={locale}
+      statusLabel={row.statusLabel}
+      directionLabel={row.directionLabel}
+      amountText={row.amountText}
+      tone={row.tone}
+      icon={row.icon as never}
+      pendingLabel={row.pendingLabel}
+      tag={row.tag}
+      tagTone={tagTone}
+      isDemo={row.isDemo}
+      divider={divider}
+      hidden={hidden}
+      pendingBalance={pendingBalance}
+      enter={enter}
+      unread={unread}
+      onPress={() => router.push((row.href ?? `/group/${row.key}`) as never)}
+    />
+  );
+}
+
+/** One group as Home's Groups list draws it — shared with the All groups screen. */
+export function GroupSpaceRow({
+  group,
+  summary,
+  viewerId,
+  figure,
+  drafts,
+  locale,
+  hidden,
+  divider,
+  unread,
+  env,
+}: {
+  group: GroupRow;
+  summary: ReturnType<typeof useHomeSummary>;
+  viewerId: string | null;
+  figure: PoolFigure | undefined;
+  drafts: number;
+  locale: string;
+  hidden: boolean;
+  divider: boolean;
+  unread: boolean;
+  env: GroupRowEnv;
+}) {
+  const { t } = useStrings();
+  const { tagTone, ...row } = buildGroupRow({
+    group,
+    summary,
+    viewerId,
+    figure,
+    drafts,
+    locale,
+    t,
+    env,
+  });
+  return (
+    <GroupRowView
+      row={row}
+      locale={locale}
+      hidden={hidden}
+      divider={divider}
+      unread={unread}
+      tagTone={tagTone}
+      enter={group.id === env.justAddedId}
+      pendingBalance={group.id === env.justAddedId && !summary.hasLedger(group.id)}
+    />
+  );
 }

@@ -62,12 +62,18 @@ import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { useVoiceNewCount } from '@/lib/voiceSpaceStore';
 import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
-import { useBalanceHidden } from '@/lib/balanceHidden';
+import { preloadBalanceHidden, useBalanceHidden } from '@/lib/balanceHidden';
+import { HomeSnapshotView } from '@/components/home/HomeSnapshotView';
+import { serialiseSnapshot, type HomeSnapshot, type SnapRow } from '@/lib/homeSnapshot';
+import { clearHomeSnapshot, saveHomeSnapshot, useHomeSnapshot } from '@/lib/homeSnapshotStore';
 import { usePullRefresh } from '@/lib/pullRefresh';
 import { useSpaceSwitchItems } from '@/lib/useSpaceSwitchItems';
 import { fill } from '@/i18n';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
+// Read the eye preference at launch, in parallel with the mirror, not on first mount.
+preloadBalanceHidden();
+
 function HomeScreen() {
   const theme = useTheme();
   const pull = usePullRefresh();
@@ -186,6 +192,10 @@ function HomeScreen() {
   // The placeholder covers both: nothing read yet, or nothing read *and* nothing
   // confirmed. Everything else paints.
   const showSkeleton = hydrating || unknownYet;
+  // Last launch's frame, drawn while the mirror and first sync are still coming
+  // in; null for a new account, so those see the skeleton as before.
+  const stored = useHomeSnapshot(viewerId);
+  const showStale = showSkeleton && stored !== null;
   const coldStartHold = useColdStartSpace(!showSkeleton, companyIds);
   const settling = !showSkeleton && summary.pendingFirstSync;
 
@@ -249,6 +259,7 @@ function HomeScreen() {
       tourMayStart({
         tourReady: tour.ready,
         tourSeen: tour.seen,
+        // Live data only: the snapshot is never what the tour spotlights.
         dataReady: !showSkeleton && balanceReady,
         introVisible: false, // the intro is one of the `busy` reasons
         promptGranted: tourSlot,
@@ -376,12 +387,21 @@ function HomeScreen() {
    * same currency a new group would start in on this phone — otherwise the
    * empty state reads ₹0 and the first group then counts in dollars.
    */
-  const headline = summary.totals[0] ?? {
+  const liveHeadline = summary.totals[0] ?? {
     currency: defaultCurrency,
     net: 0n,
     owed: 0n,
     owing: 0n,
   };
+  const headline =
+    showStale && stored
+      ? {
+          currency: stored.headline.currency,
+          net: BigInt(stored.headline.net),
+          owed: BigInt(stored.headline.owed),
+          owing: BigInt(stored.headline.owing),
+        }
+      : liveHeadline;
 
   // Which photograph the hero wears: the clock's (and region's), or the one
   // picked on the Background screen.
@@ -410,8 +430,10 @@ function HomeScreen() {
     // currency set is counted where its balance was summed.
     (group) => (group.default_currency ?? 'INR') === headline.currency,
   );
-  const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
-  const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
+  const liveOwedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
+  const liveOwingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
+  const owedGroups = showStale && stored ? stored.headline.owedGroups : liveOwedGroups;
+  const owingGroups = showStale && stored ? stored.headline.owingGroups : liveOwingGroups;
 
   // Home's feed: the personal ledger (for Personal's tile and the bills that
   // need paying), the pooled groups' figures, and whether there is anything yet.
@@ -432,6 +454,80 @@ function HomeScreen() {
     ledger.txns.length === 0 &&
     ledger.recurrings.length === 0 &&
     ledger.budgets.length === 0;
+
+  // Save the frame once it is live and settled, quietly, and only if it changed.
+  const parts = useRef<{
+    needs: SnapRow[];
+    needsTotal: number;
+    comingUp: SnapRow[];
+    personal: SnapRow | null;
+    groups: SnapRow[];
+  }>({ needs: [], needsTotal: 0, comingUp: [], personal: null, groups: [] });
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSaved = useRef('');
+  const frame = {
+    viewerId,
+    live: !showSkeleton && !summary.pendingFirstSync,
+    newUser,
+    headline: {
+      currency: liveHeadline.currency,
+      net: String(liveHeadline.net),
+      owed: String(liveHeadline.owed),
+      owing: String(liveHeadline.owing),
+      owedGroups: liveOwedGroups,
+      owingGroups: liveOwingGroups,
+    },
+  };
+  const frameRef = useRef(frame);
+  useEffect(() => {
+    frameRef.current = frame;
+  });
+  const scheduleSave = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const f = frameRef.current;
+      if (!f.viewerId || !f.live) return;
+      if (f.newUser) {
+        if (lastSaved.current !== 'new') void clearHomeSnapshot(f.viewerId).catch(() => {});
+        lastSaved.current = 'new';
+        return;
+      }
+      const personal = parts.current.personal;
+      if (!personal) return;
+      const snapshot: HomeSnapshot = {
+        v: 1,
+        viewerId: f.viewerId,
+        headline: f.headline,
+        ...parts.current,
+        personal,
+      };
+      const text = serialiseSnapshot(snapshot);
+      if (text === lastSaved.current) return;
+      lastSaved.current = text;
+      void saveHomeSnapshot(snapshot);
+    }, 1200);
+  }, []);
+  const headlineKey = JSON.stringify(frame.headline);
+  useEffect(() => {
+    scheduleSave();
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [scheduleSave, headlineKey, frame.live, frame.newUser, viewerId]);
+
+  // A sheet that reads groups must not open over a still-empty mirror: a tap
+  // during the snapshot frame waits for live data, then runs once.
+  const pendingTap = useRef<(() => void) | null>(null);
+  const whenLive = (fn: () => void) => () => {
+    if (showSkeleton) pendingTap.current = fn;
+    else fn();
+  };
+  useEffect(() => {
+    if (showSkeleton || !pendingTap.current) return;
+    const fn = pendingTap.current;
+    pendingTap.current = null;
+    fn();
+  }, [showSkeleton]);
 
   if (coldStartHold) return <Screen edges={[]}>{null}</Screen>;
 
@@ -526,17 +622,17 @@ function HomeScreen() {
               locale={locale}
               hidden={balanceHidden || !balanceReady}
               onToggleHide={toggleBalance}
-              settling={settling}
+              settling={settling || showStale}
               catchUp={catchUp}
-              loading={showSkeleton || !balanceReady}
+              loading={(showSkeleton && !showStale) || !balanceReady}
               blurTarget={sceneRef}
               footer={
                 <HomeQuickActions
                   // The quick sheet, not the capture screen: most spends know
                   // where they belong and need an amount and a place. The long
                   // press raises type / scan / speak, unchanged.
-                  onAddExpense={() => setQuickExpenseOpen(true)}
-                  onAddExpenseLong={() => setQuickAddOpen(true)}
+                  onAddExpense={whenLive(() => setQuickExpenseOpen(true))}
+                  onAddExpenseLong={whenLive(() => setQuickAddOpen(true))}
                   onSettleUp={() => router.push('/settle-up')}
                   onReview={() => router.navigate('/captures')}
                   onScan={() => router.push(`/capture?scan=${Date.now()}`)}
@@ -561,7 +657,9 @@ function HomeScreen() {
               one at a time, never a pop-up. Drawn only while one is due. */}
         <DateReminderCard />
 
-        {showSkeleton ? (
+        {showStale && stored ? (
+          <HomeSnapshotView snapshot={stored} hidden={amountsHidden} locale={locale} />
+        ) : showSkeleton ? (
           <View style={{ paddingTop: theme.spacing.sm }}>
             <SkeletonList rows={3} />
           </View>
@@ -575,10 +673,23 @@ function HomeScreen() {
                 viewerId={viewerId}
                 hidden={amountsHidden}
                 onShownBills={setNeedsBills}
+                onSnapshot={(rows, total) => {
+                  parts.current.needs = rows;
+                  parts.current.needsTotal = total;
+                  scheduleSave();
+                }}
               />
             )}
             {newUser ? null : (
-              <ComingUpChips ledger={todayLedger} hidden={amountsHidden} exclude={needsBills} />
+              <ComingUpChips
+                ledger={todayLedger}
+                hidden={amountsHidden}
+                exclude={needsBills}
+                onSnapshot={(rows) => {
+                  parts.current.comingUp = rows;
+                  scheduleSave();
+                }}
+              />
             )}
             <SpacesGrid
               groups={list}
@@ -593,6 +704,11 @@ function HomeScreen() {
               unreadGroups={unreadSet}
               onNewSpace={openNewGroupMenu}
               onNewGroup={openNewGroup}
+              onSnapshot={(personal, groupRows) => {
+                parts.current.personal = personal;
+                parts.current.groups = groupRows;
+                scheduleSave();
+              }}
             />
             {/* One native card after the grid for a long roster (>= 10 groups),
                   never while a fresh import is sliding in. */}

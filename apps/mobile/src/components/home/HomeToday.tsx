@@ -18,6 +18,7 @@ import {
 import { useSourceLabel } from '@/components/IncomeSource';
 import { CardTitle, ICON_FOR } from '@/components/personal/PersonalHomeParts';
 import { GroupRow } from '@/components/home/GroupRow';
+import type { SnapRow } from '@/lib/homeSnapshot';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 import { useCaptures, usePeopleBalances } from '@/data/hooks';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
@@ -57,12 +58,15 @@ export function NeedsYouCard({
   viewerId,
   hidden,
   onShownBills,
+  onSnapshot,
 }: {
   ledger: Ledger;
   viewerId: string | null;
   hidden: boolean;
   /** The personal bill rows this card shows, so Coming up can leave them out. */
   onShownBills?: (keys: string) => void;
+  /** Reports the rows as drawn (unmasked), for Home's stored snapshot. */
+  onSnapshot?: (rows: SnapRow[], total: number) => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -140,6 +144,61 @@ export function NeedsYouCard({
   useEffect(() => {
     onShownBills?.(shownBills);
   }, [onShownBills, shownBills]);
+
+  const rowsJson = onSnapshot
+    ? JSON.stringify(
+        items.map((need): SnapRow => {
+          const money = (amount: bigint, currency: string) => plainAmount(amount, currency, locale);
+          const { bill, person } = need;
+          const label =
+            need.action === 'markPaid'
+              ? h.markPaid
+              : need.action === 'pay'
+                ? h.pay
+                : need.action === 'remind'
+                  ? h.remind
+                  : h.review;
+          if (bill) {
+            return {
+              key: need.key,
+              title: bill.title,
+              memberLabel: shortDate(bill.date, locale),
+              amountText: money(bill.amount, bill.currency),
+              directionLabel: label,
+              icon: need.kind === 'overdue' ? 'alert-circle-outline' : 'home-outline',
+              href:
+                bill.source === 'group' && bill.groupId
+                  ? `/group/${bill.groupId}`
+                  : '/personal/upcoming',
+            };
+          }
+          if (person) {
+            return {
+              key: need.key,
+              title: person.name,
+              memberLabel: need.kind === 'owed' ? t.youAreOwed : t.youOwe,
+              amountText: money(person.amount, person.currency),
+              directionLabel: label,
+              icon: 'person-outline',
+              href: `/friends/person/${encodeURIComponent(person.personKey)}?name=${encodeURIComponent(person.name)}`,
+            };
+          }
+          return {
+            key: need.key,
+            title: fill(h.reviewTitle, { n: need.count ?? 0 }),
+            memberLabel: '',
+            amountText: '',
+            directionLabel: label,
+            icon: 'file-tray-full-outline',
+            href: '/captures',
+          };
+        }),
+      )
+    : null;
+  useEffect(() => {
+    if (rowsJson) onSnapshot?.(JSON.parse(rowsJson) as SnapRow[], total);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the rows' content
+  }, [rowsJson, total]);
 
   const settled = items.length === 0;
   return (
@@ -364,6 +423,8 @@ interface Chip {
   readonly inDays: number;
   /** The right-hand figure: a bill's amount, empty for a date. */
   readonly amount: string;
+  /** The same figure unmasked, for the stored snapshot. */
+  readonly rawAmount: string;
   /** The grey line under the title. */
   readonly detail: string;
   readonly title: string;
@@ -376,7 +437,10 @@ export function ComingUpChips({
   ledger,
   hidden,
   exclude = '',
+  onSnapshot,
 }: {
+  /** Reports the rows as drawn (unmasked), for Home's stored snapshot. */
+  onSnapshot?: (rows: SnapRow[]) => void;
   ledger: Ledger;
   hidden: boolean;
   /** Bill row keys already in Needs you, joined with '|': each item shows once. */
@@ -387,7 +451,7 @@ export function ComingUpChips({
   const { session, isGuest } = useAuth();
   const sourceLabel = useSourceLabel();
   const occurrences = useDateOccurrences();
-  if (!session || isGuest) return null;
+  const signedOut = !session || isGuest;
 
   const dates: UpcomingItem[] = pickUpcoming(occurrences, 6);
   const rows = [
@@ -408,6 +472,7 @@ export function ComingUpChips({
         iso,
         inDays: row.inDays,
         amount: '',
+        rawAmount: '',
         detail: subtitleOf(item, t.dates, locale),
         title: titleOf(item, t.dates),
         sub: subtitleOf(item, t.dates, locale),
@@ -426,6 +491,7 @@ export function ComingUpChips({
       amount: hidden
         ? BALANCE_MASK
         : plainAmount(row.amount ?? 0n, row.currency ?? ledger.currency, locale),
+      rawAmount: plainAmount(row.amount ?? 0n, row.currency ?? ledger.currency, locale),
       detail: new Date(`${iso}T12:00:00`).toLocaleDateString(locale, {
         weekday: 'short',
         day: 'numeric',
@@ -442,6 +508,26 @@ export function ComingUpChips({
 
   // A short list, nearest first; the full view is one tap away.
   const shown = chips.slice(0, COMING_UP_ROWS);
+
+  const rowsJson = onSnapshot
+    ? JSON.stringify(
+        shown.map((chip): SnapRow => ({
+          key: chip.key,
+          title: chip.title,
+          memberLabel: chip.detail,
+          amountText: chip.rawAmount,
+          directionLabel:
+            chip.inDays === 0 ? t.dates.today : plural(locale, chip.inDays, t.dates.inDays),
+          icon: chip.emoji ?? 'calendar-outline',
+          href: '/personal/upcoming',
+        })),
+      )
+    : null;
+  useEffect(() => {
+    if (rowsJson && !signedOut) onSnapshot?.(JSON.parse(rowsJson) as SnapRow[]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the rows' content
+  }, [rowsJson, signedOut]);
+  if (signedOut) return null;
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
