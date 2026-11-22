@@ -95,7 +95,11 @@ export function SpacesGrid({
     locale,
   );
   const personalNumber = progress ? personalShow(progress.remaining) : personalShow(spent);
-  const personalLabel = progress ? h.leftMonth : h.spentMonth;
+  const personalLabel = progress
+    ? progress.remaining < 0n
+      ? h.overMonth
+      : h.leftMonth
+    : h.spentMonth;
 
   const rowsJson = onSnapshot
     ? JSON.stringify([

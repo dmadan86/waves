@@ -366,7 +366,10 @@ export interface UiStrings {
     personal: string;
     justMe: string;
     leftMonth: string;
+    overMonth: string;
     spentMonth: string;
+    toolInvestments: string;
+    toolRentals: string;
     leftPool: string;
     spentPool: string;
     billDue: string;
@@ -9074,7 +9077,10 @@ const en: UiStrings = {
     personal: 'Personal',
     justMe: 'Just me',
     leftMonth: 'left this month',
+    overMonth: 'over this month',
     spentMonth: 'spent this month',
+    toolInvestments: 'Investments',
+    toolRentals: 'Rentals',
     leftPool: 'left in pool',
     spentPool: 'spent this month',
     billDue: 'bill due {date}',
@@ -17154,7 +17160,10 @@ const ta: UiStrings = {
     personal: 'தனிப்பட்டது',
     justMe: 'நான் மட்டும்',
     leftMonth: 'இந்த மாதம் மீதம்',
+    overMonth: 'இந்த மாதம் அதிகமாகச் செலவானது',
     spentMonth: 'இந்த மாதம் செலவு',
+    toolInvestments: 'முதலீடுகள்',
+    toolRentals: 'வாடகை',
     leftPool: 'பொது நிதியில் மீதம்',
     spentPool: 'இந்த மாதம் செலவு',
     billDue: '{date} அன்று கட்டணம்',
@@ -25442,7 +25451,10 @@ const hi: UiStrings = {
     personal: 'निजी',
     justMe: 'सिर्फ़ मैं',
     leftMonth: 'इस महीने बचा',
+    overMonth: 'इस महीने ज़्यादा खर्च',
     spentMonth: 'इस महीने खर्च',
+    toolInvestments: 'निवेश',
+    toolRentals: 'किराये',
     leftPool: 'पूल में बचा',
     spentPool: 'इस महीने खर्च',
     billDue: '{date} को बिल',
@@ -33530,7 +33542,10 @@ const ar: UiStrings = {
     personal: 'شخصي',
     justMe: 'أنا فقط',
     leftMonth: 'متبقٍّ هذا الشهر',
+    overMonth: 'تجاوزت هذا الشهر',
     spentMonth: 'أُنفق هذا الشهر',
+    toolInvestments: 'الاستثمارات',
+    toolRentals: 'الإيجارات',
     leftPool: 'متبقٍّ في الصندوق',
     spentPool: 'أُنفق هذا الشهر',
     billDue: 'فاتورة تستحق {date}',

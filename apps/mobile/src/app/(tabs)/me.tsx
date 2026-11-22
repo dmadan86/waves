@@ -376,7 +376,7 @@ function MeLedger() {
       </TabHeader>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: clearance }}
+        contentContainerStyle={{ paddingBottom: clearance + 96 }}
         showsVerticalScrollIndicator={false}
       >
         <View
@@ -615,6 +615,20 @@ function MeLedger() {
                   icon: 'speedometer-outline',
                   label: t.personal.dash.toolBudgets,
                   onPress: () => router.push('/personal/budgets'),
+                },
+                {
+                  key: 'investments',
+                  tint: 'sky',
+                  icon: 'trending-up-outline',
+                  label: t.homeToday.toolInvestments,
+                  onPress: () => router.push('/investments'),
+                },
+                {
+                  key: 'rentals',
+                  tint: 'peach',
+                  icon: 'business-outline',
+                  label: t.homeToday.toolRentals,
+                  onPress: () => router.push('/rentals'),
                 },
                 {
                   key: 'spending',

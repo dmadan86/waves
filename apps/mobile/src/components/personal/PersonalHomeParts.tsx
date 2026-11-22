@@ -320,7 +320,7 @@ export function QuickActions({
               color={tile.tone === 'positive' ? theme.color.positive : theme.color.brand}
             />
           </View>
-          <Text variant="micro" numberOfLines={1} style={{ fontWeight: '600' }}>
+          <Text variant="micro" numberOfLines={2} align="center" style={{ fontWeight: '600' }}>
             {tile.label}
           </Text>
         </Pressable>
