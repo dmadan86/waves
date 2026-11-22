@@ -17,12 +17,13 @@ import {
 
 import { useSourceLabel } from '@/components/IncomeSource';
 import { CardTitle, ICON_FOR } from '@/components/personal/PersonalHomeParts';
+import { GroupRow } from '@/components/home/GroupRow';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 import { useCaptures, usePeopleBalances } from '@/data/hooks';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePostRecurring } from '@/data/postRecurring';
-import { fill, useStrings } from '@/i18n';
+import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { foldedCaptureCount } from '@/lib/captureBatch';
 import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
@@ -347,6 +348,12 @@ interface Chip {
   readonly top: string;
   /** The day, ISO, for the date badge. */
   readonly iso: string;
+  /** Days from today: 0 is today. */
+  readonly inDays: number;
+  /** The right-hand figure: a bill's amount, empty for a date. */
+  readonly amount: string;
+  /** The grey line under the title. */
+  readonly detail: string;
   readonly title: string;
   readonly sub: string;
   readonly emoji: keyof typeof Ionicons.glyphMap | null;
@@ -378,6 +385,9 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
         key: row.key,
         top,
         iso,
+        inDays: row.inDays,
+        amount: '',
+        detail: subtitleOf(item, t.dates, locale),
         title: titleOf(item, t.dates),
         sub: subtitleOf(item, t.dates, locale),
         emoji: ICON_FOR[item.kind] ?? null,
@@ -391,6 +401,15 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
       key: row.key,
       top,
       iso,
+      inDays: row.inDays,
+      amount: hidden
+        ? BALANCE_MASK
+        : plainAmount(row.amount ?? 0n, row.currency ?? ledger.currency, locale),
+      detail: new Date(`${iso}T12:00:00`).toLocaleDateString(locale, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+      }),
       title: row.title || sourceLabel(row.category ?? null) || t.personal.expense,
       sub: hidden
         ? BALANCE_MASK
@@ -429,67 +448,33 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
         </Pressable>
       </CardTitle>
       {shown.length ? (
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          {shown.map((chip, index) => {
-            // Day and month formatted apart: locales disagree on their order.
-            const when = new Date(`${chip.iso}T12:00:00`);
-            const month = when.toLocaleDateString(locale, { month: 'short' }).toUpperCase();
-            const day = when.toLocaleDateString(locale, { day: 'numeric' });
-            return (
-              <Pressable
-                key={chip.key}
-                accessibilityRole="button"
-                accessibilityLabel={`${chip.top}, ${chip.title}, ${chip.sub}`}
-                onPress={chip.onPress}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: theme.spacing.md,
-                  paddingVertical: theme.spacing.sm,
-                  paddingHorizontal: theme.spacing.md,
-                  borderTopWidth: index === 0 ? 0 : 1,
-                  borderTopColor: theme.color.border,
-                  opacity: pressed ? 0.7 : 1,
-                })}
-              >
-                <View
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: theme.radius.md,
-                    backgroundColor: theme.color.brandSoft,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-                    {month}
-                  </Text>
-                  <Text tone="brand" style={{ fontWeight: '800', lineHeight: 18 }}>
-                    {day}
-                  </Text>
-                </View>
-                <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-                  <Row style={{ alignItems: 'center', gap: 4 }}>
-                    {chip.emoji ? (
-                      <Ionicons
-                        name={chip.emoji}
-                        size={iconSize.sm}
-                        color={theme.color.textMuted}
-                      />
-                    ) : null}
-                    <Text numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1 }}>
-                      {chip.title}
-                    </Text>
-                  </Row>
-                  <Text variant="caption" tone="muted" numberOfLines={1}>
-                    {chip.sub}
-                  </Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </Card>
+        // The same card and rows as Groups below, so the two read as one design.
+        <View
+          style={{
+            borderRadius: theme.radius.lg,
+            borderWidth: 1,
+            borderColor: theme.color.border,
+            backgroundColor: theme.color.surface,
+            overflow: 'hidden',
+          }}
+        >
+          {shown.map((chip, index) => (
+            <GroupRow
+              key={chip.key}
+              icon={chip.emoji ?? 'calendar-outline'}
+              iconColor={theme.color.brand}
+              title={chip.title}
+              memberLabel={chip.detail}
+              amountText={chip.amount}
+              directionLabel={
+                chip.inDays === 0 ? t.dates.today : plural(locale, chip.inDays, t.dates.inDays)
+              }
+              locale={locale}
+              divider={index > 0}
+              onPress={chip.onPress}
+            />
+          ))}
+        </View>
       ) : (
         <Text variant="caption" tone="muted">
           {t.dates.empty}
