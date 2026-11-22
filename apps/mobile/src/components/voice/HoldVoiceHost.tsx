@@ -12,7 +12,7 @@
  */
 
 import { setVoiceBusy } from '@/lib/voiceBusy';
-import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import { randomUUID } from 'expo-crypto';
 import { Platform, Pressable, View } from 'react-native';
 
@@ -112,7 +112,13 @@ function toMinor(amount: number, currency: string): bigint | null {
 
 type Toast =
   | { kind: 'reading'; waiting: number }
-  | { kind: 'added'; line: string; saved: SavedState[]; toReview?: boolean }
+  | {
+      kind: 'added';
+      line: string;
+      saved: SavedState[];
+      reviewDraftIds?: string[];
+      toReview?: boolean;
+    }
   | { kind: 'later'; draftId: string };
 
 /** What the reader added from one sentence; `leftover` lists the items it did
@@ -203,6 +209,10 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
     currency: g.default_currency,
   }));
   const agentOn = agentServerOn && consent.state === 'granted';
+  const agentOnRef = useRef(agentOn);
+  useLayoutEffect(() => {
+    agentOnRef.current = agentOn;
+  }, [agentOn]);
 
   // The words and the clock while the finger is down.
   const [words, setWords] = useState('');
@@ -358,7 +368,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
       );
     };
 
-    if (agentOn) {
+    if (agentOnRef.current) {
       const fastContext: FastPathContext = {
         groups: groupRefs,
         currentGroupId: launchGroupId,
@@ -371,7 +381,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
       // The phone heard it, so the agent is asked for any agent-on reader, as
       // for Free on the voice screen; a confident local read skips it.
       const route = transcriptRoute({
-        agentOn,
+        agentOn: agentOnRef.current,
         streamed: false,
         phoneToAgent: true,
         typed: false,
@@ -383,10 +393,14 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
       });
       if (route === 'fast') {
         // Pro would have streamed (and so counted) this sentence; keep the count.
-        if (streamsToCloud) void meterVoiceCommand({ transcript, locale, today: date });
+        if (streamsToCloud && agentOnRef.current)
+          void meterVoiceCommand({ transcript, locale, today: date });
         return basic();
       }
       if (route === 'agent') {
+        // Consent may have changed while this sentence waited in the queue or
+        // while local routing ran. Never cross the cloud boundary after revoke.
+        if (!agentOnRef.current) return basic();
         const result = await sendVoiceTranscript({
           transcript,
           groupId: launchGroupId,
@@ -554,14 +568,19 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
           kind: 'added',
           line: parts.join(' · '),
           saved: added.map((r) => r.saved),
+          reviewDraftIds: results.flatMap((r) => (r.kind === 'later' ? [r.draftId] : [])),
           toReview: summary.later > 0,
         });
       }
     });
   };
 
-  const undo = async (all: readonly SavedState[]): Promise<void> => {
+  const undo = async (
+    all: readonly SavedState[],
+    reviewDraftIds: readonly string[] = [],
+  ): Promise<void> => {
     try {
+      for (const draftId of reviewDraftIds) await deleteCapture.mutateAsync(draftId);
       for (const saved of all) {
         if (saved.kind === 'personal') await deletePersonal.mutateAsync(saved.id);
         else if (saved.groupId)
@@ -706,7 +725,7 @@ export function HoldVoiceHost({ mode, groupId, personal, onFinished }: HoldVoice
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel={t.voice.autoUndo}
-                    onPress={() => void undo(toast.saved)}
+                    onPress={() => void undo(toast.saved, toast.reviewDraftIds)}
                     style={{ minHeight: 44, justifyContent: 'center' }}
                   >
                     <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
