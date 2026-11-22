@@ -9,7 +9,6 @@ import { redirectSystemPath } from '@/app/+native-intent';
 import {
   campaignFromInstallReferrer,
   captureInstallReferrer,
-  friendsJoinedText,
   isDefinitiveRefusal,
   makePendingReferralStore,
   normalizeReferralCode,
@@ -20,6 +19,7 @@ import {
   referralCodeFromUrl,
   referralLink,
   referralShareText,
+  rewardedFriendsText,
 } from '@/lib/referral';
 
 const CODE = 'ABCD2345';
@@ -155,21 +155,21 @@ describe('claim outcomes', () => {
   });
 });
 
-describe('friendsJoinedText', () => {
-  const template = '{n} of {cap} friends joined · {credits} credits earned';
+describe('rewardedFriendsText', () => {
+  const template = '{n} of {cap} friends rewarded';
 
-  it('says how many friends joined and what they earned', () => {
-    expect(friendsJoinedText({ rewarded: 0, friendsCap: 10, creditsEarned: 0 }, template)).toBe(
-      '0 of 10 friends joined · 0 credits earned',
+  it('says how many friends have been rewarded', () => {
+    expect(rewardedFriendsText({ rewarded: 0, friendsCap: 10 }, template)).toBe(
+      '0 of 10 friends rewarded',
     );
-    expect(friendsJoinedText({ rewarded: 3, friendsCap: 10, creditsEarned: 150 }, template)).toBe(
-      '3 of 10 friends joined · 150 credits earned',
+    expect(rewardedFriendsText({ rewarded: 3, friendsCap: 10 }, template)).toBe(
+      '3 of 10 friends rewarded',
     );
   });
 
   it('never counts friends past the cap', () => {
-    expect(friendsJoinedText({ rewarded: 14, friendsCap: 10, creditsEarned: 500 }, template)).toBe(
-      '10 of 10 friends joined · 500 credits earned',
+    expect(rewardedFriendsText({ rewarded: 14, friendsCap: 10 }, template)).toBe(
+      '10 of 10 friends rewarded',
     );
   });
 });

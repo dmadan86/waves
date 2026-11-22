@@ -288,15 +288,14 @@ export function isDefinitiveRefusal(reason: ReferralRefusal | 'UNKNOWN'): boolea
 
 // ── what the card says ──────────────────────────────────────────────────────
 
-/** "N of 10 friends joined · X credits earned"; friends past the cap are not counted. */
-export function friendsJoinedText(
-  state: Pick<MyReferral, 'rewarded' | 'friendsCap' | 'creditsEarned'>,
+/** "N of 10 friends rewarded"; friends past the cap are not counted. */
+export function rewardedFriendsText(
+  state: Pick<MyReferral, 'rewarded' | 'friendsCap'>,
   template: string,
 ): string {
   return template
     .replace('{n}', String(Math.min(state.rewarded, state.friendsCap)))
-    .replace('{cap}', String(state.friendsCap))
-    .replace('{credits}', String(state.creditsEarned));
+    .replace('{cap}', String(state.friendsCap));
 }
 
 // ── the code waiting for an account ─────────────────────────────────────────
