@@ -2350,8 +2350,12 @@ function AddExpenseScreen() {
                     <ScrollView
                       horizontal
                       showsHorizontalScrollIndicator={false}
+                      // Edge to edge inside the card's side padding, so a tile is cut
+                      // by the card, not by the padding.
+                      style={{ marginHorizontal: -theme.spacing.md }}
                       contentContainerStyle={{
                         gap: theme.spacing.xs,
+                        paddingHorizontal: theme.spacing.md,
                         paddingRight: theme.spacing.xl,
                       }}
                     >
