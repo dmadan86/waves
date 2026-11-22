@@ -67,21 +67,8 @@ export function SpacesGrid({
   const { t } = useStrings();
   const h = t.homeToday;
   const plusRef = useRef<View>(null);
-  const [nowMs] = useState(() => Date.now());
   const { shown } = capSpaces(groups);
-  const captures = useCaptures();
-  const justAddedId = useImportedGroupId();
-  const voiceNewCount = useVoiceNewCount();
-  const { defaultId: voiceDefaultId } = useVoiceDefaultSpace();
-  const draftsByGroup = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const capture of captures.data) {
-      if (capture.target_group_id) {
-        counts.set(capture.target_group_id, (counts.get(capture.target_group_id) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [captures.data]);
+  const { draftsByGroup, voiceNewCount, env } = useGroupRowEnv();
 
   const month = ledger.today.slice(0, 7);
   const overall = ledger.budgets.find((b) => b.category === null && b.currency === ledger.currency);
@@ -178,95 +165,157 @@ export function SpacesGrid({
               divider={false}
               onPress={() => switchTab('/(tabs)/me')}
             />
-            {shown.map((group, index) => {
-              const figure = pool.get(group.id);
-              const balance = summary.balanceFor(group.id);
-              let amountText: string;
-              let directionLabel: string;
-              if (figure) {
-                if (figure.left !== null) {
-                  amountText = plainAmount(
-                    figure.left < 0n ? -figure.left : figure.left,
-                    figure.currency,
-                    locale,
-                  );
-                  directionLabel = h.leftPool;
-                } else if (figure.nextBill) {
-                  amountText = plainAmount(figure.nextBill.amount, figure.currency, locale);
-                  directionLabel = fill(h.billDue, {
-                    date: new Date(`${figure.nextBill.date}T12:00:00`).toLocaleDateString(locale, {
-                      day: 'numeric',
-                      month: 'short',
-                    }),
-                  });
-                } else {
-                  amountText = plainAmount(
-                    figure.spent < 0n ? -figure.spent : figure.spent,
-                    figure.currency,
-                    locale,
-                  );
-                  directionLabel = h.spentPool;
-                }
-              } else {
-                amountText = plainAmount(
-                  balance < 0n ? -balance : balance,
-                  group.default_currency ?? 'INR',
-                  locale,
-                );
-                directionLabel =
-                  balance === 0n
-                    ? t.group.rowSettled
-                    : balance > 0n
-                      ? t.group.rowOwed
-                      : t.group.rowYouOwe;
-              }
-              const isNew = nowMs - Date.parse(group.created_at) < 2 * 24 * 60 * 60 * 1000;
-              const tag = group.isDemo
-                ? t.demo.badge
-                : group.id === voiceDefaultId
-                  ? t.spaces.defaultTag
-                  : isNew
-                    ? t.tagNew
-                    : null;
-              const drafts = draftsByGroup.get(group.id) ?? 0;
-              return (
-                <SpaceRow
-                  key={group.id}
-                  title={groupLabel(group, summary.membersFor(group.id), viewerId)}
-                  memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
-                  draftLabel={drafts ? plural(locale, drafts, t.draftCount) : null}
-                  coverEmoji={group.cover_emoji}
-                  coverColor={group.cover_color}
-                  groupType={group.type}
-                  eventTemplate={group.event_template}
-                  customTag={group.custom_tag}
-                  balance={balance}
-                  currency={group.default_currency ?? 'INR'}
-                  locale={locale}
-                  statusLabel={
-                    balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
-                  }
-                  directionLabel={directionLabel}
-                  amountText={amountText}
-                  tone={
-                    figure ? 'ink' : balance > 0n ? 'positive' : balance < 0n ? 'negative' : 'muted'
-                  }
-                  pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
-                  tag={tag}
-                  tagTone={group.isDemo ? 'warning' : 'brand'}
-                  isDemo={group.isDemo === true}
-                  divider={index >= 0}
-                  hidden={hidden}
-                  pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
-                  enter={group.id === justAddedId}
-                  unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
-                  onPress={() => router.push(`/group/${group.id}`)}
-                />
-              );
-            })}
+            {shown.map((group, index) => (
+              <GroupSpaceRow
+                key={group.id}
+                group={group}
+                summary={summary}
+                viewerId={viewerId}
+                figure={pool.get(group.id)}
+                drafts={draftsByGroup.get(group.id) ?? 0}
+                locale={locale}
+                hidden={hidden}
+                divider={index >= 0}
+                unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
+                env={env}
+              />
+            ))}
           </>
         )}
       </View>
     </View>
   );
+}
+
+/** The facts about "now" a group row shares across the list. */
+export type GroupRowEnv = {
+  nowMs: number;
+  voiceDefaultId: string | null;
+  justAddedId: string | null;
+};
+
+/** Drafts waiting per group, and the rest of what a group row reads from outside. */
+export function useGroupRowEnv(): {
+  draftsByGroup: ReadonlyMap<string, number>;
+  voiceNewCount: (groupId: string) => number;
+  env: GroupRowEnv;
+} {
+  const [nowMs] = useState(() => Date.now());
+  const captures = useCaptures();
+  const justAddedId = useImportedGroupId();
+  const voiceNewCount = useVoiceNewCount();
+  const { defaultId: voiceDefaultId } = useVoiceDefaultSpace();
+  const draftsByGroup = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const capture of captures.data) {
+      if (capture.target_group_id) {
+        counts.set(capture.target_group_id, (counts.get(capture.target_group_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [captures.data]);
+  return { draftsByGroup, voiceNewCount, env: { nowMs, voiceDefaultId, justAddedId } };
+}
+
+/** One group as Home's Groups list draws it — shared with the All groups screen. */
+export function GroupSpaceRow({
+  group,
+  summary,
+  viewerId,
+  figure,
+  drafts,
+  locale,
+  hidden,
+  divider,
+  unread,
+  env: { nowMs, voiceDefaultId, justAddedId },
+}: {
+  group: GroupRow;
+  summary: ReturnType<typeof useHomeSummary>;
+  viewerId: string | null;
+  figure: PoolFigure | undefined;
+  drafts: number;
+  locale: string;
+  hidden: boolean;
+  divider: boolean;
+  unread: boolean;
+  env: GroupRowEnv;
+}) {
+  const { t } = useStrings();
+  const h = t.homeToday;
+  {
+    const balance = summary.balanceFor(group.id);
+    let amountText: string;
+    let directionLabel: string;
+    if (figure) {
+      if (figure.left !== null) {
+        amountText = plainAmount(
+          figure.left < 0n ? -figure.left : figure.left,
+          figure.currency,
+          locale,
+        );
+        directionLabel = h.leftPool;
+      } else if (figure.nextBill) {
+        amountText = plainAmount(figure.nextBill.amount, figure.currency, locale);
+        directionLabel = fill(h.billDue, {
+          date: new Date(`${figure.nextBill.date}T12:00:00`).toLocaleDateString(locale, {
+            day: 'numeric',
+            month: 'short',
+          }),
+        });
+      } else {
+        amountText = plainAmount(
+          figure.spent < 0n ? -figure.spent : figure.spent,
+          figure.currency,
+          locale,
+        );
+        directionLabel = h.spentPool;
+      }
+    } else {
+      amountText = plainAmount(
+        balance < 0n ? -balance : balance,
+        group.default_currency ?? 'INR',
+        locale,
+      );
+      directionLabel =
+        balance === 0n ? t.group.rowSettled : balance > 0n ? t.group.rowOwed : t.group.rowYouOwe;
+    }
+    const isNew = nowMs - Date.parse(group.created_at) < 2 * 24 * 60 * 60 * 1000;
+    const tag = group.isDemo
+      ? t.demo.badge
+      : group.id === voiceDefaultId
+        ? t.spaces.defaultTag
+        : isNew
+          ? t.tagNew
+          : null;
+    return (
+      <SpaceRow
+        title={groupLabel(group, summary.membersFor(group.id), viewerId)}
+        memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
+        draftLabel={drafts ? plural(locale, drafts, t.draftCount) : null}
+        coverEmoji={group.cover_emoji}
+        coverColor={group.cover_color}
+        groupType={group.type}
+        eventTemplate={group.event_template}
+        customTag={group.custom_tag}
+        balance={balance}
+        currency={group.default_currency ?? 'INR'}
+        locale={locale}
+        statusLabel={balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe}
+        directionLabel={directionLabel}
+        amountText={amountText}
+        tone={figure ? 'ink' : balance > 0n ? 'positive' : balance < 0n ? 'negative' : 'muted'}
+        pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
+        tag={tag}
+        tagTone={group.isDemo ? 'warning' : 'brand'}
+        isDemo={group.isDemo === true}
+        divider={divider}
+        hidden={hidden}
+        pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
+        enter={group.id === justAddedId}
+        unread={unread}
+        onPress={() => router.push(`/group/${group.id}`)}
+      />
+    );
+  }
 }
