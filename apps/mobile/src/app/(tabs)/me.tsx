@@ -22,7 +22,7 @@
  * it was last open (idempotent — see `postDueRecurring`).
  */
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -86,6 +86,7 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { router, switchTab } from '@/lib/navigation';
+import { useGroups } from '@/data/hooks';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings } from '@/i18n';
 
@@ -229,6 +230,11 @@ function MeLedger() {
     3,
   );
   const [switchOpen, setSwitchOpen] = useState(false);
+  const groups = useGroups();
+  const householdGroups = useMemo(
+    () => groups.data.filter((group) => group.type === 'couple' || group.type === 'home'),
+    [groups.data],
+  );
   const [moreOpen, setMoreOpen] = useState(false);
   const firstName = (profile?.display_name ?? t.account.you).trim().split(/\s+/)[0];
 
@@ -646,6 +652,12 @@ function MeLedger() {
         onClose={() => setSwitchOpen(false)}
         items={[
           { icon: 'checkmark', label: h.space, onPress: () => undefined },
+          // Couple and family groups are homes of their own: one tap away.
+          ...householdGroups.map((group): OverflowMenuItem => ({
+            icon: group.type === 'couple' ? 'heart-outline' : 'home-outline',
+            label: group.name ?? '',
+            onPress: () => router.push(`/group/${group.id}`),
+          })),
           { icon: 'people-outline', label: h.sharedSpace, onPress: () => switchTab('/') },
         ]}
       />
