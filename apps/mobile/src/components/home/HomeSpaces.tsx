@@ -123,7 +123,7 @@ export function SpacesGrid({
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <CardTitle title={h.spaces} action={t.allGroups} onAction={() => router.navigate('/groups')}>
+      <CardTitle title={h.spaces} action={h.seeAll} onAction={() => router.navigate('/groups')}>
         <TourTarget id="addGroup">
           <Pressable
             ref={plusRef}
