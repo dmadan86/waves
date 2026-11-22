@@ -40,6 +40,7 @@ export function ScenicScreen({
   bodyStyle,
   list,
   compact = false,
+  keyboardShouldPersistTaps = 'handled',
 }: {
   background: (geometry: {
     height: number;
@@ -62,9 +63,11 @@ export function ScenicScreen({
   list?: (parts: {
     onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
     top: ReactNode;
+    keyboardShouldPersistTaps: 'always' | 'never' | 'handled';
   }) => ReactNode;
   /** No card is drawn (a tab that owns its own scrolling): the header stays solid. */
   compact?: boolean;
+  keyboardShouldPersistTaps?: 'always' | 'never' | 'handled';
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -121,6 +124,7 @@ export function ScenicScreen({
               )}
             </>
           ),
+          keyboardShouldPersistTaps,
         })
       ) : (
         <Animated.ScrollView
@@ -132,6 +136,7 @@ export function ScenicScreen({
           })}
           scrollEventThrottle={16}
           refreshControl={refreshControl}
+          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
         >
           {/* Room for the fixed header row; the card sits right under it. */}
           <View style={{ height: headerHeight }} />

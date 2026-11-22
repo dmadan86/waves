@@ -7,7 +7,7 @@
  * full expense list, balances and settle-up sit on the ledger screen
  * (`?view=ledger`), one tap away in the ⋮ menu.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 

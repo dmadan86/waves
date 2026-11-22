@@ -4,6 +4,7 @@ import { placeSlots } from '@/lib/adPlanPure';
 import { useAdPlan } from '@/lib/useAdPlan';
 import { useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { FlashList } from '@shopify/flash-list';
 import { Pressable, RefreshControl, TextInput, View } from 'react-native';
 
 import {
@@ -14,6 +15,7 @@ import {
   Row,
   Screen,
   Text,
+  useTabBarClearance,
   useTheme,
 } from '@waves/ui';
 
@@ -62,6 +64,7 @@ import { router } from '@/lib/navigation';
  */
 function AllGroupsScreen() {
   const theme = useTheme();
+  const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { profile } = useAuth();
   const summary = useHomeSummary(profile?.id ?? null);
@@ -191,7 +194,12 @@ function AllGroupsScreen() {
     />
   );
 
-  let shownGroups = 0;
+  const firstGroupIndex = data.findIndex((row) => row.kind === 'group');
+  const lastGroupIndex = data.findLastIndex((row) => row.kind === 'group');
+  const listExtraData = useMemo(
+    () => ({ theme, locale, unreadGroups }),
+    [theme, locale, unreadGroups],
+  );
   return (
     <Screen edges={[]}>
       <ScenicScreen
@@ -266,45 +274,53 @@ function AllGroupsScreen() {
             />
           )
         }
-      >
-        <SearchField
-          label={t.searchGroups}
-          clearLabel={t.pickers.clearSearch}
-          query={query}
-          onQuery={setQuery}
-          searchRef={searchRef}
-        />
-        {/* Nothing to sort on a brand-new account, so the pill waits for the first group. */}
-        {list.length > 0 ? (
-          <FilterBar
-            sortLabel={sortLabelFor(sort, t)}
-            sortDesc={sortDesc}
-            onOpenSort={(anchor) => {
-              setSortAnchor(anchor);
-              setSortOpen(true);
+        list={({ onScroll, top, keyboardShouldPersistTaps }) => (
+          <FlashList
+            data={loading || rows.length === 0 ? [] : data}
+            keyExtractor={(row) =>
+              row.kind === 'header' ? 'settled-header' : row.kind === 'ad' ? row.key : row.item.id
+            }
+            getItemType={(row) => row.kind}
+            extraData={listExtraData}
+            drawDistance={1500}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            contentContainerStyle={{
+              paddingHorizontal: theme.spacing.md,
+              paddingBottom: clearance,
             }}
-          />
-        ) : null}
-
-        {loading || rows.length === 0 ? (
-          <View style={{ paddingTop: theme.spacing.lg }}>{empty}</View>
-        ) : (
-          // One bordered card, hairline dividers: the same list Home draws.
-          <View
-            style={{
-              borderRadius: theme.radius.lg,
-              borderWidth: 1,
-              borderColor: theme.color.border,
-              backgroundColor: theme.color.surface,
-              overflow: 'hidden',
-            }}
-          >
-            {data.map((row) => {
+            ListHeaderComponent={
+              <View style={{ gap: theme.spacing.xs }}>
+                {top}
+                <SearchField
+                  label={t.searchGroups}
+                  clearLabel={t.pickers.clearSearch}
+                  query={query}
+                  onQuery={setQuery}
+                  searchRef={searchRef}
+                />
+                {list.length > 0 ? (
+                  <FilterBar
+                    sortLabel={sortLabelFor(sort, t)}
+                    sortDesc={sortDesc}
+                    onOpenSort={(anchor) => {
+                      setSortAnchor(anchor);
+                      setSortOpen(true);
+                    }}
+                  />
+                ) : null}
+                {loading || rows.length === 0 ? (
+                  <View style={{ paddingTop: theme.spacing.lg }}>{empty}</View>
+                ) : null}
+              </View>
+            }
+            renderItem={({ item: row, index }) => {
               if (row.kind === 'header') return <SectionLabel key="settled" label={row.label} />;
               if (row.kind === 'ad')
                 return (
                   <AdSlot
-                    key={row.key}
                     handle={adHandle}
                     format="native"
                     slot={row.slot}
@@ -313,24 +329,37 @@ function AllGroupsScreen() {
                 );
               const { group } = row.item;
               return (
-                <GroupSpaceRow
-                  key={group.id}
-                  group={group}
-                  summary={summary}
-                  viewerId={profile?.id ?? null}
-                  figure={pool.get(group.id)}
-                  drafts={draftsByGroup.get(group.id) ?? 0}
-                  locale={locale}
-                  hidden={amountsHidden}
-                  divider={shownGroups++ > 0}
-                  unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
-                  env={env}
-                />
+                <View
+                  style={{
+                    borderLeftWidth: 1,
+                    borderRightWidth: 1,
+                    borderColor: theme.color.border,
+                    backgroundColor: theme.color.surface,
+                    borderTopLeftRadius: index === firstGroupIndex ? theme.radius.lg : 0,
+                    borderTopRightRadius: index === firstGroupIndex ? theme.radius.lg : 0,
+                    borderBottomLeftRadius: index === lastGroupIndex ? theme.radius.lg : 0,
+                    borderBottomRightRadius: index === lastGroupIndex ? theme.radius.lg : 0,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <GroupSpaceRow
+                    group={group}
+                    summary={summary}
+                    viewerId={profile?.id ?? null}
+                    figure={pool.get(group.id)}
+                    drafts={draftsByGroup.get(group.id) ?? 0}
+                    locale={locale}
+                    hidden={amountsHidden}
+                    divider={index !== firstGroupIndex}
+                    unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
+                    env={env}
+                  />
+                </View>
               );
-            })}
-          </View>
+            }}
+          />
         )}
-      </ScenicScreen>
+      />
 
       <SortMenu
         open={sortOpen}

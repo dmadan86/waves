@@ -38,7 +38,7 @@ import { GroupPhoto } from '@/components/GroupPhoto';
 import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
 import { HeroIconButton } from '@/components/home/HeroControls';
 import { QuickActionsRow } from '@/components/home/QuickActionsRow';
-import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
+import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { useBlockedUsers } from '@/data/blocked';
 import { SyncStatusIcon } from '@/components/SyncBanner';
@@ -346,13 +346,17 @@ export function GroupHeroCard({
               window: plural(locale, daysToConfirm(soleClaim.initiated_at), t.group.daysToConfirm),
             })}
           </Text>
-          <MoneyText
-            amount={BigInt(soleClaim.amount)}
-            currency={soleClaim.currency}
-            locale={locale}
-            variant="title"
-            tone="default"
-          />
+          {hidden || !ready ? (
+            <Text variant="title">{BALANCE_MASK}</Text>
+          ) : (
+            <MoneyText
+              amount={BigInt(soleClaim.amount)}
+              currency={soleClaim.currency}
+              locale={locale}
+              variant="title"
+              tone="default"
+            />
+          )}
           <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
             <Button
               label={t.group.confirmReceived}
@@ -395,13 +399,17 @@ export function GroupHeroCard({
           <Text variant="caption" tone="muted">
             {plural(locale, pendingForMe.length, t.group.peopleSaidPaid)}
           </Text>
-          <MoneyText
-            amount={pendingForMe.reduce((sum, settlement) => sum + BigInt(settlement.amount), 0n)}
-            currency={currency}
-            locale={locale}
-            variant="title"
-            tone="default"
-          />
+          {hidden || !ready ? (
+            <Text variant="title">{BALANCE_MASK}</Text>
+          ) : (
+            <MoneyText
+              amount={pendingForMe.reduce((sum, settlement) => sum + BigInt(settlement.amount), 0n)}
+              currency={currency}
+              locale={locale}
+              variant="title"
+              tone="default"
+            />
+          )}
           <Button
             label={fill(t.group.reviewClaims, { count: pendingForMe.length })}
             size="sm"
