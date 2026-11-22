@@ -158,9 +158,14 @@ export function activeProductId(info: CustomerInfoLike | null | undefined): stri
  */
 export function revenueCatApiKey(
   os: string,
-  env: { ios?: string | undefined; android?: string | undefined },
+  env: { ios?: string | undefined; android?: string | undefined; preview?: string | undefined },
   dev: boolean,
 ): string | null {
+  // A sideloaded preview build is not the store's package, so the store returns no
+  // products. Preview builds alone set this Test Store key (test_…) so the paywall
+  // can be exercised; store builds never set it.
+  const preview = env.preview?.trim();
+  if (preview?.startsWith('test_')) return preview;
   const key = os === 'ios' ? env.ios : os === 'android' ? env.android : undefined;
   const trimmed = key?.trim();
   if (!trimmed) return null;

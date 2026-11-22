@@ -144,6 +144,16 @@ describe('revenueCatApiKey', () => {
     expect(revenueCatApiKey('ios', env, true)).toBe('test_abc');
     expect(revenueCatApiKey('android', env, false)).toBeNull();
   });
+
+  it('lets a preview build use its own Test Store key, and only a test_ one', () => {
+    const env = { ios: 'appl_abc', android: 'goog_xyz', preview: ' test_pre ' };
+    expect(revenueCatApiKey('android', env, false)).toBe('test_pre');
+    expect(revenueCatApiKey('ios', env, false)).toBe('test_pre');
+    // A store key put in the preview slot by mistake is ignored.
+    expect(revenueCatApiKey('android', { android: 'goog_xyz', preview: 'goog_other' }, false)).toBe(
+      'goog_xyz',
+    );
+  });
 });
 
 describe('yearlySavingsPercent', () => {
