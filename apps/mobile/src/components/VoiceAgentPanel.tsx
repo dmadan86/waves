@@ -16,13 +16,7 @@ import { randomUUID } from 'expo-crypto';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { View } from 'react-native';
 
-import {
-  materialiseGroupGoals,
-  materialiseGroups,
-  materialiseMembers,
-  MutationKind,
-  type VoiceAgentAction,
-} from '@waves/core';
+import { materialiseGroups, materialiseMembers, type VoiceAgentAction } from '@waves/core';
 import { sanitiseMinorInput } from '@waves/core';
 import { Card, Divider, IconButton, iconSize, Text, useTheme } from '@waves/ui';
 
@@ -144,9 +138,6 @@ export function agentText(t: UiStrings): VoiceAgentText {
     createGroup: v.agentCreateGroup,
     withPeople: v.agentWithPeople,
     addMember: v.agentAddMember,
-    putAside: v.agentPutAside,
-    takeOut: v.agentTakeOut,
-    unknownGoal: v.agentUnknownGoal,
     unknownGroup: v.agentUnknownGroup,
     unknownPerson: v.agentUnknownPerson,
     noRateYet: t.fx.noRateYet,
@@ -158,18 +149,6 @@ export function useAgentLocalData(viewerId: string | null): AgentLocalData {
   const { mirror, queue } = useSync();
   return useMemo(() => {
     const groups: AgentLocalGroup[] = [];
-    const goalsFor = (groupId: string) => {
-      const rows = materialiseGroupGoals(mirror, queue, { groupId });
-      return rows.goals
-        .filter((goal) => goal.status === 'active')
-        .map((goal) => ({
-          id: goal.id,
-          name: goal.name,
-          totalMinor: rows.contributions
-            .filter((line) => line.goal_id === goal.id)
-            .reduce((sum, line) => sum + BigInt(String(line.amount_minor)), 0n),
-        }));
-    };
     for (const group of materialiseGroups(mirror, queue) as unknown as GroupRow[]) {
       const members = (
         materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]
@@ -182,7 +161,6 @@ export function useAgentLocalData(viewerId: string | null): AgentLocalData {
         photoPath: group.photo_path,
         coverEmoji: group.cover_emoji,
         units: group.units,
-        goals: goalsFor(group.id),
         members: members.map((member) => ({
           id: member.id,
           name: member.profile?.display_name ?? member.ghost_name ?? '',
@@ -654,8 +632,6 @@ function AgentRow({
   const [expenseId] = useState(() => randomUUID());
   const [newGroupId] = useState(() => randomUUID());
   const [newMemberId] = useState(() => randomUUID());
-  const [goalLineId] = useState(() => randomUUID());
-  const { mutate } = useSync();
 
   const writeExpense = useWriteExpense(actionGroupId);
   const recordSettlement = useRecordSettlement(actionGroupId);
@@ -721,18 +697,7 @@ function AgentRow({
             if (name.trim()) await addGhost.mutateAsync(name.trim());
           }
           break;
-        case 'add_goal_contribution': {
-          const minor = BigInt(action.amountMinor);
-          await mutate(MutationKind.GroupGoalContributionAdd, action.groupId, {
-            contributionId: goalLineId,
-            goalId: action.goalId,
-            memberId: action.memberId,
-            amountMinor: (action.direction === 'out' ? -minor : minor).toString(),
-            date: action.date ?? today,
-            note: null,
-          });
-          break;
-        }
+
         case 'add_member': {
           const exists = group?.members.some(
             (member) => member.name.trim().toLowerCase() === action.name.trim().toLowerCase(),

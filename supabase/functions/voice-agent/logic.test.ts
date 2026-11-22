@@ -345,66 +345,6 @@ describe('parseToolCalls', () => {
   });
 });
 
-describe('add_goal_contribution', () => {
-  const withGoal = () =>
-    buildContext({
-      groups: [{ id: 'g-goa', name: 'Goa trip', type: 'trip', default_currency: 'INR' }],
-      members: [
-        {
-          id: 'm-me',
-          group_id: 'g-goa',
-          profile_id: ME,
-          ghost_name: null,
-          profile: { display_name: 'Madan' },
-        },
-        { id: 'm-anu', group_id: 'g-goa', profile_id: null, ghost_name: 'Anu', profile: null },
-      ],
-      balances: [],
-      goals: [{ id: 'goal-house', group_id: 'g-goa', name: 'House' }],
-      meProfileId: ME,
-      currentGroupId: 'g-goa',
-      today: '2026-10-07',
-    });
-  const input = { groupId: 'g-goa', goalId: 'goal-house', amountMinor: '500000' };
-
-  it('lists the goals in the context the model reads', () => {
-    expect(contextText(withGoal())).toContain('goals (id "name"): goal-house "House"');
-  });
-
-  it('puts aside for the caller by default, and takes out when told', () => {
-    expect(parseToolCalls(call('add_goal_contribution', input), withGoal())).toMatchObject({
-      ok: true,
-      actions: [
-        {
-          type: 'add_goal_contribution',
-          goalId: 'goal-house',
-          memberId: 'm-me',
-          amountMinor: '500000',
-          direction: 'in',
-        },
-      ],
-    });
-    expect(
-      parseToolCalls(
-        call('add_goal_contribution', { ...input, direction: 'out', memberId: 'm-anu' }),
-        withGoal(),
-      ),
-    ).toMatchObject({ ok: true, actions: [{ memberId: 'm-anu', direction: 'out' }] });
-  });
-
-  it('refuses an invented goal, a goal of another group, a bad amount and a stranger', () => {
-    for (const bad of [
-      { ...input, goalId: 'goal-nope' },
-      { ...input, groupId: 'zzz' },
-      { ...input, amountMinor: '0' },
-      { ...input, memberId: 'm-stranger' },
-    ]) {
-      expect(parseToolCalls(call('add_goal_contribution', bad), withGoal()).ok).toBe(false);
-    }
-    expect(parseToolCalls(call('add_goal_contribution', input), context()).ok).toBe(false);
-  });
-});
-
 describe('userMessage', () => {
   it('passes the transcript through', () => {
     expect(userMessage({ cloud: ' Dinner 500 ' })).toBe('Dinner 500');

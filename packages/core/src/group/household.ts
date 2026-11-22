@@ -63,23 +63,87 @@ export function billsMonthlyTotal(
 
 export type BillPresetId =
   | 'rent'
-  | 'emi'
+  | 'home_loan'
   | 'electricity'
   | 'water'
   | 'gas'
-  | 'wifi'
+  | 'internet'
   | 'mobile'
-  | 'ott'
-  | 'maintenance'
-  | 'maid'
-  | 'cook'
-  | 'driver'
+  | 'streaming'
+  | 'building_fees'
+  | 'household_help'
+  | 'childcare_school'
   | 'groceries'
-  | 'petrol'
-  | 'school'
+  | 'fuel'
   | 'insurance'
   | 'milk'
-  | 'sip';
+  | 'investment_contribution';
+
+/** Convert historical saved preset IDs to the neutral IDs used by current UI. */
+export function normaliseBillPresetId(value: string): BillPresetId | null {
+  const aliases: Readonly<Record<string, BillPresetId>> = {
+    emi: 'home_loan',
+    maid: 'household_help',
+    cook: 'household_help',
+    driver: 'household_help',
+    sip: 'investment_contribution',
+    ott: 'streaming',
+    petrol: 'fuel',
+    wifi: 'internet',
+    maintenance: 'building_fees',
+    school: 'childcare_school',
+  };
+  if (value in aliases) return aliases[value];
+  return BILL_PRESETS.some((preset) => preset.id === value) ? (value as BillPresetId) : null;
+}
+
+/** Region-specific terms are presentation hints; the returned preset remains neutral. */
+export type BillPresetLabelKey =
+  | BillPresetId
+  | 'emi'
+  | 'maid_cook_driver'
+  | 'ott'
+  | 'petrol'
+  | 'society_maintenance'
+  | 'hoa'
+  | 'fuel_gas'
+  | 'council_tax'
+  | 'service_charge'
+  | 'strata'
+  | 'rates'
+  | 'dewa'
+  | 'chiller';
+
+export function billPresetLabelKey(
+  preset: BillPresetId,
+  countryCode: string | null | undefined,
+): BillPresetLabelKey {
+  const country = countryCode?.toUpperCase();
+  if (country === 'IN') {
+    if (preset === 'home_loan') return 'emi';
+    if (preset === 'household_help') return 'maid_cook_driver';
+    if (preset === 'streaming') return 'ott';
+    if (preset === 'fuel') return 'petrol';
+    if (preset === 'building_fees') return 'society_maintenance';
+  }
+  if (country === 'US') {
+    if (preset === 'building_fees') return 'hoa';
+    if (preset === 'fuel') return 'fuel_gas';
+  }
+  if (country === 'GB' || country === 'UK') {
+    if (preset === 'building_fees') return 'service_charge';
+    if (preset === 'childcare_school') return 'council_tax';
+  }
+  if (country === 'AU') {
+    if (preset === 'building_fees') return 'strata';
+    if (preset === 'childcare_school') return 'rates';
+  }
+  if (country === 'AE') {
+    if (preset === 'electricity') return 'dewa';
+    if (preset === 'water') return 'chiller';
+  }
+  return preset;
+}
 
 export interface BillPreset {
   readonly id: BillPresetId;
@@ -96,7 +160,7 @@ export interface BillPreset {
 export const BILL_PRESETS: readonly BillPreset[] = [
   { id: 'rent', icon: 'home-outline', category: 'home', day: 1, every: 'month', estimate: false },
   {
-    id: 'emi',
+    id: 'home_loan',
     icon: 'business-outline',
     category: 'home',
     day: 5,
@@ -121,7 +185,7 @@ export const BILL_PRESETS: readonly BillPreset[] = [
   },
   { id: 'gas', icon: 'flame-outline', category: 'home', day: 15, every: 'month', estimate: false },
   {
-    id: 'wifi',
+    id: 'internet',
     icon: 'wifi-outline',
     category: 'entertainment',
     day: 5,
@@ -137,7 +201,7 @@ export const BILL_PRESETS: readonly BillPreset[] = [
     estimate: false,
   },
   {
-    id: 'ott',
+    id: 'streaming',
     icon: 'tv-outline',
     category: 'entertainment',
     day: 12,
@@ -145,7 +209,7 @@ export const BILL_PRESETS: readonly BillPreset[] = [
     estimate: false,
   },
   {
-    id: 'maintenance',
+    id: 'building_fees',
     icon: 'construct-outline',
     category: 'home',
     day: 5,
@@ -153,22 +217,13 @@ export const BILL_PRESETS: readonly BillPreset[] = [
     estimate: false,
   },
   {
-    id: 'maid',
+    id: 'household_help',
     icon: 'sparkles-outline',
     category: 'home',
     day: 1,
     every: 'month',
     estimate: false,
   },
-  {
-    id: 'cook',
-    icon: 'restaurant-outline',
-    category: 'home',
-    day: 1,
-    every: 'month',
-    estimate: false,
-  },
-  { id: 'driver', icon: 'car-outline', category: 'home', day: 1, every: 'month', estimate: false },
   {
     id: 'groceries',
     icon: 'basket-outline',
@@ -178,7 +233,7 @@ export const BILL_PRESETS: readonly BillPreset[] = [
     estimate: true,
   },
   {
-    id: 'petrol',
+    id: 'fuel',
     icon: 'speedometer-outline',
     category: 'travel',
     day: 1,
@@ -186,7 +241,7 @@ export const BILL_PRESETS: readonly BillPreset[] = [
     estimate: true,
   },
   {
-    id: 'school',
+    id: 'childcare_school',
     icon: 'school-outline',
     category: 'other',
     day: 5,
@@ -210,7 +265,7 @@ export const BILL_PRESETS: readonly BillPreset[] = [
     estimate: false,
   },
   {
-    id: 'sip',
+    id: 'investment_contribution',
     icon: 'trending-up-outline',
     category: 'other',
     day: 5,
@@ -344,7 +399,7 @@ export function perDayLeft(left: bigint, today: string): bigint {
 
 export interface HouseholdUpcoming {
   readonly key: string;
-  readonly kind: 'bill' | 'goal';
+  readonly kind: 'bill';
   readonly title: string;
   readonly date: string;
   /** Days from today; negative once overdue. */
@@ -352,7 +407,6 @@ export interface HouseholdUpcoming {
   readonly amount: bigint;
   readonly currency: string;
   readonly ruleId?: string;
-  readonly goalId?: string;
   /** Who pays a bill (member id), when known. */
   readonly payerId?: string | null;
 }
@@ -398,44 +452,6 @@ export function billUpcoming(
         payerId,
       };
     });
-}
-
-/**
- * Goals with a monthly plan: the plan's total is due on the 1st. Shown only
- * when the 1st (this month's if today is the 1st, else next month's) is inside
- * the horizon. Finished and archived goals are not asked for more.
- */
-export function goalUpcoming(
-  goals: readonly {
-    id: string;
-    name: string;
-    currency: string;
-    status: string;
-    monthlyPlan: Readonly<Record<string, bigint>>;
-  }[],
-  today: string,
-  horizonDays: number,
-): HouseholdUpcoming[] {
-  const first = nextDayOfMonth(today, 1);
-  const inDays = daysFromTo(today, first);
-  if (inDays > horizonDays) return [];
-  const out: HouseholdUpcoming[] = [];
-  for (const g of goals) {
-    if (g.status !== 'active') continue;
-    const amount = Object.values(g.monthlyPlan).reduce((a, b) => a + b, 0n);
-    if (amount <= 0n) continue;
-    out.push({
-      key: `goal:${g.id}:${first}`,
-      kind: 'goal',
-      title: g.name,
-      date: first,
-      inDays,
-      amount,
-      currency: g.currency,
-      goalId: g.id,
-    });
-  }
-  return out;
 }
 
 /** Merge by date (overdue first), then title; `limit` 0 keeps everything. */

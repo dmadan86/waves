@@ -2,8 +2,8 @@
  * The household home: what a couple's or a family's group opens on. It wears
  * the Personal home's clothes (`(tabs)/me.tsx`): the scenic header, the month
  * card, quick actions, budget, upcoming, recent spends, money tools and the
- * privacy pill, fed by the group's own expenses, income plans, bills and goals.
- * Bills, Income, Goals and Upcoming open in place from the money tools; the
+ * privacy pill, fed by the group's own expenses, income plans and bills.
+ * Bills, Income and Upcoming open in place from the money tools; the
  * full expense list, balances and settle-up sit on the ledger screen
  * (`?view=ledger`), one tap away in the ⋮ menu.
  */
@@ -13,14 +13,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 import {
   billUpcoming,
-  goalUpcoming,
   householdSummary,
   incomeTotal,
   mergeHouseholdUpcoming,
   monthlySpend,
+  compactMoney,
   formatParts,
   money,
   type CurrencyCode,
+  type HouseholdUpcoming,
 } from '@waves/core';
 import { directionalIcon, Row, Screen, Text, useTheme } from '@waves/ui';
 
@@ -28,7 +29,6 @@ import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { ChangePill, FlowTile, SpendHistoryChart } from '@/components/home/MonthParts';
 import {
   BillsTab,
-  GoalsTab,
   IncomeTab,
   OverviewTab,
   UpcomingTab,
@@ -40,13 +40,11 @@ import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
 import { QuickActionsRow } from '@/components/home/QuickActionsRow';
 import { useHomeHero } from '@/lib/useHomeHero';
-import { useAddGoal } from '@/components/GroupGoalsCard';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { MoneyToolsRow } from '@/components/personal/PersonalHomeParts';
 import { useBlockedUsers } from '@/data/blocked';
-import { useGroupGoals } from '@/data/groupGoals';
 import { useGroupIncome } from '@/data/groupIncome';
-import { useGroupRecurring } from '@/data/groupRecurring';
+import { occurrenceIds, useGroupRecurring, useMarkBillPaid } from '@/data/groupRecurring';
 import { memberLookup, useGroup, useGroupBudget, useGroupRealtime } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
 import { isGhost } from '@/data/types';
@@ -58,7 +56,7 @@ import { memberNameById } from '@/lib/memberName';
 import { router, useGoBack } from '@/lib/navigation';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
-type HTab = 'overview' | 'bills' | 'upcoming' | 'income' | 'goals';
+type HTab = 'overview' | 'bills' | 'upcoming' | 'income';
 
 const UPCOMING_DAYS = 30;
 
@@ -77,8 +75,9 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
   const { group, everyone, expenses } = useGroup(groupId);
   const { rules } = useGroupRecurring(groupId);
   const { plans } = useGroupIncome(groupId);
-  const { goals } = useGroupGoals(groupId);
   const budget = useGroupBudget(groupId);
+  const markBillPaid = useMarkBillPaid(groupId);
+  const [paidKeys, setPaidKeys] = useState<ReadonlySet<string>>(new Set());
   const [tab, setTab] = useState<HTab>('overview');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -96,6 +95,10 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
     hidden
       ? BALANCE_MASK
       : compactAmount(formatParts(money(minor, currency as CurrencyCode), { locale }));
+
+  // The three headline tiles are tight on a phone: short figures there, full ones everywhere else.
+  const tileFmt = (minor: bigint): string =>
+    hidden ? BALANCE_MASK : compactMoney(money(minor, currency as CurrencyCode), { locale });
 
   const live = useMemo(
     () => expenses.rows.filter((row) => row.currentVersion && !row.deleted_at),
@@ -124,25 +127,37 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
 
   const upcoming = useMemo(
     () =>
-      mergeHouseholdUpcoming(
-        [
-          billUpcoming(rules, today, UPCOMING_DAYS),
-          goalUpcoming(
-            goals.map((view) => ({
-              id: view.goal.id,
-              name: view.goal.name,
-              currency: view.goal.currency,
-              status: view.goal.status,
-              monthlyPlan: view.goal.monthlyPlan,
-            })),
-            today,
-            UPCOMING_DAYS,
-          ),
-        ],
-        0,
-      ).filter((row) => row.currency === currency),
-    [rules, goals, today, currency],
+      mergeHouseholdUpcoming([billUpcoming(rules, today, UPCOMING_DAYS)], 0).filter(
+        (row) => row.currency === currency,
+      ),
+    [rules, today, currency],
   );
+  // A bill whose occurrence is already a live expense (this phone, another
+  // phone or the server's generator) is paid: its row goes.
+  const liveIds = useMemo(() => new Set(live.map((row) => row.id)), [live]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const paid = new Set<string>();
+      for (const row of upcoming)
+        if (row.kind === 'bill' && row.ruleId)
+          if (liveIds.has((await occurrenceIds(row.ruleId, row.date)).expenseId)) paid.add(row.key);
+      if (!cancelled) setPaidKeys(paid);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [upcoming, liveIds]);
+  const openUpcoming = useMemo(
+    () => upcoming.filter((row) => !paidKeys.has(row.key)),
+    [upcoming, paidKeys],
+  );
+  const onMarkPaid = async (row: HouseholdUpcoming): Promise<void> => {
+    const rule = rules.find((r) => r.id === row.ruleId);
+    if (!rule) return;
+    await markBillPaid(rule, row.date);
+    setPaidKeys((prev) => new Set(prev).add(row.key));
+  };
   const recent = [...live]
     .sort((a, b) =>
       a.currentVersion!.expense_date === b.currentVersion!.expense_date
@@ -151,8 +166,6 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
     )
     .slice(0, 3);
 
-  const activeGoals = goals.filter((view) => view.goal.status === 'active');
-  const addGoal = useAddGoal(groupId, activeGoals.length);
   const toLedger = (which?: 'balances'): void =>
     router.push(`/group/${groupId}?view=ledger${which ? `&tab=${which}` : ''}`);
 
@@ -170,13 +183,12 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
     },
     rules,
     plans,
-    goals,
-    upcoming,
+    upcoming: openUpcoming,
+    onMarkPaid,
     spent,
     income,
     limit,
     recent,
-    onAddGoal: addGoal,
     onTab: setTab,
     onMore: () => setMenuOpen(true),
     onLedger: toLedger,
@@ -249,13 +261,6 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
           icon: 'arrow-down',
           label: h.tabIncome,
           onPress: () => setTab('income'),
-        },
-        {
-          key: 'goals',
-          tint: 'sky',
-          icon: 'flag-outline',
-          label: h.tabGoals,
-          onPress: () => setTab('goals'),
         },
         {
           key: 'expenses',
@@ -387,7 +392,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     icon="wallet-outline"
                     tone="income"
                     label={h.income}
-                    value={fmt(income)}
+                    value={tileFmt(income)}
                     hidden={hidden}
                     onPress={() => setTab('income')}
                   />
@@ -395,7 +400,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     icon="arrow-up"
                     tone="negative"
                     label={h.spent}
-                    value={fmt(spent)}
+                    value={tileFmt(spent)}
                     hidden={hidden}
                     onPress={() => toLedger()}
                   />
@@ -403,7 +408,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     icon="wallet"
                     tone="brand"
                     label={h.left}
-                    value={`${summary.left < 0n ? '−' : ''}${fmt(summary.left < 0n ? -summary.left : summary.left)}`}
+                    value={`${summary.left < 0n ? '−' : ''}${tileFmt(summary.left < 0n ? -summary.left : summary.left)}`}
                     negative={summary.left < 0n}
                     hidden={hidden}
                     onPress={() => setTab('overview')}
@@ -449,14 +454,13 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
           )
         }
       >
-        {/* Bills, Income, Goals and Expenses, a compact row just under the card. */}
+        {/* Bills, Income and Expenses, a compact row just under the card. */}
         {tab === 'overview' ? <View style={{ paddingTop: theme.spacing.xs }}>{tools}</View> : null}
         <View style={{ gap: theme.spacing.md, paddingTop: theme.spacing.xs }}>
           {tab === 'overview' ? <OverviewTab data={data} /> : null}
           {tab === 'bills' ? <BillsTab data={data} /> : null}
           {tab === 'upcoming' ? <UpcomingTab data={data} /> : null}
           {tab === 'income' ? <IncomeTab data={data} /> : null}
-          {tab === 'goals' ? <GoalsTab data={data} /> : null}
         </View>
       </ScenicScreen>
       <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />

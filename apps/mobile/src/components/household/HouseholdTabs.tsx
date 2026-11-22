@@ -1,7 +1,6 @@
 /**
- * The five tabs of the household home. Each takes the one `HouseholdData` the
- * screen builds, so they stay plain views: Overview, Bills, Upcoming, Income
- * and Goals. Amounts honour the eye (`data.fmt` masks when hidden).
+ * The four tabs of the household home. Each takes the one `HouseholdData` the
+ * screen builds, so they stay plain views: Overview, Bills, Upcoming and Income. Amounts honour the eye (`data.fmt` masks when hidden).
  */
 import { useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -18,14 +17,12 @@ import {
 import { Card, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
-import { GroupGoalsCard } from '@/components/GroupGoalsCard';
 import { AddFamilyMember } from '@/components/household/HouseholdParts';
 import { BudgetSummary } from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { CardTitle, PrivacyPill } from '@/components/personal/PersonalHomeParts';
 import { useUpdateGroupRecurring } from '@/data/groupRecurring';
-import type { GroupGoalView } from '@/data/groupGoals';
 import type { IncomePlan } from '@/data/groupIncome';
 import { expenseTitle } from '@/data/expenseTitle';
 import { todayIso } from '@/data/personal';
@@ -45,15 +42,15 @@ export interface HouseholdData {
   readonly isGhostMember: (memberId: string) => boolean;
   readonly rules: readonly GroupRecurringRule[];
   readonly plans: readonly IncomePlan[];
-  readonly goals: readonly GroupGoalView[];
   readonly upcoming: readonly HouseholdUpcoming[];
   readonly spent: bigint;
   readonly income: bigint;
   /** The monthly ceiling: the household budget, else the planned income. */
   readonly limit: bigint | null;
   readonly recent: readonly ExpenseRow[];
-  readonly onAddGoal: () => void;
-  readonly onTab: (tab: 'bills' | 'income' | 'goals' | 'upcoming') => void;
+  /** Post one bill occurrence as a group expense; the row goes once it is paid. */
+  readonly onMarkPaid: (row: HouseholdUpcoming) => Promise<void>;
+  readonly onTab: (tab: 'bills' | 'income' | 'upcoming') => void;
   readonly onMore: () => void;
   readonly onLedger: (tab?: 'balances') => void;
 }
@@ -125,7 +122,8 @@ function UpcomingRowView({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const whenText = useWhenText();
-  const tone = row.inDays < 0 ? 'negative' : row.kind === 'goal' ? 'positive' : 'brand';
+  const [busy, setBusy] = useState(false);
+  const tone = row.inDays < 0 ? 'negative' : 'brand';
   const ink = theme.color[tone];
   const soft = theme.color[`${tone}Soft` as 'brandSoft'];
   const day = new Intl.DateTimeFormat(locale, {
@@ -133,24 +131,15 @@ function UpcomingRowView({
     month: 'short',
     timeZone: 'UTC',
   }).format(new Date(`${row.date}T00:00:00Z`));
-  const subtitle =
-    row.kind === 'goal'
-      ? `${t.hhome.tabGoals} · ${day}`
-      : row.payerId
-        ? fill(t.household.billPays, { name: data.nameOf(row.payerId), when: day })
-        : day;
+  const subtitle = row.payerId
+    ? fill(t.household.billPays, { name: data.nameOf(row.payerId), when: day })
+    : day;
   const pill = whenText(row.inDays);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={`${row.title}, ${subtitle}, ${data.fmt(row.amount)}, ${pill}`}
-      onPress={() =>
-        router.push(
-          row.kind === 'goal'
-            ? `/group/${data.groupId}/goal/${row.goalId}`
-            : `/group/${data.groupId}/recurring-edit?ruleId=${row.ruleId}`,
-        )
-      }
+      onPress={() => router.push(`/group/${data.groupId}/recurring-edit?ruleId=${row.ruleId}`)}
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
@@ -173,11 +162,7 @@ function UpcomingRowView({
           justifyContent: 'center',
         }}
       >
-        <Ionicons
-          name={row.kind === 'goal' ? 'flag-outline' : 'receipt-outline'}
-          size={iconSize.md}
-          color={ink}
-        />
+        <Ionicons name="receipt-outline" size={iconSize.md} color={ink} />
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Text numberOfLines={1} style={{ fontWeight: '700' }}>
@@ -186,6 +171,24 @@ function UpcomingRowView({
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {subtitle}
         </Text>
+        {row.kind === 'bill' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t.hhome.markPaid}, ${row.title}`}
+            accessibilityState={{ busy }}
+            disabled={busy}
+            hitSlop={8}
+            onPress={() => {
+              setBusy(true);
+              data.onMarkPaid(row).catch(() => setBusy(false));
+            }}
+            style={{ alignSelf: 'flex-start', paddingVertical: 4, opacity: busy ? 0.5 : 1 }}
+          >
+            <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+              {t.hhome.markPaid}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
       <Text numberOfLines={1} style={{ fontWeight: '700' }}>
         {data.fmt(row.amount)}
@@ -624,10 +627,4 @@ export function IncomeTab({ data }: { data: HouseholdData }) {
       </Card>
     </View>
   );
-}
-
-// ───────────────────────────────────────────────────────────────── Goals ──
-
-export function GoalsTab({ data }: { data: HouseholdData }) {
-  return <GroupGoalsCard groupId={data.groupId} />;
 }

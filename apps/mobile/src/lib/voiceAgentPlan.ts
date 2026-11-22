@@ -45,8 +45,6 @@ export interface AgentLocalGroup {
   coverEmoji?: string | null;
   /** The group's families, for a by-family split the agent proposes. */
   units?: GroupUnits | null;
-  /** Active joint goals, so a "put 5000 aside for the house" card can name its goal. */
-  goals?: readonly { id: string; name: string; totalMinor: bigint }[];
 }
 
 export interface AgentLocalData {
@@ -69,9 +67,6 @@ export interface VoiceAgentText {
   createGroup: string; // 'Create group {name}'
   withPeople: string; // 'with {names}'
   addMember: string; // 'Add {name} to {group}'
-  putAside: string; // 'Put aside {amount} for {goal}'
-  takeOut: string; // 'Take {amount} out of {goal}'
-  unknownGoal: string;
   unknownGroup: string;
   unknownPerson: string;
   /** On a settle or reminder in a currency the group does not settle in. */
@@ -218,31 +213,7 @@ export function planVoiceAgentActions(
         card(segments, action.name.trim().length === 0);
         return;
       }
-      case 'add_goal_contribution': {
-        const group = groups.get(action.groupId);
-        const goal = group?.goals?.find((candidate) => candidate.id === action.goalId);
-        const who = group?.members.find((member) => member.id === action.memberId);
-        const minor = parseMinor(action.amountMinor);
-        const amount =
-          minor === null ? action.amountMinor : formatMinor(minor, group?.currency ?? '');
-        card(
-          [
-            fill(action.direction === 'out' ? text.takeOut : text.putAside, {
-              amount,
-              goal: goal?.name ?? text.unknownGoal,
-            }),
-            group?.name ?? text.unknownGroup,
-            who ? memberName(who, text) : text.unknownPerson,
-          ],
-          !group ||
-            !goal ||
-            !who ||
-            minor === null ||
-            // Taking out more than is put aside would be refused by the server.
-            (action.direction === 'out' && minor > goal.totalMinor),
-        );
-        return;
-      }
+
       case 'add_member': {
         const group = groups.get(action.groupId);
         card(

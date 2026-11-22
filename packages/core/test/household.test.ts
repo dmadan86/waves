@@ -3,7 +3,6 @@ import {
   BILL_PRESETS,
   billsMonthlyTotal,
   billUpcoming,
-  goalUpcoming,
   hasHouseholdHome,
   householdSummary,
   incomeByMember,
@@ -62,17 +61,17 @@ describe('monthlyEquivalent', () => {
 });
 
 describe('bill picker', () => {
-  it('turns groceries and petrol into budgets, not bills', () => {
+  it('turns groceries and fuel into budgets, not bills', () => {
     const picks = [
       { preset: 'rent' as const, amount: 5000000n, payerId: 'a' },
       { preset: 'groceries' as const, amount: 1000000n, payerId: 'a' },
-      { preset: 'petrol' as const, amount: 400000n, payerId: '' },
-      { preset: 'wifi' as const, amount: 0n, payerId: 'a' },
+      { preset: 'fuel' as const, amount: 400000n, payerId: '' },
+      { preset: 'internet' as const, amount: 0n, payerId: 'a' },
       { preset: 'water' as const, amount: 10000n, payerId: '' },
     ];
     const { bills, budgets } = savablePicks(picks);
     expect(bills.map((p) => p.preset)).toEqual(['rent']);
-    expect(budgets.map((p) => p.preset)).toEqual(['groceries', 'petrol']);
+    expect(budgets.map((p) => p.preset)).toEqual(['groceries', 'fuel']);
   });
   it('has unique presets', () => {
     expect(new Set(BILL_PRESETS.map((p) => p.id)).size).toBe(BILL_PRESETS.length);
@@ -183,37 +182,12 @@ describe('upcoming', () => {
       payers: {},
     },
   ];
-  it('lists bills in the window, overdue first, and merges goals by date', () => {
+  it('lists bills in the window, overdue first, and merges by date', () => {
     const bills = billUpcoming(rules, '2026-11-21', 30);
     expect(bills.map((b) => b.title).sort()).toEqual(['Late', 'Rent', 'Wi-Fi']);
     expect(bills.find((b) => b.title === 'Late')!.inDays).toBe(-3);
-    const goals = goalUpcoming(
-      [
-        {
-          id: 'g1',
-          name: 'House',
-          currency: 'INR',
-          status: 'active',
-          monthlyPlan: { a: 1000n, b: 500n },
-        },
-        { id: 'g2', name: 'Done', currency: 'INR', status: 'done', monthlyPlan: { a: 1n } },
-        { id: 'g3', name: 'NoPlan', currency: 'INR', status: 'active', monthlyPlan: {} },
-      ],
-      '2026-11-21',
-      30,
-    );
-    expect(goals).toHaveLength(1);
-    expect(goals[0]!.amount).toBe(1500n);
-    expect(goals[0]!.date).toBe('2026-12-01');
-    const merged = mergeHouseholdUpcoming([bills, goals], 0);
-    expect(merged.map((m) => m.title)).toEqual(['Late', 'Wi-Fi', 'House', 'Rent']);
-    expect(mergeHouseholdUpcoming([bills, goals], 2)).toHaveLength(2);
-    expect(
-      goalUpcoming(
-        [{ id: 'g', name: 'x', currency: 'INR', status: 'active', monthlyPlan: { a: 1n } }],
-        '2026-11-02',
-        10,
-      ),
-    ).toEqual([]);
+    const merged = mergeHouseholdUpcoming([bills], 0);
+    expect(merged.map((m) => m.title)).toEqual(['Late', 'Wi-Fi', 'Rent']);
+    expect(mergeHouseholdUpcoming([bills], 2)).toHaveLength(2);
   });
 });
