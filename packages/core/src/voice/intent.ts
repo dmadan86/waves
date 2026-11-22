@@ -611,7 +611,11 @@ function prepare(raw: string): string {
     .toLowerCase()
     .replace(/(\p{L})['’]s\b/gu, '$1')
     .replace(/['’]/g, '')
-    .replace(/(\d),(?=\d{3}(?!\d))/g, '$1')
+    // Accept both western (1,000,000) and Indian (1,00,000) grouping. Remove
+    // separators only when the complete grouped number is well formed.
+    .replace(/\b\d{1,3}(?:,\d{2})*,\d{3}(?!\d)|\b\d{1,3}(?:,\d{3})+(?!\d)/g, (n) =>
+      n.replace(/,/g, ''),
+    )
     .replace(/(\p{L})-(?=\p{L})/gu, '$1 ')
     // "rs.500", "rs 500" and "₹500" all read as a number then a currency word.
     .replace(/\brs\.?(?=\s*\d)/g, 'rs ')

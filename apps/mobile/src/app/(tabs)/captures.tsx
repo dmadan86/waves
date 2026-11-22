@@ -158,6 +158,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { reviewMomentFor } from '@/lib/reviewScene';
 import { useSmsAutoRead } from '@/lib/smsAutoRead';
 import { isSmsDerived } from '@/lib/smsLocalDrafts';
+import { recoveredVoiceDraftAmount } from '@/lib/voiceDraftPure';
 import { requestScanOnReturn } from '@/lib/smsReadBridge';
 import { useSmsInboxReader } from '@/lib/smsFeature';
 import { useSmsMessages } from '@/lib/smsMessages';
@@ -401,6 +402,7 @@ function CaptureListRow({
   // title never has to carry it.
   const title = captureTitle(capture, t);
   const doubts = bare ? [] : doubtsAbout(capture);
+  const recoveredAmount = recoveredVoiceDraftAmount(capture);
   const dismissLabel = wasFound(capture) ? t.captures.notAnExpense : t.captures.delete;
 
   // Both swipe actions, offered to a screen reader as custom actions on the row
@@ -535,15 +537,15 @@ function CaptureListRow({
         {/* The amount and the ⋯ never shrink (RN's flexShrink is 0 by default),
             so every row's amount ends at the same point. */}
         <View style={{ alignItems: 'flex-end' }}>
-          {BigInt(capture.amount) === 0n ? (
+          {BigInt(capture.amount) === 0n && !recoveredAmount ? (
             // A heard sentence not yet read: no amount to show, so say so.
             <Text style={{ fontSize: 14, fontWeight: '500', color: theme.color.textMuted }}>
               {t.captures.amountUnknown}
             </Text>
           ) : (
             <MoneyText
-              amount={BigInt(capture.amount)}
-              currency={capture.currency}
+              amount={recoveredAmount?.amount ?? BigInt(capture.amount)}
+              currency={recoveredAmount?.currency ?? capture.currency}
               locale={locale}
               variant="subheading"
             />
