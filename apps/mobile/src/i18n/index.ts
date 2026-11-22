@@ -4484,6 +4484,7 @@ export interface UiStrings {
     howSub: string;
     change: string;
     settlesWith: string;
+    other: string;
   };
   /** The Activity screen: its subtitle, filter chips and row menu. */
   departedExpenses: {
@@ -12508,6 +12509,7 @@ const en: UiStrings = {
     howSub: 'Add your payment details so friends can settle up with you easily.',
     change: 'Change',
     settlesWith: 'Settles with {rails}',
+    other: 'Other',
   },
   departedExpenses: {
     all: 'All',
@@ -20162,6 +20164,7 @@ const ta: UiStrings = {
     howSub: 'நண்பர்கள் எளிதாகக் கணக்குத் தீர்க்க உங்கள் பணம் பெறும் விவரங்களைச் சேர்க்கவும்.',
     change: 'மாற்று',
     settlesWith: '{rails} மூலம் தீர்க்கப்படும்',
+    other: 'மற்றவை',
   },
   departedExpenses: {
     all: 'அனைத்தும்',
@@ -27900,6 +27903,7 @@ const hi: UiStrings = {
     howSub: 'अपने भुगतान विवरण जोड़ें ताकि दोस्त आसानी से हिसाब चुका सकें।',
     change: 'बदलें',
     settlesWith: '{rails} से हिसाब होता है',
+    other: 'अन्य',
   },
   departedExpenses: {
     all: 'सभी',
@@ -35652,6 +35656,7 @@ const ar: UiStrings = {
     howSub: 'أضف بيانات الدفع ليتمكن أصدقاؤك من التسوية معك بسهولة.',
     change: 'تغيير',
     settlesWith: 'التسوية عبر {rails}',
+    other: 'أخرى',
   },
   departedExpenses: {
     all: 'الكل',
