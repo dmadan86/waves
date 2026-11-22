@@ -51,3 +51,17 @@ describe('home snapshot', () => {
     expect(parseSnapshot(JSON.stringify({ ...snap('a'), groups: [{}] }), 'a')).toBeNull();
   });
 });
+
+describe('home snapshot validation', () => {
+  it('rejects a bad balance string', () => {
+    const bad = { ...snap('a'), groups: [{ ...row, balance: 'bad' }] };
+    expect(parseSnapshot(JSON.stringify(bad), 'a')).toBeNull();
+  });
+  it('rejects wrong field types and non-finite numbers', () => {
+    const t = { ...snap('a'), groups: [{ ...row, title: 5 }] };
+    expect(parseSnapshot(JSON.stringify(t), 'a')).toBeNull();
+    const n = snap('a');
+    const raw = JSON.stringify(n).replace('"owedGroups":1', '"owedGroups":null');
+    expect(parseSnapshot(raw, 'a')).toBeNull();
+  });
+});

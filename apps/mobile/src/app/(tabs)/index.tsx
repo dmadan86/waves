@@ -440,7 +440,7 @@ function HomeScreen() {
   const ledger = usePersonalLedger();
   const [today] = useState(() => todayIso());
   const figures = useHomeSpaceFigures();
-  const { hidden: personalHidden } = usePersonalAmountsHidden();
+  const { hidden: personalHidden, ready: personalReady } = usePersonalAmountsHidden();
   const amountsHidden = balanceHidden || !balanceReady;
   const todayLedger = {
     txns: ledger.txns,
@@ -658,7 +658,12 @@ function HomeScreen() {
         <DateReminderCard />
 
         {showStale && stored ? (
-          <HomeSnapshotView snapshot={stored} hidden={amountsHidden} locale={locale} />
+          <HomeSnapshotView
+            snapshot={stored}
+            hidden={amountsHidden}
+            personalHidden={personalHidden || !personalReady}
+            locale={locale}
+          />
         ) : showSkeleton ? (
           <View style={{ paddingTop: theme.spacing.sm }}>
             <SkeletonList rows={3} />

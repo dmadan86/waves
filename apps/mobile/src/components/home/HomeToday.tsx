@@ -165,6 +165,7 @@ export function NeedsYouCard({
               memberLabel: shortDate(bill.date, locale),
               amountText: money(bill.amount, bill.currency),
               directionLabel: label,
+              strong: need.action === 'pay',
               icon: need.kind === 'overdue' ? 'alert-circle-outline' : 'home-outline',
               href:
                 bill.source === 'group' && bill.groupId
@@ -179,6 +180,7 @@ export function NeedsYouCard({
               memberLabel: need.kind === 'owed' ? t.youAreOwed : t.youOwe,
               amountText: money(person.amount, person.currency),
               directionLabel: label,
+              strong: need.action === 'pay',
               icon: 'person-outline',
               href: `/friends/person/${encodeURIComponent(person.personKey)}?name=${encodeURIComponent(person.name)}`,
             };
