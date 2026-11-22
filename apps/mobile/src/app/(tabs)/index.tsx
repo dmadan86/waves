@@ -280,6 +280,8 @@ function HomeScreen() {
   // less-used destinations, surfaced from the dashboard rather than only from
   // the profile tab.
   const [menuOpen, setMenuOpen] = useState(false);
+  // Personal bills Needs you is showing, so Coming up leaves them out.
+  const [needsBills, setNeedsBills] = useState('');
   // Same test the Upgrade screen uses for `plansLive`: the paywall flag is on
   // and this build can buy. A guest signs up first, so the row waits for that.
   const canUpgrade = useReferralsLive() && !isGuest;
@@ -577,9 +579,16 @@ function HomeScreen() {
                 {/* A new person has nothing to act on yet: the three starter tiles
                   below stand in for the whole feed. */}
                 {newUser ? null : (
-                  <NeedsYouCard ledger={todayLedger} viewerId={viewerId} hidden={amountsHidden} />
+                  <NeedsYouCard
+                    ledger={todayLedger}
+                    viewerId={viewerId}
+                    hidden={amountsHidden}
+                    onShownBills={setNeedsBills}
+                  />
                 )}
-                {newUser ? null : <ComingUpChips ledger={todayLedger} hidden={amountsHidden} />}
+                {newUser ? null : (
+                  <ComingUpChips ledger={todayLedger} hidden={amountsHidden} exclude={needsBills} />
+                )}
                 <SpacesGrid
                   groups={list}
                   summary={summary}

@@ -3,7 +3,7 @@
  * you share money with. The ranking lives in `lib/homeToday`; this draws it.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
@@ -56,10 +56,13 @@ export function NeedsYouCard({
   ledger,
   viewerId,
   hidden,
+  onShownBills,
 }: {
   ledger: Ledger;
   viewerId: string | null;
   hidden: boolean;
+  /** The personal bill rows this card shows, so Coming up can leave them out. */
+  onShownBills?: (keys: string) => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -128,6 +131,15 @@ export function NeedsYouCard({
     // sourceLabel/t are stable per render of the same strings; keyed on the data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ledger, myBills, people, captures.data, t]);
+
+  // Tell Home which personal bills are here; a stable string so it settles.
+  const shownBills = items
+    .filter((need) => need.bill?.source === 'personal')
+    .map((need) => need.bill!.key.slice(2))
+    .join('|');
+  useEffect(() => {
+    onShownBills?.(shownBills);
+  }, [onShownBills, shownBills]);
 
   const settled = items.length === 0;
   return (
@@ -360,7 +372,16 @@ interface Chip {
   readonly onPress: () => void;
 }
 
-export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: boolean }) {
+export function ComingUpChips({
+  ledger,
+  hidden,
+  exclude = '',
+}: {
+  ledger: Ledger;
+  hidden: boolean;
+  /** Bill row keys already in Needs you, joined with '|': each item shows once. */
+  exclude?: string;
+}) {
   const theme = useTheme();
   const { t, locale } = useStrings();
   const { session, isGuest } = useAuth();
@@ -373,7 +394,7 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
     ...billRows(ledger.txns, ledger.recurrings, ledger.currency, ledger.today, 14),
     ...dateRows(dates),
   ]
-    .filter((r) => r.inDays >= 0)
+    .filter((r) => r.inDays >= 0 && !(exclude && exclude.split('|').includes(r.key)))
     .sort((a, b) => a.inDays - b.inDays || (a.key < b.key ? -1 : 1))
     .slice(0, 6);
   const chips: Chip[] = rows.map((row) => {
