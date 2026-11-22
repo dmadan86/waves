@@ -669,12 +669,10 @@ describe('parseVoiceExpenses (several in one breath)', () => {
     expect(parseVoiceExpenses('500 रुपये चाय और', groups).items[0]?.note).toBe('चाय');
     expect(parseVoiceExpenses('500 ரூபாய் தேநீர் மற்றும்', groups).items[0]?.note).toBe('தேநீர்');
     expect(parseVoiceExpenses('٥٠٠ روبية شاي و', groups).items[0]?.note).toBe('شاي');
-    expect(parseVoiceExpenses('500 रुपये चाय और और कॉफी', groups).items[0]?.note).toBe(
-      'चाय और कॉफी',
+    expect(parseVoiceExpenses('500 रुपये चाय और और कॉफी', groups).items[0]?.note).toBe('चाय और कॉफी');
+    expect(parseVoiceExpenses('500 ரூபாய் தேநீர் மற்றும் மற்றும் காபி', groups).items[0]?.note).toBe(
+      'தேநீர் மற்றும் காபி',
     );
-    expect(
-      parseVoiceExpenses('500 ரூபாய் தேநீர் மற்றும் மற்றும் காபி', groups).items[0]?.note,
-    ).toBe('தேநீர் மற்றும் காபி');
   });
 
   it('leaves no comma hanging where the words after it became split rows', () => {
