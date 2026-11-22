@@ -98,7 +98,9 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
 
   // The three headline tiles are tight on a phone: short figures there, full ones everywhere else.
   const tileFmt = (minor: bigint): string =>
-    hidden || minor === 0n ? fmt(minor) : compactMoney(money(minor, currency as CurrencyCode), { locale });
+    hidden || minor === 0n
+      ? fmt(minor)
+      : compactMoney(money(minor, currency as CurrencyCode), { locale });
 
   const live = useMemo(
     () => expenses.rows.filter((row) => row.currentVersion && !row.deleted_at),

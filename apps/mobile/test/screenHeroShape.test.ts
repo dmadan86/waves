@@ -32,7 +32,7 @@ const source = (relativePath: string): string => readFileSync(join(SRC, relative
 describe('every hero is a deliberate shape, not a drift from the shared one', () => {
   it("the group hero is Home's scenic shell: shared header controls and the glass balance card", () => {
     const hero = source('components/GroupHero.tsx');
-    expect(hero).toMatch(/import \{ HeroIconButton \} from '@\/components\/home\/HeroControls';/);
+    expect(hero).toMatch(/import \{ TabIconButton \} from '@\/components\/home\/TabHeader';/);
     expect(hero).toMatch(/\bHomeBalanceCard\b/);
     expect(hero).not.toMatch(/function Hero(ActionCircle|PillButton)\b/);
     // The screen draws it inside the shared ScenicScreen over Home's photograph.

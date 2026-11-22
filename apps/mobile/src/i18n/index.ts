@@ -354,6 +354,8 @@ export interface UiStrings {
     dueSub: string;
     owesYou: string;
     youOweName: string;
+    owesYouSub: string;
+    youOweSub: string;
     reviewTitle: string;
     comingUp: string;
     addReminder: string;
@@ -9061,6 +9063,8 @@ const en: UiStrings = {
     dueSub: 'Due {date} · {amount}',
     owesYou: '{name} owes you {amount}',
     youOweName: 'You owe {name} {amount}',
+    owesYouSub: 'Owes you {amount}',
+    youOweSub: 'You owe {amount}',
     reviewTitle: 'Items to review: {n}',
     comingUp: 'Coming up',
     addReminder: 'Add a reminder',
@@ -17139,6 +17143,8 @@ const ta: UiStrings = {
     dueSub: '{date} அன்று · {amount}',
     owesYou: '{name} உங்களுக்கு {amount} தர வேண்டும்',
     youOweName: 'நீங்கள் {name}க்கு {amount} தர வேண்டும்',
+    owesYouSub: '{amount} உங்களுக்கு தர வேண்டும்',
+    youOweSub: 'நீங்கள் {amount} தர வேண்டும்',
     reviewTitle: 'பார்க்க வேண்டியவை: {n}',
     comingUp: 'விரைவில்',
     addReminder: 'நினைவூட்டல் சேர்',
@@ -25425,6 +25431,8 @@ const hi: UiStrings = {
     dueSub: '{date} को · {amount}',
     owesYou: '{name} को आपको {amount} देना है',
     youOweName: 'आपको {name} को {amount} देना है',
+    owesYouSub: 'उन पर आपके {amount} बाकी हैं',
+    youOweSub: 'आप पर {amount} बाकी हैं',
     reviewTitle: 'देखने वाली चीज़ें: {n}',
     comingUp: 'आने वाला',
     addReminder: 'रिमाइंडर जोड़ें',
@@ -33511,6 +33519,8 @@ const ar: UiStrings = {
     dueSub: 'يستحق {date} · {amount}',
     owesYou: '{name} يدين لك بـ {amount}',
     youOweName: 'تدين لـ {name} بـ {amount}',
+    owesYouSub: 'مدين لك بـ {amount}',
+    youOweSub: 'أنت مدين بـ {amount}',
     reviewTitle: 'عناصر للمراجعة: {n}',
     comingUp: 'قريبًا',
     addReminder: 'أضف تذكيرًا',

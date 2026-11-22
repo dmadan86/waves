@@ -106,11 +106,7 @@ export function GroupHeaderRow({
     : cleanLabel(groupLabel(group, members, profileId));
   return (
     <>
-      <TabIconButton
-        icon={directionalIcon('arrow-back')}
-        label={t.common.back}
-        onPress={goBack}
-      />
+      <TabIconButton icon={directionalIcon('arrow-back')} label={t.common.back} onPress={goBack} />
       <Pressable
         onPress={() => router.push(`/group/${groupId}/settings`)}
         accessibilityRole="button"
@@ -159,11 +155,7 @@ export function GroupHeaderRow({
       </Pressable>
       <SyncStatusIcon onBrand={!solid} groupId={groupId} ink={ink} />
       {onSearch ? (
-        <TabIconButton
-          icon="search-outline"
-          label={t.group.searchExpenses}
-          onPress={onSearch}
-        />
+        <TabIconButton icon="search-outline" label={t.group.searchExpenses} onPress={onSearch} />
       ) : null}
       <TabIconButton
         icon="notifications-outline"
@@ -171,11 +163,7 @@ export function GroupHeaderRow({
         dot={pendingCount > 0}
         onPress={() => router.push({ pathname: '/activity', params: { group: groupId } })}
       />
-      <TabIconButton
-        icon="ellipsis-vertical"
-        label={t.group.more}
-        onPress={onOpenMenu}
-      />
+      <TabIconButton icon="ellipsis-vertical" label={t.group.more} onPress={onOpenMenu} />
     </>
   );
 }

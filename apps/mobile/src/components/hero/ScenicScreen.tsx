@@ -18,6 +18,8 @@ import { BlurTargetView } from 'expo-blur';
 import {
   Animated,
   View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -64,7 +66,7 @@ export function ScenicScreen({
    */
   list?: (parts: {
     // An `Animated.event`: hand it to `AnimatedFlashList` (never a plain list).
-    onScroll: (event: never) => void;
+    onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
     top: ReactNode;
     keyboardShouldPersistTaps: 'always' | 'never' | 'handled';
   }) => ReactNode;
@@ -135,7 +137,7 @@ export function ScenicScreen({
         list({
           onScroll: Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
             useNativeDriver: true,
-          }) as unknown as (event: never) => void,
+          }) as unknown as (event: NativeSyntheticEvent<NativeScrollEvent>) => void,
           top: (
             <>
               <View style={{ height: headerHeight }} />

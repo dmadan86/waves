@@ -61,10 +61,13 @@ export function NeedsYouCard({
   hidden,
   onShownBills,
   onSnapshot,
+  all = false,
 }: {
   ledger: Ledger;
   viewerId: string | null;
   hidden: boolean;
+  /** The full list on its own screen: every need, no title or "See all". */
+  all?: boolean;
   /** The personal bill rows this card shows, so Coming up can leave them out. */
   onShownBills?: (keys: string) => void;
   /** Reports the rows as drawn (unmasked), for Home's stored snapshot. */
@@ -128,15 +131,18 @@ export function NeedsYouCard({
       if (net > 0n) owedToYou.push(need);
       else if (net < 0n) youOwe.push(need);
     }
-    return rankNeeds({
-      bills: [...personal, ...shared],
-      owedToYou,
-      youOwe,
-      reviewCount: foldedCaptureCount(captures.data ?? []),
-    });
+    return rankNeeds(
+      {
+        bills: [...personal, ...shared],
+        owedToYou,
+        youOwe,
+        reviewCount: foldedCaptureCount(captures.data ?? []),
+      },
+      all ? Infinity : undefined,
+    );
     // sourceLabel/t are stable per render of the same strings; keyed on the data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledger, myBills, people, captures.data, t]);
+  }, [ledger, myBills, people, captures.data, t, all]);
 
   // Tell Home which personal bills are here; a stable string so it settles.
   const shownBills = items
@@ -207,8 +213,12 @@ export function NeedsYouCard({
   const settled = items.length === 0;
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      {settled ? null : (
-        <CardTitle title={h.needsYou}>
+      {settled || all ? null : (
+        <CardTitle
+          title={h.needsYou}
+          action={total > items.length ? h.seeAll : undefined}
+          onAction={() => router.push('/needs')}
+        >
           <Text variant="caption" tone="muted" style={{ fontWeight: '700' }}>
             {total}
           </Text>
@@ -329,7 +339,8 @@ function NeedRow({
       );
     icon = 'person-outline';
     if (need.kind === 'owed') {
-      title = fill(h.owesYou, { name: person.name, amount });
+      title = person.name;
+      sub = fill(h.owesYouSub, { amount });
       tint = theme.tint.peach;
       label = remindPending ? t.voice.autoUndo : nudge.outcome?.ok ? h.reminded : h.remind;
       onPress = person.groupId
@@ -354,12 +365,12 @@ function NeedRow({
               `/friends/person/${encodeURIComponent(person.personKey)}?name=${encodeURIComponent(person.name)}` as never,
             );
     } else {
-      title = fill(h.youOweName, { name: person.name, amount });
+      title = person.name;
+      sub = fill(h.youOweSub, { amount });
       tint = theme.tint.sky;
       label = h.pay;
       onPress = () => router.push('/settle-up');
     }
-    sub = '';
   } else {
     title = fill(h.reviewTitle, { n: need.count ?? 0 });
     icon = 'file-tray-full-outline';
