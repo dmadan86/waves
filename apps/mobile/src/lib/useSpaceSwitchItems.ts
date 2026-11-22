@@ -5,6 +5,7 @@ import { useGroups, useHomeSummary } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
 import { useViewerId } from '@/lib/auth';
 import { router, switchTab } from '@/lib/navigation';
+import { buildSpaceSwitchItems } from '@/lib/spaceSwitchItems';
 
 /** The shared Personal/Shared switcher rows, in the order groups arrive. */
 export function useSpaceSwitchItems(
@@ -16,29 +17,22 @@ export function useSpaceSwitchItems(
   const summary = useHomeSummary(viewerId);
   const shared = current === 'shared';
 
-  return useMemo<OverflowMenuItem[]>(() => {
-    const personalItem: OverflowMenuItem = {
-      icon: shared ? 'people-outline' : 'checkmark',
-      label: labels.personal,
-      onPress: shared ? () => switchTab('/(tabs)/me') : () => undefined,
-    };
-    const sharedItem: OverflowMenuItem = {
-      icon: shared ? 'checkmark' : 'people-outline',
-      label: labels.shared,
-      onPress: shared ? () => undefined : () => switchTab('/'),
-    };
-    const groupItems: OverflowMenuItem[] = (groups.data ?? [])
-      .filter((group) => group.type === 'couple' || group.type === 'home')
-      .map((group) => ({
-        icon: (group.type === 'couple'
-          ? 'heart-outline'
-          : 'home-outline') as OverflowMenuItem['icon'],
-        label: groupLabel(group, summary.membersFor(group.id), viewerId),
-        onPress: () => router.push(`/group/${group.id}`),
-      }));
-
-    return shared
-      ? [sharedItem, personalItem, ...groupItems]
-      : [personalItem, ...groupItems, sharedItem];
-  }, [groups.data, labels.personal, labels.shared, shared, summary, viewerId]);
+  return useMemo<OverflowMenuItem[]>(
+    () =>
+      buildSpaceSwitchItems({
+        shared,
+        labels: { shared: labels.shared, personal: labels.personal },
+        groups: groups.data ?? [],
+        groupLabel: (group) =>
+          groupLabel(
+            groups.data?.find((g) => g.id === group.id),
+            summary.membersFor(group.id),
+            viewerId,
+          ),
+        goPersonal: () => switchTab('/(tabs)/me'),
+        goShared: () => switchTab('/'),
+        openGroup: (id) => router.push(`/group/${id}`),
+      }),
+    [groups.data, labels.personal, labels.shared, shared, summary, viewerId],
+  );
 }
