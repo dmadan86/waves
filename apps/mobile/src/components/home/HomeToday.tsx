@@ -30,8 +30,12 @@ import { foldedCaptureCount } from '@/lib/captureBatch';
 import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
 import { billRows, daysBetween, dateRows } from '@/lib/personalUpcoming';
 import {
+  isAutoPostOverdue,
+  notExcluded,
+  personalNeedKey,
   plainAmount,
   rankNeeds,
+  shownPersonalKeys,
   SOON_DAYS,
   type BillNeed,
   type Need,
@@ -92,9 +96,9 @@ export function NeedsYouCard({
       SOON_DAYS,
     )
       // An auto-post rule's missed day is posted by the catch-up, not by hand.
-      .filter((row) => !(row.inDays < 0 && ruleById.get(row.ruleId ?? '')?.autoPost))
+      .filter((row) => !isAutoPostOverdue(row, ruleById))
       .map((row) => ({
-        key: `p:${row.key}`,
+        key: personalNeedKey(row.key),
         source: 'personal' as const,
         title: row.title || sourceLabel(row.category ?? null) || t.personal.expense,
         amount: row.amount ?? 0n,
@@ -145,10 +149,7 @@ export function NeedsYouCard({
   }, [ledger, myBills, people, captures.data, t, all]);
 
   // Tell Home which personal bills are here; a stable string so it settles.
-  const shownBills = items
-    .filter((need) => need.bill?.source === 'personal')
-    .map((need) => need.bill!.key.slice(2))
-    .join('|');
+  const shownBills = shownPersonalKeys(items);
   useEffect(() => {
     onShownBills?.(shownBills);
   }, [onShownBills, shownBills]);
@@ -506,7 +507,7 @@ export function ComingUpChips({
     ...billRows(ledger.txns, ledger.recurrings, ledger.currency, ledger.today, 14),
     ...dateRows(dates),
   ]
-    .filter((r) => r.inDays >= 0 && !(exclude && exclude.split('|').includes(r.key)))
+    .filter((r) => r.inDays >= 0 && notExcluded(r.key, exclude))
     .sort((a, b) => a.inDays - b.inDays || (a.key < b.key ? -1 : 1))
     .slice(0, 6);
   const chips: Chip[] = rows.map((row) => {
