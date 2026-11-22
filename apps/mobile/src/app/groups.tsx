@@ -4,7 +4,6 @@ import { placeSlots } from '@/lib/adPlanPure';
 import { useAdPlan } from '@/lib/useAdPlan';
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { FlashList } from '@shopify/flash-list';
 import { RefreshControl, View } from 'react-native';
 
 import {
@@ -24,7 +23,7 @@ import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { DEFAULT_GROUPS_SORT, sortGroups, type GroupsSort } from '@/lib/groupsList';
 import { SkeletonList } from '@/components/Skeletons';
-import { ScenicScreen } from '@/components/hero/ScenicScreen';
+import { AnimatedFlashList, ScenicScreen } from '@/components/hero/ScenicScreen';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { TabIconButton } from '@/components/home/TabHeader';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
@@ -258,7 +257,7 @@ function AllGroupsScreen() {
           )
         }
         list={({ onScroll, top, keyboardShouldPersistTaps }) => (
-          <FlashList
+          <AnimatedFlashList
             data={loading || rows.length === 0 ? [] : data}
             keyExtractor={(row) =>
               row.kind === 'header' ? 'settled-header' : row.kind === 'ad' ? row.key : row.item.id

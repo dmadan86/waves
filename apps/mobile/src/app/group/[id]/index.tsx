@@ -6,7 +6,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Redirect, useLocalSearchParams } from 'expo-router';
 import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
-import { FlashList, type FlashListRef } from '@shopify/flash-list';
+import { type FlashListRef } from '@shopify/flash-list';
 
 import {
   Badge,
@@ -109,7 +109,7 @@ import { ExpenseFilterSheet } from '@/components/ExpenseFilterSheet';
 import { filterPillText } from '@/lib/expenseFilterSummary';
 import { GroupDrafts } from '@/components/GroupDrafts';
 import { GroupHeaderRow, GroupHeroCard } from '@/components/GroupHero';
-import { ScenicScreen } from '@/components/hero/ScenicScreen';
+import { AnimatedFlashList, ScenicScreen } from '@/components/hero/ScenicScreen';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { useHomeHero } from '@/lib/useHomeHero';
 import { HouseholdHome } from '@/components/HouseholdHome';
@@ -2006,7 +2006,7 @@ function LedgerGroupScreen() {
               <View style={{ flex: 1 }}>{top}</View>
             ) : (
               <>
-                <FlashList
+                <AnimatedFlashList
                   ref={listRef}
                   // Bounce stays on: on iOS it is what pull-to-refresh pulls.
                   bounces

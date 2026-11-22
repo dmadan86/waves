@@ -13,12 +13,11 @@
  * fade natively, and a plain ScrollView crashes on scroll.
  */
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { FlashList } from '@shopify/flash-list';
 import { BlurTargetView } from 'expo-blur';
 import {
   Animated,
   View,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +29,9 @@ import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 /** How far down the card the scene reaches before it has faded into the page. */
 const SCENE_INTO_CARD = 0.72;
 const HERO_WHITE = '#FFFFFF';
+
+/** The list a `list` screen draws: it must be animated, or the native scroll event cannot reach it. */
+export const AnimatedFlashList = Animated.createAnimatedComponent(FlashList) as typeof FlashList;
 
 export function ScenicScreen({
   background,
@@ -61,7 +63,8 @@ export function ScenicScreen({
    * `children` and the built-in ScrollView.
    */
   list?: (parts: {
-    onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+    // An `Animated.event`: hand it to `AnimatedFlashList` (never a plain list).
+    onScroll: (event: never) => void;
     top: ReactNode;
     keyboardShouldPersistTaps: 'always' | 'never' | 'handled';
   }) => ReactNode;
@@ -130,7 +133,9 @@ export function ScenicScreen({
       </Animated.View>
       {list ? (
         list({
-          onScroll: (event) => scrollY.setValue(event.nativeEvent.contentOffset.y),
+          onScroll: Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+            useNativeDriver: true,
+          }) as unknown as (event: never) => void,
           top: (
             <>
               <View style={{ height: headerHeight }} />
