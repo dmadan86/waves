@@ -26,7 +26,7 @@ describe('date reminder text', () => {
 
   it('says today for day zero and singular for one day', () => {
     expect(whenOf(item({ inDays: 0 }), en, 'en')).toBe(en.today);
-    expect(whenOf(item({ inDays: 1 }), en, 'en')).toMatch(/\b1\b/);
+    expect(whenOf(item({ inDays: 1 }), en, 'en')).toBe('tomorrow');
     expect(whenOf(item({ inDays: 1 }), en, 'en')).not.toBe(whenOf(item({ inDays: 2 }), en, 'en'));
     expect(headlineOf(item({ inDays: 0 }), en, 'en')).not.toMatch(/\{/);
   });
