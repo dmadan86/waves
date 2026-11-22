@@ -8,7 +8,7 @@
  * (`?view=ledger`), one tap away in the ⋮ menu.
  */
 import { useMemo, useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
+import { RefreshControl, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 import {
@@ -22,16 +22,7 @@ import {
   money,
   type CurrencyCode,
 } from '@waves/core';
-import {
-  Card,
-  directionalIcon,
-  iconSize,
-  Row,
-  Screen,
-  Text,
-  useTabBarClearance,
-  useTheme,
-} from '@waves/ui';
+import { directionalIcon, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { ChangePill, FlowTile, SpendHistoryChart } from '@/components/home/MonthParts';
@@ -43,11 +34,15 @@ import {
   UpcomingTab,
   type HouseholdData,
 } from '@/components/household/HouseholdTabs';
-import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
-import { PersonAvatar } from '@/components/PersonAvatar';
+import { ScenicScreen } from '@/components/hero/ScenicScreen';
+import { HeroIconButton } from '@/components/home/HeroControls';
+import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
+import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
+import { QuickActionsRow } from '@/components/home/QuickActionsRow';
+import { useHomeHero } from '@/lib/useHomeHero';
 import { useAddGoal } from '@/components/GroupGoalsCard';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { QuickActions } from '@/components/personal/PersonalHomeParts';
+import { MoneyToolsRow } from '@/components/personal/PersonalHomeParts';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupGoals } from '@/data/groupGoals';
 import { useGroupIncome } from '@/data/groupIncome';
@@ -69,11 +64,11 @@ const UPCOMING_DAYS = 30;
 
 export function HouseholdScreen({ groupId }: { groupId: string }) {
   const theme = useTheme();
-  const clearance = useTabBarClearance() + theme.spacing.lg;
   const { t, locale } = useStrings();
   const h = t.hhome;
   const viewerId = useViewerId();
   const pull = usePullRefresh();
+  const homeHero = useHomeHero();
   const goBack = useGoBack('/');
   const { blockedIds } = useBlockedUsers();
   const { hidden, toggle } = usePersonalAmountsHidden();
@@ -238,120 +233,156 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
       new Date(`${month}-01T00:00:00Z`),
     );
 
+  const tools = (
+    <MoneyToolsRow
+      tiles={[
+        {
+          key: 'bills',
+          tint: 'lilac',
+          icon: 'repeat',
+          label: h.tabBills,
+          onPress: () => setTab('bills'),
+        },
+        {
+          key: 'income',
+          tint: 'mint',
+          icon: 'arrow-down',
+          label: h.tabIncome,
+          onPress: () => setTab('income'),
+        },
+        {
+          key: 'goals',
+          tint: 'sky',
+          icon: 'flag-outline',
+          label: h.tabGoals,
+          onPress: () => setTab('goals'),
+        },
+        {
+          key: 'expenses',
+          tint: 'peach',
+          icon: 'receipt-outline',
+          label: t.expenses,
+          onPress: () => toLedger(),
+        },
+      ]}
+    />
+  );
+  const glyph = (name: keyof typeof Ionicons.glyphMap) => ({
+    glyph: (color: string) => <Ionicons name={name} size={28} color={color} />,
+  });
+  const upcomingDot = upcoming.some((row) => row.inDays <= 0);
+
   return (
     <Screen edges={[]}>
-      <TabHeader
-        left={
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <TabIconButton
+      <ScenicScreen
+        background={(g) => <HomeHeroBackground hero={homeHero} {...g} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={pull.refreshing}
+            onRefresh={pull.onRefresh}
+            tintColor={theme.color.brand}
+          />
+        }
+        header={(ink, solid) => (
+          <>
+            <HeroIconButton
               icon={directionalIcon('chevron-back')}
               label={t.common.goBack}
               onPress={() => (tab === 'overview' ? goBack() : setTab('overview'))}
+              ink={ink}
             />
-            <PersonAvatar name={group.data.name ?? ''} size={44} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text
-                accessibilityRole="header"
-                numberOfLines={1}
-                style={{ fontSize: 18, lineHeight: 23, fontWeight: '700' }}
-              >
-                {group.data.name ?? ''}
-              </Text>
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {t.personalHome.sharedSpace}
-              </Text>
-            </View>
-          </Row>
-        }
-      >
-        <TabIconButton
-          icon="search-outline"
-          label={t.group.searchExpenses}
-          onPress={() => toLedger()}
-        />
-        <TabIconButton
-          icon="notifications-outline"
-          label={h.tabUpcoming}
-          dot={upcoming.some((row) => row.inDays <= 0)}
-          onPress={() => setTab('upcoming')}
-        />
-        <TabIconButton
-          icon="ellipsis-vertical"
-          label={t.group.settings}
-          onPress={() => setMenuOpen(true)}
-        />
-      </TabHeader>
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{
-            paddingHorizontal: theme.spacing.lg,
-            paddingTop: theme.spacing.xs,
-            paddingBottom: clearance,
-            gap: theme.spacing.md,
-          }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={pull.refreshing} onRefresh={pull.onRefresh} />
-          }
-        >
-          {tab === 'overview' ? (
-            <>
-              <Card
-                style={{
-                  gap: theme.spacing.md,
-                  padding: theme.spacing.lg,
-                  backgroundColor: theme.color.brandSoft,
-                }}
-              >
-                <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
-                  <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
-                    <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                      <Text tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                        {h.thisMonth}
-                      </Text>
-                      <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={
-                          hidden ? t.dashHero.showBalance : t.dashHero.hideBalance
-                        }
-                        onPress={toggle}
-                        hitSlop={10}
-                      >
-                        <Ionicons
-                          name={hidden ? 'eye-off-outline' : 'eye-outline'}
-                          size={iconSize.md}
-                          color={theme.color.textMuted}
-                        />
-                      </Pressable>
-                    </Row>
+            <Text
+              accessibilityRole="header"
+              numberOfLines={1}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                color: ink,
+                fontSize: 20,
+                lineHeight: 26,
+                fontWeight: '700',
+                ...(solid
+                  ? null
+                  : {
+                      textShadowColor: 'rgba(0,0,0,0.35)',
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 4,
+                    }),
+              }}
+            >
+              {group.data?.name ?? ''}
+            </Text>
+            <HeroIconButton
+              icon="search-outline"
+              label={t.group.searchExpenses}
+              onPress={() => toLedger()}
+              ink={ink}
+            />
+            <HeroIconButton
+              icon="notifications-outline"
+              label={h.tabUpcoming}
+              dot={upcomingDot}
+              onPress={() => setTab('upcoming')}
+              ink={ink}
+            />
+            <HeroIconButton
+              icon="ellipsis-vertical"
+              label={t.group.settings}
+              onPress={() => setMenuOpen(true)}
+              ink={ink}
+            />
+          </>
+        )}
+        card={(sceneRef) =>
+          tab !== 'overview' ? null : (
+            <HomeBalanceCard
+              net={0n}
+              owed={0n}
+              owing={0n}
+              owedGroups={0}
+              owingGroups={0}
+              currency={currency}
+              locale={locale}
+              hidden={hidden}
+              onToggleHide={toggle}
+              settling={false}
+              loading={false}
+              blurTarget={sceneRef}
+              label={h.thisMonth}
+              amountText={fmt(spent)}
+              labelAccessory={
+                summary.changePct !== null && !hidden ? (
+                  <Row style={{ alignItems: 'center', gap: theme.spacing.xs, flexShrink: 1 }}>
+                    <ChangePill change={summary.changePct} />
                     <Text
+                      variant="caption"
+                      tone="muted"
                       numberOfLines={1}
-                      adjustsFontSizeToFit
-                      minimumFontScale={0.6}
-                      style={{ fontSize: 30, lineHeight: 36, fontWeight: '700' }}
+                      style={{ flexShrink: 1 }}
                     >
-                      {fmt(spent)}
+                      {h.vsLast}
                     </Text>
-                    {summary.changePct !== null && !hidden ? (
-                      <Row
-                        style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}
-                      >
-                        <ChangePill change={summary.changePct} />
-                        <Text variant="caption" tone="muted" numberOfLines={1}>
-                          {h.vsLast}
-                        </Text>
-                      </Row>
-                    ) : null}
-                  </View>
-                  {!hidden ? (
+                  </Row>
+                ) : null
+              }
+              extra={
+                hidden || history.length < 2 ? null : (
+                  <View style={{ alignItems: 'flex-end', paddingHorizontal: theme.spacing.lg }}>
                     <SpendHistoryChart
                       values={history.map((m) => m.total)}
                       labels={history.map((m) => monthShort(m.month))}
                     />
-                  ) : null}
-                </Row>
-                <Row style={{ gap: theme.spacing.sm }}>
+                  </View>
+                )
+              }
+              sides={
+                <Row
+                  style={{
+                    alignItems: 'center',
+                    gap: theme.spacing.sm,
+                    paddingHorizontal: theme.spacing.lg,
+                  }}
+                >
                   <FlowTile
                     icon="wallet-outline"
                     tone="income"
@@ -378,60 +409,56 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     onPress={() => setTab('overview')}
                   />
                 </Row>
-              </Card>
-
-              <QuickActions
-                tiles={[
-                  {
-                    key: 'expense',
-                    tone: 'brand',
-                    icon: 'add',
-                    label: h.addExpense,
-                    onPress: () => router.push(`/group/${groupId}/add-expense`),
-                  },
-                  {
-                    key: 'bill',
-                    tone: 'brand',
-                    icon: 'repeat',
-                    label: h.addBill,
-                    onPress: () => router.push(`/group/${groupId}/add-bills`),
-                  },
-                  {
-                    key: 'income',
-                    tone: 'positive',
-                    icon: 'arrow-down',
-                    label: h.addIncome,
-                    onPress: () => router.push(`/group/${groupId}/income-edit`),
-                  },
-                  {
-                    key: 'goal',
-                    tone: 'brand',
-                    icon: 'flag-outline',
-                    label: h.addGoal,
-                    onPress: addGoal,
-                  },
-                  {
-                    key: 'aside',
-                    tone: 'positive',
-                    icon: 'save-outline',
-                    label: h.putAside,
-                    onPress: () =>
-                      activeGoals.length === 1
-                        ? router.push(`/group/${groupId}/goal/${activeGoals[0]!.goal.id}`)
-                        : setTab('goals'),
-                  },
-                ]}
-              />
-            </>
-          ) : null}
-
+              }
+              footer={
+                <QuickActionsRow
+                  radius={theme.radius.xl}
+                  discColor="transparent"
+                  iconColor={theme.color.brand}
+                  discSize={32}
+                  rowPadding={theme.spacing.sm}
+                  actions={[
+                    {
+                      key: 'expense',
+                      label: h.addExpense,
+                      ...glyph('add-circle-outline'),
+                      onPress: () => router.push(`/group/${groupId}/add-expense`),
+                    },
+                    {
+                      key: 'bill',
+                      label: h.addBill,
+                      ...glyph('repeat'),
+                      onPress: () => router.push(`/group/${groupId}/add-bills`),
+                    },
+                    {
+                      key: 'income',
+                      label: h.addIncome,
+                      ...glyph('arrow-down-circle-outline'),
+                      onPress: () => router.push(`/group/${groupId}/income-edit`),
+                    },
+                    {
+                      key: 'more',
+                      label: t.personalHome.toolMore,
+                      ...glyph('ellipsis-horizontal-circle-outline'),
+                      onPress: () => setMenuOpen(true),
+                    },
+                  ]}
+                />
+              }
+            />
+          )
+        }
+      >
+        {/* Bills, Income, Goals and Expenses, a compact row just under the card. */}
+        {tab === 'overview' ? <View style={{ paddingTop: theme.spacing.xs }}>{tools}</View> : null}
+        <View style={{ gap: theme.spacing.md, paddingTop: theme.spacing.xs }}>
           {tab === 'overview' ? <OverviewTab data={data} /> : null}
           {tab === 'bills' ? <BillsTab data={data} /> : null}
           {tab === 'upcoming' ? <UpcomingTab data={data} /> : null}
           {tab === 'income' ? <IncomeTab data={data} /> : null}
           {tab === 'goals' ? <GoalsTab data={data} /> : null}
-        </ScrollView>
-      </View>
+        </View>
+      </ScenicScreen>
       <OverflowMenu visible={menuOpen} onClose={() => setMenuOpen(false)} items={menuItems} />
     </Screen>
   );
