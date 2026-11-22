@@ -35,7 +35,7 @@ import {
   type HouseholdData,
 } from '@/components/household/HouseholdTabs';
 import { ScenicScreen } from '@/components/hero/ScenicScreen';
-import { HeroIconButton } from '@/components/home/HeroControls';
+import { TabIconButton } from '@/components/home/TabHeader';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
 import { QuickActionsRow } from '@/components/home/QuickActionsRow';
@@ -47,7 +47,7 @@ import { useGroupIncome } from '@/data/groupIncome';
 import { occurrenceIds, useGroupRecurring, useMarkBillPaid } from '@/data/groupRecurring';
 import { memberLookup, useGroup, useGroupBudget, useGroupRealtime } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
-import { isGhost } from '@/data/types';
+import { groupLabel, isGhost } from '@/data/types';
 import { useStrings } from '@/i18n';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useViewerId } from '@/lib/auth';
@@ -98,7 +98,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
 
   // The three headline tiles are tight on a phone: short figures there, full ones everywhere else.
   const tileFmt = (minor: bigint): string =>
-    hidden ? BALANCE_MASK : compactMoney(money(minor, currency as CurrencyCode), { locale });
+    hidden || minor === 0n ? fmt(minor) : compactMoney(money(minor, currency as CurrencyCode), { locale });
 
   const live = useMemo(
     () => expenses.rows.filter((row) => row.currentVersion && !row.deleted_at),
@@ -290,11 +290,10 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
         }
         header={(ink, solid) => (
           <>
-            <HeroIconButton
-              icon={directionalIcon('chevron-back')}
+            <TabIconButton
+              icon={directionalIcon('arrow-back')}
               label={t.common.goBack}
               onPress={() => (tab === 'overview' ? goBack() : setTab('overview'))}
-              ink={ink}
             />
             <Text
               accessibilityRole="header"
@@ -315,26 +314,23 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     }),
               }}
             >
-              {group.data?.name ?? ''}
+              {group.data?.name?.trim() || groupLabel(group.data, everyone.data ?? [], viewerId)}
             </Text>
-            <HeroIconButton
+            <TabIconButton
               icon="search-outline"
               label={t.group.searchExpenses}
               onPress={() => toLedger()}
-              ink={ink}
             />
-            <HeroIconButton
+            <TabIconButton
               icon="notifications-outline"
               label={h.tabUpcoming}
               dot={upcomingDot}
               onPress={() => setTab('upcoming')}
-              ink={ink}
             />
-            <HeroIconButton
+            <TabIconButton
               icon="ellipsis-vertical"
               label={t.group.settings}
               onPress={() => setMenuOpen(true)}
-              ink={ink}
             />
           </>
         )}

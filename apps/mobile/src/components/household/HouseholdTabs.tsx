@@ -226,7 +226,7 @@ export function OverviewTab({ data }: { data: HouseholdData }) {
   return (
     <View style={{ gap: theme.spacing[gap] }}>
       <Card style={{ gap: theme.spacing.md, padding: theme.spacing.lg }}>
-        <CardTitle title={h.thisMonth} />
+        <CardTitle title={t.household.budgetMenu} />
         {limit !== null && limit > 0n ? (
           <BudgetSummary
             progress={{
