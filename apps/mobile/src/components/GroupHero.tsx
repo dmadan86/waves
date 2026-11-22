@@ -36,7 +36,7 @@ import {
 import { fill, plural, useStrings } from '@/i18n';
 import { GroupPhoto } from '@/components/GroupPhoto';
 import { GroupTypeTag, useGroupTypeTag } from '@/components/GroupTypeTag';
-import { HeroIconButton } from '@/components/home/HeroControls';
+import { TabIconButton } from '@/components/home/TabHeader';
 import { QuickActionsRow } from '@/components/home/QuickActionsRow';
 import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -106,11 +106,10 @@ export function GroupHeaderRow({
     : cleanLabel(groupLabel(group, members, profileId));
   return (
     <>
-      <HeroIconButton
-        icon={directionalIcon('chevron-back')}
+      <TabIconButton
+        icon={directionalIcon('arrow-back')}
         label={t.common.back}
         onPress={goBack}
-        ink={ink}
       />
       <Pressable
         onPress={() => router.push(`/group/${groupId}/settings`)}
@@ -160,25 +159,22 @@ export function GroupHeaderRow({
       </Pressable>
       <SyncStatusIcon onBrand={!solid} groupId={groupId} ink={ink} />
       {onSearch ? (
-        <HeroIconButton
+        <TabIconButton
           icon="search-outline"
           label={t.group.searchExpenses}
           onPress={onSearch}
-          ink={ink}
         />
       ) : null}
-      <HeroIconButton
+      <TabIconButton
         icon="notifications-outline"
         label={t.activity}
         dot={pendingCount > 0}
         onPress={() => router.push({ pathname: '/activity', params: { group: groupId } })}
-        ink={ink}
       />
-      <HeroIconButton
+      <TabIconButton
         icon="ellipsis-vertical"
         label={t.group.more}
         onPress={onOpenMenu}
-        ink={ink}
       />
     </>
   );

@@ -1871,10 +1871,9 @@ function LedgerGroupScreen() {
                   },
                 ]),
           ]}
-          // Five faces do not share a phone's width evenly with their words
-          // on one line, so the row scrolls rather than stacking each glyph
-          // over its word.
-          scrollable
+          // Up to four faces share the width (glyph over word, nothing clipped);
+          // an event's fifth would not, so only then does the row scroll.
+          scrollable={isEvent && !hasHouseholdHome(groupData)}
         />
       </View>
       {activeTab === Tab.Expenses && visibleExpenses.length > 0 ? (
