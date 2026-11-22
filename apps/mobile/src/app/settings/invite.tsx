@@ -40,7 +40,6 @@ import {
   Screen,
   Skeleton,
   Text,
-  useTabBarClearance,
   useTheme,
   type Theme,
 } from '@waves/ui';
@@ -79,7 +78,6 @@ function refusalText(reason: Extract<ClaimOutcome, { ok: false }>['reason'], t: 
 
 export default function InviteFriendsScreen() {
   const theme = useTheme();
-  const clearance = useTabBarClearance();
   const insets = useSafeAreaInsets();
   const { t, locale } = useStrings();
   const live = useReferralsLive();
@@ -88,9 +86,24 @@ export default function InviteFriendsScreen() {
 
   const mine = useQuery({
     queryKey: ['myReferral', viewerId],
-    enabled: live && viewerId !== null,
+    // The RPC handles guest accounts too. Requiring a viewer id here leaves
+    // TanStack Query in its pending state forever while auth is settling.
+    enabled: live,
+    retry: false,
     staleTime: 60_000,
-    queryFn: fetchMyReferral,
+    queryFn: async () => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          fetchMyReferral(),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error('Referral request timed out')), 8_000);
+          }),
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    },
   });
 
   const [code, setCode] = useState('');
@@ -151,7 +164,7 @@ export default function InviteFriendsScreen() {
     <Screen edges={[]}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: clearance }}
+        contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -268,32 +281,37 @@ export default function InviteFriendsScreen() {
                   </View>
                 </Pressable>
 
-                <View
-                  style={[
-                    panel(theme),
-                    { padding: theme.spacing.md, gap: theme.spacing.sm, overflow: 'hidden' },
-                  ]}
-                >
-                  <Image
-                    source={GIFT_ART}
-                    accessibilityIgnoresInvertColors
-                    importantForAccessibility="no"
-                    accessible={false}
-                    resizeMode="contain"
-                    style={{ position: 'absolute', top: 0, end: 0, width: 88, height: 40 }}
-                  />
-                  <Text variant="subheading">
-                    {friendsJoinedText(data, t.referral.friendsJoined)}
-                  </Text>
-                  {data.pending > 0 ? (
-                    <Text variant="caption" tone="muted">
-                      {plural(locale, data.pending, t.referral.pending)}
+                {data.progressAvailable ? (
+                  <View
+                    style={[
+                      panel(theme),
+                      { padding: theme.spacing.md, gap: theme.spacing.sm, overflow: 'hidden' },
+                    ]}
+                  >
+                    <Image
+                      source={GIFT_ART}
+                      accessibilityIgnoresInvertColors
+                      importantForAccessibility="no"
+                      accessible={false}
+                      resizeMode="contain"
+                      style={{ position: 'absolute', top: 0, end: 0, width: 88, height: 40 }}
+                    />
+                    <Text variant="subheading">
+                      {friendsJoinedText(data, t.referral.friendsJoined)}
                     </Text>
-                  ) : null}
-                </View>
+                    {data.pending > 0 ? (
+                      <Text variant="caption" tone="muted">
+                        {plural(locale, data.pending, t.referral.pending)}
+                      </Text>
+                    ) : null}
+                  </View>
+                ) : null}
               </>
             ) : (
-              <Callout tone="warning">{t.referral.loadError}</Callout>
+              <>
+                <Callout tone="warning">{t.referral.loadError}</Callout>
+                <Button label={t.retry} variant="secondary" onPress={() => void mine.refetch()} />
+              </>
             )}
 
             <View style={{ gap: theme.spacing.sm }}>
@@ -360,7 +378,7 @@ export default function InviteFriendsScreen() {
           importantForAccessibility="no"
           accessible={false}
           resizeMode="cover"
-          style={{ width: '100%', height: 56, marginTop: 4 }}
+          style={{ width: '100%', height: 56, marginTop: 'auto' }}
         />
       </ScrollView>
     </Screen>

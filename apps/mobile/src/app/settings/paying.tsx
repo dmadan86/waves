@@ -90,6 +90,7 @@ function PayingForm() {
   );
   const [handle, setHandle] = useState(profile?.payment_handle ?? profile?.default_vpa ?? '');
   const [status, setStatus] = useState<string | null>(null);
+  const [railGridWidth, setRailGridWidth] = useState(0);
 
   // Changing country changes which rails exist, so the rail drops to that
   // country's default and any handle typed for the old rail is cleared.
@@ -258,6 +259,7 @@ function PayingForm() {
             horizontal
             showsHorizontalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            onLayout={(event) => setRailGridWidth(event.nativeEvent.layout.width)}
             contentContainerStyle={{ gap: theme.spacing.sm }}
           >
             {rails.map((entry) => {
@@ -270,7 +272,7 @@ function PayingForm() {
                   accessibilityLabel={entry.label}
                   onPress={() => setRail(entry.id)}
                   style={({ pressed }) => ({
-                    width: 74,
+                    width: railGridWidth > 0 ? (railGridWidth - theme.spacing.sm * 2) / 3 : 74,
                     height: 72,
                     alignItems: 'center',
                     justifyContent: 'center',
