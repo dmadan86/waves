@@ -29,7 +29,7 @@ export async function sendNudge(target: NudgeTarget, t: UiStrings): Promise<Nudg
  * flight is ignored), `outcome` is the verdict once it lands.
  */
 export function useNudge(target: NudgeTarget): {
-  send: () => void;
+  send: () => Promise<NudgeOutcome | null>;
   pending: boolean;
   outcome: NudgeOutcome | null;
 } {
@@ -39,14 +39,15 @@ export function useNudge(target: NudgeTarget): {
   // A ref, not the `pending` state: two taps in one frame both read the state
   // before it re-renders, and would send two reminders.
   const inFlight = useRef(false);
-  const send = (): void => {
-    if (inFlight.current) return;
+  const send = (): Promise<NudgeOutcome | null> => {
+    if (inFlight.current) return Promise.resolve(null);
     inFlight.current = true;
     setPending(true);
-    void sendNudge(target, t).then((result) => {
+    return sendNudge(target, t).then((result) => {
       inFlight.current = false;
       setPending(false);
       setOutcome(result);
+      return result;
     });
   };
   return { send, pending, outcome };

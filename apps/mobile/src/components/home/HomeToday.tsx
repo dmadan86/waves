@@ -39,6 +39,8 @@ import {
 } from '@/lib/homeToday';
 import { router } from '@/lib/navigation';
 import { useNudge } from '@/lib/nudge';
+import { useUndoableAction } from '@/lib/useUndoableAction';
+import { useToast } from '@/lib/toast';
 
 interface Ledger {
   readonly txns: readonly PersonalTxn[];
@@ -238,7 +240,9 @@ export function NeedsYouCard({
               locale={locale}
               onMarkPaid={async () => {
                 const rule = ledger.recurrings.find((r) => r.id === need.bill?.ruleId);
-                if (rule && need.bill) await post(rule, need.bill.date).catch(() => {});
+                if (rule && need.bill) {
+                  await post(rule, need.bill.date);
+                }
               }}
             />
           ))
@@ -270,6 +274,11 @@ function NeedRow({
     memberId: person?.memberId ?? '',
     currency: person?.currency ?? '',
   });
+  const toast = useToast();
+  const undoable = useUndoableAction();
+  const nudgeKey = `nudge:${person?.groupId ?? ''}:${person?.memberId ?? ''}`;
+  const remindPending = undoable.isPending(nudgeKey);
+  const paidPending = bill ? undoable.isPending(`paid:${bill.ruleId}:${bill.date}`) : false;
   const [paying, setPaying] = useState(false);
   const money = (amount: bigint, currency: string): string =>
     hidden ? BALANCE_MASK : plainAmount(amount, currency, locale);
@@ -296,11 +305,18 @@ function NeedRow({
     tint = need.kind === 'overdue' ? theme.tint.coral : theme.tint.mint;
     icon = need.kind === 'overdue' ? 'alert-circle-outline' : 'home-outline';
     if (need.action === 'markPaid') {
-      label = h.markPaid;
-      onPress = () => {
-        setPaying(true);
-        void onMarkPaid().finally(() => setPaying(false));
-      };
+      label = paidPending ? t.voice.autoUndo : h.markPaid;
+      const paidKey = `paid:${bill.ruleId}:${bill.date}`;
+      onPress = paidPending
+        ? () => undoable.undo(paidKey)
+        : () => {
+            setPaying(true);
+            undoable.run(() => onMarkPaid().catch(() => {}), {
+              key: paidKey,
+              message: fill(t.common.markedPaid, { title: bill.title }),
+            });
+            setPaying(false);
+          };
     } else {
       label = h.pay;
       onPress = () => router.push(`/group/${bill.groupId}`);
@@ -315,9 +331,24 @@ function NeedRow({
     if (need.kind === 'owed') {
       title = fill(h.owesYou, { name: person.name, amount });
       tint = theme.tint.peach;
-      label = nudge.outcome?.ok ? h.reminded : h.remind;
+      label = remindPending ? t.voice.autoUndo : nudge.outcome?.ok ? h.reminded : h.remind;
       onPress = person.groupId
-        ? nudge.send
+        ? remindPending
+          ? () => undoable.undo(nudgeKey)
+          : () =>
+              undoable.run(
+                async () => {
+                  const result = await nudge.send();
+                  if (result)
+                    toast.show(
+                      result.ok && result.label !== t.people.remindedToday
+                        ? fill(t.common.reminderSent, { name: person.name })
+                        : result.label,
+                      result.ok ? 'positive' : 'negative',
+                    );
+                },
+                { key: nudgeKey, message: fill(t.common.remindingName, { name: person.name }) },
+              )
         : () =>
             router.push(
               `/friends/person/${encodeURIComponent(person.personKey)}?name=${encodeURIComponent(person.name)}` as never,
@@ -388,7 +419,11 @@ function NeedRow({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}, ${title}`}
-        disabled={paying || nudge.pending || (need.kind === 'owed' && nudge.outcome?.ok === true)}
+        disabled={
+          paying ||
+          nudge.pending ||
+          (need.kind === 'owed' && nudge.outcome?.ok === true && !remindPending)
+        }
         onPress={onPress}
         hitSlop={6}
         style={({ pressed }) => ({

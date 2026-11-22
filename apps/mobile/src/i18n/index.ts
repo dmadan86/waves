@@ -908,6 +908,10 @@ export interface UiStrings {
     loading: string;
     close: string;
     cancel: string;
+    cancelled: string;
+    remindingName: string;
+    reminderSent: string;
+    markedPaid: string;
     save: string;
     edit: string;
     remove: string;
@@ -9485,6 +9489,10 @@ const en: UiStrings = {
     loading: 'Loading…',
     close: 'Close',
     cancel: 'Cancel',
+    cancelled: 'Cancelled',
+    remindingName: 'Reminding {name}…',
+    reminderSent: 'Reminder sent to {name}',
+    markedPaid: 'Marked {title} paid',
     save: 'Save',
     edit: 'Edit',
     remove: 'Remove',
@@ -17564,6 +17572,10 @@ const ta: UiStrings = {
     loading: 'ஏற்றுகிறது…',
     close: 'மூடு',
     cancel: 'ரத்து',
+    cancelled: 'ரத்து செய்யப்பட்டது',
+    remindingName: '{name}-க்கு நினைவூட்டுகிறது…',
+    reminderSent: '{name}-க்கு நினைவூட்டல் அனுப்பப்பட்டது',
+    markedPaid: '{title} செலுத்தப்பட்டதாகக் குறிக்கப்பட்டது',
     save: 'சேமி',
     edit: 'திருத்து',
     remove: 'நீக்கு',
@@ -25841,6 +25853,10 @@ const hi: UiStrings = {
     loading: 'लोड हो रहा है…',
     close: 'बंद करें',
     cancel: 'रद्द करें',
+    cancelled: 'रद्द किया गया',
+    remindingName: '{name} को याद दिला रहे हैं…',
+    reminderSent: '{name} को रिमाइंडर भेजा गया',
+    markedPaid: '{title} को चुकता चिह्नित किया',
     save: 'सेव करें',
     edit: 'बदलें',
     remove: 'हटाएँ',
@@ -33943,6 +33959,10 @@ const ar: UiStrings = {
     loading: 'جارٍ التحميل…',
     close: 'إغلاق',
     cancel: 'إلغاء',
+    cancelled: 'تم الإلغاء',
+    remindingName: 'جارٍ تذكير {name}…',
+    reminderSent: 'تم إرسال التذكير إلى {name}',
+    markedPaid: 'تم تحديد {title} كمدفوع',
     save: 'حفظ',
     edit: 'تعديل',
     remove: 'إزالة',

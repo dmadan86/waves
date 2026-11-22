@@ -21,6 +21,8 @@ import { isDemoGroupId } from '@/demo/ids';
 import { fill, useStrings } from '@/i18n';
 import { channelPlan, ghostReminderMessage } from '@/lib/ghostReminder';
 import { useNudge, type NudgeTarget } from '@/lib/nudge';
+import { useUndoableAction } from '@/lib/useUndoableAction';
+import { useToast } from '@/lib/toast';
 import type { NudgeOutcome } from '@/lib/nudgeOutcome';
 import {
   parseRemindChannel,
@@ -97,6 +99,8 @@ export function useRemind(target: RemindTarget): UseRemind {
     memberId: target.memberId,
     currency: target.currency,
   });
+  const undoable = useUndoableAction();
+  const toast = useToast();
   const [visible, setVisible] = useState(false);
   const [lastUsed, setLastUsed] = useState<RemindChannel | null>(null);
   const [sentKey, setSentKey] = useState<string | null>(null);
@@ -159,7 +163,19 @@ export function useRemind(target: RemindTarget): UseRemind {
   const run = (channel: RemindChannel): void => {
     if (channel === RemindChannel.Waves) {
       remember(channel);
-      nudge.send();
+      undoable.run(
+        async () => {
+          const result = await nudge.send();
+          if (result)
+            toast.show(
+              result.ok && result.label !== t.people.remindedToday
+                ? fill(t.common.reminderSent, { name: target.name })
+                : result.label,
+              result.ok ? 'positive' : 'negative',
+            );
+        },
+        { key: `nudge:${key}`, message: fill(t.common.remindingName, { name: target.name }) },
+      );
     } else {
       sendExternal(channel);
     }
@@ -280,6 +296,6 @@ export function useRemind(target: RemindTarget): UseRemind {
     sheet,
     outcome: nudge.outcome,
     reminded: Boolean(nudge.outcome) || sentKey === key || remindedThisSession.has(key),
-    pending: nudge.pending || externalPending,
+    pending: nudge.pending || externalPending || undoable.isPending(`nudge:${key}`),
   };
 }
