@@ -510,9 +510,7 @@ function noteToken(word: string): string {
  * written form and the looked-up form cannot drift apart. Spelling "மற்றும்"
  * out here instead would put an entry in the set that no lookup can ever reach.
  */
-const NOTE_CONJUNCTIONS: ReadonlySet<string> = new Set(
-  ['and', 'और', 'மற்றும்', 'و'].map(noteToken),
-);
+const NOTE_CONJUNCTIONS: ReadonlySet<string> = new Set(['and', 'और', 'மற்றும்', 'و'].map(noteToken));
 
 /**
  * The glue a description is allowed to keep between two things: the list
