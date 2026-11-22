@@ -114,14 +114,21 @@ describe('parseMyReferral', () => {
       rewarded: 2,
       creditsEarned: 100,
       friendsCap: 10,
+      progressAvailable: true,
     });
   });
 
-  it('refuses a guest answer, a bad code and missing numbers', () => {
+  it('keeps a valid code when progress fields are missing', () => {
+    expect(parseMyReferral({ ok: true, code: CODE, invited: 2 })).toMatchObject({
+      code: CODE,
+      progressAvailable: false,
+    });
+  });
+
+  it('refuses a guest answer and a bad code', () => {
     expect(parseMyReferral({ ok: false, reason: 'ACCOUNT_REQUIRED' })).toBeNull();
     expect(parseMyReferral({ ...good, code: 'x' })).toBeNull();
-    expect(parseMyReferral({ ...good, credits_earned: undefined })).toBeNull();
-    expect(parseMyReferral({ ...good, pending: -1 })).toBeNull();
+    expect(parseMyReferral({ ...good, pending: -1 })?.progressAvailable).toBe(false);
     expect(parseMyReferral(null)).toBeNull();
     expect(parseMyReferral('nope')).toBeNull();
   });
