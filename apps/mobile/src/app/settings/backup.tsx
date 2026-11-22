@@ -1103,7 +1103,7 @@ export default function BackupSettingsScreen() {
                     carries the same sentence it would have on a list. */}
                 {checklist ? (
                   <Row style={{ justifyContent: 'space-between' }}>
-                    <Text variant="micro" tone="faint">
+                    <Text variant="micro" tone="faint" style={{ flexShrink: 1 }}>
                       {t.backup.setupSection}
                     </Text>
                     <Text variant="micro" tone="faint">
