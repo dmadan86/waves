@@ -172,7 +172,7 @@ function PersonalTransactionsScreenBody() {
   ]);
 
   const signed = (amount: bigint, currency: string, income: boolean): string =>
-    `${income ? '+' : '-'}${format(money(amount < 0n ? -amount : amount, currency), { locale })}`;
+    `${income ? '+' : '-'}${format(money(amount < 0n ? -amount : amount, currency), { locale, trimZeros: true })}`;
 
   const tabs: {
     value: Tab;
@@ -463,7 +463,7 @@ function PersonalTransactionsScreenBody() {
                     }}
                   >
                     {item.net === 0n
-                      ? format(money(0n, item.currency), { locale })
+                      ? format(money(0n, item.currency), { locale, trimZeros: true })
                       : signed(item.net, item.currency, income)}
                   </Text>
                 ) : null}

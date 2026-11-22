@@ -33,7 +33,8 @@ export function HouseholdHome({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const cur = currency as CurrencyCode;
-  const amountText = (minor: bigint): string => format(money(minor, cur), { locale });
+  const amountText = (minor: bigint): string =>
+    format(money(minor, cur), { locale, trimZeros: true });
   const progress = monthProgress(spent, budget);
   const month = new Intl.DateTimeFormat(locale, { month: 'long' }).format(new Date());
   const active = rules.filter((rule) => rule.status === 'active');

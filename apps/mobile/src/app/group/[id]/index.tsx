@@ -224,7 +224,7 @@ function RemindChip({
     joinToken,
     name,
     groupName,
-    amountText: format(money(amount, currency as CurrencyCode), { locale }),
+    amountText: format(money(amount, currency as CurrencyCode), { locale, trimZeros: true }),
   });
   const { open } = remind;
   useEffect(() => {
@@ -452,7 +452,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
               minor: paid.amount > 0n ? paid.amount : BigInt(version.amount),
               currency: version.currency,
             },
-            { locale },
+            { locale, trimZeros: true },
           ).text,
         });
   // What a foreign bill came to in the group's own money, beside what was
@@ -462,7 +462,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   // for a foreign one nobody has given a rate yet.
   const converted = version ? convertedTotal(version, groupCurrency) : null;
   const paidLineWithRate = converted
-    ? `${paidLine} (${formatParts(converted, { locale }).text})`
+    ? `${paidLine} (${formatParts(converted, { locale, trimZeros: true }).text})`
     : paidLine;
   // What this one expense did to *your* balance: what you put in
   // beyond your share (you lent), or your share of what somebody
@@ -507,8 +507,10 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   // A foreign bill says its stake (or "no rate yet") in the same neutral pill.
   const pillLabel = foreignStake
     ? stakeHere
-      ? formatParts({ minor: stake < 0n ? -stake : stake, currency: version.currency }, { locale })
-          .text
+      ? formatParts(
+          { minor: stake < 0n ? -stake : stake, currency: version.currency },
+          { locale, trimZeros: true },
+        ).text
       : t.expense.noRateShort
     : caption.label;
   const pillKind = foreignStake ? 'neutral' : caption.kind;
@@ -520,8 +522,10 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
   // nothing priced on the right announces nothing extra either.
   const amountA11y =
     version && stake !== null && stake !== 0n
-      ? formatParts({ minor: stake < 0n ? -stake : stake, currency: version.currency }, { locale })
-          .text
+      ? formatParts(
+          { minor: stake < 0n ? -stake : stake, currency: version.currency },
+          { locale, trimZeros: true },
+        ).text
       : null;
   const rowLabel = [
     title,
@@ -531,7 +535,7 @@ const ExpenseFeedRow = memo(function ExpenseFeedRow({
         ? t.expense.fresh.editedA11y
         : null,
     version ? directionLabel : null,
-    stakeHere ? formatParts(stakeHere, { locale }).text : null,
+    stakeHere ? formatParts(stakeHere, { locale, trimZeros: true }).text : null,
     amountA11y,
     dateStamp,
   ]
@@ -1457,7 +1461,7 @@ function LedgerGroupScreen() {
             {plural(locale, item.count, t.group.billCount)}
           </Text>
           <Text style={{ fontWeight: '600', fontVariant: ['tabular-nums'] }}>
-            {formatParts({ minor: item.total, currency }, { locale }).text}
+            {formatParts({ minor: item.total, currency }, { locale, trimZeros: true }).text}
           </Text>
         </Pressable>
       );

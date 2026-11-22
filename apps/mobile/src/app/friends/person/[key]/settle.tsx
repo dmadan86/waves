@@ -366,6 +366,7 @@ function SettleCard({
         </View>
         <View style={{ alignItems: 'flex-end', maxWidth: '40%' }}>
           <MoneyText
+            exact
             amount={total.net}
             currency={total.currency as CurrencyCode}
             locale={locale}
@@ -375,6 +376,7 @@ function SettleCard({
           />
           {rest.map((line) => (
             <MoneyText
+              exact
               key={line.currency}
               amount={line.net}
               currency={line.currency as CurrencyCode}

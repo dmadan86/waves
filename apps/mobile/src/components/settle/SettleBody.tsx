@@ -1121,6 +1121,7 @@ function PersonTile({
         >
           {amounts.map((amount) => (
             <MoneyText
+              exact
               key={amount.currency}
               amount={amount.minor}
               currency={amount.currency as CurrencyCode}
@@ -1306,6 +1307,7 @@ function RatelessTile({
             </Text>
           </View>
           <MoneyText
+            exact
             amount={amount}
             currency={currency as CurrencyCode}
             locale={locale}
@@ -1419,6 +1421,7 @@ function OtherTile({
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <MoneyText
+              exact
               amount={amount}
               currency={currency as CurrencyCode}
               locale={locale}

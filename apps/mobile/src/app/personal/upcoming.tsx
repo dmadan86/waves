@@ -93,7 +93,7 @@ export default function PersonalUpcomingScreen() {
     tab === 'recurring' && !card ? recurringRows(ledger.recurrings, currency, today) : [];
 
   const fmt = (amount: bigint, cur: string): string =>
-    hidden ? BALANCE_MASK : format(money(amount, cur), { locale });
+    hidden ? BALANCE_MASK : format(money(amount, cur), { locale, trimZeros: true });
   const count = (n: number): string => (hidden ? '' : ` (${n})`);
   const dayName = (iso: string): string => {
     try {
