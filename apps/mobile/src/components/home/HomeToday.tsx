@@ -5,7 +5,7 @@
 
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Card, iconSize, Row, Text, useTheme } from '@waves/ui';
 import {
@@ -345,6 +345,8 @@ function NeedRow({
 interface Chip {
   readonly key: string;
   readonly top: string;
+  /** The day, ISO, for the date badge. */
+  readonly iso: string;
   readonly title: string;
   readonly sub: string;
   readonly emoji: keyof typeof Ionicons.glyphMap | null;
@@ -368,12 +370,14 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
     .sort((a, b) => a.inDays - b.inDays || (a.key < b.key ? -1 : 1))
     .slice(0, 6);
   const chips: Chip[] = rows.map((row) => {
-    const top = shortDate(row.date ?? ledger.today, locale).toUpperCase();
+    const iso = row.date ?? ledger.today;
+    const top = shortDate(iso, locale).toUpperCase();
     if (row.item) {
       const item = row.item;
       return {
         key: row.key,
         top,
+        iso,
         title: titleOf(item, t.dates),
         sub: subtitleOf(item, t.dates, locale),
         emoji: ICON_FOR[item.kind] ?? null,
@@ -386,6 +390,7 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
     return {
       key: row.key,
       top,
+      iso,
       title: row.title || sourceLabel(row.category ?? null) || t.personal.expense,
       sub: hidden
         ? BALANCE_MASK
@@ -395,9 +400,16 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
     };
   });
 
+  // A short list, nearest first; the full view is one tap away.
+  const shown = chips.slice(0, COMING_UP_ROWS);
+
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      <CardTitle title={t.homeToday.comingUp}>
+      <CardTitle
+        title={t.homeToday.comingUp}
+        action={t.homeToday.seeAll}
+        onAction={() => router.push('/personal/upcoming')}
+      >
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t.homeToday.addReminder}
@@ -416,48 +428,68 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
           <Ionicons name="add" size={iconSize.md} color={theme.color.brand} />
         </Pressable>
       </CardTitle>
-      {chips.length ? (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: theme.spacing.sm }}
-        >
-          {chips.map((chip) => (
-            <Pressable
-              key={chip.key}
-              accessibilityRole="button"
-              accessibilityLabel={`${chip.top}, ${chip.title}, ${chip.sub}`}
-              onPress={chip.onPress}
-              style={({ pressed }) => ({
-                minWidth: 124,
-                maxWidth: 190,
-                paddingVertical: theme.spacing.sm,
-                paddingHorizontal: theme.spacing.md,
-                borderRadius: theme.radius.md,
-                borderWidth: 1,
-                borderColor: theme.color.border,
-                backgroundColor: theme.color.surface,
-                gap: 1,
-                opacity: pressed ? 0.7 : 1,
-              })}
-            >
-              <Text variant="micro" tone="muted" style={{ fontWeight: '700' }}>
-                {chip.top}
-              </Text>
-              <Row style={{ alignItems: 'center', gap: 4 }}>
-                {chip.emoji ? (
-                  <Ionicons name={chip.emoji} size={iconSize.sm} color={theme.color.brand} />
-                ) : null}
-                <Text numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1 }}>
-                  {chip.title}
-                </Text>
-              </Row>
-              <Text variant="caption" tone="muted" numberOfLines={1}>
-                {chip.sub}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
+      {shown.length ? (
+        <Card style={{ padding: 0, overflow: 'hidden' }}>
+          {shown.map((chip, index) => {
+            // Day and month formatted apart: locales disagree on their order.
+            const when = new Date(`${chip.iso}T12:00:00`);
+            const month = when.toLocaleDateString(locale, { month: 'short' }).toUpperCase();
+            const day = when.toLocaleDateString(locale, { day: 'numeric' });
+            return (
+              <Pressable
+                key={chip.key}
+                accessibilityRole="button"
+                accessibilityLabel={`${chip.top}, ${chip.title}, ${chip.sub}`}
+                onPress={chip.onPress}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: theme.spacing.md,
+                  paddingVertical: theme.spacing.sm,
+                  paddingHorizontal: theme.spacing.md,
+                  borderTopWidth: index === 0 ? 0 : 1,
+                  borderTopColor: theme.color.border,
+                  opacity: pressed ? 0.7 : 1,
+                })}
+              >
+                <View
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: theme.radius.md,
+                    backgroundColor: theme.color.brandSoft,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
+                    {month}
+                  </Text>
+                  <Text tone="brand" style={{ fontWeight: '800', lineHeight: 18 }}>
+                    {day}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
+                  <Row style={{ alignItems: 'center', gap: 4 }}>
+                    {chip.emoji ? (
+                      <Ionicons
+                        name={chip.emoji}
+                        size={iconSize.sm}
+                        color={theme.color.textMuted}
+                      />
+                    ) : null}
+                    <Text numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1 }}>
+                      {chip.title}
+                    </Text>
+                  </Row>
+                  <Text variant="caption" tone="muted" numberOfLines={1}>
+                    {chip.sub}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </Card>
       ) : (
         <Text variant="caption" tone="muted">
           {t.dates.empty}
@@ -466,3 +498,6 @@ export function ComingUpChips({ ledger, hidden }: { ledger: Ledger; hidden: bool
     </View>
   );
 }
+
+/** How many upcoming items Home lists before "See all". */
+const COMING_UP_ROWS = 4;
