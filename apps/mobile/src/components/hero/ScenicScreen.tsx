@@ -14,7 +14,13 @@
  */
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { BlurTargetView } from 'expo-blur';
-import { Animated, View, type ViewStyle } from 'react-native';
+import {
+  Animated,
+  View,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Row, useTabBarClearance, useTheme } from '@waves/ui';
@@ -32,6 +38,8 @@ export function ScenicScreen({
   children,
   refreshControl,
   bodyStyle,
+  list,
+  compact = false,
 }: {
   background: (geometry: {
     height: number;
@@ -45,6 +53,18 @@ export function ScenicScreen({
   children?: ReactNode;
   refreshControl?: React.ReactElement<any>;
   bodyStyle?: ViewStyle;
+  /**
+   * For screens whose body is a virtualised list that cannot sit inside a
+   * ScrollView: draw the list yourself, wire `onScroll` to it, and put `top`
+   * (the header's room, then the card) at the head of its content. Replaces
+   * `children` and the built-in ScrollView.
+   */
+  list?: (parts: {
+    onScroll: (event: NativeSyntheticEvent<NativeScrollEvent>) => void;
+    top: ReactNode;
+  }) => ReactNode;
+  /** No card is drawn (a tab that owns its own scrolling): the header stays solid. */
+  compact?: boolean;
 }) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
@@ -53,7 +73,7 @@ export function ScenicScreen({
   const [headerHeight, setHeaderHeight] = useState(insets.top + 56);
   const [greetingHeight, setGreetingHeight] = useState(46);
   const [cardHeight, setCardHeight] = useState(280);
-  const sceneHeight = headerHeight + cardHeight * SCENE_INTO_CARD;
+  const sceneHeight = headerHeight + (compact ? 0 : cardHeight * SCENE_INTO_CARD);
   const [scrollY] = useState(() => new Animated.Value(0));
   const [headerOpaque, setHeaderOpaque] = useState(false);
   const fade = (from: number, to: number) =>
@@ -65,6 +85,9 @@ export function ScenicScreen({
     const listener = scrollY.addListener(({ value }) => setHeaderOpaque(value >= 24));
     return () => scrollY.removeListener(listener);
   }, [scrollY]);
+  useEffect(() => {
+    if (list) scrollY.setValue(compact ? 24 : 0);
+  }, [list, compact, scrollY]);
   useHeroStatusBar(headerOpaque && theme.scheme !== 'dark' ? 'dark' : 'light');
 
   const rowStyle = { alignItems: 'center', gap: theme.spacing.md } as const;
@@ -83,25 +106,45 @@ export function ScenicScreen({
           pageColor: theme.color.bg,
         })}
       </BlurTargetView>
-      <Animated.ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: clearance }}
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-          useNativeDriver: true,
-        })}
-        scrollEventThrottle={16}
-        refreshControl={refreshControl}
-      >
-        {/* Room for the fixed header row; the card sits right under it. */}
-        <View style={{ height: headerHeight }} />
-        <View style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.xs, ...bodyStyle }}>
-          <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
-            {card(sceneRef)}
+      {list ? (
+        list({
+          onScroll: (event) => scrollY.setValue(event.nativeEvent.contentOffset.y),
+          top: (
+            <>
+              <View style={{ height: headerHeight }} />
+              {compact ? null : (
+                <View style={{ paddingHorizontal: theme.spacing.lg }}>
+                  <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
+                    {card(sceneRef)}
+                  </View>
+                </View>
+              )}
+            </>
+          ),
+        })
+      ) : (
+        <Animated.ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: clearance }}
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+            useNativeDriver: true,
+          })}
+          scrollEventThrottle={16}
+          refreshControl={refreshControl}
+        >
+          {/* Room for the fixed header row; the card sits right under it. */}
+          <View style={{ height: headerHeight }} />
+          <View
+            style={{ paddingHorizontal: theme.spacing.lg, gap: theme.spacing.xs, ...bodyStyle }}
+          >
+            <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
+              {card(sceneRef)}
+            </View>
+            {children}
           </View>
-          {children}
-        </View>
-      </Animated.ScrollView>
+        </Animated.ScrollView>
+      )}
       <View
         onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
         style={{

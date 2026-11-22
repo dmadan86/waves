@@ -44,6 +44,11 @@ export function HomeBalanceCard({
   footer,
   blurTarget,
   catchUp,
+  label: labelOverride,
+  amountText,
+  labelAccessory,
+  sides,
+  extra,
 }: {
   net: bigint;
   /** Everything owed to you, and everything you owe, before the net. */
@@ -67,18 +72,30 @@ export function HomeBalanceCard({
   blurTarget?: RefObject<View | null>;
   /** First sync still handing over groups: say so instead of claiming a balance. */
   catchUp?: { total: number; loaded: number } | null;
+  /** Other screens' headline wording ("You are owed", "This month"); Home's by default. */
+  label?: string;
+  /** A ready-made headline figure (masked here while hidden) in place of `net`. */
+  amountText?: string;
+  /** Drawn beside the label, e.g. a "pending" badge. */
+  labelAccessory?: ReactNode;
+  /** Replaces the lent / owe pair; `null` leaves it out. */
+  sides?: ReactNode;
+  /** Extra block between the figures and the footer. */
+  extra?: ReactNode;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const label = catchUp
-    ? t.homeDash.downloadingGroups
-        .replace('{loaded}', String(catchUp.loaded))
-        .replace('{total}', String(catchUp.total))
-    : net === 0n
-      ? t.homeDash.totalSettled
-      : net > 0n
-        ? t.homeDash.totalOwed
-        : t.homeDash.totalOwe;
+  const label =
+    labelOverride ??
+    (catchUp
+      ? t.homeDash.downloadingGroups
+          .replace('{loaded}', String(catchUp.loaded))
+          .replace('{total}', String(catchUp.total))
+      : net === 0n
+        ? t.homeDash.totalSettled
+        : net > 0n
+          ? t.homeDash.totalOwed
+          : t.homeDash.totalOwe);
   const figure = net < 0n ? -net : net;
 
   return (
@@ -86,7 +103,7 @@ export function HomeBalanceCard({
       <Row
         style={{
           height: 34,
-          width: catchUp ? '100%' : '50%',
+          width: catchUp || labelAccessory ? '100%' : '50%',
           alignItems: 'center',
           paddingStart: theme.spacing.lg,
           paddingEnd: 14,
@@ -110,6 +127,7 @@ export function HomeBalanceCard({
           />
         </Pressable>
         {settling || catchUp ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
+        {labelAccessory ?? null}
       </Row>
       <View
         style={{
@@ -132,6 +150,15 @@ export function HomeBalanceCard({
               <Text style={AMOUNT_STYLE} numberOfLines={1}>
                 {BALANCE_MASK}
               </Text>
+            ) : amountText !== undefined ? (
+              <Text
+                style={AMOUNT_STYLE}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >
+                {amountText}
+              </Text>
             ) : (
               <SplitMoney
                 amount={figure}
@@ -146,36 +173,41 @@ export function HomeBalanceCard({
           </View>
         </Row>
 
-        <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
-          <BalanceSide
-            iconDisc
-            uniformDecimals
-            icon="arrow-up"
-            color={theme.color.positive}
-            amount={owed}
-            label={t.homeDash.youLent}
-            detail={plural(locale, owedGroups, t.homeDash.acrossGroups)}
-            currency={currency}
-            locale={locale}
-            hidden={hidden}
-            loading={loading || !!catchUp}
-          />
-          <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
-          <BalanceSide
-            iconDisc
-            uniformDecimals
-            icon="arrow-down"
-            color={theme.color.negative}
-            amount={owing}
-            label={t.homeDash.youOwe}
-            detail={plural(locale, owingGroups, t.homeDash.acrossGroups)}
-            currency={currency}
-            locale={locale}
-            hidden={hidden}
-            loading={loading || !!catchUp}
-            trailing
-          />
-        </Row>
+        {sides === undefined ? (
+          <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
+            <BalanceSide
+              iconDisc
+              uniformDecimals
+              icon="arrow-up"
+              color={theme.color.positive}
+              amount={owed}
+              label={t.homeDash.youLent}
+              detail={plural(locale, owedGroups, t.homeDash.acrossGroups)}
+              currency={currency}
+              locale={locale}
+              hidden={hidden}
+              loading={loading || !!catchUp}
+            />
+            <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
+            <BalanceSide
+              iconDisc
+              uniformDecimals
+              icon="arrow-down"
+              color={theme.color.negative}
+              amount={owing}
+              label={t.homeDash.youOwe}
+              detail={plural(locale, owingGroups, t.homeDash.acrossGroups)}
+              currency={currency}
+              locale={locale}
+              hidden={hidden}
+              loading={loading || !!catchUp}
+              trailing
+            />
+          </Row>
+        ) : (
+          sides
+        )}
+        {extra ?? null}
       </View>
       {footer ?? null}
     </GlassSurface>
