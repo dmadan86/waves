@@ -1,8 +1,9 @@
 import { useMemo } from 'react';
 
 import type { OverflowMenuItem } from '@/components/OverflowMenu';
-import { useGroups } from '@/data/hooks';
+import { useGroups, useHomeSummary } from '@/data/hooks';
 import { groupLabel } from '@/data/types';
+import { useViewerId } from '@/lib/auth';
 import { router, switchTab } from '@/lib/navigation';
 
 /** The shared Personal/Shared switcher rows, in the order groups arrive. */
@@ -11,6 +12,8 @@ export function useSpaceSwitchItems(
   labels: { shared: string; personal: string },
 ) {
   const groups = useGroups();
+  const viewerId = useViewerId();
+  const summary = useHomeSummary(viewerId);
   const shared = current === 'shared';
 
   return useMemo<OverflowMenuItem[]>(() => {
@@ -30,12 +33,12 @@ export function useSpaceSwitchItems(
         icon: (group.type === 'couple'
           ? 'heart-outline'
           : 'home-outline') as OverflowMenuItem['icon'],
-        label: groupLabel(group),
+        label: groupLabel(group, summary.membersFor(group.id), viewerId),
         onPress: () => router.push(`/group/${group.id}`),
       }));
 
     return shared
       ? [sharedItem, personalItem, ...groupItems]
       : [personalItem, ...groupItems, sharedItem];
-  }, [groups.data, labels.personal, labels.shared, shared]);
+  }, [groups.data, labels.personal, labels.shared, shared, summary, viewerId]);
 }

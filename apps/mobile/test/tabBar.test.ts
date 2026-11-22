@@ -156,6 +156,9 @@ it.each(['transactions', 'recurring', 'spending', 'budgets', 'loans', 'entry', '
     expect(isPersonalMode(['personal', screen])).toBe(true);
   },
 );
+it.each(['investments', 'rentals'])('uses Personal mode for %s', (route) => {
+  expect(isPersonalMode([route])).toBe(true);
+});
 it.each([
   ['captures', 'statement'],
   ['settings', 'categories'],

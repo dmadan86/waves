@@ -117,7 +117,12 @@ export function isPersonalMode(segments: readonly string[]): boolean {
   if (root === 'captures' && screen === 'statement') return true;
   // Categories is a personal-ledger feature opened from Overview.
   if (root === 'settings' && screen === 'categories') return true;
-  return (root === '(tabs)' && screen === 'me') || root === 'personal';
+  return (
+    (root === '(tabs)' && screen === 'me') ||
+    root === 'personal' ||
+    root === 'investments' ||
+    root === 'rentals'
+  );
 }
 
 /** Highlight the owning Personal destination, leaving standalone features unselected. */
