@@ -4926,6 +4926,8 @@ export interface UiStrings {
     settleAllGroups: string;
     /** "Across 4 groups", under each side of the balance card. */
     acrossGroups: PluralForms;
+    /** "From 3 people", under each side of the Friends balance card. */
+    acrossPeople: PluralForms;
   };
   /** The rotating "did you know" tips card on the dashboard — one useful,
    *  app-specific hint at a time, dismissible for good. */
@@ -13438,6 +13440,7 @@ const en: UiStrings = {
     settleMeta: '{members} · Last activity {when}',
     settleAllGroups: 'All groups',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
+    acrossPeople: { one: 'From {n} person', other: 'From {n} people' },
   },
   tips: {
     label: 'Tip',
@@ -21581,6 +21584,7 @@ const ta: UiStrings = {
     settleMeta: '{members} · கடைசி செயல்பாடு {when}',
     settleAllGroups: 'எல்லா குழுக்களும்',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
+    acrossPeople: { one: '{n} நபரிடம்', other: '{n} நபர்களிடம்' },
   },
   tips: {
     label: 'உதவிக்குறிப்பு',
@@ -29796,6 +29800,7 @@ const hi: UiStrings = {
     settleMeta: '{members} · आखिरी गतिविधि {when}',
     settleAllGroups: 'सभी समूह',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
+    acrossPeople: { one: '{n} व्यक्ति से', other: '{n} लोगों से' },
   },
   tips: {
     label: 'सुझाव',
@@ -38093,6 +38098,14 @@ const ar: UiStrings = {
       few: 'في {n} مجموعات',
       many: 'في {n} مجموعة',
       other: 'في {n} مجموعة',
+    },
+    acrossPeople: {
+      zero: 'من {n} شخص',
+      one: 'من شخص واحد',
+      two: 'من شخصين',
+      few: 'من {n} أشخاص',
+      many: 'من {n} شخصًا',
+      other: 'من {n} شخص',
     },
   },
   tips: {

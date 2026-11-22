@@ -11,6 +11,7 @@ import {
   currencyTotals,
   directionGroups,
   personDirection,
+  personDirectionTotals,
   rowAction,
   shownAmounts,
   type CurrencyTotal,
@@ -254,5 +255,25 @@ describe('rowAction', () => {
     expect(
       rowAction({ is_ghost: true, entries: [entry('500', 'g1'), entry('-20', 'g2')] }),
     ).toBeNull();
+  });
+});
+
+describe('personDirectionTotals', () => {
+  it('nets each person across groups, then splits by direction per currency', () => {
+    const r = (person_key: string, currency: string, net: string) => ({ person_key, currency, net });
+    expect(
+      personDirectionTotals([
+        r('a', 'INR', '1000'),
+        r('a', 'INR', '-400'),
+        r('b', 'INR', '-300'),
+        r('c', 'USD', '50'),
+        r('d', 'VND', '-18000'),
+        r('e', 'INR', '200'),
+        r('e', 'INR', '-200'),
+      ]),
+    ).toEqual({
+      owed: [total('INR', 600n), total('USD', 50n)],
+      owing: [total('VND', -18000n), total('INR', -300n)],
+    });
   });
 });

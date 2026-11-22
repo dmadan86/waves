@@ -1,3 +1,4 @@
+import { otherCurrencyChips } from '@/data/totals';
 import { useQueryClient } from '@tanstack/react-query';
 import { withScenic } from '@/components/ScenicScope';
 import { adGateQuery } from '@/lib/adGateQuery';
@@ -403,6 +404,9 @@ function HomeScreen() {
         }
       : liveHeadline;
 
+  // The other currencies, as chips under each side (nothing while the stored snapshot stands in).
+  const chips = showStale && stored ? { owed: [], owing: [] } : otherCurrencyChips(summary.totals, headline.currency);
+
   // Which photograph the hero wears: the clock's (and region's), or the one
   // picked on the Background screen.
   const hero = useHomeHero();
@@ -618,6 +622,8 @@ function HomeScreen() {
               owing={headline.owing}
               owedGroups={owedGroups}
               owingGroups={owingGroups}
+              owedChips={chips.owed}
+              owingChips={chips.owing}
               currency={headline.currency}
               locale={locale}
               hidden={balanceHidden || !balanceReady}

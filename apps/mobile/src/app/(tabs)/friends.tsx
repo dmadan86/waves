@@ -63,7 +63,8 @@ import { useAuth } from '@/lib/auth';
 import {
   commonOnlyGroupId,
   currencyTotals,
-  directionGroups,
+  personCountByDirection,
+  personDirectionTotals,
   personDirection,
   rowAction,
   shownAmounts,
@@ -928,18 +929,18 @@ function FriendsBalanceCard({
   footer: React.ReactNode;
 }): React.JSX.Element {
   const theme = useTheme();
-  const deck = directionGroups(totals);
-  // The two sides of the row, each null when nobody stands in that direction
-  // (which still draws as a zero, the way Home's own two sides always draw).
-  const owedGroup = deck.find((group) => group.owed) ?? null;
-  const owingGroup = deck.find((group) => !group.owed) ?? null;
+  // Same two sides Home draws ("You lent" / "You owe"), counted per person:
+  // each is its direction's biggest currency large, the rest as chips.
+  const { owed, owing } = personDirectionTotals(rows);
+  const [owedHead, ...owedRest] = owed;
+  const [owingHead, ...owingRest] = owing;
   const fallbackCurrency = totals[0]?.currency ?? 'INR';
-
-  // A side states one currency large (its direction's biggest, ADR-003); the
-  // direction's other currencies ride beneath it as chips with their real
-  // amounts (`BalanceSide` fits as many as the line allows, then "+N").
-  const owedChips = owedGroup?.rest.map((c) => ({ amount: c.net, currency: c.currency }));
-  const owingChips = owingGroup?.rest.map((c) => ({ amount: absBig(c.net), currency: c.currency }));
+  const owedChips = owedRest.map((c) => ({ amount: c.net, currency: c.currency }));
+  const owingChips = owingRest.map((c) => ({ amount: absBig(c.net), currency: c.currency }));
+  const owedCurrency = owedHead?.currency ?? fallbackCurrency;
+  const owingCurrency = owingHead?.currency ?? fallbackCurrency;
+  const owedCount = personCountByDirection(rows, owedCurrency).owed;
+  const owingCount = personCountByDirection(rows, owingCurrency).owing;
 
   return (
     <>
@@ -951,24 +952,28 @@ function FriendsBalanceCard({
       >
         <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
           <BalanceSide
+            uniformDecimals
             icon="arrow-up"
             color={theme.color.positive}
-            amount={owedGroup ? owedGroup.head.net : 0n}
+            amount={owedHead ? owedHead.net : 0n}
             label={t.tabs.owedToYouLabel}
+            detail={plural(locale, owedCount, t.homeDash.acrossPeople)}
             chips={owedChips}
-            currency={owedGroup ? owedGroup.head.currency : fallbackCurrency}
+            currency={owedCurrency}
             locale={locale}
             hidden={hidden}
             loading={loading}
           />
           <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
           <BalanceSide
+            uniformDecimals
             icon="arrow-down"
             color={theme.color.negative}
-            amount={owingGroup ? absBig(owingGroup.head.net) : 0n}
+            amount={owingHead ? absBig(owingHead.net) : 0n}
             label={t.homeDash.youOwe}
+            detail={plural(locale, owingCount, t.homeDash.acrossPeople)}
             chips={owingChips}
-            currency={owingGroup ? owingGroup.head.currency : fallbackCurrency}
+            currency={owingCurrency}
             locale={locale}
             hidden={hidden}
             loading={loading}

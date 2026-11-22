@@ -54,3 +54,16 @@ export function totalsByCurrency(
       return right > left ? 1 : -1;
     });
 }
+
+/** The currencies other than the headline's, split by direction, for the balance card's "+ $24.64" chips. */
+export function otherCurrencyChips(
+  totals: readonly CurrencyTotals[],
+  headlineCurrency: string,
+): { owed: { currency: string; amount: bigint }[]; owing: { currency: string; amount: bigint }[] } {
+  const rest = totals.filter((total) => total.currency !== headlineCurrency);
+  const side = (pick: (total: CurrencyTotals) => bigint) =>
+    rest
+      .map((total) => ({ currency: total.currency, amount: pick(total) }))
+      .filter((chip) => chip.amount > 0n);
+  return { owed: side((total) => total.owed), owing: side((total) => total.owing) };
+}
