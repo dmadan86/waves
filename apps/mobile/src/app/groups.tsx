@@ -2,16 +2,15 @@ import { withScenic } from '@/components/ScenicScope';
 import { AdSlot } from '@/components/AdSlot';
 import { placeSlots } from '@/lib/adPlanPure';
 import { useAdPlan } from '@/lib/useAdPlan';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { FlashList } from '@shopify/flash-list';
-import { Pressable, RefreshControl, View } from 'react-native';
+import { RefreshControl, View } from 'react-native';
 
 import {
   Button,
   EmptyState,
   iconSize,
-  Row,
   Screen,
   Text,
   useTabBarClearance,
@@ -21,8 +20,7 @@ import {
 import { useGroups, useHomeSummary } from '@/data/hooks';
 import { groupsOutsideCompanies } from '@/lib/spaces';
 import { groupLabel } from '@/data/types';
-import { useStrings, type UiStrings } from '@/i18n';
-import { SortMenu, type MenuAnchor } from '@/components/SortMenu';
+import { useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { DEFAULT_GROUPS_SORT, sortGroups, type GroupsSort } from '@/lib/groupsList';
 import { SkeletonList } from '@/components/Skeletons';
@@ -91,10 +89,9 @@ function AllGroupsScreen() {
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
 
-  const [sort, setSort] = useState<GroupsSort>(DEFAULT_GROUPS_SORT);
-  const [sortDesc, setSortDesc] = useState(true);
-  const [sortOpen, setSortOpen] = useState(false);
-  const [sortAnchor, setSortAnchor] = useState<MenuAnchor | null>(null);
+  // One fixed order (most recent first), as on Home: no sort control here.
+  const sort: GroupsSort = DEFAULT_GROUPS_SORT;
+  const sortDesc = true;
 
   // Decorate every group with the facts a row shows — balance, whether a
   // settlement is pending, the member count — then filter, sort (favorites in
@@ -140,7 +137,7 @@ function AllGroupsScreen() {
   // Native ads between group rows (never while a menu is open).
   const adHandle = useAdPlan('groups_all', {
     rowCount: rows.filter((row) => row.kind === 'group').length,
-    surfaceState: { selectMode: false, sheetOpen: sortOpen },
+    surfaceState: { selectMode: false, sheetOpen: false },
   });
   const adSlotsKey = adHandle.plan.slots.join(',');
   const data = useMemo(
@@ -230,9 +227,7 @@ function AllGroupsScreen() {
         )}
         card={(sceneRef) =>
           list.length === 0 && !loading ? null : (
-            <View
-              style={{ marginHorizontal: -theme.spacing.md, paddingHorizontal: theme.spacing.lg }}
-            >
+            <View style={{ marginHorizontal: -theme.spacing.lg }}>
               <HomeBalanceCard
                 net={headline.net}
                 owed={headline.owed}
@@ -254,6 +249,7 @@ function AllGroupsScreen() {
                     onReview={() => router.navigate('/captures')}
                     onScan={() => router.push(`/capture?scan=${Date.now()}`)}
                     onRemind={() => switchTab('/(tabs)/friends')}
+                    onJoin={() => router.push('/scan' as never)}
                     radius={theme.radius.xl}
                   />
                 }
@@ -275,22 +271,12 @@ function AllGroupsScreen() {
             onScroll={onScroll}
             scrollEventThrottle={16}
             contentContainerStyle={{
-              paddingHorizontal: theme.spacing.md,
+              paddingHorizontal: theme.spacing.lg,
               paddingBottom: clearance,
             }}
             ListHeaderComponent={
               <View style={{ gap: theme.spacing.xs }}>
                 {top}
-                {list.length > 0 ? (
-                  <FilterBar
-                    sortLabel={sortLabelFor(sort, t)}
-                    sortDesc={sortDesc}
-                    onOpenSort={(anchor) => {
-                      setSortAnchor(anchor);
-                      setSortOpen(true);
-                    }}
-                  />
-                ) : null}
                 {loading || rows.length === 0 ? (
                   <View style={{ paddingTop: theme.spacing.lg }}>{empty}</View>
                 ) : null}
@@ -347,114 +333,7 @@ function AllGroupsScreen() {
         actions={quickAddActions}
       />
       <QuickExpenseSheet visible={quickExpenseOpen} onClose={() => setQuickExpenseOpen(false)} />
-
-      <SortMenu
-        open={sortOpen}
-        anchor={sortAnchor}
-        onClose={() => setSortOpen(false)}
-        title={t.sort.by}
-        closeLabel={t.common.close}
-        options={SORT_KEYS.map((key) => ({
-          key,
-          label: sortLabelFor(key, t),
-          icon: SORT_ICONS[key],
-        }))}
-        activeKey={sort}
-        activeIndicator={sortDesc ? 'arrow-down' : 'arrow-up'}
-        onPick={(key) => {
-          if (key === sort) setSortDesc((d) => !d);
-          else {
-            setSort(key);
-            setSortDesc(key !== 'name');
-          }
-          setSortOpen(false);
-        }}
-      />
     </Screen>
-  );
-}
-
-const SORT_KEYS: readonly GroupsSort[] = ['amount', 'recent', 'name'];
-const SORT_ICONS: Record<GroupsSort, React.ComponentProps<typeof Ionicons>['name']> = {
-  amount: 'cash-outline',
-  recent: 'time-outline',
-  name: 'text-outline',
-};
-function sortLabelFor(key: GroupsSort, t: UiStrings): string {
-  return key === 'amount'
-    ? t.misc.sortAmount
-    : key === 'recent'
-      ? t.misc.sortRecent
-      : t.misc.sortName;
-}
-
-/**
- * One quiet row above the list: the same "Sort by" pill Friends wears, opening the same drop-down
- * (`SortMenu`) from where it sits. Picking the active sort again flips it.
- */
-function FilterBar({
-  sortLabel,
-  sortDesc,
-  onOpenSort,
-}: {
-  sortLabel: string;
-  sortDesc: boolean;
-  onOpenSort: (anchor: MenuAnchor | null) => void;
-}): React.JSX.Element {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const pillRef = useRef<View>(null);
-  const openSort = (): void => {
-    const pill = pillRef.current;
-    if (!pill) return onOpenSort(null);
-    pill.measureInWindow((x, y, width, height) =>
-      onOpenSort(width > 0 ? { x, y, width, height } : null),
-    );
-  };
-  const pill = {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    height: 32,
-    paddingHorizontal: theme.spacing.md,
-    borderRadius: theme.radius.pill,
-    borderWidth: 1,
-  } as const;
-
-  return (
-    <Row
-      style={{
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        paddingTop: theme.spacing.sm,
-        paddingBottom: theme.spacing.xs,
-      }}
-    >
-      <View ref={pillRef} collapsable={false}>
-        <Pressable
-          onPress={openSort}
-          accessibilityRole="button"
-          accessibilityLabel={`${t.sort.by}: ${sortLabel}`}
-          hitSlop={8}
-          style={({ pressed }) => ({
-            ...pill,
-            backgroundColor: theme.color.surface,
-            borderColor: theme.color.border,
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <Ionicons name="reorder-three-outline" size={iconSize.sm} color={theme.color.textMuted} />
-          <Text variant="caption" numberOfLines={1} style={{ fontWeight: '600' }}>
-            {t.sort.by}: {sortLabel}
-          </Text>
-          <Ionicons
-            name={sortDesc ? 'chevron-down' : 'chevron-up'}
-            size={iconSize.sm}
-            color={theme.color.textMuted}
-          />
-        </Pressable>
-      </View>
-    </Row>
   );
 }
 

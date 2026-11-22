@@ -357,6 +357,8 @@ export interface UiStrings {
     reviewTitle: string;
     comingUp: string;
     addReminder: string;
+    /** Quick action on All groups: open the join-by-code/QR screen. */
+    joinGroupShort: string;
     spaces: string;
     addSpace: string;
     personal: string;
@@ -9059,6 +9061,7 @@ const en: UiStrings = {
     comingUp: 'Coming up',
     addReminder: 'Add a reminder',
     spaces: 'Groups',
+    joinGroupShort: 'Join group',
     addSpace: 'Add a space',
     personal: 'Personal',
     justMe: 'Just me',
@@ -17132,6 +17135,7 @@ const ta: UiStrings = {
     comingUp: 'விரைவில்',
     addReminder: 'நினைவூட்டல் சேர்',
     spaces: 'குழுக்கள்',
+    joinGroupShort: 'குழுவில் சேர்',
     addSpace: 'இடம் சேர்',
     personal: 'தனிப்பட்டது',
     justMe: 'நான் மட்டும்',
@@ -25413,6 +25417,7 @@ const hi: UiStrings = {
     comingUp: 'आने वाला',
     addReminder: 'रिमाइंडर जोड़ें',
     spaces: 'ग्रुप',
+    joinGroupShort: 'ग्रुप जॉइन करें',
     addSpace: 'स्पेस जोड़ें',
     personal: 'निजी',
     justMe: 'सिर्फ़ मैं',
@@ -33494,6 +33499,7 @@ const ar: UiStrings = {
     comingUp: 'قريبًا',
     addReminder: 'أضف تذكيرًا',
     spaces: 'المجموعات',
+    joinGroupShort: 'انضم لمجموعة',
     addSpace: 'أضف مساحة',
     personal: 'شخصي',
     justMe: 'أنا فقط',
