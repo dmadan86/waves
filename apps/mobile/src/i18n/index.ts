@@ -3553,6 +3553,12 @@ export interface UiStrings {
     holdReading: string;
     /** Hold-to-talk toast after an add: {amount} to {where}. */
     holdAdded: string;
+    /** Hold-to-talk toast while several held sentences wait: {count}. */
+    holdReadingMany: string;
+    /** Hold-to-talk summary after a queued run: {n} added. */
+    holdAddedMany: PluralForms;
+    /** Hold-to-talk summary: {n} left as drafts in Review. */
+    holdInReview: PluralForms;
     /** Name span in the heard line: {word} as said, {name} as matched. */
     heardSpan: string;
     /** Sheet title for fixing a heard name: {word} as said. */
@@ -11706,6 +11712,9 @@ const en: UiStrings = {
     slideToCancel: 'Slide to cancel',
     holdReading: 'Reading…',
     holdAdded: 'Added {amount} to {where}',
+    holdReadingMany: 'Reading {count}…',
+    holdAddedMany: { one: 'Added {n} expense', other: 'Added {n} expenses' },
+    holdInReview: { one: '{n} in Review', other: '{n} in Review' },
     heardSpan: 'Heard {word}, matched {name}. Tap to change',
     heardPick: 'Who is “{word}”?',
     title: 'Speak an expense',
@@ -19333,6 +19342,9 @@ const ta: UiStrings = {
     slideToCancel: 'ரத்து செய்ய நகர்த்து',
     holdReading: 'படிக்கிறேன்…',
     holdAdded: '{where} இல் {amount} சேர்க்கப்பட்டது',
+    holdReadingMany: '{count} படிக்கிறேன்…',
+    holdAddedMany: { one: '{n} செலவு சேர்க்கப்பட்டது', other: '{n} செலவுகள் சேர்க்கப்பட்டன' },
+    holdInReview: { one: 'மதிப்பாய்வில் {n}', other: 'மதிப்பாய்வில் {n}' },
     heardSpan: '{word} என்று கேட்டது, {name} என்று பொருத்தப்பட்டது. மாற்ற தட்டவும்',
     heardPick: '“{word}” யார்?',
     title: 'செலவைப் பேசு',
@@ -27099,6 +27111,9 @@ const hi: UiStrings = {
     slideToCancel: 'रद्द करने के लिए सरकाएँ',
     holdReading: 'पढ़ रहा हूँ…',
     holdAdded: '{where} में {amount} जोड़ दिया',
+    holdReadingMany: '{count} पढ़ रहा हूँ…',
+    holdAddedMany: { one: '{n} खर्च जोड़ा', other: '{n} खर्च जोड़े' },
+    holdInReview: { one: 'समीक्षा में {n}', other: 'समीक्षा में {n}' },
     heardSpan: '{word} सुना, {name} से मिलाया। बदलने के लिए टैप करें',
     heardPick: '“{word}” कौन है?',
     title: 'खर्च बोलें',
@@ -34829,6 +34844,21 @@ const ar: UiStrings = {
     slideToCancel: 'اسحب للإلغاء',
     holdReading: 'أقرأ…',
     holdAdded: 'أُضيف {amount} إلى {where}',
+    holdReadingMany: 'أقرأ {count}…',
+    holdAddedMany: {
+      one: 'أُضيف مصروف واحد',
+      two: 'أُضيف مصروفان',
+      few: 'أُضيفت {n} مصاريف',
+      many: 'أُضيف {n} مصروفًا',
+      other: 'أُضيف {n} مصروف',
+    },
+    holdInReview: {
+      one: 'واحد في المراجعة',
+      two: 'اثنان في المراجعة',
+      few: '{n} في المراجعة',
+      many: '{n} في المراجعة',
+      other: '{n} في المراجعة',
+    },
     heardSpan: 'سُمع {word}، طابق مع {name}. اضغط للتغيير',
     heardPick: 'من هو «{word}»؟',
     title: 'انطق مصروفًا',
