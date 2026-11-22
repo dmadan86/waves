@@ -21,7 +21,7 @@ import { AddFamilyMember } from '@/components/household/HouseholdParts';
 import { BudgetSummary } from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { CardTitle, MoneyToolsRow, PrivacyPill } from '@/components/personal/PersonalHomeParts';
+import { CardTitle, PrivacyPill } from '@/components/personal/PersonalHomeParts';
 import { useUpdateGroupRecurring } from '@/data/groupRecurring';
 import type { IncomePlan } from '@/data/groupIncome';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -281,42 +281,6 @@ export function OverviewTab({ data }: { data: HouseholdData }) {
             <RecentRow key={row.id} row={row} data={data} last={i === data.recent.length - 1} />
           ))
         )}
-      </Card>
-
-      <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
-        <CardTitle title={t.personal.dash.moneyTools} />
-        <MoneyToolsRow
-          tiles={[
-            {
-              key: 'bills',
-              tint: 'lilac',
-              icon: 'repeat',
-              label: h.tabBills,
-              onPress: () => data.onTab('bills'),
-            },
-            {
-              key: 'income',
-              tint: 'mint',
-              icon: 'arrow-down',
-              label: h.tabIncome,
-              onPress: () => data.onTab('income'),
-            },
-            {
-              key: 'expenses',
-              tint: 'peach',
-              icon: 'receipt-outline',
-              label: t.expenses,
-              onPress: () => data.onLedger(),
-            },
-            {
-              key: 'more',
-              tint: 'lilac',
-              icon: 'ellipsis-horizontal',
-              label: t.personalHome.toolMore,
-              onPress: data.onMore,
-            },
-          ]}
-        />
       </Card>
 
       <PrivacyPill

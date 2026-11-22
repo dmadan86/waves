@@ -46,7 +46,7 @@ import {
 import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { QuickActions } from '@/components/personal/PersonalHomeParts';
+import { CardTitle, MoneyToolsRow } from '@/components/personal/PersonalHomeParts';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupIncome } from '@/data/groupIncome';
 import { occurrenceIds, useGroupRecurring, useMarkBillPaid } from '@/data/groupRecurring';
@@ -392,31 +392,64 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                 </Row>
               </Card>
 
-              <QuickActions
-                tiles={[
-                  {
-                    key: 'expense',
-                    tone: 'brand',
-                    icon: 'add',
-                    label: h.addExpense,
-                    onPress: () => router.push(`/group/${groupId}/add-expense`),
-                  },
-                  {
-                    key: 'bill',
-                    tone: 'brand',
-                    icon: 'repeat',
-                    label: h.addBill,
-                    onPress: () => router.push(`/group/${groupId}/add-bills`),
-                  },
-                  {
-                    key: 'income',
-                    tone: 'positive',
-                    icon: 'arrow-down',
-                    label: h.addIncome,
-                    onPress: () => router.push(`/group/${groupId}/income-edit`),
-                  },
-                ]}
-              />
+              {/* One card for everything you can do here: the three adds first,
+                  then the places to look things up. */}
+              <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
+                <CardTitle title={t.personal.dash.moneyTools} />
+                <MoneyToolsRow
+                  tiles={[
+                    {
+                      key: 'expense',
+                      tint: 'sky',
+                      icon: 'add',
+                      label: h.addExpense,
+                      onPress: () => router.push(`/group/${groupId}/add-expense`),
+                    },
+                    {
+                      key: 'bill',
+                      tint: 'lilac',
+                      icon: 'repeat',
+                      label: h.addBill,
+                      onPress: () => router.push(`/group/${groupId}/add-bills`),
+                    },
+                    {
+                      key: 'income',
+                      tint: 'mint',
+                      icon: 'arrow-down',
+                      label: h.addIncome,
+                      onPress: () => router.push(`/group/${groupId}/income-edit`),
+                    },
+                    {
+                      key: 'bills',
+                      tint: 'lilac',
+                      icon: 'list-outline',
+                      label: h.tabBills,
+                      onPress: () => setTab('bills'),
+                    },
+                    {
+                      key: 'incomes',
+                      tint: 'mint',
+                      icon: 'wallet-outline',
+                      label: h.tabIncome,
+                      onPress: () => setTab('income'),
+                    },
+                    {
+                      key: 'expenses',
+                      tint: 'peach',
+                      icon: 'receipt-outline',
+                      label: t.expenses,
+                      onPress: () => data.onLedger(),
+                    },
+                    {
+                      key: 'more',
+                      tint: 'lilac',
+                      icon: 'ellipsis-horizontal',
+                      label: t.personalHome.toolMore,
+                      onPress: data.onMore,
+                    },
+                  ]}
+                />
+              </Card>
             </>
           ) : null}
 
