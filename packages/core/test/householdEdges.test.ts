@@ -39,7 +39,18 @@ describe('legacy bill preset aliases', () => {
   it('every current preset id maps to itself and every alias lands on a real preset', () => {
     for (const p of BILL_PRESETS) expect(normaliseBillPresetId(p.id)).toBe(p.id);
     const ids = new Set<string>(BILL_PRESETS.map((p) => p.id));
-    for (const old of ['emi', 'maid', 'cook', 'driver', 'sip', 'ott', 'petrol', 'wifi', 'maintenance', 'school'])
+    for (const old of [
+      'emi',
+      'maid',
+      'cook',
+      'driver',
+      'sip',
+      'ott',
+      'petrol',
+      'wifi',
+      'maintenance',
+      'school',
+    ])
       expect(ids.has(normaliseBillPresetId(old)!)).toBe(true);
   });
 
@@ -47,8 +58,7 @@ describe('legacy bill preset aliases', () => {
     for (const bad of ['', 'nope', 'RENT']) expect(normaliseBillPresetId(bad)).toBeNull();
   });
 
-  // BUG: `value in aliases` is true for inherited keys, so 'constructor' returns Object's function, not null.
-  it.skip('inherited-object keys are null (BUG: normaliseBillPresetId("constructor") is not null)', () => {
+  it('inherited-object keys are null', () => {
     for (const bad of ['constructor', 'toString', '__proto__', 'hasOwnProperty'])
       expect(normaliseBillPresetId(bad)).toBeNull();
   });
@@ -76,7 +86,8 @@ describe('region labels', () => {
   });
   it('is case-insensitive and neutral for unknown, null and undefined regions', () => {
     expect(key('building_fees', 'in')).toBe('society_maintenance');
-    for (const c of [null, undefined, '', 'ZZ']) expect(key('building_fees', c)).toBe('building_fees');
+    for (const c of [null, undefined, '', 'ZZ'])
+      expect(key('building_fees', c)).toBe('building_fees');
   });
   it('presets without a regional term stay neutral everywhere', () => {
     for (const c of ['IN', 'US', 'GB', 'AU', 'AE']) expect(key('rent', c)).toBe('rent');
@@ -84,8 +95,11 @@ describe('region labels', () => {
 });
 
 describe('monthlyEquivalent', () => {
-  const eq = (amount: bigint, cadence: 'weekly' | 'semimonthly' | 'monthly' | 'yearly', interval = 1) =>
-    monthlyEquivalent({ amount, cadence, interval });
+  const eq = (
+    amount: bigint,
+    cadence: 'weekly' | 'semimonthly' | 'monthly' | 'yearly',
+    interval = 1,
+  ) => monthlyEquivalent({ amount, cadence, interval });
 
   it('monthly is itself; every 3 months (quarterly) is a third, rounded half up', () => {
     expect(eq(120000n, 'monthly')).toBe(120000n);
@@ -109,7 +123,8 @@ describe('monthlyEquivalent', () => {
     expect(eq(500n, 'weekly', -4)).toBe(eq(500n, 'weekly', 1));
   });
   it('zero stays zero', () => {
-    for (const c of ['weekly', 'semimonthly', 'monthly', 'yearly'] as const) expect(eq(0n, c)).toBe(0n);
+    for (const c of ['weekly', 'semimonthly', 'monthly', 'yearly'] as const)
+      expect(eq(0n, c)).toBe(0n);
   });
   it('totals skip other currencies and non-active bills', () => {
     const r = (amount: bigint, currency: string, status: string) => ({
@@ -119,7 +134,12 @@ describe('monthlyEquivalent', () => {
       currency,
       status,
     });
-    expect(billsMonthlyTotal([r(100n, 'INR', 'active'), r(50n, 'USD', 'active'), r(70n, 'INR', 'paused')], 'INR')).toBe(100n);
+    expect(
+      billsMonthlyTotal(
+        [r(100n, 'INR', 'active'), r(50n, 'USD', 'active'), r(70n, 'INR', 'paused')],
+        'INR',
+      ),
+    ).toBe(100n);
     expect(billsMonthlyTotal([], 'INR')).toBe(0n);
   });
 });
@@ -147,7 +167,10 @@ describe('pool split', () => {
     expect(amounts).toEqual({ a: 700n, b: 300n });
   });
   it('no payers gives an empty exact split', () => {
-    expect(poolSplit({})).toEqual({ splitParams: { kind: 'exact', amounts: {} }, participants: [] });
+    expect(poolSplit({})).toEqual({
+      splitParams: { kind: 'exact', amounts: {} },
+      participants: [],
+    });
   });
   it('wire payload: an all-zero payer map and a missing split are left alone', () => {
     const zero = { splitParams: { kind: 'equal' }, payers: { a: '0' } };
@@ -170,7 +193,11 @@ describe('pool split', () => {
 });
 
 describe('savablePicks edges', () => {
-  const pick = (preset: BillPresetId, amount: bigint, payerId: string) => ({ preset, amount, payerId });
+  const pick = (preset: BillPresetId, amount: bigint, payerId: string) => ({
+    preset,
+    amount,
+    payerId,
+  });
   it('drops zero amounts, requires a payer for bills only, routes estimates to budgets', () => {
     const { bills, budgets } = savablePicks([
       pick('rent', 100n, 'a'),
@@ -247,7 +274,12 @@ describe('dates and months', () => {
 });
 
 describe('billUpcoming and merge', () => {
-  const rule = (id: string, nextDate: string, status = 'active', payers: Record<string, bigint> = {}) => ({
+  const rule = (
+    id: string,
+    nextDate: string,
+    status = 'active',
+    payers: Record<string, bigint> = {},
+  ) => ({
     id,
     description: id,
     amount: 100n,
@@ -258,7 +290,12 @@ describe('billUpcoming and merge', () => {
   });
   it('includes overdue and the horizon day, excludes beyond and non-active', () => {
     const out = billUpcoming(
-      [rule('late', '2026-11-01'), rule('edge', '2026-11-30'), rule('far', '2026-12-01'), rule('off', '2026-11-22', 'paused')],
+      [
+        rule('late', '2026-11-01'),
+        rule('edge', '2026-11-30'),
+        rule('far', '2026-12-01'),
+        rule('off', '2026-11-22', 'paused'),
+      ],
       '2026-11-22',
       8,
     );
@@ -268,7 +305,11 @@ describe('billUpcoming and merge', () => {
     ]);
   });
   it('the payer is whoever paid most; none when nobody paid', () => {
-    const [a] = billUpcoming([rule('x', '2026-11-22', 'active', { m1: 30n, m2: 70n })], '2026-11-22', 0);
+    const [a] = billUpcoming(
+      [rule('x', '2026-11-22', 'active', { m1: 30n, m2: 70n })],
+      '2026-11-22',
+      0,
+    );
     expect(a?.payerId).toBe('m2');
     const [b] = billUpcoming([rule('y', '2026-11-22')], '2026-11-22', 0);
     expect(b?.payerId).toBeNull();
@@ -280,7 +321,11 @@ describe('billUpcoming and merge', () => {
   it('merge orders by date then title, caps at limit, 0 keeps all', () => {
     const merged = mergeHouseholdUpcoming(
       [
-        billUpcoming([rule('b', '2026-11-25'), rule('a', '2026-11-25'), rule('c', '2026-11-23')], '2026-11-22', 7),
+        billUpcoming(
+          [rule('b', '2026-11-25'), rule('a', '2026-11-25'), rule('c', '2026-11-23')],
+          '2026-11-22',
+          7,
+        ),
         billUpcoming([rule('z', '2026-11-22')], '2026-11-22', 0),
       ],
       0,

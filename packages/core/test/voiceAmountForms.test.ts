@@ -42,27 +42,23 @@ describe('parseVoiceIntent amount forms', () => {
     expect(got === null || typeof got === 'bigint').toBe(true);
   });
 
-  // BUG: prepare() regex alternation matches "1,000" first, leaving "1000,000" for 1,000,000.
-  it.skip('western grouping with two commas reads whole (BUG: "paid 1,000,000 rupees rent" gives 0n, "paid 1,000,000 for rent" gives 100000n)', () => {
+  it('western grouping with two commas reads whole', () => {
     expect(minor('paid 1,000,000 rupees rent')).toBe(100000000n);
     expect(minor('paid 1,000,000 for rent')).toBe(100000000n);
   });
 
-  // BUG: a phone number is taken as an amount (9876543210 -> ₹98,76,54,32,100).
-  it.skip('a phone number is not an amount (BUG: parseVoiceIntent returns 987654321000n)', () => {
+  it('a phone number is not an amount', () => {
     expect(minor('call 9876543210')).not.toBe(987654321000n);
     expect(minor('add 9876543210 as expense')).toBeNull();
   });
 
-  // BUG: a phone number inside a sentence becomes its own item next to the real one.
-  it.skip('a phone number beside a real amount makes no item (BUG: extra 987654321000n item)', () => {
+  it('a phone number beside a real amount makes no item', () => {
     const intent = parseVoiceIntent('call 9876543210 about the 500 taxi');
     expect(intent.amountMinor).toBe(50000n);
-    expect(intent.items?.every((i) => i.amountMinor !== 987654321000n)).toBe(true);
+    expect((intent.items ?? []).every((i) => i.amountMinor !== 987654321000n)).toBe(true);
   });
 
-  // BUG: "30 rupees 50 paise" is read as two items (₹30 and ₹50 "paise tea") instead of ₹30.50.
-  it.skip('30 rupees 50 paise is one amount of 3050 (BUG: parseVoiceIntent gives 3000n and a 5000n item)', () => {
+  it('30 rupees 50 paise is one amount of 3050', () => {
     expect(minor('paid 30 rupees 50 paise for tea')).toBe(3050n);
   });
 });

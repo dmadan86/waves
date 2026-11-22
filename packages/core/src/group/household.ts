@@ -93,7 +93,7 @@ export function normaliseBillPresetId(value: string): BillPresetId | null {
     maintenance: 'building_fees',
     school: 'childcare_school',
   };
-  if (value in aliases) return aliases[value];
+  if (Object.prototype.hasOwnProperty.call(aliases, value)) return aliases[value] ?? null;
   return BILL_PRESETS.some((preset) => preset.id === value) ? (value as BillPresetId) : null;
 }
 

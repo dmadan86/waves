@@ -17,7 +17,10 @@ function files(dir: string): string[] {
   });
 }
 
-const ALL = files(SRC).map((path) => ({ rel: relative(SRC, path), text: readFileSync(path, 'utf8') }));
+const ALL = files(SRC).map((path) => ({
+  rel: relative(SRC, path),
+  text: readFileSync(path, 'utf8'),
+}));
 
 /** The JSX tag a prop at `index` belongs to: the last `<Name` opened before it. */
 function ownerTag(text: string, index: number): string {
@@ -26,7 +29,8 @@ function ownerTag(text: string, index: number): string {
   return matches[matches.length - 1]?.[1] ?? '';
 }
 
-const ANIMATED_SCROLLERS = /^(Animated\.(ScrollView|FlatList|SectionList)|AnimatedFlashList|AnimatedFlatList|AnimatedScrollView)$/;
+const ANIMATED_SCROLLERS =
+  /^(Animated\.(ScrollView|FlatList|SectionList)|AnimatedFlashList|AnimatedFlatList|AnimatedScrollView)$/;
 
 describe('native-driver scroll events', () => {
   it('finds the scroll wiring this guard protects', () => {
@@ -39,14 +43,14 @@ describe('native-driver scroll events', () => {
     for (const { rel, text } of ALL) {
       for (const match of text.matchAll(/onScroll=\{\s*Animated\.event\(/g)) {
         const tag = ownerTag(text, match.index!);
-        if (!ANIMATED_SCROLLERS.test(tag)) bad.push(`${rel}: <${tag} onScroll={Animated.event(...)}>`);
+        if (!ANIMATED_SCROLLERS.test(tag))
+          bad.push(`${rel}: <${tag} onScroll={Animated.event(...)}>`);
       }
     }
     expect(bad).toEqual([]);
   });
 
-  // BUG: app/(tabs)/friends.tsx passes ScenicScreen's native-driver onScroll to a plain <FlashList>; use AnimatedFlashList. Un-skip once fixed.
-  it.skip('the onScroll ScenicScreen hands to a list render prop only goes to an Animated list', () => {
+  it('the onScroll ScenicScreen hands to a list render prop only goes to an Animated list', () => {
     const bad: string[] = [];
     for (const { rel, text } of ALL) {
       if (!/list=\{\(\{[^}]*\bonScroll\b/.test(text)) continue;
@@ -86,7 +90,8 @@ describe('header icon buttons', () => {
   it('nobody passes ink to a TabIconButton', () => {
     const bad: string[] = [];
     for (const { rel, text } of ALL) {
-      for (const match of text.matchAll(/<TabIconButton\b[^>]*?\bink=/gs)) bad.push(`${rel}@${match.index}`);
+      for (const match of text.matchAll(/<TabIconButton\b[^>]*?\bink=/gs))
+        bad.push(`${rel}@${match.index}`);
     }
     expect(bad).toEqual([]);
   });

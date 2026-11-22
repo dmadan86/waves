@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { allOccurrences, defaultFestivals, nextFestival, type FestivalId } from '../src/personal/dates';
+import {
+  allOccurrences,
+  defaultFestivals,
+  nextFestival,
+  type FestivalId,
+} from '../src/personal/dates';
 
 const ALL: FestivalId[] = [
   'diwali',
@@ -35,7 +40,17 @@ describe('festival seeds per region', () => {
   it('India gets the Indian set, no Thanksgiving or Easter', () => {
     const f = defaultFestivals('IN');
     expect(sorted(f)).toEqual(
-      sorted(['diwali', 'holi', 'eid_al_fitr', 'eid_al_adha', 'christmas', 'pongal', 'onam', 'raksha_bandhan', 'navratri']),
+      sorted([
+        'diwali',
+        'holi',
+        'eid_al_fitr',
+        'eid_al_adha',
+        'christmas',
+        'pongal',
+        'onam',
+        'raksha_bandhan',
+        'navratri',
+      ]),
     );
     expect(f).not.toContain('thanksgiving');
     expect(f).not.toContain('easter');
@@ -47,7 +62,9 @@ describe('festival seeds per region', () => {
   });
   it('UK, UAE, Australia and unknown regions get the common set', () => {
     for (const c of ['GB', 'UK', 'AE', 'AU', 'ZZ', '', null, undefined]) {
-      expect(sorted(defaultFestivals(c))).toEqual(sorted(['christmas', 'eid_al_fitr', 'eid_al_adha', 'diwali', 'easter']));
+      expect(sorted(defaultFestivals(c))).toEqual(
+        sorted(['christmas', 'eid_al_fitr', 'eid_al_adha', 'diwali', 'easter']),
+      );
     }
   });
   it('country codes are case-insensitive', () => {
@@ -55,7 +72,8 @@ describe('festival seeds per region', () => {
     expect(defaultFestivals('us')).toEqual(defaultFestivals('US'));
   });
   it('every default festival has a seed date table', () => {
-    for (const c of ['IN', 'US', 'GB']) for (const id of defaultFestivals(c)) expect(nextFestival(id, '2026-01-01')).not.toBeNull();
+    for (const c of ['IN', 'US', 'GB'])
+      for (const id of defaultFestivals(c)) expect(nextFestival(id, '2026-01-01')).not.toBeNull();
   });
 });
 
@@ -66,7 +84,11 @@ describe('festival seed data', () => {
       expect(dates.length, id).toBeGreaterThanOrEqual(3);
       expect([...dates].sort(), id).toEqual(dates);
       expect(new Set(dates.map((d) => d.slice(0, 4))).size, id).toBe(dates.length);
-      for (const y of ['2026', '2027', '2028']) expect(dates.some((d) => d.startsWith(y)), `${id} ${y}`).toBe(true);
+      for (const y of ['2026', '2027', '2028'])
+        expect(
+          dates.some((d) => d.startsWith(y)),
+          `${id} ${y}`,
+        ).toBe(true);
     }
   });
 
@@ -76,10 +98,17 @@ describe('festival seed data', () => {
       return `${y}-11-${String(1 + ((4 - first + 7) % 7) + 21).padStart(2, '0')}`;
     };
     const easter = (y: number) => {
-      const a = y % 19, b = Math.floor(y / 100), c = y % 100;
-      const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
-      const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
-      const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+      const a = y % 19,
+        b = Math.floor(y / 100),
+        c = y % 100;
+      const d = Math.floor(b / 4),
+        e = b % 4,
+        f = Math.floor((b + 8) / 25);
+      const g = Math.floor((b - f + 1) / 3),
+        h = (19 * a + b - d - g + 15) % 30;
+      const i = Math.floor(c / 4),
+        k = c % 4,
+        l = (32 + 2 * e + 2 * i - h - k) % 7;
       const m = Math.floor((a + 11 * h + 22 * l) / 451);
       const month = Math.floor((h + l - 7 * m + 114) / 31);
       const day = ((h + l - 7 * m + 114) % 31) + 1;
@@ -99,19 +128,29 @@ describe('festival seed data', () => {
   });
 
   it('a switched-off festival never appears, and a past one does not either', () => {
-    const items = allOccurrences({ dates: [], country: 'IN', festivalsOff: ['diwali', 'holi'], todayIso: '2026-11-22' });
+    const items = allOccurrences({
+      dates: [],
+      country: 'IN',
+      festivalsOff: ['diwali', 'holi'],
+      todayIso: '2026-11-22',
+    });
     const ids = items.map((i) => i.id);
     expect(ids).not.toContain('diwali');
     expect(ids).not.toContain('holi');
     expect(items.every((i) => i.inDays >= 0)).toBe(true);
-    expect(items.map((i) => i.inDays)).toEqual([...items.map((i) => i.inDays)].sort((a, b) => a - b));
+    expect(items.map((i) => i.inDays)).toEqual(
+      [...items.map((i) => i.inDays)].sort((a, b) => a - b),
+    );
   });
 
-  // BUG (data gap): the festival table ends in 2028, so from 2029 every festival silently disappears.
-  it.skip('seed dates cover every festival through 2030 (BUG: table ends 2028)', () => {
+  it('seed dates cover every festival through 2030', () => {
     for (const id of ALL) {
       const dates = seedDates(id);
-      for (const y of ['2029', '2030']) expect(dates.some((d) => d.startsWith(y)), `${id} ${y}`).toBe(true);
+      for (const y of ['2029', '2030'])
+        expect(
+          dates.some((d) => d.startsWith(y)),
+          `${id} ${y}`,
+        ).toBe(true);
     }
   });
 

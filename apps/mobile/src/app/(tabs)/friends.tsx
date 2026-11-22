@@ -31,7 +31,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { FlashList, useRecyclingState } from '@shopify/flash-list';
+import { useRecyclingState } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
@@ -75,7 +75,7 @@ import { BalanceSide } from '@/components/home/BalanceSide';
 import { FriendsHeroBackground } from '@/components/home/FriendsHeroBackground';
 import { GlassSurface } from '@/components/home/GlassSurface';
 import { QuickActionsRow, type QuickAction } from '@/components/home/QuickActionsRow';
-import { ScenicScreen } from '@/components/hero/ScenicScreen';
+import { AnimatedFlashList, ScenicScreen } from '@/components/hero/ScenicScreen';
 import { TabIconButton } from '@/components/home/TabHeader';
 import { SortMenu } from '@/components/SortMenu';
 import { PeopleSkeleton } from '@/components/Skeletons';
@@ -551,7 +551,7 @@ function FriendsScreen() {
           </View>
         )}
         list={({ onScroll, top }) => (
-          <FlashList
+          <AnimatedFlashList
             data={showList ? persons : []}
             onScroll={onScroll}
             scrollEventThrottle={16}

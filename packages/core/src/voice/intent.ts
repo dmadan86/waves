@@ -613,7 +613,7 @@ function prepare(raw: string): string {
     .replace(/['’]/g, '')
     // Accept both western (1,000,000) and Indian (1,00,000) grouping. Remove
     // separators only when the complete grouped number is well formed.
-    .replace(/\b\d{1,3}(?:,\d{2})*,\d{3}(?!\d)|\b\d{1,3}(?:,\d{3})+(?!\d)/g, (n) =>
+    .replace(/\b\d{1,3}(?:,\d{3})+(?!\d)|\b\d{1,3}(?:,\d{2})*,\d{3}(?!\d)/g, (n) =>
       n.replace(/,/g, ''),
     )
     .replace(/(\p{L})-(?=\p{L})/gu, '$1 ')
@@ -621,6 +621,23 @@ function prepare(raw: string): string {
     .replace(/\brs\.?(?=\s*\d)/g, 'rs ')
     .replace(/\s*[.;!?]+(?=\s|$)/g, ' ')
     .replace(/\s*[|/]\s*/g, ' ');
+  text = text.replace(
+    /(?<![\d,₹$€£])\b\d{10,}\b(?![\d,])/g,
+    (digits, offset: number, source: string) => {
+      const before = source.slice(Math.max(0, offset - 16), offset);
+      const after = source.slice(offset + digits.length, offset + digits.length + 16);
+      return /[₹$€£]|\b(?:rupees?|rs|inr|dollars?|usd|euros?|eur|pounds?|gbp)\s*$/i.test(before) ||
+        /^\s*(?:rupees?|rs|inr|dollars?|usd|euros?|eur|pounds?|gbp)\b/i.test(after)
+        ? digits
+        : '';
+    },
+  );
+  text = text.replace(/\b(19\d{2}|20\d{2}|2100)\b/g, (year, _y, offset: number, source: string) =>
+    /\b(?:in|of|since)\s+$/.test(source.slice(Math.max(0, offset - 8), offset)) &&
+    !/[₹$€£]|\b(?:rupees?|rs|inr|dollars?|usd|euros?|eur|pounds?|gbp)\b/i.test(source)
+      ? ''
+      : year,
+  );
   // "3 days ago" stays readable: the date words below turn it into a date.
   return maskNonMoneyNumbers(
     text,
@@ -1752,6 +1769,20 @@ export function parseVoiceIntent(transcript: string, ctx: VoiceIntentContext = {
         currency = CURRENCY_WORDS.get(at(i));
         break;
       }
+    }
+  }
+  for (let p = 0; p < amountIdx.length - 1; p += 1) {
+    const major = amountIdx[p] as number;
+    const minor = amountIdx[p + 1] as number;
+    const unit = at(major + 1);
+    if (
+      minor === major + 2 &&
+      (((unit === 'rupee' || unit === 'rupees') && at(minor + 1) === 'paise') ||
+        ((unit === 'dollar' || unit === 'dollars') && at(minor + 1) === 'cents'))
+    ) {
+      tok[major] = `${at(major)}.${String(Number(at(minor))).padStart(2, '0')}`;
+      amountIdx.splice(p + 1, 1);
+      break;
     }
   }
 
