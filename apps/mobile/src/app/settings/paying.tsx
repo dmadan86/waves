@@ -39,6 +39,7 @@ import {
 } from '@waves/ui';
 
 import { friendlyError } from '@/lib/errors';
+import { tileWidth } from '@/lib/tileWidth';
 import { deviceCountry, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { requestCountry } from '@/lib/countryPickerBridge';
@@ -272,7 +273,7 @@ function PayingForm() {
                   accessibilityLabel={entry.label}
                   onPress={() => setRail(entry.id)}
                   style={({ pressed }) => ({
-                    width: railGridWidth > 0 ? (railGridWidth - theme.spacing.sm * 2) / 3 : 74,
+                    width: railGridWidth > 0 ? tileWidth(railGridWidth, theme.spacing.sm, 3) : 74,
                     height: 72,
                     alignItems: 'center',
                     justifyContent: 'center',

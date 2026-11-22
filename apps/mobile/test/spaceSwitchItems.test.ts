@@ -49,18 +49,18 @@ describe('buildSpaceSwitchItems', () => {
 
   it('the current space does nothing when tapped; the other navigates; groups open', () => {
     const shared = make(true);
-    shared.items[0]?.onPress();
+    shared.items[0]?.onPress?.();
     expect(shared.goPersonal).not.toHaveBeenCalled();
     expect(shared.goShared).not.toHaveBeenCalled();
-    shared.items[1]?.onPress();
+    shared.items[1]?.onPress?.();
     expect(shared.goPersonal).toHaveBeenCalledOnce();
-    shared.items[2]?.onPress();
+    shared.items[2]?.onPress?.();
     expect(shared.openGroup).toHaveBeenCalledWith('c');
 
     const personal = make(false);
-    personal.items[0]?.onPress();
+    personal.items[0]?.onPress?.();
     expect(personal.goPersonal).not.toHaveBeenCalled();
-    personal.items[3]?.onPress();
+    personal.items[3]?.onPress?.();
     expect(personal.goShared).toHaveBeenCalledOnce();
   });
 
