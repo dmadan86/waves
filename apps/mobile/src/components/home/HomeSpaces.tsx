@@ -68,7 +68,7 @@ export function SpacesGrid({
   const h = t.homeToday;
   const plusRef = useRef<View>(null);
   const [nowMs] = useState(() => Date.now());
-  const { shown, more } = capSpaces(groups);
+  const { shown } = capSpaces(groups);
   const captures = useCaptures();
   const justAddedId = useImportedGroupId();
   const voiceNewCount = useVoiceNewCount();
@@ -264,19 +264,6 @@ export function SpacesGrid({
                 />
               );
             })}
-            {more ? (
-              <SpaceRow
-                icon="grid-outline"
-                iconColor={theme.color.textMuted}
-                title={h.seeAll}
-                memberLabel={String(groups.length)}
-                amountText=""
-                directionLabel=""
-                locale={locale}
-                divider={shown.length > 0}
-                onPress={() => router.navigate('/groups')}
-              />
-            ) : null}
           </>
         )}
       </View>
