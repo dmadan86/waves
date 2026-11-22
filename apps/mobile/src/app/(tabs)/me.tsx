@@ -78,6 +78,7 @@ import {
 import { hasDue } from '@/lib/personalUpcoming';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
+import { useSpaceSwitchItems } from '@/lib/useSpaceSwitchItems';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { SignInWall } from '@/components/SignInWall';
 import {
@@ -90,7 +91,7 @@ import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
-import { router, switchTab } from '@/lib/navigation';
+import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings } from '@/i18n';
 
@@ -234,6 +235,10 @@ function MeLedger() {
     3,
   );
   const [switchOpen, setSwitchOpen] = useState(false);
+  const switchItems = useSpaceSwitchItems('personal', {
+    shared: h.sharedSpace,
+    personal: h.space,
+  });
   const [moreOpen, setMoreOpen] = useState(false);
   const firstName = (profile?.display_name ?? t.account.you).trim().split(/\s+/)[0];
 
@@ -646,14 +651,7 @@ function MeLedger() {
           <PrivacyFooterPill />
         </View>
       </ScrollView>
-      <OverflowMenu
-        visible={switchOpen}
-        onClose={() => setSwitchOpen(false)}
-        items={[
-          { icon: 'checkmark', label: h.space, onPress: () => undefined },
-          { icon: 'people-outline', label: h.sharedSpace, onPress: () => switchTab('/') },
-        ]}
-      />
+      <OverflowMenu visible={switchOpen} onClose={() => setSwitchOpen(false)} items={switchItems} />
       <OverflowMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
       <OverflowMenu
         visible={monthMenuOpen}

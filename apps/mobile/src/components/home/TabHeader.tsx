@@ -41,12 +41,15 @@ export function TabIconButton({
   onPress,
   dot = false,
   buttonRef,
+  ink,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   onPress: () => void;
   dot?: boolean;
   buttonRef?: React.RefObject<View | null>;
+  /** Scenic header ink during its photo/solid cross-fade. */
+  ink?: string;
 }) {
   const theme = useTheme();
   return (
@@ -68,7 +71,7 @@ export function TabIconButton({
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons name={icon} size={iconSize.lg} color={theme.color.text} />
+      <Ionicons name={icon} size={iconSize.lg} color={ink ?? theme.color.text} />
       {dot ? (
         <View
           style={{

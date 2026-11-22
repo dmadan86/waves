@@ -11,7 +11,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 
 import { type GuestGate } from '@waves/core';
-import { Button, Popup, Screen, Text, useTheme } from '@waves/ui';
+import { Button, Popup, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
 import { useSync } from '@/sync';
@@ -43,13 +43,12 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
-import { HeroIconButton } from '@/components/home/HeroControls';
 import { SpaceSwitchSheet } from '@/components/SpaceSwitcher';
 import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { TabIconButton } from '@/components/home/TabHeader';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
-import { greetingLine } from '@/lib/greetingLine';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { ComingUpChips, NeedsYouCard } from '@/components/home/HomeToday';
 import { SpacesGrid } from '@/components/home/HomeSpaces';
@@ -65,6 +64,8 @@ import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
 import { useBalanceHidden } from '@/lib/balanceHidden';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { useSpaceSwitchItems } from '@/lib/useSpaceSwitchItems';
+import { fill } from '@/i18n';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
 function HomeScreen() {
@@ -119,14 +120,14 @@ function HomeScreen() {
   const defaultCurrency = useDefaultCurrency();
   // The eye toggle: hide the money on a shared screen, remembered across opens.
   const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
-  // The time-of-day line under the name. The *bucket* is sampled once on mount
-  // (lazy init, never a bare Date in render — the React Compiler lints that),
-  // then the localised word is read at render so it follows a language change.
-  const [greetKey] = useState<'morning' | 'afternoon' | 'evening'>(() => {
-    const hour = new Date().getHours();
-    return hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
-  });
   const displayName = profile?.display_name ?? t.account.you;
+  const firstName = displayName.trim().split(/\s+/)[0];
+  const h = t.personalHome;
+  const [spaceSwitchOpen, setSpaceSwitchOpen] = useState(false);
+  const spaceSwitchItems = useSpaceSwitchItems('shared', {
+    shared: h.sharedSpace,
+    personal: h.space,
+  });
   // First word only, so a long name never truncates to "Hi, Madan Dei…".
   const companyIds = useViewerCompanyIds();
 
@@ -446,20 +447,22 @@ function HomeScreen() {
           />
         }
         header={(ink, solid) => (
-          <>
-            <Pressable
-              accessibilityRole="button"
+          <Row style={{ flex: 1, alignItems: 'center', gap: theme.spacing.sm }}>
+            <PersonAvatar
+              name={displayName}
+              avatarUrl={profile?.avatar_url}
+              size={44}
               accessibilityLabel={t.profile}
               onPress={() => router.navigate('/profile')}
-              hitSlop={8}
-              style={{ flex: 1, minWidth: 0 }}
-            >
+            />
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text
+                accessibilityRole="header"
                 numberOfLines={1}
                 style={{
                   color: ink,
-                  fontSize: 20,
-                  lineHeight: 26,
+                  fontSize: 18,
+                  lineHeight: 23,
                   fontWeight: '700',
                   ...(solid
                     ? null
@@ -470,23 +473,48 @@ function HomeScreen() {
                       }),
                 }}
               >
-                {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
+                {fill(h.hi, { name: firstName ?? '' })}
               </Text>
-            </Pressable>
-            <HeroIconButton
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${h.switchSpace}. ${h.sharedSpace}`}
+                onPress={() => setSpaceSwitchOpen(true)}
+                hitSlop={6}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 2,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Text
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{ color: solid ? theme.color.textMuted : ink, flexShrink: 1 }}
+                >
+                  {h.sharedSpace}
+                </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={14}
+                  color={solid ? theme.color.textMuted : ink}
+                />
+              </Pressable>
+            </View>
+            <TabIconButton
               icon="notifications-outline"
               label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
               onPress={() => router.navigate('/activity')}
               dot={unseenActivity}
-              ink={ink}
+              ink={solid ? theme.color.text : ink}
             />
-            <HeroIconButton
+            <TabIconButton
               icon="ellipsis-vertical"
               label={t.account.faceSettings}
               onPress={() => setMenuOpen(true)}
-              ink={ink}
+              ink={solid ? theme.color.text : ink}
             />
-          </>
+          </Row>
         )}
         card={(sceneRef) => (
           <TourTarget id="hero">
@@ -590,6 +618,11 @@ function HomeScreen() {
           avatar: <PersonAvatar name={displayName} avatarUrl={profile?.avatar_url} size={40} />,
           route: '/settings/account',
         }}
+      />
+      <OverflowMenu
+        visible={spaceSwitchOpen}
+        onClose={() => setSpaceSwitchOpen(false)}
+        items={spaceSwitchItems}
       />
       <SpaceSwitchSheet current="personal" open={switchOpen} onClose={() => setSwitchOpen(false)} />
       <NewGroupMenu
