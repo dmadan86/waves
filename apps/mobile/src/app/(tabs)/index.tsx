@@ -13,7 +13,7 @@ import { BlurTargetView } from 'expo-blur';
 import { Animated, InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 
 import { type GuestGate } from '@waves/core';
-import { Button, Card, Popup, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import { Button, Popup, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
 import { useSync } from '@/sync';
@@ -537,24 +537,23 @@ function HomeScreen() {
                   catchUp={catchUp}
                   loading={showSkeleton || !balanceReady}
                   blurTarget={sceneRef}
+                  footer={
+                    <HomeQuickActions
+                      // The quick sheet, not the capture screen: most spends know
+                      // where they belong and need an amount and a place. The long
+                      // press raises type / scan / speak, unchanged.
+                      onAddExpense={() => setQuickExpenseOpen(true)}
+                      onAddExpenseLong={() => setQuickAddOpen(true)}
+                      onSettleUp={() => router.push('/settle-up')}
+                      onReview={() => router.navigate('/captures')}
+                      onScan={() => router.push(`/capture?scan=${Date.now()}`)}
+                      onRemind={() => switchTab('/(tabs)/friends')}
+                      radius={theme.radius.xl}
+                    />
+                  }
                 />
               </TourTarget>
             </View>
-
-            <Card padded={false} style={{ overflow: 'hidden' }}>
-              <HomeQuickActions
-                // The quick sheet, not the capture screen: most spends know
-                // where they belong and need an amount and a place. The long
-                // press raises type / scan / speak, unchanged.
-                onAddExpense={() => setQuickExpenseOpen(true)}
-                onAddExpenseLong={() => setQuickAddOpen(true)}
-                onSettleUp={() => router.push('/settle-up')}
-                onReview={() => router.navigate('/captures')}
-                onScan={() => router.push(`/capture?scan=${Date.now()}`)}
-                onRemind={() => switchTab('/(tabs)/friends')}
-                radius={theme.scenic ? theme.radius.md : theme.radius.lg}
-              />
-            </Card>
 
             {/* A background import's progress lands here, just above the groups —
               the person tapped Import, came home, and watches it fill. */}

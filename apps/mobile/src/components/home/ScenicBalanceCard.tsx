@@ -8,7 +8,7 @@
  *   ₹42,350.00                  |  ₹1,56,039.50
  *   Across 4 groups             |  Across 6 groups
  *
- * An optional footer remains available to other balance-card callers.
+ * The quick actions ride along its foot as a strip (`footer`).
  *
  * The eye masks every figure on the dashboard, not just this card's.
  *
@@ -60,7 +60,7 @@ export function HomeBalanceCard({
   settling: boolean;
   /** Nothing to show yet: bars stand in for the figures. */
   loading: boolean;
-  /** Optional content drawn along the card's foot, edge to edge. */
+  /** Drawn along the card's foot, edge to edge — the quick actions. */
   footer?: ReactNode;
   /** What the glass blurs on Android — the hero's scene, wrapped in a
    *  `BlurTargetView`. iOS blurs whatever is behind it without being told. */
@@ -114,7 +114,7 @@ export function HomeBalanceCard({
       <View
         style={{
           paddingTop: 0,
-          paddingBottom: 0,
+          paddingBottom: theme.spacing.xs,
           gap: theme.spacing.sm,
         }}
       >
