@@ -192,3 +192,30 @@ it('hides the entry bar and keeps the FAB on Personal destinations', () => {
   for (const screen of ['transactions', 'recurring', 'spending', 'budgets'])
     expect(resolveFab(['personal', screen])).toBe(true);
 });
+
+describe('personal mode: linked features', () => {
+  it('investments and rentals use the personal bar', () => {
+    expect(isPersonalMode(['investments'])).toBe(true);
+    expect(isPersonalMode(['rentals'])).toBe(true);
+    expect(isPersonalMode(['investments', '[id]'])).toBe(true);
+    expect(isPersonalMode(['rentals', 'new'])).toBe(true);
+  });
+
+  it('they highlight no personal destination of their own', () => {
+    expect(personalActiveKey(['investments'])).toBe('');
+    expect(personalActiveKey(['rentals'])).toBe('');
+  });
+
+  it('look-alike roots stay out of personal mode', () => {
+    expect(isPersonalMode(['investment'])).toBe(false);
+    expect(isPersonalMode(['rental'])).toBe(false);
+    expect(isPersonalMode([])).toBe(false);
+  });
+
+  it('statement import and categories are personal-ledger features', () => {
+    expect(isPersonalMode(['captures', 'statement'])).toBe(true);
+    expect(isPersonalMode(['captures', 'paste'])).toBe(false);
+    expect(isPersonalMode(['settings', 'categories'])).toBe(true);
+    expect(isPersonalMode(['settings', 'account'])).toBe(false);
+  });
+});
