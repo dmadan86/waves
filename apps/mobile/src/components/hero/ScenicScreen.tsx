@@ -82,6 +82,11 @@ export function ScenicScreen({
   const fade = (from: number, to: number) =>
     scrollY.interpolate({ inputRange: [0, 24], outputRange: [from, to], extrapolate: 'clamp' });
   const headerOpacity = fade(0, 1);
+  const sceneShift = scrollY.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -1],
+    extrapolateLeft: 'clamp',
+  });
   const heroInkOpacity = fade(1, 0);
   const solidInkOpacity = fade(0, 1);
   useEffect(() => {
@@ -97,18 +102,32 @@ export function ScenicScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <BlurTargetView
-        ref={sceneRef}
+      {/* The scene scrolls away with the page: it moves up exactly as far as the
+          content does (never down on an overscroll). */}
+      <Animated.View
         pointerEvents="none"
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
-      >
-        {background({
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
           height: sceneHeight,
-          photoHeight: Math.min(220, Math.max(180, headerHeight + 20)),
-          scrimHeight: insets.top + theme.spacing.sm + greetingHeight,
-          pageColor: theme.color.bg,
-        })}
-      </BlurTargetView>
+          transform: [{ translateY: sceneShift }],
+        }}
+      >
+        <BlurTargetView
+          ref={sceneRef}
+          pointerEvents="none"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
+        >
+          {background({
+            height: sceneHeight,
+            photoHeight: Math.min(220, Math.max(180, headerHeight + 20)),
+            scrimHeight: insets.top + theme.spacing.sm + greetingHeight,
+            pageColor: theme.color.bg,
+          })}
+        </BlurTargetView>
+      </Animated.View>
       {list ? (
         list({
           onScroll: (event) => scrollY.setValue(event.nativeEvent.contentOffset.y),
