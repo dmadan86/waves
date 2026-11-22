@@ -126,7 +126,6 @@ export function HomeBalanceCard({
             color={theme.color.textMuted}
           />
         </Pressable>
-        {settling || catchUp ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
         {labelAccessory ?? null}
       </Row>
       <View
@@ -171,6 +170,11 @@ export function HomeBalanceCard({
               />
             )}
           </View>
+          {/* Beside the figure, not the label: the folder tab is half the card wide,
+              and a spinner next to the label cut it to "Total you are o…". */}
+          {settling || catchUp ? (
+            <ActivityIndicator size="small" color={theme.color.brand} />
+          ) : null}
         </Row>
 
         {sides === undefined ? (
