@@ -112,7 +112,7 @@ function RecurringScreenBody() {
             importantForAccessibility="no-hide-descendants"
             style={{ position: 'absolute', top: theme.spacing.xs, end: 0, width: 96, height: 96 }}
           />
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.sm, paddingEnd: 104 }}>
             <Text
               style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: theme.color.text }}
             >
@@ -228,7 +228,7 @@ function RecurringScreenBody() {
                 <>
                   <Divider />
                   <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+                    <Text variant="caption" tone="brand" style={{ fontWeight: '600', flex: 1 }}>
                       {t.personal.due}
                     </Text>
                     <Button
