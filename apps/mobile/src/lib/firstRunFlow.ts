@@ -30,7 +30,10 @@ export function decideFirstRun(input: {
   groupCount: number;
 }): FirstRunDecision {
   if (input.seen === true) return 'skip';
-  if (input.seen === null || input.introSeen === null || !input.groupsReady) return 'wait';
+  if (input.seen === null || input.introSeen === null) return 'wait';
+  // Already answered the old cards: not new, and no need to hold the app for a first sync (offline launch).
+  if (input.introSeen) return 'mark-existing';
+  if (!input.groupsReady) return 'wait';
   return input.groupCount > 0 || input.introSeen ? 'mark-existing' : 'show';
 }
 
