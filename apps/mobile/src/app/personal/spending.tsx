@@ -152,7 +152,7 @@ function SpendingScreenBody() {
           <>
             <SoftCard style={{ gap: theme.spacing.sm }}>
               <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontSize: 16, fontWeight: '700', color: ink }}>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: ink, flexShrink: 1 }}>
                   {t.personal.last6Months}
                 </Text>
                 <Legend

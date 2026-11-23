@@ -143,8 +143,10 @@ export default function FeedbackScreen() {
                 trend. Optional: the label says so, and a second tap clears it. */}
             <Card style={{ gap: theme.spacing.md }}>
               <Row style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <Text variant="subheading">{t.privacy.feedbackRating}</Text>
-                <Text variant="micro" tone="faint">
+                <Text variant="subheading" style={{ flexShrink: 1 }}>
+                  {t.privacy.feedbackRating}
+                </Text>
+                <Text variant="micro" tone="faint" style={{ flexShrink: 1 }}>
                   {t.privacy.feedbackRatingHint}
                 </Text>
               </Row>
@@ -187,8 +189,10 @@ export default function FeedbackScreen() {
                 something you can sort. */}
             <View style={{ gap: theme.spacing.md }}>
               <Row style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <Text variant="subheading">{t.privacy.feedbackTopicsTitle}</Text>
-                <Text variant="micro" tone="faint">
+                <Text variant="subheading" style={{ flexShrink: 1 }}>
+                  {t.privacy.feedbackTopicsTitle}
+                </Text>
+                <Text variant="micro" tone="faint" style={{ flexShrink: 1 }}>
                   {t.privacy.feedbackRatingHint}
                 </Text>
               </Row>

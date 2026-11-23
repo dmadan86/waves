@@ -872,7 +872,9 @@ function LoanEditor({
 
         {loan ? (
           <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <Text variant="body">{t.personal.closeLoan}</Text>
+            <Text variant="body" style={{ flex: 1 }}>
+              {t.personal.closeLoan}
+            </Text>
             <Button
               label={closed ? t.personal.reopenLoan : t.personal.closeLoan}
               size="sm"

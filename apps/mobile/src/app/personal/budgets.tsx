@@ -408,7 +408,7 @@ function BudgetEditor({
         ) : null}
 
         <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-          <Text style={{ fontSize: 16, fontWeight: '600', color: ink }}>
+          <Text style={{ fontSize: 16, fontWeight: '600', color: ink, flexShrink: 1 }}>
             {t.personal.monthlyLimit}
           </Text>
           {/* Every budget is monthly, so this is a label and not a menu: a
