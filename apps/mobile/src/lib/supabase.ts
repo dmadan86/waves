@@ -1,6 +1,8 @@
 import 'react-native-url-polyfill/auto';
 
 import { createClient, type Session } from '@supabase/supabase-js';
+
+import { fetchWithTimeout } from '@/lib/fetchWithTimeout';
 import { AppState, Platform } from 'react-native';
 
 import { secureAuthStorage } from './secureStorage';
@@ -67,6 +69,8 @@ export const supabase = createClient(
       // the URL fragment. The exchange happens in `lib/auth.tsx`.
       flowType: 'pkce',
     },
+    // Database calls fail after 20s instead of spinning forever on a dead network.
+    global: { fetch: fetchWithTimeout() },
   },
 );
 

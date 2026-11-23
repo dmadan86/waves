@@ -173,10 +173,12 @@ function BudgetsScreenBody() {
                     <Text variant="caption" tone={over ? 'negative' : 'muted'}>
                       {format(money(progress.spent, budget.currency), {
                         locale,
+                        trimZeros: true,
                       })}
                       {' / '}
                       {format(money(budget.limit, budget.currency), {
                         locale,
+                        trimZeros: true,
                       })}
                     </Text>
                   </Row>
@@ -194,8 +196,8 @@ function BudgetsScreenBody() {
                   </View>
                   <Text variant="micro" tone={over ? 'negative' : 'muted'}>
                     {over
-                      ? `${format(money(-progress.remaining, budget.currency), { locale })} ${t.personal.over}`
-                      : `${format(money(progress.remaining, budget.currency), { locale })} ${t.personal.left}`}
+                      ? `${format(money(-progress.remaining, budget.currency), { locale, trimZeros: true })} ${t.personal.over}`
+                      : `${format(money(progress.remaining, budget.currency), { locale, trimZeros: true })} ${t.personal.left}`}
                   </Text>
                 </Card>
               </Pressable>

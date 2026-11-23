@@ -114,9 +114,8 @@ const CHIP_HEIGHT = 48;
 
 export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const theme = useTheme();
-  const dark = theme.scheme === 'dark';
-  const soft = dark ? theme.color.surfaceMuted : '#F3F0FE';
-  const accent = dark ? theme.color.brand : '#6A45E8';
+  const soft = theme.color.brandSoft;
+  const accent = theme.color.brand;
   // A destination pill: a lavender chip, outlined in violet when chosen.
   const tile = (picked: boolean) => ({
     flexDirection: 'row' as const,
@@ -127,7 +126,7 @@ export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onCl
     borderRadius: 12,
     borderWidth: 1.25,
     borderColor: picked ? accent : 'transparent',
-    backgroundColor: picked ? (dark ? theme.color.brandSoft : '#FFFFFF') : soft,
+    backgroundColor: picked ? theme.color.surface : soft,
   });
   const { t, locale } = useStrings();
   const defaultCurrency = useDefaultCurrency();

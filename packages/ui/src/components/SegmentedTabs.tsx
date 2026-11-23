@@ -32,9 +32,7 @@ export interface SegmentedTab<T extends string> {
  * under the live one — because a second floating pill on the same screen would
  * be two things claiming to be the navigation.
  *
- * Small caps and letterspacing are the one place the app raises its voice like
- * this. It works here because the row is a label for what follows rather than
- * something to read, and because this screen has a single number on it.
+ * These labels stay quiet so the page content remains the focus.
  */
 export function SegmentedTabs<T extends string>({
   value,
@@ -121,9 +119,9 @@ export function SegmentedTabs<T extends string>({
             variant="caption"
             tone={live ? 'brand' : 'faint'}
             numberOfLines={1}
-            style={{ letterSpacing: 0.8, fontWeight: live ? '700' : '600', flexShrink: 1 }}
+            style={{ fontWeight: live ? '700' : '400', flexShrink: 1 }}
           >
-            {tab.label.toUpperCase()}
+            {tab.label}
           </Text>
           {tab.count ? (
             <View
@@ -154,8 +152,8 @@ export function SegmentedTabs<T extends string>({
         <View
           style={{
             position: 'absolute',
-            left: scrollable ? theme.spacing.sm : theme.spacing.lg,
-            right: scrollable ? theme.spacing.sm : theme.spacing.lg,
+            left: scrollable ? theme.spacing.sm : 0,
+            right: scrollable ? theme.spacing.sm : 0,
             // Fixed tabs hang the mark onto the row's rule; a scroll view
             // clips anything outside it, so there it sits just above.
             bottom: scrollable ? 0 : -1,

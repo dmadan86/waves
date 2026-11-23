@@ -43,6 +43,12 @@ export interface MoneyTextProps extends Omit<TextProps, 'children' | 'tone'> {
    * exceptions.
    */
   fadeFraction?: boolean;
+  /**
+   * Keep ".00" on whole amounts. Off by default: a display figure hides a bare
+   * .00 (₹750) and keeps real paise (₹45,025.69). Set it where the exact figure
+   * is the point (settlement confirmation, receipts, accounting).
+   */
+  exact?: boolean;
 }
 
 /**
@@ -66,6 +72,7 @@ export function MoneyText({
   showSign = false,
   tone,
   fadeFraction = true,
+  exact = false,
   ...rest
 }: MoneyTextProps) {
   const theme = useTheme();
@@ -76,6 +83,7 @@ export function MoneyText({
   const shown = mode === 'balance' ? { ...money, minor: abs(amount) } : money;
   const options = {
     locale,
+    trimZeros: !exact,
     signDisplay: (showSign && mode !== 'balance' ? 'always' : 'auto') as 'always' | 'auto',
   };
   const parts = formatParts(shown, options);

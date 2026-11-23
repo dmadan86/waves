@@ -32,7 +32,7 @@ export function OwedCard({
   if (!rows.length) return <Text>{owed ? t.voice.nobodyOwes : t.voice.youOweNobody}</Text>;
 
   const amount = (value: bigint, currency: string) =>
-    format(money(value, currency as CurrencyCode), { locale });
+    format(money(value, currency as CurrencyCode), { locale, trimZeros: true });
   const rowStyle = {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,

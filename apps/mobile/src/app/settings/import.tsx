@@ -62,7 +62,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { useGroupLabeller, useExpenseGroups, useHomeSummary } from '@/data/hooks';
 import { displayName, GroupType, isViewer, type MemberRow } from '@/data/types';
 import { useAuth, useViewerId } from '@/lib/auth';
-import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { useBottomClearance } from '@/lib/clearance';
 import { importGate, maybeSelf, suggestSelf } from '@/lib/importSelf';
 import { PersonAvatar } from '@/components/PersonAvatar';
@@ -1107,15 +1107,15 @@ function useImportInks() {
     dark,
     ink: dark ? theme.color.text : SPEC_INK,
     muted: dark ? theme.color.textMuted : SPEC_MUTED,
-    accent: dark ? theme.color.brand : SPEC_ACCENT,
-    lavender: dark ? theme.color.surfaceMuted : '#EFEBFD',
+    accent: theme.color.brand,
+    lavender: theme.color.brandSoft,
     line: dark ? theme.color.border : '#ECEAF4',
   };
 }
 
 /** Rotating soft tints for the group discs, so neighbours never match. */
-const DISC_TINTS: readonly { fg: string; bg: string }[] = [
-  { fg: '#6845E8', bg: '#EFEBFD' },
+const DISC_TINTS: readonly { fg?: string; bg?: string }[] = [
+  {},
   { fg: '#2F6FE4', bg: '#E7F0FE' },
   { fg: '#E8871E', bg: '#FFF1E0' },
   { fg: '#1F9D74', bg: '#E3F6EF' },
@@ -1290,10 +1290,14 @@ function TargetRow({
           borderRadius: 19,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: dark ? theme.color.surfaceMuted : disc.bg,
+          backgroundColor: dark ? theme.color.surfaceMuted : (disc.bg ?? theme.color.brandSoft),
         }}
       >
-        <Ionicons name={icon} size={icon === 'add' ? 22 : 18} color={disc.fg} />
+        <Ionicons
+          name={icon}
+          size={icon === 'add' ? 22 : 18}
+          color={disc.fg ?? theme.color.brand}
+        />
       </View>
       <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
         <Text style={{ fontSize: 15, fontWeight: '600', color: ink }} numberOfLines={1}>

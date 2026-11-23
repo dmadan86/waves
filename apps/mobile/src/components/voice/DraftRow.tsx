@@ -21,12 +21,12 @@ export interface DraftRowValue {
   category: string | null;
 }
 
-/** "₹8,000" when the text is a number, else the text and its currency as typed. */
+/** Locale formatted amount when the text is a number, else the text and currency as typed. */
 export function amountDisplay(amount: string, currency: string, locale: string): string {
   const text = amount.trim();
   const minor = decimalToMinor(text.replace(/,/g, ''), currency);
   if (minor === null || minor <= 0n) return `${text} ${currency}`.trim();
-  return format(money(minor, currency), { locale });
+  return format(money(minor, currency), { locale, trimZeros: true });
 }
 
 export function DraftRow({

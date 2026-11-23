@@ -345,7 +345,7 @@ function EntryForm({
         <View
           style={{
             paddingHorizontal: theme.spacing.lg,
-            marginTop: -theme.spacing.lg,
+            marginTop: theme.spacing.md,
             gap: theme.spacing.md,
           }}
         >
@@ -619,7 +619,7 @@ function EntryHeader({
     <View>
       <Row
         style={{
-          paddingTop: insets.top + theme.spacing.xs,
+          paddingTop: insets.top + theme.spacing.md,
           paddingHorizontal: theme.spacing.lg,
           paddingBottom: theme.spacing.sm,
           alignItems: 'center',
@@ -940,9 +940,8 @@ function PickTile({
     >
       {disc}
       <Text
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.8}
+        numberOfLines={2}
+        align="center"
         style={{
           fontSize: 12,
           fontWeight: selected ? '600' : '500',

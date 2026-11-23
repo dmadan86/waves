@@ -704,6 +704,11 @@ function AuthGate() {
   const slide = {
     animation: push,
   };
+  // A household bar switch (`nav=tab`) cuts like every other tab; plain pushes keep the default.
+  const tabCut = ({ route }: { route: { params?: object } }) =>
+    (route.params as { nav?: string } | undefined)?.nav === 'tab'
+      ? { animation: 'none' as const }
+      : {};
 
   // Which routes go with which session — the same lists the `Stack.Protected`
   // groups below are built from, kept in `lib/routeAccess` so the guard and this
@@ -960,7 +965,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/simplify" />
           <Stack.Screen name="group/[id]/budget" />
           <Stack.Screen name="group/[id]/settings" />
-          <Stack.Screen name="group/[id]/members" />
+          <Stack.Screen name="group/[id]/members" options={tabCut} />
           <Stack.Screen name="group/[id]/member/[memberId]" />
           <Stack.Screen name="group/[id]/departed/[memberId]" />
           <Stack.Screen name="group/[id]/expense/[expenseId]" options={slide} />
@@ -968,7 +973,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/itemize" options={slide} />
           <Stack.Screen name="group/[id]/export" options={slide} />
           <Stack.Screen name="group/[id]/import" options={slide} />
-          <Stack.Screen name="group/[id]/insights" />
+          <Stack.Screen name="group/[id]/insights" options={tabCut} />
           <Stack.Screen name="group/[id]/map" />
           <Stack.Screen name="group/[id]/month" />
           <Stack.Screen name="group/[id]/pending" />

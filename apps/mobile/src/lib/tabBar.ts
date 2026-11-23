@@ -118,7 +118,12 @@ export function isPersonalMode(segments: readonly string[]): boolean {
   if (root === 'captures' && screen === 'statement') return true;
   // Categories is a personal-ledger feature opened from Overview.
   if (root === 'settings' && screen === 'categories') return true;
-  return (root === '(tabs)' && screen === 'me') || root === 'personal';
+  return (
+    (root === '(tabs)' && screen === 'me') ||
+    root === 'personal' ||
+    root === 'investments' ||
+    root === 'rentals'
+  );
 }
 
 /** Highlight the owning Personal destination, leaving standalone features unselected. */
@@ -157,6 +162,34 @@ export function personalRouteForSelection(
     default:
       return '/me';
   }
+}
+
+/**
+ * How a Personal bar tap reaches `route`. From the (tabs) navigator it must push,
+ * never replace: replacing swaps the whole navigator out, so Home would rebuild all
+ * four tabs on return. Between Personal screens siblings replace each other, and
+ * Home is reached by popping back to the still-mounted navigator.
+ */
+export function personalBarAction(
+  segments: readonly string[],
+  route: string,
+): 'push' | 'replace' | 'dismissTo' | 'navigate' {
+  if (route === '/me') return segments[0] === '(tabs)' ? 'navigate' : 'dismissTo';
+  if (route === '/profile') return 'navigate';
+  return segments[0] === '(tabs)' ? 'push' : 'replace';
+}
+
+/** Personal screens opened from a tab root: they pop their own stack, and the bar stays Personal. */
+export function isNestedPersonal(segments: readonly string[]): boolean {
+  return (
+    isPersonalMode(segments) &&
+    ['entry', 'source', 'budgets', 'loans', 'upcoming'].includes(segments[1] ?? '')
+  );
+}
+
+/** Hardware Back on a Personal tab root: another tab goes to Personal Home, Home leaves to the shared Home. */
+export function personalBackRoute(activeKey: string): '/me' | '/' {
+  return activeKey === 'home' ? '/' : '/me';
 }
 
 /** The screen a Personal destination opens on; Planning opens on Recurring. */

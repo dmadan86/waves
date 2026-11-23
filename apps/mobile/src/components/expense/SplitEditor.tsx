@@ -135,9 +135,11 @@ const CHIP_REVEAL_PADDING = 16;
 export function SplitKindChips({
   value,
   onChange,
+  allowExact = true,
 }: {
   value: SplitKind;
   onChange: (next: SplitKind) => void;
+  allowExact?: boolean;
 }): React.JSX.Element {
   const { t } = useStrings();
   const theme = useTheme();
@@ -147,20 +149,23 @@ export function SplitKindChips({
   const contentWidthRef = useRef(0);
   const chipLayoutsRef = useRef<Partial<Record<SplitKind, { x: number; width: number }>>>({});
 
-  const options = [SplitKind.Equal, SplitKind.Shares, SplitKind.Percent, SplitKind.Exact].map(
-    (kind) => ({
-      value: kind,
-      label:
-        kind === SplitKind.Equal
-          ? t.expense.equally
-          : kind === SplitKind.Shares
-            ? t.expense.shares
-            : kind === SplitKind.Percent
-              ? t.expense.percent
-              : t.expense.exactly,
-      icon: (color: string) => <Ionicons name={splitIcon(kind)} size={iconSize.md} color={color} />,
-    }),
-  );
+  const options = [
+    SplitKind.Equal,
+    SplitKind.Shares,
+    SplitKind.Percent,
+    ...(allowExact ? [SplitKind.Exact] : []),
+  ].map((kind) => ({
+    value: kind,
+    label:
+      kind === SplitKind.Equal
+        ? t.expense.equally
+        : kind === SplitKind.Shares
+          ? t.expense.shares
+          : kind === SplitKind.Percent
+            ? t.expense.percent
+            : t.expense.exactly,
+    icon: (color: string) => <Ionicons name={splitIcon(kind)} size={iconSize.md} color={color} />,
+  }));
 
   const revealChip = useCallback(
     (kind: SplitKind, animated: boolean) => {
@@ -259,9 +264,11 @@ const SPLIT_KINDS = [
 export function SplitKindSegments({
   value,
   onChange,
+  allowExact = true,
 }: {
   value: SplitKind;
   onChange: (next: SplitKind) => void;
+  allowExact?: boolean;
 }): React.JSX.Element {
   const { t } = useStrings();
   const theme = useTheme();
@@ -283,7 +290,7 @@ export function SplitKindSegments({
         backgroundColor: theme.color.surfaceMuted,
       }}
     >
-      {SPLIT_KINDS.map((kind) => {
+      {SPLIT_KINDS.filter((kind) => allowExact || kind !== SplitKind.Exact).map((kind) => {
         const selected = kind === value;
         const ink = selected ? theme.color.onBrand : theme.color.textMuted;
         return (

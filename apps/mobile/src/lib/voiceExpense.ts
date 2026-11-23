@@ -18,6 +18,7 @@ import {
   CATEGORIES,
   findAmbiguousPriceIdioms,
   foldSpokenAmountWords,
+  guessCategory,
   isCurrencyCode,
   isVoiceAmountClear,
   majorToMinor,
@@ -1041,6 +1042,11 @@ export function parseVoiceCategory(text: string): CategoryId | null {
     if (category) return category;
   }
   return null;
+}
+
+function hasCategoryInstruction(text: string): boolean {
+  CATEGORY_PHRASE.lastIndex = 0;
+  return CATEGORY_PHRASE.test(text);
 }
 
 function stripCategoryPhrase(text: string): string {
@@ -2438,12 +2444,16 @@ export function parseVoiceExpenses(
     if (amountMajor === null) continue;
     const currency: string | null = currencyOf(segment) ?? carriedCurrency;
     if (currency) carriedCurrency = currency;
-    const itemCategory = parseVoiceCategory(segment) ?? category;
+    const note = finalizeNote(buildNote(segment, matchedName));
+    const statedCategory = parseVoiceCategory(segment);
+    const itemCategory =
+      statedCategory ??
+      (hasCategoryInstruction(segment) ? null : (category ?? guessCategory(note)));
     items.push({
       amountMajor,
       amountMinor: toVoiceMinorUnits(amountMajor, currency),
       currency,
-      note: finalizeNote(buildNote(segment, matchedName)),
+      note,
       category: itemCategory,
     });
   }

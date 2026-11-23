@@ -5,7 +5,7 @@
  * A new person with nothing yet sees three starter tiles instead.
  */
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
 
@@ -17,6 +17,7 @@ import { CardTitle } from '@/components/personal/PersonalHomeParts';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 import type { PoolFigure } from '@/data/homeSpaces';
 import { useCaptures, type useHomeSummary } from '@/data/hooks';
+import type { SnapRow } from '@/lib/homeSnapshot';
 import { groupLabel, type GroupRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { capSpaces, plainAmount } from '@/lib/homeToday';
@@ -40,6 +41,7 @@ export function SpacesGrid({
   unreadGroups,
   onNewSpace,
   onNewGroup,
+  onSnapshot,
 }: {
   groups: readonly GroupRow[];
   summary: ReturnType<typeof useHomeSummary>;
@@ -62,26 +64,15 @@ export function SpacesGrid({
   onNewSpace: (anchor: MenuAnchor | null) => void;
   /** Straight into the new-group form, optionally for one group type. */
   onNewGroup: (type?: string) => void;
+  /** Reports the rows as drawn (unmasked), for Home's stored snapshot. */
+  onSnapshot?: (personal: SnapRow, groups: SnapRow[]) => void;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
   const h = t.homeToday;
   const plusRef = useRef<View>(null);
-  const [nowMs] = useState(() => Date.now());
   const { shown } = capSpaces(groups);
-  const captures = useCaptures();
-  const justAddedId = useImportedGroupId();
-  const voiceNewCount = useVoiceNewCount();
-  const { defaultId: voiceDefaultId } = useVoiceDefaultSpace();
-  const draftsByGroup = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const capture of captures.data) {
-      if (capture.target_group_id) {
-        counts.set(capture.target_group_id, (counts.get(capture.target_group_id) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [captures.data]);
+  const { draftsByGroup, voiceNewCount, env } = useGroupRowEnv();
 
   const month = ledger.today.slice(0, 7);
   const overall = ledger.budgets.find((b) => b.category === null && b.currency === ledger.currency);
@@ -97,8 +88,52 @@ export function SpacesGrid({
     hidden || personalHidden
       ? BALANCE_MASK
       : plainAmount(amount < 0n ? -amount : amount, ledger.currency, locale);
+  const personalFigure = progress ? progress.remaining : spent;
+  const personalRaw = plainAmount(
+    personalFigure < 0n ? -personalFigure : personalFigure,
+    ledger.currency,
+    locale,
+  );
   const personalNumber = progress ? personalShow(progress.remaining) : personalShow(spent);
-  const personalLabel = progress ? h.leftMonth : h.spentMonth;
+  const personalLabel = progress
+    ? progress.remaining < 0n
+      ? h.overMonth
+      : h.leftMonth
+    : h.spentMonth;
+
+  const rowsJson = onSnapshot
+    ? JSON.stringify([
+        {
+          key: 'personal',
+          title: h.personal,
+          memberLabel: h.justMe,
+          icon: 'wallet-outline',
+          amountText: personalRaw,
+          directionLabel: personalLabel,
+          tone: progress && progress.remaining < 0n ? 'negative' : undefined,
+          href: '/(tabs)/me',
+        } satisfies SnapRow,
+        shown.map((group) => {
+          const { tagTone, ...row } = buildGroupRow({
+            group,
+            summary,
+            viewerId,
+            figure: pool.get(group.id),
+            drafts: draftsByGroup.get(group.id) ?? 0,
+            locale,
+            t,
+            env,
+          });
+          return row;
+        }),
+      ])
+    : null;
+  useEffect(() => {
+    if (!rowsJson || newUser) return;
+    const [personal, rows] = JSON.parse(rowsJson) as [SnapRow, SnapRow[]];
+    onSnapshot?.(personal, rows);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the rows' content
+  }, [rowsJson, newUser]);
 
   const starter = (
     tint: 'lilac' | 'sky' | 'peach',
@@ -178,95 +213,245 @@ export function SpacesGrid({
               divider={false}
               onPress={() => switchTab('/(tabs)/me')}
             />
-            {shown.map((group, index) => {
-              const figure = pool.get(group.id);
-              const balance = summary.balanceFor(group.id);
-              let amountText: string;
-              let directionLabel: string;
-              if (figure) {
-                if (figure.left !== null) {
-                  amountText = plainAmount(
-                    figure.left < 0n ? -figure.left : figure.left,
-                    figure.currency,
-                    locale,
-                  );
-                  directionLabel = h.leftPool;
-                } else if (figure.nextBill) {
-                  amountText = plainAmount(figure.nextBill.amount, figure.currency, locale);
-                  directionLabel = fill(h.billDue, {
-                    date: new Date(`${figure.nextBill.date}T12:00:00`).toLocaleDateString(locale, {
-                      day: 'numeric',
-                      month: 'short',
-                    }),
-                  });
-                } else {
-                  amountText = plainAmount(
-                    figure.spent < 0n ? -figure.spent : figure.spent,
-                    figure.currency,
-                    locale,
-                  );
-                  directionLabel = h.spentPool;
-                }
-              } else {
-                amountText = plainAmount(
-                  balance < 0n ? -balance : balance,
-                  group.default_currency ?? 'INR',
-                  locale,
-                );
-                directionLabel =
-                  balance === 0n
-                    ? t.group.rowSettled
-                    : balance > 0n
-                      ? t.group.rowOwed
-                      : t.group.rowYouOwe;
-              }
-              const isNew = nowMs - Date.parse(group.created_at) < 2 * 24 * 60 * 60 * 1000;
-              const tag = group.isDemo
-                ? t.demo.badge
-                : group.id === voiceDefaultId
-                  ? t.spaces.defaultTag
-                  : isNew
-                    ? t.tagNew
-                    : null;
-              const drafts = draftsByGroup.get(group.id) ?? 0;
-              return (
-                <SpaceRow
-                  key={group.id}
-                  title={groupLabel(group, summary.membersFor(group.id), viewerId)}
-                  memberLabel={plural(locale, summary.memberCountFor(group.id), t.memberCount)}
-                  draftLabel={drafts ? plural(locale, drafts, t.draftCount) : null}
-                  coverEmoji={group.cover_emoji}
-                  coverColor={group.cover_color}
-                  groupType={group.type}
-                  eventTemplate={group.event_template}
-                  customTag={group.custom_tag}
-                  balance={balance}
-                  currency={group.default_currency ?? 'INR'}
-                  locale={locale}
-                  statusLabel={
-                    balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
-                  }
-                  directionLabel={directionLabel}
-                  amountText={amountText}
-                  tone={
-                    figure ? 'ink' : balance > 0n ? 'positive' : balance < 0n ? 'negative' : 'muted'
-                  }
-                  pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
-                  tag={tag}
-                  tagTone={group.isDemo ? 'warning' : 'brand'}
-                  isDemo={group.isDemo === true}
-                  divider={index >= 0}
-                  hidden={hidden}
-                  pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
-                  enter={group.id === justAddedId}
-                  unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
-                  onPress={() => router.push(`/group/${group.id}`)}
-                />
-              );
-            })}
+            {shown.map((group, index) => (
+              <GroupSpaceRow
+                key={group.id}
+                group={group}
+                summary={summary}
+                viewerId={viewerId}
+                figure={pool.get(group.id)}
+                drafts={draftsByGroup.get(group.id) ?? 0}
+                locale={locale}
+                hidden={hidden}
+                divider={index >= 0}
+                unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
+                env={env}
+              />
+            ))}
           </>
         )}
       </View>
     </View>
+  );
+}
+
+/** The facts about "now" a group row shares across the list. */
+export type GroupRowEnv = {
+  nowMs: number;
+  voiceDefaultId: string | null;
+  justAddedId: string | null;
+};
+
+/** Drafts waiting per group, and the rest of what a group row reads from outside. */
+export function useGroupRowEnv(): {
+  draftsByGroup: ReadonlyMap<string, number>;
+  voiceNewCount: (groupId: string) => number;
+  env: GroupRowEnv;
+} {
+  const [nowMs] = useState(() => Date.now());
+  const captures = useCaptures();
+  const justAddedId = useImportedGroupId();
+  const voiceNewCount = useVoiceNewCount();
+  const { defaultId: voiceDefaultId } = useVoiceDefaultSpace();
+  const draftsByGroup = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const capture of captures.data) {
+      if (capture.target_group_id) {
+        counts.set(capture.target_group_id, (counts.get(capture.target_group_id) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [captures.data]);
+  return { draftsByGroup, voiceNewCount, env: { nowMs, voiceDefaultId, justAddedId } };
+}
+
+/** One group as Home's Groups list draws it — shared with the All groups screen. */
+export function buildGroupRow({
+  group,
+  summary,
+  viewerId,
+  figure,
+  drafts,
+  locale,
+  t,
+  env: { nowMs, voiceDefaultId },
+}: {
+  group: GroupRow;
+  summary: ReturnType<typeof useHomeSummary>;
+  viewerId: string | null;
+  figure: PoolFigure | undefined;
+  drafts: number;
+  locale: string;
+  t: ReturnType<typeof useStrings>['t'];
+  env: GroupRowEnv;
+}): SnapRow & { tagTone: 'warning' | 'brand' } {
+  const h = t.homeToday;
+  {
+    const balance = summary.balanceFor(group.id);
+    let amountText: string;
+    let directionLabel: string;
+    if (figure) {
+      if (figure.left !== null) {
+        amountText = plainAmount(
+          figure.left < 0n ? -figure.left : figure.left,
+          figure.currency,
+          locale,
+        );
+        directionLabel = h.leftPool;
+      } else if (figure.nextBill) {
+        amountText = plainAmount(figure.nextBill.amount, figure.currency, locale);
+        directionLabel = fill(h.billDue, {
+          date: new Date(`${figure.nextBill.date}T12:00:00`).toLocaleDateString(locale, {
+            day: 'numeric',
+            month: 'short',
+          }),
+        });
+      } else {
+        amountText = plainAmount(
+          figure.spent < 0n ? -figure.spent : figure.spent,
+          figure.currency,
+          locale,
+        );
+        directionLabel = h.spentPool;
+      }
+    } else {
+      amountText = plainAmount(
+        balance < 0n ? -balance : balance,
+        group.default_currency ?? 'INR',
+        locale,
+      );
+      directionLabel =
+        balance === 0n ? t.group.rowSettled : balance > 0n ? t.group.rowOwed : t.group.rowYouOwe;
+    }
+    const isNew = nowMs - Date.parse(group.created_at) < 2 * 24 * 60 * 60 * 1000;
+    const tag = group.isDemo
+      ? t.demo.badge
+      : group.id === voiceDefaultId
+        ? t.spaces.defaultTag
+        : isNew
+          ? t.tagNew
+          : null;
+    return {
+      key: group.id,
+      title: groupLabel(group, summary.membersFor(group.id), viewerId),
+      memberLabel: plural(locale, summary.memberCountFor(group.id), t.memberCount),
+      draftLabel: drafts ? plural(locale, drafts, t.draftCount) : null,
+      coverEmoji: group.cover_emoji,
+      coverColor: group.cover_color,
+      groupType: group.type,
+      eventTemplate: group.event_template,
+      customTag: group.custom_tag,
+      balance: balance.toString(),
+      currency: group.default_currency ?? 'INR',
+      statusLabel: balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe,
+      directionLabel,
+      amountText,
+      tone: figure ? 'ink' : balance > 0n ? 'positive' : balance < 0n ? 'negative' : 'muted',
+      pendingLabel: summary.hasPending(group.id) ? t.pendingConfirmation : null,
+      tag,
+      tagTone: group.isDemo ? 'warning' : 'brand',
+      isDemo: group.isDemo === true,
+    };
+  }
+}
+
+/** One group row from its view model: live (`GroupSpaceRow`) or from the snapshot. */
+export function GroupRowView({
+  row,
+  locale,
+  hidden,
+  divider,
+  unread = false,
+  tagTone = 'brand',
+  enter = false,
+  pendingBalance = false,
+}: {
+  row: SnapRow;
+  locale: string;
+  hidden: boolean;
+  divider: boolean;
+  unread?: boolean;
+  tagTone?: 'warning' | 'brand';
+  enter?: boolean;
+  pendingBalance?: boolean;
+}) {
+  return (
+    <SpaceRow
+      title={row.title}
+      memberLabel={row.memberLabel}
+      draftLabel={row.draftLabel}
+      coverEmoji={row.coverEmoji}
+      coverColor={row.coverColor}
+      groupType={row.groupType}
+      eventTemplate={row.eventTemplate}
+      customTag={row.customTag}
+      balance={row.balance === undefined ? undefined : BigInt(row.balance)}
+      currency={row.currency}
+      locale={locale}
+      statusLabel={row.statusLabel}
+      directionLabel={row.directionLabel}
+      amountText={row.amountText}
+      tone={row.tone}
+      icon={row.icon as never}
+      pendingLabel={row.pendingLabel}
+      tag={row.tag}
+      tagTone={tagTone}
+      isDemo={row.isDemo}
+      divider={divider}
+      hidden={hidden}
+      pendingBalance={pendingBalance}
+      enter={enter}
+      unread={unread}
+      onPress={() => router.push((row.href ?? `/group/${row.key}`) as never)}
+    />
+  );
+}
+
+/** One group as Home's Groups list draws it — shared with the All groups screen. */
+export function GroupSpaceRow({
+  group,
+  summary,
+  viewerId,
+  figure,
+  drafts,
+  locale,
+  hidden,
+  divider,
+  unread,
+  env,
+}: {
+  group: GroupRow;
+  summary: ReturnType<typeof useHomeSummary>;
+  viewerId: string | null;
+  figure: PoolFigure | undefined;
+  drafts: number;
+  locale: string;
+  hidden: boolean;
+  divider: boolean;
+  unread: boolean;
+  env: GroupRowEnv;
+}) {
+  const { t } = useStrings();
+  const { tagTone, ...row } = buildGroupRow({
+    group,
+    summary,
+    viewerId,
+    figure,
+    drafts,
+    locale,
+    t,
+    env,
+  });
+  return (
+    <GroupRowView
+      row={row}
+      locale={locale}
+      hidden={hidden}
+      divider={divider}
+      unread={unread}
+      tagTone={tagTone}
+      enter={group.id === env.justAddedId}
+      pendingBalance={group.id === env.justAddedId && !summary.hasLedger(group.id)}
+    />
   );
 }

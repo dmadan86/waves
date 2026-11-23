@@ -10,9 +10,9 @@ import {
   mergeUpcoming,
   monthOptions,
   recurringRows,
-  todoRow,
+  groupUpcoming,
+  filterUpcoming,
   upcomingView,
-  visibleSections,
   type UpcomingRow,
 } from '../src/lib/personalUpcoming';
 
@@ -30,22 +30,21 @@ describe('personal upcoming', () => {
     expect(daysBetween('2026-11-21', '2026-11-20')).toBe(-1);
   });
 
-  it('sorts by date and keeps a seat for the to-do', () => {
-    const rows = mergeUpcoming([row('c', 9), row('a', 1), row('b', 4)], 5, 3);
-    expect(rows.map((r) => r.key)).toEqual(['a', 'b', 'todo']);
-    expect(rows[2]?.left).toBe(5);
+  it('sorts by date and limits without adding the setup to-do', () => {
+    const rows = mergeUpcoming([row('c', 9), row('a', 1), row('b', 4)], 2);
+    expect(rows.map((r) => r.key)).toEqual(['a', 'b']);
   });
 
   it('fills three rows without a to-do, and lists everything with no limit', () => {
     const dated = [row('a', 1), row('b', 2), row('c', 3), row('d', 4)];
-    expect(mergeUpcoming(dated, 0, 3).map((r) => r.key)).toEqual(['a', 'b', 'c']);
-    expect(mergeUpcoming(dated, 2, 0)).toHaveLength(5);
+    expect(mergeUpcoming(dated, 3).map((r) => r.key)).toEqual(['a', 'b', 'c']);
+    expect(mergeUpcoming(dated, 0)).toHaveLength(4);
   });
 
   it('dots the bell for anything due by tomorrow, not the to-do', () => {
     expect(hasDue([row('a', 3)])).toBe(false);
     expect(hasDue([row('a', -2)])).toBe(true);
-    expect(hasDue(mergeUpcoming([], 3, 3))).toBe(false);
+    expect(hasDue(mergeUpcoming([], 3))).toBe(false);
   });
 });
 
@@ -104,23 +103,22 @@ describe('upcoming screen helpers', () => {
     expect(rows[0]?.overdue).toBe(false);
   });
 
-  it('groups this month vs next, totals and counts', () => {
+  it('groups this month vs next and excludes setup to-dos', () => {
     const view = upcomingView({
       txns: [],
       recurrings: [aunty, phone, salary],
       currency: 'INR',
       today,
-      month: '2026-11',
       dates: [],
-      todoLeft: 5,
     });
-    expect(view.thisMonth).toHaveLength(2);
-    expect(view.next.map((r) => r.date)).toEqual(['2026-12-02', '2026-12-25']);
-    expect(view.totals).toEqual({ due: 500_000n, dueCount: 2, overdue: 200_000n, overdueCount: 1 });
-    expect(view.counts).toEqual({ all: 3, bills: 2, todo: 1 });
-    expect(visibleSections(view, 'all', 'overdue').month).toHaveLength(1);
-    expect(visibleSections(view, 'todo', null).todos).toEqual([todoRow(5)]);
-    expect(visibleSections(view, 'bills', null).todos).toHaveLength(0);
+    expect(view.rows.length).toBe(8);
+    expect(view.rows.some((r) => r.key === 'todo')).toBe(false);
+    const grouped = groupUpcoming(view.rows, today);
+    expect(grouped.overdue).toHaveLength(2);
+    expect(grouped.thisWeek).toHaveLength(1);
+    expect(grouped.laterThisMonth).toHaveLength(0);
+    expect(grouped.nextMonth).toHaveLength(3);
+    expect(filterUpcoming(view, 'bills').every((r) => !r.income)).toBe(true);
   });
 
   it('lists every active rule, income too, on the recurring tab', () => {

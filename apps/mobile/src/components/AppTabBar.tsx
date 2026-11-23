@@ -69,7 +69,8 @@ import {
 import { useCompanySuspended } from '@/data/companyEntries';
 import { usePendingCount } from '@/lib/companyPending';
 import { useViewerCompanyIds, useViewerRole } from '@/lib/useCompanyTab';
-import { router, switchTab } from '@/lib/navigation';
+import { router, runBarMove, setBackOverride, switchTab } from '@/lib/navigation';
+import { installTabBack, type TabBackDeps } from '@/lib/tabBack';
 import { useFabOverride } from '@/lib/fabOverride';
 import { companyTabTarget, readLastSpace } from '@/lib/spaces';
 import { useFollowSpace } from '@/lib/useSpaces';
@@ -79,15 +80,26 @@ import { holdMicState, refreshHoldMic } from '@/lib/holdMic';
 import { holdPlan } from '@/lib/holdVoicePure';
 import { useVoiceConsent } from '@/lib/voiceConsentStore';
 import {
+  isNestedPersonal,
   isPersonalMode,
   isPersonalRoot,
   isTabRoot,
   personalActiveKey,
+  personalBackRoute,
+  personalBarAction,
   personalRouteForSelection,
   showFab,
   resolveTabBar,
   tabBarRouteForSelection,
 } from '@/lib/tabBar';
+import {
+  householdBackRoute,
+  householdBarActiveKey,
+  barMove,
+  householdBarRoute,
+  isHouseholdBarRoot,
+} from '@/lib/householdTab';
+import { useHouseholdMode } from '@/lib/useHouseholdMode';
 import { useTabBarSuppressed } from '@/lib/tabBarSuppress';
 import { useVoiceWarmup } from '@/lib/voiceWarmup';
 
@@ -159,6 +171,11 @@ function ModeItem({
 }
 
 /** Renders the persistent bottom navigation bar and routes tab selections without stacking duplicates. */
+const tabBackDeps: TabBackDeps = {
+  setOverride: setBackOverride,
+  addHardwareBack: (handler) => BackHandler.addEventListener('hardwareBackPress', handler),
+};
+
 export function AppTabBar() {
   const { t, locale } = useStrings();
   const insets = useSafeAreaInsets();
@@ -175,7 +192,7 @@ export function AppTabBar() {
   // *into that group*, not the unassigned inbox. `useSegments` gives the route
   // shape (`group/[id]/…`); the id's value comes from the focused route's
   // params. Any non-group screen leaves this null and the mic opens plain.
-  const params = useGlobalSearchParams<{ id?: string }>();
+  const params = useGlobalSearchParams<{ id?: string; view?: string; tab?: string; hh?: string }>();
   const groupId = segments[0] === 'group' && typeof params.id === 'string' ? params.id : null;
 
   // No session means no bar anywhere — the privacy page opened from the login
@@ -190,7 +207,9 @@ export function AppTabBar() {
   const viewerId = useViewerId();
   const role = useViewerRole(groupId);
   const company = isCompanyMode(segments, groupId, companyIds, role);
-  const alt = personal || company;
+  // Household mode: a couple/family/home/pool group wears Personal's bar over its own views.
+  const household = useHouseholdMode(segments, groupId) && !company;
+  const alt = personal || company || household;
   const theme = useTheme();
   const reduced = useReducedMotion();
   const p = useSharedValue(alt ? 1 : 0);
@@ -224,7 +243,11 @@ export function AppTabBar() {
   const companySlot = reviewSlotKey(companyIds) === 'company';
   const sharedActive =
     companyActiveKey(segments, groupId, companyIds) === 'company' ? 'company' : sharedKey;
-  const altActive = company ? companyBarActiveKey(segments) : personalActiveKey(segments);
+  const altActive = company
+    ? companyBarActiveKey(segments)
+    : household
+      ? householdBarActiveKey(segments, params)
+      : personalActiveKey(segments);
   const activeKey = alt ? altActive : sharedActive;
   // A screen can also ask the bar to stand down while it is *on* that screen —
   // Review does it while drafts are ticked, so its action bar has the bottom of
@@ -329,7 +352,27 @@ export function AppTabBar() {
       ),
     ];
   }, [pendingCount, t.company, t.companyClients.title, t.companyVendors.title, t.home]);
-  const altItems = company ? companyItems : personalItems;
+  // Household: Personal's five tabs, the last one opening the group's members.
+  const householdItems = useMemo<PillTabItem[]>(
+    () =>
+      personalItems.map((item) =>
+        item.key === 'me'
+          ? {
+              ...item,
+              label: t.members,
+              icon: (color, focused) => (
+                <Ionicons
+                  name={focused ? 'people' : 'people-outline'}
+                  size={iconSize.lg}
+                  color={color}
+                />
+              ),
+            }
+          : item,
+      ),
+    [personalItems, t.members],
+  );
+  const altItems = company ? companyItems : household ? householdItems : personalItems;
 
   const sharedItems = useMemo<PillTabItem[]>(
     () => [
@@ -407,15 +450,27 @@ export function AppTabBar() {
     (key: string): void => {
       if (company && groupId) {
         if (key === activeKey && isCompanyBarRoot(segments)) return;
-        // Siblings replace each other, like Personal's, so tabs never stack.
-        router.replace(companyBarRoute(groupId, key) as never);
+        // First hop pushes, siblings replace, Overview pops: the group root stays mounted.
+        const href = companyBarRoute(groupId, key);
+        runBarMove(barMove(segments, href), href as never);
+        return;
+      }
+      if (household && groupId) {
+        if (key === activeKey && isHouseholdBarRoot(segments, params, key)) return;
+        // Home/Transactions/Planning swap params on the mounted root; Reports and Members push
+        // from it and replace each other, so the root is never rebuilt and tabs never stack.
+        const href = householdBarRoute(groupId, key);
+        runBarMove(barMove(segments, href), href as never);
         return;
       }
       if (personal) {
         const route = personalRouteForSelection(activeKey, key, isPersonalRoot(segments, key));
         if (!route) return;
-        // Siblings inside the personal section replace each other rather than stack.
-        if (route.startsWith('/personal')) router.replace(route);
+        // Siblings replace each other; the first hop from (tabs) pushes and Home pops
+        // back, so the tab navigator is never rebuilt (see personalBarAction).
+        const how = personalBarAction(segments, route);
+        if (how === 'replace') router.replace(route);
+        else if (how === 'dismissTo') router.dismissTo(route);
         else if (route === '/profile') router.navigate(route);
         else switchTab(route);
         return;
@@ -431,39 +486,65 @@ export function AppTabBar() {
       const route = tabBarRouteForSelection(activeKey, key, isTabRoot(segments, key));
       if (route) switchTab(route);
     },
-    [activeKey, company, companyIds, groupId, personal, segments, viewerId],
+    [activeKey, company, companyIds, groupId, household, params, personal, segments, viewerId],
   );
 
   // Nested Personal screens (entry, source, budgets, loans) pop their own stack.
-  const nestedPersonal =
-    personal && ['entry', 'source', 'budgets', 'loans', 'upcoming'].includes(segments[1] ?? '');
+  const nestedPersonal = isNestedPersonal(segments);
 
-  useEffect(() => {
-    if (
-      nestedPersonal ||
-      !personal ||
-      !['home', 'transactions', 'planning', 'reports'].includes(activeKey)
-    )
-      return;
-    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
-      switchTab('/');
-      return true;
-    });
-    return () => listener.remove();
-  }, [nestedPersonal, personal, activeKey]);
+  const personalBack =
+    !nestedPersonal &&
+    personal &&
+    ['home', 'transactions', 'planning', 'reports'].includes(activeKey);
+  useEffect(
+    () =>
+      installTabBack(
+        personalBack
+          ? () => {
+              const back = personalBackRoute(activeKey);
+              // From a Personal screen, pop to the mounted (tabs) rather than push a second one.
+              if (personalBarAction(segments, back) === 'dismissTo') router.dismissTo(back);
+              else switchTab(back);
+            }
+          : null,
+        tabBackDeps,
+      ),
+    [personalBack, activeKey, segments],
+  );
+
+  // Household bar: tabs replace each other, so Back from any tab but Home returns to the
+  // household Home (hardware Back here, and every header chevron through the router override).
+  const householdBack =
+    household && groupId
+      ? householdBackRoute(segments, { view: params.view, tab: params.tab, hh: params.hh }, groupId)
+      : null;
+  useEffect(
+    () =>
+      installTabBack(
+        householdBack === null
+          ? null
+          : () => runBarMove(barMove(segments, householdBack), householdBack as never),
+        tabBackDeps,
+      ),
+    [householdBack, segments],
+  );
 
   // Company bar: Back on a sub-tab goes to Overview, on Overview to Home.
   const companyBack = company && groupId ? companyBackRoute(segments, groupId) : null;
-  useEffect(() => {
-    if (companyBack === null) return;
-    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
-      // dismissTo pops to Home, so the Overview slides out to the right like a Back.
-      if (companyBack === '/') router.dismissTo('/');
-      else router.replace(companyBack as never);
-      return true;
-    });
-    return () => listener.remove();
-  }, [companyBack]);
+  useEffect(
+    () =>
+      installTabBack(
+        companyBack === null
+          ? null
+          : () => {
+              // dismissTo pops to Home, so the Overview slides out to the right like a Back.
+              if (companyBack === '/') router.dismissTo('/');
+              else runBarMove(barMove(segments, companyBack), companyBack as never);
+            },
+        tabBackDeps,
+      ),
+    [companyBack, segments],
+  );
 
   // A finger is down on the mic. Held in state for one reason beyond the render:
   // the bar hides itself on the `voice` route, and unmounting the button the

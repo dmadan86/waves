@@ -45,7 +45,7 @@ export function PersonalPlanCards({
   const p = t.personalPlan;
   const currency = plan.currency;
   const fmt = (amount: bigint): string =>
-    hidden ? BALANCE_MASK : format(money(amount, currency), { locale });
+    hidden ? BALANCE_MASK : format(money(amount, currency), { locale, trimZeros: true });
 
   // The clock is read once, off render.
   const [hour] = useState(() => new Date().getHours());

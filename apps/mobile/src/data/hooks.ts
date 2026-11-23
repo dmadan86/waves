@@ -2399,11 +2399,12 @@ export function useLeaveGroup(groupId: string, onLeft?: () => void) {
     // Leaving hides the group server-side (RLS), so it can never be pulled again
     // to signal its removal — the client must forget it locally, or it lingers
     // on the dashboard forever. Purge the mirror first, then refresh what is left.
-    onSuccess: async () => {
+    onSuccess: () => {
       // Leave the group screens before the mirror update makes them render as missing.
       onLeft?.();
-      await forgetGroup(groupId);
-      invalidateGroup(queryClient, groupId);
+      // Not awaited: forgetting waits out any sync already on the wire, which
+      // held the Leave button spinning for seconds after the server said yes.
+      void forgetGroup(groupId).then(() => invalidateGroup(queryClient, groupId));
     },
   });
 }
@@ -2421,11 +2422,10 @@ export function useDeleteGroup(groupId: string, onDeleted?: () => void) {
   const { forgetGroup } = useSync();
   return useMutation({
     mutationFn: () => (isDemoGroupId(groupId) ? rejectDemoWrite<void>() : deleteGroup(groupId)),
-    onSuccess: async () => {
+    onSuccess: () => {
       // Hook callbacks run before mutate-level onSuccess, which is too late for navigation.
       onDeleted?.();
-      await forgetGroup(groupId);
-      invalidateGroup(queryClient, groupId);
+      void forgetGroup(groupId).then(() => invalidateGroup(queryClient, groupId));
     },
   });
 }

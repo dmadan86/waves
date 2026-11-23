@@ -54,6 +54,16 @@ import { createNavigationGuard } from './navigationGuard';
  */
 const guard = createNavigationGuard();
 
+/**
+ * A screen-level stand-in for "back", set by the bottom bar on a household tab
+ * root: tabs replace each other, so the stack has lost Home, and Back there must
+ * return to the household Home rather than leave the group.
+ */
+let backOverride: (() => void) | null = null;
+export function setBackOverride(fn: (() => void) | null): void {
+  backOverride = fn;
+}
+
 export const router: ImperativeRouter = {
   ...expoRouter,
 
@@ -74,6 +84,7 @@ export const router: ImperativeRouter = {
   },
   back: () => {
     guard.reset();
+    if (backOverride) return backOverride();
     expoRouter.back();
   },
   dismiss: (count) => {
@@ -98,6 +109,14 @@ export const router: ImperativeRouter = {
  */
 export function switchTab(href: Href): void {
   expoRouter.navigate(href);
+}
+
+/** Performs a `barMove` (lib/householdTab): the unguarded tab-switch moves, like `switchTab`. */
+export function runBarMove(move: 'navigate' | 'push' | 'replace' | 'dismissTo', href: Href): void {
+  if (move === 'navigate') expoRouter.navigate(href);
+  else if (move === 'push') expoRouter.push(href);
+  else if (move === 'dismissTo') router.dismissTo(href);
+  else router.replace(href);
 }
 
 /**

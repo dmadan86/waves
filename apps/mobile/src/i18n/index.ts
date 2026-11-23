@@ -358,15 +358,22 @@ export interface UiStrings {
     dueSub: string;
     owesYou: string;
     youOweName: string;
+    owesYouSub: string;
+    youOweSub: string;
     reviewTitle: string;
     comingUp: string;
     addReminder: string;
+    /** Quick action on All groups: open the join-by-code/QR screen. */
+    joinGroupShort: string;
     spaces: string;
     addSpace: string;
     personal: string;
     justMe: string;
     leftMonth: string;
+    overMonth: string;
     spentMonth: string;
+    toolInvestments: string;
+    toolRentals: string;
     leftPool: string;
     spentPool: string;
     billDue: string;
@@ -937,6 +944,10 @@ export interface UiStrings {
     loading: string;
     close: string;
     cancel: string;
+    cancelled: string;
+    remindingName: string;
+    reminderSent: string;
+    markedPaid: string;
     save: string;
     edit: string;
     remove: string;
@@ -1657,6 +1668,9 @@ export interface UiStrings {
     completeRow: string;
     completeRowHint: string;
     completeSheetTitle: string;
+    completePaid: string;
+    completePlace: string;
+    completeAdd: string;
     /** The 4th "Try saying…" example, in quotes like its siblings. */
     tryWhoOwes: string;
   };
@@ -3802,6 +3816,13 @@ export interface UiStrings {
     done: string;
     splitEquallyWith: string;
     paidByName: string;
+    paidByLabel: string;
+    splitLabel: string;
+    equallyPeople: string;
+    sharesPeople: string;
+    percentPeople: string;
+    amountsPeople: string;
+    payersPeople: string;
     splitDifferently: string;
     details: string;
     addAll: string;
@@ -4957,6 +4978,8 @@ export interface UiStrings {
     settleAllGroups: string;
     /** "Across 4 groups", under each side of the balance card. */
     acrossGroups: PluralForms;
+    /** "From 3 people", under each side of the Friends balance card. */
+    acrossPeople: PluralForms;
   };
   /** The rotating "did you know" tips card on the dashboard — one useful,
    *  app-specific hint at a time, dismissible for good. */
@@ -5474,6 +5497,8 @@ export interface UiStrings {
    *  forms and the tappable place on the expense detail. */
   location: {
     label: string;
+    /** The Location row when the pin has no place name. */
+    pinnedOnMap: string;
     add: string;
     adding: string;
     remove: string;
@@ -8357,6 +8382,10 @@ export interface UiStrings {
     hi: string;
     space: string;
     sharedSpace: string;
+    onlyYou: string;
+    sharedSubtitle: string;
+    groupCouple: string;
+    groupFamily: string;
     switchSpace: string;
     search: string;
     reminders: string;
@@ -8369,10 +8398,14 @@ export interface UiStrings {
     overChip: string;
     aDay: string;
     upcomingTitle: string;
+    due: string;
+    expected: string;
+    thisWeek: string;
+    laterThisMonth: string;
+    nextMonth: string;
     dueOn: string;
     today: string;
     overdue: string;
-    todo: string;
     upcomingEmpty: string;
     recentTitle: string;
     toolLoans: string;
@@ -8384,24 +8417,15 @@ export interface UiStrings {
     navPlanning: string;
     navReports: string;
     navMe: string;
-    addDateRow: string;
     inDays: PluralForms;
-    itemsLeft: PluralForms;
     filterAll: string;
     filterBills: string;
-    filterTodo: string;
-    filterRecurring: string;
+    filterReminders: string;
     filterLabel: string;
-    dueThisMonth: string;
-    billsCount: PluralForms;
-    itemsCount: PluralForms;
     thisMonth: string;
-    nextSection: string;
-    dueOverdue: string;
     addReminder: string;
     markPaid: string;
     editBill: string;
-    pickMonth: string;
     reminderTitle: string;
     reminderAmount: string;
     reminderDate: string;
@@ -8409,7 +8433,6 @@ export interface UiStrings {
     repeatNone: string;
     repeatMonthly: string;
     repeatYearly: string;
-    nothingHere: string;
   };
   personalPlan: {
     leftToday: string;
@@ -8684,6 +8707,11 @@ export interface UiStrings {
     incomeKind: string;
     recurring: string;
     recurringSub: string;
+    eachMonth: string;
+    monthSummary: string;
+    moneyIn: string;
+    moneyOut: string;
+    aMonth: string;
     recurringBills: string;
     noMoreRecurring: string;
     recurringEmptyBody: string;
@@ -9111,15 +9139,21 @@ const en: UiStrings = {
     dueSub: 'Due {date} · {amount}',
     owesYou: '{name} owes you {amount}',
     youOweName: 'You owe {name} {amount}',
+    owesYouSub: 'Owes you {amount}',
+    youOweSub: 'You owe {amount}',
     reviewTitle: 'Items to review: {n}',
     comingUp: 'Coming up',
     addReminder: 'Add a reminder',
     spaces: 'Groups',
+    joinGroupShort: 'Join group',
     addSpace: 'Add a space',
     personal: 'Personal',
     justMe: 'Just me',
     leftMonth: 'left this month',
+    overMonth: 'over this month',
     spentMonth: 'spent this month',
+    toolInvestments: 'Investments',
+    toolRentals: 'Rentals',
     leftPool: 'left in pool',
     spentPool: 'spent this month',
     billDue: 'bill due {date}',
@@ -9538,6 +9572,10 @@ const en: UiStrings = {
     loading: 'Loading…',
     close: 'Close',
     cancel: 'Cancel',
+    cancelled: 'Cancelled',
+    remindingName: 'Reminding {name}…',
+    reminderSent: 'Reminder sent to {name}',
+    markedPaid: 'Marked {title} paid',
     save: 'Save',
     edit: 'Edit',
     remove: 'Remove',
@@ -10227,7 +10265,7 @@ const en: UiStrings = {
     aiKeysRow: 'Your AI keys',
     aiKeysHint: 'Bring your own OpenAI, Claude or Kimi key',
     planRow: 'Plan',
-    upgradeHint: 'Free plan — everything included, nothing to buy',
+    upgradeHint: 'Free plan',
     yourAccount: 'Your account',
     yourAccountHint: 'Email, phone, or a linked account',
     notifications: 'Notifications',
@@ -10315,6 +10353,9 @@ const en: UiStrings = {
     completeRow: 'Complete this expense',
     completeRowHint: 'Add the place, how you paid or a receipt',
     completeSheetTitle: 'Complete this expense',
+    completePaid: 'How you paid',
+    completePlace: 'Place',
+    completeAdd: 'Add',
     tryWhoOwes: '“Who owes me?”',
   },
   companyActivity: {
@@ -12505,6 +12546,13 @@ const en: UiStrings = {
     done: 'Done',
     splitEquallyWith: 'Split equally with: {names}',
     paidByName: 'Paid by {name}',
+    paidByLabel: 'Paid by',
+    splitLabel: 'Split',
+    equallyPeople: 'Equally · {count} people',
+    sharesPeople: 'By shares · {count} people',
+    percentPeople: 'By % · {count} people',
+    amountsPeople: 'By amounts · {count} people',
+    payersPeople: '{count} people',
     splitDifferently: 'Split differently',
     details: 'Details',
     addAll: 'Add all',
@@ -13525,6 +13573,7 @@ const en: UiStrings = {
     settleMeta: '{members} · Last activity {when}',
     settleAllGroups: 'All groups',
     acrossGroups: { one: 'Across {n} group', other: 'Across {n} groups' },
+    acrossPeople: { one: 'From {n} person', other: 'From {n} people' },
   },
   tips: {
     label: 'Tip',
@@ -13870,6 +13919,7 @@ const en: UiStrings = {
   },
   location: {
     label: 'Location',
+    pinnedOnMap: 'Pinned on map',
     add: 'Add location',
     adding: 'Getting location…',
     remove: 'Remove location',
@@ -16490,7 +16540,11 @@ const en: UiStrings = {
   personalHome: {
     hi: 'Hi, {name} 👋',
     space: 'Personal Finance',
-    sharedSpace: 'Shared',
+    sharedSpace: 'Groups & friends',
+    onlyYou: 'Only you',
+    sharedSubtitle: 'Trips, flats, friends',
+    groupCouple: 'Couple',
+    groupFamily: 'Family',
     switchSpace: 'Switch space',
     search: 'Search',
     reminders: 'Upcoming and reminders',
@@ -16502,11 +16556,15 @@ const en: UiStrings = {
     leftChip: '{amount} left for this month',
     overChip: '{amount} over for this month',
     aDay: 'about {amount} a day',
-    upcomingTitle: 'Upcoming & Reminders',
+    upcomingTitle: 'Upcoming',
+    due: 'Due',
+    expected: 'Expected',
+    thisWeek: 'This week',
+    laterThisMonth: 'Later this month',
+    nextMonth: 'Next month',
     dueOn: 'Due on {date}',
     today: 'Today',
     overdue: 'Overdue',
-    todo: 'To-Do: Finish setting up',
     upcomingEmpty: 'Nothing coming up. Add a bill or a date.',
     recentTitle: 'Recent Transactions',
     toolLoans: 'Loans & EMIs',
@@ -16518,24 +16576,15 @@ const en: UiStrings = {
     navPlanning: 'Planning',
     navReports: 'Reports',
     navMe: 'Me',
-    addDateRow: 'Add a date',
     inDays: { one: 'In {n} day', other: 'In {n} days' },
-    itemsLeft: { one: '{n} item left', other: '{n} items left' },
     filterAll: 'All',
     filterBills: 'Bills',
-    filterTodo: 'To-Do',
-    filterRecurring: 'Recurring',
+    filterReminders: 'Reminders',
     filterLabel: 'Show',
-    dueThisMonth: 'Due this month',
-    billsCount: { one: '{n} bill', other: '{n} bills' },
-    itemsCount: { one: '{n} item', other: '{n} items' },
     thisMonth: 'This Month',
-    nextSection: 'Next',
-    dueOverdue: 'Due on {date} (Overdue)',
     addReminder: 'Add Reminder',
     markPaid: 'Mark as paid',
     editBill: 'Edit',
-    pickMonth: 'Choose a month',
     reminderTitle: 'What is it for?',
     reminderAmount: 'Amount (optional)',
     reminderDate: 'Date',
@@ -16543,7 +16592,6 @@ const en: UiStrings = {
     repeatNone: 'Does not repeat',
     repeatMonthly: 'Every month',
     repeatYearly: 'Every year',
-    nothingHere: 'Nothing here yet.',
   },
   personalPlan: {
     leftToday: '{amount} left today',
@@ -16839,6 +16887,11 @@ const en: UiStrings = {
     incomeKind: 'Income',
     recurring: 'Recurring',
     recurringSub: 'Bills and income that repeat.',
+    eachMonth: 'Bills and income that repeat.',
+    monthSummary: 'Each month: {in} in · {out} out · {left} left',
+    moneyIn: 'Money in',
+    moneyOut: 'Money out',
+    aMonth: 'a month',
     recurringBills: 'Bills',
     noMoreRecurring: 'No more recurring items',
     recurringEmptyBody:
@@ -17240,15 +17293,21 @@ const ta: UiStrings = {
     dueSub: '{date} அன்று · {amount}',
     owesYou: '{name} உங்களுக்கு {amount} தர வேண்டும்',
     youOweName: 'நீங்கள் {name}க்கு {amount} தர வேண்டும்',
+    owesYouSub: '{amount} உங்களுக்கு தர வேண்டும்',
+    youOweSub: 'நீங்கள் {amount} தர வேண்டும்',
     reviewTitle: 'பார்க்க வேண்டியவை: {n}',
     comingUp: 'விரைவில்',
     addReminder: 'நினைவூட்டல் சேர்',
     spaces: 'குழுக்கள்',
+    joinGroupShort: 'குழுவில் சேர்',
     addSpace: 'இடம் சேர்',
     personal: 'தனிப்பட்டது',
     justMe: 'நான் மட்டும்',
     leftMonth: 'இந்த மாதம் மீதம்',
+    overMonth: 'இந்த மாதம் அதிகமாகச் செலவானது',
     spentMonth: 'இந்த மாதம் செலவு',
+    toolInvestments: 'முதலீடுகள்',
+    toolRentals: 'வாடகை',
     leftPool: 'பொது நிதியில் மீதம்',
     spentPool: 'இந்த மாதம் செலவு',
     billDue: '{date} அன்று கட்டணம்',
@@ -17666,6 +17725,10 @@ const ta: UiStrings = {
     loading: 'ஏற்றுகிறது…',
     close: 'மூடு',
     cancel: 'ரத்து',
+    cancelled: 'ரத்து செய்யப்பட்டது',
+    remindingName: '{name}-க்கு நினைவூட்டுகிறது…',
+    reminderSent: '{name}-க்கு நினைவூட்டல் அனுப்பப்பட்டது',
+    markedPaid: '{title} செலுத்தப்பட்டதாகக் குறிக்கப்பட்டது',
     save: 'சேமி',
     edit: 'திருத்து',
     remove: 'நீக்கு',
@@ -18353,7 +18416,7 @@ const ta: UiStrings = {
     aiKeysRow: 'உங்கள் AI விசைகள்',
     aiKeysHint: 'உங்கள் சொந்த OpenAI, Claude அல்லது Kimi விசையைச் சேர்',
     planRow: 'திட்டம்',
-    upgradeHint: 'இலவசத் திட்டம் — எல்லாம் உள்ளடக்கம், வாங்க எதுவுமில்லை',
+    upgradeHint: 'இலவசத் திட்டம்',
     yourAccount: 'உங்கள் கணக்கு',
     yourAccountHint: 'மின்னஞ்சல், தொலைபேசி, அல்லது இணைத்த கணக்கு',
     notifications: 'அறிவிப்புகள்',
@@ -18441,6 +18504,9 @@ const ta: UiStrings = {
     completeRow: 'இந்தச் செலவை முழுமையாக்குங்கள்',
     completeRowHint: 'இடம், பணம் செலுத்திய முறை அல்லது ரசீதைச் சேர்க்கவும்',
     completeSheetTitle: 'இந்தச் செலவை முழுமையாக்குங்கள்',
+    completePaid: 'எப்படிச் செலுத்தினீர்கள்',
+    completePlace: 'இடம்',
+    completeAdd: 'சேர்',
     tryWhoOwes: '“எனக்கு யார் பணம் தர வேண்டும்?”',
   },
   companyActivity: {
@@ -20633,6 +20699,13 @@ const ta: UiStrings = {
     done: 'முடிந்தது',
     splitEquallyWith: 'சமமாகப் பகிர்வது: {names}',
     paidByName: '{name} செலுத்தினார்',
+    paidByLabel: 'செலுத்தியவர்',
+    splitLabel: 'பகிர்வு',
+    equallyPeople: 'சமமாக · {count} பேர்',
+    sharesPeople: 'பங்குகளால் · {count} பேர்',
+    percentPeople: 'சதவீதத்தால் · {count} பேர்',
+    amountsPeople: 'தொகைகளால் · {count} பேர்',
+    payersPeople: '{count} பேர்',
     splitDifferently: 'வேறு விதமாகப் பகிர்',
     details: 'விவரங்கள்',
     addAll: 'அனைத்தையும் சேர்',
@@ -21665,6 +21738,7 @@ const ta: UiStrings = {
     settleMeta: '{members} · கடைசி செயல்பாடு {when}',
     settleAllGroups: 'எல்லா குழுக்களும்',
     acrossGroups: { one: '{n} குழுவில்', other: '{n} குழுக்களில்' },
+    acrossPeople: { one: '{n} நபரிடம்', other: '{n} நபர்களிடம்' },
   },
   tips: {
     label: 'உதவிக்குறிப்பு',
@@ -22015,6 +22089,7 @@ const ta: UiStrings = {
   },
   location: {
     label: 'இடம்',
+    pinnedOnMap: 'வரைபடத்தில் குறிக்கப்பட்டது',
     add: 'இடத்தைச் சேர்',
     adding: 'இடத்தைப் பெறுகிறது…',
     remove: 'இடத்தை அகற்று',
@@ -24700,7 +24775,11 @@ const ta: UiStrings = {
   personalHome: {
     hi: 'வணக்கம், {name} 👋',
     space: 'தனிநபர் நிதி',
-    sharedSpace: 'பகிரப்பட்டவை',
+    sharedSpace: 'குழுக்கள் & நண்பர்கள்',
+    onlyYou: 'நீங்கள் மட்டும்',
+    sharedSubtitle: 'பயணங்கள், வீடுகள், நண்பர்கள்',
+    groupCouple: 'ஜோடி',
+    groupFamily: 'குடும்பம்',
     switchSpace: 'இடத்தை மாற்று',
     search: 'தேடு',
     reminders: 'வரவிருப்பவை மற்றும் நினைவூட்டல்கள்',
@@ -24712,11 +24791,15 @@ const ta: UiStrings = {
     leftChip: 'இந்த மாதம் {amount} மீதம்',
     overChip: 'இந்த மாதம் {amount} அதிகம்',
     aDay: 'நாளுக்கு சுமார் {amount}',
-    upcomingTitle: 'வரவிருப்பவை & நினைவூட்டல்கள்',
+    upcomingTitle: 'வரவிருப்பவை',
+    due: 'செலுத்த வேண்டியது',
+    expected: 'எதிர்பார்ப்பு',
+    thisWeek: 'இந்த வாரம்',
+    laterThisMonth: 'இந்த மாதத்தின் பிற்பகுதியில்',
+    nextMonth: 'அடுத்த மாதம்',
     dueOn: '{date} அன்று செலுத்த வேண்டும்',
     today: 'இன்று',
     overdue: 'தாமதம்',
-    todo: 'செய்ய வேண்டியது: அமைப்பை முடிக்கவும்',
     upcomingEmpty: 'வரவிருப்பது எதுவும் இல்லை. ஒரு பில் அல்லது தேதியைச் சேர்க்கவும்.',
     recentTitle: 'சமீபத்திய பரிவர்த்தனைகள்',
     toolLoans: 'கடன்கள் & EMI',
@@ -24728,24 +24811,15 @@ const ta: UiStrings = {
     navPlanning: 'திட்டமிடல்',
     navReports: 'அறிக்கைகள்',
     navMe: 'நான்',
-    addDateRow: 'தேதியைச் சேர்',
     inDays: { one: '{n} நாளில்', other: '{n} நாட்களில்' },
-    itemsLeft: { one: '{n} உருப்படி மீதம்', other: '{n} உருப்படிகள் மீதம்' },
     filterAll: 'அனைத்தும்',
     filterBills: 'பில்கள்',
-    filterTodo: 'செய்ய வேண்டியவை',
-    filterRecurring: 'தொடர்ச்சியானவை',
+    filterReminders: 'நினைவூட்டல்கள்',
     filterLabel: 'காட்டு',
-    dueThisMonth: 'இந்த மாதம் செலுத்த வேண்டியவை',
-    billsCount: { one: '{n} பில்', other: '{n} பில்கள்' },
-    itemsCount: { one: '{n} உருப்படி', other: '{n} உருப்படிகள்' },
     thisMonth: 'இந்த மாதம்',
-    nextSection: 'அடுத்து',
-    dueOverdue: '{date} அன்று செலுத்த வேண்டும் (தாமதம்)',
     addReminder: 'நினைவூட்டலைச் சேர்',
     markPaid: 'செலுத்தியதாகக் குறி',
     editBill: 'திருத்து',
-    pickMonth: 'மாதத்தைத் தேர்ந்தெடுக்கவும்',
     reminderTitle: 'எதற்காக?',
     reminderAmount: 'தொகை (விருப்பம்)',
     reminderDate: 'தேதி',
@@ -24753,7 +24827,6 @@ const ta: UiStrings = {
     repeatNone: 'மீண்டும் வராது',
     repeatMonthly: 'ஒவ்வொரு மாதமும்',
     repeatYearly: 'ஒவ்வொரு ஆண்டும்',
-    nothingHere: 'இங்கே இன்னும் எதுவும் இல்லை.',
   },
   personalPlan: {
     leftToday: 'இன்று {amount} மீதம்',
@@ -25049,6 +25122,11 @@ const ta: UiStrings = {
     incomeKind: 'வருமானம்',
     recurring: 'மீண்டும் வருபவை',
     recurringSub: 'மீண்டும் வரும் பில்கள், வருமானம்.',
+    eachMonth: 'ஒவ்வொரு மாதமும்',
+    monthSummary: 'ஒவ்வொரு மாதமும்: {in} வரவு · {out} செலவு · {left} மீதி',
+    moneyIn: 'வரவு',
+    moneyOut: 'செலவு',
+    aMonth: 'மாதத்திற்கு',
     recurringBills: 'பில்கள்',
     noMoreRecurring: 'மேலும் தொடர் பதிவுகள் இல்லை',
     recurringEmptyBody:
@@ -25440,15 +25518,21 @@ const hi: UiStrings = {
     dueSub: '{date} को · {amount}',
     owesYou: '{name} को आपको {amount} देना है',
     youOweName: 'आपको {name} को {amount} देना है',
+    owesYouSub: 'उन पर आपके {amount} बाकी हैं',
+    youOweSub: 'आप पर {amount} बाकी हैं',
     reviewTitle: 'देखने वाली चीज़ें: {n}',
     comingUp: 'आने वाला',
     addReminder: 'रिमाइंडर जोड़ें',
     spaces: 'ग्रुप',
+    joinGroupShort: 'ग्रुप जॉइन करें',
     addSpace: 'स्पेस जोड़ें',
     personal: 'निजी',
     justMe: 'सिर्फ़ मैं',
     leftMonth: 'इस महीने बचा',
+    overMonth: 'इस महीने ज़्यादा खर्च',
     spentMonth: 'इस महीने खर्च',
+    toolInvestments: 'निवेश',
+    toolRentals: 'किराये',
     leftPool: 'पूल में बचा',
     spentPool: 'इस महीने खर्च',
     billDue: '{date} को बिल',
@@ -25866,6 +25950,10 @@ const hi: UiStrings = {
     loading: 'लोड हो रहा है…',
     close: 'बंद करें',
     cancel: 'रद्द करें',
+    cancelled: 'रद्द किया गया',
+    remindingName: '{name} को याद दिला रहे हैं…',
+    reminderSent: '{name} को रिमाइंडर भेजा गया',
+    markedPaid: '{title} को चुकता चिह्नित किया',
     save: 'सेव करें',
     edit: 'बदलें',
     remove: 'हटाएँ',
@@ -26538,7 +26626,7 @@ const hi: UiStrings = {
     aiKeysRow: 'आपकी AI कुंजियाँ',
     aiKeysHint: 'अपनी OpenAI, Claude या Kimi कुंजी जोड़ें',
     planRow: 'प्लान',
-    upgradeHint: 'मुफ़्त प्लान — सब कुछ शामिल, खरीदने को कुछ नहीं',
+    upgradeHint: 'मुफ़्त प्लान',
     yourAccount: 'आपका खाता',
     yourAccountHint: 'ईमेल, फ़ोन, या कोई लिंक किया खाता',
     notifications: 'सूचनाएँ',
@@ -26625,6 +26713,9 @@ const hi: UiStrings = {
     completeRow: 'यह खर्च पूरा करें',
     completeRowHint: 'जगह, भुगतान का तरीका या रसीद जोड़ें',
     completeSheetTitle: 'यह खर्च पूरा करें',
+    completePaid: 'भुगतान कैसे किया',
+    completePlace: 'जगह',
+    completeAdd: 'जोड़ें',
     tryWhoOwes: '“मेरा पैसा किस पर बाकी है?”',
   },
   companyActivity: {
@@ -28805,6 +28896,13 @@ const hi: UiStrings = {
     done: 'हो गया',
     splitEquallyWith: 'इनके साथ बराबर बाँटें: {names}',
     paidByName: '{name} ने भुगतान किया',
+    paidByLabel: 'किसने चुकाया',
+    splitLabel: 'बाँटें',
+    equallyPeople: 'बराबर · {count} लोग',
+    sharesPeople: 'हिस्सों से · {count} लोग',
+    percentPeople: 'प्रतिशत से · {count} लोग',
+    amountsPeople: 'रकम से · {count} लोग',
+    payersPeople: '{count} लोग',
     splitDifferently: 'अलग तरह से बाँटें',
     details: 'विवरण',
     addAll: 'सभी जोड़ें',
@@ -29816,6 +29914,7 @@ const hi: UiStrings = {
     settleMeta: '{members} · आखिरी गतिविधि {when}',
     settleAllGroups: 'सभी समूह',
     acrossGroups: { one: '{n} समूह में', other: '{n} समूहों में' },
+    acrossPeople: { one: '{n} व्यक्ति से', other: '{n} लोगों से' },
   },
   tips: {
     label: 'सुझाव',
@@ -30157,6 +30256,7 @@ const hi: UiStrings = {
   },
   location: {
     label: 'स्थान',
+    pinnedOnMap: 'नक्शे पर पिन किया',
     add: 'स्थान जोड़ें',
     adding: 'स्थान लिया जा रहा है…',
     remove: 'स्थान हटाएँ',
@@ -32736,7 +32836,11 @@ const hi: UiStrings = {
   personalHome: {
     hi: 'नमस्ते, {name} 👋',
     space: 'व्यक्तिगत वित्त',
-    sharedSpace: 'साझा',
+    sharedSpace: 'ग्रुप और दोस्त',
+    onlyYou: 'सिर्फ़ आप',
+    sharedSubtitle: 'यात्राएँ, फ्लैट, दोस्त',
+    groupCouple: 'जोड़ा',
+    groupFamily: 'परिवार',
     switchSpace: 'स्पेस बदलें',
     search: 'खोजें',
     reminders: 'आने वाले और रिमाइंडर',
@@ -32748,11 +32852,15 @@ const hi: UiStrings = {
     leftChip: 'इस महीने {amount} बाकी',
     overChip: 'इस महीने {amount} ज़्यादा',
     aDay: 'लगभग {amount} प्रतिदिन',
-    upcomingTitle: 'आने वाले और रिमाइंडर',
+    upcomingTitle: 'आने वाले',
+    due: 'देय',
+    expected: 'अपेक्षित',
+    thisWeek: 'इस सप्ताह',
+    laterThisMonth: 'इस महीने बाद में',
+    nextMonth: 'अगले महीने',
     dueOn: '{date} को देय',
     today: 'आज',
     overdue: 'देर हो चुकी',
-    todo: 'करने के काम: सेटअप पूरा करें',
     upcomingEmpty: 'कुछ आने वाला नहीं है। कोई बिल या तारीख जोड़ें।',
     recentTitle: 'हाल के लेन-देन',
     toolLoans: 'लोन और EMI',
@@ -32764,24 +32872,15 @@ const hi: UiStrings = {
     navPlanning: 'योजना',
     navReports: 'रिपोर्ट',
     navMe: 'मैं',
-    addDateRow: 'तारीख जोड़ें',
     inDays: { one: '{n} दिन में', other: '{n} दिन में' },
-    itemsLeft: { one: '{n} आइटम बाकी', other: '{n} आइटम बाकी' },
     filterAll: 'सभी',
     filterBills: 'बिल',
-    filterTodo: 'टू-डू',
-    filterRecurring: 'आवर्ती',
+    filterReminders: 'रिमाइंडर',
     filterLabel: 'दिखाएँ',
-    dueThisMonth: 'इस महीने देय',
-    billsCount: { one: '{n} बिल', other: '{n} बिल' },
-    itemsCount: { one: '{n} आइटम', other: '{n} आइटम' },
     thisMonth: 'इस महीने',
-    nextSection: 'आगे',
-    dueOverdue: '{date} को देय (अतिदेय)',
     addReminder: 'रिमाइंडर जोड़ें',
     markPaid: 'चुकाया हुआ चिह्नित करें',
     editBill: 'संपादित करें',
-    pickMonth: 'महीना चुनें',
     reminderTitle: 'यह किसलिए है?',
     reminderAmount: 'राशि (वैकल्पिक)',
     reminderDate: 'तारीख',
@@ -32789,7 +32888,6 @@ const hi: UiStrings = {
     repeatNone: 'दोहराएगा नहीं',
     repeatMonthly: 'हर महीने',
     repeatYearly: 'हर साल',
-    nothingHere: 'यहाँ अभी कुछ नहीं है।',
   },
   personalPlan: {
     leftToday: 'आज {amount} बचे हैं',
@@ -33085,6 +33183,11 @@ const hi: UiStrings = {
     incomeKind: 'आय',
     recurring: 'आवर्ती',
     recurringSub: 'दोहराए जाने वाले बिल और आय।',
+    eachMonth: 'हर महीने',
+    monthSummary: 'हर महीने: {in} आय · {out} खर्च · {left} शेष',
+    moneyIn: 'पैसे आएँ',
+    moneyOut: 'पैसे जाएँ',
+    aMonth: 'प्रति माह',
     recurringBills: 'बिल',
     noMoreRecurring: 'और कोई आवर्ती आइटम नहीं',
     recurringEmptyBody: 'अपने दोहराए जाने वाले बिल, सदस्यताएँ या आय जोड़ें और कोई भुगतान न चूकें।',
@@ -33490,15 +33593,21 @@ const ar: UiStrings = {
     dueSub: 'يستحق {date} · {amount}',
     owesYou: '{name} يدين لك بـ {amount}',
     youOweName: 'تدين لـ {name} بـ {amount}',
+    owesYouSub: 'مدين لك بـ {amount}',
+    youOweSub: 'أنت مدين بـ {amount}',
     reviewTitle: 'عناصر للمراجعة: {n}',
     comingUp: 'قريبًا',
     addReminder: 'أضف تذكيرًا',
     spaces: 'المجموعات',
+    joinGroupShort: 'انضم لمجموعة',
     addSpace: 'أضف مساحة',
     personal: 'شخصي',
     justMe: 'أنا فقط',
     leftMonth: 'متبقٍّ هذا الشهر',
+    overMonth: 'تجاوزت هذا الشهر',
     spentMonth: 'أُنفق هذا الشهر',
+    toolInvestments: 'الاستثمارات',
+    toolRentals: 'الإيجارات',
     leftPool: 'متبقٍّ في الصندوق',
     spentPool: 'أُنفق هذا الشهر',
     billDue: 'فاتورة تستحق {date}',
@@ -33937,6 +34046,10 @@ const ar: UiStrings = {
     loading: 'جارٍ التحميل…',
     close: 'إغلاق',
     cancel: 'إلغاء',
+    cancelled: 'تم الإلغاء',
+    remindingName: 'جارٍ تذكير {name}…',
+    reminderSent: 'تم إرسال التذكير إلى {name}',
+    markedPaid: 'تم تحديد {title} كمدفوع',
     save: 'حفظ',
     edit: 'تعديل',
     remove: 'إزالة',
@@ -34699,7 +34812,7 @@ const ar: UiStrings = {
     aiKeysRow: 'مفاتيح الذكاء الاصطناعي',
     aiKeysHint: 'أضف مفتاح OpenAI أو Claude أو Kimi الخاص بك',
     planRow: 'الخطة',
-    upgradeHint: 'خطة مجانية — كل شيء مُتضمَّن، لا شيء للشراء',
+    upgradeHint: 'خطة مجانية',
     yourAccount: 'حسابك',
     yourAccountHint: 'بريد، هاتف، أو حساب مرتبط',
     notifications: 'الإشعارات',
@@ -34786,6 +34899,9 @@ const ar: UiStrings = {
     completeRow: 'أكمل هذا المصروف',
     completeRowHint: 'أضف المكان أو طريقة الدفع أو إيصالاً',
     completeSheetTitle: 'أكمل هذا المصروف',
+    completePaid: 'كيف دفعت',
+    completePlace: 'المكان',
+    completeAdd: 'إضافة',
     tryWhoOwes: '«من يدين لي؟»',
   },
   companyActivity: {
@@ -37045,6 +37161,13 @@ const ar: UiStrings = {
     done: 'تم',
     splitEquallyWith: 'تقسيم بالتساوي مع: {names}',
     paidByName: 'دفع {name}',
+    paidByLabel: 'دفع بواسطة',
+    splitLabel: 'التقسيم',
+    equallyPeople: 'بالتساوي · {count} أشخاص',
+    sharesPeople: 'بالحصص · {count} أشخاص',
+    percentPeople: 'بالنسبة المئوية · {count} أشخاص',
+    amountsPeople: 'بالمبالغ · {count} أشخاص',
+    payersPeople: '{count} أشخاص',
     splitDifferently: 'قسّم بشكل مختلف',
     details: 'التفاصيل',
     addAll: 'إضافة الكل',
@@ -38121,6 +38244,14 @@ const ar: UiStrings = {
       many: 'في {n} مجموعة',
       other: 'في {n} مجموعة',
     },
+    acrossPeople: {
+      zero: 'من {n} شخص',
+      one: 'من شخص واحد',
+      two: 'من شخصين',
+      few: 'من {n} أشخاص',
+      many: 'من {n} شخصًا',
+      other: 'من {n} شخص',
+    },
   },
   tips: {
     label: 'نصيحة',
@@ -38535,6 +38666,7 @@ const ar: UiStrings = {
   },
   location: {
     label: 'الموقع',
+    pinnedOnMap: 'مثبّت على الخريطة',
     add: 'إضافة موقع',
     adding: 'جارٍ تحديد الموقع…',
     remove: 'إزالة الموقع',
@@ -41633,7 +41765,11 @@ const ar: UiStrings = {
   personalHome: {
     hi: 'مرحبًا، {name} 👋',
     space: 'المالية الشخصية',
-    sharedSpace: 'المشتركة',
+    sharedSpace: 'المجموعات والأصدقاء',
+    onlyYou: 'أنت فقط',
+    sharedSubtitle: 'رحلات، شقق، أصدقاء',
+    groupCouple: 'ثنائي',
+    groupFamily: 'عائلة',
     switchSpace: 'تبديل المساحة',
     search: 'بحث',
     reminders: 'القادم والتذكيرات',
@@ -41645,11 +41781,15 @@ const ar: UiStrings = {
     leftChip: 'متبقٍ {amount} لهذا الشهر',
     overChip: 'تجاوز بمقدار {amount} هذا الشهر',
     aDay: 'نحو {amount} يوميًا',
-    upcomingTitle: 'القادم والتذكيرات',
+    upcomingTitle: 'القادم',
+    due: 'مستحق',
+    expected: 'متوقع',
+    thisWeek: 'هذا الأسبوع',
+    laterThisMonth: 'لاحقًا هذا الشهر',
+    nextMonth: 'الشهر القادم',
     dueOn: 'مستحق في {date}',
     today: 'اليوم',
     overdue: 'متأخر',
-    todo: 'المهام: أكمل الإعداد',
     upcomingEmpty: 'لا شيء قادم. أضف فاتورة أو تاريخًا.',
     recentTitle: 'أحدث المعاملات',
     toolLoans: 'القروض والأقساط',
@@ -41661,24 +41801,15 @@ const ar: UiStrings = {
     navPlanning: 'التخطيط',
     navReports: 'التقارير',
     navMe: 'أنا',
-    addDateRow: 'أضف تاريخًا',
     inDays: { one: 'خلال {n} يوم', other: 'خلال {n} يومًا' },
-    itemsLeft: { one: '{n} عنصر متبقٍ', other: '{n} عناصر متبقية' },
     filterAll: 'الكل',
     filterBills: 'الفواتير',
-    filterTodo: 'المهام',
-    filterRecurring: 'المتكررة',
+    filterReminders: 'التذكيرات',
     filterLabel: 'عرض',
-    dueThisMonth: 'مستحق هذا الشهر',
-    billsCount: { one: '{n} فاتورة', other: '{n} فواتير' },
-    itemsCount: { one: '{n} عنصر', other: '{n} عناصر' },
     thisMonth: 'هذا الشهر',
-    nextSection: 'التالي',
-    dueOverdue: 'مستحق في {date} (متأخر)',
     addReminder: 'أضف تذكيرًا',
     markPaid: 'تحديد كمدفوع',
     editBill: 'تعديل',
-    pickMonth: 'اختر شهرًا',
     reminderTitle: 'لأي غرض؟',
     reminderAmount: 'المبلغ (اختياري)',
     reminderDate: 'التاريخ',
@@ -41686,7 +41817,6 @@ const ar: UiStrings = {
     repeatNone: 'لا يتكرر',
     repeatMonthly: 'كل شهر',
     repeatYearly: 'كل سنة',
-    nothingHere: 'لا شيء هنا بعد.',
   },
   personalPlan: {
     leftToday: 'تبقّى {amount} اليوم',
@@ -42022,6 +42152,11 @@ const ar: UiStrings = {
     incomeKind: 'دخل',
     recurring: 'متكرر',
     recurringSub: 'فواتير ودخل يتكرران.',
+    eachMonth: 'كل شهر',
+    monthSummary: 'كل شهر: {in} دخل · {out} مصروف · {left} متبقٍ',
+    moneyIn: 'أموال داخلة',
+    moneyOut: 'أموال خارجة',
+    aMonth: 'شهريًا',
     recurringBills: 'الفواتير',
     noMoreRecurring: 'لا مزيد من العناصر المتكررة',
     recurringEmptyBody: 'أضف فواتيرك أو اشتراكاتك أو دخلك المتكرر، ولا تفوّت أي دفعة.',

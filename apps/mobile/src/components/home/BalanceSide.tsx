@@ -74,6 +74,7 @@ export function BalanceSide({
   const labels = (chips ?? []).map((chip) =>
     format(money(chip.amount < 0n ? -chip.amount : chip.amount, chip.currency as never), {
       locale,
+      trimZeros: true,
     }),
   );
   // Until measured, assume the narrowest plausible half-card so first paint
@@ -134,7 +135,10 @@ export function BalanceSide({
               fontWeight: '700',
             }}
           >
-            {format(money(amount < 0n ? -amount : amount, currency as never), { locale })}
+            {format(money(amount < 0n ? -amount : amount, currency as never), {
+              locale,
+              trimZeros: true,
+            })}
           </Text>
         ) : (
           <SplitMoney

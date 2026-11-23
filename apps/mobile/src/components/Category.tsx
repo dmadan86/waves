@@ -96,8 +96,10 @@ export function CategoryBadge({
   description,
   size = 42,
   accent,
+  iconOverride,
 }: {
   accent?: string;
+  iconOverride?: string;
   category: string | null | undefined;
   /** The custom tag's denormalised display, when the value is a custom tag. */
   meta?: CategoryMeta | null;
@@ -114,7 +116,8 @@ export function CategoryBadge({
   const tint = theme.tint[resolved.tint];
   // A custom tag keeps the icon its author picked; only built-ins get the
   // description-specific refinement over their single category icon.
-  const icon = resolved.custom ? resolved.icon : (guessIcon(description) ?? resolved.icon);
+  const icon =
+    iconOverride ?? (resolved.custom ? resolved.icon : (guessIcon(description) ?? resolved.icon));
   return (
     <View
       style={{

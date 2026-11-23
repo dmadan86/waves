@@ -77,6 +77,33 @@ describe('spoken amounts through the whole parser', () => {
   it('keeps the description free of the amount words', () => {
     expect(first('lunch three fifty with arun').item.note).toBe('lunch arun');
   });
+
+  it.each([
+    ['Add 30 rupees for drinks', 30, 'INR'],
+    ['80 rupees for food and snacks', 80, 'INR'],
+    ['10000 for foot', 10000, null],
+    ['30 rs', 30, 'INR'],
+    ['Rs 30', 30, 'INR'],
+    ['₹30', 30, 'INR'],
+    ['30 bucks', 30, 'USD'],
+    ['30 dollars', 30, 'USD'],
+    ['30 euros', 30, 'EUR'],
+    ['30 dirhams', 30, 'AED'],
+    ['30 pounds', 30, 'GBP'],
+    ['1,00,000 rupees', 100000, 'INR'],
+    ['2k for food', 2000, null],
+    ['1 lakh for food', 100000, null],
+    ['thirty rupees for food', 30, 'INR'],
+  ] as const)('%s', (said, amount, currency) => {
+    const { result, item } = first(said);
+    expect(result.items).toHaveLength(1);
+    expect(item.amountMajor).toBe(amount);
+    expect(item.currency).toBe(currency);
+  });
+
+  it('leaves a currency word with no number amount-less', () => {
+    expect(parseVoiceExpenses('Add A rupees for food', groups).items).toEqual([]);
+  });
 });
 
 describe('spoken dates', () => {

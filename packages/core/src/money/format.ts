@@ -15,6 +15,12 @@ export interface FormatOptions {
   signDisplay?: 'auto' | 'always' | 'never';
   /** Round to whole units (₹2,09,256), for a single headline total — never a list column. */
   whole?: boolean;
+  /**
+   * Drop a bare ".00" (exactly zero minor units) from the DISPLAY of an amount:
+   * ₹750, but ₹45,025.69 keeps its paise. Off by default so exports, receipts and
+   * settlement confirmations stay exact; the display components turn it on.
+   */
+  trimZeros?: boolean;
 }
 
 // Neutral until the app injects the device locale once at startup; never India.
@@ -76,13 +82,9 @@ export function formatParts(amount: Money, options: FormatOptions = {}): MoneyPa
 
 function parts(amount: Money, options: FormatOptions): Intl.NumberFormatPart[] {
   const { locale = getDefaultLocale(), signDisplay = 'auto', whole = false } = options;
-  // Always the currency's own number of minor digits, whole amount or not.
-  // There used to be an option to drop `.00`, and in a list it misreads: a
-  // column of ₹24,182.42 and ₹80,100 invites the eye to line up 80,100 with
-  // 24,182 and lose a digit, and the faint-fraction styling makes the short
-  // one look truncated rather than round. A currency with no minor unit (JPY)
-  // is unaffected — its exponent is already 0.
-  const fractionDigits = whole ? 0 : minorUnitExponent(amount.currency);
+  const exponent = minorUnitExponent(amount.currency);
+  const fractionDigits =
+    whole || (options.trimZeros && amount.minor % 10n ** BigInt(exponent) === 0n) ? 0 : exponent;
 
   const magnitude = signDisplay === 'never' && amount.minor < 0n ? -amount.minor : amount.minor;
 
