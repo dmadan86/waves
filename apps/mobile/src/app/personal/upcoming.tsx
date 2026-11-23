@@ -23,8 +23,9 @@ import { CategoryBadge } from '@/components/Category';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { useSetupLeft } from '@/components/PersonalSetupCard';
 import { AddReminderSheet } from '@/components/personal/AddReminderSheet';
-import { ICON_FOR } from '@/components/personal/PersonalHomeParts';
+import { ICON_FOR, useWealthRows } from '@/components/personal/PersonalHomeParts';
 import { PlainHeader, StandardCard } from '@/components/standard';
+import { RaiseCard } from '@/components/wealth/RaiseCard';
 import { todayIso, usePersonalLedger } from '@/data/personal';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePostRecurring } from '@/data/postRecurring';
@@ -79,13 +80,14 @@ export default function PersonalUpcomingScreen() {
   const [adding, setAdding] = useState(false);
   const [acting, setActing] = useState<{ rule: PersonalRecurring; date: string } | null>(null);
 
+  const wealth = useWealthRows({ ...ledger, today }, 90);
   const view = upcomingView({
     txns: ledger.txns,
     recurrings: ledger.recurrings,
     currency,
     today,
     month,
-    dates: dateRows(session && !isGuest ? pickUpcoming(occurrences, 50) : []),
+    dates: [...dateRows(session && !isGuest ? pickUpcoming(occurrences, 50) : []), ...wealth],
     todoLeft: left.length,
   });
   const shown = visibleSections(view, tab, card);
@@ -128,6 +130,7 @@ export default function PersonalUpcomingScreen() {
             };
 
   const renderRow = (row: UpcomingRow, i: number, rows: readonly UpcomingRow[], todo = false) => {
+    if (row.raise) return <RaiseCard key={row.key} prompt={row.raise} />;
     const last = i === rows.length - 1;
     const item = row.item;
     const rule = ruleOf(row);
@@ -153,6 +156,18 @@ export default function PersonalUpcomingScreen() {
           : item.source === 'date'
             ? router.push({ pathname: '/dates/edit', params: { id: item.id } })
             : router.push('/dates');
+    } else if (row.href) {
+      // Rent, lease-end and maturity rows from Rentals and Investments.
+      title = row.title || '';
+      subtitle = fill(row.overdue ? h.dueOverdue : h.dueOn, { date: dayName(row.date ?? '') });
+      lead = (
+        <Disc
+          icon={row.income ? 'arrow-down-outline' : 'calendar-outline'}
+          tone={row.overdue ? 'negative' : row.tone}
+        />
+      );
+      const href = row.href;
+      onPress = () => router.push(href);
     } else {
       title = row.title || t.personal.expense;
       subtitle = row.income

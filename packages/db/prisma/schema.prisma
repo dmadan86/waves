@@ -1422,7 +1422,7 @@ model CategoryTag {
 model PersonalRecord {
   id          String    @id @db.Uuid
   ownerUserId String    @map("owner_user_id") @db.Uuid
-  /// 'txn' | 'recurring' | 'loan' | 'budget' | 'date'.
+  /// 'txn' | 'recurring' | 'loan' | 'budget' | 'date' | 'investment' | 'property' | 'tenancy'.
   recordKind  String    @map("record_kind")
   /// The record's fields, shaped by `recordKind`. Opaque to the server.
   data        Json      @default("{}")

@@ -324,7 +324,9 @@ export function saveTips(input: PlanInput): SaveTip[] {
     });
   }
 
-  const subs = recurrings.filter((r) => r.active && r.currency === currency && isSubscription(r));
+  const subs = recurrings.filter(
+    (r) => r.active && r.currency === currency && !r.investmentId && isSubscription(r),
+  );
   const yearly = subs.reduce((sum, r) => sum + yearlyAmount(r), 0n);
   if (yearly > 0n) {
     tips.push({

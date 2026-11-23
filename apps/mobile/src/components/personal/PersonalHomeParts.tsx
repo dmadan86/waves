@@ -12,7 +12,9 @@ import { Card, directionalIcon, iconSize, Row, Text, useTheme, type TintName } f
 
 import { useSourceLabel } from '@/components/IncomeSource';
 import { useSetupLeft } from '@/components/PersonalSetupCard';
+import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { useDateOccurrences } from '@/data/personalDates';
+import { usePersonalWealth } from '@/data/personalWealth';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
@@ -20,11 +22,40 @@ import { actionFor } from '@/lib/dateReminders/actions';
 import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
 import { useRunDateAction } from '@/lib/dateReminders/useRunDateAction';
 import { router } from '@/lib/navigation';
-import { billRows, dateRows, mergeUpcoming, type UpcomingRow } from '@/lib/personalUpcoming';
+import {
+  billRows,
+  dateRows,
+  mergeUpcoming,
+  wealthRows,
+  type UpcomingRow,
+} from '@/lib/personalUpcoming';
 
 /** Bills the card looks ahead for; the full list looks further. */
 const HOME_HORIZON_DAYS = 14;
 const LIST_HORIZON_DAYS = 60;
+
+/** Rent, lease-end and maturity rows from the wealth records. */
+export function useWealthRows(
+  ledger: { txns: readonly PersonalTxn[]; recurrings: readonly PersonalRecurring[]; today: string },
+  horizonDays: number,
+): UpcomingRow[] {
+  const wealth = usePersonalWealth();
+  const raises = useRaisePrompts(ledger.today);
+  const { t } = useStrings();
+  return wealthRows({
+    ...wealth,
+    txns: ledger.txns,
+    recurrings: ledger.recurrings,
+    today: ledger.today,
+    horizonDays,
+    raises,
+    titles: {
+      rent: (name) => fill(t.wealth.rentRowTitle, { name }),
+      lease: (name) => fill(t.wealth.leaseRowTitle, { name }),
+      maturity: (name) => fill(t.wealth.maturityRowTitle, { name }),
+    },
+  });
+}
 
 /** The merged rows: bills, dates and the setup to-do. `limit` 0 lists them all. */
 export function usePersonalUpcoming(
@@ -40,6 +71,7 @@ export function usePersonalUpcoming(
   const occurrences = useDateOccurrences();
   const left = useSetupLeft();
   const dates = session && !isGuest ? pickUpcoming(occurrences, limit > 0 ? limit : 50) : [];
+  const wealth = useWealthRows(ledger, limit > 0 ? HOME_HORIZON_DAYS : LIST_HORIZON_DAYS);
   const bills = billRows(
     ledger.txns,
     ledger.recurrings,
@@ -47,7 +79,7 @@ export function usePersonalUpcoming(
     ledger.today,
     limit > 0 ? HOME_HORIZON_DAYS : LIST_HORIZON_DAYS,
   );
-  return mergeUpcoming([...bills, ...dateRows(dates)], left.length, limit);
+  return mergeUpcoming([...bills, ...wealth, ...dateRows(dates)], left.length, limit);
 }
 
 export const ICON_FOR: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -75,6 +107,8 @@ export function UpcomingRowView({
   const left = useSetupLeft();
   const ink = theme.color[row.tone];
   const soft = theme.color[`${row.tone}Soft` as 'brandSoft'];
+
+  if (row.raise) return <RaiseCard prompt={row.raise} />;
 
   const item = row.item;
   const action = item ? actionFor(item) : null;
@@ -112,7 +146,7 @@ export function UpcomingRowView({
     title = row.title || sourceLabel(row.category ?? null) || t.personal.expense;
     subtitle = fill(h.dueOn, { date: dayName(row.date ?? '') });
     icon = 'receipt-outline';
-    onPress = () => router.push(`/personal/source/${row.ruleId}`);
+    onPress = () => router.push(row.href ?? `/personal/source/${row.ruleId}`);
   }
 
   const pill =

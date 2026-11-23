@@ -28,6 +28,7 @@ export function usePostRecurring() {
         date: dueDate,
         loanId: null,
         recurringId: rule.id,
+        ...(rule.investmentId ? { investmentId: rule.investmentId } : {}),
       }),
     });
     if (dueDate < rule.nextDate) return;

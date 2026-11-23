@@ -10,3 +10,4 @@ export * from './digest';
 export * from './paymentMethod';
 export * from './dates';
 export * from './plan';
+export * from './wealth';

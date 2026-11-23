@@ -55,6 +55,7 @@ import {
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
+import { useWealthReminders } from '@/lib/wealthReminders';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import {
   BudgetSummary,
@@ -194,7 +195,7 @@ function MeLedger() {
     ledger.txns,
     recentMonths(month, SPEND_HISTORY_MONTHS),
     dc,
-  ).map((entry) => entry.expense);
+  ).map((entry) => entry.expense - entry.invested);
   const historyLabels = recentMonths(month, SPEND_HISTORY_MONTHS).map((m) => monthShort(m, locale));
 
   // The overall monthly cap, when one is set, and how far into it the month is.
@@ -235,6 +236,7 @@ function MeLedger() {
   );
   const [switchOpen, setSwitchOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
+  useWealthReminders();
   const firstName = (profile?.display_name ?? t.account.you).trim().split(/\s+/)[0];
 
   const moreItems: OverflowMenuItem[] = [
@@ -418,7 +420,7 @@ function MeLedger() {
                   minimumFontScale={0.6}
                   style={HEADLINE_STYLE}
                 >
-                  {amountsHidden ? BALANCE_MASK : fmt(summary.expense)}
+                  {amountsHidden ? BALANCE_MASK : fmt(summary.expense - summary.invested)}
                 </Text>
                 {change !== null && !amountsHidden ? (
                   <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
@@ -455,7 +457,7 @@ function MeLedger() {
                 icon="arrow-up"
                 tone="negative"
                 label={t.personal.spent}
-                value={fmt(summary.expense)}
+                value={fmt(summary.expense - summary.invested)}
                 hidden={amountsHidden}
                 // The month's spends, entry by entry.
                 onPress={() =>
@@ -476,6 +478,18 @@ function MeLedger() {
                 onPress={() => router.push('/personal/spending')}
               />
             </Row>
+            {summary.invested !== 0n ? (
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text variant="caption" tone="muted">
+                  {t.wealth.investedNotSpending}
+                </Text>
+                <Text variant="caption" style={{ fontWeight: '600' }}>
+                  {amountsHidden
+                    ? BALANCE_MASK
+                    : `${summary.invested < 0n ? '−' : ''}${fmt(summary.invested < 0n ? -summary.invested : summary.invested)}`}
+                </Text>
+              </Row>
+            ) : null}
           </Card>
 
           {monthsBack === 0 ? (
@@ -631,6 +645,20 @@ function MeLedger() {
                   icon: 'checkbox-outline',
                   label: h.toolTodo,
                   onPress: () => router.push('/personal/setup'),
+                },
+                {
+                  key: 'investments',
+                  tint: 'sky',
+                  icon: 'trending-up-outline',
+                  label: t.wealth.investments,
+                  onPress: () => router.push('/investments'),
+                },
+                {
+                  key: 'rentals',
+                  tint: 'peach',
+                  icon: 'business-outline',
+                  label: t.wealth.rentals,
+                  onPress: () => router.push('/rentals'),
                 },
                 {
                   key: 'more',
