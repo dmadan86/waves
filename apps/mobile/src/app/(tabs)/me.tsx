@@ -64,6 +64,7 @@ import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { PersonalIntro } from '@/components/PersonalIntro';
+import { UpcomingDatesCard } from '@/components/dates/UpcomingDatesCard';
 import { PersonalPlanCards } from '@/components/PersonalPlanCards';
 import { PersonalSetupCard } from '@/components/PersonalSetupCard';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
@@ -523,6 +524,7 @@ function MeLedger() {
             </View>
           </View>
 
+          <UpcomingDatesCard />
           <PersonalSetupCard />
 
           {monthsBack === 0 ? (

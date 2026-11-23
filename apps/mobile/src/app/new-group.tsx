@@ -185,11 +185,14 @@ function NewGroupScreen() {
     assignCaptureId,
     type: initialType,
     name: initialName,
+    template: initialTemplate,
   } = useLocalSearchParams<{
     type?: string;
+    /** Prefill (first run suggests "Our trip"; the dates reminders open "<Name>'s birthday gift"). */
     name?: string;
     from?: string;
     assignCaptureId?: string;
+    template?: string;
   }>();
   const cloning = Boolean(from);
   // Company has its own create flow; an old `?type=company` link lands there.
@@ -223,7 +226,9 @@ function NewGroupScreen() {
   // Event group starts with. Null until somebody picks one — a group is
   // allowed to stay a plain Event with no template, same as it is allowed to
   // stay untyped.
-  const [eventTemplate, setEventTemplate] = useState<EventTemplateId | null>(null);
+  const [eventTemplate, setEventTemplate] = useState<EventTemplateId | null>(
+    initialTemplate === 'birthday' ? 'birthday' : null,
+  );
   // "Other" with the person's own name for it ("Housewarming"). Saved on the
   // group as its custom_tag; remembered on this device per account.
   const [customTemplate, setCustomTemplate] = useState('');
