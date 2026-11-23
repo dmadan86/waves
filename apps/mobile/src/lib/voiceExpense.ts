@@ -510,9 +510,7 @@ function noteToken(word: string): string {
  * written form and the looked-up form cannot drift apart. Spelling "மற்றும்"
  * out here instead would put an entry in the set that no lookup can ever reach.
  */
-const NOTE_CONJUNCTIONS: ReadonlySet<string> = new Set(
-  ['and', 'और', 'மற்றும்', 'و'].map(noteToken),
-);
+const NOTE_CONJUNCTIONS: ReadonlySet<string> = new Set(['and', 'और', 'மற்றும்', 'و'].map(noteToken));
 
 /**
  * The glue a description is allowed to keep between two things: the list
@@ -1166,6 +1164,9 @@ export type VoiceAutoAction =
 export interface VoiceAutoContext {
   launchGroupId?: string | null;
   launchPersonal?: boolean;
+  /** Several clear expenses in one sentence ("lunch 200, taxi 300") may all be
+   *  added at once — the hold-to-talk pill, which has no review to show them in. */
+  allowMany?: boolean;
 }
 
 export function voiceAutoAction(
@@ -1181,19 +1182,21 @@ export function voiceAutoAction(
   }
 
   const [item] = result.items;
+  const many = context.allowMany === true && result.items.length > 1;
   const hasSplitInstructions =
     result.splitCount !== null ||
     splitParticipantClause(result.peopleText) !== null ||
     // A named payer, people, split rule or group is a decision someone should see.
     result.intent?.hasSocialDetail === true;
+  const clearAmount = (major: number): boolean => Number.isFinite(major) && major > 0;
   if (
-    result.items.length !== 1 ||
-    // A number that could be read two ways is a question, never a write.
-    !amountIsUnambiguous(result) ||
+    (result.items.length !== 1 && !many) ||
+    // A number that could be read two ways is a question, never a write. With
+    // several, each item's own amount must stand; there is no single reading.
+    (!many && !amountIsUnambiguous(result)) ||
     hasSplitInstructions ||
     !item ||
-    !Number.isFinite(item.amountMajor) ||
-    item.amountMajor <= 0
+    !result.items.every((each) => clearAmount(each.amountMajor))
   ) {
     return null;
   }

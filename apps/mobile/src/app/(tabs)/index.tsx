@@ -5,57 +5,33 @@ import { useEntitlement } from '@/lib/useEntitlement';
 import { useFlagEnabled } from '@/lib/flags';
 import { AdSlot } from '@/components/AdSlot';
 import { useAdPlan } from '@/lib/useAdPlan';
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
-import Svg, { Path } from 'react-native-svg';
-import {
-  Animated,
-  Image,
-  InteractionManager,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  View,
-} from 'react-native';
+import { Animated, InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 
-import { dayNumber, type GuestGate, fallbackCurrency } from '@waves/core';
-import {
-  Button,
-  directionalIcon,
-  iconSize,
-  MoneyText,
-  Popup,
-  Row,
-  Screen,
-  Skeleton,
-  Text,
-  useTabBarClearance,
-  useTheme,
-} from '@waves/ui';
+import { fallbackCurrency, type GuestGate } from '@waves/core';
+import { Button, Popup, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
-import { useCaptures, useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
+import { useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
 import { useSync } from '@/sync';
-import { useRecurringCatchUp } from '@/data/groupRecurring';
+import { useHouseholdBillReminders, useRecurringCatchUp } from '@/data/groupRecurring';
 import { hasUnseenActivity, useActivitySeenAt } from '@/lib/activitySeen';
 import { useGroupUnread } from '@/lib/useGroupUnread';
-import { UnreadDot } from '@/components/UnreadDot';
 import { orderByActivity } from '@/lib/groupActivityOrder';
 import { plural, useStrings, type UiStrings } from '@/i18n';
 import { trialDaysLeft } from '@/lib/proTrial';
 import { useProTrial } from '@/lib/useProTrial';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
-import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
-import { router } from '@/lib/navigation';
+import { SPEC_INK } from '@/lib/specPalette';
+import { router, switchTab } from '@/lib/navigation';
 import { useNavigation } from 'expo-router';
 import { usePromptSlot } from '@/lib/promptQueue';
 import { TourTarget, useTour } from '@/lib/tour';
 import { tourMayStart, useOverlayBusy } from '@/lib/firstRun';
-import { GroupMark } from '@/components/GroupMark';
-import { useCoverTile } from '@/lib/groupCoverColor';
 import { useViewerCompanyIds } from '@/lib/useCompanyTab';
 import { groupsOutsideCompanies } from '@/lib/spaces';
 import { useColdStartSpace } from '@/lib/useSpaces';
@@ -63,14 +39,13 @@ import { ImportProgressBanner } from '@/components/ImportProgressBanner';
 import { LinkRequestsCard } from '@/components/LinkRequestsCard';
 import { SkeletonList } from '@/components/Skeletons';
 import { useImportedGroupId } from '@/lib/importProgress';
-import { useReducedMotion } from '@/lib/reducedMotion';
 import { useHomeHero } from '@/lib/useHomeHero';
 import { useReferralsLive } from '@/lib/useReferralsLive';
 import { THEME_HIDDEN } from '@/lib/theme';
 import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
-import { BALANCE_MASK, HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
+import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
 import { HeroIconButton } from '@/components/home/HeroControls';
 import { SpaceSwitchSheet } from '@/components/SpaceSwitcher';
 import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
@@ -79,22 +54,24 @@ import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
 import { greetingLine } from '@/lib/greetingLine';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
+import { ComingUpChips, NeedsYouCard } from '@/components/home/HomeToday';
+import { SpacesGrid } from '@/components/home/HomeSpaces';
+import { useHomeSpaceFigures } from '@/data/homeSpaces';
+import { todayIso, usePersonalLedger } from '@/data/personal';
+import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
+import { DateReminderCard } from '@/components/dates/DateReminderCard';
 import { TipSheet } from '@/components/home/TipSheet';
 import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { useVoiceDefaultSpace, useVoiceNewCount } from '@/lib/voiceSpaceStore';
+import { useVoiceNewCount } from '@/lib/voiceSpaceStore';
 import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
-import { groupLabel, GroupType } from '@/data/types';
-import { GroupTypeTag, useGroupTypeTag, useGroupTypeTagSpoken } from '@/components/GroupTypeTag';
 import { useBalanceHidden } from '@/lib/balanceHidden';
 import { usePullRefresh } from '@/lib/pullRefresh';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
 function HomeScreen() {
   const theme = useTheme();
-  const emptyInk = theme.scheme === 'dark' ? theme.color.text : SPEC_INK;
-  const emptyMuted = theme.scheme === 'dark' ? theme.color.textMuted : SPEC_MUTED;
   const pull = usePullRefresh();
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
@@ -150,19 +127,6 @@ function HomeScreen() {
   // The time-of-day line under the name. The *bucket* is sampled once on mount
   // (lazy init, never a bare Date in render — the React Compiler lints that),
   // then the localised word is read at render so it follows a language change.
-  // Drafts (A34) belong to the person, not the group, so they come from the
-  // captures read and are counted per destination here — one pass, rather than
-  // a filter inside every row.
-  const captures = useCaptures();
-  const draftsByGroup = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const capture of captures.data) {
-      const target = capture.target_group_id;
-      if (target) counts.set(target, (counts.get(target) ?? 0) + 1);
-    }
-    return counts;
-  }, [captures.data]);
-
   const [greetKey] = useState<'morning' | 'afternoon' | 'evening'>(() => {
     const hour = new Date().getHours();
     return hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
@@ -250,6 +214,7 @@ function HomeScreen() {
   // It remembers itself when finished; "Take the tour again" in the menu replays.
   // Repeating group expenses that came due while the app was closed.
   useRecurringCatchUp();
+  useHouseholdBillReminders();
 
   // The tour holds the top of the prompt queue for the whole of a first run —
   // from the moment we know it is owed (ready, not seen), through the wait for
@@ -315,6 +280,8 @@ function HomeScreen() {
   // less-used destinations, surfaced from the dashboard rather than only from
   // the profile tab.
   const [menuOpen, setMenuOpen] = useState(false);
+  // Personal bills Needs you is showing, so Coming up leaves them out.
+  const [needsBills, setNeedsBills] = useState('');
   // Same test the Upgrade screen uses for `plansLive`: the paywall flag is on
   // and this build can buy. A guest signs up first, so the row waits for that.
   const canUpgrade = useReferralsLive() && !isGuest;
@@ -387,9 +354,9 @@ function HomeScreen() {
   // A guest tapping "new group" past their limit is sent to sign up rather than
   // into a form the server would refuse (ADR-006 addendum). A full user's guard
   // waves this through.
-  const openNewGroup = (): void => {
+  const openNewGroup = (type?: string): void => {
     if (guard.blockAddGroup()) return;
-    router.push('/new-group');
+    router.push(type ? `/new-group?type=${type}` : '/new-group');
   };
   // Every "new group" door on Home opens this menu: create, scan, or join.
   const [newGroupOpen, setNewGroupOpen] = useState(false);
@@ -420,20 +387,6 @@ function HomeScreen() {
     owing: 0n,
   };
 
-  // The ids of the trips running today, so their rows can wear an "on trip"
-  // tag. "Running" is decided in the trip's own timezone, not the phone's — a
-  // Goa trip run from Dubai turns over at midnight in Goa (the same rule
-  // `dayNumber` and the planner already use).
-  const ongoingTripIds = new Set(
-    list
-      .filter((g) => g.type === GroupType.Trip && g.start_date && g.end_date)
-      .filter((g) => dayNumber(todayIn(g.time_zone), g.start_date, g.end_date) !== null)
-      .map((g) => g.id),
-  );
-  // "Now" sampled once per mount (a lazy initial state, never re-read as a ref
-  // in render) so the "New" window is stable across this screen's renders and
-  // the React Compiler stays happy — a bare Date.now() in render trips its lint.
-  const [nowMs] = useState(() => Date.now());
   // Which photograph the hero wears: the clock's (and region's), or the one
   // picked on the Background screen.
   const hero = useHomeHero();
@@ -441,16 +394,38 @@ function HomeScreen() {
   // down to the lower part of the balance card, and needs to know where the
   // greeting row ends and where the card begins to place its layers.
   const sceneRef = useRef<View>(null);
-  const [headerHeight, setHeaderHeight] = useState(insets.top + 120);
+  const [headerHeight, setHeaderHeight] = useState(insets.top + 56);
   const [greetingHeight, setGreetingHeight] = useState(46);
   const [cardHeight, setCardHeight] = useState(280);
-  const cardTop = headerHeight - HERO_OVERLAP;
+  // The fixed header is just the greeting row; the card starts right under it.
+  const cardTop = headerHeight;
   const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
   // The photograph runs up under the status bar behind a dark scrim, so the
   // clock, battery and greeting are white on every scene.
   const darkInk = false;
   const heroInk = darkInk ? SPEC_INK : '#FFFFFF';
-  useHeroStatusBar(darkInk ? 'dark' : 'light');
+  const [scrollY] = useState(() => new Animated.Value(0));
+  const [headerOpaque, setHeaderOpaque] = useState(false);
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 24],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  const heroInkOpacity = scrollY.interpolate({
+    inputRange: [0, 24],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const solidInkOpacity = scrollY.interpolate({
+    inputRange: [0, 24],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  useEffect(() => {
+    const listener = scrollY.addListener(({ value }) => setHeaderOpaque(value >= 24));
+    return () => scrollY.removeListener(listener);
+  }, [scrollY]);
+  useHeroStatusBar(headerOpaque && theme.scheme !== 'dark' ? 'dark' : 'light');
 
   // The bell's red dot: somebody else has done something since Activity was
   // last opened. Your own expenses are not news.
@@ -463,10 +438,10 @@ function HomeScreen() {
   const groupIds = useMemo(() => list.map((group) => group.id), [list]);
   const unreadGroups = useGroupUnread(groupIds);
   const voiceNewCount = useVoiceNewCount();
-  const { defaultId: voiceDefaultId } = useVoiceDefaultSpace();
-  const unreadBeyondPreview = list
-    .slice(GROUPS_PREVIEW)
-    .some((group) => unreadGroups.has(group.id));
+  const unreadSet = useMemo(
+    () => new Set(groupIds.filter((id) => unreadGroups.has(id) || voiceNewCount(id) > 0)),
+    [groupIds, unreadGroups, voiceNewCount],
+  );
 
   // Settle up opens its own screen (`/settle-up`), which works out the groups.
   // How many groups each side of the balance card comes from — in the
@@ -479,17 +454,33 @@ function HomeScreen() {
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
 
+  // Home's feed: the personal ledger (for Personal's tile and the bills that
+  // need paying), the pooled groups' figures, and whether there is anything yet.
+  const ledger = usePersonalLedger();
+  const [today] = useState(() => todayIso());
+  const figures = useHomeSpaceFigures();
+  const { hidden: personalHidden } = usePersonalAmountsHidden();
+  const amountsHidden = balanceHidden || !balanceReady;
+  const todayLedger = {
+    txns: ledger.txns,
+    recurrings: ledger.recurrings,
+    budgets: ledger.budgets,
+    currency: defaultCurrency,
+    today,
+  };
+  const newUser =
+    list.length === 0 &&
+    ledger.txns.length === 0 &&
+    ledger.recurrings.length === 0 &&
+    ledger.budgets.length === 0;
+
   if (coldStartHold) return <Screen edges={[]}>{null}</Screen>;
 
   return (
     <Screen edges={[]}>
-      {/* Static: the scene, the greeting and the balance card stay put; only
-          the groups list below scrolls. */}
+      {/* Keep the scene fixed behind the greeting and as the balance card's
+          blur target. The feed scrolls beneath the fixed greeting row. */}
       <View style={{ flex: 1 }}>
-        {/* The scenic photo (`HomeHeroBackground`): from under the status bar down
-            to the lower part of the balance card, where it fades into the
-            page — the groups below sit on the plain page, not on scenery. It
-            is wrapped as the glass card's blur target (Android needs one). */}
         <BlurTargetView
           ref={sceneRef}
           pointerEvents="none"
@@ -503,18 +494,157 @@ function HomeScreen() {
             pageColor={theme.color.bg}
           />
         </BlurTargetView>
+        <Animated.ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: clearance }}
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+            useNativeDriver: true,
+          })}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={pull.refreshing}
+              onRefresh={pull.onRefresh}
+              tintColor={theme.color.brand}
+            />
+          }
+        >
+          {/* Room for the fixed greeting row; the card sits right under it. */}
+          <View style={{ height: headerHeight }} />
 
-        {/* The greeting, over the scene. The balance card rides up over its
-            foot. */}
+          {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
+            phone margin iOS and Android both default to. */}
+          <View
+            style={{
+              paddingHorizontal: theme.spacing.lg,
+              gap: theme.spacing.xs,
+            }}
+          >
+            {/* The tour's "hero" anchor is the balance card, so the first
+              coach-mark still spotlights the balance. */}
+            <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
+              <TourTarget id="hero">
+                <HomeBalanceCard
+                  net={headline.net}
+                  owed={headline.owed}
+                  owing={headline.owing}
+                  owedGroups={owedGroups}
+                  owingGroups={owingGroups}
+                  currency={headline.currency}
+                  locale={locale}
+                  hidden={balanceHidden || !balanceReady}
+                  onToggleHide={toggleBalance}
+                  settling={settling}
+                  catchUp={catchUp}
+                  loading={showSkeleton || !balanceReady}
+                  blurTarget={sceneRef}
+                  footer={
+                    <HomeQuickActions
+                      // The quick sheet, not the capture screen: most spends know
+                      // where they belong and need an amount and a place. The long
+                      // press raises type / scan / speak, unchanged.
+                      onAddExpense={() => setQuickExpenseOpen(true)}
+                      onAddExpenseLong={() => setQuickAddOpen(true)}
+                      onSettleUp={() => router.push('/settle-up')}
+                      onReview={() => router.navigate('/captures')}
+                      onScan={() => router.push(`/capture?scan=${Date.now()}`)}
+                      onRemind={() => switchTab('/(tabs)/friends')}
+                      radius={theme.radius.xl}
+                    />
+                  }
+                />
+              </TourTarget>
+            </View>
+
+            {/* A background import's progress lands here, just above the groups —
+              the person tapped Import, came home, and watches it fill. */}
+            <ImportProgressBanner />
+
+            {/* "Madan says you are Renny in Goa trip": somebody has named this
+              person as a placeholder in their group, and only they can say
+              yes. Drawn only while something is waiting. */}
+            <LinkRequestsCard enabled={session !== null && !isGuest} />
+
+            {/* A friendly "From Waves" reminder for a date coming up: inline,
+              one at a time, never a pop-up. Drawn only while one is due. */}
+            <DateReminderCard />
+
+            {showSkeleton ? (
+              <View style={{ paddingTop: theme.spacing.sm }}>
+                <SkeletonList rows={3} />
+              </View>
+            ) : (
+              <View style={{ paddingTop: theme.spacing.sm, gap: theme.spacing.lg }}>
+                {/* A new person has nothing to act on yet: the three starter tiles
+                  below stand in for the whole feed. */}
+                {newUser ? null : (
+                  <NeedsYouCard
+                    ledger={todayLedger}
+                    viewerId={viewerId}
+                    hidden={amountsHidden}
+                    onShownBills={setNeedsBills}
+                  />
+                )}
+                {newUser ? null : (
+                  <ComingUpChips ledger={todayLedger} hidden={amountsHidden} exclude={needsBills} />
+                )}
+                <SpacesGrid
+                  groups={list}
+                  summary={summary}
+                  viewerId={viewerId}
+                  pool={figures.pool}
+                  ledger={todayLedger}
+                  hidden={amountsHidden}
+                  personalHidden={personalHidden}
+                  locale={locale}
+                  newUser={newUser}
+                  unreadGroups={unreadSet}
+                  onNewSpace={openNewGroupMenu}
+                  onNewGroup={openNewGroup}
+                />
+                {/* One native card after the grid for a long roster (>= 10 groups),
+                  never while a fresh import is sliding in. */}
+                {homeAdSlot !== undefined && justAddedId == null ? (
+                  <AdSlot
+                    handle={homeAds}
+                    format="native"
+                    slot={homeAdSlot}
+                    rowGap={theme.spacing.sm}
+                  />
+                ) : null}
+              </View>
+            )}
+          </View>
+        </Animated.ScrollView>
         <View
           onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
           style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 1,
+            elevation: 4,
             paddingTop: insets.top + theme.spacing.xs,
             paddingHorizontal: theme.spacing.lg,
-            paddingBottom: HERO_OVERLAP + theme.spacing.xs,
+            paddingBottom: theme.spacing.xs,
           }}
         >
-          {/* The greeting at the start, the bell and the menu at the end, on one row. */}
+          <Animated.View
+            pointerEvents="none"
+            style={{
+              position: 'absolute',
+              top: -insets.top,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: theme.color.bg,
+              opacity: headerOpacity,
+              borderBottomWidth: 1,
+              borderBottomColor: theme.color.border,
+            }}
+          />
           <Row
             onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
             style={{ alignItems: 'center', gap: theme.spacing.md }}
@@ -526,308 +656,94 @@ function HomeScreen() {
               hitSlop={8}
               style={{ flex: 1, minWidth: 0 }}
             >
-              <Text
-                numberOfLines={1}
-                style={{
-                  color: heroInk,
-                  fontSize: 20,
-                  lineHeight: 26,
-                  fontWeight: '700',
-                  // White on a photograph: a soft shadow keeps it legible on bright skies.
-                  textShadowColor: 'rgba(0,0,0,0.35)',
-                  textShadowOffset: { width: 0, height: 1 },
-                  textShadowRadius: 4,
-                }}
-              >
-                {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
-              </Text>
-            </Pressable>
-            <HeroIconButton
-              icon="notifications-outline"
-              label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
-              onPress={() => router.navigate('/activity')}
-              dot={unseenActivity}
-              ink={heroInk}
-            />
-            <HeroIconButton
-              icon="ellipsis-vertical"
-              label={t.account.faceSettings}
-              onPress={() => setMenuOpen(true)}
-              ink={heroInk}
-            />
-          </Row>
-        </View>
-
-        {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
-            phone margin iOS and Android both default to. */}
-        <View
-          style={{
-            paddingHorizontal: theme.spacing.lg,
-            marginTop: -HERO_OVERLAP,
-            gap: theme.spacing.xs,
-            flex: 1,
-          }}
-        >
-          {/* The tour's "hero" anchor is the balance card, so the first
-              coach-mark still spotlights the balance. */}
-          <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
-            <TourTarget id="hero">
-              <HomeBalanceCard
-                net={headline.net}
-                owed={headline.owed}
-                owing={headline.owing}
-                owedGroups={owedGroups}
-                owingGroups={owingGroups}
-                currency={headline.currency}
-                locale={locale}
-                hidden={balanceHidden || !balanceReady}
-                onToggleHide={toggleBalance}
-                settling={settling}
-                catchUp={catchUp}
-                loading={showSkeleton || !balanceReady}
-                blurTarget={sceneRef}
-                footer={
-                  <HomeQuickActions
-                    // The quick sheet, not the capture screen: most spends know
-                    // where they belong and need an amount and a place. The long
-                    // press raises type / scan / speak, unchanged.
-                    onAddExpense={() => setQuickExpenseOpen(true)}
-                    onAddExpenseLong={() => setQuickAddOpen(true)}
-                    onSettleUp={() => router.push('/settle-up')}
-                    onReview={() => router.navigate('/captures')}
-                    onNewGroup={openNewGroupMenu}
-                    radius={theme.radius.xl}
-                  />
-                }
-              />
-            </TourTarget>
-          </View>
-
-          {/* A background import's progress lands here, just above the groups —
-              the person tapped Import, came home, and watches it fill. */}
-          <ImportProgressBanner />
-
-          {/* "Madan says you are Renny in Goa trip": somebody has named this
-              person as a placeholder in their group, and only they can say
-              yes. Drawn only while something is waiting. */}
-          <LinkRequestsCard enabled={session !== null && !isGuest} />
-
-          {showSkeleton ? (
-            <SkeletonList rows={3} />
-          ) : list.length === 0 ? (
-            <ScrollView
-              style={{ flex: 1 }}
-              // Scrolls, and clears the tab bar, so the button under the
-              // picture is never hidden behind the bar on a short phone.
-              contentContainerStyle={{
-                flexGrow: 1,
-                justifyContent: 'center',
-                paddingBottom: clearance,
-              }}
-              showsVerticalScrollIndicator={false}
-            >
-              {/* The one screen where somebody has nothing to act on yet gets
-                  the action spelled out. */}
-              <View style={{ alignItems: 'center', gap: 8, paddingHorizontal: theme.spacing.md }}>
-                <NoGroupsArt />
+              <Animated.View style={{ opacity: heroInkOpacity }}>
                 <Text
-                  accessibilityRole="header"
-                  style={{ fontSize: 22, fontWeight: '800', color: emptyInk, textAlign: 'center' }}
-                >
-                  {t.tabs.noGroups}
-                </Text>
-                <Text
-                  style={{ fontSize: 14, lineHeight: 20, color: emptyMuted, textAlign: 'center' }}
-                >
-                  {t.tabs.noGroupsBody}
-                </Text>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.newGroup}
-                  onPress={openNewGroup}
-                  style={({ pressed }) => ({
-                    marginTop: 6,
-                    height: 42,
-                    paddingHorizontal: 22,
-                    borderRadius: 21,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                    backgroundColor: theme.color.brand,
-                    opacity: pressed ? 0.88 : 1,
-                  })}
-                >
-                  <Ionicons name="people-outline" size={18} color={theme.color.onBrand} />
-                  <Text style={{ fontSize: 15, fontWeight: '700', color: theme.color.onBrand }}>
-                    {t.newGroup}
-                  </Text>
-                </Pressable>
-              </View>
-            </ScrollView>
-          ) : (
-            <View style={{ gap: theme.spacing.sm, flex: 1 }}>
-              {/* The heading carries the door to the full list: the card below is
-                  a capped preview, "All groups" opens the whole roster. */}
-              <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Text variant="subheading">{t.yourGroups}</Text>
-                <Pressable
-                  onPress={() => router.navigate('/groups')}
-                  accessibilityRole="button"
-                  accessibilityLabel={
-                    unreadBeyondPreview ? `${t.allGroups}, ${t.groupNewActivity}` : t.allGroups
-                  }
-                  hitSlop={8}
-                  style={({ pressed }) => ({
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 2,
-                    opacity: pressed ? 0.5 : 1,
-                  })}
-                >
-                  {/* Only when the news is in a group the preview cuts off:
-                      a row above already wears its own dot, and a second one
-                      here would say the same thing twice. */}
-                  {unreadBeyondPreview ? (
-                    <View
-                      accessibilityElementsHidden
-                      importantForAccessibility="no-hide-descendants"
-                      style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        marginEnd: 4,
-                        backgroundColor: theme.color.negative,
-                      }}
-                    />
-                  ) : null}
-                  <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-                    {t.allGroups}
-                  </Text>
-                  <Ionicons
-                    name={directionalIcon('chevron-forward')}
-                    size={iconSize.md}
-                    color={theme.color.brand}
-                  />
-                </Pressable>
-              </Row>
-              {/* The groups as one clean list on a single card — an emoji chip, the
-                  name and its standing, the balance to the right — the banking-app
-                  "recent" list the reference leans on, hairline-divided. Capped to
-                  a preview; the full list lives behind "All groups". */}
-              <ScrollView
-                style={{ flex: 1 }}
-                contentContainerStyle={{ paddingBottom: clearance }}
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={pull.refreshing}
-                    onRefresh={pull.onRefresh}
-                    tintColor={theme.color.brand}
-                  />
-                }
-              >
-                <View
+                  numberOfLines={1}
                   style={{
-                    backgroundColor: theme.color.surface,
-                    borderRadius: theme.radius.lg,
-                    borderWidth: 1,
-                    borderColor: theme.color.border,
-                    overflow: 'hidden',
+                    color: heroInk,
+                    fontSize: 20,
+                    lineHeight: 26,
+                    fontWeight: '700',
+                    textShadowColor: 'rgba(0,0,0,0.35)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 4,
                   }}
                 >
-                  {list.slice(0, GROUPS_PREVIEW).map((group, index) => {
-                    const members = summary.membersFor(group.id);
-                    const balance = summary.balanceFor(group.id);
-                    // A running trip earns a live "on trip" tag; failing that, a
-                    // just-made group wears "New" for its first couple of days.
-                    // The demo group outranks both — it is never "New" and
-                    // never genuinely "on trip", and it needs to read as
-                    // what it is before anything else about the row does.
-                    const onTrip = ongoingTripIds.has(group.id);
-                    const isNew = nowMs - Date.parse(group.created_at) < NEW_GROUP_WINDOW_MS;
-                    const tag = group.isDemo
-                      ? t.demo.badge
-                      : onTrip
-                        ? t.tagOnTrip
-                        : group.id === voiceDefaultId
-                          ? t.spaces.defaultTag
-                          : isNew
-                            ? t.tagNew
-                            : null;
-                    return (
-                      <Fragment key={group.id}>
-                        <GroupRow
-                          title={groupLabel(group, members, viewerId)}
-                          memberLabel={plural(
-                            locale,
-                            summary.memberCountFor(group.id),
-                            t.memberCount,
-                          )}
-                          draftLabel={
-                            draftsByGroup.has(group.id)
-                              ? plural(locale, draftsByGroup.get(group.id) ?? 0, t.draftCount)
-                              : null
-                          }
-                          coverEmoji={group.cover_emoji}
-                          coverColor={group.cover_color}
-                          groupType={group.type}
-                          eventTemplate={group.event_template}
-                          customTag={group.custom_tag}
-                          balance={balance}
-                          currency={group.default_currency}
-                          locale={locale}
-                          statusLabel={
-                            balance === 0n ? t.allSettled : balance > 0n ? t.youAreOwed : t.youOwe
-                          }
-                          directionLabel={
-                            balance === 0n
-                              ? t.group.rowSettled
-                              : balance > 0n
-                                ? t.group.rowOwed
-                                : t.group.rowYouOwe
-                          }
-                          pendingLabel={summary.hasPending(group.id) ? t.pendingConfirmation : null}
-                          tag={tag}
-                          isDemo={group.isDemo === true}
-                          tagTone={group.isDemo ? 'warning' : onTrip ? 'positive' : 'brand'}
-                          divider={index > 0}
-                          // The eye in the hero shuts the whole screen's money, not
-                          // just the headline: masking one figure while twelve sit
-                          // uncovered below it is privacy theatre. Masked too until
-                          // the saved preference has loaded — `balanceHidden` starts
-                          // false while AsyncStorage resolves, so without the
-                          // `!balanceReady` guard a hidden balance flashes in plain
-                          // before the eye's state lands. The hero is already gated
-                          // this way upstream (it shows its skeleton until ready).
-                          hidden={balanceHidden || !balanceReady}
-                          // The just-imported group slides and fades into place
-                          // rather than blinking in under the success banner.
-                          enter={group.id === justAddedId}
-                          // Its balance materialises a beat after the group row does,
-                          // so mask the amount until the ledger lands rather than show
-                          // a confident wrong ₹0 that then jumps to the real figure.
-                          pendingBalance={group.id === justAddedId && !summary.hasLedger(group.id)}
-                          onPress={() => router.push(`/group/${group.id}`)}
-                          unread={unreadGroups.has(group.id) || voiceNewCount(group.id) > 0}
-                        />
-                        {/* One native card inside the list (>= 10 groups), never on the row that is sliding in. */}
-                        {homeAdSlot === index + 1 && justAddedId == null ? (
-                          <View style={{ paddingHorizontal: theme.spacing.sm }}>
-                            <AdSlot
-                              handle={homeAds}
-                              format="native"
-                              slot={index + 1}
-                              rowGap={theme.spacing.sm}
-                            />
-                          </View>
-                        ) : null}
-                      </Fragment>
-                    );
-                  })}
-                </View>
-              </ScrollView>
+                  {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
+                </Text>
+              </Animated.View>
+              <Animated.View
+                pointerEvents="none"
+                style={{ position: 'absolute', left: 0, right: 0, opacity: solidInkOpacity }}
+              >
+                <Text
+                  numberOfLines={1}
+                  style={{
+                    color: theme.color.text,
+                    fontSize: 20,
+                    lineHeight: 26,
+                    fontWeight: '700',
+                  }}
+                >
+                  {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
+                </Text>
+              </Animated.View>
+            </Pressable>
+            <View>
+              <Animated.View style={{ opacity: heroInkOpacity }}>
+                <HeroIconButton
+                  icon="notifications-outline"
+                  label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
+                  onPress={() => router.navigate('/activity')}
+                  dot={unseenActivity}
+                  ink={heroInk}
+                />
+              </Animated.View>
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  padding: theme.spacing.xs,
+                  opacity: solidInkOpacity,
+                }}
+              >
+                <Ionicons name="notifications-outline" size={24} color={theme.color.text} />
+                {unseenActivity ? (
+                  <View
+                    style={{
+                      position: 'absolute',
+                      top: theme.spacing.xs,
+                      end: theme.spacing.xs,
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: '#FF3B5C',
+                    }}
+                  />
+                ) : null}
+              </Animated.View>
             </View>
-          )}
+            <View>
+              <Animated.View style={{ opacity: heroInkOpacity }}>
+                <HeroIconButton
+                  icon="ellipsis-vertical"
+                  label={t.account.faceSettings}
+                  onPress={() => setMenuOpen(true)}
+                  ink={heroInk}
+                />
+              </Animated.View>
+              <Animated.View
+                pointerEvents="none"
+                style={{
+                  position: 'absolute',
+                  padding: theme.spacing.xs,
+                  opacity: solidInkOpacity,
+                }}
+              >
+                <Ionicons name="ellipsis-vertical" size={24} color={theme.color.text} />
+              </Animated.View>
+            </View>
+          </Row>
         </View>
       </View>
 
@@ -846,7 +762,7 @@ function HomeScreen() {
         open={newGroupOpen}
         anchor={newGroupAnchor}
         onClose={() => setNewGroupOpen(false)}
-        onCreate={openNewGroup}
+        onCreate={() => openNewGroup()}
       />
 
       {/* Signed in on a phone that holds no personal ledger — a new handset, a
@@ -879,14 +795,6 @@ function HomeScreen() {
     </Screen>
   );
 }
-
-/** How long after creation a group still counts as "New" — 48 hours. */
-const NEW_GROUP_WINDOW_MS = 48 * 60 * 60 * 1000;
-
-/** How many groups the dashboard shows inline before deferring to the full
-    "All groups" screen — enough to cover most people's active set without the
-    home list growing without bound. */
-const GROUPS_PREVIEW = 15;
 
 /** The AsyncStorage key holding the day the guest last closed the prompt. */
 const GUEST_PROMPT_DISMISS_KEY = 'guestPrompt:dismissedOn';
@@ -1028,299 +936,8 @@ function GuestPopup({
   );
 }
 
-/** Today as `YYYY-MM-DD` in a given timezone, never the server's. */
-function todayIn(timeZone: string): string {
-  try {
-    return new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
-  } catch {
-    return new Date().toISOString().slice(0, 10);
-  }
-}
-
-/** How far the balance card rides up over the bottom of the hero. */
-const HERO_OVERLAP = 56;
-
 /** How far down the balance card the scene reaches before it has faded into
  *  the page — its lower part, never on behind the groups. */
 const SCENE_INTO_CARD = 0.72;
-
-/**
- * One group as a clean list row — an emoji chip, the name over its member count
- * and standing, the balance to the right coloured by who owes whom. The banking
- * "recent" row applied to a group; the whole row is the tap into the group.
- */
-function GroupRow({
-  title,
-  memberLabel,
-  draftLabel,
-  coverEmoji,
-  coverColor,
-  groupType,
-  eventTemplate,
-  customTag,
-  balance,
-  currency,
-  locale,
-  statusLabel,
-  directionLabel,
-  pendingLabel,
-  tag,
-  tagTone,
-  isDemo = false,
-  divider,
-  enter = false,
-  pendingBalance = false,
-  hidden = false,
-  onPress,
-  unread = false,
-}: {
-  title: string;
-  memberLabel: string;
-  /** "2 drafts" when this group has money caught but not yet entered, else
-   *  null. Worth a place on the row because a draft is the one thing here that
-   *  is waiting on the reader. */
-  draftLabel: string | null;
-  coverEmoji: string | null;
-  coverColor: string | null | undefined;
-  /** What kind of group — drawn as a small tag on the member-count line. */
-  groupType: string | null | undefined;
-  eventTemplate: string | null | undefined;
-  customTag: string | null | undefined;
-  balance: bigint;
-  currency: string;
-  locale: string;
-  /** "You are owed" — spoken, in the row's accessibility label. */
-  statusLabel: string;
-  /** "owed" — the same standing, drawn small under the amount it describes. */
-  directionLabel: string;
-  pendingLabel: string | null;
-  tag: string | null;
-  tagTone: 'positive' | 'brand' | 'neutral' | 'warning';
-  /** The sample group: "sample data" subtitle. */
-  isDemo?: boolean;
-  /** The dashboard's eye is shut: show the mask in place of the amount. The
-      row's standing ("You owe") stays — it is the figure that is private. */
-  hidden?: boolean;
-  /** True while this group's balance is still materialising (just after an
-      import): the amount is masked with a skeleton instead of a wrong zero. */
-  pendingBalance?: boolean;
-  /** A hairline above the row — every row but the first, so the card reads as
-      one divided list rather than a stack of loose cards. */
-  divider: boolean;
-  /** True for a row that has just arrived (a fresh import): it fades and slides
-      into place on mount rather than blinking in. */
-  enter?: boolean;
-  onPress: () => void;
-  /** Someone else has done something here since the reader last opened it:
-      a dot on the icon, a heavier name, and said aloud. */
-  unread?: boolean;
-}) {
-  const theme = useTheme();
-  const reduceMotion = useReducedMotion();
-  const { t } = useStrings();
-
-  // The entrance: start dropped and clear, settle into place. Only for a row
-  // flagged `enter` (a just-imported group), and never under reduce motion —
-  // otherwise the row is static at rest. Lazy-init state, never a ref read in
-  // render (the React Compiler lints that), transform+opacity native-driven.
-  const shouldAnimate = enter && !reduceMotion;
-  const anim = useState(() => new Animated.Value(shouldAnimate ? 0 : 1))[0];
-  useEffect(() => {
-    if (!shouldAnimate) return;
-    const run = Animated.spring(anim, {
-      toValue: 1,
-      friction: 8,
-      tension: 60,
-      useNativeDriver: true,
-    });
-    run.start();
-    return () => run.stop();
-  }, [shouldAnimate, anim]);
-
-  // What the row says under its title: who is in it and what is waiting. Where
-  // it stands moved under the amount — "owed" beside the figure it describes,
-  // the way an expense row says "you lent" — rather than "You are owed" on
-  // every line of the list. The spoken label still carries it in full: a screen
-  // reader is given the label instead of the text inside the row, so anything
-  // said only on screen is not said quietly, it is not said.
-  const tile = useCoverTile(coverColor, theme.color.surfaceMuted);
-  const typeTag = useGroupTypeTag(groupType, eventTemplate, customTag);
-  const typeSpoken = useGroupTypeTagSpoken(typeTag);
-  const spoken =
-    pendingLabel ?? [typeSpoken, memberLabel, draftLabel, statusLabel].filter(Boolean).join(' · ');
-
-  return (
-    <Animated.View
-      style={{
-        opacity: anim,
-        transform: [{ translateY: anim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }],
-      }}
-    >
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${title}${unread ? `, ${t.groupNewActivity}` : ''}. ${spoken}`}
-        onPress={onPress}
-        style={({ pressed }) => ({
-          flexDirection: 'row',
-          alignItems: 'center',
-          gap: theme.spacing.md,
-          paddingVertical: theme.spacing.sm,
-          paddingHorizontal: theme.spacing.sm,
-          borderTopWidth: divider ? 1 : 0,
-          borderTopColor: theme.color.border,
-          opacity: pressed ? 0.6 : 1,
-        })}
-      >
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: tile.backgroundColor,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <GroupMark emoji={coverEmoji} size={22} color={tile.ink} />
-          {unread ? <UnreadDot /> : null}
-        </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            {/* A step heavier while unread — the chat-list cue — so the dot
-                is not the only thing saying it. */}
-            <Text
-              variant="body"
-              numberOfLines={1}
-              style={{ flexShrink: 1, fontWeight: unread ? '800' : '600' }}
-            >
-              {title}
-            </Text>
-            {tag ? (
-              <View
-                style={{
-                  paddingHorizontal: 6,
-                  paddingVertical: 1,
-                  borderRadius: 6,
-                  backgroundColor:
-                    tagTone === 'positive'
-                      ? theme.color.positiveSoft
-                      : tagTone === 'warning'
-                        ? theme.color.warningSoft
-                        : tagTone === 'neutral'
-                          ? theme.color.surfaceMuted
-                          : theme.color.brandSoft,
-                }}
-              >
-                <Text
-                  variant="micro"
-                  tone={
-                    tagTone === 'positive' ? 'positive' : tagTone === 'neutral' ? 'muted' : 'brand'
-                  }
-                  style={{
-                    fontWeight: '700',
-                    ...(tagTone === 'warning' ? { color: theme.color.warning } : null),
-                  }}
-                >
-                  {tag}
-                </Text>
-              </View>
-            ) : null}
-          </Row>
-          {/* Words only. A stack of faces sat here for a while, on the theory
-              that you recognise a group by who is in it; on the row it read as
-              clutter beside a line that already says how many and where you
-              stand. */}
-          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-            {typeTag ? <GroupTypeTag tag={typeTag} /> : null}
-            <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-              {isDemo ? t.demo.rowSubtitle : (pendingLabel ?? memberLabel)}
-              {/* A draft is the one thing here waiting on the reader, so it is
-                said in the warning's orange rather than the muted grey. */}
-              {!pendingLabel && draftLabel ? (
-                <Text variant="caption" style={{ color: theme.color.warning, fontWeight: '600' }}>
-                  {` · ${draftLabel}`}
-                </Text>
-              ) : null}
-            </Text>
-          </Row>
-        </View>
-        {pendingBalance ? (
-          <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />
-        ) : (
-          <View style={{ alignItems: 'flex-end', gap: 2 }}>
-            {hidden ? (
-              <Text tone="muted" style={{ fontWeight: '700' }}>
-                {BALANCE_MASK}
-              </Text>
-            ) : (
-              // `balance` mode is money's own rule in one place: it takes the
-              // magnitude, colours by the sign (owed-to-you positive, you-owe
-              // negative, square quiet) and speaks the direction aloud.
-              <MoneyText
-                amount={balance}
-                currency={currency as never}
-                locale={locale}
-                mode="balance"
-                fadeFraction={false}
-                style={{ fontWeight: '700' }}
-              />
-            )}
-            {/* The standing in words, under the figure. The amount carries no
-                sign, so without this the direction would be colour alone. Kept
-                when the eye is shut: the figure is private, the side is not. */}
-            <Text variant="micro" tone="muted" numberOfLines={1}>
-              {directionLabel}
-            </Text>
-          </View>
-        )}
-      </Pressable>
-    </Animated.View>
-  );
-}
-
-/** The empty Home's picture: two people unpacking a box with the group sign in
- *  it. A still image on a transparent ground, so it sits on either theme. */
-const NO_GROUPS_ART = require('../../../assets/images/home-no-groups.webp') as number;
-
-/** Fixed sizes: a percentage width with an aspect ratio rendered zoomed and
- *  cropped on Android. The art is 720×475. */
-const ART_W = 260;
-const ART_H = 190;
-
-function NoGroupsArt() {
-  const theme = useTheme();
-  const dark = theme.scheme === 'dark';
-  return (
-    <View
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ width: ART_W, height: ART_H, justifyContent: 'flex-end' }}
-    >
-      {/* The soft lavender wave behind the people, as in the mockup: a cloud
-          of a hill with a small puff of cloud to its left. */}
-      <Svg
-        width={ART_W}
-        height={ART_H}
-        viewBox="0 0 260 190"
-        style={{ position: 'absolute', top: 0, left: 0 }}
-      >
-        <Path
-          d="M18 172 C 10 120, 40 92, 80 96 C 92 52, 150 30, 196 58 C 232 70, 256 110, 246 172 Z"
-          fill={dark ? theme.color.surfaceMuted : '#ECE8FB'}
-        />
-        <Path
-          d="M34 70 c 2 -8 14 -10 18 -3 c 6 -6 16 -2 16 6 l -34 0 z"
-          fill={dark ? theme.color.surface : '#E4DEFA'}
-        />
-      </Svg>
-      <Image
-        source={NO_GROUPS_ART}
-        accessibilityIgnoresInvertColors
-        resizeMode="contain"
-        style={{ width: ART_W, height: (ART_W * 475) / 720 }}
-      />
-    </View>
-  );
-}
 
 export default withScenic(HomeScreen);

@@ -81,6 +81,8 @@ import type {
   CompanyDatesSetPayload,
   LeaveKind,
   CompanyMemberProjectsSetPayload,
+  GroupIncomeDeletePayload,
+  GroupIncomeSetPayload,
   GroupRecurringCreatePayload,
   GroupRecurringUpdatePayload,
   MemberBudgetSetPayload,
@@ -126,6 +128,7 @@ const TABLES: readonly SyncTable[] = [
   SyncTable.CategoryTags,
   SyncTable.TripPlanItems,
   SyncTable.GroupRecurringExpenses,
+  SyncTable.GroupIncomePlans,
   SyncTable.CompanyEntries,
   SyncTable.CompanyEntryAttachments,
   SyncTable.CompanyProjects,
@@ -1707,6 +1710,77 @@ export function materialiseGroupRecurring(
     const right = String(b.created_at ?? '');
     return left === right ? String(a.id).localeCompare(String(b.id)) : right.localeCompare(left);
   });
+}
+
+// ─────────────────────────────────────────────── household income plans ──
+
+export interface MirrorGroupIncomePlan extends MirrorRow {
+  readonly id: string;
+  readonly group_id: string;
+  readonly member_id: string;
+  readonly label: string;
+  readonly kind: GroupIncomeSetPayload['kind'];
+  readonly amount_minor: string | number;
+  readonly currency: string;
+  readonly day_of_month: number;
+  readonly active: boolean;
+  readonly created_by: string;
+  readonly created_at: string;
+  readonly deleted_at: string | null;
+  readonly pending?: boolean;
+}
+
+/** One group's income plans (oldest first), queued changes shown as done. */
+export function materialiseGroupIncome(
+  state: MirrorState,
+  queue: readonly QueuedMutation[],
+  options: { readonly groupId: string; readonly myMemberId?: string | null },
+): MirrorGroupIncomePlan[] {
+  const plans = new Map<string, MirrorGroupIncomePlan>();
+  for (const row of rowsFor(
+    state,
+    SyncTable.GroupIncomePlans,
+    options.groupId,
+  ) as MirrorGroupIncomePlan[]) {
+    plans.set(row.id, row);
+  }
+  for (const mutation of [...queue].sort((a, b) => a.seq - b.seq)) {
+    if (mutation.groupId !== options.groupId) continue;
+    if (mutation.kind === 'group_income.set') {
+      const p = mutation.payload as unknown as GroupIncomeSetPayload;
+      const existing = plans.get(p.planId);
+      plans.set(p.planId, {
+        id: p.planId,
+        group_id: mutation.groupId,
+        created_by: options.myMemberId ?? '',
+        created_at: mutation.clientCreatedAt,
+        deleted_at: null,
+        ...existing,
+        member_id: p.memberId,
+        label: p.label.trim(),
+        kind: p.kind,
+        amount_minor: p.amountMinor,
+        // The server keeps the first currency.
+        currency: existing?.currency ?? p.currency,
+        day_of_month: p.dayOfMonth,
+        active: p.active,
+        pending: true,
+      });
+    } else if (mutation.kind === 'group_income.delete') {
+      const p = mutation.payload as unknown as GroupIncomeDeletePayload;
+      const existing = plans.get(p.planId);
+      if (existing) {
+        plans.set(p.planId, { ...existing, deleted_at: mutation.clientCreatedAt, pending: true });
+      }
+    }
+  }
+  return [...plans.values()]
+    .filter((plan) => plan.deleted_at === null)
+    .sort((a, b) =>
+      a.created_at === b.created_at
+        ? a.id.localeCompare(b.id)
+        : a.created_at.localeCompare(b.created_at),
+    );
 }
 
 // ───────────────────────────────────────────────────── company entries ──

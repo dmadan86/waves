@@ -50,7 +50,7 @@ export interface MoveArgs {
   newId: string;
 }
 
-async function pickedFromUrl(url: string): Promise<PickedImage> {
+export async function pickedFromUrl(url: string): Promise<PickedImage> {
   const file = await File.downloadFileAsync(url, new File(Paths.cache, `move-${randomUUID()}.jpg`));
   try {
     return { base64: await file.base64(), mimeType: 'image/jpeg', uri: file.uri };

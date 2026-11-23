@@ -24,13 +24,18 @@ export function heardCaptureInput(transcript: string, date: string, currency: st
   }
   const only = read.length === 1 && read[0].amountMajor > 0 ? read[0] : null;
   const filedCurrency = only?.currency ?? currency;
+  // Several expenses in one sentence: the draft shows their total, not ₹0, as
+  // long as they share one currency and every amount was read.
+  const several =
+    read.length > 1 &&
+    read.every((item) => item.amountMajor > 0 && (item.currency ?? currency) === filedCurrency);
+  const majors = only ? [only.amountMajor] : several ? read.map((item) => item.amountMajor) : [];
+  const scale = Number(minorUnitScale(filedCurrency));
   return {
     description: only?.note.trim() || sentence,
     expenseDate: date,
     currency: filedCurrency,
-    amount: only
-      ? BigInt(Math.round(only.amountMajor * Number(minorUnitScale(filedCurrency))))
-      : 0n,
+    amount: majors.reduce((sum, major) => sum + BigInt(Math.round(major * scale)), 0n),
     rawText: sentence,
     parsed: { voiceTranscript: sentence },
   };
@@ -52,4 +57,31 @@ export function leaveUpdatesDraft(phase: string, rows: number, allSavable: boole
 export function unclearAmount(text: string): string | null {
   const cleaned = text.replace(/[,\s]/g, '');
   return /^\d+(\.\d{1,2})?$/.test(cleaned) && Number(cleaned) > 0 ? cleaned : null;
+}
+
+/**
+ * The draft for what a hold could not add when it added the rest: just those
+ * items, so Review never offers the ones already in a group a second time.
+ */
+export function leftoverCaptureInput(
+  transcript: string,
+  items: readonly { amountMajor: number; note: string; currency: string | null }[],
+  date: string,
+  currency: string,
+) {
+  const sentence = transcript.trim();
+  const filedCurrency = items[0]?.currency ?? currency;
+  const scale = Number(minorUnitScale(filedCurrency));
+  const sameCurrency = items.every((item) => (item.currency ?? currency) === filedCurrency);
+  const notes = items.map((item) => item.note.trim()).filter(Boolean);
+  return {
+    description: notes.length > 0 ? notes.join(', ') : sentence,
+    expenseDate: date,
+    currency: filedCurrency,
+    amount: sameCurrency
+      ? items.reduce((sum, item) => sum + BigInt(Math.round(item.amountMajor * scale)), 0n)
+      : 0n,
+    rawText: sentence,
+    parsed: { voiceTranscript: sentence },
+  };
 }

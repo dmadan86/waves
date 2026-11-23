@@ -45,7 +45,7 @@ export function holdLanding(
   context: { launchGroupId: string | null; launchPersonal: boolean },
   openGroupIds: ReadonlySet<string>,
 ): HoldLanding {
-  const auto = voiceAutoAction(result, context);
+  const auto = voiceAutoAction(result, { ...context, allowMany: true });
   if (auto?.kind !== 'commit-expense') return { kind: 'later' };
   if (auto.groupId === null) return { kind: 'personal' };
   return openGroupIds.has(auto.groupId)
@@ -53,19 +53,62 @@ export function holdLanding(
     : { kind: 'later' };
 }
 
-/** The agent's answer is added with no review only when it is one clean expense. */
+/** The agent's answer is added with no review only when every card is a clean
+ *  expense ("lunch 200, taxi 300" is two), and it asked and answered nothing. */
 export function agentAddsAtOnce(plan: {
   cards: readonly { problem: boolean; action: { type: string } }[];
   answer: string | null;
   clarify: string | null;
 }): boolean {
-  const [only] = plan.cards;
   return (
-    plan.cards.length === 1 &&
-    !!only &&
-    !only.problem &&
+    plan.cards.length > 0 &&
     !plan.answer &&
     !plan.clarify &&
-    (only.action.type === 'add_expense' || only.action.type === 'add_personal')
+    plan.cards.every(
+      (card) =>
+        !card.problem &&
+        (card.action.type === 'add_expense' || card.action.type === 'add_personal'),
+    )
   );
+}
+
+/**
+ * What the pill says once every queued sentence has been read: one result keeps
+ * its own toast; several become one summary, so a quick run of holds never
+ * buries an earlier "Added" under a later "Reading…".
+ */
+export type HoldSummary =
+  | { kind: 'none' }
+  | { kind: 'one-added' }
+  | { kind: 'one-later' }
+  | { kind: 'many'; added: number; later: number };
+
+export function holdSummary(added: number, later: number): HoldSummary {
+  if (added + later === 0) return { kind: 'none' };
+  if (added === 1 && later === 0) return { kind: 'one-added' };
+  if (added === 0 && later === 1) return { kind: 'one-later' };
+  return { kind: 'many', added, later };
+}
+
+/**
+ * The group you last added an expense to, from the activity feed (newest
+ * first): where a hold made outside any group lands, the same guess the agent
+ * makes with its [RECENT] tag. Null when you have added nothing anywhere usable.
+ */
+export function lastAddedGroupId(
+  rows: readonly {
+    group_id: string;
+    actor_member_id: string | null;
+    object_type: string;
+    verb: string;
+  }[],
+  mine: ReadonlySet<string>,
+  usable: (groupId: string) => boolean,
+): string | null {
+  for (const row of rows) {
+    if (row.object_type !== 'expense' || row.verb !== 'added') continue;
+    if (!row.actor_member_id || !mine.has(row.actor_member_id)) continue;
+    if (usable(row.group_id)) return row.group_id;
+  }
+  return null;
 }
