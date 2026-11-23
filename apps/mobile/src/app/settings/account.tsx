@@ -35,6 +35,8 @@ import {
   currencyForCountry,
   currencySymbol,
   dialingCodeForCountry,
+  fallbackCurrency,
+  resolveCurrency,
 } from '@waves/core';
 
 import { CountryCodePicker } from '@/components/CountryCodePicker';
@@ -136,7 +138,7 @@ function AccountForm() {
   const [addressStatus, setAddressStatus] = useState<string | null>(null);
   // The country drives this: it is what every new group and expense starts on.
   const [currency, setCurrency] = useState<string>(
-    profile?.default_currency ?? currencyForCountry(country) ?? 'INR',
+    resolveCurrency(profile?.default_currency, country, fallbackCurrency()),
   );
   const [pickingCurrency, setPickingCurrency] = useState(false);
   const currencyChosen = currencyOrigin(currency, currencyForCountry(country)) === 'chosen';

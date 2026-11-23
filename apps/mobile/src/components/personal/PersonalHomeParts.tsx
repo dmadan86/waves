@@ -402,3 +402,36 @@ export function MoneyToolsRow({ tiles }: { tiles: readonly (Tile & { tint: TintN
     </ScrollView>
   );
 }
+
+/** A lavender strip at the foot of a home: a one-line fact with a door to its details. */
+export function PrivacyPill({ label, onPress }: { label: string; onPress: () => void }) {
+  const theme = useTheme();
+  const tint = theme.tint.lilac;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.sm,
+        paddingHorizontal: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
+        borderRadius: theme.radius.md,
+        backgroundColor: tint.bg,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Ionicons name="lock-closed" size={iconSize.sm} color={tint.ink} />
+      <Text
+        variant="caption"
+        numberOfLines={1}
+        style={{ flex: 1, minWidth: 0, color: tint.ink, fontWeight: '600' }}
+      >
+        {label}
+      </Text>
+      <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={tint.ink} />
+    </Pressable>
+  );
+}

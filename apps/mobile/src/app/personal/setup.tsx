@@ -9,14 +9,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 
-import {
-  budgetStep,
-  format,
-  minorUnitScale,
-  money,
-  type CurrencyCode,
-  type PersonalRecurring,
-} from '@waves/core';
+import { budgetStep, format, money, type CurrencyCode, type PersonalRecurring } from '@waves/core';
 import {
   AmountField,
   Button,
@@ -32,7 +25,7 @@ import {
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { DayStepper } from '@/components/RepeatPicker';
 import { todayIso, useUpsertPersonalRecord, usePersonalLedger } from '@/data/personal';
-import { fill, plural, useStrings, type UiStrings } from '@/i18n';
+import { deviceCountry, fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useAuth, useViewerId } from '@/lib/auth';
 import { useDefaultCurrency } from '@/lib/currency';
 import { router } from '@/lib/navigation';
@@ -40,6 +33,8 @@ import {
   answersToRecords,
   BILL_IDS,
   eatOutMonthly,
+  eatOutPresets,
+  regionHint,
   rememberSetup,
   SETUP_STEPS,
   setupSummary,
@@ -62,6 +57,7 @@ type Save = (step: SetupStep, answers: SetupAnswers, savings?: SavingsBand) => P
 
 interface StepProps {
   s: S;
+  region: string | null;
   currency: CurrencyCode;
   locale: string;
   save: Save;
@@ -288,7 +284,7 @@ function IncomeStep({ s, currency, save, skip, index, total }: StepProps & Pos) 
   );
 }
 
-function HomeStep({ s, currency, save, skip, index, total }: StepProps & Pos) {
+function HomeStep({ s, region, currency, save, skip, index, total }: StepProps & Pos) {
   const [kind, setKind] = useState<HomeKind | null>(null);
   const [amount, setAmount] = useState(0n);
   const [day, setDay] = useState(1);
@@ -298,7 +294,12 @@ function HomeStep({ s, currency, save, skip, index, total }: StepProps & Pos) {
         <Pick<HomeKind | 'none'>
           options={[
             { value: 'rent', label: s.homeRent },
-            { value: 'emi', label: s.homeEmi },
+            {
+              value: 'home_loan',
+              label: `${s.homeEmi}${regionHint('homeLoan', region)
+                .map((key) => ` · ${s[key]}`)
+                .join('')}`,
+            },
             { value: 'none', label: s.homeNone },
           ]}
           onPick={(v) =>
@@ -329,11 +330,22 @@ function HomeStep({ s, currency, save, skip, index, total }: StepProps & Pos) {
   );
 }
 
-function BillsStep({ s, currency, save, skip, index, total }: StepProps & Pos) {
+function BillsStep({ s, region, currency, save, skip, index, total }: StepProps & Pos) {
   const theme = useTheme();
   const [picked, setPicked] = useState<BillId[]>([]);
   const [rows, setRows] = useState<BillAnswer[] | null>(null);
-  const name = (id: BillId): string => s[BILL_LABEL[id]];
+  const name = (id: BillId): string => {
+    const hintId =
+      id === 'building_fees'
+        ? 'buildingFees'
+        : id === 'household_help'
+          ? 'householdHelp'
+          : id === 'investment_contribution'
+            ? 'investmentContribution'
+            : null;
+    const hints = hintId ? regionHint(hintId, region).map((key) => s[key]) : [];
+    return [s[BILL_LABEL[id]], ...hints].join(' · ');
+  };
   if (!rows) {
     return (
       <Shell s={s} title={s.billsQ} index={index} total={total} onSkip={skip}>
@@ -405,7 +417,7 @@ function BillsStep({ s, currency, save, skip, index, total }: StepProps & Pos) {
 
 const MONTH_CHOICES = ['6', '12', '24', '36', '60'];
 
-function EmiStep({ s, currency, save, skip, index, total }: StepProps & Pos) {
+function EmiStep({ s, region, currency, save, skip, index, total }: StepProps & Pos) {
   const [ask, setAsk] = useState(true);
   const [draft, setDraft] = useState<EmiAnswer | null>(null);
   if (ask) {
@@ -432,7 +444,12 @@ function EmiStep({ s, currency, save, skip, index, total }: StepProps & Pos) {
           options={[
             { value: 'car', label: s.loanCar },
             { value: 'personal', label: s.loanPersonal },
-            { value: 'gold', label: s.loanGold },
+            {
+              value: 'secured_other',
+              label: `${s.loanGold}${regionHint('securedOther', region)
+                .map((key) => ` · ${s[key]}`)
+                .join('')}`,
+            },
             { value: 'education', label: s.loanEducation },
             { value: 'card', label: s.loanCard },
           ]}
@@ -479,10 +496,7 @@ function EatStep({ s, currency, locale, save, skip, index, total }: StepProps & 
   const [freq, setFreq] = useState<EatFreq | null>(null);
   const [each, setEach] = useState<bigint | null>(null);
   const [monthly, setMonthly] = useState(0n);
-  const scale = minorUnitScale(currency);
-  const presets = (currency === 'INR' ? [100, 200, 300, 500, 1000] : [10, 20, 30, 50, 100]).map(
-    (n) => BigInt(n) * scale,
-  );
+  const presets = eatOutPresets(currency);
   if (!freq) {
     return (
       <Shell s={s} title={s.eatQ} index={index} total={total} onSkip={skip}>
@@ -576,11 +590,11 @@ const BILL_LABEL: Record<BillId, PlainKey> = {
   mobile: 'billMobile',
   wifi: 'billWifi',
   gas: 'billGas',
-  help: 'billHelp',
+  household_help: 'billHelp',
   school: 'billSchool',
-  society: 'billSociety',
+  building_fees: 'billSociety',
   insurance: 'billInsurance',
-  sip: 'billSip',
+  investment_contribution: 'billSip',
 };
 
 const STEP_VIEW: Record<SetupStep, (p: StepProps & Pos) => ReactNode> = {
@@ -676,6 +690,7 @@ function SetupBody() {
   const ownerId = useViewerId() ?? '';
   const { session } = useAuth();
   const currency = useDefaultCurrency();
+  const region = deviceCountry();
   const upsert = useUpsertPersonalRecord();
   const ledger = usePersonalLedger();
   const params = useLocalSearchParams<{ step?: string }>();
@@ -697,10 +712,10 @@ function SetupBody() {
     'income:freelance': s.incomeFreelance,
     'income:pension': s.incomePension,
     'home:rent': s.homeRent,
-    'home:emi': s.homeEmi,
+    'home:home_loan': s.homeEmi,
     'loan:car': `${s.loanCar} ${s.emiLabel}`,
     'loan:personal': `${s.loanPersonal} ${s.emiLabel}`,
-    'loan:gold': `${s.loanGold} ${s.emiLabel}`,
+    'loan:secured_other': `${s.loanGold} ${s.emiLabel}`,
     'loan:education': `${s.loanEducation} ${s.emiLabel}`,
     'loan:card': `${s.loanCard} ${s.emiLabel}`,
     ...Object.fromEntries(BILL_IDS.map((id) => [`bill:${id}`, s[BILL_LABEL[id]]])),
@@ -737,6 +752,7 @@ function SetupBody() {
     <View style={{ flex: 1 }} key={step}>
       {STEP_VIEW[step]({
         s,
+        region,
         currency,
         locale,
         save,

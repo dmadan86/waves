@@ -30,6 +30,7 @@ import {
   MAX_IMPORT_ROWS,
   type CurrencyCode,
   type ImportDraft,
+  fallbackCurrency,
 } from '@waves/core';
 import { Button, Screen, useTheme } from '@waves/ui';
 
@@ -107,7 +108,7 @@ function GroupImportScreen() {
   const [sharing, setSharing] = useState(false);
 
   const groupData = group.data;
-  const groupCurrency = (groupData?.default_currency ?? 'INR') as CurrencyCode;
+  const groupCurrency = (groupData?.default_currency ?? fallbackCurrency()) as CurrencyCode;
   const title = groupLabel(groupData, members.data ?? [], viewerId);
 
   // The people the file's names can be mapped to: everyone still in the group.

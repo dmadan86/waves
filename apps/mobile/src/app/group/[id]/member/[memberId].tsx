@@ -4,7 +4,14 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 
-import { currencyExposure, format, isValidVpa, money, type CurrencyCode } from '@waves/core';
+import {
+  currencyExposure,
+  format,
+  isValidVpa,
+  money,
+  type CurrencyCode,
+  fallbackCurrency,
+} from '@waves/core';
 import {
   Avatar,
   Badge,
@@ -270,7 +277,7 @@ function MemberScreen() {
   const isMe = member ? isViewer(member, viewerId) : false;
   const myRow = members.data?.find((row) => isViewer(row, viewerId));
   const iAmAdmin = myRow?.role === 'admin';
-  const currency = group.data?.default_currency ?? 'INR';
+  const currency = group.data?.default_currency ?? fallbackCurrency();
 
   const [name, setName] = useState(member?.ghost_name ?? '');
   const [vpa, setVpa] = useState(member?.vpa ?? '');

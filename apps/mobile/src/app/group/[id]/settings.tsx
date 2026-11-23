@@ -28,7 +28,14 @@ import {
   useTabBarClearance,
 } from '@waves/ui';
 
-import { format, money, type CurrencyCode } from '@waves/core';
+import {
+  canSwitchLedgerMode,
+  format,
+  ledgerModeOf,
+  money,
+  switchKeepsOpenBalances,
+  type CurrencyCode,
+} from '@waves/core';
 
 import { withScenicGroup } from '@/components/ScenicScope';
 import { GroupPhoto } from '@/components/GroupPhoto';
@@ -101,6 +108,7 @@ import { GroupNotFound } from '@/components/GroupNotFound';
 import { GroupSkeleton } from '@/components/Skeletons';
 import { fill, plural, useStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
+import { useGuestGuard } from '@/lib/guestGuard';
 import { useFlagEnabled } from '@/lib/flags';
 import { familyLabel, familyOf, familyRows, warningTransfers } from '@/lib/families';
 import { useFavorites } from '@/lib/favorites';
@@ -142,7 +150,7 @@ function GroupSettingsScreen() {
   // rows sat behind the bar and could not be reached.
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
-  const { confirm } = useDialog();
+  const { confirm, choose } = useDialog();
   // Why the group is still here. It sits under the delete row rather than
   // fading, because a refused delete leaves the screen looking exactly as it
   // did and a line that is gone in three seconds is a tap that did nothing.
@@ -159,6 +167,7 @@ function GroupSettingsScreen() {
   // to match, but only if it is given the right thing to compare. See
   // `lib/auth.useViewerId`.
   const viewerId = useViewerId();
+  const guestGuard = useGuestGuard();
 
   const { group, members, expenses, settlements } = useGroup(groupId);
   const ledger = useGroupLedger(groupId, viewerId);
@@ -174,6 +183,10 @@ function GroupSettingsScreen() {
   // Families (behind `group_units`): the row says how many, and how many people in them.
   const familiesOn = useFlagEnabled('group_units');
   const families = familyRows(group.data?.units, members.data ?? []).families;
+  const canImport =
+    !group.data?.isDemo &&
+    (guestGuard.gate?.canWrite ?? true) &&
+    (members.data ?? []).some((member) => isViewer(member, viewerId) && !member.left_at);
 
   // A name is enough to start splitting with someone (ADR-006). Adding by name
   // or from the phone's contacts both live here; the members screen keeps the
@@ -737,6 +750,24 @@ function GroupSettingsScreen() {
   );
 
   /** The ⓘ beside a title; the explanation opens under the row. */
+  // Switch Split <-> Share. Allowed with open balances; says they stay.
+  const switchMode = async (): Promise<void> => {
+    const from = ledgerModeOf(group.data);
+    const picked = await choose({
+      title: t.household.settingsTitle,
+      body: switchKeepsOpenBalances(ledger.transfers.length)
+        ? t.household.openBalancesNote
+        : undefined,
+      options: [
+        { id: 'split', label: t.household.splitTitle },
+        { id: 'pool', label: t.household.shareTitle },
+      ],
+    });
+    if (picked !== 'split' && picked !== 'pool') return;
+    if (!canSwitchLedgerMode(isAdmin, from, picked)) return;
+    updateGroup.mutate({ ledger_mode: picked });
+  };
+
   const infoDot = (key: 'simplify' | 'mute', title: string): ReactNode => (
     <Pressable
       accessibilityRole="button"
@@ -1302,6 +1333,41 @@ function GroupSettingsScreen() {
             </StandardCard>
           )}
           <MissingRatesCard groupId={groupId} />
+          {!isCompany ? (
+            <View style={{ gap: theme.spacing.md }}>
+              <SectionHeader title={t.group.dataSection} />
+              <StandardCard style={{ paddingHorizontal: 14, paddingVertical: 8 }}>
+                {canImport ? (
+                  <ListRow
+                    leading={
+                      <RowTile tint={theme.color.brandSoft}>
+                        <Ionicons
+                          name="cloud-upload-outline"
+                          size={iconSize.lg}
+                          color={theme.color.brand}
+                        />
+                      </RowTile>
+                    }
+                    title={t.groupImport.menu}
+                    onPress={() => router.push(`/group/${groupId}/import`)}
+                  />
+                ) : null}
+                <ListRow
+                  leading={
+                    <RowTile tint={theme.color.brandSoft}>
+                      <Ionicons
+                        name="download-outline"
+                        size={iconSize.lg}
+                        color={theme.color.brand}
+                      />
+                    </RowTile>
+                  }
+                  title={t.groupExport.menu}
+                  onPress={() => router.push(`/group/${groupId}/export`)}
+                />
+              </StandardCard>
+            </View>
+          ) : null}
           {isCompany && companyView.isAdmin && !companyView.suspended ? (
             <StandardCard>
               <ListRow
@@ -1509,6 +1575,24 @@ function GroupSettingsScreen() {
                 Mute is this person's own switch, not the group's: pushes about
                 the group stop reaching them, the inbox keeps everything, and the
                 others are never told (the `group_mutes` migration). */}
+                {/* Split it / Share it. Admin switches; open balances stay until
+                    settled, so either direction is allowed with a note. */}
+                {!isCompany && (isAdmin || group.data.ledger_mode === 'pool') ? (
+                  <ListRow
+                    leading={chip('people-outline', null)}
+                    title={t.household.settingsTitle}
+                    subtitle={
+                      isAdmin
+                        ? group.data.ledger_mode === 'pool'
+                          ? t.household.shareTitle
+                          : t.household.splitTitle
+                        : `${group.data.ledger_mode === 'pool' ? t.household.shareTitle : t.household.splitTitle} · ${t.household.adminOnly}`
+                    }
+                    subtitleLines={2}
+                    divider
+                    onPress={isAdmin ? () => void switchMode() : undefined}
+                  />
+                ) : null}
                 {/* A company records, never splits: nothing to simplify. */}
                 {!isCompany ? (
                   <ListRow

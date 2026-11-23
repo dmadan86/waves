@@ -24,7 +24,7 @@ export function statementRegion(
   const country = raw === 'UK' ? 'GB' : raw.length === 2 ? raw : null;
   return {
     country,
-    currency: (country ? currencyForCountry(country) : null) || 'INR',
+    currency: (country ? currencyForCountry(country) : null) || 'USD', // shortcut: unknown region has no currency; the picker lets the user change it
     dateOrder: defaultDateOrder(country),
   };
 }

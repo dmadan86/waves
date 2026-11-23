@@ -29,7 +29,7 @@ describe('withShortcutIcons — generated drawable', () => {
     const xml = shortcutIconXml(GLYPHS.ic_shortcut_add);
     expect(xml).toContain('android:width="48dp" android:height="48dp"');
     expect(xml).toContain(`android:fillColor="${BADGE_COLOR}"`);
-    expect(BADGE_COLOR).toBe('#635BFF');
+    expect(BADGE_COLOR).toBe('#0A66C2');
   });
 
   it('scales the glyph up to exactly fill the 44dp safe zone, inset by 2dp on each side', () => {
