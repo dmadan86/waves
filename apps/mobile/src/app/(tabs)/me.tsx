@@ -65,6 +65,7 @@ import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { PersonalIntro } from '@/components/PersonalIntro';
 import { PersonalPlanCards } from '@/components/PersonalPlanCards';
+import { PersonalSetupCard } from '@/components/PersonalSetupCard';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
@@ -340,7 +341,7 @@ function MeLedger() {
     return (
       <>
         <PersonalFirstRun t={t} />
-        <PersonalIntro visible={introOpen} onDone={closeIntro} />
+        <OpenSetupOnce />
       </>
     );
   }
@@ -521,6 +522,8 @@ function MeLedger() {
               </View>
             </View>
           </View>
+
+          <PersonalSetupCard />
 
           {monthsBack === 0 ? (
             <PersonalPlanCards
@@ -762,6 +765,7 @@ function MeLedger() {
         visible={gearOpen}
         onClose={() => setGearOpen(false)}
         items={[
+          { icon: 'sparkles-outline', label: t.personalSetup.title, route: '/personal/setup' },
           { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene' },
           { icon: 'lock-closed-outline', label: t.personal.dash.settings, route: '/settings/lock' },
         ]}
@@ -1651,6 +1655,17 @@ function AddActions({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
  * The privacy line stays, and stays early: the one question anybody has about
  * a personal ledger inside a bill-splitting app is who else can see it.
  */
+/** A blank ledger opens the setup flow once per launch; backing out leaves the first-run screen. */
+let setupOffered = false;
+function OpenSetupOnce() {
+  useEffect(() => {
+    if (setupOffered) return;
+    setupOffered = true;
+    router.push('/personal/setup');
+  }, []);
+  return null;
+}
+
 function PersonalFirstRun({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
   const theme = useTheme();
   const clearance = useTabBarClearance();
@@ -1679,9 +1694,9 @@ function PersonalFirstRun({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
             body={t.personal.introBody}
             action={
               <Button
-                label={t.personal.addRecurring}
+                label={t.personalSetup.title}
                 variant="secondary"
-                onPress={() => router.push('/personal/recurring')}
+                onPress={() => router.push('/personal/setup')}
               />
             }
           />
