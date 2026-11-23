@@ -4,6 +4,8 @@
  * by you" is simply "differs from what the country would give".
  */
 
+import { fallbackCurrency } from '@waves/core';
+
 export type CurrencyOrigin = 'country' | 'chosen';
 
 /** Whether the stored currency is the country's own or one the person picked. */
@@ -23,7 +25,7 @@ export function currencyAfterCountryChange(
   stored: string | null | undefined,
   priorCountryDefault: string | null | undefined,
   nextCountryDefault: string | null | undefined,
-  fallback = 'INR',
+  fallback: string = fallbackCurrency(),
 ): string {
   if (currencyOrigin(stored, priorCountryDefault) === 'chosen' && stored) return stored;
   return nextCountryDefault ?? stored ?? fallback;

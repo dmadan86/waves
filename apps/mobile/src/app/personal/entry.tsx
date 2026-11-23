@@ -54,6 +54,7 @@ import {
   type PersonalRecurring,
   type PersonalTxn,
   type TxnKind,
+  normalizePaymentMethod,
 } from '@waves/core';
 import {
   AmountField,
@@ -75,6 +76,7 @@ import { CategoryBadge, CategorySheet } from '@/components/Category';
 import { ChoiceRow, SheetOverlay } from '@/components/expense/SheetOverlay';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DayStepper, RepeatSheet } from '@/components/RepeatPicker';
+import { MoveReceiptNotice, MoveToFamily } from '@/components/MoveToFamily';
 import { PersonalNoteField } from '@/components/PersonalNoteField';
 import { PersonalReceiptRow } from '@/components/PersonalReceiptRow';
 import { SourceSheet, useSourceLabel } from '@/components/IncomeSource';
@@ -92,7 +94,8 @@ import { routeAmount } from '@/lib/routeAmount';
 import { useSync } from '@/sync';
 import { useViewerId } from '@/lib/auth';
 import { removePersonalReceipt, staleReceiptKeys } from '@/lib/personalReceipt';
-import { useStrings } from '@/i18n';
+import { deviceCountry, useStrings } from '@/i18n';
+import { paymentMethodLabel } from '@/lib/paymentMethodLabel';
 import { PersonalGuard } from '@/components/PersonalGuard';
 import { useBottomClearance } from '@/lib/clearance';
 import { useDialog } from '@/lib/dialog';
@@ -374,6 +377,24 @@ function EntryForm({
           )}
 
           <NoteCard value={note} onChange={setNote} t={t} />
+
+          {/* Move a saved expense into a Share-it household. Its bill photo is
+              copied to the group expense before the private entry goes. */}
+          {editingTxn ? <MoveReceiptNotice personalId={editingTxn.id} /> : null}
+          {editingTxn && kind === 'expense' && !loanId ? (
+            <MoveToFamily
+              entry={{
+                id: editingTxn.id,
+                amount: editingTxn.amount,
+                currency,
+                date: editingTxn.date,
+                note: editingTxn.note ?? null,
+                category: editingTxn.category ?? null,
+                receiptKey: savedReceipt,
+              }}
+              onMoved={() => router.back()}
+            />
+          ) : null}
 
           {/* The entry's facts, as one card of divided rows. */}
           <FormCard style={{ paddingVertical: 0, paddingHorizontal: theme.spacing.lg }}>
@@ -1084,12 +1105,16 @@ function PaymentMethodSheet({
           <ChoiceRow
             key={method.id}
             label={methodLabel(t, method.id)}
-            selected={value === method.id}
+            selected={normalizePaymentMethod(value) === method.id}
             leading={
               <Ionicons
                 name={method.icon}
                 size={iconSize.md}
-                color={value === method.id ? theme.color.brand : theme.color.textMuted}
+                color={
+                  normalizePaymentMethod(value) === method.id
+                    ? theme.color.brand
+                    : theme.color.textMuted
+                }
               />
             }
             onPress={() => onChange(method.id)}
@@ -1100,11 +1125,11 @@ function PaymentMethodSheet({
   );
 }
 
-type MethodId = 'cash' | 'upi' | 'card' | 'bank' | 'wallet' | 'other';
+type MethodId = 'cash' | 'instant_transfer' | 'card' | 'bank' | 'wallet' | 'other';
 
 const PAYMENT_METHODS: readonly { id: MethodId; icon: keyof typeof Ionicons.glyphMap }[] = [
   { id: 'cash', icon: 'cash-outline' },
-  { id: 'upi', icon: 'phone-portrait-outline' },
+  { id: 'instant_transfer', icon: 'phone-portrait-outline' },
   { id: 'card', icon: 'card-outline' },
   { id: 'bank', icon: 'business-outline' },
   { id: 'wallet', icon: 'wallet-outline' },
@@ -1113,8 +1138,7 @@ const PAYMENT_METHODS: readonly { id: MethodId; icon: keyof typeof Ionicons.glyp
 
 /** A stored method in words; one this version does not know reads "Other". */
 function methodLabel(t: ReturnType<typeof useStrings>['t'], id: string): string {
-  const known = t.personal.entryScreen.methods as Record<string, string>;
-  return known[id] ?? t.personal.entryScreen.methods.other;
+  return paymentMethodLabel(t.personal.entryScreen.methods, id, deviceCountry());
 }
 
 /** The everyday answers the quick row offers, before "More". */

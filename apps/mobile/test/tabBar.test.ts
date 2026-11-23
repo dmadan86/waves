@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   isPersonalMode,
+  isPersonalRoot,
   personalActiveKey,
   personalRouteForSelection,
   resolveFab,
@@ -124,19 +125,28 @@ describe('personal mode', () => {
   });
 
   it('names the current personal destination', () => {
-    expect(personalActiveKey(['(tabs)', 'me'])).toBe('me');
+    expect(personalActiveKey(['(tabs)', 'me'])).toBe('home');
     expect(personalActiveKey(['personal', 'transactions'])).toBe('transactions');
-    expect(personalActiveKey(['personal', 'spending'])).toBe('spending');
-    expect(personalActiveKey(['personal', 'recurring'])).toBe('recurring');
-    expect(personalActiveKey(['personal', 'budgets'])).toBe('me');
+    expect(personalActiveKey(['personal', 'spending'])).toBe('reports');
+    expect(personalActiveKey(['personal', 'recurring'])).toBe('planning');
+    expect(personalActiveKey(['personal', 'budgets'])).toBe('planning');
+    expect(personalActiveKey(['personal', 'upcoming'])).toBe('home');
   });
 
-  it('routes taps, and the way back goes home', () => {
-    expect(personalRouteForSelection('me', 'shared')).toBe('/');
-    expect(personalRouteForSelection('me', 'spending')).toBe('/personal/spending');
-    expect(personalRouteForSelection('me', 'recurring')).toBe('/personal/recurring');
-    expect(personalRouteForSelection('spending', 'me')).toBe('/me');
-    expect(personalRouteForSelection('me', 'me')).toBeNull();
+  it('routes the five bar taps', () => {
+    expect(personalRouteForSelection('home', 'reports')).toBe('/personal/spending');
+    expect(personalRouteForSelection('home', 'planning')).toBe('/personal/recurring');
+    expect(personalRouteForSelection('home', 'transactions')).toBe('/personal/transactions');
+    expect(personalRouteForSelection('home', 'me')).toBe('/profile');
+    expect(personalRouteForSelection('reports', 'home')).toBe('/me');
+    expect(personalRouteForSelection('home', 'home')).toBeNull();
+    expect(personalRouteForSelection('planning', 'planning', false)).toBe('/personal/recurring');
+  });
+
+  it('knows each destination root', () => {
+    expect(isPersonalRoot(['(tabs)', 'me'], 'home')).toBe(true);
+    expect(isPersonalRoot(['personal', 'recurring'], 'planning')).toBe(true);
+    expect(isPersonalRoot(['personal', 'budgets'], 'planning')).toBe(false);
   });
 });
 
@@ -159,8 +169,8 @@ it('keeps profile and other settings outside Personal', () => {
   expect(personalActiveKey(['settings', 'transactions'])).toBe('');
 });
 it.each([
-  ['budgets', 'me'],
-  ['loans', 'me'],
+  ['budgets', 'planning'],
+  ['loans', 'planning'],
   ['entry', 'transactions'],
   ['source', 'transactions'],
 ])('highlights %s as %s', (screen, key) => {

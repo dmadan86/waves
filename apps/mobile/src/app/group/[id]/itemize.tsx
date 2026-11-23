@@ -18,6 +18,7 @@ import {
   type ItemizedParams,
   type MemberId,
   type ParsedReceipt,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   Badge,
@@ -171,7 +172,7 @@ function ItemizeScreen() {
   /** A bill that has been scanned but not yet handed to the table. */
   const [scanId, setScanId] = useState<string | null>(null);
 
-  const currency = group.data?.default_currency ?? 'INR';
+  const currency = group.data?.default_currency ?? fallbackCurrency();
   const scale = minorUnitScale(currency);
   // Digits after the point for this currency: 2 for INR (scale 100), 0 for JPY
   // (scale 1), 3 for KWD (scale 1000). Everything major↔minor rides `scale`;

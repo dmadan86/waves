@@ -37,6 +37,7 @@ import {
   type CompanyEntry,
   type CompanyEntryData,
   type CompanyEntryRow,
+  fallbackCurrency,
 } from '@waves/core';
 
 import { useGroup } from '@/data/hooks';
@@ -95,7 +96,7 @@ export function useCompanyEntries(groupId: string): CompanyView {
   const { mirror, queue, hydrated } = useSync();
   const { group, everyone: members } = useGroup(groupId);
   const viewerId = useViewerId();
-  const currency = group.data?.default_currency ?? 'INR';
+  const currency = group.data?.default_currency ?? fallbackCurrency();
   const approvalsEnabled = group.data?.company_approvals_enabled === true;
   const defaultRate = group.data?.company_default_daily_rate_minor;
 

@@ -12,7 +12,13 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { defaultRailForCurrency, format, money, type CurrencyCode } from '@waves/core';
+import {
+  defaultRailForCurrency,
+  format,
+  money,
+  type CurrencyCode,
+  fallbackCurrency,
+} from '@waves/core';
 import { Button, Text, useTheme } from '@waves/ui';
 
 import { SettleConfirmSheet } from '@/components/settle/SettleConfirmSheet';
@@ -50,7 +56,7 @@ export function InlineSettle({ groupId }: { groupId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [recorded, setRecorded] = useState<ReadonlySet<string>>(new Set());
 
-  const currency = group.data?.default_currency ?? 'INR';
+  const currency = group.data?.default_currency ?? fallbackCurrency();
   const converts = ledger.convertsToGroupCurrency;
   const lookup = useMemo(() => memberLookup(everyone.data), [everyone.data]);
   const split = useMemo(

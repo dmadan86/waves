@@ -52,7 +52,7 @@ describe('speechLocale', () => {
   it('survives the shapes a locale tag actually arrives in', () => {
     expect(speechLocale(Language.En, 'en_IN')).toBe('en-IN');
     expect(speechLocale(Language.En, 'en-in')).toBe('en-IN');
-    expect(speechLocale(Language.En, '')).toBe('en-IN');
+    expect(speechLocale(Language.En, '')).toBe('en-US');
   });
 });
 
@@ -67,9 +67,9 @@ describe('englishSpeechLocale', () => {
   });
 
   it('falls back to India only when there is no region', () => {
-    expect(englishSpeechLocale('ar')).toBe('en-IN');
-    expect(englishSpeechLocale('en')).toBe('en-IN');
-    expect(englishSpeechLocale('')).toBe('en-IN');
+    expect(englishSpeechLocale('ar')).toBe('en-US');
+    expect(englishSpeechLocale('en')).toBe('en-US');
+    expect(englishSpeechLocale('')).toBe('en-US');
   });
 
   it('survives the shapes a locale tag actually arrives in', () => {

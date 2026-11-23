@@ -8,7 +8,12 @@
  * validates and diffs into a patch. Kept free of React so it is tested as data.
  */
 
-import { rescalePayers, type GroupRecurringRule, type GroupRecurringTemplate } from '@waves/core';
+import {
+  poolSplit,
+  rescalePayers,
+  type GroupRecurringRule,
+  type GroupRecurringTemplate,
+} from '@waves/core';
 
 import type { ExpenseVersionRow } from '@/data/types';
 import { editStateFromVersion, splitParamsFor, type ExpenseEditState } from '@/lib/expenseEdit';
@@ -52,14 +57,20 @@ export function editStateFromRule(rule: GroupRecurringRule): ExpenseEditState {
 
 /**
  * The template the form describes. Several payers keep their proportions when the
- * amount moves; one payer follows it. An uneditable split is kept as saved.
+ * amount moves; one payer follows it. An uneditable split is kept as saved; a
+ * pool (`pool`) group's bill is always re-pooled from its payers.
  */
 export function templateFromState(
   state: ExpenseEditState,
   rule: GroupRecurringRule,
   notes: string,
+  pool = false,
 ): GroupRecurringTemplate {
   const payers = Object.fromEntries(state.payers);
+  const paid =
+    state.amount !== rule.amount && state.payers.size > 1
+      ? rescalePayers(payers, state.amount)
+      : payers;
   return {
     description: state.description,
     category: state.category,
@@ -67,10 +78,9 @@ export function templateFromState(
     amount: state.amount,
     splitParams: splitIsEditable(rule) ? splitParamsFor(state) : rule.splitParams,
     participants: state.participants,
-    payers:
-      state.amount !== rule.amount && state.payers.size > 1
-        ? rescalePayers(payers, state.amount)
-        : payers,
+    payers: paid,
+    // Share it: a pooled bill stays pooled whoever pays and whatever the amount.
+    ...(pool ? poolSplit(paid) : {}),
     notes,
   };
 }

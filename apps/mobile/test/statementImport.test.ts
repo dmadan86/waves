@@ -427,11 +427,11 @@ describe('statementRegion', () => {
     expect(statementRegion(country)).toMatchObject({ currency, dateOrder: order });
   });
 
-  it('falls back to the phone\u2019s region, then to India, and never invents a country', () => {
+  it('falls back to the phone\u2019s region, then to a neutral currency, and never invents a country', () => {
     expect(statementRegion(null, 'AU').currency).toBe('AUD');
     expect(statementRegion(null, null)).toEqual({
       country: null,
-      currency: 'INR',
+      currency: 'USD',
       dateOrder: 'dmy',
     });
     expect(statementRegion('', 'x').country).toBeNull();

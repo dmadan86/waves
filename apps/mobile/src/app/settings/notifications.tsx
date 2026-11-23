@@ -27,6 +27,9 @@ import { useStrings, type UiStrings } from '@/i18n';
 import { friendlyError } from '@/lib/errors';
 import { useAuth } from '@/lib/auth';
 import { loadCaptureNudgeEnabled, saveCaptureNudgeEnabled } from '@/lib/captureNudge/settings';
+import { loadPlanPrefs, savePlanPref } from '@/lib/planNudge/settings';
+import { DEFAULT_PLAN_PREFS, type PlanPrefs } from '@/lib/planNudge/plan';
+import { usePlanNudgePass } from '@/lib/planNudge/PlanNudge';
 import { useCaptureNudgePass, useNudgePassInputs } from '@/lib/captureNudge/useNudgePass';
 import { router } from '@/lib/navigation';
 import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
@@ -162,6 +165,21 @@ export default function NotificationSettingsScreen() {
   const nudgeInputs = useNudgePassInputs();
   const runNudgePass = useCaptureNudgePass(nudgeInputs);
 
+  // The plan notifications' three switches; null while the stored values load.
+  const [planPrefs, setPlanPrefs] = useState<PlanPrefs | null>(null);
+  const runPlanPass = usePlanNudgePass();
+  useEffect(() => {
+    const ownerId = profile?.id;
+    if (!ownerId) return;
+    let active = true;
+    void loadPlanPrefs(ownerId).then((value) => {
+      if (active) setPlanPrefs(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [profile?.id]);
+
   useEffect(() => {
     const ownerId = profile?.id;
     if (!ownerId) return;
@@ -280,6 +298,34 @@ export default function NotificationSettingsScreen() {
       return;
     }
     runNudgePass();
+  };
+
+  const togglePlan = async (name: keyof PlanPrefs, value: boolean): Promise<void> => {
+    const ownerId = profile?.id;
+    if (!ownerId) {
+      setStatus(t.notifications.failNotSignedIn);
+      return;
+    }
+    setStatus(null);
+    if (value) {
+      // The same soft-ask door as the capture reminder; nothing is asked at launch.
+      const allowed = await ensureLocalNotificationPermission();
+      setPermission(await pushPermission());
+      if (!allowed) {
+        setStatus(t.notifications.failDenied);
+        return;
+      }
+    }
+    const before = planPrefs ?? DEFAULT_PLAN_PREFS;
+    setPlanPrefs({ ...before, [name]: value });
+    try {
+      await savePlanPref(ownerId, name, value);
+    } catch (caught: unknown) {
+      setPlanPrefs(before);
+      setStatus(friendlyError(caught, t.notifications.failSaveFailed, 'notifications.savePlan'));
+      return;
+    }
+    runPlanPass();
   };
 
   const toggle = (key: keyof NotificationPrefs, value: boolean): void => {
@@ -463,6 +509,33 @@ export default function NotificationSettingsScreen() {
                 value={nudge === true}
                 disabled={nudge === null}
                 onChange={(value) => void toggleNudge(value)}
+              />
+              <PrefLine
+                icon="calendar-outline"
+                tint={theme.tint.sky}
+                title={t.notifications.planBills}
+                body={t.notifications.planBillsBody}
+                value={planPrefs?.bills === true}
+                disabled={planPrefs === null}
+                onChange={(value) => void togglePlan('bills', value)}
+              />
+              <PrefLine
+                icon="stats-chart-outline"
+                tint={theme.tint.sky}
+                title={t.notifications.planRecap}
+                body={t.notifications.planRecapBody}
+                value={planPrefs?.recap === true}
+                disabled={planPrefs === null}
+                onChange={(value) => void togglePlan('recap', value)}
+              />
+              <PrefLine
+                icon="sunny-outline"
+                tint={theme.tint.sky}
+                title={t.notifications.planDaily}
+                body={t.notifications.planDailyBody}
+                value={planPrefs?.daily === true}
+                disabled={planPrefs === null}
+                onChange={(value) => void togglePlan('daily', value)}
               />
             </SoftCard>
 

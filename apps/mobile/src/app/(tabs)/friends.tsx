@@ -52,7 +52,12 @@ import {
   MODAL_ORIENTATIONS,
 } from '@waves/ui';
 
-import { balanceDirection, copyFor, moneyAccessibilityLabel } from '@waves/core';
+import {
+  balanceDirection,
+  copyFor,
+  fallbackCurrency as deviceFallbackCurrency,
+  moneyAccessibilityLabel,
+} from '@waves/core';
 
 import { type PersonBalanceRow } from '@/data/api';
 import { sendNudge } from '@/lib/nudge';
@@ -933,7 +938,7 @@ function FriendsBalanceCard({
   // (which still draws as a zero, the way Home's own two sides always draw).
   const owedGroup = deck.find((group) => group.owed) ?? null;
   const owingGroup = deck.find((group) => !group.owed) ?? null;
-  const fallbackCurrency = totals[0]?.currency ?? 'INR';
+  const fallbackCurrency = totals[0]?.currency ?? deviceFallbackCurrency();
 
   // A side states one currency large (its direction's biggest, ADR-003); the
   // direction's other currencies ride beneath it as chips with their real
