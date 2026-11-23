@@ -154,6 +154,7 @@ vi.mock('@/lib/captureNudge/settings', () => ({ clearCaptureNudge: spies.clearCa
 vi.mock('@/lib/planNudge/schedule', () => ({ cancelPlanNudges: async () => undefined }));
 vi.mock('@/lib/planNudge/settings', () => ({ clearPlanNudge: async () => undefined }));
 vi.mock('@/lib/followUpReminders', () => ({ cancelFollowUpReminders: () => Promise.resolve() }));
+vi.mock('@/lib/householdBillReminders', () => ({ cancelBillReminders: () => Promise.resolve() }));
 vi.mock('@/lib/nativeIdentity', () => ({
   googleNativeSignIn: spies.googleNativeSignIn,
   appleNativeSignIn: spies.appleNativeSignIn,

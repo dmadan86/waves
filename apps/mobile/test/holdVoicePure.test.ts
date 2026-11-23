@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { agentAddsAtOnce, formatHoldTime, holdLanding, holdPlan } from '@/lib/holdVoicePure';
+import {
+  agentAddsAtOnce,
+  formatHoldTime,
+  holdLanding,
+  holdPlan,
+  holdSummary,
+  lastAddedGroupId,
+} from '@/lib/holdVoicePure';
 import { parseVoiceExpenses } from '@/lib/voiceExpense';
 
 const ready = {
@@ -77,6 +84,16 @@ describe('holdLanding', () => {
       holdLanding(parse('coffee 120'), { launchGroupId: null, launchPersonal: true }, new Set()),
     ).toEqual({ kind: 'personal' });
   });
+  it('adds several expenses said in one go', () => {
+    expect(
+      holdLanding(
+        parse('lunch 200, taxi 300 and petrol 500'),
+        { launchGroupId: 'g1', launchPersonal: false },
+        new Set(['g1']),
+      ),
+    ).toEqual({ kind: 'group', groupId: 'g1' });
+    expect(parse('lunch 200, taxi 300 and petrol 500').items).toHaveLength(3);
+  });
   it('keeps no amount as a draft', () => {
     expect(
       holdLanding(
@@ -98,7 +115,10 @@ describe('agentAddsAtOnce', () => {
       agentAddsAtOnce({ cards: [{ ...one, problem: true }], answer: null, clarify: null }),
     ).toBe(false);
     expect(agentAddsAtOnce({ cards: [one], answer: null, clarify: 'Which?' })).toBe(false);
-    expect(agentAddsAtOnce({ cards: [one, one], answer: null, clarify: null })).toBe(false);
+    expect(agentAddsAtOnce({ cards: [one, one], answer: null, clarify: null })).toBe(true);
+    expect(
+      agentAddsAtOnce({ cards: [one, { ...one, problem: true }], answer: null, clarify: null }),
+    ).toBe(false);
     expect(
       agentAddsAtOnce({
         cards: [{ problem: false, action: { type: 'settle' } }],
@@ -113,5 +133,46 @@ describe('an empty hold', () => {
   it('files nothing, so a hold that never got the mic ends quietly', async () => {
     const { worthFiling } = await import('@/lib/voiceDraftPure');
     expect(worthFiling('')).toBe(false);
+  });
+});
+
+describe('holdSummary', () => {
+  it('keeps a single result as its own toast', () => {
+    expect(holdSummary(1, 0)).toEqual({ kind: 'one-added' });
+    expect(holdSummary(0, 1)).toEqual({ kind: 'one-later' });
+  });
+
+  it('sums a queued run into one line', () => {
+    expect(holdSummary(2, 0)).toEqual({ kind: 'many', added: 2, later: 0 });
+    expect(holdSummary(1, 1)).toEqual({ kind: 'many', added: 1, later: 1 });
+  });
+
+  it('says nothing when nothing was filed', () => {
+    expect(holdSummary(0, 0)).toEqual({ kind: 'none' });
+  });
+});
+
+describe('lastAddedGroupId', () => {
+  const row = (group_id: string, actor: string, verb = 'added', object_type = 'expense') => ({
+    group_id,
+    actor_member_id: actor,
+    verb,
+    object_type,
+  });
+  it('picks the newest group I added an expense to', () => {
+    const rows = [
+      row('g3', 'them'),
+      row('g2', 'me2', 'edited'),
+      row('g1', 'me1'),
+      row('g2', 'me2'),
+    ];
+    expect(lastAddedGroupId(rows, new Set(['me1', 'me2']), () => true)).toBe('g1');
+  });
+  it('skips groups that cannot take it', () => {
+    const rows = [row('gone', 'me1'), row('g2', 'me2')];
+    expect(lastAddedGroupId(rows, new Set(['me1', 'me2']), (id) => id !== 'gone')).toBe('g2');
+  });
+  it('is null with nothing of mine', () => {
+    expect(lastAddedGroupId([row('g1', 'them')], new Set(['me1']), () => true)).toBeNull();
   });
 });

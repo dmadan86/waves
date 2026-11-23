@@ -225,6 +225,17 @@ describe('group.update and the name column', () => {
     expect(scoped.update).toHaveBeenCalledWith({ cover_emoji: 'X' });
   });
 
+  it('lets ledger_mode through the allowlist and refuses an unknown value', async () => {
+    const scoped = caller();
+    const session = new SyncSession(scoped.client, service().client, OWNER);
+    expect(await session.apply(updateGroup({ ledger_mode: 'pool' }, 'lm-1'))).toMatchObject({
+      status: 'applied',
+    });
+    expect(scoped.update).toHaveBeenCalledWith({ ledger_mode: 'pool' });
+    const bad = await session.apply(updateGroup({ ledger_mode: 'bogus' }, 'lm-2'));
+    expect(bad).toMatchObject({ status: 'rejected', code: 'VALIDATION_FAILED' });
+  });
+
   it('lets custom_tag through the allowlist, trimmed', async () => {
     const scoped = caller();
     const session = new SyncSession(scoped.client, service().client, OWNER);
