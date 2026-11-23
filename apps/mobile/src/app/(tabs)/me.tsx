@@ -479,7 +479,6 @@ function MeLedger() {
             </Row>
           </Card>
 
-
           {monthsBack === 0 ? (
             <PersonalPlanCards plan={plan} ownerId={ownerId} hidden={amountsHidden} only="recap" />
           ) : null}
