@@ -26,6 +26,7 @@
  *   popup and never holds, so the first prompt can still follow it.
  */
 
+import { useVoiceBusy } from '@/lib/voiceBusy';
 import {
   createContext,
   useCallback,
@@ -69,9 +70,11 @@ interface QueueState {
 export function PromptQueueProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<QueueState>({ claims: {}, holder: null, spent: false });
   const pathname = usePathname();
-  const quiet = QUIET_ROUTES.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
+  // A voice hold in progress is as quiet as the voice screen itself.
+  const voiceBusy = useVoiceBusy();
+  const quiet =
+    voiceBusy ||
+    QUIET_ROUTES.some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   const claim = useCallback((id: string, priority: number, essential = false) => {
     setState((prev) => {
