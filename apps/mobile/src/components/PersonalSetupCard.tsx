@@ -16,10 +16,8 @@ import { useViewerId } from '@/lib/auth';
 import { router } from '@/lib/navigation';
 import { personalSetupAnswers, SETUP_STEPS, type SetupStep } from '@/lib/personalSetup';
 
-export function PersonalSetupCard() {
-  const theme = useTheme();
-  const { t } = useStrings();
-  const s = t.personalSetup;
+/** The setup questions still unanswered (none until setup has been opened). */
+export function useSetupLeft(): SetupStep[] {
   const ownerId = useViewerId();
   const [left, setLeft] = useState<SetupStep[]>([]);
   // Re-read on focus: the flow runs on its own route and changes this while away.
@@ -35,6 +33,14 @@ export function PersonalSetupCard() {
       };
     }, [ownerId]),
   );
+  return left;
+}
+
+export function PersonalSetupCard() {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const s = t.personalSetup;
+  const left = useSetupLeft();
   if (left.length === 0) return null;
   const names: Record<SetupStep, string> = {
     income: s.nameIncome,

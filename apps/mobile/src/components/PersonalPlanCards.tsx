@@ -1,16 +1,14 @@
 /**
- * Personal home's plan cards: the "left today" ring, the one "Where you can
- * save" tip, and the weekly / monthly recap prompt. All figures come from the
+ * Personal home's plan pieces: the weekly / monthly recap banner (`only="recap"`)
+ * and the one "Where you can save" tip as a compact row (`only="tip"`). All figures come from the
  * pure helpers in core (`personal/plan`).
  */
 
 import { useEffect, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, View } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
 
 import {
-  dayPlan,
   format,
   money,
   recapTarget,
@@ -19,7 +17,7 @@ import {
   type PlanInput,
   type SaveTip,
 } from '@waves/core';
-import { Button, Card, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Card, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
@@ -27,20 +25,20 @@ import { router } from '@/lib/navigation';
 import { markRecapOpened, openedRecaps, pauseTip, pausedTips } from '@/lib/personalPlanPrefs';
 import { fill, plural, useStrings } from '@/i18n';
 
-const RING = 68;
-const STROKE = 8;
-
 const tipId = (tip: SaveTip): string => `${tip.kind}:${tip.category ?? ''}`;
 
 export function PersonalPlanCards({
   plan,
   ownerId,
   hidden,
+  only,
 }: {
   plan: PlanInput;
   ownerId: string | null;
   /** The eye on the summary card: mask every figure. */
   hidden: boolean;
+  /** Draw just the recap banner or just the tip row; both by default. */
+  only?: 'recap' | 'tip';
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -63,7 +61,6 @@ export function PersonalPlanCards({
     };
   }, [ownerId]);
 
-  const day = dayPlan(plan);
   const tip = saveTips(plan).find((x) => !paused.has(tipId(x))) ?? null;
   const target = recapTarget(plan.today, hour);
   const recapId = target ? `${target.kind}:${target.key}` : null;
@@ -113,15 +110,9 @@ export function PersonalPlanCards({
       },
     });
 
-  const left = day && day.leftToday > 0n ? day.leftToday : 0n;
-  const fraction =
-    day && day.perDay > 0n ? Math.min(1, Number((left * 1000n) / day.perDay) / 1000) : 0;
-  const radius = (RING - STROKE) / 2;
-  const circumference = 2 * Math.PI * radius;
-
   return (
     <View style={{ gap: theme.spacing.md }}>
-      {showRecap && target ? (
+      {only !== 'tip' && showRecap && target ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={
@@ -153,91 +144,36 @@ export function PersonalPlanCards({
         </Pressable>
       ) : null}
 
-      {day ? (
-        <Card flat>
-          <Row
-            accessible
-            accessibilityLabel={`${hidden ? '' : fill(p.leftToday, { amount: fmt(left) })}. ${fill(p.leftWeek, { amount: fmt(day.leftThisWeek > 0n ? day.leftThisWeek : 0n) })}`}
-            style={{ alignItems: 'center', gap: theme.spacing.lg }}
+      {only !== 'recap' && tip && !hidden ? (
+        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+          <Ionicons name="bulb-outline" size={iconSize.md} color={theme.color.brand} />
+          <Text variant="caption" style={{ flex: 1 }} numberOfLines={2}>
+            {tipText(tip)}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${tip.kind === 'subscriptions' ? p.review : p.setLimit}. ${tipText(tip)}`}
+            hitSlop={8}
+            onPress={() =>
+              tip.kind === 'subscriptions' ? router.push('/personal/recurring') : setLimit(tip)
+            }
           >
-            <Svg width={RING} height={RING} style={{ transform: [{ rotate: '-90deg' }] }}>
-              <Circle
-                cx={RING / 2}
-                cy={RING / 2}
-                r={radius}
-                stroke={theme.color.surfaceMuted}
-                strokeWidth={STROKE}
-                fill="none"
-              />
-              <Circle
-                cx={RING / 2}
-                cy={RING / 2}
-                r={radius}
-                stroke={theme.color.brand}
-                strokeWidth={STROKE}
-                strokeLinecap="round"
-                fill="none"
-                strokeDasharray={`${circumference * fraction} ${circumference}`}
-              />
-            </Svg>
-            <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
-              <Text
-                numberOfLines={1}
-                adjustsFontSizeToFit
-                minimumFontScale={0.6}
-                style={{ fontSize: 26, lineHeight: 32, fontWeight: '700' }}
-              >
-                {fmt(left)}
-              </Text>
-              <Text variant="caption" tone="muted">
-                {day.leftToday < 0n ? p.overToday : p.leftTodayShort}
-              </Text>
-              <View
-                style={{
-                  alignSelf: 'flex-start',
-                  borderRadius: theme.radius.pill,
-                  backgroundColor: theme.color.surfaceMuted,
-                  paddingHorizontal: theme.spacing.md,
-                  paddingVertical: 3,
-                }}
-              >
-                <Text variant="micro" numberOfLines={1}>
-                  {fill(p.leftWeek, { amount: fmt(day.leftThisWeek > 0n ? day.leftThisWeek : 0n) })}
-                </Text>
-              </View>
-            </View>
-          </Row>
-        </Card>
-      ) : null}
-
-      {tip && !hidden ? (
-        <Card flat style={{ gap: theme.spacing.sm }}>
-          <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-            <Ionicons name="bulb-outline" size={iconSize.md} color={theme.color.brand} />
-            <Text variant="caption" tone="muted">
-              {p.saveTitle}
+            <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+              {tip.kind === 'subscriptions' ? p.review : p.setLimit}
             </Text>
-          </Row>
-          <Text variant="body">{tipText(tip)}</Text>
-          <Row style={{ gap: theme.spacing.sm }}>
-            <Button
-              size="sm"
-              label={tip.kind === 'subscriptions' ? p.review : p.setLimit}
-              onPress={() =>
-                tip.kind === 'subscriptions' ? router.push('/personal/recurring') : setLimit(tip)
-              }
-            />
-            <Button
-              size="sm"
-              variant="ghost"
-              label={p.notNow}
-              onPress={() => {
-                if (ownerId) void pauseTip(ownerId, tipId(tip), Date.now());
-                setPaused((prev) => new Set([...prev, tipId(tip)]));
-              }}
-            />
-          </Row>
-        </Card>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={p.notNow}
+            hitSlop={8}
+            onPress={() => {
+              if (ownerId) void pauseTip(ownerId, tipId(tip), Date.now());
+              setPaused((prev) => new Set([...prev, tipId(tip)]));
+            }}
+          >
+            <Ionicons name="close" size={iconSize.sm} color={theme.color.textMuted} />
+          </Pressable>
+        </Row>
       ) : null}
     </View>
   );
