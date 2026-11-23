@@ -19,30 +19,37 @@ export type FestivalId =
   | 'raksha_bandhan'
   | 'navratri'
   | 'thanksgiving'
-  | 'easter';
+  | 'easter'
+  | 'lunar_new_year'
+  | 'hanukkah'
+  | 'vesak'
+  | 'mothers_day'
+  | 'fathers_day'
+  | 'national_day'
+  | 'ramadan_start';
 
-/** Real dates 2026–2028. After 2028 the list simply runs dry until it is extended. */
-const FESTIVAL_DATES: Readonly<Record<FestivalId, readonly string[]>> = {
-  diwali: ['2026-11-08', '2027-10-29', '2028-10-17'],
-  holi: ['2026-03-04', '2027-03-22', '2028-03-11'],
-  eid_al_fitr: ['2026-03-20', '2027-03-09', '2028-02-26'],
-  eid_al_adha: ['2026-05-27', '2027-05-16', '2028-05-05'],
-  christmas: ['2026-12-25', '2027-12-25', '2028-12-25'],
-  pongal: ['2026-01-14', '2027-01-15', '2028-01-15'],
-  onam: ['2026-08-26', '2027-09-12', '2028-09-01'],
-  raksha_bandhan: ['2026-08-28', '2027-08-17', '2028-08-05'],
-  navratri: ['2026-10-11', '2027-10-01', '2028-09-30'],
-  thanksgiving: ['2026-11-26', '2027-11-25', '2028-11-23'],
-  easter: ['2026-04-05', '2027-03-28', '2028-04-16'],
+/** Published/calendrical dates through 2030. Moon-sighting holidays can vary locally by a day. */
+export const FESTIVAL_DATES: Readonly<Record<FestivalId, readonly string[]>> = {
+  diwali: ['2026-11-08', '2027-10-29', '2028-10-17', '2029-11-05', '2030-10-26'],
+  holi: ['2026-03-04', '2027-03-22', '2028-03-11', '2029-03-01', '2030-03-20'],
+  eid_al_fitr: ['2026-03-20', '2027-03-09', '2028-02-27', '2029-02-15', '2030-02-05'],
+  eid_al_adha: ['2026-05-27', '2027-05-16', '2028-05-05', '2029-04-24', '2030-04-13'],
+  christmas: ['2026-12-25', '2027-12-25', '2028-12-25', '2029-12-25', '2030-12-25'],
+  pongal: ['2026-01-14', '2027-01-15', '2028-01-15', '2029-01-15', '2030-01-15'],
+  onam: ['2026-08-26', '2027-09-12', '2028-09-01', '2029-08-22', '2030-09-10'],
+  raksha_bandhan: ['2026-08-28', '2027-08-17', '2028-08-05', '2029-08-24', '2030-08-13'],
+  navratri: ['2026-10-11', '2027-10-01', '2028-09-30', '2029-10-19', '2030-10-08'],
+  thanksgiving: ['2026-11-26', '2027-11-25', '2028-11-23', '2029-11-22', '2030-11-28'],
+  easter: ['2026-04-05', '2027-03-28', '2028-04-16', '2029-04-01', '2030-04-21'],
+  lunar_new_year: ['2026-02-17', '2027-02-06', '2028-01-26', '2029-02-13', '2030-02-03'],
+  hanukkah: ['2026-12-04', '2027-12-24', '2028-12-12', '2029-12-01', '2030-12-20'],
+  vesak: ['2026-05-31', '2027-05-20', '2028-05-09', '2029-05-28', '2030-05-17'],
+  mothers_day: [],
+  fathers_day: [],
+  national_day: [],
+  ramadan_start: ['2026-02-18', '2027-02-08', '2028-01-28', '2029-01-16', '2030-01-05'],
 };
 
-const COMMON: readonly FestivalId[] = [
-  'christmas',
-  'eid_al_fitr',
-  'eid_al_adha',
-  'diwali',
-  'easter',
-];
 const INDIA: readonly FestivalId[] = [
   'diwali',
   'holi',
@@ -54,14 +61,48 @@ const INDIA: readonly FestivalId[] = [
   'raksha_bandhan',
   'navratri',
 ];
+const AE: readonly FestivalId[] = [
+  'eid_al_fitr',
+  'eid_al_adha',
+  'ramadan_start',
+  'national_day',
+  'diwali',
+  'christmas',
+];
+const UK: readonly FestivalId[] = [
+  'christmas',
+  'easter',
+  'eid_al_fitr',
+  'diwali',
+  'mothers_day',
+  'fathers_day',
+];
+const AU: readonly FestivalId[] = [
+  'christmas',
+  'easter',
+  'lunar_new_year',
+  'mothers_day',
+  'fathers_day',
+];
+const US: readonly FestivalId[] = [
+  'thanksgiving',
+  'christmas',
+  'easter',
+  'hanukkah',
+  'mothers_day',
+  'fathers_day',
+];
+const DEFAULT: readonly FestivalId[] = ['christmas', 'mothers_day', 'fathers_day'];
 
-/** The festivals on by default for a country. Never asks religion; the person
- *  switches individual ones off. Unknown country gets the common set. */
+/** The opt-in starter festivals for a country. Never infers religion. */
 export function defaultFestivals(countryCode: string | null | undefined): readonly FestivalId[] {
   const c = (countryCode ?? '').toUpperCase();
   if (c === 'IN') return INDIA;
-  if (c === 'US') return [...COMMON, 'thanksgiving'];
-  return COMMON;
+  if (c === 'US') return US;
+  if (c === 'AE') return AE;
+  if (c === 'GB' || c === 'UK') return UK;
+  if (c === 'AU') return AU;
+  return DEFAULT;
 }
 
 const pad = (n: number): string => String(n).padStart(2, '0');
@@ -91,9 +132,60 @@ export function nextOccurrence(
 export function nextFestival(
   id: FestivalId,
   todayIso: string,
+  country?: string | null,
 ): { date: string; inDays: number } | null {
+  if (id === 'mothers_day' || id === 'fathers_day') {
+    const c = (country ?? '').toUpperCase();
+    const occurrence = (year: number): string => {
+      if (id === 'mothers_day' && (c === 'GB' || c === 'UK')) {
+        // Mothering Sunday is three weeks before Western Easter.
+        const easter = easterDate(year);
+        return easter
+          ? new Date(Date.parse(`${easter}T00:00:00Z`) - 21 * 86400000).toISOString().slice(0, 10)
+          : '';
+      }
+      if (id === 'fathers_day' && c === 'AU') return nthWeekday(year, 9, 0, 1);
+      return nthWeekday(year, id === 'mothers_day' ? 5 : 6, 0, id === 'mothers_day' ? 2 : 3);
+    };
+    const year = Number(todayIso.slice(0, 4));
+    let date = occurrence(year);
+    if (date < todayIso) date = occurrence(year + 1);
+    return date ? { date, inDays: dayDelta(todayIso, date) } : null;
+  }
+  if (id === 'national_day') {
+    const next = nextOccurrence(2, 12, todayIso);
+    return next;
+  }
+  if (id === 'easter') {
+    const year = Number(todayIso.slice(0, 4));
+    let date = easterDate(year);
+    if (date < todayIso) date = easterDate(year + 1);
+    return { date, inDays: dayDelta(todayIso, date) };
+  }
   const date = FESTIVAL_DATES[id].find((d) => d >= todayIso);
   return date ? { date, inDays: dayDelta(todayIso, date) } : null;
+}
+
+function nthWeekday(year: number, month: number, weekday: number, n: number): string {
+  const first = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  return `${year}-${pad(month)}-${pad(1 + ((weekday - first + 7) % 7) + (n - 1) * 7)}`;
+}
+function easterDate(year: number): string {
+  const a = year % 19,
+    b = Math.floor(year / 100),
+    c = year % 100;
+  const d = Math.floor(b / 4),
+    e = b % 4,
+    f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3),
+    h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4),
+    k = c % 4,
+    l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451),
+    month = Math.floor((h + l - 7 * m + 114) / 31);
+  const day = ((h + l - 7 * m + 114) % 31) + 1;
+  return `${year}-${pad(month)}-${pad(day)}`;
 }
 
 export interface UpcomingItem {
@@ -138,7 +230,7 @@ export function allOccurrences(input: {
   }
   for (const id of defaultFestivals(input.country)) {
     if (input.festivalsOff.includes(id)) continue;
-    const next = nextFestival(id, input.todayIso);
+    const next = nextFestival(id, input.todayIso, input.country);
     if (!next) continue;
     out.push({
       key: `${id}:${next.date}`,

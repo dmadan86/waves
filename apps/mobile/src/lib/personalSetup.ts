@@ -19,6 +19,7 @@ import {
   encodeBudget,
   encodeRecurring,
   IncomeSourceId,
+  minorUnitScale,
   nextRecurring,
   type CurrencyCode,
   type PersonalRecordKind,
@@ -29,8 +30,10 @@ export const SETUP_STEPS = ['income', 'home', 'bills', 'emi', 'eatOut', 'savings
 export type SetupStep = (typeof SETUP_STEPS)[number];
 
 export type IncomeKind = 'salary' | 'business' | 'freelance' | 'pension';
-export type HomeKind = 'rent' | 'emi';
-export type LoanKind = 'car' | 'personal' | 'gold' | 'education' | 'card';
+export type HomeKind = 'rent' | 'home_loan';
+export type LegacyHomeKind = 'emi';
+export type LoanKind = 'car' | 'personal' | 'secured_other' | 'education' | 'card';
+export type LegacyLoanKind = 'gold';
 export type EatFreq = 'rarely' | 'week12' | 'week34' | 'daily';
 export type SavingsBand = 'none' | 'under1' | '1to3' | '3to6' | '6plus';
 
@@ -44,14 +47,78 @@ export const BILLS = {
   mobile: { category: CategoryId.Home, every: 1 },
   wifi: { category: CategoryId.Home, every: 1 },
   gas: { category: CategoryId.Home, every: 1 },
-  help: { category: CategoryId.Home, every: 1 },
+  household_help: { category: CategoryId.Home, every: 1 },
   school: { category: CategoryId.Other, every: 3 },
-  society: { category: CategoryId.Home, every: 1 },
+  building_fees: { category: CategoryId.Home, every: 1 },
   insurance: { category: CategoryId.Health, every: 12 },
-  sip: { category: CategoryId.Other, every: 1 },
+  investment_contribution: { category: CategoryId.Other, every: 1 },
 } as const satisfies Record<string, Bill>;
 export type BillId = keyof typeof BILLS;
 export const BILL_IDS = Object.keys(BILLS) as BillId[];
+
+/** Display terminology follows the device's country, never the chosen language. */
+export type RegionHintId =
+  | 'hintEmi'
+  | 'hintSociety'
+  | 'hintHoa'
+  | 'hintServiceCharge'
+  | 'hintCouncilTax'
+  | 'hintStrata'
+  | 'hintRates'
+  | 'hintMaidCookDriver'
+  | 'hintSipChitFund'
+  | 'hintDewa'
+  | 'hintChiller'
+  | 'hintGoldLoan';
+export function regionHint(
+  id: 'homeLoan' | 'buildingFees' | 'householdHelp' | 'investmentContribution' | 'securedOther',
+  region: string | null | undefined,
+): readonly RegionHintId[] {
+  const country = region?.toUpperCase();
+  if (id === 'homeLoan') return country === 'IN' ? ['hintEmi'] : [];
+  if (id === 'householdHelp') return country === 'IN' ? ['hintMaidCookDriver'] : [];
+  if (id === 'investmentContribution') return country === 'IN' ? ['hintSipChitFund'] : [];
+  if (id === 'securedOther') return country === 'IN' || country === 'AE' ? ['hintGoldLoan'] : [];
+  const regional: Partial<Record<string, readonly RegionHintId[]>> = {
+    IN: ['hintSociety'],
+    US: ['hintHoa'],
+    GB: ['hintServiceCharge', 'hintCouncilTax'],
+    AU: ['hintStrata', 'hintRates'],
+    AE: ['hintDewa', 'hintChiller'],
+  };
+  return regional[country ?? ''] ?? [];
+}
+
+/** Normalize ids written by earlier versions before turning answers into records. */
+export const normalizeHomeKind = (kind: HomeKind | LegacyHomeKind): HomeKind =>
+  kind === 'emi' ? 'home_loan' : kind;
+export const normalizeLoanKind = (kind: LoanKind | LegacyLoanKind): LoanKind =>
+  kind === 'gold' ? 'secured_other' : kind;
+export const normalizeBillId = (id: BillId | 'help' | 'society' | 'sip'): BillId =>
+  id === 'help'
+    ? 'household_help'
+    : id === 'society'
+      ? 'building_fees'
+      : id === 'sip'
+        ? 'investment_contribution'
+        : id;
+
+/** Approximate per-occasion amounts, in major currency units. */
+export const EAT_OUT_PRESETS: Readonly<Record<string, readonly number[]>> = {
+  INR: [100, 200, 300, 500, 1000],
+  USD: [10, 20, 30, 50, 100],
+  GBP: [10, 20, 30, 50, 100],
+  AED: [20, 40, 60, 100, 200],
+  AUD: [10, 20, 30, 50, 100],
+  EUR: [10, 20, 30, 50, 100],
+  JPY: [1000, 2000, 3000, 5000, 10000],
+};
+export function eatOutPresets(currency: CurrencyCode): bigint[] {
+  // shortcut: for less common currencies, use the common 10–100 major-unit ladder.
+  return (EAT_OUT_PRESETS[currency] ?? [10, 20, 30, 50, 100]).map(
+    (n) => BigInt(n) * minorUnitScale(currency),
+  );
+}
 
 /** `none` = answered "not regular" / "neither": the step is done, nothing is made. */
 export interface IncomeAnswer {
@@ -60,7 +127,7 @@ export interface IncomeAnswer {
   day: number;
 }
 export interface HomeAnswer {
-  kind: HomeKind | 'none';
+  kind: HomeKind | LegacyHomeKind | 'none';
   amount: bigint;
   day: number;
 }
@@ -69,8 +136,11 @@ export interface BillAnswer {
   amount: bigint;
   day: number;
 }
+export interface LegacyBillAnswer extends Omit<BillAnswer, 'id'> {
+  id: 'help' | 'society' | 'sip';
+}
 export interface EmiAnswer {
-  kind: LoanKind | 'none';
+  kind: LoanKind | LegacyLoanKind | 'none';
   emi: bigint;
   day: number;
   monthsLeft: number;
@@ -84,7 +154,7 @@ export interface EatOutAnswer {
 export interface SetupAnswers {
   income?: IncomeAnswer;
   home?: HomeAnswer;
-  bills?: BillAnswer[];
+  bills?: (BillAnswer | LegacyBillAnswer)[];
   emi?: EmiAnswer;
   eatOut?: EatOutAnswer;
   savings?: SavingsBand;
@@ -135,8 +205,16 @@ export function eatOutMonthly(freq: EatFreq, each: bigint, currency: CurrencyCod
   return ((raw + step / 2n) / step) * step;
 }
 
-const slot = (ctx: SetupContext, key: string): string =>
-  deterministicId(`psetup:${ctx.ownerId}:${key}`);
+const slot = (ctx: SetupContext, key: string): string => {
+  // Keep the original opaque slot hash so a new answer edits the record an
+  // earlier version created for the same question.
+  const stableKey = key
+    .replace('bill:household_help', 'bill:help')
+    .replace('bill:building_fees', 'bill:society')
+    .replace('bill:investment_contribution', 'bill:sip')
+    .replace('emi:secured_other', 'emi:gold');
+  return deterministicId(`psetup:${ctx.ownerId}:${stableKey}`);
+};
 
 function rule(
   ctx: SetupContext,
@@ -207,25 +285,27 @@ export function answersToRecords(a: SetupAnswers, ctx: SetupContext): SetupRecor
     );
   }
   if (home && home.kind !== 'none' && home.amount > 0n) {
+    const kind = normalizeHomeKind(home.kind);
     out.push(
       rule(ctx, 'home', {
         txnKind: 'expense',
         amount: home.amount,
         category: CategoryId.Home,
-        note: ctx.label(`home:${home.kind}`),
+        note: ctx.label(`home:${kind}`),
         day: home.day,
       }),
     );
   }
   for (const bill of a.bills ?? []) {
     if (bill.amount <= 0n) continue;
-    const def: Bill = BILLS[bill.id];
+    const id = normalizeBillId(bill.id);
+    const def: Bill = BILLS[id];
     out.push(
-      rule(ctx, `bill:${bill.id}`, {
+      rule(ctx, `bill:${id}`, {
         txnKind: 'expense',
         amount: bill.amount,
         category: def.category,
-        note: ctx.label(`bill:${bill.id}`),
+        note: ctx.label(`bill:${id}`),
         day: bill.day,
         every: def.every === 12 ? 1 : def.every,
         cadence: def.every === 12 ? 'yearly' : 'monthly',
@@ -233,13 +313,14 @@ export function answersToRecords(a: SetupAnswers, ctx: SetupContext): SetupRecor
     );
   }
   if (emi && emi.kind !== 'none' && emi.emi > 0n) {
+    const kind = normalizeLoanKind(emi.kind);
     const first = nextDayOfMonth(ctx.today, emi.day);
     out.push(
-      rule(ctx, `emi:${emi.kind}`, {
+      rule(ctx, `emi:${kind}`, {
         txnKind: 'expense',
         amount: emi.emi,
         category: CategoryId.Other,
-        note: ctx.label(`loan:${emi.kind}`),
+        note: ctx.label(`loan:${kind}`),
         day: emi.day,
         // The last payment is the one `monthsLeft - 1` months after the first.
         endDate: addToDate(first, 'monthly', Math.max(1, emi.monthsLeft) - 1),
