@@ -5866,6 +5866,7 @@ export interface UiStrings {
     inviteToGroup: string;
     inviteToGroupHint: string;
     groupActions: string;
+    dataSection: string;
     exitActions: string;
     exitActionsMember: string;
     exitActionsHint: string;
@@ -14209,6 +14210,7 @@ const en: UiStrings = {
     inviteToGroup: 'Invite to group',
     inviteToGroupHint: 'Share a link or QR so they can join easily',
     groupActions: 'Group actions',
+    dataSection: 'Data',
     exitActions: 'Archive, leave or delete',
     exitActionsMember: 'Archive or leave',
     exitActionsHint: 'Hide it, step out, or remove it',
@@ -22360,6 +22362,7 @@ const ta: UiStrings = {
     inviteToGroup: 'குழுவுக்கு அழை',
     inviteToGroupHint: 'இணைப்பு அல்லது QR பகிர்ந்தால் எளிதாகச் சேரலாம்',
     groupActions: 'குழு செயல்கள்',
+    dataSection: 'தரவு',
     exitActions: 'காப்பகம், வெளியேறு அல்லது நீக்கு',
     exitActionsMember: 'காப்பகம் அல்லது வெளியேறு',
     exitActionsHint: 'மறை, வெளியேறு அல்லது நீக்கு',
@@ -30483,6 +30486,7 @@ const hi: UiStrings = {
     inviteToGroup: 'ग्रुप में बुलाएँ',
     inviteToGroupHint: 'लिंक या QR शेयर करें ताकि वे आसानी से जुड़ सकें',
     groupActions: 'ग्रुप कार्रवाइयाँ',
+    dataSection: 'डेटा',
     exitActions: 'आर्काइव करें, छोड़ें या हटाएँ',
     exitActionsMember: 'आर्काइव करें या छोड़ें',
     exitActionsHint: 'छिपाएँ, बाहर निकलें या हटाएँ',
@@ -38893,6 +38897,7 @@ const ar: UiStrings = {
     inviteToGroup: 'دعوة إلى المجموعة',
     inviteToGroupHint: 'شارك رابطًا أو رمز QR ليتمكنوا من الانضمام بسهولة',
     groupActions: 'إجراءات المجموعة',
+    dataSection: 'البيانات',
     exitActions: 'أرشفة أو مغادرة أو حذف',
     exitActionsMember: 'أرشفة أو مغادرة',
     exitActionsHint: 'إخفاء أو خروج أو إزالة',
