@@ -1362,13 +1362,13 @@ describe('edge-function wrappers', () => {
     });
   });
 
-  it('scanReceiptText sends the pasted text as a text_paste in INR by default', async () => {
+  it('scanReceiptText sends the pasted text as a text_paste in the fallback currency by default', async () => {
     h.invoke.mockResolvedValue(ok({ receiptId: 'r1' }));
 
     await api.scanReceiptText({ groupId: 'g1', rawText: 'Dosa 120' });
 
     expect(h.invoke).toHaveBeenCalledWith('receipt-parse', {
-      body: { groupId: 'g1', rawText: 'Dosa 120', source: 'text_paste', currency: 'INR' },
+      body: { groupId: 'g1', rawText: 'Dosa 120', source: 'text_paste', currency: 'USD' },
     });
   });
 
@@ -1713,7 +1713,7 @@ describe('scanReceipt', () => {
         receiptId: 'uuid-1',
         storagePath: 'g1/uuid-1.png',
         source: 'camera',
-        currency: 'INR',
+        currency: 'USD',
       },
     });
   });

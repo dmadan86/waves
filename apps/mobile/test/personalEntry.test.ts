@@ -334,12 +334,12 @@ describe('the rooms of the private ledger', () => {
     // The rules list writes nothing itself any more: both its "+" and its pencil
     // open the shared form, one with a repeat switched on and one on a rule.
     expect(source('personal/recurring.tsx')).toContain("params: { repeats: '1' }");
-    expect(source('personal/recurring.tsx')).toContain('recurringId: rule.id');
+    expect(source('personal/recurring.tsx')).toContain('recurringId: menuRule.id');
     expect(source('personal/recurring.tsx')).not.toContain('AmountField');
 
-    // And the Me tab's one "+ Expense" pill opens that same form on Expense;
-    // income is its switch, not a second screen or a second button.
+    // And the Me tab's Add Expense / Add Income tiles open that same form, on
+    // its own switch — never a second screen.
     expect(source('(tabs)/me.tsx')).toContain("params: { kind: 'expense' }");
-    expect(source('(tabs)/me.tsx')).not.toContain("params: { kind: 'income' }");
+    expect(source('(tabs)/me.tsx')).toContain("params: { kind: 'income' }");
   });
 });

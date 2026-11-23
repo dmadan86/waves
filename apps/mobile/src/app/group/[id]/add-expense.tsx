@@ -30,6 +30,7 @@ import {
   formatMinorInput,
   guessCategory,
   money,
+  isPoolGroup,
   MutationKind,
   rebalancePayers,
   headOf,
@@ -45,6 +46,7 @@ import {
   type PaymentMethod,
   type SplitParams,
   type UnitsParams,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   AmountField,
@@ -59,6 +61,7 @@ import {
   Row,
   Screen,
   Text,
+  Toggle,
   useScreenClearance,
   useTheme,
 } from '@waves/ui';
@@ -452,6 +455,10 @@ function AddExpenseScreen() {
   const guard = useGuestGuard();
 
   const editing = expenses.rows.find((expense) => expense.id === expenseId);
+  // Share it: a new expense in a pooled household is not split unless asked
+  // ("Split this one"). The sync layer turns the default into the pool split.
+  const poolDefault = isPoolGroup(group.data) && !expenseId;
+  const [splitThis, setSplitThis] = useState(false);
 
   // The id is chosen here, not by the server. It seeds the remainder rotation
   // (ADR-009), so previewing with one id and writing with another would put the
@@ -825,7 +832,9 @@ function AddExpenseScreen() {
               memberId,
               formatMinorInput(
                 minor,
-                (expenseCurrency ?? group.data?.default_currency ?? 'INR') as CurrencyCode,
+                (expenseCurrency ??
+                  group.data?.default_currency ??
+                  fallbackCurrency()) as CurrencyCode,
               ),
             ]),
           ),
@@ -889,7 +898,7 @@ function AddExpenseScreen() {
         setLockedPayers(new Set(draft.lockedPayers ?? []));
         // `groupCurrency` is derived further down the render; the seeding block
         // runs above it, so the group's default is read straight off the row.
-        const draftCurrency = draft.currency ?? group.data?.default_currency ?? 'INR';
+        const draftCurrency = draft.currency ?? group.data?.default_currency ?? fallbackCurrency();
         setPaidText(
           Object.fromEntries(
             Object.entries(draft.payers).map(([id, v]) => [
@@ -1025,7 +1034,7 @@ function AddExpenseScreen() {
   // reopening an edit never hides a configuration that is already unusual.
   const [payerSectionChoice, setPayerSectionChoice] = useState<boolean | null>(null);
 
-  const groupCurrency = group.data?.default_currency ?? 'INR';
+  const groupCurrency = group.data?.default_currency ?? fallbackCurrency();
   // The expense keeps the currency it was paid in; the group's is only the
   // default and what a converted total would be shown in (ADR-003).
   const currency = expenseCurrency ?? groupCurrency;
@@ -1570,7 +1579,7 @@ function AddExpenseScreen() {
         mutate(
           expenseId ? MutationKind.ExpenseUpdate : MutationKind.ExpenseCreate,
           groupId,
-          writePayload,
+          poolDefault && splitThis ? { ...writePayload, splitThisOne: true } : writePayload,
         );
       const movedFrom = !expenseId && movePersonal ? movePersonal : null;
       if (movedFrom) {
@@ -2588,99 +2597,126 @@ function AddExpenseScreen() {
 
           {/* How the bill divides: the ways to split, who is in it, and what each
             owes. New expenses can still split line by line from here. */}
-          <Card padded={false} style={{ padding: theme.spacing.md, gap: theme.spacing.md }}>
-            <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-              <Text variant="subheading" accessibilityRole="header">
-                {t.expense.howToSplit}
-              </Text>
-              {/* Splitting the bill line by line is another answer to "how is this
+          {poolDefault ? (
+            <Card padded={false} style={{ padding: theme.spacing.md, gap: theme.spacing.xs }}>
+              <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text variant="subheading" accessibilityRole="header">
+                  {t.household.splitThisOne}
+                </Text>
+                <Toggle
+                  value={splitThis}
+                  onValueChange={(next) => {
+                    setSplitThis(next);
+                    if (!next) {
+                      setSavedUnits(null);
+                      setSplitKind(SplitKind.Equal);
+                    }
+                  }}
+                  accessibilityLabel={t.household.splitThisOne}
+                />
+              </Row>
+              {splitThis ? null : (
+                <Text variant="caption" tone="muted">
+                  {t.household.splitThisOneHint}
+                </Text>
+              )}
+            </Card>
+          ) : null}
+          {poolDefault && !splitThis ? null : (
+            <Card padded={false} style={{ padding: theme.spacing.md, gap: theme.spacing.md }}>
+              <Row style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text variant="subheading" accessibilityRole="header">
+                  {t.expense.howToSplit}
+                </Text>
+                {/* Splitting the bill line by line is another answer to "how is this
                 split". New expenses only — an existing one is edited in place,
                 not re-itemised. */}
-              {!editing ? (
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={t.expense.splitByItem}
-                  onPress={() => router.replace(`/group/${groupId}/itemize`)}
-                  hitSlop={LINK_HIT_SLOP}
-                  style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
-                >
-                  <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
-                    {t.expense.splitByItem}
+                {!editing ? (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t.expense.splitByItem}
+                    onPress={() => router.replace(`/group/${groupId}/itemize`)}
+                    hitSlop={LINK_HIT_SLOP}
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
+                  >
+                    <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+                      {t.expense.splitByItem}
+                    </Text>
+                    <Ionicons
+                      name={directionalIcon('chevron-forward')}
+                      size={iconSize.base}
+                      color={theme.color.brand}
+                    />
+                  </Pressable>
+                ) : null}
+              </Row>
+              <SplitKindSegments
+                value={splitKind}
+                onChange={(next) => {
+                  setSavedUnits(null);
+                  setSplitKind(next);
+                }}
+              />
+              {/* Custom editors use family rows in the family lens. */}
+              {familiesOn ? (
+                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                  <Text variant="caption" tone="muted">
+                    {t.families.splitBy}
                   </Text>
-                  <Ionicons
-                    name={directionalIcon('chevron-forward')}
-                    size={iconSize.base}
-                    color={theme.color.brand}
+                  <ChipRow<'people' | 'families'>
+                    options={[
+                      { value: 'people', label: t.families.byPeople },
+                      { value: 'families', label: t.families.byFamilies },
+                    ]}
+                    value={splitBy}
+                    onChange={(next) => {
+                      setSavedUnits(null);
+                      setSplitBy(next);
+                    }}
+                    variant="brand"
+                    onCard
+                    wrap
                   />
-                </Pressable>
+                </Row>
               ) : null}
-            </Row>
-            <SplitKindSegments
-              value={splitKind}
-              onChange={(next) => {
-                setSavedUnits(null);
-                setSplitKind(next);
-              }}
-            />
-            {/* Custom editors use family rows in the family lens. */}
-            {familiesOn ? (
-              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                <Text variant="caption" tone="muted">
-                  {t.families.splitBy}
-                </Text>
-                <ChipRow<'people' | 'families'>
-                  options={[
-                    { value: 'people', label: t.families.byPeople },
-                    { value: 'families', label: t.families.byFamilies },
-                  ]}
-                  value={splitBy}
-                  onChange={(next) => {
-                    setSavedUnits(null);
-                    setSplitBy(next);
-                  }}
-                  variant="brand"
-                  onCard
-                  wrap
-                />
-              </Row>
-            ) : null}
-            {byFamily && splitKind === SplitKind.Equal ? (
-              <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                <Text variant="caption" tone="muted">
-                  {t.families.eachFamilyPays}
-                </Text>
-                <ChipRow<'same' | 'size'>
-                  options={[
-                    { value: 'same', label: t.families.same },
-                    { value: 'size', label: t.families.bySize },
-                  ]}
-                  value={familyBySize ? 'size' : 'same'}
-                  onChange={(next) => {
-                    setSavedUnits(null);
-                    setFamilyBySize(next === 'size');
-                  }}
-                  variant="brand"
-                  onCard
-                />
-              </Row>
-            ) : null}
-            <SplitParticipants
-              members={members.data ?? []}
-              viewerId={viewerId}
-              participants={participants}
-              onToggle={toggleParticipant}
-              splitKind={splitKind}
-              entries={entries}
-              onEntryChange={setEntry}
-              currency={currency}
-              amount={amount}
-              lineAmount={lineAmount}
-              splitIssue={splitIssue}
-              onSelectAll={selectAllParticipants}
-              units={byFamily}
-              onToggleFamily={toggleFamily}
-            />
-          </Card>
+              {byFamily && splitKind === SplitKind.Equal ? (
+                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+                  <Text variant="caption" tone="muted">
+                    {t.families.eachFamilyPays}
+                  </Text>
+                  <ChipRow<'same' | 'size'>
+                    options={[
+                      { value: 'same', label: t.families.same },
+                      { value: 'size', label: t.families.bySize },
+                    ]}
+                    value={familyBySize ? 'size' : 'same'}
+                    onChange={(next) => {
+                      setSavedUnits(null);
+                      setFamilyBySize(next === 'size');
+                    }}
+                    variant="brand"
+                    onCard
+                  />
+                </Row>
+              ) : null}
+              <SplitParticipants
+                members={members.data ?? []}
+                viewerId={viewerId}
+                participants={participants}
+                onToggle={toggleParticipant}
+                splitKind={splitKind}
+                entries={entries}
+                onEntryChange={setEntry}
+                currency={currency}
+                amount={amount}
+                lineAmount={lineAmount}
+                splitIssue={splitIssue}
+                onSelectAll={selectAllParticipants}
+                units={byFamily}
+                onToggleFamily={toggleFamily}
+              />
+            </Card>
+          )}
 
           {/* What the card above does not carry — a vendor deposit and its
             sub-event on an Event group, how it was paid, who it was paid to, what
@@ -2794,7 +2830,7 @@ function AddExpenseScreen() {
 
               {/* A rent, a subscription: the same expense again on a schedule,
                   added for everyone on its date. New expenses only. */}
-              {!GROUP_REPEAT_HIDDEN && !expenseId && !fx ? (
+              {(!GROUP_REPEAT_HIDDEN || poolDefault) && !expenseId && !fx ? (
                 <View>
                   <DetailRow
                     icon={repeat ? 'repeat' : 'repeat-outline'}

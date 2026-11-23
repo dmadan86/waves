@@ -24,6 +24,7 @@
 
 import { useMemo, useState } from 'react';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import {
@@ -36,6 +37,8 @@ import {
   resolveCategory,
   type PersonalBudget,
   type PersonalTxn,
+  currencySymbol,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   AmountField,
@@ -74,8 +77,12 @@ function BudgetsScreenBody() {
   const { budgets, txns } = usePersonalLedger();
 
   const [month] = useState(() => todayIso().slice(0, 7));
-  const [editing, setEditing] = useState<PersonalBudget | null>(null);
-  const [creating, setCreating] = useState(false);
+  // A link from a save tip names a category (and a suggested cap): open that
+  // category's budget, or a new one pre-filled with it.
+  const link = useLocalSearchParams<{ category?: string; limit?: string }>();
+  const linked = link.category ? budgets.find((b) => b.category === link.category) : undefined;
+  const [editing, setEditing] = useState<PersonalBudget | null>(linked ?? null);
+  const [creating, setCreating] = useState(!!link.category && !linked);
 
   const { ink, muted } = useBudgetInks();
 
@@ -202,7 +209,13 @@ function BudgetsScreenBody() {
           the bars behind it do, and a second `todayIso()` in the editor would be
           a second clock reading for one screen. */}
       {creating ? (
-        <BudgetEditor currency={dc} month={month} txns={txns} onClose={() => setCreating(false)} />
+        <BudgetEditor
+          currency={dc}
+          month={month}
+          txns={txns}
+          start={link.category ? { category: link.category, limit: link.limit } : undefined}
+          onClose={() => setCreating(false)}
+        />
       ) : null}
       {editing ? (
         <BudgetEditor
@@ -222,9 +235,12 @@ function BudgetEditor({
   currency,
   month,
   txns,
+  start,
   onClose,
 }: {
   budget?: PersonalBudget;
+  /** A category (and cap, in minor units) to open a new budget with. */
+  start?: { category: string; limit?: string };
   currency: string;
   /** The month the list behind this sheet is measuring, as YYYY-MM. */
   month: string;
@@ -239,10 +255,14 @@ function BudgetEditor({
   const remove = useDeletePersonalRecord();
 
   const [scope, setScope] = useState<'overall' | 'category'>(
-    budget?.category ? 'category' : 'overall',
+    budget?.category || start ? 'category' : 'overall',
   );
-  const [category, setCategory] = useState<string | null>(budget?.category ?? null);
-  const [limit, setLimit] = useState<bigint>(budget?.limit ?? 0n);
+  const [category, setCategory] = useState<string | null>(
+    budget?.category ?? start?.category ?? null,
+  );
+  const [limit, setLimit] = useState<bigint>(
+    budget?.limit ?? (start?.limit && /^\d+$/.test(start.limit) ? BigInt(start.limit) : 0n),
+  );
 
   const chosenCategory = scope === 'category' ? category : null;
   const canSave = limit > 0n && (scope === 'overall' || category !== null) && !upsert.isPending;
@@ -728,7 +748,9 @@ function ClipboardArt() {
           borderColor: '#E39C18',
         }}
       >
-        <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF6DC' }}>₹</Text>
+        <Text style={{ fontSize: 18, fontWeight: '800', color: '#FFF6DC' }}>
+          {currencySymbol(fallbackCurrency())}
+        </Text>
       </View>
     </View>
   );

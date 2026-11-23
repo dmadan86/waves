@@ -697,6 +697,7 @@ function AgentRow({
             if (name.trim()) await addGhost.mutateAsync(name.trim());
           }
           break;
+
         case 'add_member': {
           const exists = group?.members.some(
             (member) => member.name.trim().toLowerCase() === action.name.trim().toLowerCase(),

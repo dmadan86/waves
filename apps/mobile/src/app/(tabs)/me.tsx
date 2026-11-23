@@ -26,18 +26,16 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import {
   cashflowTrend,
-  categoryBreakdown,
-  dueInMonth,
+  dayPlan,
   format,
+  formatParts,
   money,
   monthOutlook,
   personalBudgetProgress,
   recentMonths,
-  resolveCategory,
   spendDelta,
   worstOverBudget,
   type PersonalTxn,
@@ -45,7 +43,6 @@ import {
 import {
   Button,
   Card,
-  directionalIcon,
   Divider,
   EmptyState,
   Gradient,
@@ -55,19 +52,33 @@ import {
   Text,
   useTabBarClearance,
   useTheme,
-  type TintName,
 } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
 import { BALANCE_MASK } from '@/components/home/HomeBalanceCard';
+import {
+  BudgetSummary,
+  ChangePill,
+  FlowTile,
+  SpendHistoryChart,
+} from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { PersonalIntro } from '@/components/PersonalIntro';
+import { PersonalPlanCards } from '@/components/PersonalPlanCards';
+import {
+  CardTitle,
+  MoneyToolsRow,
+  PersonalUpcomingCard,
+  PrivacyPill,
+  QuickActions,
+  usePersonalUpcoming,
+} from '@/components/personal/PersonalHomeParts';
+import { hasDue } from '@/lib/personalUpcoming';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
-import { useSourceLabel } from '@/components/IncomeSource';
 import { SignInWall } from '@/components/SignInWall';
 import {
   postDueRecurring,
@@ -79,7 +90,7 @@ import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
-import { router } from '@/lib/navigation';
+import { router, switchTab } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings } from '@/i18n';
 
@@ -107,7 +118,6 @@ function MeLedger() {
   const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const dc = useDefaultCurrency();
-  const sourceLabel = useSourceLabel();
   const { hydrated } = useSync();
   const { profile } = useAuth();
   const viewerFace = useViewerIdentity();
@@ -164,8 +174,11 @@ function MeLedger() {
   // received would be the one lie a ledger cannot tell — and is listed below as
   // what the month is still waiting for.
   const summary = monthOutlook(ledger.txns, ledger.recurrings, month, dc, today);
-  const due = dueInMonth(ledger.txns, ledger.recurrings, month, dc, today);
-  const fmt = (amount: bigint): string => format(money(amount, dc), { locale });
+  // Whole-rupee totals drop a bare ".00"; real paise still show.
+  const fmt = (amount: bigint): string => {
+    const p = formatParts(money(amount, dc), { locale });
+    return /[1-9]/.test(p.fraction) ? p.text : p.lead + p.trail;
+  };
   const catLabel = labelForCategory(t);
 
   // Spend against the month before, as a percentage — null when there is no
@@ -182,6 +195,7 @@ function MeLedger() {
     recentMonths(month, SPEND_HISTORY_MONTHS),
     dc,
   ).map((entry) => entry.expense);
+  const historyLabels = recentMonths(month, SPEND_HISTORY_MONTHS).map((m) => monthShort(m, locale));
 
   // The overall monthly cap, when one is set, and how far into it the month is.
   const overallBudget = ledger.budgets.find(
@@ -203,102 +217,41 @@ function MeLedger() {
       })
     : null;
 
-  // Where the month's money went — the four biggest categories, each with its
-  // share. Personal txns carry no category-meta snapshot, so unknown/custom-tag
-  // ids all resolve to the same built-in "Other"; fold them into one bucket
-  // (summing spend and share) BEFORE sorting and slicing, or several look-alike
-  // "Other" columns would crowd real categories out.
-  const buckets = new Map<string, { spent: bigint; share: number }>();
-  for (const row of categoryBreakdown(ledger.txns, month, dc)) {
-    const key = resolveCategory(row.category, null).builtinId ?? 'other';
-    const prev = buckets.get(key);
-    buckets.set(key, {
-      spent: (prev?.spent ?? 0n) + row.spent,
-      share: (prev?.share ?? 0) + row.share,
-    });
-  }
-  const categoryBuckets = [...buckets]
-    .sort((a, b) =>
-      b[1].spent === a[1].spent ? (a[0] < b[0] ? -1 : 1) : b[1].spent > a[1].spent ? 1 : -1,
-    )
-    .map(([key, agg]) => ({ key, ...agg }));
-  // The donut and its list show the five biggest categories; whatever is left
-  // folds into one "Others" row and segment, so the two always add up to the
-  // whole month rather than quietly dropping the tail.
-  const topCategories = categoryBuckets.slice(0, TOP_CATEGORY_COUNT);
-  const otherCategoryTail = categoryBuckets.slice(TOP_CATEGORY_COUNT);
-  const othersBucket =
-    otherCategoryTail.length > 0
-      ? otherCategoryTail.reduce(
-          (sum, bucket) => ({ spent: sum.spent + bucket.spent, share: sum.share + bucket.share }),
-          { spent: 0n, share: 0 },
-        )
-      : null;
+  // The latest three entries, newest first (the ledger comes newest-first).
+  const recentTxns = ledger.txns.slice(0, 3);
 
-  // The month's latest spends, newest first.
-  const recentExpenses = ledger.txns
-    .filter((txn) => txn.kind === 'expense' && txn.date.slice(0, 7) === month)
-    .slice(0, 4);
+  const h = t.personalHome;
+  const plan = {
+    txns: ledger.txns,
+    recurrings: ledger.recurrings,
+    budgets: ledger.budgets,
+    currency: dc,
+    today,
+  };
+  const perDay = monthsBack === 0 ? (dayPlan(plan)?.perDay ?? 0n) : 0n;
+  const upcomingRows = usePersonalUpcoming(
+    { txns: ledger.txns, recurrings: ledger.recurrings, currency: dc, today },
+    3,
+  );
+  const [switchOpen, setSwitchOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const firstName = (profile?.display_name ?? t.account.you).trim().split(/\s+/)[0];
 
-  // The money-tools grid: one tile per feature Personal already links to
-  // elsewhere on the tab or under Settings. Goals has no screen of its own
-  // yet, so it is left out rather than drawn as a dead tile.
-  const moneyTools: ToolTileSpec[] = [
+  const moreItems: OverflowMenuItem[] = [
     {
-      key: 'recurring',
-      tint: 'mint',
-      icon: 'repeat',
-      title: t.personal.recurring,
-      subtitle: t.personal.dash.toolRecurringSub,
-      onPress: () => router.push('/personal/recurring'),
-    },
-    {
-      key: 'loans',
-      tint: 'lilac',
-      icon: 'business-outline',
-      title: t.personal.loans,
-      subtitle: t.personal.dash.toolLoansSub,
-      onPress: () => router.push('/personal/loans'),
-    },
-    {
-      key: 'budgets',
-      tint: 'peach',
-      icon: 'speedometer-outline',
-      title: t.personal.dash.toolBudgets,
-      subtitle: t.personal.dash.toolBudgetsSub,
-      onPress: () => router.push('/personal/budgets'),
-    },
-    {
-      key: 'spending',
-      tint: 'sky',
-      icon: 'pie-chart-outline',
-      title: t.personal.nav.spending,
-      subtitle: t.personal.dash.toolSpendingSub,
-      onPress: () => router.push('/personal/spending'),
-    },
-    {
-      key: 'ask',
-      tint: 'lilac',
-      icon: 'sparkles-outline',
-      title: t.spendingAsk.title,
-      subtitle: t.spendingAsk.tileSub,
-      onPress: () => router.push('/personal/ask'),
-    },
-    {
-      key: 'statement',
-      tint: 'sky',
       icon: 'document-text-outline',
-      title: t.statementImport.title,
-      subtitle: t.statementImport.tileSub,
-      onPress: () => router.push('/captures/statement'),
+      label: t.statementImport.title,
+      route: '/captures/statement',
     },
     {
-      key: 'categories',
-      tint: 'coral',
       icon: 'pricetags-outline',
-      title: t.personal.dash.toolCategories,
-      subtitle: t.personal.dash.toolCategoriesSub,
-      onPress: () => router.push('/settings/categories'),
+      label: t.personal.dash.toolCategories,
+      route: '/settings/categories',
+    },
+    {
+      icon: 'mic-outline',
+      label: h.moreVoice,
+      route: { pathname: '/voice', params: { scope: 'personal' } },
     },
   ];
 
@@ -339,7 +292,7 @@ function MeLedger() {
     return (
       <>
         <PersonalFirstRun t={t} />
-        <PersonalIntro visible={introOpen} onDone={closeIntro} />
+        <OpenSetupOnce />
       </>
     );
   }
@@ -366,33 +319,53 @@ function MeLedger() {
             <PersonAvatar
               name={profile?.display_name ?? t.account.you}
               avatarUrl={avatarUrl}
-              size={36}
+              size={44}
               accessibilityLabel={t.profile}
               onPress={() => router.navigate('/profile')}
             />
-            <Text
-              accessibilityRole="header"
-              numberOfLines={1}
-              style={{ flex: 1, fontSize: 20, lineHeight: 26, fontWeight: '700' }}
-            >
-              {t.personal.nav.overview}
-            </Text>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                accessibilityRole="header"
+                numberOfLines={1}
+                style={{ fontSize: 18, lineHeight: 23, fontWeight: '700' }}
+              >
+                {fill(h.hi, { name: firstName ?? '' })}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${h.switchSpace}. ${h.space}`}
+                onPress={() => setSwitchOpen(true)}
+                hitSlop={6}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 2,
+                  opacity: pressed ? 0.6 : 1,
+                })}
+              >
+                <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                  {h.space}
+                </Text>
+                <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.textMuted} />
+              </Pressable>
+            </View>
           </Row>
         }
       >
         <TabIconButton
           icon="search-outline"
-          label={t.personal.transactions}
+          label={h.search}
           onPress={() => router.push('/personal/transactions')}
         />
         <TabIconButton
-          icon="add-circle-outline"
-          label={t.personal.addExpense}
-          onPress={() => router.push({ pathname: '/personal/entry', params: { kind: 'expense' } })}
+          icon="notifications-outline"
+          label={h.reminders}
+          dot={hasDue(upcomingRows)}
+          onPress={() => router.push('/personal/upcoming')}
         />
         <TabIconButton
           icon="settings-outline"
-          label={t.account.faceSettings}
+          label={h.settings}
           onPress={() => setGearOpen(true)}
         />
       </TabHeader>
@@ -405,300 +378,211 @@ function MeLedger() {
           style={{
             paddingHorizontal: theme.spacing.lg,
             paddingTop: theme.spacing.xs,
-            gap: theme.spacing.lg,
+            gap: theme.spacing.md,
           }}
         >
-          {/* The month's whole headline — the spend, how it moved, a short
-              history, and the three figures beneath it — blended into the
-              scene's foot in one card, exactly like Home's balance card. */}
-          <View>
-            <View>
-              <View style={{ gap: theme.spacing.lg }}>
-                <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-                  <Row
-                    style={{ flex: 1, minWidth: 0, alignItems: 'center', gap: theme.spacing.sm }}
+          <Card
+            style={{
+              gap: theme.spacing.md,
+              padding: theme.spacing.lg,
+              backgroundColor: theme.color.brandSoft,
+            }}
+          >
+            <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
+              <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
+                <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                  <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
+                    {monthsBack === 0
+                      ? t.personal.dash.totalSpent
+                      : fill(t.personal.dash.totalSpentIn, { month: monthLabel(month, locale) })}
+                  </Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={
+                      amountsHidden ? t.dashHero.showBalance : t.dashHero.hideBalance
+                    }
+                    onPress={toggleAmountsHidden}
+                    hitSlop={10}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
                   >
-                    <Text variant="body" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-                      {monthsBack === 0
-                        ? t.personal.dash.totalSpentThisMonth
-                        : fill(t.personal.dash.totalSpentIn, { month: monthLabel(month, locale) })}
+                    <Ionicons
+                      name={amountsHidden ? 'eye-off-outline' : 'eye-outline'}
+                      size={iconSize.md}
+                      color={theme.color.textMuted}
+                    />
+                  </Pressable>
+                </Row>
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.6}
+                  style={HEADLINE_STYLE}
+                >
+                  {amountsHidden ? BALANCE_MASK : fmt(summary.expense)}
+                </Text>
+                {change !== null && !amountsHidden ? (
+                  <Row style={{ alignItems: 'center', gap: theme.spacing.sm, flexWrap: 'wrap' }}>
+                    <ChangePill change={change} />
+                    <Text variant="caption" tone="muted" numberOfLines={1}>
+                      {fill(t.personal.dash.vsMonth, {
+                        month: monthShortYear(shiftMonth(month, -1), locale),
+                      })}
                     </Text>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={
-                        amountsHidden ? t.dashHero.showBalance : t.dashHero.hideBalance
-                      }
-                      onPress={toggleAmountsHidden}
-                      hitSlop={10}
-                      style={({ pressed }) => ({ opacity: pressed ? 0.5 : 1 })}
-                    >
-                      <Ionicons
-                        name={amountsHidden ? 'eye-off-outline' : 'eye-outline'}
-                        size={iconSize.md}
-                        color={theme.color.textMuted}
-                      />
-                    </Pressable>
                   </Row>
-                  <MonthPill
-                    label={monthLabel(month, locale)}
-                    spokenLabel={t.personal.dash.pickMonth}
-                    onPress={canBrowse ? () => setMonthMenuOpen(true) : undefined}
-                  />
-                </Row>
-
-                <Row style={{ alignItems: 'flex-start', gap: theme.spacing.md }}>
-                  <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
-                    {amountsHidden ? (
-                      <Text numberOfLines={1} style={HEADLINE_STYLE}>
-                        {BALANCE_MASK}
-                      </Text>
-                    ) : (
-                      <Text
-                        numberOfLines={1}
-                        adjustsFontSizeToFit
-                        minimumFontScale={0.6}
-                        style={HEADLINE_STYLE}
-                      >
-                        {fmt(summary.expense)}
-                      </Text>
-                    )}
-                    {change !== null && !amountsHidden ? (
-                      <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                        <ChangePill change={change} />
-                        <Text variant="caption" tone="muted" numberOfLines={1}>
-                          {fill(t.personal.dash.vsMonth, {
-                            month: monthShortYear(shiftMonth(month, -1), locale),
-                          })}
-                        </Text>
-                      </Row>
-                    ) : null}
-                  </View>
-                  {!amountsHidden ? <SpendHistoryChart values={spendHistory} /> : null}
-                </Row>
-
-                <Row style={{ gap: theme.spacing.sm }}>
-                  <FlowTile
-                    icon="wallet-outline"
-                    tone="income"
-                    label={t.personal.income}
-                    value={fmt(summary.income)}
-                    hidden={amountsHidden}
-                    // The month's income, entry by entry.
-                    onPress={() =>
-                      router.push({
-                        pathname: '/personal/transactions',
-                        params: { kind: 'income', month },
-                      })
-                    }
-                  />
-                  <FlowTile
-                    icon="arrow-up"
-                    tone="negative"
-                    label={t.personal.spent}
-                    value={fmt(summary.expense)}
-                    hidden={amountsHidden}
-                    // The month's spends, entry by entry.
-                    onPress={() =>
-                      router.push({
-                        pathname: '/personal/transactions',
-                        params: { kind: 'expense', month },
-                      })
-                    }
-                  />
-                  <FlowTile
-                    icon="wallet"
-                    tone="brand"
-                    label={t.personal.dash.available}
-                    value={`${summary.net < 0n ? '−' : ''}${fmt(summary.net < 0n ? -summary.net : summary.net)}`}
-                    negative={summary.net < 0n}
-                    hidden={amountsHidden}
-                    // What is left and where the rest went: the Spending screen's
-                    // own subject, rather than a third copy of the ledger.
-                    onPress={() => router.push('/personal/spending')}
-                  />
-                </Row>
+                ) : null}
               </View>
-            </View>
-          </View>
+              {!amountsHidden ? (
+                <SpendHistoryChart values={spendHistory} labels={historyLabels} />
+              ) : null}
+            </Row>
 
-          <BudgetCard
-            progress={budgetProgress}
-            categoryCount={categoryBudgetCount}
-            worstOverLine={worstOverLine}
-            locale={locale}
-            fmt={fmt}
-            t={t}
-            onPress={() => router.push('/personal/budgets')}
+            <Row style={{ gap: theme.spacing.sm }}>
+              <FlowTile
+                icon="wallet-outline"
+                tone="income"
+                label={t.personal.income}
+                value={fmt(summary.income)}
+                hidden={amountsHidden}
+                // The month's income, entry by entry.
+                onPress={() =>
+                  router.push({
+                    pathname: '/personal/transactions',
+                    params: { kind: 'income', month },
+                  })
+                }
+              />
+              <FlowTile
+                icon="arrow-up"
+                tone="negative"
+                label={t.personal.spent}
+                value={fmt(summary.expense)}
+                hidden={amountsHidden}
+                // The month's spends, entry by entry.
+                onPress={() =>
+                  router.push({
+                    pathname: '/personal/transactions',
+                    params: { kind: 'expense', month },
+                  })
+                }
+              />
+              <FlowTile
+                icon="wallet"
+                tone="brand"
+                label={t.personal.dash.available}
+                value={`${summary.net < 0n ? '−' : ''}${fmt(summary.net < 0n ? -summary.net : summary.net)}`}
+                negative={summary.net < 0n}
+                hidden={amountsHidden}
+                // What is left and where the rest went: the Spending screen's own subject.
+                onPress={() => router.push('/personal/spending')}
+              />
+            </Row>
+          </Card>
+
+          {monthsBack === 0 ? (
+            <PersonalPlanCards plan={plan} ownerId={ownerId} hidden={amountsHidden} only="recap" />
+          ) : null}
+
+          <QuickActions
+            tiles={[
+              {
+                key: 'expense',
+                tone: 'brand',
+                icon: 'add',
+                label: t.personal.addExpense,
+                onPress: () =>
+                  router.push({ pathname: '/personal/entry', params: { kind: 'expense' } }),
+              },
+              {
+                key: 'income',
+                tone: 'positive',
+                icon: 'arrow-down',
+                label: t.personal.addIncome,
+                onPress: () =>
+                  router.push({ pathname: '/personal/entry', params: { kind: 'income' } }),
+              },
+              {
+                key: 'loan',
+                tone: 'brand',
+                icon: 'layers-outline',
+                label: h.loan,
+                onPress: () => router.push('/personal/loans'),
+              },
+              {
+                key: 'recurring',
+                tone: 'brand',
+                icon: 'repeat',
+                label: t.personal.recurring,
+                onPress: () => router.push('/personal/recurring'),
+              },
+              {
+                key: 'reminder',
+                tone: 'brand',
+                icon: 'notifications-outline',
+                label: h.reminder,
+                onPress: () => router.push('/dates/edit'),
+              },
+            ]}
           />
 
-          {/* What this month is still waiting for. The one screen where a
-              missed rent or an unpaid EMI is actually actionable: each row goes
-              straight to that period's own confirm sheet, prefilled. Only shown
-              for the current month — a past month's misses belong in its
-              history, not as a to-do list on the way somewhere else. */}
-          {monthsBack === 0 && due.length > 0 ? (
-            <View style={{ gap: theme.spacing.sm }}>
-              <Text variant="caption" tone="muted">
-                {t.personal.dueThisMonth}
-              </Text>
-              {due.map(({ rule, occurrence }) => (
-                <Pressable
-                  key={`${rule.id}:${occurrence.periodKey}`}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${rule.note?.trim() || sourceLabel(rule.category) || ''} · ${
-                    occurrence.status === 'missed' ? t.personal.missed : t.personal.due
-                  }`}
-                  onPress={() => router.push(`/personal/source/${rule.id}`)}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.6 : 1 })}
-                >
-                  <Card flat>
-                    <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
-                      <Ionicons
-                        name={occurrence.status === 'missed' ? 'alert-circle' : 'ellipse-outline'}
-                        size={iconSize.md}
-                        color={
-                          occurrence.status === 'missed' ? theme.color.negative : theme.color.brand
-                        }
-                      />
-                      <View style={{ flex: 1 }}>
-                        <Text variant="body" numberOfLines={1}>
-                          {rule.note?.trim() ||
-                            sourceLabel(rule.category) ||
-                            (rule.txnKind === 'income'
-                              ? t.personal.incomeKind
-                              : t.personal.expense)}
-                        </Text>
-                        <Text variant="micro" tone="muted">
-                          {fill(t.personal.expectedOn, { date: occurrence.dueDate })}
-                        </Text>
-                      </View>
-                      <Text variant="body" style={{ fontWeight: '700' }}>
-                        {rule.txnKind === 'income' ? '+' : '−'}
-                        {format(money(occurrence.expected, rule.currency), {
-                          locale,
-                        })}
-                      </Text>
-                    </Row>
-                  </Card>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
+          <Card style={{ gap: theme.spacing.md, padding: theme.spacing.lg }}>
+            <CardTitle title={t.personal.thisMonth}>
+              <MonthPill
+                label={monthLabel(month, locale)}
+                spokenLabel={t.personal.dash.pickMonth}
+                onPress={canBrowse ? () => setMonthMenuOpen(true) : undefined}
+              />
+            </CardTitle>
+            {budgetProgress ? (
+              <BudgetSummary
+                progress={budgetProgress}
+                perDay={perDay}
+                hidden={amountsHidden}
+                fmt={fmt}
+                t={t}
+                onPress={() => router.push('/personal/budgets')}
+              />
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={t.personal.dash.setBudget}
+                onPress={() => router.push('/personal/budgets')}
+                style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1, gap: 2 })}
+              >
+                <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
+                  {t.personal.dash.setBudget}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {categoryBudgetCount > 0
+                    ? `${plural(locale, categoryBudgetCount, t.personal.dash.categoryBudgets)}. ${worstOverLine ?? t.personal.dash.allWithin}`
+                    : t.personal.dash.setBudgetHint}
+                </Text>
+              </Pressable>
+            )}
+            {monthsBack === 0 ? (
+              <PersonalPlanCards plan={plan} ownerId={ownerId} hidden={amountsHidden} only="tip" />
+            ) : null}
+          </Card>
 
-          {categoryBuckets.length > 0 ? (
-            <SectionCard
-              icon="pie-chart"
-              title={t.personal.dash.topCategories}
-              subtitle={t.personal.dash.topCategoriesSubtitle}
+          <PersonalUpcomingCard
+            rows={upcomingRows}
+            fmt={(amount, currency) =>
+              amountsHidden ? BALANCE_MASK : format(money(amount, currency), { locale })
+            }
+          />
+
+          <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
+            <CardTitle
+              title={h.recentTitle}
               action={t.personal.dash.viewAll}
-              onAction={() => router.push('/personal/spending')}
-            >
-              <Row style={{ gap: theme.spacing.lg, alignItems: 'center' }}>
-                <CategoryDonut
-                  size={124}
-                  strokeWidth={15}
-                  segments={[
-                    ...topCategories.map((category) => ({
-                      share: category.share,
-                      color: theme.tint[resolveCategory(category.key, null).tint].ink,
-                    })),
-                    ...(othersBucket
-                      ? [{ share: othersBucket.share, color: theme.color.textMuted }]
-                      : []),
-                  ]}
-                >
-                  <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.6}
-                    style={{ fontSize: 15, lineHeight: 18, fontWeight: '800' }}
-                  >
-                    {fmt(summary.expense)}
-                  </Text>
-                  <Text variant="micro" tone="muted" numberOfLines={1}>
-                    {t.personal.dash.totalSpent}
-                  </Text>
-                  {change !== null ? (
-                    <Row style={{ alignItems: 'center', gap: 2, marginTop: 2 }}>
-                      <Ionicons
-                        name={change > 0 ? 'arrow-up' : change < 0 ? 'arrow-down' : 'remove'}
-                        size={9}
-                        color={
-                          change > 0
-                            ? theme.color.negative
-                            : change < 0
-                              ? theme.color.positive
-                              : theme.color.textMuted
-                        }
-                      />
-                      <Text
-                        variant="micro"
-                        numberOfLines={1}
-                        style={{
-                          fontWeight: '700',
-                          color:
-                            change > 0
-                              ? theme.color.negative
-                              : change < 0
-                                ? theme.color.positive
-                                : theme.color.textMuted,
-                        }}
-                      >
-                        {`${Math.abs(change)}%`}
-                      </Text>
-                    </Row>
-                  ) : null}
-                </CategoryDonut>
-
-                <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.sm }}>
-                  {topCategories.map((category) => (
-                    <TopCategoryRow
-                      key={category.key}
-                      category={category.key}
-                      label={catLabel(category.key) ?? t.categories.other}
-                      amount={fmt(category.spent)}
-                      share={category.share}
-                      onPress={() =>
-                        router.push({
-                          pathname: '/personal/transactions',
-                          params: {
-                            category: category.key,
-                            categoryMode: 'bucket',
-                            kind: 'expense',
-                            month,
-                          },
-                        })
-                      }
-                    />
-                  ))}
-                  {othersBucket ? (
-                    <TopCategoryRow
-                      isOthers
-                      label={t.personal.dash.others}
-                      amount={fmt(othersBucket.spent)}
-                      share={othersBucket.share}
-                      onPress={() => router.push('/personal/spending')}
-                    />
-                  ) : null}
-                </View>
-              </Row>
-            </SectionCard>
-          ) : null}
-
-          <SectionCard
-            icon="time-outline"
-            title={t.personal.dash.recentExpenses}
-            subtitle={t.personal.dash.recentExpensesSubtitle}
-            action={t.personal.dash.viewAll}
-            onAction={() => router.push('/personal/transactions')}
-          >
-            {recentExpenses.length === 0 ? (
+              onAction={() => router.push('/personal/transactions')}
+            />
+            {recentTxns.length === 0 ? (
               <Text tone="muted" align="center">
                 {t.personal.dash.noExpenses}
               </Text>
             ) : (
               <View>
-                {recentExpenses.map((txn, index) => (
+                {recentTxns.map((txn, index) => (
                   <View key={txn.id}>
                     {index > 0 ? <Divider /> : null}
                     <ExpenseRow
@@ -707,37 +591,70 @@ function MeLedger() {
                       categoryLabel={catLabel(txn.category) ?? t.categories.other}
                       date={txn.date === today ? t.personal.today : dayMonthYear(txn.date, locale)}
                       locale={locale}
+                      hidden={amountsHidden}
                     />
                   </View>
                 ))}
               </View>
             )}
-          </SectionCard>
+          </Card>
 
-          <SectionCard
-            icon="layers-outline"
-            title={t.personal.dash.moneyTools}
-            subtitle={t.personal.dash.moneyToolsSubtitle}
-          >
-            {/* A 2×3 grid of plain nav tiles — one per money tool Personal
-                already links to elsewhere. Chunked into rows of two rather
-                than a flex-wrap, so an odd tile out (Categories, with no
-                sixth to pair against) stretches to fill its row instead of
-                sitting half-width beside empty space. */}
-            <View style={{ gap: theme.spacing.sm }}>
-              {chunkPairs(moneyTools).map((pair, rowIndex) => (
-                <Row key={rowIndex} style={{ gap: theme.spacing.sm, alignItems: 'stretch' }}>
-                  {pair.map(({ key, ...tile }) => (
-                    <ToolGridTile key={key} {...tile} />
-                  ))}
-                </Row>
-              ))}
-            </View>
-          </SectionCard>
+          <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
+            {/* Only tools the quick actions above don't already offer. */}
+            <CardTitle title={t.personal.dash.moneyTools} />
+            <MoneyToolsRow
+              tiles={[
+                {
+                  key: 'budgets',
+                  tint: 'lilac',
+                  icon: 'speedometer-outline',
+                  label: t.personal.dash.toolBudgets,
+                  onPress: () => router.push('/personal/budgets'),
+                },
+                {
+                  key: 'spending',
+                  tint: 'sky',
+                  icon: 'pie-chart-outline',
+                  label: t.personal.nav.spending,
+                  onPress: () => router.push('/personal/spending'),
+                },
+                {
+                  key: 'ask',
+                  tint: 'mint',
+                  icon: 'sparkles-outline',
+                  label: t.spendingAsk.title,
+                  onPress: () => router.push('/personal/ask'),
+                },
+                {
+                  key: 'todo',
+                  tint: 'peach',
+                  icon: 'checkbox-outline',
+                  label: h.toolTodo,
+                  onPress: () => router.push('/personal/setup'),
+                },
+                {
+                  key: 'more',
+                  tint: 'lilac',
+                  icon: 'ellipsis-horizontal',
+                  label: h.toolMore,
+                  onPress: () => setMoreOpen(true),
+                },
+              ]}
+            />
+          </Card>
 
           <PrivacyFooterPill />
         </View>
       </ScrollView>
+      <OverflowMenu
+        visible={switchOpen}
+        onClose={() => setSwitchOpen(false)}
+        items={[
+          { icon: 'checkmark', label: h.space, onPress: () => undefined },
+          { icon: 'people-outline', label: h.sharedSpace, onPress: () => switchTab('/') },
+        ]}
+      />
+      <OverflowMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
       <OverflowMenu
         visible={monthMenuOpen}
         onClose={() => setMonthMenuOpen(false)}
@@ -747,6 +664,7 @@ function MeLedger() {
         visible={gearOpen}
         onClose={() => setGearOpen(false)}
         items={[
+          { icon: 'sparkles-outline', label: t.personalSetup.title, route: '/personal/setup' },
           { icon: 'image-outline', label: t.heroScene.title, route: '/settings/scene' },
           { icon: 'lock-closed-outline', label: t.personal.dash.settings, route: '/settings/lock' },
         ]}
@@ -795,89 +713,10 @@ function monthLabel(month: string, locale: string): string {
 const HEADLINE_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '700' } as const;
 
 /** How many months the faint bar chart behind the headline covers. */
-const SPEND_HISTORY_MONTHS = 7;
+const SPEND_HISTORY_MONTHS = 6;
 
-/** How many of the month's categories the donut and its list name on their
- *  own before the rest folds into one "Others" row. */
-const TOP_CATEGORY_COUNT = 5;
-
-/** How this month's spend moved against last month's: up is red (more went
- *  out), down is green — a tinted chip on the summary card. */
-function ChangePill({ change }: { change: number }) {
-  const theme = useTheme();
-  const up = change > 0;
-  const down = change < 0;
-  const color = up ? theme.color.negative : down ? theme.color.positive : theme.color.textMuted;
-  const bg = up
-    ? theme.color.negativeSoft
-    : down
-      ? theme.color.positiveSoft
-      : theme.color.surfaceMuted;
-  return (
-    <Row
-      style={{
-        alignItems: 'center',
-        gap: 4,
-        paddingHorizontal: theme.spacing.sm,
-        paddingVertical: 3,
-        borderRadius: 6,
-        backgroundColor: bg,
-      }}
-    >
-      <Ionicons
-        name={up ? 'arrow-up' : down ? 'arrow-down' : 'remove'}
-        size={iconSize.xs}
-        color={color}
-      />
-      <Text variant="caption" style={{ color, fontWeight: '700' }}>
-        {`${Math.abs(change)}%`}
-      </Text>
-    </Row>
-  );
-}
-
-/** How tall the mini bar chart stands. */
-const SPEND_CHART_HEIGHT = 40;
-
-/**
- * The faint bar chart beside the headline: the last several months' spend,
- * each a bar in the card's own brand tint, tallest never taller than the
- * chart itself. Drawn with plain `View`s — a sparkline with no library and
- * nothing to animate, so it costs nothing on the one screen that already
- * blurs a scene behind glass.
- */
-function SpendHistoryChart({ values }: { values: readonly bigint[] }) {
-  const theme = useTheme();
-  if (values.length < 2) return null;
-  const max = values.reduce((m, v) => (v > m ? v : m), 0n);
-  return (
-    <Row
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-      style={{ alignItems: 'flex-end', gap: 3, height: SPEND_CHART_HEIGHT, paddingBottom: 1 }}
-    >
-      {values.map((value, index) => {
-        const ratio = max > 0n ? Number(value) / Number(max) : 0;
-        const height = Math.max(3, Math.round(ratio * (SPEND_CHART_HEIGHT - 3)));
-        const latest = index === values.length - 1;
-        return (
-          <View
-            key={index}
-            style={{
-              width: 6,
-              height,
-              borderRadius: 3,
-              backgroundColor: latest ? theme.color.brand : theme.color.brandSoft,
-            }}
-          />
-        );
-      })}
-    </Row>
-  );
-}
-
-/** The month on show, as a white pill — a picker when there are other months
- *  to reach, and just the month's name when there are not. */
+/** The month on show, as a brand-coloured dropdown — a picker when there are
+ *  other months to reach, and just the month's name when there are not. */
 function MonthPill({
   label,
   spokenLabel,
@@ -894,528 +733,53 @@ function MonthPill({
       accessibilityLabel={onPress ? `${spokenLabel}. ${label}` : label}
       disabled={!onPress}
       onPress={onPress}
-      hitSlop={6}
+      hitSlop={8}
       style={({ pressed }) => ({
         flexDirection: 'row',
         alignItems: 'center',
-        gap: theme.spacing.xs,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderRadius: theme.radius.sm,
-        borderWidth: 1,
-        borderColor: theme.color.border,
-        backgroundColor: theme.color.surface,
+        gap: 2,
         maxWidth: 180,
         opacity: pressed ? 0.7 : 1,
       })}
     >
-      <Ionicons name="calendar-outline" size={iconSize.sm} color={theme.color.text} />
-      <Text variant="caption" numberOfLines={1} style={{ flexShrink: 1, fontWeight: '700' }}>
+      <Text
+        variant="caption"
+        tone="brand"
+        numberOfLines={1}
+        style={{ flexShrink: 1, fontWeight: '700' }}
+      >
         {label}
       </Text>
       {onPress ? (
-        <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.text} />
+        <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.brand} />
       ) : null}
-    </Pressable>
-  );
-}
-
-/** One of the three month figures: a small colour dot, what it is and the
- *  amount — tappable through to where it comes from. */
-function FlowTile({
-  icon,
-  tone,
-  label,
-  value,
-  negative = false,
-  hidden = false,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  tone: 'income' | 'negative' | 'brand';
-  label: string;
-  value: string;
-  /** The figure is below zero — drawn in the negative colour. */
-  negative?: boolean;
-  /** The eye is shut: show the mask in place of the amount. */
-  hidden?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const ink =
-    tone === 'income'
-      ? theme.color.positive
-      : tone === 'negative'
-        ? theme.color.negative
-        : theme.color.brand;
-  void icon;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={hidden ? label : `${label}. ${value}`}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flex: 1,
-        minWidth: 0,
-        gap: 2,
-        paddingVertical: theme.spacing.xs,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Row style={{ alignItems: 'center', gap: 6 }}>
-        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: ink }} />
-        <Text variant="caption" tone="muted" numberOfLines={1} style={{ flexShrink: 1 }}>
-          {label}
-        </Text>
-      </Row>
-      <Text
-        tabular
-        numberOfLines={1}
-        adjustsFontSizeToFit
-        minimumFontScale={0.7}
-        style={{
-          fontSize: 16,
-          lineHeight: 21,
-          fontWeight: '600',
-          color: hidden ? theme.color.text : negative ? theme.color.negative : theme.color.text,
-        }}
-      >
-        {hidden ? BALANCE_MASK : value}
-      </Text>
     </Pressable>
   );
 }
 
 // ──────────────────────────────────────────────────────────────── body ──
 
-/** A white card with a titled header — a tinted disc, the title (with an
- *  optional one-line subtitle under it), and an optional "View all" link on
- *  the right. */
-function SectionCard({
-  icon,
-  title,
-  subtitle,
-  action,
-  onAction,
-  trailing,
-  children,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  /** A short one-line line under the title, the way the reference's cards
-   *  each say what the card is for ("Where your money goes this month"). */
-  subtitle?: string;
-  action?: string;
-  onAction?: () => void;
-  /** Drawn at the header's end in place of a link. */
-  trailing?: ReactNode;
-  children: ReactNode;
-}) {
-  const theme = useTheme();
-  return (
-    <Card style={{ gap: theme.spacing.lg, padding: theme.spacing.lg }}>
-      <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 18,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.brandSoft,
-          }}
-        >
-          <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
-        </View>
-        <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
-          <Text variant="subheading" numberOfLines={1}>
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {subtitle}
-            </Text>
-          ) : null}
-        </View>
-        {trailing}
-        {action && onAction ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`${action}, ${title}`}
-            onPress={onAction}
-            hitSlop={8}
-            style={({ pressed }) => ({
-              flexDirection: 'row',
-              alignItems: 'center',
-              gap: 2,
-              opacity: pressed ? 0.5 : 1,
-            })}
-          >
-            <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
-              {action}
-            </Text>
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.sm}
-              color={theme.color.brand}
-            />
-          </Pressable>
-        ) : null}
-      </Row>
-      {children}
-    </Card>
-  );
-}
-
-/** The overall monthly cap: how much of it the month has used, as a figure and
- *  a bar. With no cap set, an invitation to set one. */
-function BudgetCard({
-  progress,
-  categoryCount,
-  worstOverLine,
-  locale,
-  fmt,
-  t,
-  onPress,
-}: {
-  progress: { spent: bigint; limit: bigint; ratio: number } | null;
-  /** Budgets on single categories — spoken for when there is no overall cap. */
-  categoryCount: number;
-  /** "Food: ₹2,000 over" for the category furthest past its cap, or null. */
-  worstOverLine: string | null;
-  locale: string;
-  fmt: (amount: bigint) => string;
-  t: ReturnType<typeof useStrings>['t'];
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const percent = progress ? Math.round(progress.ratio * 100) : 0;
-  const over = percent > 100;
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={
-        progress
-          ? `${t.personal.dash.monthlyBudget}. ${fmt(progress.spent)} ${fill(t.personal.dash.budgetOf, { limit: fmt(progress.limit) })}. ${percent}% ${t.personal.dash.spentShort}`
-          : categoryCount > 0
-            ? `${t.personal.dash.monthlyBudget}. ${plural(locale, categoryCount, t.personal.dash.categoryBudgets)}. ${worstOverLine ?? t.personal.dash.allWithin}`
-            : t.personal.dash.setBudget
-      }
-      onPress={onPress}
-      style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-    >
-      <SectionCard
-        icon="radio-button-on"
-        title={t.personal.dash.monthlyBudget}
-        trailing={
-          progress ? (
-            <Row style={{ alignItems: 'center', gap: 2 }}>
-              <Text variant="caption" numberOfLines={1}>
-                <Text variant="caption" style={{ fontWeight: '800' }}>
-                  {fmt(progress.spent)}
-                </Text>
-                <Text variant="caption" tone="muted">
-                  {` ${fill(t.personal.dash.budgetOf, { limit: fmt(progress.limit) })}`}
-                </Text>
-              </Text>
-              <Ionicons
-                name={directionalIcon('chevron-forward')}
-                size={iconSize.sm}
-                color={theme.color.textMuted}
-              />
-            </Row>
-          ) : (
-            <Ionicons
-              name={directionalIcon('chevron-forward')}
-              size={iconSize.sm}
-              color={theme.color.brand}
-            />
-          )
-        }
-      >
-        {progress ? (
-          <Row style={{ alignItems: 'center', gap: theme.spacing.lg }}>
-            <View
-              style={{
-                flex: 1,
-                height: 12,
-                borderRadius: 6,
-                backgroundColor: theme.color.surfaceMuted,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  width: `${Math.min(100, percent)}%`,
-                  height: 12,
-                  borderRadius: 6,
-                  backgroundColor: over ? theme.color.negative : theme.color.brand,
-                }}
-              />
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text
-                style={{
-                  fontSize: 20,
-                  lineHeight: 24,
-                  fontWeight: '800',
-                  color: over ? theme.color.negative : theme.color.text,
-                }}
-              >
-                {`${percent}%`}
-              </Text>
-              <Text variant="micro" tone="muted">
-                {t.personal.dash.spentShort}
-              </Text>
-            </View>
-          </Row>
-        ) : categoryCount > 0 ? (
-          // No overall cap, but category budgets: say how many, and whether any
-          // has run over — the one thing on this card worth acting on.
-          <View style={{ gap: 2 }}>
-            <Text variant="body" style={{ fontWeight: '700' }}>
-              {plural(locale, categoryCount, t.personal.dash.categoryBudgets)}
-            </Text>
-            <Text
-              variant="caption"
-              style={{
-                color: worstOverLine ? theme.color.negative : theme.color.positive,
-                fontWeight: '600',
-              }}
-            >
-              {worstOverLine ?? t.personal.dash.allWithin}
-            </Text>
-          </View>
-        ) : (
-          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
-            <View style={{ flex: 1, gap: 2 }}>
-              <Text variant="body" tone="brand" style={{ fontWeight: '700' }}>
-                {t.personal.dash.setBudget}
-              </Text>
-              <Text variant="caption" tone="muted">
-                {t.personal.dash.setBudgetHint}
-              </Text>
-            </View>
-            <BudgetJarArt />
-          </Row>
-        )}
-      </SectionCard>
-    </Pressable>
-  );
-}
-
-/** The budget card's jar-of-coins, for the invitation state only — a soft
- *  lavender jar with a coin peeking over its rim, themed off the lilac tint
- *  so it sits quietly beside "Set a monthly budget" rather than competing
- *  with it. */
-function BudgetJarArt() {
-  const theme = useTheme();
-  const tint = theme.tint.lilac;
-  return (
-    <Svg
-      width={56}
-      height={56}
-      viewBox="0 0 64 64"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <Rect
-        x={14}
-        y={24}
-        width={36}
-        height={32}
-        rx={10}
-        fill={tint.bg}
-        stroke={tint.ink}
-        strokeWidth={2}
-      />
-      <Path d="M20 34 H44" stroke={tint.ink} strokeWidth={2} strokeLinecap="round" opacity={0.5} />
-      <Path d="M20 42 H44" stroke={tint.ink} strokeWidth={2} strokeLinecap="round" opacity={0.5} />
-      <Rect
-        x={20}
-        y={14}
-        width={24}
-        height={10}
-        rx={5}
-        fill={tint.bg}
-        stroke={tint.ink}
-        strokeWidth={2}
-      />
-      <Circle cx={26} cy={14} r={6} fill={theme.color.brand} />
-      <Circle cx={36} cy={10} r={6} fill={theme.color.brand} />
-      <Circle cx={32} cy={18} r={6} fill={tint.bg} stroke={theme.color.brand} strokeWidth={1.5} />
-    </Svg>
-  );
-}
-
-/**
- * The donut behind the top-categories card: one ring segment per category
- * (plus one for the "Others" tail), each coloured with that category's own
- * tint so the chart and the list beside it read as the same breakdown. Drawn
- * as stacked `Circle`s with a `strokeDasharray`/`strokeDashoffset` pair —
- * the same plain-primitives approach as the bar sparkline above, no charting
- * library — rotated -90° so the first segment starts at twelve o'clock. The
- * centre is free for whatever the caller wants to say about the whole month.
- */
-function CategoryDonut({
-  size,
-  strokeWidth,
-  segments,
-  children,
-}: {
-  size: number;
-  strokeWidth: number;
-  segments: readonly { share: number; color: string }[];
-  children: ReactNode;
-}) {
-  const theme = useTheme();
-  const r = (size - strokeWidth) / 2;
-  const circumference = 2 * Math.PI * r;
-  const cx = size / 2;
-  const cy = size / 2;
-  // Each arc's length and where it starts, built with a fold rather than a
-  // running total mutated inside the map below — the React compiler forbids
-  // reassigning a render-local variable from inside a callback.
-  const arcs = segments.reduce<{ color: string; dash: number; offset: number }[]>(
-    (acc, segment) => {
-      if (segment.share <= 0) return acc;
-      const drawnSoFar =
-        acc.length > 0 ? acc[acc.length - 1]!.offset + acc[acc.length - 1]!.dash : 0;
-      const dash = segment.share * circumference;
-      acc.push({ color: segment.color, dash, offset: drawnSoFar });
-      return acc;
-    },
-    [],
-  );
-  return (
-    <View style={{ width: size, height: size }}>
-      <Svg
-        width={size}
-        height={size}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Circle
-          cx={cx}
-          cy={cy}
-          r={r}
-          stroke={theme.color.surfaceMuted}
-          strokeWidth={strokeWidth}
-          fill="none"
-        />
-        {arcs.map((arc, index) => (
-          <Circle
-            key={index}
-            cx={cx}
-            cy={cy}
-            r={r}
-            stroke={arc.color}
-            strokeWidth={strokeWidth}
-            strokeDasharray={`${arc.dash} ${circumference - arc.dash}`}
-            strokeDashoffset={circumference - arc.offset}
-            fill="none"
-            transform={`rotate(-90 ${cx} ${cy})`}
-          />
-        ))}
-      </Svg>
-      <View
-        pointerEvents="none"
-        style={[
-          StyleSheet.absoluteFill,
-          { alignItems: 'center', justifyContent: 'center', paddingHorizontal: strokeWidth },
-        ]}
-      >
-        {children}
-      </View>
-    </View>
-  );
-}
-
-/** One row of the top-categories list: a tinted badge, the name, its amount
- *  and share, and a chevron through to that category's spends. `isOthers`
- *  swaps the badge for a plain dot — the aggregate row has no one category to
- *  draw an icon for. */
-function TopCategoryRow({
-  category,
-  label,
-  amount,
-  share,
-  isOthers = false,
-  onPress,
-}: {
-  category?: string;
-  label: string;
-  amount: string;
-  share: number;
-  isOthers?: boolean;
-  onPress: () => void;
-}) {
-  const theme = useTheme();
-  const percent = Math.round(share * 100);
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${label}, ${amount}, ${percent}%`}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        paddingVertical: theme.spacing.xs,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      {isOthers ? (
-        <View
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: 14,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: theme.color.surfaceMuted,
-          }}
-        >
-          <Ionicons name="ellipsis-horizontal" size={iconSize.xs} color={theme.color.textMuted} />
-        </View>
-      ) : (
-        <CategoryBadge category={category} meta={null} size={28} />
-      )}
-      <Text variant="caption" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
-        {label}
-      </Text>
-      <Text variant="caption" numberOfLines={1} style={{ fontWeight: '700' }}>
-        {amount}
-        <Text variant="micro" tone="muted">{` · ${percent}%`}</Text>
-      </Text>
-      <Ionicons
-        name={directionalIcon('chevron-forward')}
-        size={iconSize.xs}
-        color={theme.color.textMuted}
-      />
-    </Pressable>
-  );
-}
-
-/** One recent spend: its badge, what it was and when, its category as a chip,
- *  and the amount. Opens the entry. */
+/** One recent entry: its badge, what it was and when, and the amount. Opens the entry. */
 function ExpenseRow({
   txn,
   title,
   categoryLabel,
   date,
   locale,
+  hidden = false,
 }: {
   txn: PersonalTxn;
   title: string;
   categoryLabel: string;
   date: string;
   locale: string;
+  hidden?: boolean;
 }) {
   const theme = useTheme();
-  const tint = theme.tint[resolveCategory(txn.category ?? 'other', null).tint];
   const expense = txn.kind === 'expense';
-  const amount = `${expense ? '−' : '+'}${format(money(txn.amount, txn.currency), { locale })}`;
+  const amount = hidden
+    ? BALANCE_MASK
+    : `${expense ? '−' : '+'}${format(money(txn.amount, txn.currency), { locale })}`;
   return (
     <Pressable
       accessibilityRole="button"
@@ -1444,19 +808,6 @@ function ExpenseRow({
           {date}
         </Text>
       </View>
-      <View
-        style={{
-          paddingHorizontal: theme.spacing.sm,
-          paddingVertical: 2,
-          borderRadius: 6,
-          backgroundColor: tint.bg,
-          maxWidth: 96,
-        }}
-      >
-        <Text variant="micro" numberOfLines={1} style={{ color: tint.ink, fontWeight: '600' }}>
-          {categoryLabel}
-        </Text>
-      </View>
       <Text
         variant="body"
         numberOfLines={1}
@@ -1464,78 +815,19 @@ function ExpenseRow({
       >
         {amount}
       </Text>
-      <Ionicons
-        name={directionalIcon('chevron-forward')}
-        size={iconSize.sm}
-        color={theme.color.textMuted}
-      />
     </Pressable>
   );
 }
 
-/** One tile of the money-tools grid: round icon, title, a chevron, and a
- *  one-line subtitle naming what it's for. */
-interface ToolTileSpec {
-  readonly key: string;
-  readonly tint: TintName;
-  readonly icon: keyof typeof Ionicons.glyphMap;
-  readonly title: string;
-  readonly subtitle: string;
-  readonly onPress: () => void;
-}
-
-/** `moneyTools` chunked into rows of two, for the grid below. The last row is
- *  shorter than two when the tile count is odd (no filler tile is invented to
- *  square it off). */
-function chunkPairs<T>(items: readonly T[]): T[][] {
-  const pairs: T[][] = [];
-  for (let i = 0; i < items.length; i += 2) pairs.push(items.slice(i, i + 2));
-  return pairs;
-}
-
-function ToolGridTile({ tint: tintName, icon, title, subtitle, onPress }: ToolTileSpec) {
-  const theme = useTheme();
-  const tint = theme.tint[tintName];
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${title}. ${subtitle}`}
-      onPress={onPress}
-      style={({ pressed }) => ({
-        flex: 1,
-        minWidth: 0,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        padding: theme.spacing.sm,
-        borderRadius: theme.radius.lg,
-        backgroundColor: tint.bg,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <View
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 18,
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: theme.color.surface,
-        }}
-      >
-        <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text variant="caption" numberOfLines={1} style={{ fontWeight: '700' }}>
-          {title}
-        </Text>
-        <Text variant="micro" tone="muted" numberOfLines={1}>
-          {subtitle}
-        </Text>
-      </View>
-      <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={tint.ink} />
-    </Pressable>
-  );
+// A month as "Aug", under its bar.
+function monthShort(month: string, locale: string): string {
+  try {
+    return dateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(
+      new Date(`${month}-01T00:00:00Z`),
+    );
+  } catch {
+    return month;
+  }
 }
 
 // A month as "Aug 2026", for the comparison under the hero figure.
@@ -1636,6 +928,17 @@ function AddActions({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
  * The privacy line stays, and stays early: the one question anybody has about
  * a personal ledger inside a bill-splitting app is who else can see it.
  */
+/** A blank ledger opens the setup flow once per launch; backing out leaves the first-run screen. */
+let setupOffered = false;
+function OpenSetupOnce() {
+  useEffect(() => {
+    if (setupOffered) return;
+    setupOffered = true;
+    router.push('/personal/setup');
+  }, []);
+  return null;
+}
+
 function PersonalFirstRun({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
   const theme = useTheme();
   const clearance = useTabBarClearance();
@@ -1664,9 +967,9 @@ function PersonalFirstRun({ t }: { t: ReturnType<typeof useStrings>['t'] }) {
             body={t.personal.introBody}
             action={
               <Button
-                label={t.personal.addRecurring}
+                label={t.personalSetup.title}
                 variant="secondary"
-                onPress={() => router.push('/personal/recurring')}
+                onPress={() => router.push('/personal/setup')}
               />
             }
           />
@@ -1747,35 +1050,9 @@ function PrivateNote() {
  * `PrivateNote` is still the right weight.
  */
 function PrivacyFooterPill() {
-  const theme = useTheme();
   const { t } = useStrings();
-  const tint = theme.tint.lilac;
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t.personal.privateNote}
-      onPress={() => router.push('/settings/backup')}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.sm,
-        paddingHorizontal: theme.spacing.md,
-        paddingVertical: theme.spacing.sm,
-        borderRadius: theme.radius.md,
-        backgroundColor: tint.bg,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Ionicons name="lock-closed" size={iconSize.sm} color={tint.ink} />
-      <Text
-        variant="caption"
-        numberOfLines={1}
-        style={{ flex: 1, minWidth: 0, color: tint.ink, fontWeight: '600' }}
-      >
-        {t.personal.privateNote}
-      </Text>
-      <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={tint.ink} />
-    </Pressable>
+    <PrivacyPill label={t.personal.privateNote} onPress={() => router.push('/settings/backup')} />
   );
 }
 

@@ -51,7 +51,7 @@ import { FlashList } from '@shopify/flash-list';
 import { randomUUID } from 'expo-crypto';
 import { Pressable, ScrollView, TextInput, View } from 'react-native';
 
-import { MutationKind, peopleSignatureKey, SmsKind } from '@waves/core';
+import { MutationKind, peopleSignatureKey, SmsKind, fallbackCurrency } from '@waves/core';
 import {
   Button,
   EmptyState,
@@ -486,7 +486,7 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
         label: group ? groupLabel(group, members, viewerId) : '',
         members,
         myMemberId: members.find((member) => isViewer(member, viewerId))?.id ?? null,
-        currency: group?.default_currency ?? chosen[0]?.currency ?? 'INR',
+        currency: group?.default_currency ?? chosen[0]?.currency ?? fallbackCurrency(),
       });
     },
     [assignableGroups, chosen, placeInGroup, viewerId, summary],
@@ -507,7 +507,7 @@ export default function SmsInboxScreen(): React.JSX.Element | null {
       }
 
       const groupId = newGroupId;
-      const currency = chosen[0]?.currency ?? 'INR';
+      const currency = chosen[0]?.currency ?? fallbackCurrency();
       setPickerOpen(false);
       const ghostIds: string[] = [];
       try {
