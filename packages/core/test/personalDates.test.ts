@@ -71,7 +71,6 @@ describe('festivals and upcoming', () => {
     expect(defaultFestivals('US')).toContain('hanukkah');
   });
   it('keeps at least twelve months of moving festival dates from fixed now and stays capped at 2030', () => {
-    const now = '2026-11-21';
     const tabulated = Object.values(FESTIVAL_DATES).flat();
     expect(Math.max(...tabulated.map((date) => Number(date.slice(0, 4))))).toBe(2030);
     expect((tabulated.sort().at(-1) ?? '') >= '2027-11-21').toBe(true);
