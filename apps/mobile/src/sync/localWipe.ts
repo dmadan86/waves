@@ -7,6 +7,7 @@
  */
 
 import { clearBackupState } from '@/lib/backup/engine';
+import { clearHomeSnapshot } from '@/lib/homeSnapshotStore';
 import { clearReceiptQueue } from '@/lib/receiptQueue';
 import { forgetSmsDraftsForOwner } from '@/lib/smsDraftStore';
 import { forgetMessagesForOwner as forgetBankMessages } from '@/lib/smsMessageStore';
@@ -43,6 +44,7 @@ export async function clearLocalPrivateData(ownerId: string): Promise<void> {
   // synced, so this device holds the only copy — and it must not outlive the
   // account on a phone that is changing hands.
   await forgetSmsDraftsForOwner(ownerId).catch((error: unknown) => failures.push(error));
+  await clearHomeSnapshot(ownerId).catch((error: unknown) => failures.push(error));
   await clearBackupState(ownerId).catch((error: unknown) => failures.push(error));
   try {
     clearImageCache();

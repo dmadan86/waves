@@ -23,6 +23,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -70,15 +71,17 @@ import { PersonalIntro } from '@/components/PersonalIntro';
 import { PersonalPlanCards } from '@/components/PersonalPlanCards';
 import {
   CardTitle,
-  MoneyToolsRow,
   PersonalUpcomingCard,
   PrivacyPill,
+  MonthPill,
   QuickActions,
   usePersonalUpcoming,
 } from '@/components/personal/PersonalHomeParts';
+import { monthLabel, monthShort, monthShortYear, monthsBetween, shiftMonth } from '@/lib/monthNav';
 import { hasDue } from '@/lib/personalUpcoming';
 import { personalIntroSeen, rememberPersonalIntroSeen } from '@/lib/onboardingSeen';
 import { useAvatarUrl } from '@/components/ProfileAvatar';
+import { useSpaceSwitchItems } from '@/lib/useSpaceSwitchItems';
 import { useViewerIdentity } from '@/lib/viewerIdentity';
 import { SignInWall } from '@/components/SignInWall';
 import {
@@ -91,9 +94,11 @@ import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { useDefaultCurrency } from '@/lib/currency';
 import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { useAuth, useViewerId } from '@/lib/auth';
-import { router, switchTab } from '@/lib/navigation';
+import { router } from '@/lib/navigation';
 import { useSync } from '@/sync';
 import { fill, plural, useStrings } from '@/i18n';
+
+type MenuAnchorBox = { x: number; y: number; width: number; height: number };
 
 // The first run's saturated wash, deep enough to hold white ink on every corner.
 const SAVED_WASH = ['#1E5A8C', '#0C2E4A'] as const;
@@ -140,6 +145,8 @@ function MeLedger() {
   // newest-first, so the last txn's month is the earliest represented.
   const [monthsBack, setMonthsBack] = useState(0);
   const [monthMenuOpen, setMonthMenuOpen] = useState(false);
+  // The month list drops from the pill that opened it, not the screen's corner.
+  const [monthAnchor, setMonthAnchor] = useState<MenuAnchorBox | null>(null);
   const earliestMonth =
     ledger.txns.length > 0 ? ledger.txns[ledger.txns.length - 1]!.date.slice(0, 7) : currentMonth;
   const maxBack = Math.max(0, monthsBetween(earliestMonth, currentMonth));
@@ -177,7 +184,7 @@ function MeLedger() {
   const summary = monthOutlook(ledger.txns, ledger.recurrings, month, dc, today);
   // Whole-rupee totals drop a bare ".00"; real paise still show.
   const fmt = (amount: bigint): string => {
-    const p = formatParts(money(amount, dc), { locale });
+    const p = formatParts(money(amount, dc), { locale, trimZeros: true });
     return /[1-9]/.test(p.fraction) ? p.text : p.lead + p.trail;
   };
   const catLabel = labelForCategory(t);
@@ -235,11 +242,24 @@ function MeLedger() {
     3,
   );
   const [switchOpen, setSwitchOpen] = useState(false);
+  const switchItems = useSpaceSwitchItems('personal', {
+    shared: h.sharedSpace,
+    personal: h.space,
+    onlyYou: h.onlyYou,
+    sharedSubtitle: h.sharedSubtitle,
+    couple: h.groupCouple,
+    family: h.groupFamily,
+  });
   const [moreOpen, setMoreOpen] = useState(false);
   useWealthReminders();
   const firstName = (profile?.display_name ?? t.account.you).trim().split(/\s+/)[0];
 
+  // One set of quick actions on this screen; the less-used ones live here.
   const moreItems: OverflowMenuItem[] = [
+    { icon: 'notifications-outline', label: h.reminder, route: '/dates/edit' },
+    { icon: 'pie-chart-outline', label: t.personal.nav.spending, route: '/personal/spending' },
+    { icon: 'sparkles-outline', label: t.spendingAsk.title, route: '/personal/ask' },
+    { icon: 'checkbox-outline', label: h.toolTodo, route: '/personal/setup' },
     {
       icon: 'document-text-outline',
       label: t.statementImport.title,
@@ -373,7 +393,7 @@ function MeLedger() {
       </TabHeader>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: clearance }}
+        contentContainerStyle={{ paddingBottom: clearance + 96 }}
         showsVerticalScrollIndicator={false}
       >
         <View
@@ -515,13 +535,6 @@ function MeLedger() {
                   router.push({ pathname: '/personal/entry', params: { kind: 'income' } }),
               },
               {
-                key: 'loan',
-                tone: 'brand',
-                icon: 'layers-outline',
-                label: h.loan,
-                onPress: () => router.push('/personal/loans'),
-              },
-              {
                 key: 'recurring',
                 tone: 'brand',
                 icon: 'repeat',
@@ -529,11 +542,39 @@ function MeLedger() {
                 onPress: () => router.push('/personal/recurring'),
               },
               {
-                key: 'reminder',
+                key: 'loan',
                 tone: 'brand',
-                icon: 'notifications-outline',
-                label: h.reminder,
-                onPress: () => router.push('/dates/edit'),
+                icon: 'layers-outline',
+                label: h.loan,
+                onPress: () => router.push('/personal/loans'),
+              },
+              {
+                key: 'budgets',
+                tone: 'brand',
+                icon: 'speedometer-outline',
+                label: t.personal.dash.toolBudgets,
+                onPress: () => router.push('/personal/budgets'),
+              },
+              {
+                key: 'investments',
+                tone: 'brand',
+                icon: 'trending-up-outline',
+                label: t.homeToday.toolInvestments,
+                onPress: () => router.push('/investments'),
+              },
+              {
+                key: 'rentals',
+                tone: 'brand',
+                icon: 'business-outline',
+                label: t.homeToday.toolRentals,
+                onPress: () => router.push('/rentals'),
+              },
+              {
+                key: 'more',
+                tone: 'brand',
+                icon: 'ellipsis-horizontal',
+                label: h.toolMore,
+                onPress: () => setMoreOpen(true),
               },
             ]}
           />
@@ -543,7 +584,14 @@ function MeLedger() {
               <MonthPill
                 label={monthLabel(month, locale)}
                 spokenLabel={t.personal.dash.pickMonth}
-                onPress={canBrowse ? () => setMonthMenuOpen(true) : undefined}
+                onPress={
+                  canBrowse
+                    ? (anchor) => {
+                        setMonthAnchor(anchor);
+                        setMonthMenuOpen(true);
+                      }
+                    : undefined
+                }
               />
             </CardTitle>
             {budgetProgress ? (
@@ -580,7 +628,9 @@ function MeLedger() {
           <PersonalUpcomingCard
             rows={upcomingRows}
             fmt={(amount, currency) =>
-              amountsHidden ? BALANCE_MASK : format(money(amount, currency), { locale })
+              amountsHidden
+                ? BALANCE_MASK
+                : format(money(amount, currency), { locale, trimZeros: true })
             }
           />
 
@@ -613,80 +663,16 @@ function MeLedger() {
             )}
           </Card>
 
-          <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
-            {/* Only tools the quick actions above don't already offer. */}
-            <CardTitle title={t.personal.dash.moneyTools} />
-            <MoneyToolsRow
-              tiles={[
-                {
-                  key: 'budgets',
-                  tint: 'lilac',
-                  icon: 'speedometer-outline',
-                  label: t.personal.dash.toolBudgets,
-                  onPress: () => router.push('/personal/budgets'),
-                },
-                {
-                  key: 'spending',
-                  tint: 'sky',
-                  icon: 'pie-chart-outline',
-                  label: t.personal.nav.spending,
-                  onPress: () => router.push('/personal/spending'),
-                },
-                {
-                  key: 'ask',
-                  tint: 'mint',
-                  icon: 'sparkles-outline',
-                  label: t.spendingAsk.title,
-                  onPress: () => router.push('/personal/ask'),
-                },
-                {
-                  key: 'todo',
-                  tint: 'peach',
-                  icon: 'checkbox-outline',
-                  label: h.toolTodo,
-                  onPress: () => router.push('/personal/setup'),
-                },
-                {
-                  key: 'investments',
-                  tint: 'sky',
-                  icon: 'trending-up-outline',
-                  label: t.wealth.investments,
-                  onPress: () => router.push('/investments'),
-                },
-                {
-                  key: 'rentals',
-                  tint: 'peach',
-                  icon: 'business-outline',
-                  label: t.wealth.rentals,
-                  onPress: () => router.push('/rentals'),
-                },
-                {
-                  key: 'more',
-                  tint: 'lilac',
-                  icon: 'ellipsis-horizontal',
-                  label: h.toolMore,
-                  onPress: () => setMoreOpen(true),
-                },
-              ]}
-            />
-          </Card>
-
           <PrivacyFooterPill />
         </View>
       </ScrollView>
-      <OverflowMenu
-        visible={switchOpen}
-        onClose={() => setSwitchOpen(false)}
-        items={[
-          { icon: 'checkmark', label: h.space, onPress: () => undefined },
-          { icon: 'people-outline', label: h.sharedSpace, onPress: () => switchTab('/') },
-        ]}
-      />
+      <OverflowMenu visible={switchOpen} onClose={() => setSwitchOpen(false)} items={switchItems} />
       <OverflowMenu visible={moreOpen} onClose={() => setMoreOpen(false)} items={moreItems} />
       <OverflowMenu
         visible={monthMenuOpen}
         onClose={() => setMonthMenuOpen(false)}
         items={monthItems}
+        anchor={monthAnchor}
       />
       <OverflowMenu
         visible={gearOpen}
@@ -704,36 +690,6 @@ function MeLedger() {
 
 // ─────────────────────────────────────────────────────────────── month ──
 
-// Shift a YYYY-MM by whole calendar months. Date maths on the first of the month
-// so day-of-month can never overflow (Date arg, never a bare `new Date()`).
-function shiftMonth(month: string, delta: number): string {
-  const d = new Date(`${month}-01T00:00:00`);
-  d.setMonth(d.getMonth() + delta);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-// Whole months from `from` to `to` (both YYYY-MM); negative if `to` precedes
-// `from`. Used to bound backward month navigation to the earliest entry.
-function monthsBetween(from: string, to: string): number {
-  const [fy = 0, fm = 0] = from.split('-').map(Number);
-  const [ty = 0, tm = 0] = to.split('-').map(Number);
-  return (ty - fy) * 12 + (tm - fm);
-}
-
-// The month for the header — the reader's own calendar name, or the raw YYYY-MM
-// if the platform has no Intl month names.
-function monthLabel(month: string, locale: string): string {
-  try {
-    // UTC on both sides: a cached formatter keeps the zone it was built in, so
-    // a local-time date would drift a day (or a month) after a timezone change.
-    return dateTimeFormat(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
-      new Date(`${month}-01T00:00:00Z`),
-    );
-  } catch {
-    return month;
-  }
-}
-
 // ─────────────────────────────────────────────────────────────── hero ──
 
 /** The big headline figure's text style, shared between the live amount and
@@ -742,48 +698,6 @@ const HEADLINE_STYLE = { fontSize: 30, lineHeight: 36, fontWeight: '700' } as co
 
 /** How many months the faint bar chart behind the headline covers. */
 const SPEND_HISTORY_MONTHS = 6;
-
-/** The month on show, as a brand-coloured dropdown — a picker when there are
- *  other months to reach, and just the month's name when there are not. */
-function MonthPill({
-  label,
-  spokenLabel,
-  onPress,
-}: {
-  label: string;
-  spokenLabel: string;
-  onPress?: () => void;
-}) {
-  const theme = useTheme();
-  return (
-    <Pressable
-      accessibilityRole={onPress ? 'button' : undefined}
-      accessibilityLabel={onPress ? `${spokenLabel}. ${label}` : label}
-      disabled={!onPress}
-      onPress={onPress}
-      hitSlop={8}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 2,
-        maxWidth: 180,
-        opacity: pressed ? 0.7 : 1,
-      })}
-    >
-      <Text
-        variant="caption"
-        tone="brand"
-        numberOfLines={1}
-        style={{ flexShrink: 1, fontWeight: '700' }}
-      >
-        {label}
-      </Text>
-      {onPress ? (
-        <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.brand} />
-      ) : null}
-    </Pressable>
-  );
-}
 
 // ──────────────────────────────────────────────────────────────── body ──
 
@@ -807,7 +721,7 @@ function ExpenseRow({
   const expense = txn.kind === 'expense';
   const amount = hidden
     ? BALANCE_MASK
-    : `${expense ? '−' : '+'}${format(money(txn.amount, txn.currency), { locale })}`;
+    : `${expense ? '−' : '+'}${format(money(txn.amount, txn.currency), { locale, trimZeros: true })}`;
   return (
     <Pressable
       accessibilityRole="button"
@@ -845,28 +759,6 @@ function ExpenseRow({
       </Text>
     </Pressable>
   );
-}
-
-// A month as "Aug", under its bar.
-function monthShort(month: string, locale: string): string {
-  try {
-    return dateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(
-      new Date(`${month}-01T00:00:00Z`),
-    );
-  } catch {
-    return month;
-  }
-}
-
-// A month as "Aug 2026", for the comparison under the hero figure.
-function monthShortYear(month: string, locale: string): string {
-  try {
-    return dateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
-      new Date(`${month}-01T00:00:00Z`),
-    );
-  } catch {
-    return month;
-  }
 }
 
 // A day as "2 Sep 2026", for the recent expenses.

@@ -38,8 +38,8 @@ export function QuickCategoryRow({
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
-  const soft = dark ? theme.color.surfaceMuted : '#F3F0FE';
-  const accent = dark ? theme.color.brand : '#6A45E8';
+  const soft = theme.color.brandSoft;
+  const accent = theme.color.brand;
   const { t } = useStrings();
   const { visible } = useRankedCategoryCatalog();
   const [sheetOpen, setSheetOpen] = useState(false);

@@ -40,8 +40,8 @@ import {
   Screen,
   Skeleton,
   Text,
-  useTabBarClearance,
   useTheme,
+  useTabBarClearance,
   type Theme,
 } from '@waves/ui';
 
@@ -79,8 +79,8 @@ function refusalText(reason: Extract<ClaimOutcome, { ok: false }>['reason'], t: 
 
 export default function InviteFriendsScreen() {
   const theme = useTheme();
-  const clearance = useTabBarClearance();
   const insets = useSafeAreaInsets();
+  const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const live = useReferralsLive();
   const viewerId = useViewerId();
@@ -88,9 +88,24 @@ export default function InviteFriendsScreen() {
 
   const mine = useQuery({
     queryKey: ['myReferral', viewerId],
-    enabled: live && viewerId !== null,
+    // The RPC handles guest accounts too. Requiring a viewer id here leaves
+    // TanStack Query in its pending state forever while auth is settling.
+    enabled: live,
+    retry: false,
     staleTime: 60_000,
-    queryFn: fetchMyReferral,
+    queryFn: async () => {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        return await Promise.race([
+          fetchMyReferral(),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error('Referral request timed out')), 8_000);
+          }),
+        ]);
+      } finally {
+        if (timer) clearTimeout(timer);
+      }
+    },
   });
 
   const [code, setCode] = useState('');
@@ -268,65 +283,72 @@ export default function InviteFriendsScreen() {
                   </View>
                 </Pressable>
 
-                <View style={[panel(theme), { padding: theme.spacing.lg, gap: theme.spacing.sm }]}>
+                {data.progressAvailable ? (
                   <View
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
+                    style={[panel(theme), { padding: theme.spacing.lg, gap: theme.spacing.sm }]}
                   >
-                    <View style={{ flex: 1, gap: theme.spacing.xs }}>
-                      <Text variant="subheading" style={{ fontWeight: '800' }}>
-                        {fill(t.referral.creditsEarned, { credits: String(data.creditsEarned) })}
-                      </Text>
-                      <View
-                        accessibilityRole="progressbar"
-                        accessibilityValue={{
-                          min: 0,
-                          max: data.friendsCap,
-                          now: Math.min(data.rewarded, data.friendsCap),
-                        }}
-                        accessibilityLabel={rewardedFriendsText(data, t.referral.rewardedCaption)}
-                        style={{
-                          height: 7,
-                          borderRadius: theme.radius.pill,
-                          backgroundColor: theme.color.brandSoft,
-                          overflow: 'hidden',
-                        }}
-                      >
+                    <View
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
+                    >
+                      <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                        <Text variant="subheading" style={{ fontWeight: '800' }}>
+                          {fill(t.referral.creditsEarned, { credits: String(data.creditsEarned) })}
+                        </Text>
                         <View
-                          style={{
-                            width: `${data.friendsCap > 0 ? Math.min(data.rewarded / data.friendsCap, 1) * 100 : 0}%`,
-                            height: '100%',
-                            borderRadius: theme.radius.pill,
-                            backgroundColor: theme.color.brand,
+                          accessibilityRole="progressbar"
+                          accessibilityValue={{
+                            min: 0,
+                            max: data.friendsCap,
+                            now: Math.min(data.rewarded, data.friendsCap),
                           }}
-                        />
+                          accessibilityLabel={rewardedFriendsText(data, t.referral.rewardedCaption)}
+                          style={{
+                            height: 7,
+                            borderRadius: theme.radius.pill,
+                            backgroundColor: theme.color.brandSoft,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <View
+                            style={{
+                              width: `${data.friendsCap > 0 ? Math.min(data.rewarded / data.friendsCap, 1) * 100 : 0}%`,
+                              height: '100%',
+                              borderRadius: theme.radius.pill,
+                              backgroundColor: theme.color.brand,
+                            }}
+                          />
+                        </View>
+                        <Text variant="caption" tone="muted">
+                          {rewardedFriendsText(data, t.referral.rewardedCaption)}
+                        </Text>
                       </View>
-                      <Text variant="caption" tone="muted">
-                        {rewardedFriendsText(data, t.referral.rewardedCaption)}
-                      </Text>
+                      <Image
+                        source={GIFT_ART}
+                        accessibilityIgnoresInvertColors
+                        importantForAccessibility="no"
+                        accessible={false}
+                        resizeMode="contain"
+                        style={{ width: 60, height: 60 }}
+                      />
                     </View>
-                    <Image
-                      source={GIFT_ART}
-                      accessibilityIgnoresInvertColors
-                      importantForAccessibility="no"
-                      accessible={false}
-                      resizeMode="contain"
-                      style={{ width: 60, height: 60 }}
-                    />
+                    {data.pending > 0 ? (
+                      <Text variant="caption" tone="muted">
+                        {plural(locale, data.pending, t.referral.pending)}
+                      </Text>
+                    ) : null}
+                    {data.rewarded >= data.friendsCap ? (
+                      <Text variant="caption" tone="muted">
+                        {t.referral.capReached}
+                      </Text>
+                    ) : null}
                   </View>
-                  {data.pending > 0 ? (
-                    <Text variant="caption" tone="muted">
-                      {plural(locale, data.pending, t.referral.pending)}
-                    </Text>
-                  ) : null}
-                  {data.rewarded >= data.friendsCap ? (
-                    <Text variant="caption" tone="muted">
-                      {t.referral.capReached}
-                    </Text>
-                  ) : null}
-                </View>
+                ) : null}
               </>
             ) : (
-              <Callout tone="warning">{t.referral.loadError}</Callout>
+              <>
+                <Callout tone="warning">{t.referral.loadError}</Callout>
+                <Button label={t.retry} variant="secondary" onPress={() => void mine.refetch()} />
+              </>
             )}
 
             <View style={{ gap: theme.spacing.sm }}>

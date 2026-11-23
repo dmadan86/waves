@@ -1,3 +1,4 @@
+import { otherCurrencyChips } from '@/data/totals';
 import { useQueryClient } from '@tanstack/react-query';
 import { withScenic } from '@/components/ScenicScope';
 import { adGateQuery } from '@/lib/adGateQuery';
@@ -8,12 +9,10 @@ import { useAdPlan } from '@/lib/useAdPlan';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BlurTargetView } from 'expo-blur';
-import { Animated, InteractionManager, Pressable, RefreshControl, View } from 'react-native';
+import { InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 
 import { fallbackCurrency, type GuestGate } from '@waves/core';
-import { Button, Popup, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
+import { Button, Popup, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
 import { useSync } from '@/sync';
@@ -26,7 +25,6 @@ import { trialDaysLeft } from '@/lib/proTrial';
 import { useProTrial } from '@/lib/useProTrial';
 import { useAuth } from '@/lib/auth';
 import { useGuestGuard } from '@/lib/guestGuard';
-import { SPEC_INK } from '@/lib/specPalette';
 import { router, switchTab } from '@/lib/navigation';
 import { useNavigation } from 'expo-router';
 import { usePromptSlot } from '@/lib/promptQueue';
@@ -46,13 +44,12 @@ import { useDefaultCurrency } from '@/lib/currency';
 import { QuickAddSheet, useQuickAddActions } from '@/components/QuickAddSheet';
 import { QuickExpenseSheet } from '@/components/QuickExpenseSheet';
 import { HomeBalanceCard } from '@/components/home/ScenicBalanceCard';
-import { HeroIconButton } from '@/components/home/HeroControls';
 import { SpaceSwitchSheet } from '@/components/SpaceSwitcher';
 import { COMPANIES_ENABLED } from '@/lib/companiesEnabled';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { TabIconButton } from '@/components/home/TabHeader';
 import { HomeHeroBackground } from '@/components/home/HomeHeroBackground';
 import { NewGroupMenu, type MenuAnchor } from '@/components/home/NewGroupMenu';
-import { greetingLine } from '@/lib/greetingLine';
 import { HomeQuickActions } from '@/components/home/HomeQuickActions';
 import { ComingUpChips, NeedsYouCard } from '@/components/home/HomeToday';
 import { SpacesGrid } from '@/components/home/HomeSpaces';
@@ -61,19 +58,26 @@ import { todayIso, usePersonalLedger } from '@/data/personal';
 import { usePersonalAmountsHidden } from '@/lib/amountsHidden';
 import { DateReminderCard } from '@/components/dates/DateReminderCard';
 import { TipSheet } from '@/components/home/TipSheet';
-import { useHeroStatusBar } from '@/components/ScenicScreenHero';
+import { ScenicScreen } from '@/components/hero/ScenicScreen';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { useVoiceNewCount } from '@/lib/voiceSpaceStore';
 import { BackupReminder } from '@/components/BackupReminder';
 import { RestorePrompt } from '@/components/RestorePrompt';
-import { useBalanceHidden } from '@/lib/balanceHidden';
+import { preloadBalanceHidden, useBalanceHidden } from '@/lib/balanceHidden';
+import { HomeSnapshotView } from '@/components/home/HomeSnapshotView';
+import { serialiseSnapshot, type HomeSnapshot, type SnapRow } from '@/lib/homeSnapshot';
+import { clearHomeSnapshot, saveHomeSnapshot, useHomeSnapshot } from '@/lib/homeSnapshotStore';
 import { usePullRefresh } from '@/lib/pullRefresh';
+import { useSpaceSwitchItems } from '@/lib/useSpaceSwitchItems';
+import { fill } from '@/i18n';
 
 /** Dashboard route with duplicate-safe jumps to stable primary destinations. */
+// Read the eye preference at launch, in parallel with the mirror, not on first mount.
+preloadBalanceHidden();
+
 function HomeScreen() {
   const theme = useTheme();
   const pull = usePullRefresh();
-  const clearance = useTabBarClearance();
   const { t, locale } = useStrings();
   const { session, profile, isGuest } = useAuth();
   /**
@@ -121,17 +125,20 @@ function HomeScreen() {
   const quickAddActions = useQuickAddActions();
 
   const defaultCurrency = useDefaultCurrency();
-  const insets = useSafeAreaInsets();
   // The eye toggle: hide the money on a shared screen, remembered across opens.
   const { hidden: balanceHidden, ready: balanceReady, toggle: toggleBalance } = useBalanceHidden();
-  // The time-of-day line under the name. The *bucket* is sampled once on mount
-  // (lazy init, never a bare Date in render — the React Compiler lints that),
-  // then the localised word is read at render so it follows a language change.
-  const [greetKey] = useState<'morning' | 'afternoon' | 'evening'>(() => {
-    const hour = new Date().getHours();
-    return hour < 12 ? 'morning' : hour < 17 ? 'afternoon' : 'evening';
-  });
   const displayName = profile?.display_name ?? t.account.you;
+  const firstName = displayName.trim().split(/\s+/)[0];
+  const h = t.personalHome;
+  const [spaceSwitchOpen, setSpaceSwitchOpen] = useState(false);
+  const spaceSwitchItems = useSpaceSwitchItems('shared', {
+    shared: h.sharedSpace,
+    personal: h.space,
+    onlyYou: h.onlyYou,
+    sharedSubtitle: h.sharedSubtitle,
+    couple: h.groupCouple,
+    family: h.groupFamily,
+  });
   // First word only, so a long name never truncates to "Hi, Madan Dei…".
   const companyIds = useViewerCompanyIds();
 
@@ -190,6 +197,10 @@ function HomeScreen() {
   // The placeholder covers both: nothing read yet, or nothing read *and* nothing
   // confirmed. Everything else paints.
   const showSkeleton = hydrating || unknownYet;
+  // Last launch's frame, drawn while the mirror and first sync are still coming
+  // in; null for a new account, so those see the skeleton as before.
+  const stored = useHomeSnapshot(viewerId);
+  const showStale = showSkeleton && stored !== null;
   const coldStartHold = useColdStartSpace(!showSkeleton, companyIds);
   const settling = !showSkeleton && summary.pendingFirstSync;
 
@@ -253,6 +264,7 @@ function HomeScreen() {
       tourMayStart({
         tourReady: tour.ready,
         tourSeen: tour.seen,
+        // Live data only: the snapshot is never what the tour spotlights.
         dataReady: !showSkeleton && balanceReady,
         introVisible: false, // the intro is one of the `busy` reasons
         promptGranted: tourSlot,
@@ -380,53 +392,31 @@ function HomeScreen() {
    * same currency a new group would start in on this phone — otherwise the
    * empty state reads ₹0 and the first group then counts in dollars.
    */
-  const headline = summary.totals[0] ?? {
+  const liveHeadline = summary.totals[0] ?? {
     currency: defaultCurrency,
     net: 0n,
     owed: 0n,
     owing: 0n,
   };
+  const headline =
+    showStale && stored
+      ? {
+          currency: stored.headline.currency,
+          net: BigInt(stored.headline.net),
+          owed: BigInt(stored.headline.owed),
+          owing: BigInt(stored.headline.owing),
+        }
+      : liveHeadline;
+
+  // The other currencies, as chips under each side (nothing while the stored snapshot stands in).
+  const chips =
+    showStale && stored
+      ? { owed: [], owing: [] }
+      : otherCurrencyChips(summary.totals, headline.currency);
 
   // Which photograph the hero wears: the clock's (and region's), or the one
   // picked on the Background screen.
   const hero = useHomeHero();
-  // The hero's geometry, measured: the scene runs from the top of the screen
-  // down to the lower part of the balance card, and needs to know where the
-  // greeting row ends and where the card begins to place its layers.
-  const sceneRef = useRef<View>(null);
-  const [headerHeight, setHeaderHeight] = useState(insets.top + 56);
-  const [greetingHeight, setGreetingHeight] = useState(46);
-  const [cardHeight, setCardHeight] = useState(280);
-  // The fixed header is just the greeting row; the card starts right under it.
-  const cardTop = headerHeight;
-  const sceneHeight = cardTop + cardHeight * SCENE_INTO_CARD;
-  // The photograph runs up under the status bar behind a dark scrim, so the
-  // clock, battery and greeting are white on every scene.
-  const darkInk = false;
-  const heroInk = darkInk ? SPEC_INK : '#FFFFFF';
-  const [scrollY] = useState(() => new Animated.Value(0));
-  const [headerOpaque, setHeaderOpaque] = useState(false);
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 24],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  const heroInkOpacity = scrollY.interpolate({
-    inputRange: [0, 24],
-    outputRange: [1, 0],
-    extrapolate: 'clamp',
-  });
-  const solidInkOpacity = scrollY.interpolate({
-    inputRange: [0, 24],
-    outputRange: [0, 1],
-    extrapolate: 'clamp',
-  });
-  useEffect(() => {
-    const listener = scrollY.addListener(({ value }) => setHeaderOpaque(value >= 24));
-    return () => scrollY.removeListener(listener);
-  }, [scrollY]);
-  useHeroStatusBar(headerOpaque && theme.scheme !== 'dark' ? 'dark' : 'light');
-
   // The bell's red dot: somebody else has done something since Activity was
   // last opened. Your own expenses are not news.
   const newestFromOthers = useNewestActivityFromOthers(viewerId);
@@ -451,15 +441,17 @@ function HomeScreen() {
     // currency set is counted where its balance was summed.
     (group) => (group.default_currency ?? fallbackCurrency()) === headline.currency,
   );
-  const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
-  const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
+  const liveOwedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
+  const liveOwingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;
+  const owedGroups = showStale && stored ? stored.headline.owedGroups : liveOwedGroups;
+  const owingGroups = showStale && stored ? stored.headline.owingGroups : liveOwingGroups;
 
   // Home's feed: the personal ledger (for Personal's tile and the bills that
   // need paying), the pooled groups' figures, and whether there is anything yet.
   const ledger = usePersonalLedger();
   const [today] = useState(() => todayIso());
   const figures = useHomeSpaceFigures();
-  const { hidden: personalHidden } = usePersonalAmountsHidden();
+  const { hidden: personalHidden, ready: personalReady } = usePersonalAmountsHidden();
   const amountsHidden = balanceHidden || !balanceReady;
   const todayLedger = {
     txns: ledger.txns,
@@ -474,279 +466,281 @@ function HomeScreen() {
     ledger.recurrings.length === 0 &&
     ledger.budgets.length === 0;
 
+  // Save the frame once it is live and settled, quietly, and only if it changed.
+  const parts = useRef<{
+    needs: SnapRow[];
+    needsTotal: number;
+    comingUp: SnapRow[];
+    personal: SnapRow | null;
+    groups: SnapRow[];
+  }>({ needs: [], needsTotal: 0, comingUp: [], personal: null, groups: [] });
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSaved = useRef('');
+  const frame = {
+    viewerId,
+    live: !showSkeleton && !summary.pendingFirstSync,
+    newUser,
+    headline: {
+      currency: liveHeadline.currency,
+      net: String(liveHeadline.net),
+      owed: String(liveHeadline.owed),
+      owing: String(liveHeadline.owing),
+      owedGroups: liveOwedGroups,
+      owingGroups: liveOwingGroups,
+    },
+  };
+  const frameRef = useRef(frame);
+  useEffect(() => {
+    frameRef.current = frame;
+  });
+  const scheduleSave = useCallback(() => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      const f = frameRef.current;
+      if (!f.viewerId || !f.live) return;
+      if (f.newUser) {
+        if (lastSaved.current !== 'new') void clearHomeSnapshot(f.viewerId).catch(() => {});
+        lastSaved.current = 'new';
+        return;
+      }
+      const personal = parts.current.personal;
+      if (!personal) return;
+      const snapshot: HomeSnapshot = {
+        v: 1,
+        viewerId: f.viewerId,
+        headline: f.headline,
+        ...parts.current,
+        personal,
+      };
+      const text = serialiseSnapshot(snapshot);
+      if (text === lastSaved.current) return;
+      lastSaved.current = text;
+      void saveHomeSnapshot(snapshot);
+    }, 1200);
+  }, []);
+  const headlineKey = JSON.stringify(frame.headline);
+  useEffect(() => {
+    scheduleSave();
+    return () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+    };
+  }, [scheduleSave, headlineKey, frame.live, frame.newUser, viewerId]);
+
+  // A sheet that reads groups must not open over a still-empty mirror: a tap
+  // during the snapshot frame waits for live data, then runs once.
+  const pendingTap = useRef<(() => void) | null>(null);
+  const whenLive = (fn: () => void) => () => {
+    if (showSkeleton) pendingTap.current = fn;
+    else fn();
+  };
+  useEffect(() => {
+    if (showSkeleton || !pendingTap.current) return;
+    const fn = pendingTap.current;
+    pendingTap.current = null;
+    fn();
+  }, [showSkeleton]);
+
   if (coldStartHold) return <Screen edges={[]}>{null}</Screen>;
 
   return (
     <Screen edges={[]}>
-      {/* Keep the scene fixed behind the greeting and as the balance card's
-          blur target. The feed scrolls beneath the fixed greeting row. */}
-      <View style={{ flex: 1 }}>
-        <BlurTargetView
-          ref={sceneRef}
-          pointerEvents="none"
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, height: sceneHeight }}
-        >
-          <HomeHeroBackground
-            hero={hero}
-            height={sceneHeight}
-            photoHeight={Math.min(220, Math.max(180, headerHeight + 20))}
-            scrimHeight={insets.top + theme.spacing.sm + greetingHeight}
-            pageColor={theme.color.bg}
+      <ScenicScreen
+        background={(g) => <HomeHeroBackground hero={hero} {...g} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={pull.refreshing}
+            onRefresh={pull.onRefresh}
+            tintColor={theme.color.brand}
           />
-        </BlurTargetView>
-        <Animated.ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={{ paddingBottom: clearance }}
-          showsVerticalScrollIndicator={false}
-          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-            useNativeDriver: true,
-          })}
-          scrollEventThrottle={16}
-          refreshControl={
-            <RefreshControl
-              refreshing={pull.refreshing}
-              onRefresh={pull.onRefresh}
-              tintColor={theme.color.brand}
-            />
-          }
-        >
-          {/* Room for the fixed greeting row; the card sits right under it. */}
-          <View style={{ height: headerHeight }} />
-
-          {/* The body on the lavender canvas. A list gutter (`lg`, 16pt), the
-            phone margin iOS and Android both default to. */}
-          <View
-            style={{
-              paddingHorizontal: theme.spacing.lg,
-              gap: theme.spacing.xs,
-            }}
-          >
-            {/* The tour's "hero" anchor is the balance card, so the first
-              coach-mark still spotlights the balance. */}
-            <View onLayout={(event) => setCardHeight(event.nativeEvent.layout.height)}>
-              <TourTarget id="hero">
-                <HomeBalanceCard
-                  net={headline.net}
-                  owed={headline.owed}
-                  owing={headline.owing}
-                  owedGroups={owedGroups}
-                  owingGroups={owingGroups}
-                  currency={headline.currency}
-                  locale={locale}
-                  hidden={balanceHidden || !balanceReady}
-                  onToggleHide={toggleBalance}
-                  settling={settling}
-                  catchUp={catchUp}
-                  loading={showSkeleton || !balanceReady}
-                  blurTarget={sceneRef}
-                  footer={
-                    <HomeQuickActions
-                      // The quick sheet, not the capture screen: most spends know
-                      // where they belong and need an amount and a place. The long
-                      // press raises type / scan / speak, unchanged.
-                      onAddExpense={() => setQuickExpenseOpen(true)}
-                      onAddExpenseLong={() => setQuickAddOpen(true)}
-                      onSettleUp={() => router.push('/settle-up')}
-                      onReview={() => router.navigate('/captures')}
-                      onScan={() => router.push(`/capture?scan=${Date.now()}`)}
-                      onRemind={() => switchTab('/(tabs)/friends')}
-                      radius={theme.radius.xl}
-                    />
-                  }
-                />
-              </TourTarget>
-            </View>
-
-            {/* A background import's progress lands here, just above the groups —
-              the person tapped Import, came home, and watches it fill. */}
-            <ImportProgressBanner />
-
-            {/* "Madan says you are Renny in Goa trip": somebody has named this
-              person as a placeholder in their group, and only they can say
-              yes. Drawn only while something is waiting. */}
-            <LinkRequestsCard enabled={session !== null && !isGuest} />
-
-            {/* A friendly "From Waves" reminder for a date coming up: inline,
-              one at a time, never a pop-up. Drawn only while one is due. */}
-            <DateReminderCard />
-
-            {showSkeleton ? (
-              <View style={{ paddingTop: theme.spacing.sm }}>
-                <SkeletonList rows={3} />
-              </View>
-            ) : (
-              <View style={{ paddingTop: theme.spacing.sm, gap: theme.spacing.lg }}>
-                {/* A new person has nothing to act on yet: the three starter tiles
-                  below stand in for the whole feed. */}
-                {newUser ? null : (
-                  <NeedsYouCard
-                    ledger={todayLedger}
-                    viewerId={viewerId}
-                    hidden={amountsHidden}
-                    onShownBills={setNeedsBills}
-                  />
-                )}
-                {newUser ? null : (
-                  <ComingUpChips ledger={todayLedger} hidden={amountsHidden} exclude={needsBills} />
-                )}
-                <SpacesGrid
-                  groups={list}
-                  summary={summary}
-                  viewerId={viewerId}
-                  pool={figures.pool}
-                  ledger={todayLedger}
-                  hidden={amountsHidden}
-                  personalHidden={personalHidden}
-                  locale={locale}
-                  newUser={newUser}
-                  unreadGroups={unreadSet}
-                  onNewSpace={openNewGroupMenu}
-                  onNewGroup={openNewGroup}
-                />
-                {/* One native card after the grid for a long roster (>= 10 groups),
-                  never while a fresh import is sliding in. */}
-                {homeAdSlot !== undefined && justAddedId == null ? (
-                  <AdSlot
-                    handle={homeAds}
-                    format="native"
-                    slot={homeAdSlot}
-                    rowGap={theme.spacing.sm}
-                  />
-                ) : null}
-              </View>
-            )}
-          </View>
-        </Animated.ScrollView>
-        <View
-          onLayout={(event) => setHeaderHeight(event.nativeEvent.layout.height)}
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            zIndex: 1,
-            elevation: 4,
-            paddingTop: insets.top + theme.spacing.xs,
-            paddingHorizontal: theme.spacing.lg,
-            paddingBottom: theme.spacing.xs,
-          }}
-        >
-          <Animated.View
-            pointerEvents="none"
-            style={{
-              position: 'absolute',
-              top: -insets.top,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: theme.color.bg,
-              opacity: headerOpacity,
-              borderBottomWidth: 1,
-              borderBottomColor: theme.color.border,
-            }}
-          />
-          <Row
-            onLayout={(event) => setGreetingHeight(event.nativeEvent.layout.height)}
-            style={{ alignItems: 'center', gap: theme.spacing.md }}
-          >
-            <Pressable
-              accessibilityRole="button"
+        }
+        header={(ink, solid) => (
+          <Row style={{ flex: 1, alignItems: 'center', gap: theme.spacing.sm }}>
+            <PersonAvatar
+              name={displayName}
+              avatarUrl={profile?.avatar_url}
+              size={44}
               accessibilityLabel={t.profile}
               onPress={() => router.navigate('/profile')}
-              hitSlop={8}
-              style={{ flex: 1, minWidth: 0 }}
-            >
-              <Animated.View style={{ opacity: heroInkOpacity }}>
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    color: heroInk,
-                    fontSize: 20,
-                    lineHeight: 26,
-                    fontWeight: '700',
-                    textShadowColor: 'rgba(0,0,0,0.35)',
-                    textShadowOffset: { width: 0, height: 1 },
-                    textShadowRadius: 4,
-                  }}
-                >
-                  {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
-                </Text>
-              </Animated.View>
-              <Animated.View
-                pointerEvents="none"
-                style={{ position: 'absolute', left: 0, right: 0, opacity: solidInkOpacity }}
-              >
-                <Text
-                  numberOfLines={1}
-                  style={{
-                    color: theme.color.text,
-                    fontSize: 20,
-                    lineHeight: 26,
-                    fontWeight: '700',
-                  }}
-                >
-                  {greetingLine(t.dashHero[greetKey], profile?.display_name, locale)}
-                </Text>
-              </Animated.View>
-            </Pressable>
-            <View>
-              <Animated.View style={{ opacity: heroInkOpacity }}>
-                <HeroIconButton
-                  icon="notifications-outline"
-                  label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
-                  onPress={() => router.navigate('/activity')}
-                  dot={unseenActivity}
-                  ink={heroInk}
-                />
-              </Animated.View>
-              <Animated.View
-                pointerEvents="none"
+            />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text
+                accessibilityRole="header"
+                numberOfLines={1}
                 style={{
-                  position: 'absolute',
-                  padding: theme.spacing.xs,
-                  opacity: solidInkOpacity,
+                  color: ink,
+                  fontSize: 18,
+                  lineHeight: 23,
+                  fontWeight: '700',
+                  ...(solid
+                    ? null
+                    : {
+                        textShadowColor: 'rgba(0,0,0,0.35)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 4,
+                      }),
                 }}
               >
-                <Ionicons name="notifications-outline" size={24} color={theme.color.text} />
-                {unseenActivity ? (
-                  <View
-                    style={{
-                      position: 'absolute',
-                      top: theme.spacing.xs,
-                      end: theme.spacing.xs,
-                      width: 10,
-                      height: 10,
-                      borderRadius: 5,
-                      backgroundColor: '#FF3B5C',
-                    }}
-                  />
-                ) : null}
-              </Animated.View>
-            </View>
-            <View>
-              <Animated.View style={{ opacity: heroInkOpacity }}>
-                <HeroIconButton
-                  icon="ellipsis-vertical"
-                  label={t.account.faceSettings}
-                  onPress={() => setMenuOpen(true)}
-                  ink={heroInk}
-                />
-              </Animated.View>
-              <Animated.View
-                pointerEvents="none"
-                style={{
-                  position: 'absolute',
-                  padding: theme.spacing.xs,
-                  opacity: solidInkOpacity,
-                }}
+                {fill(h.hi, { name: firstName ?? '' })}
+              </Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`${h.switchSpace}. ${h.sharedSpace}`}
+                onPress={() => setSpaceSwitchOpen(true)}
+                hitSlop={6}
+                style={({ pressed }) => ({
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 2,
+                  opacity: pressed ? 0.6 : 1,
+                })}
               >
-                <Ionicons name="ellipsis-vertical" size={24} color={theme.color.text} />
-              </Animated.View>
+                <Text
+                  variant="caption"
+                  numberOfLines={1}
+                  style={{ color: solid ? theme.color.textMuted : ink, flexShrink: 1 }}
+                >
+                  {h.sharedSpace}
+                </Text>
+                <Ionicons
+                  name="chevron-down"
+                  size={14}
+                  color={solid ? theme.color.textMuted : ink}
+                />
+              </Pressable>
             </View>
+            <TabIconButton
+              icon="notifications-outline"
+              label={unseenActivity ? `${t.activity}, ${t.tagNew}` : t.activity}
+              onPress={() => router.navigate('/activity')}
+              dot={unseenActivity}
+            />
+            <TabIconButton
+              icon="ellipsis-vertical"
+              label={t.account.faceSettings}
+              onPress={() => setMenuOpen(true)}
+            />
           </Row>
-        </View>
-      </View>
+        )}
+        card={(sceneRef) => (
+          <TourTarget id="hero">
+            <HomeBalanceCard
+              net={headline.net}
+              owed={headline.owed}
+              owing={headline.owing}
+              owedGroups={owedGroups}
+              owingGroups={owingGroups}
+              owedChips={chips.owed}
+              owingChips={chips.owing}
+              currency={headline.currency}
+              locale={locale}
+              hidden={balanceHidden || !balanceReady}
+              onToggleHide={toggleBalance}
+              settling={settling || showStale}
+              catchUp={catchUp}
+              loading={(showSkeleton && !showStale) || !balanceReady}
+              blurTarget={sceneRef}
+              footer={
+                <HomeQuickActions
+                  // The quick sheet, not the capture screen: most spends know
+                  // where they belong and need an amount and a place. The long
+                  // press raises type / scan / speak, unchanged.
+                  onAddExpense={whenLive(() => setQuickExpenseOpen(true))}
+                  onAddExpenseLong={whenLive(() => setQuickAddOpen(true))}
+                  onSettleUp={() => router.push('/settle-up')}
+                  onReview={() => router.navigate('/captures')}
+                  onScan={() => router.push(`/capture?scan=${Date.now()}`)}
+                  onRemind={() => switchTab('/(tabs)/friends')}
+                  radius={theme.radius.xl}
+                />
+              }
+            />
+          </TourTarget>
+        )}
+      >
+        {/* A background import's progress lands here, just above the groups —
+              the person tapped Import, came home, and watches it fill. */}
+        <ImportProgressBanner />
 
+        {/* "Madan says you are Renny in Goa trip": somebody has named this
+              person as a placeholder in their group, and only they can say
+              yes. Drawn only while something is waiting. */}
+        <LinkRequestsCard enabled={session !== null && !isGuest} />
+
+        {/* A friendly "From Waves" reminder for a date coming up: inline,
+              one at a time, never a pop-up. Drawn only while one is due. */}
+        <DateReminderCard />
+
+        {showStale && stored ? (
+          <HomeSnapshotView
+            snapshot={stored}
+            hidden={amountsHidden}
+            personalHidden={personalHidden || !personalReady}
+            locale={locale}
+          />
+        ) : showSkeleton ? (
+          <View style={{ paddingTop: theme.spacing.sm }}>
+            <SkeletonList rows={3} />
+          </View>
+        ) : (
+          <View style={{ paddingTop: theme.spacing.sm, gap: theme.spacing.lg }}>
+            {/* A new person has nothing to act on yet: the three starter tiles
+                  below stand in for the whole feed. */}
+            {newUser ? null : (
+              <NeedsYouCard
+                ledger={todayLedger}
+                viewerId={viewerId}
+                hidden={amountsHidden}
+                onShownBills={setNeedsBills}
+                onSnapshot={(rows, total) => {
+                  parts.current.needs = rows;
+                  parts.current.needsTotal = total;
+                  scheduleSave();
+                }}
+              />
+            )}
+            {newUser ? null : (
+              <ComingUpChips
+                ledger={todayLedger}
+                hidden={amountsHidden}
+                exclude={needsBills}
+                onSnapshot={(rows) => {
+                  parts.current.comingUp = rows;
+                  scheduleSave();
+                }}
+              />
+            )}
+            <SpacesGrid
+              groups={list}
+              summary={summary}
+              viewerId={viewerId}
+              pool={figures.pool}
+              ledger={todayLedger}
+              hidden={amountsHidden}
+              personalHidden={personalHidden}
+              locale={locale}
+              newUser={newUser}
+              unreadGroups={unreadSet}
+              onNewSpace={openNewGroupMenu}
+              onNewGroup={openNewGroup}
+              onSnapshot={(personal, groupRows) => {
+                parts.current.personal = personal;
+                parts.current.groups = groupRows;
+                scheduleSave();
+              }}
+            />
+            {/* One native card after the grid for a long roster (>= 10 groups),
+                  never while a fresh import is sliding in. */}
+            {homeAdSlot !== undefined && justAddedId == null ? (
+              <AdSlot
+                handle={homeAds}
+                format="native"
+                slot={homeAdSlot}
+                rowGap={theme.spacing.sm}
+              />
+            ) : null}
+          </View>
+        )}
+      </ScenicScreen>
       <OverflowMenu
         visible={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -756,6 +750,11 @@ function HomeScreen() {
           avatar: <PersonAvatar name={displayName} avatarUrl={profile?.avatar_url} size={40} />,
           route: '/settings/account',
         }}
+      />
+      <OverflowMenu
+        visible={spaceSwitchOpen}
+        onClose={() => setSpaceSwitchOpen(false)}
+        items={spaceSwitchItems}
       />
       <SpaceSwitchSheet current="personal" open={switchOpen} onClose={() => setSwitchOpen(false)} />
       <NewGroupMenu
@@ -935,9 +934,5 @@ function GuestPopup({
     </Popup>
   );
 }
-
-/** How far down the balance card the scene reaches before it has faded into
- *  the page — its lower part, never on behind the groups. */
-const SCENE_INTO_CARD = 0.72;
 
 export default withScenic(HomeScreen);

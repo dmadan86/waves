@@ -1,8 +1,9 @@
 import { useEffect, useRef, type ReactNode } from 'react';
-import { AccessibilityInfo, Animated, Easing, View } from 'react-native';
+import { AccessibilityInfo, Animated, Easing, Pressable, View } from 'react-native';
 
 import { useTheme } from '../theme';
 import { Callout, type CalloutTone } from './Callout';
+import { Text } from './Text';
 
 /**
  * "That worked" — said briefly, over whatever screen you have arrived at.
@@ -42,6 +43,7 @@ export function Toast({
   bottom,
   durationMs = 3200,
   animated = true,
+  action,
 }: {
   /** The line to show. A node when it needs more than a sentence. */
   message: ReactNode;
@@ -53,6 +55,7 @@ export function Toast({
   bottom: number;
   durationMs?: number;
   animated?: boolean;
+  action?: { label: string; onPress: () => void };
 }) {
   const theme = useTheme();
   // Held in a ref, not state: the fade is a value the animation owns, and a
@@ -105,7 +108,7 @@ export function Toast({
       }}
     >
       <Animated.View
-        pointerEvents="none"
+        pointerEvents="box-none"
         accessibilityLiveRegion="polite"
         style={{
           opacity: fade,
@@ -125,7 +128,27 @@ export function Toast({
           backgroundColor: theme.color.surface,
         }}
       >
-        <Callout tone={tone}>{message}</Callout>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <View pointerEvents="none" style={{ flex: 1 }}>
+            <Callout tone={tone}>{message}</Callout>
+          </View>
+          {action ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              onPress={action.onPress}
+              style={{
+                minWidth: 44,
+                minHeight: 44,
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingHorizontal: theme.spacing.md,
+              }}
+            >
+              <Text style={{ color: theme.color.brand, fontWeight: '700' }}>{action.label}</Text>
+            </Pressable>
+          ) : null}
+        </View>
       </Animated.View>
     </View>
   );

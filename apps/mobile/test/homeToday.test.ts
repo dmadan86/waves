@@ -71,11 +71,12 @@ describe('rankNeeds', () => {
 });
 
 describe('capSpaces', () => {
-  it('shows seven and flags the rest', () => {
+  it('shows the latest five and flags the rest', () => {
     expect(capSpaces([1, 2, 3, 4, 5, 6, 7, 8])).toEqual({
-      shown: [1, 2, 3, 4, 5, 6, 7],
+      shown: [1, 2, 3, 4, 5],
       more: true,
     });
+    expect(capSpaces([1, 2, 3, 4, 5]).more).toBe(false);
     expect(capSpaces([1, 2]).more).toBe(false);
   });
 });

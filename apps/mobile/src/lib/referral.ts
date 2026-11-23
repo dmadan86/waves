@@ -216,6 +216,8 @@ export interface MyReferral {
   creditsEarned: number;
   /** Friends a referrer is paid for. */
   friendsCap: number;
+  /** False when the server returned a usable code but not the progress fields. */
+  progressAvailable: boolean;
 }
 
 function whole(value: unknown): number | null {
@@ -230,22 +232,27 @@ export function parseMyReferral(raw: unknown): MyReferral | null {
   const row = raw as Record<string, unknown>;
   if (row.ok !== true) return null;
   const code = normalizeReferralCode(typeof row.code === 'string' ? row.code : null);
+  if (code === null) return null;
   const invited = whole(row.invited);
   const pending = whole(row.pending);
   const rewarded = whole(row.rewarded);
   const creditsEarned = whole(row.credits_earned);
   const friendsCap = whole(row.friends_cap);
-  if (
-    code === null ||
-    invited === null ||
-    pending === null ||
-    rewarded === null ||
-    creditsEarned === null ||
-    friendsCap === null
-  ) {
-    return null;
-  }
-  return { code, invited, pending, rewarded, creditsEarned, friendsCap };
+  const progressAvailable =
+    invited !== null &&
+    pending !== null &&
+    rewarded !== null &&
+    creditsEarned !== null &&
+    friendsCap !== null;
+  return {
+    code,
+    invited: invited ?? 0,
+    pending: pending ?? 0,
+    rewarded: rewarded ?? 0,
+    creditsEarned: creditsEarned ?? 0,
+    friendsCap: friendsCap ?? 0,
+    progressAvailable,
+  };
 }
 
 export type ReferralRefusal =

@@ -8,24 +8,23 @@ import { Pressable, View } from 'react-native';
 
 import {
   billsMonthlyTotal,
-  perDayLeft,
   recurringDisplayStatus,
   resolveCategory,
   type GroupRecurringRule,
   type HouseholdUpcoming,
 } from '@waves/core';
-import { Card, iconSize, Row, Text, useTheme } from '@waves/ui';
+import { Card, directionalIcon, iconSize, Row, Text, useTheme } from '@waves/ui';
 
 import { CategoryBadge } from '@/components/Category';
 import { AddFamilyMember } from '@/components/household/HouseholdParts';
 import { BudgetSummary } from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
+import { GroupRow } from '@/components/home/GroupRow';
 import { CardTitle, PrivacyPill } from '@/components/personal/PersonalHomeParts';
 import { useUpdateGroupRecurring } from '@/data/groupRecurring';
 import type { IncomePlan } from '@/data/groupIncome';
 import { expenseTitle } from '@/data/expenseTitle';
-import { todayIso } from '@/data/personal';
 import type { ExpenseRow } from '@/data/types';
 import { fill, plural, useStrings } from '@/i18n';
 import { billPayer } from '@/lib/householdHome';
@@ -48,6 +47,12 @@ export interface HouseholdData {
   /** The monthly ceiling: the household budget, else the planned income. */
   readonly limit: bigint | null;
   readonly recent: readonly ExpenseRow[];
+  /** The month pill that sits in the "This month" card title. */
+  readonly monthPill?: React.ReactNode;
+  /** Per-day allowance left in the month's budget (0 for a past month). */
+  readonly perDay: bigint;
+  /** What the live bills cost in an average month. */
+  readonly billsMonthly: bigint;
   /** Post one bill occurrence as a group expense; the row goes once it is paid. */
   readonly onMarkPaid: (row: HouseholdUpcoming) => Promise<void>;
   readonly onTab: (tab: 'bills' | 'income' | 'upcoming') => void;
@@ -215,55 +220,117 @@ function UpcomingList({ rows, data }: { rows: readonly HouseholdUpcoming[]; data
   );
 }
 
+/** The home card's rows: the shared GroupRow, as the Personal Upcoming card draws them. */
+function UpcomingCardRows({
+  rows,
+  data,
+}: {
+  rows: readonly HouseholdUpcoming[];
+  data: HouseholdData;
+}) {
+  const { t, locale } = useStrings();
+  const whenText = useWhenText();
+  const theme = useTheme();
+  if (rows.length === 0)
+    return (
+      <Text variant="caption" tone="muted">
+        {t.hhome.upcomingEmpty}
+      </Text>
+    );
+  return (
+    <View>
+      {rows.map((row, i) => {
+        const day = new Intl.DateTimeFormat(locale, {
+          day: 'numeric',
+          month: 'short',
+          timeZone: 'UTC',
+        }).format(new Date(`${row.date}T00:00:00Z`));
+        return (
+          <GroupRow
+            key={row.key}
+            title={row.title}
+            memberLabel={
+              row.payerId
+                ? fill(t.household.billPays, { name: data.nameOf(row.payerId), when: day })
+                : day
+            }
+            amountText={data.fmt(row.amount)}
+            chevron
+            directionLabel={whenText(row.inDays)}
+            directionTone={row.inDays < 0 ? 'negative' : 'muted'}
+            locale={locale}
+            divider={i < rows.length - 1}
+            icon="receipt-outline"
+            iconColor={row.inDays < 0 ? theme.color.negative : theme.color.brand}
+            tone={row.inDays < 0 ? 'negative' : undefined}
+            onPress={() =>
+              router.push(`/group/${data.groupId}/recurring-edit?ruleId=${row.ruleId}`)
+            }
+          />
+        );
+      })}
+    </View>
+  );
+}
+
 // ───────────────────────────────────────────────────────────── Overview ──
+
+/** The "This month" card: the month pill and the household budget. */
+function BudgetCard({ data }: { data: HouseholdData }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const h = t.hhome;
+  const limit = data.limit;
+  return (
+    <Card style={{ gap: theme.spacing.md, padding: theme.spacing.lg }}>
+      <CardTitle title={h.thisMonth}>{data.monthPill}</CardTitle>
+      {limit !== null && limit > 0n ? (
+        <BudgetSummary
+          progress={{
+            spent: data.spent,
+            limit,
+            ratio: Number((data.spent * 10000n) / limit) / 10000,
+          }}
+          perDay={data.perDay}
+          hidden={data.hidden}
+          fmt={(minor) => data.fmt(minor)}
+          t={t}
+          onPress={() => router.push(`/group/${data.groupId}/budget`)}
+        />
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t.household.noBudget}
+          onPress={() => router.push(`/group/${data.groupId}/budget`)}
+          style={{ minHeight: 44, justifyContent: 'center' }}
+        >
+          <Text tone="brand" style={{ fontWeight: '700' }}>
+            {t.household.noBudget}
+          </Text>
+          <Text variant="caption" tone="muted">
+            {t.household.budgetHint}
+          </Text>
+        </Pressable>
+      )}
+    </Card>
+  );
+}
 
 export function OverviewTab({ data }: { data: HouseholdData }) {
   const theme = useTheme();
   const { t } = useStrings();
   const h = t.hhome;
-  const today = todayIso();
-  const limit = data.limit;
   return (
     <View style={{ gap: theme.spacing[gap] }}>
-      <Card style={{ gap: theme.spacing.md, padding: theme.spacing.lg }}>
-        <CardTitle title={h.thisMonth} />
-        {limit !== null && limit > 0n ? (
-          <BudgetSummary
-            progress={{
-              spent: data.spent,
-              limit,
-              ratio: Number((data.spent * 10000n) / limit) / 10000,
-            }}
-            perDay={perDayLeft(limit - data.spent, today)}
-            hidden={data.hidden}
-            fmt={(minor) => data.fmt(minor)}
-            t={t}
-            onPress={() => router.push(`/group/${data.groupId}/budget`)}
-          />
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t.household.noBudget}
-            onPress={() => router.push(`/group/${data.groupId}/budget`)}
-            style={{ minHeight: 44, justifyContent: 'center' }}
-          >
-            <Text tone="brand" style={{ fontWeight: '700' }}>
-              {t.household.noBudget}
-            </Text>
-            <Text variant="caption" tone="muted">
-              {t.household.budgetHint}
-            </Text>
-          </Pressable>
-        )}
-      </Card>
+      <BudgetCard data={data} />
 
       <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
         <CardTitle
           title={h.upcomingTitle}
-          action={t.personal.dash.viewAll}
+          action={t.homeToday.seeAll}
           onAction={() => data.onTab('upcoming')}
         />
-        <UpcomingList rows={data.upcoming.slice(0, 3)} data={data} />
+        <UpcomingCardRows rows={data.upcoming.slice(0, 3)} data={data} />
       </Card>
 
       <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
@@ -319,23 +386,24 @@ export function RecentRow({
         flexDirection: 'row',
         alignItems: 'center',
         gap: theme.spacing.md,
+        paddingVertical: theme.spacing.sm,
         minHeight: 52,
         borderBottomWidth: last ? 0 : 1,
         borderBottomColor: theme.color.border,
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <CategoryBadge category={v.category} size={36} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontWeight: '700' }}>
+      <CategoryBadge category={v.category} size={40} />
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text numberOfLines={1} style={{ fontWeight: '600' }}>
           {title}
         </Text>
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {date}
         </Text>
       </View>
-      <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-        {data.fmt(BigInt(v.amount))}
+      <Text numberOfLines={1} style={{ fontWeight: '700', color: theme.color.negative }}>
+        {data.hidden ? data.fmt(BigInt(v.amount)) : `−${data.fmt(BigInt(v.amount))}`}
       </Text>
     </Pressable>
   );
@@ -625,6 +693,58 @@ export function IncomeTab({ data }: { data: HouseholdData }) {
       <Card style={{ paddingVertical: theme.spacing.xs, paddingHorizontal: theme.spacing.lg }}>
         <AddFamilyMember groupId={data.groupId} />
       </Card>
+    </View>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────── Planning ──
+
+/** Personal's Planning, for the household: budget, what is due, bills and income plans. */
+export function PlanningTab({ data }: { data: HouseholdData }) {
+  const theme = useTheme();
+  const { t } = useStrings();
+  const h = t.hhome;
+  const row = (
+    icon: keyof typeof Ionicons.glyphMap,
+    label: string,
+    value: string,
+    tab: 'bills' | 'income',
+  ) => (
+    <Pressable
+      key={tab}
+      accessibilityRole="button"
+      accessibilityLabel={`${label}, ${value}`}
+      onPress={() => data.onTab(tab)}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: theme.spacing.md,
+        minHeight: 52,
+        opacity: pressed ? 0.6 : 1,
+      })}
+    >
+      <Ionicons name={icon} size={iconSize.md} color={theme.color.brand} />
+      <Text style={{ flex: 1, fontWeight: '700' }} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text numberOfLines={1} tone="muted">
+        {value}
+      </Text>
+      <Ionicons
+        name={directionalIcon('chevron-forward')}
+        size={iconSize.sm}
+        color={theme.color.textMuted}
+      />
+    </Pressable>
+  );
+  return (
+    <View style={{ gap: theme.spacing[gap] }}>
+      <BudgetCard data={data} />
+      <Card style={{ paddingVertical: theme.spacing.xs, paddingHorizontal: theme.spacing.lg }}>
+        {row('repeat', h.tabBills, data.fmt(data.billsMonthly), 'bills')}
+        {row('arrow-down-circle-outline', h.tabIncome, data.fmt(data.income), 'income')}
+      </Card>
+      <UpcomingTab data={data} />
     </View>
   );
 }

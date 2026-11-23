@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Animated, Pressable, View } from 'react-native';
-import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
+import { directionalIcon, iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { GroupMark } from '@/components/GroupMark';
 import { GroupTypeTag, useGroupTypeTag, useGroupTypeTagSpoken } from '@/components/GroupTypeTag';
@@ -24,6 +24,7 @@ type Props = {
   locale: string;
   statusLabel?: string;
   directionLabel: string;
+  directionTone?: 'negative' | 'muted';
   pendingLabel?: string | null;
   tag?: string | null;
   tagTone?: 'positive' | 'brand' | 'neutral' | 'warning';
@@ -37,6 +38,7 @@ type Props = {
   tone?: string;
   icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
+  chevron?: boolean;
   onPress: () => void;
 };
 
@@ -55,6 +57,7 @@ export function GroupRow({
   locale,
   statusLabel = '',
   directionLabel,
+  directionTone = 'muted',
   pendingLabel = null,
   tag = null,
   tagTone = 'brand',
@@ -68,6 +71,7 @@ export function GroupRow({
   tone,
   icon,
   iconColor,
+  chevron = false,
   onPress,
 }: Props) {
   const theme = useTheme();
@@ -163,7 +167,7 @@ export function GroupRow({
         {pendingBalance ? (
           <View style={{ alignItems: 'flex-end', gap: 2 }}>
             <Skeleton width={64} height={16} radius={6} animated={!reduceMotion} />
-            <Text variant="micro" tone="muted" numberOfLines={1}>
+            <Text variant="micro" tone={directionTone} numberOfLines={1}>
               {directionLabel}
             </Text>
           </View>
@@ -184,11 +188,18 @@ export function GroupRow({
             >
               {hidden ? BALANCE_MASK : (amountText ?? (balance === 0n ? '0' : String(balance)))}
             </Text>
-            <Text variant="micro" tone="muted" numberOfLines={1}>
+            <Text variant="micro" tone={directionTone} numberOfLines={1}>
               {directionLabel}
             </Text>
           </View>
         )}
+        {chevron ? (
+          <Ionicons
+            name={directionalIcon('chevron-forward')}
+            size={iconSize.sm}
+            color={theme.color.textMuted}
+          />
+        ) : null}
       </Pressable>
     </Animated.View>
   );

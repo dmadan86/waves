@@ -160,8 +160,8 @@ export default function StorageUsageScreen() {
           </Text>
           <Perk
             icon="infinite"
-            fg="#6845E8"
-            bg="#EFEBFD"
+            fg={theme.color.brand}
+            bg={theme.color.brandSoft}
             title={t.storage.perkUnlimited}
             sub={t.storage.perkUnlimitedSub}
           />
@@ -242,8 +242,8 @@ function useStorageInks() {
     dark,
     ink: dark ? theme.color.text : SPEC_INK,
     muted: dark ? theme.color.textMuted : SPEC_MUTED,
-    accent: dark ? theme.color.brand : SPEC_ACCENT,
-    lavender: dark ? theme.color.surfaceMuted : '#F1EFFC',
+    accent: theme.color.brand,
+    lavender: theme.color.brandSoft,
   };
 }
 

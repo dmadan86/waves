@@ -44,8 +44,8 @@ export function QuickAmountRow({
 }) {
   const theme = useTheme();
   const dark = theme.scheme === 'dark';
-  const soft = dark ? theme.color.surfaceMuted : '#F1EEFD';
-  const accent = dark ? theme.color.brand : '#6A45E8';
+  const soft = theme.color.brandSoft;
+  const accent = theme.color.brand;
   const { t } = useStrings();
   const flag = flagFor(currency);
 

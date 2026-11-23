@@ -23,7 +23,7 @@ import { iconSize, Row, Skeleton, Text, useTheme } from '@waves/ui';
 
 import { plural, useStrings } from '@/i18n';
 import { SplitMoney } from '@/components/SplitMoney';
-import { BalanceSide } from '@/components/home/BalanceSide';
+import { BalanceSide, type CurrencyChip } from '@/components/home/BalanceSide';
 import { GlassSurface } from '@/components/home/GlassSurface';
 
 /** What stands in for a figure while the eye is shut — shared with the rows. */
@@ -44,6 +44,15 @@ export function HomeBalanceCard({
   footer,
   blurTarget,
   catchUp,
+  label: labelOverride,
+  amountText,
+  labelAccessory,
+  sides,
+  extra,
+  owedChips,
+  owingChips,
+  owedDetail,
+  owingDetail,
 }: {
   net: bigint;
   /** Everything owed to you, and everything you owe, before the net. */
@@ -67,18 +76,36 @@ export function HomeBalanceCard({
   blurTarget?: RefObject<View | null>;
   /** First sync still handing over groups: say so instead of claiming a balance. */
   catchUp?: { total: number; loaded: number } | null;
+  /** Other screens' headline wording ("You are owed", "This month"); Home's by default. */
+  label?: string;
+  /** A ready-made headline figure (masked here while hidden) in place of `net`. */
+  amountText?: string;
+  /** Drawn beside the label, e.g. a "pending" badge. */
+  labelAccessory?: ReactNode;
+  /** Replaces the lent / owe pair; `null` leaves it out. */
+  sides?: ReactNode;
+  /** Extra block between the figures and the footer. */
+  extra?: ReactNode;
+  /** The other currencies each side holds, drawn as "+ $24.64" chips as Friends does. */
+  owedChips?: readonly CurrencyChip[];
+  owingChips?: readonly CurrencyChip[];
+  /** Override the side captions when the count represents people rather than groups. */
+  owedDetail?: string;
+  owingDetail?: string;
 }) {
   const theme = useTheme();
   const { t } = useStrings();
-  const label = catchUp
-    ? t.homeDash.downloadingGroups
-        .replace('{loaded}', String(catchUp.loaded))
-        .replace('{total}', String(catchUp.total))
-    : net === 0n
-      ? t.homeDash.totalSettled
-      : net > 0n
-        ? t.homeDash.totalOwed
-        : t.homeDash.totalOwe;
+  const label =
+    labelOverride ??
+    (catchUp
+      ? t.homeDash.downloadingGroups
+          .replace('{loaded}', String(catchUp.loaded))
+          .replace('{total}', String(catchUp.total))
+      : net === 0n
+        ? t.homeDash.totalSettled
+        : net > 0n
+          ? t.homeDash.totalOwed
+          : t.homeDash.totalOwe);
   const figure = net < 0n ? -net : net;
 
   return (
@@ -86,7 +113,7 @@ export function HomeBalanceCard({
       <Row
         style={{
           height: 34,
-          width: catchUp ? '100%' : '50%',
+          width: catchUp || labelAccessory ? '100%' : '50%',
           alignItems: 'center',
           paddingStart: theme.spacing.lg,
           paddingEnd: 14,
@@ -109,7 +136,7 @@ export function HomeBalanceCard({
             color={theme.color.textMuted}
           />
         </Pressable>
-        {settling || catchUp ? <ActivityIndicator size="small" color={theme.color.brand} /> : null}
+        {labelAccessory ?? null}
       </Row>
       <View
         style={{
@@ -120,7 +147,8 @@ export function HomeBalanceCard({
       >
         <Row
           style={{
-            alignItems: 'flex-start',
+            // Centred so the sync spinner sits level with the figure, not in the corner.
+            alignItems: 'center',
             gap: theme.spacing.sm,
             paddingHorizontal: theme.spacing.lg,
           }}
@@ -131,6 +159,15 @@ export function HomeBalanceCard({
             ) : hidden ? (
               <Text style={AMOUNT_STYLE} numberOfLines={1}>
                 {BALANCE_MASK}
+              </Text>
+            ) : amountText !== undefined ? (
+              <Text
+                style={AMOUNT_STYLE}
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.6}
+              >
+                {amountText}
               </Text>
             ) : (
               <SplitMoney
@@ -144,38 +181,50 @@ export function HomeBalanceCard({
               />
             )}
           </View>
+          {/* Beside the figure, not the label: the folder tab is half the card wide,
+              and a spinner next to the label cut it to "Total you are o…". */}
+          {settling || catchUp ? (
+            <ActivityIndicator size="small" color={theme.color.brand} />
+          ) : null}
         </Row>
 
-        <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
-          <BalanceSide
-            iconDisc
-            uniformDecimals
-            icon="arrow-up"
-            color={theme.color.positive}
-            amount={owed}
-            label={t.homeDash.youLent}
-            detail={plural(locale, owedGroups, t.homeDash.acrossGroups)}
-            currency={currency}
-            locale={locale}
-            hidden={hidden}
-            loading={loading || !!catchUp}
-          />
-          <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
-          <BalanceSide
-            iconDisc
-            uniformDecimals
-            icon="arrow-down"
-            color={theme.color.negative}
-            amount={owing}
-            label={t.homeDash.youOwe}
-            detail={plural(locale, owingGroups, t.homeDash.acrossGroups)}
-            currency={currency}
-            locale={locale}
-            hidden={hidden}
-            loading={loading || !!catchUp}
-            trailing
-          />
-        </Row>
+        {sides === undefined ? (
+          <Row style={{ alignItems: 'center', paddingHorizontal: theme.spacing.lg }}>
+            <BalanceSide
+              iconDisc
+              uniformDecimals
+              icon="arrow-up"
+              color={theme.color.positive}
+              amount={owed}
+              label={t.homeDash.youLent}
+              detail={owedDetail ?? plural(locale, owedGroups, t.homeDash.acrossGroups)}
+              chips={owedChips}
+              currency={currency}
+              locale={locale}
+              hidden={hidden}
+              loading={loading || !!catchUp}
+            />
+            <View style={{ width: 1, alignSelf: 'stretch', backgroundColor: theme.color.border }} />
+            <BalanceSide
+              iconDisc
+              uniformDecimals
+              icon="arrow-down"
+              color={theme.color.negative}
+              amount={owing}
+              label={t.homeDash.youOwe}
+              detail={owingDetail ?? plural(locale, owingGroups, t.homeDash.acrossGroups)}
+              chips={owingChips}
+              currency={currency}
+              locale={locale}
+              hidden={hidden}
+              loading={loading || !!catchUp}
+              trailing
+            />
+          </Row>
+        ) : (
+          sides
+        )}
+        {extra ?? null}
       </View>
       {footer ?? null}
     </GlassSurface>

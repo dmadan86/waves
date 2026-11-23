@@ -20,7 +20,8 @@ const esc = (text: string): string =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
 
-const BRAND = '#5B3FD9';
+// Mirrors the LinkedIn blue theme brand token; PDF HTML has no theme context.
+const BRAND = '#0A66C2';
 const CSS = `body{font-family:-apple-system,Helvetica,Arial,sans-serif;color:#1c1b2e;padding:32px}
 .brand{color:${BRAND};font-weight:800;font-size:20px}h1{font-size:22px;margin:4px 0 16px}
 table{width:100%;border-collapse:collapse}td,th{padding:8px 4px;border-bottom:1px solid #e6e4f2;text-align:left;font-size:14px}

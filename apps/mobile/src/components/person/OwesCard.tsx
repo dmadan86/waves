@@ -154,7 +154,7 @@ function RemindZone({
     joinToken: groupQuery.data?.join_token ?? null,
     name,
     groupName: owing.map((entry) => entry.group.name).join(', '),
-    amountText: format(money(head.net, head.currency as CurrencyCode), { locale }),
+    amountText: format(money(head.net, head.currency as CurrencyCode), { locale, trimZeros: true }),
   });
   const canRemind = Boolean(target && member);
 

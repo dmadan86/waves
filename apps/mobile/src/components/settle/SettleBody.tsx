@@ -1083,24 +1083,44 @@ function PersonTile({
   const dim = ({ pressed }: { pressed: boolean }) => ({ opacity: pressed ? 0.7 : 1 });
   return (
     <Tile>
-      <Row style={{ gap: theme.spacing.md, alignItems: 'center' }}>
+      <Row style={{ gap: theme.spacing.md, alignItems: 'flex-start' }}>
         <MemberAvatar name={name} member={member} ghost={ghost} size={40} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={accessibilityLabel}
-            accessibilityState={{ disabled }}
-            disabled={disabled}
-            onPress={onPress}
-            style={(state) => [
-              { flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing.sm },
-              dim(state),
-            ]}
-          >
-            <Text variant="subheading" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
-              {name}
-            </Text>
-          </Pressable>
+        <View style={{ flex: 1, minWidth: 0, gap: theme.spacing.xs }}>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={accessibilityLabel}
+              accessibilityState={{ disabled }}
+              disabled={disabled}
+              onPress={onPress}
+              style={(state) => [
+                { flexDirection: 'row', alignItems: 'flex-start', gap: theme.spacing.sm },
+                dim(state),
+              ]}
+            >
+              <Text variant="subheading" numberOfLines={1} style={{ flex: 1, minWidth: 0 }}>
+                {name}
+              </Text>
+            </Pressable>
+            <Pressable
+              accessible={false}
+              disabled={disabled}
+              onPress={onPress}
+              style={(state) => [{ alignItems: 'flex-end' }, dim(state)]}
+            >
+              {amounts.map((amount) => (
+                <MoneyText
+                  exact
+                  key={amount.currency}
+                  amount={amount.minor}
+                  currency={amount.currency as CurrencyCode}
+                  locale={locale}
+                  mode="plain"
+                  tone={direction === BalanceDirection.OwedToYou ? 'brand' : 'negative'}
+                />
+              ))}
+            </Pressable>
+          </Row>
           <Row style={{ gap: theme.spacing.sm, alignItems: 'center' }}>
             <Pressable
               accessible={false}
@@ -1108,33 +1128,25 @@ function PersonTile({
               onPress={onPress}
               style={(state) => [{ flex: 1, minWidth: 0 }, dim(state)]}
             >
-              <Text variant="caption" tone="muted" numberOfLines={1}>
+              <Text variant="caption" tone="muted" numberOfLines={2}>
                 {status ?? hint}
               </Text>
             </Pressable>
           </Row>
         </View>
-        <Pressable
-          accessible={false}
-          disabled={disabled}
-          onPress={onPress}
-          style={(state) => [{ alignItems: 'flex-end' }, dim(state)]}
-        >
-          {amounts.map((amount) => (
-            <MoneyText
-              key={amount.currency}
-              amount={amount.minor}
-              currency={amount.currency as CurrencyCode}
-              locale={locale}
-              mode="plain"
-              // Money owed to me wears the brand colour, as the design has it;
-              // money I owe keeps the red the rest of the app reads as "out".
-              tone={direction === BalanceDirection.OwedToYou ? 'brand' : 'negative'}
-            />
-          ))}
-        </Pressable>
-        <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>{action}</Row>
       </Row>
+      {action ? (
+        <Row
+          style={{
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: theme.spacing.xs,
+            marginTop: theme.spacing.xs,
+          }}
+        >
+          {action}
+        </Row>
+      ) : null}
     </Tile>
   );
 }
@@ -1307,6 +1319,7 @@ function RatelessTile({
             </Text>
           </View>
           <MoneyText
+            exact
             amount={amount}
             currency={currency as CurrencyCode}
             locale={locale}
@@ -1420,6 +1433,7 @@ function OtherTile({
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <MoneyText
+              exact
               amount={amount}
               currency={currency as CurrencyCode}
               locale={locale}

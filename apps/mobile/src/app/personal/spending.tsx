@@ -97,7 +97,7 @@ function SpendingScreenBody() {
   );
 
   const index = months.indexOf(month);
-  const fmt = (amount: bigint): string => format(money(amount, dc), { locale });
+  const fmt = (amount: bigint): string => format(money(amount, dc), { locale, trimZeros: true });
   const dcScale = minorUnitScale(dc);
   const dark = theme.scheme === 'dark';
   const ink = dark ? theme.color.text : SPEC_INK;

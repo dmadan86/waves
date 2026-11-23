@@ -42,7 +42,7 @@ import { resplitBatchId } from '@/data/recentActivity';
 import { actorName } from '@/data/types';
 import { GroupMark } from '@/components/GroupMark';
 import { SplitMoney } from '@/components/SplitMoney';
-import { GroupTypeTag, useGroupTypeTagLabels } from '@/components/GroupTypeTag';
+import { useGroupTypeTagLabels } from '@/components/GroupTypeTag';
 import { useHeroStatusBar } from '@/components/ScenicScreenHero';
 import { HERO_TEXT_SHADOW } from '@/components/person/pairParts';
 import {
@@ -314,26 +314,33 @@ const ActivityFeedRow = memo(function ActivityFeedRow({
         {/* Who · what · when. What is the expense's category, else the kind of
             group, each with its small icon. An archived group, or one no longer
             on this device, gets a badge. */}
+        {/* Where first, then who: which group it landed in matters more than who
+            added it. The group name keeps its room (up to most of the line) and
+            the person's name gives way first; the category shows only when the
+            headline doesn't already say it. */}
         <Row style={{ gap: 4, alignItems: 'center', overflow: 'hidden' }}>
-          {view.who ? <MetaText shrink={0}>{`${view.who} ·`}</MetaText> : null}
           {view.groupName ? (
-            // Name ellipsizes first; a long custom tag is capped. One line at 360dp.
-            <Row style={{ gap: 4, alignItems: 'center', flexShrink: 1, maxWidth: '100%' }}>
-              <View style={{ flexShrink: 3 }}>
-                <MetaText>{view.groupName}</MetaText>
-              </View>
-              {view.groupTag ? (
-                <View style={{ flexShrink: 1, maxWidth: '60%' }}>
-                  <GroupTypeTag tag={view.groupTag} />
-                </View>
-              ) : null}
-              <MetaText>·</MetaText>
-            </Row>
+            <View style={{ flexShrink: 0, maxWidth: '70%' }}>
+              <Text
+                numberOfLines={1}
+                style={{ fontSize: 12, lineHeight: 16, fontWeight: '700', color: theme.color.text }}
+              >
+                {view.groupName}
+              </Text>
+            </View>
           ) : null}
-          {view.tag ? (
+          {view.who ? (
+            <View style={{ flexShrink: 1, minWidth: 0 }}>
+              <MetaText>{`${view.groupName ? '· ' : ''}${view.who}`}</MetaText>
+            </View>
+          ) : null}
+          {view.tag && !view.headline.includes(view.tag.label) ? (
             <>
+              <MetaText shrink={0}>·</MetaText>
               <GlyphIcon family={view.tag.family} name={view.tag.name} size={13} color={tagInk} />
-              <MetaText shrink={0}>{`${view.tag.label} ·`}</MetaText>
+              <View style={{ flexShrink: 1, minWidth: 0 }}>
+                <MetaText>{view.tag.label}</MetaText>
+              </View>
             </>
           ) : null}
           {view.archived ? (

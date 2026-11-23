@@ -5,22 +5,23 @@
  */
 
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { useRef } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { pickUpcoming, type PersonalRecurring, type PersonalTxn } from '@waves/core';
 import { Card, directionalIcon, iconSize, Row, Text, useTheme, type TintName } from '@waves/ui';
 
 import { useSourceLabel } from '@/components/IncomeSource';
-import { useSetupLeft } from '@/components/PersonalSetupCard';
+import { GroupRow } from '@/components/home/GroupRow';
 import { RaiseCard, useRaisePrompts } from '@/components/wealth/RaiseCard';
 import { useDateOccurrences } from '@/data/personalDates';
 import { usePersonalWealth } from '@/data/personalWealth';
 import { fill, plural, useStrings } from '@/i18n';
 import { useAuth } from '@/lib/auth';
-import { dateTimeFormat } from '@/lib/dateTimeFormat';
 import { actionFor } from '@/lib/dateReminders/actions';
 import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
 import { useRunDateAction } from '@/lib/dateReminders/useRunDateAction';
+import { measureAnchor } from '@/lib/measureAnchor';
 import { router } from '@/lib/navigation';
 import {
   billRows,
@@ -29,6 +30,7 @@ import {
   wealthRows,
   type UpcomingRow,
 } from '@/lib/personalUpcoming';
+import { nextDateLabel } from '@/lib/recurringList';
 
 /** Bills the card looks ahead for; the full list looks further. */
 const HOME_HORIZON_DAYS = 14;
@@ -69,7 +71,6 @@ export function usePersonalUpcoming(
 ): UpcomingRow[] {
   const { session, isGuest } = useAuth();
   const occurrences = useDateOccurrences();
-  const left = useSetupLeft();
   const dates = session && !isGuest ? pickUpcoming(occurrences, limit > 0 ? limit : 50) : [];
   const wealth = useWealthRows(ledger, limit > 0 ? HOME_HORIZON_DAYS : LIST_HORIZON_DAYS);
   const bills = billRows(
@@ -79,7 +80,7 @@ export function usePersonalUpcoming(
     ledger.today,
     limit > 0 ? HOME_HORIZON_DAYS : LIST_HORIZON_DAYS,
   );
-  return mergeUpcoming([...bills, ...wealth, ...dateRows(dates)], left.length, limit);
+  return mergeUpcoming([...bills, ...wealth, ...dateRows(dates)], limit);
 }
 
 export const ICON_FOR: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -104,35 +105,17 @@ export function UpcomingRowView({
   const h = t.personalHome;
   const sourceLabel = useSourceLabel();
   const run = useRunDateAction();
-  const left = useSetupLeft();
-  const ink = theme.color[row.tone];
-  const soft = theme.color[`${row.tone}Soft` as 'brandSoft'];
 
   if (row.raise) return <RaiseCard prompt={row.raise} />;
 
   const item = row.item;
   const action = item ? actionFor(item) : null;
-  const dayName = (iso: string): string => {
-    try {
-      return dateTimeFormat(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(
-        new Date(`${iso}T00:00:00Z`),
-      );
-    } catch {
-      return iso;
-    }
-  };
 
   let title: string;
   let subtitle: string;
   let icon: keyof typeof Ionicons.glyphMap;
   let onPress: () => void;
-  if (row.kind === 'todo') {
-    title = h.todo;
-    subtitle = plural(locale, row.left ?? 0, h.itemsLeft);
-    icon = 'checkbox-outline';
-    onPress = () =>
-      router.push({ pathname: '/personal/setup', params: left[0] ? { step: left[0] } : {} });
-  } else if (item) {
+  if (item) {
     title = titleOf(item, t.dates);
     subtitle = subtitleOf(item, t.dates, locale);
     icon = ICON_FOR[item.kind] ?? 'calendar-outline';
@@ -144,83 +127,29 @@ export function UpcomingRowView({
           : router.push('/dates');
   } else {
     title = row.title || sourceLabel(row.category ?? null) || t.personal.expense;
-    subtitle = fill(h.dueOn, { date: dayName(row.date ?? '') });
-    icon = 'receipt-outline';
+    subtitle = `${row.income ? h.expected : h.due} ${nextDateLabel(row.date ?? '', locale)}`;
+    icon = row.income ? 'arrow-down-outline' : 'receipt-outline';
     onPress = () => router.push(row.href ?? `/personal/source/${row.ruleId}`);
   }
 
   const pill =
-    row.kind === 'todo'
-      ? null
-      : row.inDays < 0
-        ? h.overdue
-        : row.inDays === 0
-          ? h.today
-          : plural(locale, row.inDays, h.inDays);
+    row.inDays < 0 ? h.overdue : row.inDays === 0 ? h.today : plural(locale, row.inDays, h.inDays);
 
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${title}, ${subtitle}${pill ? `, ${pill}` : ''}`}
+    <GroupRow
+      title={title}
+      memberLabel={subtitle}
+      amountText={row.amount !== undefined && row.currency ? fmt(row.amount, row.currency) : ''}
+      chevron
+      directionLabel={pill}
+      directionTone={row.inDays < 0 ? 'negative' : 'muted'}
+      locale={locale}
+      divider={!last}
+      icon={icon}
+      iconColor={row.inDays < 0 ? theme.color.negative : theme.color.brand}
+      tone={row.inDays < 0 ? 'negative' : undefined}
       onPress={onPress}
-      style={({ pressed }) => ({
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: theme.spacing.md,
-        minHeight: 52,
-        paddingVertical: theme.spacing.xs,
-        borderBottomWidth: last ? 0 : 1,
-        borderBottomColor: theme.color.border,
-        opacity: pressed ? 0.6 : 1,
-      })}
-    >
-      <View style={{ width: 4, alignSelf: 'stretch', borderRadius: 2, backgroundColor: ink }} />
-      <View
-        style={{
-          width: 40,
-          height: 40,
-          borderRadius: theme.radius.md,
-          backgroundColor: soft,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <Ionicons name={icon} size={iconSize.md} color={ink} />
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-          {title}
-        </Text>
-        <Text variant="caption" tone="muted" numberOfLines={1}>
-          {subtitle}
-        </Text>
-      </View>
-      {row.amount !== undefined && row.currency ? (
-        <Text numberOfLines={1} style={{ fontWeight: '700' }}>
-          {fmt(row.amount, row.currency)}
-        </Text>
-      ) : null}
-      {pill ? (
-        <View
-          style={{
-            borderRadius: theme.radius.pill,
-            backgroundColor: soft,
-            paddingHorizontal: theme.spacing.sm,
-            paddingVertical: 2,
-          }}
-        >
-          <Text variant="micro" numberOfLines={1} style={{ color: ink, fontWeight: '700' }}>
-            {pill}
-          </Text>
-        </View>
-      ) : (
-        <Ionicons
-          name={directionalIcon('chevron-forward')}
-          size={iconSize.sm}
-          color={theme.color.textMuted}
-        />
-      )}
-    </Pressable>
+    />
   );
 }
 
@@ -283,13 +212,18 @@ export function PersonalUpcomingCard({
     <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
       <CardTitle
         title={t.personalHome.upcomingTitle}
-        action={t.personal.dash.viewAll}
+        action={t.homeToday.seeAll}
         onAction={() => router.push('/personal/upcoming')}
       />
       {rows.length > 0 ? (
         <View>
-          {rows.map((row, i) => (
-            <UpcomingRowView key={row.key} row={row} fmt={fmt} last={i === rows.length - 1} />
+          {rows.slice(0, 3).map((row, i) => (
+            <UpcomingRowView
+              key={row.key}
+              row={row}
+              fmt={fmt}
+              last={i === Math.min(rows.length, 3) - 1}
+            />
           ))}
         </View>
       ) : (
@@ -308,58 +242,64 @@ interface Tile {
   readonly onPress: () => void;
 }
 
-/** Five equal tiles under the hero: the things done most. */
+/** Equal tiles under the hero, four to a row: everything the screen offers in one place. */
 export function QuickActions({
   tiles,
 }: {
   tiles: readonly (Tile & { tone: 'brand' | 'positive' })[];
 }) {
   const theme = useTheme();
+  const rows: (typeof tiles)[number][][] = [];
+  tiles.forEach((tile, i) => (i % 4 === 0 ? rows.push([tile]) : rows[rows.length - 1]!.push(tile)));
   return (
-    <Row style={{ gap: theme.spacing.sm }}>
-      {tiles.map((tile) => (
-        <Pressable
-          key={tile.key}
-          accessibilityRole="button"
-          accessibilityLabel={tile.label}
-          onPress={tile.onPress}
-          style={({ pressed }) => ({
-            flex: 1,
-            minWidth: 0,
-            alignItems: 'center',
-            gap: theme.spacing.xs,
-            paddingVertical: theme.spacing.sm,
-            paddingHorizontal: 2,
-            borderRadius: theme.radius.md,
-            borderWidth: 1,
-            borderColor: theme.color.border,
-            backgroundColor: theme.color.surface,
-            opacity: pressed ? 0.7 : 1,
-          })}
-        >
-          <View
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: theme.radius.md,
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor:
-                tile.tone === 'positive' ? theme.color.positiveSoft : theme.color.brandSoft,
-            }}
-          >
-            <Ionicons
-              name={tile.icon}
-              size={iconSize.md}
-              color={tile.tone === 'positive' ? theme.color.positive : theme.color.brand}
-            />
-          </View>
-          <Text variant="micro" numberOfLines={1} style={{ fontWeight: '600' }}>
-            {tile.label}
-          </Text>
-        </Pressable>
+    <View style={{ gap: theme.spacing.sm }}>
+      {rows.map((row, r) => (
+        <Row key={r} style={{ gap: theme.spacing.sm }}>
+          {row.map((tile) => (
+            <Pressable
+              key={tile.key}
+              accessibilityRole="button"
+              accessibilityLabel={tile.label}
+              onPress={tile.onPress}
+              style={({ pressed }) => ({
+                flex: 1,
+                minWidth: 0,
+                alignItems: 'center',
+                gap: theme.spacing.xs,
+                paddingVertical: theme.spacing.sm,
+                paddingHorizontal: 2,
+                borderRadius: theme.radius.md,
+                borderWidth: 1,
+                borderColor: theme.color.border,
+                backgroundColor: theme.color.surface,
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <View
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: theme.radius.md,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor:
+                    tile.tone === 'positive' ? theme.color.positiveSoft : theme.color.brandSoft,
+                }}
+              >
+                <Ionicons
+                  name={tile.icon}
+                  size={iconSize.md}
+                  color={tile.tone === 'positive' ? theme.color.positive : theme.color.brand}
+                />
+              </View>
+              <Text variant="micro" numberOfLines={2} align="center" style={{ fontWeight: '600' }}>
+                {tile.label}
+              </Text>
+            </Pressable>
+          ))}
+        </Row>
       ))}
-    </Row>
+    </View>
   );
 }
 
@@ -432,6 +372,50 @@ export function PrivacyPill({ label, onPress }: { label: string; onPress: () => 
         {label}
       </Text>
       <Ionicons name={directionalIcon('chevron-forward')} size={iconSize.sm} color={tint.ink} />
+    </Pressable>
+  );
+}
+
+/** The month on show, as a brand-coloured dropdown: a picker when there are
+ *  other months to reach, and just the month's name when there are not. */
+export function MonthPill({
+  label,
+  spokenLabel,
+  onPress,
+}: {
+  label: string;
+  spokenLabel: string;
+  onPress?: (anchor: { x: number; y: number; width: number; height: number } | null) => void;
+}) {
+  const theme = useTheme();
+  const ref = useRef<View>(null);
+  return (
+    <Pressable
+      ref={ref}
+      accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={onPress ? `${spokenLabel}. ${label}` : label}
+      disabled={!onPress}
+      onPress={onPress ? () => measureAnchor(ref, onPress) : undefined}
+      hitSlop={8}
+      style={({ pressed }) => ({
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 2,
+        maxWidth: 180,
+        opacity: pressed ? 0.7 : 1,
+      })}
+    >
+      <Text
+        variant="caption"
+        tone="brand"
+        numberOfLines={1}
+        style={{ flexShrink: 1, fontWeight: '700' }}
+      >
+        {label}
+      </Text>
+      {onPress ? (
+        <Ionicons name="chevron-down" size={iconSize.sm} color={theme.color.brand} />
+      ) : null}
     </Pressable>
   );
 }

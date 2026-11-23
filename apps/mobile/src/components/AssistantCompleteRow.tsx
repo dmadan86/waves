@@ -1,9 +1,8 @@
 /**
- * "Complete this expense": a row on a saved expense's detail screen that opens
+ * "Complete this expense": rows on a saved expense's detail screen that opens
  * the assistant's follow-up questions over it.
  *
- * Drawn only for a Pro person, only when the place, the way it was paid or a
- * receipt is missing, and never on a deleted or settled-away bill. The
+ * Drawn only for a Pro person, one row per missing place or way of paying, and never on a deleted or settled-away bill. The
  * questions are the same ones asked after a voice add (`VoiceFollowUps`), so
  * skipping, muting and learning behave the same.
  */
@@ -51,16 +50,29 @@ export function AssistantCompleteRow({
   const write = useMemo(() => groupWriteFromRow({ expenseId, version }), [expenseId, version]);
   if (!isPro || gaps.length === 0) return null;
 
+  // One plain row per gap, all opening the same follow-ups. The receipt has its own
+  // "Add receipt" card on the screen, so it gets no row here.
+  const rows: { gap: string; icon: 'wallet-outline' | 'location-outline'; label: string }[] = [];
+  for (const gap of gaps) {
+    if (gap === 'payment')
+      rows.push({ gap, icon: 'wallet-outline', label: t.assistant.completePaid });
+    else if (gap === 'place')
+      rows.push({ gap, icon: 'location-outline', label: t.assistant.completePlace });
+  }
+  if (rows.length === 0) return null;
+
   return (
     <>
-      <DetailRow
-        icon="sparkles-outline"
-        iconColor={theme.color.brand}
-        label={t.assistant.completeRow}
-        value={t.assistant.completeRowHint}
-        onPress={() => setOpen(true)}
-        accessibilityLabel={`${t.assistant.completeRow}. ${t.assistant.completeRowHint}`}
-      />
+      {rows.map((row) => (
+        <DetailRow
+          key={row.gap}
+          icon={row.icon}
+          label={row.label}
+          value={t.assistant.completeAdd}
+          onPress={() => setOpen(true)}
+          accessibilityLabel={`${row.label}. ${t.assistant.completeAdd}`}
+        />
+      ))}
       <Sheet
         visible={open}
         onClose={() => setOpen(false)}

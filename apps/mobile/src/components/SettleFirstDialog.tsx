@@ -182,15 +182,18 @@ export function SettleFirstDialog({
               opacity: pressed ? 0.85 : 1,
             })}
           >
-            {busy ? <ActivityIndicator color={theme.color.brand} /> : null}
-            <Text
-              variant="subheading"
-              numberOfLines={1}
-              adjustsFontSizeToFit
-              style={{ color: theme.color.brand }}
-            >
-              {g.leaveAnyway}
-            </Text>
+            {busy ? (
+              <ActivityIndicator color={theme.color.brand} />
+            ) : (
+              <Text
+                variant="subheading"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                style={{ color: theme.color.brand }}
+              >
+                {g.leaveAnyway}
+              </Text>
+            )}
           </Pressable>
         ) : null}
         <View style={{ flex: 1 }}>

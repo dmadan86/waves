@@ -78,7 +78,6 @@ const preview: ExpensePreview = {
   currency: 'INR',
   category: 'food',
 };
-const splitText = 'Split equally with: You, Ravi';
 // fakeReact is shallow: render the card's Line and Chip helpers explicitly.
 function expand(tree: unknown): unknown {
   if (Array.isArray(tree)) return tree.map(expand);
@@ -210,7 +209,14 @@ it('VC-12: preview keeps description, money and one tappable split line, nothing
       preview,
       locale: 'en-IN',
       onEdit,
-      split: { text: splitText, paidBy: 'Paid by Ravi', onPress: onSplit, onPaidBy },
+      split: {
+        splitLabel: 'Split',
+        splitValue: 'Equally · 2 people',
+        paidByLabel: 'Paid by',
+        paidBy: 'Ravi',
+        onPress: onSplit,
+        onPaidBy,
+      },
     }),
   ).result.current;
   expect(nodes(shallow, 'MoneyText')[0].props).toMatchObject({
@@ -220,9 +226,10 @@ it('VC-12: preview keeps description, money and one tappable split line, nothing
   });
   expect(nodes(shallow, 'CategoryBadge')[0].props.category).toBe('food');
   const tree = expand(shallow);
-  for (const label of ['Dinner', splitText, 'Paid by Ravi']) expect(textOf(tree)).toContain(label);
+  for (const label of ['Dinner', 'Split', 'Equally · 2 people', 'Paid by', 'Ravi'])
+    expect(textOf(tree)).toContain(label);
   // No category line, participant chips or split-type line to repeat the split.
-  for (const label of [words.category, 'Equally', 'Change split', 'Food'])
+  for (const label of [words.category, 'Change split', 'Food'])
     expect(textOf(tree)).not.toContain(label);
   const buttons = nodes(tree, 'Pressable');
   expect(buttons).toHaveLength(3);
@@ -235,10 +242,15 @@ it('VC-13: no split line without a split; the split line is read-only without a 
   );
   expect(textOf(none)).not.toContain('Split');
   const plain = expand(
-    renderHook(() => ExpensePreviewCard({ preview, locale: 'en-IN', split: { text: splitText } }))
-      .result.current,
+    renderHook(() =>
+      ExpensePreviewCard({
+        preview,
+        locale: 'en-IN',
+        split: { splitLabel: 'Split', splitValue: 'Equally · 2 people', paidByLabel: 'Paid by' },
+      }),
+    ).result.current,
   );
-  expect(textOf(plain)).toContain(splitText);
+  expect(textOf(plain)).toContain('Equally · 2 people');
   expect(nodes(plain, 'Pressable').every((n) => n.props.disabled === true)).toBe(true);
 });
 it.each([

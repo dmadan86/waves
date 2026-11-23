@@ -20,6 +20,7 @@ export function SplitMoney({
   weight = '700',
   strike = false,
   wholeUnits = false,
+  exact = false,
 }: {
   amount: bigint;
   currency: string;
@@ -31,10 +32,13 @@ export function SplitMoney({
   strike?: boolean;
   /** Whole units only, for a headline total. */
   wholeUnits?: boolean;
+  /** Keep ".00" on a whole amount (default hides it). */
+  exact?: boolean;
 }) {
   const text = format(money(amount < 0n ? -amount : amount, currency as never), {
     locale,
     whole: wholeUnits,
+    trimZeros: !exact,
   });
   let decimal = '.';
   try {

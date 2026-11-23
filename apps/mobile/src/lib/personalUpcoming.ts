@@ -31,7 +31,7 @@ export type RowTone = 'brand' | 'positive' | 'negative' | 'warning';
 
 export interface UpcomingRow {
   readonly key: string;
-  readonly kind: 'bill' | 'date' | 'todo';
+  readonly kind: 'bill' | 'date';
   readonly tone: RowTone;
   /** Days from today (negative once overdue); the to-do has none and sorts last. */
   readonly inDays: number;
@@ -44,8 +44,6 @@ export interface UpcomingRow {
   readonly amount?: bigint;
   readonly currency?: string;
   readonly item?: UpcomingItem;
-  /** To-do only: how many setup questions are still open. */
-  readonly left?: number;
   /** Bill only: an expected (not auto-posted) bill whose day has passed unpaid. */
   readonly overdue?: boolean;
   /** Recurring tab only: the rule brings money in. */
@@ -208,37 +206,18 @@ export function dateRows(items: readonly UpcomingItem[]): UpcomingRow[] {
   }));
 }
 
-export const todoRow = (left: number): UpcomingRow => ({
-  key: 'todo',
-  kind: 'todo',
-  tone: 'warning',
-  inDays: Infinity,
-  date: null,
-  left,
-});
-
-/**
- * Sorted by date; the to-do (when setup is unfinished) always keeps a seat and
- * sits last. A `limit` of 0 means no limit.
- */
-export function mergeUpcoming(
-  dated: readonly UpcomingRow[],
-  todoLeft: number,
-  limit: number,
-): UpcomingRow[] {
+/** Sorted by date. A `limit` of 0 means no limit. */
+export function mergeUpcoming(dated: readonly UpcomingRow[], limit: number): UpcomingRow[] {
   const sorted = [...dated].sort((a, b) => a.inDays - b.inDays || (a.key < b.key ? -1 : 1));
-  const todo = todoLeft > 0 ? [todoRow(todoLeft)] : [];
-  return limit > 0 ? [...sorted.slice(0, limit - todo.length), ...todo] : [...sorted, ...todo];
+  return limit > 0 ? sorted.slice(0, limit) : sorted;
 }
 
 /** The bell's dot: something is due today, overdue, or tomorrow. */
-export const hasDue = (rows: readonly UpcomingRow[]): boolean =>
-  rows.some((r) => r.kind !== 'todo' && r.inDays <= 1);
+export const hasDue = (rows: readonly UpcomingRow[]): boolean => rows.some((r) => r.inDays <= 1);
 
 // ───────────────────────────────────────────── the full Upcoming screen ──
 
-export type UpcomingTab = 'all' | 'bills' | 'todo' | 'recurring';
-export type SummaryFilter = 'month' | 'overdue' | null;
+export type UpcomingTab = 'all' | 'bills' | 'reminders';
 
 /** `month` (YYYY-MM) shifted by `n` months. */
 export function addMonths(month: string, n: number): string {
@@ -318,81 +297,69 @@ export function recurringRows(
 }
 
 export interface UpcomingView {
-  readonly thisMonth: readonly UpcomingRow[];
-  readonly next: readonly UpcomingRow[];
-  readonly todos: readonly UpcomingRow[];
-  readonly counts: { readonly all: number; readonly bills: number; readonly todo: number };
-  readonly totals: {
-    readonly due: bigint;
-    readonly dueCount: number;
-    readonly overdue: bigint;
-    readonly overdueCount: number;
+  readonly rows: readonly UpcomingRow[];
+}
+
+export type UpcomingSectionKey = 'overdue' | 'thisWeek' | 'laterThisMonth' | 'nextMonth';
+export function groupUpcoming(
+  rows: readonly UpcomingRow[],
+  today: string,
+): Record<UpcomingSectionKey, readonly UpcomingRow[]> {
+  const next = addMonths(today.slice(0, 7), 1);
+  const matching = rows.filter((r) => r.date && r.date.slice(0, 7) <= next);
+  return {
+    overdue: matching.filter((r) => r.date! < today),
+    thisWeek: matching.filter((r) => r.date! >= today && r.inDays <= 7),
+    laterThisMonth: matching.filter(
+      (r) => r.inDays > 7 && r.date!.slice(0, 7) === today.slice(0, 7),
+    ),
+    nextMonth: matching.filter((r) => r.date!.slice(0, 7) === next && r.inDays > 7),
   };
 }
 
-const isTodoDate = (r: UpcomingRow): boolean =>
-  r.item?.source === 'date' && r.item.kind === 'other';
-
 /**
- * Everything the screen lists for `month`: its bills and dates, the following
- * month's under "Next", and the to-dos (the setup row, then reminders with no
- * amount — the dates of kind `other`).
+ * The full screen's date-ordered bills, income and reminders.
  */
 export function upcomingView(input: {
   txns: readonly PersonalTxn[];
   recurrings: readonly PersonalRecurring[];
   currency: string;
   today: string;
-  month: string;
   dates: readonly UpcomingRow[];
-  todoLeft: number;
 }): UpcomingView {
-  const { txns, recurrings, currency, today, month } = input;
-  const nextMonth = addMonths(month, 1);
-  const bills = billsInMonth(txns, recurrings, currency, month, today);
-  const plain = input.dates.filter((r) => !isTodoDate(r));
-  const inMonth = (m: string) => plain.filter((r) => r.date?.slice(0, 7) === m);
-  const monthDates = inMonth(month);
-  const todos = [
-    ...(input.todoLeft > 0 ? [todoRow(input.todoLeft)] : []),
-    ...input.dates.filter(isTodoDate),
-  ];
-  const overdue = bills.filter((b) => b.overdue);
-  const sum = (rows: readonly UpcomingRow[]) => rows.reduce((n, r) => n + (r.amount ?? 0n), 0n);
-  return {
-    thisMonth: [...bills, ...monthDates].sort(byDay),
-    next: [
-      ...billsInMonth(txns, recurrings, currency, nextMonth, today),
-      ...inMonth(nextMonth),
-    ].sort(byDay),
-    todos,
-    counts: {
-      all: bills.length + monthDates.length + todos.length,
-      bills: bills.length,
-      todo: todos.length,
-    },
-    totals: {
-      due: sum(bills),
-      dueCount: bills.length,
-      overdue: sum(overdue),
-      overdueCount: overdue.length,
-    },
-  };
+  const { txns, recurrings, currency, today } = input;
+  const bills = recurrings.flatMap((rule) => {
+    if (!rule.active || rule.currency !== currency) return [];
+    return occurrences(
+      rule,
+      txns,
+      { from: `${today.slice(0, 7)}-01`, to: addPlanDays(today, 60) },
+      today,
+    )
+      .filter((o) => o.status !== 'received')
+      .map((o): UpcomingRow => ({
+        key: `${rule.id}:${o.periodKey}`,
+        kind: 'bill',
+        tone: 'brand',
+        inDays: daysBetween(today, o.dueDate),
+        date: o.dueDate,
+        ruleId: rule.id,
+        title: rule.note?.trim() ?? '',
+        category: rule.category,
+        amount: o.expected,
+        currency: rule.currency,
+        overdue: rule.txnKind === 'expense' && !rule.autoPost && o.dueDate < today,
+        income: rule.txnKind === 'income',
+      }));
+  });
+  return { rows: [...bills, ...input.dates].sort(byDay) };
 }
 
-/** What each section shows for the chosen tab and summary card (the card wins). */
-export function visibleSections(
-  view: UpcomingView,
-  tab: UpcomingTab,
-  card: SummaryFilter,
-): { month: readonly UpcomingRow[]; next: readonly UpcomingRow[]; todos: readonly UpcomingRow[] } {
-  const none: readonly UpcomingRow[] = [];
-  if (card === 'month') return { month: view.thisMonth, next: none, todos: none };
-  if (card === 'overdue')
-    return { month: view.thisMonth.filter((r) => r.overdue), next: none, todos: none };
-  const bills = (rows: readonly UpcomingRow[]) => rows.filter((r) => r.kind === 'bill');
-  if (tab === 'bills') return { month: bills(view.thisMonth), next: bills(view.next), todos: none };
-  if (tab === 'todo') return { month: none, next: none, todos: view.todos };
-  if (tab === 'recurring') return { month: none, next: none, todos: none };
-  return { month: view.thisMonth, next: view.next, todos: view.todos };
+/** Apply the compact list filter. */
+export function filterUpcoming(view: UpcomingView, tab: UpcomingTab): readonly UpcomingRow[] {
+  return tab === 'bills'
+    ? view.rows.filter((r) => r.kind === 'bill' && !r.income)
+    : tab === 'reminders'
+      ? view.rows.filter((r) => r.kind === 'date')
+      : view.rows;
 }

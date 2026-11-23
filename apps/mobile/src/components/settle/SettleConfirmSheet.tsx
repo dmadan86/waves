@@ -113,6 +113,7 @@ export function SettleConfirmSheet({
             </Text>
           </View>
           <MoneyText
+            exact
             amount={amount}
             currency={currency}
             locale={locale}

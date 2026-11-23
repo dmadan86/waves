@@ -16,8 +16,10 @@ import {
 } from '@waves/core';
 
 import { useSourceLabel } from '@/components/IncomeSource';
+import { PersonAvatar } from '@/components/PersonAvatar';
 import { CardTitle, ICON_FOR } from '@/components/personal/PersonalHomeParts';
 import { GroupRow } from '@/components/home/GroupRow';
+import type { SnapRow } from '@/lib/homeSnapshot';
 import { BALANCE_MASK } from '@/components/home/ScenicBalanceCard';
 import { useCaptures, usePeopleBalances } from '@/data/hooks';
 import { useHomeSpaceFigures } from '@/data/homeSpaces';
@@ -29,8 +31,12 @@ import { foldedCaptureCount } from '@/lib/captureBatch';
 import { subtitleOf, titleOf } from '@/lib/dateReminders/text';
 import { billRows, daysBetween, dateRows } from '@/lib/personalUpcoming';
 import {
+  isAutoPostOverdue,
+  notExcluded,
+  personalNeedKey,
   plainAmount,
   rankNeeds,
+  shownPersonalKeys,
   SOON_DAYS,
   type BillNeed,
   type Need,
@@ -38,6 +44,8 @@ import {
 } from '@/lib/homeToday';
 import { router } from '@/lib/navigation';
 import { useNudge } from '@/lib/nudge';
+import { useUndoableAction } from '@/lib/useUndoableAction';
+import { useToast } from '@/lib/toast';
 
 interface Ledger {
   readonly txns: readonly PersonalTxn[];
@@ -57,12 +65,18 @@ export function NeedsYouCard({
   viewerId,
   hidden,
   onShownBills,
+  onSnapshot,
+  all = false,
 }: {
   ledger: Ledger;
   viewerId: string | null;
   hidden: boolean;
+  /** The full list on its own screen: every need, no title or "See all". */
+  all?: boolean;
   /** The personal bill rows this card shows, so Coming up can leave them out. */
   onShownBills?: (keys: string) => void;
+  /** Reports the rows as drawn (unmasked), for Home's stored snapshot. */
+  onSnapshot?: (rows: SnapRow[], total: number) => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useStrings();
@@ -83,9 +97,9 @@ export function NeedsYouCard({
       SOON_DAYS,
     )
       // An auto-post rule's missed day is posted by the catch-up, not by hand.
-      .filter((row) => !(row.inDays < 0 && ruleById.get(row.ruleId ?? '')?.autoPost))
+      .filter((row) => !isAutoPostOverdue(row, ruleById))
       .map((row) => ({
-        key: `p:${row.key}`,
+        key: personalNeedKey(row.key),
         source: 'personal' as const,
         title: row.title || sourceLabel(row.category ?? null) || t.personal.expense,
         amount: row.amount ?? 0n,
@@ -118,34 +132,96 @@ export function NeedsYouCard({
         groupId: row.only_group_id,
         memberId: row.member_id,
         personKey: row.person_key,
+        avatarUrl: row.avatar_url,
       };
       if (net > 0n) owedToYou.push(need);
       else if (net < 0n) youOwe.push(need);
     }
-    return rankNeeds({
-      bills: [...personal, ...shared],
-      owedToYou,
-      youOwe,
-      reviewCount: foldedCaptureCount(captures.data ?? []),
-    });
+    return rankNeeds(
+      {
+        bills: [...personal, ...shared],
+        owedToYou,
+        youOwe,
+        reviewCount: foldedCaptureCount(captures.data ?? []),
+      },
+      all ? Infinity : undefined,
+    );
     // sourceLabel/t are stable per render of the same strings; keyed on the data.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ledger, myBills, people, captures.data, t]);
+  }, [ledger, myBills, people, captures.data, t, all]);
 
   // Tell Home which personal bills are here; a stable string so it settles.
-  const shownBills = items
-    .filter((need) => need.bill?.source === 'personal')
-    .map((need) => need.bill!.key.slice(2))
-    .join('|');
+  const shownBills = shownPersonalKeys(items);
   useEffect(() => {
     onShownBills?.(shownBills);
   }, [onShownBills, shownBills]);
 
+  const rowsJson = onSnapshot
+    ? JSON.stringify(
+        items.map((need): SnapRow => {
+          const money = (amount: bigint, currency: string) => plainAmount(amount, currency, locale);
+          const { bill, person } = need;
+          const label =
+            need.action === 'markPaid'
+              ? h.markPaid
+              : need.action === 'pay'
+                ? h.pay
+                : need.action === 'remind'
+                  ? h.remind
+                  : h.review;
+          if (bill) {
+            return {
+              key: need.key,
+              title: bill.title,
+              memberLabel: shortDate(bill.date, locale),
+              amountText: money(bill.amount, bill.currency),
+              directionLabel: label,
+              strong: need.action === 'pay',
+              icon: need.kind === 'overdue' ? 'alert-circle-outline' : 'home-outline',
+              href:
+                bill.source === 'group' && bill.groupId
+                  ? `/group/${bill.groupId}`
+                  : '/personal/upcoming',
+            };
+          }
+          if (person) {
+            return {
+              key: need.key,
+              title: person.name,
+              memberLabel: need.kind === 'owed' ? t.youAreOwed : t.youOwe,
+              amountText: money(person.amount, person.currency),
+              directionLabel: label,
+              strong: need.action === 'pay',
+              icon: 'person-outline',
+              href: `/friends/person/${encodeURIComponent(person.personKey)}?name=${encodeURIComponent(person.name)}`,
+            };
+          }
+          return {
+            key: need.key,
+            title: fill(h.reviewTitle, { n: need.count ?? 0 }),
+            memberLabel: '',
+            amountText: '',
+            directionLabel: label,
+            icon: 'file-tray-full-outline',
+            href: '/captures',
+          };
+        }),
+      )
+    : null;
+  useEffect(() => {
+    if (rowsJson) onSnapshot?.(JSON.parse(rowsJson) as SnapRow[], total);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the rows' content
+  }, [rowsJson, total]);
+
   const settled = items.length === 0;
   return (
     <View style={{ gap: theme.spacing.sm }}>
-      {settled ? null : (
-        <CardTitle title={h.needsYou}>
+      {settled || all ? null : (
+        <CardTitle
+          title={h.needsYou}
+          action={total > items.length ? h.seeAll : undefined}
+          onAction={() => router.push('/needs')}
+        >
           <Text variant="caption" tone="muted" style={{ fontWeight: '700' }}>
             {total}
           </Text>
@@ -177,7 +253,9 @@ export function NeedsYouCard({
               locale={locale}
               onMarkPaid={async () => {
                 const rule = ledger.recurrings.find((r) => r.id === need.bill?.ruleId);
-                if (rule && need.bill) await post(rule, need.bill.date).catch(() => {});
+                if (rule && need.bill) {
+                  await post(rule, need.bill.date);
+                }
               }}
             />
           ))
@@ -209,6 +287,11 @@ function NeedRow({
     memberId: person?.memberId ?? '',
     currency: person?.currency ?? '',
   });
+  const toast = useToast();
+  const undoable = useUndoableAction();
+  const nudgeKey = `nudge:${person?.groupId ?? ''}:${person?.memberId ?? ''}`;
+  const remindPending = undoable.isPending(nudgeKey);
+  const paidPending = bill ? undoable.isPending(`paid:${bill.ruleId}:${bill.date}`) : false;
   const [paying, setPaying] = useState(false);
   const money = (amount: bigint, currency: string): string =>
     hidden ? BALANCE_MASK : plainAmount(amount, currency, locale);
@@ -235,11 +318,18 @@ function NeedRow({
     tint = need.kind === 'overdue' ? theme.tint.coral : theme.tint.mint;
     icon = need.kind === 'overdue' ? 'alert-circle-outline' : 'home-outline';
     if (need.action === 'markPaid') {
-      label = h.markPaid;
-      onPress = () => {
-        setPaying(true);
-        void onMarkPaid().finally(() => setPaying(false));
-      };
+      label = paidPending ? t.voice.autoUndo : h.markPaid;
+      const paidKey = `paid:${bill.ruleId}:${bill.date}`;
+      onPress = paidPending
+        ? () => undoable.undo(paidKey)
+        : () => {
+            setPaying(true);
+            undoable.run(() => onMarkPaid().catch(() => {}), {
+              key: paidKey,
+              message: fill(t.common.markedPaid, { title: bill.title }),
+            });
+            setPaying(false);
+          };
     } else {
       label = h.pay;
       onPress = () => router.push(`/group/${bill.groupId}`);
@@ -252,22 +342,38 @@ function NeedRow({
       );
     icon = 'person-outline';
     if (need.kind === 'owed') {
-      title = fill(h.owesYou, { name: person.name, amount });
+      title = person.name;
+      sub = fill(h.owesYouSub, { amount });
       tint = theme.tint.peach;
-      label = nudge.outcome?.ok ? h.reminded : h.remind;
+      label = remindPending ? t.voice.autoUndo : nudge.outcome?.ok ? h.reminded : h.remind;
       onPress = person.groupId
-        ? nudge.send
+        ? remindPending
+          ? () => undoable.undo(nudgeKey)
+          : () =>
+              undoable.run(
+                async () => {
+                  const result = await nudge.send();
+                  if (result)
+                    toast.show(
+                      result.ok && result.label !== t.people.remindedToday
+                        ? fill(t.common.reminderSent, { name: person.name })
+                        : result.label,
+                      result.ok ? 'positive' : 'negative',
+                    );
+                },
+                { key: nudgeKey, message: fill(t.common.remindingName, { name: person.name }) },
+              )
         : () =>
             router.push(
               `/friends/person/${encodeURIComponent(person.personKey)}?name=${encodeURIComponent(person.name)}` as never,
             );
     } else {
-      title = fill(h.youOweName, { name: person.name, amount });
+      title = person.name;
+      sub = fill(h.youOweSub, { amount });
       tint = theme.tint.sky;
       label = h.pay;
       onPress = () => router.push('/settle-up');
     }
-    sub = '';
   } else {
     title = fill(h.reviewTitle, { n: need.count ?? 0 });
     icon = 'file-tray-full-outline';
@@ -301,18 +407,22 @@ function NeedRow({
           opacity: pressed ? 0.7 : 1,
         })}
       >
-        <View
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: theme.radius.md,
-            backgroundColor: tint.bg,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
-        </View>
+        {person ? (
+          <PersonAvatar name={person.name} avatarUrl={person.avatarUrl} size={36} />
+        ) : (
+          <View
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: theme.radius.md,
+              backgroundColor: tint.bg,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Ionicons name={icon} size={iconSize.md} color={tint.ink} />
+          </View>
+        )}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Text numberOfLines={1} style={{ fontWeight: '700' }}>
             {title}
@@ -327,7 +437,11 @@ function NeedRow({
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={`${label}, ${title}`}
-        disabled={paying || nudge.pending || (need.kind === 'owed' && nudge.outcome?.ok === true)}
+        disabled={
+          paying ||
+          nudge.pending ||
+          (need.kind === 'owed' && nudge.outcome?.ok === true && !remindPending)
+        }
         onPress={onPress}
         hitSlop={6}
         style={({ pressed }) => ({
@@ -364,6 +478,8 @@ interface Chip {
   readonly inDays: number;
   /** The right-hand figure: a bill's amount, empty for a date. */
   readonly amount: string;
+  /** The same figure unmasked, for the stored snapshot. */
+  readonly rawAmount: string;
   /** The grey line under the title. */
   readonly detail: string;
   readonly title: string;
@@ -376,7 +492,10 @@ export function ComingUpChips({
   ledger,
   hidden,
   exclude = '',
+  onSnapshot,
 }: {
+  /** Reports the rows as drawn (unmasked), for Home's stored snapshot. */
+  onSnapshot?: (rows: SnapRow[]) => void;
   ledger: Ledger;
   hidden: boolean;
   /** Bill row keys already in Needs you, joined with '|': each item shows once. */
@@ -387,14 +506,14 @@ export function ComingUpChips({
   const { session, isGuest } = useAuth();
   const sourceLabel = useSourceLabel();
   const occurrences = useDateOccurrences();
-  if (!session || isGuest) return null;
+  const signedOut = !session || isGuest;
 
   const dates: UpcomingItem[] = pickUpcoming(occurrences, 6);
   const rows = [
     ...billRows(ledger.txns, ledger.recurrings, ledger.currency, ledger.today, 14),
     ...dateRows(dates),
   ]
-    .filter((r) => r.inDays >= 0 && !(exclude && exclude.split('|').includes(r.key)))
+    .filter((r) => r.inDays >= 0 && notExcluded(r.key, exclude))
     .sort((a, b) => a.inDays - b.inDays || (a.key < b.key ? -1 : 1))
     .slice(0, 6);
   const chips: Chip[] = rows.map((row) => {
@@ -408,6 +527,7 @@ export function ComingUpChips({
         iso,
         inDays: row.inDays,
         amount: '',
+        rawAmount: '',
         detail: subtitleOf(item, t.dates, locale),
         title: titleOf(item, t.dates),
         sub: subtitleOf(item, t.dates, locale),
@@ -426,6 +546,7 @@ export function ComingUpChips({
       amount: hidden
         ? BALANCE_MASK
         : plainAmount(row.amount ?? 0n, row.currency ?? ledger.currency, locale),
+      rawAmount: plainAmount(row.amount ?? 0n, row.currency ?? ledger.currency, locale),
       detail: new Date(`${iso}T12:00:00`).toLocaleDateString(locale, {
         weekday: 'short',
         day: 'numeric',
@@ -442,6 +563,26 @@ export function ComingUpChips({
 
   // A short list, nearest first; the full view is one tap away.
   const shown = chips.slice(0, COMING_UP_ROWS);
+
+  const rowsJson = onSnapshot
+    ? JSON.stringify(
+        shown.map((chip): SnapRow => ({
+          key: chip.key,
+          title: chip.title,
+          memberLabel: chip.detail,
+          amountText: chip.rawAmount,
+          directionLabel:
+            chip.inDays === 0 ? t.dates.today : plural(locale, chip.inDays, t.dates.inDays),
+          icon: chip.emoji ?? 'calendar-outline',
+          href: '/personal/upcoming',
+        })),
+      )
+    : null;
+  useEffect(() => {
+    if (rowsJson && !signedOut) onSnapshot?.(JSON.parse(rowsJson) as SnapRow[]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keyed on the rows' content
+  }, [rowsJson, signedOut]);
+  if (signedOut) return null;
 
   return (
     <View style={{ gap: theme.spacing.sm }}>

@@ -41,3 +41,20 @@ describe('createReplanner', () => {
     vi.useRealTimers();
   });
 });
+
+describe('bill occurrence id edges', () => {
+  it('seeds differ by kind, rule and date so occurrences never collide', () => {
+    const seeds = new Set([
+      occurrenceSeed('expense', 'r1', '2026-12-01'),
+      occurrenceSeed('mutation', 'r1', '2026-12-01'),
+      occurrenceSeed('expense', 'r2', '2026-12-01'),
+      occurrenceSeed('expense', 'r1', '2026-12-02'),
+    ]);
+    expect(seeds.size).toBe(4);
+  });
+  it('hexToUuid keeps all 32 digits and the 8-4-4-4-12 shape', () => {
+    const out = hexToUuid('ffffffffffffffffffffffffffffffff');
+    expect(out).toMatch(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/);
+    expect(out.replace(/-/g, '')).toHaveLength(32);
+  });
+});

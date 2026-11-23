@@ -47,7 +47,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 import Animated, { FadeIn, useReducedMotion } from 'react-native-reanimated';
 
-import { Callout, directionalIcon, Row, Screen, Text } from '@waves/ui';
+import { Callout, directionalIcon, Row, Screen, Text, useTheme } from '@waves/ui';
 
 import { AppleMark, GoogleMark } from '@/components/SocialTile';
 import { useStrings, type UiStrings } from '@/i18n';
@@ -76,14 +76,10 @@ const RESEND_SECONDS = 60;
 const INK = '#16163A';
 const MUTED = '#5C6078';
 const FAINT = '#8F93A8';
-const ACCENT = '#6A45E8';
-const LINE = '#E6E4F0';
-const PAGE = '#F6F3FC';
 const FIELD_LINE = '#ECE9F5';
 const GLYPH = '#4A4E68';
 const PLACEHOLDER = '#8E92A6';
 /** The Sign in pill before it can be pressed: a quiet lavender, on purpose. */
-const PILL_REST = '#CFC4F6';
 const DISPLAY = 'PlusJakartaSans-ExtraBold';
 const BODY = 'PlusJakartaSans-Medium';
 
@@ -92,6 +88,7 @@ const FRIENDS = require('../../assets/images/welcome-friends.webp') as number;
 const WORDMARK = require('../../assets/images/wordmark-script.webp') as number;
 
 export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
+  const theme = useTheme();
   const { t } = useStrings();
   const goBack = useGoBack('/welcome');
   const reduceMotion = useReducedMotion();
@@ -269,7 +266,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
   const fieldStyle = {
     height: 46,
     borderWidth: 1,
-    borderColor: FIELD_LINE,
+    borderColor: theme.color.border,
     borderRadius: 12,
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 14,
@@ -281,7 +278,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: INK,
+    color: theme.color.text,
     paddingVertical: 0,
     // The glyph, the words and the eye share one centre line.
     textAlignVertical: 'center',
@@ -501,7 +498,7 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
     );
 
   return (
-    <View style={{ flex: 1, backgroundColor: PAGE }}>
+    <View style={{ flex: 1, backgroundColor: theme.color.bg }}>
       {/* The door's terrace, quietened: a lavender-white wash that is almost
           solid across the top — where the logo, the controls and the bubbles
           are — and thins toward the card, so the place is felt rather than
@@ -560,7 +557,11 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                   source={WORDMARK}
                   accessibilityLabel={t.common.appName}
                   resizeMode="contain"
-                  style={{ width: windowWidth * 0.26, height: windowWidth * 0.26 * (256 / 720) }}
+                  style={{
+                    width: windowWidth * 0.26,
+                    height: windowWidth * 0.26 * (256 / 720),
+                    tintColor: theme.color.brand,
+                  }}
                 />
               </View>
               <HeaderGlyph
@@ -589,13 +590,19 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                 <Svg width={windowWidth} height={60} style={{ position: 'absolute', top: 4 }}>
                   <Path
                     d={`M0 34 C ${windowWidth * 0.2} 8, ${windowWidth * 0.36} 58, ${windowWidth * 0.52} 40 S ${windowWidth * 0.8} 8, ${windowWidth} 24`}
-                    stroke="#E4DEFA"
+                    stroke={theme.color.brandSoft}
                     strokeWidth={1.5}
                     fill="none"
                   />
                 </Svg>
                 <Bubble icon="receipt-outline" fg="#B98A4A" bg="#FBEBD6" left={0.08} top={12} />
-                <Bubble icon="cafe-outline" fg="#7A5CF0" bg="#ECE7FD" left={0.27} top={30} />
+                <Bubble
+                  icon="cafe-outline"
+                  fg={theme.color.brand}
+                  bg={theme.color.brandSoft}
+                  left={0.27}
+                  top={30}
+                />
                 <Bubble icon="card-outline" fg="#D15C8B" bg="#FBE4EC" left={0.62} top={28} />
                 <Bubble icon="people-outline" fg="#4C7FE0" bg="#E2ECFC" left={0.8} top={6} />
                 <Image
@@ -678,14 +685,14 @@ export function AuthFlow({ flow }: { flow: AuthFlowKind }) {
                   {/* The other ways in: a seam, then three equal round buttons. */}
                   <View style={{ marginTop: 16, gap: 12 }}>
                     <Row style={{ alignItems: 'center', gap: 12 }}>
-                      <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
+                      <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
                       <Text
                         maxFontSizeMultiplier={COMPACT_TYPE_CAP}
                         style={{ fontSize: 14, color: MUTED }}
                       >
                         {t.signIn.orContinueWith}
                       </Text>
-                      <View style={{ flex: 1, height: 1, backgroundColor: LINE }} />
+                      <View style={{ flex: 1, height: 1, backgroundColor: theme.color.border }} />
                     </Row>
                     <SocialTiles
                       busy={busy}
@@ -781,6 +788,7 @@ function PrimaryPill({
   disabled: boolean;
   testID?: string;
 }) {
+  const theme = useTheme();
   // At rest it is a quiet lavender with soft-white words — plainly waiting, not
   // broken. With both fields filled it takes the full Waves gradient.
   const face = (
@@ -824,9 +832,9 @@ function PrimaryPill({
       })}
     >
       {disabled ? (
-        <View style={[shape, { backgroundColor: PILL_REST }]}>{face}</View>
+        <View style={[shape, { backgroundColor: theme.color.brandSoft }]}>{face}</View>
       ) : (
-        <View style={[{ backgroundColor: '#6A45E8' }, shape]}>{face}</View>
+        <View style={[{ backgroundColor: theme.color.buttonPrimary }, shape]}>{face}</View>
       )}
     </Pressable>
   );
@@ -842,6 +850,7 @@ function HeaderGlyph({
   icon: ComponentProps<typeof Ionicons>['name'];
   onPress: () => void;
 }) {
+  const theme = useTheme();
   return (
     <Pressable
       accessibilityRole="button"
@@ -860,7 +869,7 @@ function HeaderGlyph({
         opacity: pressed ? 0.6 : 1,
       })}
     >
-      <Ionicons name={icon} size={20} color={INK} />
+      <Ionicons name={icon} size={20} color={theme.color.text} />
     </Pressable>
   );
 }
@@ -879,7 +888,8 @@ function TextLink({
   tone?: 'brand' | 'muted' | 'faint';
   testID?: string;
 }) {
-  const color = tone === 'brand' ? ACCENT : tone === 'muted' ? MUTED : FAINT;
+  const theme = useTheme();
+  const color = tone === 'brand' ? theme.color.brand : tone === 'muted' ? MUTED : FAINT;
   return (
     <Pressable
       testID={testID}
@@ -930,6 +940,7 @@ function SocialTiles({
   onPhone?: () => void;
   t: UiStrings;
 }) {
+  const theme = useTheme();
   const google = (
     <RoundWay
       key="google"
@@ -966,7 +977,7 @@ function SocialTiles({
       onPress={onPhone}
       face="#FFFFFF"
     >
-      <Ionicons name="call-outline" size={19} color={ACCENT} />
+      <Ionicons name="call-outline" size={19} color={theme.color.brand} />
     </RoundWay>
   ) : null;
   const order = Platform.OS === 'ios' ? [apple, google, phone] : [google, apple, phone];
@@ -991,6 +1002,7 @@ function RoundWay({
   face: string;
   children: ReactNode;
 }) {
+  const theme = useTheme();
   return (
     <Pressable
       testID={testID}

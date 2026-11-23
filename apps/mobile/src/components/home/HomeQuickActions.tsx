@@ -36,6 +36,7 @@ export function HomeQuickActions({
   onReview,
   onScan,
   onRemind,
+  onJoin,
   radius,
 }: {
   onAddExpense: () => void;
@@ -46,6 +47,8 @@ export function HomeQuickActions({
   onScan: () => void;
   /** Opens Friends, where each balance carries its own nudge. */
   onRemind: () => void;
+  /** All groups: Join group takes Remind's place (join by code or QR). */
+  onJoin?: () => void;
   /** The card's corner radius, which the strip's bottom corners follow. */
   radius: number;
 }) {
@@ -74,12 +77,19 @@ export function HomeQuickActions({
       glyph: (color) => <Ionicons name="scan-outline" size={28} color={color} />,
       onPress: onScan,
     },
-    {
-      key: 'remind',
-      label: t.people.remind,
-      glyph: (color) => <Ionicons name="alarm-outline" size={28} color={color} />,
-      onPress: onRemind,
-    },
+    onJoin
+      ? {
+          key: 'join',
+          label: t.homeToday.joinGroupShort,
+          glyph: (color) => <Ionicons name="people-outline" size={28} color={color} />,
+          onPress: onJoin,
+        }
+      : {
+          key: 'remind',
+          label: t.people.remind,
+          glyph: (color) => <Ionicons name="alarm-outline" size={28} color={color} />,
+          onPress: onRemind,
+        },
     isReview
       ? {
           key: 'review',

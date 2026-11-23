@@ -17,7 +17,6 @@ import {
   Platform,
   Pressable,
   ScrollView,
-  TextInput,
   View,
 } from 'react-native';
 
@@ -50,7 +49,6 @@ import {
 } from '@waves/core';
 import {
   AmountField,
-  amountKeyboard,
   Button,
   Callout,
   Card,
@@ -70,6 +68,7 @@ import { CategoryRow, CategorySheet } from '@/components/Category';
 import { ExpenseReceipts } from '@/components/ExpenseReceipts';
 import { TagEditorSheet } from '@/components/TagEditorSheet';
 import { PaymentMethodRow, PaymentMethodSheet } from '@/components/PaymentMethodPicker';
+import { PayersEditor } from '@/components/expense/PayersEditor';
 import { PayeeSheet } from '@/components/expense/PayeeSheet';
 import { LocationField } from '@/components/LocationField';
 import { GROUP_REPEAT_HIDDEN } from '@/lib/groupRepeat';
@@ -106,7 +105,7 @@ import { useCreateGroupRecurring } from '@/data/groupRecurring';
 import { frequencyLabel } from '@/lib/frequencyLabel';
 import { reportHandled } from '@/lib/observability';
 import { useAssignCapture, useGroup, useGroupFxRates, useSetGroupFxRate } from '@/data/hooks';
-import { displayName, groupLabel, isGhost, isViewer } from '@/data/types';
+import { displayName, groupLabel, isViewer } from '@/data/types';
 import { GroupNotFound } from '@/components/GroupNotFound';
 import { fill, plural, useStrings } from '@/i18n';
 import { isQueuedOffline, saveToastText } from '@/lib/saveToast';
@@ -169,7 +168,6 @@ import {
 import { useDialog } from '@/lib/dialog';
 import { moveAfterSave, rememberMove } from '@/lib/personalHandoff';
 import { dropHandedReceipt, peekHandedReceipt } from '@/lib/receiptHandoff';
-import { PersonAvatar } from '@/components/PersonAvatar';
 
 /** Shared empty set — a new one per render would defeat every memo below it. */
 const EMPTY_LOCKS: ReadonlySet<MemberId> = new Set();
@@ -1156,15 +1154,6 @@ function AddExpenseScreen() {
   // A bill that already records several payers is in several-payer mode however
   // the flag was left — an edit must never offer to quietly drop one of them.
   const manyPayers = payerMode === 'many' || payers.size > 1;
-  // The chooser's order: whoever is paying, then everybody else, each keeping
-  // the group's own order within their half (`sort` is stable). The lane scrolls
-  // sideways, so without this a payer picked from the end of a long member list
-  // would be the one thing on the screen you cannot see.
-  const payerChoices = useMemo(() => {
-    const rows = members.data ?? [];
-    return [...rows].sort((a, b) => Number(payers.has(b.id)) - Number(payers.has(a.id)));
-  }, [members.data, payers]);
-
   // Closed by default: the "paid by" row reads as a fact ("You") rather than a
   // control until it is tapped, or until the bill already has several payers
   // (an edit, or the several-payer link tapped earlier in this same visit).
@@ -1955,7 +1944,7 @@ function AddExpenseScreen() {
       : evenEach !== null && amount > 0n
         ? plural(locale, participants.length, t.expense.oweEach).replace(
             '{amount}',
-            format(money(evenEach, currency), { locale }),
+            format(money(evenEach, currency), { locale, trimZeros: true }),
           )
         : plural(locale, participants.length, t.memberCount);
 
@@ -2315,60 +2304,17 @@ function AddExpenseScreen() {
                   onPress={() => setPayerSectionChoice(!showPayerSection)}
                 />
                 {showPayerSection ? (
-                  <View style={{ gap: theme.spacing.sm, paddingBottom: theme.spacing.sm }}>
-                    <Row style={{ justifyContent: 'flex-end' }}>
-                      <Row style={{ gap: theme.spacing.lg, alignItems: 'center', flexShrink: 0 }}>
-                        {manyPayers && payers.size > 1 ? (
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={t.expense.splitPaidEvenly}
-                            onPress={splitPaidEvenly}
-                            hitSlop={LINK_HIT_SLOP}
-                          >
-                            <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-                              {t.expense.splitPaidEvenly}
-                            </Text>
-                          </Pressable>
-                        ) : null}
-                        {/* The way in and out of several-payer mode. A link
-                            rather than a hidden long-press: nobody discovers a
-                            long-press, and this is the whole feature. */}
-                        <Pressable
-                          accessibilityRole="switch"
-                          accessibilityState={{ checked: manyPayers }}
-                          accessibilityLabel={
-                            manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral
-                          }
-                          onPress={() => setManyPayers(!manyPayers)}
-                          hitSlop={LINK_HIT_SLOP}
-                        >
-                          <Text variant="micro" tone="brand" style={{ fontWeight: '700' }}>
-                            {manyPayers ? t.expense.paidByOne : t.expense.paidBySeveral}
-                          </Text>
-                        </Pressable>
-                      </Row>
-                    </Row>
-
-                    {/* One lane that scrolls, not a grid that reflows. Every
-                      tile is the same width, the name gets one line and an
-                      ellipsis, and the overflow goes sideways where a tap can
-                      reach it. Whoever is paying leads the lane
-                      (`payerChoices`), so on a long member list the answer is
-                      at the start rather than somewhere off the right-hand
-                      edge. */}
-                    <ScrollView
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      // Edge to edge inside the card's side padding, so a tile is cut
-                      // by the card, not by the padding.
-                      style={{ marginHorizontal: -theme.spacing.md }}
-                      contentContainerStyle={{
-                        gap: theme.spacing.xs,
-                        paddingHorizontal: theme.spacing.md,
-                        paddingRight: theme.spacing.xl,
-                      }}
-                    >
-                      {familiesOn && !manyPayers
+                  <PayersEditor
+                    members={members.data ?? []}
+                    viewerId={viewerId}
+                    payers={payers}
+                    paidText={paidText}
+                    manyPayers={manyPayers}
+                    amount={amount}
+                    currency={currency}
+                    message={payerMessage}
+                    leading={
+                      familiesOn && !manyPayers
                         ? Object.entries(group.data?.units ?? {}).map(([id, unit]) => {
                             const head = headOf(unit);
                             if (!head || !(members.data ?? []).some((member) => member.id === head))
@@ -2414,148 +2360,13 @@ function AddExpenseScreen() {
                               </Pressable>
                             );
                           })
-                        : null}
-                      {payerChoices.map((member) => {
-                        const isPayer = payers.has(member.id);
-                        return (
-                          <Pressable
-                            key={member.id}
-                            // The role follows the mode, because the gesture
-                            // does: one payer is a radio (tapping replaces),
-                            // several is a checkbox (tapping adds).
-                            accessibilityRole={manyPayers ? 'checkbox' : 'radio'}
-                            accessibilityState={
-                              manyPayers ? { checked: isPayer } : { selected: isPayer }
-                            }
-                            accessibilityLabel={`${t.paidBy}: ${displayName(member, viewerId)}`}
-                            onPress={() => togglePayer(member.id)}
-                            style={{
-                              width: PAYER_TILE_WIDTH,
-                              alignItems: 'center',
-                              gap: 4,
-                              opacity: isPayer ? 1 : 0.45,
-                            }}
-                          >
-                            <PersonAvatar
-                              member={member}
-                              name={displayName(member)}
-                              ghost={isGhost(member)}
-                            />
-                            <Text
-                              variant="micro"
-                              tone={isPayer ? 'brand' : 'muted'}
-                              numberOfLines={1}
-                              style={{ textAlign: 'center' }}
-                            >
-                              {displayName(member, viewerId)}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </ScrollView>
-
-                    {manyPayers && payers.size > 1 ? (
-                      <View style={{ gap: theme.spacing.xs }}>
-                        {payerIds.map((memberId) => {
-                          const member = (members.data ?? []).find((row) => row.id === memberId);
-                          const name = member ? displayName(member, viewerId) : t.misc.someone;
-                          return (
-                            <Row
-                              key={memberId}
-                              style={{ gap: theme.spacing.md, alignItems: 'center' }}
-                            >
-                              <PersonAvatar
-                                member={member}
-                                name={member ? displayName(member) : name}
-                                ghost={member ? isGhost(member) : false}
-                                size={32}
-                              />
-                              <Text
-                                variant="body"
-                                numberOfLines={1}
-                                style={{ flex: 1, minWidth: 0 }}
-                              >
-                                {name}
-                              </Text>
-                              {/* The figure may be long — a six-figure trip
-                                  total, a yen amount, a large accessibility
-                                  font. It gives way to the name rather than
-                                  clipping, down to a floor wide enough to
-                                  still read as a field. */}
-                              <Row
-                                style={{
-                                  gap: theme.spacing.xs,
-                                  alignItems: 'center',
-                                  flexShrink: 1,
-                                  minWidth: 96,
-                                  maxWidth: '60%',
-                                }}
-                              >
-                                <Text variant="caption" tone="muted">
-                                  {currencySymbol(currency)}
-                                </Text>
-                                <TextInput
-                                  value={paidText[memberId] ?? ''}
-                                  onChangeText={(text) => setPaidEntry(memberId, text)}
-                                  keyboardType={amountKeyboard(currency as CurrencyCode)}
-                                  selectTextOnFocus
-                                  placeholder="0"
-                                  placeholderTextColor={theme.color.textFaint}
-                                  accessibilityLabel={t.expense.paidByNameAmount
-                                    .replace('{name}', name)
-                                    .replace(
-                                      '{amount}',
-                                      format(money(payers.get(memberId) ?? 0n, currency), {
-                                        locale,
-                                      }),
-                                    )}
-                                  // What is wrong with the set of figures, on
-                                  // each field that can put it right. React
-                                  // Native has no invalid accessibility state,
-                                  // so the message itself is the hint —
-                                  // otherwise the only announcement of a bill
-                                  // that does not add up arrives at the save
-                                  // button.
-                                  accessibilityHint={payerMessage ?? undefined}
-                                  style={{
-                                    flexGrow: 1,
-                                    flexShrink: 1,
-                                    minWidth: 72,
-                                    minHeight: 44,
-                                    fontSize: 16,
-                                    fontWeight: '700',
-                                    textAlign: 'right',
-                                    textAlignVertical: 'center',
-                                    color: theme.color.text,
-                                    backgroundColor: theme.color.bg,
-                                    borderRadius: theme.radius.sm,
-                                    paddingVertical: theme.spacing.sm,
-                                    paddingHorizontal: theme.spacing.sm,
-                                  }}
-                                />
-                              </Row>
-                            </Row>
-                          );
-                        })}
-                      </View>
-                    ) : null}
-
-                    {/* What is still unaccounted for, or claimed twice over.
-                      Only once the bill has a total: "₹0 left to assign" on an
-                      empty form is noise rather than guidance. A single payer
-                      always holds the whole bill, so there is nothing to
-                      report — that row gets the hint instead. */}
-                    {payerMessage && amount > 0n ? (
-                      <Text
-                        variant="micro"
-                        tone="negative"
-                        accessibilityRole="alert"
-                        accessibilityLiveRegion="polite"
-                      >
-                        {payerMessage}
-                      </Text>
-                    ) : null}
-                  </View>
+                        : null
+                    }
+                    onToggle={togglePayer}
+                    onEntry={setPaidEntry}
+                    onEvenly={splitPaidEvenly}
+                    onMany={setManyPayers}
+                  />
                 ) : null}
               </View>
 

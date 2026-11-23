@@ -10,7 +10,7 @@ import { compactAmount } from '@/lib/householdHome';
 export const NEEDS_LIMIT = 3;
 /** A bill this many days away (or fewer) counts as "due soon". */
 export const SOON_DAYS = 3;
-export const SPACES_LIMIT = 7;
+export const SPACES_LIMIT = 5;
 
 export interface BillNeed {
   readonly key: string;
@@ -34,6 +34,7 @@ export interface PersonNeed {
   readonly groupId: string | null;
   readonly memberId: string;
   readonly personKey: string;
+  readonly avatarUrl?: string | null;
 }
 
 export type NeedKind = 'overdue' | 'soon' | 'owed' | 'owe' | 'review';
@@ -105,6 +106,26 @@ export function rankNeeds(
   ];
   return { items: all.slice(0, limit), total: all.length };
 }
+
+/** Needs-you key for a personal bill row; Coming up's row key is this minus the prefix. */
+export const personalNeedKey = (rowKey: string): string => `p:${rowKey}`;
+
+/** The personal bill row keys shown in Needs you, '|'-joined, for Coming up to leave out. */
+export const shownPersonalKeys = (items: readonly Need[]): string =>
+  items
+    .filter((need) => need.bill?.source === 'personal')
+    .map((need) => need.bill!.key.slice(2))
+    .join('|');
+
+/** False when a Coming up row is already in Needs you (`exclude` is '|'-joined keys). */
+export const notExcluded = (rowKey: string, exclude: string): boolean =>
+  !(exclude && exclude.split('|').includes(rowKey));
+
+/** An auto-post rule's missed day is posted by the catch-up, not by hand. */
+export const isAutoPostOverdue = (
+  row: { inDays: number; ruleId?: string },
+  ruleById: ReadonlyMap<string, { autoPost?: boolean }>,
+): boolean => row.inDays < 0 && !!ruleById.get(row.ruleId ?? '')?.autoPost;
 
 /** The first `max` tiles, and whether a "See all" tile is needed for the rest. */
 export function capSpaces<T>(

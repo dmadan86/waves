@@ -29,7 +29,12 @@ import {
 import { CategoryBadge } from '@/components/Category';
 import { SourceGlyph, useSourceLabel } from '@/components/IncomeSource';
 import { EmptyStateCta } from '@/components/EmptyStateCta';
-import { filterRecurrings, nextDateLabel, type RecurringFilter } from '@/lib/recurringList';
+import {
+  filterRecurrings,
+  nextDateLabel,
+  sectionRecurrings,
+  type RecurringFilter,
+} from '@/lib/recurringList';
 import { usePostRecurring } from '@/data/postRecurring';
 import {
   todayIso,
@@ -59,6 +64,12 @@ function RecurringScreenBody() {
 
   const cadenceLabel = (rule: PersonalRecurring): string =>
     frequencyLabel(t, frequencyOf(rule), rule.interval);
+
+  const sections = sectionRecurrings(filterRecurrings(recurrings, filter));
+  const totals = sectionRecurrings(recurrings.filter((rule) => rule.active));
+  const totalCurrency = recurrings[0]?.currency ?? 'INR';
+  const moneyText = (amount: bigint) =>
+    format(money(amount, totalCurrency), { locale, trimZeros: true });
 
   const ruleName = (rule: PersonalRecurring) =>
     rule.note?.trim() ||
@@ -117,110 +128,173 @@ function RecurringScreenBody() {
             ]}
           />
         </View>
-        {filterRecurrings(recurrings, filter).map((rule) => {
-          const due = isRecurringDue(rule, today);
-          const income = rule.txnKind === 'income';
-          return (
-            <Card
-              key={rule.id}
-              style={{ gap: theme.spacing.sm, padding: theme.spacing.md, borderRadius: 20 }}
-            >
-              <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel={`${ruleName(rule)} · ${t.personal.history}`}
-                  style={{ flex: 1 }}
-                  onPress={() => router.push(`/personal/source/${rule.id}`)}
-                >
-                  <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-                    {income ? (
-                      <SourceGlyph id={rule.category} size={36} />
-                    ) : (
-                      <CategoryBadge category={rule.category} size={36} />
-                    )}
-                    <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-                        {ruleName(rule)}
-                      </Text>
-                      <Text variant="micro" tone="muted">
-                        {cadenceLabel(rule)} · {t.personal.nextDue}{' '}
-                        {nextDateLabel(rule.nextDate, locale)}
-                      </Text>
-                    </View>
-                    <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                      <Text
-                        variant="body"
-                        style={{
-                          fontWeight: '700',
-                          color: income ? theme.color.positive : theme.color.text,
-                        }}
-                      >
-                        {income ? '+' : '−'}
-                        {format(money(rule.amount, rule.currency), { locale })}
-                      </Text>
-                      <View
-                        accessible
-                        accessibilityRole="text"
-                        accessibilityLabel={rule.active ? t.personal.active : t.personal.paused}
-                        style={{
-                          borderRadius: theme.radius.pill,
-                          paddingHorizontal: 8,
-                          paddingVertical: 2,
-                          backgroundColor: rule.active
-                            ? theme.color.positiveSoft
-                            : theme.color.surfaceMuted,
-                        }}
-                      >
-                        <Text
-                          variant="micro"
-                          style={{
-                            color: rule.active ? theme.color.positive : theme.color.textMuted,
-                          }}
-                        >
-                          {rule.active ? t.personal.active : t.personal.paused}
-                        </Text>
-                      </View>
-                    </View>
-                  </Row>
-                </Pressable>
-                <IconButton
-                  label={`${t.personal.recurringMenuLabel}: ${ruleName(rule)}`}
-                  repeatable
-                  onPress={() => setMenuRule(rule)}
-                >
-                  <Ionicons
-                    name="ellipsis-vertical"
-                    size={iconSize.md}
-                    color={theme.color.textMuted}
-                  />
-                </IconButton>
+        {recurrings.length > 0 ? (
+          <Card style={{ padding: theme.spacing.md }}>
+            <Text variant="caption" tone="muted">
+              {t.personal.eachMonth}
+            </Text>
+            <Text variant="body" style={{ fontWeight: '700' }}>
+              {t.personal.monthSummary
+                .replace('{in}', moneyText(totals.incomeTotal))
+                .replace('{out}', moneyText(totals.expenseTotal))
+                .replace('{left}', moneyText(totals.incomeTotal - totals.expenseTotal))}
+            </Text>
+          </Card>
+        ) : null}
+        {[
+          {
+            key: 'income',
+            label: t.personal.moneyIn,
+            rules: sections.income,
+            total: sections.incomeTotal,
+          },
+          {
+            key: 'expense',
+            label: t.personal.moneyOut,
+            rules: sections.expense,
+            total: sections.expenseTotal,
+          },
+        ].map((section) =>
+          section.rules.length ? (
+            <View key={section.key} style={{ gap: theme.spacing.sm }}>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text variant="caption" style={{ fontWeight: '700', color: theme.color.textMuted }}>
+                  {section.label}
+                </Text>
+                <Text variant="micro" tone="muted">
+                  {section.key === 'income' ? '+' : ''}
+                  {moneyText(section.total)} {t.personal.aMonth}
+                </Text>
               </Row>
-              {due && !rule.autoPost && rule.active ? (
-                <>
-                  <Divider />
-                  <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text variant="caption" tone="brand" style={{ fontWeight: '600', flex: 1 }}>
-                      {t.personal.due}
-                    </Text>
-                    <Button
-                      label={t.personal.postNow}
-                      size="sm"
-                      onPress={() => void post(rule)}
-                      disabled={upsert.isPending || posting}
-                    />
-                  </Row>
-                </>
-              ) : null}
-            </Card>
-          );
-        })}
-        <EmptyStateCta
-          compact
-          title={recurrings.length ? t.personal.noMoreRecurring : t.personal.noRecurring}
-          body={t.personal.recurringEmptyBody}
-          action={t.personal.addRecurringItem}
-          onAdd={() => router.push({ pathname: '/personal/entry', params: { repeats: '1' } })}
-        />
+              {section.rules.map((rule) => {
+                const due = isRecurringDue(rule, today);
+                const income = rule.txnKind === 'income';
+                return (
+                  <Card
+                    key={rule.id}
+                    style={{ gap: theme.spacing.sm, padding: theme.spacing.md, borderRadius: 20 }}
+                  >
+                    <Row style={{ alignItems: 'center', gap: theme.spacing.xs }}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`${ruleName(rule)} · ${t.personal.history}`}
+                        style={{ flex: 1 }}
+                        onPress={() => router.push(`/personal/source/${rule.id}`)}
+                      >
+                        <Row style={{ alignItems: 'center', gap: theme.spacing.sm }}>
+                          {income ? (
+                            <SourceGlyph id={rule.category} size={36} />
+                          ) : (
+                            <CategoryBadge
+                              category={rule.category}
+                              size={36}
+                              iconOverride={
+                                /\bloan\b/i.test(rule.note ?? '') ? 'cash-outline' : undefined
+                              }
+                            />
+                          )}
+                          <View style={{ flex: 1, minWidth: 0 }}>
+                            <Text variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
+                              {ruleName(rule)}
+                            </Text>
+                            <Text
+                              variant="micro"
+                              tone="muted"
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {cadenceLabel(rule)} · {t.personal.nextDue}{' '}
+                              {nextDateLabel(rule.nextDate, locale, today)}
+                            </Text>
+                          </View>
+                          <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                            <Text
+                              variant="body"
+                              style={{
+                                fontWeight: '700',
+                                color: income ? theme.color.positive : theme.color.text,
+                              }}
+                            >
+                              {income ? '+' : '−'}
+                              {format(money(rule.amount, rule.currency), {
+                                locale,
+                                trimZeros: true,
+                              })}
+                            </Text>
+                            {!rule.active ? (
+                              <View
+                                accessible
+                                accessibilityRole="text"
+                                accessibilityLabel={
+                                  rule.active ? t.personal.active : t.personal.paused
+                                }
+                                style={{
+                                  borderRadius: theme.radius.pill,
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 2,
+                                  backgroundColor: rule.active
+                                    ? theme.color.positiveSoft
+                                    : theme.color.surfaceMuted,
+                                }}
+                              >
+                                <Text
+                                  variant="micro"
+                                  style={{
+                                    color: rule.active
+                                      ? theme.color.positive
+                                      : theme.color.textMuted,
+                                  }}
+                                >
+                                  {rule.active ? t.personal.active : t.personal.paused}
+                                </Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        </Row>
+                      </Pressable>
+                      <IconButton
+                        label={`${t.personal.recurringMenuLabel}: ${ruleName(rule)}`}
+                        repeatable
+                        onPress={() => setMenuRule(rule)}
+                      >
+                        <Ionicons
+                          name="ellipsis-vertical"
+                          size={iconSize.md}
+                          color={theme.color.textMuted}
+                        />
+                      </IconButton>
+                    </Row>
+                    {due && !rule.autoPost && rule.active ? (
+                      <>
+                        <Divider />
+                        <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text variant="caption" tone="brand" style={{ fontWeight: '600' }}>
+                            {t.personal.due}
+                          </Text>
+                          <Button
+                            label={t.personal.postNow}
+                            size="sm"
+                            onPress={() => void post(rule)}
+                            disabled={upsert.isPending || posting}
+                          />
+                        </Row>
+                      </>
+                    ) : null}
+                  </Card>
+                );
+              })}
+            </View>
+          ) : null,
+        )}
+        {recurrings.length === 0 ? (
+          <EmptyStateCta
+            compact
+            title={recurrings.length ? t.personal.noMoreRecurring : t.personal.noRecurring}
+            body={t.personal.recurringEmptyBody}
+            action={t.personal.addRecurringItem}
+            onAdd={() => router.push({ pathname: '/personal/entry', params: { repeats: '1' } })}
+          />
+        ) : null}
       </ScrollView>
       <Sheet visible={menuRule !== null} onClose={() => setMenuRule(null)}>
         {menuRule ? (

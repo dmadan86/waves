@@ -7,6 +7,26 @@
 import { minorUnitScale } from '@waves/core';
 
 import { parseVoiceExpenses } from '@/lib/voiceExpense';
+import { isViewer, type MemberRow } from '@/data/types';
+
+/** Group drafts belong to the speaker by default, never to the first member row. */
+export function defaultVoicePayerId(
+  members: readonly Pick<MemberRow, 'id' | 'profile_id'>[],
+  viewerId: string | null | undefined,
+): string | null {
+  return members.find((member) => isViewer(member, viewerId))?.id ?? null;
+}
+
+/** Keep a guessed payer from replacing the speaker; a spoken payer is respected. */
+export function voicePayerId(
+  plannedPayerId: string | null,
+  payerWasNamed: boolean,
+  members: readonly { id: string; isMe?: boolean }[],
+): string | null {
+  return payerWasNamed
+    ? plannedPayerId
+    : (members.find((member) => member.isMe)?.id ?? plannedPayerId);
+}
 
 /**
  * The draft a heard sentence is filed as. When the on-device parser finds one
@@ -39,6 +59,21 @@ export function heardCaptureInput(transcript: string, date: string, currency: st
     rawText: sentence,
     parsed: { voiceTranscript: sentence },
   };
+}
+
+/** Recover an amount for Review's display from an older voice draft only. */
+export function recoveredVoiceDraftAmount(capture: {
+  amount: string;
+  currency: string;
+  expense_date: string;
+  raw_text: string | null;
+  description: string;
+  parsed: Record<string, unknown> | null;
+}): { amount: bigint; currency: string } | null {
+  if (capture.amount !== '0' || typeof capture.parsed?.voiceTranscript !== 'string') return null;
+  const transcript = capture.raw_text || capture.parsed.voiceTranscript;
+  const recovered = heardCaptureInput(transcript, capture.expense_date, capture.currency);
+  return recovered.amount > 0n ? { amount: recovered.amount, currency: recovered.currency } : null;
 }
 
 /** Is a sentence worth filing? Two characters is a cough, not a command. */
