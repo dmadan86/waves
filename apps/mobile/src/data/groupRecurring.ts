@@ -15,9 +15,16 @@ import { useMutation } from '@tanstack/react-query';
 import {
   buildGroupRecurringCreate,
   groupRecurringFromRow,
+  format,
+  isPoolGroup,
+  materialiseGroup,
+  materialiseGroups,
+  money,
+  type CurrencyCode,
   materialiseGroupRecurring,
   materialiseMembers,
   MutationKind,
+  poolSplit,
   type GroupRecurringPatch,
   type GroupRecurringRule,
   type GroupRecurringTemplate,
@@ -28,6 +35,9 @@ import { todayIso } from '@/data/personal';
 import { isViewer, type MemberRow } from '@/data/types';
 import { useAuth } from '@/lib/auth';
 import { backend } from '@/lib/backend';
+import { fill, useStrings } from '@/i18n';
+import { groupBillsForPayer, type PayerBill } from '@/lib/householdBills';
+import { syncBillReminders } from '@/lib/householdBillReminders';
 import { reportHandled } from '@/lib/observability';
 import { useSync } from '@/sync';
 
@@ -52,7 +62,7 @@ export function useGroupRecurring(groupId: string): {
 
 /** Make a rule. Resolves to the new rule's id. */
 export function useCreateGroupRecurring(groupId: string) {
-  const { mutate } = useSync();
+  const { mutate, mirror, queue } = useSync();
   return useMutation({
     mutationFn: async (input: {
       /** Derived from what the rule repeats, so a retry finds the same rule. */
@@ -61,8 +71,12 @@ export function useCreateGroupRecurring(groupId: string) {
       when: GroupRecurringWhen;
     }): Promise<string> => {
       const ruleId = input.ruleId;
+      // Share it: a shared bill is paid from the pot, so nobody owes the payer.
+      const template = isPoolGroup(materialiseGroup(mirror, queue, groupId) as never)
+        ? { ...input.template, ...poolSplit(input.template.payers) }
+        : input.template;
       await mutate(MutationKind.GroupRecurringCreate, groupId, {
-        ...buildGroupRecurringCreate(ruleId, input.template, input.when),
+        ...buildGroupRecurringCreate(ruleId, template, input.when),
       });
       return ruleId;
     },
@@ -107,4 +121,53 @@ export function useRecurringCatchUp(): void {
       }
     })();
   }, [userId, hydrated, flush]);
+}
+
+/**
+ * Share-it households: local reminders (3 days before and on the day, 10:00) for
+ * the shared bills this person pays, across every pooled group. Re-planned when
+ * the bills change; never asks for permission.
+ */
+export function useHouseholdBillReminders(): void {
+  const { mirror, queue, hydrated } = useSync();
+  const { profile } = useAuth();
+  const { t, locale } = useStrings();
+  const { bills, names } = useMemo(() => {
+    const all: PayerBill[] = [];
+    const nameByGroup = new Map<string, string>();
+    for (const group of materialiseGroups(mirror, queue)) {
+      if (!isPoolGroup(group as never)) continue;
+      const me = (
+        materialiseMembers(mirror, queue, { groupId: group.id }) as unknown as MemberRow[]
+      ).find((member) => isViewer(member, profile?.id) && member.left_at === null);
+      if (!me) continue;
+      nameByGroup.set(group.id, (group as { name?: string | null }).name ?? '');
+      const rules = materialiseGroupRecurring(mirror, queue, {
+        groupId: group.id,
+        myMemberId: me.id,
+        today: todayIso(),
+      }).map((row) => groupRecurringFromRow(row as never));
+      all.push(...groupBillsForPayer(rules, me.id));
+    }
+    return { bills: all, names: nameByGroup };
+  }, [mirror, queue, profile?.id]);
+  const signature = bills.map((b) => `${b.ruleId}:${b.date}:${b.amount}`).join('|');
+  useEffect(() => {
+    if (!hydrated) return;
+    const amountText = (b: PayerBill): string =>
+      format(money(b.amount, b.currency as CurrencyCode), { locale });
+    void syncBillReminders(bills, {
+      title: (b, kind) =>
+        fill(kind === 'today' ? t.household.reminderToday : t.household.reminderAhead, {
+          bill: b.description,
+        }),
+      body: (b) =>
+        fill(t.household.reminderBody, {
+          amount: amountText(b),
+          group: names.get(b.groupId) ?? '',
+        }),
+    });
+    // `signature` stands for `bills`: re-plan only when a bill actually changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, signature, locale]);
 }

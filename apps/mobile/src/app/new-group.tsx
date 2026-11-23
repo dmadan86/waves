@@ -20,6 +20,8 @@ import {
   format,
   guessGroupEmoji,
   guessGroupType,
+  POOLABLE_GROUP_TYPES,
+  type LedgerMode,
   minorUnitExponent,
   minorUnitScale,
   money,
@@ -43,6 +45,7 @@ import {
 } from '@waves/ui';
 
 import { SectionLabel } from '@/components/standard';
+import { LedgerModeCards } from '@/components/LedgerModeCards';
 import { DetailRow, DetailRows } from '@/components/DetailRows';
 import { DictateButton } from '@/components/DictateButton';
 import { GroupPhoto } from '@/components/GroupPhoto';
@@ -222,6 +225,9 @@ function NewGroupScreen() {
       ? (initialType as GroupType)
       : null,
   );
+  // Couple / home / other: one extra question before the group is made.
+  const [askingMode, setAskingMode] = useState(false);
+  const [ledgerMode, setLedgerMode] = useState<LedgerMode>('split');
   // Event organizer (docs/event-organizer.md): which fixed sub-event list an
   // Event group starts with. Null until somebody picks one — a group is
   // allowed to stay a plain Event with no template, same as it is allowed to
@@ -686,6 +692,12 @@ function NewGroupScreen() {
         await mutate(MutationKind.GroupUpdate, groupId, { cover_color: pickedColor });
       }
 
+      // Share it: an ordinary admin-gated group.update behind the create, the
+      // same ordered queue as the fields above. Split is the column default.
+      if (ledgerMode === 'pool' && POOLABLE_GROUP_TYPES.includes(type)) {
+        await mutate(MutationKind.GroupUpdate, groupId, { ledger_mode: 'pool' });
+      }
+
       // Trip dates are not part of the create call, so they ride behind it as
       // an update on the same ordered queue — only when a trip was actually
       // given a start and end, since that is what turns the reminders on.
@@ -813,6 +825,58 @@ function NewGroupScreen() {
   };
 
   const rowTint = { bg: theme.color.brandSoft, ink: theme.color.brand };
+
+  if (askingMode) {
+    // One question, on the same screen: no route change, Back returns to the form.
+    const asked = name.trim()
+      ? fill(t.household.askTitle, { name: name.trim() })
+      : t.household.askTitleNoName;
+    return (
+      <Screen edges={['top', 'bottom']}>
+        <View
+          style={{ flex: 1, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }}
+        >
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={t.common.back}
+            onPress={() => setAskingMode(false)}
+            hitSlop={12}
+            style={{ alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' }}
+          >
+            <Ionicons name={directionalIcon('arrow-back')} size={24} color={ink(theme)} />
+          </Pressable>
+          <Text
+            accessibilityRole="header"
+            style={{ fontSize: 28, lineHeight: 34, fontWeight: '800', color: ink(theme) }}
+          >
+            {asked}
+          </Text>
+          <Text
+            style={{
+              fontSize: 16,
+              lineHeight: 22,
+              color: muted(theme),
+              marginTop: theme.spacing.xs,
+            }}
+          >
+            {t.household.askSub}
+          </Text>
+          <View style={{ marginTop: theme.spacing.lg, flex: 1 }}>
+            <LedgerModeCards value={ledgerMode} onChange={setLedgerMode} />
+          </View>
+          {error ? <Callout tone="negative">{error}</Callout> : null}
+          {createGroup.isPending ? <ActivityIndicator color={theme.color.brand} /> : null}
+          <View style={{ paddingBottom: theme.spacing.sm }}>
+            <CreateButton
+              label={t.household.continue}
+              disabled={createGroup.isPending}
+              onPress={() => void submit()}
+            />
+          </View>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
     <Screen edges={['bottom']}>
@@ -1567,7 +1631,9 @@ function NewGroupScreen() {
         <CreateButton
           label={t.misc.createGroup}
           disabled={createGroup.isPending}
-          onPress={() => void submit()}
+          onPress={() =>
+            POOLABLE_GROUP_TYPES.includes(type) && !cloning ? setAskingMode(true) : void submit()
+          }
         />
       </View>
     </Screen>

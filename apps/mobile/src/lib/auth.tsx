@@ -24,6 +24,7 @@ import {
 } from '@waves/core';
 
 import { cancelFollowUpReminders } from '@/lib/followUpReminders';
+import { cancelBillReminders } from '@/lib/householdBillReminders';
 import { cancelNudges } from './captureNudge/schedule';
 import { clearCaptureNudge } from './captureNudge/settings';
 import { cancelPlanNudges } from './planNudge/schedule';
@@ -601,6 +602,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         revokePushToken(),
         cancelNudges(),
         cancelFollowUpReminders(),
+        cancelBillReminders(),
         clearCaptureNudge(leaving),
         cancelPlanNudges(),
         clearPlanNudge(leaving),

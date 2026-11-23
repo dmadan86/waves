@@ -958,6 +958,7 @@ function AuthGate() {
           <Stack.Screen name="group/[id]/add-expense" options={slide} />
           <Stack.Screen name="group/[id]/settle" options={slide} />
           <Stack.Screen name="group/[id]/simplify" />
+          <Stack.Screen name="group/[id]/budget" />
           <Stack.Screen name="group/[id]/settings" />
           <Stack.Screen name="group/[id]/members" />
           <Stack.Screen name="group/[id]/member/[memberId]" />
