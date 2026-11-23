@@ -151,6 +151,8 @@ const spies = vi.hoisted(() => ({
 
 vi.mock('@/lib/captureNudge/schedule', () => ({ cancelNudges: spies.cancelNudges }));
 vi.mock('@/lib/captureNudge/settings', () => ({ clearCaptureNudge: spies.clearCaptureNudge }));
+vi.mock('@/lib/planNudge/schedule', () => ({ cancelPlanNudges: async () => undefined }));
+vi.mock('@/lib/planNudge/settings', () => ({ clearPlanNudge: async () => undefined }));
 vi.mock('@/lib/followUpReminders', () => ({ cancelFollowUpReminders: () => Promise.resolve() }));
 vi.mock('@/lib/householdBillReminders', () => ({ cancelBillReminders: () => Promise.resolve() }));
 vi.mock('@/lib/nativeIdentity', () => ({

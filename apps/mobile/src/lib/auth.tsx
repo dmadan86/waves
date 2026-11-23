@@ -27,6 +27,8 @@ import { cancelFollowUpReminders } from '@/lib/followUpReminders';
 import { cancelBillReminders } from '@/lib/householdBillReminders';
 import { cancelNudges } from './captureNudge/schedule';
 import { clearCaptureNudge } from './captureNudge/settings';
+import { cancelPlanNudges } from './planNudge/schedule';
+import { clearPlanNudge } from './planNudge/settings';
 import { appleNativeSignIn, googleNativeSignIn } from './nativeIdentity';
 import { identifyForReporting, reportHandled } from './observability';
 import { syncPurchasesUser } from './purchases';
@@ -602,6 +604,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cancelFollowUpReminders(),
         cancelBillReminders(),
         clearCaptureNudge(leaving),
+        cancelPlanNudges(),
+        clearPlanNudge(leaving),
       ]),
       new Promise((resolve) => setTimeout(resolve, SIGN_OUT_TIDY_UP_MS)),
     ]);

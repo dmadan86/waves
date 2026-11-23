@@ -4,6 +4,7 @@
 -- 'split'.
 ALTER TABLE public.groups
   ADD COLUMN IF NOT EXISTS ledger_mode text NOT NULL DEFAULT 'split';
+ALTER TABLE public.groups DROP CONSTRAINT IF EXISTS groups_ledger_mode_check;
 ALTER TABLE public.groups
   ADD CONSTRAINT groups_ledger_mode_check CHECK (ledger_mode IN ('split', 'pool'));
 
