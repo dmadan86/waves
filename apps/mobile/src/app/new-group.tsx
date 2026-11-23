@@ -191,10 +191,10 @@ function NewGroupScreen() {
     template: initialTemplate,
   } = useLocalSearchParams<{
     type?: string;
+    /** Prefill (first run suggests "Our trip"; the dates reminders open "<Name>'s birthday gift"). */
+    name?: string;
     from?: string;
     assignCaptureId?: string;
-    /** Prefill (the dates reminders open "<Name>'s birthday gift" as a birthday event). */
-    name?: string;
     template?: string;
   }>();
   const cloning = Boolean(from);
@@ -205,6 +205,7 @@ function NewGroupScreen() {
   const source = useGroup(from ?? '');
   const captures = useCaptures();
 
+  // `?name=` seeds the field (the first-run flow suggests "Our trip"); it stays editable.
   const [name, setName] = useState(initialName ?? '');
   // A sentence about the group, under its name and in the same card, because it
   // is part of naming the thing rather than a setting about it. Optional, and

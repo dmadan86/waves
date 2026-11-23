@@ -12,6 +12,7 @@ import { ScrollView, View } from 'react-native';
 
 import {
   BILL_PRESETS,
+  billPresetLabelKey,
   deterministicId,
   Frequency,
   nextDayOfMonth,
@@ -66,7 +67,13 @@ function AddBillsScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const chosen = BILL_PRESETS.filter((preset) => picks[preset.id]);
+  const countryCode = group.data?.country_code;
+  const presets = BILL_PRESETS.filter(
+    (preset) => preset.id !== 'milk' || countryCode?.toUpperCase() === 'IN',
+  );
+  const label = (preset: BillPresetId): string =>
+    h.presets[billPresetLabelKey(preset, countryCode)];
+  const chosen = presets.filter((preset) => picks[preset.id]);
   const toggle = (preset: BillPreset): void =>
     setPicks((prev) => {
       const next = { ...prev };
@@ -92,7 +99,7 @@ function AddBillsScreen() {
         await create.mutateAsync({
           ruleId: deterministicId(`hhbill:${groupId}:${bill.preset}:${anchorDate}:${bill.amount}`),
           template: {
-            description: h.presets[bill.preset],
+            description: label(bill.preset),
             category: preset.category,
             currency,
             amount: bill.amount,
@@ -143,7 +150,7 @@ function AddBillsScreen() {
               const pick = picks[preset.id]!;
               return (
                 <Card key={preset.id} style={{ gap: theme.spacing.sm }}>
-                  <Text style={{ fontWeight: '700' }}>{h.presets[preset.id]}</Text>
+                  <Text style={{ fontWeight: '700' }}>{label(preset.id)}</Text>
                   {preset.estimate ? (
                     <Text variant="caption" tone="muted">
                       {h.estimateNote}
@@ -166,7 +173,7 @@ function AddBillsScreen() {
                           {h.pickDay}
                         </Text>
                         <DayStepper
-                          label={`${h.presets[preset.id]} ${h.pickDay}`}
+                          label={`${label(preset.id)} ${h.pickDay}`}
                           value={pick.day}
                           min={1}
                           max={28}
@@ -202,11 +209,11 @@ function AddBillsScreen() {
               {h.pickSub}
             </Text>
             <Row style={{ flexWrap: 'wrap', gap: theme.spacing.sm }}>
-              {BILL_PRESETS.map((preset) => (
+              {presets.map((preset) => (
                 <Chip
                   key={preset.id}
                   icon={preset.icon}
-                  label={h.presets[preset.id]}
+                  label={label(preset.id)}
                   selected={Boolean(picks[preset.id])}
                   onPress={() => toggle(preset)}
                 />

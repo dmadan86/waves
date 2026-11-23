@@ -1,6 +1,6 @@
 /**
  * The Share-it group home: "Our November" (spend against the household's monthly
- * budget, with "Who paid" one tap down) and the shared bills. Goals sit below,
+ * budget, with "Who paid" one tap down) and the shared bills. The money tools sit below,
  * in the parent screen's slot.
  */
 import { Pressable, View } from 'react-native';

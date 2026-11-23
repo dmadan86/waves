@@ -869,8 +869,7 @@ const hi: CopyStrings = {
     securityDevice: 'डिवाइस',
     securitySystem: 'ऑपरेटिंग सिस्टम',
     securityTime: 'समय',
-    securityManage:
-      'अपने खाते के सभी डिवाइस आप Waves › सेटिंग्स › डिवाइस में देख और साइन आउट कर सकते हैं।',
+    securityManage: 'अपने खाते के सभी डिवाइस आप Waves › सेटिंग्स › डिवाइस में देख और साइन आउट कर सकते हैं।',
     digestReason: 'यह मेल इसलिए आया है क्योंकि आपने साप्ताहिक सारांश चालू किया है।',
     unsubscribe: 'ऐसे मेल बंद करें',
     signature: 'Waves',
