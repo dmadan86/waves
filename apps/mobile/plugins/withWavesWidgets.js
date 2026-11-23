@@ -46,7 +46,7 @@ const LINKS = {
 const VOICE = 'voice';
 
 /** Brand purple — `color.brand` in packages/ui/src/themes.ts (light). */
-const BRAND = '#635BFF';
+const BRAND = '#0A66C2';
 
 /**
  * Every string the widgets draw, as Android string resources. English only:

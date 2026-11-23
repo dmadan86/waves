@@ -3,6 +3,6 @@
  * group, the device-limit gate) in the light theme: the brand accent, and the
  * ink and muted greys for text. The dark theme keeps the theme's own colours.
  */
-export const SPEC_ACCENT = '#635BFF';
+export const SPEC_ACCENT = '#0A66C2';
 export const SPEC_INK = '#15152F';
 export const SPEC_MUTED = '#69708A';

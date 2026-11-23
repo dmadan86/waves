@@ -1,6 +1,6 @@
 // Waves home-screen widgets (iOS).
 //
-// The Search launcher widget, on the white-glass card with the purple "W" tile —
+// The Search launcher widget, on the white-glass card with the blue "W" tile —
 // the iOS twin of the Android widget emitted by plugins/withWavesWidgets.js:
 //
 //   - Search: a "What did you spend on?" pill with a mic, over Food / Travel /
@@ -74,8 +74,8 @@ struct Palette {
     }
 }
 
-/// The logo tile's purple is the brand in both schemes, like the app icon.
-private let logoPurple = hex(0x635BFF)
+/// The logo tile's blue is the brand in both schemes, like the app icon.
+private let logoBlue = hex(0x0A66C2)
 
 private extension View {
     // containerBackground is required on iOS 17+ for the widget to render on the
@@ -92,13 +92,13 @@ private extension View {
 
 // MARK: - Pieces
 
-/// The purple rounded-square "W" tile the widget leads with.
+/// The blue rounded-square "W" tile the widget leads with.
 struct LogoTile: View {
     let size: CGFloat
 
     var body: some View {
         RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-            .fill(logoPurple)
+            .fill(logoBlue)
             .frame(width: size, height: size)
             .overlay(
                 Text("W")
