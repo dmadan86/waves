@@ -90,6 +90,7 @@ function PayingForm() {
   );
   const [handle, setHandle] = useState(profile?.payment_handle ?? profile?.default_vpa ?? '');
   const [status, setStatus] = useState<string | null>(null);
+  const [railGridWidth, setRailGridWidth] = useState(0);
 
   // Changing country changes which rails exist, so the rail drops to that
   // country's default and any handle typed for the old rail is cleared.
@@ -165,8 +166,8 @@ function PayingForm() {
               color={theme.color.text}
             />
           </IconButton>
-          <Row style={{ alignItems: 'flex-end', gap: theme.spacing.md }}>
-            <View style={{ flex: 1, paddingBottom: 2 }}>
+          <Row style={{ alignItems: 'center', gap: theme.spacing.md }}>
+            <View style={{ flex: 1, minWidth: 0 }}>
               <Text
                 numberOfLines={1}
                 adjustsFontSizeToFit
@@ -200,7 +201,7 @@ function PayingForm() {
             >
               <Text style={{ fontSize: 34, lineHeight: 42 }}>{countryFlag(country) ?? '🌐'}</Text>
             </View>
-            <View style={{ flex: 1, gap: 1 }}>
+            <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
               <Text variant="caption" tone="muted">
                 {t.pickers.country}
               </Text>
@@ -251,27 +252,24 @@ function PayingForm() {
             </Text>
           </View>
 
-          {/* Whatever this person's country uses, as tiles — the glyph over the
-              name, the chosen one lit. In India that still starts on UPI; in the
-              UAE on Aani. Scrolls sideways past the first four. */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ gap: theme.spacing.sm }}
+          {/* Three equal tiles per row; wrapping keeps every option visible. */}
+          <View
+            onLayout={(event) => setRailGridWidth(event.nativeEvent.layout.width)}
+            style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}
           >
             {rails.map((entry) => {
               const selected = entry.id === rail;
+              const label = entry.id === 'other' ? t.receiving.other : entry.label;
               return (
                 <Pressable
                   key={entry.id}
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
-                  accessibilityLabel={entry.label}
+                  accessibilityLabel={label}
                   onPress={() => setRail(entry.id)}
                   style={({ pressed }) => ({
-                    width: 74,
-                    height: 72,
+                    width: railGridWidth > 0 ? (railGridWidth - theme.spacing.sm * 2) / 3 : '31%',
+                    height: 80,
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 4,
@@ -288,22 +286,21 @@ function PayingForm() {
                     color={selected ? theme.color.brand : theme.color.text}
                   />
                   <Text
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.7}
+                    variant="caption"
+                    numberOfLines={2}
                     style={{
-                      fontSize: 12,
                       paddingHorizontal: 4,
                       fontWeight: selected ? '700' : '500',
                       color: selected ? theme.color.brand : theme.color.text,
+                      textAlign: 'center',
                     }}
                   >
-                    {entry.label}
+                    {label}
                   </Text>
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </View>
 
           {railInfo && railInfo.handle !== 'none' ? (
             <View
