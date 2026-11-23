@@ -3431,6 +3431,7 @@ export interface UiStrings {
     addIncome: string;
     upcomingTitle: string;
     upcomingEmpty: string;
+    markPaid: string;
     recentTitle: string;
     noExpenses: string;
     allExpenses: string;
@@ -3553,6 +3554,9 @@ export interface UiStrings {
     movePrivacy: string;
     moved: string;
     moveFailed: string;
+    moveReceiptFailed: string;
+    moveReceiptRetry: string;
+    moveWithoutReceipt: string;
     switched: string;
   };
   groupRecurring: {
@@ -12122,6 +12126,7 @@ const en: UiStrings = {
     addIncome: 'Add income',
     upcomingTitle: 'Upcoming',
     upcomingEmpty: 'Nothing due in the next 30 days.',
+    markPaid: 'Mark paid',
     recentTitle: 'Recent expenses',
     noExpenses: 'No expenses yet this month.',
     allExpenses: 'All expenses',
@@ -12246,6 +12251,9 @@ const en: UiStrings = {
     movePrivacy: 'Your Personal stays private. Your partner can’t see it.',
     moved: 'Moved to {group}',
     moveFailed: 'Could not move this. Nothing was changed.',
+    moveReceiptFailed: 'Couldn’t move the receipt. Your entry is still here.',
+    moveReceiptRetry: 'Try again',
+    moveWithoutReceipt: 'Move without receipt',
     switched: 'Now sharing one pot',
   },
   groupRecurring: {
@@ -16710,7 +16718,7 @@ const en: UiStrings = {
     filterCategory: 'Filter by category',
     clearFilter: 'Clear filter',
     txnCount: { one: '{n} transaction', other: '{n} transactions' },
-    noBudgetsBody: 'Set a budget to keep your spending on track and reach your goals.',
+    noBudgetsBody: 'Set a budget to keep your spending on track.',
     addBudgetSub: 'Set a monthly limit for your spending.',
     budgetAboutMonth: 'About {average} a month.',
     tab: 'Personal',
@@ -20239,6 +20247,7 @@ const ta: UiStrings = {
     addIncome: 'வருமானம் சேர்',
     upcomingTitle: 'வரவிருப்பவை',
     upcomingEmpty: 'அடுத்த 30 நாட்களில் செலுத்த எதுவும் இல்லை.',
+    markPaid: 'செலுத்தியது',
     recentTitle: 'சமீபத்திய செலவுகள்',
     noExpenses: 'இந்த மாதம் இன்னும் செலவுகள் இல்லை.',
     allExpenses: 'அனைத்து செலவுகள்',
@@ -20363,6 +20372,9 @@ const ta: UiStrings = {
     movePrivacy: 'உங்கள் தனிப்பட்ட பகுதி தனிப்பட்டதாகவே இருக்கும். உங்கள் துணையால் இதைப் பார்க்க முடியாது.',
     moved: '{group} குழுவுக்கு மாற்றப்பட்டது',
     moveFailed: 'இதை மாற்ற முடியவில்லை. எதுவும் மாறவில்லை.',
+    moveReceiptFailed: 'ரசீதை மாற்ற முடியவில்லை. உங்கள் பதிவு இங்கேயே உள்ளது.',
+    moveReceiptRetry: 'மீண்டும் முயற்சிக்கவும்',
+    moveWithoutReceipt: 'ரசீது இல்லாமல் மாற்று',
     switched: 'இப்போது ஒரே பணப்பை பகிரப்படுகிறது',
   },
   groupRecurring: {
@@ -28403,6 +28415,7 @@ const hi: UiStrings = {
     addIncome: 'आमदनी जोड़ें',
     upcomingTitle: 'आने वाले',
     upcomingEmpty: 'अगले 30 दिनों में कुछ देय नहीं है।',
+    markPaid: 'चुका दिया',
     recentTitle: 'हाल के खर्च',
     noExpenses: 'इस महीने अभी कोई खर्च नहीं।',
     allExpenses: 'सभी खर्च',
@@ -28525,6 +28538,9 @@ const hi: UiStrings = {
     movePrivacy: 'आपका पर्सनल निजी रहता है। आपका साथी इसे नहीं देख सकता।',
     moved: '{group} में ले जाया गया',
     moveFailed: 'इसे नहीं ले जा सके। कुछ नहीं बदला।',
+    moveReceiptFailed: 'रसीद नहीं ले जा सके। आपकी प्रविष्टि यहीं है।',
+    moveReceiptRetry: 'फिर कोशिश करें',
+    moveWithoutReceipt: 'रसीद के बिना ले जाएँ',
     switched: 'अब एक साझा पॉट है',
   },
   groupRecurring: {
@@ -36617,6 +36633,7 @@ const ar: UiStrings = {
     addIncome: 'إضافة دخل',
     upcomingTitle: 'القادم',
     upcomingEmpty: 'لا شيء مستحق خلال 30 يومًا.',
+    markPaid: 'تم الدفع',
     recentTitle: 'أحدث المصروفات',
     noExpenses: 'لا مصروفات هذا الشهر بعد.',
     allExpenses: 'كل المصروفات',
@@ -36748,6 +36765,9 @@ const ar: UiStrings = {
     movePrivacy: 'حسابك الشخصي يبقى خاصًا. شريكك لا يستطيع رؤيته.',
     moved: 'تم النقل إلى {group}',
     moveFailed: 'تعذّر النقل. لم يتغير شيء.',
+    moveReceiptFailed: 'تعذّر نقل الإيصال. إدخالك ما زال هنا.',
+    moveReceiptRetry: 'حاول مرة أخرى',
+    moveWithoutReceipt: 'انقل بدون إيصال',
     switched: 'أصبحتم الآن تشاركون صندوقًا واحدًا',
   },
   groupRecurring: {

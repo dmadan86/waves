@@ -21,7 +21,7 @@ import { AddFamilyMember } from '@/components/household/HouseholdParts';
 import { BudgetSummary } from '@/components/home/MonthParts';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
 import { PersonAvatar } from '@/components/PersonAvatar';
-import { CardTitle, MoneyToolsRow, PrivacyPill } from '@/components/personal/PersonalHomeParts';
+import { CardTitle, PrivacyPill } from '@/components/personal/PersonalHomeParts';
 import { useUpdateGroupRecurring } from '@/data/groupRecurring';
 import type { IncomePlan } from '@/data/groupIncome';
 import { expenseTitle } from '@/data/expenseTitle';
@@ -48,6 +48,8 @@ export interface HouseholdData {
   /** The monthly ceiling: the household budget, else the planned income. */
   readonly limit: bigint | null;
   readonly recent: readonly ExpenseRow[];
+  /** Post one bill occurrence as a group expense; the row goes once it is paid. */
+  readonly onMarkPaid: (row: HouseholdUpcoming) => Promise<void>;
   readonly onTab: (tab: 'bills' | 'income' | 'upcoming') => void;
   readonly onMore: () => void;
   readonly onLedger: (tab?: 'balances') => void;
@@ -120,6 +122,7 @@ function UpcomingRowView({
   const theme = useTheme();
   const { t, locale } = useStrings();
   const whenText = useWhenText();
+  const [busy, setBusy] = useState(false);
   const tone = row.inDays < 0 ? 'negative' : 'brand';
   const ink = theme.color[tone];
   const soft = theme.color[`${tone}Soft` as 'brandSoft'];
@@ -168,6 +171,24 @@ function UpcomingRowView({
         <Text variant="caption" tone="muted" numberOfLines={1}>
           {subtitle}
         </Text>
+        {row.kind === 'bill' ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${t.hhome.markPaid}, ${row.title}`}
+            accessibilityState={{ busy }}
+            disabled={busy}
+            hitSlop={8}
+            onPress={() => {
+              setBusy(true);
+              data.onMarkPaid(row).catch(() => setBusy(false));
+            }}
+            style={{ alignSelf: 'flex-start', paddingVertical: 4, opacity: busy ? 0.5 : 1 }}
+          >
+            <Text variant="caption" tone="brand" style={{ fontWeight: '700' }}>
+              {t.hhome.markPaid}
+            </Text>
+          </Pressable>
+        ) : null}
       </View>
       <Text numberOfLines={1} style={{ fontWeight: '700' }}>
         {data.fmt(row.amount)}
@@ -260,42 +281,6 @@ export function OverviewTab({ data }: { data: HouseholdData }) {
             <RecentRow key={row.id} row={row} data={data} last={i === data.recent.length - 1} />
           ))
         )}
-      </Card>
-
-      <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
-        <CardTitle title={t.personal.dash.moneyTools} />
-        <MoneyToolsRow
-          tiles={[
-            {
-              key: 'bills',
-              tint: 'lilac',
-              icon: 'repeat',
-              label: h.tabBills,
-              onPress: () => data.onTab('bills'),
-            },
-            {
-              key: 'income',
-              tint: 'mint',
-              icon: 'arrow-down',
-              label: h.tabIncome,
-              onPress: () => data.onTab('income'),
-            },
-            {
-              key: 'expenses',
-              tint: 'peach',
-              icon: 'receipt-outline',
-              label: t.expenses,
-              onPress: () => data.onLedger(),
-            },
-            {
-              key: 'more',
-              tint: 'lilac',
-              icon: 'ellipsis-horizontal',
-              label: t.personalHome.toolMore,
-              onPress: data.onMore,
-            },
-          ]}
-        />
       </Card>
 
       <PrivacyPill

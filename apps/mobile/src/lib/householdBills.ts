@@ -105,3 +105,46 @@ export function planBillReminders(
   }
   return { add: [...want.values()].filter((c) => !kept.has(c.key)), cancel };
 }
+
+/** The server's `md5(...)::uuid`: 32 hex digits regrouped 8-4-4-4-12. */
+export function hexToUuid(hex: string): string {
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+}
+
+/** The text the server's generator hashes for one occurrence (`waves_recurring_derived_id`). */
+export function occurrenceSeed(kind: 'expense' | 'mutation', ruleId: string, date: string): string {
+  return `waves.recurring.${kind}:${ruleId}:${date}`;
+}
+
+/**
+ * Debounced, single-flight re-runs: a burst of requests runs once after `delayMs`
+ * of quiet, and a request that lands while a run is going queues exactly one more
+ * run after it, so two runs never overlap and the last word always wins.
+ */
+export function createReplanner(run: () => Promise<void>, delayMs: number): () => void {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let running = false;
+  let again = false;
+  const fire = (): void => {
+    timer = null;
+    if (running) {
+      again = true;
+      return;
+    }
+    running = true;
+    void run()
+      .catch(() => undefined)
+      .finally(() => {
+        running = false;
+        if (again) {
+          again = false;
+          request();
+        }
+      });
+  };
+  function request(): void {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(fire, delayMs);
+  }
+  return request;
+}

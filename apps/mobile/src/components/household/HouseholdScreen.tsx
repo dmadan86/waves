@@ -7,7 +7,7 @@
  * full expense list, balances and settle-up sit on the ledger screen
  * (`?view=ledger`), one tap away in the ⋮ menu.
  */
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
@@ -17,9 +17,11 @@ import {
   incomeTotal,
   mergeHouseholdUpcoming,
   monthlySpend,
+  compactMoney,
   formatParts,
   money,
   type CurrencyCode,
+  type HouseholdUpcoming,
 } from '@waves/core';
 import {
   Card,
@@ -44,10 +46,10 @@ import {
 import { TabHeader, TabIconButton } from '@/components/home/TabHeader';
 import { PersonAvatar } from '@/components/PersonAvatar';
 import { OverflowMenu, type OverflowMenuItem } from '@/components/OverflowMenu';
-import { QuickActions } from '@/components/personal/PersonalHomeParts';
+import { CardTitle, MoneyToolsRow } from '@/components/personal/PersonalHomeParts';
 import { useBlockedUsers } from '@/data/blocked';
 import { useGroupIncome } from '@/data/groupIncome';
-import { useGroupRecurring } from '@/data/groupRecurring';
+import { occurrenceIds, useGroupRecurring, useMarkBillPaid } from '@/data/groupRecurring';
 import { memberLookup, useGroup, useGroupBudget, useGroupRealtime } from '@/data/hooks';
 import { todayIso } from '@/data/personal';
 import { isGhost } from '@/data/types';
@@ -79,6 +81,8 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
   const { rules } = useGroupRecurring(groupId);
   const { plans } = useGroupIncome(groupId);
   const budget = useGroupBudget(groupId);
+  const markBillPaid = useMarkBillPaid(groupId);
+  const [paidKeys, setPaidKeys] = useState<ReadonlySet<string>>(new Set());
   const [tab, setTab] = useState<HTab>('overview');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -96,6 +100,10 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
     hidden
       ? BALANCE_MASK
       : compactAmount(formatParts(money(minor, currency as CurrencyCode), { locale }));
+
+  // The three headline tiles are tight on a phone: short figures there, full ones everywhere else.
+  const tileFmt = (minor: bigint): string =>
+    hidden ? BALANCE_MASK : compactMoney(money(minor, currency as CurrencyCode), { locale });
 
   const live = useMemo(
     () => expenses.rows.filter((row) => row.currentVersion && !row.deleted_at),
@@ -129,7 +137,32 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
       ),
     [rules, today, currency],
   );
-
+  // A bill whose occurrence is already a live expense (this phone, another
+  // phone or the server's generator) is paid: its row goes.
+  const liveIds = useMemo(() => new Set(live.map((row) => row.id)), [live]);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const paid = new Set<string>();
+      for (const row of upcoming)
+        if (row.kind === 'bill' && row.ruleId)
+          if (liveIds.has((await occurrenceIds(row.ruleId, row.date)).expenseId)) paid.add(row.key);
+      if (!cancelled) setPaidKeys(paid);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [upcoming, liveIds]);
+  const openUpcoming = useMemo(
+    () => upcoming.filter((row) => !paidKeys.has(row.key)),
+    [upcoming, paidKeys],
+  );
+  const onMarkPaid = async (row: HouseholdUpcoming): Promise<void> => {
+    const rule = rules.find((r) => r.id === row.ruleId);
+    if (!rule) return;
+    await markBillPaid(rule, row.date);
+    setPaidKeys((prev) => new Set(prev).add(row.key));
+  };
   const recent = [...live]
     .sort((a, b) =>
       a.currentVersion!.expense_date === b.currentVersion!.expense_date
@@ -155,7 +188,8 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
     },
     rules,
     plans,
-    upcoming,
+    upcoming: openUpcoming,
+    onMarkPaid,
     spent,
     income,
     limit,
@@ -334,7 +368,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     icon="wallet-outline"
                     tone="income"
                     label={h.income}
-                    value={fmt(income)}
+                    value={tileFmt(income)}
                     hidden={hidden}
                     onPress={() => setTab('income')}
                   />
@@ -342,7 +376,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     icon="arrow-up"
                     tone="negative"
                     label={h.spent}
-                    value={fmt(spent)}
+                    value={tileFmt(spent)}
                     hidden={hidden}
                     onPress={() => toLedger()}
                   />
@@ -350,7 +384,7 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                     icon="wallet"
                     tone="brand"
                     label={h.left}
-                    value={`${summary.left < 0n ? '−' : ''}${fmt(summary.left < 0n ? -summary.left : summary.left)}`}
+                    value={`${summary.left < 0n ? '−' : ''}${tileFmt(summary.left < 0n ? -summary.left : summary.left)}`}
                     negative={summary.left < 0n}
                     hidden={hidden}
                     onPress={() => setTab('overview')}
@@ -358,31 +392,64 @@ export function HouseholdScreen({ groupId }: { groupId: string }) {
                 </Row>
               </Card>
 
-              <QuickActions
-                tiles={[
-                  {
-                    key: 'expense',
-                    tone: 'brand',
-                    icon: 'add',
-                    label: h.addExpense,
-                    onPress: () => router.push(`/group/${groupId}/add-expense`),
-                  },
-                  {
-                    key: 'bill',
-                    tone: 'brand',
-                    icon: 'repeat',
-                    label: h.addBill,
-                    onPress: () => router.push(`/group/${groupId}/add-bills`),
-                  },
-                  {
-                    key: 'income',
-                    tone: 'positive',
-                    icon: 'arrow-down',
-                    label: h.addIncome,
-                    onPress: () => router.push(`/group/${groupId}/income-edit`),
-                  },
-                ]}
-              />
+              {/* One card for everything you can do here: the three adds first,
+                  then the places to look things up. */}
+              <Card style={{ gap: theme.spacing.sm, padding: theme.spacing.lg }}>
+                <CardTitle title={t.personal.dash.moneyTools} />
+                <MoneyToolsRow
+                  tiles={[
+                    {
+                      key: 'expense',
+                      tint: 'sky',
+                      icon: 'add',
+                      label: h.addExpense,
+                      onPress: () => router.push(`/group/${groupId}/add-expense`),
+                    },
+                    {
+                      key: 'bill',
+                      tint: 'lilac',
+                      icon: 'repeat',
+                      label: h.addBill,
+                      onPress: () => router.push(`/group/${groupId}/add-bills`),
+                    },
+                    {
+                      key: 'income',
+                      tint: 'mint',
+                      icon: 'arrow-down',
+                      label: h.addIncome,
+                      onPress: () => router.push(`/group/${groupId}/income-edit`),
+                    },
+                    {
+                      key: 'bills',
+                      tint: 'lilac',
+                      icon: 'list-outline',
+                      label: h.tabBills,
+                      onPress: () => setTab('bills'),
+                    },
+                    {
+                      key: 'incomes',
+                      tint: 'mint',
+                      icon: 'wallet-outline',
+                      label: h.tabIncome,
+                      onPress: () => setTab('income'),
+                    },
+                    {
+                      key: 'expenses',
+                      tint: 'peach',
+                      icon: 'receipt-outline',
+                      label: t.expenses,
+                      onPress: () => data.onLedger(),
+                    },
+                    {
+                      key: 'more',
+                      tint: 'lilac',
+                      icon: 'ellipsis-horizontal',
+                      label: t.personalHome.toolMore,
+                      onPress: data.onMore,
+                    },
+                  ]}
+                />
+              </Card>
             </>
           ) : null}
 

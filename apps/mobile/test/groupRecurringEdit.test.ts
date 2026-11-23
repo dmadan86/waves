@@ -87,4 +87,16 @@ describe('the repeating-expense edit form', () => {
     });
     expect(patch).toMatchObject({ cadence: 'semimonthly', second_day: 20 });
   });
+
+  it('a pool bill stays pooled when the amount or the payers change', () => {
+    const r = rule({
+      splitParams: { kind: 'exact', amounts: { a: 60_000n, b: 30_000n } },
+      participants: ['a', 'b'],
+      payers: { a: 60_000n, b: 30_000n },
+    });
+    const state = { ...editStateFromRule(r), amount: 45_000n };
+    const t = templateFromState(state, r, '', true);
+    expect(t.splitParams).toEqual({ kind: 'exact', amounts: { a: 30_000n, b: 15_000n } });
+    expect([...t.participants].sort()).toEqual(['a', 'b']);
+  });
 });
