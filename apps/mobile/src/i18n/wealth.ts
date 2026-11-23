@@ -386,8 +386,7 @@ export const wealthTa: WealthStrings = {
   yes: 'ஆம்',
   no: 'இல்லை',
   save: 'சேமி',
-  emptyInvestments:
-    'மாதந்தோறும் எவ்வளவு செல்கிறது, இதுவரை என்ன போட்டீர்கள் என அறிய முதலீட்டைச் சேருங்கள்.',
+  emptyInvestments: 'மாதந்தோறும் எவ்வளவு செல்கிறது, இதுவரை என்ன போட்டீர்கள் என அறிய முதலீட்டைச் சேருங்கள்.',
   nextOn: 'அடுத்தது {date}',
   noSchedule: 'அட்டவணை இல்லை',
   entries: 'பதிவுகள்',
@@ -438,8 +437,7 @@ export const wealthTa: WealthStrings = {
   statusDue: 'செலுத்தவேண்டியது',
   statusVacant: 'காலி',
   rentOwed: 'நிலுவை {amount}',
-  depositLine:
-    'நீங்கள் {term} ஆக {amount} வைத்திருக்கிறீர்கள். குத்தகைதாரர் போகும்போது திரும்பி போகும்.',
+  depositLine: 'நீங்கள் {term} ஆக {amount} வைத்திருக்கிறீர்கள். குத்தகைதாரர் போகும்போது திரும்பி போகும்.',
   partLine: 'பகுதி செலுத்தியது: {due}-இல் {paid}. {left} இன்னும் வரவேண்டும்.',
   leaseEndsIn: 'குத்தகை {n} நாட்களில் முடிகிறது',
   tenants: 'குத்தகைதாரர்கள்',

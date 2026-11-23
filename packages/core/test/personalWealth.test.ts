@@ -141,7 +141,6 @@ import {
   settleDeposit,
   goingInPerMonth,
 } from '../src/personal/wealth';
-import { decodeRecurring, decodeInvestment } from '../src/personal/types';
 
 describe('wealth maths', () => {
   const rule = (id: string, anchor: string, amount: string, endDate: string | null) =>

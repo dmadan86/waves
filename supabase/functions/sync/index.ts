@@ -2457,9 +2457,11 @@ export class SyncSession {
     };
     const recordId = requireString(payload.recordId, 'recordId');
     const recordKind = requireString(payload.recordKind, 'recordKind');
-    if (!['txn', 'recurring', 'loan', 'budget', 'date', 'investment', 'property', 'tenancy'].includes(
+    if (
+      !['txn', 'recurring', 'loan', 'budget', 'date', 'investment', 'property', 'tenancy'].includes(
         recordKind,
-      )) {
+      )
+    ) {
       throw new HttpError(400, 'VALIDATION_FAILED', `Unknown personal record kind: ${recordKind}`);
     }
     const data =
