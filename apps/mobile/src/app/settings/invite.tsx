@@ -46,15 +46,15 @@ import {
 } from '@waves/ui';
 
 import { claimReferral, fetchMyReferral } from '@/data/api';
-import { plural, useStrings, type UiStrings } from '@/i18n';
+import { fill, plural, useStrings, type UiStrings } from '@/i18n';
 import { useViewerId } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
 import { router } from '@/lib/navigation';
 import {
-  friendsJoinedText,
   normalizeReferralCode,
   referralLink,
   referralShareText,
+  rewardedFriendsText,
   type ClaimOutcome,
 } from '@/lib/referral';
 import { useReferralsLive } from '@/lib/useReferralsLive';
@@ -151,7 +151,7 @@ export default function InviteFriendsScreen() {
     <Screen edges={[]}>
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: clearance }}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: clearance }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -192,9 +192,9 @@ export default function InviteFriendsScreen() {
                       flexDirection: 'row',
                       alignItems: 'center',
                       gap: theme.spacing.sm,
-                      height: 40,
-                      paddingStart: theme.spacing.md,
-                      paddingEnd: theme.spacing.xs,
+                      minHeight: 56,
+                      paddingStart: theme.spacing.lg,
+                      paddingEnd: theme.spacing.sm,
                       borderRadius: theme.radius.lg,
                       backgroundColor: theme.color.surface,
                       borderWidth: StyleSheet.hairlineWidth,
@@ -237,7 +237,7 @@ export default function InviteFriendsScreen() {
                   accessibilityLabel={t.referral.share}
                   onPress={() => void share()}
                   style={({ pressed }) => ({
-                    borderRadius: theme.radius.md,
+                    borderRadius: theme.radius.lg,
                     overflow: 'hidden',
                     opacity: pressed ? 0.88 : 1,
                   })}
@@ -268,26 +268,59 @@ export default function InviteFriendsScreen() {
                   </View>
                 </Pressable>
 
-                <View
-                  style={[
-                    panel(theme),
-                    { padding: theme.spacing.md, gap: theme.spacing.sm, overflow: 'hidden' },
-                  ]}
-                >
-                  <Image
-                    source={GIFT_ART}
-                    accessibilityIgnoresInvertColors
-                    importantForAccessibility="no"
-                    accessible={false}
-                    resizeMode="contain"
-                    style={{ position: 'absolute', top: 0, end: 0, width: 88, height: 40 }}
-                  />
-                  <Text variant="subheading">
-                    {friendsJoinedText(data, t.referral.friendsJoined)}
-                  </Text>
+                <View style={[panel(theme), { padding: theme.spacing.lg, gap: theme.spacing.sm }]}>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}
+                  >
+                    <View style={{ flex: 1, gap: theme.spacing.xs }}>
+                      <Text variant="subheading" style={{ fontWeight: '800' }}>
+                        {fill(t.referral.creditsEarned, { credits: String(data.creditsEarned) })}
+                      </Text>
+                      <View
+                        accessibilityRole="progressbar"
+                        accessibilityValue={{
+                          min: 0,
+                          max: data.friendsCap,
+                          now: Math.min(data.rewarded, data.friendsCap),
+                        }}
+                        accessibilityLabel={rewardedFriendsText(data, t.referral.rewardedCaption)}
+                        style={{
+                          height: 7,
+                          borderRadius: theme.radius.pill,
+                          backgroundColor: theme.color.brandSoft,
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <View
+                          style={{
+                            width: `${data.friendsCap > 0 ? Math.min(data.rewarded / data.friendsCap, 1) * 100 : 0}%`,
+                            height: '100%',
+                            borderRadius: theme.radius.pill,
+                            backgroundColor: theme.color.brand,
+                          }}
+                        />
+                      </View>
+                      <Text variant="caption" tone="muted">
+                        {rewardedFriendsText(data, t.referral.rewardedCaption)}
+                      </Text>
+                    </View>
+                    <Image
+                      source={GIFT_ART}
+                      accessibilityIgnoresInvertColors
+                      importantForAccessibility="no"
+                      accessible={false}
+                      resizeMode="contain"
+                      style={{ width: 60, height: 60 }}
+                    />
+                  </View>
                   {data.pending > 0 ? (
                     <Text variant="caption" tone="muted">
                       {plural(locale, data.pending, t.referral.pending)}
+                    </Text>
+                  ) : null}
+                  {data.rewarded >= data.friendsCap ? (
+                    <Text variant="caption" tone="muted">
+                      {t.referral.capReached}
                     </Text>
                   ) : null}
                 </View>
@@ -302,12 +335,12 @@ export default function InviteFriendsScreen() {
                 <View
                   style={{
                     flex: 1,
-                    height: 40,
+                    minHeight: 48,
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 8,
-                    paddingHorizontal: 12,
-                    borderRadius: 12,
+                    paddingHorizontal: theme.spacing.md,
+                    borderRadius: theme.radius.lg,
                     backgroundColor: theme.color.surface,
                     borderWidth: StyleSheet.hairlineWidth,
                     borderColor: theme.color.border,
@@ -360,7 +393,7 @@ export default function InviteFriendsScreen() {
           importantForAccessibility="no"
           accessible={false}
           resizeMode="cover"
-          style={{ width: '100%', height: 56, marginTop: 4 }}
+          style={{ width: '100%', aspectRatio: 849 / 188, marginTop: 'auto' }}
         />
       </ScrollView>
     </Screen>
@@ -371,7 +404,7 @@ export default function InviteFriendsScreen() {
 function panel(theme: Theme): ViewStyle {
   return {
     backgroundColor: theme.color.surface,
-    borderRadius: theme.radius.xl,
+    borderRadius: theme.radius.lg,
     ...theme.shadow.soft,
   };
 }

@@ -7717,9 +7717,11 @@ export interface UiStrings {
     body: string;
     share: string;
     shareMessage: string;
-    /** "{n} of {cap} friends joined · {credits} credits earned" */
-    friendsJoined: string;
+    creditsEarned: string;
+    /** "{n} of {cap} friends rewarded" */
+    rewardedCaption: string;
     pending: PluralForms;
+    capReached: string;
     loadError: string;
     haveCode: string;
     apply: string;
@@ -15852,11 +15854,14 @@ const en: UiStrings = {
     body: 'Share a group with friends and unlock a little more from Waves.',
     share: 'Share invite link',
     shareMessage: 'I use Waves to split expenses with friends. Join me:',
-    friendsJoined: '{n} of {cap} friends joined · {credits} credits earned',
+    creditsEarned: '{credits} credits earned',
+    rewardedCaption: '{n} of {cap} friends rewarded',
     pending: {
-      one: '{n} friend has joined. Waiting for their first shared expense.',
-      other: '{n} friends have joined. Waiting for their first shared expense.',
+      one: 'Joined, not yet rewarded: {n} friend. You both get 50 credits after their first shared expense.',
+      other:
+        'Joined, not yet rewarded: {n} friends. You both get 50 credits after their first shared expense.',
     },
+    capReached: "You've reached the 10-friend limit. Thanks for sharing Waves!",
     loadError: 'Could not load your invite. Try again in a moment.',
     haveCode: 'Got a code from a friend?',
     apply: 'Apply',
@@ -24051,11 +24056,14 @@ const ta: UiStrings = {
     body: 'நண்பர்களுடன் ஒரு குழுவைப் பகிர்ந்து, Waves-இல் இன்னும் கொஞ்சம் கூடுதலாகப் பெறுங்கள்.',
     share: 'அழைப்புச் சுட்டியைப் பகிர்',
     shareMessage: 'நண்பர்களுடன் செலவுகளைப் பிரிக்க நான் Waves பயன்படுத்துகிறேன். என்னுடன் சேருங்கள்:',
-    friendsJoined: '{cap} நண்பர்களில் {n} பேர் சேர்ந்தனர் · {credits} கிரெடிட்கள் கிடைத்தன',
+    creditsEarned: '{credits} கிரெடிட்கள் கிடைத்தன',
+    rewardedCaption: '{cap} நண்பர்களில் {n} பேர் பரிசு பெற்றனர்',
     pending: {
-      one: '{n} நண்பர் சேர்ந்துள்ளார். அவரது முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
-      other: '{n} நண்பர்கள் சேர்ந்துள்ளனர். அவர்களின் முதல் பகிர்ந்த செலவுக்காகக் காத்திருக்கிறோம்.',
+      one: 'சேர்ந்தும் பரிசு பெறாத நண்பர்கள்: {n}. முதல் பகிர்ந்த செலவுக்குப் பிறகு இருவருக்கும் 50 கிரெடிட்கள் கிடைக்கும்.',
+      other:
+        'சேர்ந்தும் பரிசு பெறாத நண்பர்கள்: {n}. முதல் பகிர்ந்த செலவுக்குப் பிறகு இருவருக்கும் 50 கிரெடிட்கள் கிடைக்கும்.',
     },
+    capReached: '10 நண்பர்களுக்கான வரம்பை அடைந்துவிட்டீர்கள். Waves-ஐப் பகிர்ந்ததற்கு நன்றி!',
     loadError: 'உங்கள் அழைப்பை ஏற்ற முடியவில்லை. சிறிது நேரம் கழித்து மீண்டும் முயலுங்கள்.',
     haveCode: 'நண்பரிடமிருந்து குறியீடு கிடைத்ததா?',
     apply: 'பயன்படுத்து',
@@ -32108,11 +32116,13 @@ const hi: UiStrings = {
     body: 'दोस्तों के साथ कोई ग्रुप शेयर करें और Waves से थोड़ा और पाएँ।',
     share: 'आमंत्रण लिंक शेयर करें',
     shareMessage: 'Waves से दोस्तों के साथ खर्च बाँटना आसान है। मेरे साथ जुड़ें:',
-    friendsJoined: '{cap} में से {n} दोस्त जुड़े · {credits} क्रेडिट मिले',
+    creditsEarned: '{credits} क्रेडिट मिले',
+    rewardedCaption: '{cap} में से {n} दोस्तों को इनाम मिला',
     pending: {
-      one: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
-      other: '{n} दोस्त जुड़ चुके हैं। उनके पहले साझा खर्च का इंतज़ार है।',
+      one: 'जुड़े, इनाम अभी नहीं मिला: {n} दोस्त। उनके पहले साझा खर्च के बाद आप दोनों को 50 क्रेडिट मिलेंगे।',
+      other: 'जुड़े, इनाम अभी नहीं मिला: {n} दोस्त। उनके पहले साझा खर्च के बाद आप दोनों को 50 क्रेडिट मिलेंगे।',
     },
+    capReached: 'आप 10 दोस्तों की सीमा तक पहुँच गए हैं। Waves साझा करने के लिए धन्यवाद!',
     loadError: 'आपका आमंत्रण लोड नहीं हो सका। थोड़ी देर बाद फिर कोशिश करें।',
     haveCode: 'किसी दोस्त से कोड मिला है?',
     apply: 'लागू करें',
@@ -40921,15 +40931,18 @@ const ar: UiStrings = {
     body: 'شارك مجموعة مع أصدقائك واحصل على المزيد من Waves.',
     share: 'شارك رابط الدعوة',
     shareMessage: 'أستخدم Waves لتقسيم المصاريف مع الأصدقاء. انضم إليّ:',
-    friendsJoined: 'انضم {n} من {cap} أصدقاء · كسبت {credits} رصيدًا',
+    creditsEarned: 'كسبت {credits} رصيدًا',
+    rewardedCaption: 'كوفئ {n} من {cap} أصدقاء',
     pending: {
-      zero: 'لا أصدقاء بانتظار أول مصروف مشترك.',
-      one: 'انضم صديق واحد. ننتظر أول مصروف مشترك له.',
-      two: 'انضم صديقان. ننتظر أول مصروف مشترك لهما.',
-      few: 'انضم {n} أصدقاء. ننتظر أول مصروف مشترك لهم.',
-      many: 'انضم {n} صديقًا. ننتظر أول مصروف مشترك لهم.',
-      other: 'انضم {n} صديق. ننتظر أول مصروف مشترك لهم.',
+      zero: 'انضم أصدقاء ولم تُمنح المكافأة بعد: {n}. سيحصل كلاكما على 50 رصيدًا بعد أول مصروف مشترك.',
+      one: 'انضم صديق ولم تُمنح المكافأة بعد: {n}. سيحصل كلاكما على 50 رصيدًا بعد أول مصروف مشترك.',
+      two: 'انضم صديقان ولم تُمنح المكافأة بعد: {n}. سيحصل كلاكما على 50 رصيدًا بعد أول مصروف مشترك.',
+      few: 'انضم أصدقاء ولم تُمنح المكافأة بعد: {n}. سيحصل كلاكما على 50 رصيدًا بعد أول مصروف مشترك.',
+      many: 'انضم صديق ولم تُمنح المكافأة بعد: {n}. سيحصل كلاكما على 50 رصيدًا بعد أول مصروف مشترك.',
+      other:
+        'انضم أصدقاء ولم تُمنح المكافأة بعد: {n}. سيحصل كلاكما على 50 رصيدًا بعد أول مصروف مشترك.',
     },
+    capReached: 'وصلت إلى حد 10 أصدقاء. شكرًا لمشاركة Waves!',
     loadError: 'تعذّر تحميل دعوتك. حاول مجددًا بعد قليل.',
     haveCode: 'هل لديك رمز من صديق؟',
     apply: 'تطبيق',
