@@ -39,7 +39,7 @@ import {
 import { usePathname } from 'expo-router';
 
 /** Focused capture screens: nothing but an essential ask may pop up over them (a widget cold launch lands here). */
-const QUIET_ROUTES = ['/voice'];
+const QUIET_ROUTES = ['/voice', '/start'];
 
 interface PromptQueueValue {
   /** Register or update a claim; higher priority wins the screen. */
