@@ -29,6 +29,7 @@ import {
   type PersonalRecurring,
   type PersonalTxn,
 } from '../src/personal/index.js';
+import { fallbackCurrency, setFallbackCurrency } from '../src/money/region.js';
 
 const txn = (over: Partial<PersonalTxn>): PersonalTxn => ({
   id: over.id ?? crypto.randomUUID(),
@@ -209,10 +210,14 @@ describe('txn codec', () => {
   });
 
   it('decodes a malformed blob to safe defaults rather than throwing', () => {
+    const originalFallback = fallbackCurrency();
+    setFallbackCurrency('USD');
     const decoded = decodeTxn('x', { amount: 'not-a-number', kind: 'weird' });
     expect(decoded.amount).toBe(0n);
     expect(decoded.kind).toBe('expense');
     expect(decoded.currency).toBe('INR');
+    expect(decodeTxn('legacy', { amount: '100' }).currency).toBe('INR');
+    setFallbackCurrency(originalFallback);
   });
 });
 

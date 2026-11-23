@@ -22,7 +22,7 @@ import {
   useTheme,
 } from '@waves/ui';
 
-import { EMPLOYEE_ID_MAX } from '@waves/core';
+import { EMPLOYEE_ID_MAX, fallbackCurrency } from '@waves/core';
 
 import { withScenicGroup } from '@/components/ScenicScope';
 import { familyOf } from '@/lib/families';
@@ -110,7 +110,7 @@ function MembersScreen() {
   const [error, setError] = useState<string | null>(null);
   const [claimError, setClaimError] = useState<string | null>(null);
 
-  const currency = group.data?.default_currency ?? 'INR';
+  const currency = group.data?.default_currency ?? fallbackCurrency();
   const familiesOn = useFlagEnabled('group_units');
   const ghosts = (members.data ?? []).filter(isGhost);
 

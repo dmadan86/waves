@@ -105,6 +105,7 @@ export interface RawMember {
   ghost_name: string | null;
   profile: { display_name?: string | null } | { display_name?: string | null }[] | null;
 }
+
 export interface RawBalance {
   group_id: string;
   member_id: string;
@@ -446,6 +447,7 @@ export const TOOLS = [
       required: ['groupId', 'toMemberId', 'currency'],
     },
   },
+
   {
     name: 'create_group',
     description: 'Create a new group.',

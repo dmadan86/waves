@@ -23,6 +23,7 @@ import {
   formatFamilyStatement,
   headOf,
   type GroupUnits,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   Button,
@@ -130,7 +131,10 @@ function FamiliesScreen() {
         expenses.rows.map((expense) => [expense.id, expense.currentVersion?.description ?? '']),
       );
       const statement = familyStatement(
-        { name: group.data.name ?? '', currency: group.data.default_currency ?? 'INR' },
+        {
+          name: group.data.name ?? '',
+          currency: group.data.default_currency ?? fallbackCurrency(),
+        },
         units,
         unitId,
         toLedgerSnapshots(expenses.rows, group.data).map((expense) => ({
