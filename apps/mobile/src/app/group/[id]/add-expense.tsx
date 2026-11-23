@@ -46,6 +46,7 @@ import {
   type PaymentMethod,
   type SplitParams,
   type UnitsParams,
+  fallbackCurrency,
 } from '@waves/core';
 import {
   AmountField,
@@ -831,7 +832,9 @@ function AddExpenseScreen() {
               memberId,
               formatMinorInput(
                 minor,
-                (expenseCurrency ?? group.data?.default_currency ?? 'INR') as CurrencyCode,
+                (expenseCurrency ??
+                  group.data?.default_currency ??
+                  fallbackCurrency()) as CurrencyCode,
               ),
             ]),
           ),
@@ -895,7 +898,7 @@ function AddExpenseScreen() {
         setLockedPayers(new Set(draft.lockedPayers ?? []));
         // `groupCurrency` is derived further down the render; the seeding block
         // runs above it, so the group's default is read straight off the row.
-        const draftCurrency = draft.currency ?? group.data?.default_currency ?? 'INR';
+        const draftCurrency = draft.currency ?? group.data?.default_currency ?? fallbackCurrency();
         setPaidText(
           Object.fromEntries(
             Object.entries(draft.payers).map(([id, v]) => [
@@ -1031,7 +1034,7 @@ function AddExpenseScreen() {
   // reopening an edit never hides a configuration that is already unusual.
   const [payerSectionChoice, setPayerSectionChoice] = useState<boolean | null>(null);
 
-  const groupCurrency = group.data?.default_currency ?? 'INR';
+  const groupCurrency = group.data?.default_currency ?? fallbackCurrency();
   // The expense keeps the currency it was paid in; the group's is only the
   // default and what a converted total would be shown in (ADR-003).
   const currency = expenseCurrency ?? groupCurrency;

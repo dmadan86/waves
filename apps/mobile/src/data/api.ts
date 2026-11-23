@@ -34,6 +34,7 @@ import {
   type ReceiptCheck,
   type SpendingRow,
   type SplitParams,
+  fallbackCurrency,
 } from '@waves/core';
 
 import { isDemoGroupId, isDemoId } from '@/demo/ids';
@@ -1773,7 +1774,7 @@ export async function scanReceipt(input: {
       receiptId,
       storagePath: path,
       source: 'camera',
-      currency: input.currency ?? 'INR',
+      currency: input.currency ?? fallbackCurrency(),
     },
   });
   if (error) throw new Error(await readFunctionError(error));
@@ -1797,7 +1798,7 @@ export async function scanReceiptText(input: {
       groupId: input.groupId,
       rawText: input.rawText,
       source: input.source ?? 'text_paste',
-      currency: input.currency ?? 'INR',
+      currency: input.currency ?? fallbackCurrency(),
     },
   });
   if (error) throw new Error(await readFunctionError(error));

@@ -34,10 +34,12 @@ import type { ActivityText } from '@/lib/companyActivity';
 import { getLocales } from 'expo-localization';
 
 import {
-  currencyForCountry,
   dialingCodeForCountry,
   railsFor,
   RailId,
+  resolveCurrency,
+  setDefaultLocale,
+  setFallbackCurrency,
   type CategoryId,
   type CurrencyCode,
   type EventTemplateId,
@@ -8599,7 +8601,10 @@ export interface UiStrings {
       saveIncome: string;
       calculator: string;
       notSet: string;
-      methods: Record<'cash' | 'upi' | 'card' | 'bank' | 'wallet' | 'other', string>;
+      methods: Record<
+        'cash' | 'upi' | 'instant_transfer' | 'card' | 'bank' | 'wallet' | 'other',
+        string
+      >;
     };
     /** The Personal tab's dashboard. */
     dash: {
@@ -16749,6 +16754,7 @@ const en: UiStrings = {
       methods: {
         cash: 'Cash',
         upi: 'UPI',
+        instant_transfer: 'Instant transfer',
         card: 'Card',
         bank: 'Bank transfer',
         wallet: 'Wallet',
@@ -24952,6 +24958,7 @@ const ta: UiStrings = {
       methods: {
         cash: 'பணம்',
         upi: 'UPI',
+        instant_transfer: 'உடனடி பரிமாற்றம்',
         card: 'அட்டை',
         bank: 'வங்கிப் பரிமாற்றம்',
         wallet: 'வாலெட்',
@@ -32982,6 +32989,7 @@ const hi: UiStrings = {
       methods: {
         cash: 'नकद',
         upi: 'UPI',
+        instant_transfer: 'तुरंत ट्रांसफ़र',
         card: 'कार्ड',
         bank: 'बैंक ट्रांसफ़र',
         wallet: 'वॉलेट',
@@ -41905,6 +41913,7 @@ const ar: UiStrings = {
       methods: {
         cash: 'نقداً',
         upi: 'UPI',
+        instant_transfer: 'تحويل فوري',
         card: 'بطاقة',
         bank: 'تحويل بنكي',
         wallet: 'محفظة',
@@ -42263,7 +42272,7 @@ export function isRtl(): boolean {
 }
 
 export function deviceLocale(): string {
-  return getLocales()[0]?.languageTag ?? 'en-IN';
+  return getLocales()[0]?.languageTag ?? 'en-US';
 }
 
 /**
@@ -42302,14 +42311,18 @@ export function deviceCountry(): string | null {
  * one to show a zero in before any group exists.
  *
  * The new-group form derives its currency the same way (`currencyForCountry`
- * of the device country, INR when the country is unknown), so the home
+ * of the device country, USD only as a last resort), so the home
  * screen's empty state and a group made a moment later agree instead of the
- * home showing ₹0 and the group then counting in dollars. India is the last
- * resort, not an American fallback: an unrecognised country is not the US.
+ * home showing 0 in one currency and the group then counting in another. An unrecognised
+ * country gets a neutral default, never India.
  */
 export function deviceDefaultCurrency(): CurrencyCode {
-  return currencyForCountry(deviceCountry()) ?? 'INR';
+  return resolveCurrency(null, deviceCountry(), 'USD'); // shortcut: last resort when region unknown
 }
+
+// Inject the device defaults into core once, at startup.
+setDefaultLocale(deviceLocale);
+setFallbackCurrency(deviceDefaultCurrency);
 
 /**
  * Whether the phone's region can pay over UPI — India today.
@@ -42321,11 +42334,8 @@ export function deviceDefaultCurrency(): CurrencyCode {
  * include UPI, so the tag stays hidden rather than guessing India.
  */
 export function deviceSupportsUpi(): boolean {
-  // An unknown region assumes India, exactly as deviceDefaultCurrency falls back
-  // to INR — otherwise a phone with no Region set shows ₹ everywhere yet hides
-  // UPI, the one rail that ₹ implies. A device set to a real country without the
-  // rail (the UAE, the US) still hides it correctly.
-  return railsFor(deviceCountry() ?? 'IN').some((rail) => rail.id === RailId.Upi);
+  // An unknown region gets the universal rails, which do not include UPI.
+  return railsFor(deviceCountry() ?? '').some((rail) => rail.id === RailId.Upi);
 }
 
 /**

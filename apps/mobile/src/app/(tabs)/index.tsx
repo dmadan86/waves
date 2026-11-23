@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BlurTargetView } from 'expo-blur';
 import { Animated, InteractionManager, Pressable, RefreshControl, View } from 'react-native';
 
-import { type GuestGate } from '@waves/core';
+import { fallbackCurrency, type GuestGate } from '@waves/core';
 import { Button, Popup, Row, Screen, Text, useTabBarClearance, useTheme } from '@waves/ui';
 
 import { useGroups, useHomeSummary, useNewestActivityFromOthers } from '@/data/hooks';
@@ -449,7 +449,7 @@ function HomeScreen() {
   const inHeadline = list.filter(
     // The same fallback the totals key a group by, so a group with no
     // currency set is counted where its balance was summed.
-    (group) => (group.default_currency ?? 'INR') === headline.currency,
+    (group) => (group.default_currency ?? fallbackCurrency()) === headline.currency,
   );
   const owedGroups = inHeadline.filter((group) => summary.balanceFor(group.id) > 0n).length;
   const owingGroups = inHeadline.filter((group) => summary.balanceFor(group.id) < 0n).length;

@@ -35,6 +35,7 @@ import {
   spendingCurrencies,
   spendingTotal,
   type CategoryId,
+  fallbackCurrency,
 } from '@waves/core';
 import { EmptyState, iconSize, Row, Text, useTheme } from '@waves/ui';
 
@@ -120,7 +121,7 @@ function InsightsScreen() {
 
   // The group's own currency first; anything else follows it, so a single
   // foreign expense never becomes the headline.
-  const groupCurrency = group.data?.default_currency ?? 'INR';
+  const groupCurrency = group.data?.default_currency ?? fallbackCurrency();
 
   const scoped = useMemo(() => {
     if (scope === Scope.Mine) {

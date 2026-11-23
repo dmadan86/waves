@@ -44,7 +44,7 @@ const AMOUNT_SHARE = 10;
 const TRAP_SHARE = 5;
 /** The first few amount phrasings (lakh, "sorry", dedh sau…) are in every session. */
 const ALWAYS_AMOUNTS = 4;
-const FALLBACK_CURRENCY = 'INR';
+const FALLBACK_CURRENCY = 'USD'; // shortcut: test-prompt generator only, not region-aware
 
 /** Currencies with no minor unit, so "500" is 500 and not 50000. */
 const ZERO_DECIMAL = new Set(['JPY', 'KRW', 'VND', 'CLP', 'ISK', 'UGX']);

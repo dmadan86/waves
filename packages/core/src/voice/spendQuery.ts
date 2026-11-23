@@ -316,7 +316,7 @@ export function parseSpendQuery(text: string, today: string): SpendQuery | null 
 const CLAUSE_PREPS = new Set(['on', 'at', 'from', 'in', 'for', 'with']);
 
 const amount = (minor: bigint, currency: string): string =>
-  format(money(minor, currency), { locale: 'en-IN' }).replace(/\.0+(?=\D*$)/, '');
+  format(money(minor, currency)).replace(/\.0+(?=\D*$)/, '');
 function phrase(query: SpendQuery): string {
   const phrases: Partial<Record<SpendPeriodKey, string>> = {
     today: 'today',
