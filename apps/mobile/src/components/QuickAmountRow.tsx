@@ -43,7 +43,6 @@ export function QuickAmountRow({
   onPickCurrency: () => void;
 }) {
   const theme = useTheme();
-  const dark = theme.scheme === 'dark';
   const soft = theme.color.brandSoft;
   const accent = theme.color.brand;
   const { t } = useStrings();

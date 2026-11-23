@@ -114,7 +114,6 @@ const CHIP_HEIGHT = 48;
 
 export function QuickExpenseSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const theme = useTheme();
-  const dark = theme.scheme === 'dark';
   const soft = theme.color.brandSoft;
   const accent = theme.color.brand;
   // A destination pill: a lavender chip, outlined in violet when chosen.

@@ -37,7 +37,7 @@ import { useStrings } from '@/i18n';
 import { useCrossfade } from '@/lib/anim';
 import { router } from '@/lib/navigation';
 import { r2Enabled } from '@/lib/storage';
-import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 

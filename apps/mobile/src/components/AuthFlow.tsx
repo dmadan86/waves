@@ -1002,7 +1002,6 @@ function RoundWay({
   face: string;
   children: ReactNode;
 }) {
-  const theme = useTheme();
   return (
     <Pressable
       testID={testID}

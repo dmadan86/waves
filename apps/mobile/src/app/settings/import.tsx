@@ -62,7 +62,7 @@ import { useReducedMotion } from '@/lib/reducedMotion';
 import { useGroupLabeller, useExpenseGroups, useHomeSummary } from '@/data/hooks';
 import { displayName, GroupType, isViewer, type MemberRow } from '@/data/types';
 import { useAuth, useViewerId } from '@/lib/auth';
-import { SPEC_ACCENT, SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
+import { SPEC_INK, SPEC_MUTED } from '@/lib/specPalette';
 import { useBottomClearance } from '@/lib/clearance';
 import { importGate, maybeSelf, suggestSelf } from '@/lib/importSelf';
 import { PersonAvatar } from '@/components/PersonAvatar';
